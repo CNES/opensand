@@ -39,25 +39,24 @@ import gtk
 import gobject
 import copy
 
-from opensand_manager_core.utils import GW, RETURN_UP_BAND, ID
+from opensand_manager_core.utils import GW, RETURN_UP_BAND, ID, GSE
 from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
 from opensand_manager_gui.view.popup.advanced_dialog import AdvancedDialog
-from opensand_manager_gui.view.popup.edit_spot_dialog import EditSpotDialog
+from opensand_manager_gui.view.popup.spot_gw_assignment import SpotGwAssignmentDialog
 from opensand_manager_gui.view.utils.config_elements import ManageSpot
 
 class ConfEvent(ConfView) :
     """ Events on configuration tab """
 
     def __init__(self, parent, model, manager_log):
-        self._free_spot = []
         ConfView.__init__(self, parent, model, manager_log)
 
         self._modif = False
-        # spot table
-        self._tab_spot = ["1", "2", "3"]
-        self.read_conf_free_spot()
+        self._tab_spot = []
+        self._old_spot = []
+        self.read_conf_spot()
 
         self._previous_img = ''
         # update the image
@@ -175,14 +174,14 @@ class ConfEvent(ConfView) :
                 out_frame = gtk.AspectFrame()
                 out_label = gtk.Label()
                 out_label.set_size_request(70, 45)
-                out_label.set_text(out_stack[str(pos)])
+                out_label.set_text(out_stack[pos])
                 out_frame.add(out_label)
             elif out_label is not None:
                 heigth = out_label.get_size_request()[1]
                 out_label.set_size_request(70, heigth + 50)
             if pos < len(in_stack):
                 if pos < len(out_stack):
-                    if out_stack[str(pos)] == in_stack[str(pos)]:
+                    if out_stack[pos] == in_stack[pos]:
                         if packed:
                             hbox.pack_end(vbox_in)
                             sep = gtk.VSeparator()
@@ -221,7 +220,7 @@ class ConfEvent(ConfView) :
                 in_frame = gtk.AspectFrame()
                 in_label = gtk.Label()
                 in_label.set_size_request(70, 45)
-                in_label.set_text(in_stack[str(pos)])
+                in_label.set_text(in_stack[pos])
                 in_frame.add(in_label)
                 vbox_in.pack_start(in_frame)
                 vbox_in.set_child_packing(in_frame, expand=False,
@@ -266,7 +265,6 @@ class ConfEvent(ConfView) :
 #            enable = False
 
         self.refresh_description()
-        self.update_button_state()
 
         self._ui.get_widget('save_conf').set_sensitive(enable)
         self._ui.get_widget('undo_conf').set_sensitive(enable)
@@ -337,48 +335,21 @@ class ConfEvent(ConfView) :
         self.enable_conf_buttons()
 
 
-    def on_add_spot_clicked(self, source=None, event=None):
+    def on_add_spot_gw_assignement_clicked(self, source=None, event=None):
         """ 'clicked' event on add spot button """
-        if len(self._free_spot) > 0:
-            self._free_spot.remove(self._free_spot[0])
-            self.enable_conf_buttons()
+        window = SpotGwAssignmentDialog(self._model, self._tab_spot, self._log, self.update_view)
+        window.go()
         self._update_spot = True
         
         
-    def on_remove_spot_clicked(self, source=None, event=None):
-        """ 'clicked' event on add remove button """
-        
-        window = EditSpotDialog(self._model)
-        spot = window.go()
-        if spot != "":
-            self._free_spot.append(spot)
-            self.enable_conf_buttons()
-        self._update_spot = True
-
-   
-    def update_button_state(self):
-        widget_add = self._ui.get_widget('add_spot')
-        
-        if len(self._free_spot) < 1:
-            widget_add.set_sensitive(False)
-        else:
-            widget_add.set_sensitive(True)
-
-        widget_remove = self._ui.get_widget('remove_spot')
-        if len(self._free_spot) >= 2:
-            widget_remove.set_sensitive(False)
-        else:
-            widget_remove.set_sensitive(True) 
-
-
-    def read_conf_free_spot(self):
-        self._free_spot = copy.deepcopy(self._tab_spot)
+    def read_conf_spot(self):
         config = self._model.get_conf().get_configuration()
         xpath = "//"+RETURN_UP_BAND
         #update free spot id 
         for key in config.get_keys(config.get(xpath)):
-            if key.get(ID) is not None and key.get(ID) in self._free_spot:
-                self._free_spot.remove(key.get(ID))
+            if key.get(ID) is not None:
+                self._tab_spot.append(key.get(ID))
+        self._old_spot = copy.deepcopy(self._tab_spot)
 
 
     def on_enable_physical_layer_toggled(self, source=None, event=None):
@@ -388,14 +359,10 @@ class ConfEvent(ConfView) :
 
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """
-        # reset free spot list
-        self._free_spot = copy.deepcopy(self._tab_spot)
-        config = self._model.get_conf().get_configuration()
-        xpath = "//"+RETURN_UP_BAND
-        for key in config.get_keys(config.get(xpath)):
-            if key.get(ID) in self._free_spot:
-                self._free_spot.remove(key.get(ID))
-
+        # reset spot list
+        self._tab_spot = copy.deepcopy(self._old_spot)
+        self._model.get_topology().cancel()
+        self._model.get_conf().cancel()
         try:
             self.update_view()
         except ConfException as msg:
@@ -424,12 +391,6 @@ class ConfEvent(ConfView) :
         else:
             return
         config.set_emission_std(emission_std)
-
-        # dama
-#        widget = self._ui.get_widget('dama_box')
-#        model = widget.get_model()
-#        active = widget.get_active_iter()
-#        config.set_dama(model.get_value(active, 0))
 
         # check stacks with modules conditions
         modules = self._model.get_encap_modules()
@@ -485,7 +446,7 @@ class ConfEvent(ConfView) :
                 # get the last module of the stack that is not a header modification
                 # module
                 for pos in range(len(stack)):
-                    mod = stack[str(len(stack) - 1 - pos)]
+                    mod = stack[len(stack) - 1 - pos]
                     # header modification plugins are generally in global plugins
                     host_modules = host.get_lan_adapt_modules()
                     if mod in host_modules and  \
@@ -510,6 +471,15 @@ class ConfEvent(ConfView) :
         config.set_return_up_encap(self._out_stack.get_stack())
 
         # input encapsulation scheme
+        xpath = "//dvb_rcs_tal/is_scpc"
+        for host in self._model.get_hosts_list():
+            adv = host.get_advanced_conf()
+            tal_scpc = adv.get_configuration().get(xpath)
+            if tal_scpc is not None and \
+               adv.get_configuration().get_value(tal_scpc) == "true" and \
+               self._in_stack.get_stack()[0] != GSE:
+                error_popup("One terminal is SCPC, forward encapsulation should be GSE")
+                return 
         config.set_forward_down_encap(self._in_stack.get_stack())
 
         # enable physical layer
@@ -523,19 +493,11 @@ class ConfEvent(ConfView) :
         configuration =  config.get_configuration()
         manager = ManageSpot(self._model, configuration)
         xpath = "//"+RETURN_UP_BAND
-        #old spot id
-        old_spots = [] 
-        for key in configuration.get_keys(configuration.get(xpath)):
-            old_spots.append(key.get(ID))
         
-        for key in self._tab_spot:
+        for key in self._old_spot:
             # remove spot
-            if key in self._free_spot and key in old_spots:
+            if key not in self._tab_spot:
                 manager.remove_spot(key)
-            # add spot
-            elif not key in old_spots and not key in self._free_spot:
-                manager.add_spot(key)
-
 
         try:
             #config.save()

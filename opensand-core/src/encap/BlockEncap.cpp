@@ -670,44 +670,17 @@ bool BlockEncap::checkIfScpc()
 	fmt_groups_t ret_fmt_groups;
 	bool is_scpc = false;
 	
-	ConfigurationList fifo_list;
-	ConfigurationList::iterator iter;
-
 	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
 	ConfigurationList spots;
 	ConfigurationList::iterator spot_it;
 	ConfigurationList current_spot;
 
-	/*
-	* Read the MAC queues configuration in the configuration file.
-	* Create and initialize MAC FIFOs
-	*/
-	if(!Conf::getListItems(Conf::section_map[DVB_TAL_SECTION], FIFO_LIST, fifo_list))
+	if(!Conf::getValue(Conf::section_map[DVB_TAL_SECTION], IS_SCPC, is_scpc))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s, %s': missing fifo list", DVB_TAL_SECTION,
-		    FIFO_LIST);
+		    "section '%s': missing parameter '%s'\n",
+		    DVB_TAL_SECTION, BANDWIDTH);
 		return false;
-	}
-
-	for(iter = fifo_list.begin(); iter != fifo_list.end(); iter++)
-	{
-		string fifo_access_type;
-
-		// get the fifo CR type
-		if(!Conf::getAttributeValue(iter, FIFO_ACCESS_TYPE, fifo_access_type))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_ACCESS_TYPE, DVB_TAL_SECTION,
-			    FIFO_LIST);
-			return false;
-		}
-
-		if(fifo_access_type == "SCPC")
-		{
-			is_scpc = true;
-		}
 	}
 
 	if(!is_scpc)

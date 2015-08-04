@@ -782,7 +782,7 @@ class ConfSection(gtk.VBox):
         # list of completions
         self._completions = []
         # bandwidth key
-        self._bandwidth = None
+        self._bandwidth_entry = None
         self._roll_off = 0
         self._symbol_rates = []
         self._ratios = []
@@ -966,7 +966,7 @@ class ConfSection(gtk.VBox):
             self._restrictions.update({key_box: restriction})
 
         if name == BANDWIDTH:
-            self._bandwidth = entry
+            self._bandwidth_entry = entry
         return key_box
 
     def add_table(self, key, source_ext = ""):
@@ -1192,12 +1192,12 @@ class ConfSection(gtk.VBox):
             raise
         
         # Update Bandwidth
-        if update_bandwidth and self._bandwidth:
-            path = self._bandwidth.get_name().split('/@')
+        if update_bandwidth and self._bandwidth_entry:
+            path = self._bandwidth_entry.get_name().split('/@')
             bandwidth = 0.0
             old_bandwidth = float(self._config.get_value(\
                                 self._config.get(path[0]))) * 1E6
-            path_roll_off = self._bandwidth.get_name().split('/@')[0].split('/spot')
+            path_roll_off = self._bandwidth_entry.get_name().split('/@')[0].split('/spot')
             roll_off = float(self._config.get_value(self._config.get(path_roll_off[0] 
                                                                  + '/' + ROLL_OFF)))
             cumul_ratio_rs = 0
@@ -1210,10 +1210,12 @@ class ConfSection(gtk.VBox):
                 ratios = map(lambda x: float(x), self._ratios[i].split(';'))
                 nb_carrier = int(round(sum(ratios) / cumul_ratio_rs * \
                                  old_bandwidth / (1 + roll_off)))
+                if nb_carrier < 1:
+                    nb_carrier = 1
                 
                 bandwidth += float(self._symbol_rates[i]) / 1000000 * \
                         (roll_off + 1) * nb_carrier
-            self._bandwidth.get().set_text(str(bandwidth))
+            self._bandwidth_entry.get().set_text(str(bandwidth))
             self._config.set_value(bandwidth, path[0])
 
         # remove lines in reversed order because each suppression shift indexes

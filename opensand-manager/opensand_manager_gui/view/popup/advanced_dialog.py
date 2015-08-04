@@ -56,6 +56,7 @@ class AdvancedDialog(WindowView):
 
         self._dlg = self._ui.get_widget('advanced_dialog')
         self._dlg.set_keep_above(True)
+        self._dlg.set_modal(True)
         self._model = model
         self._log = manager_log
         self._host_tree = None

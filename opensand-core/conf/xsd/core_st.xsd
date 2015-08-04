@@ -119,7 +119,7 @@
         <xsd:attribute name="access_type" type="returnAccessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of access
+                    The type of access (ignored for SCPC)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -241,6 +241,14 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="is_scpc" type="xsd:boolean">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Whether the terminal is scpc
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+
             <xsd:element ref="layer2_fifos">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">

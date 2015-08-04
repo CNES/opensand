@@ -20,6 +20,10 @@
     </layer2_fifos>
 </xsl:template>
 
+<xsl:template match="is_scpc">
+    <is_scpc>false</is_scpc>
+</xsl:template>
+
 
 </xsl:stylesheet>
 

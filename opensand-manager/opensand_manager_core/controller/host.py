@@ -399,7 +399,7 @@ class HostController:
                                 (tool.get_name(), self.get_name()))
                 raise
 
-    def deploy_modified_files(self, files, scenario, errors=[]):
+    def deploy_modified_files(self, files, errors=[]):
         """ send some files """
         sock = None
         try:
@@ -426,7 +426,7 @@ class HostController:
             errors.append("%s: %s" % (self.get_name(), msg))
             return
         else:
-            self._host_model.set_deployed(scenario)
+            self._host_model.set_deployed()
         finally:
             if sock is not None:
                 sock.close()
@@ -713,9 +713,9 @@ class HostController:
         """ get the type of interface according to the stack """
         return self._host_model.get_interface_type()
 
-    def get_deploy_files(self, scenario):
+    def get_deploy_files(self):
         """ get the files to deploy """
-        return self._host_model.get_deploy_files(scenario)
+        return self._host_model.get_deploy_files()
 
     def first_deploy(self):
         """ check if this is the first deploy """

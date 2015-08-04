@@ -301,12 +301,29 @@ bool SpotUpwardTransp::initMode(void)
 	// to received BBFrames and to be able to deencapsulate GSE packets.
 	if(this->checkIfScpc())
 	{
+		EncapPlugin::EncapPacketHandler *fwd_pkt_hdl;
+		// check that the forward encapsulation scheme is GSE
+		// (this should be automatically set by the manager)
+		if(!this->initPktHdl(FORWARD_DOWN_ENCAP_SCHEME_LIST,
+		                     &fwd_pkt_hdl, false))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "failed to get forward packet handler\n");
+			return false;
+		}
+		if(fwd_pkt_hdl->getName() != "GSE")
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Forward packet handler is not GSE while there is SCPC channels\n");
+			return false;
+		}
+
 		if(!this->initPktHdl("GSE",
 		                     &this->scpc_pkt_hdl, true))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed to get packet handler for receiving GSE packets\n");
-			goto error;
+			return false;
 		}
 
 		this->reception_std_scpc = new DvbScpcStd(this->scpc_pkt_hdl);
@@ -318,13 +335,10 @@ bool SpotUpwardTransp::initMode(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to create the reception standard\n");
-		goto error;
+		return false;
 	}
 
 	return true;
-
-error:
-	return false;
 }
 
 

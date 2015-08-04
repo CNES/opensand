@@ -49,6 +49,7 @@ class EditDialog(WindowView):
         self._dlg = self._ui.get_widget('edit_dialog')
         self._dlg.set_title("Edit %s - OpenSAND Manager" % filename)
         self._dlg.set_keep_above(True)
+        self._dlg.set_modal(True)
         self._buff = gtk.TextBuffer()
         win = self._ui.get_widget('edit_text_win')
         # TODO SourceView here

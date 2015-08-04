@@ -55,6 +55,7 @@ class TopologyConfig(AdvancedHostModel):
         self._last_gw = ""
         self._log = manager_log
         self._modules = []
+        self._scenario = scenario
         AdvancedHostModel.__init__(self, TOPOLOGY, scenario)
 
     def load(self, scenario):
@@ -62,6 +63,7 @@ class TopologyConfig(AdvancedHostModel):
         
         # create the host configuration directory
         conf_path = scenario
+        self._scenario = scenario
         if not os.path.isdir(conf_path):
             try:
                 os.makedirs(conf_path, 0755)
@@ -70,7 +72,7 @@ class TopologyConfig(AdvancedHostModel):
                                      (conf_path, strerror))
 
         self._conf_file = os.path.join(conf_path, CONF_NAME)
-        self._log.debug("topology load scenario %s" % self._conf_file)
+        self._log.info("topology load scenario %s" % self._conf_file)
         # copy the configuration template in the destination directory
         # if it does not exist
         if not os.path.exists(self._conf_file):
@@ -101,7 +103,11 @@ class TopologyConfig(AdvancedHostModel):
             if host.startswith(GW) or host.startswith(ST) or host.startswith(WS):
                 instance = host[2::]
             self.add(host, instance, self._list_host[host])
+   
     
+    def cancel(self):
+        self.load(self._scenario)
+
     def write(self, conf):
         self._configuration.write(conf)
 
@@ -124,9 +130,9 @@ class TopologyConfig(AdvancedHostModel):
                 pass
         return val
 
-    def update_files(self, changed, scenario):
+    def update_files(self, changed):
         """ update the source files according to user configuration """
-        self.get_files().update(changed, scenario)
+        self.get_files().update(changed)
         if len(changed) > 0:
             for filename in changed:
                 self._log.warning("The file %s has not been updated" %
@@ -135,18 +141,18 @@ class TopologyConfig(AdvancedHostModel):
     def get_deploy_files(self):
         """ get the files to deploy (modified files) """
         deploy_files = []
-        deploy_files += self.get_files().get_modified(self._scenario_path)
+        deploy_files += self.get_files().get_modified()
         return deploy_files
 
     def get_all_files(self):
         """ get the files to deploy (modified files) """
         deploy_files = []
-        deploy_files += self.get_files().get_all(self._scenario_path)
+        deploy_files += self.get_files().get_all()
         return deploy_files
 
     def set_deployed(self):
         """ the files were correctly deployed """
-        self.get_files().set_modified(self._scenario_path)
+        self.get_files().set_modified()
 
     def get_name(self):
         """ for compatibility with advanced dialog host calls """

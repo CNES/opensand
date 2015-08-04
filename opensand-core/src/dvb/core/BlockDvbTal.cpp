@@ -231,7 +231,6 @@ bool BlockDvbTal::Downward::onInit(void)
 	                                           "Dvb.QoSServer");
 	this->log_frame_tick = Output::registerLog(LEVEL_WARNING, 
 	                                           "Dvb.DamaAgent.FrameTick");
-
 	// get the common parameters
 	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
 	{

@@ -112,6 +112,8 @@ class Controller(threading.Thread):
             res = 'fail'
             if self._event_manager.get_type() == 'set_scenario':
                 self._model.load()
+                res = 'done'
+                self._event_manager_response.set('resp_set_scenario', res)
             elif self._event_manager.get_type() == 'deploy_platform':
                 if self.deploy_platform():
                     res = 'done'
@@ -238,14 +240,16 @@ class Controller(threading.Thread):
                 dep = list(files)
                 if host.first_deploy():
                     dep = all_files
-                dep += host.get_deploy_files(self._model.get_scenario())
+
+                self._log.info("CONTROLLER deploy files from scenario %s" %
+                               self._model.get_scenario())
+                dep += host.get_deploy_files()
                 if len(dep) > 0:
                     self._log.info("%s: deploy simulation files" % name)
 
-                scenario = self._model.get_scenario()
                 thread = threading.Thread(None, host.deploy_modified_files,
                                           "DeployFiles%s" % name,
-                                          (dep, scenario, errors), {})
+                                          (dep, errors), {})
                 threads.append(thread)
                 thread.start()
         except CommandException, msg:

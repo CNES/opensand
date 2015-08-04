@@ -43,7 +43,7 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanva
 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.utils import FORWARD_DOWN, RETURN_UP, CCM, ACM, VCM,\
-                                        DAMA, ALOHA, SCPC
+                                        DAMA, ALOHA, SCPC, AAL5_ATM
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 
@@ -51,6 +51,8 @@ from opensand_manager_gui.view.popup.infos import error_popup
 FWD_MODCOD_DEF_PATH="/usr/share/opensand/modcod/forward/definition.txt"
 RET_MODCOD_DEF_PATH_ATM="/usr/share/opensand/modcod/return/definition_ATM.txt"
 RET_MODCOD_DEF_PATH_MPEG="/usr/share/opensand/modcod/return/definition_MPEG.txt"
+RET_MODCOD_DEF_PATH_SCPC="/usr/share/opensand/modcodS2/return/definition_SCPC.txt"
+
 
 
 class ModcodParameter(WindowView):
@@ -61,46 +63,48 @@ class ModcodParameter(WindowView):
 
         self._dlg = self._ui.get_widget('edit_dialog')
         self._dlg.set_keep_above(True)
+        self._dlg.set_modal(True)
         
         self._vbox = self._ui.get_widget('edit_dialog_vbox')
         self._edit_text_win = self._ui.get_widget('edit_text_win')
         self._carrier_id = carrier_id
         self._parent = parent
         self._link = link
+        self._model = model
         
         #Add vbox_conf Box
-        self._vbox_conf=gtk.VBox()
+        self._vbox_conf = gtk.VBox()
         self._edit_text_win.add_with_viewport(self._vbox_conf)
         
         #Add hbox_mod in vbox_conf
-        self._hbox_modcod=gtk.HBox()
+        self._hbox_modcod = gtk.HBox()
         self._vbox_conf.pack_start(self._hbox_modcod)
         #Add vbox_vcm_option in vbox_conf
-        self._vbox_vcm_option=gtk.VBox()
+        self._vbox_vcm_option = gtk.VBox()
         self._vbox_conf.pack_start(self._vbox_vcm_option, expand=False)
         
         #Add frame_access_type in hbox_modcod
-        self._frame_access_type=gtk.Frame(label="Access Type")
+        self._frame_access_type = gtk.Frame(label="Access Type")
         self._frame_access_type.set_shadow_type(gtk.SHADOW_OUT)
         self._hbox_modcod.pack_start(self._frame_access_type,padding = 10)
         #Add frame_modcod in hbox_modcod
-        self._frame_modcod=gtk.Frame(label="MODCOD")
+        self._frame_modcod = gtk.Frame(label="MODCOD")
         self._frame_modcod.set_shadow_type(gtk.SHADOW_OUT)
         self._hbox_modcod.pack_start(self._frame_modcod, padding = 25)
         
         #Add vbox_access_type in frame_access_type
-        self._vbox_access_type=gtk.VBox()
+        self._vbox_access_type = gtk.VBox()
         self._frame_access_type.add(self._vbox_access_type)
         #Add modcod_scroll_window in frame_modcod
-        self._modcod_scroll_window=gtk.ScrolledWindow()
+        self._modcod_scroll_window = gtk.ScrolledWindow()
         self._modcod_scroll_window.set_size_request(100, 200)
         self._frame_modcod.add(self._modcod_scroll_window)
         #Add vbox_modcod in modcod_scroll_window
-        self._vbox_modcod=gtk.VBox()
+        self._vbox_modcod = gtk.VBox()
         self._modcod_scroll_window.add_with_viewport(self._vbox_modcod)
         
         #Create Frame_temporal_graphe
-        self._frame_temporal_graphe=gtk.Frame(label="Temporal Representation")
+        self._frame_temporal_graphe = gtk.Frame(label="Temporal Representation")
         
         self._figure = Figure()
         self._ax = self._figure.add_subplot(111)
@@ -116,20 +120,9 @@ class ModcodParameter(WindowView):
         self._vbox_ratio = gtk.VBox()
         self._scroll_ratio.add_with_viewport(self._vbox_ratio)
         
-        
         #Size and display
         self._dlg.set_default_size(500, 300)
         
-        #MODCOD list from file definition.txt
-        if self._link == FORWARD_DOWN:
-            path = FWD_MODCOD_DEF_PATH
-        elif self._link == RETURN_UP:
-            encap = model.get_conf().get_return_up_encap()
-            if encap['0'] == 'AAL5/ATM':
-                path = RET_MODCOD_DEF_PATH_ATM
-            else:
-                path = RET_MODCOD_DEF_PATH_MPEG
-        self._modcod_list = self.load_modcod(path)
         #Item List to simply access to toogle button
         self._item_list = []
         self._list_modcod_ratio = {}
@@ -183,7 +176,7 @@ class ModcodParameter(WindowView):
                                                label=SCPC, use_underline=True)
             self._dama_radio.connect("toggled", self.on_toggled)
             self._aloha_radio.connect("toggled", self.on_toggled)
-            self._scpc_radio.connect("toggled", self.on_toggled)
+            self._scpc_radio.connect("toggled", self.on_scpc_toggled)
             self._vbox_access_type.pack_start(self._dama_radio, 
                                               expand=True, fill=True)
             self._vbox_access_type.pack_start(self._aloha_radio, 
@@ -242,19 +235,33 @@ class ModcodParameter(WindowView):
         self._vbox.show_all()
         
 
-    def set_modcod_widgets(self, source, is_radio):
+    def set_modcod_widgets(self, source, is_radio, option=None):
         """ Create a list of widget with list of modcods """
+        #MODCOD list from file definition.txt
+        if self._link == FORWARD_DOWN:
+            path = FWD_MODCOD_DEF_PATH
+        elif self._link == RETURN_UP:
+            encap = self._model.get_conf().get_return_up_encap()
+            if encap['0'] == AAL5_ATM:
+                path = RET_MODCOD_DEF_PATH_ATM
+            elif option is not None:
+                if option == SCPC:
+                    path = RET_MODCOD_DEF_PATH_SCPC
+            else:
+                path = RET_MODCOD_DEF_PATH_MPEG
+        modcod_list = self.load_modcod(path)
+
         self._item_list=[]
         #Create tooltips for button
         tooltip = gtk.Tooltips()
         #If button become enabled
         if source.get_active():
             check_modcod = None
-            for modcod in self._modcod_list:
+            for modcod in modcod_list:
                 #In radio button the first radio have no group
                 if is_radio:
                     radio_group = None
-                    if modcod == self._modcod_list[0]:
+                    if modcod == modcod_list[0]:
                         #Default value for ratio is 10
                         if modcod in self._list_modcod_ratio.keys():
                             self._dico_modcod[modcod[1] + " " + modcod[2]] = \
@@ -289,7 +296,6 @@ class ModcodParameter(WindowView):
         """Signal when acm button change"""
         self.set_modcod_widgets(source, False)
     
-    
     def on_vcm_toggled(self, source=None):
         """Signal when vcm button change"""
         """ With the list of modcod it creates a list of widget"""
@@ -307,7 +313,11 @@ class ModcodParameter(WindowView):
             self._dlg.resize(500, 300)
             for child in self._vbox_vcm_option:
                 self._vbox_vcm_option.remove(child)
-            
+    
+    def on_scpc_toggled(self, source=None):
+        """Signal when acm button change"""
+        self.set_modcod_widgets(source, False, SCPC)
+        
     
     def on_toggled(self, source=None):
         self.set_modcod_widgets(source, True)
@@ -462,14 +472,17 @@ class ModcodParameter(WindowView):
                     modcod.append(fmt_id)
                     ratio.append(self._dico_modcod[button.get_label()])
                 fmt_id += 1
-        
-            modcods[';'.join(str(e) for e in modcod)] = ratio[0]
+            if len(modcod) > 0 :
+                modcods[';'.join(str(e) for e in modcod)] = ratio[0]
         return modcods
     
 
     def on_save_edit_clicked(self, source=None):
         """Save the modcod configuration """
         modcods = self.get_active_modcod()
+        if len(modcods) == 0:
+            error_popup("At least one modcod should be selected")
+            return
         self._parent.get_list_carrier()[self._carrier_id-1].set_access_type(
             self.get_active_access_type())
         self._parent.get_list_carrier()[self._carrier_id-1].set_modcod(

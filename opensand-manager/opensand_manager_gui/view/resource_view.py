@@ -42,11 +42,12 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 
 from opensand_manager_core.carrier import Carrier
+from opensand_manager_core.carriers_band import CarriersBand
 
 from opensand_manager_core.utils import get_conf_xpath, FORWARD_DOWN, RETURN_UP, \
         ROLL_OFF, CARRIERS_DISTRIB, BANDWIDTH, TAL_AFFECTATIONS, TAL_DEF_AFF, \
         TAL_ID, SYMBOL_RATE, RATIO, ACCESS_TYPE, CATEGORY, ST, SPOT, ID, GW, \
-        RETURN_UP_BAND, FMT_GROUP
+        RETURN_UP_BAND, FMT_GROUP, FMT_GROUPS, FMT_ID, SCPC
 from opensand_manager_gui.view.utils.config_elements import SpotTree
 from opensand_manager_gui.view.window_view import WindowView
 
@@ -63,20 +64,23 @@ class ResourceView(WindowView):
         self._spot = None
         self._gw = None
         self._tree_element = []
+        self._list_carrier = []
+        self._desc_war = {}
+        self._desc_err = {}
 
-        #Add graph froward
+        #Add graph forward
         self._graphe_forward = self._ui.get_widget('scrolledwindow_forward_graph')
         self._figure_forward = Figure()
         self._ax_forward = self._figure_forward.add_subplot(111)
         canvas = FigureCanvas(self._figure_forward)
-        canvas.set_size_request(200,200)
+        canvas.set_size_request(200,170)
         self._graphe_forward.add_with_viewport(canvas)
-        #Add graph froward
+        #Add graph forward
         self._graphe_return = self._ui.get_widget('scrolledwindow_return_graph')
         self._figure_return = Figure()
         self._ax_return = self._figure_return.add_subplot(111)
         canvas = FigureCanvas(self._figure_return)
-        canvas.set_size_request(200,200)
+        canvas.set_size_request(200,170)
         self._graphe_return.add_with_viewport(canvas)
         #Update graph
         
@@ -173,11 +177,9 @@ class ResourceView(WindowView):
         else:
             self._ax_return.cla()
             self._figure_return.canvas.draw()
-        
-        
-    def update_graph(self, link):
-        """Display on the graph the carrier representation"""
-        #get the xml config
+       
+    def update_carrier(self, link):
+        self._list_carrier = []
         config = self._model.get_conf()._configuration
         
         xpath = get_conf_xpath(BANDWIDTH, link, self._spot, self._gw)
@@ -186,16 +188,7 @@ class ResourceView(WindowView):
 
         xpath = get_conf_xpath(ROLL_OFF, link)
         roll_off = float(config.get_value(config.get(xpath)))
-        
-        #get all carriers
-        list_carrier = []
-        color = {1:'b-', 
-                 2:'g-', 
-                 3:'c-', 
-                 4:'m-', 
-                 5:'y-', 
-                 6:'k-', 
-                 7:'r-'}
+
         xpath = get_conf_xpath(CARRIERS_DISTRIB, link, self._spot, self._gw)
         total_ratio_rs = 0
         for carrier in config.get_table_elements(config.get(xpath)):
@@ -209,12 +202,29 @@ class ResourceView(WindowView):
                     bandwidth / (1 + roll_off)))
             if nb_carrier <= 0:
                 nb_carrier = 1
-            list_carrier.append(Carrier(float(content[SYMBOL_RATE]),
+            self._list_carrier.append(Carrier(float(content[SYMBOL_RATE]),
                                         nb_carrier, content[CATEGORY], 
                                         content[ACCESS_TYPE], 
                                         content[FMT_GROUP],
                                         ratio=content[RATIO]))
+
         
+    def update_graph(self, link):
+        """Display on the graph the carrier representation"""
+        #get the xml config
+        config = self._model.get_conf()._configuration
+        
+        self.update_carrier(link)
+
+        #get all carriers
+        color = {1:'b-', 
+                 2:'g-', 
+                 3:'c-', 
+                 4:'m-', 
+                 5:'y-', 
+                 6:'k-', 
+                 7:'r-'}
+                
         #get the roll off
         xpath = get_conf_xpath(ROLL_OFF, link)
         roll_off = float(config.get_value(config.get(xpath)))
@@ -229,7 +239,7 @@ class ResourceView(WindowView):
         self.clear_graph(link)
         #Trace the graphe
         if link == FORWARD_DOWN:
-            for element in list_carrier :
+            for element in self._list_carrier :
                 for nb_carrier in range(1, element.get_nb_carriers()+1):
                     element.calculate_xy(roll_off, off_set)
                     self._ax_forward.plot(element.get_x(), 
@@ -250,7 +260,7 @@ class ResourceView(WindowView):
             self._ax_forward.grid(True)
             self._figure_forward.canvas.draw()
         elif link == RETURN_UP:
-            for element in list_carrier :
+            for element in self._list_carrier :
                 for nb_carrier in range(1, element.get_nb_carriers()+1):
                     element.calculate_xy(roll_off, off_set)
                     self._ax_return.plot(element.get_x(), 
@@ -354,12 +364,31 @@ class ResourceView(WindowView):
                 self._st_return.pack_start(hbox_gr_title, 
                                            expand=False, 
                                            fill=False)
+        
+        self.update_carrier(link)
+        
+        carriers_band = CarriersBand() 
+        carriers_band.modcod_def(self._model.get_scenario(), 
+                                 link, config, False)
+        for carrier in self._list_carrier:
+            carriers_band.add_carrier(carrier)
+        
+        fmt_group = {}
+        xpath = get_conf_xpath(FMT_GROUPS, link, 
+                               self._spot, self._gw)
+        for group in config.get_table_elements(config.get(xpath)):
+            content = config.get_element_content(group)
+            fmt_group[content[ID]] = content[FMT_ID]
+        for fmt_id in fmt_group: 
+            carriers_band.add_fmt_group(int(fmt_id),
+                                        fmt_group[fmt_id])
 
 
         present = {k: group_list.count(k) for k in set(group_list)}
         for group in present:
             #create group field
             hbox_gr = gtk.HBox()
+            evt = gtk.EventBox()
             #Create field for group title
             hbox_gr_title = gtk.HBox()
             hbox_gr.pack_start(hbox_gr_title, expand=False, fill=False)
@@ -373,27 +402,87 @@ class ResourceView(WindowView):
                                     color[color_id])
             label_color.set_use_markup(True)
             #Name of the group
-            label_gr = gtk.Label("<b>Category %s</b>" % group)
-            label_gr.set_use_markup(True)
+            label_gr = "<b>Category %s</b>   " % group
             hbox_gr_title.pack_start(label_color, 
                                      expand=False, 
                                      fill=False, 
                                      padding=10)
-            hbox_gr_title.pack_start(label_gr, 
-                                     expand=False, 
-                                     fill=False, 
-                                     padding=10)
+            
+            # compter category scpc carrier and terminals
+            nb_carrier_scpc = 0
+            nb_carrier = 0
+            nb_tal_scpc = 0
+            nb_tal = 0
+
             #Add all the host with the same group
+            label_st = ""
             for host in host_list:
                 if not host.get_name().lower().startswith(ST):
                     continue
                 if host.get_instance() in terminal_list.keys() and \
                    terminal_list[host.get_instance()] == group:
-                    label_st = gtk.Label(host.get_name().upper())
-                    hbox_gr.pack_start(label_st, 
-                                       expand=False, 
-                                       fill=False, 
-                                       padding=10)
+                    label_st += host.get_name().upper() + " "
+                    adv = host.get_advanced_conf()
+                    xpath = "//dvb_rcs_tal/is_scpc"
+                    tal_scpc = adv.get_configuration().get(xpath)
+                    if tal_scpc is not None :
+                        nb_tal += 1
+                        if adv.get_configuration().get_value(tal_scpc) == "true":
+                            nb_tal_scpc += 1
+
+            expand_rate = gtk.Expander(label = (label_gr + label_st)) 
+            expand_rate.set_use_markup(True)
+            carrier_rate = "";
+            for element in self._list_carrier:
+                if element.get_old_category() in group:
+                    nb_carrier += element.get_nb_carriers()
+                    if element.get_access_type() == SCPC:
+                        nb_carrier_scpc += element.get_nb_carriers()
+                    for (min_rate, max_rate) in carriers_band.get_carrier_bitrates(element):
+                        carrier_rate += "%d carrier(s) rate: [%d, %d] kb/s\n" \
+                                % (element.get_nb_carriers(), min_rate /
+                                   1000, max_rate / 1000)
+            total_rate = "Total rate: [%d, %d] kb/s" % \
+            (carriers_band.get_min_bitrate(element.get_old_category(), 
+                                           element.get_access_type()) / 1000,
+             carriers_band.get_max_bitrate(element.get_old_category(),
+                                           element.get_access_type()) / 1000)
+            label_rate = gtk.Label(carrier_rate + total_rate);
+            label_rate.set_justify(gtk.JUSTIFY_LEFT)
+            label_rate.set_alignment(0, 0.5)
+            expand_rate.add(label_rate)
+            evt.add(expand_rate)
+            evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff, 0xffff))
+            hbox_gr_title.pack_start(evt, 
+                                     expand=False, 
+                                     fill=False, 
+                                     padding=10)    
+           
+            # show warning
+            if nb_tal_scpc > nb_carrier_scpc or \
+               (nb_tal >= (nb_tal_scpc + 1)  and \
+                nb_carrier < (nb_carrier_scpc + 1)):
+                img_war = gtk.Image()
+                img_war.set_from_stock(gtk.STOCK_DIALOG_WARNING,
+                                   gtk.ICON_SIZE_MENU)
+                self._desc_war[group] = img_war
+                hbox_gr_title.pack_start(img_war, expand=True, fill=False, padding=1)
+                self._desc_war[group].set_tooltip_text("It should be one " \
+                                                          "SCPC carrier by " \
+                                                          "SCPC terminal and "\
+                                                          "another carrier "\
+                                                          "for other terminals")
+            # Show error
+            if nb_carrier_scpc > 1:
+                img_err = gtk.Image()
+                img_err.set_from_stock(gtk.STOCK_DIALOG_ERROR,
+                                   gtk.ICON_SIZE_MENU)
+                self._desc_err[group] = img_err
+                hbox_gr_title.pack_start(img_err, expand=True, fill=False, padding=1)
+                self._desc_err[group].set_tooltip_text("It should be one " \
+                                                          "SCPC carrier by " \
+                                                          "category")
+
             #Add the new group in window
             if link == FORWARD_DOWN:
                 self._st_forward.pack_start(hbox_gr, 
@@ -403,6 +492,7 @@ class ResourceView(WindowView):
                 self._st_return.pack_start(hbox_gr, 
                                            expand=False, 
                                            fill=False)
+
         self._ui.get_widget('vbox_resources').show_all()
     
 
