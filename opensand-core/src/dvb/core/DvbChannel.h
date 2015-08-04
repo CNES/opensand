@@ -351,7 +351,7 @@ class DvbChannel
 	 * @param spot_id          the id of the associated spot
 	 * @return                 true if the addition is successful, false otherwise
 	 */
-	bool addTerminalOutput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
+	bool addOutputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
 	 * @brief Add a new Satellite Terminal (ST) in the input list
@@ -362,7 +362,7 @@ class DvbChannel
 	 * @param spot_id          the id of the associated spot
 	 * @return                 true if the addition is successful, false otherwise
 	 */
-	bool addTerminalInput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
+	bool addInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
 	 * @brief Delete a Satellite Terminal (ST) from the list
@@ -384,7 +384,7 @@ class DvbChannel
 	 * @param spot_id the spot id associated
 	 * @return    true if the deletion is successful, false otherwise
 	 */
-	bool delTerminalOutput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
+	bool delOutputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
 	 * @brief Delete a Satellite Terminal (ST) from the input list
@@ -394,7 +394,7 @@ class DvbChannel
 	 * @param spot_id the spot id associated
 	 * @return    true if the deletion is successful, false otherwise
 	 */
-	bool delTerminalInput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
+	bool delInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
 	 * @brief Set the required  MODCOD ID for of the

@@ -330,7 +330,8 @@ bool DvbChannel::initModcodFiles(const char *simu,
 		    PHYSICAL_LAYER_SECTION, simu);
 		return false;
 	}
-	modcod_simu_file << path << "gw" << gw_id << "_spot" << (int) spot_id << "_" << modcod_simu_filename;
+	modcod_simu_file << path << "gw" << gw_id << "_spot"
+	                 << (int) spot_id << "_" << modcod_simu_filename;
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "down/forward link MODCOD simulation path set to %s\n",
 	    modcod_simu_file.str().c_str());
@@ -413,7 +414,7 @@ DvbChannel *DvbChannel::getSpot(spot_id_t spot_id) const
 }
 
 
-bool DvbChannel::addTerminalInput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
+bool DvbChannel::addInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
 {
 	uint8_t modcod;
 	// the column is the id
@@ -439,7 +440,7 @@ bool DvbChannel::addTerminalInput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id
 }
 
 
-bool DvbChannel::addTerminalOutput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
+bool DvbChannel::addOutputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
 {
 	uint8_t modcod = this->output_modcod_def.getMaxId();
 	this->output_sts->addTerminal(id, modcod, gw_id, spot_id);
@@ -454,13 +455,13 @@ bool DvbChannel::delTerminal(tal_id_t st_id, StFmtSimuList* sts, tal_id_t gw_id,
 }
 
 
-bool DvbChannel::delTerminalInput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
+bool DvbChannel::delInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
 {
 	return this->delTerminal(id, this->input_sts, gw_id, spot_id);
 }
 
 
-bool DvbChannel::delTerminalOutput(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
+bool DvbChannel::delOutputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
 {
 	return this->delTerminal(id, this->output_sts, gw_id, spot_id);
 }

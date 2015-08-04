@@ -199,14 +199,14 @@ bool SpotUpwardRegen::initModcodSimu(void)
 	}
 
 	// declare the GW as one ST for the MODCOD scenarios
-	if(!this->addTerminalInput(this->mac_id, this->mac_id, this->spot_id))
+	if(!this->addInputTerminal(this->mac_id, this->mac_id, this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
 		    this->mac_id);
 		return false;
 	}
-	if(!this->addTerminalOutput(this->mac_id, this->mac_id, this->spot_id))
+	if(!this->addOutputTerminal(this->mac_id, this->mac_id, this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",

@@ -2709,14 +2709,14 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	    this->group_id, this->tal_id);
 
 	// Add the st id in the fmt_simu
-	if(!this->addTerminalOutput(this->tal_id, this->group_id, this->spot_id))
+	if(!this->addOutputTerminal(this->tal_id, this->group_id, this->spot_id))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to handle FMT for ST %u, "
 		    "won't send logon response\n", this->tal_id);
 		return false;
 	}
-	if(!this->addTerminalInput(this->tal_id, this->group_id, this->spot_id))
+	if(!this->addInputTerminal(this->tal_id, this->group_id, this->spot_id))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to handle FMT for ST %u, "

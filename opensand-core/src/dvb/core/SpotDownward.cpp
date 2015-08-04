@@ -654,7 +654,7 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 	Logoff *logoff = (Logoff *)dvb_frame;
 
 	// unregister the ST identified by the MAC ID found in DVB frame
-	if(!this->delTerminalInput(logoff->getMac(), this->mac_id, this->spot_id))
+	if(!this->delInputTerminal(logoff->getMac(), this->mac_id, this->spot_id))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to delete the ST with ID %d from FMT simulation\n",
@@ -662,7 +662,7 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 		delete dvb_frame;
 		return false;
 	}
-	if(!this->delTerminalOutput(logoff->getMac(), this->mac_id, this->spot_id))
+	if(!this->delOutputTerminal(logoff->getMac(), this->mac_id, this->spot_id))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to delete the ST with ID %d from FMT simulation\n",
@@ -775,14 +775,14 @@ bool SpotDownward::simulateFile(void)
 			    "SF#%u: send a simulated logon for ST %d\n",
 			    this->super_frame_counter, st_id);
 			// check for column in FMT simulation list
-			if(!this->addTerminalInput(st_id, this->mac_id, this->spot_id))
+			if(!this->addInputTerminal(st_id, this->mac_id, this->spot_id))
 			{
 				LOG(this->log_request_simulation, LEVEL_ERROR,
 				    "failed to register simulated ST with MAC "
 				    "ID %u\n", st_id);
 				goto error;
 			}
-			if(!this->addTerminalOutput(st_id, this->mac_id, this->spot_id))
+			if(!this->addOutputTerminal(st_id, this->mac_id, this->spot_id))
 			{
 				LOG(this->log_request_simulation, LEVEL_ERROR,
 				    "failed to register simulated ST with MAC "
@@ -867,14 +867,14 @@ bool SpotDownward::simulateRandom(void)
 			                                               this->simu_max_vbdc);
 
 			// check for column in FMT simulation list
-			if(!this->addTerminalInput(tal_id, this->mac_id, this->spot_id))
+			if(!this->addInputTerminal(tal_id, this->mac_id, this->spot_id))
 			{
 				LOG(this->log_request_simulation, LEVEL_ERROR,
 				    "failed to register simulated ST with MAC"
 				    " ID %u\n", tal_id);
 				return false;
 			}
-			if(!this->addTerminalOutput(tal_id, this->mac_id, this->spot_id))
+			if(!this->addOutputTerminal(tal_id, this->mac_id, this->spot_id))
 			{
 				LOG(this->log_request_simulation, LEVEL_ERROR,
 				    "failed to register simulated ST with MAC"
