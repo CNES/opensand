@@ -143,6 +143,7 @@ class DvbChannel
 	 * @param pkt_hdl       The packet handler corresponding to the encapsulation scheme
 	 * @return true on success, false otherwise
 	 */
+	// TODO create a GseInitPktHdl instead of force
 	bool initPktHdl(const char *encap_schemes,
 	                EncapPlugin::EncapPacketHandler **pkt_hdl, bool force);
 

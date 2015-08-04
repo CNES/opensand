@@ -51,21 +51,6 @@ SpotUpwardRegen::SpotUpwardRegen(spot_id_t spot_id,
 
 SpotUpwardRegen::~SpotUpwardRegen()
 {
-	if(this->saloha)
-		delete this->saloha;
-
-	// delete FMT groups here because they may be present in many carriers
-	// TODO do something to avoid groups here
-	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
-	    it != this->ret_fmt_groups.end(); ++it)
-	{
-		delete (*it).second;
-	}
-
-	if(this->reception_std)
-		delete this->reception_std;
-	if(this->reception_std_scpc)
-		delete this->reception_std_scpc;
 }
 
 

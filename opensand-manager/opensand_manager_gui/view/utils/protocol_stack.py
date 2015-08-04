@@ -267,24 +267,24 @@ class ProtocolStack():
                        self._header_modif_plugins[mod].get_active()]:
             enabled_header_modif.append(module)
         enabled_header_modif = self.rearange_header_modif(enabled_header_modif)
-        for i in range(len(self._stack)):
+        for key in self._stack.keys():
             for module in enabled_header_modif:
                 if previous in module.get_available_upper_protocols():
                     module_name = self._header_modif_plugins[module].get_name()
-                    stack[str(pos)] = module_name
+                    stack[pos] = module_name
                     previous = module_name
                     pos += 1
                     enabled_header_modif.remove(module)
                     break
-            name = get_combo_val(self._stack[i])
+            name = get_combo_val(self._stack[key])
             if name != '':
-                stack[str(pos)] = name
+                stack[pos] = name
                 previous = name
                 pos += 1
         for module in enabled_header_modif:
             if previous in module.get_available_upper_protocols():
                 module_name = self._header_modif_plugins[module].get_name()
-                stack[str(pos)] = module_name
+                stack[pos] = module_name
                 previous = module_name
                 pos += 1
 

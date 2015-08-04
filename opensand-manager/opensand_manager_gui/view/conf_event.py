@@ -174,14 +174,14 @@ class ConfEvent(ConfView) :
                 out_frame = gtk.AspectFrame()
                 out_label = gtk.Label()
                 out_label.set_size_request(70, 45)
-                out_label.set_text(out_stack[str(pos)])
+                out_label.set_text(out_stack[pos])
                 out_frame.add(out_label)
             elif out_label is not None:
                 heigth = out_label.get_size_request()[1]
                 out_label.set_size_request(70, heigth + 50)
             if pos < len(in_stack):
                 if pos < len(out_stack):
-                    if out_stack[str(pos)] == in_stack[str(pos)]:
+                    if out_stack[pos] == in_stack[pos]:
                         if packed:
                             hbox.pack_end(vbox_in)
                             sep = gtk.VSeparator()
@@ -220,7 +220,7 @@ class ConfEvent(ConfView) :
                 in_frame = gtk.AspectFrame()
                 in_label = gtk.Label()
                 in_label.set_size_request(70, 45)
-                in_label.set_text(in_stack[str(pos)])
+                in_label.set_text(in_stack[pos])
                 in_frame.add(in_label)
                 vbox_in.pack_start(in_frame)
                 vbox_in.set_child_packing(in_frame, expand=False,
@@ -446,7 +446,7 @@ class ConfEvent(ConfView) :
                 # get the last module of the stack that is not a header modification
                 # module
                 for pos in range(len(stack)):
-                    mod = stack[str(len(stack) - 1 - pos)]
+                    mod = stack[len(stack) - 1 - pos]
                     # header modification plugins are generally in global plugins
                     host_modules = host.get_lan_adapt_modules()
                     if mod in host_modules and  \
@@ -477,7 +477,7 @@ class ConfEvent(ConfView) :
             tal_scpc = adv.get_configuration().get(xpath)
             if tal_scpc is not None and \
                adv.get_configuration().get_value(tal_scpc) == "true" and \
-               self._in_stack.get_stack()['0'] != GSE:
+               self._in_stack.get_stack()[0] != GSE:
                 error_popup("One terminal is SCPC, forward encapsulation should be GSE")
                 return 
         config.set_forward_down_encap(self._in_stack.get_stack())
