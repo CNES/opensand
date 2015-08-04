@@ -76,6 +76,7 @@ class Files(object):
         # {sim file xpath: md5sum}
         self._md5 = {}
         self._first = True
+        self._scenario = scenario
 
         self.load(scenario)
         for xpath in self._file_sources:
@@ -85,11 +86,13 @@ class Files(object):
 
     def load(self, scenario, configuration=None):
         """ load the files for current scenario """
+        self._scenario = scenario
         if configuration is not None:
             self._configuration = configuration
         if self._host_name != GLOBAL:
             scenario = os.path.join(scenario, self._host_name)
 
+        
         # handle files elements
         self._file_paths = self._configuration.get_file_paths()
         self._file_sources = self._configuration.get_file_sources()
@@ -105,10 +108,11 @@ class Files(object):
             if not os.path.exists(abs_source):
                 shutil.copy(abs_default, abs_source)
 
-    def update(self, changed, scenario):
+    def update(self, changed):
         """ update changed files """
+        scenario = self._scenario
         if self._host_name != GLOBAL:
-            scenario = os.path.join(scenario, self._host_name)
+            scenario = os.path.join(self._scenario, self._host_name)
 
         # copy the new file into the source
         copied = []
@@ -125,12 +129,13 @@ class Files(object):
         for xpath in copied:
             del changed[xpath]
 
-    def get_modified(self, scenario):
+    def get_modified(self):
         """
         get the tuples source, destination of the files that were modified
         """
+        scenario = self._scenario
         if self._host_name != GLOBAL:
-            scenario = os.path.join(scenario, self._host_name)
+            scenario = os.path.join(self._scenario, self._host_name)
 
         deploy = []
         for xpath in self._file_sources:
@@ -149,12 +154,13 @@ class Files(object):
                 deploy.append((src, dest))
         return deploy
 
-    def get_all(self, scenario):
+    def get_all(self):
         """
         get all the tuples source, destination
         """
+        scenario = self._scenario
         if self._host_name != GLOBAL:
-            scenario = os.path.join(scenario, self._host_name)
+            scenario = os.path.join(self._scenario, self._host_name)
 
         deploy = []
         for xpath in self._file_sources:
@@ -166,12 +172,13 @@ class Files(object):
             deploy.append((src, dest))
         return deploy
 
-    def set_modified(self, scenario):
+    def set_modified(self):
         """
         the files were modified, update the md5sums
         """
+        scenario = self._scenario
         if self._host_name != GLOBAL:
-            scenario = os.path.join(scenario, self._host_name)
+            scenario = os.path.join(self._scenario, self._host_name)
 
         for xpath in self._file_sources:
             self._md5[xpath]= get_md5(os.path.join(scenario,

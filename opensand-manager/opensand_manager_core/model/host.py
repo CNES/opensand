@@ -167,50 +167,50 @@ class HostModel:
         """ get the missing modules """
         return self._missing_modules
 
-    def update_files(self, changed, scenario):
+    def update_files(self, changed):
         """ update the source files according to user configuration """
         if self._advanced is not None:
-            self._advanced.get_files().update(changed, scenario)
+            self._advanced.get_files().update(changed)
         for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
-                files.update(changed, scenario)
+                files.update(changed)
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                files.update(changed, scenario)
+                files.update(changed)
         if len(changed) > 0:
             for filename in changed:
                 self._log.warning("%s: the file %s has not been updated" %
                                   (self._name.upper(), filename))
 
-    def get_deploy_files(self, scenario):
+    def get_deploy_files(self):
         """ get the files to deploy (modified files) """
         deploy_files = []
         if self._advanced is not None:
-            deploy_files += self._advanced.get_files().get_modified(scenario)
+            deploy_files += self._advanced.get_files().get_modified()
         for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
-                deploy_files += files.get_modified(scenario)
+                deploy_files += files.get_modified()
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                deploy_files += files.get_modified(scenario)
+                deploy_files += files.get_modified()
         return deploy_files
 
-    def set_deployed(self, scenario):
+    def set_deployed(self):
         """ the files were correctly deployed """
         if self._advanced is not None:
-            self._advanced.get_files().set_modified(scenario)
+            self._advanced.get_files().set_modified()
         for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
-                files.set_modified(scenario)
+                files.set_modified()
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                files.set_modified(scenario)
+                files.set_modified()
 
     def first_deploy(self):
         """ check if this is the first deploy """

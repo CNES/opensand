@@ -310,7 +310,9 @@ class EventResponseHandler(threading.Thread):
 
             if event_type == "resp_deploy_platform":
                 pass
-
+            if event_type == "resp_set_scenario":
+                pass
+            
             elif event_type == "deploy_files":
                 self._log.debug(" * deploying files")
 

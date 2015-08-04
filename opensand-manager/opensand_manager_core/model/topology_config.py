@@ -72,7 +72,7 @@ class TopologyConfig(AdvancedHostModel):
                                      (conf_path, strerror))
 
         self._conf_file = os.path.join(conf_path, CONF_NAME)
-        self._log.debug("topology load scenario %s" % self._conf_file)
+        self._log.info("topology load scenario %s" % self._conf_file)
         # copy the configuration template in the destination directory
         # if it does not exist
         if not os.path.exists(self._conf_file):
@@ -130,9 +130,9 @@ class TopologyConfig(AdvancedHostModel):
                 pass
         return val
 
-    def update_files(self, changed, scenario):
+    def update_files(self, changed):
         """ update the source files according to user configuration """
-        self.get_files().update(changed, scenario)
+        self.get_files().update(changed)
         if len(changed) > 0:
             for filename in changed:
                 self._log.warning("The file %s has not been updated" %
@@ -141,18 +141,18 @@ class TopologyConfig(AdvancedHostModel):
     def get_deploy_files(self):
         """ get the files to deploy (modified files) """
         deploy_files = []
-        deploy_files += self.get_files().get_modified(self._scenario_path)
+        deploy_files += self.get_files().get_modified()
         return deploy_files
 
     def get_all_files(self):
         """ get the files to deploy (modified files) """
         deploy_files = []
-        deploy_files += self.get_files().get_all(self._scenario_path)
+        deploy_files += self.get_files().get_all()
         return deploy_files
 
     def set_deployed(self):
         """ the files were correctly deployed """
-        self.get_files().set_modified(self._scenario_path)
+        self.get_files().set_modified()
 
     def get_name(self):
         """ for compatibility with advanced dialog host calls """

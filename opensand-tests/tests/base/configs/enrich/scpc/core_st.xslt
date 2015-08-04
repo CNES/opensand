@@ -12,12 +12,8 @@
     </xsl:copy> 
 </xsl:template>
 
-<xsl:template match="layer2_fifos">
-    <layer2_fifos>
-    <xsl:call-template name="Newline" />
-        <fifo priority="4" name="BE" size_max="6000" access_type="SCPC" />
-    <xsl:call-template name="Newline" />
-    </layer2_fifos>
+<xsl:template match="is_scpc">
+    <is_scpc>true</is_scpc>
 </xsl:template>
 
 <xsl:template match="scpc">

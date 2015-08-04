@@ -156,6 +156,7 @@ class Model:
 
         # load the topology configuration
         self.load_topology()
+        self.load_conf()
 
         # actualize the tools scenario path
         for host in self._hosts:
@@ -164,6 +165,8 @@ class Model:
         # load modules configuration
         self.reload_modules()
 
+
+    def load_conf(self):
         # read configuration file
         try:
             if self._config is None:
@@ -432,8 +435,8 @@ class Model:
         # wait controlleur has finished event
         self._event_manager_response.wait(4)
         msg = self._event_manager_response.get_type()
+        i = 0
         if msg == 'deploy_files':
-            i = 0
             while self._event_manager_response.get_type() != \
                  'resp_deploy_files' and i < 4  :
                 self._event_manager_response.wait(4)
@@ -441,6 +444,7 @@ class Model:
         self._modified = True
         self._scenario_path = val
         self._event_manager.set('set_scenario');
+        self._log.info("Model load scenario %s" % val)
         
         # deploy the simulation files when loading a new scenario
         self._event_manager.set('deploy_files')
@@ -594,7 +598,7 @@ class Model:
             modified """
         for host in self._changed_sim_files:
             try:
-                host.update_files(self._changed_sim_files[host], self._scenario_path)
+                host.update_files(self._changed_sim_files[host])
             except IOError, (_, strerror):
                 error_popup("Cannot update files on %s" % host.get_name(), strerror)
 
@@ -609,13 +613,13 @@ class Model:
         self._changed_sim_files = {}
 
     # functions for global host
-    def update_files(self, changed, scenario):
+    def update_files(self, changed):
         """ update the source files according to user configuration """
-        self._config.get_files().update(changed, scenario)
+        self._config.get_files().update(changed)
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                files.update(changed, scenario)
+                files.update(changed)
         if len(changed) > 0:
             for filename in changed:
                 self._log.warning("The file %s has not been updated" %
@@ -624,30 +628,30 @@ class Model:
     def get_deploy_files(self):
         """ get the files to deploy (modified files) """
         deploy_files = []
-        deploy_files += self._config.get_files().get_modified(self._scenario_path)
+        deploy_files += self._config.get_files().get_modified()
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                deploy_files += files.get_modified(self._scenario_path)
+                deploy_files += files.get_modified()
         return deploy_files
 
     def get_all_files(self):
         """ get the files to deploy (modified files) """
         deploy_files = []
-        deploy_files += self._config.get_files().get_all(self._scenario_path)
+        deploy_files += self._config.get_files().get_all()
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                deploy_files += files.get_all(self._scenario_path)
+                deploy_files += files.get_all()
         return deploy_files
 
     def set_deployed(self):
         """ the files were correctly deployed """
-        self._config.get_files().set_modified(self._scenario_path)
+        self._config.get_files().set_modified()
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                files.set_modified(self._scenario_path)
+                files.set_modified()
 
     def get_name(self):
         """ for compatibility with advanced dialog host calls """
