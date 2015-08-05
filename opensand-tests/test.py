@@ -233,6 +233,9 @@ help="specify the root folder for tests configurations\n"
         self._last_error = ""
         self._show_last_logs = options.last_logs
         self._stopped = True
+        self._result_ping = {}
+        self._result_iperf = {}
+        self._result_ping_high = {}
 
         self._quiet = True
         lvl = MGR_WARNING
@@ -293,6 +296,74 @@ help="specify the root folder for tests configurations\n"
             else:
                 self._log.info(" * All tests successfull")
         finally:
+           
+            if self._result_ping or self._result_iperf or self._result_ping_high:
+                print "+-----------|-----------|-----------|-----------+"
+                line = "| {:>9} | {:>9} | {:>9} | {:>9} |"
+                print line.format("TEST", green(" SUCCESS "), red("  ERROR  "),
+                                 "% error")
+                if self._result_ping:
+                    print "+-----------|-----------|-----------|-----------+"
+                    print "|                     ping                      |"
+                    print "+-----------+-----------+-----------+-----------|"
+                    for test in self._result_ping.keys():
+                        line = "| {:>9} | {:>9} | {:>9} | {:>9} |"
+                        percent = int(float(self._result_ping[test][1]) / \
+                                (self._result_ping[test][0] +
+                                 self._result_ping[test][1]) * 100)
+                        if percent == 100:
+                            percent = red("     %s " % percent )
+                        elif percent > 75:
+                            percent = red("      %s " % percent )
+                        elif percent < 10 :
+                            percent = green("       %s " % percent)
+                        else:
+                            percent = str(percent)
+                        print line.format(test, self._result_ping[test][0],
+                                          self._result_ping[test][1], 
+                                          percent)
+                if self._result_iperf:
+                    print "+-----------|-----------|-----------|-----------+"
+                    print "|                     iperf                     |"
+                    print "+-----------+-----------+-----------+-----------|"
+                    for test in self._result_iperf.keys():
+                        line = "| {:>9} | {:>9} | {:>9} | {:>9} |"
+                        percent = int(float(self._result_iperf[test][1]) / \
+                                (self._result_iperf[test][0] +
+                                 self._result_iperf[test][1]) * 100)
+                        if percent == 100:
+                            percent = red("     %s " % percent )
+                        elif percent > 75:
+                            percent = red("      %s " % percent )
+                        elif percent < 10 :
+                            percent = green("       %s " % percent)
+                        else:
+                            percent = str(percent)
+                        print line.format(test, self._result_iperf[test][0],
+                                          self._result_iperf[test][1], 
+                                          percent)
+                if self._result_ping_high:
+                    print "+-----------|-----------|-----------|-----------+"
+                    print "|                    ping_high                  |"
+                    print "+-----------+-----------+-----------+-----------|"
+                    for test in self._result_ping_high.keys():
+                        line = "| {:>9} | {:>9} | {:>9} | {:>9} |"
+                        percent = int(float(self._result_ping_high[test][1]) / \
+                                (self._result_ping_high[test][0] +
+                                 self._result_ping_high[test][1]) * 100)
+                        if percent == 100:
+                            percent = red("     %s " % percent )
+                        elif percent > 75:
+                            percent = red("      %s " % percent )
+                        elif percent < 10 :
+                            percent = green("       %s " % percent)
+                        else:
+                            percent = str(percent)
+                        print line.format(test, self._result_ping_high[test][0],
+                                          self._result_ping_high[test][1], 
+                                          percent)
+                print "+-----------+-----------+-----------+"
+
             # reset the service in the test library
             lib = os.path.join(self._folder, '.lib/opensand_tests.py')
             buf = ""
@@ -935,6 +1006,7 @@ help="specify the root folder for tests configurations\n"
             else:
                 self._log.info(" * thread stopped")
             self._threads.remove(thread)
+        success = False
         if len(self._error) > 0:
             #TODO get the test output
             # in quiet mode print important output on terminal
@@ -961,11 +1033,40 @@ help="specify the root folder for tests configurations\n"
             self._last_error = "No test launched for %s" %  type_name
             # continue on other tests
         else:
+            success = True
             self._log.info(" * Test %s successful" % type_name)
             # in quiet mode print important output on terminal
             if self._quiet:
                 print "{:>7}".format(green("SUCCESS"))
                 sys.stdout.flush()
+            
+        test_restult = {}
+        values = test_name.split("_")
+        if len(values) >= 4:
+            values[2] = values[2] + "_" + values[3]
+            del values[3]
+            
+            for val in values:
+                if val not in self._result_ping and type_name == "ping":
+                    self._result_ping[val] = [int(success), int(not success)]
+                elif val not in self._result_iperf and type_name == "iperf":
+                    self._result_iperf[val] = [int(success), int(not success)]
+                elif val not in self._result_ping_high and type_name == "ping_high":
+                    self._result_ping_high[val] = [int(success), int(not success)]
+                
+                else:
+                    if type_name == "ping":
+                        self._result_ping[val] = [self._result_ping[val][0] + int(success),
+                        self._result_ping[val][1] + int(not success)]
+                    elif type_name == "iperf":
+                        self._result_iperf[val] = [self._result_iperf[val][0] + int(success),
+                        self._result_iperf[val][1] + int(not success)]
+                    elif type_name == "ping_high":
+                        self._result_ping_high[val] = [self._result_ping_high[val][0] + int(success),
+                        self._result_ping_high[val][1] + int(not success)]
+                
+                    
+                
         if not self._stopped and not self._model.all_running():
             # need to check stopped because for local tests we may stop the
             # plateform
