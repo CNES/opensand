@@ -309,38 +309,35 @@ bool DvbChannel::initModcodFiles(const char *simu,
                                  tal_id_t gw_id,
                                  spot_id_t spot_id)
 {
-	stringstream modcod_simu_file;
-	string modcod_simu_filename;
-	string path;
+	string modcod_simu_file;
+	ConfigurationList current_gw;
 
-	// MODCOD simulations and definitions for down/forward link
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   PATH_TO_MODCOD, path))
+	if(!OpenSandConf::getSpot(PHYSICAL_LAYER_SECTION,
+		               spot_id, gw_id, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, PATH_TO_MODCOD);
+		    "section '%s', missing spot for id %d and gw %d\n",
+		    PHYSICAL_LAYER_SECTION, spot_id, gw_id);
 		return false;
 	}
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               simu, modcod_simu_filename))
+
+	if(!Conf::getValue(current_gw, simu, modcod_simu_file))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, simu);
+		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
+		    PHYSICAL_LAYER_SECTION, spot_id, gw_id, simu);
 		return false;
 	}
-	modcod_simu_file << path << "gw" << gw_id << "_spot"
-	                 << (int) spot_id << "_" << modcod_simu_filename;
+
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "down/forward link MODCOD simulation path set to %s\n",
-	    modcod_simu_file.str().c_str());
+	    modcod_simu_file.c_str());
 
 	// no need for simulation file if there is a physical layer
 	if(!this->with_phy_layer)
 	{
 		// set the MODCOD simulation file
-		if(!fmt_simu.setModcodSimu(modcod_simu_file.str()))
+		if(!fmt_simu.setModcodSimu(modcod_simu_file))
 		{
 			return false;
 		}

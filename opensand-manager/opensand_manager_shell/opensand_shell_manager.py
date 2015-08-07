@@ -312,6 +312,8 @@ class EventResponseHandler(threading.Thread):
                 pass
             if event_type == "resp_set_scenario":
                 pass
+            if event_type == "resp_update_config":
+                pass
             
             elif event_type == "deploy_files":
                 self._log.debug(" * deploying files")

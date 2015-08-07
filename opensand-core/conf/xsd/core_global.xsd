@@ -648,53 +648,52 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="path_to_modcod" type="path">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The path to MODCOD definition files
-                        <default>/etc/opensand/modcod/</default>
-                        <source>/etc/opensand/modcod/</source>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="forward_down_modcod_def_s2" type="file">
+        <xsd:element name="forward_down_modcod_def_s2" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD definition file for S2 forward/down link
-                        <default>modcod/forward/definition.txt</default>
-                        <source>modcod/forward_down_def_s2.txt</source>
+                        <default>modcod/s2/definition.txt</default>
+                        <source>modcod/s2/forward_down_def_s2.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="forward_down_modcod_time_series" type="file">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The MODCOD simulation time series for forward/down link
-                        <default>modcod/forward/clear_sky.txt</default>
-                        <source>modcod/forward_down_time_series.txt</source>
-                        <xpath physical_layer.enable="false" />
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="return_up_modcod_def_rcs" type="file">
+        <xsd:element name="return_up_modcod_def_rcs" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD definition file for RCS return/up link
-                        <default>modcod/return/definition_MPEG.txt</default>
-                        <source>modcod/return_up_def_rcs.txt</source>
+                        <default>modcod/rcs/definition_MPEG.txt</default>
+                        <source>modcod/rcs/return_up_def_rcs.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="return_up_modcod_time_series" type="file">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The MODCOD simulation time series for return/up link
-                        <default>modcod/return/clear_sky.txt</default>
-                        <source>modcod/return_up_time_series.txt</source>
-                        <xpath physical_layer.enable="false" />
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
+            <xsd:element name="spot" minOccurs="1" maxOccurs="32">
+                 <xsd:complexType>
+                    <xsd:sequence>
+                <xsd:element name="forward_down_modcod_time_series" type="file">
+                    <xsd:annotation>
+                            <xsd:documentation xml:lang="en">
+                                The MODCOD simulation time series for forward/down link
+                                <default>modcod/s2/clear_sky.txt</default>
+                                <source>modcod/forward_down_time_series.txt</source>
+                                <xpath physical_layer.enable="false" />
+                            </xsd:documentation>
+                        </xsd:annotation>
+                    </xsd:element>
+                <xsd:element name="return_up_modcod_time_series" type="file">
+                    <xsd:annotation>
+                            <xsd:documentation xml:lang="en">
+                                The MODCOD simulation time series for return/up link
+                                <default>modcod/rcs/clear_sky.txt</default>
+                                <source>modcod/return_up_time_series.txt</source>
+                                <xpath physical_layer.enable="false" />
+                            </xsd:documentation>
+                       </xsd:annotation>
+                    </xsd:element>
+                </xsd:sequence>
+                <xsd:attribute name="id"/>
+                <xsd:attribute name="gw" type="talId"/>
+        </xsd:complexType>
+        </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

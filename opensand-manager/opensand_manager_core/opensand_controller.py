@@ -114,6 +114,10 @@ class Controller(threading.Thread):
                 self._model.load()
                 res = 'done'
                 self._event_manager_response.set('resp_set_scenario', res)
+            elif self._event_manager.get_type() == 'update_config':
+                self._model.update_config()
+                res = 'done'
+                self._event_manager_response.set('resp_update_config', res)
             elif self._event_manager.get_type() == 'deploy_platform':
                 if self.deploy_platform():
                     res = 'done'

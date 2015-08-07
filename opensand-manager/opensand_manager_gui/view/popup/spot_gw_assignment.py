@@ -55,6 +55,7 @@ class SpotGwAssignmentDialog(WindowView):
         self._model = model
         self._default_spot = 1
         self._spot_list = spot_list
+        self._gw_list = []
         self._new_list = []
         self._default_gw = 0
         self._update_cb = update_cb
@@ -138,7 +139,7 @@ class SpotGwAssignmentDialog(WindowView):
         spots = gtk.ListStore(int, str)
         gws = gtk.ListStore(int, str)
         spot_list = []
-        gw_list = []
+        self._gw_list = []
 
         for spot_id in self._spot_list:
             spot_value =  "SPOT" + spot_id
@@ -159,8 +160,8 @@ class SpotGwAssignmentDialog(WindowView):
             if gw.tag == "gw" : 
                 content = config.get_element_content(gw)
                 gw_value =  "GW" + content[ID]
-                if (int(content[ID])) not in gw_list:
-                    gw_list.insert(int(content[ID]), int(content[ID]))
+                if (int(content[ID])) not in self._gw_list:
+                    self._gw_list.insert(int(content[ID]), int(content[ID]))
                     gws.insert(int(content[ID]),
                                  [int(content[ID]), gw_value])
                     
@@ -189,7 +190,7 @@ class SpotGwAssignmentDialog(WindowView):
             combo_box_spot.set_active(def_spot)
             combo_box_gw.pack_start(renderer_text, True)
             combo_box_gw.add_attribute(renderer_text, "text", 1)
-            def_gw = self.get_gw_value(gw_list,
+            def_gw = self.get_gw_value(self._gw_list,
                                        int(self.get_default_gw_assignment()))
             combo_box_gw.set_active(def_gw)
             for st in st_spot_list:
@@ -197,7 +198,7 @@ class SpotGwAssignmentDialog(WindowView):
                     combo_box_spot.set_active(self.get_spot_value(spot_list, st[1]))
             for st in st_gw_list:
                 if host.get_name().lower() == ST + str(st[0]):
-                    combo_box_gw.set_active(self.get_gw_value(gw_list, st[1]))
+                    combo_box_gw.set_active(self.get_gw_value(self._gw_list, st[1]))
             #Add all in the window
             hbox_spot_allocation.pack_start(label_st_name)
             hbox_spot_allocation.pack_start(combo_box_spot)
@@ -281,6 +282,7 @@ class SpotGwAssignmentDialog(WindowView):
         """Save the ST assignment"""
         st_line = []
         st_list = self.get_st_list()
+        self._update_spot = True
 
         # number a terminal by spot and gw
         nb_line_spot = {}
@@ -345,7 +347,7 @@ class SpotGwAssignmentDialog(WindowView):
             #-------------#
             #     GW      #
             # ------------#
-            terminal_path = PATH_GW + "/gw[@id='" + str(st[2]) + "']/terminals"
+            terminal_path = PATH_GW + "/gw[@id='" + str(self._gw_list[st[2]]) + "']/terminals"
             table = topo.get(terminal_path)
             
             # remove terminal's line 
@@ -404,6 +406,7 @@ class SpotGwAssignmentDialog(WindowView):
             self._spot_list.remove(spot)
         self._model.get_topology().cancel()
         self._model.get_conf().cancel()
+        self._update_spot = False
         
         gobject.idle_add(self._update_cb)
         self._dlg.destroy()

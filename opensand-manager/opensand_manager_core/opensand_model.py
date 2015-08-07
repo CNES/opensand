@@ -80,6 +80,7 @@ class Model:
         self._is_adv_mode = False
 
         self._hosts = []
+        self._add_host = []
         self._ws = []
         self._collector_known = False
         self._collector_functional = False
@@ -285,6 +286,7 @@ class Model:
                 self._log.debug("remove host: '" + name + "'")
                 if not name == 'sat':
                     self._topology.remove(name, self._hosts[idx].get_instance())
+                    self._config.remove(name, self._hosts[idx].get_instance())
                 del self._hosts[idx]
             idx += 1
 
@@ -361,22 +363,38 @@ class Model:
         if component == SAT:
             self._hosts.insert(0, host)
         elif component == GW:
-            self._config.get_configuration().add_gw('//' + FORWARD_DOWN_BAND, instance)
+            """self._config.get_configuration().add_gw('//' + FORWARD_DOWN_BAND, instance)
             self._config.get_configuration().add_gw('//' + RETURN_UP_BAND, instance)
-            self._config.get_configuration().write()
+            self._config.get_configuration().add_gw('//' + PHYSICAL_LAYER, instance)
+            self._config.get_configuration().write()"""
             self._hosts.insert(1, host)
         elif component != WS:
             self._hosts.append(host)
         else:
             self._ws.append(host)
 
-        self._topology.add(name, instance, network_config)
-        self.update_spot_gw()
+        self._add_host.append([name, instance, network_config])
+        self._event_manager.set('update_config');
+        """self._topology.add(name, instance, network_config)
+        self._config.add(name, instance, network_config)
+        self.update_spot_gw()"""
+        if component == GW:
+            self._event_manager.set('deploy_files')
 
         if not checked:
             raise ModelException
         else:
             return host
+
+    def update_config(self):
+        self._topology.add(self._add_host[0][0], 
+                           self._add_host[0][1],
+                           self._add_host[0][2])
+        self._config.add(self._add_host[0][0], 
+                           self._add_host[0][1],
+                           self._add_host[0][2])
+        self.update_spot_gw()
+        del self._add_host[0]
 
     def host_ready(self, host):
         """ a host was correcly contacted by the controller """

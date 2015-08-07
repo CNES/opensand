@@ -860,6 +860,8 @@ class ConfSection(gtk.VBox):
                        (key.get(GW) is None or self._gw_id == key.get(GW)):
                         for s_key in self._config.get_keys(key):
                             source_ext = "_spot_" + self._spot_id
+                            if key.get(GW) is not None:
+                                source_ext += "_gw_" + self._gw_id
                             if self._config.is_table(s_key):
                                 table = self.add_table(s_key, source_ext)
                                 if table is not None:

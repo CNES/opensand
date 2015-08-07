@@ -171,6 +171,33 @@ class GlobalConfig(AdvancedHostModel):
                                             element.set(att,str(val))
 
 
+    def add(self, name, instance, net_config):
+        if name.startswith(GW):
+            exist =  False
+            for section in self._configuration.get_sections():
+                for child in section.iterchildren():
+                    if (child.tag == GW and child.get(ID) == instance) or \
+                       (child.tag == SPOT and child.get(GW) == instance):
+                        exist =  True
+                        continue
+                    
+                if not exist:
+                    self._configuration.add_gw("//"+section.tag, instance) 
+
+            self._configuration.write()
+            self._files.load(self._scenario, self._configuration)
+
+    def remove(self, name, instance):
+        if name.startswith(GW):
+            for section in self._configuration.get_sections():
+                for child in section.getchildren():
+                    if child.tag ==  SPOT or child.tag == GW:
+                        self._configuration.remove_gw("//"+section.tag, instance) 
+                        break
+
+            self._configuration.write()
+            self._files.load(self._scenario, self._configuration)
+
 
     def set_payload_type(self, val):
         """ set the payload_type value """

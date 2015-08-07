@@ -115,6 +115,7 @@ class TopologyConfig(AdvancedHostModel):
     def save(self):
         """ save the configuration """
         try:
+            self._files.load(self._scenario, self._configuration)
             self._configuration.write()
         except XmlException:
             raise

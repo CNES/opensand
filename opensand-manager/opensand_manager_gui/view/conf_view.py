@@ -238,6 +238,7 @@ class ConfView(WindowView):
             (used in callback so no need to use locks) """
         try:
             if self._update_spot:
+                self._update_spot = False
                 return True
 
             config = self._model.get_conf()

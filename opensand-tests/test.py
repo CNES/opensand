@@ -298,7 +298,7 @@ help="specify the root folder for tests configurations\n"
         finally:
            
             if self._result_ping or self._result_iperf or self._result_ping_high:
-                print "+-----------|-----------|-----------|-----------+"
+                print "+-----------+-----------+-----------+-----------+"
                 line = "| {:>9} | {:>9} | {:>9} | {:>9} |"
                 print line.format("TEST", green(" SUCCESS "), red("  ERROR  "),
                                  "% error")
@@ -362,7 +362,7 @@ help="specify the root folder for tests configurations\n"
                         print line.format(test, self._result_ping_high[test][0],
                                           self._result_ping_high[test][1], 
                                           percent)
-                print "+-----------+-----------+-----------+"
+                print "+-----------+-----------+-----------+-----------+"
 
             # reset the service in the test library
             lib = os.path.join(self._folder, '.lib/opensand_tests.py')

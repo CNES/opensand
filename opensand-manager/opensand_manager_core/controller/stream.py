@@ -130,7 +130,6 @@ class Stream:
         buf = ''
 
         self._log.debug("send content of file '%s'" % src_filename)
-
         name = os.path.basename(dst_filename)
         if mode is None:
             try:

@@ -87,6 +87,7 @@ SCPC              = "SCPC"
 # Section
 RETURN_UP_BAND    = "return_up_band"
 FORWARD_DOWN_BAND = "forward_down_band"
+PHYSICAL_LAYER    = "physical_layer"
 
 GSE      = "GSE"
 AAL5_ATM = "AAL5/ATM"

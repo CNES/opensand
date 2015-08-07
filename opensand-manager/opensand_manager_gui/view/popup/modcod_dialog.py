@@ -48,10 +48,10 @@ from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 
 
-FWD_MODCOD_DEF_PATH="/usr/share/opensand/modcod/forward/definition.txt"
-RET_MODCOD_DEF_PATH_ATM="/usr/share/opensand/modcod/return/definition_ATM.txt"
-RET_MODCOD_DEF_PATH_MPEG="/usr/share/opensand/modcod/return/definition_MPEG.txt"
-RET_MODCOD_DEF_PATH_SCPC="/usr/share/opensand/modcodS2/return/definition_SCPC.txt"
+FWD_MODCOD_DEF_PATH="/usr/share/opensand/modcod/s2/definition.txt"
+RET_MODCOD_DEF_PATH_ATM="/usr/share/opensand/modcod/rcs/definition_ATM.txt"
+RET_MODCOD_DEF_PATH_MPEG="/usr/share/opensand/modcod/rcs/definition_MPEG.txt"
+RET_MODCOD_DEF_PATH_SCPC="/usr/share/opensand/modcod/s2/definition.txt"
 
 
 

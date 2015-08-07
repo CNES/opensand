@@ -335,6 +335,9 @@ class XmlParser:
                 if elem.getparent().tag == SPOT:
                     spot = "_spot_%s" % elem.getparent().get(ID)
                     source += spot
+                    if elem.getparent().get(GW) is not None:
+                        gw = "_gw_%s" % elem.getparent().get(GW)
+                        source += gw
                     files.append((default, source))
                     continue
                 files.append((default, source))
@@ -352,6 +355,9 @@ class XmlParser:
                 line = path[pos:].strip('[]')
                 if elem.getparent().getparent().tag == SPOT:
                     spot = "_spot_%s" % elem.getparent().getparent().get(ID)
+                    if elem.getparent().getparent().get(GW) is not None:
+                        gw = "_gw_%s" % elem.getparent().getparent().get(GW)
+                        spot += gw
                     files.append((default, "%s%s_%s" % (source, spot, line)))
                     continue
                 files.append((default, "%s_%s" % (source, line)))
@@ -369,6 +375,9 @@ class XmlParser:
                 source = self.get_doc_param('/source', self.get_name(elem))
                 if elem.getparent().tag == SPOT:
                     spot = "_spot_%s" % elem.getparent().get(ID)
+                    if elem.getparent().get(GW) is not None:
+                        gw = "_gw_%s" % elem.getparent().get(GW)
+                        spot += gw
                     files[self.get_path(elem)] = "%s%s" % (source, spot)
                     continue
                 files[self.get_path(elem)] = source
@@ -385,6 +394,9 @@ class XmlParser:
                 line = path[pos:].strip('[]')
                 if elem.getparent().getparent().tag == SPOT:
                     spot = "_spot_%s" % elem.getparent().getparent().get(ID)
+                    if elem.getparent().getparent().get(GW) is not None:
+                        gw = "_gw_%s" % elem.getparent().getparent().get(ID)
+                        spot += gw
                     files["%s/@%s" % (path, node)] = "%s%s_%s" % (source, spot, line)
                     continue
                 files["%s/@%s" % (path, node)] = "%s_%s" % (source, line)

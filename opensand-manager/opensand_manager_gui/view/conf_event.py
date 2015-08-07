@@ -170,7 +170,8 @@ class ConfEvent(ConfView) :
         out_label = None
         packed = False
         for pos in range(max(len(in_stack), len(out_stack))):
-            if pos < len(out_stack):
+            pos = str(pos)
+            if pos in out_stack.keys():
                 out_frame = gtk.AspectFrame()
                 out_label = gtk.Label()
                 out_label.set_size_request(70, 45)
@@ -179,8 +180,8 @@ class ConfEvent(ConfView) :
             elif out_label is not None:
                 heigth = out_label.get_size_request()[1]
                 out_label.set_size_request(70, heigth + 50)
-            if pos < len(in_stack):
-                if pos < len(out_stack):
+            if pos in in_stack.keys():
+                if pos in out_stack.keys():
                     if out_stack[pos] == in_stack[pos]:
                         if packed:
                             hbox.pack_end(vbox_in)
@@ -339,7 +340,6 @@ class ConfEvent(ConfView) :
         """ 'clicked' event on add spot button """
         window = SpotGwAssignmentDialog(self._model, self._tab_spot, self._log, self.update_view)
         window.go()
-        self._update_spot = True
         
         
     def read_conf_spot(self):
@@ -539,6 +539,7 @@ class ConfEvent(ConfView) :
             gobject.idle_add(self.enable_conf_buttons, False)
         except ConfException as msg:
             error_popup(str(msg))
+
 
 
 

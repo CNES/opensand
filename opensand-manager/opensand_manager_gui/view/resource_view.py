@@ -67,6 +67,7 @@ class ResourceView(WindowView):
         self._list_carrier = []
         self._desc_war = {}
         self._desc_err = {}
+        self._update_spot = False
 
         #Add graph forward
         self._graphe_forward = self._ui.get_widget('scrolledwindow_forward_graph')
