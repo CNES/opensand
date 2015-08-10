@@ -43,7 +43,9 @@
 #include "Sof.h"
 
 SpotUpward::SpotUpward(spot_id_t spot_id,
-                       tal_id_t mac_id):
+                       tal_id_t mac_id,
+                       StFmtSimuList *input_sts,
+                       StFmtSimuList *output_sts):
 	spot_id(spot_id),
 	mac_id(mac_id),
 	reception_std(NULL),
@@ -58,6 +60,8 @@ SpotUpward::SpotUpward(spot_id_t spot_id,
 	event_logon_req(NULL)
 {
 	this->super_frame_counter = 0;
+	this->input_sts = input_sts;
+	this->output_sts = output_sts;
 }
 
 SpotUpward::~SpotUpward()

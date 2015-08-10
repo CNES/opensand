@@ -145,6 +145,9 @@ class StFmtSimuList
 	/** the list of StFmtSimu per spot and per gw */
 	ListStsPerSpotPerGw sts;
 
+	// Output Log
+	OutputLog *log_fmt;
+
 	/** a list which associate a st id with it gw id and spot id */
 	std::map<tal_id_t, std::pair<spot_id_t, tal_id_t> > sts_ids;
 

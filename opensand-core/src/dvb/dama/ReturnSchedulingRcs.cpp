@@ -43,7 +43,7 @@
 ReturnSchedulingRcs::ReturnSchedulingRcs(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos):
-	Scheduling(packet_handler, fifos)
+	Scheduling(packet_handler, fifos, NULL)
 {
 }
 

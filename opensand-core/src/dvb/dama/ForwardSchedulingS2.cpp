@@ -93,12 +93,11 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
                                          bool is_gw, 
                                          tal_id_t gw,
                                          string dst_name):
-	Scheduling(packet_handler, fifos),
+	Scheduling(packet_handler, fifos, fwd_sts),
 	fwd_timer_ms(fwd_timer_ms),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
-	fwd_sts(fwd_sts),
 	fwd_modcod_def(fwd_modcod_def),
 	category(category),
 	spot_id(spot)
@@ -821,13 +820,13 @@ tal_id_t ForwardSchedulingS2::getTalIdWithLowerModcod() const
 	tal_id_t tal_id;
 	tal_id_t lower_tal_id = 255;
 
-	for(st_iterator = this->fwd_sts->begin(); st_iterator != this->fwd_sts->end();
+	for(st_iterator = this->simu_sts->begin(); st_iterator != this->simu_sts->end();
 	    ++st_iterator)
 	{
 		// Retrieve the lower modcod
 		tal_id = st_iterator->first;
 
-		if((st_iterator == this->fwd_sts->begin()) || (modcod_id < lower_modcod_id))
+		if((st_iterator == this->simu_sts->begin()) || (modcod_id < lower_modcod_id))
 		{
 			lower_modcod_id = modcod_id;
 			lower_tal_id = tal_id;
@@ -841,25 +840,13 @@ tal_id_t ForwardSchedulingS2::getTalIdWithLowerModcod() const
 }
 
 
-uint8_t ForwardSchedulingS2::getCurrentModcodId(tal_id_t id) const
-{
-	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
-	st_iter = this->fwd_sts->find(id);
-	if(st_iter != this->fwd_sts->end())
-	{
-		return (*st_iter).second->getCurrentModcodId();
-	}
-	return 0;
-}
-
-
 bool ForwardSchedulingS2::retrieveCurrentModcod(tal_id_t tal_id,
                                                 const time_sf_t current_superframe_sf,
                                                 unsigned int &modcod_id)
 {
 	// retrieve the current MODCOD for the ST and whether
 	// it changed or not
-	if(this->fwd_sts->find(tal_id) == this->fwd_sts->end())
+	if(this->simu_sts->find(tal_id) == this->simu_sts->end())
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: encapsulation packet is for ST with ID %u "

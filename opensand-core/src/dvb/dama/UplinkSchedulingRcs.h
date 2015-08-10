@@ -41,7 +41,6 @@
 #include "DvbRcsFrame.h"
 #include "TerminalCategoryDama.h"
 #include "FmtSimulation.h"
-#include "StFmtSimu.h"
 
 #include <opensand_output/OutputLog.h>
 
@@ -105,16 +104,6 @@ class UplinkSchedulingRcs: public Scheduling
 	 */
 	bool createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
 	                                 uint8_t modcod_id);
-
-	/**
-	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
-	 *
-	 * @param id  the ID of the ST
-	 * @return    the current MODCOD ID of the ST
-	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
-	 */
-	uint8_t getCurrentModcodId(tal_id_t id) const;
 
 
 	/**

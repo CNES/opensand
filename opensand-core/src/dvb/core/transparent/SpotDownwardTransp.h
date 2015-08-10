@@ -53,6 +53,8 @@ class SpotDownwardTransp: public SpotDownward
 		             time_ms_t stats_period,
 		             sat_type_t sat_type,
 		             EncapPlugin::EncapPacketHandler *pkt_hdl,
+		             StFmtSimuList *input_sts,
+		             StFmtSimuList *output_sts,
 		             bool phy_layer);
 		~SpotDownwardTransp();
 		bool onInit(void);

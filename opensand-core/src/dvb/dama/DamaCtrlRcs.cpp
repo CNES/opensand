@@ -346,6 +346,13 @@ void DamaCtrlRcs::updateFmt()
 		}
 		category = (*category_it).second;
 		simulated_fmt = this->getCurrentModcodId(id);
+		if(simulated_fmt == 0)
+		{
+			LOG(this->log_fmt, LEVEL_ERROR,
+			    "SF#%u: cannot find MODCOD id for ST %u\n",
+			    this->current_superframe_sf, id);
+			continue;
+		}
 		LOG(this->log_fmt, LEVEL_DEBUG,
 		    "SF#%u: ST%u simulated FMT ID before affectation: %u\n",
 		    this->current_superframe_sf, id, simulated_fmt);

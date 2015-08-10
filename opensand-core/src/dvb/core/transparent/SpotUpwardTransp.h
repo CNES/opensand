@@ -51,7 +51,9 @@ class SpotUpwardTransp: public SpotUpward
 {
 	public:
 		SpotUpwardTransp(spot_id_t spot_id,
-		           tal_id_t mac_id);
+		                 tal_id_t mac_id,
+		                 StFmtSimuList *input_sts,
+		                 StFmtSimuList *output_sts);
 		~SpotUpwardTransp();
 		bool onInit();
 

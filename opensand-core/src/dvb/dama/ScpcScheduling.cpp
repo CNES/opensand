@@ -91,7 +91,7 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
                                FmtSimulation *const scpc_fmt_simu,
                                FmtDefinitionTable *const scpc_modcod_def,
                                const TerminalCategoryDama *const category):
-	Scheduling(packet_handler, fifos),
+	Scheduling(packet_handler, fifos, NULL),
 	scpc_timer_ms(scpc_timer_ms),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),

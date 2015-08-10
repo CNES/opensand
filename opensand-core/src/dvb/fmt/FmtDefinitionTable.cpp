@@ -87,7 +87,6 @@ FmtDefinitionTable::FmtDefinitionTable(const FmtDefinitionTable &fmt_def_tab):
 	{
 		FmtDefinition* fmt_def = new FmtDefinition(*(it->second));
 		this->definitions.insert(std::make_pair(it->first, fmt_def));
-		DFLTLOG(LEVEL_ERROR, "fmt def %d", it->first);
 	}
 
 	// Output Log

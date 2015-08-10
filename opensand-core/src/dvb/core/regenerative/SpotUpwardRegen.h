@@ -51,7 +51,9 @@ class SpotUpwardRegen: public SpotUpward
 {
 	public:
 		SpotUpwardRegen(spot_id_t spot_id,
-		                tal_id_t mac_id);
+		                tal_id_t mac_id,
+		                StFmtSimuList *input_sts,
+		                StFmtSimuList *output_sts);
 		~SpotUpwardRegen();
 		bool onInit();
 

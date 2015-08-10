@@ -207,6 +207,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 			                              this->stats_period_ms,
 			                              this->satellite_type,
 			                              this->pkt_hdl,
+			                              this->input_sts,
+			                              this->output_sts,
 			                              this->with_phy_layer);
 		}
 		else
@@ -217,10 +219,10 @@ bool BlockDvbNcc::Downward::onInit(void)
 			                             this->stats_period_ms,
 			                             this->satellite_type,
 			                             this->pkt_hdl,
+			                             this->input_sts,
+			                             this->output_sts,
 			                             this->with_phy_layer);
 		}
-		spot->setOutputSts(this->output_sts);
-		spot->setInputSts(this->input_sts);
 		(*spot_iter).second = spot;
 		result &= spot->onInit();
 	}
@@ -919,17 +921,16 @@ bool BlockDvbNcc::Upward::onInit(void)
 		SpotUpward *spot;
 		if(this->satellite_type == TRANSPARENT)
 		{
-			spot = new SpotUpwardTransp(spot_id, this->mac_id);
+			spot = new SpotUpwardTransp(spot_id, this->mac_id,
+			                            this->input_sts, this->output_sts);
 		}
 		else
 		{
-			spot = new SpotUpwardRegen(spot_id, this->mac_id);
+			spot = new SpotUpwardRegen(spot_id, this->mac_id,
+			                           this->input_sts, this->output_sts);
 		}
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create spot with ID %u\n", spot_id);
-
-		spot->setInputSts(this->input_sts);
-		spot->setOutputSts(this->output_sts);
 		(*spot_iter).second = spot;
 
 		result &= spot->onInit();

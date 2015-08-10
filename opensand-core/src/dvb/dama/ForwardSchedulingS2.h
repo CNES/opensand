@@ -41,7 +41,6 @@
 
 #include "BBFrame.h"
 #include "FmtSimulation.h"
-#include "StFmtSimu.h"
 #include "TerminalCategoryDama.h"
 
 
@@ -96,9 +95,6 @@ class ForwardSchedulingS2: public Scheduling
 	 *  for the corresponding MODCOD */
 	list<BBFrame *> pending_bbframes;
 
-	/** The FMT simulated data */
-	map<tal_id_t, StFmtSimu *> *fwd_sts;
-
 	/** The FMT Definition Table associed */
 	FmtDefinitionTable *fwd_modcod_def;
 
@@ -147,16 +143,6 @@ class ForwardSchedulingS2: public Scheduling
 	bool retrieveCurrentModcod(tal_id_t tal_id,
 	                           const time_sf_t current_superframe_sf,
 	                           unsigned int &modcod_id);
-
-	/**
-	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
-	 *
-	 * @param id  the ID of the ST
-	 * @return    the current MODCOD ID of the ST
-	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
-	 */
-	uint8_t getCurrentModcodId(tal_id_t id) const;
 
 
 	/**

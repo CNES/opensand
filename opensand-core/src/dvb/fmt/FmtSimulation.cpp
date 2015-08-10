@@ -181,24 +181,41 @@ error:
 
 bool FmtSimulation::setList(vector<string> &list, double &time)
 {
-	std::stringbuf buf;
 	std::stringstream line;
 	std::stringbuf token;
 	list.clear();
 
 	// get the next line in the file
-	this->modcod_simu->get(buf);
-	if(buf.str() != "")
+	while(!this->modcod_simu->eof() && !this->modcod_simu->fail())
 	{
+		std::stringbuf buf;
+
+		this->modcod_simu->get(buf);
+		// jump after the '\n' as get does not read it
+		this->modcod_simu->ignore();
+
+		if(buf.str() == "")
+		{
+			continue;
+		}
+
 		line.str(buf.str());
 		// get the first element of the line (which is time)
-		if(!line.fail())
+		if(line.fail())
 		{
-			token.str("");
-			line.get(token, ' ');
-			time = atof(token.str().c_str());
-			line.ignore();
+			continue;
 		}
+
+		token.str("");
+		line.get(token, ' ');
+		if(token.str() == "#" || token.str() == "/*")
+		{
+			// skip comment
+			continue;
+		}
+
+		time = atof(token.str().c_str());
+		line.ignore();
 
 		// get each element of the line
 		while(!line.fail())
@@ -208,11 +225,13 @@ bool FmtSimulation::setList(vector<string> &list, double &time)
 			list.push_back(token.str());
 			line.ignore();
 		}
+		break;
 	}
 
 	// keep the last modcod when we reach the end of file
 	if(this->modcod_simu->eof())
 	{
+		// TODO add enable loop in configuration
 		return true;
 	}
 
@@ -227,9 +246,6 @@ bool FmtSimulation::setList(vector<string> &list, double &time)
 
 	// reset the error flags
 	this->modcod_simu->clear();
-
-	// jump after the '\n' as get does not read it
-	this->modcod_simu->ignore();
 
 	return true;
 }

@@ -52,6 +52,8 @@ class SpotDownwardRegen: public SpotDownward
 		                  time_ms_t stats_period,
 		                  sat_type_t sat_type,
 		                  EncapPlugin::EncapPacketHandler *pkt_hdl,
+		                  StFmtSimuList *input_sts,
+		                  StFmtSimuList *output_sts,
 		                  bool phy_layer);
 		~SpotDownwardRegen();
 		bool onInit(void);

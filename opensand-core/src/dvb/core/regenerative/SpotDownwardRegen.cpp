@@ -50,12 +50,15 @@ SpotDownwardRegen::SpotDownwardRegen(spot_id_t spot_id,
                                      time_ms_t stats_period,
                                      sat_type_t sat_type,
                                      EncapPlugin::EncapPacketHandler *pkt_hdl,
+                                     StFmtSimuList *input_sts,
+                                     StFmtSimuList *output_sts,
                                      bool phy_layer):
 	SpotDownward(spot_id, mac_id, 
 	             fwd_down_frame_duration, 
 	             ret_up_frame_duration, 
 	             stats_period, sat_type,
-	             pkt_hdl, phy_layer)
+	             pkt_hdl, input_sts, output_sts,
+	             phy_layer)
 {
 }
 

@@ -50,6 +50,8 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
                            time_ms_t stats_period,
                            sat_type_t sat_type,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
+                           StFmtSimuList *input_sts,
+                           StFmtSimuList *output_sts,
                            bool phy_layer):
 	DvbChannel(),
 	dama_ctrl(NULL),
@@ -100,6 +102,8 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	this->satellite_type = sat_type;
 	this->pkt_hdl = pkt_hdl;
 	this->with_phy_layer = phy_layer;
+	this->input_sts = input_sts;
+	this->output_sts = output_sts;
 }
 
 SpotDownward::~SpotDownward()

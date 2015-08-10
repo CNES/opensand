@@ -50,9 +50,8 @@ UplinkSchedulingRcs::UplinkSchedulingRcs(
 			const FmtDefinitionTable *const ret_modcod_def,
 			const TerminalCategoryDama *const category,
 			tal_id_t gw_id):
-	Scheduling(packet_handler, fifos),
+	Scheduling(packet_handler, fifos, ret_sts),
 	gw_id(gw_id),
-	ret_sts(ret_sts),
 	ret_modcod_def(ret_modcod_def),
 	category(category)
 {
@@ -346,18 +345,6 @@ bool UplinkSchedulingRcs::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_d
 
 error:
 	return false;
-}
-
-
-uint8_t UplinkSchedulingRcs::getCurrentModcodId(tal_id_t id) const
-{
-	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
-	st_iter = this->ret_sts->find(id);
-	if(st_iter != this->ret_sts->end())
-	{
-		return (*st_iter).second->getCurrentModcodId();
-	}
-	return 0;
 }
 
 

@@ -40,6 +40,7 @@
 #include "EncapPlugin.h"
 #include "DvbFifo.h"
 #include "DvbFrame.h"
+#include "StFmtSimu.h"
 
 using std::list;
 
@@ -57,9 +58,11 @@ class Scheduling
   public:
 
 	Scheduling(const EncapPlugin::EncapPacketHandler *packet_handler,
-	           const fifos_t &fifos):
+	           const fifos_t &fifos,
+	           const map<tal_id_t, StFmtSimu *> *const simu_sts):
 		packet_handler(packet_handler),
-		dvb_fifos(fifos)
+		dvb_fifos(fifos),
+		simu_sts(simu_sts)
 	{
 		// Output log
 		this->log_scheduling = Output::registerLog(LEVEL_WARNING,
@@ -84,12 +87,35 @@ class Scheduling
 	                      list<DvbFrame *> *complete_dvb_frames,
 	                      uint32_t &remaining_allocation) = 0;
 
+	
+	/**
+	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
+	 *
+	 * @param id  the ID of the ST
+	 * @return    the current MODCOD ID of the ST
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	uint8_t getCurrentModcodId(tal_id_t id) const
+	{
+		map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
+		st_iter = this->simu_sts->find(id);
+		if(st_iter != this->simu_sts->end())
+		{
+			return (*st_iter).second->getCurrentModcodId();
+		}
+		return 0;
+	};
+
+
   protected:
 
     /** The packet representation */
 	const EncapPlugin::EncapPacketHandler *packet_handler;
 	/** The MAC FIFOs */
     const fifos_t dvb_fifos;
+	/** The FMT simulated data */
+	const map<tal_id_t, StFmtSimu *> *simu_sts;
 
 	// Output Log
 	OutputLog *log_scheduling;

@@ -62,6 +62,8 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	             time_ms_t stats_period,
 	             sat_type_t sat_type,
 	             EncapPlugin::EncapPacketHandler *pkt_hdl,
+	             StFmtSimuList *input_sts,
+	             StFmtSimuList *output_sts,
 	             bool phy_layer);
 	~SpotDownward();
 	virtual bool onInit() = 0;

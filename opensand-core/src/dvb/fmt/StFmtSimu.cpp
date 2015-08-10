@@ -91,11 +91,15 @@ void StFmtSimu::updateModcodId(uint8_t new_id)
 
 
 StFmtSimuList::StFmtSimuList():
-sts(),
-sts_ids(),
-gws_id(),
-sts_mutex("sts_mutex")
+	sts(),
+	sts_ids(),
+	gws_id(),
+	sts_mutex("sts_mutex")
 {
+	// Output Log
+	this->log_fmt = Output::registerLog(LEVEL_WARNING,
+	                                    "Dvb.Fmt.StFmtSimuList");
+
 }
 
 StFmtSimuList::~StFmtSimuList()
@@ -130,7 +134,7 @@ ListStsPerSpot* StFmtSimuList::getListStsPerSpot(tal_id_t gw_id) const
 
 	if(it == this->sts.end())
 	{
-		DFLTLOG(LEVEL_DEBUG, "Gw %u not found in the list\n", gw_id);
+		LOG(this->log_fmt, LEVEL_DEBUG, "Gw %u not found in the list\n", gw_id);
 		return NULL;
 	}
 
@@ -176,7 +180,7 @@ ListSts* StFmtSimuList::getListStsPriv(tal_id_t gw_id, spot_id_t spot_id) const
 	it = list_sts_per_spot->find(spot_id);
 	if(it != list_sts_per_spot->end())
 	{
-		DFLTLOG(LEVEL_ERROR, "Spot %u not found in the list\n", spot_id);
+		LOG(this->log_fmt, LEVEL_ERROR, "Spot %u not found in the list\n", spot_id);
 		return NULL;
 	}
 
@@ -204,14 +208,14 @@ bool StFmtSimuList::setListStsPriv(tal_id_t gw_id, spot_id_t spot_id, ListSts *l
 		new_list = new ListStsPerSpot();
 		if(!new_list)
 		{
-			DFLTLOG(LEVEL_ERROR, "Failed to create ListStsPerSpot for Gw %u",
-			        gw_id);
+			LOG(this->log_fmt, LEVEL_ERROR,
+			    "Failed to create ListStsPerSpot for Gw %u", gw_id);
 			return false;
 		}
 		ret = this->sts.insert(std::make_pair(gw_id, new_list));
 		if(!ret.second)
 		{
-			DFLTLOG(LEVEL_ERROR, "Insert failed\n");
+			LOG(this->log_fmt, LEVEL_ERROR, "Insert failed\n");
 			return false;
 		}
 		it = ret.first;
@@ -234,7 +238,8 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, uint8_t modcod, tal_id_t gw_id,
 	ListSts* list_sts;
 	StFmtSimu *new_st;
 
-	DFLTLOG(LEVEL_DEBUG, "addTerminal, ST %u, GW %u, Spot %u\n", st_id, gw_id, spot_id);
+	LOG(this->log_fmt, LEVEL_ERROR,
+	    "addTerminal, ST %u, GW %u, Spot %u\n", st_id, gw_id, spot_id);
 
 	if(st_id != gw_id)
 	{
@@ -251,7 +256,7 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, uint8_t modcod, tal_id_t gw_id,
 		list_sts = new ListSts();
 		if(!list_sts)
 		{
-			DFLTLOG(LEVEL_ERROR, "Failed to create new list\n");
+			LOG(this->log_fmt, LEVEL_ERROR, "Failed to create new list\n");
 			return false;
 		}
 		this->setListStsPriv(gw_id, spot_id, list_sts);
@@ -261,7 +266,7 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, uint8_t modcod, tal_id_t gw_id,
 	new_st = new StFmtSimu(st_id, modcod);
 	if(!new_st)
 	{
-		DFLTLOG(LEVEL_ERROR, "Failed to create a new ST\n");
+		LOG(this->log_fmt, LEVEL_ERROR, "Failed to create a new ST\n");
 		return false;
 	}
 
@@ -294,8 +299,9 @@ bool StFmtSimuList::delTerminal(tal_id_t st_id, tal_id_t gw_id,
 	list_sts = this->getListStsPriv(gw_id, spot_id);
 	if(!list_sts)
 	{
-		DFLTLOG(LEVEL_ERROR, "List of Sts not found for spot %u and gw %u\n",
-		        spot_id, gw_id);
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "List of Sts not found for spot %u and gw %u\n",
+		    spot_id, gw_id);
 		return false;
 	}
 
@@ -303,7 +309,8 @@ bool StFmtSimuList::delTerminal(tal_id_t st_id, tal_id_t gw_id,
 	it = list_sts->find(st_id);
 	if(it == list_sts->end())
 	{
-		DFLTLOG(LEVEL_ERROR, "ST with ID %u not found in list of STs\n", st_id);
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "ST with ID %u not found in list of STs\n", st_id);
 		return false;
 	}
 
@@ -325,8 +332,8 @@ void StFmtSimuList::updateModcod(tal_id_t gw_id, spot_id_t spot_id,
 	list = this->getListStsPriv(gw_id, spot_id);
 	if(!list)
 	{
-		DFLTLOG(LEVEL_DEBUG, "List of Sts not found for spot %u and gw %u\n",
-		        spot_id, gw_id);
+		LOG(this->log_fmt, LEVEL_DEBUG,
+		    "List of Sts not found for spot %u and gw %u\n", spot_id, gw_id);
 		return;
 	}
 
@@ -340,21 +347,23 @@ void StFmtSimuList::updateModcod(tal_id_t gw_id, spot_id_t spot_id,
 		st_id = st->getId();
 		column = st->getSimuColumnNum();
 
-		DFLTLOG(LEVEL_DEBUG, "ST with ID %u uses MODCOD ID at column %lu\n",
-		        st_id, column);
+		LOG(this->log_fmt, LEVEL_DEBUG,
+		    "ST with ID %u uses MODCOD ID at column %lu\n",
+		    st_id, column);
 
 		if(fmt_simu->getModcodList().size() <= column)
 		{
-			DFLTLOG(LEVEL_WARNING, "cannot access MODCOD column %lu for ST%u\n"
-			        "defaut MODCOD is used\n", column, st_id);
+			LOG(this->log_fmt, LEVEL_WARNING,
+			    "cannot access MODCOD column %lu for ST%u\n" "defaut MODCOD is used\n",
+			    column, st_id);
 			column = fmt_simu->getModcodList().size() - 1;
 			st->setSimuColumnNum(column);
 		}
 		// replace the current MODCOD ID by the new one
 		st->updateModcodId(atoi(fmt_simu->getModcodList()[column].c_str()));
 
-		DFLTLOG(LEVEL_DEBUG, "new MODCOD ID of ST with ID %u = %u\n", st_id,
-		        atoi(fmt_simu->getModcodList()[column].c_str()));
+		LOG(this->log_fmt, LEVEL_DEBUG, "new MODCOD ID of ST with ID %u = %u\n",
+		    st_id, atoi(fmt_simu->getModcodList()[column].c_str()));
 	}
 }
 
@@ -378,7 +387,7 @@ void StFmtSimuList::setRequiredModcod(tal_id_t st_id, uint8_t modcod_id)
 	if(it == this->sts_ids.end())
 	{
 		// the st is not present
-		DFLTLOG(LEVEL_ERROR, "St %u is not present\n", st_id);
+		LOG(this->log_fmt, LEVEL_ERROR, "St %u is not present\n", st_id);
 		return;
 	}
 	spot_id = it->second.first;
@@ -388,15 +397,15 @@ void StFmtSimuList::setRequiredModcod(tal_id_t st_id, uint8_t modcod_id)
 	list = this->getListStsPriv(gw_id, spot_id);
 	if(!list)
 	{
-		DFLTLOG(LEVEL_ERROR, "List of Sts not found for spot %u and gw %u\n",
-		        spot_id, gw_id);
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "List of Sts not found for spot %u and gw %u\n", spot_id, gw_id);
 		return;
 	}
 
 	st_iter = list->find(st_id);
 	if(st_iter == list->end())
 	{
-		DFLTLOG(LEVEL_ERROR, "Sts %u not found\n", st_id);
+		LOG(this->log_fmt, LEVEL_ERROR, "Sts %u not found\n", st_id);
 		return;
 	}
 	st_iter->second->updateModcodId(modcod_id);
@@ -412,7 +421,7 @@ void StFmtSimuList::setRequiredModcodGw(tal_id_t gw_id, uint8_t modcod_id)
 	list = this->getListStsPerSpot(gw_id);
 	if(!list)
 	{
-		DFLTLOG(LEVEL_ERROR, "List of Sts not found for gw %u\n", gw_id);
+		LOG(this->log_fmt, LEVEL_ERROR, "List of Sts not found for gw %u\n", gw_id);
 		return;
 	}
 
@@ -424,8 +433,8 @@ void StFmtSimuList::setRequiredModcodGw(tal_id_t gw_id, uint8_t modcod_id)
 		if(st_iter == it->second->end())
 		{
 			// Error here, the gw should be found every time
-			DFLTLOG(LEVEL_ERROR, "Gw %u not found for spot %u\n",
-			        spot_id, gw_id);
+			LOG(this->log_fmt, LEVEL_ERROR, "Gw %u not found for spot %u\n",
+			    spot_id, gw_id);
 			continue;
 		}
 		st_iter->second->updateModcodId(modcod_id);
@@ -451,7 +460,7 @@ uint8_t StFmtSimuList::getCurrentModcodId(tal_id_t st_id)
 	if(it == this->sts_ids.end())
 	{
 		// the st is not present
-		DFLTLOG(LEVEL_ERROR, "St %u is not present\n", st_id);
+		LOG(this->log_fmt, LEVEL_ERROR, "St %u is not present\n", st_id);
 		return 0;
 	}
 	spot_id = it->second.first;
@@ -461,15 +470,16 @@ uint8_t StFmtSimuList::getCurrentModcodId(tal_id_t st_id)
 	list = this->getListStsPriv(gw_id, spot_id);
 	if(!list)
 	{
-		DFLTLOG(LEVEL_ERROR, "List of Sts not found for spot %u and gw %u\n",
-		        spot_id, gw_id);
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "List of Sts not found for spot %u and gw %u\n",
+		    spot_id, gw_id);
 		return 0;
 	}
 
 	st_iter = list->find(st_id);
 	if(st_iter == list->end())
 	{
-		DFLTLOG(LEVEL_ERROR, "Sts %u not found\n", st_id);
+		LOG(this->log_fmt, LEVEL_ERROR, "Sts %u not found\n", st_id);
 		return 0;
 	}
 
@@ -487,14 +497,15 @@ uint8_t StFmtSimuList::getCurrentModcodIdGw(tal_id_t gw_id)
 	list = this->getListStsPerSpot(gw_id);
 	if(!list)
 	{
-		DFLTLOG(LEVEL_ERROR, "List of Sts not found for gw %u\n", gw_id);
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "List of Sts not found for gw %u\n", gw_id);
 		return 0;
 	}
 
 	it = list->begin();
 	if(it == list->end())
 	{
-		DFLTLOG(LEVEL_ERROR, "No spot found\n");
+		LOG(this->log_fmt, LEVEL_ERROR, "No spot found\n");
 		return 0;
 	}
 	gw_iter = it->second->find(gw_id);
