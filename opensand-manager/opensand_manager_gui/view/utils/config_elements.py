@@ -913,7 +913,7 @@ class ConfSection(gtk.VBox):
                                               fill=False, padding=5,
                                               pack_type=gtk.PACK_START)
 
-    def add_key(self, key, source_ext = ""):
+    def add_key(self, key, source_ext=""):
         """ add a key and its corresponding entry in a tab """
         name = self._config.get_name(key)
         if self._config.do_hide_adv(name, self._adv_mode):

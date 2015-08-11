@@ -446,7 +446,7 @@ class ConfEvent(ConfView) :
                 # get the last module of the stack that is not a header modification
                 # module
                 for pos in range(len(stack)):
-                    mod = stack[len(stack) - 1 - pos]
+                    mod = stack[str(len(stack) - 1 - pos)]
                     # header modification plugins are generally in global plugins
                     host_modules = host.get_lan_adapt_modules()
                     if mod in host_modules and  \

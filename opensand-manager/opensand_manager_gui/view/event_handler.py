@@ -76,6 +76,10 @@ class EventResponseHandler(threading.Thread):
                 gobject.idle_add(self._run_view.disable_deploy_buttons, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
 
+            elif event_type == "resp_set_scenario" or \
+                 event_type == "resp_update_config":
+                pass
+
             elif event_type == "deploy_files":
                 gobject.idle_add(self._run_view.spin, "Saving files...",
                                  priority=gobject.PRIORITY_HIGH_IDLE)

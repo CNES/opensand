@@ -238,6 +238,8 @@ class Controller(threading.Thread):
             # first get global configuration files
             files = self._model.get_deploy_files()
             all_files = self._model.get_all_files()
+            self._log.debug("Deploy files from scenario %s" %
+                            self._model.get_scenario())
             for host in self._hosts + self._ws:
                 name = host.get_name()
                 # do a copy, not only reference
@@ -245,11 +247,11 @@ class Controller(threading.Thread):
                 if host.first_deploy():
                     dep = all_files
 
-                self._log.info("CONTROLLER deploy files from scenario %s" %
-                               self._model.get_scenario())
                 dep += host.get_deploy_files()
                 if len(dep) > 0:
                     self._log.info("%s: deploy simulation files" % name)
+                else:
+                    continue
 
                 thread = threading.Thread(None, host.deploy_modified_files,
                                           "DeployFiles%s" % name,

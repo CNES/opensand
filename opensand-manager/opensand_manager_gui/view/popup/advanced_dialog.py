@@ -287,7 +287,8 @@ class AdvancedDialog(WindowView):
             # new host, add a module tree
             treeview = gtk.TreeView()
             self._modules_tree[host_name] = \
-                    ConfigurationTree(treeview, 'Plugin',                                                               self.on_module_selected, None)
+                    ConfigurationTree(treeview, 'Plugin',
+                                      self.on_module_selected, None)
             self._modules_name[host_name] = []
         tree =  self._modules_tree[host_name]
 

@@ -35,7 +35,6 @@ spot_gw_assignment_dialog.py - ST assignmentconfiguration dialog
 
 import gtk
 import gobject
-import copy
 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.utils import get_conf_xpath, ST, \
@@ -44,8 +43,7 @@ from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.utils.config_elements import ManageSpot
 
-(SPOT1, SPOT2, SPOT3) = range(3)
-(GW0, GW10) = range(2)
+MAX_SPOT_ID=10
 
 class SpotGwAssignmentDialog(WindowView):
     """ an modcod configuration window """
@@ -93,7 +91,9 @@ class SpotGwAssignmentDialog(WindowView):
 
         self._hbox_add_spot = gtk.HBox()
         label_spot = gtk.Label(" spot id ")
-        self._entry_spot_id = gtk.Entry()
+        adj = gtk.Adjustment(value=self._default_spot + 1, lower=1,
+                             upper=MAX_SPOT_ID, step_incr=1)
+        self._entry_spot_id = gtk.SpinButton(adjustment=adj, climb_rate=1)
         self._button_add_spot = gtk.Button()
         self._button_add_spot.set_label("Add spot")
         self._button_add_spot.connect('clicked', self.on_button_add_spot_clicked)
@@ -213,12 +213,15 @@ class SpotGwAssignmentDialog(WindowView):
         self._entry_spot_id.set_text('')
         try:
             spot_id = int(spot_id_str)
-            if spot_id_str not in self._spot_list and spot_id >= 1 and spot_id <= 10:
-                self._spot_list.insert(spot_id-1,spot_id_str) 
+            if spot_id_str not in self._spot_list and \
+               spot_id >= 1 and \
+               spot_id <= MAX_SPOT_ID:
+                self._spot_list.insert(spot_id-1, spot_id_str) 
                 self._new_list.append(spot_id_str) 
                 self.load()
             else:
-                error_popup("Spot id should not already exist and stay between 1 and 10")
+                error_popup("Spot id should not already exist and stay between "
+                            "1 and " + MAX_SPOT_ID)
 
         except ValueError:
             error_popup("You have to enter an int ")
