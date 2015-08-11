@@ -42,6 +42,7 @@ import shutil
 from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_gui.view.run_view import RunView
 from opensand_manager_gui.view.popup.edit_deploy_dialog import EditDeployDialog
+from opensand_manager_gui.view.popup.spot_gw_assignment import SpotGwAssignmentDialog
 from opensand_manager_gui.view.popup.infos import yes_no_popup
 
 class RunEvent(RunView):
@@ -70,7 +71,6 @@ class RunEvent(RunView):
             # do not show deploy button
             gobject.idle_add(self.hide_deploy_button,
                              priority=gobject.PRIORITY_HIGH_IDLE+20)
-
 
 
     def close(self):
@@ -199,4 +199,11 @@ class RunEvent(RunView):
         label.set_markup(action)
         widget = self._ui.get_widget('spinbox')
         widget.show_all()
+
+
+    def on_add_spot_gw_assignement_clicked(self, source=None, event=None):
+        """ 'clicked' event on add spot button """
+        window = SpotGwAssignmentDialog(self._model, self._log)
+        window.go()
+        
 

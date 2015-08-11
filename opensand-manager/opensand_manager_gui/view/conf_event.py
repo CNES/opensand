@@ -37,15 +37,12 @@ conf_event.py - the events on configuration tab
 
 import gtk
 import gobject
-import copy
 
-from opensand_manager_core.utils import GW, RETURN_UP_BAND, ID, GSE
+from opensand_manager_core.utils import GW, GSE
 from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
 from opensand_manager_gui.view.popup.advanced_dialog import AdvancedDialog
-from opensand_manager_gui.view.popup.spot_gw_assignment import SpotGwAssignmentDialog
-from opensand_manager_gui.view.utils.config_elements import ManageSpot
 
 class ConfEvent(ConfView) :
     """ Events on configuration tab """
@@ -54,9 +51,6 @@ class ConfEvent(ConfView) :
         ConfView.__init__(self, parent, model, manager_log)
 
         self._modif = False
-        self._tab_spot = []
-        self._old_spot = []
-        self.read_conf_spot()
 
         self._previous_img = ''
         # update the image
@@ -336,21 +330,6 @@ class ConfEvent(ConfView) :
         self.enable_conf_buttons()
 
 
-    def on_add_spot_gw_assignement_clicked(self, source=None, event=None):
-        """ 'clicked' event on add spot button """
-        window = SpotGwAssignmentDialog(self._model, self._tab_spot, self._log, self.update_view)
-        window.go()
-        
-        
-    def read_conf_spot(self):
-        config = self._model.get_conf().get_configuration()
-        xpath = "//"+RETURN_UP_BAND
-        #update free spot id 
-        for key in config.get_keys(config.get(xpath)):
-            if key.get(ID) is not None:
-                self._tab_spot.append(key.get(ID))
-        self._old_spot = copy.deepcopy(self._tab_spot)
-
 
     def on_enable_physical_layer_toggled(self, source=None, event=None):
         """ 'toggled' event on enable button """
@@ -359,8 +338,6 @@ class ConfEvent(ConfView) :
 
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """
-        # reset spot list
-        self._tab_spot = copy.deepcopy(self._old_spot)
         self._model.get_topology().cancel()
         self._model.get_conf().cancel()
         try:
@@ -489,16 +466,6 @@ class ConfEvent(ConfView) :
         else:
             config.set_enable_physical_layer("false")
 
-        #update spot
-        configuration =  config.get_configuration()
-        manager = ManageSpot(self._model, configuration)
-        xpath = "//"+RETURN_UP_BAND
-        
-        for key in self._old_spot:
-            # remove spot
-            if key not in self._tab_spot:
-                manager.remove_spot(key)
-
         try:
             #config.save()
             self._model.save()
@@ -539,6 +506,7 @@ class ConfEvent(ConfView) :
             gobject.idle_add(self.enable_conf_buttons, False)
         except ConfException as msg:
             error_popup(str(msg))
+            raise
 
 
 

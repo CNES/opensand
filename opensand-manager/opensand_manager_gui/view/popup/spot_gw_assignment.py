@@ -34,11 +34,10 @@ spot_gw_assignment_dialog.py - ST assignmentconfiguration dialog
 """
 
 import gtk
-import gobject
 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.utils import get_conf_xpath, ST, \
-        ID, PATH_GW, PATH_SPOT, PATH_DEFAULT_SPOT, PATH_DEFAULT_GW
+    ID, PATH_GW, PATH_SPOT, PATH_DEFAULT_SPOT, PATH_DEFAULT_GW,RETURN_UP_BAND
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.utils.config_elements import ManageSpot
@@ -47,16 +46,16 @@ MAX_SPOT_ID=10
 
 class SpotGwAssignmentDialog(WindowView):
     """ an modcod configuration window """
-    def __init__(self, model, spot_list, manager_log, update_cb):
+    def __init__(self, model, manager_log):
         
         WindowView.__init__(self, None, 'edit_dialog')
         self._model = model
         self._default_spot = 1
-        self._spot_list = spot_list
+        self._spot_list = []
         self._gw_list = []
         self._new_list = []
         self._default_gw = 0
-        self._update_cb = update_cb
+        self.read_conf_spot()    
 
         self._dlg = self._ui.get_widget('edit_dialog')
         self._dlg.set_keep_above(False)
@@ -142,7 +141,7 @@ class SpotGwAssignmentDialog(WindowView):
         self._gw_list = []
 
         for spot_id in self._spot_list:
-            spot_value =  "SPOT" + spot_id
+            spot_value = "SPOT" + spot_id
             if spot_id not in spot_list:
                 spot_list.insert(int(spot_id)-1, int(spot_id))
                 spots.insert(int(spot_id)-1,
@@ -154,7 +153,7 @@ class SpotGwAssignmentDialog(WindowView):
                     for tal in config.get_table_elements(terminal):
                         tal_content = config.get_element_content(tal)
                         st_spot_list.append([tal_content[ID],
-                                         int(spot_id)])
+                                             int(spot_id)])
         
         for gw in config.get_table_elements(config.get(PATH_GW)):
             if gw.tag == "gw" : 
@@ -195,36 +194,45 @@ class SpotGwAssignmentDialog(WindowView):
             combo_box_gw.set_active(def_gw)
             for st in st_spot_list:
                 if host.get_name().lower() == ST + str(st[0]):
-                    combo_box_spot.set_active(self.get_spot_value(spot_list, st[1]))
+                    combo_box_spot.set_active(self.get_spot_value(spot_list,
+                                                                  st[1]))
             for st in st_gw_list:
                 if host.get_name().lower() == ST + str(st[0]):
-                    combo_box_gw.set_active(self.get_gw_value(self._gw_list, st[1]))
+                    combo_box_gw.set_active(self.get_gw_value(self._gw_list,
+                                                              st[1]))
             #Add all in the window
             hbox_spot_allocation.pack_start(label_st_name)
             hbox_spot_allocation.pack_start(combo_box_spot)
             hbox_spot_allocation.pack_start(combo_box_gw)
-            self.vbox_st_allocation.pack_start(hbox_spot_allocation, fill=False, expand=False)
-            self.vbox_st_allocation.pack_start(hbox_gw_allocation, fill=False, expand=False)
+            self.vbox_st_allocation.pack_start(hbox_spot_allocation, fill=False,
+                                               expand=False)
+            self.vbox_st_allocation.pack_start(hbox_gw_allocation, fill=False,
+                                               expand=False)
         self.edit_text_win.show_all()
+
+
+    def read_conf_spot(self):
+        config = self._model.get_conf().get_configuration()
+        xpath = "//"+RETURN_UP_BAND
+        #update free spot id 
+        for key in config.get_keys(config.get(xpath)):
+            if key.get(ID) is not None:
+                self._spot_list.append(key.get(ID))
 
 
     def on_button_add_spot_clicked(self, source=None, event=None):
         spot_id_str = self._entry_spot_id.get_text()
-        self._entry_spot_id.set_text('')
-        try:
-            spot_id = int(spot_id_str)
-            if spot_id_str not in self._spot_list and \
-               spot_id >= 1 and \
-               spot_id <= MAX_SPOT_ID:
-                self._spot_list.insert(spot_id-1, spot_id_str) 
-                self._new_list.append(spot_id_str) 
-                self.load()
-            else:
-                error_popup("Spot id should not already exist and stay between "
-                            "1 and " + MAX_SPOT_ID)
-
-        except ValueError:
-            error_popup("You have to enter an int ")
+        self._entry_spot_id.set_text(str(int(spot_id_str)+1))
+        spot_id = int(spot_id_str)
+        if spot_id_str not in self._spot_list and \
+           spot_id >= 1 and \
+           spot_id <= MAX_SPOT_ID:
+            self._spot_list.insert(spot_id-1, spot_id_str) 
+            self._new_list.append(spot_id_str) 
+            self.load()
+        else:
+            error_popup("Spot id should not already exist and stay between "
+                        "1 and " + MAX_SPOT_ID)
 
             
     ##################################################
@@ -310,10 +318,9 @@ class SpotGwAssignmentDialog(WindowView):
         
         #Get the xml to save
         topo = self._model.get_topology().get_configuration()
-        config = self._model.get_conf().get_configuration()
         
         # spot manager
-        manager = ManageSpot(self._model, config)
+        manager = ManageSpot(self._model)
        
         for st in st_list:
             #-------------#
@@ -364,7 +371,7 @@ class SpotGwAssignmentDialog(WindowView):
                     topo.add_line(terminal_path)
             
             topo.set_value(self.get_id_st(st[0]),
-                             topo.get_path(topo.get_table_elements(table)[cmp_line_gw[st[2]]]),
+                           topo.get_path(topo.get_table_elements(table)[cmp_line_gw[st[2]]]),
                              ID)
             cmp_line_gw[st[2]] += 1 
 
@@ -373,8 +380,9 @@ class SpotGwAssignmentDialog(WindowView):
             if spot not in spot_list:
                 manager.remove_spot(spot)
                 self._spot_list.remove(spot)
+
+        self._model.update_spot_gw()
     
-        gobject.idle_add(self._update_cb)
         self._dlg.destroy()
             
     ##################################################
@@ -411,6 +419,6 @@ class SpotGwAssignmentDialog(WindowView):
         self._model.get_conf().cancel()
         self._update_spot = False
         
-        gobject.idle_add(self._update_cb)
         self._dlg.destroy()
         
+

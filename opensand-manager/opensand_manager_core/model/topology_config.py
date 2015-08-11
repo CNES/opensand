@@ -54,8 +54,6 @@ class TopologyConfig(AdvancedHostModel):
         self._list_host = {}
         self._last_gw = ""
         self._log = manager_log
-        self._modules = []
-        self._scenario = scenario
         AdvancedHostModel.__init__(self, TOPOLOGY, scenario)
 
     def load(self, scenario):
@@ -115,72 +113,36 @@ class TopologyConfig(AdvancedHostModel):
     def save(self):
         """ save the configuration """
         try:
-            self._files.load(self._scenario, self._configuration)
             self._configuration.write()
         except XmlException:
             raise
 
-    def get_param(self, name):
-        """ get a parameter in the XML configuration file """
-        val = None
-        key = self._configuration.get("//" + name)
-        if key is not None:
-            try:
-                val = self._configuration.get_value(key)
-            except:
-                pass
-        return val
-
-    def update_files(self, changed):
-        """ update the source files according to user configuration """
-        self.get_files().update(changed)
-        if len(changed) > 0:
-            for filename in changed:
-                self._log.warning("The file %s has not been updated" %
-                                  (filename))
-
-    def get_deploy_files(self):
-        """ get the files to deploy (modified files) """
-        deploy_files = []
-        deploy_files += self.get_files().get_modified()
-        return deploy_files
-
-    def get_all_files(self):
-        """ get the files to deploy (modified files) """
-        deploy_files = []
-        deploy_files += self.get_files().get_all()
-        return deploy_files
-
-    def set_deployed(self):
-        """ the files were correctly deployed """
-        self.get_files().set_modified()
 
     def get_name(self):
         """ for compatibility with advanced dialog host calls """
         return TOPOLOGY
 
-    def get_component(self):
-        """ for compatibility with advanced dialog host calls """
-        return TOPOLOGY
 
     def get_advanced_conf(self):
         """ for compatibility with advanced dialog host calls """
         return self
 
+
     def enable(self, val=True):
         """ for compatibility with advanced dialog host calls """
         pass
-    
+
     def get_modules(self):
         """ get the module list """
-        return self._modules
+        return []
 
     def get_module(self, name):
         """ get a module according to its name """
-        return self._modules[name]
+        return None
 
     def get_conf(self):
         return self._configuration
+
 
     def add(self, name, instance, net_config):
         """ Add a new host in the topology configuration file """
@@ -357,23 +319,18 @@ class TopologyConfig(AdvancedHostModel):
 
 
 
-    def update(self, spot_id = "", gw_id = ""):
+    def update_spots(self, spot_id="", gw_id=""):
         sections = self._configuration.get_sections()
 
-        tab_tal_id_spot = ["1","2","3","4","5","6"]
-        tab_tal_id_gw = ["1","2","3","4","5","6"]
-        tab_multicast = ["239.137.194.221",
-                         "239.137.194.222",
-                         "239.137.194.223",
-                         "239.137.194.224",
-                         "239.137.194.225",
-                         "239.137.194.226",
-                         "239.137.194.227",
-                         "239.137.194.228",
-                         "239.137.194.229",
-                         "239.137.194.230",
-                         "239.137.194.231",
-                         "239.137.194.232"]
+        tab_tal_id_spot = []
+        tab_tal_id_gw =  []
+        tab_multicast = []
+        for count in xrange(31):
+            tab_tal_id_spot.append(count)
+            tab_tal_id_gw.append(count)
+            add = 220 + count
+            tab_multicast.append("239.137.194." + str(add))
+
         tab_multicast_used = []
 
         spot_base = ""
@@ -465,6 +422,8 @@ class TopologyConfig(AdvancedHostModel):
                                 val = tab_tal_id_gw[0]
                                 tab_tal_id_gw.remove(tab_tal_id_gw[0])
                                 element.set(ID,str(val))
+
+        self.save()
 
 
 

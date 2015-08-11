@@ -120,9 +120,6 @@ class ConfView(WindowView):
                 error_popup(str(msg))
         self.update_lan_adaptation()
 
-        # update spot_id gw_id for host
-        self._model.update_spot_gw()
-
         try:
             # return_up_encap
             self._out_stack.load(config.get_return_up_encap(),

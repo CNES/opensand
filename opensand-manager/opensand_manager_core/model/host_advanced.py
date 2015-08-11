@@ -54,12 +54,14 @@ class AdvancedHostModel:
         self._enabled = True
         self._files = None
         self._name = name
+        self._scenario = scenario
 
-        self.load(scenario)
+        self.load(self._scenario)
 
     def load(self, scenario):
         """ load the advanced configuration """
         # create the host configuration directory
+        self._scenario = scenario
         conf_path = os.path.join(scenario, self._name)
         if not os.path.isdir(conf_path):
             try:
@@ -104,6 +106,7 @@ class AdvancedHostModel:
 
     def reload_conf(self, scenario):
         """ reload the configuration file """
+        self._scenario = scenario
         self._config_view = None
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
@@ -208,4 +211,13 @@ class AdvancedHostModel:
         """ get the debug configuration """
         return self._configuration.get("//debug")
 
+
+    def update_spots(self, spot_id="", gw_id=""):
+        """ update the spot and/or gw content when
+            adding a new spot and/or gw """
+        try:
+            self._configuration.write()
+            self._files.load(self._scenario, self._configuration)
+        except XmlException:
+            raise
 

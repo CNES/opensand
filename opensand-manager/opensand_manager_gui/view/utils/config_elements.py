@@ -1444,7 +1444,7 @@ class ConfEntry(object):
         edit_button.connect('button-press-event', edit_file)
         # consider file may be changed
         self._entry.pack_start(edit_button)
-        # Get the source file in scenario
+
         def update_preview_cb(file_chooser, preview):
             filename = file_chooser.get_preview_filename()
             preview.set_editable(False)
@@ -1492,6 +1492,7 @@ class ConfEntry(object):
                 if self._file_handler is not None:
                     self._file_handler(new_filename, self._host, self._path)
             dlg.destroy()
+
         upload_button = gtk.Button(label="Upload")
         img = gtk.Image()
         img.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
@@ -1716,60 +1717,51 @@ def xpath_to_name(xpath):
 
 class ManageSpot:
 
-    def __init__(self, model, config):
+    def __init__(self, model):
         self._model = model
-        self._config = config
         
     def add_spot(self, spot_id):
-        for host in self._model.get_hosts_list():
+        for host in self._model.get_hosts_list() + [self._model]:
             adv = host.get_advanced_conf()
             config = adv.get_configuration()
             for section in config.get_sections():
                 for child in section.iterchildren():
-                     if child.tag ==  SPOT:
+                     if child.tag == SPOT:
                          config.add_spot("//"+section.tag, spot_id) 
                          break
         
-        for section in self._config.get_sections():
-            for child in section.getchildren():
-                if child.tag ==  SPOT:
-                    self._config.add_spot("//"+section.tag, spot_id) 
-                    break
-    
         config = self._model.get_topology().get_conf()
         for section in config.get_sections():
             for child in section.getchildren():
-                if child.tag ==  SPOT:
+                if child.tag == SPOT:
                     config.add_spot("//"+section.tag, spot_id) 
                     break
 
-        self._model.get_topology().update(spot_id = spot_id)
-        self._model.get_conf().update(spot_id = spot_id)
-
+        # update the content of the new created spots
+        self._model.get_topology().update_spots(spot_id=spot_id)
+        for host in self._model.get_hosts_list() + [self._model]:
+            adv = host.get_advanced_conf()
+            config = adv.update_spots()
 
 
     def remove_spot(self, spot_id):
-        for host in self._model.get_hosts_list():
+        for host in self._model.get_hosts_list() + [self._model]:
             adv = host.get_advanced_conf()
             config = adv.get_configuration()
             for section in config.get_sections():
                  for child in section.getchildren():
-                     if child.tag ==  SPOT:
+                     if child.tag == SPOT:
                          config.remove_spot("//"+section.tag, spot_id) 
                          break
-
-        for section in self._config.get_sections():
-            for child in section.getchildren():
-                if child.tag ==  SPOT:
-                    self._config.remove_spot("//"+section.tag, spot_id) 
-                    break
+            config.write()
 
         config = self._model.get_topology().get_conf()
         for section in config.get_sections():
             for child in section.getchildren():
-                if child.tag ==  SPOT:
+                if child.tag == SPOT:
                     config.remove_spot("//"+section.tag, spot_id) 
                     break
+        config.write()
 
 
 

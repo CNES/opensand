@@ -194,7 +194,7 @@ class ShellManager(object):
         
 
     def set_scenario(self, path):
-        """ save the current scenario """
+        """ set the current scenario """
         self._model.set_scenario(path)
 
     def default_scenario(self):
@@ -309,12 +309,14 @@ class EventResponseHandler(threading.Thread):
             self._log.info(" * event response: " + event_type)
 
             if event_type == "resp_deploy_platform":
-                pass
-            if event_type == "resp_set_scenario":
-                pass
-            if event_type == "resp_update_config":
-                pass
-            
+                self._log.debug(" * platform deployed")
+
+            elif event_type == "resp_set_scenario":
+                self._log.debug(" * scenario set")
+
+            elif event_type == "resp_update_config":
+                self._log.debug(" * configuration updated")
+
             elif event_type == "deploy_files":
                 self._log.debug(" * deploying files")
 

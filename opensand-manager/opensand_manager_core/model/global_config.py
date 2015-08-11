@@ -58,7 +58,6 @@ class GlobalConfig(AdvancedHostModel):
         self._forward_down = {}
         self._return_up = {}
         self._enable_phy_layer = None
-        self._scenario = scenario
 
     def load(self, scenario):
         """ load the global configuration """
@@ -116,13 +115,13 @@ class GlobalConfig(AdvancedHostModel):
         except XmlException:
             raise
 
-    def update(self, spot_id = "", gw_id = ""):
+    def update_spots(self, spot_id="", gw_id=""):
         sections = self._configuration.get_sections()
 
         spot_base = ""
         gw_base = ""
         for section in sections:
-            tab_tal_id = ["1","2","3","4","5","6"]
+            tab_tal_id = range(31) # TODO MACRO for MAX_TAL_ID
             for child in section.getchildren():
                 if child.tag == SPOT:
                     # get base spot id
@@ -139,13 +138,12 @@ class GlobalConfig(AdvancedHostModel):
                                     tab_tal_id.remove(element.get(TAL_ID))
                                     continue
 
-
                 # update topology carrier value according to spot value
                 gw = gw_id
                 spot = spot_id
-                if child.tag ==  SPOT and (spot_id == child.get(ID) or \
+                if child.tag == SPOT and (spot_id == child.get(ID) or \
                    gw_id == child.get(GW)):
-                    if gw == "" :
+                    if gw == "":
                         if child.get(GW) is not None:
                             gw = child.get(GW)
                         else:
@@ -169,6 +167,11 @@ class GlobalConfig(AdvancedHostModel):
                                             val = element.get(att)
                                         if val != '':
                                             element.set(att,str(val))
+        try:
+            self._configuration.write()
+            self._files.load(self._scenario, self._configuration)
+        except XmlException:
+            raise
 
 
     def add(self, name, instance, net_config):
@@ -184,8 +187,11 @@ class GlobalConfig(AdvancedHostModel):
                 if not exist:
                     self._configuration.add_gw("//"+section.tag, instance) 
 
-            self._configuration.write()
-            self._files.load(self._scenario, self._configuration)
+            try:
+                self._configuration.write()
+                self._files.load(self._scenario, self._configuration)
+            except XmlException:
+                raise
 
     def remove(self, name, instance):
         if name.startswith(GW):
@@ -195,8 +201,11 @@ class GlobalConfig(AdvancedHostModel):
                         self._configuration.remove_gw("//"+section.tag, instance) 
                         break
 
-            self._configuration.write()
-            self._files.load(self._scenario, self._configuration)
+            try:
+               self._configuration.write()
+               self._files.load(self._scenario, self._configuration)
+            except XmlException:
+                raise
 
 
     def set_payload_type(self, val):
