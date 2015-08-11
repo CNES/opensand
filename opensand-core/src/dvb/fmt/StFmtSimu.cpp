@@ -238,7 +238,7 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, uint8_t modcod, tal_id_t gw_id,
 	ListSts* list_sts;
 	StFmtSimu *new_st;
 
-	LOG(this->log_fmt, LEVEL_ERROR,
+	LOG(this->log_fmt, LEVEL_DEBUG,
 	    "addTerminal, ST %u, GW %u, Spot %u\n", st_id, gw_id, spot_id);
 
 	if(st_id != gw_id)

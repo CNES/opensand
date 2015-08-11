@@ -431,9 +431,6 @@ bool DvbChannel::addInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id
 	           atoi(this->fmt_simu.getModcodList()[column].c_str()) :
 	           this->input_modcod_def.getMaxId());
 
-	DFLTLOG(LEVEL_ERROR, "TOTO %u %u %lu\n", id, this->input_modcod_def.getMaxId(), column);
-		DFLTLOG(LEVEL_ERROR, "LA %s", this->fmt_simu.getModcodList()[column].c_str());
-
 	this->input_sts->addTerminal(id, modcod, gw_id, spot_id);
 
 	return true;
