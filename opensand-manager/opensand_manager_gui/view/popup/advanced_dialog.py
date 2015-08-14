@@ -483,19 +483,16 @@ class AdvancedDialog(WindowView):
         self.update_restrictions()
 
         adv.set_conf_view(conf_sections)
-        if conf_sections.get(section_name) == None:
-            # collapse/expand row
-            if tree.iter_has_child(iterator):
-                self._host_conf_view.hide_all()
-                path =  tree.get_path(iterator)
-                if self._host_tree.get_treeview().row_expanded(path):
-                    self._host_tree.get_treeview().collapse_row(path)
-                else:
-                    self._host_tree.get_treeview().expand_row(path, False)
-            # usr error message
+        # collapse/expand row
+        if tree.iter_has_child(iterator):
+            path =  tree.get_path(iterator)
+            if self._host_tree.get_treeview().row_expanded(path):
+                self._host_tree.get_treeview().collapse_row(path)
             else:
-                error_popup("cannot find host model for %s" % selected_name.upper())
-                self._host_conf_view.hide_all() 
+                self._host_tree.get_treeview().expand_row(path, False)
+
+        if conf_sections.get(section_name) is None:
+            self._host_conf_view.hide_all()
         elif conf_sections.get(section_name) != self._current_host_frame:
             self._host_conf_view.hide_all()
             self._host_conf_view.pack_start(conf_sections.get(section_name))
@@ -571,10 +568,8 @@ class AdvancedDialog(WindowView):
         self._modules_conf_view.show_all()
 
     def toggled_cb(self, cell, path):
-        
-        path = self.update_path(path)
-        
         """ enable host toggled callback """
+        path = self.update_path(path)
         # modify ACTIVE property
         curr_iter = self._host_tree.get_iter_from_string(path)
         name = self._host_tree.get_value(curr_iter, TEXT).lower()
@@ -658,6 +653,7 @@ class AdvancedDialog(WindowView):
                                 (module.get_name(), name,
                                  error.description))
                     self._host_lock.acquire()
+            adv.update_conf()
 
         self.update_restrictions()
         self._ui.get_widget('apply_advanced_conf').set_sensitive(False)
@@ -691,8 +687,8 @@ class AdvancedDialog(WindowView):
 
         self._host_tree.foreach(self.select_enabled)
         self._host_lock.release()
-        self.on_host_selected(self._host_tree.get_selection())
-        self._ui.get_widget('apply_advanced_conf').set_sensitive(False)
+#        self.on_host_selected(self._host_tree.get_selection())
+#        self._ui.get_widget('apply_advanced_conf').set_sensitive(False)
         gobject.idle_add(self._update_cb)
         self.close()
 

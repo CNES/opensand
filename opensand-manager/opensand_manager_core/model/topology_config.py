@@ -70,7 +70,7 @@ class TopologyConfig(AdvancedHostModel):
                                      (conf_path, strerror))
 
         self._conf_file = os.path.join(conf_path, CONF_NAME)
-        self._log.info("topology load scenario %s" % self._conf_file)
+        self._log.debug("topology load scenario %s" % self._conf_file)
         # copy the configuration template in the destination directory
         # if it does not exist
         if not os.path.exists(self._conf_file):
@@ -100,14 +100,11 @@ class TopologyConfig(AdvancedHostModel):
             instance = 0
             if host.startswith(GW) or host.startswith(ST) or host.startswith(WS):
                 instance = host[2::]
-            self.add(host, instance, self._list_host[host])
+            self.new_host(host, instance, self._list_host[host])
    
     
     def cancel(self):
         self.load(self._scenario)
-
-    def write(self, conf):
-        self._configuration.write(conf)
 
 
     def save(self):
@@ -144,9 +141,8 @@ class TopologyConfig(AdvancedHostModel):
         return self._configuration
 
 
-    def add(self, name, instance, net_config):
+    def new_host(self, name, instance, net_config):
         """ Add a new host in the topology configuration file """
-        
         # if the host is already in the topology don't add it
         if name == self._last_gw:
             return
@@ -180,7 +176,7 @@ class TopologyConfig(AdvancedHostModel):
                             self._log.debug("topology add section %s" % section.tag)
 
                 if not exist:
-                    self.update(gw_id = instance)
+                    self.update_conf(gw_id=instance)
 
                 gw_id = name[len(GW)::]
                 att_path = '/configuration/sat_carrier/spot[@' + GW + '="' + gw_id + \
@@ -319,7 +315,9 @@ class TopologyConfig(AdvancedHostModel):
 
 
 
-    def update_spots(self, spot_id="", gw_id=""):
+    def update_conf(self, spot_id="", gw_id=""):
+        """ update the spot and/or gw content when
+            adding a new spot and/or gw """
         sections = self._configuration.get_sections()
 
         tab_tal_id_spot = []

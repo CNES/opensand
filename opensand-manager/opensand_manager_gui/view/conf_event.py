@@ -338,8 +338,6 @@ class ConfEvent(ConfView) :
 
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """
-        self._model.get_topology().cancel()
-        self._model.get_conf().cancel()
         try:
             self.update_view()
         except ConfException as msg:
@@ -506,7 +504,6 @@ class ConfEvent(ConfView) :
             gobject.idle_add(self.enable_conf_buttons, False)
         except ConfException as msg:
             error_popup(str(msg))
-            raise
 
 
 

@@ -143,6 +143,7 @@ class Controller(threading.Thread):
                                   self._event_manager.get_type() + \
                                   "' received")
             self._event_manager.clear()
+            self._log.debug("event %s cleared" % (self._event_manager.get_type()))
 
     def close(self):
         """ close the controller """

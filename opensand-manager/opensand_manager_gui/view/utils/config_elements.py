@@ -285,7 +285,6 @@ class SpotTree(gtk.TreeStore):
 
         self._treeselection = None
         self._cell_renderer_toggle = None
-        self._is_first_elt = 0
         
         # filter to hide row
         # attach store to the filter
@@ -409,7 +408,6 @@ class ConfigurationTree(gtk.TreeStore):
 
         self._treeselection = None
         self._cell_renderer_toggle = None
-        self._is_first_elt = 0
         if adv_mode == None:
             self._adv_mode = True
         else:
@@ -458,16 +456,10 @@ class ConfigurationTree(gtk.TreeStore):
         name = host.get_name()
         # append an element in the treestore
         # first Global, next SAT, then GW and ST
-        self._is_first_elt = 3
         if name == GLOBAL:
             top_elt = self.insert(None, 0)
         elif name == TOPOLOGY:
             top_elt = self.insert(None, 1)
-        elif name == SAT:
-            top_elt = self.insert(None, 2)
-        elif name.startswith(GW):
-            top_elt = self.insert(None, self._is_first_elt)
-            self._is_first_elt += 1
         else:
             top_elt = self.append(None)
 
@@ -859,18 +851,15 @@ class ConfSection(gtk.VBox):
                     if self._spot_id == key.get(ID) and \
                        (key.get(GW) is None or self._gw_id == key.get(GW)):
                         for s_key in self._config.get_keys(key):
-                            source_ext = "_spot_" + self._spot_id
-                            if key.get(GW) is not None:
-                                source_ext += "_gw_" + self._gw_id
                             if self._config.is_table(s_key):
-                                table = self.add_table(s_key, source_ext)
+                                table = self.add_table(s_key)
                                 if table is not None:
                                     self.pack_end(table)
                                     self.set_child_packing(table, expand=False,
                                                            fill=False, padding=5,
                                                            pack_type=gtk.PACK_START)
                             else:
-                                entry = self.add_key(s_key, source_ext)
+                                entry = self.add_key(s_key)
                                 if entry is not None:
                                     self.pack_end(entry)
                                     self.set_child_packing(entry, expand=False,
@@ -879,16 +868,15 @@ class ConfSection(gtk.VBox):
                 elif key.tag == GW:
                     if self._gw_id == key.get(ID):
                         for s_key in self._config.get_keys(key):
-                            source_ext = "_gw_" + self._gw_id
                             if self._config.is_table(s_key):
-                                table = self.add_table(s_key, source_ext)
+                                table = self.add_table(s_key)
                                 if table is not None:
                                     self.pack_end(table)
                                     self.set_child_packing(table, expand=False,
                                                            fill=False, padding=5,
                                                            pack_type=gtk.PACK_START)
                             else:
-                                entry = self.add_key(s_key, source_ext)
+                                entry = self.add_key(s_key)
                                 if entry is not None:
                                     self.pack_end(entry)
                                     self.set_child_packing(entry, expand=False,
@@ -913,7 +901,7 @@ class ConfSection(gtk.VBox):
                                               fill=False, padding=5,
                                               pack_type=gtk.PACK_START)
 
-    def add_key(self, key, source_ext=""):
+    def add_key(self, key):
         """ add a key and its corresponding entry in a tab """
         name = self._config.get_name(key)
         if self._config.do_hide_adv(name, self._adv_mode):
@@ -933,10 +921,10 @@ class ConfSection(gtk.VBox):
         elt_type = self._config.get_type(name)
         source = self._config.get_file_source(name)
         if source is not None:
+            source = self._config.adapt_filename(source, key)
             scenario = self._scenario
             if self._host != GLOBAL:
                 scenario = os.path.join(self._scenario, self._host)
-            source += source_ext
             source = os.path.join(scenario, source)
     
         entry = ConfEntry(self._config.get_type(name),
@@ -971,7 +959,7 @@ class ConfSection(gtk.VBox):
             self._bandwidth_entry = entry
         return key_box
 
-    def add_table(self, key, source_ext = ""):
+    def add_table(self, key):
         """ add a table in the tab """
         name = self._config.get_name(key)
         if self._config.do_hide_adv(name, self._adv_mode):
@@ -1018,7 +1006,7 @@ class ConfSection(gtk.VBox):
         self._table_length[self._config.get_path(key)] = 0
         for line in self._config.get_table_elements(key):
             self._table_length[self._config.get_path(key)] += 1
-            hbox = self.add_line(key, line, check_buttons, source_ext)
+            hbox = self.add_line(key, line, check_buttons)
             align_vbox.pack_end(hbox)
             align_vbox.set_child_packing(hbox, expand=False,
                                          fill=False, padding=5,
@@ -1034,7 +1022,7 @@ class ConfSection(gtk.VBox):
 
         return table_frame
 
-    def add_line(self, key, line, check_buttons, source_ext = ""):
+    def add_line(self, key, line, check_buttons):
         """ add a line in the configuration """
         hbox = gtk.HBox()
         key_path = self._config.get_path(key)
@@ -1083,6 +1071,7 @@ class ConfSection(gtk.VBox):
             elt_type = self._config.get_attribute_type(att, name)
             value = ''
             path = ''
+            new = True
             source = self._config.get_file_source(att, name)
             cb = [self.handle_param_chanded, self._changed_cb]
             scenario = self._scenario
@@ -1100,21 +1089,31 @@ class ConfSection(gtk.VBox):
                 if att == RATIO:
                     self._ratios.append(value)
                 if source is not None:
-                    source += source_ext + '_' + str(line_id)
+                    source = self._config.adapt_filename(source, line, line_id)
                     source = os.path.join(scenario, source)
             except:
+                new = True
                 # this is a new line entry
                 nbr = len(self._config.get_all("/%s/%s" % (key_path, name)))
                 path = '/%s/%s[%d]/@%s' % (key_path, name,
                                            nbr + self._new.count(key_path),
                                            att)
-                # TODO this won't be enough as the file won't exist
-                if source is not None:
-                    source += source_ext + '_' + str(nbr + self._new.count(key_path))
-                    source = os.path.join(scenario, source)
+                value = dic[att]
+                if att == SYMBOL_RATE:
+                    self._symbol_rates.append(value)
+                if att == RATIO:
+                    self._ratios.append(value)
+
+                # TODO the file won't exist and the line itself does not exist
+                #      peevent access to this
+                source = None
+#                if source is not None:
+#                    line_id = str(nbr + self._new.count(key_path))
+#                    source = self._config.adapt_filename(source, line, line_id)
+#                    source = os.path.join(scenario, source)
             entry = ConfEntry(elt_type, value, path, source, self._host,
                               cb, self._file_cb)
-            if value == '':
+            if new:
                 # add new lines to changed list
                 if not entry in self._changed:
                     self._changed.append(entry)
@@ -1439,6 +1438,9 @@ class ConfEntry(object):
                     self._file_handler(self._source, self._host, self._path)
 
         edit_button = gtk.Button(stock=gtk.STOCK_EDIT)
+        if self._source is None:
+            # new line in table, the file does not exist
+            edit_button.set_sensitive(False)
         edit_button.show()
         # show edit dialog
         edit_button.connect('button-press-event', edit_file)
@@ -1497,6 +1499,9 @@ class ConfEntry(object):
         img = gtk.Image()
         img.set_from_stock(gtk.STOCK_OPEN, gtk.ICON_SIZE_BUTTON)
         upload_button.set_image(img)
+        if self._source is None:
+            # new line in table, not enough information
+            upload_button.set_sensitive(False)
         upload_button.show()
         # show upload dialog
         upload_button.connect('button-press-event', upload_file)
@@ -1560,6 +1565,9 @@ class ConfEntry(object):
             return self._entry.get_text()
         elif type_name == "file":
             # the destination files should not be modified
+            # except is source is None (=> new line)
+            if self._source is None:
+                return self._value
             return None
         else:
             return self._entry.get_text()
@@ -1579,7 +1587,6 @@ class InstallNotebook(gtk.Notebook):
         self._files = files
         self._current_page = 0
         self._changed_cb = changed_cb
-        self._is_first_elt = 0
 
         self.set_scrollable(True)
         self.set_tab_pos(gtk.POS_TOP)
@@ -1607,13 +1614,6 @@ class InstallNotebook(gtk.Notebook):
         tab_label.set_markup("<small><b>%s</b></small>" % host_name)
         if host_name == GLOBAL:
             self.insert_page(scroll_notebook, tab_label, position=0)
-            self._is_first_elt = 1
-        elif host_name == SAT:
-            self.insert_page(scroll_notebook, tab_label,
-                             position=self._is_first_elt)
-        elif host_name.startswith(GW):
-            self.insert_page(scroll_notebook, tab_label,
-                             position=self._is_first_elt + 1)
         else:
             self.append_page(scroll_notebook, tab_label)
         return tab_vbox
@@ -1721,48 +1721,28 @@ class ManageSpot:
         self._model = model
         
     def add_spot(self, spot_id):
-        for host in self._model.get_hosts_list() + [self._model]:
+        for host in self._model.get_hosts_list() + [self._model,
+                                                    self._model.get_topology()]:
             adv = host.get_advanced_conf()
             config = adv.get_configuration()
-            for section in config.get_sections():
-                for child in section.iterchildren():
-                     if child.tag == SPOT:
-                         config.add_spot("//"+section.tag, spot_id) 
-                         break
-        
-        config = self._model.get_topology().get_conf()
-        for section in config.get_sections():
-            for child in section.getchildren():
-                if child.tag == SPOT:
-                    config.add_spot("//"+section.tag, spot_id) 
-                    break
-
+            config.add_spot(spot_id) 
+            config.write()
+ 
         # update the content of the new created spots
-        self._model.get_topology().update_spots(spot_id=spot_id)
-        for host in self._model.get_hosts_list() + [self._model]:
+        for host in self._model.get_hosts_list() + [self._model,
+                                                    self._model.get_topology()]:
             adv = host.get_advanced_conf()
-            config = adv.update_spots()
+            adv.update_conf(spot_id=spot_id)
 
 
     def remove_spot(self, spot_id):
-        for host in self._model.get_hosts_list() + [self._model]:
+        for host in self._model.get_hosts_list() + [self._model,
+                                                    self._model.get_topology()]:
             adv = host.get_advanced_conf()
             config = adv.get_configuration()
-            for section in config.get_sections():
-                 for child in section.getchildren():
-                     if child.tag == SPOT:
-                         config.remove_spot("//"+section.tag, spot_id) 
-                         break
+            config.remove_spot(spot_id) 
+            adv.update_conf()
             config.write()
-
-        config = self._model.get_topology().get_conf()
-        for section in config.get_sections():
-            for child in section.getchildren():
-                if child.tag == SPOT:
-                    config.remove_spot("//"+section.tag, spot_id) 
-                    break
-        config.write()
-
 
 
 

@@ -57,6 +57,7 @@ class AdvancedHostModel:
         self._scenario = scenario
 
         self.load(self._scenario)
+        self.update_conf()
 
     def load(self, scenario):
         """ load the advanced configuration """
@@ -212,9 +213,33 @@ class AdvancedHostModel:
         return self._configuration.get("//debug")
 
 
-    def update_spots(self, spot_id="", gw_id=""):
+    def update_conf(self, spot_id="", gw_id=""):
         """ update the spot and/or gw content when
-            adding a new spot and/or gw """
+            adding a new spot and/or gw and the lines in files """
+        # get elements of type file
+        nodes = self._configuration.get_file_elements("element")
+        for node in nodes:
+            elems = self._configuration.get_all("//%s" % node)
+            for elem in elems:
+                path = self._configuration.get_path(elem)
+                filename = self._configuration.get_value(elem)
+                filename = self._configuration.adapt_filename(filename, elem)
+                self._configuration.set_value(filename, path)
+
+        # get attributes of type file
+        nodes = self._configuration.get_file_elements("attribute")
+        for node in nodes:
+            elems = self._configuration.get_all("//*[@%s]" % node)
+            for elem in elems:
+                filenames = self._configuration.get_element_content(elem)
+                filename = filenames[node]
+                path = self._configuration.get_path(elem)
+                # get line ID in path
+                pos = path.rfind('[')
+                line = path[pos:].strip('[]')
+                filename = self._configuration.adapt_filename(filename, elem, line)
+                self._configuration.set_value(filename, path, node)
+
         try:
             self._configuration.write()
             self._files.load(self._scenario, self._configuration)

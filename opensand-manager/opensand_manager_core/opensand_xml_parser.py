@@ -46,6 +46,7 @@ opensand_xml_parser.py - the XML parser and builder for OpenSAND configuration
   </configuration>
 """
 
+import re
 from copy import deepcopy
 
 from lxml import etree
@@ -173,44 +174,39 @@ class XmlParser:
             elt = elts[0]
             elt.getparent().remove(elt)
 
-    def add_spot(self, xpath, spot_id):
+    def add_spot(self, spot_id):
         """ add a spot in the table identified its path """
-        sections = self._tree.xpath(xpath)
-        if len(sections) != 1:
-            raise XmlException("wrong path: %s is not valid" % xpath)
-        section = sections[0]
-        gws = []
-        spots = [spot_id]
-        for child in section.getchildren():
-            if child.tag == SPOT:
-                if child.get(GW) is not None:
-                    if child.get(GW) in gws and \
-                       child.get(ID) in spots:
-                        break
-                    elif child.get(GW) in gws and \
-                         child.get(ID) not in spots:
+        for section in self.get_sections():
+            gws = []
+            spots = [spot_id]
+            for child in section.iterchildren():
+                if child.tag == SPOT:
+                    if child.get(GW) is not None:
+                        if child.get(GW) in gws and \
+                           child.get(ID) in spots:
+                            break
+                        elif child.get(GW) in gws and \
+                             child.get(ID) not in spots:
+                            spots.append(child.get(ID))
+                            continue
+                            
+                        gws.append(child.get(GW))
                         spots.append(child.get(ID))
-                        continue
                         
-                    gws.append(child.get(GW))
-                    spots.append(child.get(ID))
+                    new = deepcopy(child)
+                    new.set(ID, spot_id)
+                    child.addnext(new)
                     
-                new = deepcopy(child)
-                new.set(ID, spot_id)
-                child.addnext(new)
-                
-                if child.get(GW) is None:
-                    break
+                    if child.get(GW) is None:
+                        break
 
-    def remove_spot(self, xpath, spot_id):
-        """ add a spot in the table identified its path """
-        sections = self._tree.xpath(xpath)
-        if len(sections) != 1:
-            raise XmlException("wrong path: %s is not valid" % xpath)
-        section = sections[0]
-        for child in section.getchildren():
-            if child.tag == SPOT and child.get(ID) == spot_id:
-                section.remove(child)
+    def remove_spot(self, spot_id):
+        """ remove spots from the configuration file """
+        for section in self.get_sections():
+             for child in section.getchildren():
+                 if child.tag == SPOT and child.get(ID) == spot_id:
+                     section.remove(child)
+
 
     def add_gw(self, xpath, gw_id):
         """ add a spot in the table identified its path """
@@ -306,7 +302,7 @@ class XmlParser:
             i += 1
         table.remove(child)
 
-    def write(self, filename=None):
+    def write(self):
         """ write the new configuration in file """
         if not self._schema.validate(self._tree):
             error = self._schema.error_log.last_error.message
@@ -314,12 +310,13 @@ class XmlParser:
             raise XmlException("the new values are incorrect: %s" %
                                error)
 
-        if filename is  None:
-            filename = self._filename
-        with open(filename, 'w') as conf:
+        with open(self._filename, 'w') as conf:
             conf.write(etree.tostring(self._tree, pretty_print=True,
                                       encoding=self._tree.docinfo.encoding,
                                       xml_declaration=True))
+
+        # reset the xml else when removing spots, sometimes it leads to segfault
+        self.__init__(self._filename, self._xsd)
 
     def get_file_paths(self):
         """ get the default and source values for all files to be able
@@ -332,35 +329,23 @@ class XmlParser:
             for elem in elems:
                 default = self.get_doc_param('/default', self.get_name(elem))
                 source = self.get_doc_param('/source', self.get_name(elem))
-                if elem.getparent().tag == SPOT:
-                    spot = "_spot%s" % elem.getparent().get(ID)
-                    source += spot
-                    if elem.getparent().get(GW) is not None:
-                        gw = "_gw%s" % elem.getparent().get(GW)
-                        source += gw
-                    files.append((default, source))
-                    continue
+                source = self.adapt_filename(source, elem)
                 files.append((default, source))
         # get attributes of type file
         nodes = self.get_file_elements("attribute")
         for node in nodes:
             elems = self.get_all("//*[@%s]" % node)
             for elem in elems:
-                default = self.get_doc_param('/default', node, self.get_name(elem))
+                default = self.get_doc_param('/default', node,
+                                             self.get_name(elem))
                 source = self.get_doc_param('/source', node,
                                             self.get_name(elem))
                 path = self.get_path(elem)
                 # get line ID in path
                 pos = path.rfind('[')
                 line = path[pos:].strip('[]')
-                if elem.getparent().getparent().tag == SPOT:
-                    spot = "_spot%s" % elem.getparent().getparent().get(ID)
-                    if elem.getparent().getparent().get(GW) is not None:
-                        gw = "_gw%s" % elem.getparent().getparent().get(GW)
-                        spot += gw
-                    files.append((default, "%s%s_%s" % (source, spot, line)))
-                    continue
-                files.append((default, "%s_%s" % (source, line)))
+                source = self.adapt_filename(source, elem, line)
+                files.append((default, source))
         return files
 
     def get_file_sources(self):
@@ -373,13 +358,7 @@ class XmlParser:
             elems = self.get_all("//%s" % node)
             for elem in elems:
                 source = self.get_doc_param('/source', self.get_name(elem))
-                if elem.getparent().tag == SPOT:
-                    spot = "_spot%s" % elem.getparent().get(ID)
-                    if elem.getparent().get(GW) is not None:
-                        gw = "_gw%s" % elem.getparent().get(GW)
-                        spot += gw
-                    files[self.get_path(elem)] = "%s%s" % (source, spot)
-                    continue
+                source = self.adapt_filename(source, elem)
                 files[self.get_path(elem)] = source
         # get attributes of type file
         nodes = self.get_file_elements("attribute")
@@ -392,15 +371,44 @@ class XmlParser:
                 # get line ID in path
                 pos = path.rfind('[')
                 line = path[pos:].strip('[]')
-                if elem.getparent().getparent().tag == SPOT:
-                    spot = "_spot%s" % elem.getparent().getparent().get(ID)
-                    if elem.getparent().getparent().get(GW) is not None:
-                        gw = "_gw%s" % elem.getparent().getparent().get(ID)
-                        spot += gw
-                    files["%s/@%s" % (path, node)] = "%s%s_%s" % (source, spot, line)
-                    continue
-                files["%s/@%s" % (path, node)] = "%s_%s" % (source, line)
+                source = self.adapt_filename(source, elem, line)
+                files["%s/@%s" % (path, node)] = source
         return files
+
+    def adapt_filename(self, source, elem, line=""):
+        """ add spot, gw and line extension """
+        # try to rename file.ext into file_spotX_gwY_line.ext to keep ext
+
+        # remove spotX or spot_X, in name
+        name = re.sub("[_]?spot[_]?[0-9]*", "", source)
+        # remove gwX, gw_X in name
+        name = re.sub("[_]?gw[_]?[0-9]*", "", name)
+        # replace _X. by . in name (this correspond to line in tables)
+        name = re.sub("[_]([1-9]?)*\.", ".", name)
+        # remove _X in end of name (this correspond to line in tables)
+        name = re.sub("[_]([1-9]?)*$", "", name)
+        ext = ""
+        try:
+            (name, ext) = name.rsplit(".", 1)
+        except ValueError:
+            pass
+        if line == "":
+            spot_elem = elem.getparent()
+        else:
+            line = "_" + line
+            spot_elem = elem.getparent().getparent()
+        if spot_elem.tag == SPOT:
+            spot = "_spot%s" % spot_elem.get(ID)
+            name += spot
+            if spot_elem.get(GW) is not None:
+                gw = "_gw%s" % spot_elem.get(GW)
+                name += gw
+        if ext != "":
+            source = "%s%s.%s" % (name, line, ext)
+        else:
+            source = "%s%s" % (name, line)
+        return source
+
 
     #### functions for XSD parsing ###
 

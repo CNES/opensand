@@ -92,7 +92,6 @@ class Files(object):
         if self._host_name != GLOBAL:
             scenario = os.path.join(scenario, self._host_name)
 
-        
         # handle files elements
         self._file_paths = self._configuration.get_file_paths()
         self._file_sources = self._configuration.get_file_sources()

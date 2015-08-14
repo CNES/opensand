@@ -367,13 +367,26 @@ class Model:
             self._config.get_configuration().add_gw('//' + RETURN_UP_BAND, instance)
             self._config.get_configuration().add_gw('//' + PHYSICAL_LAYER, instance)
             self._config.get_configuration().write()"""
-            self._hosts.insert(1, host)
+            pos = 1
+            for other_host in self._hosts:
+                if other_host.get_name().startswith(GW) and \
+                   other_host.get_instance() < instance:
+                    pos += 1
+            self._hosts.insert(pos, host)
         elif component != WS:
-            self._hosts.append(host)
+            pos = 1
+            for other_host in self._hosts:
+                if other_host.get_name().startswith(GW) or \
+                   (other_host.get_name().startswith(ST) and
+                    other_host.get_instance() < instance):
+                    pos += 1
+            self._hosts.insert(pos, host)
         else:
             self._ws.append(host)
 
-        self._add_host.append([name, instance, network_config])
+        self._add_host.append({"name": name,
+                               "inst": instance,
+                               "net": network_config})
         self._event_manager.set('update_config');
         """self._topology.add(name, instance, network_config)
         self._config.add(name, instance, network_config)
@@ -387,12 +400,14 @@ class Model:
             return host
 
     def update_config(self):
-        self._topology.add(self._add_host[0][0], 
-                           self._add_host[0][1],
-                           self._add_host[0][2])
-        self._config.add(self._add_host[0][0], 
-                           self._add_host[0][1],
-                           self._add_host[0][2])
+        host_config = self._add_host[0]
+        self._topology.new_host(host_config["name"], 
+                                host_config["inst"],
+                                host_config["net"])
+        if host_config["name"].startswith(GW):
+            self._config.new_gw(host_config["name"], 
+                                host_config["inst"],
+                                host_config["net"])
         self.update_spot_gw()
         del self._add_host[0]
 

@@ -205,5 +205,6 @@ class RunEvent(RunView):
         """ 'clicked' event on add spot button """
         window = SpotGwAssignmentDialog(self._model, self._log)
         window.go()
+        self._event_manager.set('deploy_files')
         
 

@@ -37,8 +37,8 @@ global_configuration.py - the global configuration description
 import os
 import shutil
 
-from opensand_manager_core.utils import OPENSAND_PATH, TAL_AFFECTATIONS, \
-                                        SPOT, TAL_ID, ID, GW
+from opensand_manager_core.utils import OPENSAND_PATH, \
+                                        SPOT, ID, GW
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import XmlException, ModelException
@@ -87,6 +87,7 @@ class GlobalConfig(AdvancedHostModel):
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
             if self._files is None:
+                # load the files
                 self._files = Files(self._name, self._configuration, scenario)
             else:
                 self._files.load(scenario, self._configuration)
@@ -115,83 +116,27 @@ class GlobalConfig(AdvancedHostModel):
         except XmlException:
             raise
 
-    def update_spots(self, spot_id="", gw_id=""):
-        sections = self._configuration.get_sections()
 
-        spot_base = ""
-        gw_base = ""
-        for section in sections:
-            tab_tal_id = range(31) # TODO MACRO for MAX_TAL_ID
-            for child in section.getchildren():
-                if child.tag == SPOT:
-                    # get base spot id
-                    if spot_base == "":
-                        spot_base = child.get(ID)
-                    if gw_base == "" and child.get(GW) is not None:
-                        gw_base = child.get(GW)
+    def new_gw(self, name, instance, net_config):
+        """ handle a new gateway """
+        exist =  False
+        for section in self._configuration.get_sections():
+            for child in section.iterchildren():
+                if (child.tag == GW and child.get(ID) == instance) or \
+                   (child.tag == SPOT and child.get(GW) == instance):
+                    exist =  True
+                    continue
+                
+            if not exist:
+                self._configuration.add_gw("//"+section.tag, instance) 
+        # update the configuration elements
+        self.update_conf()
 
-                    for key in self._configuration.get_keys(child):
-                        for element in self._configuration.get_table_elements(key):
-                            #remove used tal_id
-                            if key.tag == TAL_AFFECTATIONS:
-                                if element.get(TAL_ID) in tab_tal_id:
-                                    tab_tal_id.remove(element.get(TAL_ID))
-                                    continue
-
-                # update topology carrier value according to spot value
-                gw = gw_id
-                spot = spot_id
-                if child.tag == SPOT and (spot_id == child.get(ID) or \
-                   gw_id == child.get(GW)):
-                    if gw == "":
-                        if child.get(GW) is not None:
-                            gw = child.get(GW)
-                        else:
-                            gw = "0"
-                    if spot == "" and child.get(ID) is not None:
-                        spot = child.get(ID)
-                    
-                    for key in self._configuration.get_keys(child):
-                        if self._configuration.is_table(key) :
-                            for element in self._configuration.get_table_elements(key):
-                                for att in element.keys():
-                                    #update tal affectation id
-                                    if att == TAL_ID:    
-                                        val = ''
-                                        try:
-                                            if key.tag == TAL_AFFECTATIONS and \
-                                                 len(tab_tal_id) > 0:
-                                                val = tab_tal_id[0]
-                                                tab_tal_id.remove(tab_tal_id[0])
-                                        except ValueError:
-                                            val = element.get(att)
-                                        if val != '':
-                                            element.set(att,str(val))
         try:
             self._configuration.write()
             self._files.load(self._scenario, self._configuration)
         except XmlException:
             raise
-
-
-    def add(self, name, instance, net_config):
-        if name.startswith(GW):
-            exist =  False
-            for section in self._configuration.get_sections():
-                for child in section.iterchildren():
-                    if (child.tag == GW and child.get(ID) == instance) or \
-                       (child.tag == SPOT and child.get(GW) == instance):
-                        exist =  True
-                        continue
-                    
-                if not exist:
-                    self._configuration.add_gw("//"+section.tag, instance) 
-
-            try:
-                self._configuration.write()
-                self._files.load(self._scenario, self._configuration)
-            except XmlException:
-                raise
 
     def remove(self, name, instance):
         if name.startswith(GW):
