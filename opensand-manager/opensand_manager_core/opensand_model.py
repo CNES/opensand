@@ -220,7 +220,7 @@ class Model:
 
                             
     def update_spot_gw(self):
-        # update spot_id gw_id for host
+        """ update spots id and gw id for each host """
         for host in self.get_hosts_list():
             if host.get_name().startswith(ST):
                 (spot_id, gw_id) = self.get_spot_gw_id(host.get_instance())
@@ -505,6 +505,9 @@ class Model:
         
         # deploy the simulation files when loading a new scenario
         self._event_manager.set('deploy_files')
+        # do that here, we are sure that the sceanrio is correctly loaded
+        # because deploy_files event has to wait for set_scenario to be finished
+        self.update_spot_gw()
 
     def get_scenario(self):
         """ get the scenario id """
