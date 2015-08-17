@@ -138,19 +138,19 @@ class GlobalConfig(AdvancedHostModel):
         except XmlException:
             raise
 
-    def remove(self, name, instance):
-        if name.startswith(GW):
-            for section in self._configuration.get_sections():
-                for child in section.getchildren():
-                    if child.tag ==  SPOT or child.tag == GW:
-                        self._configuration.remove_gw("//"+section.tag, instance) 
-                        break
+    def remove_gw(self, name, instance):
+        """ remove a gw """
+        for section in self._configuration.get_sections():
+            for child in section.getchildren():
+                if child.tag ==  SPOT or child.tag == GW:
+                    self._configuration.remove_gw("//"+section.tag, instance) 
+                    break
 
-            try:
-               self._configuration.write()
-               self._files.load(self._scenario, self._configuration)
-            except XmlException:
-                raise
+        try:
+           self._configuration.write()
+           self._files.load(self._scenario, self._configuration)
+        except XmlException:
+            raise
 
 
     def set_payload_type(self, val):

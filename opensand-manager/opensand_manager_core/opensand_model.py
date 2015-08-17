@@ -84,6 +84,7 @@ class Model:
         self._ws = []
         self._collector_known = False
         self._collector_functional = False
+        self._last_gw = None
 
         # the global config
         self._config = None
@@ -280,22 +281,33 @@ class Model:
 
     def del_host(self, name):
         """ remove an host """
-        idx = 0
-        for host in self._hosts:
-            if name == host.get_name():
-                self._log.debug("remove host: '" + name + "'")
-                if not name == 'sat':
-                    self._topology.remove(name, self._hosts[idx].get_instance())
-                    self._config.remove(name, self._hosts[idx].get_instance())
-                del self._hosts[idx]
-            idx += 1
+        # check if this is the last gw
+        other_gw = True
+        if name.startswith(GW):
+            other_gw = False
+            self._last_gw = self.get_host(name)
+            for host_name in map(lambda x: x.get_name(), self._hosts):
+                if host_name.startswith(GW) and host_name != name:
+                    other_gw = True
+                    self._last_gw = None
+                    break
 
-        idx = 0
+        host = self.get_host(name)
+        self._log.debug("remove host: '" + name + "'")
+        # if there is not other GW don't remove it from topology
+        # and global configuration
+        if not name == 'sat' and other_gw:
+            self._topology.remove_host(name,
+                                       host.get_instance())
+        if name.startswith(GW) and other_gw:
+            self._config.remove_gw(name,
+                                   host.get_instance())
+        self._hosts.remove(host)
+
         for host in self._ws:
             if name == host.get_name():
                 self._log.debug("remove host: '" + name + "'")
-                del self._ws[idx]
-            idx += 1
+                self._ws.remove(host)
 
         for module in self._missing_modules:
             if name in self._missing_modules[module]:
@@ -401,13 +413,25 @@ class Model:
 
     def update_config(self):
         host_config = self._add_host[0]
-        self._topology.new_host(host_config["name"], 
-                                host_config["inst"],
-                                host_config["net"])
-        if host_config["name"].startswith(GW):
-            self._config.new_gw(host_config["name"], 
-                                host_config["inst"],
-                                host_config["net"])
+        name = host_config["name"]
+        if self._last_gw is None or name != self._last_gw.get_name():
+            self._topology.new_host(name,
+                                    host_config["inst"],
+                                    host_config["net"])
+            if name.startswith(GW):
+                self._config.new_gw(name, 
+                                    host_config["inst"],
+                                    host_config["net"])
+            if name.startswith(GW) and self._last_gw is not None:
+                # there is a new GW we can remove the last one
+                self._log.debug("remove last gw (%s) as there is a new one" %
+                                (self._last_gw.get_name()))
+                self._topology.remove_host(self._last_gw.get_name(),
+                                           self._last_gw.get_instance())
+                self._config.remove_gw(self._last_gw.get_name(),
+                                       self._last_gw.get_instance())
+                self._last_gw = None
+
         self.update_spot_gw()
         del self._add_host[0]
 

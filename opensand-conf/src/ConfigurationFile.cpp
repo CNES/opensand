@@ -355,7 +355,7 @@ bool ConfigurationFile::getListNode(ConfigurationList sectionList,
                                     xmlpp::Node::NodeList &nodeList)
 {
 	xmlpp::Node::NodeList::iterator iter;
-	xmlpp::Node *sectionNode;
+	xmlpp::Node *sectionNode = NULL;
 	bool found = false;
 
 	for(iter = sectionList.begin(); iter != sectionList.end(); iter++)

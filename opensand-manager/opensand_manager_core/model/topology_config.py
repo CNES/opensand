@@ -52,7 +52,6 @@ class TopologyConfig(AdvancedHostModel):
     """ OpenSAND Topology configuration, displayed in configuration tab """
     def __init__(self, scenario, manager_log):
         self._list_host = {}
-        self._last_gw = ""
         self._log = manager_log
         AdvancedHostModel.__init__(self, TOPOLOGY, scenario)
 
@@ -144,9 +143,6 @@ class TopologyConfig(AdvancedHostModel):
     def new_host(self, name, instance, net_config):
         """ Add a new host in the topology configuration file """
         # if the host is already in the topology don't add it
-        if name == self._last_gw:
-            return
-
         self._list_host[name] = net_config
        
         try:
@@ -268,22 +264,8 @@ class TopologyConfig(AdvancedHostModel):
             self._log.error("unknown exception when trying to add topology for "
                             "%s: %s" % (name, str(msg)))
 
-    def remove(self, name, instance):
+    def remove_host(self, name, instance):
         """ remove a host from topology configuration file """
-        
-        # if there is not other GW don't remove it from topology
-        other_gw = False
-        if name.startswith(GW):
-            self._last_gw = name
-            for host_name in self._list_host:
-                if host_name.startswith(GW) and host_name != name:
-                    other_gw = True
-                    self._last_gw = ""
-                    break
-        
-        if not other_gw:
-            return
-
         del self._list_host[name]
         
         try:

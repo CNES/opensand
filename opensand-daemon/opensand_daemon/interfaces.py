@@ -65,7 +65,8 @@ def get_mac_address(interface):
     return ''.join(['%02x:' % ord(char) for char in info[18:24]])[:-1]
 
 
-
+# TODO when restarting daemon while OpenSAND is running, this always
+#      consider we are in L3 but we could be in L2
 class OpenSandIfaces(object):
     """ the OpenSAND interfaces object """
 
@@ -184,7 +185,7 @@ class OpenSandIfaces(object):
             try:
                 # if the address exists this is not an error, do not keep it in
                 # _nladd to avoid removing it at exit
-                try:
+                """try:
                     OpenSandIfaces._ifaces.add_address(
                                 str(OpenSandIfaces._lan_ipv4),
                                 OpenSandIfaces._lan_iface)
@@ -205,7 +206,7 @@ class OpenSandIfaces(object):
                                  OpenSandIfaces._lan_iface))
                 else:
                     OpenSandIfaces._nladd[OpenSandIfaces._lan_ipv6] = \
-                            OpenSandIfaces._lan_iface
+                            OpenSandIfaces._lan_iface"""
                 # if interface is already up this is not an error, do not keep
                 # it in _ifdown to avoid changing its state at exit
                 try:
@@ -337,7 +338,7 @@ class OpenSandIfaces(object):
             except NlExists:
                 pass
         except NlError:
-            LOGGER.error("error when configuring TUN and Bridge")
+            LOGGER.error("error when configuring TUN")
 
         self._remove_default_routes()
 
@@ -438,7 +439,7 @@ class OpenSandIfaces(object):
 
     def _setup_l3(self):
         """ set interface in IP mode """
-        # add IPv4 address on lan interface (should be already done)
+        # add IPv4 address on lan interface
         try:
             OpenSandIfaces._ifaces.add_address(
                         str(OpenSandIfaces._lan_ipv4),
@@ -447,7 +448,7 @@ class OpenSandIfaces(object):
             LOGGER.info("address %s already exists on %s" %
                         (OpenSandIfaces._lan_ipv4,
                          OpenSandIfaces._lan_iface))
-        # add IPv6 address on lan interface (should be already done)
+        # add IPv6 address on lan interface
         try:
             OpenSandIfaces._ifaces.add_address(
                             str(OpenSandIfaces._lan_ipv6),

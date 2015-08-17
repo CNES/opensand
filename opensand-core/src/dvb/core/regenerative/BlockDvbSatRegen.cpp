@@ -210,7 +210,7 @@ bool BlockDvbSatRegen::DownwardRegen::initStList(void)
 			{
 				if(!(*it2)->doTerminalExist(tal_id))
 				{
-					// TODO Do that on loggon
+					// TODO Do that on loggon and remove columns from configuration
 					if(!(*it2)->addTerminal(tal_id))
 					{
 						LOG(this->log_init, LEVEL_ERROR,
