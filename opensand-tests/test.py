@@ -150,9 +150,8 @@ class Test(ShellManager):
                               "names from the same folder (separated by ',') "
                               "and set the --type option)")
         opt_parser.add_option("-r", "--regexp", dest="regexp", default=None,
-                              help="launch all test that contain this regexp" 
-                              "in particular (use test names from the same "
-                              "folder and set the --type option)")
+                              help="launch all test that contain this regexp " 
+                              "in particular")
         opt_parser.add_option("-s", "--service", dest="service",
                               default=SERVICE,
                               help="listen for OpenSAND entities "\
@@ -462,15 +461,13 @@ help="specify the root folder for tests configurations\n"
 
         for test_path in test_paths:
             test_name = os.path.basename(test_path)
-            test_exist = False
+            test_exist = True
             if self._test is not None:
+                test_exist = False
                 for name in self._test:
                     if name.startswith(test_name):
                         test_exist = True
-            if self._regexp is not None:
-                if re.search(self._regexp, test_name) is not None:
-                    test_exist = True
-            if (self._test is None and self._regexp is None) or test_exist:
+            if test_exist:
                 self._model.set_scenario(self._base)
                 # reset run values
                 self._model.set_run("")
@@ -533,7 +530,18 @@ help="specify the root folder for tests configurations\n"
 
         init_scenario = self._model.get_scenario()
 
-        if self._test is None or test_name in self._test:
+        test_exist = False
+        if self._test is None and self._regexp is None:
+            test_exist = True
+            
+        if self._test is not None:
+            if test_name in self._test:
+                test_exist = True
+        if not test_exist and self._regexp is not None:
+            if re.search(self._regexp, test_name) is not None:
+                test_exist = True
+
+        if test_exist:
             self._log.info(" * Test %s with base configuration" % test_name)
             if self._quiet:
                 print "Test configuration %s" % blue(test_name, True)
