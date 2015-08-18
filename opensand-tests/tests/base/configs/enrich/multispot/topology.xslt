@@ -12,7 +12,7 @@
     </xsl:copy> 
 </xsl:template>
 
-<xsl:template match="//sat_carrier/spot[@id='1']">
+<xsl:template match="//sat_carrier/spot[@id='1' and @gw='0']">
     <xsl:copy-of select="."/>
     <xsl:call-template name="Newline" />
     <spot id="2" gw="0">
