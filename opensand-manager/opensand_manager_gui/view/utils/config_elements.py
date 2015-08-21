@@ -1026,11 +1026,13 @@ class ConfSection(gtk.VBox):
         """ add a line in the configuration """
         hbox = gtk.HBox()
         key_path = self._config.get_path(key)
+        new = False
         try:
             hbox.set_name(self._config.get_path(line))
         except:
             # this is a new line
             self._new.append(key_path)
+            new = True
             name = self._config.get_name(line)
             nbr = len(self._config.get_all("/%s/%s" % (key_path, name)))
             hbox.set_name("/%s/%s[%d]" % (key_path, name,
@@ -1071,7 +1073,6 @@ class ConfSection(gtk.VBox):
             elt_type = self._config.get_attribute_type(att, name)
             value = ''
             path = ''
-            new = True
             source = self._config.get_file_source(att, name)
             cb = [self.handle_param_chanded, self._changed_cb]
             scenario = self._scenario
@@ -1092,7 +1093,6 @@ class ConfSection(gtk.VBox):
                     source = self._config.adapt_filename(source, line, line_id)
                     source = os.path.join(scenario, source)
             except:
-                new = True
                 # this is a new line entry
                 nbr = len(self._config.get_all("/%s/%s" % (key_path, name)))
                 path = '/%s/%s[%d]/@%s' % (key_path, name,
@@ -1115,8 +1115,7 @@ class ConfSection(gtk.VBox):
                               cb, self._file_cb)
             if new:
                 # add new lines to changed list
-                if not entry in self._changed:
-                    self._changed.append(entry)
+                self._changed.append(entry)
             self._entries.append(entry)
             hbox.pack_start(entry.get())
             hbox.set_child_packing(entry.get(), expand=False,
@@ -1171,7 +1170,7 @@ class ConfSection(gtk.VBox):
                 if val is None:
                     continue
                 if len(path) == 0 or len(path) > 2:
-                    raise XmlException("wrong xpath %s" % path)
+                    raise XmlException("[save()] wrong xpath %s" % path)
                 elif len(path) == 1:
                     self._config.set_value(val, path[0])
                 elif len(path) == 2:
@@ -1188,7 +1187,6 @@ class ConfSection(gtk.VBox):
                             self._ratios.remove(ratio.get(RATIO))
                         self._ratios.append(val)
                     self._config.set_value(val, path[0], path[1])
-
         except XmlException:
             raise
         

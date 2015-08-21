@@ -55,8 +55,8 @@ Viveris technologies
     </child>
   </widget>
   <widget class="GtkDialog" id="advanced_dialog">
-    <property name="width_request">1300</property>
-    <property name="height_request">750</property>
+    <property name="width_request">1200</property>
+    <property name="height_request">700</property>
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
     <property name="type_hint">normal</property>
@@ -3436,17 +3436,6 @@ This is the name used when loading probes.</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
-                  <widget class="GtkHSeparator" id="hseparator2">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                  </widget>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">True</property>
-                    <property name="position">0</property>
-                  </packing>
-                </child>
-                <child>
                   <widget class="GtkHPaned" id="tools_hpaned">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -3510,6 +3499,17 @@ This is the name used when loading probes.</property>
                   </widget>
                   <packing>
                     <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkHSeparator" id="hseparator2">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
                     <property name="fill">True</property>
                     <property name="position">0</property>
                   </packing>

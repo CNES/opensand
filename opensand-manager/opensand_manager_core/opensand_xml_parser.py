@@ -130,7 +130,14 @@ class XmlParser:
         """ set the value of a key """
         elt = self._tree.xpath(path)
         if len(elt) != 1:
-            raise XmlException("wrong path %s" % path)
+            if att is None:
+                raise XmlException("[set_value() ]wrong path %s" % path)
+            # this happens for example when we add a line and modify the first
+            # line in a table, the first line won't have an index and so we ask
+            # for a path that may return more than one elements.
+            # Thus, choose the first one
+            elt = [elt[0]]
+
 
         if att is not None:
             if not self.is_table(elt):
@@ -273,8 +280,6 @@ class XmlParser:
             if not child.tag is etree.Comment:
                 break
         new = deepcopy(child)
-        for att in new.attrib.keys():
-            new.attrib[att] = ''
         table.append(new)
 
     def create_line(self, attributes, key, xpath):

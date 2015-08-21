@@ -468,11 +468,9 @@ class ResourceView(WindowView):
                                    gtk.ICON_SIZE_MENU)
                 self._desc_war[group] = img_war
                 hbox_gr_title.pack_start(img_war, expand=True, fill=False, padding=1)
-                self._desc_war[group].set_tooltip_text("It should be one " \
-                                                          "SCPC carrier by " \
-                                                          "SCPC terminal and "\
-                                                          "another carrier "\
-                                                          "for other terminals")
+                self._desc_war[group].set_tooltip_text(
+                    "There should be at most one SCPC terminal per category, it "
+                    "will use all the SCPC carriers in it")
             # Show error
             if nb_carrier_scpc > 1:
                 img_err = gtk.Image()

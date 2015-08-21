@@ -653,7 +653,13 @@ class AdvancedDialog(WindowView):
                                 (module.get_name(), name,
                                  error.description))
                     self._host_lock.acquire()
-            adv.update_conf()
+            try:
+                adv.update_conf()
+            except XmlException, error:
+                self._host_lock.release()
+                error_popup("Cannot save %s configuration: %s" %
+                            (name, error))
+                self._host_lock.acquire()
 
         self.update_restrictions()
         self._ui.get_widget('apply_advanced_conf').set_sensitive(False)
@@ -800,6 +806,7 @@ if __name__ == "__main__":
 
     LOGGER = ManagerLog(7, True, True, True)
     MODEL = Model(LOGGER)
+    MODEL.set_adv_mode(True)
     WindowView(None, 'none', 'opensand.glade')
     DIALOG = AdvancedDialog(MODEL, LOGGER, nothing)
     DIALOG.go()
