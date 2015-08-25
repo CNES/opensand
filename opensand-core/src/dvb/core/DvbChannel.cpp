@@ -144,7 +144,7 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, %s missing\n",
 			    COMMON_SECTION, encap_schemes);
-			goto error;
+			return false;
 		}
 
 
@@ -157,7 +157,7 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, invalid value %d for parameter '%s'\n",
 			    COMMON_SECTION, encap_nbr - 1, POSITION);
-			goto error;
+			return false;
 		}
 	}
 
@@ -166,7 +166,7 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot get plugin for %s encapsulation\n",
 		    encap_name.c_str());
-		goto error;
+		return false;
 	}
 
 	*pkt_hdl = plugin->getPacketHandler();
@@ -174,15 +174,13 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot get %s packet handler\n", encap_name.c_str());
-		goto error;
+		return false;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "encapsulation scheme = %s\n",
 	    (*pkt_hdl)->getName().c_str());
 
 	return true;
-error:
-	return false;
 }
 
 bool DvbChannel::initCommon(const char *encap_schemes)

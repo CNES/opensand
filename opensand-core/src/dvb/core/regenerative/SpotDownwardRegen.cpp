@@ -70,24 +70,17 @@ SpotDownwardRegen::~SpotDownwardRegen()
 bool SpotDownwardRegen::onInit(void)
 {
 	this->up_return_pkt_hdl = this->pkt_hdl;
+	DFLTLOG(LEVEL_ERROR, "init regen");
 
-	// Get the carrier Ids
-	if(!this->initCarrierIds())
+	// get and launch the dama algorithm
+	if(!this->initDama())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the carrier IDs part of the "
+		    "failed to complete the DAMA part of the "
 		    "initialisation\n");
-		goto error;
+		return false;
 	}
-
-	if(!this->initFifo())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the FIFO part of the "
-		    "initialisation\n");
-		goto release_dama;
-	}
-
+	
 	// Initialization of the modcod def
 	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
 	                            this->input_modcod_def))
@@ -103,48 +96,13 @@ bool SpotDownwardRegen::onInit(void)
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
+	DFLTLOG(LEVEL_ERROR, "init modcod file return up ok");
 
-	if(!this->initMode())
+	if(!SpotDownward::onInit())
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the mode part of the "
-		    "initialisation\n");
-		goto error;
+		return false;
 	}
-
-	// get and launch the dama algorithm
-	if(!this->initDama())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the DAMA part of the "
-		    "initialisation\n");
-		goto error;
-	}
-
-	this->initStatsTimer(this->fwd_down_frame_duration_ms);
-
-	if(!this->initRequestSimulation())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the request simulation part of "
-		    "the initialisation\n");
-		goto error;
-	}
-
-	if(!this->initOutput())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the initialization of "
-		    "statistics\n");
-		goto release_dama;
-	}
-	// everything went fine
-	return true;
-
-release_dama:
-	delete this->dama_ctrl;
-error:
-	return false;
+	return true;	
 }
 
 
@@ -366,70 +324,16 @@ error:
 
 bool SpotDownwardRegen::initOutput(void)
 {
-	// Events
-	this->event_logon_resp = Output::registerEvent("Spot_%d.DVB.logon_response",
-	                                               this->spot_id);
-
-	// Logs
-	if(this->simulate != none_simu)
+	if(!SpotDownward::initOutput())
 	{
-		this->log_request_simulation = Output::registerLog(LEVEL_WARNING,
-		                                                   "Spot_%d,Dvb.RequestSimulation",
-		                                                   this->spot_id);
-	}
-
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
-	{
-		const char *fifo_name = ((*it).second)->getName().data();
-		unsigned int id = (*it).first;
-
-		this->probe_gw_queue_size[id] =
-			Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
-		                               "Spot_%d.Queue size.packets.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_queue_size_kb[id] =
-			Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
-		                               "Spot_%d.Queue size.%s", spot_id, fifo_name);
-		this->probe_gw_l2_to_sat_before_sched[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                               "Spot_%d.Throughputs.L2_to_SAT_before_sched.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_l2_to_sat_after_sched[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                               "Spot_%d.Throughputs.L2_to_SAT_after_sched.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_queue_loss[id] =
-			Output::registerProbe<int>("Packets", true, SAMPLE_SUM,
-		                               "Spot_%d.Queue loss.packets.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_queue_loss_kb[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_SUM,
-		                               "Spot_%d.Queue loss.%s",
-		                               spot_id, fifo_name);
-	}
-	this->probe_gw_l2_to_sat_total =
-		Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                           "Spot_%d.Throughputs.L2_to_SAT_after_sched.total",
-		                           spot_id);
+		return false;
+	}	
 
 	this->probe_used_modcod = Output::registerProbe<int>("modcod index",
 		                                                     true, SAMPLE_LAST,
 		                                                     "Spot_%d.ACM.Used_modcod",
 		                                                     this->spot_id);
 
-	return true;
-}
-
-
-bool SpotDownwardRegen::handleSalohaAcks(const list<DvbFrame *> *ack_frames)
-{
-	list<DvbFrame *>::const_iterator ack_it;
-	for(ack_it = ack_frames->begin(); ack_it != ack_frames->end();
-	    ++ack_it)
-	{
-		this->complete_dvb_frames.push_back(*ack_it);
-	}
 	return true;
 }
 
@@ -446,24 +350,11 @@ bool SpotDownwardRegen::handleCorruptedFrame(DvbFrame *dvb_frame)
 
 bool SpotDownwardRegen::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 {
-	uint32_t remaining_alloc_sym = 0;
-	this->fwd_frame_counter = fwd_frame_counter;
-	this->updateStatistics();
-
-	// schedule encapsulation packets
-	// TODO loop on categories (see todo in initMode)
-	// TODO In regenerative mode we should schedule in frame_timer ??
-	if(!this->scheduling->schedule(this->fwd_frame_counter,
-	                               getCurrentTime(),
-	                               &this->complete_dvb_frames,
-	                               remaining_alloc_sym))
+	if(!SpotDownward::handleFwdFrameTimer(fwd_frame_counter))
 	{
-		LOG(this->log_send_channel, LEVEL_ERROR,
-		    "failed to schedule encapsulation "
-		    "packets stored in DVB FIFO\n");
 		return false;
 	}
-
+	
 	if(this->complete_dvb_frames.size() > 0)
 	{
 		// we can do that because we have only one MODCOD per allocation
@@ -473,11 +364,7 @@ bool SpotDownwardRegen::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 		modcod_id = ((DvbRcsFrame *)this->complete_dvb_frames.front())->getModcodId();
 		this->probe_used_modcod->put(modcod_id);
 	}
-	LOG(this->log_receive_channel, LEVEL_INFO,
-	    "SF#%u: %u symbols remaining after "
-	    "scheduling\n", this->super_frame_counter,
-	    remaining_alloc_sym);
-
+	
 	return true;
 }
 

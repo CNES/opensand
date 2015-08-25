@@ -95,10 +95,6 @@ class SpotUpwardTransp: public SpotUpward
 		 */
 		bool handleSlottedAlohaFrame(DvbFrame *frame);
 
-		// statistics update
-		void updateStats(void);
-
-
 	protected:
 
 		/**
@@ -138,6 +134,10 @@ class SpotUpwardTransp: public SpotUpward
 		 *               available or not
 		 */
 		bool checkIfScpc();
+		
+		/// The Slotted Aloha for NCC
+		SlottedAlohaNcc *saloha;
+
 	};
 
 #endif

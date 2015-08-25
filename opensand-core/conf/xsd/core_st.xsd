@@ -79,7 +79,6 @@
         <xsd:enumeration value="DAMA_VBDC"/>
         <xsd:enumeration value="DAMA_CRA"/>
         <xsd:enumeration value="SALOHA" />
-        <xsd:enumeration value="SCPC" />
     </xsd:restriction>
 </xsd:simpleType>
 

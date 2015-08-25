@@ -210,6 +210,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 			                              this->input_sts,
 			                              this->output_sts,
 			                              this->with_phy_layer);
+
 		}
 		else
 		{
@@ -582,11 +583,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				}
 				else if(*event == spot->getAcmTimer())
 				{
-					// if regenerative satellite, send ACM parameters
-					if(this->satellite_type == REGENERATIVE)
-					{
-						this->sendAcmParameters(spot);
-					}
+					// regenerative satellite, send ACM parameters
+					this->sendAcmParameters(spot);
 				}
 				else if(*event == spot->getPepCmdApplyTimer())
 				{
@@ -833,7 +831,6 @@ bool BlockDvbNcc::Downward::sendAcmParameters(SpotDownward *spot_downward)
 {
 	double cni;
 
-	DFLTLOG(LEVEL_ERROR, "%s\n", this->with_phy_layer ? "true" : "false");
 	if(this->with_phy_layer)
 	{
 		cni = spot_downward->getCni();
@@ -861,6 +858,7 @@ bool BlockDvbNcc::Downward::sendAcmParameters(SpotDownward *spot_downward)
 	return true;
 }
 
+// updateStats is pure virtual in BlockDvb not used in this case
 void BlockDvbNcc::Downward::updateStats(void)
 {
 }
@@ -1172,7 +1170,9 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					    "MODCOD scenario timer received\n");
 
 					double duration;
-					if(!spot->goNextScenarioStepInput(duration, this->mac_id, spot->getSpotId()))
+					if(!spot->goNextScenarioStepInput(duration, 
+						                              this->mac_id, 
+						                              spot->getSpotId()))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "SF#%u: failed to update MODCOD IDs\n",
@@ -1186,8 +1186,9 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					}
 					if(duration <= 0)
 					{
-						// we hare reach the end of the file (or it is malformed)
+						// we reached the end of the file (or it is malformed)
 						// so we keep the modcod as they are
+						// TODO enable loop on file
 						this->removeEvent(spot->getModcodTimer());
 					}
 					else

@@ -250,17 +250,6 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 
 			// check if the FIFO can emit on this carriers group
 			// SCPC
-			if(fifo->getAccessType() != access_scpc)
-			{
-				LOG(this->log_scheduling, LEVEL_DEBUG,
-				    "SF#%u: Ignore carriers with id %u in category %s "
-				    "for non-SCPC fifo %s\n",
-				    current_superframe_sf,
-				    carriers->getCarriersId(),
-				    this->category->getLabel().c_str(),
-				    fifo->getName().c_str());
-				continue;
-			}
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 			    "SF#%u: Can send data from fifo %s on carriers group "
 			    "%u in category %s\n",

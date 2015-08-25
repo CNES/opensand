@@ -122,10 +122,6 @@ bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
 
 bool BlockDvbSat::initSpots(void)
 {
-	sat_spots_t::iterator it_s;
-	list<SatGw *>::iterator it_g;
-	list<SatGw *> list_g;
-	
 	int i = 0;
 	size_t fifo_size;
 	ConfigurationList spot_list;

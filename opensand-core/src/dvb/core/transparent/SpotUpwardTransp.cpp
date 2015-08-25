@@ -46,81 +46,47 @@ SpotUpwardTransp::SpotUpwardTransp(spot_id_t spot_id,
                        tal_id_t mac_id,
                        StFmtSimuList *input_sts,
                        StFmtSimuList *output_sts):
-	SpotUpward(spot_id, mac_id, input_sts, output_sts)
+	SpotUpward(spot_id, mac_id, input_sts, output_sts),
+	saloha(NULL)
 {
 }
 
 
 SpotUpwardTransp::~SpotUpwardTransp()
 {
+	if(this->saloha)
+		delete this->saloha;
 }
 
 
 bool SpotUpwardTransp::onInit(void)
 {
-	string scheme;
+	string scheme = RETURN_UP_ENCAP_SCHEME_LIST;
 
-	if(!this->initSatType())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize satellite type\n");
-		goto error;
-	}
 	// get the common parameters
-	scheme = RETURN_UP_ENCAP_SCHEME_LIST;
-
 	if(!this->initCommon(scheme.c_str()))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the common part of the "
 		    "initialisation\n");
-		goto error;
-	}
-
-	// Get and open the files
-	if(!this->initModcodSimu())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the files part of the "
-		    "initialisation\n");
 		return false;
 	}
-
-	if(!this->initMode())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the mode part of the "
-		    "initialisation\n");
-		goto error;
-	}
-
+	
 	// initialize the slotted Aloha part
 	if(!this->initSlottedAloha())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the DAMA part of the "
 		    "initialisation\n");
-		goto error;
+		return false;
 	}
-
-	// synchronized with SoF
-	this->initStatsTimer(this->ret_up_frame_duration_ms);
-
-	if(!this->initOutput())
+	
+	if(!SpotUpward::onInit())
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the initialization of "
-		    "statistics\n");
-		goto error_mode;
+		return false;
 	}
 
-	// everything went fine
 	return true;
-
-error_mode:
-	delete this->reception_std;
-error:
-	return false;
 }
 
 bool SpotUpwardTransp::initSlottedAloha(void)
@@ -384,6 +350,7 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 		}
 		std = this->reception_std_scpc;
 	}
+	// TODO factorize if SCPC modcod handling is the same as for regenerative case
 	// Update stats
 	this->l2_from_sat_bytes += frame->getPayloadLength();
 
@@ -479,3 +446,80 @@ bool SpotUpwardTransp::checkIfScpc()
 	return true;
 }
 
+bool SpotUpwardTransp::onRcvLogonReq(DvbFrame *dvb_frame)
+{
+	if(!SpotUpward::onRcvLogonReq(dvb_frame))
+	{
+		return false;
+	}
+	
+	LogonRequest *logon_req = (LogonRequest *)dvb_frame;
+	uint16_t mac = logon_req->getMac();
+
+	// Inform SlottedAloha
+	if(this->saloha)
+	{
+		if(!this->saloha->addTerminal(mac))
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "Cannot add terminal in Slotted Aloha context\n");
+			return false;
+		}
+	}
+	
+	return true;
+}
+
+bool SpotUpwardTransp::scheduleSaloha(DvbFrame *dvb_frame,
+                                list<DvbFrame *>* &ack_frames,
+                                NetBurst **sa_burst)
+{
+	if(!this->saloha)
+	{
+		return true;
+	}
+	uint16_t sfn;
+	Sof *sof = (Sof *)dvb_frame;
+
+	sfn = sof->getSuperFrameNumber();
+
+	ack_frames = new list<DvbFrame *>();
+	// increase the superframe number and reset
+	// counter of frames per superframe
+	this->super_frame_counter++;
+	if(this->super_frame_counter != sfn)
+	{
+		LOG(this->log_receive_channel, LEVEL_WARNING,
+			"superframe counter (%u) is not the same as in"
+			" SoF (%u)\n",
+			this->super_frame_counter, sfn);
+		this->super_frame_counter = sfn;
+	}
+
+	if(!this->saloha->schedule(sa_burst,
+	                           *ack_frames,
+	                           this->super_frame_counter))
+	{
+		LOG(this->log_saloha, LEVEL_ERROR,
+		    "failed to schedule Slotted Aloha\n");
+		delete dvb_frame;
+		delete ack_frames;
+		return false;
+	}
+
+	return true;
+}
+
+bool SpotUpwardTransp::handleSlottedAlohaFrame(DvbFrame *frame)
+{
+	// Update stats
+	this->l2_from_sat_bytes += frame->getPayloadLength();
+
+	if(!this->saloha->onRcvFrame(frame))
+	{
+		LOG(this->log_saloha, LEVEL_ERROR,
+		    "failed to handle Slotted Aloha frame\n");
+		return false;
+	}
+	return true;
+}

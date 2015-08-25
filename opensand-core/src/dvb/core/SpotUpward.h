@@ -55,7 +55,7 @@ class SpotUpward: public DvbChannel
 		           StFmtSimuList *input_sts,
 		           StFmtSimuList *output_sts);
 		~SpotUpward();
-		virtual bool onInit() = 0;
+		virtual bool onInit();
 
 
 		/**
@@ -75,7 +75,7 @@ class SpotUpward: public DvbChannel
 		 *  @param sa_burst    OUT: The Slotted Aloha bursts received
 		 *  @return true on success, false otherwise
 		 */
-		bool scheduleSaloha(DvbFrame *dvb_frame,
+		virtual bool scheduleSaloha(DvbFrame *dvb_frame,
 		                    list<DvbFrame *>* &ack_frames,
 		                    NetBurst **sa_burst);
 
@@ -85,7 +85,7 @@ class SpotUpward: public DvbChannel
 		 *  @param logon_req  The frame contining the logon request
 		 *  @return true on success, false otherwise
 		 */
-		bool onRcvLogonReq(DvbFrame *dvb_frame);
+		virtual bool onRcvLogonReq(DvbFrame *dvb_frame);
 
 		/**
 		 *  @brief Handle a Slotted Aloha Data Frame
@@ -93,7 +93,7 @@ class SpotUpward: public DvbChannel
 		 *  @param frame  The Slotted Aloha data frame
 		 *  @return true on success, false otherwise
 		 */
-		bool handleSlottedAlohaFrame(DvbFrame *frame);
+		virtual bool handleSlottedAlohaFrame(DvbFrame *frame);
 
 		// statistics update
 		void updateStats(void);
@@ -129,13 +129,6 @@ class SpotUpward: public DvbChannel
 		virtual bool initMode(void) = 0;
 
 		/**
-		 * Read configuration for the Slotted Aloha algorithm
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		virtual bool initSlottedAloha(void) = 0;
-
-		/**
 		 * @brief Initialize the statistics
 		 *
 		 * @return  true on success, false otherwise
@@ -160,9 +153,6 @@ class SpotUpward: public DvbChannel
 
 		/// reception standard for SCPC
 		PhysicStd *reception_std_scpc;
-
-		/// The Slotted Aloha for NCC
-		SlottedAlohaNcc *saloha;
 
 		/// The up/return packet handler for SCPC
 		EncapPlugin::EncapPacketHandler *scpc_pkt_hdl;

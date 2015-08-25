@@ -14,7 +14,10 @@ libopensand_dvb_core_la_cpp = \
 	SpotUpward.cpp \
 	BlockDvbSat.cpp \
 	BlockDvbNcc.cpp \
-	BlockDvbTal.cpp
+	BlockDvbTal.cpp \
+	FileSimulator.cpp \
+	RandomSimulator.cpp \
+	RequestSimulator.cpp
 
 libopensand_dvb_core_la_h = \
 	SatSpot.h \
@@ -28,7 +31,10 @@ libopensand_dvb_core_la_h = \
 	SpotUpward.h \
 	BlockDvbSat.h \
 	BlockDvbNcc.h \
-	BlockDvbTal.h
+	BlockDvbTal.h \
+	FileSimulator.h \
+	RandomSimulator.h \
+	RequestSimulator.h
 
 libopensand_dvb_core_la_SOURCES = \
 	$(libopensand_dvb_core_la_cpp) \
@@ -39,6 +45,7 @@ libopensand_dvb_core_la_LIBADD = \
 	transparent/libopensand_dvb_core_transp.la
 
 INCLUDES = \
+	-I$(top_srcdir)/src/dvb/simu \
 	-I$(top_srcdir)/src/dvb/utils \
 	-I$(top_srcdir)/src/dvb/utils/ip \
 	-I$(top_srcdir)/src/dvb/dama \

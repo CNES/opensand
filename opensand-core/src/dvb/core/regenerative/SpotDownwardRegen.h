@@ -56,15 +56,13 @@ class SpotDownwardRegen: public SpotDownward
 		                  StFmtSimuList *output_sts,
 		                  bool phy_layer);
 		~SpotDownwardRegen();
-		bool onInit(void);
-
+		
 		/**
-		 * @brief Handle the Slotted Aloha ACKs
+		 * @brief Spot Downward initialisation
 		 *
-		 * @param ack_frames  The Slotted Aloha ACKs
 		 * @return true on success, false otherwise
-		 */
-		bool handleSalohaAcks(const list<DvbFrame *> *ack_frames);
+		 */ 
+		bool onInit(void);
 
 		/**
 		 * @brief handle Corrupted Dvb Frame

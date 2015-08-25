@@ -67,30 +67,7 @@ class SpotUpwardRegen: public SpotUpward
 		 */
 		bool handleFrame(DvbFrame *frame, NetBurst **burst);
 
-		/**
-		 * @brief Schedule Slotted Aloha carriers
-		 *
-		 *	@param dvb_frame   a SoF
-		 *  @param ack_frames  OUT: The generated ACK frames
-		 *  @param sa_burst    OUT: The Slotted Aloha bursts received
-		 *  @return true on success, false otherwise
-		 */
-		bool scheduleSaloha(DvbFrame *dvb_frame,
-		                    list<DvbFrame *>* &ack_frames,
-		                    NetBurst **sa_burst);
-
-		/**
-		 *  @brief Handle a Slotted Aloha Data Frame
-		 *
-		 *  @param frame  The Slotted Aloha data frame
-		 *  @return true on success, false otherwise
-		 */
-		bool handleSlottedAlohaFrame(DvbFrame *frame);
-
-		// statistics update
-		void updateStats(void);
-
-
+		
 	protected:
 
 		/**
@@ -106,13 +83,6 @@ class SpotUpwardRegen: public SpotUpward
 		 * @return  true on success, false otherwise
 		 */
 		bool initMode(void);
-
-		/**
-		 * Read configuration for the Slotted Aloha algorithm
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initSlottedAloha(void);
 
 		/**
 		 * @brief Initialize the statistics

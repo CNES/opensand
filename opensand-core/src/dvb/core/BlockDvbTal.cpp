@@ -227,6 +227,7 @@ BlockDvbTal::Downward::~Downward()
 
 bool BlockDvbTal::Downward::onInit(void)
 {
+	bool is_scpc = false;
 	this->log_qos_server = Output::registerLog(LEVEL_WARNING, 
 	                                           "Dvb.QoSServer");
 	this->log_frame_tick = Output::registerLog(LEVEL_WARNING, 
@@ -259,20 +260,40 @@ bool BlockDvbTal::Downward::onInit(void)
 		goto error;
 	}
 
-	if(!this->initDama())
+	if(!Conf::getValue(Conf::section_map[DVB_TAL_SECTION], IS_SCPC, is_scpc))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the DAMA part of the initialisation\n");
-		goto error;
+		    "section '%s': missing parameter '%s'\n",
+		    DVB_TAL_SECTION, IS_SCPC);
+		return false;
 	}
 
-	if(!this->initSlottedAloha())
+	if(!is_scpc)
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the initialisation of Slotted Aloha\n");
-		goto error;
-	}
+		if(!this->initDama())
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+					"failed to complete the DAMA part of the initialisation\n");
+			goto error;
+		}
 
+		if(!this->initSlottedAloha())
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+					"failed to complete the initialisation of Slotted Aloha\n");
+			goto error;
+		}
+	}
+	else
+	{
+		if(!this->initScpc())
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+					"failed to complete the SCPC part of the initialisation\n");
+			goto error;
+		}
+	}
+	
 	// Initialization od fow_modcod_def (useful to send SAC)
 	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
 	                            this->input_modcod_def))
@@ -281,14 +302,7 @@ bool BlockDvbTal::Downward::onInit(void)
 		    "failed to initialize the up/return MODCOD definition file\n");
 		return false;
 	}
-
-	if(!this->initScpc())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the SCPC part of the initialisation\n");
-		goto error;
-	}
-
+	
 	if(!this->dama_agent && !this->saloha && !this->scpc_sched)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -354,9 +368,6 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	// get current spot id withing sat switching table
 	ConfigurationList::iterator spot_iter;
 	// get satelite carrier spot configuration 
-	ConfigurationList satcar_section = Conf::section_map[SATCAR_SECTION];
-	ConfigurationList spots;
-	ConfigurationList current_spot;
 	ConfigurationList current_gw;
 	ConfigurationList carrier_list ; 
 	ConfigurationList::iterator iter;
@@ -387,33 +398,17 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		    this->mac_id);
 		return false;
 	}
-
-	if(!Conf::getListNode(satcar_section, SPOT_LIST, spots))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n",
-		    SPOT_LIST, SATCAR_SECTION);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-		                                   this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s\n",
-		    ID, this->spot_id, SPOT_LIST);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(current_spot, GW,
-		                                   gw_id, current_gw))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s\n",
-		    GW, gw_id, SPOT_LIST);
-		return false;
-	}
 	
+	if(!OpenSandConf::getSpot(SATCAR_SECTION,
+		                      this->spot_id, 
+		                      gw_id, current_gw))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "section '%s', missing spot for id %d and gw id %d\n",
+		    SATCAR_SECTION, this->spot_id, gw_id);
+		return false;
+	}
+
 	// get satellite channels from configuration
 	if(!Conf::getListItems(current_gw, CARRIER_LIST, carrier_list))
 	{
@@ -626,8 +621,6 @@ bool BlockDvbTal::Downward::initDama(void)
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
-	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
-	ConfigurationList spots;
 	ConfigurationList current_spot;
 	
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
@@ -651,20 +644,13 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// get current spot into return up band section
-	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
+	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
+		                      this->spot_id, 
+		                      NO_GW, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n", 
-		    SPOT_LIST, RETURN_UP_BAND);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-		                                   this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s\n",
-		    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+		    "section '%s', missing spot for id %d\n",
+		    RETURN_UP_BAND, this->spot_id);
 		return false;
 	}
 
@@ -918,23 +904,14 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	}
 
 	// get current spot into return up band section
-	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
-	ConfigurationList spots;
 	ConfigurationList current_spot;
-	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
+	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
+		                      this->spot_id, 
+		                      NO_GW, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n", 
-		    SPOT_LIST, RETURN_UP_BAND);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-		                                   this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s\n",
-		    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+		    "section '%s', missing spot for id %d\n",
+				RETURN_UP_BAND, this->spot_id);
 		return false;
 	}
 
@@ -1072,8 +1049,6 @@ release_saloha:
 
 bool BlockDvbTal::Downward::initScpc(void)
 {
-	bool is_scpc_fifo = false;
-
 	TerminalCategories<TerminalCategoryDama> scpc_categories;
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
 	TerminalCategoryDama *default_category;
@@ -1082,18 +1057,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
-	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
-	ConfigurationList spots;
 	ConfigurationList current_spot;
-	
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
-	{
-		if((*it).second->getAccessType() == access_scpc)
-		{
-			is_scpc_fifo = true;
-		}
-	}
 	
 	// init scpc_fmt_simu
 	// TODO: we take forward because we need S2
@@ -1120,20 +1084,13 @@ bool BlockDvbTal::Downward::initScpc(void)
 	    "scpc_carr_duration_ms = %d ms\n", this->scpc_carr_duration_ms);
 
 	// get current spot into return up band section
-	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
+	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
+		                      this->spot_id, 
+		                      NO_GW, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n", 
-		    SPOT_LIST, RETURN_UP_BAND);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-		                                   this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s\n",
-		    ID, this->spot_id, RETURN_UP_BAND, SPOT_LIST);
+		    "section '%s', missing spot for id %d\n",
+		    RETURN_UP_BAND, this->spot_id);
 		return false;
 	}
 
@@ -1159,7 +1116,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 		LOG(this->log_init, LEVEL_INFO,
 		    "No SCPC carriers\n");
 		// no SCPC return
-		return true;
+		return false;
 	}
 	// Find the category for this terminal
 	tal_map_it = terminal_affectation.find(this->mac_id);
@@ -1183,30 +1140,11 @@ bool BlockDvbTal::Downward::initScpc(void)
 	{
 		LOG(this->log_init, LEVEL_INFO,
 		    "No SCPC carrier\n");
-		if(is_scpc_fifo)
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "Remove SCPC FIFOs because there is no "
-			    "SCPC carrier in the return_up_band configuration\n");
-			for(fifos_t::iterator it = this->dvb_fifos.begin();
-			    it != this->dvb_fifos.end(); ++it)
-			{
-				if((*it).second->getAccessType() == access_scpc)
-				{
-					delete (*it).second;
-					this->dvb_fifos.erase(it);
-				}
-			}
-			goto error;
-		}
+		LOG(this->log_init, LEVEL_ERROR,
+				"Remove SCPC FIFOs because there is no "
+				"SCPC carrier in the return_up_band configuration\n");
+		goto error;
 		// no SCPC return
-		goto release_cat;
-	}
-	if(!is_scpc_fifo)
-	{
-		LOG(this->log_init, LEVEL_WARNING,
-		    "The SCPC carrier won't be used as there is no "
-		    "SCPC FIFO in Terminal\n");
 		goto release_cat;
 	}
 	
@@ -1270,7 +1208,7 @@ release_cat:
 	{
 		delete (*cat_it).second;
 	}
-	return true;
+	return false;
 error:
 	terminal_affectation.clear();
 	for(cat_it = scpc_categories.begin();

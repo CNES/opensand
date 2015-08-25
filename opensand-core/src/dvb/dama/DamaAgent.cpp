@@ -96,8 +96,6 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 			case access_dama_cra:
 			case access_saloha:
 				break;
-			case access_scpc:
-				break;
 			default:
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Unknown CR type for FIFO %s: %d\n",

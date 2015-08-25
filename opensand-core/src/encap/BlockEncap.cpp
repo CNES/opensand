@@ -658,136 +658,17 @@ error:
 
 bool BlockEncap::checkIfScpc()
 {
-	TerminalCategories<TerminalCategoryDama> scpc_categories;
-	TerminalMapping<TerminalCategoryDama> terminal_affectation;
-	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
-	TerminalCategoryDama *default_category;
-	TerminalCategoryDama *tal_category = NULL;
-	time_ms_t scpc_carr_duration_ms;
-	FmtSimulation scpc_fmt_simu;
-	FmtDefinitionTable scpc_modcod_def;
-	fifos_t dvb_fifos;
-	fmt_groups_t ret_fmt_groups;
 	bool is_scpc = false;
 	
-	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
-	ConfigurationList spots;
-	ConfigurationList::iterator spot_it;
-	ConfigurationList current_spot;
-
 	if(!Conf::getValue(Conf::section_map[DVB_TAL_SECTION], IS_SCPC, is_scpc))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    DVB_TAL_SECTION, BANDWIDTH);
+		    DVB_TAL_SECTION, IS_SCPC);
 		return false;
 	}
 
-	if(!is_scpc)
-	{
-		return false;
-	}
-
-	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_DEF_S2,
-	                          RETURN_UP_MODCOD_TIME_SERIES,
-	                          scpc_fmt_simu,
-	                          scpc_modcod_def))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize the down/forward MODCOD files\n");
-		return false;
-	}
-
-	//  Duration of the carrier -- in ms
-	if(!Conf::getValue(Conf::section_map[SCPC_SECTION], SCPC_C_DURATION,
-	                   scpc_carr_duration_ms))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Missing %s\n", SCPC_C_DURATION);
-		return false;
-	}
-
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "scpc_carr_duration_ms = %d ms\n", scpc_carr_duration_ms);
-
-	// get current spot into return up band section
-	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "there is no %s into %s section\n", 
-		    SPOT_LIST, RETURN_UP_BAND);
-		return false;
-	}
-
-	for(spot_it = spots.begin(); spot_it != spots.end(); ++spot_it)
-	{
-		current_spot.push_back(*spot_it);
-
-		if(!this->initBand<TerminalCategoryDama>(current_spot,
-		                                         RETURN_UP_BAND,
-		                                         SCPC,
-		                                         scpc_carr_duration_ms,
-		                                         &scpc_modcod_def,
-		                                         scpc_categories,
-		                                         terminal_affectation,
-		                                         &default_category,
-		                                         ret_fmt_groups))
-		{
-			return false;
-		}
-		
-		// FIXME ? at the moment we consider this is not SCPC if at least a
-		//         spot is not SCPC
-		if(scpc_categories.size() == 0)
-		{
-			LOG(this->log_init, LEVEL_INFO,
-			    "No SCPC carriers\n");
-			return false;
-		}
-		
-		// Find the category for this terminal
-		tal_map_it = terminal_affectation.find(this->mac_id);
-		if(tal_map_it == terminal_affectation.end())
-		{
-			// check if the default category is concerned by SCPC
-			if(!default_category)
-			{
-				LOG(this->log_init, LEVEL_INFO,
-				    "ST not affected to a SCPC category\n");
-				return false;
-			}
-			tal_category = default_category;
-		}
-		else
-		{
-			tal_category = (*tal_map_it).second;
-		}
-	
-		if(!tal_category)
-		{
-			LOG(this->log_init, LEVEL_INFO,
-			    "No SCPC carrier\n");
-			// Even if there are SCPC FIFOs, SCPC is no used because
-			// there are no SCPC carriers
-			return false;
-		}
-	}
-	
-	// clear unused fmt_group
-	for(fmt_groups_t::iterator it = ret_fmt_groups.begin();
-		it != ret_fmt_groups.end(); ++it)
-	{
-		delete (*it).second;
-	}
-	
-	// clear unused category
-	for(TerminalCategories<TerminalCategoryDama>::iterator it = scpc_categories.begin();
-	    it != scpc_categories.end(); ++it)
-	{
-		delete (*it).second;
-	}
-	
-	return true;
+	return is_scpc;
 }
 
 bool BlockEncap::getEncapContext(const char *scheme_list,
@@ -880,7 +761,7 @@ bool BlockEncap::getEncapContext(const char *scheme_list,
 }
 
 // TODO try to factorize or remove
-bool BlockEncap::initModcodFiles(const char *def,
+/*bool BlockEncap::initModcodFiles(const char *def,
                                  const char *simu,
                                  FmtSimulation &fmt_simu,
                                  FmtDefinitionTable &modcod_def)
@@ -937,4 +818,4 @@ bool BlockEncap::initModcodFiles(const char *def,
 
 error:
 	return false;
-}
+}*/

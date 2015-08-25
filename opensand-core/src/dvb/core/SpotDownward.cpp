@@ -39,6 +39,8 @@
 #include "ForwardSchedulingS2.h"
 #include "UplinkSchedulingRcs.h"
 #include "DamaCtrlRcsLegacy.h"
+#include "FileSimulator.h"
+#include "RandomSimulator.h"
 
 #include <errno.h>
 
@@ -73,16 +75,10 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	ret_fmt_groups(),
 	cni(100),
 	pep_cmd_apply_timer(),
+	acm_timer(-1),
+	request_simu(NULL),
 	event_file(NULL),
-	simu_file(NULL),
 	simulate(none_simu),
-	simu_st(-1),
-	simu_rt(-1),
-	simu_max_rbdc(-1),
-	simu_max_vbdc(-1),
-	simu_cr(-1),
-	simu_interval(-1),
-	simu_eof(false),
 	probe_gw_queue_size(),
 	probe_gw_queue_size_kb(),
 	probe_gw_queue_loss(),
@@ -93,7 +89,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	l2_to_sat_total_bytes(0),
 	probe_frame_interval(NULL),
 	probe_used_modcod(NULL),
-	log_request_simulation(NULL),
 	event_logon_resp(NULL)
 {
 	this->fwd_down_frame_duration_ms = fwd_down_frame_duration;
@@ -104,6 +99,11 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	this->with_phy_layer = phy_layer;
 	this->input_sts = input_sts;
 	this->output_sts = output_sts;
+
+	this->log_request_simulation = Output::registerLog(LEVEL_WARNING,
+	                                                   "Spot_%d.Dvb.RequestSimulation",
+		                                               this->spot_id);
+
 }
 
 SpotDownward::~SpotDownward()
@@ -115,15 +115,6 @@ SpotDownward::~SpotDownward()
 
 	this->complete_dvb_frames.clear();
 
-	if(this->event_file)
-	{
-		fflush(this->event_file);
-		fclose(this->event_file);
-	}
-	if(this->simu_file)
-	{
-		fclose(this->simu_file);
-	}
 	// delete FMT groups here because they may be present in many carriers
 	// TODO do something to avoid groups here
 	for(fmt_groups_t::iterator it = this->fwd_fmt_groups.begin();
@@ -151,52 +142,92 @@ SpotDownward::~SpotDownward()
 }
 
 
+bool SpotDownward::onInit(void)
+{
+	// Get the carrier Ids
+	if(!this->initCarrierIds())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the carrier IDs part of the "
+		    "initialisation\n");
+		return false;
+	}
+	
+	if(!this->initFifo())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the FIFO part of the "
+		    "initialisation\n");
+		return false;
+	}
+
+	if(!this->initMode())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the mode part of the "
+		    "initialisation\n");
+		return false;
+	}
+
+	this->initStatsTimer(this->fwd_down_frame_duration_ms);
+
+	if(!this->initRequestSimulation())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the request simulation part of "
+		    "the initialisation\n");
+		goto release_dama;
+	}
+
+	// get and launch the dama algorithm
+	if(!this->initDama())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the DAMA part of the "
+		    "initialisation\n");
+		goto release_dama;
+	}
+
+
+	if(!this->initOutput())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the initialization of "
+		    "statistics\n");
+		goto release_dama;
+	}
+	// everything went fine
+	return true;
+
+release_dama:
+	delete this->dama_ctrl;
+	return false;
+}
+
 bool SpotDownward::initCarrierIds(void)
 {
 	ConfigurationList carrier_list ;
-	ConfigurationList spot_list;
 	ConfigurationList::iterator iter;
 	ConfigurationList::iterator iter_spots;
-	ConfigurationList current_spot;
 	ConfigurationList current_gw;
-
-	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION], SPOT_LIST,
-	                      spot_list))
+	
+	if(!OpenSandConf::getSpot(SATCAR_SECTION,
+		                      this->spot_id, 
+		                      this->mac_id, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s, %s': missing satellite channels\n",
-		    SATCAR_SECTION, SPOT_LIST);
-		goto error;
-	}
-
-	if(!Conf::getElementWithAttributeValue(spot_list, ID,
-	                                       this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s\n",
-		    ID, this->spot_id, SPOT_LIST);
-		goto error;
+		    "section '%s', missing spot for id %d and gw id %d\n",
+		    SATCAR_SECTION, this->spot_id, this->mac_id);
+		return false;
 	}
 	
-	if(!Conf::getElementWithAttributeValue(current_spot, GW,
-	                                       this->mac_id, current_gw))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s %d\n",
-		    GW, this->mac_id, SPOT_LIST, this->spot_id);
-		goto error;
-	}
-	
-	// TODO can we get current_spot with only one command ?
-	//  -> get(section_map, SPOT_LIST, ID, id, current_spot) ?
-
 	// get satellite channels from configuration
 	if(!Conf::getListItems(current_gw, CARRIER_LIST, carrier_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s, %s': missing satellite channels\n",
 		    SATCAR_SECTION, CARRIER_LIST);
-		goto error;
+		return false;
 	}
 
 	for(iter = carrier_list.begin(); iter != carrier_list.end(); ++iter)
@@ -210,7 +241,7 @@ bool SpotDownward::initCarrierIds(void)
 			    "section '%s/%s%d/%s': missing parameter '%s'\n",
 			    SATCAR_SECTION, SPOT_LIST, this->spot_id,
 			    CARRIER_LIST, CARRIER_ID);
-			goto error;
+			return false;
 		}
 
 		// Get the carrier type
@@ -220,7 +251,7 @@ bool SpotDownward::initCarrierIds(void)
 			    "section '%s/%s%d/%s': missing parameter '%s'\n",
 			    SATCAR_SECTION, SPOT_LIST, this->spot_id,
 			    CARRIER_LIST, CARRIER_TYPE);
-			goto error;
+			return false;
 		}
 
 		if(strcmp(carrier_type.c_str(), CTRL_IN) == 0)
@@ -244,7 +275,7 @@ bool SpotDownward::initCarrierIds(void)
 		    this->super_frame_counter,
 		    DVB_CAR_ID_CTRL, SATCAR_SECTION,
 		    SPOT_LIST, this->spot_id);
-		goto error;
+		return false;
 	}
 
 	// Logon carrier error
@@ -255,7 +286,7 @@ bool SpotDownward::initCarrierIds(void)
 		    this->super_frame_counter,
 		    DVB_SOF_CAR, SATCAR_SECTION,
 		    SPOT_LIST, this->spot_id);
-		goto error;
+		return false;
 	}
 
 	// Data carrier error
@@ -266,7 +297,7 @@ bool SpotDownward::initCarrierIds(void)
 		    this->super_frame_counter,
 		    DVB_CAR_ID_DATA, SATCAR_SECTION,
 		    SPOT_LIST, this->spot_id);
-		goto error;
+		return false;
 	}
 
 	LOG(this->log_init_channel, LEVEL_NOTICE,
@@ -276,9 +307,6 @@ bool SpotDownward::initCarrierIds(void)
 	    this->sof_carrier_id, this->data_carrier_id);
 
 	return true;
-
-error:
-	return false;
 }
 
 
@@ -286,59 +314,26 @@ bool SpotDownward::initFifo(void)
 {
 	ConfigurationList fifo_list;
 	ConfigurationList::iterator iter;
-	ConfigurationList spot_list;
-	// TODO do not use that !
-	xmlpp::Node *spot_node = NULL;
 	ConfigurationList::iterator iter_spots;
+	ConfigurationList spot_node;
 
-	/**********************************
-	 *       Create SPOT_LIST
-	 *********************************/
-	// get satellite channels from configuration
-	if(!Conf::getListNode(Conf::section_map[DVB_NCC_SECTION], SPOT_LIST,
-	                      spot_list))
+	if(!OpenSandConf::getSpot(DVB_NCC_SECTION,
+		                      this->spot_id, 
+		                      NO_GW, spot_node))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s, %s': missing satellite channels\n",
-		    SATCAR_SECTION, SPOT_LIST);
-		return false;;
-	}
-	// TODO function to directly get the correct spot with spot_id in order
-	//      done in 2 functions above
-	for(iter_spots = spot_list.begin(); iter_spots != spot_list.end();
-	    ++iter_spots)
-	{
-		spot_id_t current_spot_id;
-		if(!Conf::getAttributeValue(iter_spots, ID, current_spot_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section %s/%s: missing attribute %s\n",
-			    SATCAR_SECTION, SPOT_LIST, ID);
-			return false;
-		}
-
-		//  check spot id to get good carriers!
-		if(this->spot_id == current_spot_id)
-		{
-			spot_node = *iter_spots;
-			// spot is found
-			break;
-		}
-	}
-	if(!spot_node)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot found channels for spot %u\n", this->spot_id);
+		    "section '%s', missing spot for id %d\n",
+		    DVB_NCC_SECTION, this->spot_id);
 		return false;
 	}
-	// TODO why ?? overload functions in conf to avoid that
-
+	
 	/*
 	 * Read the MAC queues configuration in the configuration file.
 	 * Create and initialize MAC FIFOs
 	 */
 	if(!Conf::getListItems(spot_node,
-	                       FIFO_LIST, fifo_list))
+	                       FIFO_LIST, 
+	                       fifo_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s, %s': missing fifo list\n", DVB_NCC_SECTION,
@@ -426,152 +421,48 @@ err_fifo_release:
 
 bool SpotDownward::initRequestSimulation(void)
 {
-
-	ConfigurationList dvb_ncc_section = Conf::section_map[DVB_NCC_SECTION];
-	ConfigurationList spots;
-	ConfigurationList current_spot;
-
-	if(!Conf::getListNode(dvb_ncc_section, SPOT_LIST, spots))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n",
-		    SPOT_LIST, DVB_NCC_SECTION);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-		                                   this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s\n",
-		    ID, this->spot_id, SPOT_LIST);
-		return false;
-	}
-
+	ConfigurationList current_gw;
 	string str_config;
-
-	memset(this->simu_buffer, '\0', SIMU_BUFF_LEN);
+	
+	if(!OpenSandConf::getSpot(DVB_NCC_SECTION,
+		                      this->spot_id, 
+		                      NO_GW, current_gw))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "section '%s', missing spot for id %d\n",
+		    DVB_NCC_SECTION, spot_id);
+		return false;
+	}
+	
 	// Get and open the event file
-	if(!Conf::getValue(current_spot, DVB_EVENT_FILE, str_config))
+	if(!Conf::getValue(current_gw, DVB_SIMU_MODE, str_config))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot load parameter %s from section %s\n",
-		    DVB_EVENT_FILE, DVB_NCC_SECTION);
+		    DVB_SIMU_FILE, DVB_NCC_SECTION);
 		return false;
 	}
-	if(str_config != "none" && this->with_phy_layer)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot use simulated request with physical layer "
-		    "because we need to add cni parameters in SAC (TBD!)\n");
-		return false;
-	}
-
-	if(str_config ==  "stdout")
-	{
-		this->event_file = stdout;
-	}
-	else if(str_config == "stderr")
-	{
-		this->event_file = stderr;
-	}
-	else if(str_config != "none")
-	{
-		this->event_file = fopen(str_config.c_str(), "a");
-		if(this->event_file == NULL)
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "%s\n", strerror(errno));
-		}
-	}
-	if(this->event_file == NULL && str_config != "none")
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "no record file will be used for event\n");
-	}
-	else if(this->event_file != NULL)
-	{
-		LOG(this->log_init_channel, LEVEL_NOTICE,
-		    "events recorded in %s.\n", str_config.c_str());
-	}
-
-	// Get and set simulation parameter
-	this->simulate = none_simu;
-	if(!Conf::getValue(current_spot, DVB_SIMU_MODE, str_config))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot load parameter %s from section %s\n",
-		    DVB_SIMU_MODE, DVB_NCC_SECTION);
-		return false;
-	}
-
+	
 	// TODO for stdin use FileEvent for simu_timer ?
 	if(str_config == "file")
 	{
-		if(!Conf::getValue(current_spot, DVB_SIMU_FILE, str_config))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot load parameter %s from section %s\n",
-			    DVB_SIMU_FILE, DVB_NCC_SECTION);
-			return false;
-		}
-		if(str_config == "stdin")
-		{
-			this->simu_file = stdin;
-		}
-		else
-		{
-			this->simu_file = fopen(str_config.c_str(), "r");
-		}
-		if(this->simu_file == NULL && str_config != "none")
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "%s\n", strerror(errno));
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "no simulation file will be used.\n");
-		}
-		else
-		{
-			LOG(this->log_init_channel, LEVEL_NOTICE,
-			    "events simulated from %s.\n",
-			    str_config.c_str());
-			this->simulate = file_simu;
-		}
+		this->request_simu = new FileSimulator(this->spot_id, 
+		                                       this->mac_id,
+		                                       this->satellite_type,
+		                                       this->with_phy_layer,
+		                                       &this->event_file,
+		                                       this->simulate,
+		                                       current_gw);
 	}
 	else if(str_config == "random")
 	{
-		int val;
-
-		if(!Conf::getValue(current_spot, DVB_SIMU_RANDOM, str_config))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot load parameter %s from section %s\n",
-			    DVB_SIMU_RANDOM, DVB_NCC_SECTION);
-            return false;
-		}
-		val = sscanf(str_config.c_str(), "%ld:%ld:%ld:%ld:%ld:%ld",
-		             &this->simu_st, &this->simu_rt, &this->simu_max_rbdc,
-		             &this->simu_max_vbdc, &this->simu_cr, &this->simu_interval);
-		if(val < 4)
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot load parameter %s from section %s\n",
-			    DVB_SIMU_RANDOM, DVB_NCC_SECTION);
-			return false;
-		}
-		else
-		{
-			LOG(this->log_init_channel, LEVEL_NOTICE,
-			    "random events simulated for %ld terminals with "
-			    "%ld kb/s bandwidth, %ld kb/s max RBDC, "
-			    "%ld kb max VBDC, a mean request of %ld kb/s "
-			    "and a request amplitude of %ld kb/s)i\n",
-			    this->simu_st, this->simu_rt, this->simu_max_rbdc,
-			    this->simu_max_vbdc, this->simu_cr,
-			    this->simu_interval);
-		}
-		this->simulate = random_simu;
-		srandom(times(NULL));
+		this->request_simu = new RandomSimulator(this->spot_id, 
+		                                         this->mac_id,
+		                                         this->satellite_type,
+		                                         this->with_phy_layer,
+		                                         &this->event_file,
+		                                         this->simulate,
+		                                         current_gw);
 	}
 	else
 	{
@@ -582,16 +473,54 @@ bool SpotDownward::initRequestSimulation(void)
 	return true;
 }
 
-
-bool SpotDownward::handleSalohaAcks(const list<DvbFrame *> *ack_frames)
+bool SpotDownward::initOutput(void)
 {
-	list<DvbFrame *>::const_iterator ack_it;
-	for(ack_it = ack_frames->begin(); ack_it != ack_frames->end();
-	    ++ack_it)
+	// Events
+	this->event_logon_resp = Output::registerEvent("Spot_%d.DVB.logon_response",
+	                                               this->spot_id);
+
+	for(fifos_t::iterator it = this->dvb_fifos.begin();
+	    it != this->dvb_fifos.end(); ++it)
 	{
-		this->complete_dvb_frames.push_back(*ack_it);
+		const char *fifo_name = ((*it).second)->getName().data();
+		unsigned int id = (*it).first;
+
+		this->probe_gw_queue_size[id] =
+			Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
+		                               "Spot_%d.Queue size.packets.%s",
+		                               spot_id, fifo_name);
+		this->probe_gw_queue_size_kb[id] =
+			Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
+		                               "Spot_%d.Queue size.%s", spot_id, fifo_name);
+		this->probe_gw_l2_to_sat_before_sched[id] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+		                               "Spot_%d.Throughputs.L2_to_SAT_before_sched.%s",
+		                               spot_id, fifo_name);
+		this->probe_gw_l2_to_sat_after_sched[id] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+		                               "Spot_%d.Throughputs.L2_to_SAT_after_sched.%s",
+		                               spot_id, fifo_name);
+		this->probe_gw_queue_loss[id] =
+			Output::registerProbe<int>("Packets", true, SAMPLE_SUM,
+		                               "Spot_%d.Queue loss.packets.%s",
+		                               spot_id, fifo_name);
+		this->probe_gw_queue_loss_kb[id] =
+			Output::registerProbe<int>("Kbits/s", true, SAMPLE_SUM,
+		                               "Spot_%d.Queue loss.%s",
+		                               spot_id, fifo_name);
 	}
+	this->probe_gw_l2_to_sat_total =
+		Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+		                           "Spot_%d.Throughputs.L2_to_SAT_after_sched.total",
+		                           spot_id);
+
 	return true;
+}
+
+
+bool SpotDownward::handleSalohaAcks(const list<DvbFrame *> *UNUSED(ack_frames))
+{
+	assert(0);
 }
 
 bool SpotDownward::handleEncapPacket(NetPacket *packet)
@@ -688,232 +617,6 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 }
 
 
-// TODO create a class for simulation and subclass file/random
-bool SpotDownward::simulateFile(void)
-{
-	enum
-	{ none, cr, logon, logoff } event_selected;
-
-	int resul;
-	time_sf_t sf_nr;
-	tal_id_t st_id;
-	uint32_t st_request;
-	rate_kbps_t st_rt;
-	rate_kbps_t st_rbdc;
-	vol_kb_t st_vbdc;
-	int cr_type;
-
-	if(this->simu_eof)
-	{
-		LOG(this->log_request_simulation, LEVEL_DEBUG,
-		    "End of file\n");
-		goto end;
-	}
-
-	sf_nr = 0;
-	while(sf_nr <= this->super_frame_counter)
-	{
-		if(4 ==
-		   sscanf(this->simu_buffer,
-		          "SF%hu CR st%hu cr=%u type=%d",
-		          &sf_nr, &st_id, &st_request, &cr_type))
-		{
-			event_selected = cr;
-		}
-		else if(5 ==
-		        sscanf(this->simu_buffer,
-		               "SF%hu LOGON st%hu rt=%hu rbdc=%hu vbdc=%hu",
-		               &sf_nr, &st_id, &st_rt, &st_rbdc, &st_vbdc))
-		{
-			event_selected = logon;
-		}
-		else if(2 ==
-		        sscanf(this->simu_buffer, "SF%hu LOGOFF st%hu", &sf_nr, &st_id))
-		{
-			event_selected = logoff;
-		}
-		else
-		{
-			event_selected = none;
-		}
-		if(event_selected != none && st_id <= BROADCAST_TAL_ID)
-		{
-			LOG(this->log_request_simulation, LEVEL_WARNING,
-			    "Simulated ST%u ignored, IDs smaller than %u "
-			    "reserved for emulated terminals\n",
-			    st_id, BROADCAST_TAL_ID);
-			goto loop_step;
-		}
-		if(event_selected == none)
-			goto loop_step;
-		if(sf_nr < this->super_frame_counter)
-			goto loop_step;
-		if(sf_nr > this->super_frame_counter)
-			break;
-		switch (event_selected)
-		{
-		case cr:
-		{
-			Sac *sac = new Sac(st_id);
-
-			sac->addRequest(0, cr_type, st_request);
-			LOG(this->log_request_simulation, LEVEL_INFO,
-			    "SF#%u: send a simulated CR of type %u with "
-			    "value = %u for ST %hu\n",
-			    this->super_frame_counter, cr_type,
-			    st_request, st_id);
-			if(!this->dama_ctrl->hereIsSAC(sac))
-			{
-				goto error;
-			}
-			break;
-		}
-		case logon:
-		{
-			LogonRequest *sim_logon_req = new LogonRequest(st_id,
-			                                               st_rt,
-			                                               st_rbdc,
-			                                               st_vbdc);
-
-			LOG(this->log_request_simulation, LEVEL_INFO,
-			    "SF#%u: send a simulated logon for ST %d\n",
-			    this->super_frame_counter, st_id);
-			// check for column in FMT simulation list
-			if(!this->addInputTerminal(st_id, this->mac_id, this->spot_id))
-			{
-				LOG(this->log_request_simulation, LEVEL_ERROR,
-				    "failed to register simulated ST with MAC "
-				    "ID %u\n", st_id);
-				goto error;
-			}
-			if(!this->addOutputTerminal(st_id, this->mac_id, this->spot_id))
-			{
-				LOG(this->log_request_simulation, LEVEL_ERROR,
-				    "failed to register simulated ST with MAC "
-				    "ID %u\n", st_id);
-				goto error;
-			}
-			if(!this->dama_ctrl->hereIsLogon(sim_logon_req))
-			{
-				goto error;
-			}
-		}
-		break;
-		case logoff:
-		{
-			Logoff *sim_logoff = new Logoff(st_id);
-			LOG(this->log_request_simulation, LEVEL_INFO,
-			    "SF#%u: send a simulated logoff for ST %d\n",
-			    this->super_frame_counter, st_id);
-			if(!this->dama_ctrl->hereIsLogoff(sim_logoff))
-			{
-				goto error;
-			}
-		}
-		break;
-		default:
-			break;
-		}
-	 loop_step:
-		resul = -1;
-		while(resul < 1)
-		{
-			resul = fscanf(this->simu_file, "%254[^\n]\n", this->simu_buffer);
-			if(resul == 0)
-			{
-				int ret;
-				// No conversion occured, we simply skip the line
-				ret = fscanf(this->simu_file, "%*s");
-				if ((ret == 0) || (ret == EOF))
-				{
-					goto error;
-				}
-			}
-			LOG(this->log_request_simulation, LEVEL_DEBUG,
-			    "fscanf result=%d: %s", resul, this->simu_buffer);
-			//fprintf (stderr, "frame %d\n", this->super_frame_counter);
-			LOG(this->log_request_simulation, LEVEL_DEBUG,
-			    "frame %u\n", this->super_frame_counter);
-			if(resul == -1)
-			{
-				this->simu_eof = true;
-				LOG(this->log_request_simulation, LEVEL_DEBUG,
-				    "End of file.\n");
-				goto end;
-			}
-		}
-	}
-
-end:
-	return true;
-
- error:
-	return false;
-}
-
-
-bool SpotDownward::simulateRandom(void)
-{
-	static bool initialized = false;
-
-	int i;
-	// BROADCAST_TAL_ID is maximum tal_id for emulated terminals
-	tal_id_t sim_tal_id = BROADCAST_TAL_ID + 1;
-
-	if(!initialized)
-	{
-		// TODO function initRandomSimu
-		for(i = 0; i < this->simu_st; i++)
-		{
-			tal_id_t tal_id = sim_tal_id + i;
-			LogonRequest *sim_logon_req = new LogonRequest(tal_id, this->simu_rt,
-			                                               this->simu_max_rbdc,
-			                                               this->simu_max_vbdc);
-
-			// check for column in FMT simulation list
-			if(!this->addInputTerminal(tal_id, this->mac_id, this->spot_id))
-			{
-				LOG(this->log_request_simulation, LEVEL_ERROR,
-				    "failed to register simulated ST with MAC"
-				    " ID %u\n", tal_id);
-				return false;
-			}
-			if(!this->addOutputTerminal(tal_id, this->mac_id, this->spot_id))
-			{
-				LOG(this->log_request_simulation, LEVEL_ERROR,
-				    "failed to register simulated ST with MAC"
-				    " ID %u\n", tal_id);
-				return false;
-			}
-
-			this->dama_ctrl->hereIsLogon(sim_logon_req);
-		}
-		initialized = true;
-	}
-
-	for(i = 0; i < this->simu_st; i++)
-	{
-		uint32_t val;
-		Sac *sac = new Sac(sim_tal_id + i);
-
-		if(this->simu_interval)
-		{
-			val = this->simu_cr - this->simu_interval / 2 +
-			      random() % this->simu_interval;
-	    }
-	    else
-	    {
-			val = this->simu_cr;
-	    }
-		sac->addRequest(0, access_dama_rbdc, val);
-
-		if(!this->dama_ctrl->hereIsSAC(sac))
-		{
-			return false;
-		}
-	}
-	return true;
-}
 
 bool SpotDownward::buildTtp(Ttp *ttp)
 {
@@ -988,36 +691,122 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 
 	// run the allocation algorithms (DAMA)
 	this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
-
-	// **************
-	// Simulation
-	// **************
-	switch(this->simulate)
+	
+	list<DvbFrame *> msgs;
+	list<DvbFrame *>::iterator msg;
+	
+	// handle simulated terminals
+	if(!this->request_simu)
 	{
-		case file_simu:
-			if(!this->simulateFile())
-			{
-				LOG(this->log_request_simulation,
-				    LEVEL_ERROR, "file simulation failed");
-				fclose(this->simu_file);
-				this->simu_file = NULL;
-				this->simulate = none_simu;
-				return false;
-			}
-			break;
-		case random_simu:
-			if(!this->simu_eof && !this->simulateRandom())
-			{
-				this->simulate = none_simu;
-				return false;
-			}
-			break;
-		default:
-			break;
+		return true;
 	}
-	// flush files
-	fflush(this->event_file);
+
+	if(!this->request_simu->simulation(&msgs, this->super_frame_counter))
+	{
+		this->request_simu->stopSimulation();
+
+		LOG(this->log_request_simulation, LEVEL_ERROR,
+		    "failed to simulate");
+		return false;
+	}
+
+	for(msg = msgs.begin(); msg != msgs.end(); ++msg)	
+	{
+		uint8_t msg_type = (*msg)->getMessageType();
+		switch(msg_type)
+		{
+			case MSG_TYPE_SAC:
+			{
+				LOG(this->log_request_simulation, LEVEL_INFO,
+				    "simulate message type SAC");
+				
+				Sac *sac = (Sac*)(*msg);
+				if(!this->dama_ctrl->hereIsSAC(sac))
+				{
+					return false;
+				}
+				break;
+			}
+			case MSG_TYPE_SESSION_LOGON_REQ:
+			{
+				LOG(this->log_request_simulation, LEVEL_INFO,
+				    "simulate message session logon request");
+				
+				LogonRequest *logon_req = (LogonRequest*)(*msg);
+				tal_id_t st_id = logon_req->getMac();
+				
+				// check for column in FMT simulation list
+				if(!this->addInputTerminal(st_id, this->mac_id, this->spot_id))
+				{
+					LOG(this->log_request_simulation, LEVEL_ERROR,
+					    "failed to register simulated ST with MAC "
+					    "ID %u\n", st_id);
+					return false;
+				}
+				if(!this->addOutputTerminal(st_id, this->mac_id, this->spot_id))
+				{
+					LOG(this->log_request_simulation, LEVEL_ERROR,
+					    "failed to register simulated ST with MAC "
+					    "ID %u\n", st_id);
+					return false;
+				}
+				if(!this->dama_ctrl->hereIsLogon(logon_req))
+				{
+					return false;
+				}
+				break;
+			}
+			case MSG_TYPE_SESSION_LOGOFF:
+			{
+				LOG(this->log_request_simulation, LEVEL_INFO,
+				    "simulate message logoff");
+				
+				// TODO remove Terminals
+				Logoff *logoff = (Logoff*)(*msg);
+				if(!this->dama_ctrl->hereIsLogoff(logoff))
+				{
+					return false;
+				}
+				break;
+			}
+			default:
+				LOG(this->log_request_simulation, LEVEL_WARNING,
+					"default");
+				break;
+		}
+	}
+	
 	return true;
+}
+
+
+bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
+{
+	uint32_t remaining_alloc_sym = 0;
+	this->fwd_frame_counter = fwd_frame_counter;
+	this->updateStatistics();
+
+	// schedule encapsulation packets
+	// TODO loop on categories (see todo in initMode)
+	// TODO In regenerative mode we should schedule in frame_timer ??
+	if(!this->scheduling->schedule(this->fwd_frame_counter,
+	                               getCurrentTime(),
+	                               &this->complete_dvb_frames,
+	                               remaining_alloc_sym))
+	{
+		LOG(this->log_send_channel, LEVEL_ERROR,
+		    "failed to schedule encapsulation "
+		    "packets stored in DVB FIFO\n");
+		return false;
+	}
+
+	LOG(this->log_receive_channel, LEVEL_INFO,
+	    "SF#%u: %u symbols remaining after "
+	    "scheduling\n", this->super_frame_counter,
+	    remaining_alloc_sym);
+
+	return true;
+
 }
 
 bool SpotDownward::applyPepCommand(PepRequest *pep_request)
@@ -1058,12 +847,6 @@ double SpotDownward::getCni(void) const
 {
 	return this->cni;
 }
-
-void SpotDownward::setCni(double cni)
-{
-	this->cni = cni;
-}
-
 
 uint8_t SpotDownward::getCtrlCarrierId(void) const
 {

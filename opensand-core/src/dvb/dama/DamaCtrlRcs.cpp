@@ -158,25 +158,25 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 				terminal->setRequiredVbdc(xbdc);
 				if(tal_id > BROADCAST_TAL_ID)
 				{
-					DC_RECORD_EVENT("CR ST%u value=%u type=%u",
+					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
 					                tal_id, xbdc, access_dama_vbdc);
 				}
 				break;
 
 			case access_dama_rbdc:
 				this->enable_rbdc = true;
+				if(tal_id > BROADCAST_TAL_ID)
+				{
+					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
+					                tal_id, xbdc, access_dama_rbdc);
+				}
+				
 				// remove the CRA of the RBDC request
 				// the CRA is not taken into acount on ST side
 				xbdc =
 					std::max(xbdc - terminal->getCra(), 0);
 				request = this->converter->kbpsToPktpf(xbdc);
 				terminal->setRequiredRbdc(request);
-				if(tal_id > BROADCAST_TAL_ID)
-				{
-					DC_RECORD_EVENT("CR ST%u value=%u type=%u",
-					                tal_id, xbdc, access_dama_vbdc);
-				}
-
 				break;
 		}
 	}

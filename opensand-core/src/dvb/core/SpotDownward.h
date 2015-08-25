@@ -41,15 +41,7 @@
 #include "DamaCtrlRcs.h"
 #include "Scheduling.h"
 #include "SlottedAlohaNcc.h"
-
-#define SIMU_BUFF_LEN 255
-
-enum Simulate
-{
-	none_simu,
-	file_simu,
-	random_simu,
-} ;
+#include "RequestSimulator.h"
 
 
 class SpotDownward: public DvbChannel, public NccPepInterface
@@ -66,7 +58,13 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	             StFmtSimuList *output_sts,
 	             bool phy_layer);
 	~SpotDownward();
-	virtual bool onInit() = 0;
+	
+	/**
+	 * @brief Spot Downward initialisation
+	 *
+	 * @return true on success, false otherwise
+	 */ 
+	virtual bool onInit(void);
 
 	/**
 	 * @brief Handle the Slotted Aloha ACKs
@@ -74,7 +72,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	 * @param ack_frames  The Slotted Aloha ACKs
 	 * @return true on success, false otherwise
 	 */
-	bool handleSalohaAcks(const list<DvbFrame *> *ack_frames);
+	virtual bool handleSalohaAcks(const list<DvbFrame *> *ack_frames);
 
 	/**
 	 * @brief Handle an encapsulated packet
@@ -123,7 +121,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	 * @param fwd_frame_counter  The forward frame counter
 	 * @return true on success, false otherwise
 	 */
-	virtual bool handleFwdFrameTimer(time_sf_t fwd_frame_counter) = 0;
+	virtual bool handleFwdFrameTimer(time_sf_t fwd_frame_counter);
 
 	/**
 	 * @brief  handle a SAC frame
@@ -171,7 +169,6 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	bool buildTtp(Ttp *ttp);
 
 	double getCni(void) const;
-	void setCni(double cni);
 
 	uint8_t getCtrlCarrierId(void) const;
 	uint8_t getSofCarrierId(void) const;
@@ -227,7 +224,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	virtual bool initOutput(void) = 0;
+	virtual bool initOutput(void);
 
 	/** Read configuration for the request simulation
 	 *
@@ -312,18 +309,11 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	/// timer used to send acm parameter (only for Regenerative)
 	event_id_t acm_timer;
 
+	RequestSimulator *request_simu;
+
 	/// parameters for request simulation
 	FILE *event_file;
-	FILE *simu_file;
 	Simulate simulate;
-	long simu_st;
-	long simu_rt;
-	long simu_max_rbdc;
-	long simu_max_vbdc;
-	long simu_cr;
-	long simu_interval;
-	bool simu_eof;
-	char simu_buffer[SIMU_BUFF_LEN];
 
 	// Output probes and stats
 	// Queue sizes

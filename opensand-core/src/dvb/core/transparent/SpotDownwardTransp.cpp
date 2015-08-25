@@ -75,24 +75,7 @@ bool SpotDownwardTransp::onInit(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed get packet handler\n");
-		goto error;
-	}
-
-	// Get the carrier Ids
-	if(!this->initCarrierIds())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the carrier IDs part of the "
-		    "initialisation\n");
-		goto error;
-	}
-
-	if(!this->initFifo())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the FIFO part of the "
-		    "initialisation\n");
-		goto release_dama;
+		return false;
 	}
 
 	// Initialization of the modcod def
@@ -110,50 +93,14 @@ bool SpotDownwardTransp::onInit(void)
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
-
-	if(!this->initMode())
+	
+	if(!SpotDownward::onInit())
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the mode part of the "
-		    "initialisation\n");
-		goto error;
+		return false;
 	}
-
-	// get and launch the dama algorithm
-	if(!this->initDama())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the DAMA part of the "
-		    "initialisation\n");
-		goto error;
-	}
-
-	this->initStatsTimer(this->fwd_down_frame_duration_ms);
-
-	if(!this->initRequestSimulation())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the request simulation part of "
-		    "the initialisation\n");
-		goto error;
-	}
-
-	if(!this->initOutput())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the initialization of "
-		    "statistics\n");
-		goto release_dama;
-	}
-	// everything went fine
 	return true;
 
-release_dama:
-	delete this->dama_ctrl;
-error:
-	return false;
 }
-
 
 
 bool SpotDownwardTransp::initMode(void)
@@ -222,7 +169,7 @@ bool SpotDownwardTransp::initMode(void)
 		    "down/forward band\n");
 		return false;
 	}
-
+;
 	cat = this->categories.begin()->second;
 	ListSts* list = this->output_sts->getListSts(this->mac_id, this->spot_id);
 	this->scheduling = new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
@@ -263,9 +210,6 @@ bool SpotDownwardTransp::initDama(void)
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
 	TerminalCategoryDama *dc_default_category;
 
-	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
-	ConfigurationList spots;
-	ConfigurationList current_spot;
 	ConfigurationList current_gw;
 	
 	// Retrieving the free capacity assignement parameter
@@ -274,7 +218,7 @@ bool SpotDownwardTransp::initDama(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "missing %s parameter\n", DC_FREE_CAP);
-		goto error;
+		return false;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "fca = %d kb/s\n", fca_kbps);
@@ -284,7 +228,7 @@ bool SpotDownwardTransp::initDama(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Missing %s\n", SYNC_PERIOD);
-		goto error;
+		return false;
 	}
 	sync_period_frame = (time_frame_t)round((double)sync_period_ms /
 	                                        (double)this->ret_up_frame_duration_ms);
@@ -294,31 +238,16 @@ bool SpotDownwardTransp::initDama(void)
 	    "rbdc_timeout = %d superframes computed from sync period %d superframes\n",
 	    rbdc_timeout_sf, sync_period_frame);
 
-	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
+	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
+		                      this->spot_id, 
+		                      this->mac_id, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section",
-		    SPOT_LIST, RETURN_UP_BAND);
+		    "section '%s', missing spot for id %d and gw is %d\n",
+		    RETURN_UP_BAND, this->spot_id, this->mac_id);
 		return false;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-	                                       this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s\n",
-		    ID, this->spot_id, SPOT_LIST);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(current_spot, GW,
-	                                       this->mac_id, current_gw))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s\n",
-		    ID, this->spot_id, SPOT_LIST);
-		return false;
-	}
 	if(!this->initBand<TerminalCategoryDama>(current_gw,
 	                                         RETURN_UP_BAND,
 	                                         DAMA,
@@ -352,7 +281,7 @@ bool SpotDownwardTransp::initDama(void)
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
-		goto error;
+		return false;
 	}
 
 	/* select the specified DAMA algorithm */
@@ -367,14 +296,21 @@ bool SpotDownwardTransp::initDama(void)
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': bad value for parameter '%s'\n",
 		    DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
-		goto error;
+		return false;
 	}
 
 	if(!this->dama_ctrl)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to create the DAMA controller\n");
-		goto error;
+		return false;
+	}
+	
+	if(!this->up_return_pkt_hdl)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "up return pkt hdl has not been initialized first.\n");
+		return false;
 	}
 
 	// Initialize the DamaCtrl parent class
@@ -409,90 +345,9 @@ bool SpotDownwardTransp::initDama(void)
 
 release_dama:
 	delete this->dama_ctrl;
-error:
 	return false;
 }
 
-bool SpotDownwardTransp::initOutput(void)
-{
-	// Events
-	this->event_logon_resp = Output::registerEvent("Spot_%d.DVB.logon_response",
-	                                               this->spot_id);
-
-	// Logs
-	if(this->simulate != none_simu)
-	{
-		this->log_request_simulation = Output::registerLog(LEVEL_WARNING,
-		                                                   "Spot_%d,Dvb.RequestSimulation",
-		                                                   this->spot_id);
-	}
-
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
-	{
-		const char *fifo_name = ((*it).second)->getName().data();
-		unsigned int id = (*it).first;
-
-		this->probe_gw_queue_size[id] =
-			Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
-		                               "Spot_%d.Queue size.packets.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_queue_size_kb[id] =
-			Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
-		                               "Spot_%d.Queue size.%s", spot_id, fifo_name);
-		this->probe_gw_l2_to_sat_before_sched[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                               "Spot_%d.Throughputs.L2_to_SAT_before_sched.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_l2_to_sat_after_sched[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                               "Spot_%d.Throughputs.L2_to_SAT_after_sched.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_queue_loss[id] =
-			Output::registerProbe<int>("Packets", true, SAMPLE_SUM,
-		                               "Spot_%d.Queue loss.packets.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_queue_loss_kb[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_SUM,
-		                               "Spot_%d.Queue loss.%s",
-		                               spot_id, fifo_name);
-	}
-	this->probe_gw_l2_to_sat_total =
-		Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                           "Spot_%d.Throughputs.L2_to_SAT_after_sched.total",
-		                           spot_id);
-
-	return true;
-}
-
-
-bool SpotDownwardTransp::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
-{
-	uint32_t remaining_alloc_sym = 0;
-	this->fwd_frame_counter = fwd_frame_counter;
-	this->updateStatistics();
-
-	// schedule encapsulation packets
-	// TODO loop on categories (see todo in initMode)
-	// TODO In regenerative mode we should schedule in frame_timer ??
-	if(!this->scheduling->schedule(this->fwd_frame_counter,
-	                               getCurrentTime(),
-	                               &this->complete_dvb_frames,
-	                               remaining_alloc_sym))
-	{
-		LOG(this->log_send_channel, LEVEL_ERROR,
-		    "failed to schedule encapsulation "
-		    "packets stored in DVB FIFO\n");
-		return false;
-	}
-
-	LOG(this->log_receive_channel, LEVEL_INFO,
-	    "SF#%u: %u symbols remaining after "
-	    "scheduling\n", this->super_frame_counter,
-	    remaining_alloc_sym);
-
-	return true;
-}
 
 bool SpotDownwardTransp::handleCorruptedFrame(DvbFrame *dvb_frame)
 {
@@ -517,3 +372,13 @@ bool SpotDownwardTransp::handleCorruptedFrame(DvbFrame *dvb_frame)
 	return true;
 }
 
+bool SpotDownwardTransp::handleSalohaAcks(const list<DvbFrame *> *ack_frames)
+{
+	list<DvbFrame *>::const_iterator ack_it;
+	for(ack_it = ack_frames->begin(); ack_it != ack_frames->end();
+	    ++ack_it)
+	{
+		this->complete_dvb_frames.push_back(*ack_it);
+	}
+	return true;
+}

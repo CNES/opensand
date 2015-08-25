@@ -57,16 +57,14 @@ class SpotDownwardTransp: public SpotDownward
 		             StFmtSimuList *output_sts,
 		             bool phy_layer);
 		~SpotDownwardTransp();
+		
+		/**
+		 * @brief Spot Downward initialisation
+		 *
+		 * @return true on success, false otherwise
+		 */ 
 		bool onInit(void);
 			
-		/**
-		 * @brief handler a forward frame timer and update forward frame counter
-		 *
-		 * @param fwd_frame_counter  The forward frame counter
-		 * @return true on success, false otherwise
-		 */
-		bool handleFwdFrameTimer(time_sf_t fwd_frame_counter);
-
 		/**
 		 * @brief handle Corrupted Dvb Frame
 		 *
@@ -75,6 +73,13 @@ class SpotDownwardTransp: public SpotDownward
 		 */
 		bool handleCorruptedFrame(DvbFrame *dvb_frame);
 
+		/**
+		* @brief Handle the Slotted Aloha ACKs
+		 *
+		 * @param ack_frames  The Slotted Aloha ACKs
+		 * @return true on success, false otherwise
+		 */
+		bool handleSalohaAcks(const list<DvbFrame *> *ack_frames);
 	
 	protected:
 
@@ -91,14 +96,6 @@ class SpotDownwardTransp: public SpotDownward
 		 * @return  true on success, false otherwise
 		 */
 		bool initDama(void);
-
-		/**
-		 * @brief Initialize the statistics
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initOutput(void);
-
 };
 
 #endif

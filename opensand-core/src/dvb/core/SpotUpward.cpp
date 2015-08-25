@@ -50,7 +50,6 @@ SpotUpward::SpotUpward(spot_id_t spot_id,
 	mac_id(mac_id),
 	reception_std(NULL),
 	reception_std_scpc(NULL),
-	saloha(NULL),
 	scpc_pkt_hdl(NULL),
 	ret_fmt_groups(),
 	probe_gw_l2_from_sat(NULL),
@@ -66,9 +65,6 @@ SpotUpward::SpotUpward(spot_id_t spot_id,
 
 SpotUpward::~SpotUpward()
 {
-	if(this->saloha)
-		delete this->saloha;
-
 	// delete FMT groups here because they may be present in many carriers
 	// TODO do something to avoid groups here
 	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
@@ -83,6 +79,44 @@ SpotUpward::~SpotUpward()
 		delete this->reception_std_scpc;
 }
 
+bool SpotUpward::onInit(void)
+{
+	// Get and open the files
+	if(!this->initModcodSimu())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the files part of the "
+		    "initialisation\n");
+		return false;
+	}
+
+	if(!this->initMode())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the mode part of the "
+		    "initialisation\n");
+		return false;
+	}
+
+	// synchronized with SoF
+	this->initStatsTimer(this->ret_up_frame_duration_ms);
+
+	if(!this->initOutput())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the initialization of "
+		    "statistics\n");
+		goto error_mode;
+	}
+
+	// everything went fine
+	return true;
+
+error_mode:
+	delete this->reception_std;
+	return false;
+
+}
 
 bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 {
@@ -95,25 +129,14 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 	    "Logon request from ST%u\n", mac);
 
 	// refuse to register a ST with same MAC ID as the NCC
-	// TODO check for other GW too
-	if(mac == this->mac_id)
+	// or if it's a gw
+	if(OpenSandConf::isGw(mac) or mac == this->mac_id)
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "a ST wants to register with the MAC ID of the NCC "
 		    "(%d), reject its request!\n", mac);
 		delete dvb_frame;
 		return false;
-	}
-
-	// Inform SlottedAloha
-	if(this->saloha)
-	{
-		if(!this->saloha->addTerminal(mac))
-		{
-			LOG(this->log_receive_channel, LEVEL_ERROR,
-			    "Cannot add terminal in Slotted Aloha context\n");
-			return false;
-		}
 	}
 
 	// handle ST for FMT simulation
@@ -159,58 +182,18 @@ void SpotUpward::updateStats(void)
 }
 
 
-bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
-                                list<DvbFrame *>* &ack_frames,
-                                NetBurst **sa_burst)
+// should only be called in Transparent mode
+bool SpotUpward::scheduleSaloha(DvbFrame *UNUSED(dvb_frame),
+                                list<DvbFrame *>* &UNUSED(ack_frames),
+                                NetBurst **UNUSED(sa_burst))
 {
-	if(!this->saloha)
-	{
-		return true;
-	}
-	uint16_t sfn;
-	Sof *sof = (Sof *)dvb_frame;
-
-	sfn = sof->getSuperFrameNumber();
-
-	ack_frames = new list<DvbFrame *>();
-	// increase the superframe number and reset
-	// counter of frames per superframe
-	this->super_frame_counter++;
-	if(this->super_frame_counter != sfn)
-	{
-		LOG(this->log_receive_channel, LEVEL_WARNING,
-			"superframe counter (%u) is not the same as in"
-			" SoF (%u)\n",
-			this->super_frame_counter, sfn);
-		this->super_frame_counter = sfn;
-	}
-
-	if(!this->saloha->schedule(sa_burst,
-	                           *ack_frames,
-	                           this->super_frame_counter))
-	{
-		LOG(this->log_saloha, LEVEL_ERROR,
-		    "failed to schedule Slotted Aloha\n");
-		delete dvb_frame;
-		delete ack_frames;
-		return false;
-	}
-
-	return true;
+	assert(0);
 }
 
-bool SpotUpward::handleSlottedAlohaFrame(DvbFrame *frame)
+// should only be called in Transparent mode
+bool SpotUpward::handleSlottedAlohaFrame(DvbFrame *UNUSED(frame))
 {
-	// Update stats
-	this->l2_from_sat_bytes += frame->getPayloadLength();
-
-	if(!this->saloha->onRcvFrame(frame))
-	{
-		LOG(this->log_saloha, LEVEL_ERROR,
-		    "failed to handle Slotted Aloha frame\n");
-		return false;
-	}
-	return true;
+	assert(0);
 }
 
 

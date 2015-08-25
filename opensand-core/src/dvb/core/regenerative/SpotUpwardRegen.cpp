@@ -60,112 +60,23 @@ bool SpotUpwardRegen::onInit(void)
 {
 	string scheme = FORWARD_DOWN_ENCAP_SCHEME_LIST;
 
-	if(!this->initSatType())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize satellite type\n");
-		goto error;
-	}
-
+	// get the common parameters
 	if(!this->initCommon(scheme.c_str()))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the common part of the "
 		    "initialisation\n");
-		goto error;
-	}
-
-	// Get and open the files
-	if(!this->initModcodSimu())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the files part of the "
-		    "initialisation\n");
 		return false;
 	}
 
-	if(!this->initMode())
+	if(!SpotUpward::onInit())
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the mode part of the "
-		    "initialisation\n");
-		goto error;
+		return false;
 	}
 
-	// initialize the slotted Aloha part
-	if(!this->initSlottedAloha())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the DAMA part of the "
-		    "initialisation\n");
-		goto error;
-	}
-
-	// synchronized with SoF
-	this->initStatsTimer(this->ret_up_frame_duration_ms);
-
-	if(!this->initOutput())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the initialization of "
-		    "statistics\n");
-		goto error_mode;
-	}
-
-	// everything went fine
 	return true;
 
-error_mode:
-	delete this->reception_std;
-error:
-	return false;
 }
-
-bool SpotUpwardRegen::initSlottedAloha(void)
-{
-	TerminalCategories<TerminalCategorySaloha> sa_categories;
-	TerminalMapping<TerminalCategorySaloha> sa_terminal_affectation;
-	TerminalCategorySaloha *sa_default_category;
-	ConfigurationList current_spot;
-
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id, 
-		                      NO_GW, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
-		    ID, this->spot_id, GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
-		return false;
-	}
-	
-	if(!this->initBand<TerminalCategorySaloha>(current_spot,
-	                                           RETURN_UP_BAND,
-	                                           ALOHA,
-	                                           this->ret_up_frame_duration_ms,
-	                                           this->satellite_type,
-	                                           &this->output_modcod_def,
-	                                           sa_categories,
-	                                           sa_terminal_affectation,
-	                                           &sa_default_category,
-	                                           this->ret_fmt_groups))
-	{
-		return false;
-	}
-
-	// check if there is Slotted Aloha carriers
-	if(sa_categories.size() == 0)
-	{
-		LOG(this->log_init_channel, LEVEL_DEBUG,
-		    "No Slotted Aloha carrier\n");
-		return true;
-	}
-	
-	LOG(this->log_init_channel, LEVEL_ERROR,
-	    "Carrier configured with Slotted Aloha while satellite "
-	    "is regenerative\n");
-	return false;
-
-}
-
 
 bool SpotUpwardRegen::initModcodSimu(void)
 {
@@ -244,12 +155,6 @@ bool SpotUpwardRegen::initOutput(void)
 	this->event_logon_req = Output::registerEvent("Spot_%d.DVB.logon_request",
 	                                                 this->spot_id);
 
-	if(this->saloha)
-	{
-		this->log_saloha = Output::registerLog(LEVEL_WARNING, "Spot_%d.Dvb.SlottedAloha",
-		                                       this->spot_id);
-	}
-
 	// Output probes and stats
 	this->probe_gw_l2_from_sat=
 		Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
@@ -283,9 +188,6 @@ bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 		return false;
 	}
 
-	// TODO MODCOD should also be updated correctly for SCPC but at the moment
-	//      FMT simulations cannot handle this, fix this once this
-	//      will be reworked
 	if(std->getType() == "DVB-S2")
 	{
 		DvbS2Std *s2_std = (DvbS2Std *)std;
@@ -301,59 +203,4 @@ bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 
 	return true;
 }
-
-bool SpotUpwardRegen::scheduleSaloha(DvbFrame *dvb_frame,
-                                list<DvbFrame *>* &ack_frames,
-                                NetBurst **sa_burst)
-{
-	if(!this->saloha)
-	{
-		return true;
-	}
-	uint16_t sfn;
-	Sof *sof = (Sof *)dvb_frame;
-
-	sfn = sof->getSuperFrameNumber();
-
-	ack_frames = new list<DvbFrame *>();
-	// increase the superframe number and reset
-	// counter of frames per superframe
-	this->super_frame_counter++;
-	if(this->super_frame_counter != sfn)
-	{
-		LOG(this->log_receive_channel, LEVEL_WARNING,
-			"superframe counter (%u) is not the same as in"
-			" SoF (%u)\n",
-			this->super_frame_counter, sfn);
-		this->super_frame_counter = sfn;
-	}
-
-	if(!this->saloha->schedule(sa_burst,
-	                           *ack_frames,
-	                           this->super_frame_counter))
-	{
-		LOG(this->log_saloha, LEVEL_ERROR,
-		    "failed to schedule Slotted Aloha\n");
-		delete dvb_frame;
-		delete ack_frames;
-		return false;
-	}
-
-	return true;
-}
-
-bool SpotUpwardRegen::handleSlottedAlohaFrame(DvbFrame *frame)
-{
-	// Update stats
-	this->l2_from_sat_bytes += frame->getPayloadLength();
-
-	if(!this->saloha->onRcvFrame(frame))
-	{
-		LOG(this->log_saloha, LEVEL_ERROR,
-		    "failed to handle Slotted Aloha frame\n");
-		return false;
-	}
-	return true;
-}
-
 
