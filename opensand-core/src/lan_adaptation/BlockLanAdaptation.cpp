@@ -280,6 +280,14 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 		LOG(this->log_receive, LEVEL_INFO,
 		    "packet from lower layer has terminal ID %u\n",
 		    pkt_tal_id);
+		if((*burst_it)->getSrcTalId() == this->tal_id)
+		{
+			// with broadcast, we would receive our own packets
+			LOG(this->log_receive, LEVEL_INFO,
+			    "reject packet with own terminal ID\n");
+			++burst_it;
+			continue;
+		}
 
 		if(pkt_tal_id == BROADCAST_TAL_ID || pkt_tal_id == this->tal_id)
 		{
