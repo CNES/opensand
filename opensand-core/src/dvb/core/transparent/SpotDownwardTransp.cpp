@@ -79,14 +79,14 @@ bool SpotDownwardTransp::onInit(void)
 	}
 
 	// Initialization of the modcod def
-	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
+	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            this->output_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
-	if(!this->initModcodDefFile(RETURN_UP_MODCOD_DEF_RCS,
+	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
 	                            this->input_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

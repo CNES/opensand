@@ -43,17 +43,13 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanva
 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.utils import FORWARD_DOWN, RETURN_UP, CCM, ACM, VCM,\
-                                        DAMA, ALOHA, SCPC, AAL5_ATM
+                                        DAMA, ALOHA, SCPC
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 
 
-FWD_MODCOD_DEF_PATH="/usr/share/opensand/modcod/s2/definition.txt"
-RET_MODCOD_DEF_PATH_ATM="/usr/share/opensand/modcod/rcs/definition_ATM.txt"
-RET_MODCOD_DEF_PATH_MPEG="/usr/share/opensand/modcod/rcs/definition_MPEG.txt"
-RET_MODCOD_DEF_PATH_SCPC="/usr/share/opensand/modcod/s2/definition.txt"
-
-
+MODCOD_DEF_S2="modcod_def_s2"
+MODCOD_DEF_RCS="modcod_def_rcs"
 
 class ModcodParameter(WindowView):
     """ an modcod configuration window """
@@ -243,17 +239,14 @@ class ModcodParameter(WindowView):
     def set_modcod_widgets(self, source, is_radio, option=None):
         """ Create a list of widget with list of modcods """
         #MODCOD list from file definition.txt
+        global_conf = self._model.get_conf()
         if self._link == FORWARD_DOWN:
-            path = FWD_MODCOD_DEF_PATH
+            path = global_conf.get_param(MODCOD_DEF_S2)
         elif self._link == RETURN_UP:
-            encap = self._model.get_conf().get_return_up_encap()
-            if encap['0'] == AAL5_ATM:
-                path = RET_MODCOD_DEF_PATH_ATM
-            elif option is not None:
-                if option == SCPC:
-                    path = RET_MODCOD_DEF_PATH_SCPC
+            if option == SCPC:
+                path = global_conf.get_param(MODCOD_DEF_S2)
             else:
-                path = RET_MODCOD_DEF_PATH_MPEG
+                path = global_conf.get_param(MODCOD_DEF_RCS)
         modcod_list = self.load_modcod(path)
 
         self._item_list=[]
@@ -313,7 +306,7 @@ class ModcodParameter(WindowView):
             #Extend the window size
             self._dlg.resize(500, 565)
             self.add_modcod_item()
-        #Remove graphe and ratio part if we leave vcm mode
+        #Remove graph and ratio part if we leave vcm mode
         else:
             self._dlg.resize(500, 300)
             for child in self._vbox_vcm_option:

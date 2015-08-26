@@ -446,7 +446,7 @@ class ConfEvent(ConfView) :
         config.set_return_up_encap(self._out_stack.get_stack())
 
         # input encapsulation scheme
-        xpath = "//dvb_rcs_tal/is_scpc"
+        xpath = "//is_scpc"
         for host in self._model.get_hosts_list():
             adv = host.get_advanced_conf()
             tal_scpc = adv.get_configuration().get(xpath)

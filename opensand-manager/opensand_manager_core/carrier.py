@@ -37,6 +37,8 @@ carrier.py - Satellite carrier handling
 
 import numpy as np
 
+from opensand_manager_core.utils import DAMA, SCPC, ALOHA, VCM, CCM, ACM, S2, RCS
+
 class Carrier :
     """
     Create a carrier 
@@ -61,6 +63,13 @@ class Carrier :
         self._fmt_groups = self.parser(fmt_groups)
         self._ratio = self.parser(ratio)
         self._nb_carrier = nb_carrier
+        if access_type in [SCPC, CCM, ACM, VCM]:
+            self._std = S2
+        elif access_type in [DAMA, ALOHA]:
+            self._std = RCS
+        else:
+            raise Exception("Unknown access type %s" % access_type)
+
         
         if category == "Standard":
             category = 1
@@ -185,8 +194,8 @@ class Carrier :
         return self._access_type
 
     def get_old_access_type(self):
-        if self._access_type == "CCM":
-            return "ACM"
+        if self._access_type == CCM:
+            return ACM
         else:
             return self._access_type
 
@@ -198,6 +207,9 @@ class Carrier :
 
     def get_fmt_groups(self):
         return self._fmt_groups
+
+    def get_std(self):
+        return self._std
 
     def get_x(self):
         return self._X

@@ -64,6 +64,8 @@ TAL_ID      = "tal_id"
 CATEGORY    = "category"
 
 # Band
+RCS               = "rcs"
+S2                = "s2"
 FORWARD_DOWN      = "forward_down"
 RETURN_UP         = "return_up"
 FMT_GROUPS        = "fmt_groups"

@@ -39,8 +39,8 @@ from fractions import Fraction
 
 from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, \
         OPENSAND_PATH, ID, FMT_ID, FMT_GROUP, \
-        RATIO, ACCESS_TYPE, SYMBOL_RATE, CATEGORY
-CATEGORY
+        RATIO, ACCESS_TYPE, SYMBOL_RATE, CATEGORY, \
+        RCS, S2
 from opensand_manager_core.carrier import Carrier
 
 XSD = OPENSAND_PATH + "core_global.xsd"
@@ -51,12 +51,7 @@ class CarriersBand():
 
     def __init__(self):
         self._access_type = ""
-        self._roll_off = 0.0
-        self._categories = {}
-        self._carriers_groups = {}
-        self._fmt_group = {}
-        self._fmt = {}
-
+        self.reset()
 
     def reset(self):
         """ reset all data """
@@ -65,7 +60,8 @@ class CarriersBand():
         self._categories = {}
         self._carriers_groups = {}
         self._fmt_group = {}
-        self._fmt = {}
+        self._fmt = {S2: {},
+                     RCS: {},}
 
     def parse(self, link, config, KEY):
         """ parse configuration and get results """
@@ -97,24 +93,23 @@ class CarriersBand():
                                 content[FMT_ID])
 
 
-    def modcod_def(self, scenario, link, config, compute=True):
+    def modcod_def(self, scenario, config, compute=True):
         # ACM
         # TODO fix this
-        for std in ["rcs", "s2"]:
-            xpath = "//%s_modcod_def_%s" % (link, std)
+        for std in [RCS, S2]:
+            xpath = "//modcod_def_%s" % (std)
             elem = config.get(xpath)
-            if elem is not None:
-                break
-        name = config.get_name(elem)
-        path = os.path.join(scenario, config.get_file_source(name))
-        self.load_fmt(path)
+            name = config.get_name(elem)
+            path = os.path.join(scenario, config.get_file_source(name))
+            self.load_fmt(path, std)
 
         if compute:
             self.compute()
 
-    def load_fmt(self, path):
+    def load_fmt(self, path, std):
         """ load the FMT definitions """
         with  open(path, 'r') as modcod_def:
+            fmt = {}
             for line in modcod_def:
                 if (line.startswith("/*") or 
                     line.isspace() or
@@ -126,9 +121,10 @@ class CarriersBand():
                 if not elts[0].isdigit:
                     continue
                 # id, modulation, coding_rate, spectral_efficiency, required Es/N0
-                # self._fmt[7] = _Fmt("QPSK", "6/7", 1.714, 9.34)
-                self._fmt[int(elts[0])] = _Fmt(elts[1], elts[2],
-                                               float(elts[3]), float(elts[4]))
+                # fmt[7] = _Fmt("QPSK", "6/7", 1.714, 9.34)
+                fmt[int(elts[0])] = _Fmt(elts[1], elts[2],
+                                         float(elts[3]), float(elts[4]))
+            self._fmt[std] = fmt
 
     def create_carrier(self, name, access_type, ratios, symbol_rate_baud, fmt_groups):
         """ create a new carrier """
@@ -162,7 +158,7 @@ class CarriersBand():
 
         self._fmt_group[group_id] = id_list
 
-    def check(self):
+    def _check(self):
         """ check that everything is ok """
         for name in self._categories:
             for carrier in self._categories[name]:
@@ -173,14 +169,13 @@ class CarriersBand():
                     if not group in self._fmt_group:
                         raise KeyError(group)
 
-        for gid in self._fmt_group:
-            for fmt_id in self._fmt_group[gid]:
-                if not fmt_id in self._fmt:
-                    raise KeyError(fmt_id)
+                    for fmt_id in self._fmt_group[group]:
+                        if not fmt_id in self._fmt[carrier.get_std()]:
+                            raise KeyError(fmt_id)
 
     def compute(self):
         """ the configuration was initialized """
-        self.check()
+        self._check()
         weighted_sum = 0.0
         for name in self._categories:
             for carrier in self._categories[name]:
@@ -215,9 +210,9 @@ class CarriersBand():
             rs = carrier.get_symbol_rate() * ratio / sum(carrier.get_ratio())
             max_fmt = max(self._fmt_group[carrier.get_fmt_groups()[i]])
             min_fmt = min(self._fmt_group[carrier.get_fmt_groups()[i]])
-            fmt = self._fmt[max_fmt]
+            fmt = self._fmt[carrier.get_std()][max_fmt]
             max_br = rs * fmt.modulation * fmt.coding_rate
-            fmt = self._fmt[min_fmt]
+            fmt = self._fmt[carrier.get_std()][min_fmt]
             min_br = rs * fmt.modulation * fmt.coding_rate
             br.append((min_br, max_br))
             i += 1
@@ -234,7 +229,7 @@ class CarriersBand():
             for ratio in carrier.get_ratio():
                 rs = carrier.get_symbol_rate() * ratio / sum(carrier.get_ratio())
                 max_fmt = max(self._fmt_group[carrier.get_fmt_groups()[i]])
-                fmt = self._fmt[max_fmt]
+                fmt = self._fmt[carrier.get_std()][max_fmt]
                 br = rs * fmt.modulation * fmt.coding_rate
                 bitrate += br * carrier.get_nb_carriers()
                 i += 1
@@ -251,7 +246,7 @@ class CarriersBand():
             for ratio in carrier.get_ratio():
                 rs = carrier.get_symbol_rate() * ratio / sum(carrier.get_ratio())
                 min_fmt = min(self._fmt_group[carrier.get_fmt_groups()[i]])
-                fmt = self._fmt[min_fmt]
+                fmt = self._fmt[carrier.get_std()][min_fmt]
                 br = rs * fmt.modulation * fmt.coding_rate
                 bitrate += br * carrier.get_nb_carriers()
                 i += 1

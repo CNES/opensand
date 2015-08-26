@@ -84,7 +84,7 @@ class OpenSandBand():
                     content = config.get_element_content(KEY)
                     print "spot %s gw %s" % (content[ID], content[GW])
                     self._carriers_band.parse(link, config, KEY)
-                    self._carriers_band.modcod_def(options.scenario, link, config)
+                    self._carriers_band.modcod_def(options.scenario, config)
                     print self._carriers_band.str()
                     print
         if options.forward:
@@ -99,7 +99,7 @@ class OpenSandBand():
                     content = config.get_element_content(KEY)
                     print "spot %s gw %s" % (content[ID], content[GW])
                     self._carriers_band.parse(link, config, KEY)
-                    self._carriers_band.modcod_def(options.scenario, link, config)
+                    self._carriers_band.modcod_def(options.scenario, config)
                     print self._carriers_band.str()
                     print
 

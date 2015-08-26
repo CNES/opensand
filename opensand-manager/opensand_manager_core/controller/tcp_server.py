@@ -212,7 +212,7 @@ class CommandServer(MyTcpHandler):
                 self.wfile.write("Goodbye\n")
                 CommandServer._shutdown()
             return False
-        else:
+        elif instruction != '':
             self.wfile.write(red("Wrong command\n"))
         return True
 

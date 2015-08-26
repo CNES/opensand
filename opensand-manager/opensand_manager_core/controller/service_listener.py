@@ -41,7 +41,7 @@ import time
 import dbus, gobject, avahi
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
 
-from opensand_manager_core.utils import SAT, GW, WS
+from opensand_manager_core.utils import WS
 from opensand_manager_core.controller.host import HostController
 from opensand_manager_core.loggers.manager_log import ManagerLog
 from opensand_manager_core.opensand_model import Model

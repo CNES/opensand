@@ -204,16 +204,16 @@ class ResourceView(WindowView):
             if nb_carrier <= 0:
                 nb_carrier = 1
             self._list_carrier.append(Carrier(float(content[SYMBOL_RATE]),
-                                        nb_carrier, content[CATEGORY], 
-                                        content[ACCESS_TYPE], 
-                                        content[FMT_GROUP],
-                                        ratio=content[RATIO]))
+                                              nb_carrier, content[CATEGORY], 
+                                              content[ACCESS_TYPE], 
+                                              content[FMT_GROUP],
+                                              ratio=content[RATIO]))
 
         
     def update_graph(self, link):
         """Display on the graph the carrier representation"""
         #get the xml config
-        config = self._model.get_conf()._configuration
+        config = self._model.get_conf().get_configuration()
         
         self.update_carrier(link)
 
@@ -370,7 +370,7 @@ class ResourceView(WindowView):
         
         carriers_band = CarriersBand() 
         carriers_band.modcod_def(self._model.get_scenario(), 
-                                 link, config, False)
+                                 config, False)
         for carrier in self._list_carrier:
             carriers_band.add_carrier(carrier)
         

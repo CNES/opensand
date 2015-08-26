@@ -366,7 +366,7 @@ Viveris technologies
         </child>
         <child>
           <widget class="GtkScrolledWindow" id="scrolled_graph_parameter">
-            <property name="height_request">450</property>
+            <property name="height_request">400</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="hscrollbar_policy">automatic</property>

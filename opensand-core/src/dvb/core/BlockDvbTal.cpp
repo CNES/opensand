@@ -295,7 +295,7 @@ bool BlockDvbTal::Downward::onInit(void)
 	}
 	
 	// Initialization od fow_modcod_def (useful to send SAC)
-	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
+	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            this->input_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -635,7 +635,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// init fmt_simu
-	if(!this->initModcodDefFile(RETURN_UP_MODCOD_DEF_RCS,
+	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
 	                            this->output_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -2342,7 +2342,7 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 		return false;
 	}
 
-	if(!this->initModcodDefFile(FORWARD_DOWN_MODCOD_DEF_S2,
+	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            this->input_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -2350,7 +2350,7 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 		return false;
 	}
 
-	if(!this->initModcodDefFile(RETURN_UP_MODCOD_DEF_RCS,
+	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
 	                            this->output_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

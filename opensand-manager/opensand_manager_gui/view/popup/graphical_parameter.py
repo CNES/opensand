@@ -78,16 +78,13 @@ class GraphicalParameter(WindowView):
             title.set_text(    "<b>Return Band Configuration</b>")
         title.set_use_markup(True)
             
-        def ok(source=None, event=None):
-            source.hide_all()
-        
-        #Create graphe in the window
-        self._graphe = self._ui.get_widget('scrolled_graph_parameter')
+        # Create graph in the window
+        graph = self._ui.get_widget('scrolled_graph_parameter')
         self._figure = Figure()
         self._ax = self._figure.add_subplot(111)
         canvas = FigureCanvas(self._figure)
         canvas.set_size_request(400,400)
-        self._graphe.add_with_viewport(canvas)
+        graph.add_with_viewport(canvas)
         
         self._list_carrier = []
         self._fmt_group = {}
@@ -344,7 +341,7 @@ class GraphicalParameter(WindowView):
         config = self._model.get_conf().get_configuration()
         carriers_band = CarriersBand() 
         carriers_band.modcod_def(self._model.get_scenario(), 
-                                 self._link, config, False)
+                                 config, False)
         for carrier in self._list_carrier:
             carriers_band.add_carrier(carrier)
         for fmt_id in self._fmt_group: 
@@ -458,7 +455,7 @@ class GraphicalParameter(WindowView):
         """Open the modcod configuration window """
         window = ModcodParameter(self._model, 
                                  self._log, 
-                                 self._link, 
+                                 self._link,
                                  id_carrier, 
                                  self)
         

@@ -648,21 +648,22 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-        <xsd:element name="forward_down_modcod_def_s2" type="file">
+        <xsd:element name="modcod_def_s2" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD definition file for S2 forward/down link
+                        and SCPC
                         <default>modcod/s2/definition.txt</default>
-                        <source>modcod/s2/forward_down_def_s2.txt</source>
+                        <source>modcod/s2/modcod.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-        <xsd:element name="return_up_modcod_def_rcs" type="file">
+        <xsd:element name="modcod_def_rcs" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD definition file for RCS return/up link
                         <default>modcod/rcs/definition_MPEG.txt</default>
-                        <source>modcod/rcs/return_up_def_rcs.txt</source>
+                        <source>modcod/rcs/modcod.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
