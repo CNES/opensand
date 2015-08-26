@@ -22,7 +22,4 @@ INCLUDES = \
 	-I$(top_srcdir)/src/qos_data \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/conf \
-	-I$(top_srcdir)/src/dvb/core \
-	-I$(top_srcdir)/src/dvb/ncc_interface \
-	-I$(top_srcdir)/src/dvb/fmt \
 	-I$(top_srcdir)/src/dvb/utils

@@ -36,9 +36,8 @@
 #include "BlockEncap.h"
 
 #include "Plugin.h"
+#include "OpenSandConf.h"
 
-
-#include "TerminalCategoryDama.h"
 
 #include <opensand_output/Output.h>
 
