@@ -235,6 +235,7 @@ help="specify the root folder for tests configurations\n"
         self._result_ping = {}
         self._result_iperf = {}
         self._result_ping_high = {}
+        nb_gw = 0
 
         self._quiet = True
         lvl = MGR_WARNING
@@ -256,21 +257,27 @@ help="specify the root folder for tests configurations\n"
                       frontend=self._frontend)
             self.stop_opensand()
             self._base = self._model.get_scenario()
-            self.run_base()
-            self._model.set_scenario(self._base)
-            self.run_other()
-            if len(self._last_error) > 0:
-                raise TestError('Last error: ', self._last_error)
-            if self._test is not None and len(self._test):
-                raise TestError("Configuration", "The following tests were not "
-                                "found %s" % self._test)
-            if self._regexp is not None and self._regexp == "":
-                raise TestError("Configuration", "The following types were not "
-                                "found %s" % self._regexp)
-            if self._type is not None and len(self._type):
-                raise TestError("Configuration", "The following types were not "
-                                "found %s" % self._type)
-
+            for host in self._model.get_hosts_list():
+                if host.get_name().startswith("gw"):
+                    nb_gw += 1
+            if nb_gw == 1 :
+                self.run_base()
+                self._model.set_scenario(self._base)
+                self.run_other()
+                if len(self._last_error) > 0:
+                    raise TestError('Last error: ', self._last_error)
+                if self._test is not None and len(self._test):
+                    raise TestError("Configuration", "The following tests were not "
+                                    "found %s" % self._test)
+                if self._regexp is not None and self._regexp == "":
+                    raise TestError("Configuration", "The following types were not "
+                                    "found %s" % self._regexp)
+                if self._type is not None and len(self._type):
+                    raise TestError("Configuration", "The following types were not "
+                                    "found %s" % self._type)
+            else:
+                print red("Cannot play test with two GWs", True)
+            
         except TestError as err:
             if self._quiet:
                 print "%s: %s" % (err.step, err.msg)
@@ -290,10 +297,11 @@ help="specify the root folder for tests configurations\n"
                 self._log.error(" * internal error while testing: " + str(msg))
             raise
         else:
-            if self._quiet:
-                print green("All tests are successfull", True)
-            else:
-                self._log.info(" * All tests successfull")
+            if nb_gw == 0:
+                if self._quiet:
+                    print green("All tests are successfull", True)
+                else:
+                    self._log.info(" * All tests successfull")
         finally:
            
             if self._result_ping or self._result_iperf or self._result_ping_high:
