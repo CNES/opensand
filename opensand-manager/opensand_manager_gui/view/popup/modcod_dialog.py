@@ -183,6 +183,11 @@ class ModcodParameter(WindowView):
                                               expand=True, fill=True)
             self._vbox_access_type.pack_start(self._scpc_radio, 
                                               expand=True, fill=True)
+
+            if self._model.get_conf().get_payload_type() == 'regenerative':
+                self._aloha_radio.set_sensitive(False)
+                self._scpc_radio.set_sensitive(False)
+
             
         #Load access type from the carrier
         access_type = self._parent.get_list_carrier()[self._carrier_id-1].get_access_type()
