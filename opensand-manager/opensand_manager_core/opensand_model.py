@@ -379,14 +379,20 @@ class Model:
             self._config.get_configuration().add_gw('//' + RETURN_UP_BAND, instance)
             self._config.get_configuration().add_gw('//' + PHYSICAL_LAYER, instance)
             self._config.get_configuration().write()"""
-            pos = 1
+            if not SAT in map(lambda x: x.get_name(), self._hosts):
+                pos = 0
+            else:
+                pos = 1
             for other_host in self._hosts:
                 if other_host.get_name().startswith(GW) and \
                    other_host.get_instance() < instance:
                     pos += 1
             self._hosts.insert(pos, host)
         elif component != WS:
-            pos = 1
+            if not SAT in map(lambda x: x.get_name(), self._hosts):
+                pos = 0
+            else:
+                pos = 1
             for other_host in self._hosts:
                 if other_host.get_name().startswith(GW) or \
                    (other_host.get_name().startswith(ST) and

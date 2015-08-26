@@ -200,20 +200,6 @@ class ConfView(WindowView):
             self.update_lan_adaptation_adv()
         if len(self._lan_stacks) == 0:
             return
-        stacks = []
-        for host in self._lan_stacks:
-            stack = self._lan_stacks[host].get_stack()
-            stacks.append(stack)
-        # check if all stacks are the same
-        first = stacks[0]
-        for stack in stacks:
-            if stack != first:
-                self.on_save_conf_clicked()
-                error_popup("The lan adaptation stacks are not the same on "
-                            "all host, in non-advanced mode it will be "
-                            "overrided with the GW stack.",
-                            "The configuration has been automatically saved!")
-                return
 
         if self._lan_stack_base is None:
             header_modif = self._model.get_global_lan_adaptation_modules()
@@ -228,6 +214,23 @@ class ConfView(WindowView):
                 self._lan_stack_base.load(host.get_lan_adaptation())
             except ConfException, msg:
                 error_popup(str(msg))
+
+        stacks = []
+        for host in self._lan_stacks:
+            stack = self._lan_stacks[host].get_stack()
+            stacks.append(stack)
+
+        # check if all stacks are the same
+        first = stacks[0]
+        for stack in stacks:
+            if stack != first:
+                self.on_save_conf_clicked()
+                error_popup("The lan adaptation stacks are not the same on "
+                            "all host, in non-advanced mode it will be "
+                            "overrided with the GW stack.",
+                            "The configuration has been automatically saved!")
+                return
+
 
 
     def is_modified(self):
