@@ -44,6 +44,7 @@
 #include "NccPepInterface.h"
 #include "Scheduling.h"
 #include "SlottedAlohaNcc.h"
+#include "TimeSeriesGenerator.h"
 
 #define SIMU_BUFF_LEN 255
 
@@ -54,7 +55,14 @@ class SpotUpward: public DvbChannel
 		           tal_id_t mac_id,
 		           StFmtSimuList *input_sts,
 		           StFmtSimuList *output_sts);
-		~SpotUpward();
+
+		virtual ~SpotUpward();
+
+		/**
+		 * @brief Spot Upward initialisation
+		 *
+		 * @return true on success, false otherwise
+		 */ 
 		virtual bool onInit();
 
 
@@ -102,6 +110,13 @@ class SpotUpward: public DvbChannel
 		event_id_t getModcodTimer(void);
 
 		/**
+		 * @brief  Add a new line in the MODCOD time series generator file
+		 *
+		 *  @return true on success, false otherwise
+		 */
+		bool updateSeriesGenerator(void);
+
+		/**
 		 * @brief  handle a SAC frame
 		 *
 		 * @param dvb_frame The SAC frame
@@ -142,6 +157,13 @@ class SpotUpward: public DvbChannel
 		 */
 		virtual bool initModcodSimu(void) = 0;
 
+		/**
+		 *  @brief Initialize the time series generators
+		 *
+		 *  @return  true on success, false otherwise
+		 */
+		virtual bool initSeriesGenerator(void) = 0;
+
 		/// Spot Id
 		uint8_t spot_id;
 
@@ -160,11 +182,11 @@ class SpotUpward: public DvbChannel
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
 
-		/// timer used to awake the block in order to retrieve
-		/// the current MODCODs
-		/// In regenerative case with physical layer, is it used to send
-		// ACM parameters to satellite
-		event_id_t modcod_timer;
+		/// time series generator for input
+		TimeSeriesGenerator *input_series;
+
+		/// time series generator for output
+		TimeSeriesGenerator *output_series;
 
 		// Output probes and stats
 		// Rates

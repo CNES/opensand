@@ -57,7 +57,8 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	             StFmtSimuList *input_sts,
 	             StFmtSimuList *output_sts,
 	             bool phy_layer);
-	~SpotDownward();
+
+	virtual ~SpotDownward();
 	
 	/**
 	 * @brief Spot Downward initialisation

@@ -55,7 +55,8 @@ class SpotDownwardRegen: public SpotDownward
 		                  StFmtSimuList *input_sts,
 		                  StFmtSimuList *output_sts,
 		                  bool phy_layer);
-		~SpotDownwardRegen();
+
+		virtual ~SpotDownwardRegen();
 		
 		/**
 		 * @brief Spot Downward initialisation

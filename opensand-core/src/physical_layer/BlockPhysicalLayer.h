@@ -103,8 +103,6 @@ class BlockPhysicalLayer: public Block
 
 	  protected:
 		bool forwardFrame(DvbFrame *dvb_frame);
-		/// the expected message type (for filtering on GW)
-		uint8_t msg_type;
 	};
 
 	class Downward: public Chan
@@ -131,7 +129,7 @@ class BlockPhysicalLayer: public Block
 	 * @param chan   The channel
 	 */
 	bool onEvent(const RtEvent *const event, Chan *chan);
-	
+
 	// Output logs
 	OutputLog *log_event;
 };

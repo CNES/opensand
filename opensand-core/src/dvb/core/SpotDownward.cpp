@@ -570,8 +570,8 @@ bool SpotDownward::handleLogonReq(const LogonRequest *logon_req)
 
 	// send the corresponding event
 	Output::sendEvent(this->event_logon_resp,
-	                  "Logon response send to %u",
-	                  mac);
+	                  "Logon response send to ST%u on spot %u",
+	                  mac, this->spot_id);
 
 	LOG(this->log_send_channel, LEVEL_DEBUG,
 	    "SF#%u: logon response sent to lower layer\n",

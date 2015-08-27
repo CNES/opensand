@@ -42,7 +42,8 @@
 
 
 BlockPhysicalLayer::BlockPhysicalLayer(const string &name):
-	Block(name)
+	Block(name),
+	log_event(NULL)
 {
 	// Output Log
 	this->log_event = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Event");
@@ -117,48 +118,9 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	string link("down"); // we are on downlink
 
 	// Intermediate variables for Config file reading
-	sat_type_t sat_type;
 	string attenuation_type;
 	string minimal_type;
 	string error_type;
-
-	component_t compo;
-	string val;
-
-	// satellite type
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
-		               SATELLITE_TYPE,
-	                   val))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SATELLITE_TYPE);
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "satellite type = %s\n", val.c_str());
-	sat_type = strToSatType(val);
-
-	val = "";
-	if(!Conf::getComponent(val))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get component type\n");
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "host type = %s\n", val.c_str());
-	compo = getComponentType(val);
-
-	if(compo == terminal ||
-	   (sat_type == REGENERATIVE && compo == gateway))
-	{
-		this->msg_type = MSG_TYPE_BBFRAME;
-	}
-	else
-	{
-		this->msg_type = MSG_TYPE_DVB_BURST;
-	}
 
 	// get refresh period
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
@@ -384,22 +346,11 @@ bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 {
 	double cn_total;
 
-	if(dvb_frame->getMessageType() != this->msg_type)
+	if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
 	{
-		if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
-		{
-			// do not handle signalisation but forward it
-			goto forward;
-		}
-		// reject wrong frames, we need this because
-		// GW receives its own traffic that does not need to be handled
-		// we may forward it bu it will be rejected at DVB layer
-		LOG(this->log_send, LEVEL_NOTICE,
-		    "unsupported frame rejected at physical layer\n");
-		delete dvb_frame;
-		return true;
+		// do not handle signalisation but forward it
+		goto forward;
 	}
-
 
 	// Update of the Threshold CN if Minimal Condition
 	// Mde is Modcod dependent
@@ -502,7 +453,6 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	string error_type;
 
 	this->is_sat = true;
-	this->msg_type = MSG_TYPE_DVB_BURST;
 
 	// Initiate Minimal conditions
 	if(!Conf::getValue(Conf::section_map[SAT_PHYSICAL_LAYER_SECTION],

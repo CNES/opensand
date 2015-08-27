@@ -295,6 +295,9 @@ bool SpotDownwardRegen::initDama(void)
 	                                dc_terminal_affectation,
 	                                dc_default_category,
 	                                list,
+	                                // we use output because terminals have the same
+	                                // output modcod definition as the GW
+	                                // and GW receive from satellite, not terminal
 	                                &this->output_modcod_def,
 	                                (this->simulate == none_simu) ?
 	                                false : true))

@@ -199,7 +199,7 @@ bool BlockDvbSat::initSpots(void)
 
 		// check id du spot correspond au id du spot dans lequel est le bloc actuel!
 		for(carrier_iter = carrier_list.begin(); carrier_iter != carrier_list.end(); 
-			carrier_iter++)
+		   carrier_iter++)
 		{
 			unsigned int carrier_id;
 			string carrier_type;
@@ -774,15 +774,15 @@ set<tal_id_t> BlockDvbSat::Downward::getGwIds(void)
 {
 	set<tal_id_t> result;
 	sat_spots_t::iterator it;
-	list<SatGw *>::iterator it2;
+	list<SatGw *>::iterator gw_it;
 
 	for(it = this->spots.begin();
 		it != this->spots.end(); it++)
 	{
 		list<SatGw *> list = it->second->getListGw();
-		for(it2 = list.begin(); it2 != list.end(); it2++)
+		for(gw_it = list.begin(); gw_it != list.end(); gw_it++)
 		{
-			result.insert((*it2)->getGwId());
+			result.insert((*gw_it)->getGwId());
 		}
 	}
 
@@ -805,25 +805,25 @@ set<spot_id_t> BlockDvbSat::Downward::getSpotIds(void)
 
 bool BlockDvbSat::Downward::initModcodSimu(void)
 {
-	set<tal_id_t> listGws = this->getGwIds();
-	set<spot_id_t> listSpots = this->getSpotIds();
-	for(set<spot_id_t>::iterator it1 = listSpots.begin();
-	    it1 != listSpots.end(); it1++)
+	set<tal_id_t> gw_list = this->getGwIds();
+	set<spot_id_t> spot_list = this->getSpotIds();
+	for(set<spot_id_t>::iterator spot_it = spot_list.begin();
+	    spot_it != spot_list.end(); spot_it++)
 	{
-		for(set<tal_id_t>::iterator it2 = listGws.begin();
-		    it2 != listGws.end(); it2++)
+		for(set<tal_id_t>::iterator gw_it = gw_list.begin();
+		    gw_it != gw_list.end(); gw_it++)
 		{
 			FmtSimulation *fmt_simulation = new FmtSimulation();
-			if(!this->initModcodFiles(RETURN_UP_MODCOD_TIME_SERIES,
-			                          *fmt_simulation,
-			                          (*it2), (*it1)))
+			if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
+			                             *fmt_simulation,
+			                             (*gw_it), (*spot_it)))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "failed to complete the modcod part of the "
 				    "initialisation\n");
 				return false;
 			}
-			this->setFmtSimulation((*it1), (*it2), fmt_simulation);
+			this->setFmtSimulation((*spot_it), (*gw_it), fmt_simulation);
 			if(!this->initModcodDefFile(MODCOD_DEF_RCS,
 			                            this->input_modcod_def))
 			{
@@ -844,13 +844,13 @@ bool BlockDvbSat::Downward::initModcodSimu(void)
 	}
 
 	// initialize the MODCOD scheme ID
-	for(set<spot_id_t>::iterator it1 = listSpots.begin();
-	    it1 != listSpots.end(); it1++)
+	for(set<spot_id_t>::iterator spot_it = spot_list.begin();
+	    spot_it != spot_list.end(); spot_it++)
 	{
-		for(set<tal_id_t>::iterator it2 = listGws.begin();
-		    it2 != listGws.end(); it2++)
+		for(set<tal_id_t>::iterator gw_it = gw_list.begin();
+		    gw_it != gw_list.end(); gw_it++)
 		{
-			if(!this->goFirstScenarioStep((*it1), (*it2)))
+			if(!this->goFirstScenarioStep((*spot_it), (*gw_it)))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "failed to initialize downlink MODCOD IDs\n");

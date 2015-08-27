@@ -209,10 +209,6 @@ class BlockDvbTal: public BlockDvb
 		/// the current state of the ST
 		tal_state_t state;
 
-		/// timer used to awake the block in order to retrieve
-		/// the current MODCODs
-		event_id_t modcod_timer;
-
 		/* Output probes and stats */
 			// Rates
 					// Layer 2 from SAT

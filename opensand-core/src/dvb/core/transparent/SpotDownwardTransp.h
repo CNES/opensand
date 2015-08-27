@@ -56,7 +56,8 @@ class SpotDownwardTransp: public SpotDownward
 		             StFmtSimuList *input_sts,
 		             StFmtSimuList *output_sts,
 		             bool phy_layer);
-		~SpotDownwardTransp();
+
+		virtual ~SpotDownwardTransp();
 		
 		/**
 		 * @brief Spot Downward initialisation

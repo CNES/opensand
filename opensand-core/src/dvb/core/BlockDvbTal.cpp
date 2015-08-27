@@ -1061,9 +1061,9 @@ bool BlockDvbTal::Downward::initScpc(void)
 	
 	// init scpc_fmt_simu
 	// TODO: we take forward because we need S2
-	if(!this->initModcodFiles(RETURN_UP_MODCOD_TIME_SERIES,
-		                      this->scpc_fmt_simu,
-	                          this->group_id, this->spot_id))
+	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
+	                             this->scpc_fmt_simu,
+	                             this->group_id, this->spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the down/forward MODCOD files\n");
@@ -1684,7 +1684,6 @@ bool BlockDvbTal::Downward::sendSAC(void)
 {
 	bool empty;
 	Sac *sac;
-	uint8_t current_modcod;
 
 	if(!this->dama_agent)
 	{
@@ -1704,8 +1703,12 @@ bool BlockDvbTal::Downward::sendSAC(void)
 		goto error;
 	}
 	// Set the ACM parameters
-	current_modcod = this->getCurrentModcodIdInput(this->tal_id);
-	this->cni = this->input_modcod_def.getRequiredEsN0(current_modcod);
+	if(!this->with_phy_layer)
+	{
+		fmt_id_t current_modcod;
+		current_modcod = this->getCurrentModcodIdInput(this->tal_id);
+		this->cni = this->input_modcod_def.getRequiredEsN0(current_modcod);
+	}
 	sac->setAcm(this->cni);
 
 	if(empty)
@@ -2334,8 +2337,8 @@ bool BlockDvbTal::Upward::initMode(void)
 
 bool BlockDvbTal::Upward::initModcodSimu(void)
 {
-	if(!this->initModcodFiles(FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                          this->group_id, this->spot_id))
+	if(!this->initModcodSimuFile(FORWARD_DOWN_MODCOD_TIME_SERIES,
+	                             this->group_id, this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the downlink MODCOD files\n");

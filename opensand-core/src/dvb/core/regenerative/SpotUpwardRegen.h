@@ -54,7 +54,7 @@ class SpotUpwardRegen: public SpotUpward
 		                tal_id_t mac_id,
 		                StFmtSimuList *input_sts,
 		                StFmtSimuList *output_sts);
-		~SpotUpwardRegen();
+		virtual ~SpotUpwardRegen();
 		bool onInit();
 
 
@@ -76,6 +76,13 @@ class SpotUpwardRegen: public SpotUpward
 		 * @return  true on success, false otherwise
 		 */
 		bool initModcodSimu(void);
+
+		/**
+		 *  @brief Initialize the time series generators
+		 *
+		 *  @return  true on success, false otherwise
+		 */
+		bool initSeriesGenerator(void);
 
 		/**
 		 * @brief Initialize the transmission mode

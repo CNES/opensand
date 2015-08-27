@@ -259,7 +259,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 bool BlockDvbNcc::Downward::initTimers(void)
 {
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
-	int acm_period_refresh;
+	time_ms_t acm_period_ms;
 
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
@@ -267,19 +267,6 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	                                        this->ret_up_frame_duration_ms);
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                      this->fwd_down_frame_duration_ms);
-
-
-	// read the pep allocation delay
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], ACM_PERIOD_REFRESH,
-	                   acm_period_refresh))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "acm_period_refresh set to %d ms\n", acm_period_refresh);
 
 
 	// read the pep allocation delay
@@ -293,6 +280,20 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "pep_alloc_delay set to %d ms\n", this->pep_alloc_delay);
+
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   ACM_PERIOD_REFRESH,
+	                   acm_period_ms))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		   "section '%s': missing parameter '%s'\n",
+		   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+		return false;
+	}
+
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "ACM period set to %d ms\n",
+	    acm_period_ms);
 
 	// create timer
 	for(spot_iter = this->spots.begin(); 
@@ -314,7 +315,7 @@ bool BlockDvbNcc::Downward::initTimers(void)
 		if(this->satellite_type == REGENERATIVE)
 		{
 			spot->setAcmTimer(this->addTimerEvent("send_acm_param",
-			                                      acm_period_refresh));
+			                                      acm_period_ms));
 		}
 	}
 
@@ -469,8 +470,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						spot_list.push_back(spot);
 					}
 
-					for(spot_list_iter = spot_list.begin() ; 
-					    spot_list_iter != spot_list.end() ;
+					for(spot_list_iter = spot_list.begin(); 
+					    spot_list_iter != spot_list.end();
 					    ++spot_list_iter)
 					{
 						NetPacket *pkt_copy;
@@ -829,6 +830,7 @@ release:
 
 bool BlockDvbNcc::Downward::sendAcmParameters(SpotDownward *spot_downward)
 {
+	// function only used in regenerative scenario
 	double cni;
 
 	if(this->with_phy_layer)
@@ -937,11 +939,46 @@ bool BlockDvbNcc::Upward::onInit(void)
 		if(!this->with_phy_layer)
 		{
 			spot->setModcodTimer(this->addTimerEvent("scenario",
-			                                         5000, // the duration will be change when started
+			                                         // the duration will be change when started
+			                                         5000,
 			                                         false, // no rearm
 			                                         false // do not start
 			                                         ));
 			this->raiseTimer(spot->getModcodTimer());
+		}
+		else
+		{
+			string generate;
+			time_ms_t acm_period_ms;
+
+			// Check whether we generate the time series
+			if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+			                   GENERATE_TIME_SERIES_PATH, generate))
+			{
+				LOG(this->log_init_channel, LEVEL_ERROR,
+				    "Section %s, %s missing\n",
+				    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
+				return false;
+			}
+			if(generate != "none")
+			{
+				if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+				                   ACM_PERIOD_REFRESH,
+				                   acm_period_ms))
+				{
+					LOG(this->log_init, LEVEL_ERROR,
+					   "section '%s': missing parameter '%s'\n",
+					   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+					return false;
+				}
+
+				LOG(this->log_init, LEVEL_NOTICE,
+				    "ACM period set to %d ms\n",
+				    acm_period_ms);
+
+				this->modcod_timer = this->addTimerEvent("generate_time_series",
+				                                         acm_period_ms);
+			}
 		}
 	}
 
@@ -1072,13 +1109,14 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				case MSG_TYPE_SESSION_LOGON_RESP:
 					// nothing to do in this case
 					LOG(this->log_receive, LEVEL_DEBUG,
-					    "ignore TTP, logon response or SOF frame "
+					    "ignore TTP or logon response "
 					    "(type = %d)\n", dvb_frame->getMessageType());
 					delete dvb_frame;
 					break;
 
 				case MSG_TYPE_SOF:
 				{
+					// use SoF for SAloha scheduling
 					spot->updateStats();
 					list<DvbFrame *> *ack_frames = NULL;
 					NetBurst *sa_burst = NULL;
@@ -1150,7 +1188,6 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 		case evt_timer:
 		{
 			map<spot_id_t, DvbChannel *>::iterator spot_iter;
-
 			for(spot_iter = this->spots.begin();
 			    spot_iter != this->spots.end(); ++spot_iter)
 			{
@@ -1170,9 +1207,9 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					    "MODCOD scenario timer received\n");
 
 					double duration;
-					if(!spot->goNextScenarioStepInput(duration, 
-						                              this->mac_id, 
-						                              spot->getSpotId()))
+					if(!spot->goNextScenarioStepInput(duration,
+					                                  this->mac_id,
+					                                  spot->getSpotId()))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "SF#%u: failed to update MODCOD IDs\n",
@@ -1197,6 +1234,19 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 						this->startTimer(spot->getModcodTimer());
 					}
 				}
+				else if(*event == this->modcod_timer)
+				{
+					if(!spot->updateSeriesGenerator())
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "SF#%u:Stop time series generation\n",
+						    this->super_frame_counter);
+						this->removeEvent(this->modcod_timer);
+						return false;
+					}
+				}
+
+
 			}
 		}
 	

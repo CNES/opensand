@@ -252,7 +252,9 @@
 #define MODCOD_DEF_RCS                    "modcod_def_rcs"
 #define RETURN_UP_MODCOD_TIME_SERIES      "return_up_modcod_time_series"
 
-#define ACM_PERIOD_REFRESH         "acm_period_refresh"
+#define GENERATE_TIME_SERIES_PATH         "generate_time_series_path"
+
+#define ACM_PERIOD_REFRESH        "acm_period_refresh"
 
 
 /////////////////

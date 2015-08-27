@@ -640,6 +640,18 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="generate_time_series_path" type="xsd:string">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The path where the emulated MODCOD are stored in time series files
+                         when physical layer is enabled, in order to replay the scenario or
+                         none to disable it. The filename will be
+                         forward_down_time_series_spotId_gwId.txt
+                         and return_up_time_series_spotId_gwId.txt
+                        <xpath physical_layer.enable="true" />
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
             <xsd:element name="acm_period_refresh" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -648,7 +660,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-        <xsd:element name="modcod_def_s2" type="file">
+            <xsd:element name="modcod_def_s2" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD definition file for S2 forward/down link
@@ -658,7 +670,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-        <xsd:element name="modcod_def_rcs" type="file">
+            <xsd:element name="modcod_def_rcs" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD definition file for RCS return/up link

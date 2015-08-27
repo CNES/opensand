@@ -86,6 +86,7 @@ bool AcmLoop::init(void)
 	    "host type = %s\n", val.c_str());
 	compo = getComponentType(val);
 
+	// TODO SCPC !
 	if(compo == terminal ||
 	   (sat_type == REGENERATIVE && compo == gateway))
 	{

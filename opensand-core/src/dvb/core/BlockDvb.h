@@ -117,8 +117,7 @@ class BlockDvb: public Block
 			DvbChannel(),
 			RtChannel(bl, downward_chan),
 			fwd_timer_ms(),
-			scpc_timer_ms(),
-			dvb_scenario_refresh(-1)
+			scpc_timer_ms()
 		{
 		};
 
@@ -176,9 +175,6 @@ class BlockDvb: public Block
 		
 		///SCPC frame duration
 		time_ms_t scpc_timer_ms;
-
-		/// the scenario refresh interval
-		time_ms_t dvb_scenario_refresh;
 	};
 };
 

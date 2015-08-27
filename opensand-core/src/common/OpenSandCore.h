@@ -195,9 +195,9 @@ inline bool equals(double val1, double val2)
 /**
  * @brief  Tokenize a string
  *
- * @param  str        The string to tokenize.
- * @param  tokens     The list to add tokens into.
- * @param  delimiter  The tokens' delimiter.
+ * @param  str        The string to tokenize
+ * @param  tokens     The list to add tokens into
+ * @param  delimiter  The tokens' delimiter
  */
 inline void tokenize(const string &str,
                      vector<string> &tokens,
@@ -279,6 +279,9 @@ typedef uint32_t vol_sym_t; ///< volume in number of symbols (suffix sym)
 // frequency
 typedef float freq_mhz_t;    ///< frequency (MHz)
 typedef uint32_t freq_khz_t; ///< frequency (kHz)
+
+// fmt
+typedef uint8_t fmt_id_t;  ///< fmt id
 
 /**
  * @brief Generic Superframe description

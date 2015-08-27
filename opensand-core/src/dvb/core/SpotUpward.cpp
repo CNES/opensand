@@ -52,6 +52,8 @@ SpotUpward::SpotUpward(spot_id_t spot_id,
 	reception_std_scpc(NULL),
 	scpc_pkt_hdl(NULL),
 	ret_fmt_groups(),
+	input_series(NULL),
+	output_series(NULL),
 	probe_gw_l2_from_sat(NULL),
 	probe_received_modcod(NULL),
 	probe_rejected_modcod(NULL),
@@ -77,6 +79,11 @@ SpotUpward::~SpotUpward()
 		delete this->reception_std;
 	if(this->reception_std_scpc)
 		delete this->reception_std_scpc;
+
+	if(this->input_series)
+		delete this->input_series;
+	if(this->output_series)
+		delete this->output_series;
 }
 
 bool SpotUpward::onInit(void)
@@ -89,6 +96,15 @@ bool SpotUpward::onInit(void)
 		    "initialisation\n");
 		return false;
 	}
+
+	if(!this->initSeriesGenerator())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the time series generator "
+		    "part of the initialisation\n");
+		return false;
+	}
+
 
 	if(!this->initMode())
 	{
@@ -126,7 +142,7 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 	uint16_t mac = logon_req->getMac();
 
 	LOG(this->log_receive_channel, LEVEL_INFO,
-	    "Logon request from ST%u\n", mac);
+	    "Logon request from ST%u on spot %u\n", mac, this->spot_id);
 
 	// refuse to register a ST with same MAC ID as the NCC
 	// or if it's a gw
@@ -161,8 +177,8 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 
 	// send the corresponding event
 	Output::sendEvent(this->event_logon_req,
-	                  "Logon request received from %u",
-	                  mac);
+	                  "Logon request received from ST%u on spot %u",
+	                  mac, this->spot_id);
 
 	return true;
 }
@@ -211,15 +227,38 @@ bool SpotUpward::handleSac(const DvbFrame *dvb_frame)
 {
 	Sac *sac = (Sac *)dvb_frame;
 
-	LOG(this->log_receive_channel, LEVEL_DEBUG,
-	    "handle received SAC\n");
 
 	// transparent : the C/N0 of forward link
 	// regenerative : the C/N0 of uplink (updated by sat)
 	double cni = sac->getCni();
 	tal_id_t tal_id = sac->getTerminalId();
 	this->setRequiredModcodOutput(tal_id, cni);
+	LOG(this->log_receive_channel, LEVEL_INFO,
+	    "handle received SAC from terminal %u with cni %f\n",
+	    tal_id, cni);
 
 	return true;
 }
 
+bool SpotUpward::updateSeriesGenerator(void)
+{
+	if(!this->input_series || !this->output_series)
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "Cannot update series\n");
+		return false;
+	}
+
+	if(!this->input_series->add(this->input_sts->getListSts(this->mac_id,
+	                                                        this->spot_id)))
+	{
+		return false;
+	}
+
+	if(!this->output_series->add(this->output_sts->getListSts(this->mac_id,
+	                                                          this->spot_id)))
+	{
+		return false;
+	}
+	return true;
+}

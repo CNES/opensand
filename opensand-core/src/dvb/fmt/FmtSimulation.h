@@ -87,6 +87,9 @@ class FmtSimulation
 	/** time of the next MODCOD change */
 	double next_step;
 
+	/** The ACM period refresh rate (ms) */
+	time_ms_t acm_period_ms;
+
 
  protected:
 
@@ -122,10 +125,11 @@ class FmtSimulation
 	/**
 	 * @brief Set simulation file for MODCOD
 	 *
-	 * @param filename  the name of the file in which MODCOD scenario is described
+	 * @param filename    the name of the file in which MODCOD scenario is described
+	 * @param acm_period  the ACM period
 	 * @return          true if the file exist and is valid, false otherwise
 	 */
-	bool setModcodSimu(const string &filename);
+	bool setModcodSimu(const string &filename, time_ms_t acm_period_ms);
 
 
 	/**

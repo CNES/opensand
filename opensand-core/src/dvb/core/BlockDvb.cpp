@@ -74,20 +74,6 @@ bool BlockDvb::DvbDownward::initDown(void)
 	    "forward timer set to %u\n",
 	    this->fwd_down_frame_duration_ms);
 
-	// scenario refresh interval
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               ACM_PERIOD_REFRESH,
-	                   this->dvb_scenario_refresh))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "dvb_scenario_refresh set to %d\n",
-	    this->dvb_scenario_refresh);
-
 	return true;
 error:
 	return false;

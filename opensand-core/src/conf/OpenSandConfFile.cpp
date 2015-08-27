@@ -221,8 +221,8 @@ void OpenSandConfFile::loadGwTable(map<uint16_t, uint16_t> &gw_table)
 
 
 bool OpenSandConfFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map, 
-                                         uint16_t tal_id,
-                                         uint8_t &spot)
+                                        uint16_t tal_id,
+                                        uint8_t &spot)
 {
     map<uint16_t, uint8_t>::iterator tal_iter;
 	tal_iter = terminal_map.find(tal_id);
@@ -235,9 +235,9 @@ bool OpenSandConfFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map,
 }
 
 bool OpenSandConfFile::getSpotWithCarrierId(map<unsigned int, std::pair<uint8_t, uint16_t> > carrier_map, 
-                                             unsigned int car_id,
-                                             uint8_t &spot, 
-                                             uint16_t &gw)
+                                            unsigned int car_id,
+                                            uint8_t &spot, 
+                                            uint16_t &gw)
 {
 	map<unsigned int, std::pair<uint8_t, uint16_t> >::iterator car_iter;
 	car_iter = carrier_map.find(car_id);
@@ -266,9 +266,9 @@ bool OpenSandConfFile::isGw(map<uint16_t, uint16_t> &gw_table, uint16_t gw_id)
 }
 
 bool OpenSandConfFile::getSpot(string section, 
-                           uint8_t spot_id, 
-                           uint16_t gw_id,
-                           ConfigurationList &current_gw)
+                               uint8_t spot_id, 
+                               uint16_t gw_id,
+                               ConfigurationList &current_gw)
 {
 	ConfigurationList spot_list;
 	ConfigurationList current_spot;

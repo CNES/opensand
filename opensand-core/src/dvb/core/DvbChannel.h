@@ -240,7 +240,7 @@ class DvbChannel
 	bool initModcodDefFile(const char *def, FmtDefinitionTable &modcod_def);
 
 	/**
-	 * @brief Read configuration for the MODCOD definition/simulation files
+	 * @brief Read configuration for the MODCOD simulation files
 	 *
 	 * @param simu    The section in configuration file for MODCOD simulation
 	 *                (up/return or down/forward)
@@ -248,11 +248,11 @@ class DvbChannel
 	 * @param spot_id The id of the spot
 	 * @return  true on success, false otherwise
 	 */
-	bool initModcodFiles(const char *simu,
-	                     tal_id_t gw_id, spot_id_t spot_id);
+	bool initModcodSimuFile(const char *simu,
+	                        tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
-	 * @brief Read configuration for link MODCOD definition/simulation files
+	 * @brief Read configuration for link MODCOD simulation files
 	 *
 	 * @param simu        The section in configuration file for MODCOD simulation
 	 *                    (up/return or down/forward)
@@ -261,9 +261,9 @@ class DvbChannel
 	 * @param spot_id The id of the spot
 	 * @return  true on success, false otherwise
 	 */
-	bool initModcodFiles(const char *simu,
-	                     FmtSimulation &fmt_simu,
-	                     tal_id_t gw_id, spot_id_t spot_id);
+	bool initModcodSimuFile(const char *simu,
+	                        FmtSimulation &fmt_simu,
+	                        tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
 	 * @brief init the band according to configuration
@@ -449,13 +449,13 @@ class DvbChannel
 	FmtSimulation fmt_simu;
 
 	/** The internal map that stores all the STs and modcod id for input */
-	StFmtSimuList* input_sts;
+	StFmtSimuList *input_sts;
 
 	/// The MODCOD Definition Table for input
 	FmtDefinitionTable input_modcod_def;
 
 	/** The internal map that stores all the STs and modcod id for output */
-	StFmtSimuList* output_sts;
+	StFmtSimuList *output_sts;
 
 	/// The MODCOD Definition Table for output
 	FmtDefinitionTable output_modcod_def;
@@ -466,6 +466,9 @@ class DvbChannel
 
 	/// the default destination spot
 	spot_id_t default_spot;
+
+	/// timer used for ACM events
+	event_id_t modcod_timer;
 
 	// log
 	OutputLog *log_init_channel;

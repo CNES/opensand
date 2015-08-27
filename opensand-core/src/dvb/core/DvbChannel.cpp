@@ -295,29 +295,49 @@ bool DvbChannel::initModcodDefFile(const char *def, FmtDefinitionTable &modcod_d
 	return true;
 }
 
-bool DvbChannel::initModcodFiles(const char *simu,
-                                 tal_id_t gw_id, spot_id_t spot_id)
+bool DvbChannel::initModcodSimuFile(const char *simu,
+                                    tal_id_t gw_id, spot_id_t spot_id)
 {
-	return this->initModcodFiles(simu, this->fmt_simu, gw_id, spot_id);
+	return this->initModcodSimuFile(simu, this->fmt_simu, gw_id, spot_id);
 }
 
 
-bool DvbChannel::initModcodFiles(const char *simu,
-                                 FmtSimulation &fmt_simu,
-                                 tal_id_t gw_id,
-                                 spot_id_t spot_id)
+bool DvbChannel::initModcodSimuFile(const char *simu,
+                                    FmtSimulation &fmt_simu,
+                                    tal_id_t gw_id,
+                                    spot_id_t spot_id)
 {
 	string modcod_simu_file;
 	ConfigurationList current_gw;
+	time_ms_t acm_period_ms;
+
+	if(this->with_phy_layer)
+	{
+		return true;
+	}
 
 	if(!OpenSandConf::getSpot(PHYSICAL_LAYER_SECTION,
-		               spot_id, gw_id, current_gw))
+	                          spot_id, gw_id, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing spot for id %d and gw %d\n",
 		    PHYSICAL_LAYER_SECTION, spot_id, gw_id);
 		return false;
 	}
+
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   ACM_PERIOD_REFRESH,
+	                   acm_period_ms))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		   "section '%s': missing parameter '%s'\n",
+		   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+		return false;
+	}
+
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "ACM period set to %d ms\n",
+	    acm_period_ms);
 
 	if(!Conf::getValue(current_gw, simu, modcod_simu_file))
 	{
@@ -328,17 +348,13 @@ bool DvbChannel::initModcodFiles(const char *simu,
 	}
 
 	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "down/forward link MODCOD simulation path set to %s\n",
+	    "MODCOD simulation path set to %s\n",
 	    modcod_simu_file.c_str());
 
-	// no need for simulation file if there is a physical layer
-	if(!this->with_phy_layer)
+	// set the MODCOD simulation file
+	if(!fmt_simu.setModcodSimu(modcod_simu_file, acm_period_ms))
 	{
-		// set the MODCOD simulation file
-		if(!fmt_simu.setModcodSimu(modcod_simu_file))
-		{
-			return false;
-		}
+		return false;
 	}
 
 	return true;
@@ -424,7 +440,6 @@ bool DvbChannel::addInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id
 		column = this->fmt_simu.getModcodList().size() - 1;
 	}
 	// if scenario are not defined, set less robust modcod at init
-	// in order to authorize any MODCOD
 	modcod = (this->fmt_simu.getIsModcodSimuDefined() ?
 	           atoi(this->fmt_simu.getModcodList()[column].c_str()) :
 	           this->input_modcod_def.getMaxId());
@@ -490,7 +505,7 @@ void DvbChannel::setOutputSts(StFmtSimuList* new_output_sts)
 
 void DvbChannel::setRequiredModcod(tal_id_t id, double cni,
                                    FmtDefinitionTable modcod_def,
-                                   StFmtSimuList* sts)
+                                   StFmtSimuList *sts)
 {
 	uint8_t modcod_id;
 
@@ -504,6 +519,7 @@ void DvbChannel::setRequiredModcod(tal_id_t id, double cni,
 
 void DvbChannel::setRequiredModcodInput(tal_id_t id, double cni)
 {
+
 	this->setRequiredModcod(id, cni, this->input_modcod_def,
 	                        this->input_sts);
 }

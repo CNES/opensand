@@ -65,7 +65,8 @@ inline bool fileExists(const string &filename)
 
 FmtSimulation::FmtSimulation():
 	modcod_simu(NULL),
-	is_modcod_simu_defined(false)
+	is_modcod_simu_defined(false),
+	acm_period_ms(0)
 {
 	this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Simulation");
 }
@@ -133,13 +134,14 @@ bool FmtSimulation::goNextScenarioStep(double &duration)
 		return false;
 	}
 
-	duration = (this->next_step - time_current_step) * 1000;
+	duration = (this->next_step - time_current_step) * this->acm_period_ms;
 
 	return true;
 }
 
 
-bool FmtSimulation::setModcodSimu(const string &filename)
+bool FmtSimulation::setModcodSimu(const string &filename,
+                                  time_ms_t acm_period_ms)
 {
 	// we can not redefine the simulation file
 	if(this->is_modcod_simu_defined)
@@ -169,6 +171,8 @@ bool FmtSimulation::setModcodSimu(const string &filename)
 	// TODO: check values in the file here
 
 	this->is_modcod_simu_defined = true;
+
+	this->acm_period_ms = acm_period_ms;
 
 	return true;
 

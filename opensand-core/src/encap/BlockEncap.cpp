@@ -808,7 +808,7 @@ bool BlockEncap::getEncapContext(const char *scheme_list,
 
 	// no need for simulation file if there is a physical layer
 		// set the MODCOD simulation file
-	if(!fmt_simu.setModcodSimu(modcod_simu_file))
+	if(!fmt_simu.setModcodSimu(modcod_simu_file,0))
 	{
 		goto error;
 	}
