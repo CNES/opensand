@@ -247,10 +247,9 @@
 #define MINIMAL_CONDITION_TYPE    "minimal_condition_type"
 #define ERROR_INSERTION_TYPE      "error_insertion_type"
 #define CLEAR_SKY_CONDITION       "clear_sky_condition"
-#define PATH_TO_MODCOD                    "path_to_modcod"
-#define FORWARD_DOWN_MODCOD_DEF_S2        "forward_down_modcod_def_s2"
+#define MODCOD_DEF_S2                     "modcod_def_s2"
 #define FORWARD_DOWN_MODCOD_TIME_SERIES   "forward_down_modcod_time_series"
-#define RETURN_UP_MODCOD_DEF_RCS          "return_up_modcod_def_rcs"
+#define MODCOD_DEF_RCS                    "modcod_def_rcs"
 #define RETURN_UP_MODCOD_TIME_SERIES      "return_up_modcod_time_series"
 
 #define ACM_PERIOD_REFRESH         "acm_period_refresh"
