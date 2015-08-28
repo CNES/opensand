@@ -354,7 +354,6 @@ bool OutputInternal::finishInit(void)
 			              "receive NACK for initial probe list, disable output\n");
 			this->disableCollector();
 			this->setInitializing(false);
-			return false;
 		}
 		else
 		{

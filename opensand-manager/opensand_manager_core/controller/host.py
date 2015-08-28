@@ -257,6 +257,8 @@ class HostController:
                         self._host_model.get_emulation_address(),
                         self._host_model.get_emulation_interface(),
                         lan_iface, instance_param)
+        if not self._host_model.is_collector_functional():
+            command_line += " -q"
         try:
             start_ini.add_section(self._host_model.get_component())
             start_ini.set(self._host_model.get_component(), 'command',

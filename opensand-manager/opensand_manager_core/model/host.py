@@ -379,6 +379,10 @@ class HostModel:
         """ the collector responds to manager registration """
         self._collector_functional = status
 
+    def is_collector_functional(self):
+        """ does the collector responds to manager registration """
+        return self._collector_functional
+
     def set_lan_adaptation(self, stack):
         """ set the lan_adaptation_schemes values """
         lan_adapt = stack
