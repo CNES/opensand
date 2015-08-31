@@ -118,13 +118,8 @@ StFmtSimuList::~StFmtSimuList()
 	this->gws_id.clear();
 }
 
-ListStsPerSpotPerGw StFmtSimuList::getSts(void) const
-{
-	RtLock lock(this->sts_mutex);
-	return this->sts;
-}
 
-ListStsPerSpot* StFmtSimuList::getListStsPerSpot(tal_id_t gw_id) const
+StFmtSimuList::ListStsPerSpot *StFmtSimuList::getListStsPerSpot(tal_id_t gw_id) const
 {
 	// No lock on mutex because this function is private
 	// but the mutex should be locked when this fonction is called
@@ -141,35 +136,19 @@ ListStsPerSpot* StFmtSimuList::getListStsPerSpot(tal_id_t gw_id) const
 	return it->second;
 }
 
-bool StFmtSimuList::setListStsPerSpot(tal_id_t gw_id, ListStsPerSpot *list_sts_per_spot)
-{
-	RtLock lock(this->sts_mutex);
-	ListStsPerSpotPerGw::iterator it;
 
-	it = this->sts.find(gw_id);
-
-	if(it != this->sts.end())
-	{
-		this->clearListStsPerSpot(it->second);
-	}
-
-	it->second = list_sts_per_spot;
-
-	return true;
-}
-
-ListSts* StFmtSimuList::getListSts(tal_id_t gw_id, spot_id_t spot_id) const
+ListSts *StFmtSimuList::getListSts(tal_id_t gw_id, spot_id_t spot_id) const
 {
 	RtLock lock(this->sts_mutex);
 	return this->getListStsPriv(gw_id, spot_id);
 }
 
-ListSts* StFmtSimuList::getListStsPriv(tal_id_t gw_id, spot_id_t spot_id) const
+ListSts *StFmtSimuList::getListStsPriv(tal_id_t gw_id, spot_id_t spot_id) const
 {
 	// No lock on mutex because this function is private
 	// but the mutex should be locked when this fonction is called
 	ListStsPerSpot::iterator it;
-	ListStsPerSpot* list_sts_per_spot;
+	ListStsPerSpot *list_sts_per_spot;
 
 	list_sts_per_spot = this->getListStsPerSpot(gw_id);
 	if(!list_sts_per_spot)
@@ -178,29 +157,25 @@ ListSts* StFmtSimuList::getListStsPriv(tal_id_t gw_id, spot_id_t spot_id) const
 	}
 
 	it = list_sts_per_spot->find(spot_id);
-	if(it != list_sts_per_spot->end())
+	if(it == list_sts_per_spot->end())
 	{
-		LOG(this->log_fmt, LEVEL_ERROR, "Spot %u not found in the list\n", spot_id);
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "Spot %u not found in the list\n", spot_id);
 		return NULL;
 	}
 
 	return it->second;
 }
 
-bool StFmtSimuList::setListSts(tal_id_t gw_id, spot_id_t spot_id, ListSts *list_sts)
-{
-	RtLock lock(this->sts_mutex);
-	return this->setListStsPriv(gw_id, spot_id, list_sts);
-}
 
-bool StFmtSimuList::setListStsPriv(tal_id_t gw_id, spot_id_t spot_id, ListSts *list_sts)
+bool StFmtSimuList::setListSts(tal_id_t gw_id, spot_id_t spot_id, ListSts *list_sts)
 {
 	// No lock on mutex because this function is private
 	// but the mutex should be locked when this fonction is called
 	ListStsPerSpotPerGw::iterator it;
 	ListStsPerSpot::iterator it2;
-	ListStsPerSpot* new_list;
-	std::pair<ListStsPerSpotPerGw::iterator,bool> ret;
+	ListStsPerSpot *new_list;
+	std::pair<ListStsPerSpotPerGw::iterator, bool> ret;
 
 	it = this->sts.find(gw_id);
 	if(it == this->sts.end())
@@ -210,23 +185,30 @@ bool StFmtSimuList::setListStsPriv(tal_id_t gw_id, spot_id_t spot_id, ListSts *l
 		{
 			LOG(this->log_fmt, LEVEL_ERROR,
 			    "Failed to create ListStsPerSpot for Gw %u", gw_id);
+			delete new_list;
 			return false;
 		}
 		ret = this->sts.insert(std::make_pair(gw_id, new_list));
 		if(!ret.second)
 		{
-			LOG(this->log_fmt, LEVEL_ERROR, "Insert failed\n");
+			LOG(this->log_fmt, LEVEL_ERROR,
+			    "GW id %u was already found in the list\n", gw_id);
+			delete new_list;
 			return false;
 		}
 		it = ret.first;
 	}
 
-	it2 = it->second->find(spot_id);
-	if(it2 != it->second->end())
+	it2 = (*it).second->find(spot_id);
+	if(it2 != (*it).second->end())
 	{
-		this->clearListSts(it2->second);
+		this->clearListSts((*it2).second);
+		(*it2).second = list_sts;
 	}
-	it2->second = list_sts;
+	else
+	{
+		(*it).second->insert(std::make_pair(spot_id, list_sts));
+	}
 
 	return true;
 }
@@ -259,7 +241,7 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, uint8_t modcod, tal_id_t gw_id,
 			LOG(this->log_fmt, LEVEL_ERROR, "Failed to create new list\n");
 			return false;
 		}
-		this->setListStsPriv(gw_id, spot_id, list_sts);
+		this->setListSts(gw_id, spot_id, list_sts);
 	}
 
 	// Create the st
@@ -546,10 +528,10 @@ void StFmtSimuList::clearListStsPerSpot(ListStsPerSpot* list)
 	}
 
 	list->clear();
-
+	delete list;
 }
 
-void StFmtSimuList::clearListSts(ListSts* list)
+void StFmtSimuList::clearListSts(ListSts *list)
 {
 	// No lock on mutex because this function is private
 	// but the mutex should be locked when this fonction is called
@@ -568,5 +550,6 @@ void StFmtSimuList::clearListSts(ListSts* list)
 	}
 
 	list->clear();
+	delete list;
 }
 

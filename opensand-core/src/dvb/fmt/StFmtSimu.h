@@ -128,10 +128,7 @@ class StFmtSimu
 };
 
 
-
 typedef std::map<tal_id_t, StFmtSimu *> ListSts;
-typedef std::map<spot_id_t, ListSts *> ListStsPerSpot;
-typedef std::map<tal_id_t, ListStsPerSpot *> ListStsPerSpotPerGw;
 
 
 /**
@@ -141,6 +138,9 @@ typedef std::map<tal_id_t, ListStsPerSpot *> ListStsPerSpotPerGw;
 class StFmtSimuList
 {
  private:
+
+	typedef std::map<spot_id_t, ListSts *> ListStsPerSpot;
+	typedef std::map<tal_id_t, ListStsPerSpot *> ListStsPerSpotPerGw;
 
 	/** the list of StFmtSimu per spot and per gw */
 	ListStsPerSpotPerGw sts;
@@ -167,6 +167,7 @@ class StFmtSimuList
 	 */
 	ListStsPerSpot* getListStsPerSpot(tal_id_t gw_id) const;
 
+
 	/**
 	 * @brief   get the ListSts for the right spot and gw
 	 * @warning  this function desn't lock the mutex, only use it in
@@ -188,7 +189,7 @@ class StFmtSimuList
 	 * @param   list_sts     the list to set
 	 * @return  true on success, false otherwise
 	 */
-	bool setListStsPriv(tal_id_t gw_id, spot_id_t spot_id, ListSts* list_sts);
+	bool setListSts(tal_id_t gw_id, spot_id_t spot_id, ListSts *list_sts);
 
 	/**
 	 * @brief  set the modcod id for the gw
@@ -221,21 +222,6 @@ class StFmtSimuList
 	StFmtSimuList();
 	~StFmtSimuList();
 
-	/**
-	 * @brief  The getter of sts
-	 *
-	 * @return sts
-	 */
-	ListStsPerSpotPerGw getSts(void) const;
-
-	/**
-	 * @brief  set the ListStsPerSpot for the gw asked
-	 *
-	 * @param  gw_id               the tal id of the gw
-	 * @param  list_sts_per_spot   the list to set
-	 * @return true on success, false otherwise
-	 */
-	bool setListStsPerSpot(tal_id_t gw_id, ListStsPerSpot* list_sts_per_spot);
 
 	/**
 	 * @brief   get the ListSts for the right spot and gw
@@ -244,17 +230,7 @@ class StFmtSimuList
 	 * @param   spot_id      the id of the spot
 	 * @return  the ListSts for the right spot and gw
 	 */
-	ListSts* getListSts(tal_id_t gw_id, spot_id_t spot_id) const;
-
-	/**
-	 * @brief  set the ListSts for the right gw and spot
-	 *
-	 * @param   gw_id the    tal id of the gw
-	 * @param   spot_id      the id of the spot
-	 * @param   list_sts     the list to set
-	 * @return  true on success, false otherwise
-	 */
-	bool setListSts(tal_id_t gw_id, spot_id_t spot_id, ListSts* list_sts);
+	ListSts *getListSts(tal_id_t gw_id, spot_id_t spot_id) const;
 
 	/**
 	 * @brief  add a terminal in the right list

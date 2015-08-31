@@ -806,8 +806,10 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		goto error;
 	}
 
+	
+	cat_iter = categories.begin();
 	// delete category with no carriers corresponding to the access type
-	for(cat_iter = categories.begin(); cat_iter != categories.end(); ++cat_iter)
+	while(cat_iter != categories.end())
 	{
 		T *category = (*cat_iter).second;
 		// getCarriersNumber returns the number of carriers with the desired
@@ -817,8 +819,12 @@ bool DvbChannel::initBand(ConfigurationList spot,
 			LOG(this->log_init_channel, LEVEL_INFO,
 			    "Skip category %s with no carriers with desired access type\n",
 			    category->getLabel().c_str());
-			categories.erase(cat_iter);
+			categories.erase(cat_iter++);
 			delete category;
+		}
+		else
+		{
+			++cat_iter;
 		}
 	}
 
