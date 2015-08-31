@@ -53,9 +53,11 @@ MODCOD_DEF_RCS="modcod_def_rcs"
 
 class ModcodParameter(WindowView):
     """ an modcod configuration window """
-    def __init__(self, model, manager_log, link, carrier_id, parent):
+    def __init__(self, model, manager_log, link, carrier_id, list_carrier, update_cb):
         
         WindowView.__init__(self, None, 'edit_dialog')
+
+        self._update_cb = update_cb
 
         self._dlg = self._ui.get_widget('edit_dialog')
         self._dlg.set_keep_above(True)
@@ -64,7 +66,7 @@ class ModcodParameter(WindowView):
         self._vbox = self._ui.get_widget('edit_dialog_vbox')
         self._edit_text_win = self._ui.get_widget('edit_text_win')
         self._carrier_id = carrier_id
-        self._parent = parent
+        self._list_carrier = list_carrier
         self._link = link
         self._model = model
         
@@ -186,7 +188,7 @@ class ModcodParameter(WindowView):
 
             
         #Load access type from the carrier
-        access_type = self._parent.get_list_carrier()[self._carrier_id-1].get_access_type()
+        access_type = self._list_carrier[self._carrier_id-1].get_access_type()
         if access_type == CCM:
             self._ccm_radio.toggled()
         elif access_type == ACM:
@@ -201,8 +203,8 @@ class ModcodParameter(WindowView):
             self._scpc_radio.set_active(True)
         
         #Load modcod from carrier
-        modcod_list = self._parent.get_list_carrier()[self._carrier_id-1].get_modcod()
-        list_ratio = self._parent.get_list_carrier()[self._carrier_id-1].get_ratio()
+        modcod_list = self._list_carrier[self._carrier_id-1].get_modcod()
+        list_ratio = self._list_carrier[self._carrier_id-1].get_ratio()
         index = 0
         for modcod in modcod_list:
             self._list_modcod_ratio[modcod] = list_ratio[index]
@@ -481,15 +483,15 @@ class ModcodParameter(WindowView):
         if len(modcods) == 0:
             error_popup("At least one modcod should be selected")
             return
-        self._parent.get_list_carrier()[self._carrier_id-1].set_access_type(
+        self._list_carrier[self._carrier_id-1].set_access_type(
             self.get_active_access_type())
-        self._parent.get_list_carrier()[self._carrier_id-1].set_modcod(
+        self._list_carrier[self._carrier_id-1].set_modcod(
             modcods.keys())
         ratio = ';'.join(str(e) for e in modcods.values())
-        self._parent.get_list_carrier()[self._carrier_id-1].set_ratio(
+        self._list_carrier[self._carrier_id-1].set_ratio(
             ratio)
-        self._parent.get_list_carrier()[self._carrier_id-1].set_ratio(
-            ratio)
+        #gobject.idle_add(self._update_cb)
+        
         self._dlg.destroy()
     
     

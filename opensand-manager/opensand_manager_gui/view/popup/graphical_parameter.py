@@ -50,7 +50,7 @@ from opensand_manager_gui.view.popup.infos import error_popup
 
 class GraphicalParameter(WindowView):
     """ an band configuration window """
-    def __init__(self, model, spot, gw,
+    def __init__(self, model, spot, gw, fmt_group,
                  carrier_arithmetic, manager_log, 
                  update_cb, link):     
     
@@ -66,7 +66,6 @@ class GraphicalParameter(WindowView):
         self._log = manager_log
         self._enabled_button = []
         self._removed = []
-        self._new_fmt_grps = {}
         self._link = link
         self._update_cb = update_cb
         self._description = {}
@@ -90,8 +89,7 @@ class GraphicalParameter(WindowView):
         
         self._list_carrier = self._carrier_arithmetic.get_list_carrier()
         self._nb_carrier = len(self._list_carrier)
-        self._fmt_group = {}
-        self._current_fmt = {}
+        self._fmt_group = fmt_group
         
         self._vbox = self._ui.get_widget('vbox_band_parameter')
         self._vbox.show_all()
@@ -117,14 +115,7 @@ class GraphicalParameter(WindowView):
         """ load the hosts configuration """
         config = self._model.get_conf().get_configuration()
         
-        # fmt groups
-        xpath = get_conf_xpath(FMT_GROUPS, self._link, 
-                               self._spot, self._gw)
-        for group in config.get_table_elements(config.get(xpath)):
-            content = config.get_element_content(group)
-            self._fmt_group[content[ID]] = content[FMT_ID]
-        self._current_fmt = self._fmt_group 
-        
+                
         carrier_id = 1
         for carrier in self._list_carrier:
             self.create_carrier_interface(carrier,
@@ -247,7 +238,7 @@ class GraphicalParameter(WindowView):
     def on_add_to_listCarrier(self, source=None, event=None):
         """Create a new carrier with default value """
         self._nb_carrier += 1
-        fmt_grp = self._fmt_group.keys()[0]
+        fmt_grp = str(self._fmt_group.keys()[0])
         
         if self._link == FORWARD_DOWN:
             self._list_carrier.append(Carrier(symbol_rate=4E6,
@@ -307,7 +298,7 @@ class GraphicalParameter(WindowView):
         carrier_id = 1
         self.clear_graph()
         self._carrier_arithmetic.update_graph(self._ax, roll_off);
-        self._carrier_arithmetic.update_rates(self._spot, self._gw);
+        self._carrier_arithmetic.update_rates(self._fmt_group);
         
         for element in self._list_carrier :
             description = ''
@@ -395,29 +386,10 @@ class GraphicalParameter(WindowView):
                                  self._log, 
                                  self._link,
                                  id_carrier, 
-                                 self)
+                                 self._list_carrier, 
+                                 self.trace)
         
         window.go()
-
-        new_fmt_id = int(self._fmt_group.keys()[-1]) + 1
-        for carrier in self._list_carrier:
-            fmt_groups = []
-            for carrier_fmt_group in carrier.get_str_modcod():
-                found = False
-                for grp_id in self._fmt_group:
-                    if carrier_fmt_group == self._fmt_group[grp_id]:
-                        fmt_groups.append(grp_id)
-                        found = True
-                        break
-                if not found:
-                    fmt_groups.append(new_fmt_id)
-                    self._new_fmt_grps[new_fmt_id] = carrier_fmt_group
-                    self._fmt_group[str(new_fmt_id)] = carrier_fmt_group
-                    new_fmt_id += 1
-            
-            carrier.set_fmt_groups(';'.join(str(fmt_grp_id) for fmt_grp_id in
-                                      fmt_groups))
-
 
 
     def on_band_configuration_dialog_save(self, source=None, event=None):
@@ -457,8 +429,8 @@ class GraphicalParameter(WindowView):
             table = config.get(xpath)
             i -= 1
 
-        used_fmt_grps = []
-        new_fmt_id = int(self._fmt_group.keys()[-1]) + 1
+        new_fmt_id = self._fmt_group.keys()[-1] + 1
+        used_fmt_groups = []
         #Save all carrier element
         carrier_id = 0
         access_type_cat = {}
@@ -482,18 +454,17 @@ class GraphicalParameter(WindowView):
             
             fmt_groups = []
             for carrier_fmt_group in carrier.get_str_modcod():
-                found = False
-                for grp_id in self._fmt_group:
-                    if carrier_fmt_group == self._fmt_group[grp_id]:
-                        used_fmt_grps.append(grp_id)
-                        fmt_groups.append(grp_id)
-                        found = True
-                        break
-                if not found:
+                if str(carrier_fmt_group) not in self._fmt_group.values():
                     fmt_groups.append(new_fmt_id)
-                    self._new_fmt_grps[new_fmt_id] = carrier_fmt_group
-                    self._fmt_group[str(new_fmt_id)] = carrier_fmt_group
+                    used_fmt_groups.append(new_fmt_id)
+                    self._fmt_group[new_fmt_id] = carrier_fmt_group
                     new_fmt_id += 1
+                else:
+                    for fmt_id in self._fmt_group.keys():
+                        if self._fmt_group[fmt_id] == str(carrier_fmt_group):
+                            fmt_groups.append(fmt_id)
+                            used_fmt_groups.append(fmt_id)
+                            break
             config.set_value(';'.join(str(fmt_grp_id) for fmt_grp_id in
                                       fmt_groups), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),
@@ -508,49 +479,49 @@ class GraphicalParameter(WindowView):
         xpath = get_conf_xpath(FMT_GROUPS, self._link, self._spot, self._gw)
         table = config.get(xpath)
         
-        #Create or delete to have the good number
-        for i in range(0, len(self._new_fmt_grps)):
-            config.add_line(config.get_path(table))
-            table = config.get(xpath)
-        
         #remove unused fmt_group
-        copy_fmt_group = self._fmt_group.copy()
-        for fmt_id in copy_fmt_group:
-            elmts = config.get_table_elements(table)
-            if fmt_id not in used_fmt_grps:
-                for elm in elmts:
-                    if elm.get(ID) == fmt_id and fmt_id in self._fmt_group:
-                        del self._fmt_group[fmt_id]
-                        config.del_element(config.get_path(elm));
+        for fmt_id in self._fmt_group.keys():
+            if fmt_id not in used_fmt_groups:
+                del self._fmt_group[fmt_id]
+
+        elmts = config.get_table_elements(table)
+        if len(elmts) > len(self._fmt_group):
+            for elm in elmts:
+                config.del_element(config.get_path(elm));
+                table = config.get(xpath)
+                elmts = config.get_table_elements(table)
+                if len(elmts) == len(self._fmt_group):
+                    break
+        #Create or delete to have the good number
+        elif len(elmts) < len(self._fmt_group):
+            for i in range(0, len(self._fmt_group) - len(elmts)):
+                config.add_line(config.get_path(table))
                 table = config.get(xpath)
         
         #Save all fmt element
-        i = len(self._fmt_group) - len(self._new_fmt_grps)
-        for grp_id in self._new_fmt_grps:
+        i = 0
+        for grp_id in self._fmt_group:
             config.set_value(grp_id, 
                              config.get_path(config.get_table_elements(table)[i]),
                              ID)
-            config.set_value(self._new_fmt_grps[grp_id], 
+            config.set_value(self._fmt_group[grp_id], 
                              config.get_path(config.get_table_elements(table)[i]),
                              FMT_ID)
             i += 1
-            
+        
         config.write()
         self._removed = []
-        self._new_fmt_grps = {}
         gobject.idle_add(self._update_cb)
         self._dlg.destroy()
         
 
     def on_band_configuration_dialog_destroy(self, source=None, event=None):
         """Close the window """
-        self._fmt_group.clear()
         gobject.idle_add(self._update_cb)
         self._dlg.destroy()
 
     def on_band_conf_delete_event(self, source=None, event=None):
         """Close the window """
-        self._fmt_group.clear()
         self._dlg.destroy()
 
     def get_list_carrier(self):

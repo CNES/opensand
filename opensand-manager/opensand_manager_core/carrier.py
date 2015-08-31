@@ -55,7 +55,9 @@ class Carrier :
                  access_type = 'CCM', fmt_groups = '1', modcod = '1', 
                  ratio = '50') :
         self._symbol_rate = symbol_rate
-        self._access_type = access_type
+        # initialize in set_iaccess_type
+        self._access_type = None
+        self._std = None
         self._str_fmt_grp = fmt_groups
         self._str_modcod = modcod
         self._str_ratio = ratio
@@ -66,13 +68,7 @@ class Carrier :
 
         self._rates = []
 
-        if access_type in [SCPC, CCM, ACM, VCM]:
-            self._std = S2
-        elif access_type in [DAMA, ALOHA]:
-            self._std = RCS
-        else:
-            raise Exception("Unknown access type %s" % access_type)
-
+        self.set_access_type(access_type) 
         
         if category == "Standard":
             category = 1
@@ -153,6 +149,13 @@ class Carrier :
     
     def set_access_type(self, access_type):
         self._access_type = access_type
+        if access_type in [SCPC, CCM, ACM, VCM]:
+            self._std = S2
+        elif access_type in [DAMA, ALOHA]:
+            self._std = RCS
+        else:
+            raise Exception("Unknown access type %s" % access_type)
+
         
     def set_modcod(self, modcod):
         self._str_modcod = modcod

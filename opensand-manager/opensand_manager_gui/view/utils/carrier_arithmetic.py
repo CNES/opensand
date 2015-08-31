@@ -36,8 +36,7 @@ carrier_arithmetic.py - the configuration tab view
 """
 
 
-from opensand_manager_core.utils import BANDWIDTH, get_conf_xpath, ID, \
-        FMT_ID, FMT_GROUPS
+from opensand_manager_core.utils import BANDWIDTH
 from opensand_manager_core.carriers_band import CarriersBand
 
 
@@ -45,7 +44,6 @@ class CarrierArithmetic:
     """ Element for the resouces configuration tab """
 
     def __init__(self, list_carrier, model, link):
-
         self._list_carrier = list_carrier
         self._roll_off = 0
         self._bandwidth = 0
@@ -56,7 +54,7 @@ class CarrierArithmetic:
 
         
     def update_graph(self, ax, roll_off):
-        """Display on the graph the carrier representation"""
+        """Update ax graph of the carrier representation"""
         
         #get all carriers
         color = {1:'b-', 
@@ -89,38 +87,35 @@ class CarrierArithmetic:
         ax.legend([bp],[BANDWIDTH])
         ax.grid(True)
 
-    def update_rates(self, spot, gw):
+    def update_rates(self, fmt_group):
+        """Update Rate"""
         config = self._model.get_conf().get_configuration()
         carriers_band = CarriersBand() 
         carriers_band.modcod_def(self._model.get_scenario(), 
                                  config, False)
+        
+        new_fmt_id = int(fmt_group.keys()[-1]) + 1
         for carrier in self._list_carrier:
             carriers_band.add_carrier(carrier)
+            for carrier_fmt_group in carrier.get_str_modcod():
+                if str(carrier_fmt_group) not in fmt_group.values():
+                    fmt_group[new_fmt_id] = carrier_fmt_group
+                    new_fmt_id += 1
         
-        fmt_group = {}
-        xpath = get_conf_xpath(FMT_GROUPS, self._link, 
-                               spot, gw)
-        for group in config.get_table_elements(config.get(xpath)):
-            content = config.get_element_content(group)
-            fmt_group[content[ID]] = content[FMT_ID]
-        for fmt_id in fmt_group: 
-            carriers_band.add_fmt_group(int(fmt_id),
-                                        fmt_group[fmt_id])
+        for grp_id in fmt_group:
+            carriers_band.add_fmt_group(grp_id,
+                                        fmt_group[grp_id])
+
+
+
         for element in self._list_carrier:
             element.set_rates(carriers_band.get_carrier_bitrates(element))
         self._min_bitrate = carriers_band.get_min_bitrate(element.get_old_category(), 
-                                               element.get_access_type())
+                                                          element.get_access_type())
         self._max_bitrate =  carriers_band.get_max_bitrate(element.get_old_category(),
-                                               element.get_access_type())
+                                                           element.get_access_type())
 
     
-    def append_carrier(self, carrier):
-        self._list_carrier.append(carrier)
-
-    def remove_carrier(self, carrier):
-        index = self._list_carrier.index(carrier)
-        del self._list_carrier[index]
-
     def set_roll_off(self, roll_off):
         self._roll_off = roll_off
 

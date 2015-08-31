@@ -57,6 +57,7 @@ class ResourceEvent(ResourceView) :
     def on_forward_parameter_clicked(self, widget, source=None, event=None):
         """ open the forward graphical parameters """
         window = GraphicalParameter(self._model, self._spot, self._gw,
+                                    self._fmt_group[FORWARD_DOWN],
                                     self._forward_carrier_arithmetic,
                                     self._log, self.update_view, FORWARD_DOWN)
         window.go()
@@ -65,6 +66,7 @@ class ResourceEvent(ResourceView) :
     def on_return_parameter_clicked(self, widget, source=None, event=None):
         """ open the return graphical parameters """
         window = GraphicalParameter(self._model, self._spot, self._gw,
+                                    self._fmt_group[RETURN_UP],
                                     self._return_carrier_arithmetic,
                                     self._log, self.update_view, RETURN_UP)
         window.go()

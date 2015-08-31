@@ -46,7 +46,7 @@ from opensand_manager_core.carrier import Carrier
 from opensand_manager_core.utils import get_conf_xpath, FORWARD_DOWN, RETURN_UP, \
         ROLL_OFF, CARRIERS_DISTRIB, BANDWIDTH, TAL_AFFECTATIONS, TAL_DEF_AFF, \
         TAL_ID, SYMBOL_RATE, RATIO, ACCESS_TYPE, CATEGORY, ST, SPOT, ID, GW, \
-        RETURN_UP_BAND, FMT_GROUP, SCPC
+        RETURN_UP_BAND, FMT_GROUP, SCPC, FMT_GROUPS, FMT_ID
 from opensand_manager_gui.view.utils.config_elements import SpotTree
 from opensand_manager_gui.view.utils.carrier_arithmetic import CarrierArithmetic
 from opensand_manager_gui.view.window_view import WindowView
@@ -67,7 +67,9 @@ class ResourceView(WindowView):
         self._list_carrier = {FORWARD_DOWN : [], RETURN_UP : []}
         self._desc_war = {}
         self._desc_err = {}
+        self._fmt_group = {FORWARD_DOWN : {}, RETURN_UP : {}}
         self._update_spot = False
+        self._load = True
 
         #Add graph forward
         self._graphe_forward = self._ui.get_widget('scrolledwindow_forward_graph')
@@ -104,6 +106,7 @@ class ResourceView(WindowView):
 
 
     def on_selection(self, path):
+        """ on tree element selected """
         (tree, iterator) = path.get_selected()
         self._spot = None
         self._gw = None
@@ -125,7 +128,7 @@ class ResourceView(WindowView):
         pass
 
     def update_tree(self):
-        """ update the tools tree """
+        """Update the tools tree """
         config = self._model.get_conf().get_configuration()
         xpath = "//" + RETURN_UP_BAND
         new_element = []
@@ -163,9 +166,15 @@ class ResourceView(WindowView):
 
 
     def update_view(self):
+        """Update view """
         self.update_tree()
         if self._spot is not None and self._gw is not None:
+            if self._load:
+                self.update_carrier(FORWARD_DOWN)
             self.update_graph(FORWARD_DOWN)
+            if self._load:
+                self.update_carrier(RETURN_UP)
+                self._load = False
             self.update_graph(RETURN_UP)
             self.update_st_assignment(FORWARD_DOWN)
             self.update_st_assignment(RETURN_UP)
@@ -174,15 +183,7 @@ class ResourceView(WindowView):
             self._ui.get_widget('vbox_return').hide()
             self._ui.get_widget('vbox_forward').hide()
 
-    def clear_graph(self, link):
-        """Clear all the representaion"""
-        if link == FORWARD_DOWN:
-            self._ax_forward.cla()
-            self._figure_forward.canvas.draw()
-        else:
-            self._ax_return.cla()
-            self._figure_return.canvas.draw()
-       
+           
     def update_carrier(self, link):
         """Update carrier"""
         #clear the list and not reinstanciate it
@@ -214,6 +215,12 @@ class ResourceView(WindowView):
                                               content[ACCESS_TYPE], 
                                               content[FMT_GROUP],
                                               ratio=content[RATIO]))
+        
+        # fmt groups
+        xpath = get_conf_xpath(FMT_GROUPS, link, self._spot, self._gw)
+        for group in config.get_table_elements(config.get(xpath)):
+            content = config.get_element_content(group)
+            self._fmt_group[link][int(content[ID])] = content[FMT_ID]
 
         
     def update_graph(self, link):
@@ -221,8 +228,6 @@ class ResourceView(WindowView):
         #get the xml config
         config = self._model.get_conf().get_configuration()
         
-        self.update_carrier(link)
-
         #get all carriers
         color = {1:'b-', 
                  2:'g-', 
@@ -264,6 +269,16 @@ class ResourceView(WindowView):
             self._ui.get_widget('label_return_bandwidth').set_text(
                                 'Bandwidth : ' + str(bandwidth) + ' MHz')
     
+    
+    def clear_graph(self, link):
+        """Clear all the representaion"""
+        if link == FORWARD_DOWN:
+            self._ax_forward.cla()
+            self._figure_forward.canvas.draw()
+        else:
+            self._ax_return.cla()
+            self._figure_return.canvas.draw()
+
     
     def update_st_assignment(self, link):
         """Refresh the list of st assignment """
@@ -340,8 +355,6 @@ class ResourceView(WindowView):
                                            expand=False, 
                                            fill=False)
         
-        self.update_carrier(link)
-        
 
         present = {k: group_list.count(k) for k in set(group_list)}
         for group in present:
@@ -397,8 +410,7 @@ class ResourceView(WindowView):
                 carrier_arithmetic = self._forward_carrier_arithmetic
             elif link == RETURN_UP:
                 carrier_arithmetic = self._return_carrier_arithmetic
-            carrier_arithmetic.update_rates(self._spot,
-                                     self._gw)
+            carrier_arithmetic.update_rates(self._fmt_group[link]);
 
             for element in self._list_carrier[link]:
                 if element.get_old_category() in group:
