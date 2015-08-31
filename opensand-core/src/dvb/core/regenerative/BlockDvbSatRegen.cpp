@@ -297,7 +297,7 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			                                         TDM,
 			                                         this->fwd_down_frame_duration_ms,
 			                                         this->satellite_type,
-			                                         &this->output_modcod_def,
+			                                         this->output_modcod_def,
 			                                         st_categories,
 			                                         this->terminal_affectation,
 			                                         &this->default_category,
@@ -312,7 +312,7 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			                                         TDM,
 			                                         this->fwd_down_frame_duration_ms,
 			                                         this->satellite_type,
-			                                         &this->output_modcod_def,
+			                                         this->output_modcod_def,
 			                                         gw_categories,
 			                                         this->terminal_affectation,
 			                                         &this->default_category,
@@ -336,7 +336,7 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			// Finding the good fmt simulation
 			if(!gw->initScheduling(this->fwd_down_frame_duration_ms,
 		                           this->pkt_hdl,
-		                           &this->input_modcod_def,
+		                           this->input_modcod_def,
 		                           st_category,
 		                           gw_category))
 			{

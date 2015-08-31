@@ -70,12 +70,6 @@ class DamaCtrl
 	DamaCtrl( spot_id_t spot);
 	virtual ~DamaCtrl();
 
-	/**
-	 * @brief Get the input modcod definition
-	 *
-	 * @return the input modcod definition
-	 */
-	FmtDefinitionTable* getInputModcodDef(void);
 
 	// Initialization
 	/**

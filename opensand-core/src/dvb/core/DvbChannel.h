@@ -94,12 +94,13 @@ class DvbChannel
 		pkt_hdl(NULL),
 		fmt_simu(),
 		input_sts(NULL),
-		input_modcod_def(),
+		input_modcod_def(NULL),
 		output_sts(NULL),
-		output_modcod_def(),
+		output_modcod_def(NULL),
 		stats_period_ms(),
 		stats_period_frame(),
 		default_spot(0),
+		spots(),
 		log_init_channel(NULL),
 		log_receive_channel(NULL),
 		log_send_channel(NULL),
@@ -109,7 +110,6 @@ class DvbChannel
 		this->log_init_channel = Output::registerLog(LEVEL_WARNING, "init");
 		this->log_receive_channel = Output::registerLog(LEVEL_WARNING, "receive");
 		this->log_send_channel = Output::registerLog(LEVEL_WARNING, "send");
-
 	};
 
 	virtual ~DvbChannel()
@@ -120,19 +120,16 @@ class DvbChannel
 		{
 			delete (*spot_iter).second;
 		}
+		if(this->input_modcod_def)
+		{
+			delete this->input_modcod_def;
+		}
+		if(this->output_modcod_def)
+		{
+			delete this->output_modcod_def;
+		}
 	};
-	/// The log for sac
-	static OutputLog *dvb_fifo_log;
 
-	FmtDefinitionTable getInputModcodDef(void)
-	{
-		return this->input_modcod_def;
-	}
-
-	FmtDefinitionTable geOutputModcodDef(void)
-	{
-		return this->output_modcod_def;
-	}
 
 	/**
 	 * @brief Go to next step in adaptive physical layer scenario
@@ -230,14 +227,15 @@ class DvbChannel
 	void initStatsTimer(time_ms_t frame_duration_ms);
 
 	/**
-	 * @brief Read configuration for the MODCOD definition file
+	 * @brief Read configuration for the MODCOD definition file and create the
+	 *        FmtDefinitionTable class
 	 *
 	 * @param def     The section in configuration file for MODCOD definitions
 	 *                (up/return or down/forward)
 	 * @param modcod_def  The FMT Definition Table attribute to initialize
 	 * @return  true on success, false otherwise
 	 */
-	bool initModcodDefFile(const char *def, FmtDefinitionTable &modcod_def);
+	bool initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def);
 
 	/**
 	 * @brief Read configuration for the MODCOD simulation files
@@ -398,19 +396,6 @@ class DvbChannel
 	bool delInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
-	 * @brief Set the required  MODCOD ID for of the
-	 *        ST whid ID is given as input according to the required Es/N0
-	 *
-	 * @param id               the ID of the ST
-	 * @param cni              the required Es/N0 for that terminal
-	 * @param modcod_def       the FMT definition table
-	 * @param sts              the list of STs
-	 */
-	void setRequiredModcod(tal_id_t tal_id, double cni,
-	                       FmtDefinitionTable modcod_def,
-	                       StFmtSimuList* sts);
-
-	/**
 	 * @brief Set the required  MODCOD ID for of the ST in input
 	 *        whid ID is given as input according to the required Es/N0
 	 *
@@ -452,13 +437,13 @@ class DvbChannel
 	StFmtSimuList *input_sts;
 
 	/// The MODCOD Definition Table for input
-	FmtDefinitionTable input_modcod_def;
+	FmtDefinitionTable *input_modcod_def;
 
 	/** The internal map that stores all the STs and modcod id for output */
 	StFmtSimuList *output_sts;
 
 	/// The MODCOD Definition Table for output
-	FmtDefinitionTable output_modcod_def;
+	FmtDefinitionTable *output_modcod_def;
 
 	/// The statistics period
 	time_ms_t stats_period_ms;
@@ -470,18 +455,32 @@ class DvbChannel
 	/// timer used for ACM events
 	event_id_t modcod_timer;
 
+	/// The spots
+	map<spot_id_t, DvbChannel *> spots;
+
 	// log
 	OutputLog *log_init_channel;
 	OutputLog *log_receive_channel;
 	OutputLog *log_send_channel;
 
-	/// The spots
-	map<spot_id_t, DvbChannel *> spots;
-
+	static OutputLog *dvb_fifo_log;
 	
  private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
+
+	/**
+	 * @brief Set the required  MODCOD ID for of the
+	 *        ST whid ID is given as input according to the required Es/N0
+	 *
+	 * @param id               the ID of the ST
+	 * @param cni              the required Es/N0 for that terminal
+	 * @param modcod_def       the FMT definition table
+	 * @param sts              the list of STs
+	 */
+	void setRequiredModcod(tal_id_t tal_id, double cni,
+	                       const FmtDefinitionTable *const modcod_def,
+	                       StFmtSimuList* sts);
 
 };
 

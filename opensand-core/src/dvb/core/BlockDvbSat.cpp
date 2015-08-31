@@ -557,7 +557,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				for(it = this->cni.begin(); it != this->cni.end(); it++)
 				{
 					uint8_t current_modcod = this->getCurrentModcodIdInput(it->first);
-					this->cni[it->first] = this->input_modcod_def.getRequiredEsN0(current_modcod);
+					this->cni[it->first] = this->input_modcod_def->getRequiredEsN0(current_modcod);
 				}
 			}
 			else
@@ -825,7 +825,7 @@ bool BlockDvbSat::Downward::initModcodSimu(void)
 			}
 			this->setFmtSimulation((*spot_it), (*gw_it), fmt_simulation);
 			if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-			                            this->input_modcod_def))
+			                            &this->input_modcod_def))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "failed to complete the modcod part of the "
@@ -833,7 +833,7 @@ bool BlockDvbSat::Downward::initModcodSimu(void)
 				return false;
 			}
 			if(!this->initModcodDefFile(MODCOD_DEF_S2,
-			                            this->output_modcod_def))
+			                            &this->output_modcod_def))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "failed to complete the modcod part of the "

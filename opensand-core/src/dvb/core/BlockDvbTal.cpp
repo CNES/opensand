@@ -296,7 +296,7 @@ bool BlockDvbTal::Downward::onInit(void)
 	
 	// Initialization od fow_modcod_def (useful to send SAC)
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            this->input_modcod_def))
+	                            &this->input_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");
@@ -636,7 +636,7 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// init fmt_simu
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            this->output_modcod_def))
+	                            &this->output_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");
@@ -660,7 +660,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         &this->output_modcod_def,
+	                                         this->output_modcod_def,
 	                                         dama_categories,
 	                                         terminal_affectation,
 	                                         &default_category,
@@ -921,7 +921,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->satellite_type,
-	                                           &this->output_modcod_def,
+	                                           this->output_modcod_def,
 	                                           sa_categories,
 	                                           terminal_affectation,
 	                                           &default_category,
@@ -1099,7 +1099,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	                                         SCPC,
 	                                         this->scpc_carr_duration_ms,
 	                                         this->satellite_type,
-	                                         &this->output_modcod_def,
+	                                         this->output_modcod_def,
 	                                         scpc_categories,
 	                                         terminal_affectation,
 	                                         &default_category,
@@ -1184,7 +1184,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	                                      this->pkt_hdl,
 	                                      this->dvb_fifos,
 	                                      &this->scpc_fmt_simu,
-	                                      &this->output_modcod_def,
+	                                      this->output_modcod_def,
 	                                      cat);
 	if(!this->scpc_sched)
 	{
@@ -1707,7 +1707,7 @@ bool BlockDvbTal::Downward::sendSAC(void)
 	{
 		fmt_id_t current_modcod;
 		current_modcod = this->getCurrentModcodIdInput(this->tal_id);
-		this->cni = this->input_modcod_def.getRequiredEsN0(current_modcod);
+		this->cni = this->input_modcod_def->getRequiredEsN0(current_modcod);
 	}
 	sac->setAcm(this->cni);
 
@@ -2324,7 +2324,7 @@ bool BlockDvbTal::Upward::onInit(void)
 bool BlockDvbTal::Upward::initMode(void)
 {
 	this->reception_std = new DvbS2Std(this->pkt_hdl);
-	((DvbS2Std *)this->reception_std)->setModcodDef(&this->input_modcod_def);
+	((DvbS2Std *)this->reception_std)->setModcodDef(this->input_modcod_def);
 	if(this->reception_std == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -2346,7 +2346,7 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 	}
 
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            this->input_modcod_def))
+	                            &this->input_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the down/forward MODCOD definition file\n");
@@ -2354,7 +2354,7 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 	}
 
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            this->output_modcod_def))
+	                            &this->output_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");

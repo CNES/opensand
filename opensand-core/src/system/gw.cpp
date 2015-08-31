@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 	string ip_addr;
 	string emu_iface;
 	string lan_iface;
-	tal_id_t mac_id;
+	tal_id_t mac_id = 0;
 	struct sc_specific specific;
 
 	Block *block_lan_adaptation;

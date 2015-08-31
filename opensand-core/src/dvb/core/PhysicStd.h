@@ -37,7 +37,6 @@
 #ifndef PHYSIC_STD_H
 #define PHYSIC_STD_H
 
-#include <map>
 #include <fstream>
 #include <queue>
 

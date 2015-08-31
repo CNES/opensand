@@ -60,7 +60,7 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 	terminal_affectation(),
 	default_category(NULL),
 	input_sts(),
-	input_modcod_def(),
+	input_modcod_def(NULL),
 	roll_off(0.0),
 	simulated(false),
 	spot_id(spot)
@@ -118,10 +118,6 @@ DamaCtrl::~DamaCtrl()
 	this->terminal_affectation.clear();
 }
 
-FmtDefinitionTable* DamaCtrl::getInputModcodDef(void)
-{
-	return this->input_modcod_def;
-}
 
 bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           bool with_phy_layer,
@@ -140,7 +136,7 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 	this->fca_kbps = fca_kbps;
 	this->input_sts = input_sts;
-	this->input_modcod_def = new FmtDefinitionTable(*input_modcod_def);
+	this->input_modcod_def = input_modcod_def;
 	this->simulated = simulated;
 
 	this->converter = new UnitConverter(packet_length_bytes,

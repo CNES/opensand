@@ -81,14 +81,14 @@ bool SpotUpwardRegen::onInit(void)
 bool SpotUpwardRegen::initModcodSimu(void)
 {
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            this->input_modcod_def))
+	                            &this->input_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            this->output_modcod_def))
+	                            &this->output_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the uplink MODCOD file\n");

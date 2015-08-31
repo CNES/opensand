@@ -81,9 +81,6 @@ class FmtDefinitionTable
 	/* create a table of FMT definitions */
 	FmtDefinitionTable();
 
-	/* constructor by copy */
-	FmtDefinitionTable(const FmtDefinitionTable &fmt_def_tab);
-
 	/* destroy a table of FMT definitions */
 	~FmtDefinitionTable();
 

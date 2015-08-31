@@ -72,17 +72,17 @@ bool SpotUpwardTransp::onInit(void)
 		return false;
 	}
 	
+	if(!SpotUpward::onInit())
+	{
+		return false;
+	}
+
 	// initialize the slotted Aloha part
 	if(!this->initSlottedAloha())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the DAMA part of the "
 		    "initialisation\n");
-		return false;
-	}
-	
-	if(!SpotUpward::onInit())
-	{
 		return false;
 	}
 
@@ -111,7 +111,7 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->satellite_type,
-	                                           &this->input_modcod_def,
+	                                           this->input_modcod_def,
 	                                           sa_categories,
 	                                           sa_terminal_affectation,
 	                                           &sa_default_category,
@@ -209,14 +209,14 @@ release_saloha:
 bool SpotUpwardTransp::initModcodSimu(void)
 {
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            this->output_modcod_def))
+	                            &this->output_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            this->input_modcod_def))
+	                            &this->input_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the uplink MODCOD file\n");
@@ -461,18 +461,8 @@ bool SpotUpwardTransp::checkIfScpc()
 	TerminalCategories<TerminalCategoryDama> scpc_categories;
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
 	TerminalCategoryDama *default_category;
-	FmtDefinitionTable scpc_modcod_def;
 	fmt_groups_t ret_fmt_groups;
 	ConfigurationList current_spot;
-	
-
-	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            scpc_modcod_def))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the down/forward MODCOD files\n");
-		return false;
-	}
 	
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id,
 		                      NO_GW, current_spot))
@@ -489,7 +479,8 @@ bool SpotUpwardTransp::checkIfScpc()
 	                                         // used for checking, no need to get a relevant value
 	                                         5,
 	                                         TRANSPARENT,
-	                                         &scpc_modcod_def,
+	                                         // we need S2 modcod definitions
+	                                         this->output_modcod_def,
 	                                         scpc_categories,
 	                                         terminal_affectation,
 	                                         &default_category,

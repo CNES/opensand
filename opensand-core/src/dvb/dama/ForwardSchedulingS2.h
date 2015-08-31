@@ -66,7 +66,7 @@ class ForwardSchedulingS2: public Scheduling
 	                    const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
 	                    map<tal_id_t, StFmtSimu *> *const fwd_sts,
-	                    FmtDefinitionTable *const fwd_modcod_def,
+	                    const FmtDefinitionTable *const fwd_modcod_def,
 	                    const TerminalCategoryDama *const category,
 	                    spot_id_t spot,
 	                    bool is_gw,
@@ -96,7 +96,7 @@ class ForwardSchedulingS2: public Scheduling
 	list<BBFrame *> pending_bbframes;
 
 	/** The FMT Definition Table associed */
-	FmtDefinitionTable *fwd_modcod_def;
+	const FmtDefinitionTable *fwd_modcod_def;
 
 	/** The terminal category */
 	const TerminalCategoryDama *category;

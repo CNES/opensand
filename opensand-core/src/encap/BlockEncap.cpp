@@ -268,7 +268,7 @@ bool BlockEncap::onInit()
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "lan adaptation upper layer is %s\n", lan_name.c_str());
 
-	if (!OpenSandConf::isGw(mac_id))
+	if (!OpenSandConf::isGw(this->mac_id))
 	{
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Going to check if Tal with id:  %d is in Scpc mode\n",

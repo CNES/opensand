@@ -70,7 +70,6 @@ SpotDownwardRegen::~SpotDownwardRegen()
 bool SpotDownwardRegen::onInit(void)
 {
 	this->up_return_pkt_hdl = this->pkt_hdl;
-	DFLTLOG(LEVEL_ERROR, "init regen");
 
 	// get and launch the dama algorithm
 	if(!this->initDama())
@@ -83,14 +82,14 @@ bool SpotDownwardRegen::onInit(void)
 	
 	// Initialization of the modcod def
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            this->input_modcod_def))
+	                            &this->input_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            this->output_modcod_def))
+	                            &this->output_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
@@ -148,7 +147,7 @@ bool SpotDownwardRegen::initMode(void)
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         &this->input_modcod_def,
+	                                         this->input_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
 	                                         &this->default_category,
@@ -176,7 +175,7 @@ bool SpotDownwardRegen::initMode(void)
 	this->scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
 	                                           this->dvb_fifos,
 	                                           list,
-	                                           &this->output_modcod_def,
+	                                           this->output_modcod_def,
 	                                           cat,
 	                                           this->mac_id);
 	
@@ -298,7 +297,7 @@ bool SpotDownwardRegen::initDama(void)
 	                                // we use output because terminals have the same
 	                                // output modcod definition as the GW
 	                                // and GW receive from satellite, not terminal
-	                                &this->output_modcod_def,
+	                                this->output_modcod_def,
 	                                (this->simulate == none_simu) ?
 	                                false : true))
 	{

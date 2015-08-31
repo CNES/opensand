@@ -287,8 +287,8 @@ bool OpenSandConfFile::getSpot(string section,
 
 	if(gw_id != NO_GW)
 	{
-		 if(!Conf::getElementWithAttributeValue(current_spot, GW,
-	                                       gw_id, current_gw))
+		if(!Conf::getElementWithAttributeValue(current_spot, GW,
+		                                       gw_id, current_gw))
 		{
 			return false;
 		}

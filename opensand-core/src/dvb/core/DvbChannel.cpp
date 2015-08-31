@@ -264,9 +264,10 @@ void DvbChannel::initStatsTimer(time_ms_t frame_duration_ms)
 	this->stats_period_ms = this->stats_period_frame * frame_duration_ms;
 }
 
-bool DvbChannel::initModcodDefFile(const char *def, FmtDefinitionTable &modcod_def)
+bool DvbChannel::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def)
 {
 	string modcod_def_file;
+	*modcod_def = new FmtDefinitionTable();
 
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
 		               def, modcod_def_file))
@@ -285,7 +286,7 @@ bool DvbChannel::initModcodDefFile(const char *def, FmtDefinitionTable &modcod_d
 	{
 		return false;
 	}
-	if(!modcod_def.load(modcod_def_file))
+	if(!(*modcod_def)->load(modcod_def_file))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to load the MODCOD definitions from file "
@@ -442,7 +443,7 @@ bool DvbChannel::addInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id
 	// if scenario are not defined, set less robust modcod at init
 	modcod = (this->fmt_simu.getIsModcodSimuDefined() ?
 	           atoi(this->fmt_simu.getModcodList()[column].c_str()) :
-	           this->input_modcod_def.getMaxId());
+	           this->input_modcod_def->getMaxId());
 
 	this->input_sts->addTerminal(id, modcod, gw_id, spot_id);
 
@@ -452,7 +453,7 @@ bool DvbChannel::addInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id
 
 bool DvbChannel::addOutputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id)
 {
-	uint8_t modcod = this->output_modcod_def.getMaxId();
+	uint8_t modcod = this->output_modcod_def->getMaxId();
 	this->output_sts->addTerminal(id, modcod, gw_id, spot_id);
 	return true;
 }
@@ -504,12 +505,12 @@ void DvbChannel::setOutputSts(StFmtSimuList* new_output_sts)
 
 
 void DvbChannel::setRequiredModcod(tal_id_t id, double cni,
-                                   FmtDefinitionTable modcod_def,
+                                   const FmtDefinitionTable *const modcod_def,
                                    StFmtSimuList *sts)
 {
 	uint8_t modcod_id;
 
-	modcod_id = modcod_def.getRequiredModcod(cni);
+	modcod_id = modcod_def->getRequiredModcod(cni);
 	LOG(this->log_receive_channel, LEVEL_INFO,
 	    "Terminal %u required %.2f dB, will receive allocation "
 	    "with MODCOD %u\n", id, cni, modcod_id);

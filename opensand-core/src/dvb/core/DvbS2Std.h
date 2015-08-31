@@ -60,7 +60,7 @@ class DvbS2Std: public PhysicStd
 	uint8_t received_modcod;
 
 	/** The modcod definition table */
-	FmtDefinitionTable* modcod_def;
+	FmtDefinitionTable *modcod_def;
 
  protected:
 
@@ -133,7 +133,7 @@ class DvbS2Std: public PhysicStd
 	 *
 	 * @param the new modcod_def
 	 */
-	void setModcodDef(FmtDefinitionTable* new_modcod_def)
+	void setModcodDef(FmtDefinitionTable *const new_modcod_def)
 	{
 		this->modcod_def = new_modcod_def;
 	}
@@ -144,7 +144,7 @@ class DvbS2Std: public PhysicStd
 	 * @param   the modcod_id
 	 * @return  the Es/N0
 	 */
-	double getRequiredEsN0(int modcod_id)
+	double getRequiredEsN0(int modcod_id) const
 	{
 		return this->modcod_def->getRequiredEsN0(modcod_id);
 	}

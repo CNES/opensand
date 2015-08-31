@@ -72,28 +72,6 @@ FmtDefinitionTable::FmtDefinitionTable():
 	                                    "Dvb.Fmt.DefinitionTable");
 }
 
-/**
- * @brief Constructor by copy
- */
-FmtDefinitionTable::FmtDefinitionTable(const FmtDefinitionTable &fmt_def_tab):
-	definitions()
-{
-	map<unsigned int, FmtDefinition *>::iterator it;
-	map<unsigned int, FmtDefinition *> map_to_copy;
-
-	map_to_copy = fmt_def_tab.getDefinitions();
-
-	for(it = map_to_copy.begin(); it != map_to_copy.end(); it++)
-	{
-		FmtDefinition* fmt_def = new FmtDefinition(*(it->second));
-		this->definitions.insert(std::make_pair(it->first, fmt_def));
-	}
-
-	// Output Log
-	this->log_fmt = Output::registerLog(LEVEL_WARNING,
-	                                    "Dvb.Fmt.DefinitionTable");
-}
-
 
 /**
  * @brief Destroy a table of FMT definitions

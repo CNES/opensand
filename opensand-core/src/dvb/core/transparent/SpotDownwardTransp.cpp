@@ -80,14 +80,14 @@ bool SpotDownwardTransp::onInit(void)
 
 	// Initialization of the modcod def
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            this->output_modcod_def))
+	                            &this->output_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            this->input_modcod_def))
+	                            &this->input_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
@@ -144,7 +144,7 @@ bool SpotDownwardTransp::initMode(void)
 	                                         TDM,
 	                                         this->fwd_down_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         &this->output_modcod_def,
+	                                         this->output_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
 	                                         &this->default_category,
@@ -176,7 +176,7 @@ bool SpotDownwardTransp::initMode(void)
 	                                           this->pkt_hdl,
 	                                           this->dvb_fifos,
 	                                           list,
-	                                           &this->output_modcod_def,
+	                                           this->output_modcod_def,
 	                                           cat, this->spot_id,
 	                                           true, this->mac_id, "");
 
@@ -253,7 +253,7 @@ bool SpotDownwardTransp::initDama(void)
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         &this->input_modcod_def,
+	                                         this->input_modcod_def,
 	                                         dc_categories,
 	                                         dc_terminal_affectation,
 	                                         &dc_default_category,
@@ -324,7 +324,7 @@ bool SpotDownwardTransp::initDama(void)
 	                                dc_terminal_affectation,
 	                                dc_default_category,
 	                                list,
-	                                &this->input_modcod_def,
+	                                this->input_modcod_def,
 	                                (this->simulate == none_simu) ?
 	                                false : true))
 	{
