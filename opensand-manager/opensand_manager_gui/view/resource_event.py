@@ -38,6 +38,7 @@ resource_event.py - the events on resources configuration tab
 from opensand_manager_gui.view.resource_view import ResourceView
 from opensand_manager_gui.view.popup.graphical_parameter import GraphicalParameter
 from opensand_manager_gui.view.popup.st_assignment_dialog import AssignmentDialog
+from opensand_manager_core.utils import FORWARD_DOWN, RETURN_UP
 
 class ResourceEvent(ResourceView) :
     """ Events on configuration tab """
@@ -56,26 +57,28 @@ class ResourceEvent(ResourceView) :
     def on_forward_parameter_clicked(self, widget, source=None, event=None):
         """ open the forward graphical parameters """
         window = GraphicalParameter(self._model, self._spot, self._gw,
-                                    self._log, self.update_view, "forward_down")
+                                    self._forward_carrier_arithmetic,
+                                    self._log, self.update_view, FORWARD_DOWN)
         window.go()
 
 
     def on_return_parameter_clicked(self, widget, source=None, event=None):
         """ open the return graphical parameters """
         window = GraphicalParameter(self._model, self._spot, self._gw,
-                                    self._log, self.update_view, "return_up")
+                                    self._return_carrier_arithmetic,
+                                    self._log, self.update_view, RETURN_UP)
         window.go()
 
 
     def on_forward_assignment_clicked(self, widget, source=None, event=None):
         """ open the forward ST allocation """
         window = AssignmentDialog(self._model, self._spot, self._gw,
-                                  self._log, self.update_view, 'forward_down')
+                                  self._log, self.update_view, FORWARD_DOWN)
         window.go()
         
 
     def on_return_assignment_clicked(self, widget, source=None, event=None):
         """ open the return ST allocation """
         window = AssignmentDialog(self._model, self._spot, self._gw,
-                                  self._log, self.update_view, 'return_up')
+                                  self._log, self.update_view, RETURN_UP)
         window.go()

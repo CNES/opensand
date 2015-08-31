@@ -40,7 +40,6 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 
 from opensand_manager_core.carrier import Carrier
-from opensand_manager_core.carriers_band import CarriersBand
 from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, CARRIERS_DISTRIB, \
         FMT_GROUPS, ID, BANDWIDTH, FMT_ID, FMT_GROUP, RATIO, SYMBOL_RATE, \
         CATEGORY, ACCESS_TYPE, CCM, DAMA, FORWARD_DOWN, RETURN_UP 
@@ -51,7 +50,9 @@ from opensand_manager_gui.view.popup.infos import error_popup
 
 class GraphicalParameter(WindowView):
     """ an band configuration window """
-    def __init__(self, model, spot, gw,  manager_log, update_cb, link):     
+    def __init__(self, model, spot, gw,
+                 carrier_arithmetic, manager_log, 
+                 update_cb, link):     
     
         WindowView.__init__(self, None, 'band_configuration_dialog')
 
@@ -85,18 +86,12 @@ class GraphicalParameter(WindowView):
         canvas = FigureCanvas(self._figure)
         canvas.set_size_request(400,400)
         graph.add_with_viewport(canvas)
+        self._carrier_arithmetic = carrier_arithmetic
         
-        self._list_carrier = []
+        self._list_carrier = self._carrier_arithmetic.get_list_carrier()
+        self._nb_carrier = len(self._list_carrier)
         self._fmt_group = {}
         self._current_fmt = {}
-        self._nb_carrier = 0
-        self._color = {1:'b-', 
-                       2:'g-', 
-                       3:'c-', 
-                       4:'m-', 
-                       5:'y-', 
-                       6:'k-', 
-                       7:'r-'}
         
         self._vbox = self._ui.get_widget('vbox_band_parameter')
         self._vbox.show_all()
@@ -129,46 +124,17 @@ class GraphicalParameter(WindowView):
             content = config.get_element_content(group)
             self._fmt_group[content[ID]] = content[FMT_ID]
         self._current_fmt = self._fmt_group 
-
-        xpath = get_conf_xpath(BANDWIDTH, self._link, self._spot, self._gw)
-        # bandwidth in Hz
-        bandwidth = float(config.get_value(config.get(xpath))) * 1000000
-
-        xpath = get_conf_xpath(ROLL_OFF, self._link)
-        roll_off = float(config.get_value(config.get(xpath)))
-
-        #Load carrier from xml file
-        xpath = get_conf_xpath(CARRIERS_DISTRIB, self._link, 
-                               self._spot, self._gw)
-        total_ratio_rs = 0
-        for carrier in config.get_table_elements(config.get(xpath)):
-            content = config.get_element_content(carrier)
-            ratios = map(lambda x: float(x), content[RATIO].split(';'))
-            total_ratio_rs += float(content[SYMBOL_RATE]) * sum(ratios)
-        for carrier in config.get_table_elements(config.get(xpath)):
-            content = config.get_element_content(carrier)
-            list_modcod = []
-            for fmt_grp_id in content[FMT_GROUP].split(";"):
-                list_modcod.append(self._fmt_group[fmt_grp_id])
-                ratios = map(lambda x: float(x), content[RATIO].split(';'))
-                nb_carrier = int(round(sum(ratios) / \
-                                 total_ratio_rs * bandwidth / (1 + roll_off)))
-                if nb_carrier <= 0:
-                    nb_carrier = 1
-            new_carrier = Carrier(float(content[SYMBOL_RATE]),
-                                  nb_carrier, content[CATEGORY], 
-                                  content[ACCESS_TYPE], content[FMT_GROUP], 
-                                  list_modcod, content[RATIO])
-            self._list_carrier.append(new_carrier)
-            self._nb_carrier = len(self._list_carrier)
-            self.create_carrier_interface(self._list_carrier[-1],
-                                          self._nb_carrier)
-            
-        self.trace()
         
+        carrier_id = 1
+        for carrier in self._list_carrier:
+            self.create_carrier_interface(carrier,
+                                          carrier_id)
+            carrier_id += 1
+            
         xpath = get_conf_xpath(ROLL_OFF, self._link)
         self._ui.get_widget('spinbutton_rollof_parameter').set_value(
                             float(config.get_value(config.get(xpath))))
+        self.trace()
         
     def clear_graph(self):
         """
@@ -225,8 +191,8 @@ class GraphicalParameter(WindowView):
         comboBox.append_text('Standard')
         comboBox.append_text('Premium')
         comboBox.append_text('Pro')
-        comboBox.connect("changed", self.on_update_group, carrier_id)
         comboBox.set_active(carrier.get_category()-1)
+        comboBox.connect("changed", self.on_update_group, carrier_id)
 
         #Create MODCOD button
         button_modcod = gtk.Button(label="Configure")
@@ -338,67 +304,37 @@ class GraphicalParameter(WindowView):
         
         roll_off = float(self._ui.get_widget('spinbutton_rollof_parameter').get_value())
 
-        config = self._model.get_conf().get_configuration()
-        carriers_band = CarriersBand() 
-        carriers_band.modcod_def(self._model.get_scenario(), 
-                                 config, False)
-        for carrier in self._list_carrier:
-            carriers_band.add_carrier(carrier)
-        for fmt_id in self._fmt_group: 
-            carriers_band.add_fmt_group(int(fmt_id),
-                                        self._fmt_group[fmt_id])
-
-        off_set = 0
         carrier_id = 1
         self.clear_graph()
+        self._carrier_arithmetic.update_graph(self._ax, roll_off);
+        self._carrier_arithmetic.update_rates(self._spot, self._gw);
+        
         for element in self._list_carrier :
             description = ''
-            for nb_carrier in range(1, element.get_nb_carriers()+1):
-                element.calculate_xy(roll_off, off_set)
-                self._ax.plot(element.get_x(), element.get_y(), 
-                              self._color[element.get_category()], label = 'Carrier')
-                # bandwidth in MHz
-                off_set = off_set + element.get_bandwidth(roll_off) \
-                        / (1E6 * element.get_nb_carriers())
-
-            for (min_rate, max_rate) in carriers_band.get_carrier_bitrates(element):
-                description += "Rate         [%d, %d] kb/s\n" % (min_rate / 1000,
-                                                      max_rate / 1000)
+            for (min_rate, max_rate) in element.get_rates():
+                description += "Rate per carrier [%d, %d] kb/s\n" % (min_rate / 1000,
+                                                                     max_rate / 1000)
            
-            description += "Total rate [%d, %d] kb/s" % \
-                    (carriers_band.get_min_bitrate(element.get_old_category(), 
-                                                   element.get_access_type()) / 1000,
-                     carriers_band.get_max_bitrate(element.get_old_category(),
-                                                   element.get_access_type()) / 1000)
             self._description[carrier_id].set_tooltip_text(description)
             carrier_id += 1
-            
-        if off_set != 0:
-            self._ax.axis([float(-off_set)/6, 
-                           off_set + float(off_set)/6, 
-                           0, 1.5])
-        bp, = self._ax.plot([0, 0, off_set, off_set], 
-                            [0, 1, 1, 0], 'r-', 
-                            label = BANDWIDTH, 
-                            linewidth = 3.0)
-        self._ax.legend([bp],[BANDWIDTH])
-        self._ax.grid(True)
+        
+        bandwidth = self._carrier_arithmetic.get_bandwidth()
         self._figure.canvas.draw()
-        self._ui.get_widget('bandwith_total').set_text(str(off_set) + " MHz")
-        self._bandwidth_total = off_set
+        self._ui.get_widget('bandwith_total').set_text(str(bandwidth) + " MHz")
+        self._bandwidth_total = bandwidth
 
     def on_update_roll_off(self, source=None):
         # disable method calling twice at the fisrt time
         gobject.idle_add(self.trace)
         
     def on_update_sr(self, source = None, carrier_id = None):
-        """R
-        group_list = []efresh the graph when the symbole rate change"""
+        """Refresh the graph when the symbole rate change"""
         # disable method calling twice at the fisrt time
         gobject.idle_add(self.on_update_sr_callback, 
                          source, carrier_id)
 
     def on_update_sr_callback(self, source=None, carrier_id=None):
+        """Refresh the graph when the symbole rate change"""
         self._list_carrier[carrier_id-1].set_symbol_rate(source.get_value() * 1E6)
         self.trace()
     
@@ -409,10 +345,12 @@ class GraphicalParameter(WindowView):
                          source, carrier_id)
         
     def on_update_nb_carrier_callback(self, source=None, carrier_id=None):
+        """Refresh the graph when the symbole rate change"""
         self._list_carrier[carrier_id-1].set_nb_carriers(int(source.get_value()))
         self.trace()
     
     def update_ratio(self):
+        """Refresh ratio when the symbole rate change"""
         total_ratio_rs = 0
         total_ratio = 0
         roll_off = float(self._ui.get_widget('spinbutton_rollof_parameter').get_value())
@@ -581,7 +519,7 @@ class GraphicalParameter(WindowView):
             elmts = config.get_table_elements(table)
             if fmt_id not in used_fmt_grps:
                 for elm in elmts:
-                    if elm.get(ID) == fmt_id:
+                    if elm.get(ID) == fmt_id and fmt_id in self._fmt_group:
                         del self._fmt_group[fmt_id]
                         config.del_element(config.get_path(elm));
                 table = config.get(xpath)

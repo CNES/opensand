@@ -42,13 +42,13 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 
 from opensand_manager_core.carrier import Carrier
-from opensand_manager_core.carriers_band import CarriersBand
 
 from opensand_manager_core.utils import get_conf_xpath, FORWARD_DOWN, RETURN_UP, \
         ROLL_OFF, CARRIERS_DISTRIB, BANDWIDTH, TAL_AFFECTATIONS, TAL_DEF_AFF, \
         TAL_ID, SYMBOL_RATE, RATIO, ACCESS_TYPE, CATEGORY, ST, SPOT, ID, GW, \
-        RETURN_UP_BAND, FMT_GROUP, FMT_GROUPS, FMT_ID, SCPC
+        RETURN_UP_BAND, FMT_GROUP, SCPC
 from opensand_manager_gui.view.utils.config_elements import SpotTree
+from opensand_manager_gui.view.utils.carrier_arithmetic import CarrierArithmetic
 from opensand_manager_gui.view.window_view import WindowView
 
 
@@ -64,7 +64,7 @@ class ResourceView(WindowView):
         self._spot = None
         self._gw = None
         self._tree_element = []
-        self._list_carrier = []
+        self._list_carrier = {FORWARD_DOWN : [], RETURN_UP : []}
         self._desc_war = {}
         self._desc_err = {}
         self._update_spot = False
@@ -74,15 +74,19 @@ class ResourceView(WindowView):
         self._figure_forward = Figure()
         self._ax_forward = self._figure_forward.add_subplot(111)
         canvas = FigureCanvas(self._figure_forward)
-        canvas.set_size_request(200,170)
+        canvas.set_size_request(200,200)
         self._graphe_forward.add_with_viewport(canvas)
+        self._forward_carrier_arithmetic = CarrierArithmetic(self._list_carrier[FORWARD_DOWN],
+                                                             self._model, FORWARD_DOWN);
         #Add graph forward
         self._graphe_return = self._ui.get_widget('scrolledwindow_return_graph')
         self._figure_return = Figure()
         self._ax_return = self._figure_return.add_subplot(111)
         canvas = FigureCanvas(self._figure_return)
-        canvas.set_size_request(200,170)
+        canvas.set_size_request(200,200)
         self._graphe_return.add_with_viewport(canvas)
+        self._return_carrier_arithmetic = CarrierArithmetic(self._list_carrier[RETURN_UP],
+                                                        self._model, RETURN_UP);
         #Update graph
         
         #St allocation
@@ -180,7 +184,9 @@ class ResourceView(WindowView):
             self._figure_return.canvas.draw()
        
     def update_carrier(self, link):
-        self._list_carrier = []
+        """Update carrier"""
+        #clear the list and not reinstanciate it
+        del self._list_carrier[link][:]
         config = self._model.get_conf()._configuration
         
         xpath = get_conf_xpath(BANDWIDTH, link, self._spot, self._gw)
@@ -203,7 +209,7 @@ class ResourceView(WindowView):
                     bandwidth / (1 + roll_off)))
             if nb_carrier <= 0:
                 nb_carrier = 1
-            self._list_carrier.append(Carrier(float(content[SYMBOL_RATE]),
+            self._list_carrier[link].append(Carrier(float(content[SYMBOL_RATE]),
                                               nb_carrier, content[CATEGORY], 
                                               content[ACCESS_TYPE], 
                                               content[FMT_GROUP],
@@ -236,59 +242,27 @@ class ResourceView(WindowView):
         elif link == RETURN_UP:
             self._ui.get_widget('label_return_rolloff').set_text(
                                         'Roll_off : ' + str(roll_off))
-        off_set = 0
+        bandwidth = 0
         self.clear_graph(link)
-        #Trace the graphe
+        #Trace the graph
         if link == FORWARD_DOWN:
-            for element in self._list_carrier :
-                for nb_carrier in range(1, element.get_nb_carriers()+1):
-                    element.calculate_xy(roll_off, off_set)
-                    self._ax_forward.plot(element.get_x(), 
-                                          element.get_y(), 
-                                          color[element.get_category()])
-                    # bandwidth in MHz
-                    off_set = off_set + element.get_bandwidth(roll_off)\
-                           / (1E6 * element.get_nb_carriers())
-            if off_set != 0:
-                self._ax_forward.axis([float(-off_set)/6, 
-                                      off_set + float(off_set)/6,
-                                      0, 1.5])
-            bp, = self._ax_forward.plot([0, 0, off_set, off_set], 
-                                        [0,1,1,0], 'r-', 
-                                        label = BANDWIDTH, 
-                                        linewidth = 3.0)
-            self._ax_forward.legend([bp],[BANDWIDTH])
-            self._ax_forward.grid(True)
+            self._forward_carrier_arithmetic.update_graph(self._ax_forward,
+                                                           roll_off);
+            bandwidth = self._forward_carrier_arithmetic.get_bandwidth()
             self._figure_forward.canvas.draw()
         elif link == RETURN_UP:
-            for element in self._list_carrier :
-                for nb_carrier in range(1, element.get_nb_carriers()+1):
-                    element.calculate_xy(roll_off, off_set)
-                    self._ax_return.plot(element.get_x(), 
-                                         element.get_y(), 
-                                         color[element.get_category()])
-                    # bandwidth in MHz
-                    off_set = off_set + element.get_bandwidth(roll_off)\
-                            / (1E6 * element.get_nb_carriers())
-            if off_set != 0:
-                self._ax_return.axis([float(-off_set)/6, 
-                                     off_set + float(off_set)/6, 
-                                     0, 1.5])
-            bp, = self._ax_return.plot([0, 0, off_set, off_set], 
-                                       [0,1,1,0], 'r-', 
-                                       label = BANDWIDTH, 
-                                       linewidth = 3.0)
-            self._ax_return.legend([bp],[BANDWIDTH])
-            self._ax_return.grid(True)
+            self._return_carrier_arithmetic.update_graph(self._ax_return,
+                                                          roll_off);
+            bandwidth = self._return_carrier_arithmetic.get_bandwidth()
             self._figure_return.canvas.draw()
 
         #Display Bandwidth
         if link == FORWARD_DOWN:
             self._ui.get_widget('label_forward_bandwidth').set_text(
-                                'Bandwidth : ' + str(off_set) + ' MHz')
+                                'Bandwidth : ' + str(bandwidth) + ' MHz')
         elif link == RETURN_UP:
             self._ui.get_widget('label_return_bandwidth').set_text(
-                                'Bandwidth : ' + str(off_set) + ' MHz')
+                                'Bandwidth : ' + str(bandwidth) + ' MHz')
     
     
     def update_st_assignment(self, link):
@@ -368,22 +342,6 @@ class ResourceView(WindowView):
         
         self.update_carrier(link)
         
-        carriers_band = CarriersBand() 
-        carriers_band.modcod_def(self._model.get_scenario(), 
-                                 config, False)
-        for carrier in self._list_carrier:
-            carriers_band.add_carrier(carrier)
-        
-        fmt_group = {}
-        xpath = get_conf_xpath(FMT_GROUPS, link, 
-                               self._spot, self._gw)
-        for group in config.get_table_elements(config.get(xpath)):
-            content = config.get_element_content(group)
-            fmt_group[content[ID]] = content[FMT_ID]
-        for fmt_id in fmt_group: 
-            carriers_band.add_fmt_group(int(fmt_id),
-                                        fmt_group[fmt_id])
-
 
         present = {k: group_list.count(k) for k in set(group_list)}
         for group in present:
@@ -434,20 +392,26 @@ class ResourceView(WindowView):
             expand_rate = gtk.Expander(label = (label_gr + label_st)) 
             expand_rate.set_use_markup(True)
             carrier_rate = "";
-            for element in self._list_carrier:
+            carrier_arithmetic = None
+            if link == FORWARD_DOWN:
+                carrier_arithmetic = self._forward_carrier_arithmetic
+            elif link == RETURN_UP:
+                carrier_arithmetic = self._return_carrier_arithmetic
+            carrier_arithmetic.update_rates(self._spot,
+                                     self._gw)
+
+            for element in self._list_carrier[link]:
                 if element.get_old_category() in group:
                     nb_carrier += element.get_nb_carriers()
                     if element.get_access_type() == SCPC:
                         nb_carrier_scpc += element.get_nb_carriers()
-                    for (min_rate, max_rate) in carriers_band.get_carrier_bitrates(element):
+                    for (min_rate, max_rate) in element.get_rates():
                         carrier_rate += "%d carrier(s) rate: [%d, %d] kb/s\n" \
                                 % (element.get_nb_carriers(), min_rate /
                                    1000, max_rate / 1000)
             total_rate = "Total rate: [%d, %d] kb/s" % \
-            (carriers_band.get_min_bitrate(element.get_old_category(), 
-                                           element.get_access_type()) / 1000,
-             carriers_band.get_max_bitrate(element.get_old_category(),
-                                           element.get_access_type()) / 1000)
+                    (carrier_arithmetic.get_min_bitrate() / 1000,
+                     carrier_arithmetic.get_max_bitrate() / 1000)
             label_rate = gtk.Label(carrier_rate + total_rate);
             label_rate.set_justify(gtk.JUSTIFY_LEFT)
             label_rate.set_alignment(0, 0.5)
@@ -478,9 +442,9 @@ class ResourceView(WindowView):
                                    gtk.ICON_SIZE_MENU)
                 self._desc_err[group] = img_err
                 hbox_gr_title.pack_start(img_err, expand=True, fill=False, padding=1)
-                self._desc_err[group].set_tooltip_text("It should be one " \
-                                                          "SCPC carrier by " \
-                                                          "category")
+                self._desc_err[group].set_tooltip_text("There should be one " \
+                                                       "SCPC carrier by " \
+                                                       "category")
 
             #Add the new group in window
             if link == FORWARD_DOWN:

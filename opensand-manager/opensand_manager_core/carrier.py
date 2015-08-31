@@ -63,6 +63,9 @@ class Carrier :
         self._fmt_groups = self.parser(fmt_groups)
         self._ratio = self.parser(ratio)
         self._nb_carrier = nb_carrier
+
+        self._rates = []
+
         if access_type in [SCPC, CCM, ACM, VCM]:
             self._std = S2
         elif access_type in [DAMA, ALOHA]:
@@ -216,6 +219,12 @@ class Carrier :
         
     def get_y(self):
         return self._Y
+
+    def get_rates(self):
+        return self._rates
+    
+    def set_rates(self, rates):
+        self._rates = rates
 
     def get_bandwidth(self, roll_off):
         """
