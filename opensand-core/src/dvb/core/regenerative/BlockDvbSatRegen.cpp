@@ -50,7 +50,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -103,33 +102,13 @@ BlockDvbSatRegen::DownwardRegen::~DownwardRegen()
 
 bool BlockDvbSatRegen::DownwardRegen::onInit()
 {
-	// get the common parameters
-	// TODO no need to init pkt hdl in transparent mode,
-	//      this will avoid loggers for encap to be instanciated
-	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the common part of the "
-		    "initialisation\n");
-		return false;
-	}
-	if(!this->initDown())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the downward common "
-		    "initialisation\n");
-		return false;
-	}
-
-	this->down_frame_counter = 0;
-
 	if(!this->initModcodSimu())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize timer\n");
 		return false;
 	}
-
+	
 	if(!this->initStList())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -137,31 +116,15 @@ bool BlockDvbSatRegen::DownwardRegen::onInit()
 		    "initialisation\n");
 		return false;
 	}
-
-	if(!this->initSatLink())
+	
+	if(!BlockDvbSat::Downward::onInit())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the initialisation of "
-		    "link parameters\n");
+		    "failed to complete the initialisation\n");
 		return false;
 	}
 
-	this->initStatsTimer(this->fwd_down_frame_duration_ms);
-
-	if(!this->initOutput())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize Output probes ans stats\n");
-		return false;
-	}
-
-	if(!this->initTimers())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize timers\n");
-		return false;
-	}
-
+	
 	return true;
 }
 
@@ -385,6 +348,67 @@ bool BlockDvbSatRegen::DownwardRegen::initTimers(void)
 }
 
 
+
+bool BlockDvbSatRegen::DownwardRegen::initModcodSimu(void)
+{
+	set<tal_id_t> gw_list = this->getGwIds();
+	set<spot_id_t> spot_list = this->getSpotIds();
+	for(set<spot_id_t>::iterator spot_it = spot_list.begin();
+	    spot_it != spot_list.end(); spot_it++)
+	{
+		for(set<tal_id_t>::iterator gw_it = gw_list.begin();
+		    gw_it != gw_list.end(); gw_it++)
+		{
+			FmtSimulation *fmt_simulation = new FmtSimulation();
+			if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
+			                             *fmt_simulation,
+			                             (*gw_it), (*spot_it)))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to complete the modcod part of the "
+				    "initialisation\n");
+				return false;
+			}
+			this->setFmtSimulation((*spot_it), (*gw_it), fmt_simulation);
+			if(!this->initModcodDefFile(MODCOD_DEF_RCS,
+			                            &this->input_modcod_def))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to complete the modcod part of the "
+				    "initialisation\n");
+				return false;
+			}
+			if(!this->initModcodDefFile(MODCOD_DEF_S2,
+			                            &this->output_modcod_def))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to complete the modcod part of the "
+				    "initialisation\n");
+				return false;
+			}
+		}
+	}
+
+	// initialize the MODCOD scheme ID
+	for(set<spot_id_t>::iterator spot_it = spot_list.begin();
+	    spot_it != spot_list.end(); spot_it++)
+	{
+		for(set<tal_id_t>::iterator gw_it = gw_list.begin();
+		    gw_it != gw_list.end(); gw_it++)
+		{
+			if(!this->goFirstScenarioStep((*spot_it), (*gw_it)))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "failed to initialize downlink MODCOD IDs\n");
+				return false;
+			}
+		}
+	}
+	return true;
+
+}
+
+
 bool BlockDvbSatRegen::DownwardRegen::handleMessageBurst(const RtEvent *const event)
 {
 	NetBurst *burst;
@@ -416,7 +440,128 @@ bool BlockDvbSatRegen::DownwardRegen::handleMessageBurst(const RtEvent *const ev
 	return true;
 }
 
+bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
+{
+	map<tal_id_t, spot_id_t>::iterator tal_iter;
+	sat_spots_t::iterator spot;
+	spot_id_t spot_id;
+	tal_id_t gw_id;
+	tal_id_t tal_id;
+	tal_id_t tal_id_src;
+	DvbFifo *out_fifo = NULL;
+	DvbFifo *out_fifo_gw = NULL;
 
+	LOG(this->log_receive, LEVEL_INFO,
+	    "store one encapsulation packet\n");
+
+	spot_id = packet->getSpot();
+	tal_id = packet->getDstTalId();
+	tal_id_src = packet->getSrcTalId();
+
+	if(tal_id == BROADCAST_TAL_ID)
+	{
+		// Send to all spot and all gw
+		for(spot = this->spots.begin(); spot != this->spots.end(); ++spot)
+		{
+			list<SatGw *> gws = (*spot).second->getListGw();
+			list<SatGw *>::iterator gw;
+			for(gw = gws.begin(); gw != gws.end(); ++gw)
+			{
+				NetPacket *packet_copy = new NetPacket(packet);
+				out_fifo = (*gw)->getDataOutStFifo();
+				if(!this->onRcvEncapPacket(packet_copy,
+				                           out_fifo,
+				                           this->sat_delay))
+				{
+					// FIXME a problem occured, we got memory allocation error
+					// or fifo full and we won't empty fifo until next
+					// call to onDownwardEvent => return
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "unable to store packet\n");
+					delete packet_copy;
+					return false;
+				}
+				if(!OpenSandConf::isGw(tal_id_src))
+				{
+					out_fifo_gw = (*gw)->getDataOutGwFifo();
+					NetPacket *packet_copy_gw = new NetPacket(packet);
+					if(!this->onRcvEncapPacket(packet_copy_gw,
+					                           out_fifo_gw,
+					                           this->sat_delay))
+					{
+						// FIXME a problem occured, we got memory allocation error
+						// or fifo full and we won't empty fifo until next
+						// call to onDownwardEvent => return
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "unable to store packet\n");
+						delete packet_copy_gw;
+						return false;
+					}
+				}
+			}
+		}
+		delete packet;
+	}
+	else
+	{
+		if(OpenSandConf::isGw(tal_id))
+		{
+			gw_id = tal_id;
+		}
+		else if(OpenSandConf::gw_table.find(tal_id) != OpenSandConf::gw_table.end())
+		{
+			gw_id = OpenSandConf::gw_table[tal_id];
+		}
+		else if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION],
+		                        DEFAULT_GW, gw_id))
+		{
+			LOG(this->log_receive, LEVEL_ERROR, 
+			    "couldn't find gw for tal %d", 
+			    tal_id);
+			return false;
+		}
+
+		spot = this->spots.find(spot_id);
+		if(spot == this->spots.end())
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "cannot find spot with ID %u in spot "
+			    "list\n", spot_id);
+			return false;
+		}
+
+		SatGw *gw = this->spots[spot_id]->getGw(gw_id);
+
+		if(gw == NULL)
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "coudn't find gw %u in spot %u\n",
+			    gw_id, spot_id);
+			return false;
+		}
+		if(packet->getDstTalId() == gw_id)
+		{
+			out_fifo = gw->getDataOutGwFifo();
+		}
+		else
+		{
+			out_fifo = gw->getDataOutStFifo();
+		}
+
+		if(!this->onRcvEncapPacket(packet,
+		                           out_fifo,
+		                           this->sat_delay))
+		{
+			// FIXME a problem occured, we got memory allocation error
+			// or fifo full and we won't empty fifo until next
+			// call to onDownwardEvent => return
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "unable to store packet\n");
+			return false;
+		}
+	}
+	return true;
+}
 
 bool BlockDvbSatRegen::DownwardRegen::handleTimerEvent(SatGw *current_gw, 
                                                        uint8_t spot_id)
@@ -455,6 +600,126 @@ bool BlockDvbSatRegen::DownwardRegen::handleTimerEvent(SatGw *current_gw,
 	return true;
 }
 
+bool BlockDvbSatRegen::DownwardRegen::handleScenarioTimer()
+{
+	LOG(this->log_receive, LEVEL_DEBUG,
+			"MODCOD scenario timer expired\n");
+
+	LOG(this->log_receive, LEVEL_DEBUG,
+			"update modcod table\n");
+	
+	double duration;
+	//TODO Timer per spot and per gw
+	if(!this->goNextScenarioStepInput(duration, 0, 0))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+				"failed to update MODCOD IDs\n");
+		return false;
+	}
+	if(duration <= 0)
+	{
+		// we hare reach the end of the file (of it is malformed)
+		// so we keep the modcod as they are
+		this->removeEvent(this->scenario_timer);
+	}
+	else
+	{
+		this->setDuration(this->scenario_timer, duration);
+		this->startTimer(this->scenario_timer);
+	}
+	// Update the cni for all terminals
+	map<tal_id_t, double>::iterator it;
+	for(it = this->cni.begin(); it != this->cni.end(); it++)
+	{
+		uint8_t current_modcod = this->getCurrentModcodIdInput(it->first);
+		this->cni[it->first] = this->input_modcod_def->getRequiredEsN0(current_modcod);
+	}
+
+	return true;
+}
+
+void BlockDvbSatRegen::DownwardRegen::setFmtSimulation(spot_id_t spot_id, tal_id_t gw_id,
+                                             FmtSimulation* new_fmt_simu)
+{
+	sat_spots_t::iterator it = this->spots.find(spot_id);
+
+	if(it == this->spots.end())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Spot %d not found\n", spot_id);
+	}
+	else
+	{
+		it->second->setFmtSimulation(gw_id, new_fmt_simu);
+	}
+}
+
+
+bool BlockDvbSatRegen::DownwardRegen::goFirstScenarioStep(spot_id_t spot_id, tal_id_t gw_id)
+{
+	sat_spots_t::iterator it = this->spots.find(spot_id);
+
+	if(it != this->spots.end())
+	{
+		return it->second->goFirstScenarioStep(gw_id);
+	}
+
+	LOG(this->log_init, LEVEL_ERROR,
+	    "Spot %d not found\n", spot_id);
+
+	return false;
+}
+
+
+bool BlockDvbSatRegen::DownwardRegen::goNextScenarioStep(spot_id_t spot_id, tal_id_t gw_id,
+                                               double &duration)
+{
+	sat_spots_t::iterator it = this->spots.find(spot_id);
+
+	if(it != this->spots.end())
+	{
+		return it->second->goNextScenarioStep(gw_id, duration);
+	}
+
+	LOG(this->log_init, LEVEL_ERROR,
+	    "Spot %d not found\n", spot_id);
+
+	return false;
+}
+
+set<tal_id_t> BlockDvbSatRegen::DownwardRegen::getGwIds(void)
+{
+	set<tal_id_t> result;
+	sat_spots_t::iterator it;
+	list<SatGw *>::iterator gw_it;
+
+	for(it = this->spots.begin();
+		it != this->spots.end(); it++)
+	{
+		list<SatGw *> list = it->second->getListGw();
+		for(gw_it = list.begin(); gw_it != list.end(); gw_it++)
+		{
+			result.insert((*gw_it)->getGwId());
+		}
+	}
+
+	return result;
+}
+
+
+set<spot_id_t> BlockDvbSatRegen::DownwardRegen::getSpotIds(void)
+{
+	set<spot_id_t> result;
+	sat_spots_t::iterator it;
+
+	for(it = this->spots.begin(); it != this->spots.end(); it++)
+	{
+		result.insert(it->second->getSpotId());
+	}
+
+	return result;
+}
+
 
 /*****************************************************************************/
 /*                               Upward                                      */
@@ -473,22 +738,11 @@ BlockDvbSatRegen::UpwardRegen::~UpwardRegen()
 
 bool BlockDvbSatRegen::UpwardRegen::onInit()
 {
-	// get the common parameters
-	// TODO no need to init pkt hdl in transparent mode,
-	//      this will avoid loggers for encap to be instanciated
-	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the common part of the "
-		    "initialisation\n");
-		return false;;
-	}
 
-	if(!this->initMode())
+	if(!BlockDvbSat::Upward::onInit())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the mode part of the "
-		    "initialisation\n");
+		    "failed to complete the initialisation\n");
 		return false;
 	}
 
@@ -606,6 +860,12 @@ error:
 	return false;
 }
 
+bool BlockDvbSatRegen::UpwardRegen::handleCorrupted(DvbFrame *UNUSED(dvb_frame))
+{
+	return false;
+}
+
+
 bool BlockDvbSatRegen::UpwardRegen::handleDvbBurst(DvbFrame *dvb_frame,
                                                    SatGw UNUSED(*current_gw),
                                                    SatSpot UNUSED(*current_spot))
@@ -661,8 +921,7 @@ bool BlockDvbSatRegen::UpwardRegen::handleDvbBurst(DvbFrame *dvb_frame,
 }
 
 
-bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame, 
-                                              SatGw UNUSED(*current_gw))
+bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame)
 {
 	if(this->with_phy_layer)
 	{
@@ -690,25 +949,16 @@ bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame,
 	return true;
 }
 
-
 bool BlockDvbSatRegen::UpwardRegen::handleBBFrame(DvbFrame UNUSED(*dvb_frame), 
                                                   SatGw UNUSED(*current_gw),
                                                   SatSpot UNUSED(*current_spot))
 {
-	LOG(this->log_receive, LEVEL_ERROR,
-	    "Satellite Regenratif shoudln't handle BB Frame\n");
-	
-	return false;
-
+	assert(0);
 }
 
-bool BlockDvbSatRegen::UpwardRegen::handleSaloha(DvbFrame UNUSED(*dvb_frame), 
-                                                 SatGw UNUSED(*current_gw),
-                                                 SatSpot UNUSED(*current_spot))
+bool BlockDvbSatRegen::UpwardRegen::handleSaloha(DvbFrame *UNUSED(dvb_frame),
+                                                 SatGw *UNUSED(current_gw),
+                                                 SatSpot *UNUSED(current_spot))
 {
-	LOG(this->log_receive, LEVEL_ERROR,
-	    "Satellite Regenratif shoudln't handle Saloha\n");
-	
-	return false;
-
-}	                       
+	assert(0);
+}

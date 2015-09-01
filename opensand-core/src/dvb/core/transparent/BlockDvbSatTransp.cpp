@@ -99,56 +99,6 @@ BlockDvbSatTransp::DownwardTransp::~DownwardTransp()
 }
 
 
-bool BlockDvbSatTransp::DownwardTransp::onInit()
-{
-	// get the common parameters
-	// TODO no need to init pkt hdl in transparent mode,
-	//      this will avoid loggers for encap to be instanciated
-	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the common part of the "
-		    "initialisation\n");
-		return false;
-	}
-	if(!this->initDown())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the downward common "
-		    "initialisation\n");
-		return false;
-	}
-
-	this->down_frame_counter = 0;
-
-	if(!this->initSatLink())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the initialisation of "
-		    "link parameters\n");
-		return false;
-	}
-
-	this->initStatsTimer(this->fwd_down_frame_duration_ms);
-
-	if(!this->initOutput())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize Output probes ans stats\n");
-		return false;
-	}
-
-	if(!this->initTimers())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize timers\n");
-		return false;
-	}
-
-	return true;
-}
-
-
 bool BlockDvbSatTransp::DownwardTransp::initSatLink(void)
 {
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
@@ -165,14 +115,6 @@ bool BlockDvbSatTransp::DownwardTransp::initSatLink(void)
 	return true;
 }
 
-
-bool BlockDvbSatTransp::DownwardTransp::initStList(void)
-{
-	LOG(this->log_receive, LEVEL_ERROR,
-	    "shouldn't initialise St list in transparent mode");
-
-	return false;
-}
 
 bool BlockDvbSatTransp::DownwardTransp::initTimers(void)
 {
@@ -218,6 +160,10 @@ bool BlockDvbSatTransp::DownwardTransp::handleTimerEvent(SatGw *current_gw,
 	return true;
 }
 
+bool BlockDvbSatTransp::DownwardTransp::handleScenarioTimer()
+{
+	assert(0);
+}
 
 /*****************************************************************************/
 /*                               Upward                                      */
@@ -232,31 +178,6 @@ BlockDvbSatTransp::UpwardTransp::UpwardTransp(Block *const bl):
 
 BlockDvbSatTransp::UpwardTransp::~UpwardTransp()
 {
-}
-
-
-bool BlockDvbSatTransp::UpwardTransp::onInit()
-{
-	// get the common parameters
-	// TODO no need to init pkt hdl in transparent mode,
-	//      this will avoid loggers for encap to be instanciated
-	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the common part of the "
-		    "initialisation\n");
-		return false;;
-	}
-
-	if(!this->initMode())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the mode part of the "
-		    "initialisation\n");
-		return false;
-	}
-
-	return true;
 }
 
 
@@ -301,6 +222,19 @@ bool BlockDvbSatTransp::UpwardTransp::initSwitchTable(void)
 	return false;
 }
 
+bool BlockDvbSatTransp::UpwardTransp::handleCorrupted(DvbFrame *dvb_frame)
+{
+	// in transparent scenario, satellite physical layer cannot corrupt
+	LOG(this->log_receive, LEVEL_INFO,
+	    "the message was corrupted by physical layer, "
+	    "drop it\n");
+
+	delete dvb_frame;
+	dvb_frame = NULL;
+		
+	return true;
+}
+
 bool BlockDvbSatTransp::UpwardTransp::handleDvbBurst(DvbFrame *dvb_frame, 
                                                      SatGw *current_gw,
                                                      SatSpot *current_spot)
@@ -321,8 +255,8 @@ bool BlockDvbSatTransp::UpwardTransp::handleDvbBurst(DvbFrame *dvb_frame,
 	return true;
 }
 
-bool BlockDvbSatTransp::UpwardTransp::handleSac(DvbFrame UNUSED(*dvb_frame), 
-                                                SatGw UNUSED(*current_gw))
+// DO something only on regenerative mode
+bool BlockDvbSatTransp::UpwardTransp::handleSac(DvbFrame *UNUSED(dvb_frame))
 {
 	return true;
 }

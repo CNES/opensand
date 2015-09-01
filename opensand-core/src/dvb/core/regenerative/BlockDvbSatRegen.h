@@ -91,6 +91,14 @@ class BlockDvbSatRegen: public BlockDvbSat
 		bool initSwitchTable(void);
 		
 		/**
+		* handle corrupted frame
+		*
+		* @param dvb_frame    the DVB or BB frame to forward
+		* @return             true on success, false otherwise
+		*/
+		bool handleCorrupted(DvbFrame *dvb_frame);
+
+		/**
 		 * Handle Net Burst packet
 		 * 
 		 * @return true on success , false otherwise
@@ -104,8 +112,8 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 * 
 		 * @return true on success, false otherwise
 		 */ 
-		bool handleSac(DvbFrame *dvb_frame, SatGw *current_gw);
-		
+		bool handleSac(DvbFrame *dvb_frame);
+	
 		/**
 		 * Handle BB Frame
 		 * 
@@ -122,7 +130,7 @@ class BlockDvbSatRegen: public BlockDvbSat
 		bool handleSaloha(DvbFrame *dvb_frame, 
 		                  SatGw *current_gw,
 		                  SatSpot *current_spot);
-
+	
 	};
 
 	class DownwardRegen: public Downward
@@ -154,6 +162,20 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 * @return  true on success, false otherwise
 		 */
 		bool initTimers(void);
+		
+		/**
+		 * @brief Read configuration for the different files and open them
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initModcodSimu(void);
+
+		/**
+		 *
+		 * @param packet    The NetPacket
+		 * @return          true on success, false otherwise
+		 */ 
+		bool handleRcvEncapPacket(NetPacket *packet);
 
 		/**
 		 * @brief handle event message
@@ -169,6 +191,54 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 */ 
 		bool handleTimerEvent(SatGw *current_gw,
 		                      uint8_t spot_id);
+		
+		/**
+		 * @ brief handle scenario event timer
+		 *
+		 * @return true on success, false otherwise
+		 */ 
+		bool handleScenarioTimer();
+		
+		/**
+		 * Set the Fmt Simulation on the appropriate Spot and Gw
+		 */
+		void setFmtSimulation(spot_id_t spot_id, tal_id_t gw_id,
+		                      FmtSimulation* new_fmt_simu);
+
+		/**
+		 * @brief Go to the first step in adaptive physical layer scenario
+		 *        For the appropriate Spot and Gw.
+		 *
+		 * @param spot_id      the id of the spot
+		 * @param gw_id        the id of the gw
+		 * @return true on success, false otherwise
+		 */
+		bool goFirstScenarioStep(spot_id_t spot_id, tal_id_t gw_id);
+
+		/**
+		 * @brief Go to next step in adaptive physical layer scenario
+		 *        Update current MODCODs IDs of all STs in the list
+		 *        For the appropriate Spot and Gw.
+		 *
+		 * @param spot_id      the id of the spot
+		 * @param gw_id        the id of the gw
+		 * @param duration     duration before the next step
+		 * @return true on success, false otherwise
+		 */
+		bool goNextScenarioStep(spot_id_t spot_id, tal_id_t gw_id,
+		                        double &duration);
+
+		/**
+		 * Get a list of the gw ids
+		 */
+		set<tal_id_t> getGwIds(void);
+
+		/**
+		 * Get a list of the spot ids
+		 */
+		set<spot_id_t> getSpotIds(void);
+
+
 
 	};
 

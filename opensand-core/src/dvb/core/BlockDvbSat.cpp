@@ -352,6 +352,54 @@ BlockDvbSat::Downward::~Downward()
 	this->terminal_affectation.clear();
 }
 
+bool BlockDvbSat::Downward::onInit()
+{
+	// get the common parameters
+	// TODO no need to init pkt hdl in transparent mode,
+	//      this will avoid loggers for encap to be instanciated
+	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the common part of the "
+		    "initialisation\n");
+		return false;
+	}
+	if(!this->initDown())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the downward common "
+		    "initialisation\n");
+		return false;
+	}
+
+	this->down_frame_counter = 0;
+
+	if(!this->initSatLink())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the initialisation of "
+		    "link parameters\n");
+		return false;
+	}
+
+	this->initStatsTimer(this->fwd_down_frame_duration_ms);
+
+	if(!this->initOutput())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize Output probes ans stats\n");
+		return false;
+	}
+
+	if(!this->initTimers())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize timers\n");
+		return false;
+	}
+
+	return true;
+}
 
 void BlockDvbSat::Downward::setSpots(const sat_spots_t &spots)
 {
@@ -460,7 +508,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				return status;
 			}
 
-			if(!handleMessageBurst(event))
+			if(!this->handleMessageBurst(event))
 			{
 				return false;
 			}
@@ -528,37 +576,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 			}
 			else if(*event == this->scenario_timer)
 			{
-				LOG(this->log_receive, LEVEL_DEBUG,
-				    "MODCOD scenario timer expired\n");
-
-				LOG(this->log_receive, LEVEL_DEBUG,
-				    "update modcod table\n");
-				double duration;
-				//TODO Timer per spot and per gw
-				if(!this->goNextScenarioStepInput(duration, 0, 0))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "failed to update MODCOD IDs\n");
-					return false;
-				}
-				if(duration <= 0)
-				{
-					// we hare reach the end of the file (of it is malformed)
-					// so we keep the modcod as they are
-					this->removeEvent(this->scenario_timer);
-				}
-				else
-				{
-					this->setDuration(this->scenario_timer, duration);
-					this->startTimer(this->scenario_timer);
-				}
-				// Update the cni for all terminals
-				map<tal_id_t, double>::iterator it;
-				for(it = this->cni.begin(); it != this->cni.end(); it++)
-				{
-					uint8_t current_modcod = this->getCurrentModcodIdInput(it->first);
-					this->cni[it->first] = this->input_modcod_def->getRequiredEsN0(current_modcod);
-				}
+				this->handleScenarioTimer();	
 			}
 			else
 			{
@@ -577,129 +595,6 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 	return true;
 }
 
-
-bool BlockDvbSat::Downward::handleRcvEncapPacket(NetPacket *packet)
-{
-	map<tal_id_t, spot_id_t>::iterator tal_iter;
-	sat_spots_t::iterator spot;
-	spot_id_t spot_id;
-	tal_id_t gw_id;
-	tal_id_t tal_id;
-	tal_id_t tal_id_src;
-	DvbFifo *out_fifo = NULL;
-	DvbFifo *out_fifo_gw = NULL;
-
-	LOG(this->log_receive, LEVEL_INFO,
-	    "store one encapsulation packet\n");
-
-	spot_id = packet->getSpot();
-	tal_id = packet->getDstTalId();
-	tal_id_src = packet->getSrcTalId();
-
-	if(tal_id == BROADCAST_TAL_ID)
-	{
-		// Send to all spot and all gw
-		for(spot = this->spots.begin(); spot != this->spots.end(); ++spot)
-		{
-			list<SatGw *> gws = (*spot).second->getListGw();
-			list<SatGw *>::iterator gw;
-			for(gw = gws.begin(); gw != gws.end(); ++gw)
-			{
-				NetPacket *packet_copy = new NetPacket(packet);
-				out_fifo = (*gw)->getDataOutStFifo();
-				if(!this->onRcvEncapPacket(packet_copy,
-				                           out_fifo,
-				                           this->sat_delay))
-				{
-					// FIXME a problem occured, we got memory allocation error
-					// or fifo full and we won't empty fifo until next
-					// call to onDownwardEvent => return
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "unable to store packet\n");
-					delete packet_copy;
-					return false;
-				}
-				if(!OpenSandConf::isGw(tal_id_src))
-				{
-					out_fifo_gw = (*gw)->getDataOutGwFifo();
-					NetPacket *packet_copy_gw = new NetPacket(packet);
-					if(!this->onRcvEncapPacket(packet_copy_gw,
-					                           out_fifo_gw,
-					                           this->sat_delay))
-					{
-						// FIXME a problem occured, we got memory allocation error
-						// or fifo full and we won't empty fifo until next
-						// call to onDownwardEvent => return
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "unable to store packet\n");
-						delete packet_copy_gw;
-						return false;
-					}
-				}
-			}
-		}
-		delete packet;
-	}
-	else
-	{
-		if(OpenSandConf::isGw(tal_id))
-		{
-			gw_id = tal_id;
-		}
-		else if(OpenSandConf::gw_table.find(tal_id) != OpenSandConf::gw_table.end())
-		{
-			gw_id = OpenSandConf::gw_table[tal_id];
-		}
-		else if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION],
-		                        DEFAULT_GW, gw_id))
-		{
-			LOG(this->log_receive, LEVEL_ERROR, 
-			    "couldn't find gw for tal %d", 
-			    tal_id);
-			return false;
-		}
-
-		spot = this->spots.find(spot_id);
-		if(spot == this->spots.end())
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "cannot find spot with ID %u in spot "
-			    "list\n", spot_id);
-			return false;
-		}
-
-		SatGw *gw = this->spots[spot_id]->getGw(gw_id);
-
-		if(gw == NULL)
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "coudn't find gw %u in spot %u\n",
-			    gw_id, spot_id);
-			return false;
-		}
-		if(packet->getDstTalId() == gw_id)
-		{
-			out_fifo = gw->getDataOutGwFifo();
-		}
-		else
-		{
-			out_fifo = gw->getDataOutStFifo();
-		}
-
-		if(!this->onRcvEncapPacket(packet,
-		                           out_fifo,
-		                           this->sat_delay))
-		{
-			// FIXME a problem occured, we got memory allocation error
-			// or fifo full and we won't empty fifo until next
-			// call to onDownwardEvent => return
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "unable to store packet\n");
-			return false;
-		}
-	}
-	return true;
-}
 
 
 bool BlockDvbSat::Downward::sendFrames(DvbFifo *fifo)
@@ -770,145 +665,7 @@ void BlockDvbSat::Downward::updateStats(void)
 }
 
 
-set<tal_id_t> BlockDvbSat::Downward::getGwIds(void)
-{
-	set<tal_id_t> result;
-	sat_spots_t::iterator it;
-	list<SatGw *>::iterator gw_it;
 
-	for(it = this->spots.begin();
-		it != this->spots.end(); it++)
-	{
-		list<SatGw *> list = it->second->getListGw();
-		for(gw_it = list.begin(); gw_it != list.end(); gw_it++)
-		{
-			result.insert((*gw_it)->getGwId());
-		}
-	}
-
-	return result;
-}
-
-
-set<spot_id_t> BlockDvbSat::Downward::getSpotIds(void)
-{
-	set<spot_id_t> result;
-	sat_spots_t::iterator it;
-
-	for(it = this->spots.begin(); it != this->spots.end(); it++)
-	{
-		result.insert(it->second->getSpotId());
-	}
-
-	return result;
-}
-
-bool BlockDvbSat::Downward::initModcodSimu(void)
-{
-	set<tal_id_t> gw_list = this->getGwIds();
-	set<spot_id_t> spot_list = this->getSpotIds();
-	for(set<spot_id_t>::iterator spot_it = spot_list.begin();
-	    spot_it != spot_list.end(); spot_it++)
-	{
-		for(set<tal_id_t>::iterator gw_it = gw_list.begin();
-		    gw_it != gw_list.end(); gw_it++)
-		{
-			FmtSimulation *fmt_simulation = new FmtSimulation();
-			if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
-			                             *fmt_simulation,
-			                             (*gw_it), (*spot_it)))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to complete the modcod part of the "
-				    "initialisation\n");
-				return false;
-			}
-			this->setFmtSimulation((*spot_it), (*gw_it), fmt_simulation);
-			if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-			                            &this->input_modcod_def))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to complete the modcod part of the "
-				    "initialisation\n");
-				return false;
-			}
-			if(!this->initModcodDefFile(MODCOD_DEF_S2,
-			                            &this->output_modcod_def))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to complete the modcod part of the "
-				    "initialisation\n");
-				return false;
-			}
-		}
-	}
-
-	// initialize the MODCOD scheme ID
-	for(set<spot_id_t>::iterator spot_it = spot_list.begin();
-	    spot_it != spot_list.end(); spot_it++)
-	{
-		for(set<tal_id_t>::iterator gw_it = gw_list.begin();
-		    gw_it != gw_list.end(); gw_it++)
-		{
-			if(!this->goFirstScenarioStep((*spot_it), (*gw_it)))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to initialize downlink MODCOD IDs\n");
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
-void BlockDvbSat::Downward::setFmtSimulation(spot_id_t spot_id, tal_id_t gw_id,
-                                             FmtSimulation* new_fmt_simu)
-{
-	sat_spots_t::iterator it = this->spots.find(spot_id);
-
-	if(it == this->spots.end())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Spot %d not found\n", spot_id);
-	}
-	else
-	{
-		it->second->setFmtSimulation(gw_id, new_fmt_simu);
-	}
-}
-
-
-bool BlockDvbSat::Downward::goFirstScenarioStep(spot_id_t spot_id, tal_id_t gw_id)
-{
-	sat_spots_t::iterator it = this->spots.find(spot_id);
-
-	if(it != this->spots.end())
-	{
-		return it->second->goFirstScenarioStep(gw_id);
-	}
-
-	LOG(this->log_init, LEVEL_ERROR,
-	    "Spot %d not found\n", spot_id);
-
-	return false;
-}
-
-
-bool BlockDvbSat::Downward::goNextScenarioStep(spot_id_t spot_id, tal_id_t gw_id,
-                                               double &duration)
-{
-	sat_spots_t::iterator it = this->spots.find(spot_id);
-
-	if(it != this->spots.end())
-	{
-		return it->second->goNextScenarioStep(gw_id, duration);
-	}
-
-	LOG(this->log_init, LEVEL_ERROR,
-	    "Spot %d not found\n", spot_id);
-
-	return false;
-}
 
 
 /*****************************************************************************/
@@ -963,19 +720,6 @@ bool BlockDvbSat::Upward::onInit()
 		return false;
 	}
 
-	// load the modcod files (regenerative satellite only)
-	if(this->satellite_type == REGENERATIVE)
-	{
-		// initialize the satellite internal switch
-		if(!this->initSwitchTable())
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to complete the switch part of the "
-			    "initialisation\n");
-			return false;
-		}
-	}
-
 	return true;
 }
 
@@ -1027,7 +771,7 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 			// message from lower layer: dvb frame
 			DvbFrame *dvb_frame;
 			dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-		
+			
 			if(!this->onRcvDvbFrame(dvb_frame))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -1045,8 +789,6 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 	}
 	return true;
 }
-
-
 
 // About multithreaded channels implementation:
 // We choose to let the transparent treatment and push in FIFO in Upward
@@ -1088,23 +830,17 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		    "list\n", spot_id);
 		return false;
 	}
-	
+
 	LOG(this->log_receive, LEVEL_DEBUG,
 	    "DVB frame received from lower layer (type = %d, len %zu)\n",
 	    dvb_frame->getMessageType(),
 	    dvb_frame->getTotalLength());
 
-
 	switch(dvb_frame->getMessageType())
 	{
 		case MSG_TYPE_CORRUPTED:
-			if(this->satellite_type == TRANSPARENT)
+			if(this->handleCorrupted(dvb_frame))
 			{
-				// in transparent scenario, satellite physical layer cannot corrupt
-				LOG(this->log_receive, LEVEL_INFO,
-				    "the message was corrupted by physical layer, "
-				    "drop it\n");
-				delete dvb_frame;
 				break;
 			}
 			// continue to handle the corrupted message in onRcvFrame
@@ -1116,12 +852,12 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			 *  - if the satellite is a transparent one, forward DVB burst as the
 			 *    other DVB frames.
 			 */
-
 			LOG(this->log_receive, LEVEL_INFO,
 			    "DVB-Frame received\n");
-			
+
 			// satellite spot found, forward DVB frame on the same spot
 			DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+
 			// Update probes and stats
 			if(carrier_id == current_gw->getDataInStId())
 			{
@@ -1140,21 +876,20 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				return false;
 			}
 
-
-				/* The satellite is a regenerative one and the DVB frame contains
-				 * a burst:
-				 *  - extract the packets from the DVB frame,
-				 *  - find the destination spot ID for each packet
-				 *  - create a burst of encapsulation packets (NetBurst object)
-				 *    with all the packets extracted from the DVB frame,
-				 *  - send the burst to the upper layer.
-				 */
+			/* The satellite is a regenerative or transparent one 
+			 * and the DVB frame contains a burst:
+			 *  - extract the packets from the DVB frame,
+			 *  - find the destination spot ID for each packet
+			 *  - create a burst of encapsulation packets (NetBurst object)
+			 *    with all the packets extracted from the DVB frame,
+			 *  - send the burst to the upper layer.
+			 */
 			this->handleDvbBurst(dvb_frame, 
 			                     current_gw, 
 			                     current_spot);
 		}
 		break;
-
+		
 		/* forward the BB frame (and the burst that the frame contains) */
 		// TODO see if we can factorize
 		case MSG_TYPE_BBFRAME:
@@ -1182,12 +917,10 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 		// Generic control frames (SAC, TTP, etc)
 		case MSG_TYPE_SAC:
-		{
-			if(!this->handleSac(dvb_frame, current_gw))
+			if(!this->handleSac(dvb_frame))
 			{
 				return false;
 			}
-		}
 		// do not break here !
 		case MSG_TYPE_TTP:
 		case MSG_TYPE_SYNC:
@@ -1202,7 +935,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		}
 		break;
 
-			// Special case of logon frame with dedicated channel
+		// Special case of logon frame with dedicated channel
 		case MSG_TYPE_SESSION_LOGON_REQ:
 		{
 			LOG(this->log_receive, LEVEL_DEBUG,
@@ -1211,7 +944,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 			// forward the frame copy
 			if(!this->forwardDvbFrame(current_gw->getLogonFifo(),
-			                         dvb_frame))
+			                          dvb_frame))
 			{
 				return false;
 			}
@@ -1238,6 +971,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		}
 		break;
 
+		
 		default:
 		{
 			LOG(this->log_receive, LEVEL_ERROR,

@@ -81,14 +81,17 @@ class BlockDvbSat: public BlockDvb
 		Upward(Block *const bl);
 
 		~Upward();
-		virtual bool onInit(void) = 0;
+
+		virtual bool onInit(void);
+		
 		bool onEvent(const RtEvent *const event);
+		
 		void setSpots(const sat_spots_t &spots);
 
 	 protected: 
 		/// reception standard (DVB-RCS or DVB-S2)      
 		PhysicStd *reception_std; 
-
+		
 		/**
 		* Called upon reception event it is another layer (below on event) of demultiplexing
 		* Do the appropriate treatment according to the type of the DVB message
@@ -123,6 +126,13 @@ class BlockDvbSat: public BlockDvb
 		virtual bool initSwitchTable(void) = 0;
 		
 		/**
+		 * Handle corrupted frame
+		 *
+		 * @return true on success, false otherwise
+		 */ 
+		virtual bool handleCorrupted(DvbFrame *dvb_frame) = 0;
+
+		/**
 		 * Handle Net Burst packet
 		 * 
 		 * @return true on success , false otherwise
@@ -130,14 +140,13 @@ class BlockDvbSat: public BlockDvb
 		virtual bool handleDvbBurst(DvbFrame *dvb_frame,
 		                            SatGw *current_gw,
 		                            SatSpot *current_spot) = 0;
-
 		/**
 		 * Handle Sac
 		 * 
 		 * @return true on success, false otherwise
 		 */ 
-		virtual bool handleSac(DvbFrame *dvb_frame, 
-		                       SatGw *current_gw) = 0;
+		virtual bool handleSac(DvbFrame *dvb_frame) = 0;
+
 		/**
 		 * Handle BB Frame
 		 * 
@@ -146,6 +155,7 @@ class BlockDvbSat: public BlockDvb
 		virtual bool handleBBFrame(DvbFrame *dvb_frame, 
 		                           SatGw *current_gw,
 		                           SatSpot *current_spot) = 0;
+		
 		/**
 		 * Handle Saloha
 		 *
@@ -171,7 +181,9 @@ class BlockDvbSat: public BlockDvb
 		Downward(Block *const bl);
 
 		~Downward();
-		virtual bool onInit(void) = 0;
+		
+		virtual bool onInit(void);
+		
 		bool onEvent(const RtEvent *const event);
 		void setSpots(const sat_spots_t &spots);
 
@@ -183,14 +195,7 @@ class BlockDvbSat: public BlockDvb
 		 * @return              true on success, false otherwise
 		 */
 		bool sendFrames(DvbFifo *fifo);
-
-		/**
-		 *
-		 * @param packet    The NetPacket
-		 * @return          true on success, false otherwise
-		 */ 
-		bool handleRcvEncapPacket(NetPacket *packet);
-		
+				
 		/**
 		 * @brief handle event message
 		 *
@@ -205,6 +210,13 @@ class BlockDvbSat: public BlockDvb
 		 */ 
 		virtual bool handleTimerEvent(SatGw *current_gw,
 		                              uint8_t spot_id) = 0;
+		
+		/**
+		 * @ brief handle scenario event timer
+		 *
+		 * @return true on success, false otherwise
+		 */ 
+		virtual bool handleScenarioTimer() = 0;
 
 		/**
 		 * @brief Initialize the link
@@ -212,13 +224,6 @@ class BlockDvbSat: public BlockDvb
 		 * @return  true on success, false otherwise
 		 */
 		virtual bool initSatLink(void) = 0;
-
-		/**
-		 * @brief Read configuration for the list of STs
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		virtual bool initStList(void) = 0;
 
 		/**
 		 * @brief Read configuration for the different timers
@@ -238,53 +243,7 @@ class BlockDvbSat: public BlockDvb
 		 * Update the statistics on the satellite
 		 */
 		void updateStats(void);
-
-		/**
-		 * Get a list of the gw ids
-		 */
-		set<tal_id_t> getGwIds(void);
-
-		/**
-		 * Get a list of the spot ids
-		 */
-		set<spot_id_t> getSpotIds(void);
-
-		/**
-		 * @brief Read configuration for the different files and open them
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initModcodSimu(void);
-
-		/**
-		 * Set the Fmt Simulation on the appropriate Spot and Gw
-		 */
-		void setFmtSimulation(spot_id_t spot_id, tal_id_t gw_id,
-		                      FmtSimulation* new_fmt_simu);
-
-		/**
-		 * @brief Go to the first step in adaptive physical layer scenario
-		 *        For the appropriate Spot and Gw.
-		 *
-		 * @param spot_id      the id of the spot
-		 * @param gw_id        the id of the gw
-		 * @return true on success, false otherwise
-		 */
-		bool goFirstScenarioStep(spot_id_t spot_id, tal_id_t gw_id);
-
-		/**
-		 * @brief Go to next step in adaptive physical layer scenario
-		 *        Update current MODCODs IDs of all STs in the list
-		 *        For the appropriate Spot and Gw.
-		 *
-		 * @param spot_id      the id of the spot
-		 * @param gw_id        the id of the gw
-		 * @param duration     duration before the next step
-		 * @return true on success, false otherwise
-		 */
-		bool goNextScenarioStep(spot_id_t spot_id, tal_id_t gw_id,
-		                        double &duration);
-
+				
 		/// the counter for downlink frames
 		time_sf_t down_frame_counter;
 

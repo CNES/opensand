@@ -80,7 +80,6 @@ class BlockDvbSatTransp: public BlockDvbSat
 		UpwardTransp(Block *const bl);
 		~UpwardTransp();
 		
-		bool onInit(void);
 
 	 private:
 		/**
@@ -98,6 +97,14 @@ class BlockDvbSatTransp: public BlockDvbSat
 		bool initSwitchTable(void);
 		
 		/**
+		* handle corrupted frame
+		*
+		* @param dvb_frame  the DVB or BB frame to forward
+		* @return           true on success, false otherwise
+		*/
+		bool handleCorrupted(DvbFrame *dvb_frame);
+		
+		/**
 		 * Handle Net Burst packet
 		 * 
 		 * @return true on success , false otherwise
@@ -108,13 +115,12 @@ class BlockDvbSatTransp: public BlockDvbSat
 		
 		/**
 		 * Handle Sac
-		 * This fonction is never called in Transparent mode
+		 * this function do something only on regenerative mode
 		 * 
 		 * @return true on success, false otherwise
 		 */ 
-		bool handleSac(DvbFrame *dvb_frame, 
-		               SatGw *current_gw);
-
+		bool handleSac(DvbFrame *dvb_frame);
+		
 		/**
 		 * Handle BB Frame
 		 * 
@@ -140,8 +146,6 @@ class BlockDvbSatTransp: public BlockDvbSat
 		DownwardTransp(Block *const bl);
 		~DownwardTransp();
 		
-		bool onInit(void);
-
 	 private:
 		/**
 		 * @brief Initialize the link
@@ -149,13 +153,6 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 * @return  true on success, false otherwise
 		 */
 		bool initSatLink(void);
-
-		/**
-		 * @brief Read configuration for the list of STs
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initStList(void);
 
 		/**
 		 * @brief Read configuration for the different timers
@@ -178,6 +175,14 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 */ 
 		bool handleTimerEvent(SatGw *current_gw,
 		                      uint8_t spot_id);
+		
+		/**
+		 * @ brief handle scenario event timer
+		 * This fonction is never called in Transparent mode
+		 *
+		 * @return true on success, false otherwise
+		 */ 
+		bool handleScenarioTimer();
 
 	};
 
