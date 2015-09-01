@@ -71,15 +71,6 @@ bool SpotDownwardRegen::onInit(void)
 {
 	this->up_return_pkt_hdl = this->pkt_hdl;
 
-	// get and launch the dama algorithm
-	if(!this->initDama())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the DAMA part of the "
-		    "initialisation\n");
-		return false;
-	}
-	
 	// Initialization of the modcod def
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            &this->input_modcod_def))
@@ -95,7 +86,6 @@ bool SpotDownwardRegen::onInit(void)
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
-	DFLTLOG(LEVEL_ERROR, "init modcod file return up ok");
 
 	if(!SpotDownward::onInit())
 	{

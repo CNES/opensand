@@ -1163,7 +1163,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				}
 				break;
 
-					// Slotted Aloha
+				// Slotted Aloha
 				case MSG_TYPE_SALOHA_DATA:
 					if(!spot->handleSlottedAlohaFrame(dvb_frame))
 					{

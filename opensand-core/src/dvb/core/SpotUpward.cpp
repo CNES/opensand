@@ -203,7 +203,7 @@ bool SpotUpward::scheduleSaloha(DvbFrame *UNUSED(dvb_frame),
                                 list<DvbFrame *>* &UNUSED(ack_frames),
                                 NetBurst **UNUSED(sa_burst))
 {
-	assert(0);
+	return true;
 }
 
 // should only be called in Transparent mode
