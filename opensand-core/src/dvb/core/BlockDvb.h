@@ -115,9 +115,7 @@ class BlockDvb: public Block
 	 public:
 		DvbDownward(Block *const bl):
 			DvbChannel(),
-			RtChannel(bl, downward_chan),
-			fwd_timer_ms(),
-			scpc_timer_ms()
+			RtChannel(bl, downward_chan)
 		{
 		};
 
@@ -167,14 +165,6 @@ class BlockDvb: public Block
 		 * Update the statistics
 		 */
 		virtual void updateStats(void) = 0;
-
-	 protected:
-
-		/// the frame duration
-		time_ms_t fwd_timer_ms;
-		
-		///SCPC frame duration
-		time_ms_t scpc_timer_ms;
 	};
 };
 
