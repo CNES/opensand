@@ -425,9 +425,6 @@ class BlockDvbTal: public BlockDvb
 		/// Upon each logon timer event retry logon
 		event_id_t logon_timer;
 
-		/// The C/N0 for downlink in scenario
-		double cni;
-
 		/* QoS Server / Policy Enforcement Point (PEP) on ST side */
 		static int qos_server_sock;    ///< The socket for the QoS Server
 		std::string qos_server_host;   ///< The hostname of the QoS Server

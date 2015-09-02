@@ -167,7 +167,6 @@ BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	obr_slot_frame(-1),
 	complete_dvb_frames(),
 	logon_timer(-1),
-	cni(100),
 	qos_server_host(),
 	event_login(NULL),
 	log_frame_tick(NULL),
@@ -1596,21 +1595,10 @@ error:
 
 bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 {
+	// frames transmitted from Upward
 	uint8_t msg_type = dvb_frame->getMessageType();
 	switch(msg_type)
 	{
-		case MSG_TYPE_BBFRAME:
-		case MSG_TYPE_CORRUPTED:
-			if(!this->with_phy_layer)
-			{
-				delete dvb_frame;
-				break;
-			}
-			// get ACM parameters that will be transmited to GW in SAC
-			this->cni = dvb_frame->getCn();
-			delete dvb_frame;
-			break;
-
 		case MSG_TYPE_SALOHA_CTRL:
 			if(this->saloha && !this->saloha->onRcvFrame(dvb_frame))
 			{
@@ -1684,6 +1672,7 @@ bool BlockDvbTal::Downward::sendSAC(void)
 {
 	bool empty;
 	Sac *sac;
+	double cni;
 
 	if(!this->dama_agent)
 	{
@@ -1703,13 +1692,10 @@ bool BlockDvbTal::Downward::sendSAC(void)
 		goto error;
 	}
 	// Set the ACM parameters
-	if(!this->with_phy_layer)
-	{
-		fmt_id_t current_modcod;
-		current_modcod = this->getCurrentModcodIdInput(this->tal_id);
-		this->cni = this->input_modcod_def->getRequiredEsN0(current_modcod);
-	}
-	sac->setAcm(this->cni);
+	fmt_id_t current_modcod;
+	current_modcod = this->getCurrentModcodIdInput(this->tal_id);
+	cni = this->input_modcod_def->getRequiredEsN0(current_modcod);
+	sac->setAcm(cni);
 
 	if(empty)
 	{
@@ -2412,22 +2398,19 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			NetBurst *burst = NULL;
 			DvbS2Std *std = (DvbS2Std *)this->reception_std;
 
+			if(this->with_phy_layer)
+			{
+				// get ACM parameters that will be transmited to GW in SAC
+				double cni = dvb_frame->getCn();
+				this->setRequiredModcodInput(this->tal_id, cni);
+			}
+
 			// Set the real modcod of the ST
 			std->setRealModcod(this->getCurrentModcodIdInput(this->tal_id));
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_frame->getMessageLength();
 			this->l2_from_sat_bytes -= sizeof(T_DVB_HDR);
-
-			if(this->with_phy_layer)
-			{
-				DvbFrame *frame_copy = new DvbFrame(dvb_frame);
-				if(!this->shareFrame(frame_copy))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "Unable to transmit Frame to opposite channel\n");
-				}
-			}
 
 			if(!this->reception_std->onRcvFrame(dvb_frame,
 			                                   this->tal_id,
@@ -2676,12 +2659,15 @@ bool BlockDvbTal::Upward::handleSac(const DvbFrame *dvb_frame)
 	    "handle received SAC\n");
 
 	// SAC is received from sat in regenerative
-	// othewise, the gw send TBTP frame
+	// otherwise, the gw send TBTP frame
+	// TODO we should also get information in TTP ?!
+	//      Try removing that and stop forwarding SAC from GW
+	//      on satellite
 	double cni = sac->getCni();
 	tal_id_t id = sac->getTerminalId();
 	if(id == this->tal_id)
 	{
-		this->setRequiredModcodOutput(tal_id, cni);
+		this->setRequiredModcodOutput(this->tal_id, cni);
 	}
 	else
 	{
