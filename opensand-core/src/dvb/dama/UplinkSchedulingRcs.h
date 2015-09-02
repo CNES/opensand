@@ -54,7 +54,7 @@ class UplinkSchedulingRcs: public Scheduling
 
 	UplinkSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
-	                    const map<tal_id_t, StFmtSimu *> *const ret_sts,
+	                    const ListStFmt *const ret_sts,
 	                    const FmtDefinitionTable *const ret_modcod_def,
 	                    const TerminalCategoryDama *const category,
 	                    tal_id_t gw_id);
@@ -68,9 +68,6 @@ class UplinkSchedulingRcs: public Scheduling
 	
 	// the gw_id
 	tal_id_t gw_id;
-
-	/// The FMT simulated data
-	const map<tal_id_t, StFmtSimu *> *ret_sts;
 
 	/// The FMT definition table associated
 	const FmtDefinitionTable *ret_modcod_def;

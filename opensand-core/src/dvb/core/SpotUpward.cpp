@@ -46,6 +46,8 @@ SpotUpward::SpotUpward(spot_id_t spot_id,
                        tal_id_t mac_id,
                        StFmtSimuList *input_sts,
                        StFmtSimuList *output_sts):
+    DvbChannel(),
+    DvbFmt(),
 	spot_id(spot_id),
 	mac_id(mac_id),
 	reception_std(NULL),
@@ -88,6 +90,13 @@ SpotUpward::~SpotUpward()
 
 bool SpotUpward::onInit(void)
 {
+	if(!this->initFmt())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the FMT part of the initialisation\n");
+		return false;
+	}
+
 	// Get and open the files
 	if(!this->initModcodSimu())
 	{
@@ -159,14 +168,14 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 	if(!(this->input_sts->isStPresent(mac) && this->output_sts->isStPresent(mac)))
 	{
 		// ST was not registered yet
-		if(!this->addInputTerminal(mac, this->mac_id, this->spot_id))
+		if(!this->addInputTerminal(mac))
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
 			    "failed to handle FMT for ST %u, "
 			    "won't send logon response\n", mac);
 			return false;
 		}
-		if(!this->addOutputTerminal(mac, this->mac_id, this->spot_id))
+		if(!this->addOutputTerminal(mac))
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
 			    "failed to handle FMT for ST %u, "
@@ -249,14 +258,12 @@ bool SpotUpward::updateSeriesGenerator(void)
 		return false;
 	}
 
-	if(!this->input_series->add(this->input_sts->getListSts(this->mac_id,
-	                                                        this->spot_id)))
+	if(!this->input_series->add(this->input_sts->getListSts()))
 	{
 		return false;
 	}
 
-	if(!this->output_series->add(this->output_sts->getListSts(this->mac_id,
-	                                                          this->spot_id)))
+	if(!this->output_series->add(this->output_sts->getListSts()))
 	{
 		return false;
 	}

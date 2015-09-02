@@ -240,14 +240,14 @@ bool SpotUpwardTransp::initModcodSimu(void)
 	}
 
 	// declare the GW as one ST for the MODCOD scenarios
-	if(!this->addInputTerminal(this->mac_id, this->mac_id, this->spot_id))
+	if(!this->addInputTerminal(this->mac_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
 		    this->mac_id);
 		return false;
 	}
-	if(!this->addOutputTerminal(this->mac_id, this->mac_id, this->spot_id))
+	if(!this->addOutputTerminal(this->mac_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
@@ -455,6 +455,35 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 
 	return true;
 }
+
+void SpotUpwardTransp::handleCorruptedFrame(DvbFrame *dvb_frame)
+{
+	if(!this->with_phy_layer)
+	{
+		return;
+	}
+
+	double curr_cni = dvb_frame->getCn();
+	// transparent case : update return modcod for terminal
+	DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+	tal_id_t tal_id;
+	// decode the first packet in frame to be able to
+	// get source terminal ID
+	if(!this->pkt_hdl->getSrc(frame->getPayload(),
+	                          tal_id))
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "unable to read source terminal ID in"
+		    " frame, won't be able to update C/N"
+		    " value\n");
+		return;
+	}
+
+	this->setRequiredModcodInput(tal_id, curr_cni);
+
+	return;
+}
+
 
 bool SpotUpwardTransp::checkIfScpc()
 {

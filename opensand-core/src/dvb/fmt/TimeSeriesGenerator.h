@@ -91,7 +91,7 @@ class TimeSeriesGenerator
 	 * @param The list of ST FMT
 	 * @return true on success, false otherwise
 	 */
-	bool add(ListSts *sts);
+	bool add(const ListStFmt *const sts);
 
 };
 

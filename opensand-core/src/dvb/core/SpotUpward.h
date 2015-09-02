@@ -48,7 +48,7 @@
 
 #define SIMU_BUFF_LEN 255
 
-class SpotUpward: public DvbChannel
+class SpotUpward: public DvbChannel, public DvbFmt
 {
 	public:
 		SpotUpward(spot_id_t spot_id,
@@ -76,6 +76,13 @@ class SpotUpward: public DvbChannel
 		virtual bool handleFrame(DvbFrame *frame, NetBurst **burst) = 0;
 
 		/**
+		 * @brief handle Corrupted Dvb Frame
+		 *
+		 * @param dvb_frame the Dvb Frame corrupted
+		 */
+		virtual void handleCorruptedFrame(DvbFrame *dvb_frame) = 0;
+
+		/**
 		 * @brief Schedule Slotted Aloha carriers
 		 *
 		 *	@param dvb_frame   a SoF
@@ -84,8 +91,8 @@ class SpotUpward: public DvbChannel
 		 *  @return true on success, false otherwise
 		 */
 		virtual bool scheduleSaloha(DvbFrame *dvb_frame,
-		                    list<DvbFrame *>* &ack_frames,
-		                    NetBurst **sa_burst);
+		                            list<DvbFrame *>* &ack_frames,
+		                            NetBurst **sa_burst);
 
 		/**
 		 *  @brief Handle a logon request transmitted by the lower layer

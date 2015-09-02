@@ -59,7 +59,7 @@ class Scheduling
 
 	Scheduling(const EncapPlugin::EncapPacketHandler *packet_handler,
 	           const fifos_t &fifos,
-	           const map<tal_id_t, StFmtSimu *> *const simu_sts):
+	           const ListStFmt *const simu_sts):
 		packet_handler(packet_handler),
 		dvb_fifos(fifos),
 		simu_sts(simu_sts)
@@ -98,7 +98,7 @@ class Scheduling
 	 */
 	uint8_t getCurrentModcodId(tal_id_t id) const
 	{
-		map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
+		ListStFmt::const_iterator st_iter;
 		st_iter = this->simu_sts->find(id);
 		if(st_iter != this->simu_sts->end())
 		{
@@ -115,7 +115,7 @@ class Scheduling
 	/** The MAC FIFOs */
     const fifos_t dvb_fifos;
 	/** The FMT simulated data */
-	const map<tal_id_t, StFmtSimu *> *simu_sts;
+	const ListStFmt *const simu_sts;
 
 	// Output Log
 	OutputLog *log_scheduling;

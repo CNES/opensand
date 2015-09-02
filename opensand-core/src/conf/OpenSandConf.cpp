@@ -88,3 +88,4 @@ bool OpenSandConf::getSpot(string section,
 {
 	return global_config.getSpot(section, spot_id, gw_id, current_gw);
 }
+

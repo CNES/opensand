@@ -67,6 +67,101 @@
 #include "SpotUpward.h"
 #include "SpotDownward.h"
 
+/**
+ * @brief  The list of spots for GW channels and other common elements
+ */
+class DvbSpotList
+{
+ public:
+
+	DvbSpotList():
+		spots(),
+		default_spot(0),
+		log_spot(NULL)
+	{
+		this->log_spot = Output::registerLog(LEVEL_WARNING, "Dvb.Spot");
+	};
+
+	virtual ~DvbSpotList()
+	{
+		map<spot_id_t, DvbChannel *>::iterator spot_iter;
+		for(spot_iter = this->spots.begin(); 
+		    spot_iter != this->spots.end(); ++spot_iter)
+		{
+			delete (*spot_iter).second;
+		}
+	};
+
+	/**
+	 * @brief Set the list of StFmtSimu for spots
+	 *
+	 * @param output_sts  The list of output sts per spot
+	 * @param input_sts   The list of input sts per spot
+	 */
+	void setStFmt(const map<spot_id_t, StFmtSimuList *> &output_sts_list,
+	              const map<spot_id_t, StFmtSimuList *> &input_sts_list);
+
+ protected:
+
+	/**
+	 * @brief Create a spot list from configuration
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool initSpotList(void);
+
+	/**
+	 * @brief Get a spot with its spot_id
+	 *
+	 * @param spot_id  The spot id
+	 * @return the spot if found, NULL otherwise
+	 */
+	DvbChannel *getSpot(spot_id_t spot_id) const;
+
+	/**
+	 * @brief Get the list of output StFmtSimu for a given spot
+	 *
+	 * @return the desired list of output StFmtSimu
+	 */
+	StFmtSimuList *getOutputStFmt(spot_id_t spot_id);
+
+	/**
+	 * @brief Get the list of input StFmtSimu for a given spot
+	 *
+	 * @return the desired list of input StFmtSimu
+	 */
+	StFmtSimuList *getInputStFmt(spot_id_t spot_id);
+
+	/// The spots
+	map<spot_id_t, DvbChannel *> spots;
+
+	/// the default destination spot
+	spot_id_t default_spot;
+
+	/// The list of Sts with forward/down modcod per spot
+	map<spot_id_t, StFmtSimuList *> output_sts_list;
+
+	/// The list of Sts with return/up modcod per spot
+	map<spot_id_t, StFmtSimuList *> input_sts_list;
+
+ private:
+
+	/**
+	 * @brief Get the list of StFmtSimu for a given spot
+	 *
+	 * @return the desired list of StFmtSimu
+	 */
+	StFmtSimuList *getStFmt(spot_id_t spot,
+	                        const map<spot_id_t, StFmtSimuList *> &sts);
+
+	/// logging
+	OutputLog *log_spot;
+};
+
+
+
+
+
 class BlockDvbNcc: public BlockDvb
 {
  public:
@@ -83,7 +178,7 @@ class BlockDvbNcc: public BlockDvb
 	bool onInit();
 
 
-	class Upward: public DvbUpward
+	class Upward: public DvbUpward, public DvbSpotList
 	{
 	 public:
 		Upward(Block *const bl, tal_id_t mac_id);
@@ -109,7 +204,7 @@ class BlockDvbNcc: public BlockDvb
 	};
 
 
-	class Downward: public DvbDownward, NccPepInterface
+	class Downward: public DvbDownward, public DvbSpotList, public NccPepInterface
 	{
 	  public:
 		Downward(Block *const bl, tal_id_t mac_id);
@@ -177,11 +272,12 @@ class BlockDvbNcc: public BlockDvb
 
  protected:
 
-	/// The list of Sts with forward/down modcod
-	StFmtSimuList* output_sts;
+	/// The list of Sts with forward/down modcod per spot
+	map<spot_id_t, StFmtSimuList *> output_sts_list;
 
-	/// The list of Sts with return/up modcod
-	StFmtSimuList* input_sts;
+	/// The list of Sts with return/up modcod per spot
+	map<spot_id_t, StFmtSimuList *> input_sts_list;
 };
+
 
 #endif

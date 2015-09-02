@@ -101,7 +101,7 @@ bool DamaCtrlRcs::createTerminal(TerminalContextDama **terminal,
 
 uint8_t DamaCtrlRcs::getCurrentModcodId(tal_id_t id) const
 {
-	map<tal_id_t, StFmtSimu *>::const_iterator st_iter;
+	ListStFmt::const_iterator st_iter;
 	st_iter = this->input_sts->find(id);
 	if(st_iter != this->input_sts->end())
 	{
@@ -327,7 +327,7 @@ void DamaCtrlRcs::updateFmt()
 
 	for(DamaTerminalList::iterator terminal_it = this->terminals.begin();
 	    terminal_it != this->terminals.end(); ++terminal_it)
-    {
+	{
 		TerminalCategoryDama *category;
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 		TerminalContextDama *terminal = terminal_it->second;

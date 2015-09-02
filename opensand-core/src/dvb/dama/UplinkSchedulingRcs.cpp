@@ -46,7 +46,7 @@
 UplinkSchedulingRcs::UplinkSchedulingRcs(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos,
-			const map<tal_id_t, StFmtSimu *> *const ret_sts,
+			const ListStFmt *const ret_sts,
 			const FmtDefinitionTable *const ret_modcod_def,
 			const TerminalCategoryDama *const category,
 			tal_id_t gw_id):

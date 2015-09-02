@@ -86,7 +86,7 @@ static size_t getPayloadSize(string coding_rate)
 ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
                                          const EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
-                                         map<tal_id_t, StFmtSimu *> *const fwd_sts,
+                                         const ListStFmt *const fwd_sts,
                                          const FmtDefinitionTable *const fwd_modcod_def,
                                          const TerminalCategoryDama *const category,
                                          spot_id_t spot, 
@@ -814,19 +814,22 @@ error:
 
 tal_id_t ForwardSchedulingS2::getTalIdWithLowerModcod() const
 {
-	map<tal_id_t, StFmtSimu*>::const_iterator st_iterator;
+	ListStFmt::const_iterator st_iterator;
 	uint8_t modcod_id;
 	uint8_t lower_modcod_id = 0;
 	tal_id_t tal_id;
 	tal_id_t lower_tal_id = 255;
 
-	for(st_iterator = this->simu_sts->begin(); st_iterator != this->simu_sts->end();
+	for(st_iterator = this->simu_sts->begin();
+	    st_iterator != this->simu_sts->end();
 	    ++st_iterator)
 	{
 		// Retrieve the lower modcod
 		tal_id = st_iterator->first;
 
-		if((st_iterator == this->simu_sts->begin()) || (modcod_id < lower_modcod_id))
+		// TODO:retrieve with lower Es/N0 not modcod_id
+		if((st_iterator == this->simu_sts->begin()) ||
+		    (modcod_id < lower_modcod_id))
 		{
 			lower_modcod_id = modcod_id;
 			lower_tal_id = tal_id;

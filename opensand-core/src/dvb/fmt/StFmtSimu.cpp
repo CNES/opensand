@@ -91,158 +91,49 @@ void StFmtSimu::updateModcodId(uint8_t new_id)
 
 
 StFmtSimuList::StFmtSimuList():
-	sts(),
-	sts_ids(),
-	gws_id(),
+	sts(NULL),
 	sts_mutex("sts_mutex")
 {
 	// Output Log
 	this->log_fmt = Output::registerLog(LEVEL_WARNING,
 	                                    "Dvb.Fmt.StFmtSimuList");
 
+	this->sts = new ListStFmt();
 }
 
 StFmtSimuList::~StFmtSimuList()
 {
 	RtLock lock(this->sts_mutex);
-	ListStsPerSpotPerGw::iterator it;
-
-	for(it = this->sts.begin();
-	    it != this->sts.end(); it++)
+	for(ListStFmt::iterator it = this->sts->begin();
+	    it != this->sts->end(); it++)
 	{
-		this->clearListStsPerSpot(it->second);
+		delete it->second;
 	}
-
-	this->sts.clear();
-	this->sts_ids.clear();
-	this->gws_id.clear();
+	this->sts->clear();
 }
 
 
-StFmtSimuList::ListStsPerSpot *StFmtSimuList::getListStsPerSpot(tal_id_t gw_id) const
-{
-	// No lock on mutex because this function is private
-	// but the mutex should be locked when this fonction is called
-	ListStsPerSpotPerGw::const_iterator it;
-
-	it = this->sts.find(gw_id);
-
-	if(it == this->sts.end())
-	{
-		LOG(this->log_fmt, LEVEL_DEBUG, "Gw %u not found in the list\n", gw_id);
-		return NULL;
-	}
-
-	return it->second;
-}
-
-
-ListSts *StFmtSimuList::getListSts(tal_id_t gw_id, spot_id_t spot_id) const
+const ListStFmt *StFmtSimuList::getListSts(void) const
 {
 	RtLock lock(this->sts_mutex);
-	return this->getListStsPriv(gw_id, spot_id);
+	return this->sts;
 }
 
-ListSts *StFmtSimuList::getListStsPriv(tal_id_t gw_id, spot_id_t spot_id) const
+bool StFmtSimuList::addTerminal(tal_id_t st_id, fmt_id_t modcod)
 {
-	// No lock on mutex because this function is private
-	// but the mutex should be locked when this fonction is called
-	ListStsPerSpot::iterator it;
-	ListStsPerSpot *list_sts_per_spot;
-
-	list_sts_per_spot = this->getListStsPerSpot(gw_id);
-	if(!list_sts_per_spot)
-	{
-		return NULL;
-	}
-
-	it = list_sts_per_spot->find(spot_id);
-	if(it == list_sts_per_spot->end())
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "Spot %u not found in the list\n", spot_id);
-		return NULL;
-	}
-
-	return it->second;
-}
-
-
-bool StFmtSimuList::setListSts(tal_id_t gw_id, spot_id_t spot_id, ListSts *list_sts)
-{
-	// No lock on mutex because this function is private
-	// but the mutex should be locked when this fonction is called
-	ListStsPerSpotPerGw::iterator it;
-	ListStsPerSpot::iterator it2;
-	ListStsPerSpot *new_list;
-	std::pair<ListStsPerSpotPerGw::iterator, bool> ret;
-
-	it = this->sts.find(gw_id);
-	if(it == this->sts.end())
-	{
-		new_list = new ListStsPerSpot();
-		if(!new_list)
-		{
-			LOG(this->log_fmt, LEVEL_ERROR,
-			    "Failed to create ListStsPerSpot for Gw %u", gw_id);
-			delete new_list;
-			return false;
-		}
-		ret = this->sts.insert(std::make_pair(gw_id, new_list));
-		if(!ret.second)
-		{
-			LOG(this->log_fmt, LEVEL_ERROR,
-			    "GW id %u was already found in the list\n", gw_id);
-			delete new_list;
-			return false;
-		}
-		it = ret.first;
-	}
-
-	it2 = (*it).second->find(spot_id);
-	if(it2 != (*it).second->end())
-	{
-		this->clearListSts((*it2).second);
-		(*it2).second = list_sts;
-	}
-	else
-	{
-		(*it).second->insert(std::make_pair(spot_id, list_sts));
-	}
-
-	return true;
-}
-
-bool StFmtSimuList::addTerminal(tal_id_t st_id, uint8_t modcod, tal_id_t gw_id,
-                                spot_id_t spot_id)
-{
-	RtLock lock(this->sts_mutex);
-	ListSts* list_sts;
 	StFmtSimu *new_st;
 
+	if(this->isStPresent(st_id))
+	{
+		LOG(this->log_fmt, LEVEL_WARNING,
+		    "ST%u already exist in FMT simu list, erase it\n", st_id);
+		this->delTerminal(st_id);
+	}
+
+	// take the lock after checking if ST aleady exists
+	RtLock lock(this->sts_mutex);
 	LOG(this->log_fmt, LEVEL_DEBUG,
-	    "addTerminal, ST %u, GW %u, Spot %u\n", st_id, gw_id, spot_id);
-
-	if(st_id != gw_id)
-	{
-		// We are adding a st
-		std::pair<spot_id_t, tal_id_t> pair = std::make_pair(spot_id, gw_id);
-		this->sts_ids.insert(std::make_pair<tal_id_t, std::pair<spot_id_t, tal_id_t> >(st_id, pair));
-	}
-	this->gws_id.insert(gw_id);
-
-	// Find the good list
-	list_sts = this->getListStsPriv(gw_id, spot_id);
-	if(!list_sts)
-	{
-		list_sts = new ListSts();
-		if(!list_sts)
-		{
-			LOG(this->log_fmt, LEVEL_ERROR, "Failed to create new list\n");
-			return false;
-		}
-		this->setListSts(gw_id, spot_id, list_sts);
-	}
+	    "add ST%u in FMT simu list\n", st_id);
 
 	// Create the st
 	new_st = new StFmtSimu(st_id, modcod);
@@ -253,43 +144,19 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, uint8_t modcod, tal_id_t gw_id,
 	}
 
 	// insert it
-	(*list_sts)[st_id] = new_st;
+	this->sts->insert(std::make_pair(st_id, new_st));
 
 	return true;
 }
 
-bool StFmtSimuList::delTerminal(tal_id_t st_id, tal_id_t gw_id,
-                                spot_id_t spot_id)
+bool StFmtSimuList::delTerminal(tal_id_t st_id)
 {
 	RtLock lock(this->sts_mutex);
-	ListSts* list_sts;
-	ListSts::iterator it;
-
-	if(st_id == gw_id)
-	{
-		// We are deleting a gw
-		// Nothing to do, the gw might still be on
-		// an other spot
-	}
-	else
-	{
-		// We are deleting a st
-		this->sts_ids.erase(st_id);
-	}
-
-	// Find the good list
-	list_sts = this->getListStsPriv(gw_id, spot_id);
-	if(!list_sts)
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "List of Sts not found for spot %u and gw %u\n",
-		    spot_id, gw_id);
-		return false;
-	}
+	ListStFmt::iterator it;
 
 	// find the entry to delete
-	it = list_sts->find(st_id);
-	if(it == list_sts->end())
+	it = this->sts->find(st_id);
+	if(it == this->sts->end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "ST with ID %u not found in list of STs\n", st_id);
@@ -298,258 +165,94 @@ bool StFmtSimuList::delTerminal(tal_id_t st_id, tal_id_t gw_id,
 
 	// delete the ST
 	delete it->second;
-	list_sts->erase(it);
+	this->sts->erase(it);
 
 	return true;
 }
 
-void StFmtSimuList::updateModcod(tal_id_t gw_id, spot_id_t spot_id,
-                                 FmtSimulation* fmt_simu)
+void StFmtSimuList::updateModcod(const FmtSimulation &fmt_simu)
 {
 	RtLock lock(this->sts_mutex);
-	ListSts* list;
-	ListSts::iterator it;
+	ListStFmt::iterator it;
 
-	// Find the good list
-	list = this->getListStsPriv(gw_id, spot_id);
-	if(!list)
-	{
-		LOG(this->log_fmt, LEVEL_DEBUG,
-		    "List of Sts not found for spot %u and gw %u\n", spot_id, gw_id);
-		return;
-	}
-
-	for(it = list->begin(); it != list->end(); ++it)
+	for(it = this->sts->begin(); it != this->sts->end(); ++it)
 	{
 		StFmtSimu *st;
 		tal_id_t st_id;
-		unsigned long column;
+		tal_id_t column;
 
 		st = it->second;
 		st_id = st->getId();
 		column = st->getSimuColumnNum();
 
 		LOG(this->log_fmt, LEVEL_DEBUG,
-		    "ST with ID %u uses MODCOD ID at column %lu\n",
+		    "ST with ID %u uses MODCOD ID at column %u\n",
 		    st_id, column);
 
-		if(fmt_simu->getModcodList().size() <= column)
+		if(fmt_simu.getModcodList().size() <= column)
 		{
 			LOG(this->log_fmt, LEVEL_WARNING,
-			    "cannot access MODCOD column %lu for ST%u\n" "defaut MODCOD is used\n",
+			    "cannot access MODCOD column %u for ST%u\n" "defaut MODCOD is used\n",
 			    column, st_id);
-			column = fmt_simu->getModcodList().size() - 1;
+			column = fmt_simu.getModcodList().size() - 1;
 			st->setSimuColumnNum(column);
 		}
 		// replace the current MODCOD ID by the new one
-		st->updateModcodId(atoi(fmt_simu->getModcodList()[column].c_str()));
+		st->updateModcodId(atoi(fmt_simu.getModcodList()[column].c_str()));
 
 		LOG(this->log_fmt, LEVEL_DEBUG, "new MODCOD ID of ST with ID %u = %u\n",
-		    st_id, atoi(fmt_simu->getModcodList()[column].c_str()));
+		    st_id, atoi(fmt_simu.getModcodList()[column].c_str()));
 	}
 }
 
-void StFmtSimuList::setRequiredModcod(tal_id_t st_id, uint8_t modcod_id)
+void StFmtSimuList::setRequiredModcod(tal_id_t st_id, fmt_id_t modcod_id)
 {
 	RtLock lock(this->sts_mutex);
-	ListSts* list;
-	ListSts::const_iterator st_iter;
-	std::map<tal_id_t, std::pair<spot_id_t, tal_id_t> >::iterator it;
-	spot_id_t spot_id;
-	tal_id_t gw_id;
+	ListStFmt::iterator st_iter;
 
-	if(this->gws_id.find(st_id) != this->gws_id.end())
-	{
-		// we have to set the gw's modcod for all the spot
-		this->setRequiredModcodGw(st_id, modcod_id);
-		return;
-	}
 
-	it = this->sts_ids.find(st_id);
-	if(it == this->sts_ids.end())
-	{
-		// the st is not present
-		LOG(this->log_fmt, LEVEL_ERROR, "St %u is not present\n", st_id);
-		return;
-	}
-	spot_id = it->second.first;
-	gw_id = it->second.second;
-
-	// Find the good list
-	list = this->getListStsPriv(gw_id, spot_id);
-	if(!list)
+	st_iter = this->sts->find(st_id);
+	if(st_iter == this->sts->end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
-		    "List of Sts not found for spot %u and gw %u\n", spot_id, gw_id);
+		    "ST%u not found, cannot set required MODCOD\n", st_id);
 		return;
 	}
+	LOG(this->log_fmt, LEVEL_INFO,
+	    "set required MODCOD %u for ST%u\n", modcod_id, st_id);
 
-	st_iter = list->find(st_id);
-	if(st_iter == list->end())
-	{
-		LOG(this->log_fmt, LEVEL_ERROR, "Sts %u not found\n", st_id);
-		return;
-	}
-	st_iter->second->updateModcodId(modcod_id);
+	(*st_iter).second->updateModcodId(modcod_id);
 }
 
-void StFmtSimuList::setRequiredModcodGw(tal_id_t gw_id, uint8_t modcod_id)
-{
-	ListStsPerSpot* list;
-	ListStsPerSpot::iterator it;
-	ListSts::iterator st_iter;
-	spot_id_t spot_id;
 
-	list = this->getListStsPerSpot(gw_id);
-	if(!list)
-	{
-		LOG(this->log_fmt, LEVEL_ERROR, "List of Sts not found for gw %u\n", gw_id);
-		return;
-	}
-
-	for(it = list->begin();
-	    it != list->end(); it++)
-	{
-		st_iter = it->second->find(gw_id);
-		spot_id = it->first;
-		if(st_iter == it->second->end())
-		{
-			// Error here, the gw should be found every time
-			LOG(this->log_fmt, LEVEL_ERROR, "Gw %u not found for spot %u\n",
-			    spot_id, gw_id);
-			continue;
-		}
-		st_iter->second->updateModcodId(modcod_id);
-	}
-}
-
-uint8_t StFmtSimuList::getCurrentModcodId(tal_id_t st_id)
+fmt_id_t StFmtSimuList::getCurrentModcodId(tal_id_t st_id) const
 {
 	RtLock lock(this->sts_mutex);
-	ListSts* list;
-	ListSts::const_iterator st_iter;
-	std::map<tal_id_t, std::pair<spot_id_t, tal_id_t> >::iterator it;
-	spot_id_t spot_id;
-	tal_id_t gw_id;
+	ListStFmt::const_iterator st_iter;
 
-	if(this->gws_id.find(st_id) != this->gws_id.end())
-	{
-		// the modcod is the same for all the spot
-		return this->getCurrentModcodIdGw(st_id);
-	}
-
-	it = this->sts_ids.find(st_id);
-	if(it == this->sts_ids.end())
-	{
-		// the st is not present
-		LOG(this->log_fmt, LEVEL_ERROR, "St %u is not present\n", st_id);
-		return 0;
-	}
-	spot_id = it->second.first;
-	gw_id = it->second.second;
-
-	// Find the good list
-	list = this->getListStsPriv(gw_id, spot_id);
-	if(!list)
+	st_iter = this->sts->find(st_id);
+	if(st_iter == this->sts->end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
-		    "List of Sts not found for spot %u and gw %u\n",
-		    spot_id, gw_id);
+		    "ST%u not found, cannot get current MODCOD\n", st_id);
 		return 0;
 	}
 
-	st_iter = list->find(st_id);
-	if(st_iter == list->end())
-	{
-		LOG(this->log_fmt, LEVEL_ERROR, "Sts %u not found\n", st_id);
-		return 0;
-	}
-
-	return st_iter->second->getCurrentModcodId();
+	return (*st_iter).second->getCurrentModcodId();
 }
 
-uint8_t StFmtSimuList::getCurrentModcodIdGw(tal_id_t gw_id)
-{
-	// No lock on mutex because this function is private
-	// but the mutex should be locked when this fonction is called
-	ListStsPerSpot* list;
-	ListStsPerSpot::iterator it;
-	ListSts::iterator gw_iter;
-
-	list = this->getListStsPerSpot(gw_id);
-	if(!list)
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "List of Sts not found for gw %u\n", gw_id);
-		return 0;
-	}
-
-	it = list->begin();
-	if(it == list->end())
-	{
-		LOG(this->log_fmt, LEVEL_ERROR, "No spot found\n");
-		return 0;
-	}
-	gw_iter = it->second->find(gw_id);
-	return gw_iter->second->getCurrentModcodId();
-}
-
-bool StFmtSimuList::isStPresent(tal_id_t st_id)
+bool StFmtSimuList::isStPresent(tal_id_t st_id) const
 {
 	RtLock lock(this->sts_mutex);
-	std::map<tal_id_t, std::pair<spot_id_t, tal_id_t> >::iterator it;
+	ListStFmt::const_iterator st_iter;
 
-	it = this->sts_ids.find(st_id);
-	if(it == this->sts_ids.end())
+	st_iter = this->sts->find(st_id);
+	if(st_iter == this->sts->end())
 	{
 		// the st is not present
 		return false;
 	}
 
 	return true;
-}
-
-void StFmtSimuList::clearListStsPerSpot(ListStsPerSpot* list)
-{
-	// No lock on mutex because this function is private
-	// but the mutex should be locked when this fonction is called
-	ListStsPerSpot::iterator it;
-
-	if(!list)
-	{
-		// Nothing to do
-		return;
-	}
-
-	for(it = list->begin();
-	    it != list->end(); it++)
-	{
-		this->clearListSts(it->second);
-	}
-
-	list->clear();
-	delete list;
-}
-
-void StFmtSimuList::clearListSts(ListSts *list)
-{
-	// No lock on mutex because this function is private
-	// but the mutex should be locked when this fonction is called
-	ListSts::iterator it;
-
-	if(!list)
-	{
-		// Nothing to do
-		return;
-	}
-
-	for(it = list->begin();
-	    it != list->end(); it++)
-	{
-		delete it->second;
-	}
-
-	list->clear();
-	delete list;
 }
 

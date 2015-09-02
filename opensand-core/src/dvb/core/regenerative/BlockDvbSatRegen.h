@@ -62,10 +62,7 @@
 
 #include <linux/param.h>
 
-/**
- * Blocs heritate from mgl_bloc clam_singleSpot.sse
- * mgl_bloc classe defines some default handlers such as 'onEvent'
- */
+
 class BlockDvbSatRegen: public BlockDvbSat
 {
 
@@ -74,7 +71,8 @@ class BlockDvbSatRegen: public BlockDvbSat
 	BlockDvbSatRegen(const string &name);
 	~BlockDvbSatRegen();
 
-	class UpwardRegen: public Upward
+	// TODO move DvbFmt inheritance in SatGw
+	class UpwardRegen: public Upward, public DvbFmt
 	{
 	 public:
 		UpwardRegen(Block *const bl);
@@ -133,7 +131,8 @@ class BlockDvbSatRegen: public BlockDvbSat
 	
 	};
 
-	class DownwardRegen: public Downward
+	// TODO move DvbFmt inheritance in SatGw
+	class DownwardRegen: public Downward, public DvbFmt
 	{
 	 public:
 		DownwardRegen(Block *const bl);
@@ -237,9 +236,6 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 * Get a list of the spot ids
 		 */
 		set<spot_id_t> getSpotIds(void);
-
-
-
 	};
 
 

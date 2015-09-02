@@ -68,6 +68,13 @@ class SpotUpwardTransp: public SpotUpward
 		bool handleFrame(DvbFrame *frame, NetBurst **burst);
 
 		/**
+		 * @brief handle Corrupted Dvb Frame
+		 *
+		 * @param dvb_frame the Dvb Frame corrupted
+		 */
+		void handleCorruptedFrame(DvbFrame *dvb_frame);
+
+		/**
 		 * @brief Schedule Slotted Aloha carriers
 		 *
 		 *	@param dvb_frame   a SoF

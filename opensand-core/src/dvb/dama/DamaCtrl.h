@@ -97,7 +97,7 @@ class DamaCtrl
 	                        TerminalCategories<TerminalCategoryDama> categories,
 	                        TerminalMapping<TerminalCategoryDama> terminal_affectation,
 	                        TerminalCategoryDama *default_category,
-	                        map<tal_id_t, StFmtSimu *> *const input_sts,
+	                        const ListStFmt *const input_sts,
 	                        FmtDefinitionTable *const input_modcod_def,
 	                        bool simulated);
 
@@ -274,7 +274,7 @@ class DamaCtrl
 	TerminalCategoryDama *default_category;
 
 	/** list of Sts with modcod informations for input link */
-	map<tal_id_t, StFmtSimu *> *input_sts;
+	const ListStFmt *input_sts;
 
 	/** Fmt Definition table for input link */
 	FmtDefinitionTable *input_modcod_def;

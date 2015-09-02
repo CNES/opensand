@@ -57,7 +57,7 @@ TimeSeriesGenerator::~TimeSeriesGenerator()
 }
 
 
-bool TimeSeriesGenerator::add(ListSts *sts)
+bool TimeSeriesGenerator::add(const ListStFmt *const sts)
 {
 	bool update = false;
 
@@ -72,7 +72,7 @@ bool TimeSeriesGenerator::add(ListSts *sts)
 	}
 
 
-	for(ListSts::iterator it = sts->begin();
+	for(ListStFmt::const_iterator it = sts->begin();
 	    it != sts->end(); ++it)
 	{
 		tal_id_t tal_id = (*it).first;

@@ -51,14 +51,12 @@ SpotDownwardRegen::SpotDownwardRegen(spot_id_t spot_id,
                                      sat_type_t sat_type,
                                      EncapPlugin::EncapPacketHandler *pkt_hdl,
                                      StFmtSimuList *input_sts,
-                                     StFmtSimuList *output_sts,
-                                     bool phy_layer):
+                                     StFmtSimuList *output_sts):
 	SpotDownward(spot_id, mac_id, 
 	             fwd_down_frame_duration, 
 	             ret_up_frame_duration, 
 	             stats_period, sat_type,
-	             pkt_hdl, input_sts, output_sts,
-	             phy_layer)
+	             pkt_hdl, input_sts, output_sts)
 {
 }
 
@@ -104,6 +102,7 @@ bool SpotDownwardRegen::initMode(void)
 	ConfigurationList spots;
 	ConfigurationList current_spot;
 	ConfigurationList current_gw;
+	const ListStFmt *list;
 
 	// Get the spot list
 	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
@@ -161,7 +160,8 @@ bool SpotDownwardRegen::initMode(void)
 		}
 		cat = this->default_category;
 	}
-	ListSts* list = this->input_sts->getListSts(this->mac_id, this->spot_id);
+
+	list = this->input_sts->getListSts();
 	this->scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
 	                                           this->dvb_fifos,
 	                                           list,
@@ -192,7 +192,7 @@ bool SpotDownwardRegen::initDama(void)
 	time_sf_t rbdc_timeout_sf;
 	rate_kbps_t fca_kbps;
 	string dama_algo;
-	ListSts* list;
+	const ListStFmt *list;
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
@@ -274,7 +274,7 @@ bool SpotDownwardRegen::initDama(void)
 	}
 
 	// Initialize the DamaCtrl parent class
-	list = this->input_sts->getListSts(this->mac_id, this->spot_id);
+	list = this->input_sts->getListSts();
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
@@ -325,17 +325,6 @@ bool SpotDownwardRegen::initOutput(void)
 		                                                     true, SAMPLE_LAST,
 		                                                     "Spot_%d.ACM.Used_modcod",
 		                                                     this->spot_id);
-
-	return true;
-}
-
-bool SpotDownwardRegen::handleCorruptedFrame(DvbFrame *dvb_frame)
-{
-	double curr_cni = dvb_frame->getCn();
-	// regenerative case:
-	//   we need downlink ACM parameters to inform
-	//   satellite with a SAC so inform opposite channel
-	this->cni = curr_cni;
 
 	return true;
 }

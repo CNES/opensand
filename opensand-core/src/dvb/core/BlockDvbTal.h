@@ -112,7 +112,7 @@ class BlockDvbTal: public BlockDvb
 	bool initListsSts();
 
 
-	class Upward: public DvbUpward
+	class Upward: public DvbUpward, public DvbFmt
 	{
 	 public:
 		Upward(Block *const bl, tal_id_t mac_id);
@@ -223,7 +223,7 @@ class BlockDvbTal: public BlockDvb
 	};
 
 
-	class Downward: public DvbDownward
+	class Downward: public DvbDownward, public DvbFmt
 	{
 	 public:
 		Downward(Block *const bl, tal_id_t mac_id);

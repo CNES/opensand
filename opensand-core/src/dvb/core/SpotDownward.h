@@ -44,7 +44,7 @@
 #include "RequestSimulator.h"
 
 
-class SpotDownward: public DvbChannel, public NccPepInterface
+class SpotDownward: public DvbChannel, public DvbFmt
 {
  public:
 	SpotDownward(spot_id_t spot_id,
@@ -55,8 +55,7 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	             sat_type_t sat_type,
 	             EncapPlugin::EncapPacketHandler *pkt_hdl,
 	             StFmtSimuList *input_sts,
-	             StFmtSimuList *output_sts,
-	             bool phy_layer);
+	             StFmtSimuList *output_sts);
 
 	virtual ~SpotDownward();
 	
@@ -133,14 +132,6 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	bool handleSac(const DvbFrame *dvb_frame);
 
 	/**
-	 * @brief handle Corrupted Dvb Frame
-	 *
-	 * @param dvb_frame the Dvb Frame corrupted
-	 * @return true on succes, flase otherwise
-	 */
-	virtual bool handleCorruptedFrame(DvbFrame *dvb_frame) = 0;
-
-	/**
 	 * @brief go to fmt simu next scenario
 	 *
 	 * @param next_step  time of the next step
@@ -168,8 +159,6 @@ class SpotDownward: public DvbChannel, public NccPepInterface
 	 * @return true on success, false otherwise
 	 */
 	bool buildTtp(Ttp *ttp);
-
-	double getCni(void) const;
 
 	uint8_t getCtrlCarrierId(void) const;
 	uint8_t getSofCarrierId(void) const;

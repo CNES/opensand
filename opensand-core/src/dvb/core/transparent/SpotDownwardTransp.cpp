@@ -51,14 +51,12 @@ SpotDownwardTransp::SpotDownwardTransp(spot_id_t spot_id,
                            sat_type_t sat_type,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            StFmtSimuList *input_sts,
-                           StFmtSimuList *output_sts,
-                           bool phy_layer):
+                           StFmtSimuList *output_sts):
 	SpotDownward(spot_id, mac_id, 
 	             fwd_down_frame_duration, 
 	             ret_up_frame_duration, 
 	             stats_period, sat_type,
-	             pkt_hdl, input_sts, output_sts,
-	             phy_layer)
+	             pkt_hdl, input_sts, output_sts)
 {
 }
 
@@ -113,6 +111,7 @@ bool SpotDownwardTransp::initMode(void)
 	ConfigurationList spots;
 	ConfigurationList current_spot;
 	ConfigurationList current_gw;
+	const ListStFmt *list;
 
 	if(!Conf::getListNode(forward_down_band, SPOT_LIST, spots))
 	{
@@ -169,9 +168,9 @@ bool SpotDownwardTransp::initMode(void)
 		    "down/forward band\n");
 		return false;
 	}
-;
+
+	list = this->output_sts->getListSts();
 	cat = this->categories.begin()->second;
-	ListSts* list = this->output_sts->getListSts(this->mac_id, this->spot_id);
 	this->scheduling = new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
 	                                           this->pkt_hdl,
 	                                           this->dvb_fifos,
@@ -204,7 +203,7 @@ bool SpotDownwardTransp::initDama(void)
 	time_sf_t rbdc_timeout_sf;
 	rate_kbps_t fca_kbps;
 	string dama_algo;
-	ListSts* list;
+	const ListStFmt *list;
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
@@ -314,7 +313,7 @@ bool SpotDownwardTransp::initDama(void)
 	}
 
 	// Initialize the DamaCtrl parent class
-	list = this->input_sts->getListSts(this->mac_id, this->spot_id);
+	list = this->input_sts->getListSts();
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
@@ -348,29 +347,6 @@ release_dama:
 	return false;
 }
 
-
-bool SpotDownwardTransp::handleCorruptedFrame(DvbFrame *dvb_frame)
-{
-	double curr_cni = dvb_frame->getCn();
-	// transparent case : update return modcod for terminal
-	DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-	tal_id_t tal_id;
-	// decode the first packet in frame to be able to
-	// get source terminal ID
-	if(!this->pkt_hdl->getSrc(frame->getPayload(),
-	                          tal_id))
-	{
-		LOG(this->log_receive_channel, LEVEL_ERROR,
-		    "unable to read source terminal ID in"
-		    " frame, won't be able to update C/N"
-		    " value\n");
-		return false;
-	}
-
-	this->setRequiredModcodInput(tal_id, curr_cni);
-
-	return true;
-}
 
 bool SpotDownwardTransp::handleSalohaAcks(const list<DvbFrame *> *ack_frames)
 {

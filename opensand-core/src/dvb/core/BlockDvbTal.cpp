@@ -231,6 +231,13 @@ bool BlockDvbTal::Downward::onInit(void)
 	                                           "Dvb.QoSServer");
 	this->log_frame_tick = Output::registerLog(LEVEL_WARNING, 
 	                                           "Dvb.DamaAgent.FrameTick");
+	if(!this->initFmt())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the FMT part of the initialisation\n");
+		return false;
+	}
+
 	// get the common parameters
 	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
 	{
@@ -2198,7 +2205,7 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 				    "MODCOD scenario timer received\n");
 
 				double duration;
-				if(!this->goNextScenarioStepInput(duration, this->group_id, this->spot_id))
+				if(!this->goNextScenarioStepInput(duration))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "SF#%u: failed to update MODCOD IDs\n",
@@ -2253,6 +2260,12 @@ bool BlockDvbTal::Upward::onInit(void)
 		return false;
 	}
 
+	if(!this->initFmt())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the FMT part of the initialisation\n");
+		return false;
+	}
 
 	// get the common parameters
 	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
@@ -2632,14 +2645,14 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	    this->group_id, this->tal_id);
 
 	// Add the st id in the fmt_simu
-	if(!this->addOutputTerminal(this->tal_id, this->group_id, this->spot_id))
+	if(!this->addOutputTerminal(this->tal_id))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to handle FMT for ST %u, "
 		    "won't send logon response\n", this->tal_id);
 		return false;
 	}
-	if(!this->addInputTerminal(this->tal_id, this->group_id, this->spot_id))
+	if(!this->addInputTerminal(this->tal_id))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to handle FMT for ST %u, "

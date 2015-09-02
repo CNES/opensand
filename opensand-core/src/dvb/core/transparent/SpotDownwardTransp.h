@@ -54,8 +54,7 @@ class SpotDownwardTransp: public SpotDownward
 		             sat_type_t sat_type,
 		             EncapPlugin::EncapPacketHandler *pkt_hdl,
 		             StFmtSimuList *input_sts,
-		             StFmtSimuList *output_sts,
-		             bool phy_layer);
+		             StFmtSimuList *output_sts);
 
 		virtual ~SpotDownwardTransp();
 		
@@ -66,14 +65,6 @@ class SpotDownwardTransp: public SpotDownward
 		 */ 
 		bool onInit(void);
 			
-		/**
-		 * @brief handle Corrupted Dvb Frame
-		 *
-		 * @param dvb_frame the Dvb Frame corrupted
-		 * @return true on succes, flase otherwise
-		 */
-		bool handleCorruptedFrame(DvbFrame *dvb_frame);
-
 		/**
 		* @brief Handle the Slotted Aloha ACKs
 		 *

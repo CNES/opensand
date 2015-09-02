@@ -330,12 +330,27 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 
 bool BlockDvbSatRegen::DownwardRegen::initTimers(void)
 {
+	bool with_phy_layer;
+
 	// create frame timer (also used to send packets waiting in fifo)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                       this->fwd_down_frame_duration_ms);
 
-	if(!this->with_phy_layer)
+
+	// Retrieve the value of the ‘enable’ parameter for the physical layer
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		               ENABLE,
+	                   with_phy_layer))
 	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "Section %s, %s missing\n",
+		    PHYSICAL_LAYER_SECTION, ENABLE);
+		return false;
+	}
+
+	if(!with_phy_layer)
+	{
+		// TODO per spot per gw
 		// launch the timer in order to retrieve the modcods
 		this->scenario_timer = this->addTimerEvent("dvb_scenario_timer",
 		                                           1, // the duration will be change when started
@@ -610,7 +625,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleScenarioTimer()
 	
 	double duration;
 	//TODO Timer per spot and per gw
-	if(!this->goNextScenarioStepInput(duration, 0, 0))
+	if(!this->goNextScenarioStepInput(duration))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 				"failed to update MODCOD IDs\n");
@@ -873,7 +888,9 @@ bool BlockDvbSatRegen::UpwardRegen::handleDvbBurst(DvbFrame *dvb_frame,
 	NetBurst *burst = NULL;
 	DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
 	
-	if(this->with_phy_layer  &&
+	// TODO move in SatGw
+	bool with_phy_layer = false;
+	if(with_phy_layer &&
 	   this->reception_std->getType() == "DVB-RCS")
 	{
 		tal_id_t src_tal_id;
@@ -923,7 +940,9 @@ bool BlockDvbSatRegen::UpwardRegen::handleDvbBurst(DvbFrame *dvb_frame,
 
 bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame)
 {
-	if(this->with_phy_layer)
+	// TODO move in SatGw
+	bool with_phy_layer = false;
+	if(with_phy_layer)
 	{
 		// handle SAC here to get the uplink ACM parameters
 		Sac *sac = (Sac *)dvb_frame;

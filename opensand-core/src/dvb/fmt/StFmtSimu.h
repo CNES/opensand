@@ -128,92 +128,26 @@ class StFmtSimu
 };
 
 
-typedef std::map<tal_id_t, StFmtSimu *> ListSts;
+typedef std::map<tal_id_t, StFmtSimu *> ListStFmt;
 
 
 /**
  * @class StFmtSimuList
- * @brief The List of StFmtSimu
+ * @brief The List of StFmtSimu per spot
  */
 class StFmtSimuList
 {
  private:
 
-	typedef std::map<spot_id_t, ListSts *> ListStsPerSpot;
-	typedef std::map<tal_id_t, ListStsPerSpot *> ListStsPerSpotPerGw;
-
-	/** the list of StFmtSimu per spot and per gw */
-	ListStsPerSpotPerGw sts;
+	/** the list of StFmtSimu per spot */
+	ListStFmt *sts;
 
 	// Output Log
 	OutputLog *log_fmt;
 
-	/** a list which associate a st id with it gw id and spot id */
-	std::map<tal_id_t, std::pair<spot_id_t, tal_id_t> > sts_ids;
-
-	/** a list of gw id */
-	std::set<tal_id_t> gws_id;
-
+	/** a list which associate a st id with its spot id */
 	/** the mutex to protect the list from concurrent access */
 	mutable RtMutex sts_mutex;
-
-	/**
-	 * @brief  get the ListStsPerSpot for the gw asked
-	 * @warning  this function desn't lock the mutex, only use it in
-	 *           a function that lock the mutex
-	 *
-	 * @param  gw_id   the tal id of the gw
-	 * @return the ListStsPerSpot for the gw asked
-	 */
-	ListStsPerSpot* getListStsPerSpot(tal_id_t gw_id) const;
-
-
-	/**
-	 * @brief   get the ListSts for the right spot and gw
-	 * @warning  this function desn't lock the mutex, only use it in
-	 *           a function that lock the mutex
-	 *
-	 * @param   gw_id the    tal id of the gw
-	 * @param   spot_id      the id of the spot
-	 * @return  the ListSts for the right spot and gw
-	 */
-	ListSts* getListStsPriv(tal_id_t gw_id, spot_id_t spot_id) const;
-
-	/**
-	 * @brief  set the ListSts for the right gw and spot
-	 * @warning  this function desn't lock the mutex, only use it in
-	 *           a function that lock the mutex
-	 *
-	 * @param   gw_id the    tal id of the gw
-	 * @param   spot_id      the id of the spot
-	 * @param   list_sts     the list to set
-	 * @return  true on success, false otherwise
-	 */
-	bool setListSts(tal_id_t gw_id, spot_id_t spot_id, ListSts *list_sts);
-
-	/**
-	 * @brief  set the modcod id for the gw
-	 * @warning  this function desn't lock the mutex, only use it in
-	 *           a function that lock the mutex
-	 *
-	 * @param  gw_id      the id of the gw
-	 * @param  modcod_id  the id of the modcod
-	 */
-	void setRequiredModcodGw(tal_id_t gw_id, uint8_t modcod_id);
-
-	/**
-	 * @brief  get the current modcod id for a gw
-	 * @warning  this function desn't lock the mutex, only use it in
-	 *           a function that lock the mutex
-	 *
-	 * @param  gw_id  the id of the gw
-	 * @return the modcod id
-	 */
-	uint8_t getCurrentModcodIdGw(tal_id_t gw_id);
-
-	void clearListStsPerSpot(ListStsPerSpot* list);
-
-	void clearListSts(ListSts* list);
 
 
  public:
@@ -224,54 +158,44 @@ class StFmtSimuList
 
 
 	/**
-	 * @brief   get the ListSts for the right spot and gw
+	 * @brief   get the list
 	 *
-	 * @param   gw_id the    tal id of the gw
-	 * @param   spot_id      the id of the spot
-	 * @return  the ListSts for the right spot and gw
+	 * @return  the list
 	 */
-	ListSts *getListSts(tal_id_t gw_id, spot_id_t spot_id) const;
+	const ListStFmt *getListSts(void) const;
 
 	/**
-	 * @brief  add a terminal in the right list
+	 * @brief  add a terminal in the list
 	 *
 	 * @param  st_id    the id of the terminal
-	 * @param  modcod   the modcod of the terminal
-	 * @param  gw_id    the id of the gw associated
-	 * @param  spot_id  the id of the spot associated
+	 * @param  modcod   the initial modcod of the terminal
 	 * @return  true on succes, false otherwise
 	 */
-	bool addTerminal(tal_id_t st_id, uint8_t modcod, tal_id_t gw_id, spot_id_t spot_id);
+	bool addTerminal(tal_id_t st_id, fmt_id_t modcod);
 
 	/**
-	 * @brief  add a terminal in the right list
+	 * @brief  remove a terminal from the list
 	 *
 	 * @param  st_id    the id of the terminal
-	 * @param gw_id     the id of the gw
-	 * @param spot_id   the id of the spot
 	 * @return  true on succes, false otherwise
 	 */
-	bool delTerminal(tal_id_t st_id, tal_id_t gw_id, spot_id_t spot_id);
+	bool delTerminal(tal_id_t st_id);
 
 	/**
-	 * @brief  update the modcod of all st in the list
-	 *         for a gw and a spot
+	 * @brief  update the modcod of all st in the list according
+	 *         to the simulation file
 	 *
-	 * @param gw_id     the id of the gw
-	 * @param spot_id   the id of the spot
 	 * @param fmt_simu  the fmt simulation
 	 */
-	void updateModcod(tal_id_t gw_id, spot_id_t spot_id, FmtSimulation* fmt_simu);
+	void updateModcod(const FmtSimulation &fmt_simu);
 
 	/**
 	 * @brief  set the modcod id for the st
-	 *         If st_id is the id of a gw, we must update
-	 *         the modcod for all the spot
 	 *
 	 * @param  st_id      the id of the st
 	 * @param  modcod_id  the id of the modcod
 	 */
-	void setRequiredModcod(tal_id_t st_id, uint8_t modcod_id);
+	void setRequiredModcod(tal_id_t st_id, fmt_id_t modcod_id);
 
 	/**
 	 * @brief  get the current modcod id for a st
@@ -279,7 +203,7 @@ class StFmtSimuList
 	 * @param  st_id  the id of the st
 	 * @return the modcod id
 	 */
-	uint8_t getCurrentModcodId(tal_id_t st_id);
+	uint8_t getCurrentModcodId(tal_id_t st_id) const;
 
 	/**
 	 * @brief  check is the st is present
@@ -287,7 +211,7 @@ class StFmtSimuList
 	 * @param  st_id   the id of the st
 	 * @return true is present, false otherwise
 	 */
-	bool isStPresent(tal_id_t st_id);
+	bool isStPresent(tal_id_t st_id) const;
 
 };
 

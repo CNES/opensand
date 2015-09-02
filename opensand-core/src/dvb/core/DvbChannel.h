@@ -28,29 +28,12 @@
 
 /**
  * @file DvbChannel.h
- * @brief This bloc implements a DVB-S2/RCS stack.
- * @author SatIP6
+ * @brief A high level channel that implements some functions
+ *        used by ST, SAT and/or GW
  * @author Didier Barvaux / Viveris Technologies
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  *
- *
- * <pre>
- *
- *            ^
- *            | encap burst
- *            v
- *    ------------------
- *   |                  |
- *   |       DVB        |
- *   |       Dama       |
- *   |                  |
- *    ------------------
- *            ^
- *            | DVB Frame / BBFrame
- *            v
- *
- * </pre>
  *
  */
 
@@ -70,8 +53,8 @@
 #include <opensand_rt/Rt.h>
 #include <opensand_conf/conf.h>
 
-/**@briel Get the current time
- * 
+/**
+ * @brief Get the current time
  * 
  * @return the current time
  */ 
@@ -82,113 +65,40 @@ inline clock_t getCurrentTime(void)
 	return current.tv_sec * 1000 + current.tv_usec / 1000;
 }
 
+
+/**
+ * @brief A high level channel that implements some functions
+ *        used by ST, SAT and/or GW
+ */
 class DvbChannel 
 {
  public:
 	DvbChannel():
 		satellite_type(),
-		with_phy_layer(false),
 		super_frame_counter(0),
 		fwd_down_frame_duration_ms(),
 		ret_up_frame_duration_ms(),
 		pkt_hdl(NULL),
-		fmt_simu(),
-		input_sts(NULL),
-		input_modcod_def(NULL),
-		output_sts(NULL),
-		output_modcod_def(NULL),
 		stats_period_ms(),
 		stats_period_frame(),
-		default_spot(0),
-		spots(),
 		log_init_channel(NULL),
 		log_receive_channel(NULL),
 		log_send_channel(NULL),
 		check_send_stats(0)
 	{
+		// register static log
 		dvb_fifo_log = Output::registerLog(LEVEL_WARNING, "Dvb.FIFO");
-		this->log_init_channel = Output::registerLog(LEVEL_WARNING, "init");
-		this->log_receive_channel = Output::registerLog(LEVEL_WARNING, "receive");
-		this->log_send_channel = Output::registerLog(LEVEL_WARNING, "send");
+		this->log_init_channel = Output::registerLog(LEVEL_WARNING, "Dvb.Channel.init");
+		this->log_receive_channel = Output::registerLog(LEVEL_WARNING, "Dvb.Channel.receive");
+		this->log_send_channel = Output::registerLog(LEVEL_WARNING, "Dvb.Channel.send");
 	};
 
 	virtual ~DvbChannel()
 	{
-		map<spot_id_t, DvbChannel *>::iterator spot_iter;
-		for(spot_iter = this->spots.begin(); 
-		    spot_iter != this->spots.end(); ++spot_iter)
-		{
-			delete (*spot_iter).second;
-		}
-		if(this->input_modcod_def)
-		{
-			delete this->input_modcod_def;
-		}
-		if(this->output_modcod_def)
-		{
-			delete this->output_modcod_def;
-		}
 	};
-
-
-	/**
-	 * @brief Go to next step in adaptive physical layer scenario
-	 *        Update current MODCODs IDs of all STs in the list input.
-	 *        (There is no goNextScenarioStepOutput because fmt_simu is
-	 *        only for the input)
-	 *
-	 * @param duration     the duration before the next_step
-	 * @return true on success, false otherwise
-	 */
-	bool goNextScenarioStepInput(double &duration, tal_id_t gw_id,
-	                             spot_id_t spot_id);
-
-	/**
-	 * @brief setter of input_sts
-	 *
-	 * @param the new input_sts
-	 */
-	void setInputSts(StFmtSimuList* new_input_sts);
-
-	/**
-	 * @brief setter of output_sts
-	 *
-	 * @param the new output_sts
-	 */
-	void setOutputSts(StFmtSimuList* new_output_sts);
-
-	/**
-	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
-	 *        for input list of sts
-	 *
-	 * @param id     the ID of the ST
-	 * @return       the current MODCOD ID of the ST
-	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
-	 */
-	uint8_t getCurrentModcodIdInput(tal_id_t id) const;
-
-	/**
-	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
-	 *        for output list of sts
-	 *
-	 * @param id     the ID of the ST
-	 * @return       the current MODCOD ID of the ST
-	 *
-	 * @warning Be sure sure that the ID is valid before calling the function
-	 */
-	uint8_t getCurrentModcodIdOutput(tal_id_t id) const;
-
 
  protected:
 
-	/**
-	 * @brief Create spot list
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool initSpots(void);
-		
 	/**
 	 * @brief Read the satellite type
 	 *
@@ -226,42 +136,6 @@ class DvbChannel
 	 */
 	void initStatsTimer(time_ms_t frame_duration_ms);
 
-	/**
-	 * @brief Read configuration for the MODCOD definition file and create the
-	 *        FmtDefinitionTable class
-	 *
-	 * @param def     The section in configuration file for MODCOD definitions
-	 *                (up/return or down/forward)
-	 * @param modcod_def  The FMT Definition Table attribute to initialize
-	 * @return  true on success, false otherwise
-	 */
-	bool initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def);
-
-	/**
-	 * @brief Read configuration for the MODCOD simulation files
-	 *
-	 * @param simu    The section in configuration file for MODCOD simulation
-	 *                (up/return or down/forward)
-	 * @param gw_id   The id of the gateway
-	 * @param spot_id The id of the spot
-	 * @return  true on success, false otherwise
-	 */
-	bool initModcodSimuFile(const char *simu,
-	                        tal_id_t gw_id, spot_id_t spot_id);
-
-	/**
-	 * @brief Read configuration for link MODCOD simulation files
-	 *
-	 * @param simu        The section in configuration file for MODCOD simulation
-	 *                    (up/return or down/forward)
-	 * @param fmt_simu    The FMT simulation attribute to initialize
-	 * @param gw_id   The id of the gateway
-	 * @param spot_id The id of the spot
-	 * @return  true on success, false otherwise
-	 */
-	bool initModcodSimuFile(const char *simu,
-	                        FmtSimulation &fmt_simu,
-	                        tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
 	 * @brief init the band according to configuration
@@ -333,92 +207,8 @@ class DvbChannel
 	 */
 	bool doSendStats(void);
 
-	/**
-	 * @brief Get a spot with its spot_id
-	 *
-	 * @param spot_id  The spot id
-	 * @return the spot if found, NULL otherwise
-	 */
-	DvbChannel *getSpot(spot_id_t spot_id) const;
-
-	/**
-	 * @brief Add a new Satellite Terminal (ST) in the output list
-	 *
-	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
-	 *                         in the code)
-	 * @param gw_id            the id of the associated gw
-	 * @param spot_id          the id of the associated spot
-	 * @return                 true if the addition is successful, false otherwise
-	 */
-	bool addOutputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
-
-	/**
-	 * @brief Add a new Satellite Terminal (ST) in the input list
-	 *
-	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
-	 *                         in the code)
-	 * @param gw_id            the id of the associated gw
-	 * @param spot_id          the id of the associated spot
-	 * @return                 true if the addition is successful, false otherwise
-	 */
-	bool addInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
-
-	/**
-	 * @brief Delete a Satellite Terminal (ST) from the list
-	 *
-	 * @param id      the ID of the ST
-	 * @param sts     the list which we have to delete a st
-	 * @param gw_id   the gw id associated
-	 * @param spot_id the spot id associated
-	 * @return    true if the deletion is successful, false otherwise
-	 */
-	bool delTerminal(tal_id_t id, StFmtSimuList* sts,
-	                 tal_id_t gw_id, spot_id_t spot_id);
-
-	/**
-	 * @brief Delete a Satellite Terminal (ST) from the output list
-	 *
-	 * @param id      the ID of the ST
-	 * @param gw_id   the gw id associated
-	 * @param spot_id the spot id associated
-	 * @return    true if the deletion is successful, false otherwise
-	 */
-	bool delOutputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
-
-	/**
-	 * @brief Delete a Satellite Terminal (ST) from the input list
-	 *
-	 * @param id      the ID of the ST
-	 * @param gw_id   the gw id associated
-	 * @param spot_id the spot id associated
-	 * @return    true if the deletion is successful, false otherwise
-	 */
-	bool delInputTerminal(tal_id_t id, tal_id_t gw_id, spot_id_t spot_id);
-
-	/**
-	 * @brief Set the required  MODCOD ID for of the ST in input
-	 *        whid ID is given as input according to the required Es/N0
-	 *
-	 * @param id               the ID of the ST
-	 * @param cni              the required Es/N0 for that terminal
-	 */
-	void setRequiredModcodInput(tal_id_t tal_id, double cni);
-
-	/**
-	 * @brief Set the required  MODCOD ID for of the ST in output
-	 *        whid ID is given as input according to the required Es/N0
-	 *
-	 * @param id               the ID of the ST
-	 * @param cni              the required Es/N0 for that terminal
-	 */
-	void setRequiredModcodOutput(tal_id_t tal_id, double cni);
-
-
 	/// the satellite type (regenerative o transparent)
 	sat_type_t satellite_type;
-
-	/// Physical layer enable
-	bool with_phy_layer;
 
 	/// the current super frame number
 	time_sf_t super_frame_counter;
@@ -430,33 +220,12 @@ class DvbChannel
 	/// The encapsulation packet handler
 	EncapPlugin::EncapPacketHandler *pkt_hdl;
 
-	/// The MODCOD simulation elements
-	FmtSimulation fmt_simu;
-
-	/** The internal map that stores all the STs and modcod id for input */
-	StFmtSimuList *input_sts;
-
-	/// The MODCOD Definition Table for input
-	FmtDefinitionTable *input_modcod_def;
-
-	/** The internal map that stores all the STs and modcod id for output */
-	StFmtSimuList *output_sts;
-
-	/// The MODCOD Definition Table for output
-	FmtDefinitionTable *output_modcod_def;
-
 	/// The statistics period
 	time_ms_t stats_period_ms;
 	time_frame_t stats_period_frame;
 
-	/// the default destination spot
-	spot_id_t default_spot;
-
 	/// timer used for ACM events
 	event_id_t modcod_timer;
-
-	/// The spots
-	map<spot_id_t, DvbChannel *> spots;
 
 	// log
 	OutputLog *log_init_channel;
@@ -468,19 +237,6 @@ class DvbChannel
  private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
-
-	/**
-	 * @brief Set the required  MODCOD ID for of the
-	 *        ST whid ID is given as input according to the required Es/N0
-	 *
-	 * @param id               the ID of the ST
-	 * @param cni              the required Es/N0 for that terminal
-	 * @param modcod_def       the FMT definition table
-	 * @param sts              the list of STs
-	 */
-	void setRequiredModcod(tal_id_t tal_id, double cni,
-	                       const FmtDefinitionTable *const modcod_def,
-	                       StFmtSimuList* sts);
 
 };
 
@@ -1002,6 +758,236 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 error:
 	return false;
 }
+
+
+
+/**
+ * @brief Some FMT functions for Dvb spots ou channels
+ */
+class DvbFmt 
+{
+ public:
+	DvbFmt():
+		with_phy_layer(false),
+		fmt_simu(),
+		input_sts(NULL),
+		input_modcod_def(NULL),
+		output_sts(NULL),
+		output_modcod_def(NULL),
+		log_fmt(NULL)
+	{
+		// register static log
+		this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt");
+	};
+
+	virtual ~DvbFmt()
+	{
+		if(this->input_modcod_def)
+		{
+			delete this->input_modcod_def;
+		}
+		if(this->output_modcod_def)
+		{
+			delete this->output_modcod_def;
+		}
+	};
+
+
+	/**
+	 * @brief Go to next step in adaptive physical layer scenario
+	 *        Update current MODCODs IDs of all STs in the list input.
+	 *        (There is no goNextScenarioStepOutput because fmt_simu is
+	 *        only for the input)
+	 *
+	 * @param duration     the duration before the next_step
+	 * @return true on success, false otherwise
+	 */
+	bool goNextScenarioStepInput(double &duration);
+
+	/**
+	 * @brief setter of input_sts
+	 *
+	 * @param the new input_sts
+	 */
+	void setInputSts(StFmtSimuList* new_input_sts);
+
+	/**
+	 * @brief setter of output_sts
+	 *
+	 * @param the new output_sts
+	 */
+	void setOutputSts(StFmtSimuList* new_output_sts);
+
+	/**
+	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
+	 *        for input list of sts
+	 *
+	 * @param id     the ID of the ST
+	 * @return       the current MODCOD ID of the ST
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	uint8_t getCurrentModcodIdInput(tal_id_t id) const;
+
+	/**
+	 * @brief Get the current MODCOD ID of the ST whose ID is given as input
+	 *        for output list of sts
+	 *
+	 * @param id     the ID of the ST
+	 * @return       the current MODCOD ID of the ST
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	uint8_t getCurrentModcodIdOutput(tal_id_t id) const;
+
+
+ protected:
+
+
+	/**
+	 * @brief Initialize some elements
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initFmt(void);
+
+	/**
+	 * @brief Read configuration for the MODCOD definition file and create the
+	 *        FmtDefinitionTable class
+	 *
+	 * @param def     The section in configuration file for MODCOD definitions
+	 *                (up/return or down/forward)
+	 * @param modcod_def  The FMT Definition Table attribute to initialize
+	 * @return  true on success, false otherwise
+	 */
+	bool initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def);
+
+	/**
+	 * @brief Read configuration for the MODCOD simulation files
+	 *
+	 * @param simu    The section in configuration file for MODCOD simulation
+	 *                (up/return or down/forward)
+	 * @param gw_id   The id of the gateway
+	 * @param spot_id The id of the spot
+	 * @return  true on success, false otherwise
+	 */
+	bool initModcodSimuFile(const char *simu,
+	                        tal_id_t gw_id, spot_id_t spot_id);
+
+	/**
+	 * @brief Read configuration for link MODCOD simulation files
+	 *
+	 * @param simu        The section in configuration file for MODCOD simulation
+	 *                    (up/return or down/forward)
+	 * @param fmt_simu    The FMT simulation attribute to initialize
+	 * @param gw_id   The id of the gateway
+	 * @param spot_id The id of the spot
+	 * @return  true on success, false otherwise
+	 */
+	bool initModcodSimuFile(const char *simu,
+	                        FmtSimulation &fmt_simu,
+	                        tal_id_t gw_id, spot_id_t spot_id);
+
+	/**
+	 * @brief Add a new Satellite Terminal (ST) in the output list
+	 *
+	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
+	 *                         in the code)
+	 * @return                 true if the addition is successful, false otherwise
+	 */
+	bool addOutputTerminal(tal_id_t id);
+
+	/**
+	 * @brief Add a new Satellite Terminal (ST) in the input list
+	 *
+	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
+	 *                         in the code)
+	 * @return                 true if the addition is successful, false otherwise
+	 */
+	bool addInputTerminal(tal_id_t id);
+
+	/**
+	 * @brief Delete a Satellite Terminal (ST) from the output list
+	 *
+	 * @param id      the ID of the ST
+	 * @return    true if the deletion is successful, false otherwise
+	 */
+	bool delOutputTerminal(tal_id_t id);
+
+	/**
+	 * @brief Delete a Satellite Terminal (ST) from the input list
+	 *
+	 * @param id      the ID of the ST
+	 * @return    true if the deletion is successful, false otherwise
+	 */
+	bool delInputTerminal(tal_id_t id);
+
+	/**
+	 * @brief Set the required  MODCOD ID for of the ST in input
+	 *        whid ID is given as input according to the required Es/N0
+	 *
+	 * @param id               the ID of the ST
+	 * @param cni              the required Es/N0 for that terminal
+	 */
+	void setRequiredModcodInput(tal_id_t tal_id, double cni);
+
+	/**
+	 * @brief Set the required  MODCOD ID for of the ST in output
+	 *        whid ID is given as input according to the required Es/N0
+	 *
+	 * @param id               the ID of the ST
+	 * @param cni              the required Es/N0 for that terminal
+	 */
+	void setRequiredModcodOutput(tal_id_t tal_id, double cni);
+
+	/// Physical layer enable
+	bool with_phy_layer;
+
+	/// The MODCOD simulation elements
+	FmtSimulation fmt_simu;
+
+	/** The internal map that stores all the STs and modcod id for input */
+	StFmtSimuList *input_sts;
+
+	/// The MODCOD Definition Table for input
+	FmtDefinitionTable *input_modcod_def;
+
+	/** The internal map that stores all the STs and modcod id for output */
+	StFmtSimuList *output_sts;
+
+	/// The MODCOD Definition Table for output
+	FmtDefinitionTable *output_modcod_def;
+
+	// log
+	OutputLog *log_fmt;
+	
+ private:
+	/// Whether we can send stats or not (can send stats when 0)
+	time_frame_t check_send_stats;
+
+	/**
+	 * @brief Set the required  MODCOD ID for of the
+	 *        ST whid ID is given as input according to the required Es/N0
+	 *
+	 * @param id               the ID of the ST
+	 * @param cni              the required Es/N0 for that terminal
+	 * @param modcod_def       the FMT definition table
+	 * @param sts              the list of STs
+	 */
+	void setRequiredModcod(tal_id_t tal_id, double cni,
+	                       const FmtDefinitionTable *const modcod_def,
+	                       StFmtSimuList* sts);
+
+	/**
+	 * @brief Delete a Satellite Terminal (ST) from the list
+	 *
+	 * @param id      the ID of the ST
+	 * @param sts     the list which we have to delete a st
+	 * @return    true if the deletion is successful, false otherwise
+	 */
+	bool delTerminal(tal_id_t id, StFmtSimuList* sts);
+
+};
 
 
 

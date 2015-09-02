@@ -411,7 +411,8 @@ bool BlockDvbSat::Downward::initOutput(void)
 {
 	// Output probes and stats
 	sat_spots_t::iterator spot_it;
-	for(spot_it = this->spots.begin(); spot_it != spots.end(); ++spot_it)
+	for(spot_it = this->spots.begin();
+	    spot_it != this->spots.end(); ++spot_it)
 	{
 		SatSpot* spot = spot_it->second;
 		list<SatGw *> list_gw = spot->getGwList();
@@ -646,7 +647,8 @@ void BlockDvbSat::Downward::updateStats(void)
 	}
 	// Update stats and probes
 	sat_spots_t::iterator spot_it;
-	for (spot_it = this->spots.begin(); spot_it != spots.end(); ++spot_it)
+	for(spot_it = this->spots.begin();
+	    spot_it != this->spots.end(); ++spot_it)
 	{
 		SatSpot* spot = (*spot_it).second;
 

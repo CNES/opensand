@@ -34,10 +34,13 @@
 #ifndef OPENSAND_CONF_H
 #define OPENSAND_CONF_H
 
-#include <string>
+
+#include "OpenSandCore.h"
+#include "OpenSandConfFile.h"
 
 #include <opensand_conf/conf.h>
-#include "OpenSandConfFile.h"
+
+#include <string>
 
 using namespace std;
 
@@ -56,12 +59,12 @@ class OpenSandConf
 	/**
 	 * The spot association with each terminal
 	 */ 
-	static map<uint16_t, uint8_t> spot_table;
+	static map<tal_id_t, spot_id_t> spot_table;
 	
 	/**
 	 * The spot association with each terminal
 	 */ 
-	static map<uint16_t, uint16_t> gw_table;
+	static map<tal_id_t, tal_id_t> gw_table;
 	
 	/**
 	 * Load some configuration files content into memory
@@ -111,6 +114,7 @@ class OpenSandConf
                         uint8_t spot_id,
                         uint16_t gw_id,
                         ConfigurationList &current_gw);
+
  private:
 
 	static OpenSandConfFile global_config;

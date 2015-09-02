@@ -64,24 +64,28 @@
 
 BlockDvbNcc::BlockDvbNcc(const string &name, tal_id_t UNUSED(mac_id)):
 	BlockDvb(name),
-	output_sts(NULL),
-	input_sts(NULL)
+	output_sts_list(),
+	input_sts_list()
 {
 }
 
 BlockDvbNcc::~BlockDvbNcc()
 {
-	map<tal_id_t, StFmtSimu *>::iterator it;
+	map<spot_id_t, StFmtSimuList *>::iterator it;
 
-	if(this->output_sts != NULL)
+	for(it = this->output_sts_list.begin();
+	    it != this->output_sts_list.end(); ++it)
 	{
-		delete this->output_sts;
+		delete (*it).second;
 	}
 
-	if(this->input_sts != NULL)
+	for(it = this->input_sts_list.begin();
+	    it != this->input_sts_list.end(); ++it)
 	{
-		delete this->input_sts;
+		delete (*it).second;
 	}
+	this->output_sts_list.clear();
+	this->input_sts_list.clear();
 }
 
 bool BlockDvbNcc::onInit(void)
@@ -99,21 +103,31 @@ bool BlockDvbNcc::onInit(void)
 
 bool BlockDvbNcc::initListsSts()
 {
-	this->input_sts = new StFmtSimuList();
-	if(this->input_sts == NULL)
+	map<tal_id_t, spot_id_t>::iterator iter;
+
+	for(iter = OpenSandConf::spot_table.begin();
+	    iter != OpenSandConf::spot_table.end() ;
+	    ++iter)
 	{
-		return false;
-	}
-	this->output_sts = new StFmtSimuList();
-	if(this->output_sts == NULL)
-	{
-		return false;
+		this->input_sts_list[(*iter).second] = new StFmtSimuList();
+		if(this->input_sts_list[(*iter).second] == NULL)
+		{
+			return false;
+		}
+		this->output_sts_list[(*iter).second] = new StFmtSimuList();
+		if(this->output_sts_list[(*iter).second] == NULL)
+		{
+			return false;
+		}
 	}
 
-	((Upward *)this->upward)->setOutputSts(this->output_sts);
-	((Upward *)this->upward)->setInputSts(this->input_sts);
-	((Downward *)this->downward)->setOutputSts(this->output_sts);
-	((Downward *)this->downward)->setInputSts(this->input_sts);
+	// input and output sts are shared between up and down
+	// and protected by a mutex
+	((Upward *)this->upward)->setStFmt(this->output_sts_list,
+	                                   this->input_sts_list);
+	((Downward *)this->downward)->setStFmt(this->output_sts_list,
+	                                       this->input_sts_list);
+
 
 	return true;
 }
@@ -139,6 +153,7 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 
 BlockDvbNcc::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	DvbDownward(bl),
+	DvbSpotList(),
 	NccPepInterface(),
 	mac_id(mac_id),
 	fwd_frame_counter(0),
@@ -192,13 +207,30 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 
+	if(!this->initSpotList())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the spot "
+		    "initialisation\n");
+		return false;
+	}
+
 	for(spot_iter = this->spots.begin(); 
 	    spot_iter != this->spots.end(); ++spot_iter)
 	{
 		SpotDownward *spot;
 		spot_id_t spot_id = (*spot_iter).first;
+		StFmtSimuList *input_sts = this->getInputStFmt(spot_id);
+		StFmtSimuList *output_sts = this->getOutputStFmt(spot_id);
+
 		LOG(this->log_init, LEVEL_DEBUG,
-		    "Create spot with ID %u\n", spot_id);
+		    "Create downward spot with ID %u\n", spot_id);
+
+		if(!input_sts || !output_sts)
+		{
+			return false;
+		}
+
 		if(this->satellite_type == TRANSPARENT)
 		{
 			spot = new SpotDownwardTransp(spot_id, this->mac_id,
@@ -207,9 +239,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 			                              this->stats_period_ms,
 			                              this->satellite_type,
 			                              this->pkt_hdl,
-			                              this->input_sts,
-			                              this->output_sts,
-			                              this->with_phy_layer);
+			                              input_sts,
+			                              output_sts);
 
 		}
 		else
@@ -220,9 +251,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 			                             this->stats_period_ms,
 			                             this->satellite_type,
 			                             this->pkt_hdl,
-			                             this->input_sts,
-			                             this->output_sts,
-			                             this->with_phy_layer);
+			                             input_sts,
+			                             output_sts);
 		}
 		(*spot_iter).second = spot;
 		result &= spot->onInit();
@@ -351,15 +381,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 				switch(msg_type)
 				{
-					case MSG_TYPE_BBFRAME:
-					case MSG_TYPE_DVB_BURST:
-					case MSG_TYPE_CORRUPTED:
-						if(!spot->handleCorruptedFrame(dvb_frame))
-						{
-							goto error;
-						}
-						break;
-
 					case MSG_TYPE_SAC: // when physical layer is enabled
 						if(!spot->handleSac(dvb_frame))
 						{
@@ -833,14 +854,7 @@ bool BlockDvbNcc::Downward::sendAcmParameters(SpotDownward *spot_downward)
 	// function only used in regenerative scenario
 	double cni;
 
-	if(this->with_phy_layer)
-	{
-		cni = spot_downward->getCni();
-	}
-	else
-	{
-		cni = spot_downward->getCurrentModcodIdInput(this->mac_id);
-	}
+	cni = spot_downward->getCurrentModcodIdInput(this->mac_id);
 
 	Sac *send_sac = new Sac(this->mac_id);
 	send_sac->setAcm(cni);
@@ -872,6 +886,7 @@ void BlockDvbNcc::Downward::updateStats(void)
 
 BlockDvbNcc::Upward::Upward(Block *const bl, tal_id_t mac_id):
 	DvbUpward(bl),
+	DvbSpotList(),
 	mac_id(mac_id),
 	log_saloha(NULL)
 {
@@ -886,6 +901,7 @@ BlockDvbNcc::Upward::~Upward()
 bool BlockDvbNcc::Upward::onInit(void)
 {
 	bool result = true;
+	bool with_phy_layer;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 
 	if(!this->initSatType())
@@ -895,7 +911,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 		return false;
 	}
 
-	if(!this->initSpots())
+	if(!this->initSpotList())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the spot "
@@ -906,7 +922,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
 		               ENABLE,
-	                   this->with_phy_layer))
+	                   with_phy_layer))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
@@ -919,15 +935,21 @@ bool BlockDvbNcc::Upward::onInit(void)
 	{
 		spot_id_t spot_id = (*spot_iter).first;
 		SpotUpward *spot;
+		StFmtSimuList *input_sts = this->getInputStFmt(spot_id);
+		StFmtSimuList *output_sts = this->getOutputStFmt(spot_id);
+
+		LOG(this->log_init, LEVEL_DEBUG,
+		    "Create upward spot with ID %u\n", spot_id);
+
 		if(this->satellite_type == TRANSPARENT)
 		{
 			spot = new SpotUpwardTransp(spot_id, this->mac_id,
-			                            this->input_sts, this->output_sts);
+			                            input_sts, output_sts);
 		}
 		else
 		{
 			spot = new SpotUpwardRegen(spot_id, this->mac_id,
-			                           this->input_sts, this->output_sts);
+			                           input_sts, output_sts);
 		}
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create spot with ID %u\n", spot_id);
@@ -936,7 +958,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 		result &= spot->onInit();
 
 		// Launch the timer in order to retrieve the modcods if there is no physical layer
-		if(!this->with_phy_layer)
+		if(!with_phy_layer)
 		{
 			spot->setModcodTimer(this->addTimerEvent("scenario",
 			                                         // the duration will be change when started
@@ -1043,14 +1065,8 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				case MSG_TYPE_DVB_BURST:
 				case MSG_TYPE_CORRUPTED:
 				{
-					// Transmit frame to opposite block for physical layer
-					// C/N0 updates
-					if(this->with_phy_layer)
-					{
-						// copy because dvb_frame is delete in handleFrame
-						DvbFrame* copy = new DvbFrame(dvb_frame);
-						this->shareFrame(copy);
-					}
+					// Update C/N0
+					spot->handleCorruptedFrame(dvb_frame);
 
 					NetBurst *burst = NULL;
 					if(!spot->handleFrame(dvb_frame, &burst))
@@ -1207,9 +1223,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					    "MODCOD scenario timer received\n");
 
 					double duration;
-					if(!spot->goNextScenarioStepInput(duration,
-					                                  this->mac_id,
-					                                  spot->getSpotId()))
+					if(!spot->goNextScenarioStepInput(duration))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "SF#%u: failed to update MODCOD IDs\n",
@@ -1275,3 +1289,91 @@ bool BlockDvbNcc::Upward::shareFrame(DvbFrame *frame)
 }
 
 
+
+/***** DvbSpotList ****/
+
+bool DvbSpotList::initSpotList(void)
+{
+	map<tal_id_t, spot_id_t>::iterator iter;
+
+	if(OpenSandConf::spot_table.empty())
+	{
+		LOG(this->log_spot, LEVEL_ERROR,
+		    "The terminal map is empty");
+		return false;
+	}
+	
+	for(iter = OpenSandConf::spot_table.begin();
+	    iter != OpenSandConf::spot_table.end() ;
+	    ++iter)
+	{
+		this->spots[iter->second] = NULL;
+	}
+	
+	if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
+	                   DEFAULT_SPOT, this->default_spot))
+	{
+		LOG(this->log_spot, LEVEL_ERROR, 
+		    "failed to get default terminal ID\n");
+		return false;
+	}
+	
+	if(OpenSandConf::spot_table.find(this->default_spot) == OpenSandConf::spot_table.end())
+	{
+		LOG(this->log_spot, LEVEL_ERROR,
+		    "Default spot does not exist\n");
+		return false;
+	}
+	
+	return true;
+}
+
+
+DvbChannel *DvbSpotList::getSpot(spot_id_t spot_id) const
+{
+	map<spot_id_t, DvbChannel *>::const_iterator spot_it;
+
+	spot_it = this->spots.find(spot_id);
+	if(spot_it == this->spots.end())
+	{
+		LOG(this->log_spot, LEVEL_ERROR,
+		    "spot %d does not exist\n",
+		    spot_id);
+		return NULL;
+	}
+	return (*spot_it).second;
+}
+
+
+void DvbSpotList::setStFmt(const map<spot_id_t, StFmtSimuList *> &output_sts_list,
+                           const map<spot_id_t, StFmtSimuList *> &input_sts_list)
+{
+	this->output_sts_list = output_sts_list;
+	this->input_sts_list = input_sts_list;
+}
+
+StFmtSimuList *DvbSpotList::getOutputStFmt(spot_id_t spot_id)
+{
+	return this->getStFmt(spot_id, this->output_sts_list);
+}
+
+
+StFmtSimuList *DvbSpotList::getInputStFmt(spot_id_t spot_id)
+{
+	return this->getStFmt(spot_id, this->input_sts_list);
+}
+
+StFmtSimuList *DvbSpotList::getStFmt(spot_id_t spot_id,
+                                     const map<spot_id_t, StFmtSimuList *> &sts)
+{
+	map<spot_id_t, StFmtSimuList *>::const_iterator it;
+	it = sts.find(spot_id);
+	if(it == sts.end())
+	{
+		LOG(this->log_spot, LEVEL_ERROR,
+		    "cannot find StFmtSimuList for spot %u\n",
+		    spot_id);
+		return NULL;
+	}
+	return (*it).second;
+}

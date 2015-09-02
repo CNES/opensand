@@ -62,10 +62,8 @@
 
 #include <linux/param.h>
 
-/**
- * Blocs heritate from mgl_bloc clam_singleSpot.sse
- * mgl_bloc classe defines some default handlers such as 'onEvent'
- */
+
+
 class BlockDvbSatTransp: public BlockDvbSat
 {
 

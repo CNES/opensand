@@ -53,9 +53,9 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
                            sat_type_t sat_type,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            StFmtSimuList *input_sts,
-                           StFmtSimuList *output_sts,
-                           bool phy_layer):
+                           StFmtSimuList *output_sts):
 	DvbChannel(),
+	DvbFmt(),
 	dama_ctrl(NULL),
 	scheduling(NULL),
 	fwd_frame_counter(0),
@@ -96,7 +96,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	this->stats_period_ms = stats_period;
 	this->satellite_type = sat_type;
 	this->pkt_hdl = pkt_hdl;
-	this->with_phy_layer = phy_layer;
 	this->input_sts = input_sts;
 	this->output_sts = output_sts;
 
@@ -144,6 +143,13 @@ SpotDownward::~SpotDownward()
 
 bool SpotDownward::onInit(void)
 {
+	if(!this->initFmt())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the FMT part of the initialisation\n");
+		return false;
+	}
+	
 	// Get the carrier Ids
 	if(!this->initCarrierIds())
 	{
@@ -587,7 +593,7 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 	Logoff *logoff = (Logoff *)dvb_frame;
 
 	// unregister the ST identified by the MAC ID found in DVB frame
-	if(!this->delInputTerminal(logoff->getMac(), this->mac_id, this->spot_id))
+	if(!this->delInputTerminal(logoff->getMac()))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to delete the ST with ID %d from FMT simulation\n",
@@ -595,7 +601,7 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 		delete dvb_frame;
 		return false;
 	}
-	if(!this->delOutputTerminal(logoff->getMac(), this->mac_id, this->spot_id))
+	if(!this->delOutputTerminal(logoff->getMac()))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to delete the ST with ID %d from FMT simulation\n",
@@ -736,14 +742,14 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				tal_id_t st_id = logon_req->getMac();
 				
 				// check for column in FMT simulation list
-				if(!this->addInputTerminal(st_id, this->mac_id, this->spot_id))
+				if(!this->addInputTerminal(st_id))
 				{
 					LOG(this->log_request_simulation, LEVEL_ERROR,
 					    "failed to register simulated ST with MAC "
 					    "ID %u\n", st_id);
 					return false;
 				}
-				if(!this->addOutputTerminal(st_id, this->mac_id, this->spot_id))
+				if(!this->addOutputTerminal(st_id))
 				{
 					LOG(this->log_request_simulation, LEVEL_ERROR,
 					    "failed to register simulated ST with MAC "
@@ -841,11 +847,6 @@ void SpotDownward::updateFmt(void)
 
 	// for each terminal in DamaCtrl update FMT
 	this->dama_ctrl->updateFmt();
-}
-
-double SpotDownward::getCni(void) const
-{
-	return this->cni;
 }
 
 uint8_t SpotDownward::getCtrlCarrierId(void) const

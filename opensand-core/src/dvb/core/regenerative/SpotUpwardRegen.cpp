@@ -112,14 +112,14 @@ bool SpotUpwardRegen::initModcodSimu(void)
 	}
 
 	// declare the GW as one ST for the MODCOD scenarios
-	if(!this->addInputTerminal(this->mac_id, this->mac_id, this->spot_id))
+	if(!this->addInputTerminal(this->mac_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
 		    this->mac_id);
 		return false;
 	}
-	if(!this->addOutputTerminal(this->mac_id, this->mac_id, this->spot_id))
+	if(!this->addOutputTerminal(this->mac_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
@@ -167,7 +167,7 @@ bool SpotUpwardRegen::initSeriesGenerator(void)
 		return false;
 	}
 
-	if(!Conf::getValue(current_gw, RETURN_UP_MODCOD_TIME_SERIES,
+	if(!Conf::getValue(current_gw, FORWARD_DOWN_MODCOD_TIME_SERIES,
 	                   input_file))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -181,7 +181,7 @@ bool SpotUpwardRegen::initSeriesGenerator(void)
 	tokenize(input_file, path_split, "/");
 	input_file = generate + "/" + path_split.back();
 
-	if(!Conf::getValue(current_gw, FORWARD_DOWN_MODCOD_TIME_SERIES,
+	if(!Conf::getValue(current_gw, RETURN_UP_MODCOD_TIME_SERIES,
 	                   output_file))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -274,4 +274,19 @@ bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 
 	return true;
 }
+
+void SpotUpwardRegen::handleCorruptedFrame(DvbFrame *dvb_frame)
+{
+	if(!this->with_phy_layer)
+	{
+		return;
+	}
+
+	double cni = dvb_frame->getCn();
+	// regenerative case:
+	//   we need downlink ACM parameters to inform
+	//   satellite with a SAC so inform opposite channel
+	this->setRequiredModcodInput(this->mac_id, cni);
+}
+
 
