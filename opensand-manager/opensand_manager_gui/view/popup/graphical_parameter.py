@@ -453,18 +453,18 @@ class GraphicalParameter(WindowView):
             access_type_cat[carrier.get_old_category()].append(carrier.get_old_access_type())
             
             fmt_groups = []
-            for carrier_fmt_group in carrier.get_str_modcod():
-                if str(carrier_fmt_group) not in self._fmt_group.values():
-                    fmt_groups.append(new_fmt_id)
-                    used_fmt_groups.append(new_fmt_id)
-                    self._fmt_group[new_fmt_id] = carrier_fmt_group
-                    new_fmt_id += 1
-                else:
-                    for fmt_id in self._fmt_group.keys():
-                        if self._fmt_group[fmt_id] == str(carrier_fmt_group):
-                            fmt_groups.append(fmt_id)
-                            used_fmt_groups.append(fmt_id)
-                            break
+            carrier_fmt_group = carrier.get_str_modcod()
+            if carrier_fmt_group not in self._fmt_group.values():
+                fmt_groups.append(new_fmt_id)
+                used_fmt_groups.append(new_fmt_id)
+                self._fmt_group[new_fmt_id] = carrier_fmt_group
+                new_fmt_id += 1
+            else:
+                for fmt_id in self._fmt_group.keys():
+                    if self._fmt_group[fmt_id] == carrier_fmt_group:
+                        fmt_groups.append(fmt_id)
+                        used_fmt_groups.append(fmt_id)
+                        break
             config.set_value(';'.join(str(fmt_grp_id) for fmt_grp_id in
                                       fmt_groups), 
                              config.get_path(config.get_table_elements(table)[carrier_id]),

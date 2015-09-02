@@ -97,11 +97,11 @@ class CarrierArithmetic:
         new_fmt_id = int(fmt_group.keys()[-1]) + 1
         for carrier in self._list_carrier:
             carriers_band.add_carrier(carrier)
-            for carrier_fmt_group in carrier.get_str_modcod():
-                if str(carrier_fmt_group) not in fmt_group.values():
-                    fmt_group[new_fmt_id] = carrier_fmt_group
-                    new_fmt_id += 1
-        
+            if carrier.get_str_modcod() not in fmt_group.values():
+                fmt_group[new_fmt_id] = carrier.get_str_modcod()
+                new_fmt_id += 1
+
+
         for grp_id in fmt_group:
             carriers_band.add_fmt_group(grp_id,
                                         fmt_group[grp_id])

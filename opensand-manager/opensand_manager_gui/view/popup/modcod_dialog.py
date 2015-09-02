@@ -461,10 +461,10 @@ class ModcodParameter(WindowView):
                 if button.get_active():
                     modcod.append(fmt_id)
                     ratio.append(self._dico_modcod[button.get_label()])
-                    modcods[';'.join(str(e) for e in modcod)] = ';'.join(str(e) for e in ratio)
-                modcod = []
-                ratio = []
-                fmt_id += 1
+                    
+            modcod = []
+            ratio = []
+            fmt_id += 1
 
         else:
             for button in all_modcod:
@@ -472,9 +472,35 @@ class ModcodParameter(WindowView):
                     modcod.append(fmt_id)
                     ratio.append(self._dico_modcod[button.get_label()])
                 fmt_id += 1
-            if len(modcod) > 0 :
-                modcods[';'.join(str(e) for e in modcod)] = ratio[0]
+
+
+        modcod_update = []
+        first = modcod[0]
+        last = modcod[0]
+        row = False
+        for i in range(1,len(modcod)):
+            if int(modcod[i]) == int(modcod[i-1]) + 1:
+                last = modcod[i]
+                row = True
+            else:
+                row = False
+            
+            if not row or i == (len(modcod) - 1):
+                if first != last :
+                    modcod_update.append(str(first) + "-" + str(last))
+                else:
+                    if first not in modcod_update:
+                        modcod_update.append(first)
+                first = modcod[i]
+                last = modcod[i]
+            if not row and i == (len(modcod) - 1):
+                modcod_update.append(modcod[i])
+
+        if len(modcod_update) > 0 :
+            modcods[';'.join(str(e) for e in modcod_update)] = ratio[0]
+
         return modcods
+
     
 
     def on_save_edit_clicked(self, source=None):
@@ -485,8 +511,9 @@ class ModcodParameter(WindowView):
             return
         self._list_carrier[self._carrier_id-1].set_access_type(
             self.get_active_access_type())
+ 
         self._list_carrier[self._carrier_id-1].set_modcod(
-            modcods.keys())
+            ';'.join(str(e) for e in modcods))
         ratio = ';'.join(str(e) for e in modcods.values())
         self._list_carrier[self._carrier_id-1].set_ratio(
             ratio)

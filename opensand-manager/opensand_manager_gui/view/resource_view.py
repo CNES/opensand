@@ -196,6 +196,12 @@ class ResourceView(WindowView):
 
         xpath = get_conf_xpath(ROLL_OFF, link)
         roll_off = float(config.get_value(config.get(xpath)))
+        
+        # fmt groups
+        xpath = get_conf_xpath(FMT_GROUPS, link, self._spot, self._gw)
+        for group in config.get_table_elements(config.get(xpath)):
+            content = config.get_element_content(group)
+            self._fmt_group[link][int(content[ID])] = content[FMT_ID]
 
         xpath = get_conf_xpath(CARRIERS_DISTRIB, link, self._spot, self._gw)
         total_ratio_rs = 0
@@ -210,18 +216,22 @@ class ResourceView(WindowView):
                     bandwidth / (1 + roll_off)))
             if nb_carrier <= 0:
                 nb_carrier = 1
-            self._list_carrier[link].append(Carrier(float(content[SYMBOL_RATE]),
-                                              nb_carrier, content[CATEGORY], 
-                                              content[ACCESS_TYPE], 
-                                              content[FMT_GROUP],
-                                              ratio=content[RATIO]))
-        
-        # fmt groups
-        xpath = get_conf_xpath(FMT_GROUPS, link, self._spot, self._gw)
-        for group in config.get_table_elements(config.get(xpath)):
-            content = config.get_element_content(group)
-            self._fmt_group[link][int(content[ID])] = content[FMT_ID]
+            
+            carrier = Carrier(float(content[SYMBOL_RATE]),
+                              nb_carrier, content[CATEGORY], 
+                              content[ACCESS_TYPE], 
+                              content[FMT_GROUP],
+                              ratio=content[RATIO])
+            modcod = []
+            for fmt_id in carrier.get_fmt_groups():
+                modcod.append(self._fmt_group[link][fmt_id])
+            
+            modcods = ';'.join(str(e) for e in modcod)
+            carrier.set_modcod(modcods)
 
+        
+            self._list_carrier[link].append(carrier)
+        
         
     def update_graph(self, link):
         """Display on the graph the carrier representation"""
