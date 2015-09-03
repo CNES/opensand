@@ -94,9 +94,14 @@ class ModcodParameter(WindowView):
         self._vbox_access_type = gtk.VBox()
         self._frame_access_type.add(self._vbox_access_type)
         #Add modcod_scroll_window in frame_modcod
+        self._vbox_modcods = gtk.VBox()
+        self._check_modcod = gtk.CheckButton(label="select all")
+        self._check_modcod.connect("toggled", self.on_all_modcod_toggled)
         self._modcod_scroll_window = gtk.ScrolledWindow()
         self._modcod_scroll_window.set_size_request(100, 200)
-        self._frame_modcod.add(self._modcod_scroll_window)
+        self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
+        self._vbox_modcods.pack_start(self._modcod_scroll_window, fill=False , expand=False)
+        self._frame_modcod.add(self._vbox_modcods)
         #Add vbox_modcod in modcod_scroll_window
         self._vbox_modcod = gtk.VBox()
         self._modcod_scroll_window.add_with_viewport(self._vbox_modcod)
@@ -206,11 +211,15 @@ class ModcodParameter(WindowView):
         modcod_list = self._list_carrier[self._carrier_id-1].get_modcod()
         list_ratio = self._list_carrier[self._carrier_id-1].get_ratio()
         index = 0
+        nb_active = 0
         for modcod in modcod_list:
             self._list_modcod_ratio[modcod] = list_ratio[index]
             if len(modcod_list) == len(list_ratio):
                 index += 1
             self._item_list[modcod-1].set_active(True)
+            nb_active += 1
+        if nb_active == len(modcod_list):
+            self._check_modcod.set_active(True)
         
         self._vbox_conf.show_all()
 
@@ -242,12 +251,25 @@ class ModcodParameter(WindowView):
         """ Create a list of widget with list of modcods """
         #MODCOD list from file definition.txt
         global_conf = self._model.get_conf()
+        self._check_modcod.set_active(False)
         if self._link == FORWARD_DOWN:
             path = global_conf.get_param(MODCOD_DEF_S2)
+            if option == CCM:
+                if self._check_modcod in self._vbox_modcods.get_children():
+                    self._vbox_modcods.remove(self._check_modcod)
+            else:
+                if self._check_modcod not in self._vbox_modcods.get_children():
+                    self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
+                    self._vbox_modcods.reorder_child(self._check_modcod, 0)
         elif self._link == RETURN_UP:
             if option == SCPC:
+                if self._check_modcod not in self._vbox_modcods.get_children():
+                    self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
+                    self._vbox_modcods.reorder_child(self._check_modcod, 0)
                 path = global_conf.get_param(MODCOD_DEF_S2)
             else:
+                if self._check_modcod in self._vbox_modcods.get_children():
+                    self._vbox_modcods.remove(self._check_modcod)
                 path = global_conf.get_param(MODCOD_DEF_RCS)
         modcod_list = self.load_modcod(path)
 
@@ -285,21 +307,30 @@ class ModcodParameter(WindowView):
         #If button become disable
         else:
             self._dico_modcod.clear()
+        
 
-    
+    def on_all_modcod_toggled(self, source=None):
+        if source.get_active():
+            for check_modcod in self._item_list:
+                check_modcod.set_active(True)
+        else:
+            for check_modcod in self._item_list:
+                check_modcod.set_active(False)
+
+
     def on_ccm_toggled(self, source=None):
         """Signal when ccm button change"""
-        self.set_modcod_widgets(source, True)
+        self.set_modcod_widgets(source, True, CCM)
         
     
     def on_acm_toggled(self, source=None):
         """Signal when acm button change"""
-        self.set_modcod_widgets(source, False)
+        self.set_modcod_widgets(source, False, ACM)
     
     def on_vcm_toggled(self, source=None):
         """Signal when vcm button change"""
         """ With the list of modcod it creates a list of widget"""
-        self.set_modcod_widgets(source, False)
+        self.set_modcod_widgets(source, False, VCM)
         if source.get_active():
             #Add the temporal representation graphe to the window
             self.trace_temporal_representation()
@@ -473,28 +504,30 @@ class ModcodParameter(WindowView):
                     ratio.append(self._dico_modcod[button.get_label()])
                 fmt_id += 1
 
-
         modcod_update = []
-        first = modcod[0]
-        last = modcod[0]
-        row = False
-        for i in range(1,len(modcod)):
-            if int(modcod[i]) == int(modcod[i-1]) + 1:
-                last = modcod[i]
-                row = True
-            else:
-                row = False
-            
-            if not row or i == (len(modcod) - 1):
-                if first != last :
-                    modcod_update.append(str(first) + "-" + str(last))
+        if len(modcod) > 1 :
+            first = modcod[0]
+            last = modcod[0]
+            row = False
+            for i in range(1,len(modcod)):
+                if int(modcod[i]) == int(modcod[i-1]) + 1:
+                    last = modcod[i]
+                    row = True
                 else:
-                    if first not in modcod_update:
-                        modcod_update.append(first)
-                first = modcod[i]
-                last = modcod[i]
-            if not row and i == (len(modcod) - 1):
-                modcod_update.append(modcod[i])
+                    row = False
+            
+                if not row or i == (len(modcod) - 1):
+                    if first != last :
+                        modcod_update.append(str(first) + "-" + str(last))
+                    else:
+                        if first not in modcod_update:
+                            modcod_update.append(first)
+                    first = modcod[i]
+                    last = modcod[i]
+                if not row and i == (len(modcod) - 1):
+                    modcod_update.append(modcod[i])
+        else:
+            modcod_update = modcod
 
         if len(modcod_update) > 0 :
             modcods[';'.join(str(e) for e in modcod_update)] = ratio[0]
