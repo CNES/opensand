@@ -36,6 +36,7 @@ modcod_dialog.py - MODCOD configuration dialog
 """
 
 import gtk
+import gobject
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
@@ -218,7 +219,7 @@ class ModcodParameter(WindowView):
                 index += 1
             self._item_list[modcod-1].set_active(True)
             nb_active += 1
-        if nb_active == len(modcod_list):
+        if nb_active == len(self._item_list):
             self._check_modcod.set_active(True)
         
         self._vbox_conf.show_all()
@@ -273,7 +274,7 @@ class ModcodParameter(WindowView):
                 path = global_conf.get_param(MODCOD_DEF_RCS)
         modcod_list = self.load_modcod(path)
 
-        self._item_list=[]
+        del self._item_list[:]
         #Create tooltips for button
         tooltip = gtk.Tooltips()
         #If button become enabled
@@ -550,7 +551,8 @@ class ModcodParameter(WindowView):
         ratio = ';'.join(str(e) for e in modcods.values())
         self._list_carrier[self._carrier_id-1].set_ratio(
             ratio)
-        #gobject.idle_add(self._update_cb)
+        
+        gobject.idle_add(self._update_cb)
         
         self._dlg.destroy()
     
