@@ -36,8 +36,6 @@
 
 #include "SpotDownward.h"
 
-#include "ForwardSchedulingS2.h"
-#include "UplinkSchedulingRcs.h"
 #include "DamaCtrlRcsLegacy.h"
 #include "FileSimulator.h"
 #include "RandomSimulator.h"
@@ -686,15 +684,6 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 	// Upate the superframe counter
 	this->super_frame_counter = super_frame_counter;
 
-	if(this->with_phy_layer)
-	{
-		// for each terminal in DamaCtrl update FMT because in
-		// this case this it not done with scenario timer and
-		// FMT is updated each received frame but we only need
-		// it for allocation
-		this->dama_ctrl->updateFmt();
-	}
-
 	// run the allocation algorithms (DAMA)
 	this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
 	
@@ -726,11 +715,16 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message type SAC");
 				
+				// TODO handle sac	
 				Sac *sac = (Sac*)(*msg);
 				if(!this->dama_ctrl->hereIsSAC(sac))
 				{
 					return false;
 				}
+
+				double cni = sac->getCni();
+				tal_id_t tal_id = sac->getTerminalId();
+
 				break;
 			}
 			case MSG_TYPE_SESSION_LOGON_REQ:
@@ -900,6 +894,9 @@ bool SpotDownward::handleSac(const DvbFrame *dvb_frame)
 		delete dvb_frame;
 		return false;
 	}
+	
+	double cni = sac->getCni();
+	tal_id_t tal_id = sac->getTerminalId();
 
 	return true;
 }

@@ -37,6 +37,7 @@
 #include "OpenSandFrames.h"
 #include "MacFifoElement.h"
 #include "ForwardSchedulingS2.h"
+#include "DvbRcsFrame.h"
 
 #include <opensand_output/Output.h>
 
@@ -61,8 +62,6 @@ SatGw::SatGw(tal_id_t gw_id,
 	complete_gw_dvb_frames(),
 	st_scheduling(NULL),
 	gw_scheduling(NULL),
-	fmt_simu_sat(NULL),
-	sts_sat(),
 	l2_from_st_bytes(0),
 	l2_from_gw_bytes(0),
 	gw_mutex("GW"),
@@ -83,10 +82,15 @@ SatGw::SatGw(tal_id_t gw_id,
 	                                     "data_out_st");
 	this->data_out_gw_fifo = new DvbFifo(data_out_gw_id, fifo_size,
 	                                     "data_out_gw");
-
 	// Output Log
-	this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
-
+	this->log_init = Output::registerLog(LEVEL_WARNING, 
+	                                     "Dvb.init.spot_%d.gw_%d",
+	                                     this->spot_id, this->gw_id);
+	this->log_receive = Output::registerLog(LEVEL_WARNING, 
+	                                     "Dvb.receive.spot_%d.gw_%d",
+	                                     this->spot_id, this->gw_id);
+	this->input_sts = new StFmtSimuList();
+	this->output_sts = new StFmtSimuList();
 }
 
 SatGw::~SatGw()
@@ -104,14 +108,10 @@ SatGw::~SatGw()
 	delete this->control_fifo;
 	delete this->data_out_st_fifo;
 	delete this->data_out_gw_fifo;
-
-	delete this->fmt_simu_sat;
-
 }
 
 bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
                            const EncapPlugin::EncapPacketHandler *pkt_hdl,
-                           FmtDefinitionTable *const fwd_modcod_def,
                            const TerminalCategoryDama *const st_category,
                            const TerminalCategoryDama *const gw_category)
 {
@@ -122,8 +122,8 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 	this->st_scheduling = new ForwardSchedulingS2(fwd_timer_ms,
 	                                              pkt_hdl,
 	                                              st_fifos,
-	                                              &this->sts_sat,
-	                                              fwd_modcod_def,
+	                                              this->output_sts->getListSts(),
+	                                              this->output_modcod_def,
 	                                              st_category,
 	                                              this->spot_id,
 	                                              false,
@@ -139,8 +139,8 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 	this->gw_scheduling = new ForwardSchedulingS2(fwd_timer_ms,
 	                                              pkt_hdl,
 	                                              gw_fifos,
-	                                              &this->sts_sat,
-	                                              fwd_modcod_def,
+	                                              this->output_sts->getListSts(),
+	                                              this->output_modcod_def,
 	                                              gw_category,
 	                                              this->spot_id,
 	                                              false,
@@ -157,32 +157,67 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 }
 
 
-bool SatGw::schedule(const time_sf_t current_superframe_sf,
-                     time_ms_t current_time)
+bool SatGw::initModcodSimu(void)
 {
-	// not used by scheduling here
-	uint32_t remaining_allocation = 0;
+	// Retrieve the value of the ‘enable’ parameter for the physical layer
+	if(!this->initFmt())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize fmt\n");
+		return false;
+	}
+	
+	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
+	                             this->gw_id, this->spot_id))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the modcod part of the "
+		    "initialisation\n");
+		return false;
+	}
+	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
+	                            &this->input_modcod_def))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the modcod part of the "
+		    "initialisation\n");
+		return false;
+	}
+	if(!this->initModcodDefFile(MODCOD_DEF_S2,
+	                            &this->output_modcod_def))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the modcod part of the "
+		    "initialisation\n");
+		return false;
+	}
+	
+	if(!this->goFirstScenarioStep())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize downlink MODCOD IDs\n");
+		return false;
+	}
+	
+	if(!this->addTerminal(this->gw_id))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to register simulated GW with MAC "
+		    "ID %u\n", this->gw_id);
+		return false;
+	}
+	
 
-	if(!this->st_scheduling || !this->gw_scheduling)
-	{
-		return false;
-	}
-
-	if(!this->st_scheduling->schedule(current_superframe_sf,
-	                                  current_time,
-	                                  &this->complete_st_dvb_frames,
-	                                  remaining_allocation))
-	{
-		return false;
-	}
-	if(!this->gw_scheduling->schedule(current_superframe_sf,
-	                                  current_time,
-	                                  &this->complete_gw_dvb_frames,
-	                                  remaining_allocation))
-	{
-		return false;
-	}
 	return true;
+
+}
+
+void SatGw::initScenarioTimer(event_id_t sce_timer)
+{
+	if(!this->with_phy_layer)
+	{
+		this->scenario_timer = sce_timer;
+	}
 }
 
 bool SatGw::initProbes()
@@ -257,6 +292,108 @@ bool SatGw::initProbes()
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_output_gw_kb));
 
+	return true;
+}
+
+bool SatGw::schedule(const time_sf_t current_superframe_sf,
+                     time_ms_t current_time)
+{
+	// not used by scheduling here
+	uint32_t remaining_allocation = 0;
+
+	if(!this->st_scheduling || !this->gw_scheduling)
+	{
+		return false;
+	}
+
+	if(!this->st_scheduling->schedule(current_superframe_sf,
+	                                  current_time,
+	                                  &this->complete_st_dvb_frames,
+	                                  remaining_allocation))
+	{
+		return false;
+	}
+	if(!this->gw_scheduling->schedule(current_superframe_sf,
+	                                  current_time,
+	                                  &this->complete_gw_dvb_frames,
+	                                  remaining_allocation))
+	{
+		return false;
+	}
+	return true;
+}
+
+
+bool SatGw::addTerminal(tal_id_t tal_id)
+{
+	// check for column in FMT simulation list
+	if(!this->addInputTerminal(tal_id))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+				"failed to register simulated ST with MAC "
+				"ID %u\n", tal_id);
+		return false;
+	}
+	if(!this->addOutputTerminal(tal_id))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+				"failed to register simulated ST with MAC "
+				"ID %u\n", tal_id);
+		return false;
+	}
+
+	return true;
+}
+
+bool SatGw::updateFmt(DvbFrame *dvb_frame,
+                      EncapPlugin::EncapPacketHandler *pkt_hdl)
+{
+	DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+
+	if(this->with_phy_layer)
+	{
+		tal_id_t src_tal_id;
+		// decode the first packet in frame to be able to get source terminal ID
+		if(!pkt_hdl->getSrc(frame->getPayload(), src_tal_id))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "unable to read source terminal ID in "
+			    "frame, won't be able to update C/N "
+			    "value\n");
+		}
+		else
+		{
+			double cn = frame->getCn();
+			LOG(this->log_receive, LEVEL_INFO,
+			    "Uplink CNI for terminal %u = %f\n",
+			    src_tal_id, cn);
+			this->setRequiredCniInput(src_tal_id, cn);
+		}
+	}
+
+	return true;
+}
+
+
+bool SatGw::handleSac(DvbFrame *dvb_frame)
+{
+	double cni;
+	// handle SAC here to get the uplink ACM parameters
+	Sac *sac = (Sac *)dvb_frame;
+	tal_id_t tal_id = sac->getTerminalId();
+	LOG(this->log_receive, LEVEL_INFO,
+	    "Get SAC from ST%u, with C/N0 = %.2f\n",
+	    tal_id, sac->getCni());
+
+	this->setRequiredCniOutput(tal_id, sac->getCni());
+
+	// update ACM parameters with uplink value, thus the GW will
+	// known uplink C/N and thus update uplink MODCOD used in TTP
+	cni = this->getRequiredCniInput(tal_id);
+	sac->setAcm(cni);
+	
+	// TODO we won't update ACM parameters if we did not receive
+	// traffic from this terminal, GW will have a wrong value...
 	return true;
 }
 
@@ -352,16 +489,6 @@ list<DvbFrame *> &SatGw::getCompleteGwDvbFrames(void)
 	return this->complete_gw_dvb_frames;
 }
 
-FmtSimulation* SatGw::getFmtSimuSat(void)
-{
-	return this->fmt_simu_sat;
-}
-
-void SatGw::setFmtSimuSat(FmtSimulation* new_fmt_simu)
-{
-	this->fmt_simu_sat = new_fmt_simu;
-}
-
 void SatGw::updateL2FromSt(vol_bytes_t bytes)
 {
 	RtLock lock(this->gw_mutex);
@@ -392,12 +519,12 @@ vol_bytes_t SatGw::getL2FromGw(void)
 
 bool SatGw::goFirstScenarioStep()
 {
-	return this->fmt_simu_sat->goFirstScenarioStep();
+	return this->fmt_simu.goFirstScenarioStep();
 }
 
 bool SatGw::goNextScenarioStep(double &duration)
 {
-	return this->fmt_simu_sat->goNextScenarioStep(duration);
+	return this->fmt_simu.goNextScenarioStep(duration);
 }
 
 spot_id_t SatGw::getSpotId(void)
@@ -405,50 +532,19 @@ spot_id_t SatGw::getSpotId(void)
 	return this->spot_id;
 }
 
-bool SatGw::doTerminalExist(tal_id_t tal_id)
+FmtDefinitionTable* SatGw::getOutputModcodDef(void)
 {
-	return (this->sts_sat.find(tal_id) != this->sts_sat.end());
+	return this->output_modcod_def;
 }
 
-bool SatGw::addTerminal(tal_id_t id)
+FmtDefinitionTable* SatGw::getInputModcodDef(void)
 {
-	StFmtSimu *new_st;
-	// the column is the id
-	unsigned long column = id;
+	return this->input_modcod_def;
+}
 
-	// check that the list does not already own a ST
-	// with the same identifier
-	if(this->sts_sat.find(id) != this->sts_sat.end())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "one ST with ID %u already exist in list\n", id);
-		return false;
-	}
-
-	if(this->fmt_simu_sat->getIsModcodSimuDefined() &&
-	   this->fmt_simu_sat->getModcodList().size() <= column)
-	{
-		LOG(this->log_init, LEVEL_WARNING,
-		    "cannot access MODCOD column for ST%u\n"
-		    "defaut MODCOD is used\n", id);
-		column = this->fmt_simu_sat->getModcodList().size() - 1;
-	}
-	// if scenario are not defined, set less robust modcod at init
-	// in order to authorize any MODCOD
-	new_st = new StFmtSimu(id,
-		this->fmt_simu_sat->getIsModcodSimuDefined() ?
-			atoi(this->fmt_simu_sat->getModcodList()[column].c_str()) :
-			this->modcod_def_sat.getMaxId());
-	if(new_st == NULL)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to create a new ST\n");
-		return false;
-	}
-
-	this->sts_sat[id] = new_st;
-
-	return true;
+event_id_t SatGw::getScenarioTimer(void)
+{
+	return this->scenario_timer;
 }
 
 void SatGw::print(void)

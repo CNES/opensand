@@ -67,7 +67,6 @@ int BlockDvbTal::Downward::qos_server_sock = -1;
 
 BlockDvbTal::BlockDvbTal(const string &name, tal_id_t UNUSED(mac_id)):
 	BlockDvb(name),
-	output_sts(NULL),
 	input_sts(NULL)
 {
 }
@@ -79,11 +78,6 @@ BlockDvbTal::~BlockDvbTal()
 	if(this->input_sts != NULL)
 	{
 		delete this->input_sts;
-	}
-
-	if(this->output_sts != NULL)
-	{
-		delete this->output_sts;
 	}
 }
 
@@ -107,16 +101,9 @@ bool BlockDvbTal::initListsSts()
 		return false;
 	}
 
-	// Output is not used in Trandparent mode
-	this->output_sts = new StFmtSimuList();
-	if(this->output_sts == NULL)
-	{
-		return false;
-	}
+	// no output because it is directly handled in Dama Agent (this->modcod_id)
 
-	((Upward *)this->upward)->setOutputSts(this->output_sts);
 	((Upward *)this->upward)->setInputSts(this->input_sts);
-	((Downward *)this->downward)->setOutputSts(this->output_sts);
 	((Downward *)this->downward)->setInputSts(this->input_sts);
 
 	return true;
@@ -1105,7 +1092,8 @@ bool BlockDvbTal::Downward::initScpc(void)
 	                                         SCPC,
 	                                         this->scpc_carr_duration_ms,
 	                                         this->satellite_type,
-	                                         this->output_modcod_def,
+	                                         // input modcod for S2
+	                                         this->input_modcod_def,
 	                                         scpc_categories,
 	                                         terminal_affectation,
 	                                         &default_category,
@@ -1190,7 +1178,8 @@ bool BlockDvbTal::Downward::initScpc(void)
 	                                      this->pkt_hdl,
 	                                      this->dvb_fifos,
 	                                      &this->scpc_fmt_simu,
-	                                      this->output_modcod_def,
+	                                      // input modcod for S2
+	                                      this->input_modcod_def,
 	                                      cat);
 	if(!this->scpc_sched)
 	{
@@ -1699,9 +1688,7 @@ bool BlockDvbTal::Downward::sendSAC(void)
 		goto error;
 	}
 	// Set the ACM parameters
-	fmt_id_t current_modcod;
-	current_modcod = this->getCurrentModcodIdInput(this->tal_id);
-	cni = this->input_modcod_def->getRequiredEsN0(current_modcod);
+	cni = this->getRequiredCniInput(this->tal_id);
 	sac->setAcm(cni);
 
 	if(empty)
@@ -2415,7 +2402,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			{
 				// get ACM parameters that will be transmited to GW in SAC
 				double cni = dvb_frame->getCn();
-				this->setRequiredModcodInput(this->tal_id, cni);
+				this->setRequiredCniInput(this->tal_id, cni);
 			}
 
 			// Set the real modcod of the ST
@@ -2471,6 +2458,8 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			if(!this->onStartOfFrame(dvb_frame))
 			{
 				delete dvb_frame;
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "on start of frame failed\n");
 				goto error;
 			}
 			// continue here
@@ -2506,25 +2495,14 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		case MSG_TYPE_SESSION_LOGON_RESP:
 			if(!this->onRcvLogonResp(dvb_frame))
 			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "on receive logon resp failed\n");
 				goto error;
 			}
 			break;
 
 		// messages sent by current or another ST for the NCC --> ignore
 		case MSG_TYPE_SAC:
-			if(this->satellite_type == TRANSPARENT)
-			{
-				delete dvb_frame;
-			}
-			else
-			{
-				if(!this->handleSac(dvb_frame))
-				{
-					goto error;
-				}
-			}
-			break;
-
 		case MSG_TYPE_SESSION_LOGON_REQ:
 			delete dvb_frame;
 			break;
@@ -2645,46 +2623,11 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	    this->group_id, this->tal_id);
 
 	// Add the st id in the fmt_simu
-	if(!this->addOutputTerminal(this->tal_id))
-	{
-		LOG(this->log_receive_channel, LEVEL_ERROR,
-		    "failed to handle FMT for ST %u, "
-		    "won't send logon response\n", this->tal_id);
-		return false;
-	}
 	if(!this->addInputTerminal(this->tal_id))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to handle FMT for ST %u, "
 		    "won't send logon response\n", this->tal_id);
-		return false;
-	}
-
-	return true;
-}
-
-
-bool BlockDvbTal::Upward::handleSac(const DvbFrame *dvb_frame)
-{
-	Sac *sac = (Sac *) dvb_frame;
-
-	LOG(this->log_receive_channel, LEVEL_DEBUG,
-	    "handle received SAC\n");
-
-	// SAC is received from sat in regenerative
-	// otherwise, the gw send TBTP frame
-	// TODO we should also get information in TTP ?!
-	//      Try removing that and stop forwarding SAC from GW
-	//      on satellite
-	double cni = sac->getCni();
-	tal_id_t id = sac->getTerminalId();
-	if(id == this->tal_id)
-	{
-		this->setRequiredModcodOutput(this->tal_id, cni);
-	}
-	else
-	{
-		delete dvb_frame;
 		return false;
 	}
 

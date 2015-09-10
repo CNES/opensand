@@ -366,13 +366,13 @@ void DamaCtrlRcs::updateFmt()
 			// return the FMT id of the carrier
 			if(carriers->getNearestFmtId(simulated_fmt) == simulated_fmt)
 			{
+				// we have a carrier with the corresponding MODCOD
+				terminal->setCarrierId(carriers->getCarriersId());
+				available_fmt = simulated_fmt;
 				LOG(this->log_fmt, LEVEL_DEBUG,
 				    "SF#%u: ST%u will  served with the required "
 				    "MODCOD (%u)\n", this->current_superframe_sf,
 				    terminal->getTerminalId(), available_fmt);
-				// we have a carrier with the corresponding MODCOD
-				terminal->setCarrierId(carriers->getCarriersId());
-				available_fmt = simulated_fmt;
 				break;
 			}
 			// if we do not found the MODCOD value we need the closer supported value

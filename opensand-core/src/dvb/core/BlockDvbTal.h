@@ -183,14 +183,6 @@ class BlockDvbTal: public BlockDvb
 		 */
 		bool shareFrame(DvbFrame *frame);
 
-		/**
-		 * @brief  handle a SAC frame
-		 *
-		 * @param dvb_frame The SAC frame
-		 * @return true on success, false otherwise
-		 */
-		virtual bool handleSac(const DvbFrame *dvb_frame);
-
 		// statistics update
 		void updateStats(void);
 
@@ -464,9 +456,6 @@ class BlockDvbTal: public BlockDvb
 	bool onDownwardEvent(const RtEvent *const event);
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit(void);
-
-	/// The list of Sts with forward/down modcod
-	StFmtSimuList* output_sts;
 
 	/// The list of Sts with return/up modcod
 	StFmtSimuList* input_sts;

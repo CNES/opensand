@@ -456,7 +456,7 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 	return true;
 }
 
-void SpotUpwardTransp::handleCorruptedFrame(DvbFrame *dvb_frame)
+void SpotUpwardTransp::handleFrameCni(DvbFrame *dvb_frame)
 {
 	if(!this->with_phy_layer)
 	{
@@ -479,7 +479,7 @@ void SpotUpwardTransp::handleCorruptedFrame(DvbFrame *dvb_frame)
 		return;
 	}
 
-	this->setRequiredModcodInput(tal_id, curr_cni);
+	this->setRequiredCniInput(tal_id, curr_cni);
 
 	return;
 }

@@ -72,7 +72,7 @@ class BlockDvbSatRegen: public BlockDvbSat
 	~BlockDvbSatRegen();
 
 	// TODO move DvbFmt inheritance in SatGw
-	class UpwardRegen: public Upward, public DvbFmt
+	class UpwardRegen: public Upward
 	{
 	 public:
 		UpwardRegen(Block *const bl);
@@ -88,6 +88,15 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 */
 		bool initSwitchTable(void);
 		
+		/**
+		 * @brief add st to the fmt simulation 
+		 *
+		 * @param current_gw The current SatGw
+		 * @param st_id      The terminal id 
+		 * @return true on success, false otherwise
+		 */ 
+		bool addSt(SatGw *current_gw, tal_id_t st_id);
+
 		/**
 		* handle corrupted frame
 		*
@@ -110,7 +119,8 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 * 
 		 * @return true on success, false otherwise
 		 */ 
-		bool handleSac(DvbFrame *dvb_frame);
+		bool handleSac(DvbFrame *dvb_frame,
+		               SatGw *current_gw);
 	
 		/**
 		 * Handle BB Frame
@@ -132,7 +142,7 @@ class BlockDvbSatRegen: public BlockDvbSat
 	};
 
 	// TODO move DvbFmt inheritance in SatGw
-	class DownwardRegen: public Downward, public DvbFmt
+	class DownwardRegen: public Downward
 	{
 	 public:
 		DownwardRegen(Block *const bl);
@@ -168,7 +178,7 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 * @return  true on success, false otherwise
 		 */
 		bool initModcodSimu(void);
-
+				
 		/**
 		 *
 		 * @param packet    The NetPacket
@@ -196,46 +206,8 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 *
 		 * @return true on success, false otherwise
 		 */ 
-		bool handleScenarioTimer();
+		bool handleScenarioTimer(SatGw *current_gw);
 		
-		/**
-		 * Set the Fmt Simulation on the appropriate Spot and Gw
-		 */
-		void setFmtSimulation(spot_id_t spot_id, tal_id_t gw_id,
-		                      FmtSimulation* new_fmt_simu);
-
-		/**
-		 * @brief Go to the first step in adaptive physical layer scenario
-		 *        For the appropriate Spot and Gw.
-		 *
-		 * @param spot_id      the id of the spot
-		 * @param gw_id        the id of the gw
-		 * @return true on success, false otherwise
-		 */
-		bool goFirstScenarioStep(spot_id_t spot_id, tal_id_t gw_id);
-
-		/**
-		 * @brief Go to next step in adaptive physical layer scenario
-		 *        Update current MODCODs IDs of all STs in the list
-		 *        For the appropriate Spot and Gw.
-		 *
-		 * @param spot_id      the id of the spot
-		 * @param gw_id        the id of the gw
-		 * @param duration     duration before the next step
-		 * @return true on success, false otherwise
-		 */
-		bool goNextScenarioStep(spot_id_t spot_id, tal_id_t gw_id,
-		                        double &duration);
-
-		/**
-		 * Get a list of the gw ids
-		 */
-		set<tal_id_t> getGwIds(void);
-
-		/**
-		 * Get a list of the spot ids
-		 */
-		set<spot_id_t> getSpotIds(void);
 	};
 
 

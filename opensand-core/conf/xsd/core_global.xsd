@@ -302,43 +302,6 @@
     </xsd:complexType>
 </xsd:element>
 
-
-<!-- type for simulation column section -->
-<xsd:simpleType name="columnNbr">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="1532" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<!-- the columns for simulation_column section -->
-<xsd:element name="columns">
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="column" minOccurs="1" maxOccurs="10" />
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="column">
-    <xsd:complexType>
-        <xsd:attribute name="tal_id" type="talId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the terminal
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="column_nbr" type="columnNbr">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The number of the column for the specified terminal
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
 <!-- Complete XML description -->
 <xsd:element name="configuration">
     <xsd:complexType>
@@ -347,7 +310,6 @@
             <xsd:element ref="forward_down_band" />
             <xsd:element ref="return_up_band" />
             <xsd:element ref="slotted_aloha" />
-            <xsd:element ref="simulation_column" />
             <xsd:element ref="physical_layer" />
             <xsd:element ref="advanced" />
         </xsd:sequence>
@@ -586,31 +548,6 @@
                     <xsd:documentation xml:lang="en">
                         The number of DVB superframe per Slotted Aloha frame 
                         <unit>DVB superframes</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- simulation_column section description -->
-<xsd:element name="simulation_column">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            <![CDATA[
-            <b>\tThe number of the column corresponding to each terminal in the DRA
-            and MODCOD simulation files</b>
-            ]]>
-            <hide>true</hide>
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="columns">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        Associate a terminal ID and a column in the FMT
-                        simulation file
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

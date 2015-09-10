@@ -313,7 +313,6 @@ bool DvbFmt::initModcodSimuFile(const char *simu,
 	return this->initModcodSimuFile(simu, this->fmt_simu, gw_id, spot_id);
 }
 
-
 bool DvbFmt::initModcodSimuFile(const char *simu,
                                 FmtSimulation &fmt_simu,
                                 tal_id_t gw_id,
@@ -392,7 +391,6 @@ bool DvbFmt::addInputTerminal(tal_id_t id)
 	           this->input_modcod_def->getMaxId());
 
 	this->input_sts->addTerminal(id, modcod);
-
 	return true;
 }
 
@@ -463,8 +461,8 @@ void DvbFmt::setRequiredModcod(tal_id_t tal_id,
 }
 
 
-void DvbFmt::setRequiredModcodInput(tal_id_t tal_id,
-                                    double cni)
+void DvbFmt::setRequiredCniInput(tal_id_t tal_id,
+                                 double cni)
 {
 
 	this->setRequiredModcod(tal_id, cni, this->input_modcod_def,
@@ -472,8 +470,8 @@ void DvbFmt::setRequiredModcodInput(tal_id_t tal_id,
 }
 
 
-void DvbFmt::setRequiredModcodOutput(tal_id_t tal_id,
-                                     double cni)
+void DvbFmt::setRequiredCniOutput(tal_id_t tal_id,
+                                  double cni)
 {
 	this->setRequiredModcod(tal_id, cni, this->output_modcod_def,
 	                        this->output_sts);
@@ -489,6 +487,29 @@ uint8_t DvbFmt::getCurrentModcodIdInput(tal_id_t id) const
 uint8_t DvbFmt::getCurrentModcodIdOutput(tal_id_t id) const
 {
 	return this->output_sts->getCurrentModcodId(id);
+}
+
+
+double DvbFmt::getRequiredCniInput(tal_id_t tal_id) const
+{
+	fmt_id_t modcod_id;
+	modcod_id = this->getCurrentModcodIdInput(tal_id);
+	return this->getRequiredCni(modcod_id, this->input_modcod_def);
+}
+
+
+double DvbFmt::getRequiredCniOutput(tal_id_t tal_id) const
+{
+	fmt_id_t modcod_id;
+	modcod_id = this->getCurrentModcodIdOutput(tal_id);
+	return this->getRequiredCni(modcod_id, this->output_modcod_def);
+}
+
+double DvbFmt::getRequiredCni(fmt_id_t modcod_id,
+                              const FmtDefinitionTable *modcod_def) const
+{
+	double cni = modcod_def->getRequiredEsN0(modcod_id);
+	return cni;
 }
 
 

@@ -36,7 +36,6 @@
 
 #include "SpotDownwardRegen.h"
 
-#include "ForwardSchedulingS2.h"
 #include "UplinkSchedulingRcs.h"
 #include "DamaCtrlRcsLegacy.h"
 
@@ -77,6 +76,9 @@ bool SpotDownwardRegen::onInit(void)
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
+	// we use RCS as input because we will consider
+	// the terminal to satellite link and not the satellite
+	// to GW link
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
 	                            &this->output_modcod_def))
 	{
@@ -136,7 +138,7 @@ bool SpotDownwardRegen::initMode(void)
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         this->input_modcod_def,
+	                                         this->output_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
 	                                         &this->default_category,
@@ -161,7 +163,7 @@ bool SpotDownwardRegen::initMode(void)
 		cat = this->default_category;
 	}
 
-	list = this->input_sts->getListSts();
+	list = this->output_sts->getListSts();
 	this->scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
 	                                           this->dvb_fifos,
 	                                           list,
@@ -204,7 +206,7 @@ bool SpotDownwardRegen::initDama(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "missing %s parameter\n", DC_FREE_CAP);
-		goto error;
+		return false;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "fca = %d kb/s\n", fca_kbps);
@@ -214,7 +216,7 @@ bool SpotDownwardRegen::initDama(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Missing %s\n", SYNC_PERIOD);
-		goto error;
+		return false;
 	}
 	sync_period_frame = (time_frame_t)round((double)sync_period_ms /
 	                                        (double)this->ret_up_frame_duration_ms);
@@ -248,7 +250,7 @@ bool SpotDownwardRegen::initDama(void)
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
-		goto error;
+		return false;
 	}
 
 	/* select the specified DAMA algorithm */
@@ -263,18 +265,21 @@ bool SpotDownwardRegen::initDama(void)
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': bad value for parameter '%s'\n",
 		    DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
-		goto error;
+		return false;
 	}
 
 	if(!this->dama_ctrl)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to create the DAMA controller\n");
-		goto error;
+		return false;
 	}
 
 	// Initialize the DamaCtrl parent class
-	list = this->input_sts->getListSts();
+	// Here we use output STs and output MODCOD because GW has the same
+	// output link standard than terminals and required modcod for
+	// terminals is received in SAC and added to output STs
+	list = this->output_sts->getListSts();
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
@@ -284,9 +289,6 @@ bool SpotDownwardRegen::initDama(void)
 	                                dc_terminal_affectation,
 	                                dc_default_category,
 	                                list,
-	                                // we use output because terminals have the same
-	                                // output modcod definition as the GW
-	                                // and GW receive from satellite, not terminal
 	                                this->output_modcod_def,
 	                                (this->simulate == none_simu) ?
 	                                false : true))
@@ -308,7 +310,6 @@ bool SpotDownwardRegen::initDama(void)
 
 release_dama:
 	delete this->dama_ctrl;
-error:
 	return false;
 }
 
@@ -322,9 +323,9 @@ bool SpotDownwardRegen::initOutput(void)
 	}	
 
 	this->probe_used_modcod = Output::registerProbe<int>("modcod index",
-		                                                     true, SAMPLE_LAST,
-		                                                     "Spot_%d.ACM.Used_modcod",
-		                                                     this->spot_id);
+	                                                     true, SAMPLE_LAST,
+	                                                     "Spot_%d.ACM.Used_modcod",
+	                                                     this->spot_id);
 
 	return true;
 }

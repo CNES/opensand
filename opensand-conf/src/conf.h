@@ -64,15 +64,6 @@
 #define SYNC_PERIOD               "sync_period"
 
 
-///////////////////////////////
-// section simulation column //
-///////////////////////////////
-
-#define SAT_SIMU_COL_SECTION      "simulation_column"
-#define COLUMN_LIST               "columns"
-#define COLUMN_NBR                "column_nbr"
-
-
 /////////////////////////
 //   section dvb_rcs   //
 /////////////////////////

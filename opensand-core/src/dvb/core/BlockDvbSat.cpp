@@ -42,6 +42,9 @@
 #include "SlottedAlohaFrame.h"
 #include "OpenSandConf.h"
 
+#include "Logon.h"
+#include "Logoff.h"
+
 #include <opensand_rt/Rt.h>
 #include <opensand_conf/conf.h>
 
@@ -57,12 +60,6 @@
 #include <ios>
 #include <set>
 
-
-typedef struct
-{
-	tal_id_t tal_id;
-	double cni;
-} cni_info_t;
 
 
 /*****************************************************************************/
@@ -98,13 +95,10 @@ bool BlockDvbSat::onInit()
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the spots part of the "
 		    "initialisation\n");
-		goto error;
+		return false;
 	}
 
 	return true;
-
-error:
-	return false;
 }
 
 
@@ -327,12 +321,10 @@ BlockDvbSat::Downward::Downward(Block *const bl):
 	down_frame_counter(),
 	sat_delay(),
 	fwd_timer(-1),
-	scenario_timer(-1),
 	terminal_affectation(),
 	default_category(),
 	fmt_groups(),
 	spots(),
-	cni(),
 	probe_frame_interval(NULL)
 {
 };
@@ -406,7 +398,6 @@ void BlockDvbSat::Downward::setSpots(const sat_spots_t &spots)
 	this->spots = spots;
 }
 
-
 bool BlockDvbSat::Downward::initOutput(void)
 {
 	// Output probes and stats
@@ -419,7 +410,7 @@ bool BlockDvbSat::Downward::initOutput(void)
 		list<SatGw *>::iterator gw_it;
 
 		for(gw_it = list_gw.begin() ; gw_it != list_gw.end() ;
-			++ gw_it)
+			++gw_it)
 		{
 			SatGw *gw = *gw_it;
 			gw->initProbes();
@@ -575,15 +566,34 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					}
 				}
 			}
-			else if(*event == this->scenario_timer)
+			// Scenario timer
+			else 
 			{
-				this->handleScenarioTimer();	
-			}
-			else
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "unknown timer event received %s\n",
-				    event->getName().c_str());
+				bool found = false;
+				sat_spots_t::iterator i_spot;
+				for(i_spot = this->spots.begin(); i_spot != this->spots.end(); i_spot++)
+				{
+					SatSpot* spot = i_spot->second;
+					list<SatGw *> list_gw = spot->getGwList();
+					list<SatGw *>::iterator gw_it;
+
+					for(gw_it = list_gw.begin() ; gw_it != list_gw.end() ;
+							++gw_it)
+					{
+						if(*event == (*gw_it)->getScenarioTimer())
+						{
+							this->handleScenarioTimer(*gw_it);	
+							found = true;
+							break;
+						}
+					}
+				}
+				if(!found)
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "unknown timer event received %s\n",
+					    event->getName().c_str());
+				}
 			}
 		}
 		break;
@@ -679,7 +689,6 @@ BlockDvbSat::Upward::Upward(Block *const bl):
 	DvbUpward(bl),
 	reception_std(NULL),
 	spots(),
-	cni(),
 	sat_delay()
 {
 };
@@ -699,7 +708,6 @@ void BlockDvbSat::Upward::setSpots(const sat_spots_t &spots)
 {
 	this->spots = spots;
 }
-
 
 bool BlockDvbSat::Upward::onInit()
 {
@@ -919,7 +927,8 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 		// Generic control frames (SAC, TTP, etc)
 		case MSG_TYPE_SAC:
-			if(!this->handleSac(dvb_frame))
+			if(!this->handleSac(dvb_frame,
+			                    current_gw))
 			{
 				return false;
 			}
@@ -934,12 +943,26 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			{
 				return false;
 			}
+
+
 		}
 		break;
 
 		// Special case of logon frame with dedicated channel
 		case MSG_TYPE_SESSION_LOGON_REQ:
 		{
+			LogonRequest *logon_req = (LogonRequest*)dvb_frame;
+			tal_id_t st_id = logon_req->getMac();
+
+			if(!this->addSt(current_gw, st_id))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "failed to register simulated ST with MAC "
+				    "ID %u\n", st_id);
+				return false;
+			}
+			
+			// check for column in FMT simulation list
 			LOG(this->log_receive, LEVEL_DEBUG,
 			    "ST logon request received, "
 			    "forward it on all satellite spots\n");
@@ -950,6 +973,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			{
 				return false;
 			}
+			
 		}
 		break;
 

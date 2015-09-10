@@ -85,6 +85,7 @@ class BlockDvbSat: public BlockDvb
 		bool onEvent(const RtEvent *const event);
 		
 		void setSpots(const sat_spots_t &spots);
+		
 
 	 protected: 
 		/// reception standard (DVB-RCS or DVB-S2)      
@@ -124,6 +125,15 @@ class BlockDvbSat: public BlockDvb
 		virtual bool initSwitchTable(void) = 0;
 		
 		/**
+		 * @brief add st to the fmt simulation 
+		 *
+		 * @param current_gw The current SatGw
+		 * @param st_id      The terminal id 
+		 * @return true on success, false otherwise
+		 */ 
+		virtual bool addSt(SatGw *current_gw, tal_id_t st_id) = 0;
+		
+		/**
 		 * Handle corrupted frame
 		 *
 		 * @return true on success, false otherwise
@@ -143,7 +153,8 @@ class BlockDvbSat: public BlockDvb
 		 * 
 		 * @return true on success, false otherwise
 		 */ 
-		virtual bool handleSac(DvbFrame *dvb_frame) = 0;
+		virtual bool handleSac(DvbFrame *dvb_frame,
+		                       SatGw *current_gw) = 0;
 
 		/**
 		 * Handle BB Frame
@@ -166,8 +177,6 @@ class BlockDvbSat: public BlockDvb
 		/// The satellite spots
 		sat_spots_t spots;
 
-		/// The uplink C/N0 per terminal
-		map<tal_id_t, double> cni;
 
 		/// The satellite delay to emulate
 		time_ms_t sat_delay;
@@ -184,7 +193,8 @@ class BlockDvbSat: public BlockDvb
 		
 		bool onEvent(const RtEvent *const event);
 		void setSpots(const sat_spots_t &spots);
-
+		
+	 
 	 protected:
 		/**
 		 * Send the DVB frames stored in the given MAC FIFO
@@ -194,6 +204,7 @@ class BlockDvbSat: public BlockDvb
 		 */
 		bool sendFrames(DvbFifo *fifo);
 				
+		
 		/**
 		 * @brief handle event message
 		 *
@@ -214,7 +225,7 @@ class BlockDvbSat: public BlockDvb
 		 *
 		 * @return true on success, false otherwise
 		 */ 
-		virtual bool handleScenarioTimer() = 0;
+		virtual bool handleScenarioTimer(SatGw *current_gw) = 0;
 
 		/**
 		 * @brief Initialize the link
@@ -251,10 +262,6 @@ class BlockDvbSat: public BlockDvb
 		/// timer used to awake the block regurlarly in order to send frames
 		//  and schedule in regenerative scenario
 		event_id_t fwd_timer;
-
-		/// timer used to awake the block every second in order to retrieve
-		/// the modcods
-		event_id_t scenario_timer;
 
 		/// The terminal affectation for forward band
 		TerminalMapping<TerminalCategoryDama> terminal_affectation;

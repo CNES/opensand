@@ -59,7 +59,7 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 	categories(),
 	terminal_affectation(),
 	default_category(NULL),
-	input_sts(),
+	input_sts(NULL),
 	input_modcod_def(NULL),
 	roll_off(0.0),
 	simulated(false),

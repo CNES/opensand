@@ -109,14 +109,6 @@ bool BlockDvbSatRegen::DownwardRegen::onInit()
 		return false;
 	}
 	
-	if(!this->initStList())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the ST part of the"
-		    "initialisation\n");
-		return false;
-	}
-	
 	if(!BlockDvbSat::Downward::onInit())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -128,69 +120,6 @@ bool BlockDvbSatRegen::DownwardRegen::onInit()
 	return true;
 }
 
-
-bool BlockDvbSatRegen::DownwardRegen::initStList(void)
-{
-	int i = 0;
-	ConfigurationList column_list;
-	ConfigurationList::iterator iter;
-
-	// Get the list of STs
-	if(!Conf::getListItems(Conf::section_map[SAT_SIMU_COL_SECTION],
-		                   COLUMN_LIST, column_list))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s, %s': problem retrieving simulation "
-		    "column list\n", SAT_SIMU_COL_SECTION, COLUMN_LIST);
-		goto error;
-	}
-
-	for(iter = column_list.begin(); iter != column_list.end(); iter++)
-	{
-		i++;
-		tal_id_t tal_id = 0;
-
-		// Get the Tal ID
-		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "problem retrieving %s in simulation column "
-			    "entry %d\n", TAL_ID, i);
-			goto error;
-		}
-
-		// register a ST only if it did not exist yet
-		// (duplicate because STs are 'defined' in spot table)
-		// TODO Add terminal only for the right spot and gw
-		sat_spots_t::iterator it;
-		for(it = this->spots.begin();
-		    it != this->spots.end(); it++)
-		{
-			list<SatGw *>::const_iterator it2;
-			list<SatGw *> list = it->second->getGwList();
-			for(it2 = list.begin();
-			    it2 != list.end(); it2++)
-			{
-				if(!(*it2)->doTerminalExist(tal_id))
-				{
-					// TODO Do that on loggon and remove columns from configuration
-					if(!(*it2)->addTerminal(tal_id))
-					{
-						LOG(this->log_init, LEVEL_ERROR,
-						    "failed to register ST with Tal ID %u\n",
-						    tal_id);
-						goto error;
-					}
-				}
-			}
-		}
-	}
-
-	return true;
-
-error:
-	return false;
-}
 
 bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 {
@@ -221,10 +150,9 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			ConfigurationList current_spot;
 			ConfigurationList current_gw;
 			ConfigurationList spot_list;
-			SatSpot *spot;
-			spot = i_spot->second;
 			spot_id_t spot_id = spot->getSpotId();
 			tal_id_t gw_id = gw->getGwId();
+			FmtDefinitionTable *output_modcod_def = gw->getOutputModcodDef();
 
 			if(!Conf::getListNode(Conf::section_map[FORWARD_DOWN_BAND],
 			                      SPOT_LIST,
@@ -260,7 +188,7 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			                                         TDM,
 			                                         this->fwd_down_frame_duration_ms,
 			                                         this->satellite_type,
-			                                         this->output_modcod_def,
+			                                         output_modcod_def,
 			                                         st_categories,
 			                                         this->terminal_affectation,
 			                                         &this->default_category,
@@ -275,7 +203,7 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			                                         TDM,
 			                                         this->fwd_down_frame_duration_ms,
 			                                         this->satellite_type,
-			                                         this->output_modcod_def,
+			                                         output_modcod_def,
 			                                         gw_categories,
 			                                         this->terminal_affectation,
 			                                         &this->default_category,
@@ -299,7 +227,6 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 			// Finding the good fmt simulation
 			if(!gw->initScheduling(this->fwd_down_frame_duration_ms,
 		                           this->pkt_hdl,
-		                           this->input_modcod_def,
 		                           st_category,
 		                           gw_category))
 			{
@@ -330,34 +257,26 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 
 bool BlockDvbSatRegen::DownwardRegen::initTimers(void)
 {
-	bool with_phy_layer;
-
 	// create frame timer (also used to send packets waiting in fifo)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                       this->fwd_down_frame_duration_ms);
-
-
-	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               ENABLE,
-	                   with_phy_layer))
+	
+	sat_spots_t::iterator spot;
+	for(spot = this->spots.begin(); spot != this->spots.end(); ++spot)
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    PHYSICAL_LAYER_SECTION, ENABLE);
-		return false;
-	}
-
-	if(!with_phy_layer)
-	{
-		// TODO per spot per gw
-		// launch the timer in order to retrieve the modcods
-		this->scenario_timer = this->addTimerEvent("dvb_scenario_timer",
-		                                           1, // the duration will be change when started
-		                                           true, // no rearm
-		                                           false // do not start
-		                                           );
-	}
+		list<SatGw *> gws = (*spot).second->getListGw();
+		list<SatGw *>::iterator gw;
+		for(gw = gws.begin(); gw != gws.end(); ++gw)
+		{
+			// launch the timer in order to retrieve the modcods
+			event_id_t scenario_timer = this->addTimerEvent("dvb_scenario_timer",
+			                                                1, // the duration will be change when started
+			                                                true, // no rearm
+			                                                false // do not start
+			                                                );
+			(*gw)->initScenarioTimer(scenario_timer);
+		}
+	}	
 
 	return true;
 }
@@ -366,63 +285,27 @@ bool BlockDvbSatRegen::DownwardRegen::initTimers(void)
 
 bool BlockDvbSatRegen::DownwardRegen::initModcodSimu(void)
 {
-	set<tal_id_t> gw_list = this->getGwIds();
-	set<spot_id_t> spot_list = this->getSpotIds();
-	for(set<spot_id_t>::iterator spot_it = spot_list.begin();
-	    spot_it != spot_list.end(); spot_it++)
+	sat_spots_t::iterator spot;
+	for(spot = this->spots.begin(); spot != this->spots.end(); ++spot)
 	{
-		for(set<tal_id_t>::iterator gw_it = gw_list.begin();
-		    gw_it != gw_list.end(); gw_it++)
+		list<SatGw *> gws = (*spot).second->getListGw();
+		list<SatGw *>::iterator gw;
+		for(gw = gws.begin(); gw != gws.end(); ++gw)
 		{
-			FmtSimulation *fmt_simulation = new FmtSimulation();
-			if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
-			                             *fmt_simulation,
-			                             (*gw_it), (*spot_it)))
+			if(!(*gw)->initModcodSimu())
 			{
 				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to complete the modcod part of the "
-				    "initialisation\n");
-				return false;
-			}
-			this->setFmtSimulation((*spot_it), (*gw_it), fmt_simulation);
-			if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-			                            &this->input_modcod_def))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to complete the modcod part of the "
-				    "initialisation\n");
-				return false;
-			}
-			if(!this->initModcodDefFile(MODCOD_DEF_S2,
-			                            &this->output_modcod_def))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to complete the modcod part of the "
-				    "initialisation\n");
+				    "gw %d failed to complete the modcod part of the "
+				    "initialisation\n",
+				    (*gw)->getGwId());
 				return false;
 			}
 		}
 	}
 
-	// initialize the MODCOD scheme ID
-	for(set<spot_id_t>::iterator spot_it = spot_list.begin();
-	    spot_it != spot_list.end(); spot_it++)
-	{
-		for(set<tal_id_t>::iterator gw_it = gw_list.begin();
-		    gw_it != gw_list.end(); gw_it++)
-		{
-			if(!this->goFirstScenarioStep((*spot_it), (*gw_it)))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to initialize downlink MODCOD IDs\n");
-				return false;
-			}
-		}
-	}
 	return true;
 
 }
-
 
 bool BlockDvbSatRegen::DownwardRegen::handleMessageBurst(const RtEvent *const event)
 {
@@ -615,7 +498,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleTimerEvent(SatGw *current_gw,
 	return true;
 }
 
-bool BlockDvbSatRegen::DownwardRegen::handleScenarioTimer()
+bool BlockDvbSatRegen::DownwardRegen::handleScenarioTimer(SatGw *current_gw)
 {
 	LOG(this->log_receive, LEVEL_DEBUG,
 			"MODCOD scenario timer expired\n");
@@ -624,116 +507,30 @@ bool BlockDvbSatRegen::DownwardRegen::handleScenarioTimer()
 			"update modcod table\n");
 	
 	double duration;
-	//TODO Timer per spot and per gw
-	if(!this->goNextScenarioStepInput(duration))
+	event_id_t scenario_timer = current_gw->getScenarioTimer();
+
+	if(current_gw->goNextScenarioStepInput(duration))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
-				"failed to update MODCOD IDs\n");
+			"failed to update MODCOD IDs\n");
 		return false;
 	}
+
 	if(duration <= 0)
 	{
 		// we hare reach the end of the file (of it is malformed)
 		// so we keep the modcod as they are
-		this->removeEvent(this->scenario_timer);
+		this->removeEvent(scenario_timer);
 	}
 	else
 	{
-		this->setDuration(this->scenario_timer, duration);
-		this->startTimer(this->scenario_timer);
-	}
-	// Update the cni for all terminals
-	map<tal_id_t, double>::iterator it;
-	for(it = this->cni.begin(); it != this->cni.end(); it++)
-	{
-		uint8_t current_modcod = this->getCurrentModcodIdInput(it->first);
-		this->cni[it->first] = this->input_modcod_def->getRequiredEsN0(current_modcod);
+		this->setDuration(scenario_timer, duration);
+		this->startTimer(scenario_timer);
 	}
 
 	return true;
 }
 
-void BlockDvbSatRegen::DownwardRegen::setFmtSimulation(spot_id_t spot_id, tal_id_t gw_id,
-                                             FmtSimulation* new_fmt_simu)
-{
-	sat_spots_t::iterator it = this->spots.find(spot_id);
-
-	if(it == this->spots.end())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Spot %d not found\n", spot_id);
-	}
-	else
-	{
-		it->second->setFmtSimulation(gw_id, new_fmt_simu);
-	}
-}
-
-
-bool BlockDvbSatRegen::DownwardRegen::goFirstScenarioStep(spot_id_t spot_id, tal_id_t gw_id)
-{
-	sat_spots_t::iterator it = this->spots.find(spot_id);
-
-	if(it != this->spots.end())
-	{
-		return it->second->goFirstScenarioStep(gw_id);
-	}
-
-	LOG(this->log_init, LEVEL_ERROR,
-	    "Spot %d not found\n", spot_id);
-
-	return false;
-}
-
-
-bool BlockDvbSatRegen::DownwardRegen::goNextScenarioStep(spot_id_t spot_id, tal_id_t gw_id,
-                                               double &duration)
-{
-	sat_spots_t::iterator it = this->spots.find(spot_id);
-
-	if(it != this->spots.end())
-	{
-		return it->second->goNextScenarioStep(gw_id, duration);
-	}
-
-	LOG(this->log_init, LEVEL_ERROR,
-	    "Spot %d not found\n", spot_id);
-
-	return false;
-}
-
-set<tal_id_t> BlockDvbSatRegen::DownwardRegen::getGwIds(void)
-{
-	set<tal_id_t> result;
-	sat_spots_t::iterator it;
-	list<SatGw *>::iterator gw_it;
-
-	for(it = this->spots.begin();
-		it != this->spots.end(); it++)
-	{
-		list<SatGw *> list = it->second->getListGw();
-		for(gw_it = list.begin(); gw_it != list.end(); gw_it++)
-		{
-			result.insert((*gw_it)->getGwId());
-		}
-	}
-
-	return result;
-}
-
-
-set<spot_id_t> BlockDvbSatRegen::DownwardRegen::getSpotIds(void)
-{
-	set<spot_id_t> result;
-	sat_spots_t::iterator it;
-
-	for(it = this->spots.begin(); it != this->spots.end(); it++)
-	{
-		result.insert(it->second->getSpotId());
-	}
-
-	return result;
-}
 
 
 /*****************************************************************************/
@@ -875,6 +672,20 @@ error:
 	return false;
 }
 
+bool BlockDvbSatRegen::UpwardRegen::addSt(SatGw *current_gw,
+                                          tal_id_t st_id)
+{
+	if(!current_gw->addTerminal(st_id))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "failed to register simulated ST with MAC "
+		    "ID %u\n", st_id);
+		return false;
+	}
+
+	return true;
+}
+
 bool BlockDvbSatRegen::UpwardRegen::handleCorrupted(DvbFrame *UNUSED(dvb_frame))
 {
 	return false;
@@ -882,41 +693,23 @@ bool BlockDvbSatRegen::UpwardRegen::handleCorrupted(DvbFrame *UNUSED(dvb_frame))
 
 
 bool BlockDvbSatRegen::UpwardRegen::handleDvbBurst(DvbFrame *dvb_frame,
-                                                   SatGw UNUSED(*current_gw),
+                                                   SatGw *current_gw,
                                                    SatSpot UNUSED(*current_spot))
 {
 	NetBurst *burst = NULL;
-	DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-	
-	// TODO move in SatGw
-	bool with_phy_layer = false;
-	if(with_phy_layer &&
-	   this->reception_std->getType() == "DVB-RCS")
+	if(!current_gw->updateFmt(dvb_frame, this->pkt_hdl))
 	{
-		tal_id_t src_tal_id;
-		// decode the first packet in frame to be able to get source terminal ID
-		if(!this->pkt_hdl->getSrc(frame->getPayload(), src_tal_id))
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "unable to read source terminal ID in "
-			    "frame, won't be able to update C/N "
-			    "value\n");
-		}
-		else
-		{
-			double cn = frame->getCn();
-			LOG(this->log_receive, LEVEL_INFO,
-			    "Uplink CNI for terminal %u = %f\n",
-			    src_tal_id, cn);
-			this->cni[src_tal_id] = cn;
-		}
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "gw %d failed to handle dvb burst\n",
+		    current_gw->getGwId());
+		return false;
 	}
-
+	
 	if(!this->reception_std->onRcvFrame(dvb_frame,
 	                                    0 /* no used */,
 	                                    &burst))
 	{
-		LOG(this->log_receive, LEVEL_ERROR,
+		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to handle received DVB frame "
 		    "(regenerative satellite)\n");
 			burst = NULL;
@@ -938,31 +731,15 @@ bool BlockDvbSatRegen::UpwardRegen::handleDvbBurst(DvbFrame *dvb_frame,
 }
 
 
-bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame)
+bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame,
+                                              SatGw *current_gw)
 {
-	// TODO move in SatGw
-	bool with_phy_layer = false;
-	if(with_phy_layer)
+	if(!current_gw->handleSac(dvb_frame))
 	{
-		// handle SAC here to get the uplink ACM parameters
-		Sac *sac = (Sac *)dvb_frame;
-		tal_id_t tal_id;
-		tal_id = sac->getTerminalId();
-		LOG(this->log_receive, LEVEL_INFO,
-		    "Get SAC from ST%u, with C/N0 = %.2f\n",
-		    tal_id, sac->getCni());
-
-		this->setRequiredModcodOutput(tal_id, sac->getCni());
-
-		// update ACM parameters with uplink value, thus the GW will
-		// known uplink C/N and thus update uplink MODCOD used in TTP
-		if(this->cni.find(tal_id) != this->cni.end())
-		{
-			sac->setAcm(this->cni[tal_id]);
-		}
-		// TODO we won't update ACM parameters if we did not receive
-		// traffic from this terminal, GW will have a wrong value...
-		delete dvb_frame;
+		LOG(this->log_receive, LEVEL_ERROR,
+            "gw %d failed to handle dvb burst\n",
+            current_gw->getGwId());
+		return false;
 	}
 
 	return true;

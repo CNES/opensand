@@ -143,7 +143,7 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 	                 tal_id_t tal_id,
 	                 int32_t offset,
 	                 uint16_t assignment_count,
-	                 uint8_t fmt_id,
+	                 fmt_id_t fmt_id,
 	                 uint8_t priority);
 
 	/**

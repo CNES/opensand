@@ -37,7 +37,6 @@
 #include "SpotDownwardTransp.h"
 
 #include "ForwardSchedulingS2.h"
-#include "UplinkSchedulingRcs.h"
 #include "DamaCtrlRcsLegacy.h"
 
 #include <errno.h>

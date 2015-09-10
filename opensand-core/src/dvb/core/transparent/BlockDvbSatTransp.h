@@ -95,6 +95,16 @@ class BlockDvbSatTransp: public BlockDvbSat
 		bool initSwitchTable(void);
 		
 		/**
+		 * @brief add st to the fmt simulation 
+		 *
+		 * @param current_gw The current SatGw
+		 * @param st_id      The terminal id 
+		 * @return true on success, false otherwise
+		 */ 
+		bool addSt(SatGw *current_gw, tal_id_t st_id);
+
+
+		/**
 		* handle corrupted frame
 		*
 		* @param dvb_frame  the DVB or BB frame to forward
@@ -117,7 +127,8 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 * 
 		 * @return true on success, false otherwise
 		 */ 
-		bool handleSac(DvbFrame *dvb_frame);
+		bool handleSac(DvbFrame *dvb_frame,
+		               SatGw *current_gw);
 		
 		/**
 		 * Handle BB Frame
@@ -180,7 +191,7 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 *
 		 * @return true on success, false otherwise
 		 */ 
-		bool handleScenarioTimer();
+		bool handleScenarioTimer(SatGw *current_gw);
 
 	};
 

@@ -346,7 +346,6 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		    section.c_str(), FMT_GROUP_LIST);
 		goto error;
 	}
-
 	// create group list
 	for(ConfigurationList::iterator iter = conf_list.begin();
 	    iter != conf_list.end(); ++iter)
@@ -777,7 +776,7 @@ class DvbFmt
 		log_fmt(NULL)
 	{
 		// register static log
-		this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt");
+		this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Channel");
 	};
 
 	virtual ~DvbFmt()
@@ -839,7 +838,28 @@ class DvbFmt
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
 	uint8_t getCurrentModcodIdOutput(tal_id_t id) const;
-
+	
+	/**
+	 * @brief Get the CNI MODCOD ID of the ST whose ID is given as input
+	 *        for output list of sts
+	 *
+	 * @param id     the ID of the ST
+	 * @return       the CNI of the ST
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	double getRequiredCniInput(tal_id_t tal_id) const;
+	
+	/**
+	 * @brief Get the CNI of the ST whose ID is given as input
+	 *        for output list of sts
+	 *
+	 * @param id     the ID of the ST
+	 * @return       the CNI of the ST
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	double getRequiredCniOutput(tal_id_t tal_id) const;
 
  protected:
 
@@ -923,22 +943,33 @@ class DvbFmt
 	bool delInputTerminal(tal_id_t id);
 
 	/**
-	 * @brief Set the required  MODCOD ID for of the ST in input
+	 * @brief Set the required  CNI for of the ST in input
 	 *        whid ID is given as input according to the required Es/N0
 	 *
 	 * @param id               the ID of the ST
 	 * @param cni              the required Es/N0 for that terminal
 	 */
-	void setRequiredModcodInput(tal_id_t tal_id, double cni);
+	void setRequiredCniInput(tal_id_t tal_id, double cni);
 
 	/**
-	 * @brief Set the required  MODCOD ID for of the ST in output
+	 * @brief Set the required  Cni for of the ST in output
 	 *        whid ID is given as input according to the required Es/N0
 	 *
 	 * @param id               the ID of the ST
 	 * @param cni              the required Es/N0 for that terminal
 	 */
-	void setRequiredModcodOutput(tal_id_t tal_id, double cni);
+	void setRequiredCniOutput(tal_id_t tal_id, double cni);
+	
+	/**
+	 * @brief Get the required  Cni for of the ST in modcod_def
+	 *        whid ID is given as input according to the required Es/N0
+	 *
+	 * @param id               the ID of the ST
+	 * @param modcod_def       the ID of the ST
+	 * @return                 the required Es/N0 for that terminal
+	 */
+	double getRequiredCni(fmt_id_t modcod_id,
+                          const FmtDefinitionTable *modcod_def) const;
 
 	/// Physical layer enable
 	bool with_phy_layer;

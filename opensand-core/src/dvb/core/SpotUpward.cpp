@@ -241,11 +241,11 @@ bool SpotUpward::handleSac(const DvbFrame *dvb_frame)
 	// regenerative : the C/N0 of uplink (updated by sat)
 	double cni = sac->getCni();
 	tal_id_t tal_id = sac->getTerminalId();
-	this->setRequiredModcodOutput(tal_id, cni);
+	this->setRequiredCniOutput(tal_id, cni);
 	LOG(this->log_receive_channel, LEVEL_INFO,
 	    "handle received SAC from terminal %u with cni %f\n",
 	    tal_id, cni);
-
+	
 	return true;
 }
 

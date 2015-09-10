@@ -230,7 +230,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		{
 			return false;
 		}
-
+		
 		if(this->satellite_type == TRANSPARENT)
 		{
 			spot = new SpotDownwardTransp(spot_id, this->mac_id,
@@ -852,9 +852,7 @@ release:
 bool BlockDvbNcc::Downward::sendAcmParameters(SpotDownward *spot_downward)
 {
 	// function only used in regenerative scenario
-	double cni;
-
-	cni = spot_downward->getCurrentModcodIdInput(this->mac_id);
+	double cni = spot_downward->getRequiredCniInput(this->mac_id);
 
 	Sac *send_sac = new Sac(this->mac_id);
 	send_sac->setAcm(cni);
@@ -1066,7 +1064,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				case MSG_TYPE_CORRUPTED:
 				{
 					// Update C/N0
-					spot->handleCorruptedFrame(dvb_frame);
+					spot->handleFrameCni(dvb_frame);
 
 					NetBurst *burst = NULL;
 					if(!spot->handleFrame(dvb_frame, &burst))

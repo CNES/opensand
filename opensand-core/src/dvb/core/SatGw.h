@@ -38,6 +38,7 @@
 
 #include "DvbFifo.h"
 #include "DvbFrame.h"
+#include "DvbChannel.h"
 #include "Scheduling.h"
 #include "FmtSimulation.h"
 #include "StFmtSimu.h"
@@ -58,13 +59,11 @@ using std::map;
  * @class SatSpot
  * @brief A DVB-RCS/S2 spot for the satellite emulator
  */
-class SatGw
+class SatGw: public DvbFmt 
 {
 
  private:
-
 	tal_id_t gw_id;            ///< Internal identifier of a gw
-	
 	spot_id_t spot_id;           ///< Internal identifier of a spot
 	
 	uint8_t data_in_st_id;     ///< Carrier ID associated with Data from the ST
@@ -84,13 +83,10 @@ class SatGw
 	Scheduling *st_scheduling;
 	/// The downlink scheduling for regenerative satellite toward GW
 	Scheduling *gw_scheduling;
-	/// The MODCOD simulation elements
-	FmtSimulation* fmt_simu_sat;
-	/// The List of sts associated
-	map<tal_id_t, StFmtSimu *> sts_sat;
-	/// The modcod definition table associated
-	//TODO Initialiser !
-	FmtDefinitionTable modcod_def_sat;
+
+	/// timer used to awake the block every second in order to retrieve
+	/// the modcods
+	event_id_t scenario_timer;
 
 	// statistics
 
@@ -118,6 +114,7 @@ class SatGw
 
 	// Output Log
 	OutputLog *log_init;
+	OutputLog *log_receive;
 
  public:
 
@@ -159,9 +156,29 @@ class SatGw
 	 */
 	bool initScheduling(time_ms_t fwd_timer_ms,
 	                    const EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                    FmtDefinitionTable *const fwd_modcod_def,
 	                    const TerminalCategoryDama *const st_category,
 	                    const TerminalCategoryDama *const gw_category);
+	
+	/**
+	 * @brief set scenario timer configuration
+	 * 
+	 * @param scenario_timer the scenario timer
+	 */
+	void initScenarioTimer(event_id_t scenario_timer);
+
+	/**
+	 * @brief Read configuration for the different files and open them
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initModcodSimu(void);
+
+	/**
+	 * @brief initialize probes
+	 *
+	 * @return true on success, false otherwise
+	 */ 
+	bool initProbes();
 
 	/**
 	 * @brief Schedule packets emission
@@ -175,8 +192,37 @@ class SatGw
 	bool schedule(const time_sf_t current_superframe_sf,
 	              time_ms_t current_time);
 
-	bool initProbes();
+	/**
+	 * Add a terminal to StFmtSimuList
+	 *
+	 * @param tal_id the new terminal id
+	 * @return true on success, false otherwise
+	 */ 
+	bool addTerminal(tal_id_t tal_id);
 
+	/**
+	 * Update fmt
+	 *
+	 * @param dvb_frame The dvb frame
+	 * @param pkt_hdl  The packet handler
+	 * 
+	 * @return true on success , false otherwise
+	 */ 
+	bool updateFmt(DvbFrame *dvb_frame,
+                   EncapPlugin::EncapPacketHandler *pkt_hdl);
+
+	/**
+	 * Handle Sac
+	 * 
+	 * @return true on success, false otherwise
+	 */ 
+	bool handleSac(DvbFrame *dvb_frame);
+
+	/**
+	 * @brief handle probes
+	 *
+	 * @return true on success, false otherwise
+	 */ 
 	bool updateProbes(time_ms_t stats_period_ms);
 	
 	/**
@@ -249,10 +295,6 @@ class SatGw
 	 */
 	list<DvbFrame *> &getCompleteGwDvbFrames(void);
 
-	FmtSimulation* getFmtSimuSat(void);
-
-	void setFmtSimuSat(FmtSimulation* new_fmt_simu);
-
 	/**
 	 * @brief Update the amount of layer 2 data received from ST
 	 *
@@ -306,21 +348,19 @@ class SatGw
 	spot_id_t getSpotId(void);
 
 	/**
-	 * @brief Does a ST with the given ID exist ?
-	 *
-	 * @param tal_id  the ID we want to check for
-	 * @return        true if a ST, false is it does not exist
+	 * @brief get the output modcod definition table
 	 */
-	bool doTerminalExist(tal_id_t tal_id);
+	FmtDefinitionTable* getOutputModcodDef(void);
+	
+	/**
+	 * @brief get the input modcod definition table
+	 */
+	FmtDefinitionTable* getInputModcodDef(void);
 
 	/**
-	 * @brief Add a new Satellite Terminal (ST) in the list
-	 *
-	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
-	 *                         in the code)
-	 * @return                 true if the addition is successful, false otherwise
-	 */
-	bool addTerminal(tal_id_t id);
+	 * @ brief get the gateway scenario timer
+	 */ 
+    event_id_t getScenarioTimer(void);
 
 	void print(void); /// For debug
 };

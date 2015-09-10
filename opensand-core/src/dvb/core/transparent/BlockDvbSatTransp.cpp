@@ -160,7 +160,7 @@ bool BlockDvbSatTransp::DownwardTransp::handleTimerEvent(SatGw *current_gw,
 	return true;
 }
 
-bool BlockDvbSatTransp::DownwardTransp::handleScenarioTimer()
+bool BlockDvbSatTransp::DownwardTransp::handleScenarioTimer(SatGw *UNUSED(current_gw))
 {
 	assert(0);
 }
@@ -222,6 +222,12 @@ bool BlockDvbSatTransp::UpwardTransp::initSwitchTable(void)
 	return false;
 }
 
+bool BlockDvbSatTransp::UpwardTransp::addSt(SatGw *UNUSED(current_gw),
+                                            tal_id_t UNUSED(st_id))
+{
+	return true;
+}
+
 bool BlockDvbSatTransp::UpwardTransp::handleCorrupted(DvbFrame *dvb_frame)
 {
 	// in transparent scenario, satellite physical layer cannot corrupt
@@ -256,7 +262,8 @@ bool BlockDvbSatTransp::UpwardTransp::handleDvbBurst(DvbFrame *dvb_frame,
 }
 
 // DO something only on regenerative mode
-bool BlockDvbSatTransp::UpwardTransp::handleSac(DvbFrame *UNUSED(dvb_frame))
+bool BlockDvbSatTransp::UpwardTransp::handleSac(DvbFrame *UNUSED(dvb_frame),
+                                                SatGw *UNUSED(current_gw))
 {
 	return true;
 }

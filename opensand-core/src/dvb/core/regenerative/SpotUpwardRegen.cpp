@@ -80,18 +80,18 @@ bool SpotUpwardRegen::onInit(void)
 
 bool SpotUpwardRegen::initModcodSimu(void)
 {
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->input_modcod_def))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the forward MODCOD file\n");
-		return false;
-	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
 	                            &this->output_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the uplink MODCOD file\n");
+		return false;
+	}
+	if(!this->initModcodDefFile(MODCOD_DEF_S2,
+	                            &this->input_modcod_def))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
 
@@ -275,7 +275,7 @@ bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 	return true;
 }
 
-void SpotUpwardRegen::handleCorruptedFrame(DvbFrame *dvb_frame)
+void SpotUpwardRegen::handleFrameCni(DvbFrame *dvb_frame)
 {
 	if(!this->with_phy_layer)
 	{
@@ -285,8 +285,8 @@ void SpotUpwardRegen::handleCorruptedFrame(DvbFrame *dvb_frame)
 	double cni = dvb_frame->getCn();
 	// regenerative case:
 	//   we need downlink ACM parameters to inform
-	//   satellite with a SAC so inform opposite channel
-	this->setRequiredModcodInput(this->mac_id, cni);
+	//   satellite with a SAC
+	this->setRequiredCniInput(this->mac_id, cni);
 }
 
 
