@@ -252,7 +252,16 @@ bool BlockDvbTal::Downward::onInit(void)
 		    "failed to complete the MAC FIFO part of the initialisation\n");
 		goto error;
 	}
-
+	
+	// Initialization od fow_modcod_def (useful to send SAC)
+	if(!this->initModcodDefFile(MODCOD_DEF_S2,
+	                            &this->input_modcod_def))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize the up/return MODCOD definition file\n");
+		return false;
+	}
+	
 	if(!Conf::getValue(Conf::section_map[DVB_TAL_SECTION], IS_SCPC, is_scpc))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -285,15 +294,6 @@ bool BlockDvbTal::Downward::onInit(void)
 					"failed to complete the SCPC part of the initialisation\n");
 			goto error;
 		}
-	}
-	
-	// Initialization od fow_modcod_def (useful to send SAC)
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->input_modcod_def))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize the up/return MODCOD definition file\n");
-		return false;
 	}
 	
 	if(!this->dama_agent && !this->saloha && !this->scpc_sched)
