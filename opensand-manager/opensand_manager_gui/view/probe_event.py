@@ -116,3 +116,15 @@ class ProbeEvent(ProbeView):
     def on_clear_probes_clicked(self, _):
         """ The clear probe selection button was clicked """
         self._probe_sel_controller.clear_selection()
+
+    def on_plot_type_changed(self, _):
+        if self._plot_type.get_active() == 0:
+            self._probe_display.set_plot_type("dot")
+        elif self._plot_type.get_active() == 1:
+            self._probe_display.set_plot_type("dotline")
+        elif self._plot_type.get_active() == 2:
+            self._probe_display.set_plot_type("step")
+        elif self._plot_type.get_active() == 3:
+            self._probe_display.set_plot_type("default")
+        self._probe_display.graph_update()
+

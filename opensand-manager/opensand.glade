@@ -3705,6 +3705,38 @@ This is the name used when loading probes.</property>
                         <property name="homogeneous">True</property>
                       </packing>
                     </child>
+                    <child>
+                      <widget class="GtkSeparatorToolItem" id="separatortoolitem1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkToolItem" id="toolbutton1">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_action_appearance">False</property>
+                        <child>
+                          <widget class="GtkComboBox" id="plot_type">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="items" translatable="yes">dot
+dotline
+step
+default</property>
+                            <signal name="changed" handler="on_plot_type_changed" />
+                          </widget>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="homogeneous">True</property>
+                      </packing>
+                    </child>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
