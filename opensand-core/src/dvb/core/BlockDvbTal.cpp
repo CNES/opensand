@@ -930,6 +930,19 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 		return true;
 	}
 
+	// TODO should manage several Saloha carrier
+	for(cat_it = sa_categories.begin();
+	    cat_it != sa_categories.end(); ++cat_it)
+	{	if((*cat_it).second->getCarriersGroups().size() > 1)
+		{
+			LOG(this->log_init, LEVEL_WARNING,
+			    "If you use more than one Slotted Aloha carrier group "
+			    "with different parameters, the behaviour won't be correct "
+			    "for time division and MODCOD support.\n");
+			break;
+		}
+	}
+
 	// Find the category for this terminal
 	tal_map_it = terminal_affectation.find(this->mac_id);
 	if(tal_map_it == terminal_affectation.end())
