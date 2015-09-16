@@ -1,0 +1,249 @@
+#----------------------------
+#          python
+#----------------------------
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+# C extensions
+*.so
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+# PyInstaller
+# Usually these files are written by a python script from a template
+# before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+# Translations
+*.mo
+*.pot
+# Django stuff:
+*.log
+# Sphinx documentation
+docs/_build/
+# PyBuilder
+target/
+
+#----------------------------
+#          C++
+#----------------------------
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+# Precompiled Headers
+*.gch
+*.pch
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+# Fortran module files
+*.mod
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+# Executables
+*.exe
+*.out
+*.app
+
+#----------------------------
+#          Autotools
+#----------------------------
+# http://www.gnu.org/software/automake
+Makefile
+Makefile.in
+# http://www.gnu.org/software/autoconf
+autom4te.cache
+aclocal.m4
+compile
+configure
+depcomp
+install-sh
+missing
+stamp-h1
+
+
+
+#----------------------------
+#          Opensand
+#----------------------------
+config.log
+config.status
+stamp-h1
+config.guess
+config.h
+ltmain.sh
+config.sub
+config.h.in
+libtool
+html
+!opensand-tools/openimscore
+*.pc
+.deps
+cscope.out
+*.deb
+*.dsc
+*.tar.gz
+*.changes
+*.debhelper*
+*.substvars
+*/debian/tmp
+*.libs
+opensand-conf/debian/libopensand-conf
+opensand-conf/debian/libopensand-conf-dbg
+opensand-conf/debian/libopensand-conf-dev
+opensand-conf/src/test/test_configuration
+opensand-conf/debian/files
+opensand-daemon/netlink/capi.py
+opensand-daemon/netlink/capi_wrap.c
+opensand-daemon/netlink/route/capi.py
+opensand-daemon/netlink/route/capi_wrap.c
+opensand-daemon/debian/files
+opensand-daemon/debian/opensand-daemon
+#opensand-daemon/dist
+opensand-manager/debian/files
+opensand-manager/debian/opensand-manager-gui
+opensand-manager/debian/opensand-manager-core
+opensand-core/doc/doxygen
+opensand-core/src/system/gw
+opensand-core/src/system/sat
+opensand-core/src/system/st
+opensand-core/src/interfaces/opensand_interfaces
+opensand-core/src/interfaces/tests/test_tap
+opensand-core/src/lan_adaptation/tests/ip_addr
+opensand-core/src/common/tests/test_plugins
+opensand-core/src/sat_carrier/tests/test_sat_carrier
+opensand-core/debian/files
+opensand-core/debian/libopensand-plugin
+opensand-core/debian/libopensand-plugin-dbg
+opensand-core/debian/libopensand-plugin-dev
+opensand-core/debian/opensand-core-all
+opensand-core/debian/opensand-core-bin
+opensand-core/debian/opensand-core-dbg
+opensand-collector/debian/files
+opensand-collector/debian/opensand-collector
+opensand-plugins/encapsulation/gse/debian/files
+opensand-plugins/encapsulation/gse/debian/libopensand-gse-encap-plugin
+opensand-plugins/encapsulation/gse/debian/libopensand-gse-encap-plugin-dbg
+opensand-plugins/encapsulation/gse/debian/libopensand-gse-encap-plugin-manager
+opensand-plugins/encapsulation/gse/debian/tmp
+opensand-plugins/lan_adaptation/rohc/debian/files
+opensand-plugins/lan_adaptation/rohc/debian/libopensand-rohc-lan-adapt-plugin
+opensand-plugins/lan_adaptation/rohc/debian/libopensand-rohc-lan-adapt-plugin-dbg
+opensand-plugins/lan_adaptation/rohc/debian/libopensand-rohc-lan-adapt-plugin-manager
+opensand-plugins/lan_adaptation/rohc/debian/tmp
+opensand-tests/tests/base/*/*/scenario*/
+opensand-tests/tests/other/*/scenario*/
+opensand-tests/tests/base/configs/enrich/saloha/scenario*/
+opensand-tests/tests/base/configs/enrich/vcm/scenario*/
+opensand-tests/tests/base/configs/enrich/saloha/dama/scenario*/
+opensand-tests/tests/base/configs/enrich/scpc/scenario*/
+opensand-tests/tests/base/configs/enrich/multispot/scenario*/
+opensand-tests/tests/base/configs/enrich/multispot/saloha/scenario*/
+opensand-tests/tests/base/configs/enrich/multispot/saloha/dama/scenario*/
+opensand-tests/tests/base/configs/enrich/multispot/scpc/scenario*/
+opensand-tests/tests/other/stats/files/test_prog
+opensand-manager/opensand_manager_core/modules/*.py
+!opensand-manager/opensand_manager_core/modules/__init__.py
+!opensand-manager/opensand_manager_core/modules/ip.py
+!opensand-manager/opensand_manager_core/modules/ule.py
+!opensand-manager/opensand_manager_core/modules/aal5_atm.py
+!opensand-manager/opensand_manager_core/modules/mpeg.py
+!opensand-manager/opensand_manager_core/modules/ule.py
+!opensand-manager/opensand_manager_core/modules/ideal.py
+!opensand-manager/opensand_manager_core/modules/on_off.py
+!opensand-manager/opensand_manager_core/modules/file.py
+!opensand-manager/opensand_manager_core/modules/triangular.py
+!opensand-manager/opensand_manager_core/modules/constant.py
+!opensand-manager/opensand_manager_core/modules/acm_loop.py
+!opensand-manager/opensand_manager_core/modules/gate.py
+opensand-plugins/physical_layer/attenuation_model/ideal/debian/files
+opensand-plugins/physical_layer/attenuation_model/ideal/debian/libopensand-ideal-attenuation-plugin
+opensand-plugins/physical_layer/attenuation_model/ideal/debian/libopensand-ideal-attenuation-plugin-dbg
+opensand-plugins/physical_layer/attenuation_model/ideal/debian/libopensand-ideal-attenuation-plugin-manager
+opensand-plugins/physical_layer/attenuation_model/ideal/debian/tmp
+!opensand-manager/opensand_manager_core/modules/triangular.py
+opensand-plugins/physical_layer/attenuation_model/on_off/debian/files
+opensand-plugins/physical_layer/attenuation_model/on_off/debian/libopensand-on-off-attenuation-plugin
+opensand-plugins/physical_layer/attenuation_model/on_off/debian/libopensand-on-off-attenuation-plugin-dbg
+opensand-plugins/physical_layer/attenuation_model/on_off/debian/libopensand-on-off-attenuation-plugin-manager
+opensand-plugins/physical_layer/attenuation_model/on_off/debian/tmp
+opensand-plugins/physical_layer/attenuation_model/triangular/debian/files
+opensand-plugins/physical_layer/attenuation_model/triangular/debian/libopensand-triangular-attenuation-plugin
+opensand-plugins/physical_layer/attenuation_model/triangular/debian/libopensand-triangular-attenuation-plugin-dbg
+opensand-plugins/physical_layer/attenuation_model/triangular/debian/libopensand-triangular-attenuation-plugin-manager
+opensand-plugins/physical_layer/attenuation_model/triangular/debian/tmp
+opensand-plugins/physical_layer/error_insertion/gate/debian/files
+opensand-plugins/physical_layer/error_insertion/gate/debian/libopensand-gate-error-plugin
+opensand-plugins/physical_layer/error_insertion/gate/debian/libopensand-gate-error-plugin-dbg
+opensand-plugins/physical_layer/error_insertion/gate/debian/libopensand-gate-error-plugin-manager
+opensand-plugins/physical_layer/error_insertion/gate/debian/tmp
+opensand-plugins/physical_layer/minimal_condition/constant/debian/files
+opensand-plugins/physical_layer/minimal_condition/constant/debian/libopensand-constant-minimal-plugin
+opensand-plugins/physical_layer/minimal_condition/constant/debian/libopensand-constant-minimal-plugin-dbg
+opensand-plugins/physical_layer/minimal_condition/constant/debian/libopensand-constant-minimal-plugin-manager
+opensand-plugins/physical_layer/minimal_condition/constant/debian/tmp
+opensand-plugins/physical_layer/nominal_condition/default/debian/files
+opensand-plugins/physical_layer/nominal_condition/default/debian/libopensand-default-nominal-plugin
+opensand-plugins/physical_layer/nominal_condition/default/debian/libopensand-default-nominal-plugin-dbg
+opensand-plugins/physical_layer/nominal_condition/default/debian/libopensand-default-nominal-plugin-manager
+opensand-plugins/physical_layer/nominal_condition/default/debian/tmp
+opensand-plugins/physical_layer/minimal_condition/modcod/debian/files
+opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modcod-minimal-plugin/
+opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modcod-minimal-plugin-dbg/
+opensand-plugins/physical_layer/minimal_condition/modcod/debian/libopensand-modcod-minimal-plugin-manager/
+opensand-plugins/physical_layer/minimal_condition/modcod/debian/tmp
+opensand-output/src/test_output
+opensand-output/debian/files
+opensand-output/debian/libopensand-output/
+opensand-output/debian/libopensand-output-dbg/
+opensand-output/debian/libopensand-output-dev/
+packages
+opensand-rt/src/test/test_block
+opensand-rt/src/test/test_multi_blocks
+opensand-rt/debian/files
+opensand-rt/debian/libopensand-rt/
+opensand-rt/debian/libopensand-rt-dbg/
+opensand-rt/debian/libopensand-rt-dev/
+opensand-meta/debian/files
+opensand-meta/debian/opensand
+opensand-meta/debian/opensand-encap-plugins
+opensand-meta/debian/opensand-manager
+opensand-meta/debian/opensand-manager-encap-plugins
+opensand-meta/debian/opensand-manager-physical-layer-plugins
+opensand-meta/debian/opensand-physical-layer-plugins
+compile
+*.trs
+test-driver
