@@ -922,7 +922,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 		               ENABLE,
 	                   with_phy_layer))
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
+		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
 		    PHYSICAL_LAYER_SECTION, ENABLE);
 		return false;
@@ -966,39 +966,39 @@ bool BlockDvbNcc::Upward::onInit(void)
 			                                         ));
 			this->raiseTimer(spot->getModcodTimer());
 		}
-		else
-		{
-			string generate;
-			time_ms_t acm_period_ms;
+	}
+	if(with_phy_layer && this->satellite_type == TRANSPARENT)
+	{
+		string generate;
+		time_ms_t acm_period_ms;
 
-			// Check whether we generate the time series
+		// Check whether we generate the time series
+		if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		                   GENERATE_TIME_SERIES_PATH, generate))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Section %s, %s missing\n",
+			    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
+			return false;
+		}
+		if(generate != "none")
+		{
 			if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-			                   GENERATE_TIME_SERIES_PATH, generate))
+			                   ACM_PERIOD_REFRESH,
+			                   acm_period_ms))
 			{
-				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "Section %s, %s missing\n",
-				    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
+				LOG(this->log_init, LEVEL_ERROR,
+				   "section '%s': missing parameter '%s'\n",
+				   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
 				return false;
 			}
-			if(generate != "none")
-			{
-				if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-				                   ACM_PERIOD_REFRESH,
-				                   acm_period_ms))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					   "section '%s': missing parameter '%s'\n",
-					   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
-					return false;
-				}
 
-				LOG(this->log_init, LEVEL_NOTICE,
-				    "ACM period set to %d ms\n",
-				    acm_period_ms);
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "ACM period set to %d ms\n",
+			    acm_period_ms);
 
-				this->modcod_timer = this->addTimerEvent("generate_time_series",
-				                                         acm_period_ms);
-			}
+			this->modcod_timer = this->addTimerEvent("generate_time_series",
+			                                         acm_period_ms);
 		}
 	}
 

@@ -91,6 +91,9 @@ class BlockDvbSat: public BlockDvb
 		/// reception standard (DVB-RCS or DVB-S2)      
 		PhysicStd *reception_std; 
 		
+		/// Physical layer enable
+		bool with_phy_layer;
+		
 		/**
 		* Called upon reception event it is another layer (below on event) of demultiplexing
 		* Do the appropriate treatment according to the type of the DVB message
@@ -173,6 +176,12 @@ class BlockDvbSat: public BlockDvb
 		virtual bool handleSaloha(DvbFrame *dvb_frame, 
 		                          SatGw *current_gw,
 		                          SatSpot *current_spot) = 0;
+		/**
+		 * @brief  Add a new line in the MODCOD time series generator file
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		virtual bool updateSeriesGenerator(void) = 0;
 
 		/// The satellite spots
 		sat_spots_t spots;
@@ -189,7 +198,7 @@ class BlockDvbSat: public BlockDvb
 
 		~Downward();
 		
-		virtual bool onInit(void);
+		bool onInit(void);
 		
 		bool onEvent(const RtEvent *const event);
 		void setSpots(const sat_spots_t &spots);

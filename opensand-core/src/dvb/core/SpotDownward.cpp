@@ -722,9 +722,6 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 					return false;
 				}
 
-				double cni = sac->getCni();
-				tal_id_t tal_id = sac->getTerminalId();
-
 				break;
 			}
 			case MSG_TYPE_SESSION_LOGON_REQ:
@@ -894,9 +891,6 @@ bool SpotDownward::handleSac(const DvbFrame *dvb_frame)
 		delete dvb_frame;
 		return false;
 	}
-	
-	double cni = sac->getCni();
-	tal_id_t tal_id = sac->getTerminalId();
 
 	return true;
 }

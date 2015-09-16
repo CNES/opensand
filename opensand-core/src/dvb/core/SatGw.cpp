@@ -65,6 +65,8 @@ SatGw::SatGw(tal_id_t gw_id,
 	l2_from_st_bytes(0),
 	l2_from_gw_bytes(0),
 	gw_mutex("GW"),
+	input_series(NULL),
+	output_series(NULL),
 	probe_sat_output_gw_queue_size(),
 	probe_sat_output_gw_queue_size_kb(),
 	probe_sat_output_st_queue_size(),
@@ -103,11 +105,68 @@ SatGw::~SatGw()
 		delete this->st_scheduling;
 	if(gw_scheduling)
 		delete this->gw_scheduling;
+	
+	if(this->input_series)
+		delete this->input_series;
+	if(this->output_series)
+		delete this->output_series;
 
 	delete this->logon_fifo;
 	delete this->control_fifo;
 	delete this->data_out_st_fifo;
 	delete this->data_out_gw_fifo;
+}
+
+bool SatGw::init()
+{
+	string sat_type;
+	sat_type_t satellite_type;
+
+	// Retrieve the value of the ‘enable’ parameter for the physical layer
+	if(!this->initFmt())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize fmt\n");
+		return false;
+	}
+	
+	// satellite type
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		               SATELLITE_TYPE,
+	                   sat_type))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    COMMON_SECTION, SATELLITE_TYPE);
+		return false;
+	}
+	satellite_type = strToSatType(sat_type);
+
+	if(satellite_type ==  REGENERATIVE)
+	{	
+		if(!this->initModcodSimu())
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to initialize modcod simulation\n");
+			return false;
+		}
+	
+		if(!this->initSeriesGenerator())
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to initialize series generator\n");
+			return false;
+		}
+	}
+	
+	if(!this->initProbes())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to initialize probes\n");
+		return false;
+	}
+	
+	return true;
 }
 
 bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
@@ -159,14 +218,6 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 
 bool SatGw::initModcodSimu(void)
 {
-	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!this->initFmt())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize fmt\n");
-		return false;
-	}
-	
 	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
 	                             this->gw_id, this->spot_id))
 	{
@@ -207,7 +258,6 @@ bool SatGw::initModcodSimu(void)
 		return false;
 	}
 	
-
 	return true;
 
 }
@@ -218,6 +268,77 @@ void SatGw::initScenarioTimer(event_id_t sce_timer)
 	{
 		this->scenario_timer = sce_timer;
 	}
+}
+
+bool SatGw::initSeriesGenerator(void)
+{
+	string generate;
+	ConfigurationList current_gw;
+	string input_file;
+	string output_file;
+	vector<string> path_split;
+
+	if(!this->with_phy_layer)
+	{
+		return true;
+	}
+
+	// Check whether we generate the time series
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   GENERATE_TIME_SERIES_PATH, generate))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, %s missing\n",
+		    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
+		return false;
+	}
+	if(generate == "none")
+	{
+		return true;
+	}
+
+	// load the time series filenames
+	if(!OpenSandConf::getSpot(PHYSICAL_LAYER_SECTION,
+	                          this->spot_id, this->gw_id, current_gw))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s', missing spot for id %d and gw %d\n",
+		    PHYSICAL_LAYER_SECTION, this->spot_id, this->gw_id);
+		return false;
+	}
+
+	if(!Conf::getValue(current_gw, RETURN_UP_MODCOD_TIME_SERIES,
+	                   input_file))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
+		    PHYSICAL_LAYER_SECTION, this->spot_id, this->gw_id,
+		    RETURN_UP_MODCOD_TIME_SERIES);
+		return false;
+	}
+
+	// extract the filename from path
+	tokenize(input_file, path_split, "/");
+	input_file = generate + "/" + path_split.back();
+
+	if(!Conf::getValue(current_gw, FORWARD_DOWN_MODCOD_TIME_SERIES,
+	                   output_file))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
+		    PHYSICAL_LAYER_SECTION, this->spot_id, this->gw_id,
+		    FORWARD_DOWN_MODCOD_TIME_SERIES);
+		return false;
+	}
+
+	// extract the filename from path
+	tokenize(output_file, path_split, "/");
+	output_file = generate + "/" + path_split.back();
+
+	this->input_series = new TimeSeriesGenerator(input_file);
+	this->output_series = new TimeSeriesGenerator(output_file);
+
+	return true;
 }
 
 bool SatGw::initProbes()
@@ -374,6 +495,26 @@ bool SatGw::updateFmt(DvbFrame *dvb_frame,
 	return true;
 }
 
+bool SatGw::updateSeriesGenerator(void)
+{
+	if(!this->input_series || !this->output_series)
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "Cannot update series\n");
+		return false;
+	}
+
+	if(!this->input_series->add(this->input_sts->getListSts()))
+	{
+		return false;
+	}
+
+	if(!this->output_series->add(this->output_sts->getListSts()))
+	{
+		return false;
+	}
+	return true;
+}
 
 bool SatGw::handleSac(DvbFrame *dvb_frame)
 {

@@ -105,7 +105,6 @@ bool FmtSimulation::goFirstScenarioStep()
 	for(vector<string>::iterator it = this->next_modcod_list.begin();
 	    it != this->next_modcod_list.end(); it++)
 	{
-		DFLTLOG(LEVEL_ERROR, "modcod list push back %s", (*it).c_str());
 		this->modcod_list.push_back(*it);
 	}
 

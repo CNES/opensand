@@ -54,8 +54,6 @@ SpotUpward::SpotUpward(spot_id_t spot_id,
 	reception_std_scpc(NULL),
 	scpc_pkt_hdl(NULL),
 	ret_fmt_groups(),
-	input_series(NULL),
-	output_series(NULL),
 	probe_gw_l2_from_sat(NULL),
 	probe_received_modcod(NULL),
 	probe_rejected_modcod(NULL),
@@ -82,10 +80,6 @@ SpotUpward::~SpotUpward()
 	if(this->reception_std_scpc)
 		delete this->reception_std_scpc;
 
-	if(this->input_series)
-		delete this->input_series;
-	if(this->output_series)
-		delete this->output_series;
 }
 
 bool SpotUpward::onInit(void)
@@ -105,15 +99,6 @@ bool SpotUpward::onInit(void)
 		    "initialisation\n");
 		return false;
 	}
-
-	if(!this->initSeriesGenerator())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the time series generator "
-		    "part of the initialisation\n");
-		return false;
-	}
-
 
 	if(!this->initMode())
 	{
@@ -249,23 +234,4 @@ bool SpotUpward::handleSac(const DvbFrame *dvb_frame)
 	return true;
 }
 
-bool SpotUpward::updateSeriesGenerator(void)
-{
-	if(!this->input_series || !this->output_series)
-	{
-		LOG(this->log_receive_channel, LEVEL_ERROR,
-		    "Cannot update series\n");
-		return false;
-	}
 
-	if(!this->input_series->add(this->input_sts->getListSts()))
-	{
-		return false;
-	}
-
-	if(!this->output_series->add(this->output_sts->getListSts()))
-	{
-		return false;
-	}
-	return true;
-}

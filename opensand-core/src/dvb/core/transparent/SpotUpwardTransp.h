@@ -40,10 +40,8 @@
 #include "SpotUpward.h"
 #include "PhysicStd.h"  
 #include "NetBurst.h"
-#include "DamaCtrlRcs.h"
-#include "NccPepInterface.h"
-#include "Scheduling.h"
 #include "SlottedAlohaNcc.h"
+#include "TimeSeriesGenerator.h"
 
 #define SIMU_BUFF_LEN 255
 
@@ -102,6 +100,13 @@ class SpotUpwardTransp: public SpotUpward
 		 */
 		bool handleSlottedAlohaFrame(DvbFrame *frame);
 
+		/**
+		 * @brief  Add a new line in the MODCOD time series generator file
+		 *
+		 *  @return true on success, false otherwise
+		 */
+		bool updateSeriesGenerator(void);
+
 	protected:
 
 		/**
@@ -151,6 +156,12 @@ class SpotUpwardTransp: public SpotUpward
 		
 		/// The Slotted Aloha for NCC
 		SlottedAlohaNcc *saloha;
+
+		/// time series generator for input
+		TimeSeriesGenerator *input_series;
+
+		/// time series generator for output
+		TimeSeriesGenerator *output_series;
 
 	};
 

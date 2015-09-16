@@ -265,13 +265,13 @@ bool BlockDvbSat::initSpots(void)
 		// create a new gw
 		//***************************
 		new_gw = new SatGw(gw_id, spot_id,
-		                   log_id,
-		                   ctrl_id,
+		                   log_id, ctrl_id,
 		                   data_in_st_id,
 		                   data_in_gw_id,
 		                   data_out_st_id,
 		                   data_out_gw_id,
 		                   fifo_size);
+		new_gw->init();
 
 		if(this->spots[spot_id] == NULL)
 		{
@@ -400,23 +400,6 @@ void BlockDvbSat::Downward::setSpots(const sat_spots_t &spots)
 
 bool BlockDvbSat::Downward::initOutput(void)
 {
-	// Output probes and stats
-	sat_spots_t::iterator spot_it;
-	for(spot_it = this->spots.begin();
-	    spot_it != this->spots.end(); ++spot_it)
-	{
-		SatSpot* spot = spot_it->second;
-		list<SatGw *> list_gw = spot->getGwList();
-		list<SatGw *>::iterator gw_it;
-
-		for(gw_it = list_gw.begin() ; gw_it != list_gw.end() ;
-			++gw_it)
-		{
-			SatGw *gw = *gw_it;
-			gw->initProbes();
-		}
-	}
-
 	this->probe_frame_interval = Output::registerProbe<float>(
 		"Perf.Frames_interval", "ms", true, SAMPLE_LAST);
 
@@ -729,6 +712,17 @@ bool BlockDvbSat::Upward::onInit()
 		    "initialisation\n");
 		return false;
 	}
+	
+	// Retrieve the value of the ‘enable’ parameter for the physical layer
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		               ENABLE,
+	                   this->with_phy_layer))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, %s missing\n",
+		    PHYSICAL_LAYER_SECTION, ENABLE);
+		return false;
+	}
 
 	return true;
 }
@@ -788,6 +782,22 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 				    "failed to handle received DVB frame\n");
 				delete dvb_frame;
 				return false;
+			}
+		}
+		break;
+
+		case evt_timer:
+		{
+			if(*event == this->modcod_timer)
+			{
+				if(!this->updateSeriesGenerator())
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "SF#%u:Stop time series generation\n",
+					    this->super_frame_counter);
+					this->removeEvent(this->modcod_timer);
+					return false;
+				}
 			}
 		}
 		break;

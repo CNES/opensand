@@ -370,6 +370,7 @@ bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 	if(this->is_sat)
 	{
 		cn_total = dvb_frame->getCn();
+		this->probe_total_cn->put(cn_total);
 	}
 	else
 	{
@@ -462,7 +463,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    SAT_PHYSICAL_LAYER_SECTION, MINIMAL_CONDITION_TYPE);
-		goto error;
+		return false;
 	}
 
 	// Initiate Error Insertion
@@ -473,7 +474,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    SAT_PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
-		goto error;
+		return false;
 	}
 
 	/* get all the plugins */
@@ -486,7 +487,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "error when getting physical layer plugins");
-		goto error;
+		return false;
 	}
 	
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -498,7 +499,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize minimal condition plugin %s",
 		    minimal_type.c_str());
-		goto error;
+		return false;
 	}
 
 	if(!this->error_insertion->init())
@@ -506,7 +507,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize error insertion plugin %s",
 		    error_type.c_str());
-		goto error;
+		return false;
 	}
 
 	this->probe_minimal_condition = Output::registerProbe<float>("dB", true,
@@ -517,10 +518,13 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	                                               "frame number", true,
 	                                               // we need to sum the drops here !
 	                                               SAMPLE_SUM);
+	this->probe_total_cn = Output::registerProbe<float>("dB", true,
+	                                                    SAMPLE_MAX,
+	                                                    "Phy.%slink_total_cn",
+	                                                    link.c_str());
+
 	return true;
 
-error:
-	return false;
 }
 
 

@@ -100,27 +100,6 @@ BlockDvbSatRegen::DownwardRegen::~DownwardRegen()
 {
 }
 
-bool BlockDvbSatRegen::DownwardRegen::onInit()
-{
-	if(!this->initModcodSimu())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize timer\n");
-		return false;
-	}
-	
-	if(!BlockDvbSat::Downward::onInit())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the initialisation\n");
-		return false;
-	}
-
-	
-	return true;
-}
-
-
 bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 {
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
@@ -281,31 +260,6 @@ bool BlockDvbSatRegen::DownwardRegen::initTimers(void)
 	return true;
 }
 
-
-
-bool BlockDvbSatRegen::DownwardRegen::initModcodSimu(void)
-{
-	sat_spots_t::iterator spot;
-	for(spot = this->spots.begin(); spot != this->spots.end(); ++spot)
-	{
-		list<SatGw *> gws = (*spot).second->getListGw();
-		list<SatGw *>::iterator gw;
-		for(gw = gws.begin(); gw != gws.end(); ++gw)
-		{
-			if(!(*gw)->initModcodSimu())
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "gw %d failed to complete the modcod part of the "
-				    "initialisation\n",
-				    (*gw)->getGwId());
-				return false;
-			}
-		}
-	}
-
-	return true;
-
-}
 
 bool BlockDvbSatRegen::DownwardRegen::handleMessageBurst(const RtEvent *const event)
 {
@@ -558,6 +512,41 @@ bool BlockDvbSatRegen::UpwardRegen::onInit()
 		return false;
 	}
 
+	if(this->with_phy_layer)
+	{
+		string generate;
+		time_ms_t acm_period_ms;
+
+		// Check whether we generate the time series
+		if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		                   GENERATE_TIME_SERIES_PATH, generate))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, %s missing\n",
+			    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
+			return false;
+		}
+		if(generate != "none")
+		{
+			if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+			                   ACM_PERIOD_REFRESH,
+			                   acm_period_ms))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				   "section '%s': missing parameter '%s'\n",
+				   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+				return false;
+			}
+
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "ACM period set to %d ms\n",
+			    acm_period_ms);
+
+			this->modcod_timer = this->addTimerEvent("generate_time_series",
+			                                         acm_period_ms);
+		}
+	}
+
 	// load the modcod files (regenerative satellite only)
 	// initialize the satellite internal switch
 	if(!this->initSwitchTable())
@@ -672,6 +661,9 @@ error:
 	return false;
 }
 
+
+
+
 bool BlockDvbSatRegen::UpwardRegen::addSt(SatGw *current_gw,
                                           tal_id_t st_id)
 {
@@ -757,4 +749,24 @@ bool BlockDvbSatRegen::UpwardRegen::handleSaloha(DvbFrame *UNUSED(dvb_frame),
                                                  SatSpot *UNUSED(current_spot))
 {
 	assert(0);
+}
+
+bool BlockDvbSatRegen::UpwardRegen::updateSeriesGenerator(void)
+{
+	sat_spots_t::iterator spot;
+	for(spot = this->spots.begin(); spot != this->spots.end(); ++spot)
+	{
+		list<SatGw *> gws = (*spot).second->getListGw();
+		list<SatGw *>::iterator gw;
+		for(gw = gws.begin(); gw != gws.end(); ++gw)
+		{
+			if(!(*gw)->updateSeriesGenerator())
+			{
+				LOG(this->log_receive_channel, LEVEL_ERROR,
+				    "Failed to update series generator\n");
+				return false;
+			}
+		}
+	}
+	return true;
 }

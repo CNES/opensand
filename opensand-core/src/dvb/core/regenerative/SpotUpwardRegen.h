@@ -38,12 +38,6 @@
 #define SPOT_UPWARD_REGEN_H
 
 #include "SpotUpward.h"
-#include "PhysicStd.h"  
-#include "NetBurst.h"
-#include "DamaCtrlRcs.h"
-#include "NccPepInterface.h"
-#include "Scheduling.h"
-#include "SlottedAlohaNcc.h"
 
 #define SIMU_BUFF_LEN 255
 
@@ -73,6 +67,14 @@ class SpotUpwardRegen: public SpotUpward
 		 * @param dvb_frame the Dvb Frame corrupted
 		 */
 		void handleFrameCni(DvbFrame *dvb_frame);
+		
+		/**
+		 * @brief  Add a new line in the MODCOD time series generator file
+		 *
+		 *  @return true on success, false otherwise
+		 */
+		bool updateSeriesGenerator(void);
+
 
 	protected:
 
@@ -82,13 +84,6 @@ class SpotUpwardRegen: public SpotUpward
 		 * @return  true on success, false otherwise
 		 */
 		bool initModcodSimu(void);
-
-		/**
-		 *  @brief Initialize the time series generators
-		 *
-		 *  @return  true on success, false otherwise
-		 */
-		bool initSeriesGenerator(void);
 
 		/**
 		 * @brief Initialize the transmission mode

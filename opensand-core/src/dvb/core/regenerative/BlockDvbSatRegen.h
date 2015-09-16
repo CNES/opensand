@@ -77,7 +77,7 @@ class BlockDvbSatRegen: public BlockDvbSat
 	 public:
 		UpwardRegen(Block *const bl);
 		~UpwardRegen();
-
+		
 		bool onInit();
 
 	 private:
@@ -139,6 +139,13 @@ class BlockDvbSatRegen: public BlockDvbSat
 		                  SatGw *current_gw,
 		                  SatSpot *current_spot);
 	
+		/**
+		 * @brief  Add a new line in the MODCOD time series generator file
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool updateSeriesGenerator(void);
+
 	};
 
 	// TODO move DvbFmt inheritance in SatGw
@@ -148,8 +155,6 @@ class BlockDvbSatRegen: public BlockDvbSat
 		DownwardRegen(Block *const bl);
 		~DownwardRegen();
 		
-		bool onInit();
-
 	 private:
 		/**
 		 * @brief Initialize the link
@@ -172,13 +177,6 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 */
 		bool initTimers(void);
 		
-		/**
-		 * @brief Read configuration for the different files and open them
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initModcodSimu(void);
-				
 		/**
 		 *
 		 * @param packet    The NetPacket

@@ -47,7 +47,9 @@ SpotUpwardTransp::SpotUpwardTransp(spot_id_t spot_id,
                        StFmtSimuList *input_sts,
                        StFmtSimuList *output_sts):
 	SpotUpward(spot_id, mac_id, input_sts, output_sts),
-	saloha(NULL)
+	saloha(NULL),
+	input_series(NULL),
+	output_series(NULL)
 {
 }
 
@@ -56,6 +58,11 @@ SpotUpwardTransp::~SpotUpwardTransp()
 {
 	if(this->saloha)
 		delete this->saloha;
+	
+	if(this->input_series)
+		delete this->input_series;
+	if(this->output_series)
+		delete this->output_series;
 }
 
 
@@ -71,12 +78,20 @@ bool SpotUpwardTransp::onInit(void)
 		    "initialisation\n");
 		return false;
 	}
-	
+
 	if(!SpotUpward::onInit())
 	{
 		return false;
 	}
 
+	if(!this->initSeriesGenerator())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the time series generator "
+		    "part of the initialisation\n");
+		return false;
+	}
+	
 	// initialize the slotted Aloha part
 	if(!this->initSlottedAloha())
 	{
@@ -453,6 +468,27 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 		}
 	}
 
+	return true;
+}
+
+bool SpotUpwardTransp::updateSeriesGenerator(void)
+{
+	if(!this->input_series || !this->output_series)
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "Cannot update series\n");
+		return false;
+	}
+
+	if(!this->input_series->add(this->input_sts->getListSts()))
+	{
+		return false;
+	}
+
+	if(!this->output_series->add(this->output_sts->getListSts()))
+	{
+		return false;
+	}
 	return true;
 }
 

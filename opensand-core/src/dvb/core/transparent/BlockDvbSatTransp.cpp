@@ -366,3 +366,9 @@ bool BlockDvbSatTransp::UpwardTransp::handleSaloha(DvbFrame *dvb_frame,
 
 	return true;
 }
+
+
+bool BlockDvbSatTransp::UpwardTransp::updateSeriesGenerator(void)
+{
+	return true;
+}

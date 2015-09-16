@@ -81,6 +81,7 @@ class DvbChannel
 		pkt_hdl(NULL),
 		stats_period_ms(),
 		stats_period_frame(),
+		modcod_timer(-1),
 		log_init_channel(NULL),
 		log_receive_channel(NULL),
 		log_send_channel(NULL),

@@ -147,6 +147,14 @@ class BlockDvbSatTransp: public BlockDvbSat
 		bool handleSaloha(DvbFrame *dvb_frame, 
 		                  SatGw *current_gw,
 		                  SatSpot *current_spot);
+
+		/**
+		 * @brief  Add a new line in the MODCOD time series generator file
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool updateSeriesGenerator(void);
+
 	};
 
 	class DownwardTransp: public Downward
