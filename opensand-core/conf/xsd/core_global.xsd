@@ -584,7 +584,9 @@
                          when physical layer is enabled, in order to replay the scenario or
                          none to disable it. The filename will be
                          forward_down_time_series_spotId_gwId.txt
-                         and return_up_time_series_spotId_gwId.txt
+                         and return_up_time_series_spotId_gwId.txt.
+                         The files are generated on the gateway when the satellite is on 
+                         transparent mode and on satellite when the it is regenerative.
                         <xpath physical_layer.enable="true" />
                     </xsd:documentation>
                 </xsd:annotation>
