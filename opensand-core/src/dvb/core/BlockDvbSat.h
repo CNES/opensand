@@ -53,7 +53,6 @@
 
 
 #include "BlockDvb.h"
-#include "SatSpot.h"
 #include "SatGw.h"
 #include "PhysicStd.h" 
 
@@ -84,7 +83,7 @@ class BlockDvbSat: public BlockDvb
 		
 		bool onEvent(const RtEvent *const event);
 		
-		void setSpots(const sat_spots_t &spots);
+		void setGws(const sat_gws_t &gws);
 		
 
 	 protected: 
@@ -149,8 +148,7 @@ class BlockDvbSat: public BlockDvb
 		 * @return true on success , false otherwise
 		 */ 
 		virtual bool handleDvbBurst(DvbFrame *dvb_frame,
-		                            SatGw *current_gw,
-		                            SatSpot *current_spot) = 0;
+		                            SatGw *current_gw) = 0;
 		/**
 		 * Handle Sac
 		 * 
@@ -165,8 +163,7 @@ class BlockDvbSat: public BlockDvb
 		 * @return true on success, false otherwise
 		 */ 
 		virtual bool handleBBFrame(DvbFrame *dvb_frame, 
-		                           SatGw *current_gw,
-		                           SatSpot *current_spot) = 0;
+		                           SatGw *current_gw) = 0;
 		
 		/**
 		 * Handle Saloha
@@ -174,8 +171,7 @@ class BlockDvbSat: public BlockDvb
 		 * @return true on success, false otherwise
 		 */ 
 		virtual bool handleSaloha(DvbFrame *dvb_frame, 
-		                          SatGw *current_gw,
-		                          SatSpot *current_spot) = 0;
+		                          SatGw *current_gw) = 0;
 		/**
 		 * @brief  Add a new line in the MODCOD time series generator file
 		 *
@@ -184,7 +180,7 @@ class BlockDvbSat: public BlockDvb
 		virtual bool updateSeriesGenerator(void) = 0;
 
 		/// The satellite spots
-		sat_spots_t spots;
+		sat_gws_t gws;
 
 
 		/// The satellite delay to emulate
@@ -201,7 +197,7 @@ class BlockDvbSat: public BlockDvb
 		bool onInit(void);
 		
 		bool onEvent(const RtEvent *const event);
-		void setSpots(const sat_spots_t &spots);
+		void setGws(const sat_gws_t &gws);
 		
 	 
 	 protected:
@@ -226,8 +222,7 @@ class BlockDvbSat: public BlockDvb
 		 *
 		 * @return true on success, false otherwise
 		 */ 
-		virtual bool handleTimerEvent(SatGw *current_gw,
-		                              uint8_t spot_id) = 0;
+		virtual bool handleTimerEvent(SatGw *current_gw) = 0;
 		
 		/**
 		 * @ brief handle scenario event timer
@@ -283,7 +278,7 @@ class BlockDvbSat: public BlockDvb
 		fmt_groups_t fmt_groups;
 
 		/// The satellite spots
-		sat_spots_t spots;
+		sat_gws_t gws;
 
 		/// The uplink C/N0 per terminal
 		map<tal_id_t, double> cni;
@@ -317,7 +312,7 @@ class BlockDvbSat: public BlockDvb
 	/// The satellite spots
 	//  We keep them here for release in desctructor,
 	//  they are also used in upward and downward, be careful
-	sat_spots_t spots;
+	sat_gws_t gws;
 
 
 };

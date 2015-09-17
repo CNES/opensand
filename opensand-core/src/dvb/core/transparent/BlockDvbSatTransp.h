@@ -53,7 +53,6 @@
 
 
 #include "BlockDvbSat.h"
-#include "SatSpot.h"
 #include "SatGw.h"
 #include "PhysicStd.h" 
 
@@ -118,8 +117,7 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 * @return true on success , false otherwise
 		 */ 
 		bool handleDvbBurst(DvbFrame *dvb_frame,
-		                    SatGw *current_gw,
-		                    SatSpot *current_spot);
+		                    SatGw *current_gw);
 		
 		/**
 		 * Handle Sac
@@ -136,8 +134,7 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 * @return true on success, false otherwise
 		 */ 
 		bool handleBBFrame(DvbFrame *dvb_frame, 
-		                   SatGw *current_gw,
-		                   SatSpot *current_spot);
+		                   SatGw *current_gw);
 		
 		/**
 		 * Handle Saloha
@@ -145,8 +142,7 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 * @return true on success, false otherwise
 		 */
 		bool handleSaloha(DvbFrame *dvb_frame, 
-		                  SatGw *current_gw,
-		                  SatSpot *current_spot);
+		                  SatGw *current_gw);
 
 		/**
 		 * @brief  Add a new line in the MODCOD time series generator file
@@ -190,8 +186,7 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 *
 		 * @return true on success, false otherwise
 		 */ 
-		bool handleTimerEvent(SatGw *current_gw,
-		                      uint8_t spot_id);
+		bool handleTimerEvent(SatGw *current_gw);
 		
 		/**
 		 * @ brief handle scenario event timer

@@ -113,122 +113,113 @@ bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "Satellite delay = %d\n", this->sat_delay);
 
-	for(sat_spots_t::iterator i_spot = this->spots.begin();
-	    i_spot != this->spots.end(); i_spot++)
+	for(sat_gws_t::iterator it_gw = this->gws.begin();
+	    it_gw != this->gws.end(); ++it_gw)
 	{
-		// Init all gw by spot
-		SatSpot *spot = (*i_spot).second;
-		list<SatGw*> sat_gws = spot->getGwList();
-		list<SatGw*>::iterator iter;
-		for(iter = sat_gws.begin() ; iter != sat_gws.end() ; ++iter)
+		TerminalCategories<TerminalCategoryDama> st_categories;
+		TerminalCategories<TerminalCategoryDama> gw_categories;
+		ConfigurationList current_spot;
+		ConfigurationList current_gw;
+		ConfigurationList spot_list;
+		SatGw *gw = it_gw->second;
+		spot_id_t spot_id = gw->getSpotId();
+		tal_id_t gw_id = gw->getGwId();
+		FmtDefinitionTable *output_modcod_def = gw->getOutputModcodDef();
+
+		if(!Conf::getListNode(Conf::section_map[FORWARD_DOWN_BAND],
+			                  SPOT_LIST,
+			                  spot_list))
 		{
-			SatGw * gw = *iter;
+			LOG(this->log_init, LEVEL_ERROR, 
+			    "section %s, missing %s", 
+			    FORWARD_DOWN_BAND, SPOT_LIST);
+		}
 
-			TerminalCategories<TerminalCategoryDama> st_categories;
-			TerminalCategories<TerminalCategoryDama> gw_categories;
-			ConfigurationList current_spot;
-			ConfigurationList current_gw;
-			ConfigurationList spot_list;
-			spot_id_t spot_id = spot->getSpotId();
-			tal_id_t gw_id = gw->getGwId();
-			FmtDefinitionTable *output_modcod_def = gw->getOutputModcodDef();
-
-			if(!Conf::getListNode(Conf::section_map[FORWARD_DOWN_BAND],
-			                      SPOT_LIST,
-			                      spot_list))
-			{
-				LOG(this->log_init, LEVEL_ERROR, 
-				    "section %s, missing %s", 
-				    FORWARD_DOWN_BAND, SPOT_LIST);
-			}
-
-			if(!Conf::getElementWithAttributeValue(spot_list,
-			                                       ID,
-			                                       spot_id,
-			                                       current_spot))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "section %s,%s, missing %s",
-				    FORWARD_DOWN_BAND, SPOT_LIST, ID);
-			}
+		if(!Conf::getElementWithAttributeValue(spot_list,
+		                                       ID,
+		                                       spot_id,
+		                                       current_spot))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "section %s,%s, missing %s",
+			    FORWARD_DOWN_BAND, SPOT_LIST, ID);
+		}
 			
-			if(!Conf::getElementWithAttributeValue(current_spot,
-			                                       GW,
-			                                       gw_id,
-			                                       current_gw))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "section %s,%s, missing %s",
-				    FORWARD_DOWN_BAND, SPOT_LIST, ID);
-			}
-			// TODO no need of tal_aff and dflt_cat in attributes
-			if(!this->initBand<TerminalCategoryDama>(current_spot,
-			                                         FORWARD_DOWN_BAND,
-			                                         TDM,
-			                                         this->fwd_down_frame_duration_ms,
-			                                         this->satellite_type,
-			                                         output_modcod_def,
-			                                         st_categories,
-			                                         this->terminal_affectation,
-			                                         &this->default_category,
-			                                         this->fmt_groups))
-			{
-				return false;
-			}
+		if(!Conf::getElementWithAttributeValue(current_spot,
+		                                       GW,
+		                                       gw_id,
+		                                       current_gw))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "section %s,%s, missing %s",
+			    FORWARD_DOWN_BAND, SPOT_LIST, ID);
+		}
+		// TODO no need of tal_aff and dflt_cat in attributes
+		if(!this->initBand<TerminalCategoryDama>(current_spot,
+		                                         FORWARD_DOWN_BAND,
+		                                         TDM,
+		                                         this->fwd_down_frame_duration_ms,
+		                                         this->satellite_type,
+		                                         output_modcod_def,
+		                                         st_categories,
+		                                         this->terminal_affectation,
+		                                         &this->default_category,
+		                                         this->fmt_groups))
+		{
+			return false;
+		}
 
-			// FIXME we init the same band for GW
-			if(!this->initBand<TerminalCategoryDama>(current_spot,
-			                                         FORWARD_DOWN_BAND,
-			                                         TDM,
-			                                         this->fwd_down_frame_duration_ms,
-			                                         this->satellite_type,
-			                                         output_modcod_def,
-			                                         gw_categories,
-			                                         this->terminal_affectation,
-			                                         &this->default_category,
-			                                         this->fmt_groups))
+		// FIXME we init the same band for GW
+		if(!this->initBand<TerminalCategoryDama>(current_spot,
+		                                         FORWARD_DOWN_BAND,
+		                                         TDM,
+		                                         this->fwd_down_frame_duration_ms,
+		                                         this->satellite_type,
+		                                         output_modcod_def,
+		                                         gw_categories,
+		                                         this->terminal_affectation,
+		                                         &this->default_category,
+		                                         this->fmt_groups))
+		{
+			return false;
+		}
+
+		if(st_categories.size() != 1)
+		{
+			// TODO see NCC for that
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot support more than one category for "
+			    "downlink band\n");
+			return false;
+		}
+
+		TerminalCategoryDama *st_category = st_categories.begin()->second;
+		TerminalCategoryDama *gw_category = gw_categories.begin()->second;
+
+		// Finding the good fmt simulation
+		if(!gw->initScheduling(this->fwd_down_frame_duration_ms,
+		                          this->pkt_hdl,
+		                          st_category,
+		                          gw_category))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to init the spot scheduling\n");
+			delete gw;
+			TerminalCategories<TerminalCategoryDama>::iterator cat_it;
+			for(cat_it = st_categories.begin();
+			    cat_it != st_categories.end(); ++cat_it)
 			{
-				return false;
+				delete (*cat_it).second;
 			}
+			st_categories.clear();
 
-			if(st_categories.size() != 1)
+			for(cat_it = gw_categories.begin();
+			    cat_it != gw_categories.end(); ++cat_it)
 			{
-				// TODO see NCC for that
-				LOG(this->log_init, LEVEL_ERROR,
-				    "cannot support more than one category for "
-				    "downlink band\n");
-				return false;
+				delete (*cat_it).second;
 			}
-
-			TerminalCategoryDama *st_category = st_categories.begin()->second;
-			TerminalCategoryDama *gw_category = gw_categories.begin()->second;
-
-			// Finding the good fmt simulation
-			if(!gw->initScheduling(this->fwd_down_frame_duration_ms,
-		                           this->pkt_hdl,
-		                           st_category,
-		                           gw_category))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to init the spot scheduling\n");
-				delete spot;
-				delete gw;
-				TerminalCategories<TerminalCategoryDama>::iterator cat_it;
-				for(cat_it = st_categories.begin();
-				    cat_it != st_categories.end(); ++cat_it)
-				{
-					delete (*cat_it).second;
-				}
-				st_categories.clear();
-
-				for(cat_it = gw_categories.begin();
-				    cat_it != gw_categories.end(); ++cat_it)
-				{
-					delete (*cat_it).second;
-				}
-				gw_categories.clear();
-				return false;
-			}
+			gw_categories.clear();
+			return false;
 		}
 	}
 	return true;
@@ -240,21 +231,17 @@ bool BlockDvbSatRegen::DownwardRegen::initTimers(void)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                       this->fwd_down_frame_duration_ms);
 	
-	sat_spots_t::iterator spot;
-	for(spot = this->spots.begin(); spot != this->spots.end(); ++spot)
+	sat_gws_t::iterator it_gw;
+	for(it_gw = this->gws.begin(); it_gw != this->gws.end(); ++it_gw)
 	{
-		list<SatGw *> gws = (*spot).second->getListGw();
-		list<SatGw *>::iterator gw;
-		for(gw = gws.begin(); gw != gws.end(); ++gw)
-		{
-			// launch the timer in order to retrieve the modcods
-			event_id_t scenario_timer = this->addTimerEvent("dvb_scenario_timer",
-			                                                1, // the duration will be change when started
-			                                                true, // no rearm
-			                                                false // do not start
-			                                                );
-			(*gw)->initScenarioTimer(scenario_timer);
-		}
+		SatGw *gw = it_gw->second;
+		// launch the timer in order to retrieve the modcods
+		event_id_t scenario_timer = this->addTimerEvent("dvb_scenario_timer",
+		                                                1, // the duration will be change when started
+		                                                true, // no rearm
+		                                                false // do not start
+		                                                );
+		gw->initScenarioTimer(scenario_timer);
 	}	
 
 	return true;
@@ -294,8 +281,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleMessageBurst(const RtEvent *const ev
 
 bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 {
-	map<tal_id_t, spot_id_t>::iterator tal_iter;
-	sat_spots_t::iterator spot;
+	sat_gws_t::iterator it_gw;
 	spot_id_t spot_id;
 	tal_id_t gw_id;
 	tal_id_t tal_id;
@@ -313,16 +299,29 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 	if(tal_id == BROADCAST_TAL_ID)
 	{
 		// Send to all spot and all gw
-		for(spot = this->spots.begin(); spot != this->spots.end(); ++spot)
+		for(it_gw = this->gws.begin(); it_gw != this->gws.end(); ++it_gw)
 		{
-			list<SatGw *> gws = (*spot).second->getListGw();
-			list<SatGw *>::iterator gw;
-			for(gw = gws.begin(); gw != gws.end(); ++gw)
+			SatGw *gw = it_gw->second;
+			NetPacket *packet_copy = new NetPacket(packet);
+			out_fifo = gw->getDataOutStFifo();
+			if(!this->onRcvEncapPacket(packet_copy,
+			                           out_fifo,
+			                           this->sat_delay))
 			{
-				NetPacket *packet_copy = new NetPacket(packet);
-				out_fifo = (*gw)->getDataOutStFifo();
-				if(!this->onRcvEncapPacket(packet_copy,
-				                           out_fifo,
+				// FIXME a problem occured, we got memory allocation error
+				// or fifo full and we won't empty fifo until next
+				// call to onDownwardEvent => return
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "unable to store packet\n");
+				delete packet_copy;
+				return false;
+			}
+			if(!OpenSandConf::isGw(tal_id_src))
+			{
+				out_fifo_gw = gw->getDataOutGwFifo();
+				NetPacket *packet_copy_gw = new NetPacket(packet);
+				if(!this->onRcvEncapPacket(packet_copy_gw,
+				                           out_fifo_gw,
 				                           this->sat_delay))
 				{
 					// FIXME a problem occured, we got memory allocation error
@@ -330,25 +329,8 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 					// call to onDownwardEvent => return
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "unable to store packet\n");
-					delete packet_copy;
+					delete packet_copy_gw;
 					return false;
-				}
-				if(!OpenSandConf::isGw(tal_id_src))
-				{
-					out_fifo_gw = (*gw)->getDataOutGwFifo();
-					NetPacket *packet_copy_gw = new NetPacket(packet);
-					if(!this->onRcvEncapPacket(packet_copy_gw,
-					                           out_fifo_gw,
-					                           this->sat_delay))
-					{
-						// FIXME a problem occured, we got memory allocation error
-						// or fifo full and we won't empty fifo until next
-						// call to onDownwardEvent => return
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "unable to store packet\n");
-						delete packet_copy_gw;
-						return false;
-					}
 				}
 			}
 		}
@@ -373,17 +355,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 			return false;
 		}
 
-		spot = this->spots.find(spot_id);
-		if(spot == this->spots.end())
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "cannot find spot with ID %u in spot "
-			    "list\n", spot_id);
-			return false;
-		}
-
-		SatGw *gw = this->spots[spot_id]->getGw(gw_id);
-
+		SatGw *gw = this->gws[std::make_pair(spot_id, gw_id)];
 		if(gw == NULL)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
@@ -415,15 +387,14 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 	return true;
 }
 
-bool BlockDvbSatRegen::DownwardRegen::handleTimerEvent(SatGw *current_gw, 
-                                                       uint8_t spot_id)
+bool BlockDvbSatRegen::DownwardRegen::handleTimerEvent(SatGw *current_gw)
 {
 	if(!current_gw->schedule(this->down_frame_counter,
 	                         (time_ms_t)getCurrentTime()))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to schedule packets for satellite spot %u "
-		    "on regenerative satellite\n", spot_id);
+		    "on regenerative satellite\n", current_gw->getSpotId());
 			return false;
 	}
 
@@ -434,7 +405,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleTimerEvent(SatGw *current_gw,
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to build and send DVB/BB frames toward ST"
 		    "for satellite spot %u on regenerative satellite\n",
-		    spot_id);
+		    current_gw->getSpotId());
 			return false;
 	}
 
@@ -445,7 +416,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleTimerEvent(SatGw *current_gw,
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to build and send DVB/BB frames toward GW"
 		    "for satellite spot %u on regenerative satellite\n",
-		    spot_id);
+		    current_gw->getSpotId());
 		return false;
 	}
 
@@ -685,8 +656,7 @@ bool BlockDvbSatRegen::UpwardRegen::handleCorrupted(DvbFrame *UNUSED(dvb_frame))
 
 
 bool BlockDvbSatRegen::UpwardRegen::handleDvbBurst(DvbFrame *dvb_frame,
-                                                   SatGw *current_gw,
-                                                   SatSpot UNUSED(*current_spot))
+                                                   SatGw *current_gw)
 {
 	NetBurst *burst = NULL;
 	if(!current_gw->updateFmt(dvb_frame, this->pkt_hdl))
@@ -738,34 +708,28 @@ bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame,
 }
 
 bool BlockDvbSatRegen::UpwardRegen::handleBBFrame(DvbFrame UNUSED(*dvb_frame), 
-                                                  SatGw UNUSED(*current_gw),
-                                                  SatSpot UNUSED(*current_spot))
+                                                  SatGw UNUSED(*current_gw))
 {
 	assert(0);
 }
 
 bool BlockDvbSatRegen::UpwardRegen::handleSaloha(DvbFrame *UNUSED(dvb_frame),
-                                                 SatGw *UNUSED(current_gw),
-                                                 SatSpot *UNUSED(current_spot))
+                                                 SatGw *UNUSED(current_gw))
 {
 	assert(0);
 }
 
 bool BlockDvbSatRegen::UpwardRegen::updateSeriesGenerator(void)
 {
-	sat_spots_t::iterator spot;
-	for(spot = this->spots.begin(); spot != this->spots.end(); ++spot)
+	sat_gws_t::iterator it_gw;
+	for(it_gw = this->gws.begin(); it_gw != this->gws.end(); ++it_gw)
 	{
-		list<SatGw *> gws = (*spot).second->getListGw();
-		list<SatGw *>::iterator gw;
-		for(gw = gws.begin(); gw != gws.end(); ++gw)
+		SatGw *gw = it_gw->second;
+		if(!gw->updateSeriesGenerator())
 		{
-			if(!(*gw)->updateSeriesGenerator())
-			{
-				LOG(this->log_receive_channel, LEVEL_ERROR,
-				    "Failed to update series generator\n");
-				return false;
-			}
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "Failed to update series generator\n");
+			return false;
 		}
 	}
 	return true;
