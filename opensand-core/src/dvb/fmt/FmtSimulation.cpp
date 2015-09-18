@@ -65,6 +65,8 @@ inline bool fileExists(const string &filename)
 
 FmtSimulation::FmtSimulation():
 	modcod_simu(NULL),
+	file_time(0),
+	current_time(0),
 	is_modcod_simu_defined(false),
 	acm_period_ms(0)
 {
@@ -141,58 +143,68 @@ bool FmtSimulation::goNextScenarioStep(double &duration)
 
 
 bool FmtSimulation::setModcodSimu(const string &filename,
-                                  time_ms_t acm_period_ms)
+                                  time_ms_t acm_period_ms,
+                                  bool loop)
 {
 	// we can not redefine the simulation file
 	if(this->is_modcod_simu_defined)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "cannot redefine the MODCOD simulation file\n");
-		goto error;
+		return false;
 	}
 
 	if(!fileExists(filename.c_str()))
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "the file %s doesn't exist\n", filename.c_str());
-		goto error;
+		return false;
 	}
 
-	// open the simulation file
+	// open he simulation file
 	this->modcod_simu = new ifstream(filename.c_str());
 	if(!this->modcod_simu->is_open())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "failed to open MODCOD simulation file '%s'\n",
 		    filename.c_str());
-		goto error;
+		return false;
 	}
 
 	// TODO: check values in the file here
 
 	this->is_modcod_simu_defined = true;
+	this->loop = loop;
 
 	this->acm_period_ms = acm_period_ms;
 
+	if(!this->load())
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "failed to load MODCOD simulation file '%s'\n",
+		    filename.c_str());
+		return false;
+	}
+
+
 	return true;
 
-error:
-	return false;
 }
 
-
-/**** private methods ****/
-
-bool FmtSimulation::setList(vector<string> &list, double &time)
+bool FmtSimulation::load()
 {
-	std::stringstream line;
-	std::stringbuf token;
-	list.clear();
+	vector<string> list;
+	std::map<double, vector<string> >::const_iterator modcod_it;
+	double time;
 
 	// get the next line in the file
 	while(!this->modcod_simu->eof() && !this->modcod_simu->fail())
 	{
+		list.clear();
+		
 		std::stringbuf buf;
+		std::stringstream line;
+		std::stringbuf token;
 
 		this->modcod_simu->get(buf);
 		// jump after the '\n' as get does not read it
@@ -202,7 +214,7 @@ bool FmtSimulation::setList(vector<string> &list, double &time)
 		{
 			continue;
 		}
-
+		
 		line.str(buf.str());
 		// get the first element of the line (which is time)
 		if(line.fail())
@@ -229,27 +241,59 @@ bool FmtSimulation::setList(vector<string> &list, double &time)
 			list.push_back(token.str());
 			line.ignore();
 		}
-		break;
+		if(!list.empty())
+		{
+			this->modcod[time] = list;
+		}
+		// reset the error flags
+		this->modcod_simu->clear();
 	}
+	
+	modcod_it = this->modcod.begin();
+	this->file_time = modcod_it->first;
 
-	// keep the last modcod when we reach the end of file
-	if(this->modcod_simu->eof())
+	this->modcod_simu->close();
+	return true;
+
+}
+
+/**** private methods ****/
+
+bool FmtSimulation::setList(vector<string> &list, double &time)
+{
+	std::map<double, vector<string> >::const_iterator modcod_it;
+	std::map<double, vector<string> >::reverse_iterator rmodcod_it;
+	modcod_it = this->modcod.upper_bound(this->file_time);
+	list.clear();
+
+	// modcod found
+	// get the next line in the file
+	if(modcod_it != this->modcod.end())
 	{
-		// TODO add enable loop in configuration
-		return true;
+		// Next entry in the configuration file
+		this->file_time = modcod_it->first;
+		list = modcod_it->second;
+		time = this->current_time + this->file_time;
 	}
-
-	// check if getline returned an error
-	if(this->modcod_simu->fail())
+	else if(this->loop)
 	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "Error when getting next line of the simulation "
-		    "file\n");
-		return false;
+		//update system current time
+		this->current_time += this->file_time;
+		// we reached the end of the scenario, restart at beginning
+		this->file_time = this->modcod.begin()->first;
+		list = this->modcod.begin()->second;
+		time = this->current_time + this->file_time;
 	}
-
-	// reset the error flags
-	this->modcod_simu->clear();
+	else // not loop
+	{
+		// we reached the end of the scenario, keep the last value
+		this->current_time += 1;
+		rmodcod_it = this->modcod.rbegin();
+		this->file_time = modcod_it->first;
+		list = rmodcod_it->second;
+		time = this->current_time;
+	}
+	
 
 	return true;
 }

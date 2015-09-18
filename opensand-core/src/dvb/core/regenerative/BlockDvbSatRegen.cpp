@@ -651,6 +651,8 @@ bool BlockDvbSatRegen::UpwardRegen::addSt(SatGw *current_gw,
 
 bool BlockDvbSatRegen::UpwardRegen::handleCorrupted(DvbFrame *UNUSED(dvb_frame))
 {
+	// in regenerative case we need to handle the corrupted frame in order
+	// to get statistics
 	return false;
 }
 

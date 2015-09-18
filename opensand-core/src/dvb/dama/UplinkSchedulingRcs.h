@@ -66,8 +66,11 @@ class UplinkSchedulingRcs: public Scheduling
 
   private:
 	
-	// the gw_id
+	/// the gw_id
 	tal_id_t gw_id;
+
+	/// The lowest MODCOD in available carriers
+	fmt_id_t lowest_modcod;
 
 	/// The FMT definition table associated
 	const FmtDefinitionTable *ret_modcod_def;
@@ -100,7 +103,7 @@ class UplinkSchedulingRcs: public Scheduling
 	 * return                      true on success, false otherwise
 	 */
 	bool createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
-	                                 uint8_t modcod_id);
+	                                 fmt_id_t  modcod_id);
 
 
 	/**

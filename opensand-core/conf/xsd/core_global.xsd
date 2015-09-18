@@ -623,27 +623,35 @@
                     <xsd:sequence>
                 <xsd:element name="forward_down_modcod_time_series" type="file">
                     <xsd:annotation>
-                            <xsd:documentation xml:lang="en">
-                                The MODCOD simulation time series for forward/down link
-                                <default>modcod/s2/clear_sky.txt</default>
-                                <source>modcod/forward_down_time_series.txt</source>
-                                <xpath physical_layer.enable="false" />
-                            </xsd:documentation>
-                        </xsd:annotation>
-                    </xsd:element>
+                        <xsd:documentation xml:lang="en">
+                            The MODCOD simulation time series for forward/down link
+                            <default>modcod/s2/clear_sky.txt</default>
+                            <source>modcod/forward_down_time_series.txt</source>
+                            <xpath physical_layer.enable="false" />
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:element>
                 <xsd:element name="return_up_modcod_time_series" type="file">
                     <xsd:annotation>
-                            <xsd:documentation xml:lang="en">
-                                The MODCOD simulation time series for return/up link
-                                <default>modcod/rcs/clear_sky.txt</default>
-                                <source>modcod/return_up_time_series.txt</source>
-                                <xpath physical_layer.enable="false" />
-                            </xsd:documentation>
-                       </xsd:annotation>
-                    </xsd:element>
-                </xsd:sequence>
-                <xsd:attribute name="id"/>
-                <xsd:attribute name="gw" type="talId"/>
+                        <xsd:documentation xml:lang="en">
+                            The MODCOD simulation time series for return/up link
+                            <default>modcod/rcs/clear_sky.txt</default>
+                            <source>modcod/return_up_time_series.txt</source>
+                            <xpath physical_layer.enable="false" />
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="loop_on_file" type="xsd:boolean">
+                    <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                            Loop on MODCOD simulation time series files for return/up link
+                            <xpath physical_layer.enable="false" />
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:element>
+            </xsd:sequence>
+            <xsd:attribute name="id"/>
+            <xsd:attribute name="gw" type="talId"/>
         </xsd:complexType>
         </xsd:element>
         </xsd:sequence>

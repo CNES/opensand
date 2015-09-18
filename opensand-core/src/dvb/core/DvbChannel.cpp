@@ -321,6 +321,7 @@ bool DvbFmt::initModcodSimuFile(const char *simu,
 	string modcod_simu_file;
 	ConfigurationList current_gw;
 	time_ms_t acm_period_ms;
+	bool loop_on_simu_file;
 
 	if(this->with_phy_layer)
 	{
@@ -357,13 +358,24 @@ bool DvbFmt::initModcodSimuFile(const char *simu,
 		    PHYSICAL_LAYER_SECTION, spot_id, gw_id, simu);
 		return false;
 	}
-
+	
+	if(!Conf::getValue(current_gw, LOOP_ON_FILE, 
+		               loop_on_simu_file))
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
+		    PHYSICAL_LAYER_SECTION, spot_id, gw_id, LOOP_ON_FILE);
+		return false;
+	}
+	
 	LOG(this->log_fmt, LEVEL_NOTICE,
 	    "MODCOD simulation path set to %s\n",
 	    modcod_simu_file.c_str());
 
 	// set the MODCOD simulation file
-	if(!fmt_simu.setModcodSimu(modcod_simu_file, acm_period_ms))
+	if(!fmt_simu.setModcodSimu(modcod_simu_file, 
+		                       acm_period_ms,
+		                       loop_on_simu_file))
 	{
 		return false;
 	}
