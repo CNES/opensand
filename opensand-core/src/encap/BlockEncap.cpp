@@ -43,6 +43,7 @@
 
 #include <algorithm>
 #include <stdint.h>
+#include <unistd.h>
 #include <errno.h>
 
 

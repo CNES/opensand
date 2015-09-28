@@ -39,6 +39,7 @@
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
 
+#include <unistd.h>
 #include <errno.h>
 
 OutputLog *DvbChannel::dvb_fifo_log = NULL;
