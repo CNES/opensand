@@ -452,7 +452,7 @@ class ConfEvent(ConfView) :
             tal_scpc = adv.get_configuration().get(xpath)
             if tal_scpc is not None and \
                adv.get_configuration().get_value(tal_scpc) == "true" and \
-               self._in_stack.get_stack()[0] != GSE:
+               self._in_stack.get_stack()['0'] != GSE:
                 error_popup("One terminal is SCPC, forward encapsulation should be GSE")
                 return 
         config.set_forward_down_encap(self._in_stack.get_stack())
