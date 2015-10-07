@@ -44,7 +44,77 @@
 #define GSE_SECTION "gse"
 #define CONF_GSE_FILE "/etc/opensand/plugins/gse.conf"
 
+#define GSE_MIN_ETHER_TYPE 1536
+
 #define MAX_QOS_NBR 0xFF
+#define MAX_CNI_EXT_LEN 6
+
+
+
+
+static int encodeHeaderCniExtensions(unsigned char *ext,
+                                     size_t *length,  
+                                     uint16_t *protocol_type, 
+                                     uint16_t extension_type,
+                                     void *opaque)
+{
+	uint32_t *cni = (uint32_t*)opaque;
+	extension_type = htons(extension_type);
+
+	memcpy(ext, cni, sizeof(uint32_t));
+	*length = sizeof(uint32_t);
+	
+	// add the protocol type in extension
+	memcpy(ext + *length, &extension_type, sizeof(uint16_t));
+	*length += sizeof(uint16_t);
+	
+	// 0x0300 is necessary to indicate the extension size (6 bytes) 
+	*protocol_type = NET_PROTO_GSE_EXTENSION_CNI | 0x0300;
+	
+	return 0;
+}
+
+static int deencodeHeaderCniExtensions(unsigned char *ext,
+                                       size_t *UNUSED(length),
+                                       uint16_t *UNUSED(protocol_type), 
+                                       uint16_t extension_type,
+                                       void *opaque)
+{
+	uint16_t current_type;
+	current_type = extension_type & 0xFF;
+	
+	//check current type
+	if(current_type != NET_PROTO_GSE_EXTENSION_CNI)
+	{
+		DFLTLOG(LEVEL_ERROR, "GSE header extension is not a CNI extension\n");
+		return -1;
+	}
+
+	memcpy(opaque, ext, sizeof(uint32_t));
+	
+	return 0;
+}
+
+static int gse_ext_check_cb(unsigned char *ext,
+                            size_t *length,  
+                            uint16_t *protocol_type, 
+                            uint16_t extension_type,
+                            void *UNUSED(opaque))
+{
+	gse_status_t status = GSE_STATUS_OK;
+	
+	status = gse_check_header_extension_validity(ext, length,
+	                                             extension_type, 
+	                                             protocol_type);
+	
+	if( status != GSE_STATUS_OK)
+	{
+		return -1;
+	}
+	
+	return 0;
+}
+
 
 Gse::Gse():
 	EncapPlugin(NET_PROTO_GSE)
@@ -112,6 +182,13 @@ void Gse::Context::init(void)
 	}
 
 	config.unloadConfig();
+	
+	// we need to set a callback else GSE won't be able to deencapsulate
+	// packets with extension
+	gse_deencap_set_extension_callback(this->deencap,
+	                                   gse_ext_check_cb,
+	                                   //gse_check_header_extension_validity,
+	                                   NULL);
 
 	return;
 
@@ -1268,6 +1345,10 @@ error:
 Gse::PacketHandler::PacketHandler(EncapPlugin &plugin):
 	EncapPlugin::EncapPacketHandler(plugin)
 {
+	this->encap_callback["encodeCniExt"] = encodeHeaderCniExtensions;
+	this->deencap_callback["deencodeCniExt"] = deencodeHeaderCniExtensions;
+	this->callback_name.push_back("encodeCniExt");
+	this->callback_name.push_back("deencodeCniExt");
 }
 
 bool Gse::PacketHandler::getSrc(const Data &data, tal_id_t &tal_id) const
@@ -1384,6 +1465,203 @@ bool Gse::PacketHandler::getQos(const Data &data, qos_t &qos) const
 	return true;
 }
 
+
+NetPacket *Gse::PacketHandler::getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets)
+{
+	for(std::vector<NetPacket*>::const_iterator packet_it = packets.begin();
+	    packet_it != packets.end();
+	    ++packet_it)
+	{
+		NetPacket *packet = (*packet_it);
+		// Search for a non-fragmented GSE packet, since extension cannot be
+		// added to a fragment.
+		uint8_t indicator;
+		uint16_t protocol_type;
+		unsigned char* packet_data;
+		gse_status_t status;
+
+		packet_data = (unsigned char *)packet->getData().c_str();
+
+		status = gse_get_start_indicator(packet_data,
+		                                  &indicator);
+		if(status != GSE_STATUS_OK)
+		{
+			LOG(this->log, LEVEL_ERROR, "cannot get start indicator (%s)\n",
+			    gse_get_status(status));
+			return NULL;
+		}
+
+		if(indicator != 0)
+		{
+			LOG(this->log, LEVEL_DEBUG, "non-fragmented GSE packet found\n");
+
+			status = gse_get_protocol_type(packet_data, &protocol_type);
+			if(status != GSE_STATUS_OK)
+			{
+				LOG(this->log, LEVEL_ERROR, 
+				    "cannot get protocol type of the GSE packet (%s)\n",
+				    gse_get_status(status));
+				return NULL;
+			}
+
+			// Test if packet already has extensions
+			// (case protocol_type < GSE_MIN_ETHER_TYPE)
+			if(protocol_type >= GSE_MIN_ETHER_TYPE)
+			{
+				return packet;
+			}
+			else
+			{
+				LOG(this->log, LEVEL_DEBUG, "packet already has extensions\n");
+			}
+		}
+	}
+
+	return NULL;
+}
+
+bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
+                                             NetPacket** new_packet,
+                                             tal_id_t tal_id_src,
+                                             tal_id_t tal_id_dst,
+                                             string callback_name,
+                                             void *opaque)
+{
+
+	gse_status_t status;
+	gse_vfrag_t *vfrag;
+	gse_vfrag_t *vfrag2;
+	uint32_t crc;
+
+	// Empty GSE packet
+	static unsigned char empty_gse[5] = 
+	{
+		0xd8, /* LT = 01 (three bytes label) */
+		0x03, /* length */
+		tal_id_src,
+		tal_id_dst,
+		0x00 /* highest priority fifo (eg. NM FIFO) */
+	};
+
+	if(packet != NULL)
+	{
+		LOG(this->log, LEVEL_INFO,
+		    "using non-null packet\n");
+		status = gse_create_vfrag_with_data(&vfrag, GSE_MAX_PACKET_LENGTH,
+		                                    MAX_CNI_EXT_LEN, 0,
+		                                    (unsigned char *)packet->getData().c_str(),
+		                                    packet->getTotalLength());
+	}
+	else
+	{
+		LOG(this->log, LEVEL_INFO, 
+		    "no packet, create empty one\n");
+		status = gse_create_vfrag_with_data(&vfrag, GSE_MAX_PACKET_LENGTH,
+		                                    MAX_CNI_EXT_LEN, 0,
+		                                    empty_gse, 5);
+	}
+
+	if(status != GSE_STATUS_OK)
+	{
+		LOG(this->log, LEVEL_ERROR, "cannot create virtual fragment (%s)",
+		    gse_get_status(status));
+		return false;
+	}
+
+	// TODO: once packet refragmentation will be handled, set QoS to actual
+	// value (see NOTE #2).
+	status = gse_encap_add_header_ext(vfrag, &vfrag2, &crc,
+	                                  this->encap_callback[callback_name],
+	                                  GSE_MAX_PACKET_LENGTH, 0, 0,
+	                                  /* qos */ 0,
+	                                  opaque);
+	if(status == GSE_STATUS_EXTENSION_UNAVAILABLE)
+	{
+		// NOTE #1 this should never happen except if PDU are greater than max
+		//      GSE packet PDU length (this is not the case for the moment)
+		LOG(this->log, LEVEL_ERROR, 
+		   "cannot add extension in the next GSE packet\n");
+		gse_free_vfrag(&vfrag);
+		if(vfrag2)
+			gse_free_vfrag(&vfrag2);
+		return false;
+	}
+	else if(status == GSE_STATUS_PARTIAL_CRC || vfrag2)
+	{
+		// NOTE #2 this should never happend except if PDU + ext are greater than max
+		//      GSE packet PDU length (this is not the case for the moment)
+		LOG(this->log, LEVEL_ERROR, "packet has been refragmented\n");
+		gse_free_vfrag(&vfrag);
+		if(vfrag2)
+			gse_free_vfrag(&vfrag2);
+		return false;
+	}
+	else if(status != GSE_STATUS_OK)
+	{
+		LOG(this->log, LEVEL_ERROR, 
+		   "cannot add header extension in packet (%s)",
+		   gse_get_status(status));
+		gse_free_vfrag(&vfrag);
+		if(vfrag2)
+			gse_free_vfrag(&vfrag2);
+		return false;
+	}
+
+	Data gse_frag(gse_get_vfrag_start(vfrag),
+	              gse_get_vfrag_length(vfrag));
+	(*new_packet) = this->build(gse_frag,
+	                            gse_get_vfrag_length(vfrag),
+	                            /* qos and tal_ids are read from label */
+	                            0, 0, packet->getDstTalId());
+	if((*new_packet) == NULL)
+	{
+		LOG(this->log, LEVEL_ERROR, 
+		    "failed to create the GSE packet with extensions\n");
+		return false;
+	}
+
+	gse_free_vfrag(&vfrag);
+	if(vfrag2)
+		gse_free_vfrag(&vfrag2);
+
+	return true;
+}
+
+bool Gse::PacketHandler::getHeaderExtensions(const NetPacket *packet,
+                                             string callback_name,
+                                             void *opaque)
+{
+	gse_vfrag_t *gse_data;
+	gse_status_t status;
+
+	status = gse_create_vfrag_with_data(&gse_data,
+	                                    packet->getTotalLength(),
+	                                    0, 0,
+	                                    packet->getData().c_str(),
+	                                    packet->getTotalLength());
+	if(status != GSE_STATUS_OK)
+	{
+		LOG(this->log, LEVEL_ERROR, "cannot create virtual fragment (%s)",
+		    gse_get_status(status));
+		return false;
+	}
+	
+	// Get the in-band extension
+	status = gse_deencap_get_header_ext((unsigned char *)packet->getData().c_str(),
+	                                     this->deencap_callback[callback_name],
+	                                     opaque);
+	if(status != GSE_STATUS_OK && status != GSE_STATUS_EXTENSION_UNAVAILABLE)
+	{
+		LOG(this->log, LEVEL_ERROR, 
+		    "cannot deencapsulate header extension (%s)",
+		    gse_get_status(status));
+		return false;
+	}
+
+	return true;
+}
+
+
 // Static methods
 
 bool Gse::setLabel(NetPacket *packet, uint8_t label[])
@@ -1482,3 +1760,5 @@ uint8_t Gse::getQosFromFragId(const uint8_t frag_id)
 {
 	return frag_id & 0x07;
 }
+
+

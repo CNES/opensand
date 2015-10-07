@@ -157,6 +157,9 @@ class SpotUpwardTransp: public SpotUpward
 		/// The Slotted Aloha for NCC
 		SlottedAlohaNcc *saloha;
 
+		/// is terminal scpc map
+		list<tal_id_t> is_tal_scpc;
+
 		/// time series generator for input
 		TimeSeriesGenerator *input_series;
 

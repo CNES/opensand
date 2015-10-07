@@ -45,6 +45,7 @@ DvbRcsFrame::DvbRcsFrame(const unsigned char *data, size_t length):
 	DvbFrameTpl<T_DVB_ENCAP_BURST>(data, length)
 {
 	this->name = "DVB-RCS frame";
+	// TODO remplacer par RCS
 	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
 	this->num_packets = ntohl(this->frame()->qty_element);
 }

@@ -87,6 +87,8 @@
 #define NET_PROTO_802_1AD 0x9100
 // ARP ethertype
 #define NET_PROTO_ARP     ETH_P_ARP
+// CNI extension for GSE
+#define NET_PROTO_GSE_EXTENSION_CNI 0x00FF
 
 
 // TODO we may add an option to enable jumbo frames

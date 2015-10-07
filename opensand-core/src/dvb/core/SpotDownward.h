@@ -144,7 +144,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 * @brief update FMT in DAMA controller
 	 */
 	void updateFmt(void);
-
+	
 	/**
 	 * @briel apply pep commande
 	 * @param pep_request the pep request
@@ -236,7 +236,25 @@ class SpotDownward: public DvbChannel, public DvbFmt
 
 	// statistics update
 	void updateStatistics(void);
+	
+	/**
+	 * @brief add Cni extension into gse packet
+	 *
+	 * @return true on success, false otherwise
+	 */ 
+	bool addCniExt(void);
 
+	/*
+	 * @brief set extension to packet
+	 *
+	 * @return true on success, false otherwise
+	 */ 	
+	bool setPacketExtension(MacFifoElement *elem,
+                            DvbFifo *fifo,
+                            std::vector<NetPacket*> packet_list,
+                            NetPacket **extension_pkt,
+                            tal_id_t tal_id);
+	
 	/// The DAMA controller
 	DamaCtrlRcs *dama_ctrl;
 
@@ -256,6 +274,9 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	
 	// gw tal id
 	uint8_t mac_id;
+
+	/// is terminal scpc map
+	list<tal_id_t> is_tal_scpc;
 
 	/* Fifos */
 	/// map of FIFOs per MAX priority to manage different queues

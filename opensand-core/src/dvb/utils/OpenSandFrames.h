@@ -51,10 +51,6 @@
 #include <cstring>
 
 
-// The maximum number of MODCOD options
-// used to avoid very long emulated frames
-#define MAX_MODCOD_OPTIONS 5
-
 /// The maximum size of a DVB-RCS frame is choosen to be totally
 /// included in one sat_carrier packet
 #define MSG_DVB_RCS_SIZE_MAX 1200 + sizeof(T_DVB_PHY)
@@ -201,6 +197,7 @@ typedef struct
 	rate_kbps_t rt_bandwidth; ///< the real time fixed bandwidth in kbits/s
 	rate_kbps_t max_rbdc;     ///< the maximum RBDC value in kbits/s
 	vol_kb_t max_vbdc;        ///< the maximum VBDC value in kbits/s
+	bool is_scpc;             ///< is the terminal scpc
 } __attribute__((__packed__)) T_DVB_LOGON_REQ;
 
 

@@ -49,6 +49,23 @@ LogonRequest::LogonRequest(tal_id_t mac,
 	this->frame()->rt_bandwidth = htons(rt_bandwidth);
 	this->frame()->max_rbdc = htons(max_rbdc);
 	this->frame()->max_vbdc = htons(max_vbdc);
+	this->frame()->is_scpc = false;
+}
+
+LogonRequest::LogonRequest(tal_id_t mac,
+                           rate_kbps_t rt_bandwidth,
+                           rate_kbps_t max_rbdc,
+                           vol_kb_t max_vbdc, 
+                           bool is_scpc):
+	DvbFrameTpl<T_DVB_LOGON_REQ>()
+{
+	this->setMessageType(MSG_TYPE_SESSION_LOGON_REQ);
+	this->setMessageLength(sizeof(T_DVB_LOGON_REQ));
+	this->frame()->mac = htons(mac);
+	this->frame()->rt_bandwidth = htons(rt_bandwidth);
+	this->frame()->max_rbdc = htons(max_rbdc);
+	this->frame()->max_vbdc = htons(max_vbdc);
+	this->frame()->is_scpc = is_scpc;
 }
 
 LogonRequest::LogonRequest():
@@ -78,6 +95,11 @@ rate_kbps_t LogonRequest::getMaxRbdc(void) const
 rate_kbps_t LogonRequest::getMaxVbdc(void) const
 {
 	return ntohs(this->frame()->max_vbdc);
+}
+
+bool LogonRequest::getIsScpc(void) const
+{
+	return this->frame()->is_scpc;
 }
 
 /* RESPONSE */

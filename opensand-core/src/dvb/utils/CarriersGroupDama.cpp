@@ -61,7 +61,6 @@ CarriersGroupDama::~CarriersGroupDama()
 	}
 }
 
-#include <opensand_output/Output.h>
 void CarriersGroupDama::setCapacity(const vol_sym_t capacity_sym)
 {
 	CarriersGroup::setCapacity(capacity_sym);

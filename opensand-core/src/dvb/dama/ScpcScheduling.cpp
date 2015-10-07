@@ -88,17 +88,19 @@ static size_t getPayloadSize(string coding_rate)
 ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
                                const EncapPlugin::EncapPacketHandler *packet_handler,
                                const fifos_t &fifos,
-                               FmtSimulation *const scpc_fmt_simu,
+                               const ListStFmt *const simu_sts,
                                FmtDefinitionTable *const scpc_modcod_def,
-                               const TerminalCategoryDama *const category):
-	Scheduling(packet_handler, fifos, NULL),
+                               const TerminalCategoryDama *const category,
+                               tal_id_t gw_id):
+	Scheduling(packet_handler, fifos, simu_sts),
 	scpc_timer_ms(scpc_timer_ms),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
 	scpc_fmt_simu(scpc_fmt_simu),
 	scpc_modcod_def(scpc_modcod_def),
-	category(category)
+	category(category),
+	gw_id(gw_id)
 {
 	vector<CarriersGroupDama *> carriers_group;
 	vector<CarriersGroupDama *>::iterator carrier_it;
@@ -289,7 +291,7 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 			}
 			else if(ret == status_ok)
 			{
-				unsigned int modcod = (*it)->getModcodId();
+				fmt_id_t modcod = (*it)->getModcodId();
 
 				this->incomplete_bb_frames.erase(modcod);
 				// incomplete ordered erased in loop
@@ -575,7 +577,7 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			}
 			else
 			{
-				unsigned int modcod = current_bbframe->getModcodId();
+				fmt_id_t modcod = current_bbframe->getModcodId();
 
 				this->incomplete_bb_frames_ordered.remove(current_bbframe);
 				this->incomplete_bb_frames.erase(modcod);
@@ -620,7 +622,7 @@ error:
 
 bool ScpcScheduling::createIncompleteBBFrame(BBFrame **bbframe,
                                              const time_sf_t current_superframe_sf,
-                                             unsigned int modcod_id)
+                                             fmt_id_t modcod_id)
 {
 	// if there is no incomplete BB frame create a new one
 	size_t bbframe_size_bytes;
@@ -663,11 +665,18 @@ error:
 	return false;
 }
 
-
-uint8_t ScpcScheduling::retrieveCurrentModcod(void)
+fmt_id_t ScpcScheduling::retrieveCurrentModcod(const time_sf_t current_superframe_sf)
 {
-	//TODO: MODCOD of GW is set to 28 because STs do not know the GW MODCOD (that should be changed)
-	uint8_t modcod_id = 28;
+	// retrieve the current MODCOD for the GW
+	if(this->simu_sts->find(this->gw_id) == this->simu_sts->end())
+	{
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "SF#%u: encapsulation packet is for ST with ID %u "
+		    "that is not registered\n", current_superframe_sf, this->gw_id);
+	}
+
+	fmt_id_t modcod_id = this->getCurrentModcodId(this->gw_id);
+
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "Simulated MODCOD for GW = %u\n", modcod_id);
 	
@@ -675,7 +684,7 @@ uint8_t ScpcScheduling::retrieveCurrentModcod(void)
 }
 
 bool ScpcScheduling::getBBFrameSizeSym(size_t bbframe_size_bytes,
-                                       unsigned int modcod_id,
+                                       fmt_id_t modcod_id,
                                        const time_sf_t current_superframe_sf,
                                        vol_sym_t &bbframe_size_sym)
 {
@@ -703,7 +712,7 @@ error:
 	return false;
 }
 
-unsigned int ScpcScheduling::getBBFrameSizeBytes(unsigned int modcod_id)
+unsigned int ScpcScheduling::getBBFrameSizeBytes(fmt_id_t modcod_id)
 {
 	// if there is no incomplete BB frame create a new one
 	size_t bbframe_size_bytes;
@@ -724,8 +733,8 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
                                           BBFrame **bbframe)
 {
 	map<unsigned int, BBFrame *>::iterator iter;
-	unsigned int modcod_id;
-	uint8_t desired_modcod = this->retrieveCurrentModcod();
+	fmt_id_t modcod_id;
+	fmt_id_t desired_modcod = this->retrieveCurrentModcod(current_superframe_sf);
 
 	*bbframe = NULL;
 
@@ -784,7 +793,7 @@ sched_status_t ScpcScheduling::addCompleteBBFrame(list<DvbFrame *> *complete_bb_
                                                   const time_sf_t current_superframe_sf,
                                                   vol_sym_t &remaining_capacity_sym)
 {
-	unsigned int modcod_id = bbframe->getModcodId();
+	fmt_id_t modcod_id = bbframe->getModcodId();
 	size_t bbframe_size_bytes = bbframe->getMaxSize();
 	vol_sym_t bbframe_size_sym;
 
@@ -839,7 +848,7 @@ void ScpcScheduling::schedulePending(const list<unsigned int> supported_modcods,
 		it != this->pending_bbframes.end();
 		++it)
 	{
-		unsigned int modcod = (*it)->getModcodId();
+		fmt_id_t modcod = (*it)->getModcodId();
 
 		if(std::find(supported_modcods.begin(), supported_modcods.end(), modcod) !=
 		   supported_modcods.end())

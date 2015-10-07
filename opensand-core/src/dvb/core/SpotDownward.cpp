@@ -62,6 +62,7 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	data_carrier_id(),
 	spot_id(spot_id),
 	mac_id(mac_id),
+	is_tal_scpc(),
 	dvb_fifos(),
 	default_fifo_id(0),
 	complete_dvb_frames(),
@@ -87,6 +88,7 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	l2_to_sat_total_bytes(0),
 	probe_frame_interval(NULL),
 	probe_used_modcod(NULL),
+	log_request_simulation(NULL),
 	event_logon_resp(NULL)
 {
 	this->fwd_down_frame_duration_ms = fwd_down_frame_duration;
@@ -565,9 +567,15 @@ bool SpotDownward::handleEncapPacket(NetPacket *packet)
 bool SpotDownward::handleLogonReq(const LogonRequest *logon_req)
 {
 	uint16_t mac = logon_req->getMac();
+	bool is_scpc = logon_req->getIsScpc();
+	if(is_scpc)
+	{
+		this->is_tal_scpc.push_back(mac);
+	}
 
 	// Inform the Dama controller (for its own context)
-	if(this->dama_ctrl && !this->dama_ctrl->hereIsLogon(logon_req))
+	if(!is_scpc && this->dama_ctrl && 
+	   !this->dama_ctrl->hereIsLogon(logon_req))
 	{
 		return false;
 	}
@@ -783,6 +791,13 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 	this->fwd_frame_counter = fwd_frame_counter;
 	this->updateStatistics();
 
+	if(!addCniExt())
+	{
+		LOG(this->log_send_channel, LEVEL_ERROR,
+		    "fail to add CNI extension");
+		return false;
+	}
+
 	// schedule encapsulation packets
 	// TODO loop on categories (see todo in initMode)
 	// TODO In regenerative mode we should schedule in frame_timer ??
@@ -804,6 +819,156 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 
 	return true;
 
+}
+
+/**
+ * Add a CNI extension in the next GSE2 packet header
+ * Only for SCPC
+ * @return false if failed, true if succeed
+ */
+bool SpotDownward::addCniExt(void)
+{
+	list<tal_id_t> list_st;
+
+	// Create list of first packet from FIFOs
+	for(fifos_t::iterator fifos_it = this->dvb_fifos.begin();
+	    fifos_it != this->dvb_fifos.end(); ++fifos_it)
+	{
+		DvbFifo *fifo = (*fifos_it).second;
+		vector<MacFifoElement *> queue = fifo->getQueue();
+		vector<MacFifoElement *>::iterator queue_it;
+
+		for(queue_it = queue.begin() ;
+		    queue_it != queue.end()  ; 
+		    ++queue_it)
+		{
+			std::vector<NetPacket*> packet_list;
+			MacFifoElement* elem = (*queue_it);
+			NetPacket *packet = (NetPacket*)elem->getElem();
+			tal_id_t tal_id = packet->getDstTalId();
+			NetPacket *extension_pkt = NULL;
+
+			list<tal_id_t>::iterator it = std::find(this->is_tal_scpc.begin(), 
+		                                            this->is_tal_scpc.end(),
+		                                            tal_id);
+		    DFLTLOG(LEVEL_WARNING, "tal id %d, cni has changed %d",
+		            tal_id, this->getCniHasChanged(tal_id));
+			if(it != this->is_tal_scpc.end() && 
+			   this->getCniHasChanged(tal_id))
+			{
+				list_st.push_back(tal_id);
+				DFLTLOG(LEVEL_WARNING, "tal %d, cni %f",
+				        tal_id, this->getRequiredCniInput(tal_id));
+				packet_list.push_back(packet);
+
+				if(!this->setPacketExtension(elem, fifo,
+					                         packet_list, 
+					                         &extension_pkt,
+					                         tal_id))
+				{
+					return false;
+				}
+				
+				LOG(this->log_send_channel, LEVEL_DEBUG,
+				    "SF #%d: packet belongs to FIFO #%d\n",
+				    this->super_frame_counter, (*fifos_it).first);
+				// Delete old packet
+				delete packet;
+			}
+		}
+	}
+
+	const ListStFmt *listStFmt = this->input_sts->getListSts();
+	for(ListStFmt::const_iterator st_it = listStFmt->begin();
+	    st_it != listStFmt->end(); ++st_it)
+	{
+		list<tal_id_t>::iterator it = std::find(list_st.begin(), 
+		                                 list_st.end(),
+		                                 (*st_it).first);
+		list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(), 
+		                                             this->is_tal_scpc.end(),
+		                                             (*st_it).first);
+		if(it_scpc != this->is_tal_scpc.end() && it == list_st.end() 
+		   && this->getCniHasChanged((*st_it).first))
+		{
+			std::vector<NetPacket*> packet_list;
+			NetPacket *extension_pkt = NULL;
+			
+			// set packet extension to this new empty packet
+			if(!this->setPacketExtension(NULL, this->dvb_fifos[0],
+				                         packet_list, 
+					                     &extension_pkt,
+					                     (*st_it).first))
+			{
+				return false;
+			}
+
+			LOG(this->log_send_channel, LEVEL_DEBUG,
+				"SF #%d: adding empty packet into FIFO NM\n",
+			    this->super_frame_counter);
+		}
+	}
+
+	return true;
+}
+
+bool SpotDownward::setPacketExtension(MacFifoElement *elem,
+                                      DvbFifo *fifo,
+                                      std::vector<NetPacket*> packet_list,
+                                      NetPacket **extension_pkt,
+                                      tal_id_t tal_id)
+{
+	uint32_t opaque = hcnton(this->getRequiredCniInput(tal_id));
+	bool replace = false;
+	NetPacket *selected_pkt = this->pkt_hdl->
+	                  getPacketForHeaderExtensions(packet_list);
+	if(selected_pkt != NULL)
+	{
+		LOG(this->log_send_channel, LEVEL_DEBUG,
+			"SF#%d: found no-fragmented packet without extensions\n",
+		    this->super_frame_counter);
+		replace = true;
+	}
+	else
+	{
+		//LOG(this->log_send_channel, LEVEL_DEBUG,
+		LOG(this->log_send_channel, LEVEL_WARNING,
+			"SF#%d: no non-fragmented or without extension packet found, "
+			"create empty packet\n", this->super_frame_counter);
+	}
+				
+	if(!this->pkt_hdl->setHeaderExtensions(selected_pkt,
+	                                       extension_pkt,
+	                                       tal_id, 
+	                                       this->mac_id, 
+	                                       "encodeCniExt",
+	                                       &opaque))
+	{
+		LOG(this->log_send_channel, LEVEL_DEBUG,
+		    "SF#%d: cannot add header extension in packet",
+		    this->super_frame_counter);
+		return false;
+	}
+
+	if(extension_pkt == NULL)
+	{
+		LOG(this->log_send_channel, LEVEL_ERROR,
+		    "SF#%d: failed to create the GSE packet with "
+		    "extensions\n", this->super_frame_counter);
+		return false;
+	}
+	if(replace)
+	{
+		// And replace the packet in the FIFO
+		elem->setElem(*extension_pkt);
+	}
+	else
+	{
+		MacFifoElement *new_el = new MacFifoElement(*extension_pkt, 0, 0);
+		fifo->pushBack(new_el);
+	}
+	
+	return true;
 }
 
 bool SpotDownward::applyPepCommand(PepRequest *pep_request)

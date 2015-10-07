@@ -654,8 +654,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					spot_id = OpenSandConf::spot_table[tal_id];
 				}
 
-				spot_iter = spots.find(spot_id);
-				if(spot_iter == spots.end())
+				spot_iter = this->spots.find(spot_id);
+				if(spot_iter == this->spots.end())
 				{
 					LOG(this->log_receive, LEVEL_ERROR, 
 					    "couldn't find spot %d", 
@@ -826,6 +826,8 @@ bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame,
 		goto release;
 	}
 	
+	// TODO only used here tal_id and logon_id are the same
+	// may be we can simplify the constructor
 	logon_resp = new LogonResponse(mac, this->mac_id, mac);
 
 	LOG(this->log_send, LEVEL_DEBUG,

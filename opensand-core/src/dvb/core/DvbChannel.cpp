@@ -403,6 +403,7 @@ bool DvbFmt::addInputTerminal(tal_id_t id)
 	           this->input_modcod_def->getMaxId());
 
 	this->input_sts->addTerminal(id, modcod);
+	this->cni_has_changed[id] = true;
 	return true;
 }
 
@@ -411,6 +412,7 @@ bool DvbFmt::addOutputTerminal(tal_id_t id)
 {
 	fmt_id_t modcod = this->output_modcod_def->getMaxId();
 	this->output_sts->addTerminal(id, modcod);
+	this->cni_has_changed[id] = true;
 	return true;
 }
 
@@ -476,7 +478,7 @@ void DvbFmt::setRequiredModcod(tal_id_t tal_id,
 void DvbFmt::setRequiredCniInput(tal_id_t tal_id,
                                  double cni)
 {
-
+	this->cni_has_changed[tal_id] = true;
 	this->setRequiredModcod(tal_id, cni, this->input_modcod_def,
 	                        this->input_sts);
 }
@@ -485,6 +487,7 @@ void DvbFmt::setRequiredCniInput(tal_id_t tal_id,
 void DvbFmt::setRequiredCniOutput(tal_id_t tal_id,
                                   double cni)
 {
+	this->cni_has_changed[tal_id] = true;
 	this->setRequiredModcod(tal_id, cni, this->output_modcod_def,
 	                        this->output_sts);
 }
@@ -502,18 +505,20 @@ uint8_t DvbFmt::getCurrentModcodIdOutput(tal_id_t id) const
 }
 
 
-double DvbFmt::getRequiredCniInput(tal_id_t tal_id) const
+double DvbFmt::getRequiredCniInput(tal_id_t tal_id)
 {
 	fmt_id_t modcod_id;
 	modcod_id = this->getCurrentModcodIdInput(tal_id);
+	this->cni_has_changed[tal_id] = false;
 	return this->getRequiredCni(modcod_id, this->input_modcod_def);
 }
 
 
-double DvbFmt::getRequiredCniOutput(tal_id_t tal_id) const
+double DvbFmt::getRequiredCniOutput(tal_id_t tal_id)
 {
 	fmt_id_t modcod_id;
 	modcod_id = this->getCurrentModcodIdOutput(tal_id);
+	this->cni_has_changed[tal_id] = false;
 	return this->getRequiredCni(modcod_id, this->output_modcod_def);
 }
 
@@ -524,4 +529,7 @@ double DvbFmt::getRequiredCni(fmt_id_t modcod_id,
 	return cni;
 }
 
-
+bool DvbFmt::getCniHasChanged(tal_id_t tal_id)
+{
+	return this->cni_has_changed[tal_id];
+}

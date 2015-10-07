@@ -67,6 +67,7 @@ class StFmtSimu
 
 	mutable RtMutex modcod_mutex; ///< The mutex to protect the modcod from concurrent access
 
+
  public:
 
 	/**** constructor/destructor ****/
@@ -116,7 +117,7 @@ class StFmtSimu
 	 *
 	 * @return  the current  MODCOD ID of the ST
 	 */
-	uint8_t getCurrentModcodId() const;
+	uint8_t getCurrentModcodId();
 
 	/**
 	 * @brief Update the MODCOD ID of the ST

@@ -72,7 +72,7 @@ void StFmtSimu::setSimuColumnNum(unsigned long col)
 }
 
 
-uint8_t StFmtSimu::getCurrentModcodId() const
+uint8_t StFmtSimu::getCurrentModcodId()
 {
 	RtLock lock(this->modcod_mutex);
 	return this->current_modcod_id;
@@ -83,6 +83,7 @@ void StFmtSimu::updateModcodId(uint8_t new_id)
 	RtLock lock(this->modcod_mutex);
 	this->current_modcod_id = new_id;
 }
+
 
 
 ////////////////////////////////////////////////////////////////////////////////

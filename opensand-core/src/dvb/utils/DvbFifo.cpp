@@ -53,7 +53,8 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	new_size_pkt(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(0),
-	fifo_mutex(fifo_name)
+	fifo_mutex(fifo_name),
+	cni(0)
 {
 	// Output log
 	this->log_dvb_fifo = Output::registerLog(LEVEL_WARNING, "Dvb.Fifo");
@@ -190,6 +191,20 @@ clock_t DvbFifo::getTickOut() const
 	return 0;
 }
 
+void DvbFifo::setCni(uint8_t cni)
+{
+	this->cni = cni;
+}
+
+uint8_t DvbFifo::getCni(void) const
+{
+	return this->cni;
+}
+
+vector<MacFifoElement *> DvbFifo::getQueue(void)
+{
+	return this->queue;
+}
 
 bool DvbFifo::push(MacFifoElement *elem)
 {
@@ -239,6 +254,27 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 
 }
 
+bool DvbFifo::pushBack(MacFifoElement *elem)
+{
+	RtLock lock(this->fifo_mutex);
+
+	// insert in head of fifo
+	if(this->queue.size() < this->max_size_pkt)
+	{
+		vol_bytes_t length = elem->getTotalLength();
+
+		this->queue.insert(this->queue.end(), elem);
+		// update counter but not new ones as it is a fragment of an old element
+		this->stat_context.current_pkt_nbr = this->queue.size();
+		this->stat_context.current_length_bytes += length;
+		// remove the remainng part of element from out counter
+		this->stat_context.out_length_bytes -= length;
+		return true;
+	}
+
+	return false;
+
+}
 MacFifoElement *DvbFifo::pop()
 {
 	RtLock lock(this->fifo_mutex);

@@ -234,6 +234,7 @@ class DvbChannel
 	OutputLog *log_send_channel;
 
 	static OutputLog *dvb_fifo_log;
+		
 	
  private:
 	/// Whether we can send stats or not (can send stats when 0)
@@ -774,6 +775,7 @@ class DvbFmt
 		input_modcod_def(NULL),
 		output_sts(NULL),
 		output_modcod_def(NULL),
+		cni_has_changed(),
 		log_fmt(NULL)
 	{
 		// register static log
@@ -849,7 +851,7 @@ class DvbFmt
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	double getRequiredCniInput(tal_id_t tal_id) const;
+	double getRequiredCniInput(tal_id_t tal_id);
 	
 	/**
 	 * @brief Get the CNI of the ST whose ID is given as input
@@ -860,7 +862,7 @@ class DvbFmt
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	double getRequiredCniOutput(tal_id_t tal_id) const;
+	double getRequiredCniOutput(tal_id_t tal_id);
 
  protected:
 
@@ -971,6 +973,14 @@ class DvbFmt
 	 */
 	double getRequiredCni(fmt_id_t modcod_id,
                           const FmtDefinitionTable *modcod_def) const;
+	
+	/**
+	 * @brief get the modcod change state
+	 *
+	 * @return the modcod change state
+	 */ 
+	bool getCniHasChanged(tal_id_t tal_id);
+
 
 	/// Physical layer enable
 	bool with_phy_layer;
@@ -989,7 +999,9 @@ class DvbFmt
 
 	/// The MODCOD Definition Table for output
 	FmtDefinitionTable *output_modcod_def;
-
+	
+	map<tal_id_t, bool> cni_has_changed;
+	
 	// log
 	OutputLog *log_fmt;
 	
