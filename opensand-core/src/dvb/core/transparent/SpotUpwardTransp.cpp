@@ -461,7 +461,6 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 		{
 			const NetPacket *packet = (*pkt_it);
 			tal_id_t tal_id = packet->getSrcTalId();
-			DFLTLOG(LEVEL_ERROR, "tal id %d", tal_id);
 			list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(), 
 			                                             this->is_tal_scpc.end(),
 				                                         tal_id);
@@ -469,7 +468,6 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 			   packet->getDstTalId() == this->mac_id)
 			{
 				uint32_t opaque = 0;
-				DFLTLOG(LEVEL_ERROR, "receive tal is %d is scpc", tal_id);
 				if(!this->scpc_pkt_hdl->getHeaderExtensions(packet,
 				                                            "deencodeCniExt",
 				                                            &opaque))

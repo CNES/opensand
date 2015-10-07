@@ -338,6 +338,7 @@
             <![CDATA[
             <b>The SCPC parameters for STs</b>
             ]]>
+            <xpath dvb_rcs_tal.is_scpc="true" />
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
