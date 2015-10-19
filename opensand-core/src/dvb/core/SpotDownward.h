@@ -244,17 +244,6 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 */ 
 	bool addCniExt(void);
 
-	/*
-	 * @brief set extension to packet
-	 *
-	 * @return true on success, false otherwise
-	 */ 	
-	bool setPacketExtension(MacFifoElement *elem,
-                            DvbFifo *fifo,
-                            std::vector<NetPacket*> packet_list,
-                            NetPacket **extension_pkt,
-                            tal_id_t tal_id);
-	
 	/// The DAMA controller
 	DamaCtrlRcs *dama_ctrl;
 

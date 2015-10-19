@@ -533,3 +533,68 @@ bool DvbFmt::getCniHasChanged(tal_id_t tal_id)
 {
 	return this->cni_has_changed[tal_id];
 }
+
+bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
+                                MacFifoElement *elem,
+                                DvbFifo *fifo,
+                                std::vector<NetPacket*> packet_list,
+                                NetPacket **extension_pkt,
+                                tal_id_t source,
+                                tal_id_t dest,
+                                string extension_name,
+	                            time_sf_t super_frame_counter)
+{
+	DFLTLOG(LEVEL_WARNING, "source is %d cni %f", 
+	        dest, this->getRequiredCniOutput(dest));
+	uint32_t opaque = hcnton(this->getRequiredCniOutput(dest));
+	bool replace = false;
+	NetPacket *selected_pkt = pkt_hdl->
+	                  getPacketForHeaderExtensions(packet_list);
+	if(selected_pkt != NULL)
+	{
+		LOG(this->log_fmt, LEVEL_DEBUG,
+			"SF#%d: found no-fragmented packet without extensions\n",
+		    super_frame_counter);
+		replace = true;
+	}
+	else
+	{
+		//LOG(this->log_fmt, LEVEL_DEBUG,
+		LOG(this->log_fmt, LEVEL_WARNING,
+			"SF#%d: no non-fragmented or without extension packet found, "
+			"create empty packet\n", super_frame_counter);
+	}
+				
+	if(!pkt_hdl->setHeaderExtensions(selected_pkt,
+	                                 extension_pkt,
+	                                 dest, 
+	                                 source, 
+	                                 extension_name,
+	                                 &opaque))
+	{
+		LOG(this->log_fmt, LEVEL_DEBUG,
+		    "SF#%d: cannot add header extension in packet",
+		    super_frame_counter);
+		return false;
+	}
+
+	if(extension_pkt == NULL)
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "SF#%d: failed to create the GSE packet with "
+		    "extensions\n", super_frame_counter);
+		return false;
+	}
+	if(replace)
+	{
+		// And replace the packet in the FIFO
+		elem->setElem(*extension_pkt);
+	}
+	else
+	{
+		MacFifoElement *new_el = new MacFifoElement(*extension_pkt, 0, 0);
+		fifo->pushBack(new_el);
+	}
+	
+	return true;
+}

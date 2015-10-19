@@ -980,6 +980,28 @@ class DvbFmt
 	 * @return the modcod change state
 	 */ 
 	bool getCniHasChanged(tal_id_t tal_id);
+	
+	/**
+	 * set extension to the packet GSE
+	 * @param elem          The fifo element to replace by le 
+	 *                      packet with extension
+	 * @param fifo          The fifo to place the element
+	 * @param packet_list   The list of available packet
+	 * @param extension_pkt The return packet with extension
+	 * @param source        The terminal source id
+	 * @param dest          The terminal dest id
+	 *
+	 * @return true on success, false otherwise
+	 */ 
+	bool setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
+                            MacFifoElement *elem,
+                            DvbFifo *fifo,
+                            std::vector<NetPacket*> packet_list,
+                            NetPacket **extension_pkt,
+                            tal_id_t source,
+                            tal_id_t dest,
+                            string extension_name,
+	                        time_sf_t super_frame_counter);
 
 
 	/// Physical layer enable

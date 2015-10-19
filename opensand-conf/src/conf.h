@@ -314,4 +314,8 @@
 #define SAT_CARRIER    "sat_carrier"
 #define PHYS           "physical_layer"*/
 
+/////////////
+// OTHERS  //
+///////////// 
+#define ENCODE_CNI_EXT  "encodeCniExt"
 #endif

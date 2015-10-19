@@ -1637,15 +1637,17 @@ bool BlockDvbTal::Downward::addCniExt(void)
 			if(gw == this->gw_id &&
 			   this->is_scpc && this->getCniHasChanged(gw))
 			{
-				//in_fifo = true;
 				DFLTLOG(LEVEL_WARNING, "gw %d, cni %f",
 				        gw, this->getRequiredCniOutput(gw));
 				packet_list.push_back(packet);
 
-				if(!this->setPacketExtension(elem, fifo,
+				if(!this->setPacketExtension(this->pkt_hdl,
+					                         elem, fifo,
 					                         packet_list, 
 					                         &extension_pkt,
-					                         gw))
+					                         this->tal_id ,gw,
+					                         ENCODE_CNI_EXT,
+					                         this->super_frame_counter))
 				{
 					return false;
 				}
@@ -1682,67 +1684,6 @@ bool BlockDvbTal::Downward::addCniExt(void)
 		    this->super_frame_counter);
 	}*/
 
-	return true;
-}
-
-bool BlockDvbTal::Downward::setPacketExtension(MacFifoElement *elem,
-                                               DvbFifo *fifo,
-                                               std::vector<NetPacket*> packet_list,
-                                               NetPacket **extension_pkt,
-                                               tal_id_t gw)
-{
-	DFLTLOG(LEVEL_WARNING, "gw %d cni %f", 
-	        gw, this->getRequiredCniOutput(gw));
-	uint32_t opaque = hcnton(this->getRequiredCniOutput(gw));
-	bool replace = false;
-	NetPacket *selected_pkt = this->pkt_hdl->
-	                  getPacketForHeaderExtensions(packet_list);
-	if(selected_pkt != NULL)
-	{
-		LOG(this->log_send_channel, LEVEL_DEBUG,
-			"SF#%d: found no-fragmented packet without extensions\n",
-		    this->super_frame_counter);
-		replace = true;
-	}
-	else
-	{
-		//LOG(this->log_send_channel, LEVEL_DEBUG,
-		LOG(this->log_send_channel, LEVEL_WARNING,
-			"SF#%d: no non-fragmented or without extension packet found, "
-			"create empty packet\n", this->super_frame_counter);
-	}
-				
-	if(!this->pkt_hdl->setHeaderExtensions(selected_pkt,
-	                                       extension_pkt,
-	                                       gw, 
-	                                       this->tal_id, 
-	                                       "encodeCniExt",
-	                                       &opaque))
-	{
-		LOG(this->log_send_channel, LEVEL_DEBUG,
-		    "SF#%d: cannot add header extension in packet",
-		    this->super_frame_counter);
-		return false;
-	}
-
-	if(extension_pkt == NULL)
-	{
-		LOG(this->log_send_channel, LEVEL_ERROR,
-		    "SF#%d: failed to create the GSE packet with "
-		    "extensions\n", this->super_frame_counter);
-		return false;
-	}
-	if(replace)
-	{
-		// And replace the packet in the FIFO
-		elem->setElem(*extension_pkt);
-	}
-	else
-	{
-		MacFifoElement *new_el = new MacFifoElement(*extension_pkt, 0, 0);
-		fifo->pushBack(new_el);
-	}
-	
 	return true;
 }
 
