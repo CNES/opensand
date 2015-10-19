@@ -88,7 +88,7 @@ class ResourceView(WindowView):
         canvas.set_size_request(200,200)
         self._graphe_return.add_with_viewport(canvas)
         self._return_carrier_arithmetic = CarrierArithmetic(self._list_carrier[RETURN_UP],
-                                                        self._model, RETURN_UP);
+                                                            self._model, RETURN_UP);
         #Update graph
         
         #St allocation
@@ -479,6 +479,10 @@ class ResourceView(WindowView):
                                            fill=False)
 
         self._ui.get_widget('vbox_resources').show_all()
+
+    def update_scenario(self):
+        self._load = True
+        self.update_view()
     
 
     def is_modified(self):
