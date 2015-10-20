@@ -94,6 +94,9 @@ class RunEvent(RunView):
         # there)
         self._event_manager.set('deploy_platform')
 
+    def on_start_stop_activate(self, source=None, event=None):
+        self.on_start_opensand_button_clicked(source, event)
+
     def on_start_opensand_button_clicked(self, source=None, event=None):
         """ 'clicked' event on start OpenSAND button """
         # start or stop the applications ?
