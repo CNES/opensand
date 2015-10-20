@@ -69,7 +69,6 @@ class ResourceView(WindowView):
         self._desc_err = {}
         self._fmt_group = {FORWARD_DOWN : {}, RETURN_UP : {}}
         self._update_spot = False
-        self._load = True
 
         #Add graph forward
         self._graphe_forward = self._ui.get_widget('scrolledwindow_forward_graph')
@@ -102,7 +101,7 @@ class ResourceView(WindowView):
         # do not load it in gobject.idle_add because we won't be able to catch
         # the exception
         # show first child
-        self.update_view()
+        self.update_view(True)
 
 
     def on_selection(self, path):
@@ -123,8 +122,7 @@ class ResourceView(WindowView):
                                   0).lower().startswith(SPOT):
                     self._spot = tree.get_value(tree.iter_parent(iterator),\
                                                 0).lower().split(SPOT)[1]
-
-        self.update_view()
+        self.update_view(True)
         pass
 
     def update_tree(self):
@@ -165,16 +163,15 @@ class ResourceView(WindowView):
         return True
 
 
-    def update_view(self):
+    def update_view(self, load = False):
         """Update view """
         self.update_tree()
         if self._spot is not None and self._gw is not None:
-            if self._load:
+            if load:
                 self.update_carrier(FORWARD_DOWN)
             self.update_graph(FORWARD_DOWN)
-            if self._load:
+            if load:
                 self.update_carrier(RETURN_UP)
-                self._load = False
             self.update_graph(RETURN_UP)
             self.update_st_assignment(FORWARD_DOWN)
             self.update_st_assignment(RETURN_UP)
@@ -481,8 +478,7 @@ class ResourceView(WindowView):
         self._ui.get_widget('vbox_resources').show_all()
 
     def update_scenario(self):
-        self._load = True
-        self.update_view()
+        self.update_view(True)
     
 
     def is_modified(self):
