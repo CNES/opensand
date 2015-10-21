@@ -1293,19 +1293,13 @@ bool BlockDvbNcc::Upward::shareFrame(DvbFrame *frame)
 bool DvbSpotList::initSpotList(void)
 {
 	map<tal_id_t, spot_id_t>::iterator iter;
+	bool find_default = false;
 
 	if(OpenSandConf::spot_table.empty())
 	{
 		LOG(this->log_spot, LEVEL_ERROR,
 		    "The terminal map is empty");
 		return false;
-	}
-	
-	for(iter = OpenSandConf::spot_table.begin();
-	    iter != OpenSandConf::spot_table.end() ;
-	    ++iter)
-	{
-		this->spots[iter->second] = NULL;
 	}
 	
 	if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
@@ -1316,10 +1310,22 @@ bool DvbSpotList::initSpotList(void)
 		return false;
 	}
 	
-	if(OpenSandConf::spot_table.find(this->default_spot) == OpenSandConf::spot_table.end())
+	for(iter = OpenSandConf::spot_table.begin();
+	    iter != OpenSandConf::spot_table.end() ;
+	    ++iter)
+	{
+		this->spots[iter->second] = NULL;
+		if(this->default_spot == iter->second)
+		{
+			find_default = true;
+		}
+	}
+	
+	if(!find_default)
 	{
 		LOG(this->log_spot, LEVEL_ERROR,
-		    "Default spot does not exist\n");
+		    "Default spot %d does not exist\n",
+		    this->default_spot);
 		return false;
 	}
 	
