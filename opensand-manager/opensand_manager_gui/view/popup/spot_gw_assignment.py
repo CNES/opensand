@@ -389,7 +389,8 @@ class SpotGwAssignmentDialog(WindowView):
 
         # remove unused spots
         for spot in self._spot_list:
-            if spot not in spot_set:
+            if spot != str(self._default_spot) and \
+               spot not in spot_set:
                 manager.remove_spot(spot)
 
         self._model.update_spot_gw()
