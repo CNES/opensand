@@ -391,7 +391,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		    this->mac_id);
 		return false;
 	}
-	
+
 	if(!OpenSandConf::getSpot(SATCAR_SECTION,
 		                      this->spot_id, 
 		                      gw_id, current_gw))
@@ -2336,8 +2336,23 @@ bool BlockDvbTal::Upward::initMode(void)
 
 bool BlockDvbTal::Upward::initModcodSimu(void)
 {
+	tal_id_t gw_id = 0;
+
+	if(OpenSandConf::gw_table.find(this->mac_id) != OpenSandConf::gw_table.end())
+	{
+		gw_id = OpenSandConf::gw_table[this->mac_id];
+	}
+	else if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION], 
+		                    DEFAULT_GW, gw_id))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR, 
+		    "couldn't find gw for tal %d", 
+		    this->mac_id);
+		return false;
+	}
+	
 	if(!this->initModcodSimuFile(FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                             this->group_id, this->spot_id))
+	                             gw_id, this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the downlink MODCOD files\n");
