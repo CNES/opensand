@@ -37,7 +37,8 @@ import gtk
 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.utils import get_conf_xpath, ST, \
-    ID, PATH_GW, PATH_SPOT, PATH_DEFAULT_SPOT, PATH_DEFAULT_GW,RETURN_UP_BAND
+    ID, PATH_GW, PATH_SPOT, PATH_DEFAULT_SPOT, PATH_DEFAULT_GW,\
+    RETURN_UP_BAND, NB_MAX_TAL
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.utils.config_elements import ManageSpot
@@ -185,30 +186,31 @@ class SpotGwAssignmentDialog(WindowView):
             label_st_name = gtk.Label(str=host.get_name().upper())
             #Create combo box for st
             combo_box_spot = gtk.ComboBox(spots)
-            combo_box_gw = gtk.ComboBox(gws)
+            self._combo_box_gw = gtk.ComboBox(gws)
             renderer_text = gtk.CellRendererText()
             combo_box_spot.pack_start(renderer_text, True)
             combo_box_spot.add_attribute(renderer_text, "text", 1)
             def_spot = self.get_spot_value(spot_set,
                                            self._default_spot)
             combo_box_spot.set_active(def_spot)
-            combo_box_gw.pack_start(renderer_text, True)
-            combo_box_gw.add_attribute(renderer_text, "text", 1)
+            self._combo_box_gw.pack_start(renderer_text, True)
+            self._combo_box_gw.add_attribute(renderer_text, "text", 1)
             def_gw = self.get_gw_value(self._gw_list,
                                        self._default_gw)
-            combo_box_gw.set_active(def_gw)
+            self._combo_box_gw.set_active(def_gw)
             for st in st_spot_list:
                 if host.get_name().lower() == ST + str(st[0]):
                     combo_box_spot.set_active(self.get_spot_value(spot_set,
                                                                   st[1]))
             for st in st_gw_list:
                 if host.get_name().lower() == ST + str(st[0]):
-                    combo_box_gw.set_active(self.get_gw_value(self._gw_list,
+                    gw = self.get_gw_value(self._gw_list, st[1])
+                    self._combo_box_gw.set_active(self.get_gw_value(self._gw_list,
                                                               st[1]))
             #Add all in the window
             hbox_spot_allocation.pack_start(label_st_name)
             hbox_spot_allocation.pack_start(combo_box_spot)
-            hbox_spot_allocation.pack_start(combo_box_gw)
+            hbox_spot_allocation.pack_start(self._combo_box_gw)
             self.vbox_st_allocation.pack_start(hbox_spot_allocation, fill=False,
                                                expand=False)
             self.vbox_st_allocation.pack_start(hbox_gw_allocation, fill=False,
@@ -305,6 +307,12 @@ class SpotGwAssignmentDialog(WindowView):
         cmp_line_spot = {}
         cmp_line_gw = {}
         spot_set = set()
+        tab_tal_id_gw =  []
+        
+        for count in xrange(NB_MAX_TAL):
+            if count not in self._gw_list:
+                tab_tal_id_gw.append(count)
+        
         for st_status in st_list:
             pos_in_spot = st_status[1]
             pos_in_gw = st_status[2]
@@ -326,7 +334,8 @@ class SpotGwAssignmentDialog(WindowView):
 
         # spot manager
         manager = ManageSpot(self._model)
-
+        
+        
         # TODO do that directly in TopologyConfig
         for st_status in st_list:
             st_name = st_status[0]
@@ -372,11 +381,10 @@ class SpotGwAssignmentDialog(WindowView):
                                              str(self._gw_list[pos_in_gw]))
             table = topo.get(terminal_path)
 
-            # remove terminal's line
-            if len(table) > nb_line_gw[pos_in_gw]:
-                nb_remove = len(table) - nb_line_gw[pos_in_gw]
-                topo.remove_line(terminal_path , nb_remove)
             # add terminal's line
+            if len(table) > nb_line_gw[pos_in_gw]:
+                    nb_remove = len(table) - nb_line_gw[pos_in_gw]
+                    topo.remove_line(terminal_path , nb_remove)
             elif len(table) < nb_line_gw[pos_in_gw]:
                 nb_add = nb_line_gw[pos_in_gw] - len(table)
                 for i in range(nb_add):
@@ -385,6 +393,10 @@ class SpotGwAssignmentDialog(WindowView):
             attribs = topo.get_table_elements(table)
             topo.set_value(self.get_id_st(st_name),
                            topo.get_path(attribs[cmp_line_gw[pos_in_gw]]), ID)
+
+            if int(self.get_id_st(st_name)) in tab_tal_id_gw:
+                tab_tal_id_gw.remove(int(self.get_id_st(st_name)))
+
             cmp_line_gw[pos_in_gw] += 1
 
         # remove unused spots
@@ -392,6 +404,20 @@ class SpotGwAssignmentDialog(WindowView):
             if spot != str(self._default_spot) and \
                spot not in spot_set:
                 manager.remove_spot(spot)
+        
+        # remove terminal's line in gw
+        for pos_in_gw in range(0,len(self._gw_list)):
+            terminal_path = "%s/gw[@id='%s']/terminals" % (PATH_GW, 
+                                             str(self._gw_list[pos_in_gw]))
+            table = topo.get(terminal_path)
+            if pos_in_gw not in nb_line_gw:
+                if len(table) > 1:
+                    topo.remove_line(terminal_path , len(table)-1)
+                attribs = topo.get_table_elements(table)
+                topo.set_value(tab_tal_id_gw[0], topo.get_path(attribs[0]), ID)
+                tab_tal_id_gw.remove(tab_tal_id_gw[0])
+
+
 
         self._model.update_spot_gw()
         topo.write()

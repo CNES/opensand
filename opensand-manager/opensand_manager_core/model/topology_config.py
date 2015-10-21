@@ -305,7 +305,7 @@ class TopologyConfig(AdvancedHostModel):
         tab_tal_id_spot = []
         tab_tal_id_gw =  []
         tab_multicast = []
-        for count in xrange(31):
+        for count in xrange(NB_MAX_TAL):
             tab_tal_id_spot.append(count)
             tab_tal_id_gw.append(count)
             add = 220 + count
@@ -342,15 +342,16 @@ class TopologyConfig(AdvancedHostModel):
                     # get base gw id
                     if gw_base == "":
                         gw_base = child.get(ID)
+                    if int(child.get(ID)) in tab_tal_id_gw:
+                        tab_tal_id_gw.remove(int(child.get(ID)))
 
                     for key in self._configuration.get_keys(child):
                         for element in self._configuration.get_table_elements(key):
                             #remove used tal_id
                             if key.tag == TERMINALS:
-                                if element.get(ID) in tab_tal_id_gw:
-                                    tab_tal_id_gw.remove(element.get(ID))
+                                if int(element.get(ID)) in tab_tal_id_gw:
+                                    tab_tal_id_gw.remove(int(element.get(ID)))
                                     continue
-
 
 
         # update topology carrier value according to spot value

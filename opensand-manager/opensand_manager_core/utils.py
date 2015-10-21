@@ -47,6 +47,7 @@ COL_BOLD="\033[1m"
 COL_END="\033[0m"
 
 MAX_DATA_LENGTH = 8192
+NB_MAX_TAL = 31
 
 # Host
 GW  = "gw"
