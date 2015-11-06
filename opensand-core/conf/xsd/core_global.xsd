@@ -69,6 +69,10 @@
         <xsd:enumeration value="Standard" />
         <xsd:enumeration value="Premium" />
         <xsd:enumeration value="Pro" />
+        <xsd:enumeration value="SVNO1" />
+        <xsd:enumeration value="SVNO2" />
+        <xsd:enumeration value="SVNO3" />
+        <xsd:enumeration value="SNO" />
     </xsd:restriction>
 </xsd:simpleType>
 

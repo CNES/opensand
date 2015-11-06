@@ -236,7 +236,6 @@ bool SpotUpward::handleSac(const DvbFrame *dvb_frame)
 {
 	Sac *sac = (Sac *)dvb_frame;
 
-
 	// transparent : the C/N0 of forward link
 	// regenerative : the C/N0 of uplink (updated by sat)
 	double cni = sac->getCni();

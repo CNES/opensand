@@ -55,7 +55,7 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	DvbChannel(),
 	DvbFmt(),
 	dama_ctrl(NULL),
-	scheduling(NULL),
+	scheduling(),
 	fwd_frame_counter(0),
 	ctrl_carrier_id(),
 	sof_carrier_id(),
@@ -77,14 +77,14 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	request_simu(NULL),
 	event_file(NULL),
 	simulate(none_simu),
-	probe_gw_queue_size(),
-	probe_gw_queue_size_kb(),
-	probe_gw_queue_loss(),
-	probe_gw_queue_loss_kb(),
-	probe_gw_l2_to_sat_before_sched(),
-	probe_gw_l2_to_sat_after_sched(),
-	probe_gw_l2_to_sat_total(NULL),
-	l2_to_sat_total_bytes(0),
+	probe_gw_queue_size(NULL),
+	probe_gw_queue_size_kb(NULL),
+	probe_gw_queue_loss(NULL),
+	probe_gw_queue_loss_kb(NULL),
+	probe_gw_l2_to_sat_before_sched(NULL),
+	probe_gw_l2_to_sat_after_sched(NULL),
+	probe_gw_l2_to_sat_total(),
+	l2_to_sat_total_bytes(),
 	probe_frame_interval(NULL),
 	probe_used_modcod(NULL),
 	event_logon_resp(NULL)
@@ -99,7 +99,7 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 
 	this->log_request_simulation = Output::registerLog(LEVEL_WARNING,
 	                                                   "Spot_%d.Dvb.RequestSimulation",
-		                                               this->spot_id);
+	                                                   this->spot_id);
 
 }
 
@@ -107,8 +107,16 @@ SpotDownward::~SpotDownward()
 {
 	if(this->dama_ctrl)
 		delete this->dama_ctrl;
-	if(this->scheduling)
-		delete this->scheduling;
+
+	for(map<string, Scheduling*>::iterator it = this->scheduling.begin();
+		it != this->scheduling.end(); it++)
+	{
+		if(it->second)
+		{
+			delete it->second;
+		}
+	}
+	this->scheduling.clear();
 
 	this->complete_dvb_frames.clear();
 
@@ -128,10 +136,15 @@ SpotDownward::~SpotDownward()
 	}
 
 	// delete fifos
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(map<string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
+	    it1 != this->dvb_fifos.end(); it1 ++)
 	{
-		delete (*it).second;
+		for(fifos_t::iterator it2 = it1->second.begin();
+			it2 != it1->second.end(); ++it2)
+		{
+			delete (*it2).second;
+		}
+		it1->second.clear();
 	}
 	this->dvb_fifos.clear();
 
@@ -147,20 +160,12 @@ bool SpotDownward::onInit(void)
 		    "failed to complete the FMT part of the initialisation\n");
 		return false;
 	}
-	
+
 	// Get the carrier Ids
 	if(!this->initCarrierIds())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the carrier IDs part of the "
-		    "initialisation\n");
-		return false;
-	}
-	
-	if(!this->initFifo())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the FIFO part of the "
 		    "initialisation\n");
 		return false;
 	}
@@ -180,7 +185,7 @@ bool SpotDownward::onInit(void)
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the request simulation part of "
 		    "the initialisation\n");
-		goto release_dama;
+		return false;
 	}
 
 	// get and launch the dama algorithm
@@ -189,23 +194,19 @@ bool SpotDownward::onInit(void)
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the DAMA part of the "
 		    "initialisation\n");
-		goto release_dama;
+		return false;
 	}
-
 
 	if(!this->initOutput())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the initialization of "
 		    "statistics\n");
-		goto release_dama;
+		return false;
 	}
+
 	// everything went fine
 	return true;
-
-release_dama:
-	delete this->dama_ctrl;
-	return false;
 }
 
 bool SpotDownward::initCarrierIds(void)
@@ -214,9 +215,9 @@ bool SpotDownward::initCarrierIds(void)
 	ConfigurationList::iterator iter;
 	ConfigurationList::iterator iter_spots;
 	ConfigurationList current_gw;
-	
+
 	if(!OpenSandConf::getSpot(SATCAR_SECTION,
-		                      this->spot_id, 
+		                      this->spot_id,
 		                      this->mac_id, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -224,7 +225,7 @@ bool SpotDownward::initCarrierIds(void)
 		    SATCAR_SECTION, this->spot_id, this->mac_id);
 		return false;
 	}
-	
+
 	// get satellite channels from configuration
 	if(!Conf::getListItems(current_gw, CARRIER_LIST, carrier_list))
 	{
@@ -314,7 +315,7 @@ bool SpotDownward::initCarrierIds(void)
 }
 
 
-bool SpotDownward::initFifo(void)
+bool SpotDownward::initFifo(fifos_t &fifos)
 {
 	ConfigurationList fifo_list;
 	ConfigurationList::iterator iter;
@@ -322,7 +323,7 @@ bool SpotDownward::initFifo(void)
 	ConfigurationList spot_node;
 
 	if(!OpenSandConf::getSpot(DVB_NCC_SECTION,
-		                      this->spot_id, 
+		                      this->spot_id,
 		                      NO_GW, spot_node))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -330,13 +331,13 @@ bool SpotDownward::initFifo(void)
 		    DVB_NCC_SECTION, this->spot_id);
 		return false;
 	}
-	
+
 	/*
 	 * Read the MAC queues configuration in the configuration file.
 	 * Create and initialize MAC FIFOs
 	 */
 	if(!Conf::getListItems(spot_node,
-	                       FIFO_LIST, 
+	                       FIFO_LIST,
 	                       fifo_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -407,19 +408,19 @@ bool SpotDownward::initFifo(void)
 		this->default_fifo_id = std::max(this->default_fifo_id,
 		                                 fifo->getPriority());
 
-		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(),
-		                                                     fifo));
+		fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(),
+		                                           fifo));
 	} // end for(queues are now instanciated and initialized)
 
 	return true;
 
 err_fifo_release:
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(fifos_t::iterator it = fifos.begin();
+	    it != fifos.end(); ++it)
 	{
 		delete (*it).second;
 	}
-	this->dvb_fifos.clear();
+	fifos.clear();
 	return false;
 }
 
@@ -427,9 +428,9 @@ bool SpotDownward::initRequestSimulation(void)
 {
 	ConfigurationList current_gw;
 	string str_config;
-	
+
 	if(!OpenSandConf::getSpot(DVB_NCC_SECTION,
-		                      this->spot_id, 
+		                      this->spot_id,
 		                      NO_GW, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -437,7 +438,7 @@ bool SpotDownward::initRequestSimulation(void)
 		    DVB_NCC_SECTION, spot_id);
 		return false;
 	}
-	
+
 	// Get and open the event file
 	if(!Conf::getValue(current_gw, DVB_SIMU_MODE, str_config))
 	{
@@ -446,11 +447,11 @@ bool SpotDownward::initRequestSimulation(void)
 		    DVB_SIMU_FILE, DVB_NCC_SECTION);
 		return false;
 	}
-	
+
 	// TODO for stdin use FileEvent for simu_timer ?
 	if(str_config == "file")
 	{
-		this->request_simu = new FileSimulator(this->spot_id, 
+		this->request_simu = new FileSimulator(this->spot_id,
 		                                       this->mac_id,
 		                                       this->satellite_type,
 		                                       this->with_phy_layer,
@@ -460,7 +461,7 @@ bool SpotDownward::initRequestSimulation(void)
 	}
 	else if(str_config == "random")
 	{
-		this->request_simu = new RandomSimulator(this->spot_id, 
+		this->request_simu = new RandomSimulator(this->spot_id,
 		                                         this->mac_id,
 		                                         this->satellite_type,
 		                                         this->with_phy_layer,
@@ -483,40 +484,67 @@ bool SpotDownward::initOutput(void)
 	this->event_logon_resp = Output::registerEvent("Spot_%d.DVB.logon_response",
 	                                               this->spot_id);
 
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
-	{
-		const char *fifo_name = ((*it).second)->getName().data();
-		unsigned int id = (*it).first;
+	this->probe_gw_queue_size = new map<string, ProbeListPerId>();
+	this->probe_gw_queue_size_kb = new map<string, ProbeListPerId>();
+	this->probe_gw_queue_loss = new map<string, ProbeListPerId>();
+	this->probe_gw_queue_loss_kb = new map<string, ProbeListPerId>();
+	this->probe_gw_l2_to_sat_before_sched = new map<string, ProbeListPerId>();
+	this->probe_gw_l2_to_sat_after_sched = new map<string, ProbeListPerId>();
 
-		this->probe_gw_queue_size[id] =
-			Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
-		                               "Spot_%d.Queue size.packets.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_queue_size_kb[id] =
-			Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
-		                               "Spot_%d.Queue size.%s", spot_id, fifo_name);
-		this->probe_gw_l2_to_sat_before_sched[id] =
+	for(map<string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
+		it1 != this->dvb_fifos.end(); it1++)
+	{
+		string cat_label = it1->first;
+		for(fifos_t::iterator it2 = it1->second.begin();
+			it2 != it1->second.end(); ++it2)
+		{
+			const char *fifo_name = ((*it2).second)->getName().data();
+			unsigned int id = (*it2).first;
+
+			Probe<int>* probe_temp;
+
+			probe_temp = Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
+			                                        "Spot_%d.%s.Queue size.packets.%s",
+			                                        spot_id, cat_label.c_str(), fifo_name);
+			(*this->probe_gw_queue_size)[cat_label].insert(
+						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+
+			probe_temp = Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
+			                                        "Spot_%d.%s.Queue size.%s",
+			                                        spot_id, cat_label.c_str(), fifo_name);
+			(*this->probe_gw_queue_size_kb)[cat_label].insert(
+						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+
+			probe_temp = Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+			                                        "Spot_%d.%s.Throughputs.L2_to_SAT_before_sched.%s",
+			                                        spot_id, cat_label.c_str(), fifo_name);
+			(*this->probe_gw_l2_to_sat_before_sched)[cat_label].insert(
+						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+
+			probe_temp = Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
+			                                        "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.%s",
+			                                        spot_id, cat_label.c_str(), fifo_name);
+			(*this->probe_gw_l2_to_sat_after_sched)[cat_label].insert(
+						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+
+			probe_temp = Output::registerProbe<int>("Packets", true, SAMPLE_SUM,
+			                                        "Spot_%d.%s.Queue loss.packets.%s",
+			                                        spot_id, cat_label.c_str(), fifo_name);
+			(*this->probe_gw_queue_loss)[cat_label].insert(
+						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+
+			probe_temp = Output::registerProbe<int>("Kbits/s", true, SAMPLE_SUM,
+			                                        "Spot_%d.%s.Queue loss.%s",
+			                                        spot_id, cat_label.c_str(), fifo_name);
+			(*this->probe_gw_queue_loss_kb)[cat_label].insert(
+						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+		}
+		this->probe_gw_l2_to_sat_total[cat_label] =
 			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                               "Spot_%d.Throughputs.L2_to_SAT_before_sched.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_l2_to_sat_after_sched[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                               "Spot_%d.Throughputs.L2_to_SAT_after_sched.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_queue_loss[id] =
-			Output::registerProbe<int>("Packets", true, SAMPLE_SUM,
-		                               "Spot_%d.Queue loss.packets.%s",
-		                               spot_id, fifo_name);
-		this->probe_gw_queue_loss_kb[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_SUM,
-		                               "Spot_%d.Queue loss.%s",
-		                               spot_id, fifo_name);
+			                           "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.total",
+			                           spot_id, cat_label.c_str());
+
 	}
-	this->probe_gw_l2_to_sat_total =
-		Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                           "Spot_%d.Throughputs.L2_to_SAT_after_sched.total",
-		                           spot_id);
 
 	return true;
 }
@@ -530,18 +558,34 @@ bool SpotDownward::handleSalohaAcks(const list<DvbFrame *> *UNUSED(ack_frames))
 bool SpotDownward::handleEncapPacket(NetPacket *packet)
 {
 	qos_t fifo_priority = packet->getQos();
+	string cat_label = this->default_category->getLabel();
+	map<string, fifos_t>::iterator fifos_it;
+
 	LOG(this->log_receive_channel, LEVEL_INFO,
 	    "SF#%u: store one encapsulation "
 	    "packet\n", this->super_frame_counter);
 
+	// category of the packet
+	if(this->terminal_affectation.find(packet->getDstTalId()) != this->terminal_affectation.end())
+	{
+		cat_label = terminal_affectation.at(packet->getDstTalId())->getLabel();
+	}
+
 	// find the FIFO associated to the IP QoS (= MAC FIFO id)
 	// else use the default id
-	if(this->dvb_fifos.find(fifo_priority) == this->dvb_fifos.end())
+	fifos_it = this->dvb_fifos.find(cat_label);
+	if(fifos_it == this->dvb_fifos.end())
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "No fifo found for this category %s", cat_label.c_str());
+		return false;
+	}
+	if(fifos_it->second.find(fifo_priority) == fifos_it->second.end())
 	{
 		fifo_priority = this->default_fifo_id;
 	}
 
-	if(!this->pushInFifo(this->dvb_fifos[fifo_priority], packet, 0))
+	if(!this->pushInFifo(fifos_it->second[fifo_priority], packet, 0))
 	{
 		// a problem occured, we got memory allocation error
 		// or fifo full and we won't empty fifo until next
@@ -642,29 +686,34 @@ void SpotDownward::updateStatistics(void)
 
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(map<string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
+		it1 != this->dvb_fifos.end(); it1++)
 	{
-		(*it).second->getStatsCxt(fifo_stat);
-		this->l2_to_sat_total_bytes += fifo_stat.out_length_bytes;
+		string cat_label = it1->first;
+		for(fifos_t::iterator it2 = it1->second.begin();
+		    it2 != it1->second.end(); ++it2)
+		{
+			(*it2).second->getStatsCxt(fifo_stat);
 
-		this->probe_gw_l2_to_sat_before_sched[(*it).first]->put(
-			fifo_stat.in_length_bytes * 8.0 / this->stats_period_ms);
-		this->probe_gw_l2_to_sat_after_sched[(*it).first]->put(
-			fifo_stat.out_length_bytes * 8.0 / this->stats_period_ms);
+			this->l2_to_sat_total_bytes[cat_label] += fifo_stat.out_length_bytes;
 
-		// Mac fifo stats
-		this->probe_gw_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
-		this->probe_gw_queue_size_kb[(*it).first]->put(
-			fifo_stat.current_length_bytes * 8 / 1000);
-		this->probe_gw_queue_loss[(*it).first]->put(fifo_stat.drop_pkt_nbr);
-		this->probe_gw_queue_loss_kb[(*it).first]->put(fifo_stat.drop_bytes * 8);
+			(*this->probe_gw_l2_to_sat_before_sched)[cat_label][(*it2).first]->put(
+				fifo_stat.in_length_bytes * 8.0 / this->stats_period_ms);
+
+			(*this->probe_gw_l2_to_sat_after_sched)[cat_label][(*it2).first]->put(
+				fifo_stat.out_length_bytes * 8.0 / this->stats_period_ms);
+
+			// Mac fifo stats
+			(*this->probe_gw_queue_size)[cat_label][(*it2).first]->put(fifo_stat.current_pkt_nbr);
+			(*this->probe_gw_queue_size_kb)[cat_label][(*it2).first]->put(
+						fifo_stat.current_length_bytes * 8 / 1000);
+			(*this->probe_gw_queue_loss)[cat_label][(*it2).first]->put(fifo_stat.drop_pkt_nbr);
+			(*this->probe_gw_queue_loss_kb)[cat_label][(*it2).first]->put(fifo_stat.drop_bytes * 8);
+		}
+		this->probe_gw_l2_to_sat_total[cat_label]->put(this->l2_to_sat_total_bytes[cat_label] * 8 /
+	                                                   this->stats_period_ms);
+		this->l2_to_sat_total_bytes[cat_label] = 0;
 	}
-
-	this->probe_gw_l2_to_sat_total->put(this->l2_to_sat_total_bytes * 8 /
-	                                    this->stats_period_ms);
-
-	this->l2_to_sat_total_bytes = 0;
 }
 
 
@@ -686,10 +735,10 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 
 	// run the allocation algorithms (DAMA)
 	this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
-	
+
 	list<DvbFrame *> msgs;
 	list<DvbFrame *>::iterator msg;
-	
+
 	// handle simulated terminals
 	if(!this->request_simu)
 	{
@@ -705,7 +754,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 		return false;
 	}
 
-	for(msg = msgs.begin(); msg != msgs.end(); ++msg)	
+	for(msg = msgs.begin(); msg != msgs.end(); ++msg)
 	{
 		uint8_t msg_type = (*msg)->getMessageType();
 		switch(msg_type)
@@ -714,8 +763,8 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 			{
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message type SAC");
-				
-				// TODO handle sac	
+
+				// TODO handle sac
 				Sac *sac = (Sac*)(*msg);
 				if(!this->dama_ctrl->hereIsSAC(sac))
 				{
@@ -731,10 +780,10 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 			{
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message session logon request");
-				
+
 				LogonRequest *logon_req = (LogonRequest*)(*msg);
 				tal_id_t st_id = logon_req->getMac();
-				
+
 				// check for column in FMT simulation list
 				if(!this->addInputTerminal(st_id))
 				{
@@ -760,7 +809,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 			{
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message logoff");
-				
+
 				// TODO remove Terminals
 				Logoff *logoff = (Logoff*)(*msg);
 				if(!this->dama_ctrl->hereIsLogoff(logoff))
@@ -775,7 +824,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				break;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -787,17 +836,21 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 	this->updateStatistics();
 
 	// schedule encapsulation packets
-	// TODO loop on categories (see todo in initMode)
 	// TODO In regenerative mode we should schedule in frame_timer ??
-	if(!this->scheduling->schedule(this->fwd_frame_counter,
-	                               getCurrentTime(),
-	                               &this->complete_dvb_frames,
-	                               remaining_alloc_sym))
+	for(TerminalCategories<TerminalCategoryDama>::iterator it = this->categories.begin();
+		it != this-> categories.end(); it++)
 	{
-		LOG(this->log_send_channel, LEVEL_ERROR,
-		    "failed to schedule encapsulation "
-		    "packets stored in DVB FIFO\n");
-		return false;
+		TerminalCategoryDama *cat = it->second;
+		if(!this->scheduling.at(cat->getLabel())->schedule(this->fwd_frame_counter,
+		                                                   getCurrentTime(),
+		                                                   &this->complete_dvb_frames,
+		                                                   remaining_alloc_sym))
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "failed to schedule encapsulation "
+				"packets stored in DVB FIFO\n");
+			return false;
+		}
 	}
 
 	LOG(this->log_receive_channel, LEVEL_INFO,
@@ -894,7 +947,7 @@ bool SpotDownward::handleSac(const DvbFrame *dvb_frame)
 		delete dvb_frame;
 		return false;
 	}
-	
+
 	double cni = sac->getCni();
 	tal_id_t tal_id = sac->getTerminalId();
 

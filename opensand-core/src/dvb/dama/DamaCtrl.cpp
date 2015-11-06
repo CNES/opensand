@@ -232,10 +232,10 @@ bool DamaCtrl::initOutput()
 
 		// Total and remaining capacity
 	this->probe_gw_return_total_capacity = Output::registerProbe<int>(
-		"Kbits/s", true, SAMPLE_LAST, "Spot_%d.Up/Return capacity.Total.Available", this->spot_id);
+		"Kbits/s", true, SAMPLE_LAST, "Spot_%d.Up/Return total capacity.Available", this->spot_id);
 	this->gw_return_total_capacity_pktpf = 0;
 	this->probe_gw_return_remaining_capacity = Output::registerProbe<int>(
-		"Kbits/s", true, SAMPLE_LAST, "Spot_%d.Up/Return capacity.Total.Remaining", this->spot_id);
+		"Kbits/s", true, SAMPLE_LAST, "Spot_%d.Up/Return total capacity.Remaining", this->spot_id);
 	this->gw_remaining_capacity_pktpf = 0;
 
 		// Logged ST number
@@ -662,9 +662,9 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 			carrier_it != carriers.end(); ++carrier_it)
 		{
 			unsigned int carrier_id = (*carrier_it)->getCarriersId();
-			this->probes_carrier_return_remaining_capacity[carrier_id]->put(
+			this->probes_carrier_return_remaining_capacity[label][carrier_id]->put(
 				this->converter->pktpfToKbps(
-					this->carrier_return_remaining_capacity_pktpf[carrier_id]));
+					this->carrier_return_remaining_capacity_pktpf[label][carrier_id]));
 		}
 	}
 }

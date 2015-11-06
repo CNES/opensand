@@ -106,6 +106,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	unsigned int vcm_id = 0;
 	vector<CarriersGroupDama *> carriers_group;
 	vector<CarriersGroupDama *>::iterator carrier_it;
+	string label = this->category->getLabel();
 	char gw_id[7] = "";
 	if(!is_gw)
 	{
@@ -115,16 +116,16 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 
 	this->probe_fwd_total_capacity = Output::registerProbe<int>(
 		"Symbols per frame", true, SAMPLE_LAST,
-		"Spot_%d%s.%s Down/Forward capacity.Total.Available", this->spot_id,
-		(is_gw ? "" : gw_id), dst_name.c_str());
+		"Spot_%d%s.%s.%s Down/Forward capacity.Total.Available", this->spot_id,
+		(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str());
 	this->probe_fwd_total_remaining_capacity = Output::registerProbe<int>(
 		"Symbols per frame", true, SAMPLE_LAST,
-		"Spot_%d%s.%s Down/Forward capacity.Total.Remaining", this->spot_id,
-		(is_gw ? "" : gw_id), dst_name.c_str());
+		"Spot_%d%s.%s.%s Down/Forward capacity.Total.Remaining", this->spot_id,
+		(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str());
 	this->probe_bbframe_nbr = Output::registerProbe<int>(
 		true, SAMPLE_AVG,
-		"Spot_%d%s.%s BBFrame number", this->spot_id,
-		(is_gw ? "" : gw_id), dst_name.c_str());
+		"Spot_%d%s.%s.%s BBFrame number", this->spot_id,
+		(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str());
 
 	carriers_group = this->category->getCarriersGroups();
 	for(carrier_it = carriers_group.begin();
@@ -216,18 +217,18 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 						unit,
 						true,
 						SAMPLE_AVG,
-						"Spot_%d%s.%s Down/Forward capacity.Category %s.Carrier%u.%s.Remaining",
+						"Spot_%d%s.%s.%s Down/Forward capacity.Category %s.Carrier%u.%s.Remaining",
 						this->spot_id,
-						(is_gw ? "" : gw_id), dst_name.c_str(),
+						(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str(),
 						this->category->getLabel().c_str(),
 						carriers_id, type.c_str());
 				avail_probe = Output::registerProbe<int>(
 						unit,
 						true,
 						SAMPLE_AVG,
-						"Spot_%d%s.%s Down/Forward capacity.Category %s.Carrier%u.%s.Available",
+						"Spot_%d%s.%s.%s Down/Forward capacity.Category %s.Carrier%u.%s.Available",
 						this->spot_id,
-						(is_gw ? "" : gw_id), dst_name.c_str(),
+						(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str(),
 						this->category->getLabel().c_str(),
 						carriers_id, type.c_str());
 			}
@@ -237,18 +238,18 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 						"Kbits/s",
 						true,
 						SAMPLE_AVG,
-						"Spot_%d%s.%s Down/Forward capacity.Category %s.Carrier%u.VCM%u.Remaining",
+						"Spot_%d%s.%s.%s Down/Forward capacity.Category %s.Carrier%u.VCM%u.Remaining",
 						this->spot_id,
-						(is_gw ? "" : gw_id), dst_name.c_str(),
+						(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str(),
 						this->category->getLabel().c_str(),
 						carriers_id, vcm_id);
 				avail_probe = Output::registerProbe<int>(
 						"Kbits/s",
 						true,
 						SAMPLE_AVG,
-						"Spot%d%s.%s Down/Forward capacity.Category %s.Carrier%u.VCM%u.Available",
+						"Spot_%d%s.%s.%s Down/Forward capacity.Category %s.Carrier%u.VCM%u.Available",
 						this->spot_id,
-						(is_gw ? "" : gw_id), dst_name.c_str(),
+						(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str(),
 						this->category->getLabel().c_str(),
 						carriers_id, vcm_id);
 				vcm_id++;
@@ -435,7 +436,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 		vector<CarriersGroupDama *>::iterator vcm_it;
 		unsigned int carriers_id = carriers->getCarriersId();
 		unsigned int id = 0;
-			
+
 		vcm_carriers = carriers->getVcmCarriers();
 		for(vcm_it = vcm_carriers.begin();
 		    vcm_it != vcm_carriers.end();

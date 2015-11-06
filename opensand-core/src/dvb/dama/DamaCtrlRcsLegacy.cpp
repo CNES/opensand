@@ -95,22 +95,22 @@ bool DamaCtrlRcsLegacy::init()
 			Probe<int> *probe_carrier_remaining_capacity;
 			unsigned int carrier_id = carriers->getCarriersId();
 			probe_carrier_capacity = Output::registerProbe<int>("Kbits/s",
-				true, SAMPLE_LAST, "Spot_%d.Up/Return capacity.Category %s.Carrier%u.Available",
+				true, SAMPLE_LAST, "Spot_%d.%s.Up/Return capacity.Carrier%u.Available",
 				this->spot_id, label.c_str(), carrier_id);
 
 			probe_carrier_remaining_capacity = Output::registerProbe<int>("Kbits/s",
-				true, SAMPLE_LAST, "Spot_%d.Up/Return capacity.Category %s.Carrier%u.Remaining",
+				true, SAMPLE_LAST, "Spot_%d.%s.Up/Return capacity.Carrier%u.Remaining",
 				this->spot_id, label.c_str(), carrier_id);
 
-			this->probes_carrier_return_capacity.insert(
+			this->probes_carrier_return_capacity[label].insert(
 				std::pair<unsigned int,Probe<int> *>(carrier_id,
 				                                     probe_carrier_capacity));
 
-			this->probes_carrier_return_remaining_capacity.insert(
+			this->probes_carrier_return_remaining_capacity[label].insert(
 				std::pair<unsigned int, Probe<int> *>(carrier_id,
 				                                      probe_carrier_remaining_capacity));
 
-			this->carrier_return_remaining_capacity_pktpf.insert(
+			this->carrier_return_remaining_capacity_pktpf[label].insert(
 				std::pair<unsigned int, int>(carrier_id, 0));
 		}
 		// Output probes and stats
@@ -119,7 +119,7 @@ bool DamaCtrlRcsLegacy::init()
 
 		probe_category_capacity = Output::registerProbe<int>(
 				"Kbits/s", true, SAMPLE_LAST,
-				"Spot_%d.Up/Return capacity.Category %s.Total.Available",
+				"Spot_%d.%s.Up/Return capacity.Total.Available",
 				this->spot_id,
 				label.c_str());
 		this->probes_category_return_capacity.insert(
@@ -127,7 +127,7 @@ bool DamaCtrlRcsLegacy::init()
 
 		probe_category_remaining_capacity = Output::registerProbe<int>(
 			"Kbits/s", true,  SAMPLE_LAST,
-			"Spot_%d.Up/Return capacity.Category %s.Total.Remaining",
+			"Spot_%d.%s.Up/Return capacity.Total.Remaining",
 			this->spot_id,
 			label.c_str());
 		this->probes_category_return_remaining_capacity.insert(
@@ -264,6 +264,7 @@ bool DamaCtrlRcsLegacy::resetDama()
 	{
 		TerminalCategoryDama *category = (*category_it).second;
 		vector<CarriersGroupDama *> carriers_group;
+		string label = category->getLabel();
 
 		carriers_group = category->getCarriersGroups();
 		for(carrier_it = carriers_group.begin();
@@ -271,6 +272,7 @@ bool DamaCtrlRcsLegacy::resetDama()
 		    ++carrier_it)
 		{
 			CarriersGroupDama *carriers = *carrier_it;
+			unsigned int carriers_id = carriers->getCarriersId();
 			vol_kb_t remaining_capacity_kb;
 			rate_pktpf_t remaining_capacity_pktpf;
 			// we have only one MODCOD for each carrier so we can convert
@@ -293,18 +295,16 @@ bool DamaCtrlRcsLegacy::resetDama()
 			    "SF#%u: Capacity before DAMA computation for "
 			    "carrier %u: %u packet (per frame) (%u kb)\n",
 			    this->current_superframe_sf,
-			    carriers->getCarriersId(),
+			    carriers_id,
 			    remaining_capacity_pktpf,
 			    remaining_capacity_kb);
 
 			// Output probes and stats
-			this->probes_carrier_return_capacity[carriers->
-				getCarriersId()]->put(this->converter->pktpfToKbps(
-				remaining_capacity_pktpf));
+			this->probes_carrier_return_capacity[label][carriers_id]
+				->put(this->converter->pktpfToKbps(remaining_capacity_pktpf));
 			this->gw_return_total_capacity_pktpf += remaining_capacity_pktpf;
 			this->category_return_capacity_pktpf += remaining_capacity_pktpf;
-			this->carrier_return_remaining_capacity_pktpf[
-				carriers->getCarriersId()] =
+			this->carrier_return_remaining_capacity_pktpf[label][carriers_id] =
 				remaining_capacity_pktpf;
 		}
 
@@ -340,10 +340,11 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	vector<TerminalContextDamaRcs *>::iterator tal_it;
 	int simu_rbdc = 0;
 	ostringstream buf;
+	string label = category->getLabel();
 	string debug;
 	buf << "SF#" << this->current_superframe_sf << " carrier "
-	    << carrier_id << ", category " << category->getLabel() << ":";
-    debug = buf.str();
+	    << carrier_id << ", category " << label << ":";
+	debug = buf.str();
 
 	remaining_capacity_pktpf = carriers->getRemainingCapacity();
 
@@ -455,8 +456,8 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 			this->probes_st_rbdc_alloc[tal_id]->put(
 				this->converter->pktpfToKbps(rbdc_alloc_pktpf));
 		}
-		this->carrier_return_remaining_capacity_pktpf[carrier_id] -= rbdc_alloc_pktpf;
-		this->category_return_remaining_capacity_pktpf[category->getLabel()]
+		this->carrier_return_remaining_capacity_pktpf[label][carrier_id] -= rbdc_alloc_pktpf;
+		this->category_return_remaining_capacity_pktpf[label]
 			-= rbdc_alloc_pktpf;
 		this->gw_remaining_capacity_pktpf -= rbdc_alloc_pktpf;
 
@@ -505,9 +506,9 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 					    "%s step 2 allocating 1 cell to ST%u\n",
 					    debug.c_str(), tal_id);
 					// Update probes and stats
-					this->carrier_return_remaining_capacity_pktpf[carrier_id]--;
+					this->carrier_return_remaining_capacity_pktpf[label][carrier_id]--;
 					this->category_return_remaining_capacity_pktpf
-						[category->getLabel()]--;
+						[label]--;
 					this->gw_remaining_capacity_pktpf--;
 				}
 			}
@@ -527,9 +528,10 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 	vector<TerminalContextDamaRcs *>::iterator tal_it;
 	int simu_vbdc = 0;
 	ostringstream buf;
+	string label = category->getLabel();
 	string debug;
 	buf << "SF#" << this->current_superframe_sf << " carrier "
-	    << carrier_id << ", category " << category->getLabel() << ":";
+	    << carrier_id << ", category " << label << ":";
 	debug = buf.str();
 
 	remaining_capacity_pktpf = carriers->getRemainingCapacity();
@@ -621,9 +623,9 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 						this->converter->pktToKbits(request_pkt));
 				}
 				this->gw_vbdc_alloc_pkt += request_pkt;
-				this->carrier_return_remaining_capacity_pktpf[carrier_id] -=
+				this->carrier_return_remaining_capacity_pktpf[label][carrier_id] -=
 					request_pkt;
-				this->category_return_remaining_capacity_pktpf[category->getLabel()]
+				this->category_return_remaining_capacity_pktpf[label]
 					-= request_pkt;
 				this->gw_remaining_capacity_pktpf -= request_pkt;
 			}
@@ -658,9 +660,9 @@ void DamaCtrlRcsLegacy::runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 					}
 					while(tal_it != tal.end());
 				}
-				this->carrier_return_remaining_capacity_pktpf[carrier_id] -=
+				this->carrier_return_remaining_capacity_pktpf[label][carrier_id] -=
 					remaining_capacity_pktpf;
-				this->category_return_remaining_capacity_pktpf[category->getLabel()]
+				this->category_return_remaining_capacity_pktpf[label]
 					-= remaining_capacity_pktpf;
 				this->gw_remaining_capacity_pktpf -= remaining_capacity_pktpf;
 
@@ -699,9 +701,10 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroupDama *carriers,
 	int simu_fca = 0;
 	vector<TerminalContextDamaRcs *>::iterator tal_it;
 	ostringstream buf;
+	string label = category->getLabel();
 	string debug;
 	buf << "SF#" << this->current_superframe_sf << " carrier "
-	    << carrier_id << ", category " << category->getLabel() << ":";
+	    << carrier_id << ", category " << label << ":";
 	debug = buf.str();
 
 	fca_pktpf = this->converter->kbpsToPktpf(this->fca_kbps);
@@ -772,9 +775,9 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroupDama *carriers,
 				this->probes_st_fca_alloc[tal_id]->put(
 					this->converter->pktpfToKbps(fca_pktpf));
 			}
-			this->carrier_return_remaining_capacity_pktpf[carrier_id] -=
+			this->carrier_return_remaining_capacity_pktpf[label][carrier_id] -=
 				fca_pktpf;
-			this->category_return_remaining_capacity_pktpf[category->getLabel()]
+			this->category_return_remaining_capacity_pktpf[label]
 				-= fca_pktpf;
 			this->gw_remaining_capacity_pktpf -= fca_pktpf;
 		}
@@ -795,9 +798,9 @@ void DamaCtrlRcsLegacy::runDamaFcaPerCarrier(CarriersGroupDama *carriers,
 				this->probes_st_fca_alloc[tal_id]->put(
 					this->converter->pktpfToKbps(remaining_capacity_pktpf));
 			}
-			this->carrier_return_remaining_capacity_pktpf[carrier_id] -=
+			this->carrier_return_remaining_capacity_pktpf[label][carrier_id] -=
 				remaining_capacity_pktpf;
-			this->category_return_remaining_capacity_pktpf[category->getLabel()]
+			this->category_return_remaining_capacity_pktpf[label]
 				-= remaining_capacity_pktpf;
 			this->gw_remaining_capacity_pktpf -= remaining_capacity_pktpf;
 

@@ -203,11 +203,12 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	virtual bool initDama(void) = 0;
 
 	/**
-	 * @brief Read configuration for the FIFO
+	 * @brief Read configuration for the FIFOs
 	 *
+	 * @param  The FIFOs to initialize
 	 * @return  true on success, false otherwise
 	 */
-	bool initFifo(void);
+	bool initFifo(fifos_t &fifos);
 
 	/**
 	 * @brief Initialize the statistics
@@ -240,8 +241,8 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	/// The DAMA controller
 	DamaCtrlRcs *dama_ctrl;
 
-	/// The uplink of forward scheduling depending on satellite
-	Scheduling *scheduling;
+	/// The uplink or forward scheduling per category
+	map<string, Scheduling*> scheduling;
 
 	/// counter for forward frames
 	time_sf_t fwd_frame_counter;
@@ -258,8 +259,8 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	uint8_t mac_id;
 
 	/* Fifos */
-	/// map of FIFOs per MAX priority to manage different queues
-	fifos_t dvb_fifos;
+	/// FIFOs per MAX priority to manage different queues for each category
+	map<string, fifos_t> dvb_fifos;
 	/// the default MAC fifo index = fifo with the smallest priority
 	unsigned int default_fifo_id;
 
@@ -306,17 +307,18 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	Simulate simulate;
 
 	// Output probes and stats
+	typedef map<unsigned int, Probe<int> *> ProbeListPerId; 
 	// Queue sizes
-	map<unsigned int, Probe<int> *> probe_gw_queue_size;
-	map<unsigned int, Probe<int> *> probe_gw_queue_size_kb;
+	map<string, ProbeListPerId> * probe_gw_queue_size;
+	map<string, ProbeListPerId> *probe_gw_queue_size_kb;
 	// Queue loss
-	map<unsigned int, Probe<int> *> probe_gw_queue_loss;
-	map<unsigned int, Probe<int> *> probe_gw_queue_loss_kb;
+	map<string, ProbeListPerId> *probe_gw_queue_loss;
+	map<string, ProbeListPerId> *probe_gw_queue_loss_kb;
 	// Rates
-	map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_before_sched;
-	map<unsigned int, Probe<int> *> probe_gw_l2_to_sat_after_sched;
-	Probe<int> *probe_gw_l2_to_sat_total;
-	int l2_to_sat_total_bytes;
+	map<string, ProbeListPerId> *probe_gw_l2_to_sat_before_sched;
+	map<string, ProbeListPerId> *probe_gw_l2_to_sat_after_sched;
+	map<string, Probe<int> *> probe_gw_l2_to_sat_total;
+	map<string, int> l2_to_sat_total_bytes;
 	// Frame interval
 	Probe<float> *probe_frame_interval;
 	// Physical layer information

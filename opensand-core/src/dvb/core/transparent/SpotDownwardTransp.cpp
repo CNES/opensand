@@ -151,45 +151,40 @@ bool SpotDownwardTransp::initMode(void)
 		return false;
 	}
 
-	if(this->categories.size() != 1)
-	{
-		// TODO at the moment we use only one category
-		// To implement more than one category we will need to create
-		// one (a group of) fifo(s) per category and schedule per
-		// (group of) fifo(s).
-		// The packets would then be pushed in the correct (group of)
-		// fifo(s) according to the category the destination
-		// terminal ID belongs this is why we have categories,
-		// terminal_affectation and default_category as attributes
-		// map<cat label, sched> and fifos in scheduler ?
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot support more than one category for "
-		    "down/forward band\n");
-		return false;
-	}
 
 	list = this->output_sts->getListSts();
-	cat = this->categories.begin()->second;
-	this->scheduling = new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
-	                                           this->pkt_hdl,
-	                                           this->dvb_fifos,
-	                                           list,
-	                                           this->output_modcod_def,
-	                                           cat, this->spot_id,
-	                                           true, this->mac_id, "");
-
-
-	if(!this->scheduling)
+	for(TerminalCategories<TerminalCategoryDama>::iterator it = this->categories.begin();
+	    it != this->categories.end(); it++)
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to create the scheduling\n");
-		goto error;
+		fifos_t fifo;
+		string label;
+
+		cat = it->second;
+		label = cat->getLabel();
+		if(!this->initFifo(fifo))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "failed initialize fifos for category %s\n", label.c_str());
+			return false;
+		}
+		this->dvb_fifos.insert(pair<string, fifos_t>(label, fifo));
+		Scheduling* schedule =  new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
+		                                                this->pkt_hdl,
+		                                                this->dvb_fifos.at(label),
+		                                                list,
+		                                                this->output_modcod_def,
+		                                                cat, this->spot_id,
+		                                                true, this->mac_id, "");
+		if(!schedule)
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "failed initialize forward scheduling for category %s\n", label.c_str());
+			return false;
+		}
+		this->scheduling.insert(make_pair<string, Scheduling*>(label, schedule));
 	}
 
 	return true;
-
-error:
-	return false;
 }
 
 

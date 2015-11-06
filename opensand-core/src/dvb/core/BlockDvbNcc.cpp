@@ -154,7 +154,7 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 BlockDvbNcc::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	DvbDownward(bl),
 	DvbSpotList(),
-	NccPepInterface(),
+	pep_interface(),
 	mac_id(mac_id),
 	fwd_frame_counter(0),
 	fwd_timer(-1),
@@ -269,14 +269,14 @@ bool BlockDvbNcc::Downward::onInit(void)
 
 
 	// listen for connections from external PEP components
-	if(!this->initPepSocket())
+	if(!this->pep_interface.initPepSocket())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to listen for PEP connections\n");
 		return false;
 	}
 	this->addTcpListenEvent("pep_listen",
-	                        this->getPepListenSocket(), 200);
+	                        this->pep_interface.getPepListenSocket(), 200);
 
 	// Output probes and stats
 	this->probe_frame_interval = Output::registerProbe<float>("ms", true,
@@ -617,7 +617,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 					LOG(this->log_receive, LEVEL_NOTICE,
 					    "apply PEP requests now\n");
-					while((pep_request = this->getNextPepRequest()) != NULL)
+					while((pep_request = this->pep_interface.getNextPepRequest()) != NULL)
 					{
 						spot->applyPepCommand(pep_request);
 					}
@@ -637,50 +637,53 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		}
 		case evt_net_socket:
 		{
-			if(*event == this->getPepClientSocket())
+			if(*event == this->pep_interface.getPepClientSocket())
 			{
+				tal_id_t tal_id;
+
 				// event received on PEP client socket
 				LOG(this->log_receive, LEVEL_NOTICE,
 				    "event received on PEP client socket\n");
 
-				tal_id_t tal_id;
-				spot_id_t spot_id;
-				if(OpenSandConf::spot_table.find(tal_id) == OpenSandConf::spot_table.end())
-				{
-					spot_id = this->default_spot;
-				}
-				else
-				{
-					spot_id = OpenSandConf::spot_table[tal_id];
-				}
-
-				spot_iter = spots.find(spot_id);
-				if(spot_iter == spots.end())
-				{
-					LOG(this->log_receive, LEVEL_ERROR, 
-					    "couldn't find spot %d", 
-					    OpenSandConf::spot_table[tal_id]);
-					return false;
-				}
-				SpotDownward *spot;
-				spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-				if(!spot)
-				{
-				    LOG(this->log_receive, LEVEL_WARNING,
-				        "Error when getting spot\n");
-					return false;
-				}
-
 				// read the message sent by PEP or delete socket
 				// if connection is dead
-				if(this->readPepMessage((NetSocketEvent *)event, tal_id) == true)
+				if(this->pep_interface.readPepMessage((NetSocketEvent *)event, tal_id) == true)
 				{
+					spot_id_t spot_id;
 					// we have received a set of commands from the
 					// PEP component, let's apply the resources
 					// allocations/releases they contain
 
+					// first get the spot associated with this terminal
+					if(OpenSandConf::spot_table.find(tal_id) == OpenSandConf::spot_table.end())
+					{
+						spot_id = this->default_spot;
+					}
+					else
+					{
+						spot_id = OpenSandConf::spot_table[tal_id];
+					}
+
+					spot_iter = spots.find(spot_id);
+					if(spot_iter == spots.end())
+					{
+						LOG(this->log_receive, LEVEL_ERROR, 
+						    "couldn't find spot %d", 
+						    OpenSandConf::spot_table[tal_id]);
+						return false;
+					}
+					SpotDownward *spot;
+					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
+					if(!spot)
+					{
+					    LOG(this->log_receive, LEVEL_WARNING,
+					        "Error when getting spot\n");
+						return false;
+					}
+
+
 					// set delay for applying the commands
-					if(this->getPepRequestType() == PEP_REQUEST_ALLOCATION)
+					if(this->pep_interface.getPepRequestType() == PEP_REQUEST_ALLOCATION)
 					{
 						if(!this->startTimer(spot->getPepCmdApplyTimer()))
 						{
@@ -692,7 +695,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						    "PEP Allocation request, apply a %dms"
 						    " delay\n", pep_alloc_delay);
 					}
-					else if(this->getPepRequestType() == PEP_REQUEST_RELEASE)
+					else if(this->pep_interface.getPepRequestType() == PEP_REQUEST_RELEASE)
 					{
 						this->raiseTimer(spot->getPepCmdApplyTimer());
 						LOG(this->log_receive, LEVEL_NOTICE,
@@ -706,13 +709,13 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						return false;
 					}
 					// Free the socket
-					if(shutdown(this->getPepClientSocket(), SHUT_RDWR) != 0)
+					if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
 					{
 						LOG(this->log_init, LEVEL_ERROR,
 						    "failed to clase socket: "
 						    "%s (%d)\n", strerror(errno), errno);
 					}
-					this->removeEvent(this->getPepClientSocket());
+					this->removeEvent(this->pep_interface.getPepClientSocket());
 				}
 				else
 				{
@@ -720,13 +723,13 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					    "network problem encountered with PEP, "
 					    "connection was therefore closed\n");
 					// Free the socket
-					if(shutdown(this->getPepClientSocket(), SHUT_RDWR) != 0)
+					if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
 					{
 						LOG(this->log_init, LEVEL_ERROR,
 						    "failed to clase socket: "
 						    "%s (%d)\n", strerror(errno), errno);
 					}
-					this->removeEvent(this->getPepClientSocket());
+					this->removeEvent(this->pep_interface.getPepClientSocket());
 					return false;
 				}
 			}
@@ -734,10 +737,10 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		}
 		case evt_tcp_listen:
 		{
-			if(*event == this->getPepListenSocket())
+			if(*event == this->pep_interface.getPepListenSocket())
 			{
-				this->setSocketClient(((TcpListenEvent *)event)->getSocketClient());
-				this->setIsConnected(true);
+				this->pep_interface.setSocketClient(((TcpListenEvent *)event)->getSocketClient());
+				this->pep_interface.setIsConnected(true);
 
 				// event received on PEP listen socket
 				LOG(this->log_receive, LEVEL_NOTICE,
@@ -747,7 +750,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				    "NCC is now connected to PEP\n");
 				// add a fd to handle events on the client socket
 				this->addNetSocketEvent("pep_client",
-				                        this->getPepClientSocket(),
+				                        this->pep_interface.getPepClientSocket(),
 				                        200);
 			}
 			break;

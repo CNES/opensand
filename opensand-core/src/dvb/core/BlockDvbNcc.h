@@ -204,7 +204,7 @@ class BlockDvbNcc: public BlockDvb
 	};
 
 
-	class Downward: public DvbDownward, public DvbSpotList, public NccPepInterface
+	class Downward: public DvbDownward, public DvbSpotList
 	{
 	  public:
 		Downward(Block *const bl, tal_id_t mac_id);
@@ -250,6 +250,9 @@ class BlockDvbNcc: public BlockDvb
 		
 		// statistics update
 		void updateStats(void);
+
+		/// The interface between Ncc and PEP
+		NccPepInterface pep_interface;
 		
 		/// the MAC ID of the ST (as specified in configuration)
 		tal_id_t mac_id;

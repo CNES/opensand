@@ -316,6 +316,7 @@ class DamaCtrl
 	typedef map<string, Probe<int> *> ProbeListPerCategory;
 	typedef map<string, int> IntListPerCategory;
 	typedef map<unsigned int, Probe<int> *> ProbeListPerCarrier;
+	typedef map<string, ProbeListPerCarrier> ProbeListPerCategoryPerCarrier;
 
 	/* RBDC request number */
 	Probe<int> *probe_gw_rbdc_req_num;
@@ -375,10 +376,10 @@ class DamaCtrl
 	ProbeListPerCategory probes_category_return_remaining_capacity;
 	map<string, int> category_return_remaining_capacity_pktpf;
 		// Capacity per carrier
-	ProbeListPerCarrier probes_carrier_return_capacity;
-	ProbeListPerCarrier probes_carrier_return_remaining_capacity;
-	map<unsigned int, int> carrier_return_remaining_capacity_pktpf;
-	
+	ProbeListPerCategoryPerCarrier probes_carrier_return_capacity;
+	ProbeListPerCategoryPerCarrier probes_carrier_return_remaining_capacity;
+	map<string, map<unsigned int, int> >  carrier_return_remaining_capacity_pktpf;
+
 	// Spot ID
 	spot_id_t spot_id;
 };
