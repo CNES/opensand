@@ -403,7 +403,6 @@ bool DvbFmt::addInputTerminal(tal_id_t id)
 	           this->input_modcod_def->getMaxId());
 
 	this->input_sts->addTerminal(id, modcod);
-	this->cni_has_changed[id] = true;
 	return true;
 }
 
@@ -412,7 +411,6 @@ bool DvbFmt::addOutputTerminal(tal_id_t id)
 {
 	fmt_id_t modcod = this->output_modcod_def->getMaxId();
 	this->output_sts->addTerminal(id, modcod);
-	this->cni_has_changed[id] = true;
 	return true;
 }
 
@@ -478,7 +476,6 @@ void DvbFmt::setRequiredModcod(tal_id_t tal_id,
 void DvbFmt::setRequiredCniInput(tal_id_t tal_id,
                                  double cni)
 {
-	this->cni_has_changed[tal_id] = true;
 	this->setRequiredModcod(tal_id, cni, this->input_modcod_def,
 	                        this->input_sts);
 }
@@ -487,7 +484,6 @@ void DvbFmt::setRequiredCniInput(tal_id_t tal_id,
 void DvbFmt::setRequiredCniOutput(tal_id_t tal_id,
                                   double cni)
 {
-	this->cni_has_changed[tal_id] = true;
 	this->setRequiredModcod(tal_id, cni, this->output_modcod_def,
 	                        this->output_sts);
 }
@@ -509,7 +505,7 @@ double DvbFmt::getRequiredCniInput(tal_id_t tal_id)
 {
 	fmt_id_t modcod_id;
 	modcod_id = this->getCurrentModcodIdInput(tal_id);
-	this->cni_has_changed[tal_id] = false;
+	this->input_sts->setCniHasChanged(tal_id, false);
 	return this->getRequiredCni(modcod_id, this->input_modcod_def);
 }
 
@@ -518,7 +514,7 @@ double DvbFmt::getRequiredCniOutput(tal_id_t tal_id)
 {
 	fmt_id_t modcod_id;
 	modcod_id = this->getCurrentModcodIdOutput(tal_id);
-	this->cni_has_changed[tal_id] = false;
+	this->output_sts->setCniHasChanged(tal_id, false);
 	return this->getRequiredCni(modcod_id, this->output_modcod_def);
 }
 
@@ -529,9 +525,14 @@ double DvbFmt::getRequiredCni(fmt_id_t modcod_id,
 	return cni;
 }
 
-bool DvbFmt::getCniHasChanged(tal_id_t tal_id)
+bool DvbFmt::getCniInputHasChanged(tal_id_t tal_id)
 {
-	return this->cni_has_changed[tal_id];
+	return this->input_sts->getCniHasChanged(tal_id);
+}
+
+bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
+{
+	return this->output_sts->getCniHasChanged(tal_id);
 }
 
 bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
@@ -542,11 +543,24 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
                                 tal_id_t source,
                                 tal_id_t dest,
                                 string extension_name,
-	                            time_sf_t super_frame_counter)
+	                            time_sf_t super_frame_counter,
+                                const FmtDefinitionTable *const modcod_def,
+	                            bool is_gw)
 {
-	DFLTLOG(LEVEL_WARNING, "source is %d cni %f", 
-	        dest, this->getRequiredCniOutput(dest));
-	uint32_t opaque = hcnton(this->getRequiredCniOutput(dest));
+	uint32_t opaque = 0;
+	fmt_id_t modcod_id;
+	if(is_gw)
+	{	
+		modcod_id = this->getCurrentModcodIdInput(dest);
+		this->input_sts->setCniHasChanged(dest, false);
+	}
+	else
+	{
+		modcod_id = this->getCurrentModcodIdInput(source);
+		this->input_sts->setCniHasChanged(source, false);
+	}
+	opaque = hcnton(this->getRequiredCni(modcod_id, modcod_def));
+	
 	bool replace = false;
 	NetPacket *selected_pkt = pkt_hdl->
 	                  getPacketForHeaderExtensions(packet_list);
@@ -559,16 +573,16 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	}
 	else
 	{
-		//LOG(this->log_fmt, LEVEL_DEBUG,
-		LOG(this->log_fmt, LEVEL_WARNING,
+		LOG(this->log_fmt, LEVEL_DEBUG,
+		//LOG(this->log_fmt, LEVEL_WARNING,
 			"SF#%d: no non-fragmented or without extension packet found, "
 			"create empty packet\n", super_frame_counter);
 	}
 				
 	if(!pkt_hdl->setHeaderExtensions(selected_pkt,
 	                                 extension_pkt,
-	                                 dest, 
 	                                 source, 
+	                                 dest, 
 	                                 extension_name,
 	                                 &opaque))
 	{

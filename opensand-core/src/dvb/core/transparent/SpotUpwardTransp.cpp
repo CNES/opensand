@@ -43,9 +43,9 @@
 #include "Sof.h"
 
 SpotUpwardTransp::SpotUpwardTransp(spot_id_t spot_id,
-                       tal_id_t mac_id,
-                       StFmtSimuList *input_sts,
-                       StFmtSimuList *output_sts):
+                                   tal_id_t mac_id,
+                                   StFmtSimuList *input_sts,
+                                   StFmtSimuList *output_sts):
 	SpotUpward(spot_id, mac_id, input_sts, output_sts),
 	saloha(NULL),
 	is_tal_scpc(),
@@ -238,7 +238,14 @@ bool SpotUpwardTransp::initModcodSimu(void)
 		    "failed to initialize the uplink MODCOD file\n");
 		return false;
 	}
-
+	if(!this->initModcodDefFile(MODCOD_DEF_S2,
+	                            &this->input_modcod_def_scpc))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the uplink MODCOD file\n");
+		return false;
+	}
+	
 	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
 	                             this->mac_id, this->spot_id))
 	{
@@ -452,7 +459,6 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 		    "failed to handle DVB frame or BB frame\n");
 		return false;
 	}
-
 	NetBurst::iterator pkt_it;
 	NetBurst *pkt_burst = (*burst);
 	if(pkt_burst)
@@ -480,9 +486,8 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 				{
 					// This is the C/N0 value evaluated by the Terminal 
 					// and transmitted via GSE extensions
-					this->setRequiredCniInput(tal_id, ncntoh(opaque));
-					DFLTLOG(LEVEL_WARNING, "tal id %d, decode cni %f",
-					        tal_id, ncntoh(opaque));
+					// TODO we could make specific SCPC function
+					this->setRequiredCniOutput(tal_id, ncntoh(opaque)); 
 					break;
 				}
 			}
@@ -556,13 +561,15 @@ void SpotUpwardTransp::handleFrameCni(DvbFrame *dvb_frame)
 			    " value\n");
 			return;
 		}
+		this->setRequiredCniInput(tal_id, curr_cni);
 	}
 	else
 	{	
 		// SCPC
+		BBFrame *frame = dvb_frame->operator BBFrame*();
 		// decode the first packet in frame to be able to
 		// get source terminal ID
-		if(!this->scpc_pkt_hdl->getSrc(dvb_frame->getPayload(),
+		if(!this->scpc_pkt_hdl->getSrc(frame->getPayload(),
 		                               tal_id))
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
@@ -571,10 +578,11 @@ void SpotUpwardTransp::handleFrameCni(DvbFrame *dvb_frame)
 			    " value\n");
 			return;
 		}
+		// TODO we could make specific SCPC function
+		this->setRequiredModcod(tal_id, curr_cni, 
+		                        this->input_modcod_def_scpc,
+		                        this->input_sts);
 	}
-
-
-	this->setRequiredCniInput(tal_id, curr_cni);
 
 	return;
 }

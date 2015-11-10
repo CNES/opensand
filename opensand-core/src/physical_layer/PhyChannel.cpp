@@ -205,7 +205,7 @@ bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 	LOG(this->log_channel, LEVEL_INFO,
 	    "Receive frame with MODCOD %u\n", modcod_id);
 
-	if(!this->minimal_condition->updateThreshold(modcod_id))
+	if(!this->minimal_condition->updateThreshold(modcod_id, dvb_frame->getMessageType()))
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "Threshold update failed, the channel will "

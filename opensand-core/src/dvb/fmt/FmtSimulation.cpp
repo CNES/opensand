@@ -136,6 +136,10 @@ bool FmtSimulation::goNextScenarioStep(double &duration)
 		return false;
 	}
 
+	string str = "";
+	for(size_t i = 0 ; i < this->next_modcod_list.size(); ++i)
+		        str += this->next_modcod_list[i] + " ; ";
+
 	duration = (this->next_step - time_current_step) * this->acm_period_ms;
 
 	return true;
@@ -281,6 +285,11 @@ bool FmtSimulation::setList(vector<string> &list, double &time)
 		this->current_time += this->file_time;
 		// we reached the end of the scenario, restart at beginning
 		this->file_time = this->modcod.begin()->first;
+		// in case file time is null there is a problem on loop
+		if(this->file_time == 0)
+		{
+			this->file_time = 1;
+		}
 		list = this->modcod.begin()->second;
 		time = this->current_time + this->file_time;
 	}

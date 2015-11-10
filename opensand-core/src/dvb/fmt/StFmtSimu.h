@@ -59,6 +59,9 @@ class StFmtSimu
 	/** The ID of the ST (called TAL ID or MAC ID elsewhere in the code) */
 	tal_id_t id;
 	
+	/** the cni status*/
+	bool cni_has_changed;
+	
 	/** The column used to read FMT id */
 	unsigned long column;
 
@@ -125,6 +128,20 @@ class StFmtSimu
 	 * @param new_id     the new MODCOD ID of the ST
 	 */
 	void updateModcodId(uint8_t new_id);
+
+	/**
+	 * @brief get the cni change status
+	 *
+	 * @return the cni status
+	 */
+	bool getCniHasChanged();
+
+	/**
+	 * @brief update the Cni change status
+	 *
+	 * @param  change the new cni status
+	 */ 	
+	void setCniHasChanged(bool changed);
 
 };
 
@@ -205,6 +222,22 @@ class StFmtSimuList
 	 * @return the modcod id
 	 */
 	uint8_t getCurrentModcodId(tal_id_t st_id) const;
+	
+	/**
+	 * @brief get the cni change status
+	 *
+	 * @param  st_id  the id of the st
+	 */
+	bool getCniHasChanged(tal_id_t st_id);
+
+	/**
+	 * @brief update the Cni change status
+	 *
+	 * @param  st_id  the id of the st
+	 * @param  change the new cni status
+	 * @return the cni status
+	 */ 	
+	void setCniHasChanged(tal_id_t st_id, bool changed);
 
 	/**
 	 * @brief  check is the st is present

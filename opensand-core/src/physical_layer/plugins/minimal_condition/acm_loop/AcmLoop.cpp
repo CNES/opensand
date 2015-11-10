@@ -34,6 +34,7 @@
 
 
 #include "AcmLoop.h"
+#include "OpenSandFrames.h"
 
 #include <opensand_conf/Configuration.h>
 #include <opensand_conf/conf.h>
@@ -44,7 +45,9 @@
 #include <unistd.h>
 
 AcmLoop::AcmLoop():
-	MinimalConditionPlugin(), modcod_table()
+	MinimalConditionPlugin(), 
+	modcod_table_rcs(),
+	modcod_table_s2()
 {
 }
 
@@ -55,93 +58,92 @@ AcmLoop::~AcmLoop()
 
 bool AcmLoop::init(void)
 {
-	string val;
-	string filename;
-	string modcod_key;
-	sat_type_t sat_type;
-	component_t compo;
+	string filename_rcs;
+	string filename_s2;
 
-	// satellite type
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
-		               SATELLITE_TYPE,
-	                   val))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SATELLITE_TYPE);
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "satellite type = %s\n", val.c_str());
-	sat_type = strToSatType(val);
-
-	val = "";
-	if(!Conf::getComponent(val))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get component type\n");
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "host type = %s\n", val.c_str());
-	compo = getComponentType(val);
-
-	// TODO SCPC !
-	if(compo == terminal ||
-	   (sat_type == REGENERATIVE && compo == gateway))
-	{
-		modcod_key = MODCOD_DEF_S2;
-	}
-	else
-	{
-		modcod_key = MODCOD_DEF_RCS;
-	}
 	// get appropriate MODCOD definitions for receving link
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
-		               modcod_key.c_str(),
-	                   filename))
+		               MODCOD_DEF_RCS,
+	                   filename_rcs))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, modcod_key.c_str());
-		goto error;
+		    PHYSICAL_LAYER_SECTION, MODCOD_DEF_RCS);
+		return false;
 	}
-
-	if(access(filename.c_str(), R_OK) < 0)
+	
+	// get appropriate MODCOD definitions for receving link
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               MODCOD_DEF_S2,
+	                   filename_s2))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s', missing parameter '%s'\n",
+		    PHYSICAL_LAYER_SECTION, MODCOD_DEF_S2);
+		return false;
+	}
+	
+	if(access(filename_rcs.c_str(), R_OK) < 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot access '%s' file (%s)\n",
-		    filename.c_str(), strerror(errno));
-		goto error;
+		    filename_rcs.c_str(), strerror(errno));
+		return false;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "ACM loop definition file for minimal condition = '%s'\n",
-	    filename.c_str());
+	    filename_rcs.c_str());
+	
+	if(access(filename_s2.c_str(), R_OK) < 0)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot access '%s' file (%s)\n",
+		    filename_s2.c_str(), strerror(errno));
+		return false;
+	}
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "ACM loop definition file for minimal condition = '%s'\n",
+	    filename_s2.c_str());
 
 	// load all the ACM_LOOP definitions from file
-	if(!(this->modcod_table).load(filename))
+	if(!(this->modcod_table_rcs).load(filename_rcs))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "unable to load the acm_loop definition table");
-		goto error;
+		return false;
+	}
+	
+	if(!(this->modcod_table_s2).load(filename_s2))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "unable to load the acm_loop definition table");
+		return false;
 	}
 
 	return true;
-error:
-	return false;
 }
 
-bool AcmLoop::updateThreshold(uint8_t modcod_id)
+bool AcmLoop::updateThreshold(uint8_t modcod_id, uint8_t message_type)
 {
 	double threshold;  // Value to be updated with the current ACM_LOOP
 
 	// Init variables
 	threshold = this->minimal_cn; // Default, keep previous threshold
-	threshold = (double)(this->modcod_table.getRequiredEsN0(modcod_id));
-	LOG(this->log_minimal, LEVEL_DEBUG, 
-	    "Required Es/N0 for ACM loop %u --> %.2f dB\n",
-	    modcod_id, this->modcod_table.getRequiredEsN0(modcod_id));
+	switch(message_type)
+	{
+		case MSG_TYPE_DVB_BURST:
+			threshold = (double)(this->modcod_table_rcs.getRequiredEsN0(modcod_id));
+			LOG(this->log_minimal, LEVEL_DEBUG, 
+			    "Required Es/N0 for ACM loop %u --> %.2f dB\n",
+				modcod_id, this->modcod_table_rcs.getRequiredEsN0(modcod_id));
 
+		default:
+			threshold = (double)(this->modcod_table_s2.getRequiredEsN0(modcod_id));
+			LOG(this->log_minimal, LEVEL_DEBUG, 
+			    "Required Es/N0 for ACM loop %u --> %.2f dB\n",
+				modcod_id, this->modcod_table_s2.getRequiredEsN0(modcod_id));
+	}
+	
 	this->minimal_cn = threshold;
 	return true;
 }

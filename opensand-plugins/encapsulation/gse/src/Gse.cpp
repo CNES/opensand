@@ -748,6 +748,12 @@ bool Gse::Context::deencapPacket(gse_vfrag_t *vfrag_gse,
 			    gse_get_status(status));
 			break;
 
+		case GSE_STATUS_BUFF_LENGTH_NULL:
+			LOG(this->log, LEVEL_INFO,
+			    "GSE deencapsulation success even if %s ",
+			    gse_get_status(status));
+			break;
+
 		default:
 			LOG(this->log, LEVEL_ERROR,
 			    "GSE deencapsulation failed (%s), drop packet\n",
@@ -1404,7 +1410,6 @@ bool Gse::PacketHandler::getSrc(const Data &data, tal_id_t &tal_id) const
 			return NULL;
 		}
 		tal_id = Gse::getSrcTalIdFromLabel(label);
-
 	}
 
 	return true;
@@ -1534,32 +1539,29 @@ bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
 	uint32_t crc;
 
 	// Empty GSE packet
-	static unsigned char empty_gse[5] = 
+	// TODO macro for sizes
+	// TODO endianess !!
+	static unsigned char empty_gse[7] = 
 	{
-		0xd8, /* LT = 01 (three bytes label) */
-		0x03, /* length */
+		0xd0, /* LT = 01 (three bytes label) */
+		0x05, /* length */
+		NET_PROTO_IPV4 >> 8 & 0xff,
+		NET_PROTO_IPV4 & 0xff,
 		tal_id_src,
 		tal_id_dst,
 		0x00 /* highest priority fifo (eg. NM FIFO) */
 	};
 
-	if(packet != NULL)
-	{
-		LOG(this->log, LEVEL_INFO,
-		    "using non-null packet\n");
-		status = gse_create_vfrag_with_data(&vfrag, GSE_MAX_PACKET_LENGTH,
-		                                    MAX_CNI_EXT_LEN, 0,
-		                                    (unsigned char *)packet->getData().c_str(),
-		                                    packet->getTotalLength());
-	}
-	else
+	if(!packet)
 	{
 		LOG(this->log, LEVEL_INFO, 
 		    "no packet, create empty one\n");
-		status = gse_create_vfrag_with_data(&vfrag, GSE_MAX_PACKET_LENGTH,
-		                                    MAX_CNI_EXT_LEN, 0,
-		                                    empty_gse, 5);
+		packet = new NetPacket(empty_gse, 7);
 	}
+	status = gse_create_vfrag_with_data(&vfrag, GSE_MAX_PACKET_LENGTH,
+	                                    MAX_CNI_EXT_LEN, 0,
+	                                    (unsigned char *)packet->getData().c_str(),
+	                                    packet->getTotalLength());
 
 	if(status != GSE_STATUS_OK)
 	{

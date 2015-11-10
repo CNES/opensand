@@ -296,6 +296,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 
 	/// FMT groups for up/return
 	fmt_groups_t ret_fmt_groups;
+	
 
 	/// The C/N0 for downlink in regenerative scenario that will be transmited
 	//  to satellite in SAC

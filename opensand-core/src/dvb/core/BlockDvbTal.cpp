@@ -1224,7 +1224,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to register simulated ST with MAC "
-		    "ID %u\n", tal_id);
+		    "ID %u\n", this->tal_id);
 		goto error;
 	}
 	
@@ -1554,8 +1554,8 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				
 				this->updateStats();
 				this->scpc_frame_counter++;
-
-				if(!addCniExt())
+	
+				if(this->state == state_running && !this->addCniExt())
 				{
 					LOG(this->log_send_channel, LEVEL_ERROR,
 					    "fail to add CNI extension");
@@ -1563,6 +1563,8 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				}
 
 				//Schedule Creation
+				// TODO we should send packets containing CNI extension with
+				//      the most robust MODCOD 
 				if(!this->scpc_sched->schedule(this->scpc_frame_counter,
 				                               getCurrentTime(),
 				                               &this->complete_dvb_frames,
@@ -1612,7 +1614,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 
 bool BlockDvbTal::Downward::addCniExt(void)
 {
-	//bool in_fifo = false;
+	bool in_fifo = false;
 
 	// Create list of first packet from FIFOs
 	for(fifos_t::iterator fifos_it = this->dvb_fifos.begin();
@@ -1632,22 +1634,19 @@ bool BlockDvbTal::Downward::addCniExt(void)
 			tal_id_t gw = packet->getDstTalId();
 			NetPacket *extension_pkt = NULL;
 
-		    DFLTLOG(LEVEL_WARNING, "gw id %d, cni has changed %d",
-		            gw, this->getCniHasChanged(gw));
 			if(gw == this->gw_id &&
-			   this->is_scpc && this->getCniHasChanged(gw))
+			   this->is_scpc && this->getCniInputHasChanged(this->tal_id))
 			{
-				DFLTLOG(LEVEL_WARNING, "gw %d, cni %f",
-				        gw, this->getRequiredCniOutput(gw));
 				packet_list.push_back(packet);
-
 				if(!this->setPacketExtension(this->pkt_hdl,
 					                         elem, fifo,
 					                         packet_list, 
 					                         &extension_pkt,
 					                         this->tal_id ,gw,
 					                         ENCODE_CNI_EXT,
-					                         this->super_frame_counter))
+					                         this->super_frame_counter,
+					                         this->input_modcod_def,
+					                         false))
 				{
 					return false;
 				}
@@ -1657,24 +1656,27 @@ bool BlockDvbTal::Downward::addCniExt(void)
 				    this->super_frame_counter, (*fifos_it).first);
 				// Delete old packet
 				delete packet;
+				in_fifo = true;
 			}
 		}
 	}
 
-	
-	/*if(this->is_scpc && this->getCniHasChanged(this->gw_id
-	   && !in_fifo))
+	if(this->is_scpc && this->getCniInputHasChanged(this->tal_id)
+	   && !in_fifo)
 	{
-		DFLTLOG(LEVEL_WARNING, "gw id %d, cni has changed %d",
-		        this->gw_id, this->getCniHasChanged(this->gw_id));
 		std::vector<NetPacket*> packet_list;
 		NetPacket *extension_pkt = NULL;
 		
 		// set packet extension to this new empty packet
-		if(!this->setPacketExtension(NULL, this->dvb_fifos[0],
+		if(!this->setPacketExtension(this->pkt_hdl,
+			                         NULL, this->dvb_fifos[0],
 			                         packet_list, 
 				                     &extension_pkt,
-				                     this->gw_id))
+					                 this->tal_id ,this->gw_id,
+					                 ENCODE_CNI_EXT,
+					                 this->super_frame_counter,
+					                 this->input_modcod_def,
+					                 false))
 		{
 			return false;
 		}
@@ -1682,7 +1684,7 @@ bool BlockDvbTal::Downward::addCniExt(void)
 		LOG(this->log_send_channel, LEVEL_DEBUG,
 			"SF #%d: adding empty packet into FIFO NM\n",
 		    this->super_frame_counter);
-	}*/
+	}
 
 	return true;
 }
@@ -2586,37 +2588,29 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			NetBurst::const_iterator it;
 			if(burst)
 			{
-				/*LOG(this->log_receive, LEVEL_ERROR,
-				    "failed to handle the reception of "
-				    "BB frame (len = %u)\n",
-				    dvb_frame->getMessageLength());
-				goto error;
-			}*/
-			for(it = burst->begin(); it != burst->end(); it++)
-			{
-				const NetPacket *packet = (*it);
-				if(packet->getDstTalId() == this->tal_id && this->is_scpc)
+				for(it = burst->begin(); it != burst->end(); it++)
 				{
-					uint32_t opaque = 0;
-					if(!this->pkt_hdl->getHeaderExtensions(packet,
-						                                   "deencodeCniExt",
-						                                   &opaque))
+					const NetPacket *packet = (*it);
+					if(packet->getDstTalId() == this->tal_id && this->is_scpc)
 					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "error when trying to read header extensions\n");
-						goto error;
-					}
-					if(opaque != 0)
-					{
-						// This is the C/N0 value evaluated by the GW and transmitted
-						// via GSE extensions
-						this->setRequiredCniOutput(this->gw_id, ncntoh(opaque));
-						DFLTLOG(LEVEL_WARNING, "tal id %d, decode cni %f",
-					        tal_id, ncntoh(opaque));
-						break;
+						uint32_t opaque = 0;
+						if(!this->pkt_hdl->getHeaderExtensions(packet,
+						   "deencodeCniExt",
+						   &opaque))
+						{
+							LOG(this->log_receive, LEVEL_ERROR,
+							    "error when trying to read header extensions\n");
+							goto error;
+						}
+						if(opaque != 0)
+						{
+							// This is the C/N0 value evaluated by the GW and transmitted
+							// via GSE extensions
+							this->setRequiredCniOutput(this->gw_id, ncntoh(opaque));
+							break;
+						}
 					}
 				}
-			}
 			}
 
 			if(msg_type != MSG_TYPE_CORRUPTED)

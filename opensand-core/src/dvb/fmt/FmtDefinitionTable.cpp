@@ -248,7 +248,8 @@ bool FmtDefinitionTable::load(const string filename)
 				goto malformed;
 			}
 
-			LOG(this->log_fmt, LEVEL_NOTICE,
+			//LOG(this->log_fmt, LEVEL_NOTICE,
+			LOG(this->log_fmt, LEVEL_WARNING,
 			    "FMT definition: %u, %s, %s, %f, %f\n",
 			    scheme_number, modulation.c_str(),
 			    coding_rate.c_str(),
@@ -343,6 +344,8 @@ modulation_type_t FmtDefinitionTable::getModulation(unsigned int id) const
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
 	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "cannot find modulation from FMT definition ID %u\n", id);
 		return MODULATION_UNKNOWN;
 	}
 	return def->getModulation();
@@ -354,6 +357,8 @@ string FmtDefinitionTable::getCodingRate(unsigned int id) const
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
 	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "cannot find coding rate from FMT definition ID %u\n", id);
 		return "";
 	}
 	return def->getCodingRate();
@@ -365,6 +370,8 @@ float FmtDefinitionTable::getSpectralEfficiency(unsigned int id) const
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
 	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "cannot find spectral efficiency from FMT definition ID %u\n", id);
 		return 0.0;
 	}
 	return def->getSpectralEfficiency();
@@ -376,6 +383,8 @@ double FmtDefinitionTable::getRequiredEsN0(unsigned int id) const
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
 	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "cannot find required EsN0 from FMT definition ID %u\n", id);
 		return 0.0;
 	}
 	return def->getRequiredEsN0();
@@ -457,6 +466,8 @@ unsigned int FmtDefinitionTable::symToKbits(unsigned int id,
 
 	if(!def)
 	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "cannot find symToKbits from FMT definition ID %u\n", id);
 		return 0;
 	}
 	modulation = def->getModulation();

@@ -773,9 +773,9 @@ class DvbFmt
 		fmt_simu(),
 		input_sts(NULL),
 		input_modcod_def(NULL),
+		input_modcod_def_scpc(NULL),
 		output_sts(NULL),
 		output_modcod_def(NULL),
-		cni_has_changed(),
 		log_fmt(NULL)
 	{
 		// register static log
@@ -787,6 +787,10 @@ class DvbFmt
 		if(this->input_modcod_def)
 		{
 			delete this->input_modcod_def;
+		}
+		if(this->input_modcod_def_scpc)
+		{
+			delete this->input_modcod_def_scpc;
 		}
 		if(this->output_modcod_def)
 		{
@@ -975,12 +979,32 @@ class DvbFmt
                           const FmtDefinitionTable *modcod_def) const;
 	
 	/**
+	 * @brief Set the required  MODCOD ID for of the
+	 *        ST whid ID is given as input according to the required Es/N0
+	 *
+	 * @param id               the ID of the ST
+	 * @param cni              the required Es/N0 for that terminal
+	 * @param modcod_def       the FMT definition table
+	 * @param sts              the list of STs
+	 */
+	void setRequiredModcod(tal_id_t tal_id, double cni,
+	                       const FmtDefinitionTable *const modcod_def,
+	                       StFmtSimuList* sts);
+
+	/**
 	 * @brief get the modcod change state
 	 *
 	 * @return the modcod change state
 	 */ 
-	bool getCniHasChanged(tal_id_t tal_id);
+	bool getCniInputHasChanged(tal_id_t tal_id);
 	
+	/**
+	 * @brief get the modcod change state
+	 *
+	 * @return the modcod change state
+	 */ 
+	bool getCniOutputHasChanged(tal_id_t tal_id);
+
 	/**
 	 * set extension to the packet GSE
 	 * @param elem          The fifo element to replace by le 
@@ -1001,7 +1025,9 @@ class DvbFmt
                             tal_id_t source,
                             tal_id_t dest,
                             string extension_name,
-	                        time_sf_t super_frame_counter);
+	                        time_sf_t super_frame_counter,
+                            const FmtDefinitionTable *const modcod_def,
+	                        bool is_gw);
 
 
 	/// Physical layer enable
@@ -1015,6 +1041,9 @@ class DvbFmt
 
 	/// The MODCOD Definition Table for input
 	FmtDefinitionTable *input_modcod_def;
+	
+	/// Fmt definition table pour scpc terminals
+	FmtDefinitionTable *input_modcod_def_scpc;
 
 	/** The internal map that stores all the STs and modcod id for output */
 	StFmtSimuList *output_sts;
@@ -1022,27 +1051,12 @@ class DvbFmt
 	/// The MODCOD Definition Table for output
 	FmtDefinitionTable *output_modcod_def;
 	
-	map<tal_id_t, bool> cni_has_changed;
-	
 	// log
 	OutputLog *log_fmt;
 	
  private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
-
-	/**
-	 * @brief Set the required  MODCOD ID for of the
-	 *        ST whid ID is given as input according to the required Es/N0
-	 *
-	 * @param id               the ID of the ST
-	 * @param cni              the required Es/N0 for that terminal
-	 * @param modcod_def       the FMT definition table
-	 * @param sts              the list of STs
-	 */
-	void setRequiredModcod(tal_id_t tal_id, double cni,
-	                       const FmtDefinitionTable *const modcod_def,
-	                       StFmtSimuList* sts);
 
 	/**
 	 * @brief Delete a Satellite Terminal (ST) from the list

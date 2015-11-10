@@ -851,24 +851,22 @@ bool SpotDownward::addCniExt(void)
 			list<tal_id_t>::iterator it = std::find(this->is_tal_scpc.begin(), 
 		                                            this->is_tal_scpc.end(),
 		                                            tal_id);
-		    DFLTLOG(LEVEL_WARNING, "tal id %d, cni has changed %d",
-		            tal_id, this->getCniHasChanged(tal_id));
 			if(it != this->is_tal_scpc.end() && 
-			   this->getCniHasChanged(tal_id))
+			   this->getCniInputHasChanged(tal_id))
 			{
 				list_st.push_back(tal_id);
-				DFLTLOG(LEVEL_WARNING, "tal %d, cni %f",
-				        tal_id, this->getRequiredCniInput(tal_id));
 				packet_list.push_back(packet);
-
+				// we could make specific SCPC function
 				if(!this->setPacketExtension(this->pkt_hdl,
 					                         elem, fifo,
 					                         packet_list, 
 					                         &extension_pkt,
-					                         tal_id,
 					                         this->mac_id,
+					                         tal_id,
 					                         ENCODE_CNI_EXT,
-					                         this->super_frame_counter))
+					                         this->super_frame_counter,
+					                         this->input_modcod_def_scpc,
+					                         true))
 				{
 					return false;
 				}
@@ -892,21 +890,23 @@ bool SpotDownward::addCniExt(void)
 		list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(), 
 		                                             this->is_tal_scpc.end(),
 		                                             (*st_it).first);
+
 		if(it_scpc != this->is_tal_scpc.end() && it == list_st.end() 
-		   && this->getCniHasChanged((*st_it).first))
+		   && this->getCniInputHasChanged((*st_it).first))
 		{
 			std::vector<NetPacket*> packet_list;
 			NetPacket *extension_pkt = NULL;
-			
 			// set packet extension to this new empty packet
 			if(!this->setPacketExtension(this->pkt_hdl,
 				                         NULL, this->dvb_fifos[0],
 				                         packet_list, 
 					                     &extension_pkt,
-					                     (*st_it).first, 
 					                     this->mac_id,
+					                     (*st_it).first, 
 					                     ENCODE_CNI_EXT,
-					                     this->super_frame_counter))
+					                     this->super_frame_counter,
+					                     this->input_modcod_def_scpc,
+					                     true))
 			{
 				return false;
 			}

@@ -45,7 +45,8 @@
 class AcmLoop:public MinimalConditionPlugin
 {
 	private:
-		FmtDefinitionTable modcod_table;
+		FmtDefinitionTable modcod_table_rcs;
+		FmtDefinitionTable modcod_table_s2;
 
 	public:
 
@@ -69,10 +70,10 @@ class AcmLoop:public MinimalConditionPlugin
 		/**
 		 * @brief Updates Thresold when a msg arrives to Channel
 		 *
-		 * @param modcod_id  The MODCOD id carried by the BBFrame
+		 * @param message_type  The frame type
 		 * @return true on success, false otherwise
 		 */
-		 bool updateThreshold(uint8_t modcod_id);
+		bool updateThreshold(uint8_t modcod_id, uint8_t message_type);
 };
 
 CREATE(AcmLoop, minimal_plugin, "ACM-Loop");
