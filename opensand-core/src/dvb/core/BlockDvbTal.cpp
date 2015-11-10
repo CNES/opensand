@@ -2551,11 +2551,11 @@ bool BlockDvbTal::Upward::initOutput(void)
 bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
 	uint8_t msg_type = dvb_frame->getMessageType();
+	uint8_t corrupted = dvb_frame->isCorrupted();
 
 	switch(msg_type)
 	{
 		case MSG_TYPE_BBFRAME:
-		case MSG_TYPE_CORRUPTED:
 		{
 			NetBurst *burst = NULL;
 			DvbS2Std *std = (DvbS2Std *)this->reception_std;
@@ -2613,7 +2613,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				}
 			}
 
-			if(msg_type != MSG_TYPE_CORRUPTED)
+			if(corrupted)
 			{
 				// update MODCOD probes
 				if(!this->with_phy_layer)

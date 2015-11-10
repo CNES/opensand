@@ -169,7 +169,7 @@ void PhyChannel::modifyPacket(DvbFrame *dvb_frame)
 
 	if(error_insertion->modifyPacket(payload))
 	{
-		dvb_frame->setMessageType(MSG_TYPE_CORRUPTED);
+		dvb_frame->setCorrupted(1);
 		this->probe_drops->put(1);
 	}
 }

@@ -49,6 +49,7 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 #include <cstring>
+#include <bits/endian.h>
 
 
 /// The maximum size of a DVB-RCS frame is choosen to be totally
@@ -84,11 +85,6 @@
  * Start of Frame, NCC -> ST
  */
 #define MSG_TYPE_SOF 1
-
-/**
- * The message has been corrupted by the physical layer
- */
-#define MSG_TYPE_CORRUPTED 5
 
 /**
  * Satellie Access Control, ST -> NCC
@@ -151,7 +147,16 @@
 typedef struct
 {
 	uint16_t msg_length; ///< Total length of the message (including _this_ header)
-	uint8_t msg_type;   ///< Type of the message (see \#defines above)
+#if __BYTE_ORDER == __BIG_ENDIAN
+	uint8_t corrupted:1;  ///< Whether the frame is corrupted by physical layer
+	uint8_t msg_type:7;   ///< Type of the message (see \#defines above)
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+	uint8_t msg_type:7;   ///< Type of the message (see \#defines above)
+	uint8_t corrupted:1;  ///< Whether the frame is corrupted by physical layer
+#else
+#error "Please fix <bits/endian.h>"
+#endif
+
 } __attribute__((__packed__)) T_DVB_HDR;
 
 /**

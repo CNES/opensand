@@ -767,6 +767,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	spot_id_t spot_id;
 	tal_id_t gw_id;
 	unsigned int carrier_id = dvb_frame->getCarrierId();
+	uint8_t corrupted = dvb_frame->isCorrupted();
 
 	// get the satellite spot from which the DVB frame comes from
 	if(!OpenSandConf::getSpotWithCarrierId(carrier_id, spot_id, gw_id))
@@ -789,15 +790,15 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	    "DVB frame received from lower layer (type = %d, len %zu)\n",
 	    dvb_frame->getMessageType(),
 	    dvb_frame->getTotalLength());
+	
+	if(corrupted && this->handleCorrupted(dvb_frame)) 
+	{
+		return true;	
+	}
 
 	switch(dvb_frame->getMessageType())
 	{
-		case MSG_TYPE_CORRUPTED:
-			if(this->handleCorrupted(dvb_frame))
-			{
-				break;
-			}
-			// continue to handle the corrupted message in onRcvFrame
+		// continue to handle the corrupted message in onRcvFrame
 		case MSG_TYPE_DVB_BURST:
 		{
 			/* the DVB frame contains a burst of packets:

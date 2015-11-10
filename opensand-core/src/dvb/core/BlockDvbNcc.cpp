@@ -1063,7 +1063,6 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				// burst
 				case MSG_TYPE_BBFRAME:
 				case MSG_TYPE_DVB_BURST:
-				case MSG_TYPE_CORRUPTED:
 				{
 					// Update C/N0
 					spot->handleFrameCni(dvb_frame);

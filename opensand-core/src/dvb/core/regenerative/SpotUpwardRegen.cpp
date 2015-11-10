@@ -174,7 +174,7 @@ bool SpotUpwardRegen::initOutput(void)
 
 bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 {
-	uint8_t msg_type = frame->getMessageType();
+	uint8_t corrupted = frame->isCorrupted();
 	PhysicStd *std = this->reception_std;
 	
 	// Update stats
@@ -190,7 +190,7 @@ bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 	if(std->getType() == "DVB-S2")
 	{
 		DvbS2Std *s2_std = (DvbS2Std *)std;
-		if(msg_type != MSG_TYPE_CORRUPTED)
+		if(!corrupted)
 		{
 			this->probe_received_modcod->put(s2_std->getReceivedModcod());
 		}
