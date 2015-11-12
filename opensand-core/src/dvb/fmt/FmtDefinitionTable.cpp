@@ -383,7 +383,7 @@ double FmtDefinitionTable::getRequiredEsN0(unsigned int id) const
 	if(!def)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
-		    "cannot find required EsN0 from FMT definition ID %u\n", id);
+		    "cannot find required Es/N0 from FMT definition ID %u\n", id);
 		return 0.0;
 	}
 	return def->getRequiredEsN0();
@@ -430,11 +430,6 @@ FmtDefinition *FmtDefinitionTable::getFmtDef(unsigned int id) const
 	if(it != this->definitions.end())
 	{
 		def = it->second;
-	}
-	if(!def)
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "cannot find FMT definition for ID %u\n", id);
 	}
 
 	return def;

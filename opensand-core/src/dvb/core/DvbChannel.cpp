@@ -523,6 +523,11 @@ double DvbFmt::getRequiredCni(fmt_id_t modcod_id,
                               const FmtDefinitionTable *modcod_def) const
 {
 	double cni = modcod_def->getRequiredEsN0(modcod_id);
+	if(cni == 0.0)
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "Cannot get required CNI for MODCOD %u\n", modcod_id);
+	}
 	return cni;
 }
 

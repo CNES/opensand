@@ -146,6 +146,7 @@ class DvbFrameTpl: public NetContainer
 		this->name = "DvbFrame";
 		this->data.reserve(this->max_size);
 		// add at least the base header of the created frame
+		memset(&header, 0, sizeof(T));
 		this->data.append((unsigned char *)&header, sizeof(T));
 		this->header_length = sizeof(T);
 	};

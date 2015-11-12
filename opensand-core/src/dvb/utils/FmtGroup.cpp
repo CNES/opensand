@@ -62,7 +62,14 @@ FmtGroup::FmtGroup(unsigned int group_id,
 unsigned int FmtGroup::getNearest(unsigned int fmt_id) const
 {
 	list<FmtId>::const_reverse_iterator it; 
-	FmtId desired_fmt(fmt_id, this->modcod_def->getRequiredEsN0(fmt_id));
+	double esn0 = this->modcod_def->getRequiredEsN0(fmt_id);
+	if(esn0 == 0.0)
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "Cannot get nearest FMT id\n");
+		return 0;
+	}
+	FmtId desired_fmt(fmt_id, esn0);
 	// FMT IDs are sorted from more to less robust
 	for(it = this->fmt_ids.rbegin();
 	    it != this->fmt_ids.rend();
@@ -106,7 +113,15 @@ void FmtGroup::parse(string ids)
 			if(std::find(this->fmt_ids.begin(),
 			             this->fmt_ids.end(), val) == this->fmt_ids.end())
 			{
-				FmtId fmt_id(val, this->modcod_def->getRequiredEsN0(val));
+				double esn0 = this->modcod_def->getRequiredEsN0(val);
+				if(esn0 == 0.0)
+				{
+					LOG(this->log_fmt, LEVEL_ERROR,
+					    "Cannot parse FMT group\n");
+					continue;
+				}
+				FmtId fmt_id(val, esn0);
+
 				this->fmt_ids.push_back(fmt_id);
 				LOG(this->log_fmt, LEVEL_INFO,
 				    "Add ID %u in FMT group %u\n", val, this->id);
@@ -124,7 +139,15 @@ void FmtGroup::parse(string ids)
 				if(std::find(this->fmt_ids.begin(),
 				             this->fmt_ids.end(), i) == this->fmt_ids.end())
 				{
-					FmtId fmt_id(i, this->modcod_def->getRequiredEsN0(i));
+					double esn0 = this->modcod_def->getRequiredEsN0(i);
+					if(esn0 == 0.0)
+					{
+						LOG(this->log_fmt, LEVEL_ERROR,
+						    "Cannot parse FMT group\n");
+						continue;
+					}
+					FmtId fmt_id(i, esn0);
+
 					this->fmt_ids.push_back(fmt_id);
 				}
 			}

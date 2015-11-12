@@ -312,6 +312,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	unsigned int carrier_id = 0;
 	int i;
 	string default_category_name;
+	vector<unsigned int> used_group_ids;
 
 
 	// Get the value of the bandwidth for return link
@@ -338,6 +339,62 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		goto error;
 	}
 
+	conf_list.clear();
+	// get the carriers distribution
+	if(!Conf::getListItems(spot, CARRIERS_DISTRI_LIST, conf_list))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "Section %s, %s missing\n", 
+		    section.c_str(),
+		    CARRIERS_DISTRI_LIST);
+		goto error;
+	}
+
+	// before initializing FMT groups, we need to get the IDs to initialize
+	// thanks to the access type
+	// indeed, we won't be able to initiliaze FMT groups for SCPC while parsing
+	// DAMA RCS carriers as the FMT definitions are not the same
+	i = 0;
+	for(ConfigurationList::iterator iter = conf_list.begin();
+	    iter != conf_list.end(); ++iter)
+	{
+		string access;
+		string group_id;
+		vector<unsigned int> group_ids;
+		i++;
+
+		// Get carriers' access type
+		if(!Conf::getAttributeValue(iter, ACCESS_TYPE, access))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in carriers "
+			    "distribution table entry %u\n", 
+			    section.c_str(),
+			    ACCESS_TYPE, i);
+			goto error;
+		}
+		if(strToAccessType(access) != access_type)
+		{
+			// we won't initialize FMT group here
+			continue;
+		}
+
+		// Get carriers' FMT id
+		if(!Conf::getAttributeValue(iter, FMT_GROUP, group_id))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Section %s, problem retrieving %s in carriers "
+			    "distribution table entry %u\n", 
+			    section.c_str(),
+			    FMT_GROUP, i);
+			goto error;
+		}
+		group_ids = tempSplit(group_id);
+		used_group_ids.insert(used_group_ids.end(), group_ids.begin(), group_ids.end());
+	}
+
+
+	conf_list.clear();
 	// get the FMT groups
 	if(!Conf::getListItems(spot,
 	                       FMT_GROUP_LIST,
@@ -364,6 +421,12 @@ bool DvbChannel::initBand(ConfigurationList spot,
 			    "groups\n", section.c_str(), 
 			    GROUP_ID);
 			goto error;
+		}
+		// check if we need to intialize this group id
+		if(std::find(used_group_ids.begin(), used_group_ids.end(), group_id) ==
+		   used_group_ids.end())
+		{
+			continue;
 		}
 
 		// Get FMT IDs
@@ -480,10 +543,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 			    ACCESS_TYPE, i);
 			goto error;
 		}
-		// TODO for SCPC we should not use the same fmt_def
-		//      when initializing band on NCC, at the moment we get
-		//      an error, this should not be displayed in this case
-		//      SCPC are only loaded for ratio computation
+
 		if(access != ACCESS_VCM &&
 		   (group_ids.size() > 1 || ratios.size() > 1))
 		{
@@ -499,10 +559,10 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		}
 
 		if(access == ACCESS_ALOHA and group_ids.size() == 1 and
-			fmt_groups[group_ids[0]]->getFmtIds().size() > 1)
+		   fmt_groups[group_ids[0]]->getFmtIds().size() > 1)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-				"Fmt group cannot have more then one modcod for saloha\n");
+				"Fmt group cannot have more than one modcod for saloha\n");
 			goto error;
 		}
 
@@ -518,20 +578,32 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			fmt_groups_t::const_iterator group_it;
 			group_it = fmt_groups.find(*it);
+			FmtGroup *group = NULL;
 			if(group_it == fmt_groups.end())
 			{
-				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "Section %s, no entry for FMT group with ID %u\n",
-				    section.c_str(), (*it));
-				goto error;
+				// we should have initialized the FMT group here
+				if(access_type == strToAccessType(access))
+				{
+					LOG(this->log_init_channel, LEVEL_ERROR,
+					    "Section %s, no entry for FMT group with ID %u\n",
+					    section.c_str(), (*it));
+					goto error;
+				}
 			}
-			if(group_ids.size() > 1 && (*group_it).second->getFmtIds().size() > 1)
+			else
 			{
-				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "For each VCM carriers, the FMT group should only "
-				    "contain one FMT id\n");
-				goto error;
+				group = (*group_it).second;
+				if(group_ids.size() > 1 && group->getFmtIds().size() > 1)
+				{
+					LOG(this->log_init_channel, LEVEL_ERROR,
+					    "For each VCM carriers, the FMT group should only "
+					    "contain one FMT id\n");
+					goto error;
+				}
 			}
+			// group may be NULL if this is not the good access type, this should be
+			// only used in other_carriers in TerminalCategory that won't access
+			// fmt_groups
 
 			// create the category if it does not exist
 			// we also create categories with wrong access type because:
@@ -544,7 +616,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 				category = new T(name, access_type);
 				categories[name] = category;
 			}
-			category->addCarriersGroup(carrier_id, (*group_it).second,
+			category->addCarriersGroup(carrier_id, group,
 			                           ratios[vcm_id],
 			                           symbol_rate_symps,
 			                           strToAccessType(access));
