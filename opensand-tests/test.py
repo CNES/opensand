@@ -1026,7 +1026,7 @@ help="specify the root folder for tests configurations\n"
                 if val not in self._result[type_name]:
                     self._result[type_name][val] = [int(success), int(not success)]
                 else:
-                    self._result[type_name][val] = [self._result[val][0] + int(success),
+                    self._result[type_name][val] = [self._result[type_name][val][0] + int(success),
                     self._result[type_name][val][1] + int(not success)]
 
         if not self._stopped and not self._model.all_running():
