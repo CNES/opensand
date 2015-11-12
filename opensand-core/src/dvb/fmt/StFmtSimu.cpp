@@ -38,6 +38,7 @@
 StFmtSimu::StFmtSimu(tal_id_t id,
                      uint8_t modcod_id):
 	id(id),
+	cni_has_changed(0),
 	// the column is the id at beginning
 	column(id),
 	current_modcod_id(modcod_id),
@@ -72,7 +73,7 @@ void StFmtSimu::setSimuColumnNum(unsigned long col)
 }
 
 
-uint8_t StFmtSimu::getCurrentModcodId() const
+uint8_t StFmtSimu::getCurrentModcodId()
 {
 	RtLock lock(this->modcod_mutex);
 	return this->current_modcod_id;
@@ -81,11 +82,25 @@ uint8_t StFmtSimu::getCurrentModcodId() const
 void StFmtSimu::updateModcodId(uint8_t new_id)
 {
 	RtLock lock(this->modcod_mutex);
+	if(new_id != this->current_modcod_id)
+	{
+		this->cni_has_changed = true;
+	}
 	this->current_modcod_id = new_id;
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
+bool StFmtSimu::getCniHasChanged()
+{
+	return this->cni_has_changed;
+}
+
+void StFmtSimu::setCniHasChanged(bool changed)
+{
+	this->cni_has_changed = changed;
+}	
+	
+//////////////////////////////////////////////////////////////////////////////
 ////////////////////////         StFmtSimuList          ////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -239,6 +254,38 @@ fmt_id_t StFmtSimuList::getCurrentModcodId(tal_id_t st_id) const
 	}
 
 	return (*st_iter).second->getCurrentModcodId();
+}
+
+bool StFmtSimuList::getCniHasChanged(tal_id_t st_id)
+{
+	RtLock lock(this->sts_mutex);
+	ListStFmt::iterator st_iter;
+
+	st_iter = this->sts->find(st_id);
+	if(st_iter == this->sts->end())
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "ST%u not found, cannot get CNI status\n", st_id);
+		return false;
+	}
+
+	return (*st_iter).second->getCniHasChanged();
+}
+
+void StFmtSimuList::setCniHasChanged(tal_id_t st_id, bool changed)
+{
+	RtLock lock(this->sts_mutex);
+	ListStFmt::iterator st_iter;
+
+	st_iter = this->sts->find(st_id);
+	if(st_iter == this->sts->end())
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "ST%u not found, cannot set CNI status\n", st_id);
+		return;
+	}
+
+	return (*st_iter).second->setCniHasChanged(changed);
 }
 
 bool StFmtSimuList::isStPresent(tal_id_t st_id) const

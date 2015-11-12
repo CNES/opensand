@@ -138,6 +138,7 @@ class Ule: public EncapPlugin
 		{
 			assert(0);
 		};
+		
 	};
 
 	/// Constructor

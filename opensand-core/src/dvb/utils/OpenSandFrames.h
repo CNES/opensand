@@ -49,11 +49,8 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 #include <cstring>
+#include <bits/endian.h>
 
-
-// The maximum number of MODCOD options
-// used to avoid very long emulated frames
-#define MAX_MODCOD_OPTIONS 5
 
 /// The maximum size of a DVB-RCS frame is choosen to be totally
 /// included in one sat_carrier packet
@@ -88,11 +85,6 @@
  * Start of Frame, NCC -> ST
  */
 #define MSG_TYPE_SOF 1
-
-/**
- * The message has been corrupted by the physical layer
- */
-#define MSG_TYPE_CORRUPTED 5
 
 /**
  * Satellie Access Control, ST -> NCC
@@ -155,7 +147,16 @@
 typedef struct
 {
 	uint16_t msg_length; ///< Total length of the message (including _this_ header)
-	uint8_t msg_type;   ///< Type of the message (see \#defines above)
+#if __BYTE_ORDER == __BIG_ENDIAN
+	uint8_t corrupted:1;  ///< Whether the frame is corrupted by physical layer
+	uint8_t msg_type:7;   ///< Type of the message (see \#defines above)
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+	uint8_t msg_type:7;   ///< Type of the message (see \#defines above)
+	uint8_t corrupted:1;  ///< Whether the frame is corrupted by physical layer
+#else
+#error "Please fix <bits/endian.h>"
+#endif
+
 } __attribute__((__packed__)) T_DVB_HDR;
 
 /**
@@ -201,6 +202,7 @@ typedef struct
 	rate_kbps_t rt_bandwidth; ///< the real time fixed bandwidth in kbits/s
 	rate_kbps_t max_rbdc;     ///< the maximum RBDC value in kbits/s
 	vol_kb_t max_vbdc;        ///< the maximum VBDC value in kbits/s
+	bool is_scpc;             ///< is the terminal scpc
 } __attribute__((__packed__)) T_DVB_LOGON_REQ;
 
 

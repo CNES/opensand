@@ -123,6 +123,10 @@ class Gse: public EncapPlugin
 	 */
 	class PacketHandler: public EncapPacketHandler
 	{
+	  private:
+
+		map<string, gse_encap_build_header_ext_cb_t> encap_callback;
+		map<string, gse_deencap_read_header_ext_cb_t> deencap_callback;
 
 	  public:
 
@@ -140,6 +144,18 @@ class Gse: public EncapPlugin
 		              NetPacket **data, NetPacket **remaining_data) const;
 		bool getSrc(const Data &data, tal_id_t &tal_id) const;
 		bool getQos(const Data &data, qos_t &qos) const;
+
+		NetPacket *getPacketForHeaderExtensions(const std::vector<NetPacket*>&packets);
+		bool setHeaderExtensions(const NetPacket* packet,
+                                 NetPacket** new_packet,
+                                 tal_id_t tal_id_src,
+                                 tal_id_t tal_id_dst,
+                                 string callback,
+                                 void *opaque);
+
+		bool getHeaderExtensions(const NetPacket *packet,
+                                 string callback,
+                                 void *opaqie);
 	};
 
 	/// Constructor

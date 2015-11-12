@@ -166,6 +166,16 @@ class DvbFrameTpl: public NetContainer
 	};
 	
 	/**
+	 * @brief Set the DVB header message type
+	 * 
+	 * @param type  The DVB frame message type
+	 */
+	void setCorrupted(uint8_t corrupted)
+	{
+		this->frame()->hdr.corrupted = corrupted;
+	};
+	
+	/**
 	 * @brief Set the DVB frame length
 	 * 
 	 * @param length  The DVB frame length
@@ -183,6 +193,16 @@ class DvbFrameTpl: public NetContainer
 	uint8_t getMessageType(void) const
 	{
 		return this->frame()->hdr.msg_type;
+	};
+	
+	/**
+	 * @brief Get the DVB corrupted status
+	 * 
+	 * @return  The status of the DVB frame
+	 */
+	uint8_t isCorrupted(void) const
+	{
+		return this->frame()->hdr.corrupted;
 	};
 	
 	/**

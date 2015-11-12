@@ -214,6 +214,13 @@ bool DamaCtrlRcs::buildTTP(Ttp *ttp)
 			total_allocation_pkt += terminal->getTotalVolumeAllocation();
 			total_allocation_pkt += terminal->getTotalRateAllocation();
 
+			// we need to do that else some CRA will be allocated and the terminal
+			// will send data even if there is no MODCOD robust enough
+			if(terminal->getFmtId() == 0)
+			{
+				total_allocation_pkt = 0;
+			}
+
 			//FIXME: is the offset to be 0 ???
 			if(!ttp->addTimePlan(0 /*FIXME: should it be the frame_counter of the bloc_dvb_rcs_ncc ?*/,
 			                     terminal->getTerminalId(),

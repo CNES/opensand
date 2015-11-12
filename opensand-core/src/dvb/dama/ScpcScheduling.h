@@ -67,9 +67,10 @@ class ScpcScheduling: public Scheduling
 	ScpcScheduling(time_ms_t scpc_timer_ms,
 	               const EncapPlugin::EncapPacketHandler *packet_handler,
 	               const fifos_t &fifos,
-	               FmtSimulation *const scpc_fmt_simu,
+	               const ListStFmt *const simu_sts,
 	               FmtDefinitionTable *const scpc_modcod_def,
-	               const TerminalCategoryDama *const category);
+	               const TerminalCategoryDama *const category,
+	               tal_id_t gw_id);
 
 	virtual ~ScpcScheduling();
 
@@ -102,10 +103,14 @@ class ScpcScheduling: public Scheduling
 	/** The terminal category */
 	const TerminalCategoryDama *category;
 
+	/** The gw id */
+	tal_id_t gw_id;
+
 	// Total and unused capacity probes
 	Probe<int> *probe_scpc_total_capacity;
 	Probe<int> *probe_scpc_total_remaining_capacity;
 	Probe<int> *probe_scpc_bbframe_nbr;
+	Probe<int> *probe_used_modcod;
 	map<unsigned int, vector<Probe<int> *> > probe_scpc_remaining_capacity;
 	map<unsigned int, vector<Probe<int> *> > probe_scpc_available_capacity;
 
@@ -130,7 +135,8 @@ class ScpcScheduling: public Scheduling
 	 *
 	 * @return         the simulated modcod ID for GW uplink 
 	 */
-	uint8_t retrieveCurrentModcod(void);
+	fmt_id_t retrieveCurrentModcod(const time_sf_t current_superframe_sf);
+	
 	/**
 	 * @brief Create an incomplete BB frame
 	 *
@@ -141,7 +147,7 @@ class ScpcScheduling: public Scheduling
 	 */
 	bool createIncompleteBBFrame(BBFrame **bbframe,
 	                             const time_sf_t current_superframe_sf,
-	                             unsigned int modcod_id);
+	                             fmt_id_t modcod_id);
 
 	/**
 	 * @brief Get the incomplete BBFrame for the current destination terminal
@@ -194,7 +200,7 @@ class ScpcScheduling: public Scheduling
 	 * @return true on success, false otherwise
 	 */
 	bool getBBFrameSizeSym(size_t bbframe_size_bytes,
-	                       unsigned int modcod_id,
+	                       fmt_id_t modcod_id,
 	                       const time_sf_t current_superframe_sf,
 	                       vol_sym_t &bbframe_size_sym);
 
@@ -204,7 +210,7 @@ class ScpcScheduling: public Scheduling
 	 * @param modcod_id           The BBFrame MODCOD ID
 	 * @return the BBFrame size in bytes
 	 */
-	unsigned int getBBFrameSizeBytes(unsigned int modcod_id);
+	unsigned int getBBFrameSizeBytes(fmt_id_t modcod_id);
 
 };
 

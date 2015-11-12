@@ -68,7 +68,7 @@
 
 BlockDvbSat::BlockDvbSat(const string &name):
 	BlockDvb(name),
-	spots()
+	gws()
 {
 }
 
@@ -76,12 +76,12 @@ BlockDvbSat::BlockDvbSat(const string &name):
 // BlockDvbSat dtor
 BlockDvbSat::~BlockDvbSat()
 {
-	sat_spots_t::iterator i_spot;
+	sat_gws_t::iterator i_gw;
 
 	// delete the satellite spots
-	for(i_spot = this->spots.begin(); i_spot != this->spots.end(); i_spot++)
+	for(i_gw = this->gws.begin(); i_gw != this->gws.end(); ++i_gw)
 	{
-		delete i_spot->second;
+		delete i_gw->second;
 	}
 	
 }
@@ -145,7 +145,6 @@ bool BlockDvbSat::initSpots(void)
 		uint8_t data_out_gw_id = 0;
 		uint8_t data_out_st_id = 0;
 		uint8_t log_id = 0;
-		SatSpot *new_spot;
 		SatGw *new_gw;
 
 		// Retrive FIFO size
@@ -265,46 +264,27 @@ bool BlockDvbSat::initSpots(void)
 		// create a new gw
 		//***************************
 		new_gw = new SatGw(gw_id, spot_id,
-		                   log_id,
-		                   ctrl_id,
+		                   log_id, ctrl_id,
 		                   data_in_st_id,
 		                   data_in_gw_id,
 		                   data_out_st_id,
 		                   data_out_gw_id,
 		                   fifo_size);
+		new_gw->init();
 
-		if(this->spots[spot_id] == NULL)
-		{
-			//***************************
-			// create a new spot
-			//***************************
-			new_spot = new SatSpot(spot_id);
-			if(new_spot == NULL)
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "failed to create a new satellite spot\n");
-				goto error;
-			}
-			
-			new_spot->addGw(new_gw);
+		this->gws[std::make_pair(spot_id, gw_id)] = new_gw;
+		
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "satellite spot %u: logon = %u, control = %u, "
+		    "data out ST = %u, data out GW = %u\n",
+		    spot_id, log_id, ctrl_id, data_out_st_id,
+		    data_out_gw_id);
 
-			LOG(this->log_init, LEVEL_NOTICE,
-			    "satellite spot %u: logon = %u, control = %u, "
-			    "data out ST = %u, data out GW = %u\n",
-			    spot_id, log_id, ctrl_id, data_out_st_id,
-			    data_out_gw_id);
-			// store the new satellite spot in the list of spots
-			this->spots[spot_id] = new_spot;
-		}
-		else
-		{
-			this->spots[spot_id]->addGw(new_gw);
-		}
 	}
 
 
-	((Upward *)this->upward)->setSpots(this->spots);
-	((Downward *)this->downward)->setSpots(this->spots);
+	((Upward *)this->upward)->setGws(this->gws);
+	((Downward *)this->downward)->setGws(this->gws);
 
 	return true;
 
@@ -324,7 +304,7 @@ BlockDvbSat::Downward::Downward(Block *const bl):
 	terminal_affectation(),
 	default_category(),
 	fmt_groups(),
-	spots(),
+	gws(),
 	probe_frame_interval(NULL)
 {
 };
@@ -393,30 +373,13 @@ bool BlockDvbSat::Downward::onInit()
 	return true;
 }
 
-void BlockDvbSat::Downward::setSpots(const sat_spots_t &spots)
+void BlockDvbSat::Downward::setGws(const sat_gws_t &gws)
 {
-	this->spots = spots;
+	this->gws = gws;
 }
 
 bool BlockDvbSat::Downward::initOutput(void)
 {
-	// Output probes and stats
-	sat_spots_t::iterator spot_it;
-	for(spot_it = this->spots.begin();
-	    spot_it != this->spots.end(); ++spot_it)
-	{
-		SatSpot* spot = spot_it->second;
-		list<SatGw *> list_gw = spot->getGwList();
-		list<SatGw *>::iterator gw_it;
-
-		for(gw_it = list_gw.begin() ; gw_it != list_gw.end() ;
-			++gw_it)
-		{
-			SatGw *gw = *gw_it;
-			gw->initProbes();
-		}
-	}
-
 	this->probe_frame_interval = Output::registerProbe<float>(
 		"Perf.Frames_interval", "ms", true, SAMPLE_LAST);
 
@@ -435,7 +398,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				bool status = true;
 				DvbFrame *dvb_frame;
 				dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-				sat_spots_t::iterator spot;
+				sat_gws_t::iterator gw;
 				spot_id_t spot_id ;
 				unsigned int carrier_id = dvb_frame->getCarrierId();
 				tal_id_t gw_id = 0;
@@ -458,18 +421,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					break;
 				}
 
-				spot = this->spots.find(spot_id);
-				if(spot == this->spots.end())
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "cannot find spot with ID %u in spot "
-					    "list\n", spot_id);
-					delete dvb_frame;
-					break;
-				}
-				SatSpot *current_spot = spots[spot_id];
-				SatGw *current_gw = current_spot->getGw(gw_id);
-
+				SatGw *current_gw = this->gws[std::make_pair(spot_id, gw_id)];
 				if(current_gw == NULL)
 				{
 					LOG(this->log_send, LEVEL_ERROR,
@@ -526,43 +478,34 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				    "frame timer expired, send DVB frames\n");
 
 				// send frame for every satellite spot
-				for(sat_spots_t::iterator i_spot = this->spots.begin();
-					i_spot != this->spots.end(); i_spot++)
+				for(sat_gws_t::iterator gw_iter = this->gws.begin();
+					gw_iter != this->gws.end(); ++gw_iter)
 				{
 
-					SatSpot *current_spot = i_spot->second;
-					list<SatGw *> listGw = current_spot->getGwList();
-					list<SatGw *>::iterator gw_iter;
-
-					for(gw_iter = listGw.begin() ; gw_iter != listGw.end() ;
-					    ++gw_iter)
+					SatGw *current_gw = gw_iter->second;
+					LOG(this->log_send, LEVEL_DEBUG,
+					    "send logon frames on satellite spot %u\n",
+					    current_gw->getSpotId());
+					if(!this->sendFrames(current_gw->getLogonFifo()))
 					{
-						SatGw *current_gw = *gw_iter;
-						LOG(this->log_send, LEVEL_DEBUG,
-						    "send logon frames on satellite spot %u\n",
-						    i_spot->first);
-						if(!this->sendFrames(current_gw->getLogonFifo()))
-						{
-							LOG(this->log_send, LEVEL_ERROR,
-							    "Failed to send logon frames on spot %u\n",
-							    i_spot->first);
-						}
+						LOG(this->log_send, LEVEL_ERROR,
+						    "Failed to send logon frames on spot %u\n",
+						    current_gw->getSpotId());
+					}
 
-						LOG(this->log_send, LEVEL_DEBUG,
-						    "send control frames on satellite spot %u\n",
-						    i_spot->first);
-						if(!this->sendFrames(current_gw->getControlFifo()))
-						{
-							LOG(this->log_send, LEVEL_ERROR,
-							    "Failed to send contol frames on spot %u\n",
-							    i_spot->first);
-						}
+					LOG(this->log_send, LEVEL_DEBUG,
+					    "send control frames on satellite spot %u\n",
+					    current_gw->getSpotId());
+					if(!this->sendFrames(current_gw->getControlFifo()))
+					{
+						LOG(this->log_send, LEVEL_ERROR,
+						    "Failed to send contol frames on spot %u\n",
+						    current_gw->getSpotId());
+					}
 
-						if(!this->handleTimerEvent(current_gw, 
-						                           i_spot->first))
-						{
-							return false;
-						}
+					if(!this->handleTimerEvent(current_gw))
+					{
+						return false;
 					}
 				}
 			}
@@ -570,22 +513,15 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 			else 
 			{
 				bool found = false;
-				sat_spots_t::iterator i_spot;
-				for(i_spot = this->spots.begin(); i_spot != this->spots.end(); i_spot++)
+				sat_gws_t::iterator gw_it;
+				for(gw_it = this->gws.begin(); gw_it != this->gws.end(); ++gw_it)
 				{
-					SatSpot* spot = i_spot->second;
-					list<SatGw *> list_gw = spot->getGwList();
-					list<SatGw *>::iterator gw_it;
-
-					for(gw_it = list_gw.begin() ; gw_it != list_gw.end() ;
-							++gw_it)
+					SatGw *current_gw = gw_it->second;
+					if(*event == current_gw->getScenarioTimer())
 					{
-						if(*event == (*gw_it)->getScenarioTimer())
-						{
-							this->handleScenarioTimer(*gw_it);	
-							found = true;
-							break;
-						}
+						this->handleScenarioTimer(current_gw);	
+						found = true;
+						break;
 					}
 				}
 				if(!found)
@@ -656,20 +592,12 @@ void BlockDvbSat::Downward::updateStats(void)
 		return;
 	}
 	// Update stats and probes
-	sat_spots_t::iterator spot_it;
-	for(spot_it = this->spots.begin();
-	    spot_it != this->spots.end(); ++spot_it)
+	sat_gws_t::iterator gw_iter;
+	for(gw_iter = this->gws.begin();
+	    gw_iter != this->gws.end(); ++gw_iter)
 	{
-		SatSpot* spot = (*spot_it).second;
-
-		list<SatGw *> listGw = spot->getGwList();
-		list<SatGw *>::iterator gw_iter;
-
-		for(gw_iter = listGw.begin() ; gw_iter != listGw.end(); ++gw_iter)
-		{
-			SatGw *current_gw = *gw_iter;
-			current_gw->updateProbes(this->stats_period_ms);
-		}
+		SatGw *current_gw = gw_iter->second;
+		current_gw->updateProbes(this->stats_period_ms);
 	}
 
 	// Send probes
@@ -688,7 +616,7 @@ void BlockDvbSat::Downward::updateStats(void)
 BlockDvbSat::Upward::Upward(Block *const bl):
 	DvbUpward(bl),
 	reception_std(NULL),
-	spots(),
+	gws(),
 	sat_delay()
 {
 };
@@ -704,9 +632,9 @@ BlockDvbSat::Upward::~Upward()
 }
 
 
-void BlockDvbSat::Upward::setSpots(const sat_spots_t &spots)
+void BlockDvbSat::Upward::setGws(const sat_gws_t &gws)
 {
-	this->spots = spots;
+	this->gws = gws;
 }
 
 bool BlockDvbSat::Upward::onInit()
@@ -727,6 +655,17 @@ bool BlockDvbSat::Upward::onInit()
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the mode part of the "
 		    "initialisation\n");
+		return false;
+	}
+	
+	// Retrieve the value of the ‘enable’ parameter for the physical layer
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		               ENABLE,
+	                   this->with_phy_layer))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, %s missing\n",
+		    PHYSICAL_LAYER_SECTION, ENABLE);
 		return false;
 	}
 
@@ -792,6 +731,22 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 		}
 		break;
 
+		case evt_timer:
+		{
+			if(*event == this->modcod_timer)
+			{
+				if(!this->updateSeriesGenerator())
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "SF#%u:Stop time series generation\n",
+					    this->super_frame_counter);
+					this->removeEvent(this->modcod_timer);
+					return false;
+				}
+			}
+		}
+		break;
+
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "unknown event: %s", event->getName().c_str());
@@ -809,10 +764,10 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 // The spots also protected for some shared elements
 bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
-	sat_spots_t::iterator spot;
 	spot_id_t spot_id;
 	tal_id_t gw_id;
 	unsigned int carrier_id = dvb_frame->getCarrierId();
+	uint8_t corrupted = dvb_frame->isCorrupted();
 
 	// get the satellite spot from which the DVB frame comes from
 	if(!OpenSandConf::getSpotWithCarrierId(carrier_id, spot_id, gw_id))
@@ -822,22 +777,12 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		return false;
 	}
 
-	SatSpot *current_spot = spots[spot_id];
-	SatGw *current_gw = current_spot->getGw(gw_id);
-
+	SatGw *current_gw = this->gws[std::make_pair(spot_id, gw_id)];
 	if(current_gw == NULL)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
-		    "cannot find gw id in spot %u\n", spot_id);
-		return false;
-	}
-
-	spot = this->spots.find(spot_id);
-	if(spot == this->spots.end())
-	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "cannot find spot with ID %u in spot "
-		    "list\n", spot_id);
+		    "cannot find gw id %d in spot %u\n", 
+		    gw_id, spot_id);
 		return false;
 	}
 
@@ -845,15 +790,15 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	    "DVB frame received from lower layer (type = %d, len %zu)\n",
 	    dvb_frame->getMessageType(),
 	    dvb_frame->getTotalLength());
+	
+	if(corrupted && this->handleCorrupted(dvb_frame)) 
+	{
+		return true;	
+	}
 
 	switch(dvb_frame->getMessageType())
 	{
-		case MSG_TYPE_CORRUPTED:
-			if(this->handleCorrupted(dvb_frame))
-			{
-				break;
-			}
-			// continue to handle the corrupted message in onRcvFrame
+		// continue to handle the corrupted message in onRcvFrame
 		case MSG_TYPE_DVB_BURST:
 		{
 			/* the DVB frame contains a burst of packets:
@@ -895,8 +840,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			 *  - send the burst to the upper layer.
 			 */
 			this->handleDvbBurst(dvb_frame, 
-			                     current_gw, 
-			                     current_spot);
+			                     current_gw);
 		}
 		break;
 		
@@ -905,8 +849,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		case MSG_TYPE_BBFRAME:
 		{
 			if(!this->handleBBFrame(dvb_frame, 
-			                        current_gw, 
-			                        current_spot))
+			                        current_gw))
 			{
 				return false;
 			}
@@ -917,8 +860,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		case MSG_TYPE_SALOHA_CTRL:
 		{
 			if(!this->handleSaloha(dvb_frame, 
-			                       current_gw, 
-			                       current_spot))
+			                       current_gw))
 			{
 				return false;
 			}

@@ -52,10 +52,24 @@ UplinkSchedulingRcs::UplinkSchedulingRcs(
 			tal_id_t gw_id):
 	Scheduling(packet_handler, fifos, ret_sts),
 	gw_id(gw_id),
+	lowest_modcod(0),
 	ret_modcod_def(ret_modcod_def),
 	category(category)
 {
+	vector<CarriersGroupDama *> carriers;
+	vector<CarriersGroupDama *>::iterator carrier_it;
+	carriers = this->category->getCarriersGroups();
 
+	this->lowest_modcod = this->ret_modcod_def->getMaxId();
+	for(carrier_it = carriers.begin();
+		carrier_it != carriers.end();
+		++carrier_it)
+	{
+		if((*carrier_it)->getFmtIds().front() < this->lowest_modcod)
+		{
+			this->lowest_modcod = (*carrier_it)->getFmtIds().front();
+		}
+	}
 }
 
 
@@ -69,7 +83,6 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	vector<CarriersGroupDama *>::iterator carrier_it;
 	carriers = this->category->getCarriersGroups();
 	uint8_t desired_modcod = this->retrieveCurrentModcod();
-	bool found_modcod = false;
 
 	// FIXME we consider the band is not the same for GW and terminals (this
 	//       is a good consideration...) but as we have only one band configuration
@@ -93,11 +106,20 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 			    "cannot use any modcod (desired %u) "
 			    "to send on on carrier %u\n", desired_modcod,
 			    carriers->getCarriersId());
-			// no available allocation on this carrier
-			carriers->setRemainingCapacity(0);
-			continue;
+
+			// do not skip if this is a carriers group with the lowest MODCOD
+			if(this->lowest_modcod != carriers->getFmtIds().front())
+			{
+				// no available allocation on this carrier
+				carriers->setRemainingCapacity(0);
+				continue;
+			}
+			modcod_id = this->lowest_modcod;
+			LOG(this->log_scheduling, LEVEL_NOTICE,
+			    "No carrier found to use modcod %u, "
+			    "send data with lowest available MODCOD %u\n",
+			    desired_modcod, this->lowest_modcod);
 		}
-		found_modcod = true;
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "Available MODCOD for GW = %u\n", modcod_id);
 
@@ -122,12 +144,6 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 		    carriers->getCarriersId(),
 		    remaining_capacity_pktpf,
 		    remaining_capacity_kb);
-	}
-	if(!found_modcod)
-	{
-		LOG(this->log_scheduling, LEVEL_WARNING,
-		    "No carrier found to use modcod %u\n",
-		    desired_modcod);
 	}
 
 	for(fifo_it = this->dvb_fifos.begin();
@@ -238,8 +254,8 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 			    "encapsulation packet (%zu bytes), pad the "
 			    "DVB-RCS frame and send it\n",
 			    current_superframe_sf,
-			                cpt_frame, incomplete_dvb_frame->getFreeSpace(),
-			                encap_packet->getTotalLength());
+			    cpt_frame, incomplete_dvb_frame->getFreeSpace(),
+			    encap_packet->getTotalLength());
 
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 
@@ -316,7 +332,7 @@ error:
 
 
 bool UplinkSchedulingRcs::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
-                                                      uint8_t modcod_id)
+                                                      fmt_id_t modcod_id)
 {
 	if(!this->packet_handler)
 	{

@@ -3,7 +3,6 @@ SUBDIRS = regenerative transparent
 noinst_LTLIBRARIES = libopensand_dvb_core.la
 
 libopensand_dvb_core_la_cpp = \
-	SatSpot.cpp \
 	SatGw.cpp \
 	PhysicStd.cpp \
 	DvbRcsStd.cpp \
@@ -20,7 +19,6 @@ libopensand_dvb_core_la_cpp = \
 	RequestSimulator.cpp
 
 libopensand_dvb_core_la_h = \
-	SatSpot.h \
 	SatGw.h \
 	PhysicStd.h \
 	DvbRcsStd.h \

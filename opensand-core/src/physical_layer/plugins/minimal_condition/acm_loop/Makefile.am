@@ -22,6 +22,7 @@ libopensand_acm_loop_minimal_plugin_la_LIBADD= \
     $(top_builddir)/src/dvb/fmt/libopensand_dvb_fmt.la
 
 INCLUDES = \
+	-I$(top_srcdir)/src/dvb/utils \
     -I$(top_srcdir)/src/dvb/fmt \
 	-I$(top_srcdir)/src/common
 

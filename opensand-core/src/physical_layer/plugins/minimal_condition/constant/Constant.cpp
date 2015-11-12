@@ -79,7 +79,7 @@ error:
 }
 
 
-bool Constant::updateThreshold(uint8_t UNUSED(modcod_id))
+bool Constant::updateThreshold(uint8_t UNUSED(modcod_id), uint8_t UNUSED(message_type))
 {
 	// Empty function, not necessary when
 	// Constant Minimal conditions

@@ -69,7 +69,7 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	// TODO DvbRcsFrame *dvb_frame = static_cast<DvbRcsFrame *>(dvb_frame);
 	DvbRcsFrame *dvb_rcs_frame = dvb_frame->operator DvbRcsFrame*();
 
-	if(dvb_rcs_frame->getMessageType() == MSG_TYPE_CORRUPTED)
+	if(dvb_rcs_frame->isCorrupted())
 	{
 		// corrupted, nothing more to do
 

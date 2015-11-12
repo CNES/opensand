@@ -160,7 +160,8 @@ class BlockDvb: public Block
 		 * @return            true on success, false otherwise
 		 */
 		bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
-
+		
+		
 		/**
 		 * Update the statistics
 		 */

@@ -53,7 +53,6 @@
 
 
 #include "BlockDvbSat.h"
-#include "SatSpot.h"
 #include "SatGw.h"
 #include "PhysicStd.h" 
 
@@ -77,7 +76,7 @@ class BlockDvbSatRegen: public BlockDvbSat
 	 public:
 		UpwardRegen(Block *const bl);
 		~UpwardRegen();
-
+		
 		bool onInit();
 
 	 private:
@@ -111,8 +110,7 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 * @return true on success , false otherwise
 		 */ 
 		bool handleDvbBurst(DvbFrame *dvb_frame,
-		                    SatGw *current_gw,
-		                    SatSpot *current_spot);
+		                    SatGw *current_gw);
 
 		/**
 		 * Handle Sac
@@ -128,17 +126,22 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 * @return true on success, false otherwise
 		 */ 
 		bool handleBBFrame(DvbFrame *dvb_frame, 
-		                   SatGw *current_gw,
-		                   SatSpot *current_spot);
+		                   SatGw *current_gw);
 		/**
 		 * Handle Saloha
 		 *
 		 * @return true on success, false otherwise
 		 */ 
 		bool handleSaloha(DvbFrame *dvb_frame, 
-		                  SatGw *current_gw,
-		                  SatSpot *current_spot);
+		                  SatGw *current_gw);
 	
+		/**
+		 * @brief  Add a new line in the MODCOD time series generator file
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool updateSeriesGenerator(void);
+
 	};
 
 	// TODO move DvbFmt inheritance in SatGw
@@ -148,8 +151,6 @@ class BlockDvbSatRegen: public BlockDvbSat
 		DownwardRegen(Block *const bl);
 		~DownwardRegen();
 		
-		bool onInit();
-
 	 private:
 		/**
 		 * @brief Initialize the link
@@ -173,13 +174,6 @@ class BlockDvbSatRegen: public BlockDvbSat
 		bool initTimers(void);
 		
 		/**
-		 * @brief Read configuration for the different files and open them
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initModcodSimu(void);
-				
-		/**
 		 *
 		 * @param packet    The NetPacket
 		 * @return          true on success, false otherwise
@@ -198,8 +192,7 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 *
 		 * @return true on success, false otherwise
 		 */ 
-		bool handleTimerEvent(SatGw *current_gw,
-		                      uint8_t spot_id);
+		bool handleTimerEvent(SatGw *current_gw);
 		
 		/**
 		 * @ brief handle scenario event timer

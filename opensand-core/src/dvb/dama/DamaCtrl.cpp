@@ -141,7 +141,7 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 
 	this->converter = new UnitConverter(packet_length_bytes,
 	                                    this->frame_duration_ms);
-	if(converter == NULL)
+	if(this->converter == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Cannot create the Unit Converter\n");

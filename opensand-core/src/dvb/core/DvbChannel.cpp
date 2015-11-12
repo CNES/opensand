@@ -322,6 +322,7 @@ bool DvbFmt::initModcodSimuFile(const char *simu,
 	string modcod_simu_file;
 	ConfigurationList current_gw;
 	time_ms_t acm_period_ms;
+	bool loop_on_simu_file;
 
 	if(this->with_phy_layer)
 	{
@@ -358,13 +359,24 @@ bool DvbFmt::initModcodSimuFile(const char *simu,
 		    PHYSICAL_LAYER_SECTION, spot_id, gw_id, simu);
 		return false;
 	}
-
+	
+	if(!Conf::getValue(current_gw, LOOP_ON_FILE, 
+		               loop_on_simu_file))
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
+		    PHYSICAL_LAYER_SECTION, spot_id, gw_id, LOOP_ON_FILE);
+		return false;
+	}
+	
 	LOG(this->log_fmt, LEVEL_NOTICE,
 	    "MODCOD simulation path set to %s\n",
 	    modcod_simu_file.c_str());
 
 	// set the MODCOD simulation file
-	if(!fmt_simu.setModcodSimu(modcod_simu_file, acm_period_ms))
+	if(!fmt_simu.setModcodSimu(modcod_simu_file, 
+		                       acm_period_ms,
+		                       loop_on_simu_file))
 	{
 		return false;
 	}
@@ -465,7 +477,6 @@ void DvbFmt::setRequiredModcod(tal_id_t tal_id,
 void DvbFmt::setRequiredCniInput(tal_id_t tal_id,
                                  double cni)
 {
-
 	this->setRequiredModcod(tal_id, cni, this->input_modcod_def,
 	                        this->input_sts);
 }
@@ -491,18 +502,20 @@ uint8_t DvbFmt::getCurrentModcodIdOutput(tal_id_t id) const
 }
 
 
-double DvbFmt::getRequiredCniInput(tal_id_t tal_id) const
+double DvbFmt::getRequiredCniInput(tal_id_t tal_id)
 {
 	fmt_id_t modcod_id;
 	modcod_id = this->getCurrentModcodIdInput(tal_id);
+	this->input_sts->setCniHasChanged(tal_id, false);
 	return this->getRequiredCni(modcod_id, this->input_modcod_def);
 }
 
 
-double DvbFmt::getRequiredCniOutput(tal_id_t tal_id) const
+double DvbFmt::getRequiredCniOutput(tal_id_t tal_id)
 {
 	fmt_id_t modcod_id;
 	modcod_id = this->getCurrentModcodIdOutput(tal_id);
+	this->output_sts->setCniHasChanged(tal_id, false);
 	return this->getRequiredCni(modcod_id, this->output_modcod_def);
 }
 
@@ -513,4 +526,90 @@ double DvbFmt::getRequiredCni(fmt_id_t modcod_id,
 	return cni;
 }
 
+bool DvbFmt::getCniInputHasChanged(tal_id_t tal_id)
+{
+	return this->input_sts->getCniHasChanged(tal_id);
+}
 
+bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
+{
+	return this->output_sts->getCniHasChanged(tal_id);
+}
+
+bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
+                                MacFifoElement *elem,
+                                DvbFifo *fifo,
+                                std::vector<NetPacket*> packet_list,
+                                NetPacket **extension_pkt,
+                                tal_id_t source,
+                                tal_id_t dest,
+                                string extension_name,
+	                            time_sf_t super_frame_counter,
+                                const FmtDefinitionTable *const modcod_def,
+	                            bool is_gw)
+{
+	uint32_t opaque = 0;
+	fmt_id_t modcod_id;
+	if(is_gw)
+	{	
+		modcod_id = this->getCurrentModcodIdInput(dest);
+		this->input_sts->setCniHasChanged(dest, false);
+	}
+	else
+	{
+		modcod_id = this->getCurrentModcodIdInput(source);
+		this->input_sts->setCniHasChanged(source, false);
+	}
+	opaque = hcnton(this->getRequiredCni(modcod_id, modcod_def));
+	
+	bool replace = false;
+	NetPacket *selected_pkt = pkt_hdl->
+	                  getPacketForHeaderExtensions(packet_list);
+	if(selected_pkt != NULL)
+	{
+		LOG(this->log_fmt, LEVEL_DEBUG,
+			"SF#%d: found no-fragmented packet without extensions\n",
+		    super_frame_counter);
+		replace = true;
+	}
+	else
+	{
+		LOG(this->log_fmt, LEVEL_DEBUG,
+		//LOG(this->log_fmt, LEVEL_WARNING,
+			"SF#%d: no non-fragmented or without extension packet found, "
+			"create empty packet\n", super_frame_counter);
+	}
+				
+	if(!pkt_hdl->setHeaderExtensions(selected_pkt,
+	                                 extension_pkt,
+	                                 source, 
+	                                 dest, 
+	                                 extension_name,
+	                                 &opaque))
+	{
+		LOG(this->log_fmt, LEVEL_DEBUG,
+		    "SF#%d: cannot add header extension in packet",
+		    super_frame_counter);
+		return false;
+	}
+
+	if(extension_pkt == NULL)
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "SF#%d: failed to create the GSE packet with "
+		    "extensions\n", super_frame_counter);
+		return false;
+	}
+	if(replace)
+	{
+		// And replace the packet in the FIFO
+		elem->setElem(*extension_pkt);
+	}
+	else
+	{
+		MacFifoElement *new_el = new MacFifoElement(*extension_pkt, 0, 0);
+		fifo->pushBack(new_el);
+	}
+	
+	return true;
+}

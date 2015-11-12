@@ -654,8 +654,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					spot_id = OpenSandConf::spot_table[tal_id];
 				}
 
-				spot_iter = spots.find(spot_id);
-				if(spot_iter == spots.end())
+				spot_iter = this->spots.find(spot_id);
+				if(spot_iter == this->spots.end())
 				{
 					LOG(this->log_receive, LEVEL_ERROR, 
 					    "couldn't find spot %d", 
@@ -826,6 +826,8 @@ bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame,
 		goto release;
 	}
 	
+	// TODO only used here tal_id and logon_id are the same
+	// may be we can simplify the constructor
 	logon_resp = new LogonResponse(mac, this->mac_id, mac);
 
 	LOG(this->log_send, LEVEL_DEBUG,
@@ -922,7 +924,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 		               ENABLE,
 	                   with_phy_layer))
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
+		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n",
 		    PHYSICAL_LAYER_SECTION, ENABLE);
 		return false;
@@ -966,39 +968,39 @@ bool BlockDvbNcc::Upward::onInit(void)
 			                                         ));
 			this->raiseTimer(spot->getModcodTimer());
 		}
-		else
-		{
-			string generate;
-			time_ms_t acm_period_ms;
+	}
+	if(with_phy_layer && this->satellite_type == TRANSPARENT)
+	{
+		string generate;
+		time_ms_t acm_period_ms;
 
-			// Check whether we generate the time series
+		// Check whether we generate the time series
+		if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+		                   GENERATE_TIME_SERIES_PATH, generate))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Section %s, %s missing\n",
+			    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
+			return false;
+		}
+		if(generate != "none")
+		{
 			if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-			                   GENERATE_TIME_SERIES_PATH, generate))
+			                   ACM_PERIOD_REFRESH,
+			                   acm_period_ms))
 			{
-				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "Section %s, %s missing\n",
-				    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
+				LOG(this->log_init, LEVEL_ERROR,
+				   "section '%s': missing parameter '%s'\n",
+				   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
 				return false;
 			}
-			if(generate != "none")
-			{
-				if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-				                   ACM_PERIOD_REFRESH,
-				                   acm_period_ms))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					   "section '%s': missing parameter '%s'\n",
-					   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
-					return false;
-				}
 
-				LOG(this->log_init, LEVEL_NOTICE,
-				    "ACM period set to %d ms\n",
-				    acm_period_ms);
+			LOG(this->log_init, LEVEL_NOTICE,
+			    "ACM period set to %d ms\n",
+			    acm_period_ms);
 
-				this->modcod_timer = this->addTimerEvent("generate_time_series",
-				                                         acm_period_ms);
-			}
+			this->modcod_timer = this->addTimerEvent("generate_time_series",
+			                                         acm_period_ms);
 		}
 	}
 
@@ -1061,7 +1063,6 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				// burst
 				case MSG_TYPE_BBFRAME:
 				case MSG_TYPE_DVB_BURST:
-				case MSG_TYPE_CORRUPTED:
 				{
 					// Update C/N0
 					spot->handleFrameCni(dvb_frame);

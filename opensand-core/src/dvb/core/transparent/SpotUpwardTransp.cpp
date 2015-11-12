@@ -43,11 +43,14 @@
 #include "Sof.h"
 
 SpotUpwardTransp::SpotUpwardTransp(spot_id_t spot_id,
-                       tal_id_t mac_id,
-                       StFmtSimuList *input_sts,
-                       StFmtSimuList *output_sts):
+                                   tal_id_t mac_id,
+                                   StFmtSimuList *input_sts,
+                                   StFmtSimuList *output_sts):
 	SpotUpward(spot_id, mac_id, input_sts, output_sts),
-	saloha(NULL)
+	saloha(NULL),
+	is_tal_scpc(),
+	input_series(NULL),
+	output_series(NULL)
 {
 }
 
@@ -56,6 +59,11 @@ SpotUpwardTransp::~SpotUpwardTransp()
 {
 	if(this->saloha)
 		delete this->saloha;
+	
+	if(this->input_series)
+		delete this->input_series;
+	if(this->output_series)
+		delete this->output_series;
 }
 
 
@@ -71,12 +79,20 @@ bool SpotUpwardTransp::onInit(void)
 		    "initialisation\n");
 		return false;
 	}
-	
+
 	if(!SpotUpward::onInit())
 	{
 		return false;
 	}
 
+	if(!this->initSeriesGenerator())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the time series generator "
+		    "part of the initialisation\n");
+		return false;
+	}
+	
 	// initialize the slotted Aloha part
 	if(!this->initSlottedAloha())
 	{
@@ -222,7 +238,14 @@ bool SpotUpwardTransp::initModcodSimu(void)
 		    "failed to initialize the uplink MODCOD file\n");
 		return false;
 	}
-
+	if(!this->initModcodDefFile(MODCOD_DEF_S2,
+	                            &this->input_modcod_def_scpc))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the uplink MODCOD file\n");
+		return false;
+	}
+	
 	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
 	                             this->mac_id, this->spot_id))
 	{
@@ -412,6 +435,7 @@ bool SpotUpwardTransp::initOutput(void)
 bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 {
 	uint8_t msg_type = frame->getMessageType();
+	uint8_t corrupted = frame->isCorrupted();
 	PhysicStd *std = this->reception_std;
 	
 	if(msg_type == MSG_TYPE_BBFRAME)
@@ -436,6 +460,40 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 		    "failed to handle DVB frame or BB frame\n");
 		return false;
 	}
+	NetBurst::iterator pkt_it;
+	NetBurst *pkt_burst = (*burst);
+	if(pkt_burst)
+	{
+		for(pkt_it = pkt_burst->begin(); pkt_it != pkt_burst->end(); ++pkt_it)
+		{
+			const NetPacket *packet = (*pkt_it);
+			tal_id_t tal_id = packet->getSrcTalId();
+			list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(), 
+			                                             this->is_tal_scpc.end(),
+				                                         tal_id);
+			if(it_scpc != this->is_tal_scpc.end() &&  
+			   packet->getDstTalId() == this->mac_id)
+			{
+				uint32_t opaque = 0;
+				if(!this->scpc_pkt_hdl->getHeaderExtensions(packet,
+				                                            "deencodeCniExt",
+				                                            &opaque))
+				{
+					LOG(this->log_receive_channel, LEVEL_ERROR,
+					    "error when trying to read header extensions\n");
+					return false;
+				}
+				if(opaque != 0)
+				{
+					// This is the C/N0 value evaluated by the Terminal 
+					// and transmitted via GSE extensions
+					// TODO we could make specific SCPC function
+					this->setRequiredCniOutput(tal_id, ncntoh(opaque)); 
+					break;
+				}
+			}
+		}
+	}
 
 	// TODO MODCOD should also be updated correctly for SCPC but at the moment
 	//      FMT simulations cannot handle this, fix this once this
@@ -443,7 +501,7 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 	if(std->getType() == "DVB-S2")
 	{
 		DvbS2Std *s2_std = (DvbS2Std *)std;
-		if(msg_type != MSG_TYPE_CORRUPTED)
+		if(!corrupted)
 		{
 			this->probe_received_modcod->put(s2_std->getReceivedModcod());
 		}
@@ -456,6 +514,27 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 	return true;
 }
 
+bool SpotUpwardTransp::updateSeriesGenerator(void)
+{
+	if(!this->input_series || !this->output_series)
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "Cannot update series\n");
+		return false;
+	}
+
+	if(!this->input_series->add(this->input_sts->getListSts()))
+	{
+		return false;
+	}
+
+	if(!this->output_series->add(this->output_sts->getListSts()))
+	{
+		return false;
+	}
+	return true;
+}
+
 void SpotUpwardTransp::handleFrameCni(DvbFrame *dvb_frame)
 {
 	if(!this->with_phy_layer)
@@ -464,22 +543,56 @@ void SpotUpwardTransp::handleFrameCni(DvbFrame *dvb_frame)
 	}
 
 	double curr_cni = dvb_frame->getCn();
-	// transparent case : update return modcod for terminal
-	DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+	uint8_t msg_type = dvb_frame->getMessageType();
 	tal_id_t tal_id;
-	// decode the first packet in frame to be able to
-	// get source terminal ID
-	if(!this->pkt_hdl->getSrc(frame->getPayload(),
-	                          tal_id))
+	
+	switch(msg_type)
 	{
-		LOG(this->log_receive_channel, LEVEL_ERROR,
-		    "unable to read source terminal ID in"
-		    " frame, won't be able to update C/N"
-		    " value\n");
-		return;
+		// Cannot check frame type because of currupted frame
+		case MSG_TYPE_DVB_BURST:
+			{
+				// transparent case : update return modcod for terminal
+				DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+				// decode the first packet in frame to be able to
+				// get source terminal ID
+				if(!this->pkt_hdl->getSrc(frame->getPayload(),
+				                          tal_id))
+				{
+					LOG(this->log_receive_channel, LEVEL_ERROR,
+					    "unable to read source terminal ID in"
+					    " frame, won't be able to update C/N"
+					    " value\n");
+					return;
+				}
+				this->setRequiredCniInput(tal_id, curr_cni);
+				break;
+			}
+		case MSG_TYPE_BBFRAME:
+			{	
+				// SCPC
+				BBFrame *frame = dvb_frame->operator BBFrame*();
+				// decode the first packet in frame to be able to
+				// get source terminal ID
+				if(!this->scpc_pkt_hdl->getSrc(frame->getPayload(),
+				                               tal_id))
+				{
+					LOG(this->log_receive_channel, LEVEL_ERROR,
+					    "unable to read source terminal ID in"
+					    " frame, won't be able to update C/N"
+					    " value\n");
+					return;
+				}
+				// TODO we could make specific SCPC function
+				this->setRequiredModcod(tal_id, curr_cni, 
+				                        this->input_modcod_def_scpc,
+				                        this->input_sts);
+				break;
+			}
+		default:
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "Wrong message type %u, this shouldn't happened", msg_type);
+			break;
 	}
-
-	this->setRequiredCniInput(tal_id, curr_cni);
 
 	return;
 }
@@ -551,7 +664,12 @@ bool SpotUpwardTransp::onRcvLogonReq(DvbFrame *dvb_frame)
 	
 	LogonRequest *logon_req = (LogonRequest *)dvb_frame;
 	uint16_t mac = logon_req->getMac();
-
+	bool is_scpc = logon_req->getIsScpc();
+	if(is_scpc)
+	{
+		this->is_tal_scpc.push_back(mac);
+	}
+	
 	// Inform SlottedAloha
 	if(this->saloha)
 	{

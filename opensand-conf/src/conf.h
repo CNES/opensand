@@ -242,6 +242,7 @@
 #define FORWARD_DOWN_MODCOD_TIME_SERIES   "forward_down_modcod_time_series"
 #define MODCOD_DEF_RCS                    "modcod_def_rcs"
 #define RETURN_UP_MODCOD_TIME_SERIES      "return_up_modcod_time_series"
+#define LOOP_ON_FILE                      "loop_on_file"
 
 #define GENERATE_TIME_SERIES_PATH         "generate_time_series_path"
 
@@ -313,4 +314,8 @@
 #define SAT_CARRIER    "sat_carrier"
 #define PHYS           "physical_layer"*/
 
+/////////////
+// OTHERS  //
+///////////// 
+#define ENCODE_CNI_EXT  "encodeCniExt"
 #endif

@@ -90,6 +90,13 @@ bool SpotDownwardTransp::onInit(void)
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
+	if(!this->initModcodDefFile(MODCOD_DEF_S2,
+	                            &this->input_modcod_def_scpc))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the forward MODCOD file\n");
+		return false;
+	}
 	
 	if(!SpotDownward::onInit())
 	{

@@ -209,6 +209,15 @@ class DvbFifo
 	bool pushFront(MacFifoElement *elem);
 
 	/**
+	 * @brief Add an element at the back of the list
+	 *        (Decrements new_length_bytes)
+	 *
+	 * @param elem is the pointer on MacFifoElement
+	 * @return true on success, false otherwise
+	 */
+	bool pushBack(MacFifoElement *elem);
+
+	/**
 	 * @brief Remove an element at the head of the list
 	 *
 	 * @return NULL pointer if extraction failed because fifo is empty
@@ -228,6 +237,12 @@ class DvbFifo
 	 * @return statistics context
 	 */
 	void getStatsCxt(mac_fifo_stat_context_t &stat_info);
+
+	void setCni(uint8_t cni);
+
+	uint8_t getCni(void) const;
+
+	vector<MacFifoElement *> getQueue(void);
 
  protected:
 
@@ -251,6 +266,8 @@ class DvbFifo
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer
 
 	mutable RtMutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access
+
+	uint8_t cni;                ///< is Scpc mode add cni as option into gse packet
 
 	// Output log
 	OutputLog *log_dvb_fifo;

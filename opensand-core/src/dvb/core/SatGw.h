@@ -43,6 +43,7 @@
 #include "FmtSimulation.h"
 #include "StFmtSimu.h"
 #include "TerminalCategoryDama.h"
+#include "TimeSeriesGenerator.h"
 
 #include <opensand_output/OutputLog.h>
 
@@ -64,7 +65,7 @@ class SatGw: public DvbFmt
 
  private:
 	tal_id_t gw_id;            ///< Internal identifier of a gw
-	spot_id_t spot_id;           ///< Internal identifier of a spot
+	spot_id_t spot_id;         ///< Internal identifier of a spot
 	
 	uint8_t data_in_st_id;     ///< Carrier ID associated with Data from the ST
 	uint8_t data_in_gw_id;     ///< Carrier ID associated with Data from the GW
@@ -97,6 +98,12 @@ class SatGw: public DvbFmt
 
 	/// Mutex to protect access to spot element
 	RtMutex gw_mutex;
+	
+	/// time series generator for input
+	TimeSeriesGenerator *input_series;
+
+	/// time series generator for output
+	TimeSeriesGenerator *output_series;
 
 	// Output probes and stats
 	typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
@@ -123,8 +130,6 @@ class SatGw: public DvbFmt
 	 *
 	 * @param gw_id              The gw id
 	 * @param spot_id            The spot id
-	 * @param satellite_type     The Satellite type
-	 * @param stats_period_ms    The probes period in ms
 	 * @param log_id             The carrier id for logon packets
 	 * @param ctrl_id            The carrier id for control frames
 	 * @param data_in_st_id      The carrier id for incoming GW data
@@ -143,6 +148,8 @@ class SatGw: public DvbFmt
 	      uint8_t data_out_gw_id,
 	      size_t fifo_size);
 	~SatGw();
+
+	bool init();
 
 	/**
 	 * initialize the scheduling attribute
@@ -172,6 +179,13 @@ class SatGw: public DvbFmt
 	 * @return  true on success, false otherwise
 	 */
 	bool initModcodSimu(void);
+	
+	/**
+	 *  @brief Initialize the time series generators
+	 *
+	 *  @return  true on success, false otherwise
+	 */
+	bool initSeriesGenerator(void);
 
 	/**
 	 * @brief initialize probes
@@ -199,6 +213,14 @@ class SatGw: public DvbFmt
 	 * @return true on success, false otherwise
 	 */ 
 	bool addTerminal(tal_id_t tal_id);
+	
+	/**
+	 * @brief  Add a new line in the MODCOD time series generator file
+	 *
+	 *  @return true on success, false otherwise
+	 */
+	bool updateSeriesGenerator(void);
+
 
 	/**
 	 * Update fmt
@@ -367,6 +389,6 @@ class SatGw: public DvbFmt
 
 
 /// The map of satellite spots
-typedef map<uint8_t, SatGw *> sat_gws_t;
+typedef map<pair<spot_id_t, uint8_t>, SatGw *> sat_gws_t;
 
 #endif

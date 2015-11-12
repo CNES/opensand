@@ -174,7 +174,7 @@ class BlockDvbTal: public BlockDvb
 		 * @return true on success, false otherwise
 		 */
 		bool onRcvLogonResp(DvbFrame *dvb_frame);
-
+		
 		/**
 		 * Transmist a frame to the opposite channel
 		 *
@@ -196,8 +196,11 @@ class BlockDvbTal: public BlockDvb
 		/// the logon ID sent by NCC (only valid in state_running,
 		/// should be the same as the mac_id)
 		tal_id_t tal_id;
+		tal_id_t gw_id;
 		spot_id_t spot_id;
-
+		// is the terminal scpc
+		bool is_scpc;
+		
 		/// the current state of the ST
 		tal_state_t state;
 
@@ -343,6 +346,12 @@ class BlockDvbTal: public BlockDvb
 		static void closeQosSocket(int sig);
 
 		/**
+		 * add Cni extension into Gse packet
+		 * @return true on success, false otherwise
+		 */ 
+		bool addCniExt(void);
+
+		/**
 		 * Delete packets in dvb_fifo
 		 */
 		void deletePackets(void);
@@ -361,7 +370,10 @@ class BlockDvbTal: public BlockDvb
 		/// the logon ID sent by NCC (only valid in state_running,
 		/// should be the same as the mac_id)
 		tal_id_t tal_id;
+		tal_id_t gw_id;
 		spot_id_t spot_id;
+		// is the terminal scpc
+		bool is_scpc;
 
 		/// fixed bandwidth (CRA) in kbits/s
 		rate_kbps_t cra_kbps;
@@ -459,6 +471,7 @@ class BlockDvbTal: public BlockDvb
 
 	/// The list of Sts with return/up modcod
 	StFmtSimuList* input_sts;
+	StFmtSimuList* output_sts;
 };
 
 #endif

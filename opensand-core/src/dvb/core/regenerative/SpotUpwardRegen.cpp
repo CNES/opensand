@@ -130,78 +130,6 @@ bool SpotUpwardRegen::initModcodSimu(void)
 	return true;
 }
 
-bool SpotUpwardRegen::initSeriesGenerator(void)
-{
-	string generate;
-	ConfigurationList current_gw;
-	string input_file;
-	string output_file;
-	vector<string> path_split;
-
-	if(!this->with_phy_layer)
-	{
-		return true;
-	}
-
-	// Check whether we generate the time series
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   GENERATE_TIME_SERIES_PATH, generate))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
-		return false;
-	}
-	if(generate == "none")
-	{
-		return true;
-	}
-
-	// load the time series filenames
-	if(!OpenSandConf::getSpot(PHYSICAL_LAYER_SECTION,
-	                          this->spot_id, this->mac_id, current_gw))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d and gw %d\n",
-		    PHYSICAL_LAYER_SECTION, this->spot_id, this->mac_id);
-		return false;
-	}
-
-	if(!Conf::getValue(current_gw, FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                   input_file))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
-		    PHYSICAL_LAYER_SECTION, this->spot_id, this->mac_id,
-		    RETURN_UP_MODCOD_TIME_SERIES);
-		return false;
-	}
-
-	// extract the filename from path
-	tokenize(input_file, path_split, "/");
-	input_file = generate + "/" + path_split.back();
-
-	if(!Conf::getValue(current_gw, RETURN_UP_MODCOD_TIME_SERIES,
-	                   output_file))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
-		    PHYSICAL_LAYER_SECTION, this->spot_id, this->mac_id,
-		    FORWARD_DOWN_MODCOD_TIME_SERIES);
-		return false;
-	}
-
-	// extract the filename from path
-	tokenize(output_file, path_split, "/");
-	output_file = generate + "/" + path_split.back();
-
-
-	this->input_series = new TimeSeriesGenerator(input_file);
-	this->output_series = new TimeSeriesGenerator(output_file);
-	return true;
-}
-
-
 bool SpotUpwardRegen::initMode(void)
 {
 	this->reception_std = new DvbS2Std(this->pkt_hdl);
@@ -246,7 +174,7 @@ bool SpotUpwardRegen::initOutput(void)
 
 bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 {
-	uint8_t msg_type = frame->getMessageType();
+	uint8_t corrupted = frame->isCorrupted();
 	PhysicStd *std = this->reception_std;
 	
 	// Update stats
@@ -262,7 +190,7 @@ bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 	if(std->getType() == "DVB-S2")
 	{
 		DvbS2Std *s2_std = (DvbS2Std *)std;
-		if(msg_type != MSG_TYPE_CORRUPTED)
+		if(!corrupted)
 		{
 			this->probe_received_modcod->put(s2_std->getReceivedModcod());
 		}
@@ -290,3 +218,7 @@ void SpotUpwardRegen::handleFrameCni(DvbFrame *dvb_frame)
 }
 
 
+bool SpotUpwardRegen::updateSeriesGenerator(void)
+{
+	return true;
+}

@@ -81,6 +81,7 @@ class DvbChannel
 		pkt_hdl(NULL),
 		stats_period_ms(),
 		stats_period_frame(),
+		modcod_timer(-1),
 		log_init_channel(NULL),
 		log_receive_channel(NULL),
 		log_send_channel(NULL),
@@ -233,6 +234,7 @@ class DvbChannel
 	OutputLog *log_send_channel;
 
 	static OutputLog *dvb_fifo_log;
+		
 	
  private:
 	/// Whether we can send stats or not (can send stats when 0)
@@ -771,6 +773,7 @@ class DvbFmt
 		fmt_simu(),
 		input_sts(NULL),
 		input_modcod_def(NULL),
+		input_modcod_def_scpc(NULL),
 		output_sts(NULL),
 		output_modcod_def(NULL),
 		log_fmt(NULL)
@@ -784,6 +787,10 @@ class DvbFmt
 		if(this->input_modcod_def)
 		{
 			delete this->input_modcod_def;
+		}
+		if(this->input_modcod_def_scpc)
+		{
+			delete this->input_modcod_def_scpc;
 		}
 		if(this->output_modcod_def)
 		{
@@ -848,7 +855,7 @@ class DvbFmt
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	double getRequiredCniInput(tal_id_t tal_id) const;
+	double getRequiredCniInput(tal_id_t tal_id);
 	
 	/**
 	 * @brief Get the CNI of the ST whose ID is given as input
@@ -859,7 +866,7 @@ class DvbFmt
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	double getRequiredCniOutput(tal_id_t tal_id) const;
+	double getRequiredCniOutput(tal_id_t tal_id);
 
  protected:
 
@@ -970,32 +977,7 @@ class DvbFmt
 	 */
 	double getRequiredCni(fmt_id_t modcod_id,
                           const FmtDefinitionTable *modcod_def) const;
-
-	/// Physical layer enable
-	bool with_phy_layer;
-
-	/// The MODCOD simulation elements
-	FmtSimulation fmt_simu;
-
-	/** The internal map that stores all the STs and modcod id for input */
-	StFmtSimuList *input_sts;
-
-	/// The MODCOD Definition Table for input
-	FmtDefinitionTable *input_modcod_def;
-
-	/** The internal map that stores all the STs and modcod id for output */
-	StFmtSimuList *output_sts;
-
-	/// The MODCOD Definition Table for output
-	FmtDefinitionTable *output_modcod_def;
-
-	// log
-	OutputLog *log_fmt;
 	
- private:
-	/// Whether we can send stats or not (can send stats when 0)
-	time_frame_t check_send_stats;
-
 	/**
 	 * @brief Set the required  MODCOD ID for of the
 	 *        ST whid ID is given as input according to the required Es/N0
@@ -1008,6 +990,73 @@ class DvbFmt
 	void setRequiredModcod(tal_id_t tal_id, double cni,
 	                       const FmtDefinitionTable *const modcod_def,
 	                       StFmtSimuList* sts);
+
+	/**
+	 * @brief get the modcod change state
+	 *
+	 * @return the modcod change state
+	 */ 
+	bool getCniInputHasChanged(tal_id_t tal_id);
+	
+	/**
+	 * @brief get the modcod change state
+	 *
+	 * @return the modcod change state
+	 */ 
+	bool getCniOutputHasChanged(tal_id_t tal_id);
+
+	/**
+	 * set extension to the packet GSE
+	 * @param elem          The fifo element to replace by le 
+	 *                      packet with extension
+	 * @param fifo          The fifo to place the element
+	 * @param packet_list   The list of available packet
+	 * @param extension_pkt The return packet with extension
+	 * @param source        The terminal source id
+	 * @param dest          The terminal dest id
+	 *
+	 * @return true on success, false otherwise
+	 */ 
+	bool setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
+                            MacFifoElement *elem,
+                            DvbFifo *fifo,
+                            std::vector<NetPacket*> packet_list,
+                            NetPacket **extension_pkt,
+                            tal_id_t source,
+                            tal_id_t dest,
+                            string extension_name,
+	                        time_sf_t super_frame_counter,
+                            const FmtDefinitionTable *const modcod_def,
+	                        bool is_gw);
+
+
+	/// Physical layer enable
+	bool with_phy_layer;
+
+	/// The MODCOD simulation elements
+	FmtSimulation fmt_simu;
+
+	/** The internal map that stores all the STs and modcod id for input */
+	StFmtSimuList *input_sts;
+
+	/// The MODCOD Definition Table for input
+	FmtDefinitionTable *input_modcod_def;
+	
+	/// Fmt definition table pour scpc terminals
+	FmtDefinitionTable *input_modcod_def_scpc;
+
+	/** The internal map that stores all the STs and modcod id for output */
+	StFmtSimuList *output_sts;
+
+	/// The MODCOD Definition Table for output
+	FmtDefinitionTable *output_modcod_def;
+	
+	// log
+	OutputLog *log_fmt;
+	
+ private:
+	/// Whether we can send stats or not (can send stats when 0)
+	time_frame_t check_send_stats;
 
 	/**
 	 * @brief Delete a Satellite Terminal (ST) from the list

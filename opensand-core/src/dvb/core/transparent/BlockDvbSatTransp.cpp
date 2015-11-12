@@ -135,15 +135,14 @@ bool BlockDvbSatTransp::DownwardTransp::handleMessageBurst(const RtEvent UNUSED(
 	return false;
 }
 
-bool BlockDvbSatTransp::DownwardTransp::handleTimerEvent(SatGw *current_gw,
-                                                         uint8_t spot_id)
+bool BlockDvbSatTransp::DownwardTransp::handleTimerEvent(SatGw *current_gw)
 {
 	// send frame for every satellite spot
 	bool status = true;
 
 	LOG(this->log_receive, LEVEL_DEBUG,
 	    "send data frames on satellite spot "
-	    "%u\n", spot_id);
+	    "%u\n", current_gw->getSpotId());
 	if(!this->sendFrames(current_gw->getDataOutGwFifo()))
 	{
 		status = false;
@@ -242,15 +241,14 @@ bool BlockDvbSatTransp::UpwardTransp::handleCorrupted(DvbFrame *dvb_frame)
 }
 
 bool BlockDvbSatTransp::UpwardTransp::handleDvbBurst(DvbFrame *dvb_frame, 
-                                                     SatGw *current_gw,
-                                                     SatSpot *current_spot)
+                                                     SatGw *current_gw)
 {
 	LOG(this->log_receive, LEVEL_INFO,
 	    "DVB burst comes from spot %u (carrier "
 	    "%u) => forward it to spot %u (carrier "
-	    "%u)\n", current_spot->getSpotId(),
+	    "%u)\n", current_gw->getSpotId(),
 	    dvb_frame->getCarrierId(),
-	    current_spot->getSpotId(),
+	    current_gw->getSpotId(),
 	    current_gw->getDataOutGwFifo()->getCarrierId());
 
 	if(!this->forwardDvbFrame(current_gw->getDataOutGwFifo(),
@@ -269,8 +267,7 @@ bool BlockDvbSatTransp::UpwardTransp::handleSac(DvbFrame *UNUSED(dvb_frame),
 }
 
 bool BlockDvbSatTransp::UpwardTransp::handleBBFrame(DvbFrame *dvb_frame, 
-                                                    SatGw *current_gw,
-                                                    SatSpot *current_spot)
+                                                    SatGw *current_gw)
 {
 	DvbFifo *out_fifo = NULL;
 	unsigned int carrier_id = dvb_frame->getCarrierId();
@@ -306,9 +303,9 @@ bool BlockDvbSatTransp::UpwardTransp::handleBBFrame(DvbFrame *dvb_frame,
 	LOG(this->log_receive, LEVEL_INFO,
 	    "BBFRAME burst comes from spot %u (carrier "
 	    "%u) => forward it to spot %u (carrier %u)\n",
-	    current_spot->getSpotId(),
+	    current_gw->getSpotId(),
 	    dvb_frame->getCarrierId(),
-	    current_spot->getSpotId(),
+	    current_gw->getSpotId(),
 	    out_fifo->getCarrierId());
 	
 	if(!this->forwardDvbFrame(out_fifo,
@@ -324,8 +321,7 @@ bool BlockDvbSatTransp::UpwardTransp::handleBBFrame(DvbFrame *dvb_frame,
 
 
 bool BlockDvbSatTransp::UpwardTransp::handleSaloha(DvbFrame *dvb_frame,
-                                                   SatGw *current_gw,
-                                                   SatSpot *current_spot)
+                                                   SatGw *current_gw)
 {
 	LOG(this->log_receive, LEVEL_INFO,
 	    "Slotted Aloha frame received\n");
@@ -351,9 +347,9 @@ bool BlockDvbSatTransp::UpwardTransp::handleSaloha(DvbFrame *dvb_frame,
 	LOG(this->log_receive, LEVEL_INFO,
 	    "Slotted Aloha frame comes from spot %u (carrier "
 	    "%u) => forward it to spot %u (carrier %u)\n",
-	    current_spot->getSpotId(),
+	    current_gw->getSpotId(),
 	    dvb_frame->getCarrierId(),
-	    current_spot->getSpotId(),
+	    current_gw->getSpotId(),
 	    fifo->getCarrierId());
 
 	if(!this->forwardDvbFrame(fifo,
@@ -364,5 +360,11 @@ bool BlockDvbSatTransp::UpwardTransp::handleSaloha(DvbFrame *dvb_frame,
 		return false;
 	}
 
+	return true;
+}
+
+
+bool BlockDvbSatTransp::UpwardTransp::updateSeriesGenerator(void)
+{
 	return true;
 }

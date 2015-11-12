@@ -89,8 +89,8 @@ class ProbeGraph(object):
         """
         Updates the graph display to take new values into account
         """
-        #if not self._dirty:
-        #    return False
+        if not self._dirty:
+            return False
 
         self._redraw()
 

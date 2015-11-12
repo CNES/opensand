@@ -144,7 +144,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 * @brief update FMT in DAMA controller
 	 */
 	void updateFmt(void);
-
+	
 	/**
 	 * @briel apply pep commande
 	 * @param pep_request the pep request
@@ -236,6 +236,13 @@ class SpotDownward: public DvbChannel, public DvbFmt
 
 	// statistics update
 	void updateStatistics(void);
+	
+	/**
+	 * @brief add Cni extension into gse packet
+	 *
+	 * @return true on success, false otherwise
+	 */ 
+	bool addCniExt(void);
 
 	/// The DAMA controller
 	DamaCtrlRcs *dama_ctrl;
@@ -256,6 +263,9 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	
 	// gw tal id
 	uint8_t mac_id;
+
+	/// is terminal scpc map
+	list<tal_id_t> is_tal_scpc;
 
 	/* Fifos */
 	/// map of FIFOs per MAX priority to manage different queues
@@ -286,6 +296,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 
 	/// FMT groups for up/return
 	fmt_groups_t ret_fmt_groups;
+	
 
 	/// The C/N0 for downlink in regenerative scenario that will be transmited
 	//  to satellite in SAC

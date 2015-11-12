@@ -62,6 +62,22 @@ class LogonRequest: public DvbFrameTpl<T_DVB_LOGON_REQ>
 	             rate_kbps_t rt_bandwidth,
 	             rate_kbps_t max_rbdc,
 	             rate_kbps_t max_vbdc);
+	
+	/**
+	 * @brief Logon request constructor for terminal (sender)
+	 *
+	 * @param mac           The terminal MAC id
+	 * @param rt_bandwidth  The terminal fixed bandwidth for RT applications
+	 *                      (used for CRA)
+	 * @param max_rbdc      The maximum RBDC value
+	 * @param max_vbdc      The maximum VBDC value
+	 * @param is_scpc       The terminal is Scpc
+	 */
+	LogonRequest(tal_id_t mac,
+	             rate_kbps_t rt_bandwidth,
+	             rate_kbps_t max_rbdc,
+	             rate_kbps_t max_vbdc,
+	             bool is_scpc);
 
 	/**
 	 * @brief Logon request constructor for NCC (receiver)
@@ -97,6 +113,13 @@ class LogonRequest: public DvbFrameTpl<T_DVB_LOGON_REQ>
 	 * @return the maximum VBDC field
 	 */
 	rate_kbps_t getMaxVbdc(void) const;
+
+	/**
+	 * @brief get the if the terminal is scpc
+	 *
+	 * @return the scpc value
+	 */ 
+	bool getIsScpc(void) const;	
 
 };
 

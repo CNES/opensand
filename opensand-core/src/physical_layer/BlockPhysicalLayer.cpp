@@ -363,13 +363,14 @@ bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 	}
 
 	LOG(this->log_send, LEVEL_DEBUG,
-	    "Received DVB frame on carrier %u: C/N  = %.2f\n",
+	    "Received DVB frame on carrier %u: C/N = %.2f\n",
 	    dvb_frame->getCarrierId(),
 	    dvb_frame->getCn());
 
 	if(this->is_sat)
 	{
 		cn_total = dvb_frame->getCn();
+		this->probe_total_cn->put(cn_total);
 	}
 	else
 	{
@@ -447,7 +448,6 @@ error:
 bool BlockPhysicalLayerSat::Upward::onInit(void)
 {
 	ostringstream name;
-	string link("down"); // we are on downlink
 
 	string minimal_type;
 	string error_type;
@@ -462,7 +462,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    SAT_PHYSICAL_LAYER_SECTION, MINIMAL_CONDITION_TYPE);
-		goto error;
+		return false;
 	}
 
 	// Initiate Error Insertion
@@ -473,7 +473,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    SAT_PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
-		goto error;
+		return false;
 	}
 
 	/* get all the plugins */
@@ -486,7 +486,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "error when getting physical layer plugins");
-		goto error;
+		return false;
 	}
 	
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -498,7 +498,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize minimal condition plugin %s",
 		    minimal_type.c_str());
-		goto error;
+		return false;
 	}
 
 	if(!this->error_insertion->init())
@@ -506,21 +506,25 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize error insertion plugin %s",
 		    error_type.c_str());
-		goto error;
+		return false;
 	}
 
 	this->probe_minimal_condition = Output::registerProbe<float>("dB", true,
 	                                                             SAMPLE_MAX,
 	                                                             "Phy.minimal_condition (%s)",
 	                                                             minimal_type.c_str());
+	// TODO these probes are not really relevant as we should get probes per source
+	//      terminal
 	this->probe_drops = Output::registerProbe<int>("Phy.drops",
 	                                               "frame number", true,
 	                                               // we need to sum the drops here !
 	                                               SAMPLE_SUM);
+	this->probe_total_cn = Output::registerProbe<float>("dB", true,
+	                                                    SAMPLE_MAX,
+	                                                    "Phy.uplink_total_cn");
+
 	return true;
 
-error:
-	return false;
 }
 
 

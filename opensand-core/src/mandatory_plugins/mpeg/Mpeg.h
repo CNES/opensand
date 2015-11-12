@@ -140,6 +140,7 @@ class Mpeg: public EncapPlugin
 		              NetPacket **data, NetPacket **remaining_data) const;
 		bool getSrc(const Data &data, tal_id_t &tal_id) const;
 		bool getQos(const Data &data, qos_t &qos) const;
+		
 	};
 
 	/// Constructor

@@ -49,6 +49,7 @@ using std::map;
 using std::vector;
 using std::list;
 using std::ifstream;
+using std::ios;
 
 // Be careful:
 //  - both MODCODs definitions are used on DAMA controller to get the
@@ -74,9 +75,19 @@ class FmtSimulation
 	/** The file stream for the MODCOD simulation file
 	 *  Need pointer because ifstream is not copyable */
 	ifstream *modcod_simu;
+	
+	/** time of the next MODCOD change */
+	double file_time;
+	double current_time;
+
+	/** the file map of modcdod for each time*/
+	std::map<double, vector<string> > modcod;
 
 	/** Whether the MODCOD simulation file is defined or not */
 	bool is_modcod_simu_defined;
+	
+	/** Loop on simulation file */
+	bool loop;
 
 	/** A list of the current MODCOD */
 	vector<string> modcod_list;
@@ -125,12 +136,20 @@ class FmtSimulation
 	/**
 	 * @brief Set simulation file for MODCOD
 	 *
-	 * @param filename    the name of the file in which MODCOD scenario is described
-	 * @param acm_period  the ACM period
-	 * @return          true if the file exist and is valid, false otherwise
+	 * @param filename      the name of the file in which MODCOD scenario is described
+	 * @param acm_period    the ACM period
+	 * @param loop_on_file  loop on modcod simulation file
+	 * @return              true if the file exist and is valid, false otherwise
 	 */
-	bool setModcodSimu(const string &filename, time_ms_t acm_period_ms);
-
+	bool setModcodSimu(const string &filename, 
+	                   time_ms_t acm_period_ms,
+	                   bool loop_on_file);
+	/**
+	 * @ brief load Modcod simulation file
+	 *
+	 * @return true on success, false otherwise
+	 */ 
+	bool load();
 
 	/**
 	 * @brief Get the is_modcod_simu_defined

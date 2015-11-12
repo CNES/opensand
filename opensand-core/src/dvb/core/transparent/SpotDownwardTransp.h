@@ -88,6 +88,7 @@ class SpotDownwardTransp: public SpotDownward
 		 * @return  true on success, false otherwise
 		 */
 		bool initDama(void);
+
 };
 
 #endif

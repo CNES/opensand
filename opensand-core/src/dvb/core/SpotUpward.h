@@ -40,11 +40,6 @@
 #include "DvbChannel.h"
 #include "PhysicStd.h"  
 #include "NetBurst.h"
-#include "DamaCtrlRcs.h"
-#include "NccPepInterface.h"
-#include "Scheduling.h"
-#include "SlottedAlohaNcc.h"
-#include "TimeSeriesGenerator.h"
 
 #define SIMU_BUFF_LEN 255
 
@@ -121,7 +116,7 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		 *
 		 *  @return true on success, false otherwise
 		 */
-		bool updateSeriesGenerator(void);
+		virtual bool updateSeriesGenerator(void) = 0;
 
 		/**
 		 * @brief  handle a SAC frame
@@ -164,13 +159,6 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		 */
 		virtual bool initModcodSimu(void) = 0;
 
-		/**
-		 *  @brief Initialize the time series generators
-		 *
-		 *  @return  true on success, false otherwise
-		 */
-		virtual bool initSeriesGenerator(void) = 0;
-
 		/// Spot Id
 		uint8_t spot_id;
 
@@ -188,13 +176,7 @@ class SpotUpward: public DvbChannel, public DvbFmt
 
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
-
-		/// time series generator for input
-		TimeSeriesGenerator *input_series;
-
-		/// time series generator for output
-		TimeSeriesGenerator *output_series;
-
+		
 		// Output probes and stats
 		// Rates
 		// Layer 2 from SAT
