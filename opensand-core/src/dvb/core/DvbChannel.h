@@ -544,26 +544,32 @@ bool DvbChannel::initBand(ConfigurationList spot,
 			goto error;
 		}
 
-		if(access != ACCESS_VCM &&
-		   (group_ids.size() > 1 || ratios.size() > 1))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Too many FMT groups or ratio for non-VCM access type\n");
-			goto error;
-		}
-		if(access == ACCESS_VCM && satellite_type == REGENERATIVE)
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Cannot use VCM carriers with regenerative satellite\n");
-			goto error;
-		}
 
-		if(access == ACCESS_ALOHA and group_ids.size() == 1 and
-		   fmt_groups[group_ids[0]]->getFmtIds().size() > 1)
+		// check access only when loading it to avoid problems with fmt_groups
+		// that are not loaded
+		if(access_type == strToAccessType(access))
 		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-				"Fmt group cannot have more than one modcod for saloha\n");
-			goto error;
+			if(access != ACCESS_VCM &&
+			   (group_ids.size() > 1 || ratios.size() > 1))
+			{
+				LOG(this->log_init_channel, LEVEL_ERROR,
+				    "Too many FMT groups or ratio for non-VCM access type\n");
+				goto error;
+			}
+			if(access == ACCESS_VCM && satellite_type == REGENERATIVE)
+			{
+				LOG(this->log_init_channel, LEVEL_ERROR,
+				    "Cannot use VCM carriers with regenerative satellite\n");
+				goto error;
+			}
+
+			if(access == ACCESS_ALOHA and group_ids.size() == 1 and
+			   fmt_groups[group_ids[0]]->getFmtIds().size() > 1)
+			{
+				LOG(this->log_init_channel, LEVEL_ERROR,
+					"Fmt group cannot have more than one modcod for saloha\n");
+				goto error;
+			}
 		}
 
 		LOG(this->log_init_channel, LEVEL_NOTICE,
