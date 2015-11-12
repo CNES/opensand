@@ -2566,7 +2566,7 @@ bool BlockDvbTal::Upward::initOutput(void)
 bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
 	uint8_t msg_type = dvb_frame->getMessageType();
-	uint8_t corrupted = dvb_frame->isCorrupted();
+	bool corrupted = dvb_frame->isCorrupted();
 
 	switch(msg_type)
 	{
@@ -2628,7 +2628,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				}
 			}
 
-			if(corrupted)
+			if(!corrupted)
 			{
 				// update MODCOD probes
 				if(!this->with_phy_layer)
@@ -2636,10 +2636,12 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 					this->probe_st_real_modcod->put(std->getRealModcod());
 				}
 				this->probe_st_received_modcod->put(std->getReceivedModcod());
+				this->probe_st_rejected_modcod->put(0);
 			}
 			else
 			{
 				this->probe_st_rejected_modcod->put(std->getReceivedModcod());
+				this->probe_st_received_modcod->put(0);
 			}
 
 			// send the message to the upper layer

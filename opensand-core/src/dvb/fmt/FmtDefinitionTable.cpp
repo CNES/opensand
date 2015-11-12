@@ -248,8 +248,7 @@ bool FmtDefinitionTable::load(const string filename)
 				goto malformed;
 			}
 
-			//LOG(this->log_fmt, LEVEL_NOTICE,
-			LOG(this->log_fmt, LEVEL_WARNING,
+			LOG(this->log_fmt, LEVEL_NOTICE,
 			    "FMT definition: %u, %s, %s, %f, %f\n",
 			    scheme_number, modulation.c_str(),
 			    coding_rate.c_str(),

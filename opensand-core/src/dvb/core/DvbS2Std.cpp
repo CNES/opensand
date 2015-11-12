@@ -112,8 +112,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 
 	// sanity check: this function only handle BB frames
 	// keep corrupted for MODCOD updating
-	if(dvb_frame->getMessageType() != MSG_TYPE_BBFRAME &&
-	   !dvb_frame->isCorrupted())
+	if(dvb_frame->getMessageType() != MSG_TYPE_BBFRAME)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "the message received is not a BB frame\n");

@@ -170,9 +170,13 @@ class DvbFrameTpl: public NetContainer
 	 * 
 	 * @param type  The DVB frame message type
 	 */
-	void setCorrupted(uint8_t corrupted)
+	void setCorrupted(bool corrupted)
 	{
-		this->frame()->hdr.corrupted = corrupted;
+		this->frame()->hdr.corrupted = 0;
+		if(corrupted)
+		{
+			this->frame()->hdr.corrupted = 1;
+		}
 	};
 	
 	/**
@@ -200,9 +204,9 @@ class DvbFrameTpl: public NetContainer
 	 * 
 	 * @return  The status of the DVB frame
 	 */
-	uint8_t isCorrupted(void) const
+	bool isCorrupted(void) const
 	{
-		return this->frame()->hdr.corrupted;
+		return ((this->frame()->hdr.corrupted & 0x1) == 1);
 	};
 	
 	/**

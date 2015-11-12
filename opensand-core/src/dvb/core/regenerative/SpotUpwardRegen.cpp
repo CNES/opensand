@@ -174,7 +174,7 @@ bool SpotUpwardRegen::initOutput(void)
 
 bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 {
-	uint8_t corrupted = frame->isCorrupted();
+	bool corrupted = frame->isCorrupted();
 	PhysicStd *std = this->reception_std;
 	
 	// Update stats
@@ -193,10 +193,12 @@ bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 		if(!corrupted)
 		{
 			this->probe_received_modcod->put(s2_std->getReceivedModcod());
+			this->probe_rejected_modcod->put(0);
 		}
 		else
 		{
 			this->probe_rejected_modcod->put(s2_std->getReceivedModcod());
+			this->probe_received_modcod->put(0);
 		}
 	}
 
