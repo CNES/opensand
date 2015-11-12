@@ -89,6 +89,8 @@
     <xsl:call-template name="Newline" />
         <return_up_modcod_time_series>/etc/opensand/modcod/return_up_time_series_spot2_gw0.txt</return_up_modcod_time_series>
     <xsl:call-template name="Newline" />
+        <loop_on_file>false</loop_on_file>
+    <xsl:call-template name="Newline" />
     </spot>
     <xsl:call-template name="Newline" />
 </xsl:template>
