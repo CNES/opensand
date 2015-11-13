@@ -89,6 +89,12 @@ class SpotDownwardTransp: public SpotDownward
 		 */
 		bool initDama(void);
 
+		/**
+		 * @brief add Cni extension into GSE packet (for SCPC)
+		 *
+		 * @return true on success, false otherwise
+		 */ 
+		bool addCniExt(void);
 };
 
 #endif

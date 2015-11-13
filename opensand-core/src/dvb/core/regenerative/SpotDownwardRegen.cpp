@@ -351,3 +351,8 @@ bool SpotDownwardRegen::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 }
 
 
+bool SpotDownwardRegen::addCniExt(void)
+{
+	return true;
+}
+

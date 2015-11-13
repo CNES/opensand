@@ -238,11 +238,11 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	void updateStatistics(void);
 	
 	/**
-	 * @brief add Cni extension into gse packet
+	 * @brief add Cni extension into GSE packet (for SCPC)
 	 *
 	 * @return true on success, false otherwise
 	 */ 
-	bool addCniExt(void);
+	virtual bool addCniExt(void) = 0;
 
 	/// The DAMA controller
 	DamaCtrlRcs *dama_ctrl;
