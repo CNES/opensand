@@ -71,21 +71,21 @@ class ResourceView(WindowView):
         self._update_spot = False
 
         #Add graph forward
-        self._graphe_forward = self._ui.get_widget('scrolledwindow_forward_graph')
+        self._graph_forward = self._ui.get_widget('scrolledwindow_forward_graph')
         self._figure_forward = Figure()
         self._ax_forward = self._figure_forward.add_subplot(111)
         canvas = FigureCanvas(self._figure_forward)
         canvas.set_size_request(200,200)
-        self._graphe_forward.add_with_viewport(canvas)
+        self._graph_forward.add_with_viewport(canvas)
         self._forward_carrier_arithmetic = CarrierArithmetic(self._list_carrier[FORWARD_DOWN],
                                                              self._model, FORWARD_DOWN);
         #Add graph forward
-        self._graphe_return = self._ui.get_widget('scrolledwindow_return_graph')
+        self._graph_return = self._ui.get_widget('scrolledwindow_return_graph')
         self._figure_return = Figure()
         self._ax_return = self._figure_return.add_subplot(111)
         canvas = FigureCanvas(self._figure_return)
         canvas.set_size_request(200,200)
-        self._graphe_return.add_with_viewport(canvas)
+        self._graph_return.add_with_viewport(canvas)
         self._return_carrier_arithmetic = CarrierArithmetic(self._list_carrier[RETURN_UP],
                                                             self._model, RETURN_UP);
         #Update graph
@@ -443,7 +443,15 @@ class ResourceView(WindowView):
                                      padding=10)    
            
             # show warning
-            if nb_tal_scpc > nb_carrier_scpc or \
+            if link == RETURN_UP and nb_tal_scpc >= 1 and nb_carrier_scpc == 0:
+                img_war = gtk.Image()
+                img_war.set_from_stock(gtk.STOCK_DIALOG_WARNING,
+                                   gtk.ICON_SIZE_MENU)
+                self._desc_war[group] = img_war
+                hbox_gr_title.pack_start(img_war, expand=True, fill=False, padding=1)
+                self._desc_war[group].set_tooltip_text(
+                    "There is no carrier for SCPC terminal")
+            elif link == RETURN_UP and nb_tal_scpc > nb_carrier_scpc or \
                (nb_tal >= (nb_tal_scpc + 1)  and \
                 nb_carrier < (nb_carrier_scpc + 1)):
                 img_war = gtk.Image()
@@ -455,15 +463,15 @@ class ResourceView(WindowView):
                     "There should be at most one SCPC terminal per category, it "
                     "will use all the SCPC carriers in it")
             # Show error
-            if nb_carrier_scpc > 1:
-                img_err = gtk.Image()
-                img_err.set_from_stock(gtk.STOCK_DIALOG_ERROR,
-                                   gtk.ICON_SIZE_MENU)
-                self._desc_err[group] = img_err
-                hbox_gr_title.pack_start(img_err, expand=True, fill=False, padding=1)
-                self._desc_err[group].set_tooltip_text("There should be one " \
-                                                       "SCPC carrier by " \
-                                                       "category")
+#            if nb_carrier_scpc > 1:
+#                img_err = gtk.Image()
+#                img_err.set_from_stock(gtk.STOCK_DIALOG_ERROR,
+#                                   gtk.ICON_SIZE_MENU)
+#                self._desc_err[group] = img_err
+#                hbox_gr_title.pack_start(img_err, expand=True, fill=False, padding=1)
+#                self._desc_err[group].set_tooltip_text("There should be one " \
+#                                                       "SCPC carrier per " \
+#                                                       "category")
 
             #Add the new group in window
             if link == FORWARD_DOWN:

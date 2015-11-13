@@ -107,14 +107,14 @@ class ModcodParameter(WindowView):
         self._vbox_modcod = gtk.VBox()
         self._modcod_scroll_window.add_with_viewport(self._vbox_modcod)
         
-        #Create Frame_temporal_graphe
-        self._frame_temporal_graphe = gtk.Frame(label="Temporal Representation")
+        #Create Frame_temporal_graph
+        self._frame_temporal_graph = gtk.Frame(label="Temporal Representation")
         
         self._figure = Figure()
         self._ax = self._figure.add_subplot(111)
         canvas = FigureCanvas(self._figure)
         canvas.set_size_request(150, 150)
-        self._frame_temporal_graphe.add(canvas)
+        self._frame_temporal_graph.add(canvas)
         
         #Create scroll_ratio
         self._scroll_ratio = gtk.ScrolledWindow()
@@ -403,7 +403,7 @@ class ModcodParameter(WindowView):
     def trace_temporal_representation(self):
         """Add graph and ratio selection in the window """
         
-        self._vbox_vcm_option.pack_start(self._frame_temporal_graphe)
+        self._vbox_vcm_option.pack_start(self._frame_temporal_graph)
         self._vbox_vcm_option.pack_start(self._scroll_ratio)
         #Clear the graph
         self._ax.cla()
