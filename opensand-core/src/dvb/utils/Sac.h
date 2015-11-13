@@ -80,8 +80,6 @@ typedef struct
 	uint8_t value;     ///< The request value
 	                   //   (the final requeted rate will be scale * value)
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-	uint8_t value;     ///< The request value
-	                   //   (the final requeted rate will be scale * value)
 	uint8_t prio:2;    ///< The request priority
 	uint8_t scale:2;   ///< The scale of the request according to the values
 	                   //   below (should be as small as possible):
@@ -91,6 +89,8 @@ typedef struct
 	                   //   for DVB-RCS: 00 => VBDC
 	                   //                01 => RBDC
 	                   //                10 => AVBDC
+	uint8_t value;     ///< The request value
+	                   //   (the final requeted rate will be scale * value)
 #else
 #error "Please fix <bits/endian.h>"
 #endif
