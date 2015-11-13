@@ -146,21 +146,11 @@ class TopologyConfig(AdvancedHostModel):
         self._list_host[name] = net_config
        
         try:
+            self.update_host_address(name, net_config)
             if name.startswith(WS) and '_' in instance:
                 instance = instance.split('_')[0]
-            if name == SAT:
-                att_path = '/configuration/sat_carrier/spot/carriers/carrier' \
-                           '[(@' + CARRIER_TYPE + '="' + CTRL_IN + '" or@' + \
-                           CARRIER_TYPE + '="' + LOGON_IN + '" or' \
-                           '@' + CARRIER_TYPE + '="' + DATA_IN_GW + '" or' \
-                           '@' + CARRIER_TYPE + '="' + DATA_IN_ST + '")' \
-                           'and @' + IP_MULTICAST + '="false"]'
-                self._configuration.set_values(net_config['emu_ipv4'].split('/')[0],
-                                          att_path, IP_ADDRESS)
-                self._log.debug("topology sat ipv4 %s" % IP_ADDRESS)
-
             elif name.startswith(GW):
-                exist =  False
+                exist = False
                 for section in self._configuration.get_sections():
                     for child in section.iterchildren():
                         if (child.tag == GW and child.get(ID) == instance) or \
@@ -173,15 +163,6 @@ class TopologyConfig(AdvancedHostModel):
 
                 if not exist:
                     self.update_conf(gw_id=instance)
-
-                gw_id = name[len(GW)::]
-                att_path = '/configuration/sat_carrier/spot[@' + GW + '="' + gw_id + \
-                           '"]/carriers/carrier[(@' + CARRIER_TYPE + '="' + LOGON_OUT + \
-                           '" or @' + CARRIER_TYPE + '="'+ DATA_OUT_GW + '")' \
-                           'and @' + IP_MULTICAST + '="false"]'
-                self._configuration.set_values(net_config['emu_ipv4'].split('/')[0],
-                                          att_path, IP_ADDRESS)
-                self._log.debug("topology gw ipv4 %s" % IP_ADDRESS)
 
             if name != SAT:
                 # IPv4 SARP
@@ -295,6 +276,41 @@ class TopologyConfig(AdvancedHostModel):
                             "for host with instance %s: %s" % (instance,
                                                                str(msg)))
 
+
+
+    def update_hosts_address(self):
+        """ update the hosts IP addresses in carriers
+            (used for tests) """
+        for host in self._list_host:
+            self.update_host_address(host, self._list_host[host])
+        self.save()
+
+    def update_host_address(self, name, net_config):
+        """ update an host IP address in carriers """
+        try:
+            if name == SAT:
+                att_path = '/configuration/sat_carrier/spot/carriers/carrier' \
+                           '[(@' + CARRIER_TYPE + '="' + CTRL_IN + '" or@' + \
+                           CARRIER_TYPE + '="' + LOGON_IN + '" or' \
+                           '@' + CARRIER_TYPE + '="' + DATA_IN_GW + '" or' \
+                           '@' + CARRIER_TYPE + '="' + DATA_IN_ST + '")' \
+                           'and @' + IP_MULTICAST + '="false"]'
+                self._configuration.set_values(net_config['emu_ipv4'].split('/')[0],
+                                               att_path, IP_ADDRESS)
+                self._log.debug("topology sat ipv4 %s" % IP_ADDRESS)
+
+            elif name.startswith(GW):
+                gw_id = name[len(GW)::]
+                att_path = '/configuration/sat_carrier/spot[@' + GW + '="' + gw_id + \
+                           '"]/carriers/carrier[(@' + CARRIER_TYPE + '="' + LOGON_OUT + \
+                           '" or @' + CARRIER_TYPE + '="'+ DATA_OUT_GW + '")' \
+                           'and @' + IP_MULTICAST + '="false"]'
+                self._configuration.set_values(net_config['emu_ipv4'].split('/')[0],
+                                               att_path, IP_ADDRESS)
+                self._log.debug("topology gw ipv4 %s" % IP_ADDRESS)
+        except XmlException, msg:
+            self._log.error("failed update carriers for %s: %s" % (name,
+                                                                   str(msg)))
 
 
     def update_conf(self, spot_id="", gw_id=""):

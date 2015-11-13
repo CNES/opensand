@@ -903,13 +903,16 @@ help="specify the root folder for tests configurations\n"
                                     "Update Configuration: %s" % error)
                 
         #Topology
-        conf = self._model.get_topology().get_configuration()
+        topo = self._model.get_topology()
+        conf = topo.get_configuration()
         xslt = os.path.join(test_path, 'topology.xslt')
         # specific case for terminals if there is a XSLT for a specific
         # one
         if os.path.exists(xslt):
             try:
                 conf.transform(xslt)
+                # update the IP address if we add some elements
+                topo.update_hosts_address()
             except Exception, error:
                 raise TestError("Configuration",
                                 "Update Configuration: %s" % error)

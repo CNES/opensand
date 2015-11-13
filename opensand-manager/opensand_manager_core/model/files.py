@@ -44,7 +44,7 @@ from opensand_manager_core.my_exceptions import ModelException
 
 def get_md5(filename):
     """ get the md5sum on a file """
-    with open(filename, 'r')  as filecontent:
+    with open(filename, 'r') as filecontent:
         md5 = hashlib.md5()
         md5.update(filecontent.read())
         return md5.digest()
@@ -142,8 +142,12 @@ class Files(object):
                 self._md5[xpath] = 0
                 
             old_hash = self._md5[xpath]
-            new_hash = get_md5(os.path.join(scenario,
-                                            self._file_sources[xpath]))
+            try:
+                new_hash = get_md5(os.path.join(scenario,
+                                                self._file_sources[xpath]))
+            except IOError:
+                continue
+
             if old_hash != new_hash:
                 src = self._file_sources[xpath]
                 src = os.path.join(scenario, src)
@@ -180,8 +184,12 @@ class Files(object):
             scenario = os.path.join(self._scenario, self._host_name)
 
         for xpath in self._file_sources:
-            self._md5[xpath]= get_md5(os.path.join(scenario,
-                                                   self._file_sources[xpath]))
+            try:
+                self._md5[xpath]= get_md5(os.path.join(scenario,
+                                                       self._file_sources[xpath]))
+            except IOError:
+                continue
+
         self._first = False
 
     def is_first(self):
