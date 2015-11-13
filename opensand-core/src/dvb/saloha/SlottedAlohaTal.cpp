@@ -465,11 +465,12 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 		goto error;
 	}
 	ts = this->getTimeSlots(); // Get random unique time slots
+
 	i_ts = ts.begin();
 	// Send packets which can be retransmitted (high priority)
 	packet = this->retransmission_packets.begin();
 	while(packet != this->retransmission_packets.end() &&
-	      nbr_packets_total < ts.size())
+	      nbr_packets_total + (*packet)->getNbReplicas() <= ts.size())
 	{
 		sa_packet = *packet;
 		qos_t qos = sa_packet->getQos();
@@ -487,7 +488,7 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 		// erase goes to next iterator
 		this->retransmission_packets.erase(packet);
 		nbr_packets++;
-		nbr_packets_total++;
+		nbr_packets_total += sa_packet->getNbReplicas();
 	}
 	if(nbr_packets)
 	{
@@ -514,7 +515,7 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 			continue;
 		}
 		while(fifo->getCurrentSize() &&
-		      nbr_packets_total < ts.size())
+		      nbr_packets_total + this->nb_replicas <= ts.size())
 		{
 			MacFifoElement *elem;
 			elem = fifo->pop();
@@ -530,7 +531,7 @@ bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
 			}
 			delete elem;
 			nbr_packets++;
-			nbr_packets_total++;
+			nbr_packets_total += sa_packet->getNbReplicas();
 		}
 		if(nbr_packets)
 		{

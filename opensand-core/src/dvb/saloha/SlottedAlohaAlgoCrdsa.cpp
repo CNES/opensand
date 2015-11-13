@@ -137,6 +137,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(map<unsigned int, Slot *> &slot
 		}
 	}
 	while(!stop);
+
 	for(map<unsigned int, Slot *>::iterator slot_it = slots.begin();
 		slot_it != slots.end(); ++slot_it)
 	{
