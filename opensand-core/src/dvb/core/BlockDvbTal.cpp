@@ -1531,10 +1531,19 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					    "logon request we sent for MAC ID %d, "
 					    "send a new logon request\n",
 					    this->mac_id);
-					this->sendLogonReq();
+					return this->sendLogonReq();
 				}
+				return true;
 			}
-			else if(*event == this->qos_server_timer)
+			if(this->state != state_running)
+			{
+				LOG(this->log_receive, LEVEL_DEBUG,
+				    "Ignore timer event %s while not logged\n",
+				    event->getName().c_str());
+				return true;
+			}
+
+			if(*event == this->qos_server_timer)
 			{
 				// try to re-connect to QoS Server if not already connected
 				if(BlockDvbTal::Downward::qos_server_sock == -1)
@@ -1555,7 +1564,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				this->updateStats();
 				this->scpc_frame_counter++;
 	
-				if(this->state == state_running && !this->addCniExt())
+				if(!this->addCniExt())
 				{
 					LOG(this->log_send_channel, LEVEL_ERROR,
 					    "fail to add CNI extension");
@@ -2572,6 +2581,13 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	{
 		case MSG_TYPE_BBFRAME:
 		{
+			if(this->state != state_running)
+			{
+				LOG(this->log_receive, LEVEL_WARNING,
+				    "Ignore received BBFrames while not logged\n");
+				return false;
+			}
+
 			NetBurst *burst = NULL;
 			DvbS2Std *std = (DvbS2Std *)this->reception_std;
 
