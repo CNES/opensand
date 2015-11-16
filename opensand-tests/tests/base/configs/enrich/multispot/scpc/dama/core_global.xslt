@@ -17,7 +17,7 @@
     <xsl:call-template name="Newline" />
         <up_carriers access_type="SCPC" category="Standard" ratio="10" symbol_rate="1E6" fmt_group="1"/>
     <xsl:call-template name="Newline" />
-        <up_carriers access_type="DAMA" category="Standard" ratio="10" symbol_rate="1E6" fmt_group="1"/>
+        <up_carriers access_type="DAMA" category="Standard" ratio="10" symbol_rate="1E6" fmt_group="2"/>
     <xsl:call-template name="Newline" />
     </carriers_distribution>
 </xsl:template>

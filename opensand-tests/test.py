@@ -146,9 +146,8 @@ class Test(ShellManager):
         opt_parser.add_option("-t", "--type", dest="type", default=None,
                               help="launch only one type of test")
         opt_parser.add_option("-l", "--test", dest="test", default=None,
-                              help="launch one test in particular (use test "
-                              "names from the same folder (separated by ',') "
-                              "and set the --type option)")
+                              help="launch some tests in particular "
+                              "(separated by ',')")
         opt_parser.add_option("-r", "--regexp", dest="regexp", default=None,
                               help="launch all test that contain this regexp " 
                               "in particular")
@@ -274,7 +273,10 @@ help="specify the root folder for tests configurations\n"
                     raise TestError("Configuration", "The following types were not "
                                     "found %s" % self._type)
             else:
-                print red("Cannot play test with two GWs", True)
+                if self._quiet:
+                    print "Cannot play test with more than one GW"
+                else:
+                    self._log.error(" * Cannot play test with more than one GW")
             
         except TestError as err:
             if self._quiet:
@@ -320,7 +322,7 @@ help="specify the root folder for tests configurations\n"
                             percent = red("     %s " % percent )
                         elif percent > 75:
                             percent = red("      %s " % percent )
-                        elif percent < 10 :
+                        elif percent == 0 :
                             percent = green("       %s " % percent)
                         else:
                             percent = str(percent)

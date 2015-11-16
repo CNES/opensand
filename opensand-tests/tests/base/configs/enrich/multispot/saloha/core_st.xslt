@@ -20,6 +20,11 @@
     </layer2_fifos>
 </xsl:template>
 
+<!-- For Slotted Aloha scenario we need to increase maximum number of packets -->
+<xsl:template match="//slotted_aloha/nb_max_packets">
+    <nb_max_packets>20</nb_max_packets>
+</xsl:template>
+
 
 </xsl:stylesheet>
 
