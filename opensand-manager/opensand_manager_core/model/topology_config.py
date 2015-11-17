@@ -146,7 +146,6 @@ class TopologyConfig(AdvancedHostModel):
         self._list_host[name] = net_config
        
         try:
-            self.update_host_address(name, net_config)
             if name.startswith(WS) and '_' in instance:
                 instance = instance.split('_')[0]
             elif name.startswith(GW):
@@ -163,6 +162,7 @@ class TopologyConfig(AdvancedHostModel):
 
                 if not exist:
                     self.update_conf(gw_id=instance)
+            self.update_host_address(name, net_config)
 
             if name != SAT:
                 # IPv4 SARP
@@ -309,7 +309,7 @@ class TopologyConfig(AdvancedHostModel):
                                                att_path, IP_ADDRESS)
                 self._log.debug("topology gw ipv4 %s" % IP_ADDRESS)
         except XmlException, msg:
-            self._log.error("failed update carriers for %s: %s" % (name,
+            self._log.error("failed to update carriers for %s: %s" % (name,
                                                                    str(msg)))
 
 
