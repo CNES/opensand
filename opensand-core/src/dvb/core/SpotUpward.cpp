@@ -149,26 +149,6 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 		return false;
 	}
 
-	// handle ST for FMT simulation
-	if(!(this->input_sts->isStPresent(mac) && this->output_sts->isStPresent(mac)))
-	{
-		// ST was not registered yet
-		if(!this->addInputTerminal(mac))
-		{
-			LOG(this->log_receive_channel, LEVEL_ERROR,
-			    "failed to handle FMT for ST %u, "
-			    "won't send logon response\n", mac);
-			return false;
-		}
-		if(!this->addOutputTerminal(mac))
-		{
-			LOG(this->log_receive_channel, LEVEL_ERROR,
-			    "failed to handle FMT for ST %u, "
-			    "won't send logon response\n", mac);
-			return false;
-		}
-	}
-
 	// send the corresponding event
 	Output::sendEvent(this->event_logon_req,
 	                  "Logon request received from ST%u on spot %u",
@@ -176,6 +156,8 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 
 	return true;
 }
+
+
 
 void SpotUpward::updateStats(void)
 {

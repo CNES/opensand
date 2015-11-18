@@ -46,7 +46,7 @@
 UplinkSchedulingRcs::UplinkSchedulingRcs(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos,
-			const ListStFmt *const ret_sts,
+			const StFmtSimuList *const ret_sts,
 			const FmtDefinitionTable *const ret_modcod_def,
 			const TerminalCategoryDama *const category,
 			tal_id_t gw_id):
@@ -82,7 +82,10 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	vector<CarriersGroupDama *> carriers;
 	vector<CarriersGroupDama *>::iterator carrier_it;
 	carriers = this->category->getCarriersGroups();
-	uint8_t desired_modcod = this->retrieveCurrentModcod();
+	uint8_t desired_modcod = this->getCurrentModcodId(this->gw_id);
+
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+	    "Simulated MODCOD for GW%u = %u\n", this->gw_id, desired_modcod);
 
 	// FIXME we consider the band is not the same for GW and terminals (this
 	//       is a good consideration...) but as we have only one band configuration
@@ -364,12 +367,4 @@ error:
 }
 
 
-uint8_t UplinkSchedulingRcs::retrieveCurrentModcod(void)
-{
-	uint8_t modcod_id = this->getCurrentModcodId(this->gw_id);
-	LOG(this->log_scheduling, LEVEL_DEBUG,
-	    "Simulated MODCOD for GW%u = %u\n", this->gw_id, modcod_id);
-
-	return modcod_id;
-}
 

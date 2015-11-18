@@ -130,7 +130,6 @@ bool RandomSimulator::simulation(list<DvbFrame *>* msgs,
 	    }
 		sac->addRequest(0, access_dama_rbdc, val);
 		msgs->push_back((DvbFrame*)sac);
-		
 	}
 
 	return true;

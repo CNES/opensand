@@ -384,7 +384,8 @@ bool DvbFmt::initModcodSimuFile(const char *simu,
 	return true;
 }
 
-bool DvbFmt::addInputTerminal(tal_id_t id)
+bool DvbFmt::addInputTerminal(tal_id_t id,
+                              const FmtDefinitionTable *const modcod_def)
 {
 	fmt_id_t modcod;
 	// the column is the id
@@ -401,22 +402,23 @@ bool DvbFmt::addInputTerminal(tal_id_t id)
 	// if scenario are not defined, set less robust modcod at init
 	modcod = (this->fmt_simu.getIsModcodSimuDefined() ?
 	           atoi(this->fmt_simu.getModcodList()[column].c_str()) :
-	           this->input_modcod_def->getMaxId());
+	           modcod_def->getMaxId());
 
-	this->input_sts->addTerminal(id, modcod);
+	this->input_sts->addTerminal(id, modcod, modcod_def);
 	return true;
 }
 
 
-bool DvbFmt::addOutputTerminal(tal_id_t id)
+bool DvbFmt::addOutputTerminal(tal_id_t id,
+                               const FmtDefinitionTable *const modcod_def)
 {
-	fmt_id_t modcod = this->output_modcod_def->getMaxId();
-	this->output_sts->addTerminal(id, modcod);
+	fmt_id_t modcod = modcod_def->getMaxId();
+	this->output_sts->addTerminal(id, modcod, modcod_def);
 	return true;
 }
 
 
-bool DvbFmt::delTerminal(tal_id_t st_id, StFmtSimuList* sts)
+bool DvbFmt::delTerminal(tal_id_t st_id, StFmtSimuList *sts)
 {
 	return sts->delTerminal(st_id);
 }
@@ -447,46 +449,29 @@ bool DvbFmt::goNextScenarioStepInput(double &duration)
 }
 
 
-void DvbFmt::setInputSts(StFmtSimuList* new_input_sts)
+void DvbFmt::setInputSts(StFmtSimuList *new_input_sts)
 {
 	this->input_sts = new_input_sts;
 }
 
 
-void DvbFmt::setOutputSts(StFmtSimuList* new_output_sts)
+void DvbFmt::setOutputSts(StFmtSimuList *new_output_sts)
 {
 	this->output_sts = new_output_sts;
-}
-
-
-void DvbFmt::setRequiredModcod(tal_id_t tal_id,
-                               double cni,
-                               const FmtDefinitionTable *const modcod_def,
-                               StFmtSimuList *sts)
-{
-	fmt_id_t modcod_id;
-
-	modcod_id = modcod_def->getRequiredModcod(cni);
-	LOG(this->log_fmt, LEVEL_INFO,
-	    "Terminal %u required %.2f dB, will receive allocation "
-	    "with MODCOD %u\n", tal_id, cni, modcod_id);
-	sts->setRequiredModcod(tal_id, modcod_id);
 }
 
 
 void DvbFmt::setRequiredCniInput(tal_id_t tal_id,
                                  double cni)
 {
-	this->setRequiredModcod(tal_id, cni, this->input_modcod_def,
-	                        this->input_sts);
+	this->input_sts->setRequiredCni(tal_id, cni);
 }
 
 
 void DvbFmt::setRequiredCniOutput(tal_id_t tal_id,
                                   double cni)
 {
-	this->setRequiredModcod(tal_id, cni, this->output_modcod_def,
-	                        this->output_sts);
+	this->output_sts->setRequiredCni(tal_id, cni);
 }
 
 
@@ -504,31 +489,15 @@ uint8_t DvbFmt::getCurrentModcodIdOutput(tal_id_t id) const
 
 double DvbFmt::getRequiredCniInput(tal_id_t tal_id)
 {
-	fmt_id_t modcod_id;
-	modcod_id = this->getCurrentModcodIdInput(tal_id);
-	this->input_sts->setCniHasChanged(tal_id, false);
-	return this->getRequiredCni(modcod_id, this->input_modcod_def);
+	return this->input_sts->getRequiredCni(tal_id);
+//	this->input_sts->setCniHasChanged(tal_id, false);
 }
 
 
 double DvbFmt::getRequiredCniOutput(tal_id_t tal_id)
 {
-	fmt_id_t modcod_id;
-	modcod_id = this->getCurrentModcodIdOutput(tal_id);
-	this->output_sts->setCniHasChanged(tal_id, false);
-	return this->getRequiredCni(modcod_id, this->output_modcod_def);
-}
-
-double DvbFmt::getRequiredCni(fmt_id_t modcod_id,
-                              const FmtDefinitionTable *modcod_def) const
-{
-	double cni = modcod_def->getRequiredEsN0(modcod_id);
-	if(cni == 0.0)
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "Cannot get required CNI for MODCOD %u\n", modcod_id);
-	}
-	return cni;
+	return this->output_sts->getRequiredCni(tal_id);
+//	this->output_sts->setCniHasChanged(tal_id, false);
 }
 
 bool DvbFmt::getCniInputHasChanged(tal_id_t tal_id)
@@ -550,22 +519,19 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
                                 tal_id_t dest,
                                 string extension_name,
 	                            time_sf_t super_frame_counter,
-                                const FmtDefinitionTable *const modcod_def,
 	                            bool is_gw)
 {
 	uint32_t opaque = 0;
-	fmt_id_t modcod_id;
+	double cni;
 	if(is_gw)
 	{	
-		modcod_id = this->getCurrentModcodIdInput(dest);
-		this->input_sts->setCniHasChanged(dest, false);
+		cni = this->getRequiredCniInput(dest);
 	}
 	else
 	{
-		modcod_id = this->getCurrentModcodIdInput(source);
-		this->input_sts->setCniHasChanged(source, false);
+		cni = this->getRequiredCniInput(source);
 	}
-	opaque = hcnton(this->getRequiredCni(modcod_id, modcod_def));
+	opaque = hcnton(cni);
 	
 	bool replace = false;
 	NetPacket *selected_pkt = pkt_hdl->

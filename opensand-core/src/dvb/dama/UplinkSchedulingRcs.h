@@ -54,7 +54,7 @@ class UplinkSchedulingRcs: public Scheduling
 
 	UplinkSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
-	                    const ListStFmt *const ret_sts,
+	                    const StFmtSimuList *const ret_sts,
 	                    const FmtDefinitionTable *const ret_modcod_def,
 	                    const TerminalCategoryDama *const category,
 	                    tal_id_t gw_id);
@@ -105,13 +105,6 @@ class UplinkSchedulingRcs: public Scheduling
 	bool createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
 	                                 fmt_id_t  modcod_id);
 
-
-	/**
-	 * @brief Get the current simulated MODCOD ID for GW uplink
-	 *
-	 * @return the simulated modcod ID for GW uplink
-	 */
-	uint8_t retrieveCurrentModcod(void);
 
 };
 

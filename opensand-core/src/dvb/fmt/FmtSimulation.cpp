@@ -62,6 +62,8 @@ inline bool fileExists(const string &filename)
 	return true;
 }
 
+// TODO the GW columns are mainly unused at the moment, they could be used to get
+//      the MODCODs the GW is able to decode
 
 FmtSimulation::FmtSimulation():
 	modcod_simu(NULL),

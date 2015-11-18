@@ -88,7 +88,7 @@ static size_t getPayloadSize(string coding_rate)
 ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
                                const EncapPlugin::EncapPacketHandler *packet_handler,
                                const fifos_t &fifos,
-                               const ListStFmt *const simu_sts,
+                               const StFmtSimuList *const simu_sts,
                                FmtDefinitionTable *const scpc_modcod_def,
                                const TerminalCategoryDama *const category,
                                tal_id_t gw_id):
@@ -668,24 +668,6 @@ error:
 	return false;
 }
 
-fmt_id_t ScpcScheduling::retrieveCurrentModcod(const time_sf_t current_superframe_sf)
-{
-	// retrieve the current MODCOD for the GW
-	if(this->simu_sts->find(this->gw_id) == this->simu_sts->end())
-	{
-		LOG(this->log_scheduling, LEVEL_ERROR,
-		    "SF#%u: encapsulation packet is for ST with ID %u "
-		    "that is not registered\n", current_superframe_sf, this->gw_id);
-	}
-
-	fmt_id_t modcod_id = this->getCurrentModcodId(this->gw_id);
-
-	LOG(this->log_scheduling, LEVEL_DEBUG,
-	    "Simulated MODCOD for GW = %u\n", modcod_id);
-	
-	return modcod_id;
-}
-
 bool ScpcScheduling::getBBFrameSizeSym(size_t bbframe_size_bytes,
                                        fmt_id_t modcod_id,
                                        const time_sf_t current_superframe_sf,
@@ -737,7 +719,9 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 {
 	map<unsigned int, BBFrame *>::iterator iter;
 	fmt_id_t modcod_id;
-	fmt_id_t desired_modcod = this->retrieveCurrentModcod(current_superframe_sf);
+	fmt_id_t desired_modcod = this->getCurrentModcodId(this->gw_id);
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+	    "Simulated MODCOD for GW = %u\n", modcod_id);
 
 	*bbframe = NULL;
 

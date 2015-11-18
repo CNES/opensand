@@ -65,7 +65,7 @@ class ForwardSchedulingS2: public Scheduling
 	ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	                    const EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
-	                    const ListStFmt *const fwd_sts,
+	                    const StFmtSimuList *const fwd_sts,
 	                    const FmtDefinitionTable *const fwd_modcod_def,
 	                    const TerminalCategoryDama *const category,
 	                    spot_id_t spot,
@@ -123,26 +123,6 @@ class ForwardSchedulingS2: public Scheduling
 	                          clock_t current_time,
 	                          list<DvbFrame *> *complete_dvb_frames,
 	                          CarriersGroupDama *carriers);
-
-	/**
-	 * @brief Get the terminal ID for wich the used MODCOD is the lower
-	 *        (for down/forward)
-	 *
-	 * @return terminal ID (should be positive, return -1 (255) if an error occurs)
-	 */
-	tal_id_t getTalIdWithLowerModcod() const;
-
-	/**
-	 * @brief Get the current modcod of a terminal
-	 *
-	 * @param tal_id    the terminal id
-	 * @param current_superframe_sf  The current superframe number
-	 * @param modcod_id OUT: the modcod_id retrived from the terminal ID
-	 * @return          true on succes, false otherwise
-	 */
-	bool retrieveCurrentModcod(tal_id_t tal_id,
-	                           const time_sf_t current_superframe_sf,
-	                           unsigned int &modcod_id);
 
 
 	/**

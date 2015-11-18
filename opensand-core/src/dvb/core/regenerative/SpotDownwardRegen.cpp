@@ -70,7 +70,7 @@ bool SpotDownwardRegen::onInit(void)
 
 	// Initialization of the modcod def
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->input_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
@@ -80,7 +80,7 @@ bool SpotDownwardRegen::onInit(void)
 	// the terminal to satellite link and not the satellite
 	// to GW link
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            &this->output_modcod_def))
+	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
@@ -104,7 +104,6 @@ bool SpotDownwardRegen::initMode(void)
 	ConfigurationList spots;
 	ConfigurationList current_spot;
 	ConfigurationList current_gw;
-	const ListStFmt *list;
 
 	// Get the spot list
 	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
@@ -138,7 +137,7 @@ bool SpotDownwardRegen::initMode(void)
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         this->output_modcod_def,
+	                                         this->rcs_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
 	                                         &this->default_category,
@@ -163,11 +162,10 @@ bool SpotDownwardRegen::initMode(void)
 		cat = this->default_category;
 	}
 
-	list = this->output_sts->getListSts();
 	this->scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
 	                                           this->dvb_fifos,
-	                                           list,
-	                                           this->output_modcod_def,
+	                                           this->output_sts,
+	                                           this->rcs_modcod_def,
 	                                           cat,
 	                                           this->mac_id);
 	
@@ -194,7 +192,6 @@ bool SpotDownwardRegen::initDama(void)
 	time_sf_t rbdc_timeout_sf;
 	rate_kbps_t fca_kbps;
 	string dama_algo;
-	const ListStFmt *list;
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
@@ -276,10 +273,9 @@ bool SpotDownwardRegen::initDama(void)
 	}
 
 	// Initialize the DamaCtrl parent class
-	// Here we use output STs and output MODCOD because GW has the same
+	// Here we use output STs because GW has the same
 	// output link standard than terminals and required modcod for
 	// terminals is received in SAC and added to output STs
-	list = this->output_sts->getListSts();
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
@@ -288,8 +284,8 @@ bool SpotDownwardRegen::initDama(void)
 	                                dc_categories,
 	                                dc_terminal_affectation,
 	                                dc_default_category,
-	                                list,
-	                                this->output_modcod_def,
+	                                this->output_sts,
+	                                this->rcs_modcod_def,
 	                                (this->simulate == none_simu) ?
 	                                false : true))
 	{

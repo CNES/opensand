@@ -181,8 +181,8 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 	this->st_scheduling = new ForwardSchedulingS2(fwd_timer_ms,
 	                                              pkt_hdl,
 	                                              st_fifos,
-	                                              this->output_sts->getListSts(),
-	                                              this->output_modcod_def,
+	                                              this->output_sts,
+	                                              this->s2_modcod_def,
 	                                              st_category,
 	                                              this->spot_id,
 	                                              false,
@@ -198,8 +198,8 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 	this->gw_scheduling = new ForwardSchedulingS2(fwd_timer_ms,
 	                                              pkt_hdl,
 	                                              gw_fifos,
-	                                              this->output_sts->getListSts(),
-	                                              this->output_modcod_def,
+	                                              this->output_sts,
+	                                              this->s2_modcod_def,
 	                                              gw_category,
 	                                              this->spot_id,
 	                                              false,
@@ -227,7 +227,7 @@ bool SatGw::initModcodSimu(void)
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            &this->input_modcod_def))
+	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the modcod part of the "
@@ -235,7 +235,7 @@ bool SatGw::initModcodSimu(void)
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->output_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the modcod part of the "
@@ -448,14 +448,14 @@ bool SatGw::schedule(const time_sf_t current_superframe_sf,
 bool SatGw::addTerminal(tal_id_t tal_id)
 {
 	// check for column in FMT simulation list
-	if(!this->addInputTerminal(tal_id))
+	if(!this->addInputTerminal(tal_id, this->rcs_modcod_def))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 				"failed to register simulated ST with MAC "
 				"ID %u\n", tal_id);
 		return false;
 	}
-	if(!this->addOutputTerminal(tal_id))
+	if(!this->addOutputTerminal(tal_id, this->s2_modcod_def))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 				"failed to register simulated ST with MAC "
@@ -504,12 +504,12 @@ bool SatGw::updateSeriesGenerator(void)
 		return false;
 	}
 
-	if(!this->input_series->add(this->input_sts->getListSts()))
+	if(!this->input_series->add(this->input_sts))
 	{
 		return false;
 	}
 
-	if(!this->output_series->add(this->output_sts->getListSts()))
+	if(!this->output_series->add(this->output_sts))
 	{
 		return false;
 	}
@@ -675,12 +675,7 @@ spot_id_t SatGw::getSpotId(void)
 
 FmtDefinitionTable* SatGw::getOutputModcodDef(void)
 {
-	return this->output_modcod_def;
-}
-
-FmtDefinitionTable* SatGw::getInputModcodDef(void)
-{
-	return this->input_modcod_def;
+	return this->s2_modcod_def;
 }
 
 event_id_t SatGw::getScenarioTimer(void)

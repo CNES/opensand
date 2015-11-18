@@ -86,7 +86,7 @@ static size_t getPayloadSize(string coding_rate)
 ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
                                          const EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
-                                         const ListStFmt *const fwd_sts,
+                                         const StFmtSimuList *const fwd_sts,
                                          const FmtDefinitionTable *const fwd_modcod_def,
                                          const TerminalCategoryDama *const category,
                                          spot_id_t spot, 
@@ -575,7 +575,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			// Select the tal_id corresponding to the lower modcod in order to
 			// make all terminal able to read the message
-			tal_id = this->getTalIdWithLowerModcod();
+			tal_id = this->simu_sts->getTalIdWithLowerModcod();
 			if(tal_id == 255)
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
@@ -812,57 +812,6 @@ error:
 }
 
 
-tal_id_t ForwardSchedulingS2::getTalIdWithLowerModcod() const
-{
-	ListStFmt::const_iterator st_iterator;
-	uint8_t modcod_id;
-	uint8_t lower_modcod_id = 0;
-	tal_id_t tal_id;
-	tal_id_t lower_tal_id = 255;
-
-	for(st_iterator = this->simu_sts->begin();
-	    st_iterator != this->simu_sts->end();
-	    ++st_iterator)
-	{
-		// Retrieve the lower modcod
-		tal_id = st_iterator->first;
-
-		// TODO:retrieve with lower Es/N0 not modcod_id
-		if((st_iterator == this->simu_sts->begin()) ||
-		    (modcod_id < lower_modcod_id))
-		{
-			lower_modcod_id = modcod_id;
-			lower_tal_id = tal_id;
-		}
-	}
-
-	LOG(this->log_scheduling, LEVEL_DEBUG,
-	    "TAL_ID corresponding to lower modcod: %u\n", lower_tal_id);
-
-	return lower_tal_id;
-}
-
-
-bool ForwardSchedulingS2::retrieveCurrentModcod(tal_id_t tal_id,
-                                                const time_sf_t current_superframe_sf,
-                                                unsigned int &modcod_id)
-{
-	// retrieve the current MODCOD for the ST and whether
-	// it changed or not
-	if(this->simu_sts->find(tal_id) == this->simu_sts->end())
-	{
-		LOG(this->log_scheduling, LEVEL_ERROR,
-		    "SF#%u: encapsulation packet is for ST with ID %u "
-		    "that is not registered\n", current_superframe_sf, tal_id);
-		goto error;
-	}
-	modcod_id = this->getCurrentModcodId(tal_id);
-
-	return true;
-
-error:
-	return false;
-}
 
 bool ForwardSchedulingS2::getBBFrameSizeSym(size_t bbframe_size_bytes,
                                             unsigned int modcod_id,
@@ -922,8 +871,8 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
 	*bbframe = NULL;
 
 	// retrieve the current MODCOD for the ST
-	if(!this->retrieveCurrentModcod(tal_id, current_superframe_sf,
-	                                desired_modcod))
+	desired_modcod = this->getCurrentModcodId(tal_id);
+	if(desired_modcod == 0)
 	{
 		// cannot get modcod for the ST skip this element
 		goto skip;

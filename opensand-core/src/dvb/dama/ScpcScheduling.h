@@ -67,7 +67,7 @@ class ScpcScheduling: public Scheduling
 	ScpcScheduling(time_ms_t scpc_timer_ms,
 	               const EncapPlugin::EncapPacketHandler *packet_handler,
 	               const fifos_t &fifos,
-	               const ListStFmt *const simu_sts,
+	               const StFmtSimuList *const simu_sts,
 	               FmtDefinitionTable *const scpc_modcod_def,
 	               const TerminalCategoryDama *const category,
 	               tal_id_t gw_id);
@@ -130,13 +130,6 @@ class ScpcScheduling: public Scheduling
 	                          list<DvbFrame *> *complete_dvb_frames,
 	                          CarriersGroupDama *carriers);
 
-	/**
-	 * @brief Get the current modcod ID of the gateway
-	 *
-	 * @return         the simulated modcod ID for GW uplink 
-	 */
-	fmt_id_t retrieveCurrentModcod(const time_sf_t current_superframe_sf);
-	
 	/**
 	 * @brief Create an incomplete BB frame
 	 *

@@ -77,21 +77,14 @@ bool SpotDownwardTransp::onInit(void)
 
 	// Initialization of the modcod def
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->output_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            &this->input_modcod_def))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the forward MODCOD file\n");
-		return false;
-	}
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->input_modcod_def_scpc))
+	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
@@ -117,7 +110,6 @@ bool SpotDownwardTransp::initMode(void)
 	ConfigurationList spots;
 	ConfigurationList current_spot;
 	ConfigurationList current_gw;
-	const ListStFmt *list;
 
 	if(!Conf::getListNode(forward_down_band, SPOT_LIST, spots))
 	{
@@ -149,7 +141,7 @@ bool SpotDownwardTransp::initMode(void)
 	                                         TDM,
 	                                         this->fwd_down_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         this->output_modcod_def,
+	                                         this->s2_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
 	                                         &this->default_category,
@@ -175,13 +167,12 @@ bool SpotDownwardTransp::initMode(void)
 		return false;
 	}
 
-	list = this->output_sts->getListSts();
 	cat = this->categories.begin()->second;
 	this->scheduling = new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
 	                                           this->pkt_hdl,
 	                                           this->dvb_fifos,
-	                                           list,
-	                                           this->output_modcod_def,
+	                                           this->output_sts,
+	                                           this->s2_modcod_def,
 	                                           cat, this->spot_id,
 	                                           true, this->mac_id, "");
 
@@ -209,7 +200,6 @@ bool SpotDownwardTransp::initDama(void)
 	time_sf_t rbdc_timeout_sf;
 	rate_kbps_t fca_kbps;
 	string dama_algo;
-	const ListStFmt *list;
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
@@ -258,7 +248,7 @@ bool SpotDownwardTransp::initDama(void)
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         this->input_modcod_def,
+	                                         this->rcs_modcod_def,
 	                                         dc_categories,
 	                                         dc_terminal_affectation,
 	                                         &dc_default_category,
@@ -319,7 +309,6 @@ bool SpotDownwardTransp::initDama(void)
 	}
 
 	// Initialize the DamaCtrl parent class
-	list = this->input_sts->getListSts();
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->with_phy_layer,
 	                                this->up_return_pkt_hdl->getFixedLength(),
@@ -328,8 +317,8 @@ bool SpotDownwardTransp::initDama(void)
 	                                dc_categories,
 	                                dc_terminal_affectation,
 	                                dc_default_category,
-	                                list,
-	                                this->input_modcod_def,
+	                                this->input_sts,
+	                                this->rcs_modcod_def,
 	                                (this->simulate == none_simu) ?
 	                                false : true))
 	{
@@ -414,7 +403,6 @@ bool SpotDownwardTransp::addCniExt(void)
 					                         tal_id,
 					                         ENCODE_CNI_EXT,
 					                         this->super_frame_counter,
-					                         this->input_modcod_def_scpc,
 					                         true))
 				{
 					return false;
@@ -430,19 +418,19 @@ bool SpotDownwardTransp::addCniExt(void)
 	}
 
 	// try to send empty packet if no packet has been found for a terminal
-	const ListStFmt *listStFmt = this->input_sts->getListSts();
-	for(ListStFmt::const_iterator st_it = listStFmt->begin();
-	    st_it != listStFmt->end(); ++st_it)
+	for(set<tal_id_t>::const_iterator st_it = this->input_sts->begin();
+	    st_it != this->input_sts->end(); ++st_it)
 	{
+		tal_id_t tal_id = *st_it;
 		list<tal_id_t>::iterator it = std::find(list_st.begin(), 
-		                                 list_st.end(),
-		                                 (*st_it).first);
+		                                        list_st.end(),
+		                                        tal_id);
 		list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(), 
 		                                             this->is_tal_scpc.end(),
-		                                             (*st_it).first);
+		                                             tal_id);
 
 		if(it_scpc != this->is_tal_scpc.end() && it == list_st.end() 
-		   && this->getCniInputHasChanged((*st_it).first))
+		   && this->getCniInputHasChanged(tal_id))
 		{
 			std::vector<NetPacket*> packet_list;
 			NetPacket *extension_pkt = NULL;
@@ -452,10 +440,9 @@ bool SpotDownwardTransp::addCniExt(void)
 				                         packet_list, 
 					                     &extension_pkt,
 					                     this->mac_id,
-					                     (*st_it).first, 
+					                     tal_id, 
 					                     ENCODE_CNI_EXT,
 					                     this->super_frame_counter,
-					                     this->input_modcod_def_scpc,
 					                     true))
 			{
 				return false;

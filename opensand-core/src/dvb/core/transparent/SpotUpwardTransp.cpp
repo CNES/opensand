@@ -127,7 +127,7 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->satellite_type,
-	                                           this->input_modcod_def,
+	                                           this->rcs_modcod_def,
 	                                           sa_categories,
 	                                           sa_terminal_affectation,
 	                                           &sa_default_category,
@@ -225,21 +225,14 @@ release_saloha:
 bool SpotUpwardTransp::initModcodSimu(void)
 {
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->output_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            &this->input_modcod_def))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the uplink MODCOD file\n");
-		return false;
-	}
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->input_modcod_def_scpc))
+	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the uplink MODCOD file\n");
@@ -263,20 +256,20 @@ bool SpotUpwardTransp::initModcodSimu(void)
 	}
 
 	// declare the GW as one ST for the MODCOD scenarios
-	if(!this->addInputTerminal(this->mac_id))
+/*	if(!this->addInputTerminal(this->mac_id, this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
 		    this->mac_id);
 		return false;
 	}
-	if(!this->addOutputTerminal(this->mac_id))
+	if(!this->addOutputTerminal(this->mac_id, this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
 		    this->mac_id);
 		return false;
-	}
+	}*/
 
 	return true;
 }
@@ -525,12 +518,12 @@ bool SpotUpwardTransp::updateSeriesGenerator(void)
 		return false;
 	}
 
-	if(!this->input_series->add(this->input_sts->getListSts()))
+	if(!this->input_series->add(this->input_sts))
 	{
 		return false;
 	}
 
-	if(!this->output_series->add(this->output_sts->getListSts()))
+	if(!this->output_series->add(this->output_sts))
 	{
 		return false;
 	}
@@ -552,51 +545,45 @@ void SpotUpwardTransp::handleFrameCni(DvbFrame *dvb_frame)
 	{
 		// Cannot check frame type because of currupted frame
 		case MSG_TYPE_DVB_BURST:
+		{
+			// transparent case : update return modcod for terminal
+			DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
+			// decode the first packet in frame to be able to
+			// get source terminal ID
+			if(!this->pkt_hdl->getSrc(frame->getPayload(),
+			                          tal_id))
 			{
-				// transparent case : update return modcod for terminal
-				DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-				// decode the first packet in frame to be able to
-				// get source terminal ID
-				if(!this->pkt_hdl->getSrc(frame->getPayload(),
-				                          tal_id))
-				{
-					LOG(this->log_receive_channel, LEVEL_ERROR,
-					    "unable to read source terminal ID in"
-					    " frame, won't be able to update C/N"
-					    " value\n");
-					return;
-				}
-				this->setRequiredCniInput(tal_id, curr_cni);
-				break;
+				LOG(this->log_receive_channel, LEVEL_ERROR,
+				    "unable to read source terminal ID in"
+				    " frame, won't be able to update C/N"
+				    " value\n");
+				return;
 			}
+			break;
+		}
 		case MSG_TYPE_BBFRAME:
-			{	
-				// SCPC
-				BBFrame *frame = dvb_frame->operator BBFrame*();
-				// decode the first packet in frame to be able to
-				// get source terminal ID
-				if(!this->scpc_pkt_hdl->getSrc(frame->getPayload(),
-				                               tal_id))
-				{
-					LOG(this->log_receive_channel, LEVEL_ERROR,
-					    "unable to read source terminal ID in"
-					    " frame, won't be able to update C/N"
-					    " value\n");
-					return;
-				}
-				// TODO we could make specific SCPC function
-				this->setRequiredModcod(tal_id, curr_cni, 
-				                        this->input_modcod_def_scpc,
-				                        this->input_sts);
-				break;
+		{
+			// SCPC
+			BBFrame *frame = dvb_frame->operator BBFrame*();
+			// decode the first packet in frame to be able to
+			// get source terminal ID
+			if(!this->scpc_pkt_hdl->getSrc(frame->getPayload(),
+			                               tal_id))
+			{
+				LOG(this->log_receive_channel, LEVEL_ERROR,
+				    "unable to read source terminal ID in"
+				    " frame, won't be able to update C/N"
+				    " value\n");
+				return;
 			}
+			break;
+		}
 		default:
 			LOG(this->log_receive_channel, LEVEL_ERROR,
 			    "Wrong message type %u, this shouldn't happened", msg_type);
-			break;
+			return;
 	}
-
-	return;
+	this->setRequiredCniInput(tal_id, curr_cni);
 }
 
 
@@ -624,7 +611,7 @@ bool SpotUpwardTransp::checkIfScpc()
 	                                         5,
 	                                         TRANSPARENT,
 	                                         // we need S2 modcod definitions
-	                                         this->output_modcod_def,
+	                                         this->s2_modcod_def,
 	                                         scpc_categories,
 	                                         terminal_affectation,
 	                                         &default_category,
@@ -663,13 +650,53 @@ bool SpotUpwardTransp::onRcvLogonReq(DvbFrame *dvb_frame)
 	{
 		return false;
 	}
-	
+
 	LogonRequest *logon_req = (LogonRequest *)dvb_frame;
 	uint16_t mac = logon_req->getMac();
 	bool is_scpc = logon_req->getIsScpc();
+
+	if(!(this->input_sts->isStPresent(mac) && this->output_sts->isStPresent(mac)))
+	{
+		if(!this->addOutputTerminal(mac, this->s2_modcod_def))
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "failed to handle FMT for ST %u, "
+			    "won't send logon response\n", mac);
+			return false;
+		}
+	}
+
+
 	if(is_scpc)
 	{
 		this->is_tal_scpc.push_back(mac);
+		// handle ST for FMT simulation
+		if(!(this->input_sts->isStPresent(mac) && this->output_sts->isStPresent(mac)))
+		{
+			// ST was not registered yet
+			if(!this->addInputTerminal(mac, this->s2_modcod_def))
+			{
+				LOG(this->log_receive_channel, LEVEL_ERROR,
+				    "failed to handle FMT for ST %u, "
+				    "won't send logon response\n", mac);
+				return false;
+			}
+		}
+	}
+	else
+	{
+		// handle ST for FMT simulation
+		if(!(this->input_sts->isStPresent(mac) && this->output_sts->isStPresent(mac)))
+		{
+			// ST was not registered yet
+			if(!this->addInputTerminal(mac, this->rcs_modcod_def))
+			{
+				LOG(this->log_receive_channel, LEVEL_ERROR,
+				    "failed to handle FMT for ST %u, "
+				    "won't send logon response\n", mac);
+				return false;
+			}
+		}
 	}
 	
 	// Inform SlottedAloha

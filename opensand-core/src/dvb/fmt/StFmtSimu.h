@@ -39,6 +39,7 @@
 
 #include <OpenSandCore.h>
 #include <FmtSimulation.h>
+#include <FmtDefinitionTable.h>
 
 #include <opensand_rt/RtMutex.h>
 #include <opensand_output/Output.h>
@@ -48,16 +49,23 @@
 #include <map>
 #include <set>
 
+
+using std::set;
+
 /**
  * @class StFmtSimu
  * @brief The internal representation of a Satellite Terminal (ST)
  */
 class StFmtSimu
 {
+	friend class StFmtSimuList;
  private:
 
 	/** The ID of the ST (called TAL ID or MAC ID elsewhere in the code) */
 	tal_id_t id;
+
+	/** The MODCOD definitions for the terminal and associated link */
+	const FmtDefinitionTable *const modcod_def;
 	
 	/** the cni status*/
 	bool cni_has_changed;
@@ -70,6 +78,29 @@ class StFmtSimu
 
 	mutable RtMutex modcod_mutex; ///< The mutex to protect the modcod from concurrent access
 
+	// Output Log
+	OutputLog *log_fmt;
+
+	/// These functions are private because they are not protected by a mutex as
+	//  they are used internally or by StFmtSimuList which has also a mutex and
+	//  is therefore a friend class
+
+	/**
+	 * @brief Get the current MODCOD ID of the ST
+	 * @warning Only accessible from friend class
+	 *
+	 * @return  the current  MODCOD ID of the ST
+	 */
+	uint8_t getCurrentModcodId() const;
+
+
+	/**
+	 * @brief Update the MODCOD ID of the ST
+	 *
+	 * @param new_id     the new MODCOD ID of the ST
+	 */
+	void updateModcodId(uint8_t new_id);
+
 
  public:
 
@@ -81,9 +112,11 @@ class StFmtSimu
 	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
 	 *                         in the code)
 	 * @param modcod_id        the initial MODCOD ID of the ST
+	 * @param modcod_def       the MODCOD definition for the terminal and associated link
 	 */
 	StFmtSimu(tal_id_t id,
-	          uint8_t modcod_id);
+	          uint8_t init_modcod_id,
+	          const FmtDefinitionTable *const modcod_def);
 
 	/* destroy an internal representation of a Satellite Terminal (ST) */
 	~StFmtSimu();
@@ -115,19 +148,20 @@ class StFmtSimu
 	 */
 	void setSimuColumnNum(unsigned long col);
 
-	/**
-	 * @brief Get the current MODCOD ID of the ST
-	 *
-	 * @return  the current  MODCOD ID of the ST
-	 */
-	uint8_t getCurrentModcodId();
 
 	/**
-	 * @brief Update the MODCOD ID of the ST
+	 * @brief Update the MODCOD ID of the ST with a CNI value
 	 *
-	 * @param new_id     the new MODCOD ID of the ST
+	 * @param cni  The new CNI
 	 */
-	void updateModcodId(uint8_t new_id);
+	void updateCni(double cni);
+
+	/**
+	 * @brief get the required CNI value depending on current MODCOD ID
+	 *
+	 * @return the current CNI value or 0.0 on error
+	 */
+	double getRequiredCni();
 
 	/**
 	 * @brief get the cni change status
@@ -146,16 +180,17 @@ class StFmtSimu
 };
 
 
-typedef std::map<tal_id_t, StFmtSimu *> ListStFmt;
 
 
 /**
  * @class StFmtSimuList
+ *        The class is also a list of registered terminal IDs
  * @brief The List of StFmtSimu per spot
  */
-class StFmtSimuList
+class StFmtSimuList: public set<tal_id_t>
 {
  private:
+	typedef std::map<tal_id_t, StFmtSimu *> ListStFmt;
 
 	/** the list of StFmtSimu per spot */
 	ListStFmt *sts;
@@ -176,20 +211,15 @@ class StFmtSimuList
 
 
 	/**
-	 * @brief   get the list
-	 *
-	 * @return  the list
-	 */
-	const ListStFmt *getListSts(void) const;
-
-	/**
 	 * @brief  add a terminal in the list
 	 *
-	 * @param  st_id    the id of the terminal
-	 * @param  modcod   the initial modcod of the terminal
+	 * @param  st_id         the id of the terminal
+	 * @param  init_modcod   the initial modcod of the terminal
+	 * @param  modcod_def    the MODCOD definitions for the terminal
 	 * @return  true on succes, false otherwise
 	 */
-	bool addTerminal(tal_id_t st_id, fmt_id_t modcod);
+	bool addTerminal(tal_id_t st_id, fmt_id_t init_modcod,
+	                 const FmtDefinitionTable *const modcod_def);
 
 	/**
 	 * @brief  remove a terminal from the list
@@ -208,12 +238,21 @@ class StFmtSimuList
 	void updateModcod(const FmtSimulation &fmt_simu);
 
 	/**
-	 * @brief  set the modcod id for the st
+	 * @brief Set the CNI of a terminal
 	 *
-	 * @param  st_id      the id of the st
-	 * @param  modcod_id  the id of the modcod
+	 * @param st_id  The terminal ID
+	 * @param cni    The CNI value
 	 */
-	void setRequiredModcod(tal_id_t st_id, fmt_id_t modcod_id);
+	void setRequiredCni(tal_id_t st_id, double cni);
+
+	/**
+	 * @brief Get the required CNI of a terminal
+	 *
+	 * @param st_id  The terminal ID
+	 * @return the required CNI of the terminal or 0.0 on error
+	 */
+	double getRequiredCni(tal_id_t st_id) const;
+
 
 	/**
 	 * @brief  get the current modcod id for a st
@@ -231,15 +270,6 @@ class StFmtSimuList
 	bool getCniHasChanged(tal_id_t st_id);
 
 	/**
-	 * @brief update the Cni change status
-	 *
-	 * @param  st_id  the id of the st
-	 * @param  change the new cni status
-	 * @return the cni status
-	 */ 	
-	void setCniHasChanged(tal_id_t st_id, bool changed);
-
-	/**
 	 * @brief  check is the st is present
 	 *
 	 * @param  st_id   the id of the st
@@ -247,6 +277,12 @@ class StFmtSimuList
 	 */
 	bool isStPresent(tal_id_t st_id) const;
 
+	/**
+	 * @brief  get the terminal ID with the lowest MODCOD id in the list
+	 *
+	 * @return the terminal ID with the lowest MODCOD id
+	 */
+	tal_id_t getTalIdWithLowerModcod() const;
 };
 
 #endif

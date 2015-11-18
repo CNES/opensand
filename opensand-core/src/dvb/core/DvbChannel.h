@@ -850,10 +850,9 @@ class DvbFmt
 		with_phy_layer(false),
 		fmt_simu(),
 		input_sts(NULL),
-		input_modcod_def(NULL),
-		input_modcod_def_scpc(NULL),
+		s2_modcod_def(NULL),
 		output_sts(NULL),
-		output_modcod_def(NULL),
+		rcs_modcod_def(NULL),
 		log_fmt(NULL)
 	{
 		// register static log
@@ -862,17 +861,13 @@ class DvbFmt
 
 	virtual ~DvbFmt()
 	{
-		if(this->input_modcod_def)
+		if(this->s2_modcod_def)
 		{
-			delete this->input_modcod_def;
+			delete this->s2_modcod_def;
 		}
-		if(this->input_modcod_def_scpc)
+		if(this->rcs_modcod_def)
 		{
-			delete this->input_modcod_def_scpc;
-		}
-		if(this->output_modcod_def)
-		{
-			delete this->output_modcod_def;
+			delete this->rcs_modcod_def;
 		}
 	};
 
@@ -996,20 +991,22 @@ class DvbFmt
 	/**
 	 * @brief Add a new Satellite Terminal (ST) in the output list
 	 *
-	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
-	 *                         in the code)
-	 * @return                 true if the addition is successful, false otherwise
+	 * @param id           the ID of the ST
+	 * @param modcod_def   the MODCOD definition for the terminal on the input link
+	 * @return             true if the addition is successful, false otherwise
 	 */
-	bool addOutputTerminal(tal_id_t id);
+	bool addOutputTerminal(tal_id_t id,
+	                       const FmtDefinitionTable *const modcod_def);
 
 	/**
 	 * @brief Add a new Satellite Terminal (ST) in the input list
 	 *
-	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
-	 *                         in the code)
-	 * @return                 true if the addition is successful, false otherwise
+	 * @param id           the ID of the ST
+	 * @param modcod_def   the MODCOD definition for the terminal on the input link
+	 * @return             true if the addition is successful, false otherwise
 	 */
-	bool addInputTerminal(tal_id_t id);
+	bool addInputTerminal(tal_id_t id,
+	                      const FmtDefinitionTable *const modcod_def);
 
 	/**
 	 * @brief Delete a Satellite Terminal (ST) from the output list
@@ -1046,30 +1043,6 @@ class DvbFmt
 	void setRequiredCniOutput(tal_id_t tal_id, double cni);
 	
 	/**
-	 * @brief Get the required  Cni for of the ST in modcod_def
-	 *        whid ID is given as input according to the required Es/N0
-	 *
-	 * @param id               the ID of the ST
-	 * @param modcod_def       the ID of the ST
-	 * @return                 the required Es/N0 for that terminal
-	 */
-	double getRequiredCni(fmt_id_t modcod_id,
-                          const FmtDefinitionTable *modcod_def) const;
-	
-	/**
-	 * @brief Set the required  MODCOD ID for of the
-	 *        ST whid ID is given as input according to the required Es/N0
-	 *
-	 * @param id               the ID of the ST
-	 * @param cni              the required Es/N0 for that terminal
-	 * @param modcod_def       the FMT definition table
-	 * @param sts              the list of STs
-	 */
-	void setRequiredModcod(tal_id_t tal_id, double cni,
-	                       const FmtDefinitionTable *const modcod_def,
-	                       StFmtSimuList* sts);
-
-	/**
 	 * @brief get the modcod change state
 	 *
 	 * @return the modcod change state
@@ -1085,13 +1058,19 @@ class DvbFmt
 
 	/**
 	 * set extension to the packet GSE
-	 * @param elem          The fifo element to replace by le 
-	 *                      packet with extension
-	 * @param fifo          The fifo to place the element
-	 * @param packet_list   The list of available packet
-	 * @param extension_pkt The return packet with extension
-	 * @param source        The terminal source id
-	 * @param dest          The terminal dest id
+	 *
+	 * @param pkt_hdl         The GSE packet handler
+	 * @param elem            The fifo element to replace by the
+	 *                        packet with extension
+	 * @param fifo            The fifo to place the element
+	 * @param packet_list     The list of available packet
+	 * @param extension_pkt   The return packet with extension
+	 * @param source          The terminal source id
+	 * @param dest            The terminal dest id
+	 * @param extension_name  The name of the extension we need to add as
+	 *                        declared in plugin
+	 * @param super_frame_counter  The superframe counter (for debug messages)
+	 * @param is_gw           Whether we are on GW or not
 	 *
 	 * @return true on success, false otherwise
 	 */ 
@@ -1104,7 +1083,6 @@ class DvbFmt
                             tal_id_t dest,
                             string extension_name,
 	                        time_sf_t super_frame_counter,
-                            const FmtDefinitionTable *const modcod_def,
 	                        bool is_gw);
 
 
@@ -1117,17 +1095,14 @@ class DvbFmt
 	/** The internal map that stores all the STs and modcod id for input */
 	StFmtSimuList *input_sts;
 
-	/// The MODCOD Definition Table for input
-	FmtDefinitionTable *input_modcod_def;
-	
-	/// Fmt definition table pour scpc terminals
-	FmtDefinitionTable *input_modcod_def_scpc;
+	/// The MODCOD Definition Table for S2
+	FmtDefinitionTable *s2_modcod_def;
 
 	/** The internal map that stores all the STs and modcod id for output */
 	StFmtSimuList *output_sts;
 
-	/// The MODCOD Definition Table for output
-	FmtDefinitionTable *output_modcod_def;
+	/// The MODCOD Definition Table for RCS
+	FmtDefinitionTable *rcs_modcod_def;
 	
 	// log
 	OutputLog *log_fmt;

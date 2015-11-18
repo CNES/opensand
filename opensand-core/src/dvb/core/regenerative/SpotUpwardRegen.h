@@ -53,6 +53,14 @@ class SpotUpwardRegen: public SpotUpward
 
 
 		/**
+		 *  @brief Handle a logon request transmitted by the lower layer
+		 *
+		 *  @param logon_req  The frame contining the logon request
+		 *  @return true on success, false otherwise
+		 */
+		bool onRcvLogonReq(DvbFrame *dvb_frame);
+
+		/**
 		 * @brief Handle a DVB frame
 		 *
 		 * @param frame  The frame

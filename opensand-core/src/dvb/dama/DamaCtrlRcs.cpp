@@ -101,13 +101,7 @@ bool DamaCtrlRcs::createTerminal(TerminalContextDama **terminal,
 
 uint8_t DamaCtrlRcs::getCurrentModcodId(tal_id_t id) const
 {
-	ListStFmt::const_iterator st_iter;
-	st_iter = this->input_sts->find(id);
-	if(st_iter != this->input_sts->end())
-	{
-		return (*st_iter).second->getCurrentModcodId();
-	}
-	return 0;
+	return this->input_sts->getCurrentModcodId(id);
 }
 
 bool DamaCtrlRcs::removeTerminal(TerminalContextDama *terminal)

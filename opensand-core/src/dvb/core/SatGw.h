@@ -375,11 +375,6 @@ class SatGw: public DvbFmt
 	FmtDefinitionTable* getOutputModcodDef(void);
 	
 	/**
-	 * @brief get the input modcod definition table
-	 */
-	FmtDefinitionTable* getInputModcodDef(void);
-
-	/**
 	 * @ brief get the gateway scenario timer
 	 */ 
     event_id_t getScenarioTimer(void);

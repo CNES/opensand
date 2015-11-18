@@ -723,9 +723,11 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message type SAC");
 				
-				// TODO handle sac	
-				Sac *sac = (Sac*)(*msg);
-				if(!this->dama_ctrl->hereIsSAC(sac))
+				Sac *sac = (Sac *)(*msg);
+				tal_id_t tal_id = sac->getTerminalId();
+				// add CNI in SAC here as we have access to the data
+				sac->setAcm(this->getRequiredCniOutput(tal_id));
+				if(!this->handleSac(*msg))
 				{
 					return false;
 				}
@@ -736,19 +738,23 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 			{
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message session logon request");
-				
+
 				LogonRequest *logon_req = (LogonRequest*)(*msg);
 				tal_id_t st_id = logon_req->getMac();
-				
+
 				// check for column in FMT simulation list
-				if(!this->addInputTerminal(st_id))
+				if(!this->addInputTerminal(st_id,
+					        (this->satellite_type == TRANSPARENT) ? this->rcs_modcod_def :
+					                                                this->s2_modcod_def))
 				{
 					LOG(this->log_request_simulation, LEVEL_ERROR,
 					    "failed to register simulated ST with MAC "
 					    "ID %u\n", st_id);
 					return false;
 				}
-				if(!this->addOutputTerminal(st_id))
+				if(!this->addOutputTerminal(st_id,
+					        (this->satellite_type == TRANSPARENT) ? this->s2_modcod_def :
+					                                                this->rcs_modcod_def))
 				{
 					LOG(this->log_request_simulation, LEVEL_ERROR,
 					    "failed to register simulated ST with MAC "

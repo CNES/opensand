@@ -81,14 +81,14 @@ bool SpotUpwardRegen::onInit(void)
 bool SpotUpwardRegen::initModcodSimu(void)
 {
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            &this->output_modcod_def))
+	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the uplink MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->input_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the forward MODCOD file\n");
@@ -112,20 +112,20 @@ bool SpotUpwardRegen::initModcodSimu(void)
 	}
 
 	// declare the GW as one ST for the MODCOD scenarios
-	if(!this->addInputTerminal(this->mac_id))
+	if(!this->addInputTerminal(this->mac_id, this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
 		    this->mac_id);
 		return false;
 	}
-	if(!this->addOutputTerminal(this->mac_id))
+/*	if(!this->addOutputTerminal(this->mac_id, this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
 		    this->mac_id);
 		return false;
-	}
+	}*/
 
 	return true;
 }
@@ -171,6 +171,41 @@ bool SpotUpwardRegen::initOutput(void)
 	                                                         this->spot_id);
 	return true;
 }
+
+bool SpotUpwardRegen::onRcvLogonReq(DvbFrame *dvb_frame)
+{
+	if(!SpotUpward::onRcvLogonReq(dvb_frame))
+	{
+		return false;
+	}
+
+	LogonRequest *logon_req = (LogonRequest *)dvb_frame;
+	uint16_t mac = logon_req->getMac();
+
+	// handle ST for FMT simulation
+	if(!(this->input_sts->isStPresent(mac) && this->output_sts->isStPresent(mac)))
+	{
+		// ST was not registered yet
+		if(!this->addInputTerminal(mac, this->s2_modcod_def))
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "failed to handle FMT for ST %u, "
+			    "won't send logon response\n", mac);
+			return false;
+		}
+		if(!this->addOutputTerminal(mac, this->rcs_modcod_def))
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "failed to handle FMT for ST %u, "
+			    "won't send logon response\n", mac);
+			return false;
+		}
+	}
+
+	return true;
+}
+
+
 
 bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 {

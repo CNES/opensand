@@ -57,9 +57,10 @@ TimeSeriesGenerator::~TimeSeriesGenerator()
 }
 
 
-bool TimeSeriesGenerator::add(const ListStFmt *const sts)
+bool TimeSeriesGenerator::add(const StFmtSimuList *const sts)
 {
 	bool update = false;
+	set<tal_id_t>::const_iterator it;
 
 	this->index++;
 
@@ -72,11 +73,10 @@ bool TimeSeriesGenerator::add(const ListStFmt *const sts)
 	}
 
 
-	for(ListStFmt::const_iterator it = sts->begin();
-	    it != sts->end(); ++it)
+	for(it = sts->begin(); it != sts->end(); ++it)
 	{
-		tal_id_t tal_id = (*it).first;
-		fmt_id_t modcod_id = (*it).second->getCurrentModcodId();
+		tal_id_t tal_id = (*it);
+		fmt_id_t modcod_id = sts->getCurrentModcodId(tal_id);
 		// add the new entry in the list
 		// The index is the terminal ID
 		if(this->previous_modcods[tal_id] == modcod_id)

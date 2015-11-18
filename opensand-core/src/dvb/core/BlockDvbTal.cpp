@@ -284,7 +284,7 @@ bool BlockDvbTal::Downward::onInit(void)
 	
 	// Initialization od fow_modcod_def (useful to send SAC)
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->input_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");
@@ -656,7 +656,7 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// init fmt_simu
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            &this->output_modcod_def))
+	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");
@@ -680,7 +680,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->satellite_type,
-	                                         this->output_modcod_def,
+	                                         this->rcs_modcod_def,
 	                                         dama_categories,
 	                                         terminal_affectation,
 	                                         &default_category,
@@ -935,14 +935,13 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 		return false;
 	}
 
-	// TODO use the up return frame duration for Slotted Aloha
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
 	                                           RETURN_UP_BAND,
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->satellite_type,
 	                                           // initialized in DAMA
-	                                           this->output_modcod_def,
+	                                           this->rcs_modcod_def,
 	                                           sa_categories,
 	                                           terminal_affectation,
 	                                           &default_category,
@@ -1090,7 +1089,6 @@ bool BlockDvbTal::Downward::initScpc(void)
 	TerminalCategoryDama *cat;
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
-	const ListStFmt *list;
 
 	ConfigurationList current_spot;
 	
@@ -1135,7 +1133,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	                                         this->scpc_carr_duration_ms,
 	                                         this->satellite_type,
 	                                         // input modcod for S2
-	                                         this->input_modcod_def,
+	                                         this->s2_modcod_def,
 	                                         scpc_categories,
 	                                         terminal_affectation,
 	                                         &default_category,
@@ -1212,7 +1210,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	}
 
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->output_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the return MODCOD definition file for SCPC\n");
@@ -1220,7 +1218,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	}
 
 	// register GW	
-	if(!this->addOutputTerminal(this->gw_id))
+	if(!this->addOutputTerminal(this->gw_id, this->s2_modcod_def))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to register simulated ST with MAC "
@@ -1229,13 +1227,12 @@ bool BlockDvbTal::Downward::initScpc(void)
 	}
 	
 	// Create the SCPC scheduler
-	list = this->output_sts->getListSts();
 	cat = scpc_categories.begin()->second;
 	this->scpc_sched = new ScpcScheduling(this->scpc_carr_duration_ms,
 	                                      this->pkt_hdl,
 	                                      this->dvb_fifos,
-	                                      list,
-	                                      this->output_modcod_def,
+	                                      this->output_sts,
+	                                      this->s2_modcod_def,
 	                                      cat, this->gw_id);
 	if(!this->scpc_sched)
 	{
@@ -1654,7 +1651,6 @@ bool BlockDvbTal::Downward::addCniExt(void)
 					                         this->tal_id ,gw,
 					                         ENCODE_CNI_EXT,
 					                         this->super_frame_counter,
-					                         this->input_modcod_def,
 					                         false))
 				{
 					return false;
@@ -1684,7 +1680,6 @@ bool BlockDvbTal::Downward::addCniExt(void)
 					                 this->tal_id ,this->gw_id,
 					                 ENCODE_CNI_EXT,
 					                 this->super_frame_counter,
-					                 this->input_modcod_def,
 					                 false))
 		{
 			return false;
@@ -2478,7 +2473,7 @@ bool BlockDvbTal::Upward::onInit(void)
 bool BlockDvbTal::Upward::initMode(void)
 {
 	this->reception_std = new DvbS2Std(this->pkt_hdl);
-	((DvbS2Std *)this->reception_std)->setModcodDef(this->input_modcod_def);
+	((DvbS2Std *)this->reception_std)->setModcodDef(this->s2_modcod_def);
 	if(this->reception_std == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -2515,7 +2510,7 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 	}
 
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->input_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the down/forward MODCOD definition file\n");
@@ -2525,7 +2520,7 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 	if(this->is_scpc)
 	{
 		if(!this->initModcodDefFile(MODCOD_DEF_S2,
-		                            &this->output_modcod_def))
+		                            &this->s2_modcod_def))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to initialize the up/return MODCOD definition file\n");
@@ -2846,7 +2841,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	    this->group_id, this->tal_id);
 
 	// Add the st id in the fmt_simu
-	if(!this->addInputTerminal(this->tal_id))
+	if(!this->addInputTerminal(this->tal_id, this->s2_modcod_def))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to handle FMT for ST %u, "
