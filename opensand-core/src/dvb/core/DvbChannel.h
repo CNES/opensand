@@ -1104,9 +1104,13 @@ class DvbFmt
 	/// The MODCOD Definition Table for RCS
 	FmtDefinitionTable *rcs_modcod_def;
 	
+	/// The ACM loop margin
+	double fwd_down_acm_margin_db;
+	double ret_up_acm_margin_db;
+
 	// log
 	OutputLog *log_fmt;
-	
+
  private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;

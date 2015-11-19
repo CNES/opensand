@@ -243,6 +243,8 @@
 #define MODCOD_DEF_RCS                    "modcod_def_rcs"
 #define RETURN_UP_MODCOD_TIME_SERIES      "return_up_modcod_time_series"
 #define LOOP_ON_FILE                      "loop_on_file"
+#define RETURN_UP_ACM_LOOP_MARGIN         "return_up_acm_loop_margin"
+#define FORWARD_DOWN_ACM_LOOP_MARGIN      "forward_down_acm_loop_margin"
 
 #define GENERATE_TIME_SERIES_PATH         "generate_time_series_path"
 

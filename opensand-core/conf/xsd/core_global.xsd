@@ -599,6 +599,31 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="forward_down_acm_loop_margin" type="xsd:decimal">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The forward/down link ACM loop margin (in dB)
+                        This margin is applied on NCC
+                        Using this without physical layer will prevent from
+                        getting the highest efficient MODCOD as CNI are computed
+                        from the MODCOD values then the ACM loop margin is applied
+                        <unit>dB</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="return_up_acm_loop_margin" type="xsd:decimal">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The return/up link ACM loop margin (in dB)
+                        This margin is applied on NCC
+                        Using this without physical layer will prevent from
+                        getting the highest efficient MODCOD as CNI are computed
+                        from the MODCOD values then the ACM loop margin is applied
+                        <unit>dB</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+
             <xsd:element name="modcod_def_s2" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">

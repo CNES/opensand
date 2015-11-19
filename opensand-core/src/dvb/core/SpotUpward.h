@@ -146,18 +146,27 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		virtual bool initMode(void) = 0;
 
 		/**
-		 * @brief Initialize the statistics
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		virtual bool initOutput(void) = 0;
-
-		/**
 		 * @brief Read configuration for the different files and open them
 		 *
 		 * @return  true on success, false otherwise
 		 */
 		virtual bool initModcodSimu(void) = 0;
+
+		/**
+		 * @brief Initialize the ACM loop margins
+		 *        Called in GW SpotUpward only as it will initialize
+		 *        StFmtSimuList that are shared
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		virtual bool initAcmLoopMargin(void) = 0;
+
+		/**
+		 * @brief Initialize the statistics
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		virtual bool initOutput(void) = 0;
 
 		/// Spot Id
 		uint8_t spot_id;

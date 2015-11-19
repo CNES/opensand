@@ -181,6 +181,15 @@ class SatGw: public DvbFmt
 	bool initModcodSimu(void);
 	
 	/**
+	 * @brief Initialize the ACM loop margins
+	 *        Called in regenerative satellite as it handles
+	 *        downlink MODCODs
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	bool initAcmLoopMargin(void);
+
+	/**
 	 *  @brief Initialize the time series generators
 	 *
 	 *  @return  true on success, false otherwise

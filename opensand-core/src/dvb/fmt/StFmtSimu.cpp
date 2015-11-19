@@ -43,11 +43,11 @@ StFmtSimu::StFmtSimu(tal_id_t id,
 	cni_has_changed(0),
 	// the column is the id at beginning
 	column(id),
-	current_modcod_id(init_modcod_id),
-	modcod_mutex("StFmtSimu")
+	current_modcod_id(init_modcod_id)
 {
+	// TODO we should do more specific logs like here wherever it's possible
 	this->log_fmt = Output::registerLog(LEVEL_WARNING,
-	                                    "Dvb.Fmt.StFmtSimuList");
+	                                    "Dvb.Fmt.StFmtSimu%u", id);
 }
 
 
@@ -59,20 +59,17 @@ StFmtSimu::~StFmtSimu()
 
 tal_id_t StFmtSimu::getId() const
 {
-	RtLock lock(this->modcod_mutex);
 	return this->id;
 }
 
 
 unsigned long StFmtSimu::getSimuColumnNum() const
 {
-	RtLock lock(this->modcod_mutex);
 	return (unsigned long) this->column;
 }
 
 void StFmtSimu::setSimuColumnNum(unsigned long col)
 {
-	RtLock lock(this->modcod_mutex);
 	// use to set default column when there is no column corresponding to id
 	this->column = col;
 }
@@ -80,13 +77,22 @@ void StFmtSimu::setSimuColumnNum(unsigned long col)
 
 uint8_t StFmtSimu::getCurrentModcodId() const
 {
-	// no lock, only called by StFmtSimuList
 	return this->current_modcod_id;
 }
 
-void StFmtSimu::updateModcodId(uint8_t new_id)
+void StFmtSimu::updateModcodId(uint8_t new_id,
+                               double acm_loop_margin_db /*=0.0*/)
 {
-	// no lock, this is used internally or by StFmtSimuList
+	// we check here if MODCOD is decreasgin else, we will never have
+	// the highest MODCOD when using FMT simulation file
+	// TODO but on the first decrease the margin won't be applied
+	if(acm_loop_margin_db != 0.0 and new_id < this->current_modcod_id)
+	{
+		double cni = this->modcod_def->getRequiredEsN0(this->current_modcod_id);
+		this->updateCni(cni, acm_loop_margin_db);
+		return;
+	}
+
 	if(new_id != this->current_modcod_id)
 	{
 		this->cni_has_changed = true;
@@ -94,19 +100,27 @@ void StFmtSimu::updateModcodId(uint8_t new_id)
 	this->current_modcod_id = new_id;
 }
 
-void StFmtSimu::updateCni(double cni)
+void StFmtSimu::updateCni(double cni,
+                          double acm_loop_margin_db)
 {
-	RtLock lock(this->modcod_mutex);
+	// TODO we should improve this and only apply if CNI
+	//      is deareasing for example (not really satisfying)
+	if(acm_loop_margin_db != 0.0)
+	{
+		LOG(this->log_fmt, LEVEL_INFO,
+		    "Terminal %u: apply ACM loop margin (%.2f dB) on new CNI (%.2f dB)\n",
+		    id, acm_loop_margin_db, cni);
+		cni -= acm_loop_margin_db;
+	}
 	fmt_id_t modcod_id = this->modcod_def->getRequiredModcod(cni);
 	LOG(this->log_fmt, LEVEL_INFO,
-	    "Terminal %u required %.2f dB, will receive allocation "
-	    "with MODCOD %u\n", id, cni, modcod_id);
+	    "Terminal %u: CNI = %.2f dB, corresponding to MODCOD ID %u\n",
+	    id, cni, modcod_id);
 	this->updateModcodId(modcod_id);
 }
 
 double StFmtSimu::getRequiredCni()
 {
-	RtLock lock(this->modcod_mutex);
 	double cni = this->modcod_def->getRequiredEsN0(this->current_modcod_id);
 	if(cni == 0.0)
 	{
@@ -121,16 +135,10 @@ double StFmtSimu::getRequiredCni()
 
 bool StFmtSimu::getCniHasChanged()
 {
-	RtLock lock(this->modcod_mutex);
 	return this->cni_has_changed;
 }
 
-void StFmtSimu::setCniHasChanged(bool changed)
-{
-	RtLock lock(this->modcod_mutex);
-	this->cni_has_changed = changed;
-}	
-	
+
 //////////////////////////////////////////////////////////////////////////////
 ////////////////////////         StFmtSimuList          ////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -138,6 +146,7 @@ void StFmtSimu::setCniHasChanged(bool changed)
 
 StFmtSimuList::StFmtSimuList():
 	sts(NULL),
+	acm_loop_margin_db(0.0),
 	sts_mutex("sts_mutex")
 {
 	// Output Log
@@ -158,6 +167,10 @@ StFmtSimuList::~StFmtSimuList()
 	this->sts->clear();
 }
 
+void StFmtSimuList::setAcmLoopMargin(double acm_loop_margin_db)
+{
+	this->acm_loop_margin_db = acm_loop_margin_db;
+}
 
 bool StFmtSimuList::addTerminal(tal_id_t st_id, fmt_id_t init_modcod,
                                 const FmtDefinitionTable *const modcod_def)
@@ -241,7 +254,8 @@ void StFmtSimuList::updateModcod(const FmtSimulation &fmt_simu)
 			st->setSimuColumnNum(column);
 		}
 		// replace the current MODCOD ID by the new one
-		st->updateModcodId(atoi(fmt_simu.getModcodList()[column].c_str()));
+		st->updateModcodId(atoi(fmt_simu.getModcodList()[column].c_str()),
+		                   this->acm_loop_margin_db);
 
 		LOG(this->log_fmt, LEVEL_DEBUG, "new MODCOD ID of ST with ID %u = %u\n",
 		    st_id, atoi(fmt_simu.getModcodList()[column].c_str()));
@@ -265,14 +279,13 @@ void StFmtSimuList::setRequiredCni(tal_id_t st_id, double cni)
 	LOG(this->log_fmt, LEVEL_INFO,
 	    "set required CNI %.2f for ST%u\n", cni, st_id);
 
-	(*st_iter).second->updateCni(cni);
+	(*st_iter).second->updateCni(cni, this->acm_loop_margin_db);
 }
 
 double StFmtSimuList::getRequiredCni(tal_id_t st_id) const
 {
 	RtLock lock(this->sts_mutex);
 	ListStFmt::iterator st_iter;
-
 
 	st_iter = this->sts->find(st_id);
 	if(st_iter == this->sts->end())

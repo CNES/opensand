@@ -94,6 +94,13 @@ class SpotUpwardRegen: public SpotUpward
 		bool initModcodSimu(void);
 
 		/**
+		 * @brief Initialize the ACM loop margins
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initAcmLoopMargin(void);
+
+		/**
 		 * @brief Initialize the transmission mode
 		 *
 		 * @return  true on success, false otherwise

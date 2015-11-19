@@ -148,6 +148,24 @@ error:
 }
 
 
+bool SpotUpwardRegen::initAcmLoopMargin(void)
+{
+	double up_acm_margin_db;
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   RETURN_UP_ACM_LOOP_MARGIN,
+	                   up_acm_margin_db))
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "Section %s, %s missing\n",
+		    PHYSICAL_LAYER_SECTION, RETURN_UP_ACM_LOOP_MARGIN);
+		return false;
+	}
+	this->output_sts->setAcmLoopMargin(up_acm_margin_db);
+
+	return true;
+}
+
+
 bool SpotUpwardRegen::initOutput(void)
 {
 	// Events

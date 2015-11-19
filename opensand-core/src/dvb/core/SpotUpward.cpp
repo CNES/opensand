@@ -100,6 +100,13 @@ bool SpotUpward::onInit(void)
 		return false;
 	}
 
+	if(!this->initAcmLoopMargin())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the ACM loop margin  part of the initialisation\n");
+		return false;
+	}
+
 	if(!this->initMode())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -127,6 +134,8 @@ error_mode:
 	return false;
 
 }
+
+
 
 bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 {

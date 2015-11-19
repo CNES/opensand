@@ -263,7 +263,6 @@ bool DvbChannel::doSendStats(void)
 
 bool DvbFmt::initFmt(void)
 {
-
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
 	                   ENABLE, this->with_phy_layer))
@@ -275,6 +274,7 @@ bool DvbFmt::initFmt(void)
 	}
 	return true;
 }
+
 
 bool DvbFmt::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def)
 {
@@ -490,14 +490,12 @@ uint8_t DvbFmt::getCurrentModcodIdOutput(tal_id_t id) const
 double DvbFmt::getRequiredCniInput(tal_id_t tal_id)
 {
 	return this->input_sts->getRequiredCni(tal_id);
-//	this->input_sts->setCniHasChanged(tal_id, false);
 }
 
 
 double DvbFmt::getRequiredCniOutput(tal_id_t tal_id)
 {
 	return this->output_sts->getRequiredCni(tal_id);
-//	this->output_sts->setCniHasChanged(tal_id, false);
 }
 
 bool DvbFmt::getCniInputHasChanged(tal_id_t tal_id)
@@ -518,18 +516,23 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
                                 tal_id_t source,
                                 tal_id_t dest,
                                 string extension_name,
-	                            time_sf_t super_frame_counter,
-	                            bool is_gw)
+                                time_sf_t super_frame_counter,
+                                bool is_gw)
 {
 	uint32_t opaque = 0;
 	double cni;
 	if(is_gw)
 	{	
 		cni = this->getRequiredCniInput(dest);
+		LOG(this->log_fmt, LEVEL_INFO,
+		    "Add CNI extension with value %.2f dB for ST%u\n",
+		    cni, dest);
 	}
 	else
 	{
 		cni = this->getRequiredCniInput(source);
+		LOG(this->log_fmt, LEVEL_INFO,
+		    "Add CNI extension with value %.2f dB\n", cni);
 	}
 	opaque = hcnton(cni);
 	
@@ -539,18 +542,17 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	if(selected_pkt != NULL)
 	{
 		LOG(this->log_fmt, LEVEL_DEBUG,
-			"SF#%d: found no-fragmented packet without extensions\n",
+		    "SF#%d: found no-fragmented packet without extensions\n",
 		    super_frame_counter);
 		replace = true;
 	}
 	else
 	{
 		LOG(this->log_fmt, LEVEL_DEBUG,
-		//LOG(this->log_fmt, LEVEL_WARNING,
-			"SF#%d: no non-fragmented or without extension packet found, "
-			"create empty packet\n", super_frame_counter);
+		    "SF#%d: no non-fragmented or without extension packet found, "
+		    "create empty packet\n", super_frame_counter);
 	}
-				
+
 	if(!pkt_hdl->setHeaderExtensions(selected_pkt,
 	                                 extension_pkt,
 	                                 source, 

@@ -117,6 +117,13 @@ class SpotUpwardTransp: public SpotUpward
 		bool initModcodSimu(void);
 
 		/**
+		 * @brief Initialize the ACM loop margins
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initAcmLoopMargin(void);
+
+		/**
 		 *  @brief Initialize the time series generators
 		 *
 		 *  @return  true on success, false otherwise

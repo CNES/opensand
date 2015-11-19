@@ -1648,7 +1648,7 @@ bool BlockDvbTal::Downward::addCniExt(void)
 					                         elem, fifo,
 					                         packet_list, 
 					                         &extension_pkt,
-					                         this->tal_id ,gw,
+					                         this->tal_id, gw,
 					                         ENCODE_CNI_EXT,
 					                         this->super_frame_counter,
 					                         false))
@@ -2621,8 +2621,8 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 					{
 						uint32_t opaque = 0;
 						if(!this->pkt_hdl->getHeaderExtensions(packet,
-						   "deencodeCniExt",
-						   &opaque))
+						                                       "deencodeCniExt",
+						                                       &opaque))
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
 							    "error when trying to read header extensions\n");

@@ -150,6 +150,13 @@ bool SatGw::init()
 			    "failed to initialize modcod simulation\n");
 			return false;
 		}
+
+		if(!this->initAcmLoopMargin())
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to initialize ACM loop margins\n");
+			return false;
+		}
 	
 		if(!this->initSeriesGenerator())
 		{
@@ -337,6 +344,25 @@ bool SatGw::initSeriesGenerator(void)
 
 	this->input_series = new TimeSeriesGenerator(input_file);
 	this->output_series = new TimeSeriesGenerator(output_file);
+
+	return true;
+}
+
+bool SatGw::initAcmLoopMargin(void)
+{
+	double down_acm_margin_db;
+	// regenerative satellite handles downlink MODCOD, therefor
+	// downlink ACM loop margin should be applied here
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   FORWARD_DOWN_ACM_LOOP_MARGIN,
+	                   down_acm_margin_db))
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "Section %s, %s missing\n",
+		    PHYSICAL_LAYER_SECTION, FORWARD_DOWN_ACM_LOOP_MARGIN);
+		return false;
+	}
+	this->output_sts->setAcmLoopMargin(down_acm_margin_db);
 
 	return true;
 }

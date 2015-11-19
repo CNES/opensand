@@ -76,33 +76,12 @@ class StFmtSimu
 	/** The current MODCOD ID of the ST */
 	uint8_t current_modcod_id;
 
-	mutable RtMutex modcod_mutex; ///< The mutex to protect the modcod from concurrent access
-
 	// Output Log
 	OutputLog *log_fmt;
 
-	/// These functions are private because they are not protected by a mutex as
-	//  they are used internally or by StFmtSimuList which has also a mutex and
+	/// The functions are private because they are not protected by a mutex as
+	//  they are used internally or by StFmtSimuList which is protected by a mutex and
 	//  is therefore a friend class
-
-	/**
-	 * @brief Get the current MODCOD ID of the ST
-	 * @warning Only accessible from friend class
-	 *
-	 * @return  the current  MODCOD ID of the ST
-	 */
-	uint8_t getCurrentModcodId() const;
-
-
-	/**
-	 * @brief Update the MODCOD ID of the ST
-	 *
-	 * @param new_id     the new MODCOD ID of the ST
-	 */
-	void updateModcodId(uint8_t new_id);
-
-
- public:
 
 	/**** constructor/destructor ****/
 
@@ -148,13 +127,32 @@ class StFmtSimu
 	 */
 	void setSimuColumnNum(unsigned long col);
 
+	/**
+	 * @brief Get the current MODCOD ID of the ST
+	 *
+	 * @return  the current  MODCOD ID of the ST
+	 */
+	uint8_t getCurrentModcodId() const;
+
+
+	/**
+	 * @brief Update the MODCOD ID of the ST
+	 *
+	 * @param new_id              the new MODCOD ID of the ST
+	 * @param acm_loop_margin_db  The ACM loop margin
+	 */
+	void updateModcodId(uint8_t new_id, double acm_loop_margin_db=0.0);
 
 	/**
 	 * @brief Update the MODCOD ID of the ST with a CNI value
 	 *
-	 * @param cni  The new CNI
+	 * @param cni                 The new CNI
+	 * @param acm_loop_margin_db  The ACM loop margin
 	 */
-	void updateCni(double cni);
+	void updateCni(double cni, double acm_loop_margin_db);
+
+
+
 
 	/**
 	 * @brief get the required CNI value depending on current MODCOD ID
@@ -169,13 +167,6 @@ class StFmtSimu
 	 * @return the cni status
 	 */
 	bool getCniHasChanged();
-
-	/**
-	 * @brief update the Cni change status
-	 *
-	 * @param  change the new cni status
-	 */ 	
-	void setCniHasChanged(bool changed);
 
 };
 
@@ -195,6 +186,9 @@ class StFmtSimuList: public set<tal_id_t>
 	/** the list of StFmtSimu per spot */
 	ListStFmt *sts;
 
+	/** The ACM loop margin */
+	double acm_loop_margin_db;
+
 	// Output Log
 	OutputLog *log_fmt;
 
@@ -209,6 +203,13 @@ class StFmtSimuList: public set<tal_id_t>
 	StFmtSimuList();
 	~StFmtSimuList();
 
+
+	/**
+	 * @brief  Set the ACM loop margin value
+	 *
+	 * @param acm_loop_margin_db  The ACM loop margin
+	 */
+	void setAcmLoopMargin(double acm_loop_margin_db);
 
 	/**
 	 * @brief  add a terminal in the list

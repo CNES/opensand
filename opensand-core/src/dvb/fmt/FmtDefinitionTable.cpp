@@ -409,7 +409,7 @@ uint8_t FmtDefinitionTable::getRequiredModcod(double cni) const
 			// not supported
 			continue;
 		}
-		// here we havea supported Es/N0 value check if it is better than the
+		// here we have a supported Es/N0 value check if it is better than the
 		// previous one
 		if(current_cni >= previous_cni)
 		{

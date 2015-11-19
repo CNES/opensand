@@ -401,6 +401,35 @@ bool SpotUpwardTransp::initMode(void)
 	return true;
 }
 
+bool SpotUpwardTransp::initAcmLoopMargin(void)
+{
+	double ret_acm_margin_db;
+	double fwd_acm_margin_db;
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   RETURN_UP_ACM_LOOP_MARGIN,
+	                   ret_acm_margin_db))
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "Section %s, %s missing\n",
+		    PHYSICAL_LAYER_SECTION, RETURN_UP_ACM_LOOP_MARGIN);
+		return false;
+	}
+
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   FORWARD_DOWN_ACM_LOOP_MARGIN,
+	                   fwd_acm_margin_db))
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "Section %s, %s missing\n",
+		    PHYSICAL_LAYER_SECTION, FORWARD_DOWN_ACM_LOOP_MARGIN);
+		return false;
+	}
+
+	this->input_sts->setAcmLoopMargin(ret_acm_margin_db);
+	this->output_sts->setAcmLoopMargin(fwd_acm_margin_db);
+
+	return true;
+}
 
 bool SpotUpwardTransp::initOutput(void)
 {
