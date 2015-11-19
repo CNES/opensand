@@ -140,7 +140,9 @@ bool FmtSimulation::goNextScenarioStep(double &duration)
 
 	string str = "";
 	for(size_t i = 0 ; i < this->next_modcod_list.size(); ++i)
-		        str += this->next_modcod_list[i] + " ; ";
+	{
+		str += this->next_modcod_list[i] + " ; ";
+	}
 
 	duration = (this->next_step - time_current_step) * this->acm_period_ms;
 

@@ -119,13 +119,13 @@ bool SpotUpwardRegen::initModcodSimu(void)
 		    this->mac_id);
 		return false;
 	}
-/*	if(!this->addOutputTerminal(this->mac_id, this->rcs_modcod_def))
+	if(!this->addOutputTerminal(this->mac_id, this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to define the GW as ST with ID %d\n",
 		    this->mac_id);
 		return false;
-	}*/
+	}
 
 	return true;
 }

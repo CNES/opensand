@@ -103,7 +103,7 @@ bool BlockDvbTal::initListsSts()
 {
 	bool is_scpc = false;
 
-	this->input_sts = new StFmtSimuList();
+	this->input_sts = new StFmtSimuList("in");
 	if(this->input_sts == NULL)
 	{
 		return false;
@@ -124,7 +124,7 @@ bool BlockDvbTal::initListsSts()
 	}
 	if(is_scpc)
 	{
-		this->output_sts = new StFmtSimuList();
+		this->output_sts = new StFmtSimuList("out");
 		if(this->output_sts == NULL)
 		{
 			return false;

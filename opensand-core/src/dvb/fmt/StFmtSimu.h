@@ -88,12 +88,14 @@ class StFmtSimu
 	/**
 	 * @brief Create
 	 *
+	 * @param name             a name to know if this is input or output terminals
 	 * @param id               the ID of the ST (called TAL ID or MAC ID elsewhere
 	 *                         in the code)
 	 * @param modcod_id        the initial MODCOD ID of the ST
 	 * @param modcod_def       the MODCOD definition for the terminal and associated link
 	 */
-	StFmtSimu(tal_id_t id,
+	StFmtSimu(string name,
+	          tal_id_t id,
 	          uint8_t init_modcod_id,
 	          const FmtDefinitionTable *const modcod_def);
 
@@ -183,6 +185,9 @@ class StFmtSimuList: public set<tal_id_t>
  private:
 	typedef std::map<tal_id_t, StFmtSimu *> ListStFmt;
 
+	/** A name to know is this is input or output terminals */
+	string name;
+
 	/** the list of StFmtSimu per spot */
 	ListStFmt *sts;
 
@@ -200,7 +205,7 @@ class StFmtSimuList: public set<tal_id_t>
  public:
 
 	/// Constructor and destructor
-	StFmtSimuList();
+	StFmtSimuList(string name);
 	~StFmtSimuList();
 
 

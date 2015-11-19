@@ -90,8 +90,10 @@ bool UplinkSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
 	// FIXME we consider the band is not the same for GW and terminals (this
 	//       is a good consideration...) but as we have only one band configuration
 	//       we use the same parameters
+	// FIXME we use the first available carriers with a good MODCOD, if the first MODCOD
+	//       found is 1, we will always use one till be do not need to sent on more
+	//       than one carrier
 	// initialize carriers capacity
-	//
 	for(carrier_it = carriers.begin();
 	    carrier_it != carriers.end();
 	    ++carrier_it)

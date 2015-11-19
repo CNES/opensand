@@ -109,12 +109,12 @@ bool BlockDvbNcc::initListsSts()
 	    iter != OpenSandConf::spot_table.end() ;
 	    ++iter)
 	{
-		this->input_sts_list[(*iter).second] = new StFmtSimuList();
+		this->input_sts_list[(*iter).second] = new StFmtSimuList("in");
 		if(this->input_sts_list[(*iter).second] == NULL)
 		{
 			return false;
 		}
-		this->output_sts_list[(*iter).second] = new StFmtSimuList();
+		this->output_sts_list[(*iter).second] = new StFmtSimuList("out");
 		if(this->output_sts_list[(*iter).second] == NULL)
 		{
 			return false;
@@ -1227,6 +1227,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "SF#%u: failed to update MODCOD IDs\n",
 						    this->super_frame_counter);
+						return false;
 					}
 					else
 					{
@@ -1238,7 +1239,6 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					{
 						// we reached the end of the file (or it is malformed)
 						// so we keep the modcod as they are
-						// TODO enable loop on file
 						this->removeEvent(spot->getModcodTimer());
 					}
 					else

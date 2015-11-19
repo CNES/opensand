@@ -91,8 +91,8 @@ SatGw::SatGw(tal_id_t gw_id,
 	this->log_receive = Output::registerLog(LEVEL_WARNING, 
 	                                     "Dvb.receive.spot_%d.gw_%d",
 	                                     this->spot_id, this->gw_id);
-	this->input_sts = new StFmtSimuList();
-	this->output_sts = new StFmtSimuList();
+	this->input_sts = new StFmtSimuList("in");
+	this->output_sts = new StFmtSimuList("out");
 }
 
 SatGw::~SatGw()
@@ -552,6 +552,10 @@ bool SatGw::handleSac(DvbFrame *dvb_frame)
 	    "Get SAC from ST%u, with C/N0 = %.2f\n",
 	    tal_id, sac->getCni());
 
+	// TODO we should apply the delay between terminal and satellite before
+	//      updating the C/N0 value !
+	//      we should have two FIFOs with half delay, one before handling frames,
+	//      the other after !
 	this->setRequiredCniOutput(tal_id, sac->getCni());
 
 	// update ACM parameters with uplink value, thus the GW will

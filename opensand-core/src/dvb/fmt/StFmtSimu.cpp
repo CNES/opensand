@@ -35,7 +35,8 @@
 #include "StFmtSimu.h"
 
 
-StFmtSimu::StFmtSimu(tal_id_t id,
+StFmtSimu::StFmtSimu(string name,
+                     tal_id_t id,
                      uint8_t init_modcod_id,
                      const FmtDefinitionTable *const modcod_def):
 	id(id),
@@ -47,7 +48,7 @@ StFmtSimu::StFmtSimu(tal_id_t id,
 {
 	// TODO we should do more specific logs like here wherever it's possible
 	this->log_fmt = Output::registerLog(LEVEL_WARNING,
-	                                    "Dvb.Fmt.StFmtSimu%u", id);
+	                                    "Dvb.Fmt.%sStFmtSimu%u", name.c_str(), id);
 }
 
 
@@ -144,14 +145,15 @@ bool StFmtSimu::getCniHasChanged()
 ////////////////////////////////////////////////////////////////////////////////
 
 
-StFmtSimuList::StFmtSimuList():
+StFmtSimuList::StFmtSimuList(string name):
+	name(name),
 	sts(NULL),
 	acm_loop_margin_db(0.0),
 	sts_mutex("sts_mutex")
 {
 	// Output Log
 	this->log_fmt = Output::registerLog(LEVEL_WARNING,
-	                                    "Dvb.Fmt.StFmtSimuList");
+	                                    "Dvb.Fmt.%sStFmtSimuList", name.c_str());
 
 	this->sts = new ListStFmt();
 }
@@ -190,7 +192,7 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, fmt_id_t init_modcod,
 	    "add ST%u in FMT simu list\n", st_id);
 
 	// Create the st
-	new_st = new StFmtSimu(st_id, init_modcod, modcod_def);
+	new_st = new StFmtSimu(this->name, st_id, init_modcod, modcod_def);
 	if(!new_st)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR, "Failed to create a new ST\n");

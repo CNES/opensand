@@ -231,18 +231,20 @@ bool BlockDvbSatRegen::DownwardRegen::initTimers(void)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                       this->fwd_down_frame_duration_ms);
 	
+	// TODO why not scenario timer on up ?
 	sat_gws_t::iterator it_gw;
 	for(it_gw = this->gws.begin(); it_gw != this->gws.end(); ++it_gw)
 	{
 		SatGw *gw = it_gw->second;
 		// launch the timer in order to retrieve the modcods
 		event_id_t scenario_timer = this->addTimerEvent("dvb_scenario_timer",
-		                                                1, // the duration will be change when started
-		                                                true, // no rearm
+		                                                5000, // the duration will be change when started
+		                                                false, // no rearm
 		                                                false // do not start
 		                                                );
 		gw->initScenarioTimer(scenario_timer);
-	}	
+		this->raiseTimer(gw->getScenarioTimer());
+	}
 
 	return true;
 }
@@ -426,18 +428,15 @@ bool BlockDvbSatRegen::DownwardRegen::handleTimerEvent(SatGw *current_gw)
 bool BlockDvbSatRegen::DownwardRegen::handleScenarioTimer(SatGw *current_gw)
 {
 	LOG(this->log_receive, LEVEL_DEBUG,
-			"MODCOD scenario timer expired\n");
-
-	LOG(this->log_receive, LEVEL_DEBUG,
-			"update modcod table\n");
+	    "MODCOD scenario timer expired, update MODCOD table\n");
 	
 	double duration;
 	event_id_t scenario_timer = current_gw->getScenarioTimer();
 
-	if(current_gw->goNextScenarioStepInput(duration))
+	if(!current_gw->goNextScenarioStepInput(duration))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
-			"failed to update MODCOD IDs\n");
+		    "failed to update MODCOD IDs\n");
 		return false;
 	}
 
@@ -701,8 +700,8 @@ bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame,
 	if(!current_gw->handleSac(dvb_frame))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
-            "gw %d failed to handle dvb burst\n",
-            current_gw->getGwId());
+		    "gw %d failed to handle dvb burst\n",
+		     current_gw->getGwId());
 		return false;
 	}
 

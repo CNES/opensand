@@ -256,6 +256,7 @@ bool SpotUpwardTransp::initModcodSimu(void)
 	}
 
 	// declare the GW as one ST for the MODCOD scenarios
+	// TODO Not used at the moment
 /*	if(!this->addInputTerminal(this->mac_id, this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -743,8 +744,8 @@ bool SpotUpwardTransp::onRcvLogonReq(DvbFrame *dvb_frame)
 }
 
 bool SpotUpwardTransp::scheduleSaloha(DvbFrame *dvb_frame,
-                                list<DvbFrame *>* &ack_frames,
-                                NetBurst **sa_burst)
+                                      list<DvbFrame *>* &ack_frames,
+                                      NetBurst **sa_burst)
 {
 	if(!this->saloha)
 	{
