@@ -854,9 +854,6 @@ void SpotDownward::updateFmt(void)
 		// stop here
 		return;
 	}
-	// TODO FMT in slotted aloha should be handled on ST
-	//  => so remove return fmt simu !
-	//  => keep this todo in order to think of it on ST
 
 	// for each terminal in DamaCtrl update FMT
 	this->dama_ctrl->updateFmt();

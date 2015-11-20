@@ -99,10 +99,6 @@ bool DamaCtrlRcs::createTerminal(TerminalContextDama **terminal,
 	return true;
 }
 
-uint8_t DamaCtrlRcs::getCurrentModcodId(tal_id_t id) const
-{
-	return this->input_sts->getCurrentModcodId(id);
-}
 
 bool DamaCtrlRcs::removeTerminal(TerminalContextDama *terminal)
 {
@@ -346,7 +342,7 @@ void DamaCtrlRcs::updateFmt()
 			continue;
 		}
 		category = (*category_it).second;
-		simulated_fmt = this->getCurrentModcodId(id);
+		simulated_fmt = this->input_sts->getCurrentModcodId(id);
 		if(simulated_fmt == 0)
 		{
 			LOG(this->log_fmt, LEVEL_ERROR,

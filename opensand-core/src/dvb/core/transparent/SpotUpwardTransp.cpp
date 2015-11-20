@@ -696,7 +696,6 @@ bool SpotUpwardTransp::onRcvLogonReq(DvbFrame *dvb_frame)
 		}
 	}
 
-
 	if(is_scpc)
 	{
 		this->is_tal_scpc.push_back(mac);
