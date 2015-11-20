@@ -41,7 +41,7 @@ StFmtSimu::StFmtSimu(string name,
                      const FmtDefinitionTable *const modcod_def):
 	id(id),
 	modcod_def(modcod_def),
-	cni_has_changed(0),
+	cni_has_changed(true),
 	// the column is the id at beginning
 	column(id),
 	current_modcod_id(init_modcod_id)
