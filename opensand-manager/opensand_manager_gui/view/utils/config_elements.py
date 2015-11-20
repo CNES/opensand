@@ -40,7 +40,7 @@ import os
 import pango
 from copy import deepcopy
 
-from opensand_manager_core.utils import GW, SAT, GLOBAL, SPOT, ID, \
+from opensand_manager_core.utils import GW, GLOBAL, SPOT, ID, \
                                         TOPOLOGY, BANDWIDTH, SYMBOL_RATE,\
                                         ROLL_OFF, RATIO
 from opensand_manager_core.my_exceptions import XmlException
@@ -1105,7 +1105,7 @@ class ConfSection(gtk.VBox):
                     self._ratios.append(value)
 
                 # TODO the file won't exist and the line itself does not exist
-                #      peevent access to this
+                #      prevent access to this
                 source = None
 #                if source is not None:
 #                    line_id = str(nbr + self._new.count(key_path))

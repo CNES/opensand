@@ -175,6 +175,7 @@ class Model:
                 self._config = GlobalConfig(self._scenario_path)
             else:
                 self._config.load(self._scenario_path)
+                self._config.update_conf()
         except ModelException:
             raise
 
@@ -221,7 +222,7 @@ class Model:
                             
     def update_spot_gw(self):
         """ update spots id and gw id for each host """
-        for host in self.get_hosts_list():
+        for host in self._hosts:
             if host.get_name().startswith(ST):
                 (spot_id, gw_id) = self.get_spot_gw_id(host.get_instance())
                 host.set_spot_id(spot_id)
@@ -460,7 +461,7 @@ class Model:
 
     def all_running(self):
         """ check if all components are running """
-        for host in self.get_hosts_list():
+        for host in self._hosts:
             if not host.get_state():
                 return False
         return True
@@ -469,7 +470,7 @@ class Model:
     def running_list(self):
         """ get the name of the components that are still running """
         running = []
-        for host in self.get_hosts_list():
+        for host in self._hosts:
             if host.get_state():
                 running.append(str(host.get_name()).upper())
         return running
@@ -511,7 +512,7 @@ class Model:
         
         # deploy the simulation files when loading a new scenario
         self._event_manager.set('deploy_files')
-        # do that here, we are sure that the sceanrio is correctly loaded
+        # do that here, we are sure that the scenario is correctly loaded
         # because deploy_files event has to wait for set_scenario to be finished
         self.update_spot_gw()
 
