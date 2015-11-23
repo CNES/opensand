@@ -91,7 +91,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
                                          const TerminalCategoryDama *const category,
                                          spot_id_t spot, 
                                          bool is_gw, 
-                                         tal_id_t gw,
+                                         tal_id_t gw_id,
                                          string dst_name):
 	Scheduling(packet_handler, fifos, fwd_sts),
 	fwd_timer_ms(fwd_timer_ms),
@@ -100,32 +100,33 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	pending_bbframes(),
 	fwd_modcod_def(fwd_modcod_def),
 	category(category),
-	spot_id(spot)
+	spot_id(spot),
+	probe_section("")
 {
-
-	unsigned int vcm_id = 0;
 	vector<CarriersGroupDama *> carriers_group;
 	vector<CarriersGroupDama *>::iterator carrier_it;
 	string label = this->category->getLabel();
-	char gw_id[7] = "";
+
+	this->probe_section = "Spot_" + this->spot_id;
 	if(!is_gw)
 	{
-		snprintf(gw_id, sizeof(gw_id), ".Gw_%d", gw);
+		this->probe_section += ".GW_" + gw_id;
 	}
+	this->probe_section += "." + label + "." + dst_name + " ";
 
 
 	this->probe_fwd_total_capacity = Output::registerProbe<int>(
 		"Symbols per frame", true, SAMPLE_LAST,
-		"Spot_%d%s.%s.%s Down/Forward capacity.Total.Available", this->spot_id,
-		(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str());
+		"%sDown/Forward capacity.Total.Available",
+		this->probe_section.c_str());
 	this->probe_fwd_total_remaining_capacity = Output::registerProbe<int>(
 		"Symbols per frame", true, SAMPLE_LAST,
-		"Spot_%d%s.%s.%s Down/Forward capacity.Total.Remaining", this->spot_id,
-		(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str());
+		"%sDown/Forward capacity.Total.Remaining",
+		this->probe_section.c_str());
 	this->probe_bbframe_nbr = Output::registerProbe<int>(
 		true, SAMPLE_AVG,
-		"Spot_%d%s.%s.%s BBFrame number", this->spot_id,
-		(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str());
+		"%sBBFrame number",
+		this->probe_section.c_str());
 
 	carriers_group = this->category->getCarriersGroups();
 	for(carrier_it = carriers_group.begin();
@@ -144,118 +145,8 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 		    vcm_it != vcm_carriers.end();
 		    ++vcm_it)
 		{
-			CarriersGroupDama *vcm = *vcm_it;
-			Probe<int> *remain_probe;
-			Probe<int> *avail_probe;
-			unsigned int max_modcod = 0;
-			vol_sym_t max_bbframe_size_sym = 0;
-			vol_sym_t carrier_size_sym = vcm->getTotalCapacity() /
-			                             vcm->getCarriersNumber();
-			list<unsigned int> fmt_ids = vcm->getFmtIds();
-
-			for(list<unsigned int>::const_iterator fmt_it = fmt_ids.begin();
-			    fmt_it != fmt_ids.end(); ++fmt_it)
-			{
-				unsigned int fmt_id = *fmt_it;
-				vol_sym_t size;
-				// check that the BBFrame maximum size is smaller than the carrier size
-				if(!this->getBBFrameSizeSym(this->getBBFrameSizeBytes(fmt_id),
-				                            fmt_id,
-				                            0,
-				                            size))
-				{
-					LOG(this->log_scheduling, LEVEL_ERROR,
-					    "Cannot determine the maximum BBFrame size\n");
-					break;
-				}
-				if(size > max_bbframe_size_sym)
-				{
-					max_modcod = fmt_id;
-					max_bbframe_size_sym = size;
-				}
-			}
-			if(max_bbframe_size_sym > carrier_size_sym)
-			{
-				// send a warning message, this will work but this is not
-				// a good configuration
-				// if there is more than one carrier, this won't really
-				// be a problem but this won't be representative
-				if(vcm_carriers.size() > 1)
-				{
-					LOG(this->log_scheduling, LEVEL_WARNING,
-					    "Category %s, Carriers group %u VCM %u: the maximum "
-					    "BBFrame size (%u symbols with MODCOD ID %u) is greater "
-					    "than the carrier size %u\n",
-					    this->category->getLabel().c_str(),
-					    vcm->getCarriersId(), vcm_id, max_bbframe_size_sym,
-					    max_modcod, carrier_size_sym);
-				}
-				else
-				{
-					LOG(this->log_scheduling, LEVEL_WARNING,
-					    "Category %s, Carriers group %u: the maximum BBFrame "
-					    "size (%u symbols with MODCOD ID %u) is greater than "
-					    "the carrier size %u\n",
-					    this->category->getLabel().c_str(),
-					    vcm->getCarriersId(), max_bbframe_size_sym,
-					    max_modcod, carrier_size_sym);
-				}
-			}
-
-			// For units, if there is only one MODCOD use Kbits/s else symbols
-			// check if the FIFO can emit on this carriers group
-			if(vcm_carriers.size() <= 1)
-			{
-				string type = "ACM";
-				string unit = "Symbol number";
-				if(vcm->getFmtIds().size() == 1)
-				{
-					unit = "Kbits/s";
-					type = "CCM";
-				}
-				remain_probe = Output::registerProbe<int>(
-						unit,
-						true,
-						SAMPLE_AVG,
-						"Spot_%d%s.%s.%s Down/Forward capacity.Category %s.Carrier%u.%s.Remaining",
-						this->spot_id,
-						(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str(),
-						this->category->getLabel().c_str(),
-						carriers_id, type.c_str());
-				avail_probe = Output::registerProbe<int>(
-						unit,
-						true,
-						SAMPLE_AVG,
-						"Spot_%d%s.%s.%s Down/Forward capacity.Category %s.Carrier%u.%s.Available",
-						this->spot_id,
-						(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str(),
-						this->category->getLabel().c_str(),
-						carriers_id, type.c_str());
-			}
-			else
-			{
-				remain_probe = Output::registerProbe<int>(
-						"Kbits/s",
-						true,
-						SAMPLE_AVG,
-						"Spot_%d%s.%s.%s Down/Forward capacity.Category %s.Carrier%u.VCM%u.Remaining",
-						this->spot_id,
-						(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str(),
-						this->category->getLabel().c_str(),
-						carriers_id, vcm_id);
-				avail_probe = Output::registerProbe<int>(
-						"Kbits/s",
-						true,
-						SAMPLE_AVG,
-						"Spot_%d%s.%s.%s Down/Forward capacity.Category %s.Carrier%u.VCM%u.Available",
-						this->spot_id,
-						(is_gw ? "" : gw_id), label.c_str(), dst_name.c_str(),
-						this->category->getLabel().c_str(),
-						carriers_id, vcm_id);
-				vcm_id++;
-			}
-			avail_probes.push_back(avail_probe);
-			remain_probes.push_back(remain_probe);
+			this->createProbes(vcm_it, vcm_carriers, remain_probes,
+			                   avail_probes, carriers_id);
 		}
 		this->probe_fwd_available_capacity.insert(
 			std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
@@ -459,6 +350,26 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 				avail = avail * 1000 / this->fwd_timer_ms;
 			}
 
+			// If the probes doesn't exist
+			// (in case of carrier reallocation with SVNO interface),
+			// create them
+			if(this->probe_fwd_available_capacity.find(carriers_id)
+			   == this->probe_fwd_available_capacity.end())
+			{
+				vector<Probe<int> *> remain_probes;
+				vector<Probe<int> *> avail_probes;
+
+				this->createProbes(vcm_it, vcm_carriers, remain_probes,
+				                   avail_probes, carriers_id);
+
+				this->probe_fwd_available_capacity.insert(
+				    std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
+				                                                        avail_probes));
+				this->probe_fwd_remaining_capacity.insert(
+				    std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
+				                                                        remain_probes));
+			}
+
 			this->probe_fwd_available_capacity[carriers_id][id]->put(avail);
 			this->probe_fwd_remaining_capacity[carriers_id][id]->put(remain);
 			id++;
@@ -482,7 +393,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	MacFifoElement *elem;
 	long max_to_send;
 	BBFrame *current_bbframe;
-	list<unsigned int> supported_modcods = carriers->getFmtIds();
+	list<fmt_id_t> supported_modcods = carriers->getFmtIds();
 	vol_sym_t capacity_sym = carriers->getRemainingCapacity();
 	vol_sym_t previous_sym = carriers->getPreviousCapacity(current_superframe_sf);
 	vol_sym_t init_capa = capacity_sym;
@@ -1020,7 +931,7 @@ sched_status_t ForwardSchedulingS2::addCompleteBBFrame(list<DvbFrame *> *complet
 }
 
 
-void ForwardSchedulingS2::schedulePending(const list<unsigned int> supported_modcods,
+void ForwardSchedulingS2::schedulePending(const list<fmt_id_t> supported_modcods,
                                           const time_sf_t current_superframe_sf,
                                           list<DvbFrame *> *complete_dvb_frames,
                                           vol_sym_t &remaining_capacity_sym)
@@ -1075,6 +986,120 @@ void ForwardSchedulingS2::schedulePending(const list<unsigned int> supported_mod
 	this->pending_bbframes.insert(this->pending_bbframes.end(),
 	                              new_pending.begin(), new_pending.end());
 
+}
+
+
+void ForwardSchedulingS2::createProbes(vector<CarriersGroupDama *>::iterator vcm_it,
+                                       vector<CarriersGroupDama *> vcm_carriers,
+                                       vector<Probe<int> *> &remain_probes,
+                                       vector<Probe<int> *> &avail_probes,
+                                       unsigned int carriers_id)
+{
+	unsigned int vcm_id = 0;
+	CarriersGroupDama *vcm = *vcm_it;
+	Probe<int> *remain_probe;
+	Probe<int> *avail_probe;
+	unsigned int max_modcod = 0;
+	vol_sym_t max_bbframe_size_sym = 0;
+	vol_sym_t carrier_size_sym = vcm->getTotalCapacity() /
+	                             vcm->getCarriersNumber();
+	list<fmt_id_t> fmt_ids = vcm->getFmtIds();
+
+	for(list<fmt_id_t>::const_iterator fmt_it = fmt_ids.begin();
+	    fmt_it != fmt_ids.end(); ++fmt_it)
+	{
+		fmt_id_t fmt_id = *fmt_it;
+		vol_sym_t size;
+		// check that the BBFrame maximum size is smaller than the carrier size
+		if(!this->getBBFrameSizeSym(this->getBBFrameSizeBytes(fmt_id),
+		                            fmt_id,
+		                            0,
+		                            size))
+		{
+			LOG(this->log_scheduling, LEVEL_ERROR,
+			    "Cannot determine the maximum BBFrame size\n");
+			break;
+		}
+		if(size > max_bbframe_size_sym)
+		{
+			max_modcod = fmt_id;
+			max_bbframe_size_sym = size;
+		}
+	}
+	if(max_bbframe_size_sym > carrier_size_sym)
+	{
+		// send a warning message, this will work but this is not
+		// a good configuration
+		// if there is more than one carrier, this won't really
+		// be a problem but this won't be representative
+		if(vcm_carriers.size() > 1)
+		{
+			LOG(this->log_scheduling, LEVEL_WARNING,
+			    "Category %s, Carriers group %u VCM %u: the maximum "
+			    "BBFrame size (%u symbols with MODCOD ID %u) is greater "
+			    "than the carrier size %u\n",
+			    this->category->getLabel().c_str(),
+			    vcm->getCarriersId(), vcm_id, max_bbframe_size_sym,
+			    max_modcod, carrier_size_sym);
+		}
+		else
+		{
+			LOG(this->log_scheduling, LEVEL_WARNING,
+			    "Category %s, Carriers group %u: the maximum BBFrame "
+			    "size (%u symbols with MODCOD ID %u) is greater than "
+			    "the carrier size %u\n",
+			    this->category->getLabel().c_str(),
+			    vcm->getCarriersId(), max_bbframe_size_sym,
+			    max_modcod, carrier_size_sym);
+		}
+	}
+
+	// For units, if there is only one MODCOD use Kbits/s else symbols
+	// check if the FIFO can emit on this carriers group
+	if(vcm_carriers.size() <= 1)
+	{
+		string type = "ACM";
+		string unit = "Symbol number";
+		if(vcm->getFmtIds().size() == 1)
+		{
+			unit = "Kbits/s";
+			type = "CCM";
+		}
+		remain_probe = Output::registerProbe<int>(
+				unit,
+				true,
+				SAMPLE_AVG,
+				"%sDown/Forward capacity.Carrier%u.%s.Remaining",
+				this->probe_section.c_str(),
+				carriers_id, type.c_str());
+		avail_probe = Output::registerProbe<int>(
+				unit,
+				true,
+				SAMPLE_AVG,
+				"%sDown/Forward capacity.Carrier%u.%s.Available",
+				this->probe_section.c_str(),
+				carriers_id, type.c_str());
+	}
+	else
+	{
+		remain_probe = Output::registerProbe<int>(
+				"Kbits/s",
+				true,
+				SAMPLE_AVG,
+				"%sDown/Forward capacity.Carrier%u.VCM%u.Remaining",
+				this->probe_section.c_str(),
+				carriers_id, vcm_id);
+		avail_probe = Output::registerProbe<int>(
+				"Kbits/s",
+				true,
+				SAMPLE_AVG,
+				"%sDown/Forward capacity.Carrier%u.VCM%u.Available",
+				this->probe_section.c_str(),
+				carriers_id, vcm_id);
+		vcm_id++;
+	}
+	avail_probes.push_back(avail_probe);
+	remain_probes.push_back(remain_probe);
 }
 
 // TODO scheduling improvement

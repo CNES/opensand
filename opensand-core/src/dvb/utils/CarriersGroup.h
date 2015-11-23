@@ -121,12 +121,19 @@ class CarriersGroup
 	 */
 	unsigned int getRatio() const;
 
+ 	/**
+	 * @brief   Set the estimated occupation ratio
+	 *
+	 * @param  The new estimated occupation ratio
+	 */
+	void setRatio(unsigned int new_ratio);
+
 	/**
 	 * @brief Get the list of available MODCODs in carrier
 	 *
 	 * @return the list of MODCODs
 	 */
-	const list<unsigned int> getFmtIds() const;
+	const list<fmt_id_t> getFmtIds() const;
 
 	/**
 	 * @brief Get the carriers access type
@@ -134,6 +141,20 @@ class CarriersGroup
 	 * @return  The carriers access type
 	 */
 	access_type_t getAccessType(void) const;
+
+ 	/**
+	 * @brief Get the FMT Group
+	 *
+	 * @return The FMT Group
+	 */
+	const FmtGroup *getFmtGroup() const;
+
+	/**
+	 * @brief  Get the maximum rate available with this carriers
+	 *
+	 * @return The rate available with this carriers
+	 */
+	rate_kbps_t getMaxRate() const;
 
 	/**
 	 * @brief Add a VCM part in the carriers group

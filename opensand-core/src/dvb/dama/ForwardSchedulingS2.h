@@ -101,6 +101,12 @@ class ForwardSchedulingS2: public Scheduling
 	/** The terminal category */
 	const TerminalCategoryDama *category;
 
+	/// Spot Id
+	spot_id_t spot_id;
+
+	/// The section for probes used to name them
+	string probe_section;
+
 	// Total and unused capacity probes
 	Probe<int> *probe_fwd_total_capacity;
 	Probe<int> *probe_fwd_total_remaining_capacity;
@@ -195,7 +201,7 @@ class ForwardSchedulingS2: public Scheduling
 	 * @param complete_dvb_frames  IN/OUT: The list of complete DVB frames
 	 * @param capacity_sym         IN/OUT: The remaining capacity on carriers
 	 */
-	void schedulePending(const list<unsigned int> supported_modcods,
+	void schedulePending(const list<fmt_id_t> supported_modcods,
 	                     const time_sf_t current_superframe_sf,
 	                     list<DvbFrame *> *complete_dvb_frames,
 	                     vol_sym_t &remaining_capacity_sym);
@@ -222,8 +228,14 @@ class ForwardSchedulingS2: public Scheduling
 	 */
 	unsigned int getBBFrameSizeBytes(unsigned int modcod_id);
 
-	// Spot Id
-	spot_id_t spot_id;
+	/**
+	 * @brief  Create the associated probes
+	 */
+	void createProbes(vector<CarriersGroupDama *>::iterator vcm_it,
+	                  vector<CarriersGroupDama *> vcm_carriers,
+	                  vector<Probe<int> *> &remain_probes,
+	                  vector<Probe<int> *> &avail_probes,
+	                  unsigned int carriers_id);
 
 };
 

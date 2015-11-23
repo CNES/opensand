@@ -47,7 +47,7 @@
 using std::map;
 using std::string;
 
-typedef map<unsigned int, FmtDefinition *>::const_iterator fmt_def_table_pos_t;
+typedef map<fmt_id_t, FmtDefinition *>::const_iterator fmt_def_table_pos_t;
 
 
 /**
@@ -59,7 +59,22 @@ class FmtDefinitionTable
  private:
 
 	/** The internal map that stores all the FMT definitions */
-	map<unsigned int, FmtDefinition *> definitions;
+	map<fmt_id_t, FmtDefinition *> definitions;
+
+
+ 	/**
+	 * @brief Get the modulation and the codage
+	 *
+	 * @param id      The id of the FMT definition we want information for
+	 * @param mod     OUT: The modulation
+	 * @param cod     OUT: The codage
+	 * @return        true on success, false otherwise
+	 * 
+	 * @warning Be sure that the ID is valid before calling the fonction
+	 */
+	bool getModCod(fmt_id_t id,
+	               unsigned int &mod,
+	               float &cod) const;
 
 	/**
 	 * @brief Get a FMT definition in the table
@@ -67,7 +82,7 @@ class FmtDefinitionTable
 	 * @param id  The definition ID
 	 * @return  the definition
 	 */
-	FmtDefinition *getFmtDef(unsigned int id) const;
+	FmtDefinition *getFmtDef(fmt_id_t id) const;
 
  protected:
 
@@ -106,7 +121,7 @@ class FmtDefinitionTable
 	 *                             of the FMT
 	 * @return                     true if the addition is successful, false otherwise
 	 */
-	bool add(const unsigned int id,
+	bool add(const fmt_id_t id,
 	         const string modulation,
 	         const string coding_rate,
 	         const float spectral_efficiency,
@@ -118,7 +133,7 @@ class FmtDefinitionTable
 	 * @param id  the ID we want to check for
 	 * @return    true if a FMT exist, false is it does not exist
 	 */
-	bool doFmtIdExist(unsigned int id) const;
+	bool doFmtIdExist(fmt_id_t id) const;
 
 	/**
 	 * @brief Clear the table of FMT definitions
@@ -133,7 +148,7 @@ class FmtDefinitionTable
 	 *
 	 * @return    definitions
 	 */
-	map<unsigned int, FmtDefinition* > getDefinitions(void) const;
+	map<fmt_id_t, FmtDefinition* > getDefinitions(void) const;
 
 	/**
 	 * @brief Get the modulation of the FMT definition
@@ -144,7 +159,7 @@ class FmtDefinitionTable
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	modulation_type_t getModulation(unsigned int id) const;
+	modulation_type_t getModulation(fmt_id_t id) const;
 
 	/**
 	 * @brief Get the coding rate of the FMT definition
@@ -155,7 +170,7 @@ class FmtDefinitionTable
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	string getCodingRate(unsigned int id) const;
+	string getCodingRate(fmt_id_t id) const;
 
 	/**
 	 * @brief Get the spectral efficiency of the FMT definition
@@ -166,7 +181,7 @@ class FmtDefinitionTable
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	float getSpectralEfficiency(unsigned int id) const;
+	float getSpectralEfficiency(fmt_id_t id) const;
 
 	/**
 	 * @brief Get the required Es/N0 ratio of the FMT definition
@@ -177,7 +192,7 @@ class FmtDefinitionTable
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	double getRequiredEsN0(unsigned int id) const;
+	double getRequiredEsN0(fmt_id_t id) const;
 
 	/**
 	 * @brief Get the best required MODCOD according to the Es/N0 ratio
@@ -186,14 +201,14 @@ class FmtDefinitionTable
 	 * @param id  the required Es/N0 ratio
 	 * @return    the best required MODCOD ID, most robust if no MODCOD is found
 	 */
-	uint8_t getRequiredModcod(double cni) const;
+	fmt_id_t getRequiredModcod(double cni) const;
 
 	/**
 	 * @brief  Get the highest definition ID
 	 *
 	 * @return the highest definition ID
 	 */
-	unsigned int getMaxId() const;
+	fmt_id_t getMaxId() const;
 
 	/**
 	 * @brief Convert a value in symbol for the FMT definition
@@ -205,8 +220,21 @@ class FmtDefinitionTable
 	 *
 	 * @warning Be sure that the ID is valid before calling the function
 	 */
-	unsigned int symToKbits(unsigned int id,
-	                        unsigned int val_sym) const;
+	vol_kb_t symToKbits(fmt_id_t id,
+	                    vol_sym_t val_sym) const;
+
+	/**
+	 * @brief Convert a value in kbits for the FMT definition
+	 *        whose ID is given as input
+	 *
+	 * @param id       the ID of the FMT definition we want information for
+	 * @param val_kbits  the value in kbits (per ...)
+	 * @return    the value converted in symbol (per ...)
+	 *
+	 * @warning Be sure that the ID is valid before calling the function
+	 */
+	vol_sym_t kbitsToSym(fmt_id_t id,
+	                     vol_kb_t val_kbits) const;
 
 	void print(void); /// For debug
 };

@@ -300,6 +300,26 @@ bool DamaCtrlRcsLegacy::resetDama()
 			    remaining_capacity_kb);
 
 			// Output probes and stats
+			// first create probes that don't exist in case of carriers
+			// reallocation with SVNO interface
+			if(this->probes_carrier_return_capacity[label].find(carriers_id)
+			   == this->probes_carrier_return_capacity[label].end())
+			{
+				Probe<int> *probe_carrier_capacity;
+				probe_carrier_capacity = Output::registerProbe<int>("Kbits/s",
+				    true, SAMPLE_LAST, "Spot_%d.%s.Up/Return capacity.Carrier%u.Available",
+				    this->spot_id, label.c_str(), carriers_id);
+				this->probes_carrier_return_capacity[label].insert(
+				    std::pair<unsigned int,Probe<int> *>(carriers_id,
+				                                         probe_carrier_capacity));
+			}
+			if(this->carrier_return_remaining_capacity_pktpf[label].find(carriers_id)
+			   == this->carrier_return_remaining_capacity_pktpf[label].end())
+			{
+				this->carrier_return_remaining_capacity_pktpf[label].insert(
+				    std::pair<unsigned int, int>(carriers_id, 0));
+			}
+
 			this->probes_carrier_return_capacity[label][carriers_id]
 				->put(this->converter->pktpfToKbps(remaining_capacity_pktpf));
 			this->gw_return_total_capacity_pktpf += remaining_capacity_pktpf;
@@ -309,9 +329,9 @@ bool DamaCtrlRcsLegacy::resetDama()
 		}
 
 		// Output probes and stats
-		this->probes_category_return_capacity[category->getLabel()]->put(
+		this->probes_category_return_capacity[label]->put(
 			this->converter->pktpfToKbps(category_return_capacity_pktpf));
-		this->category_return_remaining_capacity_pktpf[category->getLabel()] =
+		this->category_return_remaining_capacity_pktpf[label] =
 			category_return_capacity_pktpf;
 		this->category_return_capacity_pktpf = 0;
 	}

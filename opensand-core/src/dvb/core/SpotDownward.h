@@ -42,6 +42,7 @@
 #include "Scheduling.h"
 #include "SlottedAlohaNcc.h"
 #include "RequestSimulator.h"
+#include "SvnoRequest.h"
 
 
 class SpotDownward: public DvbChannel, public DvbFmt
@@ -146,11 +147,18 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	void updateFmt(void);
 
 	/**
-	 * @briel apply pep commande
+	 * @briel apply PEP command
 	 * @param pep_request the pep request
 	 * @return true on success, false otherwise
 	 */
 	bool applyPepCommand(PepRequest *pep_request);
+
+	/**
+	 * @briel apply SVNO command
+	 * @param svno_request the SVNO request
+	 * @return true on success, false otherwise
+	 */
+	bool applySvnoCommand(SvnoRequest *svno_request);
 
 	/**
 	 * @brief Build a TTP

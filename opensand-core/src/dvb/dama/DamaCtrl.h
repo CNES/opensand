@@ -170,6 +170,14 @@ class DamaCtrl
 	 */
 	virtual void setRecordFile(FILE * event_stream);
 
+	/**
+	 * @brief    Get a pointer to the categories
+	 * @warning  the categories can be modified
+	 * 
+	 * @return   pointer to the categories
+	 */
+	TerminalCategories<TerminalCategoryDama> *getCategories();
+
  protected:
 
 	/**
@@ -306,6 +314,7 @@ class DamaCtrl
 	 *
 	 */
 	virtual void updateFmt() = 0;
+
 
 	/// if set to other than NULL, the fd where recording events
 	FILE *event_file;

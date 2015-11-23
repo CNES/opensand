@@ -61,13 +61,13 @@ class FmtGroup
  private:
 
 	/** The ID of the FMT group */
-	unsigned int id;
+	fmt_id_t id;
 
 	/** The list of FMT IDs */
 	list<FmtId> fmt_ids;
 
 	/** The list of IDs from FMT IDs */
-	list<unsigned int> num_fmt_ids;
+	list<fmt_id_t> num_fmt_ids;
 
 	/** The table of MODCOD definitions */
 	const FmtDefinitionTable *modcod_def;
@@ -98,14 +98,14 @@ class FmtGroup
 	 * @return The nearest available FMT id if found
 	 *         0 if there is no supported FMT id
 	 */
-	unsigned int getNearest(unsigned int fmt_id) const;
+	fmt_id_t getNearest(fmt_id_t fmt_id) const;
 
 	/**
 	 * @brief Get the list of available MODCODs
 	 *
 	 * @return the list of MODCODs
 	 */
-	const list<unsigned int> getFmtIds() const;
+	const list<fmt_id_t> getFmtIds() const;
 
 	/**
 	 * @brief Get the MODCOD definitions
@@ -113,6 +113,13 @@ class FmtGroup
 	 * @return the MODCOD definitions
 	 */
 	const FmtDefinitionTable *getModcodDefinitions() const;
+
+	/**
+	 * @brief  Get the highest Fmt id
+	 *
+	 * @return the highest Fmt id
+	 */
+	fmt_id_t getMaxFmtId() const;
 
   private:
 
@@ -132,7 +139,7 @@ class FmtGroup
 class FmtId
 {
  public:
-	FmtId(unsigned int id, float es_n0):
+	FmtId(fmt_id_t id, float es_n0):
 		id(id),
 		es_n0(es_n0)
 	{};
@@ -144,25 +151,25 @@ class FmtId
     }
 
     /// operator <= used to compare with FMT ID
-    bool operator<=(unsigned int id) const
+    bool operator<=(fmt_id_t id) const
     {   
         return (this->id <= id);
     }
 
     /// operator >= used to compare with FMT ID
-    bool operator>=(unsigned int id) const
+    bool operator>=(fmt_id_t id) const
     {   
         return (this->id >= id);
     }
 
     /// operator == used to compare with FMT ID
-    bool operator==(unsigned int id) const
+    bool operator==(fmt_id_t id) const
     {   
         return (this->id == id);
     }   
 
     /// operator != used to compare with FMT ID
-    bool operator!=(unsigned int id) const
+    bool operator!=(fmt_id_t id) const
     {   
         return (this->id != id);
     }  
@@ -198,7 +205,7 @@ class FmtId
 	}
 
 	/// The FMT ID
-	unsigned int id;
+	fmt_id_t id;
 
  private:
 	/// The required Es/N0
@@ -207,7 +214,7 @@ class FmtId
 
 
 
-typedef map<unsigned int, FmtGroup *> fmt_groups_t;
+typedef map<fmt_id_t, FmtGroup *> fmt_groups_t;
 
 
 #endif

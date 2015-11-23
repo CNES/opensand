@@ -219,6 +219,7 @@
             <xsd:element ref="dvb_rcs_ncc" />
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="qos_pep" />
+            <xsd:element ref="svno_interface" />
             <xsd:element ref="uplink_physical_layer" />
             <xsd:element ref="downlink_physical_layer" />
             <xsd:element ref="debug" />
@@ -383,7 +384,7 @@
             <xsd:element name="pep_to_dama_port" type="port">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        communication port on DAMA for QoS PEP messages
+                        Communication port on DAMA for QoS PEP messages
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -393,6 +394,29 @@
                         Delay to apply anticipation RBDC allocations from
                         QoS PEP/ARC (ms)
                         <unit>ms</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- svno_interface section description -->
+<xsd:element name="svno_interface">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>\tThe parameters for the SVNO interface</b>
+            ]]>
+            <hide>true</hide>
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="svno_to_ncc_port" type="port">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Communication port on NCC for SVNO messages
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

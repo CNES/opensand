@@ -662,9 +662,36 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 			carrier_it != carriers.end(); ++carrier_it)
 		{
 			unsigned int carrier_id = (*carrier_it)->getCarriersId();
+
+			// Create the probes if they don't exist yet
+			// (necessary in case of carrier modifications with SVNO interface)
+			if(this->probes_carrier_return_remaining_capacity[label].find(carrier_id)
+			   == this->probes_carrier_return_remaining_capacity[label].end())
+			{
+				Probe<int> *probe_carrier_remaining_capacity;
+				probe_carrier_remaining_capacity = Output::registerProbe<int>("Kbits/s",
+					true, SAMPLE_LAST, "Spot_%d.%s.Up/Return capacity.Carrier%u.Remaining",
+					this->spot_id, label.c_str(), carrier_id);
+				this->probes_carrier_return_remaining_capacity[label].insert(
+					std::pair<unsigned int, Probe<int> *>(carrier_id,
+					                                      probe_carrier_remaining_capacity));
+			}
+			if(this->carrier_return_remaining_capacity_pktpf[label].find(carrier_id)
+			   == this->carrier_return_remaining_capacity_pktpf[label].end())
+			{
+				this->carrier_return_remaining_capacity_pktpf[label].insert(
+					std::pair<unsigned int, int>(carrier_id, 0));
+			}
+
 			this->probes_carrier_return_remaining_capacity[label][carrier_id]->put(
 				this->converter->pktpfToKbps(
 					this->carrier_return_remaining_capacity_pktpf[label][carrier_id]));
 		}
 	}
 }
+
+TerminalCategories<TerminalCategoryDama> *DamaCtrl::getCategories()
+{
+	return &(this->categories);
+}
+

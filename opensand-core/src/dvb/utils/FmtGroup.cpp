@@ -59,11 +59,11 @@ FmtGroup::FmtGroup(unsigned int group_id,
 	this->parse(ids);
 };
 
-unsigned int FmtGroup::getNearest(unsigned int fmt_id) const
+fmt_id_t FmtGroup::getNearest(fmt_id_t fmt_id) const
 {
 	list<FmtId>::const_reverse_iterator it; 
 	FmtId desired_fmt(fmt_id, this->modcod_def->getRequiredEsN0(fmt_id));
-	// FMT IDs are sorted from more to less robust
+	// FMT IDs are sorted from most to less robust
 	for(it = this->fmt_ids.rbegin();
 	    it != this->fmt_ids.rend();
 	    ++it)
@@ -80,7 +80,7 @@ void FmtGroup::parse(string ids)
 {
 	vector<string>::iterator it;
 	vector<string> first_step;
-	list<unsigned int>::const_iterator id_it;
+	list<fmt_id_t>::const_iterator id_it;
 
 	// first get groups of strings separated by ';'
 	tokenize(ids, first_step, ";");
@@ -89,14 +89,14 @@ void FmtGroup::parse(string ids)
 		string temp = *it;
 		vector<string> second_step;
 		vector<string>::iterator it2;
-		unsigned int previous_id = 0;
+		fmt_id_t previous_id = 0;
 
 		// then split the integers separated by '-'
 		tokenize(temp, second_step, "-");
 		for(it2 = second_step.begin(); it2 != second_step.end(); ++it2)
 		{
 			stringstream str(*it2);
-			unsigned int val;
+			fmt_id_t val;
 			str >> val;
 			if(str.fail())
 			{
@@ -118,7 +118,7 @@ void FmtGroup::parse(string ids)
 			}
 
 			// add the values between two tokens separated by '-'
-			for(unsigned int i = std::min(previous_id + 1, val + 1);
+			for(fmt_id_t i = std::min(previous_id + 1, val + 1);
 			    i < std::max(previous_id, val); i++)
 			{
 				if(std::find(this->fmt_ids.begin(),
@@ -145,7 +145,7 @@ void FmtGroup::parse(string ids)
 	}
 }
 
-const list<unsigned int> FmtGroup::getFmtIds() const
+const list<fmt_id_t> FmtGroup::getFmtIds() const
 {
 	return this->num_fmt_ids;
 }
@@ -154,4 +154,10 @@ const FmtDefinitionTable *FmtGroup::getModcodDefinitions() const
 {
 	return this->modcod_def;
 }
+
+fmt_id_t FmtGroup::getMaxFmtId() const
+{
+	return this->num_fmt_ids.back();
+}
+
 

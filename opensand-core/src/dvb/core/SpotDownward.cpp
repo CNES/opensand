@@ -862,25 +862,6 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 
 }
 
-bool SpotDownward::applyPepCommand(PepRequest *pep_request)
-{
-	if(this->dama_ctrl->applyPepCommand(pep_request))
-	{
-		LOG(this->log_receive_channel, LEVEL_NOTICE,
-		    "PEP request successfully "
-		    "applied in DAMA\n");
-	}
-	else
-	{
-		LOG(this->log_receive_channel, LEVEL_ERROR,
-		    "failed to apply PEP request "
-		    "in DAMA\n");
-		return false;
-	}
-
-	return true;
-}
-
 void SpotDownward::updateFmt(void)
 {
 	if(!this->dama_ctrl)
@@ -954,3 +935,68 @@ bool SpotDownward::handleSac(const DvbFrame *dvb_frame)
 	return true;
 }
 
+
+bool SpotDownward::applyPepCommand(PepRequest *pep_request)
+{
+	if(this->dama_ctrl->applyPepCommand(pep_request))
+	{
+		LOG(this->log_receive_channel, LEVEL_NOTICE,
+		    "PEP request successfully "
+		    "applied in DAMA\n");
+	}
+	else
+	{
+		LOG(this->log_receive_channel, LEVEL_ERROR,
+		    "failed to apply PEP request "
+		    "in DAMA\n");
+		return false;
+	}
+
+	return true;
+}
+
+
+bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
+{
+	svno_request_type_t req_type = svno_request->getType();
+	band_t band = svno_request->getBand();
+	string cat_label = svno_request->getLabel();
+	rate_kbps_t new_rate_kbps = svno_request->getNewRate();
+	TerminalCategories<TerminalCategoryDama> *cat;
+	time_ms_t frame_duration_ms;
+
+	switch(band)
+	{
+		case FORWARD:
+			cat = &this->categories;
+			frame_duration_ms = this->fwd_down_frame_duration_ms;
+			break;
+
+		case RETURN:
+			cat = this->dama_ctrl->getCategories();
+			frame_duration_ms = this->ret_up_frame_duration_ms;
+
+		default:
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "Wrong SVNO band %u\n", band);
+			return false;
+	}
+
+	switch(req_type)
+	{
+		case SVNO_REQUEST_ALLOCATION:
+			return this->allocateBand(frame_duration_ms, cat_label, new_rate_kbps, *cat);
+			break;
+
+		case SVNO_REQUEST_RELEASE:
+			return this->releaseBand(frame_duration_ms, cat_label, new_rate_kbps, *cat);
+			break;
+
+		default:
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "Wrong SVNO request type %u\n", req_type);
+			return false;
+	}
+
+	return true;
+}
