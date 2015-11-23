@@ -28,7 +28,7 @@
 #
 #
 
-# Author : Maxime POMPA 
+# Author : Maxime POMPA
 
 
 """
@@ -41,18 +41,18 @@ from opensand_manager_core.utils import DAMA, SCPC, ALOHA, VCM, CCM, ACM, S2, RC
 
 class Carrier :
     """
-    Create a carrier 
+    Create a carrier
         Arg :   _symbol_rate    : float
-                nb_carrier     : integer (default = 1)
-                category       : integer (default = 1)
-                access_type    : string (default = 'CCM')
-                fmt_groups     : list of string (defautl empty)
-                list_modcod    : list of string (default empty)
-                ratio          : dictionnary with ['modcod':ratio] only use for VCM
+                _nb_carrier     : integer (default = 1)
+                _category       : integer (default = 1)
+                _access_type    : string (default = 'CCM')
+                _fmt_groups     : list of string (defautl empty)
+                _list_modcod    : list of string (default empty)
+                _ratio          : dictionnary with ['modcod':ratio] only use for VCM
     """
-    
-    def __init__(self, symbol_rate = 0, nb_carrier = 1, category = 1, 
-                 access_type = 'CCM', fmt_groups = '1', modcod = '1', 
+
+    def __init__(self, symbol_rate = 0, nb_carrier = 1, category = 1,
+                 access_type = 'CCM', fmt_groups = '1', modcod = '1',
                  ratio = '50') :
         self._symbol_rate = symbol_rate
         # initialize in set_iaccess_type
@@ -68,8 +68,8 @@ class Carrier :
 
         self._rates = []
 
-        self.set_access_type(access_type) 
-        
+        self.set_access_type(access_type)
+
         if category == "Standard":
             category = 1
         elif category == "Premium":
@@ -77,16 +77,16 @@ class Carrier :
         elif category == "Pro":
             category = 3
         self._category = category
-        
+
         self._X = []                #Position in X to trace the graphic
         self._Y = []                #Position in Y to trace the graphic
-        
+
     ##################################################
-    
+
     def parser(self, list_str):
         ids = []
         if type(list_str) is not list:
-            ids = list_str.split(';')    
+            ids = list_str.split(';')
         else:
             for elm in list_str:
                 for elm_id in elm.split(';'):
@@ -101,23 +101,23 @@ class Carrier :
                 id_list.append(int(elm_id))
 
         return id_list
-            
-            
+
+
     ##################################################
-        
+
     def calculate_xy(self, roll_off = 0, offset = 0):
         """
         Calculate all the X and Y position of the carrier to trace the graphic
         """
-        half_rolloff = float(roll_off)/2
-        
+        half_rolloff = float(roll_off) / 2
+
         self._X = []
         self._Y = []
 
         symbol_rate = float(self._symbol_rate) / 1E6
-        
+
         """
-        We do not use directly self._X to stock the value of linspace 
+        We do not use directly self._X to stock the value of linspace
         because it will create a numpy.ndarray.
         """
         for value in np.linspace(0,1,100):
@@ -125,28 +125,28 @@ class Carrier :
             self._Y.append(np.sin(np.pi*value))
         for i, value in enumerate(self._X):
             self._X[i] = (float(self._X[i]) * symbol_rate + symbol_rate * half_rolloff)
-        
-        self._X.insert(0, 0)    
+
+        self._X.insert(0, 0)
         self._Y.insert(0, 0)
-        self._X.append(symbol_rate * (1+roll_off))    
+        self._X.append(symbol_rate * (1 + roll_off))
         self._Y.append(0)
-        
+
         for i, value in enumerate(self._X):
             self._X[i] = float(self._X[i])+offset
-        
-    
+
+
     ##################################################
 
     def set_symbol_rate(self, symbol_rate):
         self._symbol_rate = symbol_rate
-    
+
     def set_fmt_groups(self, fmt_groups):
         self._str_fmt_grp = fmt_groups
         self._fmt_groups = self.parser(fmt_groups)
-    
+
     def set_category(self, category):
         self._category = category
-    
+
     def set_access_type(self, access_type):
         self._access_type = access_type
         if access_type in [SCPC, CCM, ACM, VCM]:
@@ -156,24 +156,23 @@ class Carrier :
         else:
             raise Exception("Unknown access type %s" % access_type)
 
-        
+
     def set_modcod(self, modcod):
         self._str_modcod = modcod
         self._list_modcod = self.parser(modcod)
-        
+
     def set_ratio(self, ratio):
         self._str_ratio = ratio
         self._ratio = self.parser(ratio)
-       
+
     def set_nb_carriers(self, nb_carrier):
-       self._nb_carrier = nb_carrier 
-    
-    """ACCESSEUR"""
+       self._nb_carrier = nb_carrier
+
     ##################################################
 
     def get_symbol_rate(self):
         return self._symbol_rate
-   
+
     def get_str_fmt_grp(self):
         return self._str_fmt_grp
 
@@ -185,15 +184,15 @@ class Carrier :
 
     def get_category(self):
         return int(self._category)
-        
-    def get_old_category(self):    
+
+    def get_old_category(self):
         ret=""
         if self._category == 1:
-            ret="Standard"
+            ret = "Standard"
         elif self._category == 2:
-            ret="Premium"
+            ret = "Premium"
         elif self._category == 3:
-            ret="Pro"    
+            ret = "Pro"
         return ret
 
     def get_access_type(self):
@@ -219,13 +218,13 @@ class Carrier :
 
     def get_x(self):
         return self._X
-        
+
     def get_y(self):
         return self._Y
 
     def get_rates(self):
         return self._rates
-    
+
     def set_rates(self, rates):
         self._rates = rates
 
@@ -235,19 +234,12 @@ class Carrier :
         to get only the symbol rate use get_symbol_rate()
         """
         return float(self._symbol_rate) * (roll_off + 1) * self._nb_carrier
-   
+
     def get_nb_carriers(self):
         return self._nb_carrier
 
     ##################################################
-    
-    """def __str__(self):
-        return "Symbol Rate : " + str(self._symbol_rate)+"\n"\
-        "category : " + str(self._category)+"\n"\
-        "Access Type : " + str(self._access_type)+"\n"\
-        "MODCOD : " + str(self._list_modcod)+"\n"\
-        "Ratio : " + str(self._ratio)+"\n" """
-    
+
     def __str__(self):
         return "ratio=%s Rs=%g => %d carriers" % (sum(self._ratio),
                                                   self._symbol_rate,
@@ -256,7 +248,7 @@ class Carrier :
 ##################################################
 if __name__ == '__main__':
 
-    p1 = Carrier(12, 1, 1, 'VCM',"2;5-8" , "4;6")
-
-    print(p1.get_modcod())
-    print(p1.get_ratio())
+    CARRIER = Carrier(12, 1, 1, 'VCM', "1;2", "20;18", "4;6")
+    print CARRIER
+    print(CARRIER.get_modcod())
+    print(CARRIER.get_ratio())

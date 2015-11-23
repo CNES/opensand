@@ -25,10 +25,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see http://www.gnu.org/licenses/.
-# 
+#
 #
 
-# Author : Maxime POMPA 
+# Author : Maxime POMPA
 
 
 """
@@ -55,7 +55,7 @@ MODCOD_DEF_RCS="modcod_def_rcs"
 class ModcodParameter(WindowView):
     """ an modcod configuration window """
     def __init__(self, model, manager_log, link, carrier_id, list_carrier, update_cb):
-        
+
         WindowView.__init__(self, None, 'edit_dialog')
 
         self._update_cb = update_cb
@@ -63,25 +63,25 @@ class ModcodParameter(WindowView):
         self._dlg = self._ui.get_widget('edit_dialog')
         self._dlg.set_keep_above(True)
         self._dlg.set_modal(True)
-        
+
         self._vbox = self._ui.get_widget('edit_dialog_vbox')
         self._edit_text_win = self._ui.get_widget('edit_text_win')
         self._carrier_id = carrier_id
         self._list_carrier = list_carrier
         self._link = link
         self._model = model
-        
+
         #Add vbox_conf Box
         self._vbox_conf = gtk.VBox()
         self._edit_text_win.add_with_viewport(self._vbox_conf)
-        
+
         #Add hbox_mod in vbox_conf
         self._hbox_modcod = gtk.HBox()
         self._vbox_conf.pack_start(self._hbox_modcod)
         #Add vbox_vcm_option in vbox_conf
         self._vbox_vcm_option = gtk.VBox()
         self._vbox_conf.pack_start(self._vbox_vcm_option, expand=False)
-        
+
         #Add frame_access_type in hbox_modcod
         self._frame_access_type = gtk.Frame(label="Access Type")
         self._frame_access_type.set_shadow_type(gtk.SHADOW_OUT)
@@ -90,7 +90,7 @@ class ModcodParameter(WindowView):
         self._frame_modcod = gtk.Frame(label="MODCOD")
         self._frame_modcod.set_shadow_type(gtk.SHADOW_OUT)
         self._hbox_modcod.pack_start(self._frame_modcod, padding = 25)
-        
+
         #Add vbox_access_type in frame_access_type
         self._vbox_access_type = gtk.VBox()
         self._frame_access_type.add(self._vbox_access_type)
@@ -106,69 +106,69 @@ class ModcodParameter(WindowView):
         #Add vbox_modcod in modcod_scroll_window
         self._vbox_modcod = gtk.VBox()
         self._modcod_scroll_window.add_with_viewport(self._vbox_modcod)
-        
+
         #Create Frame_temporal_graph
         self._frame_temporal_graph = gtk.Frame(label="Temporal Representation")
-        
+
         self._figure = Figure()
         self._ax = self._figure.add_subplot(111)
         canvas = FigureCanvas(self._figure)
         canvas.set_size_request(150, 150)
         self._frame_temporal_graph.add(canvas)
-        
+
         #Create scroll_ratio
         self._scroll_ratio = gtk.ScrolledWindow()
         self._scroll_ratio.set_size_request(150, 120)
-        
+
         #Add vbox_ratio in scroll_ratio
         self._vbox_ratio = gtk.VBox()
         self._scroll_ratio.add_with_viewport(self._vbox_ratio)
-        
+
         #Size and display
         self._dlg.set_default_size(500, 300)
-        
+
         #Item List to simply access to toogle button
         self._item_list = []
         self._list_modcod_ratio = {}
         self._dico_modcod = {}
 
         self._vcm_radio = None
-        
-        
+
+
     def go(self):
         """ run the window """
         self._vbox.show_all()
-        
+
         try:
             self.load()
         except ModelException, msg:
             error_popup(str(msg))
         self._dlg.set_title("MODCOD parameters - OpenSAND Manager")
         self._dlg.run()
-        
-        
+
+
     def load(self):
         #Add the access type button for forward or return
         if self._link == FORWARD_DOWN:
             #Add radio button
-            self._ccm_radio = gtk.RadioButton(group=None, label=CCM, 
+            self._ccm_radio = gtk.RadioButton(group=None, label=CCM,
                                               use_underline=True)
-            self._acm_radio = gtk.RadioButton(group=self._ccm_radio, 
-                                              label=ACM, 
+            self._acm_radio = gtk.RadioButton(group=self._ccm_radio,
+                                              label=ACM,
                                               use_underline=True)
-            self._vcm_radio = gtk.RadioButton(group=self._ccm_radio, 
-                                              label=VCM, 
+            self._vcm_radio = gtk.RadioButton(group=self._ccm_radio,
+                                              label=VCM,
                                               use_underline=True)
             #Connect signal to button
             self._ccm_radio.connect("toggled", self.on_ccm_toggled)
             self._acm_radio.connect("toggled", self.on_acm_toggled)
             self._vcm_radio.connect("toggled", self.on_vcm_toggled)
             #Add to box
-            self._vbox_access_type.pack_start(self._ccm_radio, 
+            self._vbox_access_type.pack_start(self._ccm_radio,
                                               expand=True, fill=True)
-            self._vbox_access_type.pack_start(self._acm_radio, 
+            self._vbox_access_type.pack_start(self._acm_radio,
                                               expand=True, fill=True)
-            self._vbox_access_type.pack_start(self._vcm_radio, 
+            self._vbox_access_type.pack_start(self._vcm_radio,
                                               expand=True, fill=True)
         elif self._link == RETURN_UP:
             self._dama_radio = gtk.RadioButton(group=None, label=DAMA,
@@ -181,20 +181,20 @@ class ModcodParameter(WindowView):
             self._dama_radio.connect("toggled", self.on_toggled)
             self._aloha_radio.connect("toggled", self.on_toggled)
             self._scpc_radio.connect("toggled", self.on_scpc_toggled)
-            self._vbox_access_type.pack_start(self._dama_radio, 
+            self._vbox_access_type.pack_start(self._dama_radio,
                                               expand=True, fill=True)
-            self._vbox_access_type.pack_start(self._aloha_radio, 
+            self._vbox_access_type.pack_start(self._aloha_radio,
                                               expand=True, fill=True)
-            self._vbox_access_type.pack_start(self._scpc_radio, 
+            self._vbox_access_type.pack_start(self._scpc_radio,
                                               expand=True, fill=True)
 
             if self._model.get_conf().get_payload_type() == 'regenerative':
                 self._aloha_radio.set_sensitive(False)
                 self._scpc_radio.set_sensitive(False)
 
-            
+
         #Load access type from the carrier
-        access_type = self._list_carrier[self._carrier_id-1].get_access_type()
+        access_type = self._list_carrier[self._carrier_id - 1].get_access_type()
         if access_type == CCM:
             self._ccm_radio.toggled()
         elif access_type == ACM:
@@ -207,10 +207,10 @@ class ModcodParameter(WindowView):
             self._aloha_radio.set_active(True)
         elif access_type == SCPC:
             self._scpc_radio.set_active(True)
-        
+
         #Load modcod from carrier
-        modcod_list = self._list_carrier[self._carrier_id-1].get_modcod()
-        list_ratio = self._list_carrier[self._carrier_id-1].get_ratio()
+        modcod_list = self._list_carrier[self._carrier_id - 1].get_modcod()
+        list_ratio = self._list_carrier[self._carrier_id - 1].get_ratio()
         index = 0
         nb_active = 0
         for modcod in modcod_list:
@@ -221,15 +221,15 @@ class ModcodParameter(WindowView):
             nb_active += 1
         if nb_active == len(self._item_list):
             self._check_modcod.set_active(True)
-        
+
         self._vbox_conf.show_all()
 
 
     def close(self):
         """ close the window """
         self._dlg.destroy()
-        
-    
+
+
     def on_edit_dialog_delete_event(self, source=None, event=None):
         """ close and delete the window """
         self.close()
@@ -237,16 +237,16 @@ class ModcodParameter(WindowView):
 
     def add_modcod_item(self, source=None):
         """display all the modcod button"""
-        
+
         #remove the old list
         for child in self._vbox_modcod.get_children():
             self._vbox_modcod.remove(child)
         #Add the new list in the vbox
         for element in self._item_list:
             self._vbox_modcod.pack_start(element, expand=False, fill=False)
-            
+
         self._vbox.show_all()
-        
+
 
     def set_modcod_widgets(self, source, is_radio, option=None):
         """ Create a list of widget with list of modcods """
@@ -288,9 +288,9 @@ class ModcodParameter(WindowView):
                         #Default value for ratio is 10
                         if modcod in self._list_modcod_ratio.keys():
                             self._dico_modcod[modcod[1] + " " + modcod[2]] = \
-                                self._list_modcod_ratio[modcod]            
+                                self._list_modcod_ratio[modcod]
                         else:
-                            self._dico_modcod[modcod[1] + " " + modcod[2]] = 10            
+                            self._dico_modcod[modcod[1] + " " + modcod[2]] = 10
                     else:
                         radio_group = self._item_list[0]
                     check_modcod = gtk.RadioButton(group = radio_group,
@@ -308,7 +308,7 @@ class ModcodParameter(WindowView):
         #If button become disable
         else:
             self._dico_modcod.clear()
-        
+
 
     def on_all_modcod_toggled(self, source=None):
         if source.get_active():
@@ -322,12 +322,12 @@ class ModcodParameter(WindowView):
     def on_ccm_toggled(self, source=None):
         """Signal when ccm button change"""
         self.set_modcod_widgets(source, True, CCM)
-        
-    
+
+
     def on_acm_toggled(self, source=None):
         """Signal when acm button change"""
         self.set_modcod_widgets(source, False, ACM)
-    
+
     def on_vcm_toggled(self, source=None):
         """Signal when vcm button change"""
         """ With the list of modcod it creates a list of widget"""
@@ -345,47 +345,47 @@ class ModcodParameter(WindowView):
             self._dlg.resize(500, 300)
             for child in self._vbox_vcm_option:
                 self._vbox_vcm_option.remove(child)
-    
+
     def on_scpc_toggled(self, source=None):
         """Signal when acm button change"""
         self.set_modcod_widgets(source, False, SCPC)
-        
-    
+
+
     def on_toggled(self, source=None):
         self.set_modcod_widgets(source, True)
 
-        
+
     def on_check_modcod(self, source=None, modcod=0):
         """Signal if it is selected"""
         #If modcod become enable
         if source.get_active():
-            #Add this modcod in the dictionary with the default ration value 10
+            #Add this modcod in the dictionary with the default ratio value 10
             if int(modcod[0]) in self._list_modcod_ratio.keys():
                 self._dico_modcod[source.get_label()] = \
-                        self._list_modcod_ratio[int(modcod[0])]            
+                        self._list_modcod_ratio[int(modcod[0])]
             else:
                 self._dico_modcod[source.get_label()] = 10
         #if modcod become disable
         else:
             del self._dico_modcod[source.get_label()]
-        #refresh the ratio selection menu 
+        #refresh the ratio selection menu
         self.create_menu_ratio()
         #Trace the graphic
         self.trace_arrow()
-        
-    
+
+
     def on_update_ratio(self, source=None, modcod=None):
         """Signal when a ratio change"""
         self._dico_modcod[modcod] = int(source.get_value())
         self.trace_arrow()
-        
-        
+
+
     def load_modcod(self, path):
         """Read in the file the available modcod"""
         mc_list = []
         with  open(path, 'r') as modcod_def:
             for line in modcod_def:
-                if (line.startswith("/*") or 
+                if (line.startswith("/*") or
                     line.isspace() or
                     line.startswith('nb_fmt')):
                     continue
@@ -396,91 +396,91 @@ class ModcodParameter(WindowView):
                     continue
                 # id, modulation, coding_rate, spectral_efficiency, required Es/N0
                 mc_list.append([elts[0], elts[1], elts[2], elts[3], elts[4]])
-        
+
         return mc_list
-        
-    
+
+
     def trace_temporal_representation(self):
         """Add graph and ratio selection in the window """
-        
+
         self._vbox_vcm_option.pack_start(self._frame_temporal_graph)
         self._vbox_vcm_option.pack_start(self._scroll_ratio)
         #Clear the graph
         self._ax.cla()
         self._figure.canvas.draw()
         #Display all
-        self._vbox.show_all()    
-        
-        
+        self._vbox.show_all()
+
+
     def trace_arrow(self):
         """Calculate and display the representation with dico_modcod """
-        ratio = 0                        
+        ratio = 0
         d = 0
-        
+
         #Clear graph
         self._ax.cla()
         self._figure.canvas.draw()
-        
+
         #Calcul total ratio
         for value in self._dico_modcod.values():
             ratio = ratio + value
-        
+
         for modcod, value in self._dico_modcod.items():
             t = float(value) / ratio
-            self._ax.annotate('', 
-                              xy = (d, 0.50), 
-                              xycoords = 'data', 
+            self._ax.annotate('',
+                              xy = (d, 0.50),
+                              xycoords = 'data',
                               xytext = (d+t, 0.50),
-                              textcoords = 'data', 
+                              textcoords = 'data',
                               arrowprops = {'arrowstyle':'<->'})
-            self._ax.annotate(modcod, 
-                              xy = (d, 0.25), 
-                              xycoords = 'data', 
+            self._ax.annotate(modcod,
+                              xy = (d, 0.25),
+                              xycoords = 'data',
                               xytext = (d+t, 0.25),
                               textcoords = 'offset points')
-            self._ax.annotate(str("{:.2f}".format(t*100)) + "%", 
+            self._ax.annotate(str("{:.2f}".format(t*100)) + "%",
                               xy = (d, 0.10),
-                              xycoords = 'data', 
-                              xytext = (d+t, 0.10), 
+                              xycoords = 'data',
+                              xytext = (d+t, 0.10),
                               textcoords = 'offset points')
             d += t
-            
+
         self._figure.canvas.draw()
         self._vbox.show_all()
-        
-        
+
+
     def create_menu_ratio(self):
         """Create and add all the widget to configure ratio"""
         #Remove the all widget
         for child in self._vbox_ratio.get_children():
             self._vbox_ratio.remove(child)
-        
+
         for modcod,value in self._dico_modcod.items():
             hbox_ratio=gtk.HBox()
-            
+
             modcod_name = gtk.Label(str = modcod)
             ratio = gtk.Label(str = "Ratio")
             ajustement = gtk.Adjustment(int(value), 1, 10000, 1, 8)
             modcod_ratio = gtk.SpinButton(ajustement, digits = 0)
             modcod_ratio.connect("value-changed", self.on_update_ratio, modcod)
-            
+
             hbox_ratio.pack_start(modcod_name, fill = False)
             hbox_ratio.pack_start(ratio, fill = False)
             hbox_ratio.pack_start(modcod_ratio, fill = False)
-            
+
             self._vbox_ratio.pack_start(hbox_ratio, expand = False, fill = False)
         self._vbox.show_all()
-        
-        
+
+
     def get_active_access_type(self):
-        #Get the toggle access_type 
+        #Get the toggle access_type
         all_access_type = self._vbox_access_type.get_children()
         for button in all_access_type:
             if button.get_active():
                 access_type = button.get_label()
         return access_type
 
-        
+
     def get_active_modcod(self):
         #Get all toggle modcod
         all_modcod = self._vbox_modcod.get_children()
@@ -493,11 +493,7 @@ class ModcodParameter(WindowView):
                 if button.get_active():
                     modcod.append(fmt_id)
                     ratio.append(self._dico_modcod[button.get_label()])
-                    
-            modcod = []
-            ratio = []
-            fmt_id += 1
-
+                fmt_id += 1
         else:
             for button in all_modcod:
                 if button.get_active():
@@ -506,17 +502,18 @@ class ModcodParameter(WindowView):
                 fmt_id += 1
 
         modcod_update = []
-        if len(modcod) > 1 :
+        if len(modcod) > 1 and (self._vcm_radio is None or not
+                                self._vcm_radio.get_active()):
             first = modcod[0]
             last = modcod[0]
             row = False
-            for i in range(1,len(modcod)):
-                if int(modcod[i]) == int(modcod[i-1]) + 1:
+            for i in range(1, len(modcod)):
+                if int(modcod[i]) == int(modcod[i - 1]) + 1:
                     last = modcod[i]
                     row = True
                 else:
                     row = False
-            
+
                 if not row or i == (len(modcod) - 1):
                     if first != last :
                         modcod_update.append(str(first) + "-" + str(last))
@@ -530,41 +527,64 @@ class ModcodParameter(WindowView):
         else:
             modcod_update = modcod
 
-        if len(modcod_update) > 0 :
-            modcods[';'.join(str(e) for e in modcod_update)] = ratio[0]
+        return (modcod_update, ratio)
 
-        return modcods
 
-    
 
     def on_save_edit_clicked(self, source=None):
         """Save the modcod configuration """
-        modcods = self.get_active_modcod()
+        (modcods, ratios) = self.get_active_modcod()
         if len(modcods) == 0:
             error_popup("At least one modcod should be selected")
             return
-        self._list_carrier[self._carrier_id-1].set_access_type(
+        if self.get_active_access_type() == VCM and \
+           len(modcods) != len(ratios):
+            error_popup("There should be one MODCOD per ratio with VCM carriers")
+            return
+        if self.get_active_access_type() != VCM and len(ratios) != 1:
+            ratios = [sum(ratios[:])]
+
+        self._list_carrier[self._carrier_id - 1].set_access_type(
             self.get_active_access_type())
- 
-        self._list_carrier[self._carrier_id-1].set_modcod(
-            ';'.join(str(e) for e in modcods))
-        ratio = ';'.join(str(e) for e in modcods.values())
-        self._list_carrier[self._carrier_id-1].set_ratio(
-            ratio)
-        
+
+        modcod = ';'.join(str(e) for e in modcods)
+        self._list_carrier[self._carrier_id - 1].set_modcod(modcod)
+        ratio = ';'.join(str(e) for e in ratios)
+        self._list_carrier[self._carrier_id - 1].set_ratio(ratio)
+
         gobject.idle_add(self._update_cb)
-        
+
         self._dlg.destroy()
-    
-    
+
+
     def on_cancel_edit_clicked(self, source=None):
         """Quit by cancel button"""
         self.close()
-        
+
 
 ##################################################
 if __name__ == '__main__':
-    
-    app = ModcodParameter()
-    gtk.main()
+    from opensand_manager_core.loggers.manager_log import ManagerLog
+    from opensand_manager_core.opensand_model import Model
+    from opensand_manager_core.carrier import Carrier
+
+    def nothing():
+        pass
+
+    LOGGER = ManagerLog(7, True, True, True)
+    MODEL = Model(LOGGER)
+    CARRIER = Carrier(12, 1, 1, 'VCM', "1;2", "20;18", "4;6")
+    CARRIER_LIST = [CARRIER]
+    WindowView(None, 'none', 'opensand.glade')
+    app = ModcodParameter(MODEL, LOGGER, FORWARD_DOWN, 1, CARRIER_LIST, nothing)
+    app.go()
+    try:
+        gtk.main()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        for carrier in CARRIER_LIST:
+            print "Carrier access type %s, ratio %s, MODCOD %s, groups %s" % (
+                        carrier.get_access_type(), carrier.get_ratio(),
+                        carrier.get_modcod(), carrier.get_fmt_groups())
 

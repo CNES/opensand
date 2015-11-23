@@ -95,7 +95,6 @@ class CarriersBand():
 
     def modcod_def(self, scenario, config, compute=True):
         # ACM
-        # TODO fix this
         for std in [RCS, S2]:
             xpath = "//modcod_def_%s" % (std)
             elem = config.get(xpath)

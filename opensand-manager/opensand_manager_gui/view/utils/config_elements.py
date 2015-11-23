@@ -295,7 +295,7 @@ class SpotTree(gtk.TreeStore):
         self._hidden_row = []
         self._restriction_row = []
         
-        """ load the treestore """
+        # load the treestore
         column = gtk.TreeViewColumn(col1_title)
         cell_renderer = gtk.CellRendererText()
         column.pack_start(cell_renderer, True)
@@ -422,7 +422,7 @@ class ConfigurationTree(gtk.TreeStore):
         self._hidden_row = []
         self._restriction_row = []
         
-        """ load the treestore """
+        #load the treestore 
         column = gtk.TreeViewColumn(col1_title)
         if not col1_toggled is None:
             cell_renderer = gtk.CellRendererToggle()

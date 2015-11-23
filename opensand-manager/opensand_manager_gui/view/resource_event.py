@@ -40,7 +40,7 @@ from opensand_manager_gui.view.popup.graphical_parameter import GraphicalParamet
 from opensand_manager_gui.view.popup.st_assignment_dialog import AssignmentDialog
 from opensand_manager_core.utils import FORWARD_DOWN, RETURN_UP
 
-class ResourceEvent(ResourceView) :
+class ResourceEvent(ResourceView):
     """ Events on configuration tab """
 
     def __init__(self, parent, model, manager_log):

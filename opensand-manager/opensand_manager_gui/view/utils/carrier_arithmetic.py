@@ -39,6 +39,8 @@ carrier_arithmetic.py - the configuration tab view
 from opensand_manager_core.utils import BANDWIDTH
 from opensand_manager_core.carriers_band import CarriersBand
 
+from opensand_manager_core.utils import DAMA, SCPC, ALOHA, VCM, ACM, CCM
+
 
 class CarrierArithmetic:
     """ Element for the resouces configuration tab """
@@ -57,34 +59,41 @@ class CarrierArithmetic:
         """Update ax graph of the carrier representation"""
         
         #get all carriers
-        color = {1:'b-', 
-                 2:'g-', 
-                 3:'c-', 
-                 4:'m-', 
-                 5:'y-', 
-                 6:'k-', 
-                 7:'r-'}
+        color = {1: 'b', 
+                 2: 'g', 
+                 3: 'c', 
+                 4: 'm', 
+                 5: 'y', 
+                 6: 'k', 
+                 7: 'r',}
+        access_type = {ACM: '-',
+                       CCM: '-.',
+                       VCM: '--',
+                       SCPC: ':',
+                       ALOHA: '--',
+                       DAMA: '-',}
                 
         self._bandwidth = 0
         #Trace the graphe
-        for carrier in self._list_carrier :
-            for nb_carrier in range(1, carrier.get_nb_carriers()+1):
+        for carrier in self._list_carrier:
+            for nb_carrier in range(1, carrier.get_nb_carriers() + 1):
                 carrier.calculate_xy(roll_off, self._bandwidth)
                 ax.plot(carrier.get_x(), 
                         carrier.get_y(), 
-                        color[carrier.get_category()])
+                        color[carrier.get_category()] +
+                        access_type[carrier.get_access_type()])
                 # bandwidth in MHz
-                self._bandwidth = self._bandwidth + carrier.get_bandwidth(roll_off)\
+                self._bandwidth = self._bandwidth + carrier.get_bandwidth(roll_off) \
                         / (1E6 * carrier.get_nb_carriers())
         if self._bandwidth != 0:
             ax.axis([float(-self._bandwidth)/6, 
                      self._bandwidth + float(self._bandwidth)/6,
                      0, 1.5])
         bp, = ax.plot([0, 0, self._bandwidth, self._bandwidth], 
-                      [0,1,1,0], 'r-', 
+                      [0, 1, 1, 0], 'r-', 
                       label = BANDWIDTH, 
                       linewidth = 3.0)
-        ax.legend([bp],[BANDWIDTH])
+        ax.legend([bp], [BANDWIDTH])
         ax.grid(True)
 
     def update_rates(self, fmt_group):
@@ -94,19 +103,12 @@ class CarrierArithmetic:
         carriers_band.modcod_def(self._model.get_scenario(), 
                                  config, False)
         
-        new_fmt_id = int(fmt_group.keys()[-1]) + 1
         for carrier in self._list_carrier:
             carriers_band.add_carrier(carrier)
-            if carrier.get_str_modcod() not in fmt_group.values():
-                fmt_group[new_fmt_id] = carrier.get_str_modcod()
-                new_fmt_id += 1
-
 
         for grp_id in fmt_group:
             carriers_band.add_fmt_group(grp_id,
                                         fmt_group[grp_id])
-
-
 
         for element in self._list_carrier:
             element.set_rates(carriers_band.get_carrier_bitrates(element))

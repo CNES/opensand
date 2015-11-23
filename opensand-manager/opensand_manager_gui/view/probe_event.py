@@ -126,5 +126,6 @@ class ProbeEvent(ProbeView):
             self._probe_display.set_plot_type("step")
         elif self._plot_type.get_active() == 3:
             self._probe_display.set_plot_type("default")
+        self._probe_sel_controller.probe_displayed_change()
         self._probe_display.graph_update()
 

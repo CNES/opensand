@@ -235,15 +235,6 @@ class ResourceView(WindowView):
         #get the xml config
         config = self._model.get_conf().get_configuration()
         
-        #get all carriers
-        color = {1:'b-', 
-                 2:'g-', 
-                 3:'c-', 
-                 4:'m-', 
-                 5:'y-', 
-                 6:'k-', 
-                 7:'r-'}
-                
         #get the roll off
         xpath = get_conf_xpath(ROLL_OFF, link)
         roll_off = float(config.get_value(config.get(xpath)))
@@ -446,7 +437,7 @@ class ResourceView(WindowView):
             if link == RETURN_UP and nb_tal_scpc >= 1 and nb_carrier_scpc == 0:
                 img_war = gtk.Image()
                 img_war.set_from_stock(gtk.STOCK_DIALOG_WARNING,
-                                   gtk.ICON_SIZE_MENU)
+                                       gtk.ICON_SIZE_MENU)
                 self._desc_war[group] = img_war
                 hbox_gr_title.pack_start(img_war, expand=True, fill=False, padding=1)
                 self._desc_war[group].set_tooltip_text(
@@ -462,16 +453,6 @@ class ResourceView(WindowView):
                 self._desc_war[group].set_tooltip_text(
                     "There should be at most one SCPC terminal per category, it "
                     "will use all the SCPC carriers in it")
-            # Show error
-#            if nb_carrier_scpc > 1:
-#                img_err = gtk.Image()
-#                img_err.set_from_stock(gtk.STOCK_DIALOG_ERROR,
-#                                   gtk.ICON_SIZE_MENU)
-#                self._desc_err[group] = img_err
-#                hbox_gr_title.pack_start(img_err, expand=True, fill=False, padding=1)
-#                self._desc_err[group].set_tooltip_text("There should be one " \
-#                                                       "SCPC carrier per " \
-#                                                       "category")
 
             #Add the new group in window
             if link == FORWARD_DOWN:
