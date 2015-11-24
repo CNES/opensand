@@ -167,6 +167,57 @@ bool SpotDownwardTransp::initMode(void)
 		return false;
 	}
 
+	// check that there is at least DVB fifos for VCM carriers
+	for(TerminalCategories<TerminalCategoryDama>::iterator cat_it = this->categories.begin();
+	    cat_it != this->categories.end(); ++cat_it)
+	{
+		bool is_vcm_carriers = false;
+		bool is_vcm_fifo = false;
+
+		vector<CarriersGroupDama *>::iterator carrier_it;
+		vector<CarriersGroupDama *> carriers_group;
+		carriers_group = (*cat_it).second->getCarriersGroups();
+		for(carrier_it = carriers_group.begin();
+		    carrier_it != carriers_group.end();
+		    ++carrier_it)
+		{
+			vector<CarriersGroupDama *> vcm_carriers;
+			vector<CarriersGroupDama *>::iterator vcm_it;
+			vcm_carriers = (*carrier_it)->getVcmCarriers();
+			if(vcm_carriers.size() > 1)
+			{
+				is_vcm_carriers = true;
+				break;
+			}
+		}
+		if(!is_vcm_carriers)
+		{
+			continue;
+		}
+
+		// if we are here, we have VCM carriers
+		for(fifos_t::iterator it = this->dvb_fifos.begin();
+		    it != this->dvb_fifos.end(); ++it)
+		{
+			if((*it).second->getAccessType() == access_vcm)
+			{
+				is_vcm_fifo = true;
+				break;
+			}
+		}
+		if(!is_vcm_fifo)
+		{
+			LOG(this->log_init_channel, LEVEL_WARNING,
+			    "There is VCM carriers in category %s but no VCM FIFOs, "
+			    "if there is no CCM or ACM carriers in this category you "
+			    "won't be able to send any trafic !",
+			    (*cat_it).second->getLabel().c_str());
+			// no need to check other carriers
+			break;
+		}
+		// TODO we may check if there is CCM or ACM carriers, else quit process
+	}
+
 	cat = this->categories.begin()->second;
 	this->scheduling = new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
 	                                           this->pkt_hdl,

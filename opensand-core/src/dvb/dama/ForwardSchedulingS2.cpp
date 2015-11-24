@@ -246,7 +246,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 						"Kbits/s",
 						true,
 						SAMPLE_AVG,
-						"Spot%d%s.%s Down/Forward capacity.Category %s.Carrier%u.VCM%u.Available",
+						"Spot_%d%s.%s Down/Forward capacity.Category %s.Carrier%u.VCM%u.Available",
 						this->spot_id,
 						(is_gw ? "" : gw_id), dst_name.c_str(),
 						this->category->getLabel().c_str(),
@@ -339,7 +339,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 						    carriers->getCarriersId(),
 						    this->category->getLabel().c_str(),
 						    fifo->getName().c_str());
-						break;
+						continue;
 					}
 				}
 				else
@@ -354,7 +354,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 						    carriers->getCarriersId(),
 						    this->category->getLabel().c_str(),
 						    fifo->getName().c_str());
-						break;
+						continue;
 					}
 					if(fifo->getVcmId() != vcm_id)
 					{

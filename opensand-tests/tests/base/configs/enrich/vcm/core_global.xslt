@@ -15,7 +15,7 @@
 <xsl:template match="//forward_down_band/spot[@id='1']/carriers_distribution">
     <carriers_distribution>
     <xsl:call-template name="Newline" />
-        <down_carriers access_type="VCM" category="Standard" ratio="1,9" symbol_rate="40E6" fmt_group="1,1"/>
+        <down_carriers access_type="VCM" category="Standard" ratio="1,9" symbol_rate="40E6" fmt_group="1,2"/>
     <xsl:call-template name="Newline" />
     </carriers_distribution>
 </xsl:template>
@@ -24,6 +24,8 @@
     <fmt_groups>
     <xsl:call-template name="Newline" />
             <group id="1" fmt_id="28" />
+    <xsl:call-template name="Newline" />
+            <group id="2" fmt_id="27" />
     <xsl:call-template name="Newline" />
     </fmt_groups>
 </xsl:template>

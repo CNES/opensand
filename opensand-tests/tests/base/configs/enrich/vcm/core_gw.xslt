@@ -15,6 +15,8 @@
 <xsl:template match="layer2_fifos">
     <layer2_fifos>
     <xsl:call-template name="Newline" />
+        <fifo priority="3" name="AF" size_max="6000" access_type="ACM" />
+    <xsl:call-template name="Newline" />
         <fifo priority="4" name="BE" size_max="6000" access_type="VCM1" />
     <xsl:call-template name="Newline" />
     </layer2_fifos>

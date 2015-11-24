@@ -37,6 +37,7 @@ resource_view.py - the configuration tab view
 
 import gtk
 import gobject
+import re
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
@@ -46,7 +47,7 @@ from opensand_manager_core.carrier import Carrier
 from opensand_manager_core.utils import get_conf_xpath, FORWARD_DOWN, RETURN_UP, \
         ROLL_OFF, CARRIERS_DISTRIB, BANDWIDTH, TAL_AFFECTATIONS, TAL_DEF_AFF, \
         TAL_ID, SYMBOL_RATE, RATIO, ACCESS_TYPE, CATEGORY, ST, SPOT, ID, GW, \
-        RETURN_UP_BAND, FMT_GROUP, SCPC, FMT_GROUPS, FMT_ID
+        RETURN_UP_BAND, FMT_GROUP, VCM, SCPC, FMT_GROUPS, FMT_ID
 from opensand_manager_gui.view.utils.config_elements import SpotTree
 from opensand_manager_gui.view.utils.carrier_arithmetic import CarrierArithmetic
 from opensand_manager_gui.view.window_view import WindowView
@@ -204,11 +205,13 @@ class ResourceView(WindowView):
         total_ratio_rs = 0
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
-            ratios = map(lambda x: float(x), content[RATIO].split(';'))
+            ratios = map(lambda x: float(x),
+                         re.findall(r"[\w']+", content[RATIO]))
             total_ratio_rs += float(content[SYMBOL_RATE]) * sum(ratios)
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
-            ratios = map(lambda x: float(x), content[RATIO].split(';'))
+            ratios = map(lambda x: float(x),
+                         re.findall(r"[\w']+", content[RATIO]))
             nb_carrier = int(round(sum(ratios) / total_ratio_rs *\
                     bandwidth / (1 + roll_off)))
             if nb_carrier <= 0:
@@ -380,6 +383,7 @@ class ResourceView(WindowView):
             
             # compter category scpc carrier and terminals
             nb_carrier_scpc = 0
+            is_vcm_carriers = False
             nb_carrier = 0
             nb_tal_scpc = 0
             nb_tal = 0
@@ -415,6 +419,8 @@ class ResourceView(WindowView):
                     nb_carrier += element.get_nb_carriers()
                     if element.get_access_type() == SCPC:
                         nb_carrier_scpc += element.get_nb_carriers()
+                    elif element.get_access_type() == VCM:
+                        is_vcm_carriers = True
                     for (min_rate, max_rate) in element.get_rates():
                         carrier_rate += "%d carrier(s) rate: [%d, %d] kb/s\n" \
                                 % (element.get_nb_carriers(), min_rate /
@@ -453,6 +459,15 @@ class ResourceView(WindowView):
                 self._desc_war[group].set_tooltip_text(
                     "There should be at most one SCPC terminal per category, it "
                     "will use all the SCPC carriers in it")
+            elif link == FORWARD_DOWN and is_vcm_carriers:
+                img_war = gtk.Image()
+                img_war.set_from_stock(gtk.STOCK_DIALOG_WARNING,
+                                       gtk.ICON_SIZE_MENU)
+                self._desc_war[group] = img_war
+                hbox_gr_title.pack_start(img_war, expand=True, fill=False, padding=1)
+                self._desc_war[group].set_tooltip_text(
+                    "Be careful to configure the relevant GW fifos for VCM "
+                    "carriers")
 
             #Add the new group in window
             if link == FORWARD_DOWN:

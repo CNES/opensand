@@ -36,6 +36,7 @@ carrier.py - Satellite carrier handling
 """
 
 import numpy as np
+import re
 
 from opensand_manager_core.utils import DAMA, SCPC, ALOHA, VCM, CCM, ACM, S2, RCS
 
@@ -86,10 +87,10 @@ class Carrier :
     def parser(self, list_str):
         ids = []
         if type(list_str) is not list:
-            ids = list_str.split(';')
+            ids = re.split(r"[;, ]+", list_str)
         else:
             for elm in list_str:
-                for elm_id in elm.split(';'):
+                for elm_id in re.split(r"[;, ]+", elm):
                     ids.append(elm_id)
 
         id_list = []
