@@ -43,11 +43,10 @@ RandomSimulator::RandomSimulator(spot_id_t spot_id,
                                  sat_type_t sat_type,
                                  bool phy_layer,
                                  FILE** evt_file,
-								 Simulate simulate,
                                  ConfigurationList current_gw):
 	RequestSimulator(spot_id, mac_id, 
 	                 sat_type, phy_layer, evt_file,
-	                 simulate, current_gw)
+	                 current_gw)
 {
 	int val;
 	string str_config;
@@ -81,7 +80,6 @@ RandomSimulator::RandomSimulator(spot_id_t spot_id,
 				this->simu_max_vbdc, this->simu_cr,
 				this->simu_interval);
 	}
-	this->simulate = random_simu;
 	srandom(times(NULL));
 }
 
@@ -138,6 +136,5 @@ bool RandomSimulator::simulation(list<DvbFrame *>* msgs,
 
 bool RandomSimulator::stopSimulation(void)
 {
-	this->simulate = none_simu;
 	return true;
 }

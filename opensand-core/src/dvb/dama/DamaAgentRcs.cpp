@@ -140,7 +140,14 @@ bool DamaAgentRcs::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 			frame->setModcodId(this->modcod_id);
 		}
 	}
-	this->probe_st_used_modcod->put(this->modcod_id);
+	this->probe_st_used_modcod->put(0);
+	if(complete_dvb_frames->size() > 0)
+	{
+		// only set MODCOD id if there is data sent
+		// as we are with SAMPLE_LAST we may miss some of these
+		// when not sending a lot of trafic
+		this->probe_st_used_modcod->put(this->modcod_id);
+	}
 
 	LOG(this->log_schedule, LEVEL_DEBUG,
 	    "SF#%u: remaining allocation after scheduling "

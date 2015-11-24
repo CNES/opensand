@@ -46,7 +46,6 @@ class RandomSimulator: public RequestSimulator
 	                sat_type_t sat_type,
 	                bool phy_layer,
 	                FILE** evt_file,
-                    Simulate simulate,
 	                ConfigurationList current_gw);
 	~RandomSimulator();
 	

@@ -46,9 +46,17 @@ StFmtSimu::StFmtSimu(string name,
 	column(id),
 	current_modcod_id(init_modcod_id)
 {
-	// TODO we should do more specific logs like here wherever it's possible
-	this->log_fmt = Output::registerLog(LEVEL_WARNING,
-	                                    "Dvb.Fmt.%sStFmtSimu%u", name.c_str(), id);
+	// TODO we should do more specific logs, like here, wherever it's possible
+	if(id < BROADCAST_TAL_ID)
+	{
+		this->log_fmt = Output::registerLog(LEVEL_WARNING,
+		                                    "Dvb.Fmt.%sStFmtSimu%u", name.c_str(), id);
+	}
+	else
+	{
+		this->log_fmt = Output::registerLog(LEVEL_WARNING,
+		                                    "Dvb.Fmt.%sSimuatedStFmtSimu", name.c_str());
+	}
 }
 
 
@@ -249,8 +257,9 @@ void StFmtSimuList::updateModcod(const FmtSimulation &fmt_simu)
 
 		if(fmt_simu.getModcodList().size() <= column)
 		{
-			LOG(this->log_fmt, LEVEL_WARNING,
-			    "cannot access MODCOD column %u for ST%u\n" "defaut MODCOD is used\n",
+			LOG(this->log_fmt, LEVEL_DEBUG,
+			    "cannot access MODCOD column %u for ST%u\n"
+			    "default MODCOD is used\n",
 			    column, st_id);
 			column = fmt_simu.getModcodList().size() - 1;
 			st->setSimuColumnNum(column);

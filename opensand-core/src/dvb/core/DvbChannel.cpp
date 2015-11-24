@@ -394,9 +394,15 @@ bool DvbFmt::addInputTerminal(tal_id_t id,
 	if(this->fmt_simu.getIsModcodSimuDefined() &&
 	   this->fmt_simu.getModcodList().size() <= column)
 	{
-		LOG(this->log_fmt, LEVEL_WARNING,
+		log_level_t lvl = LEVEL_WARNING;
+		if(id > BROADCAST_TAL_ID)
+		{
+			// no need to print warning for simulated terminals
+			lvl = LEVEL_NOTICE;
+		}
+		LOG(this->log_fmt, lvl,
 		    "cannot access MODCOD column for ST%u\n"
-		    "defaut MODCOD is used\n", id);
+		    "default MODCOD is used\n", id);
 		column = this->fmt_simu.getModcodList().size() - 1;
 	}
 	// if scenario are not defined, set less robust modcod at init

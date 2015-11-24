@@ -63,7 +63,6 @@ class RequestSimulator
 	                 sat_type_t sat_type,
 	                 bool phy_layer, 
 	                 FILE** evt_file,
-	                 Simulate simulate,
 	                 ConfigurationList current_gw);
 	~RequestSimulator();
 	
@@ -107,7 +106,6 @@ class RequestSimulator
 	/// parameters for request simulation
 	FILE *event_file;
 	FILE *simu_file;
-	Simulate simulate;
 	long simu_st;
 	long simu_rt;
 	long simu_max_rbdc;

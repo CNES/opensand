@@ -452,22 +452,22 @@ bool SpotDownward::initRequestSimulation(void)
 	// TODO for stdin use FileEvent for simu_timer ?
 	if(str_config == "file")
 	{
+		this->simulate = file_simu;
 		this->request_simu = new FileSimulator(this->spot_id, 
 		                                       this->mac_id,
 		                                       this->satellite_type,
 		                                       this->with_phy_layer,
 		                                       &this->event_file,
-		                                       this->simulate,
 		                                       current_gw);
 	}
 	else if(str_config == "random")
 	{
+		this->simulate = random_simu;
 		this->request_simu = new RandomSimulator(this->spot_id, 
 		                                         this->mac_id,
 		                                         this->satellite_type,
 		                                         this->with_phy_layer,
 		                                         &this->event_file,
-		                                         this->simulate,
 		                                         current_gw);
 	}
 	else
@@ -707,6 +707,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 	if(!this->request_simu->simulation(&msgs, this->super_frame_counter))
 	{
 		this->request_simu->stopSimulation();
+		this->simulate = none_simu;
 
 		LOG(this->log_request_simulation, LEVEL_ERROR,
 		    "failed to simulate");

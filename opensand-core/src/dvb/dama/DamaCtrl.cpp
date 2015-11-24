@@ -240,7 +240,7 @@ bool DamaCtrl::initOutput()
 
 		// Logged ST number
 	this->probe_gw_st_num = Output::registerProbe<int>(
-		"", true, SAMPLE_LAST, "Spot_%d.NCC.ST number",this->spot_id );
+		"", true, SAMPLE_LAST, "Spot_%d.NCC.ST number", this->spot_id);
 	this->gw_st_num = 0;
 
 	// Register output probes for simulated STs
@@ -255,19 +255,23 @@ bool DamaCtrl::initOutput()
 		// tal_id 0 is for GW so it is unused
 		tal_id_t tal_id = 0;
 		probe_cra = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
-		                                       "Spot_%d.Simulated_ST.CRA allocation");
+		                                       "Spot_%d.Simulated_ST.CRA allocation",
+		                                       this->spot_id);
 		this->probes_st_cra_alloc.insert(
 			pair<tal_id_t, Probe<int> *>(tal_id, probe_cra));
 		probe_rbdc_max = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
-		                                            "Spot_%d.Simulated_ST.RBDC max");
+		                                            "Spot_%d.Simulated_ST.RBDC max",
+		                                            this->spot_id);
 		this->probes_st_rbdc_max.insert(
 			pair<tal_id_t, Probe<int> *>(tal_id, probe_rbdc_max));
 		probe_rbdc = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
-		                                        "Spot_%d.Simulated_ST.RBDC allocation");
+		                                        "Spot_%d.Simulated_ST.RBDC allocation",
+		                                        this->spot_id);
 		this->probes_st_rbdc_alloc.insert(
 			pair<tal_id_t, Probe<int> *>(tal_id, probe_rbdc));
 		probe_vbdc = Output::registerProbe<int>("Kbits", true, SAMPLE_SUM,
-		                                        "Spot_%d.Simulated_ST.VBDC allocation");
+		                                        "Spot_%d.Simulated_ST.VBDC allocation",
+		                                        this->spot_id);
 		this->probes_st_vbdc_alloc.insert(
 			pair<tal_id_t, Probe<int> *>(tal_id, probe_vbdc));
 
@@ -275,7 +279,8 @@ bool DamaCtrl::initOutput()
 		if(this->fca_kbps != 0)
 		{
 			probe_fca = Output::registerProbe<int>("Kbits/s", true, SAMPLE_MAX,
-			                                       "Spot_%d.Simulated_ST.FCA allocation");
+			                                       "Spot_%d.Simulated_ST.FCA allocation",
+			                                       this->spot_id);
 			this->probes_st_fca_alloc.insert(
 				pair<tal_id_t, Probe<int> *>(tal_id, probe_fca));
 		}

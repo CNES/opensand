@@ -43,11 +43,10 @@ FileSimulator::FileSimulator(spot_id_t spot_id,
                              sat_type_t sat_type,
                              bool phy_layer,
                              FILE** evt_file,
-                             Simulate simulate,
 						     ConfigurationList current_gw):
 	RequestSimulator(spot_id, mac_id, 
 	                  sat_type, phy_layer, evt_file,
-	                  simulate, current_gw)
+	                  current_gw)
 {
 	string str_config;
 	if(!Conf::getValue(current_gw, DVB_SIMU_FILE, str_config))
@@ -79,7 +78,6 @@ FileSimulator::FileSimulator(spot_id_t spot_id,
 		LOG(this->log_init, LEVEL_NOTICE,
 				"events simulated from %s.\n",
 				str_config.c_str());
-		this->simulate = file_simu;
 	}
 }
 
@@ -229,7 +227,6 @@ end:
 bool FileSimulator::stopSimulation(void)
 {
 	fclose(this->simu_file);
-	this->simulate = none_simu;
 	this->simu_file = NULL;
 	return true;
 }
