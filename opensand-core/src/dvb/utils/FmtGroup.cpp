@@ -96,12 +96,14 @@ void FmtGroup::parse(string ids)
 		for(it2 = second_step.begin(); it2 != second_step.end(); ++it2)
 		{
 			stringstream str(*it2);
+			unsigned int dummy;
 			fmt_id_t val;
-			str >> val;
+			str >> dummy;
 			if(str.fail())
 			{
 				continue;
 			}
+			val = (fmt_id_t)dummy;
 			// keep the current value if it does not exists
 			if(std::find(this->fmt_ids.begin(),
 			             this->fmt_ids.end(), val) == this->fmt_ids.end())
