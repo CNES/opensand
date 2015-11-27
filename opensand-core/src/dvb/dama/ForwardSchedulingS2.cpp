@@ -41,6 +41,7 @@
 #include <opensand_output/Output.h>
 
 #include <cassert>
+#include <sstream>
 
 
 /**
@@ -106,14 +107,15 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	vector<CarriersGroupDama *> carriers_group;
 	vector<CarriersGroupDama *>::iterator carrier_it;
 	string label = this->category->getLabel();
+	std::stringstream section;
 
-	this->probe_section = "Spot_" + this->spot_id;
+	section << "Spot_" << (unsigned int)this->spot_id;
 	if(!is_gw)
 	{
-		this->probe_section += ".GW_" + gw_id;
+		section << ".GW_" << (unsigned int)gw_id;
 	}
-	this->probe_section += "." + label + "." + dst_name + " ";
-
+	section << "." << label << "." << dst_name << " ";
+	this->probe_section = section.str();
 
 	this->probe_fwd_total_capacity = Output::registerProbe<int>(
 		"Symbols per frame", true, SAMPLE_LAST,

@@ -831,7 +831,6 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 
 bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 {
-	uint32_t remaining_alloc_sym = 0;
 	this->fwd_frame_counter = fwd_frame_counter;
 	this->updateStatistics();
 
@@ -840,6 +839,7 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 	for(TerminalCategories<TerminalCategoryDama>::iterator it = this->categories.begin();
 		it != this-> categories.end(); it++)
 	{
+		uint32_t remaining_alloc_sym = 0;
 		TerminalCategoryDama *cat = it->second;
 		if(!this->scheduling.at(cat->getLabel())->schedule(this->fwd_frame_counter,
 		                                                   getCurrentTime(),
@@ -851,12 +851,11 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 				"packets stored in DVB FIFO\n");
 			return false;
 		}
+		LOG(this->log_receive_channel, LEVEL_INFO,
+		    "SF#%u: %u symbols remaining after "
+		    "scheduling in category %s\n", this->super_frame_counter,
+		    remaining_alloc_sym, cat->getLabel().c_str());
 	}
-
-	LOG(this->log_receive_channel, LEVEL_INFO,
-	    "SF#%u: %u symbols remaining after "
-	    "scheduling\n", this->super_frame_counter,
-	    remaining_alloc_sym);
 
 	return true;
 
