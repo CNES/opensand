@@ -199,10 +199,10 @@ class ProbeSelectionController(object):
                 probe_parent = None
                 cur_group = groups
                 probe_path = probe.disp_name.split(".")
-                probe_name = probe_path.pop()
+                probe_name = probe_path.pop().strip(" _")
 
                 while probe_path:
-                    group_name = probe_path.pop(0)
+                    group_name = probe_path.pop(0).strip(" _")
                     try:
                         cur_group = cur_group[group_name]
                     except KeyError:
