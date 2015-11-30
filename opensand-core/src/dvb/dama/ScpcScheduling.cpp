@@ -132,12 +132,12 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 		vol_sym_t max_bbframe_size_sym = 0;
 		vol_sym_t carrier_size_sym = carriers->getTotalCapacity() /
 		                             carriers->getCarriersNumber();
-		list<unsigned int> fmt_ids = carriers->getFmtIds();
+		list<fmt_id_t> fmt_ids = carriers->getFmtIds();
 
-		for(list<unsigned int>::const_iterator fmt_it = fmt_ids.begin();
+		for(list<fmt_id_t>::const_iterator fmt_it = fmt_ids.begin();
 			fmt_it != fmt_ids.end(); ++fmt_it)
 		{
-			unsigned int fmt_id = *fmt_it;
+			fmt_id_t fmt_id = *fmt_it;
 			vol_sym_t size;
 			// check that the BBFrame maximum size is smaller than the carrier size
 			if(!this->getBBFrameSizeSym(this->getBBFrameSizeBytes(fmt_id),
@@ -363,7 +363,7 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 	MacFifoElement *elem;
 	long max_to_send;
 	BBFrame *current_bbframe;
-	list<unsigned int> supported_modcods = carriers->getFmtIds();
+	list<fmt_id_t> supported_modcods = carriers->getFmtIds();
 	vol_sym_t capacity_sym = carriers->getRemainingCapacity();
 	vol_sym_t previous_sym = carriers->getPreviousCapacity(current_superframe_sf);
 	vol_sym_t init_capa = capacity_sym;
@@ -721,14 +721,12 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 	fmt_id_t modcod_id;
 	fmt_id_t desired_modcod = this->getCurrentModcodId(this->gw_id);
 	LOG(this->log_scheduling, LEVEL_DEBUG,
-	    "Simulated MODCOD for GW = %u\n", modcod_id);
+	    "Simulated MODCOD for GW = %u\n", desired_modcod);
 
 	*bbframe = NULL;
 
-
 	// get best modcod ID according to carrier
 	modcod_id = carriers->getNearestFmtId(desired_modcod);
-
 	if(modcod_id == 0)
 	{
 		LOG(this->log_scheduling, LEVEL_WARNING,
@@ -818,7 +816,7 @@ sched_status_t ScpcScheduling::addCompleteBBFrame(list<DvbFrame *> *complete_bb_
 }
 
 
-void ScpcScheduling::schedulePending(const list<unsigned int> supported_modcods,
+void ScpcScheduling::schedulePending(const list<fmt_id_t> supported_modcods,
                                      const time_sf_t current_superframe_sf,
                                      list<DvbFrame *> *complete_dvb_frames,
                                      vol_sym_t &remaining_capacity_sym)

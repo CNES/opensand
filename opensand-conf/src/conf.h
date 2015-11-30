@@ -147,6 +147,14 @@
 #define DVB_NCC_ALLOC_DELAY  "pep_alloc_delay"
 #define PEP_DAMA_PORT        "pep_to_dama_port"
 
+
+////////////////////
+// SVNO section  //
+////////////////////
+
+#define NCC_SECTION_SVNO     "svno_interface"
+#define SVNO_NCC_PORT        "svno_to_ncc_port"
+
 //////////////////
 // DAMA CONTROL //
 //////////////////

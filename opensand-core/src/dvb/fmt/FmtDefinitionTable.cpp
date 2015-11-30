@@ -282,7 +282,7 @@ error:
 }
 
 
-bool FmtDefinitionTable::add(const unsigned int id,
+bool FmtDefinitionTable::add(const fmt_id_t id,
                              const string modulation,
                              const string coding_rate,
                              const float spectral_efficiency,
@@ -311,7 +311,7 @@ bool FmtDefinitionTable::add(const unsigned int id,
 }
 
 
-bool FmtDefinitionTable::doFmtIdExist(unsigned int id) const
+bool FmtDefinitionTable::doFmtIdExist(fmt_id_t id) const
 {
 	return (this->definitions.find(id) != this->definitions.end());
 }
@@ -319,7 +319,7 @@ bool FmtDefinitionTable::doFmtIdExist(unsigned int id) const
 
 void FmtDefinitionTable::clear()
 {
-	map<unsigned int, FmtDefinition *>::iterator it;
+	map<fmt_id_t, FmtDefinition *>::iterator it;
 
 	// delete all stored FMT definitions
 	for(it = this->definitions.begin(); it != this->definitions.end(); ++it)
@@ -332,13 +332,13 @@ void FmtDefinitionTable::clear()
 }
 
 
-map<unsigned int, FmtDefinition* > FmtDefinitionTable::getDefinitions(void) const
+map<fmt_id_t, FmtDefinition* > FmtDefinitionTable::getDefinitions(void) const
 {
 	return this->definitions;
 }
 
 
-modulation_type_t FmtDefinitionTable::getModulation(unsigned int id) const
+modulation_type_t FmtDefinitionTable::getModulation(fmt_id_t id) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
@@ -351,7 +351,7 @@ modulation_type_t FmtDefinitionTable::getModulation(unsigned int id) const
 }
 
 
-string FmtDefinitionTable::getCodingRate(unsigned int id) const
+string FmtDefinitionTable::getCodingRate(fmt_id_t id) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
@@ -364,7 +364,7 @@ string FmtDefinitionTable::getCodingRate(unsigned int id) const
 }
 
 
-float FmtDefinitionTable::getSpectralEfficiency(unsigned int id) const
+float FmtDefinitionTable::getSpectralEfficiency(fmt_id_t id) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
@@ -377,7 +377,7 @@ float FmtDefinitionTable::getSpectralEfficiency(unsigned int id) const
 }
 
 
-double FmtDefinitionTable::getRequiredEsN0(unsigned int id) const
+double FmtDefinitionTable::getRequiredEsN0(fmt_id_t id) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
@@ -390,16 +390,16 @@ double FmtDefinitionTable::getRequiredEsN0(unsigned int id) const
 }
 
 
-uint8_t FmtDefinitionTable::getRequiredModcod(double cni) const
+fmt_id_t FmtDefinitionTable::getRequiredModcod(double cni) const
 {
-	uint8_t modcod_id = 1; // use at least most robust MODCOD
+	fmt_id_t modcod_id = 1; // use at least most robust MODCOD
 	double current_cni;
 	double previous_cni = 0.0;
 	if(this->definitions.begin() != this->definitions.end())
 	{
 		previous_cni = this->definitions.begin()->second->getRequiredEsN0();
 	}
-	map<unsigned int, FmtDefinition *>::const_iterator it;
+	fmt_def_table_pos_t it;
 
 	for(it = this->definitions.begin(); it != this->definitions.end(); it++)
 	{
@@ -421,7 +421,7 @@ uint8_t FmtDefinitionTable::getRequiredModcod(double cni) const
 }
 
 
-FmtDefinition *FmtDefinitionTable::getFmtDef(unsigned int id) const
+FmtDefinition *FmtDefinitionTable::getFmtDef(fmt_id_t id) const
 {
 	fmt_def_table_pos_t it;
 	FmtDefinition *def = NULL;
@@ -435,9 +435,9 @@ FmtDefinition *FmtDefinitionTable::getFmtDef(unsigned int id) const
 	return def;
 }
 
-unsigned int FmtDefinitionTable::getMaxId() const
+fmt_id_t FmtDefinitionTable::getMaxId() const
 {
-	unsigned int id = 0;
+	fmt_id_t id = 0;
 	for(fmt_def_table_pos_t it = this->definitions.begin();
 	    it != this->definitions.end(); ++it)
 	{
@@ -449,20 +449,20 @@ unsigned int FmtDefinitionTable::getMaxId() const
 	return id;
 }
 
-unsigned int FmtDefinitionTable::symToKbits(unsigned int id,
-                                            unsigned int val_sym) const
+
+bool FmtDefinitionTable::getModCod(fmt_id_t id,
+                                   unsigned int &mod,
+                                   float &cod) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
 	modulation_type_t modulation;
 	string coding_rate;
-	unsigned int mod = 0;
-	float cod = 0.0;
 
 	if(!def)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "cannot find symToKbits from FMT definition ID %u\n", id);
-		return 0;
+		return false;
 	}
 	modulation = def->getModulation();
 	coding_rate = def->getCodingRate();
@@ -485,7 +485,7 @@ unsigned int FmtDefinitionTable::symToKbits(unsigned int id,
 			mod = 5;
 			break;
 		default:
-			return 0;
+			return false;
 	}
 
 	if(coding_rate == "1/4")
@@ -537,14 +537,44 @@ unsigned int FmtDefinitionTable::symToKbits(unsigned int id,
 		cod = 9.0/10.0;
 	}
 
+	return true;
+}
+
+vol_kb_t FmtDefinitionTable::symToKbits(fmt_id_t id,
+                                        vol_sym_t val_sym) const
+{
+	unsigned int mod = 0;
+	float cod = 0.0;
+
+	if(!this->getModCod(id, mod, cod))
+	{
+		return 0;
+	}
+
 	// TODO use spectral efficiency
-	return ceil(val_sym * mod * cod/1000);
+	return ceil(val_sym * mod * cod / 1000);
+}
+
+
+vol_sym_t FmtDefinitionTable::kbitsToSym(fmt_id_t id,
+                                         vol_kb_t val_kbits) const
+{
+	unsigned int mod = 0;
+	float cod = 0.0;
+
+	if(this->getModCod(id, mod, cod) == 0)
+	{
+		return 0;
+	}
+
+	// TODO use spectral efficiency
+	return ceil(val_kbits / mod / cod * 1000);
 }
 
 
 void FmtDefinitionTable::print(void)
 {
-	map<unsigned int, FmtDefinition *>::const_iterator it;
+	fmt_def_table_pos_t it;
 
 	for(it = this->definitions.begin();
 	    it != this->definitions.end(); it++)

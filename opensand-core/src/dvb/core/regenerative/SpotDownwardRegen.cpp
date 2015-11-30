@@ -98,12 +98,14 @@ bool SpotDownwardRegen::onInit(void)
 bool SpotDownwardRegen::initMode(void)
 {
 	TerminalCategoryDama *cat;
+	string label;
 
 	// get RETURN_UP_BAND section
 	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
 	ConfigurationList spots;
 	ConfigurationList current_spot;
 	ConfigurationList current_gw;
+	fifos_t fifo;
 
 	// Get the spot list
 	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
@@ -161,25 +163,33 @@ bool SpotDownwardRegen::initMode(void)
 		}
 		cat = this->default_category;
 	}
+	label = cat->getLabel();
 
-	this->scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
-	                                           this->dvb_fifos,
-	                                           this->output_sts,
-	                                           this->rcs_modcod_def,
-	                                           cat,
-	                                           this->mac_id);
-	
-	if(!this->scheduling)
+	if(!this->initFifo(fifo))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to create the scheduling\n");
-		goto error;
+		    "failed to complete the FIFO part of the "
+		    "initialisation\n");
+		return false;
 	}
+	this->dvb_fifos.insert(make_pair<string, fifos_t>(label, fifo));
+
+	Scheduling *schedule = new UplinkSchedulingRcs(this->pkt_hdl,
+	                                               this->dvb_fifos.at(label),
+	                                               this->output_sts,
+	                                               this->rcs_modcod_def,
+	                                               cat,
+	                                               this->mac_id);
+	if(!schedule)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to complete the SCHEDULE part of the "
+		    "initialisation\n");
+		return false;
+	}
+	this->scheduling.insert(make_pair<string, Scheduling*>(label, schedule));
 
 	return true;
-
-error:
-	return false;
 }
 
 

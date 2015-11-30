@@ -94,7 +94,12 @@ unsigned int CarriersGroup::getRatio() const
 	return this->ratio;
 }
 
-const list<unsigned int> CarriersGroup::getFmtIds() const
+void CarriersGroup::setRatio(unsigned int new_ratio)
+{
+	this->ratio = new_ratio;
+}
+
+const list<fmt_id_t> CarriersGroup::getFmtIds() const
 {
 	return this->fmt_group->getFmtIds();
 }
@@ -102,6 +107,21 @@ const list<unsigned int> CarriersGroup::getFmtIds() const
 access_type_t CarriersGroup::getAccessType(void) const
 {
 	return this->access_type;
+}
+
+const FmtGroup* CarriersGroup::getFmtGroup() const
+{
+	return this->fmt_group;
+}
+
+rate_kbps_t CarriersGroup::getMaxRate() const
+{
+	rate_kbps_t rate_kbps;
+	const FmtDefinitionTable *fmt_def = this->fmt_group->getModcodDefinitions();
+	rate_kbps = this->carriers_number *
+	            fmt_def->symToKbits(this->fmt_group->getMaxFmtId(),
+	                                this->symbol_rate_symps);
+	return rate_kbps;
 }
 
 void CarriersGroup::addVcm(const FmtGroup *const UNUSED(fmt_group),

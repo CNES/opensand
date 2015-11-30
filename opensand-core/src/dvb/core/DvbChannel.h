@@ -208,6 +208,68 @@ class DvbChannel
 	 */
 	bool doSendStats(void);
 
+
+ 	/**
+	 * @brief   allocate more band to the demanding category
+	 *
+	 * @tparam  T The type of terminal category to create
+	 * @param   duration_ms          The frame duration on this band
+	 * @param   cat_label            The label of the category
+	 * @param   new_rate_kbps        The new rate for the category
+	 * @param   categories           OUT: The terminal categories
+	 * @return  true on success, false otherwise
+	 */
+	template<class T>
+	bool allocateBand(time_ms_t duration_ms,
+	                  string cat_label,
+	                  rate_kbps_t new_rate_kbps,
+	                  TerminalCategories<T> &categories);
+
+	/**
+	 * @brief   release band of the demanding category
+	 *
+	 * @tparam  T The type of terminal category to create
+	 * @param   duration_ms          The frame duration on this band
+	 * @param   cat_label            The label of the category
+	 * @param   new_rate_kbps        The new rate for the category
+	 * @param   categories           OUT: The terminal categories
+	 * @return  true on success, false otherwise
+	 */
+	template<class T>
+	bool releaseBand(time_ms_t duration_ms,
+	                 string cat_label,
+	                 rate_kbps_t new_rate_kbps,
+	                 TerminalCategories<T> &categories);
+
+	/**
+	 * @brief   Calculation of the carriers needed to be transfer from cat1 to cat2
+	 *          in order to have a rate of new_rate_kbps on cat2
+	 * @tparam  T The type of terminal category
+	 * @param   duration_ms   The frame duration on this band
+	 * @param   cat           The category with to much carriers
+	 * @param   rate_symps    The rate to be transfer (OUT: the surplus)
+	 * @param   carriers      OUT: The informations about the carriers to be transfer
+	 * @return  true on success, false otherwise
+	 */
+	template<class T>
+	bool carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
+	                                  map<rate_symps_t, unsigned int> &carriers);
+
+/**
+ * @brief   Transfer of the carrier
+ *
+ * @tparam  T The type of terminal category
+ * @param   duration_ms   The frame duration on this band
+ * @param   cat1          The category with to much carriers
+ * @param   cat2          The category with to less carriers
+ * @param   carriers      The informations about the carriers to be transfer
+ * @return  true on success, false otherwise
+ */
+	template<class T>
+	bool carriersTransfer(time_ms_t duration_ms, T* cat1, T* cat2,
+	                       map<rate_symps_t , unsigned int> carriers);
+
+
 	/// the satellite type (regenerative o transparent)
 	sat_type_t satellite_type;
 
@@ -315,7 +377,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	vector<unsigned int> used_group_ids;
 
 
-	// Get the value of the bandwidth for return link
+	// Get the value of the bandwidth
 	if(!Conf::getValue(spot, BANDWIDTH,
 	                   bandwidth_mhz))
 	{
@@ -502,7 +564,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		// parse ratio if there is many values
 		ratios = tempSplit(ratio);
 
-		// Get carriers' symbol ratge
+		// Get carriers' symbol rate
 		if(!Conf::getAttributeValue(iter, SYMBOL_RATE, symbol_rate_symps))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
@@ -1126,6 +1188,269 @@ class DvbFmt
 
 };
 
+template<class T>
+bool DvbChannel::allocateBand(time_ms_t duration_ms,
+                              string cat_label,
+                              rate_kbps_t new_rate_kbps,
+                              TerminalCategories<T> &categories)
+{
+	// Category SNO (the default one)
+	string cat_sno_label ("SNO");
+	typename map<string, T*>::iterator cat_sno_it = categories.find(cat_sno_label);
+	if(cat_sno_it == categories.end())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "%s category doesn't exist",
+		    cat_sno_label.c_str());
+		return false;
+	}
+	T* cat_sno = cat_sno_it->second;
+
+	// The category we are interesting on
+	typename map<string, T*>::iterator cat_it = categories.find(cat_label);
+	if(cat_it == categories.end())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "This category %s doesn't exist yet\n",
+		    cat_label.c_str());
+		return false; //TODO or create it ?
+	}
+	T* cat = cat_it->second;
+
+	// Fmt
+	const FmtDefinitionTable* fmt_definition_table;
+	const FmtGroup* cat_fmt_group = cat->getFmtGroup();
+
+	unsigned int id;
+	rate_symps_t new_rs;
+	rate_symps_t old_rs;
+	rate_symps_t rs_sno;
+	rate_symps_t rs_needed;
+	map<rate_symps_t, unsigned int> carriers;
+
+
+	// Get the FMT Definition Table
+	fmt_definition_table = cat_fmt_group->getModcodDefinitions();
+
+	// Get the new total symbol rate
+	id = cat_fmt_group->getMaxFmtId();
+	new_rs = fmt_definition_table->kbitsToSym(id, new_rate_kbps);
+
+	// Get the old total symbol rate
+	old_rs = cat->getTotalSymbolRate();
+
+	if(new_rs <= old_rs)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "Request for an allocation while the rate is smaller than before\n");
+		return false;
+	}
+
+	// Calculation of the symbol rate needed
+	rs_needed = new_rs - old_rs;
+
+	// Get the total symbol rate available
+	rs_sno = cat_sno->getTotalSymbolRate();
+
+	if(rs_sno < rs_needed)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "Not enough rate available\n");
+		return false;
+	}
+
+	if(!this->carriersTransferCalculation(cat_sno, rs_needed, carriers))
+	{
+		return false;
+	}
+
+	return this->carriersTransfer(duration_ms, cat_sno, cat, carriers);
+}
+
+template<class T>
+bool DvbChannel::releaseBand(time_ms_t duration_ms,
+                             string cat_label,
+                             rate_kbps_t new_rate_kbps,
+                             TerminalCategories<T> &categories)
+{
+	// Category SNO (the default one)
+	string cat_sno_label ("SNO");
+	typename map<string, T*>::iterator cat_sno_it = categories.find(cat_sno_label);
+	if(cat_sno_it == categories.end())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "%s category doesn't exist",
+		    cat_sno_label.c_str());
+		return false;
+	}
+	T* cat_sno = cat_sno_it->second;
+
+	// The category we are interesting on
+	typename map<string, T*>::iterator cat_it = categories.find(cat_label);
+	if(cat_it == categories.end())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "This category %s doesn't exist\n",
+		    cat_label.c_str());
+		return false;
+	}
+	T* cat = cat_it->second;
+
+	// Fmt
+	const FmtDefinitionTable* fmt_definition_table;
+	const FmtGroup* cat_fmt_group = cat->getFmtGroup();
+
+	unsigned int id;
+	rate_symps_t new_rs;
+	rate_symps_t old_rs;
+	rate_symps_t rs_unneeded;
+	map<rate_symps_t, unsigned int> carriers;
+
+
+	// Get the FMT Definition Table
+	fmt_definition_table = cat_fmt_group->getModcodDefinitions();
+
+	// Get the new total symbol rate
+	id = cat_fmt_group->getMaxFmtId();
+	new_rs = fmt_definition_table->kbitsToSym(id, new_rate_kbps);
+
+	// Get the old total symbol rate
+	old_rs = cat->getTotalSymbolRate();
+
+	if(old_rs <= new_rs)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "Request for an release while the rate is higher than before\n");
+		return false;
+	}
+
+	// Calculation of the symbol rate needed
+	rs_unneeded = old_rs - new_rs;
+
+	if(!this->carriersTransferCalculation(cat, rs_unneeded, carriers))
+		return false;
+
+	if(rs_unneeded < 0)
+	{
+		carriers.begin()->second -= 1;
+		rs_unneeded += carriers.begin()->first; // rs_unneeded should be positive
+	}
+
+	return this->carriersTransfer(duration_ms, cat, cat_sno, carriers);
+}
+
+template<class T>
+bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
+                                             map<rate_symps_t, unsigned int> &carriers)
+{
+	unsigned int num_carriers;
+
+	// List of the carriers available (Rs, number)
+	map<rate_symps_t, unsigned int> carriers_available;
+	map<rate_symps_t, unsigned int>::reverse_iterator carriers_ite1;
+	map<rate_symps_t, unsigned int>::reverse_iterator carriers_ite2;
+
+
+	// Get the classification of the available
+	// carriers in function of their symbol rate
+	carriers_available = cat->getSymbolRateList();
+
+	// Calculation of the needed carriers
+	carriers_ite1 = carriers_available.rbegin();
+	while(rate_symps > 0)
+	{
+		if(carriers_ite1 == carriers_available.rend())
+		{
+			if(carriers.find(carriers_ite2->first) == carriers.end())
+			{
+				carriers.insert(make_pair<rate_symps_t, unsigned int>(
+				                   carriers_ite2->first, 1));
+			}
+			else
+			{
+				carriers.find(carriers_ite2->first)->second += 1;
+			}
+			rate_symps -= carriers_ite2->first; // rate should be negative now
+			carriers_available.find(carriers_ite2->first)->second -= 1;
+			// Erase the smaller carriers (because they are wasted)
+			carriers_ite2++;
+			while(carriers_ite2 != carriers_available.rend())
+			{
+				if(carriers.find(carriers_ite2->first) != carriers.end())
+				{
+					// rate should still be negative after that
+					rate_symps += (carriers_ite2->first * carriers_ite2->second);
+					carriers_available.find(carriers_ite2->first)->second
+					    += carriers_ite2->second;
+				}
+				carriers.erase(carriers_ite2->first);
+				carriers_ite2++;
+			}
+			continue;
+		}
+		if(rate_symps < carriers_ite1->first)
+		{
+			// in case the next carriers aren't enought
+			carriers_ite2 = carriers_ite1;
+			carriers_ite1++;
+			continue;
+		}
+		num_carriers = floor(rate_symps/carriers_ite1->first);
+		if(num_carriers > carriers_ite1->second)
+		{
+			num_carriers = carriers_ite1->second;
+		}
+		carriers_available.find(carriers_ite1->first)->second -= num_carriers;
+		carriers.insert(make_pair<rate_symps_t, unsigned int>(
+		                    carriers_ite1->first, num_carriers));
+		rate_symps -= (carriers_ite1->first * num_carriers);
+		if(num_carriers != carriers_ite1->second)
+		{
+			carriers_ite2 = carriers_ite1;
+		}
+		carriers_ite1++;
+	}
+
+	return true;
+}
+
+template<class T>
+bool DvbChannel::carriersTransfer(time_ms_t duration_ms, T* cat1, T* cat2,
+	                               map<rate_symps_t , unsigned int> carriers)
+{
+	unsigned int highest_id;
+	unsigned int associated_ratio;
+
+	// Allocation and deallocation of carriers
+	highest_id = cat2->getHighestCarrierId();
+	for(map<rate_symps_t, unsigned int>::iterator it = carriers.begin();
+	    it != carriers.end(); it++)
+	{
+		if(it->second == 0)
+		{
+			LOG(this->log_init_channel, LEVEL_INFO,
+			    "Empty carriers group\n");
+			continue;
+		}
+
+		// Deallocation of SNO carriers
+		if(!cat1->deallocateCarriers(it->first, it->second, associated_ratio))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Wrong calculation of the needed carriers");
+			return false;
+		}
+
+		// Allocation of cat carriers
+		highest_id++;
+		cat2->addCarriersGroup(highest_id, cat2->getFmtGroup(),
+		                       it->second, associated_ratio,
+		                       it->first, cat2->getDesiredAccess(),
+		                       duration_ms);
+	}
+
+	return true;
+}
 
 
 #endif

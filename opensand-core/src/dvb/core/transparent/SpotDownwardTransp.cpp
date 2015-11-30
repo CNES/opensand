@@ -103,6 +103,7 @@ bool SpotDownwardTransp::onInit(void)
 bool SpotDownwardTransp::initMode(void)
 {
 	TerminalCategoryDama *cat;
+	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
 	// initialize scheduling
 	// depending on the satellite type
@@ -150,30 +151,29 @@ bool SpotDownwardTransp::initMode(void)
 		return false;
 	}
 
-	if(this->categories.size() != 1)
-	{
-		// TODO at the moment we use only one category
-		// To implement more than one category we will need to create
-		// one (a group of) fifo(s) per category and schedule per
-		// (group of) fifo(s).
-		// The packets would then be pushed in the correct (group of)
-		// fifo(s) according to the category the destination
-		// terminal ID belongs this is why we have categories,
-		// terminal_affectation and default_category as attributes
-		// map<cat label, sched> and fifos in scheduler ?
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot support more than one category for "
-		    "down/forward band\n");
-		return false;
-	}
 
 	// check that there is at least DVB fifos for VCM carriers
-	for(TerminalCategories<TerminalCategoryDama>::iterator cat_it = this->categories.begin();
+	for(cat_it = this->categories.begin();
 	    cat_it != this->categories.end(); ++cat_it)
 	{
 		bool is_vcm_carriers = false;
+		bool is_acm_carriers = false;
 		bool is_vcm_fifo = false;
+		fifos_t fifos;
+		string label;
+		Scheduling *schedule;
 
+		cat = (*cat_it).second;
+		label = cat->getLabel();
+		if(!this->initFifo(fifos))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "failed initialize fifos for category %s\n", label.c_str());
+			return false;
+		}
+		this->dvb_fifos.insert(pair<string, fifos_t>(label, fifos));
+
+		// check if there is VCM carriers in this category
 		vector<CarriersGroupDama *>::iterator carrier_it;
 		vector<CarriersGroupDama *> carriers_group;
 		carriers_group = (*cat_it).second->getCarriersGroups();
@@ -187,17 +187,15 @@ bool SpotDownwardTransp::initMode(void)
 			if(vcm_carriers.size() > 1)
 			{
 				is_vcm_carriers = true;
-				break;
+			}
+			else
+			{
+				is_acm_carriers = true;
 			}
 		}
-		if(!is_vcm_carriers)
-		{
-			continue;
-		}
 
-		// if we are here, we have VCM carriers
-		for(fifos_t::iterator it = this->dvb_fifos.begin();
-		    it != this->dvb_fifos.end(); ++it)
+		for(fifos_t::iterator it = fifos.begin();
+		    it != fifos.end(); ++it)
 		{
 			if((*it).second->getAccessType() == access_vcm)
 			{
@@ -205,40 +203,45 @@ bool SpotDownwardTransp::initMode(void)
 				break;
 			}
 		}
-		if(!is_vcm_fifo)
+		if(is_vcm_carriers && !is_vcm_fifo)
 		{
-			LOG(this->log_init_channel, LEVEL_WARNING,
-			    "There is VCM carriers in category %s but no VCM FIFOs, "
-			    "if there is no CCM or ACM carriers in this category you "
-			    "won't be able to send any trafic !",
-			    (*cat_it).second->getLabel().c_str());
-			// no need to check other carriers
-			break;
+			if(!is_acm_carriers)
+			{
+				LOG(this->log_init_channel, LEVEL_CRITICAL,
+				    "There is VCM carriers in category %s but no VCM FIFOs, "
+				    "as there is no other carriers, "
+				    "terminals in this category "
+				    "won't be able to send any trafic. "
+				    "Please check your configuration",
+				    (*cat_it).second->getLabel().c_str());
+				return false;
+			}
+			else
+			{
+				LOG(this->log_init_channel, LEVEL_WARNING,
+				    "There is VCM carriers in category %s but no VCM FIFOs, "
+				    "the VCM carriers won't be used",
+				    (*cat_it).second->getLabel().c_str());
+			}
 		}
-		// TODO we may check if there is CCM or ACM carriers, else quit process
-	}
 
-	cat = this->categories.begin()->second;
-	this->scheduling = new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
-	                                           this->pkt_hdl,
-	                                           this->dvb_fifos,
-	                                           this->output_sts,
-	                                           this->s2_modcod_def,
-	                                           cat, this->spot_id,
-	                                           true, this->mac_id, "");
-
-
-	if(!this->scheduling)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to create the scheduling\n");
-		goto error;
+		schedule =  new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
+		                                    this->pkt_hdl,
+		                                    this->dvb_fifos.at(label),
+		                                    this->output_sts,
+		                                    this->s2_modcod_def,
+		                                    cat, this->spot_id,
+		                                    true, this->mac_id, "");
+		if(!schedule)
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "failed initialize forward scheduling for category %s\n", label.c_str());
+			return false;
+		}
+		this->scheduling.insert(make_pair<string, Scheduling*>(label, schedule));
 	}
 
 	return true;
-
-error:
-	return false;
 }
 
 
@@ -418,52 +421,61 @@ bool SpotDownwardTransp::handleSalohaAcks(const list<DvbFrame *> *ack_frames)
 bool SpotDownwardTransp::addCniExt(void)
 {
 	list<tal_id_t> list_st;
+	map<string, fifos_t>::iterator dvb_fifos_it;
 
 	// Create list of first packet from FIFOs
-	for(fifos_t::iterator fifos_it = this->dvb_fifos.begin();
-	    fifos_it != this->dvb_fifos.end(); ++fifos_it)
+	for(dvb_fifos_it = this->dvb_fifos.begin();
+	    dvb_fifos_it != this->dvb_fifos.end();
+	    ++dvb_fifos_it)
 	{
-		DvbFifo *fifo = (*fifos_it).second;
-		vector<MacFifoElement *> queue = fifo->getQueue();
-		vector<MacFifoElement *>::iterator queue_it;
-
-		for(queue_it = queue.begin() ;
-		    queue_it != queue.end()  ; 
-		    ++queue_it)
+		fifos_t::iterator fifos_it;
+		fifos_t fifos = (*dvb_fifos_it).second;
+		for(fifos_it = fifos.begin();
+		    fifos_it != fifos.end();
+		    ++fifos_it)
 		{
-			std::vector<NetPacket*> packet_list;
-			MacFifoElement* elem = (*queue_it);
-			NetPacket *packet = (NetPacket*)elem->getElem();
-			tal_id_t tal_id = packet->getDstTalId();
-			NetPacket *extension_pkt = NULL;
+			DvbFifo *fifo = (*fifos_it).second;
+			vector<MacFifoElement *> queue = fifo->getQueue();
+			vector<MacFifoElement *>::iterator queue_it;
 
-			list<tal_id_t>::iterator it = std::find(this->is_tal_scpc.begin(), 
-		                                            this->is_tal_scpc.end(),
-		                                            tal_id);
-			if(it != this->is_tal_scpc.end() && 
-			   this->getCniInputHasChanged(tal_id))
+			for(queue_it = queue.begin();
+			    queue_it != queue.end(); 
+			    ++queue_it)
 			{
-				list_st.push_back(tal_id);
-				packet_list.push_back(packet);
-				// we could make specific SCPC function
-				if(!this->setPacketExtension(this->pkt_hdl,
-					                         elem, fifo,
-					                         packet_list, 
-					                         &extension_pkt,
-					                         this->mac_id,
-					                         tal_id,
-					                         ENCODE_CNI_EXT,
-					                         this->super_frame_counter,
-					                         true))
+				std::vector<NetPacket*> packet_list;
+				MacFifoElement* elem = (*queue_it);
+				NetPacket *packet = (NetPacket*)elem->getElem();
+				tal_id_t tal_id = packet->getDstTalId();
+				NetPacket *extension_pkt = NULL;
+
+				list<tal_id_t>::iterator it = std::find(this->is_tal_scpc.begin(), 
+				                                        this->is_tal_scpc.end(),
+				                                        tal_id);
+				if(it != this->is_tal_scpc.end() && 
+				   this->getCniInputHasChanged(tal_id))
 				{
-					return false;
+					list_st.push_back(tal_id);
+					packet_list.push_back(packet);
+					// we could make specific SCPC function
+					if(!this->setPacketExtension(this->pkt_hdl,
+						                         elem, fifo,
+						                         packet_list, 
+						                         &extension_pkt,
+						                         this->mac_id,
+						                         tal_id,
+						                         ENCODE_CNI_EXT,
+						                         this->super_frame_counter,
+						                         true))
+					{
+						return false;
+					}
+
+					LOG(this->log_send_channel, LEVEL_DEBUG,
+					    "SF #%d: packet belongs to FIFO #%d\n",
+					    this->super_frame_counter, (*fifos_it).first);
+					// Delete old packet
+					delete packet;
 				}
-				
-				LOG(this->log_send_channel, LEVEL_DEBUG,
-				    "SF #%d: packet belongs to FIFO #%d\n",
-				    this->super_frame_counter, (*fifos_it).first);
-				// Delete old packet
-				delete packet;
 			}
 		}
 	}
@@ -485,22 +497,42 @@ bool SpotDownwardTransp::addCniExt(void)
 		{
 			std::vector<NetPacket*> packet_list;
 			NetPacket *extension_pkt = NULL;
+			string cat_label = this->default_category->getLabel();
+			map<string, fifos_t>::iterator fifos_it;
+
+			// first get the relevant category for the packet to find appropriate fifo
+			if(this->terminal_affectation.find(tal_id) != this->terminal_affectation.end())
+			{
+				cat_label = terminal_affectation.at(tal_id)->getLabel();
+			}
+			// find the FIFO associated to the IP QoS (= MAC FIFO id)
+			// else use the default id
+			fifos_it = this->dvb_fifos.find(cat_label);
+			if(fifos_it == this->dvb_fifos.end())
+			{
+				LOG(this->log_receive_channel, LEVEL_ERROR,
+				    "No fifo found for this category %s", cat_label.c_str());
+				return false;
+			}
+
 			// set packet extension to this new empty packet
 			if(!this->setPacketExtension(this->pkt_hdl,
-				                         NULL, this->dvb_fifos[0],
+				                         NULL,
+				                         // highest priority fifo
+				                         ((*fifos_it).second)[0],
 				                         packet_list, 
-					                     &extension_pkt,
-					                     this->mac_id,
-					                     tal_id, 
-					                     ENCODE_CNI_EXT,
-					                     this->super_frame_counter,
-					                     true))
+				                         &extension_pkt,
+				                         this->mac_id,
+				                         tal_id, 
+				                         ENCODE_CNI_EXT,
+				                         this->super_frame_counter,
+				                         true))
 			{
 				return false;
 			}
 
 			LOG(this->log_send_channel, LEVEL_DEBUG,
-				"SF #%d: adding empty packet into FIFO NM\n",
+			    "SF #%d: adding empty packet into FIFO NM\n",
 			    this->super_frame_counter);
 		}
 	}

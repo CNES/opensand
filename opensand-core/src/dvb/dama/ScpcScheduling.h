@@ -178,7 +178,7 @@ class ScpcScheduling: public Scheduling
 	 * @param complete_dvb_frames  IN/OUT: The list of complete DVB frames
 	 * @param capacity_sym         IN/OUT: The remaining capacity on carriers
 	 */
-	void schedulePending(const list<unsigned int> supported_modcods,
+	void schedulePending(const list<fmt_id_t> supported_modcods,
 	                     const time_sf_t current_superframe_sf,
 	                     list<DvbFrame *> *complete_dvb_frames,
 	                     vol_sym_t &remaining_capacity_sym);

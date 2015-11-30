@@ -154,7 +154,8 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 BlockDvbNcc::Downward::Downward(Block *const bl, tal_id_t mac_id):
 	DvbDownward(bl),
 	DvbSpotList(),
-	NccPepInterface(),
+	pep_interface(),
+	svno_interface(),
 	mac_id(mac_id),
 	fwd_frame_counter(0),
 	fwd_timer(-1),
@@ -269,14 +270,24 @@ bool BlockDvbNcc::Downward::onInit(void)
 
 
 	// listen for connections from external PEP components
-	if(!this->initPepSocket())
+	if(!this->pep_interface.initPepSocket())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to listen for PEP connections\n");
 		return false;
 	}
 	this->addTcpListenEvent("pep_listen",
-	                        this->getPepListenSocket(), 200);
+	                        this->pep_interface.getPepListenSocket(), 200);
+
+	// listen for connections from external SVNO components
+	if(!this->svno_interface.initSvnoSocket())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to listen for SVNO connections\n");
+		return false;
+	}
+	this->addTcpListenEvent("svno_listen",
+	                        this->svno_interface.getSvnoListenSocket(), 200);
 
 	// Output probes and stats
 	this->probe_frame_interval = Output::registerProbe<float>("ms", true,
@@ -617,7 +628,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 					LOG(this->log_receive, LEVEL_NOTICE,
 					    "apply PEP requests now\n");
-					while((pep_request = this->getNextPepRequest()) != NULL)
+					while((pep_request = this->pep_interface.getNextPepRequest()) != NULL)
 					{
 						spot->applyPepCommand(pep_request);
 					}
@@ -635,16 +646,40 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			break;
 		}
+		// TODO factorize, some elements are exactly the same between NccInterface classes
 		case evt_net_socket:
 		{
-			if(*event == this->getPepClientSocket())
+			if(*event == this->pep_interface.getPepClientSocket())
 			{
+				tal_id_t tal_id;
+				spot_id_t spot_id;
+
 				// event received on PEP client socket
 				LOG(this->log_receive, LEVEL_NOTICE,
 				    "event received on PEP client socket\n");
 
-				tal_id_t tal_id;
-				spot_id_t spot_id;
+				// read the message sent by PEP or delete socket
+				// if connection is dead
+				if(!this->pep_interface.readPepMessage((NetSocketEvent *)event, tal_id))
+				{
+					LOG(this->log_receive, LEVEL_WARNING,
+					    "network problem encountered with PEP, "
+					    "connection was therefore closed\n");
+					// Free the socket
+					if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
+					{
+						LOG(this->log_init, LEVEL_ERROR,
+						    "failed to clase socket: "
+						    "%s (%d)\n", strerror(errno), errno);
+					}
+					this->removeEvent(this->pep_interface.getPepClientSocket());
+					return false;
+				}
+				// we have received a set of commands from the
+				// PEP component, let's apply the resources
+				// allocations/releases they contain
+
+				// first get the spot associated with this terminal
 				if(OpenSandConf::spot_table.find(tal_id) == OpenSandConf::spot_table.end())
 				{
 					spot_id = this->default_spot;
@@ -671,73 +706,108 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					return false;
 				}
 
-				// read the message sent by PEP or delete socket
-				// if connection is dead
-				if(this->readPepMessage((NetSocketEvent *)event, tal_id) == true)
+				// set delay for applying the commands
+				if(this->pep_interface.getPepRequestType() == PEP_REQUEST_ALLOCATION)
 				{
-					// we have received a set of commands from the
-					// PEP component, let's apply the resources
-					// allocations/releases they contain
-
-					// set delay for applying the commands
-					if(this->getPepRequestType() == PEP_REQUEST_ALLOCATION)
-					{
-						if(!this->startTimer(spot->getPepCmdApplyTimer()))
-						{
-							LOG(this->log_receive, LEVEL_ERROR,
-							    "cannot start pep timer");
-							return false;
-						}
-						LOG(this->log_receive, LEVEL_NOTICE,
-						    "PEP Allocation request, apply a %dms"
-						    " delay\n", pep_alloc_delay);
-					}
-					else if(this->getPepRequestType() == PEP_REQUEST_RELEASE)
-					{
-						this->raiseTimer(spot->getPepCmdApplyTimer());
-						LOG(this->log_receive, LEVEL_NOTICE,
-						    "PEP Release request, no delay to "
-						    "apply\n");
-					}
-					else
+					if(!this->startTimer(spot->getPepCmdApplyTimer()))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
-						    "cannot determine request type!\n");
+						    "cannot start pep timer");
 						return false;
 					}
-					// Free the socket
-					if(shutdown(this->getPepClientSocket(), SHUT_RDWR) != 0)
-					{
-						LOG(this->log_init, LEVEL_ERROR,
-						    "failed to clase socket: "
-						    "%s (%d)\n", strerror(errno), errno);
-					}
-					this->removeEvent(this->getPepClientSocket());
+					LOG(this->log_receive, LEVEL_NOTICE,
+					    "PEP Allocation request, apply a %dms"
+					    " delay\n", pep_alloc_delay);
+				}
+				else if(this->pep_interface.getPepRequestType() == PEP_REQUEST_RELEASE)
+				{
+					this->raiseTimer(spot->getPepCmdApplyTimer());
+					LOG(this->log_receive, LEVEL_NOTICE,
+					    "PEP Release request, no delay to "
+					    "apply\n");
 				}
 				else
 				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "cannot determine request type!\n");
+					return false;
+				}
+				// Free the socket
+				if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
+				{
+					LOG(this->log_init, LEVEL_ERROR,
+					    "failed to clase socket: "
+					    "%s (%d)\n", strerror(errno), errno);
+				}
+				this->removeEvent(this->pep_interface.getPepClientSocket());
+			}
+			else if(*event == this->svno_interface.getSvnoClientSocket())
+			{
+				SvnoRequest *request;
+				// event received on SVNO client socket
+				LOG(this->log_receive, LEVEL_NOTICE,
+				    "event received on SVNO client socket\n");
+
+				// read the message sent by SVNO or delete socket
+				// if connection is dead
+				if(!this->svno_interface.readSvnoMessage((NetSocketEvent *)event))
+				{
 					LOG(this->log_receive, LEVEL_WARNING,
-					    "network problem encountered with PEP, "
+					    "network problem encountered with SVNO, "
 					    "connection was therefore closed\n");
 					// Free the socket
-					if(shutdown(this->getPepClientSocket(), SHUT_RDWR) != 0)
+					if(shutdown(this->svno_interface.getSvnoClientSocket(), SHUT_RDWR) != 0)
 					{
 						LOG(this->log_init, LEVEL_ERROR,
 						    "failed to clase socket: "
 						    "%s (%d)\n", strerror(errno), errno);
 					}
-					this->removeEvent(this->getPepClientSocket());
+					this->removeEvent(this->svno_interface.getSvnoClientSocket());
 					return false;
 				}
+				// we have received a set of commands from the
+				// SVNO component, let's apply the resources
+				// allocations/releases they contain
+
+				request = this->svno_interface.getNextSvnoRequest();
+				while(request != NULL)
+				{
+					SpotDownward *spot;
+
+					// first get the spot concerned by the request
+					spot_iter = spots.find(request->getSpotId());
+					if(spot_iter == spots.end())
+					{
+						LOG(this->log_receive, LEVEL_ERROR, 
+						    "couldn't find spot %d", 
+						    request->getSpotId());
+						return false;
+					}
+					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
+					if(!spot)
+					{
+					    LOG(this->log_receive, LEVEL_WARNING,
+					        "Error when getting spot\n");
+						return false;
+					}
+
+					if(!spot->applySvnoCommand(request))
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "Cannot apply SVNO interface request\n");
+						continue;
+					}
+				}
 			}
-			break;
 		}
+		break;
+
 		case evt_tcp_listen:
 		{
-			if(*event == this->getPepListenSocket())
+			if(*event == this->pep_interface.getPepListenSocket())
 			{
-				this->setSocketClient(((TcpListenEvent *)event)->getSocketClient());
-				this->setIsConnected(true);
+				this->pep_interface.setSocketClient(((TcpListenEvent *)event)->getSocketClient());
+				this->pep_interface.setIsConnected(true);
 
 				// event received on PEP listen socket
 				LOG(this->log_receive, LEVEL_NOTICE,
@@ -747,7 +817,24 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				    "NCC is now connected to PEP\n");
 				// add a fd to handle events on the client socket
 				this->addNetSocketEvent("pep_client",
-				                        this->getPepClientSocket(),
+				                        this->pep_interface.getPepClientSocket(),
+				                        200);
+			}
+			else if(*event == this->svno_interface.getSvnoListenSocket())
+			{
+				this->svno_interface.setSocketClient(((TcpListenEvent *)event)->getSocketClient());
+				this->svno_interface.setIsConnected(true);
+
+				// event received on SVNO listen socket
+				LOG(this->log_receive, LEVEL_NOTICE,
+				    "event received on SVNO listen socket\n");
+
+				// create the client socket to receive messages
+				LOG(this->log_receive, LEVEL_NOTICE,
+				    "NCC is now connected to SVNO\n");
+				// add a fd to handle events on the client socket
+				this->addNetSocketEvent("svno_client",
+				                        this->svno_interface.getSvnoClientSocket(),
 				                        200);
 			}
 			break;
