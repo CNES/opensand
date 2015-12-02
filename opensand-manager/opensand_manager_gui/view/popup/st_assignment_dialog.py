@@ -103,6 +103,14 @@ class AssignmentDialog(WindowView):
         
     def load(self):
         """ load the hosts assignment """
+        def select_group(combo_box, group):
+            i = 0
+            for gp in combo_box.get_model():
+                if gp[1] == group:
+                    combo_box.set_active(i)
+                    return
+                i = i + 1
+                
         #Load the configuration file
         config=self._model.get_conf().get_configuration()
         #Get ST list from opensand
@@ -149,10 +157,10 @@ class AssignmentDialog(WindowView):
             renderer_text = gtk.CellRendererText()
             combo_box_group.pack_start(renderer_text, True)
             combo_box_group.add_attribute(renderer_text, "text", 1)
-            combo_box_group.set_active(self.get_group_value(defaulf_grp))
+            select_group(combo_box_group, defaulf_grp)
             for st in st_list:
                 if host.get_name().lower() == ST + str(st[0]):
-                    combo_box_group.set_active(self.get_group_value(st[1]))
+                    select_group(combo_box_group, st[1])
             #Add all in the window
             hbox_st_allocation.pack_start(label_st_name)
             hbox_st_allocation.pack_start(combo_box_group)
@@ -226,9 +234,10 @@ class AssignmentDialog(WindowView):
                 config.set_value(self.get_id_st(st[0]),
                         config.get_path(config.get_table_elements(table)[line_id]),
                         TAL_ID)
-                config.set_value(self.get_group_str(st[1]),
+                config.set_value(self.get_group_str(st[1][0]),
                         config.get_path(config.get_table_elements(table)[line_id]),
                         CATEGORY)
+
         config.write()
         gobject.idle_add(self._update_cb)
         self._dlg.destroy()
@@ -246,7 +255,7 @@ class AssignmentDialog(WindowView):
                 try:
                     couple.append(element.get_text())
                 except:
-                    couple.append(element.get_active())
+                    couple.append(element.get_model()[element.get_active()])
             st_list.append(couple)
         return st_list
                 
