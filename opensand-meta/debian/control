@@ -23,7 +23,7 @@ Section: metapackages
 Depends: libopensand-conf (>= ${binary:Version}), libopensand-output (>= ${binary:Version}),
  libopensand-rt (>= ${binary:Version}), opensand-core-bin (>= ${binary:Version}),
  opensand-core-all (>= ${binary:Version}), opensand-manager-core (>= ${binary:Version}), 
- opensand-manager-gui (>= ${binary:Version})
+ opensand-manager-gui (>= ${binary:Version}), libopensand-gse-encap-plugin-manager (>= ${binary:Version})
 Description: Packages for OpenSAND manager.
  This metapackage is to ease the installation of OpenSAND manager environment.
  
