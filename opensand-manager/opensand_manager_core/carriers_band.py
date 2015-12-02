@@ -41,7 +41,7 @@ from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, \
         OPENSAND_PATH, ID, FMT_ID, FMT_GROUP, \
         RATIO, ACCESS_TYPE, SYMBOL_RATE, CATEGORY, \
         RCS, S2
-from opensand_manager_core.carrier import Carrier
+from opensand_manager_core.carrier import Carrier, find_category
 
 XSD = OPENSAND_PATH + "core_global.xsd"
 
@@ -79,7 +79,9 @@ class CarriersBand():
             fmt_groups =  content[FMT_GROUP].replace(',', ';')
             fmt_groups = fmt_groups.replace('-', ';')
             fmt_groups = fmt_groups.split(';')
+            category = find_category(config, content[CATEGORY])
             self.create_carrier(content[CATEGORY],
+                              category,
                               content[ACCESS_TYPE],
                               content[RATIO],
                               float(content[SYMBOL_RATE]),
@@ -125,24 +127,26 @@ class CarriersBand():
                                          float(elts[3]), float(elts[4]))
             self._fmt[std] = fmt
 
-    def create_carrier(self, name, access_type, ratios, symbol_rate_baud, fmt_groups):
+    def create_carrier(self, name, category, access_type, ratios, symbol_rate_baud, fmt_groups):
         """ create a new carrier """
         carrier = Carrier(symbol_rate=symbol_rate_baud,
-                          category=name,
+                          category=category,
                           access_type=access_type, 
                           fmt_groups=fmt_groups,
                           ratio=ratios)
-        self.add_carrier(carrier)
+        self.add_carrier(carrier, name)
     
-    def add_carrier(self, carrier):
+    def add_carrier(self, carrier, name):
         """ add a new category """
-        if not carrier.get_old_category() in self._categories:
-            self._categories[carrier.get_old_category()] = []
-        if carrier not in self._categories[carrier.get_old_category()]: 
-            self._categories[carrier.get_old_category()].append(carrier)
+        if not name in self._categories:
+            self._categories[name] = []
+        if carrier not in self._categories[name]: 
+            self._categories[name].append(carrier)
 
     def remove_carrier(self, carrier):
-        self._categories[carrier.get_old_category()].remove(carrier)
+        for name in self._categories:
+            if carrier in self._categories[name]:
+                self._categories[name].remove(carrier)
 
     def add_fmt_group(self, group_id, fmt_ids):
         """ add a FMT group """

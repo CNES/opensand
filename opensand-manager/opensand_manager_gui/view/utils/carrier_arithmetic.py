@@ -59,13 +59,13 @@ class CarrierArithmetic:
         """Update ax graph of the carrier representation"""
         
         #get all carriers
-        color = {1: 'b', 
-                 2: 'g', 
-                 3: 'c', 
-                 4: 'm', 
-                 5: 'y', 
-                 6: 'k', 
-                 7: 'r',}
+        color = {0: 'b', 
+                 1: 'g', 
+                 2: 'c', 
+                 3: 'm', 
+                 4: 'y', 
+                 5: 'k', 
+                 6: 'r',}
         access_type = {ACM: '-',
                        CCM: '-.',
                        VCM: '--',
@@ -104,7 +104,7 @@ class CarrierArithmetic:
                                  config, False)
         
         for carrier in self._list_carrier:
-            carriers_band.add_carrier(carrier)
+            carriers_band.add_carrier(carrier, carrier.get_old_category(config))
 
         for grp_id in fmt_group:
             carriers_band.add_fmt_group(grp_id,
@@ -112,9 +112,11 @@ class CarrierArithmetic:
 
         for element in self._list_carrier:
             element.set_rates(carriers_band.get_carrier_bitrates(element))
-        self._min_bitrate = carriers_band.get_min_bitrate(element.get_old_category(), 
+        self._min_bitrate = \
+                carriers_band.get_min_bitrate(element.get_old_category(config), 
                                                           element.get_access_type())
-        self._max_bitrate =  carriers_band.get_max_bitrate(element.get_old_category(),
+        self._max_bitrate = \
+                carriers_band.get_max_bitrate(element.get_old_category(config),
                                                            element.get_access_type())
 
     

@@ -42,10 +42,6 @@ from opensand_manager_core.utils import get_conf_xpath, CATEGORY, \
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 
-STANDARD='Standard'
-PREMIUM='Premium'
-PRO='Pro'
-
 
 class AssignmentDialog(WindowView):
     """ an modcod configuration window """
@@ -134,9 +130,8 @@ class AssignmentDialog(WindowView):
                  content[CATEGORY]]) not in group_list:
                 group_list.append([self.get_group_value(content[CATEGORY]),
                                    content[CATEGORY]])
-                group.insert(self.get_group_value(content[CATEGORY]),
-                                  [self.get_group_value(content[CATEGORY]),
-                                   content[CATEGORY]])
+                group.append([self.get_group_value(content[CATEGORY]), 
+                              content[CATEGORY]])
 
         for host in host_list:
             if not host.get_name().lower().startswith(ST):
@@ -166,45 +161,32 @@ class AssignmentDialog(WindowView):
             
     ##################################################
             
-    def get_default_assignment(self):
-        """Return the default st assignment"""
-        config = self._model.get_conf().get_configuration()
-        xpath = get_conf_xpath(TAL_DEF_AFF, self._link, self._spot, self._gw)
-        default = config.get_value(config.get(xpath))
-        if default.startswith(STANDARD):
-            return 0
-        elif default.startswith(PREMIUM):
-            return 1
-        elif default.startswith(PRO):
-            return 2
-        else:
-            return 3
-            
-    ##################################################
-    
     def get_group_value(self, name):
         """Convert old group name to value"""
-        if name.startswith(STANDARD):
+        config = self._model.get_conf().get_configuration()
+        category_type = config.get_simple_type("Category")
+        if category_type is None or category_type["enum"] is None:
             return 0
-        elif name.startswith(PREMIUM):
-            return 1
-        elif name.startswith(PRO):
-            return 2
-        else:
-            return name
+
+        i = 0
+        for cat in category_type["enum"]:
+            if name.startswith(cat):
+                return i
+            i = i + 1
+        return 0
 
     ##################################################
 
     def get_group_str(self, value):
         """Convert value to group name """
-        if value == 0:
-            return STANDARD
-        elif value == 1:
-            return PREMIUM
-        elif value == 2:
-            return PRO
-        else:
-            return STANDARD
+        config = self._model.get_conf().get_configuration()
+        category_type = config.get_simple_type("Category")
+        if category_type is None or category_type["enum"] is None:
+            return ""
+        
+        if len(category_type["enum"]) <= value:
+            value = 0
+        return category_type["enum"][value]
             
     ##################################################
     

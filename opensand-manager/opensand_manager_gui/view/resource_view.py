@@ -42,7 +42,7 @@ import re
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvas
 
-from opensand_manager_core.carrier import Carrier
+from opensand_manager_core.carrier import Carrier, find_category
 
 from opensand_manager_core.utils import get_conf_xpath, FORWARD_DOWN, RETURN_UP, \
         ROLL_OFF, CARRIERS_DISTRIB, BANDWIDTH, TAL_AFFECTATIONS, TAL_DEF_AFF, \
@@ -217,8 +217,9 @@ class ResourceView(WindowView):
             if nb_carrier <= 0:
                 nb_carrier = 1
             
+            category = find_category(config, content[CATEGORY])
             carrier = Carrier(float(content[SYMBOL_RATE]),
-                              nb_carrier, content[CATEGORY], 
+                              nb_carrier, category, 
                               content[ACCESS_TYPE], 
                               content[FMT_GROUP],
                               ratio=content[RATIO])
@@ -292,12 +293,17 @@ class ResourceView(WindowView):
                  4:'yellow', 
                  5:'black', 
                  6:'red'}
-        category = {0:'Standard',
-                    1:'Premium',
-                    2:'Pro'}
         config = self._model.get_conf().get_configuration()
         host_list = self._model.get_hosts_list()
         
+        category = { }
+        category_type = config.get_simple_type("Category")
+        if not category_type is None and not category_type["enum"] is None:
+            i = 0
+            for cat in category_type["enum"]:
+                category[i] = cat
+                i = i + 1
+
         if link == FORWARD_DOWN:
             for element in self._st_forward.get_children():
                 self._st_forward.remove(element)
@@ -415,7 +421,7 @@ class ResourceView(WindowView):
             carrier_arithmetic.update_rates(self._fmt_group[link]);
 
             for element in self._list_carrier[link]:
-                if element.get_old_category() in group:
+                if element.get_old_category(config) in group:
                     nb_carrier += element.get_nb_carriers()
                     if element.get_access_type() == SCPC:
                         nb_carrier_scpc += element.get_nb_carriers()

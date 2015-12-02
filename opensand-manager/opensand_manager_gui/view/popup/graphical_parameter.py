@@ -176,11 +176,14 @@ class GraphicalParameter(WindowView):
         new_nb_carrier.connect("value-changed", self.on_update_nb_carrier, carrier_id)
 
         #Create Group spin button
+        config = self._model.get_conf().get_configuration()
+        category_type = config.get_simple_type("Category")
+
         comboBox = gtk.combo_box_new_text()
-        comboBox.append_text('Standard')
-        comboBox.append_text('Premium')
-        comboBox.append_text('Pro')
-        comboBox.set_active(carrier.get_category()-1)
+        if not category_type is None and not category_type["enum"] is None:
+            for cat in category_type["enum"]:
+                comboBox.append_text(cat)
+        comboBox.set_active(carrier.get_category())
         comboBox.connect("changed", self.on_update_group, carrier_id)
 
         #Create MODCOD button
@@ -240,12 +243,12 @@ class GraphicalParameter(WindowView):
 
         if self._link == FORWARD_DOWN:
             self._list_carrier.append(Carrier(symbol_rate=4E6,
-                                              category=1,
+                                              category=0,
                                               fmt_groups=fmt_grp,
                                               access_type=CCM))
         else:
             self._list_carrier.append(Carrier(symbol_rate=4E6,
-                                              category=1,
+                                              category=0,
                                               fmt_groups=fmt_grp,
                                               access_type=DAMA))
         self.create_carrier_interface(self._list_carrier[-1],
@@ -374,7 +377,7 @@ class GraphicalParameter(WindowView):
         tree_iter = source.get_active_iter()
         if tree_iter != None:
             model = source.get_model()
-            self._list_carrier[id_carrier - 1].set_category(model[tree_iter].path[0]+1)
+            self._list_carrier[id_carrier - 1].set_category(model[tree_iter].path[0])
             self.trace()
 
 
@@ -464,7 +467,7 @@ class GraphicalParameter(WindowView):
             config.set_value(carrier.get_old_access_type(),
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              ACCESS_TYPE)
-            config.set_value(carrier.get_old_category(),
+            config.set_value(carrier.get_old_category(config),
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              CATEGORY)
             config.set_value(carrier.get_str_ratio(),
@@ -474,9 +477,9 @@ class GraphicalParameter(WindowView):
                              config.get_path(config.get_table_elements(table)[carrier_id]),
                              SYMBOL_RATE)
 
-            if carrier.get_old_category() not in access_type_cat.keys():
-                access_type_cat[carrier.get_old_category()] = []
-            access_type_cat[carrier.get_old_category()].append(carrier.get_old_access_type())
+            if carrier.get_old_category(config) not in access_type_cat.keys():
+                access_type_cat[carrier.get_old_category(config)] = []
+            access_type_cat[carrier.get_old_category(config)].append(carrier.get_old_access_type())
 
             groups = ';'.join(str(fmt_grp_id) for fmt_grp_id in
                               carrier.get_fmt_groups())

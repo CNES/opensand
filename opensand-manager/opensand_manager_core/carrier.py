@@ -52,7 +52,7 @@ class Carrier :
                 _ratio          : dictionnary with ['modcod':ratio] only use for VCM
     """
 
-    def __init__(self, symbol_rate = 0, nb_carrier = 1, category = 1,
+    def __init__(self, symbol_rate = 0, nb_carrier = 1, category = 0,
                  access_type = 'CCM', fmt_groups = '1', modcod = '1',
                  ratio = '50') :
         self._symbol_rate = symbol_rate
@@ -71,13 +71,7 @@ class Carrier :
 
         self.set_access_type(access_type)
 
-        if category == "Standard":
-            category = 1
-        elif category == "Premium":
-            category = 2
-        elif category == "Pro":
-            category = 3
-        self._category = category
+        self._category = int(category)
 
         self._X = []                #Position in X to trace the graphic
         self._Y = []                #Position in Y to trace the graphic
@@ -146,7 +140,7 @@ class Carrier :
         self._fmt_groups = self.parser(fmt_groups)
 
     def set_category(self, category):
-        self._category = category
+        self._category = int(category)
 
     def set_access_type(self, access_type):
         self._access_type = access_type
@@ -186,15 +180,8 @@ class Carrier :
     def get_category(self):
         return int(self._category)
 
-    def get_old_category(self):
-        ret=""
-        if self._category == 1:
-            ret = "Standard"
-        elif self._category == 2:
-            ret = "Premium"
-        elif self._category == 3:
-            ret = "Pro"
-        return ret
+    def get_old_category(self, config):
+        return get_category_name(config, self._category)
 
     def get_access_type(self):
         return self._access_type
@@ -245,6 +232,42 @@ class Carrier :
         return "ratio=%s Rs=%g => %d carriers" % (sum(self._ratio),
                                                   self._symbol_rate,
                                                   self._nb_carrier)
+
+##################################################
+#This function finds category index from name
+def get_category_name(config, value):
+    #Get list of categories
+    category_type = config.get_simple_type("Category")
+    if category_type is None \
+       or category_type["enum"] is None \
+       or len(category_type["enum"]) <= 0:
+        return ""
+
+    #Check value validity
+    if len(category_type["enum"]) <= value:
+        value = 0
+
+    return category_type["enum"][value]
+
+##################################################
+#This function finds category index from name
+def find_category(config, name):
+    #Get list of categories
+    category_type = config.get_simple_type("Category")
+    if category_type is None or category_type["enum"] is None:
+        return 0 
+    
+    #Search name
+    i = 0
+    names = category_type["enum"]
+    while i < len(names) and not names[i].startswith(name):
+        i = i + 1
+
+    #Check value validity
+    if len(names) <= i:
+        return 0
+
+    return i
 
 ##################################################
 if __name__ == '__main__':
