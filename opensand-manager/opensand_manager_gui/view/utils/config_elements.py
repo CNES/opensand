@@ -1266,6 +1266,36 @@ class ConfSection(gtk.VBox):
 
     def on_remove_button_toggled(self, source=None, event=None):
         """ remove button toggled """
+        cancel = False
+
+        if source.get_inconsistent():
+            cancel = True
+        else:
+            found = False
+            for button in [but for but in self._del_buttons if but.get_name() in self._tables]:
+                name = button.get_name()
+                i = 0
+                for check_button in self._tables[name]:
+                    if check_button.get_name() == source.get_name():
+                        found = True
+                    if not check_button.get_active():
+                        i = i + 1
+
+                if found:
+                    key = self._config.get(name)
+                    key_entries = self._config.get_table_elements(key)
+                    if key_entries:
+                        key_name = self._config.get_name(key_entries[0])
+                        cancel = (i < self._config.get_minoccurs(key_name))
+                    break
+
+        if cancel:
+            # Cancel toggled because there is only one line
+            source.set_sensitive(False)
+            source.set_active(False)
+            source.set_sensitive(True)
+            return
+
         self.check_sensitive()
 
     def check_sensitive(self):
