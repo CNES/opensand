@@ -120,7 +120,7 @@ static void del_bridge()
 	{
 		fprintf(stderr, "Failed to set bridge down: %s\n", strerror(errno));
 	}
-	printf("Deleting bridge");
+	printf("Deleting bridge\n");
 	err = br_del_bridge(br);
 	if(err)
 	{
@@ -205,9 +205,9 @@ int bridge(int delete)
 	}
 
 	// remove bridge if it already exists or if we want to delete interfaces
-	del_bridge();
 	if(delete)
 	{
+		del_bridge();
 		br_shutdown();
 		return 0;
 	}
