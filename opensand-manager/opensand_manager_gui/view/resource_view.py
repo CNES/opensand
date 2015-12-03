@@ -319,7 +319,6 @@ class ResourceView(WindowView):
         default_cat = default_grp + " (default)"
         group_list.append(default_cat)
 
-        
         for terminal in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(terminal)
             if content[CATEGORY] != default_grp:
@@ -446,7 +445,15 @@ class ResourceView(WindowView):
                                      padding=10)    
            
             # show warning
-            if link == RETURN_UP and nb_tal_scpc >= 1 and nb_carrier_scpc == 0:
+            if nb_carrier == 0 and nb_tal > 0:
+                img_err = gtk.Image()
+                img_err.set_from_stock(gtk.STOCK_DIALOG_ERROR,
+                                       gtk.ICON_SIZE_MENU)
+                self._desc_err[group] = img_err
+                hbox_gr_title.pack_start(img_err, expand=True, fill=False, padding=1)
+                self._desc_err[group].set_tooltip_text(
+                    "There is no more carrier for terminal. Please, reassign it")
+            elif link == RETURN_UP and nb_tal_scpc >= 1 and nb_carrier_scpc == 0:
                 img_war = gtk.Image()
                 img_war.set_from_stock(gtk.STOCK_DIALOG_WARNING,
                                        gtk.ICON_SIZE_MENU)
