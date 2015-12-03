@@ -97,7 +97,6 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
-	scpc_fmt_simu(scpc_fmt_simu),
 	scpc_modcod_def(scpc_modcod_def),
 	category(category),
 	gw_id(gw_id)

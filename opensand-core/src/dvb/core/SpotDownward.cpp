@@ -560,7 +560,7 @@ bool SpotDownward::handleSalohaAcks(const list<DvbFrame *> *UNUSED(ack_frames))
 bool SpotDownward::handleEncapPacket(NetPacket *packet)
 {
 	qos_t fifo_priority = packet->getQos();
-	string cat_label = this->default_category->getLabel();
+	string cat_label;
 	map<string, fifos_t>::iterator fifos_it;
 	tal_id_t dst_tal_id;
 
@@ -572,7 +572,25 @@ bool SpotDownward::handleEncapPacket(NetPacket *packet)
 	// category of the packet
 	if(this->terminal_affectation.find(dst_tal_id) != this->terminal_affectation.end())
 	{
-		cat_label = terminal_affectation.at(dst_tal_id)->getLabel();
+		if(this->terminal_affectation.at(dst_tal_id) == NULL)
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "No category associated to terminal %u, cannot handle packet\n",
+			    dst_tal_id);
+			return false;
+		}
+		cat_label = this->terminal_affectation.at(dst_tal_id)->getLabel();
+	}
+	else
+	{
+		if(!this->default_category)
+		{
+			LOG(this->log_receive_channel, LEVEL_ERROR,
+			    "No default category for terminal %u, cannot handle packet\n",
+			    dst_tal_id);
+			return false;
+		}
+		cat_label = this->default_category->getLabel();
 	}
 
 	// find the FIFO associated to the IP QoS (= MAC FIFO id)

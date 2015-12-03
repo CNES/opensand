@@ -464,6 +464,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					list<SpotDownward*> spot_list;
 					list<SpotDownward*>::iterator spot_list_iter;
 
+					// FIXME at the moment broadcast is sent on all spots
 					if((tal_id == BROADCAST_TAL_ID) and 
 					   (this->satellite_type != REGENERATIVE))
 					{

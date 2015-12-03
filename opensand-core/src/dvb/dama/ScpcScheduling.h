@@ -94,9 +94,6 @@ class ScpcScheduling: public Scheduling
 	 *  for the corresponding MODCOD */
 	list<BBFrame *> pending_bbframes;
 
-	/** The FMT simulated data */
-	FmtSimulation *scpc_fmt_simu;
-
 	/** The FMT DefinitionTable associted */
 	FmtDefinitionTable * scpc_modcod_def;
 

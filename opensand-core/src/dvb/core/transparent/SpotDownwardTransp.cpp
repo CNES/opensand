@@ -497,21 +497,42 @@ bool SpotDownwardTransp::addCniExt(void)
 		{
 			std::vector<NetPacket*> packet_list;
 			NetPacket *extension_pkt = NULL;
-			string cat_label = this->default_category->getLabel();
+			string cat_label;
 			map<string, fifos_t>::iterator fifos_it;
 
 			// first get the relevant category for the packet to find appropriate fifo
 			if(this->terminal_affectation.find(tal_id) != this->terminal_affectation.end())
 			{
-				cat_label = terminal_affectation.at(tal_id)->getLabel();
+				if(this->terminal_affectation.at(tal_id) == NULL)
+				{
+					LOG(this->log_send_channel, LEVEL_ERROR,
+					    "No category associated to terminal %u, "
+					    "cannot send CNI for SCPC carriers\n",
+					    tal_id);
+					return false;
+				}
+				cat_label = this->terminal_affectation.at(tal_id)->getLabel();
+			}
+			else
+			{
+				if(!this->default_category)
+				{
+					LOG(this->log_send_channel, LEVEL_ERROR,
+					    "No default category for terminal %u, "
+					    "cannot send CNI for SCPC carriers\n",
+					    tal_id);
+					return false;
+				}
+				cat_label = this->default_category->getLabel();
 			}
 			// find the FIFO associated to the IP QoS (= MAC FIFO id)
 			// else use the default id
 			fifos_it = this->dvb_fifos.find(cat_label);
 			if(fifos_it == this->dvb_fifos.end())
 			{
-				LOG(this->log_receive_channel, LEVEL_ERROR,
-				    "No fifo found for this category %s", cat_label.c_str());
+				LOG(this->log_send_channel, LEVEL_ERROR,
+				    "No fifo found for this category %s unable to send CNI for SCPC carriers",
+				    cat_label.c_str());
 				return false;
 			}
 

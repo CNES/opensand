@@ -298,6 +298,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 	tal_id = packet->getDstTalId();
 	tal_id_src = packet->getSrcTalId();
 
+	// FIXME at the moment broadcast is sent on all spots
 	if(tal_id == BROADCAST_TAL_ID)
 	{
 		// Send to all spot and all gw
