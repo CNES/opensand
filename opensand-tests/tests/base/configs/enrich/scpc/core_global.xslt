@@ -33,7 +33,7 @@
 <xsl:template match="//return_up_band/spot/fmt_groups">
     <fmt_groups>
     <xsl:call-template name="Newline" />
-            <group id="1" fmt_id="28" />
+            <group id="1" fmt_id="7" />
     <xsl:call-template name="Newline" />
     </fmt_groups>
 </xsl:template>

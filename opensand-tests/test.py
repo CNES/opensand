@@ -61,6 +61,11 @@ from opensand_manager_shell.opensand_shell_manager import ShellManager, \
 #      maybe create classes that will simplify the code
 ENRICH_FOLDER = "enrich"
 
+# TODO SCPC tests are performed with MODCOD 7 but it would be better to use
+# MODCOD 28. The problem is that the default MODCOD file is for RCS and contains
+# MODCOD ids for RCS that are smaller than 7
+# we should add elements to get other simulation files
+
 
 class IndentedHelpFormatterWithNL(IndentedHelpFormatter):
     """ parse '\n' in option parser help
