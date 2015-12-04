@@ -875,25 +875,30 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 
 	// schedule encapsulation packets
 	// TODO In regenerative mode we should schedule in frame_timer ??
-	for(TerminalCategories<TerminalCategoryDama>::iterator it = this->categories.begin();
-		it != this-> categories.end(); it++)
+	// do not schedule on all categories, in regenerative we only schedule on the GW category
+	for(map<string, Scheduling *>::iterator it = this->scheduling.begin();
+	    it != this->scheduling.end(); ++it)
 	{
 		uint32_t remaining_alloc_sym = 0;
-		TerminalCategoryDama *cat = it->second;
-		if(!this->scheduling.at(cat->getLabel())->schedule(this->fwd_frame_counter,
-		                                                   getCurrentTime(),
-		                                                   &this->complete_dvb_frames,
-		                                                   remaining_alloc_sym))
+		string label = (*it).first;
+		Scheduling *scheduler = (*it).second;
+
+		if(!scheduler->schedule(this->fwd_frame_counter,
+		                        getCurrentTime(),
+		                        &this->complete_dvb_frames,
+		                        remaining_alloc_sym))
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
 			    "failed to schedule encapsulation "
-				"packets stored in DVB FIFO\n");
+				"packets stored in DVB FIFO for category %s\n",
+				label.c_str());
 			return false;
 		}
+
 		LOG(this->log_receive_channel, LEVEL_INFO,
 		    "SF#%u: %u symbols remaining after "
 		    "scheduling in category %s\n", this->super_frame_counter,
-		    remaining_alloc_sym, cat->getLabel().c_str());
+		    remaining_alloc_sym, label.c_str());
 	}
 
 	return true;

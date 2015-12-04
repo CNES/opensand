@@ -152,6 +152,12 @@ bool SpotDownwardRegen::initMode(void)
 	if(this->terminal_affectation.find(this->mac_id) != this->terminal_affectation.end())
 	{
 		cat = this->terminal_affectation[this->mac_id];
+		if(!cat)
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "No category corresponding to GW affectation\n");
+			return false;
+		}
 	}
 	else
 	{

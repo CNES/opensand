@@ -474,14 +474,16 @@ bool SatGw::schedule(const time_sf_t current_superframe_sf,
 bool SatGw::addTerminal(tal_id_t tal_id)
 {
 	// check for column in FMT simulation list
-	if(!this->addInputTerminal(tal_id, this->rcs_modcod_def))
+	if(!this->input_sts->isStPresent(tal_id) &&
+	   !this->addInputTerminal(tal_id, this->rcs_modcod_def))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 				"failed to register simulated ST with MAC "
 				"ID %u\n", tal_id);
 		return false;
 	}
-	if(!this->addOutputTerminal(tal_id, this->s2_modcod_def))
+	if(!this->output_sts->isStPresent(tal_id) &&
+	   !this->addOutputTerminal(tal_id, this->s2_modcod_def))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 				"failed to register simulated ST with MAC "
