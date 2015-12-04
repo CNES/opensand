@@ -1007,6 +1007,7 @@ bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
 		case RETURN:
 			cat = this->dama_ctrl->getCategories();
 			frame_duration_ms = this->ret_up_frame_duration_ms;
+			break;
 
 		default:
 			LOG(this->log_receive_channel, LEVEL_ERROR,

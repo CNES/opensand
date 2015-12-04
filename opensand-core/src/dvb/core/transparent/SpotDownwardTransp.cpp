@@ -257,7 +257,7 @@ bool SpotDownwardTransp::initDama(void)
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
-	TerminalCategoryDama *dc_default_category;
+	TerminalCategoryDama *dc_default_category = NULL;
 
 	ConfigurationList current_gw;
 	

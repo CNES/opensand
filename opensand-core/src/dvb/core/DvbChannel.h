@@ -1242,7 +1242,8 @@ bool DvbChannel::allocateBand(time_ms_t duration_ms,
 	if(new_rs <= old_rs)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Request for an allocation while the rate is smaller than before\n");
+		    "Request for an allocation while the rate (%.2E symps) is smaller "
+		    "than before (%.2E symps)\n", new_rs, old_rs);
 		return false;
 	}
 

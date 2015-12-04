@@ -243,7 +243,7 @@ bool NccSvnoInterface::parseSvnoMessage(const char *message)
 		this->requests_list.push_back(request);
 
 		nb_cmds++;
-        }
+	}
 
 	if(nb_cmds == 0)
 	{
@@ -264,16 +264,17 @@ bool NccSvnoInterface::parseSvnoMessage(const char *message)
  */
 SvnoRequest *NccSvnoInterface::parseSvnoCommand(const char *cmd)
 {
-	spot_id_t spot_id;
+	unsigned int spot_id;
 	unsigned int type;      // allocation or release request
 	unsigned int band;      // band
 	std::string label;      // label 
-	rate_kbps_t new_rate_kbps;  // new rate
+	rate_kbps_t new_rate_kbps; // new rate
 	std::stringstream cmd_s;
 	cmd_s << cmd;
 
 	// retrieve values in the command
-	if(!(cmd_s >> spot_id >> type >> band >> label >> new_rate_kbps))
+	cmd_s >> spot_id >> type >> band >> label >> new_rate_kbps;
+	if(cmd_s.fail())
 	{
 		LOG(this->log_ncc_interface, LEVEL_ERROR,
 		    "bad formated SVNO command received: '%s'\n", cmd);
@@ -290,7 +291,7 @@ SvnoRequest *NccSvnoInterface::parseSvnoCommand(const char *cmd)
 		return NULL;
 	}
 
-	// request band must be 1 for forward or 0 for return
+	// request band must be 0 for forward or 1 for return
 	if(band != FORWARD && band != RETURN)
 	{
 		LOG(this->log_ncc_interface, LEVEL_ERROR,

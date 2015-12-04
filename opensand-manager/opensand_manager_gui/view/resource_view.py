@@ -312,6 +312,8 @@ class ResourceView(WindowView):
                 self._st_return.remove(element)
 
         #Get number of Group
+        #TODO specify default group in the graphical_parameter gui, using a
+        #     radio  button
         xpath = get_conf_xpath(TAL_AFFECTATIONS, link, self._spot, self._gw)
         defaulf_grp_path = get_conf_xpath(TAL_DEF_AFF, link,
                                           self._spot, self._gw)

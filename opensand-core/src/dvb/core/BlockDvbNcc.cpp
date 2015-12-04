@@ -796,8 +796,10 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "Cannot apply SVNO interface request\n");
-						continue;
+						return false;
 					}
+					delete request;
+					request = this->svno_interface.getNextSvnoRequest();
 				}
 			}
 		}
