@@ -157,6 +157,7 @@ class AssignmentDialog(WindowView):
             renderer_text = gtk.CellRendererText()
             combo_box_group.pack_start(renderer_text, True)
             combo_box_group.add_attribute(renderer_text, "text", 1)
+            combo_box_group.set_active(0)
             select_group(combo_box_group, defaulf_grp)
             for st in st_list:
                 if host.get_name().lower() == ST + str(st[0]):

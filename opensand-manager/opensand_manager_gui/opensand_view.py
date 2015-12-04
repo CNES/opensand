@@ -121,12 +121,12 @@ class View(WindowView):
         self._pages = \
         {
             'run'   : 0,
-            'conf'  : 1,
-            'resources'  : 2,
+            'conf'  : 2,
+            'resources'  : 1,
             'tools' : 3,
             'probes': 4,
         }
-
+        
         # update the window title
         if self._model._is_default:
             gobject.idle_add(self.set_title, "OpenSAND Manager - [new]")
