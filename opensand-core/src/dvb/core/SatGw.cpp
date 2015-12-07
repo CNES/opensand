@@ -111,6 +111,9 @@ SatGw::~SatGw()
 	if(this->output_series)
 		delete this->output_series;
 
+	delete this->input_sts;
+	delete this->output_sts;
+
 	delete this->logon_fifo;
 	delete this->control_fifo;
 	delete this->data_out_st_fifo;

@@ -109,13 +109,23 @@ bool BlockDvbNcc::initListsSts()
 	    iter != OpenSandConf::spot_table.end() ;
 	    ++iter)
 	{
-		this->input_sts_list[(*iter).second] = new StFmtSimuList("in");
-		if(this->input_sts_list[(*iter).second] == NULL)
+		spot_id_t spot_id = (*iter).second;
+
+		if(this->input_sts_list.find(spot_id) == this->input_sts_list.end())
+		{
+			this->input_sts_list[spot_id] = new StFmtSimuList("in");
+		}
+		if(this->input_sts_list[spot_id] == NULL)
 		{
 			return false;
 		}
-		this->output_sts_list[(*iter).second] = new StFmtSimuList("out");
-		if(this->output_sts_list[(*iter).second] == NULL)
+
+
+		if(this->output_sts_list.find(spot_id) == this->output_sts_list.end())
+		{
+			this->output_sts_list[spot_id] = new StFmtSimuList("out");
+		}
+		if(this->output_sts_list[spot_id] == NULL)
 		{
 			return false;
 		}

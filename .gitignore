@@ -170,6 +170,7 @@ opensand-tests/tests/base/configs/enrich/saloha/scenario*/
 opensand-tests/tests/base/configs/enrich/vcm/scenario*/
 opensand-tests/tests/base/configs/enrich/saloha/dama/scenario*/
 opensand-tests/tests/base/configs/enrich/scpc/scenario*/
+opensand-tests/tests/base/configs/enrich/scpc/dama/scenario*/
 opensand-tests/tests/base/configs/enrich/multispot/scenario*/
 opensand-tests/tests/base/configs/enrich/multispot/saloha/scenario*/
 opensand-tests/tests/base/configs/enrich/multispot/saloha/dama/scenario*/

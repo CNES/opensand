@@ -175,6 +175,7 @@ StFmtSimuList::~StFmtSimuList()
 		delete it->second;
 	}
 	this->sts->clear();
+	delete this->sts;
 }
 
 void StFmtSimuList::setAcmLoopMargin(double acm_loop_margin_db)

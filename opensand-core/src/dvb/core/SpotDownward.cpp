@@ -151,6 +151,15 @@ SpotDownward::~SpotDownward()
 	this->dvb_fifos.clear();
 
 	this->terminal_affectation.clear();
+
+	// delete probes
+	delete this->probe_gw_queue_size;
+	delete this->probe_gw_queue_size_kb;
+	delete this->probe_gw_queue_loss;
+	delete this->probe_gw_queue_loss_kb;
+	delete this->probe_gw_l2_to_sat_before_sched;
+	delete this->probe_gw_l2_to_sat_after_sched;
+
 }
 
 
