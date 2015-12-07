@@ -785,6 +785,13 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
 	*bbframe = NULL;
 
 	// retrieve the current MODCOD for the ST
+	if(!this->simu_sts->isStPresent(tal_id))
+	{
+		LOG(this->log_scheduling, LEVEL_WARNING,
+		    "encapsulation packet is for ST%u that is not registered\n",
+		    tal_id);
+		goto skip;
+	}
 	desired_modcod = this->getCurrentModcodId(tal_id);
 	if(desired_modcod == 0)
 	{
