@@ -33,7 +33,7 @@ Template: opensand-daemon/service/st_instance
 Type: select
 Choices: ${inst_list}
 Description: Service instance
-  Select the ID of the satellite host
+  ${inst_description}
 
 Template: opensand-daemon/service/ws_instance
 Type: string
@@ -91,9 +91,9 @@ Template: opensand-daemon/network/lan_iface
 Type: string
 Default: eth1
 Description: Satellite Terminal network interface name
-  Select the physical interface for Satellite Terminal network
-  The Satellite Terminal network corresponds to the sub-network used by the
-  workstations behind the ST to connect on the satellite network
+  Select the physical interface for Satellite Terminal or Gateway network
+  This network corresponds to the sub-network used by the
+  workstations behind the ST or GW to connect on the satellite network
 
 Template: opensand-daemon/network/lan_ipv4
 Type: string
