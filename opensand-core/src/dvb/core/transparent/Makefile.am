@@ -8,7 +8,7 @@ libopensand_dvb_core_transp_la_cpp = \
 libopensand_dvb_core_transp_la_h = \
 	SpotDownwardTransp.h \
 	SpotUpwardTransp.h \
-	BlockDvbSatTransp
+	BlockDvbSatTransp.h
 
 libopensand_dvb_core_transp_la_SOURCES = \
 	$(libopensand_dvb_core_transp_la_cpp) \

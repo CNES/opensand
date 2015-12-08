@@ -18,10 +18,8 @@ HOSTS_XSD = \
 	xsd/common.xsd
 	
 MODCOD = \
-	modcod/collective/ \
-	modcod/individual/ \
-	modcod/forward/ \
-	modcod/return/
+	modcod/rcs/ \
+	modcod/s2/
 	
 MANDATORY_PLUGINS = \
 	mandatory_plugins/
