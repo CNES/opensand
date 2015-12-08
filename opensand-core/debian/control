@@ -1,6 +1,6 @@
 Source: opensand-core
 Priority: optional
-Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config,
  libopensand-conf-dev (>= 4.0.0), libopensand-output-dev (>= 4.0.0), libopensand-rt-dev (>= 4.0.0),
  python-lxml, libpcap-dev
