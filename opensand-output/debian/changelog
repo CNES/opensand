@@ -1,3 +1,9 @@
+opensand-output (4.0.0) trusty; urgency=low
+
+  * Release 4.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Tue, 08 Dec 2015 10:49:58 +0100
+
 opensand-output (3.1.0) precise; urgency=low
 
   * Release 3.1.0
