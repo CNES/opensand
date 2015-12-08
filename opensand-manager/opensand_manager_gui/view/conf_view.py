@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
-# Copyright © 2014 CNES
+# Copyright © 2015 TAS
+# Copyright © 2015 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -37,7 +37,7 @@ conf_view.py - the configuration tab view
 
 import gtk
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, ST, GW
 from opensand_manager_core.my_exceptions import ConfException
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.utils.protocol_stack import ProtocolStack
@@ -86,9 +86,12 @@ class ConfView(WindowView):
 
         self._timeout_id = None
 
+        self._update_spot = False
+
     def update_view(self):
         """ update the configuration view according to model
             (should be used with gobject.idle_add outside gtk handlers) """
+        self._update_spot = False
         # main config parameters
         config = self._model.get_conf()
         # payload_type
@@ -110,14 +113,15 @@ class ConfView(WindowView):
         for host in self._lan_stacks:
             try:
                 self._lan_stacks[host].load(host.get_lan_adaptation())
-                if host.get_name().lower() == "gw" and \
+                if host.get_name().lower().startswith(GW) and \
                    self._lan_stack_base is not None:
                     self._lan_stack_base.load(host.get_lan_adaptation())
             except ConfException, msg:
                 error_popup(str(msg))
         self.update_lan_adaptation()
-        # return_up_encap
+
         try:
+            # return_up_encap
             self._out_stack.load(config.get_return_up_encap(),
                                  config.get_payload_type(),
                                  config.get_emission_std())
@@ -155,7 +159,7 @@ class ConfView(WindowView):
             if host in self._lan_stacks:
                 continue
             name = host.get_name().lower()
-            if name.startswith('st') or name == 'gw':
+            if name.startswith(ST) or name.startswith(GW):
                 vbox = gtk.VBox()
                 label = gtk.Label(name.upper())
                 self._lan_stack_notebook.append_page(vbox, label)
@@ -187,7 +191,7 @@ class ConfView(WindowView):
     def update_lan_adaptation_base(self):
         """ update the lan adaptation notebook for base users """
         # first check that all stacks are the same, else enable advanced mode
-        host = self._model.get_host("gw")
+        host = self._model.get_host(GW)
         if host is None:
             return
 
@@ -196,20 +200,6 @@ class ConfView(WindowView):
             self.update_lan_adaptation_adv()
         if len(self._lan_stacks) == 0:
             return
-        stacks = []
-        for host in self._lan_stacks:
-            stack = self._lan_stacks[host].get_stack()
-            stacks.append(stack)
-        # check if all stacks are the same
-        first = stacks[0]
-        for stack in stacks:
-            if stack != first:
-                self.on_save_conf_clicked()
-                error_popup("The lan adaptation stacks are not the same on "
-                            "all host, in non-advanced mode it will be "
-                            "overrided with the GW stack.",
-                            "The configuration has been automatically saved!")
-                return
 
         if self._lan_stack_base is None:
             header_modif = self._model.get_global_lan_adaptation_modules()
@@ -225,11 +215,32 @@ class ConfView(WindowView):
             except ConfException, msg:
                 error_popup(str(msg))
 
+        stacks = []
+        for host in self._lan_stacks:
+            stack = self._lan_stacks[host].get_stack()
+            stacks.append(stack)
+
+        # check if all stacks are the same
+        first = stacks[0]
+        for stack in stacks:
+            if stack != first:
+                self.on_save_conf_clicked()
+                error_popup("The lan adaptation stacks are not the same on "
+                            "all host, in non-advanced mode it will be "
+                            "overrided with the GW stack.",
+                            "The configuration has been automatically saved!")
+                return
+
+
 
     def is_modified(self):
         """ check if the configuration was modified by user
             (used in callback so no need to use locks) """
         try:
+            if self._update_spot:
+                self._update_spot = False
+                return True
+
             config = self._model.get_conf()
             # payload_type
             widget = self._ui.get_widget(config.get_payload_type())
@@ -405,6 +416,10 @@ class ConfView(WindowView):
 
     def on_button_clicked(self, source, event=None):
         """ defined in conf_event """
+        pass
+
+    def read_conf_free_spot(self):
+        """ definef in conf_event """
         pass
 
     def is_button_active(self, button):

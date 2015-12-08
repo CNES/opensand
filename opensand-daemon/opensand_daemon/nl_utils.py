@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -195,15 +195,22 @@ class NlInterfaces(object):
     def up(self, iface):
         """ set a link up """
         try:
-            link = self._cache[iface]
+            li = self._cache[iface]
+            # TODO workaround due to some errors with last libnl versions
+            #      see libnl ML "cannot set TUN interface up/down with Python API (wrapper)"
+            #      The pb might be that there is not tun declare in route/links folder
+            if li.type in ['tun', 'tap']:
+                li.type = 'dummy'
 
-            if 'up' in link.flags:
+            if 'up' in li.flags:
                 raise NlExists(-6)
 
-            link.flags = ['up']
-            link.change()
+            li.flags = ['up']
+            li.change()
         except Exception:
-            raise
+            # TODO another problem with recent versions, error -16 is returned
+            #raise
+            pass
         finally:
             # refresh cache
             self._cache.refill(self._sock)
@@ -211,19 +218,25 @@ class NlInterfaces(object):
     def down(self, iface):
         """ set a link up """
         try:
-            link = self._cache[iface]
+            li = self._cache[iface]
+            # TODO workaround due to some errors with last libnl versions
+            #      see libnl ML "cannot set TUN interface up/down with Python API (wrapper)"
+            #      The pb might be that there is not tun declare in route/links folder
+            if li.type in ['tun', 'tap']:
+                li.type = 'dummy'
 
-            if not 'up' in link.flags:
+            if not 'up' in li.flags:
                 raise NlMissing(-12)
 
-            link.flags = ['-up']
-            link.change()
+            li.flags = ['-up']
+            li.change()
         except Exception:
-            raise
+            # TODO another problem with recent versions, error -16 is returned
+            #raise
+            pass
         finally:
             # refresh cache
             self._cache.refill(self._sock)
-
 
 
 if __name__ == '__main__':

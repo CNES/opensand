@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -76,7 +76,7 @@ if __name__ == '__main__':
                              stderr=subprocess.PIPE,
                              close_fds=True, shell=False)
     print "wait for connections"
-    time.sleep(50)
+    time.sleep(60)
     print "stop now"
     try:
         iperf.terminate()

@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 CNES
+# Copyright © 2015 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -193,8 +193,8 @@ class ShellManager(object):
         self._command_server.run()
         
 
-    def save_scenario(self, path):
-        """ save the current scenario """
+    def set_scenario(self, path):
+        """ set the current scenario """
         self._model.set_scenario(path)
 
     def default_scenario(self):
@@ -309,7 +309,13 @@ class EventResponseHandler(threading.Thread):
             self._log.info(" * event response: " + event_type)
 
             if event_type == "resp_deploy_platform":
-                pass
+                self._log.debug(" * platform deployed")
+
+            elif event_type == "resp_set_scenario":
+                self._log.debug(" * scenario set")
+
+            elif event_type == "resp_update_config":
+                self._log.debug(" * configuration updated")
 
             elif event_type == "deploy_files":
                 self._log.debug(" * deploying files")

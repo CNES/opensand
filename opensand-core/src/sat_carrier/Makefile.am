@@ -1,4 +1,4 @@
-SUBDIRS= . tests
+SUBDIRS = . tests
 
 noinst_LTLIBRARIES = libopensand_satcarrier.la
 
@@ -18,5 +18,6 @@ libopensand_satcarrier_la_SOURCES = \
 
 INCLUDES = \
 	-I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/dvb_rcs/utils
+	-I$(top_srcdir)/src/conf \
+	-I$(top_srcdir)/src/dvb/utils
 

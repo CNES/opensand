@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
+ * Copyright © 2015 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -150,6 +150,20 @@ class RtChannel
 	                          size_t max_size = MAX_SOCK_SIZE,
 	                          uint8_t priority = 3);
 
+	 /**
+	  * @brief Add a tcp listen event to the channel
+	  *
+	  * @param name      The name of the event
+	  * @param fd        The file descriptor to monitor
+	  * @param max_size  The maximum data size
+	  * @param priority  The priority of the event (small for high priority)
+	  * @return the event id on success, -1 otherwise
+	  */
+	 int32_t addTcpListenEvent(const string &name,
+	                           int32_t fd,
+	                           size_t max_size = MAX_SOCK_SIZE,
+	                           uint8_t priority = 4);
+
 	/**
 	 * @brief Add a file event to the channel
 	 *
@@ -198,6 +212,15 @@ class RtChannel
 	 * @return true on success, false otherwise
 	 */
 	bool startTimer(event_id_t id);
+
+	/**
+	 * @brief set a new duration
+	 *
+	 * @param id  The timer id
+	 * @param new_duration    the new duration
+	 * @return true on success, false otherwise
+	 */
+	bool setDuration(event_id_t id, double new_duration);
 
 	/**
 	 * @brief Trigger a timer immediately
@@ -272,13 +295,6 @@ class RtChannel
 	 *
 	 */
 	static void *startThread(void *pthis);
-
-	/**
-	 * @brief Get the current timeval
-	 *
-	 * @return the current time
-	 */
-	clock_t getCurrentTime(void);
 
 #ifdef TIME_REPORTS
 	/// statistics about events durations (in us)

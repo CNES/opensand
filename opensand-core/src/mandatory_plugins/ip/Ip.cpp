@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -69,8 +69,10 @@ void Ip::Context::init()
 {
 	LanAdaptationPlugin::LanAdaptationContext::init();
 	ConfigurationFile config;
+	vector<string> conf_files;
+	conf_files.push_back(CONF_IP_FILE);
 
-	if(config.loadConfig(CONF_IP_FILE) < 0)
+	if(config.loadConfig(conf_files) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'", CONF_IP_FILE);
@@ -129,11 +131,11 @@ NetBurst *Ip::Context::encapsulate(NetBurst *burst,
 				break;
 			default:
 				LOG(this->log, LEVEL_ERROR,
-				    "unknown IP packet version");
+				    "encap:unknown IP packet version");
 				continue;
 		}
 		LOG(this->log, LEVEL_INFO,
-		    "got an IPv%u packet\n",
+		    "encap:got an IPv%u packet\n",
 		    IpPacket::version((*packet)->getData()));
 		// check IP packet validity
 		if(!ip_packet->isValid())
@@ -180,7 +182,8 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 	{
 		IpPacket *ip_packet;
 		IpAddress *ip_addr;
-		tal_id_t pkt_tal_id;
+		tal_id_t dst_tal_id;
+		tal_id_t src_tal_id = (*packet)->getSrcTalId();
 
 		// create IP packet from data
 		switch(IpPacket::version((*packet)->getData()))
@@ -193,12 +196,13 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 				break;
 			default:
 				LOG(this->log, LEVEL_ERROR,
-				    "unknown IP packet version");
+				    "deencap:unknown IP packet version");
 				continue;
 		}
 		LOG(this->log, LEVEL_INFO,
-		    "got an IPv%u packet\n",
+		    "deencap:got an IPv%u packet\n",
 		    IpPacket::version((*packet)->getData()));
+
 		// check IP packet validity
 		if(!ip_packet->isValid())
 		{
@@ -208,13 +212,14 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 			continue;
 		}
 
-		// get destination Tal ID from IP information because
-		// packet tal_id could be wrong
+		// get destination Tal ID from IP information as on GW
+		// in transparent mode, the destination is always the GW
+		// itself
 		ip_addr = ip_packet->dstAddr();
-		if(!this->sarp_table->getTalByIp(ip_addr, pkt_tal_id))
+		if(!this->sarp_table->getTalByIp(ip_addr, dst_tal_id))
 		{
 			// check default tal_id
-			if(pkt_tal_id > BROADCAST_TAL_ID)
+			if(dst_tal_id > BROADCAST_TAL_ID)
 			{
 				LOG(this->log, LEVEL_ERROR,
 				    "cannot get destination tal ID in SARP table\n");
@@ -225,10 +230,11 @@ NetBurst *Ip::Context::deencapsulate(NetBurst *burst)
 			{
 				LOG(this->log, LEVEL_INFO,
 				    "cannot find destination tal ID, use default "
-				    "(%u)\n", pkt_tal_id);
+				    "(%u)\n", dst_tal_id);
 			}
 		}
-		ip_packet->setDstTalId(pkt_tal_id);
+		ip_packet->setDstTalId(dst_tal_id);
+		ip_packet->setSrcTalId(src_tal_id);
 
 		net_packets->add(ip_packet);
 	}
@@ -279,12 +285,10 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 	}
 	ip_packet->setQos(found_category->second->getId());
 
-	if(this->tal_id != GW_TAL_ID && this->satellite_type == TRANSPARENT)
+	if(this->tal_id != this->gw_id && 
+	   this->satellite_type ==  TRANSPARENT)
 	{
-		// ST in transparent mode:
-		// DST Tal Id = GW
-		// SRC Tal Id = ST Tal Id
-		ip_packet->setDstTalId(GW_TAL_ID);
+		ip_packet->setDstTalId(this->gw_id);
 	}
 	else
 	{
@@ -316,7 +320,7 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 			else
 			{
 				LOG(this->log, LEVEL_INFO,
-				    "cannot find destination tal ID, use "
+				    "cannot find sValiddestination tal ID, use "
 				    "default (%u)\n", pkt_tal_id);
 			}
 		}
@@ -404,8 +408,12 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 	ConfigurationList category_list;
 	ConfigurationList::iterator iter;
 
+	map<string, ConfigurationList> config_section_map;
+	config.loadSectionMap(config_section_map);
+
 	// Traffic flow categories
-	if(!config.getListItems(SECTION_MAPPING, MAPPING_LIST,
+	if(!config.getListItems(config_section_map[SECTION_MAPPING], 
+		                    MAPPING_LIST,
 	                        category_list))
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -467,7 +475,8 @@ bool Ip::Context::initTrafficCategories(ConfigurationFile &config)
 		this->category_map[dscp_value] = category;
 	}
 	// Get default category
-	if(!config.getValue(SECTION_MAPPING, KEY_DEF_CATEGORY,
+	if(!config.getValue(config_section_map[SECTION_MAPPING], 
+		                KEY_DEF_CATEGORY,
 	                    this->default_category))
 	{
 		this->default_category = (this->category_map.begin())->first;

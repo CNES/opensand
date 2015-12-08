@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -61,6 +61,7 @@
 #include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
 #include "Plugin.h"
+#include "OpenSandConf.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_conf/Configuration.h>
@@ -146,21 +147,21 @@ bool init_process(int argc, char **argv,
 	if(ip_addr.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory IP address option");
+		        "missing mandatory IP address option\n");
 		return false;
 	}
 
 	if(emu_iface.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory emulation interface name option");
+		        "missing mandatory emulation interface name option\n");
 		return false;
 	}
 
 	if(lan_iface.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory lan interface name option");
+		        "missing mandatory lan interface name option\n");
 		return false;
 	}
 	return true;
@@ -221,7 +222,9 @@ int main(int argc, char **argv)
 		        progname);
 		goto quit;
 	}
-
+	
+	OpenSandConf::loadConfig();
+	
 	// read all packages debug levels
 	if(!Conf::loadLevels(levels, spec_level))
 	{
@@ -233,8 +236,8 @@ int main(int argc, char **argv)
 	Output::setLevels(levels, spec_level);
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ENABLE,
-	                          with_phy_layer))
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               ENABLE, with_phy_layer))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot  check if physical layer is enabled\n",
@@ -269,7 +272,8 @@ int main(int argc, char **argv)
 
 	block_encap = Rt::createBlock<BlockEncap,
 	                              BlockEncap::RtUpward,
-	                              BlockEncap::RtDownward>("Encap", block_lan_adaptation);
+	                              BlockEncap::RtDownward,
+	                              tal_id_t>("Encap", block_lan_adaptation, mac_id);
 	if(!block_encap)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -307,6 +311,7 @@ int main(int argc, char **argv)
 
 	specific.ip_addr = ip_addr;
 	specific.emu_iface = emu_iface;
+	specific.tal_id = mac_id;
 	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
 	                                    BlockSatCarrier::Upward,
 	                                    BlockSatCarrier::Downward,

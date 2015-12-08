@@ -1,6 +1,6 @@
-SUBDIRS = . tests
+SUBDIRS = tests
 
-# Be veray careful, as Plugin define a static instance of
+# Be very careful, as Plugin define a static instance of
 # PluginUtils, you MUST NOT link with libopensand_plugin_utils.la !!
 noinst_LTLIBRARIES = libopensand_plugin_utils.la
 lib_LTLIBRARIES = libopensand_plugin.la
@@ -42,7 +42,7 @@ libopensand_plugin_la_h = \
 	PhysicalLayerPlugin.h
 	
 INCLUDES = \
-	-I$(top_srcdir)/src/dvb_rcs/utils/
+	-I$(top_srcdir)/src/dvb/utils/
 
 libopensand_plugin_la_SOURCES = \
 	$(libopensand_plugin_la_cpp) \

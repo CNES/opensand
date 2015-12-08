@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 CNES
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -44,6 +44,9 @@
 #include "StackPlugin.h"
 
 #include <opensand_output/Output.h>
+
+
+
 
 /**
  * @class EncapPlugin
@@ -101,10 +104,41 @@ class EncapPlugin: public StackPlugin
 			                                this->getName().c_str());
 		};
 
+		virtual NetPacket *getPacketForHeaderExtensions(const std::vector<NetPacket*>&UNUSED(packets))
+		{
+			assert(0);
+		};
+
+		virtual bool setHeaderExtensions(const NetPacket* UNUSED(packet),
+                                         NetPacket** UNUSED(new_packet),
+                                         tal_id_t UNUSED(tal_id_src),
+                                         tal_id_t UNUSED(tal_id_dst),
+                                         string UNUSED(callback_name),
+                                         void *UNUSED(opaque))
+        {
+        	assert(0);
+        };
+
+
+		virtual bool getHeaderExtensions(const NetPacket *UNUSED(packet),
+                                         string UNUSED(callback_name),
+                                         void *UNUSED(opaque))
+        {
+        	assert(0);
+        };
+
+        list<string> getCallback()
+        {
+        	return this->callback_name;
+		};
+
 	 protected:
 
 		/// Output Logs
 		OutputLog *log;
+
+		/// map call back name
+		list<string> callback_name;
 	};
 
 	/**

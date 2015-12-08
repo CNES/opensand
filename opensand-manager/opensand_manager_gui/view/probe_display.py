@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -68,6 +68,7 @@ class ProbeGraph(object):
         self._xaxis = None
         self._yaxis = None
         self._color = random.choice("bgrcmyk")
+        self._plot_type = "default"
         self._dirty = False
 
     def setup(self, axes, direct_values=None):
@@ -145,7 +146,14 @@ class ProbeGraph(object):
         self._yaxis.set_major_formatter(VALUE_FORMATTER)
 
         try:
-            self._axes.plot(x, y, '-', color=self._color)
+            if self._plot_type == 'dot':
+                pl = self._axes.plot(x, y, 'o', 2, color=self._color)
+            elif self._plot_type == 'dotline':
+                pl = self._axes.plot(x, y, 'o-', 2, color=self._color)
+            elif self._plot_type == 'step':
+                pl = self._axes.plot(x, y, ls='steps', lw=2, c=self._color)
+            else: #line by default
+                self._axes.plot(x, y, '-', 2, color=self._color)
         except ValueError:
             # TODO find why this append
             size = min(len(x), len(y))
@@ -155,6 +163,9 @@ class ProbeGraph(object):
                 y.pop(0)
 
         self._axes.axis([xmin, xmax, rymin, rymax])
+
+    def set_plot_type(self, plot_type):
+        self._plot_type = plot_type
 
     @property
     def index(self):
@@ -179,6 +190,7 @@ class ProbeDisplay(object):
     def __init__(self, parent_box):
         self._displayed_probes = {}
         self._num_graphs = 0
+        self._plot_type = "dot"
 
         self._fig = plt.figure()
         self._fig.subplots_adjust(hspace=0.8)
@@ -234,6 +246,7 @@ class ProbeDisplay(object):
                 graph = ProbeGraph(self, probe.program.name, probe.name,
                                    probe.unit)
                 graph.index = max_index # Temporary, to put it at the end
+            graph.set_plot_type(self._plot_type)
 
             new_probes.append((probe.global_ident, graph, probe_data))
         self._reset = False
@@ -264,6 +277,7 @@ class ProbeDisplay(object):
         """
         updated = False
         for graph in self._displayed_probes.itervalues():
+            graph.set_plot_type(self._plot_type)
             updated = graph.update() or updated
 
         if updated:
@@ -279,3 +293,6 @@ class ProbeDisplay(object):
             self._displayed_probes[probe.global_ident].add_value(time, value)
         except KeyError:
             pass
+    
+    def set_plot_type(self, plot_type):
+        self._plot_type = plot_type

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -347,7 +347,7 @@ static bool test_lan_adapt(string src_filename,
 		for(lan_contexts_t::iterator ctx = contexts.begin();
 		    ctx != contexts.end(); ++ctx)
 	    {
-			(*ctx)->initLanAdaptationContext(1, TRANSPARENT,
+			(*ctx)->initLanAdaptationContext(1, 0, TRANSPARENT,
 			                                 &sarp_table);
 		}
 

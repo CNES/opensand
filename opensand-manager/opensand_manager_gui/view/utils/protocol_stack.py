@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
-# Copyright © 2014 CNES
+# Copyright © 2015 TAS
+# Copyright © 2015 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -267,7 +267,7 @@ class ProtocolStack():
                        self._header_modif_plugins[mod].get_active()]:
             enabled_header_modif.append(module)
         enabled_header_modif = self.rearange_header_modif(enabled_header_modif)
-        for i in range(len(self._stack)):
+        for key in sorted(self._stack.keys()):
             for module in enabled_header_modif:
                 if previous in module.get_available_upper_protocols():
                     module_name = self._header_modif_plugins[module].get_name()
@@ -276,7 +276,7 @@ class ProtocolStack():
                     pos += 1
                     enabled_header_modif.remove(module)
                     break
-            name = get_combo_val(self._stack[i])
+            name = get_combo_val(self._stack[key])
             if name != '':
                 stack[str(pos)] = name
                 previous = name

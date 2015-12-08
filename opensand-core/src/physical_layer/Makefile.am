@@ -20,8 +20,8 @@ libopensand_physical_layer_la_DEPENDENCIES = \
 
 INCLUDES = \
 	-I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/dvb_rcs/utils \
-	-I$(top_srcdir)/src/dvb_rcs/fmt
+	-I$(top_srcdir)/src/dvb/utils \
+	-I$(top_srcdir)/src/dvb/fmt
 
 
 

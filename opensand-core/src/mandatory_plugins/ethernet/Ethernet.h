@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -68,6 +68,7 @@ class Ethernet: public LanAdaptationPlugin
 {
   public:
 	Ethernet();
+
 	void init();
 
 	/**
@@ -94,6 +95,7 @@ class Ethernet: public LanAdaptationPlugin
 		void updateStats(unsigned int period);
 		bool initLanAdaptationContext(
 			tal_id_t tal_id,
+			tal_id_t gw_id,
 			sat_type_t satellite_type,
 			const SarpTable *sarp_table);
 
@@ -202,6 +204,9 @@ class Ethernet: public LanAdaptationPlugin
 		 * @return true on success, false otherwise
 		 */
 		bool initTrafficCategories(ConfigurationFile &config);
+
+		/// The configuration
+		ConfigurationFile config;
 
 		/// The Ethernet Virtual Connections
 		map<uint8_t, Evc *> evc_map;

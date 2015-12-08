@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -43,12 +43,13 @@ from opensand_manager_gui.view.popup.progress_dialog import ProgressDialog
 class EventResponseHandler(threading.Thread):
     """ Get response events from hosts controllers """
     def __init__(self, event_manager_response,
-                 run_view, conf_view, tool_view, probe_view,
-                 manager_log):
+                 run_view, conf_view, resource_view, tool_view, 
+                 probe_view, manager_log):
         threading.Thread.__init__(self)
         self.setName("EventResponseHandler")
         self._run_view = run_view
         self._conf_view = conf_view
+        self._resource_view = resource_view
         self._tool_view = tool_view
         self._probe_view = probe_view
         self._event_manager_response = event_manager_response
@@ -74,6 +75,10 @@ class EventResponseHandler(threading.Thread):
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
                 gobject.idle_add(self._run_view.disable_deploy_buttons, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
+
+            elif event_type == "resp_set_scenario" or \
+                 event_type == "resp_update_config":
+                pass
 
             elif event_type == "deploy_files":
                 gobject.idle_add(self._run_view.spin, "Saving files...",

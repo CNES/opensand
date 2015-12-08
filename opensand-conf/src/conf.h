@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
+ * Copyright © 2015 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -43,6 +43,7 @@
 ////////////////////
 
 #define GLOBAL_SECTION            "global"
+#define COMMON_SECTION            "common"
 
 #define LAN_ADAPTATION_SCHEME_LIST     "lan_adaptation_schemes"
 #define RETURN_UP_ENCAP_SCHEME_LIST    "return_up_encap_schemes"
@@ -55,21 +56,12 @@
 
 #define SAT_DELAY                 "delay"
 
-#define RET_UP_FRAME_DURATION     "return_up_frame_duration"
-#define FWD_DOWN_FRAME_DURATION   "forward_down_frame_duration"
+#define RET_UP_CARRIER_DURATION     "return_up_carrier_duration"
+#define FWD_DOWN_CARRIER_DURATION   "forward_down_carrier_duration"
 
 #define STATS_TIMER               "statistics_timer"
 
 #define SYNC_PERIOD               "sync_period"
-
-
-///////////////////////////////
-// section simulation column //
-///////////////////////////////
-
-#define SAT_SIMU_COL_SECTION      "simulation_column"
-#define COLUMN_LIST               "columns"
-#define COLUMN_NBR                "column_nbr"
 
 
 /////////////////////////
@@ -99,13 +91,16 @@
 // section sat switching //
 ///////////////////////////
 
-#define SPOT_ID                   "spot_id"
 #define TAL_ID                    "tal_id"
+#define ID                        "id"
+#define GW                        "gw"
 
-#define SAT_SWITCH_SECTION        "sat_switching_table"
-#define SWITCH_LIST               "switchs"
+#define SPOT_TABLE_SECTION        "spot_table"
+#define TERMINAL_LIST			  "terminals"
 #define DEFAULT_SPOT              "default_spot"
 
+#define GW_TABLE_SECTION          "gw_table"
+#define DEFAULT_GW                "default_gw"
 
 //////////////////////
 // bloc_dvb_rcs_ncc //
@@ -152,12 +147,19 @@
 #define DVB_NCC_ALLOC_DELAY  "pep_alloc_delay"
 #define PEP_DAMA_PORT        "pep_to_dama_port"
 
+
+////////////////////
+// SVNO section  //
+////////////////////
+
+#define NCC_SECTION_SVNO     "svno_interface"
+#define SVNO_NCC_PORT        "svno_to_ncc_port"
+
 //////////////////
 // DAMA CONTROL //
 //////////////////
 
 #define DC_SECTION_NCC              "dvb_rcs_ncc"
-#define DC_CRA_DECREASE             "cra_decrease"
 #define DC_FREE_CAP                 "fca"
 
 //////////
@@ -168,7 +170,6 @@
 #define DA_MAX_RBDC_DATA        "max_rbdc"
 #define DA_MAX_VBDC_DATA        "max_vbdc"
 #define DA_MSL_DURATION         "msl_duration"
-#define DA_CR_RULE              "cr_rule_output_fifo_only"
 
 /////////////////////////
 //    slotted aloha    //
@@ -186,6 +187,25 @@
 #define SALOHA_ALGO                    "algorithm"
 #define SALOHA_SIMU_LIST               "simulation_traffic"
 #define SALOHA_RATIO                   "ratio"
+
+
+/////////////////
+/// dama SCPC ///
+/////////////////
+
+#define SCPC_SECTION                    "scpc"
+#define IS_SCPC							"is_scpc"
+#define SCPC_C_DURATION                 "scpc_carrier_duration"
+
+///////////////////
+/// access type ///
+///////////////////
+
+#define ACCESS_DAMA                  "DAMA"
+#define ACCESS_VCM                  "VCM"
+#define ACCESS_ACM                  "ACM"
+#define ACCESS_SCPC                 "SCPC"
+#define ACCESS_ALOHA                "ALOHA"
 
 //////////
 // QOS //
@@ -226,12 +246,17 @@
 #define MINIMAL_CONDITION_TYPE    "minimal_condition_type"
 #define ERROR_INSERTION_TYPE      "error_insertion_type"
 #define CLEAR_SKY_CONDITION       "clear_sky_condition"
-#define FORWARD_DOWN_MODCOD_DEF_S2        "forward_down_modcod_def_s2"
+#define MODCOD_DEF_S2                     "modcod_def_s2"
 #define FORWARD_DOWN_MODCOD_TIME_SERIES   "forward_down_modcod_time_series"
-#define RETURN_UP_MODCOD_DEF_RCS          "return_up_modcod_def_rcs"
+#define MODCOD_DEF_RCS                    "modcod_def_rcs"
 #define RETURN_UP_MODCOD_TIME_SERIES      "return_up_modcod_time_series"
+#define LOOP_ON_FILE                      "loop_on_file"
+#define RETURN_UP_ACM_LOOP_MARGIN         "return_up_acm_loop_margin"
+#define FORWARD_DOWN_ACM_LOOP_MARGIN      "forward_down_acm_loop_margin"
 
-#define ACM_PERIOD_REFRESH         "acm_period_refresh"
+#define GENERATE_TIME_SERIES_PATH         "generate_time_series_path"
+
+#define ACM_PERIOD_REFRESH        "acm_period_refresh"
 
 
 /////////////////
@@ -242,11 +267,9 @@
 #define CARRIER_LIST        "carriers"
 #define CARRIER_ID          "id"
 #define CARRIER_IP          "ip_address"
+#define CARRIER_TYPE        "type"
 #define CARRIER_PORT        "port"
-#define CARRIER_UP          "up"
-#define CARRIER_DOWN        "down"
 #define CARRIER_MULTICAST   "ip_multicast"
-#define CARRIER_DISABLED    "disabled_on"
 
 #define DVB_CTRL_CAR        "carrier_id_dvb_ctrl"
 #define DVB_SOF_CAR         "carrier_id_sof"
@@ -257,14 +280,26 @@
 #define DVB_CAR_ID_LOGON    "carrier_id_logon"
 #define DVB_CAR_ID_DATA     "carrier_id_data"
 
-#define SPOT_LIST           "spots"
+#define LOGON_IN            "logon_in"
+#define LOGON_OUT           "logon_out"
+#define CTRL_IN             "ctrl_in"
+#define CTRL_OUT            "ctrl_out"
+#define DATA_IN_ST          "data_in_st"
+#define DATA_OUT_ST         "data_out_st"
+#define DATA_IN_GW          "data_in_gw"
+#define DATA_OUT_GW         "data_out_gw"
+#define DISABLED_GW         "gw"
+#define DISABLED_ST         "st"
+#define DISABLED_NONE       "none"
+
+#define SPOT_LIST           "spot"
+#define NO_GW               10
+#define GW_LIST             "gw"
 #define CTRL_ID             "ctrl_id"
 #define DATA_IN_ID          "data_in_id"
 #define DATA_OUT_GW_ID      "data_out_gw_id"
 #define DATA_OUT_ST_ID      "data_out_st_id"
 #define LOG_ID              "log_id"
-
-
 
 //////////////////////////
 //       advanced       //
@@ -289,4 +324,8 @@
 #define SAT_CARRIER    "sat_carrier"
 #define PHYS           "physical_layer"*/
 
+/////////////
+// OTHERS  //
+///////////// 
+#define ENCODE_CNI_EXT  "encodeCniExt"
 #endif

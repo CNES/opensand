@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -37,7 +37,8 @@ global_configuration.py - the global configuration description
 import os
 import shutil
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, \
+                                        SPOT, ID, GW
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import XmlException, ModelException
@@ -62,6 +63,7 @@ class GlobalConfig(AdvancedHostModel):
         """ load the global configuration """
         # create the host configuration directory
         conf_path = scenario
+        self._scenario = scenario
         if not os.path.isdir(conf_path):
             try:
                 os.makedirs(conf_path, 0755)
@@ -85,6 +87,7 @@ class GlobalConfig(AdvancedHostModel):
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
             if self._files is None:
+                # load the files
                 self._files = Files(self._name, self._configuration, scenario)
             else:
                 self._files.load(scenario, self._configuration)
@@ -93,6 +96,9 @@ class GlobalConfig(AdvancedHostModel):
         except XmlException, msg:
             raise ModelException("failed to parse configuration: %s"
                                  % msg)
+
+    def cancel(self):
+        self.load(self._scenario)
 
     def save(self):
         """ save the configuration """
@@ -109,6 +115,43 @@ class GlobalConfig(AdvancedHostModel):
             self._configuration.write()
         except XmlException:
             raise
+
+
+    def new_gw(self, name, instance, net_config):
+        """ handle a new gateway """
+        exist =  False
+        for section in self._configuration.get_sections():
+            for child in section.iterchildren():
+                if (child.tag == GW and child.get(ID) == instance) or \
+                   (child.tag == SPOT and child.get(GW) == instance):
+                    exist =  True
+                    continue
+                
+            if not exist:
+                self._configuration.add_gw("//"+section.tag, instance) 
+        # update the configuration elements
+        self.update_conf()
+
+        try:
+            self._configuration.write()
+            self._files.load(self._scenario, self._configuration)
+        except XmlException:
+            raise
+
+    def remove_gw(self, name, instance):
+        """ remove a gw """
+        for section in self._configuration.get_sections():
+            for child in section.getchildren():
+                if child.tag ==  SPOT or child.tag == GW:
+                    self._configuration.remove_gw("//"+section.tag, instance) 
+                    break
+
+        try:
+           self._configuration.write()
+           self._files.load(self._scenario, self._configuration)
+        except XmlException:
+            raise
+
 
     def set_payload_type(self, val):
         """ set the payload_type value """

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -167,16 +167,17 @@ bool Aal5Packet::isValid() const
 	// data must be at least 8 bytes long (= AAL5 trailer length)
 	if(this->data.length() < 8)
 	{
-		LOG(aal5_log, LEVEL_NOTICE,
-		    "data length < 0\n");
+		LOG(aal5_log, LEVEL_WARNING,
+		    "data length < 8 bytes\n");
 		goto invalid;
 	}
+
 
 	// (AAL5 payload length + AAL5 trailer length + padding) = buffer length
 	// => we must have (AAL5 payload len + AAL5 trailer len) <= buffer length
 	if((this->getPayloadLength() + 8) > this->data.length())
 	{
-		LOG(aal5_log, LEVEL_NOTICE,
+		LOG(aal5_log, LEVEL_WARNING,
 		    "payload (%zu) + trailer (8) > total length (%zu)\n",
 		    this->getPayloadLength(),
 		    this->data.length());
@@ -186,7 +187,7 @@ bool Aal5Packet::isValid() const
 	// AAL5 packet length must be multiple of 48 (= ATM payload length)
 	if(this->data.length() % 48 != 0)
 	{
-		LOG(aal5_log, LEVEL_NOTICE,
+		LOG(aal5_log, LEVEL_WARNING,
 		    "total length (%zu) is not a multiple of 48\n",
 		    this->data.length());
 		goto invalid;
@@ -196,9 +197,10 @@ bool Aal5Packet::isValid() const
 	crc = Aal5Packet::calcCrc(this->data.substr(0, this->data.length() - 4));
 	cur_crc = this->crc();
 
+
 	if(crc != cur_crc)
 	{
-		LOG(aal5_log, LEVEL_NOTICE,
+		LOG(aal5_log, LEVEL_WARNING,
 		    "CRC = %08x, should be %08x\n", cur_crc,
 		    crc);
 		goto invalid;

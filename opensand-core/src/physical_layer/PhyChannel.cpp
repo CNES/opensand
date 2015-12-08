@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 CNES
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -169,7 +169,7 @@ void PhyChannel::modifyPacket(DvbFrame *dvb_frame)
 
 	if(error_insertion->modifyPacket(payload))
 	{
-		dvb_frame->setMessageType(MSG_TYPE_CORRUPTED);
+		dvb_frame->setCorrupted(true);
 		this->probe_drops->put(1);
 	}
 }
@@ -205,7 +205,7 @@ bool PhyChannel::updateMinimalCondition(DvbFrame *dvb_frame)
 	LOG(this->log_channel, LEVEL_INFO,
 	    "Receive frame with MODCOD %u\n", modcod_id);
 
-	if(!this->minimal_condition->updateThreshold(modcod_id))
+	if(!this->minimal_condition->updateThreshold(modcod_id, dvb_frame->getMessageType()))
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "Threshold update failed, the channel will "

@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -38,7 +38,7 @@ import gtk
 import gobject
 import os
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, ST, SAT, GW, SPOT
 from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_core.model.host import InitStatus
 from opensand_manager_core.model.environment_plane import Program
@@ -90,6 +90,15 @@ class RunView(WindowView):
         self._drawing_area.connect("expose-event", self.expose_handler)
         style = self._drawing_area.get_style()
         self._context_graph = style.fg_gc[gtk.STATE_NORMAL]
+        self._copy_context = self._drawing_area.window.new_gc(subwindow_mode=
+                                              gtk.gdk.INCLUDE_INFERIORS)
+        self._color_list = {}
+        self._colors = ["#33CC66",
+                        "#00CCFF",
+                        "#CC3333",
+                        "#6600CC",
+                        "#FF9933"]
+        self._it_color = 0
 
         self._log_view = LogView(self.get_current(), manager_log)
 
@@ -113,27 +122,76 @@ class RunView(WindowView):
                                                 cap_style=gtk.gdk.CAP_NOT_LAST,
                                                 join_style=gtk.gdk.JOIN_MITER)
 
+        self._copy_context.set_line_attributes(line_width=2,
+                                       line_style=gtk.gdk.LINE_SOLID,
+                                       cap_style=gtk.gdk.CAP_NOT_LAST,
+                                       join_style=gtk.gdk.JOIN_MITER)
+        
         self._legend_y = TOP_2
+        list_gw = []
+        list_spot = {}
         nbr_st = 0
         self._sat_x = 170
         for host in self._model.get_hosts_list():
-            if host.get_component() == 'st':
+            if host.get_component() == ST:
                 nbr_st += 1
-            if host.get_component() == 'gw':
-                nbr_st += 1
+                spot = host.get_spot_id()
+                if spot not in list_spot:
+                    list_host = [host]
+                    list_spot[spot] = list_host 
+                else:
+                    list_spot[spot].append(host)
+                    
+            if host.get_component() == GW:
                 self._sat_x = 30
+                gw = host.get_instance()
+                if gw not in list_gw:
+                    list_gw.append(gw)
 
-        if nbr_st > 1:
-            self._sat_x = COMPO_X  * nbr_st - 35
+        for instance in list_gw:
+            name = GW
+            if name+instance not in self._color_list:
+                color = self._colors[self._it_color]
+                self._color_list[name+instance] = color               
+                self._it_color += 1
+        
+        for instance in list_spot:
+            name = SPOT
+            if name+instance not in self._color_list:
+                color = self._colors[self._it_color]
+                self._color_list[name+instance] = color               
+                self._it_color += 1
 
-        nbr = 0
+
+        if nbr_st >= 1 or len(list_gw) >= 1 :
+            self._sat_x = COMPO_X  * nbr_st + COMPO_X * len(list_gw) - 35
+
+        nb_gw = 0
+        nbr = len(list_gw) - 1
         for host in self._model.get_hosts_list():
-            if host.get_component() == 'gw':
-                self.draw_gw(host, 30, TOP_2)
-            elif host.get_component() == 'sat':
+            if host.get_component() == GW:
+                self.draw_gw(host, 30 + nb_gw * 140, TOP_2)
+                nb_gw += 1
+            elif host.get_component() == SAT:
                 self.draw_sat(host, self._sat_x, TOP_1)
-            elif host.get_component() == 'st':
-                self.draw_st(host, 170 + nbr * 140, TOP_2)
+
+        for spot_id in list_spot:
+            nb_st = len(list_spot[spot_id])
+            self._copy_context.set_rgb_fg_color(gtk.gdk.color_parse(
+                self._color_list["spot"+spot_id]))
+            self._drawing_area.window.draw_arc(self._copy_context, False, 
+                                               140 + nbr * 145 , TOP_2 - 45, 
+                                               nb_st * 140, TOP_2 - 15, 
+                                               0, 360*64)
+            
+            self._stylepango.set_text('SPOT'+ str(spot_id) )
+            x = 110 +  nbr * 145 + ( nb_st * 140 ) / 2
+            self._drawing_area.window.draw_layout(self._copy_context,
+                                                  x, TOP_2 - 25 , 
+                                                  self._stylepango)
+
+            for st in list_spot[spot_id]:
+                self.draw_st(st, 170 + nbr * 145, TOP_2)
                 nbr += 1
 
         self._info_x = 170 + (nbr + 1) * 140
@@ -141,7 +199,7 @@ class RunView(WindowView):
             self._model.is_collector_functional())
 
         self._log_view.update(self._model.get_hosts_list())
-
+        
         return False
 
     def draw_collector_state(self, collector_known, collector_funct):
@@ -177,20 +235,21 @@ class RunView(WindowView):
             png = os.path.join(IMG_PATH, 'st_grey.png')
         image.set_from_file(png)
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
-        self._stylepango.set_text('ST ' + str(host.get_instance()))
+        self._stylepango.set_text("ST" + str(host.get_instance()))
         self.draw_layout(x + 10, y + COMPO_Y)
         self.draw_state(host.get_state(), host.get_init_status(), x, y)
         self.draw_tools(host, x + COMPO_X + 4, y)
 
         # get satellite
-        sat = self._model.get_host('sat')
-
+        sat = self._model.get_host(SAT)
         if host.get_state():
             if sat is not None and sat.get_state():
                 self.draw_line(self._sat_x + int(COMPO_X/2),
                                TOP_1 + COMPO_Y + 20,
-                               x + int(COMPO_X/2), y - 10)
-            self.draw_line(x + int(COMPO_X/2),
+                               x + int(COMPO_X/2), y - 10,
+                               self._color_list["gw"+host.get_gw_id()])
+                
+            self.draw_line(x + int(COMPO_X/2),  
                            y + COMPO_Y + 20,
                            x + int(COMPO_X/2),
                            TOP_3 - 10)
@@ -235,20 +294,21 @@ class RunView(WindowView):
             png = os.path.join(IMG_PATH, 'gw_grey.png')
         image.set_from_file(png)
         self.draw_pixbuf(0, 0, x, y, COMPO_X, COMPO_Y, image)
-        self._stylepango.set_text('Gateway (GW)')
+        self._stylepango.set_text('GW'+ str(host.get_instance()) )
         self.draw_layout(x + 10, y + COMPO_Y)
         self.draw_state(host.get_state(), host.get_init_status(), x, y)
 
         self.draw_tools(host, x + COMPO_X + 4, y)
 
         # get satellite
-        sat = self._model.get_host('sat')
+        sat = self._model.get_host(SAT)
 
         if host.get_state() and \
            sat is not None and sat.get_state():
             self.draw_line(self._sat_x + int(COMPO_X/2),
                            TOP_1 + COMPO_Y + 20,
-                           x + int(COMPO_X/2), y - 10)
+                           x + int(COMPO_X/2), y - 10,
+                           self._color_list["gw"+host.get_instance()])
 
         self.draw_ws(host, '0', x, y)
 
@@ -326,10 +386,14 @@ class RunView(WindowView):
         self.draw_pixbuf(0, 0, x - 9, y + 71, LED_XY, LED_XY, image)
         return
 
-    def draw_line(self, src_x, src_y, dst_x, dst_y):
+    def draw_line(self, src_x, src_y, dst_x, dst_y, color = None):
         """ draw a line on the drawing area """
-        self._drawing_area.window.draw_line(self._context_graph,
-                                            src_x, src_y, dst_x, dst_y)
+        if color is None:
+            cg = self._context_graph
+        else:
+            cg = self._copy_context
+            self._copy_context.set_rgb_fg_color(gtk.gdk.color_parse(color))
+        self._drawing_area.window.draw_line(cg, src_x, src_y, dst_x, dst_y)
 
 
     def draw_pixbuf(self, src_x, src_y, dst_x, dst_y, width, heigth, image):

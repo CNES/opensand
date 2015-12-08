@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -41,7 +41,8 @@ import shutil
 import ConfigParser
 
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, ST, GW
+
 from opensand_manager_core.my_exceptions import CommandException, ModelException
 from opensand_manager_core.controller.service_listener import OpenSandServiceListener
 from opensand_manager_core.controller.environment_plane import EnvironmentPlaneController
@@ -109,7 +110,15 @@ class Controller(threading.Thread):
             self._event_manager.wait(None)
             self._log.debug("event: " + self._event_manager.get_type())
             res = 'fail'
-            if self._event_manager.get_type() == 'deploy_platform':
+            if self._event_manager.get_type() == 'set_scenario':
+                self._model.load()
+                res = 'done'
+                self._event_manager_response.set('resp_set_scenario', res)
+            elif self._event_manager.get_type() == 'update_config':
+                self._model.update_config()
+                res = 'done'
+                self._event_manager_response.set('resp_update_config', res)
+            elif self._event_manager.get_type() == 'deploy_platform':
                 if self.deploy_platform():
                     res = 'done'
                 self._event_manager_response.set('resp_deploy_platform', res)
@@ -134,6 +143,7 @@ class Controller(threading.Thread):
                                   self._event_manager.get_type() + \
                                   "' received")
             self._event_manager.clear()
+            self._log.debug("event %s cleared" % (self._event_manager.get_type()))
 
     def close(self):
         """ close the controller """
@@ -177,14 +187,23 @@ class Controller(threading.Thread):
         try:
             self.update_deploy_config()
             for host in self._hosts + self._ws:
+                host_name = host.get_name().lower()
                 self._log.debug("Deploying " + host.get_name().upper())
-                if not host.get_name().lower() in self._deploy_config.sections():
-                    self._log.warning("No information for %s deployment, "
+                if not host_name  in self._deploy_config.sections():
+                    component = host_name
+                    if component.startswith(ST):
+                        component = ST
+                    if component.startswith(GW):
+                        component = GW
+                    host_name = component
+
+                    if not host_name in self._deploy_config.sections():
+                        self._log.warning("No information for %s deployment, "
                                       "host will be disabled" % host.get_name())
-                    host.disable()
-                    continue
+                        host.disable()
+                        continue
                 thread = threading.Thread(None, host.deploy, "Deploy%s" %
-                                          host.get_name(),
+                                          host_name,
                                           (self._deploy_config, errors), {})
                 thread.start()
                 threads.append(thread)
@@ -220,20 +239,24 @@ class Controller(threading.Thread):
             # first get global configuration files
             files = self._model.get_deploy_files()
             all_files = self._model.get_all_files()
+            self._log.debug("Deploy files from scenario %s" %
+                            self._model.get_scenario())
             for host in self._hosts + self._ws:
                 name = host.get_name()
                 # do a copy, not only reference
                 dep = list(files)
                 if host.first_deploy():
                     dep = all_files
-                dep += host.get_deploy_files(self._model.get_scenario())
+
+                dep += host.get_deploy_files()
                 if len(dep) > 0:
                     self._log.info("%s: deploy simulation files" % name)
+                else:
+                    continue
 
-                scenario = self._model.get_scenario()
                 thread = threading.Thread(None, host.deploy_modified_files,
                                           "DeployFiles%s" % name,
-                                          (dep, scenario, errors), {})
+                                          (dep, errors), {})
                 threads.append(thread)
                 thread.start()
         except CommandException, msg:
@@ -280,8 +303,11 @@ class Controller(threading.Thread):
             for host in self._hosts:
                 name = host.get_name()
                 component = name.lower()
-                if component.startswith('st'):
-                    component = 'st'
+                if component.startswith(ST):
+                    component = ST
+                if component.startswith(GW):
+                    component = GW
+
                 
                 self._log.debug("Configuring " + host.get_name().upper())
                 # create the host directory

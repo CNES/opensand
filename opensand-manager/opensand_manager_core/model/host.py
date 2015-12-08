@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -40,6 +40,7 @@ from opensand_manager_core.model.tool import ToolModel
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.module import load_modules
+from opensand_manager_core.utils import GW, WS, ST, SAT
 
 class InitStatus:
     """ status of host initialization """
@@ -53,14 +54,18 @@ class HostModel:
     """ host model """
     def __init__(self, name, instance, network_config, state_port,
                  command_port, tools, modules, scenario, manager_log,
-                 collector_functional):
+                 collector_functional, spot_id = "", gw_id = ""):
         self._log = manager_log
         self._name = name
         self._instance = instance
-        if self._name.startswith('st'):
-            self._component = 'st'
-        elif self._name.startswith('ws'):
-            self._component = 'ws'
+        self._gw_id = gw_id
+        self._spot_id = spot_id
+        if self._name.startswith(ST):
+            self._component = ST
+        elif self._name.startswith(WS):
+            self._component = WS
+        elif self._name.startswith(GW):
+            self._component = GW
         else:
             self._component = self._name
 
@@ -75,7 +80,7 @@ class HostModel:
         self._init_status = InitStatus.NONE
         self._collector_functional = collector_functional
 
-        if self._component != 'ws':
+        if self._component != WS:
             try:
                 self._advanced = AdvancedHostModel(self._name, scenario)
             except ModelException, error:
@@ -162,50 +167,50 @@ class HostModel:
         """ get the missing modules """
         return self._missing_modules
 
-    def update_files(self, changed, scenario):
+    def update_files(self, changed):
         """ update the source files according to user configuration """
         if self._advanced is not None:
-            self._advanced.get_files().update(changed, scenario)
+            self._advanced.get_files().update(changed)
         for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
-                files.update(changed, scenario)
+                files.update(changed)
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                files.update(changed, scenario)
+                files.update(changed)
         if len(changed) > 0:
             for filename in changed:
                 self._log.warning("%s: the file %s has not been updated" %
                                   (self._name.upper(), filename))
 
-    def get_deploy_files(self, scenario):
+    def get_deploy_files(self):
         """ get the files to deploy (modified files) """
         deploy_files = []
         if self._advanced is not None:
-            deploy_files += self._advanced.get_files().get_modified(scenario)
+            deploy_files += self._advanced.get_files().get_modified()
         for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
-                deploy_files += files.get_modified(scenario)
+                deploy_files += files.get_modified()
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                deploy_files += files.get_modified(scenario)
+                deploy_files += files.get_modified()
         return deploy_files
 
-    def set_deployed(self, scenario):
+    def set_deployed(self):
         """ the files were correctly deployed """
         if self._advanced is not None:
-            self._advanced.get_files().set_modified(scenario)
+            self._advanced.get_files().set_modified()
         for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
-                files.set_modified(scenario)
+                files.set_modified()
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                files.set_modified(scenario)
+                files.set_modified()
 
     def first_deploy(self):
         """ check if this is the first deploy """
@@ -374,6 +379,10 @@ class HostModel:
         """ the collector responds to manager registration """
         self._collector_functional = status
 
+    def is_collector_functional(self):
+        """ does the collector responds to manager registration """
+        return self._collector_functional
+
     def set_lan_adaptation(self, stack):
         """ set the lan_adaptation_schemes values """
         lan_adapt = stack
@@ -382,7 +391,7 @@ class HostModel:
 
     def get_interface_type(self):
         """ get the type of interface according to the stack """
-        if self._component not in ['sat', 'ws']:
+        if self._component not in [SAT, WS]:
             lan_adapt = self._advanced.get_stack('lan_adaptation_schemes',
                                                  'proto')
             try:
@@ -393,3 +402,14 @@ class HostModel:
                 raise ModelException("cannot find first Lan Adaptation scheme")
         return ''
 
+    def get_gw_id(self):
+        return self._gw_id
+
+    def set_gw_id(self, gw_id):
+        self._gw_id = gw_id
+    
+    def get_spot_id(self):
+        return self._spot_id
+    
+    def set_spot_id(self, spot_id):
+        self._spot_id = spot_id

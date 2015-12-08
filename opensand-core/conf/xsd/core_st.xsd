@@ -90,7 +90,7 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- TODO try to put that in common and onlly define access_type here and in gw -->
+<!-- TODO try to put that in common and only define access_type here and in gw -->
 <xsd:element name="fifo">
     <xsd:complexType>
         <xsd:attribute name="priority" type="classId">
@@ -118,7 +118,7 @@
         <xsd:attribute name="access_type" type="returnAccessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of access
+                    The type of access (ignored for SCPC)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -141,6 +141,7 @@
             <xsd:element ref="global" />
             <xsd:element ref="dvb_rcs_tal" />
             <xsd:element ref="slotted_aloha" />
+            <xsd:element ref="scpc" />
             <xsd:element ref="uplink_physical_layer" />
             <xsd:element ref="downlink_physical_layer" />
             <xsd:element ref="qos_agent" />
@@ -239,6 +240,14 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="is_scpc" type="xsd:boolean">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Whether the terminal is scpc
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+
             <xsd:element ref="layer2_fifos">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -320,6 +329,32 @@
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
+
+<!-- SCPC section description -->
+<!-- TODO: Restriction for showing or not the SCPC parameters in the Terminal -->
+<xsd:element name="scpc">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>The SCPC parameters for STs</b>
+            ]]>
+            <xpath dvb_rcs_tal.is_scpc="true" />
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="scpc_carrier_duration" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The carrier duration of SCPC mode (in ms)
+                        <unit>ms</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
 
 <!-- qos_agent section description -->
 <xsd:element name="qos_agent">

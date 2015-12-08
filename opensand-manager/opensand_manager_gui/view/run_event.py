@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -42,6 +42,7 @@ import shutil
 from opensand_manager_core.my_exceptions import RunException
 from opensand_manager_gui.view.run_view import RunView
 from opensand_manager_gui.view.popup.edit_deploy_dialog import EditDeployDialog
+from opensand_manager_gui.view.popup.spot_gw_assignment import SpotGwAssignmentDialog
 from opensand_manager_gui.view.popup.infos import yes_no_popup
 
 class RunEvent(RunView):
@@ -72,7 +73,6 @@ class RunEvent(RunView):
                              priority=gobject.PRIORITY_HIGH_IDLE+20)
 
 
-
     def close(self):
         """ 'close' signal handler """
         self._log.debug("Run Event: closed")
@@ -93,6 +93,9 @@ class RunEvent(RunView):
         # 'resp_deploy_platform' event, the button will be enabled
         # there)
         self._event_manager.set('deploy_platform')
+
+    def on_start_stop_activate(self, source=None, event=None):
+        self.on_start_opensand_button_clicked(source, event)
 
     def on_start_opensand_button_clicked(self, source=None, event=None):
         """ 'clicked' event on start OpenSAND button """
@@ -199,4 +202,12 @@ class RunEvent(RunView):
         label.set_markup(action)
         widget = self._ui.get_widget('spinbox')
         widget.show_all()
+
+
+    def on_add_spot_gw_assignement_clicked(self, source=None, event=None):
+        """ 'clicked' event on add spot button """
+        window = SpotGwAssignmentDialog(self._model, self._log)
+        window.go()
+        self._event_manager.set('deploy_files')
+        
 

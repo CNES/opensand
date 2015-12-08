@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -70,8 +70,9 @@ class PingTest():
 
         # wait 10 seconds more because for ethernet tests we wait for bridge to be
         # ready        
+        #TODO: increase time sleep for eth
         if test_name.find("eth") >= 0:
-            time.sleep(11)
+            time.sleep(20)
         else:
             time.sleep(1)
 

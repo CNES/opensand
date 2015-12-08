@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -230,7 +230,7 @@ bool Ule::Context::encapUle(NetPacket *packet,
 	Data payload;
 	std::list<UleExt *>::iterator it;
 	// keep the destination spot
-	uint16_t dest_spot = packet->getDstSpot();
+	uint16_t dest_spot = packet->getSpot();
 
 	LOG(this->log, LEVEL_INFO,
 	    "encapsulate a %zu-byte packet of type 0x%04x\n",
@@ -284,7 +284,7 @@ bool Ule::Context::encapUle(NetPacket *packet,
 	ule_packet->setQos(packet->getQos());
 
 	// set the destination spot ID
-	ule_packet->setDstSpot(dest_spot);
+	ule_packet->setSpot(dest_spot);
 	// add ULE packet to burst
 	ule_packets->add(ule_packet);
 
@@ -306,7 +306,7 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 	uint16_t ptype;
 	Data payload;
 	// keep the destination spot
-	uint16_t dest_spot = packet->getDstSpot();
+	uint16_t dest_spot = packet->getSpot();
 
 	// packet must be an ULE packet
 	if(packet->getType() != NET_PROTO_ULE)
@@ -423,7 +423,7 @@ bool Ule::Context::deencapUle(NetPacket *packet, NetBurst *net_packets)
 	}
 
 	// set the destination spot ID
-	net_packet->setDstSpot(dest_spot);
+	net_packet->setSpot(dest_spot);
 	// add network packet to burst
 	net_packets->add(net_packet);
 

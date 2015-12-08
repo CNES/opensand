@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
-# Copyright © 2014 CNES
+# Copyright © 2015 TAS
+# Copyright © 2015 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -45,6 +45,109 @@ COL_YELLOW="\033[33m"
 COL_BLUE="\033[34m"
 COL_BOLD="\033[1m"
 COL_END="\033[0m"
+
+MAX_DATA_LENGTH = 8192
+NB_MAX_TAL = 31
+
+# Host
+GW  = "gw"
+ST  = "st"
+SAT = "sat"
+WS  = "ws"
+
+# Common
+GLOBAL      = "global"
+TOPOLOGY    = "topology"
+COMMON      = "common"
+SPOT        = "spot"
+ID          = "id"
+TAL_ID      = "tal_id"
+CATEGORY    = "category"
+
+# Band
+RCS               = "rcs"
+S2                = "s2"
+FORWARD_DOWN      = "forward_down"
+RETURN_UP         = "return_up"
+FMT_GROUPS        = "fmt_groups"
+CARRIERS_DISTRIB  = "carriers_distribution"
+TAL_AFFECTATIONS  = "tal_affectations"
+TAL_DEF_AFF       = "tal_default_affectation"
+BANDWIDTH         = "bandwidth"
+ROLL_OFF          = "roll_off"
+FMT_ID            = "fmt_id"
+FMT_GROUP         = "fmt_group"
+SYMBOL_RATE       = "symbol_rate"
+RATIO             = "ratio"
+ACCESS_TYPE       = "access_type"
+CCM               = "CCM"
+ACM               = "ACM"
+VCM               = "VCM"
+DAMA              = "DAMA"
+ALOHA             = "ALOHA"
+SCPC              = "SCPC"
+
+# Section
+RETURN_UP_BAND    = "return_up_band"
+FORWARD_DOWN_BAND = "forward_down_band"
+PHYSICAL_LAYER    = "physical_layer"
+
+GSE      = "GSE"
+AAL5_ATM = "AAL5/ATM"
+
+# Topology
+CARRIERS      = "carriers"
+TERMINALS     = "terminals"
+CARRIER_TYPE  = "type"
+DATA_OUT_GW   = "data_out_gw"
+DATA_IN_GW    = "data_in_gw"
+DATA_OUT_ST   = "data_out_st"
+DATA_IN_ST    = "data_in_st"
+LOGON_IN      = "logon_in"
+LOGON_OUT     = "logon_out"
+CTRL_IN       = "ctrl_in"
+CTRL_OUT      = "ctrl_out"
+IP_MULTICAST  = "ip_multicast"
+IP_ADDRESS    = "ip_address"
+TERMINAL_V4   = "terminal_v4"
+TERMINAL_V6   = "terminal_v6"
+TERMINAL_ETH  = "terminal_eth"
+LAN_IPV4      = "lan_ipv4"
+LAN_IPV6      = "lan_ipv6"
+
+# Path
+PATH_BAND     = "_band/"
+PATH_IPV4     = "/configuration/sarp/ipv4"
+PATH_IPV6     = "/configuration/sarp/ipv6"
+PATH_ETERNET  = "/configuration/sarp/ethernet"
+PATH_TERM_V4  = "/configuration/sarp/ipv4/terminal_v4"
+PATH_TERM_V6  = "/configuration/sarp/ipv4/terminal_v6"
+PATH_TERM_ETH = "/configuration/sarp/ipv4/terminal_eth"
+PATH_DEFAULT_SPOT = "/configuration/spot_table/default_spot"
+PATH_SPOT = "/configuration/spot_table"
+PATH_DEFAULT_GW = "/configuration/gw_table/default_gw"
+PATH_GW = "/configuration/gw_table"
+
+def get_conf_xpath(element, link = '', spot_id = 0, gw_id = 1):
+    path = ""
+    spot = "spot/"
+    if spot_id != 0:
+        spot = "spot[@id='" + str(spot_id) + "']/"
+        if gw_id != 1:
+            spot = "spot[@id='" + str(spot_id) + "'and@gw='" + gw_id + "']/"
+    
+    if element == FMT_GROUPS or\
+       element == CARRIERS_DISTRIB or\
+       element == TAL_AFFECTATIONS or\
+       element == TAL_DEF_AFF or\
+       element == BANDWIDTH:
+        path = '//' + link + PATH_BAND + spot + element
+    else:
+        if link == FORWARD_DOWN or link == RETURN_UP:
+            path = '//' + link + PATH_BAND + element
+        else:
+            path = '//' + link + '/' + element
+    return path
 
 
 def _bold(msg):

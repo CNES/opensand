@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -47,6 +47,7 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 
+#include <OpenSandCore.h>
 
 
 class UdpStack;
@@ -59,7 +60,8 @@ class sat_carrier_udp_channel
 {
  public:
 
-	sat_carrier_udp_channel(unsigned int channelID,
+	sat_carrier_udp_channel(spot_id_t s_id,
+	                        unsigned int channel_id,
 	                        bool input, bool output,
 	                        const string local_interface_name,
 	                        unsigned short port,
@@ -94,6 +96,8 @@ class sat_carrier_udp_channel
 	int getIfIndex(const char *name);
 
 	int getChannelFd();
+	
+	spot_id_t getSpotId();
 
 	/**
 	 * @brief Get the next stacked packet
@@ -117,8 +121,11 @@ class sat_carrier_udp_channel
 
  protected:
 
+	/// the spot id
+	spot_id_t spot_id;
+
 	/// the ID of the channel
-	int m_channelID;
+	int m_channel_id;
 
 	/// if channel accept input
 	bool m_input;

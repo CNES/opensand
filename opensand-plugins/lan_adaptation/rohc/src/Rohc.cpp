@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -117,6 +117,7 @@ void Rohc::Context::init()
 	rohc_cid_type_t cid_type = ROHC_SMALL_CID;
 	bool status;
 	ConfigurationFile config;
+	map<string, ConfigurationList> config_section_map;
 
 	if(config.loadConfig(CONF_ROHC_FILE) < 0)
 	{
@@ -125,8 +126,11 @@ void Rohc::Context::init()
 		    CONF_ROHC_FILE);
 		goto error;
 	}
+	
+	config.loadSectionMap(config_section_map);
+
 	// Retrieving the QoS number
-	if(!config.getValue(ROHC_SECTION, MAX_CID, max_cid))
+	if(!config.getValue(config_section_map[ROHC_SECTION], MAX_CID, max_cid))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "missing %s parameter\n", MAX_CID);
@@ -435,7 +439,7 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
 	struct rohc_buf packet_buffer;
 	struct rohc_buf rohc_buffer;
 	// keep the destination spot
-	uint16_t dest_spot = packet->getDstSpot();
+	uint16_t dest_spot = packet->getSpot();
 	int ret;
 
 	LOG(this->log, LEVEL_INFO,
@@ -494,7 +498,7 @@ bool Rohc::Context::compressRohc(NetPacket *packet,
 	rohc_packet->setQos(packet->getQos());
 
 	// set the destination spot ID
-	rohc_packet->setDstSpot(dest_spot);
+	rohc_packet->setSpot(dest_spot);
 	// set OUT parameter with compressed packet
 	*comp_packet = rohc_packet;
 
@@ -517,7 +521,7 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	unsigned char ip_data[MAX_ROHC_SIZE];
 	Data ip_packet;
 	// keep the destination spot
-	uint16_t dest_spot = packet->getDstSpot();
+	uint16_t dest_spot = packet->getSpot();
 	int ret;
 	struct rohc_buf packet_buffer;
 	struct rohc_buf rohc_buffer;
@@ -560,7 +564,7 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	}
 
 	// set the destination spot ID
-	net_packet->setDstSpot(dest_spot);
+	net_packet->setSpot(dest_spot);
 	// set OUT parameter with decompressed packet
 	*dec_packet = net_packet;
 

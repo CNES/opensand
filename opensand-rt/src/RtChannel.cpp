@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
+ * Copyright © 2015 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -196,7 +196,31 @@ int32_t RtChannel::addTimerEvent(const string &name,
 	                                   priority);
 	if(!event)
 	{
+		DFLTLOG(LEVEL_ERROR, "je suis la, %s\n", name.c_str());
 		this->reportError(true, "cannot create timer event\n");
+		return -1;
+	}
+	if(!this->addEvent((RtEvent *)event))
+	{
+		DFLTLOG(LEVEL_ERROR, "je suis la, %s\n", name.c_str());
+		return -1;
+	}
+
+	return event->getFd();
+}
+
+int32_t RtChannel::addTcpListenEvent(const string &name,
+                                     int32_t fd,
+                                     size_t max_size,
+                                     uint8_t priority)
+{
+	TcpListenEvent *event = new TcpListenEvent(name,
+	                                           fd,
+	                                           max_size,
+	                                           priority);
+	if(!event)
+	{
+		this->reportError(true, "cannot create file event\n");
 		return -1;
 	}
 	if(!this->addEvent((RtEvent *)event))
@@ -331,7 +355,6 @@ bool RtChannel::addEvent(RtEvent *event)
 
 void RtChannel::updateEvents(void)
 {
-
 	// add new events
 	for(list<RtEvent *>::iterator iter = this->new_events.begin();
 		iter != this->new_events.end(); ++iter)
@@ -444,11 +467,26 @@ bool RtChannel::startTimer(event_id_t id)
 	return true;
 }
 
+bool RtChannel::setDuration(event_id_t id, double new_duration)
+{
+	TimerEvent *event = this->getTimer(id);
+	if(!event)
+	{
+		this->reportError(false, "cannot find timer: should not happend here\n");
+		return false;
+	}
+
+	event->setDuration(new_duration);
+
+	return true;
+}
+
 bool RtChannel::raiseTimer(event_id_t id)
 {
 	TimerEvent *event = this->getTimer(id);
 	if(!event)
 	{
+		DFLTLOG(LEVEL_ERROR, "je suis la\n");
 		this->reportError(false, "cannot find timer: should not happend here\n");
 		return false;
 	}
@@ -477,14 +515,6 @@ void *RtChannel::startThread(void *pthis)
 	((RtChannel *)pthis)->executeThread();
 
 	return NULL;
-}
-
-
-clock_t RtChannel::getCurrentTime(void)
-{
-	timeval current;
-	gettimeofday(&current, NULL);
-	return current.tv_sec * 1000 + current.tv_usec / 1000;
 }
 
 

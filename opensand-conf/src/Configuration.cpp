@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
+ * Copyright © 2015 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -37,6 +37,7 @@
 
 
 ConfigurationFile Conf::global_config;
+map <string, ConfigurationList> Conf::section_map;
 
 Conf::Conf()
 {
@@ -44,17 +45,34 @@ Conf::Conf()
 
 Conf::~Conf()
 {
+	section_map.clear();
 	global_config.unloadConfig();
 }
 
 bool Conf::loadConfig(const string conf_file)
 {
-	return global_config.loadConfig(conf_file);
+	if(!global_config.loadConfig(conf_file))
+	{
+		return false;
+	}
+	else
+	{
+		loadMap();
+		return true;
+	}
 }
 
 bool Conf::loadConfig(const vector<string> conf_files)
 {
-	return global_config.loadConfig(conf_files);
+	if(!global_config.loadConfig(conf_files))
+	{
+		return false;
+	}
+	else
+	{
+		loadMap();
+		return true;
+	}
 }
 
 bool Conf::getComponent(string &compo)
@@ -62,24 +80,36 @@ bool Conf::getComponent(string &compo)
 	return global_config.getComponent(compo);
 }
 
+bool Conf::getListNode(ConfigurationList sectionList,
+                       const char *key,
+                       xmlpp::Node::NodeList &nodeList)
+{
+	return global_config.getListNode(sectionList, key, nodeList);
+}
 
-bool Conf::getNbListItems(const char *section,
+
+bool Conf::getNbListItems(ConfigurationList section,
                           const char *key,
                           int &nbr)
 {
 	return global_config.getNbListItems(section, key, nbr);
 }
 
-bool Conf::getNbListItems(const char *section,
+bool Conf::getNbListItems(ConfigurationList section,
                           const char *key,
                           unsigned int &nbr)
 {
 	return global_config.getNbListItems(section, key, (int &)nbr);
 }
 
+bool Conf::getListItems(xmlpp::Node *node,
+                        const char *key,
+                        ConfigurationList &list)
+{
+	return global_config.getListItems(node, key, list);
+}
 
-
-bool Conf::getListItems(const char *section,
+bool Conf::getListItems(ConfigurationList section,
                         const char *key,
                         ConfigurationList &list)
 {
@@ -90,5 +120,10 @@ bool Conf::loadLevels(map<string, log_level_t> &levels,
                       map<string, log_level_t> &specific)
 {
 	return global_config.loadLevels(levels, specific);
+}
+
+void Conf::loadMap(void)
+{
+	global_config.loadSectionMap(Conf::section_map);
 }
 

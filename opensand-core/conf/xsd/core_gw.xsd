@@ -219,6 +219,7 @@
             <xsd:element ref="dvb_rcs_ncc" />
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="qos_pep" />
+            <xsd:element ref="svno_interface" />
             <xsd:element ref="uplink_physical_layer" />
             <xsd:element ref="downlink_physical_layer" />
             <xsd:element ref="debug" />
@@ -279,55 +280,54 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="cra_decrease" type="xsd:boolean">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        indicates if CRA has to be removed from
-                        the RBDC value  of the capacity requests
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="simulation" type="simuType">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        Activate simulation requests
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="simu_file" type="file">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        If simulation = file: use a file name or stdin
-                        <default>request_simu/dama.input</default>
-                        <source>dama.input</source>
-                        <xpath simulation="file"/>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="simu_random" type="simuRandom">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        If simulation = random:
-                        nb_station (numbered > 31):RT bandwidth(Kb/s):max RBDC(kb/s):max VBDC(kb)mean requests(Kb/s):amplitude request(Kb/s)
-                        <xpath simulation="random"/>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="event_file" type="xsd:string">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        Do we generate an event history ? (same format as
-                        simu_file, can be used for replaying a case study)
-                        Possible values are a file name, stdout, stderr or none
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="layer2_fifos">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The MAC fifos
-                    </xsd:documentation>
-                </xsd:annotation>
+            <xsd:element name="spot" minOccurs="1" maxOccurs="32">
+                <xsd:complexType> 
+                    <xsd:sequence>
+                        <xsd:element name="simulation" type="simuType">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    Activate simulation requests
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="simu_file" type="file">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    If simulation = file: use a file name or stdin
+                                    <default>request_simu/dama.input</default>
+                                    <source>dama.input</source>
+                                    <xpath spot.simulation="file"/>
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="simu_random" type="simuRandom">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    If simulation = random:
+                                    nb_station (numbered > 31):RT bandwidth(Kb/s):max RBDC(kb/s):max VBDC(kb)mean requests(Kb/s):amplitude request(Kb/s)
+                                    <xpath spot.simulation="random"/>
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="event_file" type="xsd:string">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    Do we generate an event history ? (same format as
+                                    simu_file, can be used for replaying a case study)
+                                    Possible values are a file name, stdout, stderr or none
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element ref="layer2_fifos">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The MAC fifos
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                    <xsd:attribute name="id"/>
+                </xsd:complexType>
             </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
@@ -344,19 +344,26 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="algorithm" type="sa_algo">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The algorithm used to handle collisions on slots
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="simulation_traffic">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        Add Slotted Aloha simulated traffic in categories
-                    </xsd:documentation>
-                </xsd:annotation>
+            <xsd:element name="spot" minOccurs="1" maxOccurs="32">
+                <xsd:complexType> 
+                    <xsd:sequence>
+                        <xsd:element name="algorithm" type="sa_algo">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The algorithm used to handle collisions on slots
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element ref="simulation_traffic">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    Add Slotted Aloha simulated traffic in categories
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                    <xsd:attribute name="id"/>
+                </xsd:complexType>
             </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
@@ -377,7 +384,7 @@
             <xsd:element name="pep_to_dama_port" type="port">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        communication port on DAMA for QoS PEP messages
+                        Communication port on DAMA for QoS PEP messages
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -387,6 +394,29 @@
                         Delay to apply anticipation RBDC allocations from
                         QoS PEP/ARC (ms)
                         <unit>ms</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- svno_interface section description -->
+<xsd:element name="svno_interface">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>\tThe parameters for the SVNO interface</b>
+            ]]>
+            <hide>true</hide>
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="svno_to_ncc_port" type="port">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Communication port on NCC for SVNO messages
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

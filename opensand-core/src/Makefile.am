@@ -1,6 +1,7 @@
 SUBDIRS= \
 	common \
-	dvb_rcs \
+	conf \
+	dvb \
 	lan_adaptation \
 	sat_carrier \
 	encap \

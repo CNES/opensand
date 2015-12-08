@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -87,6 +87,8 @@
 #define NET_PROTO_802_1AD 0x9100
 // ARP ethertype
 #define NET_PROTO_ARP     ETH_P_ARP
+// CNI extension for GSE
+#define NET_PROTO_GSE_EXTENSION_CNI 0x00FF
 
 
 // TODO we may add an option to enable jumbo frames
@@ -125,8 +127,6 @@ class NetPacket: public NetContainer
 	uint8_t src_tal_id;
 	/// The packet destination TalID
 	uint8_t dst_tal_id;
-	/// The destination spot ID
-	uint8_t dst_spot;
 
  public:
 #if 0
@@ -157,6 +157,12 @@ class NetPacket: public NetContainer
 	 * @param length length of raw data
 	 */
 	NetPacket(const Data &data, size_t length);
+
+	/**
+	 * Build a network-layer packet
+	 * @param pkt
+	 */
+	NetPacket(NetPacket *pkt);
 
 	/**
 	 * Build an empty network-layer packet
@@ -237,20 +243,6 @@ class NetPacket: public NetContainer
 	 * @return the type of network protocol
 	 */
 	uint16_t getType() const;
-
-	/**
-	 * Set the destination spot ID
-	 *
-	 * @param spot_id  The destination spot id
-	 */
-	void setDstSpot(uint8_t spot_id);
-
-	/**
-	 * Get the destination spot ID
-	 *
-	 * @return the destination spot ID
-	 */
-	uint8_t getDstSpot() const;
 
 };
 

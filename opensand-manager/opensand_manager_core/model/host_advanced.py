@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -38,7 +38,7 @@ import os
 import shutil
 
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, GW, ST
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
@@ -54,12 +54,15 @@ class AdvancedHostModel:
         self._enabled = True
         self._files = None
         self._name = name
+        self._scenario = scenario
 
-        self.load(scenario)
+        self.load(self._scenario)
+        self.update_conf()
 
     def load(self, scenario):
         """ load the advanced configuration """
         # create the host configuration directory
+        self._scenario = scenario
         conf_path = os.path.join(scenario, self._name)
         if not os.path.isdir(conf_path):
             try:
@@ -69,8 +72,10 @@ class AdvancedHostModel:
                                      (conf_path, strerror))
 
         self._conf_file = os.path.join(conf_path, 'core.conf')
-        if self._name.startswith('st'):
-            component = 'st'
+        if self._name.startswith(ST):
+            component = ST
+        elif self._name.startswith(GW):
+            component = GW
         else:
             component = self._name
         # copy the configuration template in the destination directory
@@ -102,6 +107,7 @@ class AdvancedHostModel:
 
     def reload_conf(self, scenario):
         """ reload the configuration file """
+        self._scenario = scenario
         self._config_view = None
         try:
             self._configuration = XmlParser(self._conf_file, self._xsd)
@@ -111,6 +117,9 @@ class AdvancedHostModel:
         except XmlException, msg:
             raise ModelException("failed to parse configuration %s"
                                  % msg)
+
+    def get_name(self):
+        return self._name
 
     def get_configuration(self):
         """ get the configuration parser """
@@ -203,4 +212,37 @@ class AdvancedHostModel:
         """ get the debug configuration """
         return self._configuration.get("//debug")
 
+
+    def update_conf(self, spot_id="", gw_id=""):
+        """ update the spot and/or gw content when
+            adding a new spot and/or gw and the lines in files """
+        # get elements of type file
+        nodes = self._configuration.get_file_elements("element")
+        for node in nodes:
+            elems = self._configuration.get_all("//%s" % node)
+            for elem in elems:
+                path = self._configuration.get_path(elem)
+                filename = self._configuration.get_value(elem)
+                filename = self._configuration.adapt_filename(filename, elem)
+                self._configuration.set_value(filename, path)
+
+        # get attributes of type file
+        nodes = self._configuration.get_file_elements("attribute")
+        for node in nodes:
+            elems = self._configuration.get_all("//*[@%s]" % node)
+            for elem in elems:
+                filenames = self._configuration.get_element_content(elem)
+                filename = filenames[node]
+                path = self._configuration.get_path(elem)
+                # get line ID in path
+                pos = path.rfind('[')
+                line = path[pos:].strip('[]')
+                filename = self._configuration.adapt_filename(filename, elem, line)
+                self._configuration.set_value(filename, path, node)
+
+        try:
+            self._configuration.write()
+            self._files.load(self._scenario, self._configuration)
+        except XmlException:
+            raise
 

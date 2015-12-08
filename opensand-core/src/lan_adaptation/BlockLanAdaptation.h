@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -43,8 +43,8 @@
 #include "NetPacket.h"
 #include "LanAdaptationPlugin.h"
 #include "OpenSandCore.h"
+#include "OpenSandConf.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_rt/Rt.h>
 #include <opensand_output/Output.h>
 
@@ -127,7 +127,7 @@ class BlockLanAdaptation: public Block
 		lan_contexts_t contexts;
 
 		/// The MAC layer group id received through msg_link_up
-		spot_id_t group_id;
+		group_id_t group_id;
 		/// The MAC layer MAC id received through msg_link_up
 		tal_id_t tal_id;
 
@@ -183,7 +183,7 @@ class BlockLanAdaptation: public Block
 		lan_contexts_t contexts;
 
 		/// The MAC layer group id received through msg_link_up
-		spot_id_t group_id;
+		group_id_t group_id;
 		/// The MAC layer MAC id received through msg_link_up
 		tal_id_t tal_id;
 

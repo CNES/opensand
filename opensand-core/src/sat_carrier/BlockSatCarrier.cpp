@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -113,6 +113,7 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 			unsigned char *buf = NULL;
 
 			unsigned int carrier_id;
+			spot_id_t spot_id;
 			int ret;
 
 			LOG(this->log_receive, LEVEL_DEBUG,
@@ -124,6 +125,7 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 			{
 				ret = this->in_channel_set.receive((NetSocketEvent *)event,
 				                                    carrier_id,
+				                                    spot_id,
 				                                    &buf, length);
 				if(ret < 0)
 				{
@@ -140,7 +142,8 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 
 					if(length > 0)
 					{
-						this->onReceivePktFromCarrier(carrier_id, buf, length);
+						this->onReceivePktFromCarrier(carrier_id, spot_id,  
+						                              buf, length);
 					}
 				}
 			} while(ret > 0);
@@ -149,7 +152,8 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
-			    "unknown event received %s", event->getName().c_str());
+			    "unknown event received %s\n", 
+			    event->getName().c_str());
 			return false;
 	}
 
@@ -195,7 +199,6 @@ bool BlockSatCarrier::Upward::onInit(void)
 			                        MSG_BBFRAME_SIZE_MAX);
 		}
 	}
-
 	return true;
 }
 
@@ -209,12 +212,12 @@ bool BlockSatCarrier::Downward::onInit()
 		    "Wrong channel set configuration\n");
 		return false;
 	}
-
 	return true;
 }
 
 
 void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
+                                                      spot_id_t spot_id,
                                                       unsigned char *data,
                                                       size_t length)
 {
@@ -222,7 +225,8 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
 	free(data);
 
 	dvb_frame->setCarrierId(carrier_id);
-
+	dvb_frame->setSpot(spot_id);
+	
 	if(!this->enqueueMessage((void **)(&dvb_frame)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
@@ -232,7 +236,7 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
 	}
 
 	LOG(this->log_receive, LEVEL_DEBUG,
-	    "Message from carrier %u sent to upper layer", carrier_id);
+	    "Message from carrier %u sent to upper layer\n", carrier_id);
 
 	return;
 

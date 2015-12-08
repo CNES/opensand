@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+##!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 #
@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -39,12 +39,12 @@ import os
 import shutil
 import hashlib
 
-from opensand_manager_core.utils import OPENSAND_PATH
+from opensand_manager_core.utils import OPENSAND_PATH, GLOBAL
 from opensand_manager_core.my_exceptions import ModelException
 
 def get_md5(filename):
     """ get the md5sum on a file """
-    with open(filename, 'r')  as filecontent:
+    with open(filename, 'r') as filecontent:
         md5 = hashlib.md5()
         md5.update(filecontent.read())
         return md5.digest()
@@ -76,6 +76,7 @@ class Files(object):
         # {sim file xpath: md5sum}
         self._md5 = {}
         self._first = True
+        self._scenario = scenario
 
         self.load(scenario)
         for xpath in self._file_sources:
@@ -85,9 +86,10 @@ class Files(object):
 
     def load(self, scenario, configuration=None):
         """ load the files for current scenario """
+        self._scenario = scenario
         if configuration is not None:
             self._configuration = configuration
-        if self._host_name != 'global':
+        if self._host_name != GLOBAL:
             scenario = os.path.join(scenario, self._host_name)
 
         # handle files elements
@@ -105,10 +107,11 @@ class Files(object):
             if not os.path.exists(abs_source):
                 shutil.copy(abs_default, abs_source)
 
-    def update(self, changed, scenario):
+    def update(self, changed):
         """ update changed files """
-        if self._host_name != 'global':
-            scenario = os.path.join(scenario, self._host_name)
+        scenario = self._scenario
+        if self._host_name != GLOBAL:
+            scenario = os.path.join(self._scenario, self._host_name)
 
         # copy the new file into the source
         copied = []
@@ -125,18 +128,26 @@ class Files(object):
         for xpath in copied:
             del changed[xpath]
 
-    def get_modified(self, scenario):
+    def get_modified(self):
         """
         get the tuples source, destination of the files that were modified
         """
-        if self._host_name != 'global':
-            scenario = os.path.join(scenario, self._host_name)
+        scenario = self._scenario
+        if self._host_name != GLOBAL:
+            scenario = os.path.join(self._scenario, self._host_name)
 
         deploy = []
         for xpath in self._file_sources:
+            if not xpath in self._md5:
+                self._md5[xpath] = 0
+                
             old_hash = self._md5[xpath]
-            new_hash = get_md5(os.path.join(scenario,
-                                            self._file_sources[xpath]))
+            try:
+                new_hash = get_md5(os.path.join(scenario,
+                                                self._file_sources[xpath]))
+            except IOError:
+                continue
+
             if old_hash != new_hash:
                 src = self._file_sources[xpath]
                 src = os.path.join(scenario, src)
@@ -146,12 +157,13 @@ class Files(object):
                 deploy.append((src, dest))
         return deploy
 
-    def get_all(self, scenario):
+    def get_all(self):
         """
         get all the tuples source, destination
         """
-        if self._host_name != 'global':
-            scenario = os.path.join(scenario, self._host_name)
+        scenario = self._scenario
+        if self._host_name != GLOBAL:
+            scenario = os.path.join(self._scenario, self._host_name)
 
         deploy = []
         for xpath in self._file_sources:
@@ -163,16 +175,21 @@ class Files(object):
             deploy.append((src, dest))
         return deploy
 
-    def set_modified(self, scenario):
+    def set_modified(self):
         """
         the files were modified, update the md5sums
         """
-        if self._host_name != 'global':
-            scenario = os.path.join(scenario, self._host_name)
+        scenario = self._scenario
+        if self._host_name != GLOBAL:
+            scenario = os.path.join(self._scenario, self._host_name)
 
         for xpath in self._file_sources:
-            self._md5[xpath]= get_md5(os.path.join(scenario,
-                                                   self._file_sources[xpath]))
+            try:
+                self._md5[xpath]= get_md5(os.path.join(scenario,
+                                                       self._file_sources[xpath]))
+            except IOError:
+                continue
+
         self._first = False
 
     def is_first(self):

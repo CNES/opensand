@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -65,6 +65,7 @@ class ProbeView(WindowView):
         self._clean_sel_button = self._ui.get_widget("clear_probes")
         self._conf_coll_button = self._ui.get_widget("conf_collection_button")
         self._save_fig_button = self._ui.get_widget("save_figure_button")
+        self._plot_type = self._ui.get_widget("plot_type")
 
         self._simu_running = False
         self._saved_data = None
@@ -77,6 +78,7 @@ class ProbeView(WindowView):
         self._conf_coll_dialog = ConfigCollectionDialog(model, manager_log,
                                                         self._probe_sel_controller)
         self._probe_display = ProbeDisplay(self._ui.get_widget("probe_vbox"))
+        self._plot_type.set_active(3)
 
     def simu_program_list_changed(self, programs):
         """ the program list changed during simulation """

@@ -11,43 +11,20 @@ Architecture: any
 Section: metapackages
 Depends: libopensand-conf (>= ${binary:Version}), libopensand-output (>= ${binary:Version}),
  libopensand-rt (>= ${binary:Version}), opensand-core-bin (>= ${binary:Version}),
- libopensand-plugin (>= ${binary:Version}), opensand-daemon (>= ${binary:Version})
+ libopensand-plugin (>= ${binary:Version}), opensand-daemon (>= ${binary:Version}),
+ libopensand-gse-encap-plugin (>= ${binary:Version})
 Description: Packages for OpenSAND, a satellite emulation platform.
  This metapackage is to ease the installation of OpenSAND daemon environnment.
 
-#Package: opensand-encap-plugins
-#Architecture: any
-#Section: metapackages
-#Depends: opensand, libopensand-gse-encap-plugin, libgse
-#Description: Packages containing encapsulation plugins for OpenSAND, a satellite emulation platform.
-# This metapackage is to ease the installation of OpenSAND encapsulation plugins.
 
-#Package: opensand-lan-adapt-plugins
-#Architecture: any
-#Section: metapackages
-#Depends: opensand, libopensand-rohc-lan-adapt-plugin, librohc
-#Description: Packages containing lan adaptation plugins for OpenSAND, a satellite emulation platform.
-# This metapackage is to ease the installation of OpenSAND encapsulation plugins.
- 
 Package: opensand-manager
 Architecture: any
 Section: metapackages
-Depends: opensand (>= ${binary:Version}), opensand-core-all (>= ${binary:Version}),
- opensand-manager-core (>= ${binary:Version}), opensand-manager-gui (>= ${binary:Version})
+Depends: libopensand-conf (>= ${binary:Version}), libopensand-output (>= ${binary:Version}),
+ libopensand-rt (>= ${binary:Version}), opensand-core-bin (>= ${binary:Version}),
+ opensand-core-all (>= ${binary:Version}), opensand-manager-core (>= ${binary:Version}), 
+ opensand-manager-gui (>= ${binary:Version}), libopensand-gse-encap-plugin-manager (>= ${binary:Version})
 Description: Packages for OpenSAND manager.
  This metapackage is to ease the installation of OpenSAND manager environment.
  
-#Package: opensand-manager-encap-plugins
-#Architecture: any
-#Section: metapackages
-#Depends: opensand-manager, opensand-encap-plugins, libopensand-gse-encap-plugin-manager
-#Description: Packages containing encapsulation plugins for the OpenSAND manager.
-# This metapackage is to ease the installation of OpenSAND encapsulation plugins on manager.
 
-#Package: opensand-manager-encap-plugins
-#Architecture: any
-#Section: metapackages
-#Depends: opensand-manager, opensand-lan-adapt-plugins, libopensand-rohc-lan-adapt-plugin-manager
-#Description: Packages containing encapsulation plugins for the OpenSAND manager.
-# This metapackage is to ease the installation of OpenSAND lan adaptation plugins on manager.
- 

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -143,11 +143,12 @@ bool BlockEncapSat::Downward::onInit()
 	vector <string> up_proto;
 
 	// get the number of encapsulation context to use for up link
-	if(!Conf::getNbListItems(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST,
+	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION], 
+		                     RETURN_UP_ENCAP_SCHEME_LIST,
 	                         encap_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n", GLOBAL_SECTION,
+		    "Section %s, %s missing\n", COMMON_SECTION,
 		    RETURN_UP_ENCAP_SCHEME_LIST);
 		goto error;
 	}
@@ -157,12 +158,14 @@ bool BlockEncapSat::Downward::onInit()
 		string encap_name;
 
 		// get all the encapsulation to use from lower to upper
-		if(!Conf::getValueInList(GLOBAL_SECTION, RETURN_UP_ENCAP_SCHEME_LIST,
-		                         POSITION, toString(i), ENCAP_NAME, encap_name))
+		if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
+			                     RETURN_UP_ENCAP_SCHEME_LIST,
+		                         POSITION, toString(i), 
+		                         ENCAP_NAME, encap_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, invalid value %d for parameter '%s'\n",
-			    GLOBAL_SECTION, i, POSITION);
+			    COMMON_SECTION, i, POSITION);
 			goto error;
 		}
 
@@ -170,11 +173,12 @@ bool BlockEncapSat::Downward::onInit()
 	}
 
 	// get the number of encapsulation context to use for forward link
-	if(!Conf::getNbListItems(GLOBAL_SECTION, FORWARD_DOWN_ENCAP_SCHEME_LIST,
+	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION], 
+		                     FORWARD_DOWN_ENCAP_SCHEME_LIST,
 	                         encap_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n", GLOBAL_SECTION,
+		    "Section %s, %s missing\n", COMMON_SECTION,
 		    RETURN_UP_ENCAP_SCHEME_LIST);
 		goto error;
 	}
@@ -189,12 +193,14 @@ bool BlockEncapSat::Downward::onInit()
 
 
 		// get all the encapsulation to use from lower to upper
-		if(!Conf::getValueInList(GLOBAL_SECTION, FORWARD_DOWN_ENCAP_SCHEME_LIST,
-		                         POSITION, toString(i), ENCAP_NAME, encap_name))
+		if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION], 
+			                     FORWARD_DOWN_ENCAP_SCHEME_LIST,
+		                         POSITION, toString(i), 
+		                         ENCAP_NAME, encap_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Section %s, invalid value %d for parameter '%s'\n",
-			    GLOBAL_SECTION, i, POSITION);
+			    COMMON_SECTION, i, POSITION);
 			goto error;
 		}
 

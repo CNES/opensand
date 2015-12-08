@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -40,7 +40,8 @@ NetContainer::NetContainer(const unsigned char *data, size_t length):
 	data(),
 	name("unknown"),
 	header_length(0),
-	trailer_length(0)
+	trailer_length(0),
+	spot(255)
 {
 	this->data.append(data, length);
 }
@@ -49,7 +50,8 @@ NetContainer::NetContainer(const Data &data, size_t length):
 	data(data, 0, length),
 	name("unknown"),
 	header_length(0),
-	trailer_length(0)
+	trailer_length(0),
+	spot(255)
 {
 }
 
@@ -57,7 +59,8 @@ NetContainer::NetContainer(const Data &data):
 	data(data),
 	name("unknown"),
 	header_length(0),
-	trailer_length(0)
+	trailer_length(0),
+	spot(255)
 {
 }
 
@@ -65,7 +68,8 @@ NetContainer::NetContainer():
 	data(),
 	name("unknown"),
 	header_length(0),
-	trailer_length(0)
+	trailer_length(0),
+	spot(255)
 {
 }
 
@@ -119,3 +123,14 @@ size_t NetContainer::getHeaderLength() const
 {
 	return this->header_length;
 }
+
+void NetContainer::setSpot(spot_id_t spot_id)
+{
+	this->spot = spot_id;
+}
+
+spot_id_t NetContainer::getSpot() const
+{
+	return this->spot;
+}
+

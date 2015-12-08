@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -212,7 +212,7 @@ class CommandServer(MyTcpHandler):
                 self.wfile.write("Goodbye\n")
                 CommandServer._shutdown()
             return False
-        else:
+        elif instruction != '':
             self.wfile.write(red("Wrong command\n"))
         return True
 

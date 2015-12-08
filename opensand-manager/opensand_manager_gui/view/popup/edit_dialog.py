@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -49,6 +49,7 @@ class EditDialog(WindowView):
         self._dlg = self._ui.get_widget('edit_dialog')
         self._dlg.set_title("Edit %s - OpenSAND Manager" % filename)
         self._dlg.set_keep_above(True)
+        self._dlg.set_modal(True)
         self._buff = gtk.TextBuffer()
         win = self._ui.get_widget('edit_text_win')
         # TODO SourceView here
@@ -66,7 +67,7 @@ class EditDialog(WindowView):
             self.close()
             return
         self._dlg.set_icon_name(gtk.STOCK_EDIT)
-        self._dlg.run()
+        return self._dlg.run()
 
     def close(self):
         """ close the window """
@@ -98,7 +99,7 @@ class EditDialog(WindowView):
             with open(self._path, 'w') as deploy:
                 deploy.write(content)
         except Exception, err:
-            error_popup("Error saving file:", str(err))
+            error_popup("Error saving filei:", str(err))
         self.close()
 
     def on_cancel_edit_clicked(self, source=None, event=None):

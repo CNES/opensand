@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -36,7 +36,6 @@
 
 #include "Triangular.h"
 
-#include <opensand_conf/ConfigurationFile.h>
 #include <opensand_conf/conf.h>
 
 #include <string>
@@ -72,10 +71,13 @@ bool Triangular::init(time_ms_t refresh_period_ms, string link)
 		goto error;
 	}
 
+	config.loadSectionMap(this->config_section_map);
+
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!config.getValueInList(TRIANGULAR_SECTION, TRIANGULAR_LIST,
-	                          LINK, link, PERIOD, this->period))
+	if(!config.getValueInList(this->config_section_map[TRIANGULAR_SECTION], 
+		                      TRIANGULAR_LIST, LINK, link, 
+		                      PERIOD, this->period))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Triangular attenuation %slink: cannot get %s",
@@ -83,8 +85,9 @@ bool Triangular::init(time_ms_t refresh_period_ms, string link)
 		goto error;
 	}
 
-	if(!config.getValueInList(TRIANGULAR_SECTION, TRIANGULAR_LIST,
-	                          LINK, link, SLOPE, this->slope))
+	if(!config.getValueInList(this->config_section_map[TRIANGULAR_SECTION], 
+		                      TRIANGULAR_LIST, LINK, link, 
+		                      SLOPE, this->slope))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Triangular attenuation %slink: cannot get %s",

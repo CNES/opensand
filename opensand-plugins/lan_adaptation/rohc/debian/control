@@ -1,11 +1,11 @@
 Source: opensand-rohc-lan-adapt-plugin
 Priority: optional
-Maintainer: Julien Bernard <jbernard@toulouse.viveris.com>
+Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
- libopensand-output-dev (>= 3.1.0),
+ libopensand-output-dev (>= 4.0.0),
  librohc-dev (>= 1.7.0),
- libopensand-conf-dev (>= 3.1.0),
- libopensand-plugin-dev (>= 3.1.0)
+ libopensand-conf-dev (>= 4.0.0),
+ libopensand-plugin-dev (>= 4.0.0)
 XS-Python-Version: >= 2.7
 Standards-Version: 3.8.3
 Section: libs

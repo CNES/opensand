@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -37,12 +37,15 @@
 #define BLOCK_ENCAP_H
 
 
-#include "OpenSandFrames.h"
 #include "NetPacket.h"
 #include "NetBurst.h"
 #include "StackPlugin.h"
 #include "EncapPlugin.h"
 #include "OpenSandCore.h"
+#include "LanAdaptationPlugin.h"
+#include "OpenSandFrames.h"
+
+
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
@@ -60,13 +63,19 @@ class BlockEncap: public Block
 	std::map<event_id_t, int> timers;
 
 	/// it is the MAC layer group id received through msg_link_up
-	long group_id;
+	group_id_t group_id;
 
 	/// it is the MAC layer MAC id received through msg_link_up
 	tal_id_t tal_id;
 
 	/// State of the satellite link
 	link_state_t state;
+	
+	/// the MAC ID of the ST (as specified in configuration)
+	int mac_id;
+
+	/// the satellite type (regenerative o transparent)
+	sat_type_t satellite_type;
 
 	/// the emission contexts list from lower to upper context
 	std::vector<EncapPlugin::EncapContext *> emission_ctx;
@@ -74,17 +83,24 @@ class BlockEncap: public Block
 	/// the reception contexts list from upper to lower context
 	std::vector<EncapPlugin::EncapContext *> reception_ctx;
 
+	/// the reception contexts list from upper to lower context for SCPC mode
+	std::vector<EncapPlugin::EncapContext *> reception_ctx_scpc;
+
+
+
+
  public:
 
 	/**
 	 * Build an encapsulation block
 	 *
 	 * @param name  The name of the block
+	 * @param name  The mac id of the terminal
 	 */
-	BlockEncap(const string &name);
+	BlockEncap(const string &name, tal_id_t mac_id);
 
 	/**
-	 * Destroy the encapsulation bloc
+	 * Destroy the encapsulation block
 	 */
 	~BlockEncap();
 
@@ -131,6 +147,33 @@ class BlockEncap: public Block
 	 * @return       Whether the burst was successful handled or not
 	 */
 	bool onRcvBurstFromDown(NetBurst *burst);
+
+	/**
+	 * @brief Checks if SCPC mode is activated and configured
+	 *        (Available FIFOs and Carriers for SCPC)
+	 *
+	 * @return       Whether there are SCPC FIFOs and SCPC Carriers available or not
+	 */
+	bool checkIfScpc();
+
+	/**
+	 * 
+	 * Get the Encapsulation context of the Up/Return or the Down/Forward link
+	 *
+	 * @param scheme_list   The name of encapsulation scheme list
+	 * @param l_plugin      The LAN adaptation plugin
+	 * @ctx                 The encapsulation context for return/up or forward/down links
+	 * @link_type           The type of link: "return/up" or "forward/down"
+	 * @scpc_scheme			Whether SCPC is used for the return link or not
+	 * @return              Whether the Encapsulation context has been
+	 *                      correctly obtained or not
+	 */
+	
+	bool getEncapContext(const char *scheme_list,
+	                     LanAdaptationPlugin *l_plugin,
+	                     vector <EncapPlugin::EncapContext *> &ctx,
+	                     const char *link_type, 
+	                     bool scpc_scheme);
 };
 
 

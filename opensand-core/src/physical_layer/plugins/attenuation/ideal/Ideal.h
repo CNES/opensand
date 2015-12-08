@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 CNES
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -35,6 +35,7 @@
 #define IDEAL_ATTENUATION_MODEL_H
 
 #include "PhysicalLayerPlugin.h"
+#include <opensand_conf/ConfigurationFile.h>
 
 #include <string>
 
@@ -50,6 +51,7 @@ class Ideal:public AttenuationModelPlugin
 	private:
 
 		double value;
+		map<string, ConfigurationList> config_section_map;
 
 	public:
 

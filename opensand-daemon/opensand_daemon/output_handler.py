@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -393,7 +393,7 @@ class OutputHandler(threading.Thread):
         (-1, None, addr) if the message was incorrect.
         """
         try:
-            packet, addr = sock.recvfrom(4096)
+            packet, addr = sock.recvfrom(8192)
         except socket.error:
             packet = ""
             addr = None

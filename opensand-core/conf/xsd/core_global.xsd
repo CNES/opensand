@@ -17,6 +17,10 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="path">
+    <xsd:restriction base="xsd:string" />
+</xsd:simpleType>
+
 <xsd:simpleType name="file">
     <xsd:restriction base="xsd:string" />
 </xsd:simpleType>
@@ -65,6 +69,10 @@
         <xsd:enumeration value="Standard" />
         <xsd:enumeration value="Premium" />
         <xsd:enumeration value="Pro" />
+        <xsd:enumeration value="SVNO1" />
+        <xsd:enumeration value="SVNO2" />
+        <xsd:enumeration value="SVNO3" />
+        <xsd:enumeration value="SNO" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -72,6 +80,7 @@
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="DAMA" />
         <xsd:enumeration value="ALOHA" />
+        <xsd:enumeration value="SCPC" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -139,7 +148,7 @@
         <xsd:attribute name="access_type" type="upAccessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of multiplexing (DAMA, ALOHA)
+                    The type of multiplexing (DAMA, ALOHA, SCPC)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -297,52 +306,14 @@
     </xsd:complexType>
 </xsd:element>
 
-
-<!-- type for simulation column section -->
-<xsd:simpleType name="columnNbr">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="1532" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<!-- the columns for simulation_column section -->
-<xsd:element name="columns">
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="column" minOccurs="1" maxOccurs="6" />
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="column">
-    <xsd:complexType>
-        <xsd:attribute name="tal_id" type="talId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the terminal
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="column_nbr" type="columnNbr">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The number of the column for the specified terminal
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
 <!-- Complete XML description -->
 <xsd:element name="configuration">
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="global" />
+            <xsd:element ref="common" />
             <xsd:element ref="forward_down_band" />
             <xsd:element ref="return_up_band" />
             <xsd:element ref="slotted_aloha" />
-            <xsd:element ref="simulation_column" />
             <xsd:element ref="physical_layer" />
             <xsd:element ref="advanced" />
         </xsd:sequence>
@@ -351,7 +322,7 @@
 </xsd:element>
 
 <!-- global section description -->
-<xsd:element name="global">
+<xsd:element name="common">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[
@@ -377,7 +348,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="forward_down_frame_duration" type="msTime">
+            <xsd:element name="forward_down_carrier_duration" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The forward/down link DVB frame duration (in ms)
@@ -385,7 +356,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="return_up_frame_duration" type="msTimeFrame">
+            <xsd:element name="return_up_carrier_duration" type="msTimeFrame">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The return/up link DVB frame duration (in ms)
@@ -438,18 +409,11 @@
             <![CDATA[
             <b>\tReturn/Up link bandwidth configuration</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-             <xsd:element name="bandwidth" type="xsd:decimal">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        Bandwidth (MHz)
-                        <unit>Mhz</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="roll_off" type="xsd:decimal">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -457,33 +421,49 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>           
-            <xsd:element name="carriers_distribution" type="upCarriersDistribution">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The distribution of carriers on the band
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="tal_affectations">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The terminal affectation in categories
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="tal_default_affectation" type="Category">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The default terminal affectation in categories
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="fmt_groups">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The groups of FMT IDs
-                    </xsd:documentation>
-                </xsd:annotation>
+            <xsd:element name="spot" minOccurs="1" maxOccurs="32">
+                 <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="bandwidth" type="xsd:decimal">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    Bandwidth (MHz)
+                                    <unit>Mhz</unit>
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="carriers_distribution" type="upCarriersDistribution">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The distribution of carriers on the band
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element ref="tal_affectations">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The terminal affectation in categories
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="tal_default_affectation" type="Category">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The default terminal affectation in categories
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element ref="fmt_groups">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The groups of FMT IDs
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                    <xsd:attribute name="id"/>
+                    <xsd:attribute name="gw" type="talId"/>
+                </xsd:complexType>
             </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
@@ -496,18 +476,11 @@
             <![CDATA[
             <b>\tForward/Down link bandwidth configuration</b>
             ]]>
+            <hide>true</hide>
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-             <xsd:element name="bandwidth" type="xsd:decimal">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        Bandwidth (MHz)
-                        <unit>Mhz</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="roll_off" type="xsd:decimal">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -515,33 +488,49 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>           
-            <xsd:element name="carriers_distribution" type="downCarriersDistribution">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The distribution of carriers on the band
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="tal_affectations">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The terminal affectation in categories
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="tal_default_affectation" type="Category">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The default terminal affectation in categories
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="fmt_groups">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The groups of FMT IDs
-                    </xsd:documentation>
-                </xsd:annotation>
+            <xsd:element name="spot" minOccurs="1" maxOccurs="32">
+                 <xsd:complexType>
+                    <xsd:sequence>
+                         <xsd:element name="bandwidth" type="xsd:decimal">
+                              <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    Bandwidth (MHz)
+                                    <unit>Mhz</unit>
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="carriers_distribution" type="downCarriersDistribution">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The distribution of carriers on the band
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element ref="tal_affectations">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The terminal affectation in categories
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element name="tal_default_affectation" type="Category">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The default terminal affectation in categories
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                        <xsd:element ref="fmt_groups">
+                            <xsd:annotation>
+                                <xsd:documentation xml:lang="en">
+                                    The groups of FMT IDs
+                                </xsd:documentation>
+                            </xsd:annotation>
+                        </xsd:element>
+                    </xsd:sequence>
+                    <xsd:attribute name="id"/>
+                    <xsd:attribute name="gw" type="talId"/>
+                </xsd:complexType>
             </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
@@ -563,31 +552,6 @@
                     <xsd:documentation xml:lang="en">
                         The number of DVB superframe per Slotted Aloha frame 
                         <unit>DVB superframes</unit>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
-<!-- simulation_column section description -->
-<xsd:element name="simulation_column">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            <![CDATA[
-            <b>\tThe number of the column corresponding to each terminal in the DRA
-            and MODCOD simulation files</b>
-            ]]>
-            <hide>true</hide>
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element ref="columns">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        Associate a terminal ID and a column in the FMT
-                        simulation file
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -617,6 +581,20 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="generate_time_series_path" type="xsd:string">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The path where the emulated MODCOD are stored in time series files
+                         when physical layer is enabled, in order to replay the scenario or
+                         none to disable it. The filename will be
+                         forward_down_time_series_spotId_gwId.txt
+                         and return_up_time_series_spotId_gwId.txt.
+                         The files are generated on the gateway when the satellite is on 
+                         transparent mode and on satellite when the it is regenerative.
+                        <xpath physical_layer.enable="true" />
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
             <xsd:element name="acm_period_refresh" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
@@ -625,44 +603,86 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="forward_down_modcod_def_s2" type="file">
+            <xsd:element name="forward_down_acm_loop_margin" type="xsd:decimal">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The forward/down link ACM loop margin (in dB)
+                        This margin is applied on NCC
+                        Using this without physical layer will prevent from
+                        getting the highest efficient MODCOD as CNI are computed
+                        from the MODCOD values then the ACM loop margin is applied
+                        <unit>dB</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="return_up_acm_loop_margin" type="xsd:decimal">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The return/up link ACM loop margin (in dB)
+                        This margin is applied on NCC
+                        Using this without physical layer will prevent from
+                        getting the highest efficient MODCOD as CNI are computed
+                        from the MODCOD values then the ACM loop margin is applied
+                        <unit>dB</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+
+            <xsd:element name="modcod_def_s2" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD definition file for S2 forward/down link
-                        <default>modcod/forward/definition.txt</default>
-                        <source>modcod/forward_down_def_s2.txt</source>
+                        and SCPC
+                        <default>modcod/s2/definition.txt</default>
+                        <source>modcod/s2/modcod.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="forward_down_modcod_time_series" type="file">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The MODCOD simulation time series for forward/down link
-                        <default>modcod/forward/clear_sky.txt</default>
-                        <source>modcod/forward_down_time_series.txt</source>
-                        <xpath physical_layer.enable="false" />
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="return_up_modcod_def_rcs" type="file">
+            <xsd:element name="modcod_def_rcs" type="file">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The MODCOD definition file for RCS return/up link
-                        <default>modcod/return/definition_MPEG.txt</default>
-                        <source>modcod/return_up_def_rcs.txt</source>
+                        <default>modcod/rcs/definition_MPEG.txt</default>
+                        <source>modcod/rcs/modcod.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="return_up_modcod_time_series" type="file">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The MODCOD simulation time series for return/up link
-                        <default>modcod/return/clear_sky.txt</default>
-                        <source>modcod/return_up_time_series.txt</source>
-                        <xpath physical_layer.enable="false" />
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
+            <xsd:element name="spot" minOccurs="1" maxOccurs="32">
+                 <xsd:complexType>
+                    <xsd:sequence>
+                <xsd:element name="forward_down_modcod_time_series" type="file">
+                    <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                            The MODCOD simulation time series for forward/down link
+                            <default>modcod/s2/clear_sky.txt</default>
+                            <source>modcod/forward_down_time_series.txt</source>
+                            <xpath physical_layer.enable="false" />
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="return_up_modcod_time_series" type="file">
+                    <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                            The MODCOD simulation time series for return/up link
+                            <default>modcod/rcs/clear_sky.txt</default>
+                            <source>modcod/return_up_time_series.txt</source>
+                            <xpath physical_layer.enable="false" />
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="loop_on_file" type="xsd:boolean">
+                    <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                            Loop on MODCOD simulation time series files for return/up link
+                            <xpath physical_layer.enable="false" />
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:element>
+            </xsd:sequence>
+            <xsd:attribute name="id"/>
+            <xsd:attribute name="gw" type="talId"/>
+        </xsd:complexType>
+        </xsd:element>
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -61,10 +61,11 @@ bool BlockLanAdaptation::onInit(void)
 	lan_contexts_t contexts;
 	int fd = -1;
 
-	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE, sat_type))
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+		               SATELLITE_TYPE, sat_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "%s missing from section %s.\n", GLOBAL_SECTION,
+		    "%s missing from section %s.\n", COMMON_SECTION,
 		    SATELLITE_TYPE);
 		return false;
 	}
@@ -73,7 +74,8 @@ bool BlockLanAdaptation::onInit(void)
 	satellite_type = strToSatType(sat_type);
 
 	// get the number of lan adaptation context to use
-	if(!Conf::getNbListItems(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
+		                     LAN_ADAPTATION_SCHEME_LIST,
 	                         lan_scheme_nbr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -90,7 +92,8 @@ bool BlockLanAdaptation::onInit(void)
 		LanAdaptationPlugin::LanAdaptationContext *context;
 
 		// get all the lan adaptation plugins to use from upper to lower
-		if(!Conf::getValueInList(GLOBAL_SECTION, LAN_ADAPTATION_SCHEME_LIST,
+		if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
+			                     LAN_ADAPTATION_SCHEME_LIST,
 		                         POSITION, toString(i), PROTO, name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -154,12 +157,13 @@ bool BlockLanAdaptation::onInit(void)
 bool BlockLanAdaptation::Downward::onInit(void)
 {
 	// statistics timer
-	if(!Conf::getValue(GLOBAL_SECTION, STATS_TIMER,
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		               STATS_TIMER,
 	                   this->stats_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, STATS_TIMER);
+		    COMMON_SECTION, STATS_TIMER);
 		return false;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -175,10 +179,11 @@ bool BlockLanAdaptation::Upward::onInit(void)
 	string sat_type;
 	int dflt = -1;
 
-	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE, sat_type))
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		               SATELLITE_TYPE, sat_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "%s missing from section %s.\n", GLOBAL_SECTION,
+		    "%s missing from section %s.\n", COMMON_SECTION,
 		    SATELLITE_TYPE);
 		return false;
 	}
@@ -187,14 +192,14 @@ bool BlockLanAdaptation::Upward::onInit(void)
 	this->satellite_type = strToSatType(sat_type);
 
 
-	if(!Conf::getValue(SARP_SECTION, DEFAULT, dflt))
+	if(!Conf::getValue(Conf::section_map[SARP_SECTION],
+		               DEFAULT, dflt))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot get default destination terminal, "
 		    "this is not fatal\n");
 		// do not return, this is not fatal
 	}
-
 	this->sarp_table.setDefaultTal(dflt);
 	if(!this->initSarpTables())
 	{
@@ -236,7 +241,8 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 	ConfigurationList::iterator iter;
 
 	// IPv4 SARP table
-	if(!Conf::getListItems(SARP_SECTION, IPV4_LIST, terminal_list))
+	if(!Conf::getListItems(Conf::section_map[SARP_SECTION],
+		                   IPV4_LIST, terminal_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "missing section [%s, %s]\n", SARP_SECTION,
@@ -281,13 +287,13 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 		LOG(this->log_init, LEVEL_INFO,
 		    "%s/%d -> tal id %u \n",
 		    ip_addr->str().c_str(), mask, tal_id);
-
 		this->sarp_table.add(ip_addr, mask, tal_id);
 	} // for all IPv4 entries
 
 	// IPv6 SARP table
 	terminal_list.clear();
-	if(!Conf::getListItems(SARP_SECTION, IPV6_LIST, terminal_list))
+	if(!Conf::getListItems(Conf::section_map[SARP_SECTION],
+		                   IPV6_LIST, terminal_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "missing section [%s, %s]\n", SARP_SECTION,
@@ -340,7 +346,8 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 	// Ethernet SARP table
 	// TODO we could only initialize IP or Ethernet tables according to stack
 	terminal_list.clear();
-	if(!Conf::getListItems(SARP_SECTION, ETH_LIST, terminal_list))
+	if(!Conf::getListItems(Conf::section_map[SARP_SECTION],
+		                   ETH_LIST, terminal_list))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "missing section [%s, %s]\n", SARP_SECTION,

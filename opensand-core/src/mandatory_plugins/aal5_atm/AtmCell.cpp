@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -99,22 +99,12 @@ bool AtmCell::isValid()
 	if(this->getTotalLength() != AtmCell::getLength())
 	{
 		LOG(atm_log, LEVEL_WARNING,
-		    "total length (%u) != ATM cell length (%u)\n",
+		    "total length (%zu) != ATM cell length (%u)\n",
 		    this->getTotalLength(), AtmCell::getLength());
 		is_ok = false;
 	}
 
 	return is_ok;
-}
-
-uint16_t AtmCell::getTotalLength()
-{
-	return this->data.length();
-}
-
-uint16_t AtmCell::getPayloadLength()
-{
-	return this->getTotalLength() - this->header_length;
 }
 
 Data AtmCell::getPayload()

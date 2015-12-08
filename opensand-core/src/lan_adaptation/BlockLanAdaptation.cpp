@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -190,6 +190,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 					    ctx_iter != this->contexts.end(); ++ctx_iter)
 					{
 						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id,
+							                                      this->group_id,
 						                                          this->satellite_type,
 						                                          &this->sarp_table))
 						{
@@ -279,6 +280,14 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 		LOG(this->log_receive, LEVEL_INFO,
 		    "packet from lower layer has terminal ID %u\n",
 		    pkt_tal_id);
+		if((*burst_it)->getSrcTalId() == this->tal_id)
+		{
+			// with broadcast, we would receive our own packets
+			LOG(this->log_receive, LEVEL_INFO,
+			    "reject packet with own terminal ID\n");
+			++burst_it;
+			continue;
+		}
 
 		if(pkt_tal_id == BROADCAST_TAL_ID || pkt_tal_id == this->tal_id)
 		{
@@ -314,9 +323,9 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			    (*burst_it)->getName().c_str());
 		}
 
-		if(this->tal_id == GW_TAL_ID &&
+		if(OpenSandConf::isGw(tal_id) &&
 		   this->satellite_type == TRANSPARENT &&
-		   pkt_tal_id != GW_TAL_ID)
+		   !OpenSandConf::isGw(pkt_tal_id))
 		{
 			// packet should be forwarded
 			/*  TODO avoid allocating new packet here !

@@ -16,6 +16,7 @@ libopensand_rt_la_cpp = \
 	RtEvent.cpp \
 	MessageEvent.cpp \
 	TimerEvent.cpp \
+	TcpListenEvent.cpp \
 	NetSocketEvent.cpp  \
 	FileEvent.cpp  \
 	SignalEvent.cpp \
@@ -31,6 +32,7 @@ libopensand_rt_la_h = \
 	RtEvent.h \
 	MessageEvent.h \
 	TimerEvent.h \
+	TcpListenEvent.h \
 	NetSocketEvent.h \
 	FileEvent.h \
 	SignalEvent.h \

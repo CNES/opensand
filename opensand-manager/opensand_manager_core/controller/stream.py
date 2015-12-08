@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -130,7 +130,6 @@ class Stream:
         buf = ''
 
         self._log.debug("send content of file '%s'" % src_filename)
-
         name = os.path.basename(dst_filename)
         if mode is None:
             try:

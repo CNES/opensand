@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -41,6 +41,7 @@ import time
 import dbus, gobject, avahi
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
 
+from opensand_manager_core.utils import WS
 from opensand_manager_core.controller.host import HostController
 from opensand_manager_core.loggers.manager_log import ManagerLog
 from opensand_manager_core.opensand_model import Model
@@ -168,16 +169,11 @@ class OpenSandServiceListener():
             # host already exists
             return
         else:
-            if not name.startswith('ws'):
+            if not name.startswith(WS):
                 new_host = HostController(host_model, self._log, cache)
-                if name == 'sat':
-                    self._hosts.insert(0, new_host)
-                elif name == 'gw':
-                    self._hosts.insert(1, new_host)
-                else:
-                    self._hosts.append(new_host)
+                self._hosts.append(new_host)
             # we need controller for workstations with tools
-            if name.startswith('ws'):
+            if name.startswith(WS):
                 if len(host_model.get_tools()) > 0:
                     new_host = HostController(host_model, self._log, cache)
                     self._ws.append(new_host)

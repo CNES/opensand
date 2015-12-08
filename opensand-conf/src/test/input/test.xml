@@ -15,6 +15,17 @@
     <section2>
         <s2key1>s2k1val</s2key1>
     </section2>
+    <section4>
+        <spot id="id1">
+            <!-- table description -->
+            <s4tables>
+                <s4table s4att1="s4l1val1" s4att2="s4l1val2" />
+                <s4table s4att1="s4l2val1" s4att2="s4l2val2" />
+            </s4tables>
+            <!-- key2 description -->
+            <s4key1>s4k1val</s4key1>
+        </spot>
+    </section4>
     <dup>
         <dupkey1>dupval1</dupkey1>
     </dup>

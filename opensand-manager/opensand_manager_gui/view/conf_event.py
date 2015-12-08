@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
-# Copyright © 2014 CNES
+# Copyright © 2015 TAS
+# Copyright © 2015 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -38,6 +38,7 @@ conf_event.py - the events on configuration tab
 import gtk
 import gobject
 
+from opensand_manager_core.utils import GW, GSE
 from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
@@ -50,6 +51,7 @@ class ConfEvent(ConfView) :
         ConfView.__init__(self, parent, model, manager_log)
 
         self._modif = False
+
         self._previous_img = ''
         # update the image
         self.refresh_description()
@@ -162,18 +164,19 @@ class ConfEvent(ConfView) :
         out_label = None
         packed = False
         for pos in range(max(len(in_stack), len(out_stack))):
-            if pos < len(out_stack):
+            pos = str(pos)
+            if pos in out_stack.keys():
                 out_frame = gtk.AspectFrame()
                 out_label = gtk.Label()
                 out_label.set_size_request(70, 45)
-                out_label.set_text(out_stack[str(pos)])
+                out_label.set_text(out_stack[pos])
                 out_frame.add(out_label)
             elif out_label is not None:
                 heigth = out_label.get_size_request()[1]
                 out_label.set_size_request(70, heigth + 50)
-            if pos < len(in_stack):
-                if pos < len(out_stack):
-                    if out_stack[str(pos)] == in_stack[str(pos)]:
+            if pos in in_stack.keys():
+                if pos in out_stack.keys():
+                    if out_stack[pos] == in_stack[pos]:
                         if packed:
                             hbox.pack_end(vbox_in)
                             sep = gtk.VSeparator()
@@ -212,7 +215,7 @@ class ConfEvent(ConfView) :
                 in_frame = gtk.AspectFrame()
                 in_label = gtk.Label()
                 in_label.set_size_request(70, 45)
-                in_label.set_text(in_stack[str(pos)])
+                in_label.set_text(in_stack[pos])
                 in_frame.add(in_label)
                 vbox_in.pack_start(in_frame)
                 vbox_in.set_child_packing(in_frame, expand=False,
@@ -326,9 +329,12 @@ class ConfEvent(ConfView) :
         """ 'clicked' event on teminal type buttons """
         self.enable_conf_buttons()
 
+
+
     def on_enable_physical_layer_toggled(self, source=None, event=None):
         """ 'toggled' event on enable button """
         self.enable_conf_buttons()
+
 
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """
@@ -339,7 +345,7 @@ class ConfEvent(ConfView) :
         self.enable_conf_buttons(False)
 
     def on_save_conf_clicked(self, source=None, event=None):
-        """ save the new configuration in the ini file """
+        """ save the new configuration"""
         # retrieve global parameters
 
         # payload type
@@ -360,12 +366,6 @@ class ConfEvent(ConfView) :
         else:
             return
         config.set_emission_std(emission_std)
-
-        # dama
-#        widget = self._ui.get_widget('dama_box')
-#        model = widget.get_model()
-#        active = widget.get_active_iter()
-#        config.set_dama(model.get_value(active, 0))
 
         # check stacks with modules conditions
         modules = self._model.get_encap_modules()
@@ -410,14 +410,14 @@ class ConfEvent(ConfView) :
         if self._model.get_adv_mode():
             previous = None
             last = None
-            gw_stack = None
-            other_stacks = []
+            gw_stack = {}
+            other_stacks = {}
             for host in self._lan_stacks:
                 stack = self._lan_stacks[host].get_stack()
-                if host.get_name() == 'gw':
-                    gw_stack = stack
+                if host.get_name().startswith(GW):
+                    gw_stack[host.get_instance()] = stack
                 else:
-                    other_stacks.append(stack)
+                    other_stacks[host] = stack
                 # get the last module of the stack that is not a header modification
                 # module
                 for pos in range(len(stack)):
@@ -428,27 +428,33 @@ class ConfEvent(ConfView) :
                        not host_modules[mod].get_condition("header_modif"):
                         last = mod
                         break
-                if previous is not None and last != previous:
-                    error_popup("The last module of the LAN stack should be the "
-                                "same for each host (except for header modifications)")
-                    return
-                previous = last
             # check that the GW stack is at least the same as other
-            for stack in other_stacks:
-                if len(set(gw_stack.values()) - set(stack.values())) != 0:
-                    error_popup("The hosts stack should be at least the same as "
-                                "for GW")
+            for host in other_stacks:
+                stack = other_stacks[host]
+                if len(set(gw_stack[host.get_gw_id()].values()) - set(stack.values())) != 0:
+                    error_popup("The host " + host.get_name() +
+                                " stack should be at least the same as "
+                                "for associate GW" + host.get_gw_id())
                     return
         for host in self._lan_stacks:
             if self._model.get_adv_mode():
                 host.set_lan_adaptation(self._lan_stacks[host].get_stack())
             else:
                 host.set_lan_adaptation(self._lan_stack_base.get_stack())
-
+        
         # output encapsulation scheme
         config.set_return_up_encap(self._out_stack.get_stack())
 
         # input encapsulation scheme
+        xpath = "//is_scpc"
+        for host in self._model.get_hosts_list():
+            adv = host.get_advanced_conf()
+            tal_scpc = adv.get_configuration().get(xpath)
+            if tal_scpc is not None and \
+               adv.get_configuration().get_value(tal_scpc) == "true" and \
+               self._in_stack.get_stack()['0'] != GSE:
+                error_popup("One terminal is SCPC, forward encapsulation should be GSE")
+                return 
         config.set_forward_down_encap(self._in_stack.get_stack())
 
         # enable physical layer
@@ -459,7 +465,9 @@ class ConfEvent(ConfView) :
             config.set_enable_physical_layer("false")
 
         try:
-            config.save()
+            #config.save()
+            self._model.save()
+
         except XmlException, error:
             error_popup(str(error), error.description)
             self.on_undo_conf_clicked()
@@ -467,6 +475,7 @@ class ConfEvent(ConfView) :
             error_popup(str(error))
             self.on_undo_conf_clicked()
 
+        
         self.update_view()
         self.enable_conf_buttons(False)
 
@@ -485,6 +494,7 @@ class ConfEvent(ConfView) :
                 self.on_save_conf_clicked()
             else:
                 try:
+                    self.on_undo_conf_clicked()
                     self.update_view()
                 except ConfException as msg:
                     error_popup(str(msg))
@@ -494,5 +504,7 @@ class ConfEvent(ConfView) :
             gobject.idle_add(self.enable_conf_buttons, False)
         except ConfException as msg:
             error_popup(str(msg))
+
+
 
 

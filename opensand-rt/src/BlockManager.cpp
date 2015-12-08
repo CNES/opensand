@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
+ * Copyright © 2015 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -260,8 +260,8 @@ void BlockManager::reportError(const char *msg, bool critical)
 	}
 	else
 	{
-		LOG(this->log_rt, LEVEL_ERROR,
-		    "%s", msg);
+		//LOG(this->log_rt, LEVEL_ERROR,
+		//    "%s", msg);
 	}
 }
 

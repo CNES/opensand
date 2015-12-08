@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
-# Copyright © 2014 CNES
+# Copyright © 2015 TAS
+# Copyright © 2015 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -81,7 +81,7 @@ class ToolView(WindowView):
             # create the tree for tools selection
             treeview = self._ui.get_widget('tools_selection_tree')
             self._tree = ConfigurationTree(treeview, 'Tools',
-                                           'Selected', self.on_selection,
+                                           self.on_selection,
                                            self.tool_toggled_cb)
 
             # disable save button

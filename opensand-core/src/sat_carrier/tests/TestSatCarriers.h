@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -43,6 +43,7 @@
 
 struct sc_specific
 {
+	tal_id_t tal_id;
 	string ip_addr;      ///< the IP address for emulation
 	string emu_iface;    ///< the name of the emulation interface
 };
@@ -68,6 +69,7 @@ class TestSatCarriers: public Block
 	 public:
 		Upward(Block *const bl, struct sc_specific specific):
 			RtUpward(bl),
+			in_channel_set(specific.tal_id),
 			ip_addr(specific.ip_addr),
 			interface_name(specific.emu_iface)
 		{};
@@ -97,6 +99,7 @@ class TestSatCarriers: public Block
 	 public:
 		Downward(Block *const bl, struct sc_specific specific):
 			RtDownward(bl),
+			out_channel_set(specific.tal_id),
 			ip_addr(specific.ip_addr),
 			interface_name(specific.emu_iface)
 		{};

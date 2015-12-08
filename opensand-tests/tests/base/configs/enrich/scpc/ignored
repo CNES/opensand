@@ -1,0 +1,3 @@
+regen
+mpeg
+# ignore atm because the test when configured with atm will be the same and we avoid doing mpeg_mpeg that are the same as mpeg_* or *_mpeg

@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -35,6 +35,7 @@
 environment_plane.py - controller for environment plane
 """
 
+from opensand_manager_core.utils import MAX_DATA_LENGTH
 from opensand_manager_core.model.environment_plane import Program
 from opensand_manager_core.model.host import InitStatus
 from tempfile import TemporaryFile
@@ -137,7 +138,6 @@ class EnvironmentPlaneController(object):
         if host_name in self._wait_init:
             self._wait_init.remove(host_name)
             self._log.info("Model for host %s is now found" % host_name)
-            print "GOOD"
             host_model.set_init_status(InitStatus.SUCCESS)
         for program in self.get_programs():
             if program.name == host_name:
@@ -236,7 +236,7 @@ class EnvironmentPlaneController(object):
             gobject.idle_add(self._transfer_unzip)
             return False
 
-        to_read = min(self._transfer_remaining, 4096)
+        to_read = min(self._transfer_remaining, MAX_DATA_LENGTH)
         data = transfer_socket.recv(to_read)
         self._transfer_remaining -= len(data)
 
@@ -277,8 +277,8 @@ class EnvironmentPlaneController(object):
         Called when a packet is received on the socket. Decodes and interprets
         the message.
         """
-        packet, addr = self._sock.recvfrom(4096)
-        if len(packet) > 4096:
+        packet, addr = self._sock.recvfrom(MAX_DATA_LENGTH)
+        if len(packet) > MAX_DATA_LENGTH:
             self._log.warning("Too many data received from collector, "
                               "we may not be able to parse command")
 

@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 CNES
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -34,7 +34,6 @@
 
 #include "Constant.h"
 
-#include <opensand_conf/ConfigurationFile.h>
 #include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
@@ -64,7 +63,10 @@ bool Constant::init(void)
 		goto error;
 	}
 
-	if(!config.getValue(CONSTANT_SECTION, THRESHOLD, this->minimal_cn))
+	config.loadSectionMap(this->config_section_map);
+
+	if(!config.getValue(this->config_section_map[CONSTANT_SECTION], 
+		                THRESHOLD, this->minimal_cn))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Constant minimal conditions: cannot get %s",
@@ -77,7 +79,7 @@ error:
 }
 
 
-bool Constant::updateThreshold(uint8_t UNUSED(modcod_id))
+bool Constant::updateThreshold(uint8_t UNUSED(modcod_id), uint8_t UNUSED(message_type))
 {
 	// Empty function, not necessary when
 	// Constant Minimal conditions

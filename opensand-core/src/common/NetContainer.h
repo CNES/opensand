@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -38,6 +38,8 @@
 
 #include "Data.h"
 
+#include "OpenSandCore.h"
+
 #include <string>
 #include <stdint.h>
 #include <syslog.h>
@@ -48,6 +50,8 @@ using std::string;
 /**
  * @class NetContainer
  * @brief Network data container
+ * @warning change the copy constructor when you add
+ *          a attribut  @ref DvbFrameTpl and @ref NetPacket
  */
 class NetContainer
 {
@@ -64,6 +68,9 @@ class NetContainer
 
 	/// The packet trailer length
 	size_t trailer_length;
+	
+	/// The destination spot ID
+	spot_id_t spot;
 
  public:
 
@@ -159,6 +166,21 @@ class NetContainer
 	 * @return the header length
 	 */
 	virtual size_t getHeaderLength() const;
+
+	/**
+	 * Set the destination spot ID
+	 *
+	 * @param spot_id  The destination spot id
+	 */
+	void setSpot(spot_id_t spot_id);
+
+	/**
+	 * Get the destination spot ID
+	 *
+	 * @return the destination spot ID
+	 */
+	spot_id_t getSpot() const;
+
 };
 
 #endif

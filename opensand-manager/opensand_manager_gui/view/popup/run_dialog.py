@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -38,6 +38,7 @@ import os
 import gtk
 import gobject
 
+from opensand_manager_core.utils import ST, GW, SAT
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.window_view import WindowView
 
@@ -50,6 +51,7 @@ class RunDialog(WindowView):
 
         self._dlg = self._ui.get_widget('run_dialog')
         self._dlg.set_keep_above(True)
+        self._dlg.set_modal(True)
         self._dlg.set_icon_name(gtk.STOCK_PREFERENCES)
         # add available runs into combo box
         self._has_runs = self.populate(scenario, run)
@@ -80,9 +82,12 @@ class RunDialog(WindowView):
     def populate(self, scenario, run):
         """ add run elements into the combo box """
         # the list of directories to ignore
-        ignore = ['sat', 'gw', 'tools', 'plugins', 'modcod']
+        ignore = [SAT,'tools', 'plugins', 'modcod']
         for i in range(MAX_ST + 1):
-            ignore.append("st" + str(i))
+            ignore.append(ST + str(i))
+        for i in [0, 10]:
+            ignore.append(GW + str(i))
+
         
         list_id = 0
         active_id = 0

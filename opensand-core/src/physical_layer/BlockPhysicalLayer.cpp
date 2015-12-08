@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 CNES
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -42,7 +42,8 @@
 
 
 BlockPhysicalLayer::BlockPhysicalLayer(const string &name):
-	Block(name)
+	Block(name),
+	log_event(NULL)
 {
 	// Output Log
 	this->log_event = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Event");
@@ -117,50 +118,13 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	string link("down"); // we are on downlink
 
 	// Intermediate variables for Config file reading
-	sat_type_t sat_type;
 	string attenuation_type;
 	string minimal_type;
 	string error_type;
 
-	component_t compo;
-	string val;
-
-	// satellite type
-	if(!Conf::getValue(GLOBAL_SECTION, SATELLITE_TYPE,
-	                   val))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    GLOBAL_SECTION, SATELLITE_TYPE);
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "satellite type = %s\n", val.c_str());
-	sat_type = strToSatType(val);
-
-	val = "";
-	if(!Conf::getComponent(val))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get component type\n");
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "host type = %s\n", val.c_str());
-	compo = getComponentType(val);
-
-	if(compo == terminal ||
-	   (sat_type == REGENERATIVE && compo == gateway))
-	{
-		this->msg_type = MSG_TYPE_BBFRAME;
-	}
-	else
-	{
-		this->msg_type = MSG_TYPE_DVB_BURST;
-	}
-
 	// get refresh period
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH,
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               ACM_PERIOD_REFRESH,
 	                   this->refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -172,7 +136,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	    "acm refreshing period = %d\n", this->refresh_period_ms);
 
 	// Initiate Attenuation model
-	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
 	                   ATTENUATION_MODEL_TYPE,
 	                   attenuation_type))
 	{
@@ -184,7 +148,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// Initiate Clear Sky value
-	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
 	                   CLEAR_SKY_CONDITION,
 	                   this->clear_sky_condition))
 	{
@@ -196,7 +160,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// Initiate Minimal conditions
-	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
 	                   MINIMAL_CONDITION_TYPE,
 	                   minimal_type))
 	{
@@ -208,7 +172,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 
 	// Initiate Error Insertion
-	if(!Conf::getValue(DOWNLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
 	                   ERROR_INSERTION_TYPE,
 	                   error_type))
 	{
@@ -300,7 +264,8 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	string attenuation_type;
 
 	// get refresh_period
-	if(!Conf::getValue(PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH,
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+		               ACM_PERIOD_REFRESH,
 	                   this->refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -312,7 +277,7 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	    "refresh_period_ms = %d\n", this->refresh_period_ms);
 
 	// Initiate Attenuation model
-	if(!Conf::getValue(UPLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[UPLINK_PHYSICAL_LAYER_SECTION],
 	                   ATTENUATION_MODEL_TYPE,
 	                   attenuation_type))
 	{
@@ -323,7 +288,7 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	}
 
 	// Initiate Clear Sky value
-	if(!Conf::getValue(UPLINK_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[UPLINK_PHYSICAL_LAYER_SECTION],
 	                   CLEAR_SKY_CONDITION,
 	                   this->clear_sky_condition))
 	{
@@ -381,22 +346,11 @@ bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 {
 	double cn_total;
 
-	if(dvb_frame->getMessageType() != this->msg_type)
+	if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
 	{
-		if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
-		{
-			// do not handle signalisation but forward it
-			goto forward;
-		}
-		// reject wrong frames, we need this because
-		// GW receives its own traffic that does not need to be handled
-		// we may forward it bu it will be rejected at DVB layer
-		LOG(this->log_send, LEVEL_NOTICE,
-		    "unsupported frame rejected at physical layer\n");
-		delete dvb_frame;
-		return true;
+		// do not handle signalisation but forward it
+		goto forward;
 	}
-
 
 	// Update of the Threshold CN if Minimal Condition
 	// Mde is Modcod dependent
@@ -409,13 +363,14 @@ bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 	}
 
 	LOG(this->log_send, LEVEL_DEBUG,
-	    "Received DVB frame on carrier %u: C/N  = %.2f\n",
+	    "Received DVB frame on carrier %u: C/N = %.2f\n",
 	    dvb_frame->getCarrierId(),
 	    dvb_frame->getCn());
 
 	if(this->is_sat)
 	{
 		cn_total = dvb_frame->getCn();
+		this->probe_total_cn->put(cn_total);
 	}
 	else
 	{
@@ -493,34 +448,32 @@ error:
 bool BlockPhysicalLayerSat::Upward::onInit(void)
 {
 	ostringstream name;
-	string link("down"); // we are on downlink
 
 	string minimal_type;
 	string error_type;
 
 	this->is_sat = true;
-	this->msg_type = MSG_TYPE_DVB_BURST;
 
 	// Initiate Minimal conditions
-	if(!Conf::getValue(SAT_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[SAT_PHYSICAL_LAYER_SECTION],
 	                   MINIMAL_CONDITION_TYPE,
 	                   minimal_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    SAT_PHYSICAL_LAYER_SECTION, MINIMAL_CONDITION_TYPE);
-		goto error;
+		return false;
 	}
 
 	// Initiate Error Insertion
-	if(!Conf::getValue(SAT_PHYSICAL_LAYER_SECTION,
+	if(!Conf::getValue(Conf::section_map[SAT_PHYSICAL_LAYER_SECTION],
 	            ERROR_INSERTION_TYPE,
 	            error_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    SAT_PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
-		goto error;
+		return false;
 	}
 
 	/* get all the plugins */
@@ -533,7 +486,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "error when getting physical layer plugins");
-		goto error;
+		return false;
 	}
 	
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -545,7 +498,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize minimal condition plugin %s",
 		    minimal_type.c_str());
-		goto error;
+		return false;
 	}
 
 	if(!this->error_insertion->init())
@@ -553,21 +506,25 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize error insertion plugin %s",
 		    error_type.c_str());
-		goto error;
+		return false;
 	}
 
 	this->probe_minimal_condition = Output::registerProbe<float>("dB", true,
 	                                                             SAMPLE_MAX,
 	                                                             "Phy.minimal_condition (%s)",
 	                                                             minimal_type.c_str());
+	// TODO these probes are not really relevant as we should get probes per source
+	//      terminal
 	this->probe_drops = Output::registerProbe<int>("Phy.drops",
 	                                               "frame number", true,
 	                                               // we need to sum the drops here !
 	                                               SAMPLE_SUM);
+	this->probe_total_cn = Output::registerProbe<float>("dB", true,
+	                                                    SAMPLE_MAX,
+	                                                    "Phy.uplink_total_cn");
+
 	return true;
 
-error:
-	return false;
 }
 
 

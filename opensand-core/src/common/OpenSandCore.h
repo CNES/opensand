@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -57,8 +57,6 @@ using std::vector;
 
 /// Broadcast tal id is maximal tal_id value authorized (5 bits).
 #define BROADCAST_TAL_ID 0x1F
-/// Terminal ID for Gateway
-#define GW_TAL_ID (0L)
 
 /** The different types of DVB components */
 typedef enum
@@ -141,7 +139,8 @@ typedef enum
 	DAMA,
 	TDM,
 	ALOHA,
-	ERROR,
+	SCPC,
+	ERROR
 } access_type_t;
 
 
@@ -162,6 +161,8 @@ inline access_type_t strToAccessType(string access_type)
 		return ALOHA;
 	else if(access_type == "VCM")
 		return TDM;
+	else if(access_type == "SCPC")
+		return SCPC;
 	return ERROR;
 }
 
@@ -194,9 +195,9 @@ inline bool equals(double val1, double val2)
 /**
  * @brief  Tokenize a string
  *
- * @param  str        The string to tokenize.
- * @param  tokens     The list to add tokens into.
- * @param  delimiter  The tokens' delimiter.
+ * @param  str        The string to tokenize
+ * @param  tokens     The list to add tokens into
+ * @param  delimiter  The tokens' delimiter
  */
 inline void tokenize(const string &str,
                      vector<string> &tokens,
@@ -227,7 +228,7 @@ inline void tokenize(const string &str,
  */
 inline uint32_t hcnton(double cn)
 {
-	int16_t tmp_cn = (int16_t)(cn * 100); // we take two digits in decimal part
+	int16_t tmp_cn = (int16_t)(round(cn * 100)); // we take two digits in decimal part
 	uint32_t new_cn = htonl((uint32_t)tmp_cn);
 	return new_cn;
 };
@@ -250,10 +251,10 @@ inline double ncntoh(uint32_t cn)
 // The types used in OpenSAND
 
 // addressing
-typedef uint16_t tal_id_t; ///< Terminal ID (5 bits but 16 needed for simulated terminal)
-typedef uint8_t spot_id_t; ///< Spot ID (5 bits)
-typedef uint8_t qos_t; ///< QoS (3 bits)
-typedef uint8_t group_id_t; ///< Groupe ID
+typedef uint16_t tal_id_t;  ///< Terminal ID (5 bits but 16 needed for simulated terminal)
+typedef uint8_t spot_id_t;  ///< Spot ID (5 bits)
+typedef uint8_t qos_t;      ///< QoS (3 bits)
+typedef uint16_t group_id_t; ///< Groupe ID
 
 // TODO check types according to max value
 // TODO link with config
@@ -278,6 +279,9 @@ typedef uint32_t vol_sym_t; ///< volume in number of symbols (suffix sym)
 // frequency
 typedef float freq_mhz_t;    ///< frequency (MHz)
 typedef uint32_t freq_khz_t; ///< frequency (kHz)
+
+// fmt
+typedef uint8_t fmt_id_t;  ///< fmt id
 
 /**
  * @brief Generic Superframe description

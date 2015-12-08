@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -37,6 +37,7 @@
 
 
 #include "PhysicalLayerPlugin.h"
+#include <opensand_conf/ConfigurationFile.h>
 
 #include <string>
 
@@ -54,6 +55,7 @@ class OnOff: public AttenuationModelPlugin
 		int on_duration;
 		int off_duration;
 		double amplitude;
+		map<string, ConfigurationList> config_section_map;
 
 	public:
 

@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -40,6 +40,7 @@ import glob
 import sys
 import os
 import time
+import re
 from optparse import OptionParser, IndentedHelpFormatter
 import textwrap
 import ConfigParser
@@ -59,6 +60,11 @@ from opensand_manager_shell.opensand_shell_manager import ShellManager, \
 # TODO rewrite this as this is now too long
 #      maybe create classes that will simplify the code
 ENRICH_FOLDER = "enrich"
+
+# TODO SCPC tests are performed with MODCOD 7 but it would be better to use
+# MODCOD 28. The problem is that the default MODCOD file is for RCS and contains
+# MODCOD ids for RCS that are smaller than 7
+# we should add elements to get other simulation files
 
 
 class IndentedHelpFormatterWithNL(IndentedHelpFormatter):
@@ -145,9 +151,11 @@ class Test(ShellManager):
         opt_parser.add_option("-t", "--type", dest="type", default=None,
                               help="launch only one type of test")
         opt_parser.add_option("-l", "--test", dest="test", default=None,
-                              help="launch one test in particular (use test "
-                              "names from the same folder (separated by ',') "
-                              "and set the --type option)")
+                              help="launch some tests in particular "
+                              "(separated by ',')")
+        opt_parser.add_option("-r", "--regexp", dest="regexp", default=None,
+                              help="launch all test that contain this regexp " 
+                              "in particular")
         opt_parser.add_option("-s", "--service", dest="service",
                               default=SERVICE,
                               help="listen for OpenSAND entities "\
@@ -208,9 +216,12 @@ help="specify the root folder for tests configurations\n"
 
         # TODO regex in selt._test and self._type for regen* or transp* for ex
         self._test = None
+        self._regexp = None
         self._type = None
         if options.test is not None:
             self._test = options.test.split(',')
+        if options.regexp is not None:
+            self._regexp = options.regexp
         if options.type is not None:
             self._type = options.type.split(',')
         self._folder = options.folder
@@ -225,6 +236,8 @@ help="specify the root folder for tests configurations\n"
         self._last_error = ""
         self._show_last_logs = options.last_logs
         self._stopped = True
+        self._result = {}
+        nb_gw = 0
 
         self._quiet = True
         lvl = MGR_WARNING
@@ -246,18 +259,30 @@ help="specify the root folder for tests configurations\n"
                       frontend=self._frontend)
             self.stop_opensand()
             self._base = self._model.get_scenario()
-            self.run_base()
-            self._model.set_scenario(self._base)
-            self.run_other()
-            if len(self._last_error) > 0:
-                raise TestError('Last error: ', self._last_error)
-            if self._test is not None and len(self._test):
-                raise TestError("Configuration", "The following tests were not "
-                                "found %s" % self._test)
-            if self._type is not None and len(self._type):
-                raise TestError("Configuration", "The following types were not "
-                                "found %s" % self._type)
-
+            for host in self._model.get_hosts_list():
+                if host.get_name().startswith("gw"):
+                    nb_gw += 1
+            if nb_gw == 1 :
+                self.run_base()
+                self._model.set_scenario(self._base)
+                self.run_other()
+                if len(self._last_error) > 0:
+                    raise TestError('Last error: ', self._last_error)
+                if self._test is not None and len(self._test):
+                    raise TestError("Configuration", "The following tests were not "
+                                    "found %s" % self._test)
+                if self._regexp is not None and self._regexp == "":
+                    raise TestError("Configuration", "The following types were not "
+                                    "found %s" % self._regexp)
+                if self._type is not None and len(self._type):
+                    raise TestError("Configuration", "The following types were not "
+                                    "found %s" % self._type)
+            else:
+                if self._quiet:
+                    print "Cannot play test with more than one GW"
+                else:
+                    self._log.error(" * Cannot play test with more than one GW")
+            
         except TestError as err:
             if self._quiet:
                 print "%s: %s" % (err.step, err.msg)
@@ -277,11 +302,40 @@ help="specify the root folder for tests configurations\n"
                 self._log.error(" * internal error while testing: " + str(msg))
             raise
         else:
-            if self._quiet:
-                print green("All tests are successfull", True)
-            else:
-                self._log.info(" * All tests successfull")
+            if nb_gw == 0:
+                if self._quiet:
+                    print green("All tests are successfull", True)
+                else:
+                    self._log.info(" * All tests successfull")
         finally:
+           
+            if self._result:
+                print "+-----------+-----------+-----------+-----------+"
+                line = "| {:>9} | {:>9} | {:>9} | {:>9} |"
+                print line.format("TEST", green(" SUCCESS "), red("  ERROR  "),
+                                 "% error")
+                for type_name in self._result:
+                    print "+-----------+-----------+-----------+-----------+"
+                    print "| {:^45} |".format(type_name)
+                    print "+-----------+-----------+-----------+-----------+"
+                    for test in self._result[type_name].keys():
+                        line = "| {:>9} | {:>9} | {:>9} | {:>9} |"
+                        percent = int(float(self._result[type_name][test][1]) / \
+                                (self._result[type_name][test][0] +
+                                 self._result[type_name][test][1]) * 100)
+                        if percent == 100:
+                            percent = red("     %s " % percent )
+                        elif percent > 75:
+                            percent = red("      %s " % percent )
+                        elif percent == 0 :
+                            percent = green("       %s " % percent)
+                        else:
+                            percent = str(percent)
+                        print line.format(test, self._result[type_name][test][0],
+                                          self._result[type_name][test][1], 
+                                          percent)
+                print "+-----------+-----------+-----------+-----------+"
+
             # reset the service in the test library
             lib = os.path.join(self._folder, '.lib/opensand_tests.py')
             buf = ""
@@ -379,8 +433,20 @@ help="specify the root folder for tests configurations\n"
                 test_paths.remove(test)
 
         for test_path in test_paths:
-            self._model.set_scenario(self._base)
-            self.run_enrich(test_path, "", types_path, types)
+            test_name = os.path.basename(test_path)
+            test_exist = True
+            if self._test is not None:
+                test_exist = False
+                for name in self._test:
+                    if name.startswith(test_name):
+                        test_exist = True
+            if test_exist:
+                self._model.set_scenario(self._base)
+                # reset run values
+                self._model.set_run("")
+                self.run_enrich(test_path, "", types_path, types)
+ 
+        time.sleep(1)
 
         # stop the platform
         self.stop_opensand()
@@ -437,7 +503,18 @@ help="specify the root folder for tests configurations\n"
 
         init_scenario = self._model.get_scenario()
 
-        if self._test is None or test_name in self._test:
+        test_exist = False
+        if self._test is None and self._regexp is None:
+            test_exist = True
+            
+        if self._test is not None:
+            if test_name in self._test:
+                test_exist = True
+        if not test_exist and self._regexp is not None:
+            if re.search(self._regexp, test_name) is not None:
+                test_exist = True
+
+        if test_exist:
             self._log.info(" * Test %s with base configuration" % test_name)
             if self._quiet:
                 print "Test configuration %s" % blue(test_name, True)
@@ -831,7 +908,21 @@ help="specify the root folder for tests configurations\n"
                 except Exception, error:
                     raise TestError("Configuration",
                                     "Update Configuration: %s" % error)
-
+                
+        #Topology
+        topo = self._model.get_topology()
+        conf = topo.get_configuration()
+        xslt = os.path.join(test_path, 'topology.xslt')
+        # specific case for terminals if there is a XSLT for a specific
+        # one
+        if os.path.exists(xslt):
+            try:
+                conf.transform(xslt)
+                # update the IP address if we add some elements
+                topo.update_hosts_address()
+            except Exception, error:
+                raise TestError("Configuration",
+                                "Update Configuration: %s" % error)
 
     def launch_test_type(self, test_path, test_name):
         """ launch tests on a type """
@@ -899,6 +990,7 @@ help="specify the root folder for tests configurations\n"
             else:
                 self._log.info(" * thread stopped")
             self._threads.remove(thread)
+        success = False
         if len(self._error) > 0:
             #TODO get the test output
             # in quiet mode print important output on terminal
@@ -925,11 +1017,28 @@ help="specify the root folder for tests configurations\n"
             self._last_error = "No test launched for %s" %  type_name
             # continue on other tests
         else:
+            success = True
             self._log.info(" * Test %s successful" % type_name)
             # in quiet mode print important output on terminal
             if self._quiet:
                 print "{:>7}".format(green("SUCCESS"))
                 sys.stdout.flush()
+            
+        test_restult = {}
+        values = test_name.split("_")
+        if len(values) >= 4:
+            values[2] = values[2] + "_" + values[3]
+            del values[3]
+            
+            for val in values:
+                if not type_name in self._result:
+                    self._result[type_name] = {}
+                if val not in self._result[type_name]:
+                    self._result[type_name][val] = [int(success), int(not success)]
+                else:
+                    self._result[type_name][val] = [self._result[type_name][val][0] + int(success),
+                    self._result[type_name][val][1] + int(not success)]
+
         if not self._stopped and not self._model.all_running():
             # need to check stopped because for local tests we may stop the
             # plateform

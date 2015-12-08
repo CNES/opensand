@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2014 TAS
+# Copyright © 2015 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -44,6 +44,7 @@ import tempfile
 
 from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.controller.stream import Stream
+from opensand_manager_core.utils import ST, SAT, GW
 
 CONF_DESTINATION_PATH = '/etc/opensand/'
 START_DESTINATION_PATH = '/var/cache/sand-daemon/start.ini'
@@ -182,10 +183,12 @@ class HostController:
         # stop after configuration if disabled or if dev mode and no deploy
         # information
         if not self._host_model.is_enabled() or \
-           (dev_mode and not self._host_model.get_name() in
-            deploy_config.sections()):
+           (dev_mode and (not self._host_model.get_name() in
+                          deploy_config.sections() and 
+                          not self._host_model.get_component() in
+                          deploy_config.sections())):
             if self._host_model.is_enabled():
-                self._log.warning("%s :disabled because it has no deploy "
+                self._log.warning("%s: disabled because it has no deploy "
                                   "information" % self.get_name())
                 self.disable()
 
@@ -219,6 +222,16 @@ class HostController:
             prefix = deploy_config.get('prefix', 'destination')
 
         component = self._host_model.get_name()
+        if not component  in deploy_config.sections():
+            component = self._host_model.get_component()
+            if not component in deploy_config.sections():
+                self._log.error("Cannot create start.ini file: not "\
+                                "information about %s deployment",
+                                self._host_model.get_name())
+                sock.close()
+                errors.append("%s: no information about %d deployment" %
+                              (self.get_name(), self._host_model.get_name()))
+                return
 
         ld_library_path = '/'
         if deploy_config.has_option(component, 'ld_library_path'):
@@ -234,16 +247,18 @@ class HostController:
         # create the start.ini file
         start_ini = ConfigParser.SafeConfigParser()
         instance_param = ''
-        if component.startswith('st'):
+        if component.startswith(ST) or component.startswith(GW):
             instance_param = '-i ' + self._host_model.get_instance()
         lan_iface = ''
-        if component != 'sat':
+        if component != SAT:
             lan_iface = '-l ' + self._host_model.get_lan_interface()
         command_line = '%s -a %s -n %s %s %s' % \
                        (bin_file,
                         self._host_model.get_emulation_address(),
                         self._host_model.get_emulation_interface(),
                         lan_iface, instance_param)
+        if not self._host_model.is_collector_functional():
+            command_line += " -q"
         try:
             start_ini.add_section(self._host_model.get_component())
             start_ini.set(self._host_model.get_component(), 'command',
@@ -386,7 +401,7 @@ class HostController:
                                 (tool.get_name(), self.get_name()))
                 raise
 
-    def deploy_modified_files(self, files, scenario, errors=[]):
+    def deploy_modified_files(self, files, errors=[]):
         """ send some files """
         sock = None
         try:
@@ -413,7 +428,7 @@ class HostController:
             errors.append("%s: %s" % (self.get_name(), msg))
             return
         else:
-            self._host_model.set_deployed(scenario)
+            self._host_model.set_deployed()
         finally:
             if sock is not None:
                 sock.close()
@@ -529,9 +544,15 @@ class HostController:
 
         if sock is None:
             return
+        
+        component = self._host_model.get_name()
+        if not component  in deploy_config.sections():
+            if component.startswith(ST):
+                component = ST
+            if component.startswith(GW):
+                component = GW
 
         try:
-            component = self._host_model.get_name()
             self.deploy_files(component, sock, deploy_config)
             for tool in self._host_model.get_tools():
                 self.deploy_files(tool.get_name(), sock, deploy_config,
@@ -694,9 +715,9 @@ class HostController:
         """ get the type of interface according to the stack """
         return self._host_model.get_interface_type()
 
-    def get_deploy_files(self, scenario):
+    def get_deploy_files(self):
         """ get the files to deploy """
-        return self._host_model.get_deploy_files(scenario)
+        return self._host_model.get_deploy_files()
 
     def first_deploy(self):
         """ check if this is the first deploy """

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -189,6 +189,7 @@ bool TestSatCarriers::Upward::onEvent(const RtEvent *const event)
 			unsigned char *buf = NULL;
 
 			unsigned int carrier_id;
+			spot_id_t spot_id;
 			int ret;
 
 			// for UDP we need to retrieve potentially desynchronized
@@ -196,7 +197,7 @@ bool TestSatCarriers::Upward::onEvent(const RtEvent *const event)
 			do
 			{
 				ret = this->in_channel_set.receive((NetSocketEvent *)event,
-				                                    carrier_id,
+				                                    carrier_id, spot_id,
 				                                    &buf, length);
 				if(ret < 0)
 				{

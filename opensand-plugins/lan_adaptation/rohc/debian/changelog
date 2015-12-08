@@ -1,3 +1,9 @@
+opensand-rohc-lan-adapt-plugin (4.0.0) trusty; urgency=low
+
+  * Release 4.0.0
+
+ -- Julien Bernard <jbernard@toulouse.viveris.com>  Tue, 08 Dec 2015 10:50:17 +0100
+
 opensand-rohc-lan-adapt-plugin (3.1.0) precise; urgency=low
 
   * Release 3.1.0

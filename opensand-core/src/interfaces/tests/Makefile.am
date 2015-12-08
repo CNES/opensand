@@ -1,4 +1,3 @@
-#SUBDIRS = libbridge 
 # test programs to build
 check_PROGRAMS = \
   test_tap

@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
+ * Copyright © 2015 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -52,6 +52,7 @@ typedef enum
 	evt_message,     ///< Event of type Message
 	evt_signal,      ///< Event of type Signal
 	evt_file,        ///< Event of type File
+	evt_tcp_listen,  ///< Event of type TcpListen
 } event_type_t;
 
 

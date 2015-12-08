@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
+ * Copyright © 2015 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -301,6 +301,7 @@ bool OutputInternal::finishInit(void)
 		message.append(name);
 		message.append(unit);
 	}
+	
 
 	// Add the logs
 /*	for(size_t i = 0 ; i < this->logs.size() ; i++)
@@ -353,7 +354,6 @@ bool OutputInternal::finishInit(void)
 			              "receive NACK for initial probe list, disable output\n");
 			this->disableCollector();
 			this->setInitializing(false);
-			return false;
 		}
 		else
 		{
