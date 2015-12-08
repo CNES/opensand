@@ -384,7 +384,7 @@ bool SatGw::initProbes()
 
 	probe_output_st = Output::registerProbe<int>(
 			"Packets", false, SAMPLE_LAST,
-			"Spot_%d.Gw_%d.Delay buffer size.Output_ST",
+			"Spot_%d.GW_%d.Delay buffer size.Output_ST",
 			this->spot_id, this->gw_id);
 	this->probe_sat_output_st_queue_size.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
@@ -392,7 +392,7 @@ bool SatGw::initProbes()
 
 	probe_output_st_kb = Output::registerProbe<int>(
 			"Kbits", false, SAMPLE_LAST,
-			"Spot_%d.Gw_%d.Delay buffer size.Output_ST_kb",
+			"Spot_%d.GW_%d.Delay buffer size.Output_ST_kb",
 			this->spot_id, this->gw_id);
 	this->probe_sat_output_st_queue_size_kb.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
@@ -400,13 +400,13 @@ bool SatGw::initProbes()
 
 	probe_l2_to_st = Output::registerProbe<int>(
 			"Kbits/s", true, SAMPLE_LAST,
-			"Spot_%d.Gw_%d.Throughputs.L2_to_ST", this->spot_id, this->gw_id);
+			"Spot_%d.GW_%d.Throughputs.L2_to_ST", this->spot_id, this->gw_id);
 	this->probe_sat_l2_to_st.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id, probe_l2_to_st));
 
 	probe_l2_from_st = Output::registerProbe<int>(
 			"Kbits/s", true, SAMPLE_LAST,
-			"Spot_%d.Gw_%d.Throughputs.L2_from_ST", this->spot_id, this->gw_id);
+			"Spot_%d.GW_%d.Throughputs.L2_from_ST", this->spot_id, this->gw_id);
 	this->probe_sat_l2_from_st.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_l2_from_st));
@@ -414,21 +414,21 @@ bool SatGw::initProbes()
 
 	probe_l2_to_gw = Output::registerProbe<int>(
 			"Kbits/s", true, SAMPLE_LAST,
-			"Spot_%d.Gw_%d.Throughputs.L2_to_GW",
+			"Spot_%d.GW_%d.Throughputs.L2_to_GW",
 			this->spot_id, this->gw_id);
 	this->probe_sat_l2_to_gw.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_l2_to_gw));
 	probe_l2_from_gw = Output::registerProbe<int>(
 			"Kbits/s", true, SAMPLE_LAST,
-			"Spot_%d.Gw_%d.Throughputs.L2_from_GW",
+			"Spot_%d.GW_%d.Throughputs.L2_from_GW",
 			this->spot_id, this->gw_id);
 	this->probe_sat_l2_from_gw.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_l2_from_gw));
 	probe_output_gw = Output::registerProbe<int>(
 			"Packets", false, SAMPLE_LAST,
-			"Spot_%d.Gw_%d.Delay buffer size.Output_GW",
+			"Spot_%d.GW_%d.Delay buffer size.Output_GW",
 			this->spot_id, this->gw_id);
 	this->probe_sat_output_gw_queue_size.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
@@ -436,7 +436,7 @@ bool SatGw::initProbes()
 
 	probe_output_gw_kb = Output::registerProbe<int>(
 			"Kbits", false, SAMPLE_LAST,
-			"Spot_%d.Gw_%d.Delay buffer size.Output_GW_kb",
+			"Spot_%d.GW_%d.Delay buffer size.Output_GW_kb",
 			this->spot_id, this->gw_id);
 	this->probe_sat_output_gw_queue_size_kb.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
