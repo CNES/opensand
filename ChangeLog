@@ -1,3 +1,19 @@
+2015-12-08 opensand-4.0.0
+
+   * Release 4.0.0
+   * Add SCPC access on return link
+   * Add multi-spot support
+   * Add multi-GW support
+   * Add Ubuntu 14.04 LTS support
+   * Add a new resources management interface
+   * Add multi-category support on forward link
+   * Rework MODCOD handling
+   * Move project on git and host it on net4sat.org
+   * Fix issue #2
+   * Fix issue #3
+   * Fix issue #4
+   * Various other bugfixes and improvements
+
 2014-12-24 opensand-3.1.0
 
    * Release 3.1.0

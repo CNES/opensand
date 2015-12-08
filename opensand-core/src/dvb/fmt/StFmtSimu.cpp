@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2014 TAS
- * Copyright © 2014 CNES
+ * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,9 @@
  * @file StFmtSimu.cpp
  * @brief The internal representation of a Satellite Terminal (ST)
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Adrien Thibaud <athibaud@toulouse.viveris.com>
+ * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
+ * @author Julien Bernard <jbernard@toulouse.viveris.com>
  */
 
 #include "StFmtSimu.h"
