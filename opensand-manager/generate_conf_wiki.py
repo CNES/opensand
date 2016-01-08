@@ -168,8 +168,8 @@ if __name__ == "__main__":
     for SECTION in PARSER.get_sections():
         domain = PARSER.get_name(SECTION)
         done = False
-        if DO_HIDE and PARSER.do_hide(domain) or PARSER.do_hide_adv(domain,
-                                                                    False):
+        if DO_HIDE and (PARSER.do_hide(domain) or PARSER.do_hide_adv(domain,
+                                                                    False)):
             continue
         description = PARSER.get_documentation(domain)
         bspot = ""
