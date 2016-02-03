@@ -271,8 +271,8 @@ int main(int argc, char **argv)
 	}
 
 	block_encap = Rt::createBlock<BlockEncap,
-	                              BlockEncap::RtUpward,
-	                              BlockEncap::RtDownward,
+	                              BlockEncap::Upward,
+	                              BlockEncap::Downward,
 	                              tal_id_t>("Encap", block_lan_adaptation, mac_id);
 	if(!block_encap)
 	{
