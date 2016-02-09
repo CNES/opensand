@@ -30,6 +30,7 @@
  * @file BlockEncap.cpp
  * @brief Generic Encapsulation Bloc
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurelien Delrieu <adelrieu@toulouse.viveris.com>
  */
 
 

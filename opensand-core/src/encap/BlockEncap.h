@@ -31,6 +31,7 @@
  * @brief Generic Encapsulation Bloc
  * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien Delrieu <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef BLOCK_ENCAP_H

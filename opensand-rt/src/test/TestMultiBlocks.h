@@ -29,6 +29,7 @@
  * @file TestMultiBlocks.h
  * @author Cyrille Gaillardet <cgaillardet@toulouse.viveris.com>
  * @author Julien Bernard <jbernard@toulouse.viveris.com>
+ * @author Aurelien Delrieu <adelrieu@toulouse.viveris.com>
  * @brief This test check that we can read a file on a channel then
  *        transmit content to lower block, the bottom block transmit it
  *        to the following channel that will forward it to the top and
@@ -48,19 +49,53 @@ class TopBlock: public Block
 
   public:
 
-	TopBlock(const string &name, string input_file);
+	TopBlock(const string &name, string name2);
 	~TopBlock();
+	
+	void setInputFile(const string &filepath);
+	
+	class Upward : public RtUpward
+	{
+	  public:
+		Upward(Block *const bl, string name2) :
+			RtUpward(bl),
+			name(name2)
+		{}
+		~Upward() {}
 
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
 
+	  protected:
+		  string name;
+	};
+
+	class Downward : public RtDownward
+	{
+	  public:
+		Downward(Block *const bl, string name2) :
+			RtDownward(bl),
+			input_fd(-1),
+			name(name2)
+		{}
+		~Downward();
+
+		void setInputFd(int32_t fd);
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+	
+	  protected:
+		int32_t input_fd;
+		char last_written[MAX_SOCK_SIZE + 1];
+		string name;
+	};
+	
   protected:
+	string input_file;
 
+	bool onInit(void);
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onDownwardEvent(const RtEvent *const event);
-	bool onInit(void);
-
-	string input_file;
-	int32_t input_fd;
-	char last_written[MAX_SOCK_SIZE + 1];
 
 };
 
@@ -69,17 +104,44 @@ class MiddleBlock: public Block
 
   public:
 
-	MiddleBlock(const string &name);
+	MiddleBlock(const string &name, string name2);
 	~MiddleBlock();
 
+	class Upward : public RtUpward
+	{
+	  public:
+		Upward(Block *const bl, string name2) :
+			RtUpward(bl),
+			name(name2)
+		{}
+		~Upward() {}
+
+		bool onEvent(const RtEvent *const event);
+
+	  protected:
+		string name;
+	};
+
+	class Downward : public RtDownward
+	{
+	  public:
+		Downward(Block *const bl, string name2) :
+			RtDownward(bl),
+			name(name2)
+		{}
+		~Downward() {}
+
+		bool onEvent(const RtEvent *const event);
+
+	  protected:
+		string name;
+	};
 
   protected:
 
+	bool onInit(void);
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onDownwardEvent(const RtEvent *const event);
-	bool onInit(void);
-
-
 };
 
 class BottomBlock: public Block
@@ -87,19 +149,52 @@ class BottomBlock: public Block
 
   public:
 
-	BottomBlock(const string &name);
+	BottomBlock(const string &name, string name2);
 	~BottomBlock();
 
+	class Upward : public RtUpward
+	{
+	  public:
+		Upward(Block *const bl, string name2) :
+			RtUpward(bl),
+			name(name2)
+		{}
+		~Upward();
+
+		void setInputFd(int32_t fd);
+
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+	  protected:
+		int32_t input_fd;
+		string name;
+	};
+
+	class Downward : public RtDownward
+	{
+	  public:
+		Downward(Block *const bl, string name2) :
+			RtDownward(bl),
+			name(name2)
+		{}
+		~Downward();
+
+		void setOutputFd(int32_t fd);
+
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+
+	  protected:
+		int32_t output_fd;
+		string name;
+	};
 
   protected:
 
-
+	bool onInit(void);
 	bool onUpwardEvent(const RtEvent *const event);
 	bool onDownwardEvent(const RtEvent *const event);
-	bool onInit(void);
-
-	int32_t input_fd;
-	int32_t output_fd;
 
 };
 

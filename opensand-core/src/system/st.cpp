@@ -31,6 +31,7 @@
  * @brief Satellite station (ST) process
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  * ST uses the following stack of RT blocs installed over 2 NICs
  * (nic1 on user network side and nic2 on satellite network side):

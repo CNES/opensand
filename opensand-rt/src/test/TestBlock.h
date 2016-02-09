@@ -28,6 +28,7 @@
 /**
  * @file TestBlock.h
  * @author Julien Bernard <jbernard@toulouse.viveris.com>
+ * @author Aurelien Delrieu <adelrieu@toulouse.viveris.com>
  * @brief This test check that we can raise a timer on a channel then
  *        write on a socket that will be monitored by the opposite channel
  */
@@ -36,33 +37,71 @@
 #define TEST_BLOCK_H
 
 #include "Block.h"
+#include "RtChannel.h"
+
+#include <utility>
+using std::pair;
 
 class TestBlock: public Block
 {
 
   public:
 
-	TestBlock(const string &name);
-
+	TestBlock(const string &name, string name2);
 	~TestBlock();
 
+	class Upward : public RtUpward
+	{
+	 public:
+	 	Upward(Block *const bl, string name2) :
+			RtUpward(bl),
+			nbr_timeouts(0),
+			output_fd(-1),
+			name(name2)
+	 	{};
+	 	~Upward();
+	 	
+	 	bool onInit(void);
+	 	bool onEvent(const RtEvent *const event);
 
+	 	void setOutputFd(int32_t fd);
+	 	
+	 protected:
+ 		uint32_t nbr_timeouts;
+		int32_t output_fd;
+
+		/// the data written by timer that should be read on socket
+		char last_written[64];
+		string name;
+	};
+
+	class Downward : public RtDownward
+	{
+	 public:
+	 	Downward(Block *const bl, string name2) :
+			RtDownward(bl),
+			input_fd(-1),
+			name(name2)
+		{};
+		~Downward();
+	 	
+	 	bool onInit(void);
+	 	bool onEvent(const RtEvent *const event);
+	 	
+	 	void setInputFd(int32_t fd);
+	 	
+	 protected:
+	    int32_t input_fd;
+	    string name;
+	};
+	
   protected:
 
-	bool onUpwardEvent(const RtEvent *const event);
-	bool onDownwardEvent(const RtEvent *const event);
 	bool onInit(void);
 	
-
-  private:
-	// for upward
-	uint32_t nbr_timeouts;
-	int32_t output_fd;
-	// for downward
-	int32_t input_fd;
-
-	/// the data written by timer that should be read on socket
-	char last_written[64];
+	// TODO: Remove these useless methods
+	bool onUpwardEvent(const RtEvent *const event);
+	bool onDownwardEvent(const RtEvent *const event);
 };
 
 
