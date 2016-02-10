@@ -44,64 +44,57 @@ using std::pair;
 
 class TestBlock: public Block
 {
-
   public:
 
-	TestBlock(const string &name, string name2);
+	TestBlock(const string &name);
 	~TestBlock();
 
 	class Upward : public RtUpward
 	{
 	 public:
-	 	Upward(Block *const bl, string name2) :
-			RtUpward(bl),
+	 	Upward(const string &name) :
+			RtUpward(name),
 			nbr_timeouts(0),
-			output_fd(-1),
-			name(name2)
+			output_fd(-1)
 	 	{};
 	 	~Upward();
+	 	
+	 	void setOutputFd(int32_t fd);
+	 	
+	 protected:
 	 	
 	 	bool onInit(void);
 	 	bool onEvent(const RtEvent *const event);
 
-	 	void setOutputFd(int32_t fd);
-	 	
-	 protected:
  		uint32_t nbr_timeouts;
 		int32_t output_fd;
 
 		/// the data written by timer that should be read on socket
 		char last_written[64];
-		string name;
 	};
 
 	class Downward : public RtDownward
 	{
 	 public:
-	 	Downward(Block *const bl, string name2) :
-			RtDownward(bl),
-			input_fd(-1),
-			name(name2)
+	 	Downward(const string &name) :
+			RtDownward(name),
+			input_fd(-1)
 		{};
 		~Downward();
-	 	
-	 	bool onInit(void);
-	 	bool onEvent(const RtEvent *const event);
 	 	
 	 	void setInputFd(int32_t fd);
 	 	
 	 protected:
+	 	
+	 	bool onInit(void);
+	 	bool onEvent(const RtEvent *const event);
+	 	
 	    int32_t input_fd;
-	    string name;
 	};
 	
   protected:
 
 	bool onInit(void);
-	
-	// TODO: Remove these useless methods
-	bool onUpwardEvent(const RtEvent *const event);
-	bool onDownwardEvent(const RtEvent *const event);
 };
 
 

@@ -29,6 +29,7 @@
  * @file RtChannel.cpp
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  * @brief  The channel included in blocks
  *
  */
@@ -58,14 +59,15 @@
 using std::ostringstream;
 
 
-// TODO pointer on onEventUp/Down and remove chan and add name
-RtChannel::RtChannel(Block *const bl, chan_type_t chan):
+// TODO pointer on onEventUp/Down
+RtChannel::RtChannel(const string &name, const string &type):
 	log_init(NULL),
 	log_rt(NULL),
 	log_receive(NULL),
 	log_send(NULL),
-	block(bl),
-	chan(chan),
+	channel_name(name),
+	channel_type(type),
+	block_initialized(false),
 	previous_fifo(NULL),
 	in_opp_fifo(NULL),
 	max_input_fd(-1),
@@ -116,21 +118,20 @@ bool RtChannel::init(void)
 {
 	sigset_t signal_mask;
 	int32_t pipefd[2];
-	string channel = (chan == upward_chan) ? "Upward": "Downward";
 
 	// Output Log
 	this->log_rt = Output::registerLog(LEVEL_WARNING, "%s.%s.rt",
-	                                   block->name.c_str(),
-	                                   channel.c_str());
+	                                   this->channel_name.c_str(),
+	                                   this->channel_type.c_str());
 	this->log_init = Output::registerLog(LEVEL_WARNING, "%s.%s.init",
-	                                     block->name.c_str(),
-	                                     channel.c_str());
+	                                     this->channel_name.c_str(),
+	                                     this->channel_type.c_str());
 	this->log_receive = Output::registerLog(LEVEL_WARNING, "%s.%s.receive",
-	                                        block->name.c_str(),
-	                                        channel.c_str());
+	                                        this->channel_name.c_str(),
+	                                        this->channel_type.c_str());
 	this->log_send = Output::registerLog(LEVEL_WARNING, "%s.%s.send",
-	                                     block->name.c_str(),
-	                                     channel.c_str());
+	                                     this->channel_name.c_str(),
+	                                     this->channel_type.c_str());
 
 	LOG(this->log_init, LEVEL_INFO,
 	    "Starting initialization\n");
@@ -183,6 +184,11 @@ bool RtChannel::init(void)
 	}
 
 	return true;
+}
+
+void RtChannel::setIsBlockInitialized(bool initialized)
+{
+	this->block_initialized = initialized;
 }
 
 int32_t RtChannel::addTimerEvent(const string &name,
@@ -299,12 +305,9 @@ bool RtChannel::addMessageEvent(RtFifo *out_fifo,
 {
 	MessageEvent *event;
 	
-	string name = "downward";
-	if(this->chan == upward_chan)
-	{
-		name = "upward";
-	}
-
+	string name = this->channel_type;
+	std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+	
 	if(opposite)
 	{
 		name += "_opposite";
@@ -377,7 +380,7 @@ void RtChannel::updateEvents(void)
 		if(it != this->events.end())
 		{
 			LOG(this->log_rt, LEVEL_INFO,
-			    "remove event \"%s\" from list\n",
+			    "Remove event \"%s\" from list\n",
 			    (*it).second->getName().c_str());
 			// remove fd from set
 			FD_CLR((*it).first, &(this->input_fd_set));
@@ -517,16 +520,6 @@ void *RtChannel::startThread(void *pthis)
 	return NULL;
 }
 
-
-bool RtChannel::processEvent(const RtEvent *const event)
-{
-	LOG(this->log_rt, LEVEL_DEBUG,
-	    "event received (%s)",
-	    event->getName().c_str());
-	return this->block->processEvent(event, this->chan);
-};
-
-
 void RtChannel::executeThread(void)
 {
 	int32_t number_fd;
@@ -538,7 +531,7 @@ void RtChannel::executeThread(void)
 	while(true)
 	{
 		handled = 0;
-
+		
 		// get the new events for the next loop
 		this->updateEvents();
 		readfds = this->input_fd_set;
@@ -614,7 +607,9 @@ void RtChannel::executeThread(void)
 			iter != priority_sorted_events.end(); ++iter)
 		{
 			(*iter)->setTriggerTime();
-			if(!this->processEvent(*iter))
+			LOG(this->log_rt, LEVEL_DEBUG, "event received (%s)",
+			    (*iter)->getName().c_str());
+			if(!this->onEvent(*iter))
 			{
 				LOG(this->log_rt, LEVEL_ERROR,
 				    "failed to process event %s\n",
@@ -639,7 +634,7 @@ void RtChannel::reportError(bool critical, const char *msg_format, ...)
 
 	va_end(args);
 
-	Rt::reportError(this->block->getName(), pthread_self(),
+	Rt::reportError(this->channel_name, pthread_self(),
 	                critical, msg);
 };
 
@@ -664,7 +659,7 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 	bool success = true;
 
 	// check that block is initialized (i.e. we are in event processing)
-	if(!this->block->initialized)
+	if(!this->block_initialized)
 	{
 		LOG(this->log_send, LEVEL_NOTICE,
 		    "Be careful, some message are sent while process are not "
@@ -709,8 +704,8 @@ void RtChannel::getDurationsStatistics(void) const
 		Output::sendEvent(event,
 		                  "[%s:%s] Event %s: mean = %.2f us, max = %d us, "
 		                  "min = %d us, total = %.2f ms\n",
-		                  this->block->getName().c_str(),
-		                  (this->chan == upward_chan) ? "Upward" : "Downward",
+		                  this->channel_name.c_str(),
+		                  this->channel_type.c_str(),
 		                  (*it).first.c_str(), mean, int(max), int(min), sum / 1000);
 	}
 }

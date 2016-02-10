@@ -49,54 +49,42 @@ class TopBlock: public Block
 
   public:
 
-	TopBlock(const string &name, string name2);
+	TopBlock(const string &name, string file);
 	~TopBlock();
-	
-	void setInputFile(const string &filepath);
 	
 	class Upward : public RtUpward
 	{
 	  public:
-		Upward(Block *const bl, string name2) :
-			RtUpward(bl),
-			name(name2)
+		Upward(const string &name, string file) :
+			RtUpward(name)
 		{}
 		~Upward() {}
 
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
 	  protected:
-		  string name;
+		bool onEvent(const RtEvent *const event);
 	};
 
 	class Downward : public RtDownward
 	{
 	  public:
-		Downward(Block *const bl, string name2) :
-			RtDownward(bl),
-			input_fd(-1),
-			name(name2)
+		Downward(const string &name, string file) :
+			RtDownward(name),
+			input_file(file),
+			input_fd(-1)
 		{}
 		~Downward();
-
-		void setInputFd(int32_t fd);
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
 	
 	  protected:
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+		
+		string input_file;
 		int32_t input_fd;
 		char last_written[MAX_SOCK_SIZE + 1];
-		string name;
 	};
 	
   protected:
-	string input_file;
-
-	bool onInit(void);
-	bool onUpwardEvent(const RtEvent *const event);
-	bool onDownwardEvent(const RtEvent *const event);
-
+	bool onInit(void) { return true; }
 };
 
 class MiddleBlock: public Block
@@ -104,44 +92,35 @@ class MiddleBlock: public Block
 
   public:
 
-	MiddleBlock(const string &name, string name2);
+	MiddleBlock(const string &name);
 	~MiddleBlock();
 
 	class Upward : public RtUpward
 	{
 	  public:
-		Upward(Block *const bl, string name2) :
-			RtUpward(bl),
-			name(name2)
+		Upward(const string &name) :
+			RtUpward(name)
 		{}
 		~Upward() {}
 
-		bool onEvent(const RtEvent *const event);
-
 	  protected:
-		string name;
+		bool onEvent(const RtEvent *const event);
 	};
 
 	class Downward : public RtDownward
 	{
 	  public:
-		Downward(Block *const bl, string name2) :
-			RtDownward(bl),
-			name(name2)
+		Downward(const string &name) :
+			RtDownward(name)
 		{}
 		~Downward() {}
 
-		bool onEvent(const RtEvent *const event);
-
 	  protected:
-		string name;
+		bool onEvent(const RtEvent *const event);
 	};
-
+	
   protected:
-
-	bool onInit(void);
-	bool onUpwardEvent(const RtEvent *const event);
-	bool onDownwardEvent(const RtEvent *const event);
+	bool onInit(void) { return true; }
 };
 
 class BottomBlock: public Block
@@ -149,53 +128,45 @@ class BottomBlock: public Block
 
   public:
 
-	BottomBlock(const string &name, string name2);
+	BottomBlock(const string &name);
 	~BottomBlock();
 
 	class Upward : public RtUpward
 	{
 	  public:
-		Upward(Block *const bl, string name2) :
-			RtUpward(bl),
-			name(name2)
+		Upward(const string &name) :
+			RtUpward(name)
 		{}
 		~Upward();
 
 		void setInputFd(int32_t fd);
 
+	  protected:
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	  protected:
 		int32_t input_fd;
-		string name;
 	};
 
 	class Downward : public RtDownward
 	{
 	  public:
-		Downward(Block *const bl, string name2) :
-			RtDownward(bl),
-			name(name2)
+		Downward(const string &name) :
+			RtDownward(name)
 		{}
 		~Downward();
 
 		void setOutputFd(int32_t fd);
 
+	  protected:
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	  protected:
 		int32_t output_fd;
-		string name;
 	};
 
   protected:
-
 	bool onInit(void);
-	bool onUpwardEvent(const RtEvent *const event);
-	bool onDownwardEvent(const RtEvent *const event);
-
 };
 
 #endif
