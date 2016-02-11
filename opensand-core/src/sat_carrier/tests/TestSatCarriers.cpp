@@ -30,6 +30,7 @@
  * @file TestSatCarriers.cpp
  * @brief Test of channels with a bidirectionnal flow 
  * @author Julien Bernard <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  * 
  * 
  *
@@ -117,12 +118,6 @@ TestSatCarriers::~TestSatCarriers()
 }
 
 
-// TODO remove this functions once every channels will be correctly separated
-bool TestSatCarriers::onDownwardEvent(const RtEvent *const event)
-{
-	return ((Downward *)this->downward)->onEvent(event);
-}
-
 bool TestSatCarriers::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
@@ -167,12 +162,6 @@ bool TestSatCarriers::Downward::onEvent(const RtEvent *const event)
 			return false;
 	}
 	return true;
-}
-
-
-bool TestSatCarriers::onUpwardEvent(const RtEvent *const event)
-{
-	return ((Upward *)this->upward)->onEvent(event);
 }
 
 bool TestSatCarriers::Upward::onEvent(const RtEvent *const event)

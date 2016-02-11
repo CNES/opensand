@@ -30,6 +30,7 @@
  * @file BlockSatCarrier.cpp
  * @brief This bloc implements a satellite carrier emulation.
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -54,12 +55,6 @@ BlockSatCarrier::~BlockSatCarrier()
 {
 }
 
-
-// TODO remove this functions once every channels will be correctly separated
-bool BlockSatCarrier::onDownwardEvent(const RtEvent *const event)
-{
-	return ((Downward *)this->downward)->onEvent(event);
-}
 
 bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 {
@@ -92,12 +87,6 @@ bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 			return false;
 	}
 	return true;
-}
-
-
-bool BlockSatCarrier::onUpwardEvent(const RtEvent *const event)
-{
-	return ((Upward *)this->upward)->onEvent(event);
 }
 
 bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)

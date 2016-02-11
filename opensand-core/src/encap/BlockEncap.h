@@ -96,8 +96,8 @@ class BlockEncap: public Block
 	class Upward: public RtUpward, EncapChannel
 	{
 	 public:
-		Upward(Block *const bl, tal_id_t mac_id) :
-			RtUpward(bl),
+		Upward(const string &name, tal_id_t mac_id) :
+			RtUpward(name),
 			EncapChannel(),
 			mac_id(mac_id),
 			satellite_type()
@@ -137,8 +137,8 @@ class BlockEncap: public Block
 	class Downward: public RtDownward, EncapChannel
 	{
 	 public:
-		Downward(Block *const bl, tal_id_t UNUSED(mac_id)) :
-			RtDownward(bl),
+		Downward(const string &name, tal_id_t UNUSED(mac_id)) :
+			RtDownward(name),
 			EncapChannel()
 		{};
 		bool onEvent(const RtEvent *const event);
@@ -202,10 +202,6 @@ class BlockEncap: public Block
                          vector <EncapPlugin::EncapContext *> &ctx,
                          const char *link_type, 
                          bool scpc_scheme);
-
-	/// event handlers
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
 
 	/// initialization method
 	bool onInit();

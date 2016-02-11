@@ -29,6 +29,7 @@
  * @file BlockPhysicalLayer.h
  * @brief A DVB physical layer block
  * @author Santiago PENA  <santiago.penaluque@cnes.fr>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  * This block modifies the DVB frames sent/received on satellite terminals
  * depending on emulated physical conditions of the up and downlink
@@ -47,22 +48,6 @@
 
 #include <map>
 
-class BlockPhysicalLayerSat;
-
-
-class Chan: public RtChannel, PhyChannel
-{
-	friend class BlockPhysicalLayer;
-	friend class BlockPhysicalLayerSat;
- public:
-	Chan(Block *const bl, chan_type_t chan_type):
-		RtChannel(bl, chan_type),
-		PhyChannel()
-	{};
-
- protected:
-	virtual bool forwardFrame(DvbFrame *dvb_frame) = 0;
-};
 
 /**
  * @class BlockPhysicalLayer
@@ -84,54 +69,46 @@ class BlockPhysicalLayer: public Block
 	 */
 	~BlockPhysicalLayer();
 
-	/// event handlers
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
-
 	// initialization method
 	bool onInit();
 
-	class Upward: public Chan
+	class Upward: public RtUpward, PhyChannel
 	{
+		friend class BlockPhysicalLayer;
+		friend class BlockPhysicalLayerSat;
+		
 	  public:
-		Upward(Block *const bl):
-			Chan(bl, upward_chan)
-		{
-		};
+		Upward(const string &name);
 
 		virtual bool onInit(void);
+		bool onEvent(const RtEvent *const event);
+		
+	  protected:
+		bool forwardFrame(DvbFrame *dvb_frame);
+
+	  private:
+		// Output logs
+		OutputLog *log_event;
+	};
+
+	class Downward: public RtDownward, PhyChannel
+	{
+		friend class BlockPhysicalLayer;
+		friend class BlockPhysicalLayerSat;
+		
+	  public:
+		Downward(const string &name);
+
+		virtual bool onInit(void);
+		bool onEvent(const RtEvent *const event);
 
 	  protected:
 		bool forwardFrame(DvbFrame *dvb_frame);
+
+	  private:
+		// Output logs
+		OutputLog *log_event;
 	};
-
-	class Downward: public Chan
-	{
-	  public:
-		Downward(Block *const bl):
-			Chan(bl, downward_chan)
-		{
-		};
-
-		virtual bool onInit(void);
-
-	  protected:
-		bool forwardFrame(DvbFrame *dvb_frame);
-	};
-
-
- private:
-
-	/**
-	 * @brief Global event function for both upward and downward channels
-	 *
-	 * @param event  The event
-	 * @param chan   The channel
-	 */
-	bool onEvent(const RtEvent *const event, Chan *chan);
-
-	// Output logs
-	OutputLog *log_event;
 };
 
 /**
@@ -144,11 +121,12 @@ class BlockPhysicalLayerSat: public BlockPhysicalLayer
 	BlockPhysicalLayerSat(const string &name):
 		BlockPhysicalLayer(name)
 	{};
+	
 	class Upward: public BlockPhysicalLayer::Upward
 	{
 	  public:
-		Upward(Block *const bl):
-			BlockPhysicalLayer::Upward(bl)
+		Upward(const string &name):
+			BlockPhysicalLayer::Upward(name)
 		{};
 
 		bool onInit(void);
@@ -157,25 +135,12 @@ class BlockPhysicalLayerSat: public BlockPhysicalLayer
 	class Downward: public BlockPhysicalLayer::Downward
 	{
 	  public:
-		Downward(Block *const bl):
-			BlockPhysicalLayer::Downward(bl)
+		Downward(const string &name):
+			BlockPhysicalLayer::Downward(name)
 		{};
 
 		bool onInit(void);
 	};
-
- private:
-
-	/**
-	 * @brief Global event function for both upward and downward channels
-	 *
-	 * @param event  The event
-	 * @param chan   The channel
-	 */
-	bool onEvent(const RtEvent *const event, Chan *chan);
-
-	// Output logs
-	OutputLog *log_event;
 };
 
 #endif

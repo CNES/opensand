@@ -34,6 +34,7 @@
  * @author Didier Barvaux / Viveris Technologies
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  */
 
@@ -115,7 +116,7 @@ class BlockDvbTal: public BlockDvb
 	class Upward: public DvbUpward, public DvbFmt
 	{
 	 public:
-		Upward(Block *const bl, tal_id_t mac_id);
+		Upward(const string &name, tal_id_t mac_id);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -221,7 +222,7 @@ class BlockDvbTal: public BlockDvb
 	class Downward: public DvbDownward, public DvbFmt
 	{
 	 public:
-		Downward(Block *const bl, tal_id_t mac_id);
+		Downward(const string &name, tal_id_t mac_id);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -465,8 +466,6 @@ class BlockDvbTal: public BlockDvb
 
  protected:
 
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit(void);
 
 	/// The list of Sts with return/up modcod

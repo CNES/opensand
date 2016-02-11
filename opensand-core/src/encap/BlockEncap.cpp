@@ -78,11 +78,6 @@ BlockEncap::~BlockEncap()
 {
 }
 
-bool BlockEncap::onDownwardEvent(const RtEvent *const event)
-{
-	return ((Downward *)this->downward)->onEvent(event);
-}
-
 bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
@@ -136,11 +131,6 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 void BlockEncap::Downward::setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx)
 {
 	this->ctx = encap_ctx;
-}
-
-bool BlockEncap::onUpwardEvent(const RtEvent *const event)
-{
-	return ((Upward *)this->upward)->onEvent(event);
 }
 
 bool BlockEncap::Upward::onEvent(const RtEvent *const event)

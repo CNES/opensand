@@ -32,6 +32,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #include "BlockDvbSat.h"
@@ -100,19 +101,6 @@ bool BlockDvbSat::onInit()
 
 	return true;
 }
-
-
-bool BlockDvbSat::onUpwardEvent(const RtEvent *const event)
-{
-	return ((Upward *)this->upward)->onEvent(event);
-}
-
-
-bool BlockDvbSat::onDownwardEvent(const RtEvent *const event)
-{
-	return ((Downward *)this->downward)->onEvent(event);
-}
-
 
 bool BlockDvbSat::initSpots(void)
 {
@@ -296,8 +284,8 @@ error:
 /*****************************************************************************/
 /*                              Downward                                     */
 /*****************************************************************************/
-BlockDvbSat::Downward::Downward(Block *const bl):
-	DvbDownward(bl),
+BlockDvbSat::Downward::Downward(const string &name):
+	DvbDownward(name),
 	down_frame_counter(),
 	sat_delay(),
 	fwd_timer(-1),
@@ -613,8 +601,8 @@ void BlockDvbSat::Downward::updateStats(void)
 /*****************************************************************************/
 
 
-BlockDvbSat::Upward::Upward(Block *const bl):
-	DvbUpward(bl),
+BlockDvbSat::Upward::Upward(const string &name):
+	DvbUpward(name),
 	reception_std(NULL),
 	gws(),
 	sat_delay()

@@ -30,6 +30,7 @@
  * @file BlockLanAdaptation.cpp
  * @brief Interface between network interfaces and OpenSAND
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #include "BlockLanAdaptation.h"
@@ -72,11 +73,6 @@ BlockLanAdaptation::~BlockLanAdaptation()
 	{
 		this->delFromBridge();
 	}
-}
-
-bool BlockLanAdaptation::onDownwardEvent(const RtEvent *const event)
-{
-	return ((Downward *)this->downward)->onEvent(event);
 }
 
 bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
@@ -146,11 +142,6 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 	}
 
 	return true;
-}
-
-bool BlockLanAdaptation::onUpwardEvent(const RtEvent *const event)
-{
-	return ((Upward *)this->upward)->onEvent(event);
 }
 
 bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)

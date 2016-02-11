@@ -32,6 +32,7 @@
  * @author Didier Barvaux / Viveris Technologies
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  * <pre>
  *
@@ -75,7 +76,7 @@ class BlockDvbSat: public BlockDvb
 	class Upward: public DvbUpward
 	{
 	 public:
-		Upward(Block *const bl);
+		Upward(const string &name);
 
 		~Upward();
 
@@ -190,7 +191,7 @@ class BlockDvbSat: public BlockDvb
 	class Downward: public DvbDownward
 	{
 	 public:
-		Downward(Block *const bl);
+		Downward(const string &name);
 
 		~Downward();
 		
@@ -293,8 +294,6 @@ class BlockDvbSat: public BlockDvb
 
   protected:
 
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit();
 
 
