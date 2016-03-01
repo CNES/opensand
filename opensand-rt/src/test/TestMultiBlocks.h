@@ -44,6 +44,10 @@
 #include "Block.h"
 #include "NetSocketEvent.h"
 
+#include <queue>
+
+using std::queue;
+
 class TopBlock: public Block
 {
 
@@ -70,7 +74,8 @@ class TopBlock: public Block
 		Downward(const string &name, string file) :
 			RtDownward(name),
 			input_file(file),
-			input_fd(-1)
+			input_fd(-1),
+			last_written()
 		{}
 		~Downward();
 	
@@ -80,7 +85,8 @@ class TopBlock: public Block
 		
 		string input_file;
 		int32_t input_fd;
-		char last_written[MAX_SOCK_SIZE + 1];
+		//char last_written[MAX_SOCK_SIZE + 1];
+		queue<string> last_written;
 	};
 	
   protected:

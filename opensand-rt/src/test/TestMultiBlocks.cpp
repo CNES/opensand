@@ -188,6 +188,7 @@ bool TopBlock::Downward::onEvent(const RtEvent *const event)
 {
 	size_t size;
 	char *data;
+	string buffer;
 	switch(event->getType())
 	{
 		case evt_file:
@@ -205,8 +206,10 @@ bool TopBlock::Downward::onEvent(const RtEvent *const event)
 			          << " bytes of data received on net socket" << std::endl;
 			fflush(stdout);
 			// keep data in order to compare on the opposite block
-			strncpy(this->last_written, data, size);
-			this->last_written[size] = '\0';
+			buffer.assign(data);
+			this->last_written.push(buffer);
+			//strncpy(this->last_written, data, size);
+			//this->last_written[size] = '\0';
 
 			// wait in order to receive data on the opposite block and compare it
 			// this also allow testing multithreading as this thread is paused
@@ -229,11 +232,21 @@ bool TopBlock::Downward::onEvent(const RtEvent *const event)
 			data[size] = '\0';
 			
 			// compare data
-			if(strcmp(data, this->last_written))
+			if(this->last_written.empty())
+			{
+				Rt::reportError(this->getName(), pthread_self(), true,
+		                        "nothing to compare with data received '%s'",
+		                        data);
+		        free(data);
+		        return false;
+			}
+			buffer = this->last_written.front();
+			this->last_written.pop();
+			if(strncmp(data, buffer.c_str(), size))
 			{
 				Rt::reportError(this->getName(), pthread_self(), true,
 		                        "wrong data received '%s' instead of '%s'",
-		                        data, this->last_written);
+		                        data, buffer.c_str());
 		        free(data);
 		        return false;
 			}
