@@ -176,6 +176,21 @@ class ResourceView(WindowView):
             self.update_graph(RETURN_UP)
             self.update_st_assignment(FORWARD_DOWN)
             self.update_st_assignment(RETURN_UP)
+            if self._model.get_conf().get_payload_type() == 'regenerative':
+                label = self._ui.get_widget('label_forward_title')
+                label.set_text("<b>Downlink Band</b>")
+                label.set_use_markup(True)
+                label = self._ui.get_widget('label_return_title')
+                label.set_text("<b>Uplink Band</b>")
+                label.set_use_markup(True)
+            
+            else:
+                label = self._ui.get_widget('label_forward_title')
+                label.set_text("<b>Forward Band</b>")
+                label.set_use_markup(True)
+                label = self._ui.get_widget('label_return_title')
+                label.set_text("<b>Return Band</b>")
+                label.set_use_markup(True)
             self._ui.get_widget('vbox_resources').show_all()
         else:
             self._ui.get_widget('vbox_return').hide()
