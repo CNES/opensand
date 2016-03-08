@@ -29,13 +29,14 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
 
 """
 test.py - run the OpenSAND automatic tests
 """
 
 import traceback
-import threading
+from threading import Thread, Lock
 import glob
 import sys
 import os
@@ -49,17 +50,13 @@ import shlex
 import subprocess
 import shutil
 
+
 from opensand_manager_core.loggers.levels import MGR_WARNING, MGR_INFO, MGR_DEBUG
 from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.utils import copytree, red, blue, green, yellow
 from opensand_manager_shell.opensand_shell_manager import ShellManager, \
                                                           BaseFrontend, \
                                                           SERVICE
-
-# TODO get logs on error
-# TODO rewrite this as this is now too long
-#      maybe create classes that will simplify the code
-ENRICH_FOLDER = "enrich"
 
 # TODO SCPC tests are performed with MODCOD 7 but it would be better to use
 # MODCOD 28. The problem is that the default MODCOD file is for RCS and contains
@@ -128,44 +125,1834 @@ class IndentedHelpFormatterWithNL(IndentedHelpFormatter):
             result.append("\n")
         return "".join(result)
 
-class Test(ShellManager):
-    """ the elements to launch a test """
-    def __init__(self):
-        ShellManager.__init__(self)
+class TestScenario:
+    TEST_BASE = "base"
+    TEST_NON_BASE = "nonbase"
+    TEST_OTHER = "other"
+    
+    """ Test scenario data """
+    def __init__(self, name, path, parent = None):
+        self._name = name
+        self._path = path
+        self._parent = parent
+        
+        self._tests = {TestScenario.TEST_BASE: [],
+                       TestScenario.TEST_NON_BASE: [],
+                       TestScenario.TEST_OTHER: []
+                      }
+        
+    def __repr__(self):
+        enrich = "enrich, " if self.isEnrich() else ""
+        return "{name: %s, %spath: %s}" % (self._name, enrich, self._path)
+    
+    def __str__(self):
+        return repr(self)
+ 
+    def getName(self):
+        return self._name
+    
+    def getPath(self):
+        return self._path
+    
+    def getParent(self):
+        return self._parent
+    
+    def isEnrich(self):
+        return (not self._parent is None)
+    
+    def getBaseTests(self):
+        return self._tests[TestScenario.TEST_BASE]
+    
+    def getNonBaseTests(self):
+        return self._tests[TestScenario.TEST_NON_BASE]
 
-        ### parse options
-# TODO option to get available test types with descriptions
-# TODO option to specify the installed plugins
-        opt_parser = OptionParser(formatter=IndentedHelpFormatterWithNL())
-        opt_parser.add_option("-v", "--verbose", action="store_true",
-                              dest="verbose", default=False,
-                              help="enable verbose mode (print OpenSAND status)")
-        opt_parser.add_option("-d", "--debug", action="store_true",
-                              dest="debug", default=False,
-                              help="print all the debug information (more "
-                              "output than -v)")
-        opt_parser.add_option("-w", "--enable_ws", action="store_true",
-                              dest="ws", default=False,
-                              help="enable workstations for launching tests "
-                                   "binaries")
-        opt_parser.add_option("-t", "--type", dest="type", default=None,
-                              help="launch only one type of test")
-        opt_parser.add_option("-l", "--test", dest="test", default=None,
-                              help="launch some tests in particular "
-                              "(separated by ',')")
-        opt_parser.add_option("-r", "--regexp", dest="regexp", default=None,
-                              help="launch all test that contain this regexp " 
-                              "in particular")
-        opt_parser.add_option("-s", "--service", dest="service",
-                              default=SERVICE,
-                              help="listen for OpenSAND entities "\
-                                   "on the specified service type with format: " \
-                                   "_name._transport_protocol")
-        opt_parser.add_option("-a", "--last_logs", action="store_true",
-                              dest="last_logs", default=False,
-                              help="Show last logs on host upon failure")
-        opt_parser.add_option("-f", "--folder", dest="folder",
-                              default='./tests/',
+    def getOtherTests(self):
+        return self._tests[TestScenario.TEST_OTHER]
+
+class Test:
+    """ Test data """
+    
+    """ Test status """
+    READY = 0
+    SUCCESSFUL = 1
+    FAILED = 2
+    
+    def __init__(self, name, path):
+        self._name = name
+        self._path = path
+        self._status = Test.READY
+        self._error = ""
+        self._lastlogs = []
+        
+    def __repr__(self):
+        status = {Test.READY: "ready",
+                  Test.SUCCESSFUL: "successful",
+                  Test.FAILED: "failed"}
+        errtxt = ",error %s" % self._error if 0 < len(self._error) else ""
+        txt = "{name: %s, status: %s, path: %s%s}" % (self._name, 
+                                                      status[self._status], 
+                                                      self._path,
+                                                      errtxt)
+        return txt
+    
+    def __str__(self):
+        return repr(self)
+    
+    def reset(self):
+        self._status = Test.READY
+        self._error = ""
+        self._lastlogs = []
+
+    def getName(self):
+        return self._name
+    
+    def getPath(self):
+        return self._path
+    
+    def getStatus(self):
+        return self._status
+    
+    def setStatus(self, status):
+        self._status = status
+
+    def hasError(self):
+        return 0 < len(self._error)
+    
+    def getError(self):
+        return self._error
+    
+    def setError(self, message):
+        self._error = message
+        
+    def getLastLogs(self):
+        return self._lastlogs
+    
+class TestConsole:
+    
+    def __init__(self):
+        self._mutex = Lock()
+        self._msg = []
+        
+    def _addMsg(self, error, key, message):
+        """ add message """
+        self._msg.append([error, key, message])
+
+    def _hasMsg(self, error = None):
+        """ check message presence """
+        if error is None:
+            return (0 < len(self._msg))
+        
+        for m in self._msg:
+            if m[0] == error:
+                return True
+        return False
+    
+    def _buildMsg(self, error = None):
+        """ clone obj """
+        copy = {}
+        for m in self._msg:
+            if not error is None and m[0] != error:
+                continue
+            if m[1] not in copy:
+                copy[m[1]] = []
+            if error is None:
+                copy[m[1]].append([m[0], m[2]])
+            else:
+                copy[m[1]].append(m[2])
+            
+        return copy
+ 
+    def clear(self):
+        """ clear message """
+        self._mutex.acquire()
+        self._msg = []
+        self._mutex.release()
+
+    def output(self, key, message):
+        """ add message to output """
+        self._mutex.acquire()
+        self._addMsg(False, key, message)
+        self._mutex.release()
+
+    def error(self, key, message):
+        """ add message to error """
+        self._mutex.acquire()
+        self._addMsg(True, key, message)
+        self._mutex.release()
+         
+    def hasMessage(self):
+        """ return message presence """
+        self._mutex.acquire()
+        stat = self._hasMsg()
+        self._mutex.release()
+        return stat
+        
+    def hasOutput(self):
+        """ return output presence """
+        self._mutex.acquire()
+        stat = self._hasMsg(False)
+        self._mutex.release()
+        return stat
+    
+    def hasError(self):
+        """ return error presence """
+        self._mutex.acquire()
+        stat = self._hasMsg(True)
+        self._mutex.release()
+        return stat
+    
+    def getMessage(self):
+        """ return a copy of message """
+        self._mutex.acquire()
+        copy = self._buildMsg()
+        self._mutex.release()
+        return copy
+    
+    def getOutput(self):
+        """ return a copy of output """
+        self._mutex.acquire()
+        copy = self._buildMsg(False)
+        self._mutex.release()
+        return copy
+        
+    def getError(self):
+        """ return a copy of error """
+        self._mutex.acquire()
+        copy = self._buildMsg(True)
+        self._mutex.release()
+        return copy
+
+class TestManager(ShellManager):
+    
+    """ Log level for the OpenSAND platform """
+    QUIET = MGR_WARNING
+    VERBOSE = MGR_INFO
+    DEBUG = MGR_DEBUG
+    
+    """ Enrich folder """
+    ENRICH_FOLDER = "enrich"
+    
+    def __init__(self, loglvl = QUIET, lastlogs = False):
+        """ initialize the Test Manager """
+        ShellManager.__init__(self)
+        
+        # Set default parameters
+        self._debug = False
+        self._loglvl = loglvl
+        self._lastlogs = lastlogs
+
+        self._service = None
+        self._workstation = False
+        
+        self._displayonly = False
+        self._waitstarttime = 2
+        self._waitstarttries = 5
+        self._basetesttries = 2
+        
+        # Initialize platform manager
+        self._frontend = BaseFrontend()
+        self._hosts = {
+            "st": [],
+            "gw": [],
+            "sat": [],
+            "*": []
+        }
+        self._runninghosts = []
+        self._base = None
+        
+        # Initialize scenarios
+        self._folder = "./tests/"
+        self._scenarios = None
+        
+        # Set internal parameters
+        self._threads = []
+
+    def _traceDebug(self, message):
+        """ Trace debug message """
+        if self._debug:
+            print message
+
+    def _traceInfo(self, message):
+        """ Trace informative message """
+        if self._loglvl != TestManager.QUIET:
+            print message
+        self._log.info(" * %s " % message)
+        
+    def _traceWarning(self, message):
+        """ Trace warning message """
+        print red("WARNING: ") + message
+        self._log.warning(" * %s" % message)
+        
+    def _traceError(self, message):
+        """ Trace error message """
+        print red("ERROR: ") + message
+        self._log.error(" * %s" % message)
+
+    def preparePlatform(self, service = SERVICE, workstation = False,
+                        displayonly = False):
+        """ initialize and prepare the OpenSAND platform """
+        
+        # Save arguments
+        self._service = service        
+        self._workstation = workstation
+        
+        self._displayonly = displayonly
+
+        # Prepare platform
+        try:
+            self.load(log_level = self._loglvl, 
+                      service = self._service,
+                      with_ws = self._workstation,
+                      remote_logs = True,
+                      frontend = self._frontend
+                     )
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            # Unable to prepare the OpenSAND platform
+            self._traceError("Unable to prepare the OpenSAND platform: " + str(ex))
+            
+            return False
+        
+        # Stop platform
+        self._stopPlatform()
+
+        # Save base configuration
+        self._base = self._model.get_scenario()
+        
+        # Update hosts of the platform OpenSAND
+        self.updatePlatformHosts()
+        
+        # Check the SAT count
+        n = len(self._hosts["sat"])
+        if n == 0:
+            self._traceError("No SAT is available")
+            return False
+        elif 1 < n:
+            dummy = map(lambda host: str(host.get_name()), self._hosts["sat"])
+            self._traceError("More than one SAT is available: %s" 
+                             % str(dummy))
+            return False
+ 
+        # Check the GW count
+        n = len(self._hosts["gw"])
+        if n == 0:
+            self._traceError("No GW is available")
+            return False
+        elif 1 < n:
+            # TODO: This case has to be handled
+            dummy = map(lambda host: str(host.get_name()), self._hosts["gw"])
+            self._traceError("More than one GW is available: %s"
+                             % str(dummy))
+            return False
+        
+        # Check the ST count
+        n = len(self._hosts["st"])
+        if n == 0:
+            self._traceError("No ST is available")
+            return False
+        
+        return True
+    
+    def closePlatform(self):
+        """ close the OpenSAND platform """
+        
+        # Close pending threads
+        if 0 < len(self._threads):
+            self._traceInfo("Stopping pending threads")
+            for thread in self._threads:
+                thread.join()
+                self._threads.remove(thread)
+            self._traceInfo("Threads stopped")
+        
+        # Close platform
+        try:
+            self.close()
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            # Unable to close the OpenSAND platform
+            self._traceError("Unable to close the OpenSAND platform: " + str(ex))
+            
+            return False
+        
+        # Close hosts status
+        for key in self._hosts:
+            self._hosts[key] = []
+        self._runninghosts = []
+            
+        return True
+    
+    def updatePlatformHosts(self):
+        """ update each host of the OpenSAND platform """
+         
+        # Close hosts status
+        for key in self._hosts:
+            self._hosts[key] = []
+        
+        # Get hosts
+        hosts = []
+        try:
+            hosts.extend(self._model.get_hosts_list())
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            # Unable to get hosts
+            self._traceWarning("Unable to get hosts: " + str(ex))
+        
+        # Sort hosts
+        hosttypes = list(self._hosts.keys())
+        hosttypes.remove("*")
+        for host in hosts:
+            hostname = str(host.get_name())
+            hosttype = "*"
+            for key in hosttypes:
+                if hostname.lower().startswith(key):
+                    hosttype = key
+                    break
+            self._hosts[hosttype].append(hostname)
+
+        # Display host
+        for hosttype in self._hosts:
+            if len(self._hosts[hosttype]) <= 0:
+                continue
+            msg = ""
+            for hostname in self._hosts[hosttype]:
+                msg += " " + hostname
+             
+            print "{:<15} {:}".format(blue(hosttype.upper()) + ":", msg)
+
+    def _startPlatform(self):
+        """ start the OpenSAND platform """
+        
+        try:
+            ShellManager.start_opensand(self)
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            return False
+        
+        # wait to be sure the plateform is started
+        started = False
+        waitstarttry = 0
+        comment = ""
+        while not started and waitstarttry < self._waitstarttries:
+            self._traceDebug("Sleep %s sec to waiting for the platform "
+                             "OpenSAND starting%s" 
+                             % (str(self._waitstarttime), comment))
+            time.sleep(self._waitstarttime)
+            
+            waitstarttry += 1
+            comment = " (try n°%s)" % str(waitstarttry + 1)
+            
+            # Initialize hosts status
+            self._updatePlatformHostsStatus()
+            
+            # Check hosts have started
+            started = True
+            hosts = []
+            for hosttype in self._hosts:
+                for hostname in self._hosts[hosttype]:
+                    hosts.append(hostname.lower())
+            for hostname in hosts:
+                if not hostname in self._runninghosts:
+                    started = False
+                    break
+        
+        return True
+
+    def _clearPlatformHostsStatus(self):
+        """ clear hosts status of the OpenSAND platform """
+        
+        # Clear plateform hosts
+        self._runninghosts = []
+        
+    def _initializePlatformHostsStatus(self):
+        """ initialize hosts status of the OpenSAND platform """
+                
+        # Clear plateform status
+        self._clearPlatformHostsStatus()
+        
+        # Get running hosts
+        try:
+            self._runninghosts.extend(self._model.running_list())
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            # Unable to get running hosts
+            self._traceWarning("Unable to get running hosts: " + str(ex))
+            
+        self._runninghosts = map(lambda x: x.lower(), self._runninghosts)
+        
+    def _updatePlatformHostsStatus(self, display = False):
+        """ update hosts status of the OpenSAND platform """
+                
+        # Get old hosts
+        runninghosts = self._runninghosts
+        
+        # Get current running hosts
+        self._runninghosts = []      
+        try:
+            self._runninghosts.extend(self._model.running_list())
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            # Unable to get running hosts
+            self._traceWarning("Unable to get running hosts: " + str(ex))
+            
+        self._runninghosts = map(lambda x: x.lower(), self._runninghosts)
+        
+        # Check hosts
+        for hosttype in self._hosts:
+            if hosttype != "*" and len(self._hosts[hosttype]) <= 0:
+                # No host
+                self._traceWarning("No host of type '%s' is detected" % hosttype)
+
+            for hostname in self._hosts[hosttype]:
+                old = (hostname.lower() in runninghosts)
+                new = (hostname.lower() in self._runninghosts)
+                
+                if not old and new:
+                    # Host have started
+                    self._traceInfo("Host '%s' have started" % hostname)
+                    if display:
+                        print "Host '%s' have started" % hostname
+                        
+                elif old and not new:
+                    # Host may have crashed
+                    self._traceWarning("Host '%s' may have crashed" % hostname)
+                    
+                elif new:
+                    # Host is running
+                    self._traceInfo("Host '%s' is running" % hostname)
+                    if display:
+                        print "Host '%s' is running" % hostname
+                        
+                else:
+                    # Host is stopped
+                    self._traceWarning("Host '%s' is stopped" % hostname)
+                    if display:
+                        print "Host '%s' is stopped" % hostname
+
+    def _stopPlatform(self):
+        """ stop the OpenSAND platform """
+        
+        try:
+            ShellManager.stop_opensand(self)
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            return False
+        
+        # Clear hosts status
+        self._clearPlatformHostsStatus()
+        
+        return True
+
+    def prepareScenarios(self, folder = "./tests/", 
+                         regexptest = None, regexptype = None):
+        """ list and filter the test scenarios to pass """
+        
+        # Save arguments
+        self._folder = folder
+        
+        # Prepare path
+        basepath = os.path.join(self._folder, "base")
+        typespath = os.path.join(basepath, "types")
+        configspath = os.path.join(basepath, "configs")
+        otherspath = os.path.join(self._folder, "other")
+
+        # Prepare test types
+        types = []
+        try:
+            types.extend(os.listdir(typespath))
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            # Unable to get test types
+            self._traceWarning("Unable to get test types: " + str(ex))
+            pass
+        if len(types) <= 0:
+            # No test type to execute
+            self._traceWarning("No test type to execute")
+
+            return False
+        
+        # Prepare test configurations
+        configs = []
+        try:
+            configs.extend(glob.glob(configspath + "/*"))
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            # Unable to get test configurations
+            self._traceError("Unable to get test configurations: " + str(ex))
+            
+            return False
+        if len(configs) <= 0:
+            # No test configuration to execute
+            self._traceWarning("No test configuration to execute")
+            
+            return False
+        
+        # Prepare other tests
+        others = []
+        try:
+            others.extend(glob.glob(otherspath + "/*"))
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            # Unable to get other tests
+            self._traceError("Unable to get other test configurations: " + str(ex))
+            
+            return False
+        
+        # Prepare scenarios
+        self._scenarios = []
+        enrichconfigspath = os.path.join(configspath,
+                                         TestManager.ENRICH_FOLDER)
+        i = 0
+        while i < len(configs):
+            path = configs[i]
+            
+            if not os.path.isdir(path):
+                del configs[i]
+                continue
+            
+            if os.path.basename(path) == TestManager.ENRICH_FOLDER:
+                del configs[i]
+                continue
+            
+            # Add scenario
+            name = os.path.basename(path)
+            scenario = TestScenario(name, path)
+            self._addTestsToScenario(scenario, types, typespath)
+            self._scenarios.append(scenario)
+            i += 1
+            
+            # Get enrich scenarios
+            enrichscenarios = self._prepareEnrichScenarios(scenario, 
+                                                           enrichconfigspath)
+            if not enrichscenarios is None:
+                self._scenarios.extend(enrichscenarios)
+        
+        # Sort tests and scenarios
+        for scenario in self._scenarios:
+            scenario.getBaseTests().sort(key=lambda x:x.getName())
+            scenario.getNonBaseTests().sort(key=lambda x:x.getName())
+        self._scenarios.sort(key=lambda x:x.getName())
+ 
+        # Prepare other scenarios
+        i = 0
+        while i < len(others):
+            path = others[i]
+            
+            if not os.path.isdir(path):
+                del others[i]
+                continue
+            
+            # Add other scenario
+            name = os.path.basename(path)
+            scenario = TestScenario(name, "")
+            scenario.getOtherTests().append(Test(name, path))
+            self._scenarios.append(scenario)
+            i += 1
+
+        # Apply the regular expression filtering to scenarios
+        if not regexptest is None and regexptest != "":
+            i = 0
+            while i < len(self._scenarios):
+                # Check configuration name
+                name = self._scenarios[i].getName()
+                matched = False
+                try:
+                    matched = re.search(regexptest, name)
+                except KeyboardInterrupt:
+                    raise
+                except Exception as ex:
+                    # Unable to match name with regular expression
+                    self._traceWarning("Unable to match scenario name with "
+                                       "regular expression: " + str(ex))
+                    pass
+                if matched:
+                    i += 1
+                    continue
+         
+                # Remove scenario
+                self._scenarios.pop(i)
+ 
+        # Apply the regular expression filtering to tests
+        if not regexptype is None and regexptype != "":
+            j = 0
+            while j < len(self._scenarios):
+                
+                # Get scenario
+                scenario = self._scenarios[j]
+                
+                # Check base tests
+                i = 0
+                while i < len(scenario.getBaseTests()):
+                    # Check configuration name
+                    name = scenario.getBaseTests()[i].getName()
+                    matched = False
+                    try:
+                        matched = re.search(regexptype, name)
+                    except KeyboardInterrupt:
+                        raise
+                    except Exception as ex:
+                        # Unable to match name with regular expression
+                        self._traceWarning("Unable to match base test name with "
+                                           "regular expression: " + str(ex))
+                        pass
+                    if matched:
+                        i += 1
+                        continue
+         
+                    # Remove test
+                    scenario.getBaseTests().pop(i)
+                 
+                # Check non base tests
+                i = 0
+                while i < len(scenario.getNonBaseTests()):
+                    # Check configuration name
+                    name = scenario.getNonBaseTests()[i].getName()
+                    matched = False
+                    try:
+                        matched = re.search(regexptype, name)
+                    except KeyboardInterrupt:
+                        raise
+                    except Exception as ex:
+                        # Unable to match name with regular expression
+                        self._traceWarning("Unable to match non base test name with "
+                                           "regular expression: " + str(ex))
+                        pass
+                    if matched:
+                        i += 1
+                        continue
+         
+                    # Remove test
+                    scenario.getNonBaseTests().pop(i)
+                  
+                # Check other tests
+                i = 0
+                while i < len(scenario.getOtherTests()):
+                    # Check configuration name
+                    name = scenario.getOtherTests()[i].getName()
+                    matched = False
+                    try:
+                        matched = re.search(regexptype, name)
+                    except KeyboardInterrupt:
+                        raise
+                    except Exception as ex:
+                        # Unable to match name with regular expression
+                        self._traceWarning("Unable to match other test name with "
+                                           "regular expression: " + str(ex))
+                        pass
+                    if matched:
+                        i += 1
+                        continue
+         
+                    # Remove test
+                    scenario.getOtherTests().pop(i)
+                
+                # Check scenario and remove it if required
+                if len(scenario.getBaseTests()) <= 0 \
+                   and len(scenario.getNonBaseTests()) <= 0 \
+                   and len(scenario.getOtherTests()) <= 0:
+                    self._scenarios.pop(j)
+                else:
+                    j += 1
+        
+        if len(configs) <= 0:
+            # No test configuration to execute
+            self._traceWarning("No test scenario to execute")
+            
+            return False
+       
+        return True
+    
+    def _addTestsToScenario(self, scenario, testnames, testspath):
+        """ check tests are base or non base tests and add them to 
+        scenario """
+        
+        for name in testnames:
+            test = Test(name, os.path.join(testspath, name))
+            files = []
+            try:
+                files = glob.glob(test.getPath())
+            except KeyboardInterrupt:
+                raise
+            except Exception as ex:
+                # Unable to get test files
+                self._traceWarning("Unable to get test '%s' files for scenario '%s'"
+                                   % (test.getName(), scenario.getName()))
+        
+            i = 0
+            while i < len(files) and not files[i].endswith(".xslt"):
+                i += 1
+            if i < len(files):
+                scenario.getNonBaseTests().append(test)
+            else:
+                scenario.getBaseTests().append(test)
+       
+    def _prepareEnrichScenarios(self, parent, enrichconfigspath): 
+        """ list the enrich test scenario to pass """
+        
+        # Search enrich test configurations
+        enrichscenarios = []
+        enrichconfigs = []
+        try:
+            enrichconfigs = glob.glob(enrichconfigspath + "/*")
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            # Unable to get enrich test configuration"
+            self._traceWarning("Unable to get enrich '%s' test "
+                               "configurations: %s" 
+                               % (parent.getName(), str(ex)))
+               
+        basetestnames = {}
+        for test in parent.getBaseTests():
+            basetestnames[test.getName()] = test
+        nonbasetestnames = {}
+        for test in parent.getNonBaseTests():
+            nonbasetestnames[test.getName()] = test
+            
+        for conf in enrichconfigs:
+            if os.path.basename(conf).startswith("scenario"):
+                continue
+            if not os.path.isdir(conf):
+                continue
+             
+            # Generate enrich test name
+            pos = conf.find(TestManager.ENRICH_FOLDER)
+            path = conf[pos + 1 + len(TestManager.ENRICH_FOLDER):]
+            enrichname = parent.getName()
+            for dummy in path.split("/"):
+                enrichname += "_" + dummy
+
+            # Check enrich test is allowed
+            path = os.path.join(conf, "ignored")
+            if not os.path.isfile(path):
+                continue
+            with open(path, "r") as lines:
+                ignored = False
+                for line in lines:
+                    line = line.strip()
+                      
+                    # ignore can contain position in the test name
+                    # to check for the specific pattern
+                    items = line.split(',')
+                    if len(items) == 1:
+                        ignored = (0 <= enrichname.find(items[0]))
+                    else:
+                        pos = int(items[1])
+                        dummy = enrichname.split('_')
+                        ignored = (pos < len(dummy) and dummy[pos] == items[0])
+                    if ignored:
+                        break
+                if ignored:
+                    continue
+                
+            # Add enrich scenario
+            enrichscenario = TestScenario(enrichname, conf, parent)
+            enrichscenarios.append(enrichscenario)
+
+            # Check enrich name is accepted
+            path = os.path.join(conf, "accepts")
+            if not os.path.isfile(path):
+                # Copy tests from parent scenario
+                enrichscenario.getBaseTests().extend(parent.getBaseTests())
+                enrichscenario.getNonBaseTests().extend(parent.getNonBaseTests())
+                continue
+            
+            # Check accepted tests are compliant with parents cenario tests
+            with open(path, "r") as lines:
+                for accepted in lines:
+                    test = accepted.strip()
+                    if test in basetestnames:
+                        enrichscenario.getBaseTests().append(basetestnames[test])
+                    elif test in nonbasetestnames:
+                        enrichscenario.getNonBaseTests().append(nonbasetestnames[test])
+        
+        return enrichscenarios
+    
+    def cleanScenarios(self):
+        """ clean the test scenarios """
+        
+        # Remove scenarios files
+        try:
+            path = "/tmp/opensand_tests/last_errors"
+            if os.path.exists(path):
+                os.remove(path)
+            path = "/tmp/opensand_tests/result"
+            if os.path.exists(path):
+                os.remove(path)
+        except KeyboardInterrupt:
+            raise
+        except Exception as ex:
+            # Unable to clean scenarios
+            self._traceError("Unable to clean scenarios: " + str(ex))
+            
+            return False
+        
+        return True
+            
+    def runScenarios(self):
+        """ run the test scenarios """
+        
+        if not self._displayonly:
+            # Modify the service in the test library
+            path = os.path.join(self._folder, ".lib/opensand_tests.py")
+            content = ""
+            try:
+                with open(path, "r") as flib:
+                    for line in flib:
+                        if line.startswith("TYPE ="):
+                            content += "TYPE = \"%s\"\n" % self._service
+                        else:
+                            content += line
+                with open(path, "w") as flib:
+                    flib.write(content)
+            except KeyboardInterrupt:
+                raise
+            except Exception as ex:
+                # Unable to edit the test libraries
+                self._traceError("Unable to edit the test libraries: %s"
+                                 % str(ex))
+            
+        # Initilaize test results
+        results = {}
+        def addResult(results, scenario, test, success):
+            if not test in results:
+                results[test] = {}
+                
+            values = scenario.split("_")
+            if 4 <= len(values):
+                values[2] = values[2] + "_" + values[3]
+                del values[3]
+                
+            for val in values:
+                if val not in results[test]:
+                    results[test][val] = [0, 0]
+                if success:
+                    results[test][val][0] += 1
+                else:
+                    results[test][val][1] += 1
+ 
+        # Evaluate scenarios count by test category (config vs other)
+        nconfigscenarios = 0
+        notherscenarios = 0
+        for scenario in self._scenarios:
+            
+            if 0 < len(scenario.getBaseTests()) \
+               or 0 < len(scenario.getNonBaseTests()):
+                nconfigscenarios += 1
+                
+            if 0 < len(scenario.getOtherTests()):
+                notherscenarios += 1
+
+        # Run scenarios tests (base and non-base)
+        i = 0
+        for scenario in self._scenarios:
+            
+            if len(scenario.getBaseTests()) <= 0 \
+               and len(scenario.getNonBaseTests()) <=0:
+                continue
+            
+            i += 1
+            self._log.info(" * [%s/%s] Test %s with base configuration" 
+                            % (str(i), str(nconfigscenarios + notherscenarios),
+                               scenario.getName()))
+            if self._loglvl == TestManager.QUIET:
+                print "[%s/%s] Test configuration %s" % \
+                        (str(i), str(nconfigscenarios + notherscenarios), 
+                         blue(scenario.getName()))
+                sys.stdout.flush()
+             
+            if not self._displayonly:    
+                # Initialize the model
+                self._model.set_scenario(self._base)
+                self._model.set_run("")
+            
+                # Build scenario model
+                initobj = self._buildScenarioModel(scenario)
+                if initobj is None:
+                    self._traceWarning("Unable to deploy the scenario '%s'"
+                                       % scenario.getName())
+            
+            # Check base tests existence
+            if 0 < len(scenario.getBaseTests()):
+                
+                self._traceDebug("Start '%s' base tests execution" 
+                                 % scenario.getName())
+                
+                if not self._displayonly:
+                    # Load scenario model
+                    self._model.set_scenario(initobj)
+                
+                    # Start the OpenSAND platform
+                    self._model.set_run("base_tests")
+                    if not self._startPlatform():
+                        self._traceError("Unable to start the OpenSAND "
+                                         "platform")
+                        continue
+            
+                # Run base tests
+                for test in scenario.getBaseTests():
+                    
+                    if self._displayonly:
+                        msg = "Test %s " % test.getName()
+                        print "{:<40} ".format(msg)
+                        sys.stdout.flush()
+                        continue
+
+                    self._log.info(" * Start %s" % test.getName())
+                    if self._loglvl == TestManager.QUIET:
+                        msg = "Start %s " % test.getName()
+                        print "{:<40} ".format(msg),
+                        sys.stdout.flush()
+                    
+                    # Run the base test
+                    testtry = 1
+                    detail = ""
+                    self._runTest(scenario, test)
+                    
+                    # Check retry
+                    while test.getStatus() != Test.SUCCESSFUL \
+                          and testtry < self._basetesttries:
+                        
+                        # Update data
+                        testtry += 1
+                        detail = " at try n°%s" % str(testtry)
+                        
+                        # Stop the OpenSAND platform
+                        self._stopPlatform()
+                        
+                        # Start the OpenSAND platform
+                        self._startPlatform()
+                        
+                        # Re-run the base test
+                        self._runTest(scenario, test)
+                        
+                    if test.getStatus() == Test.SUCCESSFUL:
+                        self._log.info(" * Test %s successful%s" %
+                                       (test.getName(), detail))
+                        if self._loglvl == TestManager.QUIET:
+                            print "{:>7}{:}".format(green("SUCCESS"), detail)
+                            sys.stdout.flush()
+                            
+                    elif test.getStatus() == Test.READY:
+                        if self._loglvl == TestManager.QUIET:
+                            print "{:>7}\nNo test launched for {:}".format( 
+                                red("ERROR"), test.getName() + detail)
+                            sys.stdout.flush()
+                        else:
+                            self._log.error(" * No test launched for %s%s" 
+                                            % (test.getName(), detail))
+                            
+                    else:
+                        if self._loglvl == TestManager.QUIET:
+                            print "{:>7}\n{:}".format(red("ERROR"),
+                                                      test.getError() + detail)
+                            sys.stdout.flush()
+                        else:
+                            self._log.error(" * Test %s failed: %s%s" 
+                                            % (test.getName(), 
+                                               test.getError(),
+                                               detail))
+                    
+                    # Add result
+                    addResult(results,
+                              scenario.getName(),
+                              test.getName(),
+                              test.getStatus() == Test.SUCCESSFUL)
+                           
+                    if 0 < len(test.getLastLogs()):
+                        self.__saveLastLogs(scenario, test)
+
+                    # Update status
+                    self._updatePlatformHostsStatus()
+                        
+                if not self._displayonly:
+                    # Stop the OpenSAND platform
+                    if not self._stopPlatform():
+                        self._traceWarning("Unable to stop the OpenSAND "
+                                           "platform")
+                
+                self._traceDebug("End '%s' base tests execution"
+                                 % scenario.getName())
+                
+            # Check non base tests existence
+            if 0 < len(scenario.getNonBaseTests()):
+                
+                self._traceDebug("Start '%s' non base tests execution"
+                                 % scenario.getName())
+                
+                # Run non base tests
+                for test in scenario.getNonBaseTests():
+                    
+                    if self._displayonly:
+                        msg = "Test %s " % test.getName()
+                        print "{:<40} ".format(msg)
+                        sys.stdout.flush()
+                        continue
+                    
+                    self._log.info(" * Start %s" % test.getName())
+                    if self._loglvl == TestManager.QUIET:
+                        msg = "Start %s " % test.getName()
+                        print "{:<40} ".format(msg),
+                        sys.stdout.flush()
+
+                    # Load scenario model
+                    self._model.set_scenario(initobj)
+                    
+                    # Build the non base test model
+                    if self._buildTestModel(scenario, test) is None:
+                        self._traceWarning("Unable to deploy the non base "
+                                           "test '%s' for scenario '%s'"
+                                           % (test.getName(),
+                                              scenario.getName()))
+                    
+                    # Start the OpenSAND platform
+                    self._model.set_run("non_base_test_" + test.getName())
+                    self._startPlatform()
+                    
+                    # Run the non base test
+                    self._runTest(scenario, test)
+
+                    # Update status
+                    self._updatePlatformHostsStatus()
+                    
+                    # Stop the OpenSAND platform
+                    self._stopPlatform()
+                    
+                    if test.getStatus() == Test.SUCCESSFUL:
+                        self._log.info(" * Test %s successful" % test.getName())
+                        if self._loglvl == TestManager.QUIET:
+                            print "{:>7}".format(green("SUCCESS"))
+                            sys.stdout.flush()
+                            
+                    elif test.getStatus() == Test.READY:
+                        if self._loglvl == TestManager.QUIET:
+                            print "{:>7}\nNo test launched for {:}".format(
+                                red("ERROR"), test.getName())
+                            sys.stdout.flush()
+                        else:
+                            self._log.error(" * No test launched for %s" 
+                                            % test.getName())
+                            
+                    else:
+                        if self._loglvl == TestManager.QUIET:
+                            print "{:>7}\n{:}".format(red("ERROR"),
+                                                     test.getError())
+                            sys.stdout.flush()
+                        else:
+                            self._log.error(" * Test %s failed: %s" 
+                                            % (test.getName(), test.getError()))
+ 
+                    # Add result
+                    addResult(results,
+                              scenario.getName(),
+                              test.getName(),
+                              test.getStatus() == Test.SUCCESSFUL)
+                    
+                    if 0 < len(test.getLastLogs()):
+                        self.__saveLastLogs(scenario, test)
+
+                self._traceDebug("End '%s' non base tests execution"
+                                 % scenario.getName())
+        
+        # Run scenarios tests (other)
+        for scenario in self._scenarios:
+            
+            if len(scenario.getOtherTests()) <= 0:
+                continue
+            i += 1
+            
+            self._log.info(" * [%s/%s] Test %s" 
+                            % (str(i), str(nconfigscenarios + notherscenarios),
+                               scenario.getName()))
+            if self._loglvl == TestManager.QUIET:
+                print "[%s/%s] Test %s" % \
+                        (str(i), str(nconfigscenarios + notherscenarios), 
+                         blue(scenario.getName()))
+                sys.stdout.flush()
+             
+            if not self._displayonly:    
+                # Initialize the model
+                self._model.set_scenario(self._base)
+                self._model.set_run("")
+                
+                # Build scenario model
+                initobj = self._base
+                
+            self._traceDebug("Start '%s' other tests execution"
+                             % scenario.getName())
+                
+            # Run other tests
+            for test in scenario.getOtherTests():
+                    
+                if self._displayonly:
+                    msg = "Test %s " % test.getName()
+                    print "{:<40} ".format(msg)
+                    sys.stdout.flush()
+                    continue
+                    
+                self._log.info(" * Start %s" % test.getName())
+                if self._loglvl == TestManager.QUIET:
+                    msg = "Start %s " % test.getName()
+                    print "{:<40} ".format(msg),
+                    sys.stdout.flush()
+
+                # Load scenario model
+                self._model.set_scenario(initobj)
+                
+                # Build the other test model
+                if self._buildTestModel(scenario, test) is None:
+                    self._traceWarning("Unable to deploy the other "
+                                       "test '%s' for scenario '%s'"
+                                       % (test.getName(),
+                                          scenario.getName()))
+                    
+                # Start the OpenSAND platform
+                self._model.set_run("other_test_" + test.getName())
+                self._startPlatform()
+                
+                # Run the non base test
+                self._runTest(scenario, test)
+                
+                # Update status
+                self._updatePlatformHostsStatus()
+                    
+                # Stop the OpenSAND platform
+                self._stopPlatform()
+                    
+                if test.getStatus() == Test.SUCCESSFUL:
+                    self._log.info(" * Test %s successful" % test.getName())
+                    if self._loglvl == TestManager.QUIET:
+                        print "{:>7}".format(green("SUCCESS"))
+                        sys.stdout.flush()
+                            
+                elif test.getStatus() == Test.READY:
+                    if self._loglvl == TestManager.QUIET:
+                        print "{:>7}\nNo test launched for {:}".format(
+                            red("ERROR"), test.getName())
+                        sys.stdout.flush()
+                    else:
+                        self._log.error(" * No test launched for %s" 
+                                        % test.getName())
+                            
+                else:
+                    if self._loglvl == TestManager.QUIET:
+                        print "{:>7}\n{:}".format(red("ERROR"),
+                                                 test.getError())
+                        sys.stdout.flush()
+                    else:
+                        self._log.error(" * Test %s failed: %s" 
+                                        % (test.getName(), test.getError()))
+ 
+                # Add result
+                addResult(results,
+                          scenario.getName(),
+                          test.getName(),
+                          test.getStatus() == Test.SUCCESSFUL)
+                  
+                if 0 < len(test.getLastLogs()):
+                    self.__saveLastLogs(scenario, test)
+
+            self._traceDebug("End '%s' other tests execution"
+                             % scenario.getName())
+       
+        # Finalize the test report
+        if 0 < len(results):
+            
+            # Print header
+            print "+-----------+-----------+-----------+-----------+"
+            line = "| {:>9} | {:>9} | {:>9} | {:>9} |"
+            print line.format("TEST", green(" SUCCESS "), red("  ERROR  "),
+                              "% error")
+
+            # Print test results
+            for testname in results:
+                print "+-----------+-----------+-----------+-----------+"
+                print "| {:^45} |".format(testname)
+                print "+-----------+-----------+-----------+-----------+"
+                
+                # Print scenario results
+                for name in results[testname]:
+                    nSuccess = results[testname][name][0]
+                    nError = results[testname][name][1]
+                    percent = int(100 * float(nError) / \
+                                  float(nSuccess + nError))
+                    if percent == 100:
+                        percent = red("     %s " % percent )
+                    elif percent > 75:
+                        percent = red("      %s " % percent )
+                    elif percent == 0:
+                        precent = green("       %s " % percent)
+                    else:
+                        percent = str(percent)
+                    print line.format(name,
+                                      results[testname][name][0],
+                                      results[testname][name][1],
+                                      percent)
+                        
+            print "+-----------+-----------+-----------+-----------+"
+
+        if not self._displayonly:
+            # Restore the service in the test library
+            path = os.path.join(self._folder, ".lib/opensand_tests.py")
+            content = ""
+            try:
+                with open(path, "r") as flib:
+                    for line in flib:
+                        if line.startswith("TYPE ="):
+                            content += "TYPE = \"%s\"\n" % SERVICE
+                        else:
+                            content += line
+                with open(path, "w") as flib:
+                    flib.write(content)
+            except Exception as ex:
+                pass
+ 
+        return True
+    
+    def __saveLastLogs(self, scenario, test):
+        """ Save or display last logs """
+
+        if self._lastlogs:
+            print
+            print "\n".join(test.getLastLogs())
+        else:
+            try:
+                if not os.path.exists('/tmp/opensand_tests'):
+                    os.mkdir('/tmp/opensand_tests')
+                with open('/tmp/opensand_tests/last_errors', 'a') as output:
+                    output.write(yellow("Results for configuration %s, test %s:\n" %
+                                 (scenario.getName(), test.getName()), True))
+                    output.write("\n".join(test.getLastLogs()))
+            except KeyboardInterrupt as ex:
+                raise
+            except Exception as ex:
+                self._traceWarning("Unable to save last logs: %s" % str(ex))
+                
+    def __buildModel(self, name, folder):
+        """ build the model on the OpenSAND platform """
+        
+        # Copy model reference directory
+        path = os.path.join(folder, "scenario_" + name)
+        try:
+            if os.path.exists(path):
+                shutil.rmtree(path)
+            os.makedirs(path)
+            copytree(self._model.get_scenario(), path)
+        except KeyboardInterrupt:
+            raise
+        except (OSError, IOError), (_, strerror):
+            self._traceError("Unable to create model directory '%s': %s"
+                             % (path, str(strerror)))
+            return None
+        except Exception as ex:
+            self._traceError("Unable to create model directory '%s': %s"
+                             % (path, str(ex)))
+            return None
+        
+        # Update model with XSLT files for hosts
+        self._model.set_scenario(path)
+        for host in self._model.get_hosts_list() + [self._model]:
+            
+            hostname = host.get_component().lower()
+            xslt = os.path.join(folder, "core_%s.xslt" % hostname)
+            
+            # specific case for terminals if there is a XSLT
+            # for a specific one
+            if hostname == "st":
+                for st in os.listdir(path):
+                    if not st.startswith("st"):
+                        continue
+                    st_id = st[2:]
+                    if host.get_instance() != st_id:
+                        continue
+                    xslt_path = os.path.join(folder, "core_st%s.xslt" % st_id)
+                    if os.path.exists(xslt_path):
+                        xslt = xslt_path
+                        break
+                    
+            # TODO: specific case for gateways if there is a XSLT
+            #       for a specific one
+           
+            if not os.path.exists(xslt):
+                continue
+            
+            conf = host.get_advanced_conf().get_configuration()
+            try:
+                conf.transform(xslt)
+            except KeyboardInterrupt:
+                raise
+            except Exception as ex:
+                self._traceError("Unable to update host model "
+                                 "configuration: '%s'" % str(ex))
+                return None
+                
+        # Update mode with XSLT files for topology
+        topo = self._model.get_topology()
+        conf = topo.get_configuration()
+        xslt = os.path.join(folder, 'topology.xslt')
+        # specific case for terminals if there is a XSLT for a specific
+        # one
+        if os.path.exists(xslt):
+            try:
+                conf.transform(xslt)
+                # update the IP address if we add some elements
+                topo.update_hosts_address()
+            except KeyboardInterrupt:
+                raise
+            except Exception as ex:
+                self._traceError("Unable to update topology model "
+                                 "configuration: '%s'" % str(ex))
+                return None
+        
+        return self._model.get_scenario()
+
+    def _buildScenarioModel(self, scenario):
+        """ build the test scenario model on the OpenSAND platform """
+        
+        obj = None
+        
+        # Load parent scenario if required
+        if scenario.isEnrich():
+            parent = scenario.getParent()
+            obj = self.__buildModel(parent.getName(), parent.getPath())
+            if obj is None:
+                self._traceError("Unable to build model of parent scenario "
+                                 "'%s of scenario '%s'" % (parent.getName(),
+                                                           scenario.getName()))
+                return None
+        
+        # Then, load scenario
+        obj = self.__buildModel(scenario.getName(), scenario.getPath())
+        if obj is None:
+            self._traceError("Unable to build model of scenario '%s'" 
+                             % scenario.getName())
+
+        return obj
+    
+    def _buildTestModel(self, scenario, test):
+        """ deploy the test configuration on the OpenSAND platform """
+        
+        # Load test
+        obj = self.__buildModel(test.getName(), test.getPath())
+        if obj is None:
+            self._traceError("Unable to build model of test '%s' of "
+                             "scenario '%s'" % (test.getName(),
+                                                scenario.getName()))
+        
+        return obj
+    
+    def _runTest(self, scenario, test):
+        """ run the scenario test """
+        
+        # Reset test results
+        test.reset()
+        
+        # Get ordered host folders
+        orders = glob.glob(test.getPath() + '/*')
+        
+        # Remove common folders from list (not mandatory)
+        path = os.path.join(test.getPath(), "files")
+        if path in orders:
+            orders.remove(path)
+        for path in orders:
+            if not os.path.isdir(path):
+                orders.remove(path)
+            elif path.startswith('scenario'):
+                orders.remove(path)
+        orders.sort()
+        
+        # Check ordered hosts
+        if len(orders) <= 0:
+            return
+        
+        # Prepare console
+        console = TestConsole()
+        
+        # Save and check running hosts list
+        running = list(self._model.running_list())
+        current = list(running)
+        current = map(lambda x: x.upper(), current)
+        msg = ""
+        for key in self._hosts:
+            for host in self._hosts[key]:
+                hostname = host.upper()
+                msg += "%s" % hostname
+                
+                if hostname in current:
+                    msg += " is running\n"
+                    current.remove(hostname)
+                else:
+                    msg += " is stopped\n"
+        for hostname in current:
+            msg += "%s is started\n" % hostname
+        msg = msg.rstrip("\n")
+        self._traceInfo(msg)
+        
+        # Launch test for each ordered host
+        for path in orders:
+  
+            # Get host name
+            names = os.path.basename(path).split("_", 1)
+            if len(names) < 2:
+                self._traceInfo("Skip path %s as it has a wrong format" % path)
+                continue
+            hostname = names[1].upper()
+            conf_file = os.path.join(path, "configuration")
+            if not os.path.exists(conf_file):
+                self._traceDebug("Skip path %s as it does not contain scenario" %
+                                 path)
+                continue
+        
+            self._traceInfo("Launch command on %s" % hostname)
+            
+            # read the command section in configuration
+            config = ConfigParser.SafeConfigParser()
+            if len(config.read(conf_file)) == 0:
+                msg =  "Unable to load configuration in '%s'" % path
+                console.error("Configuration", msg)
+                break
+
+            try:
+                config.set('prefix', 'source', self._folder)
+            except:
+                pass
+
+            try:
+                # Check if this is a local test
+                if hostname == "TEST":
+                    self._launch_local(scenario.getName(),
+                                       test.getName(),
+                                       config,
+                                       path,
+                                       console)
+                else:
+                    self._launch_remote(scenario.getName(),
+                                        hostname,
+                                        config,
+                                        path,
+                                        console)
+                
+                # Wait for test to initialize or stop on host
+                time.sleep(0.5)
+            except KeyboardInterrupt as ex:
+                raise
+            except Exception as ex:
+                console.error("Test routine", str(ex))
+                break
+            
+        # Check errors
+        if not console.hasError():
+            test.setStatus(Test.SUCCESSFUL)
+        else:
+            test.setStatus(Test.FAILED)
+            #TODO get the test output
+            
+            # Format error message
+            testerrors = console.getMessage()
+            msg = ""
+            for key in testerrors:
+                for err in testerrors[key]:
+                    msg += "%s: %s\n" % (key.upper(), str(err[1]))
+            msg = msg.rstrip("\n")
+            
+            # Save error message
+            test.setError(msg)
+        
+            # Get last logs
+            for host in self._model.get_hosts_list():
+                msg = self.get_last_logs(host.get_name())
+                test.getLastLogs().append(msg)
+         
+        # Wait for pending tests to stop
+        for thread in self._threads:
+            self._traceInfo("Waiting for a test thread to stop")
+            thread.join(120)
+            if thread.is_alive():
+                self._traceError("Cannot stop a thread, we may have errors")
+            else:
+                self._traceInfo("Thread stopped")
+            self._threads.remove(thread)
+        
+        # Check running hosts
+        current = list(self._model.running_list())
+        i = 0
+        while i < len(current):
+            if current[i] in running:
+                # Host is still running
+                running.remove(current[i])
+                current.pop(i)
+            else:
+                # Host started
+                msg = "The host '%s' may have started during the test" \
+                      % current[i]
+                self._traceInfo(msg)
+                i +=1
+        for host in running:
+            # Host crashed
+            msg = "The host '%s' may have crashed during the test" \
+                  % host
+            self._traceWarning(msg)
+            
+    def _launch_local(self, test_name, type_name, config, path, console):
+        """ launch a local test """
+        
+        # check if we have to get stats in /tmp/opensand_tests/stats before
+        stats_dst = ''
+        try:
+            stats_dst = config.get('test_command', 'stats')
+        except:
+            pass
+        
+        if stats_dst != '':
+            # we need to stop OpenSAND to get statistics in scenario folder
+            if not self._stopPlatform():
+                raise TestError("Test", 
+                                "Cannot stop platform to get statistics")
+            
+            stats = os.path.dirname(path)
+            stats = os.path.join(stats, 'scenario_%s/other_test_%s/' %
+                                 (test_name, type_name))
+            
+            try:
+                if not os.path.exists(stats_dst):
+                    os.mkdir(stats_dst)
+                else:
+                    shutil.rmtree(stats_dst)
+                copytree(stats, stats_dst)
+            except KeyboardInterrupt as ex:
+                raise
+            except Exception as ex:
+                raise TestError("Test",
+                                "Cannot copy stats directory: %s"
+                                % str(ex))
+
+        cmd = ''
+        ret = 0
+        try:
+            cmd = config.get('test_command', 'exec')
+            cmd += " " + test_name
+            ret = config.getint('test_command', 'return')
+        except ConfigParser.Error, err:
+            raise TestError("Configuration",
+                            "Error when parsing configuration: %s" %
+                            (err))
+        except KeyboardInterrupt as ex:
+            raise
+        except Exception as ex:
+            raise TestError("Configuration",
+                            "Unexpected error when parsing configuration: %s" %
+                            str(ex))
+
+        command = os.path.join(self._folder, cmd)
+        cmd = shlex.split(command)
+        if not os.path.exists('/tmp/opensand_tests'):
+            os.mkdir('/tmp/opensand_tests')
+        
+        try:
+            with open('/tmp/opensand_tests/result', 'a') as output:
+                output.write("\n")
+                process = subprocess.Popen(cmd, close_fds=True,
+                                           stdout=output,
+                                           stderr=subprocess.STDOUT)
+                
+                while process.returncode is None:
+                    process.poll()
+                    time.sleep(1)
+                
+                if process.returncode is None:
+                    process.kill()
+
+                process.wait()
+                
+                if process.returncode != ret:
+                    raise TestError("Local",
+                                    "Test returned '%s' instead of '%s'" 
+                                    % (process.returncode, ret))
+        except KeyboardInterrupt as ex:
+            raise
+        except TestError as ex:
+            raise
+        except Exception as ex:
+            raise TestError("Local",
+                            "Unexpected error when launching command: %s"
+                            % str(ex))
+
+        if stats_dst != '':
+            # Restart the OpenSAND platform
+            if not self._startPlatform():
+                raise TestError("Test", 
+                                "Cannot restart platform after getting statistics")
+
+    def _launch_remote(self, test_name, host_name, config, path, console):
+        """ launch the test on a remote host """
+        
+        # get the host controller
+        host_ctrl = None
+        found = False
+        if not self._workstation and host_name.startswith("WS"):
+            # use ST instead => remove WS name and replace name
+            host_name = host_name.split("_", 1)[0]
+            host_name = host_name.replace("WS", "ST")
+
+        if host_name.startswith("WS"):
+            for ctrl in self._ws_ctrl:
+                if ctrl.get_name() == host_name:
+                    host_ctrl = ctrl
+                    break
+        else:
+            for ctrl in self._controller._hosts:
+                if ctrl.get_name() == host_name:
+                    host_ctrl = ctrl
+                    break
+
+        if host_ctrl is None:
+            raise TestError("Configuration", "Cannot find host %s" % host_name)
+
+        # deploy the test files
+        # the deploy section has the same format as in deploy.ini file so
+        # we can directly use the deploy fonction from hosts
+        try:
+            host_ctrl.deploy(config)
+        except CommandException as msg:
+            raise TestError("Configuration", "Cannot deploy host %s: %s" %
+                            (host_name, msg))
+        except KeyboardInterrupt as ex:
+            raise
+        except Exception as ex:
+            raise TestError("Configuration", "Unexpected error when "
+                            "deploying host %s: %s" %
+                            (host_name, str(ex)))
+
+        cmd = ''
+        wait = False
+        ret = 0
+        try:
+            # TODO give test name in cmd argument !
+            cmd = config.get('command', 'exec')
+            cmd += " " + test_name
+            wait = config.get('command', 'wait')
+            if wait.lower() == 'true':
+                wait = True
+            else:
+                wait = False
+            ret = config.get('command', 'return')
+        except ConfigParser.Error, err:
+            raise TestError("Configuration",
+                            "Error when parsing configuration in %s : %s" %
+                            (path, err))
+        except KeyboardInterrupt as ex:
+            raise
+        except Exception as ex:
+            raise TestError("Configuration",
+                            "Unexpected error when parsing configuration in %s : %s" %
+                            (path, err))
+            
+        # if wait is True we need to wait the host response before launching the
+        # next command so we don't need to connect the host in a thread
+        if wait:
+            self.__connect_host(host_ctrl, cmd, ret, console)
+        else:
+            connect = Thread(target=self.__connect_host,
+                             args=(host_ctrl, cmd, ret, console))
+            self._threads.append(connect)
+            connect.start()
+            
+    def __connect_host(self, host_ctrl, cmd, ret, console):
+        """ connect the host and launch the command,
+            and exception is raised if the test return is not ret
+            and complete the self._error dictionnary """
+            
+        err = None
+        try:
+            sock = host_ctrl.connect_command('TEST')
+            if sock is None:
+                err = "cannot connect host"
+                raise TestError("Configuration", err)
+            
+            # increase the timeout value because tests could be long
+            sock.settimeout(200)
+            sock.send("COMMAND %s\n" % cmd)
+            result = sock.recv(512).strip()
+            console.output(host_ctrl.get_name().upper(),
+                        "Test returns %s on %s, expected is %s" %
+                         (result, host_ctrl.get_name(), ret))
+            if result != ret:
+                err = "Test returned '%s' instead of '%s'" \
+                      % (result, ret)
+                raise Exception(err)
+            
+        except CommandException, msg:
+            err = "%s: %s" % (host_ctrl.get_name(), msg)
+        except socket.error, msg:
+            err = "%s: %s" % (host_ctrl.get_name(), str(msg))
+        except socket.timeout:
+            err = "%s: Timeout" % host_ctrl.get_name()
+        except Exception as ex:
+            err = "%s: %s" % (host_ctrl.get_name(), str(ex))
+        finally:
+            if sock:
+                sock.close()
+            if err is not None:
+                #console.error(host_ctrl.get_name().upper(), err)
+                console.error("Remote", err)
+
+class TestError(Exception):
+    """ error during tests """
+    def __init__(self, step, descr):
+        Exception.__init__(self)
+        self.step = step
+        self.msg = descr
+
+    def __repr__(self):
+        return '\tCONTEXT: %s\tMESSAGE: %s' % (self.step, self.msg)
+
+    def __str__(self):
+        return repr(self)
+
+
+if __name__ == '__main__':
+    ### parse options
+    # TODO option to get available test types with descriptions
+    # TODO option to specify the installed plugins
+    opt_parser = OptionParser(formatter=IndentedHelpFormatterWithNL())
+    opt_parser.add_option("-v", "--verbose", action="store_true",
+                          dest="verbose", default=False,
+                          help="Enable verbose mode (print OpenSAND status)")
+    opt_parser.add_option("-d", "--debug", action="store_true",
+                          dest="debug", default=False,
+                          help="Print all the debug information (more "
+                          "output than -v)")
+    opt_parser.add_option("-w", "--enable_ws", action="store_true",
+                          dest="ws", default=False,
+                          help="Enable workstations for launching tests "
+                               "binaries")
+    opt_parser.add_option("-l", "--list", action="store_true",
+                          dest="list", default=False,
+                          help="List all types of test and tests matching "
+                               "with the command line")
+    opt_parser.add_option("-e", "--test", dest="test", default=None,
+                          help="launch some tests in particular (regexp)")
+    opt_parser.add_option("-y", "--type", dest="type", default=None,
+                          help="Launch only one type of test (regexp)")
+    opt_parser.add_option("-s", "--service", dest="service",
+                          default=SERVICE,
+                          help="Listen for OpenSAND entities "\
+                               "on the specified service type with format: " \
+                               "_name._transport_protocol")
+    opt_parser.add_option("-a", "--last_logs", action="store_true",
+                          dest="last_logs", default=False,
+                          help="Show last logs on host upon failure")
+    opt_parser.add_option("-f", "--folder", dest="folder",
+                          default='./tests/',
 help="specify the root folder for tests configurations\n"
 "The root folder should contains the following subfolders and files:\n"
 "  base/+-configs/+-test_name/core_HOST.xslt\n"
@@ -212,879 +1999,64 @@ help="specify the root folder for tests configurations\n"
 "be careful, stat test stops the platform, no more test should be run after). "
 "The enrich folders contains new scenario that will complete base ones. "
 "The accept file contains the types that are allowed for this enrichment.")
-        (options, args) = opt_parser.parse_args()
+    (options, args) = opt_parser.parse_args()
 
-        # TODO regex in selt._test and self._type for regen* or transp* for ex
-        self._test = None
-        self._regexp = None
-        self._type = None
-        if options.test is not None:
-            self._test = options.test.split(',')
-        if options.regexp is not None:
-            self._regexp = options.regexp
-        if options.type is not None:
-            self._type = options.type.split(',')
-        self._folder = options.folder
-
-        self._service = options.service
-        self._ws_enabled = options.ws
-
-        # the threads to join when test is finished
-        self._threads = []
-        # the error returned by a test
-        self._error = {}
-        self._last_error = ""
-        self._show_last_logs = options.last_logs
-        self._stopped = True
-        self._result = {}
-        nb_gw = 0
-
-        self._quiet = True
-        lvl = MGR_WARNING
-        if options.debug:
-            lvl = MGR_DEBUG
-            self._quiet = False
-        elif options.verbose:
-            lvl = MGR_INFO
-            self._quiet = False
-        else:
-            print "Initialization please wait..."
-
-        try:
-            self._frontend = BaseFrontend()
-            self.clean_files()
-            self.load(log_level=lvl, service=options.service,
-                      with_ws=options.ws,
-                      remote_logs=True,
-                      frontend=self._frontend)
-            self.stop_opensand()
-            self._base = self._model.get_scenario()
-            for host in self._model.get_hosts_list():
-                if host.get_name().startswith("gw"):
-                    nb_gw += 1
-            if nb_gw == 1 :
-                self.run_base()
-                self._model.set_scenario(self._base)
-                self.run_other()
-                if len(self._last_error) > 0:
-                    raise TestError('Last error: ', self._last_error)
-                if self._test is not None and len(self._test):
-                    raise TestError("Configuration", "The following tests were not "
-                                    "found %s" % self._test)
-                if self._regexp is not None and self._regexp == "":
-                    raise TestError("Configuration", "The following types were not "
-                                    "found %s" % self._regexp)
-                if self._type is not None and len(self._type):
-                    raise TestError("Configuration", "The following types were not "
-                                    "found %s" % self._type)
-            else:
-                if self._quiet:
-                    print "Cannot play test with more than one GW"
-                else:
-                    self._log.error(" * Cannot play test with more than one GW")
-            
-        except TestError as err:
-            if self._quiet:
-                print "%s: %s" % (err.step, err.msg)
-            else:
-                self._log.error(" * %s: %s" % (err.step, err.msg))
-            raise
-        except KeyboardInterrupt:
-            if self._quiet:
-                print "Interrupted: please wait..."
-            else:
-                self._log.info(" * Interrupted: please wait...")
-            raise
-        except Exception, msg:
-            if self._quiet:
-                print "Internal error: " + str(msg)
-            else:
-                self._log.error(" * internal error while testing: " + str(msg))
-            raise
-        else:
-            if nb_gw == 0:
-                if self._quiet:
-                    print green("All tests are successfull", True)
-                else:
-                    self._log.info(" * All tests successfull")
-        finally:
-           
-            if self._result:
-                print "+-----------+-----------+-----------+-----------+"
-                line = "| {:>9} | {:>9} | {:>9} | {:>9} |"
-                print line.format("TEST", green(" SUCCESS "), red("  ERROR  "),
-                                 "% error")
-                for type_name in self._result:
-                    print "+-----------+-----------+-----------+-----------+"
-                    print "| {:^45} |".format(type_name)
-                    print "+-----------+-----------+-----------+-----------+"
-                    for test in self._result[type_name].keys():
-                        line = "| {:>9} | {:>9} | {:>9} | {:>9} |"
-                        percent = int(float(self._result[type_name][test][1]) / \
-                                (self._result[type_name][test][0] +
-                                 self._result[type_name][test][1]) * 100)
-                        if percent == 100:
-                            percent = red("     %s " % percent )
-                        elif percent > 75:
-                            percent = red("      %s " % percent )
-                        elif percent == 0 :
-                            percent = green("       %s " % percent)
-                        else:
-                            percent = str(percent)
-                        print line.format(test, self._result[type_name][test][0],
-                                          self._result[type_name][test][1], 
-                                          percent)
-                print "+-----------+-----------+-----------+-----------+"
-
-            # reset the service in the test library
-            lib = os.path.join(self._folder, '.lib/opensand_tests.py')
-            buf = ""
-            try:
-                with open(lib, 'r') as flib:
-                    for line in flib:
-                        if line.startswith("TYPE ="):
-                            buf += 'TYPE = "%s"\n' % SERVICE
-                        else:
-                            buf += line
-                            with open(lib, 'w') as flib:
-                                flib.write(buf)
-            except IOError:
-                pass
-            self.close()
-
-    def close(self):
-        """ stop the service listener """
-        try:
-            self.stop_opensand()
-        except:
-            # if we get a timeout here, we will block because
-            # we will close model, and thus quit event_mgr_reponse
-            # however, stop process calls it but everything
-            # will be closed
-            pass
-        self._log.info(" * Stopping threads")
-        for thread in self._threads:
-            thread.join()
-            self._threads.remove(thread)
-        self._log.info(" * Threads stopped")
-        ShellManager.close(self)
+    tests = None
+    if options.test is not None:
+        tests = options.test.split(',')
+    
+    # Get types
+    types = None
+    if options.type is not None:
+        types = options.type.split(',')
         
-    def clean_files(self):
-        """ clean local files """
-        try:
-            os.remove('/tmp/opensand_tests/last_errors')
-            os.remove('/tmp/opensand_tests/result')
-        except:
-            pass
-
-    def run_base(self):
-        """ launch the tests with base configurations """
-        if not self._model.main_hosts_found():
-            raise TestError("Initialization", "main hosts not found")
-
-        base = os.path.join(self._folder, 'base')
-        types_path = os.path.join(base, 'types')
-        configs_path = os.path.join(base, 'configs')
-        # if the test is launched with the type option
-        # check if it is a supported type
-        types_init = os.listdir(types_path)
-        types = list(types_init)
-        for folder in types_init:
-            if not os.path.isdir(os.path.join(types_path, folder)):
-                types.remove(folder)
-
-        # get type if only some types should be run
-        if self._type is not None:
-            found = 0
-            desired = []
-            for folder in types_init:
-                if folder in self._type:
-                    desired.append(folder)
-                    found += 1
-
-            types = desired
-            for folder in desired:
-                self._type.remove(os.path.basename(folder))
-        if len(types) == 0:
-            return
-
-        # modify the service in the test library
-        lib = os.path.join(self._folder, '.lib/opensand_tests.py')
-        buf = ""
-        try:
-            with open(lib, 'r') as flib:
-                for line in flib:
-                    if line.startswith("TYPE ="):
-                        buf += 'TYPE = "%s"\n' % self._service
-                    else:
-                        buf += line
-            with open(lib, 'w') as flib:
-                flib.write(buf)
-        except IOError, msg:
-            raise TestError("Configuration",
-                            "Cannot edit test libraries: %s" % msg)
-
-        test_paths_init = glob.glob(configs_path + '/*')
-        test_paths = list(test_paths_init)
-        for test in test_paths_init:
-            if not os.path.isdir(test):
-                test_paths.remove(test)
-            if os.path.basename(test) == ENRICH_FOLDER:
-                test_paths.remove(test)
-
-        for test_path in test_paths:
-            test_name = os.path.basename(test_path)
-            test_exist = True
-            if self._test is not None:
-                test_exist = False
-                for name in self._test:
-                    if name.startswith(test_name):
-                        test_exist = True
-            if test_exist:
-                self._model.set_scenario(self._base)
-                # reset run values
-                self._model.set_run("")
-                self.run_enrich(test_path, "", types_path, types)
- 
-        time.sleep(1)
-
-        # stop the platform
-        self.stop_opensand()
-
-    def run_enrich(self, test_path, enrich, types_path, types, accepts=[],
-                   ignored={}):
-        """ run a test for a specific type or this type enriched """
-        # create a new list to avoid modifying reference
-        accepts = list(accepts)
-        ignored = dict(ignored)
-        test_name = os.path.basename(test_path)
-        if enrich != "":
-            pos = enrich.find(ENRICH_FOLDER)
-            path = enrich[pos + 1 + len(ENRICH_FOLDER):]
-            new = path.split("/")
-            for name in new:
-                test_name += "_" + name
-            accept_path = os.path.join(enrich, "accepts")
-            if os.path.exists(accept_path):
-                with open(accept_path) as accept_list:
-                    for accepted in accept_list:
-                        accepts.append(accepted.strip())
-            ignored_path = os.path.join(enrich, "ignored")
-            if os.path.exists(ignored_path):
-                with open(ignored_path) as ignored_list:
-                    for ignore in ignored_list:
-                        ignore = ignore.strip()
-                        info = ignore.split(',')
-                        # ignore can containa position in the test name
-                        # to check for the specific pattern
-                        if len(info) == 1:
-                            ignored[ignore] = None
-                        else:
-                            ignored[info[0]] = info[1]
-
-        # check if test should be ignored
-        for ig in ignored:
-            if ignored[ig] == None:
-                if test_name.find(ig) >= 0:
-                    return
-            else:
-                try:
-                    if test_name.split('_')[int(ignored[ig])] == ig:
-                        return
-                except Exception:
-                    pass
-
-        if enrich != "":
-            self.new_scenario(enrich, test_name)
-        else:
-            # get the new configuration from base configuration
-            # and create scenario
-            self.new_scenario(test_path, test_name)
-
-        init_scenario = self._model.get_scenario()
-
-        test_exist = False
-        if self._test is None and self._regexp is None:
-            test_exist = True
-            
-        if self._test is not None:
-            if test_name in self._test:
-                test_exist = True
-        if not test_exist and self._regexp is not None:
-            if re.search(self._regexp, test_name) is not None:
-                test_exist = True
-
-        if test_exist:
-            self._log.info(" * Test %s with base configuration" % test_name)
-            if self._quiet:
-                print "Test configuration %s" % blue(test_name, True)
-                sys.stdout.flush()
-
-            if self._test is not None:
-                self._test.remove(test_name)
-            # start the platform
-            self._model.set_run("base_tests")
-            self.start_opensand()
-
-            nonbase = []
-            # get test_type folders
-            test_types = map(lambda x: os.path.join(types_path, x), types)
-            for test_type in test_types:
-                # check for XSLT files
-                orders = glob.glob(test_type + '/*')
-                found = False
-                for elt in orders:
-                    if elt.endswith('.xslt'):
-                        found = True
-                        break
-                if found:
-                    # the base configuration should be updated for this
-                    # test, do it later
-                    nonbase.append(test_type)
-                    continue
-
-                if len(accepts) == 0 or os.path.basename(test_type) in accepts:
-                    self.launch_test_type(test_type, test_name)
-
-
-            # now launch tests for non based configuration, stop platform
-            # between each run
-            for test_type in nonbase:
-                self.stop_opensand()
-
-                self._model.set_scenario(init_scenario)
-
-                if len(accepts) == 0 or os.path.basename(test_type) in accepts:
-                    # update configuration
-                    self.new_scenario(test_type, test_name)
-                    self._model.set_run("non_base_test_" +
-                                        os.path.basename(test_type))
-                    self.start_opensand()
-                    self.launch_test_type(test_type, test_name)
-
-            self.stop_opensand()
-
-        # we restart from the test scenario that will be enriched
-        self._model.set_scenario(init_scenario)
-        if enrich == "":
-            base = os.path.join(self._folder, 'base')
-            configs_path = os.path.join(base, 'configs')
-            enrich = os.path.join(configs_path, ENRICH_FOLDER)
-        for folder in glob.glob(enrich + "/*"):
-            if os.path.basename(folder).startswith("scenario"):
-                continue
-
-            if os.path.isdir(folder):
-                # we restart from the test scenario that will be enriched
-                # for each new path
-                self._model.set_scenario(init_scenario)
-                self.run_enrich(test_path, folder, types_path, types,
-                                accepts, ignored)
-
-    def run_other(self):
-        """ launch the tests for non base configuration """
-        if not self._model.main_hosts_found():
-            raise TestError("Initialization", "main hosts not found")
-
-        types_path = os.path.join(self._folder, 'other')
-        # if the test is launched with the type option
-        # check if it is a supported type
-        types_init = os.listdir(types_path)
-        types = list(types_init)
-        for folder in types_init:
-            if not os.path.isdir(os.path.join(types_path, folder)):
-                types.remove(folder)
-
-        # get type if only some types should be run
-        if self._type is not None:
-            found = 0
-            desired = []
-            for folder in types_init:
-                if folder in self._type:
-                    desired.append(folder)
-                    found += 1
-
-            types = desired
-            for folder in desired:
-                self._type.remove(os.path.basename(folder))
-        if len(types) == 0:
-            return
-
-        # modify the service in the test library
-        lib = os.path.join(self._folder, '.lib/opensand_tests.py')
-        buf = ""
-        try:
-            with open(lib, 'r') as flib:
-                for line in flib:
-                    if line.startswith("TYPE ="):
-                        buf += 'TYPE = "%s"\n' % self._service
-                    else:
-                        buf += line
-            with open(lib, 'w') as flib:
-                flib.write(buf)
-        except IOError, msg:
-            raise TestError("Configuration",
-                            "Cannot edit test libraries: %s" % msg)
-
-        # get test_type folders
-        test_types = map(lambda x: os.path.join(types_path, x), types)
-        test_paths = []
-        for test_type in test_types:
-            configs_path = os.path.join(test_type, 'configs')
-            if os.path.exists(configs_path):
-                test_paths = glob.glob(configs_path + '/*')
-
-            self._log.info(" * Test %s" % os.path.basename(test_type))
-            if self._quiet:
-                print "Test %s" % blue(os.path.basename(test_type), True)
-                sys.stdout.flush()
-
-            for test_path in test_paths:
-                test_name = os.path.basename(test_path)
-                if self._test is not None:
-                    if test_name not in self._test:
-                        continue
-                    self._test.remove(test_name)
-                self.stop_opensand()
-                self._model.set_scenario(self._base)
-                # get the new configuration from base configuration
-                # and create scenario
-                self.new_scenario(test_path, test_name)
-
-                self._model.set_run("other_test_" +
-                                    os.path.basename(test_type))
-                # start the platform
-                self.start_opensand()
-
-                self.launch_test_type(test_type, os.path.basename(test_path))
-
-            # if there is not configs folder we only have default configuration,
-            # so there is not test_path, launch test with base configuration
-            if len(test_paths) == 0 and self._test is None:
-                self.stop_opensand()
-                self._model.set_scenario(self._base)
-                # get the new configuration from base configuration
-                # and create scenario
-                self.new_scenario(test_type, "default")
-
-                self._model.set_run("other_test_" +
-                                    os.path.basename(test_type))
-                # start the platform
-                self.start_opensand()
-
-                self.launch_test_type(test_type, "default")
-
-        # stop the platform
-        self.stop_opensand()
-
-    def launch_test(self, path, test_name, type_name):
-        """ initialize the test: load configuration, deploy files
-            then contact the distant host in a thread and launch
-            the desired command """
-        names = os.path.basename(path).split("_", 1)
-        if len(names) < 2:
-            self._log.info(" * Skip path %s as it has a wrong format" % path)
-            return
-
-        host_name = names[1].upper()
-        conf_file = os.path.join(path, 'configuration')
-        if not os.path.exists(conf_file):
-            self._log.debug(" * Skip path %s as it does not contain scenario" %
-                           path)
-            return
-        self._log.info(" * Launch command on %s" % host_name)
-        # read the command section in configuration
-        config = ConfigParser.SafeConfigParser()
-        if len(config.read(conf_file)) == 0:
-            raise TestError("Configuration",
-                            "Cannot load configuration in %s" % path)
-
-        try:
-            config.set('prefix', 'source', self._folder)
-        except:
-            pass
-
-        # check if this is a local test
-        if host_name == "TEST":
-            self.launch_local(test_name, type_name, config, path)
-        else:
-            self.launch_remote(test_name, host_name, config, path)
-        return True
-
-
-    def launch_remote(self, test_name, host_name, config, path):
-        """ launch the test on a remote host """
-        # get the host controller
-        host_ctrl = None
-        found = False
-        if not self._ws_ctrl and host_name.startswith("WS"):
-            # use ST instead => remove WS name and replace name
-            host_name = host_name.split("_", 1)[0]
-            host_name = host_name.replace("WS", "ST")
-
-        if host_name.startswith("WS"):
-            for ctrl in self._ws_ctrl:
-                if ctrl.get_name() == host_name:
-                    host_ctrl = ctrl
-                    break
-        else:
-            for ctrl in self._controller._hosts:
-                if ctrl.get_name() == host_name:
-                    host_ctrl = ctrl
-                    break
-
-        if host_ctrl is None:
-            raise TestError("Configuration", "Cannot find host %s" % host_name)
-
-        # deploy the test files
-        # the deploy section has the same format as in deploy.ini file so
-        # we can directly use the deploy fonction from hosts
-        try:
-            host_ctrl.deploy(config)
-        except CommandException as msg:
-            raise TestError("Configuration", "Cannot deploy host %s: %s" %
-                            (host_name, msg))
-
-        cmd = ''
-        wait = False
-        ret = 0
-        try:
-            # TODO give test name in cmd argument !
-            cmd = config.get('command', 'exec')
-            cmd += " " + test_name
-            wait = config.get('command', 'wait')
-            if wait.lower() == 'true':
-                wait = True
-            else:
-                wait = False
-            ret = config.get('command', 'return')
-        except ConfigParser.Error, err:
-            raise TestError("Configuration",
-                            "Error when parsing configuration in %s : %s" %
-                            (path, err))
-        # if wait is True we need to wait the host response before launching the
-        # next command so we don't need to connect the host in a thread
-        if wait:
-            self.connect_host(host_ctrl, cmd, ret)
-        else:
-            connect = threading.Thread(target=self.connect_host,
-                                       args=(host_ctrl, cmd, ret))
-            self._threads.append(connect)
-            connect.start()
-
-    def launch_local(self, test_name, type_name, config, path=None):
-        """ launch a local test """
-        # check if we have to get stats in /tmp/opensand_tests/stats before
-        stats_dst = ''
-        try:
-            stats_dst = config.get('test_command', 'stats')
-        except:
-            pass
-
-        if stats_dst != '':
-            # we need to stop OpenSAND to get statistics in scenario folder
-            try:
-                self.stop_opensand()
-            except:
-                raise TestError("Test", "Cannot stop platform to get statistics")
-            stats = os.path.dirname(path)
-            stats = os.path.join(stats, 'scenario_%s/other_test_%s/' %
-                                 (test_name, type_name))
-
-            if not os.path.exists(stats_dst):
-                os.mkdir(stats_dst)
-            else:
-                shutil.rmtree(stats_dst)
-            copytree(stats, stats_dst)
-
-        cmd = ''
-        ret = 0
-        try:
-            cmd = config.get('test_command', 'exec')
-            cmd += " " + test_name
-            ret = config.getint('test_command', 'return')
-        except ConfigParser.Error, err:
-            raise TestError("Configuration",
-                            "Error when parsing configuration: %s" %
-                            (err))
-
-        command = os.path.join(self._folder, cmd)
-        cmd = shlex.split(command)
-        if not os.path.exists('/tmp/opensand_tests'):
-            os.mkdir('/tmp/opensand_tests')
-        with open('/tmp/opensand_tests/result', 'a') as output:
-            output.write("\n")
-            process = subprocess.Popen(cmd, close_fds=True,
-                                       stdout=output,
-                                       stderr=subprocess.STDOUT)
-            while process.returncode is None:
-                process.poll()
-                time.sleep(1)
-
-            if process.returncode is None:
-                process.kill()
-
-            process.wait()
-
-            if process.returncode != ret:
-                self._log.info(" * Test returns %s, expected is %s" %
-                               (process.returncode, ret))
-                self._error["Local"] = ("Test returned '%s' instead of '%s'" %
-                                        (process.returncode, ret))
-
-
-    def connect_host(self, host_ctrl, cmd, ret):
-        """ connect the host and launch the command,
-            and exception is raised if the test return is not ret
-            and complete the self._error dictionnary """
-        err = None
-        try:
-            sock = host_ctrl.connect_command('TEST')
-            if sock is None:
-                err = "%s: cannot connect host" % host_ctrl.get_name()
-                raise TestError("Configuration", err)
-            # increase the timeout value because tests could be long
-            sock.settimeout(200)
-            sock.send("COMMAND %s\n" % cmd)
-            result = sock.recv(512).strip()
-            self._log.info(" * Test returns %s on %s, expected is %s" %
-                           (result, host_ctrl.get_name(), ret))
-        except CommandException, msg:
-            err = "%s: %s" % (host_ctrl.get_name(), msg)
-        except socket.error, msg:
-            err = "%s: %s" % (host_ctrl.get_name(), str(msg))
-        except socket.timeout:
-            err = "%s: Timeout" % host_ctrl.get_name()
-        except Exception, msg:
-            err = "Unknown exception: msg"
-        finally:
-            if sock:
-                sock.close()
-            if err is not None:
-                if not self._quiet:
-                    self._log.error(" * " +  err)
-                self._error[host_ctrl.get_name().upper()] = err
-                return
-
-        if result != ret:
-            self._error[host_ctrl.get_name().upper()] = \
-                    "Test returned '%s' instead of '%s'" % (result, ret)
-
-# TODO at the moment we can not configure modules !!
-    def new_scenario(self, test_path, test_name):
-        """ create a new scenario for tests and apply XSLT transformation """
-        # get the new configuration from base configuration
-        # and create scenario
-        path = os.path.join(test_path, 'scenario_%s' % test_name)
-        try:
-            if os.path.exists(path):
-                shutil.rmtree(path)
-            os.makedirs(path)
-            copytree(self._model.get_scenario(), path)
-        except (OSError, IOError), (_, strerror):
-            raise TestError("Configuration",
-                            "Cannot create scenario %s: %s" % (path, strerror))
-
-        # update the configuration corresponding to the test with XSLT files
-        self._model.set_scenario(path)
-        for host in self._model.get_hosts_list() + [self._model]:
-            conf = host.get_advanced_conf().get_configuration()
-            xslt = os.path.join(test_path, 'core_%s.xslt' %
-                                host.get_component().lower())
-            # specific case for terminals if there is a XSLT for a specific
-            # one
-            if host.get_component().lower() == 'st':
-                for st in os.listdir(path):
-                    if st.startswith('st'):
-                        st_id = st[2:]
-                        if host.get_instance() != st_id:
-                            continue
-                        xslt_path = os.path.join(test_path, 'core_st%s.xslt' % st_id)
-                        if os.path.exists(xslt_path):
-                            xslt = xslt_path
-            if os.path.exists(xslt):
-                try:
-                    conf.transform(xslt)
-                except Exception, error:
-                    raise TestError("Configuration",
-                                    "Update Configuration: %s" % error)
-                
-        #Topology
-        topo = self._model.get_topology()
-        conf = topo.get_configuration()
-        xslt = os.path.join(test_path, 'topology.xslt')
-        # specific case for terminals if there is a XSLT for a specific
-        # one
-        if os.path.exists(xslt):
-            try:
-                conf.transform(xslt)
-                # update the IP address if we add some elements
-                topo.update_hosts_address()
-            except Exception, error:
-                raise TestError("Configuration",
-                                "Update Configuration: %s" % error)
-
-    def launch_test_type(self, test_path, test_name):
-        """ launch tests on a type """
-        type_name = os.path.basename(test_path)
-        self._log.info(" * Start %s" % type_name)
-        # in quiet mode print important output on terminal
-        if self._quiet:
-            msg = "Start %s " % type_name
-            print "{:<40} ".format(msg),
-            sys.stdout.flush()
-        self._error = {}
-        # wait to be sure the plateform is started
-        time.sleep(2)
-        # get order_host folders
-        orders = glob.glob(test_path + '/*')
-        # remove common folders from list (not mandatory)
-        if os.path.join(test_path, 'files') in orders:
-            orders.remove(os.path.join(test_path, 'files'))
-        for path in orders:
-            if path.startswith('scenario'):
-                orders.remove(path)
-        orders.sort()
-        launched = False
-        for host in orders:
-            if not os.path.isdir(host):
-                continue
-            try:
-                # check that we effectively lauched a test
-                launched = True
-                if self.launch_test(host, test_name, type_name):
-                    # wait for test to initialize or stop on host
-                    time.sleep(0.5)
-            except Exception, msg:
-                self._error["Test routine"] = str(msg)
-                self._last_error = str(msg)
-                break
-            if len(self._error) > 0:
-                err = ""
-                for host in self._error:
-                    err += "%s: %s, " % (host.upper(), str(self._error[host]))
-                err = err.rstrip(", ")
-                self._last_error = err
-                # get last logs
-                last_logs = ""
-                for host in self._model.get_hosts_list():
-                    last_logs += self.get_last_logs(host.get_name())
-                if self._show_last_logs:
-                    print
-                    print last_logs
-                else:
-                    if not os.path.exists('/tmp/opensand_tests'):
-                        os.mkdir('/tmp/opensand_tests')
-                    with open('/tmp/opensand_tests/last_errors', 'a') as output:
-                        output.write(yellow("Results for configuration %s, test %s:\n" %
-                                    (test_name, type_name), True))
-                        output.write(last_logs)
-                break
-        for thread in self._threads:
-            # wait for pending tests to stop
-            self._log.info(" * waiting for a test thread to stop")
-            thread.join(120)
-            if thread.is_alive():
-                self._log.error(" * cannot stop a thread, we may have "
-                                "errors")
-            else:
-                self._log.info(" * thread stopped")
-            self._threads.remove(thread)
-        success = False
-        if len(self._error) > 0:
-            #TODO get the test output
-            # in quiet mode print important output on terminal
-            err = ""
-            for host in self._error:
-                err += "%s: %s, " % (host, str(self._error[host]))
-            err = err.rstrip(", ")
-            if self._quiet:
-                print "{:>7} {:}".format(red("ERROR"), err)
-                sys.stdout.flush()
-            else:
-                self._log.error(" * Test %s failed: %s" %
-                                (type_name, err))
-            self._last_error = err
-            # continue on other tests
-        elif not launched:
-            # in quiet mode print important output on terminal
-            if self._quiet:
-                print "{:>7} no test launched for {:}".format(red("ERROR"),
-                                                              type_name)
-                sys.stdout.flush()
-            else:
-                self._log.error(" * No test launched for %s" % type_name)
-            self._last_error = "No test launched for %s" %  type_name
-            # continue on other tests
-        else:
-            success = True
-            self._log.info(" * Test %s successful" % type_name)
-            # in quiet mode print important output on terminal
-            if self._quiet:
-                print "{:>7}".format(green("SUCCESS"))
-                sys.stdout.flush()
-            
-        test_restult = {}
-        values = test_name.split("_")
-        if len(values) >= 4:
-            values[2] = values[2] + "_" + values[3]
-            del values[3]
-            
-            for val in values:
-                if not type_name in self._result:
-                    self._result[type_name] = {}
-                if val not in self._result[type_name]:
-                    self._result[type_name][val] = [int(success), int(not success)]
-                else:
-                    self._result[type_name][val] = [self._result[type_name][val][0] + int(success),
-                    self._result[type_name][val][1] + int(not success)]
-
-        if not self._stopped and not self._model.all_running():
-            # need to check stopped because for local tests we may stop the
-            # plateform
-            msg = "Some hosts may have crashed, still running: %s" % \
-                  self._model.running_list()
-            self._log.warning(" * %s" % msg)
-            if self._quiet:
-                print red(msg)
-                sys.stdout.flush()
-            self._last_error = msg
-
-
-    def start_opensand(self):
-        """ override start function """
-        self._stopped = False
-        ShellManager.start_opensand(self)
-
-    def stop_opensand(self):
-        """ override stop function """
-        self._stopped = True
-        ShellManager.stop_opensand(self)
-
-class TestError(Exception):
-    """ error during tests """
-    def __init__(self, step, descr):
-        Exception.__init__(self)
-        self.step = step
-        self.msg = descr
-
-    def __repr__(self):
-        return '\tCONTEXT: %s\tMESSAGE: %s' % (self.step, self.msg)
-
-    def __str__(self):
-        return repr(self)
-
-
-
-if __name__ == '__main__':
+    # Initialize the test manager
+    lvl = TestManager.QUIET
+    if options.debug:
+        lvl = TestManager.DEBUG
+    elif options.verbose:
+        lvl = TestManager.VERBOSE
+        
+    if lvl == TestManager.QUIET:
+        print "Initialization, please wait..."
+    
+    mgr = TestManager(lvl, options.last_logs)
+    code = 0
+    
     try:
-        TEST = Test()
+        # Clean scenarios
+        mgr.cleanScenarios()
+    
+        # Prepare tests scenarios
+        if not mgr.prepareScenarios(folder = options.folder,
+                                    regexptest = options.test,
+                                    regexptype = options.type):
+            raise TestError("Scenarios preparation", "")
+        
+        # Prepare the OpenSAND platform
+        if not mgr.preparePlatform(service = options.service, 
+                                   workstation = options.ws,
+                                   displayonly = options.list):
+            raise TestError("Platform preparation", "")
+
+        # Run tests scenarios
+        mgr.runScenarios()
+    
+        if lvl == TestManager.QUIET:
+            print "Closure, please wait..."
+        
     except KeyboardInterrupt:
-        sys.exit(1)
-    except Exception, error:
+        if lvl == TestManager.QUIET:
+            print "Interrupted, please wait..."
+        code = 1
+    except TestError as error:
+        code = 1
+    except Exception as ex:
         print "\n\n##### TRACEBACK #####"
         traceback.print_tb(sys.exc_info()[2])
-        print red("Error: %s" % str(error))
-        sys.exit(1)
+        print red("Internal error: %s" % str(ex))
+        code = 1
 
-    sys.exit(0)
+    # Close paltform
+    mgr.closePlatform()
+    sys.exit(code)
