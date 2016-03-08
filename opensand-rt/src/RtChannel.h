@@ -29,6 +29,7 @@
  * @file RtChannel.h
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  * @brief  The channel included in blocks
  *
  */
@@ -80,29 +81,25 @@ class RtChannel
 	OutputLog *log_receive;
 	OutputLog *log_send;
 
-	/// The bloc containing channel
-	// TODO remove
-	Block *block;
-
 	/**
 	 * @brief Channel Constructor
 	 *
-	 * @param bl    The block containing this channel (TODO remove)
-	 * @param chan  The channel type
+	 * @param name       The name of the block channel
+	 * @param type       The type of the block channel (upward or downward)
 	 *
 	 */
-	RtChannel(Block *const bl, chan_type_t chan);
+	RtChannel(const string &name, const string &type);
 
 	/**
 	 * @brief Channel Constructor
 	 *
-	 * @param bl        The block containing this channel (TODO remove)
-	 * @param chan      The channel type
+	 * @param name       The name of the block channel
+	 * @param type       The type of the block channel (upward or downward)
 	 * @tparam specific  User defined data
 	 *
 	 */
 	template<class T>
-	RtChannel(Block *const bl, chan_type_t chan, T specific);
+	RtChannel(const string &name, const string &type, T specific);
 
 	virtual ~RtChannel();
 
@@ -117,9 +114,23 @@ class RtChannel
 	 */
 	virtual bool onInit(void) {return true;};
 
+	/**
+	 * @param Process an event
+	 *
+	 * @param event  The event
+	 * @return true on success, false otherwise
+	 */
+	virtual bool onEvent(const RtEvent *const event) = 0;
 
   public:
 
+	/**
+	 * @brief Get the channel name
+	 * 
+	 * @return channel name
+	 */
+	string getName() { return this->channel_name; }
+	
 	/**
 	 * @brief Add a timer event to the channel
 	 *
@@ -267,6 +278,13 @@ class RtChannel
 	bool init(void);
 
 	/**
+	 * @brief Set the block initialization status
+	 * 
+	 * @param initialized  Th block initialization status
+	 */
+	void setIsBlockInitialized(bool initialized);
+	
+	/**
 	 * @brief Set the fifo for previous channel message
 	 *
 	 * @param fifo  The fifo
@@ -281,7 +299,7 @@ class RtChannel
 	void setNextFifo(RtFifo *fifo);
 
 	/**
-	 * @brief Set the fifois for opposite channel (in the same block)
+	 * @brief Set the fifos for opposite channel (in the same block)
 	 *
 	 * @param in_fifo   The fifo for incoming messages
 	 * @param out_fifo  The fifo for outgoing messages
@@ -308,9 +326,14 @@ class RtChannel
 
   private:
 
-	/// the block direction
-	chan_type_t chan;
-
+	/// name of the block channel
+	string channel_name;
+	
+	/// type of the block channel (upward or downward)
+	string channel_type;
+	
+	bool block_initialized;
+	
 	/// events that are currently monitored by the channel thread
 	map<event_id_t, RtEvent *> events;
 
@@ -390,15 +413,6 @@ class RtChannel
 	void addInputFd(int32_t fd);
 
 	/**
-	 * @param Process an event
-	 *
-	 * @param event  The event
-	 * @return true on success, false otherwise
-	 */
-	bool processEvent(const RtEvent *const event);
-	// TODO replace with onEvent
-
-	/**
 	 * @brief Get a timer
 	 *
 	 * @param id  The timer id
@@ -421,13 +435,14 @@ class RtChannel
 };
 
 template<class T>
-RtChannel::RtChannel(Block *const bl, chan_type_t chan, T specific):
+RtChannel::RtChannel(const string &name, const string &type, T specific):
 	log_init(NULL),
 	log_rt(NULL),
 	log_receive(NULL),
 	log_send(NULL),
-	block(bl),
-	chan(chan),
+	channel_name(name),
+	channel_type(type),
+	block_initialized(false),
 	previous_fifo(NULL),
 	in_opp_fifo(NULL),
 	max_input_fd(-1),

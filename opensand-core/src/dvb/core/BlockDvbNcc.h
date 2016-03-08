@@ -33,6 +33,7 @@
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  *
  * <pre>
@@ -176,15 +177,13 @@ class BlockDvbNcc: public BlockDvb
 
 	bool initListsSts();
 
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
 	bool onInit();
 
 
 	class Upward: public DvbUpward, public DvbSpotList
 	{
 	 public:
-		Upward(Block *const bl, tal_id_t mac_id);
+		Upward(const string &name, tal_id_t mac_id);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -210,7 +209,7 @@ class BlockDvbNcc: public BlockDvb
 	class Downward: public DvbDownward, public DvbSpotList
 	{
 	  public:
-		Downward(Block *const bl, tal_id_t mac_id);
+		Downward(const string &name, tal_id_t mac_id);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);

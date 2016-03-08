@@ -32,6 +32,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -143,17 +144,6 @@ bool BlockDvbNcc::initListsSts()
 }
 
 
-bool BlockDvbNcc::onDownwardEvent(const RtEvent *const event)
-{
-	return ((Downward *)this->downward)->onEvent(event);
-}
-
-
-bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
-{
-	return ((Upward *)this->upward)->onEvent(event);
-}
-
 /*****************************************************************************/
 /*                              Downward                                     */
 /*****************************************************************************/
@@ -161,8 +151,8 @@ bool BlockDvbNcc::onUpwardEvent(const RtEvent *const event)
 
 // TODO lot of duplicated code for fifos between ST and GW
 
-BlockDvbNcc::Downward::Downward(Block *const bl, tal_id_t mac_id):
-	DvbDownward(bl),
+BlockDvbNcc::Downward::Downward(const string &name, tal_id_t mac_id):
+	DvbDownward(name),
 	DvbSpotList(),
 	pep_interface(),
 	svno_interface(),
@@ -984,8 +974,8 @@ void BlockDvbNcc::Downward::updateStats(void)
 /*                               Upward                                      */
 /*****************************************************************************/
 
-BlockDvbNcc::Upward::Upward(Block *const bl, tal_id_t mac_id):
-	DvbUpward(bl),
+BlockDvbNcc::Upward::Upward(const string &name, tal_id_t mac_id):
+	DvbUpward(name),
 	DvbSpotList(),
 	mac_id(mac_id),
 	log_saloha(NULL)

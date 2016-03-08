@@ -29,6 +29,7 @@
  * @file Block.h
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  * @brief  The block description
  *
  */
@@ -37,7 +38,6 @@
 #define BLOCK_H
 
 #include "RtChannel.h"
-#include "RtMutex.h"
 #include "Types.h"
 
 
@@ -89,16 +89,20 @@ class Block
 	class RtUpward: public RtChannel
 	{
 	  public:
-		RtUpward(Block *const bl):
-			RtChannel(bl, upward_chan)
+		RtUpward(const string &name):
+			RtChannel(name, "Upward")
 		{};
 
 		template<class T>
-		RtUpward(Block *const bl, T specific):
-			RtChannel(bl, upward_chan, specific)
+		RtUpward(const string &name, T specific):
+			RtChannel(name, "Upward", specific)
 		{};
 
 		virtual ~RtUpward() {};
+		
+	  protected:
+		virtual bool onEvent(const RtEvent *const event) = 0;
+
 	};
 
 	/**
@@ -109,16 +113,19 @@ class Block
 	class RtDownward: public RtChannel
 	{
 	  public:
-		RtDownward(Block *const bl):
-			RtChannel(bl, downward_chan)
+		RtDownward(const string &name):
+			RtChannel(name, "Downward")
 		{};
 
 		template<class T>
-		RtDownward(Block *const bl, T specific):
-			RtChannel(bl, downward_chan, specific)
+		RtDownward(const string &name, T specific):
+			RtChannel(name, "Downward", specific)
 		{};
 
 		virtual ~RtDownward() {};
+		
+	  protected:
+		virtual bool onEvent(const RtEvent *const event) = 0;
 	};
 
 
@@ -133,55 +140,7 @@ class Block
 	 * @return true on success, false otherwise
 	 */
 	virtual bool onInit(void) = 0;
-
-	// TODO remove following functions once channels will be correctly
-	//      separated
-	/**
-	 * @brief Process a downward event in block
-	 * @warning Be careful, at the moment this function can be called
-	 *          by to thread
-	 *
-	 * @param event  The event received in block
-	 * @return true if event was correctly processed, false otherwise
-	 */
-	virtual bool onDownwardEvent(const RtEvent *const event) = 0;
-
-	/**
-	 * @brief Process an upward event in block
-	 * @warning Be careful, at the moment this function can be called
-	 *          by to thread
-	 *
-	 * @param event  The event received in block
-	 * @return true if event was correctly processed, false otherwise
-	 */
-	virtual bool onUpwardEvent(const RtEvent *const event) = 0;
-
-	/**
-	 * @brief Send a message to upper block
-	 * @warning The message shall not be reused in the block after this call
-	 *          because will be used in upper blocks
-	 *
-	 * @param data  IN: The message to send to upper block
-	 *              OUT: NULL
-	 * @param size  The size of data in message
-	 * @param type  The type of the message
-	 * @return true on success, false otherwise
-	 */
-	bool sendUp(void **data, size_t size = 0, uint8_t type = 0);
-
-	/**
-	 * @brief Send a message to lower block
-	 *
-	 * @param data  IN: The message to send to lower block
-	 *              OUT: NULL (to avoid using data that was transmitted
-	 *                   in an other thread)
-	 * @param size  The size of data in message
-	 * @param type  The type of the message
-	 * @return true on success, false otherwise
-	 */
-	bool sendDown(void **data, size_t size = 0, uint8_t type = 0);
-	// end TODO
-
+	
 	/**
 	 * @brief Get the name of the block
 	 *
@@ -227,16 +186,6 @@ class Block
 	bool stop(int signal);
 
 	/**
-	 * @brief Handle an event received from a channel
-	 *
-	 * @param event  The event
-	 * @param chan   The type of channel
-	 * @return true on success, false otherwise
-	 */
-	// TODO remove once onEvent will be in channel
-	bool processEvent(const RtEvent *const event, chan_type_t chan);
-
-	/**
 	 * @brief Get the upward channel
 	 *
 	 * @return the upward channel
@@ -249,11 +198,6 @@ class Block
 	 * @return the downward channel
 	 */
 	RtChannel *getDownwardChannel(void) const;
-
-	/**
-	 * @brief Enable mutex to protect channels
-	 */
-	void enableChannelMutex(void);
 
 	/// Output Log
 	OutputLog *log_rt;
@@ -277,14 +221,8 @@ class Block
 	/// Whether the block is initialized
 	bool initialized;
 
-	/// Whether the channel processing are protected with a mutex
-	bool chan_mutex;
-
 	/// The event for block initialization
 	OutputEvent *event_init;
-  
-	/// mutex to separate channel processing
-	RtMutex block_mutex;
 };
 
 // TODO malloc/new hook !!

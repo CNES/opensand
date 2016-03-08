@@ -31,6 +31,7 @@
  * @brief This bloc implements a satellite carrier emulation
  * @author AQL (ame)
  * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef TEST_SAT_CARRIERS_H
@@ -67,8 +68,8 @@ class TestSatCarriers: public Block
 	class Upward: public RtUpward
 	{
 	 public:
-		Upward(Block *const bl, struct sc_specific specific):
-			RtUpward(bl),
+		Upward(const string &name, struct sc_specific specific):
+			RtUpward(name),
 			in_channel_set(specific.tal_id),
 			ip_addr(specific.ip_addr),
 			interface_name(specific.emu_iface)
@@ -97,8 +98,8 @@ class TestSatCarriers: public Block
 	class Downward: public RtDownward
 	{
 	 public:
-		Downward(Block *const bl, struct sc_specific specific):
-			RtDownward(bl),
+		Downward(const string &name, struct sc_specific specific):
+			RtDownward(name),
 			out_channel_set(specific.tal_id),
 			ip_addr(specific.ip_addr),
 			interface_name(specific.emu_iface)
@@ -126,10 +127,6 @@ class TestSatCarriers: public Block
 	};
 
  protected:
-
-	/// event handlers
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
 
 	// initialization method
 	bool onInit();

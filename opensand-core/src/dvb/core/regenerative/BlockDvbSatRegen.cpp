@@ -32,6 +32,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
+ * @author Aureline DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #include "BlockDvbSatRegen.h"
@@ -73,24 +74,11 @@ BlockDvbSatRegen::~BlockDvbSatRegen()
 }
 
 
-bool BlockDvbSatRegen::onUpwardEvent(const RtEvent *const event)
-{
-	return ((UpwardRegen *)this->upward)->onEvent(event);
-}
-
-
-bool BlockDvbSatRegen::onDownwardEvent(const RtEvent *const event)
-{
-	return ((DownwardRegen *)this->downward)->onEvent(event);
-}
-
-
-
 /*****************************************************************************/
 /*                              Downward                                     */
 /*****************************************************************************/
-BlockDvbSatRegen::DownwardRegen::DownwardRegen(Block *const bl):
-	Downward(bl)
+BlockDvbSatRegen::DownwardRegen::DownwardRegen(const string &name):
+	Downward(name)
 {
 };
 
@@ -463,8 +451,8 @@ bool BlockDvbSatRegen::DownwardRegen::handleScenarioTimer(SatGw *current_gw)
 /*****************************************************************************/
 
 
-BlockDvbSatRegen::UpwardRegen::UpwardRegen(Block *const bl):
-	Upward(bl)
+BlockDvbSatRegen::UpwardRegen::UpwardRegen(const string &name):
+	Upward(name)
 {
 };
 

@@ -31,6 +31,7 @@
  * @brief Generic Encapsulation Bloc for SE
  * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef BLOC_ENCAP_SAT_H
@@ -68,8 +69,8 @@ class BlockEncapSat: public Block
 	class Upward: public RtUpward
 	{
 	 public:
-		Upward(Block *const bl):
-			RtUpward(bl)
+		Upward(const string &name):
+			RtUpward(name)
 		{};
 		bool onEvent(const RtEvent *const event);
 	};
@@ -77,8 +78,8 @@ class BlockEncapSat: public Block
 	class Downward: public RtDownward
 	{
 	 public:
-		Downward(Block *const bl):
-			RtDownward(bl)
+		Downward(const string &name):
+			RtDownward(name)
 		{};
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -127,10 +128,6 @@ class BlockEncapSat: public Block
 	};
 
  protected:
-
-	/// event handlers
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
 
 	bool onInit();
 };

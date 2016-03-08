@@ -30,6 +30,7 @@
  * @file BlockEncap.cpp
  * @brief Generic Encapsulation Bloc
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurelien Delrieu <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -67,14 +68,8 @@ inline bool fileExists(const string &filename)
 
 BlockEncap::BlockEncap(const string &name, tal_id_t mac_id):
 	Block(name),
-	group_id(-1),
-	tal_id(-1),
-	state(link_down),
-	mac_id(mac_id),
-	satellite_type()
+	mac_id(mac_id)
 {
-	// TODO we need a mutex here because some parameters may be used in upward and downward
-	this->enableChannelMutex();
 	// register static log
 	NetBurst::log_net_burst = Output::registerLog(LEVEL_WARNING, "NetBurst");
 }
@@ -83,15 +78,14 @@ BlockEncap::~BlockEncap()
 {
 }
 
-
-bool BlockEncap::onDownwardEvent(const RtEvent *const event)
+bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
 		case evt_timer:
 		{
 			// timer event, flush corresponding encapsulation context
-			LOG(this->log_rcv_from_up, LEVEL_INFO,
+			LOG(this->log_receive, LEVEL_INFO,
 			    "Timer received %s\n", event->getName().c_str());
 			return this->onTimer(event->getFd());
 		}
@@ -100,16 +94,32 @@ bool BlockEncap::onDownwardEvent(const RtEvent *const event)
 		case evt_message:
 		{
 			// message received from another bloc
-			LOG(this->log_rcv_from_up, LEVEL_INFO,
+			LOG(this->log_receive, LEVEL_INFO,
 			    "message received from the upper-layer bloc\n");
+			
+			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
+			{
+				T_LINK_UP *link_up_msg;
+
+				// 'link up' message received 
+				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
+
+				// save group id and TAL id sent by MAC layer
+				this->group_id = link_up_msg->group_id;
+				this->tal_id = link_up_msg->tal_id;
+				this->state = link_up;
+				delete link_up_msg;
+				break;
+			}
+
 			NetBurst *burst;
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
-			return this->onRcvBurstFromUp(burst);
+			return this->onRcvBurst(burst);
 		}
 		break;
 
 		default:
-			LOG(this->log_rcv_from_up, LEVEL_ERROR,
+			LOG(this->log_receive, LEVEL_ERROR,
 			    "unknown event received %s\n",
 			    event->getName().c_str());
 			return false;
@@ -118,29 +128,37 @@ bool BlockEncap::onDownwardEvent(const RtEvent *const event)
 	return true;
 }
 
+void BlockEncap::Downward::setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx)
+{
+	this->ctx = encap_ctx;
+}
 
-bool BlockEncap::onUpwardEvent(const RtEvent *const event)
+bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
 		case evt_message:
 		{
-			LOG(this->log_rcv_from_down, LEVEL_INFO,
+			LOG(this->log_receive, LEVEL_INFO,
 			    "message received from the lower layer\n");
 
 			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
 			{
 				T_LINK_UP *link_up_msg;
+				T_LINK_UP *shared_link_up_msg;
 				vector<EncapPlugin::EncapContext*>::iterator encap_it;
 
 				// 'link up' message received => forward it to upper layer
-				LOG(this->log_rcv_from_down, LEVEL_INFO,
-				    "'link up' message received, forward it\n");
 
 				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
+				LOG(this->log_receive, LEVEL_INFO,
+				    "'link up' message received (group = %u, "
+				    "tal = %u), forward it\n", link_up_msg->group_id,
+				    link_up_msg->tal_id);
+				
 				if(this->state == link_up)
 				{
-					LOG(this->log_rcv_from_down, LEVEL_NOTICE,
+					LOG(this->log_receive, LEVEL_NOTICE,
 					    "duplicate link up msg\n");
 					delete link_up_msg;
 					return false;
@@ -151,30 +169,53 @@ bool BlockEncap::onUpwardEvent(const RtEvent *const event)
 				this->tal_id = link_up_msg->tal_id;
 				this->state = link_up;
 
-				// send the message to the upper layer
-				if(!this->sendUp((void **)&link_up_msg,
-					             sizeof(T_LINK_UP), msg_link_up))
+				// transmit link u to opposite channel
+				shared_link_up_msg = new T_LINK_UP;
+				if(shared_link_up_msg == 0)
 				{
-					LOG(this->log_rcv_from_down, LEVEL_ERROR,
+				     LOG(this->log_receive, LEVEL_ERROR,
+				         "failed to allocate a new 'link up' message "
+				         "to transmit to opposite channel\n");
+				     delete link_up_msg;
+				     return false;
+				}
+				shared_link_up_msg->group_id = link_up_msg->group_id;
+				shared_link_up_msg->tal_id = link_up_msg->tal_id;
+				if(!this->shareMessage((void **)&shared_link_up_msg,
+					                     sizeof(T_LINK_UP), msg_link_up))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "failed to transmit 'link up' message to "
+					    "opposite channel\n");
+					delete shared_link_up_msg;
+					delete link_up_msg;
+					return false;
+				}
+
+				// send the message to the upper layer
+				if(!this->enqueueMessage((void **)&link_up_msg,
+					                     sizeof(T_LINK_UP), msg_link_up))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
 					    "cannot forward 'link up' message\n");
 					delete link_up_msg;
 					return false;
 				}
 
-				LOG(this->log_rcv_from_down, LEVEL_INFO,
+				LOG(this->log_receive, LEVEL_INFO,
 				    "'link up' message sent to the upper layer\n");
 
 				// Set tal_id 'filter' for reception context
 
-				for(encap_it = this->reception_ctx.begin();
-				    encap_it != this->reception_ctx.end();
+				for(encap_it = this->ctx.begin();
+				    encap_it != this->ctx.end();
 				    ++encap_it)
 				{
 					(*encap_it)->setFilterTalId(this->tal_id);
 				}
 
-				for(encap_it = this->reception_ctx_scpc.begin();
-				    encap_it != this->reception_ctx_scpc.end();
+				for(encap_it = this->ctx_scpc.begin();
+				    encap_it != this->ctx_scpc.end();
 				    ++encap_it)
 				{
 					(*encap_it)->setFilterTalId(this->tal_id);
@@ -186,11 +227,11 @@ bool BlockEncap::onUpwardEvent(const RtEvent *const event)
 			// data received
 			NetBurst *burst;
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
-			return this->onRcvBurstFromDown(burst);
+			return this->onRcvBurst(burst);
 		}
 
 		default:
-			LOG(this->log_rcv_from_down, LEVEL_ERROR,
+			LOG(this->log_receive, LEVEL_ERROR,
 			    "unknown event received %s\n",
 			    event->getName().c_str());
 			return false;
@@ -215,13 +256,6 @@ bool BlockEncap::onInit()
 	string compo_name;
 	component_t host;
 
-	if(!this->initOutput())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to init output\n");
-		goto error;
-	}
-
 	// satellite type: regenerative or transparent ?
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
 	                   SATELLITE_TYPE,
@@ -232,11 +266,13 @@ bool BlockEncap::onInit()
 		    COMMON_SECTION, SATELLITE_TYPE);
 		goto error;
 	}
-	this->satellite_type = strToSatType(sat_type);
-	
 
 	LOG(this->log_init, LEVEL_INFO,
 	    "satellite type = %s\n", sat_type.c_str());
+	
+	this->satellite_type = strToSatType(sat_type);
+	((Upward *)this->upward)->setMacId(this->mac_id);
+	((Upward *)this->upward)->setSatelliteType(this->satellite_type);
 
 	// Retrieve last packet handler in lan adaptation layer
 	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
@@ -352,41 +388,38 @@ bool BlockEncap::onInit()
 
 	if(host == terminal || this->satellite_type == REGENERATIVE)
 	{
-		this->emission_ctx = up_return_ctx;
-		this->reception_ctx = down_forward_ctx;
+		// reorder reception context to get the deencapsulation contexts in the
+		// right order
+		reverse(down_forward_ctx.begin(), down_forward_ctx.end());
+		
+		((Downward *)this->downward)->setContext(up_return_ctx);
+		((Upward *)this->upward)->setContext(down_forward_ctx);
 	}
 	else
 	{
-		this->reception_ctx = up_return_ctx;
-		this->reception_ctx_scpc = up_return_ctx_scpc;
-		this->emission_ctx = down_forward_ctx;
+		// reorder reception context to get the deencapsulation contexts in the
+		// right order
+		reverse(up_return_ctx.begin(), up_return_ctx.end());
+		reverse(up_return_ctx_scpc.begin(), up_return_ctx_scpc.end());
+		
+		((Downward *)this->downward)->setContext(down_forward_ctx);
+		((Upward *)this->upward)->setContext(up_return_ctx);
+		((Upward *)this->upward)->setSCPCContext(up_return_ctx_scpc);
 	}
-	// reorder reception context to get the deencapsulation contexts in the
-	// right order
-	reverse(this->reception_ctx.begin(), this->reception_ctx.end());
 
 	return true;
 error:
 	return false;
 }
 
-bool BlockEncap::initOutput()
-{
-	this->log_init = Output::registerLog(LEVEL_WARNING, "Encap.init");
-	this->log_rcv_from_up = Output::registerLog(LEVEL_WARNING, "Encap.Downward.receive");
-	this->log_rcv_from_down = Output::registerLog(LEVEL_WARNING, "Encap.Upward.receive");
-	this->log_send_down = Output::registerLog(LEVEL_WARNING, "Encap.Downward.send");
-	return true;
-}
-
-bool BlockEncap::onTimer(event_id_t timer_id)
+bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 {
 	std::map<event_id_t, int>::iterator it;
 	int id;
 	NetBurst *burst;
 	bool status = false;
 
-	LOG(this->log_rcv_from_up, LEVEL_INFO,
+	LOG(this->log_receive, LEVEL_INFO,
 	    "emission timer received, flush corresponding emission "
 	    "context\n");
 
@@ -394,31 +427,31 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 	it = this->timers.find(timer_id);
 	if(it == this->timers.end())
 	{
-		LOG(this->log_rcv_from_up, LEVEL_ERROR,
+		LOG(this->log_receive, LEVEL_ERROR,
 		    "timer not found\n");
 		goto error;
 	}
 
 	// context found
 	id = (*it).second;
-	LOG(this->log_rcv_from_up, LEVEL_INFO,
+	LOG(this->log_receive, LEVEL_INFO,
 	    "corresponding emission context found (ID = %d)\n",
 	    id);
 
 	// remove emission timer from the list
-	this->downward->removeEvent((*it).first);
+	this->removeEvent((*it).first);
 	this->timers.erase(it);
 
 	// flush the last encapsulation contexts
-	burst = (this->emission_ctx.back())->flush(id);
+	burst = (this->ctx.back())->flush(id);
 	if(burst == NULL)
 	{
-		LOG(this->log_rcv_from_up, LEVEL_ERROR,
+		LOG(this->log_receive, LEVEL_ERROR,
 		    "flushing context %d failed\n", id);
 		goto error;
 	}
 
-	LOG(this->log_rcv_from_up, LEVEL_INFO,
+	LOG(this->log_receive, LEVEL_INFO,
 	    "%zu encapsulation packets flushed\n",
 	    burst->size());
 
@@ -429,14 +462,14 @@ bool BlockEncap::onTimer(event_id_t timer_id)
 	}
 
 	// send the message to the lower layer
-	if(!this->sendDown((void **)&burst))
+	if(!this->enqueueMessage((void **)&burst))
 	{
-		LOG(this->log_rcv_from_up, LEVEL_ERROR,
+		LOG(this->log_receive, LEVEL_ERROR,
 		    "cannot send burst to lower layer failed\n");
 		goto clean;
 	}
 
-	LOG(this->log_rcv_from_up, LEVEL_INFO,
+	LOG(this->log_receive, LEVEL_INFO,
 	    "encapsulation burst sent to the lower layer\n");
 
 	return true;
@@ -447,7 +480,7 @@ error:
 	return status;
 }
 
-bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
+bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 {
 	map<long, int> time_contexts;
 	vector<EncapPlugin::EncapContext *>::iterator iter;
@@ -458,25 +491,25 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 	// check packet validity
 	if(burst == NULL)
 	{
-		LOG(this->log_rcv_from_up, LEVEL_ERROR,
+		LOG(this->log_receive, LEVEL_ERROR,
 		    "burst is not valid\n");
 		goto error;
 	}
 
 	name = burst->name();
 	size = burst->size();
-	LOG(this->log_rcv_from_up, LEVEL_INFO,
+	LOG(this->log_receive, LEVEL_INFO,
 	    "encapsulate %zu %s packet(s)\n",
 	    size, name.c_str());
 
 	// encapsulate packet
-	for(iter = this->emission_ctx.begin(); iter != this->emission_ctx.end();
+	for(iter = this->ctx.begin(); iter != this->ctx.end();
 	    iter++)
 	{
 		burst = (*iter)->encapsulate(burst, time_contexts);
 		if(burst == NULL)
 		{
-			LOG(this->log_rcv_from_up, LEVEL_ERROR,
+			LOG(this->log_receive, LEVEL_ERROR,
 			    "encapsulation failed in %s context\n",
 			    (*iter)->getName().c_str());
 			goto error;
@@ -492,7 +525,9 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 
 		// check if there is already a timer armed for the context
 		for(it = this->timers.begin(); !found && it != this->timers.end(); it++)
+		{
 		    found = ((*it).second == (*time_iter).second);
+		}
 
 		// set a new timer if no timer was found and timer is not null
 		if(!found && (*time_iter).first != 0)
@@ -501,18 +536,18 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 			ostringstream name;
 
 			name << "context_" << (*time_iter).second;
-			timer = this->downward->addTimerEvent(name.str(),
-			                                      (*time_iter).first,
-			                                      false);
+			timer = this->addTimerEvent(name.str(),
+			                            (*time_iter).first,
+			                            false);
 
 			this->timers.insert(std::make_pair(timer, (*time_iter).second));
-			LOG(this->log_rcv_from_up, LEVEL_INFO,
+			LOG(this->log_receive, LEVEL_INFO,
 			    "timer for context ID %d armed with %ld ms\n",
 			    (*time_iter).second, (*time_iter).first);
 		}
 		else
 		{
-			LOG(this->log_rcv_from_up, LEVEL_INFO,
+			LOG(this->log_receive, LEVEL_INFO,
 			    "timer already set for context ID %d\n",
 			    (*time_iter).second);
 		}
@@ -521,20 +556,20 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 	// check burst validity
 	if(burst == NULL)
 	{
-		LOG(this->log_rcv_from_up, LEVEL_ERROR,
+		LOG(this->log_receive, LEVEL_ERROR,
 		    "encapsulation failed\n");
 		goto error;
 	}
 
 	if(burst->size() > 0)
 	{
-		LOG(this->log_rcv_from_up, LEVEL_INFO,
+		LOG(this->log_receive, LEVEL_INFO,
 		    "encapsulation packet of type %s (QoS = %d)\n",
 		    burst->front()->getName().c_str(),
 		    burst->front()->getQos());
 	}
 
-	LOG(this->log_rcv_from_up, LEVEL_INFO,
+	LOG(this->log_receive, LEVEL_INFO,
 	    "%zu %s packet => %zu encapsulation packet(s)\n",
 	    size, name.c_str(), burst->size());
 
@@ -547,14 +582,14 @@ bool BlockEncap::onRcvBurstFromUp(NetBurst *burst)
 
 
 	// send the message to the lower layer
-	if(!this->sendDown((void **)&burst))
+	if(!this->enqueueMessage((void **)&burst))
 	{
-		LOG(this->log_rcv_from_up, LEVEL_ERROR,
+		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to lower layer\n");
 		goto clean;
 	}
 
-	LOG(this->log_rcv_from_up, LEVEL_INFO,
+	LOG(this->log_receive, LEVEL_INFO,
 	    "encapsulation burst sent to the lower layer\n");
 
 	// everything is fine
@@ -566,7 +601,27 @@ error:
 	return status;
 }
 
-bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
+void BlockEncap::Upward::setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx)
+{
+	this->ctx = encap_ctx;
+}
+
+void BlockEncap::Upward::setSCPCContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx_scpc)
+{
+	this->ctx_scpc = encap_ctx_scpc;
+}
+
+void BlockEncap::Upward::setMacId(tal_id_t id)
+{
+	this->mac_id = id;
+}
+
+void BlockEncap::Upward::setSatelliteType(sat_type_t sat_type)
+{
+	this->satellite_type = sat_type;
+}
+
+bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 {
 	vector <EncapPlugin::EncapContext *>::iterator iter;
 	unsigned int nb_bursts;
@@ -575,59 +630,60 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	// check burst validity
 	if(burst == NULL)
 	{
-		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		LOG(this->log_receive, LEVEL_ERROR,
 		    "burst is not valid\n");
 		goto error;
 	}
 
 	nb_bursts = burst->size();
-	LOG(this->log_rcv_from_down, LEVEL_INFO,
+	LOG(this->log_receive, LEVEL_INFO,
 	    "message contains a burst of %d %s packet(s)\n",
 	    nb_bursts, burst->name().c_str());
 
 	if(burst->name() == "GSE" &&
-	   OpenSandConf::isGw(mac_id) &&
+	   OpenSandConf::isGw(this->mac_id) &&
 	   this->satellite_type == TRANSPARENT)
 	{
 		// SCPC case
 
 		// iterate on all the deencapsulation contexts to get the ip packets
-		for(iter = this->reception_ctx_scpc.begin();
-		    iter != this->reception_ctx_scpc.end();
+		for(iter = this->ctx_scpc.begin();
+		    iter != this->ctx_scpc.end();
 		    ++iter)
 		{
 			burst = (*iter)->deencapsulate(burst);
 			if(burst == NULL)
 			{
-				LOG(this->log_rcv_from_down, LEVEL_ERROR,
+				LOG(this->log_receive, LEVEL_ERROR,
 				    "deencapsulation failed in %s context\n",
 				    (*iter)->getName().c_str());
 				goto error;
 			}
 		}
-		LOG(this->log_rcv_from_down, LEVEL_INFO,
+		LOG(this->log_receive, LEVEL_INFO,
 		    "%d %s packet => %zu %s packet(s)\n",
-		    nb_bursts, this->reception_ctx_scpc[0]->getName().c_str(),
+		    nb_bursts, this->ctx_scpc[0]->getName().c_str(),
 		    burst->size(), burst->name().c_str());
 	}
 	else
 	{
 		// iterate on all the deencapsulation contexts to get the ip packets
-		for(iter = this->reception_ctx.begin(); iter != this->reception_ctx.end();
+		for(iter = this->ctx.begin(); 
+		    iter != this->ctx.end();
 		    ++iter)
 		{
 			burst = (*iter)->deencapsulate(burst);
 			if(burst == NULL)
 			{
-				LOG(this->log_rcv_from_down, LEVEL_ERROR,
+				LOG(this->log_receive, LEVEL_ERROR,
 				    "deencapsulation failed in %s context\n",
 				    (*iter)->getName().c_str());
 				goto error;
 			}
 		}
-		LOG(this->log_rcv_from_down, LEVEL_INFO,
+		LOG(this->log_receive, LEVEL_INFO,
 		    "%d %s packet => %zu %s packet(s)\n",
-		    nb_bursts, this->reception_ctx[0]->getName().c_str(),
+		    nb_bursts, this->ctx[0]->getName().c_str(),
 		    burst->size(), burst->name().c_str());
 	}
 
@@ -638,14 +694,14 @@ bool BlockEncap::onRcvBurstFromDown(NetBurst *burst)
 	}
 
 	// send the burst to the upper layer
-	if(!this->sendUp((void **)&burst))
+	if(!this->enqueueMessage((void **)&burst))
 	{
-		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to upper layer\n");
 		delete burst;
 	}
 
-	LOG(this->log_rcv_from_down, LEVEL_INFO,
+	LOG(this->log_receive, LEVEL_INFO,
 	    "burst of deencapsulated packets sent to the upper "
 	    "layer\n");
 

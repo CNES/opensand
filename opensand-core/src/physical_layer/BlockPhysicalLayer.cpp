@@ -29,6 +29,7 @@
  * @file     BlockPhysicalLayer.cpp
  * @brief    PhysicalLayer bloc
  * @author   Santiago PENA <santiago.penaluque@cnes.fr>
+ * @author   Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #include "BlockPhysicalLayer.h"
@@ -42,11 +43,8 @@
 
 
 BlockPhysicalLayer::BlockPhysicalLayer(const string &name):
-	Block(name),
-	log_event(NULL)
+	Block(name)
 {
-	// Output Log
-	this->log_event = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Event");
 }
 
 
@@ -60,8 +58,16 @@ bool BlockPhysicalLayer::onInit(void)
 	return true;
 }
 
-bool BlockPhysicalLayer::onEvent(const RtEvent *const event,
-                                 Chan *chan)
+BlockPhysicalLayer::Downward::Downward(const string &name):
+	RtDownward(name),
+	PhyChannel(),
+	log_event(NULL)
+{
+	// Output Log
+	this->log_event = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Downward.Event");
+}
+
+bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
@@ -71,22 +77,22 @@ bool BlockPhysicalLayer::onEvent(const RtEvent *const event,
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
 			// forward the DVB frame to the lower block
-			return chan->forwardFrame(dvb_frame);
+			return this->forwardFrame(dvb_frame);
 		}
 		break;
 
 		case evt_timer:
-			if(*event != chan->att_timer)
+			if(*event != this->att_timer)
 			{
 				return false;
 			}
-			//Event handler for Channel(s) state update
+			//Event handler for Downward Channel state update
 			LOG(this->log_event, LEVEL_DEBUG,
-			    "channel timer expired\n");
-			if(!chan->update())
+			    "downward channel timer expired\n");
+			if(!this->update())
 			{
 				LOG(this->log_event, LEVEL_ERROR,
-				    "one of both channels updating failed, do not "
+				    "downward channel updating failed, do not "
 				    "update channels anymore\n");
 				return false;
 			}
@@ -102,14 +108,54 @@ bool BlockPhysicalLayer::onEvent(const RtEvent *const event,
 	return true;
 }
 
-bool BlockPhysicalLayer::onDownwardEvent(const RtEvent *const event)
+BlockPhysicalLayer::Upward::Upward(const string &name):
+	RtUpward(name),
+	PhyChannel(),
+	log_event(NULL)
 {
-	return this->onEvent(event, (Chan *)this->downward);
+	// Output Log
+	this->log_event = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Upward.Event");
 }
 
-bool BlockPhysicalLayer::onUpwardEvent(const RtEvent *const event)
+bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 {
-	return this->onEvent(event, (Chan *)this->upward);
+	switch(event->getType())
+	{
+		case evt_message:
+		{
+			// message event: forward DVB frames from upper block to lower block
+			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
+
+			// forward the DVB frame to the lower block
+			return this->forwardFrame(dvb_frame);
+		}
+		break;
+
+		case evt_timer:
+			if(*event != this->att_timer)
+			{
+				return false;
+			}
+			//Event handler for Upward Channel state update
+			LOG(this->log_event, LEVEL_DEBUG,
+			    "upward channel timer expired\n");
+			if(!this->update())
+			{
+				LOG(this->log_event, LEVEL_ERROR,
+				    "upward channel updating failed, do not "
+				    "update channels anymore\n");
+				return false;
+			}
+			break;
+
+		default:
+			LOG(this->log_event, LEVEL_ERROR,
+			    "unknown event received %s",
+			    event->getName().c_str());
+			return false;
+	}
+
+	return true;
 }
 
 bool BlockPhysicalLayer::Upward::onInit(void)

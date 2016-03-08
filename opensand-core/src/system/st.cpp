@@ -31,6 +31,7 @@
  * @brief Satellite station (ST) process
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  * ST uses the following stack of RT blocs installed over 2 NICs
  * (nic1 on user network side and nic2 on satellite network side):
@@ -271,8 +272,8 @@ int main(int argc, char **argv)
 	}
 
 	block_encap = Rt::createBlock<BlockEncap,
-	                              BlockEncap::RtUpward,
-	                              BlockEncap::RtDownward,
+	                              BlockEncap::Upward,
+	                              BlockEncap::Downward,
 	                              tal_id_t>("Encap", block_lan_adaptation, mac_id);
 	if(!block_encap)
 	{

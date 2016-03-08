@@ -29,6 +29,7 @@
  * @file BlockManager.h
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  * @brief  The manager that handles blocks
  *
  */
@@ -161,8 +162,8 @@ Block *BlockManager::createBlock(const string &name,
 {
 	Block *block = new Bl(name);
 
-	Up *up = new Up(block);
-	Down *down = new Down(block);
+	Up *up = new Up(name);
+	Down *down = new Down(name);
 
 	RtFifo *up_opp_fifo = new RtFifo();
 	RtFifo *down_opp_fifo = new RtFifo();
@@ -200,8 +201,8 @@ Block *BlockManager::createBlock(const string &name,
 {
 	Block *block = new Bl(name, specific);
 
-	Up *up = new Up(block, specific);
-	Down *down = new Down(block, specific);
+	Up *up = new Up(name, specific);
+	Down *down = new Down(name, specific);
 
 	RtFifo *up_opp_fifo = new RtFifo();
 	RtFifo *down_opp_fifo = new RtFifo();

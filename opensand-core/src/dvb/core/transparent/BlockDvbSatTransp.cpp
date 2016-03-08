@@ -32,6 +32,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #include "BlockDvbSatTransp.h"
@@ -72,24 +73,11 @@ BlockDvbSatTransp::~BlockDvbSatTransp()
 {
 }
 
-
-bool BlockDvbSatTransp::onUpwardEvent(const RtEvent *const event)
-{
-	return ((UpwardTransp *)this->upward)->onEvent(event);
-}
-
-
-bool BlockDvbSatTransp::onDownwardEvent(const RtEvent *const event)
-{
-	return ((DownwardTransp *)this->downward)->onEvent(event);
-}
-
-
 /*****************************************************************************/
 /*                              Downward                                     */
 /*****************************************************************************/
-BlockDvbSatTransp::DownwardTransp::DownwardTransp(Block *const bl):
-	Downward(bl)
+BlockDvbSatTransp::DownwardTransp::DownwardTransp(const string &name):
+	Downward(name)
 {
 };
 
@@ -169,8 +157,8 @@ bool BlockDvbSatTransp::DownwardTransp::handleScenarioTimer(SatGw *UNUSED(curren
 /*****************************************************************************/
 
 
-BlockDvbSatTransp::UpwardTransp::UpwardTransp(Block *const bl):
-	Upward(bl)
+BlockDvbSatTransp::UpwardTransp::UpwardTransp(const string &name):
+	Upward(name)
 {
 };
 

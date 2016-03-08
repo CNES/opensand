@@ -32,6 +32,7 @@
  *
  * @author Didier Barvaux <didier.barvaux@b2i-toulouse.com>
  * @author Julien Nicol <julien.nicol@b2i-toulouse.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef BLOCK_LAN_ADAPTATION_H
@@ -62,18 +63,14 @@ class BlockLanAdaptation: public Block
 	BlockLanAdaptation(const string &name, string lan_iface);
 	~BlockLanAdaptation();
 
-	/// event handlers
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
-
 	// initialization method
 	bool onInit(void);
 
 	class Upward: public RtUpward
 	{
 	 public:
-		Upward(Block *const bl, string UNUSED(lan_iface)):
-			RtUpward(bl),
+		Upward(const string &name, string UNUSED(lan_iface)):
+			RtUpward(name),
 			sarp_table(),
 			contexts(),
 			state(link_down)
@@ -138,8 +135,8 @@ class BlockLanAdaptation: public Block
 	class Downward: public RtDownward
 	{
 	 public:
-		Downward(Block *const bl, string UNUSED(lan_iface)):
-			RtDownward(bl),
+		Downward(const string &name, string UNUSED(lan_iface)):
+			RtDownward(name),
 			stats_period_ms(),
 			contexts(),
 			state(link_down)

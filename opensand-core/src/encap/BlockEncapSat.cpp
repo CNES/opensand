@@ -31,6 +31,7 @@
  * @brief Generic Encapsulation Bloc for SE
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -51,11 +52,6 @@ BlockEncapSat::BlockEncapSat(const string &name):
 
 BlockEncapSat::~BlockEncapSat()
 {
-}
-
-bool BlockEncapSat::onDownwardEvent(const RtEvent *const event)
-{
-	return ((Downward *)this->downward)->onEvent(event);
 }
 
 bool BlockEncapSat::Downward::onEvent(const RtEvent *const event)
@@ -88,11 +84,6 @@ bool BlockEncapSat::Downward::onEvent(const RtEvent *const event)
 	}
 
 	return true;
-}
-
-bool BlockEncapSat::onUpwardEvent(const RtEvent *const event)
-{
-	return ((Upward *)this->upward)->onEvent(event);
 }
 
 bool BlockEncapSat::Upward::onEvent(const RtEvent *const event)

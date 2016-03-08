@@ -29,6 +29,7 @@
  *
  * @file TestBlock.cpp
  * @author Julien Bernard <jbernard@toulouse.viveris.com>
+ * @author Aurelien Delrieu <adelrieu@toulouse.viveris.com>
  * @brief This test check that we can raise a timer on a channel then
  *        write on a socket that will be monitored by the opposite channel
  *        and transmit back data to the initial channel in order to
@@ -83,6 +84,10 @@ TestBlock::TestBlock(const string &name):
 {
 }
 
+TestBlock::~TestBlock()
+{
+}
+
 bool TestBlock::onInit()
 {
 	int32_t pipefd[2];
@@ -93,24 +98,32 @@ bool TestBlock::onInit()
 		          << "downward channels" << std::endl;
 		return false;
 	}
-	this->input_fd = pipefd[0];
-	this->output_fd = pipefd[1];
+	((Downward *)this->downward)->setInputFd(pipefd[0]);
+	((Upward *)this->upward)->setOutputFd(pipefd[1]);
 
-	this->nbr_timeouts = 0;
-	//timer event every 100ms
-	this->upward->addTimerEvent("test_timer", 100, true);
-
-	// high priority to be sure to read it before another timer
-	this->downward->addFileEvent("downward", this->input_fd, 64, 2);
 	return true;
 }
 
-bool TestBlock::onUpwardEvent(const RtEvent *const event)
+void TestBlock::Upward::setOutputFd(int32_t fd)
+{
+	this->output_fd = fd;
+}
+
+bool TestBlock::Upward::onInit(void)
+{
+	this->nbr_timeouts = 0;
+	//timer event every 100ms
+	this->addTimerEvent("test_timer", 100, true);
+	
+	return true;
+}
+
+bool TestBlock::Upward::onEvent(const RtEvent *const event)
 {
 	string error;
 	timeval elapsed_time;
 	int res = 0;
-
+	
 	switch(event->getType())
 	{
 		case evt_timer:
@@ -132,10 +145,10 @@ bool TestBlock::onUpwardEvent(const RtEvent *const event)
 			            this->last_written, strlen(this->last_written));
 			if(res == -1)
 			{
-				Rt::reportError(this->name, pthread_self(), true,
+				Rt::reportError(this->getName(), pthread_self(), true,
 				                "cannot write on pipe");
 			}
-			std::cout << "Timer triggered in block: " << this->name
+			std::cout << "Timer triggered in block: " << this->getName()
 			          << "; value: " << this->last_written << std::endl;
 			fflush(stdout);
 
@@ -146,12 +159,12 @@ bool TestBlock::onUpwardEvent(const RtEvent *const event)
 			size_t length = ((MessageEvent *)event)->getLength();
 			char *data = (char *)((MessageEvent *)event)->getData();
 			std::cout << "Data received from opposite channel in block: "
-			          << this->name << "; data: " << data << std::endl;
+			          << this->getName() << "; data: " << data << std::endl;
 			fflush(stdout);
 
 			if(strncmp(this->last_written, (char*)data, length))
 			{
-				Rt::reportError(this->name, pthread_self(), true,
+				Rt::reportError(this->getName(), pthread_self(), true,
 				                "wrong data received '%s' instead of '%s'",
 				                data, this->last_written);
 			}
@@ -161,13 +174,33 @@ bool TestBlock::onUpwardEvent(const RtEvent *const event)
 		break;
 
 		default:
-			Rt::reportError(this->name, pthread_self(), true, "unknown event");
+			Rt::reportError(this->getName(), pthread_self(), true, "unknown event");
 			return false;
 	}
 	return true;
 }
 
-bool TestBlock::onDownwardEvent(const RtEvent *const event)
+TestBlock::Upward::~Upward()
+{
+	if(this->output_fd >= 0)
+	{
+		close(this->output_fd);
+	}
+}
+
+void TestBlock::Downward::setInputFd(int32_t fd)
+{
+	this->input_fd = fd;
+}
+
+bool TestBlock::Downward::onInit(void)
+{
+	// high priority to be sure to read it before another timer
+	this->addFileEvent("downward", this->input_fd, 64, 2);
+	return true;
+}
+
+bool TestBlock::Downward::onEvent(const RtEvent *const event)
 {
 	char *data;
 	size_t size;
@@ -176,30 +209,28 @@ bool TestBlock::onDownwardEvent(const RtEvent *const event)
 		case evt_file:
 			size = ((FileEvent *)event)->getSize();
 			data = (char *)((FileEvent *)event)->getData();
-			std::cout << "Data received on socket in block: " << this->name
+			std::cout << "Data received on socket in block: " << this->getName()
 			          << "; data: " << data << std::endl;
 			fflush(stdout);
 
-			if(!this->downward->shareMessage((void **)&data, size))
+			if(!this->shareMessage((void **)&data, size))
 			{
-				Rt::reportError(this->name, pthread_self(), true,
+				Rt::reportError(this->getName(), pthread_self(), true,
 				                "unable to transmit data to opposite channel");
 			}
 			break;
 
 		default:
-			Rt::reportError(this->name, pthread_self(), true, "unknown event");
+			Rt::reportError(this->getName(), pthread_self(), true, "unknown event");
 			return false;
 
 	}
 	return true;
 }
 
-TestBlock::~TestBlock()
+TestBlock::Downward::~Downward()
 {
-	close(this->output_fd);
 }
-
 
 int main(int argc, char **argv)
 {
@@ -214,9 +245,10 @@ HeapLeakChecker heap_checker("test_block");
 
 	std::cout << "Launch test" << std::endl;
 
-	Rt::createBlock<TestBlock, TestBlock::RtUpward,
-	                TestBlock::RtDownward>("test");
-
+	Rt::createBlock<TestBlock,
+	                TestBlock::Upward,
+	                TestBlock::Downward>("test");
+	
 	std::cout << "Start loop, please wait..." << std::endl;
 	Output::finishInit();
 	if(!Rt::run(true))
@@ -228,11 +260,10 @@ HeapLeakChecker heap_checker("test_block");
 	{
 		std::cout << "Successfull" << std::endl;
 	}
-
+	
 #if ENABLE_TCMALLOC
 }
 if(!heap_checker.NoLeaks()) assert(NULL == "heap memory leak");
 #endif
-
 	return ret;
 }

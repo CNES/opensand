@@ -33,6 +33,7 @@
  * @author Didier Barvaux / Viveris Technologies
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  *
  * <pre>
@@ -98,23 +99,24 @@ class BlockDvb: public Block
 	~BlockDvb();
 
 
-	class DvbUpward: public DvbChannel, public RtChannel
+	class DvbUpward: public DvbChannel, public RtUpward
 	{
 	 public:
-		DvbUpward(Block *const bl):
+		DvbUpward(const string &name):
 			DvbChannel(),
-			RtChannel(bl, upward_chan)
+			RtUpward(name)
 		{};
 
 		~DvbUpward();
 	};
 
-	class DvbDownward: public DvbChannel, public RtChannel
+	class DvbDownward: public DvbChannel, public RtDownward
 	{
+	 
 	 public:
-		DvbDownward(Block *const bl):
+		DvbDownward(const string &name):
 			DvbChannel(),
-			RtChannel(bl, downward_chan)
+			RtDownward(name)
 		{
 		};
 

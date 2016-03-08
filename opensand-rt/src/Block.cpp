@@ -29,6 +29,7 @@
  * @file Block.cpp
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  * @brief  The block description
  *
  */
@@ -46,9 +47,7 @@
 
 Block::Block(const string &name, void *specific):
 	name(name),
-	initialized(false),
-	chan_mutex(false),
-	block_mutex(name)
+	initialized(false)
 {
 	// Output logs
 	this->log_rt = Output::registerLog(LEVEL_WARNING, "%s.rt",
@@ -59,7 +58,6 @@ Block::Block(const string &name, void *specific):
 	    "Block %s created\n", this->name.c_str());
 }
 
-// TODO add onEvent in channels
 Block::~Block()
 {
 	if(this->downward != NULL)
@@ -71,18 +69,6 @@ Block::~Block()
 	{
 		delete this->upward;
 	}
-}
-
-// TODO remove once onEvent will be specific to channel
-bool Block::sendUp(void **data, size_t size, uint8_t type)
-{
-	return this->upward->enqueueMessage(data, size, type);
-}
-
-// TODO remove once onEvent will be specific to channel
-bool Block::sendDown(void **data, size_t size, uint8_t type)
-{
-	return this->downward->enqueueMessage(data, size, type);
 }
 
 bool Block::init(void)
@@ -124,6 +110,8 @@ bool Block::initSpecific(void)
 		return false;
 	}
 	this->initialized = true;
+	this->upward->setIsBlockInitialized(true);
+	this->downward->setIsBlockInitialized(true);
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "Block initialization complete\n");
 
@@ -175,7 +163,7 @@ bool Block::start(void)
 
 	LOG(this->log_rt, LEVEL_INFO,
 	    "Block %s: start downward channel\n", this->name.c_str());
-	//create upward thread
+	//create downward thread
 	ret = pthread_create(&(this->down_thread_id), &attr,
 	                     &RtDownward::startThread, this->downward);
 	if(ret != 0)
@@ -241,25 +229,6 @@ bool Block::stop(int signal)
 	return status;
 }
 
-bool Block::processEvent(const RtEvent *const event, chan_type_t chan)
-{
-	bool ret = false;
-	if(this->chan_mutex)
-	{
-		// lock with RAII method
-		RtLock lock(this->block_mutex);
-	}
-	if(chan == upward_chan)
-	{
-		ret = this->onUpwardEvent(event);
-	}
-	else if(chan == downward_chan)
-	{
-		ret = this->onDownwardEvent(event);
-	}
-	return ret;
-}
-
 RtChannel *Block::getUpwardChannel(void) const
 {
 	return this->upward;
@@ -268,10 +237,5 @@ RtChannel *Block::getUpwardChannel(void) const
 RtChannel *Block::getDownwardChannel(void) const
 {
 	return this->downward;
-}
-
-void Block::enableChannelMutex(void)
-{
-	this->chan_mutex = true;
 }
 

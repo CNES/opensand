@@ -32,6 +32,7 @@
  * @author Didier Barvaux / Viveris Technologies
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  * <pre>
  *
@@ -74,7 +75,7 @@ class BlockDvbSatRegen: public BlockDvbSat
 	class UpwardRegen: public Upward
 	{
 	 public:
-		UpwardRegen(Block *const bl);
+		UpwardRegen(const string &name);
 		~UpwardRegen();
 		
 		bool onInit();
@@ -148,7 +149,7 @@ class BlockDvbSatRegen: public BlockDvbSat
 	class DownwardRegen: public Downward
 	{
 	 public:
-		DownwardRegen(Block *const bl);
+		DownwardRegen(const string &name);
 		~DownwardRegen();
 		
 	 private:
@@ -202,13 +203,6 @@ class BlockDvbSatRegen: public BlockDvbSat
 		bool handleScenarioTimer(SatGw *current_gw);
 		
 	};
-
-
-  protected:
-
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
-
 
 };
 #endif

@@ -29,6 +29,7 @@
  * @file TestMultiBlocks.h
  * @author Cyrille Gaillardet <cgaillardet@toulouse.viveris.com>
  * @author Julien Bernard <jbernard@toulouse.viveris.com>
+ * @author Aurelien Delrieu <adelrieu@toulouse.viveris.com>
  * @brief This test check that we can read a file on a channel then
  *        transmit content to lower block, the bottom block transmit it
  *        to the following channel that will forward it to the top and
@@ -130,32 +131,64 @@ static char *read_msg(const MessageEvent *const event, string name, string from)
  *  - upward: read message from lower block (MessageEvent) and compare to file
  */
 
-TopBlock::TopBlock(const string &name, string input_file):
-	Block(name),
-	input_file(input_file)
+TopBlock::TopBlock(const string &name, string file):
+	Block(name)
 {
 }
 
-bool TopBlock::onInit()
+TopBlock::~TopBlock()
+{
+}
+
+bool TopBlock::Upward::onEvent(const RtEvent *const event)
+{
+	char *data = read_msg((MessageEvent *)event, this->getName(), "lower");
+	if(!data)
+	{
+		return false;
+	}
+	            
+	// send data to opposite channel to be compared with original
+	if(!this->shareMessage((void **)&data, strlen(data)))
+	{
+		Rt::reportError(this->getName(), pthread_self(), true,
+		                "unable to transmit data to opposite channel");
+		free(data);
+		return false;
+	}
+
+	return true;
+}
+
+TopBlock::Downward::~Downward()
+{
+	if(this->input_fd >= 0)
+	{
+		close(this->input_fd);
+	}
+}
+
+bool TopBlock::Downward::onInit()
 {
 	this->input_fd = open(this->input_file.c_str(), O_RDONLY);
 	if(this->input_fd < 0)
 	{
 		//abort test
-		Rt::reportError(this->name, pthread_self(), true,
-		                "cannot open input file %s: %s",
-		                input_file.c_str(), strerror(errno));
+		Rt::reportError(this->getName(), pthread_self(), true,
+		                "cannot open input file \"%s\": %s",
+		                this->input_file.c_str(), strerror(errno));
 		return false;
 	}
 	// high priority to be sure to read it before another timer
-	this->downward->addFileEvent("top_downward", this->input_fd, 1000);
+	this->addFileEvent("top_downward", this->input_fd, 1000);
 	return true;
 }
 
-bool TopBlock::onDownwardEvent(const RtEvent *const event)
+bool TopBlock::Downward::onEvent(const RtEvent *const event)
 {
-	char *data;
 	size_t size;
+	char *data;
+	string buffer;
 	switch(event->getType())
 	{
 		case evt_file:
@@ -169,59 +202,65 @@ bool TopBlock::onDownwardEvent(const RtEvent *const event)
 				break;
 			}
 			data =  (char *)((NetSocketEvent *)event)->getData();
-			std::cout << "Block " << this->name << ": " << strlen(data)
+			std::cout << "Block " << this->getName() << ": " << strlen(data)
 			          << " bytes of data received on net socket" << std::endl;
 			fflush(stdout);
-			size = strlen(data);
 			// keep data in order to compare on the opposite block
-			strncpy(this->last_written, data, size + 1);
+			buffer.assign(data);
+			this->last_written.push(buffer);
+			//strncpy(this->last_written, data, size);
+			//this->last_written[size] = '\0';
+
 			// wait in order to receive data on the opposite block and compare it
 			// this also allow testing multithreading as this thread is paused
 			// while other should handle the data
 
 
 			// transmit to lower layer
-			if(!this->sendDown((void **)&data, size))
+			if(!this->enqueueMessage((void **)&data, strlen(data)))
 			{
-				Rt::reportError(this->name, pthread_self(), true,
+				Rt::reportError(this->getName(), pthread_self(), true,
 				                "cannot send data to lower block");
 			}
 			sleep(1);
 			break;
+			
+		case evt_message:
+			// received from opposite channel to compare
+			data = (char *)((MessageEvent *)event)->getData();
+			size = ((MessageEvent *)event)->getLength();
+			data[size] = '\0';
+			
+			// compare data
+			if(this->last_written.empty())
+			{
+				Rt::reportError(this->getName(), pthread_self(), true,
+		                        "nothing to compare with data received '%s'",
+		                        data);
+		        free(data);
+		        return false;
+			}
+			buffer = this->last_written.front();
+			this->last_written.pop();
+			if(strncmp(data, buffer.c_str(), size))
+			{
+				Rt::reportError(this->getName(), pthread_self(), true,
+		                        "wrong data received '%s' instead of '%s'",
+		                        data, buffer.c_str());
+		        free(data);
+		        return false;
+			}
+			std::cout << "LOOP: MATCH" << std::endl;
+			free(data);
+			break;
 
 		default:
-			Rt::reportError(this->name, pthread_self(), true,
+			Rt::reportError(this->getName(), pthread_self(), true,
 			                "unknown event: %u", event->getType());
 			return false;
 
 	}
 	return true;
-}
-
-bool TopBlock::onUpwardEvent(const RtEvent *const event)
-{
-	char *data = read_msg((MessageEvent *)event, this->name, "lower");
-	if(!data)
-	{
-		return false;
-	}
-	// compare data
-	if(strcmp(data, this->last_written))
-	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "wrong data received '%s' instead of '%s'",
-		                data, this->last_written);
-		free(data);
-		return false;
-	}
-	std::cout << "LOOP: MATCH" << std::endl;
-	free(data);
-	return true;
-}
-
-TopBlock::~TopBlock()
-{
-	close(this->input_fd);
 }
 
 /*
@@ -234,39 +273,34 @@ MiddleBlock::MiddleBlock(const string &name):
 {
 }
 
-bool MiddleBlock::onInit()
+bool MiddleBlock::Upward::onEvent(const RtEvent *const event)
 {
-	return true;
-}
-
-bool MiddleBlock::onUpwardEvent(const RtEvent *const event)
-{
-	char *data = read_msg((MessageEvent *)event, this->name, "lower");
+	char *data = read_msg((MessageEvent *)event, this->getName(), "lower");
 	if(!data)
 	{
 		return false;
 	}
 
 	// transmit to upper layer
-	if(!this->sendUp((void **)&data, strlen(data)))
+	if(!this->enqueueMessage((void **)&data, strlen(data)))
 	{
-		Rt::reportError(this->name, pthread_self(), true, "cannot send data to upper block");
+		Rt::reportError(this->getName(), pthread_self(), true, "cannot send data to upper block");
 	}
 	return true;
 }
 
-bool MiddleBlock::onDownwardEvent(const RtEvent *const event)
+bool MiddleBlock::Downward::onEvent(const RtEvent *const event)
 {
-	char *data = read_msg((MessageEvent *)event, this->name, "upper");
+	char *data = read_msg((MessageEvent *)event, this->getName(), "upper");
 	if(!data)
 	{
 		return false;
 	}
 
 	// transmit to lower layer
-	if(!this->sendDown((void **)(&data), strlen(data)))
+	if(!this->enqueueMessage((void **)(&data), strlen(data)))
 	{
-		Rt::reportError(this->name, pthread_self(), true, "cannot send data to lower block");
+		Rt::reportError(this->getName(), pthread_self(), true, "cannot send data to lower block");
 	}
 	return true;
 }
@@ -286,29 +320,105 @@ BottomBlock::BottomBlock(const string &name):
 {
 }
 
+BottomBlock::~BottomBlock()
+{
+}
+
 bool BottomBlock::onInit()
 {
 	int32_t pipefd[2];
 
 	if(pipe(pipefd) != 0)
 	{
-		Rt::reportError(this->name, pthread_self(), true,
+		Rt::reportError(this->getName(), pthread_self(), true,
 		                "error when opening pipe between upward and"
 		                "downward channels");
 		return false;
 	}
-	this->input_fd = pipefd[0];
-	this->output_fd = pipefd[1];
+	
+	((Upward *)this->upward)->setInputFd(pipefd[0]);
+	((Downward *)this->downward)->setOutputFd(pipefd[1]);
 
-	// high priority to be sure to read it before another timer
-	this->upward->addFileEvent("bottom_upward", this->input_fd, 1000, 2);
 	return true;
 }
 
-bool BottomBlock::onDownwardEvent(const RtEvent *const event)
+BottomBlock::Upward::~Upward()
+{
+}
+
+void BottomBlock::Upward::setInputFd(int32_t fd)
+{
+	this->input_fd = fd;
+}
+
+bool BottomBlock::Upward::onInit(void)
+{
+	if(this->input_fd < 0)
+	{
+		return false;
+	}
+	// high priority to be sure to read it before another timer
+	this->addFileEvent("bottom_upward", this->input_fd, 1000, 2);
+	
+	return true;
+}
+
+bool BottomBlock::Upward::onEvent(const RtEvent *const event)
+{
+	char *data;
+	size_t size;
+	switch(event->getType())
+	{
+		case evt_file:
+			size = ((NetSocketEvent *)event)->getSize();
+			data = (char *)((NetSocketEvent *)event)->getData();
+			std::cout << "Block " << this->getName() << ": " << size
+			          << " bytes of data received on net socket" << std::endl;
+			fflush(stdout);
+
+			// transmit to upper layer
+			if(!this->enqueueMessage((void **)&data, strlen(data)))
+			{
+				Rt::reportError(this->getName(), pthread_self(), true, "cannot send data to upper block");
+			}
+			break;
+
+		default:
+			Rt::reportError(this->getName(), pthread_self(), true,
+			                "unknown event %u", event->getType());
+			return false;
+
+	}
+	return true;
+}
+
+BottomBlock::Downward::~Downward()
+{
+	if(this->output_fd >= 0)
+	{
+		close(this->output_fd);
+		// input fd closed in NetSocketEvent
+	}
+}
+
+void BottomBlock::Downward::setOutputFd(int32_t fd)
+{
+	this->output_fd = fd;
+}
+
+bool BottomBlock::Downward::onInit(void)
+{
+	if(this->output_fd < 0)
+	{
+		return false;
+	}
+	return true;
+}
+
+bool BottomBlock::Downward::onEvent(const RtEvent *const event)
 {
 	int res = 0;
-	char *data = read_msg((MessageEvent *)event, this->name, "upper");
+	char *data = read_msg((MessageEvent *)event, this->getName(), "upper");
 	if(!data)
 	{
 		return false;
@@ -319,7 +429,7 @@ bool BottomBlock::onDownwardEvent(const RtEvent *const event)
 	            data, strlen(data));
 	if(res == -1)
 	{
-		Rt::reportError(this->name, pthread_self(), true,
+		Rt::reportError(this->getName(), pthread_self(), true,
 		                "cannot write on pipe");
 		free(data);
 		return false;
@@ -327,42 +437,6 @@ bool BottomBlock::onDownwardEvent(const RtEvent *const event)
 	free(data);
 	return true;
 }
-
-bool BottomBlock::onUpwardEvent(const RtEvent *const event)
-{
-	char *data;
-	size_t size;
-	switch(event->getType())
-	{
-		case evt_file:
-			size = ((NetSocketEvent *)event)->getSize();
-			data = (char *)((NetSocketEvent *)event)->getData();
-			std::cout << "Block " << this->name << ": " << size
-			          << " bytes of data received on net socket" << std::endl;
-			fflush(stdout);
-
-			// transmit to upper layer
-			if(!this->sendUp((void **)&data, strlen(data)))
-			{
-				Rt::reportError(this->name, pthread_self(), true, "cannot send data to upper block");
-			}
-			break;
-
-		default:
-			Rt::reportError(this->name, pthread_self(), true,
-			                "unknown event %u", event->getType());
-			return false;
-
-	}
-	return true;
-}
-
-BottomBlock::~BottomBlock()
-{
-	close(this->output_fd);
-	// input fd closed in NetSocketEvent
-}
-
 
 int main(int argc, char **argv)
 {
@@ -411,14 +485,18 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 
 	std::cout << "Launch test" << std::endl;
 
-	top = Rt::createBlock<TopBlock, TopBlock::RtUpward,
-	                      TopBlock::RtDownward, string>("top", NULL, input_file);
+	top = Rt::createBlock<TopBlock,
+	                      TopBlock::Upward,
+	                      TopBlock::Downward,
+	                      string>("top", NULL, input_file);
+	
+	middle = Rt::createBlock<MiddleBlock,
+	                         MiddleBlock::Upward,
+	                         MiddleBlock::Downward>("middle", top);
 
-	middle = Rt::createBlock<MiddleBlock, MiddleBlock::RtUpward,
-	                         MiddleBlock::RtDownward>("middle", top);
-
-	Rt::createBlock<BottomBlock, BottomBlock::RtUpward,
-	                BottomBlock::RtDownward>("bottom", middle);
+	Rt::createBlock<BottomBlock,
+	                BottomBlock::Upward,
+	                BottomBlock::Downward>("bottom", middle);
 
 	std::cout << "Start loop, please wait..." << std::endl;
 	Output::finishInit();

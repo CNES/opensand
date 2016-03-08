@@ -32,6 +32,7 @@
  * @author Didier Barvaux / Viveris Technologies
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  * <pre>
  *
@@ -74,7 +75,7 @@ class BlockDvbSatTransp: public BlockDvbSat
 	class UpwardTransp: public Upward
 	{
 	 public:
-		UpwardTransp(Block *const bl);
+		UpwardTransp(const string &name);
 		~UpwardTransp();
 		
 
@@ -156,7 +157,7 @@ class BlockDvbSatTransp: public BlockDvbSat
 	class DownwardTransp: public Downward
 	{
 	 public:
-		DownwardTransp(Block *const bl);
+		DownwardTransp(const string &name);
 		~DownwardTransp();
 		
 	 private:
@@ -197,12 +198,6 @@ class BlockDvbSatTransp: public BlockDvbSat
 		bool handleScenarioTimer(SatGw *current_gw);
 
 	};
-
-
-  protected:
-
-	bool onDownwardEvent(const RtEvent *const event);
-	bool onUpwardEvent(const RtEvent *const event);
 
 };
 #endif

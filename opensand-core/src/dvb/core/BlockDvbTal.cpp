@@ -32,6 +32,7 @@
  *        with Legacy and RrmQosDama agent
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -139,24 +140,12 @@ bool BlockDvbTal::initListsSts()
 
 
 
-bool BlockDvbTal::onDownwardEvent(const RtEvent *const event)
-{
-	return ((Downward *)this->downward)->onEvent(event);
-}
-
-
-bool BlockDvbTal::onUpwardEvent(const RtEvent *const event)
-{
-	return ((Upward *)this->upward)->onEvent(event);
-}
-
-
 /*****************************************************************************/
 /*                              Downward                                     */
 /*****************************************************************************/
 
-BlockDvbTal::Downward::Downward(Block *const bl, tal_id_t mac_id):
-	DvbDownward(bl),
+BlockDvbTal::Downward::Downward(const string &name, tal_id_t mac_id):
+	DvbDownward(name),
 	mac_id(mac_id),
 	state(state_initializing),
 	group_id(),
@@ -2262,8 +2251,8 @@ void BlockDvbTal::Downward::deletePackets()
 /*                               Upward                                      */
 /*****************************************************************************/
 
-BlockDvbTal::Upward::Upward(Block *const bl, tal_id_t mac_id):
-	DvbUpward(bl),
+BlockDvbTal::Upward::Upward(const string &name, tal_id_t mac_id):
+	DvbUpward(name),
 	reception_std(NULL),
 	mac_id(mac_id),
 	group_id(),
