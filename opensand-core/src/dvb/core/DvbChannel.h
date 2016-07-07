@@ -1365,7 +1365,8 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 			if(carriers.find(carriers_ite2->first) == carriers.end())
 			{
 				carriers.insert(make_pair<rate_symps_t, unsigned int>(
-				                   carriers_ite2->first, 1));
+				                   (rate_symps_t) carriers_ite2->first, 
+						   (unsigned int) 1));
 			}
 			else
 			{
@@ -1403,7 +1404,8 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 		}
 		carriers_available.find(carriers_ite1->first)->second -= num_carriers;
 		carriers.insert(make_pair<rate_symps_t, unsigned int>(
-		                    carriers_ite1->first, num_carriers));
+		                    (rate_symps_t) carriers_ite1->first, 
+				    (unsigned int) num_carriers));
 		rate_symps -= (carriers_ite1->first * num_carriers);
 		if(num_carriers != carriers_ite1->second)
 		{

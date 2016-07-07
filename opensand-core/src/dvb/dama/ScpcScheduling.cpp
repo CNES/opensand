@@ -193,11 +193,11 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 		remain_probes.push_back(remain_probe);
 
 		this->probe_scpc_available_capacity.insert(
-			std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
-			                                                    avail_probes));
+			std::make_pair<unsigned int, vector<Probe<int> *> >((unsigned int)carriers_id,
+			                                                    (vector<Probe<int> *>) avail_probes));
 		this->probe_scpc_remaining_capacity.insert(
-			std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
-			                                                    remain_probes));
+			std::make_pair<unsigned int, vector<Probe<int> *> >((unsigned int)carriers_id,
+			                                                    (vector<Probe<int> *>) remain_probes));
 	}
 }
 

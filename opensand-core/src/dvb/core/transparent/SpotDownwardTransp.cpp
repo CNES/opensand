@@ -238,7 +238,7 @@ bool SpotDownwardTransp::initMode(void)
 			    "failed initialize forward scheduling for category %s\n", label.c_str());
 			return false;
 		}
-		this->scheduling.insert(make_pair<string, Scheduling*>(label, schedule));
+		this->scheduling.insert(make_pair<string, Scheduling*>((string) label, (Scheduling*) schedule));
 	}
 
 	return true;
