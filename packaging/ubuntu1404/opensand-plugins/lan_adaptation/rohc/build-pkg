@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# Make sure the script is run as root
+if [ "$(id -u)" != "0" ];
+then
+    echo "This script must be run as root" 1>&2
+    exit 1
+fi
+
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Get main dir, and parent (if any)
+AUX="$THIS_DIR"
+while [ "$AUX" != '/' ];
+do
+    AUX=`dirname "$AUX"`
+    MAIN_DIR=`find $AUX -maxdepth 1 -name 'build-pkgs' -printf '%h'`
+    if [ ! -z "$MAIN_DIR" ];
+    then
+        CURRENT=`basename $MAIN_DIR`
+        if [ -f $MAIN_DIR/parent ];
+        then
+            PARENT=`cat $MAIN_DIR/parent`
+        fi
+        MAIN_DIR=`dirname $MAIN_DIR`
+        break
+    fi
+done
+MODULE=`echo "${THIS_DIR#"$MAIN_DIR"/"$CURRENT"/""}"`
+
+cd $THIS_DIR
+
+prepare()
+{
+    # Run parent's prepare, else, fetch sources
+    if [ -v "PARENT" ];
+    then
+        cd $MAIN_DIR/$PARENT/$MODULE
+        ./build-pkg -b $DST_DIR -s $SRC_DIR -f
+        cd $THIS_DIR
+    else
+        echo -n "Fetching source files ... "
+        cp -r $SRC_DIR/* $DST_DIR
+        cp $SRC_DIR/../../../ChangeLog $DST_DIR/../../../ 2>/dev/null
+        echo "DONE!"
+    fi
+
+    # Copy new files
+    echo -n "Fetching packaging files ($CURRENT)..."
+    cp -r * $DST_DIR
+    echo "DONE!"
+}
+
+build()
+{
+    cd $DST_DIR
+    echo -n "Packaging module ... "
+    sudo dpkg-buildpackage -uc -us 1>build.log 2>&1 && success || error
+    cd $THIS_DIR
+}
+
+success()
+{
+    echo "DONE!"
+}
+
+error()
+{
+    echo "ERROR!"
+    exit 1
+}
+
+usage()
+{
+    echo "Usage: $0 [OPTION] -s /path/to/sources -d /path/to/build/"
+    echo "Available options are:"
+    echo "  -f,--fetch          don't build, just fetch files."
+    exit 1;
+}
+
+while getopts ":s:d:fh" o; do
+    case "${o}" in
+        s)
+            SRC_DIR=`echo $OPTARG | sed 's/\/$//'`
+            ;;
+        d)
+            DST_DIR=`echo $OPTARG | sed 's/\/$//'`
+            ;;
+        f)
+            FETCH=true
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+if [ -z "${SRC_DIR}" ] || [ -z "${DST_DIR}" ]
+then
+    usage
+fi
+
+prepare
+if [ ! -v "FETCH" ]
+then
+    build
+fi

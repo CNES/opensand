@@ -1,0 +1,198 @@
+#!/bin/bash
+
+MODULES='all core lan encap'
+
+# Get list of all supported distributions
+DISTS=`find $THIS_DIR -maxdepth 1 -type d -printf '%f ' | cut -d " " -f 2-`
+
+usage()
+{
+    echo 'Usage : build-pkgs [OPTIONS] -s <src path> -d <dst path> -D <dist> TARGET'
+    echo 'Available TARGETS :   all:    build all packages (default)'
+    echo '                      core:   build only core packages'
+    echo '                      encap:  build only encapsulation plugins'
+    echo '                      lan:    build only lan adaptation plugins'
+    echo 'Available OPTIONS :   -m:     move packages into manager, daemon and all'
+    echo '                              directories.'
+    echo 'List of available distributions:'
+    echo $DISTS
+    exit 1
+}
+
+make_core()
+{
+    echo "Building OpenSAND core for $TARGET_DIST"
+    # Package and install opensand-output
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR -i opensand-output || error
+    # Package and install opensand-conf
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR -i opensand-conf || error
+    # Package and install opensand-rt
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR -i opensand-rt || error
+    # Package and install opensand-collector
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-collector 
+    # Package and install opensand-core
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-core 
+    # Package and install opensand-daemon
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-daemon 
+    # Package and install opensand-manager
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-manager
+    echo "Finished building OpenSAND core for $TARGET_DIST"
+}
+
+make_encap()
+{
+    echo "Building OpenSAND encapsulation plugins for $TARGET_DIST"
+    # Package and install opensand-plugins/encapsulation/gse
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-plugins/encapsulation/gse
+    echo "Finished building OpenSAND encapsulation plugins for $TARGET_DIST"
+}
+
+make_lan()
+{
+    echo "Building OpenSAND LAN adaptation plugins for $TARGET_DIST"
+    # Package and install opensand-plugins/encapsulation/gse
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-plugins/lan_adaptation/rohc
+    echo "Finished building OpenSAND LAN adaptation plugins for $TARGET_DIST"
+}
+
+error()
+{
+    exit 1
+}
+
+success()
+{
+    echo "DONE!"
+}
+
+clean()
+{
+    # Delete any remaining .deb or any files remaining from last packaging
+    rm -rf $DST_DIR/src/*
+    rm -rf $DST_DIR/pkgs/*
+}
+
+move()
+{
+    # Create dirs if they don't exist
+    mkdir -p $DST_DIR/pkgs/manager
+    mkdir -p $DST_DIR/pkgs/daemon
+    mkdir -p $DST_DIR/pkgs/all
+
+    # Copy packages for daemon
+    cp $DST_DIR/pkgs/libopensand-conf_*.deb \
+       $DST_DIR/pkgs/libopensand-plugin_*.deb \
+       $DST_DIR/pkgs/libopensand-output_*.deb \
+       $DST_DIR/pkgs/libopensand-rt_*.deb \
+       $DST_DIR/pkgs/opensand-core-bin_*.deb \
+       $DST_DIR/pkgs/opensand-daemon_*.deb \
+       $DST_DIR/pkgs/libopensand-*plugin_*.deb \
+       $DST_DIR/pkgs/daemon >/dev/null 2>&1 
+    echo 'Daemon packages copied to '$DST_DIR'/pkgs/daemon'
+    # Copy packages for manager
+    cp $DST_DIR/pkgs/libopensand-conf_*.deb \
+       $DST_DIR/pkgs/libopensand-plugin_*.deb  \
+       $DST_DIR/pkgs/libopensand-output_*.deb \
+       $DST_DIR/pkgs/libopensand-rt_*.deb \
+       $DST_DIR/pkgs/opensand-core-*_*.deb \
+       $DST_DIR/pkgs/opensand-daemon_*.deb \
+       $DST_DIR/pkgs/libopensand-*plugin_*.deb \
+       $DST_DIR/pkgs/opensand-manager*.deb \
+       $DST_DIR/pkgs/libopensand-*plugin-manager*.deb  \
+       $DST_DIR/pkgs/opensand-collector_*.deb \
+       $DST_DIR/pkgs/manager >/dev/null 2>&1
+    echo 'Manager packages copied to '$DST_DIR'/pkgs/manager'
+    # Move all packages to all
+    mv $DST_DIR/pkgs/*.deb $DST_DIR/pkgs/all >/dev/null  2>&1
+    echo 'All packages moved to '$DST_DIR'/pkgs/all'
+
+}
+
+while getopts ":s:d:D:hm" o; do
+    case "${o}" in
+        s)
+            SRC_DIR=`echo $OPTARG | sed 's/\/$//'`
+            ;;
+        d)
+            DST_DIR=`echo $OPTARG | sed 's/\/$//'`
+            ;;
+        D)
+            TARGET_DIST=$OPTARG
+            ;;
+        m)
+            MOVE_PKG=true
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+# Make sure the script is run as root
+if [ "$(id -u)" != "0" ];
+then
+    echo "This script must be run as root" 1>&2
+    exit 1
+fi
+
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+MODULE=$1
+
+if [ -z $MODULE ];
+then
+    MODULE='all'
+fi
+
+# Show usage if module is not a valid option
+if [[ ! " $MODULES " =~ " $MODULE " ]]
+then
+    echo "Invalid module!" && usage
+fi
+
+# Show usage if distribution is not a valid option
+if [[ ! " $DISTS " =~ " $TARGET_DIST " ]]
+then
+    echo "Invalid distribution!" && usage
+fi
+
+# Check if valid source dir
+if [ ! -d "$SRC_DIR" ]
+then
+    echo "Invalid source dir $SRC_DIR" && usage
+fi
+
+# Create dirs if they don't exist. Empty if they do.
+mkdir -p $DST_DIR/src
+mkdir -p $DST_DIR/pkgs
+clean
+
+case $MODULE in
+    "all")
+        make_core
+        make_encap
+        make_lan
+        ;;
+    "core")
+        make_core
+        ;;
+    "encap")
+        make_encap
+        ;;
+    "lan")
+        make_lan
+        ;;
+    *)
+        ;;
+esac
+
+echo 'Finished packaging.'
+
+if [ -v "MOVE_PKG" ];
+then
+    move
+fi
