@@ -7,13 +7,14 @@ DISTS=`find $THIS_DIR -maxdepth 1 -type d -printf '%f ' | cut -d " " -f 2-`
 
 usage()
 {
-    echo 'Usage : build-pkgs [OPTIONS] -s <src path> -d <dst path> -D <dist> TARGET'
+    echo 'Usage : build-pkgs [OPTIONS] -s <src path> -d <dst path> -t <dist> TARGET'
     echo 'Available TARGETS :   all:    build all packages (default)'
     echo '                      core:   build only core packages'
     echo '                      encap:  build only encapsulation plugins'
     echo '                      lan:    build only lan adaptation plugins'
-    echo 'Available OPTIONS :   -m:     move packages into manager, daemon and all'
+    echo 'Available OPTIONS :   -m      move packages into manager, daemon and all'
     echo '                              directories.'
+    echo '                      -I      install build-dependencies automatically'  
     echo 'List of available distributions:'
     echo $DISTS
     exit 1
@@ -23,19 +24,19 @@ make_core()
 {
     echo "Building OpenSAND core for $TARGET_DIST"
     # Package and install opensand-output
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR -i opensand-output || error
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
     # Package and install opensand-conf
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR -i opensand-conf || error
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
     # Package and install opensand-rt
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR -i opensand-rt || error
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-rt || error
     # Package and install opensand-collector
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-collector 
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-collector 
     # Package and install opensand-core
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-core 
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-core 
     # Package and install opensand-daemon
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-daemon 
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-daemon 
     # Package and install opensand-manager
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-manager
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-manager
     echo "Finished building OpenSAND core for $TARGET_DIST"
 }
 
@@ -43,7 +44,7 @@ make_encap()
 {
     echo "Building OpenSAND encapsulation plugins for $TARGET_DIST"
     # Package and install opensand-plugins/encapsulation/gse
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-plugins/encapsulation/gse
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/gse
     echo "Finished building OpenSAND encapsulation plugins for $TARGET_DIST"
 }
 
@@ -51,7 +52,7 @@ make_lan()
 {
     echo "Building OpenSAND LAN adaptation plugins for $TARGET_DIST"
     # Package and install opensand-plugins/encapsulation/gse
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR opensand-plugins/lan_adaptation/rohc
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/lan_adaptation/rohc
     echo "Finished building OpenSAND LAN adaptation plugins for $TARGET_DIST"
 }
 
@@ -108,7 +109,7 @@ move()
 
 }
 
-while getopts ":s:d:D:hm" o; do
+while getopts ":s:d:t:him" o; do
     case "${o}" in
         s)
             SRC_DIR=`echo $OPTARG | sed 's/\/$//'`
@@ -116,11 +117,14 @@ while getopts ":s:d:D:hm" o; do
         d)
             DST_DIR=`echo $OPTARG | sed 's/\/$//'`
             ;;
-        D)
+        t)
             TARGET_DIST=$OPTARG
             ;;
         m)
             MOVE_PKG=true
+            ;;
+        i)
+            INSTALL_DEP="-I"
             ;;
         h)
             usage
