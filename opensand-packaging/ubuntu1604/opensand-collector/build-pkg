@@ -59,7 +59,12 @@ build()
     # Launch dpkg command to build package
     cd $DST_DIR
     echo -n "Packaging module ... "
+    if [ -f ./autogen.sh ];
+    then
+        ./autogen.sh 1>build.log || error
+    fi
     sudo dpkg-buildpackage -uc -us 1>build.log 2>&1 && success || error
+    dh_clean 1>/dev/null
     cd $THIS_DIR
 }
 
