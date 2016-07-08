@@ -78,13 +78,9 @@ install()
     then
         # Get list of available modules:
         DEBS=`find $DST_DIR/src/$MODULE/../ -maxdepth 1 -name '*.deb' -printf "%f "`
-        IFS=' ' read -r -a DEBS_ARRAY <<< "$DEBS"
-        for DEB in "${DEBS_ARRAY[@]}"
-        do
-            echo -n "Installing package $DEB ..."
-            sudo dpkg -i $DST_DIR/src/$MODULE/../$DEB 2>&1 >$DST_DIR/src/out.log || error
-            success
-        done 
+        echo -n "Installing packages $DEBS ..."
+        sudo dpkg -i $DEBS 2>&1 >$DST_DIR/src/out.log || error
+        success
     fi
 }
 
