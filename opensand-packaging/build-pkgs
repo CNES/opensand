@@ -14,7 +14,7 @@ usage()
     echo '                      lan:    build only lan adaptation plugins'
     echo 'Available OPTIONS :   -m      move packages into manager, daemon and all'
     echo '                              directories.'
-    echo '                      -I      install build-dependencies automatically'  
+    echo '                      -i      install build-dependencies automatically'  
     echo 'List of available distributions:'
     echo $DISTS
     exit 1
