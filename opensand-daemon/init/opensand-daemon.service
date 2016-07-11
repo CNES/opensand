@@ -6,8 +6,8 @@ After=systemd-journald-dev-log.socket
 [Service]
 Type=forking
 ExecStart=/usr/bin/sand-daemon -c /etc/opensand/daemon.conf -q -v
-ExecStartPre=/usr/libexec/opensand/write_initialize_config
 ExecStartPre=/bin/bash -c "mkdir -p /var/run/sand-daemon && chown opensand /var/run/sand-daemon/"
+ExecStartPre=/usr/libexec/opensand/write_initialize_config
 
 [Install]
 WantedBy=multi-user.target
