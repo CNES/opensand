@@ -41,7 +41,7 @@ prepare()
     else
         echo -n "Fetching source files ... "
         cp -r $SRC_DIR/* $DST_DIR
-        cp $SRC_DIR/../ChangeLog $DST_DIR/../ 2>/dev/null
+        cp $SRC_DIR/../../../ChangeLog $DST_DIR/../../../ 2>/dev/null
         echo "DONE!"
     fi
 
