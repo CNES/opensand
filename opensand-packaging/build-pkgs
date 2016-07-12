@@ -32,7 +32,7 @@ make_core()
     # Package and install opensand-collector
     ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-collector 
     # Package and install opensand-core
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-core 
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-core 
     # Package and install opensand-daemon
     ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-daemon 
     # Package and install opensand-manager
