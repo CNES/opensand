@@ -1,0 +1,27 @@
+Source: opensand-conf
+Priority: optional
+Maintainer: OpenSAND Maintainers <admin@opensand.org>
+Build-Depends: debhelper (>= 7), autotools-dev, automake,
+ libtool, pkg-config, libxml++2.6-dev,
+ libopensand-output-dev (>= 4.0.0)
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-conf-dev
+Section: libdevel
+Architecture: any
+Depends: libopensand-conf (= ${binary:Version}), libxml++2.6-dev
+Description: The configuration library and headers for OpenSAND
+
+Package: libopensand-conf-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-conf (= ${binary:Version})
+Description: Debugging symbols for OpenSAND configuration library
+
+Package: libopensand-conf
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: The configuration library for OpenSAND
+
