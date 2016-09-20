@@ -44,9 +44,11 @@ GseEncapCtx::GseEncapCtx(GseIdentifier *identifier, uint16_t spot_id)
 	this->qos = identifier->getQos();
 	this->is_full = false;
 	this->vfrag = NULL;
+    this->buf = NULL;
 	this->protocol = 0;
 	this->name = "unknown";
 	this->dest_spot = spot_id;
+    this->to_reset = false;
 	this->log = Output::registerLog(LEVEL_WARNING,
 	                                "Encap.GSE");
 }
@@ -57,6 +59,10 @@ GseEncapCtx::~GseEncapCtx()
 	{
 		gse_free_vfrag(&(this->vfrag));
 	}
+    if(this->buf != NULL)
+    {
+        delete[] this->buf;
+    }
 }
 
 gse_status_t GseEncapCtx::add(NetPacket *packet)
@@ -66,19 +72,53 @@ gse_status_t GseEncapCtx::add(NetPacket *packet)
 	size_t previous_length = 0;
 
 	// Check is context already contains data
-	if(this->vfrag == NULL)
+    if(this->vfrag == NULL)
 	{
-		status = gse_create_vfrag(&this->vfrag,
-		                          GSE_MAX_PACKET_LENGTH,
-		                          GSE_MAX_HEADER_LENGTH,
-		                          GSE_MAX_TRAILER_LENGTH);
+        // If vfrag was NULL, then buf must also be NULL
+        if(this->buf == NULL)
+        {
+            this->buf = new uint8_t[GSE_MAX_PACKET_LENGTH +
+                                    GSE_MAX_HEADER_LENGTH +
+                                    GSE_MAX_TRAILER_LENGTH];
+        }
+        // Create vfrag struct with vbuf struct
+		status = gse_allocate_vfrag(&this->vfrag,1);
 		if(status != GSE_STATUS_OK)
 		{
 			goto error;
 		}
+        // Affect the buffer to the newly created vfrag
+        status = gse_affect_buf_vfrag(this->vfrag, this->buf,
+                                      GSE_MAX_HEADER_LENGTH,
+                                      GSE_MAX_TRAILER_LENGTH,
+                                      GSE_MAX_PACKET_LENGTH);
+        if(status != GSE_STATUS_OK)
+        {
+		    LOG(this->log, LEVEL_ERROR,
+		        "failed to affect buf to vfrag\n");
+            goto error;
+        }
 		this->protocol = packet->getType();
 		this->name = packet->getName();
 	}
+    // Check if context has to be reset
+    else if(this->getReset())
+    {
+        this->is_full = false;
+		this->protocol = packet->getType();
+		this->name = packet->getName();
+        status = gse_affect_buf_vfrag(this->vfrag, this->buf,
+                                      GSE_MAX_HEADER_LENGTH,
+                                      GSE_MAX_TRAILER_LENGTH,
+                                      GSE_MAX_PACKET_LENGTH);
+        if(status != GSE_STATUS_OK)
+        {
+		    LOG(this->log, LEVEL_ERROR,
+		        "failed to affect buf to vfrag\n");
+            goto error;
+        }
+        this->to_reset = false;
+    }
 	else if(this->isFull())
 	{
 		status = GSE_STATUS_DATA_TOO_LONG;
@@ -169,3 +209,25 @@ uint16_t GseEncapCtx::getDestSpot()
 	return this->dest_spot;
 }
 
+void GseEncapCtx::setReset()
+{
+    gse_status_t status = GSE_STATUS_OK;
+
+    if(this->vfrag != NULL)
+    {
+        // free vfrag because cant have more than two acceesses
+        status = gse_free_vfrag_no_alloc(&this->vfrag,1,0);
+
+        if(status != GSE_STATUS_OK)
+        {
+		LOG(this->log, LEVEL_ERROR,
+		    "failed to free vfrag during reset\n");
+        }
+    }
+    this->to_reset = true;
+}
+
+bool GseEncapCtx::getReset()
+{
+    return this->to_reset;
+}   

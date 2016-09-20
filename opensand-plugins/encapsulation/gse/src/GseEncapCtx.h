@@ -56,6 +56,8 @@ class GseEncapCtx
 
 	/// Internal buffer to store the GSE packet under build
 	gse_vfrag_t *vfrag;
+    /// Internal buffer used by the vfrag to store data
+    uint8_t *buf;
 	/// Source Tal Id from first packet
 	uint8_t src_tal_id;
 	/// Destination Tal Id from first packet
@@ -72,6 +74,8 @@ class GseEncapCtx
 	uint16_t dest_spot;
 	/// The output log
 	OutputLog *log;
+    /// Tell if context has to be reset next time
+    bool to_reset; 
 
  public:
 
@@ -157,6 +161,18 @@ class GseEncapCtx
 	 * @return the destination spot ID
 	 */
 	uint16_t getDestSpot();
+
+    /**
+     * Set context to reset during next add call
+     */
+    void setReset();
+
+    /**
+     * Test if the context has to be reset
+     *
+     * @return True if the context has to be reset, False if not
+     */
+    bool getReset();
 
 };
 

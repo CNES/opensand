@@ -77,8 +77,14 @@ class Gse: public EncapPlugin
 		 /// The GSE deencapsulation context
 		gse_deencap_t *deencap;
 		/// Vector of GSE virtual fragments
-		std::vector<gse_vfrag_t *> vfrag_pkt_vec;
-		/// Temporary buffers for encapsulation contexts. Contexts are identified
+		std::vector<gse_vfrag_t *> vfrag_pkt_vec; // <-not used. remove ? 
+		/// GSE virtual fragment for storing packets before encapsulation
+        gse_vfrag_t *vfrag_pkt;
+        /// GSE virtual fragment for storing packets after encapsulation
+        gse_vfrag_t *vfrag_gse;
+        /// Buffer used by the vfrags
+        uint8_t *buf;
+        /// Temporary buffers for encapsulation contexts. Contexts are identified
 		/// by an unique identifier
 		std::map <GseIdentifier *, GseEncapCtx *, ltGseIdentifier> contexts;
 		/// The packing threshold for encapsulation. Packing Threshold is the time
@@ -106,8 +112,7 @@ class Gse: public EncapPlugin
 		bool encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 		                      long &time);
 		bool encapVariableLength(NetPacket *packet, NetBurst *gse_packets);
-		bool encapPacket(NetPacket *packet, gse_vfrag_t *vfrag_pkt,
-		                 NetBurst *gse_packets);
+		bool encapPacket(NetPacket *packet, NetBurst *gse_packets);
 		bool deencapPacket(gse_vfrag_t *vfrag_gse, uint16_t dest_spot,
 		                   NetBurst *net_packets);
 		bool deencapFixedLength(gse_vfrag_t *vfrag_pdu, uint16_t dest_spot,
