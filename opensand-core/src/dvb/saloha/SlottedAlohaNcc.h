@@ -211,7 +211,7 @@ class AlohaPacketComparator
 		         (replica_2 /*% this->slots_per_carrier*/)) &&
 		        (pkt1->getSrcTalId() == pkt2->getSrcTalId()) &&
 		        (pkt1->getSrcTalId())); // no need to sort simulated traffic
-    };
+	};
 
  private:
 	/// The slots per carrier

@@ -73,7 +73,7 @@ class DamaAgentRcsRrmQos: public DamaAgentRcs
 	                           ///  frame of the last OBR period
 	double *rin_coeff;         ///< coefficient array to balance the incoming
 	                           ///  rate (Rin) of each frame
- 
+
  private:
 
 	rate_kbps_t computeRbdcRequest();

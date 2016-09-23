@@ -110,26 +110,26 @@ class EncapPlugin: public StackPlugin
 		};
 
 		virtual bool setHeaderExtensions(const NetPacket* UNUSED(packet),
-                                         NetPacket** UNUSED(new_packet),
-                                         tal_id_t UNUSED(tal_id_src),
-                                         tal_id_t UNUSED(tal_id_dst),
-                                         string UNUSED(callback_name),
-                                         void *UNUSED(opaque))
-        {
-        	assert(0);
-        };
+		                                 NetPacket** UNUSED(new_packet),
+		                                 tal_id_t UNUSED(tal_id_src),
+		                                 tal_id_t UNUSED(tal_id_dst),
+		                                 string UNUSED(callback_name),
+		                                 void *UNUSED(opaque))
+		{
+			assert(0);
+		};
 
 
 		virtual bool getHeaderExtensions(const NetPacket *UNUSED(packet),
-                                         string UNUSED(callback_name),
-                                         void *UNUSED(opaque))
-        {
-        	assert(0);
-        };
+		                                 string UNUSED(callback_name),
+		                                 void *UNUSED(opaque))
+		{
+			assert(0);
+		};
 
-        list<string> getCallback()
-        {
-        	return this->callback_name;
+		list<string> getCallback()
+		{
+			return this->callback_name;
 		};
 
 	 protected:

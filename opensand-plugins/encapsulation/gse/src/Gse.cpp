@@ -30,6 +30,7 @@
  * @file Gse.cpp
  * @brief GSE encapsulation plugin implementation
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
  */
 
 #include "Gse.h"
@@ -131,9 +132,9 @@ Gse::Gse():
 Gse::Context::Context(EncapPlugin &plugin):
 	EncapPlugin::EncapContext(plugin), contexts()
 {
-    this->vfrag_pkt = NULL;
-    this->vfrag_gse = NULL;
-    this->buf = NULL;
+	this->vfrag_pkt = NULL;
+	this->vfrag_gse = NULL;
+	this->buf = NULL;
 }
 
 void Gse::Context::init(void)
@@ -166,7 +167,7 @@ void Gse::Context::init(void)
 
 	// Initialize encapsulation and deencapsulation contexts
 	// Since we use a "custom" frag_id based on QoS value and the source tal_id,
-    // set the qos_nbr in GSE library to its max value.
+	// set the qos_nbr in GSE library to its max value.
 	status = gse_encap_init(MAX_QOS_NBR, 1, &this->encap);
 	if(status != GSE_STATUS_OK)
 	{
@@ -192,17 +193,17 @@ void Gse::Context::init(void)
 	                                   gse_ext_check_cb,
 	                                   //gse_check_header_extension_validity,
 	                                   NULL);
-    
-    // create vfrags and buf for storing virtual fragments
+
+	// create vfrags and buf for storing virtual fragments
 	// cannot create vfrag_pkt because don't know if we have to allocate
-    // a vbuf too. 
-    status = gse_allocate_vfrag(&this->vfrag_gse, 0);
-    if(status != GSE_STATUS_OK)
-    {
-        LOG(this->log, LEVEL_ERROR,
-                "cannot allocate vfrag_gse at init\n");
-        goto release_encap;
-    }
+	// a vbuf too.
+	status = gse_allocate_vfrag(&this->vfrag_gse, 0);
+	if(status != GSE_STATUS_OK)
+	{
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot allocate vfrag_gse at init\n");
+		goto release_encap;
+	}
 	return;
 
 release_encap:
@@ -225,40 +226,40 @@ Gse::Context::~Context()
 	gse_status_t status;
 	std::map <GseIdentifier *, GseEncapCtx *, ltGseIdentifier>::iterator it;
 
-    // free the vfrags and buffer if created
-    if(this->vfrag_pkt != NULL)
-    {
-	    if(this->current_upper->getFixedLength() > 0)
-        {
-            status = gse_free_vfrag_no_alloc(&this->vfrag_pkt, 0, 0);
-        }
-        else
-        {
-            status = gse_free_vfrag_no_alloc(&this->vfrag_pkt, 0, 1);
-        }
+	// free the vfrags and buffer if created
+	if(this->vfrag_pkt != NULL)
+	{
+		if(this->current_upper->getFixedLength() > 0)
+		{
+			status = gse_free_vfrag_no_alloc(&this->vfrag_pkt, 0, 0);
+		}
+		else
+		{
+			status = gse_free_vfrag_no_alloc(&this->vfrag_pkt, 0, 1);
+		}
 		if(status != GSE_STATUS_OK)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "cannot free vfrag in GSE encapsulation context (%s)\n",
 			    gse_get_status(status));
 		}
-    }
-    if(this->vfrag_gse != NULL)
-    {
-        status = gse_free_vfrag_no_alloc(&this->vfrag_gse, 0, 0);
+	}
+	if(this->vfrag_gse != NULL)
+	{
+		status = gse_free_vfrag_no_alloc(&this->vfrag_gse, 0, 0);
 		if(status != GSE_STATUS_OK)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "cannot free vfrag in GSE encapsulation context (%s)\n",
 			    gse_get_status(status));
 		}
-    }
-    if(this->buf != NULL)
-    {
-        delete[] this->buf;
-    }
-	
-    // release GSE encapsulation and deencapsulation contexts if created
+	}
+	if(this->buf != NULL)
+	{
+		delete[] this->buf;
+	}
+
+	// release GSE encapsulation and deencapsulation contexts if created
 	if(this->encap != NULL)
 	{
 		status = gse_encap_release(this->encap);
@@ -422,7 +423,7 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 	packet->setSpot(dest_spot);
 	// add the packet in context
 	status = context->add(packet);
-    if(status != GSE_STATUS_OK)
+	if(status != GSE_STATUS_OK)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "Error when adding packet in context (%s), drop packet\n",
@@ -448,20 +449,20 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 		return true;
 	}
 
-    // Allocate vfrag_pkt if it hasn't been created yet
-    if(this->vfrag_pkt == NULL) 
-    {
-        // no need to allocate another buffer since vfrag uses
-        // the one of EncapCtx
-        status = gse_allocate_vfrag(&this->vfrag_pkt, 0);
-        if(status != GSE_STATUS_OK)
-        {
-            LOG(this->log, LEVEL_ERROR,
-                    "cannot allocate vfrag_pkt\n");
-            return false;
-        }
-    }
-	
+	// Allocate vfrag_pkt if it hasn't been created yet
+	if(this->vfrag_pkt == NULL) 
+	{
+		// no need to allocate another buffer since vfrag uses
+		// the one of EncapCtx
+		status = gse_allocate_vfrag(&this->vfrag_pkt, 0);
+		if(status != GSE_STATUS_OK)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "cannot allocate vfrag_pkt\n");
+			return false;
+		}
+	}
+
 	// Duplicate context virtual fragment before giving it to GSE library
 	// (otherwise the GSE library will destroy it after use) and delete context.
 	// Context shall be deleted otherwise there will be two accesses in
@@ -470,14 +471,14 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 	// in the same virtual buffer to avoid data modifications in other
 	// packets). Another solution could have been to call get_packet_copy
 	// but it is less efficient.
-    // Initialize vfrags and buffer for GSE virtual fragments
-    status = gse_duplicate_vfrag_no_alloc(&this->vfrag_pkt, context->data(),
+	// // Initialize vfrags and buffer for GSE virtual fragments
+	status = gse_duplicate_vfrag_no_alloc(&this->vfrag_pkt, context->data(),
 	                                      context->length());
-    // do not delete the context, we're going to reuse it. set flag
-    // to_delete in order to clean it during next add. do not reset 
-    // now because the buffer is still being used (until the gse packet
-    // is created)
-    context->setReset();
+	// do not delete the context, we're going to reuse it. set flag
+	// to_delete in order to clean it during next add. do not reset 
+	// now because the buffer is still being used (until the gse packet
+	// is created)
+	context->setReset();
 
 	if(status != GSE_STATUS_OK)
 	{
@@ -500,35 +501,35 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 bool Gse::Context::encapVariableLength(NetPacket *packet, NetBurst *gse_packets)
 {
 	gse_status_t status;
-    if(this->vfrag_pkt == NULL)
-    {
-        status = gse_allocate_vfrag(&this->vfrag_pkt, 1);
-        this->buf = new uint8_t[GSE_MAX_PACKET_LENGTH +
-                                GSE_MAX_HEADER_LENGTH +
-                                GSE_MAX_TRAILER_LENGTH];
-        if(status != GSE_STATUS_OK)
-        {
-            LOG(this->log, LEVEL_ERROR,
-                    "cannot allocate vfrag_pkt\n");
-            return false;
-        }
-    }
+	if(this->vfrag_pkt == NULL)
+	{
+		status = gse_allocate_vfrag(&this->vfrag_pkt, 1);
+		this->buf = new uint8_t[GSE_MAX_PACKET_LENGTH +
+		                        GSE_MAX_HEADER_LENGTH +
+		                        GSE_MAX_TRAILER_LENGTH];
+		if(status != GSE_STATUS_OK)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			        "cannot allocate vfrag_pkt\n");
+			return false;
+		}
+	}
 
-    // Affect buffer to vfrag
-    status = gse_affect_buf_vfrag(this->vfrag_pkt, this->buf,
-                                  GSE_MAX_HEADER_LENGTH,
-                                  GSE_MAX_TRAILER_LENGTH,
-                                  packet->getTotalLength());
-    if(status != GSE_STATUS_OK)
-    {
-        LOG(this->log, LEVEL_ERROR,
-                "cannot affect buf to vfrag\n");
-        return false;
-    }
+	// Affect buffer to vfrag
+	status = gse_affect_buf_vfrag(this->vfrag_pkt, this->buf,
+	                              GSE_MAX_HEADER_LENGTH,
+	                              GSE_MAX_TRAILER_LENGTH,
+	                              packet->getTotalLength());
+	if(status != GSE_STATUS_OK)
+	{
+		LOG(this->log, LEVEL_ERROR,
+		    "cannot affect buf to vfrag\n");
+		return false;
+	}
 
 	// Copy data to buffer
-    status = gse_copy_data(this->vfrag_pkt, packet->getData().c_str(),
-                           packet->getTotalLength());
+	status = gse_copy_data(this->vfrag_pkt, packet->getData().c_str(),
+	                       packet->getTotalLength());
 	if(status != GSE_STATUS_OK)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -558,7 +559,7 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 	// keep the QoS
 	uint8_t qos = packet->getQos();
 	
-    // keep the source/destination tal_id
+	// keep the source/destination tal_id
 	uint8_t src_tal_id = packet->getSrcTalId();
 	uint8_t dst_tal_id = packet->getDstTalId();
 
@@ -610,8 +611,8 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 	{
 		counter++;
 		status = gse_encap_get_packet_no_alloc(&this->vfrag_gse,
-                                      this->encap, GSE_MAX_PACKET_LENGTH,
-                                      frag_id);
+		                                       this->encap, GSE_MAX_PACKET_LENGTH,
+		                                       frag_id);
 		if(status != GSE_STATUS_OK && status != GSE_STATUS_FIFO_EMPTY)
 		{
 			LOG(this->log, LEVEL_ERROR,
@@ -743,9 +744,9 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 
 		// Create a virtual fragment containing the GSE packet
 		// TODO : this function could be optimized (preallocating vfrag_gse), but
-        // gse_deencap_packet call below frees vfrag struct (need to change that
-        // function in order to be no_alloc compatible). 
-        status = gse_create_vfrag_with_data(&vfrag_gse, (*packet)->getTotalLength(),
+		// gse_deencap_packet call below frees vfrag struct (need to change that
+		// function in order to be no_alloc compatible). 
+		status = gse_create_vfrag_with_data(&vfrag_gse, (*packet)->getTotalLength(),
 		                                    0, 0,
 		                                    (*packet)->getData().c_str(),
 		                                    (*packet)->getTotalLength());
@@ -1044,19 +1045,19 @@ NetBurst *Gse::Context::flush(int context_id)
 	src_tal_id = context->getSrcTalId();
 	dst_tal_id = context->getDstTalId();
 	qos = context->getQos();
-    // Allocate vfrag_pkt if it hasn't been created yet
-    if(this->vfrag_pkt == NULL) 
-    {
-        // no need to allocate another buffer since vfrag uses
-        // the one of EncapCtx
-        status = gse_allocate_vfrag(&this->vfrag_pkt, 0);
-        if(status != GSE_STATUS_OK)
-        {
-            LOG(this->log, LEVEL_ERROR,
-                    "cannot allocate vfrag_pkt\n");
-            return false;
-        }
-    }
+	// Allocate vfrag_pkt if it hasn't been created yet
+	if(this->vfrag_pkt == NULL) 
+	{
+		// no need to allocate another buffer since vfrag uses
+		// the one of EncapCtx
+		status = gse_allocate_vfrag(&this->vfrag_pkt, 0);
+		if(status != GSE_STATUS_OK)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "cannot allocate vfrag_pkt\n");
+			return false;
+		}
+	}
 	status = gse_duplicate_vfrag_no_alloc(&this->vfrag_pkt, context->data(),
 	                             context->length());
 	// keep the destination spot
@@ -1071,10 +1072,10 @@ NetBurst *Gse::Context::flush(int context_id)
 	// Get the frag Id
 	frag_id = Gse::getFragId(context);
 	
-    // Set context to reset
-    context->setReset();
+	// Set context to reset
+	context->setReset();
 	
-    // now context is release check status
+	// now context is release check status
 	if(status != GSE_STATUS_OK)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -1330,8 +1331,8 @@ bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 	LOG(this->log, LEVEL_DEBUG,
 	    "Create a virtual fragment with GSE packet to "
 	    "refragment it\n");
-    // TODO : this vfrag creation could be optimized with no_alloc
-    status = gse_create_vfrag_with_data(&first_frag,
+	// TODO : this vfrag creation could be optimized with no_alloc
+	status = gse_create_vfrag_with_data(&first_frag,
 	                                    packet->getTotalLength(),
 	                                    GSE_MAX_REFRAG_HEAD_OFFSET, 0,
 	                                    packet->getData().c_str(),
@@ -1654,7 +1655,7 @@ bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
 		packet = new NetPacket(empty_gse, 7);
 	}
 	// TODO : this could be optimized using no_alloc
-    status = gse_create_vfrag_with_data(&vfrag, GSE_MAX_PACKET_LENGTH,
+	status = gse_create_vfrag_with_data(&vfrag, GSE_MAX_PACKET_LENGTH,
 	                                    MAX_CNI_EXT_LEN, 0,
 	                                    (unsigned char *)packet->getData().c_str(),
 	                                    packet->getTotalLength());

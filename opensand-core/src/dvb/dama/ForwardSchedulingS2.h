@@ -79,13 +79,13 @@ class ForwardSchedulingS2: public Scheduling
 	                      clock_t current_time,
 	                      list<DvbFrame *> *complete_dvb_frames,
 	                      uint32_t &remaining_allocation);
-  
+
   protected:
 
 	/** The timer for forward scheduling (ms) */
 	time_ms_t fwd_timer_ms;
 
-  	/** the BBFrame being built identified by their modcod */
+	/** the BBFrame being built identified by their modcod */
 	map<unsigned int, BBFrame *> incomplete_bb_frames;
 
 	/** the BBframe being built in their created order */

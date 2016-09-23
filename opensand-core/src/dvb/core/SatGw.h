@@ -240,7 +240,7 @@ class SatGw: public DvbFmt
 	 * @return true on success , false otherwise
 	 */ 
 	bool updateFmt(DvbFrame *dvb_frame,
-                   EncapPlugin::EncapPacketHandler *pkt_hdl);
+	               EncapPlugin::EncapPacketHandler *pkt_hdl);
 
 	/**
 	 * Handle Sac
@@ -386,7 +386,7 @@ class SatGw: public DvbFmt
 	/**
 	 * @ brief get the gateway scenario timer
 	 */ 
-    event_id_t getScenarioTimer(void);
+	event_id_t getScenarioTimer(void);
 
 	void print(void); /// For debug
 };

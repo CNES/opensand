@@ -71,7 +71,7 @@ class RequestSimulator
 	 * @return true on success, false otherwise
 	 */
 	virtual bool simulation(list<DvbFrame *>* msgs,
-                            time_sf_t super_frame_counter) = 0;
+	                        time_sf_t super_frame_counter) = 0;
 	
 		
 	virtual bool stopSimulation(void) = 0;

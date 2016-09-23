@@ -104,10 +104,10 @@ class Scheduling
 
   protected:
 
-    /** The packet representation */
+	/** The packet representation */
 	const EncapPlugin::EncapPacketHandler *packet_handler;
 	/** The MAC FIFOs */
-    const fifos_t dvb_fifos;
+	const fifos_t dvb_fifos;
 	/** The FMT simulated data */
 	const StFmtSimuList *const simu_sts;
 

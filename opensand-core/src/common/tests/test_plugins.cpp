@@ -370,7 +370,7 @@ static bool test_lan_adapt(string src_filename,
 	}
 	else
 	{
-  		vector<string>::iterator it;
+		vector<string>::iterator it;
 		ERROR("The following tests failed:\n");
 		for(it = failure.begin(); it != failure.end(); ++it)
 		{
@@ -770,7 +770,7 @@ static bool test_iter(string src_filename, string encap_filename,
 			else
 			{
 				unsigned char *cmp_packet;
-  				struct pcap_pkthdr cmp_header;
+				struct pcap_pkthdr cmp_header;
 
 				cmp_packet = (unsigned char *) pcap_next(encap_handle, &cmp_header);
 				if(cmp_packet == NULL)

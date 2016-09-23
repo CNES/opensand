@@ -224,7 +224,7 @@ bool OpenSandConfFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map,
                                         uint16_t tal_id,
                                         uint8_t &spot)
 {
-    map<uint16_t, uint8_t>::iterator tal_iter;
+	map<uint16_t, uint8_t>::iterator tal_iter;
 	tal_iter = terminal_map.find(tal_id);
 	if(tal_iter == terminal_map.end())
 	{

@@ -91,7 +91,7 @@ class NccSvnoInterface: public NccInterface
 	bool readSvnoMessage(NetSocketEvent *const event);
 
  private:
- 
+
 	/* parse a message sent by the SVNO component */
 	bool parseSvnoMessage(const char *message);
 

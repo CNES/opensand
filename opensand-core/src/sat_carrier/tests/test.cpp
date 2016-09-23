@@ -143,12 +143,12 @@ int main(int argc, char **argv)
 	if(!Rt::init())
 	{
 		goto quit;
-    }
+	}
 
 	if(!Rt::run())
 	{
 		fprintf(stderr, "cannot run process loop\n");
-    }
+	}
 
 
 	// everything went fine, so report success

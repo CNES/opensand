@@ -280,7 +280,7 @@ bool NccPepInterface::parsePepMessage(const char *message, tal_id_t &tal_id)
 		this->requests_list.push_back(request);
 
 		nb_cmds++;
-        }
+	}
 
 	if(nb_cmds == 0)
 	{

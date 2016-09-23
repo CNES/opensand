@@ -127,12 +127,12 @@ class Ethernet: public LanAdaptationPlugin
 		 * @return the Ethernet frame
 		 */
 		NetPacket *createEthFrameData(Data data,
-                                      MacAddress mac_src, MacAddress mac_dst,
-                                      uint16_t ether_type,
-                                      uint16_t q_tci, uint16_t ad_tci,
-                                      qos_t qos,
-                                      tal_id_t src_tal_id, tal_id_t dst_tal_id,
-                                      uint16_t desired_frame_type);
+		                              MacAddress mac_src, MacAddress mac_dst,
+		                              uint16_t ether_type,
+		                              uint16_t q_tci, uint16_t ad_tci,
+		                              qos_t qos,
+		                              tal_id_t src_tal_id, tal_id_t dst_tal_id,
+		                              uint16_t desired_frame_type);
 
 		/**
 		 * @brief Get the EVC corresponding to Ethernet flow
@@ -220,11 +220,11 @@ class Ethernet: public LanAdaptationPlugin
 		uint16_t lan_frame_type; //< The type of Ethernet frame forwarded on LAN
 		uint16_t sat_frame_type; //< The type of Ethernet frame transmitted on satellite
 
-        /// The traffic categories
-        map<qos_t, TrafficCategory *> category_map;
+		/// The traffic categories
+		map<qos_t, TrafficCategory *> category_map;
 
-        /// The default traffic category
-        qos_t default_category;
+		/// The default traffic category
+		qos_t default_category;
 
 	};
 

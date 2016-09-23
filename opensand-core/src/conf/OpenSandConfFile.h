@@ -84,8 +84,8 @@ class OpenSandConfFile
 	 * @return true on success, false otherwise
 	 */
 	bool getSpotWithTalId(map<uint16_t, uint8_t> terminal_map, 
-                          uint16_t tal_id,
-                          uint8_t &spot);
+	                      uint16_t tal_id,
+	                      uint8_t &spot);
 
 	/**
 	 * Get spot value in carrier map
@@ -97,9 +97,9 @@ class OpenSandConfFile
 	 */
 	bool getSpotWithCarrierId(map<unsigned int,
 	                          std::pair<uint8_t, uint16_t> > carrier_map, 
-                              unsigned int car_id,
-                              uint8_t &spot,
-                              uint16_t &gw);
+	                          unsigned int car_id,
+	                          uint8_t &spot,
+	                          uint16_t &gw);
 
 	/**
 	 * Check if the id is a gateway
@@ -120,9 +120,9 @@ class OpenSandConfFile
 	 * @return true on success, false otherwize
 	 */
 	bool getSpot(string section, 
-                 uint8_t spot_id, 
-                 uint16_t gw_id,
-                 ConfigurationList &current_gw);
+	             uint8_t spot_id, 
+	             uint16_t gw_id,
+	             ConfigurationList &current_gw);
  private:
 
 	/// Output Log

@@ -158,7 +158,7 @@ class DvbChannel
 	 */
 	template<class T>
 	bool initBand(ConfigurationList spot,
-                  string section,
+	              string section,
 	              access_type_t access_type,
 	              time_ms_t duration_ms,
 	              sat_type_t satellite_type,
@@ -1137,13 +1137,13 @@ class DvbFmt
 	 * @return true on success, false otherwise
 	 */ 
 	bool setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
-                            MacFifoElement *elem,
-                            DvbFifo *fifo,
-                            std::vector<NetPacket*> packet_list,
-                            NetPacket **extension_pkt,
-                            tal_id_t source,
-                            tal_id_t dest,
-                            string extension_name,
+	                        MacFifoElement *elem,
+	                        DvbFifo *fifo,
+	                        std::vector<NetPacket*> packet_list,
+	                        NetPacket **extension_pkt,
+	                        tal_id_t source,
+	                        tal_id_t dest,
+	                        string extension_name,
 	                        time_sf_t super_frame_counter,
 	                        bool is_gw);
 

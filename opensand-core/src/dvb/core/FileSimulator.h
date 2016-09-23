@@ -55,7 +55,7 @@ class FileSimulator: public RequestSimulator
 	 * @return true on success, false otherwise
 	 */
 	bool simulation(list<DvbFrame *>* msgs,
-                    time_sf_t super_frame_counter);
+	                time_sf_t super_frame_counter);
 
 	/**
 	 * Stop simulation

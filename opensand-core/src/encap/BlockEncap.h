@@ -198,10 +198,10 @@ class BlockEncap: public Block
 	 *                      correctly obtained or not
 	 */
 	bool getEncapContext(const char *scheme_list,
-                         LanAdaptationPlugin *l_plugin,
-                         vector <EncapPlugin::EncapContext *> &ctx,
-                         const char *link_type, 
-                         bool scpc_scheme);
+	                     LanAdaptationPlugin *l_plugin,
+	                     vector <EncapPlugin::EncapContext *> &ctx,
+	                     const char *link_type, 
+	                     bool scpc_scheme);
 
 	/// initialization method
 	bool onInit();

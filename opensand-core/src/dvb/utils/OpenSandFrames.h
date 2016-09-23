@@ -172,7 +172,7 @@ typedef struct
  */
 typedef struct
 {
-    uint32_t cn_previous;  ///< The C/N computed on the link (* 100)
+	uint32_t cn_previous;  ///< The C/N computed on the link (* 100)
 } __attribute__((__packed__)) T_DVB_PHY;
 
 /**

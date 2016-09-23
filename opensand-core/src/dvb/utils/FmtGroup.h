@@ -144,35 +144,35 @@ class FmtId
 		es_n0(es_n0)
 	{};
 
-    /// operator < used by sort on required Es/N0
-    bool operator<(const FmtId &id) const
-    {   
-        return (this->es_n0 < id.es_n0);
-    }
+	/// operator < used by sort on required Es/N0
+	bool operator<(const FmtId &id) const
+	{
+		return (this->es_n0 < id.es_n0);
+	}
 
-    /// operator <= used to compare with FMT ID
-    bool operator<=(fmt_id_t id) const
-    {   
-        return (this->id <= id);
-    }
+	/// operator <= used to compare with FMT ID
+	bool operator<=(fmt_id_t id) const
+	{
+		return (this->id <= id);
+	}
 
-    /// operator >= used to compare with FMT ID
-    bool operator>=(fmt_id_t id) const
-    {   
-        return (this->id >= id);
-    }
+	/// operator >= used to compare with FMT ID
+	bool operator>=(fmt_id_t id) const
+	{
+		return (this->id >= id);
+	}
 
-    /// operator == used to compare with FMT ID
-    bool operator==(fmt_id_t id) const
-    {   
-        return (this->id == id);
-    }   
+	/// operator == used to compare with FMT ID
+	bool operator==(fmt_id_t id) const
+	{
+		return (this->id == id);
+	}
 
-    /// operator != used to compare with FMT ID
-    bool operator!=(fmt_id_t id) const
-    {   
-        return (this->id != id);
-    }  
+	/// operator != used to compare with FMT ID
+	bool operator!=(fmt_id_t id) const
+	{
+		return (this->id != id);
+	}
 
 	/// operator <= used to compare two FmtId
 	bool operator<=(const FmtId &id) const

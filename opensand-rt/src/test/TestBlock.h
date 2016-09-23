@@ -66,7 +66,7 @@ class TestBlock: public Block
 	 	bool onInit(void);
 	 	bool onEvent(const RtEvent *const event);
 
- 		uint32_t nbr_timeouts;
+		uint32_t nbr_timeouts;
 		int32_t output_fd;
 
 		/// the data written by timer that should be read on socket

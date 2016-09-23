@@ -30,6 +30,7 @@
  * @file Gse.h
  * @brief GSE encapsulation plugin implementation
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
  */
 
 #ifndef GSE_CONTEXT_H
@@ -79,12 +80,12 @@ class Gse: public EncapPlugin
 		/// Vector of GSE virtual fragments
 		std::vector<gse_vfrag_t *> vfrag_pkt_vec; // <-not used. remove ? 
 		/// GSE virtual fragment for storing packets before encapsulation
-        gse_vfrag_t *vfrag_pkt;
-        /// GSE virtual fragment for storing packets after encapsulation
-        gse_vfrag_t *vfrag_gse;
-        /// Buffer used by the vfrags
-        uint8_t *buf;
-        /// Temporary buffers for encapsulation contexts. Contexts are identified
+		gse_vfrag_t *vfrag_pkt;
+		/// GSE virtual fragment for storing packets after encapsulation
+		gse_vfrag_t *vfrag_gse;
+		/// Buffer used by the vfrags
+		uint8_t *buf;
+		/// Temporary buffers for encapsulation contexts. Contexts are identified
 		/// by an unique identifier
 		std::map <GseIdentifier *, GseEncapCtx *, ltGseIdentifier> contexts;
 		/// The packing threshold for encapsulation. Packing Threshold is the time
@@ -152,15 +153,15 @@ class Gse: public EncapPlugin
 
 		NetPacket *getPacketForHeaderExtensions(const std::vector<NetPacket*>&packets);
 		bool setHeaderExtensions(const NetPacket* packet,
-                                 NetPacket** new_packet,
-                                 tal_id_t tal_id_src,
-                                 tal_id_t tal_id_dst,
-                                 string callback,
-                                 void *opaque);
+		                         NetPacket** new_packet,
+		                         tal_id_t tal_id_src,
+		                         tal_id_t tal_id_dst,
+		                         string callback,
+		                         void *opaque);
 
 		bool getHeaderExtensions(const NetPacket *packet,
-                                 string callback,
-                                 void *opaqie);
+		                         string callback,
+		                         void *opaqie);
 	};
 
 	/// Constructor

@@ -99,11 +99,11 @@ class Ip: public LanAdaptationPlugin
 		 */
 		bool initTrafficCategories(ConfigurationFile &config);
 
-        /// The traffic categories
-        std::map<qos_t, TrafficCategory *> category_map;
+		/// The traffic categories
+		std::map<qos_t, TrafficCategory *> category_map;
 
-        /// The default traffic category
-        qos_t default_category;
+		/// The default traffic category
+		qos_t default_category;
 	};
 
 	/**

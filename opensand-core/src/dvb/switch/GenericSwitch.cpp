@@ -87,7 +87,7 @@ spot_id_t GenericSwitch::find(NetPacket *packet)
 		tal_id = packet->getSrcTalId();
 	}
 
-  	it = this->switch_table.find(tal_id);
+	it = this->switch_table.find(tal_id);
 
 	if(it != this->switch_table.end())
 		spot_id = (*it).second;

@@ -333,7 +333,7 @@ int main(int argc, char **argv)
 	if(!Rt::init())
 	{
 		goto release_plugins;
-    }
+	}
 	if(!Output::finishInit())
 	{
 		DFLTLOG(LEVEL_NOTICE,

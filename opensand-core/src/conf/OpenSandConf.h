@@ -81,7 +81,7 @@ class OpenSandConf
 	 * @return true on success, false otherwise
 	 */
 	static bool getSpotWithTalId(uint16_t tal_id,
-                                 uint8_t &spot);
+	                             uint8_t &spot);
 
 	/**
 	 * Get spot value in carrier map
@@ -91,8 +91,8 @@ class OpenSandConf
 	 * @return true on success, false otherwise
 	 */
 	static bool getSpotWithCarrierId(unsigned int car_id,
-                                     uint8_t &spot,
-                                     uint16_t &gw);
+	                                 uint8_t &spot,
+	                                 uint16_t &gw);
 
 	/**
 	 * Check if the id is a gateway
@@ -111,9 +111,9 @@ class OpenSandConf
 	 * @return true on success, false otherwize
 	 */
 	static bool getSpot(string section,
-                        uint8_t spot_id,
-                        uint16_t gw_id,
-                        ConfigurationList &current_gw);
+	                    uint8_t spot_id,
+	                    uint16_t gw_id,
+	                    ConfigurationList &current_gw);
 
  private:
 

@@ -30,6 +30,7 @@
 #
 
 # Author: Bénédicte Motto / <bmotto@toulouse.viveris.com>
+# Author: Aurélien Delrieu / <adelrieu@toulouse.viveris.com>
 
 """
 resource_view.py - the configuration tab view

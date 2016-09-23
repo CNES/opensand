@@ -94,7 +94,7 @@ class NccPepInterface: public NccInterface
 	bool readPepMessage(NetSocketEvent *const event, tal_id_t &tal_id);
 
  private:
- 
+
 	/* parse a message sent by the PEP component */
 	bool parsePepMessage(const char *message, tal_id_t & tal_id);
 

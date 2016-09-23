@@ -317,7 +317,7 @@ int main(int argc, char **argv)
 	if(!Rt::init())
 	{
 		goto release_plugins;
-    }
+	}
 	if(!Output::finishInit())
 	{
 		DFLTLOG(LEVEL_NOTICE, 
@@ -331,7 +331,7 @@ int main(int argc, char **argv)
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot run process loop\n",
 		        progname);
-    }
+	}
 
 	Output::sendEvent(status, "Simulation stopped");
 

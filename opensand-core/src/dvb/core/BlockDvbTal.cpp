@@ -1467,7 +1467,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				break;
 			}
 
- 			message = "";
+			message = "";
 			message.append("<?xml version = \"1.0\" encoding = \"UTF-8\"?>\n");
 			message.append("<XMLQoSMessage>\n");
 			message.append(" <Sender>");
