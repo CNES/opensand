@@ -34,6 +34,7 @@ THIS_SCRIPT=$(basename $0)
 # sysctl parameters and DHCP configuration on host
 #
 # Authors Julien Bernard <julien.bernard@toulouse.viveris.com>
+# Authors Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
 
 # Source debconf library.
 . /usr/share/debconf/confmodule
@@ -72,6 +73,12 @@ load_conf(){
     elif [ ${RET} = 'gw' ]; then
         db_get opensand-daemon/service/st_instance
         export NAME='GW'$RET
+    elif [ ${RET} = 'gw-lan' ]; then
+        db_get opensand-daemon/service/st_instance
+        export NAME='GW-LAN'$RET
+    elif [ ${RET} = 'gw-phy' ]; then
+        db_get opensand-daemon/service/st_instance
+        export NAME='GW-PHY'$RET
     fi
 
     db_get opensand-daemon/network/lan_iface
@@ -121,6 +128,35 @@ set_sysctl(){
     echo -n  "Set forwarding=$FORWARDING on "
     echo "$EMU_IFACE, $LAN_IFACE and $TUN0_IFACE interfaces"
     evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+    # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
+    evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+}
+
+set_sysctl_phy(){
+    db_get opensand-daemon/network/emu_iface
+    EMU_IFACE=$RET
+
+    # enable forwarding
+    echo "Set ip_forward=$IP_FORWARD"
+    evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
+    echo -n  "Set forwarding=$FORWARDING on "
+    echo "$EMU_IFACE interfaces"
+    evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/forwarding"=$FORWARDING
+    # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
+    evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
+}
+
+set_sysctl_lan(){
+    # enable forwarding
+    echo "Set ip_forward=$IP_FORWARD"
+    evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
+    echo -n  "Set forwarding=$FORWARDING on "
+    echo "$TUN0_IFACE and $LAN_IFACE interfaces"
     evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
     # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
@@ -288,9 +324,15 @@ config(){
     if [ ${SYSCTL} = "true" -a ${NAME} != 'SAT' ]; then
         echo "# Configuring sysctl"
         echo "  See /etc/default/opensand-daemon to avoid this modifications"
-        set_sysctl
+        if [[ $NAME = GW-PHY* ]]; then
+            set_sysctl_phy
+        elif [[ $NAME = GW-LAN* ]]; then
+            set_sysctl_lan
+        else
+            set_sysctl
+        fi
     fi
-    if [ ${NAME} != 'SAT' ]; then
+    if [[ $NAME != SAT && $NAME != GW-PHY* ]]; then
         echo "# Configuring sysctl for TUN interface"
         set_tun_sysctl
     fi

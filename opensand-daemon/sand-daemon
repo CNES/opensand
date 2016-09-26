@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 
 """
 opensand_daemon.py - OpenSAND daemon that wait for OpenSAND manager commands
@@ -168,7 +169,7 @@ def publish_service(output_handler):
     # add UDP port for exchanging message with the collector
     descr['ext_port'] = OUTPUT_HANDLER.get_external_port()
 
-    if name != 'gw' and name != 'sat' and name != 'st' and name != 'ws':
+    if name not in {'gw', 'sat', 'st', 'ws', 'gw-phy', 'gw-lan'}: 
         LOGGER.error("wrong name parameter: %s; sat, gw, st or ws accepted" % name)
         thread.exit()
 

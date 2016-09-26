@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 # inspired from http://avahi.org/wiki/PythonBrowseExample
 
 """
@@ -169,13 +170,19 @@ class OpenSandServiceListener():
             # host already exists
             return
         else:
-            if not name.startswith(WS):
-                new_host = HostController(host_model, self._log, cache)
+            # if already added model, return here, but add components
+            existant_host = self.get_host(host_model.get_name())
+            if existant_host:
+                existant_host.new_machine(cache)
+            elif not name.startswith(WS):
+                new_host = HostController(host_model, self._log)
+                new_host.new_machine(cache)
                 self._hosts.append(new_host)
             # we need controller for workstations with tools
-            if name.startswith(WS):
+            elif name.startswith(WS):
                 if len(host_model.get_tools()) > 0:
-                    new_host = HostController(host_model, self._log, cache)
+                    new_host = HostController(host_model, self._log)
+                    new_host.new_machine(cache)
                     self._ws.append(new_host)
                     # stop here
                     return
@@ -237,6 +244,13 @@ class OpenSandServiceListener():
     def handler_end(self):
         """ all service discovered """
         pass
+
+    def get_host(self, host_name):
+        """ get host controller from hosts list """
+        for host in self._hosts:
+            if host.get_name() == host_name.upper():
+                return host
+        return None
 
 
 ##### TEST #####

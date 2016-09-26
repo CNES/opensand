@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 
 """
 interfaces.py - The OpenSAND interfaces management
@@ -102,12 +103,12 @@ class OpenSandIfaces(object):
                         "(choose between advanced or automatic)" %
                         OpenSandIfaces._type)
         OpenSandIfaces._ifaces = NlInterfaces()
-        if name != 'ws':
+        if name != 'ws' and name != 'gw-lan':
             self._init_emu(conf)
-        if name != 'sat':
+        if name != 'sat' and name != 'gw-phy':
             self._init_lan(conf)
 
-        if name != 'ws' and name != 'sat':
+        if name != 'ws' and name != 'sat' and name != 'gw-phy':
             self._init_tun()
 
         if name != 'ws':
@@ -372,23 +373,34 @@ class OpenSandIfaces(object):
 
     def _check_sysctl(self):
         """ check sysctl values and log if the value may lead to errors """
-        if OpenSandIfaces._name != 'sat':
-            for iface in [OpenSandIfaces._emu_iface, OpenSandIfaces._lan_iface]:
-                with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface,
-                          'ro') as sysctl:
-                    if sysctl.read().rstrip('\n') != "1":
-                        LOGGER.warning("IPv4 forwarding on interface %s is "
-                                       "disabled, you won't be able to route "
-                                       "packets toward WS behind this host" %
-                                       iface)
-            for iface in [OpenSandIfaces._lan_iface]:
-                with open("/proc/sys/net/ipv6/conf/%s/forwarding" % iface,
-                          'ro') as sysctl:
-                    if sysctl.read().rstrip('\n') != "1":
-                        LOGGER.warning("IPv6 forwarding on interface %s is "
-                                       "disabled, you won't be able to route "
-                                       "packets toward WS behind this host" %
-                                       iface)
+        if OpenSandIfaces._name not in {'sat'}:
+            if OpenSandIfaces._name not in {'gw-lan'}:
+                for iface in [OpenSandIfaces._emu_iface]:
+                    with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface,
+                              'ro') as sysctl:
+                        if sysctl.read().rstrip('\n') != "1":
+                            LOGGER.warning("IPv4 forwarding on interface %s is "
+                                           "disabled, you won't be able to route "
+                                           "packets toward WS behind this host" %
+                                           iface)
+            if OpenSandIfaces._name not in {'gw-phy'}:
+                for iface in [OpenSandIfaces._lan_iface]:
+                    with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface,
+                              'ro') as sysctl:
+                        if sysctl.read().rstrip('\n') != "1":
+                            LOGGER.warning("IPv4 forwarding on interface %s is "
+                                           "disabled, you won't be able to route "
+                                           "packets toward WS behind this host" %
+                                           iface)
+            if OpenSandIfaces._name not in {'gw-phy'}:
+                for iface in [OpenSandIfaces._lan_iface]:
+                    with open("/proc/sys/net/ipv6/conf/%s/forwarding" % iface,
+                              'ro') as sysctl:
+                        if sysctl.read().rstrip('\n') != "1":
+                            LOGGER.warning("IPv6 forwarding on interface %s is "
+                                           "disabled, you won't be able to route "
+                                           "packets toward WS behind this host" %
+                                           iface)
             with open("/proc/sys/net/ipv4/ip_forward", 'ro') as sysctl:
                 if sysctl.read().rstrip('\n') != "1":
                     LOGGER.warning("IPv4 ip_forward is disabled, you should "
@@ -398,16 +410,16 @@ class OpenSandIfaces(object):
         """ get the addresses elements """
         descr = {}
         mac = ''
-        if OpenSandIfaces._name != 'ws':
+        if OpenSandIfaces._name not in {'ws', 'gw-lan'}:
             descr.update({'emu_iface': OpenSandIfaces._emu_iface,
                           'emu_ipv4': str(OpenSandIfaces._emu_ipv4),
                          })
-            if OpenSandIfaces._name != 'sat':
+            if OpenSandIfaces._name not in {'sat', 'gw-phy'}:
                 if OpenSandIfaces._ifaces.exists(BR_NAME):
                     mac = get_mac_address(BR_NAME)
         else:
             mac = get_mac_address(OpenSandIfaces._lan_iface)
-        if OpenSandIfaces._name != 'sat':
+        if OpenSandIfaces._name not in {'sat', 'gw-phy'}:
             descr.update({'lan_iface': OpenSandIfaces._lan_iface,
                           'lan_ipv4': OpenSandIfaces._lan_ipv4,
                           'lan_ipv6': OpenSandIfaces._lan_ipv6,
@@ -418,7 +430,7 @@ class OpenSandIfaces(object):
 
     def setup_interfaces(self, is_l2):
         """ set interfaces for emulation """
-        if OpenSandIfaces._name in ['sat', 'ws']:
+        if OpenSandIfaces._name in ['sat', 'ws', 'gw-phy']:
             return
         OpenSandIfaces._lock.acquire()
         try:
@@ -527,7 +539,7 @@ class OpenSandIfaces(object):
 
     def standby(self):
         """ set interfaces for emulation """
-        if OpenSandIfaces._name in ['sat', 'ws']:
+        if OpenSandIfaces._name in ['sat', 'ws', 'gw-phy']:
             return
         OpenSandIfaces._lock.acquire()
         # set opensand interfaces down and in case of layer 2 scenario, move

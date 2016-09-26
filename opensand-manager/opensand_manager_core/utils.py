@@ -30,6 +30,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 opensand_manager_core/utils.py - Utilities for OpenSAND Manager
@@ -54,6 +55,17 @@ GW  = "gw"
 ST  = "st"
 SAT = "sat"
 WS  = "ws"
+GW_PHY = "gw-phy"
+GW_LAN = "gw-lan"
+
+GW_types = { GW_PHY, GW_LAN }
+
+# Host templates
+HOST_TEMPLATES = {
+        SAT : [[SAT]],
+        ST : [[ST]],
+        WS : [[WS]],
+        GW : [[GW], [GW_PHY, GW_LAN]] }
 
 # Common
 GLOBAL      = "global"

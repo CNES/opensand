@@ -29,6 +29,7 @@
 #
 
 # Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
+# Author: Joaquin Muguerza / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 
 
 """
@@ -37,7 +38,7 @@ environment_plane.py - controller for environment plane
 
 from opensand_manager_core.utils import MAX_DATA_LENGTH
 from opensand_manager_core.model.environment_plane import Program
-from opensand_manager_core.model.host import InitStatus
+from opensand_manager_core.model.machine import InitStatus
 from tempfile import TemporaryFile
 from zipfile import ZipFile, BadZipfile
 import gobject
