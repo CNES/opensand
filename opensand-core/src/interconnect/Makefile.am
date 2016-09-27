@@ -1,4 +1,4 @@
-SUBDIRS = . tests
+SUBDIRS = .
 
 noinst_LTLIBRARIES = libopensand_interconnect.la
 

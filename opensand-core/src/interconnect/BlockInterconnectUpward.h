@@ -71,8 +71,8 @@ class BlockInterconnectUpwardTpl: public Block
 	class UpwardTpl: public RtUpward
 	{
 	 public:
-		UpwardTpl(Block *const bl, struct icu_specific specific):
-			RtUpward(bl),
+		UpwardTpl(const string &name, struct icu_specific specific):
+			RtUpward(name),
 			ip_addr(specific.ip_addr),
             port(specific.port_upward),
             out_channel(false,true)
@@ -99,8 +99,8 @@ class BlockInterconnectUpwardTpl: public Block
 	class DownwardTpl: public RtDownward
 	{
 	 public:
-		DownwardTpl(Block *const bl, struct icu_specific specific):
-			RtDownward(bl),
+		DownwardTpl(const string &name, struct icu_specific specific):
+			RtDownward(name),
 			ip_addr(specific.ip_addr),
             port(specific.port_downward),
             in_channel(true,false)

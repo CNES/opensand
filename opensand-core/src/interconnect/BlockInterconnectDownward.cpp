@@ -59,14 +59,6 @@ BlockInterconnectDownwardTpl<T>::~BlockInterconnectDownwardTpl()
 {
 }
 
-
-// TODO remove this functions once every channels will be correctly separated
-template <class T>
-bool BlockInterconnectDownwardTpl<T>::onDownwardEvent(const RtEvent *const event)
-{
-	return ((Downward *)this->downward)->onEvent(event);
-}
-
 template <class T>
 template <class O>
 bool BlockInterconnectDownwardTpl<T>::DownwardTpl<O>::onEvent(const RtEvent *const event)
@@ -168,12 +160,6 @@ bool BlockInterconnectDownwardTpl<T>::DownwardTpl<O>::onEvent(const RtEvent *con
 			return false;
 	}
 	return true;
-}
-
-template <class T>
-bool BlockInterconnectDownwardTpl<T>::onUpwardEvent(const RtEvent *const event)
-{
-	return ((Upward *)this->upward)->onEvent(event);
 }
 
 template <class T>

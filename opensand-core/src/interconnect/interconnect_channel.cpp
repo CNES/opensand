@@ -166,7 +166,7 @@ bool interconnect_channel::connect(const string ip_addr,
                                    uint16_t port)
 {
     int one = 1;
-    fd_set FDs;
+    // fd_set FDs;
 
     // TODO: close or exit if socket is already created
 
@@ -260,7 +260,7 @@ bool interconnect_channel::connect(const string ip_addr,
         }
         usleep((useconds_t) 100000);
     }
-connected:
+//connected:
     LOG(this->log_init, LEVEL_NOTICE,
          "TCP connection established with remote IP %s and remote "
          "port %u\n", inet_ntoa(m_remoteIPAddress.sin_addr),
