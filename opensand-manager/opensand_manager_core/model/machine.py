@@ -400,7 +400,7 @@ class MachineModel:
         try:
             return self._ifaces['remote_ip']
         except KeyError:
-            return "172.20.42.10"
+            return ""
 
     def get_state_port(self):
         """ get the state server port """

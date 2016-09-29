@@ -529,6 +529,7 @@ class MessagesHandler(object):
 #        message = struct.pack("!LBBBBBB", MAGIC_NUMBER, MSG_MGR_REGISTER_PROGRAM,
 #                              host_ident, prog_ident, len(probes),
 #                              len(logs), len(host_name)) + host_name
+        message = None
         content = ""
         header_length = 10 + len(host_name)
         probe_nbr = 0
@@ -587,7 +588,7 @@ class MessagesHandler(object):
                                   host_ident, prog_ident, probe_nbr,
                                   log_nbr, len(host_name)) + host_name
             message += content
-        if self._manager_addr:
+        if self._manager_addr and message:
             program.set_registered(probes=reg_p, logs=reg_l)
             self._sock.sendto(message, self._manager_addr)
 

@@ -66,8 +66,8 @@ interconnect_channel::interconnect_channel(bool input, bool output):
     recv_is_empty(true)
 {
     // Output log
-	this->log_init = Output::registerLog(LEVEL_DEBUG, "Interconnect.init");
-	this->log_interconnect = Output::registerLog(LEVEL_DEBUG,
+	this->log_init = Output::registerLog(LEVEL_WARNING, "Interconnect.init");
+	this->log_interconnect = Output::registerLog(LEVEL_WARNING,
 	                                            "Interconnect.Channel");
 
 }
@@ -492,7 +492,7 @@ ssize_t interconnect_channel::storeData(const unsigned char *data,
             "discard packet.");
         return -1;
     }
-    if(this->recv_end > this->recv_start)
+    if(this->recv_end >= this->recv_start)
     {
         aux = this->recv_size - this->recv_end;
         if (aux >= len)
@@ -798,6 +798,6 @@ void interconnect_channel::close()
 {
     ::close(this->sock_channel);
     this->sock_channel = -1;
-    LOG(this->log_interconnect, LEVEL_ERROR,
+    LOG(this->log_interconnect, LEVEL_INFO,
             "closed interconnect socket\n");
 }

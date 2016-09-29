@@ -102,7 +102,7 @@ class ToolView(WindowView):
         """ update the tools tree """
         self._tool_lock.acquire()
 
-        for host in [elt for elt in self._model.get_all()
+        for host in [elt for elt in self._model.get_machines()
                      if elt.get_name() not in self._hosts_name]:
             tools = {}
             self._hosts_name.append(host.get_name())

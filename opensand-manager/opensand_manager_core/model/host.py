@@ -97,15 +97,9 @@ class HostModel:
                 self._tools[tool_name] = new_tool
 
         # the modules list
+        # TODO: modules should be loaded only by machine model
         self._modules = load_modules(self._component)
 
-        # a list of modules that where not detected by the host
-        self._missing_modules = []
-        for module in self._modules:
-            if module.get_name().upper() not in modules:
-                self._log.warning("%s: plugin %s may be missing" %
-                                 (name.upper(), module.get_name()))
-                self._missing_modules.append(module)
         self.reload_modules(scenario)
 
     def reload_all(self, scenario):
@@ -251,6 +245,7 @@ class HostModel:
     def set_init_status(self, status):
         """ set the host initialisation state """
         # TODO: this should never be used
+        self._log.error("this shouldnt be used")
         self._lock.acquire()
         self._init_status = status
         self._lock.release()

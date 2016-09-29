@@ -120,7 +120,7 @@ bool BlockInterconnectUpwardTpl<T>::DownwardTpl<O>::onEvent(const RtEvent *const
                 // TODO: the block should notify the following block in the chain
                 // to decide what to do (send message) 
                 // send message
-                LOG(this->log_interconnect, LEVEL_ERROR,
+                LOG(this->log_interconnect, LEVEL_INFO,
                         "terminating...\n");
                 kill(getpid(), SIGTERM);
             }
@@ -179,7 +179,7 @@ bool BlockInterconnectUpwardTpl<T>::UpwardTpl<O>::onEvent(const RtEvent *const e
                 // TODO: the block should notify the following block in the chain
                 // to decide what to do (send message) 
                 // send message
-                LOG(this->log_interconnect, LEVEL_ERROR,
+                LOG(this->log_interconnect, LEVEL_INFO,
                         "terminating...\n");
                 kill(getpid(), SIGTERM);
             }
@@ -218,7 +218,7 @@ template <class T>
 bool BlockInterconnectUpwardTpl<T>::onInit(void)
 {
     // Register log
-    this->log_interconnect = Output::registerLog(LEVEL_DEBUG, "InterconnectUpward.block");
+    this->log_interconnect = Output::registerLog(LEVEL_WARNING, "InterconnectUpward.block");
 	return true;
 }
 
@@ -229,7 +229,7 @@ bool BlockInterconnectUpwardTpl<T>::UpwardTpl<O>::onInit(void)
     int n_retries = 0;
     string name="UpwardInterconnectChannel";
     // Register log
-    this->log_interconnect = Output::registerLog(LEVEL_DEBUG, "InterconnectUpward.upward");
+    this->log_interconnect = Output::registerLog(LEVEL_WARNING, "InterconnectUpward.upward");
     // Connect in_channel to BlockInterconnectDownward
     while(!this->out_channel.connect(this->ip_addr, this->port))
     {
@@ -263,7 +263,7 @@ bool BlockInterconnectUpwardTpl<T>::DownwardTpl<O>::onInit()
     int n_retries = 0;
     string name="DownwardInterconnectChannel";
     // Register log
-    this->log_interconnect = Output::registerLog(LEVEL_DEBUG, "InterconnectUpward.downward");
+    this->log_interconnect = Output::registerLog(LEVEL_WARNING, "InterconnectUpward.downward");
     // Connect in_channel to BlockInterconnectDownward
     // Try a few times
     while(!this->in_channel.connect(this->ip_addr, this->port))

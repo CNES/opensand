@@ -104,7 +104,7 @@ bool BlockInterconnectDownwardTpl<T>::DownwardTpl<O>::onEvent(const RtEvent *con
 				// TODO: the block should notify the following block in the chain
 				// to decide what to do (send message)
 				// send message
-				LOG(this->log_interconnect, LEVEL_ERROR,
+				LOG(this->log_interconnect, LEVEL_INFO,
 					"terminating...\n");
 				kill(getpid(), SIGTERM);
             }
@@ -146,7 +146,7 @@ bool BlockInterconnectDownwardTpl<T>::DownwardTpl<O>::onEvent(const RtEvent *con
 				// TODO: the block should notify the following block in the chain
 				// to decide what to do (send message)
 				// send message
-				LOG(this->log_interconnect, LEVEL_ERROR,
+				LOG(this->log_interconnect, LEVEL_INFO,
 					"terminating...\n");
 				kill(getpid(), SIGTERM);
 			}
@@ -280,7 +280,7 @@ template <class T>
 bool BlockInterconnectDownwardTpl<T>::onInit(void)
 {
 	// Register log
-	this->log_interconnect = Output::registerLog(LEVEL_DEBUG, "InterconnectDownward.block");
+	this->log_interconnect = Output::registerLog(LEVEL_WARNING, "InterconnectDownward.block");
 	return true;
 }
 
@@ -290,7 +290,7 @@ bool BlockInterconnectDownwardTpl<T>::UpwardTpl<O>::onInit(void)
 {
 	string name="UpwardInterconnectChannel";
 	// Register log
-	this->log_interconnect = Output::registerLog(LEVEL_DEBUG, "InterconnectDownward.upward");
+	this->log_interconnect = Output::registerLog(LEVEL_WARNING, "InterconnectDownward.upward");
 	// Start Listening
 	if(!this->in_channel.listen(this->port))
 	{
@@ -314,7 +314,7 @@ bool BlockInterconnectDownwardTpl<T>::DownwardTpl<O>::onInit()
 {
 	string name="DownwardInterconnectChannel";
 	// Register log
-	this->log_interconnect = Output::registerLog(LEVEL_DEBUG, "InterconnectDownward.downward");
+	this->log_interconnect = Output::registerLog(LEVEL_WARNING, "InterconnectDownward.downward");
 	// Start listening
 	if(!this->out_channel.listen(this->port))
 	{

@@ -511,19 +511,20 @@ class LogView(WindowView):
             page_num = self._event_tabs[tab].page_num
             child = self._event_notebook.get_nth_page(page_num)
             gobject.idle_add(child.set_sensitive, True)
-        for host in hosts:
-            if host.get_init_status() == InitStatus.FAIL:
-                for tab in self._event_tabs:
-                    prog = self._event_tabs[tab].get_program()
-                    if host == prog.get_host_model():
-                        page_num = self._event_tabs[tab].page_num
-                        child = self._event_notebook.get_nth_page(page_num)
-                        gobject.idle_add(child.set_sensitive, False)
-                continue
-            name = host.get_name().lower()
-            if name not in self._event_tabs:
-                program = Program(None, "", name + ".", [], [], host)
-                self.add_program(program)
+        for host_model in hosts:
+            for _,host in host_model.get_machines().iteritems():
+                if host.get_init_status() == InitStatus.FAIL:
+                    for tab in self._event_tabs:
+                        prog = self._event_tabs[tab].get_program()
+                        if host == prog.get_host_model():
+                            page_num = self._event_tabs[tab].page_num
+                            child = self._event_notebook.get_nth_page(page_num)
+                            gobject.idle_add(child.set_sensitive, False)
+                    continue
+                name = host.get_name().lower()
+                if name not in self._event_tabs:
+                    program = Program(None, "", name + ".", [], [], host)
+                    self.add_program(program)
 
 
     def add_program(self, program):

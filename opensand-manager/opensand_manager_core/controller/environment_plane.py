@@ -131,7 +131,7 @@ class EnvironmentPlaneController(object):
 
     def register_host(self, host_name):
         """ A host was registerd """
-        host_model = self._model.get_host(host_name)
+        host_model = self._model.get_machine(host_name)
         if host_model is None:
             self._log.error("Cannot find model for host %s, this should not"
                             " happen here" % host_name)
@@ -431,7 +431,7 @@ class EnvironmentPlaneController(object):
             self._log.error("Cannot get host name")
             return False
         
-        host_model = self._model.get_host(host_name)
+        host_model = self._model.get_machine(host_name)
         if host_model is not None:
             self._log.debug("Found a model for host %s" % host_name)
             # TODO que sur FINISHINIT !!!!

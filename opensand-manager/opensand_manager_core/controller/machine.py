@@ -240,11 +240,6 @@ class MachineController:
             ld_library_path = os.path.join(prefix, ld_library_path.lstrip('/'))
 
         if not dev_mode:
-       #     if self._machine_model.get_component() == GW_PHY:
-       #         bin_file = 'gw_phy'
-       #     elif self._machine_model.get_component() == GW_LAN:
-       #         bin_file = 'gw_lan_acc'
-       #     else:
             bin_file = self._machine_model.get_component()
         else:
             bin_file = deploy_config.get(component, 'binary')
@@ -569,7 +564,11 @@ class MachineController:
         if not component  in deploy_config.sections():
             if component.startswith(ST):
                 component = ST
-            if component.startswith(GW):
+            elif component.startswith(GW_LAN):
+                component = GW_LAN
+            elif component.startswith(GW_PHY):
+                component = GW_PHY
+            elif component.startswith(GW):
                 component = GW
 
         try:

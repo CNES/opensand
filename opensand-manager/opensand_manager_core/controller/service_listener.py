@@ -160,6 +160,12 @@ class OpenSandServiceListener():
                 network_config['lan_ipv6'] = val
             elif key == 'mac':
                 network_config['mac'] = val
+            elif key == 'ip_remote':
+                network_config['remote_ip'] = val
+            elif key == 'port_upward':
+                network_config['upward_port'] = val
+            elif key == 'port_downward':
+                network_config['downward_port'] = val
             elif key == 'cache':
                 cache = val
         try:

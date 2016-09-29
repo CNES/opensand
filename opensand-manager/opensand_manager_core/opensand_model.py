@@ -263,6 +263,13 @@ class Model:
         """ return the hosts list """
         return self._hosts
 
+    def get_machine(self, name):
+        """ return the machine according to its name """
+        for machine in self.get_machines():
+            if name.lower() == machine.get_name().lower():
+                return machine
+        return None
+
     def get_host(self, name):
         """ return the host according to its name """
         for host in self.get_all():
@@ -279,6 +286,10 @@ class Model:
     def get_workstations_list(self):
         """ return the workstations list """
         return self._ws
+
+    def get_machines(self):
+        """ return the machines list """
+        return self._machines
 
     def get_all(self):
         """ return the hosts and workstation list """
