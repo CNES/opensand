@@ -29,7 +29,6 @@
 #
 
 # Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
-# Author: Joaquin Muguerza / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 
 
 """

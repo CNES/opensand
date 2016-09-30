@@ -29,7 +29,6 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
-# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 opensand_controller.py - thread that configure, install, start, stop
@@ -245,23 +244,23 @@ class Controller(threading.Thread):
                             self._model.get_scenario())
             for host in self._hosts + self._ws:
                 for machine in host.get_ordered_machines():
-		    name = machine.get_name()
-		    # do a copy, not only reference
-		    dep = list(files)
-		    if machine.first_deploy():
-		        dep = all_files
+                    name = machine.get_name()
+                    # do a copy, not only reference
+                    dep = list(files)
+                    if machine.first_deploy():
+                        dep = all_files
 
-		    dep += machine.get_deploy_files()
-		    if len(dep) > 0:
-		        self._log.info("%s: deploy simulation files" % name)
-		    else:
-		        continue
+                    dep += machine.get_deploy_files()
+                    if len(dep) > 0:
+                        self._log.info("%s: deploy simulation files" % name)
+                    else:
+                        continue
 
-		        thread = threading.Thread(None, machine.deploy_modified_files,
-					      "DeployFiles%s" % name,
-					      (dep, errors), {})
-		        threads.append(thread)
-		        thread.start()
+                    thread = threading.Thread(None, machine.deploy_modified_files,
+                                          "DeployFiles%s" % name,
+                                          (dep, errors), {})
+                    threads.append(thread)
+                    thread.start()
         except CommandException, msg:
             self._log.error("Simulation files installation failed")
             return False

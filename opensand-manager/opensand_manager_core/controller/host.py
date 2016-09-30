@@ -29,7 +29,6 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
-# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 host.py - controller that configure, install, start, stop
@@ -105,6 +104,24 @@ class HostController:
                 self._machines[m] = MachineController(
                                             host_model_machines[m],
                                             self._log, cache)
+
+    def del_machine(self, machine):
+        """ removes and closes machine """
+        if machine in self._machines:
+            self._machines[machine].close()
+            del self._machines[machine]
+
+    def deploy(self, conf):
+        """ close the host connections """
+        for m in self._machines:
+            try:
+                self._machines[m].deploy(conf)
+            except Exception as ex:
+                raise Exception("Unexpected error when deploying machine %s: %s"
+                                % (m, str(ex)) )
+    
+    def has_machine(self, machine):
+        return (machine in self._machines)
 
     def get_machines(self):
         """ return machines """

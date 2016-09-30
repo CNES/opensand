@@ -196,7 +196,7 @@ bool BlockInterconnectUpwardTpl<T>::UpwardTpl<O>::onEvent(const RtEvent *const e
                 // TODO: the block should notify the following block in the chain
                 // to decide what to do (send message) 
                 // send message
-                LOG(this->log_interconnect, LEVEL_ERROR,
+                LOG(this->log_interconnect, LEVEL_INFO,
                         "terminating...\n");
                 kill(getpid(), SIGTERM);
             }

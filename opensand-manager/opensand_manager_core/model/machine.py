@@ -29,7 +29,6 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
-# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 machine.py - Host model for OpenSAND manager
@@ -253,9 +252,9 @@ class MachineModel:
         """ get the name of a host """
         return self._name
 
-    def get_short_name(self):
+    def get_host_name(self):
         """ get the short name of a host """
-        return self._short_name
+        return self._host_model.get_name()
 
     def get_state(self):
         """ get the host state """

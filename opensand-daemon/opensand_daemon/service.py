@@ -29,7 +29,6 @@
 #
 
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
-# Author: Joaquin MUGUERZA / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 
 """
 service.py - handle OpenSAND services with Avahi
@@ -226,7 +225,7 @@ class OpenSandService(object):
                     inst = val
 
             self._names.append(name)
-            if self._compo in {'gw', 'st', 'gw-lan'}:
+            if self._compo in {'gw', 'st', 'gw-net-acc'}:
                 OpenSandService._routes.add_distant_host(name, v4, v6)
             elif self._compo == 'ws' and not name.startswith('ws') and name not in {'sat','gw-phy'}:
                 if inst == self._instance:

@@ -150,7 +150,7 @@ write_conf(){
     echo "port = ${STATE_PORT}" >> ${DAEMON_CONF}
     echo "" >> ${DAEMON_CONF}
     # interconnect section
-    if [ "$SERVICE_NAME" = 'gw-phy' -o "$SERVICE_NAME" = 'gw-lan' ]; then
+    if [ "$SERVICE_NAME" = 'gw-phy' -o "$SERVICE_NAME" = 'gw-net-acc' ]; then
         echo "[interconnect]" >> ${DAEMON_CONF}
         echo "ip_remote = ${IP_INTERCONNECT_REMOTE}" >> ${DAEMON_CONF}
         echo "port_upward = ${PORT_UPWARD}" >> ${DAEMON_CONF}
@@ -164,7 +164,7 @@ write_conf(){
         echo "dhcp" = ${CONFIG_LEVEL} >> ${DAEMON_CONF}
     fi
     if [ "${CONFIG_LEVEL}" = "advanced" ]; then
-        if [ "${SERVICE_NAME}" != "ws" -a "${SERVICE_NAME}" != "gw-lan" ]; then
+        if [ "${SERVICE_NAME}" != "ws" -a "${SERVICE_NAME}" != "gw-net-acc" ]; then
             echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
             echo "emu_ipv4 = ${EMU_IPV4}" >> ${DAEMON_CONF}
         fi
@@ -183,7 +183,7 @@ write_conf(){
         fi
     # for automatic mode the interfaces addresses will be handled by the daemon
     else
-        if [ "${SERVICE_NAME}" != "ws" -a "${SERVICE_NAME}" != "gw-lan" ]; then
+        if [ "${SERVICE_NAME}" != "ws" -a "${SERVICE_NAME}" != "gw-net-acc" ]; then
             echo "emu_iface = ${EMU_IFACE}" >> ${DAEMON_CONF}
         fi
         if [ ${SERVICE_NAME} != 'sat' -a "${SERVICE_NAME}" != "gw-phy" ]; then
@@ -198,7 +198,7 @@ write_conf(){
 
 # initialize OpenSAND network
 initialize(){
-    if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' -o "${SERVICE_NAME}" = 'gw-lan' ]; then
+    if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' -o "${SERVICE_NAME}" = 'gw-net-acc' ]; then
         # create the OpenSAND tun/tap interface if it does not exist
         is_iface=`ip link show | grep opensand_tun`
         if [ "${is_iface}" == "" ]; then

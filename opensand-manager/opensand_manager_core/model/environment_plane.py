@@ -29,7 +29,6 @@
 #
 
 # Author: Vincent DUVERT / <vduvert@toulouse.viveris.com>
-# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 
 """

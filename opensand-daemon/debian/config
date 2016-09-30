@@ -18,7 +18,7 @@ DHCP="false"
 ST_INST_DESCR="Select the ID of the satellite terminal"
 GW_INST_DESCR="Select the ID of the gateway used to identify the it when in multi-GW"
 GW_TYPE_DESCR="Select the type of GW"
-GW_TYPE_LIST="GW, GW-LAN, GW-PHY"
+GW_TYPE_LIST="GW, GW-NET-ACC, GW-PHY"
 GW_TYPE_DEFAULT="GW"
 NAME_ADV="false"
 
@@ -41,6 +41,7 @@ configure(){
             db_endblock
         ;;
         3)
+            db_beginblock
             NAME_ADV="false"
             db_get opensand-daemon/service/name
             NAME=$RET
@@ -50,8 +51,8 @@ configure(){
                 db_subst opensand-daemon/service/name_adv name_adv_default ${GW_TYPE_DEFAULT}
                 db_input low opensand-daemon/service/name_adv || true
                 NAME_ADV="true"
-                db_endblock
             fi
+            db_endblock
         ;;
         4)
             db_beginblock
@@ -63,25 +64,25 @@ configure(){
             NAME=$RET
 
             if [ "$NAME" = "GW-PHY" ]; then
-                db_subst opensand-daemon/interconnect/ip_remote ip_remote_desc "GW-LAN"
+                db_subst opensand-daemon/interconnect/ip_remote ip_remote_desc "GW-NET-ACC"
                 db_input low opensand-daemon/interconnect/ip_remote || true
             fi
             db_endblock
         ;;
         5)
             db_beginblock
-            if [ "$NAME" = "GW-PHY" -o "$NAME" = "GW-LAN" ]; then
+            if [ "$NAME" = "GW-PHY" -o "$NAME" = "GW-NET-ACC" ]; then
                 db_subst opensand-daemon/interconnect/port_upward port_upward_bottom "GW-PHY"
-                db_subst opensand-daemon/interconnect/port_upward port_upward_top "GW-LAN"
+                db_subst opensand-daemon/interconnect/port_upward port_upward_top "GW-NET-ACC"
                 db_input low opensand-daemon/interconnect/port_upward || true
             fi
             db_endblock
         ;;
         6)
             db_beginblock
-            if [ "$NAME" = "GW-PHY" -o "$NAME" = "GW-LAN" ]; then
+            if [ "$NAME" = "GW-PHY" -o "$NAME" = "GW-NET-ACC" ]; then
                 db_subst opensand-daemon/interconnect/port_downward port_downward_bottom "GW-PHY"
-                db_subst opensand-daemon/interconnect/port_downward port_downward_top "GW-LAN"
+                db_subst opensand-daemon/interconnect/port_downward port_downward_top "GW-NET-ACC"
                 db_input low opensand-daemon/interconnect/port_downward || true
             fi
             db_endblock
@@ -93,7 +94,7 @@ configure(){
                 db_subst opensand-daemon/service/st_instance inst_description ${ST_INST_DESCR}
                 db_input high opensand-daemon/service/st_instance || true
             fi
-            if [ "$NAME" = "GW" -o "$NAME" = "GW-PHY" -o "$NAME" = "GW-LAN" ]; then
+            if [ "$NAME" = "GW" -o "$NAME" = "GW-PHY" -o "$NAME" = "GW-NET-ACC" ]; then
                 db_subst opensand-daemon/service/st_instance inst_list ${GW_LIST}
                 db_subst opensand-daemon/service/st_instance inst_description ${GW_INST_DESCR}
                 db_input high opensand-daemon/service/st_instance || true
@@ -160,7 +161,7 @@ configure(){
         16)
             db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
-                if [ "$NAME" != "WS"  -a "$NAME" != "GW-LAN" ]; then
+                if [ "$NAME" != "WS"  -a "$NAME" != "GW-NET-ACC" ]; then
                     db_input high opensand-daemon/network/emu_iface || true
                     if [ "$RECONFIG" = "false" ]; then
                         if [ "$NAME" = "SAT" ]; then
@@ -196,7 +197,7 @@ configure(){
                     fi
                     if [ "$NAME" != "WS" -o "$DHCP" = "false" ]; then
                         if [ "$RECONFIG" = "false" ]; then
-                            if [ "$NAME" != "GW" -a "$NAME" != "GW-LAN" ]; then
+                            if [ "$NAME" != "GW" -a "$NAME" != "GW-NET-ACC" ]; then
                                 net=$((18+$INST))
                                 # WS behind GW
                                 if [ "$INST" = "0" ]; then
@@ -247,7 +248,7 @@ configure(){
                     fi
                 fi
             else
-                if [ "$NAME" != "WS" -a "$NAME" != "GW-LAN" ]; then
+                if [ "$NAME" != "WS" -a "$NAME" != "GW-NET-ACC" ]; then
                     db_input high opensand-daemon/network/emu_iface || true
                 fi
                 if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ] && 

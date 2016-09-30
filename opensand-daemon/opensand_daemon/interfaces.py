@@ -29,7 +29,6 @@
 #
 
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
-# Author: Joaquin MUGUERZA / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 
 """
 interfaces.py - The OpenSAND interfaces management
@@ -103,7 +102,7 @@ class OpenSandIfaces(object):
                         "(choose between advanced or automatic)" %
                         OpenSandIfaces._type)
         OpenSandIfaces._ifaces = NlInterfaces()
-        if name != 'ws' and name != 'gw-lan':
+        if name != 'ws' and name != 'gw-net-acc':
             self._init_emu(conf)
         if name != 'sat' and name != 'gw-phy':
             self._init_lan(conf)
@@ -374,7 +373,7 @@ class OpenSandIfaces(object):
     def _check_sysctl(self):
         """ check sysctl values and log if the value may lead to errors """
         if OpenSandIfaces._name not in {'sat'}:
-            if OpenSandIfaces._name not in {'gw-lan'}:
+            if OpenSandIfaces._name not in {'gw-net-acc'}:
                 for iface in [OpenSandIfaces._emu_iface]:
                     with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface,
                               'ro') as sysctl:
@@ -410,13 +409,16 @@ class OpenSandIfaces(object):
         """ get the addresses elements """
         descr = {}
         mac = ''
-        if OpenSandIfaces._name not in {'ws', 'gw-lan'}:
+        if OpenSandIfaces._name not in {'ws', 'gw-net-acc'}:
             descr.update({'emu_iface': OpenSandIfaces._emu_iface,
                           'emu_ipv4': str(OpenSandIfaces._emu_ipv4),
                          })
             if OpenSandIfaces._name not in {'sat', 'gw-phy'}:
                 if OpenSandIfaces._ifaces.exists(BR_NAME):
                     mac = get_mac_address(BR_NAME)
+        elif OpenSandIfaces._name in {'gw-net-acc'}:
+            if OpenSandIfaces._ifaces.exists(BR_NAME):
+                mac = get_mac_address(BR_NAME)
         else:
             mac = get_mac_address(OpenSandIfaces._lan_iface)
         if OpenSandIfaces._name not in {'sat', 'gw-phy'}:
