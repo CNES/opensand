@@ -30,6 +30,7 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 test.py - run the OpenSAND automatic tests
@@ -650,8 +651,7 @@ class TestManager(ShellManager):
         return True
 
     def prepareScenarios(self, folder = "./tests/", 
-                         regexptest = None, regexptype = None,
-                         first_scenario = None):
+            regexptest = None, regexptype = None):
         """ list and filter the test scenarios to pass """
         
         # Save arguments
@@ -863,21 +863,6 @@ class TestManager(ShellManager):
                     self._scenarios.pop(j)
                 else:
                     j += 1
-       
-        # delete all scenarios until first
-        found_first = False
-        if first_scenario:
-            j = 0
-            while j < len(self._scenarios):
-                # Get scenario
-                scenario = self._scenarios[j]
-                name = scenario.getName()
-                if name != first_scenario:
-                    self._scenarios.pop(j)
-                    j += 1
-                else:
-                    break
-
 
         if len(configs) <= 0:
             # No test configuration to execute
@@ -1014,7 +999,7 @@ class TestManager(ShellManager):
         
         return True
             
-    def runScenarios(self):
+    def runScenarios(self, first_scenario=0):
         """ run the test scenarios """
         
         if not self._displayonly:
@@ -1085,7 +1070,11 @@ class TestManager(ShellManager):
                         (str(i), str(nconfigscenarios + notherscenarios), 
                          blue(scenario.getName()))
                 sys.stdout.flush()
-             
+            
+            if i < first_scenario:
+                print "Ignoring this scenario..."
+                continue
+
             if not self._displayonly:    
                 # Initialize the model
                 self._model.set_scenario(self._base)
@@ -1960,7 +1949,7 @@ if __name__ == '__main__':
                           dest="list", default=False,
                           help="List all types of test and tests matching "
                                "with the command line")
-    opt_parser.add_option("-i", "--init", dest="first", default=None,
+    opt_parser.add_option("-i", "--init", dest="first", default=0, type="int",
                           help="ignore tests before this test")
     opt_parser.add_option("-e", "--test", dest="test", default=None,
                           help="launch some tests in particular (regexp)")
@@ -2053,8 +2042,7 @@ help="specify the root folder for tests configurations\n"
         # Prepare tests scenarios
         if not mgr.prepareScenarios(folder = options.folder,
                                     regexptest = options.test,
-                                    regexptype = options.type,
-                                    first_scenario = options.first):
+                                    regexptype = options.type):
             raise TestError("Scenarios preparation", "")
         
         # Prepare the OpenSAND platform
@@ -2064,7 +2052,7 @@ help="specify the root folder for tests configurations\n"
             raise TestError("Platform preparation", "")
 
         # Run tests scenarios
-        mgr.runScenarios()
+        mgr.runScenarios(first_scenario=options.first)
     
         if lvl == TestManager.QUIET:
             print "Closure, please wait..."

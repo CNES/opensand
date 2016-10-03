@@ -30,6 +30,7 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Bénédicte Motto / <bmotto@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 opensand_model.py - OpenSAND manager model

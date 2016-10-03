@@ -29,6 +29,7 @@
 #
 
 # Author: Bénédicte Motto / <bmotto@toulouse.viveris.com>
+# Author: Joaquin Muguerza / <jmuguerza@toulouse.viveris.com>
 
 """
 topology_configuration.py - the topology configuration description

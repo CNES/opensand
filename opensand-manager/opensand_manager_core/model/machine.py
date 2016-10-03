@@ -29,9 +29,10 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
-machine.py - Host model for OpenSAND manager
+machine.py - Machine model for OpenSAND manager
 """
 
 import threading

@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 
 """
 opensand_daemon.py - OpenSAND daemon that wait for OpenSAND manager commands

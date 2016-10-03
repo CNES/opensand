@@ -28,9 +28,8 @@
 
 /**
  * @file gw.cpp
- * @brief Gateway (GW) process
- * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
- * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @brief Gateway Physical (GW-PHY) process
+ * @author Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
  *
  * Gateway uses the following stack of blocks installed over 2 NICs
  * (nic1 on user network side and nic2 on satellite network side):
@@ -107,18 +106,18 @@ bool init_process(int argc, char **argv,
 			// get local interface name
 			emu_iface = optarg;
 			break;
-        case 't':
-            // get the GW_LAN_ACC ip address
-            ip_top = optarg;
-            break;
-        case 'u':
-            // Get the upward connection port
-            port_up = (uint16_t) atoi(optarg);
-            break;
-        case 'w':
-            // Get the downward connection port
-            port_down = (uint16_t) atoi(optarg);
-            break;
+	case 't':
+		// get the GW_LAN_ACC ip address
+		ip_top = optarg;
+		break;
+	case 'u':
+		// Get the upward connection port
+		port_up = (uint16_t) atoi(optarg);
+		break;
+	case 'w':
+		// Get the downward connection port
+		port_down = (uint16_t) atoi(optarg);
+		break;
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [-q] [-d] -i instance_id -a ip_address "
@@ -130,9 +129,9 @@ bool init_process(int argc, char **argv,
 			fprintf(stderr, "\t-a <ip_address>      set the IP address for emulation\n");
 			fprintf(stderr, "\t-n <emu_iface>       set the emulation interface name\n");
 			fprintf(stderr, "\t-i <instance>        set the instance id\n");
-            fprintf(stderr, "\t-t <ip_address>      set the IP address of top GW\n");
-            fprintf(stderr, "\t-u <upward_port>     set the upward port\n");
-            fprintf(stderr, "\t-w <donwward_port>   set the downward port\n");
+			fprintf(stderr, "\t-t <ip_address>      set the IP address of top GW\n");
+			fprintf(stderr, "\t-u <upward_port>     set the upward port\n");
+			fprintf(stderr, "\t-w <donwward_port>   set the downward port\n");
 			Output::init(true);
 			Output::enableStdlog();
 			return false;
@@ -198,17 +197,17 @@ int main(int argc, char **argv)
 	string emu_iface;
 	tal_id_t mac_id = 0;
 	struct sc_specific specific;
-    uint16_t port_up = 0;
-    uint16_t port_down = 0;
-    string ip_top;
-    struct icu_specific spec_icu;
+	uint16_t port_up = 0;
+	uint16_t port_down = 0;
+	string ip_top;
+	struct icu_specific spec_icu;
 
 	Block *block_phy_layer;
 	Block *up_sat_carrier;
 	Block *block_sat_carrier;
-    Block *block_interconnect;
+	Block *block_interconnect;
 
-    vector<string> conf_files;
+	vector<string> conf_files;
 	map<string, log_level_t> levels;
 	map<string, log_level_t> spec_level;
 
@@ -218,7 +217,7 @@ int main(int argc, char **argv)
 
 	// retrieve arguments on command line
 	init_ok = init_process(argc, argv, ip_addr, emu_iface, mac_id,
-                           port_up, port_down, ip_top);
+	                       port_up, port_down, ip_top);
 
 	status = Output::registerEvent("Status");
 	if(!init_ok)
@@ -227,7 +226,7 @@ int main(int argc, char **argv)
 		        "%s: failed to init the process\n", progname);
 		goto quit;
 	}
-    
+
 	// increase the realtime responsiveness of the process
 	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
 	sched_setscheduler(0, SCHED_FIFO, &param);
@@ -278,22 +277,22 @@ int main(int argc, char **argv)
 	}
 
 	// instantiate all blocs
-    
-    spec_icu.ip_addr = ip_top;
-    spec_icu.port_upward = port_up;
-    spec_icu.port_downward = port_down;
 
-    block_interconnect = Rt::createBlock<BlockInterconnectUpward,
-                                         BlockInterconnectUpward::Upward,
-                                         BlockInterconnectUpward::Downward,
-                                         struct icu_specific>
-                                         ("InterconnectUpward", NULL, spec_icu);
-    if(!block_interconnect)
-    {
-        DFLTLOG(LEVEL_CRITICAL,
-                "%s: cannot create the InterconnectUpward block\n", progname);
-        goto release_plugins;
-    }
+	spec_icu.ip_addr = ip_top;
+	spec_icu.port_upward = port_up;
+	spec_icu.port_downward = port_down;
+
+	block_interconnect = Rt::createBlock<BlockInterconnectUpward,
+	                                     BlockInterconnectUpward::Upward,
+	                                     BlockInterconnectUpward::Downward,
+	                                     struct icu_specific>
+	                                     ("InterconnectUpward", NULL, spec_icu);
+	if(!block_interconnect)
+	{
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot create the InterconnectUpward block\n", progname);
+		goto release_plugins;
+	}
 
 	up_sat_carrier = block_interconnect;
 	if(with_phy_layer)
@@ -335,7 +334,7 @@ int main(int argc, char **argv)
 	if(!Rt::init())
 	{
 		goto release_plugins;
-    }
+	}
 	if(!Output::finishInit())
 	{
 		DFLTLOG(LEVEL_NOTICE,

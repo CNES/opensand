@@ -42,8 +42,8 @@
 
 struct icd_specific
 {
-    uint16_t port_upward; // TCP port for the upward channel
-    uint16_t port_downward; // TCP port for the downward channel
+	uint16_t port_upward; // TCP port for the upward channel
+	uint16_t port_downward; // TCP port for the downward channel
 };
 
 /**
@@ -66,14 +66,14 @@ class BlockInterconnectDownwardTpl: public Block
 
 	~BlockInterconnectDownwardTpl();
 
-    template <class O = T>
+	template <class O = T>
 	class UpwardTpl: public RtUpward
 	{
 	 public:
 		UpwardTpl(const string &name, struct icd_specific specific):
 			RtUpward(name),
-            port(specific.port_upward),
-            in_channel(true,false)
+			port(specific.port_upward),
+			in_channel(true,false)
 		{};
 
 		bool onInit(void);
@@ -81,26 +81,26 @@ class BlockInterconnectDownwardTpl: public Block
 
 	 private:
 		/// the port of the socket created by this block
-        uint16_t port;
-        /// TCP in channel
-        interconnect_channel in_channel;
-        // Output log
-        OutputLog *log_interconnect;
-        // the signal event
-        int32_t socket_event;
-        // the signal event
-        int32_t timer_event;
+	uint16_t port;
+	/// TCP in channel
+	interconnect_channel in_channel;
+	// Output log
+	OutputLog *log_interconnect;
+	// the signal event
+	int32_t socket_event;
+	// the signal event
+	int32_t timer_event;
 	};
-    typedef UpwardTpl<> Upward;
+	 typedef UpwardTpl<> Upward;
 
-    template <class O = T>
+	template <class O = T>
 	class DownwardTpl: public RtDownward
 	{
 	 public:
 		DownwardTpl(const string &name, struct icd_specific specific):
 			RtDownward(name),
-            port(specific.port_downward),
-            out_channel(false,true)
+			port(specific.port_downward),
+			out_channel(false,true)
 		{};
 
 		bool onInit(void);
@@ -108,19 +108,19 @@ class BlockInterconnectDownwardTpl: public Block
 
 	 private:
 		/// the port of the socket created by the Block above
-        uint16_t port;
-        /// TCP out channel
-        interconnect_channel out_channel;
-        // Output log
-        OutputLog *log_interconnect;
-        // the timer event
-        int32_t timer_event;
+		uint16_t port;
+		/// TCP out channel
+		interconnect_channel out_channel;
+		// Output log
+		OutputLog *log_interconnect;
+		// the timer event
+		int32_t timer_event;
 	};
-    typedef DownwardTpl<> Downward;
+	typedef DownwardTpl<> Downward;
 
  protected:
-    // Output log
-    OutputLog *log_interconnect;
+	// Output log
+	OutputLog *log_interconnect;
 
 	/// event handlers
 	bool onDownwardEvent(const RtEvent *const event);

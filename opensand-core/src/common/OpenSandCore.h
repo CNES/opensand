@@ -182,7 +182,7 @@ enum
 	msg_cni,       ///< message containing CNI information
 	msg_sig,       ///< message containing signalisation
 	msg_saloha,    ///< message containing Slotted Aloha content
-    msg_object,    ///< message containing an Interconnect object
+	msg_object,    ///< message containing an Interconnect object
 };
 
 
