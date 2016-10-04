@@ -41,6 +41,7 @@ configure(){
             db_endblock
         ;;
         3)
+            db_beginblock
             NAME_ADV="false"
             db_get opensand-daemon/service/name
             NAME=$RET
@@ -50,16 +51,14 @@ configure(){
                 db_subst opensand-daemon/service/name_adv name_adv_default ${GW_TYPE_DEFAULT}
                 db_input low opensand-daemon/service/name_adv || true
                 NAME_ADV="true"
-                db_endblock
+            else
+                db_set opensand-daemon/service/name_adv $NAME
             fi
+            db_endblock
         ;;
         4)
             db_beginblock
-            if [ "$NAME_ADV" = "true" ]; then
-                db_get opensand-daemon/service/name_adv
-                db_set opensand-daemon/service/name $RET
-            fi
-            db_get opensand-daemon/service/name
+            db_get opensand-daemon/service/name_adv
             NAME=$RET
 
             if [ "$NAME" = "GW-PHY" ]; then
@@ -124,6 +123,7 @@ configure(){
             db_endblock
         ;;
         10)
+            db_beginblock
             db_input low opensand-daemon/service/port || true
             db_endblock
         ;;

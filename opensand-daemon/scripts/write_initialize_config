@@ -61,7 +61,7 @@ PORT_DOWNWARD=''
 
 # read the daemon configuration from debconf cache
 read_conf(){
-    db_get opensand-daemon/service/name
+    db_get opensand-daemon/service/name_adv
     RET=`echo $RET | tr 'A-Z' 'a-z'`
     SERVICE_NAME=$RET
     db_get opensand-daemon/service/type
