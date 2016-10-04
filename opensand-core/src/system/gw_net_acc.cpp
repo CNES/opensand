@@ -28,9 +28,8 @@
 
 /**
  * @file gw.cpp
- * @brief Gateway (GW) process
- * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
- * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @brief Gateway Network Access (GW-NET-ACC) process
+ * @author Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
  *
  * Gateway uses the following stack of blocks installed over 2 NICs
  * (nic1 on user network side and nic2 on satellite network side):
@@ -106,14 +105,14 @@ bool init_process(int argc, char **argv,
 			// get lan interface name
 			lan_iface = optarg;
 			break;
-        case 'u':
-            // Get the upward connection port
-            port_up = (uint16_t) atoi(optarg);
-            break;
-        case 'w':
-            // Get the downward connection port
-            port_down = (uint16_t) atoi(optarg);
-            break;
+		case 'u':
+			// Get the upward connection port
+			port_up = (uint16_t) atoi(optarg);
+			break;
+		case 'w':
+			// Get the downward connection port
+			port_down = (uint16_t) atoi(optarg);
+			break;
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id "
@@ -124,8 +123,8 @@ bool init_process(int argc, char **argv,
 			fprintf(stderr, "\t-d                   enable output debug events\n");
 			fprintf(stderr, "\t-l <lan_iface>       set the ST lan interface name\n");
 			fprintf(stderr, "\t-i <instance>        set the instance id\n");
-            fprintf(stderr, "\t-u <upward_port>     set the upward port\n");
-            fprintf(stderr, "\t-w <downward_port>   set the downward port\n");
+			fprintf(stderr, "\t-u <upward_port>     set the upward port\n");
+			fprintf(stderr, "\t-w <downward_port>   set the downward port\n");
 			Output::init(true);
 			Output::enableStdlog();
 			return false;
@@ -149,7 +148,7 @@ bool init_process(int argc, char **argv,
 		return false;
 	}
 	
-    if(port_up == 0)
+	if(port_up == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "missing mandatory port upward option");
@@ -157,7 +156,7 @@ bool init_process(int argc, char **argv,
 	}
 	return true;
 	
-    if(port_down == 0)
+	if(port_down == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "missing mandatory port downward option");
@@ -173,14 +172,14 @@ int main(int argc, char **argv)
 	bool init_ok;
 	string lan_iface;
 	tal_id_t mac_id = 0;
-    uint16_t port_up = 0;
-    uint16_t port_down = 0;
-    struct icd_specific spec_icd;
+	uint16_t port_up = 0;
+	uint16_t port_down = 0;
+	struct icd_specific spec_icd;
 
 	Block *block_lan_adaptation;
 	Block *block_encap;
 	Block *block_dvb;
-    Block *block_interconnect;
+	Block *block_interconnect;
 
 	vector<string> conf_files;
 	map<string, log_level_t> levels;
@@ -271,15 +270,15 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-    spec_icd.port_upward = port_up;
-    spec_icd.port_downward = port_down;
+	spec_icd.port_upward = port_up;
+	spec_icd.port_downward = port_down;
 
-    block_interconnect = Rt::createBlock<BlockInterconnectDownward,
-                                         BlockInterconnectDownward::Upward,
-                                         BlockInterconnectDownward::Downward,
-                                         struct icd_specific>
-                                         ("InterconnectDownward", block_dvb, spec_icd);
-    if(!block_interconnect)
+	block_interconnect = Rt::createBlock<BlockInterconnectDownward,
+	                                 BlockInterconnectDownward::Upward,
+	                                 BlockInterconnectDownward::Downward,
+	                                 struct icd_specific>
+	                                 ("InterconnectDownward", block_dvb, spec_icd);
+	if(!block_interconnect)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the InterconnectDownward block\n", progname);
@@ -293,7 +292,7 @@ int main(int argc, char **argv)
 	if(!Rt::init())
 	{
 		goto release_plugins;
-    }
+	}
 	if(!Output::finishInit())
 	{
 		DFLTLOG(LEVEL_NOTICE,

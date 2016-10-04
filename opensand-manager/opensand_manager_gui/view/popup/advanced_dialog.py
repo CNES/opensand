@@ -29,7 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
-# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jbernard@toulouse.viveris.com>
 
 """
 advanced_dialog.py - The OpenSAND advanced configuration

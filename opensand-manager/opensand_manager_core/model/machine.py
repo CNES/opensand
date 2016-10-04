@@ -32,7 +32,7 @@
 # Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
-machine.py - Host model for OpenSAND manager
+machine.py - Machine model for OpenSAND manager
 """
 
 import threading
@@ -253,9 +253,9 @@ class MachineModel:
         """ get the name of a host """
         return self._name
 
-    def get_short_name(self):
+    def get_host_name(self):
         """ get the short name of a host """
-        return self._short_name
+        return self._host_model.get_name()
 
     def get_state(self):
         """ get the host state """
@@ -400,7 +400,7 @@ class MachineModel:
         try:
             return self._ifaces['remote_ip']
         except KeyError:
-            return "172.20.42.10"
+            return ""
 
     def get_state_port(self):
         """ get the state server port """

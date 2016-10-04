@@ -244,22 +244,22 @@ class Controller(threading.Thread):
             self._log.debug("Deploy files from scenario %s" %
                             self._model.get_scenario())
             for host in self._hosts + self._ws:
-                name = host.get_name()
-                # do a copy, not only reference
-                dep = list(files)
-                if host.first_deploy():
-                    dep = all_files
-
-                dep += host.get_deploy_files()
-                if len(dep) > 0:
-                    self._log.info("%s: deploy simulation files" % name)
-                else:
-                    continue
-
                 for machine in host.get_ordered_machines():
+                    name = machine.get_name()
+                    # do a copy, not only reference
+                    dep = list(files)
+                    if machine.first_deploy():
+                        dep = all_files
+
+                    dep += machine.get_deploy_files()
+                    if len(dep) > 0:
+                        self._log.info("%s: deploy simulation files" % name)
+                    else:
+                        continue
+
                     thread = threading.Thread(None, machine.deploy_modified_files,
-                                              "DeployFiles%s" % name,
-                                              (dep, errors), {})
+                                          "DeployFiles%s" % name,
+                                          (dep, errors), {})
                     threads.append(thread)
                     thread.start()
         except CommandException, msg:

@@ -1,4 +1,4 @@
-bin_PROGRAMS = st sat gw gw-lan gw-phy
+bin_PROGRAMS = st sat gw gw-net-acc gw-phy
 
 INCLUDES = \
 	-I$(top_srcdir)/src/dvb/utils \
@@ -49,8 +49,8 @@ gw_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 
-gw_lan_SOURCES = gw_lan_acc.cpp
-gw_lan_LDADD = \
+gw_net_acc_SOURCES = gw_net_acc.cpp
+gw_net_acc_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 

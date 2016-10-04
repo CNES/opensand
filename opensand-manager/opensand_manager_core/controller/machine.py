@@ -46,7 +46,7 @@ import time
 
 from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.controller.stream import Stream
-from opensand_manager_core.utils import ST, SAT, GW, GW_types, GW_LAN, GW_PHY
+from opensand_manager_core.utils import ST, SAT, GW, GW_types, GW_NET_ACC, GW_PHY
 
 CONF_DESTINATION_PATH = '/etc/opensand/'
 START_DESTINATION_PATH = '/var/cache/sand-daemon/start.ini'
@@ -240,11 +240,6 @@ class MachineController:
             ld_library_path = os.path.join(prefix, ld_library_path.lstrip('/'))
 
         if not dev_mode:
-       #     if self._machine_model.get_component() == GW_PHY:
-       #         bin_file = 'gw_phy'
-       #     elif self._machine_model.get_component() == GW_LAN:
-       #         bin_file = 'gw_lan_acc'
-       #     else:
             bin_file = self._machine_model.get_component()
         else:
             bin_file = deploy_config.get(component, 'binary')
@@ -258,7 +253,7 @@ class MachineController:
         lan_iface = ''
         if component not in {SAT, GW_PHY}:
             lan_iface = '-l ' + self._machine_model.get_lan_interface()
-        if component == GW_LAN:
+        if component == GW_NET_ACC:
             command_line = '%s %s %s -u %s -w %s' % \
                            (bin_file, instance_param, lan_iface,
                             self._machine_model.get_upward_port(),
@@ -565,13 +560,19 @@ class MachineController:
         if sock is None:
             return
         
+        # try with component, then with host name
         component = self._machine_model.get_name()
         if not component  in deploy_config.sections():
             if component.startswith(ST):
                 component = ST
-            if component.startswith(GW):
+            elif component.startswith(GW_NET_ACC):
+                component = GW_NET_ACC
+            elif component.startswith(GW_PHY):
+                component = GW_PHY
+            elif component.startswith(GW):
                 component = GW
-
+        if not component in deploy_config.sections():
+            component = self._machine_model.get_host_name()
         try:
             self.deploy_files(component, sock, deploy_config)
             for tool in self._machine_model.get_tools():

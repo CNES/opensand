@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 run_view.py - the run tab view
@@ -132,7 +133,7 @@ class RunView(WindowView):
         list_spot = {}
         nbr_st = 0
         self._sat_x = 170
-        for host in self._model.get_hosts_list():
+        for host in self._model.get_all_hosts_list():
             if host.get_component() == ST:
                 nbr_st += 1
                 spot = host.get_spot_id()
@@ -168,7 +169,7 @@ class RunView(WindowView):
 
         nb_gw = 0
         nbr = len(list_gw) - 1
-        for host in self._model.get_hosts_list():
+        for host in self._model.get_all_hosts_list():
             if host.get_component() == GW:
                 self.draw_gw(host, 30 + nb_gw * 140, TOP_2)
                 nb_gw += 1
@@ -198,7 +199,7 @@ class RunView(WindowView):
         self.draw_collector_state(self._model.is_collector_known(),
             self._model.is_collector_functional())
 
-        self._log_view.update(self._model.get_hosts_list())
+        self._log_view.update(self._model.get_all_hosts_list())
         
         return False
 
@@ -222,7 +223,12 @@ class RunView(WindowView):
         """ draw satellite terminal """
         image = gtk.Image()
         png = os.path.join(IMG_PATH, 'st.png')
-        if host.get_state() is None:
+        if not host.is_complete():
+            png = os.path.join(IMG_PATH, 'st_grey.png')
+            self._count += 1
+            if self._count < 2:
+                self._log.warning("Host %s is not complete" % host.get_name())
+        elif host.get_state() is None:
             # TODO we could publish a manager service to check if this is the
             # only manager instance
             self._count += 1
@@ -263,7 +269,12 @@ class RunView(WindowView):
         """ draw satellite """
         image = gtk.Image()
         png = os.path.join(IMG_PATH, 'sat.png')
-        if host.get_state() is None:
+        if not host.is_complete():
+            png = os.path.join(IMG_PATH, 'sat_grey.png')
+            self._count += 1
+            if self._count < 2:
+                self._log.warning("Host %s is not complete" % host.get_name())
+        elif host.get_state() is None:
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
@@ -283,7 +294,12 @@ class RunView(WindowView):
         """ draw gateway """
         image = gtk.Image()
         png = os.path.join(IMG_PATH, 'gw.png')
-        if host.get_state() is None:
+        if not host.is_complete():
+            png = os.path.join(IMG_PATH, 'gw_grey.png')
+            self._count += 1
+            if self._count < 2:
+                self._log.warning("Host %s is not complete" % host.get_name())
+        elif host.get_state() is None:
             self._count += 1
             if not self._logged and self._count > 3:
                 self._log.warning("Cannot get %s status, maybe another "
@@ -511,19 +527,20 @@ class LogView(WindowView):
             page_num = self._event_tabs[tab].page_num
             child = self._event_notebook.get_nth_page(page_num)
             gobject.idle_add(child.set_sensitive, True)
-        for host in hosts:
-            if host.get_init_status() == InitStatus.FAIL:
-                for tab in self._event_tabs:
-                    prog = self._event_tabs[tab].get_program()
-                    if host == prog.get_host_model():
-                        page_num = self._event_tabs[tab].page_num
-                        child = self._event_notebook.get_nth_page(page_num)
-                        gobject.idle_add(child.set_sensitive, False)
-                continue
-            name = host.get_name().lower()
-            if name not in self._event_tabs:
-                program = Program(None, "", name + ".", [], [], host)
-                self.add_program(program)
+        for host_model in hosts:
+            for _,host in host_model.get_machines().iteritems():
+                if host.get_init_status() == InitStatus.FAIL:
+                    for tab in self._event_tabs:
+                        prog = self._event_tabs[tab].get_program()
+                        if host == prog.get_host_model():
+                            page_num = self._event_tabs[tab].page_num
+                            child = self._event_notebook.get_nth_page(page_num)
+                            gobject.idle_add(child.set_sensitive, False)
+                    continue
+                name = host.get_name().lower()
+                if name not in self._event_tabs:
+                    program = Program(None, "", name + ".", [], [], host)
+                    self.add_program(program)
 
 
     def add_program(self, program):

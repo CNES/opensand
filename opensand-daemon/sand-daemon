@@ -169,7 +169,16 @@ def publish_service(output_handler):
     # add UDP port for exchanging message with the collector
     descr['ext_port'] = OUTPUT_HANDLER.get_external_port()
 
-    if name not in {'gw', 'sat', 'st', 'ws', 'gw-phy', 'gw-lan'}: 
+    # add interconnect parameters if lan or phy component
+    for key in {'ip_remote', 'port_upward', 'port_downward'}:
+        try:
+            value = CONF_PARSER.get('interconnect', key) 
+        except ConfigParser.Error:
+            pass
+        else:
+            descr[key] = value
+
+    if name not in {'gw', 'sat', 'st', 'ws', 'gw-phy', 'gw-net-acc'}: 
         LOGGER.error("wrong name parameter: %s; sat, gw, st or ws accepted" % name)
         thread.exit()
 

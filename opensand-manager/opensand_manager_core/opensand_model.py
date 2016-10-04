@@ -259,9 +259,20 @@ class Model:
         self._event_manager_response.set('quit')
         self._log.debug("Model: closed")
 
+    def get_all_hosts_list(self):
+        """ return the hosts list """
+        return self._hosts + self._incomplete_hosts
+
     def get_hosts_list(self):
         """ return the hosts list """
         return self._hosts
+
+    def get_machine(self, name):
+        """ return the machine according to its name """
+        for machine in self.get_machines():
+            if name.lower() == machine.get_name().lower():
+                return machine
+        return None
 
     def get_host(self, name):
         """ return the host according to its name """
@@ -280,12 +291,21 @@ class Model:
         """ return the workstations list """
         return self._ws
 
+    def get_machines(self):
+        """ return the machines list """
+        return self._machines
+
     def get_all(self):
         """ return the hosts and workstation list """
         return self._hosts + self._ws + self._machines
 
-    def del_host(self, name):
+    def del_host(self, machine_name):
         """ remove an host """
+        # the machine name was received. search corresponding host
+        machine = self.get_machine(machine_name)
+        if machine is None:
+            return
+        name = machine.get_host_name()
         # check if this is the last gw
         other_gw = True
         if name.startswith(GW):
@@ -298,6 +318,11 @@ class Model:
                     break
 
         host = self.get_host(name)
+        # remove machine from host
+        self._log.debug("remove machine: '" + machine_name + "'")
+        host.del_machine(machine_name)
+        if host.is_complete():
+            return False
         self._log.debug("remove host: '" + name + "'")
         # if there is not other GW don't remove it from topology
         # and global configuration
@@ -308,6 +333,8 @@ class Model:
             self._config.remove_gw(name,
                                    host.get_instance())
         self._hosts.remove(host)
+        if not host.is_empty():
+            self._incomplete_hosts.append(host)
 
         for host in self._ws:
             if name == host.get_name():
@@ -319,6 +346,7 @@ class Model:
                 self._missing_modules[module].remove(name)
 
         self.update_spot_gw()
+        return True
 
     def add_host(self, name, instance, network_config,
                  state_port, command_port, tools, host_modules):
@@ -362,7 +390,7 @@ class Model:
                 raise ModelException
 
 
-        self._log.debug("add host '%s'" % name)
+        self._log.debug("add machine '%s'" % name)
         # report a warning if a module is not supported by the host
         for module in self._modules:
             if module.get_name().upper() not in host_modules:
@@ -380,6 +408,8 @@ class Model:
         for incomplete in self._incomplete_hosts:
             if (incomplete.get_component() == component and 
                     incomplete.get_instance() == instance):
+                self._log.debug("found imcomplete host '%s'" % 
+                                incomplete.get_name())
                 found_host = True
                 break
         if not found_host:

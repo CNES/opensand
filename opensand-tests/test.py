@@ -30,6 +30,7 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 test.py - run the OpenSAND automatic tests
@@ -650,7 +651,7 @@ class TestManager(ShellManager):
         return True
 
     def prepareScenarios(self, folder = "./tests/", 
-                         regexptest = None, regexptype = None):
+            regexptest = None, regexptype = None):
         """ list and filter the test scenarios to pass """
         
         # Save arguments
@@ -862,7 +863,7 @@ class TestManager(ShellManager):
                     self._scenarios.pop(j)
                 else:
                     j += 1
-        
+
         if len(configs) <= 0:
             # No test configuration to execute
             self._traceWarning("No test scenario to execute")
@@ -998,7 +999,7 @@ class TestManager(ShellManager):
         
         return True
             
-    def runScenarios(self):
+    def runScenarios(self, first_scenario=0):
         """ run the test scenarios """
         
         if not self._displayonly:
@@ -1069,7 +1070,11 @@ class TestManager(ShellManager):
                         (str(i), str(nconfigscenarios + notherscenarios), 
                          blue(scenario.getName()))
                 sys.stdout.flush()
-             
+            
+            if i < first_scenario:
+                print "Ignoring this scenario..."
+                continue
+
             if not self._displayonly:    
                 # Initialize the model
                 self._model.set_scenario(self._base)
@@ -1817,63 +1822,68 @@ class TestManager(ShellManager):
         if host_ctrl is None:
             raise TestError("Configuration", "Cannot find host %s" % host_name)
 
-        # deploy the test files
-        # the deploy section has the same format as in deploy.ini file so
-        # we can directly use the deploy fonction from hosts
-        try:
-            host_ctrl.deploy(config)
-        except CommandException as msg:
-            raise TestError("Configuration", "Cannot deploy host %s: %s" %
-                            (host_name, msg))
-        except KeyboardInterrupt as ex:
-            raise
-        except Exception as ex:
-            raise TestError("Configuration", "Unexpected error when "
-                            "deploying host %s: %s" %
-                            (host_name, str(ex)))
+        # iterate over all host machines
+        for machine_name,machine_ctrl in host_ctrl.get_machines().iteritems():
+            # ignore PHY machines (they do not have to ping
+            if 'phy' in machine_name:
+                continue
+            # deploy the test files
+            # the deploy section has the same format as in deploy.ini file so
+            # we can directly use the deploy fonction from hosts
+            try:
+                machine_ctrl.deploy(config)
+            except CommandException as msg:
+                raise TestError("Configuration", "Cannot deploy host %s: %s" %
+                                (machine_name, msg))
+            except KeyboardInterrupt as ex:
+                raise
+            except Exception as ex:
+                raise TestError("Configuration", "Unexpected error when "
+                                "deploying host %s: %s" %
+                                (machine_name, str(ex)))
 
-        cmd = ''
-        wait = False
-        ret = 0
-        try:
-            # TODO give test name in cmd argument !
-            cmd = config.get('command', 'exec')
-            cmd += " " + test_name
-            wait = config.get('command', 'wait')
-            if wait.lower() == 'true':
-                wait = True
+            cmd = ''
+            wait = False
+            ret = 0
+            try:
+                # TODO give test name in cmd argument !
+                cmd = config.get('command', 'exec')
+                cmd += " " + test_name
+                wait = config.get('command', 'wait')
+                if wait.lower() == 'true':
+                    wait = True
+                else:
+                    wait = False
+                ret = config.get('command', 'return')
+            except ConfigParser.Error, err:
+                raise TestError("Configuration",
+                                "Error when parsing configuration in %s : %s" %
+                                (path, err))
+            except KeyboardInterrupt as ex:
+                raise
+            except Exception as ex:
+                raise TestError("Configuration",
+                                "Unexpected error when parsing configuration in %s : %s" %
+                                (path, err))
+                
+            # if wait is True we need to wait the host response before launching the
+            # next command so we don't need to connect the host in a thread
+            if wait:
+                self.__connect_host(machine_ctrl, cmd, ret, console)
             else:
-                wait = False
-            ret = config.get('command', 'return')
-        except ConfigParser.Error, err:
-            raise TestError("Configuration",
-                            "Error when parsing configuration in %s : %s" %
-                            (path, err))
-        except KeyboardInterrupt as ex:
-            raise
-        except Exception as ex:
-            raise TestError("Configuration",
-                            "Unexpected error when parsing configuration in %s : %s" %
-                            (path, err))
+                connect = Thread(target=self.__connect_host,
+                                 args=(machine_ctrl, cmd, ret, console))
+                self._threads.append(connect)
+                connect.start()
             
-        # if wait is True we need to wait the host response before launching the
-        # next command so we don't need to connect the host in a thread
-        if wait:
-            self.__connect_host(host_ctrl, cmd, ret, console)
-        else:
-            connect = Thread(target=self.__connect_host,
-                             args=(host_ctrl, cmd, ret, console))
-            self._threads.append(connect)
-            connect.start()
-            
-    def __connect_host(self, host_ctrl, cmd, ret, console):
+    def __connect_host(self, machine_ctrl, cmd, ret, console):
         """ connect the host and launch the command,
             and exception is raised if the test return is not ret
             and complete the self._error dictionnary """
             
         err = None
         try:
-            sock = host_ctrl.connect_command('TEST')
+            sock = machine_ctrl.connect_command('TEST')
             if sock is None:
                 err = "cannot connect host"
                 raise TestError("Configuration", err)
@@ -1882,22 +1892,22 @@ class TestManager(ShellManager):
             sock.settimeout(200)
             sock.send("COMMAND %s\n" % cmd)
             result = sock.recv(512).strip()
-            console.output(host_ctrl.get_name().upper(),
+            console.output(machine_ctrl.get_name().upper(),
                         "Test returns %s on %s, expected is %s" %
-                         (result, host_ctrl.get_name(), ret))
+                         (result, machine_ctrl.get_name(), ret))
             if result != ret:
                 err = "Test returned '%s' instead of '%s'" \
                       % (result, ret)
                 raise Exception(err)
             
         except CommandException, msg:
-            err = "%s: %s" % (host_ctrl.get_name(), msg)
+            err = "%s: %s" % (machine_ctrl.get_name(), msg)
         except socket.error, msg:
-            err = "%s: %s" % (host_ctrl.get_name(), str(msg))
+            err = "%s: %s" % (machine_ctrl.get_name(), str(msg))
         except socket.timeout:
-            err = "%s: Timeout" % host_ctrl.get_name()
+            err = "%s: Timeout" % machine_ctrl.get_name()
         except Exception as ex:
-            err = "%s: %s" % (host_ctrl.get_name(), str(ex))
+            err = "%s: %s" % (machine_ctrl.get_name(), str(ex))
         finally:
             if sock:
                 sock.close()
@@ -1939,6 +1949,8 @@ if __name__ == '__main__':
                           dest="list", default=False,
                           help="List all types of test and tests matching "
                                "with the command line")
+    opt_parser.add_option("-i", "--init", dest="first", default=0, type="int",
+                          help="ignore tests before this test")
     opt_parser.add_option("-e", "--test", dest="test", default=None,
                           help="launch some tests in particular (regexp)")
     opt_parser.add_option("-y", "--type", dest="type", default=None,
@@ -2040,7 +2052,7 @@ help="specify the root folder for tests configurations\n"
             raise TestError("Platform preparation", "")
 
         # Run tests scenarios
-        mgr.runScenarios()
+        mgr.runScenarios(first_scenario=options.first)
     
         if lvl == TestManager.QUIET:
             print "Closure, please wait..."

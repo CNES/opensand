@@ -34,7 +34,6 @@ THIS_SCRIPT=$(basename $0)
 # sysctl parameters and DHCP configuration on host
 #
 # Authors Julien Bernard <julien.bernard@toulouse.viveris.com>
-# Authors Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
 
 # Source debconf library.
 . /usr/share/debconf/confmodule
@@ -73,9 +72,9 @@ load_conf(){
     elif [ ${RET} = 'gw' ]; then
         db_get opensand-daemon/service/st_instance
         export NAME='GW'$RET
-    elif [ ${RET} = 'gw-lan' ]; then
+    elif [ ${RET} = 'gw-net-acc' ]; then
         db_get opensand-daemon/service/st_instance
-        export NAME='GW-LAN'$RET
+        export NAME='GW-NET-ACC'$RET
     elif [ ${RET} = 'gw-phy' ]; then
         db_get opensand-daemon/service/st_instance
         export NAME='GW-PHY'$RET
@@ -151,7 +150,7 @@ set_sysctl_phy(){
     evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
 }
 
-set_sysctl_lan(){
+set_sysctl_net_acc(){
     # enable forwarding
     echo "Set ip_forward=$IP_FORWARD"
     evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
@@ -326,8 +325,8 @@ config(){
         echo "  See /etc/default/opensand-daemon to avoid this modifications"
         if [[ $NAME = GW-PHY* ]]; then
             set_sysctl_phy
-        elif [[ $NAME = GW-LAN* ]]; then
-            set_sysctl_lan
+        elif [[ $NAME = GW-NET-ACC* ]]; then
+            set_sysctl_net_acc
         else
             set_sysctl
         fi

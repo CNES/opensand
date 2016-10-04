@@ -160,6 +160,12 @@ class OpenSandServiceListener():
                 network_config['lan_ipv6'] = val
             elif key == 'mac':
                 network_config['mac'] = val
+            elif key == 'ip_remote':
+                network_config['remote_ip'] = val
+            elif key == 'port_upward':
+                network_config['upward_port'] = val
+            elif key == 'port_downward':
+                network_config['downward_port'] = val
             elif key == 'cache':
                 cache = val
         try:
@@ -231,15 +237,22 @@ class OpenSandServiceListener():
             self._model.set_collector_functional(False)
             return
         
-        self._model.del_host(name)
-        for host in self._hosts:
-            if host.get_name().lower() == name:
-                host.close()
-                self._hosts.remove(host)
-        for ws in self._ws:
-            if ws.get_name().lower() == name:
-                ws.close()
-                self._ws.remove(ws)
+        if self._model.del_host(name):
+            # host was removed from model
+            for host in self._hosts:
+                if host.get_name().lower() == name:
+                    host.close()
+                    self._hosts.remove(host)
+            for ws in self._ws:
+                if ws.get_name().lower() == name:
+                    ws.close()
+                    self._ws.remove(ws)
+        else:
+            # only machine was removed
+            for host in self._hosts:
+                if host.has_machine(name):
+                    host.del_machine(name)
+                    break
 
     def handler_end(self):
         """ all service discovered """

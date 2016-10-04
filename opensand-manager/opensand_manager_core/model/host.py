@@ -97,15 +97,9 @@ class HostModel:
                 self._tools[tool_name] = new_tool
 
         # the modules list
+        # TODO: modules should be loaded only by machine model
         self._modules = load_modules(self._component)
 
-        # a list of modules that where not detected by the host
-        self._missing_modules = []
-        for module in self._modules:
-            if module.get_name().upper() not in modules:
-                self._log.warning("%s: plugin %s may be missing" %
-                                 (name.upper(), module.get_name()))
-                self._missing_modules.append(module)
         self.reload_modules(scenario)
 
     def reload_all(self, scenario):
@@ -251,6 +245,7 @@ class HostModel:
     def set_init_status(self, status):
         """ set the host initialisation state """
         # TODO: this should never be used
+        self._log.error("this shouldnt be used")
         self._lock.acquire()
         self._init_status = status
         self._lock.release()
@@ -341,6 +336,17 @@ class HostModel:
         self._machines[component] = machine
         return True
     
+    def del_machine(self, name):
+        """ removes machine from list """
+        for key, machine in self._machines.iteritems():
+            if machine.get_name() == name:
+                break
+        try:
+            del self._machines[key]
+        except:
+            return False
+        return True
+
     def get_machines(self):
         """ gets machine models """
         return self._machines
@@ -356,6 +362,9 @@ class HostModel:
                 return True
         return False
 
+    def is_empty(self):
+        return (len(self._machines) == 0)
+
     def get_net_config(self):
         """ gets network config """
         if not self.is_complete():
@@ -365,7 +374,7 @@ class HostModel:
             if (m in {ST, SAT, GW} or m.endswith('phy')):
                 net_config['emu_iface'] = self._machines[m].get_iface('emu_iface')
                 net_config['emu_ipv4'] = self._machines[m].get_iface('emu_ipv4')
-            if (m in {ST, GW} or m.endswith('lan')):
+            if (m in {ST, GW} or m.endswith('net-acc')):
                 net_config['lan_iface'] = self._machines[m].get_iface('lan_iface')
                 net_config['lan_ipv4'] = self._machines[m].get_iface('lan_ipv4')
                 net_config['lan_ipv6'] = self._machines[m].get_iface('lan_ipv6')

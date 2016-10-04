@@ -56,16 +56,16 @@ ST  = "st"
 SAT = "sat"
 WS  = "ws"
 GW_PHY = "gw-phy"
-GW_LAN = "gw-lan"
+GW_NET_ACC = "gw-net-acc"
 
-GW_types = { GW_PHY, GW_LAN }
+GW_types = { GW_PHY, GW_NET_ACC }
 
 # Host templates
 HOST_TEMPLATES = {
         SAT : [[SAT]],
         ST : [[ST]],
         WS : [[WS]],
-        GW : [[GW], [GW_PHY, GW_LAN]] }
+        GW : [[GW], [GW_PHY, GW_NET_ACC]] }
 
 # Common
 GLOBAL      = "global"

@@ -60,211 +60,211 @@ class interconnect_channel
 	interconnect_channel(bool input, bool output);
 	~interconnect_channel();
 
-    bool isInputOk();
-    
-    bool isOutputOk();
+	bool isInputOk();
+
+	bool isOutputOk();
 
 	/**
 	 * Start listening for incoming connections on the channel.
-     *
-     * @param port              The number port to listen at
+	 *
+	 * @param port              The number port to listen at
 	 * @return true on success, false otherwise
 	 */
 	bool listen(uint16_t port);
 
-    /**
-     * Initiates connection with remote socket.
-     *
-     * @param ip_addr           The IP address of remote socket
-     * @param port              The port of remote socket
-     * @return true on success, false otherwise
-     */
-    bool connect(const string ip_addr, uint16_t port);
+	/**
+	 * Initiates connection with remote socket.
+	 *
+	 * @param ip_addr           The IP address of remote socket
+	 * @param port              The port of remote socket
+	 * * @return true on success, false otherwise
+	 */
+	bool connect(const string ip_addr, uint16_t port);
 
-    /**
-     * @brief Send packet with type via the TCP socket
-     *
-     * @param msg         The packet
-     * @return 0 on success, 1 stored in buffer, -1 error with connection
-     */
-    int sendPacket(rt_msg_t msg) { return (this->send((const unsigned char *) msg.data,
-                                                       msg.length, msg.type)); };
+	/**
+	 * @brief Send packet with type via the TCP socket
+	 *
+	 * @param msg         The packet
+	 * @return 0 on success, 1 stored in buffer, -1 error with connection
+	 */
+	int sendPacket(rt_msg_t msg) { return (this->send((const unsigned char *) msg.data,
+                                                          msg.length, msg.type)); };
 
 	/**
 	 * @brief Send data via the TCP socket
 	 *
 	 * @param data        The data to send
 	 * @param length      The liength of the data
-     * @param type        The packet type
-     * @param flush       Don't store data, just flush buffer
-     *
-     * @return 0 on success, 1 stored in buffer, -1 error with connection
+	 * @param type        The packet type
+	 * @param flush       Don't store data, just flush buffer
+	 *
+	 * @return 0 on success, 1 stored in buffer, -1 error with connection
 	 */
 	int send(const unsigned char *data, size_t length, uint8_t type=0,
-             bool flush=false);
+	         bool flush=false);
 
 	/**
-	* @brief Receive from the TCP socket.
-	*
-	* The function works in blocking mode, so call it only when you are sure
-	* some data is ready to be received. Data is stored in recv_buffer.
-    * Packets must be retrieved after by calling getPacket.
-	*
-	* @param event         The event on channel fd
-	* @return  0 on success, -1 on error
-	*/
+	 * @brief Receive from the TCP socket.
+	 *
+	 * The function works in blocking mode, so call it only when you are sure
+	 * some data is ready to be received. Data is stored in recv_buffer.
+	 * Packets must be retrieved after by calling getPacket.
+	 *
+	 * @param event         The event on channel fd
+	 * @return  0 on success, -1 on error
+	 */
 	int receive(NetSocketEvent *const event);
 
-    /**
-     * @brief Try to send data stored in send buffer
-     */
-    void flush() {this->send((unsigned char *)NULL, 0, 0, true);};
+	/**
+	 * @brief Try to send data stored in send buffer
+	 */
+	void flush() {this->send((unsigned char *)NULL, 0, 0, true);};
 
-    /**
-     * Get Packet from receive buffer
-     *
-     * @param buf               Buffer to store the packet
-     * @param data_len          Lenght of packet
-     * @param type              Type of the packet
-     * @return true if a packet was retrieved, false otherwise.
-     */
-    bool getPacket(unsigned char **buf, size_t &data_len,
-                   uint8_t &type);
+	/**
+	 * Get Packet from receive buffer
+	 *
+	 * @param buf               Buffer to store the packet
+	 * @param data_len          Lenght of packet
+	 * @param type              Type of the packet
+	 * @return true if a packet was retrieved, false otherwise.
+	 */
+	bool getPacket(unsigned char **buf, size_t &data_len,
+	               uint8_t &type);
 
-    /**
-     * Get socket channel fd
-     *
-     * @return channel fd.
-     */
-    int getFd();
+	/**
+	 * Get socket channel fd
+	 *
+	 * @return channel fd.
+	 */
+	int getFd();
 
-    /**
-     * Get socket listen fd
-     *
-     * @return listen fd.
-     */
-    int getListenFd();
+	/**
+	 * Get socket listen fd
+	 *
+	 * @return listen fd.
+	 */
+	int getListenFd();
 
-    /**
-     * Check if socket is closed
-     *
-     * @return true if connection is opened
-     */
-    bool isClosed();
-    
-    /**
-     * Check if socket is active
-     *
-     * @return true if connection is opened
-     */
-    bool isOpen() { return (!this->isClosed()); };
+	/**
+	 * Check if socket is closed
+	 *
+	 * @return true if connection is opened
+	 */
+	bool isClosed();
 
-    /**
-     * Set the channel socket
-     *
-     * @param sock  The socket for the channel
-     */
-    void setChannelSock(int sock);
+	/**
+	 * Check if socket is active
+	 *
+	 * @return true if connection is opened
+	 */
+	bool isOpen() { return (!this->isClosed()); };
 
-    /**
-     * Set the channel socket to blocking mode
-     *
-     * @return true if could perform the task.
-     */
-    bool setSocketBlocking();
+	/**
+	 * Set the channel socket
+	 *
+	 * @param sock  The socket for the channel
+	 * */
+	void setChannelSock(int sock);
 
-    bool isConnected() {return (this->sock_channel > 0);};
+	/**
+	 * Set the channel socket to blocking mode
+	 *
+	 * @return true if could perform the task.
+	 */
+	bool setSocketBlocking();
 
-    /**
-     * Close sock channel
-     */
-    void close();
+	bool isConnected() {return (this->sock_channel > 0);};
+
+	/**
+	 * Close sock channel
+	 */
+	void close();
 
  private:
 
-    /**
-     * Get available space in recv_buffer
-     *
-     * @return Number of bytes free on recv_buffer
-     */
-    size_t getFreeSpace();
-    
-    /**
-     * Get used space in recv_buffer
-     *
-     * @return Number of bytes used on recv_buffer
-     */
-    size_t getUsedSpace();
+	/**
+	 *  Get available space in recv_buffer
+	 *
+	 * @return Number of bytes free on recv_buffer
+	 */
+	size_t getFreeSpace();
 
-    /**
-     * Store received data into recv_buffer
-     *
-     * @param data              A pointer to the first byte of data
-     * @param len               The length of data to copy
-     * @return number of bytes copied. -1 if error
-     */
-    ssize_t storeData(const unsigned char *data,
-                  size_t len);
+	/**
+	 * Get used space in recv_buffer
+	 *
+	 * @return Number of bytes used on recv_buffer
+	 */
+	size_t getUsedSpace();
 
-    /**
-     * Read data from recv_buffer
-     *
-     * @param buf               The buffer to store the data
-     * @param len               The length of data to receive
-     * @param start             The start position
-     * @return the finish buffer position. -1 if error
-     */
-    ssize_t readData(unsigned char *buf, size_t len,
-                     size_t start);
+	/**
+	 * Store received data into recv_buffer
+	 *
+	 * @param data              A pointer to the first byte of data
+	 * @param len               The length of data to copy
+	 * @return number of bytes copied. -1 if error
+	 */
+	ssize_t storeData(const unsigned char *data,
+	                  size_t len);
 
-    /**
-     * Discard uncomplete packet after a loss of data.
-     */
-    void discardPacket();
+	/**
+	 * Read data from recv_buffer
+	 *
+	 * @param buf               The buffer to store the data
+	 * @param len               The length of data to receive
+	 * @param start             The start position
+	 * @return the finish buffer position. -1 if error
+	 */
+	ssize_t readData(unsigned char *buf, size_t len,
+	                 size_t start);
 
-    // if channel accepts input
-    bool m_input;
+	/**
+	 * Discard uncomplete packet after a loss of data.
+	 */
+	void discardPacket();
 
-    // if channel accepts output
-    bool m_output;
+	// if channel accepts input
+	bool m_input;
 
-    // address of the channel
-    struct sockaddr_in m_socketAddr;
+	// if channel accepts output
+	bool m_output;
 
-    // the remote IP address of the channel 
-    struct sockaddr_in m_remoteIPAddress;
-    
-    // the socket for the listener
-    int sock_listen;
-    
-    // the socket which defines the channel
-    int sock_channel;
+	// address of the channel
+	struct sockaddr_in m_socketAddr;
 
-    // internal buffer to build and send packets with length
-    unsigned char send_buffer[5*MAX_SOCK_SIZE];
+	// the remote IP address of the channel 
+	struct sockaddr_in m_remoteIPAddress;
 
-    // send buffer position
-    size_t send_pos;
+	// the socket for the listener
+	int sock_listen;
 
-    // internal buffer for receiving entire packets (circular buffer)
-    // TODO: any way to reuse the other buffer instead of creating two?
-    unsigned char recv_buffer[5*MAX_SOCK_SIZE];
+	// the socket which defines the channel
+	int sock_channel;
 
-    // size of recv buffer
-    const size_t recv_size;
+	// internal buffer to build and send packets with length
+	unsigned char send_buffer[5*MAX_SOCK_SIZE];
 
-    // bytes remaining to complete packet
-    size_t pkt_remaining; 
+	// send buffer position
+	size_t send_pos;
 
-    // current positions in the recv_buffer
-    size_t recv_start;
-    size_t recv_end;
+	// internal buffer for receiving entire packets (circular buffer)
+	// TODO: any way to reuse the other buffer instead of creating two?
+	unsigned char recv_buffer[5*MAX_SOCK_SIZE];
 
-    // if recv buffer is full
-    bool recv_is_full;
+	// size of recv buffer
+	const size_t recv_size;
 
-    // if recv buffer is empty
-    bool recv_is_empty;
+	// bytes remaining to complete packet
+	size_t pkt_remaining; 
+
+	// current positions in the recv_buffer
+	size_t recv_start;
+	size_t recv_end;
+
+	// if recv buffer is full
+	bool recv_is_full;
+
+	// if recv buffer is empty
+	bool recv_is_empty;
 
 	// Output Log
 	OutputLog *log_init;
