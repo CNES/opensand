@@ -165,6 +165,8 @@ class XmlParser:
 
     def get(self, xpath):
         """ get a XML element with its path """
+        if not self._tree:
+            self._tree = etree.parse(self._filename)
         elts = self._tree.xpath(xpath)
         if len(elts) == 1:
             return elts[0]

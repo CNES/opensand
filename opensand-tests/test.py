@@ -586,7 +586,8 @@ class TestManager(ShellManager):
         
     def _updatePlatformHostsStatus(self, display = False):
         """ update hosts status of the OpenSAND platform """
-                
+        time.sleep(5)
+        
         # Get old hosts
         runninghosts = self._runninghosts
         
@@ -644,6 +645,14 @@ class TestManager(ShellManager):
         except Exception as ex:
             return False
         
+        # wait until effectively stopped
+        for i in range(10):
+            if not list(self._model.running_list()):
+                break
+            time.sleep(1)
+        if i==9:
+            self._traceWarning("Host is has not stopped!")
+
         # Clear hosts status
         self._clearPlatformHostsStatus()
         
