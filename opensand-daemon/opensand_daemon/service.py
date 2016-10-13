@@ -226,7 +226,13 @@ class OpenSandService(object):
 
             self._names.append(name)
             if self._compo == 'gw' or self._compo == 'st':
-                OpenSandService._routes.add_distant_host(name, v4, v6)
+                if not ((name.startswith('gw')) and (self._compo == 'gw')):
+                    OpenSandService._routes.add_distant_host(name, v4, v6)
+                    LOGGER.info("Appending component %s to %s v4:%s " %
+                                (self._compo, name, v4))
+                else:
+                    LOGGER.info("Skipped component %s to %s v4:%s " %
+                                (self._compo, name, v4))
             elif self._compo == 'ws' and not name.startswith('ws') and name != 'sat':
                 if inst == self._instance:
                     # this host is our router (ST with the same ID)

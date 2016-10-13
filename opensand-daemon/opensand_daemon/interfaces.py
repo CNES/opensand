@@ -295,7 +295,7 @@ class OpenSandIfaces(object):
         if not tun_addr in net:
             tun_addr = tun_addr - net.numhosts
         # if same as network address, change
-        if tun_addr == net.network
+        if tun_addr == net.network:
             tun_addr += 1
 
         OpenSandIfaces._tun_ipv4 = IPNetwork("%s/%s" % (str(tun_addr), mask))
