@@ -168,6 +168,13 @@ def publish_service(output_handler):
     # add UDP port for exchanging message with the collector
     descr['ext_port'] = OUTPUT_HANDLER.get_external_port()
 
+    # set default route if specified
+    try:
+        if CONF_PARSER.get('network', 'lan_default_route') == 'true':
+            default_route = True
+    except ConfigParser.Error:
+        default_route = False
+
     if name != 'gw' and name != 'sat' and name != 'st' and name != 'ws':
         LOGGER.error("wrong name parameter: %s; sat, gw, st or ws accepted" % name)
         thread.exit()
@@ -179,7 +186,8 @@ def publish_service(output_handler):
     except ConfigParser.Error:
         pass
     SERVICE = OpenSandService(CACHE_DIR, publish_iface, service_type,
-                              name, instance, port, descr, output_handler)
+                              name, instance, port, descr, output_handler,
+                              default_route)
 
     try:
         SERVICE.run()

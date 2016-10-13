@@ -104,6 +104,8 @@ read_conf(){
     LAN_IPV4=$RET
     db_get opensand-daemon/network/lan_ipv6
     LAN_IPV6=$RET
+    db_get opensand-daemon/network/lan_default_route
+    LAN_DEFAULT_ROUTE=$RET
     db_get opensand-daemon/network/ws_lan_iface
     WS_LAN_IFACE=$RET
     db_get opensand-daemon/network/ws_lan_ipv4
@@ -156,6 +158,9 @@ write_conf(){
                 echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
                 echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
                 echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
+                if [ "${SERVICE_NAME}" = "st" ]; then
+                    echo "lan_default_route = ${LAN_DEFAULT_ROUTE}" >> ${DAEMON_CONF}
+                fi
             else
                 echo "lan_iface = ${WS_LAN_IFACE}" >> ${DAEMON_CONF}
                 if [ "${DHCP}" != "true" ]; then
