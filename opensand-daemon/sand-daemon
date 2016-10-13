@@ -169,6 +169,7 @@ def publish_service(output_handler):
     descr['ext_port'] = OUTPUT_HANDLER.get_external_port()
 
     # set default route if specified
+    default_route = False
     try:
         if CONF_PARSER.get('network', 'lan_default_route') == 'true':
             default_route = True
