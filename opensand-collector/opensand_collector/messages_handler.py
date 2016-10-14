@@ -350,10 +350,6 @@ class MessagesHandler(object):
 
         LOGGER.debug("Log %s: %s", log, text)
 
-        if not prog.initialized:
-            LOGGER.info("Program %s is not initialized, do not transmit log "
-                        "to the manager" % prog)
-            return True
         self._notify_manager_log(host, prog, log_id, log_level, text)
 
         return True
