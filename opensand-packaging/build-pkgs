@@ -37,6 +37,8 @@ make_core()
     ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-daemon 
     # Package and install opensand-manager
     ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-manager
+    # Package and install opensand-meta
+    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-meta
     echo "Finished building OpenSAND core for $TARGET_DIST"
 }
 
@@ -88,6 +90,7 @@ move()
        $DST_DIR/pkgs/opensand-core-bin_*.deb \
        $DST_DIR/pkgs/opensand-daemon_*.deb \
        $DST_DIR/pkgs/libopensand-*plugin_*.deb \
+       $DST_DIR/pkgs/opensand_*.deb \
        $DST_DIR/pkgs/daemon >/dev/null 2>&1 
     echo 'Daemon packages copied to '$DST_DIR'/pkgs/daemon'
     # Copy packages for manager
@@ -101,6 +104,7 @@ move()
        $DST_DIR/pkgs/opensand-manager*.deb \
        $DST_DIR/pkgs/libopensand-*plugin-manager*.deb  \
        $DST_DIR/pkgs/opensand-collector_*.deb \
+       $DST_DIR/pkgs/opensand_*.deb \
        $DST_DIR/pkgs/manager >/dev/null 2>&1
     echo 'Manager packages copied to '$DST_DIR'/pkgs/manager'
     # Move all packages to all
