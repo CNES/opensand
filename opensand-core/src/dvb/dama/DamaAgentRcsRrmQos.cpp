@@ -218,7 +218,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 	double alpha; // Congestion and anticipation factor
 	rate_kbps_t rin_weighted_kbps;  // Weighted mean incoming trafic at layer 2
 	                                // corresponding to RBDC associated queues
-	                                // // in kbps
+	                                // in kbps
 	rate_kbps_t alloc_since_last_request; // Allocation in kbps for 
 	                                      // the last (t_sync - t_loop)
 	

@@ -76,7 +76,7 @@ class GseEncapCtx
 	/// The output log
 	OutputLog *log;
 	/// Tell if context has to be reset next time
-	//bool to_reset;
+	bool to_reset;
 
  public:
 

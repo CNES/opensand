@@ -471,7 +471,7 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 	// in the same virtual buffer to avoid data modifications in other
 	// packets). Another solution could have been to call get_packet_copy
 	// but it is less efficient.
-	// // Initialize vfrags and buffer for GSE virtual fragments
+	// Initialize vfrags and buffer for GSE virtual fragments
 	status = gse_duplicate_vfrag_no_alloc(&this->vfrag_pkt, context->data(),
 	                                      context->length());
 	// do not delete the context, we're going to reuse it. set flag

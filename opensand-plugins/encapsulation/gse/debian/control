@@ -31,7 +31,7 @@ Description: The GSE plugin for OpenSAND
 Package: libopensand-gse-encap-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-gse-encap-plugin (= ${binary:Version}), python (>= 2.7), opensand-manager-gui
+Depends: libopensand-gse-encap-plugin (= ${binary:Version}), python (>= 2.7), python (<<3.0), opensand-manager-gui
 Provides: libopensand-gse-plugin-manager
 Conflicts: libopensand-gse-plugin-manager
 Replaces: libopensand-gse-plugin-manager
