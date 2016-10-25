@@ -238,13 +238,6 @@ opensand-rt/debian/files
 opensand-rt/debian/libopensand-rt/
 opensand-rt/debian/libopensand-rt-dbg/
 opensand-rt/debian/libopensand-rt-dev/
-opensand-meta/debian/files
-opensand-meta/debian/opensand
-opensand-meta/debian/opensand-encap-plugins
-opensand-meta/debian/opensand-manager
-opensand-meta/debian/opensand-manager-encap-plugins
-opensand-meta/debian/opensand-manager-physical-layer-plugins
-opensand-meta/debian/opensand-physical-layer-plugins
 compile
 *.trs
 test-driver
