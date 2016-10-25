@@ -151,11 +151,11 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 			                   avail_probes, carriers_id);
 		}
 		this->probe_fwd_available_capacity.insert(
-			std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
-			                                                    avail_probes));
+			std::make_pair<unsigned int, vector<Probe<int> *> >((unsigned int) carriers_id,
+			                                                    (vector<Probe<int> *>) avail_probes));
 		this->probe_fwd_remaining_capacity.insert(
-			std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
-			                                                    remain_probes));
+			std::make_pair<unsigned int, vector<Probe<int> *> >((unsigned int) carriers_id,
+			                                                    (vector<Probe<int> * >) remain_probes));
 	}
 }
 
@@ -365,11 +365,11 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 				                   avail_probes, carriers_id);
 
 				this->probe_fwd_available_capacity.insert(
-				    std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
-				                                                        avail_probes));
+				    std::make_pair<unsigned int, vector<Probe<int> *> >((unsigned int)carriers_id,
+				                                                        (vector<Probe<int> *>)avail_probes));
 				this->probe_fwd_remaining_capacity.insert(
-				    std::make_pair<unsigned int, vector<Probe<int> *> >(carriers_id,
-				                                                        remain_probes));
+				    std::make_pair<unsigned int, vector<Probe<int> *> >((unsigned int)carriers_id,
+				                                                        (vector<Probe<int> *>)remain_probes));
 			}
 
 			this->probe_fwd_available_capacity[carriers_id][id]->put(avail);

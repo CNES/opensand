@@ -518,37 +518,43 @@ bool SpotDownward::initOutput(void)
 			                                        "Spot_%d.%s.Queue size.packets.%s",
 			                                        spot_id, cat_label.c_str(), fifo_name);
 			(*this->probe_gw_queue_size)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+						make_pair<unsigned int, Probe<int> *>(
+							(unsigned int) id, (Probe<int> *) probe_temp));
 
 			probe_temp = Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
 			                                        "Spot_%d.%s.Queue size.%s",
 			                                        spot_id, cat_label.c_str(), fifo_name);
 			(*this->probe_gw_queue_size_kb)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+						make_pair<unsigned int, Probe<int> *>(
+							(unsigned int) id, (Probe<int> *) probe_temp));
 
 			probe_temp = Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
 			                                        "Spot_%d.%s.Throughputs.L2_to_SAT_before_sched.%s",
 			                                        spot_id, cat_label.c_str(), fifo_name);
 			(*this->probe_gw_l2_to_sat_before_sched)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+						make_pair<unsigned int, Probe<int> *>(
+							(unsigned int) id, (Probe<int> *) probe_temp));
 
 			probe_temp = Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
 			                                        "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.%s",
 			                                        spot_id, cat_label.c_str(), fifo_name);
 			(*this->probe_gw_l2_to_sat_after_sched)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+						make_pair<unsigned int, Probe<int> *>(
+							(unsigned int) id, (Probe<int> *) probe_temp));
 
 			probe_temp = Output::registerProbe<int>("Packets", true, SAMPLE_SUM,
 			                                        "Spot_%d.%s.Queue loss.packets.%s",
 			                                        spot_id, cat_label.c_str(), fifo_name);
 			(*this->probe_gw_queue_loss)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+						make_pair<unsigned int, Probe<int> *>(
+							(unsigned int) id, (Probe<int> *) probe_temp));
 
 			probe_temp = Output::registerProbe<int>("Kbits/s", true, SAMPLE_SUM,
 			                                        "Spot_%d.%s.Queue loss.%s",
 			                                        spot_id, cat_label.c_str(), fifo_name);
 			(*this->probe_gw_queue_loss_kb)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(id, probe_temp));
+						make_pair<unsigned int, Probe<int> *>(
+							(unsigned int) id, (Probe<int> *) probe_temp));
 		}
 		this->probe_gw_l2_to_sat_total[cat_label] =
 			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,

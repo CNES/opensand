@@ -785,7 +785,7 @@ void OutputInternal::checkLogLevel(OutputLog *log)
 	{
 		string name = (*lvl_it).first;
 		string log_name = log->getName();
-		std::transform(log->getName().begin(), log->getName().end(),
+		std::transform(log_name.begin(), log_name.end(),
 		               log_name.begin(), ::tolower);
 		// first check if this is an init log as its override others names
 		if(name == "init" && (log_name.find(name) != std::string::npos))
@@ -804,7 +804,7 @@ void OutputInternal::checkLogLevel(OutputLog *log)
 	{
 		string name = (*lvl_it).first;
 		string log_name = log->getName();
-		std::transform(log->getName().begin(), log->getName().end(),
+		std::transform(log_name.begin(), log_name.end(),
 		               log_name.begin(), ::tolower);
 		// check if the log name matches a part of the user defined log
 		if((log_name.find(name) != std::string::npos))

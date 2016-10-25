@@ -397,7 +397,7 @@ class DamaCtrl
 { \
 	if (this->event_file != NULL) \
 	{ \
-		fprintf(this->event_file, "SF%u "fmt"\n", \
+		fprintf(this->event_file, "SF%u " fmt "\n", \
 		        this->current_superframe_sf, ##args); \
 	} \
 }

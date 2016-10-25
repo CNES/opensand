@@ -1,0 +1,13 @@
+[Unit]
+Description=Startup script for the OpenSAND daemon
+After=remote-fs.target
+After=systemd-journald-dev-log.socket
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/sand-daemon -c /etc/opensand/daemon.conf -q -v
+ExecStartPre=/bin/bash -c "mkdir -p /var/run/sand-daemon && chown opensand /var/run/sand-daemon/"
+ExecStartPre=/usr/libexec/opensand/write_initialize_config
+
+[Install]
+WantedBy=multi-user.target

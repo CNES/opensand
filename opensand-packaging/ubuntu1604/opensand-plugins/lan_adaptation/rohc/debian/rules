@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+PYTHON2=$(shell pyversions -vr)
+
+%:
+	dh  $@
+
+override_dh_strip:
+	dh_strip --dbg-package=libopensand-rohc-lan-adapt-plugin-dbg
+	
+override_dh_install:
+	dh_install
+	mkdir -p  $(CURDIR)/debian/libopensand-rohc-lan-adapt-plugin-manager/usr/lib/python$(PYTHON2)/dist-packages/opensand_manager_core/modules
+	install -m 0644 conf/rohc.conf $(CURDIR)/debian/libopensand-rohc-lan-adapt-plugin-manager/usr/share/opensand/plugins/rohc.conf
+	install -m 0644 conf/rohc.xsd $(CURDIR)/debian/libopensand-rohc-lan-adapt-plugin-manager/usr/share/opensand/plugins/rohc.xsd
+	install -m 0644 src/rohc.py $(CURDIR)/debian/libopensand-rohc-lan-adapt-plugin-manager/usr/lib/python$(PYTHON2)/dist-packages/opensand_manager_core/modules/rohc.py
+
+override_dh_pysupport:

@@ -88,7 +88,7 @@ bool Ttp::addTimePlan(time_frame_t frame_id,
 	{
 		time_plans_t time_plans;
 		time_plans.push_back(tp);
-		this->frames.insert(std::make_pair<uint8_t, time_plans_t>(frame_id, time_plans));
+		this->frames.insert(std::make_pair<uint8_t, time_plans_t>((uint8_t)frame_id, (time_plans_t)time_plans));
 	}
 	// add the TP to the list of TP for this frame ID
 	else

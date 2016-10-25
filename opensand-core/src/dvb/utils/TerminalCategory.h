@@ -257,7 +257,8 @@ class TerminalCategory
 			if(this->symbol_rate_list.find(rs_symps) == this->symbol_rate_list.end())
 			{
 				this->symbol_rate_list.insert(
-				    std::make_pair<rate_symps_t, unsigned int>(rs_symps, number));
+				    std::make_pair<rate_symps_t, unsigned int>((rate_symps_t)rs_symps,
+									       (unsigned int) number));
 			}
 			else
 			{
@@ -392,7 +393,8 @@ class TerminalCategory
 		if(this->symbol_rate_list.find(rate_symps) == this->symbol_rate_list.end())
 		{
 			this->symbol_rate_list.insert(
-			       std::make_pair<rate_symps_t, unsigned int>(rate_symps, 0));
+			       std::make_pair<rate_symps_t, unsigned int>((rate_symps_t) rate_symps,
+									  (unsigned int) 0));
 		}
 	};
 
@@ -495,7 +497,7 @@ class TerminalCategory
 			if(this->symbol_rate_list.find(rate_symps) == this->symbol_rate_list.end()) {
 				this->symbol_rate_list.insert(
 				    std::make_pair<rate_symps_t, unsigned int>(
-				         rate_symps,carriers_number));
+				         (rate_symps_t) rate_symps, (unsigned int) carriers_number));
 			}
 			else
 			{
