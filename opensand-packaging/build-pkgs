@@ -3,7 +3,10 @@
 MODULES='all core lan encap'
 
 # Get list of all supported distributions
-DISTS=`find $THIS_DIR -maxdepth 1 -type d -printf '%f ' | cut -d " " -f 2-`
+THIS_DIR="$(readlink -e $0)"
+THIS_DIR="$(dirname ${THIS_DIR})"
+DISTS=$(find $THIS_DIR -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+DISTS=$(echo $DISTS | tr -d '\n')
 
 usage()
 {
@@ -24,21 +27,21 @@ make_core()
 {
     echo "Building OpenSAND core for $TARGET_DIST"
     # Package and install opensand-output
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
+    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
     # Package and install opensand-conf
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
+    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
     # Package and install opensand-rt
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-rt || error
+    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-rt || error
     # Package and install opensand-collector
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-collector 
+    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-collector 
     # Package and install opensand-core
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-core 
+    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-core 
     # Package and install opensand-daemon
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-daemon 
+    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-daemon 
     # Package and install opensand-manager
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-manager
+    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-manager
     # Package and install opensand-meta
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-meta
+    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-meta
     echo "Finished building OpenSAND core for $TARGET_DIST"
 }
 
@@ -46,7 +49,7 @@ make_encap()
 {
     echo "Building OpenSAND encapsulation plugins for $TARGET_DIST"
     # Package and install opensand-plugins/encapsulation/gse
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/gse
+    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/gse
     echo "Finished building OpenSAND encapsulation plugins for $TARGET_DIST"
 }
 
@@ -54,7 +57,7 @@ make_lan()
 {
     echo "Building OpenSAND LAN adaptation plugins for $TARGET_DIST"
     # Package and install opensand-plugins/encapsulation/gse
-    ./$TARGET_DIST/build-pkgs -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/lan_adaptation/rohc
+    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/lan_adaptation/rohc
     echo "Finished building OpenSAND LAN adaptation plugins for $TARGET_DIST"
 }
 
@@ -146,8 +149,6 @@ then
     echo "This script must be run as root" 1>&2
     exit 1
 fi
-
-THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 MODULE=$1
 
