@@ -429,7 +429,7 @@ class TestManager(ShellManager):
             self._traceError("No SAT is available")
             return False
         elif 1 < n:
-            dummy = map(lambda host: str(host.get_name()), self._hosts["sat"])
+            dummy = map(lambda hostname: str(hostname), self._hosts["sat"])
             self._traceError("More than one SAT is available: %s" 
                              % str(dummy))
             return False
@@ -441,7 +441,7 @@ class TestManager(ShellManager):
             return False
         elif 1 < n:
             # TODO: This case has to be handled
-            dummy = map(lambda host: str(host.get_name()), self._hosts["gw"])
+            dummy = map(lambda hostname: str(hostname), self._hosts["gw"])
             self._traceError("More than one GW is available: %s"
                              % str(dummy))
             return False
