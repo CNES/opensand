@@ -330,14 +330,13 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		else
 		{
 			category = (*it).second;
-		}
-		if(!category)
-		{
-			LOG(this->log_logon, LEVEL_WARNING,
-			    "ST #%u cannot be logged, there is no DAMA "
-			    "category associated to its mapping\n",
-			    tal_id);
-			return false;
+			if(category == NULL)
+			{
+				LOG(this->log_logon, LEVEL_INFO,
+				    "Terminal %d does not use DAMA\n",
+				    tal_id);
+				return true;
+			}
 		}
 
 		// check if the category is concerned by DAMA

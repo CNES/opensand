@@ -5,8 +5,6 @@
 
 set -e
 
-. /usr/share/debconf/confmodule
-
 # summary of how this script can be called:
 #        * <new-preinst> `install'
 #        * <new-preinst> `install' <old-version>

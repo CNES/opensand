@@ -164,3 +164,9 @@ Type: boolean
 Default: false
 Description: Do you want to use enable the default route toward terminal for workstations ?
   Select if you want your DCHP server to set the default route toward the terminal.
+
+Template: opensand-daemon/network/lan_default_route
+Type: boolean
+Default: false
+Description: Do you want to use enable the default route via GW on ST terminal ?
+  Select true if you want the daemon to set the default route. 

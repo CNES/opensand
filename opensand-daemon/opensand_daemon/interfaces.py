@@ -41,7 +41,7 @@ import fcntl
 import struct
 import threading
 from ConfigParser import Error
-from ipaddr import IPNetwork
+from ipaddr import IPNetwork, IPv4Address, IPv4Network
 
 from opensand_daemon.my_exceptions import InstructionError
 from opensand_daemon.nl_utils import NlInterfaces, NlError, NlExists, \
@@ -284,24 +284,21 @@ class OpenSandIfaces(object):
 
         # compute the TUN address
         mask = OpenSandIfaces._lan_ipv4.prefixlen
-        # we do as if mask = 24 for smaller masks
-        if mask < 24:
-            modulo = 251
         # we need a mask smaller than 30 to get enough IP addresses
-        elif mask > 28:
+        if mask > 30:
             # TODO
             raise NlError
-        else:
-            # - 5 to avoid 255 as add
-            modulo = pow(2, 32 - mask) - 5
-        # IPv4 address = net.add
-        net, add = str(OpenSandIfaces._lan_ipv4.ip).rsplit('.', 1)
-        # tun is 2 more than interface
-        # we add 1 after modulo to avoid 0
-        OpenSandIfaces._tun_ipv4 = IPNetwork("%s.%s/%s" % (net,
-                                                           str(((int(add) + 1) %
-                                                                modulo) + 1),
-                                                           mask))
+        # add 1 to LAN ipv4
+        tun_addr = OpenSandIfaces._lan_ipv4.ip + 1
+        # check if is still in the same network. otherwise, make modulo
+        net = IPv4Network(str(OpenSandIfaces._lan_ipv4.ip) + '/' + str(mask))
+        if not tun_addr in net:
+            tun_addr = tun_addr - net.numhosts
+        # if same as network address, change
+        if tun_addr == net.network:
+            tun_addr += 1
+
+        OpenSandIfaces._tun_ipv4 = IPNetwork("%s/%s" % (str(tun_addr), mask))
 
          # compute the TUN and addresse
         mask = OpenSandIfaces._lan_ipv6.prefixlen

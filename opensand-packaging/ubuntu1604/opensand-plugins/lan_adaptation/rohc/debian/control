@@ -31,7 +31,7 @@ Description: The ROHC plugin for OpenSAND
 Package: libopensand-rohc-lan-adapt-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-rohc-lan-adapt-plugin (= ${binary:Version}), python (>= 2.7), opensand-manager-gui
+Depends: libopensand-rohc-lan-adapt-plugin (= ${binary:Version}), python (>= 2.7), python (<<3.0), opensand-manager-gui
 Provides: libopensand-rohc-plugin-manager, libopensand-rohc-encap-plugin-manager
 Conflicts: libopensand-rohc-plugin-manager, libopensand-rohc-encap-plugin-manager
 Replaces: libopensand-rohc-plugin-manager, libopensand-rohc-encap-plugin-manager

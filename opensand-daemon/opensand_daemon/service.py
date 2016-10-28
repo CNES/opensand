@@ -73,7 +73,8 @@ class OpenSandService(object):
     _publisher = None
 
     def __init__(self, cache_dir, iface, service_type, name,
-                 instance, port, descr=None, output_handler=None):
+                 instance, port, descr=None, output_handler=None,
+                 default_route=False):
         loop = DBusGMainLoop(set_as_default=True)
         # Init gobject threads and dbus threads
         gobject.threads_init()
@@ -87,7 +88,9 @@ class OpenSandService(object):
             if name.lower() != "ws":
                 # by default we use TUN interface but this can be modified
                 # using setup routes when we are in Ethernet
-                OpenSandService._routes.load(cache_dir, name, TUN_NAME)
+                OpenSandService._routes.load(cache_dir, name, TUN_NAME,
+                                             is_ws=False, default=default_route,
+                                             instance=instance)
             else:
                 OpenSandService._routes.load(cache_dir, name,
                                              descr['lan_iface'], True)
@@ -223,7 +226,13 @@ class OpenSandService(object):
 
             self._names.append(name)
             if self._compo == 'gw' or self._compo == 'st':
-                OpenSandService._routes.add_distant_host(name, v4, v6)
+                if not ((name.startswith('gw')) and (self._compo == 'gw')):
+                    OpenSandService._routes.add_distant_host(name, v4, v6)
+                    LOGGER.info("Appending component %s to %s v4:%s " %
+                                (self._compo, name, v4))
+                else:
+                    LOGGER.info("Skipped component %s to %s v4:%s " %
+                                (self._compo, name, v4))
             elif self._compo == 'ws' and not name.startswith('ws') and name != 'sat':
                 if inst == self._instance:
                     # this host is our router (ST with the same ID)

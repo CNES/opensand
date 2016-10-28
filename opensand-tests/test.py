@@ -429,8 +429,8 @@ class TestManager(ShellManager):
             self._trace_error("No SAT is available")
             return False
         elif 1 < n:
-            dummy = map(lambda host: str(host.get_name()), self._hosts["sat"])
-            self._trace_error("More than one SAT is available: %s" 
+            dummy = map(lambda hostname: str(hostname), self._hosts["sat"])
+            self._traceError("More than one SAT is available: %s" 
                              % str(dummy))
             return False
  
@@ -441,8 +441,8 @@ class TestManager(ShellManager):
             return False
         elif 1 < n:
             # TODO: This case has to be handled
-            dummy = map(lambda host: str(host.get_name()), self._hosts["gw"])
-            self._trace_error("More than one GW is available: %s"
+            dummy = map(lambda hostname: str(hostname), self._hosts["gw"])
+            self._traceError("More than one GW is available: %s"
                              % str(dummy))
             return False
         
@@ -586,7 +586,8 @@ class TestManager(ShellManager):
         
     def _update_platform_hosts_status(self, display = False):
         """ update hosts status of the OpenSAND platform """
-                
+        time.sleep(5)
+        
         # Get old hosts
         runninghosts = self._runninghosts
         
@@ -644,6 +645,14 @@ class TestManager(ShellManager):
         except Exception as ex:
             return False
         
+        # wait until effectively stopped
+        for i in range(10):
+            if not list(self._model.running_list()):
+                break
+            time.sleep(1)
+        if i==9:
+            self._traceWarning("Host is has not stopped!")
+
         # Clear hosts status
         self._clear_platform_hosts_status()
         

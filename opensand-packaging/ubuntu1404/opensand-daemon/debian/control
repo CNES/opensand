@@ -19,7 +19,7 @@ Depends: ${misc:Depends}, python (>= 2.7), python (<<3.0),
  python-dbus, python-gobject,
  python-avahi, avahi-daemon,
  python-ipaddr, python-netifaces,
- python-prctl,
+ python-prctl, python-lxml,
  libnl-3-200, libnl-route-3-200,
  rsyslog, logrotate,
  opensand-core-bin

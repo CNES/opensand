@@ -386,7 +386,7 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="gw" minOccurs="1" maxOccurs="2">
+            <xsd:element name="gw" minOccurs="1" maxOccurs="3">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The terminal list

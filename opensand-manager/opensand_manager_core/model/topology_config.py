@@ -37,7 +37,7 @@ topology_configuration.py - the topology configuration description
 import os
 import shutil
 from lxml import etree
-
+from ipaddr import IPv4Network
 from opensand_manager_core.utils import *
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.model.files import Files
@@ -166,12 +166,10 @@ class TopologyConfig(AdvancedHostModel):
 
             if name != SAT:
                 # IPv4 SARP
-                addr = net_config[LAN_IPV4].split('/')
-                ip = addr[0]
-                net = ip[0:ip.rfind('.') + 1] + "0"
-                mask = addr[1]
-                line = {'addr': net,
-                        'mask': mask,
+                net = IPv4Network(net_config[LAN_IPV4])
+                
+                line = {'addr': str(net.network),
+                        'mask': str(net.prefixlen),
                         TAL_ID: instance,
                        }
                 xpath = PATH_IPV4
