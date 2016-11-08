@@ -22,6 +22,6 @@ Depends: ${misc:Depends}, python (>= 2.7), python (<<3.0),
  python-prctl, python-lxml,
  libnl-3-200, libnl-route-3-200,
  rsyslog, logrotate,
- opensand-core-bin
+ opensand-core
 Recommends: dnsmasq
 Description: Daemon for OpenSAND entity (sat, gw, st or ws)

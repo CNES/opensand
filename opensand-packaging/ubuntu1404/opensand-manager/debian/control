@@ -13,7 +13,7 @@ Depends: ${misc:Depends}, python (>= 2.7), python (<<3.0),
  python-avahi, avahi-daemon,
  python-dbus, python-lxml,
  python-gobject,
- opensand-core-all
+ opensand-core-conf
 Description: Non graphical part of Manager for OpenSAND emulation testbed
 
 Package: opensand-manager-gui

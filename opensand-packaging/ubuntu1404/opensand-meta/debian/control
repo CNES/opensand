@@ -10,7 +10,7 @@ Package: opensand
 Architecture: any
 Section: metapackages
 Depends: libopensand-conf (>= ${binary:Version}), libopensand-output (>= ${binary:Version}),
- libopensand-rt (>= ${binary:Version}), opensand-core-bin (>= ${binary:Version}),
+ libopensand-rt (>= ${binary:Version}), opensand-core (>= ${binary:Version}),
  libopensand-plugin (>= ${binary:Version}), opensand-daemon (>= ${binary:Version}),
  libopensand-gse-encap-plugin (>= ${binary:Version})
 Description: Packages for OpenSAND, a satellite emulation platform.
@@ -20,10 +20,9 @@ Description: Packages for OpenSAND, a satellite emulation platform.
 Package: opensand-manager
 Architecture: any
 Section: metapackages
-Depends: libopensand-conf (>= ${binary:Version}), libopensand-output (>= ${binary:Version}),
- libopensand-rt (>= ${binary:Version}), opensand-core-bin (>= ${binary:Version}),
- opensand-core-all (>= ${binary:Version}), opensand-manager-core (>= ${binary:Version}), 
- opensand-manager-gui (>= ${binary:Version}), libopensand-gse-encap-plugin-manager (>= ${binary:Version})
+Depends: opensand-core-conf (>= ${binary:Version}),
+ opensand-manager-core (>= ${binary:Version}), opensand-manager-gui (>= ${binary:Version}),
+ libopensand-gse-encap-plugin-manager (>= ${binary:Version})
 Description: Packages for OpenSAND manager.
  This metapackage is to ease the installation of OpenSAND manager environment.
  

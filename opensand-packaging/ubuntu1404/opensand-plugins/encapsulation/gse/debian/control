@@ -10,6 +10,12 @@ XS-Python-Version: >= 2.7
 Standards-Version: 3.8.3
 Section: libs
 
+Package: libopensand-gse-encap-plugin-conf
+Section: misc
+Architecture: any
+Depends: opensand-core-conf
+Description: The configuration files of the OpenSAND GSE plugin
+
 Package: libopensand-gse-encap-plugin-dbg
 Section: debug
 Architecture: any
@@ -22,7 +28,8 @@ Description: Debugging symbols for OpenSAND GSE plugin
 Package: libopensand-gse-encap-plugin
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, opensand-daemon
+Depends: ${shlibs:Depends}, ${misc:Depends}, 
+ libopensand-gse-encap-plugin-conf (= ${binary:Version}), opensand-core
 Provides: libopensand-gse-plugin
 Conflicts: libopensand-gse-plugin
 Replaces: libopensand-gse-plugin
@@ -31,7 +38,8 @@ Description: The GSE plugin for OpenSAND
 Package: libopensand-gse-encap-plugin-manager
 Section: libs
 Architecture: any
-Depends: libopensand-gse-encap-plugin (= ${binary:Version}), python (>= 2.7), python (<<3.0), opensand-manager-gui
+Depends: libopensand-gse-encap-plugin-conf (= ${binary:Version}),
+ python (>= 2.7), python (<<3.0), opensand-manager-gui
 Provides: libopensand-gse-plugin-manager
 Conflicts: libopensand-gse-plugin-manager
 Replaces: libopensand-gse-plugin-manager
