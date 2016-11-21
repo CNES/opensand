@@ -67,7 +67,7 @@ build()
     if [ ! -z $INSTALL_DEP ]
     then
         # Get dependencies from control file
-        DEPS=`sed -n '/Build-Depends:/,/:/ p' "$DST_DIR/$MODULE/debian/control" | \
+        DEPS=`sed -n '/Build-Depends:/,/:/ p' "$DST_DIR/src/$MODULE/debian/control" | \
               sed -r 's/^[^:]+: //g' | sed -r 's/\([^\)]+\)//g' | \
               sed -r 's/( )?,//g' | sed '$d' | tr '\n' ' '`
 
