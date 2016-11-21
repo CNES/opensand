@@ -208,6 +208,10 @@ initialize(){
         # remove interfaces in case it was another type of host
         ${TUN_TAP_INIT} -d 1>/dev/null 2>&1
     fi
+    # remove old IP addresses from LAN and EMU interfaces
+    ifconfig ${EMU_IFACE} inet 0.0.0.0
+    ifconfig ${LAN_IFACE} inet 0.0.0.0
+
     # configure host
     ${HOST_INIT} > /dev/null
 
