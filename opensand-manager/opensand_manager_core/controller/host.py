@@ -252,11 +252,12 @@ class HostController:
         lan_iface = ''
         if component != SAT:
             lan_iface = '-l ' + self._host_model.get_lan_interface()
-        command_line = '%s -a %s -n %s %s %s' % \
+        command_line = '%s -a %s -n %s %s %s -c %s' % \
                        (bin_file,
                         self._host_model.get_emulation_address(),
                         self._host_model.get_emulation_interface(),
-                        lan_iface, instance_param)
+                        lan_iface, instance_param,
+                        CONF_DESTINATION_PATH)
         if not self._host_model.is_collector_functional():
             command_line += " -q"
         try:

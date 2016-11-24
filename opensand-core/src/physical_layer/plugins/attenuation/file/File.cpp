@@ -45,7 +45,7 @@
 #define FILE_LIST      "file_attenuations"
 #define PATH          "path"
 #define LOOP          "loop_mode"
-#define CONF_FILE_FILE "/etc/opensand/plugins/file.conf"
+#define CONF_FILE_FILENAME "file.conf"
 
 File::File():
 	AttenuationModelPlugin(),
@@ -64,12 +64,14 @@ bool File::init(time_ms_t refresh_period_ms, string link)
 {
 	string filename;
 	ConfigurationFile config;
+	string conf_file_path;
+	conf_file_path = this->getConfPath() + string(CONF_FILE_FILENAME);
 
-	if(config.loadConfig(CONF_FILE_FILE) < 0)
+	if(config.loadConfig(conf_file_path.c_str()) < 0)
 	{   
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to load config file '%s'",
-		    CONF_FILE_FILE);
+		    conf_file_path.c_str());
 		return false;
 	}
 

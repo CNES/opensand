@@ -47,7 +47,7 @@
 #define TRIANGULAR_LIST      "triangular_attenuations"
 #define SLOPE                "slope"
 #define PERIOD               "period"
-#define CONF_TRIANGULAR_FILE "/etc/opensand/plugins/triangular.conf"
+#define CONF_TRIANGULAR_FILENAME "triangular.conf"
 
 Triangular::Triangular():
 	AttenuationModelPlugin(),
@@ -62,12 +62,14 @@ Triangular::~Triangular()
 bool Triangular::init(time_ms_t refresh_period_ms, string link)
 {
 	ConfigurationFile config;
+	string conf_triangular_path;
+	conf_triangular_path = this->getConfPath() + string(CONF_TRIANGULAR_FILENAME);
 
-	if(config.loadConfig(CONF_TRIANGULAR_FILE) < 0)
+	if(config.loadConfig(conf_triangular_path.c_str()) < 0)
 	{   
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to load config file '%s'", 
-		    CONF_TRIANGULAR_FILE);
+		    conf_triangular_path.c_str());
 		goto error;
 	}
 

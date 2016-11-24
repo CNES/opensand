@@ -47,7 +47,7 @@
 #define PERIOD_ON        "period_on"
 #define PERIOD_OFF       "period_off"
 #define AMPLITUDE        "amplitude"
-#define CONF_ON_OFF_FILE "/etc/opensand/plugins/on_off.conf"
+#define CONF_ON_OFF_FILENAME "on_off.conf"
 
 
 OnOff::OnOff():
@@ -64,12 +64,14 @@ OnOff::~OnOff()
 bool OnOff::init(time_ms_t refresh_period_ms, string link)
 {
 	ConfigurationFile config;
+	string conf_on_off_path;
+	conf_on_off_path = this->getConfPath() + string(CONF_ON_OFF_FILENAME);
 
-	if(config.loadConfig(CONF_ON_OFF_FILE) < 0)
+	if(config.loadConfig(conf_on_off_path.c_str()) < 0)
 	{   
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to load config file '%s'",
-		    CONF_ON_OFF_FILE);
+		    conf_on_off_path.c_str());
 		goto error;
 	}
 

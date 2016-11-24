@@ -43,7 +43,7 @@
 #include <map>
 #include <arpa/inet.h>
 
-#define CONF_ETH_FILE "/etc/opensand/plugins/ethernet.conf"
+#define CONF_ETH_FILENAME "ethernet.conf"
 
 #define CONF_ETH_SECTION "ethernet"
 #define CONF_SAT_FRAME_TYPE "sat_frame_type"
@@ -77,7 +77,9 @@ void Ethernet::init()
 	map<string, ConfigurationList> config_section_map;
 	string sat_eth;
 	vector<string> conf_files;
-	conf_files.push_back(CONF_ETH_FILE);
+	string conf_eth_path;
+	conf_eth_path = this->getConfPath() + string(CONF_ETH_FILENAME);
+	conf_files.push_back(conf_eth_path.c_str());
 
 	this->upper[TRANSPARENT].push_back("IP");
 	this->upper[TRANSPARENT].push_back("ROHC");
@@ -89,7 +91,7 @@ void Ethernet::init()
 	if(config.loadConfig(conf_files) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "failed to load config file '%s'", CONF_ETH_FILE);
+		    "failed to load config file '%s'", conf_eth_path.c_str());
 		return;
 	}
 
@@ -137,15 +139,17 @@ void Ethernet::Context::init()
 	string lan_eth;
 	string sat_eth;
 	vector<string> conf_files;
-	conf_files.push_back(CONF_ETH_FILE);
-
+	string conf_eth_path;
+	conf_eth_path = this->getConfPath() + string(CONF_ETH_FILENAME);
+	conf_files.push_back(conf_eth_path.c_str());
+	
 	this->handle_net_packet = true;
 
 	if(this->config.loadConfig(conf_files) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",
-		    CONF_ETH_FILE);
+		    conf_eth_path.c_str());
 		return;
 	}
 
@@ -234,7 +238,7 @@ Ethernet::Context::~Context()
 	this->config.unloadConfig();
 	
 	map<uint8_t, Evc *>::iterator evc_it;
-    std::map<qos_t, TrafficCategory *>::iterator cat_it;
+	std::map<qos_t, TrafficCategory *>::iterator cat_it;
 	for(evc_it = this->evc_map.begin(); evc_it != this->evc_map.end(); ++evc_it)
 	{
 		delete (*evc_it).second;

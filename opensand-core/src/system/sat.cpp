@@ -75,14 +75,14 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
+bool init_process(int argc, char **argv, string &ip_addr, string &iface_name, string &conf_path)
 {
 	int opt;
 	bool output_enabled = true;
 	bool output_stdout = false;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-hqda:n:")) != EOF)
+	while((opt = getopt(argc, argv, "-hqda:n:c:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -102,15 +102,20 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 				// get local interface name
 				iface_name = optarg;
 				break;
+			case 'c':
+				// get the configuration path
+				conf_path = optarg;
+				break;
 			case 'h':
 			case '?':
-				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address -n interface_name]\n",
+				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address -n interface_name -c conf_path]\n",
 					argv[0]);
 				fprintf(stderr, "\t-h              print this message\n");
 				fprintf(stderr, "\t-q              disable output\n");
 				fprintf(stderr, "\t-d              enable output debug events\n");
 				fprintf(stderr, "\t-a <ip_address> set the IP address\n");
 				fprintf(stderr, "\t-n <interface_name>  set the interface name\n");
+				fprintf(stderr, "\t-c <conf_path>  specify the configuration path\n");
 				Output::init(true);
 				Output::enableStdlog();
 				return false;
@@ -139,6 +144,13 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 		        "missing mandatory interface name option\n");
 		return false;
 	}
+
+	if(conf_path.size() == 0)
+	{
+		DFLTLOG(LEVEL_CRITICAL,
+		        "missing mandatory configuration path option\n");
+		return false;
+	}
 	return true;
 }
 
@@ -161,6 +173,12 @@ int main(int argc, char **argv)
 	Block *up_sat_carrier;
 	Block *block_sat_carrier;
 
+	string conf_path;
+	string plugin_conf_path;
+	string topology_file;
+	string global_file;
+	string default_file;
+
 	vector<string> conf_files;
 	map<string, log_level_t> levels;
 	map<string, log_level_t> spec_level;
@@ -170,7 +188,9 @@ int main(int argc, char **argv)
 	int is_failure = 1;
 	
 	// retrieve arguments on command line
-	init_ok = init_process(argc, argv, ip_addr, emu_iface);
+	init_ok = init_process(argc, argv, ip_addr, emu_iface, conf_path);
+
+	plugin_conf_path = conf_path + string("plugins/");
 
 	status = Output::registerEvent("Status");
 	if(!init_ok)
@@ -185,9 +205,13 @@ int main(int argc, char **argv)
 	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
 	sched_setscheduler(0, SCHED_FIFO, &param);
 
-	conf_files.push_back(CONF_TOPOLOGY);
-	conf_files.push_back(CONF_GLOBAL_FILE);
-	conf_files.push_back(CONF_DEFAULT_FILE);
+	topology_file = conf_path + string(CONF_TOPOLOGY);
+	global_file = conf_path + string(CONF_GLOBAL_FILE);
+	default_file = conf_path + string(CONF_DEFAULT_FILE);
+
+	conf_files.push_back(topology_file.c_str());
+	conf_files.push_back(global_file.c_str());
+	conf_files.push_back(default_file.c_str());
 	// Load configuration files content
 	if(!Conf::loadConfig(conf_files))
 	{
@@ -236,7 +260,7 @@ int main(int argc, char **argv)
 	        progname, with_phy_layer ? "enabled" : "disabled");
 
 	// load the plugins
-	if(!Plugin::loadPlugins(with_phy_layer))
+	if(!Plugin::loadPlugins(with_phy_layer, plugin_conf_path))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load the plugins\n", progname);

@@ -82,6 +82,7 @@ bool init_process(int argc, char **argv,
                   string &ip_addr,
                   string &emu_iface,
                   string &lan_iface,
+                  string &conf_path,
                   tal_id_t &instance_id)
 {
 	int opt;
@@ -89,7 +90,7 @@ bool init_process(int argc, char **argv,
 	bool output_stdout = false;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-hqdi:a:n:l:")) != EOF)
+	while((opt = getopt(argc, argv, "-hqdi:a:n:l:c:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -117,10 +118,14 @@ bool init_process(int argc, char **argv,
 			// get lan interface name
 			lan_iface = optarg;
 			break;
+		case 'c':
+			// get the conf path
+			conf_path = optarg;
+			break;
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id -a ip_address "
-				"-n emu_iface -l lan_iface\n",
+				"-n emu_iface -l lan_iface -c conf_path\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                   print this message\n");
 			fprintf(stderr, "\t-q                   disable output\n");
@@ -129,6 +134,7 @@ bool init_process(int argc, char **argv,
 			fprintf(stderr, "\t-n <emu_iface>       set the emulation interface name\n");
 			fprintf(stderr, "\t-l <lan_iface>       set the ST lan interface name\n");
 			fprintf(stderr, "\t-i <instance>        set the instance id\n");
+			fprintf(stderr, "\t-c <conf_path>       specify the configuration path\n");
 			Output::init(true);
 			Output::enableStdlog();
 			return false;
@@ -165,6 +171,13 @@ bool init_process(int argc, char **argv,
 		        "missing mandatory lan interface name option\n");
 		return false;
 	}
+
+	if(conf_path.size() == 0)
+	{
+		DFLTLOG(LEVEL_CRITICAL,
+		        "missing mandatory configuration path option\n");
+		return false;
+	}
 	return true;
 }
 
@@ -189,6 +202,12 @@ int main(int argc, char **argv)
 	Block *up_sat_carrier;
 	Block *block_sat_carrier;
 
+	string conf_path;
+	string plugin_conf_path;
+	string topology_file;
+	string global_file;
+	string default_file;
+
 	vector<string> conf_files;
 	map<string, log_level_t> levels;
 	map<string, log_level_t> spec_level;
@@ -198,7 +217,9 @@ int main(int argc, char **argv)
 	int is_failure = 1;
 
 	// retrieve arguments on command line
-	init_ok = init_process(argc, argv, ip_addr, emu_iface, lan_iface, mac_id);
+	init_ok = init_process(argc, argv, ip_addr, emu_iface, lan_iface, conf_path, mac_id);
+
+  plugin_conf_path = conf_path + string("plugins/");
 
 	status = Output::registerEvent("Status");
 	if(!init_ok)
@@ -212,9 +233,13 @@ int main(int argc, char **argv)
 	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
 	sched_setscheduler(0, SCHED_FIFO, &param);
 
-	conf_files.push_back(CONF_TOPOLOGY);
-	conf_files.push_back(CONF_GLOBAL_FILE);
-	conf_files.push_back(CONF_DEFAULT_FILE);
+	topology_file = conf_path + string(CONF_TOPOLOGY);
+	global_file = conf_path + string(CONF_GLOBAL_FILE);
+	default_file = conf_path + string(CONF_DEFAULT_FILE);
+
+	conf_files.push_back(topology_file.c_str());
+	conf_files.push_back(global_file.c_str());
+	conf_files.push_back(default_file.c_str());
 	// Load configuration files content
 	if(!Conf::loadConfig(conf_files))
 	{
@@ -250,7 +275,7 @@ int main(int argc, char **argv)
 	        progname, with_phy_layer ? "enabled" : "disabled");
 
 	// load the plugins
-	if(!Plugin::loadPlugins(with_phy_layer))
+	if(!Plugin::loadPlugins(with_phy_layer, plugin_conf_path))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load the plugins\n", progname);

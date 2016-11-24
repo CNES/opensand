@@ -50,10 +50,6 @@ using namespace std;
 #  define UNUSED(x) x
 #endif              /* !__GNUC__ && !__LCLINT__ */
 
-#define CONF_TOPOLOGY      "/etc/opensand/topology.conf"
-#define CONF_GLOBAL_FILE   "/etc/opensand/core_global.conf"
-#define CONF_DEFAULT_FILE  "/etc/opensand/core.conf"
-
 /*
  * @class Conf
  * @brief GLobal interface for configuration file reading

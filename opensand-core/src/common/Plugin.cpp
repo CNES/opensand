@@ -43,9 +43,9 @@
 PluginUtils Plugin::utils;
 
 
-bool Plugin::loadPlugins(bool enable_phy_layer)
+bool Plugin::loadPlugins(bool enable_phy_layer, string conf_path)
 {
-	return utils.loadPlugins(enable_phy_layer);
+	return utils.loadPlugins(enable_phy_layer, conf_path);
 }
 
 void Plugin::releasePlugins()

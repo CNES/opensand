@@ -48,12 +48,13 @@ PluginUtils::PluginUtils()
 {
 }
 
-bool PluginUtils::loadPlugins(bool enable_phy_layer)
+bool PluginUtils::loadPlugins(bool enable_phy_layer, string conf_path)
 {
 	DIR *plugin_dir;
 	char *lib_path;
 	vector<string> path;
 	this->log_init = Output::registerLog(LEVEL_WARNING, "init");
+	this->conf_path = conf_path;
 
 	lib_path = getenv("LD_LIBRARY_PATH");
 	if(lib_path)
@@ -303,7 +304,7 @@ bool PluginUtils::getEncapsulationPlugin(string name,
 	{
 		return false;
 	}
-	*encapsulation = dynamic_cast<EncapPlugin *>(create());
+	*encapsulation = dynamic_cast<EncapPlugin *>(create(this->conf_path));
 	if(*encapsulation == NULL)
 	{
 		return false;
@@ -333,7 +334,7 @@ bool PluginUtils::getLanAdaptationPlugin(string name,
 	{
 		return false;
 	}
-	*lan_adaptation = dynamic_cast<LanAdaptationPlugin *>(create());
+	*lan_adaptation = dynamic_cast<LanAdaptationPlugin *>(create(this->conf_path));
 	if(*lan_adaptation == NULL)
 	{
 		return false;
@@ -362,7 +363,7 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 			    att_pl_name.c_str());
 			return false;
 		}
-		*attenuation = dynamic_cast<AttenuationModelPlugin *>(create());
+		*attenuation = dynamic_cast<AttenuationModelPlugin *>(create(this->conf_path));
 		if(*attenuation == NULL)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -383,7 +384,7 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 			    min_pl_name.c_str());
 			return false;
 		}
-		*minimal = dynamic_cast<MinimalConditionPlugin *>(create());
+		*minimal = dynamic_cast<MinimalConditionPlugin *>(create(this->conf_path));
 		if(*minimal == NULL)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -404,7 +405,7 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 			    err_pl_name.c_str());
 			return false;
 		}
-		*error = dynamic_cast<ErrorInsertionPlugin *>(create());
+		*error = dynamic_cast<ErrorInsertionPlugin *>(create(this->conf_path));
 		if(*error == NULL)
 		{
 			LOG(this->log_init, LEVEL_ERROR,

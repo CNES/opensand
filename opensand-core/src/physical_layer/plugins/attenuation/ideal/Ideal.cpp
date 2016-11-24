@@ -41,7 +41,7 @@
 #define IDEAL_SECTION     "ideal"
 #define IDEAL_LIST        "ideal_attenuations"
 #define ATTENUATION_VALUE "attenuation_value"
-#define CONF_IDEAL_FILE   "/etc/opensand/plugins/ideal.conf"
+#define CONF_IDEAL_FILENAME   "ideal.conf"
 
 
 Ideal::Ideal():
@@ -57,12 +57,14 @@ Ideal::~Ideal()
 bool Ideal::init(time_ms_t refresh_period_ms, string link)
 {
 	ConfigurationFile config;
+	string conf_ideal_path;
+	conf_ideal_path = this->getConfPath() + string(CONF_IDEAL_FILENAME);
 
-	if(config.loadConfig(CONF_IDEAL_FILE) < 0)
+	if(config.loadConfig(conf_ideal_path) < 0)
 	{   
 		LOG(this->log_init, LEVEL_ERROR, 
 		    "failed to load config file '%s'",
-		    CONF_IDEAL_FILE);
+		    conf_ideal_path.c_str());
 		goto error;
 	}
 

@@ -50,7 +50,7 @@
 #define MAPPING_MAC_PRIO    "mac_prio"
 #define MAPPING_NAME        "name"
 #define KEY_DEF_CATEGORY    "default_dscp"
-#define CONF_IP_FILE "/etc/opensand/plugins/ip.conf"
+#define CONF_IP_FILENAME    "ip.conf"
 
 
 Ip::Ip():
@@ -70,12 +70,14 @@ void Ip::Context::init()
 	LanAdaptationPlugin::LanAdaptationContext::init();
 	ConfigurationFile config;
 	vector<string> conf_files;
-	conf_files.push_back(CONF_IP_FILE);
+	string conf_ip_path;
+	conf_ip_path = this->getConfPath() + string(CONF_IP_FILENAME);
+	conf_files.push_back(conf_ip_path.c_str());
 
 	if(config.loadConfig(conf_files) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "failed to load config file '%s'", CONF_IP_FILE);
+		    "failed to load config file '%s'", conf_ip_path.c_str());
 		return;
 	}
 

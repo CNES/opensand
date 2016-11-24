@@ -230,7 +230,7 @@ static bool test_lan_adapt(string src_filename,
 	Output::enableStdlog();
 
 	// load the plugins
-	if(!Plugin::loadPlugins(false))
+	if(!Plugin::loadPlugins(false, string("/etc/opensand/plugins/")))
 	{
 		ERROR("cannot load the plugins\n");
 		goto error;

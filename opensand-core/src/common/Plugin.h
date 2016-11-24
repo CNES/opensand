@@ -54,9 +54,11 @@ class Plugin
 	 * @brief load the plugins
 	 *
 	 * @param enable_phy_layer Whether the physical layer is enabled or not
+	 * @param conf_path the configuration path
 	 * @return true on success, false otherwise
 	 */
-	static bool loadPlugins(bool enable_phy_layer);
+	static bool loadPlugins(bool enable_phy_layer,
+                          string conf_path);
 
 	/**
 	 * @brief release the class elements for plugins

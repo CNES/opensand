@@ -77,9 +77,11 @@ class PluginUtils
 	 * @brief load the plugins
 	 *
 	 * @param enable_phy_layer Whether the physical layer is enabled or not
+	 * @param conf_path the configuration path
 	 * @return true on success, false otherwise
 	 */
-	bool loadPlugins(bool enable_phy_layer);
+	bool loadPlugins(bool enable_phy_layer,
+	                 string conf_path);
 
 	/**
 	 * @brief release the class elements for plugins
@@ -148,6 +150,9 @@ class PluginUtils
 
 	/// the log
 	OutputLog *log_init;
+
+	// the configuration path
+	string conf_path;
 };
 
 

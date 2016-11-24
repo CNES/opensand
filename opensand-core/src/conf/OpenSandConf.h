@@ -34,6 +34,9 @@
 #ifndef OPENSAND_CONF_H
 #define OPENSAND_CONF_H
 
+#define CONF_TOPOLOGY "topology.conf"
+#define CONF_GLOBAL_FILE "core_global.conf"
+#define CONF_DEFAULT_FILE "core.conf"
 
 #include "OpenSandCore.h"
 #include "OpenSandConfFile.h"
