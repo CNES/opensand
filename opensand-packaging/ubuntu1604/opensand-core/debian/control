@@ -7,38 +7,42 @@ Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config,
 Standards-Version: 3.8.3
 Section: misc
 
-Package: opensand-core-all
+Package: opensand-core-conf
 Architecture: any
 Section: misc
-Depends: opensand-core-bin (= ${binary:Version})
-Provides: libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager,
+Depends: 
+Provides: opensand-core-all, libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager,
  libopensand-ideal-attenuation-plugin-manager, libopensand-on-off-attenuation-plugin-manager, libopensand-triangular-attenuation-plugin-manager,
  libopensand-constant-minimal-plugin-manager, libopensand-modcod-minimal-plugin-manager, libopensand-ethernet-lan-adapt-manager,
  libopensand-default-nominal-plugin-manager, libopensand-gate-error-plugin-manager
-Conflicts: libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager,
+Conflicts: opensand-core-all, libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager,
  libopensand-ideal-attenuation-plugin-manager, libopensand-on-off-attenuation-plugin-manager, libopensand-triangular-attenuation-plugin-manager,
  libopensand-constant-minimal-plugin-manager, libopensand-modcod-minimal-plugin-manager, libopensand-ethernet-lan-adapt-manager,
  libopensand-default-nominal-plugin-manager, libopensand-gate-error-plugin-manager
-Replaces: libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager,
+Replaces: opensand-core-all, libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager,
  libopensand-ideal-attenuation-plugin-manager, libopensand-on-off-attenuation-plugin-manager, libopensand-triangular-attenuation-plugin-manager,
  libopensand-constant-minimal-plugin-manager, libopensand-modcod-minimal-plugin-manager, libopensand-ethernet-lan-adapt-manager,
  libopensand-default-nominal-plugin-manager, libopensand-gate-error-plugin-manager
-Description: The OpenSAND emulation testbed core with all the configuration files
+Description: The configuration files of the OpenSAND emulation testbed
   OpenSAND is an emulation testbed aiming to represent in a cost effective way a
   satellite telecommunication system for research and engineering activities.
 
 Package: opensand-core-dbg
 Section: debug
 Architecture: any
-Depends: opensand-core-bin (= ${binary:Version})
+Depends: opensand-core (= ${binary:Version})
 Description: Debugging symbols for OpenSAND Core binaries
   OpenSAND is an emulation testbed aiming to represent in a cost effective way a
   satellite telecommunication system for research and engineering activities.
 
-Package: opensand-core-bin
+Package: opensand-core
 Architecture: any
 Section: misc
-Depends: ${shlibs:Depends}, ${misc:Depends}, rsyslog, logrotate
+Depends: opensand-core-conf (= ${binary:Version}), ${shlibs:Depends},
+ ${misc:Depends}, rsyslog, logrotate
+Provides: opensand-core-bin
+Conflicts: opensand-core-bin
+Replaces: opensand-core-bin
 Description: The OpenSAND emulation testbed core
   OpenSAND is an emulation testbed aiming to represent in a cost effective way a
   satellite telecommunication system for research and engineering activities.
@@ -47,7 +51,6 @@ Package: libopensand-plugin
 Section: libdevel
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: opensand-daemon
 Provides: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin,
  libopensand-ideal-attenuation-plugin, libopensand-on-off-attenuation-plugin, libopensand-triangular-attenuation-plugin,
  libopensand-constant-minimal-plugin, libopensand-modcod-minimal-plugin, libopensand-ethernet-lan-adapt,
