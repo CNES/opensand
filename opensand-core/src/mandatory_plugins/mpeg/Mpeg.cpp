@@ -30,6 +30,7 @@
  * @file Mpeg.cpp
  * @brief MPEG encapsulation plugin implementation
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 #include "Mpeg.h"

@@ -29,6 +29,7 @@
  * @file Configuration.h
  * @brief GLobal interface for configuration file reading
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
  */
 
 #ifndef CONFIGURATION_H

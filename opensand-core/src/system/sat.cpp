@@ -31,6 +31,7 @@
  * @brief satellite emulator process
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  *
  * SE uses the following stack of mgl blocs installed over 1 NIC:
  *

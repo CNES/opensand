@@ -31,6 +31,7 @@
  * @brief Generic plugin for stack elements
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 #ifndef STACK_CONTEXT_H

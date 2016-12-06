@@ -31,6 +31,7 @@
  * @brief File
  * @author Fatima LAHMOUAD <fatima.lahmouad@etu.enseeiht.fr>
  * @author Santiago PENA <santiago.penaluque@cnes.fr>
+ * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.fr>
  */
 
 

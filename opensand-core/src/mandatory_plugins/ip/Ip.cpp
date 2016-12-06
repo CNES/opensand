@@ -30,6 +30,7 @@
  * @file Ip.cpp
  * @brief IP lan adaptation plugin implementation
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 #include "Ip.h"

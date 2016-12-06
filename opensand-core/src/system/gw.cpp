@@ -32,6 +32,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  *
  * Gateway uses the following stack of blocks installed over 2 NICs
  * (nic1 on user network side and nic2 on satellite network side):

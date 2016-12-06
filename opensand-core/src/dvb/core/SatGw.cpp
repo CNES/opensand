@@ -30,6 +30,7 @@
  * @brief This bloc implements a satellite spots
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 

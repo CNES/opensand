@@ -29,6 +29,7 @@
  * @file OpenSandConf.h
  * @brief GLobal interface for configuration file reading
  * @author Bénédicte MOTTO / <bmotto@toulouse.viveris.com>
+ * @author Joaquin Muguerza / <jmuguerza@toulouse.viveris.com>
  */
 
 #ifndef OPENSAND_CONF_H

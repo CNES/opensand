@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 host.py - controller that configure, install, start, stop

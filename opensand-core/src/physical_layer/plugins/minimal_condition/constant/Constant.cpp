@@ -29,6 +29,7 @@
  * @file Constant.cpp
  * @brief Constant
  * @author Santiago PENA LUQUE <santiago.penaluque@cnes.fr>
+ * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.fr>
  */
 
 

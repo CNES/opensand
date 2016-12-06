@@ -31,6 +31,7 @@
  * @brief Upward spot related functions for DVB NCC block
  * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 

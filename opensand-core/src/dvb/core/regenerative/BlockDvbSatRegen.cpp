@@ -33,6 +33,7 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
  * @author Aureline DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 #include "BlockDvbSatRegen.h"

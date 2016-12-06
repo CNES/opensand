@@ -39,6 +39,7 @@
  *
  * Author: Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * Author: Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * Author: Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 // OpenSAND includes

@@ -29,6 +29,7 @@
  * @file PluginUtils.h
  * @brief Utilities for Plugins
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 

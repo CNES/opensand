@@ -31,6 +31,7 @@
  * @brief Ethernet LAN adaptation plugin implementation
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
  * @author Remy PIENNE <rpienne@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 

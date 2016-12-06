@@ -29,6 +29,7 @@
  * @file Plugin.cpp
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
  * @brief  High level interface for opensand-rt
  *
  */

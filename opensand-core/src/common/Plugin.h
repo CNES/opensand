@@ -28,6 +28,7 @@
 /**
  * @file Plugin.h
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
  * @brief  High level interface for opensand plugin utilities
  *
  */

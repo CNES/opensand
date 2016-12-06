@@ -29,6 +29,7 @@
  * @file Ideal.cpp
  * @brief Ideal
  * @author Santiago PENA <santiago.penaluque@cnes.fr>
+ * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.fr>
  */
 
 #include "Ideal.h"
