@@ -500,29 +500,61 @@ bool SatGw::addTerminal(tal_id_t tal_id)
 bool SatGw::updateFmt(DvbFrame *dvb_frame,
                       EncapPlugin::EncapPacketHandler *pkt_hdl)
 {
-	DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-
-	if(this->with_phy_layer)
+	tal_id_t src_tal_id;
+	double cn;
+	uint8_t msg_type = dvb_frame->getMessageType();
+	
+	if(!this->with_phy_layer)
+		return true;
+	
+	switch(msg_type)
 	{
-		tal_id_t src_tal_id;
-		// decode the first packet in frame to be able to get source terminal ID
-		if(!pkt_hdl->getSrc(frame->getPayload(), src_tal_id))
+		case MSG_TYPE_SAC:
 		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "unable to read source terminal ID in "
-			    "frame, won't be able to update C/N "
-			    "value\n");
+			Sac *sac = (Sac *)dvb_frame;
+			src_tal_id = sac->getTerminalId();
+			if(!src_tal_id)
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+						"unable to read source terminal ID in "
+						"frame, won't be able to update C/N "
+						"value\n");
+			}
+			else
+			{
+				cn = dvb_frame->getCn();
+				LOG(this->log_receive, LEVEL_INFO,
+						"Uplink CNI for terminal %u = %f\n",
+						src_tal_id, cn);
+				this->setRequiredCniInput(src_tal_id, cn);
+			}
+			break;
 		}
-		else
+		case MSG_TYPE_DVB_BURST:
 		{
-			double cn = frame->getCn();
-			LOG(this->log_receive, LEVEL_INFO,
-			    "Uplink CNI for terminal %u = %f\n",
-			    src_tal_id, cn);
-			this->setRequiredCniInput(src_tal_id, cn);
-		}
-	}
+			DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
 
+			// decode the first packet in frame to be able to get source terminal ID
+			if(!pkt_hdl->getSrc(frame->getPayload(), src_tal_id))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+						"unable to read source terminal ID in "
+						"frame, won't be able to update C/N "
+						"value\n");
+			}
+			else
+			{
+				cn = frame->getCn();
+				LOG(this->log_receive, LEVEL_INFO,
+						"Uplink CNI for terminal %u = %f\n",
+						src_tal_id, cn);
+				this->setRequiredCniInput(src_tal_id, cn);
+			}
+			break;
+		}
+		default:
+		break;
+	}
 	return true;
 }
 

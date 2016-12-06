@@ -686,6 +686,14 @@ bool BlockDvbSatRegen::UpwardRegen::handleDvbBurst(DvbFrame *dvb_frame,
 bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame,
                                               SatGw *current_gw)
 {
+	// Update fmt
+	if(!current_gw->updateFmt(dvb_frame, this->pkt_hdl))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "gw %d failed to handle dvb burst\n",
+		    current_gw->getGwId());
+		return false;
+	}
 	if(!current_gw->handleSac(dvb_frame))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,

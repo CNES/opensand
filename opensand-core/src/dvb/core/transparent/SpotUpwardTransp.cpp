@@ -574,6 +574,20 @@ void SpotUpwardTransp::handleFrameCni(DvbFrame *dvb_frame)
 	switch(msg_type)
 	{
 		// Cannot check frame type because of currupted frame
+		case MSG_TYPE_SAC:
+		{
+			Sac *sac = (Sac *)dvb_frame;
+			tal_id = sac->getTerminalId();
+			if(!tal_id)
+			{
+				LOG(this->log_receive_channel, LEVEL_ERROR,
+				    "unable to read source terminal ID in"
+				    " frame, won't be able to update C/N"
+				    " value\n");
+				return;
+			}
+			break;
+		}
 		case MSG_TYPE_DVB_BURST:
 		{
 			// transparent case : update return modcod for terminal

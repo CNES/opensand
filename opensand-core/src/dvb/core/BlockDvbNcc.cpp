@@ -1177,6 +1177,10 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				break;
 
 				case MSG_TYPE_SAC:
+				{
+					// Update C/N0
+					Sac *sac = (Sac *) dvb_frame;
+					spot->handleFrameCni(dvb_frame);
 					if(!spot->handleSac(dvb_frame))
 					{
 						return false;
@@ -1185,7 +1189,8 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					{
 						return false;
 					}
-					break;
+				}
+				break;
 
 				case MSG_TYPE_SESSION_LOGON_REQ:
 					LOG(this->log_receive, LEVEL_INFO,
