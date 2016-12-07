@@ -140,7 +140,7 @@ class MachineModel:
         """ update the scenario path for modules configuration """
         for module in self._modules:
             try:
-                module.update(scenario, self._component, self._name)
+                module.update(scenario, self._component, self.get_host_name())
             except ModelException as error:
                 self._log.warning("%s: %s" % (self._name.upper(), error))
 
