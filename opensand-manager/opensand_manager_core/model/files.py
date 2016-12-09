@@ -76,13 +76,10 @@ class Files(object):
         self._file_sources = {}
         # {sim file xpath: md5sum}
         self._md5 = {}
-        self._first = True
+        self._first = {}
         self._scenario = scenario
 
         self.load(scenario)
-        for xpath in self._file_sources:
-            # force initial copy
-            self._md5[xpath] = 0
 
 
     def load(self, scenario, configuration=None):
@@ -129,7 +126,7 @@ class Files(object):
         for xpath in copied:
             del changed[xpath]
 
-    def get_modified(self):
+    def get_modified(self, machine="global"):
         """
         get the tuples source, destination of the files that were modified
         """
@@ -139,10 +136,12 @@ class Files(object):
 
         deploy = []
         for xpath in self._file_sources:
-            if not xpath in self._md5:
-                self._md5[xpath] = 0
+            if not machine in self._md5:
+                self._md5[machine] = {}
+            if not xpath in self._md5[machine]:
+                self._md5[machine][xpath] = 0
                 
-            old_hash = self._md5[xpath]
+            old_hash = self._md5[machine][xpath]
             try:
                 new_hash = get_md5(os.path.join(scenario,
                                                 self._file_sources[xpath]))
@@ -180,7 +179,7 @@ class Files(object):
             deploy.append((src, dest))
         return deploy
 
-    def set_modified(self):
+    def set_modified(self, machine="global"):
         """
         the files were modified, update the md5sums
         """
@@ -190,15 +189,19 @@ class Files(object):
 
         for xpath in self._file_sources:
             try:
-                self._md5[xpath]= get_md5(os.path.join(scenario,
-                                                       self._file_sources[xpath]))
+                self._md5[machine][xpath]= get_md5(os.path.join(scenario,
+                                                   self._file_sources[xpath]))
             except IOError:
                 continue
+        
+        self._first[machine] = False
 
-        self._first = False
-
-    def is_first(self):
+    def is_first(self, machine="global"):
         """
         check if this is the first deployment
         """
-        return self._first
+        try:
+            ret = self._first[machine]
+        except KeyError:
+            ret = True
+        return ret

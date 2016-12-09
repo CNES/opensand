@@ -187,40 +187,40 @@ class MachineModel:
         """ get the files to deploy (modified files) """
         deploy_files = []
         if self.get_advanced_conf() is not None:
-            deploy_files += self.get_advanced_conf().get_files().get_modified()
+            deploy_files += self.get_advanced_conf().get_files().get_modified(self.get_name())
         for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
-                deploy_files += files.get_modified()
+                deploy_files += files.get_modified(self.get_name())
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                deploy_files += files.get_modified()
+                deploy_files += files.get_modified(self.get_name())
         return deploy_files
 
     def set_deployed(self):
         """ the files were correctly deployed """
         if self.get_advanced_conf() is not None:
-            self.get_advanced_conf().get_files().set_modified()
+            self.get_advanced_conf().get_files().set_modified(self.get_name())
         for tool in self._tools.values():
             files = tool.get_files()
             if files is not None:
-                files.set_modified()
+                files.set_modified(self.get_name())
         for module in self._modules:
             files = module.get_files()
             if files is not None:
-                files.set_modified()
+                files.set_modified(self.get_name())
 
     def first_deploy(self):
         """ check if this is the first deploy """
         if self.get_advanced_conf() is not None:
-            return self.get_advanced_conf().get_files().is_first()
+            return self.get_advanced_conf().get_files().is_first(self.get_name())
         else:
             # WS case, we may have tools files to deploy
             for tool in self._tools.values():
                 files = tool.get_files()
                 if files is not None:
-                    return files.is_first()
+                    return files.is_first(self.get_name())
             return False
 
     def get_advanced_conf(self):
