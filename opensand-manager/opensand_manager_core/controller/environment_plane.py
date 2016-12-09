@@ -29,6 +29,7 @@
 #
 
 # Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
+# Author: Joaquin Muguerza / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 
 
 """
@@ -37,7 +38,7 @@ environment_plane.py - controller for environment plane
 
 from opensand_manager_core.utils import MAX_DATA_LENGTH
 from opensand_manager_core.model.environment_plane import Program
-from opensand_manager_core.model.host import InitStatus
+from opensand_manager_core.model.machine import InitStatus
 from tempfile import TemporaryFile
 from zipfile import ZipFile, BadZipfile
 import gobject
@@ -130,7 +131,7 @@ class EnvironmentPlaneController(object):
 
     def register_host(self, host_name):
         """ A host was registerd """
-        host_model = self._model.get_host(host_name)
+        host_model = self._model.get_machine(host_name)
         if host_model is None:
             self._log.error("Cannot find model for host %s, this should not"
                             " happen here" % host_name)
@@ -430,7 +431,7 @@ class EnvironmentPlaneController(object):
             self._log.error("Cannot get host name")
             return False
         
-        host_model = self._model.get_host(host_name)
+        host_model = self._model.get_machine(host_name)
         if host_model is not None:
             self._log.debug("Found a model for host %s" % host_name)
             # TODO que sur FINISHINIT !!!!

@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 
 """
@@ -38,7 +39,7 @@ encap_module.py - Encapsulation module for OpenSAND Manager
 import os
 import shutil
 
-from opensand_manager_core.utils import GW, SAT, ST, GLOBAL
+from opensand_manager_core.utils import GW, SAT, ST, GLOBAL, GW_types
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.opensand_model import OPENSAND_PATH
 from opensand_manager_core.my_exceptions import ModelException, XmlException
@@ -123,6 +124,9 @@ class OpenSandModule(object):
         """ reload the module configuration """
         if self._xml is None:
             return
+
+        if component in GW_types:
+            component = GW
 
         if not component in self._targets:
             raise ModelException("component is not in %s plugin targets" %
@@ -246,7 +250,7 @@ class LanAdaptationModule(OpenSandModule):
                             'header_modif': False,
                           }
 
-        self._targets = [ST, GW]
+        self._targets = {ST, GW} | GW_types 
 
     def get_available_upper_protocols(self, unused=None):
         """ get the protocols it can encapsulate """
@@ -276,7 +280,7 @@ class AttenuationModule(OpenSandModule):
 
     def __init__(self):
         OpenSandModule.__init__(self)
-        self._targets = [GW, ST]
+        self._targets = {GW, ST} | GW_types
 
 class MinimalModule(OpenSandModule):
     """ the minimal conditions module for OpenSAND Manager """
@@ -285,7 +289,7 @@ class MinimalModule(OpenSandModule):
 
     def __init__(self):
         OpenSandModule.__init__(self)
-        self._targets = [SAT, GW, ST]
+        self._targets = {SAT, GW, ST} | GW_types
         
 class ErrorModule(OpenSandModule):
     """ the error inesrtions module for OpenSAND Manager """
@@ -294,7 +298,7 @@ class ErrorModule(OpenSandModule):
 
     def __init__(self):
         OpenSandModule.__init__(self)
-        self._targets = [SAT, GW, ST]
+        self._targets = {SAT, GW, ST} | GW_types
 
 
 

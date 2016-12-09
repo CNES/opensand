@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 
 """
@@ -171,7 +172,11 @@ class Files(object):
             src = os.path.join(scenario, src)
             if not "@" in xpath:
                 xpath += '/text()'
-            dest = self._configuration.get(xpath)
+            try:
+                dest = self._configuration.get(xpath)
+            except Exception as ex:
+                raise Exception("exception %s for file %s" %
+                        (str(ex), xpath))
             deploy.append((src, dest))
         return deploy
 

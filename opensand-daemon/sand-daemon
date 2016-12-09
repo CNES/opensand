@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 
 """
 opensand_daemon.py - OpenSAND daemon that wait for OpenSAND manager commands
@@ -176,7 +177,16 @@ def publish_service(output_handler):
     except ConfigParser.Error:
         default_route = False
 
-    if name != 'gw' and name != 'sat' and name != 'st' and name != 'ws':
+    # add interconnect parameters if lan or phy component
+    for key in {'ip_remote', 'port_upward', 'port_downward'}:
+        try:
+            value = CONF_PARSER.get('interconnect', key) 
+        except ConfigParser.Error:
+            pass
+        else:
+            descr[key] = value
+
+    if name not in {'gw', 'sat', 'st', 'ws', 'gw-phy', 'gw-net-acc'}: 
         LOGGER.error("wrong name parameter: %s; sat, gw, st or ws accepted" % name)
         thread.exit()
 

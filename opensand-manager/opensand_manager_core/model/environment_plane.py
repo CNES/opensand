@@ -29,13 +29,14 @@
 #
 
 # Author: Vincent DUVERT / <vduvert@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 
 """
 environment_plane.py - Model for environment plane elements
 """
 
-from opensand_manager_core.model.host import InitStatus
+from opensand_manager_core.model.machine import InitStatus
 
 import os
 import struct

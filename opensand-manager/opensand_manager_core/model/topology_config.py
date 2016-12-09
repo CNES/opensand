@@ -29,6 +29,7 @@
 #
 
 # Author: Bénédicte Motto / <bmotto@toulouse.viveris.com>
+# Author: Joaquin Muguerza / <jmuguerza@toulouse.viveris.com>
 
 """
 topology_configuration.py - the topology configuration description
@@ -144,7 +145,6 @@ class TopologyConfig(AdvancedHostModel):
         """ Add a new host in the topology configuration file """
         # if the host is already in the topology don't add it
         self._list_host[name] = net_config
-       
         try:
             if name.startswith(WS) and '_' in instance:
                 instance = instance.split('_')[0]

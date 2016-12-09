@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 ping_high_throughpu.py - The ping test
@@ -83,9 +84,9 @@ class PingTest():
         for name in services.keys():
             if 'id' in services[name]:
                 instance = services[name]['id']
-            if ((name.startswith('ws') or name.startswith('st')) and \
+            if (((name.startswith('ws') or name.startswith('st')) and \
                 (name != WS_NAME and instance != WS_INSTANCE)) or \
-               name.startswith('gw'):
+               name.startswith('gw')) and ('phy' not in name):
                 if not 'lan_ipv4' in services[name]:
                     self.print_error('no IPv4 lan address for %s' % name)
                 else:
@@ -115,7 +116,7 @@ class PingTest():
             cmd = 'ping6'
 
         # first ping twice for initialization that sometimes leads to errors
-        ping = subprocess.Popen([cmd, "-c", "2", address],
+        ping = subprocess.Popen([cmd, "-c", "10", address],
                                 stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
         out, err = ping.communicate()

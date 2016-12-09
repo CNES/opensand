@@ -1,0 +1,6 @@
+#ifndef TEST_INTERCONNECT_CONFIG
+#define TEST_INTERCONNECT_CONFIG
+
+#define DEBUG 0
+
+#endif

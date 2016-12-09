@@ -23,6 +23,31 @@ Choices: SAT, GW, ST, WS
 Description: Service name
   Select the name of the service
 
+Template: opensand-daemon/service/name_adv
+Type: select
+Default: ${name_adv_default}
+Choices: ${name_adv_list}
+Description: ${name_adv_description}
+
+Template: opensand-daemon/interconnect/ip_remote
+Type: string
+Description: Remote IP
+  Specify the IP of the upper instance (${ip_remote_desc})
+
+Template: opensand-daemon/interconnect/port_upward
+Type: string
+Default: 10001
+Description: Upward port
+  Specify the port used for the upward interconnect channel between
+  ${port_upward_bottom} and ${port_upward_top}
+
+Template: opensand-daemon/interconnect/port_downward
+Type: string
+Default: 10002
+Description: Downward port
+  Specify the port used for the downward interconnect channel between
+  ${port_downward_bottom} and ${port_downward_top}
+
 Template: opensand-daemon/service/port
 Type: string
 Default: 3141

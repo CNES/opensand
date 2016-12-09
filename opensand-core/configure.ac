@@ -103,6 +103,7 @@ AC_CONFIG_FILES([ \
 	src/encap/Makefile \
 	src/lan_adaptation/Makefile \
 	src/lan_adaptation/tests/Makefile \
+	src/interconnect/Makefile \
 	src/sat_carrier/Makefile \
 	src/sat_carrier/tests/Makefile \
 	src/physical_layer/Makefile \

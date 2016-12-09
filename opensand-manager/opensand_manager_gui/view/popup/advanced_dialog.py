@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jbernard@toulouse.viveris.com>
 
 """
 advanced_dialog.py - The OpenSAND advanced configuration
@@ -41,7 +42,7 @@ import threading
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.my_exceptions import ModelException, XmlException
-from opensand_manager_core.utils import SPOT, ID, GW, TOPOLOGY
+from opensand_manager_core.utils import SPOT, ID, GW, TOPOLOGY, GW_types
 from opensand_manager_gui.view.utils.config_elements import ConfigurationTree, \
                                                            ConfigurationNotebook, \
                                                            ConfSection

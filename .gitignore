@@ -139,6 +139,8 @@ opensand-manager/debian/opensand-manager-gui
 opensand-manager/debian/opensand-manager-core
 opensand-core/doc/doxygen
 opensand-core/src/system/gw
+opensand-core/src/system/gw-phy
+opensand-core/src/system/gw-net-acc
 opensand-core/src/system/sat
 opensand-core/src/system/st
 opensand-core/src/interfaces/opensand_interfaces
