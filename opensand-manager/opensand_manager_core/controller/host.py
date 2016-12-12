@@ -106,11 +106,19 @@ class HostController:
                                             host_model_machines[m],
                                             self._log, cache)
 
-    def del_machine(self, machine):
+    def del_machine_bycomponent(self, machine):
         """ removes and closes machine """
         if machine in self._machines:
             self._machines[machine].close()
             del self._machines[machine]
+
+    def del_machine_byname(self, machine):
+        """ removes and closes machine """
+        for m in self._machines:
+            if self._machines[m]._machine_model.get_name() == machine:
+                self._machines[m].close()
+                del self._machines[m]
+                break
 
     def deploy(self, conf):
         """ close the host connections """
@@ -120,9 +128,17 @@ class HostController:
             except Exception as ex:
                 raise Exception("Unexpected error when deploying machine %s: %s"
                                 % (m, str(ex)) )
-    
-    def has_machine(self, machine):
+
+    def has_machine_bycomponent(self, machine):
         return (machine in self._machines)
+
+    def has_machine_byname(self, machine):
+        found = False
+        for m in self._machines:
+            if self._machines[m]._machine_model.get_name() == machine:
+                found = True
+                break
+        return found
 
     def get_machines(self):
         """ return machines """

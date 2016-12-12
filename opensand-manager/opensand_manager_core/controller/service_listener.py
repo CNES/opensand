@@ -240,18 +240,21 @@ class OpenSandServiceListener():
         if self._model.del_host(name):
             # host was removed from model
             for host in self._hosts:
-                if host.get_name().lower() == name:
+                if host.has_machine_byname(name):
+                    host.del_machine_byname(name)
                     host.close()
                     self._hosts.remove(host)
+                    break
             for ws in self._ws:
-                if ws.get_name().lower() == name:
+                if ws.has_machine_byname(name):
                     ws.close()
                     self._ws.remove(ws)
+                    break
         else:
             # only machine was removed
             for host in self._hosts:
-                if host.has_machine(name):
-                    host.del_machine(name)
+                if host.has_machine_byname(name):
+                    host.del_machine_byname(name)
                     break
 
     def handler_end(self):

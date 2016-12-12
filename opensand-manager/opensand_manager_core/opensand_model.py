@@ -274,9 +274,12 @@ class Model:
                 return machine
         return None
 
-    def get_host(self, name):
+    def get_host(self, name, incomplete=False):
         """ return the host according to its name """
-        for host in self.get_all():
+        incomplete_list = []
+        if incomplete:
+            incomplete_list = self._incomplete_hosts
+        for host in incomplete_list + self.get_all():
             if name == GW and host.get_name().startswith(GW):
                 return host
             if name.lower() == host.get_name().lower():
@@ -317,7 +320,7 @@ class Model:
                     self._last_gw = None
                     break
 
-        host = self.get_host(name)
+        host = self.get_host(name, incomplete=True)
         # remove machine from host
         self._log.debug("remove machine: '" + machine_name + "'")
         host.del_machine(machine_name)
@@ -332,7 +335,18 @@ class Model:
         if name.startswith(GW) and other_gw:
             self._config.remove_gw(name,
                                    host.get_instance())
-        self._hosts.remove(host)
+        # remove host from the list it was in (hosts or incomplete_hosts)
+        try:
+            self._hosts.remove(host)
+        except ValueError:
+            pass
+        
+        try:
+            self._incomplete_hosts.remove(host)
+        except ValueError:
+            pass
+
+        # if incomplete, add it to incomplete list
         if not host.is_empty():
             self._incomplete_hosts.append(host)
 
@@ -346,7 +360,9 @@ class Model:
                 self._missing_modules[module].remove(name)
 
         self.update_spot_gw()
-        return True
+        if host.is_empty():
+            return True
+        return False
 
     def add_host(self, name, instance, network_config,
                  state_port, command_port, tools, host_modules):
