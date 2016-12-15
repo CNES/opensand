@@ -64,14 +64,57 @@ configure(){
             db_beginblock
             db_get opensand-daemon/service/name_adv
             NAME=$RET
-
+            if [ "$NAME" = "GW-PHY" -o "$NAME" = "GW-NET-ACC" ]; then
+                db_subst opensand-daemon/interconnect/interface ifaces_list "${IFACES_LIST}"
+                db_input low opensand-daemon/interconnect/interface || true
+            fi
+            db_endblock
+        ;;
+        5)
+            db_beginblock
+            if [ "$NAME" = "GW-PHY" -o "$NAME" = "GW-NET-ACC" ]; then
+                if [ "$NAME" = "GW-PHY" ]; then
+                    RECOMMENDED_IP="192.168.17.1/24"
+                elif [ "$NAME" = "GW-NET-ACC" ]; then
+                    RECOMMENDED_IP="192.168.17.2/24"
+                fi
+                IPS_LIST=""
+                db_get opensand-daemon/interconnect/interface_ip
+                CURRENT_IP=${RET}
+                if [ ! -z $CURRENT_IP ]; then
+                    IPS_LIST="Current:${CURRENT_IP}, "
+                fi
+                IPS_LIST="${IPS_LIST}RECOMMENDED:${RECOMMENDED_IP}, Other"
+                db_subst opensand-daemon/interconnect/interface_ip_preset ips_list ${IPS_LIST}
+                db_set opensand-daemon/interconnect/interface_ip_preset "Current:${CURRENT_IP}"
+                db_input low opensand-daemon/interconnect/interface_ip_preset || true
+            fi
+            db_endblock
+        ;;
+        6)
+            db_beginblock
+            if [ "$NAME" = "GW-PHY" -o "$NAME" = "GW-NET-ACC" ]; then
+                db_get opensand-daemon/interconnect/interface_ip_preset
+                if [ "${RET}" = "Other" ]; then
+                    db_set opensand-daemon/interconnect/interface_ip "${RECOMMENDED_IP}"
+                    db_input high opensand-daemon/interconnect/interface_ip || true
+                elif [[ $RET == Current* ]]; then
+                    db_set opensand-daemon/interconnect/interface_ip ${CURRENT_IP}
+                else
+                    db_set opensand-daemon/interconnect/interface_ip ${RECOMMENDED_IP}
+                fi
+            fi
+            db_endblock
+        ;;
+        7)
+            db_beginblock
             if [ "$NAME" = "GW-PHY" ]; then
                 db_subst opensand-daemon/interconnect/ip_remote ip_remote_desc "GW-NET-ACC"
                 db_input low opensand-daemon/interconnect/ip_remote || true
             fi
             db_endblock
         ;;
-        5)
+        8)
             db_beginblock
             if [ "$NAME" = "GW-PHY" -o "$NAME" = "GW-NET-ACC" ]; then
                 db_subst opensand-daemon/interconnect/port_upward port_upward_bottom "GW-PHY"
@@ -80,7 +123,7 @@ configure(){
             fi
             db_endblock
         ;;
-        6)
+        9)
             db_beginblock
             if [ "$NAME" = "GW-PHY" -o "$NAME" = "GW-NET-ACC" ]; then
                 db_subst opensand-daemon/interconnect/port_downward port_downward_bottom "GW-PHY"
@@ -89,7 +132,7 @@ configure(){
             fi
             db_endblock
         ;;
-        7)
+        10)
             db_beginblock
             if [ "$NAME" = "ST" ]; then
                 db_subst opensand-daemon/service/st_instance inst_list ${ST_LIST}
@@ -107,12 +150,12 @@ configure(){
                 db_input high opensand-daemon/service/st_instance || true
             fi
         ;;
-        8)
+        11)
             if [ "$NAME" = "ST" ]; then
                 db_get opensand-daemon/service/st_instance
                 INST=$RET
             fi
-            if [ "$NAME" = "GW" ]; then
+            if [ "$NAME" = "GW" -o "$NAME" = "GW-PHY" -o "$NAME" = "GW-NET-ACC" ]; then
                 db_get opensand-daemon/service/st_instance
                 INST=$RET
             fi
@@ -122,12 +165,12 @@ configure(){
                 db_input high opensand-daemon/service/ws_instance || true
             fi
         ;;
-        9)
+        12)
             db_subst opensand-daemon/service/interface ifaces_list "all, ${IFACES_LIST}"
             db_input high opensand-daemon/service/interface || true
             db_endblock
         ;;
-        10)
+        13)
             db_beginblock
             db_get opensand-daemon/service/interface
             if [ "$RET" = "all" ]; then
@@ -137,28 +180,28 @@ configure(){
             db_input low opensand-daemon/service/port || true
             db_endblock
         ;;
-        11)
+        14)
             db_beginblock
             db_input low opensand-daemon/command/port || true
             db_endblock
         ;;
-        12)
+        15)
             db_beginblock
             db_input low opensand-daemon/state/port || true
             db_endblock
         ;;
-        13)
+        16)
             db_beginblock
             db_input high opensand-daemon/network/config_level || true
         ;;
-        14)
+        17)
             db_get opensand-daemon/network/config_level
             CONFIG_LEVEL=$RET
             if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
                 db_input high opensand-daemon/network/dhcp || true
             fi
         ;;
-        15)
+        18)
             if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
                 db_get opensand-daemon/network/dhcp
                 DHCP=$RET
@@ -167,13 +210,15 @@ configure(){
                 fi
             fi
         ;;
-        16)
+        19)
             db_beginblock
-            db_subst opensand-daemon/network/emu_iface ifaces_list "${IFACES_LIST}"
-            db_input high opensand-daemon/network/emu_iface || true
+            if [ "$NAME" != "WS"  -a "$NAME" != "GW-NET-ACC" ]; then
+                db_subst opensand-daemon/network/emu_iface ifaces_list "${IFACES_LIST}"
+                db_input high opensand-daemon/network/emu_iface || true
+            fi
             db_endblock
         ;;
-        17)
+        20)
             db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "WS"  -a "$NAME" != "GW-NET-ACC" ]; then
@@ -205,7 +250,7 @@ configure(){
             fi
             db_endblock
         ;;
-        18)
+        21)
             db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "WS"  -a "$NAME" != "GW-NET-ACC" ]; then
@@ -222,7 +267,7 @@ configure(){
             fi
             db_endblock
         ;;
-        19)
+        22)
             db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
@@ -255,7 +300,7 @@ configure(){
             fi
             db_endblock
         ;;
-        20)
+        23)
             db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
@@ -316,7 +361,7 @@ configure(){
             fi
             db_endblock
         ;;
-        21)
+        24)
             db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
@@ -347,7 +392,7 @@ configure(){
             fi
             db_endblock
         ;;
-        22)
+        25)
             db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
@@ -419,7 +464,7 @@ configure(){
             fi
             db_endblock
         ;;
-        23)
+        26)
             db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
@@ -516,6 +561,9 @@ reset(){
     db_reset opensand-daemon/network/ws_lan_ipv6
     db_reset opensand-daemon/network/ws_lan_ipv6_preset
     db_reset opensand-daemon/interconnect/ip_remote
+    db_reset opensand-daemon/interconnect/interface
+    db_reset opensand-daemon/interconnect/interface_ip
+    db_reset opensand-daemon/interconnect/interface_ip_preset
     db_reset opensand-daemon/interconnect/port_upward
     db_reset opensand-daemon/interconnect/port_downward
 }
@@ -547,6 +595,9 @@ unseen(){
     db_fset opensand-daemon/network/ws_lan_ipv6 seen false
     db_fset opensand-daemon/network/ws_lan_ipv6_preset seen false
     db_fset opensand-daemon/interconnect/ip_remote seen false
+    db_fset opensand-daemon/interconnect/interface seen false
+    db_fset opensand-daemon/interconnect/interface_ip_preset seen false
+    db_fset opensand-daemon/interconnect/interface_ip seen false
     db_fset opensand-daemon/interconnect/port_upward seen false
     db_fset opensand-daemon/interconnect/port_downward seen false
 }

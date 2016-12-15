@@ -55,6 +55,8 @@ LAN_IPV6=''
 WS_LAN_IFACE='eth0'
 WS_LAN_IPV4=''
 WS_LAN_IPV6=''
+INTERCONNECT_IFACE=''
+IP_INTERCONNECT=''
 IP_INTERCONNECT_REMOTE=''
 PORT_UPWARD=''
 PORT_DOWNWARD=''
@@ -113,6 +115,10 @@ read_conf(){
     WS_LAN_IPV4=$RET
     db_get opensand-daemon/network/ws_lan_ipv6
     WS_LAN_IPV6=$RET
+    db_get opensand-daemon/interconnect/interface
+    INTERCONNECT_IFACE=$RET
+    db_get opensand-daemon/interconnect/interface_ip
+    IP_INTERCONNECT=$RET
     db_get opensand-daemon/interconnect/ip_remote
     IP_INTERCONNECT_REMOTE=$RET
     db_get opensand-daemon/interconnect/port_upward
@@ -152,7 +158,7 @@ write_conf(){
     # interconnect section
     if [ "$SERVICE_NAME" = 'gw-phy' -o "$SERVICE_NAME" = 'gw-net-acc' ]; then
         echo "[interconnect]" >> ${DAEMON_CONF}
-        echo "ip_remote = ${IP_INTERCONNECT_REMOTE}" >> ${DAEMON_CONF}
+        echo "ip_remote = ${IP_INTERCONNECT_REMOTE%/*}" >> ${DAEMON_CONF}
         echo "port_upward = ${PORT_UPWARD}" >> ${DAEMON_CONF}
         echo "port_downward = ${PORT_DOWNWARD}" >> ${DAEMON_CONF}
         echo "" >> ${DAEMON_CONF}
@@ -222,14 +228,24 @@ initialize(){
     fi
     # remove old IP addresses from LAN and EMU interfaces
     if [ ! "${SERVICE_NAME}" = 'ws' -a ! "${SERVICE_NAME}" = 'gw-net-acc' ]; then
-        ifconfig ${EMU_IFACE} inet 0.0.0.0
+        ifconfig ${EMU_IFACE} inet 0.0.0.0 2>/dev/null
     fi
     if [ ! "${SERVICE_NAME}" = 'sat' -a ! "${SERVICE_NAME}" = 'gw-phy' -a ! "${SERVICE_NAME}" = 'ws' ]; then
-        ifconfig ${LAN_IFACE} inet 0.0.0.0
+        ifconfig ${LAN_IFACE} inet 0.0.0.0 2>/dev/null
     fi
     if [ "${SERVICE_NAME}" = 'ws' ]; then
-        ifconfig ${WS_LAN_IFACE} inet 0.0.0.0
+        ifconfig ${WS_LAN_IFACE} inet 0.0.0.0 2>/dev/null
     fi
+    if [ "${SERVICE_NAME}" = 'gw-net-acc' -o "${SERVICE_NAME}" = 'gw-phy' ]; then
+        # Check if interconnect interface has the correct IP
+        # TODO: this may not work if said interface has multiple IP addresses
+        RET=$(ip -o -f inet addr show ${INTERCONNECT_IFACE} | awk '{print $4}')
+        if [ ! "${RET}" = "${IP_INTERCONNECT}" ]; then
+            ifconfig ${INTERCONNECT_IFACE} inet 0.0.0.0 2>/dev/null
+            ifconfig ${INTERCONNECT_IFACE} inet ${IP_INTERCONNECT} 2>/dev/null
+        fi
+    fi
+
 
     # configure host
     ${HOST_INIT} > /dev/null
