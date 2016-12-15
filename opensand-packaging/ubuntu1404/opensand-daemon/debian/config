@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
 # Source debconf library.
 . /usr/share/debconf/confmodule
@@ -21,8 +21,12 @@ GW_TYPE_DESCR="Select the type of GW"
 GW_TYPE_LIST="GW, GW-NET-ACC, GW-PHY"
 GW_TYPE_DEFAULT="GW"
 NAME_ADV="false"
-
-RECONFIG="false"
+IFACES_LIST=$(ip a | sed -rn "s/^[0-9]+: ([^:]+): .*/\1/p" | paste -d',' -s)
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/opensand_tun//')
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/opensand_tap//')
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/opensand_br//')
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/,\+/,/g' | sed 's/^,//' | sed 's/,$//')
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/,/,\ /g')
 
 usage(){
     /bin/echo -e "Usage: $0 command\n\twith command: configure or reconfigure"
@@ -119,11 +123,17 @@ configure(){
             fi
         ;;
         9)
+            db_subst opensand-daemon/service/interface ifaces_list "all, ${IFACES_LIST}"
             db_input high opensand-daemon/service/interface || true
             db_endblock
         ;;
         10)
             db_beginblock
+            db_get opensand-daemon/service/interface
+            if [ "$RET" = "all" ]; then
+                db_reset opensand-daemon/service/interface
+                db_set opensand-daemon/service/interface ""
+            fi
             db_input low opensand-daemon/service/port || true
             db_endblock
         ;;
@@ -159,31 +169,66 @@ configure(){
         ;;
         16)
             db_beginblock
+            db_subst opensand-daemon/network/emu_iface ifaces_list "${IFACES_LIST}"
+            db_input high opensand-daemon/network/emu_iface || true
+            db_endblock
+        ;;
+        17)
+            db_beginblock
             if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "WS"  -a "$NAME" != "GW-NET-ACC" ]; then
-                    db_input high opensand-daemon/network/emu_iface || true
-                    if [ "$RECONFIG" = "false" ]; then
-                        if [ "$NAME" = "SAT" ]; then
-                            db_set opensand-daemon/network/emu_ipv4 ${SAT_EMU_IP4ADDR}
-                     
-                        elif [ "$NAME" = "GW" -o "$NAME" = "GW-PHY" ]; then
-                            if [ "${INST}" = "0" ]; then 
-                                db_set opensand-daemon/network/emu_ipv4 ${GW_EMU_IP4ADDR}
-                            else
-                                db_set opensand-daemon/network/emu_ipv4 "192.168.18.${INST}/24"
-                            fi
-                    
-                        elif [ "$NAME" = "ST" ]; then
-                            db_set opensand-daemon/network/emu_ipv4 "192.168.18.${INST}/24"
-                   
+                    db_get opensand-daemon/network/emu_iface
+                    EMU_IFACE=${RET}
+                    if [ "$NAME" = "SAT" ]; then
+                        RECOMMENDED_IP=${SAT_EMU_IP4ADDR}
+                    elif [ "$NAME" = "GW" -o "$NAME" = "GW-PHY" ]; then
+                        if [ "${INST}" = "0" ]; then 
+                            RECOMMENDED_IP=${GW_EMU_IP4ADDR}
+                        else
+                            RECOMMENDED_IP="192.168.18.${INST}/24"
                         fi
+                    elif [ "$NAME" = "ST" ]; then
+                        RECOMMENDED_IP="192.168.18.${INST}/24"
                     fi
-                    db_input high opensand-daemon/network/emu_ipv4 || true
-                  
+                    # Prepare list: current, recommended, other
+                    IPS_LIST=""
+                    db_get opensand-daemon/network/emu_ipv4
+                    CURRENT_IP=${RET}
+                    if [ ! -z $CURRENT_IP ]; then
+                        IPS_LIST="Current:${CURRENT_IP}, "
+                    fi
+                    IPS_LIST="${IPS_LIST}RECOMMENDED:${RECOMMENDED_IP}, Other"
+                    db_subst opensand-daemon/network/emu_ipv4_preset ips_list "${IPS_LIST}"
+                    db_set opensand-daemon/network/emu_ipv4_preset "Current:${CURRENT_IP}"
+                    db_input high opensand-daemon/network/emu_ipv4_preset || true
                 fi
+            fi
+            db_endblock
+        ;;
+        18)
+            db_beginblock
+            if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
+                if [ "$NAME" != "WS"  -a "$NAME" != "GW-NET-ACC" ]; then
+                    db_get opensand-daemon/network/emu_ipv4_preset
+                    if [ "${RET}" = "Other" ]; then
+                        db_set opensand-daemon/network/emu_ipv4 "${RECOMMENDED_IP}"
+                        db_input high opensand-daemon/network/emu_ipv4 || true
+                    elif [[ $RET == Current* ]]; then
+                        db_set opensand-daemon/network/emu_ipv4 ${CURRENT_IP}
+                    else
+                        db_set opensand-daemon/network/emu_ipv4 ${RECOMMENDED_IP}
+                    fi
+                fi
+            fi
+            db_endblock
+        ;;
+        19)
+            db_beginblock
+            if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
                 if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
                     add=1
                     if [ "$NAME" = "WS" ]; then
+                        db_subst opensand-daemon/network/ws_lan_iface ifaces_list "${IFACES_LIST}"
                         db_input high opensand-daemon/network/ws_lan_iface || true
                         # use a random value to limit WS with the same address
                         # ST physical interface has address .1 and tun interface
@@ -192,52 +237,165 @@ configure(){
                         add=$((add % 252))
                         add=$((add + 4))
                     else
+                        db_subst opensand-daemon/network/lan_iface ifaces_list "${IFACES_LIST}"
                         db_input high opensand-daemon/network/lan_iface || true
                     fi
+                fi
+            else
+                if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ] && 
+                    [ "$NAME" != "WS" -o "$DHCP" != "false" ]; then
+                    if [ "$NAME" = "WS" ]; then
+                        db_subst opensand-daemon/network/ws_lan_iface ifaces_list "${IFACES_LIST}"
+                        db_input high opensand-daemon/network/ws_lan_iface || true
+                    else
+                        db_subst opensand-daemon/network/lan_iface ifaces_list "${IFACES_LIST}"
+                        db_input high opensand-daemon/network/lan_iface || true
+                    fi
+                fi
+            fi
+            db_endblock
+        ;;
+        20)
+            db_beginblock
+            if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
+                if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
+                    if [ "$NAME" = "WS" ]; then
+                        db_get opensand-daemon/network/ws_lan_iface
+                    else
+                        db_get opensand-daemon/network/lan_iface
+                    fi
+                    LAN_IFACE=${RET}
                     if [ "$NAME" != "WS" -o "$DHCP" = "false" ]; then
-                        if [ "$RECONFIG" = "false" ]; then
-                            if [ "$NAME" != "GW" -a "$NAME" != "GW-NET-ACC" ]; then
-                                net=$((18+$INST))
-                                # WS behind GW
-                                if [ "$INST" = "0" ]; then
-                                    net="$GW_NET"
-                                fi
-                                if [ "$NAME" = "WS" ]; then
-                                    db_set opensand-daemon/network/ws_lan_ipv4 "192.168.${net}.${add}/24"
-                                else
-                                    db_set opensand-daemon/network/lan_ipv4 "192.168.${net}.${add}/24"
-                                fi
-                                net=$((101+$INST))
-                                # WS behind GW0
-                                if [ "$INST" = "0" ]; then
-                                    net="1$GW_NET"
-                                fi
-                                if [ "$NAME" = "WS" ]; then
-                                    db_set opensand-daemon/network/ws_lan_ipv6 "2001:660:6602:${net}::${add}/64"
-                                else
-                                    db_set opensand-daemon/network/lan_ipv6 "2001:660:6602:${net}::${add}/64"
-                                fi
+                        if [ "$NAME" != "GW" -a "$NAME" != "GW-NET-ACC" ]; then
+                            net=$((18+$INST))
+                            # WS behind GW
+                            if [ "$INST" = "0" ]; then
+                                net="$GW_NET"
+                            fi
+                            if [ "$NAME" = "WS" ]; then
+                                RECOMMENDED_IP="192.168.${net}.${add}/24"
                             else
-                                if [ "${INST}" = "0" ]; then 
-                                    db_set opensand-daemon/network/lan_ipv4 ${GW_IP4ADDR}
-                                    db_set opensand-daemon/network/lan_ipv6 ${GW_IP6ADDR}
-                                else
-                                    net=$((18+$INST))
-                                    db_set opensand-daemon/network/lan_ipv4 "192.168.${net}.${add}/24"
-                                    net=$((101+$INST))
-                                    db_set opensand-daemon/network/lan_ipv6 "2001:660:6602:${net}::${add}/64"
-                                fi
+                                RECOMMENDED_IP="192.168.${net}.${add}/24"
+                            fi
+                            net=$((101+$INST))
+                            # WS behind GW0
+                            if [ "$INST" = "0" ]; then
+                                net="1$GW_NET"
+                            fi
+                        else
+                            if [ "${INST}" = "0" ]; then 
+                                RECOMMENDED_IP=${GW_IP4ADDR}
+                            else
+                                net=$((18+$INST))
+                                RECOMMENDED_IP="192.168.${net}.${add}/24"
                             fi
                         fi
+                        # Prepare list: current, recommended, other
+                        IPS_LIST=""
                         if [ "$NAME" = "WS" ]; then
-                            db_input high opensand-daemon/network/ws_lan_ipv4 || true
-                            db_input high opensand-daemon/network/ws_lan_ipv6 || true
+                            db_get opensand-daemon/network/ws_lan_ipv4
                         else
-                            db_input high opensand-daemon/network/lan_ipv4 || true
-                            db_input high opensand-daemon/network/lan_ipv6 || true
-                            if [ "$NAME" = "ST" ]; then
-                                db_input high opensand-daemon/network/lan_default_route || true
+                             db_get opensand-daemon/network/lan_ipv4
+                        fi
+                        CURRENT_IP=${RET}
+                        if [ ! -z $CURRENT_IP ]; then
+                            IPS_LIST="Current:${CURRENT_IP}, "
+                        fi
+                        IPS_LIST="${IPS_LIST}RECOMMENDED:${RECOMMENDED_IP}, Other"
+                        if [ "$NAME" = "WS" ]; then
+                            db_subst opensand-daemon/network/ws_lan_ipv4_preset ips_list "${IPS_LIST}"
+                            db_set opensand-daemon/network/ws_lan_ipv4_preset "Current:${CURRENT_IP}"
+                            db_input high opensand-daemon/network/ws_lan_ipv4_preset || true
+                        else
+                            db_subst opensand-daemon/network/lan_ipv4_preset ips_list "${IPS_LIST}"
+                            db_set opensand-daemon/network/lan_ipv4_preset "Current:${CURRENT_IP}"
+                            db_input high opensand-daemon/network/lan_ipv4_preset || true
+                        fi
+                    fi
+                fi
+            fi
+            db_endblock
+        ;;
+        21)
+            db_beginblock
+            if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
+                if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
+                    if [ "$NAME" != "WS" -o "$DHCP" = "false" ]; then
+                        if [ "$NAME" = "WS" ]; then
+                            db_get opensand-daemon/network/ws_lan_ipv4_preset
+                            if [ "${RET}" = "Other" ]; then
+                                db_subst opensand-daemon/network/ws_lan_ipv4 recommended_ip "${RECOMMENDED_IP}"
+                                db_input high opensand-daemon/network/ws_lan_ipv4 || true
+                            elif [[ $RET == Current* ]]; then
+                                db_set opensand-daemon/network/ws_lan_ipv4 ${CURRENT_IP}
+                            else
+                                db_set opensand-daemon/network/ws_lan_ipv4 ${RECOMMENDED_IP}
                             fi
+                        else
+                            db_get opensand-daemon/network/lan_ipv4_preset
+                            if [ "${RET}" = "Other" ]; then
+                                db_set opensand-daemon/network/lan_ipv4 "${RECOMMENDED_IP}"
+                                db_input high opensand-daemon/network/lan_ipv4 || true
+                            elif [[ $RET == Current* ]]; then
+                                db_set opensand-daemon/network/lan_ipv4 ${CURRENT_IP}
+                            else
+                                db_set opensand-daemon/network/lan_ipv4 ${RECOMMENDED_IP}
+                            fi
+                        fi
+                    fi
+                fi
+            fi
+            db_endblock
+        ;;
+        22)
+            db_beginblock
+            if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
+                if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
+                    if [ "$NAME" != "WS" -o "$DHCP" = "false" ]; then
+                        if [ "$NAME" != "GW" -a "$NAME" != "GW-NET-ACC" ]; then
+                            net=$((18+$INST))
+                            # WS behind GW
+                            if [ "$INST" = "0" ]; then
+                                net="$GW_NET"
+                            fi
+                            net=$((101+$INST))
+                            # WS behind GW0
+                            if [ "$INST" = "0" ]; then
+                                net="1$GW_NET"
+                            fi
+                            if [ "$NAME" = "WS" ]; then
+                                RECOMMENDED_IP="2001:660:6602:${net}::${add}/64"
+                            else
+                                RECOMMENDED_IP="2001:660:6602:${net}::${add}/64"
+                            fi
+                        else
+                            if [ "${INST}" = "0" ]; then 
+                                RECOMMENDED_IP=${GW_IP6ADDR}
+                            else
+                                net=$((101+$INST))
+                                RECOMMENDED_IP="2001:660:6602:${net}::${add}/64"
+                            fi
+                        fi
+                        # Prepare list: current, recommended, other
+                        IPS_LIST=""
+                        if [ "$NAME" = "WS" ]; then
+                            db_get opensand-daemon/network/ws_lan_ipv6
+                        else
+                            db_get opensand-daemon/network/lan_ipv6
+                        fi
+                        CURRENT_IP=${RET}
+                        if [ ! -z $CURRENT_IP ]; then
+                            IPS_LIST="Current:${CURRENT_IP}, "
+                        fi
+                        IPS_LIST="${IPS_LIST}RECOMMENDED:${RECOMMENDED_IP}, Other"
+                        if [ "$NAME" = "WS" ]; then
+                            db_subst opensand-daemon/network/ws_lan_ipv6_preset ips_list "${IPS_LIST}"
+                            db_set opensand-daemon/network/ws_lan_ipv6_preset "Current:${CURRENT_IP}"
+                            db_input high opensand-daemon/network/ws_lan_ipv6_preset || true
+                        else
+                            db_subst opensand-daemon/network/lan_ipv6_preset ips_list "${IPS_LIST}"
+                            db_set opensand-daemon/network/lan_ipv6_preset "Current:${CURRENT_IP}"
+                            db_input high opensand-daemon/network/lan_ipv6_preset || true
                         fi
                     elif [ "$NAME" = "WS" -a "$DHCP" != "false" ]; then
                         net=$((101+$INST))
@@ -245,20 +403,58 @@ configure(){
                         if [ "$INST" = "0" ]; then
                             net="1$GW_NET"
                         fi
-                        db_set opensand-daemon/network/ws_lan_ipv6 "2001:660:6602:${net}::${add}/64"
-                        db_input high opensand-daemon/network/ws_lan_ipv6 || true
+                        RECOMMENDED_IP="2001:660:6602:${net}::${add}/64"
+                        IPS_LIST=""
+                        db_get opensand-daemon/network/ws_lan_ipv6
+                        CURRENT_IP=${RET}
+                        if [ ! -z $CURRENT_IP ]; then
+                            IPS_LIST="CURRENT: ${CURRENT_IP}, "
+                        fi
+                        IPS_LIST="${IPS_LIST}RECOMMENDED:${RECOMMENDED_IP}, OTHER"
+                        db_subst opensand-daemon/network/ws_lan_ipv6_preset ips_list "${IPS_LIST}"
+                        db_set opensand-daemon/network/ws_lan_ipv6_preset "Current:${CURRENT_IP}"
+                        db_input high opensand-daemon/network/ws_lan_ipv6_preset || true
                     fi
                 fi
-            else
-                if [ "$NAME" != "WS" -a "$NAME" != "GW-NET-ACC" ]; then
-                    db_input high opensand-daemon/network/emu_iface || true
-                fi
-                if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ] && 
-                    [ "$NAME" != "WS" -o "$DHCP" != "false" ]; then
-                    if [ "$NAME" = "WS" ]; then
-                        db_input high opensand-daemon/network/ws_lan_iface || true
-                    else
-                        db_input high opensand-daemon/network/lan_iface || true
+            fi
+            db_endblock
+        ;;
+        23)
+            db_beginblock
+            if [ "$CONFIG_LEVEL" != "AUTOMATIC" ]; then
+                if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
+                    if [ "$NAME" != "WS" -o "$DHCP" = "false" ]; then
+                        if [ "$NAME" = "WS" ]; then
+                            db_get opensand-daemon/network/ws_lan_ipv6_preset
+                            if [ "${RET}" = "Other" ]; then
+                                db_subst opensand-daemon/network/ws_lan_ipv6 recommended_ip "${RECOMMENDED_IP}"
+                                db_input high opensand-daemon/network/ws_lan_ipv6 || true
+                            elif [[ $RET == Current* ]]; then
+                                db_set opensand-daemon/network/ws_lan_ipv6 ${CURRENT_IP}
+                            else
+                                db_set opensand-daemon/network/ws_lan_ipv6 ${RECOMMENDED_IP}
+                            fi
+                        else
+                            db_get opensand-daemon/network/lan_ipv6_preset
+                            if [ "${RET}" = "Other" ]; then
+                                db_subst opensand-daemon/network/lan_ipv6 recommended_ip "${RECOMMENDED_IP}"
+                                db_input high opensand-daemon/network/lan_ipv6 || true
+                            elif [[ $RET == Current* ]]; then
+                                db_set opensand-daemon/network/lan_ipv6 ${CURRENT_IP}
+                            else
+                                db_set opensand-daemon/network/lan_ipv6 ${RECOMMENDED_IP}
+                            fi
+                        fi
+                    elif [ "$NAME" = "WS" -a "$DHCP" != "false" ]; then
+                        db_get opensand-daemon/network/ws_lan_ipv6_preset
+                        if [ "${RET}" = "Other" ]; then
+                            db_subst opensand-daemon/network/ws_lan_ipv6 recommended_ip "${RECOMMENDED_IP}"
+                            db_input high opensand-daemon/network/ws_lan_ipv6 || true
+                        elif [[ $RET == Current* ]]; then
+                            db_set opensand-daemon/network/ws_lan_ipv6 ${CURRENT_IP}
+                        else
+                            db_set opensand-daemon/network/ws_lan_ipv6 ${RECOMMENDED_IP}
+                        fi
                     fi
                 fi
             fi
@@ -308,13 +504,18 @@ reset(){
     db_reset opensand-daemon/network/default_route
     db_reset opensand-daemon/network/emu_iface
     db_reset opensand-daemon/network/emu_ipv4
+    db_reset opensand-daemon/network/emu_ipv4_preset
     db_reset opensand-daemon/network/lan_iface
     db_reset opensand-daemon/network/lan_ipv4
+    db_reset opensand-daemon/network/lan_ipv4_preset
     db_reset opensand-daemon/network/lan_ipv6
+    db_reset opensand-daemon/network/lan_ipv6_preset
     db_reset opensand-daemon/network/lan_default_route
     db_reset opensand-daemon/network/ws_lan_iface
     db_reset opensand-daemon/network/ws_lan_ipv4
+    db_reset opensand-daemon/network/ws_lan_ipv4_preset
     db_reset opensand-daemon/network/ws_lan_ipv6
+    db_reset opensand-daemon/network/ws_lan_ipv6_preset
     db_reset opensand-daemon/interconnect/ip_remote
     db_reset opensand-daemon/interconnect/port_upward
     db_reset opensand-daemon/interconnect/port_downward
@@ -335,13 +536,17 @@ unseen(){
     db_fset opensand-daemon/network/default_route seen false
     db_fset opensand-daemon/network/emu_iface seen false
     db_fset opensand-daemon/network/emu_ipv4 seen false
+    db_fset opensand-daemon/network/emu_ipv4_preset seen false
     db_fset opensand-daemon/network/lan_iface seen false
     db_fset opensand-daemon/network/lan_ipv4 seen false
+    db_fset opensand-daemon/network/lan_ipv4_preset seen false
     db_fset opensand-daemon/network/lan_ipv6 seen false
-    db_fset opensand-daemon/network/lan_default_route seen false
+    db_fset opensand-daemon/network/lan_ipv6_preset seen false
     db_fset opensand-daemon/network/ws_lan_iface seen false
     db_fset opensand-daemon/network/ws_lan_ipv4 seen false
+    db_fset opensand-daemon/network/ws_lan_ipv4_preset seen false
     db_fset opensand-daemon/network/ws_lan_ipv6 seen false
+    db_fset opensand-daemon/network/ws_lan_ipv6_preset seen false
     db_fset opensand-daemon/interconnect/ip_remote seen false
     db_fset opensand-daemon/interconnect/port_upward seen false
     db_fset opensand-daemon/interconnect/port_downward seen false
@@ -362,11 +567,9 @@ if [ "$#" -gt 0 ]; then
                 configure
             fi
         else
-            RECONFIG="true"
             configure
         fi
     elif [ "$1" = "reconfigure" ]; then
-        RECONFIG="true"
         unseen
         configure
     else

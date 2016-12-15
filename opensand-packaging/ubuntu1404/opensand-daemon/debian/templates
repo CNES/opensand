@@ -68,11 +68,11 @@ Description: Worksation identifier
    on the same platform with the same identifier)
 
 Template: opensand-daemon/service/interface
-Type: string
-Default: eth0
-Description: Name of the interface for service publishing
-  The name of the interface where the service should be published,
-  empty for all
+Type: select
+Choices: ${ifaces_list}
+Description: Select the interface for service publishing
+  The name of the interface where the service should be published.
+  Choose 'all' for all interfaces
 
 Template: opensand-daemon/command/port
 Type: string
@@ -99,29 +99,36 @@ Description: The modules supported by the host
   This shall be filled by modules packages
 
 Template: opensand-daemon/network/emu_iface
-Type: string
-Default: eth0
+Type: select
+Choices: ${ifaces_list}
 Description: OpenSAND network interface name
   Select the physical interface for OpenSAND network
   The OpenSAND network corresponds to the sub-network used for the DVB-RCS/S2
   link emulation
 
+Template: opensand-daemon/network/emu_ipv4_preset
+Type: select
+Choices: ${ips_list}
+Description: OpenSAND network IPv4 address
+  Select the IPv4 address/mask of the OpenSAND interface
+
 Template: opensand-daemon/network/emu_ipv4
 Type: string
-Default: 192.168.18.15/24
+Default: ${recommended_ip}
 Description: OpenSAND network IPv4 address
   Select the IPv4 address/mask of the OpenSAND interface
 
 Template: opensand-daemon/network/lan_iface
-Type: string
-Default: eth1
+Type: select
+Choices: ${ifaces_list}
 Description: Satellite Terminal network interface name
   Select the physical interface for Satellite Terminal or Gateway network
   This network corresponds to the sub-network used by the
   workstations behind the ST or GW to connect on the satellite network
 
-Template: opensand-daemon/network/lan_ipv4
-Type: string
+Template: opensand-daemon/network/lan_ipv4_preset
+Type: select
+Choices: ${ips_list}
 Description: Satellite Terminal network IPv4 address
   Select the IPv4 address/mask of the Satellite Terminal
   It is recommended to use a common network for all STs (with mask smaller than
@@ -130,8 +137,29 @@ Description: Satellite Terminal network IPv4 address
   The TUN and bridge interfaces will have the same address with last byte
   + 2 and 3 respectively
 
+Template: opensand-daemon/network/lan_ipv4
+Type: string
+Default: ${recommended_ip}
+Description: Satellite Terminal network IPv4 address
+  Select the IPv4 address/mask of the Satellite Terminal
+  It is recommended to use a common network for all STs (with mask smaller than
+  the ST lan mask) for workstation routing management
+  You must use a mask smaller than /28
+  The TUN and bridge interfaces will have the same address with last byte
+  + 2 and 3 respectively
+
+Template: opensand-daemon/network/lan_ipv6_preset
+Type: select
+Choices: ${ips_list}
+Description: Satellite Terminal network IPv6 address
+  Select the IPv6 address/mask of the Satellite Terminal
+  You must use a mask smaller than /124
+  The TUN and bridge interfaces will have the same address with last byte
+  + 2 and 3 respectively
+
 Template: opensand-daemon/network/lan_ipv6
 Type: string
+Default: ${recommended_ip}
 Description: Satellite Terminal network IPv6 address
   Select the IPv6 address/mask of the Satellite Terminal
   You must use a mask smaller than /124
@@ -139,19 +167,35 @@ Description: Satellite Terminal network IPv6 address
   + 2 and 3 respectively
 
 Template: opensand-daemon/network/ws_lan_iface
-Type: string
-Default: eth1
+Type: select
+Choices: ${ifaces_list}
 Description: Workstation network interface name
   Select the physical interface for workstation on the Satellite Terminal network
 
-Template: opensand-daemon/network/ws_lan_ipv4
-Type: string
+Template: opensand-daemon/network/ws_lan_ipv4_preset
+Type: select
+Choices: ${ips_list}
 Description: Workstation IPv4 address
   Select the IPv4 address/mask of the workstation
   This address should be in the same network as the associated Satellite Terminal
 
+Template: opensand-daemon/network/ws_lan_ipv4
+Type: string
+Default: ${recommended_ip}
+Description: Workstation IPv4 address
+  Select the IPv4 address/mask of the workstation
+  This address should be in the same network as the associated Satellite Terminal
+
+Template: opensand-daemon/network/ws_lan_ipv6_preset
+Type: select
+Choices: ${ips_list}
+Description: Workstation IPv6 address
+  Select the IPv6 address/mask of the workstation
+  This address should be in the same network as the associated Satellite Terminal
+
 Template: opensand-daemon/network/ws_lan_ipv6
 Type: string
+Default: ${recommended_ip}
 Description: Workstation IPv6 address
   Select the IPv6 address/mask of the workstation
   This address should be in the same network as the associated Satellite Terminal

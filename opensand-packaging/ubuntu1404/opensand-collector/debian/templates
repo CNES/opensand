@@ -7,8 +7,8 @@ Description: Service type
   All the hosts from the same platfrom MUST have the same service type
 
 Template: opensand-collector/service/interface
-Type: string
-Default: eth0
+Type: select
+Choices: ${ifaces_list}
 Description: Name of the interface for service publishing
   The name of the interface where the service should be published,
   empty for all

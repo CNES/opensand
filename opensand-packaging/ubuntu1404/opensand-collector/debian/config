@@ -3,6 +3,12 @@
 # Source debconf library.
 . /usr/share/debconf/confmodule
 
+IFACES_LIST=$(ip a | sed -rn "s/^[0-9]+: ([^:]+): .*/\1/p" | paste -d',' -s)
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/opensand_tun//')
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/opensand_tap//')
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/opensand_br//')
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/,\+/,/g' | sed 's/^,//' | sed 's/,$//')
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/,/,\ /g')
 
 usage(){
     /bin/echo -e "Usage: $0 command\n\twith command: configure or reconfigure"
@@ -17,6 +23,7 @@ configure(){
             db_input high opensand-collector/service/type || true
         ;;
         2)
+            db_subst opensand-collector/service/interface ifaces_list "${IFACES_LIST}"
             db_input high opensand-collector/service/interface || true
             db_endblock
         ;;
