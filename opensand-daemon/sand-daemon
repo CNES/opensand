@@ -169,14 +169,6 @@ def publish_service(output_handler):
     # add UDP port for exchanging message with the collector
     descr['ext_port'] = OUTPUT_HANDLER.get_external_port()
 
-    # set default route if specified
-    default_route = False
-    try:
-        if CONF_PARSER.get('network', 'lan_default_route') == 'true':
-            default_route = True
-    except ConfigParser.Error:
-        default_route = False
-
     # add interconnect parameters if lan or phy component
     for key in {'ip_remote', 'port_upward', 'port_downward'}:
         try:
@@ -197,8 +189,7 @@ def publish_service(output_handler):
     except ConfigParser.Error:
         pass
     SERVICE = OpenSandService(CACHE_DIR, publish_iface, service_type,
-                              name, instance, port, descr, output_handler,
-                              default_route)
+                              name, instance, port, descr, output_handler)
 
     try:
         SERVICE.run()
