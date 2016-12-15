@@ -226,8 +226,15 @@ initialize(){
         ${TUN_TAP_INIT} -d 1>/dev/null 2>&1
     fi
     # remove old IP addresses from LAN and EMU interfaces
-    ifconfig ${EMU_IFACE} inet 0.0.0.0
-    ifconfig ${LAN_IFACE} inet 0.0.0.0
+    if [ ! "${SERVICE_NAME}" = 'ws' -a ! "${SERVICE_NAME}" = 'gw-net-acc' ]; then
+        ifconfig ${EMU_IFACE} inet 0.0.0.0
+    fi
+    if [ ! "${SERVICE_NAME}" = 'sat' -a ! "${SERVICE_NAME}" = 'gw-phy' -a ! "${SERVICE_NAME}" = 'ws' ]; then
+        ifconfig ${LAN_IFACE} inet 0.0.0.0
+    fi
+    if [ "${SERVICE_NAME}" = 'ws' ]; then
+        ifconfig ${WS_LAN_IFACE} inet 0.0.0.0
+    fi
 
     # configure host
     ${HOST_INIT} > /dev/null
