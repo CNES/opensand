@@ -88,7 +88,8 @@ class OpenSandService(object):
             if name.lower() != "ws":
                 # by default we use TUN interface but this can be modified
                 # using setup routes when we are in Ethernet
-                OpenSandService._routes.load(cache_dir, name, TUN_NAME)
+                OpenSandService._routes.load(cache_dir, name, TUN_NAME,
+                                             is_ws=False, instance=instance)
             else:
                 OpenSandService._routes.load(cache_dir, name,
                                              descr['lan_iface'], True)

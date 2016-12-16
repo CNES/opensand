@@ -39,8 +39,13 @@ import threading
 import logging
 import pickle
 import os
+import re
 from ipaddr import IPNetwork
 from opensand_daemon.nl_utils import NlRoute, NlError, NlExists, NlMissing
+from lxml import etree
+
+CONF_DIR = "/etc/opensand/"
+TOPOLOGY_FILE = "topology.conf"
 
 #macros
 LOGGER = logging.getLogger('sand-daemon')
@@ -52,6 +57,7 @@ class OpenSandRoutes(object):
     # the OpenSANDRoutes class attributes are shared between command and service
     # threads
     _name = None
+    _instance = None
     _routes_lock = threading.Lock()
     _route_hdl = None
     _routes_v4 = {} # the available host and IPv4 networks
@@ -70,10 +76,11 @@ class OpenSandRoutes(object):
         if OpenSandRoutes._is_ws:
             self.remove_routes()
 
-    def load(self, cache_dir, name, iface, is_ws=False):
+    def load(self, cache_dir, name, iface, is_ws=False, instance=""):
         OpenSandRoutes._routes_lock.acquire()
         OpenSandRoutes._cache_dir = cache_dir
         OpenSandRoutes._name = name.lower()
+        OpenSandRoutes._instance = str(instance)
         try:
             OpenSandRoutes._route_hdl = NlRoute(iface)
         except KeyError:
@@ -201,7 +208,8 @@ class OpenSandRoutes(object):
         """ apply the routes when started """
         if OpenSandRoutes._unused:
             return
-
+        # read the conf and get the tal_ids of the same spot
+        same_spot_ids = self.get_same_spot_ids()
         OpenSandRoutes._routes_lock.acquire()
         # update the routes gateway
         if iface is not None:
@@ -216,6 +224,14 @@ class OpenSandRoutes(object):
         self.serialize()
         for host in set(OpenSandRoutes._routes_v4.keys() +
                         OpenSandRoutes._routes_v6.keys()):
+            # get host terminal id
+            ret = re.findall("^(?:[^0-9]*)([0-9]*)", host)
+            if not len(ret):
+                continue
+            host_id = ret[0]
+            # check if host in same_spot list
+            if host_id not in same_spot_ids:
+                continue
             v4 = None
             v6 = None
             gw_v4 = None
@@ -241,11 +257,21 @@ class OpenSandRoutes(object):
         """ remove the current routes when stopped """
         if OpenSandRoutes._unused:
             return
+        # read the conf and get the tal_ids of the same spot
+        same_spot_ids = self.get_same_spot_ids()
         OpenSandRoutes._routes_lock.acquire()
         OpenSandRoutes._started = False
         LOGGER.info("remove route after stopping platform")
         for host in set(OpenSandRoutes._routes_v4.keys() +
                         OpenSandRoutes._routes_v6.keys()):
+            # get host terminal id
+            ret = re.findall("^(?:[^0-9]*)([0-9]*)", host)
+            if not len(ret):
+                continue
+            host_id = ret[0]
+            # check if host in same_spot list
+            if host_id not in same_spot_ids:
+                continue
             v4 = None
             v6 = None
             gw_v4 = None
@@ -364,3 +390,24 @@ class OpenSandRoutes(object):
             route_file.close()
         else:
             route_file.close()
+
+    def get_same_spot_ids(self):
+        """ read the topology conf file, and get the IDs of the terminals
+            in the same spot as this one """
+        same_spot_ids = []
+        # open xml
+        tree = etree.parse(os.path.join(CONF_DIR, TOPOLOGY_FILE))
+        root = tree.getroot()
+        # search for gw in gw_table
+        gw_id = ""
+        for s in root.iterchildren():
+            if s.tag == "gw_table":
+                for g in s.iterchildren():
+                    if g.tag == "gw":
+                        for tal in list(g.iterchildren())[0]:
+                            if tal.attrib["id"] == OpenSandRoutes._instance:
+                                same_spot_ids.append(g.attrib["id"])
+                                for tal in list(g.iterchildren())[0]:
+                                    same_spot_ids.append(tal.attrib["id"])
+                                return same_spot_ids
+        return same_spot_ids
