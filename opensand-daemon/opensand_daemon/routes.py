@@ -404,6 +404,11 @@ class OpenSandRoutes(object):
             if s.tag == "gw_table":
                 for g in s.iterchildren():
                     if g.tag == "gw":
+                        if g.attrib["id"] == OpenSandRoutes._instance:
+                            same_spot_ids.append(g.attrib["id"])
+                            for tal in list(g.iterchildren())[0]:
+                                same_spot_ids.append(tal.attrib["id"])
+                            return same_spot_ids
                         for tal in list(g.iterchildren())[0]:
                             if tal.attrib["id"] == OpenSandRoutes._instance:
                                 same_spot_ids.append(g.attrib["id"])
