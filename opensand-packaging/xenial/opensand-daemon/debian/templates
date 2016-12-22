@@ -32,7 +32,7 @@ Description: ${name_adv_description}
 Template: opensand-daemon/interconnect/interface
 Type: select
 Choices: ${ifaces_list}
-Description: Remote IP
+Description: OpenSAND interconnect interface
   The name of the interface used to interconnect the
   different OpenSAND components. 
 
