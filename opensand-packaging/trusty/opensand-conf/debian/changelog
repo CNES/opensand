@@ -1,3 +1,9 @@
+opensand-conf (4.1.0) trusty; urgency=low
+
+  * Release 4.1.0
+
+ --  Aurelien Delrieu <adelrieu@toulouse.viveris.com>  Thu, 22 Dec 2016 09:56:33 +0100
+
 opensand-conf (4.0.0) trusty; urgency=low
 
   * Release 4.0.0

@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2016 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
  * @file OutputInternal.cpp
  * @brief Class used to hold internal output variables and methods.
  * @author Vincent Duvert <vduvert@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 

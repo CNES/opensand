@@ -1,3 +1,6 @@
+# Systemd service file for OpenSAND Collector
+# Written by Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
+
 [Unit]
 Description=Startup script for the OpenSAND daemon
 After=remote-fs.target

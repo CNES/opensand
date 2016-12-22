@@ -1,3 +1,9 @@
+opensand-rohc-lan-adapt-plugin (4.1.0) xenial; urgency=low
+
+  * Release 4.1.0
+
+ --  Aurelien Delrieu <adelrieu@toulouse.viveris.com>  Thu, 22 Dec 2016 09:57:18 +0100
+
 opensand-rohc-lan-adapt-plugin (4.0.0) trusty; urgency=low
 
   * Release 4.0.0

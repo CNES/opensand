@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -32,7 +32,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
- * @author Aureline DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 

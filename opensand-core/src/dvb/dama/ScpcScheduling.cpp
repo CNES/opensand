@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -32,6 +32,7 @@
  * @brief    The SCPC scheduling functions for MAC FIFOs with DVB-S2 forward or downlink
  * @author   David PRADAS / <david.pradas@toulouse.viveris.com>
  * @author   Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author   Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
  */
 
 

@@ -1,4 +1,23 @@
-2015-12-08 opensand-4.0.0
+2016-12-22 opensand-4.1.0
+
+   * Release 4.1.0
+   * Split the encapsulation block
+   * Add Ubuntu 16.04 LTS support
+   * Improve packaging to support multiple distributions
+   * Fix C++ 11 incompatibilies
+   * Improve GSE plugin performance
+   * Add the capability to split gateway into physical and access gateways
+   * Review debian packages dependencies
+   * Fix issue #5
+   * Fix issue #6
+   * Fix issue #7
+   * Fix issue #8
+   * Fix issue #10
+   * Fix issue #11
+   * Fix issue #14
+   * Various other bugfixes and improvements
+
+ 2015-12-08 opensand-4.0.0
 
    * Release 4.0.0
    * Add SCPC access on return link
