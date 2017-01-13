@@ -53,6 +53,7 @@
         <xsd:enumeration value="MPEG2-TS" />
         <xsd:enumeration value="ULE" />
         <xsd:enumeration value="GSE" />
+        <xsd:enumeration value="RLE" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -79,6 +80,7 @@
 <xsd:simpleType name="upAccessType">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="DAMA" />
+        <xsd:enumeration value="DAMA_RCS2" />
         <xsd:enumeration value="ALOHA" />
         <xsd:enumeration value="SCPC" />
     </xsd:restriction>
@@ -148,7 +150,7 @@
         <xsd:attribute name="access_type" type="upAccessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of multiplexing (DAMA, ALOHA, SCPC)
+                    The type of multiplexing (DAMA, DAMA_RCS2, ALOHA, SCPC)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -647,6 +649,16 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="modcod_def_rcs2" type="file">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The MODCOD definition file for RCS2 return/up link
+                        <default>modcod/rcs2/definition_RLE.txt</default>
+                        <source>modcod/rcs2/modcod.txt</source>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+
             <xsd:element name="spot" minOccurs="1" maxOccurs="32">
                  <xsd:complexType>
                     <xsd:sequence>

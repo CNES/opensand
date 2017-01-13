@@ -44,13 +44,14 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanva
 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.utils import FORWARD_DOWN, RETURN_UP, CCM, ACM, VCM,\
-                                        DAMA, ALOHA, SCPC
+                                        DAMA_RCS, DAMA_RCS2, ALOHA, SCPC
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 
 
 MODCOD_DEF_S2="modcod_def_s2"
 MODCOD_DEF_RCS="modcod_def_rcs"
+MODCOD_DEF_RCS2="modcod_def_rcs2"
 
 class ModcodParameter(WindowView):
     """ an modcod configuration window """
@@ -87,7 +88,7 @@ class ModcodParameter(WindowView):
         self._frame_access_type.set_shadow_type(gtk.SHADOW_OUT)
         self._hbox_modcod.pack_start(self._frame_access_type,padding = 10)
         #Add frame_modcod in hbox_modcod
-        self._frame_modcod = gtk.Frame(label="MODCOD")
+        self._frame_modcod = gtk.Frame(label="Wave Form")
         self._frame_modcod.set_shadow_type(gtk.SHADOW_OUT)
         self._hbox_modcod.pack_start(self._frame_modcod, padding = 25)
 
@@ -148,6 +149,9 @@ class ModcodParameter(WindowView):
 
 
     def load(self):
+        #Get the access type
+        access_type = self._list_carrier[self._carrier_id - 1].get_access_type()
+
         #Add the access type button for forward or return
         if self._link == FORWARD_DOWN:
             #Add radio button
@@ -171,14 +175,17 @@ class ModcodParameter(WindowView):
             self._vbox_access_type.pack_start(self._vcm_radio,
                                               expand=True, fill=True)
         elif self._link == RETURN_UP:
-            self._dama_radio = gtk.RadioButton(group=None, label=DAMA,
+            self._dama_radio = gtk.RadioButton(group=None, label="DAMA",
                                                use_underline=True)
             self._aloha_radio = gtk.RadioButton(group=self._dama_radio,
                                                 label=ALOHA,
                                                 use_underline=True)
             self._scpc_radio = gtk.RadioButton(group=self._dama_radio,
                                                label=SCPC, use_underline=True)
-            self._dama_radio.connect("toggled", self.on_toggled)
+            if access_type != DAMA_RCS2: 
+                self._dama_radio.connect("toggled", self.on_toggled)
+            else:
+                self._dama_radio.connect("toggled", self.on_dama_rcs2_toggled)
             self._aloha_radio.connect("toggled", self.on_toggled)
             self._scpc_radio.connect("toggled", self.on_scpc_toggled)
             self._vbox_access_type.pack_start(self._dama_radio,
@@ -192,16 +199,14 @@ class ModcodParameter(WindowView):
                 self._aloha_radio.set_sensitive(False)
                 self._scpc_radio.set_sensitive(False)
 
-
         #Load access type from the carrier
-        access_type = self._list_carrier[self._carrier_id - 1].get_access_type()
         if access_type == CCM:
             self._ccm_radio.toggled()
         elif access_type == ACM:
             self._acm_radio.set_active(True)
         elif access_type == VCM:
             self._vcm_radio.set_active(True)
-        elif access_type == DAMA:
+        elif access_type in [DAMA_RCS, DAMA_RCS2]:
             self._dama_radio.toggled()
         elif access_type == ALOHA:
             self._aloha_radio.set_active(True)
@@ -247,6 +252,14 @@ class ModcodParameter(WindowView):
 
         self._vbox.show_all()
 
+    @staticmethod
+    def get_modcod_label(entry):
+        if len(entry) < 5:
+            return ""
+        label = "{} - {} {}".format(entry[0], entry[1], entry[2])
+        if len(entry) == 6:
+            label += " - {} sym".format(entry[5])
+        return label
 
     def set_modcod_widgets(self, source, is_radio, option=None):
         """ Create a list of widget with list of modcods """
@@ -268,6 +281,11 @@ class ModcodParameter(WindowView):
                     self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
                     self._vbox_modcods.reorder_child(self._check_modcod, 0)
                 path = global_conf.get_param(MODCOD_DEF_S2)
+            elif option == DAMA_RCS2:
+                if self._check_modcod not in self._vbox_modcods.get_children():
+                    self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
+                    self._vbox_modcods.reorder_child(self._check_modcod, 0)
+                path = global_conf.get_param(MODCOD_DEF_RCS2)
             else:
                 if self._check_modcod in self._vbox_modcods.get_children():
                     self._vbox_modcods.remove(self._check_modcod)
@@ -282,22 +300,23 @@ class ModcodParameter(WindowView):
             check_modcod = None
             for modcod in modcod_list:
                 #In radio button the first radio have no group
+                modcod_label = ModcodParameter.get_modcod_label(modcod)
                 if is_radio:
                     radio_group = None
                     if modcod == modcod_list[0]:
                         #Default value for ratio is 10
                         if modcod in self._list_modcod_ratio.keys():
-                            self._dico_modcod[modcod[1] + " " + modcod[2]] = \
+                            self._dico_modcod[modcod_label] = \
                                 self._list_modcod_ratio[modcod]
                         else:
-                            self._dico_modcod[modcod[1] + " " + modcod[2]] = 10
+                            self._dico_modcod[modcod_label] = 10
                     else:
                         radio_group = self._item_list[0]
                     check_modcod = gtk.RadioButton(group = radio_group,
-                                                   label = modcod[1] + " " + modcod[2],
+                                                   label = modcod_label,
                                                    use_underline = True)
                 else:
-                    check_modcod = gtk.CheckButton(label = modcod[1] + " " + modcod[2],
+                    check_modcod = gtk.CheckButton(label = modcod_label,
                                                    use_underline = True)
                 tooltip.set_tip(check_modcod, "Spectral_efficiency : "
                                 + modcod[3] + "\nRequired Es/N0 : " + modcod[4])
@@ -350,6 +369,10 @@ class ModcodParameter(WindowView):
         """Signal when acm button change"""
         self.set_modcod_widgets(source, False, SCPC)
 
+    def on_dama_rcs2_toggled(self, source=None):
+        """Signal when acm button change"""
+        self.set_modcod_widgets(source, False, DAMA_RCS2)
+
 
     def on_toggled(self, source=None):
         self.set_modcod_widgets(source, True)
@@ -390,12 +413,12 @@ class ModcodParameter(WindowView):
                     line.startswith('nb_fmt')):
                     continue
                 elts = line.split()
-                if len(elts) != 5:
+                if len(elts) != 5 and len(elts) != 6:
                     continue
                 if not elts[0].isdigit:
                     continue
                 # id, modulation, coding_rate, spectral_efficiency, required Es/N0
-                mc_list.append([elts[0], elts[1], elts[2], elts[3], elts[4]])
+                mc_list.append(elts)
 
         return mc_list
 
@@ -478,6 +501,8 @@ class ModcodParameter(WindowView):
         for button in all_access_type:
             if button.get_active():
                 access_type = button.get_label()
+        if access_type == "DAMA":
+            access_type = self._model.get_conf().get_dama_standard()
         return access_type
 
 

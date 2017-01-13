@@ -38,7 +38,8 @@ import os
 import shutil
 
 from opensand_manager_core.utils import OPENSAND_PATH, \
-                                        SPOT, ID, GW
+                                        SPOT, ID, GW, \
+                                        DAMA_RCS, DAMA_RCS2
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import XmlException, ModelException
@@ -58,6 +59,7 @@ class GlobalConfig(AdvancedHostModel):
         self._forward_down = {}
         self._return_up = {}
         self._enable_phy_layer = None
+        self._dama_std = DAMA_RCS
 
     def load(self, scenario):
         """ load the global configuration """
@@ -96,6 +98,11 @@ class GlobalConfig(AdvancedHostModel):
         except XmlException, msg:
             raise ModelException("failed to parse configuration: %s"
                                  % msg)
+        try:
+            if self._return_up[self._return_up.keys()[-1]] == RLE:
+                self._dama_std = DAMA_RCS2
+        except:
+            pass
 
     def cancel(self):
         self.load(self._scenario)
@@ -218,6 +225,11 @@ class GlobalConfig(AdvancedHostModel):
                 pass
         return val
 
+    def get_dama_standard(self):
+        """ get the DAMA standard (DVB-RCS or DVB-RCS2) """
+        return self._dama_std
         
-
+    def set_dama_standard(self, dama_std):
+        """ set the DAMA standard (DVB-RCS or DVB-RCS2) """
+        self._dama_std = dama_std
 

@@ -39,7 +39,7 @@ carrier_arithmetic.py - the configuration tab view
 from opensand_manager_core.utils import BANDWIDTH
 from opensand_manager_core.carriers_band import CarriersBand
 
-from opensand_manager_core.utils import DAMA, SCPC, ALOHA, VCM, ACM, CCM
+from opensand_manager_core.utils import DAMA_RCS, DAMA_RCS2, SCPC, ALOHA, VCM, ACM, CCM
 
 
 class CarrierArithmetic:
@@ -71,7 +71,8 @@ class CarrierArithmetic:
                        VCM: '--',
                        SCPC: ':',
                        ALOHA: '--',
-                       DAMA: '-',}
+                       DAMA_RCS: '-',
+                       DAMA_RCS2: '-',}
                 
         self._bandwidth = 0
         #Trace the graphe

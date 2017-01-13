@@ -91,10 +91,11 @@ class View(WindowView):
             self._eventrun = RunEvent(self.get_current(), self._model,
                                       dev_mode, adv_mode, self._log,
                                       service_type)
-            self._eventconf = ConfEvent(self.get_current(),
-                                        self._model, self._log)
             self._eventresource = ResourceEvent(self.get_current(),
                                                 self._model, self._log)
+            self._eventconf = ConfEvent(self.get_current(),
+                                        self._model, self._log, 
+                                        self._eventresource.update_view)
             self._eventtool = ToolEvent(self.get_current(),
                                         self._model, self._log)
             self._eventprobe = ProbeEvent(self.get_current(),

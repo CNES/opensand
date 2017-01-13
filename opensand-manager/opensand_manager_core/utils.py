@@ -66,6 +66,7 @@ CATEGORY    = "category"
 
 # Band
 RCS               = "rcs"
+RCS2              = "rcs2"
 S2                = "s2"
 FORWARD_DOWN      = "forward_down"
 RETURN_UP         = "return_up"
@@ -83,7 +84,8 @@ ACCESS_TYPE       = "access_type"
 CCM               = "CCM"
 ACM               = "ACM"
 VCM               = "VCM"
-DAMA              = "DAMA"
+DAMA_RCS          = "DAMA"
+DAMA_RCS2         = "DAMA_RCS2"
 ALOHA             = "ALOHA"
 SCPC              = "SCPC"
 
@@ -93,6 +95,7 @@ FORWARD_DOWN_BAND = "forward_down_band"
 PHYSICAL_LAYER    = "physical_layer"
 
 GSE      = "GSE"
+RLE      = "RLE"
 AAL5_ATM = "AAL5/ATM"
 
 # Topology

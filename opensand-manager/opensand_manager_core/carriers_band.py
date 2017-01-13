@@ -40,7 +40,7 @@ from fractions import Fraction
 from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, \
         OPENSAND_PATH, ID, FMT_ID, FMT_GROUP, \
         RATIO, ACCESS_TYPE, SYMBOL_RATE, CATEGORY, \
-        RCS, S2
+        RCS, RCS2, S2
 from opensand_manager_core.carrier import Carrier, find_category
 
 XSD = OPENSAND_PATH + "core_global.xsd"
@@ -61,7 +61,8 @@ class CarriersBand():
         self._carriers_groups = {}
         self._fmt_group = {}
         self._fmt = {S2: {},
-                     RCS: {},}
+                     RCS: {},
+                     RCS2: {},}
 
     def parse(self, link, config, KEY):
         """ parse configuration and get results """
@@ -97,7 +98,7 @@ class CarriersBand():
 
     def modcod_def(self, scenario, config, compute=True):
         # ACM
-        for std in [RCS, S2]:
+        for std in [RCS, RCS2, S2]:
             xpath = "//modcod_def_%s" % (std)
             elem = config.get(xpath)
             name = config.get_name(elem)
@@ -111,20 +112,22 @@ class CarriersBand():
         """ load the FMT definitions """
         with  open(path, 'r') as modcod_def:
             fmt = {}
+            index = 1
             for line in modcod_def:
                 if (line.startswith("/*") or 
                     line.isspace() or
                     line.startswith('nb_fmt')):
                     continue
                 elts = line.split()
-                if len(elts) != 5:
+                if len(elts) != 5 and len(elts) != 6:
                     continue
                 if not elts[0].isdigit:
                     continue
                 # id, modulation, coding_rate, spectral_efficiency, required Es/N0
                 # fmt[7] = _Fmt("QPSK", "6/7", 1.714, 9.34)
-                fmt[int(elts[0])] = _Fmt(elts[1], elts[2],
+                fmt[index] = _Fmt(int(elts[0]), elts[1], elts[2],
                                          float(elts[3]), float(elts[4]))
+                index += 1
             self._fmt[std] = fmt
 
     def create_carrier(self, name, category, access_type, ratios, symbol_rate_baud, fmt_groups):
@@ -300,11 +303,16 @@ class CarriersBand():
 class _Fmt():
     """ A FMT definition """
 
-    def __init__(self, modulation, coding_rate, spectral_efficiency,
-                 required_es_n0):
+    def __init__(self, index, modulation, coding_rate, 
+                 spectral_efficiency, required_es_n0):
+        self._index = index
         self._modulation = modulation
         self._coding_rate = Fraction(coding_rate)
         self._spectral_efficiency = spectral_efficiency
+
+    @property
+    def index(self):
+        return self._index
 
     @property
     def modulation(self):
@@ -315,10 +323,12 @@ class _Fmt():
             return 2
         elif self._modulation == "8PSK":
             return 3
-        elif self._modulation == "16APSK":
+        elif self._modulation in ["16APSK", "16QAM"]:
             return 4
         elif self._modulation == "32APSK":
             return 5
+        msg = "Unknown modulation \"{}\"".format(self._modulation)
+        raise Exception(msg)
 
     @property
     def coding_rate(self):

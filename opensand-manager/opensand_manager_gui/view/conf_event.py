@@ -38,7 +38,10 @@ conf_event.py - the events on configuration tab
 import gtk
 import gobject
 
-from opensand_manager_core.utils import GW, GSE
+from opensand_manager_core.utils import get_conf_xpath, GSE, RLE, \
+                                        DAMA_RCS, DAMA_RCS2, RETURN_UP, \
+                                        RETURN_UP_BAND, SPOT, ID, GW, \
+                                        CARRIERS_DISTRIB, ACCESS_TYPE
 from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
@@ -47,10 +50,11 @@ from opensand_manager_gui.view.popup.advanced_dialog import AdvancedDialog
 class ConfEvent(ConfView) :
     """ Events on configuration tab """
 
-    def __init__(self, parent, model, manager_log):
+    def __init__(self, parent, model, manager_log, update_carriers_cb):
         ConfView.__init__(self, parent, model, manager_log)
 
         self._modif = False
+        self._update_carriers_cb = update_carriers_cb
 
         self._previous_img = ''
         # update the image
@@ -456,6 +460,34 @@ class ConfEvent(ConfView) :
                 error_popup("One terminal is SCPC, forward encapsulation should be GSE")
                 return 
         config.set_forward_down_encap(self._in_stack.get_stack())
+
+        # update carriers access type
+        configuration = config.get_configuration()
+        new_access_type = DAMA_RCS
+        old_access_type = DAMA_RCS2
+        stack = self._out_stack.get_stack()
+        if stack[stack.keys()[-1]] == RLE:
+            new_access_type = DAMA_RCS2
+            old_access_type = DAMA_RCS
+        xpath = "//" + RETURN_UP_BAND
+        update = False
+        for item in configuration.get(xpath):
+            if item.tag != SPOT:
+                continue
+            spot = item.get(ID)
+            gw = item.get(GW)
+            xpath = get_conf_xpath(CARRIERS_DISTRIB, RETURN_UP, spot, gw)
+            table = configuration.get(xpath)
+            index = 0
+            for carrier in configuration.get_table_elements(table):
+                access_type = configuration.get_element_content(carrier)[ACCESS_TYPE]
+                if access_type == old_access_type:
+                    xpath = configuration.get_path(carrier)
+                    configuration.set_value(new_access_type, xpath, ACCESS_TYPE)
+                    update = True
+        config.set_dama_standard(new_access_type)
+        if update:
+            self._update_carriers_cb(True)
 
         # enable physical layer
         widget = self._ui.get_widget('enable_physical_layer')

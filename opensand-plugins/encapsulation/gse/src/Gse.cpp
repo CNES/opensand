@@ -126,6 +126,7 @@ Gse::Gse():
 	this->upper[TRANSPARENT].push_back("Ethernet");
 	this->upper[REGENERATIVE].push_back("AAL5/ATM");
 	this->upper[REGENERATIVE].push_back("MPEG2-TS");
+	this->upper[REGENERATIVE].push_back("RLE");
 }
 
 

@@ -38,7 +38,8 @@ carrier.py - Satellite carrier handling
 import numpy as np
 import re
 
-from opensand_manager_core.utils import DAMA, SCPC, ALOHA, VCM, CCM, ACM, S2, RCS
+from opensand_manager_core.utils import DAMA_RCS, DAMA_RCS2, SCPC, ALOHA, VCM, CCM, ACM, \
+                                        S2, RCS, RCS2
 
 class Carrier :
     """
@@ -146,8 +147,10 @@ class Carrier :
         self._access_type = access_type
         if access_type in [SCPC, CCM, ACM, VCM]:
             self._std = S2
-        elif access_type in [DAMA, ALOHA]:
+        elif access_type in [DAMA_RCS, ALOHA]:
             self._std = RCS
+        elif access_type == DAMA_RCS2:
+            self._std = RCS2
         else:
             raise Exception("Unknown access type %s" % access_type)
 

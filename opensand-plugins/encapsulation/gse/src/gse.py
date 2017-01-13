@@ -44,7 +44,8 @@ class GseModule(EncapModule):
         EncapModule.__init__(self)
         self._handle_upper_bloc = True
         self._upper['regenerative'] = ("AAL5/ATM",
-                                       "MPEG2-TS",)
+                                       "MPEG2-TS",
+                                       "RLE",)
         self._xml = 'gse.conf'
         self._xsd  = 'gse.xsd'
         start = "<span size='x-large' foreground='#1088EB'><b>"
