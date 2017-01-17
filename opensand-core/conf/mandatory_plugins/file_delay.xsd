@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="file" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- common types -->
+<xsd:simpleType name="file">
+    <xsd:restriction base="xsd:string">
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="msTime">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1" />
+	<xsd:maxInclusive value="2000" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- the file section desscription -->
+<xsd:element name="file">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The file satellite delay configuration
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="refresh_period" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Satellite delay refresh period (ms)
+                        <unit>ms</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="path" type="file">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The satellite delay file path in file format
+                        <default>plugins/satdelay.csv</default>
+                        <source>plugins/satdelay.csv</source>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="loop_mode" type="xsd:boolean">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Whether we return on the file beginning at the end
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="file" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>

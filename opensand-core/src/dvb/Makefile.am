@@ -1,4 +1,4 @@
-SUBDIRS = utils fmt dama switch ncc_interface saloha core
+SUBDIRS = utils fmt dama switch ncc_interface saloha core plugins
 
 noinst_LTLIBRARIES = libopensand_dvb.la
 

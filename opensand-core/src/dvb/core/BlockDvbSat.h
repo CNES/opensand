@@ -33,6 +33,7 @@
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  *
  * <pre>
  *
@@ -52,7 +53,7 @@
 #ifndef BLOC_DVB_SAT_H
 #define BLOC_DVB_SAT_H
 
-
+#include "DvbPlugin.h"
 #include "BlockDvb.h"
 #include "SatGw.h"
 #include "PhysicStd.h" 
@@ -86,6 +87,8 @@ class BlockDvbSat: public BlockDvb
 		
 		void setGws(const sat_gws_t &gws);
 		
+		void setSatDelay(SatDelayPlugin *sat_delay);
+
 
 	 protected: 
 		/// reception standard (DVB-RCS or DVB-S2)      
@@ -183,9 +186,8 @@ class BlockDvbSat: public BlockDvb
 		/// The satellite spots
 		sat_gws_t gws;
 
-
-		/// The satellite delay to emulate
-		time_ms_t sat_delay;
+		/// The satellite delay
+		SatDelayPlugin *sat_delay;
 	};
 
 	class Downward: public DvbDownward
@@ -198,7 +200,10 @@ class BlockDvbSat: public BlockDvb
 		bool onInit(void);
 		
 		bool onEvent(const RtEvent *const event);
+
 		void setGws(const sat_gws_t &gws);
+
+		void setSatDelay(SatDelayPlugin *sat_delay);
 		
 	 
 	 protected:
@@ -261,12 +266,15 @@ class BlockDvbSat: public BlockDvb
 		/// the counter for downlink frames
 		time_sf_t down_frame_counter;
 
-		/// The satellite delay to emulate
-		time_ms_t sat_delay;
+		/// The satellite delay plugin
+		SatDelayPlugin *sat_delay;
 
 		/// timer used to awake the block regurlarly in order to send frames
 		//  and schedule in regenerative scenario
 		event_id_t fwd_timer;
+
+		/// timer for updating sat delay
+		event_id_t sat_delay_timer;
 
 		/// The terminal affectation for forward band
 		TerminalMapping<TerminalCategoryDama> terminal_affectation;
@@ -287,12 +295,15 @@ class BlockDvbSat: public BlockDvb
 		// Output probes and stats
 		typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
 
-			// Frame interval
+		// Satellite delay probe
+		Probe<int> *probe_satdelay;
+
+		// Frame interval
 		Probe<float> *probe_frame_interval;
 	};
 
 
-  protected:
+ protected:
 
 	bool onInit();
 
@@ -313,6 +324,8 @@ class BlockDvbSat: public BlockDvb
 	//  they are also used in upward and downward, be careful
 	sat_gws_t gws;
 
+	/// The satellite delay plugin
+	SatDelayPlugin *sat_delay;
 
 };
 #endif

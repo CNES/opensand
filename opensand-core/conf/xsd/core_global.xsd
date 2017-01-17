@@ -63,6 +63,13 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="delayType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ConstantDelay" />
+        <xsd:enumeration value="FileDelay" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <!-- types for band sections -->
 <xsd:simpleType name="Category">
     <xsd:restriction base="xsd:string">
@@ -340,11 +347,10 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="delay" type="msTime">
+            <xsd:element name="delay" type="delayType">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The delay to simulate (in ms)
-                        <unit>ms</unit>
+                        The type of delay to simulate
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

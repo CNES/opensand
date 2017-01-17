@@ -318,10 +318,11 @@ class AdvancedDialog(WindowView):
         if self._current_host.get_modules() != []:
             all_modules = list(self._current_host.get_modules())
             # header modifications modules have their configuration in st and gw
-            # but a global target si get them
+            # but a global target, so get them
             all_modules += self._model.get_global_lan_adaptation_modules().values()
         else:
             all_modules = self._model.get_global_lan_adaptation_modules().values()
+        all_modules += self._model.get_global_satdelay_modules().values()
 
         if self._all_modules:
             return all_modules
@@ -342,6 +343,10 @@ class AdvancedDialog(WindowView):
         try:
             modules += adv.get_stack("forward_down_encap_schemes",
                                      'encap').itervalues()
+        except ModelException:
+            pass
+        try:
+            modules += adv.get_params("delay")
         except ModelException:
             pass
         if with_phy_layer == "true":

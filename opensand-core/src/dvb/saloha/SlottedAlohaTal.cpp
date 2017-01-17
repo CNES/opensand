@@ -31,6 +31,7 @@
  * @brief The Slotted Aloha
  * @author Vincent WINKEL <vincent.winkel@thalesaleniaspace.com> <winkel@live.fr>
  * @author Julien Bernard / Viveris technologies
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com> / Viveris technologies
 */
 
 #include "SlottedAlohaTal.h"
@@ -68,6 +69,8 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	time_ms_t timeout_ms;
 	time_ms_t min_timeout_ms;
 	string backoff_name;
+	string satdelay_name;
+	SatDelayPlugin *satdelay_plugin;
 
 	// Ensure parent init has been done
 	if(!this->is_parent_init)
@@ -125,14 +128,28 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		    SALOHA_SECTION, SALOHA_TIMEOUT);
 		return false;
 	}
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], SAT_DELAY, sat_delay_ms))
+	// Get sat delay model
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], SAT_DELAY, satdelay_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
 		    COMMON_SECTION, SAT_DELAY);
 		return false;
 	}
-
+	if(!Plugin::getSatDelayPlugin(satdelay_name, &satdelay_plugin))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "error when getting sat delay plugin");
+		return false;
+	}
+	sat_delay_ms = satdelay_plugin->getMaxDelay();
+	// This value should never be 0 (error)
+	if (sat_delay_ms == 0)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "error with max sat_delay_ms value: should not be zero");
+		return false;
+	}
 	timeout_ms = this->timeout_saf * this->frame_duration_ms * this->sf_per_saframe;
 	min_timeout_ms = 2 * sat_delay_ms + this->sf_per_saframe * this->frame_duration_ms;
 	if (timeout_ms <= min_timeout_ms)

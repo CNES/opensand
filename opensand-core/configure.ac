@@ -100,6 +100,9 @@ AC_CONFIG_FILES([ \
 	src/dvb/core/Makefile \
 	src/dvb/core/regenerative/Makefile \
 	src/dvb/core/transparent/Makefile \
+	src/dvb/plugins/Makefile \
+	src/dvb/plugins/constant/Makefile \
+	src/dvb/plugins/file/Makefile \
 	src/encap/Makefile \
 	src/lan_adaptation/Makefile \
 	src/lan_adaptation/tests/Makefile \

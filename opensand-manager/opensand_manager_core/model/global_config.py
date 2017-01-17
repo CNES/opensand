@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 global_configuration.py - the global configuration description
@@ -53,6 +54,7 @@ class GlobalConfig(AdvancedHostModel):
     def __init__(self, scenario):
         AdvancedHostModel.__init__(self, 'global', scenario)
         self._payload_type = ''
+        self._delay_type = ''
         self._emission_std = ''
 #        self._dama = ''
         self._forward_down = {}
@@ -160,6 +162,14 @@ class GlobalConfig(AdvancedHostModel):
     def get_payload_type(self):
         """ get the payload_type value """
         return self.get_param('satellite_type')
+
+    def set_delay_type(self, val):
+        """ set the delay_type value """
+        self._delay_type = val
+
+    def get_delay_type(self):
+        """ get the delay_type value """
+        return self.get_param('delay')
 
     def set_emission_std(self, val):
         """ set the payload_type value """

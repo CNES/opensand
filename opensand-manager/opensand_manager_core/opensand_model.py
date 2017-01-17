@@ -712,6 +712,14 @@ class Model:
                 modules[module.get_name()] = module
         return modules
 
+    def get_global_satdelay_modules(self):
+        """ get the global satellite delay modules {name: module} """
+        modules = {}
+        for module in self._modules:
+            if module.get_type() == "satdelay":
+                modules[module.get_name()] = module
+        return modules
+
     def get_missing(self):
         """ get the missing module list """
         return self._missing_modules

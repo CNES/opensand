@@ -37,6 +37,7 @@
 #ifndef PLUGIN_UTILS_HEADER_H
 #define PLUGIN_UTILS_HEADER_H
 
+#include "DvbPlugin.h"
 #include "EncapPlugin.h"
 #include "LanAdaptationPlugin.h"
 #include "PhysicalLayerPlugin.h"
@@ -70,6 +71,7 @@ class PluginUtils
 	pl_list_t attenuation;
 	pl_list_t minimal;
 	pl_list_t error;
+	pl_list_t sat_delay;
 	vector <void *> handlers;
 	vector<OpenSandPlugin *> plugins;
 
@@ -109,6 +111,16 @@ class PluginUtils
 	 */
 	bool getLanAdaptationPlugin(string name,
 	                            LanAdaptationPlugin **lan_adaptation);
+
+	/**
+	 * @brief get a satellite delay plugin
+	 *
+	 * @param name           The name of the satellite delay plugin
+	 * @param sat_delay      The satellite delay plugin
+	 * @return true on success, false otherwise
+	 */
+	bool getSatDelayPlugin(string name,
+	                       SatDelayPlugin **sat_delay);
 
 	/**
 	 * @brief get physical layer plugins

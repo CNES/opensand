@@ -45,6 +45,8 @@
 #include "DvbFifo.h"
 #include "DvbFrame.h"
 #include "NetBurst.h"
+#include "DvbPlugin.h"
+#include "Plugin.h"
 
 #include <list>
 

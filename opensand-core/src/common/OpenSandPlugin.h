@@ -51,6 +51,7 @@ typedef enum
 	attenuation_plugin,
 	minimal_plugin,
 	error_plugin,
+	satdelay_plugin,
 } plugin_type_t;
 
 class OpenSandPlugin;

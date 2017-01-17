@@ -33,6 +33,7 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 #include "BlockDvbSatTransp.h"
@@ -89,23 +90,18 @@ BlockDvbSatTransp::DownwardTransp::~DownwardTransp()
 
 bool BlockDvbSatTransp::DownwardTransp::initSatLink(void)
 {
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               SAT_DELAY, this->sat_delay))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SAT_DELAY);
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "Satellite delay = %d\n", this->sat_delay);
-
 	return true;
 }
 
 
 bool BlockDvbSatTransp::DownwardTransp::initTimers(void)
 {
+	// create satellite delay timer, if there is a refresh period
+  if(this->sat_delay->getRefreshPeriod())
+  {
+    this->sat_delay_timer = this->addTimerEvent("sat_delay",
+                                                this->sat_delay->getRefreshPeriod());
+  }
 	// create frame timer (also used to send packets waiting in fifo)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                       this->fwd_down_frame_duration_ms);
@@ -170,19 +166,6 @@ BlockDvbSatTransp::UpwardTransp::~UpwardTransp()
 
 bool BlockDvbSatTransp::UpwardTransp::initMode(void)
 {
-	// Delay to apply to the medium
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
-		               SAT_DELAY, this->sat_delay))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SAT_DELAY);
-		goto error;
-	}
-	    
-	LOG(this->log_init, LEVEL_NOTICE,
-	     "Satellite delay = %d", this->sat_delay);
-
 	// create the reception standard
 	this->reception_std = new DvbRcsStd(); 
 	
@@ -198,8 +181,6 @@ bool BlockDvbSatTransp::UpwardTransp::initMode(void)
 error:
 	return false;
 }
-
-
 
 bool BlockDvbSatTransp::UpwardTransp::initSwitchTable(void)
 {

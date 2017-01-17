@@ -132,6 +132,28 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer, string conf_path)
 
 				switch(plugin->type)
 				{
+					case satdelay_plugin:
+					{
+						pl_list_it_t plug;
+
+						// if we load twice the same plugin, keep the first one
+						// this is why LD_LIBRARY_PATH should be first in the paths
+						plug = this->sat_delay.find(plugin->name);
+						if(plug == this->sat_delay.end())
+						{
+							LOG(this->log_init, LEVEL_NOTICE,
+							    "load satdelay plugin %s\n",
+							    plugin->name.c_str());
+							this->sat_delay[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
+						}
+						else
+						{
+							dlclose(handle);
+						}
+					}
+					break;
+
 					case encapsulation_plugin:
 					{
 						pl_list_it_t plug;
@@ -312,6 +334,26 @@ bool PluginUtils::getEncapsulationPlugin(string name,
 		return false;
 	}
 	this->plugins.push_back(*encapsulation);
+
+	return true;
+};
+
+bool PluginUtils::getSatDelayPlugin(string name,
+	                                  SatDelayPlugin **sat_delay)
+{
+	fn_create create;
+
+	create = this->sat_delay[name];
+	if(!create)
+	{
+		return false;
+	}
+	*sat_delay = dynamic_cast<SatDelayPlugin *>(create(this->conf_path));
+	if(*sat_delay == NULL)
+	{
+		return false;
+	}
+	this->plugins.push_back(*sat_delay);
 
 	return true;
 };
