@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
 
 """
 global_configuration.py - the global configuration description
@@ -39,7 +40,7 @@ import shutil
 
 from opensand_manager_core.utils import OPENSAND_PATH, \
                                         SPOT, ID, GW, \
-                                        DAMA_RCS, DAMA_RCS2
+                                        DAMA
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import XmlException, ModelException
@@ -54,12 +55,12 @@ class GlobalConfig(AdvancedHostModel):
     def __init__(self, scenario):
         AdvancedHostModel.__init__(self, 'global', scenario)
         self._payload_type = ''
+        self._return_link_std = ''
         self._emission_std = ''
-#        self._dama = ''
+        #self._dama = ''
         self._forward_down = {}
         self._return_up = {}
         self._enable_phy_layer = None
-        self._dama_std = DAMA_RCS
 
     def load(self, scenario):
         """ load the global configuration """
@@ -98,11 +99,6 @@ class GlobalConfig(AdvancedHostModel):
         except XmlException, msg:
             raise ModelException("failed to parse configuration: %s"
                                  % msg)
-        try:
-            if self._return_up[self._return_up.keys()[-1]] == RLE:
-                self._dama_std = DAMA_RCS2
-        except:
-            pass
 
     def cancel(self):
         self.load(self._scenario)
@@ -112,7 +108,9 @@ class GlobalConfig(AdvancedHostModel):
         try:
             self._configuration.set_value(self._payload_type,
                                           "//satellite_type")
-#            self._configuration.set_value(self._dama, "//dama_algorithm")
+            #self._configuration.set_value(self._dama, "//dama_algorithm")
+            self._configuration.set_value(self._return_link_std,
+                                          "//return_link_standard")
             self.set_stack('forward_down_encap_schemes',
                            self._forward_down, 'encap')
             self.set_stack('return_up_encap_schemes',
@@ -167,6 +165,14 @@ class GlobalConfig(AdvancedHostModel):
     def get_payload_type(self):
         """ get the payload_type value """
         return self.get_param('satellite_type')
+
+    def set_return_link_standard(self, val):
+        """ set the return_link_std value """
+        self._return_link_std = val
+
+    def get_return_link_standard(self):
+        """ get the return_link_std value """
+        return self.get_param('return_link_standard')
 
     def set_emission_std(self, val):
         """ set the payload_type value """
@@ -224,12 +230,3 @@ class GlobalConfig(AdvancedHostModel):
             except:
                 pass
         return val
-
-    def get_dama_standard(self):
-        """ get the DAMA standard (DVB-RCS or DVB-RCS2) """
-        return self._dama_std
-        
-    def set_dama_standard(self, dama_std):
-        """ set the DAMA standard (DVB-RCS or DVB-RCS2) """
-        self._dama_std = dama_std
-

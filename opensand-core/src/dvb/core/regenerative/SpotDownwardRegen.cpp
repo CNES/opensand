@@ -79,7 +79,7 @@ bool SpotDownwardRegen::onInit(void)
 	// we use RCS as input because we will consider
 	// the terminal to satellite link and not the satellite
 	// to GW link
-	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
+	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
 	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

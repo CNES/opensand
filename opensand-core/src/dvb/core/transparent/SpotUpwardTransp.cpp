@@ -231,7 +231,7 @@ bool SpotUpwardTransp::initModcodSimu(void)
 		    "failed to initialize the forward MODCOD file\n");
 		return false;
 	}
-	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
+	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
 	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

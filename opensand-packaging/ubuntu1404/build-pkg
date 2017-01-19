@@ -90,13 +90,13 @@ build()
 
 error()
 {
-    echo "Error!"
+    echo "ERROR!"
     exit 1
 }
 
 success()
 {
-    echo "DONE!"
+    echo "done."
 }
 
 move()

@@ -60,18 +60,35 @@ bool AcmLoop::init(void)
 {
 	string filename_rcs;
 	string filename_s2;
+	string modcod_def_rcs;
+	
+	return_link_standard_t return_link_standard;
+	
+	// return link standard type
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		               RETURN_LINK_STANDARD,
+	                   modcod_def_rcs))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    COMMON_SECTION, RETURN_LINK_STANDARD);
+		return false;
+	}
+	return_link_standard = strToReturnLinkStd(modcod_def_rcs);
+	modcod_def_rcs = return_link_standard == DVB_RCS ?
+	                 MODCOD_DEF_RCS : MODCOD_DEF_RCS2;
 
 	// get appropriate MODCOD definitions for receving link
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
-		               MODCOD_DEF_RCS,
+	                   modcod_def_rcs.c_str(),
 	                   filename_rcs))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, MODCOD_DEF_RCS);
+		    PHYSICAL_LAYER_SECTION, modcod_def_rcs.c_str());
 		return false;
 	}
-	
+
 	// get appropriate MODCOD definitions for receving link
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
 		               MODCOD_DEF_S2,

@@ -39,7 +39,7 @@ carrier_arithmetic.py - the configuration tab view
 from opensand_manager_core.utils import BANDWIDTH
 from opensand_manager_core.carriers_band import CarriersBand
 
-from opensand_manager_core.utils import DAMA_RCS, DAMA_RCS2, SCPC, ALOHA, VCM, ACM, CCM
+from opensand_manager_core.utils import DAMA, SCPC, ALOHA, VCM, ACM, CCM
 
 
 class CarrierArithmetic:
@@ -71,8 +71,7 @@ class CarrierArithmetic:
                        VCM: '--',
                        SCPC: ':',
                        ALOHA: '--',
-                       DAMA_RCS: '-',
-                       DAMA_RCS2: '-',}
+                       DAMA: '-',}
                 
         self._bandwidth = 0
         #Trace the graphe
@@ -100,9 +99,10 @@ class CarrierArithmetic:
     def update_rates(self, fmt_group):
         """Update Rate"""
         config = self._model.get_conf().get_configuration()
+        ret_lnk_std = self._model.get_conf().get_return_link_standard()
         carriers_band = CarriersBand() 
         carriers_band.modcod_def(self._model.get_scenario(), 
-                                 config, False)
+                                 config, ret_lnk_std, False)
         
         for carrier in self._list_carrier:
             carriers_band.add_carrier(carrier, carrier.get_old_category(config))

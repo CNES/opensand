@@ -644,7 +644,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// init fmt_simu
-	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
+	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
 	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

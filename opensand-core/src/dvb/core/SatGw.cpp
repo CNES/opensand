@@ -123,6 +123,7 @@ SatGw::~SatGw()
 bool SatGw::init()
 {
 	string sat_type;
+	string ret_lnk_std;
 	sat_type_t satellite_type;
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
@@ -146,8 +147,19 @@ bool SatGw::init()
 	satellite_type = strToSatType(sat_type);
 
 	if(satellite_type ==  REGENERATIVE)
-	{	
-		if(!this->initModcodSimu())
+	{
+		// return link standard type
+		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		                   RETURN_LINK_STANDARD,
+		                   ret_lnk_std))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "section '%s': missing parameter '%s'\n",
+			    COMMON_SECTION, RETURN_LINK_STANDARD);
+			return false;
+		}
+		
+		if(!this->initModcodSimu(strToReturnLinkStd(ret_lnk_std)))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to initialize modcod simulation\n");
@@ -226,7 +238,7 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 }
 
 
-bool SatGw::initModcodSimu(void)
+bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
 {
 	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
 	                             this->gw_id, this->spot_id))
@@ -236,7 +248,8 @@ bool SatGw::initModcodSimu(void)
 		    "initialisation\n");
 		return false;
 	}
-	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
+	if(!this->initModcodDefFile(return_link_standard == DVB_RCS2 ?
+	                            MODCOD_DEF_RCS2 : MODCOD_DEF_RCS,
 	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

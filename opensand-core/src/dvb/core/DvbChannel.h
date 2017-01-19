@@ -75,6 +75,8 @@ class DvbChannel
  public:
 	DvbChannel():
 		satellite_type(),
+		return_link_standard(),
+		modcod_def_rcs_type(""),
 		super_frame_counter(0),
 		fwd_down_frame_duration_ms(),
 		ret_up_frame_duration_ms(),
@@ -269,9 +271,14 @@ class DvbChannel
 	bool carriersTransfer(time_ms_t duration_ms, T* cat1, T* cat2,
 	                       map<rate_symps_t , unsigned int> carriers);
 
-
-	/// the satellite type (regenerative o transparent)
+	/// the satellite type (regenerative or transparent)
 	sat_type_t satellite_type;
+
+	/// the return link standard (DVB-RCS or DVB-RCS2)
+	return_link_standard_t return_link_standard;
+
+	/// the RCS or RCS2 type of MODCOD definition
+	string modcod_def_rcs_type;
 
 	/// the current super frame number
 	time_sf_t super_frame_counter;

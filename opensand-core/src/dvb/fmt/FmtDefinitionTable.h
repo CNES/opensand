@@ -31,6 +31,7 @@
  * @file FmtDefinitionTable.h
  * @brief The table of definitions of FMTs
  * @author Julien BERNARD / Viveris Technologies
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef FMT_DEFINITION_TABLE_H
@@ -117,15 +118,16 @@ class FmtDefinitionTable
 	 * @param modulation           the type of modulation of the FMT
 	 * @param coding_rate          the coding rate of the FMT
 	 * @param spectral_efficiency  the spectral efficiency of the FMT
-	 * @param required_Es_N0        the required carrier to noise ratio
-	 *                             of the FMT
+	 * @param required_Es_N0       the required carrier to noise ratio of the FMT
+	 * @param burst_length         the burst length of the FMT
 	 * @return                     true if the addition is successful, false otherwise
 	 */
 	bool add(const fmt_id_t id,
 	         const string modulation,
 	         const string coding_rate,
 	         const float spectral_efficiency,
-	         const double required_Es_N0);
+	         const double required_Es_N0,
+	         const unsigned int burst_length);
 
 	/**
 	 * @brief Does a FMT definition with the given ID exist ?
@@ -193,6 +195,17 @@ class FmtDefinitionTable
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
 	double getRequiredEsN0(fmt_id_t id) const;
+
+	/**
+	 * @brief Get the burst length of the FMT definition
+	 *        whose ID is given as input
+	 *
+	 * @param id  the ID of the FMT definition we want information for
+	 * @return    the burst length of the FMT
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	unsigned int getBurstLength(fmt_id_t id) const;
 
 	/**
 	 * @brief Get the best required MODCOD according to the Es/N0 ratio

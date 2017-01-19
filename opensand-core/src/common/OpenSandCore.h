@@ -133,6 +133,29 @@ inline sat_type_t strToSatType(string sat_type)
 		return TRANSPARENT;
 }
 
+/// Return link standard 
+typedef enum
+{
+	DVB_RCS,
+	DVB_RCS2,
+} return_link_standard_t;
+
+
+/**
+ * @brief get the return link standard according to its name
+ *
+ * @param sat_type the return link standard name
+ *
+ * @return the return link standard enum
+ */
+inline return_link_standard_t strToReturnLinkStd(string return_link_standard)
+{
+	if(return_link_standard == "DVB-RCS2")
+		return DVB_RCS2;
+	else
+		return DVB_RCS;
+}
+
 /// Carrier access type
 typedef enum
 {

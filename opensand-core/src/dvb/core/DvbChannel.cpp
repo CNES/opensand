@@ -65,6 +65,7 @@ inline bool fileExists(const string &filename)
 bool DvbChannel::initSatType(void)
 {
 	string sat_type;
+	string ret_lnk_std;
 
 	// satellite type
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
@@ -79,6 +80,24 @@ bool DvbChannel::initSatType(void)
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "satellite type = %s\n", sat_type.c_str());
 	this->satellite_type = strToSatType(sat_type);
+
+	// return link standard type
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		               RETURN_LINK_STANDARD,
+	                   ret_lnk_std))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    COMMON_SECTION, RETURN_LINK_STANDARD);
+		return false;
+	}
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "return link standard type = %s\n", ret_lnk_std.c_str());
+	this->return_link_standard = strToReturnLinkStd(ret_lnk_std);
+
+	// Set the MODCOD definition type
+	this->modcod_def_rcs_type = this->return_link_standard == DVB_RCS ?
+	                            MODCOD_DEF_RCS : MODCOD_DEF_RCS2;
 
 	return true;
 }
@@ -144,7 +163,7 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "encapsulation scheme = %s\n",
 	    (*pkt_hdl)->getName().c_str());
-
+	
 	return true;
 }
 

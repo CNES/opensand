@@ -47,6 +47,13 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="retunLinkStandardType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="DVB-RCS" />
+        <xsd:enumeration value="DVB-RCS2" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <xsd:simpleType name="encapScheme">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="AAL5/ATM" />
@@ -80,7 +87,6 @@
 <xsd:simpleType name="upAccessType">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="DAMA" />
-        <xsd:enumeration value="DAMA_RCS2" />
         <xsd:enumeration value="ALOHA" />
         <xsd:enumeration value="SCPC" />
     </xsd:restriction>
@@ -150,7 +156,7 @@
         <xsd:attribute name="access_type" type="upAccessType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of multiplexing (DAMA, DAMA_RCS2, ALOHA, SCPC)
+                    The type of multiplexing (DAMA, ALOHA, SCPC)
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
@@ -342,7 +348,7 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="delay" type="msTime">
+           <xsd:element name="delay" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The delay to simulate (in ms)
@@ -350,7 +356,14 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="forward_down_carrier_duration" type="msTime">
+            <xsd:element name="return_link_standard" type="retunLinkStandardType">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The return link standard type
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+             <xsd:element name="forward_down_carrier_duration" type="msTime">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The forward/down link DVB frame duration (in ms)

@@ -30,6 +30,7 @@
  * @file ModulationType.h
  * @brief The different types of modulation for MODCOD
  * @author Didier Barvaux / Viveris Technologies
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef MODULATION_TYPE_H
@@ -47,6 +48,7 @@ typedef enum
 	MODULATION_QPSK,     /**< The QPSK modulation */
 	MODULATION_8PSK,     /**< The 8PSK modulation */
 	MODULATION_16APSK,   /**< The 16APSK modulation */
+	MODULATION_16QAM,    /**< The 16QAM modulation */
 	MODULATION_32APSK,   /**< The 32APSK modulation */
 	/* add new modulations here */
 } modulation_type_t;

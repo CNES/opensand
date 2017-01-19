@@ -30,6 +30,7 @@
  * @file FmtDefinition.cpp
  * @brief The definition of a FMT
  * @author Julien BERNARD / Viveris Technologies
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #include "FmtDefinition.h"
@@ -45,16 +46,19 @@
  * @param coding_rate          the coding rate of the FMT
  * @param spectral_efficiency  the spectral efficiency of the FMT
  * @param required_Es_N0       the required Es/N0 of the FMT
+ * @param burst_length         the burst length of the FMT
  */
 FmtDefinition::FmtDefinition(const unsigned int id,
                              const string modulation,
                              const string coding_rate,
                              const float spectral_efficiency,
-                             const double required_Es_N0):
+                             const double required_Es_N0,
+                             const unsigned int burst_length):
 	id(id),
 	coding_rate(coding_rate),
 	spectral_efficiency(spectral_efficiency),
-	required_Es_N0(required_Es_N0)
+	required_Es_N0(required_Es_N0),
+	burst_length(burst_length)
 {
 	if(modulation == "BPSK")
 		this->modulation = MODULATION_BPSK;
@@ -66,6 +70,8 @@ FmtDefinition::FmtDefinition(const unsigned int id,
 		this->modulation = MODULATION_8PSK;
 	else if(modulation == "16APSK")
 		this->modulation = MODULATION_16APSK;
+	else if(modulation == "16QAM")
+		this->modulation = MODULATION_16QAM;
 	else if(modulation == "32APSK")
 		this->modulation = MODULATION_32APSK;
 	else
@@ -79,6 +85,7 @@ FmtDefinition::FmtDefinition(const FmtDefinition &fmt_def)
 	this->spectral_efficiency = fmt_def.getSpectralEfficiency();
 	this->required_Es_N0 = fmt_def.getRequiredEsN0();
 	this->modulation = fmt_def.getModulation();
+	this->burst_length = fmt_def.getBurstLength();
 }
 
 
@@ -145,12 +152,23 @@ double FmtDefinition::getRequiredEsN0() const
 	return this->required_Es_N0;
 }
 
+
+/**
+ * @brief Get the burst length of the FMT definition
+ *
+ * @return  the burst length of the FMT
+ */
+unsigned int FmtDefinition::getBurstLength() const
+{
+	return this->burst_length;
+}
+
 void FmtDefinition::print(void)
 {
 	DFLTLOG(LEVEL_ERROR, "id = %u,"
 	        " coding_rate = %s, spectral_efficiency = %f,"
-	        " required_Es_N0 = %f\n", this->id,
+	        " required_Es_N0 = %f, burst_length = %u\n", this->id,
 	        this->coding_rate.c_str(), this->spectral_efficiency,
-	        this->required_Es_N0);
+	        this->required_Es_N0, this->burst_length);
 }
 

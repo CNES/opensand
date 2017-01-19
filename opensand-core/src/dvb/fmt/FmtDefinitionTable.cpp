@@ -30,6 +30,7 @@
  * @file FmtDefinitionTable.cpp
  * @brief The table of definitions of FMTs
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -189,6 +190,7 @@ bool FmtDefinitionTable::load(const string filename)
 			string coding_rate;
 			float spectral_efficiency;
 			double required_es_n0;
+			unsigned int burst_length;
 			int ret;
 
 			// convert the string token to integer
@@ -233,26 +235,36 @@ bool FmtDefinitionTable::load(const string filename)
 			            >> coding_rate
 			            >> spectral_efficiency
 			            >> required_es_n0;
+			if (!line_stream.eof())
+			{
+				line_stream >> burst_length;
+			}
+			else
+			{
+				burst_length = 0;
+			}
 
 			// FMT definition is OK, record it in the table
 			ret = this->add(scheme_number, modulation, coding_rate,
-			                spectral_efficiency, required_es_n0);
+			                spectral_efficiency, required_es_n0,
+			                burst_length);
 			if(ret != true)
 			{
 				LOG(this->log_fmt, LEVEL_ERROR,
 				    "failed to add new FMT definition: "
-				    "%u, %s, %s, %f, %f\n",
+				    "%u, %s, %s, %f, %f, %u\n",
 				    scheme_number, modulation.c_str(),
 				    coding_rate.c_str(), spectral_efficiency,
-				    required_es_n0);
+				    required_es_n0, burst_length);
 				goto malformed;
 			}
 
 			LOG(this->log_fmt, LEVEL_NOTICE,
-			    "FMT definition: %u, %s, %s, %f, %f\n",
+			    "FMT definition: %u, %s, %s, %f, %f, %u\n",
 			    scheme_number, modulation.c_str(),
 			    coding_rate.c_str(),
-			    spectral_efficiency, required_es_n0);
+			    spectral_efficiency, required_es_n0,
+			    burst_length);
 		}
 	}
 
@@ -286,7 +298,8 @@ bool FmtDefinitionTable::add(const fmt_id_t id,
                              const string modulation,
                              const string coding_rate,
                              const float spectral_efficiency,
-                             const double required_Es_N0)
+                             const double required_Es_N0,
+                             const unsigned int burst_length)
 {
 	FmtDefinition *new_def;
 
@@ -299,7 +312,8 @@ bool FmtDefinitionTable::add(const fmt_id_t id,
 
 	// create the new FMT definition
 	new_def = new FmtDefinition(id, modulation, coding_rate,
-	                            spectral_efficiency, required_Es_N0);
+	                            spectral_efficiency, required_Es_N0,
+	                            burst_length);
 	if(new_def == NULL)
 	{
 		return false;
@@ -387,6 +401,19 @@ double FmtDefinitionTable::getRequiredEsN0(fmt_id_t id) const
 		return 0.0;
 	}
 	return def->getRequiredEsN0();
+}
+
+
+unsigned int FmtDefinitionTable::getBurstLength(fmt_id_t id) const
+{
+	FmtDefinition *def = this->getFmtDef(id);
+	if(!def)
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "cannot find burst length from FMT definition ID %u\n", id);
+		return 0;
+	}
+	return def->getBurstLength();
 }
 
 
@@ -479,6 +506,7 @@ bool FmtDefinitionTable::getModCod(fmt_id_t id,
 			mod = 3;
 			break;
 		case MODULATION_16APSK:
+		case MODULATION_16QAM:
 			mod = 4;
 			break;
 		case MODULATION_32APSK:

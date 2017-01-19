@@ -53,7 +53,7 @@
 #define ENCAP_NAME                "encap"
 
 #define SATELLITE_TYPE            "satellite_type"
-
+#define RETURN_LINK_STANDARD      "return_link_standard"
 #define SAT_DELAY                 "delay"
 
 #define RET_UP_CARRIER_DURATION     "return_up_carrier_duration"
@@ -249,6 +249,7 @@
 #define MODCOD_DEF_S2                     "modcod_def_s2"
 #define FORWARD_DOWN_MODCOD_TIME_SERIES   "forward_down_modcod_time_series"
 #define MODCOD_DEF_RCS                    "modcod_def_rcs"
+#define MODCOD_DEF_RCS2                   "modcod_def_rcs2"
 #define RETURN_UP_MODCOD_TIME_SERIES      "return_up_modcod_time_series"
 #define LOOP_ON_FILE                      "loop_on_file"
 #define RETURN_UP_ACM_LOOP_MARGIN         "return_up_acm_loop_margin"

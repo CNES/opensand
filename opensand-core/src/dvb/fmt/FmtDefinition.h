@@ -31,6 +31,7 @@
  * @file FmtDefinition.h
  * @brief The definition of a FMT
  * @author Julien BERNARD / Viveris Technologies
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef FMT_DEFINITION_H
@@ -65,6 +66,9 @@ class FmtDefinition
 	/** The required carrier to noise ratio */
 	double required_Es_N0;
 
+	/** The burst length */
+	unsigned int burst_length;
+
  public:
 
 	/**** constructor/destructor ****/
@@ -74,7 +78,8 @@ class FmtDefinition
 	              const string modulation,
 	              const string coding_rate,
 	              const float spectral_efficiency,
-	              const double required_Es_N0);
+	              const double required_Es_N0,
+	              const unsigned int burst_length);
 
 	/* constructor by copy */
 	FmtDefinition(const FmtDefinition &fmt_def);
@@ -99,6 +104,9 @@ class FmtDefinition
 
 	/* get the required Es/N0 ratio of the FMT definition */
 	double getRequiredEsN0() const;
+
+	/* get the burst length of the FMT definition */
+	unsigned int getBurstLength() const;
 
 	void print(void); /// For debug
 

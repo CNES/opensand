@@ -44,7 +44,7 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanva
 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.utils import FORWARD_DOWN, RETURN_UP, CCM, ACM, VCM,\
-                                        DAMA_RCS, DAMA_RCS2, ALOHA, SCPC
+                                        DAMA, ALOHA, SCPC, DVB_RCS, DVB_RCS2
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 
@@ -151,6 +151,7 @@ class ModcodParameter(WindowView):
     def load(self):
         #Get the access type
         access_type = self._list_carrier[self._carrier_id - 1].get_access_type()
+        ret_lnk_std = self._model.get_conf().get_return_link_standard()
 
         #Add the access type button for forward or return
         if self._link == FORWARD_DOWN:
@@ -175,14 +176,14 @@ class ModcodParameter(WindowView):
             self._vbox_access_type.pack_start(self._vcm_radio,
                                               expand=True, fill=True)
         elif self._link == RETURN_UP:
-            self._dama_radio = gtk.RadioButton(group=None, label="DAMA",
+            self._dama_radio = gtk.RadioButton(group=None, label=DAMA,
                                                use_underline=True)
             self._aloha_radio = gtk.RadioButton(group=self._dama_radio,
                                                 label=ALOHA,
                                                 use_underline=True)
             self._scpc_radio = gtk.RadioButton(group=self._dama_radio,
                                                label=SCPC, use_underline=True)
-            if access_type != DAMA_RCS2: 
+            if ret_lnk_std != DVB_RCS2: 
                 self._dama_radio.connect("toggled", self.on_toggled)
             else:
                 self._dama_radio.connect("toggled", self.on_dama_rcs2_toggled)
@@ -206,7 +207,7 @@ class ModcodParameter(WindowView):
             self._acm_radio.set_active(True)
         elif access_type == VCM:
             self._vcm_radio.set_active(True)
-        elif access_type in [DAMA_RCS, DAMA_RCS2]:
+        elif access_type == DAMA:
             self._dama_radio.toggled()
         elif access_type == ALOHA:
             self._aloha_radio.set_active(True)
@@ -265,6 +266,7 @@ class ModcodParameter(WindowView):
         """ Create a list of widget with list of modcods """
         #MODCOD list from file definition.txt
         global_conf = self._model.get_conf()
+        ret_lnk_std = global_conf.get_return_link_standard()
         self._check_modcod.set_active(False)
         if self._link == FORWARD_DOWN:
             path = global_conf.get_param(MODCOD_DEF_S2)
@@ -281,7 +283,7 @@ class ModcodParameter(WindowView):
                     self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
                     self._vbox_modcods.reorder_child(self._check_modcod, 0)
                 path = global_conf.get_param(MODCOD_DEF_S2)
-            elif option == DAMA_RCS2:
+            elif option == DAMA and ret_lnk_std == DVB_RCS2:
                 if self._check_modcod not in self._vbox_modcods.get_children():
                     self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
                     self._vbox_modcods.reorder_child(self._check_modcod, 0)
@@ -371,7 +373,7 @@ class ModcodParameter(WindowView):
 
     def on_dama_rcs2_toggled(self, source=None):
         """Signal when acm button change"""
-        self.set_modcod_widgets(source, False, DAMA_RCS2)
+        self.set_modcod_widgets(source, False, DAMA)
 
 
     def on_toggled(self, source=None):

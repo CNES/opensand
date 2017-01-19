@@ -45,6 +45,7 @@ override_dh_install:
 	# MODCOD files for manager
 	install -D -m 0644 conf/modcod/s2/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod/s2
 	install -D -m 0644 conf/modcod/rcs/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod/rcs
+	install -D -m 0644 conf/modcod/rcs2/*.txt -t $(CURDIR)/debian/opensand-core-all/usr/share/opensand/modcod/rcs2
 	# DAMA request simulation file
 	install -D -m 0644 conf/dama.input $(CURDIR)/debian/opensand-core-all/usr/share/opensand/request_simu/dama.input
 #	install -D -m 0644 conf/dama.input $(CURDIR)/debian/opensand-core-bin/etc/opensand/simulation/dama.input

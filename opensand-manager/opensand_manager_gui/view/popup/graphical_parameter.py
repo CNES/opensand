@@ -42,7 +42,7 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanva
 from opensand_manager_core.carrier import Carrier
 from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, CARRIERS_DISTRIB, \
         FMT_GROUPS, ID, BANDWIDTH, FMT_ID, FMT_GROUP, RATIO, SYMBOL_RATE, \
-        CATEGORY, ACCESS_TYPE, CCM, VCM, DAMA_RCS, DAMA_RCS2, FORWARD_DOWN, RETURN_UP
+        CATEGORY, ACCESS_TYPE, CCM, VCM, DAMA, FORWARD_DOWN, RETURN_UP
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_gui.view.popup.modcod_dialog import ModcodParameter
 from opensand_manager_gui.view.window_view import WindowView
@@ -246,11 +246,10 @@ class GraphicalParameter(WindowView):
                                               fmt_groups=fmt_grp,
                                               access_type=CCM))
         else:
-            dama = self._model.get_conf().get_dama_standard()
             self._list_carrier.append(Carrier(symbol_rate=4E6,
                                               category=0,
                                               fmt_groups=fmt_grp,
-                                              access_type=dama))
+                                              access_type=DAMA))
         self.create_carrier_interface(self._list_carrier[-1],
                                       self._nb_carrier)
         self.trace()
