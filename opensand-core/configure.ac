@@ -100,14 +100,14 @@ AC_CONFIG_FILES([ \
 	src/dvb/core/Makefile \
 	src/dvb/core/regenerative/Makefile \
 	src/dvb/core/transparent/Makefile \
-	src/dvb/plugins/Makefile \
-	src/dvb/plugins/constant/Makefile \
-	src/dvb/plugins/file/Makefile \
 	src/encap/Makefile \
 	src/lan_adaptation/Makefile \
 	src/lan_adaptation/tests/Makefile \
 	src/interconnect/Makefile \
 	src/sat_carrier/Makefile \
+	src/sat_carrier/plugins/Makefile \
+	src/sat_carrier/plugins/constant/Makefile \
+	src/sat_carrier/plugins/file/Makefile \
 	src/sat_carrier/tests/Makefile \
 	src/physical_layer/Makefile \
 	src/physical_layer/plugins/Makefile \

@@ -301,6 +301,7 @@ class ErrorModule(OpenSandModule):
         self._targets = {SAT, GW, ST} | GW_types
 
 ### Satellite delay module ###
+
 class SatDelayModule(OpenSandModule):
     """ the satellite delay module for OpenSAND Manager """
     _name = None

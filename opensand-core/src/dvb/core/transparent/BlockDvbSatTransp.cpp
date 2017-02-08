@@ -96,12 +96,6 @@ bool BlockDvbSatTransp::DownwardTransp::initSatLink(void)
 
 bool BlockDvbSatTransp::DownwardTransp::initTimers(void)
 {
-	// create satellite delay timer, if there is a refresh period
-  if(this->sat_delay->getRefreshPeriod())
-  {
-    this->sat_delay_timer = this->addTimerEvent("sat_delay",
-                                                this->sat_delay->getRefreshPeriod());
-  }
 	// create frame timer (also used to send packets waiting in fifo)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                       this->fwd_down_frame_duration_ms);

@@ -128,6 +128,30 @@ class ConfigurationFile
                      xmlpp::Node::NodeList &nodeList);
 
 	/**
+	 * Get the node of a children Item
+	 *
+	 * @param  section  the section
+	 * @param  key      the key of the target node
+	 * @param  list     the list
+	 * @return  true on success, false otherwise
+	 */
+	bool getItemNode(ConfigurationList section, 
+	                 const char *key, 
+	                 ConfigurationList &list);
+
+	/**
+	 * Get the node of a children Item
+	 *
+	 * @param  node  the node
+	 * @param  key      the key of the target node
+	 * @param  list     the list
+	 * @return  true on success, false otherwise
+	 */
+	bool getItemNode(xmlpp::Node *node, 
+	                 const char *key, 
+	                 ConfigurationList &list);
+
+	/**
 	 * get the element from the list with attribute value
 	 * @param  list             the origal element list
 	 * @param  attribute_name   the attribute name

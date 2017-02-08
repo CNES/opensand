@@ -52,7 +52,7 @@ from copy import deepcopy
 
 from lxml import etree
 from opensand_manager_core.my_exceptions import XmlException
-from opensand_manager_core.utils import SPOT, ID, GW
+from opensand_manager_core.utils import SPOT, ID, GW, PATH_SATDELAYS, TARGET
 
 
 NAMESPACES = {"xsd":"http://www.w3.org/2001/XMLSchema"}
@@ -177,6 +177,18 @@ class XmlParser:
         """ get all matching elements """
         return self._tree.xpath(xpath)
 
+    def add_element(self, xpath, elt):
+        """ add an element to path (as a copy) """
+        print xpath
+        if self.get(xpath) is not None:
+            return
+        if len(xpath.split('@')) > 1:
+            return
+        parent = self.get('/'.join(xpath.split('/')[:-1]))
+        if parent is not None:
+            new = deepcopy(elt)
+            parent.insert(0, new)
+
     def del_element(self, xpath):
         """ delete an element from its path """
         elts = self._tree.xpath(xpath)
@@ -202,12 +214,30 @@ class XmlParser:
                             
                         gws.append(child.get(GW))
                         spots.append(child.get(ID))
-                        
+                       
+                    #TODO: new spot shouldn't be a copy of previous spot,
+                    # it should contain the new configuration
                     new = deepcopy(child)
                     new.set(ID, spot_id)
                     child.addnext(new)
                     
                     if child.get(GW) is None:
+                        break
+        # add a new line to satdelay too
+        satdelay_table = self.get(PATH_SATDELAYS)
+        found = False
+        if satdelay_table is not None:
+            # check if it exists first
+            for child in satdelay_table.iterchildren():
+                if child.get(TARGET) == SPOT and child.get(ID) == spot_id:
+                    found = True
+            if not found:
+                for child in satdelay_table.iterchildren():
+                    # copy the first spot line we find
+                    if child.get(TARGET) == SPOT:
+                        new = deepcopy(child)
+                        new.set(ID, spot_id)
+                        child.addnext(new)
                         break
 
     def remove_spot(self, spot_id):
@@ -216,6 +246,13 @@ class XmlParser:
              for child in section.getchildren():
                  if child.tag == SPOT and child.get(ID) == spot_id:
                      section.remove(child)
+        # remove line from satdelay too
+        satdelay_table = self.get(PATH_SATDELAYS)
+        if satdelay_table is not None:
+            for child in satdelay_table.iterchildren():
+                if child.get(TARGET) == SPOT and child.get(ID) == spot_id:
+                    satdelay_table.remove(child)
+                    break
 
 
     def add_gw(self, xpath, gw_id):
@@ -253,6 +290,22 @@ class XmlParser:
                     new = deepcopy(child)
                     new.set(ID, gw_id)
                     child.addnext(new)
+        # add a new line to satdelay too
+        satdelay_table = self.get(PATH_SATDELAYS)
+        found = False
+        if satdelay_table is not None:
+            # check if it exists first
+            for child in satdelay_table.iterchildren():
+                if child.get(TARGET) == GW and child.get(ID) == gw_id:
+                    found = True
+            if not found:
+                for child in satdelay_table.iterchildren():
+                    # copy the first spot line we find
+                    if child.get(TARGET) == GW:
+                        new = deepcopy(child)
+                        new.set(ID, gw_id)
+                        child.addnext(new)
+                        break
                 
 
     def remove_gw(self, xpath, gw_id):
@@ -265,6 +318,13 @@ class XmlParser:
             if (child.tag == SPOT and child.get(GW) == gw_id) or \
                (child.tag == GW and child.get(ID) == gw_id):
                 section.remove(child)
+        # remove line from satdelay too
+        satdelay_table = self.get(PATH_SATDELAYS)
+        if satdelay_table is not None:
+            for child in satdelay_table.iterchildren():
+                if child.get(TARGET) == GW and child.get(ID) == gw_id:
+                    satdelay_table.remove(child)
+                    break
 
     def add_line(self, xpath):
         """ add a line in the table identified its path """
@@ -528,6 +588,24 @@ class XmlParser:
         # check if element has a hide parameter activated
         hide = self.get_doc_param('/hide', name)
         if hide is not None and hide == "true":
+            return True
+
+        return False
+
+    def do_not_list(self, name):
+        """ check if some widget shouldn't be displayed as a list """
+        # check if element has a not_list attribute activated
+        not_list = self.get_doc_param('/not_list', name)
+        if not_list is not None and not_list == "true":
+            return True
+
+        return False
+
+    def do_conf(self, name):
+        """ check if some widget has to be configured """
+        # check if element has a conf attribute activated
+        conf = self.get_doc_param('/conf', name)
+        if conf is not None and conf == "true":
             return True
 
         return False

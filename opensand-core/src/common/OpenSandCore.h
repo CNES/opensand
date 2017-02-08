@@ -42,6 +42,7 @@
 #include <stdint.h>
 #include <vector>
 #include <arpa/inet.h>
+#include <sys/time.h>
 
 using std::string;
 using std::vector;
@@ -192,6 +193,17 @@ inline bool equals(double val1, double val2)
 	return std::abs(val1 - val2) < DBL_EPSILON;
 };
 
+/**
+ * @brieg Get the current time
+ *
+ * @return the current time
+ */
+inline clock_t getCurrentTime(void)
+{
+	timeval current;
+	gettimeofday(&current, NULL);
+	return current.tv_sec * 1000 + current.tv_usec / 1000;
+};
 
 /**
  * @brief  Tokenize a string

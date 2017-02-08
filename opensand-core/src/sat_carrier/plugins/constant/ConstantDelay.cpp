@@ -32,16 +32,13 @@
  */
 
 
-#include "Constant.h"
+#include "ConstantDelay.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
 #include <sstream>
 
-#define CONSTANT_SECTION "constant"
 #define DELAY        "delay"
-#define CONF_CST_FILENAME    "constant_delay.conf"
 
 ConstantDelay::ConstantDelay():
 	SatDelayPlugin(),
@@ -53,40 +50,39 @@ ConstantDelay::~ConstantDelay()
 {  
 }
 
-bool ConstantDelay::init()
+bool ConstantDelay::init(ConfigurationList conf)
 {
-	ConfigurationFile config;
-	string conf_cst_path;
-	time_ms_t delay; 
+	time_ms_t delay;
 
 	if(this->is_init)
 		return true;
 
-	conf_cst_path = this->getConfPath() + string(CONF_CST_FILENAME);
-
-	if(config.loadConfig(conf_cst_path.c_str()) < 0)
-	{   
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load config file '%s'", conf_cst_path.c_str());
-		goto error;
-	}
-
-	config.loadSectionMap(this->config_section_map);
-
-	if(!config.getValue(this->config_section_map[CONSTANT_SECTION], 
-		                DELAY, delay))
+	if(!Conf::getValue(conf, DELAY, delay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Constant delay: cannot get %s",
 		    DELAY);
 		goto error;
 	}
+	LOG(this->log_init, LEVEL_DEBUG,
+			"Constant delay: %d ms", delay);
 	this->setSatDelay(delay);
 	// TODO: should is_init use a mutex??
 	this->is_init = true;
 	return true;
 error:
 	return false;
+}
+
+bool ConstantDelay::init(time_ms_t delay)
+{
+	if(this->is_init)
+		return true;
+
+	this->setSatDelay(delay);
+	// TODO: should is_init use a mutex??
+	this->is_init = true;
+	return true;
 }
 
 
@@ -96,11 +92,12 @@ bool ConstantDelay::updateSatDelay()
 	return true;
 }
 
-time_ms_t ConstantDelay::getMaxDelay()
+bool ConstantDelay::getMaxDelay(time_ms_t &delay)
 {
 	// Get delay from conf in case it is needed before the SatDelay
 	// plugin is initialized
-	if(this->init())
-		return this->getSatDelay();
-	return 0;
+	if(!this->is_init)
+		return false;
+	delay = this->getSatDelay();
+	return true;
 }

@@ -375,7 +375,7 @@ class AdvancedDialog(WindowView):
                                 ConfSection(section, config, host_name,
                                             self._model.get_adv_mode(),
                                             self._model.get_scenario(),
-                                            self.handle_param_chanded,
+                                            self.handle_param_changed,
                                             self._model.handle_file_changed,
                                             key.get(ID),
                                             key.get(GW))
@@ -386,7 +386,7 @@ class AdvancedDialog(WindowView):
                                 ConfSection(section, config, host_name,
                                             self._model.get_adv_mode(),
                                             self._model.get_scenario(),
-                                            self.handle_param_chanded,
+                                            self.handle_param_changed,
                                             self._model.handle_file_changed,
                                             None, key.get(ID))
 
@@ -416,8 +416,12 @@ class AdvancedDialog(WindowView):
                 ConfSection(section, config, host_name,
                             self._model.get_adv_mode(),
                             self._model.get_scenario(),
-                            self.handle_param_chanded,
-                            self._model.handle_file_changed)
+                            self.handle_param_changed,
+                            self._model.handle_file_changed,
+                            modules = self._model.get_modules())
+                # TODO: modules are passed to global section, to update satdelay
+                # plugin configuration. Find a way of not sharing modules with
+                # ConfSection
                     
                 # restrictions section
                 restriction = config.get_xpath_restrictions(config.get_name(section))
@@ -560,7 +564,7 @@ class AdvancedDialog(WindowView):
                                              self._model.get_adv_mode(),
                                              self._model.get_scenario(),
                                              self._show_hidden,
-                                             self.handle_param_chanded,
+                                             self.handle_param_changed,
                                              self._model.handle_file_changed)
         # TODO set tab label red if the host does not declare this module
 
@@ -677,7 +681,7 @@ class AdvancedDialog(WindowView):
         # tell model that file changed has been saved
         self._model.conf_apply()
 
-    def handle_param_chanded(self, source=None, event=None):
+    def handle_param_changed(self, source=None, event=None):
         """ 'changed' event on configuration value """
         self._ui.get_widget('apply_advanced_conf').set_sensitive(True)
 

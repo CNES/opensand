@@ -1,4 +1,4 @@
-noinst_PROGRAMS = test_sat_carrier
+noinst_PROGRAMS = test_sat_carrier test_sat_carrier_fifo
 
 INCLUDES = \
 	-I$(top_srcdir)/src/sat_carrier \
@@ -19,7 +19,18 @@ test_sat_carrier_SOURCES = \
 	TestSatCarriers.h \
 	test.cpp
 
+test_sat_carrier_fifo_SOURCES = \
+	TestSatCarrierFifo.cpp \
+	TestSatCarrierFifo.h \
+	TestSatCarrierFifoElement.cpp \
+	TestSatCarrierFifoElement.h \
+	test_fifo.cpp
+
 test_sat_carrier_LDADD = \
+	$(PACKED_COMMON_LIBS) \
+	$(allexec_LDADD)
+
+test_sat_carrier_fifo_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 

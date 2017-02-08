@@ -53,7 +53,6 @@
 
 #include <opensand_rt/Rt.h>
 
-
 #include <sstream>
 #include <assert.h>
 #include <unistd.h>

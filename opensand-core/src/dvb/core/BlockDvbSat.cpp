@@ -71,8 +71,7 @@
 
 BlockDvbSat::BlockDvbSat(const string &name):
 	BlockDvb(name),
-	gws(),
-	sat_delay(NULL)
+	gws()
 {
 }
 
@@ -93,35 +92,6 @@ BlockDvbSat::~BlockDvbSat()
 
 bool BlockDvbSat::onInit()
 {
-	string satdelay_name;
-	// get the SatDelay plugin
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   SAT_DELAY, satdelay_name))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-				COMMON_SECTION, SAT_DELAY);
-		goto error;
-	}
-	if(!Plugin::getSatDelayPlugin(satdelay_name,
-	                              &this->sat_delay))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "error when getting sat delay plugin");
-		goto error;
-	}
-	if(!this->sat_delay->init())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot initialize sat delay plugin %s",
-		    satdelay_name.c_str());
-		goto error;
-	}
-
-	// share the Sat Delay plugin to channels
-	((Upward *)this->upward)->setSatDelay(this->sat_delay);
-	((Downward *)this->downward)->setSatDelay(this->sat_delay);
-
 	// initialize the satellite spots
 	if(!this->initSpots())
 	{
@@ -130,10 +100,7 @@ bool BlockDvbSat::onInit()
 		    "initialisation\n");
 		return false;
 	}
-
 	return true;
-error:
-	return false;
 }
 
 bool BlockDvbSat::initSpots(void)
@@ -321,13 +288,11 @@ error:
 BlockDvbSat::Downward::Downward(const string &name):
 	DvbDownward(name),
 	down_frame_counter(),
-	sat_delay(NULL),
 	fwd_timer(-1),
 	terminal_affectation(),
 	default_category(),
 	fmt_groups(),
 	gws(),
-	probe_satdelay(NULL),
 	probe_frame_interval(NULL)
 {
 };
@@ -401,18 +366,10 @@ void BlockDvbSat::Downward::setGws(const sat_gws_t &gws)
 	this->gws = gws;
 }
 
-void BlockDvbSat::Downward::setSatDelay(SatDelayPlugin *sat_delay)
-{
-	this->sat_delay = sat_delay;
-}
-
 bool BlockDvbSat::Downward::initOutput(void)
 {
-	this->probe_satdelay = Output::registerProbe<int>(
-		"Perf.Sat_delay", "ms", true, SAMPLE_LAST);
-
 	this->probe_frame_interval = Output::registerProbe<float>(
-		"Perf.Frames_interval", "ms", true, SAMPLE_LAST);
+				"Perf.Frames_interval", "ms", true, SAMPLE_LAST);
 
 	return true;
 }
@@ -492,17 +449,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 
 		case evt_timer:
 		{
-			if(*event == this->sat_delay_timer)
-			{
-				// Update satellite delay
-				this->sat_delay->updateSatDelay();
-				// Update probe
-				if(this->probe_satdelay->isEnabled())
-				{
-					this->probe_satdelay->put(this->sat_delay->getSatDelay());
-				}
-			}
-			else if(*event == this->fwd_timer)
+			if(*event == this->fwd_timer)
 			{
 				this->updateStats();
 				// Update stats and probes
@@ -657,8 +604,7 @@ void BlockDvbSat::Downward::updateStats(void)
 BlockDvbSat::Upward::Upward(const string &name):
 	DvbUpward(name),
 	reception_std(NULL),
-	gws(),
-	sat_delay(NULL)
+	gws()
 {
 };
 
@@ -676,11 +622,6 @@ BlockDvbSat::Upward::~Upward()
 void BlockDvbSat::Upward::setGws(const sat_gws_t &gws)
 {
 	this->gws = gws;
-}
-
-void BlockDvbSat::Upward::setSatDelay(SatDelayPlugin *sat_delay)
-{
-	this->sat_delay = sat_delay;
 }
 
 bool BlockDvbSat::Upward::onInit()
@@ -988,7 +929,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 bool BlockDvbSat::Upward::forwardDvbFrame(DvbFifo *fifo, DvbFrame *dvb_frame)
 {
-	return this->pushInFifo(fifo, (NetContainer *)dvb_frame, this->sat_delay->getSatDelay());
+	// TODO: do we still need the fifos now that the delay is implemented on sat_carrier ? 
+	return this->pushInFifo(fifo, (NetContainer *)dvb_frame, 0);
 }
-
 

@@ -37,7 +37,7 @@
 #ifndef PLUGIN_UTILS_HEADER_H
 #define PLUGIN_UTILS_HEADER_H
 
-#include "DvbPlugin.h"
+#include "SatCarrierPlugin.h"
 #include "EncapPlugin.h"
 #include "LanAdaptationPlugin.h"
 #include "PhysicalLayerPlugin.h"

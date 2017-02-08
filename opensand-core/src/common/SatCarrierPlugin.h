@@ -26,19 +26,20 @@
  */
 
 /**
- * @file DvbPlugin.h
- * @brief Plugins for DVB Layer (where satellite delay is emulated)
+ * @file SatCarrierPlugin.h
+ * @brief Plugins for SatCarrier Layer (where satellite delay is emulated)
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
-#ifndef DVB_PLUGIN_H
-#define DVB_PLUGIN_H
+#ifndef SAT_CARRIER_PLUGIN_H
+#define SAT_CARRIER_PLUGIN_H
 
 #include "OpenSandPlugin.h"
 #include "OpenSandCore.h"
 
 #include <opensand_rt/RtMutex.h>
 #include <opensand_output/Output.h>
+#include <opensand_conf/conf.h>
 
 #include <string>
 #include <stdint.h>
@@ -93,7 +94,7 @@ class SatDelayPlugin: public OpenSandPlugin
 	 *
 	 * @return true on success, false otherwise
 	 */
-	virtual bool init() = 0;
+	virtual bool init(ConfigurationList conf) = 0;
 
 	/**
 	 * @brief Get the model current sat delay
@@ -131,11 +132,10 @@ class SatDelayPlugin: public OpenSandPlugin
 
 	/**
 	 * @brief Get the largest possible delay (needed to estimate timeouts)
-	 *
-	 * @return the largest delay
+	 * @param the delay
+	 * @return true on succes
 	 */
-	virtual time_ms_t getMaxDelay() = 0;
+	virtual bool getMaxDelay(time_ms_t &delay) = 0;
 };
-
 
 #endif

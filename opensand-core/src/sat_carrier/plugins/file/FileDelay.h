@@ -26,65 +26,74 @@
  */
 
 /**
- * @file Constant.h
- * @brief Set a constant satellite delay 
+ * @file File.h
+ * @brief File
  * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.fr>
  */
 
-#ifndef CONSTANT_SATDELAY_PLUGIN_H
-#define CONSTANT_SATDELAY_PLUGIN_H 
+#ifndef FILE_SATDELAY_PLUGIN_H
+#define FILE_SATDELAY_PLUGIN_H
 
 
-#include "DvbPlugin.h"
-#include "OpenSandCore.h"
-#include <opensand_conf/ConfigurationFile.h>
+#include "SatCarrierPlugin.h"
+
+#include <opensand_conf/conf.h>
+
+#include <fstream>
+#include <string>
+
+using std::string;
+using std::map;
 
 /**
- * @class Constant 
+ * @class FileDelay
+ * @brief FileDelay
  */
-class ConstantDelay: public SatDelayPlugin
+class FileDelay: public SatDelayPlugin
 {
-	private:
-		
-		map<string,ConfigurationList> config_section_map;
+ private:
 
-		bool is_init;
+	bool is_init;
 
-	public:
+	/// The current time
+	unsigned int current_time;
 
-		/**
-		 * @brief Build the defaultMinimalCondition
-		 */
-		ConstantDelay();
+	/// The satdelay values we will interpolate
+	map<unsigned int, time_ms_t> delays;
 
-		/**
-		 * @brief Destroy the defaultMinimalCondition
-		 */
-		~ConstantDelay();
+	/// Reading mode
+	bool loop;
 
-		/**
-		 * @brief initialize the constant delay
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool init();
+	/// The refresh period
+	time_ms_t refresh_period_ms;
 
-		/**
-		 * @brief Updates the satellite delay
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool updateSatDelay();
+	/**
+	 * @brief Load the sat delay file
+	 *
+	 * @param filename  The sat delay file name
+	 * @return true on success, false otherwise
+	 */
+	bool load(string filename);
 
-		/**
-		 * @brief Get largest satellite delay
-		 *
-		 * @return largest delay
-		 */
-		time_ms_t getMaxDelay();
+ public:
+
+	/**
+	 * @brief Build a File
+	 */
+	FileDelay();
+
+	/**
+	 * @brief Destroy the File
+	 */
+	~FileDelay();
+
+	bool init(ConfigurationList conf_list);
+
+	bool updateSatDelay();
+
+	bool getMaxDelay(time_ms_t &delay);
 };
 
-CREATE(ConstantDelay, satdelay_plugin, "ConstantDelay");
+CREATE(FileDelay, satdelay_plugin, "FileDelay");
 
 #endif
-

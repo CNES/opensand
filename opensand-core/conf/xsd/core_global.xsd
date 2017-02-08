@@ -40,10 +40,24 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="msTimeNZ">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1" />
+        <xsd:maxInclusive value="2000" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <xsd:simpleType name="satelliteType">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="transparent" />
         <xsd:enumeration value="regenerative" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="orbitType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="GEO" />
+	<xsd:enumeration value="LEO/MEO" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -60,13 +74,6 @@
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
         <xsd:maxInclusive value="4" />
-    </xsd:restriction>
-</xsd:simpleType>
-
-<xsd:simpleType name="delayType">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="ConstantDelay" />
-        <xsd:enumeration value="FileDelay" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -313,6 +320,138 @@
     </xsd:complexType>
 </xsd:element>
 
+<!-- the delays table -->
+<xsd:simpleType name="targetType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="spot" />
+        <xsd:enumeration value="gw" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="delayType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ConstantDelay" />
+        <xsd:enumeration value="FileDelay" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="targetId">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="255" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="global_delay">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            Global configurations for GEO orbits
+            <not_list>true</not_list>
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="delay" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Value of the propagation delay from one spot/GW to the satellite (ms)
+                        <unit>ms</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="satdelays">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="satdelay" minOccurs="0" maxOccurs="unbounded" />
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="satdelay">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            The configuration for one spot/GW
+            <conf>true</conf>
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="satdelay_conf">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The delay type advanced configuration parameters
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="target" type="targetType">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The target for this delay (Spot or GW)
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="id" type="targetId">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The spot ID associated to this delay
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="type" type="delayType">
+            <xsd:annotation>
+                <xsd:documentation xml:lang="en">
+                    The type of delay associated to the target
+                </xsd:documentation>
+            </xsd:annotation>
+        </xsd:attribute>
+    </xsd:complexType>
+</xsd:element>
+
+<xsd:element name="satdelay_conf">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            Configuration for satellite delay plugin
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:choice>
+            <xsd:sequence>
+                <xsd:element name="delay" type="msTime">
+                    <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                            Value of the propagation delay from one spot/GW to the satellite (ms)
+                            <unit>ms</unit>
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:element>
+            </xsd:sequence>
+            <xsd:sequence>
+                <xsd:element name="path" type="file">
+                    <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                            The satellite delay file path in file format
+                            <default>plugins/satdelay.csv</default>
+                            <source>plugins/satdelay.csv</source>
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="loop_mode" type="xsd:boolean">
+                    <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                            Whether we return on the file beginning at the end
+                        </xsd:documentation>
+                    </xsd:annotation>
+                </xsd:element>
+            </xsd:sequence>
+        </xsd:choice>
+    </xsd:complexType>
+</xsd:element>
+
 <!-- Complete XML description -->
 <xsd:element name="configuration">
     <xsd:complexType>
@@ -322,6 +461,7 @@
             <xsd:element ref="return_up_band" />
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="physical_layer" />
+            <xsd:element ref="delays" />
             <xsd:element ref="advanced" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
@@ -347,10 +487,10 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="delay" type="delayType">
+            <xsd:element name="orbit" type="orbitType">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The type of delay to simulate
+                        The satellite's type of orbit
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -693,6 +833,46 @@
     </xsd:complexType>
 </xsd:element>
 
+<!-- delays section description -->
+<xsd:element name="delays">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>\tSatellite delay configuration</b>
+            ]]>
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="global_delay">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The global satellite delay configurations
+                        <xpath common.orbit="GEO" />
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element ref="satdelays">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The satellite delay configuration for each spot and GW
+                        <xpath common.orbit="LEO/MEO" />
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="refresh_period" type="msTimeNZ">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Satellite delay refresh period (ms)
+                        <unit>ms</unit>
+                        <adv>true</adv>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
 <!-- advanced section description -->
 <xsd:element name="advanced">
     <xsd:annotation>
@@ -711,6 +891,14 @@
                     <xsd:documentation xml:lang="en">
                         The size of the FIFO used to apply delay
                         <unit>packets</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="delay_timer" type="msTimeNZ">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The interval for the timer checking the delay FIFO
+                        <unit>ms</unit>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

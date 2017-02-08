@@ -9,10 +9,10 @@ SUBDIRS =
 plugins_LTLIBRARIES = libopensand_constant_satdelay_plugin.la
 
 libopensand_constant_satdelay_plugin_la_cpp = \
-	Constant.cpp
+	ConstantDelay.cpp
 
 libopensand_constant_satdelay_plugin_la_h = \
-	Constant.h
+	ConstantDelay.h
 
 libopensand_constant_satdelay_plugin_la_SOURCES = \
     $(libopensand_constant_satdelay_plugin_la_cpp) \

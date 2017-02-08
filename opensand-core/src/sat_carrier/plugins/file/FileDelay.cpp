@@ -32,18 +32,14 @@
  */
 
 
-#include "File.h"
+#include "FileDelay.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
 #include <errno.h>
 
-#define FILE_SECTION   "file"
-#define REFRESH_PERIOD "refresh_period"
-#define PATH          "path"
-#define LOOP          "loop_mode"
-#define CONF_FILE_FILENAME "file_delay.conf"
+#define PATH           "path"
+#define LOOP           "loop_mode"
 
 FileDelay::FileDelay():
 	SatDelayPlugin(),
@@ -59,47 +55,32 @@ FileDelay::~FileDelay()
 	this->delays.clear();
 }
 
-bool FileDelay::init()
+bool FileDelay::init(ConfigurationList conf)
 {
 	string filename;
 	time_ms_t refresh_period_ms;
-	ConfigurationFile config;
-	string conf_file_path;
+
 	if(this->is_init)
 		return true;
 
-	conf_file_path = this->getConfPath() + string(CONF_FILE_FILENAME);
-
-	if(config.loadConfig(conf_file_path.c_str()) < 0)
-	{   
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load config file '%s'",
-		    conf_file_path.c_str());
-		return false;
-	}
-
-	config.loadSectionMap(this->config_section_map);
-
-	if(!config.getValue(this->config_section_map[FILE_SECTION],
-	                    REFRESH_PERIOD, refresh_period_ms))
+	if(!Conf::getValue(Conf::section_map[SAT_DELAYS_SECTION],
+	                   REFRESH_PERIOD_MS, refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE delay: cannot get %s", PATH);
+		    "FILE delay: cannot get %s", REFRESH_PERIOD_MS);
 		return false;
 	}
 
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!config.getValue(this->config_section_map[FILE_SECTION],
-	                    PATH, filename))
+	if(!Conf::getValue(conf, PATH, filename))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "FILE delay: cannot get %s", PATH);
 		return false;
 	}
 
-	if(!config.getValue(this->config_section_map[FILE_SECTION], 
-		                  LOOP, this->loop))
+	if(!Conf::getValue(conf, LOOP, this->loop))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "FILE delay: cannot get %s", LOOP);
@@ -282,17 +263,17 @@ bool FileDelay::updateSatDelay()
 	return true;
 }
 
-time_ms_t FileDelay::getMaxDelay()
+bool FileDelay::getMaxDelay(time_ms_t &delay)
 {
 	std::map<unsigned int, time_ms_t>::const_iterator delay_it;
-	time_ms_t max_delay = 0;
-	if(this->init())
+	if(!this->is_init)
 	{
-		for(delay_it = this->delays.begin(); delay_it != this->delays.end(); delay_it++)
-		{
-			if(delay_it->second > max_delay)
-				max_delay = delay_it->second;
-		}
+		return false;
 	}
-	return max_delay;
+	for(delay_it = this->delays.begin(); delay_it != this->delays.end(); delay_it++)
+	{
+		if(delay_it->second > delay)
+			delay = delay_it->second;
+	}
+	return true;
 }

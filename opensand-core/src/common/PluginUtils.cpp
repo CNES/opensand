@@ -132,28 +132,6 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer, string conf_path)
 
 				switch(plugin->type)
 				{
-					case satdelay_plugin:
-					{
-						pl_list_it_t plug;
-
-						// if we load twice the same plugin, keep the first one
-						// this is why LD_LIBRARY_PATH should be first in the paths
-						plug = this->sat_delay.find(plugin->name);
-						if(plug == this->sat_delay.end())
-						{
-							LOG(this->log_init, LEVEL_NOTICE,
-							    "load satdelay plugin %s\n",
-							    plugin->name.c_str());
-							this->sat_delay[plugin->name] = plugin->create;
-							this->handlers.push_back(handle);
-						}
-						else
-						{
-							dlclose(handle);
-						}
-					}
-					break;
-
 					case encapsulation_plugin:
 					{
 						pl_list_it_t plug;
@@ -167,6 +145,28 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer, string conf_path)
 							    "load encapsulation plugin %s\n",
 							    plugin->name.c_str());
 							this->encapsulation[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
+						}
+						else
+						{
+							dlclose(handle);
+						}
+					}
+					break;
+
+					case satdelay_plugin:
+					{
+						pl_list_it_t plug;
+
+						// if we load twice the same plugin, keep the first one
+						// this is why LD_LIBRARY_PATH should be first in the paths
+						plug = this->sat_delay.find(plugin->name);
+						if(plug == this->sat_delay.end())
+						{
+							LOG(this->log_init, LEVEL_NOTICE,
+							    "load satdelay plugin %s\n",
+							    plugin->name.c_str());
+							this->sat_delay[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
 						else
@@ -324,6 +324,7 @@ bool PluginUtils::getEncapsulationPlugin(string name,
 	fn_create create;
 
 	create = this->encapsulation[name];
+
 	if(!create)
 	{
 		return false;
