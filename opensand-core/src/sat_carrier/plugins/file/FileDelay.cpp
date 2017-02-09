@@ -108,43 +108,30 @@ bool FileDelay::load(string filename)
 
 	while(std::getline(file, line))
 	{
-		string token;
-		string separator;	
 		unsigned int time;
 		time_ms_t delay;
+		
+		line_number++;
+		
+		if(line == "" || line[0] == '#')
+		{
+			continue;
+		}
 
 		// Clear previous flags (if any)
 		line_stream.clear();
 		line_stream.str(line);
-		line_number++;
 
-		// skip line if empty
-		if(line == "")
+		line_stream >> time;
+		if(line_stream.bad() || line_stream.fail())
 		{
-			continue;
-		}
-
-		line_stream >> token;
-		if(token[0] == '#')
-		{
-			// line is comment, skip
-			continue;
-		}
-		else
-		{
-			std::istringstream tmp_stream(token);
-			tmp_stream >> time;
-
-			if(tmp_stream.bad() || tmp_stream.fail())
-			{
-				LOG(this->log_delay, LEVEL_ERROR,
-				    "Bad syntax in file '%s', line %u: "
-				    "there should be a timestamp (integer) "
-				    "instead of '%s'\n",
-				    filename.c_str(), line_number,
-				    token.c_str());
-				goto malformed;
-			}
+			LOG(this->log_delay, LEVEL_ERROR,
+					"Bad syntax in file '%s', line %u: "
+					"there should be a timestamp (integer) "
+					"instead of '%s'\n",
+					filename.c_str(), line_number,
+					line.c_str());
+			goto malformed;
 		}
 
 		// get delay
@@ -160,7 +147,7 @@ bool FileDelay::load(string filename)
 		this->delays[time] = delay;
 
 		LOG(this->log_delay, LEVEL_DEBUG,
-		    "Entry: time: %u, delay: %.2f ms\n", time, delay);
+		    "Entry: time: %u, delay: %d ms\n", time, delay);
 	}
 
 	file.close();
@@ -201,7 +188,7 @@ bool FileDelay::updateSatDelay()
 		new_delay = delay_it->second;
 
 		LOG(this->log_delay, LEVEL_DEBUG,
-		    "New entry found: time: %u, value: %.2f\n",
+		    "New entry found: time: %u, value: %d\n",
 		    new_time, new_delay);
 
 		if(delay_it != this->delays.begin())
@@ -214,16 +201,16 @@ bool FileDelay::updateSatDelay()
 			old_delay = delay_it->second;
 
 			LOG(this->log_delay, LEVEL_DEBUG,
-			    "Old time: %u, old delay: %.2f\n",
+			    "Old time: %u, old delay: %d\n",
 			    old_time, old_delay);
 
 			// Linear interpolation
-			coef = (new_delay - old_delay) /
-			        (new_time - old_time);
+			coef = (((double)new_delay) - old_delay) /
+			        (((double)new_time) - old_time);
 
 
 			next_delay = old_delay +
-			                   coef * (this->current_time - old_time);
+			                   (time_ms_t) (coef * (this->current_time - old_time));
 
 			LOG(this->log_delay, LEVEL_DEBUG,
 			    "Linear coef: %f, old step: %u\n",
@@ -256,7 +243,7 @@ bool FileDelay::updateSatDelay()
 	}
 
 	LOG(this->log_delay, LEVEL_DEBUG,
-	    "new delay value: %.2f\n", next_delay);
+	    "new delay value: %d\n", next_delay);
 
 	this->setSatDelay(next_delay);
 
