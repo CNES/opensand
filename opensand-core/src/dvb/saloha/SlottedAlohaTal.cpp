@@ -130,6 +130,12 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 	// Get the max delay
+	if(!satdelay_map.init())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "error when initializing satdelay_map");
+		return false;
+	}
 	if (!satdelay_map.getMaxDelay(sat_delay_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

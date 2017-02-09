@@ -320,7 +320,7 @@ bool BlockSatCarrierSat::Upward::onEvent(const RtEvent *const event)
 
 bool BlockSatCarrierSat::onInit(void)
 {
-	if(!this->sat_delay_map.init())
+	if(!this->sat_delay_map.init(true))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to init satellite delays map");

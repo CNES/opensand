@@ -63,6 +63,12 @@ class SatDelayMap
 	/* The map between gw_id and the plugin */
 	map<tal_id_t, SatDelayPlugin*> gw_delay;
 
+	/* The map between spot_id and the delay probes */
+	map<spot_id_t, Probe<int>*> spot_probe;
+
+	/* The map between gw_id and the delay probes */
+	map<tal_id_t, Probe<int>*> gw_probe;
+
 	/* The refresh_period in miliseconds */
 	time_ms_t refresh_period_ms;
 
@@ -83,9 +89,10 @@ class SatDelayMap
 
 	/*
 	 * @brief initialize all maps
+	 * @param probes initialize probes
 	 * @return true on success, false on error
 	 */
-	bool init();
+	bool init(bool probes=false);
 
 	/*
 	 * @brief update all sat delays

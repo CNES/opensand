@@ -69,7 +69,7 @@ SatDelayMap::~SatDelayMap()
 	}
 }
 
-bool SatDelayMap::init()
+bool SatDelayMap::init(bool probes)
 {
 	ConfigurationList delays_list;
 	ConfigurationList::iterator iter_list;
@@ -201,6 +201,22 @@ bool SatDelayMap::init()
 		{
 			this->spot_delay[id] = satdelay_plugin;
 		}
+		// register probes
+		if(probes)
+		{
+			if(!strcmp(target.c_str(), GW))
+			{
+				this->gw_probe[id] = Output::registerProbe<int>("ms", true,
+				                                                SAMPLE_LAST,
+				                                                "Delays.GW_%d", id);
+			}
+			else
+			{
+				this->spot_probe[id] = Output::registerProbe<int>("ms", true,
+				                                                  SAMPLE_LAST,
+				                                                  "Delays.Spot_%d", id);
+			}
+		}
 		// init plugin
 		if(!satdelay_plugin->init(plugin_conf))
 		{
@@ -275,6 +291,7 @@ bool SatDelayMap::init()
 			// to the satdelay plugin por this carrier. For the case of CTRL carriers,
 			// where IN and OUT are not splitted, the first element corresponds to the
 			// spot delay, and the second to the GW delay.
+			// If necessary, register probe for each carrier
 			carrier_array = new SatDelayPlugin*[2];
 			if(!strcmp(carrier_type.c_str(), LOGON_OUT))
 			{
@@ -367,6 +384,11 @@ bool SatDelayMap::updateSatDelays()
 			    (*it).first);
 			goto error;
 		}
+		// update probe
+		if(this->gw_probe[(*it).first])
+		{
+			this->gw_probe[(*it).first]->put(satdelay->getSatDelay());
+		}
 	}
 	for(map<spot_id_t, SatDelayPlugin*>::iterator it = this->spot_delay.begin();
 	    it != this->spot_delay.end();
@@ -379,6 +401,11 @@ bool SatDelayMap::updateSatDelays()
 			    "error when updating satdelay for spot %u",
 			    (*it).first);
 			goto error;
+		}
+		// update probe
+		if(this->spot_probe[(*it).first])
+		{
+			this->spot_probe[(*it).first]->put(satdelay->getSatDelay());
 		}
 	}
 	return true;
