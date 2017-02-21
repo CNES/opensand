@@ -599,8 +599,7 @@ void RtChannel::executeThread(void)
 			}
 		}
 		// sort the list according to priority
-		// FIXME: this does not appear to work ! Why ?!
-		priority_sorted_events.sort();
+		priority_sorted_events.sort(RtEvent::compareEvents);
 
 		// call processEvent on each event
 		for(list<RtEvent *>::iterator iter = priority_sorted_events.begin();
