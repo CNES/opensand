@@ -93,14 +93,19 @@ bool DamaCtrlRcsLegacy::init()
 			// Output probes and stats
 			Probe<int> *probe_carrier_capacity;
 			Probe<int> *probe_carrier_remaining_capacity;
+			char probe_name[128];
 			unsigned int carrier_id = carriers->getCarriersId();
-			probe_carrier_capacity = Output::registerProbe<int>("Kbits/s",
-				true, SAMPLE_LAST, "Spot_%d.%s.Up/Return capacity.Carrier%u.Available",
-				this->spot_id, label.c_str(), carrier_id);
+			snprintf(probe_name, sizeof(probe_name),
+			         "Spot_%d.%s.Up/Return capacity.Carrier%u.Available",
+			         this->spot_id, label.c_str(), carrier_id);
+			probe_carrier_capacity = Output::registerProbe<int>(
+				probe_name, "Kbits/s", true, SAMPLE_LAST);
 
-			probe_carrier_remaining_capacity = Output::registerProbe<int>("Kbits/s",
-				true, SAMPLE_LAST, "Spot_%d.%s.Up/Return capacity.Carrier%u.Remaining",
-				this->spot_id, label.c_str(), carrier_id);
+			snprintf(probe_name, sizeof(probe_name),
+			         "Spot_%d.%s.Up/Return capacity.Carrier%u.Remaining",
+			         this->spot_id, label.c_str(), carrier_id);
+			probe_carrier_remaining_capacity = Output::registerProbe<int>(
+				probe_name, "Kbits/s", true, SAMPLE_LAST);
 
 			this->probes_carrier_return_capacity[label].insert(
 				std::pair<unsigned int,Probe<int> *>(carrier_id,
@@ -116,20 +121,21 @@ bool DamaCtrlRcsLegacy::init()
 		// Output probes and stats
 		Probe<int> *probe_category_capacity;
 		Probe<int> *probe_category_remaining_capacity;
+		char probe_name[128];
 
+		snprintf(probe_name, sizeof(probe_name),
+		         "Spot_%d.%s.Up/Return capacity.Total.Available",
+		         this->spot_id, label.c_str());
 		probe_category_capacity = Output::registerProbe<int>(
-				"Kbits/s", true, SAMPLE_LAST,
-				"Spot_%d.%s.Up/Return capacity.Total.Available",
-				this->spot_id,
-				label.c_str());
+				probe_name, "Kbits/s", true, SAMPLE_LAST);
 		this->probes_category_return_capacity.insert(
 			std::pair<string,Probe<int> *>(label, probe_category_capacity));
 
+		snprintf(probe_name, sizeof(probe_name),
+		         "Spot_%d.%s.Up/Return capacity.Total.Remaining",
+		         this->spot_id, label.c_str());
 		probe_category_remaining_capacity = Output::registerProbe<int>(
-			"Kbits/s", true,  SAMPLE_LAST,
-			"Spot_%d.%s.Up/Return capacity.Total.Remaining",
-			this->spot_id,
-			label.c_str());
+				probe_name, "Kbits/s", true, SAMPLE_LAST);
 		this->probes_category_return_remaining_capacity.insert(
 			std::pair<string,Probe<int> *>(label, probe_category_remaining_capacity));
 
@@ -306,9 +312,12 @@ bool DamaCtrlRcsLegacy::resetDama()
 			   == this->probes_carrier_return_capacity[label].end())
 			{
 				Probe<int> *probe_carrier_capacity;
-				probe_carrier_capacity = Output::registerProbe<int>("Kbits/s",
-				    true, SAMPLE_LAST, "Spot_%d.%s.Up/Return capacity.Carrier%u.Available",
-				    this->spot_id, label.c_str(), carriers_id);
+				char probe_name[128];
+				snprintf(probe_name, sizeof(probe_name),
+				         "Spot_%d.%s.Up/Return capacity.Carrier%u.Available",
+				         this->spot_id, label.c_str(), carriers_id);
+				probe_carrier_capacity = Output::registerProbe<int>(
+						probe_name, "Kbits/s", true, SAMPLE_LAST);
 				this->probes_carrier_return_capacity[label].insert(
 				    std::pair<unsigned int,Probe<int> *>(carriers_id,
 				                                         probe_carrier_capacity));

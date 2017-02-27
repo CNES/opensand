@@ -141,18 +141,19 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		Probe<int> *probe_coll;
 		Probe<int> *probe_coll_before;
 		Probe<int> *probe_coll_ratio;
+		char probe_name[128];
 
-		probe_coll = Output::registerProbe<int>(true, SAMPLE_SUM,
-		                                       "Aloha.collisions.%s",
-		                                       (*cat_iter).first.c_str());
+		snprintf(probe_name, sizeof(probe_name),
+		         "Aloha.collisions.%s", (*cat_iter).first.c_str());
+		probe_coll = Output::registerProbe<int>(probe_name, true, SAMPLE_SUM);
 		// disable by default
-		probe_coll_before = Output::registerProbe<int>(false, SAMPLE_SUM,
-		                                               "Aloha.collisions_before_algo.%s",
-		                                               (*cat_iter).first.c_str());
+		snprintf(probe_name, sizeof(probe_name),
+		         "Aloha.collisions.before_algo.%s", (*cat_iter).first.c_str());
+		probe_coll_before = Output::registerProbe<int>(probe_name, false, SAMPLE_SUM);
 		// disable by default
-		probe_coll_ratio = Output::registerProbe<int>("%", false, SAMPLE_AVG,
-		                                             "Aloha.collisions_ratio.%s",
-		                                             (*cat_iter).first.c_str());
+		snprintf(probe_name, sizeof(probe_name),
+		         "Aloha.collisions_ratio.%s", (*cat_iter).first.c_str());
+		probe_coll_ratio = Output::registerProbe<int>(probe_name, "%", false, SAMPLE_AVG);
 
 		this->probe_collisions_before.insert(
 		            pair<string, Probe<int> *>((*cat_iter).first,

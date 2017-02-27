@@ -335,10 +335,11 @@ bool SpotDownwardRegen::initOutput(void)
 		return false;
 	}	
 
-	this->probe_used_modcod = Output::registerProbe<int>("modcod index",
-	                                                     true, SAMPLE_LAST,
-	                                                     "Spot_%d.ACM.Used_modcod",
-	                                                     this->spot_id);
+	char probe_name[128];
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.ACM.Used_modcod", this->spot_id);
+	this->probe_used_modcod = Output::registerProbe<int>(probe_name, "modcod index",
+	                                                     true, SAMPLE_LAST);
 
 	return true;
 }
