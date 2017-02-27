@@ -1308,32 +1308,29 @@ bool BlockDvbTal::Downward::initOutput(void)
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		const char *fifo_name = ((*it).second)->getName().data();
 		unsigned int id = (*it).first;
 
 		this->probe_st_queue_size[id] =
-			Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
-			                           "Queue size.packets.%s", fifo_name);
+			Output::registerProbe<int>("Queue size.packets." + ((*it).second)->getName(), 
+			                           "Packets", true, SAMPLE_LAST);
 		this->probe_st_queue_size_kb[id] =
-			Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
-			                           "Queue size.%s", fifo_name);
+			Output::registerProbe<int>("Queue size." + ((*it).second)->getName(), 
+			                           "kbits", true, SAMPLE_LAST);
 
 		this->probe_st_l2_to_sat_before_sched[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-			                           "Throughputs.L2_to_SAT_before_sched.%s",
-			                           fifo_name);
+			Output::registerProbe<int>("Throughputs.L2_to_SAT_before_sched." + 
+			                           ((*it).second)->getName(), "Kbits/s", true, 
+																 SAMPLE_AVG);
 		this->probe_st_l2_to_sat_after_sched[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-			                           "Throughputs.L2_to_SAT_after_sched.%s",
-			                           fifo_name);
+			Output::registerProbe<int>("Throughputs.L2_to_SAT_after_sched." + 
+			                           ((*it).second)->getName(), "Kbits/s", true, 
+																 SAMPLE_AVG);
 		this->probe_st_queue_loss[id] =
-			Output::registerProbe<int>("Packets", true, SAMPLE_SUM,
-		                               "Queue loss.packets.%s",
-		                               fifo_name);
+			Output::registerProbe<int>("Queue loss.packets." + ((*it).second)->getName(), 
+			                           "Packets", true, SAMPLE_LAST);
 		this->probe_st_queue_loss_kb[id] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_SUM,
-		                               "Queue loss.%s",
-		                               fifo_name);
+			Output::registerProbe<int>("Queue loss." + ((*it).second)->getName(), 
+			                           "kbits", true, SAMPLE_LAST);
 	}
 	this->probe_st_l2_to_sat_total =
 		Output::registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",

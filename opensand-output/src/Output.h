@@ -387,7 +387,6 @@ Probe<T> *Output::registerProbe(const string &unit,
                                 sample_type_t type,
                                 const char *name, ...)
 {
-	Probe<T> *probe;
 	char buf[1024];
 	va_list args;
 	
@@ -398,8 +397,6 @@ Probe<T> *Output::registerProbe(const string &unit,
 	va_end(args);
 
 	return Output::registerProbe<T>(buf, unit, enabled, type);
-
-	return probe;
 }
 
 #endif
