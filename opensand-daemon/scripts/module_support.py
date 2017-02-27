@@ -38,6 +38,7 @@ import sys
 import ConfigParser
 import debconf
 
+DAEMON_BIN = '/usr/bin/sand-daemon'
 CONF_FILENAME = '/etc/opensand/daemon.conf'
 
 if __name__ == "__main__":
@@ -47,11 +48,15 @@ if __name__ == "__main__":
 
     parser = ConfigParser.SafeConfigParser()
     module_name = sys.argv[2]
+    conf_file = False
 
-    if len(parser.read(CONF_FILENAME)) == 0:
+    if not os.path.isfile(DAEMON_BIN):
         # if the daemon is not installed (eg. if there is only the manager on the host)
-        print 'ERROR: cannot read configuration file ' + CONF_FILENAME
         sys.exit(1)
+
+    # try to read the conf file (may be inexistant if the daemon was never launched)
+    if len(parser.read(CONF_FILENAME)) > 0:
+        conf_file = True
 
     plugins = ''
     try:
@@ -75,7 +80,8 @@ if __name__ == "__main__":
             sys.exit(1)
         try:
             plugins = plugins + " " + module_name
-            parser.set('service', 'modules', plugins)
+            if conf_file:
+                parser.set('service', 'modules', plugins)
         except ConfigParser.Error, msg:
             print 'ERROR: cannot set plugins in configuration file (%s)' % msg
             sys.exit(1)
@@ -87,7 +93,7 @@ if __name__ == "__main__":
             plugins = plugins.replace(module_name, "")
             if plugins.isspace() or plugins == '':
                 parser.remove_option('service', 'modules')
-            else:
+            elif conf_file:
                 parser.set('service', 'modules', plugins)
         except ConfigParser.Error, msg:
             print 'ERROR: cannot set plugins in configuration file (%s)' % msg
