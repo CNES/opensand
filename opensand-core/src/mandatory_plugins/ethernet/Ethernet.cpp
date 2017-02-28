@@ -1053,18 +1053,21 @@ void Ethernet::Context::initStats()
 	for(map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
 	    it != this->evc_map.end(); ++it)
 	{
+		char probe_name[128];
 		id = (*it).first;
 		if(this->probe_evc_throughput.find(id) != this->probe_evc_throughput.end())
 		{
 			continue;
 		}
 
+		snprintf(probe_name, sizeof(probe_name),
+		         "EVC throughput.%u", id);
 		this->probe_evc_throughput[id] =
-			Output::registerProbe<float>("kbits/s", true, SAMPLE_AVG,
-			                             "EVC throughput.%u", id);
+			Output::registerProbe<float>(probe_name, "kbits/s", true, SAMPLE_AVG);
+		snprintf(probe_name, sizeof(probe_name),
+		         "EVC frame size.%u", id);
 		this->probe_evc_size[id] =
-			Output::registerProbe<float>("Bytes", true, SAMPLE_SUM,
-			                             "EVC frame size.%u", id);
+			Output::registerProbe<float>(probe_name, "Bytes", true, SAMPLE_SUM);
 	}
 }
 

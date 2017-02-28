@@ -168,6 +168,8 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	string minimal_type;
 	string error_type;
 
+	char probe_name[128];
+
 	// get refresh period
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
 		               ACM_PERIOD_REFRESH,
@@ -274,24 +276,27 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	name << "attenuation_" << link;
 	this->att_timer = this->addTimerEvent(name.str(), this->refresh_period_ms);
 
-	this->probe_attenuation = Output::registerProbe<float>("dB", true,
-	                                                       SAMPLE_MAX,
-	                                                       "Phy.%slink_attenuation (%s)",
-	                                                       link.c_str(),
-	                                                       attenuation_type.c_str());
-	this->probe_minimal_condition = Output::registerProbe<float>("dB", true,
-	                                                             SAMPLE_MAX,
-	                                                             "Phy.minimal_condition (%s)",
-	                                                             minimal_type.c_str());
-	this->probe_clear_sky_condition = Output::registerProbe<float>("dB", true,
-	                                                             SAMPLE_MAX,
-	                                                             "Phy.%slink_clear_sky_condition",
-	                                                             link.c_str());
+	snprintf(probe_name, sizeof(probe_name), 
+	         "Phy.%slink_attenuation (%s)",
+	         link.c_str(), attenuation_type.c_str());
+	this->probe_attenuation = Output::registerProbe<float>(probe_name,
+			                                                   "dB", true,
+	                                                       SAMPLE_MAX);
+	snprintf(probe_name, sizeof(probe_name), 
+	         "Phy.minimal_condition (%s)", minimal_type.c_str());
+	this->probe_minimal_condition = Output::registerProbe<float>(probe_name,
+			                                                         "dB", true,
+	                                                             SAMPLE_MAX);
+	snprintf(probe_name, sizeof(probe_name), 
+	         "Phy.%slink_clear_sky_condition", link.c_str());
+	this->probe_clear_sky_condition = Output::registerProbe<float>(probe_name,
+	                                                               "dB", true,
+	                                                                SAMPLE_MAX);
 	// no useful on GW because it depends on terminals and we do not make the difference here
-	this->probe_total_cn = Output::registerProbe<float>("dB", true,
-	                                                    SAMPLE_MAX,
-	                                                    "Phy.%slink_total_cn",
-	                                                    link.c_str());
+	snprintf(probe_name, sizeof(probe_name), 
+	         "Phy.%slink_total_cn", link.c_str());
+	this->probe_total_cn = Output::registerProbe<float>(probe_name, "dB", true,
+	                                                    SAMPLE_MAX);
 	this->probe_drops = Output::registerProbe<int>("Phy.drops",
 	                                               "frame number", true,
 	                                               // we need to sum the drops here !
@@ -308,6 +313,7 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	ostringstream name;
 	string link("up"); // we are on uplink
 	string attenuation_type;
+	char probe_name[128];
 
 	// get refresh_period
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
@@ -370,15 +376,17 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	name << "attenuation_" << link;
 	this->att_timer = this->addTimerEvent(name.str(), this->refresh_period_ms);
 
-	this->probe_attenuation = Output::registerProbe<float>("dB", true,
-	                                                       SAMPLE_LAST,
-	                                                       "Phy.%slink_attenuation (%s)",
-	                                                       link.c_str(),
-	                                                       attenuation_type.c_str());
-	this->probe_clear_sky_condition = Output::registerProbe<float>("dB", true,
-	                                                             SAMPLE_MAX,
-	                                                             "Phy.%slink_clear_sky_condition",
-	                                                             link.c_str());
+	snprintf(probe_name, sizeof(probe_name),
+	         "Phy.%slink_attenuation (%s)",
+	         link.c_str(), attenuation_type.c_str());
+	this->probe_attenuation = Output::registerProbe<float>(probe_name,
+	                                                      "dB", true,
+	                                                       SAMPLE_LAST);
+	snprintf(probe_name, sizeof(probe_name),
+	         "Phy.%slink_clear_sky_condition", link.c_str());
+	this->probe_clear_sky_condition = Output::registerProbe<float>(probe_name,
+	                                                               "dB", true,
+	                                                               SAMPLE_MAX);
 
 	return true;
 
@@ -497,6 +505,7 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 
 	string minimal_type;
 	string error_type;
+	char probe_name[128];
 
 	this->is_sat = true;
 
@@ -555,19 +564,19 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 		return false;
 	}
 
-	this->probe_minimal_condition = Output::registerProbe<float>("dB", true,
-	                                                             SAMPLE_MAX,
-	                                                             "Phy.minimal_condition (%s)",
-	                                                             minimal_type.c_str());
+	snprintf(probe_name, sizeof(probe_name),
+	         "Phy.minimal_condition (%s)", minimal_type.c_str());
+	this->probe_minimal_condition = Output::registerProbe<float>(probe_name, "dB", true,
+	                                                             SAMPLE_MAX);
 	// TODO these probes are not really relevant as we should get probes per source
 	//      terminal
 	this->probe_drops = Output::registerProbe<int>("Phy.drops",
 	                                               "frame number", true,
 	                                               // we need to sum the drops here !
 	                                               SAMPLE_SUM);
-	this->probe_total_cn = Output::registerProbe<float>("dB", true,
-	                                                    SAMPLE_MAX,
-	                                                    "Phy.uplink_total_cn");
+	this->probe_total_cn = Output::registerProbe<float>("Phy.uplink_total_cn",
+			                                                "dB", true,
+	                                                    SAMPLE_MAX);
 
 	return true;
 
