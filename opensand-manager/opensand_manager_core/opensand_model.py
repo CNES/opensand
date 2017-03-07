@@ -327,6 +327,8 @@ class Model:
         if host.is_complete():
             return False
         self._log.debug("remove host: '" + name + "'")
+        self._config.remove_host(name,
+                                 host.get_instance())
         # if there is not other GW don't remove it from topology
         # and global configuration
         if not name == 'sat' and other_gw:
@@ -499,6 +501,8 @@ class Model:
     def update_config(self):
         host_config = self._add_host[0]
         name = host_config["name"]
+        self._config.new_host(name,
+                              host_config["inst"])
         if self._last_gw is None or name != self._last_gw.get_name():
             self._topology.new_host(name,
                                     host_config["inst"],

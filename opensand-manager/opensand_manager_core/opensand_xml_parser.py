@@ -52,7 +52,8 @@ from copy import deepcopy
 
 from lxml import etree
 from opensand_manager_core.my_exceptions import XmlException
-from opensand_manager_core.utils import SPOT, ID, GW, PATH_SATDELAYS, TARGET
+from opensand_manager_core.utils import (SPOT, ID, GW, PATH_SATDELAYS,
+                                         CONSTANT_DELAY, SATDELAY, SATDELAY_TYPE)
 
 
 NAMESPACES = {"xsd":"http://www.w3.org/2001/XMLSchema"}
@@ -223,22 +224,6 @@ class XmlParser:
                     
                     if child.get(GW) is None:
                         break
-        # add a new line to satdelay too
-        satdelay_table = self.get(PATH_SATDELAYS)
-        found = False
-        if satdelay_table is not None:
-            # check if it exists first
-            for child in satdelay_table.iterchildren():
-                if child.get(TARGET) == SPOT and child.get(ID) == spot_id:
-                    found = True
-            if not found:
-                for child in satdelay_table.iterchildren():
-                    # copy the first spot line we find
-                    if child.get(TARGET) == SPOT:
-                        new = deepcopy(child)
-                        new.set(ID, spot_id)
-                        child.addnext(new)
-                        break
 
     def remove_spot(self, spot_id):
         """ remove spots from the configuration file """
@@ -246,14 +231,6 @@ class XmlParser:
              for child in section.getchildren():
                  if child.tag == SPOT and child.get(ID) == spot_id:
                      section.remove(child)
-        # remove line from satdelay too
-        satdelay_table = self.get(PATH_SATDELAYS)
-        if satdelay_table is not None:
-            for child in satdelay_table.iterchildren():
-                if child.get(TARGET) == SPOT and child.get(ID) == spot_id:
-                    satdelay_table.remove(child)
-                    break
-
 
     def add_gw(self, xpath, gw_id):
         """ add a spot in the table identified its path """
@@ -290,23 +267,6 @@ class XmlParser:
                     new = deepcopy(child)
                     new.set(ID, gw_id)
                     child.addnext(new)
-        # add a new line to satdelay too
-        satdelay_table = self.get(PATH_SATDELAYS)
-        found = False
-        if satdelay_table is not None:
-            # check if it exists first
-            for child in satdelay_table.iterchildren():
-                if child.get(TARGET) == GW and child.get(ID) == gw_id:
-                    found = True
-            if not found:
-                for child in satdelay_table.iterchildren():
-                    # copy the first spot line we find
-                    if child.get(TARGET) == GW:
-                        new = deepcopy(child)
-                        new.set(ID, gw_id)
-                        child.addnext(new)
-                        break
-                
 
     def remove_gw(self, xpath, gw_id):
         """ add a spot in the table identified its path """
@@ -318,13 +278,37 @@ class XmlParser:
             if (child.tag == SPOT and child.get(GW) == gw_id) or \
                (child.tag == GW and child.get(ID) == gw_id):
                 section.remove(child)
-        # remove line from satdelay too
+
+    def add_host(self, tal_id):
+        """ add a new host for necessary configurations """
+        # add a new line to satdelay
+        satdelay_table = self.get(PATH_SATDELAYS)
+        found = False
+        if satdelay_table is not None:
+            # check if it exists first
+            for child in satdelay_table.iterchildren():
+                if child.get(ID) == tal_id:
+                    found = True
+            if not found:
+                # copy first line
+                # TODO: should create one from scratch, otherwise, if all
+                # elements are removed, there'd be any to copy
+                for child in satdelay_table.iterchildren():
+                    new = deepcopy(child)
+                    new.set(ID, tal_id)
+                    child.addnext(new)
+                    break
+
+    def remove_host(self, tal_id):
+        """ remove a host from necesarry configuration """
+        # remove line from satdelay
         satdelay_table = self.get(PATH_SATDELAYS)
         if satdelay_table is not None:
             for child in satdelay_table.iterchildren():
-                if child.get(TARGET) == GW and child.get(ID) == gw_id:
+                if child.get(ID) == tal_id:
                     satdelay_table.remove(child)
                     break
+
 
     def add_line(self, xpath):
         """ add a line in the table identified its path """

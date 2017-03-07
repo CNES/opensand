@@ -1,24 +1,16 @@
-SUBDIRS = plugins . tests
+SUBDIRS = . tests
 
 noinst_LTLIBRARIES = libopensand_satcarrier.la
 
 libopensand_satcarrier_la_cpp = \
-	SatCarrierFifo.cpp \
-	SatCarrierFifoElement.cpp \
 	BlockSatCarrier.cpp \
-	BlockSatCarrierSat.cpp \
 	sat_carrier_channel_set.cpp \
-	sat_carrier_udp_channel.cpp \
-	SatDelayMap.cpp
+	sat_carrier_udp_channel.cpp
 
 libopensand_satcarrier_la_h = \
-	SatCarrierFifo.h \
-	SatCarrierFifoElement.h \
 	BlockSatCarrier.h \
-	BlockSatCarrierSat.h \
 	sat_carrier_channel_set.h \
-	sat_carrier_udp_channel.h \
-	SatDelayMap.h
+	sat_carrier_udp_channel.h
 
 libopensand_satcarrier_la_SOURCES = \
 	$(libopensand_satcarrier_la_cpp) \

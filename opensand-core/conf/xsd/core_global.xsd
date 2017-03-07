@@ -321,13 +321,6 @@
 </xsd:element>
 
 <!-- the delays table -->
-<xsd:simpleType name="targetType">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="spot" />
-        <xsd:enumeration value="gw" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <xsd:simpleType name="delayType">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="ConstantDelay" />
@@ -388,24 +381,17 @@
                 </xsd:annotation>
             </xsd:element>
         </xsd:sequence>
-        <xsd:attribute name="target" type="targetType">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The target for this delay (Spot or GW)
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
         <xsd:attribute name="id" type="targetId">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The spot ID associated to this delay
+                    The terminal ID associated to this delay
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
         <xsd:attribute name="type" type="delayType">
             <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                    The type of delay associated to the target
+                    The type of delay associated to the terminal
                 </xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>

@@ -2678,7 +2678,7 @@ This is the name used when loading probes.</property>
                                 <property name="left_padding">12</property>
                                 <child>
                                   <widget class="GtkCheckButton" id="enable_physical_layer">
-                                    <property name="label" translatable="yes">Enable</property>
+                                    <property name="label" translatable="yes">Enable attenuation</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">False</property>
@@ -2783,6 +2783,7 @@ This is the name used when loading probes.</property>
                                         <property name="can_focus">False</property>
                                         <child>
                                           <widget class="GtkVBox" id="repr_stack_st">
+                                            <property name="width_request">200</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
                                             <child>
@@ -2802,7 +2803,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="aspectframe1">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -2810,7 +2811,7 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkLabel" id="repr_stack_label_st_lan_adapt">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
@@ -2826,7 +2827,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="aspectframe6">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -2834,7 +2835,7 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkLabel" id="repr_stack_label_st_encap">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
@@ -2850,7 +2851,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="aspectframe3">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -2858,13 +2859,13 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkHBox" id="hbox7">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
                                                     <child>
                                                       <widget class="GtkLabel" id="repr_stack_out_st">
-                                                        <property name="width_request">50</property>
+                                                        <property name="width_request">100</property>
                                                         <property name="height_request">40</property>
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
@@ -2890,7 +2891,7 @@ This is the name used when loading probes.</property>
                                                     </child>
                                                     <child>
                                                       <widget class="GtkLabel" id="repr_stack_in_st">
-                                                        <property name="width_request">50</property>
+                                                        <property name="width_request">100</property>
                                                         <property name="height_request">40</property>
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
@@ -2913,7 +2914,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="repr_stack_st_physical_layer">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -2921,11 +2922,35 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkLabel" id="repr_stack_label_st_physical_layer">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
                                                     <property name="label" translatable="yes">PHYSICAL LAYER</property>
+                                                  </widget>
+                                                </child>
+                                              </widget>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">4</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <widget class="GtkAspectFrame" id="repr_stack_st_physical_layer_w_att">
+                                                <property name="width_request">200</property>
+                                                <property name="height_request">40</property>
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="label_xalign">0</property>
+                                                <property name="shadow_type">etched-out</property>
+                                                <child>
+                                                  <widget class="GtkLabel" id="repr_stack_label_st_physical_layer_w_att">
+                                                    <property name="width_request">200</property>
+                                                    <property name="height_request">40</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can_focus">False</property>
+                                                    <property name="label" translatable="yes">PHYSICAL LAYER + ATT</property>
                                                   </widget>
                                                 </child>
                                               </widget>
@@ -2956,11 +2981,12 @@ This is the name used when loading probes.</property>
                                         </child>
                                         <child>
                                           <widget class="GtkVBox" id="repr_stack_sat">
+                                            <property name="width_request">200</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
                                             <child>
                                               <widget class="GtkLabel" id="repr_stack_label_sat">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -2975,7 +3001,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkDrawingArea" id="repr_stack_sat_empty_ip">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
                                               </widget>
@@ -2987,7 +3013,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="repr_stack_sat_encap">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -2995,7 +3021,7 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkLabel" id="repr_stack_label_sat_encap">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
@@ -3011,7 +3037,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="aspectframe5">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -3019,13 +3045,13 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkHBox" id="hbox8">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
                                                     <child>
                                                       <widget class="GtkLabel" id="repr_stack_sat1">
-                                                        <property name="width_request">50</property>
+                                                        <property name="width_request">100</property>
                                                         <property name="height_request">40</property>
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
@@ -3051,7 +3077,7 @@ This is the name used when loading probes.</property>
                                                     </child>
                                                     <child>
                                                       <widget class="GtkLabel" id="repr_stack_sat2">
-                                                        <property name="width_request">50</property>
+                                                        <property name="width_request">100</property>
                                                         <property name="height_request">40</property>
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
@@ -3074,7 +3100,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="repr_stack_sat_physical_layer">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -3082,11 +3108,35 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkLabel" id="repr_stack_label_sat_physical_layer">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
                                                     <property name="label" translatable="yes">PHYSICAL LAYER</property>
+                                                  </widget>
+                                                </child>
+                                              </widget>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">4</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <widget class="GtkAspectFrame" id="repr_stack_sat_physical_layer_w_att">
+                                                <property name="width_request">200</property>
+                                                <property name="height_request">40</property>
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="label_xalign">0</property>
+                                                <property name="shadow_type">etched-out</property>
+                                                <child>
+                                                  <widget class="GtkLabel" id="repr_stack_label_sat_physical_layer_w_att">
+                                                    <property name="width_request">200</property>
+                                                    <property name="height_request">40</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can_focus">False</property>
+                                                    <property name="label" translatable="yes">PHYSICAL LAYER + ATT</property>
                                                   </widget>
                                                 </child>
                                               </widget>
@@ -3117,11 +3167,12 @@ This is the name used when loading probes.</property>
                                         </child>
                                         <child>
                                           <widget class="GtkVBox" id="repr_stack_gw">
+                                            <property name="width_request">200</property>
                                             <property name="visible">True</property>
                                             <property name="can_focus">False</property>
                                             <child>
                                               <widget class="GtkLabel" id="repr_stack_label_gw">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -3136,7 +3187,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="aspectframe7">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -3144,7 +3195,7 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkLabel" id="repr_stack_label_gw_lan_adapt">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
@@ -3160,7 +3211,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="aspectframe8">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -3168,7 +3219,7 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkLabel" id="repr_stack_label_gw_encap">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
@@ -3184,7 +3235,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="aspectframe9">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -3192,13 +3243,13 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkHBox" id="hbox9">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
                                                     <child>
                                                       <widget class="GtkLabel" id="repr_stack_in_gw">
-                                                        <property name="width_request">50</property>
+                                                        <property name="width_request">100</property>
                                                         <property name="height_request">40</property>
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
@@ -3224,7 +3275,7 @@ This is the name used when loading probes.</property>
                                                     </child>
                                                     <child>
                                                       <widget class="GtkLabel" id="repr_stack_out_gw">
-                                                        <property name="width_request">50</property>
+                                                        <property name="width_request">100</property>
                                                         <property name="height_request">40</property>
                                                         <property name="visible">True</property>
                                                         <property name="can_focus">False</property>
@@ -3247,7 +3298,7 @@ This is the name used when loading probes.</property>
                                             </child>
                                             <child>
                                               <widget class="GtkAspectFrame" id="repr_stack_gw_physical_layer">
-                                                <property name="width_request">100</property>
+                                                <property name="width_request">200</property>
                                                 <property name="height_request">40</property>
                                                 <property name="visible">True</property>
                                                 <property name="can_focus">False</property>
@@ -3255,11 +3306,35 @@ This is the name used when loading probes.</property>
                                                 <property name="shadow_type">etched-out</property>
                                                 <child>
                                                   <widget class="GtkLabel" id="repr_stack_label_gw_physical_layer">
-                                                    <property name="width_request">100</property>
+                                                    <property name="width_request">200</property>
                                                     <property name="height_request">40</property>
                                                     <property name="visible">True</property>
                                                     <property name="can_focus">False</property>
                                                     <property name="label" translatable="yes">PHYSICAL LAYER</property>
+                                                  </widget>
+                                                </child>
+                                              </widget>
+                                              <packing>
+                                                <property name="expand">True</property>
+                                                <property name="fill">True</property>
+                                                <property name="position">4</property>
+                                              </packing>
+                                            </child>
+                                            <child>
+                                              <widget class="GtkAspectFrame" id="repr_stack_gw_physical_layer_w_att">
+                                                <property name="width_request">200</property>
+                                                <property name="height_request">40</property>
+                                                <property name="visible">True</property>
+                                                <property name="can_focus">False</property>
+                                                <property name="label_xalign">0</property>
+                                                <property name="shadow_type">etched-out</property>
+                                                <child>
+                                                  <widget class="GtkLabel" id="repr_stack_label_gw_physical_layer_w_att">
+                                                    <property name="width_request">200</property>
+                                                    <property name="height_request">40</property>
+                                                    <property name="visible">True</property>
+                                                    <property name="can_focus">False</property>
+                                                    <property name="label" translatable="yes">PHYSICAL LAYER + ATT</property>
                                                   </widget>
                                                 </child>
                                               </widget>

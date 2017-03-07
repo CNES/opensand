@@ -26,21 +26,21 @@
  */
 
 /**
- * @file SatCarrierFifoElement.h
+ * @file DelayFifoElement.h
  * @brief Fifo element
  * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.com>
  */
 
-#ifndef SATCARRIER_FIFO_ELEMENT_H
-#define SATCARRIER_FIFO_ELEMENT_H
+#ifndef DELAY_FIFO_ELEMENT_H
+#define DELAY_FIFO_ELEMENT_H
 
 #include "NetContainer.h"
 
 /**
- * @class SatCarrierFifoElement
+ * @class DelayFifoElement
  * @brief Fifo element
  */
-class SatCarrierFifoElement
+class DelayFifoElement
 {
  protected:
 
@@ -61,13 +61,13 @@ class SatCarrierFifoElement
 	 * @param tick_in    The arrival time of element in FIFO (in ms)
 	 * @param tick_out   The minimal time the element will output the FIFO (in ms)
 	 */
-	SatCarrierFifoElement(NetContainer *elem,
+	DelayFifoElement(NetContainer *elem,
 	                      time_t tick_in, time_t tick_out);
 
 	/**
 	 * Destroy the fifo element
 	 */
-	~SatCarrierFifoElement();
+	~DelayFifoElement();
 
 	/**
 	 * Get the FIFO elelement
@@ -111,7 +111,7 @@ class SatCarrierFifoElement
 
 // TODO check that, static cast ? operator () ?
 template<class T>
-T *SatCarrierFifoElement::getElem() const
+T *DelayFifoElement::getElem() const
 {
 	return (T *)this->getElem();
 }

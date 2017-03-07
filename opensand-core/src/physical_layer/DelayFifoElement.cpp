@@ -26,15 +26,15 @@
  */
 
 /**
- * @file TestSatCarrierFifoElement.cpp
+ * @file DelayFifoElement.cpp
  * @brief Fifo Element
  * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.com>
  */
 
 
-#include "TestSatCarrierFifoElement.h"
+#include "DelayFifoElement.h"
 
-TestSatCarrierFifoElement::TestSatCarrierFifoElement(NetContainer *elem,
+DelayFifoElement::DelayFifoElement(NetContainer *elem,
                                              time_t tick_in, time_t tick_out):
 	elem(elem),
 	tick_in(tick_in),
@@ -42,31 +42,31 @@ TestSatCarrierFifoElement::TestSatCarrierFifoElement(NetContainer *elem,
 {
 }
 
-TestSatCarrierFifoElement::~TestSatCarrierFifoElement()
+DelayFifoElement::~DelayFifoElement()
 {
 }
 
-NetContainer *TestSatCarrierFifoElement::getElem() const
+NetContainer *DelayFifoElement::getElem() const
 {
 	return this->elem;
 }
 
-void TestSatCarrierFifoElement::setElem(NetContainer *elem)
+void DelayFifoElement::setElem(NetContainer *elem)
 {
 	this->elem = elem;
 }
 
-size_t TestSatCarrierFifoElement::getTotalLength() const
+size_t DelayFifoElement::getTotalLength() const
 {
 	return this->elem->getTotalLength();
 }
 
-time_t TestSatCarrierFifoElement::getTickIn() const
+time_t DelayFifoElement::getTickIn() const
 {
 	return this->tick_in;
 }
 
-time_t TestSatCarrierFifoElement::getTickOut() const
+time_t DelayFifoElement::getTickOut() const
 {
 	return this->tick_out;
 }

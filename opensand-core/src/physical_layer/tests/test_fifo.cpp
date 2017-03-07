@@ -28,7 +28,7 @@
 
 /**
  * @file test_fifo.cpp
- * @brief sat carrier test source
+ * @brief delay fifo test source
  * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  *
  *
@@ -38,8 +38,8 @@
 #include <opensand_conf/conf.h>
 #include <opensand_rt/Rt.h>
 
-#include "TestSatCarrierFifo.h"
-#include "TestSatCarrierFifoElement.h"
+#include "TestDelayFifo.h"
+#include "TestDelayFifoElement.h"
 #include "OpenSandCore.h"
 #include <stdlib.h>
 #include <string.h>
@@ -53,14 +53,14 @@ int main(int argc, char **argv)
 {
 	int is_failure = 1;
 	time_ms_t current_time;
-	TestSatCarrierFifo *fifo = new TestSatCarrierFifo(1000);
+	TestDelayFifo *fifo = new TestDelayFifo(1000);
 
 	// Add elements to fifo
 	current_time = getCurrentTime();
 
 	for(int i=0; i < sizeof(elem_times); i++)
 	{
-		TestSatCarrierFifoElement *elem = new TestSatCarrierFifoElement(NULL, current_time, current_time + elem_times[i]);
+		TestDelayFifoElement *elem = new TestDelayFifoElement(NULL, current_time, current_time + elem_times[i]);
 		fifo->push(elem);
 	}
 
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 quit:
 	while(fifo->getCurrentSize() > 0)
 	{
-		TestSatCarrierFifoElement *elem = fifo->pop();
+		TestDelayFifoElement *elem = fifo->pop();
 		delete elem;
 	}
 	delete fifo;

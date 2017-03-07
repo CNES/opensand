@@ -38,7 +38,6 @@ libopensand_plugin_la_h = \
 	TrafficCategory.h \
 	SarpTable.h \
 	EncapPlugin.h \
-	SatCarrierPlugin.h \
 	LanAdaptationPlugin.h \
 	PhysicalLayerPlugin.h
 	

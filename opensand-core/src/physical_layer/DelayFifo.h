@@ -31,13 +31,14 @@
  * @author Joaquin MUGUERZA / Viveris Technologies
  */
 
-#ifndef SAT_CARRIER_FIFO_H
-#define SAT_CARRIER_FIFO_H
+#ifndef DELAY_FIFO_H
+#define DELAY_FIFO_H
 
 #include "OpenSandCore.h"
-#include "TestSatCarrierFifoElement.h"
+#include "DelayFifoElement.h"
 
 #include <opensand_rt/RtMutex.h>
+#include <opensand_output/OutputLog.h>
 
 #include <vector>
 #include <map>
@@ -48,23 +49,27 @@ using std::map;
 
 
 /**
- * @class TestSatCarrierFifo
- * @brief Defines a SatCarrier fifo
+ * @class DelayFifo
+ * @brief Defines a Delay fifo
  *
  * Manages a Sat Carrier fifo, for queuing, statistics, ...
  */
-class TestSatCarrierFifo
+class DelayFifo
 {
  public:
 
 	/**
-	 * @brief Create the TestSatCarrierFifo
+	 * @brief Create the DelayFifo
 	 *
 	 * @param max_size_pkt  the fifo maximum size
 	 */
-	TestSatCarrierFifo(vol_pkt_t max_size_pkt);
+	DelayFifo(vol_pkt_t max_size_pkt);
 
-	~TestSatCarrierFifo();
+	DelayFifo():
+  	DelayFifo(10000)
+	{};
+
+	~DelayFifo();
 
 	/**
 	 * @brief Get the fifo current size
@@ -73,6 +78,14 @@ class TestSatCarrierFifo
 	 */
 	vol_pkt_t getCurrentSize() const;
 
+	/**
+	 * @brief Set the fifo maximum size
+	 *
+	 * @param max_size_pkt, the max number of packets
+	 * @return true on success, false otherwise
+	 */
+	bool setMaxSize(vol_pkt_t max_size_pkt);
+	
 	/**
 	 * @brief Get the fifo maximum size
 	 *
@@ -91,43 +104,43 @@ class TestSatCarrierFifo
 	 * @brief Add an element at the end of the list
 	 *        (Increments new_size_pkt)
 	 *
-	 * @param elem is the pointer on TestSatCarrierFifoElement
+	 * @param elem is the pointer on DelayFifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool push(TestSatCarrierFifoElement *elem);
+	bool push(DelayFifoElement *elem);
 
 	/**
 	 * @brief Add an element at the head of the list
 	 * @warning This function should be use only to replace a fragment of
 	 *          previously removed data in the fifo
 	 *
-	 * @param elem is the pointer on TestSatCarrierFifoElement
+	 * @param elem is the pointer on DelayFifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushFront(TestSatCarrierFifoElement *elem);
+	bool pushFront(DelayFifoElement *elem);
 
 	/**
 	 * @brief Add an element at the back of the list
 	 *
-	 * @param elem is the pointer on TestSatCarrierFifoElement
+	 * @param elem is the pointer on DelayFifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushBack(TestSatCarrierFifoElement *elem);
+	bool pushBack(DelayFifoElement *elem);
 
 	/**
 	 * @brief Remove an element at the head of the list
 	 *
 	 * @return NULL pointer if extraction failed because fifo is empty
-	 *         pointer on extracted TestSatCarrierFifoElement otherwise
+	 *         pointer on extracted DelayFifoElement otherwise
 	 */
-	TestSatCarrierFifoElement *pop();
+	DelayFifoElement *pop();
 
 	/**
 	 * @brief Flush the sat carrier fifo and reset counters
 	 */
 	void flush();
 
-	vector<TestSatCarrierFifoElement *> getQueue(void);
+	vector<DelayFifoElement *> getQueue(void);
 
  protected:
 
@@ -138,11 +151,14 @@ class TestSatCarrierFifo
 	 */
 	int getTickOutPosition(time_t time_out);
 
-	vector<TestSatCarrierFifoElement *> queue; ///< the FIFO itself
+	vector<DelayFifoElement *> queue; ///< the FIFO itself
 
 	vol_pkt_t max_size_pkt;         ///< the maximum size for that FIFO
 
 	mutable RtMutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access
+
+	// Output log
+	OutputLog *log_delay_fifo;
 };
 
 #endif

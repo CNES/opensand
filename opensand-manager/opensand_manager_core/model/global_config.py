@@ -39,7 +39,7 @@ import os
 import shutil
 
 from opensand_manager_core.utils import OPENSAND_PATH, \
-                                        SPOT, ID, GW
+                                        SPOT, ID, GW, SAT
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import XmlException, ModelException
@@ -118,6 +118,29 @@ class GlobalConfig(AdvancedHostModel):
         except XmlException:
             raise
 
+    def new_host(self, name, instance):
+        """ handle a new host """
+        # nothing to do if SAT
+        if name.startswith(SAT):
+            return
+        self._configuration.add_host(instance)
+        try:
+            self._configuration.write()
+            self._files.load(self._scenario, self._configuration)
+        except XmlException:
+            raise
+
+    def remove_host(self, name, instance):
+        """ remove a host """
+        # nothing to do if SAT
+        if name.startswith(SAT):
+            return
+        self._configuration.remove_host(instance)
+        try:
+            self._configuration.write()
+            self._files.load(self._scenario, self._configuration)
+        except XmlException:
+            raise
 
     def new_gw(self, name, instance, net_config):
         """ handle a new gateway """

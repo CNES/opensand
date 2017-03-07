@@ -56,7 +56,7 @@
 #include "BlockEncapSat.h"
 #include "BlockDvbSatTransp.h"
 #include "BlockDvbSatRegen.h"
-#include "BlockSatCarrierSat.h"
+#include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
 #include "Plugin.h"
 #include "OpenSandConf.h"
@@ -160,7 +160,6 @@ int main(int argc, char **argv)
 {
 	const char *progname = argv[0];
 	struct sched_param param;
-	bool with_phy_layer = false;
 	bool init_ok;
 	string ip_addr;
 	string emu_iface;
@@ -247,21 +246,8 @@ int main(int argc, char **argv)
 	DFLTLOG(LEVEL_NOTICE,
 	        "Satellite type = %s\n", satellite_type.c_str());
 
-	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
-		               ENABLE, with_phy_layer))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot  check if physical layer is enabled\n",
-		        progname);
-		goto quit;
-	}
-	DFLTLOG(LEVEL_NOTICE,
-	        "%s: physical layer is %s\n",
-	        progname, with_phy_layer ? "enabled" : "disabled");
-
 	// load the plugins
-	if(!Plugin::loadPlugins(with_phy_layer, plugin_conf_path))
+	if(!Plugin::loadPlugins(true, plugin_conf_path))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load the plugins\n", progname);
@@ -304,7 +290,7 @@ int main(int argc, char **argv)
 	}
 
 	up_sat_carrier = block_dvb;
-	if(with_phy_layer && strToSatType(satellite_type) == REGENERATIVE)
+	if(strToSatType(satellite_type) == REGENERATIVE)
 	{
 		block_phy_layer = Rt::createBlock<BlockPhysicalLayerSat,
 		                                  BlockPhysicalLayerSat::Upward,
@@ -321,9 +307,9 @@ int main(int argc, char **argv)
 
 	specific.ip_addr = ip_addr;
 	specific.emu_iface = emu_iface;
-	block_sat_carrier = Rt::createBlock<BlockSatCarrierSat,
-	                                    BlockSatCarrierSat::Upward,
-	                                    BlockSatCarrierSat::Downward,
+	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
+	                                    BlockSatCarrier::Upward,
+	                                    BlockSatCarrier::Downward,
 	                                    struct sc_specific>("SatCarrier",
 	                                                        up_sat_carrier,
 	                                                        specific);

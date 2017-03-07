@@ -39,10 +39,9 @@
 #include "SlottedAlohaBackoffEied.h"
 #include "SlottedAlohaBackoffMimd.h"
 #include "SlottedAlohaPacketCtrl.h"
-#include "SatDelayMap.h"
 
 #include <opensand_conf/conf.h>
-
+#include "PhysicalLayerPlugin.h"
 
 SlottedAlohaTal::SlottedAlohaTal():
 	SlottedAloha(),
@@ -70,9 +69,12 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	time_ms_t timeout_ms;
 	time_ms_t min_timeout_ms;
 	string backoff_name;
-	string satdelay_name;
-	SatDelayMap satdelay_map;
 
+	string orbit;
+	string satdelay_name;
+	ConfigurationList plugin_conf;
+	SatDelayPlugin *satdelay;
+	
 	// Ensure parent init has been done
 	if(!this->is_parent_init)
 	{
@@ -130,18 +132,97 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 	// Get the max delay
-	if(!satdelay_map.init())
+  if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+                     SATELLITE_ORBIT, orbit))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "cannot get '%s' value", SATELLITE_ORBIT);
+    goto error;
+  }
+	if(!strcmp(orbit.c_str(), ORBIT_GEO))
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "error when initializing satdelay_map");
-		return false;
+		if(!Conf::getItemNode(Conf::section_map[SAT_DELAYS_SECTION],
+		                      GLOBAL_DELAY, plugin_conf))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "missing parameter '%s'", GLOBAL_DELAY);
+			goto error;
+		}
+		if(!Plugin::getSatDelayPlugin(CONSTANT_DELAY,
+																	&satdelay))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+					"error when getting the sat delay plugin '%s'",
+					CONSTANT_DELAY);
+			goto error;
+		}
+		satdelay->getMaxDelay(sat_delay_ms);
+		sat_delay_ms += sat_delay_ms;
 	}
-	if (!satdelay_map.getMaxDelay(sat_delay_ms))
+	else
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "error when calculating max sat_delay_ms");
-		return false;
-	}
+		ConfigurationList delays_list;
+		ConfigurationList::iterator iter_list;
+		time_ms_t biggest_delay = 0;
+		time_ms_t second_biggest = 0;
+		time_ms_t current_delay = 0;
+		uint8_t id;
+		if(!Conf::getListItems(Conf::section_map[SAT_DELAYS_SECTION],
+													 DELAYS_LIST, delays_list))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+					"section '%s': missing list '%s'\n",
+					SAT_DELAYS_SECTION, DELAYS_LIST);
+			goto error;
+		}
+		for(iter_list = delays_list.begin();
+		iter_list != delays_list.end();
+		iter_list++)
+    {
+      if(!Conf::getAttributeValue(iter_list, ID, id))
+      {
+        LOG(this->log_init, LEVEL_ERROR,
+            "cannot get delay id");
+        goto error;
+      }
+      if(!Conf::getItemNode(*iter_list, SAT_DELAY_CONF, plugin_conf))
+      {
+        LOG(this->log_init, LEVEL_ERROR,
+            "missing parameter '%s' for delay terminal id %u",
+            SAT_DELAY_CONF, id);
+        goto error;
+      }
+      if(!Conf::getAttributeValue(iter_list, DELAY_TYPE, satdelay_name))
+      {
+        LOG(this->log_init, LEVEL_ERROR,
+            "missing parameter '%s' for terminal id %u",
+            DELAY_TYPE, id);
+        goto error;
+      }
+			if(!Plugin::getSatDelayPlugin(satdelay_name,
+			                              &satdelay))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+						"error when getting the sat delay plugin '%s'",
+						satdelay_name.c_str());
+				goto error;
+			}
+			satdelay->getMaxDelay(current_delay);
+			if(current_delay > second_biggest)
+			{
+				second_biggest = current_delay;
+			}
+			if(second_biggest > biggest_delay)
+			{
+				current_delay = biggest_delay;
+				biggest_delay = second_biggest;
+				second_biggest = current_delay;
+			}
+			// TODO: should release the loaded plugin at each iteration?
+    }
+		sat_delay_ms = biggest_delay + second_biggest;
+  }
+
 	timeout_ms = this->timeout_saf * this->frame_duration_ms * this->sf_per_saframe;
 	min_timeout_ms = 2 * sat_delay_ms + this->sf_per_saframe * this->frame_duration_ms;
 	if (timeout_ms <= min_timeout_ms)
@@ -236,6 +317,8 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	                                                 "Aloha.backoff");
 
 	return true;
+error:
+	return false;
 }
 
 SlottedAlohaTal::~SlottedAlohaTal()

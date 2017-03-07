@@ -26,13 +26,13 @@
  */
 
 /*
- * @file SatCarrierFifo.cpp
+ * @file TestDelayFifo.cpp
  * @brief  FIFO queue containing MAC packets used for emulating delay
  * @author Joaquin MUGUERZA / Viveris Technologies
  */
 
 
-#include "SatCarrierFifo.h"
+#include "TestDelayFifo.h"
 
 #include <opensand_output/Output.h>
 
@@ -42,46 +42,34 @@
 #include <cstring>
 
 
-SatCarrierFifo::SatCarrierFifo(vol_pkt_t max_size_pkt):
+TestDelayFifo::TestDelayFifo(vol_pkt_t max_size_pkt):
 	queue(),
 	max_size_pkt(max_size_pkt),
-	fifo_mutex("sat_carrier_fifo_mutex")
+	fifo_mutex("delay_fifo_mutex")
 {
-	// Output log
-	this->log_sat_carrier_fifo = Output::registerLog(LEVEL_WARNING, "SatCarrier.Fifo");
 }
 
 /**
  * Destructor
  */
-SatCarrierFifo::~SatCarrierFifo()
+TestDelayFifo::~TestDelayFifo()
 {
 	this->flush();
 }
 
-vol_pkt_t SatCarrierFifo::getCurrentSize() const
+vol_pkt_t TestDelayFifo::getCurrentSize() const
 {
 	RtLock lock(this->fifo_mutex);
 	return this->queue.size();
 }
 
-bool SatCarrierFifo::setMaxSize(vol_pkt_t max_size_pkt)
-{
-	RtLock lock(this->fifo_mutex);
-	// check if current size is bigger than the new max value
-	if(this->queue.size() > max_size_pkt)
-		return false;
-	this->max_size_pkt = max_size_pkt;
-	return true;
-}
-
-vol_pkt_t SatCarrierFifo::getMaxSize() const
+vol_pkt_t TestDelayFifo::getMaxSize() const
 {
 	RtLock lock(this->fifo_mutex);
 	return this->max_size_pkt;
 }
 
-clock_t SatCarrierFifo::getTickOut() const
+clock_t TestDelayFifo::getTickOut() const
 {
 	RtLock lock(this->fifo_mutex);
 	if(queue.size() > 0)
@@ -91,12 +79,12 @@ clock_t SatCarrierFifo::getTickOut() const
 	return 0;
 }
 
-vector<SatCarrierFifoElement *> SatCarrierFifo::getQueue(void)
+vector<TestDelayFifoElement *> TestDelayFifo::getQueue(void)
 {
 	return this->queue;
 }
 
-bool SatCarrierFifo::push(SatCarrierFifoElement *elem)
+bool TestDelayFifo::push(TestDelayFifoElement *elem)
 {
 	int pos;
 	RtLock lock(this->fifo_mutex);
@@ -111,13 +99,14 @@ bool SatCarrierFifo::push(SatCarrierFifoElement *elem)
 	// insert in correct position
 	if(pos >= 0)
 	{
+		printf("fifo pos %d", pos);
 		this->queue.insert(this->queue.begin()+pos, elem);
 	}
 
 	return true;
 }
 
-bool SatCarrierFifo::pushFront(SatCarrierFifoElement *elem)
+bool TestDelayFifo::pushFront(TestDelayFifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 
@@ -132,7 +121,7 @@ bool SatCarrierFifo::pushFront(SatCarrierFifoElement *elem)
 
 }
 
-bool SatCarrierFifo::pushBack(SatCarrierFifoElement *elem)
+bool TestDelayFifo::pushBack(TestDelayFifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 
@@ -146,10 +135,10 @@ bool SatCarrierFifo::pushBack(SatCarrierFifoElement *elem)
 	return false;
 
 }
-SatCarrierFifoElement *SatCarrierFifo::pop()
+TestDelayFifoElement *TestDelayFifo::pop()
 {
 	RtLock lock(this->fifo_mutex);
-	SatCarrierFifoElement *elem;
+	TestDelayFifoElement *elem;
 
 	if(this->queue.size() <= 0)
 	{
@@ -164,10 +153,10 @@ SatCarrierFifoElement *SatCarrierFifo::pop()
 	return elem;
 }
 
-void SatCarrierFifo::flush()
+void TestDelayFifo::flush()
 {
 	RtLock lock(this->fifo_mutex);
-	vector<SatCarrierFifoElement *>::iterator it;
+	vector<TestDelayFifoElement *>::iterator it;
 	for(it = this->queue.begin(); it != this->queue.end(); ++it)
 	{
 		delete *it;
@@ -176,7 +165,7 @@ void SatCarrierFifo::flush()
 	this->queue.clear();
 }
 
-int SatCarrierFifo::getTickOutPosition(time_t time_out)
+int TestDelayFifo::getTickOutPosition(time_t time_out)
 {
 	time_t time_elem;
 	int pos = -1;
@@ -185,9 +174,6 @@ int SatCarrierFifo::getTickOutPosition(time_t time_out)
 	int end = this->queue.size() - 1;
 
 	// Implement a divide and conquer approach
-	// TODO: if this proves too consuming, implement one FIFO for
-	// each SPOT/GW, and always push_back (all elements will
-	// have the same delay, except for those with 0 delay)
 	while(end > start)
 	{
 		test = (end + start)/2;
@@ -209,5 +195,6 @@ int SatCarrierFifo::getTickOutPosition(time_t time_out)
 	{
 		pos = 0;
 	}
+	printf("Position: %d\n", pos);
 	return pos;
 }

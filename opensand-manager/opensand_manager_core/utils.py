@@ -76,7 +76,6 @@ SPOT        = "spot"
 ID          = "id"
 TAL_ID      = "tal_id"
 CATEGORY    = "category"
-TARGET      = "target"
 
 # Band
 RCS               = "rcs"
@@ -133,6 +132,7 @@ LAN_IPV6      = "lan_ipv6"
 SATDELAY      = "satdelay"
 SATDELAY_TYPE = "type"
 SATDELAY_CONF = "satdelay_conf"
+CONSTANT_DELAY = "ConstantDelay"
 
 # Path
 PATH_BAND     = "_band/"

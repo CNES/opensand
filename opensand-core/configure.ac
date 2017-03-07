@@ -105,11 +105,9 @@ AC_CONFIG_FILES([ \
 	src/lan_adaptation/tests/Makefile \
 	src/interconnect/Makefile \
 	src/sat_carrier/Makefile \
-	src/sat_carrier/plugins/Makefile \
-	src/sat_carrier/plugins/constant/Makefile \
-	src/sat_carrier/plugins/file/Makefile \
 	src/sat_carrier/tests/Makefile \
 	src/physical_layer/Makefile \
+	src/physical_layer/tests/Makefile \
 	src/physical_layer/plugins/Makefile \
 	src/physical_layer/plugins/attenuation/Makefile \
 	src/physical_layer/plugins/attenuation/on_off/Makefile \
@@ -121,6 +119,9 @@ AC_CONFIG_FILES([ \
 	src/physical_layer/plugins/minimal_condition/Makefile \
 	src/physical_layer/plugins/minimal_condition/acm_loop/Makefile \
 	src/physical_layer/plugins/minimal_condition/constant/Makefile \
+	src/physical_layer/plugins/satdelay/Makefile \
+	src/physical_layer/plugins/satdelay/constant/Makefile \
+	src/physical_layer/plugins/satdelay/file/Makefile \
 	src/system/Makefile \
 	src/mandatory_plugins/Makefile \
 	src/mandatory_plugins/aal5_atm/Makefile \

@@ -32,4 +32,4 @@ INCLUDES = \
 	-I$(top_srcdir)/src/dvb/utils \
 	-I$(top_srcdir)/src/dvb/fmt \
 	-I$(top_srcdir)/src/common \
-	-I$(top_srcdir)/src/sat_carrier
+	-I$(top_srcdir)/src/physical_layer

@@ -310,7 +310,6 @@
 #define GLOBAL_DELAY        "global_delay"
 #define REFRESH_PERIOD_MS   "refresh_period"
 #define DELAYS_LIST         "satdelays"
-#define TARGET              "target"
 #define DELAY_TYPE          "type"
 #define SAT_DELAY_CONF      "satdelay_conf"
 #define CONSTANT_DELAY      "ConstantDelay"
