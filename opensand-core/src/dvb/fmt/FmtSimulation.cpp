@@ -217,6 +217,9 @@ bool FmtSimulation::load()
 		if(line == "" || line[0] == '#' || 
 		   (line.length() >= 2 && line[0] == '/' && line[1] == '*'))
 		{
+			LOG(this->log_fmt, LEVEL_DEBUG,
+					"ignoring line number %u (commented)\n",
+					line_number);
 			continue;
 		}
 
@@ -228,6 +231,9 @@ bool FmtSimulation::load()
 		
 		if(line_stream.bad() || line_stream.fail())
 		{
+			LOG(this->log_fmt, LEVEL_ERROR,
+					"Wrong format for time in line number %u\n",
+					line_number);
 			goto malformed;
 		}
 
@@ -242,6 +248,12 @@ bool FmtSimulation::load()
 		if(!list.empty())
 		{
 			this->modcod[time] = list;
+		}
+		else
+		{
+			LOG(this->log_fmt, LEVEL_ERROR,
+					"MODCOD list is empty in line number %u\n",
+					line_number);
 		}
 	}
 	
