@@ -2,6 +2,7 @@
 
 THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 IFS='/' read -ra DIR_LIST <<< "$THIS_DIR"
+FLAG=""
 
 # Check current distribution
 CURRENT=${DIR_LIST[-1]}
@@ -18,6 +19,7 @@ usage()
     echo 'Available options:'
     echo '      -i          Install the module after packaging'
     echo '      -I          Install build dependencies automatically'
+    echo '      -f          Spetify a user flag to add to the package version'
     echo 'List of possible modules:'
     echo $MODULES
     exit 1
@@ -64,10 +66,27 @@ build()
         $THIS_DIR/$MODULE/pre-src -s $SRC_DIR/$MODULE -d $DST_DIR/src/$MODULE && success || error
     fi
  
-    if [ ! -z $INSTALL_DEP ]
+    # Update version with the user flag
+    CHANGELOG="$DST_DIR/src/$MODULE/debian/changelog"
+    if [ ! -z "$FLAG" -a ! -f "$CHANGELOG" ]
+    then
+        # Add flag to changelog version
+        CUR_VERS=$(head -1 $CHANGELOG | sed -r -e 's/^(.*)\((.*)\)(.*)$/\2/')
+        NEW_VERS="$CUR_VERS+$FLAG"
+        sed -i -r -e "1s/^(.*)\(([^+]+)(\+.+)?\)(.*)$/\1\($NEW_VERS\)\4/" $CHANGELOG
+        
+        # Add flag to configure.ac version
+        CONFIGURE_AC=$(find $DST_DIR/src/$MODULE -name "configure.ac")
+        TEMP=$(echo $CUR_VERS | sed -r -e 's/\+/\\\+/g')
+        for CONFIG in $CONFIGIGURE_AC; do
+            sed -i -r -e "s/$TEMP/$NEW_VERS/g" $CONFIG
+        done
+    fi
+
+    if [ ! -z "$INSTALL_DEP" ]
     then
         # Get dependencies from control file
-        DEPS=`sed -n '/Build-Depends:/,/:/ p' "$DST_DIR/$MODULE/debian/control" | \
+        DEPS=`sed -n '/Build-Depends:/,/:/ p' "$DST_DIR/src/$MODULE/debian/control" | \
               sed -r 's/^[^:]+: //g' | sed -r 's/\([^\)]+\)//g' | \
               sed -r 's/( )?,//g' | sed '$d' | tr '\n' ' '`
 
@@ -129,7 +148,7 @@ install()
     cd $THIS_DIR
 }
 
-while getopts ":s:d:iIh" o; do
+while getopts ":s:d:iIhf:" o; do
     case "${o}" in
         s)
             SRC_DIR=`echo $OPTARG | sed 's/\/$//'`
@@ -145,6 +164,9 @@ while getopts ":s:d:iIh" o; do
             ;;
         I)
             INSTALL_DEP='-I'
+            ;;
+        f)
+            FLAG=$OPTARG
             ;;
         *)
             usage

@@ -55,7 +55,6 @@ class GlobalConfig(AdvancedHostModel):
     def __init__(self, scenario):
         AdvancedHostModel.__init__(self, 'global', scenario)
         self._payload_type = ''
-        self._return_link_std = ''
         self._emission_std = ''
         #self._dama = ''
         self._forward_down = {}
@@ -109,8 +108,6 @@ class GlobalConfig(AdvancedHostModel):
             self._configuration.set_value(self._payload_type,
                                           "//satellite_type")
             #self._configuration.set_value(self._dama, "//dama_algorithm")
-            self._configuration.set_value(self._return_link_std,
-                                          "//return_link_standard")
             self.set_stack('forward_down_encap_schemes',
                            self._forward_down, 'encap')
             self.set_stack('return_up_encap_schemes',
@@ -165,10 +162,6 @@ class GlobalConfig(AdvancedHostModel):
     def get_payload_type(self):
         """ get the payload_type value """
         return self.get_param('satellite_type')
-
-    def set_return_link_standard(self, val):
-        """ set the return_link_std value """
-        self._return_link_std = val
 
     def get_return_link_standard(self):
         """ get the return_link_std value """

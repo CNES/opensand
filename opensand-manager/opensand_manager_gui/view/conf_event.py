@@ -377,11 +377,14 @@ class ConfEvent(ConfView) :
             error_popup("Out stack is empty !")
             return
         pos = max(stack.keys())
-        if not modules[stack[pos]].get_condition(emission_std.lower()):
+        conf = modules[stack[pos]].get_config(payload_type.lower(),
+                                              config.get_return_link_standard().lower(),
+                                              emission_std.lower())
+        if conf is None:
             error_popup("Module %s does not support %s link" %
                         (stack[pos], emission_std))
             return
-        if modules[stack[pos]].get_condition('mandatory_down'):
+        if conf.mandatory_down:
             error_popup("Module %s need a lower encapsulation module" %
                         stack[pos])
             return
@@ -390,10 +393,13 @@ class ConfEvent(ConfView) :
             error_popup("In stack is empty !")
             return
         pos = max(stack.keys())
-        if not modules[stack[pos]].get_condition('dvb-s2'):
+        conf = modules[stack[pos]].get_config(payload_type.lower(),
+                                              config.get_return_link_standard().lower(),
+                                              'dvb-s2')
+        if conf is None:
             error_popup("Module %s does not support DVB-S2 link" % stack[pos])
             return
-        if modules[stack[pos]].get_condition('mandatory_down'):
+        if conf.mandatory_down:
             error_popup("Module %s need a lower encapsulation module" %
                         stack[pos])
             return

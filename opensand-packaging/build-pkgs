@@ -1,6 +1,7 @@
 #!/bin/bash
 
-MODULES='all core lan encap'
+MODULES='all core services lan encap'
+USEROPTS=""
 
 # Get list of all supported distributions
 THIS_DIR="$(readlink -e $0)"
@@ -11,13 +12,15 @@ DISTS=$(echo $DISTS | tr -d '\n')
 usage()
 {
     echo 'Usage : build-pkgs [OPTIONS] -s <src path> -d <dst path> -t <dist> TARGET'
-    echo 'Available TARGETS :   all:    build all packages (default)'
-    echo '                      core:   build only core packages'
-    echo '                      encap:  build only encapsulation plugins'
-    echo '                      lan:    build only lan adaptation plugins'
-    echo 'Available OPTIONS :   -m      move packages into manager, daemon and all'
-    echo '                              directories.'
-    echo '                      -i      install build-dependencies automatically'  
+    echo 'Available TARGETS :   all:      build all packages (default)'
+    echo '                      core:     build only core packages'
+    echo '                      services: build only services packages'
+    echo '                      encap:    build only encapsulation plugins'
+    echo '                      lan:      build only lan adaptation plugins'
+    echo 'Available OPTIONS :   -m        move packages into manager, daemon and all'
+    echo '                                directories.'
+    echo '                      -i        install build-dependencies automatically'
+    echo '                      -f        add a user flag to packages'
     echo 'List of available distributions:'
     echo $DISTS
     exit 1
@@ -27,30 +30,36 @@ make_core()
 {
     echo "Building OpenSAND core for $TARGET_DIST"
     # Package and install opensand-output
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
     # Package and install opensand-conf
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
     # Package and install opensand-rt
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-rt || error
-    # Package and install opensand-collector
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-collector 
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-rt || error
     # Package and install opensand-core
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-core 
-    # Package and install opensand-daemon
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-daemon 
-    # Package and install opensand-manager
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-manager
-    # Package and install opensand-meta
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-meta
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-core
     echo "Finished building OpenSAND core for $TARGET_DIST"
+}
+
+make_services()
+{
+    echo "Building OpenSAND services for $TARGET_DIST"
+    # Package and install opensand-collector
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-collector 
+    # Package and install opensand-daemon
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-daemon 
+    # Package and install opensand-manager
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-manager
+    # Package and install opensand-meta
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-meta
+    echo "Finished building OpenSAND services for $TARGET_DIST"
 }
 
 make_encap()
 {
     echo "Building OpenSAND encapsulation plugins for $TARGET_DIST"
     # Package and install opensand-plugins/encapsulation/gse
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/gse
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/rle
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/gse
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/rle
     echo "Finished building OpenSAND encapsulation plugins for $TARGET_DIST"
 }
 
@@ -58,7 +67,7 @@ make_lan()
 {
     echo "Building OpenSAND LAN adaptation plugins for $TARGET_DIST"
     # Package and install opensand-plugins/encapsulation/gse
-    $THIS_DIR/$TARGET_DIST/build-pkg -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/lan_adaptation/rohc
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/lan_adaptation/rohc
     echo "Finished building OpenSAND LAN adaptation plugins for $TARGET_DIST"
 }
 
@@ -117,7 +126,7 @@ move()
 
 }
 
-while getopts ":s:d:t:him" o; do
+while getopts ":s:d:t:himf:" o; do
     case "${o}" in
         s)
             SRC_DIR=$(readlink -f $OPTARG)
@@ -134,10 +143,23 @@ while getopts ":s:d:t:him" o; do
         i)
             INSTALL_DEP="-I"
             ;;
+        f)
+            if [ -z $OPTARG ]
+            then
+                echo "No user flag set!" && usage
+            fi
+            USEROPTS="$USEROPTS -f $OPTARG"
+            ;;
         h)
             usage
             ;;
         *)
+            if [ -z $OPTARG ]
+            then
+                echo "Invalid option \"${o}\"!"
+            else
+                echo "Invalid option \"${o} $OPTARG\"!"
+            fi
             usage
             ;;
     esac
@@ -184,11 +206,15 @@ clean
 case $MODULE in
     "all")
         make_core
+        make_services
         make_encap
         make_lan
         ;;
     "core")
         make_core
+        ;;
+    "services")
+        make_services
         ;;
     "encap")
         make_encap

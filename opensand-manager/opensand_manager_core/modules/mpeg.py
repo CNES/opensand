@@ -41,13 +41,20 @@ class MpegModule(EncapModule):
     _name = 'MPEG2-TS'
     
     def __init__(self):
-        EncapModule.__init__(self)
-        self._upper['transparent'] = ("ULE",)
-        self._upper['regenerative'] = ("AAL5/ATM",
-                                       "ULE")
+        super(MpegModule, self).__init__()
         self._xml = 'mpeg.conf'
         self._xsd  = 'mpeg.xsd'
         start = "<span size='x-large' foreground='#1088EB'><b>"
         end = "</b></span>"
         self._description = "%sMPEG encapsulation plugin for OpenSAND%s" % \
                             (start, end)
+        
+        self._add_config(self.TRANSPARENT, self.DVB_RCS, self.FORWARD_LINK,
+                         False, False, ["ULE"])
+        self._add_config(self.TRANSPARENT, self.DVB_RCS, self.RETURN_LINK,
+                         False, False, ["ULE"])
+        self._add_config(self.REGENERATIVE, self.DVB_RCS, self.FORWARD_LINK,
+                         False, False, ["AAL5/ATM", "ULE"])
+        self._add_config(self.REGENERATIVE, self.DVB_RCS, self.RETURN_LINK,
+                         False, False, ["AAL5/ATM", "ULE"])
+ 

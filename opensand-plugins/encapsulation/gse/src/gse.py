@@ -41,15 +41,20 @@ class GseModule(EncapModule):
     _name = 'GSE'
     
     def __init__(self):
-        EncapModule.__init__(self)
-        self._handle_upper_bloc = True
-        self._upper['regenerative'] = ("AAL5/ATM",
-                                       "MPEG2-TS",
-                                       "RLE",)
+        super(GseModule, self).__init__()
         self._xml = 'gse.conf'
         self._xsd  = 'gse.xsd'
         start = "<span size='x-large' foreground='#1088EB'><b>"
         end = "</b></span>"
         self._description = "%sGSE encapsulation plugin for OpenSAND%s" % \
                             (start, end)
-        self._condition['dvb-rcs'] = False
+
+        self._add_config(self.TRANSPARENT, self.DVB_RCS, self.FORWARD_LINK,
+                         False, True)
+        self._add_config(self.REGENERATIVE, self.DVB_RCS, self.FORWARD_LINK,
+                         False, False, ["AAL5/ATM", "MPEG2-TS"])
+        
+        self._add_config(self.TRANSPARENT, self.DVB_RCS2, self.FORWARD_LINK,
+                         False, True)
+        self._add_config(self.REGENERATIVE, self.DVB_RCS2, self.FORWARD_LINK,
+                         False, False, ["RLE"])

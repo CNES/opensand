@@ -30,6 +30,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
 
 """
 protocol_stack.py - The protocol stack view
@@ -39,8 +40,9 @@ import gtk
 import gobject
 
 from opensand_manager_core.my_exceptions import ConfException
+from opensand_manager_core.module import LanAdaptationModule, EncapModule
 
-class ProtocolStack():
+class ProtocolStack(object):
     """ The protocol stack for the configuration view """
     def __init__(self, vbox_stack, modules, modif_callback,
                  vbox_header_modif=None, frame_header_modif=None):
@@ -52,6 +54,8 @@ class ProtocolStack():
         self._header_modif_plugins = {}
         # remove header modification plugins from stack
         for module in self._modules:
+            if not isinstance(self._modules[module], LanAdaptationModule):
+                continue
             if self._modules[module].get_condition('header_modif'):
                 self._header_modif_plugins[self._modules[module]] = None
         # separate stack modules and header modif modules
@@ -62,16 +66,21 @@ class ProtocolStack():
         self._displayed_stack = {}
         self._payload = ''
         self._emission_std = ''
+        self._return_link_standard = ''
         self._stack = {}
         self._modif_cb = modif_callback
 
-    def load(self, stack, payload='', emission_std=''):
+    def load(self, stack, payload='', emission_std='', return_link_standard='',
+            reload_stack=False):
         """ load or reload the protocol stack from configuration """
         self._payload = payload.lower()
         self._emission_std = emission_std.lower()
+        self._return_link_standard = return_link_standard.lower()
         self.reset()
         upper_val = ""
         idx_stack = 0
+        if reload_stack:
+            self._update_stack(stack)
         # remove header modif plugins from active stack and keep them for
         # setting buttons' state
         enabled_header_modif = []
@@ -155,8 +164,7 @@ class ProtocolStack():
             self._vbox_stack.remove(self._stack[pos])
             last = pos
             del self._stack[pos]
-            if upper_val not in module.get_available_upper_protocols(self._payload)\
-               and not (upper_val == "" or module.handle_upper_bloc()):
+            if not self.get_lower_list(upper_val):
                 current_val = ''
                 erase = True
             self.add_layer(upper_val, pos, current_val)
@@ -225,17 +233,7 @@ class ProtocolStack():
             active_idx = 0
         if idx == 0:
             return True
-        combo.set_model(store)
-        cell = gtk.CellRendererText()
-        combo.pack_start(cell, True)
-        combo.add_attribute(cell, 'text', 0)
-        # update the stack
-        self._stack[idx_stack] = combo
-        combo.set_active(active_idx)
-        self._vbox_stack.pack_start(combo)
-        self._vbox_stack.reorder_child(combo, idx_stack)
-        self._vbox_stack.set_child_packing(combo, expand=False, fill=False,
-                                     padding=5, pack_type=gtk.PACK_START)
+        self._add_combo_box_to_stack(store, idx_stack, active_idx)
         if active != '' and active_idx == 0 and not removed:
             return False
         return True
@@ -250,6 +248,28 @@ class ProtocolStack():
                 lower.append(name)
         return lower
 
+    def _update_stack(self, stack):
+        """ check and update stack """
+        pass
+    
+    def _add_combo_box_to_stack(self, store, stack_idx, active_idx):
+        """ add a combo box to the stack"""
+        combo = gtk.ComboBox()
+        combo.connect('changed', self.on_stack_changed)
+        if self._modif_cb is not None:
+            combo.connect('changed', self._modif_cb)
+        combo.set_model(store)
+        cell = gtk.CellRendererText()
+        combo.pack_start(cell, True)
+        combo.add_attribute(cell, 'text', 0)
+        
+        # update the stack
+        self._stack[stack_idx] = combo
+        combo.set_active(active_idx)
+        self._vbox_stack.pack_start(combo)
+        self._vbox_stack.reorder_child(combo, stack_idx)
+        self._vbox_stack.set_child_packing(combo, expand=False, fill=False,
+                                     padding=5, pack_type=gtk.PACK_START)
 
     def set_payload_type(self, payload):
         """ set the satellite payload type """
@@ -310,6 +330,135 @@ class ProtocolStack():
     def get_box(self):
         """ get the vbox containing the stack """
         return self._vbox_stack
+
+class LanAdaptationProtocolStack(ProtocolStack):
+    """ The encapsulation protocol stack for the configuration view """
+    def __init__(self, vbox_stack, modules, modif_callback,
+                 vbox_header_modif=None, frame_header_modif=None):
+        super(LanAdaptationProtocolStack, self).__init__(vbox_stack,
+                                                         modules,
+                                                         modif_callback,
+                                                         vbox_header_modif,
+                                                         frame_header_modif)
+
+class EncapProtocolStack(ProtocolStack):
+    """ The encapsulation protocol stack for the configuration view """
+    def __init__(self, vbox_stack, modules, modif_callback,
+                 vbox_header_modif=None, frame_header_modif=None):
+        super(EncapProtocolStack, self).__init__(vbox_stack,
+                                                 modules,
+                                                 modif_callback,
+                                                 vbox_header_modif,
+                                                 frame_header_modif)
+        
+    def _update_stack(self, stack):
+        """ check and update stack """
+        choices = self.get_lower_list("")
+        new_stack = {}
+        i = 0
+        while choices:
+            # get data
+            pos = str(i)
+            elem = stack.get(pos)
+            
+            # check end
+            if elem is None:
+                break
+            
+            # check choices and update if required
+            if elem not in choices:
+                elem = choices[0]
+            new_stack[pos] = elem
+            
+            # prepare next
+            choices = self.get_lower_list(elem)
+            i += 1
+        
+        # update stack
+        stack.clear()
+        stack.update(new_stack)
+        
+    def add_layer(self, upper_val, idx_stack, active=''):
+        """ add a new layer in the protocol stack """
+
+        #TODO: remove
+        print "Add layer: upper_val={}, idx_stack={}, " \
+              "active={}".format(upper_val, idx_stack, active)
+        
+        # get configuration
+        conf = None
+        if upper_val != "":
+            conf = self._modules[upper_val].get_config(self._payload, 
+                                                       self._return_link_standard,
+                                                       self._emission_std)
+            if conf is None:
+                print "  return {} (get configuration/isinstance)\n".format(not active)
+                return not active
+
+        store = gtk.ListStore(gobject.TYPE_STRING)
+        idx = 0
+        active_found = False
+        active_idx = 0
+
+        # add each encapsulation protocol that can encapsulate the upper_val
+        # protocol
+        for name in self.get_lower_list(upper_val):
+            # check lower module is compatible with current configuration
+            lower_conf = self._modules[name].get_config(self._payload, 
+                                                        self._return_link_standard,
+                                                        self._emission_std)
+            if lower_conf is None:
+                continue
+            
+            # keep the index of the active protocol
+            if active == name:
+                active_found = True
+                active_idx = idx
+
+            # store lower module
+            idx += 1
+            store.append([name])
+            print "    - {}".format(name)
+        
+        # if the module need a lower encapsulation protocol and there is
+        # only one remove the empty value
+        if conf is not None and not conf.mandatory_down and idx:
+            # add an empty value that will be used to unselect the layer
+            store.insert(0, [""])
+            idx += 1
+            if active_found:
+                active_idx += 1
+            elif not active:
+                active_found = True
+            print "  insert empty"
+
+        # no lower encapsulation protocol is required
+        if idx == 0:
+            print "  return True (no lower encapsulation is required)\n"
+            return True
+
+        print "  active_idx={}".format(active_idx)
+
+        self._add_combo_box_to_stack(store, idx_stack, active_idx)
+        
+        print "  return {}\n".format(bool(not active or active_found))
+        return bool(not active or active_found)
+
+    def get_lower_list(self, module_name):
+        """ get the list of protocols that can encapsulate the current one """
+        lower = []
+        for name in self._modules:
+            conf = self._modules[name].get_config(self._payload, 
+                                                  self._return_link_standard,
+                                                  self._emission_std)
+            if conf is None:
+                continue
+            if not module_name and not conf.handle_upper_block:
+                continue
+            if module_name and module_name not in conf.allowed_upper_blocks:
+                continue
+            lower.append(name)
+        return lower
 
 # TODO move somewhere to be able to use it with other ComboBox!
 def get_combo_val(combo):

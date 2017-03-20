@@ -41,14 +41,17 @@ class RleModule(EncapModule):
     _name = 'RLE'
     
     def __init__(self):
-        EncapModule.__init__(self)
-        self._handle_upper_bloc = True
-        self._upper['regenerative'] = ("AAL5/ATM",
-                                       "MPEG2-TS",)
+        super(RleModule, self).__init__()
         self._xml = 'rle.conf'
         self._xsd  = 'rle.xsd'
         start = "<span size='x-large' foreground='#1088EB'><b>"
         end = "</b></span>"
         self._description = "%sRLE encapsulation plugin for OpenSAND%s" % \
                             (start, end)
-        self._condition['dvb-rcs'] = False
+        
+        self._add_config(self.TRANSPARENT, self.DVB_RCS2, self.RETURN_LINK,
+                         False, True)
+        self._add_config(self.REGENERATIVE, self.DVB_RCS2, self.FORWARD_LINK,
+                         False, True)
+        self._add_config(self.REGENERATIVE, self.DVB_RCS2, self.RETURN_LINK,
+                         False, True)
