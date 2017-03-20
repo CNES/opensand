@@ -363,7 +363,7 @@ bool DvbFmt::initModcodSimuFile(const char *simu,
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		   "section '%s': missing parameter '%s'\n",
-		   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+		   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
 		return false;
 	}
 

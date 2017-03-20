@@ -328,7 +328,7 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		   "section '%s': missing parameter '%s'\n",
-		   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+		   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
 		return false;
 	}
 
@@ -1081,7 +1081,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				   "section '%s': missing parameter '%s'\n",
-				   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+				   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
 				return false;
 			}
 
