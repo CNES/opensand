@@ -290,6 +290,8 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 					return false;
 				}
 				this->probe_delay->put(this->satdelay->getSatDelay());
+				// Send probes
+				Output::sendProbes();
 			}
 			else
 			{
