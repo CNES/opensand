@@ -53,9 +53,6 @@
 #define ENCAP_NAME                "encap"
 
 #define SATELLITE_TYPE            "satellite_type"
-#define SATELLITE_ORBIT           "orbit"
-#define ORBIT_GEO                 "GEO"
-#define ORBIT_LEO_MEO             "LEO/MEO"
 
 #define RET_UP_CARRIER_DURATION     "return_up_carrier_duration"
 #define FWD_DOWN_CARRIER_DURATION   "forward_down_carrier_duration"
@@ -307,6 +304,7 @@
 //      sat_delays      //
 //////////////////////////
 #define SAT_DELAYS_SECTION  "delays"
+#define GLOBAL_CONSTANT_DELAY "global_constant_delay"
 #define GLOBAL_DELAY        "global_delay"
 #define REFRESH_PERIOD_MS   "refresh_period"
 #define DELAYS_LIST         "satdelays"

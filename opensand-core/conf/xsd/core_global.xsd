@@ -54,13 +54,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="orbitType">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="GEO" />
-	<xsd:enumeration value="LEO/MEO" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <xsd:simpleType name="encapScheme">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="AAL5/ATM" />
@@ -338,7 +331,7 @@
 <xsd:element name="global_delay">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
-            Global configurations for GEO orbits
+            Global delay for all terminals and gateways
             <not_list>true</not_list>
         </xsd:documentation>
     </xsd:annotation>
@@ -473,10 +466,10 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="orbit" type="orbitType">
+            <xsd:element name="global_constant_delay" type="xsd:boolean">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The satellite's type of orbit
+                        Use a global constant delay for all terminals/gateways 
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -834,7 +827,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The global satellite delay configurations
-                        <xpath common.orbit="GEO" />
+                        <xpath common.global_constant_delay="true" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -842,7 +835,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The satellite delay configuration for each spot and GW
-                        <xpath common.orbit="LEO/MEO" />
+                        <xpath common.global_constant_delay="false" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

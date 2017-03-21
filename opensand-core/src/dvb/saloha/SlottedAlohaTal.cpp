@@ -70,7 +70,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	time_ms_t min_timeout_ms;
 	string backoff_name;
 
-	string orbit;
+	bool global_constant_delay;
 	string satdelay_name;
 	ConfigurationList plugin_conf;
 	SatDelayPlugin *satdelay;
@@ -133,13 +133,13 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	}
 	// Get the max delay
   if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-                     SATELLITE_ORBIT, orbit))
+                     GLOBAL_CONSTANT_DELAY, global_constant_delay))
   {
     LOG(this->log_init, LEVEL_ERROR,
-        "cannot get '%s' value", SATELLITE_ORBIT);
+        "cannot get '%s' value", GLOBAL_CONSTANT_DELAY);
     goto error;
   }
-	if(!strcmp(orbit.c_str(), ORBIT_GEO))
+	if(global_constant_delay)
 	{
 		if(!Conf::getItemNode(Conf::section_map[SAT_DELAYS_SECTION],
 		                      GLOBAL_DELAY, plugin_conf))

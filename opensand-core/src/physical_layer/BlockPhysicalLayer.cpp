@@ -76,17 +76,17 @@ bool BlockPhysicalLayer::initSatDelay()
 	ConfigurationList::iterator iter_list;
   ConfigurationList plugin_conf;
 	uint8_t id;
-	string orbit;
+	bool global_constant_delay;
 	string satdelay_name;
 	time_ms_t refresh_period_ms;
 
 	/// Load de SatDelay Plugin
 	// Get the orbit type
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   SATELLITE_ORBIT, orbit))
+	                   GLOBAL_CONSTANT_DELAY, global_constant_delay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get '%s' value", SATELLITE_ORBIT);
+		    "cannot get '%s' value", GLOBAL_CONSTANT_DELAY);
 		goto error;
 	}
   // get the refresh period
@@ -106,8 +106,8 @@ bool BlockPhysicalLayer::initSatDelay()
         SAT_DELAYS_SECTION, DELAYS_LIST);
     goto error;
   }
-  // if GEO, get the global delay configuration first
-  if(!strcmp(orbit.c_str(), ORBIT_GEO))
+  // if global constant delay, get the global delay configuration first
+  if(global_constant_delay)
   {
     if(!Conf::getItemNode(Conf::section_map[SAT_DELAYS_SECTION],
                           GLOBAL_DELAY, plugin_conf))
