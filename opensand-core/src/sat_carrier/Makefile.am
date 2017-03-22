@@ -15,9 +15,10 @@ libopensand_satcarrier_la_h = \
 libopensand_satcarrier_la_SOURCES = \
 	$(libopensand_satcarrier_la_cpp) \
 	$(libopensand_satcarrier_la_h)
+libopensand_satcarrier_la_LIBADD = \
+	$(PACKED_COMMON_LIBS)       
 
 INCLUDES = \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/dvb/utils
-

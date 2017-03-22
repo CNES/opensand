@@ -82,6 +82,12 @@ bool Plugin::getPhysicalLayerPlugins(string att_pl_name,
 	                                     error);
 }
 
+bool Plugin::getSatDelayPlugin(string name,
+                               SatDelayPlugin **sat_delay)
+{
+	return utils.getSatDelayPlugin(name, sat_delay);
+}
+
 void Plugin::getAllEncapsulationPlugins(pl_list_t &encapsulation)
 {
 	return utils.getAllEncapsulationPlugins(encapsulation);

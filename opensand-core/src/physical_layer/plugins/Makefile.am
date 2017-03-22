@@ -1,4 +1,5 @@
 SUBDIRS= \
 	attenuation \
 	error_insertion \
-	minimal_condition
+	minimal_condition \
+	satdelay

@@ -30,20 +30,24 @@
  * @brief    PhysicalLayer bloc
  * @author   Santiago PENA <santiago.penaluque@cnes.fr>
  * @author   Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author   Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 #include "BlockPhysicalLayer.h"
 
 #include "Plugin.h"
 #include "OpenSandFrames.h"
+#include "OpenSandCore.h"
 #include "PhyChannel.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_conf/conf.h>
 
 
-BlockPhysicalLayer::BlockPhysicalLayer(const string &name):
-	Block(name)
+BlockPhysicalLayer::BlockPhysicalLayer(const string &name, tal_id_t mac_id):
+	Block(name),
+	mac_id(mac_id),
+	satdelay(NULL)
 {
 }
 
@@ -55,12 +59,147 @@ BlockPhysicalLayer::~BlockPhysicalLayer()
 
 bool BlockPhysicalLayer::onInit(void)
 {
+	if(!this->initSatDelay())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "error when loading satdelay plugin");
+		goto error;
+	}
 	return true;
+error:
+	return false;
 }
 
-BlockPhysicalLayer::Downward::Downward(const string &name):
+bool BlockPhysicalLayer::initSatDelay()
+{
+	ConfigurationList delays_list;
+	ConfigurationList::iterator iter_list;
+  ConfigurationList plugin_conf;
+	uint8_t id;
+	bool global_constant_delay;
+	string satdelay_name;
+	time_ms_t refresh_period_ms;
+
+	/// Load de SatDelay Plugin
+	// Get the orbit type
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+	                   GLOBAL_CONSTANT_DELAY, global_constant_delay))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot get '%s' value", GLOBAL_CONSTANT_DELAY);
+		goto error;
+	}
+  // get the refresh period
+  if(!Conf::getValue(Conf::section_map[SAT_DELAYS_SECTION],
+                     REFRESH_PERIOD_MS, refresh_period_ms))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "cannot get '%s' value", REFRESH_PERIOD_MS);
+    goto error;
+  }
+  // get all plugins 
+  if(!Conf::getListItems(Conf::section_map[SAT_DELAYS_SECTION],
+                         DELAYS_LIST, delays_list))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "section '%s': missing list '%s'\n",
+        SAT_DELAYS_SECTION, DELAYS_LIST);
+    goto error;
+  }
+  // if global constant delay, get the global delay configuration first
+  if(global_constant_delay)
+  {
+    if(!Conf::getItemNode(Conf::section_map[SAT_DELAYS_SECTION],
+                          GLOBAL_DELAY, plugin_conf))
+    {
+      LOG(this->log_init, LEVEL_ERROR,
+          "missing parameter '%s'", GLOBAL_DELAY);
+      goto error;
+    }
+		satdelay_name = CONSTANT_DELAY;
+  }
+	else
+	{
+		for(iter_list = delays_list.begin();
+				iter_list != delays_list.end();
+				iter_list++)
+		{
+			// get the id
+			if(!Conf::getAttributeValue(iter_list, ID, id))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+						"cannot get delay id");
+				goto error;
+			}
+			if(id != this->mac_id)
+				continue;
+			if(!Conf::getItemNode(*iter_list, SAT_DELAY_CONF, plugin_conf))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+						"missing parameter '%s' for delay terminal id %u",
+						SAT_DELAY_CONF, id);
+				goto error;
+			}
+			// get plugin name
+			if(!Conf::getAttributeValue(iter_list, DELAY_TYPE, satdelay_name))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+						"missing parameter '%s' for terminal id %u",
+						DELAY_TYPE, id);
+				goto error;
+			}
+			break;
+		}
+	}
+	// load plugin
+	if(!Plugin::getSatDelayPlugin(satdelay_name,
+																&this->satdelay))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+				"error when getting the sat delay plugin '%s'",
+				satdelay_name.c_str());
+		goto error;
+	}
+	// Check if the plugin was found
+	if(this->satdelay == NULL)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+				"Satellite delay plugin conf was not found for"
+				" terminal %s", this->mac_id);
+		goto error;
+	}
+	// init plugin
+	if(!this->satdelay->init(plugin_conf))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+				"cannot initialize sat delay plugin '%s'"
+				" for terminal id %u ", satdelay_name.c_str(), id);
+		goto error;
+	}
+	
+	// share the plugin to channels
+	if(!((Upward *)this->upward)->setSatDelay(this->satdelay, false))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "error when setting the satdelay on upward channel");
+		goto error;
+	}
+	if(!((Downward *)this->downward)->setSatDelay(this->satdelay, true))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "error when setting the satdelay on downward channel");
+		goto error;
+	}
+
+  return true;
+error:
+  return false;
+}
+
+BlockPhysicalLayer::Downward::Downward(const string &name, tal_id_t UNUSED(mac_id)):
 	RtDownward(name),
 	PhyChannel(),
+	attenuation(false),
 	log_event(NULL)
 {
 	// Output Log
@@ -76,27 +215,92 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 			// message event: forward DVB frames from upper block to lower block
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
-			// forward the DVB frame to the lower block
-			return this->forwardFrame(dvb_frame);
+			// TODO: if other components have to be added to physical layer,
+			// think about using an array of pointer to functions, and iterate
+			// over this array. The last function should be processDelay, since it 
+			// queues the dvb_frame to the delay FIFO, and we lose hold of the 
+			// dvb_frame.
+			if(this->attenuation)
+			{
+				if(!this->processAttenuation(dvb_frame))
+				{
+					LOG(this->log_event, LEVEL_ERROR,
+					    "error when processing attenuation\n");
+					return false;
+				}
+			}
+			// TODO: this is wasteful, only regenerative satellites use the physical
+			// layer. BlockPhysicalLayerSat should override onEvent method, without
+			// queueing dvb_frames to FIFO
+			if(!this->is_sat)
+			{
+				return this->pushInFifo((NetContainer *)dvb_frame,
+						                    this->satdelay->getSatDelay());
+			}
+			else
+			{
+				// send frame to lower block
+				if(!this->enqueueMessage((void **)&dvb_frame))
+				{
+					LOG(this->log_send, LEVEL_ERROR, 
+							"failed to send burst of packets to lower layer\n");
+					delete dvb_frame;
+					return false;
+				}
+				return true;
+			}
 		}
 		break;
 
 		case evt_timer:
-			if(*event != this->att_timer)
+		{
+			if (*event == this->fifo_timer)
 			{
-				return false;
+				// Event handler for delay FIFO
+				if(!this->handleFifoTimer())
+				{
+					LOG(this->log_event, LEVEL_ERROR,
+					    "downward channel delay fifo handling"
+							" error");
+					return false;
+				}
 			}
-			//Event handler for Downward Channel state update
-			LOG(this->log_event, LEVEL_DEBUG,
-			    "downward channel timer expired\n");
-			if(!this->update())
+		  else if(*event == this->att_timer)
+			{
+				// Event handler for Downward Channel state update
+				LOG(this->log_event, LEVEL_DEBUG,
+						"downward channel timer expired\n");
+				if(!this->update())
+				{
+					LOG(this->log_event, LEVEL_ERROR,
+							"downward channel updating failed, do not "
+							"update channels anymore\n");
+					return false;
+				}
+			}
+			else if(*event == this->delay_timer)
+			{
+				// Event handler for update satellite delay
+				LOG(this->log_event, LEVEL_DEBUG,
+				    "downward channel update satellite delay event");
+				if(!this->satdelay->updateSatDelay())
+				{
+					LOG(this->log_event, LEVEL_ERROR,
+					    "error when updating satellite delay");
+					return false;
+				}
+				this->probe_delay->put(this->satdelay->getSatDelay());
+				// Send probes
+				Output::sendProbes();
+			}
+			else
 			{
 				LOG(this->log_event, LEVEL_ERROR,
-				    "downward channel updating failed, do not "
-				    "update channels anymore\n");
+				    "unknown timer event received");
 				return false;
 			}
-			break;
+		}
+		break;
 
 		default:
 			LOG(this->log_event, LEVEL_ERROR,
@@ -108,9 +312,10 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 	return true;
 }
 
-BlockPhysicalLayer::Upward::Upward(const string &name):
+BlockPhysicalLayer::Upward::Upward(const string &name, tal_id_t UNUSED(mac_id)):
 	RtUpward(name),
 	PhyChannel(),
+	attenuation(false),
 	log_event(NULL)
 {
 	// Output Log
@@ -126,28 +331,75 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			// message event: forward DVB frames from upper block to lower block
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
-			// forward the DVB frame to the lower block
-			return this->forwardFrame(dvb_frame);
+			if(!this->is_sat)
+			{
+				return this->pushInFifo((NetContainer *)dvb_frame,
+						                    this->satdelay->getSatDelay());
+			}
+			else
+			{
+				// TODO: if other components have to be added to physical layer,
+				// think about using an array of pointer to functions, and iterate
+				// over this array. The last function should be processDelay, since it 
+				// queues the dvb_frame to the delay FIFO, and we lose hold of the 
+				// dvb_frame.
+				if(this->attenuation)
+				{
+					if(!this->processAttenuation(dvb_frame))
+					{
+						LOG(this->log_event, LEVEL_ERROR,
+						    "error when processing attenuation");
+						return false;
+					}
+				}
+				// Send frame to upper layer
+				if(!this->enqueueMessage((void **)&dvb_frame))
+				{
+					LOG(this->log_send, LEVEL_ERROR, 
+							"failed to send burst of packets to upper layer\n");
+					delete dvb_frame;
+					return false;
+				}
+				return true;
+			}
 		}
 		break;
 
 		case evt_timer:
-			if(*event != this->att_timer)
+		{
+			if(*event == this->fifo_timer)
 			{
-				return false;
+				// Event handler for delay FIFO
+				if(!this->handleFifoTimer())
+				{
+					LOG(this->log_event, LEVEL_ERROR,
+					    "upward channel delay fifo handling"
+							" error");
+					return false;
+				}
 			}
-			//Event handler for Upward Channel state update
-			LOG(this->log_event, LEVEL_DEBUG,
-			    "upward channel timer expired\n");
-			if(!this->update())
+		  else if(*event == this->att_timer)
+			{
+				//Event handler for Upward Channel state update
+				LOG(this->log_event, LEVEL_DEBUG,
+						"upward channel timer expired\n");
+				if(!this->update())
+				{
+					LOG(this->log_event, LEVEL_ERROR,
+							"upward channel updating failed, do not "
+							"update channels anymore\n");
+					return false;
+				}
+			}
+			else
 			{
 				LOG(this->log_event, LEVEL_ERROR,
-				    "upward channel updating failed, do not "
-				    "update channels anymore\n");
+				    "unknown timer event received");
 				return false;
 			}
-			break;
-
+		}
+		break;
+		
 		default:
 			LOG(this->log_event, LEVEL_ERROR,
 			    "unknown event received %s",
@@ -169,6 +421,17 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	string error_type;
 
 	char probe_name[128];
+
+	// check if attenuation is enabled
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   ENABLE, this->attenuation))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+				"cannot check if physical layer is enabled\n");
+		goto error;
+	}
+	if(!this->attenuation)
+		return true;
 
 	// get refresh period
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
@@ -315,6 +578,17 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 	string attenuation_type;
 	char probe_name[128];
 
+	// check if attenuation is enabled
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+										 ENABLE, this->attenuation))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+				"cannot check if physical layer is enabled\n");
+		goto error;
+	}
+	if(!this->attenuation)
+		return true;
+
 	// get refresh_period
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
 		               ACM_PERIOD_REFRESH,
@@ -396,14 +670,14 @@ error:
 }
 
 
-bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
+bool BlockPhysicalLayer::Upward::processAttenuation(DvbFrame *dvb_frame)
 {
 	double cn_total;
 
 	if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
 	{
 		// do not handle signalisation but forward it
-		goto forward;
+		return true;
 	}
 
 	// Update of the Threshold CN if Minimal Condition
@@ -439,30 +713,19 @@ bool BlockPhysicalLayer::Upward::forwardFrame(DvbFrame *dvb_frame)
 		this->modifyPacket(dvb_frame);
 	}
 
-forward:
-	// message successfully created, send the message to upper block
-	// transmit the physical parameters as they will be used by DVB layer
-	if(!this->enqueueMessage((void **)&dvb_frame))
-	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "failed to send burst of packets to upper layer\n");
-		goto error;
-	}
-
-	return true;
+	return true; 
 error:
-	delete dvb_frame;
 	return false;
 }
 
 
 
-bool BlockPhysicalLayer::Downward::forwardFrame(DvbFrame *dvb_frame)
+bool BlockPhysicalLayer::Downward::processAttenuation(DvbFrame *dvb_frame)
 {
 	if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
 	{
 		// do not handle signalisation
-		goto forward;
+		return true;
 	}
 
 	// Case of outgoing msg: Mark the msg with the C/N of Channel
@@ -482,20 +745,169 @@ bool BlockPhysicalLayer::Downward::forwardFrame(DvbFrame *dvb_frame)
 	    "Send DVB frame on carrier %u: C/N  = %.2f\n",
 	    dvb_frame->getCarrierId(),
 	    dvb_frame->getCn());
+	
+	return true;
+}
 
-forward:
-	// message successfully created, send the message to lower block
-	if(!this->enqueueMessage((void **)&dvb_frame))
+
+bool BlockPhysicalLayer::Downward::handleFifoTimer()
+{
+	DelayFifoElement *elem;
+	time_ms_t current_time = getCurrentTime();
+
+	// Get all elements in FIFO ready to be sent
+	while(((unsigned long)this->delay_fifo.getTickOut()) <= current_time &&
+	      this->delay_fifo.getCurrentSize() > 0)
 	{
-		LOG(this->log_send, LEVEL_ERROR, 
-		    "failed to send burst of packets to lower layer\n");
-		goto error;
-	}
+		DvbFrame *dvb_frame;
 
+		elem = this->delay_fifo.pop();
+		assert(elem != NULL);
+
+		dvb_frame = elem->getElem<DvbFrame>();
+
+		// send the DVB frame to lower block
+		if(!this->enqueueMessage((void **)&dvb_frame))
+		{
+			LOG(this->log_send, LEVEL_ERROR, 
+					"failed to send burst of packets to lower layer\n");
+			delete dvb_frame;
+			goto error;
+		}
+		delete elem; // ?
+	}
 	return true;
 error:
-	delete dvb_frame;
 	return false;
+}
+
+bool BlockPhysicalLayer::Upward::handleFifoTimer()
+{
+	DelayFifoElement *elem;
+	time_ms_t current_time = getCurrentTime();
+
+	// Get all elements in FIFO ready to be sent
+	while(((unsigned long)this->delay_fifo.getTickOut()) <= current_time &&
+	      this->delay_fifo.getCurrentSize() > 0)
+	{
+		DvbFrame *dvb_frame;
+
+		elem = this->delay_fifo.pop();
+		assert(elem != NULL);
+
+		dvb_frame = elem->getElem<DvbFrame>();
+
+		// TODO: if other components have to be added to physical layer,
+		// think about using an array of pointer to functions, and iterate
+		// over this array. The last function should be processDelay, since it 
+		// queues the dvb_frame to the delay FIFO, and we lose hold of the 
+		// dvb_frame.
+		if(this->attenuation)
+		{
+			if(!this->processAttenuation(dvb_frame))
+			{
+				LOG(this->log_send, LEVEL_ERROR, 
+						"failed to process attenuation to dvb frame\n");
+				delete dvb_frame;
+				goto error;
+			}
+		}
+		// transmit the packet to the upper layer
+		if(!this->enqueueMessage((void **)&dvb_frame))
+		{
+			LOG(this->log_send, LEVEL_ERROR,
+					"failed to send burst of packets to upper layer\n");
+			delete dvb_frame;
+			goto error;
+		}
+		delete elem; // ???
+	}
+	return true;
+error:
+	delete elem; // ????
+	return false;
+}
+
+bool BlockPhysicalLayer::Upward::setSatDelay(SatDelayPlugin *satdelay, bool update)
+{
+  vol_pkt_t max_size;
+  time_ms_t fifo_timer_period;
+
+  this->satdelay = satdelay;
+
+  // TODO: FIFO could be created here, instead than on constructor
+  // Configure FIFO size
+  if(!Conf::getValue(Conf::section_map[ADV_SECTION],
+                     DELAY_BUFFER, max_size))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "cannot get '%s' value", DELAY_BUFFER);
+    goto error;
+  }
+  this->delay_fifo.setMaxSize(max_size);
+  // Init FIFO timer
+  if(!Conf::getValue(Conf::section_map[ADV_SECTION],
+                     DELAY_TIMER, fifo_timer_period))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "cannot get '%s' value", DELAY_TIMER);
+    goto error;
+  }
+  this->fifo_timer = this->addTimerEvent("fifo_timer", fifo_timer_period);
+
+  if(!update)
+    return true;
+
+  // If this channel must update delay, add timer
+  this->delay_timer = this->addTimerEvent("delay_timer",
+                                          this->satdelay->getRefreshPeriod());
+  // Add probe
+  this->probe_delay = Output::registerProbe<int>("Delay", "ms", true, SAMPLE_LAST);
+
+  return true;
+error:
+  return false;
+}
+
+bool BlockPhysicalLayer::Downward::setSatDelay(SatDelayPlugin *satdelay, bool update)
+{
+  vol_pkt_t max_size;
+  time_ms_t fifo_timer_period;
+
+  this->satdelay = satdelay;
+
+  // TODO: FIFO could be created here, instead than on constructor
+  // Configure FIFO size
+  if(!Conf::getValue(Conf::section_map[ADV_SECTION],
+                     DELAY_BUFFER, max_size))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "cannot get '%s' value", DELAY_BUFFER);
+    goto error;
+  }
+  this->delay_fifo.setMaxSize(max_size);
+  // Init FIFO timer
+  if(!Conf::getValue(Conf::section_map[ADV_SECTION],
+                     DELAY_TIMER, fifo_timer_period))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "cannot get '%s' value", DELAY_TIMER);
+    goto error;
+  }
+  this->fifo_timer = this->addTimerEvent("fifo_timer", fifo_timer_period);
+
+  if(!update)
+    return true;
+
+  // If this channel must update delay, add timer
+  this->delay_timer = this->addTimerEvent("delay_timer",
+                                          this->satdelay->getRefreshPeriod());
+  // Add probe
+  this->probe_delay = Output::registerProbe<int>("Delay", "ms", true, SAMPLE_LAST);
+
+  return true;
+error:
+  return false;
 }
 
 
@@ -508,6 +920,17 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 	char probe_name[128];
 
 	this->is_sat = true;
+
+	// check if attenuation is enabled
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+										 ENABLE, this->attenuation))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+				"cannot check if physical layer is enabled\n");
+		return false;
+	}
+	if(!this->attenuation)
+		return true;
 
 	// Initiate Minimal conditions
 	if(!Conf::getValue(Conf::section_map[SAT_PHYSICAL_LAYER_SECTION],
@@ -586,6 +1009,17 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 bool BlockPhysicalLayerSat::Downward::onInit(void)
 {
 	this->is_sat = true;
+	// check if attenuation is enabled
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+										 ENABLE, this->attenuation))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+				"cannot check if physical layer is enabled\n");
+		return false;
+	}
+	if(!this->attenuation)
+		return true;
+
 	return true;
 }
 

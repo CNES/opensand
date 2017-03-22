@@ -54,18 +54,6 @@
 #include <opensand_rt/Rt.h>
 #include <opensand_conf/conf.h>
 
-/**
- * @brief Get the current time
- * 
- * @return the current time
- */ 
-inline clock_t getCurrentTime(void)
-{
-	timeval current;
-	gettimeofday(&current, NULL);
-	return current.tv_sec * 1000 + current.tv_usec / 1000;
-}
-
 
 /**
  * @brief A high level channel that implements some functions

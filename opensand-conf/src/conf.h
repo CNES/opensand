@@ -54,8 +54,6 @@
 
 #define SATELLITE_TYPE            "satellite_type"
 
-#define SAT_DELAY                 "delay"
-
 #define RET_UP_CARRIER_DURATION     "return_up_carrier_duration"
 #define FWD_DOWN_CARRIER_DURATION   "forward_down_carrier_duration"
 
@@ -94,6 +92,7 @@
 #define TAL_ID                    "tal_id"
 #define ID                        "id"
 #define GW                        "gw"
+#define SPOT                      "spot"
 
 #define SPOT_TABLE_SECTION        "spot_table"
 #define TERMINAL_LIST			  "terminals"
@@ -302,10 +301,23 @@
 #define LOG_ID              "log_id"
 
 //////////////////////////
+//      sat_delays      //
+//////////////////////////
+#define SAT_DELAYS_SECTION  "delays"
+#define GLOBAL_CONSTANT_DELAY "global_constant_delay"
+#define GLOBAL_DELAY        "global_delay"
+#define REFRESH_PERIOD_MS   "refresh_period"
+#define DELAYS_LIST         "satdelays"
+#define DELAY_TYPE          "type"
+#define SAT_DELAY_CONF      "satdelay_conf"
+#define CONSTANT_DELAY      "ConstantDelay"
+
+//////////////////////////
 //       advanced       //
 //////////////////////////
 #define ADV_SECTION      "advanced"
 #define DELAY_BUFFER     "delay_buffer"
+#define DELAY_TIMER      "delay_timer"
 #define UDP_RMEM         "udp_rmem"
 #define UDP_WMEM         "udp_wmem"
 #define UDP_STACK        "udp_stack"

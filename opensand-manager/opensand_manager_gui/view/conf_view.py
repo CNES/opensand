@@ -347,7 +347,7 @@ class ConfView(WindowView):
         widget = self._ui.get_widget("repr_stack_sat")
         xdst = widget.allocation.x
         widget = self._ui.get_widget("repr_stack_out_st")
-        diff = 85 + widget.allocation.x - xsrc
+        diff = 135 + widget.allocation.x - xsrc
         self._drawing_area.window.draw_lines(self._context_graph,
                                              [(diff, yorig), (diff, ydst),
                                               (xdst - xsrc + diff - 5, ydst),
