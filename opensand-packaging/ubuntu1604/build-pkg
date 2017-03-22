@@ -68,7 +68,7 @@ build()
  
     # Update version with the user flag
     CHANGELOG="$DST_DIR/src/$MODULE/debian/changelog"
-    if [ ! -z "$FLAG" -a ! -f "$CHANGELOG" ]
+    if [ ! -z "$FLAG" -a -f "$CHANGELOG" ]
     then
         # Add flag to changelog version
         CUR_VERS=$(head -1 $CHANGELOG | sed -r -e 's/^(.*)\((.*)\)(.*)$/\2/')
