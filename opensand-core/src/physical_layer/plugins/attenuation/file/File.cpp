@@ -122,43 +122,31 @@ bool File::load(string filename)
 
 	while(std::getline(file, line))
 	{
-		string token;
-		string separator;	
 		unsigned int time;
 		double attenuation;
+
+		line_number++;
+
+		// skip line if empty
+		if(line == "" || line[0] == '#')
+		{
+			continue;
+		}
 
 		// Clear previous flags (if any)
 		line_stream.clear();
 		line_stream.str(line);
-		line_number++;
 
-		// skip line if empty
-		if(line == "")
+		line_stream >> time;
+		if(line_stream.bad() || line_stream.fail())
 		{
-			continue;
-		}
-
-		line_stream >> token;
-		if(token[0] == '#')
-		{
-			// line is comment, skip
-			continue;
-		}
-		else
-		{
-			std::istringstream tmp_stream(token);
-			tmp_stream >> time;
-
-			if(tmp_stream.bad() || tmp_stream.fail())
-			{
-				LOG(this->log_attenuation, LEVEL_ERROR,
-				    "Bad syntax in file '%s', line %u: "
-				    "there should be a timestamp (integer) "
-				    "instead of '%s'\n",
-				    filename.c_str(), line_number,
-				    token.c_str());
-				goto malformed;
-			}
+			LOG(this->log_attenuation, LEVEL_ERROR,
+					"Bad syntax in file '%s', line %u: "
+					"there should be a timestamp (integer) "
+					"instead of '%s'\n",
+					filename.c_str(), line_number,
+					line.c_str());
+			goto malformed;
 		}
 
 		// get attenuation

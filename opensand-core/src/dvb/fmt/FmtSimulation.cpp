@@ -203,58 +203,58 @@ bool FmtSimulation::load()
 {
 	vector<string> list;
 	std::map<double, vector<string> >::const_iterator modcod_it;
+	string line;
+	std::istringstream line_stream;
+	unsigned int line_number = 0;
 	double time;
+	string modcod;
 
 	// get the next line in the file
-	while(!this->modcod_simu->eof() && !this->modcod_simu->fail())
+	while(std::getline((*this->modcod_simu), line))
 	{
+		line_number++;
+
+		if(line == "" || line[0] == '#' || 
+		   (line.length() >= 2 && line[0] == '/' && line[1] == '*'))
+		{
+			LOG(this->log_fmt, LEVEL_DEBUG,
+					"ignoring line number %u (commented)\n",
+					line_number);
+			continue;
+		}
+
+		// Clear previous flags (if any)
+		line_stream.clear();
+		line_stream.str(line);
+
+		line_stream >> time;
+		
+		if(line_stream.bad() || line_stream.fail())
+		{
+			LOG(this->log_fmt, LEVEL_ERROR,
+					"Wrong format for time in line number %u\n",
+					line_number);
+			goto malformed;
+		}
+
 		list.clear();
 		
-		std::stringbuf buf;
-		std::stringstream line;
-		std::stringbuf token;
-
-		this->modcod_simu->get(buf);
-		// jump after the '\n' as get does not read it
-		this->modcod_simu->ignore();
-
-		if(buf.str() == "")
+		while(line_stream >> modcod)
 		{
-			continue;
-		}
-		
-		line.str(buf.str());
-		// get the first element of the line (which is time)
-		if(line.fail())
-		{
-			continue;
+			list.push_back(modcod);
+			modcod.clear();
 		}
 
-		token.str("");
-		line.get(token, ' ');
-		if(token.str() == "#" || token.str() == "/*")
-		{
-			// skip comment
-			continue;
-		}
-
-		time = atof(token.str().c_str());
-		line.ignore();
-
-		// get each element of the line
-		while(!line.fail())
-		{
-			token.str("");
-			line.get(token, ' ');
-			list.push_back(token.str());
-			line.ignore();
-		}
 		if(!list.empty())
 		{
 			this->modcod[time] = list;
 		}
-		// reset the error flags
-		this->modcod_simu->clear();
+		else
+		{
+			LOG(this->log_fmt, LEVEL_ERROR,
+					"MODCOD list is empty in line number %u\n",
+					line_number);
+		}
 	}
 	
 	modcod_it = this->modcod.begin();
@@ -262,7 +262,9 @@ bool FmtSimulation::load()
 
 	this->modcod_simu->close();
 	return true;
-
+malformed:
+	this->modcod_simu->close();
+	return false;
 }
 
 /**** private methods ****/
