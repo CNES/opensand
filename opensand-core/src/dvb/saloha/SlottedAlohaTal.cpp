@@ -156,6 +156,15 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 					CONSTANT_DELAY);
 			goto error;
 		}
+		// init the plugin
+		if(!satdelay->init(plugin_conf))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot initialize sat delay plugin '%s'"
+			    " to get slotted aloha timeout",
+			    CONSTANT_DELAY);
+			goto error;
+		}
 		satdelay->getMaxDelay(sat_delay_ms);
 		sat_delay_ms += sat_delay_ms;
 	}
@@ -205,6 +214,15 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 				LOG(this->log_init, LEVEL_ERROR,
 						"error when getting the sat delay plugin '%s'",
 						satdelay_name.c_str());
+				goto error;
+			}
+			// init the plugin
+			if(!satdelay->init(plugin_conf))
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+						"cannot initialize sat delay plugin '%s'"
+						" to get slotted aloha timeout",
+						CONSTANT_DELAY);
 				goto error;
 			}
 			satdelay->getMaxDelay(current_delay);
