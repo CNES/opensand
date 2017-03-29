@@ -253,7 +253,7 @@ class CommandHandler(MyTcpHandler):
         # we won't be able to force kill in test
         while not MyTcpHandler._stop.is_set() and \
               process.returncode is None\
-              and timeout < 130:
+              and timeout < 300:
             process.poll()
             timeout += 1
             MyTcpHandler._stop.wait(1)
