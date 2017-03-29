@@ -4,6 +4,7 @@
 . /usr/share/debconf/confmodule
 
 IFACES_LIST=$(ip a | sed -rn "s/^[0-9]+: ([^:]+): .*/\1/p" | paste -d',' -s)
+IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/^lo,//' | sed 's/,lo$//' | sed 's/,lo,/,/')
 IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/opensand_tun//')
 IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/opensand_tap//')
 IFACES_LIST=$(echo ${IFACES_LIST} | sed 's/opensand_br//')
