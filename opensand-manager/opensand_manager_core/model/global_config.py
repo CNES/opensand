@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 global_configuration.py - the global configuration description
@@ -38,7 +39,7 @@ import os
 import shutil
 
 from opensand_manager_core.utils import OPENSAND_PATH, \
-                                        SPOT, ID, GW
+                                        SPOT, ID, GW, SAT
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import XmlException, ModelException
@@ -53,6 +54,7 @@ class GlobalConfig(AdvancedHostModel):
     def __init__(self, scenario):
         AdvancedHostModel.__init__(self, 'global', scenario)
         self._payload_type = ''
+        self._delay_type = ''
         self._emission_std = ''
 #        self._dama = ''
         self._forward_down = {}
@@ -116,6 +118,29 @@ class GlobalConfig(AdvancedHostModel):
         except XmlException:
             raise
 
+    def new_host(self, name, instance):
+        """ handle a new host """
+        # nothing to do if SAT
+        if name.startswith(SAT):
+            return
+        self._configuration.add_host(instance)
+        try:
+            self._configuration.write()
+            self._files.load(self._scenario, self._configuration)
+        except XmlException:
+            raise
+
+    def remove_host(self, name, instance):
+        """ remove a host """
+        # nothing to do if SAT
+        if name.startswith(SAT):
+            return
+        self._configuration.remove_host(instance)
+        try:
+            self._configuration.write()
+            self._files.load(self._scenario, self._configuration)
+        except XmlException:
+            raise
 
     def new_gw(self, name, instance, net_config):
         """ handle a new gateway """
@@ -160,6 +185,14 @@ class GlobalConfig(AdvancedHostModel):
     def get_payload_type(self):
         """ get the payload_type value """
         return self.get_param('satellite_type')
+
+    def set_delay_type(self, val):
+        """ set the delay_type value """
+        self._delay_type = val
+
+    def get_delay_type(self):
+        """ get the delay_type value """
+        return self.get_param('delay')
 
     def set_emission_std(self, val):
         """ set the payload_type value """

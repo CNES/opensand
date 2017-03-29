@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+<!-- component type -->
+<xsd:simpleType name="componentType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="constant_delay" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<!-- common types -->
+<xsd:simpleType name="msTime">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="0" />
+        <xsd:maxInclusive value="2000" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:element name="satdelay_conf">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="delay" type="msTime">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Value of the propagation delay from one spot/GW to the satellite (ms)
+                        <unit>ms</unit>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
+<!-- Complete XML description -->
+<xsd:element name="configuration">
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element ref="satdelay_conf" />
+        </xsd:sequence>
+        <xsd:attribute name="component" type="componentType" />
+    </xsd:complexType>
+</xsd:element>
+
+</xsd:schema>

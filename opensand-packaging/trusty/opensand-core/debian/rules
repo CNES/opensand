@@ -56,6 +56,11 @@ override_dh_install:
 	install -m 0644 conf/mandatory_plugins/mpeg.conf $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/mpeg.conf
 	install -m 0644 conf/mandatory_plugins/mpeg.xsd $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/mpeg.xsd
 
+	install -m 0644 conf/mandatory_plugins/constant_delay.conf $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/constant_delay.conf
+	install -m 0644 conf/mandatory_plugins/constant_delay.xsd $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/constant_delay.xsd
+	install -m 0644 conf/mandatory_plugins/file_delay.conf $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/file_delay.conf
+	install -m 0644 conf/mandatory_plugins/file_delay.xsd $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/file_delay.xsd
+
 	for host in gw st; do \
 		for plugin in ip ethernet ideal on_off file triangular constant; do \
 			install -m 0644 conf/mandatory_plugins/$${plugin}.conf $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/$${host}/plugins/$${plugin}.conf ; \
@@ -66,6 +71,8 @@ override_dh_install:
 	install -D -m 0644 conf/mandatory_plugins/constant.xsd $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/sat/plugins/constant.xsd
 	# Attenuation example for daemons and manager
 	install -D -m 0644 conf/mandatory_plugins/attenuation.csv $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/attenuation.csv
+	# Satellite delay file example for daemons and manager
+	install -D -m 0644 conf/mandatory_plugins/satdelay.csv $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/satdelay.csv
 
 
 %:

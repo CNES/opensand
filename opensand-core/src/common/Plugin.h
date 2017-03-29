@@ -105,6 +105,16 @@ class Plugin
 	                                    ErrorInsertionPlugin **error);
 
 	/**
+	 * @brief get a satellite delay plugin
+	 *
+	 * @param name           The name of the satellite delay plugin
+	 * @param sat_delay      The satellite delay plugin
+	 * @return true on success, false otherwise
+	 */
+	static bool getSatDelayPlugin(string name,
+	                              SatDelayPlugin **sat_delay);
+
+	/**
 	 * @brief get the encapsulation plugins list
 	 *
 	 * @param name           The name of the encapsulation plugin

@@ -188,7 +188,6 @@ int main(int argc, char **argv)
 {
 	const char *progname = argv[0];
 	struct sched_param param;
-	bool with_phy_layer = false;
 	bool init_ok;
 	string ip_addr;
 	string emu_iface;
@@ -206,7 +205,6 @@ int main(int argc, char **argv)
 	Block *block_encap;
 	Block *block_dvb;
 	Block *block_phy_layer;
-	Block *up_sat_carrier;
 	Block *block_sat_carrier;
 
 	vector<string> conf_files;
@@ -262,21 +260,8 @@ int main(int argc, char **argv)
 	}
 	Output::setLevels(levels, spec_level);
 
-	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
-		               ENABLE, with_phy_layer))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot  check if physical layer is enabled\n",
-		        progname);
-		goto quit;
-	}
-	DFLTLOG(LEVEL_NOTICE,
-	        "%s: physical layer is %s\n",
-	        progname, with_phy_layer ? "enabled" : "disabled");
-
 	// load the plugins
-	if(!Plugin::loadPlugins(with_phy_layer, plugin_conf_path))
+	if(!Plugin::loadPlugins(true, plugin_conf_path))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load the plugins\n", progname);
@@ -317,21 +302,16 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	up_sat_carrier = block_dvb;
-	if(with_phy_layer)
+	block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
+																		BlockPhysicalLayer::Upward,
+																		BlockPhysicalLayer::Downward>("PhysicalLayer",
+																		                              block_dvb, mac_id);
+	if(block_phy_layer == NULL)
 	{
-		block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-		                                  BlockPhysicalLayer::Upward,
-		                                  BlockPhysicalLayer::Downward>("PhysicalLayer",
-		                                                                block_dvb);
-		if(block_phy_layer == NULL)
-		{
-			DFLTLOG(LEVEL_CRITICAL,
-			        "%s: cannot create the PhysicalLayer block\n",
-			        progname);
-			goto release_plugins;
-		}
-		up_sat_carrier = block_phy_layer;
+		DFLTLOG(LEVEL_CRITICAL,
+						"%s: cannot create the PhysicalLayer block\n",
+						progname);
+		goto release_plugins;
 	}
 
 	specific.ip_addr = ip_addr;
@@ -341,7 +321,7 @@ int main(int argc, char **argv)
 	                                    BlockSatCarrier::Upward,
 	                                    BlockSatCarrier::Downward,
 	                                    struct sc_specific>("SatCarrier",
-	                                                        up_sat_carrier,
+	                                                        block_phy_layer,
 	                                                        specific);
 	if(!block_sat_carrier)
 	{

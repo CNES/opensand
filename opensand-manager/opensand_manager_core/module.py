@@ -300,7 +300,16 @@ class ErrorModule(OpenSandModule):
         OpenSandModule.__init__(self)
         self._targets = {SAT, GW, ST} | GW_types
 
+### Satellite delay module ###
 
+class SatDelayModule(OpenSandModule):
+    """ the satellite delay module for OpenSAND Manager """
+    _name = None
+    _type = 'satdelay'
+
+    def __init__(self):
+        OpenSandModule.__init__(self)
+        self._targets = [GLOBAL]
 
 from opensand_manager_core.modules import *
 
