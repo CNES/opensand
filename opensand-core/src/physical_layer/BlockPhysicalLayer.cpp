@@ -74,7 +74,7 @@ bool BlockPhysicalLayer::initSatDelay()
 {
 	ConfigurationList delays_list;
 	ConfigurationList::iterator iter_list;
-  ConfigurationList plugin_conf;
+	ConfigurationList plugin_conf;
 	uint8_t id;
 	bool global_constant_delay;
 	string satdelay_name;
@@ -89,35 +89,35 @@ bool BlockPhysicalLayer::initSatDelay()
 		    "cannot get '%s' value", GLOBAL_CONSTANT_DELAY);
 		goto error;
 	}
-  // get the refresh period
-  if(!Conf::getValue(Conf::section_map[SAT_DELAYS_SECTION],
-                     REFRESH_PERIOD_MS, refresh_period_ms))
-  {
-    LOG(this->log_init, LEVEL_ERROR,
-        "cannot get '%s' value", REFRESH_PERIOD_MS);
-    goto error;
-  }
-  // get all plugins 
-  if(!Conf::getListItems(Conf::section_map[SAT_DELAYS_SECTION],
-                         DELAYS_LIST, delays_list))
-  {
-    LOG(this->log_init, LEVEL_ERROR,
-        "section '%s': missing list '%s'\n",
-        SAT_DELAYS_SECTION, DELAYS_LIST);
-    goto error;
-  }
-  // if global constant delay, get the global delay configuration first
-  if(global_constant_delay)
-  {
-    if(!Conf::getItemNode(Conf::section_map[SAT_DELAYS_SECTION],
-                          GLOBAL_DELAY, plugin_conf))
-    {
-      LOG(this->log_init, LEVEL_ERROR,
-          "missing parameter '%s'", GLOBAL_DELAY);
-      goto error;
-    }
+	// get the refresh period
+	if(!Conf::getValue(Conf::section_map[SAT_DELAYS_SECTION],
+	                   REFRESH_PERIOD_MS, refresh_period_ms))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot get '%s' value", REFRESH_PERIOD_MS);
+		goto error;
+	}
+	// get all plugins 
+	if(!Conf::getListItems(Conf::section_map[SAT_DELAYS_SECTION],
+	                       DELAYS_LIST, delays_list))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing list '%s'\n",
+		    SAT_DELAYS_SECTION, DELAYS_LIST);
+		goto error;
+	}
+	// if global constant delay, get the global delay configuration first
+	if(global_constant_delay)
+	{
+		if(!Conf::getItemNode(Conf::section_map[SAT_DELAYS_SECTION],
+		                      GLOBAL_DELAY, plugin_conf))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "missing parameter '%s'", GLOBAL_DELAY);
+			goto error;
+		}
 		satdelay_name = CONSTANT_DELAY;
-  }
+	}
 	else
 	{
 		for(iter_list = delays_list.begin();
@@ -191,9 +191,9 @@ bool BlockPhysicalLayer::initSatDelay()
 		goto error;
 	}
 
-  return true;
+	return true;
 error:
-  return false;
+	return false;
 }
 
 BlockPhysicalLayer::Downward::Downward(const string &name, tal_id_t UNUSED(mac_id)):
@@ -830,84 +830,84 @@ error:
 
 bool BlockPhysicalLayer::Upward::setSatDelay(SatDelayPlugin *satdelay, bool update)
 {
-  vol_pkt_t max_size;
-  time_ms_t fifo_timer_period;
+	vol_pkt_t max_size;
+	time_ms_t fifo_timer_period;
 
-  this->satdelay = satdelay;
+	this->satdelay = satdelay;
 
-  // TODO: FIFO could be created here, instead than on constructor
-  // Configure FIFO size
-  if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-                     DELAY_BUFFER, max_size))
-  {
-    LOG(this->log_init, LEVEL_ERROR,
-        "cannot get '%s' value", DELAY_BUFFER);
-    goto error;
-  }
-  this->delay_fifo.setMaxSize(max_size);
-  // Init FIFO timer
-  if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-                     DELAY_TIMER, fifo_timer_period))
-  {
-    LOG(this->log_init, LEVEL_ERROR,
-        "cannot get '%s' value", DELAY_TIMER);
-    goto error;
-  }
-  this->fifo_timer = this->addTimerEvent("fifo_timer", fifo_timer_period);
+	// TODO: FIFO could be created here, instead than on constructor
+	// Configure FIFO size
+	if(!Conf::getValue(Conf::section_map[ADV_SECTION],
+	                   DELAY_BUFFER, max_size))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot get '%s' value", DELAY_BUFFER);
+		goto error;
+	}
+	this->delay_fifo.setMaxSize(max_size);
+	// Init FIFO timer
+	if(!Conf::getValue(Conf::section_map[ADV_SECTION],
+	                   DELAY_TIMER, fifo_timer_period))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot get '%s' value", DELAY_TIMER);
+		goto error;
+	}
+	this->fifo_timer = this->addTimerEvent("fifo_timer", fifo_timer_period);
 
-  if(!update)
-    return true;
+	if(!update)
+		return true;
 
-  // If this channel must update delay, add timer
-  this->delay_timer = this->addTimerEvent("delay_timer",
-                                          this->satdelay->getRefreshPeriod());
-  // Add probe
-  this->probe_delay = Output::registerProbe<int>("Delay", "ms", true, SAMPLE_LAST);
+	// If this channel must update delay, add timer
+	this->delay_timer = this->addTimerEvent("delay_timer",
+	                                        this->satdelay->getRefreshPeriod());
+	// Add probe
+	this->probe_delay = Output::registerProbe<int>("Delay", "ms", true, SAMPLE_LAST);
 
-  return true;
+	return true;
 error:
-  return false;
+	return false;
 }
 
 bool BlockPhysicalLayer::Downward::setSatDelay(SatDelayPlugin *satdelay, bool update)
 {
-  vol_pkt_t max_size;
-  time_ms_t fifo_timer_period;
+	vol_pkt_t max_size;
+	time_ms_t fifo_timer_period;
 
-  this->satdelay = satdelay;
+	this->satdelay = satdelay;
 
-  // TODO: FIFO could be created here, instead than on constructor
-  // Configure FIFO size
-  if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-                     DELAY_BUFFER, max_size))
-  {
-    LOG(this->log_init, LEVEL_ERROR,
-        "cannot get '%s' value", DELAY_BUFFER);
-    goto error;
-  }
-  this->delay_fifo.setMaxSize(max_size);
-  // Init FIFO timer
-  if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-                     DELAY_TIMER, fifo_timer_period))
-  {
-    LOG(this->log_init, LEVEL_ERROR,
-        "cannot get '%s' value", DELAY_TIMER);
-    goto error;
-  }
-  this->fifo_timer = this->addTimerEvent("fifo_timer", fifo_timer_period);
+	// TODO: FIFO could be created here, instead than on constructor
+	// Configure FIFO size
+	if(!Conf::getValue(Conf::section_map[ADV_SECTION],
+	                   DELAY_BUFFER, max_size))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot get '%s' value", DELAY_BUFFER);
+		goto error;
+	}
+	this->delay_fifo.setMaxSize(max_size);
+	// Init FIFO timer
+	if(!Conf::getValue(Conf::section_map[ADV_SECTION],
+	                   DELAY_TIMER, fifo_timer_period))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot get '%s' value", DELAY_TIMER);
+		goto error;
+	}
+	this->fifo_timer = this->addTimerEvent("fifo_timer", fifo_timer_period);
 
-  if(!update)
-    return true;
+	if(!update)
+		return true;
 
-  // If this channel must update delay, add timer
-  this->delay_timer = this->addTimerEvent("delay_timer",
-                                          this->satdelay->getRefreshPeriod());
-  // Add probe
-  this->probe_delay = Output::registerProbe<int>("Delay", "ms", true, SAMPLE_LAST);
+	// If this channel must update delay, add timer
+	this->delay_timer = this->addTimerEvent("delay_timer",
+	                                        this->satdelay->getRefreshPeriod());
+	// Add probe
+	this->probe_delay = Output::registerProbe<int>("Delay", "ms", true, SAMPLE_LAST);
 
-  return true;
+	return true;
 error:
-  return false;
+	return false;
 }
 
 
