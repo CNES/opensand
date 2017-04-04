@@ -121,14 +121,14 @@ bool BlockPhysicalLayer::initSatDelay()
 	else
 	{
 		for(iter_list = delays_list.begin();
-				iter_list != delays_list.end();
-				iter_list++)
+		    iter_list != delays_list.end();
+		    iter_list++)
 		{
 			// get the id
 			if(!Conf::getAttributeValue(iter_list, ID, id))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
-						"cannot get delay id");
+				    "cannot get delay id");
 				goto error;
 			}
 			if(id != this->mac_id)
@@ -136,16 +136,16 @@ bool BlockPhysicalLayer::initSatDelay()
 			if(!Conf::getItemNode(*iter_list, SAT_DELAY_CONF, plugin_conf))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
-						"missing parameter '%s' for delay terminal id %u",
-						SAT_DELAY_CONF, id);
+				    "missing parameter '%s' for delay terminal id %u",
+				    SAT_DELAY_CONF, id);
 				goto error;
 			}
 			// get plugin name
 			if(!Conf::getAttributeValue(iter_list, DELAY_TYPE, satdelay_name))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
-						"missing parameter '%s' for terminal id %u",
-						DELAY_TYPE, id);
+				    "missing parameter '%s' for terminal id %u",
+				    DELAY_TYPE, id);
 				goto error;
 			}
 			break;
@@ -153,27 +153,27 @@ bool BlockPhysicalLayer::initSatDelay()
 	}
 	// load plugin
 	if(!Plugin::getSatDelayPlugin(satdelay_name,
-																&this->satdelay))
+	                              &this->satdelay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-				"error when getting the sat delay plugin '%s'",
-				satdelay_name.c_str());
+		    "error when getting the sat delay plugin '%s'",
+		    satdelay_name.c_str());
 		goto error;
 	}
 	// Check if the plugin was found
 	if(this->satdelay == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-				"Satellite delay plugin conf was not found for"
-				" terminal %s", this->mac_id);
+		    "Satellite delay plugin conf was not found for"
+		    " terminal %s", this->mac_id);
 		goto error;
 	}
 	// init plugin
 	if(!this->satdelay->init(plugin_conf))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-				"cannot initialize sat delay plugin '%s'"
-				" for terminal id %u ", satdelay_name.c_str(), id);
+		    "cannot initialize sat delay plugin '%s'"
+		    " for terminal id %u ", satdelay_name.c_str(), id);
 		goto error;
 	}
 	
@@ -235,7 +235,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 			if(!this->is_sat)
 			{
 				return this->pushInFifo((NetContainer *)dvb_frame,
-						                    this->satdelay->getSatDelay());
+				                        this->satdelay->getSatDelay());
 			}
 			else
 			{
@@ -243,7 +243,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 				if(!this->enqueueMessage((void **)&dvb_frame))
 				{
 					LOG(this->log_send, LEVEL_ERROR, 
-							"failed to send burst of packets to lower layer\n");
+					    "failed to send burst of packets to lower layer\n");
 					delete dvb_frame;
 					return false;
 				}
@@ -261,7 +261,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 				{
 					LOG(this->log_event, LEVEL_ERROR,
 					    "downward channel delay fifo handling"
-							" error");
+					    " error");
 					return false;
 				}
 			}
@@ -269,12 +269,12 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 			{
 				// Event handler for Downward Channel state update
 				LOG(this->log_event, LEVEL_DEBUG,
-						"downward channel timer expired\n");
+				    "downward channel timer expired\n");
 				if(!this->update())
 				{
 					LOG(this->log_event, LEVEL_ERROR,
-							"downward channel updating failed, do not "
-							"update channels anymore\n");
+					    "downward channel updating failed, do not "
+					    "update channels anymore\n");
 					return false;
 				}
 			}
@@ -334,7 +334,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			if(!this->is_sat)
 			{
 				return this->pushInFifo((NetContainer *)dvb_frame,
-						                    this->satdelay->getSatDelay());
+				                        this->satdelay->getSatDelay());
 			}
 			else
 			{
@@ -356,7 +356,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 				if(!this->enqueueMessage((void **)&dvb_frame))
 				{
 					LOG(this->log_send, LEVEL_ERROR, 
-							"failed to send burst of packets to upper layer\n");
+					    "failed to send burst of packets to upper layer\n");
 					delete dvb_frame;
 					return false;
 				}
@@ -374,20 +374,20 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 				{
 					LOG(this->log_event, LEVEL_ERROR,
 					    "upward channel delay fifo handling"
-							" error");
+					    " error");
 					return false;
 				}
 			}
-		  else if(*event == this->att_timer)
+			else if(*event == this->att_timer)
 			{
 				//Event handler for Upward Channel state update
 				LOG(this->log_event, LEVEL_DEBUG,
-						"upward channel timer expired\n");
+				    "upward channel timer expired\n");
 				if(!this->update())
 				{
 					LOG(this->log_event, LEVEL_ERROR,
-							"upward channel updating failed, do not "
-							"update channels anymore\n");
+					    "upward channel updating failed, do not "
+					    "update channels anymore\n");
 					return false;
 				}
 			}
@@ -427,7 +427,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	                   ENABLE, this->attenuation))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-				"cannot check if physical layer is enabled\n");
+		    "cannot check if physical layer is enabled\n");
 		goto error;
 	}
 	if(!this->attenuation)
@@ -435,7 +435,7 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 
 	// get refresh period
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
-		               ACM_PERIOD_REFRESH,
+	                   ACM_PERIOD_REFRESH,
 	                   this->refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -543,12 +543,12 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	         "Phy.%slink_attenuation (%s)",
 	         link.c_str(), attenuation_type.c_str());
 	this->probe_attenuation = Output::registerProbe<float>(probe_name,
-			                                                   "dB", true,
+	                                                       "dB", true,
 	                                                       SAMPLE_MAX);
 	snprintf(probe_name, sizeof(probe_name), 
 	         "Phy.minimal_condition (%s)", minimal_type.c_str());
 	this->probe_minimal_condition = Output::registerProbe<float>(probe_name,
-			                                                         "dB", true,
+	                                                             "dB", true,
 	                                                             SAMPLE_MAX);
 	snprintf(probe_name, sizeof(probe_name), 
 	         "Phy.%slink_clear_sky_condition", link.c_str());
@@ -580,10 +580,10 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 
 	// check if attenuation is enabled
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-										 ENABLE, this->attenuation))
+	                   ENABLE, this->attenuation))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-				"cannot check if physical layer is enabled\n");
+		    "cannot check if physical layer is enabled\n");
 		goto error;
 	}
 	if(!this->attenuation)
@@ -591,7 +591,7 @@ bool BlockPhysicalLayer::Downward::onInit(void)
 
 	// get refresh_period
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
-		               ACM_PERIOD_REFRESH,
+	                   ACM_PERIOD_REFRESH,
 	                   this->refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -770,7 +770,7 @@ bool BlockPhysicalLayer::Downward::handleFifoTimer()
 		if(!this->enqueueMessage((void **)&dvb_frame))
 		{
 			LOG(this->log_send, LEVEL_ERROR, 
-					"failed to send burst of packets to lower layer\n");
+			    "failed to send burst of packets to lower layer\n");
 			delete dvb_frame;
 			goto error;
 		}
@@ -807,7 +807,7 @@ bool BlockPhysicalLayer::Upward::handleFifoTimer()
 			if(!this->processAttenuation(dvb_frame))
 			{
 				LOG(this->log_send, LEVEL_ERROR, 
-						"failed to process attenuation to dvb frame\n");
+				    "failed to process attenuation to dvb frame\n");
 				delete dvb_frame;
 				goto error;
 			}
@@ -816,7 +816,7 @@ bool BlockPhysicalLayer::Upward::handleFifoTimer()
 		if(!this->enqueueMessage((void **)&dvb_frame))
 		{
 			LOG(this->log_send, LEVEL_ERROR,
-					"failed to send burst of packets to upper layer\n");
+			    "failed to send burst of packets to upper layer\n");
 			delete dvb_frame;
 			goto error;
 		}
@@ -923,10 +923,10 @@ bool BlockPhysicalLayerSat::Upward::onInit(void)
 
 	// check if attenuation is enabled
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-										 ENABLE, this->attenuation))
+	                   ENABLE, this->attenuation))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-				"cannot check if physical layer is enabled\n");
+		    "cannot check if physical layer is enabled\n");
 		return false;
 	}
 	if(!this->attenuation)
@@ -1011,10 +1011,10 @@ bool BlockPhysicalLayerSat::Downward::onInit(void)
 	this->is_sat = true;
 	// check if attenuation is enabled
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-										 ENABLE, this->attenuation))
+	                   ENABLE, this->attenuation))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-				"cannot check if physical layer is enabled\n");
+		    "cannot check if physical layer is enabled\n");
 		return false;
 	}
 	if(!this->attenuation)
