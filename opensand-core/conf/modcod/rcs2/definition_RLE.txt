@@ -1,7 +1,7 @@
 /* DRA-Schemes definition
 /* Es/N0 derived from DVB-RCS2 standard, turbo code, PER=10^-5, no implementation losses
 /* Performances applicables to 53 bytes cells (ATM) */
-/* scheme_number, modulation, coding_rate, spectral_efficiency, required Es/N0 (dB), burst_length */
+/* scheme_number, modulation, coding_rate, spectral_efficiency, required Es/N0 (dB), burst_length (sym) */
 
 nb_fmt = 28
 

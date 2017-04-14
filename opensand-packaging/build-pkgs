@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODULES='all core services lan encap'
+MODULES='all libs core services lan encap'
 USEROPTS=""
 
 # Get list of all supported distributions
@@ -13,6 +13,7 @@ usage()
 {
     echo 'Usage : build-pkgs [OPTIONS] -s <src path> -d <dst path> -t <dist> TARGET'
     echo 'Available TARGETS :   all:      build all packages (default)'
+    echo '                      libs:     build only libraries packages'
     echo '                      core:     build only core packages'
     echo '                      services: build only services packages'
     echo '                      encap:    build only encapsulation plugins'
@@ -26,15 +27,21 @@ usage()
     exit 1
 }
 
-make_core()
+make_libs()
 {
-    echo "Building OpenSAND core for $TARGET_DIST"
+    echo "Building OpenSAND libraries for $TARGET_DIST"
     # Package and install opensand-output
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
     # Package and install opensand-conf
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
     # Package and install opensand-rt
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-rt || error
+    echo "Finished building OpenSAND libraries for $TARGET_DIST"
+}
+
+make_core()
+{
+    echo "Building OpenSAND core for $TARGET_DIST"
     # Package and install opensand-core
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-core
     echo "Finished building OpenSAND core for $TARGET_DIST"
@@ -205,10 +212,14 @@ clean
 
 case $MODULE in
     "all")
+        make_libs
         make_core
         make_services
         make_encap
         make_lan
+        ;;
+    "libs")
+        make_libs
         ;;
     "core")
         make_core
