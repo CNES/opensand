@@ -127,7 +127,7 @@ class FmtDefinitionTable
 	         const string coding_rate,
 	         const float spectral_efficiency,
 	         const double required_Es_N0,
-	         const unsigned int burst_length);
+	         const vol_sym_t burst_length);
 
 	/**
 	 * @brief Does a FMT definition with the given ID exist ?
@@ -205,7 +205,7 @@ class FmtDefinitionTable
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	unsigned int getBurstLength(fmt_id_t id) const;
+	vol_sym_t getBurstLength(fmt_id_t id) const;
 
 	/**
 	 * @brief Get the best required MODCOD according to the Es/N0 ratio

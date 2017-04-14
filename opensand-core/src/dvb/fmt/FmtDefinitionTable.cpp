@@ -190,7 +190,7 @@ bool FmtDefinitionTable::load(const string filename)
 			string coding_rate;
 			float spectral_efficiency;
 			double required_es_n0;
-			unsigned int burst_length;
+			vol_sym_t burst_length;
 			int ret;
 
 			// convert the string token to integer
@@ -299,7 +299,7 @@ bool FmtDefinitionTable::add(const fmt_id_t id,
                              const string coding_rate,
                              const float spectral_efficiency,
                              const double required_Es_N0,
-                             const unsigned int burst_length)
+                             const vol_sym_t burst_length)
 {
 	FmtDefinition *new_def;
 
@@ -404,7 +404,7 @@ double FmtDefinitionTable::getRequiredEsN0(fmt_id_t id) const
 }
 
 
-unsigned int FmtDefinitionTable::getBurstLength(fmt_id_t id) const
+vol_sym_t FmtDefinitionTable::getBurstLength(fmt_id_t id) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)

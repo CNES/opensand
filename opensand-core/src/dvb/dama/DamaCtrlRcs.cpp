@@ -29,6 +29,7 @@
  * @file DamaCtrlRcs.cpp
  * @brief This library defines a generic DAMA controller
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieutoulouse.viveris.com>
  */
 
 
@@ -129,7 +130,6 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 	for(std::vector<cr_info_t>::iterator it = requests.begin();
 	    it != requests.end(); ++it)
 	{
-		uint16_t request;
 		uint16_t xbdc;
 
 		// retrieve the requested capacity
@@ -165,8 +165,7 @@ bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
 				// the CRA is not taken into acount on ST side
 				xbdc =
 					std::max(xbdc - terminal->getCra(), 0);
-				request = this->converter->kbpsToPktpf(xbdc);
-				terminal->setRequiredRbdc(request);
+				terminal->setRequiredRbdc(xbdc);
 				break;
 		}
 	}
@@ -301,7 +300,7 @@ bool DamaCtrlRcs::applyPepCommand(const PepRequest *request)
 		// will not expire before the session is established
 		terminal->setRbdcTimeout(100);
 
-		terminal->setRequiredRbdc(this->converter->kbpsToPktpf(rbdc_kbps));
+		terminal->setRequiredRbdc(rbdc_kbps);
 		LOG(this->log_pep, LEVEL_NOTICE,
 		    "SF#%u: ST%u: inject RDBC request of %u kbits/s\n",
 		    this->current_superframe_sf,

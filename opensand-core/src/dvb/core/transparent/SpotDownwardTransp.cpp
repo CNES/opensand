@@ -75,19 +75,26 @@ bool SpotDownwardTransp::onInit(void)
 		return false;
 	}
 
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+	
 	// Initialization of the modcod def
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the forward MODCOD file\n");
+		    "failed to initialize the forward link definition MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
 	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the forward MODCOD file\n");
+		    "failed to initialize the return link definition MODCOD file\n");
 		return false;
 	}
 	
@@ -338,7 +345,21 @@ bool SpotDownwardTransp::initDama(void)
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "creating Legacy DAMA controller\n");
-		this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id);
+		if(this->return_link_standard == DVB_RCS)
+		{
+			this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id);
+		}
+		//else if(this->return_link_standard == DVB_RCS2)
+		//{
+		//	this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
+		//}
+		else
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+				"section '%s': bad value for parameter '%s'\n",
+				DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
+			return false;
+		}
 	}
 	else
 	{

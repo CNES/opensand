@@ -67,7 +67,7 @@ class FmtDefinition
 	double required_Es_N0;
 
 	/** The burst length */
-	unsigned int burst_length;
+	vol_sym_t burst_length;
 
  public:
 
@@ -79,7 +79,7 @@ class FmtDefinition
 	              const string coding_rate,
 	              const float spectral_efficiency,
 	              const double required_Es_N0,
-	              const unsigned int burst_length);
+	              const vol_sym_t burst_length);
 
 	/* constructor by copy */
 	FmtDefinition(const FmtDefinition &fmt_def);
@@ -106,7 +106,7 @@ class FmtDefinition
 	double getRequiredEsN0() const;
 
 	/* get the burst length of the FMT definition */
-	unsigned int getBurstLength() const;
+	vol_sym_t getBurstLength() const;
 
 	void print(void); /// For debug
 

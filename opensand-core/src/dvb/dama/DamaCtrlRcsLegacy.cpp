@@ -29,6 +29,7 @@
  * @file DamaCtrlRcsLegacy.cpp
  * @brief This library defines Legacy DAMA controller
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieutoulouse.viveris.com>
  */
 
 
@@ -350,6 +351,7 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
                                               const TerminalCategoryDama *category)
 {
 	rate_pktpf_t total_request_pktpf = 0;
+	rate_pktpf_t request_pktpf;
 	double fair_share;
 	double fair_rbdc_pktpf;
 	rate_pktpf_t rbdc_alloc_pktpf = 0;
@@ -359,6 +361,8 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	rate_pktpf_t remaining_capacity_pktpf;
 	vector<TerminalContextDamaRcs *>::iterator tal_it;
 	int simu_rbdc = 0;
+	map<tal_id_t, rate_pktpf_t> tal_request_pktpf;
+	tal_id_t tal_id;
 	ostringstream buf;
 	string label = category->getLabel();
 	string debug;
@@ -384,14 +388,14 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	// get total RBDC requests
 	for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
 	{
-		rate_pktpf_t request_pktpf;
 		terminal = *tal_it;
+		tal_id = terminal->getTerminalId();
+		request_pktpf = this->converter->kbpsToPktpf(terminal->getRequiredRbdc());
 		LOG(this->log_run_dama, LEVEL_DEBUG,
 		    "%s ST%d: RBDC request %d packet per superframe\n",
-		    debug.c_str(), terminal->getTerminalId(),
-		    terminal->getRequiredRbdc());
+		    debug.c_str(), tal_id, request_pktpf);
 
-		request_pktpf = terminal->getRequiredRbdc();
+		tal_request_pktpf[tal_id] = request_pktpf;
 		total_request_pktpf += request_pktpf;
 
 		// Output stats and probes
@@ -451,10 +455,11 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
 	{
 		terminal = *tal_it;
-		tal_id_t tal_id = terminal->getTerminalId();
+		tal_id = terminal->getTerminalId();
 
 		// apply the fair share coef to all requests
-		fair_rbdc_pktpf = (double) (terminal->getRequiredRbdc() / fair_share);
+		request_pktpf = tal_request_pktpf[tal_id];
+		fair_rbdc_pktpf = (double) (request_pktpf / fair_share);
 
 		// take the integer part of fair RBDC
 		rbdc_alloc_pktpf = floor(fair_rbdc_pktpf);
@@ -492,6 +497,7 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 		this->probes_st_rbdc_alloc[0]->put(
 				this->converter->pktpfToKbps(simu_rbdc));
 	}
+	tal_request_pktpf.clear();
 
 	// second step : RBDC decimal part treatment
 	if(fair_share > 1.0)
@@ -499,16 +505,13 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 		// sort terminal according to their remaining credit
 		std::stable_sort(tal.begin(), tal.end(),
 		                 TerminalContextDamaRcs::sortByRemainingCredit);
-		for(tal_it = tal.begin(); tal_it != tal.end(); ++tal_it)
+		for(tal_it = tal.begin(); tal_it != tal.end() && remaining_capacity_pktpf > 0; ++tal_it)
 		{
+			rate_pktpf_t max_rbdc_pktpf;
 			rate_pktpf_t credit_pktpf;
 			terminal = *tal_it;
-			tal_id_t tal_id = terminal->getTerminalId();
+			tal_id = terminal->getTerminalId();
 
-			if(remaining_capacity_pktpf == 0)
-			{
-				break;
-			}
 			credit_pktpf = terminal->getRbdcCredit();
 			LOG(this->log_run_dama, LEVEL_DEBUG,
 			    "%s step 2 scanning ST%u remaining capacity=%u "
@@ -516,7 +519,8 @@ void DamaCtrlRcsLegacy::runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 			    tal_id, remaining_capacity_pktpf, credit_pktpf);
 			if(credit_pktpf > 1.0)
 			{
-				if(terminal->getMaxRbdc() - rbdc_alloc_pktpf > 1)
+				max_rbdc_pktpf = this->converter->kbpsToPktpf(terminal->getMaxRbdc());
+				if(max_rbdc_pktpf - rbdc_alloc_pktpf > 1)
 				{
 					// enough capacity to allocate
 					terminal->setRbdcAllocation(rbdc_alloc_pktpf + 1);

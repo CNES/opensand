@@ -53,7 +53,7 @@ FmtDefinition::FmtDefinition(const unsigned int id,
                              const string coding_rate,
                              const float spectral_efficiency,
                              const double required_Es_N0,
-                             const unsigned int burst_length):
+                             const vol_sym_t burst_length):
 	id(id),
 	coding_rate(coding_rate),
 	spectral_efficiency(spectral_efficiency),
@@ -158,7 +158,7 @@ double FmtDefinition::getRequiredEsN0() const
  *
  * @return  the burst length of the FMT
  */
-unsigned int FmtDefinition::getBurstLength() const
+vol_sym_t FmtDefinition::getBurstLength() const
 {
 	return this->burst_length;
 }

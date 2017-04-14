@@ -30,6 +30,7 @@
  * @file TerminalContextDamaRcs.h
  * @brief The terminal allocations
  * @author Julien Bernard / Viveris Technologies
+ * @author Aurelien DELRIEU <adelrieutoulouse.viveris.com>
  *
  */
 
@@ -58,34 +59,12 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	virtual ~TerminalContextDamaRcs();
 
 	/**
-	 * @brief  Update the CRA value.
-	 *         (update the kbps and pktpf values)
-	 *
-	 * @param cra_kbps  The CRA value (kbits/s)
-	 */
-	void setCra(rate_kbps_t cra_kbps);
-
-	/**
-	 * @brief  Get the CRA value.
-	 *
-	 * @return cra_kbps  The CRA value (kbits/s)
-	 */
-	rate_kbps_t getCra();
-
-	/**
 	 * @brief  Update the RBDC max value.
 	 *         (update the kbps and pktpf values)
 	 *
 	 * @param max_rbdc_kbps  The RBDC max value (kbits/s)
 	 */
 	void setMaxRbdc(rate_kbps_t max_rbdc_kbps);
-
-	/**
-	 * @brief  Get the RBDC max value.
-	 *
-	 * @return max_rbdc_kbps  The RBDC max value (kbits/s)
-	 */
-	rate_kbps_t getMaxRbdc();
 
 	/**
 	 * @brief  Update the RBDC timeout value.
@@ -98,16 +77,16 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	 * @brief  Set the RBDC request value.
 	 *         The timer, timeout credit and initial request are initialised
 	 *
-	 * @param  rbdc_request_pktpf  The capacity request
+	 * @param  rbdc_request_kbps  The capacity request
 	 */
-	void setRequiredRbdc(rate_pktpf_t rbdc_request_pktpf);
+	void setRequiredRbdc(rate_kbps_t rbdc_request_kbps);
 
 	/**
 	 * @brief Get the ST RBDC request
 	 *
-	 * @return The RBDC request value (packets per superframe).
+	 * @return The RBDC request value (kbps).
 	 */
-	rate_pktpf_t getRequiredRbdc() const;
+	rate_kbps_t getRequiredRbdc() const;
 
 	/**
 	 * @brief  Set the RBDC allocation after DAMA computation.
@@ -129,7 +108,7 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	 *
 	 * @return  the RBDC credit in packets per superframe
 	 */
-	rate_pktpf_t getRbdcCredit();
+	rate_pktpf_t getRbdcCredit() const;
 
 	/**
 	 * @brief  Set the VBDC request value.
@@ -154,6 +133,20 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	 */
 	vol_pkt_t getRequiredVbdc() const;
 
+	/**
+	 * @brief Set the CRA allocation
+	 *
+	 * @param cra_alloc_pktpf  The CRA allocation (packets per superframe).
+	 */
+	void setCraAllocation(rate_pktpf_t cra_alloc_pktpf);
+
+	/**
+	 * @brief Get the CRA allocation
+	 *
+	 * @return cra_alloc_pktpf  The CRA allocation (packets per superframe).
+	 */
+	rate_pktpf_t getCraAllocation();
+	
 	/**
 	 * @brief Set the FCA allocation after DAMA computation
 	 *
@@ -217,7 +210,7 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	time_sf_t timer_sf;
 
 	/** the RBDC request */
-	rate_pktpf_t rbdc_request_pktpf;
+	rate_kbps_t rbdc_request_kbps;
 
 	/** The RBDC allocation */
 	rate_pktpf_t rbdc_alloc_pktpf;
@@ -228,14 +221,14 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	/** The VBDC allocation */
 	vol_pkt_t vbdc_alloc_pkt;
 
+	/** The CRA allocation */
+	rate_pktpf_t cra_alloc_pktpf;
+
 	/** The FCA allocation */
 	rate_pktpf_t fca_alloc_pktpf;
 
-	/** CRA for the terminal converted to used unit (paquets per superframe) */
-	rate_kbps_t cra_pktpf;
-
 	/** Maximum RBDC value converted to used unit (paquets per superframe) */
-	rate_kbps_t max_rbdc_pktpf;
+	rate_pktpf_t max_rbdc_pktpf;
 
 	/** The maximum VBDC value converted to used unit (paquets) */
 	vol_pkt_t max_vbdc_pkt;

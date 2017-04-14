@@ -60,6 +60,13 @@ bool SpotUpwardRegen::onInit(void)
 {
 	string scheme = FORWARD_DOWN_ENCAP_SCHEME_LIST;
 
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+	
 	// get the common parameters
 	if(!this->initCommon(scheme.c_str()))
 	{
@@ -84,14 +91,14 @@ bool SpotUpwardRegen::initModcodSimu(void)
 	                            &this->rcs_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the uplink MODCOD file\n");
+		    "failed to initialize the uplink definition MODCOD file\n");
 		return false;
 	}
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the forward MODCOD file\n");
+		    "failed to initialize the downlink definition MODCOD file\n");
 		return false;
 	}
 
@@ -99,7 +106,7 @@ bool SpotUpwardRegen::initModcodSimu(void)
 	                             this->mac_id, this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the downlink MODCOD files\n");
+		    "failed to initialize the downlink simulation MODCOD files\n");
 		return false;
 	}
 

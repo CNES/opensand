@@ -110,6 +110,13 @@ class DvbChannel
 	bool initSatType(void);
 
 	/**
+	 * @brief Read MODCOD Definition types
+	 * 
+	 * @return true if success, false otherwise
+	 */
+	bool initModcodDefinitionTypes(void);
+
+	/**
 	 * @brief Read the encapsulation shcemes to get packet handler
 	 *
 	 * @param encap_schemes The section in configuration file for encapsulation
@@ -383,7 +390,6 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	string default_category_name;
 	vector<unsigned int> used_group_ids;
 
-
 	// Get the value of the bandwidth
 	if(!Conf::getValue(spot, BANDWIDTH,
 	                   bandwidth_mhz))
@@ -462,7 +468,6 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		used_group_ids.insert(used_group_ids.end(), group_ids.begin(), group_ids.end());
 	}
 
-
 	conf_list.clear();
 	// get the FMT groups
 	if(!Conf::getListItems(spot,
@@ -474,6 +479,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		    section.c_str(), FMT_GROUP_LIST);
 		goto error;
 	}
+
 	// create group list
 	for(ConfigurationList::iterator iter = conf_list.begin();
 	    iter != conf_list.end(); ++iter)
@@ -490,7 +496,8 @@ bool DvbChannel::initBand(ConfigurationList spot,
 			    "groups\n", section.c_str(), 
 			    GROUP_ID);
 			goto error;
-		}
+		} 
+
 		// check if we need to intialize this group id
 		if(std::find(used_group_ids.begin(), used_group_ids.end(), group_id) ==
 		   used_group_ids.end())
@@ -710,7 +717,6 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		goto error;
 	}
 
-	
 	cat_iter = categories.begin();
 	// delete category with no carriers corresponding to the access type
 	while(cat_iter != categories.end())

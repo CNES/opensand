@@ -42,6 +42,7 @@
 
 #include "DamaAgentRcsLegacy.h"
 #include "DamaAgentRcsRrmQos.h"
+//#include "DamaAgentRcs2Legacy.h"
 #include "TerminalCategoryDama.h"
 #include "ScpcScheduling.h"
 #include "SlottedAlohaPacketData.h"
@@ -236,6 +237,13 @@ bool BlockDvbTal::Downward::onInit(void)
 	                                           "Dvb.QoSServer");
 	this->log_frame_tick = Output::registerLog(LEVEL_WARNING, 
 	                                           "Dvb.DamaAgent.FrameTick");
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+	
 	if(!this->initFmt())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -823,7 +831,21 @@ bool BlockDvbTal::Downward::initDama(void)
 		    "SF#%u: create Legacy DAMA agent\n",
 		    this->super_frame_counter);
 
-		this->dama_agent = new DamaAgentRcsLegacy();
+		if(this->return_link_standard == DVB_RCS)
+		{
+			this->dama_agent = new DamaAgentRcsLegacy();
+		}
+		//else if(this->return_link_standard == DVB_RCS2)
+		//{
+		//	this->dama_agent = new DamaAgentRcs2Legacy();
+		//}
+		else
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot create DAMA agent: algo named '%s' is not "
+			    "managed by current MAC layer\n", dama_algo.c_str());
+			goto error;
+		}
 	}
 	else if(dama_algo == "RrmQos")
 	{
@@ -831,7 +853,17 @@ bool BlockDvbTal::Downward::initDama(void)
 		    "SF#%u: create RrmQos DAMA agent\n",
 		    this->super_frame_counter);
 
-		this->dama_agent = new DamaAgentRcsRrmQos();
+		if(this->return_link_standard == DVB_RCS)
+		{
+			this->dama_agent = new DamaAgentRcsRrmQos();
+		}
+		else
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot create DAMA agent: algo named '%s' is not "
+			    "managed by current MAC layer\n", dama_algo.c_str());
+			goto error;
+		}
 	}
 	else
 	{
@@ -2399,6 +2431,13 @@ bool BlockDvbTal::Upward::onInit(void)
 		return false;
 	}
 
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+	
 	if(!this->initFmt())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

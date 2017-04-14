@@ -65,7 +65,6 @@ inline bool fileExists(const string &filename)
 bool DvbChannel::initSatType(void)
 {
 	string sat_type;
-	string ret_lnk_std;
 
 	// satellite type
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
@@ -81,6 +80,13 @@ bool DvbChannel::initSatType(void)
 	    "satellite type = %s\n", sat_type.c_str());
 	this->satellite_type = strToSatType(sat_type);
 
+	return true;
+}
+
+bool DvbChannel::initModcodDefinitionTypes(void)
+{
+	string ret_lnk_std;
+	
 	// return link standard type
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 		               RETURN_LINK_STANDARD,
@@ -101,7 +107,6 @@ bool DvbChannel::initSatType(void)
 
 	return true;
 }
-
 
 bool DvbChannel::initPktHdl(const char *encap_schemes,
                             EncapPlugin::EncapPacketHandler **pkt_hdl, bool force)
