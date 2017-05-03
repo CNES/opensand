@@ -53,7 +53,7 @@ build()
         cp $SRC_DIR/ChangeLog $DST_DIR/src/ 2>/dev/null
         success
     fi
-   
+
     # Copy new files
     echo -n "  * Fetching packaging files ($CURRENT)..."
     cp -r * $DST_DIR/src/$MODULE
@@ -74,11 +74,17 @@ build()
         CUR_VERS=$(head -1 $CHANGELOG | sed -r -e 's/^(.*)\((.*)\)(.*)$/\2/')
         NEW_VERS="$CUR_VERS+$FLAG"
         sed -i -r -e "1s/^(.*)\(([^+]+)(\+.+)?\)(.*)$/\1\($NEW_VERS\)\4/" $CHANGELOG
-        
+        TEMP=$(echo $CUR_VERS | sed -r -e 's/\+/\\\+/g')
+
+        # Add flag to control version
+        CONTROL="$DST_DIR/src/$MODULE/debian/control"
+        if [ -f "$CONTROL" ]; then
+            sed -i -r -e "s/$TEMP/$NEW_VERS/g" $CONTROL
+        fi
+
         # Add flag to configure.ac version
         CONFIGURE_AC=$(find $DST_DIR/src/$MODULE -name "configure.ac")
-        TEMP=$(echo $CUR_VERS | sed -r -e 's/\+/\\\+/g')
-        for CONFIG in $CONFIGIGURE_AC; do
+        for CONFIG in $CONFIGURE_AC; do
             sed -i -r -e "s/$TEMP/$NEW_VERS/g" $CONFIG
         done
     fi
