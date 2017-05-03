@@ -85,12 +85,10 @@ bool DvbChannel::initSatType(void)
 
 bool DvbChannel::initModcodDefinitionTypes(void)
 {
-	string ret_lnk_std;
-	
 	// return link standard type
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 		               RETURN_LINK_STANDARD,
-	                   ret_lnk_std))
+	                   this->return_link_std_str))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
@@ -98,57 +96,97 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 		return false;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "return link standard type = %s\n", ret_lnk_std.c_str());
-	this->return_link_standard = strToReturnLinkStd(ret_lnk_std);
+	    "return link standard type = %s\n",
+	    this->return_link_std_str.c_str());
+	this->return_link_std = strToReturnLinkStd(this->return_link_std_str);
 
 	// Set the MODCOD definition type
-	this->modcod_def_rcs_type = this->return_link_standard == DVB_RCS ?
+	this->modcod_def_rcs_type = this->return_link_std == DVB_RCS ?
 	                            MODCOD_DEF_RCS : MODCOD_DEF_RCS2;
 
 	return true;
 }
 
 bool DvbChannel::initPktHdl(const char *encap_schemes,
-                            EncapPlugin::EncapPacketHandler **pkt_hdl, bool force)
+                            EncapPlugin::EncapPacketHandler **pkt_hdl)
 {
 	string encap_name;
 	int encap_nbr;
 	EncapPlugin *plugin;
 
+	// get the packet types
+	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
+							 encap_schemes,
+						 encap_nbr))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"Section %s, %s missing\n",
+			COMMON_SECTION, encap_schemes);
+		return false;
+	}
+	if (encap_nbr <= 0)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"Section %s, invalid value for %s (%d)\n",
+			COMMON_SECTION, encap_schemes, encap_nbr);
+		return false;
+	}
+
+	// get all the encapsulation to use from lower to upper
+	if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
+							 encap_schemes,
+							 POSITION, toString(encap_nbr - 1),
+							 ENCAP_NAME, encap_name))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"Section %s, invalid value %d for parameter '%s'\n",
+			COMMON_SECTION, encap_nbr - 1, POSITION);
+		return false;
+	}
+
+	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "cannot get plugin for %s encapsulation\n",
+		    encap_name.c_str());
+		return false;
+	}
+
+	*pkt_hdl = plugin->getPacketHandler();
+	if(!pkt_hdl)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "cannot get %s packet handler\n", encap_name.c_str());
+		return false;
+	}
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "encapsulation scheme = %s\n",
+	    (*pkt_hdl)->getName().c_str());
+	
+	return true;
+}
+
+bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
+{
+	vector<string> encap_stack;
+	string encap_name;
+	EncapPlugin *plugin;
+
+	// Get SCPC encapsulation name stack
+	if (!OpenSandConf::getScpcEncapStack(this->return_link_std_str,
+		                                 encap_stack) ||
+		encap_stack.size() <= 0)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "cannot get SCPC encapsulation names\n");
+		return false;
+	}
+	encap_name = encap_stack.back();
+
 	// if GSE is imposed
 	// (e.g. if Tal is in SCPC mode or for receiving GSE packet in the GW)
-	if(force)
-	{
-		encap_name = "GSE";
-		LOG(this->log_init_channel, LEVEL_NOTICE,
-		    "New packet handler for ENCAP type = %s\n", encap_name.c_str());
-	}
-	else
-	{
-		// get the packet types
-		if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
-		                         encap_schemes,
-	                         encap_nbr))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, %s missing\n",
-			    COMMON_SECTION, encap_schemes);
-			return false;
-		}
-
-
-		// get all the encapsulation to use from lower to upper
-		if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
-		                         encap_schemes,
-		                         POSITION, toString(encap_nbr - 1),
-		                         ENCAP_NAME, encap_name))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, invalid value %d for parameter '%s'\n",
-			    COMMON_SECTION, encap_nbr - 1, POSITION);
-			return false;
-		}
-	}
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "New packet handler for ENCAP type = %s\n", encap_name.c_str());
 
 	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 	{
@@ -197,7 +235,7 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "frame duration set to %d\n", this->ret_up_frame_duration_ms);
 
-	if(!this->initPktHdl(encap_schemes, &this->pkt_hdl, false))
+	if(!this->initPktHdl(encap_schemes, &this->pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize packet handler\n");

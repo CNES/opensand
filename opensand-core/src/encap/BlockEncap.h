@@ -100,7 +100,8 @@ class BlockEncap: public Block
 			RtUpward(name),
 			EncapChannel(),
 			mac_id(mac_id),
-			satellite_type()
+			satellite_type(),
+			scpc_encap("")
 		{};
 		bool onEvent(const RtEvent *const event);
 		
@@ -118,6 +119,9 @@ class BlockEncap: public Block
 		
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
+
+		/// the SCPC encapsulation lower item
+		string scpc_encap;
 
 		/// the satellite type (regenerative o transparent)
 		sat_type_t satellite_type;
@@ -193,15 +197,29 @@ class BlockEncap: public Block
 	 * @param l_plugin      The LAN adaptation plugin
 	 * @ctx                 The encapsulation context for return/up or forward/down links
 	 * @link_type           The type of link: "return/up" or "forward/down"
-	 * @scpc_scheme			Whether SCPC is used for the return link or not
 	 * @return              Whether the Encapsulation context has been
 	 *                      correctly obtained or not
 	 */
 	bool getEncapContext(const char *scheme_list,
 	                     LanAdaptationPlugin *l_plugin,
 	                     vector <EncapPlugin::EncapContext *> &ctx,
-	                     const char *link_type, 
-	                     bool scpc_scheme);
+	                     const char *link_type);
+
+	/**
+	 *
+	 * Get the Encapsulation context of the SCPC Return link
+	 *
+	 * @param l_plugin         The LAN adaptation plugin
+	 * @param ctx              The encapsulation context for return link
+	 * @param return_link_std  The return link standard
+	 * @param link_type        The type of link: "return/up" or "forward/down"
+	 * @return                 Whether the Encapsulation context has been
+	 *                         correctly obtained or not
+	 */
+	bool getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
+	                         vector <EncapPlugin::EncapContext *> &ctx,
+	                         string return_link_std,
+	                         const char *link_type);
 
 	/// initialization method
 	bool onInit();

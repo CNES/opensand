@@ -370,24 +370,34 @@ bool SpotUpwardTransp::initMode(void)
 	if(this->checkIfScpc())
 	{
 		EncapPlugin::EncapPacketHandler *fwd_pkt_hdl;
+		vector<string> scpc_encap;
+		
 		// check that the forward encapsulation scheme is GSE
 		// (this should be automatically set by the manager)
 		if(!this->initPktHdl(FORWARD_DOWN_ENCAP_SCHEME_LIST,
-		                     &fwd_pkt_hdl, false))
+		                     &fwd_pkt_hdl))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed to get forward packet handler\n");
 			return false;
 		}
-		if(fwd_pkt_hdl->getName() != "GSE")
+		if (!OpenSandConf::getScpcEncapStack(this->return_link_std_str,
+			                                 scpc_encap) ||
+			scpc_encap.size() <= 0)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Forward packet handler is not GSE while there is SCPC channels\n");
+			    "failed to get SCPC encapsulation names\n");
+			return false;
+		}
+		if(fwd_pkt_hdl->getName() != scpc_encap[0])
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Forward packet handler is not %s while there is SCPC channels\n",
+			    scpc_encap[0].c_str());
 			return false;
 		}
 
-		if(!this->initPktHdl("GSE",
-		                     &this->scpc_pkt_hdl, true))
+		if(!this->initScpcPktHdl(&this->scpc_pkt_hdl))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed to get packet handler for receiving GSE packets\n");

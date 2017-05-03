@@ -75,7 +75,8 @@ class DvbChannel
  public:
 	DvbChannel():
 		satellite_type(),
-		return_link_standard(),
+		return_link_std_str(""),
+		return_link_std(),
 		modcod_def_rcs_type(""),
 		super_frame_counter(0),
 		fwd_down_frame_duration_ms(),
@@ -124,10 +125,16 @@ class DvbChannel
 	 * @param pkt_hdl       The packet handler corresponding to the encapsulation scheme
 	 * @return true on success, false otherwise
 	 */
-	// TODO create a GseInitPktHdl instead of force
 	bool initPktHdl(const char *encap_schemes,
-	                EncapPlugin::EncapPacketHandler **pkt_hdl, bool force);
+	                EncapPlugin::EncapPacketHandler **pkt_hdl);
 
+	/**
+	 * @brief Read the encapsulation shcemes to get packet handler
+	 *
+	 * @param pkt_hdl          The packet handler corresponding to the encapsulation name
+	 * @return true on success, false otherwise
+	 */
+	bool initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl);
 
 	/**
 	 * @brief Read the common configuration parameters
@@ -282,7 +289,8 @@ class DvbChannel
 	sat_type_t satellite_type;
 
 	/// the return link standard (DVB-RCS or DVB-RCS2)
-	return_link_standard_t return_link_standard;
+	string return_link_std_str;
+	return_link_standard_t return_link_std;
 
 	/// the RCS or RCS2 type of MODCOD definition
 	string modcod_def_rcs_type;

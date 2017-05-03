@@ -68,7 +68,7 @@ SpotDownwardTransp::~SpotDownwardTransp()
 bool SpotDownwardTransp::onInit(void)
 {
 	if(!this->initPktHdl(RETURN_UP_ENCAP_SCHEME_LIST,
-	                     &this->up_return_pkt_hdl, false))
+	                     &this->up_return_pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed get packet handler\n");
@@ -345,11 +345,11 @@ bool SpotDownwardTransp::initDama(void)
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "creating Legacy DAMA controller\n");
-		if(this->return_link_standard == DVB_RCS)
+		if(this->return_link_std == DVB_RCS)
 		{
 			this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id);
 		}
-		//else if(this->return_link_standard == DVB_RCS2)
+		//else if(this->return_link_std == DVB_RCS2)
 		//{
 		//	this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
 		//}

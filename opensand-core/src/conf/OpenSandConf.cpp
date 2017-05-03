@@ -89,3 +89,8 @@ bool OpenSandConf::getSpot(string section,
 	return global_config.getSpot(section, spot_id, gw_id, current_gw);
 }
 
+bool OpenSandConf::getScpcEncapStack(string return_link_std,
+                                     vector<string> &encap_stack)
+{
+	return global_config.getScpcEncapStack(return_link_std, encap_stack);
+}

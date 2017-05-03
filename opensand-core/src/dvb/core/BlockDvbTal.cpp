@@ -831,11 +831,11 @@ bool BlockDvbTal::Downward::initDama(void)
 		    "SF#%u: create Legacy DAMA agent\n",
 		    this->super_frame_counter);
 
-		if(this->return_link_standard == DVB_RCS)
+		if(this->return_link_std == DVB_RCS)
 		{
 			this->dama_agent = new DamaAgentRcsLegacy();
 		}
-		//else if(this->return_link_standard == DVB_RCS2)
+		//else if(this->return_link_std == DVB_RCS2)
 		//{
 		//	this->dama_agent = new DamaAgentRcs2Legacy();
 		//}
@@ -853,7 +853,7 @@ bool BlockDvbTal::Downward::initDama(void)
 		    "SF#%u: create RrmQos DAMA agent\n",
 		    this->super_frame_counter);
 
-		if(this->return_link_standard == DVB_RCS)
+		if(this->return_link_std == DVB_RCS)
 		{
 			this->dama_agent = new DamaAgentRcsRrmQos();
 		}
@@ -1112,7 +1112,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
 	ConfigurationList current_spot;
-	
+
 	// init scpc_fmt_simu
 	// TODO: we take forward because we need S2
 	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
@@ -1221,9 +1221,8 @@ bool BlockDvbTal::Downward::initScpc(void)
 		goto error;
 	}
 	   
-	//Initialise Encapsulation scheme
-	if(!this->initPktHdl("GSE",
-	                     &this->pkt_hdl, true))
+	// Initialise Encapsulation scheme
+	if(!this->initScpcPktHdl(&this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed get packet handler\n");
