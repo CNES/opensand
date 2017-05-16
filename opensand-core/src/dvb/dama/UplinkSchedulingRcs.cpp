@@ -354,12 +354,10 @@ bool UplinkSchedulingRcs::createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_d
 		goto error;
 	}
 
-	// set the max size of the DVB-RCS frame, also set the type
-	// of encapsulation packets the DVB-RCS frame will contain
-	// we do not need to handle MODCOD here because the size to send is
-	// managed by the allocation, the DVB frame is only an abstract
-	// object to transport data
-	(*incomplete_dvb_frame)->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
+	// set the type of encapsulation packets the DVB-RCS frame will
+	// contain we do not need to handle MODCOD here because the size
+	// to send is managed by the allocation, the DVB frame is only an
+	// abstract object to transport data
 	(*incomplete_dvb_frame)->setModcodId(modcod_id);
 
 	return true;

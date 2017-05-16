@@ -250,10 +250,6 @@ bool ReturnSchedulingRcs::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame
 		goto error;
 	}
 
-	// set the max size of the DVB-RCS frame, also set the type
-	// of encapsulation packets the DVB-RCS frame will contain
-	(*incomplete_dvb_frame)->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
-
 	return true;
 
 error:
