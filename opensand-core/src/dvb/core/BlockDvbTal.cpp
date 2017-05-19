@@ -42,7 +42,7 @@
 
 #include "DamaAgentRcsLegacy.h"
 #include "DamaAgentRcsRrmQos.h"
-//#include "DamaAgentRcs2Legacy.h"
+#include "DamaAgentRcs2Legacy.h"
 #include "TerminalCategoryDama.h"
 #include "ScpcScheduling.h"
 #include "SlottedAlohaPacketData.h"
@@ -835,10 +835,10 @@ bool BlockDvbTal::Downward::initDama(void)
 		{
 			this->dama_agent = new DamaAgentRcsLegacy();
 		}
-		//else if(this->return_link_std == DVB_RCS2)
-		//{
-		//	this->dama_agent = new DamaAgentRcs2Legacy();
-		//}
+		else if(this->return_link_std == DVB_RCS2)
+		{
+			this->dama_agent = new DamaAgentRcs2Legacy(this->rcs_modcod_def);
+		}
 		else
 		{
 			LOG(this->log_init, LEVEL_ERROR,
