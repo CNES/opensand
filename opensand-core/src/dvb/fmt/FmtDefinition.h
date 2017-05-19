@@ -38,7 +38,6 @@
 #define FMT_DEFINITION_H
 
 #include "OpenSandCore.h"
-#include "ModulationType.h"
 #include <string>
 
 using std::string;
@@ -54,11 +53,11 @@ class FmtDefinition
 	/** The ID of the FMT definition */
 	unsigned int id;
 
-	/** The type of modulation of the FMT definition */
-	modulation_type_t modulation;
+	/** The modulation type of the FMT definition */
+	string modulation_type;
 
-	/** The coding rate of the FMT definition */
-	string coding_rate;
+	/** The coding type of the FMT definition */
+	string coding_type;
 
 	/* The spectral efficiency of the FMT definition */
 	float spectral_efficiency;
@@ -75,8 +74,8 @@ class FmtDefinition
 
 	/* create a FMT definition */
 	FmtDefinition(const unsigned int id,
-	              const string modulation,
-	              const string coding_rate,
+	              const string modulation_type,
+	              const string coding_type,
 	              const float spectral_efficiency,
 	              const double required_Es_N0,
 	              const vol_sym_t burst_length);
@@ -93,11 +92,17 @@ class FmtDefinition
 	/* get the ID of the FMT definition */
 	unsigned int getId() const;
 
-	/* get the modulation of the FMT definition */
-	modulation_type_t getModulation() const;
+	/* get the modulation type of the FMT definition */
+	string getModulation() const;
+
+	/* get the modulation efficiency of the FMT definition */
+	unsigned int getModulationEfficiency() const;
+
+	/* get the coding type of the FMT definition */
+	string getCoding() const;
 
 	/* get the coding rate of the FMT definition */
-	string getCodingRate() const;
+	float getCodingRate() const;
 
 	/* get the spectral efficiency of the FMT definition */
 	float getSpectralEfficiency() const;

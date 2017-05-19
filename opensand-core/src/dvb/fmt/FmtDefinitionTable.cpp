@@ -35,6 +35,8 @@
 
 
 #include "FmtDefinitionTable.h"
+#include "ModulationTypes.h"
+#include "CodingTypes.h"
 
 #include <opensand_output/Output.h>
 
@@ -186,8 +188,8 @@ bool FmtDefinitionTable::load(const string filename)
 			// the first keyword should be a positive integer
 			stringstream token_stream;
 			unsigned int scheme_number;
-			string modulation;
-			string coding_rate;
+			string modulation_type;
+			string coding_type;
 			float spectral_efficiency;
 			double required_es_n0;
 			vol_sym_t burst_length;
@@ -231,8 +233,8 @@ bool FmtDefinitionTable::load(const string filename)
 			}
 
 			// get all the parameters of the FMT
-			line_stream >> modulation
-			            >> coding_rate
+			line_stream >> modulation_type
+			            >> coding_type
 			            >> spectral_efficiency
 			            >> required_es_n0;
 			if (!line_stream.eof())
@@ -245,26 +247,25 @@ bool FmtDefinitionTable::load(const string filename)
 			}
 
 			// FMT definition is OK, record it in the table
-			ret = this->add(scheme_number, modulation, coding_rate,
-			                spectral_efficiency, required_es_n0,
-			                burst_length);
+			ret = this->add(scheme_number, modulation_type,
+			                coding_type, spectral_efficiency,
+			                required_es_n0, burst_length);
 			if(ret != true)
 			{
 				LOG(this->log_fmt, LEVEL_ERROR,
 				    "failed to add new FMT definition: "
 				    "%u, %s, %s, %f, %f, %u\n",
-				    scheme_number, modulation.c_str(),
-				    coding_rate.c_str(), spectral_efficiency,
+				    scheme_number, modulation_type.c_str(),
+				    coding_type.c_str(), spectral_efficiency,
 				    required_es_n0, burst_length);
 				goto malformed;
 			}
 
 			LOG(this->log_fmt, LEVEL_NOTICE,
 			    "FMT definition: %u, %s, %s, %f, %f, %u\n",
-			    scheme_number, modulation.c_str(),
-			    coding_rate.c_str(),
-			    spectral_efficiency, required_es_n0,
-			    burst_length);
+			    scheme_number, modulation_type.c_str(),
+			    coding_type.c_str(), spectral_efficiency,
+			    required_es_n0, burst_length);
 		}
 	}
 
@@ -295,8 +296,8 @@ error:
 
 
 bool FmtDefinitionTable::add(const fmt_id_t id,
-                             const string modulation,
-                             const string coding_rate,
+                             const string modulation_type,
+                             const string coding_type,
                              const float spectral_efficiency,
                              const double required_Es_N0,
                              const vol_sym_t burst_length)
@@ -311,7 +312,7 @@ bool FmtDefinitionTable::add(const fmt_id_t id,
 	}
 
 	// create the new FMT definition
-	new_def = new FmtDefinition(id, modulation, coding_rate,
+	new_def = new FmtDefinition(id, modulation_type, coding_type,
 	                            spectral_efficiency, required_Es_N0,
 	                            burst_length);
 	if(new_def == NULL)
@@ -352,27 +353,27 @@ map<fmt_id_t, FmtDefinition* > FmtDefinitionTable::getDefinitions(void) const
 }
 
 
-modulation_type_t FmtDefinitionTable::getModulation(fmt_id_t id) const
+unsigned int FmtDefinitionTable::getModulationEfficiency(fmt_id_t id) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
-		    "cannot find modulation from FMT definition ID %u\n", id);
-		return MODULATION_UNKNOWN;
+		    "cannot find modulation efficiency from FMT definition ID %u\n", id);
+		return ModulationTypes::getDefaultEfficiency();
 	}
-	return def->getModulation();
+	return def->getModulationEfficiency();
 }
 
 
-string FmtDefinitionTable::getCodingRate(fmt_id_t id) const
+float FmtDefinitionTable::getCodingRate(fmt_id_t id) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "cannot find coding rate from FMT definition ID %u\n", id);
-		return "";
+		return CodingTypes::getDefaultRate();
 	}
 	return def->getCodingRate();
 }
@@ -403,8 +404,20 @@ double FmtDefinitionTable::getRequiredEsN0(fmt_id_t id) const
 	return def->getRequiredEsN0();
 }
 
+vol_kb_t FmtDefinitionTable::getBurstLengthKb(fmt_id_t id) const
+{
+	FmtDefinition *def = this->getFmtDef(id);
+	if(!def)
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+		    "cannot find burst length from FMT definition ID %u\n", id);
+		return 0;
+	}
+	return (def->getBurstLength() * def->getModulationEfficiency()
+	        * def->getCodingRate() / 1000);
+}
 
-vol_sym_t FmtDefinitionTable::getBurstLength(fmt_id_t id) const
+vol_sym_t FmtDefinitionTable::getBurstLengthSym(fmt_id_t id) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
 	if(!def)
@@ -477,95 +490,22 @@ fmt_id_t FmtDefinitionTable::getMaxId() const
 }
 
 
-bool FmtDefinitionTable::getModCod(fmt_id_t id,
-                                   unsigned int &mod,
-                                   float &cod) const
+FmtDefinition *FmtDefinitionTable::getModCod(fmt_id_t id,
+                                             unsigned int &mod,
+                                             float &cod) const
 {
 	FmtDefinition *def = this->getFmtDef(id);
-	modulation_type_t modulation;
-	string coding_rate;
 
 	if(!def)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "cannot find symToKbits from FMT definition ID %u\n", id);
-		return false;
+		return NULL;
 	}
-	modulation = def->getModulation();
-	coding_rate = def->getCodingRate();
+	mod = def->getModulationEfficiency();
+	cod = def->getCodingRate();
 
-	switch(modulation)
-	{
-		case MODULATION_BPSK:
-			mod = 1;
-			break;
-		case MODULATION_QPSK:
-			mod = 2;
-			break;
-		case MODULATION_8PSK:
-			mod = 3;
-			break;
-		case MODULATION_16APSK:
-		case MODULATION_16QAM:
-			mod = 4;
-			break;
-		case MODULATION_32APSK:
-			mod = 5;
-			break;
-		default:
-			return false;
-	}
-
-	if(coding_rate == "1/4")
-	{
-		cod = 1.0/4.0;
-	}
-	else if(coding_rate == "1/3")
-	{
-		cod = 1.0/3.0;
-	}
-	else if(coding_rate == "2/5")
-	{
-		cod = 2.0/5.0;
-	}
-	else if(coding_rate == "1/2")
-	{
-		cod = 1.0/2.0;
-	}
-	else if(coding_rate == "3/5")
-	{
-		cod = 3.0/5.0;
-	}
-	else if(coding_rate == "2/3")
-	{
-		cod = 2.0/3.0;
-	}
-	else if(coding_rate == "3/4")
-	{
-		cod = 3.0/4.0;
-	}
-	else if(coding_rate == "4/5")
-	{
-		cod = 4.0/5.0;
-	}
-	else if(coding_rate == "5/6")
-	{
-		cod = 5.0/6.0;
-	}
-	else if(coding_rate == "6/7")
-	{
-		cod = 6.0/7.0;
-	}
-	else if(coding_rate == "8/9")
-	{
-		cod = 8.0/9.0;
-	}
-	else if(coding_rate == "9/10")
-	{
-		cod = 9.0/10.0;
-	}
-
-	return true;
+	return def;
 }
 
 vol_kb_t FmtDefinitionTable::symToKbits(fmt_id_t id,
@@ -574,12 +514,10 @@ vol_kb_t FmtDefinitionTable::symToKbits(fmt_id_t id,
 	unsigned int mod = 0;
 	float cod = 0.0;
 
-	if(!this->getModCod(id, mod, cod))
+	if(this->getModCod(id, mod, cod) == NULL)
 	{
 		return 0;
 	}
-
-	// TODO use spectral efficiency
 	return ceil(val_sym * mod * cod / 1000);
 }
 
@@ -590,12 +528,10 @@ vol_sym_t FmtDefinitionTable::kbitsToSym(fmt_id_t id,
 	unsigned int mod = 0;
 	float cod = 0.0;
 
-	if(this->getModCod(id, mod, cod) == 0)
+	if(this->getModCod(id, mod, cod) == NULL)
 	{
 		return 0;
 	}
-
-	// TODO use spectral efficiency
 	return ceil(val_kbits / mod / cod * 1000);
 }
 

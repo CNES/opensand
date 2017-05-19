@@ -43,35 +43,8 @@
 ReturnSchedulingRcs::ReturnSchedulingRcs(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos):
-	Scheduling(packet_handler, fifos, NULL)
+	ReturnSchedulingRcsCommon(packet_handler, fifos)
 {
-}
-
-
-bool ReturnSchedulingRcs::schedule(const time_sf_t current_superframe_sf,
-                                   clock_t UNUSED(current_time),
-                                   list<DvbFrame *> *complete_dvb_frames,
-                                   uint32_t &remaining_allocation)
-{
-	if(remaining_allocation > (unsigned int)pow(2.0, 8 * sizeof(rate_pktpf_t)))
-	{
-		LOG(this->log_scheduling, LEVEL_NOTICE,
-		    "Remaining allocation (%u) is too long and will be "
-		    "truncated\n", remaining_allocation);
-	}
-	// extract and send encap packets from MAC FIFOs, in function of
-	// UL allocation
-	if(!this->macSchedule(current_superframe_sf,
-	                      complete_dvb_frames,
-	                      (rate_pktpf_t &)remaining_allocation))
-	{
-		LOG(this->log_scheduling, LEVEL_ERROR,
-		    "SF#%u: MAC scheduling failed\n",
-		    current_superframe_sf);
-		return false;
-	}
-
-	return true;
 }
 
 bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,

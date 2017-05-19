@@ -543,7 +543,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			    sent_packets + 1);
 			delete elem;
 		}
-		// use cases 1 (see @ref getChunk)
+		// use case 1 (see @ref getChunk)
 		else if(data && !remaining_data)
 		{
 			if(!current_bbframe->addPacket(data))

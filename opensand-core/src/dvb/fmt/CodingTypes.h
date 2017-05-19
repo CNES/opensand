@@ -5,7 +5,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2017 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,31 +27,62 @@
  */
 
 /**
- * @file ModulationType.h
- * @brief The different types of modulation for MODCOD
- * @author Didier Barvaux / Viveris Technologies
+ * @file CodingTypes.h
+ * @brief The coding types
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-#ifndef MODULATION_TYPE_H
-#define MODULATION_TYPE_H
+#ifndef CODING_TYPES_H
+#define CODING_TYPES_H
 
+#include <string>
+#include <map>
+
+using std::string;
+using std::map;
 
 /**
- * @brief The different types of modulations accepted for MODCOD
+ * @class CodingTypes
+ * @brief The coding types
  */
-typedef enum
+class CodingTypes
 {
-	MODULATION_UNKNOWN,  /**< An unknown modulation */
-	MODULATION_BPSK,     /**< The BPSK modulation */
-	MODULATION_PI_2_BPSK,/**< The PI/2 BPSK modulation */
-	MODULATION_QPSK,     /**< The QPSK modulation */
-	MODULATION_8PSK,     /**< The 8PSK modulation */
-	MODULATION_16APSK,   /**< The 16APSK modulation */
-	MODULATION_16QAM,    /**< The 16QAM modulation */
-	MODULATION_32APSK,   /**< The 32APSK modulation */
-	/* add new modulations here */
-} modulation_type_t;
+ public:
+	~CodingTypes();
 
+	/**
+	 * @brief Check a coding exists
+	 *
+	 * @param coding_label  The coding label
+	 *
+	 * @return  True if the label is managed, false otherwise
+	 */
+	static bool exist(string coding_label);
+
+	/**
+	 * @brief Get the default coding rate
+	 *
+	 * @return  The default coding rate
+	 */
+	static float getDefaultRate();
+
+	/**
+	 * @brief Get a coding rate
+	 *
+	 * @param coding_label  The coding label
+	 *
+	 * @return  The coding rate
+	 */
+	static float getRate(string coding_label);
+
+ private:
+	static CodingTypes instance;
+
+	float default_coding_rate;
+	map<string, float> coding_rates;
+
+	CodingTypes();
+};
 
 #endif
+

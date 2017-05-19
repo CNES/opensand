@@ -41,13 +41,23 @@
  */
 UnitConverter::UnitConverter(vol_bytes_t packet_length_bytes,
                              time_ms_t frame_duration_ms):
-	packet_length_b(packet_length_bytes * 8),
+	packet_length_b(packet_length_bytes << 3),
 	frame_duration_ms(frame_duration_ms)
 {
 }
 
 UnitConverter::~UnitConverter()
 {
+}
+
+vol_bytes_t UnitConverter::getPacketLength() const
+{
+	return this->packet_length_b >> 3;
+}
+
+void UnitConverter::setPacketLength(vol_bytes_t packet_length_bytes)
+{
+	this->packet_length_b = packet_length_bytes << 3;
 }
 
 //FIXME: kb and kbps may have decimal part, should they be double instead of

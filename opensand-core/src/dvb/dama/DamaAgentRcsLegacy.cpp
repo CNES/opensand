@@ -27,7 +27,7 @@
 
 /**
  * @file    DamaAgentRcsLegacy.cpp
- * @brief   Implementation of the DAMA agent for DVB-S2 emission standard.
+ * @brief   Implementation of the DAMA agent for DVB-RCS2 emission standard.
  * @author  Audric Schiltknecht / Viveris Technologies
  * @author  Julien Bernard / Viveris Technologies
  *

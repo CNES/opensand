@@ -34,57 +34,43 @@
  */
 
 #include "FmtDefinition.h"
+#include "ModulationTypes.h"
+#include "CodingTypes.h"
 
 #include <opensand_output/Output.h>
-
 
 /**
  * @brief Create a FMT definition
  *
  * @param id                   the ID of the FMT
- * @param modulation           the type of modulation of the FMT
- * @param coding_rate          the coding rate of the FMT
+ * @param modulation_type      the type of modulation of the FMT
+ * @param coding_type          the coding type of the FMT
  * @param spectral_efficiency  the spectral efficiency of the FMT
  * @param required_Es_N0       the required Es/N0 of the FMT
  * @param burst_length         the burst length of the FMT
  */
 FmtDefinition::FmtDefinition(const unsigned int id,
-                             const string modulation,
-                             const string coding_rate,
+                             const string modulation_type,
+                             const string coding_type,
                              const float spectral_efficiency,
                              const double required_Es_N0,
                              const vol_sym_t burst_length):
 	id(id),
-	coding_rate(coding_rate),
+	modulation_type(modulation_type),
+	coding_type(coding_type),
 	spectral_efficiency(spectral_efficiency),
 	required_Es_N0(required_Es_N0),
 	burst_length(burst_length)
 {
-	if(modulation == "BPSK")
-		this->modulation = MODULATION_BPSK;
-	else if(modulation == "Pi/2BPSK")
-		this->modulation = MODULATION_PI_2_BPSK;
-	else if(modulation == "QPSK")
-		this->modulation = MODULATION_QPSK;
-	else if(modulation == "8PSK")
-		this->modulation = MODULATION_8PSK;
-	else if(modulation == "16APSK")
-		this->modulation = MODULATION_16APSK;
-	else if(modulation == "16QAM")
-		this->modulation = MODULATION_16QAM;
-	else if(modulation == "32APSK")
-		this->modulation = MODULATION_32APSK;
-	else
-		this->modulation = MODULATION_UNKNOWN;
 }
 
 FmtDefinition::FmtDefinition(const FmtDefinition &fmt_def)
 {
 	this->id = fmt_def.getId();
-	this->coding_rate = fmt_def.getCodingRate();
+	this->coding_type = fmt_def.getCoding();
 	this->spectral_efficiency = fmt_def.getSpectralEfficiency();
 	this->required_Es_N0 = fmt_def.getRequiredEsN0();
-	this->modulation = fmt_def.getModulation();
+	this->modulation_type = fmt_def.getModulation();
 	this->burst_length = fmt_def.getBurstLength();
 }
 
@@ -108,28 +94,45 @@ unsigned int FmtDefinition::getId() const
 	return this->id;
 }
 
-
 /**
- * @brief Get the modulation of the FMT definition
+ * @brief Get the modulation type of the FMT definition
  *
  * @return  the type of modulation of the FMT
  */
-modulation_type_t FmtDefinition::getModulation() const
+string FmtDefinition::getModulation() const
 {
-	return this->modulation;
+	return this->modulation_type;
 }
 
+/**
+ * @brief Get the modulation efficiency of the FMT definition
+ *
+ * @return  the efficiency of modulation of the FMT
+ */
+unsigned int FmtDefinition::getModulationEfficiency() const
+{
+	return ModulationTypes::getEfficiency(this->modulation_type);
+}
+
+/**
+ * @brief Get the coding type of the FMT definition
+ *
+ * @return  the type of coding of the FMT
+ */
+string FmtDefinition::getCoding() const
+{
+	return this->coding_type;
+}
 
 /**
  * @brief Get the coding rate of the FMT definition
  *
- * @return  the coding rate of the FMT
+ * @return  the rate of coding of the FMT
  */
-string FmtDefinition::getCodingRate() const
+float FmtDefinition::getCodingRate() const
 {
-	return this->coding_rate;
+	return CodingTypes::getRate(this->coding_type);
 }
-
 
 /**
  * @brief Get the spectral efficiency of the FMT definition
@@ -152,7 +155,6 @@ double FmtDefinition::getRequiredEsN0() const
 	return this->required_Es_N0;
 }
 
-
 /**
  * @brief Get the burst length of the FMT definition
  *
@@ -165,10 +167,11 @@ vol_sym_t FmtDefinition::getBurstLength() const
 
 void FmtDefinition::print(void)
 {
-	DFLTLOG(LEVEL_ERROR, "id = %u,"
+	DFLTLOG(LEVEL_ERROR, "id = %u, modulation = %s,"
 	        " coding_rate = %s, spectral_efficiency = %f,"
 	        " required_Es_N0 = %f, burst_length = %u\n", this->id,
-	        this->coding_rate.c_str(), this->spectral_efficiency,
-	        this->required_Es_N0, this->burst_length);
+	        this->modulation_type.c_str(), this->coding_type.c_str(),
+	        this->spectral_efficiency, this->required_Es_N0,
+	        this->burst_length);
 }
 

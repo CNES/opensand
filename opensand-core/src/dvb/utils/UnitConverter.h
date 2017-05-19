@@ -53,13 +53,27 @@ class UnitConverter
 	/**
 	 * @brief Create the unit converter
 	 *
-	 * @param  packet_length_kb        The packet length in kbits, for constant length
+	 * @param  packet_length_bytes     The packet length in bytes, for constant length
 	 * @param  superframe_duration_ms  The frame duration in ms
 	 */
-	UnitConverter(vol_b_t packet_length_kb,
+	UnitConverter(vol_b_t packet_length_bytes,
 	              time_ms_t frame_duration_ms);
 	~UnitConverter();
 
+	/**
+	 * @brief Get the packet length in bytes
+	 * 
+	 * @return the packet length in bytes
+	 */
+	vol_bytes_t getPacketLength() const;
+	
+	/**
+	 * @brief Set the packet length in bytes
+	 * 
+	 * @param packet_length_b  The packet length in bytes
+	 */
+	void setPacketLength(vol_bytes_t packet_length_bytes);
+	
 	/**
 	 * @brief convert from packet number to bits
 	 *

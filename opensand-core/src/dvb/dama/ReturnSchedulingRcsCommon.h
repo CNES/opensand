@@ -28,32 +28,38 @@
 
 
 /**
- * @file ReturnSchedulingRcs.h
- * @brief Scheduling for MAC FIFOs for DVB-RCS return link
- * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @file ReturnSchedulingRcsCommon.h
+ * @brief Scheduling for MAC FIFOs for DVB-RCS(2) return link
+ * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  */
 
-#ifndef _RETURN_SCHEDULING_RCS_H_
-#define _RETURN_SCHEDULING_RCS_H_
+#ifndef _RETURN_SCHEDULING_RCS_COMMON_H_
+#define _RETURN_SCHEDULING_RCS_COMMON_H_
 
-#include "ReturnSchedulingRcsCommon.h"
+#include "Scheduling.h"
 #include "DvbRcsFrame.h"
 
 #include <opensand_output/OutputLog.h>
 
 /**
- * @class ReturnSchedulingRcs
- * @brief Scheduling functions for MAC FIFOs with DVB-RCS return link
+ * @class ReturnSchedulingRcsCommon
+ * @brief Scheduling functions for MAC FIFOs with DVB-RCS(2) return link
  */
-class ReturnSchedulingRcs: public ReturnSchedulingRcsCommon
+class ReturnSchedulingRcsCommon: public Scheduling
 {
   public:
 
-	ReturnSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
-	                    const fifos_t &fifos);
+	ReturnSchedulingRcsCommon(const EncapPlugin::EncapPacketHandler *packet_handler,
+	                          const fifos_t &fifos);
 
-	virtual ~ReturnSchedulingRcs() {};
+	virtual ~ReturnSchedulingRcsCommon() {};
+
+	bool schedule(const time_sf_t current_superframe_sf,
+	              clock_t current_time,
+	              list<DvbFrame *> *complete_dvb_frames,
+	              uint32_t &remaining_allocation);
 
   protected:
 
@@ -67,19 +73,9 @@ class ReturnSchedulingRcs: public ReturnSchedulingRcsCommon
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool macSchedule(const time_sf_t current_superframe_sf,
-	                 list<DvbFrame *> *complete_dvb_frames,
-	                 rate_pktpf_t &remaining_allocation_pktpf);
-
-	/**
-	 * @brief Allocate a new DVB frame
-	 *
-	 * @param incomplete_dvb_frame  the created DVB frame
-	 *
-	 * @return true on sucess, false otherwise
-	 */
-	bool allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame);
-
+	virtual bool macSchedule(const time_sf_t current_superframe_sf,
+	                         list<DvbFrame *> *complete_dvb_frames,
+	                         rate_pktpf_t &remaining_allocation_pktpf) = 0;
 };
 
 #endif
