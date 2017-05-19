@@ -58,3 +58,7 @@ class GseModule(EncapModule):
                          False, True)
         self._add_config(self.REGENERATIVE, self.DVB_RCS2, self.FORWARD_LINK,
                          False, False, ["RLE"])
+        
+        #TODO: Remove temporary return link encap
+        self._add_config(self.TRANSPARENT, self.DVB_RCS2, self.RETURN_LINK,
+                         False, True)
