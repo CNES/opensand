@@ -7,7 +7,7 @@ check_PROGRAMS = \
 TESTS = \
   test.sh
 
-INCLUDES = -I$(top_srcdir)/src/
+AM_CPPFLAGS = -I$(top_srcdir)/src/
 LIBS_COMMON = \
 	$(top_builddir)/src/libopensand_rt.la
 

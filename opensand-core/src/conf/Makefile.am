@@ -12,6 +12,7 @@ libopensand_conf_core_la_SOURCES = \
 	$(libopensand_conf_core_la_cpp) \
 	$(libopensand_conf_core_la_h)
 
-INCLUDES = \
+libopensand_conf_core_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common
 

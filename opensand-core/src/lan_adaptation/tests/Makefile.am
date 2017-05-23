@@ -14,7 +14,8 @@ ip_addr_SOURCES = \
   $(top_srcdir)/src/lan_adaptation/Ipv6Address.cpp \
   ip_addr.cpp
   
-INCLUDES = \
+ip_addr_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/lan_adaptation \
 	-I$(top_srcdir)/src/common
 

@@ -26,10 +26,13 @@ libopensand_lan_adaptation_la_SOURCES = \
 libopensand_lan_adaptation_la_LIBADD = \
 	libopensand_bridge.la
 
-INCLUDES = \
+libopensand_lan_adaptation_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/dvb/utils
 
-AM_LDFLAGS= -lm
+libopensand_lan_adaptation_la_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-lm
 

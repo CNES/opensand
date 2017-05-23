@@ -42,7 +42,8 @@ libopensand_dvb_core_la_LIBADD = \
 	regenerative/libopensand_dvb_core_regen.la \
 	transparent/libopensand_dvb_core_transp.la
 
-INCLUDES = \
+libopensand_dvb_core_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/simu \
 	-I$(top_srcdir)/src/dvb/utils \
 	-I$(top_srcdir)/src/dvb/utils/ip \

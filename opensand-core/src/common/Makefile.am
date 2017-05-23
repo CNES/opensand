@@ -41,7 +41,8 @@ libopensand_plugin_la_h = \
 	LanAdaptationPlugin.h \
 	PhysicalLayerPlugin.h
 	
-INCLUDES = \
+libopensand_plugin_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/utils/
 
 libopensand_plugin_la_SOURCES = \

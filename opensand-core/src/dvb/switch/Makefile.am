@@ -10,6 +10,7 @@ libopensand_dvb_switch_la_SOURCES = \
 	$(libopensand_dvb_switch_la_cpp) \
 	$(libopensand_dvb_switch_la_h)
 
-INCLUDES = \
+libopensand_dvb_switch_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/conf

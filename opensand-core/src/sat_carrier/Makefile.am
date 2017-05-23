@@ -16,7 +16,8 @@ libopensand_satcarrier_la_SOURCES = \
 	$(libopensand_satcarrier_la_cpp) \
 	$(libopensand_satcarrier_la_h)
 
-INCLUDES = \
+libopensand_satcarrier_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/dvb/utils

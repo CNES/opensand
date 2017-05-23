@@ -1,6 +1,7 @@
 noinst_PROGRAMS = test_sat_carrier
 
-INCLUDES = \
+PACKED_COMMON_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/sat_carrier \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common 
@@ -18,6 +19,9 @@ test_sat_carrier_SOURCES = \
 	TestSatCarriers.cpp \
 	TestSatCarriers.h \
 	test.cpp
+
+test_sat_carrier_CPPFLAGS = \
+	$(PACKED_COMMON_CPPFLAGS)
 
 test_sat_carrier_LDADD = \
 	$(PACKED_COMMON_LIBS) \
