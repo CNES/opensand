@@ -61,7 +61,7 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- types for dvb_rcs_ncc section -->
+<!-- types for dvb_ncc section -->
 <!-- simulation type -->
 <xsd:simpleType name="simuType">
     <xsd:restriction base="xsd:string">
@@ -216,7 +216,7 @@
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element ref="global" />
-            <xsd:element ref="dvb_rcs_ncc" />
+            <xsd:element ref="dvb_ncc" />
             <xsd:element ref="slotted_aloha" />
             <xsd:element ref="qos_pep" />
             <xsd:element ref="svno_interface" />
@@ -251,8 +251,8 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- dvb_rcs_ncc section description -->
-<xsd:element name="dvb_rcs_ncc">
+<!-- dvb_ncc section description -->
+<xsd:element name="dvb_ncc">
     <xsd:annotation>
         <xsd:documentation xml:lang="en">
             <![CDATA[

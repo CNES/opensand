@@ -103,10 +103,10 @@
 #define DEFAULT_GW                "default_gw"
 
 //////////////////////
-// bloc_dvb_rcs_ncc //
+// bloc_dvb_ncc //
 //////////////////////
 
-#define DVB_NCC_SECTION         "dvb_rcs_ncc"
+#define DVB_NCC_SECTION         "dvb_ncc"
 #define DVB_NCC_DAMA_ALGO       "dama_algorithm"
 #define DVB_EVENT_FILE          "event_file"
 #define DVB_SIMU_FILE           "simu_file"
@@ -159,7 +159,7 @@
 // DAMA CONTROL //
 //////////////////
 
-#define DC_SECTION_NCC              "dvb_rcs_ncc"
+#define DC_SECTION_NCC              "dvb_ncc"
 #define DC_FREE_CAP                 "fca"
 
 //////////
