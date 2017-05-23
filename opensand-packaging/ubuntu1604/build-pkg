@@ -58,14 +58,14 @@ build()
     echo -n "  * Fetching packaging files ($CURRENT)..."
     cp -r * $DST_DIR/src/$MODULE
     success
-    
+
     if [ -f "$THIS_DIR/$MODULE/pre-src" ]
     then
         # Prepare sources
         echo -n "  * Prepare source files ($CURRENT)... "
         $THIS_DIR/$MODULE/pre-src -s $SRC_DIR/$MODULE -d $DST_DIR/src/$MODULE && success || error
     fi
- 
+
     # Update version with the user flag
     CHANGELOG="$DST_DIR/src/$MODULE/debian/changelog"
     if [ ! -z "$FLAG" -a -f "$CHANGELOG" ]
@@ -108,8 +108,8 @@ build()
     then
         ./autogen.sh 1>build.log || error
     fi
-    sudo dpkg-buildpackage -uc -us 1>build.log 2>&1 && success || error
-    dh_clean 1>/dev/null
+    dpkg-buildpackage -rsudo -uc -us 1>build.log 2>&1 && success || error
+    sudo dh_clean 1>/dev/null
     cd $THIS_DIR
 }
 
@@ -140,7 +140,7 @@ clean()
     rm -f $DST_DIR/src/$MODULE/../*.dsc
     rm -f $DST_DIR/src/$MODULE/../*.changes
     rm -f $DST_DIR/src/$MODULE/../*.tar.gz
-    rm -rf $DST_DIR/src/$MODULE/*
+    sudo rm -rf $DST_DIR/src/$MODULE/*
 }
 
 install()
@@ -181,12 +181,8 @@ while getopts ":s:d:iIhf:" o; do
 done
 shift $((OPTIND-1))
 
-# Make sure the script is run as root
-if [ "$(id -u)" != "0" ]
-then
-    echo "This script must be run as root" 1>&2
-    exit 1
-fi
+# Ask sudo password
+sudo echo -n ""
 
 MODULE=`echo $1 | sed 's/\/$//'`
 

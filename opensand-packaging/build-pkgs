@@ -91,8 +91,8 @@ success()
 clean()
 {
     # Delete any remaining .deb or any files remaining from last packaging
-    rm -rf $DST_DIR/src/*
-    rm -rf $DST_DIR/pkgs/*
+    sudo rm -rf $DST_DIR/src/*
+    sudo rm -rf $DST_DIR/pkgs/*
 }
 
 move()
@@ -173,12 +173,8 @@ while getopts ":s:d:t:himf:" o; do
 done
 shift $((OPTIND-1))
 
-# Make sure the script is run as root
-if [ "$(id -u)" != "0" ];
-then
-    echo "This script must be run as root" 1>&2
-    exit 1
-fi
+# Ask sudo password
+sudo echo -n ""
 
 MODULE=$1
 
