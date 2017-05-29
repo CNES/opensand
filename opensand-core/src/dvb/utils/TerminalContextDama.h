@@ -107,18 +107,32 @@ class TerminalContextDama: public TerminalContext
 	virtual void onStartOfFrame() = 0;
 
 	/**
-	 * @brief Get the current FMT ID of the terminal
+	 * @brief Get the current FMT ID of the forward link of the terminal
 	 *
 	 * @return the ID of FMT
 	 */
-	unsigned int getFmtId();
+	unsigned int getForwardFmtId();
 
 	/**
-	 * @brief Set the current FMT ID of the terminal
+	 * @brief Set the current FMT ID of the forward link of the terminal
 	 *
 	 * @param fmt_id  The current FMT ID of the terminal
 	 */
-	void setFmtId(unsigned int fmt_id);
+	void setForwardFmtId(unsigned int fmt_id);
+
+	/**
+	 * @brief Get the current FMT ID of the return link of the terminal
+	 *
+	 * @return the ID of FMT
+	 */
+	unsigned int getReturnFmtId();
+
+	/**
+	 * @brief Set the current FMT ID of the return link of the terminal
+	 *
+	 * @param fmt_id  The current FMT ID of the terminal
+	 */
+	void setReturnFmtId(unsigned int fmt_id);
 
 	/**
 	 * @brief Get the current carriers group for the terminal
@@ -148,8 +162,11 @@ class TerminalContextDama: public TerminalContext
 	/*** The maximum VBDC value */
 	vol_kb_t max_vbdc_kb;
 
-	/** The FMT ID */
-	unsigned int fmt_id;
+	/** The FMT ID of the forward link */
+	unsigned int fwd_fmt_id;
+
+	/** The FMT ID of the return link */
+	unsigned int ret_fmt_id;
 
 	/** The carrier ID */
 	unsigned int carrier_id;

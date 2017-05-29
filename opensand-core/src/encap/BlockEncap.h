@@ -120,11 +120,11 @@ class BlockEncap: public Block
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
 
-		/// the SCPC encapsulation lower item
-		string scpc_encap;
-
 		/// the satellite type (regenerative o transparent)
 		sat_type_t satellite_type;
+
+		/// the SCPC encapsulation lower item
+		string scpc_encap;
 		
 	 protected:
 		/// the MAC ID of the ST (as specified in configuration)

@@ -48,7 +48,7 @@ using namespace std;
 /**
  * Constructor
  */
-DamaCtrlRcs::DamaCtrlRcs(spot_id_t spot): DamaCtrl(spot)
+DamaCtrlRcs::DamaCtrlRcs(spot_id_t spot): DamaCtrlRcsCommon(spot)
 {
 }
 
@@ -58,53 +58,6 @@ DamaCtrlRcs::DamaCtrlRcs(spot_id_t spot): DamaCtrl(spot)
  */
 DamaCtrlRcs::~DamaCtrlRcs()
 {
-}
-
-
-bool DamaCtrlRcs::init()
-{
-	// Ensure parent init has been done
-	if(!this->is_parent_init)
-	{
-		LOG(this->log_init, LEVEL_ERROR, 
-		    "Parent 'init()' method must be called first.\n");
-		goto error;
-	}
-
-	return true;
-
-error:
-	return false;
-}
-
-bool DamaCtrlRcs::createTerminal(TerminalContextDama **terminal,
-                                 tal_id_t tal_id,
-                                 rate_kbps_t cra_kbps,
-                                 rate_kbps_t max_rbdc_kbps,
-                                 time_sf_t rbdc_timeout_sf,
-                                 vol_kb_t max_vbdc_kb)
-{
-	*terminal = new TerminalContextDamaRcs(tal_id,
-	                                      cra_kbps,
-	                                      max_rbdc_kbps,
-	                                      rbdc_timeout_sf,
-	                                      max_vbdc_kb,
-	                                      this->converter);
-	if(!(*terminal))
-	{
-		LOG(this->log_logon, LEVEL_ERROR,
-		    "SF#%u: cannot allocate terminal %u\n",
-		    this->current_superframe_sf, tal_id);
-		return false;
-	}
-	return true;
-}
-
-
-bool DamaCtrlRcs::removeTerminal(TerminalContextDama *terminal)
-{
-	delete terminal;
-	return true;
 }
 
 bool DamaCtrlRcs::hereIsSAC(const Sac *sac)
@@ -205,17 +158,18 @@ bool DamaCtrlRcs::buildTTP(Ttp *ttp)
 
 			// we need to do that else some CRA will be allocated and the terminal
 			// will send data even if there is no MODCOD robust enough
-			if(terminal->getFmtId() == 0)
+			if(terminal->getForwardFmtId() == 0)
 			{
 				total_allocation_pkt = 0;
 			}
 
 			//FIXME: is the offset to be 0 ???
-			if(!ttp->addTimePlan(0 /*FIXME: should it be the frame_counter of the bloc_dvb_rcs_ncc ?*/,
+			if(!ttp->addTimePlan(0 /*FIXME: should it be the frame_counter of the bloc_dvb_ncc ?*/,
 			                     terminal->getTerminalId(),
 			                     0,
 			                     total_allocation_pkt,
-			                     terminal->getFmtId(),
+			                     terminal->getForwardFmtId(),
+			                     terminal->getReturnFmtId(),
 			                     0))
 			{
 				LOG(this->log_ttp, LEVEL_ERROR,
@@ -397,7 +351,7 @@ void DamaCtrlRcs::updateFmt()
 			    terminal->getTerminalId(), available_fmt);
 		}
 		// it will be 0 if the terminal cannot be served
-		terminal->setFmtId(available_fmt);
+		terminal->setForwardFmtId(available_fmt);
 	}
 }
 

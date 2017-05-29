@@ -72,7 +72,8 @@ bool Ttp::addTimePlan(time_frame_t frame_id,
                       tal_id_t tal_id,
                       int32_t offset,
                       uint16_t assignment_count,
-                      fmt_id_t fmt_id,
+                      fmt_id_t fwd_fmt_id,
+                      fmt_id_t ret_fmt_id,
                       uint8_t priority)
 {
 	emu_tp_t tp;
@@ -80,7 +81,8 @@ bool Ttp::addTimePlan(time_frame_t frame_id,
 	tp.tal_id = htons(tal_id);
 	tp.offset = htonl(offset);
 	tp.assignment_count = htons(assignment_count);
-	tp.fmt_id = fmt_id;
+	tp.fwd_fmt_id = fwd_fmt_id;
+	tp.ret_fmt_id = ret_fmt_id;
 	tp.priority = priority;
 
 	// create the entry for this frame id if it does not exist
@@ -105,9 +107,10 @@ bool Ttp::addTimePlan(time_frame_t frame_id,
 	}*/
 	LOG(ttp_log, LEVEL_DEBUG,
 	    "Add TP for ST%u at frame %u with offset=%u, "
-	    "assignment_count=%u, FMT=%u, priority=%u\n",
+	    "assignment_count=%u, fwd_fmt=%u, ret_fmt=%u, "
+	    "priority=%u\n",
 	    tal_id, frame_id, offset, assignment_count,
-	    fmt_id, priority);
+	    fwd_fmt_id, ret_fmt_id, priority);
 	return true;
 }
 
@@ -215,10 +218,10 @@ bool Ttp::getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tps)
 			LOG(ttp_log, LEVEL_DEBUG,
 			    "SF#%u: frame#%u btp#%u: tal_id:%u, "
 			    "offset:%u, assignment_count:%u, "
-			    "fmt_id:%u priority:%u\n",
+			    "fwd_fmt_id:%u ret_fmt_id:%u priority:%u\n",
 			    this->getSuperframeCount(), i, j,
 			    tal_id, tp->offset, tp->assignment_count,
-			    tp->fmt_id, tp->priority);
+			    tp->fwd_fmt_id, tp->ret_fmt_id, tp->priority);
 			// increase from 1 * sizeof(tp), we do not need to
 			// use an unsigned char * for arithmetic operation here
 			tp = tp + 1;

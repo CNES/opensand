@@ -115,7 +115,6 @@ class CarriersBand():
         """ load the FMT definitions """
         with  open(path, 'r') as modcod_def:
             fmt = {}
-            index = 1
             for line in modcod_def:
                 if (line.startswith("/*") or 
                     line.isspace() or
@@ -128,9 +127,8 @@ class CarriersBand():
                     continue
                 # id, modulation, coding_rate, spectral_efficiency, required Es/N0
                 # fmt[7] = _Fmt("QPSK", "6/7", 1.714, 9.34)
-                fmt[index] = _Fmt(int(elts[0]), elts[1], elts[2],
+                fmt[int(elts[0])] = _Fmt(int(elts[0]), elts[1], elts[2],
                                          float(elts[3]), float(elts[4]))
-                index += 1
             self._fmt[std] = fmt
 
     def create_carrier(self, name, category, access_type, ratios, symbol_rate_baud, fmt_groups):

@@ -13,13 +13,12 @@ libopensand_dama_la_cpp = \
 	DamaAgentRcs.cpp \
 	DamaAgentRcsLegacy.cpp \
 	DamaAgentRcsRrmQos.cpp \
+	DamaAgentRcs2.cpp \
+	DamaAgentRcs2Legacy.cpp \
 	DamaCtrl.cpp \
 	DamaCtrlRcsCommon.cpp \
 	DamaCtrlRcs.cpp \
 	DamaCtrlRcsLegacy.cpp
-
-#	DamaAgentRcs2.cpp 
-#	DamaAgentRcs2Legacy.cpp 
 
 libopensand_dama_la_h = \
 	CircularBuffer.h \
@@ -31,18 +30,17 @@ libopensand_dama_la_h = \
 	ForwardSchedulingS2.h \
 	ScpcScheduling.h \
 	DamaAgent.h \
-	DamaAgentRcs.h \
 	DamaAgentRcsCommon.h \
+	DamaAgentRcs.h \
 	DamaAgentRcsLegacy.h \
 	DamaAgentRcsRrmQos.h \
+	DamaAgentRcs2.h \
+	DamaAgentRcs2Legacy.h \
 	DamaCtrl.h \
 	DamaCtrlRcsCommon.h \
 	DamaCtrlRcs.h \
 	DamaCtrlRcsLegacy.h
 	
-#	DamaAgentRcs2.h 
-#	DamaAgentRcs2Legacy.h 
-
 libopensand_dama_la_SOURCES = \
 	$(libopensand_dama_la_cpp) \
 	$(libopensand_dama_la_h)

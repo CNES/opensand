@@ -48,7 +48,8 @@ TerminalContextDama::TerminalContextDama(tal_id_t tal_id,
 	max_rbdc_kbps(max_rbdc_kbps),
 	rbdc_timeout_sf(rbdc_timeout_sf),
 	max_vbdc_kb(max_vbdc_kb),
-	fmt_id(1), // at beginning the terminal need to be served while FMT ID is unknown
+	fwd_fmt_id(0), // at beginning the terminal need to be served while FMT ID is unknown
+	ret_fmt_id(0), // at beginning the terminal need to be served while FMT ID is unknown
 	carrier_id()
 {
 }
@@ -82,14 +83,24 @@ vol_kb_t TerminalContextDama::getMaxVbdc() const
 	return this->max_vbdc_kb;
 }
 
-unsigned int TerminalContextDama::getFmtId()
+unsigned int TerminalContextDama::getForwardFmtId()
 {
-	return this->fmt_id;
+	return this->fwd_fmt_id;
 }
 
-void TerminalContextDama::setFmtId(unsigned int fmt_id)
+void TerminalContextDama::setForwardFmtId(unsigned int fmt_id)
 {
-	this->fmt_id = fmt_id;
+	this->fwd_fmt_id = fmt_id;
+}
+
+unsigned int TerminalContextDama::getReturnFmtId()
+{
+	return this->ret_fmt_id;
+}
+
+void TerminalContextDama::setReturnFmtId(unsigned int fmt_id)
+{
+	this->ret_fmt_id = fmt_id;
 }
 
 unsigned int TerminalContextDama::getCarrierId()

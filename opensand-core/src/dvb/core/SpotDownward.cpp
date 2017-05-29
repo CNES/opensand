@@ -36,7 +36,6 @@
 
 #include "SpotDownward.h"
 
-#include "DamaCtrlRcsLegacy.h"
 #include "FileSimulator.h"
 #include "RandomSimulator.h"
 

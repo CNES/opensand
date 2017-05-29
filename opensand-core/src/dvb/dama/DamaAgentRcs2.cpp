@@ -91,12 +91,13 @@ bool DamaAgentRcs2::hereIsTTP(Ttp *ttp)
 		this->allocated_pkt += assign_pkt;
 		// we can directly assign here because we should have
 		// received only one TTP
-		this->modcod_id = (*it).second.fmt_id;
+		this->modcod_id = (*it).second.fwd_fmt_id;
 		LOG(this->log_ttp, LEVEL_DEBUG,
 		    "SF#%u: frame#%u: offset:%u, assignment_count:%u, "
-		    "fmt_id:%u priority:%u\n", ttp->getSuperframeCount(),
+		    "fwd_fmt_id:%u ret_fmt_id:%u priority:%u\n", ttp->getSuperframeCount(),
 		    (*it).first, (*it).second.offset, assign_pkt,
-		    (*it).second.fmt_id, (*it).second.priority);
+		    (*it).second.fwd_fmt_id, (*it).second.ret_fmt_id,
+		    (*it).second.priority);
 	}
 
 	if(prev_modcod_id != this->modcod_id)

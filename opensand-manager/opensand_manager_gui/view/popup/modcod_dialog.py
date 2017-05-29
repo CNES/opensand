@@ -223,8 +223,11 @@ class ModcodParameter(WindowView):
             self._list_modcod_ratio[modcod] = list_ratio[index]
             if len(modcod_list) == len(list_ratio):
                 index += 1
-            self._item_list[modcod-1].set_active(True)
-            nb_active += 1
+            for item in self._item_list:
+                modcod_id = ModcodParameter.get_modcod_index(item.get_label())
+                if int(modcod) == modcod_id:
+                    item.set_active(True)
+                    nb_active += 1
         if nb_active == len(self._item_list):
             self._check_modcod.set_active(True)
 
@@ -261,6 +264,11 @@ class ModcodParameter(WindowView):
         if len(entry) == 6:
             label += " - {} sym".format(entry[5])
         return label
+
+    @staticmethod
+    def get_modcod_index(label):
+        elts = label.split()
+        return int(elts[0])
 
     def set_modcod_widgets(self, source, is_radio, option=None):
         """ Create a list of widget with list of modcods """
@@ -329,7 +337,6 @@ class ModcodParameter(WindowView):
         #If button become disable
         else:
             self._dico_modcod.clear()
-
 
     def on_all_modcod_toggled(self, source=None):
         if source.get_active():
@@ -503,30 +510,25 @@ class ModcodParameter(WindowView):
         for button in all_access_type:
             if button.get_active():
                 access_type = button.get_label()
-        if access_type == "DAMA":
-            access_type = self._model.get_conf().get_dama_standard()
         return access_type
 
 
     def get_active_modcod(self):
         #Get all toggle modcod
         all_modcod = self._vbox_modcod.get_children()
-        fmt_id = 1
         modcod = []
         ratio = []
         modcods = {}
         if self._vcm_radio is not None and self._vcm_radio.get_active():
             for button in all_modcod:
                 if button.get_active():
-                    modcod.append(fmt_id)
+                    modcod.append(ModcodParameter.get_modcod_index(button.get_label()))
                     ratio.append(self._dico_modcod[button.get_label()])
-                fmt_id += 1
         else:
             for button in all_modcod:
                 if button.get_active():
-                    modcod.append(fmt_id)
+                    modcod.append(ModcodParameter.get_modcod_index(button.get_label()))
                     ratio.append(self._dico_modcod[button.get_label()])
-                fmt_id += 1
 
         modcod_update = []
         if len(modcod) > 1 and (self._vcm_radio is None or not

@@ -27,55 +27,45 @@
  */
 
 /*
- * @file DamaCtrlRcs.h
+ * @file DamaCtrlRcsCommon.h
  * @brief This library defines DAMA controller interfaces.
  * @author satip6 (Eddy Fromentin)
  */
 
-#ifndef _DAMA_CONTROLLER_RCS_H_
-#define _DAMA_CONTROLLER_RCS_H_
+#ifndef _DAMA_CONTROLLER_RCS_COMMON_H_
+#define _DAMA_CONTROLLER_RCS_COMMON_H_
 
-#include "DamaCtrlRcsCommon.h"
+#include "DamaCtrl.h"
 
-#include "FmtDefinitionTable.h"
-#include "TerminalContextDamaRcs.h"
-
-#include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
-
-#include <stdio.h>
-#include <math.h>
-#include <map>
-#include <vector>
 
 
 /**
- * @class DamaCtrlRcs
+ * @class DamaCtrlRcsCommon
  * @brief Define methods to process DAMA request in the NCC
  */
-class DamaCtrlRcs: public DamaCtrlRcsCommon
+class DamaCtrlRcsCommon: public DamaCtrl
 {
  public:
 
-	DamaCtrlRcs(spot_id_t spot);
-	virtual ~DamaCtrlRcs();
+	DamaCtrlRcsCommon(spot_id_t spot);
+	virtual ~DamaCtrlRcsCommon();
 
-	// Process DVB frames
-	virtual bool hereIsSAC(const Sac *sac);
+	/**
+	 * @brief  Initializes internal data structure according to configuration file
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	virtual bool init();
 
-	// Build allocation table
-	virtual bool buildTTP(Ttp *ttp);
+	virtual bool createTerminal(TerminalContextDama **terminal,
+	                            tal_id_t tal_id,
+	                            rate_kbps_t cra_kbps,
+	                            rate_kbps_t max_rbdc_kbps,
+	                            time_sf_t rbdc_timeout_sf,
+	                            vol_kb_t max_vbdc_kb);
 
-	// Apply PeP command
-	bool applyPepCommand(const PepRequest* request);
-
-	// Update MODCOD for each terminal
-	virtual void updateFmt();
-
- protected:
- 
-	// Reset dama
-	virtual bool resetDama() = 0;
+	virtual bool removeTerminal(TerminalContextDama **terminal);
 };
 
 

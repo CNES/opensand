@@ -29,7 +29,7 @@
  * @file DamaCtrlRcsLegacy.cpp
  * @brief This library defines Legacy DAMA controller
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
- * @author Aurelien DELRIEU <adelrieutoulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -339,8 +339,8 @@ bool DamaCtrlRcsLegacy::resetDama()
 
 	//Output probes and stats
 	this->probe_gw_return_total_capacity->put(
-		this->converter->pktpfToKbps(gw_return_total_capacity_pktpf));
-	this->gw_remaining_capacity_pktpf = gw_return_total_capacity_pktpf;
+		this->converter->pktpfToKbps(this->gw_return_total_capacity_pktpf));
+	this->gw_remaining_capacity_pktpf = this->gw_return_total_capacity_pktpf;
 	this->gw_return_total_capacity_pktpf = 0;
 
 	return true;

@@ -380,10 +380,6 @@ class EncapProtocolStack(ProtocolStack):
         
     def add_layer(self, upper_val, idx_stack, active=''):
         """ add a new layer in the protocol stack """
-
-        #TODO: remove
-        print "Add layer: upper_val={}, idx_stack={}, " \
-              "active={}".format(upper_val, idx_stack, active)
         
         # get configuration
         conf = None
@@ -392,7 +388,6 @@ class EncapProtocolStack(ProtocolStack):
                                                        self._return_link_standard,
                                                        self._emission_std)
             if conf is None:
-                print "  return {} (get configuration/isinstance)\n".format(not active)
                 return not active
 
         store = gtk.ListStore(gobject.TYPE_STRING)
@@ -418,7 +413,6 @@ class EncapProtocolStack(ProtocolStack):
             # store lower module
             idx += 1
             store.append([name])
-            print "    - {}".format(name)
         
         # if the module need a lower encapsulation protocol and there is
         # only one remove the empty value
@@ -430,18 +424,13 @@ class EncapProtocolStack(ProtocolStack):
                 active_idx += 1
             elif not active:
                 active_found = True
-            print "  insert empty"
 
         # no lower encapsulation protocol is required
         if idx == 0:
-            print "  return True (no lower encapsulation is required)\n"
             return True
-
-        print "  active_idx={}".format(active_idx)
 
         self._add_combo_box_to_stack(store, idx_stack, active_idx)
         
-        print "  return {}\n".format(bool(not active or active_found))
         return bool(not active or active_found)
 
     def get_lower_list(self, module_name):

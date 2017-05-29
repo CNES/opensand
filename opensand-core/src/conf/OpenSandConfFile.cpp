@@ -56,7 +56,8 @@ OpenSandConfFile::OpenSandConfFile() :
 	this->scpc_encap_stacks["DVB-RCS"].push_back(string("GSE"));
 	
 	this->scpc_encap_stacks["DVB-RCS2"] = vector<string>();
-	this->scpc_encap_stacks["DVB-RCS2"].push_back(string("RLE"));
+	//this->scpc_encap_stacks["DVB-RCS2"].push_back(string("RLE"));
+	this->scpc_encap_stacks["DVB-RCS2"].push_back(string("GSE"));
 }
 
 OpenSandConfFile::~OpenSandConfFile()

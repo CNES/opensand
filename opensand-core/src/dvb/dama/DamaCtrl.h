@@ -144,7 +144,6 @@ class DamaCtrl
 	 * @param   request  PEP request
 	 * @return  true on success, false otherwise
 	 */
-	//virtual bool applyPepCommand(const PepRequest &request) = 0;
 	virtual bool applyPepCommand(const PepRequest* request) = 0;
 
 	/**
@@ -177,6 +176,12 @@ class DamaCtrl
 	 * @return   pointer to the categories
 	 */
 	TerminalCategories<TerminalCategoryDama> *getCategories();
+
+	/**
+	 * @brief  Update the FMT id for terminal
+	 *
+	 */
+	virtual void updateFmt() = 0;
 
  protected:
 
@@ -308,13 +313,6 @@ class DamaCtrl
 	 * @return  true on success, false otherwise.
 	 */
 	virtual bool resetDama() = 0;
-
-	/**
-	 * @brief  Update the FMT id for terminal
-	 *
-	 */
-	virtual void updateFmt() = 0;
-
 
 	/// if set to other than NULL, the fd where recording events
 	FILE *event_file;

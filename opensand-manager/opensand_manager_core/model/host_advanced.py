@@ -43,7 +43,6 @@ from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
-
 class AdvancedHostModel:
     """ Advanced host model"""
     def __init__(self, name, scenario):
