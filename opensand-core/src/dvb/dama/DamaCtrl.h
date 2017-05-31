@@ -43,10 +43,10 @@
 #include "FmtSimulation.h"
 #include "StFmtSimu.h"
 #include "PepRequest.h"
-#include "UnitConverter.h"
 #include "OpenSandFrames.h"
 #include "Logon.h"
 #include "Logoff.h"
+#include "UnitConverter.h"
 
 #include <opensand_output/Output.h>
 
@@ -77,7 +77,6 @@ class DamaCtrl
 	 *
 	 * @param   frame_duration_ms       duration of the frame (in ms).
 	 * @param   with_phy_layer          Whether the physical layer is enabled or not
-	 * @param   packet_length_bytes     The packet length in bytes, for constant length
 	 * @param   rbdc_timeout_sf         RBDC timeout in superframe number.
 	 * @param   fca_kbps                The FCA maximum value (in kbits/s)
 	 * @param   categories              pointer to category list.
@@ -91,7 +90,6 @@ class DamaCtrl
 	 */
 	virtual bool initParent(time_ms_t frame_duration_ms,
 	                        bool with_phy_layer,
-	                        vol_bytes_t packet_length_bytes,
 	                        time_sf_t rbdc_timeout_sf,
 	                        rate_kbps_t fca_kbps,
 	                        TerminalCategories<TerminalCategoryDama> categories,
@@ -201,6 +199,7 @@ class DamaCtrl
 	 * @param   max_rbdc_kbps   maximum RBDC value (kb/s).
 	 * @param   rbdc_timeout_sf RBDC timeout (in superframe number).
 	 * @param   max_vbdc_kb     maximum VBDC value (in kbits).
+	 * @param   converter       unit converter
 	 * @return  true if success, false otherwise.
 	 */
 	virtual bool createTerminal(TerminalContextDama **terminal,
@@ -208,7 +207,16 @@ class DamaCtrl
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
 	                            time_sf_t rbdc_timeout_sf,
-	                            vol_pkt_t max_vbdc_kb) = 0;
+	                            vol_kb_t max_vbdc_kb,
+	                            UnitConverter *converter) = 0;
+
+	/**
+	 * @brief  Get the unit converter of a carriers' category.
+	 *
+	 * @param   category_label  The label of the carriers' category
+	 * @return  unit converter if success, null otherwise
+	 */
+	virtual UnitConverter *getUnitConverter(string category_label) = 0;
 
 	/**
 	 * @brief Run the RBDC computation for DAMA
@@ -237,8 +245,6 @@ class DamaCtrl
 
 	/** Flag if init of THIS DAMA class (DamaCtrl) has been done */
 	bool is_parent_init;
-
-	UnitConverter *converter;  ///< Used to convert from/to KB to encap packets
 
 	// Helper to simplify context manipulation
 	typedef map<tal_id_t, TerminalContextDama *> DamaTerminalList;
@@ -321,7 +327,6 @@ class DamaCtrl
 
 	typedef map<tal_id_t, Probe<int> *> ProbeListPerTerminal;
 	typedef map<string, Probe<int> *> ProbeListPerCategory;
-	typedef map<string, int> IntListPerCategory;
 	typedef map<unsigned int, Probe<int> *> ProbeListPerCarrier;
 	typedef map<string, ProbeListPerCarrier> ProbeListPerCategoryPerCarrier;
 
@@ -331,7 +336,6 @@ class DamaCtrl
 
 	/* RBDC requested capacity */
 	Probe<int> *probe_gw_rbdc_req_size;
-	int gw_rbdc_req_size_pktpf;
 
 	/* VBDC request number */
 	Probe<int> *probe_gw_vbdc_req_num;
@@ -339,7 +343,6 @@ class DamaCtrl
 
 	/* VBDC requested capacity */
 	Probe<int> *probe_gw_vbdc_req_size;
-	int gw_vbdc_req_size_pkt;
 
 	/* Allocated resources */
 		// CRA
@@ -349,7 +352,6 @@ class DamaCtrl
 	ProbeListPerTerminal probes_st_cra_alloc;
 		// RBDC total
 	Probe<int> *probe_gw_rbdc_alloc;
-	int gw_rbdc_alloc_pktpf;
 		// RBDC by ST
 	ProbeListPerTerminal probes_st_rbdc_alloc;
 		// RBDC max
@@ -359,12 +361,10 @@ class DamaCtrl
 	ProbeListPerTerminal probes_st_rbdc_max;
 		// VBDC	total
 	Probe<int> *probe_gw_vbdc_alloc;
-	int gw_vbdc_alloc_pkt;
 		// VBDC by ST
 	ProbeListPerTerminal probes_st_vbdc_alloc;
 		// FCA total
 	Probe<int> *probe_gw_fca_alloc;
-	int gw_fca_alloc_pktpf;
 		// FCA by ST
 	ProbeListPerTerminal probes_st_fca_alloc;
 
@@ -374,18 +374,16 @@ class DamaCtrl
 
 		// Total and unused capacity
 	Probe<int> *probe_gw_return_total_capacity;
-	int gw_return_total_capacity_pktpf;
 	Probe<int> *probe_gw_return_remaining_capacity;
-	int gw_remaining_capacity_pktpf;
+	int gw_remaining_capacity_kbps;
 		// Capacity per category
 	ProbeListPerCategory probes_category_return_capacity;
-	int category_return_capacity_pktpf;
 	ProbeListPerCategory probes_category_return_remaining_capacity;
-	map<string, int> category_return_remaining_capacity_pktpf;
+	map<string, int> category_return_remaining_capacity_kbps;
 		// Capacity per carrier
 	ProbeListPerCategoryPerCarrier probes_carrier_return_capacity;
 	ProbeListPerCategoryPerCarrier probes_carrier_return_remaining_capacity;
-	map<string, map<unsigned int, int> >  carrier_return_remaining_capacity_pktpf;
+	map<string, map<unsigned int, int> >  carrier_return_remaining_capacity_kbps;
 
 	// Spot ID
 	spot_id_t spot_id;

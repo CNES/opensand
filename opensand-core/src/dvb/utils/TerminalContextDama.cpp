@@ -113,4 +113,3 @@ void TerminalContextDama::setCarrierId(unsigned int carrier_id)
 	this->carrier_id = carrier_id;
 }
 
-

@@ -78,7 +78,7 @@ class DamaAgentRcsCommon : public DamaAgent
 	ReturnSchedulingRcsCommon *ret_schedule;
 
 	/** Unit converter */
-	UnitConverter* converter;
+	UnitConverter *converter;
 
 	/** RBDC timer */
 	time_sf_t rbdc_timer_sf;

@@ -38,6 +38,7 @@
 
 #include "UplinkSchedulingRcs.h"
 #include "DamaCtrlRcsLegacy.h"
+#include "DamaCtrlRcs2Legacy.h"
 
 #include <errno.h>
 
@@ -280,25 +281,27 @@ bool SpotDownwardRegen::initDama(void)
 		    "creating Legacy DAMA controller\n");
 		if(this->return_link_std == DVB_RCS)
 		{
-			this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id);
+			this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id,
+		                                            this->up_return_pkt_hdl->getFixedLength());
 		}
-		//else if(this->return_link_std == DVB_RCS2)
-		//{
-		//	this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
-		//}
+		/*else if(this->return_link_std == DVB_RCS2)
+		{
+			this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
+		}*/
 		else
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-				"section '%s': bad value for parameter '%s'\n",
-				DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
+				"section '%s': bad value '%s' for parameter '%s'\n",
+				" (no matching dama controller)\n",
+				DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO);
 			return false;
 		}
 	}
 	else
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s': bad value for parameter '%s'\n",
-		    DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
+		    "section '%s': bad value '%s' for parameter '%s'\n",
+			DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO);
 		return false;
 	}
 
@@ -315,7 +318,6 @@ bool SpotDownwardRegen::initDama(void)
 	// terminals is received in SAC and added to output STs
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->with_phy_layer,
-	                                this->up_return_pkt_hdl->getFixedLength(),
 	                                rbdc_timeout_sf,
 	                                fca_kbps,
 	                                dc_categories,

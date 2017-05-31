@@ -36,6 +36,8 @@
 #define _DAMA_CONTROLLER_RCS_COMMON_H_
 
 #include "DamaCtrl.h"
+#include "UnitConverter.h"
+#include "TerminalContextDamaRcs.h"
 
 #include <opensand_output/Output.h>
 
@@ -58,12 +60,22 @@ class DamaCtrlRcsCommon: public DamaCtrl
 	 */
 	virtual bool init();
 
+	// Process DVB frames
+	virtual bool hereIsSAC(const Sac *sac);
+
+	// Build allocation table
+	virtual bool buildTTP(Ttp *ttp);
+
+	// Apply PeP command
+	bool applyPepCommand(const PepRequest* request);
+
 	virtual bool createTerminal(TerminalContextDama **terminal,
 	                            tal_id_t tal_id,
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
 	                            time_sf_t rbdc_timeout_sf,
-	                            vol_kb_t max_vbdc_kb);
+	                            vol_kb_t max_vbdc_kb,
+	                            UnitConverter *converter);
 
 	virtual bool removeTerminal(TerminalContextDama **terminal);
 };
