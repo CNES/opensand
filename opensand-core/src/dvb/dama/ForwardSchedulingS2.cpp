@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
  * @file     ForwardScheduling.cpp
  * @brief    The scheduling functions for MAC FIFOs with DVB-S2 forward or downlink
  * @author   Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author   Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 
@@ -108,6 +109,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	vector<CarriersGroupDama *>::iterator carrier_it;
 	string label = this->category->getLabel();
 	std::stringstream section;
+	char probe_name[128];
 
 	section << "Spot_" << (unsigned int)this->spot_id;
 	if(!is_gw)
@@ -117,18 +119,21 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	section << "." << label << "." << dst_name << " ";
 	this->probe_section = section.str();
 
+	snprintf(probe_name, sizeof(probe_name),
+	         "%sDown/Forward capacity.Total.Available",
+	         this->probe_section.c_str());
 	this->probe_fwd_total_capacity = Output::registerProbe<int>(
-		"Symbols per frame", true, SAMPLE_LAST,
-		"%sDown/Forward capacity.Total.Available",
-		this->probe_section.c_str());
+		probe_name, "Symbols per frame", true, SAMPLE_LAST);
+	snprintf(probe_name, sizeof(probe_name),
+	         "%sDown/Forward capacity.Total.Remaining",
+	         this->probe_section.c_str());
 	this->probe_fwd_total_remaining_capacity = Output::registerProbe<int>(
-		"Symbols per frame", true, SAMPLE_LAST,
-		"%sDown/Forward capacity.Total.Remaining",
-		this->probe_section.c_str());
+		probe_name, "Symbols per frame", true, SAMPLE_LAST);
+	snprintf(probe_name, sizeof(probe_name),
+	         "%sBBFrame number",
+	         this->probe_section.c_str());
 	this->probe_bbframe_nbr = Output::registerProbe<int>(
-		true, SAMPLE_AVG,
-		"%sBBFrame number",
-		this->probe_section.c_str());
+		probe_name, true, SAMPLE_AVG);
 
 	carriers_group = this->category->getCarriersGroups();
 	for(carrier_it = carriers_group.begin();
@@ -962,6 +967,7 @@ void ForwardSchedulingS2::createProbes(vector<CarriersGroupDama *>::iterator vcm
 	vol_sym_t carrier_size_sym = vcm->getTotalCapacity() /
 	                             vcm->getCarriersNumber();
 	list<fmt_id_t> fmt_ids = vcm->getFmtIds();
+	char probe_name[128];
 
 	for(list<fmt_id_t>::const_iterator fmt_it = fmt_ids.begin();
 	    fmt_it != fmt_ids.end(); ++fmt_it)
@@ -1023,37 +1029,41 @@ void ForwardSchedulingS2::createProbes(vector<CarriersGroupDama *>::iterator vcm
 			unit = "Kbits/s";
 			type = "CCM";
 		}
+		snprintf(probe_name, sizeof(probe_name),
+		         "%sDown/Forward capacity.Carrier%u.%s.Remaining",
+		         this->probe_section.c_str(), carriers_id, type.c_str());
 		remain_probe = Output::registerProbe<int>(
+				probe_name,    
 				unit,
 				true,
-				SAMPLE_AVG,
-				"%sDown/Forward capacity.Carrier%u.%s.Remaining",
-				this->probe_section.c_str(),
-				carriers_id, type.c_str());
+				SAMPLE_AVG);
+		snprintf(probe_name, sizeof(probe_name),
+		         "%sDown/Forward capacity.Carrier%u.%s.Available",
+		         this->probe_section.c_str(), carriers_id, type.c_str());
 		avail_probe = Output::registerProbe<int>(
+				probe_name,
 				unit,
 				true,
-				SAMPLE_AVG,
-				"%sDown/Forward capacity.Carrier%u.%s.Available",
-				this->probe_section.c_str(),
-				carriers_id, type.c_str());
+				SAMPLE_AVG);
 	}
 	else
 	{
+		snprintf(probe_name, sizeof(probe_name),
+		         "%sDown/Forward capacity.Carrier%u.VCM%u.Remaining",
+		         this->probe_section.c_str(), carriers_id, vcm_id);
 		remain_probe = Output::registerProbe<int>(
+				probe_name,
 				"Kbits/s",
 				true,
-				SAMPLE_AVG,
-				"%sDown/Forward capacity.Carrier%u.VCM%u.Remaining",
-				this->probe_section.c_str(),
-				carriers_id, vcm_id);
+				SAMPLE_AVG);
+		snprintf(probe_name, sizeof(probe_name),
+		         "%sDown/Forward capacity.Carrier%u.VCM%u.Available",
+		         this->probe_section.c_str(), carriers_id, vcm_id);
 		avail_probe = Output::registerProbe<int>(
+				probe_name,
 				"Kbits/s",
 				true,
-				SAMPLE_AVG,
-				"%sDown/Forward capacity.Carrier%u.VCM%u.Available",
-				this->probe_section.c_str(),
-				carriers_id, vcm_id);
+				SAMPLE_AVG);
 		vcm_id++;
 	}
 	avail_probes.push_back(avail_probe);

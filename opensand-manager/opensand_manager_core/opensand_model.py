@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2015 TAS
+# Copyright © 2016 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Bénédicte Motto / <bmotto@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 opensand_model.py - OpenSAND manager model
@@ -44,6 +45,7 @@ from opensand_manager_core.utils import *
 from opensand_manager_core.model.environment_plane import SavedProbeLoader
 from opensand_manager_core.model.event_manager import EventManager
 from opensand_manager_core.model.host import HostModel
+from opensand_manager_core.model.machine import MachineModel
 from opensand_manager_core.model.global_config import GlobalConfig
 from opensand_manager_core.model.topology_config import TopologyConfig
 from opensand_manager_core.my_exceptions import ModelException
@@ -80,6 +82,8 @@ class Model:
         self._is_adv_mode = False
 
         self._hosts = []
+        self._incomplete_hosts = []
+        self._machines = []
         self._add_host = []
         self._ws = []
         self._collector_known = False
@@ -255,13 +259,27 @@ class Model:
         self._event_manager_response.set('quit')
         self._log.debug("Model: closed")
 
+    def get_all_hosts_list(self):
+        """ return the hosts list """
+        return self._hosts + self._incomplete_hosts
+
     def get_hosts_list(self):
         """ return the hosts list """
         return self._hosts
 
-    def get_host(self, name):
+    def get_machine(self, name):
+        """ return the machine according to its name """
+        for machine in self.get_machines():
+            if name.lower() == machine.get_name().lower():
+                return machine
+        return None
+
+    def get_host(self, name, incomplete=False):
         """ return the host according to its name """
-        for host in self.get_all():
+        incomplete_list = []
+        if incomplete:
+            incomplete_list = self._incomplete_hosts
+        for host in incomplete_list + self.get_all():
             if name == GW and host.get_name().startswith(GW):
                 return host
             if name.lower() == host.get_name().lower():
@@ -276,12 +294,21 @@ class Model:
         """ return the workstations list """
         return self._ws
 
+    def get_machines(self):
+        """ return the machines list """
+        return self._machines
+
     def get_all(self):
         """ return the hosts and workstation list """
-        return self._hosts + self._ws
+        return self._hosts + self._ws + self._machines
 
-    def del_host(self, name):
+    def del_host(self, machine_name):
         """ remove an host """
+        # the machine name was received. search corresponding host
+        machine = self.get_machine(machine_name)
+        if machine is None:
+            return
+        name = machine.get_host_name()
         # check if this is the last gw
         other_gw = True
         if name.startswith(GW):
@@ -293,8 +320,15 @@ class Model:
                     self._last_gw = None
                     break
 
-        host = self.get_host(name)
+        host = self.get_host(name, incomplete=True)
+        # remove machine from host
+        self._log.debug("remove machine: '" + machine_name + "'")
+        host.del_machine(machine_name)
+        if host.is_complete():
+            return False
         self._log.debug("remove host: '" + name + "'")
+        self._config.remove_host(name,
+                                 host.get_instance())
         # if there is not other GW don't remove it from topology
         # and global configuration
         if not name == 'sat' and other_gw:
@@ -303,7 +337,20 @@ class Model:
         if name.startswith(GW) and other_gw:
             self._config.remove_gw(name,
                                    host.get_instance())
-        self._hosts.remove(host)
+        # remove host from the list it was in (hosts or incomplete_hosts)
+        try:
+            self._hosts.remove(host)
+        except ValueError:
+            pass
+        
+        try:
+            self._incomplete_hosts.remove(host)
+        except ValueError:
+            pass
+
+        # if incomplete, add it to incomplete list
+        if not host.is_empty():
+            self._incomplete_hosts.append(host)
 
         for host in self._ws:
             if name == host.get_name():
@@ -315,10 +362,14 @@ class Model:
                 self._missing_modules[module].remove(name)
 
         self.update_spot_gw()
+        if host.is_empty():
+            return True
+        return False
 
     def add_host(self, name, instance, network_config,
                  state_port, command_port, tools, host_modules):
         """ add an host in the host list """
+        add_to_list = True
         # remove instance for ST and WS
         spot_id = ""
         gw_id = ""
@@ -334,7 +385,7 @@ class Model:
 
         # check if we have all the correct information
         checked = True
-        if (component == ST or component == WS or component == GW) and instance == '':
+        if (component in {ST, WS, GW} | GW_types) and instance == '':
             self._log.warning(name + ": "
                               "service received with no instance information")
             checked = False
@@ -357,7 +408,7 @@ class Model:
                 raise ModelException
 
 
-        self._log.debug("add host '%s'" % name)
+        self._log.debug("add machine '%s'" % name)
         # report a warning if a module is not supported by the host
         for module in self._modules:
             if module.get_name().upper() not in host_modules:
@@ -369,58 +420,89 @@ class Model:
                     else:
                         self._missing_modules[module].append(name)
         
+        # look for host model, create it if necessary
+        host = None
+        found_host = False
+        for incomplete in self._incomplete_hosts:
+            if (incomplete.get_component() == component and 
+                    incomplete.get_instance() == instance):
+                self._log.debug("found imcomplete host '%s'" % 
+                                incomplete.get_name())
+                found_host = True
+                break
+        if not found_host:
+            incomplete = HostModel(component+str(instance), instance, 
+                                   {}, 0, 0, [], [], self._scenario_path,
+                                   self._log, self._collector_functional,
+                                   spot_id, gw_id)
+            self._incomplete_hosts.append(incomplete)
+        
         # the component does not exist so create it
-        host = HostModel(name, instance, network_config, state_port,
+        machine = MachineModel(name, instance, network_config, state_port,
                          command_port, tools, host_modules, self._scenario_path,
-                         self._log, self._collector_functional, spot_id, gw_id)
-        if component == SAT:
-            self._hosts.insert(0, host)
-        elif component == GW:
-            """self._config.get_configuration().add_gw('//' + FORWARD_DOWN_BAND, instance)
-            self._config.get_configuration().add_gw('//' + RETURN_UP_BAND, instance)
-            self._config.get_configuration().add_gw('//' + PHYSICAL_LAYER, instance)
-            self._config.get_configuration().write()"""
-            if not SAT in map(lambda x: x.get_name(), self._hosts):
-                pos = 0
-            else:
-                pos = 1
-            for other_host in self._hosts:
-                if other_host.get_name().startswith(GW) and \
-                   other_host.get_instance() < instance:
-                    pos += 1
-            self._hosts.insert(pos, host)
-        elif component != WS:
-            if not SAT in map(lambda x: x.get_name(), self._hosts):
-                pos = 0
-            else:
-                pos = 1
-            for other_host in self._hosts:
-                if other_host.get_name().startswith(GW) or \
-                   (other_host.get_name().startswith(ST) and
-                    other_host.get_instance() < instance):
-                    pos += 1
-            self._hosts.insert(pos, host)
-        else:
-            self._ws.append(host)
+                         self._log, self._collector_functional, incomplete,
+                         spot_id, gw_id)
+        self._machines.append(machine)
+        incomplete.add_machine(machine)
+        ret_host = incomplete
+        #TODO: should remove of show error if add_component returns false
+        if incomplete.is_complete():
+            host = incomplete
+            name = host.get_name()
+            self._incomplete_hosts.remove(host)
+            network_config = host.get_net_config()
 
-        self._add_host.append({"name": name,
-                               "inst": instance,
-                               "net": network_config})
-        self._event_manager.set('update_config');
-        """self._topology.add(name, instance, network_config)
-        self._config.add(name, instance, network_config)
-        self.update_spot_gw()"""
-        if component == GW:
-            self._event_manager.set('deploy_files')
+        if host:
+            if component == SAT:
+                self._hosts.insert(0, host)
+            elif component in GW:
+                """self._config.get_configuration().add_gw('//' + FORWARD_DOWN_BAND, instance)
+                self._config.get_configuration().add_gw('//' + RETURN_UP_BAND, instance)
+                self._config.get_configuration().add_gw('//' + PHYSICAL_LAYER, instance)
+                self._config.get_configuration().write()"""
+                if not SAT in map(lambda x: x.get_name(), self._hosts):
+                    pos = 0
+                else:
+                    pos = 1
+                for other_host in self._hosts:
+                    if other_host.get_name().startswith(GW) and \
+                       other_host.get_instance() < instance:
+                        pos += 1
+                self._hosts.insert(pos, host)
+            elif component != WS:
+                if not SAT in map(lambda x: x.get_name(), self._hosts):
+                    pos = 0
+                else:
+                    pos = 1
+                for other_host in self._hosts:
+                    if other_host.get_name().startswith(GW) or \
+                       (other_host.get_name().startswith(ST) and
+                        other_host.get_instance() < instance):
+                        pos += 1
+                self._hosts.insert(pos, host)
+            else:
+                self._ws.append(host)
+
+            self._add_host.append({"name": name,
+                                   "inst": instance,
+                                   "net": network_config})
+            self._event_manager.set('update_config');
+            """self._topology.add(name, instance, network_config)
+            self._config.add(name, instance, network_config)
+            self.update_spot_gw()"""
+            if component in GW:
+                self._event_manager.set('deploy_files')
 
         if not checked:
             raise ModelException
         else:
-            return host
+            return ret_host
 
     def update_config(self):
         host_config = self._add_host[0]
         name = host_config["name"]
+        self._config.new_host(name,
+                              host_config["inst"])
         if self._last_gw is None or name != self._last_gw.get_name():
             self._topology.new_host(name,
                                     host_config["inst"],
@@ -461,6 +543,8 @@ class Model:
 
     def all_running(self):
         """ check if all components are running """
+        if not len(self._hosts):
+            return False
         for host in self._hosts:
             if not host.get_state():
                 return False
@@ -629,6 +713,14 @@ class Model:
         modules = {}
         for module in self._modules:
             if module.get_type() == "lan_adaptation":
+                modules[module.get_name()] = module
+        return modules
+
+    def get_global_satdelay_modules(self):
+        """ get the global satellite delay modules {name: module} """
+        modules = {}
+        for module in self._modules:
+            if module.get_type() == "satdelay":
                 modules[module.get_name()] = module
         return modules
 

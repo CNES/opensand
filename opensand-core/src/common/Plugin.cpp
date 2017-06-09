@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2016 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
  * @file Plugin.cpp
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
  * @brief  High level interface for opensand-rt
  *
  */
@@ -43,9 +44,9 @@
 PluginUtils Plugin::utils;
 
 
-bool Plugin::loadPlugins(bool enable_phy_layer)
+bool Plugin::loadPlugins(bool enable_phy_layer, string conf_path)
 {
-	return utils.loadPlugins(enable_phy_layer);
+	return utils.loadPlugins(enable_phy_layer, conf_path);
 }
 
 void Plugin::releasePlugins()
@@ -79,6 +80,12 @@ bool Plugin::getPhysicalLayerPlugins(string att_pl_name,
 	                                     attenuation,
 	                                     minimal,
 	                                     error);
+}
+
+bool Plugin::getSatDelayPlugin(string name,
+                               SatDelayPlugin **sat_delay)
+{
+	return utils.getSatDelayPlugin(name, sat_delay);
 }
 
 void Plugin::getAllEncapsulationPlugins(pl_list_t &encapsulation)

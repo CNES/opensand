@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2015 TAS
+# Copyright © 2016 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 
 """
 service.py - handle OpenSAND services with Avahi
@@ -73,8 +74,7 @@ class OpenSandService(object):
     _publisher = None
 
     def __init__(self, cache_dir, iface, service_type, name,
-                 instance, port, descr=None, output_handler=None,
-                 default_route=False):
+                 instance, port, descr=None, output_handler=None):
         loop = DBusGMainLoop(set_as_default=True)
         # Init gobject threads and dbus threads
         gobject.threads_init()
@@ -84,13 +84,12 @@ class OpenSandService(object):
         OpenSandService._bus = dbus.SystemBus(mainloop=loop)
 
         OpenSandService._routes = OpenSandRoutes()
-        if name.lower() != "sat":
+        if name.lower() not in {"sat", "gw-phy"}:
             if name.lower() != "ws":
                 # by default we use TUN interface but this can be modified
                 # using setup routes when we are in Ethernet
                 OpenSandService._routes.load(cache_dir, name, TUN_NAME,
-                                             is_ws=False, default=default_route,
-                                             instance=instance)
+                                             is_ws=False, instance=instance)
             else:
                 OpenSandService._routes.load(cache_dir, name,
                                              descr['lan_iface'], True)
@@ -173,8 +172,8 @@ class OpenSandService(object):
                 if self._output_handler is not None:
                     self._output_handler.set_collector_addr(address, port)
                 return
-            elif self._compo == 'sat':
-                # nothing to do for other hosts no sat
+            elif self._compo in {'sat', 'gw-phy'}:
+                # nothing to do for other hosts on sat or gw-phy
                 return
 
             if name in self._names:
@@ -184,6 +183,9 @@ class OpenSandService(object):
                 return
             elif not name.startswith('st') and not name.startswith('gw'):
                 LOGGER.debug("ignore %s that is not a ST or GW" % name)
+                return
+            elif '-phy' in name:
+                LOGGER.debug("ignore %s that is a PHY host" % name)
                 return
             address = args[7]
             LOGGER.debug('service resolved')
@@ -225,15 +227,9 @@ class OpenSandService(object):
                     inst = val
 
             self._names.append(name)
-            if self._compo == 'gw' or self._compo == 'st':
-                if not ((name.startswith('gw')) and (self._compo == 'gw')):
-                    OpenSandService._routes.add_distant_host(name, v4, v6)
-                    LOGGER.info("Appending component %s to %s v4:%s " %
-                                (self._compo, name, v4))
-                else:
-                    LOGGER.info("Skipped component %s to %s v4:%s " %
-                                (self._compo, name, v4))
-            elif self._compo == 'ws' and not name.startswith('ws') and name != 'sat':
+            if self._compo in {'gw', 'st', 'gw-net-acc'}:
+                OpenSandService._routes.add_distant_host(name, v4, v6)
+            elif self._compo == 'ws' and not name.startswith('ws') and name not in {'sat','gw-phy'}:
                 if inst == self._instance:
                     # this host is our router (ST with the same ID)
                     self._router_v4 = v4.rsplit('/')[0]
@@ -278,7 +274,7 @@ class OpenSandService(object):
                 if self._output_handler is not None:
                     self._output_handler.unset_collector_addr()
                 return
-            elif self._compo == 'sat':
+            elif self._compo in {'sat', 'gw-phy'}:
                 # nothing to do for other hosts no sat
                 return
 

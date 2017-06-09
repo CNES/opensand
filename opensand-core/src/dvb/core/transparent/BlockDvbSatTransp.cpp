@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -33,6 +33,7 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 #include "BlockDvbSatTransp.h"
@@ -89,17 +90,6 @@ BlockDvbSatTransp::DownwardTransp::~DownwardTransp()
 
 bool BlockDvbSatTransp::DownwardTransp::initSatLink(void)
 {
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               SAT_DELAY, this->sat_delay))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SAT_DELAY);
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "Satellite delay = %d\n", this->sat_delay);
-
 	return true;
 }
 
@@ -170,19 +160,6 @@ BlockDvbSatTransp::UpwardTransp::~UpwardTransp()
 
 bool BlockDvbSatTransp::UpwardTransp::initMode(void)
 {
-	// Delay to apply to the medium
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
-		               SAT_DELAY, this->sat_delay))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SAT_DELAY);
-		goto error;
-	}
-	    
-	LOG(this->log_init, LEVEL_NOTICE,
-	     "Satellite delay = %d", this->sat_delay);
-
 	// create the reception standard
 	this->reception_std = new DvbRcsStd(); 
 	
@@ -198,8 +175,6 @@ bool BlockDvbSatTransp::UpwardTransp::initMode(void)
 error:
 	return false;
 }
-
-
 
 bool BlockDvbSatTransp::UpwardTransp::initSwitchTable(void)
 {

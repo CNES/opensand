@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -32,6 +32,7 @@
  * @brief    The SCPC scheduling functions for MAC FIFOs with DVB-S2 forward or downlink
  * @author   David PRADAS / <david.pradas@toulouse.viveris.com>
  * @author   Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author   Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
  */
 
 
@@ -127,6 +128,7 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	
 		Probe<int> *remain_probe;
 		Probe<int> *avail_probe;
+		char probe_name[128];
 		unsigned int max_modcod = 0;
 		vol_sym_t max_bbframe_size_sym = 0;
 		vol_sym_t carrier_size_sym = carriers->getTotalCapacity() /
@@ -173,21 +175,25 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 		// check if the FIFO can emit on this carriers group
 		string type = "SCPC";
 		string unit = "Symbol number";
-		
+	
+		snprintf(probe_name, sizeof(probe_name),
+		         "SCPC capacity.Category %s.Carrier%u.%s.Remaining",
+				     this->category->getLabel().c_str(),
+				     carriers_id, type.c_str());
 		remain_probe = Output::registerProbe<int>(
+				probe_name,
 				unit,
 				true,
-				SAMPLE_AVG,
-				"SCPC capacity.Category %s.Carrier%u.%s.Remaining",
-				this->category->getLabel().c_str(),
-				carriers_id, type.c_str());
+				SAMPLE_AVG);
+		snprintf(probe_name, sizeof(probe_name),
+		         "SCPC capacity.Category %s.Carrier%u.%s.Available",
+				     this->category->getLabel().c_str(),
+				     carriers_id, type.c_str());
 		avail_probe = Output::registerProbe<int>(
+				probe_name,
 				unit,
 				true,
-				SAMPLE_AVG,
-				"SCPC capacity.Category %s.Carrier%u.%s.Available",
-				this->category->getLabel().c_str(),
-				carriers_id, type.c_str());
+				SAMPLE_AVG);
 
 		avail_probes.push_back(avail_probe);
 		remain_probes.push_back(remain_probe);

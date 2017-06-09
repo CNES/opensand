@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 CNES
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -34,8 +34,11 @@
 #include "PhyChannel.h"
 #include "BBFrame.h"
 #include "DvbRcsFrame.h"
+#include "DelayFifoElement.h"
+#include "OpenSandCore.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_conf/conf.h>
 
 #include <math.h>
 
@@ -47,11 +50,16 @@ PhyChannel::PhyChannel():
 	error_insertion(NULL),
 	refresh_period_ms(0),
 	is_sat(false),
+	satdelay(NULL),
+	fifo_timer(-1),
+	delay_timer(-1),
+	delay_fifo(),
 	probe_attenuation(NULL),
 	probe_clear_sky_condition(NULL),
 	probe_minimal_condition(NULL),
 	probe_total_cn(NULL),
-	probe_drops(NULL)
+	probe_drops(NULL),
+	probe_delay(NULL)
 {
 	// Output logs
 	this->log_channel = Output::registerLog(LEVEL_WARNING,
@@ -230,3 +238,33 @@ error:
 	return this->status;
 }
 
+bool PhyChannel::pushInFifo(NetContainer *data, time_ms_t delay)
+{
+	DelayFifoElement *elem;
+	time_ms_t current_time = getCurrentTime();
+
+	// create a new FIFO element to store the packet
+	elem = new DelayFifoElement(data, current_time, current_time + delay);
+	if(!elem)
+	{
+		LOG(this->log_channel, LEVEL_ERROR,
+		    "cannot allocate FIFO element, drop data\n");
+		goto error;
+	}
+	// append the data in the fifo
+	if(!this->delay_fifo.push(elem))
+	{
+		LOG(this->log_channel, LEVEL_ERROR,
+		    "FIFO is full: drop data\n");
+		goto release_elem;
+	}
+	LOG(this->log_channel, LEVEL_NOTICE,
+	    "%s data stored in FIFO (tick_in = %ld, tick_out = %ld)\n",
+	    data->getName().c_str(), elem->getTickIn(), elem->getTickOut());
+	return true;
+release_elem:
+	delete elem;
+error:
+	delete data;
+	return false;
+}

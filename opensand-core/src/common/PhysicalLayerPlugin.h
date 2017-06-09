@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 CNES
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -28,8 +28,9 @@
 /**
  * @file PhysicalLayerPlugin.h
  * @brief Plugins for Physical Layer Minimal conditions,
- *        Error insertion and Attenuation models
+ *        Error insertion, Attenuation and SatDelay models
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 #ifndef PHYSICAL_LAYER_PLUGIN_H
@@ -39,7 +40,9 @@
 #include "OpenSandCore.h"
 #include "Data.h"
 
+#include <opensand_rt/RtMutex.h>
 #include <opensand_output/Output.h>
+#include <opensand_conf/conf.h>
 
 #include <string>
 #include <map>
@@ -236,6 +239,96 @@ class ErrorInsertionPlugin: public OpenSandPlugin
 	OutputLog *log_init;
 	OutputLog *log_error;
 
+};
+
+/**
+ * @class SatDelay
+ * @brief SatDelay
+ */
+class SatDelayPlugin: public OpenSandPlugin
+{
+ protected:
+  /* Output log */
+  OutputLog *log_init;
+  OutputLog *log_delay;
+
+  /* The current delay */
+  time_ms_t delay;
+
+  /* satdelay refreshing period */
+  time_ms_t refresh_period_ms;
+
+ private:
+  /* Mutex to prevent concurrent access to delay */
+  mutable RtMutex delay_mutex;
+
+ public:
+
+  /**
+   * @brief SatDelayPlugin constructor
+   */
+  SatDelayPlugin():
+      OpenSandPlugin(),
+      delay(0),
+      refresh_period_ms(1000),
+      delay_mutex("delay")
+  {
+    this->log_init = Output::registerLog(LEVEL_WARNING, "SatDelay.init");
+    this->log_delay = Output::registerLog(LEVEL_WARNING, "SatDelay.Delay");
+  };
+
+  /**
+   * @brief SatDelayPlugin destructor
+   */
+  virtual ~SatDelayPlugin() {};
+
+  /**
+   * @brief initialize the sat delay model
+   *
+   * @return true on success, false otherwise
+   */
+  virtual bool init(ConfigurationList conf) = 0;
+
+  /**
+   * @brief Get the model current sat delay
+   */
+  time_ms_t getSatDelay() {
+    RtLock lock(this->delay_mutex);
+    return this->delay;
+  };
+
+  /**
+   * @brief Set the sat delay model current delay
+   *
+   * @param the current delay
+   */
+  void setSatDelay(time_ms_t delay)
+  {
+    RtLock lock(this->delay_mutex);
+    this->delay = delay;
+  };
+
+  /**
+   * @brief get the refresh period
+   */
+  time_ms_t getRefreshPeriod()
+  {
+    return this->refresh_period_ms;
+  };
+
+  /**
+   * @brief update the sat delay model current delay
+   *
+   * @return true on success, false otherwise
+   */
+  virtual bool updateSatDelay() = 0;
+
+  /**
+   * @brief Get the largest possible delay (needed to estimate timeouts)
+   * @param the delay
+   * @return true on succes
+   */
+  virtual bool getMaxDelay(time_ms_t &delay) = 0;
 };
 
 

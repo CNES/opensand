@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -32,7 +32,8 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
- * @author Aureline DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 #include "BlockDvbSatRegen.h"
@@ -90,17 +91,6 @@ BlockDvbSatRegen::DownwardRegen::~DownwardRegen()
 
 bool BlockDvbSatRegen::DownwardRegen::initSatLink(void)
 {
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   SAT_DELAY, this->sat_delay))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SAT_DELAY);
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "Satellite delay = %d\n", this->sat_delay);
-
 	for(sat_gws_t::iterator it_gw = this->gws.begin();
 	    it_gw != this->gws.end(); ++it_gw)
 	{
@@ -218,7 +208,7 @@ bool BlockDvbSatRegen::DownwardRegen::initTimers(void)
 	// create frame timer (also used to send packets waiting in fifo)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                       this->fwd_down_frame_duration_ms);
-	
+
 	// TODO why not scenario timer on up ?
 	sat_gws_t::iterator it_gw;
 	for(it_gw = this->gws.begin(); it_gw != this->gws.end(); ++it_gw)
@@ -297,7 +287,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 			out_fifo = gw->getDataOutStFifo();
 			if(!this->onRcvEncapPacket(packet_copy,
 			                           out_fifo,
-			                           this->sat_delay))
+																 0))
 			{
 				// FIXME a problem occured, we got memory allocation error
 				// or fifo full and we won't empty fifo until next
@@ -313,7 +303,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 				NetPacket *packet_copy_gw = new NetPacket(packet);
 				if(!this->onRcvEncapPacket(packet_copy_gw,
 				                           out_fifo_gw,
-				                           this->sat_delay))
+																	 0))
 				{
 					// FIXME a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
@@ -365,7 +355,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 
 		if(!this->onRcvEncapPacket(packet,
 		                           out_fifo,
-		                           this->sat_delay))
+															 0))
 		{
 			// FIXME a problem occured, we got memory allocation error
 			// or fifo full and we won't empty fifo until next
@@ -620,9 +610,6 @@ error:
 	return false;
 }
 
-
-
-
 bool BlockDvbSatRegen::UpwardRegen::addSt(SatGw *current_gw,
                                           tal_id_t st_id)
 {
@@ -686,6 +673,14 @@ bool BlockDvbSatRegen::UpwardRegen::handleDvbBurst(DvbFrame *dvb_frame,
 bool BlockDvbSatRegen::UpwardRegen::handleSac(DvbFrame *dvb_frame,
                                               SatGw *current_gw)
 {
+	// Update fmt
+	if(!current_gw->updateFmt(dvb_frame, this->pkt_hdl))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "gw %d failed to handle dvb burst\n",
+		    current_gw->getGwId());
+		return false;
+	}
 	if(!current_gw->handleSac(dvb_frame))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,

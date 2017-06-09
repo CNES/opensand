@@ -32,4 +32,5 @@ libopensand_dvb_saloha_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/utils \
 	-I$(top_srcdir)/src/dvb/fmt \
-	-I$(top_srcdir)/src/common
+	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/physical_layer

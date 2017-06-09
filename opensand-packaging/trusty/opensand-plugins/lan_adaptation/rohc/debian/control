@@ -1,0 +1,47 @@
+Source: opensand-rohc-lan-adapt-plugin
+Priority: optional
+Maintainer: OpenSAND Maintainers <admin@opensand.org>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
+ libopensand-output-dev (>= 4.1.0),
+ librohc-dev (>= 1.7.0),
+ libopensand-conf-dev (>= 4.1.0),
+ libopensand-plugin-dev (>= 4.1.0)
+XS-Python-Version: >= 2.7
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-rohc-lan-adapt-plugin-conf
+Section: misc
+Architecture: any
+Depends: opensand-core-conf
+Description: The configuration files of the OpenSAND ROHC plugin
+
+Package: libopensand-rohc-lan-adapt-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-rohc-lan-adapt-plugin (= ${binary:Version})
+Provides: libopensand-rohc-plugin-dbg, libopensand-rohc-encap-plugin-dbg
+Conflicts: libopensand-rohc-plugin-dbg, libopensand-rohc-encap-plugin-dbg
+Replaces: libopensand-rohc-plugin-dbg, libopensand-rohc-encap-plugin-dbg
+Description: Debugging symbols for OpenSAND ROHC plugin
+
+Package: libopensand-rohc-lan-adapt-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ libopensand-rohc-lan-adapt-plugin-conf (= ${binary:Version}), opensand-daemon
+Provides: libopensand-rohc-plugin, libopensand-rohc-encap-plugin
+Conflicts: libopensand-rohc-plugin, libopensand-rohc-encap-plugin
+Replaces: libopensand-rohc-plugin, libopensand-rohc-encap-plugin
+Description: The ROHC plugin for OpenSAND
+
+Package: libopensand-rohc-lan-adapt-plugin-manager
+Section: libs
+Architecture: any
+Depends: libopensand-rohc-lan-adapt-plugin-conf (= ${binary:Version}),
+ python (>= 2.7), python (<<3.0), opensand-manager-gui
+Provides: libopensand-rohc-plugin-manager, libopensand-rohc-encap-plugin-manager
+Conflicts: libopensand-rohc-plugin-manager, libopensand-rohc-encap-plugin-manager
+Replaces: libopensand-rohc-plugin-manager, libopensand-rohc-encap-plugin-manager
+Description: The ROHC plugin configuration for OpenSAND Manager
+

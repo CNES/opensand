@@ -4,7 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +30,7 @@
  * @file Constant.cpp
  * @brief Constant
  * @author Santiago PENA LUQUE <santiago.penaluque@cnes.fr>
+ * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.fr>
  */
 
 
@@ -41,7 +43,7 @@
 
 #define CONSTANT_SECTION "constant"
 #define THRESHOLD        "threshold"
-#define CONF_CST_FILE    "/etc/opensand/plugins/constant.conf"
+#define CONF_CST_FILENAME    "constant.conf"
 
 Constant::Constant():
 	MinimalConditionPlugin()
@@ -55,11 +57,13 @@ Constant::~Constant()
 bool Constant::init(void)
 {
 	ConfigurationFile config;
+	string conf_cst_path;
+	conf_cst_path = this->getConfPath() + string(CONF_CST_FILENAME);
 
-	if(config.loadConfig(CONF_CST_FILE) < 0)
+	if(config.loadConfig(conf_cst_path.c_str()) < 0)
 	{   
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load config file '%s'", CONF_CST_FILE);
+		    "failed to load config file '%s'", conf_cst_path.c_str());
 		goto error;
 	}
 

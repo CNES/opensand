@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -500,6 +500,7 @@ bool SpotDownward::initOutput(void)
 	this->probe_gw_queue_loss_kb = new map<string, ProbeListPerId>();
 	this->probe_gw_l2_to_sat_before_sched = new map<string, ProbeListPerId>();
 	this->probe_gw_l2_to_sat_after_sched = new map<string, ProbeListPerId>();
+	char probe_name[128];
 
 	for(map<string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
 		it1 != this->dvb_fifos.end(); it1++)
@@ -513,52 +514,59 @@ bool SpotDownward::initOutput(void)
 
 			Probe<int>* probe_temp;
 
-			probe_temp = Output::registerProbe<int>("Packets", true, SAMPLE_LAST,
-			                                        "Spot_%d.%s.Queue size.packets.%s",
-			                                        spot_id, cat_label.c_str(), fifo_name);
+			snprintf(probe_name, sizeof(probe_name),
+			         "Spot_%d.%s.Queue size.packets.%s",
+							 spot_id, cat_label.c_str(), fifo_name);
+			probe_temp = Output::registerProbe<int>(probe_name, "Packets", true, SAMPLE_LAST);
 			(*this->probe_gw_queue_size)[cat_label].insert(
 						make_pair<unsigned int, Probe<int> *>(
 							(unsigned int) id, (Probe<int> *) probe_temp));
 
-			probe_temp = Output::registerProbe<int>("kbits", true, SAMPLE_LAST,
-			                                        "Spot_%d.%s.Queue size.%s",
-			                                        spot_id, cat_label.c_str(), fifo_name);
+			snprintf(probe_name, sizeof(probe_name),
+			         "Spot_%d.%s.Queue size.%s",
+							 spot_id, cat_label.c_str(), fifo_name);
+			probe_temp = Output::registerProbe<int>(probe_name, "kbits", true, SAMPLE_LAST);
 			(*this->probe_gw_queue_size_kb)[cat_label].insert(
 						make_pair<unsigned int, Probe<int> *>(
 							(unsigned int) id, (Probe<int> *) probe_temp));
 
-			probe_temp = Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-			                                        "Spot_%d.%s.Throughputs.L2_to_SAT_before_sched.%s",
-			                                        spot_id, cat_label.c_str(), fifo_name);
+			snprintf(probe_name, sizeof(probe_name),
+			         "Spot_%d.%s.Throughputs.L2_to_SAT_before_sched.%s",
+							 spot_id, cat_label.c_str(), fifo_name);
+			probe_temp = Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 			(*this->probe_gw_l2_to_sat_before_sched)[cat_label].insert(
 						make_pair<unsigned int, Probe<int> *>(
 							(unsigned int) id, (Probe<int> *) probe_temp));
 
-			probe_temp = Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-			                                        "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.%s",
-			                                        spot_id, cat_label.c_str(), fifo_name);
+			snprintf(probe_name, sizeof(probe_name),
+			         "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.%s",
+							 spot_id, cat_label.c_str(), fifo_name);
+			probe_temp = Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 			(*this->probe_gw_l2_to_sat_after_sched)[cat_label].insert(
 						make_pair<unsigned int, Probe<int> *>(
 							(unsigned int) id, (Probe<int> *) probe_temp));
 
-			probe_temp = Output::registerProbe<int>("Packets", true, SAMPLE_SUM,
-			                                        "Spot_%d.%s.Queue loss.packets.%s",
-			                                        spot_id, cat_label.c_str(), fifo_name);
+			snprintf(probe_name, sizeof(probe_name),
+			         "Spot_%d.%s.Queue loss.packets.%s",
+							 spot_id, cat_label.c_str(), fifo_name);
+			probe_temp = Output::registerProbe<int>(probe_name, "Packets", true, SAMPLE_SUM);
 			(*this->probe_gw_queue_loss)[cat_label].insert(
 						make_pair<unsigned int, Probe<int> *>(
 							(unsigned int) id, (Probe<int> *) probe_temp));
 
-			probe_temp = Output::registerProbe<int>("Kbits/s", true, SAMPLE_SUM,
-			                                        "Spot_%d.%s.Queue loss.%s",
-			                                        spot_id, cat_label.c_str(), fifo_name);
+			snprintf(probe_name, sizeof(probe_name),
+			         "Spot_%d.%s.Queue loss.%s",
+							 spot_id, cat_label.c_str(), fifo_name);
+			probe_temp = Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_SUM);
 			(*this->probe_gw_queue_loss_kb)[cat_label].insert(
 						make_pair<unsigned int, Probe<int> *>(
 							(unsigned int) id, (Probe<int> *) probe_temp));
 		}
+		snprintf(probe_name, sizeof(probe_name),
+						 "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.total",
+						 spot_id, cat_label.c_str());
 		this->probe_gw_l2_to_sat_total[cat_label] =
-			Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-			                           "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.total",
-			                           spot_id, cat_label.c_str());
+			Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 
 	}
 

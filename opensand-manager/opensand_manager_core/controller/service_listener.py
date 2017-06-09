@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2015 TAS
+# Copyright © 2016 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 # inspired from http://avahi.org/wiki/PythonBrowseExample
 
 """
@@ -159,6 +160,12 @@ class OpenSandServiceListener():
                 network_config['lan_ipv6'] = val
             elif key == 'mac':
                 network_config['mac'] = val
+            elif key == 'ip_remote':
+                network_config['remote_ip'] = val
+            elif key == 'port_upward':
+                network_config['upward_port'] = val
+            elif key == 'port_downward':
+                network_config['downward_port'] = val
             elif key == 'cache':
                 cache = val
         try:
@@ -169,13 +176,19 @@ class OpenSandServiceListener():
             # host already exists
             return
         else:
-            if not name.startswith(WS):
-                new_host = HostController(host_model, self._log, cache)
+            # if already added model, return here, but add components
+            existant_host = self.get_host(host_model.get_name())
+            if existant_host:
+                existant_host.new_machine(cache)
+            elif not name.startswith(WS):
+                new_host = HostController(host_model, self._log)
+                new_host.new_machine(cache)
                 self._hosts.append(new_host)
             # we need controller for workstations with tools
-            if name.startswith(WS):
+            elif name.startswith(WS):
                 if len(host_model.get_tools()) > 0:
-                    new_host = HostController(host_model, self._log, cache)
+                    new_host = HostController(host_model, self._log)
+                    new_host.new_machine(cache)
                     self._ws.append(new_host)
                     # stop here
                     return
@@ -224,19 +237,36 @@ class OpenSandServiceListener():
             self._model.set_collector_functional(False)
             return
         
-        self._model.del_host(name)
-        for host in self._hosts:
-            if host.get_name().lower() == name:
-                host.close()
-                self._hosts.remove(host)
-        for ws in self._ws:
-            if ws.get_name().lower() == name:
-                ws.close()
-                self._ws.remove(ws)
+        if self._model.del_host(name):
+            # host was removed from model
+            for host in self._hosts:
+                if host.has_machine_by_name(name):
+                    host.del_machine_by_name(name)
+                    host.close()
+                    self._hosts.remove(host)
+                    break
+            for ws in self._ws:
+                if ws.has_machine_by_name(name):
+                    ws.close()
+                    self._ws.remove(ws)
+                    break
+        else:
+            # only machine was removed
+            for host in self._hosts:
+                if host.has_machine_by_name(name):
+                    host.del_machine_by_name(name)
+                    break
 
     def handler_end(self):
         """ all service discovered """
         pass
+
+    def get_host(self, host_name):
+        """ get host controller from hosts list """
+        for host in self._hosts:
+            if host.get_name() == host_name.upper():
+                return host
+        return None
 
 
 ##### TEST #####

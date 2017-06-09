@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2016 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -379,27 +379,6 @@ Probe<T> *Output::registerProbe(bool enabled,
 	va_end(args);
 
 	return Output::registerProbe<T>(buf, "", enabled, type);
-}
-
-template<typename T>
-Probe<T> *Output::registerProbe(const string &unit,
-                                bool enabled,
-                                sample_type_t type,
-                                const char *name, ...)
-{
-	Probe<T> *probe;
-	char buf[1024];
-	va_list args;
-	
-	va_start(args, name);
-
-	vsnprintf(buf, sizeof(buf), name, args);
-
-	va_end(args);
-
-	return Output::registerProbe<T>(buf, unit, enabled, type);
-
-	return probe;
 }
 
 #endif

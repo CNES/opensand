@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2016 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -136,10 +136,18 @@ class RtEvent
 	 */
 	timeval getAndSetCustomTime(void) const;
 
+	static bool compareEvents(const RtEvent* e1, const RtEvent* e2)
+	{
+		return ((*e1) < (*e2));
+	}
+
 	/// operator < used by sort on events priority
-	bool operator<(const RtEvent *event) const
-	{   
-		return (this->priority < event->priority);
+	bool operator<(const RtEvent &event) const
+	{
+ 		long int delta = 100000000 * (long int) (this->priority - event.priority);
+		delta += 1000000 * (this->trigger_time.tv_sec - event.trigger_time.tv_sec);
+		delta += this->trigger_time.tv_usec - event.trigger_time.tv_usec;
+		return (delta < 0);		
 	}   
 
 	/// operator == used to check if the event id corresponds

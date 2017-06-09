@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2015 TAS
-# Copyright © 2015 CNES
+# Copyright © 2016 TAS
+# Copyright © 2016 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 opensand_manager_core/utils.py - Utilities for OpenSAND Manager
@@ -37,6 +38,7 @@ opensand_manager_core/utils.py - Utilities for OpenSAND Manager
 
 import shutil
 import os
+import re
 
 OPENSAND_PATH = "/usr/share/opensand/"
 COL_RED="\033[31m"
@@ -54,6 +56,17 @@ GW  = "gw"
 ST  = "st"
 SAT = "sat"
 WS  = "ws"
+GW_PHY = "gw-phy"
+GW_NET_ACC = "gw-net-acc"
+
+GW_types = { GW_PHY, GW_NET_ACC }
+
+# Host templates
+HOST_TEMPLATES = {
+        SAT : [[SAT]],
+        ST : [[ST]],
+        WS : [[WS]],
+        GW : [[GW], [GW_PHY, GW_NET_ACC]] }
 
 # Common
 GLOBAL      = "global"
@@ -119,6 +132,12 @@ TERMINAL_ETH  = "terminal_eth"
 LAN_IPV4      = "lan_ipv4"
 LAN_IPV6      = "lan_ipv6"
 
+# Delay
+SATDELAY      = "satdelay"
+SATDELAY_TYPE = "type"
+SATDELAY_CONF = "satdelay_conf"
+CONSTANT_DELAY = "ConstantDelay"
+
 # Path
 PATH_BAND     = "_band/"
 PATH_IPV4     = "/configuration/sarp/ipv4"
@@ -131,6 +150,8 @@ PATH_DEFAULT_SPOT = "/configuration/spot_table/default_spot"
 PATH_SPOT = "/configuration/spot_table"
 PATH_DEFAULT_GW = "/configuration/gw_table/default_gw"
 PATH_GW = "/configuration/gw_table"
+PATH_SATDELAYS = "/configuration/delays/satdelays"
+PATH_SATDELAY_CONF_MODULE = "/configuration/satdelay_conf"
 
 def get_conf_xpath(element, link = '', spot_id = 0, gw_id = 1):
     path = ""
@@ -203,4 +224,8 @@ def copytree(src, dst):
     except OSError:
         raise
 
+def to_underscore(camelcase):
+    """ convert camelcase string to underscore notation """
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', camelcase)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 

@@ -4,7 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +31,7 @@
  * @brief Generic OpenSAND plugin
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 #ifndef OPENSAND_PLUGIN_H
@@ -49,11 +51,12 @@ typedef enum
 	attenuation_plugin,
 	minimal_plugin,
 	error_plugin,
+	satdelay_plugin,
 } plugin_type_t;
 
 class OpenSandPlugin;
 
-typedef OpenSandPlugin *(*fn_create)();
+typedef OpenSandPlugin *(*fn_create)(const string);
 
 typedef struct
 {
@@ -89,10 +92,11 @@ class OpenSandPlugin
 	 * @return the plugin
 	 */
 	template<class Plugin>
-	static OpenSandPlugin *create(const string name)
+	static OpenSandPlugin *create(const string name, const string conf_path)
 	{
 		Plugin *plugin = new Plugin();
 		plugin->name = name;
+		plugin->conf_path = conf_path;
 		return plugin;
 	};
 
@@ -110,15 +114,23 @@ class OpenSandPlugin
 	 */
 	string getName() const {return this->name;};
 
+	/**
+	 * @brief get the configuration path
+	 *
+	 * @return the configuration path
+	 */
+	string getConfPath() const {return this->conf_path;};
+
   protected:
 
 	string name;
+	string conf_path; 
 
 };
 
 /// Define the function that will create the plugin class
 #define CREATE(CLASS, pl_type, pl_name) \
-	extern "C" OpenSandPlugin *create_ptr(){return CLASS::create<CLASS>(pl_name);}; \
+	extern "C" OpenSandPlugin *create_ptr(const string conf_path){return CLASS::create<CLASS>(pl_name, conf_path);}; \
 	extern "C" opensand_plugin_t *init() \
 	{\
 		opensand_plugin_t *pl = new opensand_plugin_t; \

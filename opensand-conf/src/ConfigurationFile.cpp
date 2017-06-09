@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2016 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -439,6 +439,59 @@ bool ConfigurationFile::getNbListItems(ConfigurationList section,
 error:
 	return false;
 
+}
+
+bool ConfigurationFile::getItemNode(ConfigurationList section,
+                                    const char *key,
+                                    ConfigurationList &list)
+{
+	xmlpp::Node::NodeList keyList;
+	ConfigurationList::iterator iter;
+	for(iter = section.begin(); iter != section.end(); iter++)
+	{
+		const xmlpp::Node *sectionNode = *iter;
+
+		keyList = sectionNode->get_children(key);
+		if(keyList.size() > 1)
+		{
+			LOG(this->log_conf, LEVEL_ERROR,
+					"more than one key named '%s' in section '%s'\n",
+					key, sectionNode->get_name().c_str());
+			return false;
+		}
+		else if(keyList.size() == 1)
+		{
+			list.push_front(keyList.front());
+			return true;
+		}
+	}
+	LOG(this->log_conf, LEVEL_ERROR,
+			"no key found named '%s'\n",
+			key);
+	return false;
+}
+
+bool ConfigurationFile::getItemNode(xmlpp::Node *node,
+                                    const char *key,
+                                    ConfigurationList &list)
+{
+	xmlpp::Node::NodeList keyList;
+	keyList = node->get_children(key);
+	if(keyList.size() > 1)
+	{
+		LOG(this->log_conf, LEVEL_ERROR,
+		    "more than one key named '%s'\n",
+		    key);
+		goto error;
+	}
+	else if(keyList.size() == 1)
+	{
+		list.push_front(keyList.front());
+	}
+
+	return true;
+error:
+	return false;
 }
 
 bool ConfigurationFile::getListItems(xmlpp::Node *node,

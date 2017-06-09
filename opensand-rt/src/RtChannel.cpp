@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2016 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -599,8 +599,7 @@ void RtChannel::executeThread(void)
 			}
 		}
 		// sort the list according to priority
-		// FIXME: this does not appear to work ! Why ?!
-		priority_sorted_events.sort();
+		priority_sorted_events.sort(RtEvent::compareEvents);
 
 		// call processEvent on each event
 		for(list<RtEvent *>::iterator iter = priority_sorted_events.begin();

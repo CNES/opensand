@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -39,6 +39,7 @@
  *
  * Author: Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * Author: Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * Author: Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 // OpenSAND includes
@@ -230,7 +231,7 @@ static bool test_lan_adapt(string src_filename,
 	Output::enableStdlog();
 
 	// load the plugins
-	if(!Plugin::loadPlugins(false))
+	if(!Plugin::loadPlugins(false, string("/etc/opensand/plugins/")))
 	{
 		ERROR("cannot load the plugins\n");
 		goto error;

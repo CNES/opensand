@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2016 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,11 +29,15 @@
  * @file OpenSandConf.h
  * @brief GLobal interface for configuration file reading
  * @author Bénédicte MOTTO / <bmotto@toulouse.viveris.com>
+ * @author Joaquin Muguerza / <jmuguerza@toulouse.viveris.com>
  */
 
 #ifndef OPENSAND_CONF_H
 #define OPENSAND_CONF_H
 
+#define CONF_TOPOLOGY "topology.conf"
+#define CONF_GLOBAL_FILE "core_global.conf"
+#define CONF_DEFAULT_FILE "core.conf"
 
 #include "OpenSandCore.h"
 #include "OpenSandConfFile.h"

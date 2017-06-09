@@ -4,7 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +30,7 @@
  * @file PluginUtils.cpp
  * @brief utilities for Plugins
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 
@@ -48,12 +50,13 @@ PluginUtils::PluginUtils()
 {
 }
 
-bool PluginUtils::loadPlugins(bool enable_phy_layer)
+bool PluginUtils::loadPlugins(bool enable_phy_layer, string conf_path)
 {
 	DIR *plugin_dir;
 	char *lib_path;
 	vector<string> path;
 	this->log_init = Output::registerLog(LEVEL_WARNING, "init");
+	this->conf_path = conf_path;
 
 	lib_path = getenv("LD_LIBRARY_PATH");
 	if(lib_path)
@@ -142,6 +145,28 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 							    "load encapsulation plugin %s\n",
 							    plugin->name.c_str());
 							this->encapsulation[plugin->name] = plugin->create;
+							this->handlers.push_back(handle);
+						}
+						else
+						{
+							dlclose(handle);
+						}
+					}
+					break;
+
+					case satdelay_plugin:
+					{
+						pl_list_it_t plug;
+
+						// if we load twice the same plugin, keep the first one
+						// this is why LD_LIBRARY_PATH should be first in the paths
+						plug = this->sat_delay.find(plugin->name);
+						if(plug == this->sat_delay.end())
+						{
+							LOG(this->log_init, LEVEL_NOTICE,
+							    "load satdelay plugin %s\n",
+							    plugin->name.c_str());
+							this->sat_delay[plugin->name] = plugin->create;
 							this->handlers.push_back(handle);
 						}
 						else
@@ -299,16 +324,37 @@ bool PluginUtils::getEncapsulationPlugin(string name,
 	fn_create create;
 
 	create = this->encapsulation[name];
+
 	if(!create)
 	{
 		return false;
 	}
-	*encapsulation = dynamic_cast<EncapPlugin *>(create());
+	*encapsulation = dynamic_cast<EncapPlugin *>(create(this->conf_path));
 	if(*encapsulation == NULL)
 	{
 		return false;
 	}
 	this->plugins.push_back(*encapsulation);
+
+	return true;
+};
+
+bool PluginUtils::getSatDelayPlugin(string name,
+	                                  SatDelayPlugin **sat_delay)
+{
+	fn_create create;
+
+	create = this->sat_delay[name];
+	if(!create)
+	{
+		return false;
+	}
+	*sat_delay = dynamic_cast<SatDelayPlugin *>(create(this->conf_path));
+	if(*sat_delay == NULL)
+	{
+		return false;
+	}
+	this->plugins.push_back(*sat_delay);
 
 	return true;
 };
@@ -333,7 +379,7 @@ bool PluginUtils::getLanAdaptationPlugin(string name,
 	{
 		return false;
 	}
-	*lan_adaptation = dynamic_cast<LanAdaptationPlugin *>(create());
+	*lan_adaptation = dynamic_cast<LanAdaptationPlugin *>(create(this->conf_path));
 	if(*lan_adaptation == NULL)
 	{
 		return false;
@@ -362,7 +408,7 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 			    att_pl_name.c_str());
 			return false;
 		}
-		*attenuation = dynamic_cast<AttenuationModelPlugin *>(create());
+		*attenuation = dynamic_cast<AttenuationModelPlugin *>(create(this->conf_path));
 		if(*attenuation == NULL)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -383,7 +429,7 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 			    min_pl_name.c_str());
 			return false;
 		}
-		*minimal = dynamic_cast<MinimalConditionPlugin *>(create());
+		*minimal = dynamic_cast<MinimalConditionPlugin *>(create(this->conf_path));
 		if(*minimal == NULL)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -404,7 +450,7 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 			    err_pl_name.c_str());
 			return false;
 		}
-		*error = dynamic_cast<ErrorInsertionPlugin *>(create());
+		*error = dynamic_cast<ErrorInsertionPlugin *>(create(this->conf_path));
 		if(*error == NULL)
 		{
 			LOG(this->log_init, LEVEL_ERROR,

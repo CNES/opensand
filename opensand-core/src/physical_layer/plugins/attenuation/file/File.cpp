@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
  * @brief File
  * @author Fatima LAHMOUAD <fatima.lahmouad@etu.enseeiht.fr>
  * @author Santiago PENA <santiago.penaluque@cnes.fr>
+ * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.fr>
  */
 
 
@@ -45,7 +46,7 @@
 #define FILE_LIST      "file_attenuations"
 #define PATH          "path"
 #define LOOP          "loop_mode"
-#define CONF_FILE_FILE "/etc/opensand/plugins/file.conf"
+#define CONF_FILE_FILENAME "file.conf"
 
 File::File():
 	AttenuationModelPlugin(),
@@ -64,12 +65,14 @@ bool File::init(time_ms_t refresh_period_ms, string link)
 {
 	string filename;
 	ConfigurationFile config;
+	string conf_file_path;
+	conf_file_path = this->getConfPath() + string(CONF_FILE_FILENAME);
 
-	if(config.loadConfig(CONF_FILE_FILE) < 0)
+	if(config.loadConfig(conf_file_path.c_str()) < 0)
 	{   
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to load config file '%s'",
-		    CONF_FILE_FILE);
+		    conf_file_path.c_str());
 		return false;
 	}
 
@@ -119,43 +122,31 @@ bool File::load(string filename)
 
 	while(std::getline(file, line))
 	{
-		string token;
-		string separator;	
 		unsigned int time;
 		double attenuation;
+
+		line_number++;
+
+		// skip line if empty
+		if(line == "" || line[0] == '#')
+		{
+			continue;
+		}
 
 		// Clear previous flags (if any)
 		line_stream.clear();
 		line_stream.str(line);
-		line_number++;
 
-		// skip line if empty
-		if(line == "")
+		line_stream >> time;
+		if(line_stream.bad() || line_stream.fail())
 		{
-			continue;
-		}
-
-		line_stream >> token;
-		if(token[0] == '#')
-		{
-			// line is comment, skip
-			continue;
-		}
-		else
-		{
-			std::istringstream tmp_stream(token);
-			tmp_stream >> time;
-
-			if(tmp_stream.bad() || tmp_stream.fail())
-			{
-				LOG(this->log_attenuation, LEVEL_ERROR,
-				    "Bad syntax in file '%s', line %u: "
-				    "there should be a timestamp (integer) "
-				    "instead of '%s'\n",
-				    filename.c_str(), line_number,
-				    token.c_str());
-				goto malformed;
-			}
+			LOG(this->log_attenuation, LEVEL_ERROR,
+					"Bad syntax in file '%s', line %u: "
+					"there should be a timestamp (integer) "
+					"instead of '%s'\n",
+					filename.c_str(), line_number,
+					line.c_str());
+			goto malformed;
 		}
 
 		// get attenuation

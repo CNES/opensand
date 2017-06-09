@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
  * @brief Upward spot related functions for DVB NCC block
  * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 
@@ -462,10 +463,11 @@ bool SpotUpwardTransp::initOutput(void)
 	}
 
 	// Output probes and stats
+	char probe_name[128];
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.Throughputs.L2_from_SAT", this->spot_id);
 	this->probe_gw_l2_from_sat=
-		Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                           "Spot_%d.Throughputs.L2_from_SAT",
-		                            this->spot_id);
+		Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 	this->l2_from_sat_bytes = 0;
 
 	return true;
@@ -591,6 +593,20 @@ void SpotUpwardTransp::handleFrameCni(DvbFrame *dvb_frame)
 	switch(msg_type)
 	{
 		// Cannot check frame type because of currupted frame
+		case MSG_TYPE_SAC:
+		{
+			Sac *sac = (Sac *)dvb_frame;
+			tal_id = sac->getTerminalId();
+			if(!tal_id)
+			{
+				LOG(this->log_receive_channel, LEVEL_ERROR,
+				    "unable to read source terminal ID in"
+				    " frame, won't be able to update C/N"
+				    " value\n");
+				return;
+			}
+			break;
+		}
 		case MSG_TYPE_DVB_BURST:
 		{
 			// transparent case : update return modcod for terminal

@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2016 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
  * @file Configuration.h
  * @brief GLobal interface for configuration file reading
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
  */
 
 #ifndef CONFIGURATION_H
@@ -49,10 +50,6 @@ using namespace std;
 #else               /* !__GNUC__ && !__LCLINT__ */
 #  define UNUSED(x) x
 #endif              /* !__GNUC__ && !__LCLINT__ */
-
-#define CONF_TOPOLOGY      "/etc/opensand/topology.conf"
-#define CONF_GLOBAL_FILE   "/etc/opensand/core_global.conf"
-#define CONF_DEFAULT_FILE  "/etc/opensand/core.conf"
 
 /*
  * @class Conf
@@ -160,7 +157,31 @@ class Conf
 	static bool getListNode(ConfigurationList sectionList,
                             const char *key,
                             xmlpp::Node::NodeList &nodeList);
-	
+
+	/**
+	 * Get the node of a children Item
+	 *
+	 * @param  section   the section
+	 * @param  key   the key of the target node
+	 * @param  list  the output list
+	 * @return  true on success, false otherwise
+	 */
+	static bool getItemNode(ConfigurationList section,
+	                        const char *key,
+	                        ConfigurationList &list);
+
+	/**
+	 * Get the node of a children Item
+	 *
+	 * @param  node  the node
+	 * @param  key   the key of the target node
+	 * @param  list  the output list
+	 * @return  true on success, false otherwise
+	 */
+	static bool getItemNode(xmlpp::Node *node,
+	                        const char *key,
+	                        ConfigurationList &list);
+
 	/**
 	 * get the element from the list with attribute value
 	 * @param  list             the origal element list

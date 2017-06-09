@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 CNES
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @brief A DVB physical layer block
  * @author Santiago PENA  <santiago.penaluque@cnes.fr>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  *
  * This block modifies the DVB frames sent/received on satellite terminals
  * depending on emulated physical conditions of the up and downlink
@@ -61,8 +62,9 @@ class BlockPhysicalLayer: public Block
 	 * Build a physical layer block
 	 *
 	 * @param name            The name of the block
+	 * @param name            The mac id of the terminal
 	 */
-	BlockPhysicalLayer(const string &name);
+	BlockPhysicalLayer(const string &name, tal_id_t mac_id);
 
 	/**
 	 * Destroy the PhysicalLayer block
@@ -78,15 +80,18 @@ class BlockPhysicalLayer: public Block
 		friend class BlockPhysicalLayerSat;
 		
 	  public:
-		Upward(const string &name);
+		Upward(const string &name, tal_id_t mac_id);
 
 		virtual bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 		
 	  protected:
-		bool forwardFrame(DvbFrame *dvb_frame);
+		bool setSatDelay(SatDelayPlugin *satdelay, bool update);
+		bool processAttenuation(DvbFrame *dvb_frame);
+		bool handleFifoTimer();
 
 	  private:
+		bool attenuation;
 		// Output logs
 		OutputLog *log_event;
 	};
@@ -97,18 +102,33 @@ class BlockPhysicalLayer: public Block
 		friend class BlockPhysicalLayerSat;
 		
 	  public:
-		Downward(const string &name);
+		Downward(const string &name, tal_id_t mac_id);
 
 		virtual bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	  protected:
-		bool forwardFrame(DvbFrame *dvb_frame);
+		bool setSatDelay(SatDelayPlugin *satdelay, bool update);
+		bool processAttenuation(DvbFrame *dvb_frame);
+		bool handleFifoTimer();
 
 	  private:
+		bool attenuation;
 		// Output logs
 		OutputLog *log_event;
 	};
+ private:
+	/**
+	 * @brief initialize satellite delay plugin
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool initSatDelay();
+
+	/// The terminal mac_id
+	tal_id_t mac_id;
+	/// The satellite delay for this terminal
+	SatDelayPlugin *satdelay;
 };
 
 /**
@@ -119,14 +139,14 @@ class BlockPhysicalLayerSat: public BlockPhysicalLayer
 {
  public:
 	BlockPhysicalLayerSat(const string &name):
-		BlockPhysicalLayer(name)
+		BlockPhysicalLayer(name, 0)
 	{};
 	
 	class Upward: public BlockPhysicalLayer::Upward
 	{
 	  public:
 		Upward(const string &name):
-			BlockPhysicalLayer::Upward(name)
+			BlockPhysicalLayer::Upward(name, 0)
 		{};
 
 		bool onInit(void);
@@ -136,7 +156,7 @@ class BlockPhysicalLayerSat: public BlockPhysicalLayer
 	{
 	  public:
 		Downward(const string &name):
-			BlockPhysicalLayer::Downward(name)
+			BlockPhysicalLayer::Downward(name, 0)
 		{};
 
 		bool onInit(void);

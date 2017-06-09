@@ -27,4 +27,8 @@ test_sat_carrier_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 
+test_sat_carrier_fifo_LDADD = \
+	$(PACKED_COMMON_LIBS) \
+	$(allexec_LDADD)
+
 

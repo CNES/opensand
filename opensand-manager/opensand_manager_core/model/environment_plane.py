@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2015 TAS
+# Copyright © 2016 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,13 +29,14 @@
 #
 
 # Author: Vincent DUVERT / <vduvert@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 
 """
 environment_plane.py - Model for environment plane elements
 """
 
-from opensand_manager_core.model.host import InitStatus
+from opensand_manager_core.model.machine import InitStatus
 
 import os
 import struct

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
  * @brief Generic plugin for stack elements
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 #ifndef STACK_CONTEXT_H
@@ -300,6 +301,13 @@ class StackPlugin: public OpenSandPlugin
 		string getName() const {return plugin.name;};
 
 		/**
+		 * @brief Get the configuration path
+		 *
+		 * @return the configuration path
+		 */
+		string getConfPath() const {return plugin.conf_path;};
+
+		/**
 		 * @brief Create a NetPacket from data with the relevant attributes
 		 *
 		 * @param data        The packet data
@@ -394,7 +402,7 @@ class StackPlugin: public OpenSandPlugin
 	 * @return The plugin
 	 */
 	template<class Plugin, class Context, class Handler>
-	static OpenSandPlugin *create(string name)
+	static OpenSandPlugin *create(const string name, const string conf_path)
 	{
 		Plugin *plugin = new Plugin();
 		Context *context = new Context(*plugin);
@@ -402,6 +410,7 @@ class StackPlugin: public OpenSandPlugin
 		plugin->context = context;
 		plugin->packet_handler = handler;
 		plugin->name = name;
+		plugin->conf_path = conf_path;
 		plugin->init();
 		context->init();
 		handler->init();
@@ -436,9 +445,9 @@ typedef vector<StackPlugin::StackContext *> stack_contexts_t;
 
 /// Define the function that will create the plugin class
 #define CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, pl_type) \
-	extern "C" OpenSandPlugin *create_ptr() \
+	extern "C" OpenSandPlugin *create_ptr(const string conf_path) \
 	{ \
-		return CLASS::create<CLASS, CONTEXT, HANDLER>(pl_name); \
+		return CLASS::create<CLASS, CONTEXT, HANDLER>(pl_name, conf_path); \
 	}; \
 	extern "C" opensand_plugin_t *init() \
 	{ \

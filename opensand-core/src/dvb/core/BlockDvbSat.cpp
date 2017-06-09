@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -33,10 +33,12 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 #include "BlockDvbSat.h"
 
+#include "Plugin.h"
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "GenericSwitch.h"
@@ -98,7 +100,6 @@ bool BlockDvbSat::onInit()
 		    "initialisation\n");
 		return false;
 	}
-
 	return true;
 }
 
@@ -287,7 +288,6 @@ error:
 BlockDvbSat::Downward::Downward(const string &name):
 	DvbDownward(name),
 	down_frame_counter(),
-	sat_delay(),
 	fwd_timer(-1),
 	terminal_affectation(),
 	default_category(),
@@ -369,7 +369,7 @@ void BlockDvbSat::Downward::setGws(const sat_gws_t &gws)
 bool BlockDvbSat::Downward::initOutput(void)
 {
 	this->probe_frame_interval = Output::registerProbe<float>(
-		"Perf.Frames_interval", "ms", true, SAMPLE_LAST);
+				"Perf.Frames_interval", "ms", true, SAMPLE_LAST);
 
 	return true;
 }
@@ -604,8 +604,7 @@ void BlockDvbSat::Downward::updateStats(void)
 BlockDvbSat::Upward::Upward(const string &name):
 	DvbUpward(name),
 	reception_std(NULL),
-	gws(),
-	sat_delay()
+	gws()
 {
 };
 
@@ -664,18 +663,6 @@ bool BlockDvbSat::Upward::onInit()
 bool BlockDvbSat::Upward::initMode(void)
 {
 	// Delay to apply to the medium
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
-	                   SAT_DELAY, this->sat_delay))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SAT_DELAY);
-		goto error;
-	}
-		
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "Satellite delay = %d", this->sat_delay);
-
 	if(this->satellite_type == REGENERATIVE)
 	{
 		this->reception_std = new DvbRcsStd(this->pkt_hdl);
@@ -942,7 +929,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 bool BlockDvbSat::Upward::forwardDvbFrame(DvbFifo *fifo, DvbFrame *dvb_frame)
 {
-	return this->pushInFifo(fifo, (NetContainer *)dvb_frame, this->sat_delay);
+	// TODO: do we still need the fifos now that the delay is implemented on sat_carrier ? 
+	return this->pushInFifo(fifo, (NetContainer *)dvb_frame, 0);
 }
-
 

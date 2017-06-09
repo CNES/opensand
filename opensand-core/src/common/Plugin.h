@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2016 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -28,6 +28,7 @@
 /**
  * @file Plugin.h
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
  * @brief  High level interface for opensand plugin utilities
  *
  */
@@ -54,9 +55,11 @@ class Plugin
 	 * @brief load the plugins
 	 *
 	 * @param enable_phy_layer Whether the physical layer is enabled or not
+	 * @param conf_path the configuration path
 	 * @return true on success, false otherwise
 	 */
-	static bool loadPlugins(bool enable_phy_layer);
+	static bool loadPlugins(bool enable_phy_layer,
+                          string conf_path);
 
 	/**
 	 * @brief release the class elements for plugins
@@ -100,6 +103,16 @@ class Plugin
 	                                    AttenuationModelPlugin **attenuation,
 	                                    MinimalConditionPlugin **minimal,
 	                                    ErrorInsertionPlugin **error);
+
+	/**
+	 * @brief get a satellite delay plugin
+	 *
+	 * @param name           The name of the satellite delay plugin
+	 * @param sat_delay      The satellite delay plugin
+	 * @return true on success, false otherwise
+	 */
+	static bool getSatDelayPlugin(string name,
+	                              SatDelayPlugin **sat_delay);
 
 	/**
 	 * @brief get the encapsulation plugins list

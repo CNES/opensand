@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -88,10 +88,12 @@ FmtDefinitionTable::~FmtDefinitionTable()
 bool FmtDefinitionTable::load(const string filename)
 {
 	std::ifstream file;
-	unsigned int lines_count;
+	unsigned int lines_count = 0;
 	int nb_fmt;
 	bool is_nb_fmt_found = false;
 	unsigned int nb_fmt_read = 0;
+	string line;
+	std::istringstream line_stream;
 
 	// first, clear all the current FMT definitions
 	this->clear();
@@ -107,30 +109,26 @@ bool FmtDefinitionTable::load(const string filename)
 	}
 
 	// read every line of the file
-	lines_count = 0;
-	while(!file.eof())
+	while(std::getline(file, line))
 	{
-		string line;
-		stringstream line_stream;
 		string token;
+		lines_count++;
 
-		// get the full line
-		getline(file, line);
-
-		// skip line if empty
-		if(isSpace(line))
+		if(line == "")
 		{
 			continue;
 		}
 
-		lines_count++;
-
-		// get the first keyword of the line
+		// clear previous flags, if any
+		line_stream.clear();
 		line_stream.str(line);
+
+		// get first keyword
 		line_stream >> token;
-		if(token == "/*")
+		if((token.length() > 0 && token[0] == '#') ||
+		   (token.length() > 0 && token[0] == '/' && token[1] == '*'))
 		{
-			// the line starts with a comment, skip it
+			continue;
 		}
 		else if(token == "nb_fmt")
 		{

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -470,6 +470,7 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 	}
 	// add the new packet in stack
 	this->stacks[ip_address]->add(nb_sequencing, recv_data, recv_len);
+	this->stacked_ip = ip_address;
 	// send the current packet
 	if(this->stacks[ip_address]->hasNext(current_sequencing))
 	{
@@ -486,6 +487,7 @@ int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
 	}
 	else
 	{
+		this->stacked_ip = "";
 		LOG(this->log_sat_carrier, LEVEL_INFO,
 		    "No UDP packet for current sequencing (%u) at IP %s "
 		    "wait for next packets (last received %u)\n",

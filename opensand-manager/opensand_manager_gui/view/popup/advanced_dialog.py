@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2015 TAS
+# Copyright © 2016 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jbernard@toulouse.viveris.com>
 
 """
 advanced_dialog.py - The OpenSAND advanced configuration
@@ -41,7 +42,7 @@ import threading
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.my_exceptions import ModelException, XmlException
-from opensand_manager_core.utils import SPOT, ID, GW, TOPOLOGY
+from opensand_manager_core.utils import SPOT, ID, GW, TOPOLOGY, GW_types
 from opensand_manager_gui.view.utils.config_elements import ConfigurationTree, \
                                                            ConfigurationNotebook, \
                                                            ConfSection
@@ -317,10 +318,11 @@ class AdvancedDialog(WindowView):
         if self._current_host.get_modules() != []:
             all_modules = list(self._current_host.get_modules())
             # header modifications modules have their configuration in st and gw
-            # but a global target si get them
+            # but a global target, so get them
             all_modules += self._model.get_global_lan_adaptation_modules().values()
         else:
             all_modules = self._model.get_global_lan_adaptation_modules().values()
+        all_modules += self._model.get_global_satdelay_modules().values()
 
         if self._all_modules:
             return all_modules
@@ -341,6 +343,10 @@ class AdvancedDialog(WindowView):
         try:
             modules += adv.get_stack("forward_down_encap_schemes",
                                      'encap').itervalues()
+        except ModelException:
+            pass
+        try:
+            modules += adv.get_params("delay")
         except ModelException:
             pass
         if with_phy_layer == "true":
@@ -369,7 +375,7 @@ class AdvancedDialog(WindowView):
                                 ConfSection(section, config, host_name,
                                             self._model.get_adv_mode(),
                                             self._model.get_scenario(),
-                                            self.handle_param_chanded,
+                                            self.handle_param_changed,
                                             self._model.handle_file_changed,
                                             key.get(ID),
                                             key.get(GW))
@@ -380,7 +386,7 @@ class AdvancedDialog(WindowView):
                                 ConfSection(section, config, host_name,
                                             self._model.get_adv_mode(),
                                             self._model.get_scenario(),
-                                            self.handle_param_chanded,
+                                            self.handle_param_changed,
                                             self._model.handle_file_changed,
                                             None, key.get(ID))
 
@@ -410,8 +416,12 @@ class AdvancedDialog(WindowView):
                 ConfSection(section, config, host_name,
                             self._model.get_adv_mode(),
                             self._model.get_scenario(),
-                            self.handle_param_chanded,
-                            self._model.handle_file_changed)
+                            self.handle_param_changed,
+                            self._model.handle_file_changed,
+                            modules = self._model.get_modules())
+                # TODO: modules are passed to global section, to update satdelay
+                # plugin configuration. Find a way of not sharing modules with
+                # ConfSection
                     
                 # restrictions section
                 restriction = config.get_xpath_restrictions(config.get_name(section))
@@ -554,7 +564,7 @@ class AdvancedDialog(WindowView):
                                              self._model.get_adv_mode(),
                                              self._model.get_scenario(),
                                              self._show_hidden,
-                                             self.handle_param_chanded,
+                                             self.handle_param_changed,
                                              self._model.handle_file_changed)
         # TODO set tab label red if the host does not declare this module
 
@@ -671,7 +681,7 @@ class AdvancedDialog(WindowView):
         # tell model that file changed has been saved
         self._model.conf_apply()
 
-    def handle_param_chanded(self, source=None, event=None):
+    def handle_param_changed(self, source=None, event=None):
         """ 'changed' event on configuration value """
         self._ui.get_widget('apply_advanced_conf').set_sensitive(True)
 

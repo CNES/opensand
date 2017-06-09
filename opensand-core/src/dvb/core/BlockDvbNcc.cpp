@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -33,6 +33,7 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Bénédicte Motto <benedicte.motto@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 
@@ -290,9 +291,9 @@ bool BlockDvbNcc::Downward::onInit(void)
 	                        this->svno_interface.getSvnoListenSocket(), 200);
 
 	// Output probes and stats
-	this->probe_frame_interval = Output::registerProbe<float>("ms", true,
-	                                                          SAMPLE_LAST,
-	                                                          "Perf.Frames_interval");
+	this->probe_frame_interval = Output::registerProbe<float>("Perf.Frames_interval",
+	                                                          "ms", true,
+	                                                          SAMPLE_LAST);
 
 	return result;
 }
@@ -1177,6 +1178,10 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				break;
 
 				case MSG_TYPE_SAC:
+				{
+					// Update C/N0
+					Sac *sac = (Sac *) dvb_frame;
+					spot->handleFrameCni(dvb_frame);
 					if(!spot->handleSac(dvb_frame))
 					{
 						return false;
@@ -1185,7 +1190,8 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					{
 						return false;
 					}
-					break;
+				}
+				break;
 
 				case MSG_TYPE_SESSION_LOGON_REQ:
 					LOG(this->log_receive, LEVEL_INFO,

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -33,6 +33,7 @@
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  *
  * <pre>
  *
@@ -51,7 +52,6 @@
 
 #ifndef BLOC_DVB_SAT_H
 #define BLOC_DVB_SAT_H
-
 
 #include "BlockDvb.h"
 #include "SatGw.h"
@@ -85,7 +85,6 @@ class BlockDvbSat: public BlockDvb
 		bool onEvent(const RtEvent *const event);
 		
 		void setGws(const sat_gws_t &gws);
-		
 
 	 protected: 
 		/// reception standard (DVB-RCS or DVB-S2)      
@@ -182,10 +181,6 @@ class BlockDvbSat: public BlockDvb
 
 		/// The satellite spots
 		sat_gws_t gws;
-
-
-		/// The satellite delay to emulate
-		time_ms_t sat_delay;
 	};
 
 	class Downward: public DvbDownward
@@ -198,8 +193,9 @@ class BlockDvbSat: public BlockDvb
 		bool onInit(void);
 		
 		bool onEvent(const RtEvent *const event);
+
 		void setGws(const sat_gws_t &gws);
-		
+
 	 
 	 protected:
 		/**
@@ -261,9 +257,6 @@ class BlockDvbSat: public BlockDvb
 		/// the counter for downlink frames
 		time_sf_t down_frame_counter;
 
-		/// The satellite delay to emulate
-		time_ms_t sat_delay;
-
 		/// timer used to awake the block regurlarly in order to send frames
 		//  and schedule in regenerative scenario
 		event_id_t fwd_timer;
@@ -287,12 +280,12 @@ class BlockDvbSat: public BlockDvb
 		// Output probes and stats
 		typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
 
-			// Frame interval
+		// Frame interval
 		Probe<float> *probe_frame_interval;
 	};
 
 
-  protected:
+ protected:
 
 	bool onInit();
 
@@ -312,7 +305,6 @@ class BlockDvbSat: public BlockDvb
 	//  We keep them here for release in desctructor,
 	//  they are also used in upward and downward, be careful
 	sat_gws_t gws;
-
 
 };
 #endif

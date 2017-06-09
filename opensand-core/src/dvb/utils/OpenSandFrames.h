@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 /**
  * @file OpenSandFrames.h
  * @brief The headers and related information for OpenSAND frames
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.fr>
  */
 
 
@@ -62,7 +63,8 @@
 /// Whether the frame contains data or sig
 #define IS_DATA_FRAME(msg_type) \
     (msg_type == MSG_TYPE_BBFRAME || msg_type == MSG_TYPE_DVB_BURST || \
-     msg_type == MSG_TYPE_SALOHA_DATA || msg_type == MSG_TYPE_SALOHA_CTRL)
+     msg_type == MSG_TYPE_SALOHA_DATA || msg_type == MSG_TYPE_SALOHA_CTRL || \
+     msg_type == MSG_TYPE_SAC)
 
 
 /**

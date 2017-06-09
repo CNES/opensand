@@ -66,7 +66,6 @@ make_encap()
     echo "Building OpenSAND encapsulation plugins for $TARGET_DIST"
     # Package and install opensand-plugins/encapsulation/gse
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/gse
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/rle
     echo "Finished building OpenSAND encapsulation plugins for $TARGET_DIST"
 }
 
@@ -107,9 +106,11 @@ move()
        $DST_DIR/pkgs/libopensand-plugin_*.deb \
        $DST_DIR/pkgs/libopensand-output_*.deb \
        $DST_DIR/pkgs/libopensand-rt_*.deb \
-       $DST_DIR/pkgs/opensand-core-bin_*.deb \
+       $DST_DIR/pkgs/opensand-core_*.deb \
+       $DST_DIR/pkgs/opensand-core-conf_*.deb \
        $DST_DIR/pkgs/opensand-daemon_*.deb \
        $DST_DIR/pkgs/libopensand-*plugin_*.deb \
+       $DST_DIR/pkgs/libopensand-*plugin-conf_*.deb \
        $DST_DIR/pkgs/opensand_*.deb \
        $DST_DIR/pkgs/daemon >/dev/null 2>&1 
     echo 'Daemon packages copied to '$DST_DIR'/pkgs/daemon'
@@ -118,9 +119,11 @@ move()
        $DST_DIR/pkgs/libopensand-plugin_*.deb  \
        $DST_DIR/pkgs/libopensand-output_*.deb \
        $DST_DIR/pkgs/libopensand-rt_*.deb \
-       $DST_DIR/pkgs/opensand-core-*_*.deb \
+       $DST_DIR/pkgs/opensand-core_*.deb \
+       $DST_DIR/pkgs/opensand-core-conf_*.deb \
        $DST_DIR/pkgs/opensand-daemon_*.deb \
        $DST_DIR/pkgs/libopensand-*plugin_*.deb \
+       $DST_DIR/pkgs/libopensand-*plugin-conf_*.deb \
        $DST_DIR/pkgs/opensand-manager*.deb \
        $DST_DIR/pkgs/libopensand-*plugin-manager*.deb  \
        $DST_DIR/pkgs/opensand-collector_*.deb \

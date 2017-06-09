@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2015 TAS
+# Copyright © 2016 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
 
 """
 opensand_controller.py - thread that configure, install, start, stop
@@ -39,7 +40,7 @@ import threading
 import os
 import shutil
 import ConfigParser
-
+import time
 
 from opensand_manager_core.utils import OPENSAND_PATH, ST, GW
 
@@ -202,11 +203,12 @@ class Controller(threading.Thread):
                                       "host will be disabled" % host.get_name())
                         host.disable()
                         continue
-                thread = threading.Thread(None, host.deploy, "Deploy%s" %
-                                          host_name,
-                                          (self._deploy_config, errors), {})
-                thread.start()
-                threads.append(thread)
+                for machine in host.get_ordered_machines():
+                    thread = threading.Thread(None, machine.deploy, "Deploy%s" %
+                                              host_name,
+                                              (self._deploy_config, errors), {})
+                    thread.start()
+                    threads.append(thread)
         except CommandException:
             self._log.error("OpenSAND platform failed to deploy")
             return False
@@ -242,23 +244,24 @@ class Controller(threading.Thread):
             self._log.debug("Deploy files from scenario %s" %
                             self._model.get_scenario())
             for host in self._hosts + self._ws:
-                name = host.get_name()
-                # do a copy, not only reference
-                dep = list(files)
-                if host.first_deploy():
-                    dep = all_files
+                for machine in host.get_ordered_machines():
+                    name = machine.get_name()
+                    # do a copy, not only reference
+                    dep = list(files)
+                    if machine.first_deploy():
+                        dep = all_files
 
-                dep += host.get_deploy_files()
-                if len(dep) > 0:
-                    self._log.info("%s: deploy simulation files" % name)
-                else:
-                    continue
+                    dep += machine.get_deploy_files()
+                    if len(dep) > 0:
+                        self._log.info("%s: deploy simulation files" % name)
+                    else:
+                        continue
 
-                thread = threading.Thread(None, host.deploy_modified_files,
+                    thread = threading.Thread(None, machine.deploy_modified_files,
                                           "DeployFiles%s" % name,
                                           (dep, errors), {})
-                threads.append(thread)
-                thread.start()
+                    threads.append(thread)
+                    thread.start()
         except CommandException, msg:
             self._log.error("Simulation files installation failed")
             return False
@@ -338,14 +341,16 @@ class Controller(threading.Thread):
                     modules = [modules_dir, # host specific modules
                                os.path.join(scenario, 'plugins')] # global modules
 
-                thread = threading.Thread(None, host.configure, "Configure%s" %
-                                          name,
-                                          (conf_files, modules,
-                                           self._deploy_config,
-                                           self._model.get_dev_mode(), errors),
-                                          {})
-                threads.append(thread)
-                thread.start()
+                for machine in host.get_ordered_machines():
+                    thread = threading.Thread(None, machine.configure, "Configure%s" %
+                                              name,
+                                              (conf_files, modules,
+                                               self._deploy_config,
+                                               self._model.get_dev_mode(), errors),
+                                              {})
+                    threads.append(thread)
+                    thread.start()
+                    time.sleep(0.5)
 
             # configure tools on workstations
             if len(self._ws) > 0:
@@ -357,13 +362,14 @@ class Controller(threading.Thread):
                                        ws.get_name().lower())
                 if not os.path.isdir(ws_path):
                     os.mkdir(ws_path, 0755)
-                thread = threading.Thread(None, ws.configure_ws, "Configure%s" %
-                                          ws.get_name(),
-                                          (self._deploy_config,
-                                           self._model.get_dev_mode(), errors),
-                                         {})
-                threads.append(thread)
-                thread.start()
+                for machine in ws.get_ordered_machines():
+                    thread = threading.Thread(None, machine.configure_ws, "Configure%s" %
+                                              ws.get_name(),
+                                              (self._deploy_config,
+                                               self._model.get_dev_mode(), errors),
+                                             {})
+                    threads.append(thread)
+                    thread.start()
 
         except (OSError, IOError), error:
             self._log.error("Failed to handle configuration %s" %

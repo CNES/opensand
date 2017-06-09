@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2016 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @brief This bloc implements a satellite spots
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 
@@ -393,64 +394,75 @@ bool SatGw::initProbes()
 	Probe<int> *probe_l2_from_gw;
 	Probe<int> *probe_output_gw;
 	Probe<int> *probe_output_gw_kb;
+	char probe_name[128];
 
 
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.GW_%d.Delay buffer size.Output_ST",
+					 this->spot_id, this->gw_id);
 	probe_output_st = Output::registerProbe<int>(
-			"Packets", false, SAMPLE_LAST,
-			"Spot_%d.GW_%d.Delay buffer size.Output_ST",
-			this->spot_id, this->gw_id);
+			probe_name, "Packets", false, SAMPLE_LAST);
 	this->probe_sat_output_st_queue_size.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_output_st));
 
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.GW_%d.Delay buffer size.Output_ST_kb",
+					 this->spot_id, this->gw_id);
 	probe_output_st_kb = Output::registerProbe<int>(
-			"Kbits", false, SAMPLE_LAST,
-			"Spot_%d.GW_%d.Delay buffer size.Output_ST_kb",
-			this->spot_id, this->gw_id);
+			probe_name, "Kbits", false, SAMPLE_LAST);
 	this->probe_sat_output_st_queue_size_kb.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_output_st_kb));
 
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.GW_%d.Throughputs.L2_to_ST",
+					 this->spot_id, this->gw_id);
 	probe_l2_to_st = Output::registerProbe<int>(
-			"Kbits/s", true, SAMPLE_LAST,
-			"Spot_%d.GW_%d.Throughputs.L2_to_ST", this->spot_id, this->gw_id);
+			probe_name, "Kbits/s", true, SAMPLE_LAST);
 	this->probe_sat_l2_to_st.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id, probe_l2_to_st));
 
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.GW_%d.Throughputs.L2_from_ST",
+					 this->spot_id, this->gw_id);
 	probe_l2_from_st = Output::registerProbe<int>(
-			"Kbits/s", true, SAMPLE_LAST,
-			"Spot_%d.GW_%d.Throughputs.L2_from_ST", this->spot_id, this->gw_id);
+			probe_name, "Kbits/s", true, SAMPLE_LAST);
 	this->probe_sat_l2_from_st.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_l2_from_st));
 
 
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.GW_%d.Throughputs.L2_to_GW",
+					 this->spot_id, this->gw_id);
 	probe_l2_to_gw = Output::registerProbe<int>(
-			"Kbits/s", true, SAMPLE_LAST,
-			"Spot_%d.GW_%d.Throughputs.L2_to_GW",
-			this->spot_id, this->gw_id);
+			probe_name, "Kbits/s", true, SAMPLE_LAST);
 	this->probe_sat_l2_to_gw.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_l2_to_gw));
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.GW_%d.Throughputs.L2_from_GW",
+					 this->spot_id, this->gw_id);
 	probe_l2_from_gw = Output::registerProbe<int>(
-			"Kbits/s", true, SAMPLE_LAST,
-			"Spot_%d.GW_%d.Throughputs.L2_from_GW",
-			this->spot_id, this->gw_id);
+			probe_name, "Kbits/s", true, SAMPLE_LAST);
 	this->probe_sat_l2_from_gw.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_l2_from_gw));
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.GW_%d.Delay buffer size.Output_GW",
+					 this->spot_id, this->gw_id);
 	probe_output_gw = Output::registerProbe<int>(
-			"Packets", false, SAMPLE_LAST,
-			"Spot_%d.GW_%d.Delay buffer size.Output_GW",
-			this->spot_id, this->gw_id);
+			probe_name, "Packets", false, SAMPLE_LAST);
 	this->probe_sat_output_gw_queue_size.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_output_gw));
 
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.GW_%d.Delay buffer size.Output_GW_kb",
+					 this->spot_id, this->gw_id);
 	probe_output_gw_kb = Output::registerProbe<int>(
-			"Kbits", false, SAMPLE_LAST,
-			"Spot_%d.GW_%d.Delay buffer size.Output_GW_kb",
-			this->spot_id, this->gw_id);
+			probe_name, "Kbits", false, SAMPLE_LAST);
 	this->probe_sat_output_gw_queue_size_kb.insert(
 			std::pair<unsigned int, Probe<int> *>(this->gw_id,
 			                                      probe_output_gw_kb));
@@ -513,29 +525,61 @@ bool SatGw::addTerminal(tal_id_t tal_id)
 bool SatGw::updateFmt(DvbFrame *dvb_frame,
                       EncapPlugin::EncapPacketHandler *pkt_hdl)
 {
-	DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-
-	if(this->with_phy_layer)
+	tal_id_t src_tal_id;
+	double cn;
+	uint8_t msg_type = dvb_frame->getMessageType();
+	
+	if(!this->with_phy_layer)
+		return true;
+	
+	switch(msg_type)
 	{
-		tal_id_t src_tal_id;
-		// decode the first packet in frame to be able to get source terminal ID
-		if(!pkt_hdl->getSrc(frame->getPayload(), src_tal_id))
+		case MSG_TYPE_SAC:
 		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "unable to read source terminal ID in "
-			    "frame, won't be able to update C/N "
-			    "value\n");
+			Sac *sac = (Sac *)dvb_frame;
+			src_tal_id = sac->getTerminalId();
+			if(!src_tal_id)
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+						"unable to read source terminal ID in "
+						"frame, won't be able to update C/N "
+						"value\n");
+			}
+			else
+			{
+				cn = dvb_frame->getCn();
+				LOG(this->log_receive, LEVEL_INFO,
+						"Uplink CNI for terminal %u = %f\n",
+						src_tal_id, cn);
+				this->setRequiredCniInput(src_tal_id, cn);
+			}
+			break;
 		}
-		else
+		case MSG_TYPE_DVB_BURST:
 		{
-			double cn = frame->getCn();
-			LOG(this->log_receive, LEVEL_INFO,
-			    "Uplink CNI for terminal %u = %f\n",
-			    src_tal_id, cn);
-			this->setRequiredCniInput(src_tal_id, cn);
-		}
-	}
+			DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
 
+			// decode the first packet in frame to be able to get source terminal ID
+			if(!pkt_hdl->getSrc(frame->getPayload(), src_tal_id))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+						"unable to read source terminal ID in "
+						"frame, won't be able to update C/N "
+						"value\n");
+			}
+			else
+			{
+				cn = frame->getCn();
+				LOG(this->log_receive, LEVEL_INFO,
+						"Uplink CNI for terminal %u = %f\n",
+						src_tal_id, cn);
+				this->setRequiredCniInput(src_tal_id, cn);
+			}
+			break;
+		}
+		default:
+		break;
+	}
 	return true;
 }
 

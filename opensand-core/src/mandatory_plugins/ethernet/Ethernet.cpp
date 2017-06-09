@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
  * @brief Ethernet LAN adaptation plugin implementation
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
  * @author Remy PIENNE <rpienne@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 
@@ -43,7 +44,7 @@
 #include <map>
 #include <arpa/inet.h>
 
-#define CONF_ETH_FILE "/etc/opensand/plugins/ethernet.conf"
+#define CONF_ETH_FILENAME "ethernet.conf"
 
 #define CONF_ETH_SECTION "ethernet"
 #define CONF_SAT_FRAME_TYPE "sat_frame_type"
@@ -77,7 +78,9 @@ void Ethernet::init()
 	map<string, ConfigurationList> config_section_map;
 	string sat_eth;
 	vector<string> conf_files;
-	conf_files.push_back(CONF_ETH_FILE);
+	string conf_eth_path;
+	conf_eth_path = this->getConfPath() + string(CONF_ETH_FILENAME);
+	conf_files.push_back(conf_eth_path.c_str());
 
 	this->upper[TRANSPARENT].push_back("IP");
 	this->upper[TRANSPARENT].push_back("ROHC");
@@ -89,7 +92,7 @@ void Ethernet::init()
 	if(config.loadConfig(conf_files) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "failed to load config file '%s'", CONF_ETH_FILE);
+		    "failed to load config file '%s'", conf_eth_path.c_str());
 		return;
 	}
 
@@ -137,15 +140,17 @@ void Ethernet::Context::init()
 	string lan_eth;
 	string sat_eth;
 	vector<string> conf_files;
-	conf_files.push_back(CONF_ETH_FILE);
-
+	string conf_eth_path;
+	conf_eth_path = this->getConfPath() + string(CONF_ETH_FILENAME);
+	conf_files.push_back(conf_eth_path.c_str());
+	
 	this->handle_net_packet = true;
 
 	if(this->config.loadConfig(conf_files) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",
-		    CONF_ETH_FILE);
+		    conf_eth_path.c_str());
 		return;
 	}
 
@@ -234,7 +239,7 @@ Ethernet::Context::~Context()
 	this->config.unloadConfig();
 	
 	map<uint8_t, Evc *>::iterator evc_it;
-    std::map<qos_t, TrafficCategory *>::iterator cat_it;
+	std::map<qos_t, TrafficCategory *>::iterator cat_it;
 	for(evc_it = this->evc_map.begin(); evc_it != this->evc_map.end(); ++evc_it)
 	{
 		delete (*evc_it).second;
@@ -1048,18 +1053,21 @@ void Ethernet::Context::initStats()
 	for(map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
 	    it != this->evc_map.end(); ++it)
 	{
+		char probe_name[128];
 		id = (*it).first;
 		if(this->probe_evc_throughput.find(id) != this->probe_evc_throughput.end())
 		{
 			continue;
 		}
 
+		snprintf(probe_name, sizeof(probe_name),
+		         "EVC throughput.%u", id);
 		this->probe_evc_throughput[id] =
-			Output::registerProbe<float>("kbits/s", true, SAMPLE_AVG,
-			                             "EVC throughput.%u", id);
+			Output::registerProbe<float>(probe_name, "kbits/s", true, SAMPLE_AVG);
+		snprintf(probe_name, sizeof(probe_name),
+		         "EVC frame size.%u", id);
 		this->probe_evc_size[id] =
-			Output::registerProbe<float>("Bytes", true, SAMPLE_SUM,
-			                             "EVC frame size.%u", id);
+			Output::registerProbe<float>(probe_name, "Bytes", true, SAMPLE_SUM);
 	}
 }
 

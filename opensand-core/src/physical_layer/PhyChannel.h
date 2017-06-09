@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 CNES
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -36,7 +36,9 @@
 
 #include "PhysicalLayerPlugin.h"
 #include "FmtDefinitionTable.h"
+#include "DelayFifo.h"
 #include "DvbFrame.h"
+#include "NetContainer.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_output/OutputLog.h>
@@ -82,6 +84,22 @@ class PhyChannel
 
 	/// Whether this is the satellite
 	bool is_sat;
+
+	/// The satellite delay model
+	SatDelayPlugin *satdelay;
+
+	/// The timer to check if there's a new item ready in FIFO
+	event_id_t fifo_timer;
+
+	/// The timer to update the satellite delay
+	// TODO: this is unused on one of the two channels (same for probe_delay)
+	event_id_t delay_timer;
+
+	// TODO: satellite physical channels don't use this FIFO, it should be removed
+	// from here. Possible solution: channels from terminals extend the satellite's,
+	// and not the way around.
+	/// the FIFO that implements the delay
+	DelayFifo delay_fifo;
 
 	/**
 	 * @brief Update the conditions of the communication model
@@ -136,12 +154,28 @@ class PhyChannel
 
 
 	/**
-	 * Forward a DVB frame to a destination block
+	 * Process the attenuation for a DVB frame
 	 *
 	 * @param dvb_frame The DVB frame to send
 	 * @return Whether the DVB frame was successfully sent or not
 	 */
-	virtual bool forwardFrame(DvbFrame *dvb_frame) = 0;
+	virtual bool processAttenuation(DvbFrame *dvb_frame) = 0;
+
+	/**
+	 * @brief handle the FIFO timer
+	 *
+	 * @return true if success, false on error
+	 */
+	virtual bool handleFifoTimer() = 0;
+
+	/**
+	 * @brief push dvb_frame into delay FIFO
+	 *
+	 * @param data the container with the dvb_frame
+	 * @delay delay the delay to wait
+	 * @return true on succes, false otherwise
+	 */
+	bool pushInFifo(NetContainer *data, time_ms_t delay);
 
 	/// probes
 	Probe<float> *probe_attenuation;
@@ -149,7 +183,7 @@ class PhyChannel
 	Probe<float> *probe_minimal_condition;
 	Probe<float> *probe_total_cn;
 	Probe<int> *probe_drops;
-
+	Probe<int> *probe_delay;
  public:
 
 	/**

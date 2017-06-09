@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -180,20 +180,21 @@ bool SpotUpwardRegen::initOutput(void)
 	                                                 this->spot_id);
 
 	// Output probes and stats
+	char probe_name[128];
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.Throughputs.L2_from_SAT", this->spot_id);
 	this->probe_gw_l2_from_sat=
-		Output::registerProbe<int>("Kbits/s", true, SAMPLE_AVG,
-		                           "Spot_%d.Throughputs.L2_from_SAT",
-		                            this->spot_id);
+		Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 	this->l2_from_sat_bytes = 0;
 
-	this->probe_received_modcod = Output::registerProbe<int>("modcod index",
-	                                                         true, SAMPLE_LAST,
-	                                                         "Spot_%d.ACM.Received_modcod",
-	                                                         this->spot_id);
-	this->probe_rejected_modcod = Output::registerProbe<int>("modcod index",
-	                                                         true, SAMPLE_LAST,
-	                                                         "Spot_%d.ACM.Rejected_modcod",
-	                                                         this->spot_id);
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.ACM.Received_modcod", this->spot_id);
+	this->probe_received_modcod = Output::registerProbe<int>(probe_name, "modcod index",
+	                                                         true, SAMPLE_LAST);
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.ACM.Rejected_modcod", this->spot_id);
+	this->probe_rejected_modcod = Output::registerProbe<int>(probe_name, "modcod index",
+	                                                         true, SAMPLE_LAST);
 	return true;
 }
 

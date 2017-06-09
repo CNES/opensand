@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file Mpeg.cpp
  * @brief MPEG encapsulation plugin implementation
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
+ * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  */
 
 #include "Mpeg.h"
@@ -43,7 +44,7 @@
 
 #define PACKING_THRESHOLD "packing_threshold"
 #define MPEG_SECTION "mpeg"
-#define CONF_MPEG_FILE "/etc/opensand/plugins/mpeg.conf"
+#define CONF_MPEG_FILENAME "mpeg.conf"
 
 
 Mpeg::Mpeg():
@@ -67,12 +68,14 @@ void Mpeg::Context::init()
 	EncapPlugin::EncapContext::init();
 	ConfigurationFile config;
 	map<string, ConfigurationList> config_section_map;
+	string conf_mpeg_path;
+	conf_mpeg_path = this->getConfPath() + string(CONF_MPEG_FILENAME);
 
-	if(config.loadConfig(CONF_MPEG_FILE) < 0)
+	if(config.loadConfig(conf_mpeg_path.c_str()) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",
-		    CONF_MPEG_FILE);
+		    conf_mpeg_path.c_str());
 		goto error;
 	}
 

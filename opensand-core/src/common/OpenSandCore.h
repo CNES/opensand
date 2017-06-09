@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -42,6 +42,7 @@
 #include <stdint.h>
 #include <vector>
 #include <arpa/inet.h>
+#include <sys/time.h>
 
 using std::string;
 using std::vector;
@@ -205,6 +206,7 @@ enum
 	msg_cni,       ///< message containing CNI information
 	msg_sig,       ///< message containing signalisation
 	msg_saloha,    ///< message containing Slotted Aloha content
+	msg_object,    ///< message containing an Interconnect object
 };
 
 
@@ -214,6 +216,17 @@ inline bool equals(double val1, double val2)
 	return std::abs(val1 - val2) < DBL_EPSILON;
 };
 
+/**
+ * @brieg Get the current time
+ *
+ * @return the current time
+ */
+inline clock_t getCurrentTime(void)
+{
+	timeval current;
+	gettimeofday(&current, NULL);
+	return current.tv_sec * 1000 + current.tv_usec / 1000;
+};
 
 /**
  * @brief  Tokenize a string

@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2015 TAS
+# Copyright © 2016 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA / <jbernard@toulouse.viveris.com>
 
 
 """
@@ -44,11 +45,12 @@ from ipaddr import IPNetwork
 from opensand_daemon.nl_utils import NlRoute, NlError, NlExists, NlMissing
 from lxml import etree
 
+CONF_DIR = "/etc/opensand/"
+TOPOLOGY_FILE = "topology.conf"
+
 #macros
 LOGGER = logging.getLogger('sand-daemon')
 ROUTE_FILE = "routes"
-CONF_DIR = "/etc/opensand/"
-TOPOLOGY_FILE = "topology.conf"
 
 class OpenSandRoutes(object):
     """ manage the routes for OpenSAND """
@@ -59,14 +61,12 @@ class OpenSandRoutes(object):
     _instance = None
     _routes_lock = threading.Lock()
     _route_hdl = None
-    _hosts_v4 = {}  # the available host and IPv4 address
     _routes_v4 = {} # the available host and IPv4 networks
     _routes_v6 = {} # the available host and IPv6 networks
     _started = False
     _initialized = False
     _iface = None
     _unused = True
-    _default_route = False
     _is_ws = False
     _cache_dir = '/var/cache/sand-daemon/'
 
@@ -77,8 +77,7 @@ class OpenSandRoutes(object):
         if OpenSandRoutes._is_ws:
             self.remove_routes()
 
-    def load(self, cache_dir, name, iface, is_ws=False, instance="", 
-             default=False):
+    def load(self, cache_dir, name, iface, is_ws=False, instance=""):
         OpenSandRoutes._routes_lock.acquire()
         OpenSandRoutes._cache_dir = cache_dir
         OpenSandRoutes._name = name.lower()
@@ -90,7 +89,6 @@ class OpenSandRoutes(object):
 
         OpenSandRoutes._iface = iface
         OpenSandRoutes._is_ws = is_ws
-        OpenSandRoutes._default_route = default
 
         # read the routes file
         routes = {}
@@ -153,7 +151,6 @@ class OpenSandRoutes(object):
 
         net = IPNetwork(v4)
         prefix_v4 = "%s/%s" % (net.network, net.prefixlen)
-        OpenSandRoutes._hosts_v4[name] = (v4)
         OpenSandRoutes._routes_v4[name] = (prefix_v4, gw_v4)
         net = IPNetwork(v6)
         prefix_v6 = "%s/%s" % (net.network, net.prefixlen)
@@ -197,14 +194,12 @@ class OpenSandRoutes(object):
                 pass
             if v4:
                 del OpenSandRoutes._routes_v4[host]
-                del OpenSandRoutes._hosts_v4[host]
             if v6:
                 del OpenSandRoutes._routes_v6[host]
             self.serialize()
         else:
             try:
                 del OpenSandRoutes._routes_v4[host]
-                del OpenSandRoutes._hosts_v4[host]
                 del OpenSandRoutes._routes_v6[host]
             except KeyError, TypeError:
                 pass
@@ -214,7 +209,8 @@ class OpenSandRoutes(object):
         """ apply the routes when started """
         if OpenSandRoutes._unused:
             return
-
+        # read the conf and get the tal_ids of the same spot
+        same_spot_ids = self.get_same_spot_ids()
         OpenSandRoutes._routes_lock.acquire()
         # update the routes gateway
         if iface is not None:
@@ -229,6 +225,14 @@ class OpenSandRoutes(object):
         self.serialize()
         for host in set(OpenSandRoutes._routes_v4.keys() +
                         OpenSandRoutes._routes_v6.keys()):
+            # get host terminal id
+            ret = re.findall("^(?:[^0-9]*)([0-9]*)", host)
+            if not len(ret):
+                continue
+            host_id = ret[0]
+            # check if host in same_spot list
+            if host_id not in same_spot_ids:
+                continue
             v4 = None
             v6 = None
             gw_v4 = None
@@ -248,20 +252,27 @@ class OpenSandRoutes(object):
             except (NlError, NlExists):
                 OpenSandRoutes._routes_lock.release()
                 raise
-        if OpenSandRoutes._name.startswith('st') and \
-                OpenSandRoutes._default_route:
-            self.add_default_route()
         OpenSandRoutes._routes_lock.release()
 
     def remove_routes(self):
         """ remove the current routes when stopped """
         if OpenSandRoutes._unused:
             return
+        # read the conf and get the tal_ids of the same spot
+        same_spot_ids = self.get_same_spot_ids()
         OpenSandRoutes._routes_lock.acquire()
         OpenSandRoutes._started = False
         LOGGER.info("remove route after stopping platform")
         for host in set(OpenSandRoutes._routes_v4.keys() +
                         OpenSandRoutes._routes_v6.keys()):
+            # get host terminal id
+            ret = re.findall("^(?:[^0-9]*)([0-9]*)", host)
+            if not len(ret):
+                continue
+            host_id = ret[0]
+            # check if host in same_spot list
+            if host_id not in same_spot_ids:
+                continue
             v4 = None
             v6 = None
             gw_v4 = None
@@ -381,43 +392,28 @@ class OpenSandRoutes(object):
         else:
             route_file.close()
 
-    def add_default_route(self):
-        """ gets the gw from topology.conf, and adds a default
-            route via this gw """
-        if not OpenSandRoutes._name.startswith("st"):
-            return
-        ret = re.findall("^(?:[^0-9]*)([0-9]*)", OpenSandRoutes._name)
-        if not len(ret):
-            return
+    def get_same_spot_ids(self):
+        """ read the topology conf file, and get the IDs of the terminals
+            in the same spot as this one """
+        same_spot_ids = []
         # open xml
         tree = etree.parse(os.path.join(CONF_DIR, TOPOLOGY_FILE))
         root = tree.getroot()
         # search for gw in gw_table
-        # gw_table/gw/terminals/tal
         gw_id = ""
         for s in root.iterchildren():
             if s.tag == "gw_table":
                 for g in s.iterchildren():
                     if g.tag == "gw":
+                        if g.attrib["id"] == OpenSandRoutes._instance:
+                            same_spot_ids.append(g.attrib["id"])
+                            for tal in list(g.iterchildren())[0]:
+                                same_spot_ids.append(tal.attrib["id"])
+                            return same_spot_ids
                         for tal in list(g.iterchildren())[0]:
                             if tal.attrib["id"] == OpenSandRoutes._instance:
-                                gw_id = g.attrib["id"]
-                                break
-                break
-        if not gw_id:
-            LOGGER.warning("unable to find associated gw in topology file.")
-            return
-        v4 = ""
-        for host in self._hosts_v4:
-            ret = re.findall("^gw(?:[^0-9]*)([0-9]*)", host)
-            if not len(ret):
-                continue
-            instance = ret[0]
-            if not instance:
-                continue
-            if instance == gw_id:
-                v4 = self._hosts_v4[host]
-                break
-        if v4:
-            LOGGER.info("adding default route via %s" % v4)
-            self.add_route("default", "0.0.0.0/0", None, v4, None)
+                                same_spot_ids.append(g.attrib["id"])
+                                for tal in list(g.iterchildren())[0]:
+                                    same_spot_ids.append(tal.attrib["id"])
+                                return same_spot_ids
+        return same_spot_ids
