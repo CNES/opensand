@@ -47,7 +47,7 @@
  * @param coding_type          the coding type of the FMT
  * @param spectral_efficiency  the spectral efficiency of the FMT
  * @param required_Es_N0       the required Es/N0 of the FMT
- * @param burst_length         the burst length of the FMT
+ * @param burst_length         the burst length in symbols of the FMT
  */
 FmtDefinition::FmtDefinition(const unsigned int id,
                              const string modulation_type,
@@ -60,20 +60,56 @@ FmtDefinition::FmtDefinition(const unsigned int id,
 	coding_type(coding_type),
 	spectral_efficiency(spectral_efficiency),
 	required_Es_N0(required_Es_N0),
-	burst_length(burst_length)
+	has_burst_length(true),
+	burst_length_sym(burst_length)
 {
+	this->modulation_efficiency =
+		ModulationTypes::getEfficiency(this->modulation_type);
+
+	this->coding_rate =
+		CodingTypes::getRate(this->coding_type);
+}
+
+/**
+ * @brief Create a FMT definition
+ *
+ * @param id                   the ID of the FMT
+ * @param modulation_type      the type of modulation of the FMT
+ * @param coding_type          the coding type of the FMT
+ * @param spectral_efficiency  the spectral efficiency of the FMT
+ * @param required_Es_N0       the required Es/N0 of the FMT
+ */
+FmtDefinition::FmtDefinition(const unsigned int id,
+                             const string modulation_type,
+                             const string coding_type,
+                             const float spectral_efficiency,
+                             const double required_Es_N0):
+	id(id),
+	modulation_type(modulation_type),
+	coding_type(coding_type),
+	spectral_efficiency(spectral_efficiency),
+	required_Es_N0(required_Es_N0),
+	has_burst_length(false),
+	burst_length_sym(0)
+{
+	this->modulation_efficiency =
+		ModulationTypes::getEfficiency(this->modulation_type);
+
+	this->coding_rate =
+		CodingTypes::getRate(this->coding_type);
 }
 
 FmtDefinition::FmtDefinition(const FmtDefinition &fmt_def)
 {
-	this->id = fmt_def.getId();
-	this->coding_type = fmt_def.getCoding();
-	this->spectral_efficiency = fmt_def.getSpectralEfficiency();
-	this->required_Es_N0 = fmt_def.getRequiredEsN0();
-	this->modulation_type = fmt_def.getModulation();
-	this->burst_length = fmt_def.getBurstLength();
+	this->id = fmt_def.id;
+	this->modulation_type = fmt_def.modulation_type;
+	this->modulation_efficiency = fmt_def.modulation_efficiency;
+	this->coding_type = fmt_def.coding_type;
+	this->coding_rate = fmt_def.coding_rate;
+	this->spectral_efficiency = fmt_def.spectral_efficiency;
+	this->required_Es_N0 = fmt_def.required_Es_N0;
+	this->burst_length_sym = fmt_def.burst_length_sym;
 }
-
 
 /**
  * @brief Destroy a FMT definition
@@ -111,7 +147,7 @@ string FmtDefinition::getModulation() const
  */
 unsigned int FmtDefinition::getModulationEfficiency() const
 {
-	return ModulationTypes::getEfficiency(this->modulation_type);
+	return this->modulation_efficiency;
 }
 
 /**
@@ -131,7 +167,7 @@ string FmtDefinition::getCoding() const
  */
 float FmtDefinition::getCodingRate() const
 {
-	return CodingTypes::getRate(this->coding_type);
+	return this->coding_rate;
 }
 
 /**
@@ -144,7 +180,6 @@ float FmtDefinition::getSpectralEfficiency() const
 	return this->spectral_efficiency;
 }
 
-
 /**
  * @brief Get the required Es/N0 ratio of the FMT definition
  *
@@ -156,22 +191,68 @@ double FmtDefinition::getRequiredEsN0() const
 }
 
 /**
+ * @brief Get the status about burst length presence
+ *
+ * @return  the burst length presence status of the FMT
+ */
+bool FmtDefinition::hasBurstLength() const
+{
+	return this->has_burst_length;
+}
+/**
  * @brief Get the burst length of the FMT definition
  *
- * @return  the burst length of the FMT
+ * @return  the burst length in symbols of the FMT
  */
 vol_sym_t FmtDefinition::getBurstLength() const
 {
-	return this->burst_length;
+	return this->burst_length_sym;
+}
+
+/**
+ * @brief Convert a value in symbol for the FMT definition
+ *
+ * @param val_sym  the value in symbols (per ...)
+ * @return    the value converted in kbits (per ...)
+ */
+vol_sym_t FmtDefinition::kbitsToSym(vol_kb_t vol_kb) const
+{
+	return ceil(vol_kb * 1000
+		* this->modulation_efficiency_inv
+		* this->coding_rate_inv);
+}
+
+/**
+ * @brief Convert a value in kbits for the FMT definition
+ *
+ * @param val_kbits  the value in kbits (per ...)
+ * @return    the value converted in symbol (per ...)
+ */
+vol_kb_t FmtDefinition::symToKbits(vol_sym_t vol_sym) const
+{
+	return ceil(vol_sym / 1000
+		* this->modulation_efficiency
+		* this->coding_rate);
 }
 
 void FmtDefinition::print(void)
 {
-	DFLTLOG(LEVEL_ERROR, "id = %u, modulation = %s,"
-	        " coding_rate = %s, spectral_efficiency = %f,"
-	        " required_Es_N0 = %f, burst_length = %u\n", this->id,
-	        this->modulation_type.c_str(), this->coding_type.c_str(),
-	        this->spectral_efficiency, this->required_Es_N0,
-	        this->burst_length);
+	if(this->has_burst_length)
+	{
+		DFLTLOG(LEVEL_ERROR, "id = %u, modulation = %s,"
+		        " coding_rate = %s, spectral_efficiency = %f,"
+		        " required_Es_N0 = %f, burst_length = %u sym\n", this->id,
+		        this->modulation_type.c_str(), this->coding_type.c_str(),
+		        this->spectral_efficiency, this->required_Es_N0,
+		        this->burst_length_sym);
+	}
+	else
+	{
+		DFLTLOG(LEVEL_ERROR, "id = %u, modulation = %s,"
+		        " coding_rate = %s, spectral_efficiency = %f,"
+		        " required_Es_N0 = %f\n", this->id,
+		        this->modulation_type.c_str(), this->coding_type.c_str(),
+		        this->spectral_efficiency, this->required_Es_N0);
+	}
 }
 

@@ -149,7 +149,7 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 
 	this->is_parent_init = true;
 
-	if (!this->initOutput())
+	if(!this->initOutput())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "the output probes and stats initialization have "
@@ -269,7 +269,6 @@ bool DamaCtrl::initOutput()
 
 bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 {
-	UnitConverter *converter;
 	tal_id_t tal_id = logon->getMac();
 	rate_kbps_t cra_kbps = logon->getRtBandwidth();
 	rate_kbps_t max_rbdc_kbps = logon->getMaxRbdc();
@@ -326,25 +325,13 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			return true;
 		}
 
-		// get unit converter for this category
-		converter = this->getUnitConverter(category->getLabel());
-		if(converter == NULL)
-		{
-			LOG(this->log_logon, LEVEL_ERROR,
-			    "No unit converter for the category %s to assigned to terminal %u\n",
-			    category->getLabel().c_str(),
-			    tal_id);
-			return false;
-		}
-
 		// create the terminal
 		if(!this->createTerminal(&terminal,
 		                         tal_id,
 		                         cra_kbps,
 		                         max_rbdc_kbps,
 		                         this->rbdc_timeout_sf,
-		                         max_vbdc_kb,
-		                         converter))
+		                         max_vbdc_kb))
 		{
 			LOG(this->log_logon, LEVEL_ERROR,
 			    "Cannot create terminal context for ST #%d\n",
@@ -500,18 +487,27 @@ bool DamaCtrl::hereIsLogoff(const Logoff *logoff)
 
 bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 {
-	DamaTerminalList::iterator it;
-
 	this->current_superframe_sf = superframe_number_sf;
 
-	for(it = this->terminals.begin(); it != this->terminals.end(); it++)
+	// reset the terminals allocations
+	if(!this->resetTerminalsAllocations())
 	{
-		TerminalContextDama *terminal = it->second;
-		// reset/update terminal allocations/requests
-		terminal->onStartOfFrame();
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Cannot reset terminals allocations\n",
+		    this->current_superframe_sf);
+		return false;
 	}
 
-	if(!this->runDama())
+	// update the carriers and the fmts
+	if(!this->updateCarriersAndFmts())
+	{
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Cannot update carriers and FMTs\n",
+		    this->current_superframe_sf);
+		return false;
+	}
+
+	if(!this->computeDama())
 	{
 		LOG(this->log_super_frame_tick, LEVEL_ERROR,
 		    "Error during DAMA computation.\n");
@@ -522,20 +518,11 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 }
 
 
-bool DamaCtrl::runDama()
+bool DamaCtrl::computeDama()
 {
 	DamaTerminalList::iterator tal_it;
 
-	// reset the DAMA settings
-	if(!this->resetDama())
-	{
-		LOG(this->log_run_dama, LEVEL_ERROR,
-		    "SF#%u: Cannot reset DAMA\n",
-		    this->current_superframe_sf);
-		return false;
-	}
-
-	if(this->enable_rbdc && !this->runDamaRbdc())
+	if(this->enable_rbdc && !this->computeDamaRbdc())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
 		    "SF#%u: Error while computing RBDC allocation\n",
@@ -562,7 +549,7 @@ bool DamaCtrl::runDama()
 		this->probe_gw_rbdc_alloc->put(0);
 	}
 
-	if(this->enable_vbdc && !this->runDamaVbdc())
+	if(this->enable_vbdc && !this->computeDamaVbdc())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
 		    "SF#%u: Error while computing RBDC allocation\n",
@@ -591,7 +578,7 @@ bool DamaCtrl::runDama()
 		this->probe_gw_vbdc_alloc->put(0);
 	}
 
-	if(!this->runDamaFca())
+	if(!this->computeDamaFca())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
 		    "SF#%u: Error while computing RBDC allocation\n",
@@ -690,3 +677,15 @@ TerminalCategories<TerminalCategoryDama> *DamaCtrl::getCategories()
 	return &(this->categories);
 }
 
+TerminalContextDama *DamaCtrl::getTerminalContext(tal_id_t tal_id) const
+{
+	DamaTerminalList::const_iterator it;
+
+	it = this->terminals.find(tal_id);
+	if(it == this->terminals.end())
+	{
+		return NULL;
+	}
+
+	return it->second;
+}

@@ -194,7 +194,7 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 	bool send_rbdc_request = false;
 	bool send_vbdc_request = false;
 	rate_kbps_t rbdc_request_kbps = 0;
-	vol_pkt_t vbdc_request_pkt = 0;
+	vol_kb_t vbdc_request_kb = 0;
 	empty = false;
 
 	// Compute RBDC request if needed
@@ -237,10 +237,10 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 		LOG(this->log_sac, LEVEL_INFO,
 		    "SF#%u: Compute VBDC request\n",
 		    this->current_superframe_sf);
-		vbdc_request_pkt = this->computeVbdcRequest();
+		vbdc_request_kb = this->converter->pktToKbits(this->computeVbdcRequest());
 
 		// Send the request only if it is not null
-		if(vbdc_request_pkt > 0)
+		if(vbdc_request_kb > 0)
 		{
 			send_vbdc_request = true;
 		}
@@ -252,7 +252,7 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 		LOG(this->log_sac, LEVEL_DEBUG,
 		    "SF#%u: RBDC CR = %d, VBDC CR = %d, no CR built.\n",
 		    this->current_superframe_sf, rbdc_request_kbps,
-		    vbdc_request_pkt);
+		    vbdc_request_kb);
 		empty = true;
 		this->probe_st_rbdc_req_size->put(0);
 		this->probe_st_vbdc_req_size->put(0);
@@ -287,11 +287,10 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 	// set VBDC request (if any) in SAC
 	if(send_vbdc_request)
 	{
-		sac->addRequest(0, access_dama_vbdc, vbdc_request_pkt);
+		sac->addRequest(0, access_dama_vbdc, vbdc_request_kb);
 
 		// Update statistics
-		this->probe_st_vbdc_req_size->put(
-			this->converter->pktToKbits(vbdc_request_pkt));
+		this->probe_st_vbdc_req_size->put(vbdc_request_kb);
 
 	}
 	else
@@ -300,9 +299,9 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 	}
 
 	LOG(this->log_sac, LEVEL_INFO,
-	    "SF#%u: build CR with %u kb/s in RBDC and %u packets in "
+	    "SF#%u: build CR with %u kb/s in RBDC and %u kb in "
 	    "VBDC", this->current_superframe_sf, rbdc_request_kbps,
-	    vbdc_request_pkt);
+	    vbdc_request_kb);
 
  end:
 	return true;

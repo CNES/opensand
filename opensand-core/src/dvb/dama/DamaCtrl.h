@@ -40,13 +40,11 @@
 #include "Ttp.h"
 #include "TerminalContextDama.h"
 #include "TerminalCategoryDama.h"
-#include "FmtSimulation.h"
 #include "StFmtSimu.h"
 #include "PepRequest.h"
 #include "OpenSandFrames.h"
 #include "Logon.h"
 #include "Logoff.h"
-#include "UnitConverter.h"
 
 #include <opensand_output/Output.h>
 
@@ -199,7 +197,6 @@ class DamaCtrl
 	 * @param   max_rbdc_kbps   maximum RBDC value (kb/s).
 	 * @param   rbdc_timeout_sf RBDC timeout (in superframe number).
 	 * @param   max_vbdc_kb     maximum VBDC value (in kbits).
-	 * @param   converter       unit converter
 	 * @return  true if success, false otherwise.
 	 */
 	virtual bool createTerminal(TerminalContextDama **terminal,
@@ -207,31 +204,54 @@ class DamaCtrl
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
 	                            time_sf_t rbdc_timeout_sf,
-	                            vol_kb_t max_vbdc_kb,
-	                            UnitConverter *converter) = 0;
+	                            vol_kb_t max_vbdc_kb) = 0;
 
 	/**
-	 * @brief  Get the unit converter of a carriers' category.
+	 * @brief compute the Dama, it allocates exactly what have been asked
+	 *        using internal requests, TBTP and contexts.
+	 * After DAMA computation, TBTP is completed and context is reinitialized
 	 *
-	 * @param   category_label  The label of the carriers' category
-	 * @return  unit converter if success, null otherwise
+	 * @return true on success, false otherwise
 	 */
-	virtual UnitConverter *getUnitConverter(string category_label) = 0;
+	bool computeDama();
+
+	/**
+	 * @brief  Reset all terminals allocations.
+	 *
+	 * @return  true on success, false otherwize
+	 */
+	virtual bool resetTerminalsAllocations() = 0;
+
+	/**
+	 * @brief  Update all carriers and FMTs.
+	 *
+	 * @return  true on success, false otherwise.
+	 */
+	virtual bool updateCarriersAndFmts() = 0;
 
 	/**
 	 * @brief Run the RBDC computation for DAMA
 	 */
-	virtual bool runDamaRbdc() = 0;
+	virtual bool computeDamaRbdc() = 0;
 
 	/**
 	 * @brief Run the VBDC computation for DAMA
 	 */
-	virtual bool runDamaVbdc() = 0;
+	virtual bool computeDamaVbdc() = 0;
 
 	/**
 	 * @brief Run the FCA computation for DAMA
 	 */
-	virtual bool runDamaFca() = 0;
+	virtual bool computeDamaFca() = 0;
+
+	/**
+	 * @brief Get the context of terminal
+	 * 
+	 * @param tal_id      The terminal id
+	 * @return            The context of the terminal
+	 * 
+	 */
+	virtual TerminalContextDama *getTerminalContext(tal_id_t tal_id) const;
 
 	// Output Log
 	OutputLog *log_init;
@@ -303,22 +323,6 @@ class DamaCtrl
 
 	/** Whethter we used simulated requests */
 	bool simulated;
-
-	/**
-	 * @brief run the Dama, it allocates exactly what have been asked
-	 *        using internal requests, TBTP and contexts.
-	 * After DAMA computation, TBTP is completed and context is reinitialized
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool runDama();
-
-	/**
-	 * @brief  Reset all Dama settings.
-	 *
-	 * @return  true on success, false otherwise.
-	 */
-	virtual bool resetDama() = 0;
 
 	/// if set to other than NULL, the fd where recording events
 	FILE *event_file;

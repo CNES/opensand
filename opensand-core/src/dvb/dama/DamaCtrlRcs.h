@@ -37,8 +37,6 @@
 
 #include "DamaCtrlRcsCommon.h"
 
-#include "UnitConverter.h"
-
 #include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
@@ -56,28 +54,11 @@ class DamaCtrlRcs: public DamaCtrlRcsCommon
 {
  public:
 
-	DamaCtrlRcs(spot_id_t spot, vol_bytes_t packet_length_bytes);
+	DamaCtrlRcs(spot_id_t spot);
 	virtual ~DamaCtrlRcs();
-
-	virtual bool init();
 
 	// Update MODCOD for each terminal
 	virtual void updateFmt();
-
- protected:
-	vol_bytes_t packet_length_bytes;
-	UnitConverter *converter;  ///< Used to convert from/to KB to encap packets
-
-	/**
-	 * @brief  Get the unit converter of a carriers' category.
-	 *
-	 * @param   category_label  The label of the carriers' category
-	 * @return  unit converter if success, null otherwise
-	 */
-	virtual UnitConverter *getUnitConverter(string category_label);
-
-	// Reset dama
-	virtual bool resetDama() = 0;
 };
 
 #endif

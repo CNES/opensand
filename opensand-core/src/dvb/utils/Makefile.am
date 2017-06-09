@@ -12,6 +12,7 @@ libopensand_dvb_utils_la_cpp = \
 	TerminalContext.cpp \
 	TerminalContextDama.cpp \
 	TerminalContextDamaRcs.cpp \
+	TerminalContextDamaRcs2.cpp \
 	TerminalContextSaloha.cpp \
 	FmtGroup.cpp \
 	CarriersGroup.cpp \
@@ -38,6 +39,7 @@ libopensand_dvb_utils_la_h = \
 	TerminalContext.h \
 	TerminalContextDama.h \
 	TerminalContextDamaRcs.h \
+	TerminalContextDamaRcs2.h \
 	TerminalContextSaloha.h \
 	TerminalCategory.h \
 	TerminalCategoryDama.h \

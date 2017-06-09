@@ -56,8 +56,20 @@ class FmtDefinition
 	/** The modulation type of the FMT definition */
 	string modulation_type;
 
+	/** The modulation efficiency of the FMT definition */
+	unsigned int modulation_efficiency;
+
+	/** The inverse of the modulation efficiency of the FMT definition */
+	float modulation_efficiency_inv;
+
 	/** The coding type of the FMT definition */
 	string coding_type;
+
+	/** The coding rate of the FMT definition */
+	float coding_rate;
+
+	/** The inverse of the coding rate of the FMT definition */
+	float coding_rate_inv;
 
 	/* The spectral efficiency of the FMT definition */
 	float spectral_efficiency;
@@ -65,27 +77,32 @@ class FmtDefinition
 	/** The required carrier to noise ratio */
 	double required_Es_N0;
 
-	/** The burst length */
-	vol_sym_t burst_length;
+	/** The status about burst length presence */
+	bool has_burst_length;
+
+	/** The burst length in symbols */
+	vol_sym_t burst_length_sym;
 
  public:
-
-	/**** constructor/destructor ****/
-
 	/* create a FMT definition */
 	FmtDefinition(const unsigned int id,
-	              const string modulation_type,
-	              const string coding_type,
-	              const float spectral_efficiency,
-	              const double required_Es_N0,
-	              const vol_sym_t burst_length);
+		const string modulation_type,
+		const string coding_type,
+		const float spectral_efficiency,
+		const double required_Es_N0);
+
+	FmtDefinition(const unsigned int id,
+		const string modulation_type,
+		const string coding_type,
+		const float spectral_efficiency,
+		const double required_Es_N0,
+		const vol_sym_t burst_length);
 
 	/* constructor by copy */
 	FmtDefinition(const FmtDefinition &fmt_def);
 
 	/* destroy a FMT definition */
-	~FmtDefinition();
-
+	virtual ~FmtDefinition();
 
 	/**** accessors ****/
 
@@ -110,10 +127,19 @@ class FmtDefinition
 	/* get the required Es/N0 ratio of the FMT definition */
 	double getRequiredEsN0() const;
 
-	/* get the burst length of the FMT definition */
+	/* get the status about burst length presence */
+	bool hasBurstLength() const;
+
+	/* get the burst length in symbols of the FMT defition */
 	vol_sym_t getBurstLength() const;
 
-	void print(void); /// For debug
+	/* convert a value in symbol for the FMT definition */
+	vol_kb_t symToKbits(vol_sym_t vol_sym) const;
+
+	/* convert a value in kbits for the FMT definition */
+	vol_sym_t kbitsToSym(vol_kb_t vol_kbits) const;
+
+	virtual void print(void); /// For debug
 
 };
 

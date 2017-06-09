@@ -78,9 +78,7 @@ typedef struct
 	// TODO uint8_t in standard and we should build more than one TTP per ST
 	uint16_t assignment_count; ///> one less than the number of timeslots assigned
 	                           //   in the block (for RCS)
-	uint8_t fwd_fmt_id;    ///> The ID for FMT (MODCOD ID) of the forward link
-	uint8_t ret_fmt_id;    ///> The ID for FMT (MODCOD ID) of the return link (only
-	                       //   for DVB-RCS2)
+	uint8_t fmt_id;    ///> The ID for FMT (MODCOD ID)
 	uint8_t priority;  ///> The traffic priority (no used in RCS)
 } __attribute__((packed)) emu_tp_t;
 
@@ -136,8 +134,7 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 	 * @param tal_id           The terminal ID
 	 * @param offset           The offset in the superframe
 	 * @param assignment_count The number of assigned timeslots - 1
-	 * @param fwd_fmt_id       The ID for FMT of the forward link
-	 * @param ret_fmt_id       The ID for FMT of the return link
+	 * @param fmt_id           The ID for FMT
 	 * @param priority         The reaffic priority for this TP
 	 *
 	 * @return true on success, false othertwise
@@ -146,8 +143,7 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 	                 tal_id_t tal_id,
 	                 int32_t offset,
 	                 uint16_t assignment_count,
-	                 fmt_id_t fwd_fmt_id,
-	                 fmt_id_t ret_fmt_id,
+	                 fmt_id_t fmt_id,
 	                 uint8_t priority);
 
 	/**

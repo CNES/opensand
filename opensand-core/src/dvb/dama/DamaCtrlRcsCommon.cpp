@@ -75,23 +75,20 @@ error:
 
 bool DamaCtrlRcsCommon::hereIsSAC(const Sac *sac)
 {
-	DamaTerminalList::iterator st;
 	TerminalContextDamaRcs *terminal;
 	tal_id_t tal_id = sac->getTerminalId();
-	std::vector<cr_info_t> requests = sac->getRequets();
-
+	std::vector<cr_info_t> requests = sac->getRequests();
 
 	// Checking if the station is registered
 	// if we get GW terminal ID this is for physical layer parameters
-	st = this->terminals.find(tal_id);
-	if(st == this->terminals.end() && !OpenSandConf::isGw(tal_id))
+	terminal = (TerminalContextDamaRcs *)this->getTerminalContext(tal_id);
+	if(terminal == NULL && !OpenSandConf::isGw(tal_id))
 	{
 		LOG(this->log_sac, LEVEL_ERROR, 
 		    "SF#%u: CR for an unknown st (logon_id=%u). "
 		    "Discarded.\n" , this->current_superframe_sf, tal_id);
 		goto error;
 	}
-	terminal = (TerminalContextDamaRcs*) st->second; // Now st_context points to a valid context
 
 	for(std::vector<cr_info_t>::iterator it = requests.begin();
 	    it != requests.end(); ++it)
@@ -104,7 +101,7 @@ bool DamaCtrlRcsCommon::hereIsSAC(const Sac *sac)
 		    "SF#%u: ST%u requests %u %s\n",
 		    this->current_superframe_sf, tal_id, xbdc,
 		    ((*it).type == access_dama_vbdc) ?
-		    "slots in VBDC" : "kbits/s in RBDC");
+		    "kbits in VBDC" : "kbits/s in RBDC");
 
 		// take into account the new request
 		switch((*it).type)
@@ -150,9 +147,8 @@ bool DamaCtrlRcsCommon::buildTTP(Ttp *ttp)
 	    category_it++)
 	{
 		const std::vector<TerminalContext *> &terminals =
-							(*category_it).second->getTerminals();
-
-
+			(*category_it).second->getTerminals();
+		
 		LOG(this->log_ttp, LEVEL_DEBUG,
 		    "SF#%u: Category %s has %zu terminals\n",
 		    this->current_superframe_sf,
@@ -163,25 +159,22 @@ bool DamaCtrlRcsCommon::buildTTP(Ttp *ttp)
 		{
 			TerminalContextDamaRcs *terminal =
 					dynamic_cast<TerminalContextDamaRcs*>(terminals[terminal_index]);
-			vol_pkt_t total_allocation_pkt = 0;
-
-			total_allocation_pkt += terminal->getTotalVolumeAllocation();
-			total_allocation_pkt += terminal->getTotalRateAllocation();
+			vol_kb_t total_allocation_kb = 0;
 
 			// we need to do that else some CRA will be allocated and the terminal
 			// will send data even if there is no MODCOD robust enough
-			if(terminal->getForwardFmtId() == 0)
+			if(terminal->getFmtId() != 0)
 			{
-				total_allocation_pkt = 0;
+				total_allocation_kb += terminal->getTotalVolumeAllocation();
+				total_allocation_kb += terminal->getTotalRateAllocation();
 			}
 
 			//FIXME: is the offset to be 0 ???
-			if(!ttp->addTimePlan(0 /*FIXME: should it be the frame_counter of the bloc_dvb_ncc ?*/,
+			if(!ttp->addTimePlan(0 /*FIXME: should it be the frame_counter of the bloc_ncc ?*/,
 			                     terminal->getTerminalId(),
 			                     0,
-			                     total_allocation_pkt,
-			                     terminal->getForwardFmtId(),
-			                     terminal->getReturnFmtId(),
+			                     total_allocation_kb,
+			                     terminal->getFmtId(),
 			                     0))
 			{
 				LOG(this->log_ttp, LEVEL_ERROR,
@@ -196,18 +189,16 @@ bool DamaCtrlRcsCommon::buildTTP(Ttp *ttp)
 	return true;
 }
 
-// TODO check units here
 bool DamaCtrlRcsCommon::applyPepCommand(const PepRequest *request)
 {
-	DamaTerminalList::iterator it;
 	TerminalContextDamaRcs *terminal;
 	rate_kbps_t cra_kbps;
 	rate_kbps_t max_rbdc_kbps;
 	rate_kbps_t rbdc_kbps;
 
 	// check that the ST is logged on
-	it = this->terminals.find(request->getStId());
-	if(it == this->terminals.end())
+	terminal = dynamic_cast<TerminalContextDamaRcs *>(this->getTerminalContext(request->getStId()));
+	if(terminal == NULL)
 	{
 		LOG(this->log_pep, LEVEL_ERROR, 
 		    "SF#%u: ST%d is not logged on, ignore %s request\n",
@@ -216,7 +207,6 @@ bool DamaCtrlRcsCommon::applyPepCommand(const PepRequest *request)
 		    "allocation" : "release");
 		goto abort;
 	}
-	terminal = (TerminalContextDamaRcs*)(it->second);
 
 	// update CRA allocation ?
 	cra_kbps = request->getCra();
@@ -263,7 +253,7 @@ bool DamaCtrlRcsCommon::applyPepCommand(const PepRequest *request)
 	{
 		// increase the RDBC timeout in order to be sure that RDBC
 		// will not expire before the session is established
-		terminal->setRbdcTimeout(100);
+		terminal->updateRbdcTimeout(100);
 
 		terminal->setRequiredRbdc(rbdc_kbps);
 		LOG(this->log_pep, LEVEL_NOTICE,
@@ -272,7 +262,7 @@ bool DamaCtrlRcsCommon::applyPepCommand(const PepRequest *request)
 		    request->getStId(), request->getRbdc());
 
 		// change back RDBC timeout
-		terminal->setRbdcTimeout(this->rbdc_timeout_sf);
+		terminal->updateRbdcTimeout(this->rbdc_timeout_sf);
 	}
 
 	return true;
@@ -286,15 +276,13 @@ bool DamaCtrlRcsCommon::createTerminal(TerminalContextDama **terminal,
                                  rate_kbps_t cra_kbps,
                                  rate_kbps_t max_rbdc_kbps,
                                  time_sf_t rbdc_timeout_sf,
-                                 vol_kb_t max_vbdc_kb,
-                                 UnitConverter *converter)
+                                 vol_kb_t max_vbdc_kb)
 {
 	*terminal = new TerminalContextDamaRcs(tal_id,
-	                                      cra_kbps,
-	                                      max_rbdc_kbps,
-	                                      rbdc_timeout_sf,
-	                                      max_vbdc_kb,
-	                                      converter);
+	                                       cra_kbps,
+	                                       max_rbdc_kbps,
+	                                       rbdc_timeout_sf,
+	                                       max_vbdc_kb);
 	if(!(*terminal))
 	{
 		LOG(this->log_logon, LEVEL_ERROR,

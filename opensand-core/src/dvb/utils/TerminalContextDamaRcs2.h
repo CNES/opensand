@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2015 TAS
+ * Copyright © 2015 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -26,54 +27,54 @@
  */
 
 /**
- * @file UnitConverter.h
- * @brief Converters for OpenSAND units
- * @author Julien Bernard <jbernard@toulouse.viveris.com>
+ * @file TerminalContextDamaRcs2.h
+ * @brief The terminal context for DAMA DVB-RCS2
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ *
  */
 
-#ifndef _UNIT_CONVERTER_H_
-#define _UNIT_CONVERTER_H_
 
-#include "OpenSandCore.h"
+#ifndef _TERMINAL_CONTEXT_DAMA_RCS2_H_
+#define _TERMINAL_CONTEXT_DAMA_RCS2_H_
+
+#include "TerminalContextDamaRcs.h"
+#include "UnitConverter.h"
+#include "FmtDefinition.h"
 
 /**
- * @class UnitConverter
- * @brief class managing unit conversion between kbits/s, cells per frame, etc
+ * @class TerminalContextDamaRcs2
  */
-class UnitConverter
+class TerminalContextDamaRcs2: public TerminalContextDamaRcs
 {
- protected:
-
-	vol_b_t packet_length_b;            ///< Uplink packets size (in bits)
-	time_ms_t frame_duration_ms;        ///< Uplink frame duration (in ms)
-
-	float packet_length_b_inv;          ///< Inverse of uplink packets size (in bits-1)
-	float frame_duration_ms_inv;        ///< Invers of uplink frame duration (in ms-1)
-
  public:
 
 	/**
-	 * @brief Create the unit converter
+	 * @brief  Create a terminal context for DAMA
 	 *
-	 * @param  duration_ms  The frame duration in ms
-	 * @param  length_b     The packet length in bit
+	 * @param  tal_id             terminal id.
+	 * @param  cra_kbps           terminal CRA (kb/s).
+	 * @param  max_rbdc_kbps      maximum RBDC value (kb/s).
+	 * @param  rbdc_timeout_sf    RBDC timeout (in superframe number).
+	 * @param  max_vbdc_kb        maximum VBDC value (kb).
+	 * @param  frame_duration_ms  frame duration (ms)
+	 * @prama  packet_length_b    packet length (b)
 	 */
-	UnitConverter(time_ms_t duration_ms, vol_b_t length_b = 0);
-	~UnitConverter();
-	
-	/**
-	 * @brief Update the packet length
-	 * 
-	 * @param length_b  The packet length in bits
-	 */
-	void updatePacketLength(vol_b_t length_b);
+	TerminalContextDamaRcs2(tal_id_t tal_id,
+		rate_kbps_t cra_kbps,
+		rate_kbps_t max_rbdc_kbps,
+		time_sf_t rbdc_timeout_sf,
+		vol_kb_t max_vbdc_kb,
+		time_ms_t frame_duration_ms,
+		vol_b_t packet_length_b = 0);
+
+	virtual ~TerminalContextDamaRcs2();
 
 	/**
-	 * @brief Update the frame duration
+	 * @brief Set the current FMT of the terminal
 	 *
-	 * @param duration_ms  The frame duration in ms
+	 * @param fmt_def  The current FMT of the terminal
 	 */
-	void updateFrameDuration(time_ms_t duration_ms);
+	virtual void updateFmt(FmtDefinition *fmt);
 
 	/**
 	 * @brief convert from packet number to bits
@@ -115,6 +116,21 @@ class UnitConverter
 	 * @return the number of packets
 	 */
 	rate_kbps_t pktpfToKbps(rate_pktpf_t rate_pktpf) const;
+
+  protected:
+
+	/** The packet length (b) */
+	vol_b_t packet_length_b;
+
+	/** The unit converter */
+	UnitConverter converter;
+
+	/**
+	 * @brief Get the payload length
+	 *
+	 * @return  The current payload length in bits
+	 */
+	vol_b_t getPayloadLength() const;
 };
 
 #endif

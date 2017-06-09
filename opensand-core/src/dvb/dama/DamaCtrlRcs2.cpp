@@ -26,16 +26,17 @@
  */
 
 /**
- * @file DamaCtrlRcs.cpp
+ * @file DamaCtrlRcs2.cpp
  * @brief This library defines a generic DAMA controller
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieutoulouse.viveris.com>
  */
 
 
-#include "DamaCtrlRcs.h"
-#include "TerminalContextDamaRcs.h"
+#include "DamaCtrlRcs2.h"
+#include "TerminalContextDamaRcs2.h"
 #include "CarriersGroupDama.h"
+#include "OpenSandConf.h"
 
 #include <opensand_output/Output.h>
 
@@ -47,7 +48,7 @@ using namespace std;
 /**
  * Constructor
  */
-DamaCtrlRcs::DamaCtrlRcs(spot_id_t spot):
+DamaCtrlRcs2::DamaCtrlRcs2(spot_id_t spot):
 	DamaCtrlRcsCommon(spot)
 {
 }
@@ -56,11 +57,51 @@ DamaCtrlRcs::DamaCtrlRcs(spot_id_t spot):
 /**
  * Destructor
  */
-DamaCtrlRcs::~DamaCtrlRcs()
+DamaCtrlRcs2::~DamaCtrlRcs2()
 {
 }
 
-void DamaCtrlRcs::updateFmt()
+bool DamaCtrlRcs2::resetTerminalsAllocations()
+{
+	bool ret = true;
+	DamaTerminalList::iterator it;
+
+	for(it = this->terminals.begin(); it != this->terminals.end(); it++)
+	{
+		TerminalContextDamaRcs2 *terminal = dynamic_cast<TerminalContextDamaRcs2 *>(it->second);
+		double credit_kbps = 0.0;
+		rate_kbps_t request_kbps = 0;
+
+		// Reset allocation (in slots)
+		terminal->setRbdcAllocation(0);
+		terminal->setVbdcAllocation(0);
+		terminal->setFcaAllocation(0);
+
+		// Update timer
+		terminal->decrementTimer();
+		if(0 < terminal->getTimer())
+		{
+			rate_kbps_t payload_kbps;
+	
+			// Get RBDC request and credit (in kb/s)
+			credit_kbps = terminal->getRbdcCredit();
+			request_kbps = terminal->getRequiredRbdc();
+			payload_kbps = terminal->pktpfToKbps(1);
+			
+			// Update RBDC request and credit (in kb/s)
+			credit_kbps = max(credit_kbps - payload_kbps, 0.0);
+			request_kbps += payload_kbps;
+		}
+		
+		// Set RBDC request and credit (in kb/s)
+		terminal->setRbdcCredit(credit_kbps);
+		terminal->setRequiredRbdc(request_kbps);
+	}
+
+	return ret;
+}
+
+void DamaCtrlRcs2::updateFmt()
 {
 	DamaTerminalList::iterator terminal_it;
 
@@ -69,7 +110,7 @@ void DamaCtrlRcs::updateFmt()
 	{
 		TerminalCategoryDama *category;
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-		TerminalContextDamaRcs *terminal = dynamic_cast<TerminalContextDamaRcs *>(terminal_it->second);
+		TerminalContextDamaRcs2 *terminal = dynamic_cast<TerminalContextDamaRcs2 *>(terminal_it->second);
 		tal_id_t tal_id = terminal->getTerminalId();
 		vector<CarriersGroupDama *> carriers_group;
 		unsigned int simulated_fmt;

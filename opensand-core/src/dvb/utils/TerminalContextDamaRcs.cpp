@@ -49,181 +49,35 @@ TerminalContextDamaRcs::TerminalContextDamaRcs(tal_id_t tal_id,
                                                rate_kbps_t cra_kbps,
                                                rate_kbps_t max_rbdc_kbps,
                                                time_sf_t rbdc_timeout_sf,
-                                               vol_kb_t max_vbdc_kb,
-                                               const UnitConverter *converter):
+                                               vol_kb_t max_vbdc_kb):
 	TerminalContextDama(tal_id, cra_kbps, max_rbdc_kbps, rbdc_timeout_sf, max_vbdc_kb),
-	rbdc_credit_pktpf(0.0),
-	timer_sf(0),
-	rbdc_request_kbps(0),
-	rbdc_alloc_pktpf(0),
-	vbdc_request_pkt(0),
-	vbdc_alloc_pkt(0),
-	cra_alloc_pktpf(0),
-	fca_alloc_pktpf(0),
-	converter(converter)
+	carrier_id()
 {
+	this->setCra(cra_kbps);
 	this->setMaxRbdc(max_rbdc_kbps);
-	this->max_vbdc_pkt = this->converter->kbitsToPkt(max_vbdc_kb);
-
+	this->updateFmt(NULL); // at beginning the terminal need to be served while FMT ID is unknown
 }
 
 TerminalContextDamaRcs::~TerminalContextDamaRcs()
 {
 }
 
-void TerminalContextDamaRcs::setMaxRbdc(rate_kbps_t max_rbdc_kbps)
+unsigned int TerminalContextDamaRcs::getFmtId() const
 {
-	this->max_rbdc_kbps = max_rbdc_kbps;
-	LOG(this->log_band, LEVEL_INFO,
-	    "max RBDC is %u kbits/s (for "
-	    "ST%u)\n", this->max_rbdc_kbps, 
-	    this->max_rbdc_kbps, this->tal_id);
+	return this->fmt_def != NULL ? this->fmt_def->getId() : 0;
 }
 
-void TerminalContextDamaRcs::setRbdcTimeout(time_sf_t rbdc_timeout_sf)
+void TerminalContextDamaRcs::updateFmt(FmtDefinition *fmt)
 {
-	this->rbdc_timeout_sf = rbdc_timeout_sf;
+	this->fmt_def = fmt;
 }
 
-void TerminalContextDamaRcs::setRequiredRbdc(rate_kbps_t rbdc_request_kbps)
+unsigned int TerminalContextDamaRcs::getCarrierId() const
 {
-	// limit the requets to Max RBDC
-	this->rbdc_request_kbps = std::min(rbdc_request_kbps, this->max_rbdc_kbps);
-
-	// save the request
-	this->rbdc_credit_pktpf = 0;
-	this->timer_sf = this->rbdc_timeout_sf;
-	LOG(this->log_band, LEVEL_DEBUG,
-	    "new RBDC request %d (kbps) credit %.2f (pktpf) timer %d for ST%u.\n",
-	    this->rbdc_request_kbps, this->rbdc_credit_pktpf,
-	    this->timer_sf, this->tal_id);
+	return this->carrier_id;
 }
 
-rate_kbps_t TerminalContextDamaRcs::getRequiredRbdc() const
+void TerminalContextDamaRcs::setCarrierId(unsigned int carrier_id)
 {
-	return this->rbdc_request_kbps;
+	this->carrier_id = carrier_id;
 }
-
-void TerminalContextDamaRcs::setRbdcAllocation(rate_pktpf_t rbdc_alloc_pktpf)
-{
-	this->rbdc_alloc_pktpf = rbdc_alloc_pktpf;
-}
-
-void TerminalContextDamaRcs::addRbdcCredit(rate_pktpf_t credit_pktpf)
-{
-	this->rbdc_credit_pktpf += credit_pktpf;
-}
-
-rate_pktpf_t TerminalContextDamaRcs::getRbdcCredit() const
-{
-	return this->rbdc_credit_pktpf;
-}
-
-void TerminalContextDamaRcs::setRequiredVbdc(vol_pkt_t vbdc_request_pkt)
-{
-	this->vbdc_request_pkt += vbdc_request_pkt;
-	this->vbdc_request_pkt = std::min(this->vbdc_request_pkt, this->max_vbdc_pkt);
-	LOG(this->log_band, LEVEL_DEBUG,
-	    "new VBDC request %u for ST%u\n",
-	    vbdc_request_pkt, this->tal_id);
-}
-
-void TerminalContextDamaRcs::setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt)
-{
-	this->vbdc_alloc_pkt += vbdc_alloc_pkt;
-	if(this->vbdc_request_pkt >= vbdc_alloc_pkt)
-	{
-		// The allocation on Agent is processed per frame so for one TTP we
-		// will allocate as many time the allocated value as we have frames
-		// in superframes
-		this->vbdc_request_pkt -= vbdc_alloc_pkt;
-	}
-	else
-	{
-		this->vbdc_request_pkt = 0;
-	}
-}
-
-vol_pkt_t TerminalContextDamaRcs::getRequiredVbdc() const
-{
-	// the allocation is used for each frame per supertrame so it should
-	// be divided by the number of frames per superframes
-	return ceil(this->vbdc_request_pkt);
-}
-
-void TerminalContextDamaRcs::setCraAllocation(rate_pktpf_t cra_alloc_pktpf)
-{
-	this->cra_alloc_pktpf = cra_alloc_pktpf;
-}
-
-rate_pktpf_t TerminalContextDamaRcs::getCraAllocation()
-{
-	return this->cra_alloc_pktpf;
-}
-
-void TerminalContextDamaRcs::setFcaAllocation(rate_pktpf_t fca_alloc_pktpf)
-{
-	this->fca_alloc_pktpf = fca_alloc_pktpf;
-}
-
-rate_pktpf_t TerminalContextDamaRcs::getFcaAllocation()
-{
-	return this->fca_alloc_pktpf;
-}
-
-
-rate_pktpf_t TerminalContextDamaRcs::getTotalRateAllocation()
-{
-	LOG(this->log_band, LEVEL_DEBUG,
-	    "Rate allocation: RBDC %u packets, FCA %u packets, "
-	    "CRA %u packets for ST%u\n", this->rbdc_alloc_pktpf,
-	    this->fca_alloc_pktpf, this->cra_alloc_pktpf, this->tal_id);
-	return this->rbdc_alloc_pktpf + this->fca_alloc_pktpf + this->cra_alloc_pktpf;
-}
-
-vol_pkt_t TerminalContextDamaRcs::getTotalVolumeAllocation()
-{
-	return this->vbdc_alloc_pkt;
-}
-
-void TerminalContextDamaRcs::onStartOfFrame()
-{
-	if(this->timer_sf > 0)
-	{
-		// timeout management
-		this->timer_sf--;
-	}
-
-	if(this->timer_sf > 0)
-	{
-		if(this->rbdc_credit_pktpf >= 1.0)
-		{
-			this->rbdc_credit_pktpf -= 1.0;
-			this->rbdc_request_kbps += this->converter->pktpfToKbps(1);
-		}
-	}
-	else
-	{
-		this->rbdc_request_kbps = 0;
-		this->rbdc_credit_pktpf = 0.0;
-	}
-
-	this->cra_alloc_pktpf = this->converter->kbpsToPktpf(this->cra_kbps);
-	this->rbdc_alloc_pktpf = 0;
-	this->vbdc_alloc_pkt = 0;
-	this->fca_alloc_pktpf = 0;
-}
-
-
-bool TerminalContextDamaRcs::sortByRemainingCredit(const TerminalContextDamaRcs *e1,
-                                               const TerminalContextDamaRcs *e2)
-{
-	return e1->rbdc_credit_pktpf > e2->rbdc_credit_pktpf;
-}
-
-bool TerminalContextDamaRcs::sortByVbdcReq(const TerminalContextDamaRcs *e1,
-                                       const TerminalContextDamaRcs *e2)
-{
-	return e1->vbdc_request_pkt > e2->vbdc_request_pkt;
-}
-

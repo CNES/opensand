@@ -37,27 +37,42 @@
 
 /*
  * @param Duration is the Frame duration in ms
- * @param Size is the UL packet size in bytes
+ * @param Size is the UL packet size in bit
  */
-UnitConverter::UnitConverter(vol_bytes_t packet_length_bytes,
-                             time_ms_t frame_duration_ms):
-	packet_length_b(packet_length_bytes << 3),
-	frame_duration_ms(frame_duration_ms)
+UnitConverter::UnitConverter(time_ms_t duration_ms, vol_b_t length_b)
 {
+	this->updateFrameDuration(duration_ms);
+	this->updatePacketLength(length_b);
 }
 
 UnitConverter::~UnitConverter()
 {
 }
 
-vol_bytes_t UnitConverter::getPacketLength() const
+void UnitConverter::updatePacketLength(vol_b_t length_b)
 {
-	return this->packet_length_b >> 3;
+	this->packet_length_b = length_b;
+	if(0 < this->packet_length_b)
+	{
+		this->packet_length_b_inv = 1.0 / this->packet_length_b;
+	}
+	else
+	{
+		this->packet_length_b_inv = 0.0;
+	}
 }
 
-void UnitConverter::setPacketLength(vol_bytes_t packet_length_bytes)
+void UnitConverter::updateFrameDuration(time_ms_t duration_ms)
 {
-	this->packet_length_b = packet_length_bytes << 3;
+	this->frame_duration_ms = duration_ms;
+	if(0 < this->frame_duration_ms)
+	{
+		this->frame_duration_ms_inv = 1.0 / this->frame_duration_ms;
+	}
+	else
+	{
+		this->frame_duration_ms_inv = 0.0;
+	}
 }
 
 //FIXME: kb and kbps may have decimal part, should they be double instead of
@@ -74,20 +89,21 @@ vol_kb_t UnitConverter::pktToKbits(vol_pkt_t vol_pkt) const
 
 vol_pkt_t UnitConverter::kbitsToPkt(vol_kb_t vol_kb) const
 {
-	return floor(vol_kb * 1000 / this->packet_length_b);
+	return floor(vol_kb * 1000 * this->packet_length_b_inv);
 }
 
 rate_pktpf_t UnitConverter::kbpsToPktpf(rate_kbps_t rate_kbps) const
 {
 	// bit/ms <=> kbits/s
-	return ceil((rate_kbps * this->frame_duration_ms) /
-	            this->packet_length_b);
+	return ceil((rate_kbps * this->frame_duration_ms) *
+	            this->packet_length_b_inv);
 }
 
 rate_kbps_t UnitConverter::pktpfToKbps(rate_pktpf_t rate_pktpf) const
 {
 	// bits/ms <=> kbits/s
-	return ceil((rate_pktpf * this->packet_length_b) / this->frame_duration_ms);
+	return ceil((rate_pktpf * this->packet_length_b) *
+	            this->frame_duration_ms_inv);
 }
 
 

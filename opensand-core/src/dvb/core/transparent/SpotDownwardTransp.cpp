@@ -38,7 +38,7 @@
 
 #include "ForwardSchedulingS2.h"
 #include "DamaCtrlRcsLegacy.h"
-#include "DamaCtrlRcs2Legacy.h"
+//#include "DamaCtrlRcs2Legacy.h"
 
 #include <errno.h>
 
@@ -358,10 +358,10 @@ bool SpotDownwardTransp::initDama(void)
 			this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id,
 			                                        this->up_return_pkt_hdl->getFixedLength());
 		}
-		/*else if(this->return_link_std == DVB_RCS2)
-		{
-			this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
-		}*/
+		//else if(this->return_link_std == DVB_RCS2)
+		//{
+		//	this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
+		//}
 		else
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,

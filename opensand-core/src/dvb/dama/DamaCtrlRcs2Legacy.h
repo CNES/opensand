@@ -27,44 +27,39 @@
  */
 
 /**
- * @file DamaCtrlRcsLegacy.h
+ * @file DamaCtrlRcs2Legacy.h
  * @brief This library defines the legacy DAMA controller.
  *
  * @author ASP - IUSO, DTP (B. BAUDOIN)
  * @author Didier Barvaux / Viveris Technologies
+ * @author Aurelien Delrieu <adelrieu@toulouse.viveris.com>
  */
 
-#ifndef _DAMA_CONTROLLER_RCS_LEGACY_H
-#define _DAMA_CONTROLLER_RCS_LEGACY_H
+#ifndef _DAMA_CONTROLLER_RCS2_LEGACY_H
+#define _DAMA_CONTROLLER_RCS2_LEGACY_H
 
-#include "DamaCtrlRcs.h"
+#include "DamaCtrlRcs2.h"
 
 #include "OpenSandCore.h"
 #include "CarriersGroup.h"
 #include "TerminalCategoryDama.h"
-#include "UnitConverter.h"
 
 /**
- *  @class DamaCtrlRcsLegacy
+ *  @class DamaCtrlRcs2Legacy
  *  @brief This library defines the legacy DAMA controller.
  */
-class DamaCtrlRcsLegacy: public DamaCtrlRcs
+class DamaCtrlRcs2Legacy: public DamaCtrlRcs2
 {
 
  public:
 
-	DamaCtrlRcsLegacy(spot_id_t spot, vol_b_t packet_length_b);
-	virtual ~DamaCtrlRcsLegacy();
+	DamaCtrlRcs2Legacy(spot_id_t spot);
+	virtual ~DamaCtrlRcs2Legacy();
 
  private:
-	vol_b_t packet_length_b;
-	UnitConverter *converter;
-
+	
 	/// initialize
 	virtual bool init();
-
-	/// Reset all terminals allocations
-	virtual bool resetTerminalsAllocations();
 
 	/// update carriers and FMTs
 	virtual bool updateCarriersAndFmts();

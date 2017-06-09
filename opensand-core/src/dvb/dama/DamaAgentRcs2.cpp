@@ -85,30 +85,40 @@ bool DamaAgentRcs2::hereIsTTP(Ttp *ttp)
 	for(map<uint8_t, emu_tp_t>::iterator it = tp.begin();
 	    it != tp.end(); ++it)
 	{
+		vol_kb_t assign_kb;
 		time_pkt_t assign_pkt;
 
-		assign_pkt = (*it).second.assignment_count;
+		assign_kb = (*it).second.assignment_count;
+		assign_pkt = this->converter->kbitsToPkt(assign_kb);
 		this->allocated_pkt += assign_pkt;
 		// we can directly assign here because we should have
 		// received only one TTP
-		this->modcod_id = (*it).second.fwd_fmt_id;
+		this->modcod_id = (*it).second.fmt_id;
 		LOG(this->log_ttp, LEVEL_DEBUG,
 		    "SF#%u: frame#%u: offset:%u, assignment_count:%u, "
-		    "fwd_fmt_id:%u ret_fmt_id:%u priority:%u\n", ttp->getSuperframeCount(),
+		    "fmt_id:%u priority:%u\n", ttp->getSuperframeCount(),
 		    (*it).first, (*it).second.offset, assign_pkt,
-		    (*it).second.fwd_fmt_id, (*it).second.ret_fmt_id,
-		    (*it).second.priority);
+		    (*it).second.fmt_id, (*it).second.priority);
 	}
 
 	if(prev_modcod_id != this->modcod_id)
 	{
+		vol_b_t payload_length_b = 0;
+		FmtDefinition *fmt_def = this->ret_modcod_def->getDefinition(this->modcod_id);
+
+		if(fmt_def != NULL)
+		{
+			payload_length_b = fmt_def->getBurstLength()
+				* fmt_def->getModulationEfficiency()
+				* fmt_def->getCodingRate();
+		}
+
 		// update the packet length in function of MODCOD
-		this->converter->setPacketLength(
-			this->ret_modcod_def->getBurstLengthKb(this->modcod_id));
+		this->converter->updatePacketLength(payload_length_b);
 		LOG(this->log_ttp, LEVEL_DEBUG,
 		    "SF#%u: modcod changed to %u, packet length: %u kbits\n",
 		    ttp->getSuperframeCount(), this->modcod_id,
-		    (this->converter->getPacketLength() / 1000));
+		    payload_length_b / 1000);
 	}
 
 	// Update stats and probes
