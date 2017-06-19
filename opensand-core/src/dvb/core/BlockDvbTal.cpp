@@ -832,7 +832,7 @@ bool BlockDvbTal::Downward::initDama(void)
 
 		if(this->return_link_std == DVB_RCS)
 		{
-			this->dama_agent = new DamaAgentRcsLegacy();
+			this->dama_agent = new DamaAgentRcsLegacy(this->rcs_modcod_def);
 		}
 		else if(this->return_link_std == DVB_RCS2)
 		{
@@ -854,7 +854,7 @@ bool BlockDvbTal::Downward::initDama(void)
 
 		if(this->return_link_std == DVB_RCS)
 		{
-			this->dama_agent = new DamaAgentRcsRrmQos();
+			this->dama_agent = new DamaAgentRcsRrmQos(this->rcs_modcod_def);
 		}
 		else
 		{

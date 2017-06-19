@@ -38,7 +38,7 @@
 #include <opensand_output/Output.h>
 
 
-DamaAgentRcsCommon::DamaAgentRcsCommon():
+DamaAgentRcsCommon::DamaAgentRcsCommon(FmtDefinitionTable *ret_modcod_def):
 	DamaAgent(),
 	allocated_pkt(0),
 	dynamic_allocation_pkt(0),
@@ -46,6 +46,7 @@ DamaAgentRcsCommon::DamaAgentRcsCommon():
 	rbdc_request_buffer(NULL),
 	ret_schedule(NULL),
 	rbdc_timer_sf(0),
+	ret_modcod_def(ret_modcod_def),
 	modcod_id(0)
 {
 }
@@ -63,7 +64,10 @@ DamaAgentRcsCommon::~DamaAgentRcsCommon()
 		delete this->rbdc_request_buffer;
 	}
 
-	delete this->converter;
+	if(this->converter != NULL)
+	{
+		delete this->converter;
+	}
 }
 
 bool DamaAgentRcsCommon::init()
@@ -86,8 +90,13 @@ bool DamaAgentRcsCommon::init()
 	}
 
 	// Initializes unit converter
-	this->converter = new UnitConverter(this->packet_handler->getFixedLength(),
-	                                    this->frame_duration_ms);
+	this->converter = this->generateUnitConverter();
+	if(this->converter == NULL)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Cannot create the unit converter\n");
+		return false;
+	}
 
 	this->ret_schedule = this->generateReturnScheduling();
 	if(!this->ret_schedule)
@@ -121,6 +130,90 @@ bool DamaAgentRcsCommon::processOnFrameTick()
 	return true;
 }
 
+// a TTP reading function that handles MODCOD but not priority and frame id
+// only one TP is supported for MODCOD handling
+bool DamaAgentRcsCommon::hereIsTTP(Ttp *ttp)
+{
+	fmt_id_t prev_modcod_id;
+	map<uint8_t, emu_tp_t> tp;
+
+	if(this->group_id != ttp->getGroupId())
+	{
+		LOG(this->log_ttp, LEVEL_ERROR,
+		    "SF#%u: TTP with different group_id (%d).\n",
+		    this->current_superframe_sf, ttp->getGroupId());
+		return true;
+	}
+
+	if(!ttp->getTp(this->tal_id, tp))
+	{
+		// Update stats and probes
+		this->probe_st_total_allocation->put(0);
+		return true;
+	}
+	if(tp.size() > 1)
+	{
+		LOG(this->log_ttp, LEVEL_WARNING,
+		    "Received more than one TP in TTP, "
+		    "allocation will be correctly handled but not "
+		    "modcod for physical layer emulation\n");
+	}
+
+	prev_modcod_id = this->modcod_id;
+	for(map<uint8_t, emu_tp_t>::iterator it = tp.begin();
+	    it != tp.end(); ++it)
+	{
+		vol_kb_t assign_kb;
+		time_pkt_t assign_pkt;
+		FmtDefinition *fmt_def;
+
+		LOG(this->log_ttp, LEVEL_DEBUG,
+		    "SF#%u: frame#%u: offset:%u, assignment_count:%u kb, "
+		    "fmt_id:%u priority:%u\n", ttp->getSuperframeCount(),
+		    (*it).first, (*it).second.offset, (*it).second.assignment_count,
+		    (*it).second.fmt_id, (*it).second.priority);
+
+		// we can directly assign here because we should have
+		// received only one TTP
+		this->modcod_id = (*it).second.fmt_id;
+		if(prev_modcod_id != this->modcod_id)
+		{
+			// update the packet length in function of MODCOD
+			LOG(this->log_ttp, LEVEL_DEBUG,
+			    "SF#%u: modcod changed to %u\n",
+			    ttp->getSuperframeCount(), this->modcod_id);
+		}
+		
+		assign_kb = (*it).second.assignment_count;
+		fmt_def = this->ret_modcod_def->getDefinition(this->modcod_id);
+		if(fmt_def != NULL)
+		{
+			this->converter->setModulationEfficiency(fmt_def->getModulationEfficiency());
+			assign_pkt = this->converter->kbitsToPkt(fmt_def->addFec(assign_kb));
+		}
+		else
+		{
+			LOG(this->log_ttp, LEVEL_WARNING,
+			    "SF#%u: unknown modcod %u\n",
+			    ttp->getSuperframeCount(), this->modcod_id);
+			this->converter->setModulationEfficiency(0);
+			assign_pkt = 0;
+		}
+
+		this->allocated_pkt += assign_pkt;
+	}
+
+
+	// Update stats and probes
+	this->probe_st_total_allocation->put(
+		this->converter->pktpfToKbps(this->allocated_pkt));
+
+	LOG(this->log_ttp, LEVEL_INFO,
+	    "SF#%u: allocated TS=%u\n",
+	    ttp->getSuperframeCount(), this->allocated_pkt);
+	return true;
+}
+
 bool DamaAgentRcsCommon::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 {
 	rate_kbps_t remaining_alloc_kbps;
@@ -146,8 +239,7 @@ bool DamaAgentRcsCommon::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 	{
 		if((*it)->getMessageType() == MSG_TYPE_DVB_BURST)
 		{
-			// TODO DvbRcsFrame *frame = dynamic_cast<DvbRcsFrame *>(*it);
-			DvbRcsFrame *frame = (DvbRcsFrame *)(*it);
+			DvbRcsFrame *frame = dynamic_cast<DvbRcsFrame *>(*it);
 			frame->setModcodId(this->modcod_id);
 		}
 	}

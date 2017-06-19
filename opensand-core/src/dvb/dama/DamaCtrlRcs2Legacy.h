@@ -61,8 +61,8 @@ class DamaCtrlRcs2Legacy: public DamaCtrlRcs2
 	/// initialize
 	virtual bool init();
 
-	/// update carriers and FMTs
-	virtual bool updateCarriersAndFmts();
+	 ///  Reset the capacity of carriers
+	virtual bool resetCarriersCapacity();
 
 	/// RBDC allocation
 	virtual bool computeDamaRbdc();

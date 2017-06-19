@@ -54,7 +54,7 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="retunLinkStandardType">
+<xsd:simpleType name="returnLinkStandardType">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="DVB-RCS" />
         <xsd:enumeration value="DVB-RCS2" />
@@ -481,10 +481,18 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="return_link_standard" type="retunLinkStandardType">
+            <xsd:element name="return_link_standard" type="returnLinkStandardType">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The return link standard type
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="rcs2_burst_length" type="xsd:positiveInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The constant burst length for DVB-RCS2
+                        <hide>true</hide>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

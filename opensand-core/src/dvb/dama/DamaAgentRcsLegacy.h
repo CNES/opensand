@@ -46,7 +46,7 @@ class DamaAgentRcsLegacy: public DamaAgentRcs
 {
  public:
 
-	DamaAgentRcsLegacy();
+	DamaAgentRcsLegacy(FmtDefinitionTable *ret_modcod_def);
 	virtual ~DamaAgentRcsLegacy();
 
 	// Init method

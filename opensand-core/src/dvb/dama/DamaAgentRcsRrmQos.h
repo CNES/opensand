@@ -46,7 +46,7 @@ class DamaAgentRcsRrmQos: public DamaAgentRcs
 {
  public:
 
-	DamaAgentRcsRrmQos();
+	DamaAgentRcsRrmQos(FmtDefinitionTable *ret_modcod_def);
 	virtual ~DamaAgentRcsRrmQos();
 
 	// Init method

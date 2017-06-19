@@ -37,19 +37,25 @@
 
 #include "DamaAgentRcsCommon.h"
 #include "ReturnSchedulingRcs.h"
+#include "FmtDefinitionTable.h"
 
 #include <opensand_output/OutputLog.h>
 
 class DamaAgentRcs : public DamaAgentRcsCommon
 {
  public:
-	DamaAgentRcs();
+	DamaAgentRcs(FmtDefinitionTable *ret_modcod_def);
 	virtual ~DamaAgentRcs();
 
-	// Inherited methods
-	virtual bool hereIsTTP(Ttp *ttp);
-
  protected:
+
+	/**
+	 * @brief Generate an unit converter
+	 *
+	 * @return                  the generated unit converter
+	 */
+	virtual UnitConverter *generateUnitConverter() const;
+
 	/**
 	 * @brief Generate a return link scheduling specialized to DVB-RCS, DVB-RCS2
 	 *        or other

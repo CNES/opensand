@@ -157,6 +157,11 @@ class DamaCtrl
 	 * @param period_ms  The period of statistics refreshing
 	 */
 	void updateStatistics(time_ms_t period_ms);
+	
+	/**
+	 * @brief  Update the DAMA FMT
+	 */
+	void updateFmt();
 
 	/**
 	 * @brief Set the file for simulation statistic and events record
@@ -173,20 +178,47 @@ class DamaCtrl
 	 */
 	TerminalCategories<TerminalCategoryDama> *getCategories();
 
-	/**
-	 * @brief  Update the FMT id for terminal
-	 *
-	 */
-	virtual void updateFmt() = 0;
-
  protected:
 
 	/**
 	 * @brief 	Init the output probes and stats
 	 *
-	 * @return	true if success, false otherwise.
+	 * @return	true on success, false otherwise.
 	 */
 	bool initOutput();
+
+	/**
+	 * @brief  Generate a probe for Gw capacity
+	 *
+	 * @param name            the probe name
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateGwCapacityProbe(
+		string name) const = 0;
+
+	/**
+	 * @brief  Generate a probe for category capacity
+	 *
+	 * @param name            the probe name
+	 * @param category_label  the category label
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateCategoryCapacityProbe(
+		string category_label,
+		string name) const = 0;
+
+	/**
+	 * @brief  Generate a probe for carrier capacity
+	 *
+	 * @param name            the probe name
+	 * @param category_label  the category label
+	 * @param carrier_id      the carrier id
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateCarrierCapacityProbe(
+		string category_label,
+		unsigned int carrier_id,
+		string name) const = 0;
 
 	/**
 	 * @brief  Create a terminal context.
@@ -197,7 +229,7 @@ class DamaCtrl
 	 * @param   max_rbdc_kbps   maximum RBDC value (kb/s).
 	 * @param   rbdc_timeout_sf RBDC timeout (in superframe number).
 	 * @param   max_vbdc_kb     maximum VBDC value (in kbits).
-	 * @return  true if success, false otherwise.
+	 * @return  true on success, false otherwise.
 	 */
 	virtual bool createTerminal(TerminalContextDama **terminal,
 	                            tal_id_t tal_id,
@@ -221,6 +253,13 @@ class DamaCtrl
 	 * @return  true on success, false otherwize
 	 */
 	virtual bool resetTerminalsAllocations() = 0;
+
+	/**
+	 * @brief  Reset the capacity of carriers
+	 * 
+	 * @return  true on success, false otherwise
+	 */
+	virtual bool resetCarriersCapacity() = 0;
 
 	/**
 	 * @brief  Update all carriers and FMTs.
@@ -379,15 +418,15 @@ class DamaCtrl
 		// Total and unused capacity
 	Probe<int> *probe_gw_return_total_capacity;
 	Probe<int> *probe_gw_return_remaining_capacity;
-	int gw_remaining_capacity_kbps;
+	int gw_remaining_capacity;
 		// Capacity per category
 	ProbeListPerCategory probes_category_return_capacity;
 	ProbeListPerCategory probes_category_return_remaining_capacity;
-	map<string, int> category_return_remaining_capacity_kbps;
+	map<string, int> category_return_remaining_capacity;
 		// Capacity per carrier
 	ProbeListPerCategoryPerCarrier probes_carrier_return_capacity;
 	ProbeListPerCategoryPerCarrier probes_carrier_return_remaining_capacity;
-	map<string, map<unsigned int, int> >  carrier_return_remaining_capacity_kbps;
+	map<string, map<unsigned int, int> >  carrier_return_remaining_capacity;
 
 	// Spot ID
 	spot_id_t spot_id;

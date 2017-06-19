@@ -34,11 +34,13 @@
 
 
 #include "DamaCtrlRcs2.h"
-#include "TerminalContextDamaRcs2.h"
+#include "TerminalContextDamaRcs.h"
 #include "CarriersGroupDama.h"
 #include "OpenSandConf.h"
+#include "UnitConverterFixedSymbolLength.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_conf/conf.h>
 
 #include <math.h>
 
@@ -61,47 +63,7 @@ DamaCtrlRcs2::~DamaCtrlRcs2()
 {
 }
 
-bool DamaCtrlRcs2::resetTerminalsAllocations()
-{
-	bool ret = true;
-	DamaTerminalList::iterator it;
-
-	for(it = this->terminals.begin(); it != this->terminals.end(); it++)
-	{
-		TerminalContextDamaRcs2 *terminal = dynamic_cast<TerminalContextDamaRcs2 *>(it->second);
-		double credit_kbps = 0.0;
-		rate_kbps_t request_kbps = 0;
-
-		// Reset allocation (in slots)
-		terminal->setRbdcAllocation(0);
-		terminal->setVbdcAllocation(0);
-		terminal->setFcaAllocation(0);
-
-		// Update timer
-		terminal->decrementTimer();
-		if(0 < terminal->getTimer())
-		{
-			rate_kbps_t payload_kbps;
-	
-			// Get RBDC request and credit (in kb/s)
-			credit_kbps = terminal->getRbdcCredit();
-			request_kbps = terminal->getRequiredRbdc();
-			payload_kbps = terminal->pktpfToKbps(1);
-			
-			// Update RBDC request and credit (in kb/s)
-			credit_kbps = max(credit_kbps - payload_kbps, 0.0);
-			request_kbps += payload_kbps;
-		}
-		
-		// Set RBDC request and credit (in kb/s)
-		terminal->setRbdcCredit(credit_kbps);
-		terminal->setRequiredRbdc(request_kbps);
-	}
-
-	return ret;
-}
-
-void DamaCtrlRcs2::updateFmt()
+bool DamaCtrlRcs2::updateCarriersAndFmts()
 {
 	DamaTerminalList::iterator terminal_it;
 
@@ -110,7 +72,7 @@ void DamaCtrlRcs2::updateFmt()
 	{
 		TerminalCategoryDama *category;
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-		TerminalContextDamaRcs2 *terminal = dynamic_cast<TerminalContextDamaRcs2 *>(terminal_it->second);
+		TerminalContextDamaRcs *terminal = dynamic_cast<TerminalContextDamaRcs *>(terminal_it->second);
 		tal_id_t tal_id = terminal->getTerminalId();
 		vector<CarriersGroupDama *> carriers_group;
 		unsigned int simulated_fmt;
@@ -181,7 +143,70 @@ void DamaCtrlRcs2::updateFmt()
 			    terminal->getTerminalId(), available_fmt);
 		}
 		// it will be 0 if the terminal cannot be served
-		terminal->updateFmt(this->input_modcod_def->getDefinition(available_fmt));
+		terminal->setFmt(this->input_modcod_def->getDefinition(available_fmt));
 	}
+	return true;
 }
 
+UnitConverter *DamaCtrlRcs2::generateUnitConverter() const
+{
+	vol_sym_t length_sym = 0;
+	
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+	                   RCS2_BURST_LENGTH, length_sym))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot get '%s' value", DELAY_BUFFER);
+		return NULL;
+	}
+	if(length_sym == 0)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "invalid value '%u' value of '%s", length_sym, DELAY_BUFFER);
+		return NULL;
+	}
+	LOG(this->log_init, LEVEL_INFO,
+	    "Burst length = %u sym\n", length_sym);
+	
+	return new UnitConverterFixedSymbolLength(this->frame_duration_ms,
+		0, length_sym);
+}
+
+Probe<int> *DamaCtrlRcs2::generateGwCapacityProbe(
+	string name) const
+{
+	char probe_name[128];
+
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.Up/Return total capacity.%s",
+	         this->spot_id, name.c_str());
+
+	return Output::registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
+}
+
+Probe<int> *DamaCtrlRcs2::generateCategoryCapacityProbe(
+	string category_label,
+	string name) const
+{
+	char probe_name[128];
+
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.%s.Up/Return capacity.Total.%s",
+	         this->spot_id, category_label.c_str(), name.c_str());
+
+	return Output::registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
+}
+
+Probe<int> *DamaCtrlRcs2::generateCarrierCapacityProbe(
+	string category_label,
+	unsigned int carrier_id,
+	string name) const
+{
+	char probe_name[128];
+
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.%s.Up/Return capacity.Carrier%u.%s",
+	         this->spot_id, category_label.c_str(), carrier_id, name.c_str());
+
+	return Output::registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
+}

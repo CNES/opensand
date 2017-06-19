@@ -162,7 +162,7 @@ class DamaAgent
 	/**
 	 * @brief   Called at each SoF.
 	 *
-	 * @return  true if success, false otherwise.
+	 * @return  true on success, false otherwise.
 	 */
 	virtual bool processOnFrameTick();
 
@@ -180,7 +180,7 @@ protected:
 	/**
 	 * @brief	Init the output probes and stats
 	 *
-	 * @return true if success, false otherwise.
+	 * @return true on success, false otherwise.
 	 */
 	bool initOutput();
 

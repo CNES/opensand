@@ -42,7 +42,6 @@
 #include "OpenSandCore.h"
 #include "CarriersGroup.h"
 #include "TerminalCategoryDama.h"
-#include "UnitConverter.h"
 
 /**
  *  @class DamaCtrlRcsLegacy
@@ -57,17 +56,12 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 	virtual ~DamaCtrlRcsLegacy();
 
  private:
-	vol_b_t packet_length_b;
-	UnitConverter *converter;
 
 	/// initialize
 	virtual bool init();
 
-	/// Reset all terminals allocations
-	virtual bool resetTerminalsAllocations();
-
-	/// update carriers and FMTs
-	virtual bool updateCarriersAndFmts();
+	 ///  Reset the capacity of carriers
+	virtual bool resetCarriersCapacity();
 
 	/// RBDC allocation
 	virtual bool computeDamaRbdc();

@@ -48,7 +48,7 @@ TerminalContextDama::TerminalContextDama(tal_id_t tal_id,
 	max_rbdc_kbps(max_rbdc_kbps),
 	rbdc_timeout_sf(rbdc_timeout_sf),
 	max_vbdc_kb(max_vbdc_kb),
-	rbdc_credit_kbps(0.0),
+	rbdc_credit(0.0),
 	timer_sf(0),
 	rbdc_request_kbps(0),
 	rbdc_alloc_kbps(0),
@@ -106,11 +106,11 @@ void TerminalContextDama::setRequiredRbdc(rate_kbps_t rbdc_request_kbps)
 	this->rbdc_request_kbps = std::min(rbdc_request_kbps, this->max_rbdc_kbps);
 
 	// save the request
-	this->rbdc_credit_kbps = 0.0;
+	this->rbdc_credit = 0.0;
 	this->timer_sf = this->rbdc_timeout_sf;
 	LOG(this->log_band, LEVEL_DEBUG,
-	    "new RBDC request %d (kb/s) credit %.2f (kb/s) timer %d for ST%u.\n",
-	    this->rbdc_request_kbps, this->rbdc_credit_kbps,
+	    "new RBDC request %d (kb/s) credit %.2f timer %d for ST%u.\n",
+	    this->rbdc_request_kbps, this->rbdc_credit,
 	    this->timer_sf, this->tal_id);
 }
 
@@ -124,19 +124,24 @@ void TerminalContextDama::setRbdcAllocation(rate_kbps_t rbdc_alloc_kbps)
 	this->rbdc_alloc_kbps = rbdc_alloc_kbps;
 }
 
-void TerminalContextDama::addRbdcCredit(double credit_kbps)
+rate_kbps_t TerminalContextDama::getRbdcAllocation() const
 {
-	this->rbdc_credit_kbps += credit_kbps;
+	return this->rbdc_alloc_kbps;
+}
+
+void TerminalContextDama::addRbdcCredit(double credit)
+{
+	this->rbdc_credit += credit;
 }
 
 double TerminalContextDama::getRbdcCredit() const
 {
-	return this->rbdc_credit_kbps;
+	return this->rbdc_credit;
 }
 
-void TerminalContextDama::setRbdcCredit(double credit_kbps)
+void TerminalContextDama::setRbdcCredit(double credit)
 {
-	this->rbdc_credit_kbps = credit_kbps;
+	this->rbdc_credit = credit;
 }
 
 time_sf_t TerminalContextDama::getTimer() const
@@ -182,6 +187,11 @@ void TerminalContextDama::setVbdcAllocation(vol_kb_t vbdc_alloc_kb)
 	}
 }
 
+vol_kb_t TerminalContextDama::getVbdcAllocation() const
+{
+	return this->vbdc_alloc_kb;
+}
+
 vol_kb_t TerminalContextDama::getRequiredVbdc() const
 {
 	// the allocation is used for each frame per supertrame so it should
@@ -216,7 +226,7 @@ vol_kb_t TerminalContextDama::getTotalVolumeAllocation() const
 bool TerminalContextDama::sortByRemainingCredit(const TerminalContextDama *e1,
                                                const TerminalContextDama *e2)
 {
-	return e1->rbdc_credit_kbps > e2->rbdc_credit_kbps;
+	return e1->rbdc_credit > e2->rbdc_credit;
 }
 
 bool TerminalContextDama::sortByVbdcReq(const TerminalContextDama *e1,

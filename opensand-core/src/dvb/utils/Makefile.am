@@ -2,6 +2,8 @@ noinst_LTLIBRARIES = libopensand_dvb_utils.la
 
 libopensand_dvb_utils_la_cpp = \
 	UnitConverter.cpp \
+	UnitConverterFixedBitLength.cpp \
+	UnitConverterFixedSymbolLength.cpp \
 	Sac.cpp \
 	Ttp.cpp \
 	Logon.cpp \
@@ -12,7 +14,6 @@ libopensand_dvb_utils_la_cpp = \
 	TerminalContext.cpp \
 	TerminalContextDama.cpp \
 	TerminalContextDamaRcs.cpp \
-	TerminalContextDamaRcs2.cpp \
 	TerminalContextSaloha.cpp \
 	FmtGroup.cpp \
 	CarriersGroup.cpp \
@@ -29,6 +30,8 @@ libopensand_dvb_utils_la_cpp = \
 
 libopensand_dvb_utils_la_h = \
 	UnitConverter.h \
+	UnitConverterFixedBitLength.h \
+	UnitConverterFixedSymbolLength.h \
 	Sac.h \
 	Ttp.h \
 	Logon.h \
@@ -39,7 +42,6 @@ libopensand_dvb_utils_la_h = \
 	TerminalContext.h \
 	TerminalContextDama.h \
 	TerminalContextDamaRcs.h \
-	TerminalContextDamaRcs2.h \
 	TerminalContextSaloha.h \
 	TerminalCategory.h \
 	TerminalCategoryDama.h \

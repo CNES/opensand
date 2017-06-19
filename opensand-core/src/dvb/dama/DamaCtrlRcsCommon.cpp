@@ -35,6 +35,7 @@
 
 #include "DamaCtrlRcsCommon.h"
 #include "OpenSandConf.h"
+#include "TerminalContextDamaRcs.h"
 
 #include <opensand_output/Output.h>
 
@@ -44,18 +45,22 @@ using namespace std;
 /**
  * Constructor
  */
-DamaCtrlRcsCommon::DamaCtrlRcsCommon(spot_id_t spot): DamaCtrl(spot)
+DamaCtrlRcsCommon::DamaCtrlRcsCommon(spot_id_t spot):
+	DamaCtrl(spot),
+	converter(NULL)
 {
 }
-
 
 /**
  * Destructor
  */
 DamaCtrlRcsCommon::~DamaCtrlRcsCommon()
 {
+	if(this->converter != NULL)
+	{
+		delete this->converter;
+	}
 }
-
 
 bool DamaCtrlRcsCommon::init()
 {
@@ -67,6 +72,14 @@ bool DamaCtrlRcsCommon::init()
 		goto error;
 	}
 
+	this->converter = this->generateUnitConverter();
+	if(this->converter == NULL)
+	{
+		LOG(this->log_init, LEVEL_ERROR, 
+		    "Unit converter generation failed.\n");
+		goto error;
+	}
+	
 	return true;
 
 error:
@@ -166,7 +179,7 @@ bool DamaCtrlRcsCommon::buildTTP(Ttp *ttp)
 			if(terminal->getFmtId() != 0)
 			{
 				total_allocation_kb += terminal->getTotalVolumeAllocation();
-				total_allocation_kb += terminal->getTotalRateAllocation();
+				total_allocation_kb += this->converter->psToPf(terminal->getTotalRateAllocation());
 			}
 
 			//FIXME: is the offset to be 0 ???
@@ -272,11 +285,11 @@ abort:
 }
 
 bool DamaCtrlRcsCommon::createTerminal(TerminalContextDama **terminal,
-                                 tal_id_t tal_id,
-                                 rate_kbps_t cra_kbps,
-                                 rate_kbps_t max_rbdc_kbps,
-                                 time_sf_t rbdc_timeout_sf,
-                                 vol_kb_t max_vbdc_kb)
+	tal_id_t tal_id,
+	rate_kbps_t cra_kbps,
+	rate_kbps_t max_rbdc_kbps,
+	time_sf_t rbdc_timeout_sf,
+	vol_kb_t max_vbdc_kb)
 {
 	*terminal = new TerminalContextDamaRcs(tal_id,
 	                                       cra_kbps,
@@ -300,3 +313,44 @@ bool DamaCtrlRcsCommon::removeTerminal(TerminalContextDama **terminal)
 	*terminal = NULL;
 	return true;
 }
+
+bool DamaCtrlRcsCommon::resetTerminalsAllocations()
+{
+	bool ret = true;
+	DamaTerminalList::iterator it;
+
+	for(it = this->terminals.begin(); it != this->terminals.end(); it++)
+	{
+		TerminalContextDama *terminal = it->second;
+		double credit_kbps = 0.0;
+		rate_kbps_t request_kbps = 0;
+
+		// Reset allocation (in slots)
+		terminal->setRbdcAllocation(0);
+		terminal->setVbdcAllocation(0);
+		terminal->setFcaAllocation(0);
+
+		// Update timer
+		terminal->decrementTimer();
+		if(0 < terminal->getTimer())
+		{
+			rate_kbps_t timeslot_kbps;
+	
+			// Get RBDC request and credit (in kb/s)
+			credit_kbps = terminal->getRbdcCredit();
+			request_kbps = terminal->getRequiredRbdc();
+			timeslot_kbps = this->converter->pktpfToKbps(1);
+			
+			// Update RBDC request and credit (in kb/s)
+			credit_kbps = max(credit_kbps - timeslot_kbps, 0.0);
+			request_kbps += timeslot_kbps;
+		}
+		
+		// Set RBDC request and credit (in kb/s)
+		terminal->setRbdcCredit(credit_kbps);
+		terminal->setRequiredRbdc(request_kbps);
+	}
+
+	return ret;
+}
+

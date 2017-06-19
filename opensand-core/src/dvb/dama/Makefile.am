@@ -19,8 +19,8 @@ libopensand_dama_la_cpp = \
 	DamaCtrlRcsCommon.cpp \
 	DamaCtrlRcs.cpp \
 	DamaCtrlRcsLegacy.cpp \
-	DamaCtrlRcs2.cpp
-#	DamaCtrlRcs2Legacy.cpp
+	DamaCtrlRcs2.cpp \
+	DamaCtrlRcs2Legacy.cpp
 
 libopensand_dama_la_h = \
 	CircularBuffer.h \
@@ -42,8 +42,8 @@ libopensand_dama_la_h = \
 	DamaCtrlRcsCommon.h \
 	DamaCtrlRcs.h \
 	DamaCtrlRcsLegacy.h \
-	DamaCtrlRcs2.h
-#	DamaCtrlRcs2Legacy.h
+	DamaCtrlRcs2.h \
+	DamaCtrlRcs2Legacy.h
 
 libopensand_dama_la_SOURCES = \
 	$(libopensand_dama_la_cpp) \

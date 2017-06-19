@@ -46,13 +46,14 @@ class DamaAgentRcs2 : public DamaAgentRcsCommon
 	DamaAgentRcs2(FmtDefinitionTable *ret_modcod_def);
 	virtual ~DamaAgentRcs2();
 
-	// Inherited methods
-	virtual bool hereIsTTP(Ttp *ttp);
-
  protected:
- 
-	/// The MODCOD definition table for return link
-	FmtDefinitionTable * ret_modcod_def;
+
+	/**
+	 * @brief Generate an unit converter
+	 *
+	 * @return                  the generated unit converter
+	 */
+	virtual UnitConverter *generateUnitConverter() const;
 	
 	/**
 	 * @brief Generate a return link scheduling specialized to DVB-RCS, DVB-RCS2

@@ -34,12 +34,14 @@
 
 
 #include "DamaAgentRcs.h"
+#include "UnitConverterFixedBitLength.h"
+#include "ModulationTypes.h"
 
 #include <opensand_output/Output.h>
 
 
-DamaAgentRcs::DamaAgentRcs():
-	DamaAgentRcsCommon()
+DamaAgentRcs::DamaAgentRcs(FmtDefinitionTable *ret_modcod_def):
+	DamaAgentRcsCommon(ret_modcod_def)
 {
 }
 
@@ -47,64 +49,14 @@ DamaAgentRcs::~DamaAgentRcs()
 {
 }
 
+UnitConverter *DamaAgentRcs::generateUnitConverter() const
+{
+	return new UnitConverterFixedBitLength(this->frame_duration_ms,
+		0,
+		this->packet_handler->getFixedLength());
+}
+
 ReturnSchedulingRcsCommon *DamaAgentRcs::generateReturnScheduling() const
 {
 	return new ReturnSchedulingRcs(this->packet_handler, this->dvb_fifos);
-}
-
-// a TTP reading function that handles MODCOD but not priority and frame id
-// only one TP is supported for MODCOD handling
-bool DamaAgentRcs::hereIsTTP(Ttp *ttp)
-{
-	map<uint8_t, emu_tp_t> tp;
-
-	if(this->group_id != ttp->getGroupId())
-	{
-		LOG(this->log_ttp, LEVEL_ERROR,
-		    "SF#%u: TTP with different group_id (%d).\n",
-		    this->current_superframe_sf, ttp->getGroupId());
-		return true;
-	}
-
-	if(!ttp->getTp(this->tal_id, tp))
-	{
-		// Update stats and probes
-		this->probe_st_total_allocation->put(0);
-		return true;
-	}
-	if(tp.size() > 1)
-	{
-		LOG(this->log_ttp, LEVEL_WARNING,
-		    "Received more than one TP in TTP, "
-		    "allocation will be correctly handled but not "
-		    "modcod for physical layer emulation\n");
-	}
-
-	for(map<uint8_t, emu_tp_t>::iterator it = tp.begin();
-	    it != tp.end(); ++it)
-	{
-		vol_kb_t assign_kb;
-		time_pkt_t assign_pkt;
-
-		assign_kb = (*it).second.assignment_count;
-		assign_pkt = this->converter->kbitsToPkt(assign_kb);
-		this->allocated_pkt += assign_pkt;
-		// we can directly assign here because we should have
-		// received only one TTP
-		this->modcod_id = (*it).second.fmt_id;
-		LOG(this->log_ttp, LEVEL_DEBUG,
-		    "SF#%u: frame#%u: offset:%u, assignment_count:%u, "
-		    "fmt_id:%u priority:%u\n", ttp->getSuperframeCount(),
-		    (*it).first, (*it).second.offset, assign_pkt,
-		    (*it).second.fmt_id, (*it).second.priority);
-	}
-
-	// Update stats and probes
-	this->probe_st_total_allocation->put(
-		this->converter->pktpfToKbps(this->allocated_pkt));
-
-	LOG(this->log_ttp, LEVEL_INFO,
-	    "SF#%u: allocated TS=%u\n",
-	    ttp->getSuperframeCount(), this->allocated_pkt);
-	return true;
 }

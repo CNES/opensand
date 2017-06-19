@@ -127,28 +127,36 @@ class TerminalContextDama: public TerminalContext
 	 * @brief  Set the RBDC allocation after DAMA computation.
 	 *         The unit should be the unit for Ttp assignment_count
 	 *
-	 * @param  rbdc_alloc  The RBDC allocation
+	 * @param  rbdc_alloc  The RBDC allocation in kb/s
 	 */
-	void setRbdcAllocation(uint16_t alloc);
+	void setRbdcAllocation(rate_kbps_t alloc);
+
+	/**
+	 * @brief  get the RBDC allocation after DAMA computation
+	 *         The unit should be the unit for Ttp assignment_count
+	 *
+	 * @return             The RBDC allocation in kb/s
+	 */
+	rate_kbps_t getRbdcAllocation() const;
 
 	/**
 	 * @brief  Add a credit to the request credit.
 	 *
-	 * @param  credit_kbps  the credit in kb/s to add
+	 * @param  credit  the credit to add
 	 */
-	void addRbdcCredit(double credit_kbps);
+	void addRbdcCredit(double credit);
 
 	/**
 	 * @brief  Get the current RBDC credit
 	 *
-	 * @return  the RBDC credit in kb/s
+	 * @return  the RBDC credit
 	 */
 	double getRbdcCredit() const;
 
 	/**
 	 * @brief  Set a credit to the request credit
 	 *
-	 * @param  credit_kbps  the new credit in kb/s
+	 * @param  credit  the new credit
 	 */
 	void setRbdcCredit(double credit_kbps);
 
@@ -179,6 +187,14 @@ class TerminalContextDama: public TerminalContext
 	 * @param  vbdc_alloc        The VBDC allocation (kb)
 	 */
 	void setVbdcAllocation(vol_kb_t vbdc_alloc_kb);
+
+	/**
+	 * @brief  get the VBDC allocation after DAMA computation
+	 *         The unit should be the unit for Ttp assignment_count
+	 *
+	 * @return             The VBDC allocation in kb
+	 */
+	vol_kb_t getVbdcAllocation() const;
 
 	/**
 	 * @brief Get the ST VBDC request
@@ -251,7 +267,7 @@ class TerminalContextDama: public TerminalContext
 
 	/** the RBDC credit: the decimal part of RBDC that may remain
 	 *  after DAMA computation */
-	double rbdc_credit_kbps;
+	double rbdc_credit;
 
 	/** The timer for RBDC requests: initialized to rbdc_timeout_sf each request
 	 *  and decreased on each SOF */

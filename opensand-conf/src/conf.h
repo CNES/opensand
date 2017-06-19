@@ -54,6 +54,7 @@
 
 #define SATELLITE_TYPE            "satellite_type"
 #define RETURN_LINK_STANDARD      "return_link_standard"
+#define RCS2_BURST_LENGTH         "rcs2_burst_length"
 
 #define RET_UP_CARRIER_DURATION     "return_up_carrier_duration"
 #define FWD_DOWN_CARRIER_DURATION   "forward_down_carrier_duration"

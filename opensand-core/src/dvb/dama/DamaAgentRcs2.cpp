@@ -33,13 +33,14 @@
 
 
 #include "DamaAgentRcs2.h"
+#include "UnitConverterFixedSymbolLength.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_conf/conf.h>
 
 
 DamaAgentRcs2::DamaAgentRcs2(FmtDefinitionTable *ret_modcod_def):
-	DamaAgentRcsCommon(),
-	ret_modcod_def(ret_modcod_def)
+	DamaAgentRcsCommon(ret_modcod_def)
 {
 }
 
@@ -47,86 +48,33 @@ DamaAgentRcs2::~DamaAgentRcs2()
 {
 }
 
+UnitConverter *DamaAgentRcs2::generateUnitConverter() const
+{
+	vol_sym_t length_sym = 0;
+	
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+	                   RCS2_BURST_LENGTH, length_sym))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot get '%s' value", DELAY_BUFFER);
+		return NULL;
+	}
+	if(length_sym == 0)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "invalid value '%u' value of '%s", length_sym, DELAY_BUFFER);
+		return NULL;
+	}
+	LOG(this->log_init, LEVEL_INFO,
+	    "Burst length = %u sym\n", length_sym);
+	
+	return new UnitConverterFixedSymbolLength(this->frame_duration_ms, 
+		0, length_sym);
+}
+
+
 ReturnSchedulingRcsCommon *DamaAgentRcs2::generateReturnScheduling() const
 {
 	return new ReturnSchedulingRcs2(this->packet_handler, this->dvb_fifos);
 }
 
-// a TTP reading function that handles MODCOD but not priority and frame id
-// only one TP is supported for MODCOD handling
-bool DamaAgentRcs2::hereIsTTP(Ttp *ttp)
-{
-	fmt_id_t prev_modcod_id;
-	map<uint8_t, emu_tp_t> tp;
-
-	if(this->group_id != ttp->getGroupId())
-	{
-		LOG(this->log_ttp, LEVEL_ERROR,
-		    "SF#%u: TTP with different group_id (%d).\n",
-		    this->current_superframe_sf, ttp->getGroupId());
-		return true;
-	}
-
-	if(!ttp->getTp(this->tal_id, tp))
-	{
-		// Update stats and probes
-		this->probe_st_total_allocation->put(0);
-		return true;
-	}
-	if(tp.size() > 1)
-	{
-		LOG(this->log_ttp, LEVEL_WARNING,
-		    "Received more than one TP in TTP, "
-		    "allocation will be correctly handled but not "
-		    "modcod for physical layer emulation\n");
-	}
-
-	prev_modcod_id = this->modcod_id;
-	for(map<uint8_t, emu_tp_t>::iterator it = tp.begin();
-	    it != tp.end(); ++it)
-	{
-		vol_kb_t assign_kb;
-		time_pkt_t assign_pkt;
-
-		assign_kb = (*it).second.assignment_count;
-		assign_pkt = this->converter->kbitsToPkt(assign_kb);
-		this->allocated_pkt += assign_pkt;
-		// we can directly assign here because we should have
-		// received only one TTP
-		this->modcod_id = (*it).second.fmt_id;
-		LOG(this->log_ttp, LEVEL_DEBUG,
-		    "SF#%u: frame#%u: offset:%u, assignment_count:%u, "
-		    "fmt_id:%u priority:%u\n", ttp->getSuperframeCount(),
-		    (*it).first, (*it).second.offset, assign_pkt,
-		    (*it).second.fmt_id, (*it).second.priority);
-	}
-
-	if(prev_modcod_id != this->modcod_id)
-	{
-		vol_b_t payload_length_b = 0;
-		FmtDefinition *fmt_def = this->ret_modcod_def->getDefinition(this->modcod_id);
-
-		if(fmt_def != NULL)
-		{
-			payload_length_b = fmt_def->getBurstLength()
-				* fmt_def->getModulationEfficiency()
-				* fmt_def->getCodingRate();
-		}
-
-		// update the packet length in function of MODCOD
-		this->converter->updatePacketLength(payload_length_b);
-		LOG(this->log_ttp, LEVEL_DEBUG,
-		    "SF#%u: modcod changed to %u, packet length: %u kbits\n",
-		    ttp->getSuperframeCount(), this->modcod_id,
-		    payload_length_b / 1000);
-	}
-
-	// Update stats and probes
-	this->probe_st_total_allocation->put(
-		this->converter->pktpfToKbps(this->allocated_pkt));
-
-	LOG(this->log_ttp, LEVEL_INFO,
-	    "SF#%u: allocated TS=%u\n",
-	    ttp->getSuperframeCount(), this->allocated_pkt);
-	return true;
-}

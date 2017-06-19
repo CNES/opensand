@@ -36,6 +36,7 @@
 #include "DamaCtrlRcs.h"
 #include "TerminalContextDamaRcs.h"
 #include "CarriersGroupDama.h"
+#include "UnitConverterFixedBitLength.h"
 
 #include <opensand_output/Output.h>
 
@@ -47,8 +48,9 @@ using namespace std;
 /**
  * Constructor
  */
-DamaCtrlRcs::DamaCtrlRcs(spot_id_t spot):
-	DamaCtrlRcsCommon(spot)
+DamaCtrlRcs::DamaCtrlRcs(spot_id_t spot, vol_b_t packet_length_b):
+	DamaCtrlRcsCommon(spot),
+	packet_length_b(packet_length_b)
 {
 }
 
@@ -60,7 +62,7 @@ DamaCtrlRcs::~DamaCtrlRcs()
 {
 }
 
-void DamaCtrlRcs::updateFmt()
+bool DamaCtrlRcs::updateCarriersAndFmts()
 {
 	DamaTerminalList::iterator terminal_it;
 
@@ -140,7 +142,52 @@ void DamaCtrlRcs::updateFmt()
 			    terminal->getTerminalId(), available_fmt);
 		}
 		// it will be 0 if the terminal cannot be served
-		terminal->updateFmt(this->input_modcod_def->getDefinition(available_fmt));
+		terminal->setFmt(this->input_modcod_def->getDefinition(available_fmt));
 	}
+	return true;
 }
 
+UnitConverter *DamaCtrlRcs::generateUnitConverter() const
+{
+	return new UnitConverterFixedBitLength(this->frame_duration_ms,
+		0, this->packet_length_b);
+}
+
+Probe<int> *DamaCtrlRcs::generateGwCapacityProbe(
+	string name) const
+{
+	char probe_name[128];
+
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.Up/Return total capacity.%s",
+	         this->spot_id, name.c_str());
+
+	return Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_LAST);
+}
+
+Probe<int> *DamaCtrlRcs::generateCategoryCapacityProbe(
+	string category_label,
+	string name) const
+{
+	char probe_name[128];
+
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.%s.Up/Return capacity.Total.%s",
+	         this->spot_id, category_label.c_str(), name.c_str());
+
+	return Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_LAST);
+}
+
+Probe<int> *DamaCtrlRcs::generateCarrierCapacityProbe(
+	string category_label,
+	unsigned int carrier_id,
+	string name) const
+{
+	char probe_name[128];
+
+	snprintf(probe_name, sizeof(probe_name),
+	         "Spot_%d.%s.Up/Return capacity.Carrier%u.%s",
+	         this->spot_id, category_label.c_str(), carrier_id, name.c_str());
+
+	return Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_LAST);
+}

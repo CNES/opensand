@@ -235,6 +235,18 @@ vol_kb_t FmtDefinition::symToKbits(vol_sym_t vol_sym) const
 		* this->coding_rate);
 }
 
+/* add FEC to data length */
+unsigned int FmtDefinition::addFec(unsigned int length) const
+{
+	return ceil(length * (1.0 + this->coding_rate));
+}
+
+/* remove FEC to data length */
+unsigned int FmtDefinition::removeFec(unsigned int length) const
+{
+	return floor(length / (1.0 + this->coding_rate));
+}
+
 void FmtDefinition::print(void)
 {
 	if(this->has_burst_length)

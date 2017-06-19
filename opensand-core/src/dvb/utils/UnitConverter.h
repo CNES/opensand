@@ -29,6 +29,7 @@
  * @file UnitConverter.h
  * @brief Converters for OpenSAND units
  * @author Julien Bernard <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef _UNIT_CONVERTER_H_
@@ -44,77 +45,111 @@ class UnitConverter
 {
  protected:
 
-	vol_b_t packet_length_b;            ///< Uplink packets size (in bits)
-	time_ms_t frame_duration_ms;        ///< Uplink frame duration (in ms)
+	time_ms_t frame_duration_ms;          ///< Frame duration (in ms)
+	float frame_duration_ms_inv;          ///< Inverse of frame duration (in ms-1)
 
-	float packet_length_b_inv;          ///< Inverse of uplink packets size (in bits-1)
-	float frame_duration_ms_inv;        ///< Invers of uplink frame duration (in ms-1)
-
- public:
+	unsigned int modulation_efficiency;   ///< Modulation efficiency
+	float modulation_efficiency_inv;      ///< Invers of modulation efficiency
 
 	/**
 	 * @brief Create the unit converter
 	 *
 	 * @param  duration_ms  The frame duration in ms
-	 * @param  length_b     The packet length in bit
+	 * @param  efficiency   The modulation efficiency
 	 */
-	UnitConverter(time_ms_t duration_ms, vol_b_t length_b = 0);
-	~UnitConverter();
-	
+	UnitConverter(time_ms_t duration_ms, unsigned int efficiency);
+
+ public:
+
+	virtual ~UnitConverter();
+			
 	/**
-	 * @brief Update the packet length
+	 * @brief Get the packet length
 	 * 
-	 * @param length_b  The packet length in bits
+	 * @return  The packet length in bits
 	 */
-	void updatePacketLength(vol_b_t length_b);
+	virtual vol_b_t getPacketBitLength() const = 0;
 
 	/**
-	 * @brief Update the frame duration
+	 * @brief Get the packet length
+	 * 
+	 * @return  The packet length in kbits
+	 */
+	virtual vol_kb_t getPacketKbitLength() const = 0;
+
+	/**
+	 * @brief Get the packet length
+	 * 
+	 * @return  The packet length in symbol
+	 */
+	virtual vol_sym_t getPacketSymbolLength() const = 0;
+
+	/**
+	 * @brief Set the frame duration
 	 *
 	 * @param duration_ms  The frame duration in ms
 	 */
-	void updateFrameDuration(time_ms_t duration_ms);
+	void setFrameDuration(time_ms_t duration_ms);
 
 	/**
-	 * @brief convert from packet number to bits
-	 *
-	 * @param vol_pkt  The number of packets
-	 * @return the size of data in bits
+	 * @brief Get the frame duration
+	 * 
+	 * @return  The frame duration in ms
 	 */
-	vol_b_t pktToBits(vol_pkt_t vol_pkt) const;
+	time_ms_t getFrameDuration() const;
 
 	/**
-	 * @brief convert from packet number to kbits
+	 * @brief Set the modulation efficiency
 	 *
-	 * @param vol_pkt  The number of packets
-	 * @return the size of data in kbits
+	 * @param efficiency  The modulation efficiency
 	 */
-	vol_kb_t pktToKbits(vol_pkt_t vol_pkt) const;
+	void setModulationEfficiency(unsigned int efficiency);
 
 	/**
-	 * @brief convert from kbits to packets
-	 *
-	 * @param vol_kb The volume in kbits
-	 * @return the volume in packets
+	 * @brief Get the modulation efficiency
+	 * 
+	 * @return  The modulation efficiency
 	 */
-	vol_pkt_t kbitsToPkt(vol_pkt_t) const;
+	unsigned int getModulationEfficiency() const;
 
-	/**
-	 * @brief convert from rate in kbits/s to a number of packets
-	 *        per superframe
-	 *
-	 * @param rate_kbps  The bitrate
-	 * @return the number of packets
-	 */
-	rate_pktpf_t kbpsToPktpf(rate_kbps_t rate_kbps) const;
+	vol_sym_t bitsToSym(vol_b_t vol_b) const;
+	vol_b_t symToBits(vol_sym_t vol_sym) const;
 
-	/**
-	 * @brief convert from a number of packets per superframe to kbits/sec
-	 *
-	 * @param   The rate in number of packets per superframe
-	 * @return the number of packets
-	 */
-	rate_kbps_t pktpfToKbps(rate_pktpf_t rate_pktpf) const;
+	virtual vol_pkt_t symToPkt(vol_sym_t vol_sym) const = 0;
+	virtual vol_sym_t pktToSym(vol_pkt_t vol_pkt) const = 0;
+
+	virtual vol_pkt_t bitsToPkt(vol_b_t vol_b) const = 0;
+	virtual vol_b_t pktToBits(vol_pkt_t vol_pkt) const = 0;
+	
+	vol_sym_t kbitsToSym(vol_kb_t vol_kb) const;
+	vol_kb_t symToKbits(vol_sym_t vol_sym) const;
+
+	virtual vol_pkt_t kbitsToPkt(vol_kb_t vol_kb) const = 0;
+	virtual vol_kb_t pktToKbits(vol_pkt_t vol_pkt) const = 0;
+
+	vol_kb_t bitsToKbits(vol_b_t vol_b) const;
+	vol_b_t kbitsToBits(vol_kb_t vol_kb) const;
+
+	rate_symps_t bpsToSymps(rate_bps_t rate_bps) const;
+	rate_bps_t sympsToBps(rate_symps_t rate_symps) const;
+
+	virtual rate_pktpf_t sympsToPktpf(rate_symps_t rate_symps) const = 0;
+	virtual rate_symps_t pktpfToSymps(rate_pktpf_t rate_pktpf) const = 0;
+
+	virtual rate_pktpf_t bpsToPktpf(rate_bps_t rate_bps) const = 0;
+	virtual rate_bps_t pktpfToBps(rate_pktpf_t rate_pktpf) const = 0;
+	
+	rate_symps_t kbpsToSymps(rate_kbps_t rate_kbps) const;
+	rate_kbps_t sympsToKbps(rate_symps_t rate_symps) const;
+
+	virtual rate_pktpf_t kbpsToPktpf(rate_kbps_t rate_kbps) const = 0;
+	virtual rate_kbps_t pktpfToKbps(rate_pktpf_t rate_pktpf) const = 0;
+
+	rate_kbps_t bpsToKbps(rate_bps_t rate_bps) const;
+	rate_bps_t kbpsToBps(rate_kbps_t rate_kbps) const;
+
+	unsigned int pfToPs(unsigned int rate_pf) const;
+	unsigned int psToPf(unsigned int rate_ps) const;
 };
 
 #endif

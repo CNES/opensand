@@ -37,6 +37,7 @@
 
 #include "DamaCtrl.h"
 #include "TerminalContextDamaRcs.h"
+#include "UnitConverter.h"
 
 #include <opensand_output/Output.h>
 
@@ -69,6 +70,11 @@ class DamaCtrlRcsCommon: public DamaCtrl
 
  protected:
 
+	UnitConverter *converter;
+
+	/// Generate an unit converter
+	virtual UnitConverter *generateUnitConverter() const = 0;
+
 	/// Create a terminal context
 	virtual bool createTerminal(TerminalContextDama **terminal,
 	                            tal_id_t tal_id,
@@ -81,7 +87,7 @@ class DamaCtrlRcsCommon: public DamaCtrl
 	virtual bool removeTerminal(TerminalContextDama **terminal);
 
 	/// Reset all terminals allocations
-	virtual bool resetTerminalsAllocations() = 0;
+	virtual bool resetTerminalsAllocations();
 };
 
 

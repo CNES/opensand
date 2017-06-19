@@ -50,8 +50,8 @@ const vol_pkt_t C_MAX_VBDC_IN_SAC = 4080;     // 4080 packets/ceils, limitation
 using std::max;
 using std::min;
 
-DamaAgentRcsLegacy::DamaAgentRcsLegacy():
-	DamaAgentRcs(),
+DamaAgentRcsLegacy::DamaAgentRcsLegacy(FmtDefinitionTable *ret_modcod_def):
+	DamaAgentRcs(ret_modcod_def),
 	vbdc_credit_pkt(0)
 {
 }

@@ -40,13 +40,14 @@
 #include "UnitConverter.h"
 #include "ReturnSchedulingRcsCommon.h"
 #include "CircularBuffer.h"
+#include "FmtDefinitionTable.h"
 
 #include <opensand_output/OutputLog.h>
 
 class DamaAgentRcsCommon : public DamaAgent
 {
  public:
-	DamaAgentRcsCommon();
+	DamaAgentRcsCommon(FmtDefinitionTable *ret_modcod_def);
 	virtual ~DamaAgentRcsCommon();
 
 	// Init method
@@ -56,7 +57,7 @@ class DamaAgentRcsCommon : public DamaAgent
 	virtual bool processOnFrameTick();
 	virtual bool returnSchedule(list<DvbFrame *> *complete_dvb_frames);
 	virtual bool hereIsSOF(time_sf_t superframe_number_sf);
-	virtual bool hereIsTTP(Ttp *ttp) = 0;
+	virtual bool hereIsTTP(Ttp *ttp);
 	virtual bool buildSAC(ret_access_type_t cr_type,
 	                      Sac *sac,
 	                      bool &emtpy);
@@ -83,10 +84,20 @@ class DamaAgentRcsCommon : public DamaAgent
 	/** RBDC timer */
 	time_sf_t rbdc_timer_sf;
 
+	/** The MODCOD definition table for return link */
+	FmtDefinitionTable * ret_modcod_def;
+	
 	/** The current MODCOD id read in TTP, this is used to inform sat and gw upon
 	 *  frames reception instead of keeping TTP contexts.
 	 *  Only one modcod_id here because we only receive one TTP per allocation */
 	fmt_id_t modcod_id;
+
+	/**
+	 * @brief Generate an unit converter
+	 *
+	 * @return  the generated unit converter
+	 */
+	virtual UnitConverter *generateUnitConverter() const = 0;
 
 	/**
 	 * @brief Generate a return link scheduling specialized to DVB-RCS, DVB-RCS2

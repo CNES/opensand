@@ -61,11 +61,46 @@ class DamaCtrlRcs2: public DamaCtrlRcsCommon
 	DamaCtrlRcs2(spot_id_t spot);
 	virtual ~DamaCtrlRcs2();
 
-	/// Reset all terminals allocations
-	virtual bool resetTerminalsAllocations();
+	// Update carriers and MODCOD for each terminal
+	virtual bool updateCarriersAndFmts();
 
-	// Update MODCOD for each terminal
-	virtual void updateFmt();
+ protected:
+
+	/// Generate an unit converter
+	virtual UnitConverter *generateUnitConverter() const;
+
+	/**
+	 * @brief  Generate a probe for Gw capacity
+	 *
+	 * @param name            the probe name
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateGwCapacityProbe(
+		string name) const;
+
+	/**
+	 * @brief  Generate a probe for category capacity
+	 *
+	 * @param name            the probe name
+	 * @param category_label  the category label
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateCategoryCapacityProbe(
+		string category_label,
+		string name) const;
+
+	/**
+	 * @brief  Generate a probe for carrier capacity
+	 *
+	 * @param name            the probe name
+	 * @param category_label  the category label
+	 * @param carrier_id      the carrier id
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateCarrierCapacityProbe(
+		string category_label,
+		unsigned int carrier_id,
+		string name) const;
 };
 
 

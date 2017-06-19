@@ -229,15 +229,9 @@ bool DamaCtrl::initOutput()
 	}
 
 	// Total and remaining capacity
-	snprintf(probe_name, sizeof(probe_name),
-					 "Spot_%d.Up/Return total capacity.Available", this->spot_id);
-	this->probe_gw_return_total_capacity = Output::registerProbe<int>(
-		probe_name, "Kbits/s", true, SAMPLE_LAST);
-	snprintf(probe_name, sizeof(probe_name),
-					 "Spot_%d.Up/Return total capacity.Remaining", this->spot_id);
-	this->probe_gw_return_remaining_capacity = Output::registerProbe<int>(
-		probe_name, "Kbits/s", true, SAMPLE_LAST);
-	this->gw_remaining_capacity_kbps = 0;
+	this->probe_gw_return_total_capacity = this->generateGwCapacityProbe("Available");
+	this->probe_gw_return_remaining_capacity = this->generateGwCapacityProbe("Remaining");
+	this->gw_remaining_capacity = 0;
 
 	// Logged ST number
 	snprintf(probe_name, sizeof(probe_name),
@@ -524,6 +518,15 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 		return false;
 	}
 
+	// reset capacity of carriers
+	if(!this->resetCarriersCapacity())
+	{
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Cannot reset carriers capacity\n",
+		    this->current_superframe_sf);
+		return false;
+	}
+
 	// update the carriers and the fmts
 	if(!this->updateCarriersAndFmts())
 	{
@@ -533,6 +536,7 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 		return false;
 	}
 
+	//TODO: update RBDC credit here, not in reset terminals allocation
 	if(!this->computeDama())
 	{
 		LOG(this->log_super_frame_tick, LEVEL_ERROR,
@@ -656,7 +660,7 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 		this->probes_st_cra_alloc[0]->put(simu_cra);
 		this->probes_st_rbdc_max[0]->put(simu_rbdc);
 	}
-	this->probe_gw_return_remaining_capacity->put(this->gw_remaining_capacity_kbps);
+	this->probe_gw_return_remaining_capacity->put(this->gw_remaining_capacity);
 	for(cat_it = this->categories.begin();
 	    cat_it != categories.end(); ++cat_it)
 	{
@@ -665,7 +669,7 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 		vector<CarriersGroupDama *>::const_iterator carrier_it;
 		string label = category->getLabel();
 		this->probes_category_return_remaining_capacity[label]->put(
-			this->category_return_remaining_capacity_kbps[label]);
+			this->category_return_remaining_capacity[label]);
 		carriers = category->getCarriersGroups();
 		for(carrier_it = carriers.begin();
 			carrier_it != carriers.end(); ++carrier_it)
@@ -677,27 +681,36 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 			if(this->probes_carrier_return_remaining_capacity[label].find(carrier_id)
 			   == this->probes_carrier_return_remaining_capacity[label].end())
 			{
-				Probe<int> *probe_carrier_remaining_capacity;
-				char probe_name[128];
-				snprintf(probe_name, sizeof(probe_name),
-				         "Spot_%d.%s.Up/Return capacity.Carrier%u.Remaining",
-				         this->spot_id, label.c_str(), carrier_id);
-				probe_carrier_remaining_capacity = Output::registerProbe<int>(
-					probe_name, "Kbits/s", true, SAMPLE_LAST);
+				Probe<int> *probe = this->generateCarrierCapacityProbe(
+					label,
+					carrier_id,
+					"Remaining");
+
 				this->probes_carrier_return_remaining_capacity[label].insert(
 					std::pair<unsigned int, Probe<int> *>(carrier_id,
-					                                      probe_carrier_remaining_capacity));
+					                                      probe));
 			}
-			if(this->carrier_return_remaining_capacity_kbps[label].find(carrier_id)
-			   == this->carrier_return_remaining_capacity_kbps[label].end())
+			if(this->carrier_return_remaining_capacity[label].find(carrier_id)
+			   == this->carrier_return_remaining_capacity[label].end())
 			{
-				this->carrier_return_remaining_capacity_kbps[label].insert(
+				this->carrier_return_remaining_capacity[label].insert(
 					std::pair<unsigned int, int>(carrier_id, 0));
 			}
 
 			this->probes_carrier_return_remaining_capacity[label][carrier_id]->put(
-				this->carrier_return_remaining_capacity_kbps[label][carrier_id]);
+				this->carrier_return_remaining_capacity[label][carrier_id]);
 		}
+	}
+}
+
+void DamaCtrl::updateFmt()
+{
+	// update the carriers and the fmts
+	if(!this->updateCarriersAndFmts())
+	{
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Cannot update carriers and FMTs\n",
+		    this->current_superframe_sf);
 	}
 }
 

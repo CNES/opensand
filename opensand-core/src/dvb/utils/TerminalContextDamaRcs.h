@@ -64,11 +64,18 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	unsigned int getFmtId() const;
 
 	/**
+	 * @brief Get the current FMT of the terminal
+	 *
+	 * @return the FMT
+	 */
+	FmtDefinition *getFmt() const;
+
+	/**
 	 * @brief Set the current FMT of the terminal
 	 *
 	 * @param fmt_def  The current FMT of the terminal
 	 */
-	virtual void updateFmt(FmtDefinition *fmt);
+	virtual void setFmt(FmtDefinition *fmt);
 
 	/**
 	 * @brief Get the current carriers group for the terminal

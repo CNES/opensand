@@ -139,6 +139,12 @@ class FmtDefinition
 	/* convert a value in kbits for the FMT definition */
 	vol_sym_t kbitsToSym(vol_kb_t vol_kbits) const;
 
+	/* add FEC to data length */
+	unsigned int addFec(unsigned int length) const;
+
+	/* remove FEC to data length */
+	unsigned int removeFec(unsigned int length) const;
+
 	virtual void print(void); /// For debug
 
 };
