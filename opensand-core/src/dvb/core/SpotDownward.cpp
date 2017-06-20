@@ -935,8 +935,8 @@ void SpotDownward::updateFmt(void)
 		return;
 	}
 
-	// for each terminal in DamaCtrl update FMT
-	this->dama_ctrl->updateFmt();
+	// for each terminal in DamaCtrl update required FMTs
+	this->dama_ctrl->updateRequiredFmts();
 }
 
 uint8_t SpotDownward::getCtrlCarrierId(void) const

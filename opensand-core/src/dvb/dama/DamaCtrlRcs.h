@@ -59,8 +59,8 @@ class DamaCtrlRcs: public DamaCtrlRcsCommon
 	DamaCtrlRcs(spot_id_t spot, vol_b_t packet_length_b);
 	virtual ~DamaCtrlRcs();
 
-	// Update carrier and MODCOD for each terminal
-	virtual bool updateCarriersAndFmts();
+	// Update carrier for each terminal
+	virtual bool updateCarriers();
 
  protected:
 	vol_b_t packet_length_b;

@@ -55,6 +55,7 @@ TerminalContextDamaRcs::TerminalContextDamaRcs(tal_id_t tal_id,
 {
 	this->setCra(cra_kbps);
 	this->setMaxRbdc(max_rbdc_kbps);
+	this->setRequiredFmt(NULL); // at beginning the terminal need to be served while FMT ID is unknown
 	this->setFmt(NULL); // at beginning the terminal need to be served while FMT ID is unknown
 }
 
@@ -65,6 +66,16 @@ TerminalContextDamaRcs::~TerminalContextDamaRcs()
 unsigned int TerminalContextDamaRcs::getFmtId() const
 {
 	return this->fmt_def != NULL ? this->fmt_def->getId() : 0;
+}
+
+FmtDefinition *TerminalContextDamaRcs::getRequiredFmt() const
+{
+	return this->req_fmt_def;
+}
+
+void TerminalContextDamaRcs::setRequiredFmt(FmtDefinition *fmt)
+{
+	this->req_fmt_def = fmt;
 }
 
 FmtDefinition *TerminalContextDamaRcs::getFmt() const

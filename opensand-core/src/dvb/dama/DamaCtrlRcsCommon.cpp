@@ -284,6 +284,72 @@ abort:
 	return false;
 }
 
+void DamaCtrlRcsCommon::updateRequiredFmts()
+{
+	DamaTerminalList::iterator it;
+	TerminalContextDamaRcs *terminal;
+	tal_id_t tal_id;
+	double cni;
+	fmt_id_t fmt_id;
+	
+	if(!this->with_phy_layer)
+	{
+		// Set best fmt
+		return;	
+	}
+	if(!this->simulated)
+	{
+		// Update required Fmt in function of the Cni
+		for(it = this->terminals.begin(); it != this->terminals.end(); ++it)
+		{
+			terminal = dynamic_cast<TerminalContextDamaRcs *>(it->second);
+			tal_id = terminal->getTerminalId();
+
+			// Get required Modcod from the CNI
+			cni = this->input_sts->getRequiredCni(tal_id);
+			fmt_id = this->input_modcod_def->getRequiredModcod(cni);
+			if(fmt_id == 0)
+			{
+				LOG(this->log_fmt, LEVEL_ERROR,
+					"SF#%u: cannot find MODCOD id for ST %u with CNI %f\n",
+					this->current_superframe_sf, tal_id, cni);
+				continue;
+			}
+			LOG(this->log_fmt, LEVEL_DEBUG,
+				"SF#%u: ST%u FMT ID before affectation (CNI %f): %u\n",
+				this->current_superframe_sf, tal_id, cni, fmt_id);
+	
+			// Set required Modcod to the terminal context
+			terminal->setRequiredFmt(this->input_modcod_def->getDefinition(fmt_id));
+		}
+	}
+	else
+	{
+		// Update required Fmt in function of the simulation file
+		for(it = this->terminals.begin(); it != this->terminals.end(); ++it)
+		{
+			terminal = dynamic_cast<TerminalContextDamaRcs *>(it->second);
+			tal_id = terminal->getTerminalId();
+
+			// Get required Modcod from the simulation file
+			fmt_id = this->input_sts->getCurrentModcodId(tal_id);
+			if(fmt_id == 0)
+			{
+				LOG(this->log_fmt, LEVEL_ERROR,
+					"SF#%u: cannot find simulated MODCOD id for ST %u\n",
+					this->current_superframe_sf, tal_id);
+				continue;
+			}
+			LOG(this->log_fmt, LEVEL_DEBUG,
+				"SF#%u: ST%u simulated FMT ID before affectation: %u\n",
+				this->current_superframe_sf, tal_id, fmt_id);
+	
+			// Set required Modcod to the terminal context
+			terminal->setRequiredFmt(this->input_modcod_def->getDefinition(fmt_id));
+		}
+	}
+}
+
 bool DamaCtrlRcsCommon::createTerminal(TerminalContextDama **terminal,
 	tal_id_t tal_id,
 	rate_kbps_t cra_kbps,

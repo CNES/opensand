@@ -62,7 +62,7 @@ DamaCtrlRcs::~DamaCtrlRcs()
 {
 }
 
-bool DamaCtrlRcs::updateCarriersAndFmts()
+bool DamaCtrlRcs::updateCarriers()
 {
 	DamaTerminalList::iterator terminal_it;
 
@@ -74,9 +74,15 @@ bool DamaCtrlRcs::updateCarriersAndFmts()
 		TerminalContextDamaRcs *terminal = dynamic_cast<TerminalContextDamaRcs *>(terminal_it->second);
 		tal_id_t tal_id = terminal->getTerminalId();
 		vector<CarriersGroupDama *> carriers_group;
-		unsigned int simulated_fmt;
+		FmtDefinition *fmt_def;
+		unsigned int required_fmt;
 		unsigned int available_fmt = 0; // not in the table
 
+		// get the required Fmt for the current terminal
+		fmt_def = terminal->getRequiredFmt();
+		required_fmt = fmt_def != NULL ? fmt_def->getId() : 0;
+
+		// get the category
 		category_it = this->categories.find(terminal->getCurrentCategory());
 		if(category_it == this->categories.end())
 		{
@@ -86,41 +92,31 @@ bool DamaCtrlRcs::updateCarriersAndFmts()
 			continue;
 		}
 		category = (*category_it).second;
-		simulated_fmt = this->input_sts->getCurrentModcodId(tal_id);
-		if(simulated_fmt == 0)
-		{
-			LOG(this->log_fmt, LEVEL_ERROR,
-			    "SF#%u: cannot find MODCOD id for ST %u\n",
-			    this->current_superframe_sf, tal_id);
-			continue;
-		}
-		LOG(this->log_fmt, LEVEL_DEBUG,
-		    "SF#%u: ST%u simulated FMT ID before affectation: %u\n",
-		    this->current_superframe_sf, tal_id, simulated_fmt);
-		// get an available MODCOD id for this terminal among carriers
 		carriers_group = category->getCarriersGroups();
+
+		// get an available MODCOD id for this terminal among carriers
 		for(vector<CarriersGroupDama *>::const_iterator it = carriers_group.begin();
 		    it != carriers_group.end(); ++it)
 		{
 			CarriersGroupDama *carriers = *it;
+			unsigned int fmt = carriers->getNearestFmtId(required_fmt);
 			// FMT groups should only have one FMT id here, so get nearest should
 			// return the FMT id of the carrier
-			if(carriers->getNearestFmtId(simulated_fmt) == simulated_fmt)
+			if(fmt == required_fmt)
 			{
 				// we have a carrier with the corresponding MODCOD
 				terminal->setCarrierId(carriers->getCarriersId());
-				available_fmt = simulated_fmt;
+				available_fmt = fmt;
 				LOG(this->log_fmt, LEVEL_DEBUG,
-				    "SF#%u: ST%u will  served with the required "
+				    "SF#%u: ST%u will be served with the required "
 				    "MODCOD (%u)\n", this->current_superframe_sf,
 				    terminal->getTerminalId(), available_fmt);
 				break;
 			}
 			// if we do not found the MODCOD value we need the closer supported value
 			// MODCOD are classified from most to less robust
-			if(carriers->getNearestFmtId(simulated_fmt) < simulated_fmt)
+			if(fmt < required_fmt)
 			{
-				unsigned int fmt = carriers->getNearestFmtId(simulated_fmt);
 				// take the closest FMT id (i.e. the bigger value)
 				available_fmt = std::max(available_fmt, fmt);
 				terminal->setCarrierId(carriers->getCarriersId());
@@ -130,9 +126,9 @@ bool DamaCtrlRcs::updateCarriersAndFmts()
 		if(available_fmt == 0)
 		{
 			LOG(this->log_fmt, LEVEL_WARNING,
-			    "SF#%u: cannot serve terminal %u with simulated "
+			    "SF#%u: cannot serve terminal %u with required "
 			    "MODCOD %u after affectation\n",
-			    this->current_superframe_sf, tal_id, simulated_fmt);
+			    this->current_superframe_sf, tal_id, required_fmt);
 		}
 		else
 		{

@@ -159,9 +159,9 @@ class DamaCtrl
 	void updateStatistics(time_ms_t period_ms);
 	
 	/**
-	 * @brief  Update the DAMA FMT
+	 * @brief  Update the required FMTs
 	 */
-	void updateFmt();
+	virtual void updateRequiredFmts() = 0;
 
 	/**
 	 * @brief Set the file for simulation statistic and events record
@@ -262,11 +262,11 @@ class DamaCtrl
 	virtual bool resetCarriersCapacity() = 0;
 
 	/**
-	 * @brief  Update all carriers and FMTs.
+	 * @brief  Update all carriers.
 	 *
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool updateCarriersAndFmts() = 0;
+	virtual bool updateCarriers() = 0;
 
 	/**
 	 * @brief Run the RBDC computation for DAMA

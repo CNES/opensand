@@ -57,6 +57,20 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	virtual ~TerminalContextDamaRcs();
 
 	/**
+	 * @brief Get the required FMT of the terminal
+	 *
+	 * @return the required FMT
+	 */
+	FmtDefinition *getRequiredFmt() const;
+
+	/**
+	 * @brief Set the required FMT of the terminal
+	 *
+	 * @param fmt_def  The required FMT of the terminal
+	 */
+	virtual void setRequiredFmt(FmtDefinition *fmt);
+
+	/**
 	 * @brief Get the current FMT ID of the terminal
 	 *
 	 * @return the ID of FMT
@@ -92,6 +106,9 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	void setCarrierId(unsigned int carrier_id);
 
  protected:
+
+	/** The required FMT */
+	FmtDefinition *req_fmt_def;
 
 	/** The FMT */
 	FmtDefinition *fmt_def;

@@ -67,6 +67,9 @@ class DamaCtrlRcsCommon: public DamaCtrl
 
 	// Apply a PEP command
 	virtual bool applyPepCommand(const PepRequest* request);
+	
+	// Update the required FMTs
+	virtual void updateRequiredFmts();
 
  protected:
 

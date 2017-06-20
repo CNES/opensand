@@ -61,8 +61,8 @@ class DamaCtrlRcs2: public DamaCtrlRcsCommon
 	DamaCtrlRcs2(spot_id_t spot);
 	virtual ~DamaCtrlRcs2();
 
-	// Update carriers and MODCOD for each terminal
-	virtual bool updateCarriersAndFmts();
+	// Update carriers for each terminal
+	virtual bool updateCarriers();
 
  protected:
 

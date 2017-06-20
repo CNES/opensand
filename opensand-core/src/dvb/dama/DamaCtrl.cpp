@@ -527,8 +527,8 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 		return false;
 	}
 
-	// update the carriers and the fmts
-	if(!this->updateCarriersAndFmts())
+	// update the carriers
+	if(!this->updateCarriers())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
 		    "SF#%u: Cannot update carriers and FMTs\n",
@@ -700,17 +700,6 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 			this->probes_carrier_return_remaining_capacity[label][carrier_id]->put(
 				this->carrier_return_remaining_capacity[label][carrier_id]);
 		}
-	}
-}
-
-void DamaCtrl::updateFmt()
-{
-	// update the carriers and the fmts
-	if(!this->updateCarriersAndFmts())
-	{
-		LOG(this->log_run_dama, LEVEL_ERROR,
-		    "SF#%u: Cannot update carriers and FMTs\n",
-		    this->current_superframe_sf);
 	}
 }
 
