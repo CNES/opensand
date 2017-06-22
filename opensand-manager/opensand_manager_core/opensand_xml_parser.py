@@ -746,6 +746,17 @@ class XmlParser:
                 ret['step'] = "0.%s1" % ("0" *
                                          (int(fraction_digit[0].get("value")) -
                                           1))
+            
+            enum = restriction.xpath("xsd:enumeration",
+                                     namespaces=NAMESPACES)
+            values = []
+            if enum is not None and len(enum) > 0:
+                for elem in enum:
+                    values.append(elem.get("value"))
+            if len(values) != 0:
+                ret['type'] = "enum"
+                ret['enum'] = values
+
             return ret
         elif base == "xsd:string":
             enum = restriction.xpath("xsd:enumeration",

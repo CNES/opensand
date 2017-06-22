@@ -1144,7 +1144,7 @@ class ConfSection(gtk.VBox):
             except:
                 # this is a new line entry
                 nbr = len(self._config.get_all("/%s/%s" % (key_path, name)))
-                line_path = '/%s/%s[%d]' % (key_path, name, nbr + self_new.count(key_path))
+                line_path = '/%s/%s[%d]' % (key_path, name, nbr + self._new.count(key_path))
                 path = '/%s/%s[%d]/@%s' % (key_path, name,
                                            nbr + self._new.count(key_path),
                                            att)

@@ -261,8 +261,6 @@ class ModcodParameter(WindowView):
         if len(entry) < 5:
             return ""
         label = "{} - {} {}".format(entry[0], entry[1], entry[2])
-        if len(entry) == 6:
-            label += " - {} sym".format(entry[5])
         return label
 
     @staticmethod
@@ -414,21 +412,41 @@ class ModcodParameter(WindowView):
 
     def load_modcod(self, path):
         """Read in the file the available modcod"""
+        global_conf = self._model.get_conf()
+        ret_lnk_std = global_conf.get_return_link_standard()
         mc_list = []
-        with  open(path, 'r') as modcod_def:
-            for line in modcod_def:
-                if (line.startswith("/*") or
-                    line.isspace() or
-                    line.startswith('nb_fmt')):
-                    continue
-                elts = line.split()
-                if len(elts) != 5 and len(elts) != 6:
-                    continue
-                if not elts[0].isdigit:
-                    continue
-                # id, modulation, coding_rate, spectral_efficiency, required Es/N0
-                mc_list.append(elts)
-
+        if ret_lnk_std == DVB_RCS2:
+            burst_length = global_conf.get_rcs2_burst_length()
+            with  open(path, 'r') as modcod_def:
+                for line in modcod_def:
+                    if (line.startswith("/*") or
+                        line.isspace() or
+                        line.startswith('nb_fmt')):
+                        continue
+                    elts = line.split()
+                    if len(elts) != 6:
+                        continue
+                    if not elts[0].isdigit:
+                        continue
+                    if elts[5] != burst_length:
+                        continue
+                    # id, modulation, coding_rate, spectral_efficiency, required Es/N0
+                    mc_list.append(elts)
+        else:
+            with  open(path, 'r') as modcod_def:
+                for line in modcod_def:
+                    if (line.startswith("/*") or
+                        line.isspace() or
+                        line.startswith('nb_fmt')):
+                        continue
+                    elts = line.split()
+                    if len(elts) != 5:
+                        continue
+                    if not elts[0].isdigit:
+                        continue
+                    # id, modulation, coding_rate, spectral_efficiency, required Es/N0
+                    mc_list.append(elts)
+            
         return mc_list
 
 

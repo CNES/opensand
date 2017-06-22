@@ -192,6 +192,10 @@ class GlobalConfig(AdvancedHostModel):
         """ get the return_link_std value """
         return self.get_param('return_link_standard')
 
+    def get_rcs2_burst_length(self):
+        """ get the rcs2_burst_length value """
+        return self.get_param('rcs2_burst_length')
+    
     def set_delay_type(self, val):
         """ set the delay_type value """
         self._delay_type = val

@@ -61,6 +61,13 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="rcs2BurstLength">
+    <xsd:restriction base="xsd:positiveInteger">
+        <xsd:enumeration value="536" />
+        <xsd:enumeration value="1616" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <xsd:simpleType name="encapScheme">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="AAL5/ATM" />
@@ -488,11 +495,12 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="rcs2_burst_length" type="xsd:positiveInteger">
+            <xsd:element name="rcs2_burst_length" type="rcs2BurstLength">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The constant burst length for DVB-RCS2
-                        <hide>true</hide>
+                        <unit>sym</unit>
+                        <xpath common.return_link_standard="DVB-RCS2" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
