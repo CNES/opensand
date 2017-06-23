@@ -87,7 +87,6 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
                           NetBurst **burst)
 {
 	BBFrame *bbframe_burst;
-	long i;                       // counter for packets
 	int real_mod = 0;     // real modcod of the receiver
 
 	// Offset from beginning of frame to beginning of data
@@ -182,7 +181,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 
 	// add packets received from lower layer
 	// to the newly created burst
-	for(i = 0; i < bbframe_burst->getDataLength(); i++)
+	for(long i = 0; i < bbframe_burst->getDataLength(); i++)
 	{
 		NetPacket *encap_packet;
 		size_t current_length;

@@ -128,7 +128,7 @@ bool DamaCtrlRcs2::updateCarriers()
 				// return the FMT id of the carrier
 				carriers = *it;
 				fmt = carriers->getNearestFmtId(required_fmt);
-				if(fmt == required_fmt)
+				if(required_fmt <= fmt)
 				{
 					// we have a carrier with the corresponding MODCOD
 					terminal->setCarrierId(carriers->getCarriersId());

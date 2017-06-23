@@ -137,16 +137,16 @@ bool DamaAgent::initOutput()
 
 	// RBDC request size
 	this->probe_st_rbdc_req_size = Output::registerProbe<int>(
-		"Request.RBDC", "Kbps", true, SAMPLE_LAST);
+		"Request.RBDC", "Kbits/s", true, SAMPLE_LAST);
 	// VBDC request size
 	this->probe_st_vbdc_req_size = Output::registerProbe<int>(
 		"Request.VBDC", "Kbits", true, SAMPLE_LAST);
 	// Total allocation
 	this->probe_st_total_allocation = Output::registerProbe<int>(
-		"Allocation.Total", "Kbps", true, SAMPLE_LAST);
+		"Allocation.Total", "Kbits/s", true, SAMPLE_LAST);
 	// Remaining allocation
 	this->probe_st_remaining_allocation = Output::registerProbe<int>(
-		"Allocation.Remaining", "Kbps", true, SAMPLE_LAST);
+		"Allocation.Remaining", "Kbits/s", true, SAMPLE_LAST);
 
 	return true;
 }
@@ -158,15 +158,8 @@ bool DamaAgent::hereIsLogonResp(const LogonResponse *response)
 	return true;
 }
 
-bool DamaAgent::processOnFrameTick()
-{
-	return true;
-}
-
 bool DamaAgent::hereIsSOF(time_sf_t superframe_number_sf)
 {
 	this->current_superframe_sf = superframe_number_sf;
 	return true;
 }
-
-

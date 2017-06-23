@@ -56,6 +56,9 @@ class ReturnSchedulingRcsCommon: public Scheduling
 
 	virtual ~ReturnSchedulingRcsCommon() {};
 
+	vol_b_t getMaxBurstLength() const;
+	void setMaxBurstLength(vol_b_t length_b);
+	
 	bool schedule(const time_sf_t current_superframe_sf,
 	              clock_t current_time,
 	              list<DvbFrame *> *complete_dvb_frames,
@@ -63,19 +66,21 @@ class ReturnSchedulingRcsCommon: public Scheduling
 
   protected:
 
+	vol_b_t max_burst_length_b;
+
 	/**
 	 * @brief schedule the DVB packets that are stored in the MAC Fifo
 	 *
 	 * @param current_superframe_sf        the current superframe (for logging)
 	 * @param complete_dvb_frames          a list of completed DVB frames
-	 * @param remaining_allocation_pktpf  the remaining allocated packets after
+	 * @param remaining_allocation_kb      the remaining allocated data length after
 	 *                                     scheduling on the current superframe
 	 *
 	 * @return true on success, false otherwise
 	 */
 	virtual bool macSchedule(const time_sf_t current_superframe_sf,
 	                         list<DvbFrame *> *complete_dvb_frames,
-	                         rate_pktpf_t &remaining_allocation_pktpf) = 0;
+	                         vol_kb_t &remaining_allocation_kb) = 0;
 };
 
 #endif

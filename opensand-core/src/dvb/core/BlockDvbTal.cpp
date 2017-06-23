@@ -652,7 +652,8 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// init fmt_simu
 	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
-	                            &this->rcs_modcod_def))
+	                            &this->rcs_modcod_def,
+	                            this->req_burst_length))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");

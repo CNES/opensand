@@ -88,7 +88,8 @@ bool SpotUpwardRegen::onInit(void)
 bool SpotUpwardRegen::initModcodSimu(void)
 {
 	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
-	                            &this->rcs_modcod_def))
+	                            &this->rcs_modcod_def,
+	                            this->req_burst_length))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the uplink definition MODCOD file\n");

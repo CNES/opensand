@@ -414,7 +414,7 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			DC_RECORD_EVENT("LOGON st%d rt=%u rbdc=%u vbdc=%u", logon->getMac(),
 			                logon->getRtBandwidth(), max_rbdc_kbps, max_vbdc_kb);
 		}
-
+		
 		// Output probes and stats
 		this->gw_st_num += 1;
 		this->gw_cra_alloc_kbps += cra_kbps;

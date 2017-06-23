@@ -90,16 +90,13 @@ DvbRcsFrame::~DvbRcsFrame()
 
 bool DvbRcsFrame::addPacket(NetPacket *packet)
 {
-	bool is_added;
-
-	is_added = DvbFrameTpl<T_DVB_ENCAP_BURST>::addPacket(packet);
-	if(is_added)
+	if(!DvbFrameTpl<T_DVB_ENCAP_BURST>::addPacket(packet))
 	{
-		this->setMessageLength(this->getMessageLength() + packet->getTotalLength());
-		this->frame()->qty_element = htons(this->num_packets);
+		return false;
 	}
-
-	return is_added;
+	this->setMessageLength(this->getMessageLength() + packet->getTotalLength());
+	this->frame()->qty_element = htons(this->num_packets);
+	return true;
 }
 
 // TODO not used => remove ?!

@@ -164,7 +164,7 @@ class DamaAgent
 	 *
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool processOnFrameTick();
+	virtual bool processOnFrameTick() = 0;
 
 	/**
 	 * @brief  Update the DAMA statistics

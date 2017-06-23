@@ -51,9 +51,12 @@ DamaAgentRcs::~DamaAgentRcs()
 
 UnitConverter *DamaAgentRcs::generateUnitConverter() const
 {
+	LOG(this->log_init, LEVEL_DEBUG,
+	    "Packet length: %u bytes (%u bits)\n",
+	    this->packet_handler->getFixedLength(), this->packet_handler->getFixedLength() << 3);
 	return new UnitConverterFixedBitLength(this->frame_duration_ms,
 		0,
-		this->packet_handler->getFixedLength());
+		this->packet_handler->getFixedLength() << 3);
 }
 
 ReturnSchedulingRcsCommon *DamaAgentRcs::generateReturnScheduling() const

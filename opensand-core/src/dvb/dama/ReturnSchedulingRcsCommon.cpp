@@ -44,17 +44,30 @@
 ReturnSchedulingRcsCommon::ReturnSchedulingRcsCommon(
 			const EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos):
-	Scheduling(packet_handler, fifos, NULL)
+	Scheduling(packet_handler, fifos, NULL),
+	max_burst_length_b(0)
 {
 }
 
+vol_b_t ReturnSchedulingRcsCommon::getMaxBurstLength() const
+{
+	return this->max_burst_length_b;
+}
+
+void ReturnSchedulingRcsCommon::setMaxBurstLength(vol_b_t length_b)
+{
+	this->max_burst_length_b = length_b;
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+	    "DVB-RCS frame max burst length: %u bits (%u bytes)\n",
+	    this->max_burst_length_b, this->max_burst_length_b >> 3);
+}
 
 bool ReturnSchedulingRcsCommon::schedule(const time_sf_t current_superframe_sf,
                                          clock_t UNUSED(current_time),
                                          list<DvbFrame *> *complete_dvb_frames,
                                          uint32_t &remaining_allocation)
 {
-	if(remaining_allocation > (unsigned int)pow(2.0, 8 * sizeof(rate_pktpf_t)))
+	if(remaining_allocation > (unsigned int)pow(2.0, 8 * sizeof(vol_kb_t)))
 	{
 		LOG(this->log_scheduling, LEVEL_NOTICE,
 		    "Remaining allocation (%u) is too long and will be "
@@ -64,7 +77,7 @@ bool ReturnSchedulingRcsCommon::schedule(const time_sf_t current_superframe_sf,
 	// UL allocation
 	if(!this->macSchedule(current_superframe_sf,
 	                      complete_dvb_frames,
-	                      (rate_pktpf_t &)remaining_allocation))
+	                      (vol_kb_t &)remaining_allocation))
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: MAC scheduling failed\n",

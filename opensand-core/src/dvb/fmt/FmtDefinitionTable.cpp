@@ -85,13 +85,14 @@ FmtDefinitionTable::~FmtDefinitionTable()
 }
 
 
-bool FmtDefinitionTable::load(const string filename)
+bool FmtDefinitionTable::load(const string filename, vol_sym_t req_burst_length)
 {
 	std::ifstream file;
 	unsigned int lines_count = 0;
 	int nb_fmt;
 	bool is_nb_fmt_found = false;
 	unsigned int nb_fmt_read = 0;
+	unsigned int nb_req_fmt_read = 0;
 	string line;
 	std::istringstream line_stream;
 
@@ -179,6 +180,7 @@ bool FmtDefinitionTable::load(const string filename)
 				    "file\n", nb_fmt);
 				is_nb_fmt_found = true;
 				nb_fmt_read = 0;
+				nb_req_fmt_read = 0;
 			}
 		}
 		else
@@ -244,6 +246,17 @@ bool FmtDefinitionTable::load(const string filename)
 			}
 			if(burst_length_found)
 			{
+				if(req_burst_length == 0 || req_burst_length != burst_length)
+				{
+					LOG(this->log_fmt, LEVEL_NOTICE,
+					    "unmatching FMT definition: %u, %s, %s, %f, %f, %u sym "
+					    "(required burst length: %u sym)\n",
+					    scheme_number, modulation_type.c_str(),
+					    coding_type.c_str(), spectral_efficiency,
+					    required_es_n0, burst_length, req_burst_length);
+					continue;
+				}
+
 				fmt_def = new FmtDefinition(
 					scheme_number,
 					modulation_type,
@@ -254,6 +267,17 @@ bool FmtDefinitionTable::load(const string filename)
 			}
 			else
 			{
+				if(req_burst_length != 0)
+				{
+					LOG(this->log_fmt, LEVEL_WARNING,
+					    "unmatching FMT definition: %u, %s, %s, %f, %f, no burst length "
+					    "(required burst length: %u sym)\n",
+					    scheme_number, modulation_type.c_str(),
+					    coding_type.c_str(), spectral_efficiency,
+					    required_es_n0, req_burst_length);
+					continue;
+				}
+
 				fmt_def = new FmtDefinition(
 					scheme_number,
 					modulation_type,
@@ -261,6 +285,7 @@ bool FmtDefinitionTable::load(const string filename)
 					spectral_efficiency,
 					required_es_n0);
 			}
+			nb_req_fmt_read++;
 
 			// FMT definition is OK, record it in the table
 			ret = this->add(fmt_def);
@@ -315,8 +340,17 @@ bool FmtDefinitionTable::load(const string filename)
 		    nb_fmt_read, nb_fmt);
 		goto malformed;
 	}
-	LOG(this->log_fmt, LEVEL_NOTICE,
-	    "%d FMTs found in definition file\n", nb_fmt);
+	if(nb_fmt_read == nb_req_fmt_read)
+	{
+		LOG(this->log_fmt, LEVEL_NOTICE,
+		    "%d FMTs found in definition file\n", nb_fmt);
+	}
+	else
+	{
+		LOG(this->log_fmt, LEVEL_NOTICE,
+		    "%u required FMTs found in definition file (%u total FMTs found)\n",
+		    nb_req_fmt_read, nb_fmt_read);
+	}
 
 	// close the definition file
 	file.close();

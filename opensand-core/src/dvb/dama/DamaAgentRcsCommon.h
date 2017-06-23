@@ -51,12 +51,11 @@ class DamaAgentRcsCommon : public DamaAgent
 	virtual ~DamaAgentRcsCommon();
 
 	// Init method
-	bool init();
+	virtual bool init();
 
 	// Inherited methods
 	virtual bool processOnFrameTick();
 	virtual bool returnSchedule(list<DvbFrame *> *complete_dvb_frames);
-	virtual bool hereIsSOF(time_sf_t superframe_number_sf);
 	virtual bool hereIsTTP(Ttp *ttp);
 	virtual bool buildSAC(ret_access_type_t cr_type,
 	                      Sac *sac,
@@ -64,13 +63,13 @@ class DamaAgentRcsCommon : public DamaAgent
 
  protected:
 	/** Number of allocated timeslots  */
-	time_pkt_t allocated_pkt;
+	vol_kb_t allocated_kb;
 
 	/** Dynamic allocation in packets number */
-	time_pkt_t dynamic_allocation_pkt;
+	vol_kb_t dynamic_allocation_kb;
 
 	/** Remaining allocation for frames between two SF */
-	rate_pktpf_t remaining_allocation_pktpf;
+	vol_kb_t remaining_allocation_kb;
 
 	/** Circular buffer to store previous RBDC requests */
 	CircularBuffer *rbdc_request_buffer;
@@ -112,19 +111,20 @@ class DamaAgentRcsCommon : public DamaAgent
 	 *
 	 * @param cr_type           the type of capacity request
 	 *
-	 * @return                  total buffers size in packes number
+	 * @return                  total buffers size in bits
 	 */
-	vol_pkt_t getMacBufferLength(ret_access_type_t cr_type);
+	vol_b_t getMacBufferLength(ret_access_type_t cr_type);
+
 	/**
 	 * @brief Utility function to get total number of "last arrived" packets
 	 *        (since last SAC) of all MAC fifos associated to the concerned CR type
 	 *
 	 * @param cr_type            the type of capacity request
 	 *
-	 * @return                  total number of "last arrived" packets"
-	 *                          in packets number
+	 * @return                  total number of "last arrived" packets
+	 *                          in bits
 	 */
-	vol_pkt_t getMacBufferArrivals(ret_access_type_t cr_type);
+	vol_b_t getMacBufferArrivals(ret_access_type_t cr_type);
 
 	/**
 	 * @brief Compute RBDC request
@@ -136,10 +136,10 @@ class DamaAgentRcsCommon : public DamaAgent
 	/**
 	 * @brief Compute VBDC request
 	 *
-	 * @return                  the VBDC Request in number of packets
+	 * @return                  the VBDC Request in kbits
 	 *                          ready to be set in SAC field
 	 */
-	virtual vol_pkt_t computeVbdcRequest() = 0;
+	virtual vol_kb_t computeVbdcRequest() = 0;
 
 	/// The MODCOD for emmited frames as received in TTP
 	Probe<int> *probe_st_used_modcod;

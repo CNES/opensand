@@ -294,7 +294,6 @@ void DamaCtrlRcsCommon::updateRequiredFmts()
 	
 	if(!this->with_phy_layer)
 	{
-		// Set best fmt
 		return;	
 	}
 	if(!this->simulated)
@@ -305,8 +304,13 @@ void DamaCtrlRcsCommon::updateRequiredFmts()
 			terminal = dynamic_cast<TerminalContextDamaRcs *>(it->second);
 			tal_id = terminal->getTerminalId();
 
-			// Get required Modcod from the CNI
+			// Get CNI
 			cni = this->input_sts->getRequiredCni(tal_id);
+			LOG(this->log_fmt, LEVEL_DEBUG,
+			    "SF#%u: ST%u CNI before affectation: %f\n",
+			    this->current_superframe_sf, tal_id, cni);
+			
+			// Get required Modcod from the CNI
 			fmt_id = this->input_modcod_def->getRequiredModcod(cni);
 			if(fmt_id == 0)
 			{
@@ -357,11 +361,15 @@ bool DamaCtrlRcsCommon::createTerminal(TerminalContextDama **terminal,
 	time_sf_t rbdc_timeout_sf,
 	vol_kb_t max_vbdc_kb)
 {
-	*terminal = new TerminalContextDamaRcs(tal_id,
-	                                       cra_kbps,
-	                                       max_rbdc_kbps,
-	                                       rbdc_timeout_sf,
-	                                       max_vbdc_kb);
+	fmt_id_t fmt_id;
+	TerminalContextDamaRcs *term;
+
+	term = new TerminalContextDamaRcs(tal_id,
+	                                  cra_kbps,
+	                                  max_rbdc_kbps,
+	                                  rbdc_timeout_sf,
+	                                  max_vbdc_kb);
+	*terminal = term;
 	if(!(*terminal))
 	{
 		LOG(this->log_logon, LEVEL_ERROR,
@@ -369,6 +377,23 @@ bool DamaCtrlRcsCommon::createTerminal(TerminalContextDama **terminal,
 		    this->current_superframe_sf, tal_id);
 		return false;
 	}
+
+	// Get the best Modcod
+	fmt_id = this->input_modcod_def->getMaxId();
+	if(fmt_id == 0)
+	{
+		LOG(this->log_fmt, LEVEL_ERROR,
+			"SF#%u: cannot find the best MODCOD id for ST %u\n",
+		    this->current_superframe_sf, tal_id);
+		return true;
+	}
+	LOG(this->log_fmt, LEVEL_DEBUG,
+		"SF#%u: ST%u FMT ID before affectation (the best FMT): %u\n",
+	    this->current_superframe_sf, tal_id, fmt_id);
+
+	// Set required Modcod to the terminal context
+	term->setRequiredFmt(this->input_modcod_def->getDefinition(fmt_id));
+
 	return true;
 }
 

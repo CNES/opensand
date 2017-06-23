@@ -41,7 +41,8 @@
 
 
 DvbRcsStd::DvbRcsStd(const EncapPlugin::EncapPacketHandler *pkt_hdl):
-	PhysicStd("DVB-RCS", pkt_hdl)
+	PhysicStd("DVB-RCS", pkt_hdl),
+	has_fixed_length(true)
 {
 	this->generic_switch = NULL;
 
@@ -49,6 +50,21 @@ DvbRcsStd::DvbRcsStd(const EncapPlugin::EncapPacketHandler *pkt_hdl):
 	                                              "Dvb.Upward.receive");
 }
 
+DvbRcsStd::DvbRcsStd(string type, bool has_fixed_length,
+		const EncapPlugin::EncapPacketHandler *pkt_hdl):
+	PhysicStd(type, pkt_hdl),
+	has_fixed_length(has_fixed_length)
+{
+	this->generic_switch = NULL;
+
+	this->log_rcv_from_down = Output::registerLog(LEVEL_WARNING,
+	                                              "Dvb.Upward.receive");
+}
+
+DvbRcs2Std::DvbRcs2Std(const EncapPlugin::EncapPacketHandler *pkt_hdl):
+	DvbRcsStd("DVB-RCS2", false, pkt_hdl)
+{
+}
 
 DvbRcsStd::~DvbRcsStd()
 {
@@ -63,11 +79,34 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
                            tal_id_t UNUSED(tal_id),
                            NetBurst **burst)
 {
-	long i;                        // counter for packets
 	size_t offset;
 	size_t previous_length = 0;
-	// TODO DvbRcsFrame *dvb_frame = static_cast<DvbRcsFrame *>(dvb_frame);
-	DvbRcsFrame *dvb_rcs_frame = dvb_frame->operator DvbRcsFrame*();
+	DvbRcsFrame *dvb_rcs_frame;
+
+	// sanity check
+	if(dvb_frame == NULL)
+	{
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "invalid frame received\n");
+		goto error;
+	}
+
+	if(!this->packet_handler)
+	{
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "packet handler is NULL\n");
+		goto error;
+	}
+
+	// sanity check: this function only handle DVB-RCS frame
+	if(dvb_frame->getMessageType() != MSG_TYPE_DVB_BURST)
+	{
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "the message received is not a DVB burst\n");
+		goto error;
+	}
+	// TODO dvb_frame = static_cast<DvbRcsFrame *>(dvb_frame);
+	dvb_rcs_frame = dvb_frame->operator DvbRcsFrame*();
 
 	if(dvb_rcs_frame->isCorrupted())
 	{
@@ -79,26 +118,13 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		goto skip;
 	}
 
-	if(dvb_rcs_frame->getMessageType() != MSG_TYPE_DVB_BURST)
-	{
-		LOG(this->log_rcv_from_down, LEVEL_ERROR,
-		    "the message received is not a DVB burst\n");
-		goto error;
-	}
-
 	if(dvb_rcs_frame->getNumPackets() <= 0)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "skip DVB-RCS frame with no encapsulation packet\n");
 		goto skip;
 	}
-	if(!this->packet_handler)
-	{
-		LOG(this->log_rcv_from_down, LEVEL_ERROR,
-		    "packet handler is NULL\n");
-		goto error;
-	}
-	if(this->packet_handler->getFixedLength() == 0)
+	if(this->has_fixed_length && this->packet_handler->getFixedLength() == 0)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "encapsulated packets length is not fixed on "
@@ -124,7 +150,7 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	// add packets received from lower layer
 	// to the newly created burst
 	offset = dvb_rcs_frame->getHeaderLength();
-	for(i = 0; i < dvb_rcs_frame->getNumPackets(); i++)
+	for(long i = 0; i < dvb_rcs_frame->getNumPackets(); i++)
 	{
 		NetPacket *encap_packet; // one encapsulation packet
 		size_t current_length;

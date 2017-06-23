@@ -50,21 +50,18 @@ class DamaAgentRcs2Legacy: public DamaAgentRcs2
 	DamaAgentRcs2Legacy(FmtDefinitionTable *ret_modoco_def);
 	virtual ~DamaAgentRcs2Legacy();
 
-	// Init method
-	bool init();
-
 	// Inherited methods
 	bool hereIsSOF(time_sf_t superframe_number_sf);
 
  protected:
 
 	/** VBDC credit */
-	time_pkt_t vbdc_credit_pkt;
+	vol_kb_t vbdc_credit_kb;
 
  private:
 
 	rate_kbps_t computeRbdcRequest();
-	vol_pkt_t computeVbdcRequest();
+	vol_kb_t computeVbdcRequest();
 
 };
 

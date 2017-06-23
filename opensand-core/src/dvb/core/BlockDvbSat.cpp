@@ -665,12 +665,26 @@ bool BlockDvbSat::Upward::initMode(void)
 	// Delay to apply to the medium
 	if(this->satellite_type == REGENERATIVE)
 	{
-		this->reception_std = new DvbRcsStd(this->pkt_hdl);
+		if(this->return_link_std == DVB_RCS2)
+		{
+			this->reception_std = new DvbRcs2Std(this->pkt_hdl); 
+		}
+		else
+		{
+			this->reception_std = new DvbRcsStd(this->pkt_hdl); 
+		}
 	}
 	else
 	{
 		// create the reception standard
-		this->reception_std = new DvbRcsStd(); 
+		if(this->return_link_std == DVB_RCS2)
+		{
+			this->reception_std = new DvbRcs2Std(); 
+		}
+		else
+		{
+			this->reception_std = new DvbRcsStd(); 
+		}
 	}
 	if(this->reception_std == NULL)
 	{

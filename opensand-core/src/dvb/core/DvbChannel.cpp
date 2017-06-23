@@ -101,8 +101,30 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 	this->return_link_std = strToReturnLinkStd(this->return_link_std_str);
 
 	// Set the MODCOD definition type
-	this->modcod_def_rcs_type = this->return_link_std == DVB_RCS ?
-	                            MODCOD_DEF_RCS : MODCOD_DEF_RCS2;
+	if(this->return_link_std == DVB_RCS2)
+	{
+		unsigned int dummy;
+		this->modcod_def_rcs_type = MODCOD_DEF_RCS2;
+		
+		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+			               RCS2_BURST_LENGTH,
+		                   dummy))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "section '%s': missing parameter '%s'\n",
+			    COMMON_SECTION, RCS2_BURST_LENGTH);
+			return false;
+		}
+		this->req_burst_length = dummy;
+	}
+	else
+	{
+		this->modcod_def_rcs_type = MODCOD_DEF_RCS;
+		this->req_burst_length = 0;
+	}
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "required burst length = %d\n",
+	    this->req_burst_length);
 
 	return true;
 }
@@ -338,7 +360,7 @@ bool DvbFmt::initFmt(void)
 }
 
 
-bool DvbFmt::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def)
+bool DvbFmt::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def, vol_sym_t req_burst_length)
 {
 	string modcod_def_file;
 	*modcod_def = new FmtDefinitionTable();
@@ -360,7 +382,7 @@ bool DvbFmt::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def)
 	{
 		return false;
 	}
-	if(!(*modcod_def)->load(modcod_def_file))
+	if(!(*modcod_def)->load(modcod_def_file, req_burst_length))
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "failed to load the MODCOD definitions from file "

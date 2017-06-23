@@ -40,9 +40,9 @@
 
 DamaAgentRcsCommon::DamaAgentRcsCommon(FmtDefinitionTable *ret_modcod_def):
 	DamaAgent(),
-	allocated_pkt(0),
-	dynamic_allocation_pkt(0),
-	remaining_allocation_pktpf(0),
+	allocated_kb(0),
+	dynamic_allocation_kb(0),
+	remaining_allocation_kb(0),
 	rbdc_request_buffer(NULL),
 	ret_schedule(NULL),
 	rbdc_timer_sf(0),
@@ -72,6 +72,8 @@ DamaAgentRcsCommon::~DamaAgentRcsCommon()
 
 bool DamaAgentRcsCommon::init()
 {
+	FmtDefinition *fmt_def;
+
 	if(this->rbdc_enabled)
 	{
 		// create circular buffer for saving last RBDC requests during the past
@@ -105,7 +107,17 @@ bool DamaAgentRcsCommon::init()
 		    "Cannot create the return link scheduling\n");
 		return false;
 	}
-	
+
+	this->modcod_id = this->ret_modcod_def->getMaxId();
+	fmt_def = this->ret_modcod_def->getDefinition(this->modcod_id);
+	if(fmt_def != NULL)
+	{
+		this->converter->setModulationEfficiency(fmt_def->getModulationEfficiency());
+	}
+	LOG(this->log_init, LEVEL_DEBUG,
+	    "Default modcod id %u, modulation efficiency %u\n",
+	    this->modcod_id, this->converter->getModulationEfficiency());
+
 	this->probe_st_used_modcod = Output::registerProbe<int>("ACM.Used_modcod",
 	                                                        "modcod index",
 	                                                        true, SAMPLE_LAST);
@@ -113,20 +125,9 @@ bool DamaAgentRcsCommon::init()
 	return true;
 }
 
-
 bool DamaAgentRcsCommon::processOnFrameTick()
 {
-	// Call parent method
-	if(!DamaAgent::processOnFrameTick())
-	{
-		LOG(this->log_frame_tick, LEVEL_ERROR,
-		    "SF#%u: cannot call DamaAgent::processOnFrameTick()\n",
-		    this->current_superframe_sf);
-		return false;
-	}
-
-	this->remaining_allocation_pktpf = this->dynamic_allocation_pkt;
-
+	this->remaining_allocation_kb = this->dynamic_allocation_kb;
 	return true;
 }
 
@@ -134,6 +135,7 @@ bool DamaAgentRcsCommon::processOnFrameTick()
 // only one TP is supported for MODCOD handling
 bool DamaAgentRcsCommon::hereIsTTP(Ttp *ttp)
 {
+	rate_kbps_t alloc_kbps;
 	fmt_id_t prev_modcod_id;
 	map<uint8_t, emu_tp_t> tp;
 
@@ -164,7 +166,6 @@ bool DamaAgentRcsCommon::hereIsTTP(Ttp *ttp)
 	    it != tp.end(); ++it)
 	{
 		vol_kb_t assign_kb;
-		time_pkt_t assign_pkt;
 		FmtDefinition *fmt_def;
 
 		LOG(this->log_ttp, LEVEL_DEBUG,
@@ -186,47 +187,55 @@ bool DamaAgentRcsCommon::hereIsTTP(Ttp *ttp)
 		
 		assign_kb = (*it).second.assignment_count;
 		fmt_def = this->ret_modcod_def->getDefinition(this->modcod_id);
-		if(fmt_def != NULL)
-		{
-			this->converter->setModulationEfficiency(fmt_def->getModulationEfficiency());
-			assign_pkt = this->converter->kbitsToPkt(fmt_def->addFec(assign_kb));
-		}
-		else
+		if(fmt_def == NULL)
 		{
 			LOG(this->log_ttp, LEVEL_WARNING,
 			    "SF#%u: unknown modcod %u\n",
 			    ttp->getSuperframeCount(), this->modcod_id);
 			this->converter->setModulationEfficiency(0);
-			assign_pkt = 0;
+			continue;
 		}
+		this->converter->setModulationEfficiency(fmt_def->getModulationEfficiency());
 
-		this->allocated_pkt += assign_pkt;
+		this->allocated_kb += assign_kb;
 	}
 
-
 	// Update stats and probes
-	this->probe_st_total_allocation->put(
-		this->converter->pktpfToKbps(this->allocated_pkt));
+	alloc_kbps = this->converter->pfToPs(this->allocated_kb);
+	this->probe_st_total_allocation->put(alloc_kbps);
 
 	LOG(this->log_ttp, LEVEL_INFO,
-	    "SF#%u: allocated TS=%u\n",
-	    ttp->getSuperframeCount(), this->allocated_pkt);
+	    "SF#%u: allocated = %u kbits/s\n",
+	    ttp->getSuperframeCount(), alloc_kbps);
 	return true;
 }
 
 bool DamaAgentRcsCommon::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 {
+	uint32_t remaining_alloc_kb = this->remaining_allocation_kb;
 	rate_kbps_t remaining_alloc_kbps;
-	uint32_t remaining_alloc_pktpf = this->remaining_allocation_pktpf;
 
 	LOG(this->log_schedule, LEVEL_DEBUG,
-	    "SF#%u: allocation before scheduling %u\n",
+	    "SF#%u: unit converter modulation efficiency %u, "
+	    "burst length %u sym (%u kb)\n",
 	    this->current_superframe_sf,
-	    remaining_alloc_pktpf);
+	    this->converter->getModulationEfficiency(),
+	    this->converter->getPacketSymbolLength(),
+	    this->converter->getPacketKbitLength());
+	
+	this->ret_schedule->setMaxBurstLength(
+		this->converter->getPacketBitLength());
+	
+	remaining_alloc_kbps = this->converter->pfToPs(this->remaining_allocation_kb);
+	LOG(this->log_schedule, LEVEL_DEBUG,
+	    "SF#%u: allocation before scheduling %u kbit/s\n",
+	    this->current_superframe_sf,
+	    remaining_alloc_kbps);
+	
 	if(!this->ret_schedule->schedule(this->current_superframe_sf,
 	                                 0,
 	                                 complete_dvb_frames,
-	                                 remaining_alloc_pktpf))
+	                                 remaining_alloc_kb))
 	{
 		LOG(this->log_schedule, LEVEL_ERROR,
 		    "SF#%u: Uplink Scheduling failed",
@@ -239,7 +248,8 @@ bool DamaAgentRcsCommon::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 	{
 		if((*it)->getMessageType() == MSG_TYPE_DVB_BURST)
 		{
-			DvbRcsFrame *frame = dynamic_cast<DvbRcsFrame *>(*it);
+			//TODO: DvbRcsFrame *frame = dynamic_cast<DvbRcsFrame *>(*it); // Non-functional
+			DvbRcsFrame *frame = (DvbRcsFrame *)(*it);
 			frame->setModcodId(this->modcod_id);
 		}
 	}
@@ -252,30 +262,17 @@ bool DamaAgentRcsCommon::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 		this->probe_st_used_modcod->put(this->modcod_id);
 	}
 
+	this->remaining_allocation_kb = remaining_alloc_kb;
+	remaining_alloc_kbps = this->converter->pfToPs(this->remaining_allocation_kb);
+
 	LOG(this->log_schedule, LEVEL_DEBUG,
 	    "SF#%u: remaining allocation after scheduling "
-	    "%u\n", this->current_superframe_sf,
-	    remaining_alloc_pktpf);
-	this->remaining_allocation_pktpf = remaining_alloc_pktpf;
-
-	remaining_alloc_kbps = this->converter->pktpfToKbps(this->remaining_allocation_pktpf);
+	    "%u kbits/s\n", this->current_superframe_sf,
+	    remaining_alloc_kbps);
 
 	// Update stats and probes
 	this->probe_st_remaining_allocation->put(remaining_alloc_kbps);
 
-	return true;
-}
-
-bool DamaAgentRcsCommon::hereIsSOF(time_sf_t superframe_number_sf)
-{
-	// Call parent method
-	if(!DamaAgent::hereIsSOF(superframe_number_sf))
-	{
-		LOG(this->log_frame_tick, LEVEL_ERROR,
-		    "SF#%u: cannot call DamaAgent::hereIsSOF()\n",
-		    this->current_superframe_sf);
-		return false;
-	}
 	return true;
 }
 
@@ -329,7 +326,7 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 		LOG(this->log_sac, LEVEL_INFO,
 		    "SF#%u: Compute VBDC request\n",
 		    this->current_superframe_sf);
-		vbdc_request_kb = this->converter->pktToKbits(this->computeVbdcRequest());
+		vbdc_request_kb = this->computeVbdcRequest();
 
 		// Send the request only if it is not null
 		if(vbdc_request_kb > 0)
@@ -399,38 +396,40 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 	return true;
 }
 
-vol_pkt_t DamaAgentRcsCommon::getMacBufferLength(ret_access_type_t cr_type)
+vol_b_t DamaAgentRcsCommon::getMacBufferLength(ret_access_type_t cr_type)
 {
-	vol_pkt_t nb_pkt_in_fifo; // absolute number of packets in fifo
+	vol_b_t nb_b_in_fifo; // absolute data length in fifo
 
-	nb_pkt_in_fifo = 0;
+	nb_b_in_fifo = 0;
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getAccessType() == cr_type)
 		{
-			nb_pkt_in_fifo += (*it).second->getCurrentSize();
+			vol_bytes_t length = (*it).second->getCurrentDataLength();
+			nb_b_in_fifo += (length << 3);
 		}
 	}
 
-	return nb_pkt_in_fifo;
+	return nb_b_in_fifo;
 }
 
 
-vol_pkt_t DamaAgentRcsCommon::getMacBufferArrivals(ret_access_type_t cr_type)
+vol_b_t DamaAgentRcsCommon::getMacBufferArrivals(ret_access_type_t cr_type)
 {
-	vol_pkt_t nb_pkt_input; // packets that filled the queue since last RBDC request
+	vol_b_t nb_b_input; // data that filled the queue since last RBDC request
 
-	nb_pkt_input = 0;
+	nb_b_input = 0;
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
 		if((*it).second->getAccessType() == cr_type)
 		{
-			nb_pkt_input += (*it).second->getNewSize();
+			vol_bytes_t length = (*it).second->getNewDataLength();
+			nb_b_input += (length << 3);
 		}
 	}
 
-	return nb_pkt_input;
+	return nb_b_input;
 }
 

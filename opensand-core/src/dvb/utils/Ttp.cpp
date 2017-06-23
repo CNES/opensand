@@ -192,7 +192,7 @@ bool Ttp::getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tps)
 		// update length
 		length -= sizeof(frame_info_t);
 		LOG(ttp_log, LEVEL_DEBUG,
-		    "SF#%u: frame #%u btp_loop_count=%u\n",
+		    "SF#%u: frame #%u tbtp_loop_count=%u\n",
 		    this->getSuperframeCount(), i,
 		    emu_frame->frame_info.tp_loop_count);
 		// get the first TP
@@ -214,7 +214,7 @@ bool Ttp::getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tps)
 			tp->assignment_count = ntohs(tp->assignment_count);
 			tps[emu_frame->frame_info.frame_number] = *tp;
 			LOG(ttp_log, LEVEL_DEBUG,
-			    "SF#%u: frame#%u btp#%u: tal_id:%u, "
+			    "SF#%u: frame#%u tbtp#%u: tal_id:%u, "
 			    "offset:%u, assignment_count:%u, "
 			    "fmt_id:%u priority:%u\n",
 			    this->getSuperframeCount(), i, j,

@@ -93,7 +93,8 @@ bool SpotDownwardTransp::onInit(void)
 		return false;
 	}
 	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
-	                            &this->rcs_modcod_def))
+	                            &this->rcs_modcod_def,
+	                            this->req_burst_length))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the return link definition MODCOD file\n");
@@ -357,7 +358,7 @@ bool SpotDownwardTransp::initDama(void)
 		if(this->return_link_std == DVB_RCS)
 		{
 			this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id,
-			                                        this->up_return_pkt_hdl->getFixedLength());
+			                                        this->up_return_pkt_hdl->getFixedLength() << 3);
 		}
 		else if(this->return_link_std == DVB_RCS2)
 		{
@@ -367,8 +368,9 @@ bool SpotDownwardTransp::initDama(void)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 				"section '%s': bad value '%s' for parameter '%s'"
-				" (no matching dama controller)\n",
-				DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO);
+				" (no matching dama controller for return link standard '%s')\n",
+				DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO,
+				this->return_link_std_str.c_str());
 			return false;
 		}
 	}

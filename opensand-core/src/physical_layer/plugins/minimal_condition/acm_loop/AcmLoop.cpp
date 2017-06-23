@@ -63,6 +63,7 @@ bool AcmLoop::init(void)
 	string modcod_def_rcs;
 	
 	return_link_standard_t return_link_standard;
+	vol_sym_t req_burst_length;
 	
 	// return link standard type
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
@@ -75,8 +76,28 @@ bool AcmLoop::init(void)
 		return false;
 	}
 	return_link_standard = strToReturnLinkStd(modcod_def_rcs);
-	modcod_def_rcs = return_link_standard == DVB_RCS ?
-	                 MODCOD_DEF_RCS : MODCOD_DEF_RCS2;
+	if(return_link_standard == DVB_RCS2)
+	{
+		unsigned int dummy;
+		
+		modcod_def_rcs = MODCOD_DEF_RCS2;
+		
+		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+			               RCS2_BURST_LENGTH,
+		                   dummy))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "section '%s': missing parameter '%s'\n",
+			    COMMON_SECTION, RCS2_BURST_LENGTH);
+			return false;
+		}
+		req_burst_length = dummy;
+	}
+	else
+	{
+		modcod_def_rcs = MODCOD_DEF_RCS;
+		req_burst_length = 0;
+	}
 
 	// get appropriate MODCOD definitions for receving link
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
@@ -123,7 +144,7 @@ bool AcmLoop::init(void)
 	    filename_s2.c_str());
 
 	// load all the ACM_LOOP definitions from file
-	if(!(this->modcod_table_rcs).load(filename_rcs))
+	if(!(this->modcod_table_rcs).load(filename_rcs, req_burst_length))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "unable to load the acm_loop definition table");

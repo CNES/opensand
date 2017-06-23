@@ -90,9 +90,10 @@ class FmtDefinitionTable
 	 * @brief Load FMT definition table from file
 	 *
 	 * @param filename       the name of the file to load FMT definitions from
+	 * @param burst_length   the burst length to load in symbol
 	 * @return               true if definitions are successfully loaded, false otherwise
 	 */
-	bool load(const string filename);
+	bool load(const string filename, vol_sym_t req_burst_length = 0);
 
 	/**
 	 * @brief Does a FMT definition with the given ID exist ?

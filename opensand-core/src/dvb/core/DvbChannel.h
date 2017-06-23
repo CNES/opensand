@@ -67,6 +67,7 @@ class DvbChannel
 		return_link_std_str(""),
 		return_link_std(),
 		modcod_def_rcs_type(""),
+		req_burst_length(0),
 		super_frame_counter(0),
 		fwd_down_frame_duration_ms(),
 		ret_up_frame_duration_ms(),
@@ -283,6 +284,9 @@ class DvbChannel
 
 	/// the RCS or RCS2 type of MODCOD definition
 	string modcod_def_rcs_type;
+
+	/// the RCS2 required burst length in symbol
+	vol_b_t req_burst_length;
 
 	/// the current super frame number
 	time_sf_t super_frame_counter;
@@ -1027,12 +1031,13 @@ class DvbFmt
 	 * @brief Read configuration for the MODCOD definition file and create the
 	 *        FmtDefinitionTable class
 	 *
-	 * @param def     The section in configuration file for MODCOD definitions
-	 *                (up/return or down/forward)
-	 * @param modcod_def  The FMT Definition Table attribute to initialize
+	 * @param def               The section in configuration file for MODCOD definitions
+	 *                          (up/return or down/forward)
+	 * @param modcod_def        The FMT Definition Table attribute to initialize
+	 * @param req_burst_length  The required burst length (only for DVB-RCS2)
 	 * @return  true on success, false otherwise
 	 */
-	bool initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def);
+	bool initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def, vol_sym_t req_burst_length = 0);
 
 	/**
 	 * @brief Read configuration for the MODCOD simulation files

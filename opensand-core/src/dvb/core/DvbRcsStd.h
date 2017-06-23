@@ -61,7 +61,7 @@ class DvbRcsStd: public PhysicStd
 	/**
 	 * Destroy the DVB-RCS Transmission Standard
 	 */
-	~DvbRcsStd();
+	virtual ~DvbRcsStd();
 
 	bool onRcvFrame(DvbFrame *dvb_frame,
 	                tal_id_t tal_id,
@@ -71,8 +71,21 @@ class DvbRcsStd: public PhysicStd
 	bool setSwitch(GenericSwitch *generic_switch);
 
  protected:
+	/**
+	 * Build a DVB-RCS Transmission Standard
+	 *
+	 * @param type              The type name
+	 * @param has_fixed_length  The fixed length status
+	 * @param packet_handler    The packet handler
+	 */
+	DvbRcsStd(string ype, bool has_fixed_length,
+		const EncapPlugin::EncapPacketHandler *const pkt_hdl = NULL);
+
 	// Output log and debug
 	OutputLog* log_rcv_from_down;
+
+	/// Has encapsulation packet fixed length
+	bool has_fixed_length;
 
  private:
 
@@ -80,6 +93,12 @@ class DvbRcsStd: public PhysicStd
 	/// (for regenerative satellite only)
 	GenericSwitch *generic_switch;
 
+};
+
+class DvbRcs2Std: public DvbRcsStd
+{
+  public:
+	DvbRcs2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl = NULL);
 };
 
 #endif

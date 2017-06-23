@@ -102,7 +102,7 @@ bool DamaCtrlRcs::updateCarriers()
 			unsigned int fmt = carriers->getNearestFmtId(required_fmt);
 			// FMT groups should only have one FMT id here, so get nearest should
 			// return the FMT id of the carrier
-			if(fmt == required_fmt)
+			if(required_fmt <= fmt)
 			{
 				// we have a carrier with the corresponding MODCOD
 				terminal->setCarrierId(carriers->getCarriersId());

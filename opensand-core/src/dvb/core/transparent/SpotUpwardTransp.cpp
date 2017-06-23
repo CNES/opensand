@@ -240,7 +240,8 @@ bool SpotUpwardTransp::initModcodSimu(void)
 		return false;
 	}
 	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
-	                            &this->rcs_modcod_def))
+	                            &this->rcs_modcod_def,
+	                            this->req_burst_length))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize the return link definition MODCOD file\n");
@@ -364,7 +365,14 @@ bool SpotUpwardTransp::initMode(void)
 {
 	// initialize the reception standard
 	// depending on the satellite type
-	this->reception_std = new DvbRcsStd(this->pkt_hdl);
+	if(this->return_link_std == DVB_RCS2)
+	{
+		this->reception_std = new DvbRcs2Std(this->pkt_hdl); 
+	}
+	else
+	{
+		this->reception_std = new DvbRcsStd(this->pkt_hdl); 
+	}
 
 	// If available SCPC carriers, a new packet handler is created at NCC
 	// to received BBFrames and to be able to deencapsulate GSE packets.
