@@ -97,6 +97,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	complete_frames_count = 0;
 	sent_packets = 0;
 	fifo_it = this->dvb_fifos.begin();
+	state = state_get_fifo;
 
 	LOG(this->log_scheduling, LEVEL_DEBUG, "[init] -------------------------------------------------");
 	LOG(this->log_scheduling, LEVEL_DEBUG, "[init] next state = 'get fifo'");
@@ -177,6 +178,19 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			LOG(this->log_scheduling, LEVEL_DEBUG, "[next encap pkt] get the first encap packet");
 			elem = fifo->pop();
 			encap_packet = elem->getElem<NetPacket>();
+			if(!encap_packet)
+			{
+				LOG(this->log_scheduling, LEVEL_ERROR,
+				    "SF#%u: error while getting packet (null) "
+				    "#%u\n", current_superframe_sf,
+				    sent_packets + 1);
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[next encap pkt] deleting 'elem'...");
+				delete elem;
+				elem = NULL;
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[next encap pkt] 'elem' deleted");
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[next encap pkt] next state = 'next encap pkt'");
+				break;
+			}
 
 			state = state_get_chunk;
 			LOG(this->log_scheduling, LEVEL_DEBUG, "[next encap pkt] next state = 'get chunk'");
@@ -195,10 +209,14 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				    "SF#%u: error while processing packet "
 				    "#%u\n", current_superframe_sf,
 				    sent_packets + 1);
-				delete elem;
-				elem = NULL;
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] deleting 'encap packet'...");
 				delete encap_packet;
 				encap_packet = NULL;
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] 'encap packet' deleted");
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] deleting 'elem'...");
+				delete elem;
+				elem = NULL;
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] 'elem' deleted");
 
 				state = state_next_encap_pkt;
 				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] next state = 'next encap pkt'");
@@ -211,10 +229,14 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				    "implementation, assert or skip packet #%u\n",
 				    current_superframe_sf,
 				    sent_packets + 1);
-				delete elem;
-				elem = NULL;
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] deleting 'encap packet'...");
 				delete encap_packet;
 				encap_packet = NULL;
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] 'encap packet' deleted");
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] deleting 'elem'...");
+				delete elem;
+				elem = NULL;
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] 'elem' deleted");
 
 				state = state_next_encap_pkt;
 				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] next state = 'next encap pkt'");
@@ -251,8 +273,11 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			}
 			else
 			{
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] deleting 'elem'...");
 				delete elem;
 				elem = NULL;
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] 'elem' deleted");
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] next state = 'next encap pkt'");
 			}
 			break;
 			
@@ -272,10 +297,10 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				    data->getTotalLength(),
 				    incomplete_dvb_frame->getFreeSpace());
 
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[add data] deleting 'data'...");
 				delete data;
 				data = NULL;
-				delete encap_packet;
-				encap_packet = NULL;
+				LOG(this->log_scheduling, LEVEL_DEBUG, "[add data] 'data' deleted");
 
 				state = state_error;
 				LOG(this->log_scheduling, LEVEL_DEBUG, "[add data] next state = 'error'");
@@ -289,10 +314,10 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			    "to %u bits (< %u bits)",
 			    frame_length_b, remaining_allocation_kb * 1000);
 			
-			// Clean data
-			LOG(this->log_scheduling, LEVEL_DEBUG, "[add data] clean data");
+			LOG(this->log_scheduling, LEVEL_DEBUG, "[add data] deleting 'data'...");
 			delete data;
 			data = NULL;
+			LOG(this->log_scheduling, LEVEL_DEBUG, "[add data] 'data' deleted");
 
 			// Check the frame is completed
 			LOG(this->log_scheduling, LEVEL_DEBUG, "[add data] "

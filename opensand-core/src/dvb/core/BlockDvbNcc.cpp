@@ -583,14 +583,14 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						continue;
 					}
 
+					// Update Fmt here for TTP
+					spot->updateFmt();
+
 					if(!spot->handleFrameTimer(this->super_frame_counter))
 					{
 						// do not quit if this fail in one spot
 						continue;
 					}
-
-					// Update Fmt here for TTP
-					spot->updateFmt();
 
 					// send TTP computed by DAMA
 					this->sendTTP(spot);

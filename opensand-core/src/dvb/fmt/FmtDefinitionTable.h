@@ -201,6 +201,13 @@ class FmtDefinitionTable
 	fmt_id_t getRequiredModcod(double cni) const;
 
 	/**
+	 * @brief  Get the lowest definition ID
+	 *
+	 * @return the lowest definition ID
+	 */
+	fmt_id_t getMinId() const;
+
+	/**
 	 * @brief  Get the highest definition ID
 	 *
 	 * @return the highest definition ID

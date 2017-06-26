@@ -314,10 +314,7 @@ void DamaCtrlRcsCommon::updateRequiredFmts()
 			fmt_id = this->input_modcod_def->getRequiredModcod(cni);
 			if(fmt_id == 0)
 			{
-				LOG(this->log_fmt, LEVEL_ERROR,
-					"SF#%u: cannot find MODCOD id for ST %u with CNI %f\n",
-					this->current_superframe_sf, tal_id, cni);
-				continue;
+				fmt_id = this->input_modcod_def->getMinId();
 			}
 			LOG(this->log_fmt, LEVEL_DEBUG,
 				"SF#%u: ST%u FMT ID before affectation (CNI %f): %u\n",
@@ -339,10 +336,7 @@ void DamaCtrlRcsCommon::updateRequiredFmts()
 			fmt_id = this->input_sts->getCurrentModcodId(tal_id);
 			if(fmt_id == 0)
 			{
-				LOG(this->log_fmt, LEVEL_ERROR,
-					"SF#%u: cannot find simulated MODCOD id for ST %u\n",
-					this->current_superframe_sf, tal_id);
-				continue;
+				fmt_id = this->input_modcod_def->getMinId();
 			}
 			LOG(this->log_fmt, LEVEL_DEBUG,
 				"SF#%u: ST%u simulated FMT ID before affectation: %u\n",

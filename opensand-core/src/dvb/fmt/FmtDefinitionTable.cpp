@@ -483,7 +483,7 @@ vol_sym_t FmtDefinitionTable::getBurstLength(fmt_id_t id) const
 
 fmt_id_t FmtDefinitionTable::getRequiredModcod(double cni) const
 {
-	fmt_id_t modcod_id = 1; // use at least most robust MODCOD
+	fmt_id_t modcod_id = 0;
 	double current_cni;
 	double previous_cni = 0.0;
 	if(this->definitions.begin() != this->definitions.end())
@@ -508,6 +508,11 @@ fmt_id_t FmtDefinitionTable::getRequiredModcod(double cni) const
 			modcod_id = (*it).first;
 		}
 	}
+	if(modcod_id <= 0)
+	{
+		// use at least most robust MODCOD
+		modcod_id = this->getMinId();	
+	}
 	return modcod_id;
 }
 
@@ -526,11 +531,37 @@ FmtDefinition *FmtDefinitionTable::getDefinition(fmt_id_t id) const
 	return def;
 }
 
+fmt_id_t FmtDefinitionTable::getMinId() const
+{
+	fmt_def_table_pos_t it = this->definitions.begin();
+	fmt_id_t id;
+	if(this->definitions.size() <= 0)
+	{
+		return 0;	
+	}
+	id = (*it).first;
+	++it;
+	for(; it != this->definitions.end(); ++it)
+	{
+		if((*it).first < id)
+		{
+			id = (*it).first;
+		}
+	}
+	return id;
+}
+
 fmt_id_t FmtDefinitionTable::getMaxId() const
 {
-	fmt_id_t id = 0;
-	for(fmt_def_table_pos_t it = this->definitions.begin();
-	    it != this->definitions.end(); ++it)
+	fmt_def_table_pos_t it = this->definitions.begin();
+	fmt_id_t id;
+	if(this->definitions.size() <= 0)
+	{
+		return 0;	
+	}
+	id = (*it).first;
+	++it;
+	for(; it != this->definitions.end(); ++it)
 	{
 		if((*it).first > id)
 		{
