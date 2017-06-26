@@ -47,6 +47,7 @@ from lxml import etree
 
 CONF_DIR = "/etc/opensand/"
 TOPOLOGY_FILE = "topology.conf"
+CACHE_DIR = "/var/cache/sand-daemon/"
 
 #macros
 LOGGER = logging.getLogger('sand-daemon')
@@ -68,7 +69,7 @@ class OpenSandRoutes(object):
     _iface = None
     _unused = True
     _is_ws = False
-    _cache_dir = '/var/cache/sand-daemon/'
+    _cache_dir = CACHE_DIR
 
     def __init__(self):
         pass
@@ -209,8 +210,12 @@ class OpenSandRoutes(object):
         """ apply the routes when started """
         if OpenSandRoutes._unused:
             return
-        # read the conf and get the tal_ids of the same spot
-        same_spot_ids = self.get_same_spot_ids()
+        # read the conf and get the gw_id by tal_ids
+        tal_gw_ids = self.get_all_gw_by_tal()
+        try:
+            curr_gw_id = tal_gw_ids[OpenSandRoutes._instance]
+        except KeyError:
+            curr_gw_id = tal_gw_ids["*"]
         OpenSandRoutes._routes_lock.acquire()
         # update the routes gateway
         if iface is not None:
@@ -231,7 +236,11 @@ class OpenSandRoutes(object):
                 continue
             host_id = ret[0]
             # check if host in same_spot list
-            if host_id not in same_spot_ids:
+            try:
+                gw_id = tal_gw_ids[host_id]
+            except KeyError:
+                gw_id = tal_gw_ids["*"]
+            if gw_id != curr_gw_id:
                 continue
             v4 = None
             v6 = None
@@ -258,8 +267,12 @@ class OpenSandRoutes(object):
         """ remove the current routes when stopped """
         if OpenSandRoutes._unused:
             return
-        # read the conf and get the tal_ids of the same spot
-        same_spot_ids = self.get_same_spot_ids()
+        # read the conf and get the gw_id by tal_ids
+        tal_gw_ids = self.get_all_gw_by_tal()
+        try:
+            curr_gw_id = tal_gw_ids[OpenSandRoutes._instance]
+        except KeyError:
+            curr_gw_id = tal_gw_ids["*"]
         OpenSandRoutes._routes_lock.acquire()
         OpenSandRoutes._started = False
         LOGGER.info("remove route after stopping platform")
@@ -271,7 +284,11 @@ class OpenSandRoutes(object):
                 continue
             host_id = ret[0]
             # check if host in same_spot list
-            if host_id not in same_spot_ids:
+            try:
+                gw_id = tal_gw_ids[host_id]
+            except KeyError:
+                gw_id = tal_gw_ids["*"]
+            if gw_id != curr_gw_id:
                 continue
             v4 = None
             v6 = None
@@ -392,28 +409,47 @@ class OpenSandRoutes(object):
         else:
             route_file.close()
 
-    def get_same_spot_ids(self):
-        """ read the topology conf file, and get the IDs of the terminals
-            in the same spot as this one """
-        same_spot_ids = []
+    def get_all_gw_by_tal(self):
+        """ read the topology conf file, and get the IDs of the gateway id
+            by terminal id """
+
         # open xml
         tree = etree.parse(os.path.join(CONF_DIR, TOPOLOGY_FILE))
         root = tree.getroot()
-        # search for gw in gw_table
-        gw_id = ""
-        for s in root.iterchildren():
-            if s.tag == "gw_table":
-                for g in s.iterchildren():
-                    if g.tag == "gw":
-                        if g.attrib["id"] == OpenSandRoutes._instance:
-                            same_spot_ids.append(g.attrib["id"])
-                            for tal in list(g.iterchildren())[0]:
-                                same_spot_ids.append(tal.attrib["id"])
-                            return same_spot_ids
-                        for tal in list(g.iterchildren())[0]:
-                            if tal.attrib["id"] == OpenSandRoutes._instance:
-                                same_spot_ids.append(g.attrib["id"])
-                                for tal in list(g.iterchildren())[0]:
-                                    same_spot_ids.append(tal.attrib["id"])
-                                return same_spot_ids
-        return same_spot_ids
+
+        # get the gateways table
+        try:
+            childs = tree.xpath("/configuration/gw_table")
+        except:
+            return []
+        if childs is None or len(childs) <= 0:
+            return []
+        gw_tab = childs[0]
+
+        # get the gateway list 
+        default_gw_id = None
+        tal_gw_ids = {}
+        for child in gw_tab.iterchildren():
+            if child.tag == "default_gw":
+                # get the default gateway
+                default_gw_id = child.text
+                continue
+            if child.tag != "gw":
+                continue
+            # get the gateway id
+            gw_id = child.attrib["id"]
+            # load tal ids
+            for child2 in child.xpath("terminals/tal"):
+                if child2.tag != "tal":
+                    continue
+                # add the gateway id of the terminal
+                tal_id = child2.attrib["id"]
+                tal_gw_ids[tal_id] = gw_id
+
+        # add the default gateway id
+        if default_gw_id is not None:
+            tal_gw_ids["*"] = default_gw_id
+        else:
+            tal_gw_ids["*"] = 0
+
+        return tal_gw_ids
