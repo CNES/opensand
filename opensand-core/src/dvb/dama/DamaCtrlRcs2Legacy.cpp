@@ -96,7 +96,7 @@ bool DamaCtrlRcs2Legacy::init()
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "you should define at least one FMT ID per FMT "
-				    "group for DVB-RCS Legacy DAMA\n");
+				    "group for DVB-RCS2 Legacy DAMA\n");
 				return false;
 			}
 			// Output probes and stats

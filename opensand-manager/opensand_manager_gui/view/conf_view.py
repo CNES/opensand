@@ -417,7 +417,7 @@ class ConfView(WindowView):
         if self.is_lan_adapt_stack_modif():
             self.enable_conf_buttons()
 
-    def enable_conf_buttons(self, enable=True):
+    def enable_conf_buttons(self):
         """ defined in conf_event """
         pass
 
