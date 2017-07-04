@@ -44,7 +44,7 @@
 
 
 UplinkSchedulingRcs::UplinkSchedulingRcs(
-			const EncapPlugin::EncapPacketHandler *packet_handler,
+			EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos,
 			const StFmtSimuList *const ret_sts,
 			const FmtDefinitionTable *const ret_modcod_def,

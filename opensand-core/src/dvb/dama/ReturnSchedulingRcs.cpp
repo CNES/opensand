@@ -41,7 +41,7 @@
 #include <opensand_output/Output.h>
 
 ReturnSchedulingRcs::ReturnSchedulingRcs(
-			const EncapPlugin::EncapPacketHandler *packet_handler,
+			EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos):
 	ReturnSchedulingRcsCommon(packet_handler, fifos)
 {

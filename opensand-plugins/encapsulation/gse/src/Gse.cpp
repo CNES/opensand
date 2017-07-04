@@ -169,7 +169,7 @@ void Gse::Context::init(void)
 		goto unload;
 	}
 	LOG(this->log, LEVEL_NOTICE,
-	    "packing thershold: %lu\n", this->packing_threshold);
+	    "packing threshold: %lu\n", this->packing_threshold);
 
 	// Initialize encapsulation and deencapsulation contexts
 	// Since we use a "custom" frag_id based on QoS value and the source tal_id,

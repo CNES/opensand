@@ -54,7 +54,7 @@ typedef enum
 } sched_state_t;
 
 ReturnSchedulingRcs2::ReturnSchedulingRcs2(
-			const EncapPlugin::EncapPacketHandler *packet_handler,
+			EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos):
 	ReturnSchedulingRcsCommon(packet_handler, fifos)
 {
@@ -65,6 +65,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
                                        vol_kb_t &remaining_allocation_kb)
 {
 	int ret;
+	bool partial_encap;
 	unsigned int complete_frames_count;
 	unsigned int sent_packets;
 	vol_b_t frame_length_b;
@@ -72,7 +73,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	fifos_t::const_iterator fifo_it;
 	NetPacket *encap_packet = NULL;
 	NetPacket *data = NULL;
-	NetPacket *remaining_data = NULL;
 	MacFifoElement *elem = NULL;
 	DvbFifo *fifo = NULL;
 	sched_state_t state;
@@ -200,44 +200,36 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 
 			// Get part of data to send
 			LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] try to get a chunk of the encap packet");
-			ret = this->packet_handler->getChunk(encap_packet,
-			                                     incomplete_dvb_frame->getFreeSpace(),
-			                                     &data, &remaining_data);
+			// Encapsulate packet
+			ret = this->packet_handler->encapNextPacket(encap_packet,
+				incomplete_dvb_frame->getFreeSpace(),
+				partial_encap,
+				&data);
 			if(!ret)
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: error while processing packet "
 				    "#%u\n", current_superframe_sf,
 				    sent_packets + 1);
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] deleting 'encap packet'...");
-				delete encap_packet;
-				encap_packet = NULL;
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] 'encap packet' deleted");
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] deleting 'elem'...");
 				delete elem;
 				elem = NULL;
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] 'elem' deleted");
-
+				delete encap_packet;
+				encap_packet = NULL;
 				state = state_next_encap_pkt;
 				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] next state = 'next encap pkt'");
 				break;
 			}
-			if(!data && !remaining_data)
+			if(!data && !partial_encap)
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: bad getChunk function "
 				    "implementation, assert or skip packet #%u\n",
 				    current_superframe_sf,
 				    sent_packets + 1);
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] deleting 'encap packet'...");
-				delete encap_packet;
-				encap_packet = NULL;
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] 'encap packet' deleted");
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] deleting 'elem'...");
 				delete elem;
 				elem = NULL;
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] 'elem' deleted");
-
+				delete encap_packet;
+				encap_packet = NULL;
 				state = state_next_encap_pkt;
 				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] next state = 'next encap pkt'");
 				break;
@@ -258,26 +250,22 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 
 			// Replace the fifo first element with the remaining data
 			LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] check there is remaining data");
-			if (remaining_data)
+			if(partial_encap)
 			{
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] "
-				    "replace the reamining data into the fifo");
-				elem->setElem(remaining_data);
+				// Re-insert packet
 				fifo->pushFront(elem);
 
 				LOG(this->log_scheduling, LEVEL_INFO,
-				    "SF#%u: packet fragmented, there is "
-				    "still %zu bytes of data\n",
-				    current_superframe_sf,
-				    remaining_data->getTotalLength());
+				    "SF#%u: packet fragmented\n",
+				    current_superframe_sf);
 			}
 			else
 			{
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] deleting 'elem'...");
+				// Delete packet	
 				delete elem;
 				elem = NULL;
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] 'elem' deleted");
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[get chunk] next state = 'next encap pkt'");
+				delete encap_packet;
+				encap_packet = NULL;
 			}
 			break;
 			

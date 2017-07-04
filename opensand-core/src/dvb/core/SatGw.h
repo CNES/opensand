@@ -162,7 +162,7 @@ class SatGw: public DvbFmt
 	 * @return true on success, false otherwise
 	 */
 	bool initScheduling(time_ms_t fwd_timer_ms,
-	                    const EncapPlugin::EncapPacketHandler *pkt_hdl,
+	                    EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                    const TerminalCategoryDama *const st_category,
 	                    const TerminalCategoryDama *const gw_category);
 	

@@ -51,7 +51,7 @@ class ReturnSchedulingRcsCommon: public Scheduling
 {
   public:
 
-	ReturnSchedulingRcsCommon(const EncapPlugin::EncapPacketHandler *packet_handler,
+	ReturnSchedulingRcsCommon(EncapPlugin::EncapPacketHandler *packet_handler,
 	                          const fifos_t &fifos);
 
 	virtual ~ReturnSchedulingRcsCommon() {};

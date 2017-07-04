@@ -42,7 +42,7 @@
 #include <opensand_output/Output.h>
 
 ReturnSchedulingRcsCommon::ReturnSchedulingRcsCommon(
-			const EncapPlugin::EncapPacketHandler *packet_handler,
+			EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos):
 	Scheduling(packet_handler, fifos, NULL),
 	max_burst_length_b(0)

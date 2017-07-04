@@ -97,7 +97,7 @@ class DamaAgent
 	                vol_kb_t max_vbdc_kb,
 	                time_sf_t msl_sf,
 	                time_sf_t sync_period_sf,
-	                const EncapPlugin::EncapPacketHandler *pkt_hdl,
+	                EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                const fifos_t &dvb_fifos);
 
 	/**
@@ -188,7 +188,7 @@ protected:
 	bool is_parent_init;
 
 	/** The packet representation */
-	const EncapPlugin::EncapPacketHandler *packet_handler;
+	EncapPlugin::EncapPacketHandler *packet_handler;
 
 	/** The MAC FIFOs */
 	fifos_t dvb_fifos;

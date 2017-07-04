@@ -136,11 +136,13 @@ class Mpeg: public EncapPlugin
 		{
 			return this->getFixedLength();
 		};
-		bool getChunk(NetPacket *packet, size_t remaining_length,
-		              NetPacket **data, NetPacket **remaining_data) const;
 		bool getSrc(const Data &data, tal_id_t &tal_id) const;
 		bool getQos(const Data &data, qos_t &qos) const;
-		
+
+	  protected:
+
+		bool getChunk(NetPacket *packet, size_t remaining_length,
+		              NetPacket **data, NetPacket **remaining_data) const;
 	};
 
 	/// Constructor

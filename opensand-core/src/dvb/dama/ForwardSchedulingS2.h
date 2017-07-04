@@ -63,7 +63,7 @@ class ForwardSchedulingS2: public Scheduling
   public:
 
 	ForwardSchedulingS2(time_ms_t fwd_timer_ms,
-	                    const EncapPlugin::EncapPacketHandler *packet_handler,
+	                    EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
 	                    const StFmtSimuList *const fwd_sts,
 	                    const FmtDefinitionTable *const fwd_modcod_def,
