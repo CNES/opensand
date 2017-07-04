@@ -44,7 +44,7 @@
 using std::list;
 
 
-DvbS2Std::DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl):
+DvbS2Std::DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
 	PhysicStd("DVB-S2", pkt_hdl),
 	// use maximum MODCOD ID at startup in order to authorize any incoming trafic
 	real_modcod(28), // TODO fmt_simu->getmaxFwdModcod()
@@ -56,7 +56,7 @@ DvbS2Std::DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl):
 	                                              "Dvb.Upward.receive");
 }
 
-DvbScpcStd::DvbScpcStd(const EncapPlugin::EncapPacketHandler *const pkt_hdl):
+DvbScpcStd::DvbScpcStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
 	DvbS2Std("SCPC", pkt_hdl)
 {
 	this->is_scpc = true;
@@ -64,7 +64,7 @@ DvbScpcStd::DvbScpcStd(const EncapPlugin::EncapPacketHandler *const pkt_hdl):
 
 
 DvbS2Std::DvbS2Std(string type,
-                   const EncapPlugin::EncapPacketHandler *const pkt_hdl):
+                   EncapPlugin::EncapPacketHandler *pkt_hdl):
 	PhysicStd(type, pkt_hdl),
 	// use maximum MODCOD ID at startup in order to authorize any incoming trafic
 	real_modcod(28), // TODO fmt_simu->getmaxFwdModcod()
@@ -89,8 +89,8 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	BBFrame *bbframe_burst;
 	int real_mod = 0;     // real modcod of the receiver
 
-	// Offset from beginning of frame to beginning of data
-	size_t previous_length = 0;
+	vector<NetPacket *> decap_packets;
+	bool partial_decap = false;
 
 	*burst = NULL;
 
@@ -121,7 +121,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	// TODO bbframe_burst = static_cast<BBFrame *>(dvb_frame);
 	bbframe_burst = dvb_frame->operator BBFrame*();
 	LOG(this->log_rcv_from_down, LEVEL_INFO,
-	    "BB frame received (%d %s packet(s)\n",
+	    "BB frame received (%d %s packet(s))\n",
 	    bbframe_burst->getDataLength(),
 	    this->packet_handler->getName().c_str());
 
@@ -179,38 +179,30 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		goto error;
 	}
 
-	// add packets received from lower layer
-	// to the newly created burst
-	for(long i = 0; i < bbframe_burst->getDataLength(); i++)
+	// decapsulate packets received from lower layer
+	if(!this->packet_handler->decapNextPacket(bbframe_burst,
+		partial_decap,
+		decap_packets,
+		bbframe_burst->getDataLength()))
 	{
-		NetPacket *encap_packet;
-		size_t current_length;
-
-		current_length = this->packet_handler->getLength(
-								bbframe_burst->getPayload(previous_length).c_str());
-		// Use default values for QoS, source/destination tal_id
-		encap_packet = this->packet_handler->build(
-								bbframe_burst->getPayload(previous_length),
-								current_length,
-								0x00, BROADCAST_TAL_ID,
-								BROADCAST_TAL_ID);
-		previous_length += current_length;
-		if(encap_packet == NULL)
-		{
-			LOG(this->log_rcv_from_down, LEVEL_ERROR,
-			    "cannot create one %s packet\n",
-			    this->packet_handler->getName().c_str());
-			goto release_burst;
-		}
-
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "cannot create one %s packet\n",
+		    this->packet_handler->getName().c_str());
+		goto release_burst;
+	}
+	// add packets to the newly created burst
+	for(vector<NetPacket *>::iterator it = decap_packets.begin();
+		it != decap_packets.end();
+		++it)
+	{
 		// add the packet to the burst of packets
-		(*burst)->add(encap_packet);
+		(*burst)->add(*it);
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "%s packet (%zu bytes) added to burst\n",
 		    this->packet_handler->getName().c_str(),
-		    encap_packet->getTotalLength());
+		    (*it)->getTotalLength());
 	}
-
+	
 drop:
 skip:
 	// release buffer (data is now saved in NetPacket objects)

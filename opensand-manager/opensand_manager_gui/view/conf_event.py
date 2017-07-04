@@ -62,7 +62,7 @@ class ConfEvent(ConfView) :
         widget = self._ui.get_widget('frame_dvb')
         widget.hide_all()
 
-        gobject.idle_add(self.enable_conf_buttons, False)
+        gobject.idle_add(self.enable_conf_buttons)
 
     def close(self):
         """ close the configuration tab """
@@ -269,9 +269,10 @@ class ConfEvent(ConfView) :
 
         return True
 
-    def enable_conf_buttons(self, enable=True):
+    def enable_conf_buttons(self):
         """ make apply and cancel buttons sensitive or not """
         self._modif = True
+        enable = self.is_modified()
 
         # check if OpenSAND is running
 #        if self._model.is_running():
@@ -360,10 +361,11 @@ class ConfEvent(ConfView) :
             self.update_view()
         except ConfException as msg:
             error_popup(str(msg))
-        self.enable_conf_buttons(False)
+        self.enable_conf_buttons()
 
     def on_save_conf_clicked(self, source=None, event=None):
         """ save the new configuration"""
+
         # retrieve global parameters
 
         # payload type
@@ -504,7 +506,7 @@ class ConfEvent(ConfView) :
 
         
         self.update_view()
-        self.enable_conf_buttons(False)
+        self.enable_conf_buttons()
 
 #    def on_dama_box_changed(self, source=None, event=None):
 #        """ 'change' event callback on dama box """
@@ -528,7 +530,7 @@ class ConfEvent(ConfView) :
         window = AdvancedDialog(self._model, self._log, self.update_view)
         window.go()
         try:
-            gobject.idle_add(self.enable_conf_buttons, False)
+            gobject.idle_add(self.enable_conf_buttons)
         except ConfException as msg:
             error_popup(str(msg))
 

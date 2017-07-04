@@ -42,7 +42,7 @@
 #include <opensand_output/Output.h>
 
 ReturnSchedulingRcsCommon::ReturnSchedulingRcsCommon(
-			const EncapPlugin::EncapPacketHandler *packet_handler,
+			EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos):
 	Scheduling(packet_handler, fifos, NULL),
 	max_burst_length_b(0)
@@ -72,6 +72,20 @@ bool ReturnSchedulingRcsCommon::schedule(const time_sf_t current_superframe_sf,
 		LOG(this->log_scheduling, LEVEL_NOTICE,
 		    "Remaining allocation (%u) is too long and will be "
 		    "truncated\n", remaining_allocation);
+	}
+	// check remaining allocation
+	if(remaining_allocation * 1000 <= this->max_burst_length_b)
+	{
+		LOG(this->log_scheduling, LEVEL_NOTICE,
+		    "Not enough remaining allocation (%u kbits)\n", remaining_allocation);
+		return true;
+	}
+	// check max burst length
+	if(this->max_burst_length_b <= 0)
+	{
+		LOG(this->log_scheduling, LEVEL_NOTICE,
+		    "The max burst length does not allow to send data\n");
+		return true;
 	}
 	// extract and send encap packets from MAC FIFOs, in function of
 	// UL allocation

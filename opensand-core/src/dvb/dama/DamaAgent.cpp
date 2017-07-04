@@ -67,7 +67,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
                            vol_kb_t max_vbdc_kb,
                            time_sf_t msl_sf,
                            time_sf_t sync_period_sf,
-                           const EncapPlugin::EncapPacketHandler *pkt_hdl,
+                           EncapPlugin::EncapPacketHandler *pkt_hdl,
                            const fifos_t &dvb_fifos)
 {
 	this->frame_duration_ms = frame_duration_ms;

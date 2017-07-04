@@ -56,7 +56,7 @@ class DvbRcsStd: public PhysicStd
 	 *
 	 * @param packet_handler The packet handler
 	 */
-	DvbRcsStd(const EncapPlugin::EncapPacketHandler *const pkt_hdl = NULL);
+	DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
 
 	/**
 	 * Destroy the DVB-RCS Transmission Standard
@@ -79,7 +79,7 @@ class DvbRcsStd: public PhysicStd
 	 * @param packet_handler    The packet handler
 	 */
 	DvbRcsStd(string ype, bool has_fixed_length,
-		const EncapPlugin::EncapPacketHandler *const pkt_hdl = NULL);
+		EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
 
 	// Output log and debug
 	OutputLog* log_rcv_from_down;
@@ -98,7 +98,7 @@ class DvbRcsStd: public PhysicStd
 class DvbRcs2Std: public DvbRcsStd
 {
   public:
-	DvbRcs2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl = NULL);
+	DvbRcs2Std(EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
 };
 
 #endif

@@ -40,7 +40,7 @@
 #include <cassert>
 
 
-DvbRcsStd::DvbRcsStd(const EncapPlugin::EncapPacketHandler *pkt_hdl):
+DvbRcsStd::DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
 	PhysicStd("DVB-RCS", pkt_hdl),
 	has_fixed_length(true)
 {
@@ -51,7 +51,7 @@ DvbRcsStd::DvbRcsStd(const EncapPlugin::EncapPacketHandler *pkt_hdl):
 }
 
 DvbRcsStd::DvbRcsStd(string type, bool has_fixed_length,
-		const EncapPlugin::EncapPacketHandler *pkt_hdl):
+		EncapPlugin::EncapPacketHandler *pkt_hdl):
 	PhysicStd(type, pkt_hdl),
 	has_fixed_length(has_fixed_length)
 {
@@ -61,7 +61,7 @@ DvbRcsStd::DvbRcsStd(string type, bool has_fixed_length,
 	                                              "Dvb.Upward.receive");
 }
 
-DvbRcs2Std::DvbRcs2Std(const EncapPlugin::EncapPacketHandler *pkt_hdl):
+DvbRcs2Std::DvbRcs2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
 	DvbRcsStd("DVB-RCS2", false, pkt_hdl)
 {
 }
@@ -79,9 +79,10 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
                            tal_id_t UNUSED(tal_id),
                            NetBurst **burst)
 {
-	size_t offset;
-	size_t previous_length = 0;
 	DvbRcsFrame *dvb_rcs_frame;
+
+	vector<NetPacket *> decap_packets;
+	bool partial_decap = false;
 
 	// sanity check
 	if(dvb_frame == NULL)
@@ -147,58 +148,48 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		goto error;
 	}
 
-	// add packets received from lower layer
-	// to the newly created burst
-	offset = dvb_rcs_frame->getHeaderLength();
-	for(long i = 0; i < dvb_rcs_frame->getNumPackets(); i++)
+	// decapsulate packets received from lower layer
+	if(!this->packet_handler->decapNextPacket(dvb_rcs_frame,
+		partial_decap,
+		decap_packets,
+		dvb_rcs_frame->getNumPackets()))
 	{
-		NetPacket *encap_packet; // one encapsulation packet
-		size_t current_length;
-
-		current_length = this->packet_handler->getLength(
-							dvb_rcs_frame->getData(offset + previous_length).c_str());
-		// Use default values for QoS, source/destination tal_id
-		encap_packet = this->packet_handler->build(dvb_rcs_frame->getData(offset +
-		                                                                  previous_length),
-		                                           current_length,
-		                                           0x00, BROADCAST_TAL_ID,
-		                                           BROADCAST_TAL_ID);
-		previous_length += current_length;
-		if(encap_packet == NULL)
-		{
-			LOG(this->log_rcv_from_down, LEVEL_ERROR,
-			    "cannot create one %s packet\n",
-			    this->packet_handler->getName().c_str());
-			goto release_burst;
-		}
-
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "cannot create one %s packet\n",
+		    this->packet_handler->getName().c_str());
+		goto release_burst;
+	}
+	// add packets to the newly created burst
+	for(vector<NetPacket *>::iterator it = decap_packets.begin();
+		it != decap_packets.end();
+		++it)
+	{
 		// satellite part
-		if(this->generic_switch != NULL)
+		if(this->generic_switch)
 		{
 			uint8_t spot_id;
 
 			// find the spot ID associated to the packet, it will
 			// be used to put the cell in right fifo after the Encap SAT bloc
-			spot_id = this->generic_switch->find(encap_packet);
+			spot_id = this->generic_switch->find(*it);
 			if(spot_id == 0)
 			{
 				LOG(this->log_rcv_from_down, LEVEL_ERROR,
 				    "unable to find destination spot, drop the "
 				    "packet\n");
-				delete encap_packet;
+				delete (*it);
 				continue;
 			}
 			// associate the spot ID to the packet
-			encap_packet->setSpot(spot_id);
+			(*it)->setSpot(spot_id);
 		}
 
-
 		// add the packet to the burst of packets
-		(*burst)->add(encap_packet);
+		(*burst)->add(*it);
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "%s packet (%zu bytes) added to burst\n",
 		    this->packet_handler->getName().c_str(),
-		    encap_packet->getTotalLength());
+		    (*it)->getTotalLength());
 	}
 
 skip:

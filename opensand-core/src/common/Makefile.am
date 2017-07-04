@@ -23,7 +23,8 @@ libopensand_plugin_la_cpp = \
 	IpAddress.cpp \
 	MacAddress.cpp \
 	TrafficCategory.cpp \
-	SarpTable.cpp
+	SarpTable.cpp \
+	EncapPlugin.cpp
 
 libopensand_plugin_la_h = \
 	OpenSandPlugin.h \

@@ -52,7 +52,7 @@ class UplinkSchedulingRcs: public Scheduling
 {
   public:
 
-	UplinkSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
+	UplinkSchedulingRcs(EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
 	                    const StFmtSimuList *const ret_sts,
 	                    const FmtDefinitionTable *const ret_modcod_def,

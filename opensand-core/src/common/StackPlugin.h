@@ -137,29 +137,50 @@ class StackPlugin: public OpenSandPlugin
 		virtual size_t getMinLength() const = 0;
 
 		/**
-		 * @brief get a NetPacket that can be encapsulated in the frame
-		 *
-		 *   There is 4 use case:
-		 *    1. the whole packet can be encapsulated
-		 *    2. the packet should be fragmented to be encapsulated
-		 *    3. the packet cannot be encapsulated, even fragmented
-		 *    4. an error occured
-		 *
-		 * @param packet            IN: The initial NetPacket, it should be
-		 *                              deleted in this function
-		 * @param remaining_length  The maximum length that can be encapsulated
-		 *                          in the frame
-		 * @param data              OUT: The NetPacket that can be encapsulated
-		 *                               (case 1, 2)
-		 *                               NULL case (3, 4)
-		 * @param remaining_data    OUT: The part of the initial packet that
-		 *                               cannot be encapsulated in the current
-		 *                               frame (case 2, 3)
-		 *                               NULL (case 1, 4)
-		 * @return true on success (case 1, 2, 3), false otherwise (case 4)
+		 * @brief Encapsulate the packet and store unencapsulable part
+		 * 
+		 * @param[in]   The packet to encapsulate
+		 * @param[in]   The remaining length
+		 * @param[out]  The status about encapsulation (true if data remains after encapsulation, false otherwise)
+		 * @param[out]  The encapsulated packet (null in error case)
+		 * 
+		 * @return  true if success, false otherwise
 		 */
-		virtual bool getChunk(NetPacket *packet, size_t remaining_length,
-		                      NetPacket **data, NetPacket **remaining_data) const = 0;
+		virtual bool encapNextPacket(NetPacket *packet,
+			size_t remaining_length,
+			bool &partial_encap,
+			NetPacket **encap_packet) = 0;
+
+		/**
+		 * @brief Reset remaining data of the packet after encapsulation
+		 *
+		 * @param[in]   The packet to reset remaining data
+		 * 
+		 * @return  true if success, false otherwise
+		 */
+		virtual bool resetPacketToEncap(NetPacket *packet) = 0;
+
+		/**
+		 * @brief Decapsulate a packet or store it if data is partial
+		 * 
+		 * @param[in]   The packet to decapsulate
+		 * @param[in]   The packet count to decapsulate (0 if unknown)
+		 * @param[out]  The status about decapsulation (true if data is incomplete to decapsulation, false otherwise)
+		 * @param[out]  The list of decapsulated packet
+		 */
+		virtual bool decapNextPacket(NetContainer *packet,
+			bool &partial_decap,
+			vector<NetPacket *> &decap_packets,
+			unsigned int decap_packet_count = 0) = 0;
+
+		/**
+		 * @brief Reset partial data of a packet after decapsulation
+		 *
+		 * @param[in]   The packet to reset remaining data
+		 * 
+		 * @return  true if success, false otherwise
+		 */
+		virtual bool resetPacketToDecap() = 0;
 
 		/** 
 		 * @brief perform some plugin initialization

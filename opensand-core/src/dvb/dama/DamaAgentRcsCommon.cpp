@@ -189,9 +189,6 @@ bool DamaAgentRcsCommon::hereIsTTP(Ttp *ttp)
 		fmt_def = this->ret_modcod_def->getDefinition(this->modcod_id);
 		if(fmt_def == NULL)
 		{
-			LOG(this->log_ttp, LEVEL_WARNING,
-			    "SF#%u: unknown modcod %u\n",
-			    ttp->getSuperframeCount(), this->modcod_id);
 			this->converter->setModulationEfficiency(0);
 			continue;
 		}

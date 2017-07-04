@@ -501,7 +501,7 @@ class View(WindowView):
         try:
             self._eventconf.update_view()
             self._eventconf.read_conf_free_spot()
-            self._eventconf.enable_conf_buttons(False)
+            self._eventconf.enable_conf_buttons()
             self._eventresource.update_scenario()
         except ConfException as msg:
             error_popup(str(msg))
@@ -556,7 +556,7 @@ class View(WindowView):
         try:
             self._eventconf.update_view()
             self._eventconf.read_conf_free_spot()
-            self._eventconf.enable_conf_buttons(False)
+            self._eventconf.enable_conf_buttons()
             self._eventresource.update_scenario()
         except ConfException as msg:
             error_popup(str(msg))
