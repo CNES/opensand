@@ -438,6 +438,7 @@ class OpenSandRoutes(object):
                 continue
             # get the gateway id
             gw_id = child.attrib["id"]
+            tal_gw_ids[gw_id] = gw_id
             # load tal ids
             for child2 in child.xpath("terminals/tal"):
                 if child2.tag != "tal":
