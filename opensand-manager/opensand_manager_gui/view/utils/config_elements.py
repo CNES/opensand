@@ -1144,7 +1144,7 @@ class ConfSection(gtk.VBox):
             except:
                 # this is a new line entry
                 nbr = len(self._config.get_all("/%s/%s" % (key_path, name)))
-                line_path = '/%s/%s[%d]' % (key_path, name, nbr + self_new.count(key_path))
+                line_path = '/%s/%s[%d]' % (key_path, name, nbr + self._new.count(key_path))
                 path = '/%s/%s[%d]/@%s' % (key_path, name,
                                            nbr + self._new.count(key_path),
                                            att)
@@ -1186,7 +1186,8 @@ class ConfSection(gtk.VBox):
                                             self._config,
                                             self._host,
                                             self._scenario,
-                                            self._changed_cb)
+                                            self._changed_cb,
+                                            self._file_cb)
                 window.go()
 
             edit_button = gtk.Button(stock=gtk.STOCK_EDIT)
