@@ -1268,6 +1268,9 @@ class ConfSection(gtk.VBox):
                 name = name.split('[')[-2].split('/')[-1]
             if name == SATDELAY and attr == SATDELAY_TYPE:
                 val = self._config.get(path)
+                # Remove old element
+                self._config.del_element(path.split('/@')[0] + 
+                                         '/' + SATDELAY_CONF)
                 # get the correct plugin_conf keys from the plugin xml file
                 for module in self._modules:
                     if module.get_name() == val:
@@ -1277,9 +1280,7 @@ class ConfSection(gtk.VBox):
                         new_conf = module_parser.get(PATH_SATDELAY_CONF_MODULE)
                         if new_conf is None:
                             break
-                        # delete old element
-                        self._config.del_element(path.split('/@')[0] + 
-                                                 '/' + SATDELAY_CONF)
+                        # Add new element
                         self._config.add_element(path.split('/@')[0] + 
                                                  '/' + SATDELAY_CONF, new_conf)
                         break
