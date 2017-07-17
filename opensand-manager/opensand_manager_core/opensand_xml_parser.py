@@ -180,7 +180,6 @@ class XmlParser:
 
     def add_element(self, xpath, elt):
         """ add an element to path (as a copy) """
-        print xpath
         if self.get(xpath) is not None:
             return
         if len(xpath.split('@')) > 1:
