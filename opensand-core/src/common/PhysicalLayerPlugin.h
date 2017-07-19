@@ -287,7 +287,7 @@ class SatDelayPlugin: public OpenSandPlugin
    *
    * @return true on success, false otherwise
    */
-  virtual bool init(ConfigurationList conf) = 0;
+  virtual bool init() = 0;
 
   /**
    * @brief Get the model current sat delay

@@ -309,7 +309,7 @@ class SatDelayModule(OpenSandModule):
 
     def __init__(self):
         OpenSandModule.__init__(self)
-        self._targets = [GLOBAL]
+        self._targets = {GW, ST} | GW_types
 
 from opensand_manager_core.modules import *
 

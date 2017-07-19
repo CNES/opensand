@@ -328,6 +328,7 @@ class AdvancedDialog(WindowView):
             return all_modules
 
         with_phy_layer = self._model.get_conf().get_enable_physical_layer()
+        with_global_delay = self._model.get_conf().get_global_delay()
         modules = []
         adv = self._current_host.get_advanced_conf()
         try:
@@ -345,14 +346,12 @@ class AdvancedDialog(WindowView):
                                      'encap').itervalues()
         except ModelException:
             pass
-        try:
-            modules += adv.get_params("delay")
-        except ModelException:
-            pass
         if with_phy_layer == "true":
             modules += adv.get_params("attenuation_model_type")
             modules += adv.get_params("minimal_condition_type")
             modules += adv.get_params("error_insertion_type")
+        if with_global_delay == "false":
+            modules += adv.get_params("delay_type")
         used_modules = []
         for module in all_modules:
             if module.get_name() in modules:

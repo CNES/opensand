@@ -64,6 +64,8 @@ class FileDelay: public SatDelayPlugin
 	/// Reading mode
 	bool loop;
 
+	map<string, ConfigurationList> config_section_map;
+
 	/// The refresh period
 	time_ms_t refresh_period_ms;
 
@@ -87,7 +89,7 @@ class FileDelay: public SatDelayPlugin
 	 */
 	~FileDelay();
 
-	bool init(ConfigurationList conf_list);
+	bool init();
 
 	bool updateSatDelay();
 
