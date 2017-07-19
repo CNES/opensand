@@ -1,3 +1,12 @@
+2017-07-19 opensand-4.2.0
+
+   * Release 4.2.0
+   * Add variable delay for each terminal and gateway
+   * Fix RTT bug
+   * Fix multi-carrier in regenerative mode
+   * Fix routes management
+   * Fix probes bugs
+
 2016-12-22 opensand-4.1.0
 
    * Release 4.1.0
