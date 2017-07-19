@@ -52,8 +52,7 @@ from copy import deepcopy
 
 from lxml import etree
 from opensand_manager_core.my_exceptions import XmlException
-from opensand_manager_core.utils import (SPOT, ID, GW, PATH_SATDELAYS,
-                                         CONSTANT_DELAY, SATDELAY, SATDELAY_TYPE)
+from opensand_manager_core.utils import (SPOT, ID, GW) 
 
 
 NAMESPACES = {"xsd":"http://www.w3.org/2001/XMLSchema"}
@@ -178,7 +177,7 @@ class XmlParser:
         """ get all matching elements """
         return self._tree.xpath(xpath)
 
-    def add_element(self, xpath, elt):
+    def add_element(self, xpath, elt, pos=0):
         """ add an element to path (as a copy) """
         if self.get(xpath) is not None:
             return
@@ -187,7 +186,7 @@ class XmlParser:
         parent = self.get('/'.join(xpath.split('/')[:-1]))
         if parent is not None:
             new = deepcopy(elt)
-            parent.insert(0, new)
+            parent.insert(pos, new)
 
     def del_element(self, xpath):
         """ delete an element from its path """
@@ -280,34 +279,11 @@ class XmlParser:
 
     def add_host(self, tal_id):
         """ add a new host for necessary configurations """
-        # add a new line to satdelay
-        satdelay_table = self.get(PATH_SATDELAYS)
-        found = False
-        if satdelay_table is not None:
-            # check if it exists first
-            for child in satdelay_table.iterchildren():
-                if child.get(ID) == tal_id:
-                    found = True
-            if not found:
-                # copy first line
-                # TODO: should create one from scratch, otherwise, if all
-                # elements are removed, there'd be any to copy
-                for child in satdelay_table.iterchildren():
-                    new = deepcopy(child)
-                    new.set(ID, tal_id)
-                    child.addnext(new)
-                    break
+        return
 
     def remove_host(self, tal_id):
         """ remove a host from necesarry configuration """
-        # remove line from satdelay
-        satdelay_table = self.get(PATH_SATDELAYS)
-        if satdelay_table is not None:
-            for child in satdelay_table.iterchildren():
-                if child.get(ID) == tal_id:
-                    satdelay_table.remove(child)
-                    break
-
+        return
 
     def add_line(self, xpath):
         """ add a line in the table identified its path """

@@ -129,9 +129,9 @@ LAN_IPV4      = "lan_ipv4"
 LAN_IPV6      = "lan_ipv6"
 
 # Delay
-SATDELAY      = "satdelay"
+SATDELAY      = "delay"
 SATDELAY_TYPE = "type"
-SATDELAY_CONF = "satdelay_conf"
+SATDELAY_CONF = "delay_conf"
 CONSTANT_DELAY = "ConstantDelay"
 
 # Path
@@ -146,8 +146,7 @@ PATH_DEFAULT_SPOT = "/configuration/spot_table/default_spot"
 PATH_SPOT = "/configuration/spot_table"
 PATH_DEFAULT_GW = "/configuration/gw_table/default_gw"
 PATH_GW = "/configuration/gw_table"
-PATH_SATDELAYS = "/configuration/delays/satdelays"
-PATH_SATDELAY_CONF_MODULE = "/configuration/satdelay_conf"
+PATH_SATDELAY_CONF_MODULE = "/configuration/delay_conf"
 
 def get_conf_xpath(element, link = '', spot_id = 0, gw_id = 1):
     path = ""

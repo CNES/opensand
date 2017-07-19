@@ -156,6 +156,21 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<!-- types for delay section -->
+<xsd:simpleType name="msTimeNZ">
+    <xsd:restriction base="xsd:integer">
+        <xsd:minInclusive value="1" />
+        <xsd:maxInclusive value="2000" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="delayType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="ConstantDelay" />
+        <xsd:enumeration value="FileDelay" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <!-- the traffic simulation table -->
 <xsd:element name="simulation_traffic">
     <xsd:complexType>
@@ -222,6 +237,7 @@
             <xsd:element ref="svno_interface" />
             <xsd:element ref="uplink_physical_layer" />
             <xsd:element ref="downlink_physical_layer" />
+            <xsd:element ref="delay" />
             <xsd:element ref="debug" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
@@ -423,6 +439,39 @@
         </xsd:sequence>
     </xsd:complexType>
 </xsd:element>
+
+<!-- delay section description -->
+<xsd:element name="delay">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>\tSatellite delay configuration</b>
+            ]]>
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="delay_type" type="delayType">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The type of delay associated to the terminal
+                        <xpath common.global_constant_delay="false" />
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="refresh_period" type="msTimeNZ">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        Satellite delay refresh period (ms)
+                        <unit>ms</unit>
+                        <adv>true</adv>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
+
 
 <!-- debug section description -->
 <xsd:element name="debug">

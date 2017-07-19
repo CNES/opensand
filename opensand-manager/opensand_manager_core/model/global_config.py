@@ -240,6 +240,10 @@ class GlobalConfig(AdvancedHostModel):
         """ get the enable value from physical layer section """
         return self.get_param("physical_layer/enable")
 
+    def get_global_delay(self):
+        """ get the use constant_global_delay value """
+        return self.get_param("common/global_constant_delay")
+
     def get_param(self, name):
         """ get a parameter in the XML configuration file """
         val = None

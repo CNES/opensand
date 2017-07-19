@@ -40,6 +40,7 @@
 
 #define PATH           "path"
 #define LOOP           "loop_mode"
+#define CONF_FILENAME  "file_delay.conf"
 
 FileDelay::FileDelay():
 	SatDelayPlugin(),
@@ -55,15 +56,28 @@ FileDelay::~FileDelay()
 	this->delays.clear();
 }
 
-bool FileDelay::init(ConfigurationList conf)
+bool FileDelay::init()
 {
 	string filename;
 	time_ms_t refresh_period_ms;
+	ConfigurationFile config;
+	string conf_file_path;
+	conf_file_path = this->getConfPath() + string(CONF_FILENAME);
 
 	if(this->is_init)
 		return true;
 
-	if(!Conf::getValue(Conf::section_map[SAT_DELAYS_SECTION],
+	if(config.loadConfig(conf_file_path.c_str()) < 0)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to load config file '%s'",
+		    conf_file_path.c_str());
+		return false;
+	}
+
+	config.loadSectionMap(this->config_section_map);
+
+	if(!Conf::getValue(Conf::section_map[SAT_DELAY_SECTION],
 	                   REFRESH_PERIOD_MS, refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -73,14 +87,16 @@ bool FileDelay::init(ConfigurationList conf)
 
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!Conf::getValue(conf, PATH, filename))
+	if(!Conf::getValue(this->config_section_map[SAT_DELAY_CONF],
+	                   PATH, filename))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "FILE delay: cannot get %s", PATH);
 		return false;
 	}
 
-	if(!Conf::getValue(conf, LOOP, this->loop))
+	if(!Conf::getValue(this->config_section_map[SAT_DELAY_CONF],
+	                   LOOP, this->loop))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "FILE delay: cannot get %s", LOOP);

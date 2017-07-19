@@ -186,6 +186,7 @@
 #define SALOHA_ALGO                    "algorithm"
 #define SALOHA_SIMU_LIST               "simulation_traffic"
 #define SALOHA_RATIO                   "ratio"
+#define SALOHA_MAXDELAY                "max_satdelay"
 
 
 /////////////////
@@ -303,14 +304,14 @@
 //////////////////////////
 //      sat_delays      //
 //////////////////////////
-#define SAT_DELAYS_SECTION  "delays"
-#define GLOBAL_CONSTANT_DELAY "global_constant_delay"
-#define GLOBAL_DELAY        "global_delay"
-#define REFRESH_PERIOD_MS   "refresh_period"
-#define DELAYS_LIST         "satdelays"
-#define DELAY_TYPE          "type"
-#define SAT_DELAY_CONF      "satdelay_conf"
-#define CONSTANT_DELAY      "ConstantDelay"
+#define SAT_DELAY_SECTION          "delay"
+#define GLOBAL_SAT_DELAY_SECTION   "global_delay"
+#define GLOBAL_CONSTANT_DELAY      "global_constant_delay"
+#define DELAY                      "delay"
+#define SAT_DELAY_CONF             "delay_conf"
+#define REFRESH_PERIOD_MS          "refresh_period"
+#define DELAY_TYPE                 "delay_type"
+#define CONSTANT_DELAY             "ConstantDelay"
 
 //////////////////////////
 //       advanced       //
