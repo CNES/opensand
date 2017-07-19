@@ -1144,7 +1144,7 @@ class ConfSection(gtk.VBox):
             except:
                 # this is a new line entry
                 nbr = len(self._config.get_all("/%s/%s" % (key_path, name)))
-                line_path = '/%s/%s[%d]' % (key_path, name, nbr + self_new.count(key_path))
+                line_path = '/%s/%s[%d]' % (key_path, name, nbr + self._new.count(key_path))
                 path = '/%s/%s[%d]/@%s' % (key_path, name,
                                            nbr + self._new.count(key_path),
                                            att)
@@ -1186,7 +1186,8 @@ class ConfSection(gtk.VBox):
                                             self._config,
                                             self._host,
                                             self._scenario,
-                                            self._changed_cb)
+                                            self._changed_cb,
+                                            self._file_cb)
                 window.go()
 
             edit_button = gtk.Button(stock=gtk.STOCK_EDIT)
@@ -1261,28 +1262,26 @@ class ConfSection(gtk.VBox):
         # Update SatDelay plugin configuration
         for entry in self._changed:
             path = entry.get_name()
-            name = path.split('/@')[0]
-            if len(path.split('/@')) > 1:
-                attr = path.split('/@')[1]
-            if name.endswith(']'):
-                name = name.split('[')[-2].split('/')[-1]
-            if name == SATDELAY and attr == SATDELAY_TYPE:
-                val = self._config.get(path)
-                # get the correct plugin_conf keys from the plugin xml file
+            name = path.split('/')[-1]
+            parent = path.split('/')[-2]
+            if name == SATDELAY_TYPE and parent == SATDELAY:
+                val = self._config.get(path).text
+                # Remove old element
+                self._config.del_element(os.path.split(path)[0] + '/' + SATDELAY_CONF)
+                # Get the correct plugin conf keys from the plugin xml file
                 for module in self._modules:
-                    if module.get_name() == val:
-                        module_parser = module.get_config_parser()
-                        if module_parser is None:
-                            break
-                        new_conf = module_parser.get(PATH_SATDELAY_CONF_MODULE)
-                        if new_conf is None:
-                            break
-                        # delete old element
-                        self._config.del_element(path.split('/@')[0] + 
-                                                 '/' + SATDELAY_CONF)
-                        self._config.add_element(path.split('/@')[0] + 
-                                                 '/' + SATDELAY_CONF, new_conf)
+                    if module.get_name() != val:
+                        continue
+                    module_parser = module.get_config_parser()
+                    if module_parser is None:
                         break
+                    new_conf = module_parser.get(PATH_SATDELAY_CONF_MODULE)
+                    if new_conf is None:
+                        break
+                    # Add new element
+                    self._config.add_element(os.path.split(path)[0] + '/' + SATDELAY_CONF,
+                                             new_conf, 1)
+                    break
 
         # Update Bandwidth
         if update_bandwidth and self._bandwidth_entry:

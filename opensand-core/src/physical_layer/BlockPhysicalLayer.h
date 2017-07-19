@@ -143,6 +143,9 @@ class BlockPhysicalLayerSat: public BlockPhysicalLayer
 		BlockPhysicalLayer(name, 0)
 	{};
 	
+	// initialization method
+	bool onInit();
+
 	class Upward: public BlockPhysicalLayer::Upward
 	{
 	  public:

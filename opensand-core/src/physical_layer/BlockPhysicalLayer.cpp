@@ -73,13 +73,9 @@ error:
 
 bool BlockPhysicalLayer::initSatDelay()
 {
-	ConfigurationList delays_list;
-	ConfigurationList::iterator iter_list;
-	ConfigurationList plugin_conf;
 	uint8_t id;
 	bool global_constant_delay;
 	string satdelay_name;
-	time_ms_t refresh_period_ms;
 
 	/// Load de SatDelay Plugin
 	// Get the orbit type
@@ -90,66 +86,20 @@ bool BlockPhysicalLayer::initSatDelay()
 		    "cannot get '%s' value", GLOBAL_CONSTANT_DELAY);
 		goto error;
 	}
-	// get the refresh period
-	if(!Conf::getValue(Conf::section_map[SAT_DELAYS_SECTION],
-	                   REFRESH_PERIOD_MS, refresh_period_ms))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get '%s' value", REFRESH_PERIOD_MS);
-		goto error;
-	}
-	// get all plugins 
-	if(!Conf::getListItems(Conf::section_map[SAT_DELAYS_SECTION],
-	                       DELAYS_LIST, delays_list))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing list '%s'\n",
-		    SAT_DELAYS_SECTION, DELAYS_LIST);
-		goto error;
-	}
 	// if global constant delay, get the global delay configuration first
 	if(global_constant_delay)
 	{
-		if(!Conf::getItemNode(Conf::section_map[SAT_DELAYS_SECTION],
-		                      GLOBAL_DELAY, plugin_conf))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "missing parameter '%s'", GLOBAL_DELAY);
-			goto error;
-		}
 		satdelay_name = CONSTANT_DELAY;
 	}
 	else
 	{
-		for(iter_list = delays_list.begin();
-		    iter_list != delays_list.end();
-		    iter_list++)
+		// get plugin name
+		if(!Conf::getValue(Conf::section_map[SAT_DELAY_SECTION],
+		                   DELAY_TYPE, satdelay_name))
 		{
-			// get the id
-			if(!Conf::getAttributeValue(iter_list, ID, id))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "cannot get delay id");
-				goto error;
-			}
-			if(id != this->mac_id)
-				continue;
-			if(!Conf::getItemNode(*iter_list, SAT_DELAY_CONF, plugin_conf))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "missing parameter '%s' for delay terminal id %u",
-				    SAT_DELAY_CONF, id);
-				goto error;
-			}
-			// get plugin name
-			if(!Conf::getAttributeValue(iter_list, DELAY_TYPE, satdelay_name))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "missing parameter '%s' for terminal id %u",
-				    DELAY_TYPE, id);
-				goto error;
-			}
-			break;
+			LOG(this->log_init, LEVEL_ERROR,
+			    "missing parameter '%s'", DELAY_TYPE);
+			goto error;
 		}
 	}
 	// load plugin
@@ -170,7 +120,7 @@ bool BlockPhysicalLayer::initSatDelay()
 		goto error;
 	}
 	// init plugin
-	if(!this->satdelay->init(plugin_conf))
+	if(!this->satdelay->init())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize sat delay plugin '%s'"
@@ -433,19 +383,6 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	}
 	if(!this->attenuation)
 		return true;
-
-	// get refresh period
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
-	                   ACM_PERIOD_REFRESH,
-	                   this->refresh_period_ms))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "acm refreshing period = %d\n", this->refresh_period_ms);
 
 	// Initiate Attenuation model
 	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
@@ -911,6 +848,11 @@ error:
 	return false;
 }
 
+
+bool BlockPhysicalLayerSat::onInit(void)
+{
+	return true;
+}
 
 bool BlockPhysicalLayerSat::Upward::onInit(void)
 {
