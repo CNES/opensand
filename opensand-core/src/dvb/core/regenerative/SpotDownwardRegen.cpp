@@ -163,7 +163,8 @@ bool SpotDownwardRegen::initMode(void)
 				"failed to initialize fifos for category %s\n", label.c_str());
 			return false;
 		}
-		this->dvb_fifos.insert(make_pair<string, fifos_t>(label, fifos));
+		this->dvb_fifos.insert(
+			make_pair<string, fifos_t>((string)label, (fifos_t)fifos));
 
 		scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
 			this->dvb_fifos.at(label),
@@ -178,7 +179,8 @@ bool SpotDownwardRegen::initMode(void)
 				"initialisation\n");
 			return false;
 		}
-		this->scheduling.insert(make_pair<string, Scheduling*>(label, scheduling));
+		this->scheduling.insert(
+			make_pair<string, Scheduling *>((string)label, (Scheduling *)scheduling));
 	}
 
 	return true;
