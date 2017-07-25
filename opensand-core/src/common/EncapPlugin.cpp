@@ -33,6 +33,12 @@
 
 #include "EncapPlugin.h"
 
+EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
+{
+	this->resetPacketToEncap();
+	this->resetPacketToDecap();
+}
+
 bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
 	size_t remaining_length,
 	bool &partial_encap,

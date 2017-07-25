@@ -79,6 +79,8 @@ class EncapPlugin: public StackPlugin
 		{
 		};
 
+		virtual ~EncapPacketHandler();
+
 		/**
 		 * @brief Get the source terminal ID of a packet
 		 *
