@@ -837,7 +837,14 @@ bool BlockDvbTal::Downward::initDama(void)
 		}
 		else if(this->return_link_std == DVB_RCS2)
 		{
-			this->dama_agent = new DamaAgentRcs2Legacy(this->rcs_modcod_def);
+			if(this->satellite_type == REGENERATIVE)
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+					"cannot create DAMA agent: algo named '%s' is not "
+					"managed by current MAC layer\n", dama_algo.c_str());
+				goto error;
+			}
+			//this->dama_agent = new DamaAgentRcs2Legacy(this->rcs_modcod_def);
 		}
 		else
 		{

@@ -288,7 +288,13 @@ bool SpotDownwardRegen::initDama(void)
 		}
 		else if(this->return_link_std == DVB_RCS2)
 		{
-			this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
+			//this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
+			LOG(this->log_init_channel, LEVEL_ERROR,
+				"section '%s': bad value '%s' for parameter '%s'"
+				" (regenerative satellite does not support the return link standard '%s')\n",
+				DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO,
+				this->return_link_std_str.c_str());
+			return false;
 		}
 		else
 		{
