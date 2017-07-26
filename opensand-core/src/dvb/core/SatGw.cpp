@@ -41,6 +41,7 @@
 #include "DvbRcsFrame.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_conf/conf.h>
 
 #include <stdlib.h>
 
@@ -241,6 +242,25 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 
 bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
 {
+	string def = MODCOD_DEF_RCS;
+	vol_sym_t length = 0;
+
+	// Get the required burst length in DVB-RCS2 case
+	if(return_link_standard == DVB_RCS2)
+	{
+		def = MODCOD_DEF_RCS2;
+		
+		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+			               RCS2_BURST_LENGTH,
+		                   length))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "section '%s': missing parameter '%s'\n",
+			    COMMON_SECTION, RCS2_BURST_LENGTH);
+			return false;
+		}
+	}
+
 	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
 	                             this->gw_id, this->spot_id))
 	{
@@ -249,9 +269,9 @@ bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
 		    "initialisation\n");
 		return false;
 	}
-	if(!this->initModcodDefFile(return_link_standard == DVB_RCS2 ?
-	                            MODCOD_DEF_RCS2 : MODCOD_DEF_RCS,
-	                            &this->rcs_modcod_def))
+	if(!this->initModcodDefFile(def.c_str(),
+	                            &this->rcs_modcod_def,
+	                            length))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the modcod part of the "

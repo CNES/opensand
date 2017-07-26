@@ -247,7 +247,7 @@ unsigned int FmtDefinition::removeFec(unsigned int length) const
 	return floor(length / (1.0 + this->coding_rate));
 }
 
-void FmtDefinition::print(void)
+void FmtDefinition::print(void) const
 {
 	if(this->has_burst_length)
 	{

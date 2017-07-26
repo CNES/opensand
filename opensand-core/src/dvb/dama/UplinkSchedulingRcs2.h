@@ -28,15 +28,15 @@
 
 
 /**
- * @file UplinkSchedulingRcs.h
- * @brief Scheduling for MAC FIFOs for DVB-RCS uplink on GW
+ * @file UplinkSchedulingRcs2.h
+ * @brief Scheduling for MAC FIFOs for DVB-RCS2 uplink on GW
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @author Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  *
  */
 
-#ifndef _UPLINK_SCHEDULING_RCS_H_
-#define _UPLINK_SCHEDULING_RCS_H_
+#ifndef _UPLINK_SCHEDULING_RCS2_H_
+#define _UPLINK_SCHEDULING_RCS2_H_
 
 #include "UplinkSchedulingRcsCommon.h"
 #include "DvbRcsFrame.h"
@@ -47,20 +47,20 @@
 #include <opensand_output/OutputLog.h>
 
 /**
- * @class UplinkSchedulingRcs
- * @brief Scheduling functions for MAC FIFOs with DVB-RCS uplink
+ * @class UplinkSchedulingRcs2
+ * @brief Scheduling functions for MAC FIFOs with DVB-RCS2 uplink
  */
-class UplinkSchedulingRcs: public UplinkSchedulingRcsCommon
+class UplinkSchedulingRcs2: public UplinkSchedulingRcsCommon
 {
   public:
 
-	UplinkSchedulingRcs(time_ms_t frame_duration_m,
-	                    EncapPlugin::EncapPacketHandler *packet_handler,
-	                    const fifos_t &fifos,
-	                    const StFmtSimuList *const ret_sts,
-	                    const FmtDefinitionTable *const ret_modcod_def,
-	                    const TerminalCategoryDama *const category,
-	                    tal_id_t gw_id);
+	UplinkSchedulingRcs2(time_ms_t frame_duration_m,
+	                     EncapPlugin::EncapPacketHandler *packet_handler,
+	                     const fifos_t &fifos,
+	                     const StFmtSimuList *const ret_sts,
+	                     const FmtDefinitionTable *const ret_modcod_def,
+	                     const TerminalCategoryDama *const category,
+	                     tal_id_t gw_id);
 
   protected:
 	/**

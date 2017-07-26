@@ -37,7 +37,9 @@
 
 #include "SpotDownwardRegen.h"
 
+#include "UplinkSchedulingRcsCommon.h"
 #include "UplinkSchedulingRcs.h"
+#include "UplinkSchedulingRcs2.h"
 #include "DamaCtrlRcsLegacy.h"
 #include "DamaCtrlRcs2Legacy.h"
 
@@ -116,6 +118,7 @@ bool SpotDownwardRegen::initMode(void)
 	ConfigurationList current_spot;
 	ConfigurationList current_gw;
 	fifos_t fifo;
+	UplinkSchedulingRcsCommon *schedule = NULL;
 
 	// Get the spot list
 	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
@@ -190,13 +193,34 @@ bool SpotDownwardRegen::initMode(void)
 	}
 	this->dvb_fifos.insert(make_pair<string, fifos_t>((string) label, (fifos_t) fifo));
 
-	Scheduling *schedule = new UplinkSchedulingRcs(this->pkt_hdl,
-	                                               this->dvb_fifos.at(label),
-	                                               this->output_sts,
-	                                               this->rcs_modcod_def,
-	                                               cat,
-	                                               this->mac_id);
-	if(!schedule)
+	if(this->return_link_std == DVB_RCS)
+	{
+		schedule = new UplinkSchedulingRcs(this->ret_up_frame_duration_ms,
+			this->pkt_hdl,
+			this->dvb_fifos.at(label),
+			this->output_sts,
+			this->rcs_modcod_def,
+			cat,
+			this->mac_id);
+	}
+	else if(this->return_link_std == DVB_RCS2)
+	{
+		schedule = new UplinkSchedulingRcs2(this->ret_up_frame_duration_ms,
+			this->pkt_hdl,
+			this->dvb_fifos.at(label),
+			this->output_sts,
+			this->rcs_modcod_def,
+			cat,
+			this->mac_id);
+	}
+	else
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"Unable to create the uplink scheduling for standard '%s'\n",
+			this->return_link_std_str.c_str());
+		return false;
+	}
+	if(!schedule || !schedule->init())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the SCHEDULE part of the "
@@ -288,13 +312,7 @@ bool SpotDownwardRegen::initDama(void)
 		}
 		else if(this->return_link_std == DVB_RCS2)
 		{
-			//this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
-			LOG(this->log_init_channel, LEVEL_ERROR,
-				"section '%s': bad value '%s' for parameter '%s'"
-				" (regenerative satellite does not support the return link standard '%s')\n",
-				DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO,
-				this->return_link_std_str.c_str());
-			return false;
+			this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
 		}
 		else
 		{

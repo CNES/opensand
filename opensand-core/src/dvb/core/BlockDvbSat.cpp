@@ -626,6 +626,13 @@ void BlockDvbSat::Upward::setGws(const sat_gws_t &gws)
 
 bool BlockDvbSat::Upward::onInit()
 {
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+			"failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+
 	// get the common parameters
 	// TODO no need to init pkt hdl in transparent mode,
 	//      this will avoid loggers for encap to be instanciated

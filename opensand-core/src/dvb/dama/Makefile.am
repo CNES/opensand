@@ -2,7 +2,9 @@ lib_LTLIBRARIES = libopensand_dama.la
 
 libopensand_dama_la_cpp = \
 	CircularBuffer.cpp \
+	UplinkSchedulingRcsCommon.cpp \
 	UplinkSchedulingRcs.cpp \
+	UplinkSchedulingRcs2.cpp \
 	ReturnSchedulingRcsCommon.cpp \
 	ReturnSchedulingRcs.cpp \
 	ReturnSchedulingRcs2.cpp \
@@ -25,7 +27,9 @@ libopensand_dama_la_cpp = \
 libopensand_dama_la_h = \
 	CircularBuffer.h \
 	Scheduling.h \
+	UplinkSchedulingRcsCommon.h \
 	UplinkSchedulingRcs.h \
+	UplinkSchedulingRcs2.h \
 	ReturnSchedulingRcsCommon.h \
 	ReturnSchedulingRcs.h \
 	ReturnSchedulingRcs2.h \
