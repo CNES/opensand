@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2016 TAS
-# Copyright © 2016 CNES
+# Copyright © 2017 TAS
+# Copyright © 2017 CNES
 #
 #
 # This file is part of the OpenSAND testbed.

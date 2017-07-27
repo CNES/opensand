@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2016 CNES
+# Copyright © 2017 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -317,7 +317,7 @@ class SatDelayModule(OpenSandModule):
 
     def __init__(self):
         OpenSandModule.__init__(self)
-        self._targets = [GLOBAL]
+        self._targets = {GW, ST} | GW_types
 
 from opensand_manager_core.modules import *
 

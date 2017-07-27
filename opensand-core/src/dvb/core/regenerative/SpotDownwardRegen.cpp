@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2016 TAS
- * Copyright © 2016 CNES
+ * Copyright © 2017 TAS
+ * Copyright © 2017 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -107,15 +107,13 @@ bool SpotDownwardRegen::onInit(void)
 
 bool SpotDownwardRegen::initMode(void)
 {
-	TerminalCategoryDama *cat;
-	string label;
+	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
 	// get RETURN_UP_BAND section
 	ConfigurationList return_up_band = Conf::section_map[RETURN_UP_BAND];
 	ConfigurationList spots;
 	ConfigurationList current_spot;
 	ConfigurationList current_gw;
-	fifos_t fifo;
 
 	// Get the spot list
 	if(!Conf::getListNode(return_up_band, SPOT_LIST, spots))
@@ -158,52 +156,41 @@ bool SpotDownwardRegen::initMode(void)
 		return false;
 	}
 
-	// here we need the category to which the GW belongs
-	if(this->terminal_affectation.find(this->mac_id) != this->terminal_affectation.end())
+	for(cat_it = this->categories.begin();
+		cat_it != this->categories.end(); ++cat_it)
 	{
-		cat = this->terminal_affectation[this->mac_id];
-		if(!cat)
+		fifos_t fifos;
+		string label;
+		Scheduling *scheduling;
+		TerminalCategoryDama *cat;
+
+		cat = cat_it->second;
+		label = cat->getLabel();
+		if(!this->initFifo(fifos))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "No category corresponding to GW affectation\n");
+				"failed to initialize fifos for category %s\n", label.c_str());
 			return false;
 		}
-	}
-	else
-	{
-		if(!this->default_category)
+		this->dvb_fifos.insert(
+			make_pair<string, fifos_t>((string)label, (fifos_t)fifos));
+
+		scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
+			this->dvb_fifos.at(label),
+			this->output_sts,
+			this->rcs_modcod_def,
+			cat,
+			this->mac_id);
+		if(!scheduling)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "No default category and GW has no affectation\n");
+				"failed to complete the SCHEDULE part of the "
+				"initialisation\n");
 			return false;
 		}
-		cat = this->default_category;
+		this->scheduling.insert(
+			make_pair<string, Scheduling *>((string)label, (Scheduling *)scheduling));
 	}
-	label = cat->getLabel();
-
-	if(!this->initFifo(fifo))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the FIFO part of the "
-		    "initialisation\n");
-		return false;
-	}
-	this->dvb_fifos.insert(make_pair<string, fifos_t>((string) label, (fifos_t) fifo));
-
-	Scheduling *schedule = new UplinkSchedulingRcs(this->pkt_hdl,
-	                                               this->dvb_fifos.at(label),
-	                                               this->output_sts,
-	                                               this->rcs_modcod_def,
-	                                               cat,
-	                                               this->mac_id);
-	if(!schedule)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the SCHEDULE part of the "
-		    "initialisation\n");
-		return false;
-	}
-	this->scheduling.insert(make_pair<string, Scheduling*>((string) label, (Scheduling*) schedule));
 
 	return true;
 }
