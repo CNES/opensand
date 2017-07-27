@@ -66,6 +66,7 @@ class ReturnSchedulingRcsCommon: public Scheduling
 
   protected:
 
+	/// The maximum burst length in bits
 	vol_b_t max_burst_length_b;
 
 	/**

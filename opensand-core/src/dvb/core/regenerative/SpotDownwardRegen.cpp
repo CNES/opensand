@@ -37,7 +37,9 @@
 
 #include "SpotDownwardRegen.h"
 
+#include "UplinkSchedulingRcsCommon.h"
 #include "UplinkSchedulingRcs.h"
+#include "UplinkSchedulingRcs2.h"
 #include "DamaCtrlRcsLegacy.h"
 #include "DamaCtrlRcs2Legacy.h"
 
@@ -161,7 +163,7 @@ bool SpotDownwardRegen::initMode(void)
 	{
 		fifos_t fifos;
 		string label;
-		Scheduling *scheduling;
+		UplinkSchedulingRcsCommon *schedule = NULL;
 		TerminalCategoryDama *cat;
 
 		cat = cat_it->second;
@@ -175,21 +177,43 @@ bool SpotDownwardRegen::initMode(void)
 		this->dvb_fifos.insert(
 			make_pair<string, fifos_t>((string)label, (fifos_t)fifos));
 
-		scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
-			this->dvb_fifos.at(label),
-			this->output_sts,
-			this->rcs_modcod_def,
-			cat,
-			this->mac_id);
-		if(!scheduling)
+		if(this->return_link_std == DVB_RCS)
+		{
+			schedule = new UplinkSchedulingRcs(this->ret_up_frame_duration_ms,
+				this->pkt_hdl,
+				this->dvb_fifos.at(label),
+				this->output_sts,
+				this->rcs_modcod_def,
+				cat,
+				this->mac_id);
+		}
+		else if(this->return_link_std == DVB_RCS2)
+		{
+			schedule = new UplinkSchedulingRcs2(this->ret_up_frame_duration_ms,
+				this->pkt_hdl,
+				this->dvb_fifos.at(label),
+				this->output_sts,
+				this->rcs_modcod_def,
+				cat,
+				this->mac_id);
+		}
+		else
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+				"Unable to create the uplink scheduling for standard '%s'\n",
+				this->return_link_std_str.c_str());
+			return false;
+		}
+		if(!schedule || !schedule->init())
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 				"failed to complete the SCHEDULE part of the "
 				"initialisation\n");
 			return false;
 		}
+		
 		this->scheduling.insert(
-			make_pair<string, Scheduling *>((string)label, (Scheduling *)scheduling));
+			make_pair<string, Scheduling *>((string)label, (Scheduling *)schedule));
 	}
 
 	return true;

@@ -240,7 +240,7 @@ class FmtDefinitionTable
 	vol_sym_t kbitsToSym(fmt_id_t id,
 	                     vol_kb_t vol_kb) const;
 
-	void print(void); /// For debug
+	void print(void) const; /// For debug
 };
 
 #endif

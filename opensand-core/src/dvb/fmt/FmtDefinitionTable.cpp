@@ -595,7 +595,7 @@ vol_sym_t FmtDefinitionTable::kbitsToSym(fmt_id_t id,
 }
 
 
-void FmtDefinitionTable::print(void)
+void FmtDefinitionTable::print(void) const
 {
 	fmt_def_table_pos_t it;
 

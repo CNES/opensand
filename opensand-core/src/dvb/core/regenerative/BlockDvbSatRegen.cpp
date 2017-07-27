@@ -287,7 +287,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 			out_fifo = gw->getDataOutStFifo();
 			if(!this->onRcvEncapPacket(packet_copy,
 			                           out_fifo,
-																 0))
+			                           0))
 			{
 				// FIXME a problem occured, we got memory allocation error
 				// or fifo full and we won't empty fifo until next
@@ -303,7 +303,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 				NetPacket *packet_copy_gw = new NetPacket(packet);
 				if(!this->onRcvEncapPacket(packet_copy_gw,
 				                           out_fifo_gw,
-																	 0))
+				                           0))
 				{
 					// FIXME a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
@@ -355,7 +355,7 @@ bool BlockDvbSatRegen::DownwardRegen::handleRcvEncapPacket(NetPacket *packet)
 
 		if(!this->onRcvEncapPacket(packet,
 		                           out_fifo,
-															 0))
+		                           0))
 		{
 			// FIXME a problem occured, we got memory allocation error
 			// or fifo full and we won't empty fifo until next

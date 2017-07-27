@@ -145,7 +145,7 @@ class FmtDefinition
 	/* remove FEC to data length */
 	unsigned int removeFec(unsigned int length) const;
 
-	virtual void print(void); /// For debug
+	virtual void print(void) const; /// For debug
 
 };
 

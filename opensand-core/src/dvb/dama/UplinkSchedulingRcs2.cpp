@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
- * Copyright © 2015 CNES
+ * Copyright © 2016 TAS
+ * Copyright © 2016 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -28,23 +28,68 @@
 
 
 /**
- * @file     ReturnSchedulingRcs2.cpp
- * @brief    The scheduling functions for MAC FIFOs with DVB-RCS2 return link
- * @author   Julien BERNARD <jbernard@toulouse.viveris.com>
- * @author   Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @file     UplinkSchedulingRcs2.cpp
+ * @brief    The scheduling functions for MAC FIFOs with DVB-RCS2 uplink on GW
+ * @author   Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author   Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  */
 
 
-#include "ReturnSchedulingRcs2.h"
+#include "UplinkSchedulingRcs2.h"
+
 #include "MacFifoElement.h"
 #include "OpenSandFrames.h"
+#include "FmtDefinitionTable.h"
+#include "UnitConverterFixedSymbolLength.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_conf/conf.h>
+
+UplinkSchedulingRcs2::UplinkSchedulingRcs2(
+			time_ms_t frame_duration_ms,
+			EncapPlugin::EncapPacketHandler *packet_handler,
+			const fifos_t &fifos,
+			const StFmtSimuList *const ret_sts,
+			const FmtDefinitionTable *const ret_modcod_def,
+			const TerminalCategoryDama *const category,
+			tal_id_t gw_id):
+	UplinkSchedulingRcsCommon(frame_duration_ms,
+		packet_handler,
+		fifos,
+		ret_sts,
+		ret_modcod_def,
+		category,
+		gw_id)
+{
+}
+
+UnitConverter *UplinkSchedulingRcs2::generateUnitConverter() const
+{
+	vol_sym_t length_sym = 0;
+	
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+	                   RCS2_BURST_LENGTH, length_sym))
+	{
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "cannot get '%s' value", RCS2_BURST_LENGTH);
+		return NULL;
+	}
+	if(length_sym == 0)
+	{
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "invalid value '%u' value of '%s", length_sym, RCS2_BURST_LENGTH);
+		return NULL;
+	}
+	LOG(this->log_scheduling, LEVEL_INFO,
+	    "Burst length = %u sym\n", length_sym);
+	
+	return new UnitConverterFixedSymbolLength(this->frame_duration_ms,
+		0, length_sym);
+
+}
 
 typedef enum
 {
-	state_next_fifo,      // Go to the next fifo
-	state_get_fifo,       // Get the fifo
 	state_next_encap_pkt, // Get the next encapsulated packets
 	state_get_chunk,      // Get the next chunk of encapsulated packets
 	state_add_data,       // Add data of the chunk of encapsulated packets
@@ -53,16 +98,12 @@ typedef enum
 	state_error           // Error occurred
 } sched_state_t;
 
-ReturnSchedulingRcs2::ReturnSchedulingRcs2(
-			EncapPlugin::EncapPacketHandler *packet_handler,
-			const fifos_t &fifos):
-	ReturnSchedulingRcsCommon(packet_handler, fifos)
-{
-}
-
-bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
-                                       list<DvbFrame *> *complete_dvb_frames,
-                                       vol_kb_t &remaining_allocation_kb)
+bool UplinkSchedulingRcs2::scheduleEncapPackets(DvbFifo *fifo,
+                                                const time_sf_t current_superframe_sf,
+                                                clock_t current_time,
+                                                std::list<DvbFrame *> *complete_dvb_frames,
+                                                CarriersGroupDama *carriers,
+                                                uint8_t modcod_id)
 {
 	int ret;
 	bool partial_encap;
@@ -70,12 +111,12 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	unsigned int sent_packets;
 	vol_b_t frame_length_b;
 	DvbRcsFrame *incomplete_dvb_frame = NULL;
-	fifos_t::const_iterator fifo_it;
 	NetPacket *encap_packet = NULL;
 	NetPacket *data = NULL;
 	MacFifoElement *elem = NULL;
-	DvbFifo *fifo = NULL;
 	sched_state_t state;
+	vol_pkt_t remaining_allocation_pkt = carriers->getRemainingCapacity();
+	vol_kb_t remaining_allocation_kb = this->converter->pktToKbits(remaining_allocation_pkt);
 
 	LOG(this->log_scheduling, LEVEL_INFO,
 	    "SF#%u: attempt to extract encap packets from MAC"
@@ -84,7 +125,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	    remaining_allocation_kb);
 
 	// create an incomplete DVB-RCS frame
-	if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
+	if(!this->createIncompleteDvbRcsFrame(&incomplete_dvb_frame, modcod_id))
 	{
 		return false;
 	}
@@ -93,51 +134,27 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 
 	// extract encap packets from MAC FIFOs while some UL capacity is available
 	// (MAC fifos priorities are in MAC IDs order)
-	// fifo are classified by priority value (map are ordered)
 	complete_frames_count = 0;
 	sent_packets = 0;
-	fifo_it = this->dvb_fifos.begin();
-	state = state_get_fifo;
+	state = state_next_encap_pkt;
 
 	while (state != state_end && state != state_error)
 	{
 		switch (state)
 		{
-		case state_next_fifo:      // Go to the next fifo
+		case state_next_encap_pkt: // Get the next encapsulated packets
 
-			// Pass to the next fifo
-			++fifo_it;
-			state = state_get_fifo;
-			break;
-
-		case state_get_fifo:        // Get the fifo
-
-			// Check this is not the end of the fifos list
-			if(fifo_it == this->dvb_fifos.end())
+			// Simulate the satellite delay
+			if(fifo->getTickOut() > current_time)
 			{
+				LOG(this->log_scheduling, LEVEL_INFO,
+					"SF#%u: packet is not scheduled for "
+					"the moment, break\n", current_superframe_sf);
+				// this is the first MAC FIFO element that is not ready yet,
+				// there is no more work to do, break now
 				state = state_end;
 				break;
 			}
-
-			// Check the fifo access
-			fifo = (*fifo_it).second;
-			if(fifo->getAccessType() == access_saloha)
-			{
-				// not the good fifo
-				LOG(this->log_scheduling, LEVEL_DEBUG,
-				    "SF#%u: ignore MAC FIFO %s  "
-				    "not the right access type (%d)\n",
-				    current_superframe_sf,
-				    fifo->getName().c_str(),
-				    fifo->getAccessType());
-				state = state_next_fifo;
-				break;
-			}
-
-			state = state_next_encap_pkt;
-			break;
-
-		case state_next_encap_pkt: // Get the next encapsulated packets
 		
 			// Check the encapsulated packets of the fifo
 			if(fifo->getCurrentSize() <= 0)
@@ -147,7 +164,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				    "no data (left) to schedule\n",
 				    current_superframe_sf,
 				    fifo->getName().c_str());
-				state = state_next_fifo;
+				state = state_end;
 				break;
 			}
 
@@ -316,13 +333,11 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				incomplete_dvb_frame = NULL;
 
 				state = state_end;
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[finalize frame] "
-				    "next state = 'end'");
 				break;
 			}
 
 			// Create a new incomplete DVB-RCS2 frame
-			if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
+			if(!this->createIncompleteDvbRcsFrame(&incomplete_dvb_frame, modcod_id))
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: failed to create a new DVB frame\n",
@@ -382,6 +397,9 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 		}
 	}
 
+	remaining_allocation_pkt = this->converter->kbitsToPkt(remaining_allocation_kb);
+	carriers->setRemainingCapacity(remaining_allocation_pkt);
+
 	// Print status
 	LOG(this->log_scheduling, LEVEL_INFO,
 	    "SF#%u: %d packets extracted from MAC FIFOs, "
@@ -391,53 +409,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	    remaining_allocation_kb);
 
 	return true;
-}
 
-bool ReturnSchedulingRcs2::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame)
-{
-	vol_bytes_t length_bytes;
-
-	*incomplete_dvb_frame = new DvbRcsFrame();
-	if(*incomplete_dvb_frame == NULL)
-	{ 
-		LOG(this->log_scheduling, LEVEL_ERROR,
-		    "failed to create DVB-RCS2 frame\n");
-		goto error;
-	}
-
-	// Get the max burst length
-	length_bytes = this->max_burst_length_b >> 3;
-	if(length_bytes <= 0)
-	{
-		delete (*incomplete_dvb_frame);
-		*incomplete_dvb_frame = NULL;
-		LOG(this->log_scheduling, LEVEL_ERROR,
-		    "failed to create DVB-RCS2 frame: invalid burst length\n");
-		goto error;
-	}
-
-	// Add header length
-	length_bytes += (*incomplete_dvb_frame)->getHeaderLength();
-	//length_bytes += sizeof(T_DVB_PHY);
-	if(MSG_DVB_RCS_SIZE_MAX < length_bytes)
-	{
-		length_bytes = MSG_DVB_RCS_SIZE_MAX;
-	}
-
-	// set the max size of the DVB-RCS2 frame, also set the type
-	// of encapsulation packets the DVB-RCS2 frame will contain
-	(*incomplete_dvb_frame)->setMaxSize(length_bytes);
-
-	LOG(this->log_scheduling, LEVEL_DEBUG,
-	    "new DVB-RCS2 frame with max length %u bytes (<= %u bytes), "
-	    "payload length %u bytes, header length %u bytes\n",
-	    (*incomplete_dvb_frame)->getMaxSize(),
-	    MSG_DVB_RCS_SIZE_MAX,
-	    (*incomplete_dvb_frame)->getFreeSpace(),
-	    (*incomplete_dvb_frame)->getHeaderLength());
-	return true;
-
-error:
-	return false;
 }
 
