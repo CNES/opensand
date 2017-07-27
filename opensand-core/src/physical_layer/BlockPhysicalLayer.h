@@ -4,7 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2016 CNES
+ * Copyright © 2017 CNES
+ * Copyright © 2017 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -142,6 +143,9 @@ class BlockPhysicalLayerSat: public BlockPhysicalLayer
 		BlockPhysicalLayer(name, 0)
 	{};
 	
+	// initialization method
+	bool onInit();
+
 	class Upward: public BlockPhysicalLayer::Upward
 	{
 	  public:

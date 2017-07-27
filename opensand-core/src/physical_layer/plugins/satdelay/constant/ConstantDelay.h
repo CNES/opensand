@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 CNES
+ * Copyright © 2017 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -47,6 +47,7 @@ class ConstantDelay: public SatDelayPlugin
 	private:
 		
 		bool is_init;
+		map<string, ConfigurationList> config_section_map;
 
 	public:
 
@@ -65,8 +66,7 @@ class ConstantDelay: public SatDelayPlugin
 		 *
 		 * @return true on success, false otherwise
 		 */
-		bool init(ConfigurationList conf);
-		bool init(time_ms_t delay);
+		bool init();
 
 		/**
 		 * @brief Updates the satellite delay

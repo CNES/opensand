@@ -1,3 +1,9 @@
+opensand-conf (4.2.0) xenial; urgency=low
+
+  * Release 4.2.0
+
+ -- Aurelien Delrieu <adelrieu@toulouse.viveris.com>  Wed, 19 Jul 2017 15:23:42 +0200
+
 opensand-conf (4.1.0) xenial; urgency=low
 
   * Release 4.1.0

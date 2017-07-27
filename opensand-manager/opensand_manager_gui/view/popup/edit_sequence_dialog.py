@@ -6,7 +6,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2016 TAS
+# Copyright © 2017 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -46,7 +46,7 @@ from opensand_manager_gui.view.utils.config_entry import ConfEntry
 
 class EditSequenceDialog(WindowView):
     """ an band configuration window """
-    def __init__(self, line_path, config, host, scenario, changed_cb):
+    def __init__(self, line_path, config, host, scenario, changed_cb, file_cb):
 
         WindowView.__init__(self, None, 'edit_sequence_dialog')
 
@@ -60,7 +60,7 @@ class EditSequenceDialog(WindowView):
         self._host = host
 
         self._changed_cb = changed_cb
-        #self._file_cb = file_cb
+        self._file_cb = file_cb
         
         self._changed = []
         self._removed = []
@@ -151,7 +151,7 @@ class EditSequenceDialog(WindowView):
                           source, 
                           self._host,
                           [self.handle_param_changed],
-                          [])
+                          self._file_cb)
         #self._entries.append(entry)
 
         key_box.pack_start(entry.get())

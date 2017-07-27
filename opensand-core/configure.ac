@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-core, 4.1.0, [http://opensand.org])
+AC_INIT(opensand-core, 4.2.0, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -46,17 +46,17 @@ AC_CHECK_PROG(pkg_config, pkg-config, [yes], [AC_MSG_ERROR([pkg-config not found
 
 
 # check for opensand-conf library
-PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf = 4.1.0])
+PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf = 4.2.0])
 LIBS="$OPENSAND_CONF_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_CONF_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-output library
-PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 4.1.0])
+PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 4.2.0])
 LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-rt library
-PKG_CHECK_MODULES([OPENSAND_RT], [opensand_rt = 4.1.0])
+PKG_CHECK_MODULES([OPENSAND_RT], [opensand_rt = 4.2.0])
 LIBS="$OPENSAND_RT_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_RT_CFLAGS $AM_CPPFLAGS")
 

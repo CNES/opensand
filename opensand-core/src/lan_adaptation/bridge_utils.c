@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2000 Lennert Buytenhek
- * Copyright (C) 2014 CNES
+ * Copyright (C) 2017 CNES
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as

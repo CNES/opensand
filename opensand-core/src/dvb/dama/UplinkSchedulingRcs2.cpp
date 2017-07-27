@@ -71,13 +71,13 @@ UnitConverter *UplinkSchedulingRcs2::generateUnitConverter() const
 	                   RCS2_BURST_LENGTH, length_sym))
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
-		    "cannot get '%s' value", DELAY_BUFFER);
+		    "cannot get '%s' value", RCS2_BURST_LENGTH);
 		return NULL;
 	}
 	if(length_sym == 0)
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
-		    "invalid value '%u' value of '%s", length_sym, DELAY_BUFFER);
+		    "invalid value '%u' value of '%s", length_sym, RCS2_BURST_LENGTH);
 		return NULL;
 	}
 	LOG(this->log_scheduling, LEVEL_INFO,

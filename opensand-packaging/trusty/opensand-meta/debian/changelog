@@ -1,3 +1,9 @@
+opensand-meta (4.2.0) trusty; urgency=low
+
+  * Release 4.2.0
+
+ -- Aurelien Delrieu <adelrieu@toulouse.viveris.com>  Wed, 19 Jul 2017 15:17:07 +0200
+
 opensand-meta (4.1.0) trusty; urgency=low
 
   * Release 4.1.0

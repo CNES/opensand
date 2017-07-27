@@ -4,7 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2016 CNES
+ * Copyright © 2017 CNES
+ * Copyright © 2017 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -287,7 +288,7 @@ class SatDelayPlugin: public OpenSandPlugin
    *
    * @return true on success, false otherwise
    */
-  virtual bool init(ConfigurationList conf) = 0;
+  virtual bool init() = 0;
 
   /**
    * @brief Get the model current sat delay

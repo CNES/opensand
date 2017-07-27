@@ -13,7 +13,7 @@
     <xsd:restriction base="xsd:string" />
 </xsd:simpleType>
 
-<xsd:element name="satdelay_conf">
+<xsd:element name="delay_conf">
     <xsd:complexType>
         <xsd:sequence>
             <xsd:element name="path" type="file">
@@ -40,7 +40,7 @@
 <xsd:element name="configuration">
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element ref="satdelay_conf" />
+            <xsd:element ref="delay_conf" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
     </xsd:complexType>

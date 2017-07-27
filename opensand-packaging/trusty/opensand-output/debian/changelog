@@ -1,3 +1,9 @@
+opensand-output (4.2.0) trusty; urgency=low
+
+  * Release 4.2.0
+
+ -- Aurelien Delrieu <adelrieu@toulouse.viveris.com>  Wed, 19 Jul 2017 15:23:41 +0200
+
 opensand-output (4.1.0) trusty; urgency=low
 
   * Release 4.1.0

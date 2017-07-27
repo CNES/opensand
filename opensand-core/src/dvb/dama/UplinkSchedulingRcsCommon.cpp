@@ -176,8 +176,6 @@ bool UplinkSchedulingRcsCommon::schedule(const time_sf_t current_superframe_sf,
 		// and dividing by the frame number per superframes we have
 		// the rate in packet per frame
 		remaining_capacity_pktpf = this->converter->kbitsToPkt(remaining_capacity_kb);
-		//	floor(((remaining_capacity_kb * 1000) /
-		//	       (this->packet_handler->getFixedLength() * 8)));
 
 		// initialize remaining capacity with total capacity in
 		// packet per superframe as it is the unit used in DAMA computations

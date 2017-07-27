@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2016 TAS
- * Copyright © 2016 CNES
+ * Copyright © 2017 TAS
+ * Copyright © 2017 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -67,7 +67,7 @@ UnitConverter *UplinkSchedulingRcs::generateUnitConverter() const
 {
 	vol_b_t length_b;
 	
-	length_b = this->packet_handler->getFixedLength();
+	length_b = this->packet_handler->getFixedLength() << 3;
 
 	return new UnitConverterFixedBitLength(this->frame_duration_ms,
 		0, length_b);
@@ -101,7 +101,6 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 
 	// create an incomplete DVB-RCS frame
 	if(!this->createIncompleteDvbRcsFrame(&incomplete_dvb_frame, modcod_id))
-	//                                      carriers->getFmtIds().front()))
 	{
 		goto error;
 	}
@@ -168,7 +167,7 @@ bool UplinkSchedulingRcs::scheduleEncapPackets(DvbFifo *fifo,
 
 			// create another incomplete DVB-RCS frame
 			if(!this->createIncompleteDvbRcsFrame(&incomplete_dvb_frame,
-			                                      carriers->getFmtIds().front()))
+			                                      modcod_id))
 			{
 				goto error;
 			}
