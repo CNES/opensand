@@ -112,7 +112,7 @@ Rohc::Context::Context(LanAdaptationPlugin &plugin):
 void Rohc::Context::init()
 {
 	LanAdaptationPlugin::LanAdaptationContext::init();
-	int max_cid;
+	unsigned int max_cid;
 	int max_alloc = 0;
 	rohc_cid_type_t cid_type = ROHC_SMALL_CID;
 	bool status;
