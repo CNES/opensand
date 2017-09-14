@@ -42,7 +42,7 @@ from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.utils.config_elements import ConfigurationNotebook
 from opensand_manager_core.my_exceptions import XmlException, ModelException
 
-(TEXT, VISIBLE, ACTIVE, ACTIVATABLE) = range(4)
+(TEXT, VISIBLE_CHECK_BOX, CHECK_BOX_SIZE, ACTIVE, ACTIVATABLE, VISIBLE, RESTRICTED) = range(7)
 
 class ToolEvent(ToolView):
     """ Events for the tool tab """
@@ -97,12 +97,12 @@ class ToolEvent(ToolView):
 
             self._config_view.hide_all()
         else:
-            self.on_tool_select(iterator)
+            self.on_tool_select(tree, iterator)
                 
-    def on_tool_select(self, iterator):
+    def on_tool_select(self, tree, iterator):
         """ a tool has been selected """
-        tool_name = self._tree.get_value(iterator, TEXT).lower()
-        host_name = self._tree.get_value(self._tree.iter_parent(iterator), TEXT)
+        tool_name = tree.get_value(iterator, TEXT).lower()
+        host_name = tree.get_value(tree.iter_parent(iterator), TEXT)
         host = self._model.get_host(host_name.lower())
 
         tool_model = None
