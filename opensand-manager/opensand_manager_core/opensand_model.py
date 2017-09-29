@@ -828,7 +828,6 @@ class Model:
         """ for compatibility with advanced dialog host calls """
         pass
 
-
 ##### TEST #####
 if __name__ == "__main__":
     import sys

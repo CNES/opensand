@@ -35,76 +35,33 @@
 #ifndef _DAMA_AGENT_RCS_H_
 #define _DAMA_AGENT_RCS_H_
 
-#include "DamaAgent.h"
-#include "UnitConverter.h"
+#include "DamaAgentRcsCommon.h"
 #include "ReturnSchedulingRcs.h"
-#include "CircularBuffer.h"
+#include "FmtDefinitionTable.h"
 
 #include <opensand_output/OutputLog.h>
 
-class DamaAgentRcs : public DamaAgent
+class DamaAgentRcs : public DamaAgentRcsCommon
 {
  public:
-	DamaAgentRcs();
+	DamaAgentRcs(FmtDefinitionTable *ret_modcod_def);
 	virtual ~DamaAgentRcs();
 
-	// Init method
-	bool init();
-
-	// Inherited methods
-	virtual bool processOnFrameTick();
-	virtual bool returnSchedule(list<DvbFrame *> *complete_dvb_frames);
-	virtual bool hereIsSOF(time_sf_t superframe_number_sf);
-	virtual bool hereIsTTP(Ttp *ttp);
-	virtual bool buildSAC(ret_access_type_t cr_type,
-	                      Sac *sac,
-	                      bool &emtpy);
-
  protected:
-	/** Number of allocated timeslots  */
-	time_pkt_t allocated_pkt;
-
-	/** Dynamic allocation in packets number */
-	time_pkt_t dynamic_allocation_pkt;
-	/** Remaining allocation for frames between two SF */
-	rate_pktpf_t remaining_allocation_pktpf;
-
-	/** Circular buffer to store previous RBDC requests */
-	CircularBuffer *rbdc_request_buffer;
-
-	/** Uplink Scheduling functions */
-	ReturnSchedulingRcs *ret_schedule;
-
-	/** Unit converter */
-	UnitConverter* converter;
-
-	/** RBDC timer */
-	time_sf_t rbdc_timer_sf;
-
-	/** The current MODCOD id read in TTP, this is used to inform sat and gw upon
-	 *  frames reception instead of keeping TTP contexts.
-	 *  Only one modcod_id here because we only receive one TTP per allocation */
-	uint8_t modcod_id;
 
 	/**
-	 * @brief Utility function to get total buffer size of all MAC fifos
-	 *        associated to the concerned CR type
+	 * @brief Generate an unit converter
 	 *
-	 * @param cr_type           the type of capacity request
-	 *
-	 * @return                  total buffers size in packes number
+	 * @return                  the generated unit converter
 	 */
-	vol_pkt_t getMacBufferLength(ret_access_type_t cr_type);
+	virtual UnitConverter *generateUnitConverter() const;
+
 	/**
-	 * @brief Utility function to get total number of "last arrived" packets
-	 *        (since last SAC) of all MAC fifos associated to the concerned CR type
-	 *
-	 * @param cr_type            the type of capacity request
-	 *
-	 * @return                  total number of "last arrived" packets"
-	 *                          in packets number
+	 * @brief Generate a return link scheduling specialized to DVB-RCS, DVB-RCS2
+	 *        or other
+	 * @return                  the generated scheduling
 	 */
-	vol_pkt_t getMacBufferArrivals(ret_access_type_t cr_type);
+	ReturnSchedulingRcsCommon *generateReturnScheduling() const;
 
 	/**
 	 * @brief Compute RBDC request
@@ -120,9 +77,6 @@ class DamaAgentRcs : public DamaAgent
 	 *                          ready to be set in SAC field
 	 */
 	virtual vol_pkt_t computeVbdcRequest() = 0;
-
-	/// The MODCOD for emmited frames as received in TTP
-	Probe<int> *probe_st_used_modcod;
 };
 
 #endif

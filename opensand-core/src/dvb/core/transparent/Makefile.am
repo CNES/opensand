@@ -16,7 +16,8 @@ libopensand_dvb_core_transp_la_SOURCES = \
 	$(top_srcdir)/src/dvb/core/SpotDownward.cpp\
 	$(top_srcdir)/src/dvb/core/SpotUpward.cpp
 
-INCLUDES = \
+libopensand_dvb_core_transp_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/utils \
 	-I$(top_srcdir)/src/dvb/utils/ip \
 	-I$(top_srcdir)/src/dvb/dama \

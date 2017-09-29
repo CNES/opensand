@@ -40,7 +40,8 @@ import gtk
 from opensand_manager_core.utils import OPENSAND_PATH, ST, GW
 from opensand_manager_core.my_exceptions import ConfException
 from opensand_manager_gui.view.window_view import WindowView
-from opensand_manager_gui.view.utils.protocol_stack import ProtocolStack
+from opensand_manager_gui.view.utils.protocol_stack import LanAdaptationProtocolStack, \
+                                                           EncapProtocolStack
 from opensand_manager_gui.view.popup.infos import error_popup
 
 IMG_PATH = OPENSAND_PATH + "manager/images/"
@@ -66,13 +67,13 @@ class ConfView(WindowView):
         self._lan_stack_base = None
         self._lan_stack_vbox = self._ui.get_widget('lan_adapt_stack')
 
-        self._out_stack = ProtocolStack(self._ui.get_widget('out_encap_stack'),
-                                        self._model.get_encap_modules(),
-                                        self.on_stack_modif)
+        self._out_stack = EncapProtocolStack(self._ui.get_widget('out_encap_stack'),
+                                             self._model.get_encap_modules(),
+                                             self.on_stack_modif)
 
-        self._in_stack = ProtocolStack(self._ui.get_widget('in_encap_stack'),
-                                       self._model.get_encap_modules(),
-                                       self.on_stack_modif)
+        self._in_stack = EncapProtocolStack(self._ui.get_widget('in_encap_stack'),
+                                            self._model.get_encap_modules(),
+                                            self.on_stack_modif)
 
         self._drawing_area = self._ui.get_widget('repr_stack_links')
         self._drawing_area.connect("expose-event", self.draw_links)
@@ -122,13 +123,19 @@ class ConfView(WindowView):
 
         try:
             # return_up_encap
+            stack_reload = bool(self._out_stack.get_stack() == config.get_return_up_encap())
             self._out_stack.load(config.get_return_up_encap(),
                                  config.get_payload_type(),
-                                 config.get_emission_std())
+                                 config.get_emission_std(),
+                                 config.get_return_link_standard(),
+                                 stack_reload)
             # forward_down_encap
+            stack_reload = bool(self._in_stack.get_stack() == config.get_forward_down_encap())
             self._in_stack.load(config.get_forward_down_encap(),
                                 config.get_payload_type(),
-                                "DVB-S2")
+                                "DVB-S2",
+                                config.get_return_link_standard(),
+                                stack_reload)
         except ConfException, msg:
             error_popup(str(msg))
         # physical layer
@@ -166,11 +173,11 @@ class ConfView(WindowView):
                 header_modif = self._model.get_global_lan_adaptation_modules()
                 modules = dict(host.get_lan_adapt_modules())
                 modules.update(header_modif)
-                stack = ProtocolStack(vbox,
-                                      modules,
-                                      self.on_lan_stack_modif,
-                                      self._ui.get_widget('header_modif_vbox'),
-                                      self._ui.get_widget('frame_header_modif'))
+                stack = LanAdaptationProtocolStack(vbox,
+                                                   modules,
+                                                   self.on_lan_stack_modif,
+                                                   self._ui.get_widget('header_modif_vbox'),
+                                                   self._ui.get_widget('frame_header_modif'))
                 self._lan_stacks[host] = stack
                 try:
                     stack.load(host.get_lan_adaptation())
@@ -205,11 +212,11 @@ class ConfView(WindowView):
             header_modif = self._model.get_global_lan_adaptation_modules()
             modules = dict(host.get_lan_adapt_modules())
             modules.update(header_modif)
-            self._lan_stack_base = ProtocolStack(self._lan_stack_vbox,
-                                                 modules,
-                                                 self.on_lan_stack_modif,
-                                                 self._ui.get_widget('header_modif_vbox'),
-                                                 self._ui.get_widget('frame_header_modif'))
+            self._lan_stack_base = LanAdaptationProtocolStack(self._lan_stack_vbox,
+                                                              modules,
+                                                              self.on_lan_stack_modif,
+                                                              self._ui.get_widget('header_modif_vbox'),
+                                                              self._ui.get_widget('frame_header_modif'))
             try:
                 self._lan_stack_base.load(host.get_lan_adaptation())
             except ConfException, msg:
@@ -410,7 +417,7 @@ class ConfView(WindowView):
         if self.is_lan_adapt_stack_modif():
             self.enable_conf_buttons()
 
-    def enable_conf_buttons(self, enable=True):
+    def enable_conf_buttons(self):
         """ defined in conf_event """
         pass
 

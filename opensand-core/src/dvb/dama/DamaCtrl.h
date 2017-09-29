@@ -40,10 +40,8 @@
 #include "Ttp.h"
 #include "TerminalContextDama.h"
 #include "TerminalCategoryDama.h"
-#include "FmtSimulation.h"
 #include "StFmtSimu.h"
 #include "PepRequest.h"
-#include "UnitConverter.h"
 #include "OpenSandFrames.h"
 #include "Logon.h"
 #include "Logoff.h"
@@ -77,7 +75,6 @@ class DamaCtrl
 	 *
 	 * @param   frame_duration_ms       duration of the frame (in ms).
 	 * @param   with_phy_layer          Whether the physical layer is enabled or not
-	 * @param   packet_length_bytes     The packet length in bytes, for constant length
 	 * @param   rbdc_timeout_sf         RBDC timeout in superframe number.
 	 * @param   fca_kbps                The FCA maximum value (in kbits/s)
 	 * @param   categories              pointer to category list.
@@ -91,7 +88,6 @@ class DamaCtrl
 	 */
 	virtual bool initParent(time_ms_t frame_duration_ms,
 	                        bool with_phy_layer,
-	                        vol_bytes_t packet_length_bytes,
 	                        time_sf_t rbdc_timeout_sf,
 	                        rate_kbps_t fca_kbps,
 	                        TerminalCategories<TerminalCategoryDama> categories,
@@ -144,7 +140,6 @@ class DamaCtrl
 	 * @param   request  PEP request
 	 * @return  true on success, false otherwise
 	 */
-	//virtual bool applyPepCommand(const PepRequest &request) = 0;
 	virtual bool applyPepCommand(const PepRequest* request) = 0;
 
 	/**
@@ -162,6 +157,11 @@ class DamaCtrl
 	 * @param period_ms  The period of statistics refreshing
 	 */
 	void updateStatistics(time_ms_t period_ms);
+	
+	/**
+	 * @brief  Update the required FMTs
+	 */
+	virtual void updateRequiredFmts() = 0;
 
 	/**
 	 * @brief Set the file for simulation statistic and events record
@@ -183,9 +183,42 @@ class DamaCtrl
 	/**
 	 * @brief 	Init the output probes and stats
 	 *
-	 * @return	true if success, false otherwise.
+	 * @return	true on success, false otherwise.
 	 */
 	bool initOutput();
+
+	/**
+	 * @brief  Generate a probe for Gw capacity
+	 *
+	 * @param name            the probe name
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateGwCapacityProbe(
+		string name) const = 0;
+
+	/**
+	 * @brief  Generate a probe for category capacity
+	 *
+	 * @param name            the probe name
+	 * @param category_label  the category label
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateCategoryCapacityProbe(
+		string category_label,
+		string name) const = 0;
+
+	/**
+	 * @brief  Generate a probe for carrier capacity
+	 *
+	 * @param name            the probe name
+	 * @param category_label  the category label
+	 * @param carrier_id      the carrier id
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateCarrierCapacityProbe(
+		string category_label,
+		unsigned int carrier_id,
+		string name) const = 0;
 
 	/**
 	 * @brief  Create a terminal context.
@@ -196,29 +229,68 @@ class DamaCtrl
 	 * @param   max_rbdc_kbps   maximum RBDC value (kb/s).
 	 * @param   rbdc_timeout_sf RBDC timeout (in superframe number).
 	 * @param   max_vbdc_kb     maximum VBDC value (in kbits).
-	 * @return  true if success, false otherwise.
+	 * @return  true on success, false otherwise.
 	 */
 	virtual bool createTerminal(TerminalContextDama **terminal,
 	                            tal_id_t tal_id,
 	                            rate_kbps_t cra_kbps,
 	                            rate_kbps_t max_rbdc_kbps,
 	                            time_sf_t rbdc_timeout_sf,
-	                            vol_pkt_t max_vbdc_kb) = 0;
+	                            vol_kb_t max_vbdc_kb) = 0;
+
+	/**
+	 * @brief compute the Dama, it allocates exactly what have been asked
+	 *        using internal requests, TBTP and contexts.
+	 * After DAMA computation, TBTP is completed and context is reinitialized
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool computeDama();
+
+	/**
+	 * @brief  Reset all terminals allocations.
+	 *
+	 * @return  true on success, false otherwize
+	 */
+	virtual bool resetTerminalsAllocations() = 0;
+
+	/**
+	 * @brief  Reset the capacity of carriers
+	 * 
+	 * @return  true on success, false otherwise
+	 */
+	virtual bool resetCarriersCapacity() = 0;
+
+	/**
+	 * @brief  Update all carriers.
+	 *
+	 * @return  true on success, false otherwise.
+	 */
+	virtual bool updateCarriers() = 0;
 
 	/**
 	 * @brief Run the RBDC computation for DAMA
 	 */
-	virtual bool runDamaRbdc() = 0;
+	virtual bool computeDamaRbdc() = 0;
 
 	/**
 	 * @brief Run the VBDC computation for DAMA
 	 */
-	virtual bool runDamaVbdc() = 0;
+	virtual bool computeDamaVbdc() = 0;
 
 	/**
 	 * @brief Run the FCA computation for DAMA
 	 */
-	virtual bool runDamaFca() = 0;
+	virtual bool computeDamaFca() = 0;
+
+	/**
+	 * @brief Get the context of terminal
+	 * 
+	 * @param tal_id      The terminal id
+	 * @return            The context of the terminal
+	 * 
+	 */
+	virtual TerminalContextDama *getTerminalContext(tal_id_t tal_id) const;
 
 	// Output Log
 	OutputLog *log_init;
@@ -232,8 +304,6 @@ class DamaCtrl
 
 	/** Flag if init of THIS DAMA class (DamaCtrl) has been done */
 	bool is_parent_init;
-
-	UnitConverter *converter;  ///< Used to convert from/to KB to encap packets
 
 	// Helper to simplify context manipulation
 	typedef map<tal_id_t, TerminalContextDama *> DamaTerminalList;
@@ -293,29 +363,6 @@ class DamaCtrl
 	/** Whethter we used simulated requests */
 	bool simulated;
 
-	/**
-	 * @brief run the Dama, it allocates exactly what have been asked
-	 *        using internal requests, TBTP and contexts.
-	 * After DAMA computation, TBTP is completed and context is reinitialized
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool runDama();
-
-	/**
-	 * @brief  Reset all Dama settings.
-	 *
-	 * @return  true on success, false otherwise.
-	 */
-	virtual bool resetDama() = 0;
-
-	/**
-	 * @brief  Update the FMT id for terminal
-	 *
-	 */
-	virtual void updateFmt() = 0;
-
-
 	/// if set to other than NULL, the fd where recording events
 	FILE *event_file;
 
@@ -323,7 +370,6 @@ class DamaCtrl
 
 	typedef map<tal_id_t, Probe<int> *> ProbeListPerTerminal;
 	typedef map<string, Probe<int> *> ProbeListPerCategory;
-	typedef map<string, int> IntListPerCategory;
 	typedef map<unsigned int, Probe<int> *> ProbeListPerCarrier;
 	typedef map<string, ProbeListPerCarrier> ProbeListPerCategoryPerCarrier;
 
@@ -333,7 +379,6 @@ class DamaCtrl
 
 	/* RBDC requested capacity */
 	Probe<int> *probe_gw_rbdc_req_size;
-	int gw_rbdc_req_size_pktpf;
 
 	/* VBDC request number */
 	Probe<int> *probe_gw_vbdc_req_num;
@@ -341,7 +386,6 @@ class DamaCtrl
 
 	/* VBDC requested capacity */
 	Probe<int> *probe_gw_vbdc_req_size;
-	int gw_vbdc_req_size_pkt;
 
 	/* Allocated resources */
 		// CRA
@@ -351,7 +395,6 @@ class DamaCtrl
 	ProbeListPerTerminal probes_st_cra_alloc;
 		// RBDC total
 	Probe<int> *probe_gw_rbdc_alloc;
-	int gw_rbdc_alloc_pktpf;
 		// RBDC by ST
 	ProbeListPerTerminal probes_st_rbdc_alloc;
 		// RBDC max
@@ -361,12 +404,10 @@ class DamaCtrl
 	ProbeListPerTerminal probes_st_rbdc_max;
 		// VBDC	total
 	Probe<int> *probe_gw_vbdc_alloc;
-	int gw_vbdc_alloc_pkt;
 		// VBDC by ST
 	ProbeListPerTerminal probes_st_vbdc_alloc;
 		// FCA total
 	Probe<int> *probe_gw_fca_alloc;
-	int gw_fca_alloc_pktpf;
 		// FCA by ST
 	ProbeListPerTerminal probes_st_fca_alloc;
 
@@ -376,18 +417,16 @@ class DamaCtrl
 
 		// Total and unused capacity
 	Probe<int> *probe_gw_return_total_capacity;
-	int gw_return_total_capacity_pktpf;
 	Probe<int> *probe_gw_return_remaining_capacity;
-	int gw_remaining_capacity_pktpf;
+	int gw_remaining_capacity;
 		// Capacity per category
 	ProbeListPerCategory probes_category_return_capacity;
-	int category_return_capacity_pktpf;
 	ProbeListPerCategory probes_category_return_remaining_capacity;
-	map<string, int> category_return_remaining_capacity_pktpf;
+	map<string, int> category_return_remaining_capacity;
 		// Capacity per carrier
 	ProbeListPerCategoryPerCarrier probes_carrier_return_capacity;
 	ProbeListPerCategoryPerCarrier probes_carrier_return_remaining_capacity;
-	map<string, map<unsigned int, int> >  carrier_return_remaining_capacity_pktpf;
+	map<string, map<unsigned int, int> >  carrier_return_remaining_capacity;
 
 	// Spot ID
 	spot_id_t spot_id;

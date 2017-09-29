@@ -57,7 +57,7 @@ class Scheduling
 {
   public:
 
-	Scheduling(const EncapPlugin::EncapPacketHandler *packet_handler,
+	Scheduling(EncapPlugin::EncapPacketHandler *packet_handler,
 	           const fifos_t &fifos,
 	           const StFmtSimuList *const simu_sts):
 		packet_handler(packet_handler),
@@ -105,7 +105,7 @@ class Scheduling
   protected:
 
 	/** The packet representation */
-	const EncapPlugin::EncapPacketHandler *packet_handler;
+	EncapPlugin::EncapPacketHandler *packet_handler;
 	/** The MAC FIFOs */
 	const fifos_t dvb_fifos;
 	/** The FMT simulated data */

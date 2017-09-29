@@ -38,7 +38,9 @@ conf_event.py - the events on configuration tab
 import gtk
 import gobject
 
-from opensand_manager_core.utils import GW, GSE
+from opensand_manager_core.utils import get_conf_xpath, GSE, RETURN_UP, \
+                                        RETURN_UP_BAND, SPOT, ID, GW, \
+                                        CARRIERS_DISTRIB, ACCESS_TYPE
 from opensand_manager_gui.view.conf_view import ConfView
 from opensand_manager_gui.view.popup.infos import error_popup, yes_no_popup
 from opensand_manager_core.my_exceptions import XmlException, ConfException
@@ -47,10 +49,11 @@ from opensand_manager_gui.view.popup.advanced_dialog import AdvancedDialog
 class ConfEvent(ConfView) :
     """ Events on configuration tab """
 
-    def __init__(self, parent, model, manager_log):
+    def __init__(self, parent, model, manager_log, update_carriers_cb):
         ConfView.__init__(self, parent, model, manager_log)
 
         self._modif = False
+        self._update_carriers_cb = update_carriers_cb
 
         self._previous_img = ''
         # update the image
@@ -59,7 +62,7 @@ class ConfEvent(ConfView) :
         widget = self._ui.get_widget('frame_dvb')
         widget.hide_all()
 
-        gobject.idle_add(self.enable_conf_buttons, False)
+        gobject.idle_add(self.enable_conf_buttons)
 
     def close(self):
         """ close the configuration tab """
@@ -266,9 +269,10 @@ class ConfEvent(ConfView) :
 
         return True
 
-    def enable_conf_buttons(self, enable=True):
+    def enable_conf_buttons(self):
         """ make apply and cancel buttons sensitive or not """
         self._modif = True
+        enable = self.is_modified()
 
         # check if OpenSAND is running
 #        if self._model.is_running():
@@ -357,10 +361,11 @@ class ConfEvent(ConfView) :
             self.update_view()
         except ConfException as msg:
             error_popup(str(msg))
-        self.enable_conf_buttons(False)
+        self.enable_conf_buttons()
 
     def on_save_conf_clicked(self, source=None, event=None):
         """ save the new configuration"""
+
         # retrieve global parameters
 
         # payload type
@@ -389,11 +394,14 @@ class ConfEvent(ConfView) :
             error_popup("Out stack is empty !")
             return
         pos = max(stack.keys())
-        if not modules[stack[pos]].get_condition(emission_std.lower()):
+        conf = modules[stack[pos]].get_config(payload_type.lower(),
+                                              config.get_return_link_standard().lower(),
+                                              emission_std.lower())
+        if conf is None:
             error_popup("Module %s does not support %s link" %
                         (stack[pos], emission_std))
             return
-        if modules[stack[pos]].get_condition('mandatory_down'):
+        if conf.mandatory_down:
             error_popup("Module %s need a lower encapsulation module" %
                         stack[pos])
             return
@@ -402,10 +410,13 @@ class ConfEvent(ConfView) :
             error_popup("In stack is empty !")
             return
         pos = max(stack.keys())
-        if not modules[stack[pos]].get_condition('dvb-s2'):
+        conf = modules[stack[pos]].get_config(payload_type.lower(),
+                                              config.get_return_link_standard().lower(),
+                                              'dvb-s2')
+        if conf is None:
             error_popup("Module %s does not support DVB-S2 link" % stack[pos])
             return
-        if modules[stack[pos]].get_condition('mandatory_down'):
+        if conf.mandatory_down:
             error_popup("Module %s need a lower encapsulation module" %
                         stack[pos])
             return
@@ -472,6 +483,9 @@ class ConfEvent(ConfView) :
                 return 
         config.set_forward_down_encap(self._in_stack.get_stack())
 
+        # update carriers access type
+        self._update_carriers_cb(True)
+
         # enable physical layer
         widget = self._ui.get_widget('enable_physical_layer')
         if widget.get_active():
@@ -492,7 +506,7 @@ class ConfEvent(ConfView) :
 
         
         self.update_view()
-        self.enable_conf_buttons(False)
+        self.enable_conf_buttons()
 
 #    def on_dama_box_changed(self, source=None, event=None):
 #        """ 'change' event callback on dama box """
@@ -516,10 +530,10 @@ class ConfEvent(ConfView) :
         window = AdvancedDialog(self._model, self._log, self.update_view)
         window.go()
         try:
-            gobject.idle_add(self.enable_conf_buttons, False)
+            gobject.idle_add(self.enable_conf_buttons)
         except ConfException as msg:
             error_popup(str(msg))
 
-
-
+        # update carriers access type
+        self._update_carriers_cb(True)
 

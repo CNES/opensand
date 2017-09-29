@@ -329,7 +329,7 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		   "section '%s': missing parameter '%s'\n",
-		   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+		   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
 		return false;
 	}
 
@@ -583,14 +583,14 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						continue;
 					}
 
+					// Update Fmt here for TTP
+					spot->updateFmt();
+
 					if(!spot->handleFrameTimer(this->super_frame_counter))
 					{
 						// do not quit if this fail in one spot
 						continue;
 					}
-
-					// Update Fmt here for TTP
-					spot->updateFmt();
 
 					// send TTP computed by DAMA
 					this->sendTTP(spot);
@@ -1082,7 +1082,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				   "section '%s': missing parameter '%s'\n",
-				   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+				   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
 				return false;
 			}
 

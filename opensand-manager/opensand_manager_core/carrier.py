@@ -38,7 +38,8 @@ carrier.py - Satellite carrier handling
 import numpy as np
 import re
 
-from opensand_manager_core.utils import DAMA, SCPC, ALOHA, VCM, CCM, ACM, S2, RCS
+from opensand_manager_core.utils import DAMA, SCPC, ALOHA, VCM, CCM, ACM, \
+                                        S2, RCS, RCS2, DVB_RCS, DVB_RCS2
 
 class Carrier :
     """
@@ -56,9 +57,8 @@ class Carrier :
                  access_type = 'CCM', fmt_groups = '1', modcod = '1',
                  ratio = '50') :
         self._symbol_rate = symbol_rate
-        # initialize in set_iaccess_type
+        # initialize in set_access_type
         self._access_type = None
-        self._std = None
         self._str_fmt_grp = fmt_groups
         self._str_modcod = modcod
         self._str_ratio = ratio
@@ -144,14 +144,7 @@ class Carrier :
 
     def set_access_type(self, access_type):
         self._access_type = access_type
-        if access_type in [SCPC, CCM, ACM, VCM]:
-            self._std = S2
-        elif access_type in [DAMA, ALOHA]:
-            self._std = RCS
-        else:
-            raise Exception("Unknown access type %s" % access_type)
-
-
+       
     def set_modcod(self, modcod):
         self._str_modcod = modcod
         self._list_modcod = self.parser(modcod)
@@ -201,8 +194,18 @@ class Carrier :
     def get_fmt_groups(self):
         return self._fmt_groups
 
-    def get_std(self):
-        return self._std
+    def get_std(self, return_link_standard):
+        std = None
+        if self._access_type in [SCPC, CCM, ACM, VCM]:
+            std = S2
+        elif self._access_type in [DAMA, ALOHA]:
+            if return_link_standard == DVB_RCS2:
+                std = RCS2
+            else:
+                std = RCS
+        else:
+            raise Exception("Unknown access type %s" % self._access_type)
+        return std
 
     def get_x(self):
         return self._X

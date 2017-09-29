@@ -91,10 +91,11 @@ class View(WindowView):
             self._eventrun = RunEvent(self.get_current(), self._model,
                                       dev_mode, adv_mode, self._log,
                                       service_type)
-            self._eventconf = ConfEvent(self.get_current(),
-                                        self._model, self._log)
             self._eventresource = ResourceEvent(self.get_current(),
                                                 self._model, self._log)
+            self._eventconf = ConfEvent(self.get_current(),
+                                        self._model, self._log, 
+                                        self._eventresource.update_view)
             self._eventtool = ToolEvent(self.get_current(),
                                         self._model, self._log)
             self._eventprobe = ProbeEvent(self.get_current(),
@@ -500,7 +501,7 @@ class View(WindowView):
         try:
             self._eventconf.update_view()
             self._eventconf.read_conf_free_spot()
-            self._eventconf.enable_conf_buttons(False)
+            self._eventconf.enable_conf_buttons()
             self._eventresource.update_scenario()
         except ConfException as msg:
             error_popup(str(msg))
@@ -555,7 +556,7 @@ class View(WindowView):
         try:
             self._eventconf.update_view()
             self._eventconf.read_conf_free_spot()
-            self._eventconf.enable_conf_buttons(False)
+            self._eventconf.enable_conf_buttons()
             self._eventresource.update_scenario()
         except ConfException as msg:
             error_popup(str(msg))

@@ -2,6 +2,8 @@ noinst_LTLIBRARIES = libopensand_dvb_utils.la
 
 libopensand_dvb_utils_la_cpp = \
 	UnitConverter.cpp \
+	UnitConverterFixedBitLength.cpp \
+	UnitConverterFixedSymbolLength.cpp \
 	Sac.cpp \
 	Ttp.cpp \
 	Logon.cpp \
@@ -28,6 +30,8 @@ libopensand_dvb_utils_la_cpp = \
 
 libopensand_dvb_utils_la_h = \
 	UnitConverter.h \
+	UnitConverterFixedBitLength.h \
+	UnitConverterFixedSymbolLength.h \
 	Sac.h \
 	Ttp.h \
 	Logon.h \
@@ -61,6 +65,7 @@ libopensand_dvb_utils_la_SOURCES = \
 	$(libopensand_dvb_utils_la_cpp) \
 	$(libopensand_dvb_utils_la_h)
 
-INCLUDES = \
+libopensand_dvb_utils_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dvb/fmt

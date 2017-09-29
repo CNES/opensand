@@ -40,7 +40,7 @@ from fractions import Fraction
 from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, \
         OPENSAND_PATH, ID, FMT_ID, FMT_GROUP, \
         RATIO, ACCESS_TYPE, SYMBOL_RATE, CATEGORY, \
-        RCS, S2
+        RCS, RCS2, S2 
 from opensand_manager_core.carrier import Carrier, find_category
 
 XSD = OPENSAND_PATH + "core_global.xsd"
@@ -61,7 +61,10 @@ class CarriersBand():
         self._carriers_groups = {}
         self._fmt_group = {}
         self._fmt = {S2: {},
-                     RCS: {},}
+                     RCS: {},
+                     RCS2: {},
+                    }
+        self._return_link_std = None
 
     def parse(self, link, config, KEY):
         """ parse configuration and get results """
@@ -95,9 +98,10 @@ class CarriersBand():
                                 content[FMT_ID])
 
 
-    def modcod_def(self, scenario, config, compute=True):
+    def modcod_def(self, scenario, config, return_link_standard, compute=True):
         # ACM
-        for std in [RCS, S2]:
+        self._return_link_std = return_link_standard
+        for std in [RCS, RCS2, S2]:
             xpath = "//modcod_def_%s" % (std)
             elem = config.get(xpath)
             name = config.get_name(elem)
@@ -117,13 +121,13 @@ class CarriersBand():
                     line.startswith('nb_fmt')):
                     continue
                 elts = line.split()
-                if len(elts) != 5:
+                if len(elts) != 5 and len(elts) != 6:
                     continue
                 if not elts[0].isdigit:
                     continue
                 # id, modulation, coding_rate, spectral_efficiency, required Es/N0
                 # fmt[7] = _Fmt("QPSK", "6/7", 1.714, 9.34)
-                fmt[int(elts[0])] = _Fmt(elts[1], elts[2],
+                fmt[int(elts[0])] = _Fmt(int(elts[0]), elts[1], elts[2],
                                          float(elts[3]), float(elts[4]))
             self._fmt[std] = fmt
 
@@ -173,7 +177,8 @@ class CarriersBand():
                         raise KeyError(group)
 
                     for fmt_id in self._fmt_group[group]:
-                        if not fmt_id in self._fmt[carrier.get_std()]:
+                        std = carrier.get_std(self._return_link_std)
+                        if not fmt_id in self._fmt[std]:
                             raise KeyError(fmt_id)
 
     def compute(self):
@@ -213,9 +218,9 @@ class CarriersBand():
             rs = carrier.get_symbol_rate() * ratio / sum(carrier.get_ratio())
             max_fmt = max(self._fmt_group[carrier.get_fmt_groups()[i]])
             min_fmt = min(self._fmt_group[carrier.get_fmt_groups()[i]])
-            fmt = self._fmt[carrier.get_std()][max_fmt]
+            fmt = self._fmt[carrier.get_std(self._return_link_std)][max_fmt]
             max_br = rs * fmt.modulation * fmt.coding_rate
-            fmt = self._fmt[carrier.get_std()][min_fmt]
+            fmt = self._fmt[carrier.get_std(self._return_link_std)][min_fmt]
             min_br = rs * fmt.modulation * fmt.coding_rate
             br.append((min_br, max_br))
             i += 1
@@ -232,7 +237,7 @@ class CarriersBand():
             for ratio in carrier.get_ratio():
                 rs = carrier.get_symbol_rate() * ratio / sum(carrier.get_ratio())
                 max_fmt = max(self._fmt_group[carrier.get_fmt_groups()[i]])
-                fmt = self._fmt[carrier.get_std()][max_fmt]
+                fmt = self._fmt[carrier.get_std(self._return_link_std)][max_fmt]
                 br = rs * fmt.modulation * fmt.coding_rate
                 bitrate += br * carrier.get_nb_carriers()
                 i += 1
@@ -249,7 +254,7 @@ class CarriersBand():
             for ratio in carrier.get_ratio():
                 rs = carrier.get_symbol_rate() * ratio / sum(carrier.get_ratio())
                 min_fmt = min(self._fmt_group[carrier.get_fmt_groups()[i]])
-                fmt = self._fmt[carrier.get_std()][min_fmt]
+                fmt = self._fmt[carrier.get_std(self._return_link_std)][min_fmt]
                 br = rs * fmt.modulation * fmt.coding_rate
                 bitrate += br * carrier.get_nb_carriers()
                 i += 1
@@ -300,11 +305,16 @@ class CarriersBand():
 class _Fmt():
     """ A FMT definition """
 
-    def __init__(self, modulation, coding_rate, spectral_efficiency,
-                 required_es_n0):
+    def __init__(self, index, modulation, coding_rate, 
+                 spectral_efficiency, required_es_n0):
+        self._index = index
         self._modulation = modulation
         self._coding_rate = Fraction(coding_rate)
         self._spectral_efficiency = spectral_efficiency
+
+    @property
+    def index(self):
+        return self._index
 
     @property
     def modulation(self):
@@ -315,10 +325,12 @@ class _Fmt():
             return 2
         elif self._modulation == "8PSK":
             return 3
-        elif self._modulation == "16APSK":
+        elif self._modulation in ["16APSK", "16QAM"]:
             return 4
         elif self._modulation == "32APSK":
             return 5
+        msg = "Unknown modulation \"{}\"".format(self._modulation)
+        raise Exception(msg)
 
     @property
     def coding_rate(self):

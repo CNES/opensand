@@ -86,7 +86,7 @@ static size_t getPayloadSize(string coding_rate)
 
 
 ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
-                                         const EncapPlugin::EncapPacketHandler *packet_handler,
+                                         EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
                                          const StFmtSimuList *const fwd_sts,
                                          const FmtDefinitionTable *const fwd_modcod_def,
@@ -461,7 +461,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		NetPacket *encap_packet;
 		tal_id_t tal_id;
 		NetPacket *data;
-		NetPacket *remaining_data;
+		bool partial_encap;
 
 		// simulate the satellite delay
 		if(fifo->getTickOut() > current_time)
@@ -535,11 +535,11 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		    sent_packets + 1, complete_dvb_frames->size(),
 		    this->incomplete_bb_frames.size());
 
-		// get the part of the packet to store in the BBFrame
-		ret = this->packet_handler->getChunk(encap_packet,
-		                                     current_bbframe->getFreeSpace(),
-		                                     &data, &remaining_data);
-		// use case 4 (see @ref getChunk)
+		// Encapsulate packet
+		ret = this->packet_handler->encapNextPacket(encap_packet,
+			current_bbframe->getFreeSpace(),
+			partial_encap,
+			&data);
 		if(!ret)
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
@@ -547,75 +547,9 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			    "#%u\n", current_superframe_sf,
 			    sent_packets + 1);
 			delete elem;
+			delete encap_packet;
 		}
-		// use cases 1 (see @ref getChunk)
-		else if(data && !remaining_data)
-		{
-			if(!current_bbframe->addPacket(data))
-			{
-				LOG(this->log_scheduling, LEVEL_ERROR,
-				    "SF#%u: failed to add encapsulation "
-				    "packet #%u->in BB frame with MODCOD ID %u "
-				    "(packet length %zu, free space %zu",
-				    current_superframe_sf,
-				    sent_packets + 1,
-				                current_bbframe->getModcodId(),
-				                data->getTotalLength(),
-				                current_bbframe->getFreeSpace());
-				goto error_fifo_elem;
-			}
-			// delete the NetPacket once it has been copied in the BBFrame
-			delete data;
-			sent_packets++;
-			// destroy the element
-			delete elem;
-		}
-		// use case 2 (see @ref getChunk)
-		else if(data && remaining_data)
-		{
-			if(!current_bbframe->addPacket(data))
-			{
-				LOG(this->log_scheduling, LEVEL_ERROR,
-				    "SF#%u: failed to add encapsulation "
-				    "packet #%u in BB frame with MODCOD ID %u "
-				    "(packet length %zu, free space %zu",
-				    current_superframe_sf,
-				    sent_packets + 1,
-				                current_bbframe->getModcodId(),
-				                data->getTotalLength(),
-				                current_bbframe->getFreeSpace());
-				goto error_fifo_elem;
-			}
-			// delete the NetPacket once it has been copied in the BBFrame
-			delete data;
-
-			// replace the fifo first element with the remaining data
-			elem->setElem(remaining_data);
-			fifo->pushFront(elem);
-
-			LOG(this->log_scheduling, LEVEL_INFO,
-			    "SF#%u: packet fragmented, there is "
-			    "still %zu bytes of data\n",
-			    current_superframe_sf,
-			    remaining_data->getTotalLength());
-		}
-		// use case 3 (see @ref getChunk)
-		else if(!data && remaining_data)
-		{
-			// replace the fifo first element with the remaining data
-			elem->setElem(remaining_data);
-			fifo->pushFront(elem);
-
-			// keep the NetPacket in the fifo
-			LOG(this->log_scheduling, LEVEL_INFO,
-			    "SF#%u: not enough free space in BBFrame "
-			    "(%zu bytes) for %s packet (%zu bytes)\n",
-			    current_superframe_sf,
-			    current_bbframe->getFreeSpace(),
-			    this->packet_handler->getName().c_str(),
-			                encap_packet->getTotalLength());
-		}
-		else
+		if(!data && !partial_encap)
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
 			    "SF#%u: bad getChunk function "
@@ -624,13 +558,61 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			    sent_packets + 1);
 			assert(0);
 			delete elem;
+			delete encap_packet;
+		}
+		if(data)
+		{
+			// Add data
+			if(!current_bbframe->addPacket(data))
+			{
+				LOG(this->log_scheduling, LEVEL_ERROR,
+				    "SF#%u: failed to add encapsulation "
+				    "packet #%u->in BB frame with MODCOD ID %u "
+				    "(packet length %zu, free space %zu)",
+				    current_superframe_sf,
+				    sent_packets + 1,
+				    current_bbframe->getModcodId(),
+				    data->getTotalLength(),
+				    current_bbframe->getFreeSpace());
+				goto error_fifo_elem;
+			}
+
+			if(partial_encap)
+			{
+				LOG(this->log_scheduling, LEVEL_INFO,
+				    "SF#%u: packet fragmented",
+				    current_superframe_sf);
+			}
+			// delete the NetPacket once it has been copied in the BBFrame
+			delete data;
+			sent_packets++;
+		}
+		else
+		{
+			LOG(this->log_scheduling, LEVEL_INFO,
+			    "SF#%u: not enough free space in BBFrame "
+			    "(%zu bytes) for %s packet (%zu bytes)\n",
+			    current_superframe_sf,
+			    current_bbframe->getFreeSpace(),
+			    this->packet_handler->getName().c_str(),
+			    encap_packet->getTotalLength());
+		}
+		if(partial_encap)
+		{
+			// Re-insert packet
+			fifo->pushFront(elem);
+		}
+		else
+		{
+			// Delete packet	
+			delete elem;
+			delete encap_packet;
 		}
 
 		// the BBFrame has been completed or the next packet is too long
 		// add the BBFrame in the list of complete BBFrames and decrease
 		// duration credit
-		if(current_bbframe->getFreeSpace() <= 0 ||
-		   remaining_data != NULL)
+		if(current_bbframe->getFreeSpace() <= 0 || partial_encap)
 		{
 			ret = this->addCompleteBBFrame(complete_dvb_frames,
 			                               current_bbframe,

@@ -246,6 +246,7 @@ bool BlockEncap::onInit()
 	string downlink_encap_proto;
 	string lan_name;
 	string sat_type;
+	string ret_lnk_std;
 	ConfigurationList option_list;
 	vector <EncapPlugin::EncapContext *> up_return_ctx;
 	vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
@@ -274,6 +275,20 @@ bool BlockEncap::onInit()
 	((Upward *)this->upward)->setMacId(this->mac_id);
 	((Upward *)this->upward)->setSatelliteType(this->satellite_type);
 
+	// return link standard
+	if (!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		                RETURN_LINK_STANDARD,
+		                ret_lnk_std))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    COMMON_SECTION, RETURN_LINK_STANDARD);
+		goto error;
+	}
+
+	LOG(this->log_init, LEVEL_INFO,
+	    "return link standard = \"%s\"\n", ret_lnk_std.c_str());
+	
 	// Retrieve last packet handler in lan adaptation layer
 	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
 		                     LAN_ADAPTATION_SCHEME_LIST,
@@ -307,34 +322,34 @@ bool BlockEncap::onInit()
 
 	if (!OpenSandConf::isGw(this->mac_id))
 	{
+		bool no_scpc = !this->checkIfScpc();
+		
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Going to check if Tal with id:  %d is in Scpc mode\n",
 		    this->mac_id);
 
-		if(this->checkIfScpc())
+		LOG(this->log_init, LEVEL_INFO,
+			"SCPC mode %savailable for ST%d - BlockEncap \n", 
+			no_scpc ? "not " : "",
+			this->mac_id);
+		if (no_scpc)
 		{
-			LOG(this->log_init, LEVEL_INFO,
-			    "SCPC mode available for ST %d - BlockEncap \n", this->mac_id);
-			if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST, 
-			                          lan_plugin, up_return_ctx,
-			                          "return/up", true)) 
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "Cannot get Up/Return GSE Encapsulation context");
-				goto error;
-			}
-		}
-	
-		else
-		{
-			LOG(this->log_init, LEVEL_INFO,
-			    "SCPC mode not available for ST%d - BlockEncap \n", this->mac_id);
 			if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST,
-			                         lan_plugin, up_return_ctx,
-			                         "return/up", false)) 
+			                          lan_plugin, up_return_ctx,
+			                          "return/up")) 
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Cannot get Up/Return Encapsulation context");
+				goto error;
+			}
+		}
+		else
+		{
+			if(!this->getSCPCEncapContext(lan_plugin, up_return_ctx,
+			                              ret_lnk_std, "return/up")) 
+			{
+				LOG(this->log_init, LEVEL_ERROR,
+				    "Cannot get Return Encapsulation context");
 				goto error;
 			}
 		}
@@ -345,19 +360,18 @@ bool BlockEncap::onInit()
 		{
 			LOG(this->log_init, LEVEL_NOTICE,
 			    "SCPC mode available - BlockEncap");
-			if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST, 
-			                          lan_plugin, up_return_ctx_scpc,
-			                          "return/up", true)) 
+			if(!this->getSCPCEncapContext(lan_plugin, up_return_ctx_scpc,
+			                              ret_lnk_std, "return/up")) 
 			{
 				LOG(this->log_init, LEVEL_ERROR,
-				    "Cannot get Up/Return GSE Encapsulation context");
+				    "Cannot get SCPC Up/Return Encapsulation context");
 				goto error;
 			}
 		}
 
 		if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST, 
 		                          lan_plugin, up_return_ctx,
-		                          "return/up", false)) 
+		                          "return/up")) 
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Cannot get Up/Return Encapsulation context");
@@ -367,7 +381,7 @@ bool BlockEncap::onInit()
 
 	if(!this->getEncapContext(FORWARD_DOWN_ENCAP_SCHEME_LIST,
 	                          lan_plugin, down_forward_ctx,
-	                          "forward/down", false)) 
+	                          "forward/down")) 
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Cannot get Down/Forward Encapsulation context");
@@ -609,6 +623,17 @@ void BlockEncap::Upward::setContext(const std::vector<EncapPlugin::EncapContext 
 void BlockEncap::Upward::setSCPCContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx_scpc)
 {
 	this->ctx_scpc = encap_ctx_scpc;
+	if (0 < this->ctx_scpc.size())
+	{
+		this->scpc_encap = this->ctx_scpc[0]->getName();
+	}
+	else
+	{
+		this->scpc_encap = "";
+	}
+	LOG(this->log_init, LEVEL_DEBUG,
+		"SCPC encapsulation lower item: \"%s\"\n",
+		this->scpc_encap.c_str());
 }
 
 void BlockEncap::Upward::setMacId(tal_id_t id)
@@ -640,7 +665,7 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 	    "message contains a burst of %d %s packet(s)\n",
 	    nb_bursts, burst->name().c_str());
 
-	if(burst->name() == "GSE" &&
+	if(burst->name() == this->scpc_encap &&
 	   OpenSandConf::isGw(this->mac_id) &&
 	   this->satellite_type == TRANSPARENT)
 	{
@@ -730,26 +755,22 @@ bool BlockEncap::checkIfScpc()
 bool BlockEncap::getEncapContext(const char *scheme_list,
 	                             LanAdaptationPlugin *l_plugin,
 	                             vector <EncapPlugin::EncapContext *> &ctx,
-	                             const char *link_type, bool scpc_scheme)
+	                             const char *link_type)
 {
 	StackPlugin *upper_encap = NULL;
 	EncapPlugin *plugin;
 	int encap_nbr = 1;
 	int i;
 	
-	
-	if(!scpc_scheme)
+	// get the number of encapsulation context if Tal is not in SCPC mode
+	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
+							 scheme_list,
+							 encap_nbr))
 	{
-		// get the number of encapsulation context if Tal is not in SCPC mode
-		if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
-		                         scheme_list,
-		                         encap_nbr))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "Section %s, %s missing\n", COMMON_SECTION,
-			    scheme_list);
-			goto error;
-		}
+		LOG(this->log_init, LEVEL_ERROR,
+			"Section %s, %s missing\n", COMMON_SECTION,
+			scheme_list);
+		goto error;
 	}
 
 	upper_encap = l_plugin;
@@ -761,25 +782,14 @@ bool BlockEncap::getEncapContext(const char *scheme_list,
 		string encap_name;
 		EncapPlugin::EncapContext *context;
 		
-		// If Tal is in SCPC mode, only GSE is allowed
-		if(!scpc_scheme)
+		if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
+								 scheme_list, POSITION, toString(i),
+								 ENCAP_NAME, encap_name))
 		{
-			if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
-			                         scheme_list, POSITION, toString(i),
-			                         ENCAP_NAME, encap_name))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "Section %s, invalid value %d for parameter '%s'\n",
-				    COMMON_SECTION, i, POSITION);
-				goto error;
-			}
-		}
-		else
-		{
-			encap_name = "GSE";
-			LOG(this->log_init, LEVEL_INFO,
-			    "Setting the encapsulation to %s because SCPC is %d\n",
-			    encap_name.c_str(), scpc_scheme);
+			LOG(this->log_init, LEVEL_ERROR,
+				"Section %s, invalid value %d for parameter '%s'\n",
+				COMMON_SECTION, i, POSITION);
+			goto error;
 		}
 
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
@@ -813,7 +823,69 @@ bool BlockEncap::getEncapContext(const char *scheme_list,
 	
 	error:
 		return false;
+}
 
+bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
+	                                 vector <EncapPlugin::EncapContext *> &ctx,
+	                                 string return_link_std,
+	                                 const char *link_type)
+{
+	vector<string> scpc_encap;
+	vector<string>::iterator ite;
+	StackPlugin *upper_encap = NULL;
+	EncapPlugin *plugin;
+	string encap_name;
+
+	// Get SCPC encapsulation context
+	if (!OpenSandConf::getScpcEncapStack(return_link_std, scpc_encap) ||
+		scpc_encap.size() <= 0)
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+			"cannot get SCPC encapsulation names\n");
+		goto error;
+	}
+
+	upper_encap = l_plugin;
+
+	// get all the encapsulation to use upper to lower
+	for(ite = scpc_encap.begin(); ite != scpc_encap.end(); ++ite)
+	{
+		EncapPlugin::EncapContext *context;
+		
+		encap_name = *ite;
+
+		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get plugin for %s encapsulation\n",
+			    encap_name.c_str());
+			goto error;
+		}
+
+		context = plugin->getContext();
+		ctx.push_back(context);
+		if(!context->setUpperPacketHandler(
+					upper_encap->getPacketHandler(),
+					this->satellite_type))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "upper encapsulation type %s is not supported "
+			    "for %s encapsulation",
+			    upper_encap->getName().c_str(),
+			    context->getName().c_str());
+			goto error;
+		}
+		upper_encap = plugin;
+		
+		LOG(this->log_init, LEVEL_INFO,
+		    "add %s encapsulation layer: %s\n",
+		    upper_encap->getName().c_str(), link_type);
+	}
+
+	return true;
+	
+	error:
+		return false;
 }
 
 // TODO try to factorize or remove

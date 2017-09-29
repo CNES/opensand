@@ -42,6 +42,7 @@
 
 #include "DamaAgentRcsLegacy.h"
 #include "DamaAgentRcsRrmQos.h"
+#include "DamaAgentRcs2Legacy.h"
 #include "TerminalCategoryDama.h"
 #include "ScpcScheduling.h"
 #include "SlottedAlohaPacketData.h"
@@ -235,6 +236,13 @@ bool BlockDvbTal::Downward::onInit(void)
 	                                           "Dvb.QoSServer");
 	this->log_frame_tick = Output::registerLog(LEVEL_WARNING, 
 	                                           "Dvb.DamaAgent.FrameTick");
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+	
 	if(!this->initFmt())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -643,8 +651,9 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// init fmt_simu
-	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            &this->rcs_modcod_def))
+	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
+	                            &this->rcs_modcod_def,
+	                            this->req_burst_length))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");
@@ -822,7 +831,21 @@ bool BlockDvbTal::Downward::initDama(void)
 		    "SF#%u: create Legacy DAMA agent\n",
 		    this->super_frame_counter);
 
-		this->dama_agent = new DamaAgentRcsLegacy();
+		if(this->return_link_std == DVB_RCS)
+		{
+			this->dama_agent = new DamaAgentRcsLegacy(this->rcs_modcod_def);
+		}
+		else if(this->return_link_std == DVB_RCS2)
+		{
+			this->dama_agent = new DamaAgentRcs2Legacy(this->rcs_modcod_def);
+		}
+		else
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot create DAMA agent: algo named '%s' is not "
+			    "managed by current MAC layer\n", dama_algo.c_str());
+			goto error;
+		}
 	}
 	else if(dama_algo == "RrmQos")
 	{
@@ -830,7 +853,17 @@ bool BlockDvbTal::Downward::initDama(void)
 		    "SF#%u: create RrmQos DAMA agent\n",
 		    this->super_frame_counter);
 
-		this->dama_agent = new DamaAgentRcsRrmQos();
+		if(this->return_link_std == DVB_RCS)
+		{
+			this->dama_agent = new DamaAgentRcsRrmQos(this->rcs_modcod_def);
+		}
+		else
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot create DAMA agent: algo named '%s' is not "
+			    "managed by current MAC layer\n", dama_algo.c_str());
+			goto error;
+		}
 	}
 	else
 	{
@@ -1079,7 +1112,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
 	ConfigurationList current_spot;
-	
+
 	// init scpc_fmt_simu
 	// TODO: we take forward because we need S2
 	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
@@ -1188,9 +1221,8 @@ bool BlockDvbTal::Downward::initScpc(void)
 		goto error;
 	}
 	   
-	//Initialise Encapsulation scheme
-	if(!this->initPktHdl("GSE",
-	                     &this->pkt_hdl, true))
+	// Initialise Encapsulation scheme
+	if(!this->initScpcPktHdl(&this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed get packet handler\n");
@@ -2395,6 +2427,13 @@ bool BlockDvbTal::Upward::onInit(void)
 		return false;
 	}
 
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+	
 	if(!this->initFmt())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

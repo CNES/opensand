@@ -78,7 +78,7 @@ DvbRcsFrame::DvbRcsFrame():
 	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
 
 	// no data given as input, so create the DVB-RCS header
-	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
+	this->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
 	this->setMessageLength(sizeof(T_DVB_ENCAP_BURST));
 	this->setMessageType(MSG_TYPE_DVB_BURST);
 	this->frame()->qty_element = 0; // no encapsulation packet at the beginning
@@ -90,16 +90,13 @@ DvbRcsFrame::~DvbRcsFrame()
 
 bool DvbRcsFrame::addPacket(NetPacket *packet)
 {
-	bool is_added;
-
-	is_added = DvbFrameTpl<T_DVB_ENCAP_BURST>::addPacket(packet);
-	if(is_added)
+	if(!DvbFrameTpl<T_DVB_ENCAP_BURST>::addPacket(packet))
 	{
-		this->setMessageLength(this->getMessageLength() + packet->getTotalLength());
-		this->frame()->qty_element = htons(this->num_packets);
+		return false;
 	}
-
-	return is_added;
+	this->setMessageLength(this->getMessageLength() + packet->getTotalLength());
+	this->frame()->qty_element = htons(this->num_packets);
+	return true;
 }
 
 // TODO not used => remove ?!

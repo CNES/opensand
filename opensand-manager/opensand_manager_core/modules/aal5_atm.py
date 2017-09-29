@@ -41,12 +41,16 @@ class Aal5AtmModule(EncapModule):
     _name = 'AAL5/ATM'
     
     def __init__(self):
-        EncapModule.__init__(self)
-        self._handle_upper_bloc = True
+        super(Aal5AtmModule, self).__init__()
         self._xml = None
         self._xsd  = None
         start = "<span size='x-large' foreground='#1088EB'><b>"
         end = "</b></span>"
         self._description = "%sAAL5/ATM encapsulation plugin for OpenSAND%s" % \
                             (start, end)
-        self._condition['dvb-s2'] = False
+        self._add_config(self.TRANSPARENT, self.DVB_RCS, self.RETURN_LINK,
+                         False, True)
+        self._add_config(self.REGENERATIVE, self.DVB_RCS, self.FORWARD_LINK,
+                         False, True)
+        self._add_config(self.REGENERATIVE, self.DVB_RCS, self.RETURN_LINK,
+                         False, True)

@@ -29,7 +29,8 @@ libopensand_ip_lan_adapt_plugin_la_LIBADD = \
  
 pluginsdir = $(libdir)/opensand/plugins
 
-INCLUDES = \
+libopensand_ip_lan_adapt_plugin_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/lan_adaptation
 

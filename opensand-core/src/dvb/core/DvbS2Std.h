@@ -77,7 +77,7 @@ class DvbS2Std: public PhysicStd
 	 *
 	 * @param packet_handler the packet handler
 	 */
-	DvbS2Std(const EncapPlugin::EncapPacketHandler *const pkt_hdl);
+	DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl);
 
 	/**
 	 * Build a DVB-S2 Transmission Standard
@@ -86,7 +86,7 @@ class DvbS2Std: public PhysicStd
 	 * @param packet_handler the packet handler
 	 */
 	DvbS2Std(string type,
-	         const EncapPlugin::EncapPacketHandler *const pkt_hdl);
+	         EncapPlugin::EncapPacketHandler *pkt_hdl);
 
 	/**
 	 * Destroy the DVB-S2 Transmission Standard
@@ -155,6 +155,6 @@ class DvbS2Std: public PhysicStd
 class DvbScpcStd: public DvbS2Std
 {
   public:
-	DvbScpcStd(const EncapPlugin::EncapPacketHandler *const pkt_hdl);
+	DvbScpcStd(EncapPlugin::EncapPacketHandler *pkt_hdl);
 };
 #endif

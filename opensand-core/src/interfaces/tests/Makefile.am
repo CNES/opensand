@@ -12,7 +12,8 @@ EXTRA_DIST = \
 test_tap_SOURCES = \
   test_tap_write.c
 
-INCLUDES = \
+test_tap_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/lan_adaptation
   
 test_tap_LDFLAGS =

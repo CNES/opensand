@@ -3,7 +3,8 @@ SUBDIRS = tests
 bin_PROGRAMS = opensand_interfaces
 
 
-INCLUDES = \
+opensand_interfaces_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/lan_adaptation
 
 opensand_interfaces_SOURCES = opensand_interfaces.c

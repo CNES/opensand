@@ -197,7 +197,7 @@ class Sac: public DvbFrameTpl<T_DVB_SAC>
 	 *
 	 * @return  the requets
 	 */
-	vector<cr_info_t> getRequets(void) const;
+	vector<cr_info_t> getRequests(void) const;
 
 	/**
 	 * @brief Get the C/N0 ratio

@@ -30,6 +30,7 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
+# Author: Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
 
 """
 global_configuration.py - the global configuration description
@@ -39,7 +40,8 @@ import os
 import shutil
 
 from opensand_manager_core.utils import OPENSAND_PATH, \
-                                        SPOT, ID, GW, SAT
+                                        SPOT, ID, GW, \
+                                        SAT, DAMA
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import XmlException, ModelException
@@ -56,7 +58,7 @@ class GlobalConfig(AdvancedHostModel):
         self._payload_type = ''
         self._delay_type = ''
         self._emission_std = ''
-#        self._dama = ''
+        #self._dama = ''
         self._forward_down = {}
         self._return_up = {}
         self._enable_phy_layer = None
@@ -107,7 +109,7 @@ class GlobalConfig(AdvancedHostModel):
         try:
             self._configuration.set_value(self._payload_type,
                                           "//satellite_type")
-#            self._configuration.set_value(self._dama, "//dama_algorithm")
+            #self._configuration.set_value(self._dama, "//dama_algorithm")
             self.set_stack('forward_down_encap_schemes',
                            self._forward_down, 'encap')
             self.set_stack('return_up_encap_schemes',
@@ -186,6 +188,14 @@ class GlobalConfig(AdvancedHostModel):
         """ get the payload_type value """
         return self.get_param('satellite_type')
 
+    def get_return_link_standard(self):
+        """ get the return_link_std value """
+        return self.get_param('return_link_standard')
+
+    def get_rcs2_burst_length(self):
+        """ get the rcs2_burst_length value """
+        return self.get_param('rcs2_burst_length')
+    
     def set_delay_type(self, val):
         """ set the delay_type value """
         self._delay_type = val
@@ -254,7 +264,3 @@ class GlobalConfig(AdvancedHostModel):
             except:
                 pass
         return val
-
-        
-
-

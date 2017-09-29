@@ -31,6 +31,7 @@
  * @file FmtDefinitionTable.h
  * @brief The table of definitions of FMTs
  * @author Julien BERNARD / Viveris Technologies
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef FMT_DEFINITION_TABLE_H
@@ -49,7 +50,6 @@ using std::string;
 
 typedef map<fmt_id_t, FmtDefinition *>::const_iterator fmt_def_table_pos_t;
 
-
 /**
  * @class FmtDefinitionTable
  * @brief The table of definitions of FMTs
@@ -61,33 +61,18 @@ class FmtDefinitionTable
 	/** The internal map that stores all the FMT definitions */
 	map<fmt_id_t, FmtDefinition *> definitions;
 
-
- 	/**
-	 * @brief Get the modulation and the codage
-	 *
-	 * @param id      The id of the FMT definition we want information for
-	 * @param mod     OUT: The modulation
-	 * @param cod     OUT: The codage
-	 * @return        true on success, false otherwise
-	 * 
-	 * @warning Be sure that the ID is valid before calling the fonction
-	 */
-	bool getModCod(fmt_id_t id,
-	               unsigned int &mod,
-	               float &cod) const;
-
-	/**
-	 * @brief Get a FMT definition in the table
-	 *
-	 * @param id  The definition ID
-	 * @return  the definition
-	 */
-	FmtDefinition *getFmtDef(fmt_id_t id) const;
-
  protected:
 
 	// Output Log
 	OutputLog *log_fmt;
+
+	/**
+	 * @brief Add a new FMT definition in the table
+	 *
+	 * @param fmt_def  the new FMT
+	 * @return         true if the addition is successful, false otherwise
+	 */
+	bool add(FmtDefinition *fmt_def);
 
  public:
 
@@ -99,33 +84,16 @@ class FmtDefinitionTable
 	/* destroy a table of FMT definitions */
 	~FmtDefinitionTable();
 
-
 	/**** operations ****/
 
 	/**
 	 * @brief Load FMT definition table from file
 	 *
-	 * @param filename  the name of the file to load FMT definitions from
-	 * @return          true if definitions are successfully loaded, false otherwise
+	 * @param filename       the name of the file to load FMT definitions from
+	 * @param burst_length   the burst length to load in symbol
+	 * @return               true if definitions are successfully loaded, false otherwise
 	 */
-	bool load(const string filename);
-
-	/**
-	 * @brief Add a new FMT definition in the table
-	 *
-	 * @param id                   the ID of the FMT
-	 * @param modulation           the type of modulation of the FMT
-	 * @param coding_rate          the coding rate of the FMT
-	 * @param spectral_efficiency  the spectral efficiency of the FMT
-	 * @param required_Es_N0        the required carrier to noise ratio
-	 *                             of the FMT
-	 * @return                     true if the addition is successful, false otherwise
-	 */
-	bool add(const fmt_id_t id,
-	         const string modulation,
-	         const string coding_rate,
-	         const float spectral_efficiency,
-	         const double required_Es_N0);
+	bool load(const string filename, vol_sym_t req_burst_length = 0);
 
 	/**
 	 * @brief Does a FMT definition with the given ID exist ?
@@ -140,7 +108,6 @@ class FmtDefinitionTable
 	 */
 	void clear();
 
-
 	/**** accessors ****/
 
 	/**
@@ -151,15 +118,23 @@ class FmtDefinitionTable
 	map<fmt_id_t, FmtDefinition* > getDefinitions(void) const;
 
 	/**
-	 * @brief Get the modulation of the FMT definition
+	 * @brief Get a FMT definition in the table
+	 *
+	 * @param id  The definition ID
+	 * @return  the definition
+	 */
+	FmtDefinition *getDefinition(fmt_id_t id) const;
+
+	/**
+	 * @brief Get the modulation efficiency of the FMT definition
 	 *        whose ID is given as input
 	 *
 	 * @param id  the ID of the FMT definition we want information for
-	 * @return    the type of modulation of the FMT
+	 * @return    the modulation efficiency of the FMT
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	modulation_type_t getModulation(fmt_id_t id) const;
+	unsigned int getModulationEfficiency(fmt_id_t id) const;
 
 	/**
 	 * @brief Get the coding rate of the FMT definition
@@ -170,7 +145,7 @@ class FmtDefinitionTable
 	 *
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
-	string getCodingRate(fmt_id_t id) const;
+	float getCodingRate(fmt_id_t id) const;
 
 	/**
 	 * @brief Get the spectral efficiency of the FMT definition
@@ -195,6 +170,28 @@ class FmtDefinitionTable
 	double getRequiredEsN0(fmt_id_t id) const;
 
 	/**
+	 * @brief Get the burst length presence status of the FMT definition
+	 *        whose ID is given as input
+	 *
+	 * @param id  the ID of the FMT definition we want information for
+	 * @return    the burst length presence status of the FMT
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	bool hasBurstLength(fmt_id_t id) const;
+
+	/**
+	 * @brief Get the burst length of the FMT definition
+	 *        whose ID is given as input
+	 *
+	 * @param id  the ID of the FMT definition we want information for
+	 * @return    the burst length of the FMT in symbols
+	 *
+	 * @warning Be sure sure that the ID is valid before calling the function
+	 */
+	vol_sym_t getBurstLength(fmt_id_t id) const;
+	
+	/**
 	 * @brief Get the best required MODCOD according to the Es/N0 ratio
 	 *        given as input
 	 *
@@ -202,6 +199,13 @@ class FmtDefinitionTable
 	 * @return    the best required MODCOD ID, most robust if no MODCOD is found
 	 */
 	fmt_id_t getRequiredModcod(double cni) const;
+
+	/**
+	 * @brief  Get the lowest definition ID
+	 *
+	 * @return the lowest definition ID
+	 */
+	fmt_id_t getMinId() const;
 
 	/**
 	 * @brief  Get the highest definition ID
@@ -215,28 +219,28 @@ class FmtDefinitionTable
 	 *        whose ID is given as input
 	 *
 	 * @param id       the ID of the FMT definition we want information for
-	 * @param val_sym  the value in symbols (per ...)
+	 * @param vol_sym  the value in symbols (per ...)
 	 * @return    the value converted in kbits (per ...)
 	 *
 	 * @warning Be sure that the ID is valid before calling the function
 	 */
 	vol_kb_t symToKbits(fmt_id_t id,
-	                    vol_sym_t val_sym) const;
+	                    vol_sym_t vol_sym) const;
 
 	/**
 	 * @brief Convert a value in kbits for the FMT definition
 	 *        whose ID is given as input
 	 *
 	 * @param id       the ID of the FMT definition we want information for
-	 * @param val_kbits  the value in kbits (per ...)
+	 * @param vol_kb   the value in kbits (per ...)
 	 * @return    the value converted in symbol (per ...)
 	 *
 	 * @warning Be sure that the ID is valid before calling the function
 	 */
 	vol_sym_t kbitsToSym(fmt_id_t id,
-	                     vol_kb_t val_kbits) const;
+	                     vol_kb_t vol_kb) const;
 
-	void print(void); /// For debug
+	void print(void) const; /// For debug
 };
 
 #endif

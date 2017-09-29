@@ -66,7 +66,7 @@ class PhysicStd
  protected:
 
     /** The packet representation */
-	const EncapPlugin::EncapPacketHandler *packet_handler;
+	EncapPlugin::EncapPacketHandler *packet_handler;
 
  public:
 
@@ -77,7 +77,7 @@ class PhysicStd
 	 * @param pkt_hdl  the packet handler
 	 */
 	PhysicStd(string type,
-	          const EncapPlugin::EncapPacketHandler *const pkt_hdl);
+	          EncapPlugin::EncapPacketHandler *pkt_hdl);
 
 	/**
 	 * Destroy the Physical Transmission Standard
@@ -104,9 +104,6 @@ class PhysicStd
 	virtual bool onRcvFrame(DvbFrame *dvb_frame,
 	                        tal_id_t tal_id,
 	                        NetBurst **burst) = 0;
-
-
-
 };
 
 #endif

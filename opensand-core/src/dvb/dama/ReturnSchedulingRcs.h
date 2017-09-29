@@ -37,7 +37,7 @@
 #ifndef _RETURN_SCHEDULING_RCS_H_
 #define _RETURN_SCHEDULING_RCS_H_
 
-#include "Scheduling.h"
+#include "ReturnSchedulingRcsCommon.h"
 #include "DvbRcsFrame.h"
 
 #include <opensand_output/OutputLog.h>
@@ -46,33 +46,30 @@
  * @class ReturnSchedulingRcs
  * @brief Scheduling functions for MAC FIFOs with DVB-RCS return link
  */
-class ReturnSchedulingRcs: public Scheduling
+class ReturnSchedulingRcs: public ReturnSchedulingRcsCommon
 {
   public:
 
-	ReturnSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
+	ReturnSchedulingRcs(EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos);
 
-	bool schedule(const time_sf_t current_superframe_sf,
-	              clock_t current_time,
-	              list<DvbFrame *> *complete_dvb_frames,
-	              uint32_t &remaining_allocation);
+	virtual ~ReturnSchedulingRcs() {};
 
-  private:
+  protected:
 
 	/**
 	 * @brief schedule the DVB packets that are stored in the MAC Fifo
 	 *
 	 * @param current_superframe_sf        the current superframe (for logging)
 	 * @param complete_dvb_frames          a list of completed DVB frames
-	 * @param remaining_allocation_pktpf  the remaining allocated packets after
+	 * @param remaining_allocation_kb      the remaining allocated data length after
 	 *                                     scheduling on the current superframe
 	 *
 	 * @return true on success, false otherwise
 	 */
 	bool macSchedule(const time_sf_t current_superframe_sf,
 	                 list<DvbFrame *> *complete_dvb_frames,
-	                 rate_pktpf_t &remaining_allocation_pktpf);
+	                 vol_kb_t &remaining_allocation_kb);
 
 	/**
 	 * @brief Allocate a new DVB frame

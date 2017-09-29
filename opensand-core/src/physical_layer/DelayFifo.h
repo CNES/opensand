@@ -63,11 +63,7 @@ class DelayFifo
 	 *
 	 * @param max_size_pkt  the fifo maximum size
 	 */
-	DelayFifo(vol_pkt_t max_size_pkt);
-
-	DelayFifo():
-  	DelayFifo(10000)
-	{};
+	DelayFifo(vol_pkt_t max_size_pkt = 10000);
 
 	~DelayFifo();
 

@@ -79,7 +79,10 @@ CATEGORY    = "category"
 
 # Band
 RCS               = "rcs"
+RCS2              = "rcs2"
 S2                = "s2"
+DVB_RCS           = "DVB-RCS"
+DVB_RCS2          = "DVB-RCS2"
 FORWARD_DOWN      = "forward_down"
 RETURN_UP         = "return_up"
 FMT_GROUPS        = "fmt_groups"
@@ -106,6 +109,7 @@ FORWARD_DOWN_BAND = "forward_down_band"
 PHYSICAL_LAYER    = "physical_layer"
 
 GSE      = "GSE"
+RLE      = "RLE"
 AAL5_ATM = "AAL5/ATM"
 
 # Topology

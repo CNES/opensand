@@ -162,7 +162,7 @@ class SatGw: public DvbFmt
 	 * @return true on success, false otherwise
 	 */
 	bool initScheduling(time_ms_t fwd_timer_ms,
-	                    const EncapPlugin::EncapPacketHandler *pkt_hdl,
+	                    EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                    const TerminalCategoryDama *const st_category,
 	                    const TerminalCategoryDama *const gw_category);
 	
@@ -176,9 +176,10 @@ class SatGw: public DvbFmt
 	/**
 	 * @brief Read configuration for the different files and open them
 	 *
+	 * @param return_link_standard the return link standard (DVB-RCS or DVB-RCS2)
 	 * @return  true on success, false otherwise
 	 */
-	bool initModcodSimu(void);
+	bool initModcodSimu(return_link_standard_t return_link_standard);
 	
 	/**
 	 * @brief Initialize the ACM loop margins

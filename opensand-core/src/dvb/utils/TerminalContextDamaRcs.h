@@ -30,6 +30,7 @@
  * @file TerminalContextDamaRcs.h
  * @brief The terminal allocations
  * @author Julien Bernard / Viveris Technologies
+ * @author Aurelien DELRIEU <adelrieutoulouse.viveris.com>
  *
  */
 
@@ -39,7 +40,6 @@
 #include "TerminalContextDama.h"
 
 #include "OpenSandCore.h"
-#include "UnitConverter.h"
 
 /**
  * @class TerminalContextDamaRcs
@@ -52,197 +52,69 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	                       rate_kbps_t cra_kbps,
 	                       rate_kbps_t max_rbdc_kbps,
 	                       time_sf_t rbdc_timeout_sf,
-	                       vol_kb_t min_vbdc_kb,
-	                       const UnitConverter *converter);
+	                       vol_kb_t max_vbdc_kb);
 
 	virtual ~TerminalContextDamaRcs();
 
 	/**
-	 * @brief  Update the CRA value.
-	 *         (update the kbps and pktpf values)
+	 * @brief Get the required FMT of the terminal
 	 *
-	 * @param cra_kbps  The CRA value (kbits/s)
+	 * @return the required FMT
 	 */
-	void setCra(rate_kbps_t cra_kbps);
+	FmtDefinition *getRequiredFmt() const;
 
 	/**
-	 * @brief  Get the CRA value.
+	 * @brief Set the required FMT of the terminal
 	 *
-	 * @return cra_kbps  The CRA value (kbits/s)
+	 * @param fmt_def  The required FMT of the terminal
 	 */
-	rate_kbps_t getCra();
+	virtual void setRequiredFmt(FmtDefinition *fmt);
 
 	/**
-	 * @brief  Update the RBDC max value.
-	 *         (update the kbps and pktpf values)
+	 * @brief Get the current FMT ID of the terminal
 	 *
-	 * @param max_rbdc_kbps  The RBDC max value (kbits/s)
+	 * @return the ID of FMT
 	 */
-	void setMaxRbdc(rate_kbps_t max_rbdc_kbps);
+	unsigned int getFmtId() const;
 
 	/**
-	 * @brief  Get the RBDC max value.
+	 * @brief Get the current FMT of the terminal
 	 *
-	 * @return max_rbdc_kbps  The RBDC max value (kbits/s)
+	 * @return the FMT
 	 */
-	rate_kbps_t getMaxRbdc();
+	FmtDefinition *getFmt() const;
 
 	/**
-	 * @brief  Update the RBDC timeout value.
+	 * @brief Set the current FMT of the terminal
 	 *
-	 * @param rbdc_timeout_sf  The timeout value (supeframe number)
+	 * @param fmt_def  The current FMT of the terminal
 	 */
-	void setRbdcTimeout(time_sf_t rbdc_timeout_sf);
+	virtual void setFmt(FmtDefinition *fmt);
 
 	/**
-	 * @brief  Set the RBDC request value.
-	 *         The timer, timeout credit and initial request are initialised
+	 * @brief Get the current carriers group for the terminal
 	 *
-	 * @param  rbdc_request_pktpf  The capacity request
+	 * @return the ID of the carriers group
 	 */
-	void setRequiredRbdc(rate_pktpf_t rbdc_request_pktpf);
+	unsigned int getCarrierId() const;
 
 	/**
-	 * @brief Get the ST RBDC request
+	 * @brief Set the current carriers group for the terminal
 	 *
-	 * @return The RBDC request value (packets per superframe).
+	 * @param carrier_id  The current carriers group
 	 */
-	rate_pktpf_t getRequiredRbdc() const;
-
-	/**
-	 * @brief  Set the RBDC allocation after DAMA computation.
-	 *         The unit should be the unit for Ttp assignment_count
-	 *
-	 * @param  rbdc_alloc  The RBDC allocation
-	 */
-	void setRbdcAllocation(uint16_t alloc);
-
-	/**
-	 * @brief  Add a credit to the request credit.
-	 *
-	 * @param  credit_pktpf  the credit to add
-	 */
-	void addRbdcCredit(rate_pktpf_t credit_pktpf);
-
-	/**
-	 * @brief  Get the currecnt RBDC credit
-	 *
-	 * @return  the RBDC credit in packets per superframe
-	 */
-	rate_pktpf_t getRbdcCredit();
-
-	/**
-	 * @brief  Set the VBDC request value.
-	 *         The VBDC request are cumulated
-	 *
-	 * @param  vbdc_request_pktpf  The capacity request
-	 */
-	void setRequiredVbdc(vol_pkt_t vbdc_request_pkt);
-
-	/**
-	 * @brief  Set the VBDC allocation after DAMA computation.
-	 *         The unit should be the unit for Ttp assignment_count
-	 *
-	 * @param  vbdc_alloc        The VBDC allocation (packets)
-	 */
-	void setVbdcAllocation(vol_pkt_t vbdc_alloc_pkt);
-
-	/**
-	 * @brief Get the ST VBDC request
-	 *
-	 * @return The VBDC request value (packets).
-	 */
-	vol_pkt_t getRequiredVbdc() const;
-
-	/**
-	 * @brief Set the FCA allocation after DAMA computation
-	 *
-	 * @param fca_alloc_pktpf  The FCA allocation (packets per superframe).
-	 */
-	void setFcaAllocation(rate_pktpf_t fca_alloc_pktpf);
-
-	/**
-	 * @brief Get the FCA allocation after DAMA computation
-	 *
-	 * @return fca_alloc_pktpf  The FCA allocation (packets per superframe).
-	 */
-	rate_pktpf_t getFcaAllocation();
-
-	/**
-	 * @brief Get the total rate allocation
-	 *
-	 * @return the total rate allocation (in packets per superframe)
-	 */
-	rate_pktpf_t getTotalRateAllocation();
-
-	/**
-	 * @brief Get the total volume allocation
-	 *
-	 * @return the total volume allocation (in kb)
-	 */
-	vol_pkt_t getTotalVolumeAllocation();
-
-	/**
-	 * @brief Functor to sort terminals by descending remaining credit
-	 *
-	 * @param e1  first terminal
-	 * @param e2  second terminal
-	 * @return true if remaining credit of e1 is greater than e2
-	 */
-	static bool sortByRemainingCredit(const TerminalContextDamaRcs *e1,
-	                                  const TerminalContextDamaRcs *e2);
-
-	/**
-	 * @brief Functor to sort terminals by descending VBDC Request
-	 *
-	 * @param e1  first terminal
-	 * @param e2  second terminal
-	 * @return true if VBDC request of e1 is greater than e2
-	 */
-	static bool sortByVbdcReq(const TerminalContextDamaRcs *e1,
-	                          const TerminalContextDamaRcs *e2);
-
-	// inherited from TerminalContextDama
-	void onStartOfFrame();
-
+	void setCarrierId(unsigned int carrier_id);
 
  protected:
 
-	/** the RBDC credit: the decimal part of RBDC that may remain
-	 *  after DAMA computation */
-	double rbdc_credit_pktpf;
+	/** The required FMT */
+	FmtDefinition *req_fmt_def;
 
-	/** The timer for RBDC requests: initialized to rbdc_timeout_sf each request
-	 *  and decreased on each SOF */
-	time_sf_t timer_sf;
+	/** The FMT */
+	FmtDefinition *fmt_def;
 
-	/** the RBDC request */
-	rate_pktpf_t rbdc_request_pktpf;
-
-	/** The RBDC allocation */
-	rate_pktpf_t rbdc_alloc_pktpf;
-
-	/** the VBDC request */
-	vol_pkt_t vbdc_request_pkt;
-
-	/** The VBDC allocation */
-	vol_pkt_t vbdc_alloc_pkt;
-
-	/** The FCA allocation */
-	rate_pktpf_t fca_alloc_pktpf;
-
-	/** CRA for the terminal converted to used unit (paquets per superframe) */
-	rate_kbps_t cra_pktpf;
-
-	/** Maximum RBDC value converted to used unit (paquets per superframe) */
-	rate_kbps_t max_rbdc_pktpf;
-
-	/** The maximum VBDC value converted to used unit (paquets) */
-	vol_pkt_t max_vbdc_pkt;
-
-	/** The unit converter */
-	const UnitConverter *converter;
-
+	/** The carrier ID */
+	unsigned int carrier_id;
 };
 
 #endif

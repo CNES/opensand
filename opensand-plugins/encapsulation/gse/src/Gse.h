@@ -146,8 +146,6 @@ class Gse: public EncapPlugin
 		size_t getFixedLength() const {return 0;};
 		size_t getMinLength() const {return 3;};
 		size_t getLength(const unsigned char *data) const;
-		bool getChunk(NetPacket *packet, size_t remaining_length,
-		              NetPacket **data, NetPacket **remaining_data) const;
 		bool getSrc(const Data &data, tal_id_t &tal_id) const;
 		bool getQos(const Data &data, qos_t &qos) const;
 
@@ -161,7 +159,11 @@ class Gse: public EncapPlugin
 
 		bool getHeaderExtensions(const NetPacket *packet,
 		                         string callback,
-		                         void *opaqie);
+		                         void *opaque);
+
+	  protected:
+		bool getChunk(NetPacket *packet, size_t remaining_length,
+		              NetPacket **data, NetPacket **remaining_data) const;
 	};
 
 	/// Constructor

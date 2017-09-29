@@ -52,48 +52,62 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 
  public:
 
-	DamaCtrlRcsLegacy(spot_id_t spot);
+	DamaCtrlRcsLegacy(spot_id_t spot, vol_b_t packet_length_b);
 	virtual ~DamaCtrlRcsLegacy();
 
  private:
-	///RBDC allocation
-	bool runDamaRbdc();
-	/// VBDC allocation
-	bool runDamaVbdc();
-	/// FCA allocation
-	bool runDamaFca();
-	/// reset DAMA
-	bool resetDama();
 
+	/// initialize
 	virtual bool init();
 
+	 ///  Reset the capacity of carriers
+	virtual bool resetCarriersCapacity();
+
+	/// RBDC allocation
+	virtual bool computeDamaRbdc();
+
+	/// VBDC allocation
+	virtual bool computeDamaVbdc();
+
+	/// FCA allocation
+	virtual bool computeDamaFca();
 
 	/**
 	 * @brief Compute RBDC per carriers group
 	 *
-	 * @param carriers  The carrier group
-	 * @param category  The terminal category containing the carrier
+	 * @param carriers           The carrier group
+	 * @param category           The terminal category containing the carrier
+	 * @param request_rate_kbps  The requested rate in kbit/s
+	 * @param alloc_rate_kbps    The allocated rate in kbit/s
 	 */
-	void runDamaRbdcPerCarrier(CarriersGroupDama *carriers,
-	                           const TerminalCategoryDama *category);
+	void computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
+	                               const TerminalCategoryDama *category,
+	                               rate_kbps_t &request_rate_kbps,
+	                               rate_kbps_t &alloc_rate_kbps);
 
 	/**
 	 * @brief Compute VBDC per carriers group
 	 *
-	 * @param carriers  The carrier group
-	 * @param category  The terminal category containing the carrier
+	 * @param carriers        The carrier group
+	 * @param category        The terminal category containing the carrier
+	 * @param request_vol_kb  The requested volume in kbit
+	 * @param alloc_vol_kb    The allocated volume in kbit
 	 */
-	void runDamaVbdcPerCarrier(CarriersGroupDama *carriers,
-	                           const TerminalCategoryDama *category);
+	void computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
+	                               const TerminalCategoryDama *category,
+	                               vol_kb_t &request_vol_kb,
+	                               vol_kb_t &alloc_vol_kb);
 
 	/**
 	 * @brief Compute FCA per carriers group
 	 *
-	 * @param carriers  The carrier group
-	 * @param category  The terminal category containing the carrier
+	 * @param carriers           The carrier group
+	 * @param category           The terminal category containing the carrier
+	 * @param alloc_rate_kbps    The allocated rate in kbit/s
 	 */
-	void runDamaFcaPerCarrier(CarriersGroupDama *carriers,
-	                          const TerminalCategoryDama *category);
+	void computeDamaFcaPerCarrier(CarriersGroupDama *carriers,
+	                              const TerminalCategoryDama *category,
+	                              rate_kbps_t &alloc_rate_kbps);
 
 };
 

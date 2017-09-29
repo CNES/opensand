@@ -38,6 +38,8 @@
 #define _TERMINAL_CONTEXT_DAMA_H_
 
 #include "TerminalContext.h"
+#include "UnitConverter.h"
+#include "FmtDefinition.h"
 
 /**
  * @class TerminalContextDama
@@ -53,11 +55,11 @@ class TerminalContextDama: public TerminalContext
 	/**
 	 * @brief  Create a terminal context for DAMA
 	 *
-	 * @param  tal_id          terminal id.
-	 * @param  cra_kbps        terminal CRA (kb/s).
-	 * @param  max_rbdc_kbps   maximum RBDC value (kb/s).
-	 * @param  rbdc_timeout_sf RBDC timeout (in superframe number).
-	 * @param  max_vbdc_kb     maximum VBDC value (kb).
+	 * @param  tal_id           terminal id.
+	 * @param  cra_kbps         terminal CRA (kb/s).
+	 * @param  max_rbdc_kbps    maximum RBDC value (kb/s).
+	 * @param  rbdc_timeout_sf  RBDC timeout (in superframe number).
+	 * @param  max_vbdc_kb      maximum VBDC value (kb).
 	 */
 	TerminalContextDama(tal_id_t tal_id,
 	                    rate_kbps_t cra_kbps,
@@ -66,11 +68,18 @@ class TerminalContextDama: public TerminalContext
 	                    vol_kb_t max_vbdc_kb);
 	virtual ~TerminalContextDama();
 
+	/**
+	 * @brief  Update the RBDC timeout value.
+	 *
+	 * @param rbdc_timeout_sf  The timeout value (supeframe number)
+	 */
+	void updateRbdcTimeout(time_sf_t rbdc_timeout_sf);
+
 	/** @brief  Set the terminal CRA
 	 *
 	 * @param  The new CRA value (kb/s).
 	 */
-	virtual void setCra(rate_kbps_t cra_kbps);
+	void setCra(rate_kbps_t cra_kbps);
 
 	/**
 	 * @brief   Get the terminal CRA.
@@ -83,7 +92,7 @@ class TerminalContextDama: public TerminalContext
 	 *
 	 * @param  max_rbdc_kbps The new max RBDC value (kb/s)
 	 */
-	virtual void setMaxRbdc(rate_kbps_t max_rbdc_kbps);
+	void setMaxRbdc(rate_kbps_t max_rbdc_kbps);
 
 	/**
 	 * @brief   Get the terminal max RBDC value.
@@ -100,39 +109,147 @@ class TerminalContextDama: public TerminalContext
 	vol_kb_t getMaxVbdc() const;
 
 	/**
-	 * @brief  Called on SoF emission.
+	 * @brief  Set the RBDC request value.
+	 *         The timer, timeout credit and initial request are initialised
 	 *
-	 * @return  true on succes, false otherwise.
+	 * @param  rbdc_request_kbps  The capacity request
 	 */
-	virtual void onStartOfFrame() = 0;
+	void setRequiredRbdc(rate_kbps_t rbdc_request_kbps);
 
 	/**
-	 * @brief Get the current FMT ID of the terminal
+	 * @brief Get the ST RBDC request
 	 *
-	 * @return the ID of FMT
+	 * @return The RBDC request value (kbps).
 	 */
-	unsigned int getFmtId();
+	rate_kbps_t getRequiredRbdc() const;
 
 	/**
-	 * @brief Set the current FMT ID of the terminal
+	 * @brief  Set the RBDC allocation after DAMA computation.
+	 *         The unit should be the unit for Ttp assignment_count
 	 *
-	 * @param fmt_id  The current FMT ID of the terminal
+	 * @param  rbdc_alloc  The RBDC allocation in kb/s
 	 */
-	void setFmtId(unsigned int fmt_id);
+	void setRbdcAllocation(rate_kbps_t alloc);
 
 	/**
-	 * @brief Get the current carriers group for the terminal
+	 * @brief  get the RBDC allocation after DAMA computation
+	 *         The unit should be the unit for Ttp assignment_count
 	 *
-	 * @return the ID of the carriers group
+	 * @return             The RBDC allocation in kb/s
 	 */
-	unsigned int getCarrierId();
+	rate_kbps_t getRbdcAllocation() const;
 
 	/**
-	 * @brief Set the current carriers group for the terminal
+	 * @brief  Add a credit to the request credit.
 	 *
-	 * @param carrier_id  The current carriers group
+	 * @param  credit  the credit to add
 	 */
-	void setCarrierId(unsigned int carrier_id);
+	void addRbdcCredit(double credit);
+
+	/**
+	 * @brief  Get the current RBDC credit
+	 *
+	 * @return  the RBDC credit
+	 */
+	double getRbdcCredit() const;
+
+	/**
+	 * @brief  Set a credit to the request credit
+	 *
+	 * @param  credit  the new credit
+	 */
+	void setRbdcCredit(double credit_kbps);
+
+	/**
+	 * @brief  Get the timer
+	 *
+	 * @return  the timer
+	 */
+	time_sf_t getTimer() const;
+
+	/**
+	 * @brief  Decrement the timer
+	 */
+	void decrementTimer();
+
+	/**
+	 * @brief  Set the VBDC request value.
+	 *         The VBDC request are cumulated
+	 *
+	 * @param  vbdc_request_kb  The capacity request
+	 */
+	void setRequiredVbdc(vol_kb_t vbdc_request_kb);
+
+	/**
+	 * @brief  Set the VBDC allocation after DAMA computation.
+	 *         The unit should be the unit for Ttp assignment_count
+	 *
+	 * @param  vbdc_alloc        The VBDC allocation (kb)
+	 */
+	void setVbdcAllocation(vol_kb_t vbdc_alloc_kb);
+
+	/**
+	 * @brief  get the VBDC allocation after DAMA computation
+	 *         The unit should be the unit for Ttp assignment_count
+	 *
+	 * @return             The VBDC allocation in kb
+	 */
+	vol_kb_t getVbdcAllocation() const;
+
+	/**
+	 * @brief Get the ST VBDC request
+	 *
+	 * @return The VBDC request value (kb).
+	 */
+	vol_kb_t getRequiredVbdc() const;
+	
+	/**
+	 * @brief Set the FCA allocation after DAMA computation
+	 *
+	 * @param fca_alloc_kbps  The FCA allocation (kb/s).
+	 */
+	void setFcaAllocation(rate_kbps_t fca_alloc_kbps);
+
+	/**
+	 * @brief Get the FCA allocation after DAMA computation
+	 *
+	 * @return fca_alloc_kbps  The FCA allocation (kb/s).
+	 */
+	rate_kbps_t getFcaAllocation() const;
+
+	/**
+	 * @brief Get the total rate allocation
+	 *
+	 * @return the total rate allocation (kb/s)
+	 */
+	rate_kbps_t getTotalRateAllocation() const;
+
+	/**
+	 * @brief Get the total volume allocation
+	 *
+	 * @return the total volume allocation (kb)
+	 */
+	vol_kb_t getTotalVolumeAllocation() const;
+
+	/**
+	 * @brief Functor to sort terminals by descending remaining credit
+	 *
+	 * @param e1  first terminal
+	 * @param e2  second terminal
+	 * @return true if remaining credit of e1 is greater than e2
+	 */
+	static bool sortByRemainingCredit(const TerminalContextDama *e1,
+	                                  const TerminalContextDama *e2);
+
+	/**
+	 * @brief Functor to sort terminals by descending VBDC Request
+	 *
+	 * @param e1  first terminal
+	 * @param e2  second terminal
+	 * @return true if VBDC request of e1 is greater than e2
+	 */
+	static bool sortByVbdcReq(const TerminalContextDama *e1,
+	                          const TerminalContextDama *e2);
 
   protected:
 
@@ -145,14 +262,31 @@ class TerminalContextDama: public TerminalContext
 	/** RBDC request timeout */
 	time_sf_t rbdc_timeout_sf;
 
-	/*** The maximum VBDC value */
+	/** The maximum VBDC value */
 	vol_kb_t max_vbdc_kb;
 
-	/** The FMT ID */
-	unsigned int fmt_id;
+	/** the RBDC credit: the decimal part of RBDC that may remain
+	 *  after DAMA computation */
+	double rbdc_credit;
 
-	/** The carrier ID */
-	unsigned int carrier_id;
+	/** The timer for RBDC requests: initialized to rbdc_timeout_sf each request
+	 *  and decreased on each SOF */
+	time_sf_t timer_sf;
+
+	/** the RBDC request */
+	rate_kbps_t rbdc_request_kbps;
+
+	/** The RBDC allocation */
+	rate_kbps_t rbdc_alloc_kbps;
+
+	/** the VBDC request */
+	vol_kb_t vbdc_request_kb;
+
+	/** The VBDC allocation */
+	vol_kb_t vbdc_alloc_kb;
+
+	/** The FCA allocation */
+	rate_kbps_t fca_alloc_kbps;
 };
 
 #endif

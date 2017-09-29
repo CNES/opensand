@@ -99,9 +99,10 @@ class CarrierArithmetic:
     def update_rates(self, fmt_group):
         """Update Rate"""
         config = self._model.get_conf().get_configuration()
+        ret_lnk_std = self._model.get_conf().get_return_link_standard()
         carriers_band = CarriersBand() 
         carriers_band.modcod_def(self._model.get_scenario(), 
-                                 config, False)
+                                 config, ret_lnk_std, False)
         
         for carrier in self._list_carrier:
             carriers_band.add_carrier(carrier, carrier.get_old_category(config))

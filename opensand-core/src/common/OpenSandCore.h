@@ -134,6 +134,29 @@ inline sat_type_t strToSatType(string sat_type)
 		return TRANSPARENT;
 }
 
+/// Return link standard 
+typedef enum
+{
+	DVB_RCS,
+	DVB_RCS2,
+} return_link_standard_t;
+
+
+/**
+ * @brief get the return link standard according to its name
+ *
+ * @param sat_type the return link standard name
+ *
+ * @return the return link standard enum
+ */
+inline return_link_standard_t strToReturnLinkStd(string return_link_standard)
+{
+	if(return_link_standard == "DVB-RCS2")
+		return DVB_RCS2;
+	else
+		return DVB_RCS;
+}
+
 /// Carrier access type
 typedef enum
 {
@@ -272,22 +295,23 @@ typedef uint16_t group_id_t; ///< Groupe ID
 // TODO check types according to max value
 // TODO link with config
 // data
-typedef uint16_t rate_kbps_t; ///< Bitrate in kb/s (suffix kbps)
-typedef uint16_t rate_pktpf_t; ///< Rate in packets per frame (suffix pktpf)
+typedef uint16_t rate_bps_t;    ///< Bitrate in b/s (suffix bps)
+typedef uint16_t rate_kbps_t;   ///< Bitrate in kb/s (suffix kbps)
+typedef uint16_t rate_pktpf_t;  ///< Rate in packets per frame (suffix pktpf)
 typedef double rate_symps_t;    ///< Rate in symbols per second (bauds) (suffix symps)
 
 // time
-typedef uint16_t time_sf_t; ///< time in number of superframes (suffix sf)
-typedef uint8_t time_frame_t; ///< time in number of frames (5 bits) (suffix frame)
-typedef uint32_t time_ms_t; ///< time in ms (suffix ms)
-typedef uint16_t time_pkt_t; ///< time in number of packets, cells, ... (suffix pkt)
+typedef uint16_t time_sf_t;    ///< time in number of superframes (suffix sf)
+typedef uint8_t time_frame_t;  ///< time in number of frames (5 bits) (suffix frame)
+typedef uint32_t time_ms_t;    ///< time in ms (suffix ms)
+typedef uint16_t time_pkt_t;   ///< time in number of packets, cells, ... (suffix pkt)
 
 // volume
-typedef uint16_t vol_pkt_t; ///< volume in number of packets/cells (suffix pkt)
-typedef uint16_t vol_kb_t; ///< volume in kbits (suffix kb)
-typedef uint32_t vol_b_t; ///< volume in bits (suffix b)
-typedef uint32_t vol_bytes_t; ///< volume in Bytes (suffix bytes)
-typedef uint32_t vol_sym_t; ///< volume in number of symbols (suffix sym)
+typedef uint16_t vol_pkt_t;    ///< volume in number of packets/cells (suffix pkt)
+typedef uint16_t vol_kb_t;     ///< volume in kbits (suffix kb)
+typedef uint32_t vol_b_t;      ///< volume in bits (suffix b)
+typedef uint32_t vol_bytes_t;  ///< volume in Bytes (suffix bytes)
+typedef uint32_t vol_sym_t;    ///< volume in number of symbols (suffix sym)
 
 // frequency
 typedef float freq_mhz_t;    ///< frequency (MHz)

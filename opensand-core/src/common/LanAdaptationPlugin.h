@@ -87,14 +87,32 @@ class LanAdaptationPlugin: public StackPlugin
 		/* the following functions should not be called */
 
 		size_t getMinLength() const {assert(0);};
-		bool getChunk(NetPacket *UNUSED(packet),
-		              size_t UNUSED(remaining_length),
-		              NetPacket **UNUSED(data),
-		              NetPacket **UNUSED(remaining_data)) const
+
+		virtual bool encapNextPacket(NetPacket *UNUSED(packet),
+			size_t UNUSED(remaining_length),
+			bool &UNUSED(partial_encap),
+			NetPacket **UNUSED(encap_packet))
 		{
 			assert(0);
 		};
 
+		virtual bool resetPacketToEncap(NetPacket *UNUSED(packet))
+		{
+			assert(0);
+		};
+
+		virtual bool decapNextPacket(NetContainer *UNUSED(packet),
+			bool &UNUSED(partial_decap),
+			vector<NetPacket *> &UNUSED(decap_packets),
+			unsigned int UNUSED(decap_packets_count))
+		{
+			assert(0);
+		};
+
+		virtual bool resetPacketToDecap()
+		{
+			assert(0);
+		};
 
 		virtual void init()
 		{
@@ -102,8 +120,6 @@ class LanAdaptationPlugin: public StackPlugin
 			                                "LanAdaptation.%s",
 			                                this->getName().c_str());
 		};
-
-
 	};
 
 	/**

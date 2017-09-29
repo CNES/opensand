@@ -37,8 +37,11 @@
 
 #include "SpotDownwardRegen.h"
 
+#include "UplinkSchedulingRcsCommon.h"
 #include "UplinkSchedulingRcs.h"
+#include "UplinkSchedulingRcs2.h"
 #include "DamaCtrlRcsLegacy.h"
+#include "DamaCtrlRcs2Legacy.h"
 
 #include <errno.h>
 
@@ -69,22 +72,30 @@ bool SpotDownwardRegen::onInit(void)
 {
 	this->up_return_pkt_hdl = this->pkt_hdl;
 
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+	
 	// Initialization of the modcod def
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the forward MODCOD file\n");
+		    "failed to initialize the uplink definition MODCOD file\n");
 		return false;
 	}
 	// we use RCS as input because we will consider
 	// the terminal to satellite link and not the satellite
 	// to GW link
-	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            &this->rcs_modcod_def))
+	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
+	                            &this->rcs_modcod_def,
+	                            this->req_burst_length))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the forward MODCOD file\n");
+		    "failed to initialize the downlink definition MODCOD file\n");
 		return false;
 	}
 
@@ -152,7 +163,7 @@ bool SpotDownwardRegen::initMode(void)
 	{
 		fifos_t fifos;
 		string label;
-		Scheduling *scheduling;
+		UplinkSchedulingRcsCommon *schedule = NULL;
 		TerminalCategoryDama *cat;
 
 		cat = cat_it->second;
@@ -166,21 +177,43 @@ bool SpotDownwardRegen::initMode(void)
 		this->dvb_fifos.insert(
 			make_pair<string, fifos_t>((string)label, (fifos_t)fifos));
 
-		scheduling = new UplinkSchedulingRcs(this->pkt_hdl,
-			this->dvb_fifos.at(label),
-			this->output_sts,
-			this->rcs_modcod_def,
-			cat,
-			this->mac_id);
-		if(!scheduling)
+		if(this->return_link_std == DVB_RCS)
+		{
+			schedule = new UplinkSchedulingRcs(this->ret_up_frame_duration_ms,
+				this->pkt_hdl,
+				this->dvb_fifos.at(label),
+				this->output_sts,
+				this->rcs_modcod_def,
+				cat,
+				this->mac_id);
+		}
+		else if(this->return_link_std == DVB_RCS2)
+		{
+			schedule = new UplinkSchedulingRcs2(this->ret_up_frame_duration_ms,
+				this->pkt_hdl,
+				this->dvb_fifos.at(label),
+				this->output_sts,
+				this->rcs_modcod_def,
+				cat,
+				this->mac_id);
+		}
+		else
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+				"Unable to create the uplink scheduling for standard '%s'\n",
+				this->return_link_std_str.c_str());
+			return false;
+		}
+		if(!schedule || !schedule->init())
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 				"failed to complete the SCHEDULE part of the "
 				"initialisation\n");
 			return false;
 		}
+		
 		this->scheduling.insert(
-			make_pair<string, Scheduling *>((string)label, (Scheduling *)scheduling));
+			make_pair<string, Scheduling *>((string)label, (Scheduling *)schedule));
 	}
 
 	return true;
@@ -259,13 +292,30 @@ bool SpotDownwardRegen::initDama(void)
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "creating Legacy DAMA controller\n");
-		this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id);
+		if(this->return_link_std == DVB_RCS)
+		{
+			this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id,
+			                                        this->up_return_pkt_hdl->getFixedLength() << 3);
+		}
+		else if(this->return_link_std == DVB_RCS2)
+		{
+			this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
+		}
+		else
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+				"section '%s': bad value '%s' for parameter '%s'"
+				" (no matching dama controller for return link standard '%s')\n",
+				DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO,
+				this->return_link_std_str.c_str());
+			return false;
+		}
 	}
 	else
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s': bad value for parameter '%s'\n",
-		    DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
+		    "section '%s': bad value '%s' for parameter '%s'\n",
+			DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO);
 		return false;
 	}
 
@@ -282,7 +332,6 @@ bool SpotDownwardRegen::initDama(void)
 	// terminals is received in SAC and added to output STs
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
 	                                this->with_phy_layer,
-	                                this->up_return_pkt_hdl->getFixedLength(),
 	                                rbdc_timeout_sf,
 	                                fca_kbps,
 	                                dc_categories,

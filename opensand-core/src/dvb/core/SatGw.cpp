@@ -41,6 +41,7 @@
 #include "DvbRcsFrame.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_conf/conf.h>
 
 #include <stdlib.h>
 
@@ -124,6 +125,7 @@ SatGw::~SatGw()
 bool SatGw::init()
 {
 	string sat_type;
+	string ret_lnk_std;
 	sat_type_t satellite_type;
 
 	// Retrieve the value of the ‘enable’ parameter for the physical layer
@@ -147,8 +149,19 @@ bool SatGw::init()
 	satellite_type = strToSatType(sat_type);
 
 	if(satellite_type ==  REGENERATIVE)
-	{	
-		if(!this->initModcodSimu())
+	{
+		// return link standard type
+		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		                   RETURN_LINK_STANDARD,
+		                   ret_lnk_std))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "section '%s': missing parameter '%s'\n",
+			    COMMON_SECTION, RETURN_LINK_STANDARD);
+			return false;
+		}
+		
+		if(!this->initModcodSimu(strToReturnLinkStd(ret_lnk_std)))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to initialize modcod simulation\n");
@@ -181,7 +194,7 @@ bool SatGw::init()
 }
 
 bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
-                           const EncapPlugin::EncapPacketHandler *pkt_hdl,
+                           EncapPlugin::EncapPacketHandler *pkt_hdl,
                            const TerminalCategoryDama *const st_category,
                            const TerminalCategoryDama *const gw_category)
 {
@@ -227,8 +240,27 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 }
 
 
-bool SatGw::initModcodSimu(void)
+bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
 {
+	string def = MODCOD_DEF_RCS;
+	vol_sym_t length = 0;
+
+	// Get the required burst length in DVB-RCS2 case
+	if(return_link_standard == DVB_RCS2)
+	{
+		def = MODCOD_DEF_RCS2;
+		
+		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+			               RCS2_BURST_LENGTH,
+		                   length))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "section '%s': missing parameter '%s'\n",
+			    COMMON_SECTION, RCS2_BURST_LENGTH);
+			return false;
+		}
+	}
+
 	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
 	                             this->gw_id, this->spot_id))
 	{
@@ -237,8 +269,9 @@ bool SatGw::initModcodSimu(void)
 		    "initialisation\n");
 		return false;
 	}
-	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            &this->rcs_modcod_def))
+	if(!this->initModcodDefFile(def.c_str(),
+	                            &this->rcs_modcod_def,
+	                            length))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the modcod part of the "

@@ -31,16 +31,18 @@
  * @file UplinkSchedulingRcs.h
  * @brief Scheduling for MAC FIFOs for DVB-RCS uplink on GW
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  *
  */
 
 #ifndef _UPLINK_SCHEDULING_RCS_H_
 #define _UPLINK_SCHEDULING_RCS_H_
 
-#include "Scheduling.h"
+#include "UplinkSchedulingRcsCommon.h"
 #include "DvbRcsFrame.h"
 #include "TerminalCategoryDama.h"
 #include "FmtSimulation.h"
+#include "UnitConverter.h"
 
 #include <opensand_output/OutputLog.h>
 
@@ -48,35 +50,25 @@
  * @class UplinkSchedulingRcs
  * @brief Scheduling functions for MAC FIFOs with DVB-RCS uplink
  */
-class UplinkSchedulingRcs: public Scheduling
+class UplinkSchedulingRcs: public UplinkSchedulingRcsCommon
 {
   public:
 
-	UplinkSchedulingRcs(const EncapPlugin::EncapPacketHandler *packet_handler,
+	UplinkSchedulingRcs(time_ms_t frame_duration_m,
+	                    EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
 	                    const StFmtSimuList *const ret_sts,
 	                    const FmtDefinitionTable *const ret_modcod_def,
 	                    const TerminalCategoryDama *const category,
 	                    tal_id_t gw_id);
 
-	bool schedule(const time_sf_t current_superframe_sf,
-	              clock_t current_time,
-	              list<DvbFrame *> *complete_dvb_frames,
-	              uint32_t &remaining_allocation);
-
-  private:
-	
-	/// the gw_id
-	tal_id_t gw_id;
-
-	/// The lowest MODCOD in available carriers
-	fmt_id_t lowest_modcod;
-
-	/// The FMT definition table associated
-	const FmtDefinitionTable *ret_modcod_def;
-
-	///The terminal category
-	const TerminalCategoryDama *category;
+  protected:
+	/**
+	 * @brief Generate an unit converter
+	 *
+	 * @return  the generated unit converter
+	 */
+	UnitConverter *generateUnitConverter() const;
 
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given carriers
@@ -87,25 +79,14 @@ class UplinkSchedulingRcs: public Scheduling
 	 * @param current_time           The current time
 	 * @param complete_dvb_frames    The list of complete DVB frames
 	 * @param carriers               The carriers group
+	 * @param modcod_id              The modcod id
 	 */
 	bool scheduleEncapPackets(DvbFifo *fifo,
 	                          const time_sf_t current_superframe_sf,
 	                          clock_t current_time,
 	                          list<DvbFrame *> *complete_dvb_frames,
-	                          CarriersGroupDama *carriers);
-
-
-	/**
-	 * @brief Create an incomplete DVB-RCS frame
-	 *
-	 * @param incomplete_dvb_frame OUT: the DVB-RCS frame that will be created
-	 * @param modcod_id            The MODCOD ID of the frame
-	 * return                      true on success, false otherwise
-	 */
-	bool createIncompleteDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame,
-	                                 fmt_id_t  modcod_id);
-
-
+	                          CarriersGroupDama *carriers,
+	                          uint8_t modcod_id);
 };
 
 #endif

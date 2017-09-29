@@ -13,16 +13,20 @@ TESTS = \
 check_PROGRAMS = \
 	test_configuration
 
-AM_LDFLAGS = \
-	-L$(top_builddir)/src/.libs 	
-
 test_configuration_SOURCES = \
 	test_configuration.cpp
+
 test_configuration_LDADD = \
 	-lopensand_conf
 
-INCLUDES = \
+test_configuration_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/
+
+test_configuration_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-L$(top_builddir)/src/.libs 	
+
 
 EXTRA_DIST = \
 	$(TEST_SCRIPT) \

@@ -153,6 +153,13 @@ class DvbFifo
 	vol_pkt_t getCurrentSize() const;
 
 	/**
+	 * @brief Get the length of data in the fifo (in kbits)
+	 *
+	 * @return the size of data in the fifo (in kbits)
+	 */
+	vol_bytes_t getCurrentDataLength() const;
+
+	/**
 	 * @brief Get the fifo maximum size
 	 *
 	 * @return the queue maximum size
@@ -259,6 +266,7 @@ class DvbFifo
 	unsigned int vcm_id;            ///< the associated VCM id (if VCM access type)
 	vol_pkt_t new_size_pkt;         ///< the number of packets that filled the fifo
 	                                ///< since previous check
+	vol_bytes_t cur_length_bytes;   ///< the size of data that filled the fifo
 	vol_bytes_t new_length_bytes;   ///< the size of data that filled the fifo
 	                                ///< since previous check
 	vol_pkt_t max_size_pkt;         ///< the maximum size for that FIFO

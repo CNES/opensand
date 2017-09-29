@@ -23,7 +23,8 @@ libopensand_plugin_la_cpp = \
 	IpAddress.cpp \
 	MacAddress.cpp \
 	TrafficCategory.cpp \
-	SarpTable.cpp
+	SarpTable.cpp \
+	EncapPlugin.cpp
 
 libopensand_plugin_la_h = \
 	OpenSandPlugin.h \
@@ -41,7 +42,8 @@ libopensand_plugin_la_h = \
 	LanAdaptationPlugin.h \
 	PhysicalLayerPlugin.h
 	
-INCLUDES = \
+libopensand_plugin_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/utils/
 
 libopensand_plugin_la_SOURCES = \

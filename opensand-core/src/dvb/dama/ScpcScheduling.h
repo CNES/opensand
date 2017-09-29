@@ -65,7 +65,7 @@ class ScpcScheduling: public Scheduling
   public:
 
 	ScpcScheduling(time_ms_t scpc_timer_ms,
-	               const EncapPlugin::EncapPacketHandler *packet_handler,
+	               EncapPlugin::EncapPacketHandler *packet_handler,
 	               const fifos_t &fifos,
 	               const StFmtSimuList *const simu_sts,
 	               FmtDefinitionTable *const scpc_modcod_def,

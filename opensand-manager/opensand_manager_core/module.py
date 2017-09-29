@@ -38,6 +38,7 @@ encap_module.py - Encapsulation module for OpenSAND Manager
 
 import os
 import shutil
+from collections import namedtuple
 
 from opensand_manager_core.utils import GW, SAT, ST, GLOBAL, GW_types
 from opensand_manager_core.model.files import Files
@@ -192,45 +193,52 @@ class OpenSandModule(object):
 
 ### Encapsulation ###
 
+EncapModuleContext = namedtuple("EncapModuleContext", 
+                                "satellite_type "
+                                "return_link_standard "
+                                "link")
+# satellite_type: type of satellite (transparent or regenerative)
+# return_link_standard: standard of the return link (dvb-rcs or dvb-rcs2)
+# link: link to apply the configuration (forward or return link)
+
+EncapModuleConfig = namedtuple("EncapModuleConfig",
+                               "mandatory_down "
+                               "handle_upper_block "
+                               "allowed_upper_blocks")
+# mandatory_down: requires a downer encapsulation
+# handle_upper_block: is the upper encapsulation
+# allowed_upper_blocks: list of the allowed upper encapsulation
+
 class EncapModule(OpenSandModule):
     """ the encapsulation module for OpenSAND Manager """
     _name = None
     _type = 'encap'
 
+    TRANSPARENT = "transparent"
+    REGENERATIVE = "regenerative"
+
+    DVB_RCS = "dvb-rcs"
+    DVB_RCS2 = "dvb-rcs2"
+
+    FORWARD_LINK = "dvb-s2"
+    RETURN_LINK = "dvb-rcs"
+
     def __init__(self):
-        OpenSandModule.__init__(self)
-        self._upper = {
-                       'transparent':(),
-                       'regenerative':()
-                      }
-        self._handle_upper_bloc = False
-
-        self._condition = {
-                            # down encap scheme is mandatory
-                            'mandatory_down': False,
-                            # DVB-RCS is supported as lower layer
-                            'dvb-rcs': True,
-                            # DVB-S2 is supported as lower layer
-                            'dvb-s2': True,
-                          }
-
+        super(EncapModule, self).__init__()
+        self._encap_config = {}
         self._targets = [GLOBAL]
 
-    def get_available_upper_protocols(self, satellite_type):
-        """ get the protocols it can encapsulate """
-        return self._upper[satellite_type]
+    def _add_config(self, satellite_type, return_link_std, link, 
+                    mandatory_down, handle_upper_block, allowed_upper_blocks = []):
+        key = EncapModuleContext(satellite_type, return_link_std, link)
+        val = EncapModuleConfig(mandatory_down, handle_upper_block,
+                                allowed_upper_blocks)
+        self._encap_config[key] = val
 
-    def get_condition(self, condition):
-        """ get a specific condition """
-        if not condition in self._condition:
-            return None
-        else:
-            return self._condition[condition]
-
-    def handle_upper_bloc(self):
-        """ check if the module can handle a packet from upper bloc """
-        return self._handle_upper_bloc
-
+    def get_config(self, satellite_type, return_link_std, link):
+        key = EncapModuleContext(satellite_type, return_link_std, link)
+        return self._encap_config.get(key)
+    
 ### Lan Adaptation ###
 
 class LanAdaptationModule(OpenSandModule):

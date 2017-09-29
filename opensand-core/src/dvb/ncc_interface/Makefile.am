@@ -18,5 +18,6 @@ libopensand_dvb_ncc_interface_la_SOURCES = \
 	$(libopensand_dvb_ncc_interface_la_cpp) \
 	$(libopensand_dvb_ncc_interface_la_h)
 
-INCLUDES = \
+libopensand_dvb_ncc_interface_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common

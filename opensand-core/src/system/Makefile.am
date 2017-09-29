@@ -1,6 +1,7 @@
 bin_PROGRAMS = st sat gw gw-net-acc gw-phy
 
-INCLUDES = \
+PACKED_COMMON_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/utils \
 	-I$(top_srcdir)/src/dvb/switch \
 	-I$(top_srcdir)/src/dvb/ncc_interface \
@@ -40,26 +41,31 @@ allexec_LDADD = \
 	-lrt
 
 st_SOURCES = st.cpp
+st_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
 st_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 
 gw_SOURCES = gw.cpp
+gw_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
 gw_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 
 gw_net_acc_SOURCES = gw_net_acc.cpp
+gw_net_acc_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
 gw_net_acc_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 
 gw_phy_SOURCES = gw_phy.cpp
+gw_phy_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
 gw_phy_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 
 sat_SOURCES = sat.cpp
+sat_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
 sat_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)

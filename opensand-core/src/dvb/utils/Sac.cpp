@@ -118,7 +118,7 @@ double Sac::getCni() const
 	return ncntoh(this->frame()->sac.acm.cni);
 }
 
-vector<cr_info_t> Sac::getRequets(void) const
+vector<cr_info_t> Sac::getRequests(void) const
 {
 	vector<cr_info_t> requests;
 

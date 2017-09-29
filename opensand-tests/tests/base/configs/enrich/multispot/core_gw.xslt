@@ -12,7 +12,7 @@
     </xsl:copy> 
 </xsl:template>
 
-<xsl:template match="//dvb_rcs_ncc/spot[@id='1']">
+<xsl:template match="//dvb_ncc/spot[@id='1']">
     <xsl:copy-of select="."/>
     <xsl:call-template name="Newline" />
     <spot id="2">

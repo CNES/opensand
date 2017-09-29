@@ -46,7 +46,6 @@ using std::pair;
 
 DamaCtrl::DamaCtrl(spot_id_t spot):
 	is_parent_init(false),
-	converter(NULL),
 	terminals(), // TODO not very useful, they are stored in categories
 	with_phy_layer(false),
 	current_superframe_sf(0),
@@ -96,10 +95,6 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 DamaCtrl::~DamaCtrl()
 {
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
-	if(this->converter)
-	{
-		delete this->converter;
-	}
 
 	for(DamaTerminalList::iterator it = this->terminals.begin();
 	    it != this->terminals.end(); ++it)
@@ -118,10 +113,8 @@ DamaCtrl::~DamaCtrl()
 	this->terminal_affectation.clear();
 }
 
-
 bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           bool with_phy_layer,
-                          vol_bytes_t packet_length_bytes,
                           time_sf_t rbdc_timeout_sf,
                           rate_kbps_t fca_kbps,
                           TerminalCategories<TerminalCategoryDama> categories,
@@ -138,15 +131,6 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 	this->input_sts = input_sts;
 	this->input_modcod_def = input_modcod_def;
 	this->simulated = simulated;
-
-	this->converter = new UnitConverter(packet_length_bytes,
-	                                    this->frame_duration_ms);
-	if(this->converter == NULL)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Cannot create the Unit Converter\n");
-		goto error;
-	}
 
 	this->categories = categories;
 
@@ -165,12 +149,12 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
 
 	this->is_parent_init = true;
 
-	if (!this->initOutput())
+	if(!this->initOutput())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "the output probes and stats initialization have "
 		    "failed\n");
-		return false;
+		goto error;
 	}
 
 	return true;
@@ -193,7 +177,6 @@ bool DamaCtrl::initOutput()
 	         "Spot_%d.NCC.RBDC.RBDC requested capacity", this->spot_id);
 	this->probe_gw_rbdc_req_size = Output::registerProbe<int>(
 		probe_name, "Kbits/s", true, SAMPLE_LAST);
-	this->gw_rbdc_req_size_pktpf = 0;
 
 	// VBDC request number
 	snprintf(probe_name, sizeof(probe_name),
@@ -207,7 +190,6 @@ bool DamaCtrl::initOutput()
 	         "Spot_%d.NCC.VBDC.VBDC requested capacity", this->spot_id);
 	this->probe_gw_vbdc_req_size = Output::registerProbe<int>(
 		probe_name, "Kbits", true, SAMPLE_LAST);
-	this->gw_vbdc_req_size_pkt = 0;
 
 	// Allocated ressources
 	// CRA allocation
@@ -229,16 +211,14 @@ bool DamaCtrl::initOutput()
 	         "Spot_%d.NCC.RBDC.RBDC allocated", this->spot_id);
 	this->probe_gw_rbdc_alloc = Output::registerProbe<int>(
 		probe_name, "Kbits/s", true, SAMPLE_LAST);
-	this->gw_rbdc_alloc_pktpf = 0;
 
 	// VBDC allocation
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.NCC.VBDC.VBDC allocated", this->spot_id);
 	this->probe_gw_vbdc_alloc = Output::registerProbe<int>(
 		probe_name, "Kbits", true, SAMPLE_LAST);
-	this->gw_vbdc_alloc_pkt = 0;
 
-		// FCA allocation
+	// FCA allocation
 	if(this->fca_kbps != 0)
 	{
 		// only create FCA probe if it is enabled
@@ -246,20 +226,12 @@ bool DamaCtrl::initOutput()
 						 "Spot_%d.NCC.FCA allocated", this->spot_id);
 		this->probe_gw_fca_alloc = Output::registerProbe<int>(
 			probe_name, "Kbits/s", true, SAMPLE_LAST);
-		this->gw_fca_alloc_pktpf = 0;
 	}
 
 	// Total and remaining capacity
-	snprintf(probe_name, sizeof(probe_name),
-					 "Spot_%d.Up/Return total capacity.Available", this->spot_id);
-	this->probe_gw_return_total_capacity = Output::registerProbe<int>(
-		probe_name, "Kbits/s", true, SAMPLE_LAST);
-	this->gw_return_total_capacity_pktpf = 0;
-	snprintf(probe_name, sizeof(probe_name),
-					 "Spot_%d.Up/Return total capacity.Remaining", this->spot_id);
-	this->probe_gw_return_remaining_capacity = Output::registerProbe<int>(
-		probe_name, "Kbits/s", true, SAMPLE_LAST);
-	this->gw_remaining_capacity_pktpf = 0;
+	this->probe_gw_return_total_capacity = this->generateGwCapacityProbe("Available");
+	this->probe_gw_return_remaining_capacity = this->generateGwCapacityProbe("Remaining");
+	this->gw_remaining_capacity = 0;
 
 	// Logged ST number
 	snprintf(probe_name, sizeof(probe_name),
@@ -442,7 +414,7 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 			DC_RECORD_EVENT("LOGON st%d rt=%u rbdc=%u vbdc=%u", logon->getMac(),
 			                logon->getRtBandwidth(), max_rbdc_kbps, max_vbdc_kb);
 		}
-
+		
 		// Output probes and stats
 		this->gw_st_num += 1;
 		this->gw_cra_alloc_kbps += cra_kbps;
@@ -535,18 +507,37 @@ bool DamaCtrl::hereIsLogoff(const Logoff *logoff)
 
 bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 {
-	DamaTerminalList::iterator it;
-
 	this->current_superframe_sf = superframe_number_sf;
 
-	for(it = this->terminals.begin(); it != this->terminals.end(); it++)
+	// reset the terminals allocations
+	if(!this->resetTerminalsAllocations())
 	{
-		TerminalContextDama *terminal = it->second;
-		// reset/update terminal allocations/requests
-		terminal->onStartOfFrame();
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Cannot reset terminals allocations\n",
+		    this->current_superframe_sf);
+		return false;
 	}
 
-	if(!this->runDama())
+	// reset capacity of carriers
+	if(!this->resetCarriersCapacity())
+	{
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Cannot reset carriers capacity\n",
+		    this->current_superframe_sf);
+		return false;
+	}
+
+	// update the carriers
+	if(!this->updateCarriers())
+	{
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Cannot update carriers and FMTs\n",
+		    this->current_superframe_sf);
+		return false;
+	}
+
+	//TODO: update RBDC credit here, not in reset terminals allocation
+	if(!this->computeDama())
 	{
 		LOG(this->log_super_frame_tick, LEVEL_ERROR,
 		    "Error during DAMA computation.\n");
@@ -557,20 +548,11 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 }
 
 
-bool DamaCtrl::runDama()
+bool DamaCtrl::computeDama()
 {
 	DamaTerminalList::iterator tal_it;
 
-	// reset the DAMA settings
-	if(!this->resetDama())
-	{
-		LOG(this->log_run_dama, LEVEL_ERROR,
-		    "SF#%u: Cannot reset DAMA\n",
-		    this->current_superframe_sf);
-		return false;
-	}
-
-	if(this->enable_rbdc && !this->runDamaRbdc())
+	if(this->enable_rbdc && !this->computeDamaRbdc())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
 		    "SF#%u: Error while computing RBDC allocation\n",
@@ -596,7 +578,8 @@ bool DamaCtrl::runDama()
 		this->probe_gw_rbdc_req_size->put(0);
 		this->probe_gw_rbdc_alloc->put(0);
 	}
-	if(this->enable_vbdc && !this->runDamaVbdc())
+
+	if(this->enable_vbdc && !this->computeDamaVbdc())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
 		    "SF#%u: Error while computing RBDC allocation\n",
@@ -624,13 +607,15 @@ bool DamaCtrl::runDama()
 		this->probe_gw_vbdc_req_size->put(0);
 		this->probe_gw_vbdc_alloc->put(0);
 	}
-	if(!this->runDamaFca())
+
+	if(!this->computeDamaFca())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
 		    "SF#%u: Error while computing RBDC allocation\n",
 		    this->current_superframe_sf);
 		return false;
 	}
+
 	return true;
 }
 
@@ -640,7 +625,6 @@ void DamaCtrl::setRecordFile(FILE *event_stream)
 	DC_RECORD_EVENT("%s", "# --------------------------------------\n");
 }
 
-
 // TODO disable timers on probes if output is disabled
 // and event to reactivate them ?!
 void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
@@ -648,6 +632,7 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 	int simu_cra = 0;
 	int simu_rbdc = 0;
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
+
 	// Update probes and stats
 	this->probe_gw_st_num->put(this->gw_st_num);
 	this->probe_gw_cra_alloc->put(this->gw_cra_alloc_kbps);
@@ -675,8 +660,7 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 		this->probes_st_cra_alloc[0]->put(simu_cra);
 		this->probes_st_rbdc_max[0]->put(simu_rbdc);
 	}
-	this->probe_gw_return_remaining_capacity->put(
-		this->converter->pktpfToKbps(this->gw_remaining_capacity_pktpf));
+	this->probe_gw_return_remaining_capacity->put(this->gw_remaining_capacity);
 	for(cat_it = this->categories.begin();
 	    cat_it != categories.end(); ++cat_it)
 	{
@@ -685,8 +669,7 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 		vector<CarriersGroupDama *>::const_iterator carrier_it;
 		string label = category->getLabel();
 		this->probes_category_return_remaining_capacity[label]->put(
-			this->converter->pktpfToKbps(
-				this->category_return_remaining_capacity_pktpf[label]));
+			this->category_return_remaining_capacity[label]);
 		carriers = category->getCarriersGroups();
 		for(carrier_it = carriers.begin();
 			carrier_it != carriers.end(); ++carrier_it)
@@ -698,27 +681,24 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 			if(this->probes_carrier_return_remaining_capacity[label].find(carrier_id)
 			   == this->probes_carrier_return_remaining_capacity[label].end())
 			{
-				Probe<int> *probe_carrier_remaining_capacity;
-				char probe_name[128];
-				snprintf(probe_name, sizeof(probe_name),
-				         "Spot_%d.%s.Up/Return capacity.Carrier%u.Remaining",
-				         this->spot_id, label.c_str(), carrier_id);
-				probe_carrier_remaining_capacity = Output::registerProbe<int>(
-					probe_name, "Kbits/s", true, SAMPLE_LAST);
+				Probe<int> *probe = this->generateCarrierCapacityProbe(
+					label,
+					carrier_id,
+					"Remaining");
+
 				this->probes_carrier_return_remaining_capacity[label].insert(
 					std::pair<unsigned int, Probe<int> *>(carrier_id,
-					                                      probe_carrier_remaining_capacity));
+					                                      probe));
 			}
-			if(this->carrier_return_remaining_capacity_pktpf[label].find(carrier_id)
-			   == this->carrier_return_remaining_capacity_pktpf[label].end())
+			if(this->carrier_return_remaining_capacity[label].find(carrier_id)
+			   == this->carrier_return_remaining_capacity[label].end())
 			{
-				this->carrier_return_remaining_capacity_pktpf[label].insert(
+				this->carrier_return_remaining_capacity[label].insert(
 					std::pair<unsigned int, int>(carrier_id, 0));
 			}
 
 			this->probes_carrier_return_remaining_capacity[label][carrier_id]->put(
-				this->converter->pktpfToKbps(
-					this->carrier_return_remaining_capacity_pktpf[label][carrier_id]));
+				this->carrier_return_remaining_capacity[label][carrier_id]);
 		}
 	}
 }
@@ -728,3 +708,15 @@ TerminalCategories<TerminalCategoryDama> *DamaCtrl::getCategories()
 	return &(this->categories);
 }
 
+TerminalContextDama *DamaCtrl::getTerminalContext(tal_id_t tal_id) const
+{
+	DamaTerminalList::const_iterator it;
+
+	it = this->terminals.find(tal_id);
+	if(it == this->terminals.end())
+	{
+		return NULL;
+	}
+
+	return it->second;
+}

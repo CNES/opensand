@@ -29,55 +29,125 @@
  * @file UnitConverter.cpp
  * @brief Converters for OpenSAND units
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #include "UnitConverter.h"
 
 #include <math.h>
 
-/*
- * @param Duration is the Frame duration in ms
- * @param Size is the UL packet size in bytes
- */
-UnitConverter::UnitConverter(vol_bytes_t packet_length_bytes,
-                             time_ms_t frame_duration_ms):
-	packet_length_b(packet_length_bytes * 8),
-	frame_duration_ms(frame_duration_ms)
+UnitConverter::UnitConverter(time_ms_t duration_ms, unsigned int efficiency)
 {
+	this->setFrameDuration(duration_ms);
+	this->setModulationEfficiency(efficiency);
 }
 
 UnitConverter::~UnitConverter()
 {
 }
 
-//FIXME: kb and kbps may have decimal part, should they be double instead of
-// int ???
-vol_b_t UnitConverter::pktToBits(vol_pkt_t vol_pkt) const
+void UnitConverter::setFrameDuration(time_ms_t duration_ms)
 {
-	return (vol_pkt * this->packet_length_b);
+	this->frame_duration_ms = duration_ms;
+	if(0 < this->frame_duration_ms)
+	{
+		this->frame_duration_ms_inv = 1.0 / this->frame_duration_ms;
+	}
+	else
+	{
+		this->frame_duration_ms_inv = 0.0;
+	}
 }
 
-vol_kb_t UnitConverter::pktToKbits(vol_pkt_t vol_pkt) const
+time_ms_t UnitConverter::getFrameDuration() const
 {
-	return ceil((vol_pkt * this->packet_length_b / 1000));
+	return this->frame_duration_ms;
 }
 
-vol_pkt_t UnitConverter::kbitsToPkt(vol_kb_t vol_kb) const
+void UnitConverter::setModulationEfficiency(unsigned int efficiency)
 {
-	return floor(vol_kb * 1000 / this->packet_length_b);
+	this->modulation_efficiency = efficiency;
+	if(0 < this->modulation_efficiency)
+	{
+		this->modulation_efficiency_inv = 1.0 / this->modulation_efficiency;
+	}
+	else
+	{
+		this->modulation_efficiency_inv = 0.0;
+	}
 }
 
-rate_pktpf_t UnitConverter::kbpsToPktpf(rate_kbps_t rate_kbps) const
+unsigned int UnitConverter::getModulationEfficiency() const
 {
-	// bit/ms <=> kbits/s
-	return ceil((rate_kbps * this->frame_duration_ms) /
-	            this->packet_length_b);
+	return this->modulation_efficiency;
 }
 
-rate_kbps_t UnitConverter::pktpfToKbps(rate_pktpf_t rate_pktpf) const
+vol_sym_t UnitConverter::bitsToSym(vol_b_t vol_b) const
 {
-	// bits/ms <=> kbits/s
-	return ceil((rate_pktpf * this->packet_length_b) / this->frame_duration_ms);
+	return ceil(vol_b * this->modulation_efficiency_inv);
 }
 
+vol_b_t UnitConverter::symToBits(vol_sym_t vol_sym) const
+{
+	return vol_sym * this->modulation_efficiency;
+}
 
+vol_sym_t UnitConverter::kbitsToSym(vol_kb_t vol_kb) const
+{
+	return ceil(vol_kb * 1000 * this->modulation_efficiency_inv);
+}
+
+vol_kb_t UnitConverter::symToKbits(vol_sym_t vol_sym) const
+{
+	return floor(vol_sym * this->modulation_efficiency * 0.001);
+}
+
+vol_kb_t UnitConverter::bitsToKbits(vol_b_t vol_b) const
+{
+	return ceil(vol_b * 0.001);
+}
+
+vol_b_t UnitConverter::kbitsToBits(vol_kb_t vol_kb) const
+{
+	return vol_kb * 1000;
+}
+
+rate_symps_t UnitConverter::bpsToSymps(rate_bps_t rate_bps) const
+{
+	return ceil(rate_bps * this->modulation_efficiency_inv);
+}
+
+rate_bps_t UnitConverter::sympsToBps(rate_symps_t rate_symps) const
+{
+	return rate_symps * this->modulation_efficiency;
+}
+
+rate_symps_t UnitConverter::kbpsToSymps(rate_kbps_t rate_kbps) const
+{
+	return ceil(rate_kbps * 1000 * this->modulation_efficiency_inv);
+}
+
+rate_kbps_t UnitConverter::sympsToKbps(rate_symps_t rate_symps) const
+{
+	return floor(rate_symps * this->modulation_efficiency * 0.001);
+}
+
+rate_kbps_t UnitConverter::bpsToKbps(rate_bps_t rate_bps) const
+{
+	return ceil(rate_bps * 0.001);
+}
+
+rate_bps_t UnitConverter::kbpsToBps(rate_kbps_t rate_kbps) const
+{
+	return rate_kbps * 1000;
+}
+
+unsigned int UnitConverter::pfToPs(unsigned int rate_pf) const
+{
+	return floor(rate_pf * this->frame_duration_ms_inv * 1000);
+}
+
+unsigned int UnitConverter::psToPf(unsigned int rate_ps) const
+{
+	return ceil(rate_ps * this->frame_duration_ms * 0.001);
+}

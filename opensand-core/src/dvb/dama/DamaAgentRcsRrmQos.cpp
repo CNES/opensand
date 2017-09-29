@@ -77,15 +77,15 @@
 // constants
 const rate_kbps_t C_MAX_RBDC_IN_SAC = 8160.0; // 8160 kbits/s, limitation due
                                               // to CR value size in to SAC field
-const vol_pkt_t C_MAX_VBDC_IN_SAC = 4080;     // 4080 packets/ceils, limitation
+const vol_kb_t C_MAX_VBDC_IN_SAC = 4080;      // 4080 packets/ceils, limitation
                                               // due to CR value size in to SAC field
 
 using std::max;
 using std::min;
 
-DamaAgentRcsRrmQos::DamaAgentRcsRrmQos():
-	DamaAgentRcs(),
-	vbdc_credit_pkt(0)
+DamaAgentRcsRrmQos::DamaAgentRcsRrmQos(FmtDefinitionTable *ret_modcod_def):
+	DamaAgentRcs(ret_modcod_def),
+	vbdc_credit_kb(0)
 {
 }
 
@@ -188,7 +188,7 @@ bool DamaAgentRcsRrmQos::hereIsSOF(time_sf_t superframe_number_sf)
 	// Call parent method
 	if(!DamaAgentRcs::hereIsSOF(superframe_number_sf))
 	 {
-		LOG(this->log_frame_tick, LEVEL_ERROR,
+		LOG(this->log_init, LEVEL_ERROR,
 		    "SF#%u: cannot call DamaAgentRcs::hereIsSOF()\n",
 		    this->current_superframe_sf);
 		return false;
@@ -197,9 +197,9 @@ bool DamaAgentRcsRrmQos::hereIsSOF(time_sf_t superframe_number_sf)
 	this->rbdc_timer_sf++;
 	// update dynamic allocation for next SF with allocation received
 	// through TBTP during last SF
-	this->dynamic_allocation_pkt = this->allocated_pkt;
-	this->dyn_alloc->Update(this->allocated_pkt);
-	this->allocated_pkt = 0;
+	this->dynamic_allocation_kb = this->allocated_kb;
+	this->dyn_alloc->Update(this->converter->kbitsToPkt(this->allocated_kb));
+	this->allocated_kb = 0;
 
 	return true;
 }
@@ -224,8 +224,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 	
 
 	/* get number of outstanding packets in RBDC related MAC FIFOs */
-	rbdc_length_b =
-		this->converter->pktToBits(this->getMacBufferLength(access_dama_rbdc));
+	rbdc_length_b = this->getMacBufferLength(access_dama_rbdc);
 
 	// Get number of packets arrived in RBDC related IP FIFOs since
 	// last RBDC request sent
@@ -447,7 +446,7 @@ rate_kbps_t DamaAgentRcsRrmQos::computeRbdcRequest()
 	}
 
 	LOG(this->log_request, LEVEL_DEBUG,
-	    "frame = %d, rate_need_kbps = %3.f cell/s\n", 
+	    "SF#%u: rate need = %3.f kbits/s\n", 
 	    this->current_superframe_sf, rate_need_kbps);
 
 Legacy:
@@ -473,7 +472,7 @@ Legacy:
 	// Compute actual RBDC request to be sent in Kbit/sec
 	rbdc_request_kbps = (int) rate_need_kbps; 
 	LOG(this->log_request, LEVEL_DEBUG,
-	    "frame=%d,  theoretical rbdc_request_kbps = %d kbits/s",  
+	    "SF#%u: theoretical RBDC request = %u kbits/s",  
 	    this->current_superframe_sf, rbdc_request_kbps);
 
 
@@ -489,59 +488,57 @@ Legacy:
 	// RRM-QoS: Modification 7
 	rbdc_request_kbps = min(rbdc_request_kbps, C_MAX_RBDC_IN_SAC);
 	LOG(this->log_request, LEVEL_DEBUG,
-	    "frame=%d,  updated rbdc_request_kbps = %d kbits/s in "
-	    "SAC\n", this->current_superframe_sf, rbdc_request_kbps);
+	    "SF#%u: updated RBDC request = %u kbits/s in "
+	    "SAC\n", this->current_superframe_sf,
+	    rbdc_request_kbps);
 
 	LOG(this->log_request, LEVEL_DEBUG, "Sending request *** \n");
 	    
 	return rbdc_request_kbps;
 }
 
-vol_pkt_t DamaAgentRcsRrmQos::computeVbdcRequest()
+vol_kb_t DamaAgentRcsRrmQos::computeVbdcRequest()
 {
-	vol_pkt_t vbdc_need_pkt;
-	vol_pkt_t vbdc_request_pkt;
-	vol_pkt_t max_vbdc_pkt = this->converter->kbitsToPkt(this->max_vbdc_kb);
+	vol_kb_t vbdc_need_kb;
+	vol_kb_t vbdc_request_kb;
 	// TODO there is a problem with vbdc_credit ! it is not decreased !
 	//      At the moment, set 0
 	//      we may decrease it from allocated packets number
 	//      or from the number of packets removed in fifo with
 	//      getRemoved accessor and resetRemoved in FIFO
 	//      Whatever, the VBDC algorithm is very bad !
-	this->vbdc_credit_pkt = 0;
+	this->vbdc_credit_kb = 0;
 
 	/* get number of outstanding packets in VBDC related MAC
 	 * and IP FIFOs (in packets number) */
-	vbdc_need_pkt = this->getMacBufferLength(access_dama_vbdc);
+	vbdc_need_kb = ceil(this->getMacBufferLength(access_dama_vbdc) / 1000.);
 	LOG(this->log_request, LEVEL_DEBUG,
-	    "SF#%u: MAC buffer length = %d, VBDC credit = "
-	    "%u\n", this->current_superframe_sf,
-	    vbdc_need_pkt, this->vbdc_credit_pkt);
+	    "SF#%u: MAC buffer length = %d kbits, VBDC credit = "
+	    "%u kbits\n", this->current_superframe_sf,
+	    vbdc_need_kb, this->vbdc_credit_kb);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
-	vbdc_request_pkt = max(0, (vbdc_need_pkt - this->vbdc_credit_pkt));
+	vbdc_request_kb = max(0, (vbdc_need_kb - this->vbdc_credit_kb));
 	LOG(this->log_request, LEVEL_DEBUG,
-	    "SF#%u: theoretical VBDC request = %u packets",
+	    "SF#%u: theoretical VBDC request = %u kbits",
 	    this->current_superframe_sf,
-	    vbdc_request_pkt);
+	    vbdc_request_kb);
 
 	/* adjust request in function of max_vbdc value */
-	vbdc_request_pkt = min(vbdc_request_pkt, max_vbdc_pkt);
+	vbdc_request_kb = min(vbdc_request_kb, this->max_vbdc_kb);
 
 	// Ensure VBDC request value is not greater than SAC field
-	vbdc_request_pkt = min(vbdc_request_pkt, C_MAX_VBDC_IN_SAC);
+	vbdc_request_kb = min(vbdc_request_kb, C_MAX_VBDC_IN_SAC);
 	LOG(this->log_request, LEVEL_DEBUG,
-	    "updated VBDC request = %d packets in fonction of "
-	    "max VBDC and max VBDC in SAC\n", vbdc_request_pkt);
+	    "updated VBDC request = %d kbits in fonction of "
+	    "max VBDC and max VBDC in SAC\n", vbdc_request_kb);
 
 	/* update VBDC Credit here */
 	/* NB: the computed VBDC is always really sent if not null */
-	this->vbdc_credit_pkt += vbdc_request_pkt;
-	LOG(this->log_request, LEVEL_DEBUG,
-	    "updated VBDC request = %d packets in SAC, VBDC credit = "
-	    "%u\n", vbdc_request_pkt, this->vbdc_credit_pkt);
+	this->vbdc_credit_kb += vbdc_request_kb;
+	LOG(this->log_request, LEVEL_NOTICE,
+	    "updated VBDC request = %d kbits in SAC, VBDC credit = "
+	    "%u kbits\n", vbdc_request_kb, this->vbdc_credit_kb);
 
-	return vbdc_request_pkt;
+	return vbdc_request_kb;
 }
-
-

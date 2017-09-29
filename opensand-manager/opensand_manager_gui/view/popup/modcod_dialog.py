@@ -43,14 +43,15 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanva
 
 
 from opensand_manager_core.my_exceptions import ModelException
-from opensand_manager_core.utils import FORWARD_DOWN, RETURN_UP, CCM, ACM, VCM,\
-                                        DAMA, ALOHA, SCPC
+from opensand_manager_core.utils import FORWARD_DOWN, RETURN_UP, CCM, ACM, VCM, \
+                                        DAMA, ALOHA, SCPC, DVB_RCS, DVB_RCS2
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 
 
 MODCOD_DEF_S2="modcod_def_s2"
 MODCOD_DEF_RCS="modcod_def_rcs"
+MODCOD_DEF_RCS2="modcod_def_rcs2"
 
 class ModcodParameter(WindowView):
     """ an modcod configuration window """
@@ -87,7 +88,7 @@ class ModcodParameter(WindowView):
         self._frame_access_type.set_shadow_type(gtk.SHADOW_OUT)
         self._hbox_modcod.pack_start(self._frame_access_type,padding = 10)
         #Add frame_modcod in hbox_modcod
-        self._frame_modcod = gtk.Frame(label="MODCOD")
+        self._frame_modcod = gtk.Frame(label="Wave Form")
         self._frame_modcod.set_shadow_type(gtk.SHADOW_OUT)
         self._hbox_modcod.pack_start(self._frame_modcod, padding = 25)
 
@@ -148,6 +149,10 @@ class ModcodParameter(WindowView):
 
 
     def load(self):
+        #Get the access type
+        access_type = self._list_carrier[self._carrier_id - 1].get_access_type()
+        ret_lnk_std = self._model.get_conf().get_return_link_standard()
+
         #Add the access type button for forward or return
         if self._link == FORWARD_DOWN:
             #Add radio button
@@ -178,7 +183,10 @@ class ModcodParameter(WindowView):
                                                 use_underline=True)
             self._scpc_radio = gtk.RadioButton(group=self._dama_radio,
                                                label=SCPC, use_underline=True)
-            self._dama_radio.connect("toggled", self.on_toggled)
+            if ret_lnk_std != DVB_RCS2: 
+                self._dama_radio.connect("toggled", self.on_toggled)
+            else:
+                self._dama_radio.connect("toggled", self.on_dama_rcs2_toggled)
             self._aloha_radio.connect("toggled", self.on_toggled)
             self._scpc_radio.connect("toggled", self.on_scpc_toggled)
             self._vbox_access_type.pack_start(self._dama_radio,
@@ -192,9 +200,7 @@ class ModcodParameter(WindowView):
                 self._aloha_radio.set_sensitive(False)
                 self._scpc_radio.set_sensitive(False)
 
-
         #Load access type from the carrier
-        access_type = self._list_carrier[self._carrier_id - 1].get_access_type()
         if access_type == CCM:
             self._ccm_radio.toggled()
         elif access_type == ACM:
@@ -217,8 +223,11 @@ class ModcodParameter(WindowView):
             self._list_modcod_ratio[modcod] = list_ratio[index]
             if len(modcod_list) == len(list_ratio):
                 index += 1
-            self._item_list[modcod-1].set_active(True)
-            nb_active += 1
+            for item in self._item_list:
+                modcod_id = ModcodParameter.get_modcod_index(item.get_label())
+                if int(modcod) == modcod_id:
+                    item.set_active(True)
+                    nb_active += 1
         if nb_active == len(self._item_list):
             self._check_modcod.set_active(True)
 
@@ -247,11 +256,24 @@ class ModcodParameter(WindowView):
 
         self._vbox.show_all()
 
+    @staticmethod
+    def get_modcod_label(entry):
+        if len(entry) < 5:
+            return ""
+        label = "{} - {} {}".format(entry[0], entry[1], entry[2])
+        return label
+
+    @staticmethod
+    def get_modcod_index(label):
+        elts = label.split()
+        return int(elts[0])
 
     def set_modcod_widgets(self, source, is_radio, option=None):
         """ Create a list of widget with list of modcods """
         #MODCOD list from file definition.txt
         global_conf = self._model.get_conf()
+        ret_lnk_std = global_conf.get_return_link_standard()
+        has_burst_length = False
         self._check_modcod.set_active(False)
         if self._link == FORWARD_DOWN:
             path = global_conf.get_param(MODCOD_DEF_S2)
@@ -268,11 +290,22 @@ class ModcodParameter(WindowView):
                     self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
                     self._vbox_modcods.reorder_child(self._check_modcod, 0)
                 path = global_conf.get_param(MODCOD_DEF_S2)
+            elif option == DAMA and ret_lnk_std == DVB_RCS2:
+                if self._check_modcod not in self._vbox_modcods.get_children():
+                    self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
+                    self._vbox_modcods.reorder_child(self._check_modcod, 0)
+                path = global_conf.get_param(MODCOD_DEF_RCS2)
+                has_burst_length = True
             else:
                 if self._check_modcod in self._vbox_modcods.get_children():
                     self._vbox_modcods.remove(self._check_modcod)
-                path = global_conf.get_param(MODCOD_DEF_RCS)
-        modcod_list = self.load_modcod(path)
+                if ret_lnk_std == DVB_RCS2:
+                    path = global_conf.get_param(MODCOD_DEF_RCS2)
+                    has_burst_length = True
+                else:
+                    path = global_conf.get_param(MODCOD_DEF_RCS)
+
+        modcod_list = self.load_modcod(path, has_burst_length)
 
         del self._item_list[:]
         #Create tooltips for button
@@ -282,22 +315,23 @@ class ModcodParameter(WindowView):
             check_modcod = None
             for modcod in modcod_list:
                 #In radio button the first radio have no group
+                modcod_label = ModcodParameter.get_modcod_label(modcod)
                 if is_radio:
                     radio_group = None
                     if modcod == modcod_list[0]:
                         #Default value for ratio is 10
                         if modcod in self._list_modcod_ratio.keys():
-                            self._dico_modcod[modcod[1] + " " + modcod[2]] = \
+                            self._dico_modcod[modcod_label] = \
                                 self._list_modcod_ratio[modcod]
                         else:
-                            self._dico_modcod[modcod[1] + " " + modcod[2]] = 10
+                            self._dico_modcod[modcod_label] = 10
                     else:
                         radio_group = self._item_list[0]
                     check_modcod = gtk.RadioButton(group = radio_group,
-                                                   label = modcod[1] + " " + modcod[2],
+                                                   label = modcod_label,
                                                    use_underline = True)
                 else:
-                    check_modcod = gtk.CheckButton(label = modcod[1] + " " + modcod[2],
+                    check_modcod = gtk.CheckButton(label = modcod_label,
                                                    use_underline = True)
                 tooltip.set_tip(check_modcod, "Spectral_efficiency : "
                                 + modcod[3] + "\nRequired Es/N0 : " + modcod[4])
@@ -308,7 +342,6 @@ class ModcodParameter(WindowView):
         #If button become disable
         else:
             self._dico_modcod.clear()
-
 
     def on_all_modcod_toggled(self, source=None):
         if source.get_active():
@@ -350,6 +383,10 @@ class ModcodParameter(WindowView):
         """Signal when acm button change"""
         self.set_modcod_widgets(source, False, SCPC)
 
+    def on_dama_rcs2_toggled(self, source=None):
+        """Signal when acm button change"""
+        self.set_modcod_widgets(source, False, DAMA)
+
 
     def on_toggled(self, source=None):
         self.set_modcod_widgets(source, True)
@@ -380,9 +417,11 @@ class ModcodParameter(WindowView):
         self.trace_arrow()
 
 
-    def load_modcod(self, path):
+    def load_modcod(self, path, has_burst_length=False):
         """Read in the file the available modcod"""
+        global_conf = self._model.get_conf()
         mc_list = []
+        burst_length = global_conf.get_rcs2_burst_length()
         with  open(path, 'r') as modcod_def:
             for line in modcod_def:
                 if (line.startswith("/*") or
@@ -390,15 +429,17 @@ class ModcodParameter(WindowView):
                     line.startswith('nb_fmt')):
                     continue
                 elts = line.split()
-                if len(elts) != 5:
+                if not has_burst_length and len(elts) != 5:
+                    continue
+                elif has_burst_length and (len(elts) != 6
+                     or elts[5] != burst_length):
                     continue
                 if not elts[0].isdigit:
                     continue
                 # id, modulation, coding_rate, spectral_efficiency, required Es/N0
-                mc_list.append([elts[0], elts[1], elts[2], elts[3], elts[4]])
-
+                mc_list.append(elts)
+        
         return mc_list
-
 
     def trace_temporal_representation(self):
         """Add graph and ratio selection in the window """
@@ -484,22 +525,19 @@ class ModcodParameter(WindowView):
     def get_active_modcod(self):
         #Get all toggle modcod
         all_modcod = self._vbox_modcod.get_children()
-        fmt_id = 1
         modcod = []
         ratio = []
         modcods = {}
         if self._vcm_radio is not None and self._vcm_radio.get_active():
             for button in all_modcod:
                 if button.get_active():
-                    modcod.append(fmt_id)
+                    modcod.append(ModcodParameter.get_modcod_index(button.get_label()))
                     ratio.append(self._dico_modcod[button.get_label()])
-                fmt_id += 1
         else:
             for button in all_modcod:
                 if button.get_active():
-                    modcod.append(fmt_id)
+                    modcod.append(ModcodParameter.get_modcod_index(button.get_label()))
                     ratio.append(self._dico_modcod[button.get_label()])
-                fmt_id += 1
 
         modcod_update = []
         if len(modcod) > 1 and (self._vcm_radio is None or not

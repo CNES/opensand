@@ -619,7 +619,6 @@ class AdvancedDialog(WindowView):
        
         return connection_map[path]
 
-
     def on_apply_advanced_conf_clicked(self, source=None, event=None):
         """ 'clicked' event callback on apply button """
         self._host_lock.acquire()

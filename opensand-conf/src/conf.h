@@ -53,6 +53,8 @@
 #define ENCAP_NAME                "encap"
 
 #define SATELLITE_TYPE            "satellite_type"
+#define RETURN_LINK_STANDARD      "return_link_standard"
+#define RCS2_BURST_LENGTH         "rcs2_burst_length"
 
 #define RET_UP_CARRIER_DURATION     "return_up_carrier_duration"
 #define FWD_DOWN_CARRIER_DURATION   "forward_down_carrier_duration"
@@ -102,10 +104,10 @@
 #define DEFAULT_GW                "default_gw"
 
 //////////////////////
-// bloc_dvb_rcs_ncc //
+// bloc_dvb_ncc //
 //////////////////////
 
-#define DVB_NCC_SECTION         "dvb_rcs_ncc"
+#define DVB_NCC_SECTION         "dvb_ncc"
 #define DVB_NCC_DAMA_ALGO       "dama_algorithm"
 #define DVB_EVENT_FILE          "event_file"
 #define DVB_SIMU_FILE           "simu_file"
@@ -158,7 +160,7 @@
 // DAMA CONTROL //
 //////////////////
 
-#define DC_SECTION_NCC              "dvb_rcs_ncc"
+#define DC_SECTION_NCC              "dvb_ncc"
 #define DC_FREE_CAP                 "fca"
 
 //////////
@@ -249,6 +251,7 @@
 #define MODCOD_DEF_S2                     "modcod_def_s2"
 #define FORWARD_DOWN_MODCOD_TIME_SERIES   "forward_down_modcod_time_series"
 #define MODCOD_DEF_RCS                    "modcod_def_rcs"
+#define MODCOD_DEF_RCS2                   "modcod_def_rcs2"
 #define RETURN_UP_MODCOD_TIME_SERIES      "return_up_modcod_time_series"
 #define LOOP_ON_FILE                      "loop_on_file"
 #define RETURN_UP_ACM_LOOP_MARGIN         "return_up_acm_loop_margin"

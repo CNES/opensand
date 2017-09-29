@@ -52,13 +52,13 @@ class AssignmentDialog(WindowView):
         self._spot = spot
         self._gw = gw 
         self._update_cb = update_cb
+        self._link = link
 
         self._dlg = self._ui.get_widget('edit_dialog')
         self._dlg.set_keep_above(False)
         
         self._vbox = self._ui.get_widget('edit_dialog_vbox')
         self.edit_text_win = self._ui.get_widget('edit_text_win')
-        self._link = link
         
         #Add vbox_assignement Box
         self.vbox_assignement = gtk.VBox()
@@ -130,7 +130,6 @@ class AssignmentDialog(WindowView):
         #Create combo box for group
         group = gtk.ListStore(int, str)
         group_list = []
-
         xpath = get_conf_xpath(CARRIERS_DISTRIB, self._link, self._spot, self._gw)
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
@@ -140,7 +139,6 @@ class AssignmentDialog(WindowView):
                                    content[CATEGORY]])
                 group.append([self.get_group_value(content[CATEGORY]), 
                               content[CATEGORY]])
-
         for host in host_list:
             if not host.get_name().lower().startswith(ST):
                 continue
@@ -167,7 +165,7 @@ class AssignmentDialog(WindowView):
             hbox_st_allocation.pack_start(combo_box_group)
             self.vbox_st_allocation.pack_start(hbox_st_allocation, fill=False, expand=False)
         self.edit_text_win.show_all()
-            
+
     ##################################################
             
     def get_group_value(self, name):

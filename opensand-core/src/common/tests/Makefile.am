@@ -13,7 +13,8 @@ EXTRA_DIST = \
 
 ############## test for encap plugins ##############
 
-INCLUDES = \
+test_plugins_CPPFLAGS = \
+  $(AM_CPPFLAGS) \
   -I$(top_srcdir)/src/lan_adaptation/ \
   -I$(top_srcdir)/src/common/ \
   -I$(top_srcdir)/src/dvb/utils/

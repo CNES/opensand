@@ -83,47 +83,87 @@ bool DvbChannel::initSatType(void)
 	return true;
 }
 
+bool DvbChannel::initModcodDefinitionTypes(void)
+{
+	// return link standard type
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		               RETURN_LINK_STANDARD,
+	                   this->return_link_std_str))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    COMMON_SECTION, RETURN_LINK_STANDARD);
+		return false;
+	}
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "return link standard type = %s\n",
+	    this->return_link_std_str.c_str());
+	this->return_link_std = strToReturnLinkStd(this->return_link_std_str);
+
+	// Set the MODCOD definition type
+	if(this->return_link_std == DVB_RCS2)
+	{
+		unsigned int dummy;
+		this->modcod_def_rcs_type = MODCOD_DEF_RCS2;
+		
+		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+			               RCS2_BURST_LENGTH,
+		                   dummy))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "section '%s': missing parameter '%s'\n",
+			    COMMON_SECTION, RCS2_BURST_LENGTH);
+			return false;
+		}
+		this->req_burst_length = dummy;
+	}
+	else
+	{
+		this->modcod_def_rcs_type = MODCOD_DEF_RCS;
+		this->req_burst_length = 0;
+	}
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "required burst length = %d\n",
+	    this->req_burst_length);
+
+	return true;
+}
 
 bool DvbChannel::initPktHdl(const char *encap_schemes,
-                            EncapPlugin::EncapPacketHandler **pkt_hdl, bool force)
+                            EncapPlugin::EncapPacketHandler **pkt_hdl)
 {
 	string encap_name;
 	int encap_nbr;
 	EncapPlugin *plugin;
 
-	// if GSE is imposed
-	// (e.g. if Tal is in SCPC mode or for receiving GSE packet in the GW)
-	if(force)
+	// get the packet types
+	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
+							 encap_schemes,
+						 encap_nbr))
 	{
-		encap_name = "GSE";
-		LOG(this->log_init_channel, LEVEL_NOTICE,
-		    "New packet handler for ENCAP type = %s\n", encap_name.c_str());
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"Section %s, %s missing\n",
+			COMMON_SECTION, encap_schemes);
+		return false;
 	}
-	else
+	if (encap_nbr <= 0)
 	{
-		// get the packet types
-		if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
-		                         encap_schemes,
-	                         encap_nbr))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, %s missing\n",
-			    COMMON_SECTION, encap_schemes);
-			return false;
-		}
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"Section %s, invalid value for %s (%d)\n",
+			COMMON_SECTION, encap_schemes, encap_nbr);
+		return false;
+	}
 
-
-		// get all the encapsulation to use from lower to upper
-		if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
-		                         encap_schemes,
-		                         POSITION, toString(encap_nbr - 1),
-		                         ENCAP_NAME, encap_name))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, invalid value %d for parameter '%s'\n",
-			    COMMON_SECTION, encap_nbr - 1, POSITION);
-			return false;
-		}
+	// get all the encapsulation to use from lower to upper
+	if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
+							 encap_schemes,
+							 POSITION, toString(encap_nbr - 1),
+							 ENCAP_NAME, encap_name))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+			"Section %s, invalid value %d for parameter '%s'\n",
+			COMMON_SECTION, encap_nbr - 1, POSITION);
+		return false;
 	}
 
 	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
@@ -144,7 +184,51 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "encapsulation scheme = %s\n",
 	    (*pkt_hdl)->getName().c_str());
+	
+	return true;
+}
 
+bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
+{
+	vector<string> encap_stack;
+	string encap_name;
+	EncapPlugin *plugin;
+
+	// Get SCPC encapsulation name stack
+	if (!OpenSandConf::getScpcEncapStack(this->return_link_std_str,
+		                                 encap_stack) ||
+		encap_stack.size() <= 0)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "cannot get SCPC encapsulation names\n");
+		return false;
+	}
+	encap_name = encap_stack.back();
+
+	// if GSE is imposed
+	// (e.g. if Tal is in SCPC mode or for receiving GSE packet in the GW)
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "New packet handler for ENCAP type = %s\n", encap_name.c_str());
+
+	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "cannot get plugin for %s encapsulation\n",
+		    encap_name.c_str());
+		return false;
+	}
+
+	*pkt_hdl = plugin->getPacketHandler();
+	if(!pkt_hdl)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "cannot get %s packet handler\n", encap_name.c_str());
+		return false;
+	}
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "encapsulation scheme = %s\n",
+	    (*pkt_hdl)->getName().c_str());
+	
 	return true;
 }
 
@@ -173,7 +257,7 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "frame duration set to %d\n", this->ret_up_frame_duration_ms);
 
-	if(!this->initPktHdl(encap_schemes, &this->pkt_hdl, false))
+	if(!this->initPktHdl(encap_schemes, &this->pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize packet handler\n");
@@ -276,7 +360,7 @@ bool DvbFmt::initFmt(void)
 }
 
 
-bool DvbFmt::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def)
+bool DvbFmt::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def, vol_sym_t req_burst_length)
 {
 	string modcod_def_file;
 	*modcod_def = new FmtDefinitionTable();
@@ -298,7 +382,7 @@ bool DvbFmt::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def)
 	{
 		return false;
 	}
-	if(!(*modcod_def)->load(modcod_def_file))
+	if(!(*modcod_def)->load(modcod_def_file, req_burst_length))
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "failed to load the MODCOD definitions from file "
@@ -344,7 +428,7 @@ bool DvbFmt::initModcodSimuFile(const char *simu,
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		   "section '%s': missing parameter '%s'\n",
-		   NCC_SECTION_PEP, ACM_PERIOD_REFRESH);
+		   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
 		return false;
 	}
 

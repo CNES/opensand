@@ -54,12 +54,27 @@
     </xsd:restriction>
 </xsd:simpleType>
 
+<xsd:simpleType name="returnLinkStandardType">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="DVB-RCS" />
+        <xsd:enumeration value="DVB-RCS2" />
+    </xsd:restriction>
+</xsd:simpleType>
+
+<xsd:simpleType name="rcs2BurstLength">
+    <xsd:restriction base="xsd:positiveInteger">
+        <xsd:enumeration value="536" />
+        <xsd:enumeration value="1616" />
+    </xsd:restriction>
+</xsd:simpleType>
+
 <xsd:simpleType name="encapScheme">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="AAL5/ATM" />
         <xsd:enumeration value="MPEG2-TS" />
         <xsd:enumeration value="ULE" />
         <xsd:enumeration value="GSE" />
+        <xsd:enumeration value="RLE" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -351,6 +366,22 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         Use a global constant delay for all terminals/gateways 
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="return_link_standard" type="returnLinkStandardType">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The return link standard type
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="rcs2_burst_length" type="rcs2BurstLength">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The constant burst length for DVB-RCS2
+                        <unit>sym</unit>
+                        <xpath common.return_link_standard="DVB-RCS2" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -670,6 +701,16 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
+            <xsd:element name="modcod_def_rcs2" type="file">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The MODCOD definition file for RCS2 return/up link
+                        <default>modcod/rcs2/definition_RLE.txt</default>
+                        <source>modcod/rcs2/modcod.txt</source>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+
             <xsd:element name="spot" minOccurs="1" maxOccurs="32">
                  <xsd:complexType>
                     <xsd:sequence>

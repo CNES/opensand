@@ -175,6 +175,12 @@ vol_pkt_t DvbFifo::getCurrentSize() const
 	return this->queue.size();
 }
 
+vol_bytes_t DvbFifo::getCurrentDataLength() const
+{
+	RtLock lock(this->fifo_mutex);
+	return this->cur_length_bytes;
+}
+
 vol_pkt_t DvbFifo::getMaxSize() const
 {
 	RtLock lock(this->fifo_mutex);
@@ -226,6 +232,7 @@ bool DvbFifo::push(MacFifoElement *elem)
 	this->stat_context.current_pkt_nbr = this->queue.size();
 	this->stat_context.in_pkt_nbr++;
 	this->new_length_bytes += length;
+	this->cur_length_bytes += length;
 	this->stat_context.current_length_bytes += length;
 	this->stat_context.in_length_bytes += length;
 
@@ -242,6 +249,7 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 		vol_bytes_t length = elem->getTotalLength();
 
 		this->queue.insert(this->queue.begin(), elem);
+		this->cur_length_bytes += length;
 		// update counter but not new ones as it is a fragment of an old element
 		this->stat_context.current_pkt_nbr = this->queue.size();
 		this->stat_context.current_length_bytes += length;
@@ -264,6 +272,7 @@ bool DvbFifo::pushBack(MacFifoElement *elem)
 		vol_bytes_t length = elem->getTotalLength();
 
 		this->queue.insert(this->queue.end(), elem);
+		this->cur_length_bytes += length;
 		// update counter but not new ones as it is a fragment of an old element
 		this->stat_context.current_pkt_nbr = this->queue.size();
 		this->stat_context.current_length_bytes += length;
@@ -287,14 +296,15 @@ MacFifoElement *DvbFifo::pop()
 	}
 
 	elem = this->queue.front();
+	length = elem->getTotalLength();
 
 	// remove the packet
 	this->queue.erase(this->queue.begin());
+	this->cur_length_bytes -= length;
 
 	// update counters
 	this->stat_context.current_pkt_nbr = this->queue.size();
 	this->stat_context.out_pkt_nbr++;
-	length = elem->getTotalLength();
 
 	this->stat_context.current_length_bytes -= length;
 	this->stat_context.out_length_bytes += length;
@@ -316,6 +326,7 @@ void DvbFifo::flush()
 	this->queue.clear();
 	this->new_size_pkt = 0;
 	this->new_length_bytes = 0;
+	this->cur_length_bytes = 0;
 	this->resetStats();
 }
 

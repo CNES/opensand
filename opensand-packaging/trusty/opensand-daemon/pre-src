@@ -27,13 +27,6 @@ while getopts ":s:d:h" o; do
 done
 shift $((OPTIND-1))
 
-# Make sure the script is run as root
-if [ "$(id -u)" != "0" ];
-then
-    echo "This script must be run as root" 1>&2
-    exit 1
-fi
-
 # Check if valid source dir
 if [ ! -d "$SRC_DIR" ]
 then

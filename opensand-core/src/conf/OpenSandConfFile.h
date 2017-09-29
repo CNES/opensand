@@ -36,6 +36,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 #include <iostream>
 #include <stdint.h>
 
@@ -123,11 +124,24 @@ class OpenSandConfFile
 	             uint8_t spot_id, 
 	             uint16_t gw_id,
 	             ConfigurationList &current_gw);
+
+	/**
+	 * Get the SCPC encapsulation stack in function for a return link standard
+	 * 
+	 * @param return_link_std  the return link standard
+	 * @param encap_stack      the found encapsulation stack for SCPC
+	 * @return true on success, false otherwise
+	 */
+	bool getScpcEncapStack(string return_link_std,
+	                       vector<string> &encap_stack);
+
  private:
 
 	/// Output Log
 	OutputLog *log_conf;
 
+	/// SCPC encapsulation stack for each return link standard
+	map< string, vector<string> > scpc_encap_stacks;
 };
 
 

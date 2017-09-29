@@ -46,7 +46,7 @@ class DamaAgentRcsRrmQos: public DamaAgentRcs
 {
  public:
 
-	DamaAgentRcsRrmQos();
+	DamaAgentRcsRrmQos(FmtDefinitionTable *ret_modcod_def);
 	virtual ~DamaAgentRcsRrmQos();
 
 	// Init method
@@ -58,10 +58,7 @@ class DamaAgentRcsRrmQos: public DamaAgentRcs
  protected:
 
 	/** VBDC credit */
-	time_pkt_t vbdc_credit_pkt;
-
-	/** Circular buffer to store previous RBDC requests */
-	CircularBuffer *rbdc_request_buffer;
+	vol_kb_t vbdc_credit_kb;
 
 	// UL allocation in number of time-slots per frame
 	CircularBuffer *dyn_alloc; ///< dynamic bandwith allocated in nb of
@@ -77,7 +74,7 @@ class DamaAgentRcsRrmQos: public DamaAgentRcs
  private:
 
 	rate_kbps_t computeRbdcRequest();
-	vol_pkt_t computeVbdcRequest();
+	vol_kb_t computeVbdcRequest();
 };
 
 #endif

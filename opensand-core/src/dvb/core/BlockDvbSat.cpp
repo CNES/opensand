@@ -626,6 +626,13 @@ void BlockDvbSat::Upward::setGws(const sat_gws_t &gws)
 
 bool BlockDvbSat::Upward::onInit()
 {
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+			"failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+
 	// get the common parameters
 	// TODO no need to init pkt hdl in transparent mode,
 	//      this will avoid loggers for encap to be instanciated
@@ -665,12 +672,26 @@ bool BlockDvbSat::Upward::initMode(void)
 	// Delay to apply to the medium
 	if(this->satellite_type == REGENERATIVE)
 	{
-		this->reception_std = new DvbRcsStd(this->pkt_hdl);
+		if(this->return_link_std == DVB_RCS2)
+		{
+			this->reception_std = new DvbRcs2Std(this->pkt_hdl); 
+		}
+		else
+		{
+			this->reception_std = new DvbRcsStd(this->pkt_hdl); 
+		}
 	}
 	else
 	{
 		// create the reception standard
-		this->reception_std = new DvbRcsStd(); 
+		if(this->return_link_std == DVB_RCS2)
+		{
+			this->reception_std = new DvbRcs2Std(); 
+		}
+		else
+		{
+			this->reception_std = new DvbRcsStd(); 
+		}
 	}
 	if(this->reception_std == NULL)
 	{

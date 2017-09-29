@@ -20,5 +20,6 @@ libopensand_ideal_attenuation_plugin_la_SOURCES = \
 
 pluginsdir = $(libdir)/opensand/plugins
 
-INCLUDES = \
+libopensand_ideal_attenuation_plugin_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common

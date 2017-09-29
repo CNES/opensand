@@ -72,6 +72,13 @@ bool SpotUpwardTransp::onInit(void)
 {
 	string scheme = RETURN_UP_ENCAP_SCHEME_LIST;
 
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+
 	// get the common parameters
 	if(!this->initCommon(scheme.c_str()))
 	{
@@ -229,14 +236,15 @@ bool SpotUpwardTransp::initModcodSimu(void)
 	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the forward MODCOD file\n");
+		    "failed to initialize the forward link definition MODCOD file\n");
 		return false;
 	}
-	if(!this->initModcodDefFile(MODCOD_DEF_RCS,
-	                            &this->rcs_modcod_def))
+	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
+	                            &this->rcs_modcod_def,
+	                            this->req_burst_length))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the uplink MODCOD file\n");
+		    "failed to initialize the return link definition MODCOD file\n");
 		return false;
 	}
 	
@@ -244,7 +252,7 @@ bool SpotUpwardTransp::initModcodSimu(void)
 	                             this->mac_id, this->spot_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the downlink MODCOD files\n");
+		    "failed to initialize the downlink simulation MODCOD files\n");
 		return false;
 	}
 
@@ -357,31 +365,48 @@ bool SpotUpwardTransp::initMode(void)
 {
 	// initialize the reception standard
 	// depending on the satellite type
-	this->reception_std = new DvbRcsStd(this->pkt_hdl);
+	if(this->return_link_std == DVB_RCS2)
+	{
+		this->reception_std = new DvbRcs2Std(this->pkt_hdl); 
+	}
+	else
+	{
+		this->reception_std = new DvbRcsStd(this->pkt_hdl); 
+	}
 
 	// If available SCPC carriers, a new packet handler is created at NCC
 	// to received BBFrames and to be able to deencapsulate GSE packets.
 	if(this->checkIfScpc())
 	{
 		EncapPlugin::EncapPacketHandler *fwd_pkt_hdl;
+		vector<string> scpc_encap;
+		
 		// check that the forward encapsulation scheme is GSE
 		// (this should be automatically set by the manager)
 		if(!this->initPktHdl(FORWARD_DOWN_ENCAP_SCHEME_LIST,
-		                     &fwd_pkt_hdl, false))
+		                     &fwd_pkt_hdl))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed to get forward packet handler\n");
 			return false;
 		}
-		if(fwd_pkt_hdl->getName() != "GSE")
+		if (!OpenSandConf::getScpcEncapStack(this->return_link_std_str,
+			                                 scpc_encap) ||
+			scpc_encap.size() <= 0)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Forward packet handler is not GSE while there is SCPC channels\n");
+			    "failed to get SCPC encapsulation names\n");
+			return false;
+		}
+		if(fwd_pkt_hdl->getName() != scpc_encap[0])
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Forward packet handler is not %s while there is SCPC channels\n",
+			    scpc_encap[0].c_str());
 			return false;
 		}
 
-		if(!this->initPktHdl("GSE",
-		                     &this->scpc_pkt_hdl, true))
+		if(!this->initScpcPktHdl(&this->scpc_pkt_hdl))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "failed to get packet handler for receiving GSE packets\n");

@@ -39,7 +39,7 @@ from optparse import OptionParser
 
 from opensand_manager_core.carriers_band import CarriersBand
 from opensand_manager_core.utils import OPENSAND_PATH, ID, GW, SPOT, \
-        RETURN_UP, FORWARD_DOWN
+        RETURN_UP, FORWARD_DOWN, DVB_RCS, DVB_RCS2
 from opensand_manager_core.opensand_xml_parser import XmlParser
 
 XSD = OPENSAND_PATH + "core_global.xsd"
@@ -71,8 +71,11 @@ class OpenSandBand():
             options.ret = True
             options.forward = True
 
+        config = XmlParser(os.path.join(options.scenario, "core_global.conf"), XSD)
+        elem = config.get("//common/return_link_standard")
+        return_link_std = config.get_value(elem)
+        
         if options.ret:
-            config = XmlParser(os.path.join(options.scenario, "core_global.conf"), XSD)
             print \
 "**************************************************************************\n" \
 "****************************** RETURN ************************************\n" \
@@ -84,7 +87,8 @@ class OpenSandBand():
                     content = config.get_element_content(KEY)
                     print "spot %s gw %s" % (content[ID], content[GW])
                     self._carriers_band.parse(link, config, KEY)
-                    self._carriers_band.modcod_def(options.scenario, config)
+                    self._carriers_band.modcod_def(options.scenario, config,
+                                                   return_link_std)
                     print self._carriers_band.str()
                     print
         if options.forward:
@@ -99,7 +103,8 @@ class OpenSandBand():
                     content = config.get_element_content(KEY)
                     print "spot %s gw %s" % (content[ID], content[GW])
                     self._carriers_band.parse(link, config, KEY)
-                    self._carriers_band.modcod_def(options.scenario, config)
+                    self._carriers_band.modcod_def(options.scenario, config,
+                                                   return_link_std)
                     print self._carriers_band.str()
                     print
 

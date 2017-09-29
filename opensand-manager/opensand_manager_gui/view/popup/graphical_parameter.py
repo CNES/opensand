@@ -71,7 +71,6 @@ class GraphicalParameter(WindowView):
         self._description = {}
 
         title = self._ui.get_widget('label_title_parameter')
-
         if self._link == FORWARD_DOWN:
             title.set_text(    "<b>Forward Band Configuration</b>")
         elif self._link == RETURN_UP:

@@ -27,7 +27,7 @@
  */
 
 /*
- * @file DamaAgentRcs.h
+ * @file DamaCtrlRcs.h
  * @brief This library defines DAMA controller interfaces.
  * @author satip6 (Eddy Fromentin)
  */
@@ -35,10 +35,9 @@
 #ifndef _DAMA_CONTROLLER_RCS_H_
 #define _DAMA_CONTROLLER_RCS_H_
 
-#include "DamaCtrl.h"
+#include "DamaCtrlRcsCommon.h"
 
-#include "FmtDefinitionTable.h"
-#include "TerminalContextDamaRcs.h"
+#include "OpenSandCore.h"
 
 #include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
@@ -53,47 +52,54 @@
  * @class DamaCtrlRcs
  * @brief Define methods to process DAMA request in the NCC
  */
-class DamaCtrlRcs: public DamaCtrl
+class DamaCtrlRcs: public DamaCtrlRcsCommon
 {
  public:
 
-	DamaCtrlRcs(spot_id_t spot);
+	DamaCtrlRcs(spot_id_t spot, vol_b_t packet_length_b);
 	virtual ~DamaCtrlRcs();
 
-	//bool applyPepCommand(const PepRequest &request);
-	bool applyPepCommand(const PepRequest* request);
+	// Update carrier for each terminal
+	virtual bool updateCarriers();
 
+ protected:
+	vol_b_t packet_length_b;
+
+	/// Generate an unit converter
+	virtual UnitConverter *generateUnitConverter() const;
 
 	/**
-	 * @brief  Initializes internal data structure according to configuration file
+	 * @brief  Generate a probe for Gw capacity
 	 *
-	 * @return  true on success, false otherwise
+	 * @param name            the probe name
+	 * @return                the probe
 	 */
-	virtual bool init();
+	virtual Probe<int> *generateGwCapacityProbe(
+		string name) const;
 
-	virtual bool createTerminal(TerminalContextDama **terminal,
-	                            tal_id_t tal_id,
-	                            rate_kbps_t cra_kbps,
-	                            rate_kbps_t max_rbdc_kbps,
-	                            time_sf_t rbdc_timeout_sf,
-	                            vol_kb_t max_vbdc_kb);
+	/**
+	 * @brief  Generate a probe for category capacity
+	 *
+	 * @param name            the probe name
+	 * @param category_label  the category label
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateCategoryCapacityProbe(
+		string category_label,
+		string name) const;
 
-	virtual bool removeTerminal(TerminalContextDama *terminal);
-
-
-	// Process DVB frames
-	virtual bool hereIsSAC(const Sac *sac);
-
-	// Build allocation table
-	virtual bool buildTTP(Ttp *ttp);
-
-	// Reset dama
-	virtual bool resetDama() = 0;
-
-	// Update MODCOD for each terminal
-	virtual void updateFmt();
-
+	/**
+	 * @brief  Generate a probe for carrier capacity
+	 *
+	 * @param name            the probe name
+	 * @param category_label  the category label
+	 * @param carrier_id      the carrier id
+	 * @return                the probe
+	 */
+	virtual Probe<int> *generateCarrierCapacityProbe(
+		string category_label,
+		unsigned int carrier_id,
+		string name) const;
 };
-
 
 #endif

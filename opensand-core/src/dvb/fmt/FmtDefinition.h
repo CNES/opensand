@@ -31,13 +31,13 @@
  * @file FmtDefinition.h
  * @brief The definition of a FMT
  * @author Julien BERNARD / Viveris Technologies
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef FMT_DEFINITION_H
 #define FMT_DEFINITION_H
 
 #include "OpenSandCore.h"
-#include "ModulationType.h"
 #include <string>
 
 using std::string;
@@ -53,11 +53,23 @@ class FmtDefinition
 	/** The ID of the FMT definition */
 	unsigned int id;
 
-	/** The type of modulation of the FMT definition */
-	modulation_type_t modulation;
+	/** The modulation type of the FMT definition */
+	string modulation_type;
+
+	/** The modulation efficiency of the FMT definition */
+	unsigned int modulation_efficiency;
+
+	/** The inverse of the modulation efficiency of the FMT definition */
+	float modulation_efficiency_inv;
+
+	/** The coding type of the FMT definition */
+	string coding_type;
 
 	/** The coding rate of the FMT definition */
-	string coding_rate;
+	float coding_rate;
+
+	/** The inverse of the coding rate of the FMT definition */
+	float coding_rate_inv;
 
 	/* The spectral efficiency of the FMT definition */
 	float spectral_efficiency;
@@ -65,34 +77,49 @@ class FmtDefinition
 	/** The required carrier to noise ratio */
 	double required_Es_N0;
 
+	/** The status about burst length presence */
+	bool has_burst_length;
+
+	/** The burst length in symbols */
+	vol_sym_t burst_length_sym;
+
  public:
-
-	/**** constructor/destructor ****/
-
 	/* create a FMT definition */
 	FmtDefinition(const unsigned int id,
-	              const string modulation,
-	              const string coding_rate,
-	              const float spectral_efficiency,
-	              const double required_Es_N0);
+		const string modulation_type,
+		const string coding_type,
+		const float spectral_efficiency,
+		const double required_Es_N0);
+
+	FmtDefinition(const unsigned int id,
+		const string modulation_type,
+		const string coding_type,
+		const float spectral_efficiency,
+		const double required_Es_N0,
+		const vol_sym_t burst_length);
 
 	/* constructor by copy */
 	FmtDefinition(const FmtDefinition &fmt_def);
 
 	/* destroy a FMT definition */
-	~FmtDefinition();
-
+	virtual ~FmtDefinition();
 
 	/**** accessors ****/
 
 	/* get the ID of the FMT definition */
 	unsigned int getId() const;
 
-	/* get the modulation of the FMT definition */
-	modulation_type_t getModulation() const;
+	/* get the modulation type of the FMT definition */
+	string getModulation() const;
+
+	/* get the modulation efficiency of the FMT definition */
+	unsigned int getModulationEfficiency() const;
+
+	/* get the coding type of the FMT definition */
+	string getCoding() const;
 
 	/* get the coding rate of the FMT definition */
-	string getCodingRate() const;
+	float getCodingRate() const;
 
 	/* get the spectral efficiency of the FMT definition */
 	float getSpectralEfficiency() const;
@@ -100,7 +127,25 @@ class FmtDefinition
 	/* get the required Es/N0 ratio of the FMT definition */
 	double getRequiredEsN0() const;
 
-	void print(void); /// For debug
+	/* get the status about burst length presence */
+	bool hasBurstLength() const;
+
+	/* get the burst length in symbols of the FMT defition */
+	vol_sym_t getBurstLength() const;
+
+	/* convert a value in symbol for the FMT definition */
+	vol_kb_t symToKbits(vol_sym_t vol_sym) const;
+
+	/* convert a value in kbits for the FMT definition */
+	vol_sym_t kbitsToSym(vol_kb_t vol_kbits) const;
+
+	/* add FEC to data length */
+	unsigned int addFec(unsigned int length) const;
+
+	/* remove FEC to data length */
+	unsigned int removeFec(unsigned int length) const;
+
+	virtual void print(void) const; /// For debug
 
 };
 
