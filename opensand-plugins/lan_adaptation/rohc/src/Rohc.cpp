@@ -141,7 +141,7 @@ void Rohc::Context::init()
 	if(max_cid > ROHC_SMALL_CID_MAX)
 	{
 		cid_type = ROHC_LARGE_CID;
-		max_cid = std::min(max_cid, ROHC_LARGE_CID_MAX);
+		max_cid = std::min(max_cid, (unsigned int)ROHC_LARGE_CID_MAX);
 	}
 
 	// create the ROHC compressor
