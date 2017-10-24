@@ -112,7 +112,7 @@ Rohc::Context::Context(LanAdaptationPlugin &plugin):
 void Rohc::Context::init()
 {
 	LanAdaptationPlugin::LanAdaptationContext::init();
-	int max_cid;
+	unsigned int max_cid;
 	int max_alloc = 0;
 	rohc_cid_type_t cid_type = ROHC_SMALL_CID;
 	bool status;
@@ -141,7 +141,7 @@ void Rohc::Context::init()
 	if(max_cid > ROHC_SMALL_CID_MAX)
 	{
 		cid_type = ROHC_LARGE_CID;
-		max_cid = std::min(max_cid, ROHC_LARGE_CID_MAX);
+		max_cid = std::min(max_cid, (unsigned int)ROHC_LARGE_CID_MAX);
 	}
 
 	// create the ROHC compressor

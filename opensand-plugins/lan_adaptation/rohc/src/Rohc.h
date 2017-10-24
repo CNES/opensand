@@ -46,9 +46,12 @@
 
 #include <RohcPacket.h>
 
-#include <rohc/rohc.h>
-#include <rohc/rohc_comp.h>
-#include <rohc/rohc_decomp.h>
+extern "C"
+{
+	#include <rohc/rohc.h>
+	#include <rohc/rohc_comp.h>
+	#include <rohc/rohc_decomp.h>
+}
 
 #define MAX_ROHC_SIZE      (5 * 1024)
 
