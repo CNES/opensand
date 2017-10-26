@@ -62,9 +62,12 @@ Ule::Context::Context(EncapPlugin &plugin):
 {
 }
 
-void Ule::Context::init()
+bool Ule::Context::init()
 {
-	EncapPlugin::EncapContext::init();
+	if(!EncapPlugin::EncapContext::init())
+	{
+		return false;
+	}
 	this->build_exts.clear();
 	// TODO extension table in configuration
 	// TODO boolean for crc in configuration
@@ -111,6 +114,7 @@ void Ule::Context::init()
 	}
 #endif
 	this->enable_crc = false;
+	return true;
 }
 
 Ule::Context::~Context()

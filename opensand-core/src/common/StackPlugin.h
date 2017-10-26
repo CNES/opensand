@@ -212,7 +212,7 @@ class StackPlugin: public OpenSandPlugin
 		/**
 		 * @brief StackContext constructor
 		 */
-		StackContext(StackPlugin &pl): plugin(pl), current_upper(NULL)
+		StackContext(StackPlugin &pl): current_upper(NULL), plugin(pl)
 		{
 		};
 

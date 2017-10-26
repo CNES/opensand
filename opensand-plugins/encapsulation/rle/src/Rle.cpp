@@ -85,7 +85,7 @@ bool Rle::init()
 		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - End 1");
 		LOG(this->log, LEVEL_ERROR,
 			"cannot initialize RLE plugin");
-		return;
+		return false;
 	}
 	upper_pkt_hd = this->context->getCurrentUpperPacketHandler();
 	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - Upper packet handler is %s", upper_pkt_hd != NULL ? "NOT null" : "NULL");
@@ -94,11 +94,13 @@ bool Rle::init()
 		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - End 2");
 		LOG(this->log, LEVEL_ERROR,
 			"cannot initialize RLE plugin");
-		return;
+		return false;
 	}
 	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - Upper ether type = %d", upper_pkt_hd->getEtherType());
 	pkt_hd->setUpperEtherType(upper_pkt_hd->getEtherType());
 	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - End 3");
+	
+	return true;
 }
 
 Rle::Context::Context(EncapPlugin &plugin):
@@ -299,7 +301,7 @@ bool Rle::PacketHandler::init(void)
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot get the upper protocol type\n");
 		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::init - End");
-		return;
+		return false;
 	}
 
 	// Load configuration
@@ -309,7 +311,7 @@ bool Rle::PacketHandler::init(void)
 		    "failed to load config file '%s'",
 		    CONF_RLE_FILE);
 		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::init - End");
-		return;
+		return false;
 	}
 
 	config.loadSectionMap(config_section_map);
@@ -357,10 +359,17 @@ bool Rle::PacketHandler::init(void)
 	}
 	this->rle_conf.implicit_protocol_type = this->upper_ether_type;
 
-unload:
 	// Unload configuration
 	config.unloadConfig();
 	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::init - End");
+	
+	return true;
+unload:
+	// Unload configuration
+	config.unloadConfig();
+	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::init - Error");
+	
+	return false;
 }
 
 NetPacket *Rle::PacketHandler::build(const Data &data,

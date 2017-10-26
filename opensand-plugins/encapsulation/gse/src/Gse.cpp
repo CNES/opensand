@@ -143,9 +143,12 @@ Gse::Context::Context(EncapPlugin &plugin):
 	this->buf = NULL;
 }
 
-void Gse::Context::init(void)
+bool Gse::Context::init(void)
 {
-	EncapPlugin::EncapContext::init();
+	if(!EncapPlugin::EncapContext::init())
+	{
+		return false;
+	}
 	gse_status_t status;
 	ConfigurationFile config;
 	map<string, ConfigurationList> config_section_map;
@@ -210,7 +213,7 @@ void Gse::Context::init(void)
 		    "cannot allocate vfrag_gse at init\n");
 		goto release_encap;
 	}
-	return;
+	return true;
 
 release_encap:
 	status = gse_encap_release(this->encap);
@@ -225,6 +228,7 @@ unload:
 error:
 	this->encap = NULL;
 	this->deencap = NULL;
+	return false;
 }
 
 Gse::Context::~Context()

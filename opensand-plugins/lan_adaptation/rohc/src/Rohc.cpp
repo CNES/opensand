@@ -109,9 +109,12 @@ Rohc::Context::Context(LanAdaptationPlugin &plugin):
 {
 }
 
-void Rohc::Context::init()
+bool Rohc::Context::init()
 {
-	LanAdaptationPlugin::LanAdaptationContext::init();
+	if(!LanAdaptationPlugin::LanAdaptationContext::init())
+	{
+		return false;
+	}
 	unsigned int max_cid;
 	int max_alloc = 0;
 	rohc_cid_type_t cid_type = ROHC_SMALL_CID;
@@ -212,7 +215,7 @@ void Rohc::Context::init()
 
 	config.unloadConfig();
 
-	return;
+	return true;
 
 free_decomp:
 	for(uint8_t i = 0; i <= max_alloc; ++i)
@@ -225,6 +228,7 @@ unload:
 	config.unloadConfig();
 error:
 	this->comp = NULL;
+	return false;
 }
 
 Rohc::Context::~Context()
