@@ -71,9 +71,12 @@ Ethernet::Ethernet():
 {
 }
 
-void Ethernet::init()
+bool Ethernet::init()
 {
-	LanAdaptationPlugin::init();
+	if(!LanAdaptationPlugin::init())
+	{
+		return false;
+	}
 	ConfigurationFile config;
 	map<string, ConfigurationList> config_section_map;
 	string sat_eth;
@@ -93,7 +96,7 @@ void Ethernet::init()
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'", conf_eth_path.c_str());
-		return;
+		return false;
 	}
 
 	config.loadSectionMap(config_section_map);
@@ -126,6 +129,7 @@ void Ethernet::init()
 		    "unknown type of Ethernet frames\n");
 		this->ether_type = NET_PROTO_ERROR;
 	}
+	return true;
 }
 
 Ethernet::Context::Context(LanAdaptationPlugin &plugin):
@@ -133,9 +137,12 @@ Ethernet::Context::Context(LanAdaptationPlugin &plugin):
 {
 }
 
-void Ethernet::Context::init()
+bool Ethernet::Context::init()
 {
-	LanAdaptationPlugin::LanAdaptationContext::init();
+	if(!LanAdaptationPlugin::LanAdaptationContext::init())
+	{
+		return false;
+	}
 	map<string, ConfigurationList> config_section_map;
 	string lan_eth;
 	string sat_eth;
@@ -151,7 +158,7 @@ void Ethernet::Context::init()
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",
 		    conf_eth_path.c_str());
-		return;
+		return false;
 	}
 
 	this->config.loadSectionMap(config_section_map);
@@ -232,6 +239,7 @@ void Ethernet::Context::init()
 	}
 
 	config_section_map.clear();
+	return true;
 }
 
 Ethernet::Context::~Context()

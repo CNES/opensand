@@ -63,9 +63,12 @@ Mpeg::Context::Context(EncapPlugin &plugin):
 {
 };
 
-void Mpeg::Context::init()
+bool Mpeg::Context::init()
 {
-	EncapPlugin::EncapContext::init();
+	if(!EncapPlugin::EncapContext::init())
+	{
+		return false;
+	}
 	ConfigurationFile config;
 	map<string, ConfigurationList> config_section_map;
 	string conf_mpeg_path;
@@ -92,9 +95,10 @@ void Mpeg::Context::init()
 	LOG(this->log, LEVEL_INFO,
 	    "packing thershold: %lu\n",
 	    this->packing_threshold);
-
+	
+	return true;
 error:
-	return;
+	return false;
 }
 
 Mpeg::Context::~Context()

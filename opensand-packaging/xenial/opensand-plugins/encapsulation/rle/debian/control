@@ -1,0 +1,37 @@
+Source: opensand-rle-encap-plugin
+Priority: optional
+Maintainer: OpenSAND Maintainers <admin@opensand.org>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
+ libopensand-output-dev (>= 4.2.0),
+ libopensand-conf-dev (>= 4.2.0),
+ libopensand-plugin-dev (>= 4.2.0)
+XS-Python-Version: >= 2.7
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-rle-encap-plugin-conf
+Section: misc
+Architecture: any
+Depends: opensand-core-conf
+Description: The configuration files of the OpenSAND RLE plugin
+
+Package: libopensand-rle-encap-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-rle-encap-plugin (= ${binary:Version})
+Description: Debugging symbols for OpenSAND RLE plugin
+
+Package: libopensand-rle-encap-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ libopensand-rle-encap-plugin-conf (= ${binary:Version}), opensand-core
+Description: The RLE plugin for OpenSAND
+
+Package: libopensand-rle-encap-plugin-manager
+Section: libs
+Architecture: any
+Depends: libopensand-rle-encap-plugin-conf (= ${binary:Version}),
+ python (>= 2.7), python (<<3.0), opensand-manager-gui
+Description: The RLE plugin configuration for OpenSAND Manager
+

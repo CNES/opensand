@@ -114,11 +114,12 @@ class LanAdaptationPlugin: public StackPlugin
 			assert(0);
 		};
 
-		virtual void init()
+		virtual bool init()
 		{
 			this->log = Output::registerLog(LEVEL_WARNING,
 			                                "LanAdaptation.%s",
 			                                this->getName().c_str());
+			return true;
 		};
 	};
 
@@ -189,11 +190,12 @@ class LanAdaptationPlugin: public StackPlugin
 			                                                        sat_type);
 		}
 
-		virtual void init()
+		virtual bool init()
 		{
 			this->log = Output::registerLog(LEVEL_WARNING,
 			                                "LanAdaptation.%s",
 			                                this->getName().c_str());
+			return true;
 		};
 
 	  protected:
@@ -238,11 +240,12 @@ class LanAdaptationPlugin: public StackPlugin
 		return static_cast<LanAdaptationPacketHandler *>(this->packet_handler);
 	};
 
-	virtual void init()
+	virtual bool init()
 	{
 		this->log = Output::registerLog(LEVEL_WARNING,
 		                                "LanAdaptation.%s",
 		                                this->getName().c_str());
+		return true;
 	};
 
 };

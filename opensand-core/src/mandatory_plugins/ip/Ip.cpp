@@ -66,9 +66,12 @@ Ip::Context::Context(LanAdaptationPlugin &plugin):
 	IpPacket::ip_log = Output::registerLog(LEVEL_WARNING, "LanAdaptation.Net.IP");
 }
 
-void Ip::Context::init()
+bool Ip::Context::init()
 {
-	LanAdaptationPlugin::LanAdaptationContext::init();
+	if(!LanAdaptationPlugin::LanAdaptationContext::init())
+	{
+		return false;
+	}
 	ConfigurationFile config;
 	vector<string> conf_files;
 	string conf_ip_path;
@@ -79,7 +82,7 @@ void Ip::Context::init()
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'", conf_ip_path.c_str());
-		return;
+		return false;
 	}
 
 	this->handle_net_packet = true;
@@ -87,7 +90,9 @@ void Ip::Context::init()
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot Initialize traffic categories\n");
+		return false;
 	}
+	return true;
 }
 
 Ip::Context::~Context()

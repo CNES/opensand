@@ -35,8 +35,7 @@
 #ifndef RLE_CONTEXT_H
 #define RLE_CONTEXT_H
 
-//#include "GseEncapCtx.h"
-//#include "GseIdentifier.h"
+#include "RleIdentifier.h"
 
 #include <EncapPlugin.h>
 #include <NetPacket.h>
@@ -49,6 +48,11 @@ extern "C"
 {
 	#include <rle.h>
 }
+
+typedef enum {
+	rle_alpdu_crc,
+	rle_alpdu_sequence_number
+} rle_alpdu_protection_t;
 
 /**
  * @class Rle
@@ -64,28 +68,6 @@ class Rle: public EncapPlugin
 	 */
 	class Context: public EncapContext
 	{
-	  private:
-
-		/// The GSE encapsulation context
-		gse_encap_t *encap;
-		 /// The GSE deencapsulation context
-		gse_deencap_t *deencap;
-		/// Vector of GSE virtual fragments
-		std::vector<gse_vfrag_t *> vfrag_pkt_vec; // <-not used. remove ? 
-		/// GSE virtual fragment for storing packets before encapsulation
-		gse_vfrag_t *vfrag_pkt;
-		/// GSE virtual fragment for storing packets after encapsulation
-		gse_vfrag_t *vfrag_gse;
-		/// Buffer used by the vfrags
-		uint8_t *buf;
-		/// Temporary buffers for encapsulation contexts. Contexts are identified
-		/// by an unique identifier
-		std::map <GseIdentifier *, GseEncapCtx *, ltGseIdentifier> contexts;
-		/// The packing threshold for encapsulation. Packing Threshold is the time
-		/// the context can wait for additional SNDU packets to fill the incomplete
-		/// GSE packet before sending the GSE packet with padding.
-		unsigned long packing_threshold;
-
 	  public:
 
 		/// constructor
@@ -96,24 +78,10 @@ class Rle: public EncapPlugin
 		 */
 		~Context();
 
-		void init();
 		NetBurst *encapsulate(NetBurst *burst, std::map<long, int> &time_contexts);
 		NetBurst *deencapsulate(NetBurst *burst);
 		NetBurst *flush(int context_id);
 		NetBurst *flushAll();
-
-	  private:
-		bool encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
-		                      long &time);
-		bool encapVariableLength(NetPacket *packet, NetBurst *gse_packets);
-		bool encapPacket(NetPacket *packet, NetBurst *gse_packets);
-		bool deencapPacket(gse_vfrag_t *vfrag_gse, uint16_t dest_spot,
-		                   NetBurst *net_packets);
-		bool deencapFixedLength(gse_vfrag_t *vfrag_pdu, uint16_t dest_spot,
-		                        uint8_t label[6], NetBurst *net_packets);
-		bool deencapVariableLength(gse_vfrag_t *vfrag_pdu, uint16_t dest_spot,
-		                           uint8_t label[6], NetBurst *net_packets);
-
 	};
 
 	/**
@@ -124,12 +92,25 @@ class Rle: public EncapPlugin
 	{
 	  private:
 
-		map<string, gse_encap_build_header_ext_cb_t> encap_callback;
-		map<string, gse_deencap_read_header_ext_cb_t> deencap_callback;
+		/// Upper ether type
+		uint16_t upper_ether_type;
+
+		/// RLE configuration
+		struct rle_config rle_conf;
+
+		// Transmitters identified by an unique identifier
+		std::map <RleIdentifier *, struct rle_transmitter *, ltRleIdentifier> transmitters;
+		std::map <RleIdentifier *, NetPacket *, ltRleIdentifier> partial_sent;
+
+		// Receivers identified by an unique identifier
+		std::map <RleIdentifier *, struct rle_receiver *, ltRleIdentifier> receivers;
 
 	  public:
 
 		PacketHandler(EncapPlugin &plugin);
+		~PacketHandler();
+
+		bool init();
 
 		NetPacket *build(const Data &data,
 		                 size_t data_length,
@@ -139,102 +120,38 @@ class Rle: public EncapPlugin
 		size_t getFixedLength() const {return 0;};
 		size_t getMinLength() const {return 3;};
 		size_t getLength(const unsigned char *data) const;
-		bool getChunk(NetPacket *packet, size_t remaining_length,
-		              NetPacket **data, NetPacket **remaining_data) const;
 		bool getSrc(const Data &data, tal_id_t &tal_id) const;
 		bool getQos(const Data &data, qos_t &qos) const;
 
-		NetPacket *getPacketForHeaderExtensions(const std::vector<NetPacket*>&packets);
-		bool setHeaderExtensions(const NetPacket* packet,
-		                         NetPacket** new_packet,
-		                         tal_id_t tal_id_src,
-		                         tal_id_t tal_id_dst,
-		                         string callback,
-		                         void *opaque);
+		bool encapNextPacket(NetPacket *packet,
+			size_t remaining_length,
+			bool &partial_encap,
+			NetPacket **encap_packet);
+		bool resetPacketToEncap(NetPacket *packet = NULL);
 
-		bool getHeaderExtensions(const NetPacket *packet,
-		                         string callback,
-		                         void *opaqie);
+		bool decapNextPacket(NetContainer *packet,
+			bool &partial_decap,
+			vector<NetPacket *> &decap_packets,
+			unsigned int decap_packets_count = 0);
+		bool resetPacketToDecap();
+
+		void setUpperEtherType(uint16_t ether_type);
+		uint16_t getUpperEtherType() const;
+
+	  protected:
+		bool getChunk(NetPacket *packet, size_t remaining_length,
+		              NetPacket **data, NetPacket **remaining_data) const;
+		bool resetOnePacketToEncap(NetPacket *packet);
+		bool resetAllPacketToEncap();
 	};
 
 	/// Constructor
 	Rle();
 
-	// Static methods: getter/setter for label/fragId
+	bool init();
 
-	/**
-	 * @brief  Set the RLE packet label
-	 *
-	 * @param   packet  The packet to get label values from.
-	 * @param   label   The label to set values of.
-	 * @return  true on success, false otherwise.
-	 */
-	static bool setLabel(NetPacket *packet, uint8_t label[]);
-
-	/**
-	 * @brief  Set the RLE packet label
-	 *
-	 * @param   context  The RLE context to get label values from.
-	 * @param   label   The label to set values of.
-	 * @return  true on success, false otherwise.
-	 */
-	static bool setLabel(RleEncapCtx *context, uint8_t label[]);
-
-	/**
-	 * @brief   Get the source TAL Id from label.
-	 * @param   label  The label to read value from.
-	 * @return  the source TAL Id.
-	 */
-	static uint8_t getSrcTalIdFromLabel(const uint8_t label[]);
-
-	/**
-	 * @brief   Get the destination TAL Id from label.
-	 * @param   label  The label to read value from.
-	 * @return  the destination TAL Id.
-	 */
-	static uint8_t getDstTalIdFromLabel(const uint8_t label[]);
-
-	/**
-	 * @brief   Get the QoS value from label.
-	 * @param   label  The label to read value from.
-	 * @return  the QoS value.
-	 */
-	static uint8_t getQosFromLabel(const uint8_t label[]);
-
-	/**
-	 * @brief   Create a fragment id from a packet.
-	 * @param   packet  The packet to create the frag id from..
-	 * @return  the frag id.
-	 */
-	static uint8_t getFragId(NetPacket *packet);
-
-	/**
-	 * @brief   Create a fragment id from a GSE context.
-	 * @param   contextt  The context to create the frag id from..
-	 * @return  the frag id.
-	 */
-	static uint8_t getFragId(GseEncapCtx *context);
-
-	/**
-	 * @brief   Get the source TAL Id from a fragment id..
-	 * @param   frag_id  The fragment dd to read value from.
-	 * @return  the source TAL Id.
-	 */
-	static uint8_t getSrcTalIdFromFragId(const uint8_t frag_id);
-
-	/**
-	 * @brief   Get the destination TAL Id from a fragment id..
-	 * @param   frag_id  The fragment dd to read value from.
-	 * @return  the destination TAL Id.
-	 */
-	static uint8_t getDstTalIdFromFragId(const uint8_t frag_id);
-
-	/**
-	 * @brief   Get the QoS value from a fragment id..
-	 * @param   frag_id  The fragment dd to read value from.
-	 * @return  the QoS value.
-	 */
-	static uint8_t getQosFromFragId(const uint8_t frag_id);
+	static bool getLabel(NetPacket *packet, uint8_t label[]);
+	static bool getLabel(const Data &data, uint8_t label[]);
 };
 
 CREATE(Rle, Rle::Context, Rle::PacketHandler, "RLE");

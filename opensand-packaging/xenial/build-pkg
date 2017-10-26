@@ -19,7 +19,7 @@ usage()
     echo 'Available options:'
     echo '      -i          Install the module after packaging'
     echo '      -I          Install build dependencies automatically'
-    echo '      -f          Spetify a user flag to add to the package version'
+    echo '      -f          Specify a user flag to add to the package version'
     echo 'List of possible modules:'
     echo $MODULES
     exit 1

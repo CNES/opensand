@@ -99,11 +99,12 @@ class EncapPlugin: public StackPlugin
 		 */
 		virtual bool getQos(const Data &data, qos_t &qos) const = 0;
 
-		virtual void init()
+		virtual bool init()
 		{
 			this->log = Output::registerLog(LEVEL_WARNING,
 			                                "Encap.%s",
 			                                this->getName().c_str());
+			return true;
 		};
 
 		/**
@@ -267,11 +268,12 @@ class EncapPlugin: public StackPlugin
 			this->dst_tal_id = tal_id;
 		}
 
-		virtual void init()
+		virtual bool init()
 		{
 			this->log = Output::registerLog(LEVEL_WARNING,
 			                                "Encap.%s",
 			                                this->getName().c_str());
+			return true;
 		};
 
 	  protected:
@@ -283,11 +285,12 @@ class EncapPlugin: public StackPlugin
 		OutputLog *log;
 	};
 
-	virtual void init()
+	virtual bool init()
 	{
 		this->log = Output::registerLog(LEVEL_WARNING,
 		                                "Encap.%s",
 		                                this->getName().c_str());
+		return true;
 	};
 
 	/* for the following functions we use "covariant return type" */

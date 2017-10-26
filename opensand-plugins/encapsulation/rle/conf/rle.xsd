@@ -8,10 +8,11 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="msTime">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="2000" />
+<!-- alpdu protection -->
+<xsd:simpleType name="alpduProtection">
+    <xsd:restriction base="xsd:string">
+        <xsd:enumeration value="crc" />
+        <xsd:enumeration value="sequence_number" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -34,11 +35,10 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="packing_threshold" type="msTime">
+            <xsd:element name="alpdu_protection" type="alpduProtection">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        Maximum amount of time a RLE context is kept before being flushed
-                        <unit>ms</unit>
+                        Type of the ALPDU protection for RLE
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

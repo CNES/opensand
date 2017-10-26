@@ -98,7 +98,7 @@ class Mpeg: public EncapPlugin
 		 */
 		~Context();
 
-		void init();
+		bool init();
 		NetBurst *encapsulate(NetBurst *burst,
 		                      map<long, int> &time_contexts);
 		NetBurst *deencapsulate(NetBurst *burst);

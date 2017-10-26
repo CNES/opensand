@@ -89,7 +89,8 @@
 #define NET_PROTO_ARP     ETH_P_ARP
 // CNI extension for GSE
 #define NET_PROTO_GSE_EXTENSION_CNI 0x00FF
-
+/// Network protocol ID for RLE
+#define NET_PROTO_RLE     0x060B
 
 // TODO we may add an option to enable jumbo frames
 

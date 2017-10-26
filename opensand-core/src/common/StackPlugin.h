@@ -41,6 +41,7 @@
 #include "NetBurst.h"
 #include "OpenSandCore.h"
 #include "OpenSandPlugin.h"
+#include <opensand_output/Output.h>
 
 #include <vector>
 #include <algorithm>
@@ -154,11 +155,12 @@ class StackPlugin: public OpenSandPlugin
 		/**
 		 * @brief Reset remaining data of the packet after encapsulation
 		 *
-		 * @param[in]   The packet to reset remaining data
+		 * @param[in]   The packet to reset remaining data (if NULL, all packet
+		 *              will be reset)
 		 * 
 		 * @return  true if success, false otherwise
 		 */
-		virtual bool resetPacketToEncap(NetPacket *packet) = 0;
+		virtual bool resetPacketToEncap(NetPacket *packet = NULL) = 0;
 
 		/**
 		 * @brief Decapsulate a packet or store it if data is partial
@@ -185,7 +187,7 @@ class StackPlugin: public OpenSandPlugin
 		/** 
 		 * @brief perform some plugin initialization
 		 */
-		virtual void init() = 0;
+		virtual bool init() = 0;
 
 	  protected:
 
@@ -210,7 +212,7 @@ class StackPlugin: public OpenSandPlugin
 		/**
 		 * @brief StackContext constructor
 		 */
-		StackContext(StackPlugin &pl): plugin(pl)
+		StackContext(StackPlugin &pl): plugin(pl), current_upper(NULL)
 		{
 		};
 
@@ -308,6 +310,16 @@ class StackPlugin: public OpenSandPlugin
 		};
 
 		/**
+		 * @brief Get the current upper encapsulated packet handler
+		 * 
+		 * @return The current upper encapsulated packet handler
+		 */
+		virtual StackPlugin::StackPacketHandler *getCurrentUpperPacketHandler()
+		{
+			return this->current_upper;
+		}
+
+		/**
 		 * @brief Update statistics periodically
 		 *
 		 * @param period  The time interval bewteen two updates
@@ -353,8 +365,10 @@ class StackPlugin: public OpenSandPlugin
 
 		/** 
 		 * @brief perform some plugin initialization
+		 * 
+		 * @return True if success, false otherwise
 		 */
-		virtual void init() = 0;
+		virtual bool init() = 0;
 
 	  protected:
 
@@ -425,6 +439,7 @@ class StackPlugin: public OpenSandPlugin
 	template<class Plugin, class Context, class Handler>
 	static OpenSandPlugin *create(const string name, const string conf_path)
 	{
+		DFLTLOG(LEVEL_DEBUG, "TOTO> Creation of plugin %s", name.c_str());
 		Plugin *plugin = new Plugin();
 		Context *context = new Context(*plugin);
 		Handler *handler = new Handler(*plugin);
@@ -432,16 +447,33 @@ class StackPlugin: public OpenSandPlugin
 		plugin->packet_handler = handler;
 		plugin->name = name;
 		plugin->conf_path = conf_path;
-		plugin->init();
-		context->init();
-		handler->init();
+		if(!plugin->init())
+		{
+			goto error;
+		}
+		if(!context->init())
+		{
+			goto error;
+		}
+		if(!handler->init())
+		{
+			goto error;
+		}
 		return plugin;
+		
+	error:
+		delete handler;
+		delete context;
+		delete plugin;
+		return NULL;
 	};
 
 	/** 
 	 * @brief perform some plugin initialization
+	 * 
+	 * @return True if success, false otherwise
 	 */
-	virtual void init() = 0;
+	virtual bool init() = 0;
 
  protected:
 

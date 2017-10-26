@@ -69,7 +69,7 @@ class Ethernet: public LanAdaptationPlugin
   public:
 	Ethernet();
 
-	void init();
+	bool init();
 
 	/**
 	 * @class Context
@@ -87,7 +87,7 @@ class Ethernet: public LanAdaptationPlugin
 		 */
 		~Context();
 
-		void init();
+		bool init();
 		NetBurst *encapsulate(NetBurst *burst, map<long, int> &(time_contexts));
 		NetBurst *deencapsulate(NetBurst *burst);
 		char getLanHeader(unsigned int pos, NetPacket *packet);
