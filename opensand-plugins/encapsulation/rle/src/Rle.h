@@ -135,9 +135,6 @@ class Rle: public EncapPlugin
 			unsigned int decap_packets_count = 0);
 		bool resetPacketToDecap();
 
-		void setUpperEtherType(uint16_t ether_type);
-		uint16_t getUpperEtherType() const;
-
 	  protected:
 		bool getChunk(NetPacket *packet, size_t remaining_length,
 		              NetPacket **data, NetPacket **remaining_data) const;
@@ -147,8 +144,6 @@ class Rle: public EncapPlugin
 
 	/// Constructor
 	Rle();
-
-	bool init();
 
 	static bool getLabel(NetPacket *packet, uint8_t label[]);
 	static bool getLabel(const Data &data, uint8_t label[]);

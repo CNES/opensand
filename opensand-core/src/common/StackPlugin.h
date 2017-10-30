@@ -191,6 +191,22 @@ class StackPlugin: public OpenSandPlugin
 
 	  protected:
 
+		/**
+		 * @brief Get the current upper encapsulated packet handler
+		 * 
+		 * @return The current upper encapsulated packet handler
+		 */
+		virtual StackPacketHandler *getCurrentUpperPacketHandler() const
+		{
+			StackPlugin::StackContext *context;
+			context = this->plugin.getContext();
+			DFLTLOG(LEVEL_DEBUG, "DEVEL> Context is %s",
+					context != NULL ? "not null" : "NULL");
+			DFLTLOG(LEVEL_DEBUG, "DEVEL> Current upper packet handler is %s",
+					context != NULL && context->getCurrentUpperPacketHandler() != NULL ? "not null" : "NULL");
+			return context != NULL ? context->getCurrentUpperPacketHandler() : NULL;
+		}
+
 		/// Output Logs
 		OutputLog *log;
 
@@ -274,9 +290,6 @@ class StackPlugin: public OpenSandPlugin
 		/**
 		 * @brief Get the EtherType associated with the encapsulation protocol
 		 *
-		 * @param name     The upper encapsulation name for compatibility check
-		 * @param sat_type The satellite type for compatibility check
-		 *
 		 * return The EtherType
 		 */
 		uint16_t getEtherType() const {return plugin.ether_type;};
@@ -291,6 +304,10 @@ class StackPlugin: public OpenSandPlugin
 		virtual bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl,
 		                                   sat_type_t sat_type)
 		{
+			DFLTLOG(LEVEL_DEBUG, "DEVEL> Setting %s upper packet handler to %s: %p",
+				plugin.name.c_str(),
+				pkt_hdl != NULL ? pkt_hdl->getName().c_str() : "NULL",
+				(void *)this);
 			if(!pkt_hdl)
 			{
 				this->current_upper = NULL;
@@ -314,8 +331,12 @@ class StackPlugin: public OpenSandPlugin
 		 * 
 		 * @return The current upper encapsulated packet handler
 		 */
-		virtual StackPlugin::StackPacketHandler *getCurrentUpperPacketHandler()
+		virtual StackPacketHandler *getCurrentUpperPacketHandler() const
 		{
+			DFLTLOG(LEVEL_DEBUG, "DEVEL> Getting %s upper packet handler (%s): %p",
+				plugin.name.c_str(),
+				this->current_upper != NULL ? this->current_upper->getName().c_str() : "NULL",
+				(void *)this);
 			return this->current_upper;
 		}
 
@@ -439,7 +460,6 @@ class StackPlugin: public OpenSandPlugin
 	template<class Plugin, class Context, class Handler>
 	static OpenSandPlugin *create(const string name, const string conf_path)
 	{
-		DFLTLOG(LEVEL_DEBUG, "TOTO> Creation of plugin %s", name.c_str());
 		Plugin *plugin = new Plugin();
 		Context *context = new Context(*plugin);
 		Handler *handler = new Handler(*plugin);

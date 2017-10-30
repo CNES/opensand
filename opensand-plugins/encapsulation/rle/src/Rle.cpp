@@ -52,7 +52,6 @@
 Rle::Rle():
 	EncapPlugin(NET_PROTO_RLE)
 {
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Rle - Start");
 	this->upper[TRANSPARENT].push_back("ROHC");
 	this->upper[TRANSPARENT].push_back("PHS");
 	this->upper[TRANSPARENT].push_back("IP");
@@ -62,52 +61,11 @@ Rle::Rle():
 	this->upper[REGENERATIVE].push_back("PHS");
 	this->upper[REGENERATIVE].push_back("IP");
 	this->upper[REGENERATIVE].push_back("Ethernet");
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Rle - End");
-}
-
-bool Rle::init()
-{
-	StackPlugin::StackPacketHandler *upper_pkt_hd;
-	Rle::PacketHandler *pkt_hd;
-	
-	if(!EncapPlugin::init())
-	{
-		return false;
-	}
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - Start");
-
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - Packet handler is %s", this->packet_handler != NULL ? "NOT null" : "NULL");
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - Context is %s", this->context != NULL ? "NOT null" : "NULL");
-	pkt_hd = static_cast<Rle::PacketHandler *>(this->packet_handler);
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - RLE packet handler is %s", pkt_hd != NULL ? "NOT null" : "NULL");
-	if(pkt_hd == NULL)
-	{
-		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - End 1");
-		LOG(this->log, LEVEL_ERROR,
-			"cannot initialize RLE plugin");
-		return false;
-	}
-	upper_pkt_hd = this->context->getCurrentUpperPacketHandler();
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - Upper packet handler is %s", upper_pkt_hd != NULL ? "NOT null" : "NULL");
-	if(upper_pkt_hd == NULL)
-	{
-		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - End 2");
-		LOG(this->log, LEVEL_ERROR,
-			"cannot initialize RLE plugin");
-		return false;
-	}
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - Upper ether type = %d", upper_pkt_hd->getEtherType());
-	pkt_hd->setUpperEtherType(upper_pkt_hd->getEtherType());
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::init - End 3");
-	
-	return true;
 }
 
 Rle::Context::Context(EncapPlugin &plugin):
 	EncapPlugin::EncapContext(plugin)
 {
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Context::Context - Start");
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Context::Context - End");
 }
 
 Rle::Context::~Context()
@@ -117,7 +75,6 @@ Rle::Context::~Context()
 NetBurst *Rle::Context::encapsulate(NetBurst *burst,
                                     map<long, int> &UNUSED(time_encap_contexts))
 {
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Context::encapsulate - Start");
 	NetBurst *encap_burst;
 
 	// Create a new burst
@@ -128,7 +85,6 @@ NetBurst *Rle::Context::encapsulate(NetBurst *burst,
 			"cannot allocate memory for burst of network "
 			"packets\n");
 		delete burst;
-		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Context::encapsulate - End");
 		return NULL;
 	}
 
@@ -163,14 +119,12 @@ NetBurst *Rle::Context::encapsulate(NetBurst *burst,
 		encap_burst->add(encap_packet);
 	}
 	delete burst;
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Context::encapsulate - End");
 	return encap_burst;
 }
 
 NetBurst *Rle::Context::deencapsulate(NetBurst *burst)
 {
 	NetBurst *decap_burst;
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Context::deencapsulate - Start");
 
 	// Create a new burst
 	decap_burst = new NetBurst();
@@ -180,7 +134,6 @@ NetBurst *Rle::Context::deencapsulate(NetBurst *burst)
 			"cannot allocate memory for burst of network "
 			"packets\n");
 		delete burst;
-		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Context::deencapsulate - End");
 		return NULL;
 	}
 
@@ -221,27 +174,22 @@ NetBurst *Rle::Context::deencapsulate(NetBurst *burst)
 		decap_burst->add(decap_packet);
 	}
 	delete burst;
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Context::deencapsulate - End");
 	return decap_burst;
 }
 
 NetBurst *Rle::Context::flush(int UNUSED(context_id))
 {
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Context::flush");
 	return NULL;
 }
 
 NetBurst *Rle::Context::flushAll()
 {
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::Context::flushAll");
 	return NULL;
 }
 
 Rle::PacketHandler::PacketHandler(EncapPlugin &plugin):
-	EncapPlugin::EncapPacketHandler(plugin),
-	upper_ether_type(0)
+	EncapPlugin::EncapPacketHandler(plugin)
 {
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::PacketHandler - Start");
 	this->rle_conf.allow_ptype_omission = 1;
 	this->rle_conf.use_compressed_ptype = 1;
 	this->rle_conf.allow_alpdu_crc = 1;
@@ -251,12 +199,10 @@ Rle::PacketHandler::PacketHandler(EncapPlugin &plugin):
 	this->rle_conf.implicit_ppdu_label_size = 0;
 	this->rle_conf.implicit_payload_label_size = 0;
 	this->rle_conf.type_0_alpdu_label_size = 0;
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::PacketHandler - End");
 }
 
 Rle::PacketHandler::~PacketHandler()
 {
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::~PacketHandler - Start");
 	map<RleIdentifier *, struct rle_transmitter *, ltRleIdentifier>::iterator trans_it;
 	map<RleIdentifier *, struct rle_receiver *, ltRleIdentifier>::iterator recei_it;
 	
@@ -278,7 +224,6 @@ Rle::PacketHandler::~PacketHandler()
 		rle_receiver_destroy(&(recei_it->second));
 	}
 	this->receivers.clear();
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::~PacketHandler - End");
 }
 
 bool Rle::PacketHandler::init(void)
@@ -287,20 +232,9 @@ bool Rle::PacketHandler::init(void)
 	string protection;
 	rle_alpdu_protection_t alpdu_protection;
 	map<string, ConfigurationList> config_section_map;
-	StackPlugin::StackPacketHandler *upper_pkt_hd;
-	
+
 	if(!EncapPlugin::EncapPacketHandler::init())
 	{
-		return false;
-	}
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::init - Start");
-
-	// Get upper ether type
-	if(this->upper_ether_type == 0)
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "cannot get the upper protocol type\n");
-		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::init - End");
 		return false;
 	}
 
@@ -310,7 +244,6 @@ bool Rle::PacketHandler::init(void)
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",
 		    CONF_RLE_FILE);
-		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::init - End");
 		return false;
 	}
 
@@ -357,17 +290,14 @@ bool Rle::PacketHandler::init(void)
 	default:
 		break;
 	}
-	this->rle_conf.implicit_protocol_type = this->upper_ether_type;
 
 	// Unload configuration
 	config.unloadConfig();
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::init - End");
 	
 	return true;
 unload:
 	// Unload configuration
 	config.unloadConfig();
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::init - Error");
 	
 	return false;
 }
@@ -378,7 +308,6 @@ NetPacket *Rle::PacketHandler::build(const Data &data,
                                      uint8_t src_tal_id,
                                      uint8_t dst_tal_id) const
 {
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::build");
 	return new NetPacket(data, data_length,
 	                     this->getName(), this->getEtherType(),
 	                     qos, src_tal_id, dst_tal_id, 0);
@@ -414,7 +343,6 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	Data fpdu;
 	unsigned char *fpdu_buffer;
 	
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::encapNextPacket - Start");
 	// Set default returned values
 	*encap_packet = NULL;
 	partial_encap = false;
@@ -453,6 +381,27 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	it = this->transmitters.find(identifier);
 	if(it == this->transmitters.end())
 	{
+		uint16_t upper_ether_type;
+		StackPlugin::StackPacketHandler *upper_pkt_hd;
+
+		// Get upper ether type
+		LOG(this->log, LEVEL_DEBUG, "Rle::PacketHandler::encapNextPacket -> getCurrentUpperPacketHandler");
+		upper_pkt_hd = this->getCurrentUpperPacketHandler();
+		if(upper_pkt_hd == NULL)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "cannot get the upper packet handler\n");
+			return false;
+		}
+		upper_ether_type = upper_pkt_hd->getEtherType();
+		if(upper_ether_type == 0)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "invalid value of upper protocol type\n");
+			return false;
+		}
+		this->rle_conf.implicit_protocol_type = upper_ether_type;
+
 		// Create transmitter
 		transmitter = rle_transmitter_new(&this->rle_conf);
 		if(!transmitter)
@@ -512,7 +461,6 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 			LOG(this->log, LEVEL_WARNING,
 				"RLE is encapsulating another packet with fragment id %u\n",
 				frag_id);
-			DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::encapNextPacket - End");
 			return false;
 		}
 	}
@@ -523,7 +471,6 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	{
 		// Set partial encapsulation status
 		partial_encap = true;
-		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::encapNextPacket - End");
 		return true;
 	}
 	else if(frag_status != 0)
@@ -559,7 +506,6 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		delete identifier;
 	}
 	
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::encapNextPacket - End");
 	return true;
 
 error_cleaning:
@@ -570,7 +516,6 @@ error_cleaning:
 	}
 	delete identifier;
 error:
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::encapNextPacket - End");
 	return false;
 }
 
@@ -590,7 +535,6 @@ bool Rle::PacketHandler::resetOnePacketToEncap(NetPacket *packet)
 	map<RleIdentifier *, struct rle_transmitter *, ltRleIdentifier>::iterator transmitter_it;
 	RleIdentifier *identifier = NULL;
 
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::resetOnePacketToEncap - Start");
 	// Get transmitter
 	identifier = new RleIdentifier(packet->getSrcTalId(),
 		packet->getDstTalId(),
@@ -598,7 +542,6 @@ bool Rle::PacketHandler::resetOnePacketToEncap(NetPacket *packet)
 	transmitter_it = this->transmitters.find(identifier);
 	if(transmitter_it == this->transmitters.end())
 	{
-		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::resetOnePacketToEncap - End");
 		return true;
 	}
 	transmitter = transmitter_it->second;
@@ -609,14 +552,12 @@ bool Rle::PacketHandler::resetOnePacketToEncap(NetPacket *packet)
 	// Check there is data to fragment
 	if(rle_transmitter_stats_get_queue_size(transmitter, frag_id) <= 0)
 	{
-		DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::resetOnePacketToEncap - End");
 		return true;
 	}
 	
 	// Reset transmitter
 	rle_transmitter_stats_reset_counters(transmitter, frag_id);
 
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::resetOnePacketToEncap - End");
 	return true;
 }
 
@@ -626,7 +567,6 @@ bool Rle::PacketHandler::resetAllPacketToEncap()
 	struct rle_transmitter *transmitter;
 	map<RleIdentifier *, struct rle_transmitter *, ltRleIdentifier>::iterator transmitter_it;
 
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::resetAllPacketToEncap - Start");
 	// Reset all fragment id of all transmitter
 	for(transmitter_it = this->transmitters.begin();
 		transmitter_it != this->transmitters.end();
@@ -641,7 +581,6 @@ bool Rle::PacketHandler::resetAllPacketToEncap()
 		}
 	}
 
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::resetAllPacketToEncap - End");
 	return true;
 }
 
@@ -662,7 +601,6 @@ bool Rle::PacketHandler::decapNextPacket(NetContainer *packet,
 	size_t sdus_max_count;
 	enum rle_decap_status status;
 
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::decapNextPacket - Start");
 	// Set default returned values
 	decap_packets = vector<NetPacket *>();
 	partial_decap = false;
@@ -687,6 +625,27 @@ bool Rle::PacketHandler::decapNextPacket(NetContainer *packet,
 	it = this->receivers.find(identifier);
 	if(it == this->receivers.end())
 	{
+		uint16_t upper_ether_type;
+		StackPlugin::StackPacketHandler *upper_pkt_hd;
+
+		// Get upper ether type
+		LOG(this->log, LEVEL_DEBUG, "Rle::PacketHandler::decapNextPacket -> getCurrentUpperPacketHandler");
+		upper_pkt_hd = this->getCurrentUpperPacketHandler();
+		if(upper_pkt_hd == NULL)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "cannot get the upper packet handler\n");
+			return false;
+		}
+		upper_ether_type = upper_pkt_hd->getEtherType();
+		if(upper_ether_type == 0)
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "invalid value of upper protocol type\n");
+			return false;
+		}
+		this->rle_conf.implicit_protocol_type = upper_ether_type;
+
 		// Create receiver
 		receiver = rle_receiver_new(&this->rle_conf);
 		if(!receiver)
@@ -745,7 +704,6 @@ bool Rle::PacketHandler::decapNextPacket(NetContainer *packet,
 		partial_decap = true;
 	}
 
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::decapNextPacket - End");
 	return true;
 	
 error:
@@ -754,13 +712,11 @@ error:
 	{
 		delete sdus;
 	}
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::decapNextPacket - End");
 	return false;
 }
 
 bool Rle::PacketHandler::resetPacketToDecap()
 {
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::resetPacketToDecap");
 	return true;
 }
 
@@ -800,18 +756,6 @@ bool Rle::PacketHandler::getQos(const Data &data, qos_t &qos) const
 
 	qos = label[2];
 	return true;
-}
-
-void Rle::PacketHandler::setUpperEtherType(uint16_t ether_type)
-{
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::setUpperEtherType - Start: %u", this->upper_ether_type);
-	this->upper_ether_type = ether_type;
-	DFLTLOG(LEVEL_DEBUG, "TOTO> Rle::PacketHandler::setUpperEtherType - End: %u", this->upper_ether_type);
-}
-
-uint16_t Rle::PacketHandler::getUpperEtherType() const
-{
-	return this->upper_ether_type;
 }
 
 // Static methods
