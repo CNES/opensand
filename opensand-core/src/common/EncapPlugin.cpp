@@ -149,10 +149,13 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packe
 	if(decap_packets_count <= 0)
 	{
 		decap_packets = vector<NetPacket *>();
-		LOG(this->log, LEVEL_DEBUG,
+		LOG(this->log, LEVEL_INFO,
 			"No packet to decapsulate\n");
 		return true;
 	}
+	LOG(this->log, LEVEL_DEBUG,
+		"%u packet(s) to decapsulate\n",
+		decap_packets_count);
 
 	for(unsigned int i = 0; i < decap_packets_count; ++i)
 	{

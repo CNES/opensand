@@ -82,6 +82,15 @@ class Rle: public EncapPlugin
 		NetBurst *deencapsulate(NetBurst *burst);
 		NetBurst *flush(int context_id);
 		NetBurst *flushAll();
+
+	  private:
+		/// RLE configuration
+		struct rle_config rle_conf;
+
+		// Receivers identified by an unique identifier
+		std::map <RleIdentifier *, struct rle_receiver *, ltRleIdentifier> receivers;
+
+		bool decapNextPacket(NetPacket *packet, NetBurst *burst);
 	};
 
 	/**
@@ -92,18 +101,12 @@ class Rle: public EncapPlugin
 	{
 	  private:
 
-		/// Upper ether type
-		uint16_t upper_ether_type;
-
 		/// RLE configuration
 		struct rle_config rle_conf;
 
 		// Transmitters identified by an unique identifier
 		std::map <RleIdentifier *, struct rle_transmitter *, ltRleIdentifier> transmitters;
 		std::map <RleIdentifier *, NetPacket *, ltRleIdentifier> partial_sent;
-
-		// Receivers identified by an unique identifier
-		std::map <RleIdentifier *, struct rle_receiver *, ltRleIdentifier> receivers;
 
 	  public:
 
@@ -129,12 +132,6 @@ class Rle: public EncapPlugin
 			NetPacket **encap_packet);
 		bool resetPacketToEncap(NetPacket *packet = NULL);
 
-		bool decapNextPacket(NetContainer *packet,
-			bool &partial_decap,
-			vector<NetPacket *> &decap_packets,
-			unsigned int decap_packets_count = 0);
-		bool resetPacketToDecap();
-
 	  protected:
 		bool getChunk(NetPacket *packet, size_t remaining_length,
 		              NetPacket **data, NetPacket **remaining_data) const;
@@ -147,6 +144,14 @@ class Rle: public EncapPlugin
 
 	static bool getLabel(NetPacket *packet, uint8_t label[]);
 	static bool getLabel(const Data &data, uint8_t label[]);
+
+	static void rle_traces(const int module_id,
+		const int level,
+		const char *const file,
+		const int line,
+		const char *const func,
+		const char *const message,
+		...);
 };
 
 CREATE(Rle, Rle::Context, Rle::PacketHandler, "RLE");

@@ -49,6 +49,50 @@
 
 #define LABEL_SIZE 3 // bytes
 
+void Rle::rle_traces(const int module_id,
+		const int level,
+		const char *const file,
+		const int line,
+		const char *const func,
+		const char *const message,
+		...)
+{
+	int ret = 0;
+	log_level_t output_level = LEVEL_DEBUG;
+	char buf[4096];
+	va_list args;
+		
+	if(level == RLE_LOG_LEVEL_DEBUG)
+	{
+		output_level = LEVEL_DEBUG;
+	}
+	else if(level == RLE_LOG_LEVEL_INFO)
+	{
+		output_level = LEVEL_INFO;
+	}
+	else if(level == RLE_LOG_LEVEL_WARNING)
+	{
+		output_level = LEVEL_WARNING;
+	}
+	else if(level == RLE_LOG_LEVEL_ERROR)
+	{
+		output_level = LEVEL_ERROR;
+	}
+	else if(level == RLE_LOG_LEVEL_CRI)
+	{
+		output_level = LEVEL_CRITICAL;
+	}
+
+	va_start(args, message);
+	ret = vsnprintf(buf, sizeof(buf), message, args);
+	va_end(args);
+	if(0 < ret && ret < (int)sizeof(buf))
+	{
+		DFLTLOG(output_level, "[%s:%d][%s][Module %d] %s", 
+			file, line, func, module_id, buf);
+	}
+}
+
 Rle::Rle():
 	EncapPlugin(NET_PROTO_RLE)
 {
@@ -61,15 +105,36 @@ Rle::Rle():
 	this->upper[REGENERATIVE].push_back("PHS");
 	this->upper[REGENERATIVE].push_back("IP");
 	this->upper[REGENERATIVE].push_back("Ethernet");
+
+	rle_set_trace_callback(&(Rle::rle_traces));
 }
 
 Rle::Context::Context(EncapPlugin &plugin):
 	EncapPlugin::EncapContext(plugin)
 {
+	this->rle_conf.allow_ptype_omission = 0;//1;
+	this->rle_conf.use_compressed_ptype = 1;
+	this->rle_conf.allow_alpdu_crc = 1;
+	this->rle_conf.allow_alpdu_sequence_number = 1;
+	this->rle_conf.use_explicit_payload_header_map = 0;
+	this->rle_conf.implicit_protocol_type = 0x30; // IPv4/IPv6
+	this->rle_conf.implicit_ppdu_label_size = 0;
+	this->rle_conf.implicit_payload_label_size = 0;
+	this->rle_conf.type_0_alpdu_label_size = 0;
 }
 
 Rle::Context::~Context()
 {
+	map<RleIdentifier *, struct rle_receiver *, ltRleIdentifier>::iterator recei_it;
+
+	// Clean decapsulation
+	for(recei_it = this->receivers.begin();
+		recei_it != this->receivers.end(); ++recei_it)
+	{
+		rle_receiver_destroy(&(recei_it->second));
+	}
+	this->receivers.clear();
+
 }
 
 NetBurst *Rle::Context::encapsulate(NetBurst *burst,
@@ -143,7 +208,8 @@ NetBurst *Rle::Context::deencapsulate(NetBurst *burst)
 		++it)
 	{
 		NetPacket *packet;
-		NetPacket *decap_packet;
+		vector<NetPacket *> decap_packets;
+		vector<NetPacket *>::iterator pkt_it;
 
 		// Get and check the current packet
 		packet = *it;
@@ -156,22 +222,14 @@ NetBurst *Rle::Context::deencapsulate(NetBurst *burst)
 			continue;
 		}
 
-		// Create a new packet (already decapsulated)
-		decap_packet = this->current_upper->build(packet->getData(),
-			packet->getTotalLength(),
-			packet->getQos(),
-			packet->getSrcTalId(),
-			packet->getDstTalId());
-		if(!decap_packet)
+		// Deencapsulate RLE packets
+		if(!this->decapNextPacket(packet, decap_burst))
 		{
 			LOG(this->log, LEVEL_ERROR,
-				"cannot create a burst of packets, "
+				"cannont decapsulate a RLE packet, "
 				"drop the packet\n");
 			continue;
 		}
-		
-		// Add the current decapsulated packet to the decapsulated burst
-		decap_burst->add(decap_packet);
 	}
 	delete burst;
 	return decap_burst;
@@ -187,10 +245,127 @@ NetBurst *Rle::Context::flushAll()
 	return NULL;
 }
 
+bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
+{
+	uint8_t src_tal_id, dst_tal_id, qos;
+	uint8_t label[LABEL_SIZE];
+	RleIdentifier *identifier = NULL;
+	map<RleIdentifier *, struct rle_receiver *, ltRleIdentifier>::iterator it;
+
+	struct rle_receiver *receiver;
+	struct rle_sdu *sdus = NULL;
+	size_t sdus_count;
+	size_t sdus_max_count;
+	enum rle_decap_status status;
+
+	// Get data which identify the receiver
+	if(!Rle::getLabel(packet->getData(), label))
+	{
+		LOG(this->log, LEVEL_ERROR,
+			"Unable to get label from %s packet\n",
+			this->getName().c_str());
+		goto error;
+	}
+	src_tal_id = label[0];
+	dst_tal_id = label[1];
+	qos = label[2];
+
+	// Get receiver
+	identifier = new RleIdentifier(src_tal_id, dst_tal_id, qos);
+	it = this->receivers.find(identifier);
+	if(it == this->receivers.end())
+	{
+		//uint16_t upper_ether_type;
+
+		//// Get upper ether type
+		//upper_ether_type = this->current_upper->getEtherType();
+		//if(upper_ether_type == 0)
+		//{
+		//	LOG(this->log, LEVEL_ERROR,
+		//	    "invalid value of upper protocol type\n");
+		//	return false;
+		//}
+		//this->rle_conf.implicit_protocol_type = upper_ether_type;
+
+		// Create receiver
+		receiver = rle_receiver_new(&this->rle_conf);
+		if(!receiver)
+		{
+			LOG(this->log, LEVEL_ERROR,
+				"cannot create a RLE receiver\n");
+			goto error;
+		}
+
+		// Store receiver
+		this->receivers[identifier] = receiver;
+	}
+	else
+	{
+		// Get existing identifier and context
+		delete identifier;
+		identifier = it->first;
+		receiver = it->second;
+	}
+
+	// Prepare SDUs structures
+	sdus_max_count = packet->getPayloadLength() / LABEL_SIZE;
+	sdus = new struct rle_sdu[sdus_max_count];
+
+	// Decapsulate RLE FPDU
+	status = rle_decapsulate(receiver, (unsigned char *)packet->getPayload().c_str(),
+		 packet->getPayloadLength(), sdus, sdus_max_count, &sdus_count, label, sizeof(label));
+	if(status != RLE_DECAP_OK)
+	{
+		LOG(this->log, LEVEL_ERROR,
+			"RLE failed to encaspulate SDU\n");
+		goto error;
+	}
+
+	// Add all SDUs to decapsulated packets list
+	for(unsigned int i = 0; i< sdus_count; ++i)
+	{
+		// Create packet from SDU
+		struct rle_sdu sdu = sdus[i];
+		NetPacket *decap_packet;
+
+		decap_packet = this->current_upper->build(Data(sdu.buffer), sdu.size,
+			qos, src_tal_id, dst_tal_id);
+		if(!decap_packet)
+		{
+			LOG(this->log, LEVEL_ERROR,
+				"RLE failed to create decapsulated packet\n");
+			goto error;
+		}
+		
+		// Add SDU to decapsulated packets list
+		burst->add(decap_packet);
+		delete sdus[i].buffer;
+		sdus[i].buffer = NULL;
+		sdus[i].size = 0;
+	}
+	delete sdus;
+
+	return true;
+	
+error:
+	if(sdus)
+	{
+		for(unsigned int i = 0; i< sdus_count; ++i)
+		{
+			if(sdus[i].buffer != NULL)
+			{
+				delete sdus[i].buffer;
+			}
+		}
+		delete sdus;
+	}
+	return false;
+}
+
 Rle::PacketHandler::PacketHandler(EncapPlugin &plugin):
 	EncapPlugin::EncapPacketHandler(plugin)
 {
-	this->rle_conf.allow_ptype_omission = 1;
+	this->rle_conf.allow_ptype_omission = 0;//1;
 	this->rle_conf.use_compressed_ptype = 1;
 	this->rle_conf.allow_alpdu_crc = 1;
 	this->rle_conf.allow_alpdu_sequence_number = 1;
@@ -204,7 +379,6 @@ Rle::PacketHandler::PacketHandler(EncapPlugin &plugin):
 Rle::PacketHandler::~PacketHandler()
 {
 	map<RleIdentifier *, struct rle_transmitter *, ltRleIdentifier>::iterator trans_it;
-	map<RleIdentifier *, struct rle_receiver *, ltRleIdentifier>::iterator recei_it;
 	
 	// Reset and clean encapsulation
 	this->resetPacketToEncap();
@@ -215,15 +389,6 @@ Rle::PacketHandler::~PacketHandler()
 		rle_transmitter_destroy(&(trans_it->second));
 	}
 	this->transmitters.clear();
-
-	// Reset and clean decapsulation
-	this->resetPacketToDecap();
-	for(recei_it = this->receivers.begin();
-		recei_it != this->receivers.end(); ++recei_it)
-	{
-		rle_receiver_destroy(&(recei_it->second));
-	}
-	this->receivers.clear();
 }
 
 bool Rle::PacketHandler::init(void)
@@ -373,6 +538,14 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		goto error;
 	}
 
+	// Prepare label to RLE
+	if(!Rle::getLabel(packet, label))
+	{
+		LOG(this->log, LEVEL_ERROR,
+			"RLE failed to get label\n");
+		goto error;
+	}
+
 	// Get fragment id
 	frag_id = qos;
 
@@ -381,26 +554,8 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	it = this->transmitters.find(identifier);
 	if(it == this->transmitters.end())
 	{
-		uint16_t upper_ether_type;
-		StackPlugin::StackPacketHandler *upper_pkt_hd;
-
-		// Get upper ether type
-		LOG(this->log, LEVEL_DEBUG, "Rle::PacketHandler::encapNextPacket -> getCurrentUpperPacketHandler");
-		upper_pkt_hd = this->getCurrentUpperPacketHandler();
-		if(upper_pkt_hd == NULL)
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "cannot get the upper packet handler\n");
-			return false;
-		}
-		upper_ether_type = upper_pkt_hd->getEtherType();
-		if(upper_ether_type == 0)
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "invalid value of upper protocol type\n");
-			return false;
-		}
-		this->rle_conf.implicit_protocol_type = upper_ether_type;
+		//// Get protocol type of the packet
+		//this->rle_conf.implicit_protocol_type = packet->getType();
 
 		// Create transmitter
 		transmitter = rle_transmitter_new(&this->rle_conf);
@@ -418,9 +573,9 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		struct rle_sdu sdu;
 		sdu.protocol_type = packet->getType();
 		sdu.size = packet->getTotalLength();
-		//sdu.buffer = packet->getData().c_str();
 		
-		sdu.buffer = (unsigned char *)malloc(sizeof(unsigned char) * sdu.size);
+		//sdu.buffer = (unsigned char *)malloc(sizeof(unsigned char) * sdu.size);
+		sdu.buffer = new unsigned char[sdu.size];
 		memcpy(sdu.buffer, packet->getData().c_str(), sdu.size);
 
 		// Encapsulate RLE SDU
@@ -443,15 +598,6 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		first = false;
 	}
 
-	// Prepare label to RLE
-	if(Rle::getLabel(packet, label))
-	{
-		LOG(this->log, LEVEL_ERROR,
-			"RLE failed to get label\n");
-		goto error_cleaning;
-	}
-
-
 	// Check there is data to fragment
 	if(rle_transmitter_stats_get_queue_size(transmitter, frag_id) <= 0)
 	{
@@ -467,29 +613,37 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 
 	// Fragment RLE SDU to RLE PPDU
 	frag_status = rle_fragment(transmitter, frag_id, remaining_length, &ppdu, &ppdu_size);
-	if(frag_status == RLE_FRAG_ERR_BURST_TOO_SMALL)
-	{
-		// Set partial encapsulation status
-		partial_encap = true;
-		return true;
-	}
-	else if(frag_status != 0)
+	if(frag_status != 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
-			"RLE failed to fragment ALPDU\n");
+			"RLE failed to fragment ALPDU (code=%d)\n",
+			(int)frag_status);
 		goto error_cleaning;
 	}
 	
 	// Pack RLE PPDU to FPDU
 	fpdu.reserve(ppdu_size);
-	fpdu_buffer = (unsigned char *)fpdu.c_str();
+	//fpdu_buffer = (unsigned char *)fpdu.c_str();
+	fpdu_buffer = new unsigned char[ppdu_size];
 	pack_status = rle_pack(ppdu, ppdu_size, label, LABEL_SIZE, fpdu_buffer, 0, &ppdu_size);
-	if(pack_status != 0)
+	if(pack_status == RLE_PACK_ERR_FPDU_TOO_SMALL)
 	{
+		// Set partial encapsulation status
+		LOG(this->log, LEVEL_DEBUG,
+			"RLE partial packing)\n");
+		partial_encap = true;
+		return true;
+	}
+	else if(pack_status != 0)
+	{
+		delete fpdu_buffer;
 		LOG(this->log, LEVEL_ERROR,
-			"RLE failed to pack PPDU\n");
+			"RLE failed to pack PPDU (code=%d)\n",
+			(int)pack_status);
 		goto error_cleaning;
 	}
+	fpdu.assign(fpdu_buffer);
+	delete fpdu_buffer;
 	*encap_packet = new NetPacket(fpdu, ppdu_size,
 		this->getName(), this->getEtherType(),
 		qos, src_tal_id, dst_tal_id, 0);
@@ -581,142 +735,6 @@ bool Rle::PacketHandler::resetAllPacketToEncap()
 		}
 	}
 
-	return true;
-}
-
-bool Rle::PacketHandler::decapNextPacket(NetContainer *packet,
-	bool &partial_decap,
-	vector<NetPacket *> &decap_packets,
-	unsigned int UNUSED(decap_packets_count))
-{
-	uint8_t frag_id;
-	uint8_t src_tal_id, dst_tal_id, qos;
-	uint8_t label[LABEL_SIZE];
-	RleIdentifier *identifier = NULL;
-	map<RleIdentifier *, struct rle_receiver *, ltRleIdentifier>::iterator it;
-
-	struct rle_receiver *receiver;
-	struct rle_sdu *sdus = NULL;
-	size_t sdus_count;
-	size_t sdus_max_count;
-	enum rle_decap_status status;
-
-	// Set default returned values
-	decap_packets = vector<NetPacket *>();
-	partial_decap = false;
-
-	// Get data which identify the receiver
-	if(!Rle::getLabel(packet->getData(), label))
-	{
-		LOG(this->log, LEVEL_ERROR,
-			"Unable to get label from %s packet\n",
-			this->getName().c_str());
-		goto error;
-	}
-	src_tal_id = label[0];
-	dst_tal_id = label[1];
-	qos = label[2];
-
-	// Get fragment id
-	frag_id = qos;
-
-	// Get receiver
-	identifier = new RleIdentifier(src_tal_id, dst_tal_id, qos);
-	it = this->receivers.find(identifier);
-	if(it == this->receivers.end())
-	{
-		uint16_t upper_ether_type;
-		StackPlugin::StackPacketHandler *upper_pkt_hd;
-
-		// Get upper ether type
-		LOG(this->log, LEVEL_DEBUG, "Rle::PacketHandler::decapNextPacket -> getCurrentUpperPacketHandler");
-		upper_pkt_hd = this->getCurrentUpperPacketHandler();
-		if(upper_pkt_hd == NULL)
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "cannot get the upper packet handler\n");
-			return false;
-		}
-		upper_ether_type = upper_pkt_hd->getEtherType();
-		if(upper_ether_type == 0)
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "invalid value of upper protocol type\n");
-			return false;
-		}
-		this->rle_conf.implicit_protocol_type = upper_ether_type;
-
-		// Create receiver
-		receiver = rle_receiver_new(&this->rle_conf);
-		if(!receiver)
-		{
-			LOG(this->log, LEVEL_ERROR,
-				"cannot create a RLE receiver\n");
-			goto error;
-		}
-
-		// Store receiver
-		this->receivers[identifier] = receiver;
-	}
-	else
-	{
-		// Get existing identifier and context
-		delete identifier;
-		identifier = it->first;
-		receiver = it->second;
-	}
-
-	// Prepare SDUs structures
-	sdus_max_count = packet->getPayloadLength() / LABEL_SIZE;
-	sdus = new struct rle_sdu[sdus_max_count];
-
-	// Decapsulate RLE FPDU
-	status = rle_decapsulate(receiver, (unsigned char *)packet->getPayload().c_str(),
-		 packet->getPayloadLength(), sdus, sdus_max_count, &sdus_count, label, sizeof(label));
-	if(status != RLE_DECAP_OK)
-	{
-		LOG(this->log, LEVEL_ERROR,
-			"RLE failed to encaspulate SDU\n");
-		goto error;
-	}
-
-	// Add all SDUs to decapsulated packets list
-	for(unsigned int i = 0; i< sdus_count; ++i)
-	{
-		// Create packet from SDU
-		struct rle_sdu sdu = sdus[i];
-		NetPacket *decap_packet = new NetPacket(Data(sdu.buffer), sdu.size,
-			this->getName(), sdu.protocol_type,
-			qos, src_tal_id, dst_tal_id, 0);
-		
-		// Add SDU to decapsulated packets list
-		decap_packets.push_back(decap_packet);
-		//TODO: destroy SDU buffer ???
-	}
-	delete sdus;
-
-	// Get fragment id
-	frag_id = qos;
-	
-	// Set returned value
-	if(0 < rle_receiver_stats_get_queue_size(receiver, frag_id))
-	{
-		partial_decap = true;
-	}
-
-	return true;
-	
-error:
-	// TODO: destroy SDU buffer ???
-	if(sdus)
-	{
-		delete sdus;
-	}
-	return false;
-}
-
-bool Rle::PacketHandler::resetPacketToDecap()
-{
 	return true;
 }
 
