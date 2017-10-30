@@ -36,7 +36,6 @@
 EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
 {
 	this->resetPacketToEncap();
-	this->resetPacketToDecap();
 }
 
 bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
@@ -135,7 +134,7 @@ bool EncapPlugin::EncapPacketHandler::resetPacketToEncap(NetPacket *packet)
 	return true;
 }
 
-bool EncapPlugin::EncapPacketHandler::decapNextPacket(NetContainer *packet,
+bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packet,
 	bool &partial_decap,
 	vector<NetPacket *> &decap_packets,
 	unsigned int decap_packets_count)
@@ -200,9 +199,4 @@ destroy_packets:
 	}
 	packets.clear();
 	return false;
-}
-
-bool EncapPlugin::EncapPacketHandler::resetPacketToDecap()
-{
-	return true;
 }

@@ -163,26 +163,18 @@ class StackPlugin: public OpenSandPlugin
 		virtual bool resetPacketToEncap(NetPacket *packet = NULL) = 0;
 
 		/**
-		 * @brief Decapsulate a packet or store it if data is partial
+		 * @brief Get encapsulated packet from payload
 		 * 
-		 * @param[in]   The packet to decapsulate
-		 * @param[in]   The packet count to decapsulate (0 if unknown)
-		 * @param[out]  The status about decapsulation (true if data is incomplete to decapsulation, false otherwise)
-		 * @param[out]  The list of decapsulated packet
+		 * @param[in]  packet             The packet storing payload
+		 * @param[out] partial_decap      The status about decapsulation (true if data 
+		 *                                is incomplete to decapsulation, false otherwise)
+		 * @param[out] decap_packets      The list of decapsulated packet
+		 * @param[in decap_packets_count  The packet count to decapsulate (0 if unknown)
 		 */
-		virtual bool decapNextPacket(NetContainer *packet,
+		virtual bool getEncapsulatedPackets(NetContainer *packet,
 			bool &partial_decap,
 			vector<NetPacket *> &decap_packets,
 			unsigned int decap_packet_count = 0) = 0;
-
-		/**
-		 * @brief Reset partial data of a packet after decapsulation
-		 *
-		 * @param[in]   The packet to reset remaining data
-		 * 
-		 * @return  true if success, false otherwise
-		 */
-		virtual bool resetPacketToDecap() = 0;
 
 		/** 
 		 * @brief perform some plugin initialization
@@ -190,22 +182,6 @@ class StackPlugin: public OpenSandPlugin
 		virtual bool init() = 0;
 
 	  protected:
-
-		/**
-		 * @brief Get the current upper encapsulated packet handler
-		 * 
-		 * @return The current upper encapsulated packet handler
-		 */
-		virtual StackPacketHandler *getCurrentUpperPacketHandler() const
-		{
-			StackPlugin::StackContext *context;
-			context = this->plugin.getContext();
-			DFLTLOG(LEVEL_DEBUG, "DEVEL> Context is %s",
-					context != NULL ? "not null" : "NULL");
-			DFLTLOG(LEVEL_DEBUG, "DEVEL> Current upper packet handler is %s",
-					context != NULL && context->getCurrentUpperPacketHandler() != NULL ? "not null" : "NULL");
-			return context != NULL ? context->getCurrentUpperPacketHandler() : NULL;
-		}
 
 		/// Output Logs
 		OutputLog *log;
@@ -304,10 +280,6 @@ class StackPlugin: public OpenSandPlugin
 		virtual bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl,
 		                                   sat_type_t sat_type)
 		{
-			DFLTLOG(LEVEL_DEBUG, "DEVEL> Setting %s upper packet handler to %s: %p",
-				plugin.name.c_str(),
-				pkt_hdl != NULL ? pkt_hdl->getName().c_str() : "NULL",
-				(void *)this);
 			if(!pkt_hdl)
 			{
 				this->current_upper = NULL;
@@ -325,20 +297,6 @@ class StackPlugin: public OpenSandPlugin
 			this->current_upper = pkt_hdl;
 			return true;
 		};
-
-		/**
-		 * @brief Get the current upper encapsulated packet handler
-		 * 
-		 * @return The current upper encapsulated packet handler
-		 */
-		virtual StackPacketHandler *getCurrentUpperPacketHandler() const
-		{
-			DFLTLOG(LEVEL_DEBUG, "DEVEL> Getting %s upper packet handler (%s): %p",
-				plugin.name.c_str(),
-				this->current_upper != NULL ? this->current_upper->getName().c_str() : "NULL",
-				(void *)this);
-			return this->current_upper;
-		}
 
 		/**
 		 * @brief Update statistics periodically

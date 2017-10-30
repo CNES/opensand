@@ -148,8 +148,8 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		goto error;
 	}
 
-	// decapsulate packets received from lower layer
-	if(!this->packet_handler->decapNextPacket(dvb_rcs_frame,
+	// get encapsulated packets received from lower layer
+	if(!this->packet_handler->getEncapsulatedPackets(dvb_rcs_frame,
 		partial_decap,
 		decap_packets,
 		dvb_rcs_frame->getNumPackets()))

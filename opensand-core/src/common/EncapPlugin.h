@@ -133,26 +133,18 @@ class EncapPlugin: public StackPlugin
 		virtual bool resetPacketToEncap(NetPacket *packet = NULL);
 
 		/**
-		 * @brief Decapsulate a packet or store it if data is partial
+		 * @brief Get encapsulated packet from payload
 		 * 
-		 * @param[in]   The packet to decapsulate
-		 * @parma[in]   The packet count to decapsulate (0 if unknown)
-		 * @param[out]  The status about decapsulation (true if data is incomplete to decapsulation, false otherwise)
-		 * @param[out]  The list of decapsulated packet
+		 * @param[in]  packet             The packet storing payload
+		 * @param[out] partial_decap      The status about decapsulation (true if data 
+		 *                                is incomplete to decapsulation, false otherwise)
+		 * @param[out] decap_packets      The list of decapsulated packet
+		 * @param[in decap_packets_count  The packet count to decapsulate (0 if unknown)
 		 */
-		virtual bool decapNextPacket(NetContainer *packet,
+		virtual bool getEncapsulatedPackets(NetContainer *packet,
 			bool &partial_decap,
 			vector<NetPacket *> &decap_packets,
-			unsigned int decap_packets_count = 0);
-
-		/**
-		 * @brief Reset partial data of a packet after decapsulation
-		 *
-		 * @param[in]   The packet to reset remaining data
-		 * 
-		 * @return  true if success, false otherwise
-		 */
-		virtual bool resetPacketToDecap();
+			unsigned int decap_packet_count = 0);
 
 		virtual NetPacket *getPacketForHeaderExtensions(const std::vector<NetPacket*>&UNUSED(packets))
 		{

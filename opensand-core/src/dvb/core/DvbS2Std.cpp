@@ -179,8 +179,8 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		goto error;
 	}
 
-	// decapsulate packets received from lower layer
-	if(!this->packet_handler->decapNextPacket(bbframe_burst,
+	// get encapsulated packets received from lower layer
+	if(!this->packet_handler->getEncapsulatedPackets(bbframe_burst,
 		partial_decap,
 		decap_packets,
 		bbframe_burst->getDataLength()))

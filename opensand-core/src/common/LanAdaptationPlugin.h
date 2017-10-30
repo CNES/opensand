@@ -101,15 +101,10 @@ class LanAdaptationPlugin: public StackPlugin
 			assert(0);
 		};
 
-		virtual bool decapNextPacket(NetContainer *UNUSED(packet),
+		virtual bool getEncapsulatedPackets(NetContainer *UNUSED(packet),
 			bool &UNUSED(partial_decap),
 			vector<NetPacket *> &UNUSED(decap_packets),
 			unsigned int UNUSED(decap_packets_count))
-		{
-			assert(0);
-		};
-
-		virtual bool resetPacketToDecap()
 		{
 			assert(0);
 		};
