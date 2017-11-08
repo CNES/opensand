@@ -127,16 +127,6 @@ class EncapPlugin: public StackPlugin
 			NetPacket **encap_packet);
 
 		/**
-		 * @brief Reset remaining data of the packet after encapsulation
-		 *
-		 * @param[in]   The packet to reset remaining data (if NULL, all packet
-		 *              will be reset)
-		 * 
-		 * @return  true if success, false otherwise
-		 */
-		virtual bool resetPacketToEncap(NetPacket *packet = NULL);
-
-		/**
 		 * @brief Get encapsulated packet from payload
 		 * 
 		 * @param[in]  packet             The packet storing payload

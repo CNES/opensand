@@ -157,16 +157,6 @@ class StackPlugin: public OpenSandPlugin
 			NetPacket **encap_packet) = 0;
 
 		/**
-		 * @brief Reset remaining data of the packet after encapsulation
-		 *
-		 * @param[in]   The packet to reset remaining data (if NULL, all packet
-		 *              will be reset)
-		 * 
-		 * @return  true if success, false otherwise
-		 */
-		virtual bool resetPacketToEncap(NetPacket *packet = NULL) = 0;
-
-		/**
 		 * @brief Get encapsulated packet from payload
 		 * 
 		 * @param[in]  packet             The packet storing payload

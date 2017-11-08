@@ -97,11 +97,6 @@ class LanAdaptationPlugin: public StackPlugin
 			assert(0);
 		};
 
-		virtual bool resetPacketToEncap(NetPacket *UNUSED(packet))
-		{
-			assert(0);
-		};
-
 		virtual bool getEncapsulatedPackets(NetContainer *UNUSED(packet),
 			bool &UNUSED(partial_decap),
 			vector<NetPacket *> &UNUSED(decap_packets),

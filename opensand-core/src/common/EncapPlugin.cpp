@@ -35,7 +35,16 @@
 
 EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
 {
-	this->resetPacketToEncap();
+	map<NetPacket *, NetPacket *>::iterator it;
+
+	for(it = this->encap_packets.begin();
+		it != this->encap_packets.end();
+		++it)
+	{
+		delete it->first;
+		delete it->second;
+	}
+	this->encap_packets.clear();
 }
 
 bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
@@ -101,36 +110,6 @@ bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
 		// Remove the remaining data
 		delete it->second;
 		this->encap_packets.erase(it);	
-	}
-	return true;
-}
-
-bool EncapPlugin::EncapPacketHandler::resetPacketToEncap(NetPacket *packet)
-{
-	map<NetPacket *, NetPacket *>::iterator it;
-
-	if(packet)
-	{
-		// Search packet
-		it = this->encap_packets.find(packet);
-		if(it == this->encap_packets.end())
-		{
-			return true;
-		}
-		// Delete all remaining data
-		delete it->second;
-		this->encap_packets.erase(it);
-	}
-	else
-	{
-		for(it = this->encap_packets.begin();
-			it != this->encap_packets.end();
-			++it)
-		{
-			delete it->first;
-			delete it->second;
-		}
-		this->encap_packets.clear();
 	}
 	return true;
 }

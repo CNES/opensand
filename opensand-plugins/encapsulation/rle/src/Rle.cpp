@@ -39,6 +39,7 @@
 #include <NetPacket.h>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 #define PACKING_THRESHOLD "packing_threshold"
 #define ALPDU_PROTECTION "alpdu_protection"
@@ -248,7 +249,6 @@ NetBurst *Rle::Context::flushAll()
 
 bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 {
-	uint8_t frag_id;
 	uint8_t src_tal_id, dst_tal_id, qos;
 	uint8_t label[LABEL_SIZE];
 	RleIdentifier *identifier = NULL;
@@ -278,9 +278,6 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 	src_tal_id = label[0];
 	dst_tal_id = label[1];
 	qos = label[2];
-
-	// Get fragment id
-	frag_id = qos;
 
 	// Get receiver
 	identifier = new RleIdentifier(src_tal_id, dst_tal_id, qos);
@@ -400,16 +397,16 @@ Rle::PacketHandler::PacketHandler(EncapPlugin &plugin):
 
 Rle::PacketHandler::~PacketHandler()
 {
-	map<RleIdentifier *, struct rle_transmitter *, ltRleIdentifier>::iterator trans_it;
+	map<RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier>::iterator trans_it;
 	
 	// Reset and clean encapsulation
-	this->resetPacketToEncap();
 	for(trans_it = this->transmitters.begin();
 		trans_it != this->transmitters.end();
 		++trans_it)
 	{
 		delete trans_it->first;
-		rle_transmitter_destroy(&(trans_it->second));
+		rle_transmitter_destroy(&(trans_it->second.first));
+		trans_it->second.second.clear();
 	}
 	this->transmitters.clear();
 }
@@ -527,7 +524,8 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	uint8_t frag_id;
 	uint8_t src_tal_id, dst_tal_id, qos;
 	struct rle_transmitter *transmitter;
-	map<RleIdentifier *, struct rle_transmitter *, ltRleIdentifier>::iterator it;
+	vector<NetPacket *>::iterator pkt_it;
+	map<RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier>::iterator it;
 	RleIdentifier *identifier = NULL;
 	uint8_t label[LABEL_SIZE];
 
@@ -553,7 +551,7 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		LOG(this->log, LEVEL_ERROR,
 			"The source terminal id %u of %s packet is too longer\n",
 			src_tal_id, this->getName().c_str());
-		goto error;
+		return false;
 	}
 	dst_tal_id = packet->getDstTalId();
 	if((dst_tal_id & 0x1f) != dst_tal_id)
@@ -561,7 +559,7 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		LOG(this->log, LEVEL_ERROR,
 			"The destination terminal id %u of %s packet is too longer\n",
 			dst_tal_id, this->getName().c_str());
-		goto error;
+		return false;
 	}
 	qos = packet->getQos();
 	if((qos & 0x07) != qos)
@@ -569,7 +567,7 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		LOG(this->log, LEVEL_ERROR,
 			"The QoS %u of %s packet is too longer\n",
 			qos, this->getName().c_str());
-		goto error;
+		return false;
 	}
 
 	// Prepare label to RLE
@@ -577,7 +575,7 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	{
 		LOG(this->log, LEVEL_ERROR,
 			"RLE failed to get label\n");
-		goto error;
+		return false;
 	}
 
 	// Get fragment id
@@ -595,37 +593,58 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 			delete identifier;
 			LOG(this->log, LEVEL_ERROR,
 				"cannot create a RLE transmitter\n");
-			goto error;
+			return false;
 		}
 
 		// Store transmitter
-		this->transmitters[identifier] = transmitter;
+		this->transmitters[identifier] = pair<struct rle_transmitter *, vector<NetPacket *> >(transmitter, vector<NetPacket *>());
+		it = this->transmitters.find(identifier);
+		if(it == this->transmitters.end())
+		{
+			delete identifier;
+			rle_transmitter_destroy(&transmitter);
+			LOG(this->log, LEVEL_ERROR,
+				"cannot store the RLE transmitter\n");
+			return false;
+		}
 	}
 	else
 	{
 		// Get existing identifier and context
 		delete identifier;
 		identifier = it->first;
-		transmitter = it->second;
+		transmitter = it->second.first;
 	}
 
-	// Build RLE SDU
-	sdu.protocol_type = packet->getType();
-	sdu.size = packet->getTotalLength();
-	sdu.buffer = new unsigned char[sdu.size];
-	memcpy(sdu.buffer, packet->getData().c_str(), sdu.size);
+	// Check packet has already been partially sent
+	vector<NetPacket *> &sent_packets = it->second.second;
+	pkt_it = std::find(sent_packets.begin(), sent_packets.end(), packet);
 
-	// Encapsulate RLE SDU
-	if(rle_encapsulate(transmitter, &sdu, frag_id) != 0)
+	if(pkt_it == sent_packets.end())
 	{
+		// Build RLE SDU
+		sdu.protocol_type = packet->getType();
+		sdu.size = packet->getTotalLength();
+		sdu.buffer = new unsigned char[sdu.size];
+		memcpy(sdu.buffer, packet->getData().c_str(), sdu.size);
+
+		// Encapsulate RLE SDU
+		if(rle_encapsulate(transmitter, &sdu, frag_id) != 0)
+		{
+			delete[] sdu.buffer;
+			LOG(this->log, LEVEL_ERROR,
+				"RLE failed to encaspulate SDU\n");
+			return false;
+		}
 		delete[] sdu.buffer;
-		LOG(this->log, LEVEL_ERROR,
-			"RLE failed to encaspulate SDU\n");
-		goto error;
+		sdu.size = 0;
+		//LOG(this->log, LEVEL_DEBUG, "DEVEL> Initial remaining_length=%zu bytes", remaining_length);
 	}
-	delete[] sdu.buffer;
-	sdu.size = 0;
-	//LOG(this->log, LEVEL_DEBUG, "DEVEL> Initial remaining_length=%zu bytes", remaining_length);
+	else
+	{
+		LOG(this->log, LEVEL_DEBUG,
+			"RLE encapsulation of partial sent packet)\n");
+	}
 	if(new_burst)
 	{
 		remaining_length -= LABEL_SIZE;
@@ -649,7 +668,7 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		LOG(this->log, LEVEL_ERROR,
 			"RLE failed to fragment ALPDU (code=%d)\n",
 			(int)frag_status);
-		goto error;
+		return false;
 	}
 
 	// Prepare FPDU
@@ -678,7 +697,7 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 			LOG(this->log, LEVEL_ERROR,
 				"RLE failed to pack PPDU (code=%d)\n",
 				(int)pack_status);
-			goto error;
+			return false;
 		}
 	}
 
@@ -703,7 +722,7 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		LOG(this->log, LEVEL_ERROR,
 			"RLE failed to pack PPDU (code=%d)\n",
 			(int)pack_status);
-		goto error;
+		return false;
 	}
 	fpdu.assign(fpdu_buffer, fpdu_cur_pos);
 	delete[] fpdu_buffer;
@@ -711,74 +730,18 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		this->getName(), this->getEtherType(),
 		qos, src_tal_id, dst_tal_id, 0);
 
-	return true;
-
-error:
-	return false;
-}
-
-bool Rle::PacketHandler::resetPacketToEncap(NetPacket *packet)
-{
-	if(!packet)
+	if(pkt_it == sent_packets.end() && partial_encap)
 	{
-		return this->resetAllPacketToEncap();
+		// Add packet to partial sent packets list
+		LOG(this->log, LEVEL_DEBUG, "Add packet to partial sent packets list");
+		sent_packets.push_back(packet);
 	}
-	return this->resetOnePacketToEncap(packet);
-}
-
-bool Rle::PacketHandler::resetOnePacketToEncap(NetPacket *packet)
-{
-	uint8_t frag_id;
-	struct rle_transmitter *transmitter;
-	map<RleIdentifier *, struct rle_transmitter *, ltRleIdentifier>::iterator transmitter_it;
-	RleIdentifier *identifier = NULL;
-
-	// Get transmitter
-	identifier = new RleIdentifier(packet->getSrcTalId(),
-		packet->getDstTalId(),
-		packet->getQos());
-	transmitter_it = this->transmitters.find(identifier);
-	if(transmitter_it == this->transmitters.end())
+	else if(pkt_it != sent_packets.end() && !partial_encap)
 	{
-		return true;
+		// Remove packet from partial sent packets list
+		LOG(this->log, LEVEL_DEBUG, "Remove packet from partial sent packets list");
+		sent_packets.erase(pkt_it);
 	}
-	transmitter = transmitter_it->second;
-
-	// Get fragment id
-	frag_id = packet->getQos();
-
-	// Check there is data to fragment
-	if(rle_transmitter_stats_get_queue_size(transmitter, frag_id) <= 0)
-	{
-		return true;
-	}
-	
-	// Reset transmitter
-	rle_transmitter_stats_reset_counters(transmitter, frag_id);
-
-	return true;
-}
-
-bool Rle::PacketHandler::resetAllPacketToEncap()
-{
-	uint8_t frag_id;
-	struct rle_transmitter *transmitter;
-	map<RleIdentifier *, struct rle_transmitter *, ltRleIdentifier>::iterator transmitter_it;
-
-	// Reset all fragment id of all transmitter
-	for(transmitter_it = this->transmitters.begin();
-		transmitter_it != this->transmitters.end();
-		++transmitter_it)
-	{
-		transmitter = transmitter_it->second;
-		
-		// Reset all fragment id of the current transmitter
-		for(frag_id = 0; frag_id <= RLE_MAX_FRAG_ID; ++frag_id)
-		{
-			rle_transmitter_stats_reset_counters(transmitter, frag_id);	
-		}
-	}
-
 	return true;
 }
 

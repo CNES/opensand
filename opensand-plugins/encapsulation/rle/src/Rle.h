@@ -104,9 +104,9 @@ class Rle: public EncapPlugin
 		/// RLE configuration
 		struct rle_config rle_conf;
 
-		// Transmitters identified by an unique identifier
-		std::map <RleIdentifier *, struct rle_transmitter *, ltRleIdentifier> transmitters;
-		std::map <RleIdentifier *, NetPacket *, ltRleIdentifier> partial_sent;
+		// Transmitters and partial sent packets list
+		typedef std::pair<struct rle_transmitter *, std::vector<NetPacket *> > rle_trans_ctxt_t;
+		std::map <RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier> transmitters;
 
 	  public:
 
@@ -131,7 +131,6 @@ class Rle: public EncapPlugin
 			bool new_burst,
 			bool &partial_encap,
 			NetPacket **encap_packet);
-		bool resetPacketToEncap(NetPacket *packet = NULL);
 
 		bool getEncapsulatedPackets(NetContainer *packet,
 			bool &partial_decap,
@@ -141,8 +140,6 @@ class Rle: public EncapPlugin
 	  protected:
 		bool getChunk(NetPacket *packet, size_t remaining_length,
 		              NetPacket **data, NetPacket **remaining_data) const;
-		bool resetOnePacketToEncap(NetPacket *packet);
-		bool resetAllPacketToEncap();
 	};
 
 	/// Constructor
