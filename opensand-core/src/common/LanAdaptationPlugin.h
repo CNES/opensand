@@ -90,6 +90,7 @@ class LanAdaptationPlugin: public StackPlugin
 
 		virtual bool encapNextPacket(NetPacket *UNUSED(packet),
 			size_t UNUSED(remaining_length),
+			bool UNUSED(new_burst),
 			bool &UNUSED(partial_encap),
 			NetPacket **UNUSED(encap_packet))
 		{

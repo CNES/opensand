@@ -301,6 +301,16 @@ class DvbFrameTpl: public NetContainer
 	};
 
 	/**
+	 * Get the encapsulation packets count into the DVB frame
+	 *
+	 * @return  the encapsulation packets count
+	 */
+	virtual unsigned int getPacketsCount() const
+	{
+		return this->num_packets;
+	}
+
+	/**
 	 * Empty the DVB frame
 	 */
 	virtual void empty(void) {};

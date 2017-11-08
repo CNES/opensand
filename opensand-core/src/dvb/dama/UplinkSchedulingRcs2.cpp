@@ -200,6 +200,7 @@ bool UplinkSchedulingRcs2::scheduleEncapPackets(DvbFifo *fifo,
 			// Encapsulate packet
 			ret = this->packet_handler->encapNextPacket(encap_packet,
 				incomplete_dvb_frame->getFreeSpace(),
+				incomplete_dvb_frame->getPacketsCount() == 0,
 				partial_encap,
 				&data);
 			if(!ret)

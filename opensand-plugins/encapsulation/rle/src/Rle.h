@@ -128,9 +128,15 @@ class Rle: public EncapPlugin
 
 		bool encapNextPacket(NetPacket *packet,
 			size_t remaining_length,
+			bool new_burst,
 			bool &partial_encap,
 			NetPacket **encap_packet);
 		bool resetPacketToEncap(NetPacket *packet = NULL);
+
+		bool getEncapsulatedPackets(NetContainer *packet,
+			bool &partial_decap,
+			vector<NetPacket *> &decap_packets,
+			unsigned int decap_packet_count = 0);
 
 	  protected:
 		bool getChunk(NetPacket *packet, size_t remaining_length,

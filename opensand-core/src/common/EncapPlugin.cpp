@@ -40,6 +40,7 @@ EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
 
 bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
 	size_t remaining_length,
+	bool UNUSED(new_burst),
 	bool &partial_encap,
 	NetPacket **encap_packet)
 {

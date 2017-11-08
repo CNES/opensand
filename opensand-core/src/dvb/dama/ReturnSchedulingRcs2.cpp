@@ -181,8 +181,11 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 		case state_get_chunk:     // Get the next chunk of encapsulated packets
 
 			// Encapsulate packet
+			data = NULL;
+			partial_encap = false;
 			ret = this->packet_handler->encapNextPacket(encap_packet,
 				incomplete_dvb_frame->getFreeSpace(),
+				incomplete_dvb_frame->getPacketsCount() == 0,
 				partial_encap,
 				&data);
 			if(!ret)
@@ -316,8 +319,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				incomplete_dvb_frame = NULL;
 
 				state = state_end;
-				LOG(this->log_scheduling, LEVEL_DEBUG, "[finalize frame] "
-				    "next state = 'end'");
 				break;
 			}
 

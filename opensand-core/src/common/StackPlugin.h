@@ -140,15 +140,19 @@ class StackPlugin: public OpenSandPlugin
 		/**
 		 * @brief Encapsulate the packet and store unencapsulable part
 		 * 
-		 * @param[in]   The packet to encapsulate
-		 * @param[in]   The remaining length
-		 * @param[out]  The status about encapsulation (true if data remains after encapsulation, false otherwise)
-		 * @param[out]  The encapsulated packet (null in error case)
+		 * @param[in]  packet            The packet to encapsulate
+		 * @param[in]  remaining_length  The remaining length
+		 * @param[in]  new_burst         The new burst status
+		 * @param[out] partial_encap     The status about encapsulation
+		 *                               (true if data remains after encapsulation,
+		 *                               false otherwise)
+		 * @param[out] encap_packet      The encapsulated packet (null in error case)
 		 * 
 		 * @return  true if success, false otherwise
 		 */
 		virtual bool encapNextPacket(NetPacket *packet,
 			size_t remaining_length,
+			bool new_burst,
 			bool &partial_encap,
 			NetPacket **encap_packet) = 0;
 

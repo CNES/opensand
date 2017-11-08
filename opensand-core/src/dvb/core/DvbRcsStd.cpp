@@ -139,15 +139,6 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	    this->packet_handler->getName().c_str(),
 	    dvb_rcs_frame->getNumPackets());
 
-	// create an empty burst of encapsulation packets
-	*burst = new NetBurst();
-	if(*burst == NULL)
-	{
-		LOG(this->log_rcv_from_down, LEVEL_ERROR,
-		    "failed to create a burst of packets\n");
-		goto error;
-	}
-
 	// get encapsulated packets received from lower layer
 	if(!this->packet_handler->getEncapsulatedPackets(dvb_rcs_frame,
 		partial_decap,
@@ -157,8 +148,18 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "cannot create one %s packet\n",
 		    this->packet_handler->getName().c_str());
-		goto release_burst;
+		goto error;
 	}
+
+	// create an empty burst of encapsulation packets
+	*burst = new NetBurst();
+	if(*burst == NULL)
+	{
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "failed to create a burst of packets\n");
+		goto error;
+	}
+
 	// add packets to the newly created burst
 	for(vector<NetPacket *>::iterator it = decap_packets.begin();
 		it != decap_packets.end();
@@ -197,8 +198,6 @@ skip:
 	delete dvb_frame;
 	return true;
 
-release_burst:
-	delete burst;
 error:
 	delete dvb_frame;
 	return false;

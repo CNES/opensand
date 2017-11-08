@@ -538,6 +538,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		// Encapsulate packet
 		ret = this->packet_handler->encapNextPacket(encap_packet,
 			current_bbframe->getFreeSpace(),
+			current_bbframe->getPacketsCount() == 0,
 			partial_encap,
 			&data);
 		if(!ret)
