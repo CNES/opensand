@@ -218,7 +218,7 @@ int main(int argc, char **argv)
 	// retrieve arguments on command line
 	init_ok = init_process(argc, argv, ip_addr, emu_iface, lan_iface, conf_path, mac_id);
 
-  plugin_conf_path = conf_path + string("plugins/");
+    plugin_conf_path = conf_path + string("plugins/");
 
 	status = Output::registerEvent("Status");
 	if(!init_ok)
