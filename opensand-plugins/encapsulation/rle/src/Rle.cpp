@@ -50,6 +50,42 @@
 
 #define LABEL_SIZE 3 // bytes
 
+void initRleConf(struct rle_config &conf)
+{
+	conf.allow_ptype_omission = 0;//1;
+	conf.use_compressed_ptype = 0;//1; modified
+	conf.allow_alpdu_crc = 0;
+	conf.allow_alpdu_sequence_number = 0;
+	conf.use_explicit_payload_header_map = 0;
+	conf.implicit_protocol_type = 0x30; // IPv4/IPv6
+	conf.implicit_ppdu_label_size = 0;
+	conf.implicit_payload_label_size = 0;
+	conf.type_0_alpdu_label_size = 0;
+}
+
+void copyRleConf(const struct rle_config &src, struct rle_config &dst)
+{
+	dst.allow_ptype_omission = src.allow_ptype_omission;
+	dst.use_compressed_ptype = src.use_compressed_ptype;
+	dst.allow_alpdu_crc = src.allow_alpdu_crc;
+	dst.allow_alpdu_sequence_number = src.allow_alpdu_sequence_number;
+	dst.use_explicit_payload_header_map = src.use_explicit_payload_header_map;
+	dst.implicit_protocol_type = src.implicit_protocol_type;
+	dst.implicit_ppdu_label_size = src.implicit_ppdu_label_size;
+	dst.implicit_payload_label_size = src.implicit_payload_label_size;
+	dst.type_0_alpdu_label_size = src.type_0_alpdu_label_size;
+}
+
+bool checkRleConf(OutputLog *log, const struct rle_config &conf)
+{
+	if(conf.allow_alpdu_sequence_number == conf.allow_alpdu_crc)
+	{
+		LOG(log, LEVEL_ERROR, "No ALPDU protection set\n");
+		return false;
+	}
+	return true;
+}
+
 void Rle::rle_traces(const int module_id,
 		const int level,
 		const char *const file,
@@ -110,18 +146,94 @@ Rle::Rle():
 	rle_set_trace_callback(&(Rle::rle_traces));
 }
 
+bool Rle::init(void)
+{
+	bool stat = true;
+	struct rle_config conf;
+	
+	ConfigurationFile config;
+	string protection;
+	rle_alpdu_protection_t alpdu_protection;
+	map<string, ConfigurationList> config_section_map;
+
+	if(!EncapPlugin::init())
+	{
+		return false;
+	}
+	
+	initRleConf(conf);
+
+	// Load configuration
+	if(config.loadConfig(CONF_RLE_FILE) < 0)
+	{
+		LOG(this->log, LEVEL_ERROR,
+		    "failed to load config file '%s'",
+		    CONF_RLE_FILE);
+		return false;
+	}
+
+	config.loadSectionMap(config_section_map);
+
+	// Retrieving the ALPDU protection
+	if(!config.getValue(config_section_map[RLE_SECTION],
+	                    ALPDU_PROTECTION, protection))
+	{
+		stat = false;
+		LOG(this->log, LEVEL_ERROR,
+		    "missing %s parameter\n", ALPDU_PROTECTION);
+		goto unload;
+	}
+	if(protection == ALPDU_PROTECTION_CRC)
+	{
+		alpdu_protection = rle_alpdu_crc;
+	}
+	else if(protection == ALPDU_PROTECTION_SEQ_NUM)
+	{
+		alpdu_protection = rle_alpdu_sequence_number;
+	}
+	else
+	{
+		stat = false;
+		LOG(this->log, LEVEL_ERROR,
+		    "invalid value %s for %s parameter\n",
+		    protection.c_str(),
+		    ALPDU_PROTECTION);
+		goto unload;
+	}
+	LOG(this->log, LEVEL_NOTICE,
+	    "ALPDU protection: %s\n", protection.c_str());
+	
+	// Update RLE configuration
+	switch(alpdu_protection)
+	{
+	case rle_alpdu_crc:
+		conf.allow_alpdu_sequence_number = 0;
+		conf.allow_alpdu_crc = 1;
+		break;
+	case rle_alpdu_sequence_number:
+		conf.allow_alpdu_sequence_number = 1;
+		conf.allow_alpdu_crc = 0;
+		break;
+	default:
+		stat = false;
+		goto unload;
+	}
+
+unload:
+	// Unload configuration
+	config.unloadConfig();
+	
+	//pkt_hdl->loadRleConf(conf);
+	//ctxt->loadRleConf(conf);
+	static_cast<Rle::PacketHandler *>(this->packet_handler)->loadRleConf(conf);
+	static_cast<Rle::Context *>(this->context)->loadRleConf(conf);
+	
+	return stat;
+}
+
 Rle::Context::Context(EncapPlugin &plugin):
 	EncapPlugin::EncapContext(plugin)
 {
-	this->rle_conf.allow_ptype_omission = 0;//1;
-	this->rle_conf.use_compressed_ptype = 1;
-	this->rle_conf.allow_alpdu_crc = 1;
-	this->rle_conf.allow_alpdu_sequence_number = 1;
-	this->rle_conf.use_explicit_payload_header_map = 0;
-	this->rle_conf.implicit_protocol_type = 0x30; // IPv4/IPv6
-	this->rle_conf.implicit_ppdu_label_size = 0;
-	this->rle_conf.implicit_payload_label_size = 0;
-	this->rle_conf.type_0_alpdu_label_size = 0;
 }
 
 Rle::Context::~Context()
@@ -137,6 +249,20 @@ Rle::Context::~Context()
 	}
 	this->receivers.clear();
 
+}
+
+void Rle::Context::loadRleConf(const struct rle_config &conf)
+{
+	copyRleConf(conf, this->rle_conf);
+}
+
+bool Rle::Context::init()
+{
+	if(!EncapPlugin::EncapContext::init())
+	{
+		return false;
+	}
+	return checkRleConf(this->log, this->rle_conf);
 }
 
 NetBurst *Rle::Context::encapsulate(NetBurst *burst,
@@ -259,7 +385,10 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 	size_t sdus_count = 0;
 	size_t sdus_max_count = 0;
 	enum rle_decap_status status;
+	unsigned char *buffer;
 
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> New packet (len=%u bytes)",
+			packet->getTotalLength());
 	// Get data which identify the receiver
 	if(packet->getPayloadLength() <= LABEL_SIZE)
 	{
@@ -280,10 +409,12 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 	qos = label[2];
 
 	// Get receiver
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> Get receiver?");
 	identifier = new RleIdentifier(src_tal_id, dst_tal_id, qos);
 	it = this->receivers.find(identifier);
 	if(it == this->receivers.end())
 	{
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> No receiver");
 		// Create receiver
 		receiver = rle_receiver_new(&this->rle_conf);
 		if(!receiver)
@@ -296,9 +427,11 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 
 		// Store receiver
 		this->receivers[identifier] = receiver;
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Receiver created");
 	}
 	else
 	{
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Found receiver");
 		// Get existing identifier and context
 		delete identifier;
 		identifier = it->first;
@@ -311,35 +444,46 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 	sdus = new struct rle_sdu[sdus_max_count];
 	for(unsigned int i = 0; i < sdus_max_count; ++i)
 	{
+		sdus[i].size = 0;
 		sdus[i].buffer = new unsigned char[packet->getPayloadLength()];
 	}
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> Prepare SDUs (max_count=%u, count=%u)",
+			sdus_max_count, sdus_count);
+
+	buffer = new unsigned char[packet->getPayloadLength()];
+	memcpy(buffer, packet->getPayload().c_str(), packet->getPayloadLength());
 
 	// Decapsulate RLE FPDU
-	//LOG(this->log, LEVEL_DEBUG,
-	//		"DEVEL> before decap: payload_length=%u bytes, sdus_max_count=%u, sdu_count=%u, label_size=%u bytes",
-	//		packet->getPayloadLength(), sdus_max_count, sdus_count, LABEL_SIZE);
-	status = rle_decapsulate(receiver, (unsigned char *)packet->getPayload().c_str(),
-		 packet->getPayloadLength(), sdus, sdus_max_count, &sdus_count, label, LABEL_SIZE);
-	//LOG(this->log, LEVEL_DEBUG,
-	//		"DEVEL> after decap: payload_length=%u bytes, sdus_max_count=%u, sdu_count=%u, label_size=%u bytes",
-	//		packet->getPayloadLength(), sdus_max_count, sdus_count, LABEL_SIZE);
+	status = rle_decapsulate(receiver, buffer, packet->getPayloadLength(),
+		sdus, sdus_max_count, &sdus_count, label, LABEL_SIZE);
 	if(status != RLE_DECAP_OK)
 	{
+		delete[] buffer;
 		LOG(this->log, LEVEL_ERROR,
 			"RLE failed to decaspulate SDU\n");
 		goto error;
 	}
+	delete[] buffer;
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> Decapsulate SDUs (max_count=%u, count=%u)",
+			sdus_max_count, sdus_count);
 
 	// Add all SDUs to decapsulated packets list
 	for(unsigned int i = 0; i< sdus_count; ++i)
 	{
-		// Create packet from SDU
 		struct rle_sdu sdu = sdus[i];
 		NetPacket *decap_packet;
 
-		//LOG(this->log, LEVEL_DEBUG,
-		//		"DEVEL> SDU size=%u bytes",
-		//		sdu.size);
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Build packet %u (len=%u bytes)",
+				i, sdu.size);
+		// Check SDU size
+		if (sdu.size <= 0)
+		{
+			LOG(this->log, LEVEL_ERROR,
+				"Empty RLE decapsulated packet\n");
+			goto error;
+		}
+
+		// Create packet from SDU
 		decap_packet = this->current_upper->build(Data(sdu.buffer, sdu.size), sdu.size,
 			qos, src_tal_id, dst_tal_id);
 		if(!decap_packet)
@@ -349,18 +493,15 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 			goto error;
 		}
 
-		
 		// Add SDU to decapsulated packets list
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Add packet %u (len=%u bytes)",
+				i, sdu.size);
 		burst->add(decap_packet);
-		//LOG(this->log, LEVEL_DEBUG, "DEVEL> deleting sdus[%u]", i);
-		delete[] sdus[i].buffer;
-		//LOG(this->log, LEVEL_DEBUG, "DEVEL> sdus[%u] deleted", i);
-		sdus[i].buffer = NULL;
-		sdus[i].size = 0;
+		//delete[] sdus[i].buffer;
+		//sdus[i].buffer = NULL;
+		//sdus[i].size = 0;
 	}
-	//LOG(this->log, LEVEL_DEBUG, "DEVEL> deleting sdus");
 	delete[] sdus;
-	//LOG(this->log, LEVEL_DEBUG, "DEVEL> sdus deleted");
 
 	return true;
 	
@@ -384,15 +525,6 @@ error:
 Rle::PacketHandler::PacketHandler(EncapPlugin &plugin):
 	EncapPlugin::EncapPacketHandler(plugin)
 {
-	this->rle_conf.allow_ptype_omission = 0;//1;
-	this->rle_conf.use_compressed_ptype = 1;
-	this->rle_conf.allow_alpdu_crc = 1;
-	this->rle_conf.allow_alpdu_sequence_number = 1;
-	this->rle_conf.use_explicit_payload_header_map = 0;
-	this->rle_conf.implicit_protocol_type = 0x30; // IPv4/IPv6
-	this->rle_conf.implicit_ppdu_label_size = 0;
-	this->rle_conf.implicit_payload_label_size = 0;
-	this->rle_conf.type_0_alpdu_label_size = 0;
 }
 
 Rle::PacketHandler::~PacketHandler()
@@ -411,80 +543,18 @@ Rle::PacketHandler::~PacketHandler()
 	this->transmitters.clear();
 }
 
-bool Rle::PacketHandler::init(void)
+void Rle::PacketHandler::loadRleConf(const struct rle_config &conf)
 {
-	ConfigurationFile config;
-	string protection;
-	rle_alpdu_protection_t alpdu_protection;
-	map<string, ConfigurationList> config_section_map;
+	copyRleConf(conf, this->rle_conf);
+}
 
+bool Rle::PacketHandler::init()
+{
 	if(!EncapPlugin::EncapPacketHandler::init())
 	{
 		return false;
 	}
-
-	// Load configuration
-	if(config.loadConfig(CONF_RLE_FILE) < 0)
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "failed to load config file '%s'",
-		    CONF_RLE_FILE);
-		return false;
-	}
-
-	config.loadSectionMap(config_section_map);
-
-	// Retrieving the ALPDU protection
-	if(!config.getValue(config_section_map[RLE_SECTION],
-	                    ALPDU_PROTECTION, protection))
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "missing %s parameter\n", ALPDU_PROTECTION);
-		goto unload;
-	}
-	if(protection == ALPDU_PROTECTION_CRC)
-	{
-		alpdu_protection = rle_alpdu_crc;
-	}
-	else if(protection == ALPDU_PROTECTION_SEQ_NUM)
-	{
-		alpdu_protection = rle_alpdu_sequence_number;
-	}
-	else
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "invalid value %s for %s parameter\n",
-		    protection.c_str(),
-		    ALPDU_PROTECTION);
-		goto unload;
-	}
-	LOG(this->log, LEVEL_NOTICE,
-	    "ALPDU protection: %s\n", protection.c_str());
-	
-	// Update RLE configuration
-	switch(alpdu_protection)
-	{
-	case rle_alpdu_crc:
-		this->rle_conf.allow_alpdu_sequence_number = 0;
-		this->rle_conf.allow_alpdu_crc = 1;
-		break;
-	case rle_alpdu_sequence_number:
-		this->rle_conf.allow_alpdu_sequence_number = 1;
-		this->rle_conf.allow_alpdu_crc = 0;
-		break;
-	default:
-		break;
-	}
-
-	// Unload configuration
-	config.unloadConfig();
-	
-	return true;
-unload:
-	// Unload configuration
-	config.unloadConfig();
-	
-	return false;
+	return checkRleConf(this->log, this->rle_conf);
 }
 
 NetPacket *Rle::PacketHandler::build(const Data &data,
@@ -533,9 +603,11 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	enum rle_pack_status pack_status;
 	struct rle_sdu sdu;
 	unsigned char *ppdu = NULL;
+	size_t label_size;
 	size_t ppdu_size;
 	size_t fpdu_size;
 	size_t fpdu_cur_pos;
+	size_t prev_queue_size, queue_size;
 
 	Data fpdu;
 	unsigned char *fpdu_buffer;
@@ -543,7 +615,11 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	// Set default returned values
 	*encap_packet = NULL;
 	partial_encap = false;
-	
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> %s (remaining len=%u bytes, packet len=%u bytes)",
+			new_burst ? "New burst" : "Still same burst",
+			remaining_length,
+			packet->getTotalLength());
+
 	// Get data which identify the transmitter
 	src_tal_id = packet->getSrcTalId();
 	if((src_tal_id & 0x1f) != src_tal_id)
@@ -582,10 +658,12 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	frag_id = qos;
 
 	// Get transmitter
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> Get transmitter?");
 	identifier = new RleIdentifier(src_tal_id, dst_tal_id, qos);
 	it = this->transmitters.find(identifier);
 	if(it == this->transmitters.end())
 	{
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> No transmitter");
 		// Create transmitter
 		transmitter = rle_transmitter_new(&this->rle_conf);
 		if(!transmitter)
@@ -607,9 +685,11 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 				"cannot store the RLE transmitter\n");
 			return false;
 		}
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Transmitter created");
 	}
 	else
 	{
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Found transmitter");
 		// Get existing identifier and context
 		delete identifier;
 		identifier = it->first;
@@ -618,17 +698,24 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 
 	// Check packet has already been partially sent
 	vector<NetPacket *> &sent_packets = it->second.second;
+	prev_queue_size = rle_transmitter_stats_get_queue_size(transmitter, frag_id);
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> Sent packet (total=%u)?",
+			sent_packets.size());
 	pkt_it = std::find(sent_packets.begin(), sent_packets.end(), packet);
-
 	if(pkt_it == sent_packets.end())
 	{
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> No, first try");
+
 		// Build RLE SDU
 		sdu.protocol_type = packet->getType();
 		sdu.size = packet->getTotalLength();
 		sdu.buffer = new unsigned char[sdu.size];
 		memcpy(sdu.buffer, packet->getData().c_str(), sdu.size);
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Create SDU (len=%u bytes)",
+				sdu.size);
 
 		// Encapsulate RLE SDU
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Encapsulate");
 		if(rle_encapsulate(transmitter, &sdu, frag_id) != 0)
 		{
 			delete[] sdu.buffer;
@@ -638,31 +725,22 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 		}
 		delete[] sdu.buffer;
 		sdu.size = 0;
-		//LOG(this->log, LEVEL_DEBUG, "DEVEL> Initial remaining_length=%zu bytes", remaining_length);
 	}
 	else
 	{
-		LOG(this->log, LEVEL_DEBUG,
-			"RLE encapsulation of partial sent packet)\n");
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Yes, new try");
 	}
-	if(new_burst)
-	{
-		remaining_length -= LABEL_SIZE;
-	}
+	
+	// Update label size
+	label_size = new_burst ? LABEL_SIZE : 0;
+	remaining_length -= label_size;
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> Label len=%u bytes",
+			label_size);
 
 	// Fragment RLE SDU to RLE PPDU
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> Fragment");
 	ppdu_size = 0;
-	//LOG(this->log, LEVEL_DEBUG,
-	//		"DEVEL> before fragmentation: remaining_length=%u bytes, label_size=%u bytes, ppdu_size=%u bytes",
-	//		new_burst ? remaining_length + LABEL_SIZE : remaining_length,
-	//		new_burst ? LABEL_SIZE : 0,
-	//		ppdu_size);
 	frag_status = rle_fragment(transmitter, frag_id, remaining_length, &ppdu, &ppdu_size);
-	//LOG(this->log, LEVEL_DEBUG,
-	//		"DEVEL> after fragmentation: remaining_length=%u bytes, label_size=%u bytes, ppdu_size=%u bytes",
-	//		new_burst ? remaining_length + LABEL_SIZE : remaining_length,
-	//		new_burst ? LABEL_SIZE : 0,
-	//		ppdu_size);
 	if(frag_status != 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -670,27 +748,32 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 			(int)frag_status);
 		return false;
 	}
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> PPDU len=%u bytes",
+			ppdu_size);
+
+	// Check encapsualtion is partial or complete
+	queue_size = rle_transmitter_stats_get_queue_size(transmitter, frag_id);
+	partial_encap = (0 < queue_size);
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> %s encapsulation (queue size=%u bytes, variation=%s%d bytes)",
+			partial_encap ? "Partial" : "Complete",
+			queue_size,
+			prev_queue_size < queue_size ? "+" : "",
+			(int)queue_size - (int)prev_queue_size);
 
 	// Prepare FPDU
-	fpdu_size = ppdu_size;
-	if(new_burst)
-	{
-		fpdu_size += LABEL_SIZE;
-	}
-	fpdu_buffer = new unsigned char[fpdu_size];
+	fpdu_size = ppdu_size + label_size;
 	fpdu_cur_pos = 0;
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> FPDU len=%u bytes",
+			fpdu_size);
+	fpdu_buffer = new unsigned char[fpdu_size];
 
-	if(new_burst)
+	/*if(new_burst)
 	{
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Init pack (FPDU len=%u bytes, FPDU pos=%u)",
+				fpdu_size, fpdu_cur_pos);
+
 		// Initialize pack adding the label to FPDU
-		LOG(this->log, LEVEL_DEBUG, "Add label to RLE FPDU");
-		//LOG(this->log, LEVEL_DEBUG,
-		//		"DEVEL> before pack init: label_size=%u bytes, fpdu_cur_pos=%u, fpdu_size=%u bytes",
-		//		LABEL_SIZE, fpdu_cur_pos, fpdu_size);
 		pack_status = rle_pack_init(label, LABEL_SIZE, fpdu_buffer, &fpdu_cur_pos, &fpdu_size);
-		//LOG(this->log, LEVEL_DEBUG,
-		//		"DEVEL> after pack init: label_size=%u bytes, fpdu_cur_pos=%u, fpdu_size=%u bytes",
-		//		LABEL_SIZE, fpdu_cur_pos, fpdu_size);
 		if(pack_status != 0)
 		{
 			delete[] fpdu_buffer;
@@ -699,24 +782,15 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 				(int)pack_status);
 			return false;
 		}
-	}
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> FPDU len=%u bytes, FPDU pos=%u",
+				fpdu_size, fpdu_cur_pos);
+	}*/
 
 	// Pack RLE PPD to RLE FPDU
-	//LOG(this->log, LEVEL_DEBUG,
-	//		"DEVEL> before packing: ppdu_size=%u bytes, label_size=%u bytes, fpdu_cur_pos=%u, fpdu_size=%u bytes",
-	//		ppdu_size, LABEL_SIZE, fpdu_cur_pos, fpdu_size);
-	pack_status = rle_pack(ppdu, ppdu_size, label, LABEL_SIZE, fpdu_buffer, &fpdu_cur_pos, &fpdu_size);
-	//LOG(this->log, LEVEL_DEBUG,
-	//		"DEVEL> after packing: ppdu_size=%u bytes, label_size=%u bytes, fpdu_cur_pos=%u, fpdu_size=%u bytes",
-	//		ppdu_size, LABEL_SIZE, fpdu_cur_pos, fpdu_size);
-	if(pack_status == RLE_PACK_ERR_FPDU_TOO_SMALL)
-	{
-		// Set partial encapsulation status
-		LOG(this->log, LEVEL_DEBUG,
-			"RLE partial packing)\n");
-		partial_encap = true;
-	}
-	else if(pack_status != 0)
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> Pack (FPDU len=%u bytes, FPDU pos=%u)",
+			fpdu_size, fpdu_cur_pos);
+	pack_status = rle_pack(ppdu, ppdu_size, label, label_size, fpdu_buffer, &fpdu_cur_pos, &fpdu_size);
+	if(pack_status != 0)
 	{
 		delete[] fpdu_buffer;
 		LOG(this->log, LEVEL_ERROR,
@@ -724,22 +798,27 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 			(int)pack_status);
 		return false;
 	}
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> Update (FPDU len=%u bytes, FPDU pos=%u)",
+			fpdu_size, fpdu_cur_pos);
 	fpdu.assign(fpdu_buffer, fpdu_cur_pos);
 	delete[] fpdu_buffer;
 	*encap_packet = new NetPacket(fpdu, fpdu_cur_pos,
 		this->getName(), this->getEtherType(),
 		qos, src_tal_id, dst_tal_id, 0);
 
-	if(pkt_it == sent_packets.end() && partial_encap)
+	LOG(this->log, LEVEL_DEBUG, "DEVEL> Status: %s & %s",
+			(pkt_it == sent_packets.end()) ? "First try" : "New try",
+			partial_encap ? "Partial encap" : "Complete encap");
+	if((pkt_it == sent_packets.end()) && partial_encap)
 	{
 		// Add packet to partial sent packets list
-		LOG(this->log, LEVEL_DEBUG, "Add packet to partial sent packets list");
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Add packet to partially sent packets list");
 		sent_packets.push_back(packet);
 	}
-	else if(pkt_it != sent_packets.end() && !partial_encap)
+	else if((pkt_it != sent_packets.end()) && !partial_encap)
 	{
 		// Remove packet from partial sent packets list
-		LOG(this->log, LEVEL_DEBUG, "Remove packet from partial sent packets list");
+		LOG(this->log, LEVEL_DEBUG, "DEVEL> Remove packet from partially sent packets list");
 		sent_packets.erase(pkt_it);
 	}
 	return true;

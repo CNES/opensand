@@ -78,6 +78,9 @@ class Rle: public EncapPlugin
 		 */
 		~Context();
 
+		void loadRleConf(const struct rle_config &conf);
+		bool init();
+
 		NetBurst *encapsulate(NetBurst *burst, std::map<long, int> &time_contexts);
 		NetBurst *deencapsulate(NetBurst *burst);
 		NetBurst *flush(int context_id);
@@ -113,6 +116,7 @@ class Rle: public EncapPlugin
 		PacketHandler(EncapPlugin &plugin);
 		~PacketHandler();
 
+		void loadRleConf(const struct rle_config &conf);
 		bool init();
 
 		NetPacket *build(const Data &data,
@@ -144,6 +148,8 @@ class Rle: public EncapPlugin
 
 	/// Constructor
 	Rle();
+
+	bool init();
 
 	static bool getLabel(NetPacket *packet, uint8_t label[]);
 	static bool getLabel(const Data &data, uint8_t label[]);
