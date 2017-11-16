@@ -35,26 +35,25 @@
 
 #include "Output.h"
 
+OutputOpensand Output::opensand_instance;
 
-OutputInternal Output::instance;
+OutputInternal *Output::instance = &(Output::opensand_instance);
 
-// TODO global buffer
 bool Output::init(bool enabled, const char *sock_prefix)
 {
-	return instance.init(enabled, sock_prefix);
+	return instance->init(enabled, sock_prefix);
 }
 
 OutputEvent *Output::registerEvent(const string &identifier)
 {
-	return instance.registerEvent(identifier);
+	return instance->registerEvent(identifier);
 }
 
 OutputLog *Output::registerLog(log_level_t display_level,
                                const string &name)
 {
-	return instance.registerLog(display_level, name);
+	return instance->registerLog(display_level, name);
 }
-
 
 OutputEvent *Output::registerEvent(const char *identifier, ...)
 {
@@ -87,12 +86,12 @@ OutputLog *Output::registerLog(log_level_t default_display_level,
 
 bool Output::finishInit(void)
 {
-	return instance.finishInit();
+	return instance->finishInit();
 }
 
 void Output::sendProbes(void)
 {
-	instance.sendProbes();
+	instance->sendProbes();
 }
 
 void Output::sendEvent(OutputEvent* event,
@@ -107,7 +106,7 @@ void Output::sendEvent(OutputEvent* event,
 
 	va_end(args);
 
-	instance.sendLog(event, LEVEL_EVENT, string(buf));
+	instance->sendLog(event, LEVEL_EVENT, string(buf));
 }
 
 
@@ -124,7 +123,7 @@ void Output::sendLog(const OutputLog *log,
 
 	va_end(args);
 
-	instance.sendLog(log, log_level, buf);
+	instance->sendLog(log, log_level, buf);
 }
 
 void Output::sendLog(log_level_t log_level,
@@ -138,7 +137,7 @@ void Output::sendLog(log_level_t log_level,
 
 	va_end(args);
 
-	instance.sendLog(log_level, string(buf));
+	instance->sendLog(log_level, string(buf));
 }
 
 Output::Output()
@@ -151,51 +150,51 @@ Output::~Output()
 
 void Output::setProbeState(uint8_t probe_id, bool enabled)
 {
-	instance.setProbeState(probe_id, enabled);
+	instance->setProbeState(probe_id, enabled);
 }
 
 void Output::setLogLevel(uint8_t log_id, log_level_t level)
 {
-	instance.setLogLevel(log_id, level);
+	instance->setLogLevel(log_id, level);
 }
 
 void Output::disableCollector(void)
 {
-	instance.disableCollector();
+	instance->disableCollector();
 }
 
 void Output::enableCollector(void)
 {
-	instance.enableCollector();
+	instance->enableCollector();
 }
 
 void Output::disableLogs(void)
 {
-	instance.disableLogs();
+	instance->disableLogs();
 }
 
 void Output::enableLogs(void)
 {
-	instance.enableLogs();
+	instance->enableLogs();
 }
 
 void Output::disableSyslog(void)
 {
-	instance.disableSyslog();
+	instance->disableSyslog();
 }
 
 void Output::enableSyslog(void)
 {
-	instance.enableSyslog();
+	instance->enableSyslog();
 }
 
 void Output::enableStdlog(void)
 {
-	instance.enableStdlog();
+	instance->enableStdlog();
 }
 
 void Output::setLevels(const map<string, log_level_t> &levels,
                        const map<string, log_level_t> &specific)
 {
-	instance.setLevels(levels, specific);
+	instance->setLevels(levels, specific);
 }

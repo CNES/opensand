@@ -42,6 +42,7 @@
 #include "OutputEvent.h"
 #include "OutputLog.h"
 #include "OutputInternal.h"
+#include "OutputOpensand.h"
 
 #include <vector>
 #include <assert.h>
@@ -283,7 +284,7 @@ private:
 	 */
 	inline static const sockaddr_un *daemonSockAddr()
 	{
-		return &instance.daemon_sock_addr;
+		return &instance->daemon_sock_addr;
 	};
 
 	/**
@@ -293,7 +294,7 @@ private:
 	 */
 	inline static const sockaddr_un *selfSockAddr()
 	{
-		return &instance.self_sock_addr;
+		return &instance->self_sock_addr;
 	};
 
 	Output();
@@ -346,7 +347,10 @@ private:
 	static void enableSyslog(void);
 
 	/// The output instance
-	static OutputInternal instance;
+	static OutputOpensand opensand_instance;
+
+	static OutputInternal *instance;
+	
 };
 
 template<typename T>
@@ -361,7 +365,7 @@ Probe<T> *Output::registerProbe(const string &name,
                                 const string &unit,
                                 bool enabled, sample_type_t type)
 {
-	return Output::instance.registerProbe<T>(name, unit, enabled, type);
+	return Output::instance->registerProbe<T>(name, unit, enabled, type);
 }
 
 template<typename T>

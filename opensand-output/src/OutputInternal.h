@@ -55,10 +55,10 @@ using std::map;
  */
 class OutputInternal
 {
+	friend class output;
+	friend class baseprobe;
 	friend class Output;
-	friend class BaseProbe;
-
-private:
+protected:
 	OutputInternal();
 	~OutputInternal();
 
@@ -69,8 +69,8 @@ private:
 	 * @param sock_prefix        The socket prefix
 	 * @return true on success, false otherwise
 	 */
-	bool init(bool enable_collector, 
-	          const char *sock_prefix);
+	virtual bool init(bool enable_collector, 
+	          const char *sock_prefix) = 0;
 
 	/**
 	 * @brief Register a probe for the element
@@ -110,12 +110,12 @@ private:
 	/**
 	 * @brief Finish the element initialization
 	 **/
-	bool finishInit(void);
+	virtual bool finishInit(void) = 0;
 
 	/**
 	 * @brief Send all probes which got new values sinces the last call.
 	 **/
-	void sendProbes(void);
+	virtual void sendProbes(void) = 0;
 
 	/**
 	 * @brief Send the specified log with the specified message
@@ -124,8 +124,8 @@ private:
 	 * @param log_level	The log level
 	 * @param message	The message
 	 **/
-	void sendLog(const OutputLog *log, log_level_t log_level,
-	             const string &message_text);
+	virtual void sendLog(const OutputLog *log, log_level_t log_level,
+	             const string &message_text) = 0;
 
 	/**
 	 * @brief Send default log with the specified message
@@ -203,7 +203,7 @@ private:
 	 * @param probe  The new probe to register
 	 * @return true on success, false otherwise
 	 */
-	bool sendRegister(BaseProbe *probe);
+	virtual bool sendRegister(BaseProbe *probe) = 0;
 
 	/**
 	 * @brief  Send registration for a log outside initialization
@@ -211,23 +211,14 @@ private:
 	 * @param probe  The new log to register
 	 * @return true on success, false otherwise
 	 */
-	bool sendRegister(OutputLog *log);
-
-	/**
-	 * @brief  Send a message to the daemon
-	 *
-	 * @param message  The message
-	 * @param block    Whether we should block until message can be sent
-	 * @return true on success or non-blocked operation, false otherwise
-	 */
-	bool sendMessage(const string &message, bool block=true) const;
+	virtual bool sendRegister(OutputLog *log) = 0;
 
 	/**
 	 * @brief receive a message from the daemon
 	 *
 	 * @return the command type on success, 0 on failure
 	 */
-	uint8_t rcvMessage(void) const;
+	virtual uint8_t rcvMessage(void) const = 0;
 
 	/**
 	 * @brief whether the collector is enabled
@@ -300,9 +291,6 @@ private:
 
 	/// the logs
 	vector<OutputLog *> logs;
-
-	/// the socket for communication with daemon
-	int sock;
 
 	/// the timestamp of the initialization
 	uint32_t started_time;
