@@ -50,6 +50,7 @@
 class OutputEvent: public OutputLog
 {
 	friend class OutputInternal;
+	friend class OutputOpensand;
  protected:
 	OutputEvent(uint8_t id, const string &name):
 		OutputLog(id, LEVEL_EVENT, name)

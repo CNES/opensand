@@ -61,6 +61,7 @@ enum sample_type_t
 class BaseProbe
 {
 	friend class OutputInternal;
+	friend class OutputOpensand;
 
 public:
 
