@@ -504,6 +504,10 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 		sdus[i].buffer = NULL;
 		sdus[i].size = 0;
 	}
+	for(unsigned int i = sdus_count; i < sdus_max_count; ++i)
+	{
+		delete[] sdus[i].buffer;
+	}
 	delete[] sdus;
 
 	return true;
