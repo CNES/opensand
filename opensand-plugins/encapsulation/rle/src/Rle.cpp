@@ -621,6 +621,15 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 			remaining_length,
 			packet->getTotalLength());
 
+	// Check the remaining length is enough
+	if(remaining_length < LABEL_SIZE)
+	{
+		LOG(this->log, LEVEL_DEBUG, "Not enough remaining length for RLE encapsulation (%u bytes)",
+		    remaining_length);
+		partial_encap = true;
+		return true;
+	}
+
 	// Get data which identify the transmitter
 	src_tal_id = packet->getSrcTalId();
 	if((src_tal_id & 0x1f) != src_tal_id)
