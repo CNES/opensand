@@ -700,7 +700,7 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	// Check packet has already been partially sent
 	vector<NetPacket *> &sent_packets = it->second.second;
 	prev_queue_size = rle_transmitter_stats_get_queue_size(transmitter, frag_id);
-	LOG(this->log, LEVEL_DEBUG, "Already sent packets (total=%u)?",
+	LOG(this->log, LEVEL_DEBUG, "Already sent packets (total=%u)",
 			sent_packets.size());
 	pkt_it = std::find(sent_packets.begin(), sent_packets.end(), packet);
 	if(pkt_it == sent_packets.end())
