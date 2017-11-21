@@ -38,7 +38,6 @@
 
 #include "Output.h"
 #include "CommandThread.h"
-#include "Messages.h"
 
 #include <vector>
 #include <errno.h>
@@ -77,7 +76,6 @@ OutputInternal::OutputInternal():
 	enable_stdlog(false),
 	probes(),
 	logs(),
-//	sock(-1),
 	default_log(NULL),
 	log(NULL),
 	levels(),
@@ -85,10 +83,6 @@ OutputInternal::OutputInternal():
 	blocked(0),
 	mutex("Output")
 {
-	memset(&this->daemon_sock_addr, 0, sizeof(this->daemon_sock_addr));
-	memset(&this->self_sock_addr, 0, sizeof(this->self_sock_addr));
-
-//	this->sock = 0;
 }
 
 OutputInternal::~OutputInternal()
@@ -102,28 +96,6 @@ OutputInternal::~OutputInternal()
 	{
 		delete this->logs[i];
 	}
-
-	//if(this->sock != 0)
-//	{
-		// Close the command socket
-		// (will exit the command thread)
-		//shutdown(this->sock, SHUT_RDWR);
-		//close(this->sock);
-		this->enable_collector = false;
-
-		// Remove the socket file
-		const char *path = this->self_sock_addr.sun_path;
-		if(unlink(path) < 0)
-		{
-			this->default_log = NULL;
-			this->log = NULL;
-			this->sendLog(this->log, LEVEL_ERROR,
-			              "Unable to delete the socket \"%s\": %s\n",
-			               path, strerror(errno));
-		}
-//	}
-	// close syslog
-	closelog();
 }
 
 OutputEvent *OutputInternal::registerEvent(const string &identifier)

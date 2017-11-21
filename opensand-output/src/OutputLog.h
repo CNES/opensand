@@ -72,6 +72,9 @@ class OutputLog
 	friend class OutputOpensand;
 
  public:
+
+	virtual ~OutputLog();
+
 	/**
 	 * @brief Set the current log display level
 	 *
@@ -98,8 +101,6 @@ class OutputLog
 	OutputLog(uint8_t id,
 	          log_level_t display_level,
 	          const string &name);
-
-	virtual ~OutputLog();
 
 	/**
 	 * @brief Get the name of the log

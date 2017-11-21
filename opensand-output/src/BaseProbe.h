@@ -64,6 +64,7 @@ class BaseProbe
 	friend class OutputOpensand;
 
 public:
+	virtual ~BaseProbe();
 
 	/**
 	 * @brief Check if the probe is enabled
@@ -90,7 +91,6 @@ protected:
 	BaseProbe(uint8_t id, const string &name,
 	          const string &unit,
 	          bool enabled, sample_type_t type);
-	virtual ~BaseProbe();
 
 	/**
 	 * @brief get the storage type ID

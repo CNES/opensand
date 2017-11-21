@@ -59,6 +59,8 @@ class Probe : public BaseProbe
 	friend class OutputOpensand;
 
 public:
+	virtual ~Probe();
+
 	/**
 	 * @brief adds a value to the probe, to be sent when \send_probes is called.
 	 *
@@ -70,7 +72,6 @@ private:
 	Probe(uint8_t id, const string &name,
 	      const string &unit,
 	      bool enabled, sample_type_t type);
-	virtual ~Probe();
 	
 	virtual uint8_t storageTypeId();
 

@@ -35,7 +35,6 @@
 #ifndef _OUTPUT_OPENSAND_H
 #define _OUTPUT_OPENSAND_H
 
-
 #include "Probe.h"
 #include "OutputLog.h"
 #include "OutputEvent.h"
@@ -56,11 +55,12 @@ using std::map;
 class OutputOpensand : public OutputInternal
 {
 	friend class Output;
-	friend class BaseProbe;
 
-private:
-	OutputOpensand();
+  public:
 	~OutputOpensand();
+
+  protected:
+	OutputOpensand();
 
 	/**
 	 * @brief initialize the output element
@@ -71,13 +71,6 @@ private:
 	 */
 	bool init(bool enable_collector, 
 	          const char *sock_prefix);
-
-	/**
-	 * @brief receive a message from the daemon
-	 *
-	 * @return the command type on success, 0 on failure
-	 */
-	uint8_t rcvMessage(void) const;
 
 	/**
 	 * @brief Finish the element initialization
@@ -99,16 +92,6 @@ private:
 	void sendLog(const OutputLog *log, log_level_t log_level,
 	             const string &message_text);
 
-
-	/**
-	 * @brief  Send a message to the daemon
-	 *
-	 * @param message  The message
-	 * @param block    Whether we should block until message can be sent
-	 * @return true on success or non-blocked operation, false otherwise
-	 */
-	bool sendMessage(const string &message, bool block=true) const;
-
 	/**
 	 * @brief  Send registration for a probe outside initialization
 	 *
@@ -125,10 +108,41 @@ private:
 	 */
 	bool sendRegister(OutputLog *log);
 
+	/**
+	 * @brief  Get the daemon socket address
+	 *
+	 * @return the daemon socket address
+	 */
+	inline const sockaddr_un *daemonSockAddr()
+	{
+		return &this->daemon_sock_addr;
+	};
+
+  private:
 	/// the socket for communication with daemon
 	int sock;
 
+	/// the dameon socket address
+	sockaddr_un daemon_sock_addr;
 
+	/// the element socket address
+	sockaddr_un self_sock_addr;
+
+	/**
+	 * @brief  Send a message to the daemon
+	 *
+	 * @param message  The message
+	 * @param block    Whether we should block until message can be sent
+	 * @return true on success or non-blocked operation, false otherwise
+	 */
+	bool sendMessage(const string &message, bool block=true) const;
+
+	/**
+	 * @brief receive a message from the daemon
+	 *
+	 * @return the command type on success, 0 on failure
+	 */
+	uint8_t rcvMessage(void) const;
 };
 
 #endif

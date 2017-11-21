@@ -37,7 +37,6 @@
 #ifndef _OUTPUT_H
 #define _OUTPUT_H
 
-
 #include "Probe.h"
 #include "OutputEvent.h"
 #include "OutputLog.h"
@@ -92,9 +91,10 @@
 class Output
 {
 	friend class CommandThread;
-	friend uint8_t receiveMessage(int, char*, size_t);
+	friend class OutputOpensand;
 
 public:
+	~Output();
 
 	/**
 	 * @brief Initialize the output library
@@ -277,28 +277,8 @@ public:
 	                      const map<string, log_level_t> &specific);
 
 private:
-	/**
-	 * @brief  Get the daemon socket address
-	 *
-	 * @return the daemon socket address
-	 */
-	inline static const sockaddr_un *daemonSockAddr()
-	{
-		return &instance->daemon_sock_addr;
-	};
-
-	/**
-	 * @brief  Get the output instance socket address
-	 *
-	 * @return the output instance socket address
-	 */
-	inline static const sockaddr_un *selfSockAddr()
-	{
-		return &instance->self_sock_addr;
-	};
 
 	Output();
-	~Output();
 
 	/**
 	 * @brief Set the probe state

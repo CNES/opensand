@@ -55,11 +55,13 @@ using std::map;
  */
 class OutputInternal
 {
-	friend class output;
-	friend class baseprobe;
 	friend class Output;
-protected:
+	friend class BaseProbe;
+
+  protected:
 	OutputInternal();
+
+  public:
 	~OutputInternal();
 
 	/**
@@ -214,13 +216,6 @@ protected:
 	virtual bool sendRegister(OutputLog *log) = 0;
 
 	/**
-	 * @brief receive a message from the daemon
-	 *
-	 * @return the command type on success, 0 on failure
-	 */
-	virtual uint8_t rcvMessage(void) const = 0;
-
-	/**
 	 * @brief whether the collector is enabled
 	 */
 	bool collectorEnabled(void) const;
@@ -271,6 +266,7 @@ protected:
 	 */
 	void checkLogLevel(OutputLog *log);
 
+  protected:
 	/// whether the element is enabled
 	bool enable_collector;
 
@@ -294,12 +290,6 @@ protected:
 
 	/// the timestamp of the initialization
 	uint32_t started_time;
-
-	/// the dameon socket address
-	sockaddr_un daemon_sock_addr;
-
-	/// the element socket address
-	sockaddr_un self_sock_addr;
 
 	/// a default log
 	OutputLog *default_log;

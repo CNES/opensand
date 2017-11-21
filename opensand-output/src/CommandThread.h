@@ -36,6 +36,7 @@
 #define _COMMAND_THREAD_H
 
 #include "OutputLog.h"
+#include <sys/un.h>
 
 /**
  * @class thread that while receive an parse incoming messages
@@ -43,7 +44,7 @@
 class CommandThread
 {
  public:
-	CommandThread(int sock_fd);
+	CommandThread(int sock_fd, sockaddr_un daemon_sock_addr);
 
 	/**
 	 * @brief start the command thread
@@ -68,6 +69,9 @@ class CommandThread
 
 	/// The socket for command thread
 	int sock_fd;
+ 
+    /// The daemon socket addr
+	sockaddr_un daemon_sock_addr;
 
 	/// output log
 	OutputLog *log;
