@@ -463,12 +463,12 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 		sdus, sdus_max_count, &sdus_count, label_str, LABEL_SIZE);
 	if(status != RLE_DECAP_OK)
 	{
-		//delete[] buffer;
+		delete[] buffer;
 		LOG(this->log, LEVEL_ERROR,
 			"RLE failed to decaspulate SDU\n");
 		goto error;
 	}
-	//delete[] buffer;
+	delete[] buffer;
 	LOG(this->log, LEVEL_DEBUG, "Decapsulated SDUs (max_count=%u, count=%u)",
 			sdus_max_count, sdus_count);
 
