@@ -48,8 +48,9 @@
 #define RLE_SECTION "rle"
 #define CONF_RLE_FILE "/etc/opensand/plugins/rle.conf"
 
-#define LABEL_SIZE 3 // bytes
-#define SDU_MAX_SIZE 4096
+#define LABEL_SIZE 3        // bytes
+#define SDU_MAX_SIZE 4096   // bytes
+#define ALPDU_HEADER_SIZE 3 // bytes
 
 void rle_log(const int module_id,
 		const int level,
@@ -394,7 +395,7 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 			packet->getTotalLength());
 
 	// Get data which identify the receiver
-	if(packet->getPayloadLength() <= LABEL_SIZE)
+	if(packet->getPayloadLength() <= LABEL_SIZE + ALPDU_HEADER_SIZE)
 	{
 		LOG(this->log, LEVEL_ERROR,
 			"Not enough payload in %s packet\n",
@@ -625,15 +626,6 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 			remaining_length,
 			packet->getTotalLength());
 
-	// Check the remaining length is enough
-	if(remaining_length < LABEL_SIZE)
-	{
-		LOG(this->log, LEVEL_DEBUG, "Not enough remaining length for RLE encapsulation (%u bytes)",
-		    remaining_length);
-		partial_encap = true;
-		return true;
-	}
-
 	// Get data which identify the transmitter
 	src_tal_id = packet->getSrcTalId();
 	if((src_tal_id & 0x1f) != src_tal_id)
@@ -715,11 +707,17 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	prev_queue_size = rle_transmitter_stats_get_queue_size(transmitter, frag_id);
 	LOG(this->log, LEVEL_DEBUG, "Already sent packets (total=%u)",
 			sent_packets.size());
+
 	pkt_it = std::find(sent_packets.begin(), sent_packets.end(), packet);
 	if(pkt_it == sent_packets.end())
 	{
 		LOG(this->log, LEVEL_DEBUG, "RLE encapsulation of this SDU (len=%u bytes)",
 		    packet->getTotalLength());
+		if(0 < prev_queue_size)
+		{
+			LOG(this->log, LEVEL_ERROR, "RLE encapsulation already in progress (queue size=%u bytes)",
+				prev_queue_size);
+		}
 
 		// Build RLE SDU
 		sdu.protocol_type = packet->getType();
@@ -752,7 +750,15 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	LOG(this->log, LEVEL_DEBUG, "RLE fragmentation");
 	ppdu_size = 0;
 	frag_status = rle_fragment(transmitter, frag_id, remaining_length, &ppdu, &ppdu_size);
-	if(frag_status != 0)
+	if(frag_status == RLE_FRAG_ERR_BURST_TOO_SMALL)
+	{
+		LOG(this->log, LEVEL_WARNING,
+		    "Not enough remaining length to fragment PPDU using RLE (%u bytes)",
+		    remaining_length);
+		partial_encap = true;
+		goto encap_end;
+	}
+	else if(frag_status != 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 			"RLE failed to fragment ALPDU (code=%d)\n",
@@ -780,6 +786,14 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	LOG(this->log, LEVEL_DEBUG, "RLE packing (FPDU len=%u bytes, FPDU pos=%u)",
 			fpdu_size, fpdu_cur_pos);
 	pack_status = rle_pack(ppdu, ppdu_size, label, label_size, fpdu_buffer, &fpdu_cur_pos, &fpdu_size);
+	if(pack_status == RLE_PACK_ERR_FPDU_TOO_SMALL)
+	{
+		LOG(this->log, LEVEL_WARNING,
+		    "Not enough remaining length to pack FPDU using RLE (%u bytes)",
+		    fpdu_size);
+		partial_encap = true;
+		goto encap_end;
+	}
 	if(pack_status != 0)
 	{
 		delete[] fpdu_buffer;
@@ -788,14 +802,13 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 			(int)pack_status);
 		return false;
 	}
-	LOG(this->log, LEVEL_DEBUG, "New RLE packet (FPDU len=%u bytes, FPDU pos=%u)",
-			fpdu_size, fpdu_cur_pos);
 	fpdu.assign(fpdu_buffer, fpdu_cur_pos);
 	delete[] fpdu_buffer;
 	*encap_packet = new NetPacket(fpdu, fpdu_cur_pos,
 		this->getName(), this->getEtherType(),
 		qos, src_tal_id, dst_tal_id, 0);
 
+encap_end:
 	if((pkt_it == sent_packets.end()) && partial_encap)
 	{
 		// Add packet to partial sent packets list
