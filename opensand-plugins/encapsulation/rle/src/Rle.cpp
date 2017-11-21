@@ -389,7 +389,6 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 	size_t sdus_capacity = 0;
 	size_t sdus_max_count = 0;
 	enum rle_decap_status status;
-	unsigned char *buffer;
 
 	LOG(this->log, LEVEL_DEBUG, "New packet to decapsulate using RLE (len=%u bytes)",
 			packet->getTotalLength());
@@ -456,20 +455,15 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 	LOG(this->log, LEVEL_DEBUG, "Initialiez SDUs before RLE decasulation (max_count=%u, count=%u)",
 			sdus_max_count, sdus_count);
 
-	buffer = new unsigned char[packet->getPayloadLength()];
-	memcpy(buffer, packet->getPayload().c_str(), packet->getPayloadLength());
-
 	// Decapsulate RLE FPDU
-	status = rle_decapsulate(receiver, buffer, packet->getPayloadLength(),
+	status = rle_decapsulate(receiver, const_cast<unsigned char *>(packet->getPayload().c_str()), packet->getPayloadLength(),
 		sdus, sdus_max_count, &sdus_count, label_str, LABEL_SIZE);
 	if(status != RLE_DECAP_OK)
 	{
-		delete[] buffer;
 		LOG(this->log, LEVEL_ERROR,
 			"RLE failed to decaspulate SDU\n");
 		goto error;
 	}
-	delete[] buffer;
 	LOG(this->log, LEVEL_DEBUG, "Decapsulated SDUs (max_count=%u, count=%u)",
 			sdus_max_count, sdus_count);
 
