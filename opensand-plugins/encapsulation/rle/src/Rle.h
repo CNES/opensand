@@ -56,7 +56,7 @@ typedef enum {
 
 /**
  * @class Rle
- * @brief RLEE encapsulation plugin implementation
+ * @brief RLE encapsulation plugin implementation
  */
 class Rle: public EncapPlugin
 {
@@ -90,7 +90,7 @@ class Rle: public EncapPlugin
 		/// RLE configuration
 		struct rle_config rle_conf;
 
-		// Receivers identified by an unique identifier
+		/// Receivers identified by an unique identifier
 		std::map <RleIdentifier *, struct rle_receiver *, ltRleIdentifier> receivers;
 
 		bool decapNextPacket(NetPacket *packet, NetBurst *burst);
@@ -148,19 +148,12 @@ class Rle: public EncapPlugin
 
 	/// Constructor
 	Rle();
+	~Rle() {};
 
 	bool init();
 
 	static bool getLabel(NetPacket *packet, uint8_t label[]);
 	static bool getLabel(const Data &data, uint8_t label[]);
-
-	static void rle_traces(const int module_id,
-		const int level,
-		const char *const file,
-		const int line,
-		const char *const func,
-		const char *const message,
-		...);
 };
 
 CREATE(Rle, Rle::Context, Rle::PacketHandler, "RLE");

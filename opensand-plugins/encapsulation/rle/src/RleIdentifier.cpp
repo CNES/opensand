@@ -36,10 +36,9 @@
 #include "RleIdentifier.h"
 
 
-RleIdentifier::RleIdentifier(uint8_t src_tal_id, uint8_t dst_tal_id, uint8_t qos):
+RleIdentifier::RleIdentifier(uint8_t src_tal_id, uint8_t dst_tal_id):
 	src_tal_id(src_tal_id),
-	dst_tal_id(dst_tal_id),
-	qos(qos)
+	dst_tal_id(dst_tal_id)
 {
 }
 
@@ -55,9 +54,4 @@ uint8_t RleIdentifier::getSrcTalId()
 uint8_t RleIdentifier::getDstTalId()
 {
 	return this->dst_tal_id;
-}
-
-uint8_t RleIdentifier::getQos()
-{
-	return this->qos;
 }

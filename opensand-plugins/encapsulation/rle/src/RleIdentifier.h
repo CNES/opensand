@@ -52,8 +52,6 @@ class RleIdentifier
 	uint8_t src_tal_id;
 	/// The destination Tal Id value
 	uint8_t dst_tal_id;
-	/// The QoS value
-	uint8_t qos;
 
  public:
 
@@ -62,9 +60,8 @@ class RleIdentifier
 	 *
 	 * @param src_tal_id the source Tal Id
 	 * @param dst_tal_id the destination Tal Id
-	 * @param qos        the QoS
 	 */
-	RleIdentifier(uint8_t src_tal_id, uint8_t dst_tal_id, uint8_t qos);
+	RleIdentifier(uint8_t src_tal_id, uint8_t dst_tal_id);
 
 	/**
 	 * Destroy the identifier
@@ -84,13 +81,6 @@ class RleIdentifier
 	 * @return the destination Tal Id
 	 */
 	uint8_t getDstTalId();
-
-	/**
-	 * Get the QoS
-	 *
-	 * @return the QoS
-	 */
-	uint8_t getQos();
 };
 
 /**
@@ -111,14 +101,7 @@ struct ltRleIdentifier
 	{
 		if(ai1->getSrcTalId() == ai2->getSrcTalId())
 		{
-			if(ai1->getDstTalId() == ai2->getDstTalId())
-			{
-				return (ai1->getQos() < ai2->getQos());
-			}
-			else
-			{
-				return (ai1->getDstTalId() < ai2->getDstTalId());
-			}
+			return (ai1->getDstTalId() < ai2->getDstTalId());
 		}
 		return (ai1->getSrcTalId() < ai2->getSrcTalId());
 	}
