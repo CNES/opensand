@@ -100,32 +100,49 @@ bool OutputOpensand::init(bool enable_collector,
 	char *path;
 	string message;
 	sockaddr_un address;
+    
+    FILE * fp;
+    
+    fp = fopen ("/tmp/toto.txt", "w+");
+    
+
+
+
+	fprintf(fp, "1");
 
 	if(enable_collector)
 	{
 		this->enableCollector();
 	}
 
+	fprintf(fp, "2");
 	if(sock_prefix == NULL)
 	{
 		sock_prefix = "/var/run/sand-daemon";
 	}
 
+	fprintf(fp, "3");
 	if(enable_collector)
 	{
+		
+	fprintf(fp, "4");
 		this->daemon_sock_addr.sun_family = AF_UNIX;
 		path = this->daemon_sock_addr.sun_path;
 		snprintf(path, sizeof(this->daemon_sock_addr.sun_path),
 		         "%s/" DAEMON_SOCK_NAME, sock_prefix);
 
+	fprintf(fp, "5");
 		this->self_sock_addr.sun_family = AF_UNIX;
 		path = this->self_sock_addr.sun_path;
 		snprintf(path, sizeof(this->self_sock_addr.sun_path),
 		         "%s/" SELF_SOCK_NAME, sock_prefix, getpid());
 	
+	fprintf(fp, "6");
 		// Initialization of the UNIX socket
 		this->sock = socket(AF_UNIX, SOCK_DGRAM, 0);
 
+	fprintf(fp, "7");
+	
 		if(this->sock == -1)
 		{
 			this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
@@ -133,9 +150,11 @@ bool OutputOpensand::init(bool enable_collector,
 			return false;
 		}
 
+	fprintf(fp,"8");
 		path = this->self_sock_addr.sun_path;
 		unlink(path);
 
+	fprintf(fp, "9");
 		memset(&address, 0, sizeof(address));
 		address.sun_family = AF_UNIX;
 		strncpy(address.sun_path, path, sizeof(address.sun_path) - 1);
@@ -147,13 +166,18 @@ bool OutputOpensand::init(bool enable_collector,
 		}
 	}
 	
+	fprintf(fp, "10");
 	this->log = this->registerLog(LEVEL_WARNING, "output");
+	
+	fprintf(fp, "11");
 	this->default_log = this->registerLog(LEVEL_WARNING, "default");
 
+	fprintf(fp, "12");
 	this->OutputInternal::sendLog(this->log, LEVEL_INFO, "Output initialization done (%s)\n",
 								  enable_collector ? "enabled" : "disabled");
 
 
+	fprintf(fp, "13");
 	this->OutputInternal::sendLog(this->log, LEVEL_INFO,
 				                  "Daemon socket address is \"%s\", "
 						          "own socket address is \"%s\"\n",
@@ -161,7 +185,10 @@ bool OutputOpensand::init(bool enable_collector,
 								  this->self_sock_addr.sun_path);
 
 
+	fprintf(fp, "14");
 	this->setInitializing(true);
+	
+	fprintf(fp, "15");
 	return true;
 }
 
@@ -212,9 +239,9 @@ bool OutputOpensand::finishInit(void)
 		const string name = this->probes[i]->getName();
 		const string unit = this->probes[i]->getUnit();
 
-		message.append(1, probes[i]->id);
+		message.append(1, this->getBaseProbeId(probes[i]));
 		message.append(1, (((int)this->probes[i]->isEnabled()) << 7) |
-		                   this->probes[i]->storageTypeId());
+		                   this->getStorageTypeId(this->probes[i]));
 		message.append(1, name.size());
 		message.append(1, unit.size());
 		message.append(name);
@@ -302,9 +329,9 @@ bool OutputOpensand::sendRegister(BaseProbe *probe)
 
 	msgHeaderRegisterLive(message, getpid(), 1, 0);
 	  	    	                        
-	message.append(1, probe->id);
+	message.append(1, this->getBaseProbeId(probe));
 	message.append(1, (((int)probe->isEnabled()) << 7) |
-	                   probe->storageTypeId());
+	                   this->getStorageTypeId(probe));
 	message.append(1, name.size());
 	message.append(1, unit.size());
 	message.append(name);
@@ -330,7 +357,7 @@ bool OutputOpensand::sendRegister(OutputLog *log)
 	string message;
 	bool receive = false;
 
-	const string name = log->getName();
+	const string name = this->getLogName(log);
 	const uint8_t level = (uint8_t)log->getDisplayLevel();
 
 	// Send the new log
@@ -346,7 +373,7 @@ bool OutputOpensand::sendRegister(OutputLog *log)
 		msgHeaderRegisterLive(message, getpid(), 0, 1);
 	}
 
-	message.append(1, log->id);
+	message.append(1, this->getLogId(log));
 	message.append(1, level);
 	message.append(1, name.size());
 	message.append(name);
@@ -405,11 +432,11 @@ void OutputOpensand::sendProbes(void)
 	for(size_t i = 0 ; i < this->probes.size() ; i++)
 	{
 		BaseProbe *probe = this->probes[i];
-		if(probe->isEnabled() && probe->values_count != 0)
+		if(probe->isEnabled() && this->getValueCount(probe) != 0)
 		{
 			needs_sending = true;
 			message.append(1, (uint8_t)i);
-			probe->appendValueAndReset(message);
+			this->appendValueAndReset(probe, message);
 		}
 	}
 	this->mutex.releaseLock();
@@ -458,7 +485,7 @@ void OutputOpensand::sendLog(const OutputLog *log,
 	{
 		// Send the debug message to the collector
 		string message;	
-		msgHeaderSendLog(message, log->id, log_level);
+		msgHeaderSendLog(message, this->getLogId(log), log_level);
 		message.append(message_text);
 
 		if(!this->sendMessage(message, false))
@@ -476,7 +503,7 @@ outputs:
 	{
 		// Log the debug message with syslog
 		syslog(log_level, "[%s] %s",
-		       log ? log->getName().c_str(): "default",
+		       log ? this->getLogName(log).c_str(): "default",
 		       message_text.c_str());
 	}
 
@@ -486,15 +513,15 @@ outputs:
 		if (log_level > LEVEL_WARNING)
 		{
 			fprintf(stdout, "\x1B[%dm%s\x1B[0m - [%s] %s",
-			        OutputLog::colors[log_level], OutputLog::levels[log_level],
-			        log ? log->getName().c_str(): "default",
+			        this->getColors()[log_level], this->getLevels()[log_level],
+			        log ? this->getLogName(log).c_str(): "default",
 			        message_text.c_str());
 		}
 		else
 		{
 			fprintf(stderr, "\x1B[%dm%s\x1B[0m - [%s] %s",
-			        OutputLog::colors[log_level], OutputLog::levels[log_level],
-			        log ? log->getName().c_str(): "default",
+			        this->getColors()[log_level], this->getLevels()[log_level],
+			        log ? this->getLogName(log).c_str(): "default",
 			        message_text.c_str());
 		}
 	}

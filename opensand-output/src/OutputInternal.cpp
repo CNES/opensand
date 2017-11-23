@@ -53,13 +53,6 @@
 
 #define TIMEOUT 6
 
-static uint32_t getMilis()
-{
-	struct timespec time;
-	clock_gettime(CLOCK_MONOTONIC, &time);
-	return time.tv_sec * 1000 + time.tv_nsec / 1000000;
-}
-
 
 
 // TODO store a state (registered or not) for each probe and log
@@ -155,6 +148,46 @@ OutputLog *OutputInternal::registerLog(log_level_t display_level,
 	}
 
 	return log;
+}
+
+uint8_t OutputInternal::getBaseProbeId(BaseProbe *probe) const
+{
+	return probe->id;	
+}
+
+uint8_t OutputInternal::getStorageTypeId(BaseProbe *probe) const
+{
+	return probe->storageTypeId();	
+}
+
+string OutputInternal::getLogName(const OutputLog *log) const
+{
+	return log->getName();
+}
+
+uint8_t OutputInternal::getLogId(const OutputLog *log) const
+{
+	return log->id;	
+}
+
+void OutputInternal::appendValueAndReset(BaseProbe *probe, string &msg) const
+{
+	return probe->appendValueAndReset(msg);
+}
+
+uint16_t OutputInternal::getValueCount(BaseProbe *probe) const
+{
+	return probe->values_count;	
+}
+
+const int *OutputInternal::getColors() const
+{
+	return OutputLog::colors;	
+}
+
+const char **OutputInternal::getLevels() const
+{
+	return OutputLog::levels;
 }
 
 void OutputInternal::sendLog(log_level_t log_level, 

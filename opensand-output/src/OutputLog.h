@@ -69,7 +69,6 @@ enum log_level_t
 class OutputLog
 {
 	friend class OutputInternal;
-	friend class OutputOpensand;
 
  public:
 

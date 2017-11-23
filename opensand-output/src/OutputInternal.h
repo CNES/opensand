@@ -57,10 +57,72 @@ class OutputInternal
 {
 	friend class Output;
 	friend class BaseProbe;
-
+	
   protected:
 	OutputInternal();
+	
+	/**
+	 * @brief Get Base Probe Id
+	 *
+	 * @param probe object
+	 * @return base probe id
+	 */
+    uint8_t getBaseProbeId(BaseProbe *probe) const;
+	
+	/**
+	 * @brief Get storage type id
+	 *
+	 * @param probe object
+	 * @return storage type id 
+	 */
+    uint8_t getStorageTypeId(BaseProbe *probe) const;
+	
+	/**
+	 * @brief Get log name
+	 *
+	 * @param log object
+	 * @return the log name
+	 */
+	string getLogName(const OutputLog *log) const;
+	
+	/**
+	 * @brief Get log id
+	 *
+	 * @param log object
+	 * @return the log Id
+	 */
+	uint8_t getLogId(const OutputLog *log) const;
+	
+	/**
+	 * @brief Get count values
+	 *
+	 * @param probe object
+	 * @return count values
+	 */
+	uint16_t getValueCount(BaseProbe *probe) const;
+	
+	/**
+	 * @brief 
+	 *
+	 * @param probe object
+	 * @return msg
+	 */
+	void appendValueAndReset(BaseProbe *probe, string &msg) const;
 
+	/**
+	 * @brief Get color for logs levels 
+	 *
+	 * @return array of colors for a log level 
+	 */
+    const int *getColors() const;	
+	
+	/**
+	 * @brief Get elvels of logs
+	 *
+	 * @return array of levels for logs
+	 */
+	const char **getLevels() const;
+	
   public:
 	~OutputInternal();
 

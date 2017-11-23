@@ -50,7 +50,6 @@
 class OutputEvent: public OutputLog
 {
 	friend class OutputInternal;
-	friend class OutputOpensand;
 
   public:
 	~OutputEvent() {};

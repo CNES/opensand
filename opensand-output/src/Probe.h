@@ -56,7 +56,6 @@ template<typename T>
 class Probe : public BaseProbe
 {
 	friend class OutputInternal;
-	friend class OutputOpensand;
 
 public:
 	virtual ~Probe();
