@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 	if(!block_lan_adaptation)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the LanAdaptationS block\n",
+		        "%s: cannot create the LanAdaptation block\n",
 		        progname);
 		goto release_plugins;
 	}
