@@ -126,12 +126,6 @@ Gse::Gse():
 	this->upper[TRANSPARENT].push_back("Ethernet");
 	this->upper[REGENERATIVE].push_back("AAL5/ATM");
 	this->upper[REGENERATIVE].push_back("MPEG2-TS");
-	//this->upper[REGENERATIVE].push_back("RLE");
-	//Temporary
-	this->upper[REGENERATIVE].push_back("ROHC");
-	this->upper[REGENERATIVE].push_back("PHS");
-	this->upper[REGENERATIVE].push_back("IP");
-	this->upper[REGENERATIVE].push_back("Ethernet");
 }
 
 
