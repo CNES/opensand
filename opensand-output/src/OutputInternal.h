@@ -124,17 +124,15 @@ class OutputInternal
 	const char **getLevels() const;
 	
   public:
-	~OutputInternal();
+	virtual ~OutputInternal();
 
 	/**
 	 * @brief initialize the output element
 	 *
 	 * @param enable_collector  Whether the element is enabled
-	 * @param sock_prefix        The socket prefix
 	 * @return true on success, false otherwise
 	 */
-	virtual bool init(bool enable_collector, 
-	          const char *sock_prefix) = 0;
+	virtual bool init(bool enable_collector) = 0;
 
 	/**
 	 * @brief Register a probe for the element

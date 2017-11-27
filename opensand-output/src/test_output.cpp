@@ -67,7 +67,12 @@ int main(int argc, char* argv[])
 	puts("init");
 	fflush(stdout);
 
-	Output::init(output_enabled, argv[1]);
+	if(!Output::init(output_enabled, argv[1]))
+	{
+		puts("init_error");
+		fflush(stdout);
+		return 1;
+	}
 
 	Probe<int32_t> *int32_last_probe =
 		Output::registerProbe<int32_t>("int32_last_probe", "µF", true, SAMPLE_LAST);
@@ -91,7 +96,11 @@ int main(int argc, char* argv[])
 	fflush(stdout);
 
 	if(!Output::finishInit())
-		return 1;
+	{
+		puts("fin_init_error");
+		fflush(stdout);
+		return 2;
+	}
 		
 	OutputLog *info = Output::registerLog(LEVEL_INFO, "info");
 	OutputLog *debug = Output::registerLog(min_level, "debug");
@@ -156,4 +165,6 @@ int main(int argc, char* argv[])
 			break;
 		}
 	}
+	
+	Output::close();
 }

@@ -60,17 +60,15 @@ class OutputOpensand : public OutputInternal
 	~OutputOpensand();
 
   protected:
-	OutputOpensand();
+	OutputOpensand(const char *sock_pre);
 
 	/**
 	 * @brief initialize the output element
 	 *
 	 * @param enable_collector  Whether the element is enabled
-	 * @param sock_prefix        The socket prefix
 	 * @return true on success, false otherwise
 	 */
-	bool init(bool enable_collector, 
-	          const char *sock_prefix);
+	bool init(bool enable_collector);
 
 	/**
 	 * @brief Finish the element initialization
@@ -127,6 +125,8 @@ class OutputOpensand : public OutputInternal
 
 	/// the element socket address
 	sockaddr_un self_sock_addr;
+
+	const char* sock_prefix;
 
 	/**
 	 * @brief  Send a message to the daemon

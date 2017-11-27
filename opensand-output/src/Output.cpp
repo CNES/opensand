@@ -35,49 +35,108 @@
 
 #include "Output.h"
 
-OutputOpensand Output::opensand_instance;
-
 OutputInternal *Output::instance = NULL;
+
+void *Output::handle = NULL;
 
 bool Output::init(bool enabled, const char *sock_prefix)
 {
-	if (instance)
+	// Check instance is not already initialized
+	if(instance)
 	{
 		return false;
 	}
-	
-	instance = &(Output::opensand_instance);
-	return instance->init(enabled, sock_prefix);
+
+	// Create the OpenSAND instance
+	instance = new OutputOpensand(sock_prefix);
+
+	// Initialize instance
+	return instance->init(enabled);
 }
 
 bool Output::initExt(bool enabled, const char *path)
 {
-	if (instance)
+	char *error;
+
+	// Check instance is not already initialized
+	if(instance)
 	{
 		return false;
 	}
-	
+
+	// Get the handle of the library
 	handle = dlopen(path, RTLD_LAZY);	
 	if(!handle)
 	{
 		fputs (dlerror(), stderr);
-		exit(1);
+		return false;
 	}
 
-	isntance = handle->create();
+	create_func_t *create;
+	destroy_func_t *destroy;
+
+	// Get the destroy function of the library (only to check it exists)
+    destroy = (destroy_func_t *)dlsym(handle, "destroy");
+	if((error = dlerror()) != NULL)
+	{
+		fputs (error, stderr);
+		return false;
+	}
+
+	// Get the create function of the library
+    create = (create_func_t *)dlsym(handle, "create");
+    if((error = dlerror()) != NULL)
+    {
+    	fputs (error, stderr);
+		return false;
+    }
+
+	// Create instance
+    instance = (*create)();
+
+	// Initialize instance
+	instance->init(enabled);
+	
 
 	return true;
 }
 
-bool Output::close()
-{ 
-	if((!instance) || (instance == &(Output::opensand_instance)))
+void Output::close()
+{
+	char *error;
+	
+	// Check instance is initialized
+	if(!instance)
 	{
-		return false;
+		return;
 	}
 	
-	handle->destroy();
+	// Check instance is an OutputOpensand
+	if(!handle)
+	{
+		// Reset instance
+		delete instance;
+		instance = NULL;
+		return;
+	}
+
+	destroy_func_t *destroy;
+
+	// Get the destroy function of the library
+    destroy = (destroy_func_t *)dlsym(handle, "destroy");
+	if((error = dlerror()) != NULL)
+	{
+		fputs (error, stderr);
+		return;
+	}
+
+	// Destroy instance
+	destroy(instance);
+	instance = NULL;
+
+    // Close the handle
 	dlclose(handle);
+	handle = NULL;
 }
 
 
@@ -123,6 +182,10 @@ OutputLog *Output::registerLog(log_level_t default_display_level,
 
 bool Output::finishInit(void)
 {
+	if(!instance)
+	{
+		return false;
+	}
 	return instance->finishInit();
 }
 

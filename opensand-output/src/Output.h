@@ -49,6 +49,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string>
+#include <dlfcn.h>
 
 #define PRINTFLIKE(fmt_pos, vararg_pos) __attribute__((format(printf,fmt_pos,vararg_pos)))
 
@@ -94,10 +95,13 @@ class Output
 	friend class OutputOpensand;
 
 public:
+	typedef OutputInternal* create_func_t();
+	typedef void destroy_func_t(OutputInternal *);
+
 	~Output();
 
 	/* handle for dynamic load library */
-	static void *handle = NULL;
+	static void *handle;
 	
 	/**
 	 * @brief Initialize the output library
@@ -111,15 +115,19 @@ public:
 	                 const char *sock_prefix = NULL);
 
 	/**
-	 * @brief Initialize the output extended library
+	 * @brief Initialize the output external library
 	 *
 	 * @param enabled      Set to false to disable the output library
-	 * @param path         custom extended library path 
+	 * @param path         custom external library path 
 	 * 	 * @return true on success, false otherwise
 	 */
 	static bool initExt(bool enabled,
-	                 const char *path = NULL);
+	                    const char *path = NULL);
 
+	/**
+	 * @brief Close the output
+	 */
+	static void close();
 
 	/**
 	 * @brief Register a probe in the output library
@@ -341,8 +349,6 @@ private:
 	static void enableSyslog(void);
 
 	/// The output instance
-	static OutputOpensand opensand_instance;
-
 	static OutputInternal *instance;
 	
 };

@@ -60,12 +60,12 @@ static uint32_t getMilis()
 	return time.tv_sec * 1000 + time.tv_nsec / 1000000;
 }
 
-OutputOpensand::OutputOpensand():
-	sock(-1)
+OutputOpensand::OutputOpensand(const char* sock_pre):
+	sock(-1),
+	sock_prefix(sock_pre)
 {
 	memset(&this->daemon_sock_addr, 0, sizeof(this->daemon_sock_addr));
 	memset(&this->self_sock_addr, 0, sizeof(this->self_sock_addr));
-
 	this->sock = 0;
 }
 
@@ -94,67 +94,56 @@ OutputOpensand::~OutputOpensand()
 	closelog();
 }
 
-bool OutputOpensand::init(bool enable_collector,
-                          const char *sock_prefix)
+bool OutputOpensand::init(bool enable_collector)
 {
+    FILE * fp;
+    fp = fopen ("/tmp/devel_init.txt", "w+");
 	char *path;
 	string message;
 	sockaddr_un address;
-    
-    FILE * fp;
-    
-    fp = fopen ("/tmp/toto.txt", "w+");
-    
-
-
-
-	fprintf(fp, "1");
 
 	if(enable_collector)
 	{
 		this->enableCollector();
 	}
 
-	fprintf(fp, "2");
-	if(sock_prefix == NULL)
+	if(!(this->sock_prefix))
 	{
-		sock_prefix = "/var/run/sand-daemon";
+		this->sock_prefix = "/var/run/sand-daemon";
 	}
+	fprintf(fp, "Sock_prefix = \"%s\"\n", this->sock_prefix ? this->sock_prefix : "NULL");
 
-	fprintf(fp, "3");
 	if(enable_collector)
 	{
 		
-	fprintf(fp, "4");
 		this->daemon_sock_addr.sun_family = AF_UNIX;
 		path = this->daemon_sock_addr.sun_path;
 		snprintf(path, sizeof(this->daemon_sock_addr.sun_path),
-		         "%s/" DAEMON_SOCK_NAME, sock_prefix);
+		         "%s/" DAEMON_SOCK_NAME, this->sock_prefix);
+		fprintf(fp, "Daemon sun path = \"%s\"\n", 
+		        this->daemon_sock_addr.sun_path);
 
-	fprintf(fp, "5");
 		this->self_sock_addr.sun_family = AF_UNIX;
 		path = this->self_sock_addr.sun_path;
 		snprintf(path, sizeof(this->self_sock_addr.sun_path),
-		         "%s/" SELF_SOCK_NAME, sock_prefix, getpid());
+		         "%s/" SELF_SOCK_NAME, this->sock_prefix, getpid());
+		fprintf(fp, "Self sun path = \"%s\"\n", 
+		        this->self_sock_addr.sun_path);
 	
-	fprintf(fp, "6");
 		// Initialization of the UNIX socket
 		this->sock = socket(AF_UNIX, SOCK_DGRAM, 0);
-
-	fprintf(fp, "7");
-	
+		fprintf(fp, "Socket = %d\n", this->sock);
 		if(this->sock == -1)
 		{
 			this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
 			                              "Socket allocation failed: %s\n", strerror(errno));
+			fclose(fp);
 			return false;
 		}
 
-	fprintf(fp,"8");
 		path = this->self_sock_addr.sun_path;
 		unlink(path);
 
-	fprintf(fp, "9");
 		memset(&address, 0, sizeof(address));
 		address.sun_family = AF_UNIX;
 		strncpy(address.sun_path, path, sizeof(address.sun_path) - 1);
@@ -162,22 +151,19 @@ bool OutputOpensand::init(bool enable_collector,
 		{
 			this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
 										  "Socket binding failed: %s\n", strerror(errno));
+			fclose(fp);
 			return false;
 		}
 	}
+	fclose(fp);
 	
-	fprintf(fp, "10");
 	this->log = this->registerLog(LEVEL_WARNING, "output");
 	
-	fprintf(fp, "11");
 	this->default_log = this->registerLog(LEVEL_WARNING, "default");
 
-	fprintf(fp, "12");
 	this->OutputInternal::sendLog(this->log, LEVEL_INFO, "Output initialization done (%s)\n",
 								  enable_collector ? "enabled" : "disabled");
 
-
-	fprintf(fp, "13");
 	this->OutputInternal::sendLog(this->log, LEVEL_INFO,
 				                  "Daemon socket address is \"%s\", "
 						          "own socket address is \"%s\"\n",
@@ -185,10 +171,8 @@ bool OutputOpensand::init(bool enable_collector,
 								  this->self_sock_addr.sun_path);
 
 
-	fprintf(fp, "14");
 	this->setInitializing(true);
 	
-	fprintf(fp, "15");
 	return true;
 }
 
@@ -202,6 +186,10 @@ uint8_t OutputOpensand::rcvMessage(void) const
 
 bool OutputOpensand::finishInit(void)
 {
+    FILE * fp;
+    fp = fopen ("/tmp/devel_finsh_init.txt", "w+");
+
+	if(enable_collector)
 	this->started_time = getMilis();
 	
 	if(!this->collectorEnabled())
@@ -247,7 +235,8 @@ bool OutputOpensand::finishInit(void)
 		message.append(name);
 		message.append(unit);
 	}
-	
+
+	fprintf(fp, "Send message: \"%s\"\n", message.c_str());
 	// lock to be sure to ge the correct message when trying to receive
 	if(!this->sendMessage(message))
 	{
@@ -256,8 +245,12 @@ bool OutputOpensand::finishInit(void)
 									  strerror(errno));
 		this->disableCollector();
 		this->setInitializing(false);
+		fprintf(fp, " -> Error\n");
+		fclose(fp);
 		return false;
 	}
+	fprintf(fp, " -> Succes\n");
+	fclose(fp);
 
 	// Wait for the ACK response
 
@@ -311,7 +304,6 @@ bool OutputOpensand::finishInit(void)
 
 	return true;
 }
-
 
 bool OutputOpensand::sendRegister(BaseProbe *probe)
 {
@@ -530,17 +522,28 @@ outputs:
 
 bool OutputOpensand::sendMessage(const string &message, bool block) const
 {
+	 FILE * fp;
+     fp = fopen ("/tmp/sendMessage.txt", "w+");
+     
 	OutputLock lock(this->mutex);
+	
+	fprintf(fp,"OutputLock");
+	fprintf(fp, "Block= \"%d\"\n", block);
+	
 	if(sendto(this->sock, message.data(), message.size(),
 	          ((block == true) ? 0 : MSG_DONTWAIT),
 	          (const sockaddr*)&this->daemon_sock_addr,
 	          sizeof(this->daemon_sock_addr)) < (signed)message.size())
 	{
+		fprintf(fp,"sock: \"%d\"\n --- message.size: \"%d\"\n --- message.data:\"%s\"\n", this->sock, message.size(), message.data()); 
 		if(!block && (errno == EAGAIN || errno == EWOULDBLOCK))
 		{
 			this->blocked++;
 			return true;
 		}
+		fprintf(fp, "Block= \"%d\"\n", block);
+		fprintf(fp, "Err: \"%d\"\n",errno);
+		fprintf(fp,"Blocked");
 		return false;
 	}
 	if(this->blocked > 0)
@@ -550,6 +553,8 @@ bool OutputOpensand::sendMessage(const string &message, bool block) const
 		       this->blocked);
 		this->blocked = 0;
 	}
+	
+	fclose(fp);
 	return true;
 }
 

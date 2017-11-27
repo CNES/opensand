@@ -76,14 +76,14 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, string &ip_addr, string &iface_name, string &conf_path)
+bool init_process(int argc, char **argv, string &ip_addr, string &iface_name, string &conf_path), string &lib_external_output_path
 {
 	int opt;
 	bool output_enabled = true;
 	bool output_stdout = false;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-hqda:n:c:")) != EOF)
+	while((opt = getopt(argc, argv, "-hqda:n:c:e:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -107,16 +107,21 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name, st
 				// get the configuration path
 				conf_path = optarg;
 				break;
+			case 'e':
+				// get library external path
+				lib_external_output_path = optarg;
+				break;
 			case 'h':
 			case '?':
-				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address -n interface_name -c conf_path]\n",
+				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address -n interface_name -c conf_path] -e lib_ext_output_path\n",
 					argv[0]);
-				fprintf(stderr, "\t-h              print this message\n");
-				fprintf(stderr, "\t-q              disable output\n");
-				fprintf(stderr, "\t-d              enable output debug events\n");
-				fprintf(stderr, "\t-a <ip_address> set the IP address\n");
-				fprintf(stderr, "\t-n <interface_name>  set the interface name\n");
-				fprintf(stderr, "\t-c <conf_path>  specify the configuration path\n");
+				fprintf(stderr, "\t-h                       print this message\n");
+				fprintf(stderr, "\t-q                       disable output\n");
+				fprintf(stderr, "\t-d                       enable output debug events\n");
+				fprintf(stderr, "\t-a <ip_address>          set the IP address\n");
+				fprintf(stderr, "\t-n <interface_name>      set the interface name\n");
+				fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
+				fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
 				Output::init(true);
 				Output::enableStdlog();
 				return false;
@@ -356,5 +361,6 @@ quit:
 	DFLTLOG(LEVEL_NOTICE,
 	        "%s: SAT process stopped with exit code %d\n",
 	        progname, is_failure);
+	Ouput::close();
 	return is_failure;
 }

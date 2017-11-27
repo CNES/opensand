@@ -78,7 +78,8 @@ bool init_process(int argc, char **argv,
                   tal_id_t &instance_id,
                   uint16_t &port_up,
                   uint16_t &port_down,
-                  string &conf_path)
+                  string &conf_path
+                  string &lib_external_output_path)
 {
 	// TODO remove lan_iface and handle bridging in daemon
 	int opt;
@@ -86,7 +87,7 @@ bool init_process(int argc, char **argv,
 	bool output_stdout = false;
 
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-hqdi:l:u:w:c:")) != EOF)
+	while((opt = getopt(argc, argv, "-hqdi:l:u:w:c:e:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -118,19 +119,24 @@ bool init_process(int argc, char **argv,
 			// get the configuration path
 			conf_path = optarg;
 			break;
+		case 'e':
+			// get library external path
+			lib_external_output_path = optarg;
+			break;
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id "
-			        "-l lan_iface -u upward_port -d downward_port -c conf_path\n",
+			        "-l lan_iface -u upward_port -d downward_port -c conf_path -e lib_ext_output_path\n",
 			        argv[0]);
-			fprintf(stderr, "\t-h                   print this message\n");
-			fprintf(stderr, "\t-q                   disable output\n");
-			fprintf(stderr, "\t-d                   enable output debug events\n");
-			fprintf(stderr, "\t-l <lan_iface>       set the ST lan interface name\n");
-			fprintf(stderr, "\t-i <instance>        set the instance id\n");
-			fprintf(stderr, "\t-u <upward_port>     set the upward port\n");
-			fprintf(stderr, "\t-w <downward_port>   set the downward port\n");
-			fprintf(stderr, "\t-c <conf_path>       specify the configuration path\n");
+			fprintf(stderr, "\t-h                       print this message\n");
+			fprintf(stderr, "\t-q                       disable output\n");
+			fprintf(stderr, "\t-d                       enable output debug events\n");
+			fprintf(stderr, "\t-l <lan_iface>           set the ST lan interface name\n");
+			fprintf(stderr, "\t-i <instance>            set the instance id\n");
+			fprintf(stderr, "\t-u <upward_port>         set the upward port\n");
+			fprintf(stderr, "\t-w <downward_port>       set the downward port\n");
+			fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
+			fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
 			Output::init(true);
 			Output::enableStdlog();
 			return false;
@@ -345,5 +351,6 @@ quit:
 	DFLTLOG(LEVEL_NOTICE,
 	        "%s: GW process stopped with exit code %d\n",
 	        progname, is_failure);
+	Ouput::close();
 	return is_failure;
 }
