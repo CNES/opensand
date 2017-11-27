@@ -96,6 +96,9 @@ class Output
 public:
 	~Output();
 
+	/* handle for dynamic load library */
+	static void *handle = NULL;
+	
 	/**
 	 * @brief Initialize the output library
 	 *        Prepares the library for registering probes and logs
@@ -106,6 +109,17 @@ public:
 	 */
 	static bool init(bool enabled,
 	                 const char *sock_prefix = NULL);
+
+	/**
+	 * @brief Initialize the output extended library
+	 *
+	 * @param enabled      Set to false to disable the output library
+	 * @param path         custom extended library path 
+	 * 	 * @return true on success, false otherwise
+	 */
+	static bool initExt(bool enabled,
+	                 const char *path = NULL);
+
 
 	/**
 	 * @brief Register a probe in the output library

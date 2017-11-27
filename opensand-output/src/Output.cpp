@@ -37,12 +37,49 @@
 
 OutputOpensand Output::opensand_instance;
 
-OutputInternal *Output::instance = &(Output::opensand_instance);
+OutputInternal *Output::instance = NULL;
 
 bool Output::init(bool enabled, const char *sock_prefix)
 {
+	if (instance)
+	{
+		return false;
+	}
+	
+	instance = &(Output::opensand_instance);
 	return instance->init(enabled, sock_prefix);
 }
+
+bool Output::initExt(bool enabled, const char *path)
+{
+	if (instance)
+	{
+		return false;
+	}
+	
+	handle = dlopen(path, RTLD_LAZY);	
+	if(!handle)
+	{
+		fputs (dlerror(), stderr);
+		exit(1);
+	}
+
+	isntance = handle->create();
+
+	return true;
+}
+
+bool Output::close()
+{ 
+	if((!instance) || (instance == &(Output::opensand_instance)))
+	{
+		return false;
+	}
+	
+	handle->destroy();
+	dlclose(handle);
+}
+
 
 OutputEvent *Output::registerEvent(const string &identifier)
 {
