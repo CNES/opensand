@@ -96,7 +96,7 @@ class Output
 
 public:
 	typedef OutputInternal* create_func_t();
-	typedef void destroy_func_t(OutputInternal *);
+	typedef void destroy_func_t(OutputInternal **);
 
 	~Output();
 

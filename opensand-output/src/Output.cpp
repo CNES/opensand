@@ -135,7 +135,7 @@ void Output::close()
 	}
 
 	// Destroy instance
-	destroy(instance);
+	destroy(&instance);
 	instance = NULL;
 
     // Close the handle
