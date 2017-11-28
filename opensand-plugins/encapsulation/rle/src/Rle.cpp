@@ -473,8 +473,8 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 		struct rle_sdu sdu = sdus[i];
 		NetPacket *decap_packet;
 
-		LOG(this->log, LEVEL_DEBUG, "Build decapsulated packet %u (len=%u bytes)",
-				i, sdu.size);
+		LOG(this->log, LEVEL_DEBUG, "Build decapsulated packet %u/%u (len=%u bytes)",
+				i + 1, sdus_count, sdu.size);
 		// Check SDU size
 		if (sdu.size <= 0)
 		{
