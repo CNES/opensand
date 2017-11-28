@@ -96,8 +96,6 @@ OutputOpensand::~OutputOpensand()
 
 bool OutputOpensand::init(bool enable_collector)
 {
-    FILE * fp;
-    fp = fopen ("/tmp/devel_init.txt", "w+");
 	char *path;
 	string message;
 	sockaddr_un address;
@@ -111,7 +109,6 @@ bool OutputOpensand::init(bool enable_collector)
 	{
 		this->sock_prefix = "/var/run/sand-daemon";
 	}
-	fprintf(fp, "Sock_prefix = \"%s\"\n", this->sock_prefix ? this->sock_prefix : "NULL");
 
 	if(enable_collector)
 	{
@@ -120,24 +117,18 @@ bool OutputOpensand::init(bool enable_collector)
 		path = this->daemon_sock_addr.sun_path;
 		snprintf(path, sizeof(this->daemon_sock_addr.sun_path),
 		         "%s/" DAEMON_SOCK_NAME, this->sock_prefix);
-		fprintf(fp, "Daemon sun path = \"%s\"\n", 
-		        this->daemon_sock_addr.sun_path);
 
 		this->self_sock_addr.sun_family = AF_UNIX;
 		path = this->self_sock_addr.sun_path;
 		snprintf(path, sizeof(this->self_sock_addr.sun_path),
 		         "%s/" SELF_SOCK_NAME, this->sock_prefix, getpid());
-		fprintf(fp, "Self sun path = \"%s\"\n", 
-		        this->self_sock_addr.sun_path);
 	
 		// Initialization of the UNIX socket
 		this->sock = socket(AF_UNIX, SOCK_DGRAM, 0);
-		fprintf(fp, "Socket = %d\n", this->sock);
 		if(this->sock == -1)
 		{
 			this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
 			                              "Socket allocation failed: %s\n", strerror(errno));
-			fclose(fp);
 			return false;
 		}
 
@@ -151,11 +142,9 @@ bool OutputOpensand::init(bool enable_collector)
 		{
 			this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
 										  "Socket binding failed: %s\n", strerror(errno));
-			fclose(fp);
 			return false;
 		}
 	}
-	fclose(fp);
 	
 	this->log = this->registerLog(LEVEL_WARNING, "output");
 	
@@ -186,9 +175,6 @@ uint8_t OutputOpensand::rcvMessage(void) const
 
 bool OutputOpensand::finishInit(void)
 {
-    FILE * fp;
-    fp = fopen ("/tmp/devel_finsh_init.txt", "w+");
-
 	if(enable_collector)
 	this->started_time = getMilis();
 	
@@ -236,7 +222,6 @@ bool OutputOpensand::finishInit(void)
 		message.append(unit);
 	}
 
-	fprintf(fp, "Send message: \"%s\"\n", message.c_str());
 	// lock to be sure to ge the correct message when trying to receive
 	if(!this->sendMessage(message))
 	{
@@ -245,12 +230,8 @@ bool OutputOpensand::finishInit(void)
 									  strerror(errno));
 		this->disableCollector();
 		this->setInitializing(false);
-		fprintf(fp, " -> Error\n");
-		fclose(fp);
 		return false;
 	}
-	fprintf(fp, " -> Succes\n");
-	fclose(fp);
 
 	// Wait for the ACK response
 
@@ -522,28 +503,18 @@ outputs:
 
 bool OutputOpensand::sendMessage(const string &message, bool block) const
 {
-	 FILE * fp;
-     fp = fopen ("/tmp/sendMessage.txt", "w+");
-     
 	OutputLock lock(this->mutex);
-	
-	fprintf(fp,"OutputLock");
-	fprintf(fp, "Block= \"%d\"\n", block);
 	
 	if(sendto(this->sock, message.data(), message.size(),
 	          ((block == true) ? 0 : MSG_DONTWAIT),
 	          (const sockaddr*)&this->daemon_sock_addr,
 	          sizeof(this->daemon_sock_addr)) < (signed)message.size())
 	{
-		fprintf(fp,"sock: \"%d\"\n --- message.size: \"%d\"\n --- message.data:\"%s\"\n", this->sock, message.size(), message.data()); 
 		if(!block && (errno == EAGAIN || errno == EWOULDBLOCK))
 		{
 			this->blocked++;
 			return true;
 		}
-		fprintf(fp, "Block= \"%d\"\n", block);
-		fprintf(fp, "Err: \"%d\"\n",errno);
-		fprintf(fp,"Blocked");
 		return false;
 	}
 	if(this->blocked > 0)
@@ -554,7 +525,6 @@ bool OutputOpensand::sendMessage(const string &message, bool block) const
 		this->blocked = 0;
 	}
 	
-	fclose(fp);
 	return true;
 }
 

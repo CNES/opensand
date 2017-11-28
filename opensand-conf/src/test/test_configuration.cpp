@@ -171,8 +171,8 @@ int main(int argc, char **argv)
 	vec.push_back("dupkey2");
 	config["dup"] = vec;
 
-	Output::enableStdlog();
 	Output::init(true);
+	Output::enableStdlog();
 	Output::finishInit();
 
 	// load the configuration files

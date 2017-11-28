@@ -49,6 +49,11 @@ bool Output::init(bool enabled, const char *sock_prefix)
 
 	// Create the OpenSAND instance
 	instance = new OutputOpensand(sock_prefix);
+	if(!instance)
+	{
+		fputs ("Instance failed to be initialized", stderr);
+		return false;
+	}
 
 	// Initialize instance
 	return instance->init(enabled);
@@ -250,51 +255,110 @@ Output::~Output()
 
 void Output::setProbeState(uint8_t probe_id, bool enabled)
 {
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
 	instance->setProbeState(probe_id, enabled);
 }
 
 void Output::setLogLevel(uint8_t log_id, log_level_t level)
-{
+{   
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
 	instance->setLogLevel(log_id, level);
 }
 
 void Output::disableCollector(void)
 {
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
 	instance->disableCollector();
 }
 
 void Output::enableCollector(void)
 {
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
 	instance->enableCollector();
 }
 
 void Output::disableLogs(void)
 {
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
 	instance->disableLogs();
 }
 
 void Output::enableLogs(void)
 {
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
 	instance->enableLogs();
 }
 
 void Output::disableSyslog(void)
 {
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
 	instance->disableSyslog();
 }
 
 void Output::enableSyslog(void)
 {
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
 	instance->enableSyslog();
 }
 
 void Output::enableStdlog(void)
 {
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
 	instance->enableStdlog();
 }
 
 void Output::setLevels(const map<string, log_level_t> &levels,
                        const map<string, log_level_t> &specific)
 {
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
 	instance->setLevels(levels, specific);
 }

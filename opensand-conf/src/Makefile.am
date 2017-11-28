@@ -23,6 +23,9 @@ libopensand_conf_la_h = \
 libopensand_conf_la_SOURCES = \
     $(libopensand_conf_la_cpp) 
 
+libopensand_conf_la_LDFLAGS = \
+    $(AM_LDFLAGS)
+
 libopensand_conf_includedir = ${includedir}/opensand_conf
 
 libopensand_conf_include_HEADERS = \
