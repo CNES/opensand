@@ -101,7 +101,6 @@ bool Output::initExt(bool enabled, const char *path)
 
 	// Initialize instance
 	instance->init(enabled);
-	
 
 	return true;
 }

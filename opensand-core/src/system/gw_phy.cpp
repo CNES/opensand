@@ -75,16 +75,17 @@ bool init_process(int argc, char **argv,
                   uint16_t &port_up,
                   uint16_t &port_down,
                   string &ip_top,
-                  string &conf_path
-                  string &lib_external_output_path)
+                  string &conf_path)
 {
 	// TODO remove lan_iface and handle bridging in daemon
 	int opt;
 	bool output_enabled = true;
 	bool output_stdout = false;
-
+	bool stop = false;
+	string lib_external_output_path = "";
+	
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-hqdi:a:n:t:u:w:c:e:")) != EOF)
+	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:n:t:u:w:c:e:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -144,18 +145,39 @@ bool init_process(int argc, char **argv,
 			fprintf(stderr, "\t-w <donwward_port>       set the downward port\n");
 			fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
 			fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
-			Output::init(true);
-			Output::enableStdlog();
-			return false;
+			stop = true;
+			break;
 		}
 	}
 
-	// output initialisation
-	Output::init(output_enabled);
+	if(lib_external_output_path != "")
+	{
+		// external output initialization
+		if(!Output::initExt(output_enabled, lib_external_output_path.c_str()))
+		{
+			stop = true;
+			fprintf(stderr, "Unable to initialize external output library\n");
+		}
+	}
+	else
+	{
+		// output initialization
+		if(!Output::init(output_enabled)) 
+		{
+			stop = true;
+			fprintf(stderr, "Unable to initialize output library\n");
+		}
+	}
 	if(output_stdout)
 	{
 		Output::enableStdlog();
 	}
+	if(stop)
+	{
+		return false;
+	}
+
+
 
 	DFLTLOG(LEVEL_NOTICE,
 	        "starting output\n");
@@ -374,6 +396,6 @@ quit:
 	DFLTLOG(LEVEL_NOTICE,
 	        "%s: GW process stopped with exit code %d\n",
 	        progname, is_failure);
-	Ouput::close();
+	Output::close();
 	return is_failure;
 }
