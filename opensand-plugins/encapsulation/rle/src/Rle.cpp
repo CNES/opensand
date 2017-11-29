@@ -411,6 +411,10 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 	src_tal_id = label[0];
 	dst_tal_id = label[1];
 	qos = label[2];
+	LOG(this->log, LEVEL_DEBUG, "RLE packet from tal %u to tal %u with qos %u",
+			src_tal_id,
+			dst_tal_id,
+			qos);
 
 	// Get receiver
 	identifier = new RleIdentifier(src_tal_id, dst_tal_id);
@@ -645,6 +649,10 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 			qos, this->getName().c_str());
 		return false;
 	}
+	LOG(this->log, LEVEL_DEBUG, "RLE packet from tal %u to tal %u with qos %u",
+			src_tal_id,
+			dst_tal_id,
+			qos);
 
 	// Prepare label to RLE
 	if(!Rle::getLabel(packet, label))
