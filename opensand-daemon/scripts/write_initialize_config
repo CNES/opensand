@@ -67,6 +67,9 @@ read_conf(){
     db_get opensand-daemon/service/name_adv
     RET=`echo $RET | tr 'A-Z' 'a-z'`
     SERVICE_NAME=$RET
+    if [ "${SERVICE_NAME}" = 'none' ]; then
+        return
+    fi
     db_get opensand-daemon/service/type
     SERVICE_TYPE=$RET
     db_get opensand-daemon/service/st_instance
@@ -133,6 +136,9 @@ write_conf(){
     # service section
     echo "[service]" > ${DAEMON_CONF}
     echo "name = ${SERVICE_NAME}" >> ${DAEMON_CONF}
+    if [ "${SERVICE_NAME}" = 'none' ]; then
+        return
+    fi
     if [ "${SERVICE_NAME}" = 'st' ] || [[ $SERVICE_NAME = gw* ]] ; then
         echo "instance = ${SERVICE_INSTANCE}" >> ${DAEMON_CONF}
     fi
@@ -205,6 +211,9 @@ write_conf(){
 
 # initialize OpenSAND network
 initialize(){
+    if [ "${SERVICE_NAME}" = 'none' ]; then
+        return
+    fi
     if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' -o "${SERVICE_NAME}" = 'gw-net-acc' ]; then
         # create the OpenSAND tun/tap interface if it does not exist
         is_iface=`ip link show | grep opensand_tun`

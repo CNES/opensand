@@ -18,8 +18,8 @@ Description: Service type
 
 Template: opensand-daemon/service/name
 Type: select
-Default: SAT
-Choices: SAT, GW, ST, WS
+Default: NONE
+Choices: NONE, SAT, GW, ST, WS
 Description: Service name
   Select the name of the service
 

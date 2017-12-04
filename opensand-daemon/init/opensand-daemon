@@ -25,7 +25,6 @@ CONFSCRIPT="/usr/libexec/opensand/write_initialize_config"
 
 . /lib/lsb/init-functions
 
-
 configure()
 {
     # Check that executable is present
@@ -50,6 +49,12 @@ start()
     # do some configuration first
     # we do that here for sysctl configuration reloading
     configure
+
+    # Check daemon is startable
+    IDLE=$(grep -E ' *name *= *none *#? *(.*)/\1/g' ${CONF})
+    if [ "a$IDLE" != 'a' ]; then
+        return
+    fi
     
     log_daemon_msg "Starting ${DESCR}" "${PROGNAME}"
 

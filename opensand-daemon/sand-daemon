@@ -438,6 +438,8 @@ if __name__ == "__main__":
 
     try:
         name = CONF_PARSER.get('service', 'name')
+        if name == 'none':
+            sys.exit(0)
         INTERFACES = OpenSandIfaces()
         INTERFACES.load(CONF_PARSER, name)
     except StandardError, msg:
