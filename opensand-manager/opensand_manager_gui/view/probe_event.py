@@ -39,6 +39,8 @@ import os
 
 from opensand_manager_gui.view.probe_view import ProbeView
 from opensand_manager_gui.view.popup.run_dialog import RunDialog
+from opensand_manager_gui.view.popup.infos import error_popup
+from opensand_manager_core.my_exceptions import ModelException
 
 class ProbeEvent(ProbeView):
     """ Events for the probe tab """
@@ -72,7 +74,11 @@ class ProbeEvent(ProbeView):
         dlg = RunDialog(self._model.get_scenario(), self._model.get_run())
         run = dlg.go()
 
-        self._saved_data = self._model.get_saved_probes(run)
+        try:
+            self._saved_data = self._model.get_saved_probes(run)
+        except ModelException as err:
+            error_popup(str(err))
+            return
         if not self._saved_data:
             return
 

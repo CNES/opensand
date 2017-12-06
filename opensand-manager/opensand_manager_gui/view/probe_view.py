@@ -42,6 +42,7 @@ from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_gui.view.popup.config_collection_dialog import ConfigCollectionDialog
 from opensand_manager_gui.view.utils.config_elements import ProbeSelectionController
+from opensand_manager_core.my_exceptions import ModelException
 
 class ProbeView(WindowView):
     """ Elements of the probe tab """
@@ -110,7 +111,12 @@ class ProbeView(WindowView):
 
     def simu_data_available(self):
         """ run when simulation data is available """
-        self._saved_data = self._model.get_saved_probes()
+        try:
+            self._saved_data = self._model.get_saved_probes()
+        except ModelException as err:
+            error_popup(str(err))
+            return
+
         if self._saved_data:
             self._probe_display.set_probe_data(self._saved_data.get_data())
             self._set_state_run_loaded()
