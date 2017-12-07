@@ -44,7 +44,8 @@
 
 
 BlockEncapSat::BlockEncapSat(const string &name):
-	Block(name)
+	Block(name),
+	top_plugin()
 {
 	// register static log
 	NetBurst::log_net_burst = Output::registerLog(LEVEL_WARNING, "NetBurst");
@@ -97,8 +98,9 @@ bool BlockEncapSat::Upward::onEvent(const RtEvent *const event)
 			LOG(this->log_receive, LEVEL_INFO,
 			    "message received from the lower layer\n");
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
-			if(!this->shareMessage((void **)&burst))
-			{   
+
+			if(!this->onRcvBurst(burst))
+			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "failed to transmist burst to opposite "
 				    "block\n");
@@ -118,25 +120,110 @@ bool BlockEncapSat::Upward::onEvent(const RtEvent *const event)
 	return true;
 }
 
-bool BlockEncapSat::onInit()
+bool BlockEncapSat::Upward::onRcvBurst(NetBurst *burst)
 {
+	unsigned int nb_bursts;
+	spot_id_t spot;
+	vector<EncapPlugin::EncapContext *>::iterator iter;
+	NetBurst::iterator packet;
+
+	// Check burst validity
+	if(!burst)
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "burst is not valid\n");
+		goto error;
+	}
+
+	// Check packets count
+	nb_bursts = burst->size();
+	LOG(this->log_receive, LEVEL_INFO,
+	    "message contains a burst of %d %s packet(s)\n",
+	    nb_bursts, burst->name().c_str());
+	if(burst->size() == 0)
+	{
+		delete burst;
+		return true;
+	}
+
+	// Check encapsulation contexts
+	if(this->uplink_ctx.size() == 0)
+	{
+		goto forward;
+	}
+
+	// Get spot id
+	packet = burst->begin();
+	spot = (*packet)->getSpot();
+	LOG(this->log_receive, LEVEL_DEBUG,
+	    "burst spot %u\n",
+	    spot);
+
+	// iterate on all the deencapsulation contexts to get the ip packets
+	for(iter = this->uplink_ctx.begin();
+			iter != this->uplink_ctx.end();
+			++iter)
+	{
+		burst = (*iter)->deencapsulate(burst);
+		if(!burst)
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+					"deencapsulation failed in %s context\n",
+					(*iter)->getName().c_str());
+			goto error;
+		}
+	}
+	LOG(this->log_receive, LEVEL_INFO,
+			"%d %s packet => %zu %s packet(s)\n",
+			nb_bursts, this->uplink_ctx[0]->getName().c_str(),
+			burst->size(), burst->name().c_str());
+
+	// Set spot id
+	for(packet = burst->begin(); packet != burst->end(); ++packet)
+	{
+		(*packet)->setSpot(spot);
+	}
+
+forward:
+	// send the burst to the opposite channel
+	if(!this->shareMessage((void **)&burst))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "failed to send burst to the opposite channel\n");
+		delete burst;
+	}
+
+	LOG(this->log_receive, LEVEL_INFO,
+	    "burst of deencapsulated packets sent to the "
+	    "opposite channel\n");
+
+	// everthing is fine
 	return true;
+
+error:
+	return false;
 }
 
-bool BlockEncapSat::Downward::onInit()
-{
-	int i;
-	int encap_nbr;
-	EncapPlugin *plugin = NULL;
-	EncapPlugin *upper_encap = NULL;
-	// The list of uplink encapsulation protocols to ignore them at downlink
-	// encapsulation
-	vector <string> up_proto;
 
-	// get the number of encapsulation context to use for up link
-	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION], 
+bool BlockEncapSat::onInit()
+{
+	bool remove;
+	int j;
+	unsigned int n;
+
+	vector<string> up_proto;
+	vector<string> down_proto;
+
+	vector<EncapPlugin::EncapContext *> up_ctx;
+	vector<EncapPlugin::EncapContext *> down_ctx;
+
+	StackPlugin::StackPacketHandler *top_pkt_hdl;
+	StackPlugin::StackPacketHandler *upper_pkt_hdl;
+
+	// Get the number of encapsulation context to use for up link
+	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
 		                     RETURN_UP_ENCAP_SCHEME_LIST,
-	                         encap_nbr))
+	                         n))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n", COMMON_SECTION,
@@ -144,14 +231,14 @@ bool BlockEncapSat::Downward::onInit()
 		goto error;
 	}
 
-	for(i = 0; i < encap_nbr; i++)
+	// Get all the encapsulation to use from lower to upper for uplink
+	for(unsigned int i = 0; i < n; ++i)
 	{
 		string encap_name;
 
-		// get all the encapsulation to use from lower to upper
 		if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
 			                     RETURN_UP_ENCAP_SCHEME_LIST,
-		                         POSITION, toString(i), 
+		                         POSITION, toString((int)i),
 		                         ENCAP_NAME, encap_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -159,14 +246,13 @@ bool BlockEncapSat::Downward::onInit()
 			    COMMON_SECTION, i, POSITION);
 			goto error;
 		}
-
 		up_proto.push_back(encap_name);
 	}
 
-	// get the number of encapsulation context to use for forward link
-	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION], 
+	// Get the number of encapsulation context to use for downlink
+	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
 		                     FORWARD_DOWN_ENCAP_SCHEME_LIST,
-	                         encap_nbr))
+	                         n))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section %s, %s missing\n", COMMON_SECTION,
@@ -174,19 +260,14 @@ bool BlockEncapSat::Downward::onInit()
 		goto error;
 	}
 
-	upper_encap = NULL;
-	for(i = 0; i < encap_nbr; i++)
+	// Get all the encapsulation to use from lower to upper for downlink
+	for(unsigned int i = 0; i < n; ++i)
 	{
-		bool next = false;
 		string encap_name;
-		vector<string>::iterator iter;
-		EncapPlugin::EncapContext *context;
 
-
-		// get all the encapsulation to use from lower to upper
-		if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION], 
-			                     FORWARD_DOWN_ENCAP_SCHEME_LIST,
-		                         POSITION, toString(i), 
+		if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
+		                         FORWARD_DOWN_ENCAP_SCHEME_LIST,
+		                         POSITION, toString((int)i),
 		                         ENCAP_NAME, encap_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -194,54 +275,170 @@ bool BlockEncapSat::Downward::onInit()
 			    COMMON_SECTION, i, POSITION);
 			goto error;
 		}
-
-		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get plugin for %s encapsulation",
-			    encap_name.c_str());
-			goto error;
-		}
-
-		context = plugin->getContext();
-		for(iter = up_proto.begin(); iter!= up_proto.end(); iter++)
-		{
-			if(*iter == encap_name)
-			{
-				upper_encap = plugin;
-				// no need to encapsulate with this protocol because it will
-				// already be done on uplink
-				next = true;
-				break;
-			}
-		}
-		if(next)
-		{
-			continue;
-		}
-
-		this->downlink_ctx.push_back(context);
-		if(upper_encap != NULL &&
-		   !context->setUpperPacketHandler(
-					upper_encap->getPacketHandler(),
-					REGENERATIVE))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "upper encapsulation type %s not supported for %s "
-			    "encapsulation", upper_encap->getName().c_str(),
-			    context->getName().c_str());
-			goto error;
-		}
-		upper_encap = plugin;
-		LOG(this->log_init, LEVEL_INFO,
-		    "add downlink encapsulation layer: %s\n",
-		    upper_encap->getName().c_str());
+		down_proto.push_back(encap_name);
 	}
+
+	// Check stacks size
+	if(down_proto.size() < up_proto.size())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Invalid encapsulation stacks: "
+		    "fewer downlink encapsulations than uplink");
+		goto error;
+	}
+
+	// Remove useless encapsulations for the satellite
+	remove = false;
+	top_pkt_hdl = NULL;
+	j = (int)(up_proto.size() - 1);
+	while(0 <= j)
+	{
+		// Check downlink encapsulation
+		if(up_proto[j] != down_proto[j])
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Invalid encapsulation stacks: "
+			    "no %s encapsulation in down link",
+			    up_proto[j].c_str());
+			goto error;
+		}
+
+		EncapPlugin *plugin;
+
+		// Get plugin
+		if(!Plugin::getEncapsulationPlugin(up_proto[j], &plugin))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Can not get plugin for uplink %s encapsulation",
+			    up_proto[j].c_str());
+			goto error;
+		}
+
+		if(!remove)
+		{
+			// Check it handles variable length
+			if(plugin->getPacketHandler()->getFixedLength() == 0)
+			{
+				--j;
+				continue;
+			}
+
+			// Save the top packet handler (first plugin removed)
+			top_pkt_hdl = plugin->getPacketHandler();
+		}
+
+		// Remove encapsulations
+		down_proto.erase(down_proto.begin() + j);
+		up_proto.erase(up_proto.begin() + j);
+		--j;
+		remove = true;
+	}
+
+	// Check top pkt handler is not null
+	if(!top_pkt_hdl)
+	{
+		top_pkt_hdl = this->top_plugin.getPacketHandler();
+	}
+
+	// Load downlink encapsulation
+	upper_pkt_hdl = top_pkt_hdl;
+	for(unsigned int i = 0; i < down_proto.size(); ++i)
+	{
+		EncapPlugin *plugin;
+		EncapPlugin::EncapContext *ctx;
+
+		// Get plugin
+		if(!Plugin::getEncapsulationPlugin(down_proto[i], &plugin))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Can not get plugin for downlink %s encapsulation",
+			    down_proto[i].c_str());
+			goto error;
+		}
+
+		// Get context
+		ctx = plugin->getContext();
+
+		// Set upper encapsulation if required
+		if(upper_pkt_hdl
+		   && !ctx->setUpperPacketHandler(upper_pkt_hdl, REGENERATIVE))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "upper %s encapsulation is not supported "
+			    "for %s encapsulation",
+			    upper_pkt_hdl->getName().c_str(),
+			    plugin->getName().c_str());
+			goto error;
+		}
+
+		// Save context
+		down_ctx.push_back(ctx);
+		upper_pkt_hdl = plugin->getPacketHandler();
+
+		LOG(this->log_init, LEVEL_INFO,
+		    "Add downlink encapsulation layer: %s\n",
+		    upper_pkt_hdl->getName().c_str());
+	}
+
+	// Load uplink encapsulation
+	upper_pkt_hdl = top_pkt_hdl;
+	for(unsigned int  i = 0; i < up_proto.size(); ++i)
+	{
+		EncapPlugin *plugin;
+		EncapPlugin::EncapContext *ctx;
+
+		// Get plugin
+		if(!Plugin::getEncapsulationPlugin(up_proto[i], &plugin))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Can not get plugin for uplink %s encapsulation",
+			    up_proto[i].c_str());
+			goto error;
+		}
+
+		// Get context
+		ctx = plugin->getContext();
+
+		// Set upper encapsulation if required
+		if(upper_pkt_hdl
+		   && !ctx->setUpperPacketHandler(upper_pkt_hdl, REGENERATIVE))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "upper %s encapsulation is not supported "
+			    "for %s encapsulation",
+			    upper_pkt_hdl->getName().c_str(),
+			    plugin->getName().c_str());
+			goto error;
+		}
+
+		// Save context
+		up_ctx.push_back(ctx);
+		upper_pkt_hdl = plugin->getPacketHandler();
+
+		LOG(this->log_init, LEVEL_INFO,
+		    "Add uplink encapsulation layer: %s\n",
+		    upper_pkt_hdl->getName().c_str());
+	}
+
+	// Set encap light stacks to channels
+	std::reverse(up_ctx.begin(), up_ctx.end());
+	((Upward *)this->upward)->setUplinkContexts(up_ctx);
+	((Downward *)this->downward)->setDownlinkContexts(down_ctx);
 
 	return true;
 
 error:
 	return false;
+}
+
+void BlockEncapSat::Downward::setDownlinkContexts(const vector<EncapPlugin::EncapContext *> &ctx)
+{
+	this->downlink_ctx = ctx;
+}
+
+void BlockEncapSat::Upward::setUplinkContexts(const vector<EncapPlugin::EncapContext *> &ctx)
+{
+	this->uplink_ctx = ctx;
 }
 
 bool BlockEncapSat::Downward::onTimer(event_id_t timer_id)
@@ -258,7 +455,7 @@ bool BlockEncapSat::Downward::onTimer(event_id_t timer_id)
 	it = this->timers.find(timer_id);
 	if(it == this->timers.end())
 	{
-		LOG(this->log_receive, LEVEL_ERROR, "timer not found\n"); 
+		LOG(this->log_receive, LEVEL_ERROR, "timer not found\n");
 		goto error;
 	}
 
@@ -457,4 +654,33 @@ clean:
 	delete packets;
 error:
 	return status;
+}
+
+BlockEncapSat::TopPlugin::TopPlugin():
+	StackPlugin((uint16_t)0)
+{
+	this->packet_handler = new BlockEncapSat::TopPlugin::PacketHandler(*this);
+	this->context = new BlockEncapSat::TopPlugin::Context(*this);
+}
+
+NetPacket *BlockEncapSat::TopPlugin::PacketHandler::build(const Data &data,
+		size_t data_length,
+		uint8_t qos,
+		uint8_t src_tal_id,
+		uint8_t dst_tal_id) const
+{
+	LOG(this->log, LEVEL_DEBUG, "LAN build packet from tal %u to tal %u with qos %u"
+	    " (len %u bytes)",
+		src_tal_id,
+		dst_tal_id,
+		qos,
+		data_length);
+	return new NetPacket(data,
+			data_length,
+			this->getName(),
+			this->getEtherType(),
+			qos,
+			src_tal_id,
+			dst_tal_id,
+			0);
 }

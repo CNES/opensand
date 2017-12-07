@@ -309,6 +309,7 @@ NetBurst *Rle::Context::encapsulate(NetBurst *burst,
 				"drop the packet\n");
 			continue;
 		}
+		encap_packet->setSpot(packet->getSpot());
 
 		// Add the current encapsulated packet to the encapsulated burst
 		encap_burst->add(encap_packet);
@@ -456,7 +457,7 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 		sdus[i].size = 0;
 		sdus[i].buffer = new unsigned char[sdus_capacity];
 	}
-	LOG(this->log, LEVEL_DEBUG, "Initialiez SDUs before RLE decasulation (max_count=%u, count=%u)",
+	LOG(this->log, LEVEL_DEBUG, "Initialize SDUs before RLE decapsulation (max_count=%u, count=%u)",
 			sdus_max_count, sdus_count);
 
 	// Decapsulate RLE FPDU
@@ -751,10 +752,24 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	// Fragment RLE SDU to RLE PPDU
 	LOG(this->log, LEVEL_DEBUG, "RLE fragmentation");
 	ppdu_size = 0;
+	LOG(this->log, LEVEL_DEBUG, "transmitter=%s, frag_id=%u, remaining_len=%u, ppdu=%s, ppdu_len=%u",
+		transmitter ? "not null" : "NULL",
+		frag_id,
+		remaining_length,
+		ppdu ? "not null" : "NULL",
+		ppdu_size
+	);
 	frag_status = rle_fragment(transmitter, frag_id, remaining_length, &ppdu, &ppdu_size);
+	LOG(this->log, LEVEL_DEBUG, "transmitter=%s, frag_id=%u, remaining_len=%u, ppdu=%s, ppdu_len=%u",
+		transmitter ? "not null" : "NULL",
+		frag_id,
+		remaining_length,
+		ppdu ? "not null" : "NULL",
+		ppdu_size
+	);
 	if(frag_status == RLE_FRAG_ERR_BURST_TOO_SMALL)
 	{
-		LOG(this->log, LEVEL_WARNING,
+		LOG(this->log, LEVEL_INFO,
 		    "Not enough remaining length to fragment PPDU using RLE (%u bytes)",
 		    remaining_length);
 		partial_encap = true;
@@ -790,7 +805,7 @@ bool Rle::PacketHandler::encapNextPacket(NetPacket *packet,
 	pack_status = rle_pack(ppdu, ppdu_size, label, label_size, fpdu_buffer, &fpdu_cur_pos, &fpdu_size);
 	if(pack_status == RLE_PACK_ERR_FPDU_TOO_SMALL)
 	{
-		LOG(this->log, LEVEL_WARNING,
+		LOG(this->log, LEVEL_INFO,
 		    "Not enough remaining length to pack FPDU using RLE (%u bytes)",
 		    fpdu_size);
 		partial_encap = true;

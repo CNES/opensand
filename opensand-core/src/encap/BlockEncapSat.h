@@ -73,6 +73,26 @@ class BlockEncapSat: public Block
 			RtUpward(name)
 		{};
 		bool onEvent(const RtEvent *const event);
+
+		/**
+		 * @brief Set uplink encapsulation context list
+		 *
+		 * @param[in] ctx  the context list to set
+		 */
+		void setUplinkContexts(const vector<EncapPlugin::EncapContext *> &ctx);
+
+	 private:
+		/// the reception contexts list from upper to lower context
+		std::vector<EncapPlugin::EncapContext *> uplink_ctx;
+
+		/**
+		 * Handle a burst of encapsulation packets received from the upper-layer
+		 * block
+		 *
+		 * @param burst  The burst received from the upper-layer block
+		 * @return       Whether the burst was successful handled or not
+		 */
+		bool onRcvBurst(NetBurst *burst);
 	};
 
 	class Downward: public RtDownward
@@ -81,8 +101,14 @@ class BlockEncapSat: public Block
 		Downward(const string &name):
 			RtDownward(name)
 		{};
-		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
+
+		/**
+		 * @brief Set downlink encapsulation context list
+		 *
+		 * @param[in] ctx  the context list to set
+		 */
+		void setDownlinkContexts(const vector<EncapPlugin::EncapContext *> &ctx);
 
 	 private:
 		/// Expiration timers for encapsulation contexts
@@ -127,7 +153,73 @@ class BlockEncapSat: public Block
 		bool EncapsulatePackets(NetBurst *burst);
 	};
 
+	class TopPlugin: public StackPlugin
+	{
+		class Context: public StackPlugin::StackContext
+		{
+		  public:
+			Context(StackPlugin &plugin):
+					StackPlugin::StackContext(plugin)
+			{
+			};
+			bool init() { return true; };
+			NetBurst *encapsulate(NetBurst *burst,
+					map<long, int> &UNUSED(time_contexts))
+			{
+				return burst;
+			};
+			NetBurst *deencapsulate(NetBurst *burst) { return burst; };
+		};
+
+		class PacketHandler: public StackPlugin::StackPacketHandler
+		{
+		  public:
+			PacketHandler(StackPlugin &plugin):
+					StackPlugin::StackPacketHandler(plugin)
+			{
+				this->log = Output::registerLog(LEVEL_WARNING,
+				                                "Encap.%s",
+				                                this->getName().c_str());
+			};
+			bool init() { return true; };
+			size_t getMinLength() const { return 0; };
+			size_t getFixedLength() const { return 0; };
+			size_t getLength(const unsigned char *UNUSED(data)) const
+			{
+				return 0;
+			}
+			std::string getName() const { return "LAN"; };
+
+			NetPacket *build(const Data &data,
+							 size_t data_length,
+							 uint8_t qos,
+							 uint8_t src_tal_id,
+							 uint8_t dst_tal_id) const;
+
+			bool encapNextPacket(NetPacket *UNUSED(packet),
+				size_t UNUSED(remaining_length),
+				bool UNUSED(new_burst),
+				bool &UNUSED(partial_encap),
+				NetPacket **UNUSED(encap_packet))
+			{
+				assert(0);
+			};
+			bool getEncapsulatedPackets(NetContainer *UNUSED(packet),
+				bool &UNUSED(partial_decap),
+				vector<NetPacket *> &UNUSED(decap_packets),
+				unsigned int UNUSED(decap_packet_count))
+			{
+				assert(0);
+			};
+		};
+
+	  public:
+		TopPlugin();
+		bool init() { return true; };
+	};
+
  protected:
+	TopPlugin top_plugin;
 
 	bool onInit();
 };

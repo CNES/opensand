@@ -57,9 +57,7 @@ class EncapPlugin: public StackPlugin
 
  public:
 
-	EncapPlugin(uint16_t ether_type): StackPlugin(ether_type)
-	{
-	};
+	EncapPlugin(uint16_t ether_type);
 
 	/**
 	 * @class EncapPacketHandler

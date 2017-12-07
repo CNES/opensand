@@ -33,6 +33,12 @@
 
 #include "EncapPlugin.h"
 
+EncapPlugin::EncapPlugin(uint16_t ether_type):
+		StackPlugin(ether_type)
+{
+	this->upper[REGENERATIVE].push_back("LAN");
+}
+
 EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
 {
 	map<NetPacket *, NetPacket *>::iterator it;
