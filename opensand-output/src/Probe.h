@@ -42,6 +42,7 @@
 #include <string.h>
 #include <iostream>
 #include <cassert>
+#include <sstream>
 
 #include <pthread.h>
 using std::string;
@@ -69,6 +70,8 @@ public:
 	size_t getDataSize() const;
 
 	bool getData(unsigned char* buffer, size_t len) const;
+
+	string getStrData() const;	
 	
 private:
 	Probe(uint8_t id, const string &name,
@@ -146,6 +149,16 @@ T Probe<T>::get() const
 	}
 	
 	return value;
+}
+
+template<typename T>
+string Probe<T>::getStrData() const
+{
+	std::stringstream strs;
+	T val = this->get();
+	strs << val;
+
+	return strs.str();
 }
 
 template<typename T>

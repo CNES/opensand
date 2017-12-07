@@ -100,6 +100,17 @@ public:
 	 **/
 	virtual bool getData(unsigned char* buffer, size_t len) const = 0;
 
+	/**
+	 * @brief get data in string
+	 *
+	 * @return data 
+	 **/
+	virtual string getStrData() const = 0;
+
+	/**
+	 * @brief reset values count
+	 *
+	 **/
 	void reset();
 		
 protected:
