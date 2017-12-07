@@ -102,14 +102,6 @@ class OutputInternal
 	uint16_t getValueCount(BaseProbe *probe) const;
 	
 	/**
-	 * @brief 
-	 *
-	 * @param probe object
-	 * @return msg
-	 */
-	void appendValueAndReset(BaseProbe *probe, string &msg) const;
-
-	/**
 	 * @brief Get color for logs levels 
 	 *
 	 * @return array of colors for a log level 

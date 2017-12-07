@@ -39,14 +39,11 @@
 #include "OutputMutex.h"
 
 #include <algorithm>
-#include <string>
+#include <string.h>
 #include <iostream>
 #include <cassert>
 
 #include <pthread.h>
-#include <stdint.h>
-#include <cstdio>
-
 using std::string;
 
 /**
@@ -67,14 +64,18 @@ public:
 	 **/
 	void put(T value);
 
+	T get() const;
+	
+	size_t getDataSize() const;
+
+	bool getData(unsigned char* buffer, size_t len) const;
+	
 private:
 	Probe(uint8_t id, const string &name,
 	      const string &unit,
 	      bool enabled, sample_type_t type);
 	
 	virtual uint8_t storageTypeId();
-
-	virtual void appendValueAndReset(string& str);
 
 	/// the concatenation of all values
 	T accumulator;
@@ -133,4 +134,26 @@ void Probe<T>::put(T value)
 	this->values_count++;
 }
 
+template<typename T>
+T Probe<T>::get() const
+{
+	T value = this->accumulator;
+		
+	if(this->s_type == SAMPLE_AVG)
+	{
+		value /= this->values_count;
+		return value; 
+	}
+	
+	return value;
+}
+
+template<typename T>
+size_t Probe<T>::getDataSize() const
+{
+	return sizeof(this->accumulator);
+}
+
+
 #endif
+

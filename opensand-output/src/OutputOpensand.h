@@ -44,6 +44,9 @@
 #include <sys/un.h>
 #include <vector>
 #include <map>
+#include <stdint.h>
+#include <cstdio>
+#include <arpa/inet.h>
 
 using std::vector;
 using std::map;
@@ -143,6 +146,12 @@ class OutputOpensand : public OutputInternal
 	 * @return the command type on success, 0 on failure
 	 */
 	uint8_t rcvMessage(void) const;
-};
 
+	/**
+	 * @brief Add a value in probe
+	 *
+	 * @para str the value
+	 */
+	void appendValueAndReset(BaseProbe *probe, string& str);
+};
 #endif

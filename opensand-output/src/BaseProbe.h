@@ -86,6 +86,22 @@ public:
 	 **/
 	inline const string getUnit() const { return this->unit; };
 
+	/**
+	 * @brief get the byte size of data
+	 *
+	 * @return the size of data
+	 **/
+	virtual size_t getDataSize() const = 0;
+	
+	/**
+	 * @brief get data in byte
+	 *
+	 * @return data
+	 **/
+	virtual bool getData(unsigned char* buffer, size_t len) const = 0;
+
+	void reset();
+		
 protected:
 	BaseProbe(uint8_t id, const string &name,
 	          const string &unit,
@@ -97,13 +113,6 @@ protected:
 	 * @return the sorage type ID
 	 */
 	virtual uint8_t storageTypeId() = 0;
-
-	/**
-	 * @brief Add a value in probe
-	 *
-	 * @para str the value
-	 */
-	virtual void appendValueAndReset(string &str) = 0;
 
 	/// the probe ID
 	uint8_t id;

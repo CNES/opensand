@@ -52,3 +52,8 @@ BaseProbe::BaseProbe(uint8_t id, const string &name,
 BaseProbe::~BaseProbe()
 {
 }
+
+void BaseProbe::reset()
+{
+	this->values_count = 0;	
+}

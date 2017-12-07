@@ -57,55 +57,52 @@ uint8_t Probe<double>::storageTypeId()
 }
 
 template<>
-void Probe<int32_t>::appendValueAndReset(std::string& str)
+bool Probe<int32_t>::getData(unsigned char* buffer, size_t len) const
 {
-	int32_t accumulator = this->accumulator;
-	uint32_t value;
-
-	if(this->s_type == SAMPLE_AVG)
+	if(!buffer || this->Probe<int32_t>::getDataSize() < len)
 	{
-		accumulator /= this->values_count;
+		return false;
 	}
+	
+	int32_t value = this->Probe<int32_t>::get();
+	uint32_t data;
+	memcpy(&data, &value, sizeof(value));
+	data = htonl(data);
+	memcpy(buffer, &data, sizeof(data));
 
-	value = accumulator;
-	value = htonl(value);
-	str.append((char*)&value, sizeof(value));
-
-	this->values_count = 0;
+	return true;
 }
 
 template<>
-void Probe<float>::appendValueAndReset(std::string& str)
+bool Probe<float>::getData(unsigned char* buffer, size_t len) const
 {
-	float accumulator = this->accumulator;
-	uint32_t value;
-
-	if(this->s_type == SAMPLE_AVG)
+	if(!buffer || this->Probe<float>::getDataSize() < len)
 	{
-		accumulator /= this->values_count;
+		return false;
 	}
+	
+	float value = this->Probe<float>::get();
+	uint32_t data;
+	memcpy(&data, &value, sizeof(value));
+	data = htonl(data);
+	memcpy(buffer, &data, sizeof(data));
 
-	memcpy(&value, &accumulator, sizeof(value));
-	value = htonl(value);
-	str.append((char*)&value, sizeof(value));
-
-	this->values_count = 0;
+	return true;
 }
 
 template<>
-void Probe<double>::appendValueAndReset(std::string& str)
+bool Probe<double>::getData(unsigned char* buffer, size_t len) const
 {
-	double accumulator = this->accumulator;
-	uint64_t value;
-
-	if(this->s_type == SAMPLE_AVG)
+	if(!buffer || this->Probe<double>::getDataSize() < len)
 	{
-		accumulator /= this->values_count;
+		return false;
 	}
+	
+	double value = this->Probe<double>::get();
+	uint64_t data;
+	memcpy(&data, &value, sizeof(value));
+	data = htobe64(data);
+	memcpy(buffer, &data, sizeof(data));
 
-	memcpy(&value, &accumulator, sizeof(value));
-	value = htobe64(value);
-	str.append((char*)&value, sizeof(value));
-
-	this->values_count = 0;
+	return true;
 }

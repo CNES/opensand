@@ -170,11 +170,6 @@ uint8_t OutputInternal::getLogId(const OutputLog *log) const
 	return log->id;	
 }
 
-void OutputInternal::appendValueAndReset(BaseProbe *probe, string &msg) const
-{
-	return probe->appendValueAndReset(msg);
-}
-
 uint16_t OutputInternal::getValueCount(BaseProbe *probe) const
 {
 	return probe->values_count;	

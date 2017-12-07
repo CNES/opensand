@@ -51,6 +51,7 @@
 #include <syslog.h>
 #include <algorithm>
 
+#include <fstream>
 #define TIMEOUT 6
 
 static uint32_t getMilis()
@@ -289,7 +290,8 @@ bool OutputOpensand::finishInit(void)
 bool OutputOpensand::sendRegister(BaseProbe *probe)
 {
 	string message;
-
+	//DEBUG
+	FILE * pFile;
 	const string name = probe->getName();
 	const string unit = probe->getUnit();
 
@@ -309,7 +311,7 @@ bool OutputOpensand::sendRegister(BaseProbe *probe)
 	message.append(1, unit.size());
 	message.append(name);
 	message.append(unit);
-
+	
 	if(!this->sendMessage(message))
 	{
 		this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
@@ -321,7 +323,17 @@ bool OutputOpensand::sendRegister(BaseProbe *probe)
 	this->OutputInternal::sendLog(this->log, LEVEL_INFO,
 								  "New probe %s registration sent.\n",
 								  name.c_str());
-
+	string file_path; 
+	string file_name;
+	string charname;
+	file_path = "/tmp/";
+	charname = name.c_str();
+	
+	file_name = file_path + charname;
+	
+	pFile = fopen (file_name.c_str(),"w+");
+	fprintf (pFile, "%s",message.c_str());
+	
 	return true;
 }
 
@@ -385,6 +397,37 @@ bool OutputOpensand::sendRegister(OutputLog *log)
 								  "New log %s registration sent\n", name.c_str());
 
 	return true;
+}
+
+void OutputOpensand::appendValueAndReset(BaseProbe *probe, string &msg)
+{
+	size_t data_size;
+	unsigned char* data;
+	
+	// get size of probe data
+	data_size = probe->getDataSize();
+	
+	// allocate memory
+	data = new unsigned char[data_size];
+
+	// get probe data
+	probe->getData(data, data_size);
+	
+	// Append data to message
+	int n = msg.size();
+	msg.append((const char*)data, data_size);
+		std::ofstream out;
+		out.open("/tmp/toto", std::ios::out | std::ios::app);
+		out << "Data: " << (float)*data << std::endl;
+		if(n < msg.size())
+		{
+			out << "Msg: " << (float)msg.c_str()[n] << std::endl;
+		}
+		out.close();
+	
+	// release memory
+	delete[] data;
+	probe->reset();
 }
 
 
