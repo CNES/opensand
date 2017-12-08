@@ -150,7 +150,7 @@ Template: opensand-daemon/network/lan_ipv4_preset
 Type: select
 Choices: ${ips_list}
 Description: Satellite Terminal network IPv4 address
-  Select the IPv4 address/mask of the Satellite Terminal
+  Select the IPv4 address/mask of Satellite Terminal interface connected to local workstations
   It is recommended to use a common network for all STs (with mask smaller than
   the ST lan mask) for workstation routing management
   You must use a mask smaller than /28
@@ -160,7 +160,7 @@ Description: Satellite Terminal network IPv4 address
 Template: opensand-daemon/network/lan_ipv4
 Type: string
 Description: Satellite Terminal network IPv4 address
-  Select the IPv4 address/mask of the Satellite Terminal
+  Select the IPv4 address/mask of Satellite Terminal interface connected to local workstations
   It is recommended to use a common network for all STs (with mask smaller than
   the ST lan mask) for workstation routing management
   You must use a mask smaller than /28
@@ -171,7 +171,7 @@ Template: opensand-daemon/network/lan_ipv6_preset
 Type: select
 Choices: ${ips_list}
 Description: Satellite Terminal network IPv6 address
-  Select the IPv6 address/mask of the Satellite Terminal
+  Select the IPv6 address/mask of Satellite Terminal interface connected to local workstations
   You must use a mask smaller than /124
   The TUN and bridge interfaces will have the same address with last byte
   + 2 and 3 respectively
@@ -179,7 +179,7 @@ Description: Satellite Terminal network IPv6 address
 Template: opensand-daemon/network/lan_ipv6
 Type: string
 Description: Satellite Terminal network IPv6 address
-  Select the IPv6 address/mask of the Satellite Terminal
+  Select the IPv6 address/mask of Satellite Terminal interface connected to local workstations
   You must use a mask smaller than /124
   The TUN and bridge interfaces will have the same address with last byte
   + 2 and 3 respectively
