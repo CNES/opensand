@@ -536,4 +536,3 @@ class ConfEvent(ConfView) :
 
         # update carriers access type
         self._update_carriers_cb(True)
-

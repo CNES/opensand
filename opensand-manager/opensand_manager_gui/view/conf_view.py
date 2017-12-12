@@ -37,7 +37,7 @@ conf_view.py - the configuration tab view
 
 import gtk
 
-from opensand_manager_core.utils import OPENSAND_PATH, ST, GW
+from opensand_manager_core.utils import OPENSAND_PATH, ST, GW, DVB_RCS2
 from opensand_manager_core.my_exceptions import ConfException
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.utils.protocol_stack import LanAdaptationProtocolStack, \
@@ -67,6 +67,7 @@ class ConfView(WindowView):
         self._lan_stack_base = None
         self._lan_stack_vbox = self._ui.get_widget('lan_adapt_stack')
 
+        self._return_link_std = model.get_conf().get_return_link_standard()
         self._out_stack = EncapProtocolStack(self._ui.get_widget('out_encap_stack'),
                                              self._model.get_encap_modules(),
                                              self.on_stack_modif)
@@ -123,14 +124,16 @@ class ConfView(WindowView):
 
         try:
             # return_up_encap
-            stack_reload = bool(self._out_stack.get_stack() == config.get_return_up_encap())
+            #stack_reload = bool(self._out_stack.get_stack() == config.get_return_up_encap())
+            stack_reload = True
             self._out_stack.load(config.get_return_up_encap(),
                                  config.get_payload_type(),
                                  config.get_emission_std(),
                                  config.get_return_link_standard(),
                                  stack_reload)
             # forward_down_encap
-            stack_reload = bool(self._in_stack.get_stack() == config.get_forward_down_encap())
+            #stack_reload = bool(self._in_stack.get_stack() == config.get_forward_down_encap())
+            stack_reload = True
             self._in_stack.load(config.get_forward_down_encap(),
                                 config.get_payload_type(),
                                 "DVB-S2",
@@ -138,6 +141,20 @@ class ConfView(WindowView):
                                 stack_reload)
         except ConfException, msg:
             error_popup(str(msg))
+
+        # Check return link has changed
+        if self._return_link_std != config.get_return_link_standard():
+            # Apply change
+            self._return_link_std = config.get_return_link_standard()
+
+            # Update local encapsulations
+            self._model.get_conf().set_return_up_encap(self._out_stack.get_stack())
+            self._model.get_conf().set_forward_down_encap(self._in_stack.get_stack())
+
+        if self._return_link_std == DVB_RCS2:
+            # Update FMT
+            pass
+
         # physical layer
         widget = self._ui.get_widget('enable_physical_layer')
         if config.get_enable_physical_layer().lower() == "true":
