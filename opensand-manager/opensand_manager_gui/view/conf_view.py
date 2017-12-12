@@ -150,6 +150,12 @@ class ConfView(WindowView):
             # Update local encapsulations
             self._model.get_conf().set_return_up_encap(self._out_stack.get_stack())
             self._model.get_conf().set_forward_down_encap(self._in_stack.get_stack())
+        widget = self._ui.get_widget("repr_stack_in_gw")
+        widget.set_label(config.get_return_link_standard())
+        widget = self._ui.get_widget("repr_stack_sat1")
+        widget.set_label(config.get_return_link_standard())
+        widget = self._ui.get_widget("repr_stack_out_st")
+        widget.set_label(config.get_return_link_standard())
 
         if self._return_link_std == DVB_RCS2:
             # Update FMT
