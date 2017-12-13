@@ -236,7 +236,7 @@ initialize(){
         # remove interfaces in case it was another type of host
         ${TUN_TAP_INIT} -d 1>/dev/null 2>&1
     fi
-    # remove old IP addresses from LAN and EMU interfaces
+    # remove old IP addresses from LAN, EMU and opensand_tun interfaces
     if [ ! "${SERVICE_NAME}" = 'ws' -a ! "${SERVICE_NAME}" = 'gw-net-acc' ]; then
         ifconfig ${EMU_IFACE} inet 0.0.0.0 2>/dev/null
     fi
@@ -245,6 +245,9 @@ initialize(){
     fi
     if [ "${SERVICE_NAME}" = 'ws' ]; then
         ifconfig ${WS_LAN_IFACE} inet 0.0.0.0 2>/dev/null
+    fi
+    if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' -o "${SERVICE_NAME}" = 'gw-net-acc' ]; then
+        ifconfig opensand_tun inet 0.0.0.0 2>/dev/null
     fi
     if [ "${SERVICE_NAME}" = 'gw-net-acc' -o "${SERVICE_NAME}" = 'gw-phy' ]; then
         # Check if interconnect interface has the correct IP
