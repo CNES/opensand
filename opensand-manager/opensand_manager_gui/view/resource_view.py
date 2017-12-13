@@ -48,7 +48,7 @@ from opensand_manager_core.carrier import Carrier, find_category
 from opensand_manager_core.utils import get_conf_xpath, FORWARD_DOWN, RETURN_UP, \
         ROLL_OFF, CARRIERS_DISTRIB, BANDWIDTH, TAL_AFFECTATIONS, TAL_DEF_AFF, \
         TAL_ID, SYMBOL_RATE, RATIO, ACCESS_TYPE, CATEGORY, ST, SPOT, ID, GW, \
-        RETURN_UP_BAND, FMT_GROUP, VCM, SCPC, FMT_GROUPS, FMT_ID, DVB_RCS2
+        RETURN_UP_BAND, FMT_GROUP, VCM, SCPC, FMT_GROUPS, FMT_ID, DVB_RCS2, DAMA
 from opensand_manager_gui.view.utils.config_elements import SpotTree
 from opensand_manager_gui.view.utils.carrier_arithmetic import CarrierArithmetic
 from opensand_manager_gui.view.window_view import WindowView
@@ -71,8 +71,8 @@ class ResourceView(WindowView):
         self._desc_err = {}
         self._fmt_group = {FORWARD_DOWN : {}, RETURN_UP : {}}
         self._update_spot = False
-        #self._return_link_std = self._model.get_conf().get_return_link_standard()
-        #self._rcs2_burst_length = self._model.get_conf().get_rcs2_burst_length()
+        self._return_link_std = self._model.get_conf().get_return_link_standard()
+        self._rcs2_burst_length = self._model.get_conf().get_rcs2_burst_length()
 
         #Add graph forward
         self._graph_forward = self._ui.get_widget('scrolledwindow_forward_graph')
@@ -93,7 +93,7 @@ class ResourceView(WindowView):
         self._return_carrier_arithmetic = CarrierArithmetic(self._list_carrier[RETURN_UP],
                                                             self._model, RETURN_UP);
         #Update graph
-        
+
         #St allocation
         self._st_forward = self._ui.get_widget('vbox_forward_st_assignment')
         self._st_return = self._ui.get_widget('vbox_return_st_assignment')
@@ -113,7 +113,7 @@ class ResourceView(WindowView):
         (tree, iterator) = path.get_selected()
         self._spot = None
         self._gw = None
-        
+
         if iterator is not None:
             # select first child
             if len(path.get_selected_rows()[1][0]) < 2 :
@@ -134,7 +134,7 @@ class ResourceView(WindowView):
         config = self._model.get_conf().get_configuration()
         xpath = "//" + RETURN_UP_BAND
         new_element = []
-        
+
         # add element
         for element in config.get(xpath) :
             if element.tag == SPOT:
@@ -145,8 +145,8 @@ class ResourceView(WindowView):
                 if spot not in self._tree_element:
                     gobject.idle_add(self._tree.add_spot, spot)
                     self._tree_element.append(spot)
-                
-                if spot + gw not in self._tree_element: 
+
+                if spot + gw not in self._tree_element:
                     list_parent = []
                     list_parent.append(spot)
                     gobject.idle_add(self._tree.add_child, GW + element.get(GW),
@@ -158,7 +158,6 @@ class ResourceView(WindowView):
                 gobject.idle_add(self._tree.del_elem, elm)
                 self._tree_element.remove(elm)
 
-        
         if self._init:
             first_child_path = (0,0)
             gobject.idle_add(self._tree.select_path, first_child_path)
@@ -170,18 +169,18 @@ class ResourceView(WindowView):
     def update_view(self, load = False):
         """Update view """
         # Check if update required to set modcods to default
-        #default_modcod = False
-        #if self._return_link_std != self._model.get_conf().get_return_link_standard():
-        #    self._return_link_std = self._model.get_conf().get_return_link_standard()
-        #    default_modcod = True
-        #if self._return_link_std == DVB_RCS2 and \
-        #   self._rcs2_burst_length != self._model.get_conf().get_rcs2_burst_length():
-        #    self._rcs2_burst_length = self._model.get_conf().get_rcs2_burst_length()
-        #    default_modcod = True
+        default_modcod = False
+        if self._return_link_std != self._model.get_conf().get_return_link_standard():
+            self._return_link_std = self._model.get_conf().get_return_link_standard()
+            default_modcod = True
+        if self._return_link_std == DVB_RCS2 and \
+           self._rcs2_burst_length != self._model.get_conf().get_rcs2_burst_length():
+            self._rcs2_burst_length = self._model.get_conf().get_rcs2_burst_length()
+            default_modcod = True
 
-        #if default_modcod:
-            #TODO: apply default modcods
-        #    pass
+        if default_modcod:
+            print('Load {}'.format(load))
+            self.set_default_modcods()
 
         self.update_tree()
         if self._spot is not None and self._gw is not None:
@@ -200,7 +199,7 @@ class ResourceView(WindowView):
                 label = self._ui.get_widget('label_return_title')
                 label.set_text("<b>Uplink Band</b>")
                 label.set_use_markup(True)
-            
+
             else:
                 label = self._ui.get_widget('label_forward_title')
                 label.set_text("<b>Forward Band</b>")
@@ -213,19 +212,58 @@ class ResourceView(WindowView):
             self._ui.get_widget('vbox_return').hide()
             self._ui.get_widget('vbox_forward').hide()
 
+    def set_default_modcods(self):
+        '''
+        Set default modcods to all carriers of each spot and gateway
+        '''
+        print('DEVEL> set_default_modcods')
+        config = self._model.get_conf().get_configuration()
+        xpath = "{}_band".format(RETURN_UP)
+        for elt in config.get_keys(config.get(xpath)):
+            if elt.tag != SPOT:
+                continue
+            spot = config.get_element_content(elt)
+            carrier_xpath = get_conf_xpath(CARRIERS_DISTRIB, RETURN_UP,
+                                           spot[ID], spot[GW])
+            fmt_gp_xpath = get_conf_xpath(FMT_GROUPS, RETURN_UP, spot[ID],
+                                          spot[GW])
+            for carrier in config.get_table_elements(config.get(carrier_xpath)):
+                # Check return/up link carrier is DAMA
+                content = config.get_element_content(carrier)
+                if content[ACCESS_TYPE] != DAMA:
+                    continue
+
+                # Get FMT group id of the carrier
+                fmt_group_id = content[FMT_GROUP]
+
+                # Get default return/up link modcods
+                modcods = self._model.get_conf().get_return_link_default_modcods()
+                modcods_str = ';'.join(str(e[0]) for e in modcods)
+
+                for fmt_group in config.get_table_elements(config.get(fmt_gp_xpath)):
+                    # Check fmt group is this of carrier
+                    fmt_content = config.get_element_content(fmt_group)
+                    if fmt_content[ID] != fmt_group_id:
+                        continue
+
+                    # Set modcods to FMT group of the carrier
+                    config.set_value(modcods_str, config.get_path(fmt_group), FMT_ID)
+                    break
+
+
     def update_carrier(self, link):
         """Update carrier"""
         #clear the list and not reinstanciate it
         del self._list_carrier[link][:]
         config = self._model.get_conf()._configuration
-        
+
         xpath = get_conf_xpath(BANDWIDTH, link, self._spot, self._gw)
         # bandwidth in MHz
         bandwidth = float(config.get_value(config.get(xpath))) * 1000000
 
         xpath = get_conf_xpath(ROLL_OFF, link)
         roll_off = float(config.get_value(config.get(xpath)))
-        
+
         # fmt groups
         xpath = get_conf_xpath(FMT_GROUPS, link, self._spot, self._gw)
         for group in config.get_table_elements(config.get(xpath)):
@@ -247,28 +285,27 @@ class ResourceView(WindowView):
                     bandwidth / (1 + roll_off)))
             if nb_carrier <= 0:
                 nb_carrier = 1
-            
+
             category = find_category(config, content[CATEGORY])
             carrier = Carrier(float(content[SYMBOL_RATE]),
-                              nb_carrier, category, 
-                              content[ACCESS_TYPE], 
+                              nb_carrier, category,
+                              content[ACCESS_TYPE],
                               content[FMT_GROUP],
                               ratio=content[RATIO])
             modcod = []
             for fmt_id in carrier.get_fmt_groups():
                 modcod.append(self._fmt_group[link][fmt_id])
-            
+
             modcods = ';'.join(str(e) for e in modcod)
             carrier.set_modcod(modcods)
 
-        
             self._list_carrier[link].append(carrier)
-        
+
     def update_graph(self, link):
         """Display on the graph the carrier representation"""
         #get the xml config
         config = self._model.get_conf().get_configuration()
-        
+
         #get the roll off
         xpath = get_conf_xpath(ROLL_OFF, link)
         roll_off = float(config.get_value(config.get(xpath)))
@@ -300,8 +337,8 @@ class ResourceView(WindowView):
         elif link == RETURN_UP:
             self._ui.get_widget('label_return_bandwidth').set_text(
                                 'Bandwidth : ' + str(bandwidth) + ' MHz')
-    
-    
+
+
     def clear_graph(self, link):
         """Clear all the representaion"""
         if link == FORWARD_DOWN:
@@ -311,21 +348,21 @@ class ResourceView(WindowView):
             self._ax_return.cla()
             self._figure_return.canvas.draw()
 
-    
+
     def update_st_assignment(self, link):
         """Refresh the list of st assignment """
         group_list = []
         terminal_list = {}
-        color = {0:'blue', 
-                 1:'green', 
-                 2:'cyan', 
-                 3:'magenta', 
-                 4:'yellow', 
-                 5:'black', 
+        color = {0:'blue',
+                 1:'green',
+                 2:'cyan',
+                 3:'magenta',
+                 4:'yellow',
+                 5:'black',
                  6:'red'}
         config = self._model.get_conf().get_configuration()
         host_list = self._model.get_hosts_list()
-        
+
         category = { }
         category_type = config.get_simple_type("Category")
         if not category_type is None and not category_type["enum"] is None:
@@ -356,14 +393,14 @@ class ResourceView(WindowView):
             if content[CATEGORY] != default_grp:
                 group_list.append(content[CATEGORY])
                 terminal_list[content[TAL_ID]] = content[CATEGORY]
-        
+
         xpath = get_conf_xpath(CARRIERS_DISTRIB, link, self._spot, self._gw)
         for carrier in config.get_table_elements(config.get(xpath)):
             content = config.get_element_content(carrier)
             if content[CATEGORY] != default_grp:
                 group_list.append(content[CATEGORY])
 
-        host_list = self._model.get_hosts_list()  
+        host_list = self._model.get_hosts_list()
         for host in host_list:
             if not host.get_name().lower().startswith(ST):
                 continue
@@ -379,20 +416,20 @@ class ResourceView(WindowView):
             msg = "There is no ST associated with this spot and gw"
             label_color = gtk.Label("<span color='red'>%s</span>" % msg)
             label_color.set_use_markup(True)
-            hbox_gr_title.pack_start(label_color, 
-                                     expand=False, 
-                                     fill=False, 
+            hbox_gr_title.pack_start(label_color,
+                                     expand=False,
+                                     fill=False,
                                      padding=10)
 
             if link == FORWARD_DOWN:
-                self._st_forward.pack_start(hbox_gr_title, 
-                                            expand=False, 
+                self._st_forward.pack_start(hbox_gr_title,
+                                            expand=False,
                                             fill=False)
             elif link == RETURN_UP:
-                self._st_return.pack_start(hbox_gr_title, 
-                                           expand=False, 
+                self._st_return.pack_start(hbox_gr_title,
+                                           expand=False,
                                            fill=False)
-        
+
 
         present = {k: group_list.count(k) for k in set(group_list)}
         for group in present:
@@ -413,11 +450,11 @@ class ResourceView(WindowView):
             label_color.set_use_markup(True)
             #Name of the group
             label_gr = "<b>Category %s</b>   " % group
-            hbox_gr_title.pack_start(label_color, 
-                                     expand=False, 
-                                     fill=False, 
+            hbox_gr_title.pack_start(label_color,
+                                     expand=False,
+                                     fill=False,
                                      padding=10)
-            
+
             # compter category scpc carrier and terminals
             nb_carrier_scpc = 0
             is_vcm_carriers = False
@@ -441,7 +478,7 @@ class ResourceView(WindowView):
                         if adv.get_configuration().get_value(tal_scpc) == "true":
                             nb_tal_scpc += 1
 
-            expand_rate = gtk.Expander(label = (label_gr + label_st)) 
+            expand_rate = gtk.Expander(label = (label_gr + label_st))
             expand_rate.set_use_markup(True)
             carrier_rate = "";
             carrier_arithmetic = None
@@ -471,11 +508,11 @@ class ResourceView(WindowView):
             expand_rate.add(label_rate)
             evt.add(expand_rate)
             evt.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff, 0xffff))
-            hbox_gr_title.pack_start(evt, 
-                                     expand=False, 
-                                     fill=False, 
-                                     padding=10)    
-           
+            hbox_gr_title.pack_start(evt,
+                                     expand=False,
+                                     fill=False,
+                                     padding=10)
+
             # show warning
             if nb_carrier == 0 and nb_tal > 0:
                 img_err = gtk.Image()
@@ -516,19 +553,19 @@ class ResourceView(WindowView):
 
             #Add the new group in window
             if link == FORWARD_DOWN:
-                self._st_forward.pack_start(hbox_gr, 
-                                            expand=False, 
+                self._st_forward.pack_start(hbox_gr,
+                                            expand=False,
                                             fill=False)
             elif link == RETURN_UP:
-                self._st_return.pack_start(hbox_gr, 
-                                           expand=False, 
+                self._st_return.pack_start(hbox_gr,
+                                           expand=False,
                                            fill=False)
 
         self._ui.get_widget('vbox_resources').show_all()
 
     def update_scenario(self):
         self.update_view(True)
-    
+
 
     def is_modified(self):
         """ check if the configuration was modified by user

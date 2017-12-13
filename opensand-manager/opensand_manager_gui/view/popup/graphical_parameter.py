@@ -388,7 +388,6 @@ class GraphicalParameter(WindowView):
                                  id_carrier,
                                  self._list_carrier,
                                  self.trace)
-
         ret = window.go()
 
         # adjust FMT Ids

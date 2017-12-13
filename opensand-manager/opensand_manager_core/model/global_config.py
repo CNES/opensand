@@ -300,18 +300,12 @@ class GlobalConfig(AdvancedHostModel):
 
         return self._modcods[link_std]
 
-    def get_default_rcs_modcod(self):
-        '''
-        Get the default MODCODs for DVB-RCS2
-        '''
-        return get_higher_modcod(self.get_modcods(DVB_RCS2))
-
     def get_return_link_default_modcods(self):
         '''
         Get the default MODCODs for DVB-RCS2
         '''
         if self.get_return_link_standard() == DVB_RCS:
-            return get_higher_modcod(self.get_modcods(DVB_RCS2))
+            return [ get_higher_modcod(self.get_modcods(DVB_RCS)) ]
         elif self.get_return_link_standard() == DVB_RCS2:
             return filter_modcods(self.get_modcods(DVB_RCS2,
                                   self.get_rcs2_burst_length()))
