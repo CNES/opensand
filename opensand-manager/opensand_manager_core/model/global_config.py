@@ -38,10 +38,12 @@ global_configuration.py - the global configuration description
 
 import os
 import shutil
+import operator
 
 from opensand_manager_core.utils import OPENSAND_PATH, \
                                         SPOT, ID, GW, \
-                                        SAT, DAMA
+                                        SAT, DAMA, \
+                                        DVB_S2, DVB_RCS, DVB_RCS2
 from opensand_manager_core.model.host_advanced import AdvancedHostModel
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import XmlException, ModelException
@@ -50,6 +52,10 @@ from opensand_manager_core.opensand_xml_parser import XmlParser
 DEFAULT_CONF = OPENSAND_PATH + "core_global.conf"
 GLOBAL_XSD = OPENSAND_PATH + "core_global.xsd"
 CONF_NAME = "core_global.conf"
+
+MODCOD_DEF_S2="modcod_def_s2"
+MODCOD_DEF_RCS="modcod_def_rcs"
+MODCOD_DEF_RCS2="modcod_def_rcs2"
 
 class GlobalConfig(AdvancedHostModel):
     """ Global OpenSAND configuration, displayed in configuration tab """
@@ -62,6 +68,7 @@ class GlobalConfig(AdvancedHostModel):
         self._forward_down = {}
         self._return_up = {}
         self._enable_phy_layer = None
+        self._modcods = None
 
     def load(self, scenario):
         """ load the global configuration """
@@ -100,6 +107,16 @@ class GlobalConfig(AdvancedHostModel):
         except XmlException, msg:
             raise ModelException("failed to parse configuration: %s"
                                  % msg)
+
+    def _load_all_modcods(self):
+        '''
+        Load modcods from files
+        '''
+        # Load modcods and default modcods
+        self._modcods = {}
+        self._modcods[DVB_S2] = load_modcods(self.get_param(MODCOD_DEF_S2))
+        self._modcods[DVB_RCS] = load_modcods(self.get_param(MODCOD_DEF_RCS))
+        self._modcods[DVB_RCS2] = load_modcods(self.get_param(MODCOD_DEF_RCS2), True)
 
     def cancel(self):
         self.load(self._scenario)
@@ -153,9 +170,9 @@ class GlobalConfig(AdvancedHostModel):
                    (child.tag == SPOT and child.get(GW) == instance):
                     exist =  True
                     continue
-                
+
             if not exist:
-                self._configuration.add_gw("//"+section.tag, instance) 
+                self._configuration.add_gw("//"+section.tag, instance)
         # update the configuration elements
         self.update_conf()
 
@@ -170,7 +187,7 @@ class GlobalConfig(AdvancedHostModel):
         for section in self._configuration.get_sections():
             for child in section.getchildren():
                 if child.tag ==  SPOT or child.tag == GW:
-                    self._configuration.remove_gw("//"+section.tag, instance) 
+                    self._configuration.remove_gw("//"+section.tag, instance)
                     break
 
         try:
@@ -195,7 +212,7 @@ class GlobalConfig(AdvancedHostModel):
     def get_rcs2_burst_length(self):
         """ get the rcs2_burst_length value """
         return self.get_param('rcs2_burst_length')
-    
+
     def set_delay_type(self, val):
         """ set the delay_type value """
         self._delay_type = val
@@ -235,7 +252,7 @@ class GlobalConfig(AdvancedHostModel):
 
     def set_forward_down_encap(self, stack):
         """ set the forward_down_encap_schemes values """
-        self._forward_down = stack 
+        self._forward_down = stack
 
     def get_forward_down_encap(self):
         """ get the forward_down_encap_schemes values """
@@ -264,3 +281,103 @@ class GlobalConfig(AdvancedHostModel):
             except:
                 pass
         return val
+
+    def get_modcods(self, link_std, burst_len=None):
+        '''
+        Get modcods of a link standard.
+
+        Args:
+            link_std:  DVB_S2, DVB_RCS or DVB_RCS2
+
+        Returns:
+            modcods
+        '''
+        if self._modcods is None:
+            self._load_all_modcods()
+
+        if burst_len is not None:
+            return filter_modcods(self._modcods[link_std], burst_len)
+
+        return self._modcods[link_std]
+
+    def get_default_rcs_modcod(self):
+        '''
+        Get the default MODCODs for DVB-RCS2
+        '''
+        return get_higher_modcod(self.get_modcods(DVB_RCS2))
+
+    def get_return_link_default_modcods(self):
+        '''
+        Get the default MODCODs for DVB-RCS2
+        '''
+        if self.get_return_link_standard() == DVB_RCS:
+            return get_higher_modcod(self.get_modcods(DVB_RCS2))
+        elif self.get_return_link_standard() == DVB_RCS2:
+            return filter_modcods(self.get_modcods(DVB_RCS2,
+                                  self.get_rcs2_burst_length()))
+        return None
+
+def load_modcods(path, has_burst_length=False):
+    '''
+    Get the modcods list from file
+
+    Args:
+        path:          the modcods path
+        burst_length:  the burst length
+                       (only if return link standard is DVB-RCS2)
+
+    Returns:
+        the modcods list
+    '''
+    modcods = []
+    with open(path, 'r') as fd:
+        for line in fd:
+            if (line.startswith("/*") or
+                line.isspace() or
+                line.startswith('nb_fmt')):
+                continue
+            elts = line.split()
+            if not elts[0].isdigit:
+                continue
+            if not has_burst_length and len(elts) != 5:
+                continue
+            elif has_burst_length and len(elts) != 6:
+                continue
+            # id, modulation, coding_rate, spectral_efficiency, required Es/N0
+            # [, burst_length]
+            modcods.append(elts)
+    return modcods
+
+def filter_modcods(modcods, burst_length=None):
+    '''
+    Get the modcods with specific burst length
+
+    Args:
+        modcods:       the modcods list
+        burst_length:  the burst length
+
+    Returns:
+        list of modcods with specified burst length
+    '''
+    if burst_length is None:
+        return modcods
+
+    return [
+            modcod for modcod in modcods
+            if modcod[5] == burst_length
+    ]
+
+def get_higher_modcod(modcods):
+    '''
+    Get the higher modcod from a list
+
+    Args:
+        modcods:  the modcods list
+
+    Returns:
+        the higher modcod of the list
+    '''
+    if not modcods:
+        return None
+
+    return max(modcods, key=operator.itemgetter(0))

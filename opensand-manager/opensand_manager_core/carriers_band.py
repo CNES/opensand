@@ -40,9 +40,9 @@ from fractions import Fraction
 from opensand_manager_core.utils import get_conf_xpath, ROLL_OFF, \
         OPENSAND_PATH, ID, FMT_ID, FMT_GROUP, \
         RATIO, ACCESS_TYPE, SYMBOL_RATE, CATEGORY, \
-        RCS, RCS2, S2 
+        RCS, RCS2, S2
 from opensand_manager_core.carrier import Carrier, find_category
-
+from opensand_manager_core.model.global_config import load_modcods
 XSD = OPENSAND_PATH + "core_global.xsd"
 
 
@@ -106,45 +106,29 @@ class CarriersBand():
             elem = config.get(xpath)
             name = config.get_name(elem)
             path = os.path.join(scenario, config.get_file_source(name))
-            self.load_fmt(path, std)
+            modcods = load_modcods(path, std == RCS2)
+            self._fmt[std] = {}
+            for e in modcods:
+                self._fmt[std][int(e[0])] = _Fmt(int(e[0]), e[1], e[2],
+                                                 float(e[3]), float(e[4]))
 
         if compute:
             self.compute()
-
-    def load_fmt(self, path, std):
-        """ load the FMT definitions """
-        with  open(path, 'r') as modcod_def:
-            fmt = {}
-            for line in modcod_def:
-                if (line.startswith("/*") or 
-                    line.isspace() or
-                    line.startswith('nb_fmt')):
-                    continue
-                elts = line.split()
-                if len(elts) != 5 and len(elts) != 6:
-                    continue
-                if not elts[0].isdigit:
-                    continue
-                # id, modulation, coding_rate, spectral_efficiency, required Es/N0
-                # fmt[7] = _Fmt("QPSK", "6/7", 1.714, 9.34)
-                fmt[int(elts[0])] = _Fmt(int(elts[0]), elts[1], elts[2],
-                                         float(elts[3]), float(elts[4]))
-            self._fmt[std] = fmt
 
     def create_carrier(self, name, category, access_type, ratios, symbol_rate_baud, fmt_groups):
         """ create a new carrier """
         carrier = Carrier(symbol_rate=symbol_rate_baud,
                           category=category,
-                          access_type=access_type, 
+                          access_type=access_type,
                           fmt_groups=fmt_groups,
                           ratio=ratios)
         self.add_carrier(carrier, name)
-    
+
     def add_carrier(self, carrier, name):
         """ add a new category """
         if not name in self._categories:
             self._categories[name] = []
-        if carrier not in self._categories[name]: 
+        if carrier not in self._categories[name]:
             self._categories[name].append(carrier)
 
     def remove_carrier(self, carrier):
@@ -194,14 +178,14 @@ class CarriersBand():
         for name in self._categories:
             for carrier in self._categories[name]:
                 total_ratio += sum(carrier.get_ratio())
-        
+
         # replace floor by round because bandwidth is calculed exactly
-        # according to the number of wanted carrier 
+        # according to the number of wanted carrier
         number = round((total_ratio / weighted_sum) *
                                 (self._bandwidth / (1 + self._roll_off)))
         if number == 0:
             number = 1
-                
+
         for name in self._categories:
             for carrier in self._categories[name]:
                 nbr = int(round(number * sum(carrier.get_ratio()) /
@@ -209,7 +193,7 @@ class CarriersBand():
                 if nbr == 0:
                     nbr = 1
                 carrier.set_nb_carriers(nbr)
-                
+
     def get_carrier_bitrates(self, carrier):
         """ get the maximum bitrate per carrier group """
         br = []
@@ -242,7 +226,7 @@ class CarriersBand():
                 bitrate += br * carrier.get_nb_carriers()
                 i += 1
         return bitrate
-    
+
     def get_min_bitrate(self, name, access_type):
         """ get the maximum bitrate for a given category """
         bitrate = 0
@@ -268,7 +252,7 @@ class CarriersBand():
                 continue
             nbr += carrier.get_nb_carriers()
         return nbr
-    
+
     def get_access_type(self, name):
         """ get the access types in a category """
         access_types = []
@@ -305,7 +289,7 @@ class CarriersBand():
 class _Fmt():
     """ A FMT definition """
 
-    def __init__(self, index, modulation, coding_rate, 
+    def __init__(self, index, modulation, coding_rate,
                  spectral_efficiency, required_es_n0):
         self._index = index
         self._modulation = modulation

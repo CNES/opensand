@@ -48,7 +48,7 @@ from opensand_manager_core.carrier import Carrier, find_category
 from opensand_manager_core.utils import get_conf_xpath, FORWARD_DOWN, RETURN_UP, \
         ROLL_OFF, CARRIERS_DISTRIB, BANDWIDTH, TAL_AFFECTATIONS, TAL_DEF_AFF, \
         TAL_ID, SYMBOL_RATE, RATIO, ACCESS_TYPE, CATEGORY, ST, SPOT, ID, GW, \
-        RETURN_UP_BAND, FMT_GROUP, VCM, SCPC, FMT_GROUPS, FMT_ID
+        RETURN_UP_BAND, FMT_GROUP, VCM, SCPC, FMT_GROUPS, FMT_ID, DVB_RCS2
 from opensand_manager_gui.view.utils.config_elements import SpotTree
 from opensand_manager_gui.view.utils.carrier_arithmetic import CarrierArithmetic
 from opensand_manager_gui.view.window_view import WindowView
@@ -71,6 +71,8 @@ class ResourceView(WindowView):
         self._desc_err = {}
         self._fmt_group = {FORWARD_DOWN : {}, RETURN_UP : {}}
         self._update_spot = False
+        #self._return_link_std = self._model.get_conf().get_return_link_standard()
+        #self._rcs2_burst_length = self._model.get_conf().get_rcs2_burst_length()
 
         #Add graph forward
         self._graph_forward = self._ui.get_widget('scrolledwindow_forward_graph')
@@ -167,6 +169,20 @@ class ResourceView(WindowView):
 
     def update_view(self, load = False):
         """Update view """
+        # Check if update required to set modcods to default
+        #default_modcod = False
+        #if self._return_link_std != self._model.get_conf().get_return_link_standard():
+        #    self._return_link_std = self._model.get_conf().get_return_link_standard()
+        #    default_modcod = True
+        #if self._return_link_std == DVB_RCS2 and \
+        #   self._rcs2_burst_length != self._model.get_conf().get_rcs2_burst_length():
+        #    self._rcs2_burst_length = self._model.get_conf().get_rcs2_burst_length()
+        #    default_modcod = True
+
+        #if default_modcod:
+            #TODO: apply default modcods
+        #    pass
+
         self.update_tree()
         if self._spot is not None and self._gw is not None:
             if load:
@@ -197,7 +213,6 @@ class ResourceView(WindowView):
             self._ui.get_widget('vbox_return').hide()
             self._ui.get_widget('vbox_forward').hide()
 
-           
     def update_carrier(self, link):
         """Update carrier"""
         #clear the list and not reinstanciate it
@@ -248,7 +263,6 @@ class ResourceView(WindowView):
 
         
             self._list_carrier[link].append(carrier)
-        
         
     def update_graph(self, link):
         """Display on the graph the carrier representation"""

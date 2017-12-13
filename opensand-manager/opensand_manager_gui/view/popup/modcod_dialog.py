@@ -44,14 +44,9 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanva
 
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.utils import FORWARD_DOWN, RETURN_UP, CCM, ACM, VCM, \
-                                        DAMA, ALOHA, SCPC, DVB_RCS, DVB_RCS2
+                                        DAMA, ALOHA, SCPC, DVB_S2, DVB_RCS, DVB_RCS2
 from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.popup.infos import error_popup
-
-
-MODCOD_DEF_S2="modcod_def_s2"
-MODCOD_DEF_RCS="modcod_def_rcs"
-MODCOD_DEF_RCS2="modcod_def_rcs2"
 
 class ModcodParameter(WindowView):
     """ an modcod configuration window """
@@ -273,10 +268,10 @@ class ModcodParameter(WindowView):
         #MODCOD list from file definition.txt
         global_conf = self._model.get_conf()
         ret_lnk_std = global_conf.get_return_link_standard()
-        has_burst_length = False
+        modcod_list = []
         self._check_modcod.set_active(False)
         if self._link == FORWARD_DOWN:
-            path = global_conf.get_param(MODCOD_DEF_S2)
+            modcod_list.extend(global_conf.get_modcods(DVB_S2))
             if option == CCM:
                 if self._check_modcod in self._vbox_modcods.get_children():
                     self._vbox_modcods.remove(self._check_modcod)
@@ -289,23 +284,21 @@ class ModcodParameter(WindowView):
                 if self._check_modcod not in self._vbox_modcods.get_children():
                     self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
                     self._vbox_modcods.reorder_child(self._check_modcod, 0)
-                path = global_conf.get_param(MODCOD_DEF_S2)
+                modcod_list.extend(global_conf.get_modcods(DVB_S2))
             elif option == DAMA and ret_lnk_std == DVB_RCS2:
                 if self._check_modcod not in self._vbox_modcods.get_children():
                     self._vbox_modcods.pack_start(self._check_modcod, fill=False , expand=False)
                     self._vbox_modcods.reorder_child(self._check_modcod, 0)
-                path = global_conf.get_param(MODCOD_DEF_RCS2)
-                has_burst_length = True
+                modcod_list.extend(global_conf.get_modcods(DVB_RCS2,
+                                                           global_conf.get_rcs2_burst_length()))
             else:
                 if self._check_modcod in self._vbox_modcods.get_children():
                     self._vbox_modcods.remove(self._check_modcod)
                 if ret_lnk_std == DVB_RCS2:
-                    path = global_conf.get_param(MODCOD_DEF_RCS2)
-                    has_burst_length = True
+                    modcod_list.extend(global_conf.get_modcods(DVB_RCS2,
+                                                               global_conf.get_rcs2_burst_length()))
                 else:
-                    path = global_conf.get_param(MODCOD_DEF_RCS)
-
-        modcod_list = self.load_modcod(path, has_burst_length)
+                    modcod_list.extend(global_conf.get_modcods(DVB_RCS))
 
         del self._item_list[:]
         #Create tooltips for button
@@ -415,31 +408,6 @@ class ModcodParameter(WindowView):
         """Signal when a ratio change"""
         self._dico_modcod[modcod] = int(source.get_value())
         self.trace_arrow()
-
-
-    def load_modcod(self, path, has_burst_length=False):
-        """Read in the file the available modcod"""
-        global_conf = self._model.get_conf()
-        mc_list = []
-        burst_length = global_conf.get_rcs2_burst_length()
-        with  open(path, 'r') as modcod_def:
-            for line in modcod_def:
-                if (line.startswith("/*") or
-                    line.isspace() or
-                    line.startswith('nb_fmt')):
-                    continue
-                elts = line.split()
-                if not has_burst_length and len(elts) != 5:
-                    continue
-                elif has_burst_length and (len(elts) != 6
-                     or elts[5] != burst_length):
-                    continue
-                if not elts[0].isdigit:
-                    continue
-                # id, modulation, coding_rate, spectral_efficiency, required Es/N0
-                mc_list.append(elts)
-        
-        return mc_list
 
     def trace_temporal_representation(self):
         """Add graph and ratio selection in the window """
