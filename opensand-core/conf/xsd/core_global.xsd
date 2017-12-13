@@ -373,6 +373,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The return link standard type
+                        <adv>true</adv>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -380,6 +381,7 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The constant burst length for DVB-RCS2
+                        <adv>true</adv>
                         <unit>sym</unit>
                         <xpath common.return_link_standard="DVB-RCS2" />
                     </xsd:documentation>
