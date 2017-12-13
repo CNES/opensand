@@ -45,7 +45,7 @@
 
 BlockEncapSat::BlockEncapSat(const string &name):
 	Block(name),
-	top_plugin()
+	lan_plugin()
 {
 	// register static log
 	NetBurst::log_net_burst = Output::registerLog(LEVEL_WARNING, "NetBurst");
@@ -337,7 +337,7 @@ bool BlockEncapSat::onInit()
 	// Check top pkt handler is not null
 	if(!top_pkt_hdl)
 	{
-		top_pkt_hdl = this->top_plugin.getPacketHandler();
+		top_pkt_hdl = this->lan_plugin.getPacketHandler();
 	}
 
 	// Load downlink encapsulation
@@ -656,14 +656,14 @@ error:
 	return status;
 }
 
-BlockEncapSat::TopPlugin::TopPlugin():
+BlockEncapSat::SatLanPlugin::SatLanPlugin():
 	StackPlugin((uint16_t)0)
 {
-	this->packet_handler = new BlockEncapSat::TopPlugin::PacketHandler(*this);
-	this->context = new BlockEncapSat::TopPlugin::Context(*this);
+	this->packet_handler = new BlockEncapSat::SatLanPlugin::PacketHandler(*this);
+	this->context = new BlockEncapSat::SatLanPlugin::Context(*this);
 }
 
-NetPacket *BlockEncapSat::TopPlugin::PacketHandler::build(const Data &data,
+NetPacket *BlockEncapSat::SatLanPlugin::PacketHandler::build(const Data &data,
 		size_t data_length,
 		uint8_t qos,
 		uint8_t src_tal_id,

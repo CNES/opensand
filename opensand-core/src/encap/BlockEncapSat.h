@@ -153,7 +153,7 @@ class BlockEncapSat: public Block
 		bool EncapsulatePackets(NetBurst *burst);
 	};
 
-	class TopPlugin: public StackPlugin
+	class SatLanPlugin: public StackPlugin
 	{
 		class Context: public StackPlugin::StackContext
 		{
@@ -188,7 +188,7 @@ class BlockEncapSat: public Block
 			{
 				return 0;
 			}
-			std::string getName() const { return "LAN"; };
+			std::string getName() const { return "LAN_SAT"; };
 
 			NetPacket *build(const Data &data,
 							 size_t data_length,
@@ -214,12 +214,12 @@ class BlockEncapSat: public Block
 		};
 
 	  public:
-		TopPlugin();
+		SatLanPlugin();
 		bool init() { return true; };
 	};
 
  protected:
-	TopPlugin top_plugin;
+	SatLanPlugin lan_plugin;
 
 	bool onInit();
 };
