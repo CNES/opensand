@@ -249,3 +249,9 @@ Type: boolean
 Default: false
 Description: Do you want to use enable the default route toward terminal for workstations ?
   Select if you want your DCHP server to set the default route toward the terminal.
+
+Template: opensand-daemon/output/libpath
+Type: string
+Description: External output library path
+  The path of an external output library to be used for logging output, instead
+  of the default OpenSAND output library. Leave empty to use the default.

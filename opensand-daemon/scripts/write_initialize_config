@@ -61,6 +61,7 @@ IP_INTERCONNECT=''
 IP_INTERCONNECT_REMOTE=''
 PORT_UPWARD=''
 PORT_DOWNWARD=''
+OUTPUT_LIBPATH=''
 
 # read the daemon configuration from debconf cache
 read_conf(){
@@ -126,6 +127,8 @@ read_conf(){
     PORT_UPWARD=$RET
     db_get opensand-daemon/interconnect/port_downward
     PORT_DOWNWARD=$RET
+    db_get opensand-daemon/output/libpath
+    OUTPUT_LIBPATH=$RET
 }
 
 # write daemon configuration
@@ -200,6 +203,13 @@ write_conf(){
                 echo "lan_iface = ${WS_LAN_IFACE}" >> ${DAEMON_CONF}
             fi
         fi
+    fi
+    echo "" >> ${DAEMON_CONF}
+
+    # output section
+    echo "[output]" >> ${DAEMON_CONF}
+    if [ ! -z ${OUTPUT_LIBPATH} ]; then
+        echo "libpath" = ${OUTPUT_LIBPATH} >> ${DAEMON_CONF}
     fi
 }
 

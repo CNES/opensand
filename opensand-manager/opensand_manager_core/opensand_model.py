@@ -366,8 +366,8 @@ class Model:
             return True
         return False
 
-    def add_host(self, name, instance, network_config,
-                 state_port, command_port, tools, host_modules):
+    def add_host(self, name, instance, network_config, state_port,
+                 command_port, tools, host_modules, output_libpath):
         """ add an host in the host list """
         add_to_list = True
         # remove instance for ST and WS
@@ -441,7 +441,7 @@ class Model:
         machine = MachineModel(name, instance, network_config, state_port,
                          command_port, tools, host_modules, self._scenario_path,
                          self._log, self._collector_functional, incomplete,
-                         spot_id, gw_id)
+                         spot_id, gw_id, output_libpath)
         self._machines.append(machine)
         incomplete.add_machine(machine)
         ret_host = incomplete

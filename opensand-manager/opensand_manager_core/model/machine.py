@@ -55,7 +55,8 @@ class MachineModel:
     """ machine model """
     def __init__(self, name, instance, network_config, state_port,
                  command_port, tools, modules, scenario, manager_log,
-                 collector_functional, host_model,  spot_id = "", gw_id = ""):
+                 collector_functional, host_model,  spot_id = "",
+                 gw_id = "", output_libpath = ""):
         self._log = manager_log
         self._name = name
         self._instance = instance
@@ -78,6 +79,8 @@ class MachineModel:
         self._ifaces = network_config
         self._state_port = state_port
         self._command_port = command_port
+
+        self._output_libpath = output_libpath
 
         self._enabled = True
         self._state = None
@@ -409,6 +412,10 @@ class MachineModel:
     def get_command_port(self):
         """ get the command server port """
         return int(self._command_port)
+
+    def get_output_libpath(self):
+        """ get the output libpath """
+        return self._output_libpath
 
     def enable(self, val):
         """ enable host """
