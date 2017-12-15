@@ -60,6 +60,9 @@ configure(){
                 db_set opensand-daemon/service/name_adv $NAME
             fi
             db_endblock
+            if [ "$NAME" = "NONE" ]; then
+                return
+            fi
         ;;
         4)
             db_beginblock

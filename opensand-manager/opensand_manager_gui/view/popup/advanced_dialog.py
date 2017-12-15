@@ -677,7 +677,10 @@ class AdvancedDialog(WindowView):
         self._host_lock.release()
         gobject.idle_add(self._update_cb)
         # tell model that file changed has been saved
-        self._model.conf_apply()
+        try:
+            self._model.conf_apply()
+        except ModelException as err:
+            error_popup(str(err))
 
     def handle_param_changed(self, source=None, event=None):
         """ 'changed' event on configuration value """

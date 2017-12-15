@@ -50,7 +50,6 @@ from opensand_manager_core.model.global_config import GlobalConfig
 from opensand_manager_core.model.topology_config import TopologyConfig
 from opensand_manager_core.my_exceptions import ModelException
 from opensand_manager_core.loggers.manager_log import ManagerLog
-from opensand_manager_gui.view.popup.infos import error_popup
 from opensand_manager_core.module import load_modules
 
 MAX_RECENT = 5
@@ -741,9 +740,8 @@ class Model:
         try:
             return SavedProbeLoader(run_path)
         except ValueError, msg:
-            error_popup("cannot parse saved probes files",
-                        str(msg))
-            return None
+            raise ModelException("cannot parse saved probes files",
+                                 str(msg))
 
     def handle_file_changed(self, filename, host_name, xpath):
         """ a source for a file from configuration has been updated """
@@ -759,8 +757,7 @@ class Model:
             try:
                 host.update_files(self._changed_sim_files[host])
             except IOError, (_, strerror):
-                error_popup("Cannot update files on %s" % host.get_name(), strerror)
-
+                raise ModelException("Cannot update files on %s" % host.get_name(), strerror)
 
         self._changed_sim_files = {}
         # deploy the simulation files that were modified
