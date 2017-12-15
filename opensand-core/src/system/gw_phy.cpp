@@ -83,7 +83,7 @@ bool init_process(int argc, char **argv,
 	bool output_stdout = false;
 	bool stop = false;
 	string lib_external_output_path = "";
-	
+	char entity[10];	
 	/* setting environment agent parameters */
 	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:n:t:u:w:c:e:")) != EOF)
 	{
@@ -151,9 +151,10 @@ bool init_process(int argc, char **argv,
 	}
 
 	if(lib_external_output_path != "")
-	{
+	{   
+		sprintf(entity, "gw%d", instance_id);
 		// external output initialization
-		if(!Output::initExt(output_enabled, lib_external_output_path.c_str()))
+		if(!Output::initExt(output_enabled, (const char *)entity, lib_external_output_path.c_str()))
 		{
 			stop = true;
 			fprintf(stderr, "Unable to initialize external output library\n");

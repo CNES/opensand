@@ -59,7 +59,7 @@ bool Output::init(bool enabled, const char *sock_prefix)
 	return instance->init(enabled);
 }
 
-bool Output::initExt(bool enabled, const char *path)
+bool Output::initExt(bool enabled, const char *entity, const char *path)
 {
 	char *error;
 
@@ -97,7 +97,7 @@ bool Output::initExt(bool enabled, const char *path)
     }
 
 	// Create instance
-    instance = (*create)();
+    instance = (*create)(entity);
 
 	// Initialize instance
 	instance->init(enabled);

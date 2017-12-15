@@ -95,7 +95,7 @@ class Output
 	friend class OutputOpensand;
 
 public:
-	typedef OutputInternal* create_func_t();
+	typedef OutputInternal* create_func_t(const char *);
 	typedef void destroy_func_t(OutputInternal **);
 
 	~Output();
@@ -121,7 +121,7 @@ public:
 	 * @param path         custom external library path 
 	 * 	 * @return true on success, false otherwise
 	 */
-	static bool initExt(bool enabled,
+	static bool initExt(bool enabled, const char * entity,
 	                    const char *path = NULL);
 
 	/**
