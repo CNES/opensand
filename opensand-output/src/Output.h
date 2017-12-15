@@ -37,11 +37,11 @@
 #ifndef _OUTPUT_H
 #define _OUTPUT_H
 
-
 #include "Probe.h"
 #include "OutputEvent.h"
 #include "OutputLog.h"
 #include "OutputInternal.h"
+#include "OutputOpensand.h"
 
 #include <vector>
 #include <assert.h>
@@ -49,6 +49,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <string>
+#include <dlfcn.h>
 
 #define PRINTFLIKE(fmt_pos, vararg_pos) __attribute__((format(printf,fmt_pos,vararg_pos)))
 
@@ -91,10 +92,17 @@
 class Output
 {
 	friend class CommandThread;
-	friend uint8_t receiveMessage(int, char*, size_t);
+	friend class OutputOpensand;
 
 public:
+	typedef OutputInternal* create_func_t(const char *);
+	typedef void destroy_func_t(OutputInternal **);
 
+	~Output();
+
+	/* handle for dynamic load library */
+	static void *handle;
+	
 	/**
 	 * @brief Initialize the output library
 	 *        Prepares the library for registering probes and logs
@@ -105,6 +113,21 @@ public:
 	 */
 	static bool init(bool enabled,
 	                 const char *sock_prefix = NULL);
+
+	/**
+	 * @brief Initialize the output external library
+	 *
+	 * @param enabled      Set to false to disable the output library
+	 * @param path         custom external library path 
+	 * 	 * @return true on success, false otherwise
+	 */
+	static bool initExt(bool enabled, const char * entity,
+	                    const char *path = NULL);
+
+	/**
+	 * @brief Close the output
+	 */
+	static void close();
 
 	/**
 	 * @brief Register a probe in the output library
@@ -276,28 +299,8 @@ public:
 	                      const map<string, log_level_t> &specific);
 
 private:
-	/**
-	 * @brief  Get the daemon socket address
-	 *
-	 * @return the daemon socket address
-	 */
-	inline static const sockaddr_un *daemonSockAddr()
-	{
-		return &instance.daemon_sock_addr;
-	};
-
-	/**
-	 * @brief  Get the output instance socket address
-	 *
-	 * @return the output instance socket address
-	 */
-	inline static const sockaddr_un *selfSockAddr()
-	{
-		return &instance.self_sock_addr;
-	};
 
 	Output();
-	~Output();
 
 	/**
 	 * @brief Set the probe state
@@ -346,7 +349,8 @@ private:
 	static void enableSyslog(void);
 
 	/// The output instance
-	static OutputInternal instance;
+	static OutputInternal *instance;
+	
 };
 
 template<typename T>
@@ -361,7 +365,7 @@ Probe<T> *Output::registerProbe(const string &name,
                                 const string &unit,
                                 bool enabled, sample_type_t type)
 {
-	return Output::instance.registerProbe<T>(name, unit, enabled, type);
+	return Output::instance->registerProbe<T>(name, unit, enabled, type);
 }
 
 template<typename T>

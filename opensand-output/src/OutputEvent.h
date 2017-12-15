@@ -50,11 +50,14 @@
 class OutputEvent: public OutputLog
 {
 	friend class OutputInternal;
- protected:
+
+  public:
+	~OutputEvent() {};
+
+  protected:
 	OutputEvent(uint8_t id, const string &name):
 		OutputLog(id, LEVEL_EVENT, name)
 	{};
-	~OutputEvent() {};
 
 	void setDisplayLevel(log_level_t level)
 	{

@@ -89,9 +89,11 @@ bool init_process(int argc, char **argv,
 	int opt;
 	bool output_enabled = true;
 	bool output_stdout = false;
-
+	bool stop = false;
+	string lib_external_output_path = "";
+	char entity[10];
 	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-hqdi:a:n:l:c:")) != EOF)
+	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:n:l:c:e:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -123,29 +125,55 @@ bool init_process(int argc, char **argv,
 			// get the conf path
 			conf_path = optarg;
 			break;
+		case 'e':
+			// get library external path
+			lib_external_output_path = optarg;
+			break;
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id -a ip_address "
-				"-n emu_iface -l lan_iface -c conf_path\n",
+				"-n emu_iface -l lan_iface -c conf_path -e lib_ext_output_path\n",
 			        argv[0]);
-			fprintf(stderr, "\t-h                   print this message\n");
-			fprintf(stderr, "\t-q                   disable output\n");
-			fprintf(stderr, "\t-d                   enable output debug events\n");
-			fprintf(stderr, "\t-a <ip_address>      set the IP address for emulation\n");
-			fprintf(stderr, "\t-n <emu_iface>       set the emulation interface name\n");
-			fprintf(stderr, "\t-l <lan_iface>       set the ST lan interface name\n");
-			fprintf(stderr, "\t-i <instance>        set the instance id\n");
-			fprintf(stderr, "\t-c <conf_path>       specify the configuration path\n");
-			Output::init(true);
-			Output::enableStdlog();
-			return false;
+			fprintf(stderr, "\t-h                       print this message\n");
+			fprintf(stderr, "\t-q                       disable output\n");
+			fprintf(stderr, "\t-d                       enable output debug events\n");
+			fprintf(stderr, "\t-a <ip_address>          set the IP address for emulation\n");
+			fprintf(stderr, "\t-n <emu_iface>           set the emulation interface name\n");
+			fprintf(stderr, "\t-l <lan_iface>           set the ST lan interface name\n");
+			fprintf(stderr, "\t-i <instance>            set the instance id\n");
+			fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
+			fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
+			stop = true;
+			break;
 		}
 	}
-	// output initialisation
-	Output::init(output_enabled);
+
+	if(lib_external_output_path != "")
+	{
+		sprintf(entity, "st%d", instance_id);
+		// external output initialization
+		if(!Output::initExt(output_enabled, (const char *)entity, lib_external_output_path.c_str()))
+		{
+			stop = true;
+			fprintf(stderr, "Unable to initialize external output library\n");
+		}
+	}
+	else
+	{
+		// output initialization
+		if(!Output::init(output_enabled)) 
+		{
+			stop = true;
+			fprintf(stderr, "Unable to initialize output library\n");
+		}
+	}
 	if(output_stdout)
 	{
 		Output::enableStdlog();
+	}
+	if(stop)
+	{
+		return false;
 	}
 
 	DFLTLOG(LEVEL_NOTICE,
@@ -194,7 +222,7 @@ int main(int argc, char **argv)
 	string lan_iface;
 	tal_id_t mac_id;
 	struct sc_specific specific;
-
+	
 	Block *block_lan_adaptation;
 	Block *block_encap;
 	Block *block_dvb;
@@ -367,5 +395,6 @@ quit:
 	DFLTLOG(LEVEL_NOTICE,
 	        "%s: ST process stopped with exit code %d\n",
 	        progname, is_failure);
+	Output::close();
 	return is_failure;
 }

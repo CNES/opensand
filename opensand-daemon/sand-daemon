@@ -188,6 +188,13 @@ def publish_service(output_handler):
         publish_iface = CONF_PARSER.get('service', 'interface')
     except ConfigParser.Error:
         pass
+
+    # get the external output library path
+    try:
+        descr['output_libpath'] = CONF_PARSER.get('output', 'libpath')
+    except ConfigParser.Error:
+        pass
+
     SERVICE = OpenSandService(CACHE_DIR, publish_iface, service_type,
                               name, instance, port, descr, output_handler)
 

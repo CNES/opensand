@@ -139,7 +139,7 @@ void msgHeaderSendLog(string &message, uint8_t log_id, log_level_t level)
 	message.append((const char *)&header, sizeof(header));
 }
 
-uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length)
+uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length, const char *daemon_sun_path)
 {
 	sockaddr_un address;
 	socklen_t address_len = sizeof(address);
@@ -154,7 +154,7 @@ uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length)
 	}
 
 	if(address.sun_family != AF_UNIX ||
-	   strncmp(address.sun_path, Output::daemonSockAddr()->sun_path,
+	   strncmp(address.sun_path, daemon_sun_path,
 	           sizeof(address.sun_path)) != 0)
 	{
 		DFLTLOG(LEVEL_WARNING,

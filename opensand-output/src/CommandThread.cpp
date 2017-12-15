@@ -44,8 +44,9 @@
 #include <sys/un.h>
 
 
-CommandThread::CommandThread(int sock_fd):
-	sock_fd(sock_fd)
+CommandThread::CommandThread(int sock_fd, sockaddr_un daemon_sock_addr):
+	sock_fd(sock_fd),
+	daemon_sock_addr(daemon_sock_addr)
 {
 }
 
@@ -80,7 +81,7 @@ void CommandThread::run()
 	for(;;)
 	{
 		uint8_t command_id = receiveMessage(this->sock_fd, buffer,
-		                                    sizeof(buffer));
+		                                    sizeof(buffer), this->daemon_sock_addr.sun_path);
 
 		switch(command_id)
 		{

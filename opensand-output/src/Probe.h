@@ -39,14 +39,12 @@
 #include "OutputMutex.h"
 
 #include <algorithm>
-#include <string>
+#include <string.h>
 #include <iostream>
 #include <cassert>
+#include <sstream>
 
 #include <pthread.h>
-#include <stdint.h>
-#include <cstdio>
-
 using std::string;
 
 /**
@@ -58,6 +56,8 @@ class Probe : public BaseProbe
 	friend class OutputInternal;
 
 public:
+	virtual ~Probe();
+
 	/**
 	 * @brief adds a value to the probe, to be sent when \send_probes is called.
 	 *
@@ -65,15 +65,20 @@ public:
 	 **/
 	void put(T value);
 
+	T get() const;
+	
+	size_t getDataSize() const;
+
+	bool getData(unsigned char* buffer, size_t len) const;
+
+	string getStrData() const;	
+	
 private:
 	Probe(uint8_t id, const string &name,
 	      const string &unit,
 	      bool enabled, sample_type_t type);
-	virtual ~Probe();
 	
 	virtual uint8_t storageTypeId();
-
-	virtual void appendValueAndReset(string& str);
 
 	/// the concatenation of all values
 	T accumulator;
@@ -132,4 +137,36 @@ void Probe<T>::put(T value)
 	this->values_count++;
 }
 
+template<typename T>
+T Probe<T>::get() const
+{
+	T value = this->accumulator;
+		
+	if(this->s_type == SAMPLE_AVG)
+	{
+		value /= this->values_count;
+		return value; 
+	}
+	
+	return value;
+}
+
+template<typename T>
+string Probe<T>::getStrData() const
+{
+	std::stringstream strs;
+	T val = this->get();
+	strs << val;
+
+	return strs.str();
+}
+
+template<typename T>
+size_t Probe<T>::getDataSize() const
+{
+	return sizeof(this->accumulator);
+}
+
+
 #endif
+

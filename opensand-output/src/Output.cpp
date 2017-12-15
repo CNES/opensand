@@ -35,26 +35,125 @@
 
 #include "Output.h"
 
+OutputInternal *Output::instance = NULL;
 
-OutputInternal Output::instance;
+void *Output::handle = NULL;
 
-// TODO global buffer
 bool Output::init(bool enabled, const char *sock_prefix)
 {
-	return instance.init(enabled, sock_prefix);
+	// Check instance is not already initialized
+	if(instance)
+	{
+		return false;
+	}
+
+	// Create the OpenSAND instance
+	instance = new OutputOpensand(sock_prefix);
+	if(!instance)
+	{
+		fputs ("Instance failed to be initialized", stderr);
+		return false;
+	}
+
+	// Initialize instance
+	return instance->init(enabled);
 }
+
+bool Output::initExt(bool enabled, const char *entity, const char *path)
+{
+	char *error;
+
+	// Check instance is not already initialized
+	if(instance)
+	{
+		return false;
+	}
+
+	// Get the handle of the library
+	handle = dlopen(path, RTLD_LAZY);	
+	if(!handle)
+	{
+		fputs (dlerror(), stderr);
+		return false;
+	}
+
+	create_func_t *create;
+	destroy_func_t *destroy;
+
+	// Get the destroy function of the library (only to check it exists)
+    destroy = (destroy_func_t *)dlsym(handle, "destroy");
+	if((error = dlerror()) != NULL)
+	{
+		fputs (error, stderr);
+		return false;
+	}
+
+	// Get the create function of the library
+    create = (create_func_t *)dlsym(handle, "create");
+    if((error = dlerror()) != NULL)
+    {
+    	fputs (error, stderr);
+		return false;
+    }
+
+	// Create instance
+    instance = (*create)(entity);
+
+	// Initialize instance
+	instance->init(enabled);
+
+	return true;
+}
+
+void Output::close()
+{
+	char *error;
+	
+	// Check instance is initialized
+	if(!instance)
+	{
+		return;
+	}
+	
+	// Check instance is an OutputOpensand
+	if(!handle)
+	{
+		// Reset instance
+		delete instance;
+		instance = NULL;
+		return;
+	}
+
+	destroy_func_t *destroy;
+
+	// Get the destroy function of the library
+    destroy = (destroy_func_t *)dlsym(handle, "destroy");
+	if((error = dlerror()) != NULL)
+	{
+		fputs (error, stderr);
+		return;
+	}
+
+	// Destroy instance
+	destroy(&instance);
+	instance = NULL;
+
+    // Close the handle
+	dlclose(handle);
+	handle = NULL;
+}
+
 
 OutputEvent *Output::registerEvent(const string &identifier)
 {
-	return instance.registerEvent(identifier);
+	return instance->registerEvent(identifier);
 }
 
 OutputLog *Output::registerLog(log_level_t display_level,
                                const string &name)
 {
-	return instance.registerLog(display_level, name);
+	return instance->registerLog(display_level, name);
 }
-
 
 OutputEvent *Output::registerEvent(const char *identifier, ...)
 {
@@ -87,12 +186,16 @@ OutputLog *Output::registerLog(log_level_t default_display_level,
 
 bool Output::finishInit(void)
 {
-	return instance.finishInit();
+	if(!instance)
+	{
+		return false;
+	}
+	return instance->finishInit();
 }
 
 void Output::sendProbes(void)
 {
-	instance.sendProbes();
+	instance->sendProbes();
 }
 
 void Output::sendEvent(OutputEvent* event,
@@ -107,7 +210,7 @@ void Output::sendEvent(OutputEvent* event,
 
 	va_end(args);
 
-	instance.sendLog(event, LEVEL_EVENT, string(buf));
+	instance->sendLog(event, LEVEL_EVENT, string(buf));
 }
 
 
@@ -124,7 +227,7 @@ void Output::sendLog(const OutputLog *log,
 
 	va_end(args);
 
-	instance.sendLog(log, log_level, buf);
+	instance->sendLog(log, log_level, buf);
 }
 
 void Output::sendLog(log_level_t log_level,
@@ -138,7 +241,7 @@ void Output::sendLog(log_level_t log_level,
 
 	va_end(args);
 
-	instance.sendLog(log_level, string(buf));
+	instance->sendLog(log_level, string(buf));
 }
 
 Output::Output()
@@ -151,51 +254,110 @@ Output::~Output()
 
 void Output::setProbeState(uint8_t probe_id, bool enabled)
 {
-	instance.setProbeState(probe_id, enabled);
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+	instance->setProbeState(probe_id, enabled);
 }
 
 void Output::setLogLevel(uint8_t log_id, log_level_t level)
-{
-	instance.setLogLevel(log_id, level);
+{   
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
+	instance->setLogLevel(log_id, level);
 }
 
 void Output::disableCollector(void)
 {
-	instance.disableCollector();
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
+	instance->disableCollector();
 }
 
 void Output::enableCollector(void)
 {
-	instance.enableCollector();
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
+	instance->enableCollector();
 }
 
 void Output::disableLogs(void)
 {
-	instance.disableLogs();
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
+	instance->disableLogs();
 }
 
 void Output::enableLogs(void)
 {
-	instance.enableLogs();
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
+	instance->enableLogs();
 }
 
 void Output::disableSyslog(void)
 {
-	instance.disableSyslog();
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
+	instance->disableSyslog();
 }
 
 void Output::enableSyslog(void)
 {
-	instance.enableSyslog();
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
+	instance->enableSyslog();
 }
 
 void Output::enableStdlog(void)
 {
-	instance.enableStdlog();
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
+	instance->enableStdlog();
 }
 
 void Output::setLevels(const map<string, log_level_t> &levels,
                        const map<string, log_level_t> &specific)
 {
-	instance.setLevels(levels, specific);
+	if(!instance)
+	{
+		fputs ("Instance not available", stderr);
+		return;
+	}
+
+	instance->setLevels(levels, specific);
 }

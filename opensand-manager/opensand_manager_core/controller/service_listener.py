@@ -118,6 +118,7 @@ class OpenSandServiceListener():
         state_port = ''
         command_port = ''
         cache = None
+        output_libpath = ''
         tools = []
         modules = []
         network_config = {'discovered' : address}
@@ -168,10 +169,12 @@ class OpenSandServiceListener():
                 network_config['downward_port'] = val
             elif key == 'cache':
                 cache = val
+            elif key == 'output_libpath':
+                output_libpath = val
         try:
             host_model = self._model.add_host(name, inst, network_config,
                                               state_port, command_port,
-                                              tools, modules)
+                                              tools, modules, output_libpath)
         except ModelException:
             # host already exists
             return

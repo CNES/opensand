@@ -509,6 +509,11 @@ configure(){
             fi
             db_endblock
         ;;
+        27)
+            db_beginblock
+            db_input low opensand-daemon/output/libpath || true
+            db_endblock
+        ;;
         *)
             # The default case catches when $STATE is greater than the
             # last implemented state, and breaks out of the loop. This
@@ -570,6 +575,7 @@ reset(){
     db_reset opensand-daemon/interconnect/interface_ip_preset
     db_reset opensand-daemon/interconnect/port_upward
     db_reset opensand-daemon/interconnect/port_downward
+    db_reset opensand-daemon/output/libpath
 }
 
 unseen(){
@@ -604,6 +610,7 @@ unseen(){
     db_fset opensand-daemon/interconnect/interface_ip seen false
     db_fset opensand-daemon/interconnect/port_upward seen false
     db_fset opensand-daemon/interconnect/port_downward seen false
+    db_fset opensand-daemon/output/libpath seen false
 }
 
 db_capb backup

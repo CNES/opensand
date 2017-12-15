@@ -253,27 +253,33 @@ class MachineController:
         lan_iface = ''
         if component not in {SAT, GW_PHY}:
             lan_iface = '-l ' + self._machine_model.get_lan_interface()
+        output_libpath = self._machine_model.get_output_libpath()
+        if output_libpath:
+            output_libpath = '-e ' + output_libpath
         if component == GW_NET_ACC:
-            command_line = '%s %s %s -u %s -w %s -c %s' % \
+            command_line = '%s %s %s -u %s -w %s %s -c %s' % \
                            (bin_file, instance_param, lan_iface,
                             self._machine_model.get_upward_port(),
                             self._machine_model.get_downward_port(),
+                            output_libpath,
                             CONF_DESTINATION_PATH)
         elif component == GW_PHY:
-            command_line = '%s %s -a %s -n %s -t %s -u %s -w %s -c %s' % \
+            command_line = '%s %s -a %s -n %s -t %s -u %s -w %s %s -c %s' % \
                            (bin_file, instance_param, 
                             self._machine_model.get_emulation_address(),
                             self._machine_model.get_emulation_interface(),
                             self._machine_model.get_remote_ip_addr(),
                             self._machine_model.get_upward_port(),
                             self._machine_model.get_downward_port(),
+                            output_libpath,
                             CONF_DESTINATION_PATH)
         else:
-            command_line = '%s -a %s -n %s %s %s -c %s' % \
+            command_line = '%s -a %s -n %s %s %s %s -c %s' % \
                            (bin_file,
                             self._machine_model.get_emulation_address(),
                             self._machine_model.get_emulation_interface(),
                             lan_iface, instance_param,
+                            output_libpath,
                             CONF_DESTINATION_PATH)
         if not self._machine_model.is_collector_functional():
             command_line += " -q"

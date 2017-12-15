@@ -131,12 +131,13 @@ void msgHeaderSendLog(string &message, uint8_t log_id, log_level_t level);
 /**
  *  @brief receive a message
  *
- * @param sock_fd       The socket file descriptor
- * @param message_data  The data contained in the message
- * max_length           The maximum length of the message
+ * @param sock_fd              The socket file descriptor
+ * @param message_data         The data contained in the message
+ * @param max_length           The maximum length of the message
+ * @param daemon_sun_path      The daemon addr sun path
  *
  * @return the command type on success, 0 on failure
  */
-uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length);
+uint8_t receiveMessage(int sock_fd, char *message_data, size_t max_length, const char *daemon_sun_path);
 
 #endif
