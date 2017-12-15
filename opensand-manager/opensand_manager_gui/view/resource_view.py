@@ -170,16 +170,15 @@ class ResourceView(WindowView):
         """Update view """
         # Check if update required to set modcods to default
         default_modcod = False
-        if self._return_link_std != self._model.get_conf().get_return_link_standard():
+        if self._return_link_std and self._return_link_std != self._model.get_conf().get_return_link_standard():
             self._return_link_std = self._model.get_conf().get_return_link_standard()
             default_modcod = True
-        if self._return_link_std == DVB_RCS2 and \
+        if self._return_link_std and self._return_link_std == DVB_RCS2 and \
            self._rcs2_burst_length != self._model.get_conf().get_rcs2_burst_length():
             self._rcs2_burst_length = self._model.get_conf().get_rcs2_burst_length()
             default_modcod = True
 
         if default_modcod:
-            print('Load {}'.format(load))
             self.set_default_modcods()
 
         self.update_tree()
@@ -216,7 +215,6 @@ class ResourceView(WindowView):
         '''
         Set default modcods to all carriers of each spot and gateway
         '''
-        print('DEVEL> set_default_modcods')
         config = self._model.get_conf().get_configuration()
         xpath = "{}_band".format(RETURN_UP)
         for elt in config.get_keys(config.get(xpath)):
@@ -564,6 +562,7 @@ class ResourceView(WindowView):
         self._ui.get_widget('vbox_resources').show_all()
 
     def update_scenario(self):
+        self._return_link_std = None
         self.update_view(True)
 
 
