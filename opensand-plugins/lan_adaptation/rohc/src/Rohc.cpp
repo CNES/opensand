@@ -529,6 +529,7 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	int ret;
 	struct rohc_buf packet_buffer;
 	struct rohc_buf rohc_buffer;
+	Data pkt_data = packet->getData();
 
 	// packet_buffer
 	packet_buffer.time.sec = 0;
@@ -543,7 +544,7 @@ bool Rohc::Context::decompressRohc(NetPacket *packet,
 	rohc_buffer.max_len = packet->getTotalLength();
 	rohc_buffer.offset = 0;
 	rohc_buffer.len = packet->getTotalLength();
-	rohc_buffer.data = (uint8_t *)packet->getData().c_str();
+	rohc_buffer.data = (uint8_t *)pkt_data.c_str();
 
 	// decompress the IP packet thanks to the ROHC library
 	ret = rohc_decompress3(this->decompressors[packet->getSrcTalId()],
