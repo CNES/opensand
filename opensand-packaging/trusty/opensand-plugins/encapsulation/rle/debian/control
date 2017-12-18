@@ -2,6 +2,7 @@ Source: opensand-rle-encap-plugin
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
+ librle-dev (>= 1.7.2),
  libopensand-output-dev (>= 4.2.0),
  libopensand-conf-dev (>= 4.2.0),
  libopensand-plugin-dev (>= 4.2.0)
@@ -24,7 +25,7 @@ Description: Debugging symbols for OpenSAND RLE plugin
 Package: libopensand-rle-encap-plugin
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},
+Depends: ${shlibs:Depends}, ${misc:Depends}, librle (>= 1.7.2),
  libopensand-rle-encap-plugin-conf (= ${binary:Version}), opensand-core
 Description: The RLE plugin for OpenSAND
 
