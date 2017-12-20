@@ -2138,7 +2138,7 @@ This is the name used when loading probes.</property>
                         <child>
                           <widget class="GtkFrame" id="frame_payload_type">
                             <property name="width_request">132</property>
-                            <property name="visible">True</property>
+                            <property name="visible">False</property>
                             <property name="can_focus">False</property>
                             <property name="label_xalign">0</property>
                             <property name="shadow_type">etched-out</property>

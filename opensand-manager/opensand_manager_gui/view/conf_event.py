@@ -80,9 +80,9 @@ class ConfEvent(ConfView) :
             self._timeout_id = None
         elif val and self._timeout_id is None:
             # refresh immediatly then periodically
-            self.update_lan_adaptation()
+            self.update_advanced_widgets()
             self._timeout_id = gobject.timeout_add(1000,
-                                                   self.update_lan_adaptation)
+                                                   self.update_advanced_widgets)
 
         if val == False:
             self._modif = False

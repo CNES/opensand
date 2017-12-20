@@ -67,6 +67,8 @@ class ConfView(WindowView):
         self._lan_stack_base = None
         self._lan_stack_vbox = self._ui.get_widget('lan_adapt_stack')
 
+        self._payload_type = self._ui.get_widget('frame_payload_type')
+
         self._return_link_std = model.get_conf().get_return_link_standard()
         self._out_stack = EncapProtocolStack(self._ui.get_widget('out_encap_stack'),
                                              self._model.get_encap_modules(),
@@ -120,7 +122,7 @@ class ConfView(WindowView):
                     self._lan_stack_base.load(host.get_lan_adaptation())
             except ConfException, msg:
                 error_popup(str(msg))
-        self.update_lan_adaptation()
+        self.update_advanced_widgets()
 
         try:
             # return_up_encap
@@ -168,17 +170,19 @@ class ConfView(WindowView):
         else:
             widget.set_active(False)
 
-    def update_lan_adaptation(self):
+    def update_advanced_widgets(self):
         """ update the lan adaptation stack """
         if self._model.get_adv_mode():
             self.update_lan_adaptation_adv()
             if self._lan_stack_base is not None:
                 self._lan_stack_vbox.hide()
             self._lan_stack_notebook.show()
+            self._payload_type.show()
         else:
             self.update_lan_adaptation_base()
             self._lan_stack_vbox.show()
             self._lan_stack_notebook.hide()
+            self._payload_type.hide()
         return True
 
 
