@@ -217,6 +217,12 @@ class ForwardSchedulingS2: public Scheduling
 	                  vector<Probe<int> *> &avail_probes,
 	                  unsigned int carriers_id);
 
+	/**
+	 * @brief  Check that the size of the carrier is compatible with the BBFrame size
+	 */
+	void checkBBFrameSize(vector<CarriersGroupDama *>::iterator vcm_it,
+	                      vector<CarriersGroupDama *> vcm_carriers);
+
 };
 
 #endif

@@ -152,6 +152,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 		    vcm_it != vcm_carriers.end();
 		    ++vcm_it)
 		{
+			this->checkBBFrameSize(vcm_it, vcm_carriers);
 			this->createProbes(vcm_it, vcm_carriers, remain_probes,
 			                   avail_probes, carriers_id);
 		}
@@ -935,22 +936,16 @@ void ForwardSchedulingS2::schedulePending(const list<fmt_id_t> supported_modcods
 }
 
 
-void ForwardSchedulingS2::createProbes(vector<CarriersGroupDama *>::iterator vcm_it,
-                                       vector<CarriersGroupDama *> vcm_carriers,
-                                       vector<Probe<int> *> &remain_probes,
-                                       vector<Probe<int> *> &avail_probes,
-                                       unsigned int carriers_id)
+void ForwardSchedulingS2::checkBBFrameSize(vector<CarriersGroupDama *>::iterator vcm_it,
+                                           vector<CarriersGroupDama *> vcm_carriers)
 {
+	unsigned int max_modcod = 0;
 	unsigned int vcm_id = 0;
 	CarriersGroupDama *vcm = *vcm_it;
-	Probe<int> *remain_probe;
-	Probe<int> *avail_probe;
-	unsigned int max_modcod = 0;
 	vol_sym_t max_bbframe_size_sym = 0;
 	vol_sym_t carrier_size_sym = vcm->getTotalCapacity() /
 	                             vcm->getCarriersNumber();
 	list<fmt_id_t> fmt_ids = vcm->getFmtIds();
-	char probe_name[128];
 
 	for(list<fmt_id_t>::const_iterator fmt_it = fmt_ids.begin();
 	    fmt_it != fmt_ids.end(); ++fmt_it)
@@ -975,31 +970,54 @@ void ForwardSchedulingS2::createProbes(vector<CarriersGroupDama *>::iterator vcm
 	}
 	if(max_bbframe_size_sym > carrier_size_sym)
 	{
-		// send a warning message, this will work but this is not
-		// a good configuration
-		// if there is more than one carrier, this won't really
-		// be a problem but this won't be representative
 		if(vcm_carriers.size() > 1)
 		{
 			LOG(this->log_scheduling, LEVEL_WARNING,
 			    "Category %s, Carriers group %u VCM %u: the maximum "
 			    "BBFrame size (%u symbols with MODCOD ID %u) is greater "
-			    "than the carrier size %u\n",
+			    "than the carrier size %u. Certain MODCODs may not work.\n",
 			    this->category->getLabel().c_str(),
 			    vcm->getCarriersId(), vcm_id, max_bbframe_size_sym,
 			    max_modcod, carrier_size_sym);
 		}
 		else
 		{
-			LOG(this->log_scheduling, LEVEL_WARNING,
-			    "Category %s, Carriers group %u: the maximum BBFrame "
-			    "size (%u symbols with MODCOD ID %u) is greater than "
-			    "the carrier size %u\n",
-			    this->category->getLabel().c_str(),
-			    vcm->getCarriersId(), max_bbframe_size_sym,
-			    max_modcod, carrier_size_sym);
+			if(vcm->getFmtIds().size() == 1)
+			{
+				LOG(this->log_scheduling, LEVEL_ERROR,
+						"Category %s, Carriers group %u: the BBFrame size "
+						"(%u symbols with MODCOD ID %u) is greater than "
+						"the carrier size %u.\n",
+						this->category->getLabel().c_str(),
+						vcm->getCarriersId(), max_bbframe_size_sym,
+						max_modcod, carrier_size_sym);
+			}
+			else
+			{
+				LOG(this->log_scheduling, LEVEL_WARNING,
+						"Category %s, Carriers group %u: the maximum BBFrame "
+						"size (%u symbols with MODCOD ID %u) is greater than "
+						"the carrier size %u. Certain MODCODs may not work.\n",
+						this->category->getLabel().c_str(),
+						vcm->getCarriersId(), max_bbframe_size_sym,
+						max_modcod, carrier_size_sym);
+			}
 		}
 	}
+}
+
+
+void ForwardSchedulingS2::createProbes(vector<CarriersGroupDama *>::iterator vcm_it,
+                                       vector<CarriersGroupDama *> vcm_carriers,
+                                       vector<Probe<int> *> &remain_probes,
+                                       vector<Probe<int> *> &avail_probes,
+                                       unsigned int carriers_id)
+{
+	unsigned int vcm_id = 0;
+	CarriersGroupDama *vcm = *vcm_it;
+	Probe<int> *remain_probe;
+	Probe<int> *avail_probe;
+	char probe_name[128];
 
 	// For units, if there is only one MODCOD use Kbits/s else symbols
 	// check if the FIFO can emit on this carriers group
