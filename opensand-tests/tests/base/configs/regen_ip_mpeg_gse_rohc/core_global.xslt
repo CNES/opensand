@@ -16,6 +16,20 @@
     <satellite_type>regenerative</satellite_type>
 </xsl:template>
 
+<xsl:template match="return_link_standard">
+    <return_link_standard>DVB-RCS</return_link_standard>
+</xsl:template>
+
+<xsl:template match="//return_up_band/spot/fmt_groups">
+    <fmt_groups>
+    <xsl:call-template name="Newline" />
+        <group id="1" fmt_id="7" />
+    <xsl:call-template name="Newline" />
+        <group id="2" fmt_id="7" />
+    <xsl:call-template name="Newline" />
+    </fmt_groups>
+</xsl:template>
+
 <xsl:template match="return_up_encap_schemes">
         <return_up_encap_schemes>
     <xsl:call-template name="Newline" />
