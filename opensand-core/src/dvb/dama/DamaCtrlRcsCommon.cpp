@@ -178,9 +178,19 @@ bool DamaCtrlRcsCommon::buildTTP(Ttp *ttp)
 			// will send data even if there is no MODCOD robust enough
 			if(terminal->getFmtId() != 0)
 			{
+				LOG(this->log_ttp, LEVEL_DEBUG,
+				    "[Tal %u] total volume = %u kb ; total rate = %u kb/s (%u kb for one frame)",
+				    terminal->getTerminalId(),
+				    terminal->getTotalVolumeAllocation(),
+				    terminal->getTotalRateAllocation(),
+				    this->converter->psToPf(terminal->getTotalRateAllocation()));
 				total_allocation_kb += terminal->getTotalVolumeAllocation();
 				total_allocation_kb += this->converter->psToPf(terminal->getTotalRateAllocation());
 			}
+			LOG(this->log_ttp, LEVEL_DEBUG,
+			    "[Tal %u] total allocation = %u kb",
+			    terminal->getTerminalId(),
+			    total_allocation_kb);
 
 			//FIXME: is the offset to be 0 ???
 			if(!ttp->addTimePlan(0 /*FIXME: should it be the frame_counter of the bloc_ncc ?*/,

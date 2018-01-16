@@ -385,7 +385,7 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	if(remaining_capacity_pktpf == 0)
 	{
 		LOG(this->log_run_dama, LEVEL_INFO,
-		    "%s skipping RBDC dama computation: Not enough "
+		    "%s skipping RBDC allocation: Not enough "
 		    "capacity\n", debug.c_str());
 		return;
 	}
@@ -461,8 +461,8 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	}
 
 	LOG(this->log_run_dama, LEVEL_INFO,
-	    "%s: sum of all RBDC requests = %u packets per superframe "
-	    " -> Fair share=%f\n", debug.c_str(),
+	    "%s: sum of all RBDC requests = %u packets per superframe, "
+	    "fair share=%f\n", debug.c_str(),
 	    total_request_pktpf, fair_share);
 
 	// first step : serve the integer part of the fair RBDC
@@ -524,7 +524,12 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 			double rbdc_credit_kbps = (fair_rbdc_pktpf - rbdc_alloc_pktpf)
 				* this->converter->getPacketBitLength()
 				/ (this->converter->getFrameDuration());
-			terminal->addRbdcCredit(rbdc_credit_kbps / (1 + fmt_def->getCodingRate()));
+			rbdc_credit_kbps /= (1 + fmt_def->getCodingRate());
+			terminal->addRbdcCredit(rbdc_credit_kbps);
+
+			LOG(this->log_run_dama, LEVEL_DEBUG,
+				"%s ST%u: RBDC credit %u kb/s\n",
+				debug.c_str(), tal_id, rbdc_credit_kbps);
 		}
 	}
 	if(this->simulated)

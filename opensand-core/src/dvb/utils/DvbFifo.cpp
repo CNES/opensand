@@ -166,6 +166,7 @@ void DvbFifo::resetNew(ret_access_type_t cr_type)
 	{
 		RtLock lock(this->fifo_mutex);
 		this->new_size_pkt = 0;
+		this->new_length_bytes = 0;
 	}
 }
 
