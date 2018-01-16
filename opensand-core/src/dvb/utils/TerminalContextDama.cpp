@@ -62,14 +62,14 @@ TerminalContextDama::~TerminalContextDama()
 {
 }
 
-void TerminalContextDama::updateRbdcTimeout(time_sf_t rbdc_timeout_sf)
+void TerminalContextDama::updateRbdcTimeout(time_sf_t timeout_sf)
 {
-	this->rbdc_timeout_sf = rbdc_timeout_sf;
+	this->rbdc_timeout_sf = timeout_sf;
 }
 
-void TerminalContextDama::setCra(rate_kbps_t cra_kbps)
+void TerminalContextDama::setCra(rate_kbps_t val_kbps)
 {
-	this->cra_kbps = cra_kbps;
+	this->cra_kbps = val_kbps;
 	LOG(this->log_band, LEVEL_INFO,
 	    "CRA is %u kbits/s (for "
 	    "ST%u)\n", this->cra_kbps, 
@@ -81,9 +81,9 @@ rate_kbps_t TerminalContextDama::getCra() const
 	return this->cra_kbps;
 }
 
-void TerminalContextDama::setMaxRbdc(rate_kbps_t max_rbdc_kbps)
+void TerminalContextDama::setMaxRbdc(rate_kbps_t val_kbps)
 {
-	this->max_rbdc_kbps = max_rbdc_kbps;
+	this->max_rbdc_kbps = val_kbps;
 	LOG(this->log_band, LEVEL_INFO,
 	    "max RBDC is %u kbits/s (for "
 	    "ST%u)\n", this->max_rbdc_kbps, 
@@ -100,10 +100,10 @@ vol_kb_t TerminalContextDama::getMaxVbdc() const
 	return this->max_vbdc_kb;
 }
 
-void TerminalContextDama::setRequiredRbdc(rate_kbps_t rbdc_request_kbps)
+void TerminalContextDama::setRequiredRbdc(rate_kbps_t val_kbps)
 {
 	// limit the requets to Max RBDC
-	this->rbdc_request_kbps = std::min(rbdc_request_kbps, this->max_rbdc_kbps);
+	this->rbdc_request_kbps = std::min(val_kbps, this->max_rbdc_kbps);
 
 	// save the request
 	this->rbdc_credit = 0.0;
@@ -119,9 +119,9 @@ rate_kbps_t TerminalContextDama::getRequiredRbdc() const
 	return this->rbdc_request_kbps;
 }
 
-void TerminalContextDama::setRbdcAllocation(rate_kbps_t rbdc_alloc_kbps)
+void TerminalContextDama::setRbdcAllocation(rate_kbps_t val_kbps)
 {
-	this->rbdc_alloc_kbps = rbdc_alloc_kbps;
+	this->rbdc_alloc_kbps = val_kbps;
 }
 
 rate_kbps_t TerminalContextDama::getRbdcAllocation() const
@@ -162,24 +162,24 @@ void TerminalContextDama::decrementTimer()
 
 }
 
-void TerminalContextDama::setRequiredVbdc(vol_kb_t vbdc_request_kb)
+void TerminalContextDama::setRequiredVbdc(vol_kb_t val_kb)
 {
-	this->vbdc_request_kb += vbdc_request_kb;
+	this->vbdc_request_kb += val_kb;
 	this->vbdc_request_kb = std::min(this->vbdc_request_kb, this->max_vbdc_kb);
 	LOG(this->log_band, LEVEL_DEBUG,
 	    "new VBDC request %u (kb) for ST%u\n",
 	    vbdc_request_kb, this->tal_id);
 }
 
-void TerminalContextDama::setVbdcAllocation(vol_kb_t vbdc_alloc_kb)
+void TerminalContextDama::setVbdcAllocation(vol_kb_t val_kb)
 {
-	this->vbdc_alloc_kb += vbdc_alloc_kb;
-	if(this->vbdc_request_kb >= vbdc_alloc_kb)
+	this->vbdc_alloc_kb = val_kb;
+	if(this->vbdc_request_kb >= this->vbdc_alloc_kb)
 	{
 		// The allocation on Agent is processed per frame so for one TTP we
 		// will allocate as many time the allocated value as we have frames
 		// in superframes
-		this->vbdc_request_kb -= vbdc_alloc_kb;
+		this->vbdc_request_kb -= this->vbdc_alloc_kb;
 	}
 	else
 	{
@@ -199,9 +199,9 @@ vol_kb_t TerminalContextDama::getRequiredVbdc() const
 	return ceil(this->vbdc_request_kb);
 }
 
-void TerminalContextDama::setFcaAllocation(rate_kbps_t fca_alloc_kbps)
+void TerminalContextDama::setFcaAllocation(rate_kbps_t val_kbps)
 {
-	this->fca_alloc_kbps = fca_alloc_kbps;
+	this->fca_alloc_kbps = val_kbps;
 }
 
 rate_kbps_t TerminalContextDama::getFcaAllocation() const

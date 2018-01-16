@@ -131,6 +131,26 @@ bool DamaAgentRcsCommon::processOnFrameTick()
 	return true;
 }
 
+bool DamaAgentRcsCommon::hereIsSOF(time_sf_t superframe_number_sf)
+{
+	// Call parent method
+	if(!DamaAgent::hereIsSOF(superframe_number_sf))
+	 {
+		LOG(this->log_init, LEVEL_ERROR,
+		    "SF#%u: cannot call DamaAgent::hereIsSOF()\n",
+		    this->current_superframe_sf);
+		return false;
+	}
+
+	this->rbdc_timer_sf++;
+	// update dynamic allocation for next SF with allocation received
+	// through TBTP during last SF
+	this->dynamic_allocation_kb = this->allocated_kb;
+	this->allocated_kb = 0;
+
+	return true;
+}
+
 // a TTP reading function that handles MODCOD but not priority and frame id
 // only one TP is supported for MODCOD handling
 bool DamaAgentRcsCommon::hereIsTTP(Ttp *ttp)
@@ -162,6 +182,7 @@ bool DamaAgentRcsCommon::hereIsTTP(Ttp *ttp)
 	}
 
 	prev_modcod_id = this->modcod_id;
+	this->allocated_kb = 0;
 	for(map<uint8_t, emu_tp_t>::iterator it = tp.begin();
 	    it != tp.end(); ++it)
 	{
@@ -286,10 +307,11 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 	// Compute RBDC request if needed
 	if(this->rbdc_enabled)
 	{
-		LOG(this->log_sac, LEVEL_INFO,
-		    "SF#%u: compute RBDC request\n",
-		    this->current_superframe_sf);
 		rbdc_request_kbps = this->computeRbdcRequest();
+		LOG(this->log_sac, LEVEL_INFO,
+		    "SF#%u: Computed RBDC request = %u kb/s\n",
+		    this->current_superframe_sf,
+		    rbdc_request_kbps);
 
 		// Send the request only if current RBDC timer > RBDC timeout / 2
 		// or if CR is different from previous one
@@ -320,10 +342,11 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 	// Compute VBDC request if required
 	if(this->vbdc_enabled)
 	{
-		LOG(this->log_sac, LEVEL_INFO,
-		    "SF#%u: Compute VBDC request\n",
-		    this->current_superframe_sf);
 		vbdc_request_kb = this->computeVbdcRequest();
+		LOG(this->log_sac, LEVEL_INFO,
+		    "SF#%u: Computed VBDC request = %u kb\n",
+		    this->current_superframe_sf,
+		    vbdc_request_kb);
 
 		// Send the request only if it is not null
 		if(vbdc_request_kb > 0)
@@ -368,6 +391,7 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 	else
 	{
 		this->probe_st_rbdc_req_size->put(0);
+		this->rbdc_request_buffer->Update(0);
 	}
 
 	// set VBDC request (if any) in SAC

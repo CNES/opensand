@@ -194,12 +194,7 @@ bool DamaAgentRcsRrmQos::hereIsSOF(time_sf_t superframe_number_sf)
 		return false;
 	}
 
-	this->rbdc_timer_sf++;
-	// update dynamic allocation for next SF with allocation received
-	// through TBTP during last SF
-	this->dynamic_allocation_kb = this->allocated_kb;
-	this->dyn_alloc->Update(this->converter->kbitsToPkt(this->allocated_kb));
-	this->allocated_kb = 0;
+	this->dyn_alloc->Update(this->converter->kbitsToPkt(this->dynamic_allocation_kb));
 
 	return true;
 }

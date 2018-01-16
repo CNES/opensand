@@ -50,9 +50,6 @@ class DamaAgentRcs2Legacy: public DamaAgentRcs2
 	DamaAgentRcs2Legacy(FmtDefinitionTable *ret_modoco_def);
 	virtual ~DamaAgentRcs2Legacy();
 
-	// Inherited methods
-	bool hereIsSOF(time_sf_t superframe_number_sf);
-
  protected:
 
 	/** VBDC credit */

@@ -60,26 +60,6 @@ DamaAgentRcsLegacy::~DamaAgentRcsLegacy()
 {
 }
 
-bool DamaAgentRcsLegacy::hereIsSOF(time_sf_t superframe_number_sf)
-{
-	// Call parent method
-	if(!DamaAgentRcs::hereIsSOF(superframe_number_sf))
-	 {
-		LOG(this->log_init, LEVEL_ERROR,
-		    "SF#%u: cannot call DamaAgentRcs::hereIsSOF()\n",
-		    this->current_superframe_sf);
-		return false;
-	}
-
-	this->rbdc_timer_sf++;
-	// update dynamic allocation for next SF with allocation received
-	// through TBTP during last SF
-	this->dynamic_allocation_kb = this->allocated_kb;
-	this->allocated_kb = 0;
-
-	return true;
-}
-
 rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 {
 	rate_kbps_t rbdc_request_kbps;

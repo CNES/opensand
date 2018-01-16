@@ -56,6 +56,7 @@ class DamaAgentRcsCommon : public DamaAgent
 	// Inherited methods
 	virtual bool processOnFrameTick();
 	virtual bool returnSchedule(list<DvbFrame *> *complete_dvb_frames);
+	virtual bool hereIsSOF(time_sf_t superframe_number_sf);
 	virtual bool hereIsTTP(Ttp *ttp);
 	virtual bool buildSAC(ret_access_type_t cr_type,
 	                      Sac *sac,
