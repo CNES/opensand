@@ -125,6 +125,13 @@ public:
 	                    const char *path = NULL);
 
 	/**
+	 * @brief Check if output is initialized.
+	 *
+	 * @return True is it is initialized, false otherwise.
+	 */
+	static bool isInit();
+
+	/**
 	 * @brief Close the output
 	 */
 	static void close();

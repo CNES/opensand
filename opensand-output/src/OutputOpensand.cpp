@@ -87,7 +87,7 @@ OutputOpensand::~OutputOpensand()
 			this->default_log = NULL;
 			this->log = NULL;
 			this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
-										  "Unable to delete the socket \"%s\": %s\n",
+			                              "Unable to delete the socket \"%s\": %s\n",
 			                              path, strerror(errno));
 		}
 	}
@@ -101,11 +101,6 @@ bool OutputOpensand::init(bool enable_collector)
 	string message;
 	sockaddr_un address;
 
-	if(enable_collector)
-	{
-		this->enableCollector();
-	}
-
 	if(!(this->sock_prefix))
 	{
 		this->sock_prefix = "/var/run/sand-daemon";
@@ -113,6 +108,7 @@ bool OutputOpensand::init(bool enable_collector)
 
 	if(enable_collector)
 	{
+		this->enableCollector();
 		
 		this->daemon_sock_addr.sun_family = AF_UNIX;
 		path = this->daemon_sock_addr.sun_path;
@@ -129,7 +125,8 @@ bool OutputOpensand::init(bool enable_collector)
 		if(this->sock == -1)
 		{
 			this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
-			                              "Socket allocation failed: %s\n", strerror(errno));
+			                              "Socket allocation failed: %s\n",
+			                              strerror(errno));
 			return false;
 		}
 
@@ -142,7 +139,8 @@ bool OutputOpensand::init(bool enable_collector)
 		if(bind(this->sock, (const sockaddr*)&address, sizeof(address)) < 0)
 		{
 			this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
-										  "Socket binding failed: %s\n", strerror(errno));
+			                              "Socket binding failed: %s\n",
+			                              strerror(errno));
 			return false;
 		}
 	}
@@ -151,15 +149,15 @@ bool OutputOpensand::init(bool enable_collector)
 	
 	this->default_log = this->registerLog(LEVEL_WARNING, "default");
 
-	this->OutputInternal::sendLog(this->log, LEVEL_INFO, "Output initialization done (%s)\n",
-								  enable_collector ? "enabled" : "disabled");
+	this->OutputInternal::sendLog(this->log, LEVEL_INFO,
+	                              "Output initialization done (%s)\n",
+	                              enable_collector ? "enabled" : "disabled");
 
 	this->OutputInternal::sendLog(this->log, LEVEL_INFO,
-				                  "Daemon socket address is \"%s\", "
-						          "own socket address is \"%s\"\n",
-								  this->daemon_sock_addr.sun_path,
-								  this->self_sock_addr.sun_path);
-
+	                              "Daemon socket address is \"%s\", "
+	                              "own socket address is \"%s\"\n",
+	                              this->daemon_sock_addr.sun_path,
+	                              this->self_sock_addr.sun_path);
 
 	this->setInitializing(true);
 	
@@ -176,14 +174,13 @@ uint8_t OutputOpensand::rcvMessage(void) const
 
 bool OutputOpensand::finishInit(void)
 {
-	if(enable_collector)
-	this->started_time = getMilis();
-	
 	if(!this->collectorEnabled())
 	{
 		this->setInitializing(false);
 		return true;
 	}
+
+	this->started_time = getMilis();
 
 	if(!this->isInitializing())
 	{
@@ -205,8 +202,7 @@ bool OutputOpensand::finishInit(void)
 
 	// Send the initial probe list
 	// Build header
-	msgHeaderRegisterEnd(message, getpid(), this->probes.size(),
-	                     0);
+	msgHeaderRegisterEnd(message, getpid(), this->probes.size(), 0);
 
 	// Add the probes
 	for(size_t i = 0 ; i < this->probes.size() ; i++)
@@ -227,15 +223,14 @@ bool OutputOpensand::finishInit(void)
 	if(!this->sendMessage(message))
 	{
 		this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
-									  "Sending initial probe and log list failed: %s\n",
-									  strerror(errno));
+		                              "Sending initial probe and log list failed: %s\n",
+		                              strerror(errno));
 		this->disableCollector();
 		this->setInitializing(false);
 		return false;
 	}
 
 	// Wait for the ACK response
-
 	sigemptyset(&sigmask);
 	sigaddset(&sigmask, SIGTERM);
 	sigaddset(&sigmask, SIGINT);
@@ -249,8 +244,8 @@ bool OutputOpensand::finishInit(void)
 	if(ret <= 0)
 	{
 		this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
-									  "cannot contact daemon or no answer in the "
-									  "last %d seconds\n", TIMEOUT);
+		                              "cannot contact daemon or no answer in the "
+		                              "last %d seconds\n", TIMEOUT);
 		this->disableCollector();
 		this->setInitializing(false);
 		return false;
@@ -291,7 +286,6 @@ bool OutputOpensand::sendRegister(BaseProbe *probe)
 {
 	string message;
 	//DEBUG
-	FILE * pFile;
 	const string name = probe->getName();
 	const string unit = probe->getUnit();
 
@@ -315,24 +309,14 @@ bool OutputOpensand::sendRegister(BaseProbe *probe)
 	if(!this->sendMessage(message))
 	{
 		this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
-									  "Sending new probe failed: %s\n",
-									  strerror(errno));
+		                              "Sending new probe failed: %s\n",
+		                              strerror(errno));
 		return false;
 	}
 
 	this->OutputInternal::sendLog(this->log, LEVEL_INFO,
-								  "New probe %s registration sent.\n",
-								  name.c_str());
-	string file_path; 
-	string file_name;
-	string charname;
-	file_path = "/tmp/";
-	charname = name.c_str();
-	
-	file_name = file_path + charname;
-	
-	pFile = fopen (file_name.c_str(),"w+");
-	fprintf (pFile, "%s",message.c_str());
+	                              "New probe %s registration sent.\n",
+	                              name.c_str());
 	
 	return true;
 }
@@ -366,7 +350,8 @@ bool OutputOpensand::sendRegister(OutputLog *log)
 	if(!this->sendMessage(message))
 	{
 		this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
-									  "Sending new log failed: %s\n", strerror(errno));
+		                              "Sending new log failed: %s\n",
+		                              strerror(errno));
 		return false;
 	}
 
@@ -379,22 +364,23 @@ bool OutputOpensand::sendRegister(OutputLog *log)
 			if(command_id == MSG_CMD_NACK)
 			{
 				this->OutputInternal::sendLog(this->log, LEVEL_WARNING,
-											  "receive NACK for log %s registration\n",
-											  name.c_str());
+				                              "receive NACK for log %s registration\n",
+				                              name.c_str());
 				return false;
 			}
 			else
 			{
 				this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
-											  "Incorrect ACK response (%u) for log %s registration\n",
-											  command_id, name.c_str());
+				                              "Incorrect ACK response (%u) for log %s registration\n",
+				                              command_id, name.c_str());
 			}
 			return false;
 		}
 	}
 
 	this->OutputInternal::sendLog(this->log, LEVEL_DEBUG,
-								  "New log %s registration sent\n", name.c_str());
+	                              "New log %s registration sent\n",
+	                              name.c_str());
 
 	return true;
 }
@@ -414,17 +400,8 @@ void OutputOpensand::appendValueAndReset(BaseProbe *probe, string &msg)
 	probe->getData(data, data_size);
 	
 	// Append data to message
-	int n = msg.size();
 	msg.append((const char*)data, data_size);
-		std::ofstream out;
-		out.open("/tmp/toto", std::ios::out | std::ios::app);
-		out << "Data: " << (float)*data << std::endl;
-		if(n < msg.size())
-		{
-			out << "Msg: " << (float)msg.c_str()[n] << std::endl;
-		}
-		out.close();
-	
+
 	// release memory
 	delete[] data;
 	probe->reset();
@@ -457,16 +434,11 @@ void OutputOpensand::sendProbes(void)
 	}
 	this->mutex.releaseLock();
 
-	if(!needs_sending)
-	{
-		return;
-	}
-
-	if(!this->sendMessage(message))
+	if(needs_sending && !this->sendMessage(message))
 	{
 		this->OutputInternal::sendLog(this->log, LEVEL_ERROR,
-									  "Sending probe values failed: %s\n",
-									  strerror(errno));
+		                              "Sending probe values failed: %s\n",
+		                              strerror(errno));
 	}
 }
 
