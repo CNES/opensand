@@ -417,8 +417,8 @@ bool DamaCtrlRcsCommon::resetTerminalsAllocations()
 	for(it = this->terminals.begin(); it != this->terminals.end(); it++)
 	{
 		TerminalContextDama *terminal = it->second;
-		double credit_kbps = 0.0;
-		rate_kbps_t request_kbps = 0;
+		double credit_kbps = terminal->getRbdcCredit();
+		rate_kbps_t request_kbps = terminal->getRequiredRbdc();
 
 		// Reset allocation (in slots)
 		terminal->setRbdcAllocation(0);
@@ -427,23 +427,20 @@ bool DamaCtrlRcsCommon::resetTerminalsAllocations()
 
 		// Update timer
 		terminal->decrementTimer();
-		if(0 < terminal->getTimer())
+		if(0 < terminal->getTimer() && 0.0 < credit_kbps)
 		{
 			rate_kbps_t timeslot_kbps;
 	
-			// Get RBDC request and credit (in kb/s)
-			credit_kbps = terminal->getRbdcCredit();
-			request_kbps = terminal->getRequiredRbdc();
 			timeslot_kbps = this->converter->pktpfToKbps(1);
 			
 			// Update RBDC request and credit (in kb/s)
 			credit_kbps = max(credit_kbps - timeslot_kbps, 0.0);
 			request_kbps += timeslot_kbps;
+
+			// Set RBDC request and credit (in kb/s)
+			terminal->setRequiredRbdc(request_kbps);
+			terminal->setRbdcCredit(credit_kbps);
 		}
-		
-		// Set RBDC request and credit (in kb/s)
-		terminal->setRbdcCredit(credit_kbps);
-		terminal->setRequiredRbdc(request_kbps);
 	}
 
 	return ret;

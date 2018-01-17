@@ -122,6 +122,10 @@ rate_kbps_t TerminalContextDama::getRequiredRbdc() const
 void TerminalContextDama::setRbdcAllocation(rate_kbps_t val_kbps)
 {
 	this->rbdc_alloc_kbps = val_kbps;
+	LOG(this->log_band, LEVEL_DEBUG,
+	    "RBDC allocation %u (kb/s) request %d (kb/s) credit %.2f timer %d for ST%u.\n",
+	    this->rbdc_alloc_kbps, this->rbdc_request_kbps, this->rbdc_credit,
+	    this->timer_sf, this->tal_id);
 }
 
 rate_kbps_t TerminalContextDama::getRbdcAllocation() const
@@ -185,6 +189,9 @@ void TerminalContextDama::setVbdcAllocation(vol_kb_t val_kb)
 	{
 		this->vbdc_request_kb = 0;
 	}
+	LOG(this->log_band, LEVEL_DEBUG,
+	    "VBDC allocation %u (kb) request %d (kb) for ST%u.\n",
+	    this->vbdc_alloc_kb, this->vbdc_request_kb, this->tal_id);
 }
 
 vol_kb_t TerminalContextDama::getVbdcAllocation() const
