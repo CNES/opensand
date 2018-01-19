@@ -41,6 +41,10 @@
 
 #include <opensand_output/Output.h>
 
+#include <algorithm>
+
+using std::max;
+
 typedef enum
 {
 	state_next_fifo,      // Go to the next fifo
@@ -311,7 +315,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			// Store DVB-RCS2 frame with completed frames
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 			complete_frames_count++;
-			remaining_allocation_kb -= ceil(frame_length_b / 1000.);
+			remaining_allocation_kb = (vol_kb_t)max(remaining_allocation_kb - (int)ceil(frame_length_b / 1000.), 0);
 
 			// Check the remaining allocation
 			if(remaining_allocation_kb <= 0)
@@ -374,7 +378,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			// Store DVB-RCS2 frame with completed frames
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 			complete_frames_count++;
-			remaining_allocation_kb -= ceil(frame_length_b / 1000.);
+			remaining_allocation_kb = (vol_kb_t)max(remaining_allocation_kb - (int)ceil(frame_length_b / 1000.), 0);
 		}
 		else
 		{

@@ -509,15 +509,6 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 {
 	this->current_superframe_sf = superframe_number_sf;
 
-	// reset the terminals allocations
-	if(!this->resetTerminalsAllocations())
-	{
-		LOG(this->log_run_dama, LEVEL_ERROR,
-		    "SF#%u: Cannot reset terminals allocations\n",
-		    this->current_superframe_sf);
-		return false;
-	}
-
 	// reset capacity of carriers
 	if(!this->resetCarriersCapacity())
 	{
@@ -527,20 +518,21 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 		return false;
 	}
 
-	// update the carriers
-	if(!this->updateCarriers())
+	// update wave forms
+	if(!this->updateWaveForms())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
-		    "SF#%u: Cannot update carriers and FMTs\n",
+		    "SF#%u: Cannot update wave forms\n",
 		    this->current_superframe_sf);
 		return false;
 	}
 
 	//TODO: update RBDC credit here, not in reset terminals allocation
-	if(!this->computeDama())
+	if(!this->computeTerminalsAllocations())
 	{
 		LOG(this->log_super_frame_tick, LEVEL_ERROR,
-		    "Error during DAMA computation.\n");
+		    "SF#%u: Cannot compute terminals allocations\n",
+		    this->current_superframe_sf);
 		return false;
 	}
 
@@ -548,18 +540,20 @@ bool DamaCtrl::runOnSuperFrameChange(time_sf_t superframe_number_sf)
 }
 
 
-bool DamaCtrl::computeDama()
+bool DamaCtrl::computeTerminalsAllocations()
 {
 	DamaTerminalList::iterator tal_it;
 
-	if(this->enable_rbdc && !this->computeDamaRbdc())
+	// reset the terminals allocations
+	if(!this->resetTerminalsAllocations())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
-		    "SF#%u: Error while computing RBDC allocation\n",
+		    "SF#%u: Cannot reset terminals allocations\n",
 		    this->current_superframe_sf);
 		return false;
 	}
-	else
+
+	if(!this->enable_rbdc)
 	{
 		// Output stats and probes
 		for(tal_it = this->terminals.begin(); tal_it != this->terminals.end(); ++tal_it)
@@ -578,15 +572,15 @@ bool DamaCtrl::computeDama()
 		this->probe_gw_rbdc_req_size->put(0);
 		this->probe_gw_rbdc_alloc->put(0);
 	}
-
-	if(this->enable_vbdc && !this->computeDamaVbdc())
+	else if(!this->computeTerminalsRbdcAllocation())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
-		    "SF#%u: Error while computing RBDC allocation\n",
+		    "SF#%u: Cannot compute terminals RBDC allocation\n",
 		    this->current_superframe_sf);
 		return false;
 	}
-	else
+
+	if(!this->enable_vbdc)
 	{
 		// Output stats and probes
 		for(tal_it = this->terminals.begin(); tal_it != this->terminals.end(); ++tal_it)
@@ -607,11 +601,18 @@ bool DamaCtrl::computeDama()
 		this->probe_gw_vbdc_req_size->put(0);
 		this->probe_gw_vbdc_alloc->put(0);
 	}
-
-	if(!this->computeDamaFca())
+	else if(!this->computeTerminalsVbdcAllocation())
 	{
 		LOG(this->log_run_dama, LEVEL_ERROR,
-		    "SF#%u: Error while computing RBDC allocation\n",
+		    "SF#%u: Cannot compute terminals VBDC allocation\n",
+		    this->current_superframe_sf);
+		return false;
+	}
+
+	if(!this->computeTerminalsFcaAllocation())
+	{
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Cannot compute terminals FCA allocation\n",
 		    this->current_superframe_sf);
 		return false;
 	}

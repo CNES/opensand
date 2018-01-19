@@ -37,6 +37,17 @@
 
 #include <opensand_output/Output.h>
 
+#include <algorithm>
+
+// constants
+const rate_kbps_t C_MAX_RBDC_IN_SAC = 16320.0; // 16320 kbits/s, limitation due
+                                               // to CR value size in to SAC field
+const vol_kb_t C_MAX_VBDC_IN_SAC = 4080;       // 4080 packets/ceils, limitation
+                                               // due to CR value size in to SAC field
+
+using std::max;
+using std::min;
+
 
 DamaAgentRcsCommon::DamaAgentRcsCommon(FmtDefinitionTable *ret_modcod_def):
 	DamaAgent(),
@@ -159,6 +170,7 @@ bool DamaAgentRcsCommon::hereIsTTP(Ttp *ttp)
 	fmt_id_t prev_modcod_id;
 	map<uint8_t, emu_tp_t> tp;
 
+	this->allocated_kb = 0;
 	if(this->group_id != ttp->getGroupId())
 	{
 		LOG(this->log_ttp, LEVEL_ERROR,
@@ -415,6 +427,16 @@ bool DamaAgentRcsCommon::buildSAC(ret_access_type_t UNUSED(cr_type),
 
  end:
 	return true;
+}
+
+rate_kbps_t DamaAgentRcsCommon::checkRbdcRequest(rate_kbps_t request_kbps)
+{
+	return min(request_kbps, C_MAX_RBDC_IN_SAC);
+}
+
+vol_kb_t DamaAgentRcsCommon::checkVbdcRequest(vol_kb_t request_kb)
+{
+	return min(request_kb, C_MAX_VBDC_IN_SAC);
 }
 
 vol_b_t DamaAgentRcsCommon::getMacBufferLength(ret_access_type_t cr_type)

@@ -40,6 +40,10 @@
 
 #include <opensand_output/Output.h>
 
+#include <algorithm>
+
+using std::max;
+
 ReturnSchedulingRcs::ReturnSchedulingRcs(
 			EncapPlugin::EncapPacketHandler *packet_handler,
 			const fifos_t &fifos):
@@ -164,7 +168,7 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 			// store DVB-RCS frame with completed frames
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 			complete_frames_count++;
-			remaining_allocation_kb -= ceil(frame_length_b / 1000.);
+			remaining_allocation_kb = (vol_kb_t)max(remaining_allocation_kb - (int)ceil(frame_length_b / 1000.), 0);
 
 			// create another incomplete DVB-RCS frame
 			if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
@@ -235,7 +239,7 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 
 			// increment the counter of complete frames
 			complete_frames_count++;
-			remaining_allocation_kb -= ceil(frame_length_b / 1000.);
+			remaining_allocation_kb = (vol_kb_t)max(remaining_allocation_kb - (int)ceil(frame_length_b / 1000.), 0);
 		}
 		else
 		{

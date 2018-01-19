@@ -144,6 +144,24 @@ class DamaAgentRcsCommon : public DamaAgent
 
 	/// The MODCOD for emmited frames as received in TTP
 	Probe<int> *probe_st_used_modcod;
+
+	/**
+	 * @brief Check RBDC request value is lower than the max value it could
+	 *        be sent in the SAC
+	 * @param request_kbps  the RBDC request value (kb/s)
+	 *
+	 * @return the lower value between the RBDC value and the max SAC value
+	 */
+	static rate_kbps_t checkRbdcRequest(rate_kbps_t request_kbps);
+
+	/**
+	 * @brief Check VBDC request value is lower than the max value it could
+	 *        be sent in the SAC
+	 * @param request_kb  the VBDC request value (kb)
+	 *
+	 * @return the lower value between the VBDC value and the max SAC value
+	 */
+	static vol_kb_t checkVbdcRequest(vol_kb_t request_kb);
 };
 
 #endif

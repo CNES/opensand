@@ -41,12 +41,6 @@
 #include <algorithm>
 #include <cmath>
 
-// constants
-const rate_kbps_t C_MAX_RBDC_IN_SAC = 16320.0; // 16320 kbits/s, limitation due
-                                               // to CR value size in to SAC field
-const vol_kb_t C_MAX_VBDC_IN_SAC = 4080;       // 4080 packets/ceils, limitation
-                                               // due to CR value size in to SAC field
-
 using std::max;
 using std::min;
 
@@ -117,13 +111,8 @@ rate_kbps_t DamaAgentRcsLegacy::computeRbdcRequest()
 	    this->current_superframe_sf,
 	    rbdc_request_kbps);
 
-	rbdc_request_kbps = min(rbdc_request_kbps, this->max_rbdc_kbps);
-	LOG(this->log_request, LEVEL_DEBUG,
-	    "SF#%u: updated RBDC request = %u kbits/s (in fonction of max "
-	    "RBDC)\n", this->current_superframe_sf, rbdc_request_kbps);
-
 	/* reduce the request value to the maximum theorical value if required */
-	rbdc_request_kbps = min(rbdc_request_kbps, C_MAX_RBDC_IN_SAC);
+	rbdc_request_kbps = this->checkRbdcRequest(rbdc_request_kbps);
 
 	LOG(this->log_request, LEVEL_DEBUG,
 	    "SF#%u: updated RBDC request = %u kbits/s in "
@@ -160,11 +149,8 @@ vol_kb_t DamaAgentRcsLegacy::computeVbdcRequest()
 	    this->current_superframe_sf,
 	    vbdc_request_kb);
 
-	/* adjust request in function of max_vbdc value */
-	vbdc_request_kb = min(vbdc_request_kb, this->max_vbdc_kb);
-
 	// Ensure VBDC request value is not greater than SAC field
-	vbdc_request_kb = min(vbdc_request_kb, C_MAX_VBDC_IN_SAC);
+	vbdc_request_kb = this->checkVbdcRequest(vbdc_request_kb);
 	LOG(this->log_request, LEVEL_DEBUG,
 	    "updated VBDC request = %d kbits in fonction of "
 	    "max VBDC and max VBDC in SAC\n", vbdc_request_kb);

@@ -89,6 +89,8 @@ error:
 bool DamaCtrlRcsCommon::hereIsSAC(const Sac *sac)
 {
 	TerminalContextDamaRcs *terminal;
+	vol_kb_t request_kb;
+	rate_kbps_t request_kbps;
 	tal_id_t tal_id = sac->getTerminalId();
 	std::vector<cr_info_t> requests = sac->getRequests();
 
@@ -106,42 +108,61 @@ bool DamaCtrlRcsCommon::hereIsSAC(const Sac *sac)
 	for(std::vector<cr_info_t>::iterator it = requests.begin();
 	    it != requests.end(); ++it)
 	{
-		uint16_t xbdc;
-
-		// retrieve the requested capacity
-		xbdc = (*it).value;
-		LOG(this->log_sac, LEVEL_INFO,
-		    "SF#%u: ST%u requests %u %s\n",
-		    this->current_superframe_sf, tal_id, xbdc,
-		    ((*it).type == access_dama_vbdc) ?
-		    "kbits in VBDC" : "kbits/s in RBDC");
-
 		// take into account the new request
 		switch((*it).type)
 		{
 			case access_dama_vbdc:
+				request_kb = it->value;
+				LOG(this->log_sac, LEVEL_INFO,
+				    "SF#%u: ST%u received VBDC requests %u kb\n",
+				    this->current_superframe_sf, tal_id, request_kb);
+				
+				request_kb = min(request_kb, terminal->getMaxVbdc());
+				LOG(this->log_sac, LEVEL_INFO,
+				    "SF#%u: ST%u updated VBDC requests %u kb (<= max VBDC %u kb)\n",
+				    this->current_superframe_sf, tal_id, request_kb, terminal->getMaxVbdc());
+
+				terminal->setRequiredVbdc(request_kb);
 				this->enable_vbdc = true;
-				terminal->setRequiredVbdc(xbdc);
+
 				if(tal_id > BROADCAST_TAL_ID)
 				{
 					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
-					                tal_id, xbdc, access_dama_vbdc);
+					                tal_id, request_kb, access_dama_vbdc);
 				}
 				break;
 
 			case access_dama_rbdc:
+				request_kbps = it->value;
+				LOG(this->log_sac, LEVEL_INFO,
+				    "SF#%u: ST%u received RBDC requests %u kb/s\n",
+				    this->current_superframe_sf, tal_id, request_kbps);
+
+				request_kbps = min(request_kbps, terminal->getMaxRbdc());
+				LOG(this->log_sac, LEVEL_INFO,
+				    "SF#%u: ST%u updated RBDC requests %u kb/s (<= max RBDC %u kb/s)\n",
+				    this->current_superframe_sf, tal_id, request_kbps, terminal->getMaxRbdc());
+
+				// remove the CRA of the RBDC request
+				// the CRA is not taken into acount on ST side
+				request_kbps = max(request_kbps - terminal->getCra(), 0);
+				LOG(this->log_sac, LEVEL_INFO,
+				    "SF#%u: ST%u updated RBDC requests %u kb/s (removing CRA %u kb/s)\n",
+				    this->current_superframe_sf, tal_id, request_kbps, terminal->getCra());
+
+				terminal->setRequiredRbdc(request_kbps);
 				this->enable_rbdc = true;
 				if(tal_id > BROADCAST_TAL_ID)
 				{
 					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
-					                tal_id, xbdc, access_dama_rbdc);
+					                tal_id, request_kbps, access_dama_rbdc);
 				}
-				
-				// remove the CRA of the RBDC request
-				// the CRA is not taken into acount on ST side
-				xbdc =
-					std::max(xbdc - terminal->getCra(), 0);
-				terminal->setRequiredRbdc(xbdc);
+				break;
+
+			default:
+				LOG(this->log_sac, LEVEL_INFO,
+				    "SF#%u: ST%u received request of unkwon type %d\n",
+				    this->current_superframe_sf, tal_id, it->type);
 				break;
 		}
 	}
@@ -416,7 +437,7 @@ bool DamaCtrlRcsCommon::resetTerminalsAllocations()
 
 	for(it = this->terminals.begin(); it != this->terminals.end(); it++)
 	{
-		TerminalContextDama *terminal = it->second;
+		TerminalContextDamaRcs *terminal = (TerminalContextDamaRcs *)(it->second);
 		double credit_kbps = terminal->getRbdcCredit();
 		rate_kbps_t request_kbps = terminal->getRequiredRbdc();
 
@@ -430,7 +451,15 @@ bool DamaCtrlRcsCommon::resetTerminalsAllocations()
 		if(0 < terminal->getTimer() && 0.0 < credit_kbps)
 		{
 			rate_kbps_t timeslot_kbps;
-	
+			FmtDefinition *fmt_def = terminal->getFmt();
+			if(fmt_def == NULL)
+			{
+				terminal->setRbdcCredit(0.0);
+				ret = false;
+				continue;
+			}
+			this->converter->setModulationEfficiency(fmt_def->getModulationEfficiency());
+
 			timeslot_kbps = this->converter->pktpfToKbps(1);
 			
 			// Update RBDC request and credit (in kb/s)

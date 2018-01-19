@@ -143,7 +143,7 @@ bool DamaCtrlRcs2Legacy::init()
 	return true;
 }
 
-bool DamaCtrlRcs2Legacy::computeDamaRbdc()
+bool DamaCtrlRcs2Legacy::computeTerminalsRbdcAllocation()
 {
 	rate_kbps_t gw_rbdc_request_kbps = 0;
 	rate_kbps_t gw_rbdc_alloc_kbps = 0;
@@ -186,7 +186,7 @@ bool DamaCtrlRcs2Legacy::computeDamaRbdc()
 }
 
 
-bool DamaCtrlRcs2Legacy::computeDamaVbdc()
+bool DamaCtrlRcs2Legacy::computeTerminalsVbdcAllocation()
 {
 	vol_kb_t gw_vbdc_request_kb = 0;
 	vol_kb_t gw_vbdc_alloc_kb = 0;
@@ -227,7 +227,7 @@ bool DamaCtrlRcs2Legacy::computeDamaVbdc()
 }
 
 
-bool DamaCtrlRcs2Legacy::computeDamaFca()
+bool DamaCtrlRcs2Legacy::computeTerminalsFcaAllocation()
 {
 	rate_kbps_t gw_fca_alloc_kbps = 0;
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
@@ -264,87 +264,6 @@ bool DamaCtrlRcs2Legacy::computeDamaFca()
 	// Be careful to use probes only if FCA is enabled
 	// Output probes and stats
 	this->probe_gw_fca_alloc->put(gw_fca_alloc_kbps);
-
-	return true;
-}
-
-bool DamaCtrlRcs2Legacy::resetCarriersCapacity()
-{
-	rate_symps_t gw_return_total_capacity_symps = 0;
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-	vector<CarriersGroupDama *>::const_iterator carrier_it;
-
-	// Initialize the capacity of carriers
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    ++category_it)
-	{
-		rate_symps_t category_return_capacity_symps = 0;
-		TerminalCategoryDama *category = (*category_it).second;
-		vector<CarriersGroupDama *> carriers_group = category->getCarriersGroups();
-		string label = category->getLabel();
-
-		for(carrier_it = carriers_group.begin();
-		    carrier_it != carriers_group.end();
-		    ++carrier_it)
-		{
-			CarriersGroupDama *carriers = *carrier_it;
-			unsigned int carrier_id = carriers->getCarriersId();
-			vol_sym_t remaining_capacity_sym;
-			rate_symps_t remaining_capacity_symps;
-			rate_pktpf_t remaining_capacity_pktpf;
-
-			// we have several MODCOD for each carrier so we can't convert
-			// from bauds to kbits
-			remaining_capacity_sym = carriers->getTotalCapacity();
-			remaining_capacity_symps = this->converter->pfToPs(remaining_capacity_sym);
-			remaining_capacity_pktpf = this->converter->symToPkt(remaining_capacity_sym);
-
-			// initialize remaining capacity with total capacity in
-			// packet per superframe as it is the unit used in DAMA computations
-			carriers->setRemainingCapacity(remaining_capacity_pktpf);
-			LOG(this->log_run_dama, LEVEL_NOTICE,
-			    "SF#%u: Capacity before DAMA computation for "
-			    "carrier %u: %u packet (per frame) (%u sym/s)\n",
-			    this->current_superframe_sf,
-			    carrier_id,
-			    remaining_capacity_pktpf,
-			    remaining_capacity_symps);
-
-			// Output probes and stats
-			// first create probes that don't exist in case of carriers
-			// reallocation with SVNO interface
-			if(this->probes_carrier_return_capacity[label].find(carrier_id)
-			   == this->probes_carrier_return_capacity[label].end())
-			{
-				Probe<int> *probe = this->generateCarrierCapacityProbe(
-					label,
-					carrier_id,
-					"Available");
-				this->probes_carrier_return_capacity[label].insert(
-				    std::pair<unsigned int,Probe<int> *>(carrier_id, probe));
-			}
-			if(this->carrier_return_remaining_capacity[label].find(carrier_id)
-			   == this->carrier_return_remaining_capacity[label].end())
-			{
-				this->carrier_return_remaining_capacity[label].insert(
-				    std::pair<unsigned int, int>(carrier_id, 0));
-			}
-			this->probes_carrier_return_capacity[label][carrier_id]
-				->put(remaining_capacity_symps);
-			gw_return_total_capacity_symps += remaining_capacity_symps;
-			category_return_capacity_symps += remaining_capacity_symps;
-			this->carrier_return_remaining_capacity[label][carrier_id] = remaining_capacity_symps;
-		}
-
-		// Output probes and stats
-		this->probes_category_return_capacity[label]->put(category_return_capacity_symps);
-		this->category_return_remaining_capacity[label] = category_return_capacity_symps;
-	}
-
-	//Output probes and stats
-	this->probe_gw_return_total_capacity->put(gw_return_total_capacity_symps);
-	this->gw_remaining_capacity = gw_return_total_capacity_symps;
 
 	return true;
 }

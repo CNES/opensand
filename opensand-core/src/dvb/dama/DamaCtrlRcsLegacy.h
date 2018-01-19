@@ -60,17 +60,14 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 	/// initialize
 	virtual bool init();
 
-	 ///  Reset the capacity of carriers
-	virtual bool resetCarriersCapacity();
-
 	/// RBDC allocation
-	virtual bool computeDamaRbdc();
+	virtual bool computeTerminalsRbdcAllocation();
 
 	/// VBDC allocation
-	virtual bool computeDamaVbdc();
+	virtual bool computeTerminalsVbdcAllocation();
 
 	/// FCA allocation
-	virtual bool computeDamaFca();
+	virtual bool computeTerminalsFcaAllocation();
 
 	/**
 	 * @brief Compute RBDC per carriers group

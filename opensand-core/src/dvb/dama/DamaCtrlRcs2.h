@@ -61,8 +61,8 @@ class DamaCtrlRcs2: public DamaCtrlRcsCommon
 	DamaCtrlRcs2(spot_id_t spot);
 	virtual ~DamaCtrlRcs2();
 
-	// Update carriers for each terminal
-	virtual bool updateCarriers();
+	// Update wave forms
+	virtual bool updateWaveForms();
 
  protected:
 
@@ -101,6 +101,9 @@ class DamaCtrlRcs2: public DamaCtrlRcsCommon
 		string category_label,
 		unsigned int carrier_id,
 		string name) const;
+
+	 ///  Reset the capacity of carriers
+	virtual bool resetCarriersCapacity();
 };
 
 

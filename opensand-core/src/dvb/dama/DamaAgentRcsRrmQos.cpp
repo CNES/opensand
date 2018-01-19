@@ -74,12 +74,6 @@
 // 1 to use the Legacy algorithm
 #define LEGACY 0
 
-// constants
-const rate_kbps_t C_MAX_RBDC_IN_SAC = 8160.0; // 8160 kbits/s, limitation due
-                                              // to CR value size in to SAC field
-const vol_kb_t C_MAX_VBDC_IN_SAC = 4080;      // 4080 packets/ceils, limitation
-                                              // due to CR value size in to SAC field
-
 using std::max;
 using std::min;
 
@@ -470,18 +464,11 @@ Legacy:
 	    "SF#%u: theoretical RBDC request = %u kbits/s",  
 	    this->current_superframe_sf, rbdc_request_kbps);
 
-
-	// Check if the RBDCmax is not reached
-	if (rbdc_request_kbps > this->max_rbdc_kbps)
-	{
-		rbdc_request_kbps = this->max_rbdc_kbps;
-	}
-
 	// Reduce the request value to the maximum theorical value 
 	// and use the following units 2kbits/s or 16kbits/s 
 	// in order to observe the DVB-RCS standard
 	// RRM-QoS: Modification 7
-	rbdc_request_kbps = min(rbdc_request_kbps, C_MAX_RBDC_IN_SAC);
+	rbdc_request_kbps = this->checkRbdcRequest(rbdc_request_kbps);
 	LOG(this->log_request, LEVEL_DEBUG,
 	    "SF#%u: updated RBDC request = %u kbits/s in "
 	    "SAC\n", this->current_superframe_sf,
@@ -519,11 +506,8 @@ vol_kb_t DamaAgentRcsRrmQos::computeVbdcRequest()
 	    this->current_superframe_sf,
 	    vbdc_request_kb);
 
-	/* adjust request in function of max_vbdc value */
-	vbdc_request_kb = min(vbdc_request_kb, this->max_vbdc_kb);
-
 	// Ensure VBDC request value is not greater than SAC field
-	vbdc_request_kb = min(vbdc_request_kb, C_MAX_VBDC_IN_SAC);
+	vbdc_request_kb = this->checkVbdcRequest(vbdc_request_kb);
 	LOG(this->log_request, LEVEL_DEBUG,
 	    "updated VBDC request = %d kbits in fonction of "
 	    "max VBDC and max VBDC in SAC\n", vbdc_request_kb);

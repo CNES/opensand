@@ -173,7 +173,7 @@ class DamaCtrl
 	/**
 	 * @brief    Get a pointer to the categories
 	 * @warning  the categories can be modified
-	 * 
+	 *
 	 * @return   pointer to the categories
 	 */
 	TerminalCategories<TerminalCategoryDama> *getCategories();
@@ -239,13 +239,27 @@ class DamaCtrl
 	                            vol_kb_t max_vbdc_kb) = 0;
 
 	/**
-	 * @brief compute the Dama, it allocates exactly what have been asked
-	 *        using internal requests, TBTP and contexts.
-	 * After DAMA computation, TBTP is completed and context is reinitialized
+	 * @brief  Reset the capacity of carriers
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	virtual bool resetCarriersCapacity() = 0;
+
+	/**
+	 * @brief  Update all wave forms.
+	 *
+	 * @return  true on success, false otherwise.
+	 */
+	virtual bool updateWaveForms() = 0;
+
+	/**
+	 * @brief Compute the terminals alllocations, it allocates exactly what
+	 *        have been asked using internal requests, TBTP and contexts.
+	 * After te termianls allocations, TBTP is completed and context is reinitialized
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool computeDama();
+	bool computeTerminalsAllocations();
 
 	/**
 	 * @brief  Reset all terminals allocations.
@@ -255,40 +269,26 @@ class DamaCtrl
 	virtual bool resetTerminalsAllocations() = 0;
 
 	/**
-	 * @brief  Reset the capacity of carriers
-	 * 
-	 * @return  true on success, false otherwise
+	 * @brief Compute the terminals RBDC allocation
 	 */
-	virtual bool resetCarriersCapacity() = 0;
+	virtual bool computeTerminalsRbdcAllocation() = 0;
 
 	/**
-	 * @brief  Update all carriers.
-	 *
-	 * @return  true on success, false otherwise.
+	 * @brief Compute the terminals VBDC allocation
 	 */
-	virtual bool updateCarriers() = 0;
+	virtual bool computeTerminalsVbdcAllocation() = 0;
 
 	/**
-	 * @brief Run the RBDC computation for DAMA
+	 * @brief Compute the terminals FCA allocation
 	 */
-	virtual bool computeDamaRbdc() = 0;
-
-	/**
-	 * @brief Run the VBDC computation for DAMA
-	 */
-	virtual bool computeDamaVbdc() = 0;
-
-	/**
-	 * @brief Run the FCA computation for DAMA
-	 */
-	virtual bool computeDamaFca() = 0;
+	virtual bool computeTerminalsFcaAllocation() = 0;
 
 	/**
 	 * @brief Get the context of terminal
-	 * 
+	 *
 	 * @param tal_id      The terminal id
 	 * @return            The context of the terminal
-	 * 
+	 *
 	 */
 	virtual TerminalContextDama *getTerminalContext(tal_id_t tal_id) const;
 

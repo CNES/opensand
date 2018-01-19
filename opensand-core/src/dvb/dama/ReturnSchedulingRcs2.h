@@ -57,7 +57,6 @@ class ReturnSchedulingRcs2: public ReturnSchedulingRcsCommon
 	virtual ~ReturnSchedulingRcs2() {};
 
   private:
-
 	/**
 	 * @brief schedule the DVB packets that are stored in the MAC Fifo
 	 *

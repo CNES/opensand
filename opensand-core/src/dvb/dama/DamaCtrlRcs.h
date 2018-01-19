@@ -59,8 +59,8 @@ class DamaCtrlRcs: public DamaCtrlRcsCommon
 	DamaCtrlRcs(spot_id_t spot, vol_b_t packet_length_b);
 	virtual ~DamaCtrlRcs();
 
-	// Update carrier for each terminal
-	virtual bool updateCarriers();
+	// Update wave forms
+	virtual bool updateWaveForms();
 
  protected:
 	vol_b_t packet_length_b;
@@ -100,6 +100,9 @@ class DamaCtrlRcs: public DamaCtrlRcsCommon
 		string category_label,
 		unsigned int carrier_id,
 		string name) const;
+
+	 ///  Reset the capacity of carriers
+	virtual bool resetCarriersCapacity();
 };
 
 #endif

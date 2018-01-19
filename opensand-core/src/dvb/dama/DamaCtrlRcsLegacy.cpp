@@ -134,7 +134,7 @@ bool DamaCtrlRcsLegacy::init()
 	return true;
 }
 
-bool DamaCtrlRcsLegacy::computeDamaRbdc()
+bool DamaCtrlRcsLegacy::computeTerminalsRbdcAllocation()
 {
 	rate_kbps_t gw_rbdc_request_kbps = 0;
 	rate_kbps_t gw_rbdc_alloc_kbps = 0;
@@ -177,7 +177,7 @@ bool DamaCtrlRcsLegacy::computeDamaRbdc()
 }
 
 
-bool DamaCtrlRcsLegacy::computeDamaVbdc()
+bool DamaCtrlRcsLegacy::computeTerminalsVbdcAllocation()
 {
 	vol_kb_t gw_vbdc_request_kb = 0;
 	vol_kb_t gw_vbdc_alloc_kb = 0;
@@ -218,7 +218,7 @@ bool DamaCtrlRcsLegacy::computeDamaVbdc()
 }
 
 
-bool DamaCtrlRcsLegacy::computeDamaFca()
+bool DamaCtrlRcsLegacy::computeTerminalsFcaAllocation()
 {
 	rate_kbps_t gw_fca_alloc_kbps = 0;
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
@@ -255,89 +255,6 @@ bool DamaCtrlRcsLegacy::computeDamaFca()
 	// Be careful to use probes only if FCA is enabled
 	// Output probes and stats
 	this->probe_gw_fca_alloc->put(gw_fca_alloc_kbps);
-
-	return true;
-}
-
-bool DamaCtrlRcsLegacy::resetCarriersCapacity()
-{
-	rate_kbps_t gw_return_total_capacity_kbps = 0;
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-	vector<CarriersGroupDama *>::const_iterator carrier_it;
-
-	// Initialize the capacity of carriers
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    ++category_it)
-	{
-		rate_kbps_t category_return_capacity_kbps = 0;
-		TerminalCategoryDama *category = (*category_it).second;
-		vector<CarriersGroupDama *> carriers_group = category->getCarriersGroups();
-		string label = category->getLabel();
-
-		for(carrier_it = carriers_group.begin();
-		    carrier_it != carriers_group.end();
-		    ++carrier_it)
-		{
-			CarriersGroupDama *carriers = *carrier_it;
-			unsigned int carrier_id = carriers->getCarriersId();
-			vol_kb_t remaining_capacity_kb;
-			rate_kbps_t remaining_capacity_kbps;
-			rate_pktpf_t remaining_capacity_pktpf;
-
-			// we have only one MODCOD for each carrier so we can convert
-			// directly from bauds to kbits
-			remaining_capacity_kb =
-				this->input_modcod_def->symToKbits(carriers->getFmtIds().front(),
-				                       carriers->getTotalCapacity());
-			remaining_capacity_kbps = this->converter->pfToPs(remaining_capacity_kb);
-			remaining_capacity_pktpf = this->converter->kbitsToPkt(remaining_capacity_kb);
-
-			// initialize remaining capacity with total capacity in
-			// packet per superframe as it is the unit used in DAMA computations
-			carriers->setRemainingCapacity(remaining_capacity_pktpf);
-			LOG(this->log_run_dama, LEVEL_NOTICE,
-			    "SF#%u: Capacity before DAMA computation for "
-			    "carrier %u: %u packet (per frame) (%u kb/s)\n",
-			    this->current_superframe_sf,
-			    carrier_id,
-			    remaining_capacity_pktpf,
-			    remaining_capacity_kbps);
-
-			// Output probes and stats
-			// first create probes that don't exist in case of carriers
-			// reallocation with SVNO interface
-			if(this->probes_carrier_return_capacity[label].find(carrier_id)
-			   == this->probes_carrier_return_capacity[label].end())
-			{
-				Probe<int> *probe = this->generateCarrierCapacityProbe(
-					label,
-					carrier_id,
-					"Available");
-				this->probes_carrier_return_capacity[label].insert(
-				    std::pair<unsigned int,Probe<int> *>(carrier_id, probe));
-			}
-			if(this->carrier_return_remaining_capacity[label].find(carrier_id)
-			   == this->carrier_return_remaining_capacity[label].end())
-			{
-				this->carrier_return_remaining_capacity[label].insert(
-				    std::pair<unsigned int, int>(carrier_id, 0));
-			}
-			this->probes_carrier_return_capacity[label][carrier_id]
-				->put(remaining_capacity_kbps);
-			gw_return_total_capacity_kbps += remaining_capacity_kbps;
-			category_return_capacity_kbps += remaining_capacity_kbps;
-			this->carrier_return_remaining_capacity[label][carrier_id] = remaining_capacity_kbps;
-		}
-
-		// Output probes and stats
-		this->probes_category_return_capacity[label]->put(category_return_capacity_kbps);
-		this->category_return_remaining_capacity[label] = category_return_capacity_kbps;
-	}
-
-	//Output probes and stats
-	this->probe_gw_return_total_capacity->put(gw_return_total_capacity_kbps);
-	this->gw_remaining_capacity = gw_return_total_capacity_kbps;
 
 	return true;
 }
