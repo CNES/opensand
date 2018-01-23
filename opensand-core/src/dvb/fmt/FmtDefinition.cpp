@@ -238,13 +238,13 @@ vol_kb_t FmtDefinition::symToKbits(vol_sym_t vol_sym) const
 /* add FEC to data length */
 unsigned int FmtDefinition::addFec(unsigned int length) const
 {
-	return ceil(length * (1.0 + this->coding_rate));
+	return floor(length / (double)(this->coding_rate));
 }
 
 /* remove FEC to data length */
 unsigned int FmtDefinition::removeFec(unsigned int length) const
 {
-	return floor(length / (1.0 + this->coding_rate));
+	return ceil(length * this->coding_rate);
 }
 
 void FmtDefinition::print(void) const

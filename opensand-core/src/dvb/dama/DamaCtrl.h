@@ -269,6 +269,11 @@ class DamaCtrl
 	virtual bool resetTerminalsAllocations() = 0;
 
 	/**
+	 * @brief Compute the terminals CRA allocation
+	 */
+	virtual bool computeTerminalsCraAllocation() = 0;
+
+	/**
 	 * @brief Compute the terminals RBDC allocation
 	 */
 	virtual bool computeTerminalsRbdcAllocation() = 0;

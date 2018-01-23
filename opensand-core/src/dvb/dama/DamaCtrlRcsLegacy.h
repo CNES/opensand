@@ -60,6 +60,9 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 	/// initialize
 	virtual bool init();
 
+	/// CRA allocation
+	virtual bool computeTerminalsCraAllocation();
+
 	/// RBDC allocation
 	virtual bool computeTerminalsRbdcAllocation();
 
@@ -68,6 +71,17 @@ class DamaCtrlRcsLegacy: public DamaCtrlRcs
 
 	/// FCA allocation
 	virtual bool computeTerminalsFcaAllocation();
+
+	/**
+	 * @brief Compute CRA per carriers group
+	 *
+	 * @param carriers           The carrier group
+	 * @param category           The terminal category containing the carrier
+	 *
+	 * @return true if success, false otherwise
+	 */
+	bool computeDamaCraPerCarrier(CarriersGroupDama *carriers,
+	                             const TerminalCategoryDama *category);
 
 	/**
 	 * @brief Compute RBDC per carriers group

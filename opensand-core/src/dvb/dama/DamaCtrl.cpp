@@ -553,6 +553,14 @@ bool DamaCtrl::computeTerminalsAllocations()
 		return false;
 	}
 
+	if(!this->computeTerminalsCraAllocation())
+	{
+		LOG(this->log_run_dama, LEVEL_ERROR,
+		    "SF#%u: Cannot compute terminals CRA allocation\n",
+		    this->current_superframe_sf);
+		return false;
+	}
+
 	if(!this->enable_rbdc)
 	{
 		// Output stats and probes
