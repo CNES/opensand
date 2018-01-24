@@ -246,6 +246,17 @@ class ShellManager(object):
             for program in env_plane_ctrl.get_programs():
                 env_plane_ctrl.enable_logs(False, program)
 
+    def status_opensand(self):
+        """ get the status of the OpenSAND components """
+        status = {}
+        for host in self._model.get_hosts_list():
+            state = host.get_state()
+            status[host.get_name()] = (
+                    'stopped' if state == False else
+                    'running' if state == True else
+                    'unreachable')
+        return status
+
     def create_ws_controllers(self):
         """ create controllers for WS because the manager
             controller does not handle it """
