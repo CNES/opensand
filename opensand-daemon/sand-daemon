@@ -41,6 +41,7 @@ import sys
 import signal
 import threading
 import thread
+import re
 import os
 import logging
 import time
@@ -70,6 +71,7 @@ CONF_PARSER = None
 INTERFACES = None
 
 DEFAULT_CACHE='/var/cache/sand-daemon'
+PLATFORM_ID='OPENSAND_PLATFORM_ID'
 
 def sig_handler(signum, frame):
     """ signal handler """
@@ -142,6 +144,14 @@ def publish_service(output_handler):
     except ConfigParser.Error, error:
         LOGGER.error("unable to parse configuration file: " + str(error))
         thread.exit()
+
+    # export the service name
+    try:
+        platform_id = re.findall('_([0-9a-z]+)_opensand._tcp', service_type)[0]
+    except IndexError:
+        pass
+    else:
+        os.environ[PLATFORM_ID] = platform_id
 
     # get the interfaces data
     descr.update(INTERFACES.get_descr())
