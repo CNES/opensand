@@ -104,7 +104,7 @@ vol_pkt_t UnitConverterFixedBitLength::kbitsToPkt(vol_kb_t vol_kb) const
 
 vol_kb_t UnitConverterFixedBitLength::pktToKbits(vol_pkt_t vol_pkt) const
 {
-	return floor(vol_pkt * this->packet_length_b * 0.001);
+	return ceil(vol_pkt * this->packet_length_b / 1000.0);
 }
 
 rate_pktpf_t UnitConverterFixedBitLength::sympsToPktpf(rate_symps_t rate_symps) const
@@ -115,18 +115,18 @@ rate_pktpf_t UnitConverterFixedBitLength::sympsToPktpf(rate_symps_t rate_symps) 
 
 rate_symps_t UnitConverterFixedBitLength::pktpfToSymps(rate_pktpf_t rate_pktpf) const
 {
-	return floor(rate_pktpf * this->packet_length_b * this->modulation_efficiency_inv
-		* this->frame_duration_ms_inv * 0.001);
+	return ceil(rate_pktpf * this->packet_length_b * this->modulation_efficiency_inv
+		* this->frame_duration_ms_inv / 1000.0);
 }
 
 rate_pktpf_t UnitConverterFixedBitLength::bpsToPktpf(rate_bps_t rate_bps) const
 {
-	return ceil(rate_bps * this->packet_length_b_inv * this->frame_duration_ms * 0.001);
+	return ceil(rate_bps * this->packet_length_b_inv * this->frame_duration_ms / 1000.0);
 }
 
 rate_bps_t UnitConverterFixedBitLength::pktpfToBps(rate_pktpf_t rate_pktpf) const
 {
-	return floor(rate_pktpf * this->packet_length_b * this->frame_duration_ms_inv * 1000);
+	return ceil(rate_pktpf * this->packet_length_b * this->frame_duration_ms_inv * 1000);
 }
 	
 rate_pktpf_t UnitConverterFixedBitLength::kbpsToPktpf(rate_kbps_t rate_kbps) const
@@ -138,5 +138,5 @@ rate_pktpf_t UnitConverterFixedBitLength::kbpsToPktpf(rate_kbps_t rate_kbps) con
 rate_kbps_t UnitConverterFixedBitLength::pktpfToKbps(rate_pktpf_t rate_pktpf) const
 {
 	// bit/ms <=> kbits/s
-	return floor(rate_pktpf * this->packet_length_b * this->frame_duration_ms_inv);
+	return ceil(rate_pktpf * this->packet_length_b * this->frame_duration_ms_inv);
 }

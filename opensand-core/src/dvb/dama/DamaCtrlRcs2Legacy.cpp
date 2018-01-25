@@ -146,7 +146,10 @@ bool DamaCtrlRcs2Legacy::init()
 bool DamaCtrlRcs2Legacy::computeTerminalsCraAllocation()
 {
 	bool stat = true;
+	rate_kbps_t gw_cra_request_kbps = 0;
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
+
+	this->gw_cra_alloc_kbps = 0;
 
 	for(category_it = this->categories.begin();
 	    category_it != this->categories.end();
@@ -163,12 +166,23 @@ bool DamaCtrlRcs2Legacy::computeTerminalsCraAllocation()
 		    carrier_it != carriers_group.end();
 		    ++carrier_it)
 		{
-			if(!this->computeDamaCraPerCarrier(*carrier_it, category))
+			rate_kbps_t cra_request_kbps = 0;
+			rate_kbps_t cra_alloc_kbps = 0;
+
+			this->computeDamaCraPerCarrier(*carrier_it,
+			                               category,
+				                           cra_request_kbps,
+				                           cra_alloc_kbps);
+			gw_cra_request_kbps += cra_request_kbps;
+			this->gw_cra_alloc_kbps += cra_alloc_kbps;;
+
+			if(cra_alloc_kbps < cra_request_kbps)
 			{
 				stat = false;
 			}
 		}
 	}
+	//this->probe_gw_cra_request->put(this->gw_cra_request_kbps);
 
 	return stat;
 }
@@ -298,10 +312,11 @@ bool DamaCtrlRcs2Legacy::computeTerminalsFcaAllocation()
 	return true;
 }
 
-bool DamaCtrlRcs2Legacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
-                                                  const TerminalCategoryDama *category)
+void DamaCtrlRcs2Legacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
+                                                  const TerminalCategoryDama *category,
+                                                  rate_kbps_t &request_rate_kbps,
+                                                  rate_kbps_t &alloc_rate_kbps)
 {
-	bool stat = true;
 	ostringstream buf;
 	string label = category->getLabel();
 	string debug;
@@ -344,39 +359,48 @@ bool DamaCtrlRcs2Legacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
 		}
 		this->converter->setModulationEfficiency(fmt_def->getModulationEfficiency());
 
-		cra_kbps = terminal->getCra();
+		cra_kbps = terminal->getRequiredCra();
 		LOG(this->log_run_dama, LEVEL_DEBUG,
 		    "%s ST%d: CRA %u kb/s",
 		    debug.c_str(), tal_id, cra_kbps);
+
+		request_rate_kbps += cra_kbps;
 
 		cra_kbps = fmt_def->addFec(cra_kbps);
 		LOG(this->log_run_dama, LEVEL_DEBUG,
 		    "%s ST%d: CRA with FEC %u kb/s",
 		    debug.c_str(), tal_id, cra_kbps);
 
-		cra_pktpf = ceil(this->converter->kbpsToPktpf(cra_kbps));
+		cra_pktpf = this->converter->kbpsToPktpf(cra_kbps);
 		LOG(this->log_run_dama, LEVEL_DEBUG,
 		    "%s ST%d: CRA %u packets per frame",
 		    debug.c_str(), tal_id, cra_pktpf);
+
+		// Evaluate the real requested rate (multiple of the timeslot rate)
+		cra_kbps = this->converter->pktpfToKbps(cra_pktpf);
+		cra_kbps = fmt_def->removeFec(cra_kbps);
+		LOG(this->log_run_dama, LEVEL_DEBUG,
+		    "%s ST%d: Updated CRA %u kb/s to timeslot use consequence",
+		    debug.c_str(), tal_id, cra_kbps);
 
 		if(remaining_capacity_pktpf < cra_pktpf)
 		{
 			LOG(this->log_run_dama, LEVEL_ERROR,
 			    "%s ST%d: Cannot allocate CRA %u packets per superframe (%u kb/s)\n",
 			    debug.c_str(), tal_id, cra_pktpf, cra_kbps);
-			stat = false;
-			goto error;
+			continue;
 		}
 		remaining_capacity_pktpf -= cra_pktpf;
+		alloc_rate_kbps += cra_kbps;
+		terminal->setCraAllocation(cra_kbps);
+		this->probes_st_cra_alloc[tal_id]->put(cra_kbps);
 	}
 
-error:
 	LOG(this->log_run_dama, LEVEL_INFO,
 	    "%s remaining capacity = %u packets per superframe after CRA allocation (total: %u packets)\n",
 	    debug.c_str(), remaining_capacity_pktpf, total_capacity_pktpf);
 
 	carriers->setRemainingCapacity(remaining_capacity_pktpf);
-	return stat;
 }
 
 void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
@@ -453,15 +477,15 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 		    "%s ST%d: RBDC request with FEC %u kb/s",
 		    debug.c_str(), tal_id, request_kbps);
 
-		request_pktpf = ceil(this->converter->kbpsToPktpf(request_kbps));
+		request_pktpf = this->converter->kbpsToPktpf(request_kbps);
 		LOG(this->log_run_dama, LEVEL_DEBUG,
 		    "%s ST%d: RBDC request %u packets per frame",
 		    debug.c_str(), tal_id, request_pktpf);
 		tal_request_pktpf[tal_id] = request_pktpf;
 
 		// Evaluate the real requested rate (multiple of the timeslot rate)
-		request_kbps = ceil(this->converter->pktpfToKbps(request_pktpf));
-		request_kbps = ceil(fmt_def->removeFec(request_kbps));
+		request_kbps = this->converter->pktpfToKbps(request_pktpf);
+		request_kbps = fmt_def->removeFec(request_kbps);
 		LOG(this->log_run_dama, LEVEL_DEBUG,
 		    "%s ST%d: Updated RBDC request %u kb/s to timeslot use consequence",
 		    debug.c_str(), tal_id, request_kbps);
@@ -628,7 +652,7 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 				rate_kbps_t max_rbdc_kbps;
 
 				max_rbdc_kbps = terminal->getMaxRbdc();
-				cra_kbps = terminal->getCra();
+				cra_kbps = terminal->getCraAllocation();
 				rbdc_alloc_kbps = terminal->getRbdcAllocation();
 
 				if(max_rbdc_kbps - rbdc_alloc_kbps - cra_kbps > slot_kbps)

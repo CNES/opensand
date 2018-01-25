@@ -299,10 +299,10 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 	it = this->terminals.find(tal_id);
 	if(it == this->terminals.end())
 	{
-		TerminalContextDama *terminal;
+		TerminalContextDama *terminal = NULL;
 		TerminalMapping<TerminalCategoryDama>::const_iterator it;
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-		TerminalCategoryDama *category;
+		TerminalCategoryDama *category = NULL;
 		vector<CarriersGroupDama *> carriers;
 		vector<CarriersGroupDama *>::const_iterator carrier_it;
 		uint32_t max_capa_kbps = 0;
@@ -417,8 +417,6 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		
 		// Output probes and stats
 		this->gw_st_num += 1;
-		this->gw_cra_alloc_kbps += cra_kbps;
-		this->probe_gw_cra_alloc->put(gw_cra_alloc_kbps);
 		this->gw_rbdc_max_kbps += max_rbdc_kbps;
 		this->probe_gw_rbdc_max->put(gw_rbdc_max_kbps);
 
@@ -436,7 +434,6 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 					this->input_modcod_def->symToKbits((*carrier_it)->getFmtIds().back(),
 					                       (*carrier_it)->getSymbolRate() *
 					                       (*carrier_it)->getCarriersNumber());
-
 		}
 
 		if(cra_kbps > max_capa_kbps)
@@ -478,8 +475,6 @@ bool DamaCtrl::hereIsLogoff(const Logoff *logoff)
 
 	// Output probes and stats
 	this->gw_st_num -= 1;
-	this->gw_cra_alloc_kbps -= terminal->getCra();
-	this->probe_gw_cra_alloc->put(this->gw_cra_alloc_kbps);
 	this->gw_rbdc_max_kbps -= terminal->getMaxRbdc();
 	this->probe_gw_rbdc_max->put(this->gw_rbdc_max_kbps);
 
@@ -653,13 +648,13 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 		TerminalContextDama *terminal = it->second;
 		if(tal_id > BROADCAST_TAL_ID)
 		{
-			simu_cra += terminal->getCra();
+			simu_cra += terminal->getRequiredCra();
 			simu_rbdc += terminal->getMaxRbdc();
 		}
 		else
 		{
 			this->probes_st_cra_alloc[tal_id]->put(
-				terminal->getCra());
+				terminal->getRequiredCra());
 			this->probes_st_rbdc_max[tal_id]->put(
 				terminal->getMaxRbdc());
 		}

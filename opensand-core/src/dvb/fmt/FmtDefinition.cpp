@@ -230,7 +230,7 @@ vol_sym_t FmtDefinition::kbitsToSym(vol_kb_t vol_kb) const
  */
 vol_kb_t FmtDefinition::symToKbits(vol_sym_t vol_sym) const
 {
-	return ceil(vol_sym / 1000
+	return ceil(vol_sym / 1000.0
 		* this->modulation_efficiency
 		* this->coding_rate);
 }

@@ -44,7 +44,7 @@ TerminalContextDama::TerminalContextDama(tal_id_t tal_id,
                                          time_sf_t rbdc_timeout_sf,
                                          vol_kb_t max_vbdc_kb):
 	TerminalContext(tal_id),
-	cra_kbps(cra_kbps),
+	cra_request_kbps(cra_kbps),
 	max_rbdc_kbps(max_rbdc_kbps),
 	rbdc_timeout_sf(rbdc_timeout_sf),
 	max_vbdc_kb(max_vbdc_kb),
@@ -67,18 +67,32 @@ void TerminalContextDama::updateRbdcTimeout(time_sf_t timeout_sf)
 	this->rbdc_timeout_sf = timeout_sf;
 }
 
-void TerminalContextDama::setCra(rate_kbps_t val_kbps)
+void TerminalContextDama::setRequiredCra(rate_kbps_t val_kbps)
 {
-	this->cra_kbps = val_kbps;
+	this->cra_request_kbps = val_kbps;
 	LOG(this->log_band, LEVEL_INFO,
-	    "CRA is %u kbits/s (for "
-	    "ST%u)\n", this->cra_kbps, 
-	    this->cra_kbps, this->tal_id);
+	    "Required CRA is %u kbits/s (for "
+	    "ST%u)\n",
+	    this->cra_request_kbps, this->tal_id);
 }
 
-rate_kbps_t TerminalContextDama::getCra() const
+rate_kbps_t TerminalContextDama::getRequiredCra() const
 {
-	return this->cra_kbps;
+	return this->cra_request_kbps;
+}
+
+void TerminalContextDama::setCraAllocation(rate_kbps_t val_kbps)
+{
+	this->cra_alloc_kbps = val_kbps;
+	LOG(this->log_band, LEVEL_INFO,
+	    "Allocated CRA is %u kbits/s (for "
+	    "ST%u)\n",
+	    this->cra_alloc_kbps, this->tal_id);
+}
+
+rate_kbps_t TerminalContextDama::getCraAllocation() const
+{
+	return this->cra_alloc_kbps;
 }
 
 void TerminalContextDama::setMaxRbdc(rate_kbps_t val_kbps)
@@ -86,7 +100,7 @@ void TerminalContextDama::setMaxRbdc(rate_kbps_t val_kbps)
 	this->max_rbdc_kbps = val_kbps;
 	LOG(this->log_band, LEVEL_INFO,
 	    "max RBDC is %u kbits/s (for "
-	    "ST%u)\n", this->max_rbdc_kbps, 
+	    "ST%u)\n", this->max_rbdc_kbps,
 	    this->max_rbdc_kbps, this->tal_id);
 }
 
@@ -221,8 +235,8 @@ rate_kbps_t TerminalContextDama::getTotalRateAllocation() const
 	LOG(this->log_band, LEVEL_DEBUG,
 	    "Rate allocation: RBDC %u kb/s, FCA %u kb/s, "
 	    "CRA %u kb/s for ST%u\n", this->rbdc_alloc_kbps,
-	    this->fca_alloc_kbps, this->cra_kbps, this->tal_id);
-	return this->rbdc_alloc_kbps + this->fca_alloc_kbps + this->cra_kbps;
+	    this->fca_alloc_kbps, this->cra_alloc_kbps, this->tal_id);
+	return this->rbdc_alloc_kbps + this->fca_alloc_kbps + this->cra_alloc_kbps;
 }
 
 vol_kb_t TerminalContextDama::getTotalVolumeAllocation() const

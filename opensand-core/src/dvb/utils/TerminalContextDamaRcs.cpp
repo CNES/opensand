@@ -53,7 +53,7 @@ TerminalContextDamaRcs::TerminalContextDamaRcs(tal_id_t tal_id,
 	TerminalContextDama(tal_id, cra_kbps, max_rbdc_kbps, rbdc_timeout_sf, max_vbdc_kb),
 	carrier_id()
 {
-	this->setCra(cra_kbps);
+	this->setRequiredCra(cra_kbps);
 	this->setMaxRbdc(max_rbdc_kbps);
 	this->setRequiredFmt(NULL); // at beginning the terminal need to be served while FMT ID is unknown
 	this->setFmt(NULL); // at beginning the terminal need to be served while FMT ID is unknown

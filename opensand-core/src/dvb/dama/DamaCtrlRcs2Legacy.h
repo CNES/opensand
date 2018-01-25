@@ -78,11 +78,13 @@ class DamaCtrlRcs2Legacy: public DamaCtrlRcs2
 	 *
 	 * @param carriers           The carrier group
 	 * @param category           The terminal category containing the carrier
-	 *
-	 * @return true if success, false otherwise
+	 * @param request_rate_kbps  The requested rate in kbit/s
+	 * @param alloc_rate_kbps    The allocated rate in kbit/s
 	 */
-	bool computeDamaCraPerCarrier(CarriersGroupDama *carriers,
-	                             const TerminalCategoryDama *category);
+	void computeDamaCraPerCarrier(CarriersGroupDama *carriers,
+	                              const TerminalCategoryDama *category,
+	                              rate_kbps_t &request_rate_kbps,
+	                              rate_kbps_t &alloc_rate_kbps);
 
 	/**
 	 * @brief Compute RBDC per carriers group

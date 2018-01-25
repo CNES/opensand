@@ -99,12 +99,12 @@ vol_sym_t UnitConverter::kbitsToSym(vol_kb_t vol_kb) const
 
 vol_kb_t UnitConverter::symToKbits(vol_sym_t vol_sym) const
 {
-	return floor(vol_sym * this->modulation_efficiency * 0.001);
+	return ceil(vol_sym * this->modulation_efficiency / 1000.0);
 }
 
 vol_kb_t UnitConverter::bitsToKbits(vol_b_t vol_b) const
 {
-	return ceil(vol_b * 0.001);
+	return ceil(vol_b / 1000.0);
 }
 
 vol_b_t UnitConverter::kbitsToBits(vol_kb_t vol_kb) const
@@ -129,12 +129,12 @@ rate_symps_t UnitConverter::kbpsToSymps(rate_kbps_t rate_kbps) const
 
 rate_kbps_t UnitConverter::sympsToKbps(rate_symps_t rate_symps) const
 {
-	return floor(rate_symps * this->modulation_efficiency * 0.001);
+	return ceil(rate_symps * this->modulation_efficiency / 1000.0);
 }
 
 rate_kbps_t UnitConverter::bpsToKbps(rate_bps_t rate_bps) const
 {
-	return ceil(rate_bps * 0.001);
+	return ceil(rate_bps / 1000.0);
 }
 
 rate_bps_t UnitConverter::kbpsToBps(rate_kbps_t rate_kbps) const
@@ -144,10 +144,10 @@ rate_bps_t UnitConverter::kbpsToBps(rate_kbps_t rate_kbps) const
 
 unsigned int UnitConverter::pfToPs(unsigned int rate_pf) const
 {
-	return floor(rate_pf * this->frame_duration_ms_inv * 1000);
+	return ceil(rate_pf * this->frame_duration_ms_inv * 1000);
 }
 
 unsigned int UnitConverter::psToPf(unsigned int rate_ps) const
 {
-	return ceil(rate_ps * this->frame_duration_ms * 0.001);
+	return ceil(rate_ps * this->frame_duration_ms / 1000.0);
 }

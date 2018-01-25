@@ -75,18 +75,31 @@ class TerminalContextDama: public TerminalContext
 	 */
 	void updateRbdcTimeout(time_sf_t timeout_sf);
 
-	/** @brief  Set the terminal CRA
+	/** @brief  Set the terminal required CRA
 	 *
-	 * @param  The new CRA value (kb/s).
+	 * @param  The new required CRA value (kb/s).
 	 */
-	void setCra(rate_kbps_t val_kbps);
+	void setRequiredCra(rate_kbps_t val_kbps);
 
 	/**
-	 * @brief   Get the terminal CRA.
+	 * @brief   Get the terminal required CRA.
 	 *
-	 * @return  CRA of terminal (kb/s).
+	 * @return  required CRA of terminal (kb/s).
 	 */
-	rate_kbps_t getCra() const;
+	rate_kbps_t getRequiredCra() const;
+
+	/** @brief  Set the terminal allocated CRA
+	 *
+	 * @param  The new CRA allocation value (kb/s).
+	 */
+	void setCraAllocation(rate_kbps_t val_kbps);
+
+	/**
+	 * @brief   Get the terminal allocated CRA.
+	 *
+	 * @return  CRA allocation of terminal (kb/s).
+	 */
+	rate_kbps_t getCraAllocation() const;
 
 	/** @brief  Set the terminal max RBDC value
 	 *
@@ -253,8 +266,11 @@ class TerminalContextDama: public TerminalContext
 
   protected:
 
-	/** CRA for the terminal (kb/s) */
-	rate_kbps_t cra_kbps;
+	/** Required CRA for the terminal (kb/s) */
+	rate_kbps_t cra_request_kbps;
+
+	/** Allocated CRA for the terminal (kb/s) */
+	rate_kbps_t cra_alloc_kbps;
 
 	/** Maximual RBDC value (kb/s) */
 	rate_kbps_t max_rbdc_kbps;

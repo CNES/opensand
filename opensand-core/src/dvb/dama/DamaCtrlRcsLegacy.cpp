@@ -137,7 +137,10 @@ bool DamaCtrlRcsLegacy::init()
 bool DamaCtrlRcsLegacy::computeTerminalsCraAllocation()
 {
 	bool stat = true;
+	rate_kbps_t gw_cra_request_kbps = 0;
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
+
+	this->gw_cra_alloc_kbps = 0;
 
 	for(category_it = this->categories.begin();
 	    category_it != this->categories.end();
@@ -154,12 +157,23 @@ bool DamaCtrlRcsLegacy::computeTerminalsCraAllocation()
 		    carrier_it != carriers_group.end();
 		    ++carrier_it)
 		{
-			if(!this->computeDamaCraPerCarrier(*carrier_it, category))
+			rate_kbps_t cra_request_kbps = 0;
+			rate_kbps_t cra_alloc_kbps = 0;
+
+			this->computeDamaCraPerCarrier(*carrier_it,
+			                               category,
+				                           cra_request_kbps,
+				                           cra_alloc_kbps);
+			gw_cra_request_kbps += cra_request_kbps;
+			this->gw_cra_alloc_kbps += cra_alloc_kbps;;
+
+			if(cra_alloc_kbps <= cra_request_kbps)
 			{
 				stat = false;
 			}
 		}
 	}
+	//this->probe_gw_cra_request->put(this->gw_cra_request_kbps);
 
 	return stat;
 }
@@ -289,10 +303,11 @@ bool DamaCtrlRcsLegacy::computeTerminalsFcaAllocation()
 	return true;
 }
 
-bool DamaCtrlRcsLegacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
-                                                 const TerminalCategoryDama *category)
+void DamaCtrlRcsLegacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
+                                                 const TerminalCategoryDama *category,
+                                                 rate_kbps_t &request_rate_kbps,
+                                                 rate_kbps_t &alloc_rate_kbps)
 {
-	bool stat = true;
 	ostringstream buf;
 	string label = category->getLabel();
 	string debug;
@@ -335,8 +350,11 @@ bool DamaCtrlRcsLegacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
 		}
 		this->converter->setModulationEfficiency(fmt_def->getModulationEfficiency());
 
-		cra_kbps = terminal->getCra();
+		cra_kbps = terminal->getRequiredCra();
+		request_rate_kbps += cra_kbps;
+
 		cra_pktpf = this->converter->kbpsToPktpf(cra_kbps);
+		cra_kbps = this->converter->pktpfToKbps(cra_pktpf);
 
 		LOG(this->log_run_dama, LEVEL_DEBUG,
 		    "%s ST%d: CRA %u packets per superframe (%u kb/s)\n",
@@ -347,15 +365,15 @@ bool DamaCtrlRcsLegacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
 			LOG(this->log_run_dama, LEVEL_ERROR,
 			    "%s ST%d: Cannot allocate CRA %u packets per superframe (%u kb/s)\n",
 			    debug.c_str(), tal_id, cra_pktpf, cra_kbps);
-			stat = false;
-			goto error;
+			continue;
 		}
 		remaining_capacity_pktpf -= cra_pktpf;
+		alloc_rate_kbps += cra_kbps;
+		terminal->setCraAllocation(cra_kbps);
+		this->probes_st_cra_alloc[tal_id]->put(cra_kbps);
 	}
 
-error:
 	carriers->setRemainingCapacity(remaining_capacity_pktpf);
-	return stat;
 }
 
 void DamaCtrlRcsLegacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,

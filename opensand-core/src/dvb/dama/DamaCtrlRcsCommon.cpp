@@ -145,10 +145,10 @@ bool DamaCtrlRcsCommon::hereIsSAC(const Sac *sac)
 
 				// remove the CRA of the RBDC request
 				// the CRA is not taken into acount on ST side
-				request_kbps = max(request_kbps - terminal->getCra(), 0);
+				request_kbps = max(request_kbps - terminal->getRequiredCra(), 0);
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u updated RBDC requests %u kb/s (removing CRA %u kb/s)\n",
-				    this->current_superframe_sf, tal_id, request_kbps, terminal->getCra());
+				    this->current_superframe_sf, tal_id, request_kbps, terminal->getRequiredCra());
 
 				terminal->setRequiredRbdc(request_kbps);
 				this->enable_rbdc = true;
@@ -256,20 +256,11 @@ bool DamaCtrlRcsCommon::applyPepCommand(const PepRequest *request)
 	cra_kbps = request->getCra();
 	if(cra_kbps != 0)
 	{
-		// Output probes and stats
-		this->gw_cra_alloc_kbps -= terminal->getCra();
-
-		terminal->setCra(cra_kbps);
+		terminal->setRequiredCra(cra_kbps);
 		LOG(this->log_pep, LEVEL_NOTICE,
 		    "SF#%u: ST%u: update the CRA value to %u kbits/s\n",
 		    this->current_superframe_sf,
 		    request->getStId(), request->getCra());
-
-		// Output probes and stats
-		this->gw_cra_alloc_kbps += cra_kbps;
-		this->probe_gw_cra_alloc->put(this->gw_cra_alloc_kbps);
-		this->probes_st_cra_alloc[terminal->getTerminalId()]->put(cra_kbps);
-
 	}
 
 	// update RDBCmax threshold ?
@@ -442,6 +433,7 @@ bool DamaCtrlRcsCommon::resetTerminalsAllocations()
 		rate_kbps_t request_kbps = terminal->getRequiredRbdc();
 
 		// Reset allocation (in slots)
+		terminal->setCraAllocation(0);
 		terminal->setRbdcAllocation(0);
 		terminal->setVbdcAllocation(0);
 		terminal->setFcaAllocation(0);
