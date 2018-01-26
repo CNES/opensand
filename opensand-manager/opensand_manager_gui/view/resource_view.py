@@ -247,6 +247,7 @@ class ResourceView(WindowView):
                     # Set modcods to FMT group of the carrier
                     config.set_value(modcods_str, config.get_path(fmt_group), FMT_ID)
                     break
+        config.write()
 
 
     def update_carrier(self, link):
