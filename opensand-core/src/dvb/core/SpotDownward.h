@@ -341,7 +341,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	// Frame interval
 	Probe<float> *probe_frame_interval;
 	// Physical layer information
-	Probe<int> *probe_used_modcod;
+	Probe<int> *probe_sent_modcod;
 
 	// Output logs and events
 	OutputLog *log_request_simulation;

@@ -107,7 +107,7 @@ class ScpcScheduling: public Scheduling
 	Probe<int> *probe_scpc_total_capacity;
 	Probe<int> *probe_scpc_total_remaining_capacity;
 	Probe<int> *probe_scpc_bbframe_nbr;
-	Probe<int> *probe_used_modcod;
+	Probe<int> *probe_sent_modcod;
 	map<unsigned int, vector<Probe<int> *> > probe_scpc_remaining_capacity;
 	map<unsigned int, vector<Probe<int> *> > probe_scpc_available_capacity;
 

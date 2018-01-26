@@ -211,7 +211,7 @@ class BlockDvbTal: public BlockDvb
 		Probe<int> *probe_st_l2_from_sat;
 		int l2_from_sat_bytes;
 			// Physical layer information
-		Probe<int> *probe_st_real_modcod;
+		Probe<int> *probe_st_required_modcod;
 		Probe<int> *probe_st_received_modcod;
 		Probe<int> *probe_st_rejected_modcod;
 			// Stability

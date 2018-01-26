@@ -129,7 +129,7 @@ bool DamaAgentRcsCommon::init()
 	    "Default modcod id %u, modulation efficiency %u\n",
 	    this->modcod_id, this->converter->getModulationEfficiency());
 
-	this->probe_st_used_modcod = Output::registerProbe<int>("ACM.Used_modcod",
+	this->probe_st_sent_modcod = Output::registerProbe<int>("Up_Return_modcod.Sent_modcod",
 	                                                        "modcod index",
 	                                                        true, SAMPLE_LAST);
 
@@ -283,13 +283,13 @@ bool DamaAgentRcsCommon::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 			frame->setModcodId(this->modcod_id);
 		}
 	}
-	this->probe_st_used_modcod->put(0);
+	this->probe_st_sent_modcod->put(0);
 	if(complete_dvb_frames->size() > 0)
 	{
 		// only set MODCOD id if there is data sent
 		// as we are with SAMPLE_LAST we may miss some of these
 		// when not sending a lot of trafic
-		this->probe_st_used_modcod->put(this->modcod_id);
+		this->probe_st_sent_modcod->put(this->modcod_id);
 	}
 
 	this->remaining_allocation_kb = remaining_alloc_kb;

@@ -189,11 +189,11 @@ bool SpotUpwardRegen::initOutput(void)
 	this->l2_from_sat_bytes = 0;
 
 	snprintf(probe_name, sizeof(probe_name),
-	         "Spot_%d.ACM.Received_modcod", this->spot_id);
+	         "Spot_%d.Up_Return_modcod.Received_modcod", this->spot_id);
 	this->probe_received_modcod = Output::registerProbe<int>(probe_name, "modcod index",
 	                                                         true, SAMPLE_LAST);
 	snprintf(probe_name, sizeof(probe_name),
-	         "Spot_%d.ACM.Rejected_modcod", this->spot_id);
+	         "Spot_%d.Up_Return_modcod.Rejected_modcod", this->spot_id);
 	this->probe_rejected_modcod = Output::registerProbe<int>(probe_name, "modcod index",
 	                                                         true, SAMPLE_LAST);
 	return true;

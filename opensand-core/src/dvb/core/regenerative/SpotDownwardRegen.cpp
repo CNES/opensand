@@ -373,8 +373,8 @@ bool SpotDownwardRegen::initOutput(void)
 
 	char probe_name[128];
 	snprintf(probe_name, sizeof(probe_name),
-	         "Spot_%d.ACM.Used_modcod", this->spot_id);
-	this->probe_used_modcod = Output::registerProbe<int>(probe_name, "modcod index",
+	         "Spot_%d.Down_Forward_modcod.Sent_modcod", this->spot_id);
+	this->probe_sent_modcod = Output::registerProbe<int>(probe_name, "modcod index",
 	                                                     true, SAMPLE_LAST);
 
 	return true;
@@ -394,7 +394,7 @@ bool SpotDownwardRegen::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 		// desired modcod is low we can send on many carriers
 		uint8_t modcod_id;
 		modcod_id = ((DvbRcsFrame *)this->complete_dvb_frames.front())->getModcodId();
-		this->probe_used_modcod->put(modcod_id);
+		this->probe_sent_modcod->put(modcod_id);
 	}
 	
 	return true;

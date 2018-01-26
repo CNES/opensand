@@ -86,7 +86,7 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	probe_gw_l2_to_sat_total(),
 	l2_to_sat_total_bytes(),
 	probe_frame_interval(NULL),
-	probe_used_modcod(NULL),
+	probe_sent_modcod(NULL),
 	log_request_simulation(NULL),
 	event_logon_resp(NULL)
 {

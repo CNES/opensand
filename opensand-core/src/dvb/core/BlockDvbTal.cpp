@@ -2320,7 +2320,7 @@ BlockDvbTal::Upward::Upward(const string &name, tal_id_t mac_id):
 	is_scpc(false),
 	state(state_initializing),
 	probe_st_l2_from_sat(NULL),
-	probe_st_real_modcod(NULL),
+	probe_st_required_modcod(NULL),
 	probe_st_received_modcod(NULL),
 	probe_st_rejected_modcod(NULL),
 	probe_sof_interval(NULL)
@@ -2599,14 +2599,14 @@ bool BlockDvbTal::Upward::initOutput(void)
 	if(!this->with_phy_layer)
 	{
 		// maximum modcod if physical layer is enabled => not useful
-		this->probe_st_real_modcod = Output::registerProbe<int>("ACM.Required_modcod",
+		this->probe_st_required_modcod = Output::registerProbe<int>("Down_Forward_modcod.Required_modcod",
 		                                                        "modcod index",
 		                                                        true, SAMPLE_LAST);
 	}
-	this->probe_st_received_modcod = Output::registerProbe<int>("ACM.Received_modcod",
+	this->probe_st_received_modcod = Output::registerProbe<int>("Down_Forward_modcod.Received_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);
-	this->probe_st_rejected_modcod = Output::registerProbe<int>("ACM.Rejected_modcod",
+	this->probe_st_rejected_modcod = Output::registerProbe<int>("Down_Forward_modcod.Rejected_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);
 	this->probe_sof_interval = Output::registerProbe<float>("Perf.SOF_interval",
@@ -2698,7 +2698,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				// update MODCOD probes
 				if(!this->with_phy_layer)
 				{
-					this->probe_st_real_modcod->put(std->getRealModcod());
+					this->probe_st_required_modcod->put(std->getRealModcod());
 				}
 				this->probe_st_received_modcod->put(std->getReceivedModcod());
 				this->probe_st_rejected_modcod->put(0);

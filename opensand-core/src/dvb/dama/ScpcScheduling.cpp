@@ -113,8 +113,8 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 		"Symbols per frame", true, SAMPLE_LAST);
 	this->probe_scpc_bbframe_nbr = Output::registerProbe<int>(
 		"SCPC BBFrame number", true, SAMPLE_AVG);
-	this->probe_used_modcod = Output::registerProbe<int>(
-	    "ACM.Used_modcod(SCPC)", "modcod index", true, SAMPLE_LAST);
+	this->probe_sent_modcod = Output::registerProbe<int>(
+	    "Up_Return_modcod.Sent_modcod(SCPC)", "modcod index", true, SAMPLE_LAST);
 
 	carriers_group = this->category->getCarriersGroups();
 	for(carrier_it = carriers_group.begin();
@@ -637,7 +637,7 @@ bool ScpcScheduling::createIncompleteBBFrame(BBFrame **bbframe,
 
 	// set the MODCOD ID of the BB frame
 	(*bbframe)->setModcodId(modcod_id);
-	this->probe_used_modcod->put(modcod_id);
+	this->probe_sent_modcod->put(modcod_id);
 
 	// get the payload size
 	// to simulate the modcod applied to transmitted data, we limit the
