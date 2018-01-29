@@ -314,10 +314,6 @@ void DamaCtrlRcsCommon::updateRequiredFmts()
 	double cni;
 	fmt_id_t fmt_id;
 	
-	if(!this->with_phy_layer)
-	{
-		return;	
-	}
 	if(!this->simulated)
 	{
 		// Update required Fmt in function of the Cni
