@@ -730,7 +730,7 @@
                     <xsd:annotation>
                         <xsd:documentation xml:lang="en">
                             The MODCOD simulation time series for return/up link
-                            <default>modcod/rcs/clear_sky.txt</default>
+                            <default>modcod/rcs2/clear_sky_shortburst.txt</default>
                             <source>modcod/return_up_time_series.txt</source>
                             <xpath physical_layer.enable="false" />
                         </xsd:documentation>
