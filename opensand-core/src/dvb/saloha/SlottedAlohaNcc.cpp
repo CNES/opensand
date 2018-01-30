@@ -711,7 +711,6 @@ bool SlottedAlohaNcc::addTerminal(tal_id_t tal_id)
 		TerminalMapping<TerminalCategorySaloha>::const_iterator it;
 		TerminalCategories<TerminalCategorySaloha>::const_iterator category_it;
 		TerminalCategorySaloha *category;
-		const FmtDefinitionTable modcod_def;
 
 		if(tal_id >= BROADCAST_TAL_ID)
 		{

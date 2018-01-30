@@ -167,7 +167,7 @@ bool DamaCtrlRcsLegacy::computeTerminalsCraAllocation()
 			gw_cra_request_kbps += cra_request_kbps;
 			this->gw_cra_alloc_kbps += cra_alloc_kbps;;
 
-			if(cra_alloc_kbps <= cra_request_kbps)
+			if(cra_alloc_kbps < cra_request_kbps)
 			{
 				stat = false;
 			}
