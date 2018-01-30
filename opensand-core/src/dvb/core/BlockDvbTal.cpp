@@ -52,6 +52,9 @@
 #include "Ttp.h"
 #include "Sof.h"
 
+#include "UnitConverterFixedBitLength.h"
+#include "UnitConverterFixedSymbolLength.h"
+
 #include <opensand_rt/Rt.h>
 
 #include <sstream>
@@ -934,6 +937,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	TerminalCategorySaloha *tal_category = NULL;
 	TerminalMapping<TerminalCategorySaloha>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategorySaloha>::iterator cat_it;
+	UnitConverter *converter = NULL;
 
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -1080,18 +1084,44 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	                             this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Dama Controller Initialization failed.\n");
+		    "Slotted Aloha Tal Initialization failed.\n");
 		goto release_saloha;
+	}
+
+	if(this->return_link_std == DVB_RCS2)
+	{
+		vol_sym_t length_sym = 0;
+		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		                   RCS2_BURST_LENGTH, length_sym))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get '%s' value", DELAY_BUFFER);
+			goto release_saloha;
+		}
+		converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
+		                                               0,
+		                                               length_sym
+		                                              );
+	}
+	else
+	{
+		converter = new UnitConverterFixedBitLength(this->ret_up_frame_duration_ms,
+		                                            0,
+		                                            this->pkt_hdl->getFixedLength() << 3
+		                                           );
 	}
 
 	if(!this->saloha->init(this->mac_id,
 	                       tal_category,
-	                       this->dvb_fifos))
+	                       this->dvb_fifos,
+	                       converter))
 	{
+		delete converter;
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize the DAMA controller\n");
+		    "failed to initialize the Slotted Aloha Tal\n");
 		goto release_saloha;
 	}
+	delete converter;
 
 	return true;
 

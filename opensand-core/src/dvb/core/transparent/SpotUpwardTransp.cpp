@@ -43,6 +43,9 @@
 #include "DvbS2Std.h"
 #include "Sof.h"
 
+#include "UnitConverterFixedBitLength.h"
+#include "UnitConverterFixedSymbolLength.h"
+
 SpotUpwardTransp::SpotUpwardTransp(spot_id_t spot_id,
                                    tal_id_t mac_id,
                                    StFmtSimuList *input_sts,
@@ -119,10 +122,11 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	TerminalMapping<TerminalCategorySaloha> sa_terminal_affectation;
 	TerminalCategorySaloha *sa_default_category;
 	ConfigurationList current_spot;
+	UnitConverter *converter;
 	int lan_scheme_nbr;
 
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id, 
-		                      NO_GW, current_spot))
+	                          NO_GW, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
@@ -173,7 +177,7 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	{
 		string name;
 		if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
-			                     LAN_ADAPTATION_SCHEME_LIST,
+		                         LAN_ADAPTATION_SCHEME_LIST,
 		                         POSITION, toString(i), PROTO, name))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
@@ -208,19 +212,45 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	                             this->pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Dama Controller Initialization failed.\n");
+		    "Slotted Aloha NCC Initialization failed.\n");
 		goto release_saloha;
+	}
+
+	if(this->return_link_std == DVB_RCS2)
+	{
+		vol_sym_t length_sym = 0;
+		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+		                   RCS2_BURST_LENGTH, length_sym))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot get '%s' value", DELAY_BUFFER);
+			goto release_saloha;
+		}
+		converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
+		                                               0,
+		                                               length_sym
+		                                              );
+	}
+	else
+	{
+		converter = new UnitConverterFixedBitLength(this->ret_up_frame_duration_ms,
+		                                            0,
+		                                            this->pkt_hdl->getFixedLength() << 3
+		                                           );
 	}
 
 	if(!this->saloha->init(sa_categories,
 	                       sa_terminal_affectation,
 	                       sa_default_category,
-	                       this->spot_id))
+	                       this->spot_id,
+	                       converter))
 	{
+		delete converter;
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the DAMA controller\n");
+		    "failed to initialize the Slotted Aloha NCC\n");
 		goto release_saloha;
 	}
+	delete converter;
 
 	return true;
 
@@ -667,7 +697,7 @@ bool SpotUpwardTransp::checkIfScpc()
 	ConfigurationList current_spot;
 	
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id,
-		                      NO_GW, current_spot))
+	                          NO_GW, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
@@ -803,9 +833,9 @@ bool SpotUpwardTransp::scheduleSaloha(DvbFrame *dvb_frame,
 	if(this->super_frame_counter != sfn)
 	{
 		LOG(this->log_receive_channel, LEVEL_WARNING,
-			"superframe counter (%u) is not the same as in"
-			" SoF (%u)\n",
-			this->super_frame_counter, sfn);
+		    "superframe counter (%u) is not the same as in"
+		    " SoF (%u)\n",
+		    this->super_frame_counter, sfn);
 		this->super_frame_counter = sfn;
 	}
 

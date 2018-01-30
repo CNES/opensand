@@ -41,6 +41,8 @@
 #include "SlottedAlohaPacketData.h"
 #include "Slot.h"
 
+#include "UnitConverter.h"
+
 /**
  * @class TerminalCategorySaloha
  * @brief Represent a category of terminal for Slotted Aloha
@@ -61,13 +63,11 @@ class TerminalCategorySaloha: public TerminalCategory<CarriersGroupSaloha>
 	~TerminalCategorySaloha();
 
 	/**
-	 * @brief Set the slots number in carriers groups (for RCS)
+	 * @brief Compute the slots number in carriers groups (for RCS)
 	 *
-	 * @frame_duration_ms    The frame duration (in ms)
-	 * @packet_length_bytes  The length of the packets (in bytes)
+	 * @param converter  The unit converter to compute slots number
 	 */
-	void setSlotsNumber(time_ms_t frame_duration_ms,
-	                    vol_bytes_t packet_length_bytes);
+	void computeSlotsNumber(UnitConverter *converter);
 
 	/**
 	 * @brief Get the number of slots in the terminal category

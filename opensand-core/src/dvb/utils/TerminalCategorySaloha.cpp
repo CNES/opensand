@@ -58,17 +58,29 @@ TerminalCategorySaloha::~TerminalCategorySaloha()
 	delete this->accepted_packets;
 }
 
-void TerminalCategorySaloha::setSlotsNumber(time_ms_t frame_duration_ms,
-                                            vol_bytes_t packet_length_bytes)
+void TerminalCategorySaloha::computeSlotsNumber(UnitConverter *converter)
 {
 	unsigned int total = 0;
 	unsigned int last = 0;
+
 	for(vector<CarriersGroupSaloha *>::const_iterator it = this->carriers_groups.begin();
 	    it != this->carriers_groups.end(); ++it)
 	{
 		CarriersGroupSaloha *carriers = *it;
+		FmtDefinition *fmt_def = NULL;
+		unsigned int slots_nbr = 0;
 
-		carriers->setSlotsNumber(frame_duration_ms, packet_length_bytes, last);
+		if(carriers->getFmtGroup()->getFmtIds().size() > 0)
+		{
+			fmt_id_t fmt_id = carriers->getFmtGroup()->getFmtIds().front();
+			fmt_def = carriers->getFmtGroup()->getModcodDefinitions()->getDefinition(fmt_id);
+		}
+		if(fmt_def)
+		{
+			converter->setModulationEfficiency(fmt_def->getModulationEfficiency());
+			slots_nbr = converter->getSlotsNumber(carriers->getSymbolRate());
+		}
+		carriers->setSlotsNumber(slots_nbr, last);
 		total += carriers->getSlotsNumber();
 		last = total;
 	}

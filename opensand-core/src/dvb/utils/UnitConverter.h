@@ -62,7 +62,14 @@ class UnitConverter
  public:
 
 	virtual ~UnitConverter();
-			
+
+	/**
+	 * @brief Get the number of slots
+	 *
+	 * @param carrier_symps  the carrier rate
+	 */
+	unsigned int getSlotsNumber(rate_symps_t carrier_symps) const;
+
 	/**
 	 * @brief Get the packet length
 	 * 

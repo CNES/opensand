@@ -66,22 +66,13 @@ CarriersGroupSaloha::~CarriersGroupSaloha()
 	this->slots.clear();
 }
 
-void CarriersGroupSaloha::setSlotsNumber(time_ms_t frame_duration_ms,
-                                         vol_bytes_t packet_length_bytes,
+void CarriersGroupSaloha::setSlotsNumber(unsigned int slots_nbr,
                                          unsigned int last_id)
 {
-	unsigned int slot_nbr;
-	rate_kbps_t rate_kbps;
-	const FmtDefinitionTable *fmt_def = this->fmt_group->getModcodDefinitions();
-
-	// there should be only one FMT ID here
-	rate_kbps = fmt_def->symToKbits(this->fmt_group->getFmtIds().front(),
-	                                this->symbol_rate_symps);
-	slot_nbr = (rate_kbps * frame_duration_ms) / (packet_length_bytes * 8);
 	// create the slots, we do as if all spots in a category were on
 	// a single carrier
 	for(unsigned int i = last_id;
-	    i < last_id + slot_nbr * this->carriers_number;
+	    i < last_id + slots_nbr * this->carriers_number;
 	    i++)
 	{
 		Slot *slot = new Slot(this->carriers_id, i);

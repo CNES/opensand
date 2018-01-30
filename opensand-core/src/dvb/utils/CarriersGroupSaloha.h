@@ -70,12 +70,10 @@ class CarriersGroupSaloha: public CarriersGroup
 	/**
 	 * @brief Set the slots number per carrier
 	 *
-	 * @param frame_duration_ms    The frame duration (in ms)
-	 * @param packet_length_bytes  The length of the packets (in bytes)
-	 * @param last                 The last spot ID in the terminal category
+	 * @param slots_nbr  The number of slots
+	 * @param last       The last spot ID in the terminal category
 	 */
-	void setSlotsNumber(time_ms_t frame_duration_ms,
-	                    vol_bytes_t packet_length_bytes,
+	void setSlotsNumber(unsigned int slots_nbr,
 	                    unsigned int last);
 
 	/**

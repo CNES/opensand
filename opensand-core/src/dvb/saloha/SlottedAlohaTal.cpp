@@ -61,7 +61,8 @@ SlottedAlohaTal::SlottedAlohaTal():
 
 bool SlottedAlohaTal::init(tal_id_t tal_id,
                            TerminalCategorySaloha *category,
-                           const fifos_t &dvb_fifos)
+                           const fifos_t &dvb_fifos,
+                           UnitConverter *converter)
 {
 	uint16_t max;
 	uint16_t multiple;
@@ -80,8 +81,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 
 	this->tal_id = tal_id;
 	this->category = category;
-	this->category->setSlotsNumber(this->frame_duration_ms,
-	                               this->pkt_hdl->getFixedLength());
+	this->category->computeSlotsNumber(converter);
 
 	this->dvb_fifos = dvb_fifos;
 

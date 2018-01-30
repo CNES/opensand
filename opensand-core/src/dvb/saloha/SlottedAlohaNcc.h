@@ -44,6 +44,7 @@
 #include "TerminalContextSaloha.h"
 #include "TerminalCategorySaloha.h"
 #include "SlottedAlohaAlgo.h"
+#include "UnitConverter.h"
 
 #include <list>
 
@@ -99,13 +100,16 @@ class SlottedAlohaNcc: public SlottedAloha
 	 * @param categories             The terminal categories
 	 * @param terminal_affectation   The terminal affectation
 	 * @param default_category       The default terminan category
+	 * @param spot                   The spot
+	 * @param converter              The slots number computer
 	 *
 	 * @return true on success, false otherwise
 	 */
 	bool init(TerminalCategories<TerminalCategorySaloha> &categories,
 	          TerminalMapping<TerminalCategorySaloha> terminal_affectation,
 	          TerminalCategorySaloha *default_category,
-	          spot_id_t spot);
+	          spot_id_t spot,
+	          UnitConverter *converter);
 
 	/**
 	 * Schedule Slotted Aloha packets

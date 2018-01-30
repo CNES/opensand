@@ -93,7 +93,8 @@ SlottedAlohaNcc::~SlottedAlohaNcc()
 bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categories,
                            TerminalMapping<TerminalCategorySaloha> terminal_affectation,
                            TerminalCategorySaloha *default_category,
-                           spot_id_t spot_id)
+                           spot_id_t spot_id,
+                           UnitConverter *converter)
 
 {
 	string algo_name;
@@ -136,8 +137,7 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	    ++cat_iter)
 	{
 		TerminalCategorySaloha *cat = (*cat_iter).second;
-		cat->setSlotsNumber(this->frame_duration_ms,
-		                    this->pkt_hdl->getFixedLength());
+		cat->computeSlotsNumber(converter);
 		Probe<int> *probe_coll;
 		Probe<int> *probe_coll_before;
 		Probe<int> *probe_coll_ratio;

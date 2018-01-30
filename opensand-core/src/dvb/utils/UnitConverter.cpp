@@ -46,6 +46,18 @@ UnitConverter::~UnitConverter()
 {
 }
 
+unsigned int UnitConverter::getSlotsNumber(rate_symps_t carrier_symps) const
+{
+	vol_sym_t slot_sym;
+
+	slot_sym = this->pktToSym(1);
+	if(slot_sym <= 0)
+	{
+		return 0;
+	}
+	return this->psToPf(carrier_symps) / slot_sym;
+}
+
 void UnitConverter::setFrameDuration(time_ms_t duration_ms)
 {
 	this->frame_duration_ms = duration_ms;

@@ -47,6 +47,7 @@
 #include "NetBurst.h"
 #include "PhysicalLayerPlugin.h"
 #include "Plugin.h"
+#include "UnitConverter.h"
 
 #include <list>
 
@@ -122,12 +123,14 @@ class SlottedAlohaTal: public SlottedAloha
 	 * @param tal_id                  The terminal ID
 	 * @param category                The terminal category
 	 * @param dvb_fifos               The DVB fifos
+	 * @param converter               The slots number computer
 	 *
 	 * @return true on success, false otherwise
 	 */
 	bool init(tal_id_t tal_id,
 	          TerminalCategorySaloha *category,
-	          const fifos_t &dvb_fifos);
+	          const fifos_t &dvb_fifos,
+	          UnitConverter *converter);
 
 	/**
 	 * Add the Slotted Aloha header on an encapsulation packet
