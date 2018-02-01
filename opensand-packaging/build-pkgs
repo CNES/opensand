@@ -32,6 +32,8 @@ make_libs()
     echo "Building OpenSAND libraries for $TARGET_DIST"
     # Package and install opensand-output
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
+    # Package and install opensand-output-openbach
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output-openbach || error
     # Package and install opensand-conf
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
     # Package and install opensand-rt
@@ -107,6 +109,7 @@ move()
     cp $DST_DIR/pkgs/libopensand-conf_*.deb \
        $DST_DIR/pkgs/libopensand-plugin_*.deb \
        $DST_DIR/pkgs/libopensand-output_*.deb \
+       $DST_DIR/pkgs/libopensand-output-openbach_*.deb \
        $DST_DIR/pkgs/libopensand-rt_*.deb \
        $DST_DIR/pkgs/opensand-core_*.deb \
        $DST_DIR/pkgs/opensand-core-conf_*.deb \

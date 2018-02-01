@@ -12,6 +12,7 @@ cd $THIS_DIR
 MODULES=`find . -name 'debian' -printf '%h '`
 MODULES=`echo $(printf '%s\n' $MODULES | sort -u)`
 MODULES=`sed -r 's/\.\///g' <<< $MODULES`
+IGNORED_MODULES="opensand-output-openbach"
 
 usage()
 {
@@ -189,6 +190,10 @@ MODULE=`echo $1 | sed 's/\/$//'`
 # Show usage if module is not a valid option
 if [[ ! " $MODULES " =~ " $MODULE " ]]
 then
+    if [[ " $IGNORED_MODULES " =~ " $MODULE " ]]
+    then
+        exit 0
+    fi
     echo "Invalid module \"$MODULE\"" && usage
 fi
 

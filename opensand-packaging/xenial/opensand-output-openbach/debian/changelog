@@ -1,0 +1,6 @@
+opensand-output-openbach (0.1.0) xenial; urgency=low
+
+  * Initial version of the new library for the environment plane
+
+ -- Alban Fricot <africot@toulouse.viveris.com>  Wed, 22 Nov 2017 10:36:51 +0100
+
