@@ -147,7 +147,7 @@ def publish_service(output_handler):
 
     # export the service name
     try:
-        platform_id = re.findall('_([0-9a-z]+)_opensand._tcp', service_type)[0]
+        platform_id = re.findall('_(.*)_opensand._tcp', service_type)[0]
     except IndexError:
         pass
     else:
