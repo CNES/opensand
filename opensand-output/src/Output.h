@@ -99,9 +99,6 @@ public:
 	typedef void destroy_func_t(OutputInternal **);
 
 	~Output();
-
-	/* handle for dynamic load library */
-	static void *handle;
 	
 	/**
 	 * @brief Initialize the output library
@@ -354,6 +351,9 @@ private:
 	 * @brief Enable syslog output
 	 */
 	static void enableSyslog(void);
+
+	/* handle for dynamic load library */
+	static void *handle;
 
 	/// The output instance
 	static OutputInternal *instance;
