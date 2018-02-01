@@ -15,7 +15,7 @@ libopensand_output_la_cpp = \
 	OutputInternal.cpp \
 	OutputLog.cpp \
 	OutputMutex.cpp \
-    OutputOpensand.cpp \
+	OutputOpensand.cpp \
 	Probe.cpp
     
 libopensand_output_la_h = \
