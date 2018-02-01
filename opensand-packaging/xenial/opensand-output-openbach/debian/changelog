@@ -1,3 +1,9 @@
+opensand-output-openbach (4.2.0) xenial; urgency=low
+
+  * Release 4.2.0
+
+ -- Joaquin Muguerza <jmuguerza@toulouse.viveris.com>  Thu, 01 Feb 2018 18:08:51 +0100
+
 opensand-output-openbach (0.1.0) xenial; urgency=low
 
   * Initial version of the new library for the environment plane
