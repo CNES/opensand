@@ -114,7 +114,14 @@ class OutputInternal
 	 * @return array of levels for logs
 	 */
 	const char **getLevels() const;
-	
+
+	/**
+	 * @brief Set initializing state
+	 *
+	 * @param val the initializing state
+	 */
+	void setInitializing(bool val);
+
   public:
 	virtual ~OutputInternal();
 
@@ -293,13 +300,6 @@ class OutputInternal
 	 * @return initializing state
 	 */
 	bool isInitializing(void) const;
-
-	/**
-	 * @brief Set initializing state
-	 *
-	 * @param val the initializing state
-	 */
-	void setInitializing(bool val);
 
 	/**
 	 * @brief Set the log levels as defined in the configuration
