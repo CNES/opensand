@@ -194,6 +194,9 @@ class ModcodParameter(WindowView):
             if self._model.get_conf().get_payload_type() == 'regenerative':
                 self._aloha_radio.set_sensitive(False)
                 self._scpc_radio.set_sensitive(False)
+            else:
+                if ret_lnk_std == DVB_RCS2 and not self._model.get_adv_mode():
+                    self._aloha_radio.set_sensitive(False)
 
         #Load access type from the carrier
         if access_type == CCM:
