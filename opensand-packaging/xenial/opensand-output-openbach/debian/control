@@ -1,7 +1,7 @@
 Source: opensand-output-openbach
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
-Build-Depends: debhelper (>= 7), libopensand-output-dev, autotools-dev, automake, libtool, pkg-config
+Build-Depends: debhelper (>= 7), libopensand-output-dev, collect_agent, autotools-dev, automake, libtool, pkg-config
 Standards-Version: 0.1
 Section: misc
 
