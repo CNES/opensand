@@ -138,17 +138,17 @@ bool DamaCtrlRcsCommon::hereIsSAC(const Sac *sac)
 				    "SF#%u: ST%u received RBDC requests %u kb/s\n",
 				    this->current_superframe_sf, tal_id, request_kbps);
 
-				request_kbps = min(request_kbps, terminal->getMaxRbdc());
-				LOG(this->log_sac, LEVEL_INFO,
-				    "SF#%u: ST%u updated RBDC requests %u kb/s (<= max RBDC %u kb/s)\n",
-				    this->current_superframe_sf, tal_id, request_kbps, terminal->getMaxRbdc());
-
 				// remove the CRA of the RBDC request
 				// the CRA is not taken into acount on ST side
 				request_kbps = max(request_kbps - terminal->getRequiredCra(), 0);
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u updated RBDC requests %u kb/s (removing CRA %u kb/s)\n",
 				    this->current_superframe_sf, tal_id, request_kbps, terminal->getRequiredCra());
+
+				request_kbps = min(request_kbps, terminal->getMaxRbdc());
+				LOG(this->log_sac, LEVEL_INFO,
+				    "SF#%u: ST%u updated RBDC requests %u kb/s (<= max RBDC %u kb/s)\n",
+				    this->current_superframe_sf, tal_id, request_kbps, terminal->getMaxRbdc());
 
 				terminal->setRequiredRbdc(request_kbps);
 				this->enable_rbdc = true;
