@@ -48,6 +48,36 @@ DamaAgentRcs2::~DamaAgentRcs2()
 {
 }
 
+bool DamaAgentRcs2::processOnFrameTick()
+{
+	FmtDefinition *fmt_def;
+	vol_b_t length_b;
+
+	if(!DamaAgentRcsCommon::processOnFrameTick())
+	{
+		return false;
+	}
+
+	fmt_def = this->ret_modcod_def->getDefinition(this->modcod_id);
+	if(fmt_def == NULL)
+	{
+		LOG(this->log_schedule, LEVEL_WARNING,
+		    "SF#%u: no MODCOD %u found",
+		    this->current_superframe_sf,
+		    this->modcod_id);
+		return false;
+	}
+
+	length_b = this->burst_length_b;
+	this->burst_length_b = fmt_def->removeFec(this->burst_length_b);
+	LOG(this->log_schedule, LEVEL_DEBUG,
+	    "SF#%u: burst length without FEC %u b, with FEC %u b",
+	    this->current_superframe_sf,
+	    this->burst_length_b,
+	    length_b);
+	return true;
+}
+
 UnitConverter *DamaAgentRcs2::generateUnitConverter() const
 {
 	vol_sym_t length_sym = 0;

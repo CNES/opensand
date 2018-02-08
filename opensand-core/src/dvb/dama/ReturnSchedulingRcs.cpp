@@ -53,7 +53,7 @@ ReturnSchedulingRcs::ReturnSchedulingRcs(
 
 bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
                                       list<DvbFrame *> *complete_dvb_frames,
-                                      vol_kb_t &remaining_allocation_kb)
+                                      vol_b_t &remaining_allocation_b)
 {
 	unsigned int complete_frames_count;
 	DvbRcsFrame *incomplete_dvb_frame = NULL;
@@ -66,7 +66,7 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 	    "SF#%u: attempt to extract encap packets from MAC"
 	    " FIFOs (remaining allocation = %d kbits)\n",
 	    current_superframe_sf,
-	    remaining_allocation_kb);
+	    remaining_allocation_b / 1000);
 	
 	// create an incomplete DVB-RCS frame
 	if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
@@ -83,7 +83,7 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 	sent_packets = 0;
 	fifo_it = this->dvb_fifos.begin();
 	while(fifo_it != this->dvb_fifos.end() &&
-	      remaining_allocation_kb > 0)
+	      remaining_allocation_b > 0)
 	{
 		NetPacket *encap_packet;
 		MacFifoElement *elem;
@@ -123,7 +123,8 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 		    "allocation = %d kbits)\n",
 		    current_superframe_sf,
 		    fifo->getName().c_str(),
-		    fifo->getCurrentSize(), remaining_allocation_kb);
+		    fifo->getCurrentSize(),
+		    remaining_allocation_b / 1000);
 
 		// extract next encap packet context from MAC fifo
 		elem = fifo->pop();
@@ -138,7 +139,7 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 		    current_superframe_sf,
 		    length_b, encap_packet->getTotalLength(),
 		    incomplete_dvb_frame->getFreeSpace() << 3, incomplete_dvb_frame->getFreeSpace(),
-   		    remaining_allocation_kb * 1000, (remaining_allocation_kb * 1000) >> 3);
+		    remaining_allocation_b, (remaining_allocation_b) >> 3);
 
 		// is there enough free space in the DVB frame
 		// for the encapsulation packet ?
@@ -168,7 +169,7 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 			// store DVB-RCS frame with completed frames
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 			complete_frames_count++;
-			remaining_allocation_kb = (vol_kb_t)max(remaining_allocation_kb - (int)ceil(frame_length_b / 1000.), 0);
+			remaining_allocation_b = (vol_b_t)max((int)(remaining_allocation_b - frame_length_b), 0);
 
 			// create another incomplete DVB-RCS frame
 			if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
@@ -196,7 +197,7 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 
 		// is there enough remaining allocated data length
 		// for the encapsulation packet ?
-		if(frame_length_b + length_b > remaining_allocation_kb * 1000)
+		if(frame_length_b + length_b > remaining_allocation_b)
 		{
 			elem->setElem(encap_packet);
 			fifo->pushFront(elem);
@@ -239,7 +240,7 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 
 			// increment the counter of complete frames
 			complete_frames_count++;
-			remaining_allocation_kb = (vol_kb_t)max(remaining_allocation_kb - (int)ceil(frame_length_b / 1000.), 0);
+			remaining_allocation_b = (vol_b_t)max((int)(remaining_allocation_b - frame_length_b), 0);
 		}
 		else
 		{
@@ -252,8 +253,10 @@ bool ReturnSchedulingRcs::macSchedule(const time_sf_t current_superframe_sf,
 	LOG(this->log_scheduling, LEVEL_INFO,
 	    "SF#%u: %d packets extracted from MAC FIFOs, "
 	    "%u DVB frame(s) were built (remaining "
-	    "allocation = %d kbits)\n", current_superframe_sf,
-	    sent_packets, complete_frames_count, remaining_allocation_kb);
+	    "allocation = %d kbits)\n",
+	    current_superframe_sf,
+	    sent_packets, complete_frames_count,
+	    remaining_allocation_b / 1000);
 
 	return ret;
 error:
@@ -283,8 +286,7 @@ bool ReturnSchedulingRcs::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame
 		    "failed to create DVB-RCS frame: invalid burst length\n");
 		goto error;
 	}
-	
-	// Add header length
+
 	length_bytes += (*incomplete_dvb_frame)->getHeaderLength();
 	//length_bytes += sizeof(T_DVB_PHY);
 	if(MSG_DVB_RCS_SIZE_MAX < length_bytes)

@@ -70,7 +70,10 @@ class DamaAgentRcsCommon : public DamaAgent
 	vol_kb_t dynamic_allocation_kb;
 
 	/** Remaining allocation for frames between two SF */
-	vol_kb_t remaining_allocation_kb;
+	vol_b_t remaining_allocation_b;
+
+	/** Payload length **/
+	vol_b_t burst_length_b;
 
 	/** Circular buffer to store previous RBDC requests */
 	CircularBuffer *rbdc_request_buffer;

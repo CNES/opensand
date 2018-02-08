@@ -84,7 +84,7 @@ bool ReturnSchedulingRcsCommon::schedule(const time_sf_t current_superframe_sf,
 	// UL allocation
 	if(!this->macSchedule(current_superframe_sf,
 	                      complete_dvb_frames,
-	                      (vol_kb_t &)remaining_allocation))
+	                      (vol_b_t &)remaining_allocation))
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: MAC scheduling failed\n",

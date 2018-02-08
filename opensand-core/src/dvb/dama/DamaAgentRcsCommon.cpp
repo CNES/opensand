@@ -53,7 +53,7 @@ DamaAgentRcsCommon::DamaAgentRcsCommon(FmtDefinitionTable *ret_modcod_def):
 	DamaAgent(),
 	allocated_kb(0),
 	dynamic_allocation_kb(0),
-	remaining_allocation_kb(0),
+	remaining_allocation_b(0),
 	rbdc_request_buffer(NULL),
 	ret_schedule(NULL),
 	rbdc_timer_sf(0),
@@ -138,7 +138,8 @@ bool DamaAgentRcsCommon::init()
 
 bool DamaAgentRcsCommon::processOnFrameTick()
 {
-	this->remaining_allocation_kb = this->dynamic_allocation_kb;
+	this->remaining_allocation_b = this->dynamic_allocation_kb * 1000;
+	this->burst_length_b = this->converter->getPacketBitLength();
 	return true;
 }
 
@@ -242,30 +243,36 @@ bool DamaAgentRcsCommon::hereIsTTP(Ttp *ttp)
 
 bool DamaAgentRcsCommon::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 {
-	uint32_t remaining_alloc_kb = this->remaining_allocation_kb;
+	uint32_t remaining_alloc_b = this->remaining_allocation_b;
 	rate_kbps_t remaining_alloc_kbps;
 
 	LOG(this->log_schedule, LEVEL_DEBUG,
-	    "SF#%u: unit converter modulation efficiency %u, "
-	    "burst length %u sym (%u kb)\n",
+	    "SF#%u: modulation efficiency %u, "
+	    "burst length %u sym (%u b)\n",
 	    this->current_superframe_sf,
 	    this->converter->getModulationEfficiency(),
 	    this->converter->getPacketSymbolLength(),
-	    this->converter->getPacketKbitLength());
+	    this->burst_length_b);
+
+	this->ret_schedule->setMaxBurstLength(this->burst_length_b);
 	
-	this->ret_schedule->setMaxBurstLength(
-		this->converter->getPacketBitLength());
-	
-	remaining_alloc_kbps = this->converter->pfToPs(this->remaining_allocation_kb);
+	remaining_alloc_kbps = this->converter->pfToPs(this->remaining_allocation_b / 1000);
 	LOG(this->log_schedule, LEVEL_DEBUG,
 	    "SF#%u: allocation before scheduling %u kbit/s\n",
 	    this->current_superframe_sf,
 	    remaining_alloc_kbps);
+
+	LOG(this->log_schedule, LEVEL_DEBUG,
+	    "SF#%u: capacity to send %u bursts of payload length %u bytes (%u bit)\n",
+	    this->current_superframe_sf,
+	    this->burst_length_b > 0 ? remaining_alloc_b / this->burst_length_b : 0,
+	    this->burst_length_b >> 3,
+	    this->burst_length_b);
 	
 	if(!this->ret_schedule->schedule(this->current_superframe_sf,
 	                                 0,
 	                                 complete_dvb_frames,
-	                                 remaining_alloc_kb))
+	                                 remaining_alloc_b))
 	{
 		LOG(this->log_schedule, LEVEL_ERROR,
 		    "SF#%u: Uplink Scheduling failed",
@@ -292,8 +299,8 @@ bool DamaAgentRcsCommon::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 		this->probe_st_sent_modcod->put(this->modcod_id);
 	}
 
-	this->remaining_allocation_kb = remaining_alloc_kb;
-	remaining_alloc_kbps = this->converter->pfToPs(this->remaining_allocation_kb);
+	this->remaining_allocation_b = remaining_alloc_b;
+	remaining_alloc_kbps = this->converter->pfToPs(this->remaining_allocation_b / 1000);
 
 	LOG(this->log_schedule, LEVEL_DEBUG,
 	    "SF#%u: remaining allocation after scheduling "

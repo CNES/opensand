@@ -74,14 +74,14 @@ class ReturnSchedulingRcsCommon: public Scheduling
 	 *
 	 * @param current_superframe_sf        the current superframe (for logging)
 	 * @param complete_dvb_frames          a list of completed DVB frames
-	 * @param remaining_allocation_kb      the remaining allocated data length after
+	 * @param remaining_allocation_b       the remaining allocated data length after
 	 *                                     scheduling on the current superframe
 	 *
 	 * @return true on success, false otherwise
 	 */
 	virtual bool macSchedule(const time_sf_t current_superframe_sf,
 	                         list<DvbFrame *> *complete_dvb_frames,
-	                         vol_kb_t &remaining_allocation_kb) = 0;
+	                         vol_b_t &remaining_allocation_b) = 0;
 };
 
 #endif

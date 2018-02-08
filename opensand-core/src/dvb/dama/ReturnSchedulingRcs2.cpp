@@ -66,7 +66,7 @@ ReturnSchedulingRcs2::ReturnSchedulingRcs2(
 
 bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
                                        list<DvbFrame *> *complete_dvb_frames,
-                                       vol_kb_t &remaining_allocation_kb)
+                                       vol_b_t &remaining_allocation_b)
 {
 	int ret;
 	bool partial_encap;
@@ -85,7 +85,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	    "SF#%u: attempt to extract encap packets from MAC"
 	    " FIFOs (remaining allocation = %d kbits)\n",
 	    current_superframe_sf,
-	    remaining_allocation_kb);
+	    remaining_allocation_b / 1000);
 
 	// create an incomplete DVB-RCS frame
 	if(!this->allocateDvbRcsFrame(&incomplete_dvb_frame))
@@ -102,6 +102,21 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	sent_packets = 0;
 	fifo_it = this->dvb_fifos.begin();
 	state = state_get_fifo;
+
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+	    "SF#%u: %d DVB frames completed, remaining allocation %d kbits (%d bytes)",
+	    current_superframe_sf,
+	    complete_frames_count,
+	    remaining_allocation_b / 1000,
+	    remaining_allocation_b >> 3);
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+		"SF#%u: DVB Frame filling (%d packets): used %d kbits (%d bytes), free %d kbits (%d bytes)",
+		current_superframe_sf,
+		incomplete_dvb_frame->getNumPackets(),
+		frame_length_b / 1000,
+		frame_length_b >> 3,
+		(incomplete_dvb_frame->getFreeSpace() << 3) / 1000,
+		incomplete_dvb_frame->getFreeSpace());
 
 	while (state != state_end && state != state_error)
 	{
@@ -163,7 +178,8 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			    "allocation = %d kbits)\n",
 			    current_superframe_sf,
 			    fifo->getName().c_str(),
-			    fifo->getCurrentSize(), remaining_allocation_kb);
+			    fifo->getCurrentSize(),
+			    remaining_allocation_b / 1000);
 
 			// extract next encap packet context from MAC fifo
 			elem = fifo->pop();
@@ -178,6 +194,12 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				elem = NULL;
 				break;
 			}
+
+			LOG(this->log_scheduling, LEVEL_DEBUG,
+			    "SF#%u: Extracted packet: %d kbits (%d bytes)",
+			    current_superframe_sf,
+			    (encap_packet->getTotalLength() << 3) / 1000,
+			    encap_packet->getTotalLength());
 
 			state = state_get_chunk;
 			break;
@@ -220,6 +242,13 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				break;
 			}
 
+			LOG(this->log_scheduling, LEVEL_DEBUG,
+			    "SF#%u: %s encapsulated packet length = %d kbits (%d bytes)",
+			    current_superframe_sf,
+			    partial_encap ? "Partial" : "Complete",
+			    data ? (data->getTotalLength() << 3) / 1000 : 0,
+			    data ? data->getTotalLength() : 0);
+
 			// Check the frame allows data
 			state = data ? state_add_data : state_finalize_frame;
 
@@ -228,10 +257,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			{
 				// Re-insert packet
 				fifo->pushFront(elem);
-
-				LOG(this->log_scheduling, LEVEL_INFO,
-				    "SF#%u: packet fragmented\n",
-				    current_superframe_sf);
 			}
 			else
 			{
@@ -268,7 +293,16 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			// Delete the NetPacket once it has been copied in the DVB-RCS2 Frame
 			frame_length_b += data->getTotalLength() << 3;
 			sent_packets++;
-			
+
+			LOG(this->log_scheduling, LEVEL_DEBUG,
+				"SF#%u: DVB Frame filling (%d packets): used %d kbits (%d bytes), free %d kbits (%d bytes)",
+				current_superframe_sf,
+				incomplete_dvb_frame->getNumPackets(),
+				frame_length_b / 1000,
+				frame_length_b >> 3,
+				(incomplete_dvb_frame->getFreeSpace() << 3) / 1000,
+				incomplete_dvb_frame->getFreeSpace());
+
 			delete data;
 			data = NULL;
 
@@ -280,7 +314,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			}
 			
 			// Check there is enough remaining allocation
-			if(remaining_allocation_kb * 1000 <= frame_length_b)
+			if(remaining_allocation_b <= frame_length_b)
 			{
 				state = state_finalize_frame;
 				break;
@@ -315,10 +349,16 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			// Store DVB-RCS2 frame with completed frames
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 			complete_frames_count++;
-			remaining_allocation_kb = (vol_kb_t)max(remaining_allocation_kb - (int)ceil(frame_length_b / 1000.), 0);
+			remaining_allocation_b = (vol_b_t)max((int)(remaining_allocation_b - frame_length_b), 0);
+			LOG(this->log_scheduling, LEVEL_DEBUG,
+				"SF#%u: %d DVB frames completed, remaining allocation %d kbits (%d bytes)",
+				current_superframe_sf,
+				complete_frames_count,
+				remaining_allocation_b / 1000,
+				remaining_allocation_b >> 3);
 
 			// Check the remaining allocation
-			if(remaining_allocation_kb <= 0)
+			if(remaining_allocation_b <= 0)
 			{
 				incomplete_dvb_frame = NULL;
 
@@ -338,6 +378,14 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			}
 			//frame_length_b = incomplete_dvb_frame->getHeaderLength() << 3;
 			frame_length_b = 0;
+			LOG(this->log_scheduling, LEVEL_DEBUG,
+				"SF#%u: DVB Frame filling (%d packets): used %d kbits (%d bytes), free %d kbits (%d bytes)",
+				current_superframe_sf,
+				incomplete_dvb_frame->getNumPackets(),
+				frame_length_b / 1000,
+				frame_length_b >> 3,
+				(incomplete_dvb_frame->getFreeSpace() << 3) / 1000,
+				incomplete_dvb_frame->getFreeSpace());
 
 			state = state_next_encap_pkt;
 			break;
@@ -378,7 +426,13 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			// Store DVB-RCS2 frame with completed frames
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 			complete_frames_count++;
-			remaining_allocation_kb = (vol_kb_t)max(remaining_allocation_kb - (int)ceil(frame_length_b / 1000.), 0);
+			remaining_allocation_b = (vol_b_t)max((int)(remaining_allocation_b - frame_length_b), 0);
+			LOG(this->log_scheduling, LEVEL_DEBUG,
+				"SF#%u: %d DVB frames completed, remaining allocation %d kbits (%d bytes)",
+				current_superframe_sf,
+				complete_frames_count,
+				remaining_allocation_b / 1000,
+				remaining_allocation_b >> 3);
 		}
 		else
 		{
@@ -393,7 +447,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	    "%u DVB frame(s) were built (remaining "
 	    "allocation = %d kbits)\n", current_superframe_sf,
 	    sent_packets, complete_frames_count,
-	    remaining_allocation_kb);
+	    remaining_allocation_b / 1000);
 
 	return true;
 }
@@ -421,7 +475,6 @@ bool ReturnSchedulingRcs2::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_fram
 		goto error;
 	}
 
-	// Add header length
 	length_bytes += (*incomplete_dvb_frame)->getHeaderLength();
 	//length_bytes += sizeof(T_DVB_PHY);
 	if(MSG_DVB_RCS_SIZE_MAX < length_bytes)

@@ -46,6 +46,8 @@ class DamaAgentRcs2 : public DamaAgentRcsCommon
 	DamaAgentRcs2(FmtDefinitionTable *ret_modcod_def);
 	virtual ~DamaAgentRcs2();
 
+	virtual bool processOnFrameTick();
+
  protected:
 
 	/**
