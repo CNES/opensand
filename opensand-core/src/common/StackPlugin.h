@@ -32,6 +32,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef STACK_CONTEXT_H
@@ -139,7 +140,7 @@ class StackPlugin: public OpenSandPlugin
 
 		/**
 		 * @brief Encapsulate the packet and store unencapsulable part
-		 * 
+		 *
 		 * @param[in]  packet            The packet to encapsulate
 		 * @param[in]  remaining_length  The remaining length
 		 * @param[in]  new_burst         The new burst status
@@ -147,7 +148,7 @@ class StackPlugin: public OpenSandPlugin
 		 *                               (true if data remains after encapsulation,
 		 *                               false otherwise)
 		 * @param[out] encap_packet      The encapsulated packet (null in error case)
-		 * 
+		 *
 		 * @return  true if success, false otherwise
 		 */
 		virtual bool encapNextPacket(NetPacket *packet,
@@ -158,9 +159,9 @@ class StackPlugin: public OpenSandPlugin
 
 		/**
 		 * @brief Get encapsulated packet from payload
-		 * 
+		 *
 		 * @param[in]  packet             The packet storing payload
-		 * @param[out] partial_decap      The status about decapsulation (true if data 
+		 * @param[out] partial_decap      The status about decapsulation (true if data
 		 *                                is incomplete to decapsulation, false otherwise)
 		 * @param[out] decap_packets      The list of decapsulated packet
 		 * @param[in decap_packets_count  The packet count to decapsulate (0 if unknown)
@@ -170,7 +171,7 @@ class StackPlugin: public OpenSandPlugin
 			vector<NetPacket *> &decap_packets,
 			unsigned int decap_packet_count = 0) = 0;
 
-		/** 
+		/**
 		 * @brief perform some plugin initialization
 		 */
 		virtual bool init() = 0;
@@ -336,9 +337,9 @@ class StackPlugin: public OpenSandPlugin
 			                                    dst_tal_id);
 		}
 
-		/** 
+		/**
 		 * @brief perform some plugin initialization
-		 * 
+		 *
 		 * @return True if success, false otherwise
 		 */
 		virtual bool init() = 0;
@@ -440,9 +441,9 @@ class StackPlugin: public OpenSandPlugin
 		return NULL;
 	};
 
-	/** 
+	/**
 	 * @brief perform some plugin initialization
-	 * 
+	 *
 	 * @return True if success, false otherwise
 	 */
 	virtual bool init() = 0;

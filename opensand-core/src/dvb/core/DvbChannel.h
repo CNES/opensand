@@ -34,7 +34,7 @@
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
- *
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  */
 
@@ -59,7 +59,7 @@
  * @brief A high level channel that implements some functions
  *        used by ST, SAT and/or GW
  */
-class DvbChannel 
+class DvbChannel
 {
  public:
 	DvbChannel():
@@ -102,7 +102,7 @@ class DvbChannel
 
 	/**
 	 * @brief Read MODCOD Definition types
-	 * 
+	 *
 	 * @return true if success, false otherwise
 	 */
 	bool initModcodDefinitionTypes(void);
@@ -311,8 +311,7 @@ class DvbChannel
 	OutputLog *log_send_channel;
 
 	static OutputLog *dvb_fifo_log;
-		
-	
+
  private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
@@ -402,11 +401,11 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	}
 	bandwidth_khz = bandwidth_mhz * 1000;
 	LOG(this->log_init_channel, LEVEL_INFO,
-	    "%s: bandwitdh is %u kHz\n", 
+	    "%s: bandwitdh is %u kHz\n",
 	    section.c_str(), bandwidth_khz);
 
 	// Get the value of the roll off
-	if(!Conf::getValue(Conf::section_map[section], 
+	if(!Conf::getValue(Conf::section_map[section],
 		               ROLL_OFF, roll_off))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -420,7 +419,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	if(!Conf::getListItems(spot, CARRIERS_DISTRI_LIST, conf_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, %s missing\n", 
+		    "Section %s, %s missing\n",
 		    section.c_str(),
 		    CARRIERS_DISTRI_LIST);
 		goto error;
@@ -444,7 +443,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", 
+			    "distribution table entry %u\n",
 			    section.c_str(),
 			    ACCESS_TYPE, i);
 			goto error;
@@ -460,7 +459,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", 
+			    "distribution table entry %u\n",
 			    section.c_str(),
 			    FMT_GROUP, i);
 			goto error;
@@ -494,10 +493,10 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in FMT "
-			    "groups\n", section.c_str(), 
+			    "groups\n", section.c_str(),
 			    GROUP_ID);
 			goto error;
-		} 
+		}
 
 		// check if we need to intialize this group id
 		if(std::find(used_group_ids.begin(), used_group_ids.end(), group_id) ==
@@ -533,7 +532,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	if(!Conf::getListItems(spot, CARRIERS_DISTRI_LIST, conf_list))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, %s missing\n", 
+		    "Section %s, %s missing\n",
 		    section.c_str(),
 		    CARRIERS_DISTRI_LIST);
 		goto error;
@@ -561,7 +560,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", 
+			    "distribution table entry %u\n",
 			    section.c_str(),
 			    CATEGORY, i);
 			goto error;
@@ -572,7 +571,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", 
+			    "distribution table entry %u\n",
 			    section.c_str(), RATIO, i);
 			goto error;
 		}
@@ -584,7 +583,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", 
+			    "distribution table entry %u\n",
 			    section.c_str(),
 			    SYMBOL_RATE, i);
 			goto error;
@@ -595,7 +594,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", 
+			    "distribution table entry %u\n",
 			    section.c_str(),
 			    FMT_GROUP, i);
 			goto error;
@@ -615,7 +614,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n", 
+			    "distribution table entry %u\n",
 			    section.c_str(),
 			    ACCESS_TYPE, i);
 			goto error;
@@ -651,7 +650,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "%s: new carriers: category=%s, Rs=%G, FMT group=%s, "
-		    "ratio=%s, access type=%s\n", 
+		    "ratio=%s, access type=%s\n",
 		    section.c_str(), name.c_str(),
 		    symbol_rate_symps, group_id.c_str(), ratio.c_str(),
 		    access.c_str());
@@ -713,7 +712,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	if(!this->computeBandplan(bandwidth_khz, roll_off, duration_ms, categories))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Cannot compute band plan for %s\n", 
+		    "Cannot compute band plan for %s\n",
 		    section.c_str());
 		goto error;
 	}
@@ -750,7 +749,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	                   default_category_name))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, missing %s parameter\n", 
+		    "Section %s, missing %s parameter\n",
 		    section.c_str(),
 		    DEFAULT_AFF);
 		goto error;
@@ -775,7 +774,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "ST default category: %s in %s\n",
-		    (*default_category)->getLabel().c_str(), 
+		    (*default_category)->getLabel().c_str(),
 		    section.c_str());
 	}
 
@@ -783,7 +782,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	if(!Conf::getListItems(spot, TAL_AFF_LIST, aff_list))
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
-		    "Section %s, missing %s parameter\n", 
+		    "Section %s, missing %s parameter\n",
 		    section.c_str(),
 		    TAL_AFF_LIST);
 		goto error;
@@ -803,7 +802,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in terminal "
-			    "affection table entry %u\n", 
+			    "affection table entry %u\n",
 			    section.c_str(), TAL_ID, i);
 			goto error;
 		}
@@ -811,7 +810,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Section %s, problem retrieving %s in terminal "
-			    "affection table entry %u\n", 
+			    "affection table entry %u\n",
 			    section.c_str(), CATEGORY, i);
 			goto error;
 		}
@@ -919,7 +918,7 @@ error:
 /**
  * @brief Some FMT functions for Dvb spots ou channels
  */
-class DvbFmt 
+class DvbFmt
 {
  public:
 	DvbFmt():
@@ -994,7 +993,7 @@ class DvbFmt
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
 	uint8_t getCurrentModcodIdOutput(tal_id_t id) const;
-	
+
 	/**
 	 * @brief Get the CNI MODCOD ID of the ST whose ID is given as input
 	 *        for output list of sts
@@ -1005,7 +1004,7 @@ class DvbFmt
 	 * @warning Be sure sure that the ID is valid before calling the function
 	 */
 	double getRequiredCniInput(tal_id_t tal_id);
-	
+
 	/**
 	 * @brief Get the CNI of the ST whose ID is given as input
 	 *        for output list of sts
@@ -1118,19 +1117,19 @@ class DvbFmt
 	 * @param cni              the required Es/N0 for that terminal
 	 */
 	void setRequiredCniOutput(tal_id_t tal_id, double cni);
-	
+
 	/**
 	 * @brief get the modcod change state
 	 *
 	 * @return the modcod change state
-	 */ 
+	 */
 	bool getCniInputHasChanged(tal_id_t tal_id);
-	
+
 	/**
 	 * @brief get the modcod change state
 	 *
 	 * @return the modcod change state
-	 */ 
+	 */
 	bool getCniOutputHasChanged(tal_id_t tal_id);
 
 	/**
@@ -1150,7 +1149,7 @@ class DvbFmt
 	 * @param is_gw           Whether we are on GW or not
 	 *
 	 * @return true on success, false otherwise
-	 */ 
+	 */
 	bool setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                        MacFifoElement *elem,
 	                        DvbFifo *fifo,
@@ -1180,7 +1179,7 @@ class DvbFmt
 
 	/// The MODCOD Definition Table for RCS
 	FmtDefinitionTable *rcs_modcod_def;
-	
+
 	/// The ACM loop margin
 	double fwd_down_acm_margin_db;
 	double ret_up_acm_margin_db;
@@ -1380,7 +1379,7 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 			if(carriers.find(carriers_ite2->first) == carriers.end())
 			{
 				carriers.insert(make_pair<rate_symps_t, unsigned int>(
-				                   (rate_symps_t) carriers_ite2->first, 
+				                   (rate_symps_t) carriers_ite2->first,
 						   (unsigned int) 1));
 			}
 			else
@@ -1419,7 +1418,7 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 		}
 		carriers_available.find(carriers_ite1->first)->second -= num_carriers;
 		carriers.insert(make_pair<rate_symps_t, unsigned int>(
-		                    (rate_symps_t) carriers_ite1->first, 
+		                    (rate_symps_t) carriers_ite1->first,
 				    (unsigned int) num_carriers));
 		rate_symps -= (carriers_ite1->first * num_carriers);
 		if(num_carriers != carriers_ite1->second)

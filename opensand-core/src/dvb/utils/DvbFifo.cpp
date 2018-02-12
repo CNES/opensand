@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
+ * Copyright © 2018 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
  * @file DvbFifo.cpp
  * @brief  FIFO queue containing MAC packets
  * @author Julien Bernard / Viveris Technologies
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 

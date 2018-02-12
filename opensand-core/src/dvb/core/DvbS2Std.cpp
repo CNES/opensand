@@ -30,6 +30,7 @@
  * @file DvbS2Std.cpp
  * @brief DVB-S2 Transmission Standard
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -202,7 +203,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		    this->packet_handler->getName().c_str(),
 		    (*it)->getTotalLength());
 	}
-	
+
 drop:
 skip:
 	// release buffer (data is now saved in NetPacket objects)

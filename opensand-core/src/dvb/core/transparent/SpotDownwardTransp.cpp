@@ -32,6 +32,7 @@
  * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  */
 
@@ -53,9 +54,9 @@ SpotDownwardTransp::SpotDownwardTransp(spot_id_t spot_id,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            StFmtSimuList *input_sts,
                            StFmtSimuList *output_sts):
-	SpotDownward(spot_id, mac_id, 
-	             fwd_down_frame_duration, 
-	             ret_up_frame_duration, 
+	SpotDownward(spot_id, mac_id,
+	             fwd_down_frame_duration,
+	             ret_up_frame_duration,
 	             stats_period, sat_type,
 	             pkt_hdl, input_sts, output_sts)
 {
@@ -83,7 +84,7 @@ bool SpotDownwardTransp::onInit(void)
 		    "failed to initialize MOCODS definitions types\n");
 		return false;
 	}
-	
+
 	// Initialization of the modcod def
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            &this->s2_modcod_def))
@@ -100,7 +101,7 @@ bool SpotDownwardTransp::onInit(void)
 		    "failed to initialize the return link definition MODCOD file\n");
 		return false;
 	}
-	
+
 	if(!SpotDownward::onInit())
 	{
 		return false;
@@ -138,7 +139,7 @@ bool SpotDownwardTransp::initMode(void)
 		    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
 		return false;
 	}
-	
+
 	if(!Conf::getElementWithAttributeValue(current_spot, GW,
 	                                       this->mac_id, current_gw))
 	{
@@ -270,7 +271,7 @@ bool SpotDownwardTransp::initDama(void)
 	TerminalCategoryDama *dc_default_category = NULL;
 
 	ConfigurationList current_gw;
-	
+
 	// Retrieving the free capacity assignement parameter
 	if(!Conf::getValue(Conf::section_map[DC_SECTION_NCC],
 		               DC_FREE_CAP, fca_kbps))
@@ -298,7 +299,7 @@ bool SpotDownwardTransp::initDama(void)
 	    rbdc_timeout_sf, sync_period_frame);
 
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-		                      this->spot_id, 
+		                      this->spot_id,
 		                      this->mac_id, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -320,7 +321,7 @@ bool SpotDownwardTransp::initDama(void)
 	{
 		return false;
 	}
-	
+
 
 	// check if there is DAMA carriers
 	if(dc_categories.size() == 0)
@@ -465,7 +466,7 @@ bool SpotDownwardTransp::addCniExt(void)
 			vector<MacFifoElement *>::iterator queue_it;
 
 			for(queue_it = queue.begin();
-			    queue_it != queue.end(); 
+			    queue_it != queue.end();
 			    ++queue_it)
 			{
 				std::vector<NetPacket*> packet_list;
@@ -474,10 +475,10 @@ bool SpotDownwardTransp::addCniExt(void)
 				tal_id_t tal_id = packet->getDstTalId();
 				NetPacket *extension_pkt = NULL;
 
-				list<tal_id_t>::iterator it = std::find(this->is_tal_scpc.begin(), 
+				list<tal_id_t>::iterator it = std::find(this->is_tal_scpc.begin(),
 				                                        this->is_tal_scpc.end(),
 				                                        tal_id);
-				if(it != this->is_tal_scpc.end() && 
+				if(it != this->is_tal_scpc.end() &&
 				   this->getCniInputHasChanged(tal_id))
 				{
 					list_st.push_back(tal_id);
@@ -485,7 +486,7 @@ bool SpotDownwardTransp::addCniExt(void)
 					// we could make specific SCPC function
 					if(!this->setPacketExtension(this->pkt_hdl,
 						                         elem, fifo,
-						                         packet_list, 
+						                         packet_list,
 						                         &extension_pkt,
 						                         this->mac_id,
 						                         tal_id,
@@ -511,14 +512,14 @@ bool SpotDownwardTransp::addCniExt(void)
 	    st_it != this->input_sts->end(); ++st_it)
 	{
 		tal_id_t tal_id = *st_it;
-		list<tal_id_t>::iterator it = std::find(list_st.begin(), 
+		list<tal_id_t>::iterator it = std::find(list_st.begin(),
 		                                        list_st.end(),
 		                                        tal_id);
-		list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(), 
+		list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(),
 		                                             this->is_tal_scpc.end(),
 		                                             tal_id);
 
-		if(it_scpc != this->is_tal_scpc.end() && it == list_st.end() 
+		if(it_scpc != this->is_tal_scpc.end() && it == list_st.end()
 		   && this->getCniInputHasChanged(tal_id))
 		{
 			std::vector<NetPacket*> packet_list;
@@ -567,10 +568,10 @@ bool SpotDownwardTransp::addCniExt(void)
 				                         NULL,
 				                         // highest priority fifo
 				                         ((*fifos_it).second)[0],
-				                         packet_list, 
+				                         packet_list,
 				                         &extension_pkt,
 				                         this->mac_id,
-				                         tal_id, 
+				                         tal_id,
 				                         ENCODE_CNI_EXT,
 				                         this->super_frame_counter,
 				                         true))

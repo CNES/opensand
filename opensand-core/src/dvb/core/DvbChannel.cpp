@@ -30,6 +30,7 @@
  * @file DvbChannel.cpp
  * @brief This bloc implements a DVB-S2/RCS stack.
  * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -105,7 +106,7 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 	{
 		unsigned int dummy;
 		this->modcod_def_rcs_type = MODCOD_DEF_RCS2;
-		
+
 		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 			               RCS2_BURST_LENGTH,
 		                   dummy))
@@ -184,7 +185,7 @@ bool DvbChannel::initPktHdl(const char *encap_schemes,
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "encapsulation scheme = %s\n",
 	    (*pkt_hdl)->getName().c_str());
-	
+
 	return true;
 }
 
@@ -228,15 +229,15 @@ bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "encapsulation scheme = %s\n",
 	    (*pkt_hdl)->getName().c_str());
-	
+
 	return true;
 }
 
 bool DvbChannel::initCommon(const char *encap_schemes)
-{	
+{
 	//********************************************************
 	//         init Common values from sections
-	//********************************************************	
+	//********************************************************
 	if(!this->initSatType())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -265,7 +266,7 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	}
 
 	// statistics timer
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 		               STATS_TIMER,
 	                   this->stats_period_ms))
 	{
@@ -443,8 +444,8 @@ bool DvbFmt::initModcodSimuFile(const char *simu,
 		    PHYSICAL_LAYER_SECTION, spot_id, gw_id, simu);
 		return false;
 	}
-	
-	if(!Conf::getValue(current_gw, LOOP_ON_FILE, 
+
+	if(!Conf::getValue(current_gw, LOOP_ON_FILE,
 		               loop_on_simu_file))
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
@@ -452,13 +453,13 @@ bool DvbFmt::initModcodSimuFile(const char *simu,
 		    PHYSICAL_LAYER_SECTION, spot_id, gw_id, LOOP_ON_FILE);
 		return false;
 	}
-	
+
 	LOG(this->log_fmt, LEVEL_NOTICE,
 	    "MODCOD simulation path set to %s\n",
 	    modcod_simu_file.c_str());
 
 	// set the MODCOD simulation file
-	if(!fmt_simu.setModcodSimu(modcod_simu_file, 
+	if(!fmt_simu.setModcodSimu(modcod_simu_file,
 		                       acm_period_ms,
 		                       loop_on_simu_file))
 	{
@@ -612,7 +613,7 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	uint32_t opaque = 0;
 	double cni;
 	if(is_gw)
-	{	
+	{
 		cni = this->getRequiredCniInput(dest);
 		LOG(this->log_fmt, LEVEL_INFO,
 		    "Add CNI extension with value %.2f dB for ST%u\n",
@@ -625,7 +626,7 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 		    "Add CNI extension with value %.2f dB\n", cni);
 	}
 	opaque = hcnton(cni);
-	
+
 	bool replace = false;
 	NetPacket *selected_pkt = pkt_hdl->
 	                  getPacketForHeaderExtensions(packet_list);
@@ -645,8 +646,8 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 
 	if(!pkt_hdl->setHeaderExtensions(selected_pkt,
 	                                 extension_pkt,
-	                                 source, 
-	                                 dest, 
+	                                 source,
+	                                 dest,
 	                                 extension_name,
 	                                 &opaque))
 	{
@@ -673,6 +674,6 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 		MacFifoElement *new_el = new MacFifoElement(*extension_pkt, 0, 0);
 		fifo->pushBack(new_el);
 	}
-	
+
 	return true;
 }

@@ -8,6 +8,7 @@
 #
 #
 # Copyright © 2017 CNES
+# Copyright © 2017 TAS
 #
 #
 # This file is part of the OpenSAND testbed.

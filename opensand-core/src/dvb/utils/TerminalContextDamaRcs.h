@@ -30,7 +30,7 @@
  * @file TerminalContextDamaRcs.h
  * @brief The terminal allocations
  * @author Julien Bernard / Viveris Technologies
- * @author Aurelien DELRIEU <adelrieutoulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  */
 

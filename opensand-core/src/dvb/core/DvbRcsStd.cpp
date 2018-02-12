@@ -30,6 +30,7 @@
  * @file DvbRcsStd.cpp
  * @brief DVB-RCS Transmission Standard
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 

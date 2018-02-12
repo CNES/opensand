@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2017 CNES
+ * Copyright © 2017 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +31,7 @@
  * @brief Generic encapsulation / deencapsulation plugin
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef ENCAP_CONTEXT_H
@@ -107,7 +109,7 @@ class EncapPlugin: public StackPlugin
 
 		/**
 		 * @brief Encapsulate the packet and store unencapsulable part
-		 * 
+		 *
 		 * @param[in]  packet            The packet to encapsulate
 		 * @param[in]  remaining_length  The remaining length
 		 * @param[in]  new_burst         The new burst status
@@ -115,7 +117,7 @@ class EncapPlugin: public StackPlugin
 		 *                               (true if data remains after encapsulation,
 		 *                               false otherwise)
 		 * @param[out] encap_packet      The encapsulated packet (null in error case)
-		 * 
+		 *
 		 * @return  true if success, false otherwise
 		 */
 		virtual bool encapNextPacket(NetPacket *packet,
@@ -126,9 +128,9 @@ class EncapPlugin: public StackPlugin
 
 		/**
 		 * @brief Get encapsulated packet from payload
-		 * 
+		 *
 		 * @param[in]  packet             The packet storing payload
-		 * @param[out] partial_decap      The status about decapsulation (true if data 
+		 * @param[out] partial_decap      The status about decapsulation (true if data
 		 *                                is incomplete to decapsulation, false otherwise)
 		 * @param[out] decap_packets      The list of decapsulated packet
 		 * @param[in decap_packets_count  The packet count to decapsulate (0 if unknown)
@@ -222,7 +224,7 @@ class EncapPlugin: public StackPlugin
 		{
 			this->dst_tal_id = BROADCAST_TAL_ID;
 		};
-		
+
 		/**
 		 * Flush the encapsulation context identified by context_id (after a context
 		 * expiration for example). It's the caller charge to delete the returned
@@ -233,7 +235,7 @@ class EncapPlugin: public StackPlugin
 		 */
 		// TODO replace int by uintXX_t
 		virtual NetBurst *flush(int context_id) = 0;
-		
+
 		/**
 		 * Flush all the encapsulation contexts. It's the caller charge to delete
 		 * the returned NetBurst after use.

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -32,6 +32,7 @@
  * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Joaquin MUGUERZA <jmurguerza@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  */
 
@@ -55,9 +56,9 @@ SpotDownwardRegen::SpotDownwardRegen(spot_id_t spot_id,
                                      EncapPlugin::EncapPacketHandler *pkt_hdl,
                                      StFmtSimuList *input_sts,
                                      StFmtSimuList *output_sts):
-	SpotDownward(spot_id, mac_id, 
-	             fwd_down_frame_duration, 
-	             ret_up_frame_duration, 
+	SpotDownward(spot_id, mac_id,
+	             fwd_down_frame_duration,
+	             ret_up_frame_duration,
 	             stats_period, sat_type,
 	             pkt_hdl, input_sts, output_sts)
 {
@@ -78,7 +79,7 @@ bool SpotDownwardRegen::onInit(void)
 		    "failed to initialize MOCODS definitions types\n");
 		return false;
 	}
-	
+
 	// Initialization of the modcod def
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            &this->s2_modcod_def))
@@ -103,7 +104,7 @@ bool SpotDownwardRegen::onInit(void)
 	{
 		return false;
 	}
-	return true;	
+	return true;
 }
 
 
@@ -211,7 +212,7 @@ bool SpotDownwardRegen::initMode(void)
 				"initialisation\n");
 			return false;
 		}
-		
+
 		this->scheduling.insert(
 			make_pair<string, Scheduling *>((string)label, (Scheduling *)schedule));
 	}
@@ -260,7 +261,7 @@ bool SpotDownwardRegen::initDama(void)
 	    "rbdc_timeout = %d superframes computed from sync period %d superframes\n",
 	    rbdc_timeout_sf, sync_period_frame);
 
-	
+
 	// band already initialized in initMode
 	dc_categories = this->categories;
 	dc_terminal_affectation = this->terminal_affectation;
@@ -369,7 +370,7 @@ bool SpotDownwardRegen::initOutput(void)
 	if(!SpotDownward::initOutput())
 	{
 		return false;
-	}	
+	}
 
 	char probe_name[128];
 	snprintf(probe_name, sizeof(probe_name),
@@ -386,7 +387,7 @@ bool SpotDownwardRegen::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 	{
 		return false;
 	}
-	
+
 	if(this->complete_dvb_frames.size() > 0)
 	{
 		// we can do that because we have only one MODCOD per allocation
@@ -396,7 +397,7 @@ bool SpotDownwardRegen::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 		modcod_id = ((DvbRcsFrame *)this->complete_dvb_frames.front())->getModcodId();
 		this->probe_sent_modcod->put(modcod_id);
 	}
-	
+
 	return true;
 }
 

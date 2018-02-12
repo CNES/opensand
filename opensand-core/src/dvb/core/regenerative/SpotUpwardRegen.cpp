@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -66,7 +66,7 @@ bool SpotUpwardRegen::onInit(void)
 		    "failed to initialize MOCODS definitions types\n");
 		return false;
 	}
-	
+
 	// get the common parameters
 	if(!this->initCommon(scheme.c_str()))
 	{
@@ -141,7 +141,7 @@ bool SpotUpwardRegen::initModcodSimu(void)
 bool SpotUpwardRegen::initMode(void)
 {
 	this->reception_std = new DvbS2Std(this->pkt_hdl);
-	
+
 	if(!this->reception_std)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -238,7 +238,7 @@ bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 {
 	bool corrupted = frame->isCorrupted();
 	PhysicStd *std = this->reception_std;
-	
+
 	// Update stats
 	this->l2_from_sat_bytes += frame->getPayloadLength();
 

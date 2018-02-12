@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
+ * Copyright © 2018 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,7 +29,7 @@
  * @file DamaCtrlRcs.cpp
  * @brief This library defines a generic DAMA controller
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
- * @author Aurelien DELRIEU <adelrieutoulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 

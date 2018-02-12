@@ -1,3 +1,9 @@
+opensand-manager (5.0.0) xenial; urgency=low
+
+  * Release 5.0.0
+
+ -- adelrieu <adelrieu@toulouse.viveris.com>  Mon, 12 Feb 2018 11:24:04 +0100
+
 opensand-manager (4.2.0) xenial; urgency=low
 
   * Release 4.2.0

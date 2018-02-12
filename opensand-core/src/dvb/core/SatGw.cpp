@@ -31,6 +31,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -87,10 +88,10 @@ SatGw::SatGw(tal_id_t gw_id,
 	this->data_out_gw_fifo = new DvbFifo(data_out_gw_id, fifo_size,
 	                                     "data_out_gw");
 	// Output Log
-	this->log_init = Output::registerLog(LEVEL_WARNING, 
+	this->log_init = Output::registerLog(LEVEL_WARNING,
 	                                     "Dvb.init.spot_%d.gw_%d",
 	                                     this->spot_id, this->gw_id);
-	this->log_receive = Output::registerLog(LEVEL_WARNING, 
+	this->log_receive = Output::registerLog(LEVEL_WARNING,
 	                                     "Dvb.receive.spot_%d.gw_%d",
 	                                     this->spot_id, this->gw_id);
 	this->input_sts = new StFmtSimuList("in");
@@ -107,7 +108,7 @@ SatGw::~SatGw()
 		delete this->st_scheduling;
 	if(gw_scheduling)
 		delete this->gw_scheduling;
-	
+
 	if(this->input_series)
 		delete this->input_series;
 	if(this->output_series)
@@ -135,7 +136,7 @@ bool SatGw::init()
 		    "failed to initialize fmt\n");
 		return false;
 	}
-	
+
 	// satellite type
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 		               SATELLITE_TYPE,
@@ -160,7 +161,7 @@ bool SatGw::init()
 			    COMMON_SECTION, RETURN_LINK_STANDARD);
 			return false;
 		}
-		
+
 		if(!this->initModcodSimu(strToReturnLinkStd(ret_lnk_std)))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -174,7 +175,7 @@ bool SatGw::init()
 			    "failed to initialize ACM loop margins\n");
 			return false;
 		}
-	
+
 		if(!this->initSeriesGenerator())
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -182,14 +183,14 @@ bool SatGw::init()
 			return false;
 		}
 	}
-	
+
 	if(!this->initProbes())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize probes\n");
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -214,7 +215,7 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 	                                              "ST");
 	if(!this->st_scheduling)
 	{
-		LOG(this->log_init, LEVEL_ERROR, 
+		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot create down ST scheduling for spot %u\n",
 		    this->spot_id);
 		return false;
@@ -231,7 +232,7 @@ bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
 	                                              "GW");
 	if(!this->gw_scheduling)
 	{
-		LOG(this->log_init, LEVEL_ERROR, 
+		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot create down GW scheduling for spot %u\n",
 		    this->spot_id);
 		return false;
@@ -249,7 +250,7 @@ bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
 	if(return_link_standard == DVB_RCS2)
 	{
 		def = MODCOD_DEF_RCS2;
-		
+
 		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 			               RCS2_BURST_LENGTH,
 		                   length))
@@ -286,14 +287,14 @@ bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
 		    "initialisation\n");
 		return false;
 	}
-	
+
 	if(!this->goFirstScenarioStep())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize downlink MODCOD IDs\n");
 		return false;
 	}
-	
+
 	if(!this->addTerminal(this->gw_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -301,7 +302,7 @@ bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
 		    "ID %u\n", this->gw_id);
 		return false;
 	}
-	
+
 	return true;
 
 }
@@ -548,10 +549,10 @@ bool SatGw::updateFmt(DvbFrame *dvb_frame,
 	tal_id_t src_tal_id;
 	double cn;
 	uint8_t msg_type = dvb_frame->getMessageType();
-	
+
 	if(!this->with_phy_layer)
 		return true;
-	
+
 	switch(msg_type)
 	{
 		case MSG_TYPE_SAC:
@@ -644,7 +645,7 @@ bool SatGw::handleSac(DvbFrame *dvb_frame)
 	// known uplink C/N and thus update uplink MODCOD used in TTP
 	cni = this->getRequiredCniInput(tal_id);
 	sac->setAcm(cni);
-	
+
 	// TODO we won't update ACM parameters if we did not receive
 	// traffic from this terminal, GW will have a wrong value...
 	return true;

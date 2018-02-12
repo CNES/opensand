@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
+ * Copyright © 2018 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
  *        interact with the output.
  * @author Vincent Duvert <vduvert@toulouse.viveris.com>
  * @author Fabrice Hobaya <fhobaya@toulouse.viveris.com>
+ * @author Alban FRICOT <africot@toulouse.viveris.com>
  */
 
 #include "Output.h"

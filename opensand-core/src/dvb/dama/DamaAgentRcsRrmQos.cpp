@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
+ * Copyright © 2018 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @brief   Implementation of the DAMA agent for DVB-S2 emission standard.
  * @author  Audric Schiltknecht / Viveris Technologies
  * @author  Julien Bernard / Viveris Technologies
+ * @author  Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  */
 

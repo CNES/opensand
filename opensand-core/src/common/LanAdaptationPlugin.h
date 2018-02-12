@@ -31,6 +31,7 @@
  * @brief Generic LAN adaptation plugin
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef LAN_ADAPTATION_CONTEXT_H

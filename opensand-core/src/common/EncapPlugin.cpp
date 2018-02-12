@@ -4,7 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2016 CNES
+ * Copyright © 2017 CNES
+ * Copyright © 2017 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -88,7 +89,7 @@ bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
 		delete packet_to_encap;
 		return false;
 	}
-	
+
 	// Set the returned encap packet
 	if(data)
 	{
@@ -115,7 +116,7 @@ bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
 	{
 		// Remove the remaining data
 		delete it->second;
-		this->encap_packets.erase(it);	
+		this->encap_packets.erase(it);
 	}
 	return true;
 }
@@ -173,12 +174,12 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packe
 		packets.push_back(current);
 		previous_length += current_length;
 	}
-	
+
 	// Set returned decapsulated packets
 	decap_packets = packets;
 
 	return true;
-	
+
 destroy_packets:
 	for(vector<NetPacket *>::iterator it = packets.begin();
 		it != packets.end();

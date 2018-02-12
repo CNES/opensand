@@ -32,6 +32,7 @@
  * @brief    The scheduling functions for MAC FIFOs with DVB-S2 forward or downlink
  * @author   Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @author   Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
+ * @author   Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 

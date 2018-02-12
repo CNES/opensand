@@ -29,6 +29,7 @@
 #
 
 # Author: Bénédicte Motto / <bmotto@toulouse.viveris.com>
+# Author: Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
 
 """
 carriers_band.py - The OpenSAND bandwidth representation

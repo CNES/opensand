@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,7 +30,7 @@
  * @file    TerminalContextDamaRcs.cpp
  * @brief   The terminal context for RCS terminals handled with DAMA
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
- * @author Aurelien DELRIEU <adelrieutoulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
  * @file     ReturnScheduling.cpp
  * @brief    The scheduling functions for MAC FIFOs with DVB-RCS return link
  * @author   Julien BERNARD / <jbernard@toulouse.viveris.com>
+ * @author   Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -32,6 +32,7 @@
  * @author Bénédicte Motto <bmotto@toulouse.viveris.com>
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -63,7 +64,7 @@ SpotUpwardTransp::~SpotUpwardTransp()
 {
 	if(this->saloha)
 		delete this->saloha;
-	
+
 	if(this->input_series)
 		delete this->input_series;
 	if(this->output_series)
@@ -103,7 +104,7 @@ bool SpotUpwardTransp::onInit(void)
 		    "part of the initialisation\n");
 		return false;
 	}
-	
+
 	// initialize the slotted Aloha part
 	if(!this->initSlottedAloha())
 	{
@@ -125,7 +126,7 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	UnitConverter *converter;
 	int lan_scheme_nbr;
 
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id, 
+	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id,
 	                          NO_GW, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -133,7 +134,7 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 		    ID, this->spot_id, GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
 		return false;
 	}
-	
+
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
 	                                           RETURN_UP_BAND,
 	                                           ALOHA,
@@ -277,7 +278,7 @@ bool SpotUpwardTransp::initModcodSimu(void)
 		    "failed to initialize the return link definition MODCOD file\n");
 		return false;
 	}
-	
+
 	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
 	                             this->mac_id, this->spot_id))
 	{
@@ -397,11 +398,11 @@ bool SpotUpwardTransp::initMode(void)
 	// depending on the satellite type
 	if(this->return_link_std == DVB_RCS2)
 	{
-		this->reception_std = new DvbRcs2Std(this->pkt_hdl); 
+		this->reception_std = new DvbRcs2Std(this->pkt_hdl);
 	}
 	else
 	{
-		this->reception_std = new DvbRcsStd(this->pkt_hdl); 
+		this->reception_std = new DvbRcsStd(this->pkt_hdl);
 	}
 
 	// If available SCPC carriers, a new packet handler is created at NCC
@@ -410,7 +411,7 @@ bool SpotUpwardTransp::initMode(void)
 	{
 		EncapPlugin::EncapPacketHandler *fwd_pkt_hdl;
 		vector<string> scpc_encap;
-		
+
 		// check that the forward encapsulation scheme is GSE
 		// (this should be automatically set by the manager)
 		if(!this->initPktHdl(FORWARD_DOWN_ENCAP_SCHEME_LIST,
@@ -517,7 +518,7 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 	uint8_t msg_type = frame->getMessageType();
 	bool corrupted = frame->isCorrupted();
 	PhysicStd *std = this->reception_std;
-	
+
 	if(msg_type == MSG_TYPE_BBFRAME)
 	{
 		// decode the first packet in frame to be able to get source terminal ID
@@ -548,10 +549,10 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 		{
 			const NetPacket *packet = (*pkt_it);
 			tal_id_t tal_id = packet->getSrcTalId();
-			list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(), 
+			list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(),
 			                                             this->is_tal_scpc.end(),
 				                                         tal_id);
-			if(it_scpc != this->is_tal_scpc.end() &&  
+			if(it_scpc != this->is_tal_scpc.end() &&
 			   packet->getDstTalId() == this->mac_id)
 			{
 				uint32_t opaque = 0;
@@ -565,10 +566,10 @@ bool SpotUpwardTransp::handleFrame(DvbFrame *frame, NetBurst **burst)
 				}
 				if(opaque != 0)
 				{
-					// This is the C/N0 value evaluated by the Terminal 
+					// This is the C/N0 value evaluated by the Terminal
 					// and transmitted via GSE extensions
 					// TODO we could make specific SCPC function
-					this->setRequiredCniOutput(tal_id, ncntoh(opaque)); 
+					this->setRequiredCniOutput(tal_id, ncntoh(opaque));
 					break;
 				}
 			}
@@ -627,7 +628,7 @@ void SpotUpwardTransp::handleFrameCni(DvbFrame *dvb_frame)
 	double curr_cni = dvb_frame->getCn();
 	uint8_t msg_type = dvb_frame->getMessageType();
 	tal_id_t tal_id;
-	
+
 	switch(msg_type)
 	{
 		// Cannot check frame type because of currupted frame
@@ -695,7 +696,7 @@ bool SpotUpwardTransp::checkIfScpc()
 	TerminalCategoryDama *default_category;
 	fmt_groups_t ret_fmt_groups;
 	ConfigurationList current_spot;
-	
+
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id,
 	                          NO_GW, current_spot))
 	{
@@ -727,14 +728,14 @@ bool SpotUpwardTransp::checkIfScpc()
 	{
 		delete (*it).second;
 	}
-	
+
 	if(scpc_categories.size() == 0)
 	{
 		LOG(this->log_init_channel, LEVEL_INFO,
 		    "No SCPC carriers\n");
 		return false;
 	}
-	
+
 	// clear unused category
 	for(TerminalCategories<TerminalCategoryDama>::iterator it = scpc_categories.begin();
 	    it != scpc_categories.end(); ++it)
@@ -798,7 +799,7 @@ bool SpotUpwardTransp::onRcvLogonReq(DvbFrame *dvb_frame)
 			}
 		}
 	}
-	
+
 	// Inform SlottedAloha
 	if(this->saloha)
 	{
@@ -809,7 +810,7 @@ bool SpotUpwardTransp::onRcvLogonReq(DvbFrame *dvb_frame)
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 

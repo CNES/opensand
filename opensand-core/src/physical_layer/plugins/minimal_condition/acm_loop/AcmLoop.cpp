@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2017 CNES
+ * Copyright © 2017 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -45,7 +46,7 @@
 #include <unistd.h>
 
 AcmLoop::AcmLoop():
-	MinimalConditionPlugin(), 
+	MinimalConditionPlugin(),
 	modcod_table_rcs(),
 	modcod_table_s2()
 {
@@ -61,10 +62,10 @@ bool AcmLoop::init(void)
 	string filename_rcs;
 	string filename_s2;
 	string modcod_def_rcs;
-	
+
 	return_link_standard_t return_link_standard;
 	vol_sym_t req_burst_length;
-	
+
 	// return link standard type
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 		               RETURN_LINK_STANDARD,
@@ -79,9 +80,9 @@ bool AcmLoop::init(void)
 	if(return_link_standard == DVB_RCS2)
 	{
 		unsigned int dummy;
-		
+
 		modcod_def_rcs = MODCOD_DEF_RCS2;
-		
+
 		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 			               RCS2_BURST_LENGTH,
 		                   dummy))
@@ -100,7 +101,7 @@ bool AcmLoop::init(void)
 	}
 
 	// get appropriate MODCOD definitions for receving link
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
 	                   modcod_def_rcs.c_str(),
 	                   filename_rcs))
 	{
@@ -111,7 +112,7 @@ bool AcmLoop::init(void)
 	}
 
 	// get appropriate MODCOD definitions for receving link
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION], 
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
 		               MODCOD_DEF_S2,
 	                   filename_s2))
 	{
@@ -120,7 +121,7 @@ bool AcmLoop::init(void)
 		    PHYSICAL_LAYER_SECTION, MODCOD_DEF_S2);
 		return false;
 	}
-	
+
 	if(access(filename_rcs.c_str(), R_OK) < 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -131,7 +132,7 @@ bool AcmLoop::init(void)
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "ACM loop definition file for minimal condition = '%s'\n",
 	    filename_rcs.c_str());
-	
+
 	if(access(filename_s2.c_str(), R_OK) < 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -150,7 +151,7 @@ bool AcmLoop::init(void)
 		    "unable to load the acm_loop definition table");
 		return false;
 	}
-	
+
 	if(!(this->modcod_table_s2).load(filename_s2))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -171,17 +172,17 @@ bool AcmLoop::updateThreshold(uint8_t modcod_id, uint8_t message_type)
 	{
 		case MSG_TYPE_DVB_BURST:
 			threshold = (double)(this->modcod_table_rcs.getRequiredEsN0(modcod_id));
-			LOG(this->log_minimal, LEVEL_DEBUG, 
+			LOG(this->log_minimal, LEVEL_DEBUG,
 			    "Required Es/N0 for ACM loop %u --> %.2f dB\n",
 				modcod_id, this->modcod_table_rcs.getRequiredEsN0(modcod_id));
 
 		default:
 			threshold = (double)(this->modcod_table_s2.getRequiredEsN0(modcod_id));
-			LOG(this->log_minimal, LEVEL_DEBUG, 
+			LOG(this->log_minimal, LEVEL_DEBUG,
 			    "Required Es/N0 for ACM loop %u --> %.2f dB\n",
 				modcod_id, this->modcod_table_s2.getRequiredEsN0(modcod_id));
 	}
-	
+
 	this->minimal_cn = threshold;
 	return true;
 }

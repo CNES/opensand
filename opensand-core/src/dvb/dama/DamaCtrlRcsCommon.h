@@ -5,7 +5,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2017 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file DamaCtrlRcsCommon.h
  * @brief This library defines DAMA controller interfaces.
  * @author satip6 (Eddy Fromentin)
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef _DAMA_CONTROLLER_RCS_COMMON_H_

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
  * @brief   The terminal context for DAMA
  * @author  Audric Schiltknecht / Viveris Technologies
  * @author  Julien Bernard / Viveris Technologies
+ * @author  Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #include "TerminalContextDama.h"

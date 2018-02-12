@@ -54,7 +54,7 @@ OpenSandConfFile::OpenSandConfFile() :
 {
 	this->scpc_encap_stacks["DVB-RCS"] = vector<string>();
 	this->scpc_encap_stacks["DVB-RCS"].push_back(string("GSE"));
-	
+
 	this->scpc_encap_stacks["DVB-RCS2"] = vector<string>();
 	//this->scpc_encap_stacks["DVB-RCS2"].push_back(string("RLE"));
 	this->scpc_encap_stacks["DVB-RCS2"].push_back(string("GSE"));
@@ -93,13 +93,13 @@ void OpenSandConfFile::loadCarrierMap(map<unsigned int, std::pair<uint8_t, uint1
 		{
 			return;
 		}
-		
+
 		// get current gw id
 		if(!Conf::getAttributeValue(iter_spots, GW, gw_id))
 		{
 			return;
 		}
-	 
+
 	 	// get spot channel
 		if(!Conf::getListItems(*iter_spots, CARRIER_LIST, carrier_list))
 		{
@@ -107,7 +107,7 @@ void OpenSandConfFile::loadCarrierMap(map<unsigned int, std::pair<uint8_t, uint1
 		}
 
 		// associate channel to spot
-		for(iter_carrier = carrier_list.begin() ; iter_carrier != carrier_list.end() ; 
+		for(iter_carrier = carrier_list.begin() ; iter_carrier != carrier_list.end() ;
 		    ++iter_carrier)
 		{
 			int carrier_id = 0;
@@ -160,7 +160,7 @@ void OpenSandConfFile::loadSpotTable(map<uint16_t, uint8_t> &spot_table)
 		}
 
 		// associate channel to spot
-		for(iter_terminal = terminal_list.begin() ; iter_terminal != terminal_list.end() ; 
+		for(iter_terminal = terminal_list.begin() ; iter_terminal != terminal_list.end() ;
 		    ++iter_terminal)
 		{
 			uint16_t tal_id = 0;
@@ -211,7 +211,7 @@ void OpenSandConfFile::loadGwTable(map<uint16_t, uint16_t> &gw_table)
 		}
 
 		// associate channel to spot
-		for(iter_terminal = terminal_list.begin() ; iter_terminal != terminal_list.end() ; 
+		for(iter_terminal = terminal_list.begin() ; iter_terminal != terminal_list.end() ;
 		    ++iter_terminal)
 		{
 			uint16_t tal_id = 0;
@@ -227,7 +227,7 @@ void OpenSandConfFile::loadGwTable(map<uint16_t, uint16_t> &gw_table)
 }
 
 
-bool OpenSandConfFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map, 
+bool OpenSandConfFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map,
                                         uint16_t tal_id,
                                         uint8_t &spot)
 {
@@ -241,9 +241,9 @@ bool OpenSandConfFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map,
 	return true;
 }
 
-bool OpenSandConfFile::getSpotWithCarrierId(map<unsigned int, std::pair<uint8_t, uint16_t> > carrier_map, 
+bool OpenSandConfFile::getSpotWithCarrierId(map<unsigned int, std::pair<uint8_t, uint16_t> > carrier_map,
                                             unsigned int car_id,
-                                            uint8_t &spot, 
+                                            uint8_t &spot,
                                             uint16_t &gw)
 {
 	map<unsigned int, std::pair<uint8_t, uint16_t> >::iterator car_iter;
@@ -252,7 +252,7 @@ bool OpenSandConfFile::getSpotWithCarrierId(map<unsigned int, std::pair<uint8_t,
 	{
 		return false;
 	}
-		
+
 	spot = carrier_map[car_id].first;
 	gw = carrier_map[car_id].second;
 	return true;
@@ -272,20 +272,20 @@ bool OpenSandConfFile::isGw(map<uint16_t, uint16_t> &gw_table, uint16_t gw_id)
 	return false;
 }
 
-bool OpenSandConfFile::getSpot(string section, 
-                               uint8_t spot_id, 
+bool OpenSandConfFile::getSpot(string section,
+                               uint8_t spot_id,
                                uint16_t gw_id,
                                ConfigurationList &current_gw)
 {
 	ConfigurationList spot_list;
 	ConfigurationList current_spot;
 
-	if(!Conf::getListNode(Conf::section_map[section], 
+	if(!Conf::getListNode(Conf::section_map[section],
 	                      SPOT_LIST, spot_list))
 	{
 		return false;;
 	}
-	
+
 	if(!Conf::getElementWithAttributeValue(spot_list, ID,
 	                                       spot_id, current_spot))
 	{
@@ -310,7 +310,7 @@ bool OpenSandConfFile::getScpcEncapStack(string return_link_std,
                                         vector<string> &encap_stack)
 {
 	map< string, vector<string> >::iterator ite;
-	
+
 	// Check this return link standard is valid
 	ite = this->scpc_encap_stacks.find(return_link_std);
 	if (ite == this->scpc_encap_stacks.end())

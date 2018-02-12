@@ -58,7 +58,7 @@ class OpenSandConfFile
 	// Ctor & dtor
 	OpenSandConfFile(void);
 	virtual ~OpenSandConfFile(void);
-	
+
 	/**
 	 * Create a Map which associate carrier id to spot id
 	 * @param carrier_map the map between carrier id and spot id
@@ -81,10 +81,10 @@ class OpenSandConfFile
 	 * Get spot value in terminal map
 	 *
 	 * @param tal_it   the terminal id
-	 * @param spot     the found spot 
+	 * @param spot     the found spot
 	 * @return true on success, false otherwise
 	 */
-	bool getSpotWithTalId(map<uint16_t, uint8_t> terminal_map, 
+	bool getSpotWithTalId(map<uint16_t, uint8_t> terminal_map,
 	                      uint16_t tal_id,
 	                      uint8_t &spot);
 
@@ -92,12 +92,12 @@ class OpenSandConfFile
 	 * Get spot value in carrier map
 	 *
 	 * @param car_it   the carrier id
-	 * @param spot     the found spot 
-	 * @param gw       the found gw 
+	 * @param spot     the found spot
+	 * @param gw       the found gw
 	 * @return true on success, false otherwise
 	 */
 	bool getSpotWithCarrierId(map<unsigned int,
-	                          std::pair<uint8_t, uint16_t> > carrier_map, 
+	                          std::pair<uint8_t, uint16_t> > carrier_map,
 	                          unsigned int car_id,
 	                          uint8_t &spot,
 	                          uint16_t &gw);
@@ -108,7 +108,7 @@ class OpenSandConfFile
 	 * @param gw_id     the currend id to check is a gw
 	 * @return true if this id is a gw, false otherwize
 	 */
-	bool isGw(map<uint16_t, uint16_t> &gw_table, 
+	bool isGw(map<uint16_t, uint16_t> &gw_table,
 	          uint16_t gw_id);
 
 
@@ -120,14 +120,14 @@ class OpenSandConfFile
 	 * @param current_gw the found spot/gw
 	 * @return true on success, false otherwize
 	 */
-	bool getSpot(string section, 
-	             uint8_t spot_id, 
+	bool getSpot(string section,
+	             uint8_t spot_id,
 	             uint16_t gw_id,
 	             ConfigurationList &current_gw);
 
 	/**
 	 * Get the SCPC encapsulation stack in function for a return link standard
-	 * 
+	 *
 	 * @param return_link_std  the return link standard
 	 * @param encap_stack      the found encapsulation stack for SCPC
 	 * @return true on success, false otherwise

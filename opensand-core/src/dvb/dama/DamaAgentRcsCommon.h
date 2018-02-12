@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2015 TAS
+ * Copyright © 2018 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,7 +30,7 @@
  * @brief Implementation of the DAMA agent for DVB-RCS(2) emission standard.
  * @author Audric Schiltknecht / Viveris Technologies
  * @author Julien Bernard / Viveris Technologies
- * @author Aurelien Delrieu / Viveris Technologies
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef _DAMA_AGENT_RCS_COMMON_H_

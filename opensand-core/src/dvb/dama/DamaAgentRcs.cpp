@@ -30,6 +30,7 @@
  * @brief   Implementation of the DAMA agent for DVB-RCS emission standard.
  * @author  Audric Schiltknecht / Viveris Technologies
  * @author  Julien Bernard / Viveris Technologies
+ * @author  Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 

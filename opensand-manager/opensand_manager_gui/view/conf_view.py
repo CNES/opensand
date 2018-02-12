@@ -30,6 +30,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
 
 """
 conf_view.py - the configuration tab view

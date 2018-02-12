@@ -1,3 +1,12 @@
+2018-02-12 opensand-5.0.0
+
+   * Release 5.0.0
+   * Add DVB-RCS2 support
+   * Add RLE encapsulation support
+   * Add external output collector support
+   * Fix Rohc v2.1 compatibility
+   * Fix minor bugs
+
 2017-07-19 opensand-4.2.0
 
    * Release 4.2.0

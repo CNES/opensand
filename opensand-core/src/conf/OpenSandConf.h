@@ -63,7 +63,7 @@ class OpenSandConf
 
 	/**
 	 * The spot association with each terminal
-	 */ 
+	 */
 	static map<tal_id_t, spot_id_t> spot_table;
 	
 	/**
