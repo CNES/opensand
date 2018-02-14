@@ -29,7 +29,7 @@ Package: libopensand-gse-encap-plugin
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
- libopensand-gse-encap-plugin-conf (= ${binary:Version}), opensand-core
+ opensand-core (= ${binary:Version})
 Provides: libopensand-gse-plugin
 Conflicts: libopensand-gse-plugin
 Replaces: libopensand-gse-plugin

@@ -26,7 +26,7 @@ Package: libopensand-rle-encap-plugin
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, librle (>= 1.7.2),
- libopensand-rle-encap-plugin-conf (= ${binary:Version}), opensand-core
+ opensand-core (= ${binary:Version})
 Description: The RLE plugin for OpenSAND
 
 Package: libopensand-rle-encap-plugin-manager

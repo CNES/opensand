@@ -41,7 +41,7 @@ Description: Debugging symbols for OpenSAND Core binaries
 Package: opensand-core
 Architecture: any
 Section: misc
-Depends: opensand-core-conf (= ${binary:Version}), ${shlibs:Depends},
+Depends: ${shlibs:Depends},
  ${misc:Depends}, rsyslog, logrotate
 Provides: opensand-core-bin
 Conflicts: opensand-core-bin

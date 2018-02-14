@@ -29,7 +29,7 @@ Package: libopensand-rohc-lan-adapt-plugin
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},
- libopensand-rohc-lan-adapt-plugin-conf (= ${binary:Version}), opensand-daemon
+ opensand-core (= ${binary:Version})
 Provides: libopensand-rohc-plugin, libopensand-rohc-encap-plugin
 Conflicts: libopensand-rohc-plugin, libopensand-rohc-encap-plugin
 Replaces: libopensand-rohc-plugin, libopensand-rohc-encap-plugin
