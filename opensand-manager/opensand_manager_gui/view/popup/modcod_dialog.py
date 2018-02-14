@@ -196,7 +196,7 @@ class ModcodParameter(WindowView):
                 self._aloha_radio.set_sensitive(False)
                 self._scpc_radio.set_sensitive(False)
             else:
-                if ret_lnk_std == DVB_RCS2 and not self._model.get_adv_mode():
+                if ret_lnk_std == DVB_RCS2:
                     self._aloha_radio.set_sensitive(False)
 
         #Load access type from the carrier
