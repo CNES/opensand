@@ -319,6 +319,7 @@ void DamaCtrlRcsLegacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
 	rate_pktpf_t total_capacity_pktpf;
 	vector<TerminalContextDamaRcs *>::iterator tal_it;
 	tal_id_t tal_id;
+	rate_kbps_t simu_cra_kbps = 0;
 
 	buf << "SF#" << this->current_superframe_sf << " carrier "
 	    << carrier_id << ", category " << label << ":";
@@ -370,7 +371,21 @@ void DamaCtrlRcsLegacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
 		remaining_capacity_pktpf -= cra_pktpf;
 		alloc_rate_kbps += cra_kbps;
 		terminal->setCraAllocation(cra_kbps);
-		this->probes_st_cra_alloc[tal_id]->put(cra_kbps);
+
+		// Output probes and stats
+		if(tal_id > BROADCAST_TAL_ID)
+		{
+			simu_cra_kbps += cra_kbps;
+		}
+		else
+		{
+			this->probes_st_cra_alloc[tal_id]->put(cra_kbps);
+		}
+	}
+
+	if(this->simulated)
+	{
+		this->probes_st_cra_alloc[0]->put(simu_cra_kbps);
 	}
 
 	carriers->setRemainingCapacity(remaining_capacity_pktpf);
