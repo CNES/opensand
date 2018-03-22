@@ -186,12 +186,12 @@ bool FileDelay::updateSatDelay()
 	unsigned int old_time, new_time;
 	time_ms_t old_delay, new_delay, next_delay;
 
-	this->current_time += this->refresh_period_ms / 1000;
+	this->current_time++;
 
 	LOG(this->log_delay, LEVEL_INFO,
 	    "Updating sat delay: current time: %u "
-	    "(step: %u)\n", this->current_time,
-	    this->refresh_period_ms / 1000);
+	    "(step: %u ms)\n", this->current_time,
+	    this->refresh_period_ms);
 
 	// Look for the next entry whose key is equal or greater than 'current_time'
 	delay_it = this->delays.lower_bound(this->current_time);
