@@ -186,7 +186,7 @@ bool File::updateAttenuationModel()
 	double old_attenuation, new_attenuation;
 	double next_attenuation;
 
-	this->current_time += this->refresh_period_ms / 1000;
+	this->current_time++;;
 
 	LOG(this->log_attenuation, LEVEL_INFO,
 	    "Updating attenuation scenario: current time: %u "

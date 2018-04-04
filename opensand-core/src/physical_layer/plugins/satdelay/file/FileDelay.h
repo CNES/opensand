@@ -55,7 +55,7 @@ class FileDelay: public SatDelayPlugin
 
 	bool is_init;
 
-	/// The current time
+	/// The current time (in refresh_period_ms)
 	unsigned int current_time;
 
 	/// The satdelay values we will interpolate
@@ -65,9 +65,6 @@ class FileDelay: public SatDelayPlugin
 	bool loop;
 
 	map<string, ConfigurationList> config_section_map;
-
-	/// The refresh period
-	time_ms_t refresh_period_ms;
 
 	/**
 	 * @brief Load the sat delay file

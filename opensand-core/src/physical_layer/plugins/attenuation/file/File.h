@@ -54,7 +54,7 @@ class File: public AttenuationModelPlugin
 {
  private:
 
-	/// The current time
+	/// The current time (in refresh_period_ms)
 	unsigned int current_time;
 
 	/// The attenuation values we will interpolate
