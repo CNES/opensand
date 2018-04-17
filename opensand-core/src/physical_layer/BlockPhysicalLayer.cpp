@@ -183,7 +183,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 			// TODO: this is wasteful, only regenerative satellites use the physical
 			// layer. BlockPhysicalLayerSat should override onEvent method, without
 			// queueing dvb_frames to FIFO
-			if(!this->is_sat)
+			if(!this->is_sat && IS_DELAYED_FRAME(dvb_frame->getMessageType()))
 			{
 				return this->pushInFifo((NetContainer *)dvb_frame,
 				                        this->satdelay->getSatDelay());
@@ -282,7 +282,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			// message event: forward DVB frames from upper block to lower block
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
-			if(!this->is_sat)
+			if(!this->is_sat && IS_DELAYED_FRAME(dvb_frame->getMessageType()))
 			{
 				return this->pushInFifo((NetContainer *)dvb_frame,
 				                        this->satdelay->getSatDelay());
@@ -612,7 +612,7 @@ bool BlockPhysicalLayer::Upward::processAttenuation(DvbFrame *dvb_frame)
 {
 	double cn_total;
 
-	if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
+	if(!IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
 	{
 		// do not handle signalisation but forward it
 		return true;
@@ -660,7 +660,7 @@ error:
 
 bool BlockPhysicalLayer::Downward::processAttenuation(DvbFrame *dvb_frame)
 {
-	if(!IS_DATA_FRAME(dvb_frame->getMessageType()))
+	if(!IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
 	{
 		// do not handle signalisation
 		return true;
