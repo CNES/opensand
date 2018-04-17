@@ -60,11 +60,15 @@
 #define MSG_BBFRAME_SIZE_MAX 8100 + sizeof(T_DVB_PHY)
 #define MSG_SALOHA_SIZE_MAX 1200 + sizeof(T_DVB_PHY)
 
-/// Whether the frame contains data or sig
-#define IS_DATA_FRAME(msg_type) \
+/// Whether the frame has to be attenuated
+#define IS_ATTENUATED_FRAME(msg_type) \
     (msg_type == MSG_TYPE_BBFRAME || msg_type == MSG_TYPE_DVB_BURST || \
      msg_type == MSG_TYPE_SALOHA_DATA || msg_type == MSG_TYPE_SALOHA_CTRL || \
      msg_type == MSG_TYPE_SAC)
+
+/// Whether the frame has to be delayed
+#define IS_DELAYED_FRAME(msg_type) \
+    (msg_type != MSG_TYPE_SOF)
 
 
 /**
