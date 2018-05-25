@@ -384,6 +384,20 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	if(!this->attenuation)
 		return true;
 
+	// get refresh_period
+	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
+	                   ACM_PERIOD_REFRESH,
+	                   this->refresh_period_ms))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section '%s': missing parameter '%s'\n",
+		    PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
+		goto error;
+	}
+
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "refresh_period_ms = %d\n", this->refresh_period_ms);
+
 	// Initiate Attenuation model
 	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
 	                   ATTENUATION_MODEL_TYPE,
