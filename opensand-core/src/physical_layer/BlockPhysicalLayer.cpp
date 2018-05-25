@@ -492,13 +492,12 @@ bool BlockPhysicalLayer::Upward::onInit(void)
 	this->att_timer = this->addTimerEvent(name.str(), this->refresh_period_ms);
 
 	snprintf(probe_name, sizeof(probe_name), 
-	         "Phy.%slink_attenuation (%s)",
-	         link.c_str(), attenuation_type.c_str());
+	         "Phy.%slink_attenuation", link.c_str());
 	this->probe_attenuation = Output::registerProbe<float>(probe_name,
 	                                                       "dB", true,
 	                                                       SAMPLE_MAX);
 	snprintf(probe_name, sizeof(probe_name), 
-	         "Phy.minimal_condition (%s)", minimal_type.c_str());
+	         "Phy.minimal_condition");
 	this->probe_minimal_condition = Output::registerProbe<float>(probe_name,
 	                                                             "dB", true,
 	                                                             SAMPLE_MAX);
