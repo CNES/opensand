@@ -41,7 +41,7 @@
  * Create an empty set of satellite carrier channels
  */
 sat_carrier_channel_set::sat_carrier_channel_set(tal_id_t tal_id):
-	std::vector < sat_carrier_udp_channel * >(),
+	std::vector < UdpChannel * >(),
 	tal_id(tal_id)
 {
 	this->log_init = Output::registerLog(LEVEL_WARNING, "SatCarrier.init");
@@ -51,7 +51,7 @@ sat_carrier_channel_set::sat_carrier_channel_set(tal_id_t tal_id):
 
 sat_carrier_channel_set::~sat_carrier_channel_set()
 {
-	std::vector < sat_carrier_udp_channel * >::iterator it;
+	std::vector < UdpChannel * >::iterator it;
 
 	for(it = this->begin(); it != this->end(); it++)
 	    delete(*it);
@@ -193,7 +193,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		// get all carrier from this spot
 		for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
 		{
-			sat_carrier_udp_channel *channel;
+			UdpChannel *channel;
 			string strConfig;
 			int carrier_id = 0;
 			long carrier_port = 0;
@@ -350,7 +350,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				}
 				// create a new udp channel configure it, with information from file
 				// and insert it in the channels vector
-				channel = new sat_carrier_udp_channel(spot_id,
+				channel = new UdpChannel(spot_id,
 				                                      carrier_id,
 				                                      is_input,
 				                                      is_output,
@@ -394,7 +394,7 @@ bool sat_carrier_channel_set::send(uint8_t carrier_id,
                                    const unsigned char *data,
                                    size_t length)
 {
-	std::vector <sat_carrier_udp_channel *>::const_iterator it;
+	std::vector <UdpChannel *>::const_iterator it;
 	bool status =false;
 
 	for(it = this->begin(); it != this->end(); ++it)
@@ -427,7 +427,7 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
                                      size_t &op_len)
 {
 	int ret = -1;
-	std::vector < sat_carrier_udp_channel * >::iterator it;
+	std::vector < UdpChannel * >::iterator it;
 
 	op_len = 0;
 	op_carrier = 0;
@@ -475,7 +475,7 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 */
 int sat_carrier_channel_set::getChannelFdByChannelId(unsigned int i_channel)
 {
-	std::vector < sat_carrier_udp_channel * >::iterator it;
+	std::vector < UdpChannel * >::iterator it;
 	int ret = -1;
 
 	for(it = this->begin(); it != this->end(); it++)
