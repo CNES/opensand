@@ -323,29 +323,29 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 
 				// get UDP stack
 				if(!Conf::getValue(Conf::section_map[ADV_SECTION], 
-				   UDP_STACK, stack))
+				   SATCARRIER_UDP_STACK, stack))
 				{
 					LOG(this->log_init, LEVEL_ERROR,
 					    "Section %s, %s %d, %s missing\n",
-					    ADV_SECTION, SPOT_LIST, spot_id, UDP_STACK);
+					    ADV_SECTION, SPOT_LIST, spot_id, SATCARRIER_UDP_STACK);
 					goto error;
 				}
 				// get rmem
 				if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-				                   UDP_RMEM, rmem))
+				                   SATCARRIER_UDP_RMEM, rmem))
 				{
 					LOG(this->log_init, LEVEL_ERROR,
 					    "Section %s, %s %d, %s missing\n",
-					    ADV_SECTION, SPOT_LIST, spot_id, UDP_RMEM);
+					    ADV_SECTION, SPOT_LIST, spot_id, SATCARRIER_UDP_RMEM);
 					goto error;
 				}
 				// get wmem
 				if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-				                   UDP_WMEM, wmem))
+				                   SATCARRIER_UDP_WMEM, wmem))
 				{
 					LOG(this->log_init, LEVEL_ERROR,
 					    "Section %s, %s %d, %s missing\n",
-					    ADV_SECTION, SPOT_LIST, spot_id, UDP_WMEM);
+					    ADV_SECTION, SPOT_LIST, spot_id, SATCARRIER_UDP_WMEM);
 					goto error;
 				}
 				// create a new udp channel configure it, with information from file

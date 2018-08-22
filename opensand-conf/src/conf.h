@@ -323,9 +323,9 @@
 #define ADV_SECTION      "advanced"
 #define DELAY_BUFFER     "delay_buffer"
 #define DELAY_TIMER      "delay_timer"
-#define UDP_RMEM         "udp_rmem"
-#define UDP_WMEM         "udp_wmem"
-#define UDP_STACK        "udp_stack"
+#define SATCARRIER_UDP_RMEM         "satcarrier_udp_rmem"
+#define SATCARRIER_UDP_WMEM         "satcarrier_udp_wmem"
+#define SATCARRIER_UDP_STACK        "satcarrier_udp_stack"
 
 /////////////////
 //    Debug    //
