@@ -384,27 +384,24 @@ class MachineModel:
         except KeyError:
             return ""
     
-    def get_upward_port(self):
-        """ get the upward port """
+    def get_interconnect_interface(self):
+        """ get the interconnect interface """
         try:
-            return self._ifaces['upward_port']
+            return self._ifaces['interconnect_iface']
         except KeyError:
-            return "10001"
-    
-    def get_downward_port(self):
-        """ get the upward port """
-        try:
-            return self._ifaces['downward_port']
-        except KeyError:
-            return "10002"
-    
-    def get_remote_ip_addr(self):
-        """ get the upward port """
-        try:
-            return self._ifaces['remote_ip']
-        except KeyError:
+            self._log.error("cannot retrieve interconnect interface, "
+                            "mandatory for component starting")
             return ""
-
+    
+    def get_interconnect_address(self):
+        """ get the interconnect IPv4 address """
+        try:
+            return self._ifaces['interconnect_ipv4']
+        except KeyError:
+            self._log.error("cannot retrieve IPv4 interconnect address, "
+                            "mandatory for component starting")
+            return ""
+    
     def get_state_port(self):
         """ get the state server port """
         return int(self._state_port)

@@ -28,17 +28,20 @@
 
 /**
  * @file BlockInterconnectUpward.h
- * @brief This bloc implements an interconnection block facing upwards.
+ * @brief This block implements an interconnection block facing upwards.
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.fr>
  */
 
 #ifndef BlockInterconnectUpward_H
 #define BlockInterconnectUpward_H
 
+#include "InterconnectChannel.h"
+
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
 
-#include "interconnect_channel.h"
+#include <opensand_conf/conf.h>
+
 #include "OpenSandFrames.h"
 #include "DvbFrame.h"
 
@@ -47,9 +50,8 @@
 
 struct icu_specific
 {
-	string ip_addr; // IP of the remote BlockInterconnect
-	uint16_t port_upward; // TCP port for the upward channel
-	uint16_t port_downward; // TCP port for the downward channel
+	string interconnect_iface; // Interconnect interface name
+	string interconnect_addr; // Interconnect interface IP address
 };
 
 /**
@@ -75,60 +77,38 @@ class BlockInterconnectUpwardTpl: public Block
 	~BlockInterconnectUpwardTpl() {};
 
 	template <class O = T>
-	class UpwardTpl: public RtUpward
+	class UpwardTpl: public RtUpward, public InterconnectChannelSender
 	{
 	 public:
 		UpwardTpl(const string &name, struct icu_specific specific):
 			RtUpward(name),
-			ip_addr(specific.ip_addr),
-			port(specific.port_upward),
-			out_channel(false,true)
+			InterconnectChannelSender(name + ".Upward",
+			                          specific.interconnect_iface,
+			                          specific.interconnect_addr)
 		{};
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	 private:
-		/// the IP address of the remote BlockInterconnect
-		string ip_addr;
-		/// the port of the socket created by the Block above
-		uint16_t port;
-		/// TCP out channel
-		interconnect_channel out_channel;
-		// Output log 
-		OutputLog *log_interconnect;
-		// the timer event
-		int32_t timer_event;
 	};
 	typedef UpwardTpl<> Upward;
 
 	template <class O = T>
-	class DownwardTpl: public RtDownward
+	class DownwardTpl: public RtDownward, public InterconnectChannelReceiver
 	{
 	 public:
 		DownwardTpl(const string &name, struct icu_specific specific):
 			RtDownward(name),
-			ip_addr(specific.ip_addr),
-			port(specific.port_downward),
-			in_channel(true,false)
+			InterconnectChannelReceiver(name + ".Downward",
+			                            specific.interconnect_iface,
+			                            specific.interconnect_addr)
 		{};
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	 private:
-		/// the IP address of the remote BlockInterconnect
-		string ip_addr;
-		/// the port of the socket created by the Block above
-		uint16_t port;
-		/// TCP in channel
-		interconnect_channel in_channel;
-		// Output log 
-		OutputLog *log_interconnect;
-		// The signal event 
-		int32_t socket_event;
-		// The timer event
-		int32_t timer_event;
 	};
 	typedef DownwardTpl<> Downward;
 
@@ -150,79 +130,82 @@ template <class T>
 template <class O>
 bool BlockInterconnectUpwardTpl<T>::DownwardTpl<O>::onEvent(const RtEvent *const event)
 {
-	switch(event->getType())
-	{
-		case evt_net_socket:
-		{
-			// Data to read in InterconnectChannel socket buffer
-			O *object;
-			unsigned char *buf = NULL;
-			size_t length;
-			uint8_t type;
-			int ret;
+  bool status = true;
 
-			LOG(this->log_interconnect, LEVEL_DEBUG,
-			    "NetSocket event received\n");
+  switch(event->getType())
+  {
+    case evt_net_socket:
+    {
+      // Data to read in InterconnectChannel socket buffer
+      O *object;
+      interconnect_msg_buffer_t *buf = nullptr;
+      int ret;
 
-			// store data in recv_buffer
-			ret = this->in_channel.receive((NetSocketEvent *)event);
-			if(ret < 0)
-			{
-				LOG(this->log_interconnect, LEVEL_ERROR,
-				    "failed to receive data on to "
-				    "receive buffer\n");
-			}
-			else
-			{
-				LOG(this->log_interconnect, LEVEL_DEBUG,
-				    "packets stored in buffer\n");
-				// try to fech entire packets
-				while(this->in_channel.getPacket(&buf, length, type))
-				{
-					// reconstruct object
-					if (type == msg_object)
-					{
-						O::newFromInterconnect(buf, length, &object);
-						if(!this->enqueueMessage((void **)(&object)))
-							LOG(this->log_interconnect, LEVEL_ERROR,
-							    "failed to send message downwards\n");
-					}
-					else
-					{
-						if(!this->enqueueMessage((void **) &buf, length, type))
-							LOG(this->log_interconnect, LEVEL_ERROR,
-							    "failed to send message downwards\n");
-						free(buf); //no need 'cause enqueueMessage sets NULL
-					}
-				}
-			}
-		}
-		break;
-		case evt_timer:
-		{
-			// check if socket is opened
-			if (!this->in_channel.isOpen())
-			{
-				// remove event
-				this->removeEvent(this->socket_event);
-				// close socket
-				this->in_channel.close();
-				// TODO: the block should notify the following block in the chain
-				// to decide what to do (send message) 
-				// send message
-				LOG(this->log_interconnect, LEVEL_INFO,
-				    "terminating...\n");
-				kill(getpid(), SIGTERM);
-			}
-		}
-		break;
-		default:
-			LOG(this->log_interconnect, LEVEL_ERROR,
-			    "unknown event received %s",
-			    event->getName().c_str());
-			return false;
-	}
-	return true;
+      LOG(this->log_interconnect, LEVEL_DEBUG,
+          "NetSocket event received\n");
+
+      // for UDP we need to retrieve potentially desynchronized
+      // datagrams => loop on receive function
+      do
+      {
+        ret = this->receiveMessage((NetSocketEvent *)event,
+                                   &buf);
+        if(ret < 0)
+        {
+          LOG(this->log_interconnect, LEVEL_ERROR,
+              "failed to receive data on "
+              "input channel\n");
+          status = false;
+        }
+        else if(buf)
+        {
+          LOG(this->log_interconnect, LEVEL_DEBUG,
+              "%zu bytes of data received\n",
+              buf->data_len);
+          if(buf->msg_type == msg_object)
+          {
+            // Reconstruct object
+            O::newFromInterconnect(buf->msg_data, buf->data_len, &object);
+            // Send message to the next block
+            if(!this->enqueueMessage((void **)(&object)))
+            {
+              LOG(this->log_interconnect, LEVEL_ERROR,
+                  "failed to send message to next block\n");
+              status = false;
+            }
+          }
+          else
+          {
+            // Must copy object to a new buffer, since enqueueMessage
+            // will free it.
+            unsigned char *tmp_buf = (unsigned char *)calloc(buf->data_len,
+                                                             sizeof(unsigned char));
+            memcpy(tmp_buf, buf->msg_data, buf->data_len);
+            // Send message to the next block
+            if(!this->enqueueMessage((void **) &tmp_buf,
+                                     buf->data_len, buf->msg_type))
+            {
+              LOG(this->log_interconnect, LEVEL_ERROR,
+                  "failed to send message to next block\n");
+              status = false;
+            }
+          }
+          // Free old data
+          free(buf);
+        }
+      } while(ret > 0);
+    }
+    break;
+
+    default:
+      LOG(this->log_interconnect, LEVEL_ERROR,
+          "unknown event received %s\n",
+          event->getName().c_str());
+      return false;
+  }
+
+  return status;
+ 
 }
 
 template <class T>
@@ -235,63 +218,31 @@ bool BlockInterconnectUpwardTpl<T>::UpwardTpl<O>::onEvent(const RtEvent *const e
 	{
 		case evt_message:
 		{
-			size_t total_len;
-			rt_msg_t message = ((MessageEvent *)event)->getMessage();
-			O *object = (O *) message.data;
+      size_t data_len;
+      rt_msg_t message = ((MessageEvent *)event)->getMessage();
+      O *object = (O *) message.data;
 
-			// Check if object inside
-			if (message.length == 0 && message.type == 0)
-			{
-				message.type = msg_object;
-				O::toInterconnect(object, 
-				                         (unsigned char **) &message.data,
-				                         total_len);
-				message.length = total_len;
-				// delete original object
-				delete object;
-			}
+      // Check if object inside
+      if(message.length == 0 && message.type == 0)
+      {
+        O::toInterconnect(object,
+                          this->out_buffer.msg_data,
+                          data_len);
+        this->out_buffer.msg_type = msg_object;
+        this->out_buffer.data_len = data_len;
+        // delete original object
+        delete object;
+      } // TODO: handle other types of message
 
-			LOG(this->log_interconnect, LEVEL_DEBUG,
-			    "%lu-bytes message event received \n", message.length);
-
-			ret = this->out_channel.sendPacket(message);
-			if (ret > 0)
-			{
-				LOG(this->log_interconnect, LEVEL_ERROR,
-				    "error when sending data\n");
-			}
-			else if (ret < 0)
-			{
-				LOG(this->log_interconnect, LEVEL_ERROR,
-				    "Problem with connection...\n");
-				// close socket
-				this->out_channel.close();
-				// TODO: the block should notify the following block in the chain
-				// to decide what to do (send message) 
-				// send message
-				LOG(this->log_interconnect, LEVEL_INFO,
-				    "terminating...\n");
-				kill(getpid(), SIGTERM);
-			}
-			free(message.data);
+      if(!this->sendMessage())
+      {
+        LOG(this->log_interconnect, LEVEL_ERROR,
+            "error when sending data\n");
+        return false;
+      }
 		}
 		break;
-		case evt_timer:
-		{
-			// check if socket is opened
-			if (!this->out_channel.isOpen())
-			{
-				// close socket
-				this->out_channel.close();
-				// TODO: the block should notify the following block in the chain
-				// to decide what to do (send message) 
-				// send message
-				LOG(this->log_interconnect, LEVEL_INFO,
-				    "terminating...\n");
-				kill(getpid(), SIGTERM);
-			}
-		}
-		break;
+
 		default:
 			LOG(this->log_interconnect, LEVEL_ERROR,
 			    "unknown event received %s\n", 
@@ -315,33 +266,65 @@ template <class T>
 template <class O>
 bool BlockInterconnectUpwardTpl<T>::UpwardTpl<O>::onInit(void)
 {
-	int n_retries = 0;
-	string name="UpwardInterconnectChannel";
-	// Register log
-	this->log_interconnect = Output::registerLog(LEVEL_WARNING, "InterconnectUpward.upward");
-	// Connect in_channel to BlockInterconnectDownward
-	while(!this->out_channel.connect(this->ip_addr, this->port))
-	{
-		LOG(this->log_init, LEVEL_WARNING,
-		    "Cannot connect to remote socket. Retrying...\n");
-		if(n_retries++ == 5)
-			break;
-		sleep(5);
-	}
-	if(n_retries>5)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Cannot connect to remote socket. Abort.\n");
-		return false;
-	}
-	// Add timer event to check on connection
-	this->timer_event = this->addTimerEvent(name, 500.0);
-	if (this->timer_event < 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Cannot add timer event to Downward channel\n");
-		return false;
-	}
+  unsigned int stack;
+  unsigned int rmem;
+  unsigned int wmem;
+  unsigned int port;
+  string remote_addr("");
+
+  // Get configuration
+  // NOTE: this works now that only one division is made per component. If we
+  // wanted to split one component in more than three, dedicated configuration
+  // is needed, to tell different configurations apart.
+  // get remote IP address
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UPPER_IP, remote_addr))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UPPER_IP);
+    return false;
+  }
+  // get port
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UPWARD_PORT, port))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UPWARD_PORT);
+    return false;
+  }
+  // get UDP stack
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UDP_STACK, stack))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UDP_STACK);
+    return false;
+  }
+  // get rmem
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UDP_RMEM, rmem))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UDP_RMEM);
+    return false;
+  }
+  // get wmem
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UDP_WMEM, wmem))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UDP_WMEM);
+    return false;
+  }
+
+  // Create channel
+  this->initUdpChannel(port, remote_addr, stack, rmem, wmem);
+
 	return true;
 }
 
@@ -349,43 +332,76 @@ template <class T>
 template <class O>
 bool BlockInterconnectUpwardTpl<T>::DownwardTpl<O>::onInit()
 {
-	int n_retries = 0;
 	string name="DownwardInterconnectChannel";
-	// Register log
-	this->log_interconnect = Output::registerLog(LEVEL_WARNING, "InterconnectUpward.downward");
-	// Connect in_channel to BlockInterconnectDownward
-	// Try a few times
-	while(!this->in_channel.connect(this->ip_addr, this->port))
-	{
-		LOG(this->log_init, LEVEL_WARNING,
-		    "Cannot connect to remote socket. Retrying...\n");
-		if(n_retries++ == 5)
-			break;
-		sleep(5);
-	}
-	if(n_retries>5)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Cannot connect to remote socket. Abort.\n");
-		return false;
-	}
-	this->in_channel.setSocketBlocking();
-	// Add TcpSocketEvent
-	this->socket_event = this->addNetSocketEvent(name, this->in_channel.getFd());
-	if (this->socket_event < 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Cannot add event to Downward channel\n");
-		return false;
-	}
-	// Add timer event to check on connection
-	this->timer_event = this->addTimerEvent(name, 500.0);
-	if (this->timer_event < 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Cannot add timer event to Downward channel\n");
-		return false;
-	}
+  unsigned int stack;
+  unsigned int rmem;
+  unsigned int wmem;
+  unsigned int port;
+  string remote_addr("");
+
+  // Get configuration
+  // NOTE: this works now that only one division is made per component. If we
+  // wanted to split one component in more than three, dedicated configuration
+  // is needed, to tell different configurations apart.
+  // get remote IP address
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UPPER_IP, remote_addr))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UPPER_IP);
+    return false;
+  }
+  // get port
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_DOWNWARD_PORT, port))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_PORT);
+    return false;
+  }
+  // get UDP stack
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UDP_STACK, stack))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UDP_STACK);
+    return false;
+  }
+  // get rmem
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UDP_RMEM, rmem))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UDP_RMEM);
+    return false;
+  }
+  // get wmem
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UDP_WMEM, wmem))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UDP_WMEM);
+    return false;
+  }
+
+  // Create channel
+  this->initUdpChannel(port, remote_addr, stack, rmem, wmem);
+
+  // Add NetSocketEvent
+  this->socket_event = this->addNetSocketEvent(name, this->channel->getChannelFd(),
+                                               MAX_SOCK_SIZE);
+  if(this->socket_event < 0)
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Cannot add event to Downward channel\n");
+    return false;
+  }
+
 	return true;
 }
 

@@ -327,6 +327,18 @@
 #define SATCARRIER_UDP_WMEM         "satcarrier_udp_wmem"
 #define SATCARRIER_UDP_STACK        "satcarrier_udp_stack"
 
+//////////////////////////
+//     interconnect     //
+//////////////////////////
+#define INTERCONNECT_SECTION       "interconnect"
+#define INTERCONNECT_UPWARD_PORT   "upward_port"
+#define INTERCONNECT_DOWNWARD_PORT "downward_port"
+#define INTERCONNECT_UDP_RMEM      "interconnect_udp_rmem"
+#define INTERCONNECT_UDP_WMEM      "interconnect_udp_wmem"
+#define INTERCONNECT_UDP_STACK     "interconnect_udp_stack"
+#define INTERCONNECT_UPPER_IP      "upper_ip_address"
+#define INTERCONNECT_LOWER_IP      "lower_ip_address"
+
 /////////////////
 //    Debug    //
 /////////////////

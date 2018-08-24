@@ -3,12 +3,12 @@ SUBDIRS = .
 noinst_LTLIBRARIES = libopensand_interconnect.la
 
 libopensand_interconnect_la_cpp = \
-	interconnect_channel.cpp
+	InterconnectChannel.cpp
 
 libopensand_interconnect_la_h = \
 	BlockInterconnectUpward.h \
 	BlockInterconnectDownward.h \
-	interconnect_channel.h
+	InterconnectChannel.h
 
 libopensand_interconnect_la_SOURCES = \
 	$(libopensand_interconnect_la_cpp) \

@@ -139,6 +139,11 @@ SATDELAY_TYPE = "type"
 SATDELAY_CONF = "delay_conf"
 CONSTANT_DELAY = "ConstantDelay"
 
+# Interconnect
+INTERCONNECT = "interconnect"
+UPPER_IP_ADDRESS = "upper_ip_address"
+LOWER_IP_ADDRESS = "lower_ip_address"
+
 # Path
 PATH_BAND     = "_band/"
 PATH_IPV4     = "/configuration/sarp/ipv4"

@@ -352,10 +352,9 @@ class DvbFrameTpl: public NetContainer
 
 	/**
 	 * Return object in serialized version.
-	 *
 	 */
 	static void toInterconnect(DvbFrameTpl *dvb_frame, 
-	                           unsigned char **buf, size_t &length)
+	                           unsigned char *buf, size_t &length)
 	{
 		size_t total_len = 0, pos = 0;
 		spot_id_t spot;
@@ -367,14 +366,12 @@ class DvbFrameTpl: public NetContainer
 		total_len += sizeof(spot);
 		total_len += sizeof(carrier_id);
 		total_len += dvb_frame->getTotalLength();
-		// Create buffer to store all data
-		(*buf) = (unsigned char *)calloc(total_len, sizeof(unsigned char));
 		// Copy data to buffer
-		memcpy((*buf) + pos, &spot, sizeof(spot));
+		memcpy(buf + pos, &spot, sizeof(spot));
 		pos += sizeof(spot);
-		memcpy((*buf) + pos, &carrier_id, sizeof(carrier_id));
+		memcpy(buf + pos, &carrier_id, sizeof(carrier_id));
 		pos += sizeof(carrier_id);
-		memcpy((*buf) + pos, dvb_frame->getData().c_str(),
+		memcpy(buf + pos, dvb_frame->getData().c_str(),
 		       dvb_frame->getTotalLength());
 		length = total_len;
 	};
@@ -399,9 +396,6 @@ class DvbFrameTpl: public NetContainer
 		(*dvb_frame) = new DvbFrameTpl(data + pos, len - pos);
 		(*dvb_frame)->setCarrierId(carrier_id);
 		(*dvb_frame)->setSpot(spot);
-
-		// Free old data
-		free(data);
 	};
 
 	/**
