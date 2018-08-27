@@ -350,16 +350,17 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				}
 				// create a new udp channel configure it, with information from file
 				// and insert it in the channels vector
-				channel = new UdpChannel(spot_id,
-				                                      carrier_id,
-				                                      is_input,
-				                                      is_output,
-				                                      interface_name,
-				                                      carrier_port,
-				                                      carrier_multicast,
-				                                      local_ip_addr,
-				                                      carrier_ip,
-				                                      stack, rmem, wmem);
+				channel = new UdpChannel("SatCarrier",
+				                         spot_id,
+				                         carrier_id,
+				                         is_input,
+				                         is_output,
+				                         interface_name,
+				                         carrier_port,
+				                         carrier_multicast,
+				                         local_ip_addr,
+				                         carrier_ip,
+				                         stack, rmem, wmem);
 				
 				if(!channel->isInit())
 				{

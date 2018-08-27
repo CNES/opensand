@@ -39,7 +39,8 @@ void InterconnectChannelSender::initUdpChannel(unsigned int port, string remote_
                                                unsigned int wmem)
 {
 	// Create channel
-	this->channel = new UdpChannel(0, // no use for the channel ID
+	this->channel = new UdpChannel(name,
+	                               0, // no use for the channel ID
 	                               0, // no use for the spot ID
 	                               false,
 	                               true,
@@ -58,7 +59,8 @@ void InterconnectChannelReceiver::initUdpChannel(unsigned int port, string remot
                                                  unsigned int wmem)
 {
 	// Create channel
-	this->channel = new UdpChannel(0, // no use for the channel ID
+	this->channel = new UdpChannel(name,
+	                               0, // no use for the channel ID
 	                               0, // no use for the spot ID
 	                               true,
 	                               false,

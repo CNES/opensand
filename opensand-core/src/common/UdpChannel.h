@@ -61,7 +61,8 @@ class UdpChannel
 {
  public:
 
-	UdpChannel(spot_id_t s_id,
+	UdpChannel(string name,
+	           spot_id_t s_id,
 	           unsigned int channel_id,
 	           bool input, bool output,
 	           const string local_interface_name,

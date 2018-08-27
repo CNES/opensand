@@ -57,6 +57,7 @@ class InterconnectChannel
 {
  public:
 	InterconnectChannel(string name, string iface_name, string iface_addr):
+		name(name),
 		interconnect_iface(iface_name),
 		interconnect_addr(iface_addr),
 		channel(nullptr)
@@ -83,7 +84,8 @@ class InterconnectChannel
 	                            unsigned int stack,
 	                            unsigned int rmem,
 	                            unsigned int wmem) = 0;
-
+	/// This blocks name
+	string name;
 	/// The interconnect interface name
 	string interconnect_iface;
 	/// The interconnect interface IP address

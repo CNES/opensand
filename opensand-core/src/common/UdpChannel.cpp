@@ -65,7 +65,8 @@
  * @param rmem                The size of the reception UDP buffers in kernel
  * @param wmem                The size of the emission UDP buffers in kernel
  */
-UdpChannel::UdpChannel(spot_id_t s_id,
+UdpChannel::UdpChannel(string name,
+                       spot_id_t s_id,
                        unsigned int channel_id,
                        bool input,
                        bool output,
@@ -93,9 +94,9 @@ UdpChannel::UdpChannel(spot_id_t s_id,
 	int one = 1;
 
 	// Output log
-	this->log_init = Output::registerLog(LEVEL_WARNING, "SatCarrier.init");
+	this->log_init = Output::registerLog(LEVEL_WARNING, name + ".init");
 	this->log_sat_carrier = Output::registerLog(LEVEL_WARNING,
-	                                            "SatCarrier.Channel");
+	                                            name + ".Channel");
 
 	bzero(&this->m_socketAddr, sizeof(this->m_socketAddr));
 	m_socketAddr.sin_family = AF_INET;
