@@ -34,6 +34,10 @@
 
 #include "InterconnectChannel.h"
 
+/*
+ * INTERCONNECT_CHANNEL_SENDER
+ */
+
 void InterconnectChannelSender::initUdpChannel(unsigned int port, string remote_addr,
                                                unsigned int stack, unsigned int rmem,
                                                unsigned int wmem)
@@ -53,6 +57,94 @@ void InterconnectChannelSender::initUdpChannel(unsigned int port, string remote_
 	                               rmem,
 	                               wmem);
 }
+
+bool InterconnectChannelSender::sendBuffer()
+{
+	// Send the data
+	return this->channel->send((const unsigned char *) &this->out_buffer,
+	                           this->out_buffer.data_len);
+}
+
+/*
+ * Specific methods for type DvbFrame messages
+ */
+bool InterconnectChannelSender::send(rt_msg_t &message)
+{
+	uint32_t data_len;
+
+	switch(message.type)
+	{
+		case msg_data:
+		case msg_sig:
+			// Serialize the dvb_frame into the output buffer
+			this->serialize((DvbFrame *) message.data,
+			                this->out_buffer.msg_data, data_len);
+			break;
+		case msg_saloha:
+			this->serialize((std::list<DvbFrame *> *) message.data,
+			                this->out_buffer.msg_data, data_len);
+			break;
+		default:
+			LOG(this->log_interconnect, LEVEL_ERROR,
+			    "unknonw type of message received\n");
+			return false;
+	}
+	this->out_buffer.msg_type = message.type;
+	this->out_buffer.data_len = data_len;
+
+	// Update total length with correct length
+	this->out_buffer.data_len += sizeof(this->out_buffer.msg_type) + 
+	                             sizeof(this->out_buffer.data_len);
+
+	// Send the message
+	return this->sendBuffer();
+}
+
+void InterconnectChannelSender::serialize(DvbFrame *dvb_frame,
+													                unsigned char *buf,
+                                          uint32_t &length)
+{
+	uint32_t total_len = 0, pos = 0;
+	spot_id_t spot;
+	uint8_t carrier_id;
+
+	spot = dvb_frame->getSpot();
+	carrier_id = dvb_frame->getCarrierId();
+
+	total_len += sizeof(spot);
+	total_len += sizeof(carrier_id);
+	total_len += dvb_frame->getTotalLength();
+	// Copy data to buffer
+	memcpy(buf + pos, &spot, sizeof(spot));
+	pos += sizeof(spot);
+	memcpy(buf + pos, &carrier_id, sizeof(carrier_id));
+	pos += sizeof(carrier_id);
+	memcpy(buf + pos, dvb_frame->getData().c_str(),
+				 dvb_frame->getTotalLength());
+	length = total_len;
+}
+
+void InterconnectChannelSender::serialize(std::list<DvbFrame *> *dvb_frame_list,
+                                          unsigned char *buf,
+                                          uint32_t &length)
+{
+	std::list<DvbFrame *>::iterator it;
+	length = 0;
+	// Iterate over dvb_frames
+	for(it = dvb_frame_list->begin(); it != dvb_frame_list->end(); it++)
+	{
+		uint32_t partial_len;
+		// First serialize dvb_frame
+		this->serialize(*it, buf + length + sizeof(partial_len), partial_len);
+		// Copy the size of the dvb_frame before the frame itself
+		memcpy(buf + length, &partial_len, sizeof(partial_len));
+		length += partial_len + sizeof(partial_len);
+	}
+}
+
+/*
+ * INTERCONNECT_CHANNEL_RECEIVER
+ */
 
 void InterconnectChannelReceiver::initUdpChannel(unsigned int port, string remote_addr,
                                                  unsigned int stack, unsigned int rmem,
@@ -74,18 +166,8 @@ void InterconnectChannelReceiver::initUdpChannel(unsigned int port, string remot
 	                               wmem);
 }
 
-bool InterconnectChannelSender::sendMessage()
-{
-	// Update total length with correct length
-	this->out_buffer.data_len += sizeof(this->out_buffer.msg_type) + 
-	                             sizeof(this->out_buffer.data_len);
-	// Send the data
-	return this->channel->send((const unsigned char *) &this->out_buffer,
-	                           this->out_buffer.data_len);
-}
-
-int InterconnectChannelReceiver::receiveMessage(NetSocketEvent *const event,
-                                                interconnect_msg_buffer_t **buf)
+int InterconnectChannelReceiver::receiveToBuffer(NetSocketEvent *const event,
+                                                 interconnect_msg_buffer_t **buf)
 {
 	int ret = -1;
 	size_t length = 0;
@@ -93,14 +175,10 @@ int InterconnectChannelReceiver::receiveMessage(NetSocketEvent *const event,
 
 	LOG(this->log_interconnect, LEVEL_DEBUG,
 	    "try to receive a packet from interconnect channel "
-	    "associated with the file descriptor %d\n", event->getFd());
+	 	  "associated with the file descriptor %d\n", event->getFd());
 
-	// Check if the channel FD corresponds
-	if(*event == this->channel->getChannelFd())
-	{
-		// Try to receive data from the channel
-		ret = this->channel->receive(event, (unsigned char **) buf, length);
-	}
+	// Try to receive data from the channel
+	ret = this->channel->receive(event, (unsigned char **) buf, length);
 
 	LOG(this->log_interconnect, LEVEL_DEBUG,
 	    "Receive packet: size %zu\n", length);
@@ -124,4 +202,124 @@ int InterconnectChannelReceiver::receiveMessage(NetSocketEvent *const event,
 	}
 
 	return ret;
+}
+
+bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
+                                          std::list<rt_msg_t> &messages)
+{
+	bool status = true;
+	int ret;
+
+	// Check if the event corresponds to this socket
+	if(*event != this->channel->getChannelFd())
+	{
+		LOG(this->log_interconnect, LEVEL_DEBUG,
+		    "Event does not correspond to interconnect socket\n");
+		return true;
+	}
+
+	// Start receiving messages
+	do
+	{
+		interconnect_msg_buffer_t *buf = nullptr;
+
+		ret = this->receiveToBuffer(event, &buf);
+		if(ret < 0)
+		{
+			// Problem on reception
+			LOG(this->log_interconnect, LEVEL_ERROR,
+			    "failed to receive data on input channel\n");
+			return false;
+		}
+		else if(buf)
+		{
+			rt_msg_t message;
+
+			// A message was received
+			LOG(this->log_interconnect, LEVEL_DEBUG,
+			    "%zu bytes of data received\n",
+			    buf->data_len);
+
+			message.type = buf->msg_type;
+			message.length = buf->data_len;
+
+			// Deserialize the message
+			switch(buf->msg_type)
+			{
+				case msg_data:
+				case msg_sig:
+					// Deserialize the dvb_frame
+					this->deserialize(buf->msg_data, buf->data_len,
+					                  (DvbFrame **) &message.data);
+					break;
+				case msg_saloha:
+					// Deserialize the list of dvb_frames
+					this->deserialize(buf->msg_data, buf->data_len,
+					                  (std::list<DvbFrame *> **) &message.data);
+					break;
+				default:
+					LOG(this->log_interconnect, LEVEL_ERROR,
+					    "Unknown type of message received\n");
+					status = false;
+					free(buf);
+					continue;
+			}
+			// Free buf
+			free(buf);
+
+			// Insert the message in the list
+			messages.push_back(message);
+		}
+	} while (ret > 0);
+	return status;
+}
+
+void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
+																              DvbFrame **dvb_frame)
+{
+	spot_id_t spot;
+	uint8_t carrier_id;
+	uint32_t pos = 0;
+
+	// Extract SpotId and CarrierId
+	memcpy(&spot, data + pos, sizeof(spot));
+	pos += sizeof(spot);
+	memcpy(&carrier_id, data + pos, sizeof(carrier_id));
+	pos += sizeof(carrier_id);
+
+	// Create object    
+	(*dvb_frame) = new DvbFrame(data + pos, len - pos);
+	(*dvb_frame)->setCarrierId(carrier_id);
+	(*dvb_frame)->setSpot(spot);
+}
+
+
+void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
+                                              std::list<DvbFrame *> **dvb_frame_list)
+{
+	uint32_t pos = 0;
+
+	// Create object
+	(*dvb_frame_list) = new std::list<DvbFrame *>();
+
+	// Iterate and create DvbFrame objects
+	do
+	{
+		uint32_t dvb_frame_len;
+		DvbFrame *dvb_frame = nullptr;
+
+		// Read the length of dvb_frame
+		memcpy(&dvb_frame_len, data + pos, sizeof(dvb_frame_len));
+		pos += sizeof(dvb_frame_len);
+
+		// Deserialize the new DvbFrame
+		this->deserialize(data + pos, dvb_frame_len, &dvb_frame);
+
+		// Insert the new DvbFrame in the list
+		(*dvb_frame_list)->push_back(dvb_frame);
+
+		// Update position
+		pos += dvb_frame_len;
+
+	} while(pos < len);
 }

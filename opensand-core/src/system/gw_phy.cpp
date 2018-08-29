@@ -50,7 +50,7 @@
 
 #include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
-#include "BlockInterconnectUpward.h"
+#include "BlockInterconnect.h"
 #include "Plugin.h"
 #include "OpenSandConf.h"
 
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
 	struct sc_specific specific;
 	string interconnect_iface;
 	string interconnect_addr;
-	struct icu_specific spec_icu;
+	struct ic_specific spec_ic;
 
 	string conf_path;
 	string topology_file;
@@ -301,14 +301,14 @@ int main(int argc, char **argv)
 
 	// instantiate all blocs
 
-	spec_icu.interconnect_iface = interconnect_iface;
-	spec_icu.interconnect_addr = interconnect_addr;
+	spec_ic.interconnect_iface = interconnect_iface;
+	spec_ic.interconnect_addr = interconnect_addr;
 
 	block_interconnect = Rt::createBlock<BlockInterconnectUpward,
 	                                     BlockInterconnectUpward::Upward,
 	                                     BlockInterconnectUpward::Downward,
-	                                     struct icu_specific>
-	                                     ("InterconnectUpward", NULL, spec_icu);
+	                                     struct ic_specific>
+	                                     ("InterconnectUpward", NULL, spec_ic);
 	if(!block_interconnect)
 	{
 		DFLTLOG(LEVEL_CRITICAL,

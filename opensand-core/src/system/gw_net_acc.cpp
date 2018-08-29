@@ -52,7 +52,7 @@
  *
  */
 
-#include "BlockInterconnectDownward.h"
+#include "BlockInterconnect.h"
 #include "BlockLanAdaptation.h"
 #include "BlockDvbNcc.h"
 #include "BlockEncap.h"
@@ -215,7 +215,7 @@ int main(int argc, char **argv)
 	tal_id_t mac_id = 0;
 	string interconnect_iface;
 	string interconnect_addr;
-	struct icd_specific spec_icd;
+	struct ic_specific spec_ic;
 
 	string conf_path;
 	string topology_file;
@@ -324,14 +324,14 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	spec_icd.interconnect_iface = interconnect_iface;
-	spec_icd.interconnect_addr = interconnect_addr;
+	spec_ic.interconnect_iface = interconnect_iface;
+	spec_ic.interconnect_addr = interconnect_addr;
 
 	block_interconnect = Rt::createBlock<BlockInterconnectDownward,
-	                                 BlockInterconnectDownward::Upward,
-	                                 BlockInterconnectDownward::Downward,
-	                                 struct icd_specific>
-	                                 ("InterconnectDownward", block_dvb, spec_icd);
+	                                     BlockInterconnectDownward::Upward,
+	                                     BlockInterconnectDownward::Downward,
+	                                     struct ic_specific>
+	                                     ("InterconnectDownward", block_dvb, spec_ic);
 	if(!block_interconnect)
 	{
 		DFLTLOG(LEVEL_CRITICAL,

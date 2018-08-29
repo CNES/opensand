@@ -351,54 +351,6 @@ class DvbFrameTpl: public NetContainer
 	};
 
 	/**
-	 * Return object in serialized version.
-	 */
-	static void toInterconnect(DvbFrameTpl *dvb_frame, 
-	                           unsigned char *buf, size_t &length)
-	{
-		size_t total_len = 0, pos = 0;
-		spot_id_t spot;
-		uint8_t carrier_id;
-
-		spot = dvb_frame->getSpot();
-		carrier_id = dvb_frame->getCarrierId();
-
-		total_len += sizeof(spot);
-		total_len += sizeof(carrier_id);
-		total_len += dvb_frame->getTotalLength();
-		// Copy data to buffer
-		memcpy(buf + pos, &spot, sizeof(spot));
-		pos += sizeof(spot);
-		memcpy(buf + pos, &carrier_id, sizeof(carrier_id));
-		pos += sizeof(carrier_id);
-		memcpy(buf + pos, dvb_frame->getData().c_str(),
-		       dvb_frame->getTotalLength());
-		length = total_len;
-	};
-
-	/*
-	 * Create a DvbFrameTpl from serialized data.
-	 */
-	static void newFromInterconnect(unsigned char *data, size_t len,
-	                                DvbFrameTpl **dvb_frame)
-	{
-		spot_id_t spot;
-		uint8_t carrier_id;
-		size_t pos = 0;
-
-		// Extract SpotId and CarrierId
-		memcpy(&spot, data + pos, sizeof(spot));
-		pos += sizeof(spot);
-		memcpy(&carrier_id, data + pos, sizeof(carrier_id));
-		pos += sizeof(carrier_id);
-
-		// Create object    
-		(*dvb_frame) = new DvbFrameTpl(data + pos, len - pos);
-		(*dvb_frame)->setCarrierId(carrier_id);
-		(*dvb_frame)->setSpot(spot);
-	};
-
-	/**
 	 * @brief Accessor on the frame data
 	 */
 	T *frame(void) const

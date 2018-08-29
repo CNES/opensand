@@ -39,7 +39,10 @@
 #include <opensand_conf/conf.h>
 #include <opensand_rt/Rt.h>
 
+#include "DvbFrame.h"
 #include "UdpChannel.h"
+
+#include <list>
 
 /**
  * @brief high level channel classes that implement some functions
@@ -48,7 +51,7 @@
 
 typedef struct
 {
-	size_t data_len; // NOTE: sending data lenght may actually be redundant on UDP
+	uint32_t data_len; // NOTE: sending data lenght may actually be redundant on UDP
 	uint8_t msg_type;
 	unsigned char msg_data[MAX_SOCK_SIZE];
 } __attribute__((__packed__)) interconnect_msg_buffer_t;
@@ -120,14 +123,37 @@ class InterconnectChannelSender: public InterconnectChannel
 	                    unsigned int wmem);
 
 	/**
+	 * @brief Send a RtMessage via the interconnect channel.
+	 * @return false on error, true elsewise.
+	 */
+	bool send(rt_msg_t &message);
+
+	/**
 	 * @brief Send the message contained in the out_buffer.
 	 *        out_buffer. total_length must contain the data length;
-	 *        this method will update with the correct total length. 
+	 *        this method will update with the correct total length.
+	 * @return false on error, true elsewise.
 	 */
-	bool sendMessage();
+	bool sendBuffer();
 
 	// The output buffer
 	interconnect_msg_buffer_t out_buffer;
+
+ private:
+
+	/*
+	 * @brief Serialize a Dvb Frame to be sent via the 
+	 *        interconnect channel.
+	 */
+	void serialize(DvbFrame *dvb_frame,
+	               unsigned char *buf, uint32_t &length);
+
+	/*
+	 * @brief Serialize a list of Dvb Frames to be sent
+	 *        via the interconnect channel.
+	 */
+	void serialize(std::list<DvbFrame *> *dvb_frame_list,
+	               unsigned char *buf, uint32_t &length);
 };
 
 class InterconnectChannelReceiver: public InterconnectChannel
@@ -156,11 +182,33 @@ class InterconnectChannelReceiver: public InterconnectChannel
 
 	/**
 	 * @brief Receive a message from the socket
+	 * @return -1 on error, 1 if more packets can be read, 0 if last packet.
 	 */
-	int receiveMessage(NetSocketEvent *const event,
-	                   interconnect_msg_buffer_t **buf);
+	int receiveToBuffer(NetSocketEvent *const event,
+	                    interconnect_msg_buffer_t **buf);
+
+	/**
+	 * @brief Receive RtMessages
+	 * @return false on error, true elsewise.
+	 */
+	bool receive(NetSocketEvent *const event,
+	             std::list<rt_msg_t> &messages);
 
 	/// socket signal event
 	int32_t socket_event;
+
+ private:
+
+	/**
+	 * @brief Create a DvbFrame from serialized data
+	 */
+	void deserialize(unsigned char *data, uint32_t len,
+	                 DvbFrame **dvb_frame);
+
+	/**
+	 * @brief Create a DvbFrame list from serialized data
+	 */
+	void deserialize(unsigned char *data, uint32_t len,
+	                 std::list<DvbFrame *> **dvb_frame_list);
 };
 #endif

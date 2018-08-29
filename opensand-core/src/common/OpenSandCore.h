@@ -203,10 +203,8 @@ enum
 	msg_data = 0,  ///< message containing useful data (DVB, encap, ...)
 	               //   default value of sendUp/Down function
 	msg_link_up,   ///< link up message
-	msg_cni,       ///< message containing CNI information
 	msg_sig,       ///< message containing signalisation
 	msg_saloha,    ///< message containing Slotted Aloha content
-	msg_object,    ///< message containing an Interconnect object
 };
 
 
