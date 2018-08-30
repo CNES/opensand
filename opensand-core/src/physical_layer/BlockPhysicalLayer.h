@@ -93,6 +93,7 @@ class BlockPhysicalLayer: public Block
 
 	  private:
 		bool attenuation;
+		tal_id_t mac_id;
 		// Output logs
 		OutputLog *log_event;
 	};

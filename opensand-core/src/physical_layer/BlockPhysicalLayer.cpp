@@ -39,6 +39,7 @@
 #include "Plugin.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
+#include "OpenSandConf.h"
 #include "PhyChannel.h"
 
 #include <opensand_output/Output.h>
@@ -263,10 +264,11 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 	return true;
 }
 
-BlockPhysicalLayer::Upward::Upward(const string &name, tal_id_t UNUSED(mac_id)):
+BlockPhysicalLayer::Upward::Upward(const string &name, tal_id_t mac_id):
 	RtUpward(name),
 	PhyChannel(),
 	attenuation(false),
+	mac_id(mac_id),
 	log_event(NULL)
 {
 	// Output Log
@@ -282,7 +284,13 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			// message event: forward DVB frames from upper block to lower block
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
-			if(!this->is_sat && IS_DELAYED_FRAME(dvb_frame->getMessageType()))
+			// ignore SAC messages if ST
+			if(!this->is_sat && !OpenSandConf::isGw(this->mac_id) && dvb_frame->getMessageType() == MSG_TYPE_SAC)
+			{
+				delete dvb_frame;
+				return true;
+			}
+			else if(!this->is_sat && IS_DELAYED_FRAME(dvb_frame->getMessageType()))
 			{
 				return this->pushInFifo((NetContainer *)dvb_frame,
 				                        this->satdelay->getSatDelay());
