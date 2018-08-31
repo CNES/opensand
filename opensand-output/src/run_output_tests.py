@@ -424,7 +424,6 @@ class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
         msg = self.get_message()
         assert isinstance(msg, MessageSendProbes)
         assert msg.values == {0: -42}
-
         self.socket.sendto(struct.pack("!LBB", MAGIC_NUMBER,
                                        MSG_CMD_ENABLE_PROBE, 5),
                            self.program_sock_path)
@@ -450,7 +449,7 @@ class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
 
         self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "s")
         assert self.get_line() == "send\n"
-        self.get_message()
+        self.assert_no_msg()
 
     def check_debug_log(self):
         print "Test: Debug log"
