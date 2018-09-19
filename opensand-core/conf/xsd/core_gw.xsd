@@ -485,17 +485,31 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="upward_port" type="port">
+            <xsd:element name="upward_data_port" type="port">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The UDP port used for upward communications
+                        The UDP port used for upward data communications
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="downward_port" type="port">
+            <xsd:element name="upward_sig_port" type="port">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
-                        The UDP port used for downward communications
+                        The UDP port used for upward signalling communications
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="downward_data_port" type="port">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The UDP port used for downward data communications
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="downward_sig_port" type="port">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The UDP port used for downward signalling communications
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

@@ -122,8 +122,10 @@ bool BlockInterconnectDownward::Upward::onInit(void)
   unsigned int stack;
   unsigned int rmem;
   unsigned int wmem;
-  unsigned int port;
+  unsigned int data_port;
+  unsigned int sig_port;
   string remote_addr("");
+	int32_t socket_event;
 
   // Get configuration
   // NOTE: this works now that only one division is made per component. If we
@@ -138,13 +140,22 @@ bool BlockInterconnectDownward::Upward::onInit(void)
         INTERCONNECT_SECTION, INTERCONNECT_LOWER_IP);
     return false;
   }
-  // get port
+  // get data port
   if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-                     INTERCONNECT_UPWARD_PORT, port))
+                     INTERCONNECT_UPWARD_DATA_PORT, data_port))
   {
     LOG(this->log_init, LEVEL_ERROR,
         "Section %s, %s missing\n",
-        INTERCONNECT_SECTION, INTERCONNECT_UPWARD_PORT);
+        INTERCONNECT_SECTION, INTERCONNECT_UPWARD_DATA_PORT);
+    return false;
+  }
+  // get sig port
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UPWARD_SIG_PORT, sig_port))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UPWARD_SIG_PORT);
     return false;
   }
   // get UDP stack
@@ -176,15 +187,25 @@ bool BlockInterconnectDownward::Upward::onInit(void)
   }
 
   // Create channel
-  this->initUdpChannel(port, remote_addr, stack, rmem, wmem);
+  this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
-  // Add NetSocketEvent
-  this->socket_event = this->addNetSocketEvent(name, this->channel->getChannelFd(),
-                                               MAX_SOCK_SIZE);
-  if(this->socket_event < 0)
+  // Add NetSocketEvents
+  socket_event = this->addNetSocketEvent(name + "_data",
+	                                       this->data_channel->getChannelFd(),
+                                         MAX_SOCK_SIZE);
+  if(socket_event < 0)
   {
     LOG(this->log_init, LEVEL_ERROR,
-        "Cannot add event to Upward channel\n");
+        "Cannot add data socket event to Upward channel\n");
+    return false;
+  }
+  socket_event = this->addNetSocketEvent(name + "_sig",
+	                                       this->sig_channel->getChannelFd(),
+                                         MAX_SOCK_SIZE);
+  if(socket_event < 0)
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Cannot add sig socket event to Upward channel\n");
     return false;
   }
   return true;
@@ -195,7 +216,8 @@ bool BlockInterconnectDownward::Downward::onInit()
   unsigned int stack;
   unsigned int rmem;
   unsigned int wmem;
-  unsigned int port;
+  unsigned int data_port;
+  unsigned int sig_port;
   string remote_addr("");
 
   // Get configuration
@@ -211,13 +233,22 @@ bool BlockInterconnectDownward::Downward::onInit()
         INTERCONNECT_SECTION, INTERCONNECT_LOWER_IP);
     return false;
   }
-  // get port
+  // get data port
   if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-                     INTERCONNECT_DOWNWARD_PORT, port))
+                     INTERCONNECT_DOWNWARD_DATA_PORT, data_port))
   {
     LOG(this->log_init, LEVEL_ERROR,
         "Section %s, %s missing\n",
-        INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_PORT);
+        INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_DATA_PORT);
+    return false;
+  }
+  // get sig port
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_DOWNWARD_SIG_PORT, sig_port))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_SIG_PORT);
     return false;
   }
   // get UDP stack
@@ -249,7 +280,7 @@ bool BlockInterconnectDownward::Downward::onInit()
   }
 
   // Create channel
-  this->initUdpChannel(port, remote_addr, stack, rmem, wmem);
+  this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
   return true;
 }
@@ -339,7 +370,8 @@ bool BlockInterconnectUpward::Upward::onInit(void)
   unsigned int stack;
   unsigned int rmem;
   unsigned int wmem;
-  unsigned int port;
+  unsigned int data_port;
+  unsigned int sig_port;
   string remote_addr("");
 
   // Get configuration
@@ -355,13 +387,22 @@ bool BlockInterconnectUpward::Upward::onInit(void)
         INTERCONNECT_SECTION, INTERCONNECT_UPPER_IP);
     return false;
   }
-  // get port
+  // get data port
   if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-                     INTERCONNECT_UPWARD_PORT, port))
+                     INTERCONNECT_UPWARD_DATA_PORT, data_port))
   {
     LOG(this->log_init, LEVEL_ERROR,
         "Section %s, %s missing\n",
-        INTERCONNECT_SECTION, INTERCONNECT_UPWARD_PORT);
+        INTERCONNECT_SECTION, INTERCONNECT_UPWARD_DATA_PORT);
+    return false;
+  }
+  // get sig port
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_UPWARD_SIG_PORT, sig_port))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_UPWARD_SIG_PORT);
     return false;
   }
   // get UDP stack
@@ -393,7 +434,7 @@ bool BlockInterconnectUpward::Upward::onInit(void)
   }
 
   // Create channel
-  this->initUdpChannel(port, remote_addr, stack, rmem, wmem);
+  this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
   return true;
 }
@@ -404,8 +445,10 @@ bool BlockInterconnectUpward::Downward::onInit()
   unsigned int stack;
   unsigned int rmem;
   unsigned int wmem;
-  unsigned int port;
+  unsigned int data_port;
+  unsigned int sig_port;
   string remote_addr("");
+	int32_t socket_event;
 
   // Get configuration
   // NOTE: this works now that only one division is made per component. If we
@@ -420,13 +463,22 @@ bool BlockInterconnectUpward::Downward::onInit()
         INTERCONNECT_SECTION, INTERCONNECT_UPPER_IP);
     return false;
   }
-  // get port
+  // get data port
   if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-                     INTERCONNECT_DOWNWARD_PORT, port))
+                     INTERCONNECT_DOWNWARD_DATA_PORT, data_port))
   {
     LOG(this->log_init, LEVEL_ERROR,
         "Section %s, %s missing\n",
-        INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_PORT);
+        INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_DATA_PORT);
+    return false;
+  }
+  // get data port
+  if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
+                     INTERCONNECT_DOWNWARD_SIG_PORT, sig_port))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Section %s, %s missing\n",
+        INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_SIG_PORT);
     return false;
   }
   // get UDP stack
@@ -458,15 +510,25 @@ bool BlockInterconnectUpward::Downward::onInit()
   }
 
   // Create channel
-  this->initUdpChannel(port, remote_addr, stack, rmem, wmem);
+  this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
-  // Add NetSocketEvent
-  this->socket_event = this->addNetSocketEvent(name, this->channel->getChannelFd(),
-                                               MAX_SOCK_SIZE);
-  if(this->socket_event < 0)
+  // Add NetSocketEvents
+  socket_event = this->addNetSocketEvent(name + "_data",
+	                                       this->data_channel->getChannelFd(),
+                                         MAX_SOCK_SIZE);
+  if(socket_event < 0)
   {
     LOG(this->log_init, LEVEL_ERROR,
-        "Cannot add event to Downward channel\n");
+        "Cannot add data socket event to Downward channel\n");
+    return false;
+  }
+  socket_event = this->addNetSocketEvent(name + "_sig",
+	                                       this->sig_channel->getChannelFd(),
+                                         MAX_SOCK_SIZE);
+  if(socket_event < 0)
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Cannot add data socket event to Downward channel\n");
     return false;
   }
 

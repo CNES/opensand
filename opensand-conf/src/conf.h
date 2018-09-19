@@ -331,8 +331,10 @@
 //     interconnect     //
 //////////////////////////
 #define INTERCONNECT_SECTION       "interconnect"
-#define INTERCONNECT_UPWARD_PORT   "upward_port"
-#define INTERCONNECT_DOWNWARD_PORT "downward_port"
+#define INTERCONNECT_UPWARD_DATA_PORT   "upward_data_port"
+#define INTERCONNECT_UPWARD_SIG_PORT   "upward_sig_port"
+#define INTERCONNECT_DOWNWARD_DATA_PORT "downward_data_port"
+#define INTERCONNECT_DOWNWARD_SIG_PORT "downward_sig_port"
 #define INTERCONNECT_UDP_RMEM      "interconnect_udp_rmem"
 #define INTERCONNECT_UDP_WMEM      "interconnect_udp_wmem"
 #define INTERCONNECT_UDP_STACK     "interconnect_udp_stack"

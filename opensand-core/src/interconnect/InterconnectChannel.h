@@ -63,7 +63,8 @@ class InterconnectChannel
 		name(name),
 		interconnect_iface(iface_name),
 		interconnect_addr(iface_addr),
-		channel(nullptr)
+		data_channel(nullptr),
+		sig_channel(nullptr)
 	{
 		this->log_interconnect = Output::registerLog(LEVEL_WARNING, name);
 	};
@@ -71,9 +72,14 @@ class InterconnectChannel
 	~InterconnectChannel()
 	{
 		// Free the channel if it was created
-		if (this->channel)
+		if (this->data_channel)
 		{
-			delete this->channel;
+			delete this->data_channel;
+		}
+		// Free the channel if it was created
+		if (this->sig_channel)
+		{
+			delete this->sig_channel;
 		}
 	};
 
@@ -82,19 +88,22 @@ class InterconnectChannel
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
-	virtual void initUdpChannel(unsigned int port,
-	                            string remote_addr,
-	                            unsigned int stack,
-	                            unsigned int rmem,
-	                            unsigned int wmem) = 0;
+	virtual void initUdpChannels(unsigned int data_port,
+	                             unsigned int sig_port,
+	                             string remote_addr,
+	                             unsigned int stack,
+	                             unsigned int rmem,
+	                             unsigned int wmem) = 0;
 	/// This blocks name
 	string name;
 	/// The interconnect interface name
 	string interconnect_iface;
 	/// The interconnect interface IP address
 	string interconnect_addr;
-	/// The channel
-	UdpChannel *channel;
+	/// The data channel
+	UdpChannel *data_channel;
+	/// The signalling channel
+	UdpChannel *sig_channel;
 	/// Output log
 	OutputLog *log_interconnect;
 };
@@ -116,11 +125,12 @@ class InterconnectChannelSender: public InterconnectChannel
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
-	void initUdpChannel(unsigned int port,
-	                    string remote_addr,
-	                    unsigned int stack,
-	                    unsigned int rmem,
-	                    unsigned int wmem);
+	void initUdpChannels(unsigned int data_port,
+	                     unsigned int sig_port,
+	                     string remote_addr,
+	                     unsigned int stack,
+	                     unsigned int rmem,
+	                     unsigned int wmem);
 
 	/**
 	 * @brief Send a RtMessage via the interconnect channel.
@@ -132,9 +142,10 @@ class InterconnectChannelSender: public InterconnectChannel
 	 * @brief Send the message contained in the out_buffer.
 	 *        out_buffer. total_length must contain the data length;
 	 *        this method will update with the correct total length.
+	 * @param is_sig indicates if the message must be sent via the sig channel
 	 * @return false on error, true elsewise.
 	 */
-	bool sendBuffer();
+	bool sendBuffer(bool is_sig);
 
 	// The output buffer
 	interconnect_msg_buffer_t out_buffer;
@@ -160,8 +171,7 @@ class InterconnectChannelReceiver: public InterconnectChannel
 {
  public:
 	InterconnectChannelReceiver(string name, string iface_name, string iface_addr):
-		InterconnectChannel(name, iface_name, iface_addr),
-		socket_event(-1)
+		InterconnectChannel(name, iface_name, iface_addr)
 	{
 	};
 
@@ -174,11 +184,12 @@ class InterconnectChannelReceiver: public InterconnectChannel
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
-	void initUdpChannel(unsigned int port,
-	                    string remote_addr,
-	                    unsigned int stack,
-	                    unsigned int rmem,
-	                    unsigned int wmem);
+	void initUdpChannels(unsigned int data_port,
+	                     unsigned int sig_port,
+	                     string remote_addr,
+	                     unsigned int stack,
+	                     unsigned int rmem,
+	                     unsigned int wmem);
 
 	/**
 	 * @brief Receive a message from the socket
@@ -194,8 +205,6 @@ class InterconnectChannelReceiver: public InterconnectChannel
 	bool receive(NetSocketEvent *const event,
 	             std::list<rt_msg_t> &messages);
 
-	/// socket signal event
-	int32_t socket_event;
 
  private:
 

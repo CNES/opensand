@@ -38,31 +38,49 @@
  * INTERCONNECT_CHANNEL_SENDER
  */
 
-void InterconnectChannelSender::initUdpChannel(unsigned int port, string remote_addr,
-                                               unsigned int stack, unsigned int rmem,
-                                               unsigned int wmem)
+void InterconnectChannelSender::initUdpChannels(unsigned int data_port, unsigned int sig_port,
+                                                string remote_addr, unsigned int stack,
+                                                unsigned int rmem, unsigned int wmem)
 {
-	// Create channel
-	this->channel = new UdpChannel(name,
-	                               0, // no use for the channel ID
-	                               0, // no use for the spot ID
-	                               false,
-	                               true,
-	                               this->interconnect_iface,
-	                               port,
-	                               false, // this socket is not multicast
-	                               this->interconnect_addr,
-	                               remote_addr,
-	                               stack,
-	                               rmem,
-	                               wmem);
+	// Create channels
+	this->data_channel = new UdpChannel(name + ".data",
+	                                    0, // no use for the channel ID
+	                                    0, // no use for the spot ID
+	                                    false,
+	                                    true,
+	                                    this->interconnect_iface,
+	                                    data_port,
+	                                    false, // this socket is not multicast
+	                                    this->interconnect_addr,
+	                                    remote_addr,
+	                                    stack,
+	                                    rmem,
+	                                    wmem);
+	this->sig_channel = new UdpChannel(name + ".sig",
+	                                   0, // no use for the channel ID
+	                                   0, // no use for the spot ID
+	                                   false,
+	                                   true,
+	                                   this->interconnect_iface,
+	                                   sig_port,
+	                                   false, // this socket is not multicast
+	                                   this->interconnect_addr,
+	                                   remote_addr,
+	                                   stack,
+	                                   rmem,
+	                                   wmem);
 }
 
-bool InterconnectChannelSender::sendBuffer()
+bool InterconnectChannelSender::sendBuffer(bool is_sig)
 {
 	// Send the data
-	return this->channel->send((const unsigned char *) &this->out_buffer,
-	                           this->out_buffer.data_len);
+	if(is_sig)
+	{
+		return this->sig_channel->send((const unsigned char *) &this->out_buffer,
+		                               this->out_buffer.data_len);
+	}
+	return this->data_channel->send((const unsigned char *) &this->out_buffer,
+	                                this->out_buffer.data_len);
 }
 
 /*
@@ -74,8 +92,8 @@ bool InterconnectChannelSender::send(rt_msg_t &message)
 
 	switch(message.type)
 	{
-		case msg_data:
 		case msg_sig:
+		case msg_data:
 			// Serialize the dvb_frame into the output buffer
 			this->serialize((DvbFrame *) message.data,
 			                this->out_buffer.msg_data, data_len);
@@ -97,7 +115,7 @@ bool InterconnectChannelSender::send(rt_msg_t &message)
 	                             sizeof(this->out_buffer.data_len);
 
 	// Send the message
-	return this->sendBuffer();
+	return this->sendBuffer(message.type == msg_sig);
 }
 
 void InterconnectChannelSender::serialize(DvbFrame *dvb_frame,
@@ -146,24 +164,37 @@ void InterconnectChannelSender::serialize(std::list<DvbFrame *> *dvb_frame_list,
  * INTERCONNECT_CHANNEL_RECEIVER
  */
 
-void InterconnectChannelReceiver::initUdpChannel(unsigned int port, string remote_addr,
-                                                 unsigned int stack, unsigned int rmem,
-                                                 unsigned int wmem)
+void InterconnectChannelReceiver::initUdpChannels(unsigned int data_port, unsigned int sig_port,
+                                                  string remote_addr, unsigned int stack,
+                                                  unsigned int rmem, unsigned int wmem)
 {
 	// Create channel
-	this->channel = new UdpChannel(name,
-	                               0, // no use for the channel ID
-	                               0, // no use for the spot ID
-	                               true,
-	                               false,
-	                               this->interconnect_iface,
-	                               port,
-	                               false, // this socket is not multicast
-	                               this->interconnect_addr,
-	                               remote_addr,
-	                               stack,
-	                               rmem,
-	                               wmem);
+	this->data_channel = new UdpChannel(name + ".data",
+	                                    0, // no use for the channel ID
+	                                    0, // no use for the spot ID
+	                                    true,
+	                                    false,
+	                                    this->interconnect_iface,
+	                                    data_port,
+	                                    false, // this socket is not multicast
+	                                    this->interconnect_addr,
+	                                    remote_addr,
+	                                    stack,
+	                                    rmem,
+	                                    wmem);
+	this->sig_channel = new UdpChannel(name + ".sig",
+	                                   0, // no use for the channel ID
+	                                   0, // no use for the spot ID
+	                                   true,
+	                                   false,
+	                                   this->interconnect_iface,
+	                                   sig_port,
+	                                   false, // this socket is not multicast
+	                                   this->interconnect_addr,
+	                                   remote_addr,
+	                                   stack,
+	                                   rmem,
+	                                   wmem);
 }
 
 int InterconnectChannelReceiver::receiveToBuffer(NetSocketEvent *const event,
@@ -178,7 +209,14 @@ int InterconnectChannelReceiver::receiveToBuffer(NetSocketEvent *const event,
 	 	  "associated with the file descriptor %d\n", event->getFd());
 
 	// Try to receive data from the channel
-	ret = this->channel->receive(event, (unsigned char **) buf, length);
+	if(*event == this->sig_channel->getChannelFd())
+	{
+		ret = this->sig_channel->receive(event, (unsigned char **) buf, length);
+	}
+	else
+	{
+		ret = this->data_channel->receive(event, (unsigned char **) buf, length);
+	}
 
 	LOG(this->log_interconnect, LEVEL_DEBUG,
 	    "Receive packet: size %zu\n", length);
@@ -210,8 +248,9 @@ bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
 	bool status = true;
 	int ret;
 
-	// Check if the event corresponds to this socket
-	if(*event != this->channel->getChannelFd())
+	// Check if the event corresponds to any of the sockets
+	if(*event != this->sig_channel->getChannelFd() &&
+	   *event != this->data_channel->getChannelFd())
 	{
 		LOG(this->log_interconnect, LEVEL_DEBUG,
 		    "Event does not correspond to interconnect socket\n");
