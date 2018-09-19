@@ -119,7 +119,7 @@ bool InterconnectChannelSender::send(rt_msg_t &message)
 }
 
 void InterconnectChannelSender::serialize(DvbFrame *dvb_frame,
-													                unsigned char *buf,
+                                          unsigned char *buf,
                                           uint32_t &length)
 {
 	uint32_t total_len = 0, pos = 0;
@@ -138,7 +138,7 @@ void InterconnectChannelSender::serialize(DvbFrame *dvb_frame,
 	memcpy(buf + pos, &carrier_id, sizeof(carrier_id));
 	pos += sizeof(carrier_id);
 	memcpy(buf + pos, dvb_frame->getData().c_str(),
-				 dvb_frame->getTotalLength());
+	       dvb_frame->getTotalLength());
 	length = total_len;
 }
 
@@ -206,7 +206,7 @@ int InterconnectChannelReceiver::receiveToBuffer(NetSocketEvent *const event,
 
 	LOG(this->log_interconnect, LEVEL_DEBUG,
 	    "try to receive a packet from interconnect channel "
-	 	  "associated with the file descriptor %d\n", event->getFd());
+	    "associated with the file descriptor %d\n", event->getFd());
 
 	// Try to receive data from the channel
 	if(*event == this->sig_channel->getChannelFd())
@@ -314,7 +314,7 @@ bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
 }
 
 void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
-																              DvbFrame **dvb_frame)
+                                              DvbFrame **dvb_frame)
 {
 	spot_id_t spot;
 	uint8_t carrier_id;

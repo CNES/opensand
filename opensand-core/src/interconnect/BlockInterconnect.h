@@ -46,8 +46,8 @@
 
 struct ic_specific
 {
-  string interconnect_iface; // Interconnect interface name
-  string interconnect_addr; // Interconnect interface IP address
+	string interconnect_iface; // Interconnect interface name
+	string interconnect_addr; // Interconnect interface IP address
 };
 
 /**
@@ -58,61 +58,61 @@ class BlockInterconnectDownward: public Block
 {
  public:
 
-  /**
-   * @brief The interconnect block, placed below
-   *
-   * @param name      The block name
-   * @param specific  Specific block parameters
-   */
-  BlockInterconnectDownward(const string &name,
-                            struct ic_specific specific):
-    Block(name)
-  {};
+	/**
+	 * @brief The interconnect block, placed below
+	 *
+	 * @param name      The block name
+	 * @param specific  Specific block parameters
+	 */
+	BlockInterconnectDownward(const string &name,
+	                          struct ic_specific specific):
+		Block(name)
+	{};
 
-  ~BlockInterconnectDownward() {};
+	~BlockInterconnectDownward() {};
 
-  class Upward: public RtUpward, public InterconnectChannelReceiver
-  {
-   public:
-    Upward(const string &name, struct ic_specific specific):
-      RtUpward(name),
-      InterconnectChannelReceiver(name + ".Upward",
-                                  specific.interconnect_iface,
-                                  specific.interconnect_addr)
-    {};
+	class Upward: public RtUpward, public InterconnectChannelReceiver
+	{
+	 public:
+		Upward(const string &name, struct ic_specific specific):
+			RtUpward(name),
+			InterconnectChannelReceiver(name + ".Upward",
+			                            specific.interconnect_iface,
+			                            specific.interconnect_addr)
+		{};
 
-    bool onInit(void);
-    bool onEvent(const RtEvent *const event);
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
 
-   private:
-  };
+	 private:
+	};
 
-  class Downward: public RtDownward, public InterconnectChannelSender
-  {
-   public:
-    Downward(const string &name, struct ic_specific specific):
-      RtDownward(name),
-      InterconnectChannelSender(name + ".Downward",
-                                specific.interconnect_iface,
-                                specific.interconnect_addr)
-    {};
+	class Downward: public RtDownward, public InterconnectChannelSender
+	{
+	 public:
+		Downward(const string &name, struct ic_specific specific):
+			RtDownward(name),
+			InterconnectChannelSender(name + ".Downward",
+			                          specific.interconnect_iface,
+			                          specific.interconnect_addr)
+		{};
 
-    bool onInit(void);
-    bool onEvent(const RtEvent *const event);
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
 
-   private:
-  };
+	 private:
+	};
 
  protected:
-  // Output log
-  OutputLog *log_interconnect;
+	// Output log
+	OutputLog *log_interconnect;
 
-  /// event handlers
-  bool onDownwardEvent(const RtEvent *const event);
-  bool onUpwardEvent(const RtEvent *const event);
+	/// event handlers
+	bool onDownwardEvent(const RtEvent *const event);
+	bool onUpwardEvent(const RtEvent *const event);
 
-  // initialization method
-  bool onInit();
+	// initialization method
+	bool onInit();
 };
 
 /**
@@ -123,61 +123,61 @@ class BlockInterconnectUpward: public Block
 {
  public:
 
-  /**
-   * @brief The interconnect block, placed below
-   *
-   * @param name      The block name
-   * @param specific  Specific block parameters
-   */
-  BlockInterconnectUpward(const string &name,
-                          struct ic_specific specific):
-    Block(name)
-  {};
+	/**
+	 * @brief The interconnect block, placed below
+	 *
+	 * @param name      The block name
+	 * @param specific  Specific block parameters
+	 */
+	BlockInterconnectUpward(const string &name,
+	                        struct ic_specific specific):
+		Block(name)
+	{};
 
-  ~BlockInterconnectUpward() {};
+	~BlockInterconnectUpward() {};
 
-  class Upward: public RtUpward, public InterconnectChannelSender
-  {
-   public:
-    Upward(const string &name, struct ic_specific specific):
-      RtUpward(name),
-      InterconnectChannelSender(name + ".Upward",
-                                specific.interconnect_iface,
-                                specific.interconnect_addr)
-    {};
+	class Upward: public RtUpward, public InterconnectChannelSender
+	{
+	 public:
+		Upward(const string &name, struct ic_specific specific):
+			RtUpward(name),
+			InterconnectChannelSender(name + ".Upward",
+			                          specific.interconnect_iface,
+			                          specific.interconnect_addr)
+		{};
 
-    bool onInit(void);
-    bool onEvent(const RtEvent *const event);
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
 
-   private:
-  };
+	 private:
+	};
 
-  class Downward: public RtDownward, public InterconnectChannelReceiver
-  {
-   public:
-    Downward(const string &name, struct ic_specific specific):
-      RtDownward(name),
-      InterconnectChannelReceiver(name + ".Downward",
-                                  specific.interconnect_iface,
-                                  specific.interconnect_addr)
-    {};
+	class Downward: public RtDownward, public InterconnectChannelReceiver
+	{
+	 public:
+		Downward(const string &name, struct ic_specific specific):
+			RtDownward(name),
+			InterconnectChannelReceiver(name + ".Downward",
+			                            specific.interconnect_iface,
+			                            specific.interconnect_addr)
+		{};
 
-    bool onInit(void);
-    bool onEvent(const RtEvent *const event);
+		bool onInit(void);
+		bool onEvent(const RtEvent *const event);
 
-   private:
-  };
+	 private:
+	};
 
  protected:
-  // Output log 
-  OutputLog *log_interconnect;
+	// Output log 
+	OutputLog *log_interconnect;
 
-  /// event handlers
-  bool onDownwardEvent(const RtEvent *const event);
-  bool onUpwardEvent(const RtEvent *const event);
+	/// event handlers
+	bool onDownwardEvent(const RtEvent *const event);
+	bool onUpwardEvent(const RtEvent *const event);
 
-  // initialization method
-  bool onInit();
+	// initialization method
+	bool onInit();
 };
 
 #endif
