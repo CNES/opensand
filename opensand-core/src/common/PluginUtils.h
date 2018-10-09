@@ -122,21 +122,33 @@ class PluginUtils
 	                       SatDelayPlugin **sat_delay);
 
 	/**
-	 * @brief get physical layer plugins
+	 * @brief get physical layer attenuation plugin
 	 *
 	 * @param att_pl_name  The name of the attenuation model plugin
-	 * @param min_pl_name  The name of the minimal condition plugin
-	 * @param err_pl_name  The name of the erroe insertion plugin
 	 * @param attenuation  The attenuation model plugin
+	 * @return true on success, false otherwise
+	 */
+	bool getAttenuationPlugin(string att_pl_name,
+	                          AttenuationModelPlugin **attenuation);
+
+	/**
+	 * @brief get physical layer minimal condition plugin
+	 *
+	 * @param min_pl_name  The name of the minimal condition plugin
 	 * @param minimal      The minimal condition plugin
+	 * @return true on success, false otherwise
+	 */
+	bool getMinimalConditionPlugin(string min_pl_name,
+	                               MinimalConditionPlugin **minimal);
+
+	/**
+	 * @brief get physical layer error insertion plugin
+	 *
+	 * @param err_pl_name  The name of the erroe insertion plugin
 	 * @param error        The error insertion plugin
 	 * @return true on success, false otherwise
 	 */
-	bool getPhysicalLayerPlugins(string att_pl_name,
-	                             string min_pl_name,
-	                             string err_pl_name,
-	                             AttenuationModelPlugin **attenuation,
-	                             MinimalConditionPlugin **minimal,
+	bool getErrorInsertionPlugin(string err_pl_name,
 	                             ErrorInsertionPlugin **error);
 
 	/**

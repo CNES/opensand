@@ -57,7 +57,7 @@
 #include "BlockDvbSatTransp.h"
 #include "BlockDvbSatRegen.h"
 #include "BlockSatCarrier.h"
-#include "BlockPhysicalLayer.h"
+#include "BlockPhysicalLayerSat.h"
 #include "Plugin.h"
 #include "OpenSandConf.h"
 
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 	string emu_iface;
 	struct sc_specific specific;
 
-	std::string satellite_type;
+	string satellite_type;
 
 	Block *block_encap;
 	Block *block_dvb;

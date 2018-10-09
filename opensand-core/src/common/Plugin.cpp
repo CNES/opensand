@@ -67,18 +67,24 @@ bool Plugin::getLanAdaptationPlugin(string name,
 	return utils.getLanAdaptationPlugin(name, lan_adaptation);
 }
 
-bool Plugin::getPhysicalLayerPlugins(string att_pl_name,
-                                     string min_pl_name,
-                                     string err_pl_name,
-                                     AttenuationModelPlugin **attenuation,
-                                     MinimalConditionPlugin **minimal,
+bool Plugin::getAttenuationPlugin(string att_pl_name,
+                                     AttenuationModelPlugin **attenuation)
+{
+	return utils.getAttenuationPlugin(att_pl_name,
+	                                  attenuation);
+}
+
+bool Plugin::getMinimalConditionPlugin(string min_pl_name,
+                                       MinimalConditionPlugin **minimal)
+{
+	return utils.getMinimalConditionPlugin(min_pl_name,
+	                                       minimal);
+}
+
+bool Plugin::getErrorInsertionPlugin(string err_pl_name,
                                      ErrorInsertionPlugin **error)
 {
-	return utils.getPhysicalLayerPlugins(att_pl_name,
-	                                     min_pl_name,
-	                                     err_pl_name,
-	                                     attenuation,
-	                                     minimal,
+	return utils.getErrorInsertionPlugin(err_pl_name,
 	                                     error);
 }
 

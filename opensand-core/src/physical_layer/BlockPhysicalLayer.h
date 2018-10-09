@@ -41,15 +41,18 @@
 #ifndef BLOCK_PHYSICAL_LAYER_H
 #define BLOCK_PHYSICAL_LAYER_H
 
-
-#include "PhyChannel.h"
 #include "OpenSandCore.h"
+#include "GroundPhysicalChannel.h"
+#include "AttenuationHandler.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_output/Output.h>
 
+#include <string>
 #include <map>
 
+using std::string;
+using std::map;
 
 /**
  * @class BlockPhysicalLayer
@@ -58,12 +61,244 @@
 class BlockPhysicalLayer: public Block
 {
  public:
+	/**
+	 * @class Upward
+	 * @brief Ground Upward Physical Layer Channel
+	 */
+	class Upward: public GroundPhysicalChannel, public RtUpward
+	{
+	 protected:
+		/// The attenuation process
+		AttenuationHandler *attenuation_hdl;
+
+		/**
+		 * @brief Forward the frame to the next channel
+		 *
+		 * @param dvb_frame  the DVB frame to forward
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool forwardPacket(DvbFrame *dvb_frame);
+
+		/**
+		 * @brief Forward the frame to the next channel after attenuation application
+		 *
+		 * @param dvb_frame  the DVB frame to forward
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool forwardPacketWithoutAttenuation(DvbFrame *dvb_frame);
+
+		/**
+		 * @brief Forward the frame to the next channel
+		 *
+		 * @param dvb_frame  the DVB frame to forward
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool forwardPacketWithAttenuation(DvbFrame *dvb_frame);
+
+		/**
+		 * @brief Get the C/N fot the current DVB frame
+		 *
+		 * @param dvb_frame  the current DVB frame
+		 *
+		 * @return the current C/N
+		 */
+		virtual double getCn(DvbFrame *dvb_frame) const = 0;
+
+	 public:
+		/**
+		 * @brief Constructor of the ground upward physical channel
+		 *
+		 * @param name    the name of the channel
+		 * @param mac_id  the id of the ST or of the GW
+		 */
+		Upward(const string &name, tal_id_t mac_id);
+
+		/**
+		 * @brief Destroy the Channel
+		 */
+		virtual ~Upward();
+
+		/**
+		 * @brief Initialize the ground upward physical channel
+		 *
+		 * @return true on success, false otherwise
+		 */
+		virtual bool onInit();
+
+		/**
+		 * @brief Event processing
+		 *
+		 * @param event  the event to process
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool onEvent(const RtEvent *const event);
+	};
+
+	/**
+	 * @class UpwardTransp
+	 * @brief Ground Upward Physical Layer Channel for transparent satellite
+	 */
+	class UpwardTransp: public Upward
+	{
+	 public:
+		/**
+		 * @brief Constructor of the ground upward physical channel
+		 *
+		 * @param name  the name of the channel
+		 * @param mac_id  the id of the ST or of the GW
+		 */
+		UpwardTransp(const string &name, tal_id_t mac_id):
+			Upward(name, mac_id)
+		{
+		}
+
+		/**
+		 * @brief Destroy the Channel
+		 */
+		virtual ~UpwardTransp()
+		{
+		}
+
+		/**
+		 * @brief Get the C/N fot the current DVB frame
+		 *
+		 * @param dvb_frame  the current DVB frame
+		 *
+		 * @return the current C/N
+		 */
+		double getCn(DvbFrame *dvb_frame) const;
+	};
+
+	/**
+	 * @class UpwardRegen
+	 * @brief Ground Upward Physical Layer Channel for regenerative satellite
+	 */
+	class UpwardRegen: public Upward
+	{
+	 public:
+		/**
+		 * @brief Constructor of the ground upward physical channel
+		 *
+		 * @param name  the name of the channel
+		 * @param mac_id  the id of the ST or of the GW
+		 */
+		UpwardRegen(const string &name, tal_id_t mac_id):
+			Upward(name, mac_id)
+		{
+		}
+
+		/**
+		 * @brief Destroy the Channel
+		 */
+		virtual ~UpwardRegen()
+		{
+		}
+
+		/**
+		 * @brief Get the C/N fot the current DVB frame
+		 *
+		 * @param dvb_frame  the current DVB frame
+		 *
+		 * @return the current C/N
+		 */
+		double getCn(DvbFrame *UNUSED(dvb_frame)) const;
+	};
+
+	/**
+	 * @class Downward
+	 * @brief Ground Downward Physical Layer Channel
+	 */
+	class Downward : public GroundPhysicalChannel, public RtDownward
+	{
+	 private:
+		/// Probes
+		Probe<int> *probe_delay;
+
+	 protected:
+		/// Event
+		event_id_t delay_update_timer;
+
+		/**
+		 * @brief Update the delay
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool updateDelay();
+
+		/**
+		 * @brief Forward the frame to the next channel
+		 *
+		 * @param dvb_frame  the DVB frame to forward
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool forwardPacket(DvbFrame *dvb_frame);
+
+		/**
+		 * @brief Prepare the frame
+		 *
+		 * @param dvb_frame  the DVB frame to forward
+		 */
+		void preparePacket(DvbFrame *dvb_frame);
+
+		/**
+		 * @brief Prepare the frame applying attenuation application
+		 *
+		 * @param dvb_frame  the DVB frame to forward
+		 */
+		void preparePacketWithAttenuation(DvbFrame *dvb_frame);
+
+		/**
+		 * @brief Prepare the frame applying no attenuation application
+		 *
+		 * @param dvb_frame  the DVB frame to forward
+		 */
+		void preparePacketWithoutAttenuation(DvbFrame *UNUSED(dvb_frame));
+
+	 public:
+		/**
+		 * @brief Constructor of the ground downward physical channel
+		 *
+		 * @param name  the name of the channel
+		 * @param mac_id  the id of the ST or of the GW
+		 */
+		Downward(const string &name, tal_id_t mac_id);
+
+		/**
+		 * @brief Destroy the Channel
+		 */
+		virtual ~Downward()
+		{
+		}
+
+		/**
+		 * @brief Initialize the ground downward physical channel
+		 *
+		 * @return true on success, false otherwise
+		 */
+		virtual bool onInit();
+
+		/**
+		 * @brief Event processing
+		 *
+		 * @param event  the event to process
+		 *
+		 * @return true on success, false otherwise
+		 */
+		bool onEvent(const RtEvent *const event);
+	};
+
+ public:
 
 	/**
 	 * Build a physical layer block
 	 *
 	 * @param name            The name of the block
-	 * @param name            The mac id of the terminal
+	 * @param mac_id          The mac id of the terminal
 	 */
 	BlockPhysicalLayer(const string &name, tal_id_t mac_id);
 
@@ -75,97 +310,12 @@ class BlockPhysicalLayer: public Block
 	// initialization method
 	bool onInit();
 
-	class Upward: public RtUpward, PhyChannel
-	{
-		friend class BlockPhysicalLayer;
-		friend class BlockPhysicalLayerSat;
-		
-	  public:
-		Upward(const string &name, tal_id_t mac_id);
-
-		virtual bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-		
-	  protected:
-		bool setSatDelay(SatDelayPlugin *satdelay, bool update);
-		bool processAttenuation(DvbFrame *dvb_frame);
-		bool handleFifoTimer();
-
-	  private:
-		bool attenuation;
-		tal_id_t mac_id;
-		// Output logs
-		OutputLog *log_event;
-	};
-
-	class Downward: public RtDownward, PhyChannel
-	{
-		friend class BlockPhysicalLayer;
-		friend class BlockPhysicalLayerSat;
-		
-	  public:
-		Downward(const string &name, tal_id_t mac_id);
-
-		virtual bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-	  protected:
-		bool setSatDelay(SatDelayPlugin *satdelay, bool update);
-		bool processAttenuation(DvbFrame *dvb_frame);
-		bool handleFifoTimer();
-
-	  private:
-		bool attenuation;
-		// Output logs
-		OutputLog *log_event;
-	};
  private:
-	/**
-	 * @brief initialize satellite delay plugin
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool initSatDelay();
-
 	/// The terminal mac_id
 	tal_id_t mac_id;
+
 	/// The satellite delay for this terminal
 	SatDelayPlugin *satdelay;
-};
-
-/**
- * @class BlockPhysicalLayerSat
- * @brief Basic DVB PhysicalLayer block
- */
-class BlockPhysicalLayerSat: public BlockPhysicalLayer
-{
- public:
-	BlockPhysicalLayerSat(const string &name):
-		BlockPhysicalLayer(name, 0)
-	{};
-	
-	// initialization method
-	bool onInit();
-
-	class Upward: public BlockPhysicalLayer::Upward
-	{
-	  public:
-		Upward(const string &name):
-			BlockPhysicalLayer::Upward(name, 0)
-		{};
-
-		bool onInit(void);
-	};
-
-	class Downward: public BlockPhysicalLayer::Downward
-	{
-	  public:
-		Downward(const string &name):
-			BlockPhysicalLayer::Downward(name, 0)
-		{};
-
-		bool onInit(void);
-	};
 };
 
 #endif
