@@ -140,6 +140,13 @@ bool BlockPhysicalLayerSat::Upward::onInit()
 
 	// Initialize the attenuation handler
 	this->attenuation_hdl = new AttenuationHandler(this->log_channel);
+  if(!this->attenuation_hdl->initialize(UPLINK_PHYSICAL_LAYER_SECTION,
+                                        this->log_init))
+  {
+    LOG(this->log_init, LEVEL_ERROR,
+        "Unable to initialize Attenuation Handler");
+    return false;
+  }
 
 	//TODO: set the function pointer to 'forwardPacketWithAttenuation'
 	return true;

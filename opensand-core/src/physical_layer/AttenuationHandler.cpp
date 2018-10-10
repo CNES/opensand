@@ -69,7 +69,7 @@ bool AttenuationHandler::initialize(const string &link_section, OutputLog *log_i
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'",
-		    DOWNLINK_PHYSICAL_LAYER_SECTION,
+		    link_section,
 		    MINIMAL_CONDITION_TYPE);
 		return false;
 	}
@@ -81,7 +81,7 @@ bool AttenuationHandler::initialize(const string &link_section, OutputLog *log_i
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'",
-		    DOWNLINK_PHYSICAL_LAYER_SECTION, ERROR_INSERTION_TYPE);
+		    link_section, ERROR_INSERTION_TYPE);
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,
