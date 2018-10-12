@@ -334,6 +334,12 @@ class HostModel:
         except KeyError:
             pass
         self._machines[component] = machine
+        # update conf for specific components (only interconnect)
+        if component in GW_types:
+            # for now, only need to pass interconnect IP address
+            self._advanced.set_interconnect(
+                    component,
+                    machine.get_interconnect_address())
         return True
     
     def del_machine(self, name):

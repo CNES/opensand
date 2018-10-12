@@ -323,9 +323,23 @@
 #define ADV_SECTION      "advanced"
 #define DELAY_BUFFER     "delay_buffer"
 #define DELAY_TIMER      "delay_timer"
-#define UDP_RMEM         "udp_rmem"
-#define UDP_WMEM         "udp_wmem"
-#define UDP_STACK        "udp_stack"
+#define SATCARRIER_UDP_RMEM         "satcarrier_udp_rmem"
+#define SATCARRIER_UDP_WMEM         "satcarrier_udp_wmem"
+#define SATCARRIER_UDP_STACK        "satcarrier_udp_stack"
+
+//////////////////////////
+//     interconnect     //
+//////////////////////////
+#define INTERCONNECT_SECTION       "interconnect"
+#define INTERCONNECT_UPWARD_DATA_PORT   "upward_data_port"
+#define INTERCONNECT_UPWARD_SIG_PORT   "upward_sig_port"
+#define INTERCONNECT_DOWNWARD_DATA_PORT "downward_data_port"
+#define INTERCONNECT_DOWNWARD_SIG_PORT "downward_sig_port"
+#define INTERCONNECT_UDP_RMEM      "interconnect_udp_rmem"
+#define INTERCONNECT_UDP_WMEM      "interconnect_udp_wmem"
+#define INTERCONNECT_UDP_STACK     "interconnect_udp_stack"
+#define INTERCONNECT_UPPER_IP      "upper_ip_address"
+#define INTERCONNECT_LOWER_IP      "lower_ip_address"
 
 /////////////////
 //    Debug    //

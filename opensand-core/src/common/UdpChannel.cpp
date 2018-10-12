@@ -27,13 +27,14 @@
  */
 
 /**
- * @file sat_carrier_udp_channel.cpp
+ * @file UdpChannel.cpp
  * @brief This implements an UDP satellite carrier channel
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 
-#include "sat_carrier_udp_channel.h"
+#include "UdpChannel.h"
 
 #include <opensand_output/Output.h>
 
@@ -64,18 +65,19 @@
  * @param rmem                The size of the reception UDP buffers in kernel
  * @param wmem                The size of the emission UDP buffers in kernel
  */
-sat_carrier_udp_channel::sat_carrier_udp_channel(spot_id_t s_id,
-                                                 unsigned int channel_id,
-                                                 bool input,
-                                                 bool output,
-                                                 const string local_interface_name,
-                                                 unsigned short port,
-                                                 bool multicast,
-                                                 const string local_ip_addr,
-                                                 const string ip_addr,
-                                                 unsigned int stack,
-                                                 unsigned int rmem,
-                                                 unsigned int wmem):
+UdpChannel::UdpChannel(string name,
+                       spot_id_t s_id,
+                       unsigned int channel_id,
+                       bool input,
+                       bool output,
+                       const string local_interface_name,
+                       unsigned short port,
+                       bool multicast,
+                       const string local_ip_addr,
+                       const string ip_addr,
+                       unsigned int stack,
+                       unsigned int rmem,
+                       unsigned int wmem):
 	spot_id(s_id),
 	m_channel_id(channel_id),
 	m_input(input),
@@ -92,9 +94,9 @@ sat_carrier_udp_channel::sat_carrier_udp_channel(spot_id_t s_id,
 	int one = 1;
 
 	// Output log
-	this->log_init = Output::registerLog(LEVEL_WARNING, "SatCarrier.init");
+	this->log_init = Output::registerLog(LEVEL_WARNING, name + ".init");
 	this->log_sat_carrier = Output::registerLog(LEVEL_WARNING,
-	                                            "SatCarrier.Channel");
+	                                            name + ".Channel");
 
 	bzero(&this->m_socketAddr, sizeof(this->m_socketAddr));
 	m_socketAddr.sin_family = AF_INET;
@@ -265,7 +267,7 @@ error:
 /**
  * Destructor
  */
-sat_carrier_udp_channel::~sat_carrier_udp_channel()
+UdpChannel::~UdpChannel()
 {
 	close(this->sock_channel);
 	this->udp_counters.clear();
@@ -281,7 +283,7 @@ sat_carrier_udp_channel::~sat_carrier_udp_channel()
 /**
  * Check if the channel was correctly created
  */
-bool sat_carrier_udp_channel::isInit()
+bool UdpChannel::isInit()
 {
 	return this->init_success;
 }
@@ -290,7 +292,7 @@ bool sat_carrier_udp_channel::isInit()
  * Get the ID of the channel
  * @return the channel ID
  */
-unsigned int sat_carrier_udp_channel::getChannelID()
+unsigned int UdpChannel::getChannelID()
 {
 	return (m_channel_id);
 }
@@ -299,7 +301,7 @@ unsigned int sat_carrier_udp_channel::getChannelID()
  * Get if the channel accept input
  * @return true if channel accept input
  */
-bool sat_carrier_udp_channel::isInputOk()
+bool UdpChannel::isInputOk()
 {
 	return (m_input);
 }
@@ -308,7 +310,7 @@ bool sat_carrier_udp_channel::isInputOk()
  * Get if the channel accept output
  * @return true if channel accept output
  */
-bool sat_carrier_udp_channel::isOutputOk()
+bool UdpChannel::isOutputOk()
 {
 	return (m_output);
 }
@@ -318,7 +320,7 @@ bool sat_carrier_udp_channel::isOutputOk()
  * @param name the name of the interface
  * @return the index of the interface if successful, -1 otherwise
  */
-int sat_carrier_udp_channel::getIfIndex(const char *name)
+int UdpChannel::getIfIndex(const char *name)
 {
 	int sock;
 	ifreq ifr;
@@ -357,7 +359,7 @@ exit:
  * Return the network socket of the udp channel
  * @return the network socket of the udp channel
  */
-int sat_carrier_udp_channel::getChannelFd()
+int UdpChannel::getChannelFd()
 {
 	return this->sock_channel;
 }
@@ -366,7 +368,7 @@ int sat_carrier_udp_channel::getChannelFd()
  * Return the spot id
  * @return the spot id
  */
-spot_id_t sat_carrier_udp_channel::getSpotId()
+spot_id_t UdpChannel::getSpotId()
 {
 	return this->spot_id;
 }
@@ -382,7 +384,7 @@ spot_id_t sat_carrier_udp_channel::getSpotId()
  *                 called another time, -1 on error
  */
 // TODO why not work directly with Data here instead of buf, length
-int sat_carrier_udp_channel::receive(NetSocketEvent *const event,
+int UdpChannel::receive(NetSocketEvent *const event,
                                      unsigned char **buf, size_t &data_len)
 {
 	struct sockaddr_in remote_addr;
@@ -525,7 +527,7 @@ error:
 }
 
 
-bool sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len)
+bool UdpChannel::handleStack(unsigned char **buf, size_t &data_len)
 {
 	map<string , uint8_t>::iterator count_it = this->udp_counters.find(this->stacked_ip);
 	map<string, UdpStack *>::iterator stack_it = this->stacks.find(this->stacked_ip);
@@ -559,7 +561,7 @@ bool sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len)
 }
 	
 	
-void sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len,
+void UdpChannel::handleStack(unsigned char **buf, size_t &data_len,
                                           uint8_t counter, UdpStack *stack)
 {
 	LOG(this->log_sat_carrier, LEVEL_INFO,
@@ -575,7 +577,7 @@ void sat_carrier_udp_channel::handleStack(unsigned char **buf, size_t &data_len,
 }
 
 
-bool sat_carrier_udp_channel::send(const unsigned char *data, size_t length)
+bool UdpChannel::send(const unsigned char *data, size_t length)
 {
 	ssize_t slen;
 

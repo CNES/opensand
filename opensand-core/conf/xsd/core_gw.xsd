@@ -238,6 +238,7 @@
             <xsd:element ref="uplink_physical_layer" />
             <xsd:element ref="downlink_physical_layer" />
             <xsd:element ref="delay" />
+            <xsd:element ref="interconnect" />
             <xsd:element ref="debug" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
@@ -472,6 +473,87 @@
     </xsd:complexType>
 </xsd:element>
 
+<!-- interconnect section description -->
+<xsd:element name="interconnect">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+            <![CDATA[
+            <b>\tSplit-GW interconnect configuration</b>
+	    ]]>
+	    <adv>true</adv>
+        </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexType>
+        <xsd:sequence>
+            <xsd:element name="upward_data_port" type="port">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The UDP port used for upward data communications
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="upward_sig_port" type="port">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The UDP port used for upward signalling communications
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="downward_data_port" type="port">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The UDP port used for downward data communications
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="downward_sig_port" type="port">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The UDP port used for downward signalling communications
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="upper_ip_address" type="ipv4Address">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        IP address of the upper Interconnect block
+                        <hide>true</hide>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="lower_ip_address" type="ipv4Address">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        IP address of the lower Interconnect block
+                        <hide>true</hide>
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="interconnect_udp_rmem" type="xsd:unsignedLong">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The size of the UDP reception buffer in kernel for interconnect sockets
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="interconnect_udp_wmem" type="xsd:unsignedLong">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The size of the UDP emission buffer in kernel for interconnect sockets
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+            <xsd:element name="interconnect_udp_stack" type="xsd:nonNegativeInteger">
+                <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                        The size of the UDP stack in interconnect sockets
+                        (max 255 but keep it small)
+                    </xsd:documentation>
+                </xsd:annotation>
+            </xsd:element>
+        </xsd:sequence>
+    </xsd:complexType>
+</xsd:element>
 
 <!-- debug section description -->
 <xsd:element name="debug">
