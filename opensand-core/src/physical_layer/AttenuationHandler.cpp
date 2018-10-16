@@ -137,20 +137,34 @@ bool AttenuationHandler::process(DvbFrame *dvb_frame, double cn_total)
 
 	// Get the MODCOD used to send DVB frame
 	// (keep the complete header because we carry useful data)
-	if(dvb_frame->getMessageType() == MSG_TYPE_BBFRAME)
+	switch(dvb_frame->getMessageType())
 	{
-		// TODO BBFrame *bbframe = dynamic_cast<BBFrame *>(dvb_frame);
-		BBFrame *bbframe = (BBFrame *)dvb_frame;
-		modcod_id = bbframe->getModcodId();
-		payload = bbframe->getPayload();
+		case MSG_TYPE_BBFRAME:
+		{
+			// TODO BBFrame *bbframe = dynamic_cast<BBFrame *>(dvb_frame);
+			BBFrame *bbframe = (BBFrame *)dvb_frame;
+			modcod_id = bbframe->getModcodId();
+			payload = bbframe->getPayload();
+		}
+		break;
+
+		case MSG_TYPE_DVB_BURST:
+		{
+			// TODO DvbRcsFrame *dvb_rcs_frame = dynamic_cast<DvbRcsFrame *>(dvb_frame);
+			DvbRcsFrame *dvb_rcs_frame = (DvbRcsFrame *)dvb_frame;
+			modcod_id = dvb_rcs_frame->getModcodId();
+			payload = dvb_rcs_frame->getPayload();
+		}
+		break;
+
+		default:
+		{
+			// This message, even though it carries C/N information (is attenuated)
+			// is not encoded using a MODCOD, and cannot be dropped.
+			return true;
+		}
 	}
-	else
-	{
-		// TODO DvbRcsFrame *dvb_rcs_frame = dynamic_cast<DvbRcsFrame *>(dvb_frame);
-		DvbRcsFrame *dvb_rcs_frame = (DvbRcsFrame *)dvb_frame;
-		modcod_id = dvb_rcs_frame->getModcodId();
-		payload = dvb_rcs_frame->getPayload();
-	}
+
 	LOG(this->log_channel, LEVEL_INFO,
 	    "Receive frame with MODCOD %u, total C/N = %.2f", modcod_id, cn_total);
 

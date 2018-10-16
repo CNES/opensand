@@ -64,7 +64,7 @@
 #define IS_ATTENUATED_FRAME(msg_type) \
     (msg_type == MSG_TYPE_BBFRAME || msg_type == MSG_TYPE_DVB_BURST || \
      msg_type == MSG_TYPE_SALOHA_DATA || msg_type == MSG_TYPE_SALOHA_CTRL || \
-     msg_type == MSG_TYPE_SAC)
+     msg_type == MSG_TYPE_SAC || msg_type == MSG_TYPE_TTP)
 
 /// Whether the frame has to be delayed
 #define IS_DELAYED_FRAME(msg_type) \

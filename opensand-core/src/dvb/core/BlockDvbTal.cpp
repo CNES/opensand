@@ -2753,6 +2753,13 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 			if(this->state == state_running)
 			{
+				if(this->with_phy_layer && dvb_frame->getMessageType() == MSG_TYPE_TTP)
+				{
+					// get ACM parameters that will be transmited to GW in SAC
+					double cni = dvb_frame->getCn();
+					this->setRequiredCniInput(this->tal_id, cni);
+				}
+
 				if(!this->shareFrame(dvb_frame))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
