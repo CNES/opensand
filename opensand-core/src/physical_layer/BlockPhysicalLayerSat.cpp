@@ -165,15 +165,6 @@ bool BlockPhysicalLayerSat::Upward::onEvent(const RtEvent *const event)
 			{
 				return false;
 			}
-
-			// Send frame to upper layer
-			if(!this->enqueueMessage((void **)&dvb_frame))
-			{
-				LOG(this->log_send, LEVEL_ERROR, 
-				    "Failed to send burst of packets to upper layer");
-				delete dvb_frame;
-				return false;
-			}
 		}
 		break;
 		
