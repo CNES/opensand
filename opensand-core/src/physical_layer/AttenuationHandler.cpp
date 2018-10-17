@@ -135,6 +135,10 @@ bool AttenuationHandler::process(DvbFrame *dvb_frame, double cn_total)
 	double min_cn;
 	Data payload;
 
+	// Consider that the packet is not dropped  (if its dropped, the probe
+	// will be updated later), so that the probe emits a 0 value if necessary.
+	this->probe_drops->put(0);
+
 	// Get the MODCOD used to send DVB frame
 	// (keep the complete header because we carry useful data)
 	switch(dvb_frame->getMessageType())
