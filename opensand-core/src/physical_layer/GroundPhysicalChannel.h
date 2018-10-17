@@ -93,11 +93,11 @@ class GroundPhysicalChannel
 	/**
 	 * @brief Initialize the ground physical channel
 	 *
-	 * @param link    the link name
+	 * @param channel_name    the channel name
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool initGround(const string &link, RtChannel *channel, OutputLog *log_init);
+	bool initGround(const string &channel_name, RtChannel *channel, OutputLog *log_init);
 
 	/**
 	 * @brief Get the attenuation enabled status

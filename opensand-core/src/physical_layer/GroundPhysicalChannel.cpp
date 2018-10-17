@@ -71,7 +71,7 @@ void GroundPhysicalChannel::setSatDelay(SatDelayPlugin *satdelay)
 	this->satdelay_model = satdelay;
 }
 
-bool GroundPhysicalChannel::initGround(const string &link, RtChannel *channel, OutputLog *log_init)
+bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *channel, OutputLog *log_init)
 {
 	ostringstream name;
 	char probe_name[128];
@@ -79,8 +79,27 @@ bool GroundPhysicalChannel::initGround(const string &link, RtChannel *channel, O
 	vol_pkt_t max_size;
 	time_ms_t refresh_period_ms;
 	string attenuation_type;
-	string lc_link(link);
-	std::transform(lc_link.begin(), lc_link.end(), lc_link.begin(), ::tolower);
+	string phy_layer_section;
+	string link, lc_link;
+
+	if(channel_name.compare(UP) == 0)
+	{
+		link = DOWN;
+		lc_link = DOWN_LOWER_CASE;
+		phy_layer_section = DOWNLINK_PHYSICAL_LAYER_SECTION;
+	}
+	else if(channel_name.compare(DOWN) == 0)
+	{
+		link = UP;
+		lc_link = UP_LOWER_CASE;
+		phy_layer_section = UPLINK_PHYSICAL_LAYER_SECTION;
+	}
+	else
+	{
+		LOG(log_init, LEVEL_ERROR,
+		    "Invalid channel type specified");
+		return false;
+	}
 
 	// Sanity check
 	assert(this->satdelay_model != NULL);
@@ -113,7 +132,7 @@ bool GroundPhysicalChannel::initGround(const string &link, RtChannel *channel, O
 
 	// Initialize log
 	snprintf(probe_name, sizeof(probe_name),
-	         "PhysicalLayer.%sward.Event", link.c_str());
+	         "PhysicalLayer.%sward.Event", channel_name.c_str());
 	this->log_event = Output::registerLog(LEVEL_WARNING, probe_name);
 
 	// Check attenuation activation
@@ -144,13 +163,13 @@ bool GroundPhysicalChannel::initGround(const string &link, RtChannel *channel, O
 	    "attenuation_refresh_period = %d ms", refresh_period_ms);
 
 	// Get the clear sky condition
-	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
+	if(!Conf::getValue(Conf::section_map[phy_layer_section.c_str()],
 	                   CLEAR_SKY_CONDITION,
 	                   this->clear_sky_condition))
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'",
-		    DOWNLINK_PHYSICAL_LAYER_SECTION,
+		    phy_layer_section.c_str(),
 		    ATTENUATION_MODEL_TYPE);
 		return false;
 	}
@@ -158,13 +177,13 @@ bool GroundPhysicalChannel::initGround(const string &link, RtChannel *channel, O
 	    "clear_sky_conditions = %d dB", this->clear_sky_condition);
 
 	// Get the attenuation type
-	if(!Conf::getValue(Conf::section_map[DOWNLINK_PHYSICAL_LAYER_SECTION],
+	if(!Conf::getValue(Conf::section_map[phy_layer_section.c_str()],
 	                   ATTENUATION_MODEL_TYPE,
 	                   attenuation_type))
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'",
-		    DOWNLINK_PHYSICAL_LAYER_SECTION,
+		    phy_layer_section.c_str(),
 		    ATTENUATION_MODEL_TYPE);
 		return false;
 	}

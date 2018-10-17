@@ -142,7 +142,7 @@ BlockPhysicalLayer::Upward::~Upward()
 bool BlockPhysicalLayer::Upward::onInit()
 {
 	// Initialize parent class
-	if(!this->initGround("Up", this, this->log_init))
+	if(!this->initGround(UP, this, this->log_init))
 	{
 		return false;
 	}
@@ -337,7 +337,7 @@ BlockPhysicalLayer::Downward::Downward(const string &name, tal_id_t mac_id):
 bool BlockPhysicalLayer::Downward::onInit()
 {
 	// Initialize parent class
-	if(!this->initGround("Down", this, this->log_init))
+	if(!this->initGround(DOWN, this, this->log_init))
 	{
 		return false;
 	}
