@@ -182,7 +182,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			if(!OpenSandConf::isGw(this->mac_id) && dvb_frame->getMessageType() == MSG_TYPE_SAC)
 			{
 				LOG(this->log_event, LEVEL_DEBUG,
-				    "The SAC is deleted because the entity is a GW");
+				    "The SAC is deleted because the entity is not a GW");
 				delete dvb_frame;
 				return true;
 			}
