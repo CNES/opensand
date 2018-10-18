@@ -624,11 +624,12 @@ bool BlockDvbSatRegen::UpwardRegen::addSt(SatGw *current_gw,
 	return true;
 }
 
-bool BlockDvbSatRegen::UpwardRegen::handleCorrupted(DvbFrame *UNUSED(dvb_frame))
+bool BlockDvbSatRegen::UpwardRegen::handleCorrupted(DvbFrame *dvb_frame)
 {
-	// in regenerative case we need to handle the corrupted frame in order
-	// to get statistics
-	return false;
+	LOG(this->log_receive, LEVEL_INFO,
+	    "frame was corrupted by physical layer, drop it.");
+	delete dvb_frame;
+	return true;
 }
 
 
