@@ -126,6 +126,7 @@ error:
 BlockPhysicalLayer::Upward::Upward(const string &name, tal_id_t mac_id):
 	GroundPhysicalChannel(mac_id),
 	RtUpward(name),
+	probe_total_cn(NULL),
 	attenuation_hdl(NULL)
 {
 }
@@ -152,6 +153,9 @@ bool BlockPhysicalLayer::Upward::onInit()
 	{
 		return true;
 	}
+
+	// Initialize the total CN probe
+	this->probe_total_cn = Output::registerProbe<float>("Phy.Total_cn", "dB", true, SAMPLE_LAST);
 
 	// Initialize the attenuation handler
 	this->attenuation_hdl = new AttenuationHandler(this->log_channel);
@@ -303,6 +307,9 @@ bool BlockPhysicalLayer::Upward::forwardPacketWithAttenuation(DvbFrame *dvb_fram
 			delete dvb_frame;
 			return false;
 		}
+
+		// Update probe
+		this->probe_total_cn->put(dvb_frame->getCn());
 	}
 
 	// Send frame to upper layer

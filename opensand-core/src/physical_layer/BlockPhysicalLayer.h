@@ -67,6 +67,10 @@ class BlockPhysicalLayer: public Block
 	 */
 	class Upward: public GroundPhysicalChannel, public RtUpward
 	{
+	 private:
+		/// Probes
+		Probe<float> *probe_total_cn;
+
 	 protected:
 		/// The attenuation process
 		AttenuationHandler *attenuation_hdl;
