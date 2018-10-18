@@ -2633,9 +2633,10 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		{
 			if(this->state != state_running)
 			{
-				LOG(this->log_receive, LEVEL_WARNING,
+				LOG(this->log_receive, LEVEL_NOTICE,
 				    "Ignore received BBFrames while not logged\n");
-				return false;
+				delete dvb_frame;
+				return true;
 			}
 
 			NetBurst *burst = NULL;
