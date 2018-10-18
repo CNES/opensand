@@ -749,15 +749,19 @@ error:
 
 unsigned int ForwardSchedulingS2::getBBFrameSizeBytes(unsigned int modcod_id)
 {
-	// if there is no incomplete BB frame create a new one
-	size_t bbframe_size_bytes;
-	string coding_rate;
-
 	// get the payload size
-	coding_rate = this->fwd_modcod_def->getCodingRate(modcod_id);
-	bbframe_size_bytes = getPayloadSize(coding_rate);
-
-	return bbframe_size_bytes;
+	FmtDefinition *fmt_def = this->fwd_modcod_def->getDefinition(modcod_id);
+	if(fmt_def == NULL)
+	{
+		// TODO: remove default value. Calling methods should check that return
+		// value is OK.
+		size_t bbframe_size = getPayloadSize("");
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "could not find fmt definition with id %u, use bbframe size %u bytes",
+		    modcod_id, bbframe_size);
+		return bbframe_size;
+	}
+	return getPayloadSize(fmt_def->getCoding());
 }
 
 
