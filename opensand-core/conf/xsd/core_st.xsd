@@ -416,6 +416,7 @@
             <![CDATA[
             <b>\tSatellite delay configuration</b>
             ]]>
+            <xpath common.global_constant_delay="false" />
         </xsd:documentation>
     </xsd:annotation>
     <xsd:complexType>
@@ -433,7 +434,7 @@
                     <xsd:documentation xml:lang="en">
                         Satellite delay refresh period (ms)
                         <unit>ms</unit>
-                        <adv>true</adv>
+                        <xpath common.global_constant_delay="false" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
