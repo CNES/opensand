@@ -10,11 +10,11 @@ Description: Do you want to use the default configuration ?
 
 Template: opensand-daemon/service/type
 Type: string
-Default: _opensand._tcp
-Description: Service type
-  Select the type of service with format:
-    _name._transport_protocol
-  All the hosts from the same platform MUST have the same service type
+Description: Platform ID
+  Select the ID of the platform (leave empty by default). This name will be
+  used to form the zeroconf service type (_{platform_id}_opensand._tcp).
+  No spaces or special characters are admitted.
+  All the hosts from the same platform MUST have the same platform ID.
 
 Template: opensand-daemon/service/name
 Type: select
