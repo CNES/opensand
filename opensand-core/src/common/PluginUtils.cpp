@@ -389,12 +389,8 @@ bool PluginUtils::getLanAdaptationPlugin(string name,
 	return true;
 };
 
-bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
-                                          string min_pl_name,
-                                          string err_pl_name,
-                                          AttenuationModelPlugin **attenuation,
-                                          MinimalConditionPlugin **minimal,
-                                          ErrorInsertionPlugin **error)
+bool PluginUtils::getAttenuationPlugin(string att_pl_name,
+                                       AttenuationModelPlugin **attenuation)
 {
 	fn_create create;
 
@@ -419,6 +415,15 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 		this->plugins.push_back(*attenuation);
 	}
 
+	return true;
+};
+
+
+bool PluginUtils::getMinimalConditionPlugin(string min_pl_name,
+                                            MinimalConditionPlugin **minimal)
+{
+	fn_create create;
+
 	if(min_pl_name.size() > 0)
 	{
 		create = this->minimal[min_pl_name];
@@ -439,6 +444,15 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 		}
 		this->plugins.push_back(*minimal);
 	}
+
+	return true;
+};
+
+
+bool PluginUtils::getErrorInsertionPlugin(string err_pl_name,
+                                          ErrorInsertionPlugin **error)
+{
+	fn_create create;
 
 	if(err_pl_name.size() > 0)
 	{

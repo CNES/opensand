@@ -34,8 +34,6 @@
 
 #include "DelayFifo.h"
 
-#include <opensand_output/Output.h>
-
 #include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -47,8 +45,6 @@ DelayFifo::DelayFifo(vol_pkt_t max_size_pkt):
 	max_size_pkt(max_size_pkt),
 	fifo_mutex("delay_fifo_mutex")
 {
-	// Output log
-	this->log_delay_fifo = Output::registerLog(LEVEL_WARNING, "Delay.Fifo");
 }
 
 /**

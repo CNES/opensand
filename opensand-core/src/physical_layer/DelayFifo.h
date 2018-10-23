@@ -38,7 +38,6 @@
 #include "DelayFifoElement.h"
 
 #include <opensand_rt/RtMutex.h>
-#include <opensand_output/OutputLog.h>
 
 #include <vector>
 #include <map>
@@ -152,9 +151,6 @@ class DelayFifo
 	vol_pkt_t max_size_pkt;         ///< the maximum size for that FIFO
 
 	mutable RtMutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access
-
-	// Output log
-	OutputLog *log_delay_fifo;
 };
 
 #endif

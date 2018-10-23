@@ -222,7 +222,9 @@ int main(int argc, char **argv)
 	string lan_iface;
 	tal_id_t mac_id;
 	struct sc_specific specific;
-	
+
+	string satellite_type;
+
 	Block *block_lan_adaptation;
 	Block *block_encap;
 	Block *block_dvb;
@@ -288,6 +290,19 @@ int main(int argc, char **argv)
 	}
 	Output::setLevels(levels, spec_level);
 
+	// retrieve the type of satellite from configuration
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+		               SATELLITE_TYPE,
+	                   satellite_type))
+	{
+		DFLTLOG(LEVEL_CRITICAL,
+		        "section '%s': missing parameter '%s'\n",
+		        COMMON_SECTION, SATELLITE_TYPE);
+		goto quit;
+	}
+	DFLTLOG(LEVEL_NOTICE,
+	        "Satellite type = %s\n", satellite_type.c_str());
+
 	// load the plugins
 	if(!Plugin::loadPlugins(true, plugin_conf_path))
 	{
@@ -332,10 +347,21 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-																		BlockPhysicalLayer::Upward,
-																		BlockPhysicalLayer::Downward,
-																		tal_id_t>("PhysicalLayer", block_dvb, mac_id);
+	block_phy_layer = NULL;
+	if(strToSatType(satellite_type) == TRANSPARENT)
+	{
+		block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
+		                                  BlockPhysicalLayer::UpwardTransp,
+		                                  BlockPhysicalLayer::Downward,
+		                                  tal_id_t>("PhysicalLayer", block_dvb, mac_id);
+	}
+	else if(strToSatType(satellite_type) == REGENERATIVE)
+	{
+		block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
+		                                  BlockPhysicalLayer::UpwardRegen,
+		                                  BlockPhysicalLayer::Downward,
+		                                  tal_id_t>("PhysicalLayer", block_dvb, mac_id);
+	}
 	if(block_phy_layer == NULL)
 	{
 		DFLTLOG(LEVEL_CRITICAL,

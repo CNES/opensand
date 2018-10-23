@@ -559,21 +559,11 @@ bool SatGw::updateFmt(DvbFrame *dvb_frame,
 		{
 			Sac *sac = (Sac *)dvb_frame;
 			src_tal_id = sac->getTerminalId();
-			if(!src_tal_id)
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-						"unable to read source terminal ID in "
-						"frame, won't be able to update C/N "
-						"value\n");
-			}
-			else
-			{
-				cn = dvb_frame->getCn();
-				LOG(this->log_receive, LEVEL_INFO,
-						"Uplink CNI for terminal %u = %f\n",
-						src_tal_id, cn);
-				this->setRequiredCniInput(src_tal_id, cn);
-			}
+			cn = dvb_frame->getCn();
+			LOG(this->log_receive, LEVEL_INFO,
+					"Uplink CNI for terminal %u = %f\n",
+					src_tal_id, cn);
+			this->setRequiredCniInput(src_tal_id, cn);
 			break;
 		}
 		case MSG_TYPE_DVB_BURST:

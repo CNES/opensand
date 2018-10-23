@@ -185,7 +185,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 			name << "Channel_" << channel->getChannelID();
 			this->addNetSocketEvent(name.str(),
 			                        channel->getChannelFd(),
-			                        MSG_BBFRAME_SIZE_MAX);
+			                        MSG_BBFRAME_SIZE_MAX + 1); // consider byte used for sequencing
 		}
 	}
 	return true;

@@ -359,4 +359,8 @@
 // OTHERS  //
 ///////////// 
 #define ENCODE_CNI_EXT  "encodeCniExt"
+#define UP              "Up"
+#define DOWN            "Down"
+#define UP_LOWER_CASE   "up"
+#define DOWN_LOWER_CASE "down"
 #endif
