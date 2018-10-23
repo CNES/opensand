@@ -478,6 +478,7 @@ class ResourceView(WindowView):
                             nb_tal_scpc += 1
 
             expand_rate = gtk.Expander(label = (label_gr + label_st))
+            expand_rate.set_expanded(True)
             expand_rate.set_use_markup(True)
             carrier_rate = "";
             carrier_arithmetic = None

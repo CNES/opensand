@@ -71,6 +71,7 @@ CONF_PARSER = None
 INTERFACES = None
 
 DEFAULT_CACHE='/var/cache/sand-daemon'
+DEFAULT_SERVICE_TYPE='_opensand._tcp'
 PLATFORM_ID='OPENSAND_PLATFORM_ID'
 
 def sig_handler(signum, frame):
@@ -119,7 +120,8 @@ def publish_service(output_handler):
 
     # get configuration
     name = ''
-    service_type = '_opensand._tcp'
+    service_type = ''
+    platform_id = ''
     port = ''
     instance = ''
     tools = ''
@@ -128,7 +130,7 @@ def publish_service(output_handler):
         name = CONF_PARSER.get('service', 'name')
         port = CONF_PARSER.getint('service', 'port')
         if CONF_PARSER.has_option('service', 'type'):
-            service_type = CONF_PARSER.get('service', 'type')
+            platform_id = CONF_PARSER.get('service', 'type')
         # the port of each server
         state = CONF_PARSER.getint('state', 'port')
         command = CONF_PARSER.getint('command', 'port')
@@ -145,13 +147,11 @@ def publish_service(output_handler):
         LOGGER.error("unable to parse configuration file: " + str(error))
         thread.exit()
 
-    # export the service name
-    try:
-        platform_id = re.findall('_(.*)_opensand._tcp', service_type)[0]
-    except IndexError:
-        pass
-    else:
-        os.environ[PLATFORM_ID] = platform_id
+    os.environ[PLATFORM_ID] = platform_id
+    service_type = (
+            '_%s%s' % (platform_id, DEFAULT_SERVICE_TYPE) if platform_id
+            else DEFAULT_SERVICE_TYPE
+    )
 
     # get the interfaces data
     descr.update(INTERFACES.get_descr())
