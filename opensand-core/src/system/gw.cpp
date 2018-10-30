@@ -81,7 +81,6 @@
  */
 bool init_process(int argc, char **argv, 
 				  string &ip_addr,
-                  string &emu_iface, 
                   string &lan_iface,
                   string &conf_path,
                   tal_id_t &instance_id)
@@ -94,7 +93,7 @@ bool init_process(int argc, char **argv,
 	char entity[10];
 	string lib_external_output_path = "";
 	/* setting environment agent parameters */
-	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:n:l:c:e:")) != EOF)
+	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:c:e:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -114,10 +113,6 @@ bool init_process(int argc, char **argv,
 			// get local IP address
 			ip_addr = optarg;
 			break;
-		case 'n':
-			// get local interface name
-			emu_iface = optarg;
-			break;
 		case 'l':
 			// get lan interface name
 			lan_iface = optarg;
@@ -133,14 +128,13 @@ bool init_process(int argc, char **argv,
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id -a ip_address "
-				"-n emu_iface -l lan_iface -c conf_path -e lib_ext_output_path\n",
+				"-l lan_iface -c conf_path -e lib_ext_output_path\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                       print this message\n");
 			fprintf(stderr, "\t-q                       disable output\n");
 			fprintf(stderr, "\t-d                       enable output debug events\n");
 			fprintf(stderr, "\t-a <ip_address>          set the IP address for emulation\n");
-			fprintf(stderr, "\t-n <emu_iface>           set the emulation interface name\n");
-			fprintf(stderr, "\t-l <lan_iface>           set the ST lan interface name\n");
+			fprintf(stderr, "\t-l <lan_iface>           set the GW lan interface name\n");
 			fprintf(stderr, "\t-i <instance>            set the instance id\n");
 			fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
 			fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
@@ -189,13 +183,6 @@ bool init_process(int argc, char **argv,
 		return false;
 	}
 
-	if(emu_iface.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory emulation interface name option");
-		return false;
-	}
-
 	if(lan_iface.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -219,7 +206,6 @@ int main(int argc, char **argv)
 	struct sched_param param;
 	bool init_ok;
 	string ip_addr;
-	string emu_iface;
 	string lan_iface;
 	tal_id_t mac_id = 0;
 	struct sc_specific specific;
@@ -247,7 +233,7 @@ int main(int argc, char **argv)
 	int is_failure = 1;
 
 	// retrieve arguments on command line
-	init_ok = init_process(argc, argv, ip_addr, emu_iface, lan_iface, conf_path, mac_id);
+	init_ok = init_process(argc, argv, ip_addr, lan_iface, conf_path, mac_id);
 
 	plugin_conf_path = conf_path + string("plugins/");
 
@@ -370,7 +356,6 @@ int main(int argc, char **argv)
 	}
 
 	specific.ip_addr = ip_addr;
-	specific.emu_iface = emu_iface; // TODO emu_iface in struct
 	specific.tal_id = mac_id;
 	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
 	                                    BlockSatCarrier::Upward,

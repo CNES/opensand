@@ -73,10 +73,9 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, 
+bool init_process(int argc, char **argv,
                   string &lan_iface,
                   tal_id_t &instance_id,
-                  string &interconnect_iface,
                   string &interconnect_addr,
                   string &conf_path)
 {
@@ -89,7 +88,7 @@ bool init_process(int argc, char **argv,
 	char entity[10];
 	
 	/* setting environment agent parameters */
-	while(!stop && (opt = getopt(argc, argv, "-hqdi:l:u:w:c:e:")) != EOF)
+	while(!stop && (opt = getopt(argc, argv, "-hqdi:u:w:c:e:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -109,10 +108,6 @@ bool init_process(int argc, char **argv,
 			// get lan interface name
 			lan_iface = optarg;
 			break;
-		case 'u':
-			// Get the interconnect interface name
-			interconnect_iface = optarg;
-			break;
 		case 'w':
 			// Get the interconnect IP address
 			interconnect_addr = optarg;
@@ -128,14 +123,13 @@ bool init_process(int argc, char **argv,
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id "
-			        "-l lan_iface -u interconnect_iface -w interconnect_addr -c conf_path -e lib_ext_output_path\n",
+			        "-l lan_iface -w interconnect_addr -c conf_path -e lib_ext_output_path\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                       print this message\n");
 			fprintf(stderr, "\t-q                       disable output\n");
 			fprintf(stderr, "\t-d                       enable output debug events\n");
-			fprintf(stderr, "\t-l <lan_iface>           set the ST lan interface name\n");
+			fprintf(stderr, "\t-l <lan_iface>           set the GW lan interface name\n");
 			fprintf(stderr, "\t-i <instance>            set the instance id\n");
-			fprintf(stderr, "\t-u <interconnect_iface>  set the interconnect interface name\n");
 			fprintf(stderr, "\t-w <interconnect_addr>   set the interconnect IP address\n");
 			fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
 			fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
@@ -189,14 +183,6 @@ bool init_process(int argc, char **argv,
 		return false;
 	}
 	
-	if(interconnect_iface.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory interconnect interface option");
-		return false;
-	}
-	return true;
-	
 	if(interconnect_addr.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -213,7 +199,6 @@ int main(int argc, char **argv)
 	bool init_ok;
 	string lan_iface;
 	tal_id_t mac_id = 0;
-	string interconnect_iface;
 	string interconnect_addr;
 	struct ic_specific spec_ic;
 
@@ -238,7 +223,7 @@ int main(int argc, char **argv)
 
 	// retrieve arguments on command line
 	init_ok = init_process(argc, argv, lan_iface, mac_id,
-	                       interconnect_iface, interconnect_addr, conf_path);
+	                       interconnect_addr, conf_path);
 
 	plugin_conf_path = conf_path + string("plugins/");
 
@@ -324,7 +309,6 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	spec_ic.interconnect_iface = interconnect_iface;
 	spec_ic.interconnect_addr = interconnect_addr;
 
 	block_interconnect = Rt::createBlock<BlockInterconnectDownward,

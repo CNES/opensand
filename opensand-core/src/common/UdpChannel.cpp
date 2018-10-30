@@ -53,7 +53,6 @@
  * @param channelID           the Id of the new channel
  * @param input               true if the channel accept incoming data
  * @param output              true if channel send data
- * @param local_interface_name.c_str()  the name of the local network interface to use
  * @param port                the port on which the channel is bind
  * @param multicast           true is this is a multicast channel
  * @param local_ip_addr       the host IP address
@@ -70,7 +69,6 @@ UdpChannel::UdpChannel(string name,
                        unsigned int channel_id,
                        bool input,
                        bool output,
-                       const string local_interface_name,
                        unsigned short port,
                        bool multicast,
                        const string local_ip_addr,
@@ -88,7 +86,6 @@ UdpChannel::UdpChannel(string name,
 	stacked_ip(""),
 	max_stack(stack)
 {
-	int ifIndex;
 	struct ip_mreq imr;
 	unsigned char ttl = 1;
 	int one = 1;
@@ -119,17 +116,6 @@ UdpChannel::UdpChannel(string name,
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Error in reusing addr\n");
-		goto error;
-	}
-
-	// get the index of the network interface
-	ifIndex = this->getIfIndex(local_interface_name.c_str());
-
-	if(ifIndex < 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get the index for %s\n",
-		    local_interface_name.c_str());
 		goto error;
 	}
 
@@ -313,46 +299,6 @@ bool UdpChannel::isInputOk()
 bool UdpChannel::isOutputOk()
 {
 	return (m_output);
-}
-
-/**
- * Get the index of a network interface
- * @param name the name of the interface
- * @return the index of the interface if successful, -1 otherwise
- */
-int UdpChannel::getIfIndex(const char *name)
-{
-	int sock;
-	ifreq ifr;
-	int index = -1;
-
-	// open the network interface socket
-	sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-	if(sock < 0)
-	{
-		LOG(this->log_sat_carrier, LEVEL_ERROR,
-		    "cannot create an INET socket: "
-		    "(%s:%d)\n", strerror(errno), errno);
-		goto exit;
-	}
-
-	// get the network interface index
-	bzero(&ifr, sizeof(ifreq));
-	strncpy(ifr.ifr_name, name, sizeof(ifr.ifr_name) - 1);
-	if(ioctl(sock, SIOGIFINDEX, &ifr) < 0)
-	{
-		LOG(this->log_sat_carrier, LEVEL_ERROR,
-		    "cannot get the network interface "
-		    "index: %s (%d)\n", strerror(errno), errno);
-		goto close;
-	}
-
-	index = ifr.ifr_ifindex;
-
-close:
-	close(sock);
-exit:
-	return index;
 }
 
 /**

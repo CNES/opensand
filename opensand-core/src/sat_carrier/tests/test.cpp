@@ -51,7 +51,7 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
+bool init_process(int argc, char **argv, string &ip_addr)
 {
 	int opt;
 
@@ -64,17 +64,12 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 				/// get local IP address
 				ip_addr = optarg;
 				break;
-			case 'n':
-				// get local interface name
-				iface_name = optarg;
-				break;
 			case 'h':
 			case '?':
-				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address -n interface_name]\n",
+				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address]\n",
 					argv[0]);
 				fprintf(stderr, "\t-h              print this message\n");
 				fprintf(stderr, "\t-a <ip_address> set the IP address\n");
-				fprintf(stderr, "\t-n <interface_name>  set the interface name\n");
 
 				fprintf(stderr, "usage printed on stderr\n");
 				return false;
@@ -87,11 +82,6 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name)
 		return false;
 	}
 
-	if(iface_name.size() == 0)
-	{
-		fprintf(stderr, "missing mandatory interface name option");
-		return false;
-	}
 	return true;
 }
 
@@ -100,7 +90,6 @@ int main(int argc, char **argv)
 {
 	const char *progname = argv[0];
 	string ip_addr;
-	string emu_iface;
 
 	Block *block_sat_carrier;
 	vector<string> conf_files;
@@ -109,14 +98,13 @@ int main(int argc, char **argv)
 	struct sc_specific specific;
 
 	// retrieve arguments on command line
-	if(init_process(argc, argv, ip_addr, emu_iface) == false)
+	if(init_process(argc, argv, ip_addr) == false)
 	{
 		fprintf(stderr, "%s: failed to init the process\n", progname);
 		goto quit;
 	}
 
 	specific.ip_addr = ip_addr;
-	specific.emu_iface = emu_iface;
 
 	conf_files.push_back("test_topology.conf");
 	// Load configuration files content

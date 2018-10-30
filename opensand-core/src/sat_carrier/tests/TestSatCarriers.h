@@ -46,7 +46,6 @@ struct sc_specific
 {
 	tal_id_t tal_id;
 	string ip_addr;      ///< the IP address for emulation
-	string emu_iface;    ///< the name of the emulation interface
 };
 
 /**
@@ -71,8 +70,7 @@ class TestSatCarriers: public Block
 		Upward(const string &name, struct sc_specific specific):
 			RtUpward(name),
 			in_channel_set(specific.tal_id),
-			ip_addr(specific.ip_addr),
-			interface_name(specific.emu_iface)
+			ip_addr(specific.ip_addr)
 		{};
 
 
@@ -91,8 +89,6 @@ class TestSatCarriers: public Block
 		sat_carrier_channel_set in_channel_set;
 		/// the IP address for emulation newtork
 		string ip_addr;
-		/// the interface name for emulation newtork
-		string interface_name;
 	};
 
 	class Downward: public RtDownward
@@ -101,8 +97,7 @@ class TestSatCarriers: public Block
 		Downward(const string &name, struct sc_specific specific):
 			RtDownward(name),
 			out_channel_set(specific.tal_id),
-			ip_addr(specific.ip_addr),
-			interface_name(specific.emu_iface)
+			ip_addr(specific.ip_addr)
 		{};
 
 		bool onInit(void);
@@ -120,8 +115,6 @@ class TestSatCarriers: public Block
 		sat_carrier_channel_set out_channel_set;
 		/// the IP address for emulation newtork
 		string ip_addr;
-		/// the interface name for emulation newtork
-		string interface_name;
 		/// The tun output file descriptor
 		int fd;
 	};

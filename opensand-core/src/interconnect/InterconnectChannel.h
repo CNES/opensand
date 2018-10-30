@@ -59,9 +59,8 @@ typedef struct
 class InterconnectChannel
 {
  public:
-	InterconnectChannel(string name, string iface_name, string iface_addr):
+	InterconnectChannel(string name, string iface_addr):
 		name(name),
-		interconnect_iface(iface_name),
 		interconnect_addr(iface_addr),
 		data_channel(NULL),
 		sig_channel(NULL)
@@ -96,8 +95,6 @@ class InterconnectChannel
 	                             unsigned int wmem) = 0;
 	/// This blocks name
 	string name;
-	/// The interconnect interface name
-	string interconnect_iface;
 	/// The interconnect interface IP address
 	string interconnect_addr;
 	/// The data channel
@@ -111,8 +108,8 @@ class InterconnectChannel
 class InterconnectChannelSender: public InterconnectChannel
 {
  public:
-	InterconnectChannelSender(string name, string iface_name, string iface_addr):
-		InterconnectChannel(name, iface_name, iface_addr)
+	InterconnectChannelSender(string name, string iface_addr):
+		InterconnectChannel(name, iface_addr)
 	{
 	};
 
@@ -170,8 +167,8 @@ class InterconnectChannelSender: public InterconnectChannel
 class InterconnectChannelReceiver: public InterconnectChannel
 {
  public:
-	InterconnectChannelReceiver(string name, string iface_name, string iface_addr):
-		InterconnectChannel(name, iface_name, iface_addr)
+	InterconnectChannelReceiver(string name, string iface_addr):
+		InterconnectChannel(name, iface_addr)
 	{
 	};
 
