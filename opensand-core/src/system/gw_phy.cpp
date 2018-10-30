@@ -37,7 +37,7 @@
  *
  * <pre>
  *
- *                         : 
+ *                         :
  *                         :
  *              Block Interconnect Upward
  *                         |
@@ -69,7 +69,7 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, 
+bool init_process(int argc, char **argv,
                   string &ip_addr,
                   tal_id_t &instance_id,
                   string &interconnect_addr,
@@ -80,7 +80,7 @@ bool init_process(int argc, char **argv,
 	bool output_stdout = false;
 	bool stop = false;
 	string lib_external_output_path = "";
-	char entity[10];	
+	char entity[10];
 	/* setting environment agent parameters */
 	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:u:w:c:e:")) != EOF)
 	{
@@ -133,7 +133,7 @@ bool init_process(int argc, char **argv,
 	}
 
 	if(lib_external_output_path != "")
-	{   
+	{
 		sprintf(entity, "gw%d", instance_id);
 		// external output initialization
 		if(!Output::initExt(output_enabled, (const char *)entity, lib_external_output_path.c_str()))
@@ -145,7 +145,7 @@ bool init_process(int argc, char **argv,
 	else
 	{
 		// output initialization
-		if(!Output::init(output_enabled)) 
+		if(!Output::init(output_enabled))
 		{
 			stop = true;
 			fprintf(stderr, "Unable to initialize output library\n");
@@ -253,9 +253,9 @@ int main(int argc, char **argv)
 		        progname);
 		goto quit;
 	}
-	
+
 	OpenSandConf::loadConfig();
-	
+
 	// read all packages debug levels
 	if(!Conf::loadLevels(levels, spec_level))
 	{
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
 	Output::setLevels(levels, spec_level);
 
 	// retrieve the type of satellite from configuration
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 		               SATELLITE_TYPE,
 	                   satellite_type))
 	{

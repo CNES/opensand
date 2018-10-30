@@ -84,7 +84,7 @@ bool init_process(int argc, char **argv, string &ip_addr, string &conf_path)
 	bool output_stdout = false;
 	bool stop = false;
 	string lib_external_output_path = "";
-	char entity[10];	
+	char entity[10];
 	/* setting environment agent parameters */
 	while(!stop && (opt = getopt(argc, argv, "-hqda:c:e:")) != EOF)
 	{
@@ -138,7 +138,7 @@ bool init_process(int argc, char **argv, string &ip_addr, string &conf_path)
 	else
 	{
 		// output initialization
-		if(!Output::init(output_enabled)) 
+		if(!Output::init(output_enabled))
 		{
 			stop = true;
 			fprintf(stderr, "Unable to initialize output library\n");
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
 	OutputEvent *status;
 
 	int is_failure = 1;
-	
+
 	// retrieve arguments on command line
 	init_ok = init_process(argc, argv, ip_addr, conf_path);
 
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
 	Output::setLevels(levels, spec_level);
 
 	// retrieve the type of satellite from configuration
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 		               SATELLITE_TYPE,
 	                   satellite_type))
 	{
@@ -336,8 +336,7 @@ int main(int argc, char **argv)
 		        "%s: cannot create the SatCarrier block\n", progname);
 		goto release_plugins;
 	}
-	
-	
+
 	DFLTLOG(LEVEL_DEBUG,
 	        "All blocks are created, start\n");
 
@@ -348,7 +347,7 @@ int main(int argc, char **argv)
 	}
 	if(!Output::finishInit())
 	{
-		DFLTLOG(LEVEL_NOTICE, 
+		DFLTLOG(LEVEL_NOTICE,
 		        "%s: failed to init the output => disable it\n",
 		        progname);
 	}

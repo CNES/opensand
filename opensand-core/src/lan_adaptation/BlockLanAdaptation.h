@@ -51,6 +51,11 @@
 
 using std::string;
 
+struct la_specific
+{
+	string tuntap_iface;
+	string lan_iface;
+};
 
 /**
  * @class BlockLanAdaptation
@@ -60,7 +65,7 @@ class BlockLanAdaptation: public Block
 {
  public:
 
-	BlockLanAdaptation(const string &name, string lan_iface);
+	BlockLanAdaptation(const string &name, struct la_specific specific);
 	~BlockLanAdaptation();
 
 	// initialization method
@@ -69,7 +74,7 @@ class BlockLanAdaptation: public Block
 	class Upward: public RtUpward
 	{
 	 public:
-		Upward(const string &name, string UNUSED(lan_iface)):
+		Upward(const string &name, struct la_specific UNUSED(specific)):
 			RtUpward(name),
 			sarp_table(),
 			contexts(),
@@ -135,7 +140,7 @@ class BlockLanAdaptation: public Block
 	class Downward: public RtDownward
 	{
 	 public:
-		Downward(const string &name, string UNUSED(lan_iface)):
+		Downward(const string &name, struct la_specific UNUSED(specific)):
 			RtDownward(name),
 			stats_period_ms(),
 			contexts(),
@@ -190,6 +195,8 @@ class BlockLanAdaptation: public Block
 
  private:
 
+	/// The TUN/TAP interface name
+	string tuntap_iface;
 	/// The LAN interface name
 	string lan_iface;
 
@@ -217,8 +224,6 @@ class BlockLanAdaptation: public Block
 	 * return true on success, false otherwise
 	 */
 	bool delFromBridge();
-
-	bool tunConfiguration();
 };
 
 #endif

@@ -79,8 +79,9 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, 
+bool init_process(int argc, char **argv,
 				  string &ip_addr,
+				  string &tuntap_iface,
                   string &lan_iface,
                   string &conf_path,
                   tal_id_t &instance_id)
@@ -89,11 +90,11 @@ bool init_process(int argc, char **argv,
 	int opt;
 	bool output_enabled = true;
 	bool output_stdout = false;
-	bool stop = false; 
+	bool stop = false;
 	char entity[10];
 	string lib_external_output_path = "";
 	/* setting environment agent parameters */
-	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:c:e:")) != EOF)
+	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:t:l:c:e:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -113,6 +114,10 @@ bool init_process(int argc, char **argv,
 			// get local IP address
 			ip_addr = optarg;
 			break;
+		case 't':
+			// get TUN/TAP interface name
+			tuntap_iface = optarg;
+			break;
 		case 'l':
 			// get lan interface name
 			lan_iface = optarg;
@@ -128,12 +133,13 @@ bool init_process(int argc, char **argv,
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id -a ip_address "
-				"-l lan_iface -c conf_path -e lib_ext_output_path\n",
+				"-t tuntap_iface -l lan_iface -c conf_path -e lib_ext_output_path\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                       print this message\n");
 			fprintf(stderr, "\t-q                       disable output\n");
 			fprintf(stderr, "\t-d                       enable output debug events\n");
 			fprintf(stderr, "\t-a <ip_address>          set the IP address for emulation\n");
+			fprintf(stderr, "\t-t <tuntap_iface>        set the GW TUN/TAP interface name\n");
 			fprintf(stderr, "\t-l <lan_iface>           set the GW lan interface name\n");
 			fprintf(stderr, "\t-i <instance>            set the instance id\n");
 			fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
@@ -142,7 +148,7 @@ bool init_process(int argc, char **argv,
 			break;
 		}
 	}
-	
+
 	if(lib_external_output_path != "")
 	{
 		sprintf(entity, "gw%d", instance_id);
@@ -156,7 +162,7 @@ bool init_process(int argc, char **argv,
 	else
 	{
 		// output initialization
-		if(!Output::init(output_enabled)) 
+		if(!Output::init(output_enabled))
 		{
 			stop = true;
 			fprintf(stderr, "Unable to initialize output library\n");
@@ -183,6 +189,13 @@ bool init_process(int argc, char **argv,
 		return false;
 	}
 
+	if(tuntap_iface.size() == 0)
+	{
+		DFLTLOG(LEVEL_CRITICAL,
+		        "missing mandatory TUN/TAP interface name option");
+		return false;
+	}
+
 	if(lan_iface.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -206,9 +219,11 @@ int main(int argc, char **argv)
 	struct sched_param param;
 	bool init_ok;
 	string ip_addr;
+	string tuntap_iface;
 	string lan_iface;
 	tal_id_t mac_id = 0;
-	struct sc_specific specific;
+	struct la_specific laspecific;
+	struct sc_specific scspecific;
 
 	string satellite_type;
 
@@ -233,7 +248,7 @@ int main(int argc, char **argv)
 	int is_failure = 1;
 
 	// retrieve arguments on command line
-	init_ok = init_process(argc, argv, ip_addr, lan_iface, conf_path, mac_id);
+	init_ok = init_process(argc, argv, ip_addr, tuntap_iface, lan_iface, conf_path, mac_id);
 
 	plugin_conf_path = conf_path + string("plugins/");
 
@@ -264,9 +279,9 @@ int main(int argc, char **argv)
 		        progname);
 		goto quit;
 	}
-	
+
 	OpenSandConf::loadConfig();
-	
+
 	// read all packages debug levels
 	if(!Conf::loadLevels(levels, spec_level))
 	{
@@ -278,7 +293,7 @@ int main(int argc, char **argv)
 	Output::setLevels(levels, spec_level);
 
 	// retrieve the type of satellite from configuration
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 		               SATELLITE_TYPE,
 	                   satellite_type))
 	{
@@ -299,10 +314,12 @@ int main(int argc, char **argv)
 	}
 
 	// instantiate all blocs
+	laspecific.tuntap_iface = tuntap_iface;
+	laspecific.lan_iface = lan_iface;
 	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
 	                                       BlockLanAdaptation::Upward,
 	                                       BlockLanAdaptation::Downward,
-	                                       string>("LanAdaptation", NULL, lan_iface);
+	                                       struct la_specific>("LanAdaptation", NULL, laspecific);
 	if(!block_lan_adaptation)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -355,14 +372,14 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	specific.ip_addr = ip_addr;
-	specific.tal_id = mac_id;
+	scspecific.ip_addr = ip_addr;
+	scspecific.tal_id = mac_id;
 	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
 	                                    BlockSatCarrier::Upward,
 	                                    BlockSatCarrier::Downward,
 	                                    struct sc_specific>("SatCarrier",
 	                                                        block_phy_layer,
-	                                                        specific);
+	                                                        scspecific);
 	if(!block_sat_carrier)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
