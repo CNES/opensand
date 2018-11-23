@@ -76,14 +76,6 @@ class SpotUpwardRegen: public SpotUpward
 		 */
 		void handleFrameCni(DvbFrame *dvb_frame);
 		
-		/**
-		 * @brief  Add a new line in the MODCOD time series generator file
-		 *
-		 *  @return true on success, false otherwise
-		 */
-		bool updateSeriesGenerator(void);
-
-
 	protected:
 
 		/**

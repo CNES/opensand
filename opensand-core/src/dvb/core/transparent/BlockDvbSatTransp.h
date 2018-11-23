@@ -144,14 +144,6 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 */
 		bool handleSaloha(DvbFrame *dvb_frame, 
 		                  SatGw *current_gw);
-
-		/**
-		 * @brief  Add a new line in the MODCOD time series generator file
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool updateSeriesGenerator(void);
-
 	};
 
 	class DownwardTransp: public Downward
@@ -188,15 +180,6 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 * @return true on success, false otherwise
 		 */ 
 		bool handleTimerEvent(SatGw *current_gw);
-		
-		/**
-		 * @ brief handle scenario event timer
-		 * This fonction is never called in Transparent mode
-		 *
-		 * @return true on success, false otherwise
-		 */ 
-		bool handleScenarioTimer(SatGw *current_gw);
-
 	};
 
 };

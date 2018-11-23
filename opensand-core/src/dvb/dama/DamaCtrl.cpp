@@ -48,7 +48,6 @@ using std::pair;
 DamaCtrl::DamaCtrl(spot_id_t spot):
 	is_parent_init(false),
 	terminals(), // TODO not very useful, they are stored in categories
-	with_phy_layer(false),
 	current_superframe_sf(0),
 	frame_duration_ms(0),
 	rbdc_timeout_sf(0),
@@ -115,7 +114,6 @@ DamaCtrl::~DamaCtrl()
 }
 
 bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
-                          bool with_phy_layer,
                           time_sf_t rbdc_timeout_sf,
                           rate_kbps_t fca_kbps,
                           TerminalCategories<TerminalCategoryDama> categories,
@@ -126,7 +124,6 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           bool simulated)
 {
 	this->frame_duration_ms = frame_duration_ms;
-	this->with_phy_layer = with_phy_layer;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 	this->fca_kbps = fca_kbps;
 	this->input_sts = input_sts;

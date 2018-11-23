@@ -75,7 +75,6 @@ class DamaCtrl
 	 * @brief  Initialize DAMA controller
 	 *
 	 * @param   frame_duration_ms       duration of the frame (in ms).
-	 * @param   with_phy_layer          Whether the physical layer is enabled or not
 	 * @param   rbdc_timeout_sf         RBDC timeout in superframe number.
 	 * @param   fca_kbps                The FCA maximum value (in kbits/s)
 	 * @param   categories              pointer to category list.
@@ -88,7 +87,6 @@ class DamaCtrl
 	 * @return  true on success, false otherwise.
 	 */
 	virtual bool initParent(time_ms_t frame_duration_ms,
-	                        bool with_phy_layer,
 	                        time_sf_t rbdc_timeout_sf,
 	                        rate_kbps_t fca_kbps,
 	                        TerminalCategories<TerminalCategoryDama> categories,
@@ -316,9 +314,6 @@ class DamaCtrl
 
 	/** List of registered terminals */
 	DamaTerminalList terminals;
-
-	/// Physical layer enable
-	bool with_phy_layer;
 
 	/** Current SuperFrame number */
 	time_sf_t current_superframe_sf;

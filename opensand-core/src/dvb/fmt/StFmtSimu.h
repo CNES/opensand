@@ -40,7 +40,6 @@
 #define ST_FMT_SIMU_H
 
 #include <OpenSandCore.h>
-#include <FmtSimulation.h>
 #include <FmtDefinitionTable.h>
 
 #include <opensand_rt/RtMutex.h>
@@ -236,14 +235,6 @@ class StFmtSimuList: public set<tal_id_t>
 	 * @return  true on succes, false otherwise
 	 */
 	bool delTerminal(tal_id_t st_id);
-
-	/**
-	 * @brief  update the modcod of all st in the list according
-	 *         to the simulation file
-	 *
-	 * @param fmt_simu  the fmt simulation
-	 */
-	void updateModcod(const FmtSimulation &fmt_simu);
 
 	/**
 	 * @brief Set the CNI of a terminal

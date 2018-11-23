@@ -44,7 +44,6 @@ class RandomSimulator: public RequestSimulator
 	RandomSimulator(spot_id_t spot_id,
 	                tal_id_t mac_id,
 	                sat_type_t sat_type,
-	                bool phy_layer,
 	                FILE** evt_file,
 	                ConfigurationList current_gw);
 	~RandomSimulator();

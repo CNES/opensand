@@ -41,7 +41,6 @@
 #include "Scheduling.h"
 #include "DvbRcsFrame.h"
 #include "TerminalCategoryDama.h"
-#include "FmtSimulation.h"
 #include "UnitConverter.h"
 
 #include <opensand_output/OutputLog.h>
