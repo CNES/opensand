@@ -965,6 +965,11 @@ void ForwardSchedulingS2::checkBBFrameSize(vector<CarriersGroupDama *>::iterator
 			    "Cannot determine the maximum BBFrame size for MODCOD %u\n", fmt_id);
 			continue;
 		}
+		if(size <= carrier_size_sym)
+		{
+			// Carrier size is lower than the max BBFrame size
+			continue;
+		}
 		if(vcm_carriers.size() > 1)
 		{
 			LOG(this->log_scheduling, LEVEL_WARNING,
