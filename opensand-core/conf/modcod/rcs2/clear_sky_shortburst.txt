@@ -1,2 +1,0 @@
-# timer (acm_period) tal0 (gw0) tal1 ..... default
-0 12 12 12 12 12 12
