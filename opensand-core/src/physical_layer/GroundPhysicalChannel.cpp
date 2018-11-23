@@ -75,7 +75,6 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 {
 	ostringstream name;
 	char probe_name[128];
-	bool attenuation_enabled = false;
 	vol_pkt_t max_size;
 	time_ms_t refresh_period_ms;
 	string attenuation_type;
@@ -134,19 +133,6 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 	snprintf(probe_name, sizeof(probe_name),
 	         "PhysicalLayer.%sward.Event", channel_name.c_str());
 	this->log_event = Output::registerLog(LEVEL_WARNING, probe_name);
-
-	// Check attenuation activation
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   ENABLE, attenuation_enabled))
-	{
-		LOG(log_init, LEVEL_ERROR,
-		    "Unable to check if physical layer is enabled");
-		return false;
-	}
-	if(!attenuation_enabled)
-	{
-		return true;
-	}
 
 	// Get the refresh period
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
@@ -223,21 +209,10 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 	return true;
 }
 
-bool GroundPhysicalChannel::isAttenuationEnabled() const
-{
-	return this->attenuation_model != NULL;
-}
-
 bool GroundPhysicalChannel::updateAttenuation()
 {
 	LOG(this->log_channel, LEVEL_DEBUG,
 		"Update attenuation");
-	if(this->attenuation_model == NULL)
-	{
-		LOG(this->log_channel, LEVEL_ERROR,
-		    "Attenuation update impossible: attenuation is disabled");
-		return false;
-	}
 
 	if(!this->attenuation_model->updateAttenuationModel())
 	{

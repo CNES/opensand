@@ -85,24 +85,6 @@ class BlockPhysicalLayer: public Block
 		bool forwardPacket(DvbFrame *dvb_frame);
 
 		/**
-		 * @brief Forward the frame to the next channel after attenuation application
-		 *
-		 * @param dvb_frame  the DVB frame to forward
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool forwardPacketWithoutAttenuation(DvbFrame *dvb_frame);
-
-		/**
-		 * @brief Forward the frame to the next channel
-		 *
-		 * @param dvb_frame  the DVB frame to forward
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool forwardPacketWithAttenuation(DvbFrame *dvb_frame);
-
-		/**
 		 * @brief Get the C/N fot the current DVB frame
 		 *
 		 * @param dvb_frame  the current DVB frame
@@ -248,20 +230,6 @@ class BlockPhysicalLayer: public Block
 		 * @param dvb_frame  the DVB frame to forward
 		 */
 		void preparePacket(DvbFrame *dvb_frame);
-
-		/**
-		 * @brief Prepare the frame applying attenuation application
-		 *
-		 * @param dvb_frame  the DVB frame to forward
-		 */
-		void preparePacketWithAttenuation(DvbFrame *dvb_frame);
-
-		/**
-		 * @brief Prepare the frame applying no attenuation application
-		 *
-		 * @param dvb_frame  the DVB frame to forward
-		 */
-		void preparePacketWithoutAttenuation(DvbFrame *UNUSED(dvb_frame));
 
 	 public:
 		/**

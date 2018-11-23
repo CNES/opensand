@@ -148,12 +148,6 @@ bool BlockPhysicalLayer::Upward::onInit()
 		return false;
 	}
 
-	// Check attenuation is enabled
-	if(!this->isAttenuationEnabled())
-	{
-		return true;
-	}
-
 	// Initialize the total CN probe
 	this->probe_total_cn = Output::registerProbe<float>("Phy.Total_cn", "dB", true, SAMPLE_LAST);
 
@@ -260,39 +254,6 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 }
 
 bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
-{
-	// Forward packet
-	if(this->attenuation_hdl)
-	{
-		if(!this->forwardPacketWithAttenuation(dvb_frame))
-		{
-			return false;
-		}
-	}
-	else
-	{
-		if(!this->forwardPacketWithoutAttenuation(dvb_frame))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-bool BlockPhysicalLayer::Upward::forwardPacketWithoutAttenuation(DvbFrame *dvb_frame)
-{
-	// Send frame to upper layer
-	if(!this->enqueueMessage((void **)&dvb_frame))
-	{
-		LOG(this->log_send, LEVEL_ERROR, 
-		    "Failed to send burst of packets to upper layer");
-		delete dvb_frame;
-		return false;
-	}
-	return true;
-}
-
-bool BlockPhysicalLayer::Upward::forwardPacketWithAttenuation(DvbFrame *dvb_frame)
 {
 	if(IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
 	{
@@ -455,18 +416,6 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 
 void BlockPhysicalLayer::Downward::preparePacket(DvbFrame *dvb_frame)
 {
-	if(this->isAttenuationEnabled())
-	{
-		this->preparePacketWithAttenuation(dvb_frame);
-	}
-	else
-	{
-		this->preparePacketWithoutAttenuation(dvb_frame);
-	}
-}
-
-void BlockPhysicalLayer::Downward::preparePacketWithAttenuation(DvbFrame *dvb_frame)
-{
 	if(!IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
 	{
 		return;
@@ -475,11 +424,6 @@ void BlockPhysicalLayer::Downward::preparePacketWithAttenuation(DvbFrame *dvb_fr
 	LOG(this->log_event, LEVEL_DEBUG,
 	    "Set C/N to the DVB frame");
 	dvb_frame->setCn(this->getCurrentCn());
-}
-
-void BlockPhysicalLayer::Downward::preparePacketWithoutAttenuation(DvbFrame *UNUSED(dvb_frame))
-{
-	// Nothing to do
 }
 
 bool BlockPhysicalLayer::Downward::updateDelay()

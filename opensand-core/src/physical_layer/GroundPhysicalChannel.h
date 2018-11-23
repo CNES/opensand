@@ -100,13 +100,6 @@ class GroundPhysicalChannel
 	bool initGround(const string &channel_name, RtChannel *channel, OutputLog *log_init);
 
 	/**
-	 * @brief Get the attenuation enabled status
-	 *
-	 * @return true if enabled, false else
-	 */
-	bool isAttenuationEnabled() const;
-
-	/**
 	 * @brief Update the attenuation
 	 *
 	 * @return true on success, false otherwise
