@@ -37,5 +37,5 @@ setup(
                   ('share/opensand/manager/images', img_files),
                   ('share/pixmaps/', icon_files), 
                   ],
-    scripts=['sand-manager','sand-server']
+    scripts=['sand-manager', 'sand-server', 'modcod2attenuation']
 )
