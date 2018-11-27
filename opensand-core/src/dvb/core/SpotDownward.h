@@ -133,15 +133,6 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	bool handleSac(const DvbFrame *dvb_frame);
 
 	/**
-	 * @brief go to fmt simu next scenario
-	 *
-	 * @param next_step  time of the next step
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool goNextScenarioStep(double &next_step);
-
-	/**
 	 * @brief update FMT in DAMA controller
 	 */
 	void updateFmt(void);

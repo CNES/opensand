@@ -47,7 +47,6 @@
 #include "DvbFrame.h"
 #include "OpenSandFrames.h"
 #include "MacFifoElement.h"
-#include "FmtSimulation.h"
 
 using std::string;
 

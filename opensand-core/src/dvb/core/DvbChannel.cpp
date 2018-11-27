@@ -345,22 +345,6 @@ bool DvbChannel::doSendStats(void)
 
 /***** DvbFmt ****/
 
-
-bool DvbFmt::initFmt(void)
-{
-	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   ENABLE, this->with_phy_layer))
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    PHYSICAL_LAYER_SECTION, ENABLE);
-		return false;
-	}
-	return true;
-}
-
-
 bool DvbFmt::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def, vol_sym_t req_burst_length)
 {
 	string modcod_def_file;
@@ -393,107 +377,13 @@ bool DvbFmt::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def,
 	return true;
 }
 
-bool DvbFmt::initModcodSimuFile(const char *simu,
-                                tal_id_t gw_id, spot_id_t spot_id)
-{
-	return this->initModcodSimuFile(simu, this->fmt_simu, gw_id, spot_id);
-}
-
-bool DvbFmt::initModcodSimuFile(const char *simu,
-                                FmtSimulation &fmt_simu,
-                                tal_id_t gw_id,
-                                spot_id_t spot_id)
-{
-	string modcod_simu_file;
-	ConfigurationList current_gw;
-	time_ms_t acm_period_ms;
-	bool loop_on_simu_file;
-
-	if(this->with_phy_layer)
-	{
-		return true;
-	}
-
-	if(!OpenSandConf::getSpot(PHYSICAL_LAYER_SECTION,
-	                          spot_id, gw_id, current_gw))
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d and gw %d\n",
-		    PHYSICAL_LAYER_SECTION, spot_id, gw_id);
-		return false;
-	}
-
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   ACM_PERIOD_REFRESH,
-	                   acm_period_ms))
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		   "section '%s': missing parameter '%s'\n",
-		   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
-		return false;
-	}
-
-	LOG(this->log_fmt, LEVEL_NOTICE,
-	    "ACM period set to %d ms\n",
-	    acm_period_ms);
-
-	if(!Conf::getValue(current_gw, simu, modcod_simu_file))
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
-		    PHYSICAL_LAYER_SECTION, spot_id, gw_id, simu);
-		return false;
-	}
-
-	if(!Conf::getValue(current_gw, LOOP_ON_FILE,
-		               loop_on_simu_file))
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
-		    PHYSICAL_LAYER_SECTION, spot_id, gw_id, LOOP_ON_FILE);
-		return false;
-	}
-
-	LOG(this->log_fmt, LEVEL_NOTICE,
-	    "MODCOD simulation path set to %s\n",
-	    modcod_simu_file.c_str());
-
-	// set the MODCOD simulation file
-	if(!fmt_simu.setModcodSimu(modcod_simu_file,
-		                       acm_period_ms,
-		                       loop_on_simu_file))
-	{
-		return false;
-	}
-
-	return true;
-}
-
 bool DvbFmt::addInputTerminal(tal_id_t id,
                               const FmtDefinitionTable *const modcod_def)
 {
 	fmt_id_t modcod;
-	// the column is the id
-	tal_id_t column = id;
-
-	if(this->fmt_simu.getIsModcodSimuDefined() &&
-	   this->fmt_simu.getModcodList().size() <= column)
-	{
-		log_level_t lvl = LEVEL_WARNING;
-		if(id > BROADCAST_TAL_ID)
-		{
-			// no need to print warning for simulated terminals
-			lvl = LEVEL_NOTICE;
-		}
-		LOG(this->log_fmt, lvl,
-		    "cannot access MODCOD column for ST%u\n"
-		    "default MODCOD is used\n", id);
-		column = this->fmt_simu.getModcodList().size() - 1;
-	}
-	// if scenario are not defined, set less robust modcod at init
-	modcod = (this->fmt_simu.getIsModcodSimuDefined() ?
-	           atoi(this->fmt_simu.getModcodList()[column].c_str()) :
-	           modcod_def->getMaxId());
+	
+	// set less robust modcod at init
+	modcod = modcod_def->getMaxId();
 
 	this->input_sts->addTerminal(id, modcod, modcod_def);
 	return true;
@@ -524,19 +414,6 @@ bool DvbFmt::delInputTerminal(tal_id_t id)
 bool DvbFmt::delOutputTerminal(tal_id_t id)
 {
 	return this->delTerminal(id, this->output_sts);
-}
-
-
-bool DvbFmt::goNextScenarioStepInput(double &duration)
-{
-	if(!this->fmt_simu.goNextScenarioStep(duration))
-	{
-		return false;
-	}
-
-	this->input_sts->updateModcod(this->fmt_simu);
-
-	return true;
 }
 
 

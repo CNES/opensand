@@ -137,11 +137,6 @@ bool BlockDvbSatTransp::DownwardTransp::handleTimerEvent(SatGw *current_gw)
 	return true;
 }
 
-bool BlockDvbSatTransp::DownwardTransp::handleScenarioTimer(SatGw *UNUSED(current_gw))
-{
-	assert(0);
-}
-
 /*****************************************************************************/
 /*                               Upward                                      */
 /*****************************************************************************/
@@ -330,11 +325,5 @@ bool BlockDvbSatTransp::UpwardTransp::handleSaloha(DvbFrame *dvb_frame,
 		return false;
 	}
 
-	return true;
-}
-
-
-bool BlockDvbSatTransp::UpwardTransp::updateSeriesGenerator(void)
-{
 	return true;
 }

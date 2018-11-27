@@ -74,7 +74,6 @@ class DvbChannel
 		pkt_hdl(NULL),
 		stats_period_ms(),
 		stats_period_frame(),
-		modcod_timer(-1),
 		log_init_channel(NULL),
 		log_receive_channel(NULL),
 		log_send_channel(NULL),
@@ -301,9 +300,6 @@ class DvbChannel
 	/// The statistics period
 	time_ms_t stats_period_ms;
 	time_frame_t stats_period_frame;
-
-	/// timer used for ACM events
-	event_id_t modcod_timer;
 
 	// log
 	OutputLog *log_init_channel;
@@ -922,8 +918,6 @@ class DvbFmt
 {
  public:
 	DvbFmt():
-		with_phy_layer(false),
-		fmt_simu(),
 		input_sts(NULL),
 		s2_modcod_def(NULL),
 		output_sts(NULL),
@@ -945,18 +939,6 @@ class DvbFmt
 			delete this->rcs_modcod_def;
 		}
 	};
-
-
-	/**
-	 * @brief Go to next step in adaptive physical layer scenario
-	 *        Update current MODCODs IDs of all STs in the list input.
-	 *        (There is no goNextScenarioStepOutput because fmt_simu is
-	 *        only for the input)
-	 *
-	 * @param duration     the duration before the next_step
-	 * @return true on success, false otherwise
-	 */
-	bool goNextScenarioStepInput(double &duration);
 
 	/**
 	 * @brief setter of input_sts
@@ -1018,14 +1000,6 @@ class DvbFmt
 
  protected:
 
-
-	/**
-	 * @brief Initialize some elements
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initFmt(void);
-
 	/**
 	 * @brief Read configuration for the MODCOD definition file and create the
 	 *        FmtDefinitionTable class
@@ -1037,32 +1011,6 @@ class DvbFmt
 	 * @return  true on success, false otherwise
 	 */
 	bool initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def, vol_sym_t req_burst_length = 0);
-
-	/**
-	 * @brief Read configuration for the MODCOD simulation files
-	 *
-	 * @param simu    The section in configuration file for MODCOD simulation
-	 *                (up/return or down/forward)
-	 * @param gw_id   The id of the gateway
-	 * @param spot_id The id of the spot
-	 * @return  true on success, false otherwise
-	 */
-	bool initModcodSimuFile(const char *simu,
-	                        tal_id_t gw_id, spot_id_t spot_id);
-
-	/**
-	 * @brief Read configuration for link MODCOD simulation files
-	 *
-	 * @param simu        The section in configuration file for MODCOD simulation
-	 *                    (up/return or down/forward)
-	 * @param fmt_simu    The FMT simulation attribute to initialize
-	 * @param gw_id   The id of the gateway
-	 * @param spot_id The id of the spot
-	 * @return  true on success, false otherwise
-	 */
-	bool initModcodSimuFile(const char *simu,
-	                        FmtSimulation &fmt_simu,
-	                        tal_id_t gw_id, spot_id_t spot_id);
 
 	/**
 	 * @brief Add a new Satellite Terminal (ST) in the output list
@@ -1160,13 +1108,6 @@ class DvbFmt
 	                        string extension_name,
 	                        time_sf_t super_frame_counter,
 	                        bool is_gw);
-
-
-	/// Physical layer enable
-	bool with_phy_layer;
-
-	/// The MODCOD simulation elements
-	FmtSimulation fmt_simu;
 
 	/** The internal map that stores all the STs and modcod id for input */
 	StFmtSimuList *input_sts;

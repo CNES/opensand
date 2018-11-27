@@ -332,7 +332,6 @@ bool SpotDownwardRegen::initDama(void)
 	// output link standard than terminals and required modcod for
 	// terminals is received in SAC and added to output STs
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
-	                                this->with_phy_layer,
 	                                rbdc_timeout_sf,
 	                                fca_kbps,
 	                                dc_categories,

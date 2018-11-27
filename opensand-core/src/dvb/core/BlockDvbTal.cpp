@@ -165,7 +165,6 @@ BlockDvbTal::Downward::Downward(const string &name, tal_id_t mac_id):
 	scpc_carr_duration_ms(0),
 	scpc_timer(-1),
 	ret_fmt_groups(),
-	scpc_fmt_simu(),
 	scpc_sched(NULL),
 	scpc_frame_counter(0),
 	carrier_id_ctrl(),
@@ -244,13 +243,6 @@ bool BlockDvbTal::Downward::onInit(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to initialize MOCODS definitions types\n");
-		return false;
-	}
-
-	if(!this->initFmt())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the FMT part of the initialisation\n");
 		return false;
 	}
 
@@ -654,7 +646,7 @@ bool BlockDvbTal::Downward::initDama(void)
 		}
 	}
 
-	// init fmt_simu
+	// init
 	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
 	                            &this->rcs_modcod_def,
 	                            this->req_burst_length))
@@ -1143,17 +1135,6 @@ bool BlockDvbTal::Downward::initScpc(void)
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
 	ConfigurationList current_spot;
-
-	// init scpc_fmt_simu
-	// TODO: we take forward because we need S2
-	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
-	                             this->scpc_fmt_simu,
-	                             this->group_id, this->spot_id))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize the down/forward MODCOD files\n");
-		return false;
-	}
 
 	//  Duration of the carrier -- in ms
 	if(!Conf::getValue(Conf::section_map[SCPC_SECTION],
@@ -2373,42 +2354,6 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_timer:
-		{
-			if(*event == this->modcod_timer)
-			{
-				// it's time to update MODCOD IDs
-				LOG(this->log_receive, LEVEL_DEBUG,
-				    "MODCOD scenario timer received\n");
-
-				double duration;
-				if(!this->goNextScenarioStepInput(duration))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "SF#%u: failed to update MODCOD IDs\n",
-					    this->super_frame_counter);
-				}
-				else
-				{
-					LOG(this->log_receive, LEVEL_DEBUG,
-					    "SF#%u: MODCOD IDs successfully updated\n",
-					    this->super_frame_counter);
-				}
-				if(duration <= 0)
-				{
-					// we hare reach the end of the file (of it is malformed)
-					// so we keep the modcod as they are
-					this->removeEvent(this->modcod_timer);
-				}
-				else
-				{
-					this->setDuration(this->modcod_timer, duration);
-					this->startTimer(this->modcod_timer);
-				}
-			}
-		}
-		break;
-
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "SF#%u: unknown event received %s",
@@ -2465,13 +2410,6 @@ bool BlockDvbTal::Upward::onInit(void)
 		return false;
 	}
 
-	if(!this->initFmt())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the FMT part of the initialisation\n");
-		return false;
-	}
-
 	// get the common parameters
 	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
 	{
@@ -2503,19 +2441,6 @@ bool BlockDvbTal::Upward::onInit(void)
 		    "failed to complete the initialisation of output\n");
 		return false;
 	}
-
-	// Launch the timer in order to retrieve the modcods if there is no physical layer
-	// or to send SAC with ACM parameters in regenerative mode
-	if(!this->with_phy_layer || this->satellite_type == REGENERATIVE)
-	{
-		this->modcod_timer = this->addTimerEvent("scenario",
-		                                         5000, // the duration will be change when started
-		                                         false, // no rearm
-		                                         false // do not start
-		                                         );
-		this->raiseTimer(this->modcod_timer);
-	}
-
 
 	// we synchornize with SoF reception so use the return frame duration here
 	this->initStatsTimer(this->ret_up_frame_duration_ms);
@@ -2556,14 +2481,6 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 		return false;
 	}
 
-	if(!this->initModcodSimuFile(FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                             gw_id, this->spot_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the downlink MODCOD files\n");
-		return false;
-	}
-
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            &this->s2_modcod_def))
 	{
@@ -2583,27 +2500,12 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 		}
 	}
 
-	// initialize the MODCOD IDs
-	if(!this->fmt_simu.goFirstScenarioStep())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize MODCOD scheme IDs\n");
-		return false;
-	}
-
 	return true;
 }
 
 
 bool BlockDvbTal::Upward::initOutput(void)
 {
-	if(!this->with_phy_layer)
-	{
-		// maximum modcod if physical layer is enabled => not useful
-		this->probe_st_required_modcod = Output::registerProbe<int>("Down_Forward_modcod.Required_modcod",
-		                                                        "modcod index",
-		                                                        true, SAMPLE_LAST);
-	}
 	this->probe_st_received_modcod = Output::registerProbe<int>("Down_Forward_modcod.Received_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);
@@ -2642,12 +2544,9 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			NetBurst *burst = NULL;
 			DvbS2Std *std = (DvbS2Std *)this->reception_std;
 
-			if(this->with_phy_layer)
-			{
-				// get ACM parameters that will be transmited to GW in SAC
-				double cni = dvb_frame->getCn();
-				this->setRequiredCniInput(this->tal_id, cni);
-			}
+			// get ACM parameters that will be transmited to GW in SAC
+			double cni = dvb_frame->getCn();
+			this->setRequiredCniInput(this->tal_id, cni);
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_frame->getMessageLength();
@@ -2698,10 +2597,6 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			if(!corrupted)
 			{
 				// update MODCOD probes
-				if(!this->with_phy_layer)
-				{
-					this->probe_st_required_modcod->put(std->getRealModcod());
-				}
 				this->probe_st_received_modcod->put(std->getReceivedModcod());
 				this->probe_st_rejected_modcod->put(0);
 			}
@@ -2754,12 +2649,9 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 			if(this->state == state_running)
 			{
-				if(this->with_phy_layer && dvb_frame->getMessageType() == MSG_TYPE_TTP)
-				{
-					// get ACM parameters that will be transmited to GW in SAC
-					double cni = dvb_frame->getCn();
-					this->setRequiredCniInput(this->tal_id, cni);
-				}
+				// get ACM parameters that will be transmited to GW in SAC
+				double cni = dvb_frame->getCn();
+				this->setRequiredCniInput(this->tal_id, cni);
 
 				if(!this->shareFrame(dvb_frame))
 				{
@@ -2903,7 +2795,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	    " %u\n", this->super_frame_counter,
 	    this->group_id, this->tal_id);
 
-	// Add the st id in the fmt_simu
+	// Add the st id
 	if(!this->addInputTerminal(this->tal_id, this->s2_modcod_def))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,

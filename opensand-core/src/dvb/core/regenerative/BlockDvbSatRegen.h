@@ -135,14 +135,6 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 */ 
 		bool handleSaloha(DvbFrame *dvb_frame, 
 		                  SatGw *current_gw);
-	
-		/**
-		 * @brief  Add a new line in the MODCOD time series generator file
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool updateSeriesGenerator(void);
-
 	};
 
 	// TODO move DvbFmt inheritance in SatGw
@@ -194,14 +186,6 @@ class BlockDvbSatRegen: public BlockDvbSat
 		 * @return true on success, false otherwise
 		 */ 
 		bool handleTimerEvent(SatGw *current_gw);
-		
-		/**
-		 * @ brief handle scenario event timer
-		 *
-		 * @return true on success, false otherwise
-		 */ 
-		bool handleScenarioTimer(SatGw *current_gw);
-		
 	};
 
 };

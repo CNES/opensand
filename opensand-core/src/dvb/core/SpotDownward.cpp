@@ -164,13 +164,6 @@ SpotDownward::~SpotDownward()
 
 bool SpotDownward::onInit(void)
 {
-	if(!this->initFmt())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the FMT part of the initialisation\n");
-		return false;
-	}
-
 	// Get the carrier Ids
 	if(!this->initCarrierIds())
 	{
@@ -465,7 +458,6 @@ bool SpotDownward::initRequestSimulation(void)
 		this->request_simu = new FileSimulator(this->spot_id,
 		                                       this->mac_id,
 		                                       this->satellite_type,
-		                                       this->with_phy_layer,
 		                                       &this->event_file,
 		                                       current_gw);
 	}
@@ -475,7 +467,6 @@ bool SpotDownward::initRequestSimulation(void)
 		this->request_simu = new RandomSimulator(this->spot_id,
 		                                         this->mac_id,
 		                                         this->satellite_type,
-		                                         this->with_phy_layer,
 		                                         &this->event_file,
 		                                         current_gw);
 	}

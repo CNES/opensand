@@ -40,7 +40,6 @@
 #include "Scheduling.h"
 
 #include "BBFrame.h"
-#include "FmtSimulation.h"
 #include "TerminalCategoryDama.h"
 
 

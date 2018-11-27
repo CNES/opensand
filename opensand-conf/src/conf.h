@@ -243,22 +243,15 @@
 #define DOWNLINK_PHYSICAL_LAYER_SECTION  "downlink_physical_layer"
 #define PHYSICAL_LAYER_SECTION           "physical_layer"
 #define SAT_PHYSICAL_LAYER_SECTION       "sat_physical_layer"
-#define ENABLE                    "enable"
-#define MODEL_LIST                "models"
 #define ATTENUATION_MODEL_TYPE    "attenuation_model_type"
 #define MINIMAL_CONDITION_TYPE    "minimal_condition_type"
 #define ERROR_INSERTION_TYPE      "error_insertion_type"
 #define CLEAR_SKY_CONDITION       "clear_sky_condition"
 #define MODCOD_DEF_S2                     "modcod_def_s2"
-#define FORWARD_DOWN_MODCOD_TIME_SERIES   "forward_down_modcod_time_series"
 #define MODCOD_DEF_RCS                    "modcod_def_rcs"
 #define MODCOD_DEF_RCS2                   "modcod_def_rcs2"
-#define RETURN_UP_MODCOD_TIME_SERIES      "return_up_modcod_time_series"
-#define LOOP_ON_FILE                      "loop_on_file"
 #define RETURN_UP_ACM_LOOP_MARGIN         "return_up_acm_loop_margin"
 #define FORWARD_DOWN_ACM_LOOP_MARGIN      "forward_down_acm_loop_margin"
-
-#define GENERATE_TIME_SERIES_PATH         "generate_time_series_path"
 
 #define ACM_PERIOD_REFRESH        "acm_period_refresh"
 

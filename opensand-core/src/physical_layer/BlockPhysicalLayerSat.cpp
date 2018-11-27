@@ -65,39 +65,6 @@ BlockPhysicalLayerSat::Upward::~Upward()
 
 bool BlockPhysicalLayerSat::Upward::forwardPacket(DvbFrame *dvb_frame)
 {
-	// Forward packet
-	if(this->attenuation_hdl)
-	{
-		if(!this->forwardPacketWithAttenuation(dvb_frame))
-		{
-			return false;
-		}
-	}
-	else
-	{
-		if(!this->forwardPacketWithoutAttenuation(dvb_frame))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-bool BlockPhysicalLayerSat::Upward::forwardPacketWithoutAttenuation(DvbFrame *dvb_frame)
-{
-	// Send frame to upper layer
-	if(!this->enqueueMessage((void **)&dvb_frame))
-	{
-		LOG(this->log_send, LEVEL_ERROR, 
-		    "Failed to send burst of packets to upper layer");
-		delete dvb_frame;
-		return false;
-	}
-	return true;
-}
-
-bool BlockPhysicalLayerSat::Upward::forwardPacketWithAttenuation(DvbFrame *dvb_frame)
-{
 	if(IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
 	{
 		// Process Attenuation
@@ -123,32 +90,16 @@ bool BlockPhysicalLayerSat::Upward::forwardPacketWithAttenuation(DvbFrame *dvb_f
 
 bool BlockPhysicalLayerSat::Upward::onInit()
 {
-	bool attenuation_enabled = true;
-
-	// Check attenuation activation
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   ENABLE, attenuation_enabled))
-	{
-		LOG(log_init, LEVEL_ERROR,
-		    "Unable to check if physical layer is enabled");
-		return false;
-	}
-	if(!attenuation_enabled)
-	{
-		return true;
-	}
-
 	// Initialize the attenuation handler
 	this->attenuation_hdl = new AttenuationHandler(this->log_channel);
-  if(!this->attenuation_hdl->initialize(SAT_PHYSICAL_LAYER_SECTION,
-                                        this->log_init))
-  {
-    LOG(this->log_init, LEVEL_ERROR,
-        "Unable to initialize Attenuation Handler");
-    return false;
-  }
+	if(!this->attenuation_hdl->initialize(SAT_PHYSICAL_LAYER_SECTION,
+	                                      this->log_init))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Unable to initialize Attenuation Handler");
+		return false;
+	}
 
-	//TODO: set the function pointer to 'forwardPacketWithAttenuation'
 	return true;
 }
 

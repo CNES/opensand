@@ -83,24 +83,6 @@ class BlockPhysicalLayerSat: public Block
 		 */
 		bool forwardPacket(DvbFrame *dvb_frame);
 
-		/**
-		 * @brief Forward the frame to the next channel after attenuation application
-		 *
-		 * @param dvb_frame  the DVB frame to forward
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool forwardPacketWithoutAttenuation(DvbFrame *dvb_frame);
-
-		/**
-		 * @brief Forward the frame to the next channel
-		 *
-		 * @param dvb_frame  the DVB frame to forward
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool forwardPacketWithAttenuation(DvbFrame *dvb_frame);
-
 	 public:
 		/**
 		 * @brief Constructor of the ground upward physical channel

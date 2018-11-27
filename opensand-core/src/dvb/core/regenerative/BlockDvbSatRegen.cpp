@@ -208,22 +208,6 @@ bool BlockDvbSatRegen::DownwardRegen::initTimers(void)
 	// create frame timer (also used to send packets waiting in fifo)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                       this->fwd_down_frame_duration_ms);
-
-	// TODO why not scenario timer on up ?
-	sat_gws_t::iterator it_gw;
-	for(it_gw = this->gws.begin(); it_gw != this->gws.end(); ++it_gw)
-	{
-		SatGw *gw = it_gw->second;
-		// launch the timer in order to retrieve the modcods
-		event_id_t scenario_timer = this->addTimerEvent("dvb_scenario_timer",
-		                                                5000, // the duration will be change when started
-		                                                false, // no rearm
-		                                                false // do not start
-		                                                );
-		gw->initScenarioTimer(scenario_timer);
-		this->raiseTimer(gw->getScenarioTimer());
-	}
-
 	return true;
 }
 
@@ -404,38 +388,6 @@ bool BlockDvbSatRegen::DownwardRegen::handleTimerEvent(SatGw *current_gw)
 	return true;
 }
 
-bool BlockDvbSatRegen::DownwardRegen::handleScenarioTimer(SatGw *current_gw)
-{
-	LOG(this->log_receive, LEVEL_DEBUG,
-	    "MODCOD scenario timer expired, update MODCOD table\n");
-	
-	double duration;
-	event_id_t scenario_timer = current_gw->getScenarioTimer();
-
-	if(!current_gw->goNextScenarioStepInput(duration))
-	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "failed to update MODCOD IDs\n");
-		return false;
-	}
-
-	if(duration <= 0)
-	{
-		// we hare reach the end of the file (of it is malformed)
-		// so we keep the modcod as they are
-		this->removeEvent(scenario_timer);
-	}
-	else
-	{
-		this->setDuration(scenario_timer, duration);
-		this->startTimer(scenario_timer);
-	}
-
-	return true;
-}
-
-
-
 /*****************************************************************************/
 /*                               Upward                                      */
 /*****************************************************************************/
@@ -459,41 +411,6 @@ bool BlockDvbSatRegen::UpwardRegen::onInit()
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the initialisation\n");
 		return false;
-	}
-
-	if(this->with_phy_layer)
-	{
-		string generate;
-		time_ms_t acm_period_ms;
-
-		// Check whether we generate the time series
-		if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		                   GENERATE_TIME_SERIES_PATH, generate))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "Section %s, %s missing\n",
-			    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
-			return false;
-		}
-		if(generate != "none")
-		{
-			if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-			                   ACM_PERIOD_REFRESH,
-			                   acm_period_ms))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				   "section '%s': missing parameter '%s'\n",
-				   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
-				return false;
-			}
-
-			LOG(this->log_init, LEVEL_NOTICE,
-			    "ACM period set to %d ms\n",
-			    acm_period_ms);
-
-			this->modcod_timer = this->addTimerEvent("generate_time_series",
-			                                         acm_period_ms);
-		}
 	}
 
 	// load the modcod files (regenerative satellite only)
@@ -703,20 +620,4 @@ bool BlockDvbSatRegen::UpwardRegen::handleSaloha(DvbFrame *UNUSED(dvb_frame),
                                                  SatGw *UNUSED(current_gw))
 {
 	assert(0);
-}
-
-bool BlockDvbSatRegen::UpwardRegen::updateSeriesGenerator(void)
-{
-	sat_gws_t::iterator it_gw;
-	for(it_gw = this->gws.begin(); it_gw != this->gws.end(); ++it_gw)
-	{
-		SatGw *gw = it_gw->second;
-		if(!gw->updateSeriesGenerator())
-		{
-			LOG(this->log_receive_channel, LEVEL_ERROR,
-			    "Failed to update series generator\n");
-			return false;
-		}
-	}
-	return true;
 }

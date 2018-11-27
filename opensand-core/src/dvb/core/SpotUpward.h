@@ -108,16 +108,6 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		// statistics update
 		void updateStats(void);
 
-		void setModcodTimer(event_id_t new_modcod_timer);
-		event_id_t getModcodTimer(void);
-
-		/**
-		 * @brief  Add a new line in the MODCOD time series generator file
-		 *
-		 *  @return true on success, false otherwise
-		 */
-		virtual bool updateSeriesGenerator(void) = 0;
-
 		/**
 		 * @brief  handle a SAC frame
 		 *

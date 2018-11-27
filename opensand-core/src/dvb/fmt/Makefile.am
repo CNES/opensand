@@ -5,18 +5,14 @@ libopensand_dvb_fmt_la_cpp = \
 	CodingTypes.cpp \
 	FmtDefinition.cpp \
 	FmtDefinitionTable.cpp \
-	StFmtSimu.cpp \
-	FmtSimulation.cpp \
-	TimeSeriesGenerator.cpp
+	StFmtSimu.cpp
 
 libopensand_dvb_fmt_la_h = \
 	ModulationTypes.h \
 	CodingTypes.h \
 	FmtDefinition.h \
 	FmtDefinitionTable.h \
-	StFmtSimu.h \
-	FmtSimulation.h \
-	TimeSeriesGenerator.h
+	StFmtSimu.h
 
 libopensand_dvb_fmt_la_SOURCES = \
 	$(libopensand_dvb_fmt_la_cpp) \

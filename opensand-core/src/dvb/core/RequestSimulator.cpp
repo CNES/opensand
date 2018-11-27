@@ -41,11 +41,9 @@
 RequestSimulator::RequestSimulator(spot_id_t spot_id,
                                    tal_id_t mac_id,
                                    sat_type_t sat_type,
-                                   bool phy_layer,
 	                               FILE** evt_file,
                                    ConfigurationList current_gw):
 	satellite_type(sat_type),
-	with_phy_layer(phy_layer),
 	spot_id(spot_id),
 	mac_id(mac_id),
 	dvb_fifos(),
@@ -108,15 +106,6 @@ bool RequestSimulator::initRequestSimulation(ConfigurationList current_gw)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot load parameter %s from section %s\n",
 		    DVB_EVENT_FILE, DVB_NCC_SECTION);
-		return false;
-	}
-
-	if(evt_type != "none" 
-		&& this->with_phy_layer)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot use simulated request with physical layer "
-		    "because we need to add cni parameters in SAC (TBD!)\n");
 		return false;
 	}
 

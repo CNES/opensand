@@ -392,7 +392,6 @@ bool SpotDownwardTransp::initDama(void)
 
 	// Initialize the DamaCtrl parent class
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
-	                                this->with_phy_layer,
 	                                rbdc_timeout_sf,
 	                                fca_kbps,
 	                                dc_categories,
