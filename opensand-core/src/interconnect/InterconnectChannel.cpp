@@ -202,7 +202,7 @@ int InterconnectChannelReceiver::receiveToBuffer(NetSocketEvent *const event,
 {
 	int ret = -1;
 	size_t length = 0;
-	*buf = nullptr;
+	*buf = NULL;
 
 	LOG(this->log_interconnect, LEVEL_DEBUG,
 	    "try to receive a packet from interconnect channel "
@@ -236,7 +236,7 @@ int InterconnectChannelReceiver::receiveToBuffer(NetSocketEvent *const event,
 	// If empty packet, return null pointer
 	else if(ret >= 0 && length == 0)
 	{
-		*buf = nullptr;
+		*buf = NULL;
 	}
 
 	return ret;
@@ -260,7 +260,7 @@ bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
 	// Start receiving messages
 	do
 	{
-		interconnect_msg_buffer_t *buf = nullptr;
+		interconnect_msg_buffer_t *buf = NULL;
 
 		ret = this->receiveToBuffer(event, &buf);
 		if(ret < 0)
@@ -345,7 +345,7 @@ void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
 	do
 	{
 		uint32_t dvb_frame_len;
-		DvbFrame *dvb_frame = nullptr;
+		DvbFrame *dvb_frame = NULL;
 
 		// Read the length of dvb_frame
 		memcpy(&dvb_frame_len, data + pos, sizeof(dvb_frame_len));

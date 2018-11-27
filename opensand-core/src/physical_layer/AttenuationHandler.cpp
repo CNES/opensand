@@ -69,7 +69,7 @@ bool AttenuationHandler::initialize(const string &link_section, OutputLog *log_i
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'",
-		    link_section,
+		    link_section.c_str(),
 		    MINIMAL_CONDITION_TYPE);
 		return false;
 	}
@@ -81,7 +81,8 @@ bool AttenuationHandler::initialize(const string &link_section, OutputLog *log_i
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'",
-		    link_section, ERROR_INSERTION_TYPE);
+		    link_section.c_str(),
+		    ERROR_INSERTION_TYPE);
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,

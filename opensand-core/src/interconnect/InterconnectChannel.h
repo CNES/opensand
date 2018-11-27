@@ -63,8 +63,8 @@ class InterconnectChannel
 		name(name),
 		interconnect_iface(iface_name),
 		interconnect_addr(iface_addr),
-		data_channel(nullptr),
-		sig_channel(nullptr)
+		data_channel(NULL),
+		sig_channel(NULL)
 	{
 		this->log_interconnect = Output::registerLog(LEVEL_WARNING, name);
 	};
