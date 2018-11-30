@@ -255,15 +255,13 @@ bool DamaCtrlRcs2::resetCarriersCapacity()
 		{
 			CarriersGroupDama *carriers = *carrier_it;
 			unsigned int carrier_id = carriers->getCarriersId();
-			vol_sym_t remaining_capacity_sym;
 			rate_symps_t remaining_capacity_symps;
 			rate_pktpf_t remaining_capacity_pktpf;
 
 			// we have several MODCOD for each carrier so we can't convert
 			// from bauds to kbits
-			remaining_capacity_sym = carriers->getTotalCapacity();
-			remaining_capacity_symps = this->converter->pfToPs(remaining_capacity_sym);
-			remaining_capacity_pktpf = this->converter->symToPkt(remaining_capacity_sym);
+			remaining_capacity_symps = carriers->getTotalCapacity();
+			remaining_capacity_pktpf = this->converter->symToPkt(remaining_capacity_symps);
 
 			// initialize remaining capacity with total capacity in
 			// packet per superframe as it is the unit used in DAMA computations
