@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
+ * Copyright © 2018 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
  * @file Plugin.h
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @author Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
+ * @author Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  * @brief  High level interface for opensand plugin utilities
  *
  */
@@ -87,21 +88,33 @@ class Plugin
 	                                   LanAdaptationPlugin **lan_adaptation);
 
 	/**
-	 * @brief get physical layer plugins
+	 * @brief get physical layer attenuation plugin
 	 *
 	 * @param att_pl_name  The name of the attenuation model plugin
-	 * @param min_pl_name  The name of the minimal condition plugin
-	 * @param err_pl_name  The name of the erroe insertion plugin
 	 * @param attenuation  The attenuation model plugin
+	 * @return true on success, false otherwise
+	 */
+	static bool getAttenuationPlugin(string att_pl_name,
+	                                 AttenuationModelPlugin **attenuation);
+
+	/**
+	 * @brief get physical layer minimal condition plugin
+	 *
+	 * @param min_pl_name  The name of the minimal condition plugin
 	 * @param minimal      The minimal condition plugin
+	 * @return true on success, false otherwise
+	 */
+	static bool getMinimalConditionPlugin(string min_pl_name,
+	                                      MinimalConditionPlugin **minimal);
+
+	/**
+	 * @brief get physical layer error insertion plugin
+	 *
+	 * @param err_pl_name  The name of the erroe insertion plugin
 	 * @param error        The error insertion plugin
 	 * @return true on success, false otherwise
 	 */
-	static bool getPhysicalLayerPlugins(string att_pl_name,
-	                                    string min_pl_name,
-	                                    string err_pl_name,
-	                                    AttenuationModelPlugin **attenuation,
-	                                    MinimalConditionPlugin **minimal,
+	static bool getErrorInsertionPlugin(string err_pl_name,
 	                                    ErrorInsertionPlugin **error);
 
 	/**

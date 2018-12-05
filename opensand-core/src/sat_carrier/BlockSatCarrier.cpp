@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -157,8 +157,8 @@ bool BlockSatCarrier::onInit(void)
 
 bool BlockSatCarrier::Upward::onInit(void)
 {
-	vector<sat_carrier_udp_channel *>::iterator it;
-	sat_carrier_udp_channel *channel;
+	vector<UdpChannel *>::iterator it;
+	UdpChannel *channel;
 
 	// initialize all channels from the configuration file
 	if(!this->in_channel_set.readInConfig(this->ip_addr,
@@ -185,7 +185,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 			name << "Channel_" << channel->getChannelID();
 			this->addNetSocketEvent(name.str(),
 			                        channel->getChannelFd(),
-			                        MSG_BBFRAME_SIZE_MAX);
+			                        MSG_BBFRAME_SIZE_MAX + 1); // consider byte used for sequencing
 		}
 	}
 	return true;

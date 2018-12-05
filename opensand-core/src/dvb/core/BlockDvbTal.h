@@ -398,9 +398,6 @@ class BlockDvbTal: public BlockDvb
 		/// FMT groups for up/return
 		fmt_groups_t ret_fmt_groups;
 
-		// The MODCOD simulation elements for up/return link for scpc
-		FmtSimulation scpc_fmt_simu;
-
 		/// The uplink of forward scheduling depending on satellite	
 		Scheduling *scpc_sched;
 

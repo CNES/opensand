@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
-# Copyright © 2017 CNES
+# Copyright © 2018 TAS
+# Copyright © 2018 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -141,33 +141,18 @@ class ConfEvent(ConfView) :
         widget2_att = self._ui.get_widget("repr_stack_sat_physical_layer_w_att")
         widget3 = self._ui.get_widget("repr_stack_gw_physical_layer")
         widget3_att = self._ui.get_widget("repr_stack_gw_physical_layer_w_att")
-        widget = self._ui.get_widget('enable_physical_layer')
-        if widget.get_active():
-            widget1.set_size_request(200, 40)
-            widget1_att.set_size_request(200, 40)
-            widget2.set_size_request(200, 40)
-            widget2_att.set_size_request(200, 40)
-            widget3.set_size_request(200, 40)
-            widget3_att.set_size_request(200, 40)
-            widget1_att.show_all()
-            widget2_att.show_all()
-            widget3_att.show_all()
-            widget1.hide_all()
-            widget2.hide_all()
-            widget3.hide_all()
-        else:
-            widget1.set_size_request(200, 40)
-            widget1_att.set_size_request(200, 40)
-            widget2.set_size_request(200, 40)
-            widget2_att.set_size_request(200, 40)
-            widget3.set_size_request(200, 40)
-            widget3_att.set_size_request(200, 40)
-            widget1_att.hide_all()
-            widget2_att.hide_all()
-            widget3_att.hide_all()
-            widget1.show_all()
-            widget2.show_all()
-            widget3.show_all()
+        widget1.set_size_request(200, 40)
+        widget1_att.set_size_request(200, 40)
+        widget2.set_size_request(200, 40)
+        widget2_att.set_size_request(200, 40)
+        widget3.set_size_request(200, 40)
+        widget3_att.set_size_request(200, 40)
+        widget1_att.show_all()
+        widget2_att.show_all()
+        widget3_att.show_all()
+        widget1.hide_all()
+        widget2.hide_all()
+        widget3.hide_all()
 
         self._drawing_area.queue_draw()
 
@@ -350,12 +335,6 @@ class ConfEvent(ConfView) :
         self.enable_conf_buttons()
 
 
-
-    def on_enable_physical_layer_toggled(self, source=None, event=None):
-        """ 'toggled' event on enable button """
-        self.enable_conf_buttons()
-
-
     def on_undo_conf_clicked(self, source=None, event=None):
         """ reload conf from the ini file """
         try:
@@ -486,13 +465,6 @@ class ConfEvent(ConfView) :
 
         # update carriers access type
         self._update_carriers_cb(True)
-
-        # enable physical layer
-        widget = self._ui.get_widget('enable_physical_layer')
-        if widget.get_active():
-            config.set_enable_physical_layer("true")
-        else:
-            config.set_enable_physical_layer("false")
 
         try:
             #config.save()

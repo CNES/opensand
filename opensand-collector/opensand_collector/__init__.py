@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
+# Copyright © 2018 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 #
 
 # Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA  <jmuguerza@toulouse.viveris.com>
 
 
 """
@@ -50,6 +51,7 @@ import sys
 
 
 LOGGER = logging.getLogger('sand-collector')
+DEFAULT_SERVICE_TYPE = '_opensand._tcp'
 
 
 def fail(message, *args):
@@ -99,9 +101,9 @@ class OpenSandCollector(object):
         """
         parser = OptionParser()
         parser.set_defaults(debug=False, background=False, kill=False)
-        parser.add_option("-t", "--service_type", dest="service_type",
-                          default='_opensand._tcp', action="store",
-                          help="OpenSAND service type (default: _opensand._tcp)")
+        parser.add_option("-t", "--platform-id", dest="platform_id",
+                          default='', action="store",
+                          help="OpenSAND platform name")
         parser.add_option("-i", "--iface", dest="iface",
                           default='', action="store",
                           help="Interface for service publishing (default: all)")
@@ -123,10 +125,16 @@ class OpenSandCollector(object):
                           help="Kill a background collector instance")
         (options, _args) = parser.parse_args()
 
-        service_type = options.service_type
+        platform_id = options.platform_id
         iface = options.iface
         pid_path = options.pid
-        
+
+        # Service type
+        service_type = (
+                '_%s%s' % (platform_id, DEFAULT_SERVICE_TYPE) if platform_id
+                else DEFAULT_SERVICE_TYPE
+        )
+
         # Logging configuration
         if options.background or options.quiet:
             log_handler = SysLogHandler('sand-collector', syslog.LOG_PID,

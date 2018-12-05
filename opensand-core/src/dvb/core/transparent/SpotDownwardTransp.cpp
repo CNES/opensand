@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -392,7 +392,6 @@ bool SpotDownwardTransp::initDama(void)
 
 	// Initialize the DamaCtrl parent class
 	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
-	                                this->with_phy_layer,
 	                                rbdc_timeout_sf,
 	                                fca_kbps,
 	                                dc_categories,

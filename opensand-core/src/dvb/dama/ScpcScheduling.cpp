@@ -130,8 +130,6 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 		Probe<int> *remain_probe;
 		Probe<int> *avail_probe;
 		char probe_name[128];
-		unsigned int max_modcod = 0;
-		vol_sym_t max_bbframe_size_sym = 0;
 		vol_sym_t carrier_size_sym = carriers->getTotalCapacity() /
 		                             carriers->getCarriersNumber();
 		list<fmt_id_t> fmt_ids = carriers->getFmtIds();
@@ -149,27 +147,19 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 					"Cannot determine the maximum BBFrame size\n");
-				break;
+				continue;
 			}
-			if(size > max_bbframe_size_sym)
-			{
-				max_modcod = fmt_id;
-				max_bbframe_size_sym = size;
-			}
-		}
-		if(max_bbframe_size_sym > carrier_size_sym)
-		{
 			// send a warning message, this will work but this is not
 			// a good configuration
 			// if there is more than one carrier, this won't really
 			// be a problem but this won't be representative
 			LOG(this->log_scheduling, LEVEL_WARNING,
-			    "Category %s, Carriers group %u : the maximum "
-			    "BBFrame size (%u symbols with MODCOD ID %u) is greater "
-			    "than the carrier size %u\n",
+			    "Category %s, Carriers group %u : the BBFrame size "
+			    "with MODCOD %u (%u symbols) is greater than the carrier "
+			    "size %u. This MODCOD will not work.\n",
 			    this->category->getLabel().c_str(),
-			    carriers->getCarriersId(), max_bbframe_size_sym,
-			    max_modcod, carrier_size_sym);
+			    carriers->getCarriersId(), fmt_id,
+			    size, carrier_size_sym);
 		}
 
 		// For units, if there is only one MODCOD use Kbits/s else symbols
@@ -689,15 +679,19 @@ error:
 
 unsigned int ScpcScheduling::getBBFrameSizeBytes(fmt_id_t modcod_id)
 {
-	// if there is no incomplete BB frame create a new one
-	size_t bbframe_size_bytes;
-	string coding_rate;
-
 	// get the payload size
-	coding_rate = this->scpc_modcod_def->getCodingRate(modcod_id);
-	bbframe_size_bytes = getPayloadSize(coding_rate);
-
-	return bbframe_size_bytes;
+	FmtDefinition *fmt_def = this->scpc_modcod_def->getDefinition(modcod_id);
+	if(fmt_def == NULL)
+	{
+		// TODO: remove default value. Calling methods should check that return
+		// value is OK.
+		size_t bbframe_size = getPayloadSize("");
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "could not find fmt definition with id %u, use bbframe size %u bytes",
+				modcod_id, bbframe_size);
+		return bbframe_size;
+	}
+	return getPayloadSize(fmt_def->getCoding());
 }
 
 

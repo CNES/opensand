@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
+ * Copyright © 2018 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -68,8 +68,6 @@ SatGw::SatGw(tal_id_t gw_id,
 	l2_from_st_bytes(0),
 	l2_from_gw_bytes(0),
 	gw_mutex("GW"),
-	input_series(NULL),
-	output_series(NULL),
 	probe_sat_output_gw_queue_size(),
 	probe_sat_output_gw_queue_size_kb(),
 	probe_sat_output_st_queue_size(),
@@ -109,11 +107,6 @@ SatGw::~SatGw()
 	if(gw_scheduling)
 		delete this->gw_scheduling;
 
-	if(this->input_series)
-		delete this->input_series;
-	if(this->output_series)
-		delete this->output_series;
-
 	delete this->input_sts;
 	delete this->output_sts;
 
@@ -128,14 +121,6 @@ bool SatGw::init()
 	string sat_type;
 	string ret_lnk_std;
 	sat_type_t satellite_type;
-
-	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!this->initFmt())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize fmt\n");
-		return false;
-	}
 
 	// satellite type
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
@@ -173,13 +158,6 @@ bool SatGw::init()
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to initialize ACM loop margins\n");
-			return false;
-		}
-
-		if(!this->initSeriesGenerator())
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to initialize series generator\n");
 			return false;
 		}
 	}
@@ -262,14 +240,6 @@ bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
 		}
 	}
 
-	if(!this->initModcodSimuFile(RETURN_UP_MODCOD_TIME_SERIES,
-	                             this->gw_id, this->spot_id))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the modcod part of the "
-		    "initialisation\n");
-		return false;
-	}
 	if(!this->initModcodDefFile(def.c_str(),
 	                            &this->rcs_modcod_def,
 	                            length))
@@ -288,13 +258,6 @@ bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
 		return false;
 	}
 
-	if(!this->goFirstScenarioStep())
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to initialize downlink MODCOD IDs\n");
-		return false;
-	}
-
 	if(!this->addTerminal(this->gw_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -305,85 +268,6 @@ bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
 
 	return true;
 
-}
-
-void SatGw::initScenarioTimer(event_id_t sce_timer)
-{
-	if(!this->with_phy_layer)
-	{
-		this->scenario_timer = sce_timer;
-	}
-}
-
-bool SatGw::initSeriesGenerator(void)
-{
-	string generate;
-	ConfigurationList current_gw;
-	string input_file;
-	string output_file;
-	vector<string> path_split;
-
-	if(!this->with_phy_layer)
-	{
-		return true;
-	}
-
-	// Check whether we generate the time series
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   GENERATE_TIME_SERIES_PATH, generate))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
-		return false;
-	}
-	if(generate == "none")
-	{
-		return true;
-	}
-
-	// load the time series filenames
-	if(!OpenSandConf::getSpot(PHYSICAL_LAYER_SECTION,
-	                          this->spot_id, this->gw_id, current_gw))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d and gw %d\n",
-		    PHYSICAL_LAYER_SECTION, this->spot_id, this->gw_id);
-		return false;
-	}
-
-	if(!Conf::getValue(current_gw, RETURN_UP_MODCOD_TIME_SERIES,
-	                   input_file))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
-		    PHYSICAL_LAYER_SECTION, this->spot_id, this->gw_id,
-		    RETURN_UP_MODCOD_TIME_SERIES);
-		return false;
-	}
-
-	// extract the filename from path
-	tokenize(input_file, path_split, "/");
-	input_file = generate + "/" + path_split.back();
-
-	if(!Conf::getValue(current_gw, FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                   output_file))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s/spot_%d_gw_%d', missing section '%s'\n",
-		    PHYSICAL_LAYER_SECTION, this->spot_id, this->gw_id,
-		    FORWARD_DOWN_MODCOD_TIME_SERIES);
-		return false;
-	}
-
-	// extract the filename from path
-	tokenize(output_file, path_split, "/");
-	output_file = generate + "/" + path_split.back();
-
-	this->input_series = new TimeSeriesGenerator(input_file);
-	this->output_series = new TimeSeriesGenerator(output_file);
-
-	return true;
 }
 
 bool SatGw::initAcmLoopMargin(void)
@@ -550,30 +434,17 @@ bool SatGw::updateFmt(DvbFrame *dvb_frame,
 	double cn;
 	uint8_t msg_type = dvb_frame->getMessageType();
 
-	if(!this->with_phy_layer)
-		return true;
-
 	switch(msg_type)
 	{
 		case MSG_TYPE_SAC:
 		{
 			Sac *sac = (Sac *)dvb_frame;
 			src_tal_id = sac->getTerminalId();
-			if(!src_tal_id)
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-						"unable to read source terminal ID in "
-						"frame, won't be able to update C/N "
-						"value\n");
-			}
-			else
-			{
-				cn = dvb_frame->getCn();
-				LOG(this->log_receive, LEVEL_INFO,
-						"Uplink CNI for terminal %u = %f\n",
-						src_tal_id, cn);
-				this->setRequiredCniInput(src_tal_id, cn);
-			}
+			cn = dvb_frame->getCn();
+			LOG(this->log_receive, LEVEL_INFO,
+					"Uplink CNI for terminal %u = %f\n",
+					src_tal_id, cn);
+			this->setRequiredCniInput(src_tal_id, cn);
 			break;
 		}
 		case MSG_TYPE_DVB_BURST:
@@ -600,27 +471,6 @@ bool SatGw::updateFmt(DvbFrame *dvb_frame,
 		}
 		default:
 		break;
-	}
-	return true;
-}
-
-bool SatGw::updateSeriesGenerator(void)
-{
-	if(!this->input_series || !this->output_series)
-	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "Cannot update series\n");
-		return false;
-	}
-
-	if(!this->input_series->add(this->input_sts))
-	{
-		return false;
-	}
-
-	if(!this->output_series->add(this->output_sts))
-	{
-		return false;
 	}
 	return true;
 }
@@ -771,16 +621,6 @@ vol_bytes_t SatGw::getL2FromGw(void)
 	return val;
 }
 
-bool SatGw::goFirstScenarioStep()
-{
-	return this->fmt_simu.goFirstScenarioStep();
-}
-
-bool SatGw::goNextScenarioStep(double &duration)
-{
-	return this->fmt_simu.goNextScenarioStep(duration);
-}
-
 spot_id_t SatGw::getSpotId(void)
 {
 	return this->spot_id;
@@ -789,11 +629,6 @@ spot_id_t SatGw::getSpotId(void)
 FmtDefinitionTable* SatGw::getOutputModcodDef(void)
 {
 	return this->s2_modcod_def;
-}
-
-event_id_t SatGw::getScenarioTimer(void)
-{
-	return this->scenario_timer;
 }
 
 void SatGw::print(void)

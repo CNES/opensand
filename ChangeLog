@@ -1,3 +1,11 @@
+2018-12-05 opensand-5.1.0
+
+   * Release 5.1.0
+   * Improve interconnection between access GW and Physical GW
+   * Refactor the Physical layer block
+   * Replace service id by platform name
+   * Various other bugfixes and improvements
+
 2018-02-12 opensand-5.0.0
 
    * Release 5.0.0

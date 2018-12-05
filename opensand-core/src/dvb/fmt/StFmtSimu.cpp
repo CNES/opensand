@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -239,44 +239,6 @@ bool StFmtSimuList::delTerminal(tal_id_t st_id)
 
 	return true;
 }
-
-void StFmtSimuList::updateModcod(const FmtSimulation &fmt_simu)
-{
-	RtLock lock(this->sts_mutex);
-	ListStFmt::iterator it;
-
-	for(it = this->sts->begin(); it != this->sts->end(); ++it)
-	{
-		StFmtSimu *st;
-		tal_id_t st_id;
-		tal_id_t column;
-
-		st = it->second;
-		st_id = st->getId();
-		column = st->getSimuColumnNum();
-
-		LOG(this->log_fmt, LEVEL_DEBUG,
-		    "ST with ID %u uses MODCOD ID at column %u\n",
-		    st_id, column);
-
-		if(fmt_simu.getModcodList().size() <= column)
-		{
-			LOG(this->log_fmt, LEVEL_DEBUG,
-			    "cannot access MODCOD column %u for ST%u\n"
-			    "default MODCOD is used\n",
-			    column, st_id);
-			column = fmt_simu.getModcodList().size() - 1;
-			st->setSimuColumnNum(column);
-		}
-		// replace the current MODCOD ID by the new one
-		st->updateModcodId(atoi(fmt_simu.getModcodList()[column].c_str()),
-		                   this->acm_loop_margin_db);
-
-		LOG(this->log_fmt, LEVEL_DEBUG, "new MODCOD ID of ST with ID %u = %u\n",
-		    st_id, atoi(fmt_simu.getModcodList()[column].c_str()));
-	}
-}
-
 
 void StFmtSimuList::setRequiredCni(tal_id_t st_id, double cni)
 {

@@ -6,7 +6,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
+# Copyright © 2018 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -57,10 +57,7 @@ WS_LAN_IFACE='eth0'
 WS_LAN_IPV4=''
 WS_LAN_IPV6=''
 INTERCONNECT_IFACE=''
-IP_INTERCONNECT=''
-IP_INTERCONNECT_REMOTE=''
-PORT_UPWARD=''
-PORT_DOWNWARD=''
+INTERCONNECT_IPV4=''
 OUTPUT_LIBPATH=''
 
 # read the daemon configuration from debconf cache
@@ -123,13 +120,7 @@ read_conf(){
     db_get opensand-daemon/interconnect/interface
     INTERCONNECT_IFACE=$RET
     db_get opensand-daemon/interconnect/interface_ip
-    IP_INTERCONNECT=$RET
-    db_get opensand-daemon/interconnect/ip_remote
-    IP_INTERCONNECT_REMOTE=$RET
-    db_get opensand-daemon/interconnect/port_upward
-    PORT_UPWARD=$RET
-    db_get opensand-daemon/interconnect/port_downward
-    PORT_DOWNWARD=$RET
+    INTERCONNECT_IPV4=$RET
     db_get opensand-daemon/output/libpath
     OUTPUT_LIBPATH=$RET
 }
@@ -168,9 +159,8 @@ write_conf(){
     # interconnect section
     if [ "$SERVICE_NAME" = 'gw-phy' -o "$SERVICE_NAME" = 'gw-net-acc' ]; then
         echo "[interconnect]" >> ${DAEMON_CONF}
-        echo "ip_remote = ${IP_INTERCONNECT_REMOTE%/*}" >> ${DAEMON_CONF}
-        echo "port_upward = ${PORT_UPWARD}" >> ${DAEMON_CONF}
-        echo "port_downward = ${PORT_DOWNWARD}" >> ${DAEMON_CONF}
+        echo "interconnect_iface = ${INTERCONNECT_IFACE}" >> ${DAEMON_CONF}
+        echo "interconnect_ipv4 = ${INTERCONNECT_IPV4%/*}" >> ${DAEMON_CONF}
         echo "" >> ${DAEMON_CONF}
     fi
     # network section
@@ -263,9 +253,9 @@ initialize(){
         # Check if interconnect interface has the correct IP
         # TODO: this may not work if said interface has multiple IP addresses
         RET=$(ip -o -f inet addr show ${INTERCONNECT_IFACE} | awk '{print $4}')
-        if [ ! "${RET}" = "${IP_INTERCONNECT}" ]; then
+        if [ ! "${RET}" = "${INTERCONNECT_IPV4}" ]; then
             ifconfig ${INTERCONNECT_IFACE} inet 0.0.0.0 2>/dev/null
-            ifconfig ${INTERCONNECT_IFACE} inet ${IP_INTERCONNECT} 2>/dev/null
+            ifconfig ${INTERCONNECT_IFACE} inet ${INTERCONNECT_IPV4} 2>/dev/null
         fi
     fi
 

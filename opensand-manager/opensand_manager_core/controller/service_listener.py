@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
+# Copyright © 2018 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -163,10 +163,10 @@ class OpenSandServiceListener():
                 network_config['mac'] = val
             elif key == 'ip_remote':
                 network_config['remote_ip'] = val
-            elif key == 'port_upward':
-                network_config['upward_port'] = val
-            elif key == 'port_downward':
-                network_config['downward_port'] = val
+            elif key == 'interconnect_iface':
+                network_config['interconnect_iface'] = val
+            elif key == 'interconnect_ipv4':
+                network_config['interconnect_ipv4'] = val
             elif key == 'cache':
                 cache = val
             elif key == 'output_libpath':

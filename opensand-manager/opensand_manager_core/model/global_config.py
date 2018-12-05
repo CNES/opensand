@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
+# Copyright © 2018 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -67,7 +67,6 @@ class GlobalConfig(AdvancedHostModel):
         #self._dama = ''
         self._forward_down = {}
         self._return_up = {}
-        self._enable_phy_layer = None
         self._modcods = None
 
     def load(self, scenario):
@@ -131,8 +130,6 @@ class GlobalConfig(AdvancedHostModel):
                            self._forward_down, 'encap')
             self.set_stack('return_up_encap_schemes',
                            self._return_up, 'encap')
-            self._configuration.set_value(self._enable_phy_layer,
-                                          "//physical_layer/enable")
             self._configuration.write()
         except XmlException:
             raise
@@ -258,14 +255,6 @@ class GlobalConfig(AdvancedHostModel):
         """ get the forward_down_encap_schemes values """
         encap = self.get_stack("forward_down_encap_schemes", 'encap')
         return encap
-
-    def set_enable_physical_layer(self, val):
-        """ set the enable value in physical layer section """
-        self._enable_phy_layer = val
-
-    def get_enable_physical_layer(self):
-        """ get the enable value from physical layer section """
-        return self.get_param("physical_layer/enable")
 
     def get_global_delay(self):
         """ get the use constant_global_delay value """

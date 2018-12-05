@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
+ * Copyright © 2018 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -202,13 +202,11 @@ int32_t RtChannel::addTimerEvent(const string &name,
 	                                   priority);
 	if(!event)
 	{
-		DFLTLOG(LEVEL_ERROR, "je suis la, %s\n", name.c_str());
 		this->reportError(true, "cannot create timer event\n");
 		return -1;
 	}
 	if(!this->addEvent((RtEvent *)event))
 	{
-		DFLTLOG(LEVEL_ERROR, "je suis la, %s\n", name.c_str());
 		return -1;
 	}
 
@@ -489,7 +487,6 @@ bool RtChannel::raiseTimer(event_id_t id)
 	TimerEvent *event = this->getTimer(id);
 	if(!event)
 	{
-		DFLTLOG(LEVEL_ERROR, "je suis la\n");
 		this->reportError(false, "cannot find timer: should not happend here\n");
 		return false;
 	}

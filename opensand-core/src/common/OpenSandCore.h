@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -203,10 +203,8 @@ enum
 	msg_data = 0,  ///< message containing useful data (DVB, encap, ...)
 	               //   default value of sendUp/Down function
 	msg_link_up,   ///< link up message
-	msg_cni,       ///< message containing CNI information
 	msg_sig,       ///< message containing signalisation
 	msg_saloha,    ///< message containing Slotted Aloha content
-	msg_object,    ///< message containing an Interconnect object
 };
 
 

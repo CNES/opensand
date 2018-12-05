@@ -2,7 +2,7 @@ SUBDIRS = tests
 
 # Be very careful, as Plugin define a static instance of
 # PluginUtils, you MUST NOT link with libopensand_plugin_utils.la !!
-noinst_LTLIBRARIES = libopensand_plugin_utils.la
+noinst_LTLIBRARIES = libopensand_plugin_utils.la libopensand_utils.la
 lib_LTLIBRARIES = libopensand_plugin.la
 
 libopensand_plugin_utils_la_cpp = \
@@ -41,7 +41,20 @@ libopensand_plugin_la_h = \
 	EncapPlugin.h \
 	LanAdaptationPlugin.h \
 	PhysicalLayerPlugin.h
-	
+
+libopensand_utils_la_cpp = \
+	UdpChannel.cpp
+
+libopensand_utils_la_h = \
+	UdpChannel.h
+
+libopensand_utils_la_CPPFLAGS = \
+	$(AM_CPPFLAGS)
+
+libopensand_utils_la_SOURCES = \
+	$(libopensand_utils_la_cpp) \
+	$(libopensand_utils_la_h)
+
 libopensand_plugin_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/utils/

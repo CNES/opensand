@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file gw.cpp
  * @brief Gateway Physical (GW-PHY) process
  * @author Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  * Gateway uses the following stack of blocks installed over 2 NICs
  * (nic1 on user network side and nic2 on satellite network side):
@@ -50,7 +51,7 @@
 
 #include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
-#include "BlockInterconnectUpward.h"
+#include "BlockInterconnect.h"
 #include "Plugin.h"
 #include "OpenSandConf.h"
 
@@ -72,9 +73,8 @@ bool init_process(int argc, char **argv,
                   string &ip_addr,
                   string &emu_iface, 
                   tal_id_t &instance_id,
-                  uint16_t &port_up,
-                  uint16_t &port_down,
-                  string &ip_top,
+                  string &interconnect_iface,
+                  string &interconnect_addr,
                   string &conf_path)
 {
 	// TODO remove lan_iface and handle bridging in daemon
@@ -85,7 +85,7 @@ bool init_process(int argc, char **argv,
 	string lib_external_output_path = "";
 	char entity[10];	
 	/* setting environment agent parameters */
-	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:n:t:u:w:c:e:")) != EOF)
+	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:n:u:w:c:e:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -109,17 +109,13 @@ bool init_process(int argc, char **argv,
 			// get local interface name
 			emu_iface = optarg;
 			break;
-		case 't':
-			// get the GW_LAN_ACC ip address
-			ip_top = optarg;
-			break;
 		case 'u':
-			// Get the upward connection port
-			port_up = (uint16_t) atoi(optarg);
+			// Get the interconnect interface name
+			interconnect_iface = optarg;
 			break;
 		case 'w':
-			// Get the downward connection port
-			port_down = (uint16_t) atoi(optarg);
+			// Get the interconnect IP address
+			interconnect_addr = optarg;
 			break;
 		case 'c':
 			// get the configuration path
@@ -132,17 +128,16 @@ bool init_process(int argc, char **argv,
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [-q] [-d] -i instance_id -a ip_address "
-			        "-n emu_iface -t ip_address -u upward_port -d downward_port -c conf_path -e lib_ext_output_path\n",
-			        argv[0]);
+			        "-n emu_iface -u interconnect_iface -w interconnect_addr "
+			        "-c conf_path -e lib_ext_output_path\n", argv[0]);
 			fprintf(stderr, "\t-h                       print this message\n");
 			fprintf(stderr, "\t-q                       disable output\n");
 			fprintf(stderr, "\t-d                       enable output debug events\n");
 			fprintf(stderr, "\t-a <ip_address>          set the IP address for emulation\n");
 			fprintf(stderr, "\t-n <emu_iface>           set the emulation interface name\n");
 			fprintf(stderr, "\t-i <instance>            set the instance id\n");
-			fprintf(stderr, "\t-t <ip_address>          set the IP address of top GW\n");
-			fprintf(stderr, "\t-u <upward_port>         set the upward port\n");
-			fprintf(stderr, "\t-w <donwward_port>       set the downward port\n");
+			fprintf(stderr, "\t-u <interconnect_iface>  set the interconnect interface name\n");
+			fprintf(stderr, "\t-w <interconnect_addr>   set the interconnect IP address\n");
 			fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
 			fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
 			stop = true;
@@ -178,8 +173,6 @@ bool init_process(int argc, char **argv,
 		return false;
 	}
 
-
-
 	DFLTLOG(LEVEL_NOTICE,
 	        "starting output\n");
 
@@ -197,13 +190,6 @@ bool init_process(int argc, char **argv,
 		return false;
 	}
 
-	if(ip_top.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory gw_lan_acc IP address option");
-		return false;
-	}
-
 	if(conf_path.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -211,17 +197,17 @@ bool init_process(int argc, char **argv,
 		return false;
 	}
 
-	if(port_up == 0)
+	if(interconnect_iface.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory port upward option");
+		        "missing mandatory interconnect interface option");
 		return false;
 	}
 
-	if(port_down == 0)
+	if(interconnect_addr.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory port downward option");
+		        "missing mandatory interconnect address option");
 		return false;
 	}
 
@@ -238,10 +224,11 @@ int main(int argc, char **argv)
 	string emu_iface;
 	tal_id_t mac_id = 0;
 	struct sc_specific specific;
-	uint16_t port_up = 0;
-	uint16_t port_down = 0;
-	string ip_top;
-	struct icu_specific spec_icu;
+	string interconnect_iface;
+	string interconnect_addr;
+	struct ic_specific spec_ic;
+
+	string satellite_type;
 
 	string conf_path;
 	string topology_file;
@@ -263,7 +250,7 @@ int main(int argc, char **argv)
 
 	// retrieve arguments on command line
 	init_ok = init_process(argc, argv, ip_addr, emu_iface, mac_id,
-	                       port_up, port_down, ip_top, conf_path);
+	                       interconnect_iface, interconnect_addr, conf_path);
 
 	plugin_conf_path = conf_path + string("plugins/");
 
@@ -286,6 +273,7 @@ int main(int argc, char **argv)
 	conf_files.push_back(topology_file.c_str());
 	conf_files.push_back(global_file.c_str());
 	conf_files.push_back(default_file.c_str());
+
 	// Load configuration files content
 	if(!Conf::loadConfig(conf_files))
 	{
@@ -307,6 +295,19 @@ int main(int argc, char **argv)
 	}
 	Output::setLevels(levels, spec_level);
 
+	// retrieve the type of satellite from configuration
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+		               SATELLITE_TYPE,
+	                   satellite_type))
+	{
+		DFLTLOG(LEVEL_CRITICAL,
+		        "section '%s': missing parameter '%s'\n",
+		        COMMON_SECTION, SATELLITE_TYPE);
+		goto quit;
+	}
+	DFLTLOG(LEVEL_NOTICE,
+	        "Satellite type = %s\n", satellite_type.c_str());
+
 	// load the plugins
 	if(!Plugin::loadPlugins(true, plugin_conf_path))
 	{
@@ -317,15 +318,14 @@ int main(int argc, char **argv)
 
 	// instantiate all blocs
 
-	spec_icu.ip_addr = ip_top;
-	spec_icu.port_upward = port_up;
-	spec_icu.port_downward = port_down;
+	spec_ic.interconnect_iface = interconnect_iface;
+	spec_ic.interconnect_addr = interconnect_addr;
 
 	block_interconnect = Rt::createBlock<BlockInterconnectUpward,
 	                                     BlockInterconnectUpward::Upward,
 	                                     BlockInterconnectUpward::Downward,
-	                                     struct icu_specific>
-	                                     ("InterconnectUpward", NULL, spec_icu);
+	                                     struct ic_specific>
+	                                     ("InterconnectUpward", NULL, spec_ic);
 	if(!block_interconnect)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -333,12 +333,21 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-																		BlockPhysicalLayer::Upward,
-																		BlockPhysicalLayer::Downward,
-	                                  tal_id_t>("PhysicalLayer",
-	                                            block_interconnect,
-																		          mac_id);
+	block_phy_layer = NULL;
+	if(strToSatType(satellite_type) == TRANSPARENT)
+	{
+		block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
+		                                  BlockPhysicalLayer::UpwardTransp,
+		                                  BlockPhysicalLayer::Downward,
+		                                  tal_id_t>("PhysicalLayer", block_interconnect, mac_id);
+	}
+	else if(strToSatType(satellite_type) == REGENERATIVE)
+	{
+		block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
+		                                  BlockPhysicalLayer::UpwardRegen,
+		                                  BlockPhysicalLayer::Downward,
+		                                  tal_id_t>("PhysicalLayer", block_interconnect, mac_id);
+	}
 	if(block_phy_layer == NULL)
 	{
 		DFLTLOG(LEVEL_CRITICAL,

@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
+# Copyright © 2018 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -259,18 +259,17 @@ class MachineController:
         if component == GW_NET_ACC:
             command_line = '%s %s %s -u %s -w %s %s -c %s' % \
                            (bin_file, instance_param, lan_iface,
-                            self._machine_model.get_upward_port(),
-                            self._machine_model.get_downward_port(),
+                            self._machine_model.get_interconnect_interface(),
+                            self._machine_model.get_interconnect_address(),
                             output_libpath,
                             CONF_DESTINATION_PATH)
         elif component == GW_PHY:
-            command_line = '%s %s -a %s -n %s -t %s -u %s -w %s %s -c %s' % \
+            command_line = '%s %s -a %s -n %s -u %s -w %s %s -c %s' % \
                            (bin_file, instance_param, 
                             self._machine_model.get_emulation_address(),
                             self._machine_model.get_emulation_interface(),
-                            self._machine_model.get_remote_ip_addr(),
-                            self._machine_model.get_upward_port(),
-                            self._machine_model.get_downward_port(),
+                            self._machine_model.get_interconnect_interface(),
+                            self._machine_model.get_interconnect_address(),
                             output_libpath,
                             CONF_DESTINATION_PATH)
         else:

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,9 +27,10 @@
  */
 
 /**
- * @file sat_carrier_udp_channel.h
+ * @file UdpChannel.h
  * @brief This implements an udp satellite carrier channel
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
+ * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
 #ifndef SAT_CARRIER_UDP_CHANNEL_H
@@ -53,26 +54,27 @@
 class UdpStack;
 
 /*
- * @class sat_carrier_udp_channel
+ * @class UdpChannel
  * @brief UDP satellite carrier channel
  */
-class sat_carrier_udp_channel
+class UdpChannel
 {
  public:
 
-	sat_carrier_udp_channel(spot_id_t s_id,
-	                        unsigned int channel_id,
-	                        bool input, bool output,
-	                        const string local_interface_name,
-	                        unsigned short port,
-	                        bool multicast,
-	                        const string local_ip_addr,
-	                        const string ip_addr,
-	                        unsigned int stack,
-	                        unsigned int rmem,
-	                        unsigned int wmem);
+	UdpChannel(string name,
+	           spot_id_t s_id,
+	           unsigned int channel_id,
+	           bool input, bool output,
+	           const string local_interface_name,
+	           unsigned short port,
+	           bool multicast,
+	           const string local_ip_addr,
+	           const string ip_addr,
+	           unsigned int stack,
+	           unsigned int rmem,
+	           unsigned int wmem);
 
-	~sat_carrier_udp_channel();
+	~UdpChannel();
 
 	bool isInit();
 

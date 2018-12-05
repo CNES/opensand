@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -153,7 +153,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	{
 		// the BB frame is not robust enough to be decoded, drop it
 		// TODO Error but the frame is maybe not for this st
-		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "the terminal is able to decode MODCOD %d (SNR %f), "
 		    "the received BB frame is encoded with MODCOD %d (SNR %f) "
 		    "that is not robust enough, so emulate a lost BB frame\n",

@@ -172,6 +172,7 @@ void OutputOpenbach::sendProbes(void)
 		if(this->getValueCount(probe) != 0)
 		{
 			stats[probe->getName()] = probe->getStrData();
+			probe->reset();
 		}
 	}
 	this->mutex.releaseLock();

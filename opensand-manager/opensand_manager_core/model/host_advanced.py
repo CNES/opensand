@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
+# Copyright © 2018 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -38,7 +38,9 @@ import os
 import shutil
 
 
-from opensand_manager_core.utils import OPENSAND_PATH, GW, ST
+from opensand_manager_core.utils import OPENSAND_PATH, GW, ST, GW_PHY, \
+                                        GW_NET_ACC, INTERCONNECT, \
+                                        UPPER_IP_ADDRESS, LOWER_IP_ADDRESS
 from opensand_manager_core.model.files import Files
 from opensand_manager_core.my_exceptions import ModelException, XmlException
 from opensand_manager_core.opensand_xml_parser import XmlParser
@@ -201,6 +203,13 @@ class AdvancedHostModel:
             self._configuration.set_value(pos, path, 'pos')
             self._configuration.set_value(stack[pos], path, key)
             idx += 1
+        self._configuration.write()
+
+    def set_interconnect(self, component, ip_address):
+        """ set the corresponding interconnect configurations """
+        key = LOWER_IP_ADDRESS if component == GW_PHY else UPPER_IP_ADDRESS
+        path = "//" + INTERCONNECT + "/" + key
+        self._configuration.set_value(ip_address, path)
         self._configuration.write()
 
     def get_files(self):

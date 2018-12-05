@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -84,13 +84,6 @@ SpotUpward::~SpotUpward()
 
 bool SpotUpward::onInit(void)
 {
-	if(!this->initFmt())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to complete the FMT part of the initialisation\n");
-		return false;
-	}
-
 	// Get and open the files
 	if(!this->initModcodSimu())
 	{
@@ -195,17 +188,6 @@ bool SpotUpward::scheduleSaloha(DvbFrame *UNUSED(dvb_frame),
 bool SpotUpward::handleSlottedAlohaFrame(DvbFrame *UNUSED(frame))
 {
 	assert(0);
-}
-
-
-event_id_t SpotUpward::getModcodTimer(void)
-{
-	return this->modcod_timer;
-}
-
-void SpotUpward::setModcodTimer(event_id_t modcod_timer)
-{
-	this->modcod_timer = modcod_timer;
 }
 
 bool SpotUpward::handleSac(const DvbFrame *dvb_frame)

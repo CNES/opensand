@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -32,6 +32,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
  * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
  * SE uses the following stack of mgl blocs installed over 1 NIC:
  *
@@ -57,7 +58,7 @@
 #include "BlockDvbSatTransp.h"
 #include "BlockDvbSatRegen.h"
 #include "BlockSatCarrier.h"
-#include "BlockPhysicalLayer.h"
+#include "BlockPhysicalLayerSat.h"
 #include "Plugin.h"
 #include "OpenSandConf.h"
 
@@ -195,7 +196,7 @@ int main(int argc, char **argv)
 	string emu_iface;
 	struct sc_specific specific;
 
-	std::string satellite_type;
+	string satellite_type;
 
 	Block *block_encap;
 	Block *block_dvb;

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -90,9 +90,6 @@ class BlockDvbSat: public BlockDvb
 		/// reception standard (DVB-RCS or DVB-S2)      
 		PhysicStd *reception_std; 
 		
-		/// Physical layer enable
-		bool with_phy_layer;
-		
 		/**
 		* Called upon reception event it is another layer (below on event) of demultiplexing
 		* Do the appropriate treatment according to the type of the DVB message
@@ -172,12 +169,6 @@ class BlockDvbSat: public BlockDvb
 		 */ 
 		virtual bool handleSaloha(DvbFrame *dvb_frame, 
 		                          SatGw *current_gw) = 0;
-		/**
-		 * @brief  Add a new line in the MODCOD time series generator file
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		virtual bool updateSeriesGenerator(void) = 0;
 
 		/// The satellite spots
 		sat_gws_t gws;
@@ -220,13 +211,6 @@ class BlockDvbSat: public BlockDvb
 		 * @return true on success, false otherwise
 		 */ 
 		virtual bool handleTimerEvent(SatGw *current_gw) = 0;
-		
-		/**
-		 * @ brief handle scenario event timer
-		 *
-		 * @return true on success, false otherwise
-		 */ 
-		virtual bool handleScenarioTimer(SatGw *current_gw) = 0;
 
 		/**
 		 * @brief Initialize the link

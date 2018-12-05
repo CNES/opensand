@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -41,7 +41,6 @@
 #include "PhysicStd.h"  
 #include "NetBurst.h"
 #include "SlottedAlohaNcc.h"
-#include "TimeSeriesGenerator.h"
 
 #define SIMU_BUFF_LEN 255
 
@@ -100,13 +99,6 @@ class SpotUpwardTransp: public SpotUpward
 		 */
 		bool handleSlottedAlohaFrame(DvbFrame *frame);
 
-		/**
-		 * @brief  Add a new line in the MODCOD time series generator file
-		 *
-		 *  @return true on success, false otherwise
-		 */
-		bool updateSeriesGenerator(void);
-
 	protected:
 
 		/**
@@ -122,13 +114,6 @@ class SpotUpwardTransp: public SpotUpward
 		 * @return  true on success, false otherwise
 		 */
 		bool initAcmLoopMargin(void);
-
-		/**
-		 *  @brief Initialize the time series generators
-		 *
-		 *  @return  true on success, false otherwise
-		 */
-		bool initSeriesGenerator(void);
 
 		/**
 		 * @brief Initialize the transmission mode
@@ -166,13 +151,6 @@ class SpotUpwardTransp: public SpotUpward
 
 		/// is terminal scpc map
 		list<tal_id_t> is_tal_scpc;
-
-		/// time series generator for input
-		TimeSeriesGenerator *input_series;
-
-		/// time series generator for output
-		TimeSeriesGenerator *output_series;
-
 	};
 
 #endif

@@ -7,6 +7,7 @@ PACKED_COMMON_CPPFLAGS = \
 	-I$(top_srcdir)/src/common 
 
 PACKED_COMMON_LIBS= \
+	$(top_builddir)/src/common/libopensand_utils.la \
 	$(top_builddir)/src/common/libopensand_plugin.la \
 	$(top_builddir)/src/sat_carrier/libopensand_satcarrier.la \
 	$(top_builddir)/src/conf/libopensand_conf_core.la

@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -497,27 +497,11 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					}
 				}
 			}
-			// Scenario timer
 			else 
 			{
-				bool found = false;
-				sat_gws_t::iterator gw_it;
-				for(gw_it = this->gws.begin(); gw_it != this->gws.end(); ++gw_it)
-				{
-					SatGw *current_gw = gw_it->second;
-					if(*event == current_gw->getScenarioTimer())
-					{
-						this->handleScenarioTimer(current_gw);	
-						found = true;
-						break;
-					}
-				}
-				if(!found)
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "unknown timer event received %s\n",
-					    event->getName().c_str());
-				}
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "unknown timer event received %s\n",
+				    event->getName().c_str());
 			}
 		}
 		break;
@@ -651,17 +635,6 @@ bool BlockDvbSat::Upward::onInit()
 		    "initialisation\n");
 		return false;
 	}
-	
-	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               ENABLE,
-	                   this->with_phy_layer))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    PHYSICAL_LAYER_SECTION, ENABLE);
-		return false;
-	}
 
 	return true;
 }
@@ -723,22 +696,6 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 				    "failed to handle received DVB frame\n");
 				delete dvb_frame;
 				return false;
-			}
-		}
-		break;
-
-		case evt_timer:
-		{
-			if(*event == this->modcod_timer)
-			{
-				if(!this->updateSeriesGenerator())
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "SF#%u:Stop time series generation\n",
-					    this->super_frame_counter);
-					this->removeEvent(this->modcod_timer);
-					return false;
-				}
 			}
 		}
 		break;

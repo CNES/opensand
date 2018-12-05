@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -992,7 +992,6 @@ BlockDvbNcc::Upward::~Upward()
 bool BlockDvbNcc::Upward::onInit(void)
 {
 	bool result = true;
-	bool with_phy_layer;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 
 	if(!this->initSatType())
@@ -1007,17 +1006,6 @@ bool BlockDvbNcc::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the spot "
 		    "initialisation\n");
-		return false;
-	}
-
-	// Retrieve the value of the ‘enable’ parameter for the physical layer
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               ENABLE,
-	                   with_phy_layer))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    PHYSICAL_LAYER_SECTION, ENABLE);
 		return false;
 	}
 
@@ -1047,52 +1035,6 @@ bool BlockDvbNcc::Upward::onInit(void)
 		(*spot_iter).second = spot;
 
 		result &= spot->onInit();
-
-		// Launch the timer in order to retrieve the modcods if there is no physical layer
-		if(!with_phy_layer)
-		{
-			spot->setModcodTimer(this->addTimerEvent("scenario",
-			                                         // the duration will be change when started
-			                                         5000,
-			                                         false, // no rearm
-			                                         false // do not start
-			                                         ));
-			this->raiseTimer(spot->getModcodTimer());
-		}
-	}
-	if(with_phy_layer && this->satellite_type == TRANSPARENT)
-	{
-		string generate;
-		time_ms_t acm_period_ms;
-
-		// Check whether we generate the time series
-		if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		                   GENERATE_TIME_SERIES_PATH, generate))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, %s missing\n",
-			    PHYSICAL_LAYER_SECTION, GENERATE_TIME_SERIES_PATH);
-			return false;
-		}
-		if(generate != "none")
-		{
-			if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-			                   ACM_PERIOD_REFRESH,
-			                   acm_period_ms))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				   "section '%s': missing parameter '%s'\n",
-				   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
-				return false;
-			}
-
-			LOG(this->log_init, LEVEL_NOTICE,
-			    "ACM period set to %d ms\n",
-			    acm_period_ms);
-
-			this->modcod_timer = this->addTimerEvent("generate_time_series",
-			                                         acm_period_ms);
-		}
 	}
 
 	if(result)
@@ -1194,6 +1136,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				break;
 
 				case MSG_TYPE_SESSION_LOGON_REQ:
+				{
 					LOG(this->log_receive, LEVEL_INFO,
 					    "Logon Req\n");
 					if(!spot->onRcvLogonReq(dvb_frame))
@@ -1205,25 +1148,30 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 					{
 						return false;
 					}
-					break;
+				}
+				break;
 
 				case MSG_TYPE_SESSION_LOGOFF:
+				{
 					LOG(this->log_receive, LEVEL_INFO,
 					    "Logoff Req\n");
 					if(!this->shareFrame(dvb_frame))
 					{
 						return false;
 					}
-					break;
+				}
+				break;
 
 				case MSG_TYPE_TTP:
 				case MSG_TYPE_SESSION_LOGON_RESP:
+				{
 					// nothing to do in this case
 					LOG(this->log_receive, LEVEL_DEBUG,
 					    "ignore TTP or logon response "
 					    "(type = %d)\n", dvb_frame->getMessageType());
 					delete dvb_frame;
-					break;
+				}
+				break;
 
 				case MSG_TYPE_SOF:
 				{
@@ -1276,89 +1224,31 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 
 				// Slotted Aloha
 				case MSG_TYPE_SALOHA_DATA:
+				{
 					if(!spot->handleSlottedAlohaFrame(dvb_frame))
 					{
 						return false;
 					}
-					break;
+				}
+				break;
 
 				case MSG_TYPE_SALOHA_CTRL:
+				{
 					delete dvb_frame;
-					break;
+				}
+				break;
 
 				default:
+				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "unknown type (%d) of DVB frame\n",
 					    dvb_frame->getMessageType());
 					delete dvb_frame;
 					return false;
-					break;
-			}
-
-		}
-		case evt_timer:
-		{
-			map<spot_id_t, DvbChannel *>::iterator spot_iter;
-			for(spot_iter = this->spots.begin();
-			    spot_iter != this->spots.end(); ++spot_iter)
-			{
-				SpotUpward *spot;
-				spot = dynamic_cast<SpotUpward *>((*spot_iter).second);
-				if(!spot)
-				{
-					LOG(this->log_receive, LEVEL_WARNING,
-					    "Error when getting spot\n");
-					return false;
 				}
-
-				if(*event == spot->getModcodTimer())
-				{
-					// it's time to update MODCOD IDs
-					LOG(this->log_receive, LEVEL_DEBUG,
-					    "MODCOD scenario timer received\n");
-
-					double duration;
-					if(!spot->goNextScenarioStepInput(duration))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "SF#%u: failed to update MODCOD IDs\n",
-						    this->super_frame_counter);
-						return false;
-					}
-					else
-					{
-						LOG(this->log_receive, LEVEL_DEBUG,
-						    "SF#%u: MODCOD IDs successfully updated\n",
-						    this->super_frame_counter);
-					}
-					if(duration <= 0)
-					{
-						// we reached the end of the file (or it is malformed)
-						// so we keep the modcod as they are
-						this->removeEvent(spot->getModcodTimer());
-					}
-					else
-					{
-						this->setDuration(spot->getModcodTimer(), duration);
-						this->startTimer(spot->getModcodTimer());
-					}
-				}
-				else if(*event == this->modcod_timer)
-				{
-					if(!spot->updateSeriesGenerator())
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "SF#%u:Stop time series generation\n",
-						    this->super_frame_counter);
-						this->removeEvent(this->modcod_timer);
-						return false;
-					}
-				}
-
-
+				break;
 			}
 		}
-	
 		break;
 
 		default:

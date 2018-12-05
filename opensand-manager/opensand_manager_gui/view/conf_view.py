@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
-# Copyright © 2017 CNES
+# Copyright © 2018 TAS
+# Copyright © 2018 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -164,12 +164,6 @@ class ConfView(WindowView):
             # Update FMT
             pass
 
-        # physical layer
-        widget = self._ui.get_widget('enable_physical_layer')
-        if config.get_enable_physical_layer().lower() == "true":
-            widget.set_active(True)
-        else:
-            widget.set_active(False)
 
     def update_advanced_widgets(self):
         """ update the lan adaptation stack """
@@ -302,15 +296,6 @@ class ConfView(WindowView):
 
             # forward_down_encap
             if self._in_stack.get_stack() != config.get_forward_down_encap():
-                return True
-
-            # enable physical_layer
-            widget = self._ui.get_widget('enable_physical_layer')
-            if widget.get_active() and \
-               config.get_enable_physical_layer().lower() != "true":
-                return True
-            if not widget.get_active() and \
-               config.get_enable_physical_layer().lower() != "false":
                 return True
         except:
             raise

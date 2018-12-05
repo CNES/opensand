@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -41,11 +41,10 @@
 RandomSimulator::RandomSimulator(spot_id_t spot_id,
                                  tal_id_t mac_id,
                                  sat_type_t sat_type,
-                                 bool phy_layer,
                                  FILE** evt_file,
                                  ConfigurationList current_gw):
 	RequestSimulator(spot_id, mac_id, 
-	                 sat_type, phy_layer, evt_file,
+	                 sat_type, evt_file,
 	                 current_gw)
 {
 	int val;
@@ -127,6 +126,7 @@ bool RandomSimulator::simulation(list<DvbFrame *>* msgs,
 			val = this->simu_cr;
 	    }
 		sac->addRequest(0, access_dama_rbdc, val);
+		sac->setAcm(0xffff);
 		msgs->push_back((DvbFrame*)sac);
 	}
 

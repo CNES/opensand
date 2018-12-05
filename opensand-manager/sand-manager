@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
+# Copyright © 2018 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -48,6 +48,8 @@ from opensand_manager_core.env_plane_dispatcher import EnvPlaneDispatcher
 from opensand_manager_gui.opensand_view import View
 from opensand_manager_gui.view.popup.infos import error_popup
 
+DEFAULT_SERVICE_TYPE = '_opensand._tcp'
+
 # TODO add option load plugin from another directory if it is possible ?
 # TODO replace optparser by argparse if 2.6 support is abandonned
 class OpenSandManager:
@@ -81,8 +83,8 @@ class OpenSandManager:
                               help="use the specified glade file to load UI")
         opt_parser.add_option("-s", "--scenario", dest="scenario", default='',
                               help="open or create the specified scenario")
-        opt_parser.add_option("-t", "--service-type", dest="service_type",
-                              default='_opensand._tcp',
+        opt_parser.add_option("-t", "--platform-id", dest="platform_id",
+                              default='',
                               help="listen for OpenSAND entities on the \
                               specified service type with format: \
                               _name._transport_protocol")
@@ -99,6 +101,12 @@ class OpenSandManager:
                               among {START, STOP}")
 
         (options, args) = opt_parser.parse_args()
+
+        ### format the service type
+        service_type = (
+                '_%s%s' % (options.platform_id, DEFAULT_SERVICE_TYPE)
+                if options.platform_id else DEFAULT_SERVICE_TYPE
+        )
 
         ### create the logger
 
@@ -119,10 +127,10 @@ class OpenSandManager:
             self._view = View(self._model, self._manager_log,
                               options.glade, options.dev_mode,
                               options.adv_mode,
-                              options.service_type)
+                              service_type)
 
             # create the host controller and response manager
-            self._controller = Controller(self._model, options.service_type,
+            self._controller = Controller(self._model, service_type,
                                           self._manager_log, options.interactive)
             
             EnvPlaneDispatcher(self._controller.get_env_plane_controller(),

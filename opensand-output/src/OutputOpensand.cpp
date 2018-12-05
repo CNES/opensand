@@ -404,7 +404,6 @@ void OutputOpensand::appendValueAndReset(BaseProbe *probe, string &msg)
 
 	// release memory
 	delete[] data;
-	probe->reset();
 }
 
 
@@ -425,11 +424,15 @@ void OutputOpensand::sendProbes(void)
 	for(size_t i = 0 ; i < this->probes.size() ; i++)
 	{
 		BaseProbe *probe = this->probes[i];
-		if(probe->isEnabled() && this->getValueCount(probe) != 0)
+		if(this->getValueCount(probe) != 0)
 		{
-			needs_sending = true;
-			message.append(1, (uint8_t)i);
-			this->appendValueAndReset(probe, message);
+			if(probe->isEnabled())
+			{
+				needs_sending = true;
+				message.append(1, (uint8_t)i);
+				this->appendValueAndReset(probe, message);
+			}
+			probe->reset();
 		}
 	}
 	this->mutex.releaseLock();

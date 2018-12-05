@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -135,11 +135,6 @@ bool BlockDvbSatTransp::DownwardTransp::handleTimerEvent(SatGw *current_gw)
 	}
 
 	return true;
-}
-
-bool BlockDvbSatTransp::DownwardTransp::handleScenarioTimer(SatGw *UNUSED(current_gw))
-{
-	assert(0);
 }
 
 /*****************************************************************************/
@@ -330,11 +325,5 @@ bool BlockDvbSatTransp::UpwardTransp::handleSaloha(DvbFrame *dvb_frame,
 		return false;
 	}
 
-	return true;
-}
-
-
-bool BlockDvbSatTransp::UpwardTransp::updateSeriesGenerator(void)
-{
 	return true;
 }

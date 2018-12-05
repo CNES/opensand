@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -749,15 +749,19 @@ error:
 
 unsigned int ForwardSchedulingS2::getBBFrameSizeBytes(unsigned int modcod_id)
 {
-	// if there is no incomplete BB frame create a new one
-	size_t bbframe_size_bytes;
-	string coding_rate;
-
 	// get the payload size
-	coding_rate = this->fwd_modcod_def->getCodingRate(modcod_id);
-	bbframe_size_bytes = getPayloadSize(coding_rate);
-
-	return bbframe_size_bytes;
+	FmtDefinition *fmt_def = this->fwd_modcod_def->getDefinition(modcod_id);
+	if(fmt_def == NULL)
+	{
+		// TODO: remove default value. Calling methods should check that return
+		// value is OK.
+		size_t bbframe_size = getPayloadSize("");
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "could not find fmt definition with id %u, use bbframe size %u bytes",
+		    modcod_id, bbframe_size);
+		return bbframe_size;
+	}
+	return getPayloadSize(fmt_def->getCoding());
 }
 
 
@@ -940,10 +944,8 @@ void ForwardSchedulingS2::schedulePending(const list<fmt_id_t> supported_modcods
 void ForwardSchedulingS2::checkBBFrameSize(vector<CarriersGroupDama *>::iterator vcm_it,
                                            vector<CarriersGroupDama *> vcm_carriers)
 {
-	unsigned int max_modcod = 0;
 	unsigned int vcm_id = 0;
 	CarriersGroupDama *vcm = *vcm_it;
-	vol_sym_t max_bbframe_size_sym = 0;
 	vol_sym_t carrier_size_sym = vcm->getTotalCapacity() /
 	                             vcm->getCarriersNumber();
 	list<fmt_id_t> fmt_ids = vcm->getFmtIds();
@@ -960,26 +962,23 @@ void ForwardSchedulingS2::checkBBFrameSize(vector<CarriersGroupDama *>::iterator
 		                            size))
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
-			    "Cannot determine the maximum BBFrame size\n");
-			break;
+			    "Cannot determine the maximum BBFrame size for MODCOD %u\n", fmt_id);
+			continue;
 		}
-		if(size > max_bbframe_size_sym)
+		if(size <= carrier_size_sym)
 		{
-			max_modcod = fmt_id;
-			max_bbframe_size_sym = size;
+			// Carrier size is lower than the max BBFrame size
+			continue;
 		}
-	}
-	if(max_bbframe_size_sym > carrier_size_sym)
-	{
 		if(vcm_carriers.size() > 1)
 		{
 			LOG(this->log_scheduling, LEVEL_WARNING,
-			    "Category %s, Carriers group %u VCM %u: the maximum "
-			    "BBFrame size (%u symbols with MODCOD ID %u) is greater "
-			    "than the carrier size %u. Certain MODCODs may not work.\n",
+			    "Category %s, Carriers group %u VCM %u: the BBFrame size "
+			    "with MODCOD %u (%u symbols) is greater than the carrier "
+			    "size %u. This MODCOD will not work.\n",
 			    this->category->getLabel().c_str(),
-			    vcm->getCarriersId(), vcm_id, max_bbframe_size_sym,
-			    max_modcod, carrier_size_sym);
+			    vcm->getCarriersId(), vcm_id, fmt_id,
+			    size, carrier_size_sym);
 		}
 		else
 		{
@@ -987,21 +986,21 @@ void ForwardSchedulingS2::checkBBFrameSize(vector<CarriersGroupDama *>::iterator
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 						"Category %s, Carriers group %u: the BBFrame size "
-						"(%u symbols with MODCOD ID %u) is greater than "
-						"the carrier size %u.\n",
+						"of MODCOD %u (%u symbols) is greater than "
+						"the carrier size %u. This MODCOD will not work.\n",
 						this->category->getLabel().c_str(),
-						vcm->getCarriersId(), max_bbframe_size_sym,
-						max_modcod, carrier_size_sym);
+						vcm->getCarriersId(), fmt_id,
+						size, carrier_size_sym);
 			}
 			else
 			{
 				LOG(this->log_scheduling, LEVEL_WARNING,
-						"Category %s, Carriers group %u: the maximum BBFrame "
-						"size (%u symbols with MODCOD ID %u) is greater than "
-						"the carrier size %u. Certain MODCODs may not work.\n",
+						"Category %s, Carriers group %u: the BBFrame size "
+						"with MODCOD %u (%u symbols) is greater than the carrier "
+						"size %u. This MODCOD will not work.\n",
 						this->category->getLabel().c_str(),
-						vcm->getCarriersId(), max_bbframe_size_sym,
-						max_modcod, carrier_size_sym);
+						vcm->getCarriersId(), fmt_id,
+						size, carrier_size_sym);
 			}
 		}
 	}

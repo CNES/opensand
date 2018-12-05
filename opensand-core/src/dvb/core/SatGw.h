@@ -5,7 +5,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
+ * Copyright © 2018 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -40,10 +40,8 @@
 #include "DvbFrame.h"
 #include "DvbChannel.h"
 #include "Scheduling.h"
-#include "FmtSimulation.h"
 #include "StFmtSimu.h"
 #include "TerminalCategoryDama.h"
-#include "TimeSeriesGenerator.h"
 
 #include <opensand_output/OutputLog.h>
 
@@ -85,10 +83,6 @@ class SatGw: public DvbFmt
 	/// The downlink scheduling for regenerative satellite toward GW
 	Scheduling *gw_scheduling;
 
-	/// timer used to awake the block every second in order to retrieve
-	/// the modcods
-	event_id_t scenario_timer;
-
 	// statistics
 
 	/// Amount of layer 2 data received from ST
@@ -99,12 +93,6 @@ class SatGw: public DvbFmt
 	/// Mutex to protect access to spot element
 	RtMutex gw_mutex;
 	
-	/// time series generator for input
-	TimeSeriesGenerator *input_series;
-
-	/// time series generator for output
-	TimeSeriesGenerator *output_series;
-
 	// Output probes and stats
 	typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
 
@@ -165,13 +153,6 @@ class SatGw: public DvbFmt
 	                    EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                    const TerminalCategoryDama *const st_category,
 	                    const TerminalCategoryDama *const gw_category);
-	
-	/**
-	 * @brief set scenario timer configuration
-	 * 
-	 * @param scenario_timer the scenario timer
-	 */
-	void initScenarioTimer(event_id_t scenario_timer);
 
 	/**
 	 * @brief Read configuration for the different files and open them
@@ -189,13 +170,6 @@ class SatGw: public DvbFmt
 	 * @return  true on success, false otherwise
 	 */
 	bool initAcmLoopMargin(void);
-
-	/**
-	 *  @brief Initialize the time series generators
-	 *
-	 *  @return  true on success, false otherwise
-	 */
-	bool initSeriesGenerator(void);
 
 	/**
 	 * @brief initialize probes
@@ -223,14 +197,6 @@ class SatGw: public DvbFmt
 	 * @return true on success, false otherwise
 	 */ 
 	bool addTerminal(tal_id_t tal_id);
-	
-	/**
-	 * @brief  Add a new line in the MODCOD time series generator file
-	 *
-	 *  @return true on success, false otherwise
-	 */
-	bool updateSeriesGenerator(void);
-
 
 	/**
 	 * Update fmt
@@ -356,23 +322,6 @@ class SatGw: public DvbFmt
 	vol_bytes_t getL2FromGw(void);
 
 	/**
-	 * @brief Go to the first step in adaptive physical layer scenario
-	 *        Update current MODCODs IDs of all STs in the list
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool goFirstScenarioStep();
-
-	/**
-	 * @brief Go to next step in adaptive physical layer scenario
-	 *        Update current MODCODs IDs of all STs in the list
-	 *
-	 * @param duration     duration before the next step
-	 * @return true on success, false otherwise
-	 */
-	bool goNextScenarioStep(double &duration);
-
-	/**
 	 * @brief Get the spot id
 	 *
 	 * @return ths spot id
@@ -384,11 +333,6 @@ class SatGw: public DvbFmt
 	 */
 	FmtDefinitionTable* getOutputModcodDef(void);
 	
-	/**
-	 * @ brief get the gateway scenario timer
-	 */ 
-	event_id_t getScenarioTimer(void);
-
 	void print(void); /// For debug
 };
 

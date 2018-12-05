@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
+# Copyright © 2018 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -327,7 +327,6 @@ class AdvancedDialog(WindowView):
         if self._all_modules:
             return all_modules
 
-        with_phy_layer = self._model.get_conf().get_enable_physical_layer()
         with_global_delay = self._model.get_conf().get_global_delay()
         modules = []
         adv = self._current_host.get_advanced_conf()
@@ -346,10 +345,9 @@ class AdvancedDialog(WindowView):
                                      'encap').itervalues()
         except ModelException:
             pass
-        if with_phy_layer == "true":
-            modules += adv.get_params("attenuation_model_type")
-            modules += adv.get_params("minimal_condition_type")
-            modules += adv.get_params("error_insertion_type")
+        modules += adv.get_params("attenuation_model_type")
+        modules += adv.get_params("minimal_condition_type")
+        modules += adv.get_params("error_insertion_type")
         if with_global_delay == "false":
             modules += adv.get_params("delay_type")
         used_modules = []

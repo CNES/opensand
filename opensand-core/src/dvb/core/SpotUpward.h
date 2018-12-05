@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -107,16 +107,6 @@ class SpotUpward: public DvbChannel, public DvbFmt
 
 		// statistics update
 		void updateStats(void);
-
-		void setModcodTimer(event_id_t new_modcod_timer);
-		event_id_t getModcodTimer(void);
-
-		/**
-		 * @brief  Add a new line in the MODCOD time series generator file
-		 *
-		 *  @return true on success, false otherwise
-		 */
-		virtual bool updateSeriesGenerator(void) = 0;
 
 		/**
 		 * @brief  handle a SAC frame

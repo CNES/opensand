@@ -34,7 +34,8 @@ PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/interconnect/libopensand_interconnect.la \
 	$(top_builddir)/src/conf/libopensand_conf_core.la \
 	$(top_builddir)/src/common/libopensand_plugin.la \
-	$(top_builddir)/src/common/libopensand_plugin_utils.la
+	$(top_builddir)/src/common/libopensand_plugin_utils.la \
+	$(top_builddir)/src/common/libopensand_utils.la
 
 allexec_LDADD = \
 	-lpthread \

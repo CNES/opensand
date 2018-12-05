@@ -103,22 +103,6 @@ bool SpotUpwardRegen::initModcodSimu(void)
 		return false;
 	}
 
-	if(!this->initModcodSimuFile(FORWARD_DOWN_MODCOD_TIME_SERIES,
-	                             this->mac_id, this->spot_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize the downlink simulation MODCOD files\n");
-		return false;
-	}
-
-	// initialize the MODCOD IDs
-	if(!this->fmt_simu.goFirstScenarioStep())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize MODCOD scheme IDs\n");
-		return false;
-	}
-
 	// declare the GW as one ST for the MODCOD scenarios
 	if(!this->addInputTerminal(this->mac_id, this->s2_modcod_def))
 	{
@@ -269,20 +253,9 @@ bool SpotUpwardRegen::handleFrame(DvbFrame *frame, NetBurst **burst)
 
 void SpotUpwardRegen::handleFrameCni(DvbFrame *dvb_frame)
 {
-	if(!this->with_phy_layer)
-	{
-		return;
-	}
-
 	double cni = dvb_frame->getCn();
 	// regenerative case:
 	//   we need downlink ACM parameters to inform
 	//   satellite with a SAC
 	this->setRequiredCniInput(this->mac_id, cni);
-}
-
-
-bool SpotUpwardRegen::updateSeriesGenerator(void)
-{
-	return true;
 }

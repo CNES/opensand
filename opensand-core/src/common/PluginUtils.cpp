@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2017 TAS
- * Copyright © 2017 CNES
+ * Copyright © 2018 TAS
+ * Copyright © 2018 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
  * @brief utilities for Plugins
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
+ * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 
@@ -389,12 +390,8 @@ bool PluginUtils::getLanAdaptationPlugin(string name,
 	return true;
 };
 
-bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
-                                          string min_pl_name,
-                                          string err_pl_name,
-                                          AttenuationModelPlugin **attenuation,
-                                          MinimalConditionPlugin **minimal,
-                                          ErrorInsertionPlugin **error)
+bool PluginUtils::getAttenuationPlugin(string att_pl_name,
+                                       AttenuationModelPlugin **attenuation)
 {
 	fn_create create;
 
@@ -419,6 +416,15 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 		this->plugins.push_back(*attenuation);
 	}
 
+	return true;
+};
+
+
+bool PluginUtils::getMinimalConditionPlugin(string min_pl_name,
+                                            MinimalConditionPlugin **minimal)
+{
+	fn_create create;
+
 	if(min_pl_name.size() > 0)
 	{
 		create = this->minimal[min_pl_name];
@@ -439,6 +445,15 @@ bool PluginUtils::getPhysicalLayerPlugins(string att_pl_name,
 		}
 		this->plugins.push_back(*minimal);
 	}
+
+	return true;
+};
+
+
+bool PluginUtils::getErrorInsertionPlugin(string err_pl_name,
+                                          ErrorInsertionPlugin **error)
+{
+	fn_create create;
 
 	if(err_pl_name.size() > 0)
 	{
