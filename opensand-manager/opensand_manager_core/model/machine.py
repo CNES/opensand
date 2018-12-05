@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2017 TAS
+# Copyright © 2018 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -309,7 +309,7 @@ class MachineModel:
                 self._tools[key].set_state(True)
             elif key == self._component:
                 # if the collector is registerd and the host status was not
-                # updated set it to pending 
+                # updated set it to pending
                 if not self._collector_functional and \
                    self._init_status != InitStatus.FAIL:
                     self._init_status = InitStatus.SUCCESS
@@ -383,7 +383,7 @@ class MachineModel:
             return self._ifaces[key]
         except KeyError:
             return ""
-    
+
     def get_interconnect_interface(self):
         """ get the interconnect interface """
         try:
@@ -392,7 +392,7 @@ class MachineModel:
             self._log.error("cannot retrieve interconnect interface, "
                             "mandatory for component starting")
             return ""
-    
+
     def get_interconnect_address(self):
         """ get the interconnect IPv4 address """
         try:
@@ -401,7 +401,7 @@ class MachineModel:
             self._log.error("cannot retrieve IPv4 interconnect address, "
                             "mandatory for component starting")
             return ""
-    
+
     def get_state_port(self):
         """ get the state server port """
         return int(self._state_port)
@@ -469,9 +469,9 @@ class MachineModel:
 
     def set_gw_id(self, gw_id):
         self._gw_id = gw_id
-    
+
     def get_spot_id(self):
         return self._spot_id
-    
+
     def set_spot_id(self, spot_id):
         self._spot_id = spot_id

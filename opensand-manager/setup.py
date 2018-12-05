@@ -21,7 +21,7 @@ data_files = ['opensand.glade']
 
 setup(
     name="opensand-manager",
-    version="5.0.0",
+    version="5.1.0",
     author="Julien Bernard",
     author_email="jbernard@toulouse.viveris.com",
     description=("Manager for OpenSAND emulation testbed"),
