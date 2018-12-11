@@ -71,7 +71,7 @@ public:
 
 	bool getData(unsigned char* buffer, size_t len) const;
 
-	string getStrData() const;	
+	string getStrData() const;
 	
 private:
 	Probe(uint8_t id, const string &name,

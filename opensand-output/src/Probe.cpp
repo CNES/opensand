@@ -91,6 +91,30 @@ bool Probe<float>::getData(unsigned char* buffer, size_t len) const
 }
 
 template<>
+string Probe<float>::getStrData() const
+{
+	std::stringstream strs;
+	strs.setf(std::ios_base::fixed);
+	strs.precision(12);
+	float val = this->get();
+	strs << val;
+
+	return strs.str();
+}
+
+template<>
+string Probe<double>::getStrData() const
+{
+	std::stringstream strs;
+	strs.setf(std::ios_base::fixed);
+	strs.precision(12);
+	float val = this->get();
+	strs << val;
+
+	return strs.str();
+}
+
+template<>
 bool Probe<double>::getData(unsigned char* buffer, size_t len) const
 {
 	if(!buffer || this->Probe<double>::getDataSize() < len)
