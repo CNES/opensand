@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-gse-encap-plugin, 5.1.0, [http://opensand.org])
+AC_INIT(opensand-gse-encap-plugin, 5.1.1, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -39,12 +39,12 @@ LIBS="$OPENSAND_GSE_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_GSE_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-conf library
-PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf = 5.1.0])
+PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf = 5.1.1])
 LIBS="$OPENSAND_CONF_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_CONF_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-plugin library
-PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_plugin = 5.1.0])
+PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_plugin = 5.1.1])
 LIBS="$OPENSAND_PLUG_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_PLUG_CFLAGS $AM_CPPFLAGS")
 
