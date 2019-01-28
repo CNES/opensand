@@ -1,7 +1,8 @@
-2018-12-05 opensand-5.1.1
+2018-01-28 opensand-5.1.1
 
    * Release 5.1.1
    * Fix float probe sending
+   * Fix deletion of the PID file of the daemon
 
 2018-12-05 opensand-5.1.0
 
