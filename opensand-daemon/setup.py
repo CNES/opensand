@@ -38,7 +38,7 @@ route_capi = Extension('netlink/route/_capi',
 
 setup(
     name="opensand-daemon",
-    version="5.1.0",
+    version="5.1.1",
     author="Julien Bernard",
     author_email="jbernard@toulouse.viveris.com",
     description=("Daemon for OpenSAND entity (sat, gw, st or ws)"),

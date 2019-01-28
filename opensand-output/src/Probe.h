@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2018 TAS
+ * Copyright © 2019 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -45,6 +45,7 @@
 #include <sstream>
 
 #include <pthread.h>
+
 using std::string;
 
 /**
@@ -167,6 +168,29 @@ size_t Probe<T>::getDataSize() const
 	return sizeof(this->accumulator);
 }
 
+template<>
+uint8_t Probe<int32_t>::storageTypeId();
+
+template<>
+uint8_t Probe<float>::storageTypeId();
+
+template<>
+uint8_t Probe<double>::storageTypeId();
+
+template<>
+bool Probe<int32_t>::getData(unsigned char* buffer, size_t len) const;
+
+template<>
+bool Probe<float>::getData(unsigned char* buffer, size_t len) const;
+
+template<>
+bool Probe<double>::getData(unsigned char* buffer, size_t len) const;
+
+template<>
+string Probe<float>::getStrData() const;
+
+template<>
+string Probe<double>::getStrData() const;
 
 #endif
 

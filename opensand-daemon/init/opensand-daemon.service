@@ -8,7 +8,8 @@ After=systemd-journald-dev-log.socket
 
 [Service]
 Type=forking
-ExecStart=/usr/bin/sand-daemon -c /etc/opensand/daemon.conf -q -v
+PIDFile=/var/run/sand-daemon/pid
+ExecStart=/usr/bin/sand-daemon -c /etc/opensand/daemon.conf -p /var/run/sand-daemon/pid -q -v
 ExecStartPre=/bin/bash -c "mkdir -p /var/run/sand-daemon && chown opensand /var/run/sand-daemon/"
 ExecStartPre=/usr/libexec/opensand/write_initialize_config
 
