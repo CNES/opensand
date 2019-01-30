@@ -157,7 +157,7 @@ uint8_t OutputInternal::getBaseProbeId(BaseProbe *probe) const
 
 uint8_t OutputInternal::getStorageTypeId(BaseProbe *probe) const
 {
-	return probe->storageTypeId();	
+	return (uint8_t)probe->getDataType();
 }
 
 string OutputInternal::getLogName(const OutputLog *log) const

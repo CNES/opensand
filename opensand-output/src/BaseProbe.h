@@ -55,6 +55,12 @@ enum sample_type_t
 	SAMPLE_SUM     /*!< Calculate the sum */
 };
 
+enum datatype_t {
+	INT32_TYPE = 0,
+	FLOAT_TYPE = 1,
+	DOUBLE_TYPE = 2
+};
+
 /**
  * @class the probe representation
  */
@@ -63,6 +69,7 @@ class BaseProbe
 	friend class OutputInternal;
 
 public:
+
 	virtual ~BaseProbe();
 
 	/**
@@ -101,29 +108,22 @@ public:
 	virtual bool getData(unsigned char* buffer, size_t len) const = 0;
 
 	/**
-	 * @brief get data in string
+	 * @brief get data type
 	 *
-	 * @return data 
-	 **/
-	virtual string getStrData() const = 0;
+	 * @return data type
+	 */
+	virtual datatype_t getDataType() const = 0;
 
 	/**
 	 * @brief reset values count
 	 *
 	 **/
 	void reset();
-		
+
 protected:
 	BaseProbe(uint8_t id, const string &name,
 	          const string &unit,
 	          bool enabled, sample_type_t type);
-
-	/**
-	 * @brief get the storage type ID
-	 *
-	 * @return the sorage type ID
-	 */
-	virtual uint8_t storageTypeId() = 0;
 
 	/// the probe ID
 	uint8_t id;

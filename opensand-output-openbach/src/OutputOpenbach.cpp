@@ -156,7 +156,7 @@ bool OutputOpenbach::sendRegister(OutputLog *log)
 
 void OutputOpenbach::sendProbes(void)
 {
-	std::unordered_map<string, string> stats;
+	json::JSON stats;
 
 	long double timestamp;
 	
@@ -169,15 +169,47 @@ void OutputOpenbach::sendProbes(void)
 	for(size_t i = 0 ; i < this->probes.size() ; i++)
 	{
 		BaseProbe *probe = this->probes[i];
-		if(this->getValueCount(probe) != 0)
+		if(this->getValueCount(probe) == 0)
 		{
-			stats[probe->getName()] = probe->getStrData();
-			probe->reset();
+			continue;
 		}
+		switch(probe->getDataType())
+		{
+			case INT32_TYPE:
+			{
+				Probe<int32_t> *iprobe = dynamic_cast<Probe<int32_t> *>(probe);
+				if(iprobe != NULL)
+				{
+					stats[probe->getName()] = iprobe->get();
+				}
+				break;
+			}
+
+			case FLOAT_TYPE:
+			{
+				Probe<float> *fprobe = dynamic_cast<Probe<float> *>(probe);
+				if(fprobe != NULL)
+				{
+					stats[probe->getName()] = fprobe->get();
+				}
+				break;
+			}
+
+			case DOUBLE_TYPE:
+			{
+				Probe<double> *dprobe = dynamic_cast<Probe<double> *>(probe);
+				if(dprobe != NULL)
+				{
+					stats[probe->getName()] = dprobe->get();
+				}
+				break;
+			}
+		}
+		probe->reset();
 	}
 	this->mutex.releaseLock();
 
-	if(stats.empty())
+	if(stats.size() <= 0)
 	{
 		return;
 	}

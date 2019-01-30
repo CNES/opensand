@@ -72,14 +72,12 @@ public:
 
 	bool getData(unsigned char* buffer, size_t len) const;
 
-	string getStrData() const;
-	
+	datatype_t getDataType() const;
+
 private:
 	Probe(uint8_t id, const string &name,
 	      const string &unit,
 	      bool enabled, sample_type_t type);
-	
-	virtual uint8_t storageTypeId();
 
 	/// the concatenation of all values
 	T accumulator;
@@ -153,29 +151,19 @@ T Probe<T>::get() const
 }
 
 template<typename T>
-string Probe<T>::getStrData() const
-{
-	std::stringstream strs;
-	T val = this->get();
-	strs << val;
-
-	return strs.str();
-}
-
-template<typename T>
 size_t Probe<T>::getDataSize() const
 {
 	return sizeof(this->accumulator);
 }
 
 template<>
-uint8_t Probe<int32_t>::storageTypeId();
+datatype_t Probe<int32_t>::getDataType() const;
 
 template<>
-uint8_t Probe<float>::storageTypeId();
+datatype_t Probe<float>::getDataType() const;
 
 template<>
-uint8_t Probe<double>::storageTypeId();
+datatype_t Probe<double>::getDataType() const;
 
 template<>
 bool Probe<int32_t>::getData(unsigned char* buffer, size_t len) const;
@@ -185,12 +173,6 @@ bool Probe<float>::getData(unsigned char* buffer, size_t len) const;
 
 template<>
 bool Probe<double>::getData(unsigned char* buffer, size_t len) const;
-
-template<>
-string Probe<float>::getStrData() const;
-
-template<>
-string Probe<double>::getStrData() const;
 
 #endif
 

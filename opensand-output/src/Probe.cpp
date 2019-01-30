@@ -39,21 +39,21 @@
 
 
 template<>
-uint8_t Probe<int32_t>::storageTypeId()
+datatype_t Probe<int32_t>::getDataType() const
 {
-	return 0;
+	return INT32_TYPE;
 }
 
 template<>
-uint8_t Probe<float>::storageTypeId()
+datatype_t Probe<float>::getDataType() const
 {
-	return 1;
+	return FLOAT_TYPE;
 }
 
 template<>
-uint8_t Probe<double>::storageTypeId()
+datatype_t Probe<double>::getDataType() const
 {
-	return 2;
+	return DOUBLE_TYPE;
 }
 
 template<>
@@ -88,30 +88,6 @@ bool Probe<float>::getData(unsigned char* buffer, size_t len) const
 	memcpy(buffer, &data, sizeof(data));
 
 	return true;
-}
-
-template<>
-string Probe<float>::getStrData() const
-{
-	std::stringstream strs;
-	strs.setf(std::ios_base::fixed);
-	strs.precision(12);
-	float val = this->get();
-	strs << val;
-
-	return strs.str();
-}
-
-template<>
-string Probe<double>::getStrData() const
-{
-	std::stringstream strs;
-	strs.setf(std::ios_base::fixed);
-	strs.precision(12);
-	float val = this->get();
-	strs << val;
-
-	return strs.str();
 }
 
 template<>
