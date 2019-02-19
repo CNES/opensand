@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-output-openbach, 5.1.1, [http://opensand.org])
+AC_INIT(opensand-output-openbach, 5.1.2, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -34,6 +34,12 @@ AC_CHECK_FUNCS([malloc free])
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
 CXXFLAGS="$CXXFLAGS -std=c++0x"
+
+# check for opensand-output library
+PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 5.1.2])
+LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
+AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
+
 # check if -Werror must be appended to CFLAGS
 WERROR=""
 AC_ARG_ENABLE(fail_on_warning,

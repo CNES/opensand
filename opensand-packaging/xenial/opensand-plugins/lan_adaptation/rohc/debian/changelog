@@ -1,3 +1,9 @@
+opensand-rohc-lan-adapt-plugin (5.1.2) xenial; urgency=low
+
+  * Release 5.1.2
+
+ -- adelrieu <adelrieu@toulouse.viveris.com>  Tue, 19 Feb 2019 09:15:54 +0100
+
 opensand-rohc-lan-adapt-plugin (5.1.1) xenial; urgency=low
 
   * Release 5.1.1
