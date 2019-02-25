@@ -54,7 +54,6 @@ using std::string;
 struct la_specific
 {
 	string tuntap_iface;
-	string lan_iface;
 };
 
 /**
@@ -197,8 +196,6 @@ class BlockLanAdaptation: public Block
 
 	/// The TUN/TAP interface name
 	string tuntap_iface;
-	/// The LAN interface name
-	string lan_iface;
 
 	/// whether we handle a TAP interface or a TUN interface
 	bool is_tap;
@@ -210,20 +207,6 @@ class BlockLanAdaptation: public Block
 	 * @return  true on success, false otherwise
 	 */
 	bool allocTunTap(int &fd);
-
-	/**
-	 * @brief add LAN interface in bridge
-	 *
-	 * return true on success, false otherwise
-	 */
-	bool addInBridge();
-
-	/**
-	 * @brief remove LAN interface from bridge
-	 *
-	 * return true on success, false otherwise
-	 */
-	bool delFromBridge();
 };
 
 #endif
