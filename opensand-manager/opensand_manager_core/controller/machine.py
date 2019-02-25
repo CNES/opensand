@@ -250,22 +250,18 @@ class MachineController:
         instance_param = ''
         if component.startswith(ST) or component.startswith(GW):
             instance_param = '-i ' + self._machine_model.get_instance()
-        lan_iface = ''
+        tuntap_iface = ''
         if component not in {SAT, GW_PHY}:
-            lan_iface = '-l ' + self._machine_model.get_lan_interface()
-            print('get_lan_adaptation: {}'.format(
-                self._machine_model.get_lan_adaptation()
-            ))
             if self._machine_model.get_lan_adaptation()['0'] == 'IP':
-                lan_iface += ' -t opensand_tun'
+                tuntap_iface += '-t opensand_tun'
             else:
-                lan_iface += ' -t opensand_tap'
+                tuntap_iface += '-t opensand_tap'
         output_libpath = self._machine_model.get_output_libpath()
         if output_libpath:
             output_libpath = '-e ' + output_libpath
         if component == GW_NET_ACC:
             command_line = '%s %s %s -u %s -w %s %s -c %s' % \
-                           (bin_file, instance_param, lan_iface,
+                           (bin_file, instance_param, tuntap_iface,
                             self._machine_model.get_interconnect_interface(),
                             self._machine_model.get_interconnect_address(),
                             output_libpath,
@@ -282,7 +278,7 @@ class MachineController:
             command_line = '%s -a %s %s %s %s -c %s' % \
                            (bin_file,
                             self._machine_model.get_emulation_address(),
-                            lan_iface, instance_param,
+                            tuntap_iface, instance_param,
                             output_libpath,
                             CONF_DESTINATION_PATH)
         if not self._machine_model.is_collector_functional():
