@@ -77,16 +77,16 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, string &ip_addr, string &iface_name, string &conf_path)
+bool init_process(int argc, char **argv, string &ip_addr, string &conf_path)
 {
 	int opt;
 	bool output_enabled = true;
 	bool output_stdout = false;
 	bool stop = false;
 	string lib_external_output_path = "";
-	char entity[10];	
+	char entity[10];
 	/* setting environment agent parameters */
-	while(!stop && (opt = getopt(argc, argv, "-hqda:n:c:e:")) != EOF)
+	while(!stop && (opt = getopt(argc, argv, "-hqda:c:e:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -102,10 +102,6 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name, st
 				/// get local IP address
 				ip_addr = optarg;
 				break;
-			case 'n':
-				// get local interface name
-				iface_name = optarg;
-				break;
 			case 'c':
 				// get the configuration path
 				conf_path = optarg;
@@ -116,13 +112,12 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name, st
 				break;
 			case 'h':
 			case '?':
-				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address -n interface_name -c conf_path] -e lib_ext_output_path\n",
+				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address -c conf_path] -e lib_ext_output_path\n",
 					argv[0]);
 				fprintf(stderr, "\t-h                       print this message\n");
 				fprintf(stderr, "\t-q                       disable output\n");
 				fprintf(stderr, "\t-d                       enable output debug events\n");
 				fprintf(stderr, "\t-a <ip_address>          set the IP address\n");
-				fprintf(stderr, "\t-n <interface_name>      set the interface name\n");
 				fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
 				fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
 			stop = true;
@@ -143,7 +138,7 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name, st
 	else
 	{
 		// output initialization
-		if(!Output::init(output_enabled)) 
+		if(!Output::init(output_enabled))
 		{
 			stop = true;
 			fprintf(stderr, "Unable to initialize output library\n");
@@ -170,13 +165,6 @@ bool init_process(int argc, char **argv, string &ip_addr, string &iface_name, st
 		return false;
 	}
 
-	if(iface_name.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory interface name option\n");
-		return false;
-	}
-
 	if(conf_path.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -193,7 +181,6 @@ int main(int argc, char **argv)
 	struct sched_param param;
 	bool init_ok;
 	string ip_addr;
-	string emu_iface;
 	struct sc_specific specific;
 
 	string satellite_type;
@@ -217,9 +204,9 @@ int main(int argc, char **argv)
 	OutputEvent *status;
 
 	int is_failure = 1;
-	
+
 	// retrieve arguments on command line
-	init_ok = init_process(argc, argv, ip_addr, emu_iface, conf_path);
+	init_ok = init_process(argc, argv, ip_addr, conf_path);
 
 	plugin_conf_path = conf_path + string("plugins/");
 
@@ -265,7 +252,7 @@ int main(int argc, char **argv)
 	Output::setLevels(levels, spec_level);
 
 	// retrieve the type of satellite from configuration
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 		               SATELLITE_TYPE,
 	                   satellite_type))
 	{
@@ -337,7 +324,6 @@ int main(int argc, char **argv)
 	}
 
 	specific.ip_addr = ip_addr;
-	specific.emu_iface = emu_iface;
 	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
 	                                    BlockSatCarrier::Upward,
 	                                    BlockSatCarrier::Downward,
@@ -350,8 +336,7 @@ int main(int argc, char **argv)
 		        "%s: cannot create the SatCarrier block\n", progname);
 		goto release_plugins;
 	}
-	
-	
+
 	DFLTLOG(LEVEL_DEBUG,
 	        "All blocks are created, start\n");
 
@@ -362,7 +347,7 @@ int main(int argc, char **argv)
 	}
 	if(!Output::finishInit())
 	{
-		DFLTLOG(LEVEL_NOTICE, 
+		DFLTLOG(LEVEL_NOTICE,
 		        "%s: failed to init the output => disable it\n",
 		        progname);
 	}

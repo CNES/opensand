@@ -46,7 +46,6 @@ struct sc_specific
 {
 	tal_id_t tal_id;     ///< the terminal id for terminal
 	string ip_addr;      ///< the IP address for emulation
-	string emu_iface;    ///< the name of the emulation interface
 };
 
 /**
@@ -74,7 +73,6 @@ class BlockSatCarrier: public Block
 		Upward(const string &name, struct sc_specific specific):
 			RtUpward(name),
 			ip_addr(specific.ip_addr),
-			interface_name(specific.emu_iface),
 			tal_id(specific.tal_id),
 			in_channel_set(specific.tal_id)
 		{};
@@ -85,8 +83,6 @@ class BlockSatCarrier: public Block
 	 private:
 		/// the IP address for emulation newtork
 		string ip_addr;
-		/// the interface name for emulation newtork
-		string interface_name;
 		/// the terminal id for the emulation newtork
 		tal_id_t tal_id;
 		/// List of input channels
@@ -111,7 +107,6 @@ class BlockSatCarrier: public Block
 		Downward(const string &name, struct sc_specific specific):
 			RtDownward(name),
 			ip_addr(specific.ip_addr),
-			interface_name(specific.emu_iface),
 			tal_id(specific.tal_id),
 			out_channel_set(specific.tal_id)
 		{};
@@ -122,8 +117,6 @@ class BlockSatCarrier: public Block
 	 private:
 		/// the IP address for emulation newtork
 		string ip_addr;
-		/// the interface name for emulation newtork
-		string interface_name;
 		/// the terminal id for the emulation newtork
 		tal_id_t tal_id;
 		/// List of output channels

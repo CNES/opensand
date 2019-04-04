@@ -19,4 +19,5 @@ test_tap_CPPFLAGS = \
 test_tap_LDFLAGS =
 test_tap_LDADD = \
 	$(top_builddir)/src/lan_adaptation/libopensand_lan_adaptation.la \
+	$(top_builddir)/src/lan_adaptation/libopensand_bridge.la \
 	-lpcap

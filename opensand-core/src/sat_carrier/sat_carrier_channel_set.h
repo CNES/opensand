@@ -61,21 +61,17 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * Read data from the configuration file and create input channels
 	 *
 	 * @param local_ip_addr   The IP address for emulation network
-	 * @param interface_name  The interface name for emulation network
 	 * @return true on success, false otherwise
 	 */
-	bool readInConfig(const string local_ip_addr,
-	                  const string interface_name);
+	bool readInConfig(const string local_ip_addr);
 
 	/**
 	 * Read data from the configuration file and create output channels
 	 *
 	 * @param local_ip_addr   The IP address for emulation network
-	 * @param interface_name  The interface name for emulation network
 	 * @return true on success, false otherwise
 	 */
-	bool readOutConfig(const string local_ip_addr,
-	                   const string interface_name);
+	bool readOutConfig(const string local_ip_addr);
 
 	/**
 	 * @brief Send data on a satellite carrier
@@ -115,12 +111,10 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * Read data from the configuration file and create channels
 	 *
 	 * @param local_ip_addr   The IP address for emulation network
-	 * @param interface_name  The interface name for emulation network
 	 * @param in              Whether we want input or output channels
 	 * @return true on success, false otherwise
 	 */
 	bool readConfig(const string local_ip_addr,
-	                const string interface_name,
 	                bool in);
 
 	/// The terminal ID

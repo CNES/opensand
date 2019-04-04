@@ -48,7 +48,6 @@ void InterconnectChannelSender::initUdpChannels(unsigned int data_port, unsigned
 	                                    0, // no use for the spot ID
 	                                    false,
 	                                    true,
-	                                    this->interconnect_iface,
 	                                    data_port,
 	                                    false, // this socket is not multicast
 	                                    this->interconnect_addr,
@@ -61,7 +60,6 @@ void InterconnectChannelSender::initUdpChannels(unsigned int data_port, unsigned
 	                                   0, // no use for the spot ID
 	                                   false,
 	                                   true,
-	                                   this->interconnect_iface,
 	                                   sig_port,
 	                                   false, // this socket is not multicast
 	                                   this->interconnect_addr,
@@ -174,7 +172,6 @@ void InterconnectChannelReceiver::initUdpChannels(unsigned int data_port, unsign
 	                                    0, // no use for the spot ID
 	                                    true,
 	                                    false,
-	                                    this->interconnect_iface,
 	                                    data_port,
 	                                    false, // this socket is not multicast
 	                                    this->interconnect_addr,
@@ -187,7 +184,6 @@ void InterconnectChannelReceiver::initUdpChannels(unsigned int data_port, unsign
 	                                   0, // no use for the spot ID
 	                                   true,
 	                                   false,
-	                                   this->interconnect_iface,
 	                                   sig_port,
 	                                   false, // this socket is not multicast
 	                                   this->interconnect_addr,

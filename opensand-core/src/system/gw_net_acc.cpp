@@ -73,23 +73,21 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, 
-                  string &lan_iface,
+bool init_process(int argc, char **argv,
+                  string &tuntap_iface,
                   tal_id_t &instance_id,
-                  string &interconnect_iface,
                   string &interconnect_addr,
                   string &conf_path)
 {
-	// TODO remove lan_iface and handle bridging in daemon
 	int opt;
 	bool output_enabled = true;
 	bool output_stdout = false;
 	bool stop = false;
 	string lib_external_output_path = "";
 	char entity[10];
-	
+
 	/* setting environment agent parameters */
-	while(!stop && (opt = getopt(argc, argv, "-hqdi:l:u:w:c:e:")) != EOF)
+	while(!stop && (opt = getopt(argc, argv, "-hqdi:t:u:w:c:e:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -105,13 +103,9 @@ bool init_process(int argc, char **argv,
 			// get instance id
 			instance_id = atoi(optarg);
 			break;
-		case 'l':
-			// get lan interface name
-			lan_iface = optarg;
-			break;
-		case 'u':
-			// Get the interconnect interface name
-			interconnect_iface = optarg;
+		case 't':
+			// get TUN/TAP interface name
+			tuntap_iface = optarg;
 			break;
 		case 'w':
 			// Get the interconnect IP address
@@ -128,14 +122,13 @@ bool init_process(int argc, char **argv,
 		case 'h':
 		case '?':
 			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id "
-			        "-l lan_iface -u interconnect_iface -w interconnect_addr -c conf_path -e lib_ext_output_path\n",
+			        "-t tuntap_iface -w interconnect_addr -c conf_path -e lib_ext_output_path\n",
 			        argv[0]);
 			fprintf(stderr, "\t-h                       print this message\n");
 			fprintf(stderr, "\t-q                       disable output\n");
 			fprintf(stderr, "\t-d                       enable output debug events\n");
-			fprintf(stderr, "\t-l <lan_iface>           set the ST lan interface name\n");
+			fprintf(stderr, "\t-t <tuntap_iface>        set the GW TUN/TAP interface name\n");
 			fprintf(stderr, "\t-i <instance>            set the instance id\n");
-			fprintf(stderr, "\t-u <interconnect_iface>  set the interconnect interface name\n");
 			fprintf(stderr, "\t-w <interconnect_addr>   set the interconnect IP address\n");
 			fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
 			fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
@@ -157,7 +150,7 @@ bool init_process(int argc, char **argv,
 	else
 	{
 		// output initialization
-		if(!Output::init(output_enabled)) 
+		if(!Output::init(output_enabled))
 		{
 			stop = true;
 			fprintf(stderr, "Unable to initialize output library\n");
@@ -175,28 +168,20 @@ bool init_process(int argc, char **argv,
 	DFLTLOG(LEVEL_NOTICE,
 	        "starting output\n");
 
-	if(lan_iface.size() == 0)
+	if(tuntap_iface.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory lan interface name option");
+		        "missing mandatory TUN/TAP interface name option");
 		return false;
 	}
-	
+
 	if(conf_path.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "missing mandatory configuration path option");
 		return false;
 	}
-	
-	if(interconnect_iface.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory interconnect interface option");
-		return false;
-	}
-	return true;
-	
+
 	if(interconnect_addr.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -211,10 +196,10 @@ int main(int argc, char **argv)
 	const char *progname = argv[0];
 	struct sched_param param;
 	bool init_ok;
-	string lan_iface;
+	string tuntap_iface;
 	tal_id_t mac_id = 0;
-	string interconnect_iface;
 	string interconnect_addr;
+	struct la_specific spec_la;
 	struct ic_specific spec_ic;
 
 	string conf_path;
@@ -237,8 +222,8 @@ int main(int argc, char **argv)
 	int is_failure = 1;
 
 	// retrieve arguments on command line
-	init_ok = init_process(argc, argv, lan_iface, mac_id,
-	                       interconnect_iface, interconnect_addr, conf_path);
+	init_ok = init_process(argc, argv, tuntap_iface, mac_id,
+	                       interconnect_addr, conf_path);
 
 	plugin_conf_path = conf_path + string("plugins/");
 
@@ -269,9 +254,9 @@ int main(int argc, char **argv)
 		        progname);
 		goto quit;
 	}
-	
+
 	OpenSandConf::loadConfig();
-	
+
 	// read all packages debug levels
 	if(!Conf::loadLevels(levels, spec_level))
 	{
@@ -291,10 +276,11 @@ int main(int argc, char **argv)
 	}
 
 	// instantiate all blocs
+	spec_la.tuntap_iface = tuntap_iface;
 	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
 	                                       BlockLanAdaptation::Upward,
 	                                       BlockLanAdaptation::Downward,
-	                                       string>("LanAdaptation", NULL, lan_iface);
+	                                       struct la_specific>("LanAdaptation", NULL, spec_la);
 	if(!block_lan_adaptation)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -324,7 +310,6 @@ int main(int argc, char **argv)
 		goto release_plugins;
 	}
 
-	spec_ic.interconnect_iface = interconnect_iface;
 	spec_ic.interconnect_addr = interconnect_addr;
 
 	block_interconnect = Rt::createBlock<BlockInterconnectDownward,

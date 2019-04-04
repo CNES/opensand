@@ -9,7 +9,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="opensand-collector",
-    version="5.1.1",
+    version="5.1.2",
     author="Vincent Duvert",
     author_email="vduvert@toulouse.viveris.com",
     description=("Statistics and events collector for OpenSAND platform"),

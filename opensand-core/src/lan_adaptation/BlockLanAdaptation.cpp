@@ -38,11 +38,6 @@
 #include "NetBurst.h"
 #include "OpenSandFrames.h"
 
-extern "C"
-{
-	#include "bridge_utils.h"
-}
-
 #include <cstdio>
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -57,9 +52,9 @@ extern "C"
 /**
  * constructor
  */
-BlockLanAdaptation::BlockLanAdaptation(const string &name, string lan_iface):
+BlockLanAdaptation::BlockLanAdaptation(const string &name, struct la_specific specific):
 	Block(name),
-	lan_iface(lan_iface),
+	tuntap_iface(specific.tuntap_iface),
 	is_tap(false)
 {
 }
@@ -69,10 +64,6 @@ BlockLanAdaptation::BlockLanAdaptation(const string &name, string lan_iface):
  */
 BlockLanAdaptation::~BlockLanAdaptation()
 {
-	if(this->is_tap)
-	{
-		this->delFromBridge();
-	}
 }
 
 bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
@@ -455,15 +446,11 @@ bool BlockLanAdaptation::allocTunTap(int &fd)
 
 	/* create TUN or TAP interface */
 	LOG(this->log_init, LEVEL_INFO,
-	    "create interface opensand_%s\n",
-	    (this->is_tap ? "tap" : "tun"));
-	snprintf(ifr.ifr_name, IFNAMSIZ, "opensand_%s",
-	        (this->is_tap ? "tap" : "tun"));
+	    "create %s interface %s\n",
+	    this->is_tap ? "TAP" : "TUN",
+	    this->tuntap_iface.c_str());
+	snprintf(ifr.ifr_name, IFNAMSIZ, this->tuntap_iface.c_str());
 	ifr.ifr_flags = (this->is_tap ? IFF_TAP : IFF_TUN);
-	if(this->is_tap && !this->addInBridge())
-	{
-		return false;
-	}
 
 	err = ioctl(fd, TUNSETIFF, (void *) &ifr);
 	if(err < 0)
@@ -480,73 +467,3 @@ bool BlockLanAdaptation::allocTunTap(int &fd)
 
 	return true;
 }
-
-
-bool BlockLanAdaptation::addInBridge()
-{
-	struct ifreq ifr_br;
-	const char *br = "opensand_br";
-	int err = -1;
-
-	memset(&ifr_br, 0, sizeof(ifr_br));
-	snprintf(ifr_br.ifr_name, IFNAMSIZ, "%s", br);
-
-	err = br_init();
-	if(err)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Failed to init bridge: %s\n", strerror(errno));
-		return false;
-	}
-
-	// remove interface if it is in bridge to avoid error when adding it
-	br_del_interface(br, this->lan_iface.c_str());
-	err = br_add_interface(br, this->lan_iface.c_str());
-	if(err)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Failed to add %s interface in bridge: %s\n",
-		    this->lan_iface.c_str(), strerror(errno));
-		br_shutdown();
-		return false;
-	}
-	br_shutdown();
-
-	// wait for bridge to be ready
-	LOG(this->log_init, LEVEL_INFO,
-	    "Wait for bridge to be ready\n");
-	sleep(10);
-	
-	return true;
-}
-
-bool BlockLanAdaptation::delFromBridge()
-{
-	struct ifreq ifr_br;
-	const char *br = "opensand_br";
-	int err = -1;
-
-	memset(&ifr_br, 0, sizeof(ifr_br));
-	snprintf(ifr_br.ifr_name, IFNAMSIZ, "%s", br);
-
-	err = br_init();
-	if(err)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Failed to init bridge: %s\n", strerror(errno));
-		return false;
-	}
-
-	err = br_del_interface(br, this->lan_iface.c_str());
-	if(err)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Failed to remove %s interface from bridge: %s\n",
-		    this->lan_iface.c_str(), strerror(errno));
-		br_shutdown();
-		return false;
-	}
-	br_shutdown();
-	return true;
-}
-

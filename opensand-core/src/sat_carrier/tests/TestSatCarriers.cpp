@@ -267,8 +267,7 @@ bool TestSatCarriers::Upward::onInit(void)
 	UdpChannel *channel;
 
 	// initialize all channels from the configuration file
-	if(!this->in_channel_set.readInConfig(this->ip_addr,
-	                                      this->interface_name))
+	if(!this->in_channel_set.readInConfig(this->ip_addr))
 	{
 		fprintf(stderr, "Wrong channel set configuration\n");
 		return false;
@@ -297,8 +296,7 @@ bool TestSatCarriers::Upward::onInit(void)
 bool TestSatCarriers::Downward::onInit()
 {
 	// initialize all channels from the configuration file
-	if(!this->out_channel_set.readOutConfig(this->ip_addr,
-	                                        this->interface_name))
+	if(!this->out_channel_set.readOutConfig(this->ip_addr))
 	{
 		fprintf(stderr, "Wrong channel set configuration\n");
 		return false;

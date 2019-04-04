@@ -65,7 +65,6 @@ class UdpChannel
 	           spot_id_t s_id,
 	           unsigned int channel_id,
 	           bool input, bool output,
-	           const string local_interface_name,
 	           unsigned short port,
 	           bool multicast,
 	           const string local_ip_addr,
@@ -94,8 +93,6 @@ class UdpChannel
 	bool send(const unsigned char *data, size_t length);
 	int receive(NetSocketEvent *const event,
 	            unsigned char **buf, size_t &data_len);
-
-	int getIfIndex(const char *name);
 
 	int getChannelFd();
 	

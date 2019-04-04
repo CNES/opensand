@@ -46,7 +46,6 @@
 
 struct ic_specific
 {
-	string interconnect_iface; // Interconnect interface name
 	string interconnect_addr; // Interconnect interface IP address
 };
 
@@ -77,7 +76,6 @@ class BlockInterconnectDownward: public Block
 		Upward(const string &name, struct ic_specific specific):
 			RtUpward(name),
 			InterconnectChannelReceiver(name + ".Upward",
-			                            specific.interconnect_iface,
 			                            specific.interconnect_addr)
 		{};
 
@@ -93,7 +91,6 @@ class BlockInterconnectDownward: public Block
 		Downward(const string &name, struct ic_specific specific):
 			RtDownward(name),
 			InterconnectChannelSender(name + ".Downward",
-			                          specific.interconnect_iface,
 			                          specific.interconnect_addr)
 		{};
 
@@ -142,7 +139,6 @@ class BlockInterconnectUpward: public Block
 		Upward(const string &name, struct ic_specific specific):
 			RtUpward(name),
 			InterconnectChannelSender(name + ".Upward",
-			                          specific.interconnect_iface,
 			                          specific.interconnect_addr)
 		{};
 
@@ -158,7 +154,6 @@ class BlockInterconnectUpward: public Block
 		Downward(const string &name, struct ic_specific specific):
 			RtDownward(name),
 			InterconnectChannelReceiver(name + ".Downward",
-			                            specific.interconnect_iface,
 			                            specific.interconnect_addr)
 		{};
 

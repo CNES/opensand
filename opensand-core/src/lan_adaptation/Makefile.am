@@ -23,8 +23,8 @@ libopensand_lan_adaptation_la_SOURCES = \
 	$(libopensand_lan_adaptation_la_cpp) \
 	$(libopensand_lan_adaptation_la_h)
 
-libopensand_lan_adaptation_la_LIBADD = \
-	libopensand_bridge.la
+#libopensand_lan_adaptation_la_LIBADD = \
+#	libopensand_bridge.la
 
 libopensand_lan_adaptation_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

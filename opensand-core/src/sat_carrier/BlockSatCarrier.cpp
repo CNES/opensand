@@ -161,8 +161,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 	UdpChannel *channel;
 
 	// initialize all channels from the configuration file
-	if(!this->in_channel_set.readInConfig(this->ip_addr,
-	                                      this->interface_name))
+	if(!this->in_channel_set.readInConfig(this->ip_addr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Wrong channel set configuration\n");
@@ -194,8 +193,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 bool BlockSatCarrier::Downward::onInit()
 {
 	// initialize all channels from the configuration file
-	if(!this->out_channel_set.readOutConfig(this->ip_addr,
-	                                        this->interface_name))
+	if(!this->out_channel_set.readOutConfig(this->ip_addr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Wrong channel set configuration\n");

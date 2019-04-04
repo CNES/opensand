@@ -59,7 +59,6 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
 
 
 bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
-                                         const string interface_name,
                                          bool in)
 {
 
@@ -355,7 +354,6 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				                         carrier_id,
 				                         is_input,
 				                         is_output,
-				                         interface_name,
 				                         carrier_port,
 				                         carrier_multicast,
 				                         local_ip_addr,
@@ -379,16 +377,14 @@ error:
 	return false;
 }
 
-bool sat_carrier_channel_set::readInConfig(const string local_ip_addr,
-                                           const string interface_name)
+bool sat_carrier_channel_set::readInConfig(const string local_ip_addr)
 {
-	return this->readConfig(local_ip_addr, interface_name, true);
+	return this->readConfig(local_ip_addr, true);
 }
 
-bool sat_carrier_channel_set::readOutConfig(const string local_ip_addr,
-                                            const string interface_name)
+bool sat_carrier_channel_set::readOutConfig(const string local_ip_addr)
 {
-	return this->readConfig(local_ip_addr, interface_name, false);
+	return this->readConfig(local_ip_addr, false);
 }
 
 bool sat_carrier_channel_set::send(uint8_t carrier_id,

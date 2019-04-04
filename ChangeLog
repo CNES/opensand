@@ -1,4 +1,9 @@
-2018-01-28 opensand-5.1.1
+2019-04-04 opensand-5.1.2
+
+   * Release 5.1.2
+   * Update OpenBACH output to new collect agent
+
+2019-01-28 opensand-5.1.1
 
    * Release 5.1.1
    * Fix float probe sending
