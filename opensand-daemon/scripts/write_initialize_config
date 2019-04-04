@@ -256,6 +256,7 @@ initialize(){
         if [ ! "${RET}" = "${INTERCONNECT_IPV4}" ]; then
             ifconfig ${INTERCONNECT_IFACE} inet 0.0.0.0 2>/dev/null
             ifconfig ${INTERCONNECT_IFACE} inet ${INTERCONNECT_IPV4} 2>/dev/null
+            ip link set ${INTERNCONNECT_IFACE} up 2>/dev/null
         fi
     fi
 
