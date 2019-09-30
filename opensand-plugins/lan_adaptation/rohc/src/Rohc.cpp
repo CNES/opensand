@@ -65,7 +65,7 @@ static void rohc_traces(void *const priv_ctx,
                         const char *const format,
                         ...)
 {
-	OutputLog *rohc_log = (OutputLog *)priv_ctx;
+  OutputLog* rohc_log = static_cast<OutputLog*>(priv_ctx);
 	log_level_t output_level = LEVEL_DEBUG;
 	char buf[1024];
 	va_list args;
@@ -156,7 +156,7 @@ bool Rohc::Context::init()
 		goto unload;
 	}
 
-	status = rohc_comp_set_traces_cb2(this->comp, rohc_traces, this->log);
+	status = rohc_comp_set_traces_cb2(this->comp, rohc_traces, this->log.get());
 	if(!status)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -190,7 +190,7 @@ bool Rohc::Context::init()
 		}
 		max_alloc = tal_id;
 		status = rohc_decomp_set_traces_cb2(this->decompressors[tal_id],
-		                                    rohc_traces, this->log);
+		                                    rohc_traces, this->log.get());
 		if(!status)
 		{
 			LOG(this->log, LEVEL_ERROR,

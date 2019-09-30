@@ -130,9 +130,9 @@ bool DamaAgentRcsCommon::init()
 	    "Default modcod id %u, modulation efficiency %u\n",
 	    this->modcod_id, this->converter->getModulationEfficiency());
 
-	this->probe_st_sent_modcod = Output::registerProbe<int>("Up_Return_modcod.Sent_modcod",
-	                                                        "modcod index",
-	                                                        true, SAMPLE_LAST);
+	this->probe_st_sent_modcod = Output::Get()->registerProbe<int>("Up_Return_modcod.Sent_modcod",
+                                                                 "modcod index",
+                                                                 true, SAMPLE_LAST);
 
 	return true;
 }

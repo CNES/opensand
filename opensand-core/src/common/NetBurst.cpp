@@ -36,7 +36,7 @@
 
 #include <opensand_output/Output.h>
 
-OutputLog *NetBurst::log_net_burst = NULL;
+std::shared_ptr<OutputLog> NetBurst::log_net_burst = nullptr;
 
 // max_packets = 0 => unlimited length
 NetBurst::NetBurst(unsigned int max_packets): list<NetPacket *>()

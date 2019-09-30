@@ -82,7 +82,7 @@ class DvbRcsStd: public PhysicStd
 		EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
 
 	// Output log and debug
-	OutputLog* log_rcv_from_down;
+	std::shared_ptr<OutputLog>  log_rcv_from_down;
 
 	/// Has encapsulation packet fixed length
 	bool has_fixed_length;

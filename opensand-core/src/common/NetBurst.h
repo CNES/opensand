@@ -145,7 +145,7 @@ class NetBurst: public list<NetPacket *>
 	string name();
 
 	/// Netburst log
-	static OutputLog *log_net_burst;
+	static std::shared_ptr<OutputLog> log_net_burst;
 };
 
 #endif

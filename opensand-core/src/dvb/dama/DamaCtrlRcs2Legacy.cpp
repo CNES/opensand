@@ -100,44 +100,26 @@ bool DamaCtrlRcs2Legacy::init()
 				return false;
 			}
 			// Output probes and stats
-			Probe<int> *probe_carrier;
+			std::shared_ptr<Probe<int>> probe_carrier;
 			unsigned int carrier_id = carriers->getCarriersId();
-			probe_carrier = this->generateCarrierCapacityProbe(
-				label,
-				carrier_id,
-				"Available");
-			this->probes_carrier_return_capacity[label].insert(
-				std::pair<unsigned int,Probe<int> *>(carrier_id,
-				                                     probe_carrier));
+			probe_carrier = this->generateCarrierCapacityProbe(label, carrier_id, "Available");
+			this->probes_carrier_return_capacity[label].emplace(carrier_id, probe_carrier);
 
-			probe_carrier = this->generateCarrierCapacityProbe(
-				label,
-				carrier_id,
-				"Remaining");
-			this->probes_carrier_return_remaining_capacity[label].insert(
-				std::pair<unsigned int, Probe<int> *>(carrier_id,
-				                                      probe_carrier));
+			probe_carrier = this->generateCarrierCapacityProbe(label, carrier_id, "Remaining");
+			this->probes_carrier_return_remaining_capacity[label].emplace(carrier_id, probe_carrier);
 
-			this->carrier_return_remaining_capacity[label].insert(
-				std::pair<unsigned int, int>(carrier_id, 0));
+			this->carrier_return_remaining_capacity[label].emplace(carrier_id, 0);
 		}
 		// Output probes and stats
-		Probe<int> *probe_category;
+		std::shared_ptr<Probe<int>> probe_category;
 
-		probe_category = this->generateCategoryCapacityProbe(
-			label,
-			"Available");
-		this->probes_category_return_capacity.insert(
-			std::pair<string,Probe<int> *>(label, probe_category));
+		probe_category = this->generateCategoryCapacityProbe(label, "Available");
+		this->probes_category_return_capacity.emplace(label, probe_category);
 
-		probe_category = this->generateCategoryCapacityProbe(
-			label,
-			"Remaining");
-		this->probes_category_return_remaining_capacity.insert(
-			std::pair<string,Probe<int> *>(label, probe_category));
+		probe_category = this->generateCategoryCapacityProbe(label, "Remaining");
+		this->probes_category_return_remaining_capacity.emplace(label, probe_category);
 
-		this->category_return_remaining_capacity.insert(
-			std::pair<string, int>(label, 0));
+		this->category_return_remaining_capacity.emplace(label, 0);
 	}
 
 	return true;

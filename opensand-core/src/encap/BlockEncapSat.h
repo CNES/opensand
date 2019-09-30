@@ -177,9 +177,9 @@ class BlockEncapSat: public Block
 			PacketHandler(StackPlugin &plugin):
 					StackPlugin::StackPacketHandler(plugin)
 			{
-				this->log = Output::registerLog(LEVEL_WARNING,
-				                                "Encap.%s",
-				                                this->getName().c_str());
+				this->log = Output::Get()->registerLog(LEVEL_WARNING,
+                                               "Encap.%s",
+                                               this->getName().c_str());
 			};
 			bool init() { return true; };
 			size_t getMinLength() const { return 0; };

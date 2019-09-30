@@ -42,7 +42,8 @@ AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memset mkdir select socket 
 
 
 # check pkg-config presence
-AC_CHECK_PROG(pkg_config, pkg-config, [yes], [AC_MSG_ERROR([pkg-config not found!])])
+PKG_PROG_PKG_CONFIG
+CXXFLAGS="$CXXFLAGS -std=c++11"
 
 
 # check for opensand-conf library

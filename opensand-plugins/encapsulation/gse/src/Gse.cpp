@@ -1057,9 +1057,8 @@ NetBurst *Gse::Context::flush(int context_id)
 		status = gse_allocate_vfrag(&this->vfrag_pkt, 0);
 		if(status != GSE_STATUS_OK)
 		{
-			LOG(this->log, LEVEL_ERROR,
-			    "cannot allocate vfrag_pkt\n");
-			return false;
+			LOG(this->log, LEVEL_ERROR, "cannot allocate vfrag_pkt\n");
+			return nullptr;
 		}
 	}
 	status = gse_duplicate_vfrag_no_alloc(&this->vfrag_pkt, context->data(),

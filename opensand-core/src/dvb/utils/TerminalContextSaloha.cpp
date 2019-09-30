@@ -52,7 +52,7 @@ TerminalContextSaloha::TerminalContextSaloha(tal_id_t tal_id):
 	oldest_id(),
 	old_count(0)
 {
-	this->log_saloha = Output::registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
+	this->log_saloha = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
 }
 
 TerminalContextSaloha::~TerminalContextSaloha()

@@ -106,16 +106,16 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	vector<CarriersGroupDama *> carriers_group;
 	vector<CarriersGroupDama *>::iterator carrier_it;
 
-	this->probe_scpc_total_capacity = Output::registerProbe<int>(
+	this->probe_scpc_total_capacity = Output::Get()->registerProbe<int>(
 		"SCPC capacity.Total.Available",
 		"Symbols per frame", true, SAMPLE_LAST);
-	this->probe_scpc_total_remaining_capacity = Output::registerProbe<int>(
+	this->probe_scpc_total_remaining_capacity = Output::Get()->registerProbe<int>(
 		"SCPC capacity.Total.Remaining",
 		"Symbols per frame", true, SAMPLE_LAST);
-	this->probe_scpc_bbframe_nbr = Output::registerProbe<int>(
+	this->probe_scpc_bbframe_nbr = Output::Get()->registerProbe<int>(
 		"SCPC BBFrame number", true, SAMPLE_AVG);
-	this->probe_sent_modcod = Output::registerProbe<int>(
-	    "Up_Return_modcod.Sent_modcod(SCPC)", "modcod index", true, SAMPLE_LAST);
+	this->probe_sent_modcod = Output::Get()->registerProbe<int>(
+    "Up_Return_modcod.Sent_modcod(SCPC)", "modcod index", true, SAMPLE_LAST);
 
 	carriers_group = this->category->getCarriersGroups();
 	for(carrier_it = carriers_group.begin();
@@ -123,12 +123,12 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	    ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-		vector<Probe<int> *> remain_probes;
-		vector<Probe<int> *> avail_probes;
+		vector<std::shared_ptr<Probe<int> > > remain_probes;
+		vector<std::shared_ptr<Probe<int> > > avail_probes;
 		unsigned int carriers_id = carriers->getCarriersId();
 	
-		Probe<int> *remain_probe;
-		Probe<int> *avail_probe;
+    std::shared_ptr<Probe<int>> remain_probe;
+    std::shared_ptr<Probe<int>> avail_probe;
 		char probe_name[128];
 		vol_sym_t carrier_size_sym = carriers->getTotalCapacity() /
 		                             carriers->getCarriersNumber();
@@ -171,30 +171,18 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 		         "SCPC capacity.Category %s.Carrier%u.%s.Remaining",
 				     this->category->getLabel().c_str(),
 				     carriers_id, type.c_str());
-		remain_probe = Output::registerProbe<int>(
-				probe_name,
-				unit,
-				true,
-				SAMPLE_AVG);
+		remain_probe = Output::Get()->registerProbe<int>(probe_name, unit, true, SAMPLE_AVG);
 		snprintf(probe_name, sizeof(probe_name),
 		         "SCPC capacity.Category %s.Carrier%u.%s.Available",
 				     this->category->getLabel().c_str(),
 				     carriers_id, type.c_str());
-		avail_probe = Output::registerProbe<int>(
-				probe_name,
-				unit,
-				true,
-				SAMPLE_AVG);
+		avail_probe = Output::Get()->registerProbe<int>(probe_name, unit, true, SAMPLE_AVG);
 
 		avail_probes.push_back(avail_probe);
 		remain_probes.push_back(remain_probe);
 
-		this->probe_scpc_available_capacity.insert(
-			std::make_pair<unsigned int, vector<Probe<int> *> >((unsigned int)carriers_id,
-			                                                    (vector<Probe<int> *>) avail_probes));
-		this->probe_scpc_remaining_capacity.insert(
-			std::make_pair<unsigned int, vector<Probe<int> *> >((unsigned int)carriers_id,
-			                                                    (vector<Probe<int> *>) remain_probes));
+		this->probe_scpc_available_capacity.emplace(carriers_id, avail_probes);
+		this->probe_scpc_remaining_capacity.emplace(carriers_id, avail_probes);
 	}
 }
 

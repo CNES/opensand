@@ -227,9 +227,6 @@ static bool test_lan_adapt(string src_filename,
 	unsigned int nbr_tests = 0;
 	bool success = false;
 
-	Output::init(false);
-	Output::enableStdlog();
-
 	// load the plugins
 	if(!Plugin::loadPlugins(false, string("/etc/opensand/plugins/")))
 	{
@@ -379,7 +376,7 @@ static bool test_lan_adapt(string src_filename,
 		}
 		success = false;
 	}
-	Output::finishInit();
+	Output::Get()->finalizeConfiguration();
 
 error:
 	return success;

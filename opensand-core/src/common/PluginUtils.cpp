@@ -56,7 +56,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer, string conf_path)
 	DIR *plugin_dir;
 	char *lib_path;
 	vector<string> path;
-	this->log_init = Output::registerLog(LEVEL_WARNING, "init");
+	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "init");
 	this->conf_path = conf_path;
 
 	lib_path = getenv("LD_LIBRARY_PATH");

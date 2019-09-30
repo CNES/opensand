@@ -189,7 +189,7 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 	};
 
 	/// The log for TTP
-	static OutputLog *ttp_log;
+	static std::shared_ptr<OutputLog> ttp_log;
 
  private:
 

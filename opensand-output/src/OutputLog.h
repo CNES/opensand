@@ -39,12 +39,13 @@
 #ifndef _OUTPUT_LOG_H
 #define _OUTPUT_LOG_H
 
+#include <string>
+#include <vector>
+#include <memory>
+#include <cstdarg>
+
 #include "OutputMutex.h"
 
-#include <string>
-#include <stdint.h>
-
-using std::string;
 
 /**
  * @brief log severity levels
@@ -63,12 +64,15 @@ enum log_level_t
 };
 
 
+class LogHandler;
+
+
 /**
  * @class Represent a log
  */
 class OutputLog
 {
-	friend class OutputInternal;
+	friend class Output;
 
  public:
 
@@ -82,51 +86,46 @@ class OutputLog
 	virtual void setDisplayLevel(log_level_t level);
 
 	/**
-	 * @brief Get the current log diaplay level
+	 * @brief Get the current log display level
 	 *
 	 * @return the current log display level
 	 */
 	log_level_t getDisplayLevel(void) const;
 
+  void addHandler(std::shared_ptr<LogHandler> handler);
+
+  void sendLog(log_level_t log_level, const char* msg_format, ...) const;
 
  protected:
 	/**
 	 * @brief create a log
 	 *
-	 * @param id             The log unique id
 	 * @param display_level  The current log level
 	 * @param name           The log name
 	 */
-	OutputLog(uint8_t id,
-	          log_level_t display_level,
-	          const string &name);
+	OutputLog(log_level_t display_level, const std::string &name);
 
 	/**
 	 * @brief Get the name of the log
 	 *
 	 * @return the name of the log
 	 **/
-	inline const string getName() const
-	{
-		return this->name;
-	};
+	inline const std::string getName() const { return this->name; };
+
+  void vSendLog(log_level_t log_level, const char* msg_format, va_list args) const;
 
 	/// The levels string representation
 	const static char *levels[];
 
-	/// The levels colors for terminal
-	const static int colors[];
-
 private:
-	/// the event ID
-	uint8_t id;
-	/// the event name
-	string name;
-	/// the level 
+  std::string name;
 	log_level_t display_level;
-	/// The lock on log (spinlock was the less consuming according to our tests)
-	mutable OutputSpinLock spinlock;
-	//mutable OutputMutex mutex;
+  std::vector<std::shared_ptr<LogHandler>> handlers;
+
+  mutable OutputMutex lock;
 };
+
+
+std::string formatMessage(const char* name, std::va_list args);
 
 #endif

@@ -107,11 +107,11 @@ class ForwardSchedulingS2: public Scheduling
 	string probe_section;
 
 	// Total and unused capacity probes
-	Probe<int> *probe_fwd_total_capacity;
-	Probe<int> *probe_fwd_total_remaining_capacity;
-	Probe<int> *probe_bbframe_nbr;
-	map<unsigned int, vector<Probe<int> *> > probe_fwd_remaining_capacity;
-	map<unsigned int, vector<Probe<int> *> > probe_fwd_available_capacity;
+  std::shared_ptr<Probe<int>> probe_fwd_total_capacity;
+  std::shared_ptr<Probe<int>> probe_fwd_total_remaining_capacity;
+  std::shared_ptr<Probe<int>> probe_bbframe_nbr;
+	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_fwd_remaining_capacity;
+	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_fwd_available_capacity;
 
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs
@@ -212,8 +212,8 @@ class ForwardSchedulingS2: public Scheduling
 	 */
 	void createProbes(vector<CarriersGroupDama *>::iterator vcm_it,
 	                  vector<CarriersGroupDama *> vcm_carriers,
-	                  vector<Probe<int> *> &remain_probes,
-	                  vector<Probe<int> *> &avail_probes,
+	                  vector<std::shared_ptr<Probe<int> > > &remain_probes,
+	                  vector<std::shared_ptr<Probe<int> > > &avail_probes,
 	                  unsigned int carriers_id);
 
 	/**

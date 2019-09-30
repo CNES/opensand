@@ -194,7 +194,7 @@ UnitConverter *DamaCtrlRcs2::generateUnitConverter() const
 		0, length_sym);
 }
 
-Probe<int> *DamaCtrlRcs2::generateGwCapacityProbe(
+std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateGwCapacityProbe(
 	string name) const
 {
 	char probe_name[128];
@@ -203,10 +203,10 @@ Probe<int> *DamaCtrlRcs2::generateGwCapacityProbe(
 	         "Spot_%d.Up/Return total capacity.%s",
 	         this->spot_id, name.c_str());
 
-	return Output::registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
+	return Output::Get()->registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
 }
 
-Probe<int> *DamaCtrlRcs2::generateCategoryCapacityProbe(
+std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCategoryCapacityProbe(
 	string category_label,
 	string name) const
 {
@@ -216,10 +216,10 @@ Probe<int> *DamaCtrlRcs2::generateCategoryCapacityProbe(
 	         "Spot_%d.%s.Up/Return capacity.Total.%s",
 	         this->spot_id, category_label.c_str(), name.c_str());
 
-	return Output::registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
+	return Output::Get()->registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
 }
 
-Probe<int> *DamaCtrlRcs2::generateCarrierCapacityProbe(
+std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCarrierCapacityProbe(
 	string category_label,
 	unsigned int carrier_id,
 	string name) const
@@ -230,7 +230,7 @@ Probe<int> *DamaCtrlRcs2::generateCarrierCapacityProbe(
 	         "Spot_%d.%s.Up/Return capacity.Carrier%u.%s",
 	         this->spot_id, category_label.c_str(), carrier_id, name.c_str());
 
-	return Output::registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
+	return Output::Get()->registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
 }
 
 bool DamaCtrlRcs2::resetCarriersCapacity()
@@ -280,21 +280,15 @@ bool DamaCtrlRcs2::resetCarriersCapacity()
 			if(this->probes_carrier_return_capacity[label].find(carrier_id)
 			   == this->probes_carrier_return_capacity[label].end())
 			{
-				Probe<int> *probe = this->generateCarrierCapacityProbe(
-					label,
-					carrier_id,
-					"Available");
-				this->probes_carrier_return_capacity[label].insert(
-				    std::pair<unsigned int,Probe<int> *>(carrier_id, probe));
+				auto probe = this->generateCarrierCapacityProbe(label, carrier_id, "Available");
+				this->probes_carrier_return_capacity[label].emplace(carrier_id, probe);
 			}
 			if(this->carrier_return_remaining_capacity[label].find(carrier_id)
 			   == this->carrier_return_remaining_capacity[label].end())
 			{
-				this->carrier_return_remaining_capacity[label].insert(
-				    std::pair<unsigned int, int>(carrier_id, 0));
+				this->carrier_return_remaining_capacity[label].emplace(carrier_id, 0);
 			}
-			this->probes_carrier_return_capacity[label][carrier_id]
-				->put(remaining_capacity_symps);
+			this->probes_carrier_return_capacity[label][carrier_id]->put(remaining_capacity_symps);
 			gw_return_total_capacity_symps += remaining_capacity_symps;
 			category_return_capacity_symps += remaining_capacity_symps;
 			this->carrier_return_remaining_capacity[label][carrier_id] = remaining_capacity_symps;

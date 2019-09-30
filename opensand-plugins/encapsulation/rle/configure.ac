@@ -31,6 +31,7 @@ AC_CHECK_FUNCS([])
 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
+CXXFLAGS="$CXXFLAGS -std=c++11"
 
 # check for rle library
 PKG_CHECK_MODULES([OPENSAND_RLE], [rle >= 1.7.2], [])

@@ -77,8 +77,7 @@ class TerminalCategory
 		other_carriers()
 	{
 		// Output log
-		this->log_terminal_category = Output::registerLog(LEVEL_WARNING,
-		                                                  "Dvb.Ncc.Band");
+		this->log_terminal_category = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Ncc.Band");
 	};
 
 	virtual ~TerminalCategory()
@@ -673,7 +672,7 @@ class TerminalCategory
 
  protected:
 	// Output Log
-	OutputLog *log_terminal_category;
+  std::shared_ptr<OutputLog> log_terminal_category;
 
 	/** List of terminals. */
 	vector<TerminalContext *> terminals;

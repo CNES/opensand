@@ -144,7 +144,7 @@ class IpPacket: public NetPacket
 	virtual bool isValid() const = 0;
 
 	/// The IP packet log
-	static OutputLog *ip_log;
+	static std::shared_ptr<OutputLog> ip_log;
 };
 
 #endif

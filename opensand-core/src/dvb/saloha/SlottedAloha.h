@@ -103,9 +103,9 @@ class SlottedAloha
 	bool isSalohaFrameTick(time_sf_t superframe_counter);
 
 	/// The slotted aloha logger
-	OutputLog *log_saloha;
+	std::shared_ptr<OutputLog> log_saloha;
 	/// The init logger
-	OutputLog *log_init;
+	std::shared_ptr<OutputLog> log_init;
 
 };
 

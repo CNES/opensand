@@ -84,7 +84,7 @@ static uint32_t crc_table[2560] =
 };
 
 
-OutputLog *UlePacket::ule_log = NULL;
+std::shared_ptr<OutputLog> UlePacket::ule_log = nullptr;
 
 UlePacket::UlePacket(const unsigned char *data, size_t length):
 	NetPacket(data, length)

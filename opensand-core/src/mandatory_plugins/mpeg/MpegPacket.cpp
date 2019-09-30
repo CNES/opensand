@@ -37,7 +37,7 @@
 #include <opensand_output/Output.h>
 
 
-OutputLog *MpegPacket::mpeg_log = NULL;
+std::shared_ptr<OutputLog> MpegPacket::mpeg_log = nullptr;
 
 MpegPacket::MpegPacket(const unsigned char *data, size_t length):
 	NetPacket(data, length)

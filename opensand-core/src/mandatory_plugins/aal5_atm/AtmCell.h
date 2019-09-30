@@ -184,7 +184,7 @@ class AtmCell: public NetPacket
 	static uint8_t getVpi(NetPacket *packet); 
 
 	/// The ATM cell log
-	static OutputLog *atm_log;
+	static std::shared_ptr<OutputLog> atm_log;
 };
 
 #endif

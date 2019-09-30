@@ -208,14 +208,14 @@ class BlockDvbTal: public BlockDvb
 		/* Output probes and stats */
 			// Rates
 					// Layer 2 from SAT
-		Probe<int> *probe_st_l2_from_sat;
+		std::shared_ptr<Probe<int>> probe_st_l2_from_sat;
 		int l2_from_sat_bytes;
 			// Physical layer information
-		Probe<int> *probe_st_required_modcod;
-		Probe<int> *probe_st_received_modcod;
-		Probe<int> *probe_st_rejected_modcod;
+		std::shared_ptr<Probe<int>> probe_st_required_modcod;
+		std::shared_ptr<Probe<int>> probe_st_received_modcod;
+		std::shared_ptr<Probe<int>> probe_st_rejected_modcod;
 			// Stability
-		Probe<float> *probe_sof_interval;
+    std::shared_ptr<Probe<float>> probe_sof_interval;
 	};
 
 
@@ -434,30 +434,30 @@ class BlockDvbTal: public BlockDvb
 		event_id_t qos_server_timer;   ///< The timer for connection retry to QoS Server
 
 		// Output events
-		OutputEvent *event_login;
+    std::shared_ptr<OutputEvent> event_login;
 
 		// Output Logs
-		OutputLog *log_frame_tick;
-		OutputLog *log_qos_server;
+		std::shared_ptr<OutputLog> log_frame_tick;
+		std::shared_ptr<OutputLog> log_qos_server;
 		/// log for slotted aloha
-		OutputLog *log_saloha;
+		std::shared_ptr<OutputLog> log_saloha;
 
 		/* Output probes and stats */
 			// Queue sizes
-		map<unsigned int, Probe<int> *> probe_st_queue_size;
-		map<unsigned int, Probe<int> *> probe_st_queue_size_kb;
+		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size;
+		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size_kb;
 			// Queue loss
-		map<unsigned int, Probe<int> *> probe_st_queue_loss;
-		map<unsigned int, Probe<int> *> probe_st_queue_loss_kb;
+		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss;
+		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss_kb;
 			// Rates
 				// Layer 2 to SAT
-		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_before_sched;
+		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_before_sched;
 		map<unsigned int, int> l2_to_sat_cells_before_sched;
-		map<unsigned int, Probe<int> *> probe_st_l2_to_sat_after_sched;
+		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_after_sched;
 		int l2_to_sat_total_bytes;
-		Probe<int> *probe_st_l2_to_sat_total;
+		std::shared_ptr<Probe<int>> probe_st_l2_to_sat_total;
 				// PHY to SAT
-		Probe<int> *probe_st_phy_to_sat;
+		std::shared_ptr<Probe<int>> probe_st_phy_to_sat;
 				// Layer 2 from SAT
 	};
 

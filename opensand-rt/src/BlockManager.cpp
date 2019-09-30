@@ -209,7 +209,7 @@ bool BlockManager::init(void)
 	//setrlimit(RLIMIT_CORE, &core_limits);
 
 	// Output log
-	this->log_rt = Output::registerLog(LEVEL_WARNING, "Rt");
+	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "Rt");
 
 	for(list<Block*>::iterator iter = this->block_list.begin();
 	    iter != this->block_list.end(); iter++)

@@ -71,7 +71,7 @@ BlockEncap::BlockEncap(const string &name, tal_id_t mac_id):
 	mac_id(mac_id)
 {
 	// register static log
-	NetBurst::log_net_burst = Output::registerLog(LEVEL_WARNING, "NetBurst");
+	NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
 }
 
 BlockEncap::~BlockEncap()

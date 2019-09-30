@@ -121,8 +121,8 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	tal_id_t tal_id;
 
 	// Output Log
-	OutputLog *log_init;
-	OutputLog *log_sat_carrier;
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_sat_carrier;
 };
 
 #endif

@@ -9,32 +9,26 @@ lib_LTLIBRARIES = libopensand_output.la
 
 libopensand_output_la_cpp = \
 	BaseProbe.cpp \
-	CommandThread.cpp \
-	Messages.cpp \
 	Output.cpp \
-	OutputInternal.cpp \
+	OutputEvent.cpp \
 	OutputLog.cpp \
-	OutputMutex.cpp \
-	OutputOpensand.cpp \
+	OutputHandler.cpp \
 	Probe.cpp
-    
+
 libopensand_output_la_h = \
 	BaseProbe.h \
-	CommandThread.h \
-	Messages.h \
 	Output.h \
 	OutputEvent.h \
-	OutputInternal.h \
 	OutputLog.h \
+	OutputHandler.h \
 	OutputMutex.h \
-	OutputOpensand.h \
 	Probe.h
 
 libopensand_output_la_SOURCES = \
 	$(libopensand_output_la_cpp) \
 	$(libopensand_output_la_h)
 
-libopensand_output_la_LDFLAGS = -lpthread -lrt -ldl
+libopensand_output_la_LDFLAGS = -lpthread -lrt -ldl -lstdc++fs
 
 test_output_SOURCES = test_output.cpp
 test_output_LDADD = libopensand_output.la
@@ -45,9 +39,8 @@ libopensand_output_include_HEADERS = \
 	BaseProbe.h \
 	Output.h \
 	OutputEvent.h \
-	OutputInternal.h \
 	OutputLog.h \
+	OutputHandler.h \
 	OutputMutex.h \
-	OutputOpensand.h \
 	Probe.h
 

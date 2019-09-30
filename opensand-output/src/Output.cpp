@@ -34,277 +34,463 @@
  * @author Alban FRICOT <africot@toulouse.viveris.com>
  */
 
+
+#include <stdexcept>
+#include <iostream>
+#include <sstream>
+#include <unordered_map>
+
 #include "Output.h"
+#include "OutputEvent.h"
+#include "OutputHandler.h"
 
-OutputInternal *Output::instance = NULL;
 
-void *Output::handle = NULL;
+class AlreadyExistsError : public std::runtime_error {
+  public:
+    explicit AlreadyExistsError(const std::string& what_arg) : std::runtime_error(what_arg) {}
+};
 
-bool Output::init(bool enabled, const char *sock_prefix)
+
+class OutputUnit;
+
+
+class OutputItem
 {
-	// Check instance is not already initialized
-	if(instance)
-	{
-		return false;
-	}
+  public:
+    OutputItem(const std::string& name, const std::string& full_name) : name(name), full_name(full_name) {}
+    virtual ~OutputItem() {}
 
-	// Create the OpenSAND instance
-	instance = new OutputOpensand(sock_prefix);
-	if(!instance)
-	{
-		fputs ("Instance failed to be initialized", stderr);
-		return false;
-	}
+    std::string getFullName() const { return full_name; }
 
-	// Initialize instance
-	return instance->init(enabled);
-}
+    virtual void setLogLevel(log_level_t level) = 0;
+    virtual void enableStats(bool enabled) = 0;
+    virtual void gatherEnabledStats(std::vector<std::shared_ptr<BaseProbe>>& probes) const = 0;
 
-bool Output::initExt(bool enabled, const char *entity, const char *path)
+  protected:
+    std::string buildChildFullName(const std::string& name) const {
+      std::string newFullName = full_name + "." + name;
+      if (this->name.empty()) {
+        newFullName = name;
+      }
+      return newFullName;
+    }
+
+    std::string name;
+    std::string full_name;
+};
+
+
+class Output::OutputSection : public OutputItem
 {
-	char *error;
+  public:
+    OutputSection(const std::string& name, const std::string& full_name) : OutputItem(name, full_name) {}
+    ~OutputSection() { children.clear(); }
 
-	// Check instance is not already initialized
-	if(instance)
-	{
-		return false;
-	}
+    void setLogLevel(log_level_t level) {
+      for (auto& child : children) {
+        child.second->setLogLevel(level);
+      }
+    }
+    void enableStats(bool enabled) {
+      for (auto& child : children) {
+        child.second->enableStats(enabled);
+      }
+    }
 
-	// Get the handle of the library
-	handle = dlopen(path, RTLD_LAZY);
-	if(!handle)
-	{
-		fputs (dlerror(), stderr);
-		return false;
-	}
+    void gatherEnabledStats(std::vector<std::shared_ptr<BaseProbe>>& probes) const {
+      for (auto& child : children) {
+        child.second->gatherEnabledStats(probes);
+      }
+    }
 
-	create_func_t *create;
-	destroy_func_t *destroy;
+    std::shared_ptr<OutputSection> findSection(const std::string& name) {
+      auto child = children.find(name);
+      std::shared_ptr<OutputSection> unit;
 
-	// Get the destroy function of the library (only to check it exists)
-	destroy = (destroy_func_t *)dlsym(handle, "destroy");
-	if((error = dlerror()) != NULL)
-	{
-		fputs (error, stderr);
-		return false;
-	}
+      if (child == children.end()) {
+        unit = std::make_shared<OutputSection>(name, buildChildFullName(name));
+        children.emplace(name, unit);
+      } else {
+        unit = std::dynamic_pointer_cast<OutputSection>(child->second);
+        if (unit == nullptr) {
+          std::stringstream message;
+          message << "Searching for section " << buildChildFullName(name) << " but found Unit instead!";
+          throw AlreadyExistsError(message.str());
+        }
+      }
+      return unit;
+    }
+    std::shared_ptr<OutputUnit> findUnit(const std::string& name) {
+      auto child = children.find(name);
+      std::shared_ptr<OutputUnit> unit;
 
-	// Get the create function of the library
-	create = (create_func_t *)dlsym(handle, "create");
-	if((error = dlerror()) != NULL)
-	{
-		fputs (error, stderr);
-		return false;
-	}
+      if (child == children.end()) {
+        unit = std::make_shared<OutputUnit>(name, buildChildFullName(name));
+        children.emplace(name, unit);
+      } else {
+        unit = std::dynamic_pointer_cast<OutputUnit>(child->second);
+        if (unit == nullptr) {
+          std::stringstream message;
+          message << "Searching for unit " << buildChildFullName(name) << " but found Section instead!";
+          throw AlreadyExistsError(message.str());
+        }
+      }
+      return unit;
+    }
+    std::shared_ptr<OutputItem> find(const std::string& name) const {
+      auto child = children.find(name);
+      if (child == children.end()) {
+        return nullptr;
+      }
+      return child->second;
+    }
 
-	// Create instance
-	instance = (*create)(entity);
+  private:
+    std::unordered_map<std::string, std::shared_ptr<OutputItem>> children;
+};
 
-	// Initialize instance
-	instance->init(enabled);
 
-	return true;
-}
-
-bool Output::isInit()
+class OutputUnit : public OutputItem
 {
-	return (instance != NULL);
-}
+  public:
+    OutputUnit(const std::string& name, const std::string& full_name) : OutputItem(name, full_name), log(nullptr) {}
 
-void Output::close()
-{
-	char *error;
+    ~OutputUnit() {
+      log = nullptr;
+      stats.clear();
+    }
 
-	// Check instance is initialized
-	if(!instance)
-	{
-		return;
-	}
+    void setLog(std::shared_ptr<OutputLog> log) {
+      if (this->log != nullptr) {
+        std::stringstream message;
+        message << "Log " << full_name << " already created!";
+        throw AlreadyExistsError(message.str());
+      }
+      this->log = log;
+    }
 
-	// Check instance is an OutputOpensand
-	if(!handle)
-	{
-		// Reset instance
-		delete instance;
-		instance = NULL;
-		return;
-	}
+    void setLogLevel(log_level_t level) {
+      if (log != nullptr) {
+        log->setDisplayLevel(level);
+      }
+    }
+    void enableStats(bool enabled) {
+      for (auto& stat : stats) {
+        stat.second->enable(enabled);
+      }
+    }
 
-	destroy_func_t *destroy;
+    void gatherEnabledStats(std::vector<std::shared_ptr<BaseProbe>>& probes) const {
+      for (auto& stat : stats) {
+        if (stat.second->isEnabled()) {
+          probes.push_back(stat.second);
+        }
+      }
+    }
 
-	// Get the destroy function of the library
-	destroy = (destroy_func_t *)dlsym(handle, "destroy");
-	if((error = dlerror()) != NULL)
-	{
-		fputs (error, stderr);
-		return;
-	}
+    void setStat(const std::string& name, std::shared_ptr<BaseProbe> probe) {
+      auto child = stats.find(name);
+      if (child != stats.end()) {
+        std::stringstream message;
+        message << "Stat " << name << " already exists in unit " << full_name;
+        throw AlreadyExistsError(message.str());
+      }
 
-	// Destroy instance
-	destroy(&instance);
-	instance = NULL;
+      stats.emplace(name, probe);
+    }
+    template<typename T>
+    std::shared_ptr<Probe<T>> getStat(const std::string& name) const {
+      auto stat = stats.find(name);
+      if (stat == stats.end()) {
+        return nullptr;
+      }
+      return std::dynamic_pointer_cast<Probe<T>>(stat->second);
+    }
+    std::shared_ptr<OutputLog> getLog() const { return log; }
 
-	// Close the handle
-	dlclose(handle);
-	handle = NULL;
-}
-
-
-OutputEvent *Output::registerEvent(const string &identifier)
-{
-	return instance->registerEvent(identifier);
-}
-
-OutputLog *Output::registerLog(log_level_t display_level,
-                               const string &name)
-{
-	return instance->registerLog(display_level, name);
-}
-
-OutputEvent *Output::registerEvent(const char *identifier, ...)
-{
-	char buf[1024];
-	va_list args;
-
-	va_start(args, identifier);
-
-	vsnprintf(buf, sizeof(buf), identifier, args);
-
-	va_end(args);
-
-	return Output::registerEvent(string(buf));
-}
-
-OutputLog *Output::registerLog(log_level_t default_display_level,
-                               const char* name, ...)
-{
-	char buf[1024];
-	va_list args;
-
-	va_start(args, name);
-
-	vsnprintf(buf, sizeof(buf), name, args);
-
-	va_end(args);
-
-	return Output::registerLog(default_display_level, string(buf));
-}
-
-bool Output::finishInit(void)
-{
-	if(!instance)
-	{
-		return false;
-	}
-	return instance->finishInit();
-}
-
-void Output::sendProbes(void)
-{
-	instance->sendProbes();
-}
-
-void Output::sendEvent(OutputEvent* event,
-                       const char* msg_format, ...)
-{
-	char buf[1024];
-	va_list args;
-	assert(event != NULL);
-	va_start(args, msg_format);
-
-	vsnprintf(buf, sizeof(buf), msg_format, args);
-
-	va_end(args);
-
-	instance->sendLog(event, LEVEL_EVENT, string(buf));
-}
+  private:
+    std::shared_ptr<OutputLog> log;
+    std::unordered_map<std::string, std::shared_ptr<BaseProbe>> stats;
+};
 
 
-void Output::sendLog(const OutputLog *log,
-                     log_level_t log_level,
-                     const char *msg_format, ...)
-{
-	char buf[1024];
-	va_list args;
-	assert(log != NULL);
-	va_start(args, msg_format);
+inline std::vector<std::string> splitName(const std::string& name) {
+  std::istringstream line(name);
+  std::string token;
+  std::vector<std::string> parts;
 
-	vsnprintf(buf, sizeof(buf), msg_format, args);
-
-	va_end(args);
-
-	instance->sendLog(log, log_level, buf);
-}
-
-void Output::sendLog(log_level_t log_level,
-                     const char *msg_format, ...)
-{
-	char buf[1024];
-	va_list args;
-	va_start(args, msg_format);
-
-	vsnprintf(buf, sizeof(buf), msg_format, args);
-
-	va_end(args);
-
-	instance->sendLog(log_level, string(buf));
+  while (std::getline(line, token, '.')) {
+    parts.push_back(token);
+  }
+  return parts;
 }
 
 Output::Output()
 {
+  root = std::make_shared<OutputSection>("", "");
+  privateLog = registerLog(LEVEL_WARNING, "output");
+  defaultLog = registerLog(LEVEL_WARNING, "default");
 }
+
 
 Output::~Output()
 {
+  privateLog = nullptr;
+  defaultLog = nullptr;
+  root = nullptr;
+  enabledProbes.clear();
+  logHandlers.clear();
+  probeHandlers.clear();
 }
 
-void Output::setProbeState(uint8_t probe_id, bool enabled)
+
+std::shared_ptr<Output> Output::Get()
 {
-	instance->setProbeState(probe_id, enabled);
+  static std::shared_ptr<Output> instance{new Output()};
+  return instance;
 }
 
-void Output::setLogLevel(uint8_t log_id, log_level_t level)
+
+std::shared_ptr<OutputEvent> Output::registerEvent(const std::string& identifier)
 {
-	instance->setLogLevel(log_id, level);
+  OutputLock acquire{lock};
+  std::vector<std::string> parts = splitName(identifier);
+
+  std::string unitName = parts.back();
+  parts.pop_back();
+
+  try {
+    std::shared_ptr<OutputUnit> logUnit = getOrCreateSection(parts)->findUnit(unitName);
+    std::shared_ptr<OutputEvent> event{new OutputEvent(logUnit->getFullName())};
+    logUnit->setLog(event);
+
+    for (auto& handler : logHandlers) {
+      event->addHandler(handler);
+    }
+
+    return event;
+  } catch (const AlreadyExistsError& exc) {
+    std::cerr << exc.what() << std::endl;
+    return nullptr;
+  }
 }
 
-void Output::disableCollector(void)
+std::shared_ptr<OutputLog> Output::registerLog(log_level_t display_level, const std::string& name)
 {
-	instance->disableCollector();
+  OutputLock acquire{lock};
+  std::vector<std::string> parts = splitName(name);
+
+  std::string unitName = parts.back();
+  parts.pop_back();
+
+  try {
+    std::shared_ptr<OutputUnit> logUnit = getOrCreateSection(parts)->findUnit(unitName);
+    std::shared_ptr<OutputLog> log{new OutputLog(display_level, logUnit->getFullName())};
+    logUnit->setLog(log);
+
+    for (auto& handler : logHandlers) {
+      log->addHandler(handler);
+    }
+
+    return log;
+  } catch (const AlreadyExistsError& exc) {
+    std::cerr << exc.what() << std::endl;
+    return nullptr;
+  }
 }
 
-void Output::enableCollector(void)
+
+std::shared_ptr<OutputEvent> Output::registerEvent(const char *identifier, ...)
 {
-	instance->enableCollector();
+  std::va_list args;
+  va_start(args, identifier);
+  std::string eventName = formatMessage(identifier, args);
+  va_end(args);
+
+	return Output::registerEvent(eventName);
 }
 
-void Output::disableLogs(void)
+
+std::shared_ptr<OutputLog> Output::registerLog(log_level_t default_display_level, const char* name, ...)
 {
-	instance->disableLogs();
+  std::va_list args;
+  va_start(args, name);
+  std::string logName = formatMessage(name, args);
+  va_end(args);
+
+	return Output::registerLog(default_display_level, logName);
 }
 
-void Output::enableLogs(void)
+
+bool Output::configureLocalOutput(const std::string& folder)
 {
-	instance->enableLogs();
+  std::shared_ptr<FileLogHandler> logHandler;
+  std::shared_ptr<FileStatHandler> statHandler;
+
+  try {
+    logHandler = std::make_shared<FileLogHandler>("output", folder);
+    statHandler = std::make_shared<FileStatHandler>("output", folder);
+  } catch (const HandlerCreationFailedError& exc) {
+    std::cerr << exc.what() << std::endl;
+    return false;
+  }
+
+  logHandlers.push_back(logHandler);
+  privateLog->addHandler(logHandler);
+  defaultLog->addHandler(logHandler);
+
+  probeHandlers.push_back(statHandler);
+
+  return true;
 }
 
-void Output::disableSyslog(void)
+
+bool Output::configureRemoteOutput(const std::string& address,
+                                   unsigned short statsPort,
+                                   unsigned short logsPort)
 {
-	instance->disableSyslog();
+  std::shared_ptr<SocketLogHandler> logHandler;
+  std::shared_ptr<SocketStatHandler> statHandler;
+
+  try {
+    logHandler = std::make_shared<SocketLogHandler>(address, logsPort);
+    statHandler = std::make_shared<SocketStatHandler>(address, statsPort);
+  } catch (const HandlerCreationFailedError& exc) {
+    std::cerr << exc.what() << std::endl;
+    return false;
+  }
+
+  logHandlers.push_back(logHandler);
+  privateLog->addHandler(logHandler);
+  defaultLog->addHandler(logHandler);
+
+  probeHandlers.push_back(statHandler);
+
+  return true;
 }
 
-void Output::enableSyslog(void)
+
+void Output::finalizeConfiguration(void)
 {
-	instance->enableSyslog();
+  OutputLock acquire{lock};
+
+  enabledProbes.clear();
+  root->gatherEnabledStats(enabledProbes);
+
+  for (auto& probe : enabledProbes) {
+    // TODO: better than that
+    probe->reset();
+  }
+
+  for (auto& handler : probeHandlers) {
+    handler->configure(enabledProbes);
+  }
 }
 
-void Output::enableStdlog(void)
+
+void Output::sendProbes(void)
 {
-	instance->enableStdlog();
+  OutputLock acquire{lock};
+
+  std::vector<std::pair<std::string, std::string>> probesValues;
+  for (auto& probe : enabledProbes) {
+    const std::string name = probe->getName();
+    const std::string value = probe->isEmpty() ? "" : probe->getData();
+    probe->reset();
+    probesValues.emplace_back(name, value);
+  }
+
+  for (auto& handler : probeHandlers) {
+    handler->emitStats(probesValues);
+  }
 }
 
-void Output::setLevels(const map<string, log_level_t> &levels,
-                       const map<string, log_level_t> &specific)
+
+void Output::sendLog(log_level_t log_level, const char *msg_format, ...)
 {
-	instance->setLevels(levels, specific);
+  std::va_list args;
+  va_start(args, msg_format);
+  defaultLog->vSendLog(log_level, msg_format, args);
+  va_end(args);
 }
+
+
+void Output::setDisplayLevel(log_level_t log_level)
+{
+  defaultLog->setDisplayLevel(log_level);
+}
+
+
+std::shared_ptr<Output::OutputSection> Output::getOrCreateSection(const std::vector<std::string>& sectionNames)
+{
+  std::shared_ptr<OutputSection> currentSection = root;
+
+  for (auto& name : sectionNames) {
+    currentSection = currentSection->findSection(name);
+  }
+
+  return currentSection;
+}
+
+
+void Output::registerProbe(const std::string& name, std::shared_ptr<BaseProbe> probe)
+{
+  std::vector<std::string> parts = splitName(name);
+
+  std::string statName = parts.back();
+  parts.pop_back();
+
+  std::string unitName = parts.back();
+  parts.pop_back();
+
+  getOrCreateSection(parts)->findUnit(unitName)->setStat(statName, probe);
+}
+
+
+template<>
+std::shared_ptr<Probe<int32_t>> Output::registerProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t type)
+{
+  std::shared_ptr<Probe<int32_t>> probe{new Probe<int32_t>(name, unit, enabled, type)};
+  try {
+    registerProbe(name, probe);
+  } catch (const AlreadyExistsError& exc) {
+    std::cerr << exc.what() << std::endl;
+    return nullptr;
+  }
+  return probe;
+}
+
+
+template<>
+std::shared_ptr<Probe<float>> Output::registerProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t type)
+{
+  std::shared_ptr<Probe<float>> probe{new Probe<float>(name, unit, enabled, type)};
+  try {
+    registerProbe(name, probe);
+  } catch (const AlreadyExistsError& exc) {
+    std::cerr << exc.what() << std::endl;
+    return nullptr;
+  }
+  return probe;
+}
+
+
+template<>
+std::shared_ptr<Probe<double>> Output::registerProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t type)
+{
+  std::shared_ptr<Probe<double>> probe{new Probe<double>(name, unit, enabled, type)};
+  try {
+    registerProbe(name, probe);
+  } catch (const AlreadyExistsError& exc) {
+    std::cerr << exc.what() << std::endl;
+    return nullptr;
+  }
+  return probe;
+}
+
+
+//void Output::setLevels(const map<string, log_level_t> &levels,
+                       //const map<string, log_level_t> &specific)
+//{
+	//instance->setLevels(levels, specific);
+//}

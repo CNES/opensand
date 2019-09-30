@@ -80,24 +80,17 @@
 bool init_process(int argc, char **argv, string &ip_addr, string &conf_path)
 {
 	int opt;
-	bool output_enabled = true;
-	bool output_stdout = false;
+  std::string output_folder = "";
+  std::string remote_address = "";
+  unsigned short stats_port = 12345;
+  unsigned short logs_port = 23456;
 	bool stop = false;
-	string lib_external_output_path = "";
 	char entity[10];
 	/* setting environment agent parameters */
-	while(!stop && (opt = getopt(argc, argv, "-hqda:c:e:")) != EOF)
+	while(!stop && (opt = getopt(argc, argv, "-ha:c:f:r:l:s:")) != EOF)
 	{
 		switch(opt)
 		{
-			case 'q':
-				// disable output
-				output_enabled = false;
-				break;
-			case 'd':
-				// enable output debug
-				output_stdout = true;
-				break;
 			case 'a':
 				/// get local IP address
 				ip_addr = optarg;
@@ -106,48 +99,44 @@ bool init_process(int argc, char **argv, string &ip_addr, string &conf_path)
 				// get the configuration path
 				conf_path = optarg;
 				break;
-			case 'e':
-				// get library external path
-				lib_external_output_path = optarg;
-				break;
+      case 'f':
+        output_folder = optarg;
+        break;
+      case 'r':
+        remote_address = optarg;
+        break;
+      case 'l':
+        logs_port = atoi(optarg);
+        break;
+      case 's':
+        stats_port = atoi(optarg);
+        break;
 			case 'h':
 			case '?':
 				fprintf(stderr, "usage: %s [-h] [[-q] [-d] -a ip_address -c conf_path] -e lib_ext_output_path\n",
 					argv[0]);
 				fprintf(stderr, "\t-h                       print this message\n");
-				fprintf(stderr, "\t-q                       disable output\n");
-				fprintf(stderr, "\t-d                       enable output debug events\n");
 				fprintf(stderr, "\t-a <ip_address>          set the IP address\n");
 				fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
-				fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
-			stop = true;
-			break;
+        fprintf(stderr, "\t-f <output_folder>       activate and specify the folder for logs and probes files\n");
+        fprintf(stderr, "\t-r <remote_address>      activate and specify the address for logs and probes socket messages\n");
+        fprintf(stderr, "\t-l <logs_port>           specify the port for logs socket messages\n");
+        fprintf(stderr, "\t-s <stats_port>          specify the port for probes socket messages\n");
+        stop = true;
+        break;
 		}
 	}
 
-	if(lib_external_output_path != "")
-	{
-		sprintf(entity, "sat");
-		// external output initialization
-		if(!Output::initExt(output_enabled, (const char *)entity, lib_external_output_path.c_str()))
-		{
-			stop = true;
-			fprintf(stderr, "Unable to initialize external output library\n");
-		}
-	}
-	else
-	{
-		// output initialization
-		if(!Output::init(output_enabled))
-		{
-			stop = true;
-			fprintf(stderr, "Unable to initialize output library\n");
-		}
-	}
-	if(output_stdout)
-	{
-		Output::enableStdlog();
-	}
+  if (!output_folder.empty())
+  {
+    stop = stop || !Output::Get()->configureLocalOutput(output_folder);
+  }
+
+  if (!remote_address.empty())
+  {
+    stop = stop || !Output::Get()->configureRemoteOutput(remote_address, stats_port, logs_port);
+  }
+
 	if(stop)
 	{
 		return false;
@@ -201,7 +190,7 @@ int main(int argc, char **argv)
 	map<string, log_level_t> levels;
 	map<string, log_level_t> spec_level;
 
-	OutputEvent *status;
+  std::shared_ptr<OutputEvent> status;
 
 	int is_failure = 1;
 
@@ -210,7 +199,7 @@ int main(int argc, char **argv)
 
 	plugin_conf_path = conf_path + string("plugins/");
 
-	status = Output::registerEvent("Status");
+	status = Output::Get()->registerEvent("Status");
 	if(!init_ok)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -249,7 +238,7 @@ int main(int argc, char **argv)
 		        progname);
 		goto quit;
 	}
-	Output::setLevels(levels, spec_level);
+	// Output::setLevels(levels, spec_level);
 
 	// retrieve the type of satellite from configuration
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
@@ -345,14 +334,10 @@ int main(int argc, char **argv)
 	{
 		goto release_plugins;
 	}
-	if(!Output::finishInit())
-	{
-		DFLTLOG(LEVEL_NOTICE,
-		        "%s: failed to init the output => disable it\n",
-		        progname);
-	}
 
-	Output::sendEvent(status, "Blocks initialized");
+  Output::Get()->finalizeConfiguration();
+
+	status->sendEvent("Blocks initialized");
 	if(!Rt::run())
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -360,7 +345,7 @@ int main(int argc, char **argv)
 		        progname);
 	}
 
-	Output::sendEvent(status, "Simulation stopped");
+	status->sendEvent("Simulation stopped");
 
 	// everything went fine, so report success
 	is_failure = 0;
@@ -372,6 +357,5 @@ quit:
 	DFLTLOG(LEVEL_NOTICE,
 	        "%s: SAT process stopped with exit code %d\n",
 	        progname, is_failure);
-	Output::close();
 	return is_failure;
 }

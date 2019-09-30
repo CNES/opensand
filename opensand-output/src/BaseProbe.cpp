@@ -34,24 +34,27 @@
 
 #include "BaseProbe.h"
 
-#include <stdlib.h>
-#include <string.h>
 
-BaseProbe::BaseProbe(uint8_t id, const string &name,
-                     const string &unit,
-                     bool enabled, sample_type_t type):
-	id(id),
+BaseProbe::BaseProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t sample_type):
 	name(name),
-	unit(unit),
+  unit(unit),
 	enabled(enabled),
-	s_type(type),
+  s_type(sample_type),
 	values_count(0)
 {
 }
 
+
 BaseProbe::~BaseProbe()
 {
 }
+
+
+void BaseProbe::enable(bool enabled)
+{
+  this->enabled = enabled;
+}
+
 
 void BaseProbe::reset()
 {

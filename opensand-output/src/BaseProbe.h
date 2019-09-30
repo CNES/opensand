@@ -35,13 +35,8 @@
 #ifndef _BASE_PROBE_H
 #define _BASE_PROBE_H
 
-#include <stdint.h>
-
 #include <string>
 
-using std::string;
-
-class OutputInternal;
 
 /**
  * @brief Probe sample type
@@ -61,16 +56,22 @@ enum datatype_t {
 	DOUBLE_TYPE = 2
 };
 
+
 /**
  * @class the probe representation
  */
 class BaseProbe
 {
-	friend class OutputInternal;
+	friend class Output;
 
 public:
 
 	virtual ~BaseProbe();
+
+  /**
+   * @brief Enable or disable the probe
+   **/
+  void enable(bool enabled);
 
 	/**
 	 * @brief Check if the probe is enabled
@@ -84,14 +85,14 @@ public:
 	 *
 	 * @return the name of the probe
 	 **/
-	inline const string getName() const { return this->name; };
+	inline const std::string getName() const { return this->name; };
 
 	/**
 	 * @brief Get the unit of the probe
 	 *
 	 * @return the unit of the probe
 	 **/
-	inline const string getUnit() const { return this->unit; };
+	inline const std::string getUnit() const { return this->unit; };
 
 	/**
 	 * @brief get the byte size of data
@@ -105,7 +106,7 @@ public:
 	 *
 	 * @return data
 	 **/
-	virtual bool getData(unsigned char* buffer, size_t len) const = 0;
+	virtual std::string getData() const = 0;
 
 	/**
 	 * @brief get data type
@@ -120,21 +121,15 @@ public:
 	 **/
 	void reset();
 
-protected:
-	BaseProbe(uint8_t id, const string &name,
-	          const string &unit,
-	          bool enabled, sample_type_t type);
+  inline bool isEmpty() const { return values_count == 0; };
 
-	/// the probe ID
-	uint8_t id;
-	/// the probe name
-	string name;
-	/// the probe unit
-	string unit;
-	/// whether the probe is enabled
+protected:
+	BaseProbe(const std::string &name, const std::string& unit, bool enabled, sample_type_t sample_type);
+
+  std::string name;
+	std::string unit;
 	bool enabled;
-	/// the probe sample type
-	sample_type_t s_type;
+  sample_type_t s_type;
 
 	/// the number of values in probe
 	uint16_t values_count;

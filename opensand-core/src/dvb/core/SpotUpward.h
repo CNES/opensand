@@ -179,17 +179,17 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		// Output probes and stats
 		// Rates
 		// Layer 2 from SAT
-		Probe<int> *probe_gw_l2_from_sat;
+		std::shared_ptr<Probe<int>> probe_gw_l2_from_sat;
 		int l2_from_sat_bytes;
 		// Physical layer information
-		Probe<int> *probe_received_modcod;
-		Probe<int> *probe_rejected_modcod;
+		std::shared_ptr<Probe<int>> probe_received_modcod;
+		std::shared_ptr<Probe<int>> probe_rejected_modcod;
 
 		/// log for slotted aloha
-		OutputLog *log_saloha;
+    std::shared_ptr<OutputLog> log_saloha;
 
 		/// logon request events
-		OutputEvent *event_logon_req;
+    std::shared_ptr<OutputEvent> event_logon_req;
 };
 
 #endif

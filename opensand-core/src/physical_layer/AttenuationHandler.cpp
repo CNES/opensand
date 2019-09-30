@@ -44,7 +44,7 @@
 
 #include <math.h>
 
-AttenuationHandler::AttenuationHandler(OutputLog *log_channel):
+AttenuationHandler::AttenuationHandler(std::shared_ptr<OutputLog> log_channel):
 	minimal_condition_model(NULL),
 	error_insertion_model(NULL),
 	log_channel(log_channel),
@@ -57,7 +57,7 @@ AttenuationHandler::~AttenuationHandler()
 {
 }
 
-bool AttenuationHandler::initialize(const string &link_section, OutputLog *log_init)
+bool AttenuationHandler::initialize(const string &link_section, std::shared_ptr<OutputLog> log_init)
 {
 	string minimal_type;
 	string error_type;
@@ -119,10 +119,11 @@ bool AttenuationHandler::initialize(const string &link_section, OutputLog *log_i
 	}
 
 	// Initialize probes
-	this->probe_minimal_condition = Output::registerProbe<float>("Phy.minimal_condition",
+  auto output = Output::Get();
+	this->probe_minimal_condition = output->registerProbe<float>("Phy.minimal_condition",
 	                                                             "dB", true,
 	                                                             SAMPLE_MAX);
-	this->probe_drops = Output::registerProbe<int>("Phy.drops",
+	this->probe_drops = output->registerProbe<int>("Phy.drops",
 	                                               "frame number", true,
 	                                               // we need to sum the drops here !
 	                                               SAMPLE_SUM);

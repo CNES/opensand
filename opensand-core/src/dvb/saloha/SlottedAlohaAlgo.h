@@ -40,6 +40,7 @@
 #include "Slot.h"
 
 #include <algorithm>
+#include <map>
 #include <set>
 
 
@@ -71,11 +72,11 @@ class SlottedAlohaAlgo
 	 * @param fifo     the packets that are not collisionned
 	 * @return the number of collisionned packets
 	 */
-	virtual uint16_t removeCollisions(map<unsigned int, Slot *> &slots,
+	virtual uint16_t removeCollisions(std::map<unsigned int, Slot *> &slots,
 	                                  saloha_packets_data_t *accepted_packets) = 0;
 
  protected:
-	OutputLog *log_saloha;
+  std::shared_ptr<OutputLog> log_saloha;
 };
 
 

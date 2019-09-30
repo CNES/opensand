@@ -98,12 +98,12 @@ class SlottedAlohaTal: public SlottedAloha
 	fifos_t dvb_fifos;
 
 	//TODO in opensandcore.h
-	typedef map<qos_t, Probe<int> *> probe_per_qos_t;
+	typedef map<qos_t, std::shared_ptr<Probe<int> > > probe_per_qos_t;
 	/// Statistics
 	probe_per_qos_t probe_retransmission;
 	probe_per_qos_t probe_wait_ack;
 	probe_per_qos_t probe_drop;
-	Probe<int> *probe_backoff;
+	std::shared_ptr<Probe<int>> probe_backoff;
 
  public:
 

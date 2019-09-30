@@ -38,11 +38,9 @@
 
 SlottedAlohaAlgo::SlottedAlohaAlgo()
 {
-	this->log_saloha = Output::registerLog(LEVEL_WARNING, "Dvb.SlottedAlohaAlgo");
+	this->log_saloha = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.SlottedAlohaAlgo");
 }
 
 SlottedAlohaAlgo::~SlottedAlohaAlgo()
 {
 }
-
-

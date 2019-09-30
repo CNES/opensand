@@ -43,7 +43,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-OutputLog *DvbChannel::dvb_fifo_log = NULL;
+std::shared_ptr<OutputLog> DvbChannel::dvb_fifo_log = nullptr;
 
 /**
  * @brief Check if a file exists

@@ -38,6 +38,7 @@ AC_SUBST(AM_CPPFLAGS, "$LIBXMLXX_CFLAGS")
 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
+CXXFLAGS="$CXXFLAGS -std=c++11"
 
 # check for opensand-output library
 PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 5.1.2])

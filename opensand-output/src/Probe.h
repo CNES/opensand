@@ -39,14 +39,10 @@
 #include "OutputMutex.h"
 
 #include <algorithm>
-#include <string.h>
 #include <iostream>
 #include <cassert>
 #include <sstream>
 
-#include <pthread.h>
-
-using std::string;
 
 /**
  * @class the probe respresentation
@@ -54,7 +50,7 @@ using std::string;
 template<typename T>
 class Probe : public BaseProbe
 {
-	friend class OutputInternal;
+	friend class Output;
 
 public:
 	virtual ~Probe();
@@ -70,14 +66,12 @@ public:
 	
 	size_t getDataSize() const;
 
-	bool getData(unsigned char* buffer, size_t len) const;
+  std::string getData() const;
 
 	datatype_t getDataType() const;
 
 private:
-	Probe(uint8_t id, const string &name,
-	      const string &unit,
-	      bool enabled, sample_type_t type);
+	Probe(const std::string &name, const std::string& unit, bool enabled, sample_type_t s_type);
 
 	/// the concatenation of all values
 	T accumulator;
@@ -87,11 +81,9 @@ private:
 };
 
 template<typename T>
-Probe<T>::Probe(uint8_t id, const string &name,
-                const string &unit,
-                bool enabled, sample_type_t type):
-	BaseProbe(id, name, unit, enabled, type),
-	mutex("probe")
+Probe<T>::Probe(const std::string &name, const std::string& unit, bool enabled, sample_type_t s_type)
+  : BaseProbe(name, unit, enabled, s_type),
+  accumulator(0)
 {
 }
 
@@ -103,7 +95,7 @@ Probe<T>::~Probe()
 template<typename T>
 void Probe<T>::put(T value)
 {
-	OutputLock lock(this->mutex);
+	OutputLock lock(mutex);
 
 	if(this->values_count == 0)
 	{
@@ -165,14 +157,11 @@ datatype_t Probe<float>::getDataType() const;
 template<>
 datatype_t Probe<double>::getDataType() const;
 
-template<>
-bool Probe<int32_t>::getData(unsigned char* buffer, size_t len) const;
+template<typename T>
+std::string Probe<T>::getData() const
+{
+  return std::to_string(this->get());
+}
 
-template<>
-bool Probe<float>::getData(unsigned char* buffer, size_t len) const;
-
-template<>
-bool Probe<double>::getData(unsigned char* buffer, size_t len) const;
 
 #endif
-

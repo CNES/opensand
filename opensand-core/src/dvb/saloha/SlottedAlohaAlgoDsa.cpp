@@ -45,15 +45,15 @@ SlottedAlohaAlgoDsa::~SlottedAlohaAlgoDsa()
 {
 }
 
-uint16_t SlottedAlohaAlgoDsa::removeCollisions(map<unsigned int, Slot *> &slots,
-                                                 saloha_packets_data_t *accepted_packets)
+uint16_t SlottedAlohaAlgoDsa::removeCollisions(std::map<unsigned int, Slot *> &slots,
+                                               saloha_packets_data_t *accepted_packets)
 {
-	map<unsigned int, Slot *>::iterator slot_it;
-	map<tal_id_t, vector<saloha_id_t> > accepted_ids;
+  std::map<unsigned int, Slot *>::iterator slot_it;
+  std::map<tal_id_t, vector<saloha_id_t> > accepted_ids;
 	uint16_t nbr_collisions = 0;
 
 	// cf: DSA algorithm
-	for(map<unsigned int, Slot *>::iterator slot_it = slots.begin();
+	for(std::map<unsigned int, Slot *>::iterator slot_it = slots.begin();
 	    slot_it != slots.end(); ++slot_it)
 	{
 		Slot *slot = (*slot_it).second;

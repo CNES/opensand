@@ -78,7 +78,7 @@ class StFmtSimu
 	uint8_t current_modcod_id;
 
 	// Output Log
-	OutputLog *log_fmt;
+  std::shared_ptr<OutputLog> log_fmt;
 
 	/// The functions are private because they are not protected by a mutex as
 	//  they are used internally or by StFmtSimuList which is protected by a mutex and
@@ -196,7 +196,7 @@ class StFmtSimuList: public set<tal_id_t>
 	double acm_loop_margin_db;
 
 	// Output Log
-	OutputLog *log_fmt;
+  std::shared_ptr<OutputLog> log_fmt;
 
 	/** a list which associate a st id with its spot id */
 	/** the mutex to protect the list from concurrent access */

@@ -198,35 +198,32 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
+  auto output = Output::Get();
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
-		if((*it).second->getAccessType() != access_saloha)
+		if(it->second->getAccessType() != access_saloha)
 		{
 			continue;
 		}
-		Probe<int> *probe_ret;
-		Probe<int> *probe_wait;
-		Probe<int> *probe_nb_drop;
+		std::shared_ptr<Probe<int>> probe_ret;
+		std::shared_ptr<Probe<int>> probe_wait;
+		std::shared_ptr<Probe<int>> probe_nb_drop;
 
-		probe_ret = Output::registerProbe<int>(true, SAMPLE_SUM,
+		probe_ret = output->registerProbe<int>(true, SAMPLE_SUM,
 		                                       "Aloha.retransmissions.%s",
-		                                       (*it).second->getName().c_str());
-		probe_wait = Output::registerProbe<int>(true, SAMPLE_LAST,
+		                                       it->second->getName().c_str());
+		probe_wait = output->registerProbe<int>(true, SAMPLE_LAST,
 		                                       "Aloha.wait.%s",
-		                                       (*it).second->getName().c_str());
-		probe_nb_drop = Output::registerProbe<int>(true, SAMPLE_SUM,
+		                                       it->second->getName().c_str());
+		probe_nb_drop = output->registerProbe<int>(true, SAMPLE_SUM,
 		                                       "Aloha.drops.%s",
-		                                       (*it).second->getName().c_str());
-		this->probe_retransmission.insert(
-		            pair<qos_t, Probe<int> *>((*it).first, probe_ret));
-		this->probe_wait_ack.insert(
-		            pair<qos_t, Probe<int> *>((*it).first, probe_wait));
-		this->probe_drop.insert(
-		            pair<qos_t, Probe<int> *>((*it).first, probe_nb_drop));
+		                                       it->second->getName().c_str());
+		this->probe_retransmission.emplace(it->first, probe_ret);
+		this->probe_wait_ack.emplace(it->first, probe_wait);
+		this->probe_drop.emplace(it->first, probe_nb_drop);
 	}
-	this->probe_backoff = Output::registerProbe<int>(true, SAMPLE_MAX,
-	                                                 "Aloha.backoff");
+	this->probe_backoff = output->registerProbe<int>(true, SAMPLE_MAX, "Aloha.backoff");
 
 	return true;
 error:

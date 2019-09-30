@@ -62,7 +62,7 @@ protected:
 	bool is_connected;
 
 	/** Output Log */
-	OutputLog *log_ncc_interface;
+  std::shared_ptr<OutputLog> log_ncc_interface;
 
 public:
 

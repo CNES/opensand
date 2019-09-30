@@ -175,8 +175,8 @@ class UdpChannel
 	unsigned int max_stack;
 
 	/// Output Log
-	OutputLog *log_sat_carrier;
-	OutputLog *log_init;
+  std::shared_ptr<OutputLog> log_sat_carrier;
+  std::shared_ptr<OutputLog> log_init;
 };
 
 /*
@@ -195,8 +195,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	UdpStack()
 	{
 		// Output log
-		this->log_sat_carrier = Output::registerLog(LEVEL_WARNING,
-		                                            "SatCarrier.Channel");
+		this->log_sat_carrier = Output::Get()->registerLog(LEVEL_WARNING, "SatCarrier.Channel");
 		// reserve space for all UDP counters
 		this->reserve(256);
 		for(unsigned int i = 0; i < 256; i++)
@@ -300,7 +299,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	uint8_t counter;
 
 	// Output log
-	OutputLog *log_sat_carrier;
+  std::shared_ptr<OutputLog> log_sat_carrier;
 };
 
 

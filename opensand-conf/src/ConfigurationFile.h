@@ -38,8 +38,12 @@
 #include <string>
 #include <map>
 #include <iostream>
-#include <libxml++/libxml++.h>
 #include <stdint.h>
+// silence warnings from the following include so we can hopefully use -Werror one day
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#include <libxml++/libxml++.h>
+#pragma GCC diagnostic pop
 
 #include "ConfigurationList.h"
 
@@ -278,7 +282,7 @@ class ConfigurationFile
  private:
 
 	/// Output Log
-	OutputLog *log_conf;
+  std::shared_ptr<OutputLog> log_conf;
 
 	/// a vector of XML DOM parsers
 	vector<xmlpp::DomParser *> parsers;

@@ -35,7 +35,11 @@
 #ifndef CONFIGURATION_LIST_H
 #define CONFIGURATION_LIST_H
 
+// silence warnings from the following include so we can hopefully use -Werror one day
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <libxml++/libxml++.h>
+#pragma GCC diagnostic pop
 
 using namespace std;
 

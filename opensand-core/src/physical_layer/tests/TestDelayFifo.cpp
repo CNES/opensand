@@ -45,7 +45,7 @@
 TestDelayFifo::TestDelayFifo(vol_pkt_t max_size_pkt):
 	queue(),
 	max_size_pkt(max_size_pkt),
-	fifo_mutex("delay_fifo_mutex")
+	fifo_mutex()
 {
 }
 

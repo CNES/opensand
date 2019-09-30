@@ -34,11 +34,20 @@
 
 #include "Output.h"
 
-#include <stdio.h>
+#include <iostream>
+#include <cstdio>
+#include <cstring>
 #include <unistd.h>
 
-#define PUT_IN_PROBE(probe, val) do \
-{ if(val != 0) { probe->put(val); } } while(0)
+#define PUT_IN_PROBE(probe, action, val) do \
+{ \
+  bool active = val != 0; \
+  if (action == 'e') { \
+    probe->enable(active); \
+  } else if(active) { \
+    probe->put(val); \
+  } \
+} while(0)
 
 
 int main(int argc, char* argv[])
@@ -67,43 +76,44 @@ int main(int argc, char* argv[])
 	puts("init");
 	fflush(stdout);
 
-	if(!Output::init(output_enabled, argv[1]))
+  auto output = Output::Get();
+	if(!output)
 	{
 		puts("init_error");
 		fflush(stdout);
 		return 1;
 	}
 
-	Probe<int32_t> *int32_last_probe =
-		Output::registerProbe<int32_t>("int32_last_probe", "µF", true, SAMPLE_LAST);
-	Probe<int32_t> *int32_max_probe =
-		Output::registerProbe<int32_t>("int32_max_probe", "mm/s", true, SAMPLE_MAX);
-	Probe<int32_t> *int32_min_probe =
-		Output::registerProbe<int32_t>("int32_min_probe", "m²", true, SAMPLE_MIN);
-	Probe<int32_t> *int32_avg_probe =
-		Output::registerProbe<int32_t>("int32_avg_probe", true, SAMPLE_AVG);
-	Probe<int32_t> *int32_sum_probe =
-		Output::registerProbe<int32_t>("int32_sum_probe", true, SAMPLE_SUM);
-	Probe<int32_t> *int32_dis_probe =
-		Output::registerProbe<int32_t>(false, SAMPLE_LAST, "int32_%s_probe", "dis");
+  if (output_enabled)
+  {
+    output->configureRemoteOutput(argv[1], 58008, 58008);
+  }
 
-	Probe<float> *float_probe =
-		Output::registerProbe<float>("float_probe", true, SAMPLE_LAST);
-	Probe<double> *double_probe =
-		Output::registerProbe<double>("double_probe", true, SAMPLE_LAST);
+  std::shared_ptr<Probe<int32_t>> int32_last_probe =
+		output->registerProbe<int32_t>("testing.int32_last_probe", "µF", true, SAMPLE_LAST);
+  std::shared_ptr<Probe<int32_t>> int32_max_probe =
+		output->registerProbe<int32_t>("testing.int32_max_probe", "mm/s", true, SAMPLE_MAX);
+  std::shared_ptr<Probe<int32_t>> int32_min_probe =
+		output->registerProbe<int32_t>("testing.int32_min_probe", "m²", true, SAMPLE_MIN);
+  std::shared_ptr<Probe<int32_t>> int32_avg_probe =
+		output->registerProbe<int32_t>("testing.int32_avg_probe", true, SAMPLE_AVG);
+  std::shared_ptr<Probe<int32_t>> int32_sum_probe =
+		output->registerProbe<int32_t>("testing.int32_sum_probe", true, SAMPLE_SUM);
+  std::shared_ptr<Probe<int32_t>> int32_dis_probe =
+		output->registerProbe<int32_t>(false, SAMPLE_LAST, "testing.int32_%s_probe", "dis");
+
+  std::shared_ptr<Probe<float>> float_probe =
+		output->registerProbe<float>("testing.float_probe", true, SAMPLE_LAST);
+  std::shared_ptr<Probe<double>> double_probe =
+		output->registerProbe<double>("testing.double_probe", true, SAMPLE_LAST);
 
 	puts("fin_init");
 	fflush(stdout);
 
-	if(!Output::finishInit())
-	{
-		puts("fin_init_error");
-		fflush(stdout);
-		return 2;
-	}
-		
-	OutputLog *info = Output::registerLog(LEVEL_INFO, "info");
-	OutputLog *debug = Output::registerLog(min_level, "debug");
+  output->finalizeConfiguration();
+
+  auto info = output->registerLog(LEVEL_INFO, "info");
+	auto debug = output->registerLog(min_level, "debug");
 
 
 	puts("start");
@@ -125,46 +135,47 @@ int main(int argc, char* argv[])
 				return 0;
 		}
 
-		PUT_IN_PROBE(int32_last_probe, values[0]);
-		PUT_IN_PROBE(int32_max_probe, values[1]);
-		PUT_IN_PROBE(int32_min_probe, values[2]);
-		PUT_IN_PROBE(int32_avg_probe, values[3]);
-		PUT_IN_PROBE(int32_sum_probe, values[4]);
-		PUT_IN_PROBE(int32_dis_probe, values[5]);
+		PUT_IN_PROBE(int32_last_probe, action, values[0]);
+		PUT_IN_PROBE(int32_max_probe, action, values[1]);
+		PUT_IN_PROBE(int32_min_probe, action, values[2]);
+		PUT_IN_PROBE(int32_avg_probe, action, values[3]);
+		PUT_IN_PROBE(int32_sum_probe, action, values[4]);
+		PUT_IN_PROBE(int32_dis_probe, action, values[5]);
 
-		PUT_IN_PROBE(float_probe, float_val);
-		PUT_IN_PROBE(double_probe, double_val);
+		PUT_IN_PROBE(float_probe, action, float_val);
+		PUT_IN_PROBE(double_probe, action, double_val);
 
 		switch (action)
 		{
 			case 's':
 				puts("send");
 				fflush(stdout);
-				Output::sendProbes();
-			break;
+				output->sendProbes();
+        break;
 
 			case 'd':
 				puts("debug");
 				fflush(stdout);
-				Output::sendLog(debug, LEVEL_DEBUG, "This is a debug %s message.",
-				                "log");
-			break;
+				LOG(debug, LEVEL_DEBUG, "This is a debug %s message.", "log");
+        break;
 
 			case 'i':
 				puts("info");
 				fflush(stdout);
-				Output::sendLog(info, LEVEL_INFO, "This is %s info log message.",
-				                "the");
-			break;
+				LOG(info, LEVEL_INFO, "This is %s info log message.", "the");
+        break;
 				
 			case 't':
 				puts("default log");
 				fflush(stdout);
-				Output::sendLog(LEVEL_ERROR, "This is a default log message%s",
-				                ".");
-			break;
+				output->sendLog(LEVEL_ERROR, "This is a default log message%s", ".");
+        break;
+
+      case 'e':
+        puts("enable/disable probes");
+        fflush(stdout);
+        output->finalizeConfiguration();
+        break;
 		}
 	}
-	
-	Output::close();
 }

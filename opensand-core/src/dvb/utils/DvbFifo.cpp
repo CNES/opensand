@@ -54,11 +54,11 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	new_size_pkt(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(0),
-	fifo_mutex(fifo_name),
+	fifo_mutex(),
 	cni(0)
 {
 	// Output log
-	this->log_dvb_fifo = Output::registerLog(LEVEL_WARNING, "Dvb.Fifo");
+	this->log_dvb_fifo = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Fifo");
 
 	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
 
@@ -107,7 +107,7 @@ DvbFifo::DvbFifo(uint8_t carrier_id,
 	new_size_pkt(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(carrier_id),
-	fifo_mutex(fifo_name)
+	fifo_mutex()
 {
 	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
 }

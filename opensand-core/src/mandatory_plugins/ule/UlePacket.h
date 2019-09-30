@@ -151,7 +151,7 @@ class UlePacket: public NetPacket
 	uint32_t crc() const;
 
 	/// The ULE packet log
-	static OutputLog *ule_log;
+	static std::shared_ptr<OutputLog> ule_log;
 };
 
 #endif

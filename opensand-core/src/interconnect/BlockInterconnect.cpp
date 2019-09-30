@@ -112,7 +112,7 @@ bool BlockInterconnectDownward::Upward::onEvent(const RtEvent *const event)
 bool BlockInterconnectDownward::onInit(void)
 {
 	// Register log
-	this->log_interconnect = Output::registerLog(LEVEL_WARNING, "InterconnectDownward.block");
+	this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, "InterconnectDownward.block");
 	return true;
 }
 
@@ -361,7 +361,7 @@ bool BlockInterconnectUpward::Upward::onEvent(const RtEvent *const event)
 bool BlockInterconnectUpward::onInit(void)
 {
 	// Register log 
-	this->log_interconnect = Output::registerLog(LEVEL_WARNING, "InterconnectUpward.block");
+	this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, "InterconnectUpward.block");
 	return true;
 }
 

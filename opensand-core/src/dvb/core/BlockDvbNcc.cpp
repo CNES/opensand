@@ -291,9 +291,9 @@ bool BlockDvbNcc::Downward::onInit(void)
 	                        this->svno_interface.getSvnoListenSocket(), 200);
 
 	// Output probes and stats
-	this->probe_frame_interval = Output::registerProbe<float>("Perf.Frames_interval",
-	                                                          "ms", true,
-	                                                          SAMPLE_LAST);
+	this->probe_frame_interval = Output::Get()->registerProbe<float>("Perf.Frames_interval",
+                                                                   "ms", true,
+                                                                   SAMPLE_LAST);
 
 	return result;
 }

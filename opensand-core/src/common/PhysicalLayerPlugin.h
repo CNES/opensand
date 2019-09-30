@@ -61,8 +61,8 @@ class AttenuationModelPlugin: public OpenSandPlugin
 {
  protected:
 	/* Output log */
-	OutputLog *log_init;
-	OutputLog *log_attenuation;
+   std::shared_ptr<OutputLog> log_init;
+   std::shared_ptr<OutputLog> log_attenuation;
 
 	/* The model current attenuation */
 	double attenuation;
@@ -79,9 +79,8 @@ class AttenuationModelPlugin: public OpenSandPlugin
 	 */
 	AttenuationModelPlugin(): OpenSandPlugin() 
 	{
-		this->log_init = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.init");
-		this->log_attenuation = Output::registerLog(LEVEL_WARNING,
-		                                            "PhysicalLayer.Attenuation");
+		this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.init");
+		this->log_attenuation = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Attenuation");
 	};
 
 	/**
@@ -132,8 +131,8 @@ class MinimalConditionPlugin: public OpenSandPlugin
 
 protected:
 	/* Output log */
-	OutputLog *log_init;
-	OutputLog *log_minimal;
+  std::shared_ptr<OutputLog> log_init;
+  std::shared_ptr<OutputLog> log_minimal;
 
 	/// MinimalCondition C/N in clear sky conditions
 	double minimal_cn;
@@ -145,10 +144,8 @@ public:
 	 */
 	MinimalConditionPlugin(): OpenSandPlugin() 
 	{
-		this->log_init = Output::registerLog(LEVEL_WARNING,
-		                                     "PhysicalLayer.Init");
-		this->log_minimal = Output::registerLog(LEVEL_WARNING,
-		                                        "PhysicalLayer.MinimalCondition");
+		this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Init");
+		this->log_minimal = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.MinimalCondition");
 	};
 
 	/**
@@ -194,10 +191,8 @@ class ErrorInsertionPlugin: public OpenSandPlugin
 	 */
 	ErrorInsertionPlugin(): OpenSandPlugin()
 	{
-		this->log_init = Output::registerLog(LEVEL_WARNING,
-		                                     "PhysicalLayer.Init");
-		this->log_error = Output::registerLog(LEVEL_WARNING,
-		                                      "PhysicalLayer.ErrorInsertion");
+		this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Init");
+		this->log_error = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.ErrorInsertion");
 	};
 
 	/**
@@ -237,8 +232,8 @@ class ErrorInsertionPlugin: public OpenSandPlugin
 
  protected:
 	/* Output log */
-	OutputLog *log_init;
-	OutputLog *log_error;
+  std::shared_ptr<OutputLog> log_init;
+  std::shared_ptr<OutputLog> log_error;
 
 };
 
@@ -250,8 +245,8 @@ class SatDelayPlugin: public OpenSandPlugin
 {
  protected:
   /* Output log */
-  OutputLog *log_init;
-  OutputLog *log_delay;
+   std::shared_ptr<OutputLog> log_init;
+   std::shared_ptr<OutputLog> log_delay;
 
   /* The current delay */
   time_ms_t delay;
@@ -272,10 +267,10 @@ class SatDelayPlugin: public OpenSandPlugin
       OpenSandPlugin(),
       delay(0),
       refresh_period_ms(1000),
-      delay_mutex("delay")
+      delay_mutex()
   {
-    this->log_init = Output::registerLog(LEVEL_WARNING, "SatDelay.init");
-    this->log_delay = Output::registerLog(LEVEL_WARNING, "SatDelay.Delay");
+    this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "SatDelay.init");
+    this->log_delay = Output::Get()->registerLog(LEVEL_WARNING, "SatDelay.Delay");
   };
 
   /**

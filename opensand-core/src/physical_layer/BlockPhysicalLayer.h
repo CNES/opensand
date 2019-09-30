@@ -69,7 +69,7 @@ class BlockPhysicalLayer: public Block
 	{
 	 private:
 		/// Probes
-		Probe<float> *probe_total_cn;
+     std::shared_ptr<Probe<float>> probe_total_cn;
 
 	 protected:
 		/// The attenuation process
@@ -202,7 +202,7 @@ class BlockPhysicalLayer: public Block
 	{
 	 private:
 		/// Probes
-		Probe<int> *probe_delay;
+     std::shared_ptr<Probe<int>> probe_delay;
 
 	 protected:
 		/// Event

@@ -50,8 +50,8 @@ SlottedAloha::SlottedAloha():
 	is_parent_init(false),
 	pkt_hdl(NULL)
 {
-	this->log_saloha = Output::registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
-	this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
+	this->log_saloha = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
+	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.init");
 }
 
 

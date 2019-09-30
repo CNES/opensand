@@ -61,3 +61,6 @@ libopensand_dama_la_CPPFLAGS = \
 	-I$(top_srcdir)/src/dvb/core \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common
+
+libopensand_dama_la_LIBADD = \
+	$(top_builddir)/src/dvb/fmt/libopensand_dvb_fmt.la

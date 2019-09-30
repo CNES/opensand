@@ -61,7 +61,7 @@ class CircularBuffer
  protected:
 
 	// Output Log
-	OutputLog *log_circular_buffer;
+  std::shared_ptr<OutputLog> log_circular_buffer;
 
  public:
 

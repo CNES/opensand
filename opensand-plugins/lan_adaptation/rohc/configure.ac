@@ -31,6 +31,7 @@ AC_CHECK_FUNCS([])
 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
+CXXFLAGS="$CXXFLAGS -std=c++11"
 
 # check for opensand-conf library
 PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf = 5.1.2])

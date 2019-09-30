@@ -317,7 +317,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	Simulate simulate;
 
 	// Output probes and stats
-	typedef map<unsigned int, Probe<int> *> ProbeListPerId; 
+	typedef map<unsigned int, std::shared_ptr<Probe<int>> > ProbeListPerId; 
 	// Queue sizes
 	map<string, ProbeListPerId> * probe_gw_queue_size;
 	map<string, ProbeListPerId> *probe_gw_queue_size_kb;
@@ -327,18 +327,18 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	// Rates
 	map<string, ProbeListPerId> *probe_gw_l2_to_sat_before_sched;
 	map<string, ProbeListPerId> *probe_gw_l2_to_sat_after_sched;
-	map<string, Probe<int> *> probe_gw_l2_to_sat_total;
+	map<string, std::shared_ptr<Probe<int> > > probe_gw_l2_to_sat_total;
 	map<string, int> l2_to_sat_total_bytes;
 	// Frame interval
-	Probe<float> *probe_frame_interval;
+  std::shared_ptr<Probe<float>> probe_frame_interval;
 	// Physical layer information
-	Probe<int> *probe_sent_modcod;
+	std::shared_ptr<Probe<int>> probe_sent_modcod;
 
 	// Output logs and events
-	OutputLog *log_request_simulation;
+  std::shared_ptr<OutputLog> log_request_simulation;
 
 	/// logon response sent
-	OutputEvent *event_logon_resp;
+  std::shared_ptr<OutputEvent> event_logon_resp;
 };
 
 #endif

@@ -235,9 +235,9 @@ BlockDvbTal::Downward::~Downward()
 
 bool BlockDvbTal::Downward::onInit(void)
 {
-	this->log_qos_server = Output::registerLog(LEVEL_WARNING,
+	this->log_qos_server = Output::Get()->registerLog(LEVEL_WARNING,
 	                                           "Dvb.QoSServer");
-	this->log_frame_tick = Output::registerLog(LEVEL_WARNING,
+	this->log_frame_tick = Output::Get()->registerLog(LEVEL_WARNING,
 	                                           "Dvb.DamaAgent.FrameTick");
 	if(!this->initModcodDefinitionTypes())
 	{
@@ -1341,11 +1341,13 @@ error:
 
 bool BlockDvbTal::Downward::initOutput(void)
 {
-	this->event_login = Output::registerEvent("DVB.login");
+  auto output = Output::Get();
+
+	this->event_login = output->registerEvent("DVB.login");
 
 	if(this->saloha)
 	{
-		this->log_saloha = Output::registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
+		this->log_saloha = output->registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
 	}
 
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
@@ -1354,29 +1356,29 @@ bool BlockDvbTal::Downward::initOutput(void)
 		unsigned int id = (*it).first;
 
 		this->probe_st_queue_size[id] =
-			Output::registerProbe<int>("Queue size.packets." + ((*it).second)->getName(),
+			output->registerProbe<int>("Queue size.packets." + ((*it).second)->getName(),
 			                           "Packets", true, SAMPLE_LAST);
 		this->probe_st_queue_size_kb[id] =
-			Output::registerProbe<int>("Queue size." + ((*it).second)->getName(),
+			output->registerProbe<int>("Queue size." + ((*it).second)->getName(),
 			                           "kbits", true, SAMPLE_LAST);
 
 		this->probe_st_l2_to_sat_before_sched[id] =
-			Output::registerProbe<int>("Throughputs.L2_to_SAT_before_sched." +
+			output->registerProbe<int>("Throughputs.L2_to_SAT_before_sched." +
 			                           ((*it).second)->getName(), "Kbits/s", true,
 																 SAMPLE_AVG);
 		this->probe_st_l2_to_sat_after_sched[id] =
-			Output::registerProbe<int>("Throughputs.L2_to_SAT_after_sched." +
+			output->registerProbe<int>("Throughputs.L2_to_SAT_after_sched." +
 			                           ((*it).second)->getName(), "Kbits/s", true,
 																 SAMPLE_AVG);
 		this->probe_st_queue_loss[id] =
-			Output::registerProbe<int>("Queue loss.packets." + ((*it).second)->getName(),
+			output->registerProbe<int>("Queue loss.packets." + ((*it).second)->getName(),
 			                           "Packets", true, SAMPLE_LAST);
 		this->probe_st_queue_loss_kb[id] =
-			Output::registerProbe<int>("Queue loss." + ((*it).second)->getName(),
+			output->registerProbe<int>("Queue loss." + ((*it).second)->getName(),
 			                           "kbits", true, SAMPLE_LAST);
 	}
 	this->probe_st_l2_to_sat_total =
-		Output::registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",
+		output->registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",
 		                           "Kbits/s", true, SAMPLE_AVG);
 	return true;
 }
@@ -1750,7 +1752,7 @@ bool BlockDvbTal::Downward::sendLogonReq(void)
 	}
 
 	// send the corresponding event
-	Output::sendEvent(this->event_login, "Login sent to GW");
+  event_login->sendEvent("Login sent to GW");
 	return true;
 
 error:
@@ -2052,8 +2054,7 @@ bool BlockDvbTal::Downward::handleLogonResp(DvbFrame *frame)
 	this->state = state_running;
 
 	// send the corresponding event
-	Output::sendEvent(event_login, "Login complete with MAC %d",
-	                  this->mac_id);
+  event_login->sendEvent("Login complete with MAC %d", this->mac_id);
 
 	return true;
 }
@@ -2506,18 +2507,20 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 
 bool BlockDvbTal::Upward::initOutput(void)
 {
-	this->probe_st_received_modcod = Output::registerProbe<int>("Down_Forward_modcod.Received_modcod",
+  auto output = Output::Get();
+
+	this->probe_st_received_modcod = output->registerProbe<int>("Down_Forward_modcod.Received_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);
-	this->probe_st_rejected_modcod = Output::registerProbe<int>("Down_Forward_modcod.Rejected_modcod",
+	this->probe_st_rejected_modcod = output->registerProbe<int>("Down_Forward_modcod.Rejected_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);
-	this->probe_sof_interval = Output::registerProbe<float>("Perf.SOF_interval",
+	this->probe_sof_interval = output->registerProbe<float>("Perf.SOF_interval",
 	                                                        "ms", true,
 	                                                        SAMPLE_LAST);
 
 	this->probe_st_l2_from_sat =
-		Output::registerProbe<int>("Throughputs.L2_from_SAT",
+		output->registerProbe<int>("Throughputs.L2_from_SAT",
 		                           "Kbits/s", true, SAMPLE_AVG);
 	this->l2_from_sat_bytes = 0;
 	return true;
@@ -2820,7 +2823,7 @@ void BlockDvbTal::Upward::updateStats(void)
 	this->l2_from_sat_bytes = 0;
 	// send all probes
 	// in upward because this block has less events to handle => more time
-	Output::sendProbes();
+	Output::Get()->sendProbes();
 
 	// reset stat context for next frame
 }

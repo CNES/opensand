@@ -74,7 +74,7 @@ class GseEncapCtx
 	/// The destination spot ID
 	uint16_t dest_spot;
 	/// The output log
-	OutputLog *log;
+	std::shared_ptr<OutputLog> log;
 	/// Tell if context has to be reset next time
 	bool to_reset;
 

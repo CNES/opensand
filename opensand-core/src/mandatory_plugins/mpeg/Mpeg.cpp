@@ -54,7 +54,7 @@ Mpeg::Mpeg():
 	this->upper[REGENERATIVE].push_back("AAL5/ATM");
 	this->upper[REGENERATIVE].push_back("ULE");
 	// register the static packet log
-	MpegPacket::mpeg_log = Output::registerLog(LEVEL_WARNING, "Encap.Net.MPEG");
+	MpegPacket::mpeg_log = Output::Get()->registerLog(LEVEL_WARNING, "Encap.Net.MPEG");
 }
 
 

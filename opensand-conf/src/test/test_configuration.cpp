@@ -171,9 +171,7 @@ int main(int argc, char **argv)
 	vec.push_back("dupkey2");
 	config["dup"] = vec;
 
-	Output::init(true);
-	Output::enableStdlog();
-	Output::finishInit();
+	Output::Get()->finalizeConfiguration();
 
 	// load the configuration files
 	// be careful the maps are ordered, the output will not be ordered like above

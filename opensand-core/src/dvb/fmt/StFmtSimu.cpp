@@ -52,13 +52,15 @@ StFmtSimu::StFmtSimu(string name,
 	// TODO we should do more specific logs, like here, wherever it's possible
 	if(id < BROADCAST_TAL_ID)
 	{
-		this->log_fmt = Output::registerLog(LEVEL_WARNING,
-		                                    "Dvb.Fmt.%sStFmtSimu%u", name.c_str(), id);
+		this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING,
+                                               "Dvb.Fmt.%sStFmtSimu%u",
+                                               name.c_str(), id);
 	}
 	else
 	{
-		this->log_fmt = Output::registerLog(LEVEL_WARNING,
-		                                    "Dvb.Fmt.%sSimuatedStFmtSimu", name.c_str());
+		this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING,
+                                               "Dvb.Fmt.%sSimuatedStFmtSimu",
+                                               name.c_str());
 	}
 }
 
@@ -160,11 +162,12 @@ StFmtSimuList::StFmtSimuList(string name):
 	name(name),
 	sts(NULL),
 	acm_loop_margin_db(0.0),
-	sts_mutex("sts_mutex")
+	sts_mutex()
 {
 	// Output Log
-	this->log_fmt = Output::registerLog(LEVEL_WARNING,
-	                                    "Dvb.Fmt.%sStFmtSimuList", name.c_str());
+	this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING,
+                                             "Dvb.Fmt.%sStFmtSimuList",
+                                             name.c_str());
 
 	this->sts = new ListStFmt();
 }

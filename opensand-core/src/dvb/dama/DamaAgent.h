@@ -224,24 +224,24 @@ protected:
 	bool cr_output_only;
 
 	// Output Log
-	OutputLog *log_init;
-	OutputLog *log_frame_tick;
-	OutputLog *log_schedule;
-	OutputLog *log_ttp;
-	OutputLog *log_sac;
-	OutputLog *log_request;
+  std::shared_ptr<OutputLog> log_init;
+  std::shared_ptr<OutputLog> log_frame_tick;
+  std::shared_ptr<OutputLog> log_schedule;
+  std::shared_ptr<OutputLog> log_ttp;
+  std::shared_ptr<OutputLog> log_sac;
+  std::shared_ptr<OutputLog> log_request;
 
 	/** Output probes and stats */
 		// Requests sizes
 			// RBDC
-	Probe<int> *probe_st_rbdc_req_size;
+  std::shared_ptr<Probe<int>> probe_st_rbdc_req_size;
 			// VBDC
-	Probe<int> *probe_st_vbdc_req_size;
+  std::shared_ptr<Probe<int>> probe_st_vbdc_req_size;
 		// Allocation
 			// Total
-	Probe<int> *probe_st_total_allocation;
+  std::shared_ptr<Probe<int>> probe_st_total_allocation;
 			// Remaining
-	Probe<int> *probe_st_remaining_allocation;
+  std::shared_ptr<Probe<int>> probe_st_remaining_allocation;
 
 };
 

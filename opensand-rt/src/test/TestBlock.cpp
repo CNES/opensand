@@ -239,8 +239,6 @@ int main(int argc, char **argv)
 HeapLeakChecker heap_checker("test_block");
 {
 #endif
-	Output::init(false);
-	Output::enableStdlog();
 	string error;
 
 	std::cout << "Launch test" << std::endl;
@@ -250,7 +248,7 @@ HeapLeakChecker heap_checker("test_block");
 	                TestBlock::Downward>("test");
 	
 	std::cout << "Start loop, please wait..." << std::endl;
-	Output::finishInit();
+	Output::Get()->finalizeConfiguration();
 	if(!Rt::run(true))
 	{
 		ret = 1;

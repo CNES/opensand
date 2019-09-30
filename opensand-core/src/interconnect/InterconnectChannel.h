@@ -65,7 +65,7 @@ class InterconnectChannel
 		data_channel(NULL),
 		sig_channel(NULL)
 	{
-		this->log_interconnect = Output::registerLog(LEVEL_WARNING, name);
+		this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, name);
 	};
 
 	~InterconnectChannel()
@@ -102,7 +102,7 @@ class InterconnectChannel
 	/// The signalling channel
 	UdpChannel *sig_channel;
 	/// Output log
-	OutputLog *log_interconnect;
+  std::shared_ptr<OutputLog> log_interconnect;
 };
 
 class InterconnectChannelSender: public InterconnectChannel

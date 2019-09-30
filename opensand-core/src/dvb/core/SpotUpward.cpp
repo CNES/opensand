@@ -152,9 +152,8 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 	}
 
 	// send the corresponding event
-	Output::sendEvent(this->event_logon_req,
-	                  "Logon request received from ST%u on spot %u",
-	                  mac, this->spot_id);
+  event_logon_req->sendEvent("Logon request received from ST%u on spot %u",
+                             mac, this->spot_id);
 
 	return true;
 }
@@ -172,7 +171,7 @@ void SpotUpward::updateStats(void)
 	this->l2_from_sat_bytes = 0;
 
 	// Send probes
-	Output::sendProbes();
+	Output::Get()->sendProbes();
 }
 
 

@@ -102,7 +102,7 @@ class BlockInterconnectDownward: public Block
 
  protected:
 	// Output log
-	OutputLog *log_interconnect;
+	std::shared_ptr<OutputLog> log_interconnect;
 
 	/// event handlers
 	bool onDownwardEvent(const RtEvent *const event);
@@ -165,7 +165,7 @@ class BlockInterconnectUpward: public Block
 
  protected:
 	// Output log 
-	OutputLog *log_interconnect;
+	std::shared_ptr<OutputLog> log_interconnect;
 
 	/// event handlers
 	bool onDownwardEvent(const RtEvent *const event);

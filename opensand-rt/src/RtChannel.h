@@ -76,10 +76,10 @@ class RtChannel
   protected:
 
 	/// Output Log
-	OutputLog *log_init;
-	OutputLog *log_rt;
-	OutputLog *log_receive;
-	OutputLog *log_send;
+  std::shared_ptr<OutputLog> log_init;
+  std::shared_ptr<OutputLog> log_rt;
+  std::shared_ptr<OutputLog> log_receive;
+  std::shared_ptr<OutputLog> log_send;
 
 	/**
 	 * @brief Channel Constructor

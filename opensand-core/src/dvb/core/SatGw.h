@@ -94,7 +94,7 @@ class SatGw: public DvbFmt
 	RtMutex gw_mutex;
 	
 	// Output probes and stats
-	typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
+	typedef map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerSpot;
 
 		// Queue sizes
 	ProbeListPerSpot probe_sat_output_gw_queue_size;
@@ -108,8 +108,8 @@ class SatGw: public DvbFmt
 	ProbeListPerSpot probe_sat_l2_to_gw;
 
 	// Output Log
-	OutputLog *log_init;
-	OutputLog *log_receive;
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_receive;
 
  public:
 

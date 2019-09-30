@@ -69,3 +69,6 @@ libopensand_dvb_utils_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dvb/fmt
+
+libopensand_dvb_utils_la_LIBADD = \
+	$(top_builddir)/src/dvb/fmt/libopensand_dvb_fmt.la
