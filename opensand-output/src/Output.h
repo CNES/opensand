@@ -230,10 +230,11 @@ public:
   /**
    * @brief Configure the output library to use file-based logs and probes
    *
-   * @param folder  The path to store produced files in
-   * @return        Whether or not the configuration was successful
+   * @param folder      The path to store produced files in
+   * @param entityName  The name of the entity that will be part of the final files names
+   * @return            Whether or not the configuration was successful
    **/
-  bool configureLocalOutput(const std::string& folder);
+  bool configureLocalOutput(const std::string& folder, const std::string& entityName);
 
   /**
    * @brief Configure the output library to use UDP socket-based logs and probes

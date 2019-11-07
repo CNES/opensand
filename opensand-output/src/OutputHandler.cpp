@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <chrono>
+#include <ctime>
 #include <sstream>
+#include <iomanip>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -19,7 +21,28 @@ HandlerCreationFailedError::HandlerCreationFailedError(const std::string& what_a
 
 inline unsigned long long getTimestamp() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+
+struct getDate {
+  getDate() {
+    std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+    std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(ms);
+    date_time = s.count();
+    date_milli = ms.count() % 1000;
+  }
+
+  std::time_t date_time;
+  std::size_t date_milli;
 };
+
+
+std::ostream& operator<<(std::ostream& os, const getDate& date) {
+  const char prevFill = os.fill();
+  const std::streamsize prevWidth = os.width();
+  os << std::put_time(std::localtime(&date.date_time), "%F %T.") << std::setfill('0') << std::setw(3) << date.date_milli << std::setfill(prevFill) << std::setw(prevWidth);
+  return os;
+}
 
 
 FileStatHandler::FileStatHandler(const std::string& fileName, const std::string& originFolder) : filesOpened(0), folder(originFolder), filename(fileName) {
@@ -36,15 +59,14 @@ FileStatHandler::~FileStatHandler() {
 
 std::string FileStatHandler::buildFullPath() const {
   std::stringstream filenameBuilder;
-  filenameBuilder << folder << '/' << filename << '.' << filesOpened << ".stat";
+  filenameBuilder << folder << '/' << "stats." << filename << '.' << filesOpened << ".csv";
   return filenameBuilder.str();
 }
 
 
 void FileStatHandler::emitStats(const std::vector<std::pair<std::string, std::string>>& probesValues)
 {
-  auto timestamp = getTimestamp();
-  file << timestamp;
+  file << getDate();
   for (auto& probe : probesValues) {
     file << ";" << probe.second;
   }
@@ -60,9 +82,9 @@ void FileStatHandler::configure(const std::vector<std::shared_ptr<BaseProbe>>& p
     file.open(buildFullPath());
   }
 
-  file << "timestamp";
+  file << "Date";
   for (auto& probe : probes) {
-    file << ";" << probe->getName();
+    file << ";" << probe->getName() << " (" << probe->getUnit() << ")";
   }
   file << "\n";
 }
@@ -82,9 +104,8 @@ FileLogHandler::~FileLogHandler() {
 
 
 void FileLogHandler::emitLog(const std::string& logName, const std::string& level, const std::string& message) {
-  auto timestamp = getTimestamp();
   std::lock_guard<std::mutex> acquire{lock};
-  file << "[" << timestamp << "]" << level << " " << logName << ": " << message << "\n";
+  file << "[" << getDate() << "]" << level << " " << logName << ": " << message << "\n";
 }
 
 
@@ -177,9 +198,8 @@ SocketLogHandler::~SocketLogHandler() {
 
 
 void SocketLogHandler::emitLog(const std::string& logName, const std::string& level, const std::string& message) {
-  auto timestamp = getTimestamp();
   std::stringstream formatter;
-  formatter << "[" << timestamp << "]" << level << " " << logName << ": " << message;
+  formatter << "[" << getDate() << "]" << level << " " << logName << ": " << message;
   std::string msg = formatter.str();
 
   if (useTcp) {

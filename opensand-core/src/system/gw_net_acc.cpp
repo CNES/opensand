@@ -68,46 +68,48 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
+#include <iostream>
 
 
 /**
  * Argument treatment
  */
 bool init_process(int argc, char **argv,
-                  string &tuntap_iface,
+                  std::string &tuntap_iface,
                   tal_id_t &instance_id,
-                  string &interconnect_addr,
-                  string &conf_path)
+                  std::string &interconnect_addr,
+                  std::string &conf_path)
 {
-	int opt;
+  int opt;
   std::string output_folder = "";
   std::string remote_address = "";
   unsigned short stats_port = 12345;
   unsigned short logs_port = 23456;
-	bool stop = false;
-	char entity[10];
+  bool stop = false;
+  std::string entity{"gw_net_acc"};
 
-	/* setting environment agent parameters */
-	while(!stop && (opt = getopt(argc, argv, "-hi:t:u:w:c:f:r:l:s:")) != EOF)
-	{
-		switch(opt)
-		{
-		case 'i':
-			// get instance id
-			instance_id = atoi(optarg);
-			break;
-		case 't':
-			// get TUN/TAP interface name
-			tuntap_iface = optarg;
-			break;
-		case 'w':
-			// Get the interconnect IP address
-			interconnect_addr = optarg;
-			break;
-		case 'c':
-			// get the configuration path
-			conf_path = optarg;
-			break;
+  /* setting environment agent parameters */
+  while(!stop && (opt = getopt(argc, argv, "-hi:t:u:w:c:f:r:l:s:")) != EOF)
+  {
+    switch(opt)
+    {
+    case 'i':
+      // get instance id
+      instance_id = atoi(optarg);
+      entity += optarg;
+      break;
+    case 't':
+      // get TUN/TAP interface name
+      tuntap_iface = optarg;
+      break;
+    case 'w':
+      // Get the interconnect IP address
+      interconnect_addr = optarg;
+      break;
+    case 'c':
+      // get the configuration path
+      conf_path = optarg;
+      break;
     case 'f':
       output_folder = optarg;
       break;
@@ -120,28 +122,28 @@ bool init_process(int argc, char **argv,
     case 's':
       stats_port = atoi(optarg);
       break;
-		case 'h':
-		case '?':
-			fprintf(stderr, "usage: %s [-h] [[-q] [-d] -i instance_id "
-			        "-t tuntap_iface -w interconnect_addr -c conf_path -e lib_ext_output_path\n",
-			        argv[0]);
-			fprintf(stderr, "\t-h                       print this message\n");
-			fprintf(stderr, "\t-t <tuntap_iface>        set the GW TUN/TAP interface name\n");
-			fprintf(stderr, "\t-i <instance>            set the instance id\n");
-			fprintf(stderr, "\t-w <interconnect_addr>   set the interconnect IP address\n");
-			fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
-			fprintf(stderr, "\t-f <output_folder>       activate and specify the folder for logs and probes files\n");
-			fprintf(stderr, "\t-r <remote_address>      activate and specify the address for logs and probes socket messages\n");
-			fprintf(stderr, "\t-l <logs_port>           specify the port for logs socket messages\n");
-			fprintf(stderr, "\t-s <stats_port>          specify the port for probes socket messages\n");
-			stop = true;
-			break;
-		}
-	}
+    case 'h':
+    case '?':
+      std::cerr << "usage: " << argv[0] << " [-h] -i instance_id "
+              "-t tuntap_iface -w interconnect_addr -c conf_path "
+              "[-f output_folder] [-r remote_address [-l logs_port] [-s stats_port]]\n"
+              "\t-h                       print this message\n"
+              "\t-t <tuntap_iface>        set the GW TUN/TAP interface name\n"
+              "\t-i <instance>            set the instance id\n"
+              "\t-w <interconnect_addr>   set the interconnect IP address\n"
+              "\t-c <conf_path>           specify the configuration path\n"
+              "\t-f <output_folder>       activate and specify the folder for logs and probes files\n"
+              "\t-r <remote_address>      activate and specify the address for logs and probes socket messages\n"
+              "\t-l <logs_port>           specify the port for logs socket messages\n"
+              "\t-s <stats_port>          specify the port for probes socket messages\n";
+      stop = true;
+      break;
+    }
+  }
 
   if (!output_folder.empty())
   {
-    stop = stop || !Output::Get()->configureLocalOutput(output_folder);
+    stop = stop || !Output::Get()->configureLocalOutput(output_folder, entity);
   }
 
   if (!remote_address.empty())
@@ -149,200 +151,200 @@ bool init_process(int argc, char **argv,
     stop = stop || !Output::Get()->configureRemoteOutput(remote_address, stats_port, logs_port);
   }
 
-	if(stop)
-	{
-		return false;
-	}
+  if(stop)
+  {
+    return false;
+  }
 
-	DFLTLOG(LEVEL_NOTICE,
-	        "starting output\n");
+  DFLTLOG(LEVEL_NOTICE,
+          "starting output\n");
 
-	if(tuntap_iface.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory TUN/TAP interface name option");
-		return false;
-	}
+  if(tuntap_iface.size() == 0)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "missing mandatory TUN/TAP interface name option");
+    return false;
+  }
 
-	if(conf_path.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory configuration path option");
-		return false;
-	}
+  if(conf_path.size() == 0)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "missing mandatory configuration path option");
+    return false;
+  }
 
-	if(interconnect_addr.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory interconnect address option");
-		return false;
-	}
+  if(interconnect_addr.size() == 0)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "missing mandatory interconnect address option");
+    return false;
+  }
 }
 
 
 int main(int argc, char **argv)
 {
-	const char *progname = argv[0];
-	struct sched_param param;
-	bool init_ok;
-	string tuntap_iface;
-	tal_id_t mac_id = 0;
-	string interconnect_addr;
-	struct la_specific spec_la;
-	struct ic_specific spec_ic;
+  const char *progname = argv[0];
+  struct sched_param param;
+  bool init_ok;
+  std::string tuntap_iface;
+  tal_id_t mac_id = 0;
+  std::string interconnect_addr;
+  struct la_specific spec_la;
+  struct ic_specific spec_ic;
 
-	string conf_path;
-	string topology_file;
-	string global_file;
-	string default_file;
-	string plugin_conf_path;
+  std::string conf_path;
+  std::string topology_file;
+  std::string global_file;
+  std::string default_file;
+  std::string plugin_conf_path;
 
-	Block *block_lan_adaptation;
-	Block *block_encap;
-	Block *block_dvb;
-	Block *block_interconnect;
+  Block *block_lan_adaptation;
+  Block *block_encap;
+  Block *block_dvb;
+  Block *block_interconnect;
 
-	vector<string> conf_files;
-	map<string, log_level_t> levels;
-	map<string, log_level_t> spec_level;
+  vector<std::string> conf_files;
+  map<std::string, log_level_t> levels;
+  map<std::string, log_level_t> spec_level;
 
   std::shared_ptr<OutputEvent> status;
 
-	int is_failure = 1;
+  int is_failure = 1;
 
-	// retrieve arguments on command line
-	init_ok = init_process(argc, argv, tuntap_iface, mac_id,
-	                       interconnect_addr, conf_path);
+  // retrieve arguments on command line
+  init_ok = init_process(argc, argv, tuntap_iface, mac_id,
+                         interconnect_addr, conf_path);
 
-	plugin_conf_path = conf_path + string("plugins/");
+  plugin_conf_path = conf_path + std::string("plugins/");
 
-	status = Output::Get()->registerEvent("Status");
-	if(!init_ok)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: failed to init the process\n", progname);
-		goto quit;
-	}
+  status = Output::Get()->registerEvent("Status");
+  if(!init_ok)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: failed to init the process\n", progname);
+    goto quit;
+  }
 
-	// increase the realtime responsiveness of the process
-	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
-	sched_setscheduler(0, SCHED_FIFO, &param);
+  // increase the realtime responsiveness of the process
+  param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+  sched_setscheduler(0, SCHED_FIFO, &param);
 
-	topology_file = conf_path + string(CONF_TOPOLOGY);
-	global_file = conf_path + string(CONF_GLOBAL_FILE);
-	default_file = conf_path + string(CONF_DEFAULT_FILE);
+  topology_file = conf_path + std::string(CONF_TOPOLOGY);
+  global_file = conf_path + std::string(CONF_GLOBAL_FILE);
+  default_file = conf_path + std::string(CONF_DEFAULT_FILE);
 
-	conf_files.push_back(topology_file.c_str());
-	conf_files.push_back(global_file.c_str());
-	conf_files.push_back(default_file.c_str());
-	// Load configuration files content
-	if(!Conf::loadConfig(conf_files))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot load configuration files, quit\n",
-		        progname);
-		goto quit;
-	}
+  conf_files.push_back(topology_file.c_str());
+  conf_files.push_back(global_file.c_str());
+  conf_files.push_back(default_file.c_str());
+  // Load configuration files content
+  if(!Conf::loadConfig(conf_files))
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot load configuration files, quit\n",
+            progname);
+    goto quit;
+  }
 
-	OpenSandConf::loadConfig();
+  OpenSandConf::loadConfig();
 
-	// read all packages debug levels
-	if(!Conf::loadLevels(levels, spec_level))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot load default levels, quit\n",
-		        progname);
-		goto quit;
-	}
-	// Output::setLevels(levels, spec_level);
+  // read all packages debug levels
+  if(!Conf::loadLevels(levels, spec_level))
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot load default levels, quit\n",
+            progname);
+    goto quit;
+  }
+  // Output::setLevels(levels, spec_level);
 
-	// load the plugins
-	if(!Plugin::loadPlugins(false, plugin_conf_path))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot load the plugins\n", progname);
-		goto quit;
-	}
+  // load the plugins
+  if(!Plugin::loadPlugins(false, plugin_conf_path))
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot load the plugins\n", progname);
+    goto quit;
+  }
 
-	// instantiate all blocs
-	spec_la.tuntap_iface = tuntap_iface;
-	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
-	                                       BlockLanAdaptation::Upward,
-	                                       BlockLanAdaptation::Downward,
-	                                       struct la_specific>("LanAdaptation", NULL, spec_la);
-	if(!block_lan_adaptation)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the LanAdaptation block\n",
-		        progname);
-		goto release_plugins;
-	}
-	block_encap = Rt::createBlock<BlockEncap,
-	                              BlockEncap::Upward,
-	                              BlockEncap::Downward,
-	                              tal_id_t>("Encap", block_lan_adaptation, mac_id);
-	if(!block_encap)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the Encap block\n", progname);
-		goto release_plugins;
-	}
+  // instantiate all blocs
+  spec_la.tuntap_iface = tuntap_iface;
+  block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
+                                         BlockLanAdaptation::Upward,
+                                         BlockLanAdaptation::Downward,
+                                         struct la_specific>("LanAdaptation", NULL, spec_la);
+  if(!block_lan_adaptation)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot create the LanAdaptation block\n",
+            progname);
+    goto release_plugins;
+  }
+  block_encap = Rt::createBlock<BlockEncap,
+                                BlockEncap::Upward,
+                                BlockEncap::Downward,
+                                tal_id_t>("Encap", block_lan_adaptation, mac_id);
+  if(!block_encap)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot create the Encap block\n", progname);
+    goto release_plugins;
+  }
 
-	block_dvb = Rt::createBlock<BlockDvbNcc,
-	                            BlockDvbNcc::Upward,
-	                            BlockDvbNcc::Downward,
-	                            tal_id_t>("Dvb", block_encap, mac_id);
-	if(!block_dvb)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the DvbNcc block\n", progname);
-		goto release_plugins;
-	}
+  block_dvb = Rt::createBlock<BlockDvbNcc,
+                              BlockDvbNcc::Upward,
+                              BlockDvbNcc::Downward,
+                              tal_id_t>("Dvb", block_encap, mac_id);
+  if(!block_dvb)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot create the DvbNcc block\n", progname);
+    goto release_plugins;
+  }
 
-	spec_ic.interconnect_addr = interconnect_addr;
+  spec_ic.interconnect_addr = interconnect_addr;
 
-	block_interconnect = Rt::createBlock<BlockInterconnectDownward,
-	                                     BlockInterconnectDownward::Upward,
-	                                     BlockInterconnectDownward::Downward,
-	                                     struct ic_specific>
-	                                     ("InterconnectDownward", block_dvb, spec_ic);
-	if(!block_interconnect)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the InterconnectDownward block\n", progname);
-		goto release_plugins;
-	}
+  block_interconnect = Rt::createBlock<BlockInterconnectDownward,
+                                       BlockInterconnectDownward::Upward,
+                                       BlockInterconnectDownward::Downward,
+                                       struct ic_specific>
+                                       ("InterconnectDownward", block_dvb, spec_ic);
+  if(!block_interconnect)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot create the InterconnectDownward block\n", progname);
+    goto release_plugins;
+  }
 
-	DFLTLOG(LEVEL_DEBUG,
-	        "All blocks are created, start\n");
+  DFLTLOG(LEVEL_DEBUG,
+          "All blocks are created, start\n");
 
-	// make the GW alive
-	if(!Rt::init())
-	{
-		goto release_plugins;
-	}
+  // make the GW alive
+  if(!Rt::init())
+  {
+    goto release_plugins;
+  }
 
   Output::Get()->finalizeConfiguration();
 
-	status->sendEvent("Blocks initialized");
-	if(!Rt::run())
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot run process loop\n",
-		        progname);
-	}
+  status->sendEvent("Blocks initialized");
+  if(!Rt::run())
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot run process loop\n",
+            progname);
+  }
 
-	status->sendEvent("Simulation stopped");
+  status->sendEvent("Simulation stopped");
 
-	// everything went fine, so report success
-	is_failure = 0;
+  // everything went fine, so report success
+  is_failure = 0;
 
-	// cleanup before GW stops
+  // cleanup before GW stops
 release_plugins:
-	Plugin::releasePlugins();
+  Plugin::releasePlugins();
 quit:
-	DFLTLOG(LEVEL_NOTICE,
-	        "%s: GW process stopped with exit code %d\n",
-	        progname, is_failure);
-	return is_failure;
+  DFLTLOG(LEVEL_NOTICE,
+          "%s: GW process stopped with exit code %d\n",
+          progname, is_failure);
+  return is_failure;
 }

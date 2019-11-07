@@ -117,7 +117,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	{
 		section << ".GW_" << (unsigned int)gw_id;
 	}
-	section << "." << label << "." << dst_name << " ";
+	section << "." << label << "." << dst_name;
 	this->probe_section = section.str();
 
 	snprintf(probe_name, sizeof(probe_name),
@@ -129,7 +129,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	         this->probe_section.c_str());
 	this->probe_fwd_total_remaining_capacity = Output::Get()->registerProbe<int>(probe_name, "Symbols per frame", true, SAMPLE_LAST);
 	snprintf(probe_name, sizeof(probe_name),
-	         "%sBBFrame number",
+	         "%sGlobal.BBFrame number",
 	         this->probe_section.c_str());
 	this->probe_bbframe_nbr = Output::Get()->registerProbe<int>(probe_name, true, SAMPLE_AVG);
 

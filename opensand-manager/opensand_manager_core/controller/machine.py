@@ -36,13 +36,14 @@ host.py - controller that configure, install, start, stop
           and get status of OpenSAND processes on a specific host
 """
 
-import threading
-import socket
-import thread
-import os
 import ConfigParser
+import os
+import socket
 import tempfile
+import thread
+import threading
 import time
+from datetime import datetime
 
 from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.controller.stream import Stream
@@ -281,8 +282,7 @@ class MachineController:
                             tuntap_iface, instance_param,
                             output_libpath,
                             CONF_DESTINATION_PATH)
-        if not self._machine_model.is_collector_functional():
-            command_line += " -q"
+        command_line += " -f '/var/log/opensand/{}/'".format(datetime.now())
         try:
             start_ini.add_section(self._machine_model.get_component())
             start_ini.set(self._machine_model.get_component(), 'command',

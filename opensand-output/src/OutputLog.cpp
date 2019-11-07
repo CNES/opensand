@@ -40,21 +40,23 @@
 
 const char *OutputLog::levels[] =
 {
-	"[CRITICAL]",
-	"[CRITICAL]",
-	"[CRITICAL]",
-	"[   ERROR]",
-	"[ WARNING]",
-	"[  NOTICE]",
-	"[    INFO]",
-	"[   DEBUG]",
+  "[CRITICAL]",
+  "[CRITICAL]",
+  "[CRITICAL]",
+  "[   ERROR]",
+  "[ WARNING]",
+  "[  NOTICE]",
+  "[    INFO]",
+  "[   DEBUG]",
+  "",
+  "",
   "",
 };
 
 
 OutputLog::OutputLog(log_level_t display_level, const std::string &name):
-	name(name),
-	display_level(display_level)
+  name(name),
+  display_level(display_level)
 {
 }
 
@@ -68,14 +70,14 @@ OutputLog::~OutputLog()
 log_level_t OutputLog::getDisplayLevel(void) const
 {
   OutputLock acquire{lock};
-	return this->display_level;
+  return this->display_level;
 }
 
 
 void OutputLog::setDisplayLevel(log_level_t level)
 {
   OutputLock acquire{lock};
-	this->display_level = level;
+  this->display_level = level;
 }
 
 

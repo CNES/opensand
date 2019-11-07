@@ -225,6 +225,15 @@ inline std::vector<std::string> splitName(const std::string& name) {
   return parts;
 }
 
+
+inline void logException(std::shared_ptr<OutputLog>& log, const std::exception& exc) {
+  if (log != nullptr) {
+    log->sendLog(LEVEL_ERROR, "%s", exc.what());
+  }
+  std::cerr << exc.what() << std::endl;
+}
+
+
 Output::Output()
 {
   root = std::make_shared<OutputSection>("", "");
@@ -253,6 +262,10 @@ std::shared_ptr<Output> Output::Get()
 
 std::shared_ptr<OutputEvent> Output::registerEvent(const std::string& identifier)
 {
+  if (privateLog != nullptr) {
+    privateLog->sendLog(LEVEL_INFO, "Registering event '%s'", identifier.c_str());
+  }
+
   OutputLock acquire{lock};
   std::vector<std::string> parts = splitName(identifier);
 
@@ -261,6 +274,10 @@ std::shared_ptr<OutputEvent> Output::registerEvent(const std::string& identifier
 
   try {
     std::shared_ptr<OutputUnit> logUnit = getOrCreateSection(parts)->findUnit(unitName);
+    std::shared_ptr<OutputEvent> existingEvent = std::dynamic_pointer_cast<OutputEvent>(logUnit->getLog());
+    if (existingEvent != nullptr) {
+        return existingEvent;
+    }
     std::shared_ptr<OutputEvent> event{new OutputEvent(logUnit->getFullName())};
     logUnit->setLog(event);
 
@@ -270,13 +287,17 @@ std::shared_ptr<OutputEvent> Output::registerEvent(const std::string& identifier
 
     return event;
   } catch (const AlreadyExistsError& exc) {
-    std::cerr << exc.what() << std::endl;
+    logException(privateLog, exc);
     return nullptr;
   }
 }
 
 std::shared_ptr<OutputLog> Output::registerLog(log_level_t display_level, const std::string& name)
 {
+  if (privateLog != nullptr) {
+    privateLog->sendLog(LEVEL_INFO, "Registering log '%s'", name.c_str());
+  }
+
   OutputLock acquire{lock};
   std::vector<std::string> parts = splitName(name);
 
@@ -285,6 +306,11 @@ std::shared_ptr<OutputLog> Output::registerLog(log_level_t display_level, const 
 
   try {
     std::shared_ptr<OutputUnit> logUnit = getOrCreateSection(parts)->findUnit(unitName);
+    std::shared_ptr<OutputLog> existingLog = logUnit->getLog();
+    if (existingLog != nullptr) {
+        existingLog->setDisplayLevel(display_level);
+        return existingLog;
+    }
     std::shared_ptr<OutputLog> log{new OutputLog(display_level, logUnit->getFullName())};
     logUnit->setLog(log);
 
@@ -294,7 +320,7 @@ std::shared_ptr<OutputLog> Output::registerLog(log_level_t display_level, const 
 
     return log;
   } catch (const AlreadyExistsError& exc) {
-    std::cerr << exc.what() << std::endl;
+    logException(privateLog, exc);
     return nullptr;
   }
 }
@@ -307,7 +333,7 @@ std::shared_ptr<OutputEvent> Output::registerEvent(const char *identifier, ...)
   std::string eventName = formatMessage(identifier, args);
   va_end(args);
 
-	return Output::registerEvent(eventName);
+  return Output::registerEvent(eventName);
 }
 
 
@@ -318,20 +344,20 @@ std::shared_ptr<OutputLog> Output::registerLog(log_level_t default_display_level
   std::string logName = formatMessage(name, args);
   va_end(args);
 
-	return Output::registerLog(default_display_level, logName);
+  return Output::registerLog(default_display_level, logName);
 }
 
 
-bool Output::configureLocalOutput(const std::string& folder)
+bool Output::configureLocalOutput(const std::string& folder, const std::string& entityName)
 {
   std::shared_ptr<FileLogHandler> logHandler;
   std::shared_ptr<FileStatHandler> statHandler;
 
   try {
-    logHandler = std::make_shared<FileLogHandler>("output", folder);
-    statHandler = std::make_shared<FileStatHandler>("output", folder);
+    logHandler = std::make_shared<FileLogHandler>(entityName, folder);
+    statHandler = std::make_shared<FileStatHandler>(entityName, folder);
   } catch (const HandlerCreationFailedError& exc) {
-    std::cerr << exc.what() << std::endl;
+    logException(privateLog, exc);
     return false;
   }
 
@@ -356,7 +382,7 @@ bool Output::configureRemoteOutput(const std::string& address,
     logHandler = std::make_shared<SocketLogHandler>(address, logsPort);
     statHandler = std::make_shared<SocketStatHandler>(address, statsPort);
   } catch (const HandlerCreationFailedError& exc) {
-    std::cerr << exc.what() << std::endl;
+    logException(privateLog, exc);
     return false;
   }
 
@@ -435,6 +461,10 @@ std::shared_ptr<Output::OutputSection> Output::getOrCreateSection(const std::vec
 
 void Output::registerProbe(const std::string& name, std::shared_ptr<BaseProbe> probe)
 {
+  if (privateLog != nullptr) {
+    privateLog->sendLog(LEVEL_INFO, "Registering probe '%s'", name.c_str());
+  }
+
   std::vector<std::string> parts = splitName(name);
 
   std::string statName = parts.back();
@@ -454,7 +484,7 @@ std::shared_ptr<Probe<int32_t>> Output::registerProbe(const std::string& name, c
   try {
     registerProbe(name, probe);
   } catch (const AlreadyExistsError& exc) {
-    std::cerr << exc.what() << std::endl;
+    logException(privateLog, exc);
     return nullptr;
   }
   return probe;
@@ -468,7 +498,7 @@ std::shared_ptr<Probe<float>> Output::registerProbe(const std::string& name, con
   try {
     registerProbe(name, probe);
   } catch (const AlreadyExistsError& exc) {
-    std::cerr << exc.what() << std::endl;
+    logException(privateLog, exc);
     return nullptr;
   }
   return probe;
@@ -482,7 +512,7 @@ std::shared_ptr<Probe<double>> Output::registerProbe(const std::string& name, co
   try {
     registerProbe(name, probe);
   } catch (const AlreadyExistsError& exc) {
-    std::cerr << exc.what() << std::endl;
+    logException(privateLog, exc);
     return nullptr;
   }
   return probe;

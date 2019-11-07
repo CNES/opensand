@@ -513,7 +513,7 @@ bool SpotDownward::initOutput(void)
 			(*this->probe_gw_queue_size)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue size.%s",
+			         "Spot_%d.%s.Queue size.capacity.%s",
 							 spot_id, cat_label.c_str(), fifo_name);
 			probe_temp = output->registerProbe<int>(probe_name, "kbits", true, SAMPLE_LAST);
 			(*this->probe_gw_queue_size_kb)[cat_label].emplace(id, probe_temp);
@@ -537,7 +537,7 @@ bool SpotDownward::initOutput(void)
 			(*this->probe_gw_queue_loss)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue loss.%s",
+			         "Spot_%d.%s.Queue loss.rate.%s",
 							 spot_id, cat_label.c_str(), fifo_name);
 			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_SUM);
 			(*this->probe_gw_queue_loss_kb)[cat_label].emplace(id, probe_temp);

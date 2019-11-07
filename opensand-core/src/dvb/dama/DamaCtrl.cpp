@@ -182,7 +182,7 @@ bool DamaCtrl::initOutput()
 
 	// Allocated ressources
 	// CRA allocation
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.CRA allocated", this->spot_id);
+	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.Global.CRA allocated", this->spot_id);
 	this->probe_gw_cra_alloc = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_LAST);
 	this->gw_cra_alloc_kbps = 0;
 
@@ -203,7 +203,7 @@ bool DamaCtrl::initOutput()
 	if(this->fca_kbps != 0)
 	{
 		// only create FCA probe if it is enabled
-		snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.FCA allocated", this->spot_id);
+		snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.Global.FCA allocated", this->spot_id);
 		this->probe_gw_fca_alloc = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_LAST);
 	}
 
@@ -213,7 +213,7 @@ bool DamaCtrl::initOutput()
 	this->gw_remaining_capacity = 0;
 
 	// Logged ST number
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.ST number", this->spot_id);
+	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.Global.ST number", this->spot_id);
 	this->probe_gw_st_num = output->registerProbe<int>(probe_name, "", true, SAMPLE_LAST);
 	this->gw_st_num = 0;
 

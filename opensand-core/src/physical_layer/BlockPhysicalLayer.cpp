@@ -312,10 +312,10 @@ bool BlockPhysicalLayer::Downward::onInit()
 
 	// Initialize the delay event
 	this->delay_update_timer = this->addTimerEvent("delay_timer",
-												   this->satdelay_model->getRefreshPeriod());
+                                                       this->satdelay_model->getRefreshPeriod());
 
 	// Initialize the delay probe
-	this->probe_delay = Output::Get()->registerProbe<int>("Delay", "ms", true, SAMPLE_LAST);
+	this->probe_delay = Output::Get()->registerProbe<int>("Phy.Delay", "ms", true, SAMPLE_LAST);
 
 	return true;
 }
