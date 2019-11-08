@@ -59,7 +59,7 @@ FileStatHandler::~FileStatHandler() {
 
 std::string FileStatHandler::buildFullPath() const {
   std::stringstream filenameBuilder;
-  filenameBuilder << folder << '/' << "stats." << filename << '.' << filesOpened << ".csv";
+  filenameBuilder << folder << '/' << filename << '_' << filesOpened << ".csv";
   return filenameBuilder.str();
 }
 
