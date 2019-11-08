@@ -160,7 +160,11 @@ datatype_t Probe<double>::getDataType() const;
 template<typename T>
 std::string Probe<T>::getData() const
 {
-  return std::to_string(this->get());
+  OutputLock lock(mutex);
+  if (this->isEmpty()) { return ""; }
+  T value = this->get();
+  this->reset();
+  return std::to_string(value);
 }
 
 

@@ -185,6 +185,7 @@ class OutputUnit : public OutputItem
         if (stat.second->isEnabled()) {
           probes.push_back(stat.second);
         }
+        stat.second->reset();
       }
     }
 
@@ -403,11 +404,6 @@ void Output::finalizeConfiguration(void)
   enabledProbes.clear();
   root->gatherEnabledStats(enabledProbes);
 
-  for (auto& probe : enabledProbes) {
-    // TODO: better than that
-    probe->reset();
-  }
-
   for (auto& handler : probeHandlers) {
     handler->configure(enabledProbes);
   }
@@ -420,10 +416,7 @@ void Output::sendProbes(void)
 
   std::vector<std::pair<std::string, std::string>> probesValues;
   for (auto& probe : enabledProbes) {
-    const std::string name = probe->getName();
-    const std::string value = probe->isEmpty() ? "" : probe->getData();
-    probe->reset();
-    probesValues.emplace_back(name, value);
+    probesValues.emplace_back(probe->getName(), probe->getData());
   }
 
   for (auto& handler : probeHandlers) {
