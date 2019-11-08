@@ -49,17 +49,17 @@
  */
 class OutputEvent: public OutputLog
 {
-	friend class Output;
+  friend class Output;
 
 public:
-	~OutputEvent();
+  ~OutputEvent();
 
   void sendEvent(const char* msg_format, ...) const;
 
 protected:
-	OutputEvent(const std::string &name);
+  OutputEvent(const std::string &name);
 
-	void setDisplayLevel(log_level_t level);
+  void setDisplayLevel(log_level_t level);
 };
 
 

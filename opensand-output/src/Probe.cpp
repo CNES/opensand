@@ -41,17 +41,17 @@
 template<>
 datatype_t Probe<int32_t>::getDataType() const
 {
-	return INT32_TYPE;
+  return INT32_TYPE;
 }
 
 template<>
 datatype_t Probe<float>::getDataType() const
 {
-	return FLOAT_TYPE;
+  return FLOAT_TYPE;
 }
 
 template<>
 datatype_t Probe<double>::getDataType() const
 {
-	return DOUBLE_TYPE;
+  return DOUBLE_TYPE;
 }

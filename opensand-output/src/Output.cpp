@@ -522,5 +522,5 @@ std::shared_ptr<Probe<double>> Output::registerProbe(const std::string& name, co
 //void Output::setLevels(const map<string, log_level_t> &levels,
                        //const map<string, log_level_t> &specific)
 //{
-	//instance->setLevels(levels, specific);
+  //instance->setLevels(levels, specific);
 //}

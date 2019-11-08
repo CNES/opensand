@@ -43,17 +43,17 @@
  **/
 enum sample_type_t
 {
-	SAMPLE_LAST,   /*!< Keep the last value */
-	SAMPLE_MIN,    /*!< Keep the minimum value */
-	SAMPLE_MAX,    /*!< Keep the maximum value */
-	SAMPLE_AVG,    /*!< Calculate the average */
-	SAMPLE_SUM     /*!< Calculate the sum */
+  SAMPLE_LAST,   /*!< Keep the last value */
+  SAMPLE_MIN,    /*!< Keep the minimum value */
+  SAMPLE_MAX,    /*!< Keep the maximum value */
+  SAMPLE_AVG,    /*!< Calculate the average */
+  SAMPLE_SUM     /*!< Calculate the sum */
 };
 
 enum datatype_t {
-	INT32_TYPE = 0,
-	FLOAT_TYPE = 1,
-	DOUBLE_TYPE = 2
+  INT32_TYPE = 0,
+  FLOAT_TYPE = 1,
+  DOUBLE_TYPE = 2
 };
 
 
@@ -62,77 +62,77 @@ enum datatype_t {
  */
 class BaseProbe
 {
-	friend class Output;
+  friend class Output;
 
 public:
 
-	virtual ~BaseProbe();
+  virtual ~BaseProbe();
 
   /**
    * @brief Enable or disable the probe
    **/
   void enable(bool enabled);
 
-	/**
-	 * @brief Check if the probe is enabled
-	 *
-	 * @return true if the probe is currently enabled
-	 **/
-	inline bool isEnabled() const { return this->enabled; };
+  /**
+   * @brief Check if the probe is enabled
+   *
+   * @return true if the probe is currently enabled
+   **/
+  inline bool isEnabled() const { return this->enabled; };
 
-	/**
-	 * @brief Get the name of the probe
-	 *
-	 * @return the name of the probe
-	 **/
-	inline const std::string getName() const { return this->name; };
+  /**
+   * @brief Get the name of the probe
+   *
+   * @return the name of the probe
+   **/
+  inline const std::string getName() const { return this->name; };
 
-	/**
-	 * @brief Get the unit of the probe
-	 *
-	 * @return the unit of the probe
-	 **/
-	inline const std::string getUnit() const { return this->unit; };
+  /**
+   * @brief Get the unit of the probe
+   *
+   * @return the unit of the probe
+   **/
+  inline const std::string getUnit() const { return this->unit; };
 
-	/**
-	 * @brief get the byte size of data
-	 *
-	 * @return the size of data
-	 **/
-	virtual size_t getDataSize() const = 0;
-	
-	/**
-	 * @brief get data in byte
-	 *
-	 * @return data
-	 **/
-	virtual std::string getData() const = 0;
+  /**
+   * @brief get the byte size of data
+   *
+   * @return the size of data
+   **/
+  virtual size_t getDataSize() const = 0;
+  
+  /**
+   * @brief get data in byte
+   *
+   * @return data
+   **/
+  virtual std::string getData() const = 0;
 
-	/**
-	 * @brief get data type
-	 *
-	 * @return data type
-	 */
-	virtual datatype_t getDataType() const = 0;
+  /**
+   * @brief get data type
+   *
+   * @return data type
+   */
+  virtual datatype_t getDataType() const = 0;
 
-	/**
-	 * @brief reset values count
-	 *
-	 **/
-	void reset();
+  /**
+   * @brief reset values count
+   *
+   **/
+  void reset();
 
   inline bool isEmpty() const { return values_count == 0; };
 
 protected:
-	BaseProbe(const std::string &name, const std::string& unit, bool enabled, sample_type_t sample_type);
+  BaseProbe(const std::string &name, const std::string& unit, bool enabled, sample_type_t sample_type);
 
   std::string name;
-	std::string unit;
-	bool enabled;
+  std::string unit;
+  bool enabled;
   sample_type_t s_type;
 
-	/// the number of values in probe
-	uint16_t values_count;
+  /// the number of values in probe
+  uint16_t values_count;
 };
 
 #endif

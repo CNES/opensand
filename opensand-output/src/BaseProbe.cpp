@@ -36,11 +36,11 @@
 
 
 BaseProbe::BaseProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t sample_type):
-	name(name),
+  name(name),
   unit(unit),
-	enabled(enabled),
+  enabled(enabled),
   s_type(sample_type),
-	values_count(0)
+  values_count(0)
 {
 }
 
@@ -58,5 +58,5 @@ void BaseProbe::enable(bool enabled)
 
 void BaseProbe::reset()
 {
-	this->values_count = 0;	
+  this->values_count = 0; 
 }
