@@ -36,15 +36,18 @@
 environment_plane.py - controller for environment plane
 """
 
+from opensand_manager_core.loggers.levels import LOG_LEVELS
 from opensand_manager_core.utils import MAX_DATA_LENGTH
 from opensand_manager_core.model.environment_plane import Program
 from opensand_manager_core.model.machine import InitStatus
 from tempfile import TemporaryFile
 from zipfile import ZipFile, BadZipfile
+import contextlib
 import gobject
 import socket
 import struct
 import select
+import re
 
 MAGIC_NUMBER = 0x5A7D0001
 MSG_MGR_REGISTER = 40
@@ -62,6 +65,19 @@ MSG_MGR_SET_LOG_LEVEL = 61
 MSG_MGR_SET_LOGS_STATUS = 62
 MSG_MGR_SET_SYSLOG_STATUS = 63
 
+MSG_LOG_PATTERN = re.compile(r'\[(?P<timestamp>[^\]]+)\]\[\s*(?P<log_level>\w+)\] (?P<log_name>[^:]+): (?P<log_message>.*)')
+
+
+def get_default_ip_address(default='127.0.0.1'):
+    try:
+        with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_DGRAM)) as sock:
+            sock.connect(('10.255.255.255', 1))
+            address, _ = sock.getsockname()
+    except:
+        return default
+    else:
+        return address
+
 
 class EnvironmentPlaneController(object):
     """
@@ -73,7 +89,9 @@ class EnvironmentPlaneController(object):
         self._log = manager_log
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._sock.bind(('', 0))
+        self._address = get_default_ip_address()
         self._tag = None
+        self._tags = {}
         self._collector_addr = []
 
         self._transfer_port = 0
@@ -108,8 +126,9 @@ class EnvironmentPlaneController(object):
         self._sock.sendto(struct.pack("!LB", MAGIC_NUMBER, MSG_MGR_REGISTER),
                           addr)
 
-        self._tag = gobject.io_add_watch(self._sock, gobject.IO_IN,
-                                         self._data_received)
+        self._tag = gobject.io_add_watch(
+                self._sock, gobject.IO_IN,
+                self._data_received)
 
 
     def unregister_on_collector(self):
@@ -145,6 +164,25 @@ class EnvironmentPlaneController(object):
                 program.set_host_model(host_model)
                 host_model.set_init_status(InitStatus.SUCCESS)
 
+    def listen_to_host(self, host_model):
+        host_name = host_model.get_name().lower()
+        for program in self.get_programs():
+            if program.name == host_name:
+                break
+        else:
+            program = Program(self, "", host_name + ".", [], [], host_model)
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind(('', 0))
+        _, port = sock.getsockname()
+
+        tag = gobject.io_add_watch(
+                sock, gobject.IO_IN,
+                self._data_received_v2)
+        self._tags[id(sock)] = (sock, program, tag)
+
+        return self._address, port
+
     def cleanup(self):
         """
         Shut down the probe controller.
@@ -157,6 +195,14 @@ class EnvironmentPlaneController(object):
             pass
 
         self._sock.close()
+
+        for sock, program, tag in self._tags.itervalues():
+            gobject.source_remove(tag)
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except socket.error:
+                pass
+            sock.close()
 
     def get_programs(self):
         """
@@ -536,6 +582,76 @@ class EnvironmentPlaneController(object):
 
         if self._observer:
             self._observer.new_log(program, log.name, log_level, message)
+
+        return True
+
+    def _data_received_v2(self, _sock, _tag):
+        socket_id = id(_sock)
+
+        if socket_id not in self._tags:
+            self._log.error("Received data from unknown socket.")
+            return True
+
+        program = self._tags[socket_id][1]
+
+        packet, addr = _sock.recvfrom(MAX_DATA_LENGTH)
+        if len(packet) > MAX_DATA_LENGTH:
+            self._log.warning("Too many data received from socket, "
+                              "we may not be able to parse command")
+
+        if packet.startswith('['):
+            success = self._handle_send_log_v2(packet, program)
+
+            if not success:
+                self._log.error("Bad data received for LOG command: %s" % packet)
+
+            return True
+        else:
+            success = self._handle_send_probes_v2(packet, program)
+
+            if not success:
+                self._log.error("Bad data received for PROBES command: %s" % packet)
+
+            return True
+
+    def _handle_send_log_v2(self, data, program):
+        """
+        Handles logs transmission.
+        """
+        match = MSG_LOG_PATTERN.match(data)
+        if match is None:
+            return False
+
+        if self._observer:
+            log_name = match.group('log_name')
+            log_level_name = match.group('log_level').lower()
+            message = match.group('log_message')
+            for log_level, log in LOG_LEVELS.iteritems():
+                if log._name.lower() == log_level_name:
+                    break
+            else:
+                return False
+
+            self._observer.new_log(program, log_name, log_level, message)
+
+        return True
+
+    def _handle_send_probes_v2(self, data, program):
+        """
+        Handles probes transmissions.
+        """
+        values = {}
+        msg = iter(data.split())
+        try:
+            timestamp = int(next(msg))
+            for name, value in zip(msg, msg):
+                values[name] = json.loads(value)
+        except ValueError:
+            return False
+
+        if self._observer:
+            for probe, value in values.iteritems():
+                self._observer.new_probe_value(probe, timestamp, value)
 
         return True
 

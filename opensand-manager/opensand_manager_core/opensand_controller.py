@@ -341,12 +341,15 @@ class Controller(threading.Thread):
                     modules = [modules_dir, # host specific modules
                                os.path.join(scenario, 'plugins')] # global modules
 
+                address = self._env_plane.listen_to_host(host)
                 for machine in host.get_ordered_machines():
                     thread = threading.Thread(None, machine.configure, "Configure%s" %
                                               name,
                                               (conf_files, modules,
                                                self._deploy_config,
-                                               self._model.get_dev_mode(), errors),
+                                               address,
+                                               self._model.get_dev_mode(),
+                                               errors),
                                               {})
                     threads.append(thread)
                     thread.start()
@@ -366,7 +369,8 @@ class Controller(threading.Thread):
                     thread = threading.Thread(None, machine.configure_ws, "Configure%s" %
                                               ws.get_name(),
                                               (self._deploy_config,
-                                               self._model.get_dev_mode(), errors),
+                                               self._model.get_dev_mode(),
+                                               errors),
                                              {})
                     threads.append(thread)
                     thread.start()

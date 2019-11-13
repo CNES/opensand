@@ -154,7 +154,8 @@ class MachineController:
             sock.close()
 
     def configure(self, conf_files, conf_modules,
-                  deploy_config, dev_mode=False, errors=[]):
+                  deploy_config, remote_address,
+                  dev_mode=False, errors=[]):
         """ send the configure command to command server """
         # connect to command server and send the configure command
         sock = None
@@ -283,6 +284,12 @@ class MachineController:
                             output_libpath,
                             CONF_DESTINATION_PATH)
         command_line += " -f '/var/log/opensand/{}/'".format(datetime.now())
+        try:
+            address, port = remote_address
+        except ValueError:
+            pass
+        else:
+            command_line += ' -r %s -l %d -s %d' % (address, port, port)
         try:
             start_ini.add_section(self._machine_model.get_component())
             start_ini.set(self._machine_model.get_component(), 'command',
