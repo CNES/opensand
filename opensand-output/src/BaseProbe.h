@@ -106,7 +106,7 @@ public:
    *
    * @return data
    **/
-  virtual std::string getData() const = 0;
+  virtual std::string getData() = 0;
 
   /**
    * @brief get data type

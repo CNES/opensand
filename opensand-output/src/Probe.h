@@ -66,7 +66,7 @@ public:
   
   size_t getDataSize() const;
 
-  std::string getData() const;
+  std::string getData();
 
   datatype_t getDataType() const;
 
@@ -158,7 +158,7 @@ template<>
 datatype_t Probe<double>::getDataType() const;
 
 template<typename T>
-std::string Probe<T>::getData() const
+std::string Probe<T>::getData()
 {
   OutputLock lock(mutex);
   if (this->isEmpty()) { return ""; }

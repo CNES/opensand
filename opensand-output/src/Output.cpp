@@ -39,6 +39,8 @@
 #include <iostream>
 #include <sstream>
 #include <unordered_map>
+#include <algorithm>
+#include <cctype>
 
 #include "Output.h"
 #include "OutputEvent.h"
@@ -207,12 +209,26 @@ class OutputUnit : public OutputItem
       }
       return std::dynamic_pointer_cast<Probe<T>>(stat->second);
     }
+    std::shared_ptr<BaseProbe> getBaseStat(const std::string& name) const {
+      auto stat = stats.find(name);
+      if (stat == stats.end()) {
+        return nullptr;
+      }
+      return stat->second;
+    }
     std::shared_ptr<OutputLog> getLog() const { return log; }
 
   private:
     std::shared_ptr<OutputLog> log;
     std::unordered_map<std::string, std::shared_ptr<BaseProbe>> stats;
 };
+
+
+inline std::string normalizeName(const std::string& name) {
+  std::string copy{name};
+  std::transform(name.begin(), name.end(), copy.begin(), [](unsigned char c){ return std::isspace(c) ? '_' : std::tolower(c); });
+  return copy;
+}
 
 
 inline std::vector<std::string> splitName(const std::string& name) {
@@ -263,12 +279,14 @@ std::shared_ptr<Output> Output::Get()
 
 std::shared_ptr<OutputEvent> Output::registerEvent(const std::string& identifier)
 {
+  std::string name = normalizeName(identifier);
+
   if (privateLog != nullptr) {
-    privateLog->sendLog(LEVEL_INFO, "Registering event '%s'", identifier.c_str());
+    privateLog->sendLog(LEVEL_INFO, "Registering event '%s'", name.c_str());
   }
 
   OutputLock acquire{lock};
-  std::vector<std::string> parts = splitName(identifier);
+  std::vector<std::string> parts = splitName(name);
 
   std::string unitName = parts.back();
   parts.pop_back();
@@ -293,8 +311,10 @@ std::shared_ptr<OutputEvent> Output::registerEvent(const std::string& identifier
   }
 }
 
-std::shared_ptr<OutputLog> Output::registerLog(log_level_t display_level, const std::string& name)
+std::shared_ptr<OutputLog> Output::registerLog(log_level_t display_level, const std::string& identifier)
 {
+  std::string name = normalizeName(identifier);
+
   if (privateLog != nullptr) {
     privateLog->sendLog(LEVEL_INFO, "Registering log '%s'", name.c_str());
   }
@@ -471,8 +491,10 @@ void Output::registerProbe(const std::string& name, std::shared_ptr<BaseProbe> p
 
 
 template<>
-std::shared_ptr<Probe<int32_t>> Output::registerProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t type)
+std::shared_ptr<Probe<int32_t>> Output::registerProbe(const std::string& identifier, const std::string& unit, bool enabled, sample_type_t type)
 {
+  std::string name = normalizeName(identifier);
+
   std::shared_ptr<Probe<int32_t>> probe{new Probe<int32_t>(name, unit, enabled, type)};
   try {
     registerProbe(name, probe);
@@ -485,8 +507,10 @@ std::shared_ptr<Probe<int32_t>> Output::registerProbe(const std::string& name, c
 
 
 template<>
-std::shared_ptr<Probe<float>> Output::registerProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t type)
+std::shared_ptr<Probe<float>> Output::registerProbe(const std::string& identifier, const std::string& unit, bool enabled, sample_type_t type)
 {
+  std::string name = normalizeName(identifier);
+
   std::shared_ptr<Probe<float>> probe{new Probe<float>(name, unit, enabled, type)};
   try {
     registerProbe(name, probe);
@@ -499,8 +523,10 @@ std::shared_ptr<Probe<float>> Output::registerProbe(const std::string& name, con
 
 
 template<>
-std::shared_ptr<Probe<double>> Output::registerProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t type)
+std::shared_ptr<Probe<double>> Output::registerProbe(const std::string& identifier, const std::string& unit, bool enabled, sample_type_t type)
 {
+  std::string name = normalizeName(identifier);
+
   std::shared_ptr<Probe<double>> probe{new Probe<double>(name, unit, enabled, type)};
   try {
     registerProbe(name, probe);
@@ -509,6 +535,66 @@ std::shared_ptr<Probe<double>> Output::registerProbe(const std::string& name, co
     return nullptr;
   }
   return probe;
+}
+
+
+void Output::setProbeState(const std::string& path, bool enabled) {
+  std::vector<std::string> parts = splitName(normalizeName(path));
+  if (parts.empty()) {
+    root->enableStats(enabled);
+  } else {
+    std::string possibleStatName = parts.back();
+    parts.pop_back();
+
+    std::shared_ptr<OutputItem> currentItem = root;
+    for (auto& name : parts) {
+      std::shared_ptr<OutputSection> currentSection = std::dynamic_pointer_cast<OutputSection>(currentItem);
+      if (currentSection == nullptr) { goto probe_not_found; }
+      currentItem = currentSection->find(name);
+    }
+
+    std::shared_ptr<OutputSection> lastSection;
+    std::shared_ptr<OutputUnit> lastUnit;
+    if ((lastSection = std::dynamic_pointer_cast<OutputSection>(currentItem)) != nullptr) {
+      currentItem = lastSection->find(possibleStatName);
+      if (currentItem == nullptr) { goto probe_not_found; }
+      currentItem->enableStats(enabled);
+    } else if ((lastUnit = std::dynamic_pointer_cast<OutputUnit>(currentItem)) != nullptr) {
+      std::shared_ptr<BaseProbe> probe = lastUnit->getBaseStat(possibleStatName);
+      if (probe == nullptr) { goto probe_not_found; }
+      probe->enable(enabled);
+    } else {
+      goto probe_not_found;
+    }
+  }
+
+  return;
+
+probe_not_found:
+  if (privateLog != nullptr) {
+    privateLog->sendLog(LEVEL_ERROR, "Cannot change probes states: %s is not a valid group or probe name.", path.c_str());
+  }
+}
+
+
+void Output::setLogLevel(const std::string& path, log_level_t level) {
+  std::vector<std::string> parts = splitName(normalizeName(path));
+
+  std::shared_ptr<OutputItem> currentItem = root;
+  for (auto& name : parts) {
+    std::shared_ptr<OutputSection> currentSection = std::dynamic_pointer_cast<OutputSection>(currentItem);
+    if (currentSection == nullptr) { goto log_not_found; }
+    currentItem = currentSection->find(name);
+  }
+
+  if (currentItem == nullptr) { goto log_not_found; }
+  currentItem->setLogLevel(level);
+  return;
+
+log_not_found:
+  if (privateLog != nullptr) {
+    privateLog->sendLog(LEVEL_ERROR, "Cannot change logs levels: %s is not a valid group or log name.", path.c_str());
+  }
 }
 
 
