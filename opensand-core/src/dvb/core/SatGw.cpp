@@ -87,10 +87,10 @@ SatGw::SatGw(tal_id_t gw_id,
 	                                     "data_out_gw");
 	// Output Log
 	this->log_init = Output::Get()->registerLog(LEVEL_WARNING,
-                                              "Dvb.init.spot_%d.gw_%d",
+                                              "Dvb.spot_%d.gw_%d.init",
                                               this->spot_id, this->gw_id);
 	this->log_receive = Output::Get()->registerLog(LEVEL_WARNING,
-                                                 "Dvb.receive.spot_%d.gw_%d",
+                                                 "Dvb.spot_%d.gw_%d.receive",
                                                  this->spot_id, this->gw_id);
 	this->input_sts = new StFmtSimuList("in");
 	this->output_sts = new StFmtSimuList("out");
