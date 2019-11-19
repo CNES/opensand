@@ -44,6 +44,7 @@ from tempfile import TemporaryFile
 from zipfile import ZipFile, BadZipfile
 import contextlib
 import gobject
+import json
 import socket
 import struct
 import select
@@ -650,8 +651,9 @@ class EnvironmentPlaneController(object):
             return False
 
         if self._observer:
-            for probe, value in values.iteritems():
-                self._observer.new_probe_value(probe, timestamp, value)
+            pass
+            # for probe, value in values.iteritems():
+                # self._observer.new_probe_value(probe, timestamp, value)
 
         return True
 
