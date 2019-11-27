@@ -290,26 +290,7 @@ bool BlockEncap::onInit()
 	    "return link standard = \"%s\"\n", ret_lnk_std.c_str());
 	
 	// Retrieve last packet handler in lan adaptation layer
-	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
-		                     LAN_ADAPTATION_SCHEME_LIST,
-	                         lan_nbr))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n", GLOBAL_SECTION,
-		    LAN_ADAPTATION_SCHEME_LIST);
-		goto error;
-	}
-	if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
-		                     LAN_ADAPTATION_SCHEME_LIST,
-	                         POSITION, toString(lan_nbr - 1),
-	                         PROTO, lan_name))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, invalid value %d for parameter "
-		    "'%s' in %s\n", GLOBAL_SECTION, i, POSITION,
-		    LAN_ADAPTATION_SCHEME_LIST);
-		goto error;
-	}
+	lan_name = "Ethernet";
 	if(!Plugin::getLanAdaptationPlugin(lan_name, &lan_plugin))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

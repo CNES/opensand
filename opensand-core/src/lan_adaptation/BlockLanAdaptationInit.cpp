@@ -86,21 +86,9 @@ bool BlockLanAdaptation::onInit(void)
 	LOG(this->log_init, LEVEL_INFO,
 	    "found %d lan adaptation contexts\n", lan_scheme_nbr);
 
-	for(int i = 0; i < lan_scheme_nbr; i++)
 	{
-		string name;
+		string name = "Ethernet";
 		LanAdaptationPlugin::LanAdaptationContext *context;
-
-		// get all the lan adaptation plugins to use from upper to lower
-		if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
-			                     LAN_ADAPTATION_SCHEME_LIST,
-		                         POSITION, toString(i), PROTO, name))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "Section %s, invalid value %d for parameter '%s'\n",
-			    GLOBAL_SECTION, i, POSITION);
-			return false;
-		}
 
 		if(!Plugin::getLanAdaptationPlugin(name, &plugin))
 		{
