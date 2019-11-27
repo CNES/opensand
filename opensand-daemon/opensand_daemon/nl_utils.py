@@ -35,6 +35,7 @@ netlink.py - interface with netlink adresses and routes
 """
 
 import logging
+import subprocess
 import netlink.route.capi as capi
 import netlink.route.link as link
 import netlink.core as netlink
@@ -237,6 +238,29 @@ class NlInterfaces(object):
         finally:
             # refresh cache
             self._cache.refill(self._sock)
+
+    def attach_iface(self, iface, bridge):
+        cmd = 'ip link set {} master {}'.format(
+            iface,
+            bridge,
+        )
+        code = subprocess.call(cmd.split())
+        if code < 0:
+            raise InstructionError("cannot attach lan iface {} to bridge {}".format(
+                iface,
+                bridge,
+            ))
+
+    def detach_iface(self, iface):
+        cmd = 'ip link set {} nomaster'.format(
+            iface,
+        )
+        code = subprocess.call(cmd.split())
+        if code < 0:
+            raise InstructionError("cannot detach lan iface {} from bridge".format(
+                iface,
+                bridge,
+            ))
 
 
 if __name__ == '__main__':

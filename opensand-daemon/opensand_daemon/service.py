@@ -43,7 +43,7 @@ import sys
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from dbus.exceptions import DBusException
 from opensand_daemon.routes import OpenSandRoutes
-from opensand_daemon.interfaces import TUN_NAME
+from opensand_daemon.interfaces import BR_NAME
 
 #macros
 LOGGER = logging.getLogger('sand-daemon')
@@ -88,7 +88,7 @@ class OpenSandService(object):
             if name.lower() != "ws":
                 # by default we use TUN interface but this can be modified
                 # using setup routes when we are in Ethernet
-                OpenSandService._routes.load(cache_dir, name, TUN_NAME,
+                OpenSandService._routes.load(cache_dir, name, BR_NAME,
                                              is_ws=False, instance=instance)
             else:
                 OpenSandService._routes.load(cache_dir, name,
@@ -201,6 +201,8 @@ class OpenSandService(object):
 
             v4 = None
             v6 = None
+            int_v4 = None
+            int_v6 = None
             inst = ''
             i = 0
             args_nbr = len(args[9])
@@ -223,8 +225,14 @@ class OpenSandService(object):
                     v4 = val
                 elif key == 'lan_ipv6':
                     v6 = val
+                elif key == 'int_ipv4':
+                    int_v4 = val
+                elif key == 'int_ipv6':
+                    int_v6 = val
                 elif key == 'id':
                     inst = val
+            LOGGER.info("Received: lan {}, lan6 {}, int {}, int6 {}".format(
+                v4, v6, int_v4, int_v6))
 
             self._names.append(name)
             if self._compo in {'gw', 'st', 'gw-net-acc'}:

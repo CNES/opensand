@@ -396,7 +396,7 @@ class Controller(threading.Thread):
         try:
             for host in self._hosts + self._ws:
                 self._log.info("Starting " + host.get_name().upper())
-                host.start_stop('START %s' % host.get_interface_type())
+                host.start_stop('START')
         except (ModelException, CommandException), err:
             msg = "OpenSAND platform failed to start"
             if self._model.get_dev_mode():

@@ -254,10 +254,7 @@ class MachineController:
             instance_param = '-i ' + self._machine_model.get_instance()
         tuntap_iface = ''
         if component not in {SAT, GW_PHY}:
-            if self._machine_model.get_lan_adaptation()['0'] == 'IP':
-                tuntap_iface += '-t opensand_tun'
-            else:
-                tuntap_iface += '-t opensand_tap'
+            tuntap_iface += '-t opensand_tap'
         output_libpath = self._machine_model.get_output_libpath()
         if output_libpath:
             output_libpath = '-e ' + output_libpath

@@ -215,15 +215,7 @@ initialize(){
         return
     fi
     if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' -o "${SERVICE_NAME}" = 'gw-net-acc' ]; then
-        # create the OpenSAND tun/tap interface if it does not exist
-        is_iface=`ip link show | grep opensand_tun`
-        if [ "${is_iface}" == "" ]; then
-            ${TUN_TAP_INIT} -n > /dev/null
-            if [ $? -ne 0 ] ; then
-                echo "Error when creating the tun interface" >&2
-                exit 1
-            fi
-        fi
+        # create the OpenSAND tap interface if it does not exist
         is_iface=`ip link show | grep opensand_tap`
         if [ "${is_iface}" == "" ]; then
             ${TUN_TAP_INIT} -l > /dev/null
@@ -236,7 +228,7 @@ initialize(){
         # remove interfaces in case it was another type of host
         ${TUN_TAP_INIT} -d 1>/dev/null 2>&1
     fi
-    # remove old IP addresses from LAN, EMU and opensand_tun interfaces
+    # remove old IP addresses from LAN and EMU interfaces
     if [ ! "${SERVICE_NAME}" = 'ws' -a ! "${SERVICE_NAME}" = 'gw-net-acc' ]; then
         ifconfig ${EMU_IFACE} inet 0.0.0.0 2>/dev/null
     fi
@@ -245,9 +237,6 @@ initialize(){
     fi
     if [ "${SERVICE_NAME}" = 'ws' ]; then
         ifconfig ${WS_LAN_IFACE} inet 0.0.0.0 2>/dev/null
-    fi
-    if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' -o "${SERVICE_NAME}" = 'gw-net-acc' ]; then
-        ifconfig opensand_tun inet 0.0.0.0 2>/dev/null
     fi
     if [ "${SERVICE_NAME}" = 'gw-net-acc' -o "${SERVICE_NAME}" = 'gw-phy' ]; then
         # Check if interconnect interface has the correct IP
