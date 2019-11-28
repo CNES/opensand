@@ -173,13 +173,9 @@ class OpenSandIfaces(object):
 
     def _init_tap(self, conf):
         """ init the TAP interfaces """
-        #addr = conf.get('network', 'int_ipv4')
-        addr = "192.168.63.{}/24".format(
-                1 if OpenSandIfaces._name == "st" else 254,
-        )
+        addr = conf.get('network', 'int_ipv4')
         OpenSandIfaces._br_ipv4 = IPNetwork(addr) if addr else None
-        #addr = conf.get('network', 'int_ipv6')
-        addr = ""
+        addr = conf.get('network', 'int_ipv6')
         OpenSandIfaces._br_ipv6 = IPNetwork(addr) if addr else None
 
         # set TAP interface up

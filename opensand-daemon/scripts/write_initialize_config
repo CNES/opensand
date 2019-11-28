@@ -50,6 +50,8 @@ CONFIG_LEVEL='advanced'
 DHCP=''
 EMU_IFACE='eth0'
 EMU_IPV4=''
+INT_IPV4=''
+INT_IPV6=''
 LAN_IFACE='eth1'
 LAN_IPV4=''
 LAN_IPV6=''
@@ -105,6 +107,10 @@ read_conf(){
     EMU_IFACE=$RET
     db_get opensand-daemon/network/emu_ipv4
     EMU_IPV4=$RET
+    db_get opensand-daemon/network/int_ipv4
+    INT_IPV4=$RET
+    db_get opensand-daemon/network/int_ipv6
+    INT_IPV6=$RET
     db_get opensand-daemon/network/lan_iface
     LAN_IFACE=$RET
     db_get opensand-daemon/network/lan_ipv4
@@ -176,6 +182,8 @@ write_conf(){
         fi
         if [ ${SERVICE_NAME} != 'sat' -a "${SERVICE_NAME}" != "gw-phy" ]; then
             if [ "${SERVICE_NAME}" != "ws" ]; then
+                echo "int_ipv4 = ${INT_IPV4}" >> ${DAEMON_CONF}
+                echo "int_ipv6 = ${INT_IPV6}" >> ${DAEMON_CONF}
                 echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
                 echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
                 echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
