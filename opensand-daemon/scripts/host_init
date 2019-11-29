@@ -46,12 +46,13 @@ SYSCTL="true"
 # workstations
 IP_FORWARD="1"
 FORWARDING="1"
+PROXY_ARP="1"
 
 # Source default library
 if [ -f /etc/default/opensand-daemon ]; then
     . /etc/default/opensand-daemon
 fi
-TUN0_IFACE="opensand_tun"
+BR_IFACE="opensand_br"
 
 DHCP_CONFIG_FILE="/etc/dnsmasq.d/lan_st.conf"
 DAEMON_CONF="/etc/opensand/daemon.conf"
@@ -126,14 +127,15 @@ set_sysctl(){
     echo "Set ip_forward=$IP_FORWARD"
     evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
     echo -n  "Set forwarding=$FORWARDING on "
-    echo "$EMU_IFACE, $LAN_IFACE and $TUN0_IFACE interfaces"
+    echo "$EMU_IFACE, $LAN_IFACE and $BR_IFACE interfaces"
     evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/proxy_arp"=$PROXY_ARP
     # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
     evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv6/conf/$BR_IFACE/forwarding"=$FORWARDING
 }
 
 set_sysctl_phy(){
@@ -156,20 +158,22 @@ set_sysctl_net_acc(){
     echo "Set ip_forward=$IP_FORWARD"
     evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
     echo -n  "Set forwarding=$FORWARDING on "
-    echo "$TUN0_IFACE and $LAN_IFACE interfaces"
+    echo "$BR_IFACE and $LAN_IFACE interfaces"
     evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/proxy_arp"=$PROXY_ARP
     # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
     evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv6/conf/$BR_IFACE/forwarding"=$FORWARDING
 }
 
-set_tun_sysctl(){
+set_br_sysctl(){
     # enable forwarding
-    echo "Set forwarding=$FORWARDING on $TUN0_IFACE inteface"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+    echo "Set forwarding=$FORWARDING on $BR_IFACE inteface"
+    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/proxy_arp"=$PROXY_ARP
+    evecho /sbin/sysctl -w "net/ipv6/conf/$BR_IFACE/forwarding"=$FORWARDING
 
     return
 }
@@ -333,8 +337,8 @@ config(){
         fi
     fi
     if [[ $NAME != SAT && $NAME != GW-PHY* ]]; then
-        echo "# Configuring sysctl for TUN interface"
-        set_tun_sysctl
+        echo "# Configuring sysctl for bridge"
+        set_br_sysctl
     fi
 
     set_dhcp_server
