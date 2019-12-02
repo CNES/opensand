@@ -75,7 +75,7 @@
  * Argument treatment
  */
 bool init_process(int argc, char **argv,
-                  std::string &tuntap_iface,
+                  string &tap_iface,
                   tal_id_t &instance_id,
                   std::string &interconnect_addr,
                   std::string &conf_path)
@@ -99,8 +99,8 @@ bool init_process(int argc, char **argv,
       entity += optarg;
       break;
     case 't':
-      // get TUN/TAP interface name
-      tuntap_iface = optarg;
+      // get TAP interface name
+      tap_iface = optarg;
       break;
     case 'w':
       // Get the interconnect IP address
@@ -125,10 +125,10 @@ bool init_process(int argc, char **argv,
     case 'h':
     case '?':
       std::cerr << "usage: " << argv[0] << " [-h] -i instance_id "
-              "-t tuntap_iface -w interconnect_addr -c conf_path "
+              "-t tap_iface -w interconnect_addr -c conf_path "
               "[-f output_folder] [-r remote_address [-l logs_port] [-s stats_port]]\n"
               "\t-h                       print this message\n"
-              "\t-t <tuntap_iface>        set the GW TUN/TAP interface name\n"
+              "\t-t <tap_iface>           set the GW TAP interface name\n"
               "\t-i <instance>            set the instance id\n"
               "\t-w <interconnect_addr>   set the interconnect IP address\n"
               "\t-c <conf_path>           specify the configuration path\n"
@@ -159,10 +159,10 @@ bool init_process(int argc, char **argv,
   DFLTLOG(LEVEL_NOTICE,
           "starting output\n");
 
-  if(tuntap_iface.size() == 0)
+  if(tap_iface.size() == 0)
   {
     DFLTLOG(LEVEL_CRITICAL,
-            "missing mandatory TUN/TAP interface name option");
+            "missing mandatory TAP interface name option");
     return false;
   }
 
@@ -187,7 +187,7 @@ int main(int argc, char **argv)
   const char *progname = argv[0];
   struct sched_param param;
   bool init_ok;
-  std::string tuntap_iface;
+  std::string tap_iface;
   tal_id_t mac_id = 0;
   std::string interconnect_addr;
   struct la_specific spec_la;
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
   int is_failure = 1;
 
   // retrieve arguments on command line
-  init_ok = init_process(argc, argv, tuntap_iface, mac_id,
+  init_ok = init_process(argc, argv, tap_iface, mac_id,
                          interconnect_addr, conf_path);
 
   plugin_conf_path = conf_path + std::string("plugins/");
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
   }
 
   // instantiate all blocs
-  spec_la.tuntap_iface = tuntap_iface;
+  spec_la.tap_iface = tap_iface;
   block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
                                          BlockLanAdaptation::Upward,
                                          BlockLanAdaptation::Downward,

@@ -53,7 +53,7 @@ using std::string;
 
 struct la_specific
 {
-	string tuntap_iface;
+	string tap_iface;
 };
 
 /**
@@ -107,8 +107,8 @@ class BlockLanAdaptation: public Block
 
 		/**
 		 * @brief Handle a message from lower block
-		 *  - build the TUN or TAP header with appropriate protocol identifier
-		 *  - write TUN/TAP header + packet to TUN/TAP interface
+		 *  - build the TAP header with appropriate protocol identifier
+		 *  - write TAP header + packet to TAP interface
 		 *
 		 * @param burst  The burst of packets
 		 * @return true on success, false otherwise
@@ -121,7 +121,7 @@ class BlockLanAdaptation: public Block
 		/// The satellite type
 		sat_type_t satellite_type;
 
-		/// TUN file descriptor
+		/// TAP file descriptor
 		int fd;
 
 		/// the contexts list from lower to upper context
@@ -166,10 +166,10 @@ class BlockLanAdaptation: public Block
 	 private:
 		/**
 		 * @brief Handle a message from upper block
-		 *  - read data from TUN or TAP interface
+		 *  - read data from TAP interface
 		 *  - create a packet with data
 		 *
-		 * @param event  The event on TUN/TAP interface, containing th message
+		 * @param event  The event on TAP interface, containing th message
 		 * @return true on success, false otherwise
 		 */
 		bool onMsgFromUp(NetSocketEvent *const event);
@@ -194,19 +194,16 @@ class BlockLanAdaptation: public Block
 
  private:
 
-	/// The TUN/TAP interface name
-	string tuntap_iface;
-
-	/// whether we handle a TAP interface or a TUN interface
-	bool is_tap;
+	/// The TAP interface name
+	string tap_iface;
 
 	/**
-	 * Create or connect to an existing TUN/TAP interface
+	 * Create or connect to an existing TAP interface
 	 *
 	 * @param fd  OUT: the file descriptor
 	 * @return  true on success, false otherwise
 	 */
-	bool allocTunTap(int &fd);
+	bool allocTap(int &fd);
 };
 
 #endif

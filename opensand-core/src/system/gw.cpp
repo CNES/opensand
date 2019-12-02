@@ -82,7 +82,7 @@
  */
 bool init_process(int argc, char **argv,
                   std::string &ip_addr,
-                  std::string &tuntap_iface,
+                  std::string &tap_iface,
                   std::string &conf_path,
                   tal_id_t &instance_id)
 {
@@ -109,8 +109,8 @@ bool init_process(int argc, char **argv,
       ip_addr = optarg;
       break;
     case 't':
-      // get TUN/TAP interface name
-      tuntap_iface = optarg;
+      // get TAP interface name
+      tap_iface = optarg;
       break;
     case 'c':
       // get the configuration path
@@ -131,11 +131,11 @@ bool init_process(int argc, char **argv,
     case 'h':
     case '?':
       std::cerr << "usage: " << argv[0] << " [-h] -i instance_id -a ip_address "
-                   "-t tuntap_iface -c conf_path [-f output_folder] [-r remote_address "
+                   "-t tap_iface -c conf_path [-f output_folder] [-r remote_address "
                    "[-l logs_port] [-s stats_port]]\n"
                    "\t-h                       print this message\n"
                    "\t-a <ip_address>          set the IP address for emulation\n"
-                   "\t-t <tuntap_iface>        set the GW TUN/TAP interface name\n"
+                   "\t-t <tap_iface>           set the GW TAP interface name\n"
                    "\t-i <instance>            set the instance id\n"
                    "\t-c <conf_path>           specify the configuration path\n"
                    "\t-f <output_folder>       activate and specify the folder for logs and probes files\n"
@@ -171,10 +171,10 @@ bool init_process(int argc, char **argv,
     return false;
   }
 
-  if(tuntap_iface.size() == 0)
+  if(tap_iface.size() == 0)
   {
     DFLTLOG(LEVEL_CRITICAL,
-            "missing mandatory TUN/TAP interface name option");
+            "missing mandatory TAP interface name option");
     return false;
   }
 
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
   struct sched_param param;
   bool init_ok;
   std::string ip_addr;
-  std::string tuntap_iface;
+  std::string tap_iface;
   tal_id_t mac_id = 0;
   struct la_specific laspecific;
   struct sc_specific scspecific;
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
   int is_failure = 1;
 
   // retrieve arguments on command line
-  init_ok = init_process(argc, argv, ip_addr, tuntap_iface, conf_path, mac_id);
+  init_ok = init_process(argc, argv, ip_addr, tap_iface, conf_path, mac_id);
 
   plugin_conf_path = conf_path + std::string("plugins/");
 
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
   }
 
   // instantiate all blocs
-  laspecific.tuntap_iface = tuntap_iface;
+  laspecific.tap_iface = tap_iface;
   block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
                                          BlockLanAdaptation::Upward,
                                          BlockLanAdaptation::Downward,

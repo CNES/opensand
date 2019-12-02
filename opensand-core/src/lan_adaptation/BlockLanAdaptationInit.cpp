@@ -125,9 +125,8 @@ bool BlockLanAdaptation::onInit(void)
 		    plugin->getName().c_str());
 	}
 
-	this->is_tap = contexts.front()->handleTap();
-	// create TUN or TAP virtual interface
-	if(!this->allocTunTap(fd))
+	// create TAP virtual interface
+	if(!this->allocTap(fd))
 	{
 		return false;
 	}
@@ -213,8 +212,8 @@ void BlockLanAdaptation::Upward::setFd(int fd)
 
 void BlockLanAdaptation::Downward::setFd(int fd)
 {
-	// add file descriptor for TUN/TAP interface
-	this->addFileEvent("tun/tap", fd, TUNTAP_BUFSIZE + 4);
+	// add file descriptor for TAP interface
+	this->addFileEvent("tap", fd, TUNTAP_BUFSIZE + 4);
 }
 
 bool BlockLanAdaptation::Upward::initSarpTables(void)
