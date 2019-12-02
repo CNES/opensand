@@ -55,7 +55,7 @@ class OpenSandConf
 
 	OpenSandConf(void);
 	~OpenSandConf(void);
-	
+
 	/**
 	 * The spot association with each carrier
 	 */
@@ -65,18 +65,28 @@ class OpenSandConf
 	 * The spot association with each terminal
 	 */
 	static map<tal_id_t, spot_id_t> spot_table;
-	
+
 	/**
 	 * The spot association with each terminal
 	 */ 
 	static map<tal_id_t, tal_id_t> gw_table;
-	
+
 	/**
 	 * Load some configuration files content into memory
 	 * @param conf_files the configuration files path
 	 * @return  true on success, false otherwise
 	 */
 	static void loadConfig(void);
+
+	/**
+	 * Get gateway id value in terminal map
+	 *
+	 * @param tal_id   the terminal id
+	 * @param gw_id    the gateway id
+	 * @return true on success, false otherwise
+	 */
+	static bool getGwWithTalId(uint16_t tal_id,
+	                           uint16_t &gw_id);
 
 	/**
 	 * Get spot value in terminal map
@@ -106,7 +116,6 @@ class OpenSandConf
 	 */
 	static bool isGw(uint16_t gw_id);
 
-		
 	/**
 	 * return current spot with gw and spot ids
 	 * @param section    the section name

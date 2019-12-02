@@ -226,6 +226,19 @@ void OpenSandConfFile::loadGwTable(map<uint16_t, uint16_t> &gw_table)
 	}
 }
 
+bool OpenSandConfFile::getGwWithTalId(map<uint16_t, uint16_t> terminal_map,
+		                      uint16_t tal_id,
+                                      uint16_t &gw_id)
+{
+	map<uint16_t, uint16_t>::iterator tal_iter;
+	tal_iter = terminal_map.find(tal_id);
+	if(tal_iter == terminal_map.end())
+	{
+		return false;
+	}
+	gw_id = (*tal_iter).second;
+	return true;
+}
 
 bool OpenSandConfFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map,
                                         uint16_t tal_id,

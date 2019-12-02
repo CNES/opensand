@@ -78,6 +78,17 @@ class OpenSandConfFile
 	void loadGwTable(map<uint16_t, uint16_t> &gw_table);
 
 	/**
+	 * Get gateway id value in terminal map
+	 *
+	 * @param tal_id   the terminal id
+	 * @param gw_id    the gateway id
+	 * @return true on success, false otherwise
+	 */
+	bool getGwWithTalId(map<uint16_t, uint16_t> terminal_map,
+			    uint16_t tal_id,
+	                    uint16_t &gw_id);
+
+	/**
 	 * Get spot value in terminal map
 	 *
 	 * @param tal_it   the terminal id

@@ -52,6 +52,14 @@ OpenSandConf::~OpenSandConf()
 	gw_table.clear();
 }
 
+bool OpenSandConf::getGwWithTalId(uint16_t tal_id,
+                                  uint16_t &gw_id)
+{
+	return global_config.getGwWithTalId(OpenSandConf::gw_table,
+	                                    tal_id,
+	                                    gw_id);
+}
+
 bool OpenSandConf::getSpotWithTalId(uint16_t tal_id,
                                     uint8_t &spot)
 {
