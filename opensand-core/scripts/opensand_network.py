@@ -36,614 +36,191 @@
 
 
 import argparse
-import subprocess
+import network_utils as nu
 import ipaddress
-import re
-import netifaces as ni
+from functools import partial
 
 
 ETH_TYPE = 'eth'
 IP_TYPE = 'ip'
 ALL_TYPES = [ IP_TYPE, ETH_TYPE ]
 DEFAULT_TYPE = ALL_TYPES[0]
-DEFAULT_INTERNAL_NETNS = 'opensand'
-DEFAULT_INTERNAL_NETWORK = '10.0.0.0/24'
 
 
-def exec_cmd(cmd, error_msg):
+class NetConf:
     '''
-    Execute a command and raise an error in case of non-null returned value
+    Class to configure the network of an link
+    '''
+    def __init__(self, name):
+        '''
+        Initialize network configuration.
+        '''
+        self._name = name
+        self._netns = None
+
+    def configure(self, *args, **kwargs):
+        '''
+        Configure the network of the link.
+        '''
+        raise NotImplementedError
+
+    def revert(self, *args, **kwargs):
+        '''
+        Revert the network configuration of the link.
+        '''
+        raise NotImplementedError
+
+
+class EmulatedLinkNetConf(NetConf):
+    '''
+    Class to configure the network of an emulated link
+    '''
+    def configure(self, emu_iface, emu_addr):
+        '''
+        Configure the network.
+
+        Args:
+            emu_iface  the existing interface to configure for the emulated link
+            emu_addr   the address to set to the emulated link interface
+        '''
+        if emu_iface not in nu.list_ifaces(self._netns):
+            raise ValueError('No interface "{}"'.format(emu_iface))
+        nu.set_up(emu_iface, self._netns)
+        nu.flush_address(emu_iface, self._netns)
+        nu.add_address(emu_iface, emu_addr, self._netns)
+
+    def revert(self, emu_iface):
+        '''
+        Revert the network configuration.
+
+        Args:
+            emu_iface  the existing interface to configure for the emulated link
+        '''
+        if emu_iface not in nu.list_ifaces(self._netns):
+            raise ValueError('No interface "{}"'.format(emu_iface))
+        nu.flush_address(emu_iface, self._netns)
+
+
+class IPv4LinkNetConf(NetConf):
+    '''
+    Class to configure the network of an IPv4 link
+    '''
+    def configure(self, net_iface, net_addr, int_addr):
+        '''
+        Configure the network.
+
+        Args:
+            net_iface  the existing interface to configure the IPv4 network
+            net_addr   the address to set to the IPv4 network interface
+            int_addr   the address to set to the internal IPv4 network interface
+        '''
+        if net_iface not in nu.list_ifaces(self._netns):
+            raise ValueError('No interface "{}"'.format(net_iface))
+
+        tap_iface = '{}tap'.format(self._name)
+        br_iface = '{}br'.format(self._name)
+        nu.set_up(net_iface, self._netns)
+        nu.flush_address(net_iface, self._netns)
+        nu.add_address(net_iface, net_addr, self._netns)
+        nu.create_tap_iface(tap_iface, self._netns)
+        nu.set_up(tap_iface, self._netns)
+        nu.create_bridge(br_iface, [ tap_iface ], self._netns)
+        nu.set_up(br_iface, self._netns)
+        nu.add_address(br_iface, int_addr, self._netns)
+
+    def revert(self, net_iface):
+        '''
+        Revert the network configuration.
+
+        Args:
+            net_iface  the existing interface to configure the IPv4 network
+        '''
+        if net_iface not in nu.list_ifaces(self._netns):
+            raise ValueError('No interface "{}"'.format(net_iface))
+
+        tap_iface = '{}tap'.format(self._name)
+        br_iface = '{}br'.format(self._name)
+        nu.delete_iface(br_iface, self._netns)
+        nu.delete_iface(tap_iface, self._netns)
+        nu.flush_address(net_iface, self._netns)
+        nu.flush_address(emu_iface, self._netns)
+
+
+class EthernetLinkNetConf(NetConf):
+    '''
+    Class to configure the network of an Ethernet link
+    '''
+    def configure(self, net_iface):
+        '''
+        Configure the network.
+
+        Args:
+            net_iface  the existing interface to configure the IPv4 network
+        '''
+        if net_iface not in nu.list_ifaces(self._netns):
+            raise ValueError('No interface "{}"'.format(net_iface))
+
+        tap_iface = '{}tap'.format(self._name)
+        br_iface = '{}br'.format(self._name)
+        nu.set_up(net_iface, self._netns)
+        nu.flush_address(net_iface, self._netns)
+        nu.create_tap_iface(tap_iface, self._netns)
+        nu.set_up(tap_iface, self._netns)
+        nu.create_bridge(br_iface, [ tap_iface, net_iface ], self._netns)
+        nu.set_up(br_iface, self._netns)
+
+    def revert(self, net_iface):
+        '''
+        Revert the network configuration.
+
+        Args:
+            net_iface  the existing interface to configure the Ethernet network
+        '''
+        if net_iface not in nu.list_ifaces(self._netns):
+            raise ValueError('No interface "{}"'.format(net_iface))
+
+        tap_iface = '{}tap'.format(self._name)
+        br_iface = '{}br'.format(self._name)
+        nu.delete_iface(br_iface, self._netns)
+        nu.delete_iface(tap_iface, self._netns)
+        nu.flush_address(net_iface, self._netns)
+        nu.flush_address(emu_iface, self._netns)
+
+
+def ipv4_address_netdigit(text):
+    '''
+    Check a text represents an IPv4 address and a net digit
 
     Args:
-        cmd        the command to execute
-        error      the message to raise in case of error
-
-    Return lines of the stdout
+        text   text to check
     '''
-    print(cmd)
-    proc = subprocess.run(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if proc.returncode < 0:
-        raise Exception('{}: {}'.format(error, proc.stderr.decode()))
-    return proc.stdout.decode().splitlines()
+    addr = ipaddress.ip_network(text)
+    return addr.compressed
 
 
-def create_netns(netns):
-    exec_cmd(
-        'ip netns add {}'.format(netns),
-        'Netns creation failed',
-    )
-
-
-def delete_netns(netns):
-    exec_cmd(
-        'ip netns del {}'.format(netns),
-        'Netns deletion failed',
-    )
-
-
-def exist_netns(netns):
-    output = exec_cmd(
-        'ip netns show {}'.format(netns),
-        'Netns showing failed',
-    )
-    for line in output:
-        match = re.search('([a-zA-Z0-9_\-]+) .*', line)
-        if match and match.group(1) == netns:
-            return True
-    return False
-
-
-def list_ifaces(netns=None):
-    output = exec_cmd(
-        '{}ip link list'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-        ),
-        'Interface listing failed',
-    )
-    ifaces = []
-    for line in output:
-        match = re.search('([a-zA-Z0-9_\-]+): <.*', line)
-        if match:
-            ifaces.append(match.group(1))
-    return ifaces
-
-
-def set_up(iface, netns=None):
-    exec_cmd(
-        '{}ip link set {} up'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
-        'Setting up interface failed',
-    )
-
-
-def set_mac_address(iface, mac_address, netns=None):
-    exec_cmd(
-        '{}ip link set {} address {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-            mac_address,
-        ),
-        'MAC address setting failed',
-    )
-
-
-def flush_address(iface, netns=None):
-    exec_cmd(
-        '{}ip address flush dev {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
-        'Addresses flush failed',
-    )
-
-
-def add_address(iface, address, netns=None):
-    exec_cmd(
-        '{}ip address add {} dev {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            address,
-            iface,
-        ),
-        'Address addition failed',
-    )
-
-
-def create_dummy_iface(iface, netns=None):
-    exec_cmd(
-        '{}ip link add name {} type dummy'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
-        'Dummy interface creation failed',
-    )
-
-
-def create_veth_ifaces_pair(iface, peeriface):
-    exec_cmd(
-        'ip link add name {} type veth peer name {}'.format(iface, peeriface),
-        'Veth interfaces pair creation failed',
-    )
-
-
-def move_iface(iface, netns):
-    exec_cmd(
-        'ip link set {} netns {}'.format(iface, netns),
-        'Interface moving to netns failed',
-   )
-
-
-def create_tap_iface(iface, netns=None):
-    exec_cmd(
-        '{}ip tuntap add mode tap {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
-        'Tap interface creation failed',
-    )
-
-
-def create_bridge(bridge, ifaces, netns=None):
-    exec_cmd(
-        '{}ip link add name {} type bridge'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            bridge,
-        ),
-        'Bridge interface creation failed',
-    )
-    for iface in ifaces:
-        exec_cmd(
-            '{}ip link set {} master {}'.format(
-                'ip netns exec {} '.format(netns) if netns else '',
-                iface,
-                bridge,
-            ),
-            'Attaching iface to bridge failed',
-        )
-    exec_cmd(
-        '{}brctl setageing {} 0'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            bridge,
-        ),
-        'Setting bridge ageing failed',
-    )
-
-
-def delete_iface(iface, netns=None):
-    exec_cmd(
-        '{}ip link del dev {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
-        'Interface deletion failed',
-    )
-
-
-def add_default_route(iface=None, gateway=None, netns=None):
-    if not iface and not gateway:
-        raise ValueError('Invalid parameters for default route addition')
-    prefix = 'ip netns exec {} '.format(netns) if netns else ''
-    exec_cmd(
-        '{}ip route add default{}{}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            ' via {}'.format(gateway) if gateway else '',
-            ' dev {}'.format(iface) if iface else '',
-        ),
-        'Default route addition failed',
-    )
-
-
-def add_route(destination, iface=None, gateway=None, netns=None):
-    if not iface and not gateway:
-        raise ValueError('Invalid parameters for default route addition')
-    prefix = 'ip netns exec {} '.format(netns) if netns else ''
-    exec_cmd(
-        '{}ip route add {}{}{}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            destination,
-            ' via {}'.format(gateway) if gateway else '',
-            ' dev {}'.format(iface) if iface else '',
-        ),
-        'Default route addition failed',
-    )
-
-
-def enable_ip_forward(netns=None):
-    exec_cmd(
-        '{}sysctl net.ipv4.ip_forward=1'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-        ),
-        'IP forward enabling failed',
-    )
-    
-
-def enable_iface_ip_forward(iface, netns=None):
-    exec_cmd(
-        '{}sysctl net.ipv4.conf.{}.forwarding=1'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
-        'IPv4 forward enabling failed',
-    )
-    exec_cmd(
-        '{}sysctl net.ipv6.conf.{}.forwarding=1'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
-        'IPv6 forward enabling failed',
-    )
-    
-
-def enable_proxy_arp(netns=None):
-    exec_cmd(
-        '{}sysctl net.ipv4.conf.all.proxy_arp=1'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-        ),
-        'Proxy ARP enabling failed',
-    )
-
-
-def setup_emu(
-        label,
-        emu_phy,
-        addr,
-        netns=None,
-        netns_phy=None,
-        revert=False,
-    ):
+def existing_iface(text):
     '''
-    Set up the emulation
+    Check a text represents an existing interface
 
     Args:
-        label       the entity label
-        emu_phy     the emulation interface
-        netns       the internal network namespace
-        netns_phy   the network namespace of the emulation interface
-        revert      False to apply the configuration, True to revert it
+        text   text to check
     '''
-    if not revert:
-        # Prepare physical net namespace
-        if netns_phy and not exist_netns(netns_phy):
-            create_netns(netns_phy)
-        enable_ip_forward(netns_phy)
-
-        # Prepare internal net namespace
-        if netns and not exist_netns(netns):
-            create_netns(netns)
-        enable_ip_forward(netns)
-
-        # Prepare EMU interface
-        set_up(emu_phy, netns=netns_phy)
-        enable_iface_ip_forward(emu_phy, netns=netns_phy)
-
-        # Prepare additional interfaces
-        if netns or netns_phy:
-            create_veth_ifaces_pair('{}_emu'.format(label), '{}_emu_int'.format(label))
-            if netns_phy:
-                move_iface('{}_emu'.format(label), netns_phy)
-            if netns:
-                move_iface('{}_emu_int'.format(label), netns)
-            set_up('{}_emu'.format(label), netns=netns_phy)
-            set_up('{}_emu_int'.format(label), netns=netns)
-
-            create_bridge('br_{}_emu'.format(label), ['{}_emu'.format(label), emu_phy], netns=netns_phy)
-            set_up('br_{}_emu'.format(label), netns=netns_phy)
-
-            flush_address('{}_emu_int'.format(label), netns=netns)
-            add_address('{}_emu_int'.format(label), addr, netns=netns)
-
-    else:
-        # Clean additional interface
-        if netns or netns_phy:
-            delete_iface('br_{}_emu'.format(label), netns=netns_phy)
-            delete_iface('{}_emu'.format(label), netns=netns_phy)
-
-        # Clean internal net namespace if no more interface
-        if netns:
-            ifaces = list_ifaces(netns=netns)
-            if 'lo' in ifaces:
-                ifaces.remove('lo')
-            if not ifaces:
-                delete_netns(netns)
-
-        # Clean physical net namespace if no more interface
-        if netns_phy:
-            ifaces = list_ifaces(netns=netns_phy)
-            if 'lo' in ifaces:
-                ifaces.remove('lo')
-            if not ifaces:
-                delete_netns(netns_phy)
+    if text not in ni.interfaces():
+        raise ValueError('No "{}" interface'.format(text))
+    return text
 
 
-def setup_lan_ip(
-        label,
-        lan_phy,
-        mac_addr,
-        addr,
-        netns=None,
-        netns_phy=None,
-        revert=False,
-    ):
+def udp_port(text):
     '''
-    Set up the IP LAN
+    Check a text represents a UDP port
 
     Args:
-        label       the entity label
-        lan_phy     the LAN interface
-        mac_addr    the MAC address
-        addr        the IP address
-        netns       the internal network namespace
-        netns_phy   the network namespace of the emulation interface
-        revert      False to apply the configuration, True to revert it
+        text   text to check
     '''
-    if not revert:
-        # Prepare physical net namespace
-        if netns_phy and not exist_netns(netns_phy):
-            create_netns(netns_phy)
-        enable_ip_forward(netns_phy)
-        enable_proxy_arp(netns_phy)
-
-        # Prepare internal net namespace
-        if netns and not exist_netns(netns):
-            create_netns(netns)
-        enable_ip_forward(netns)
-        enable_proxy_arp(netns)
-
-        # Prepare LAN physical interface
-        set_up(lan_phy, netns=netns_phy)
-        enable_iface_ip_forward(lan_phy, netns=netns_phy)
-
-        # Prepare TAP interface
-        create_tap_iface('{}_tap'.format(label), netns=netns)
-        set_up('{}_tap'.format(label), netns=netns)
-
-        # Prepare additional interfaces
-        if netns or netns_phy:
-            create_veth_ifaces_pair('{}_lan'.format(label), '{}_lan_int'.format(label))
-            if netns_phy:
-                move_iface('{}_lan'.format(label), netns_phy)
-            if netns:
-                move_iface('{}_lan_int'.format(label), netns)
-            set_up('{}_lan'.format(label), netns=netns_phy)
-            set_up('{}_lan_int'.format(label), netns=netns)
-
-            set_mac_address('{}_lan'.format(label), mac_addr, netns=netns_phy)
-
-            create_bridge('br_{}_tap'.format(label), ['{}_tap'.format(label), '{}_lan_int'.format(label)], netns=netns)
-            set_up('br_{}_tap'.format(label), netns=netns)
-
-            flush_address('{}_lan'.format(label), netns=netns_phy)
-            add_address('{}_lan'.format(label), addr, netns=netns_phy)
-
-        else:
-            create_dummy_iface('{}_lan'.format(label))
-            set_up('{}_lan'.format(label))
-            enable_iface_ip_forward('{}_lan'.format(label))
-
-            set_mac_address('{}_tap'.format(label), mac_addr)
-
-            create_bridge('br_{}_lan'.format(label), ['{}_tap'.format(label), '{}_lan'.format(label)])
-            set_up('br_{}_lan'.format(label))
-
-            flush_address('br_{}_lan'.format(label))
-            add_address('br_{}_lan'.format(label), addr)
-
-    else:
-        # Clean additional interfaces
-        if netns or netns_phy:
-            delete_iface('br_{}_tap'.format(label), netns=netns)
-            delete_iface('{}_lan'.format(label), netns=netns_phy)
-        else:
-            delete_iface('br_{}_lan'.format(label), netns=netns)
-            delete_iface('{}_lan'.format(label))
-
-        # Clean TAP interface
-        delete_iface('{}_tap'.format(label), netns=netns)
-
-        # Clean internal net namespace if no more interface
-        if netns:
-            ifaces = list_ifaces(netns=netns)
-            if 'lo' in ifaces:
-                ifaces.remove('lo')
-            if not ifaces:
-                delete_netns(netns)
-
-        # Clean physical net namespace if no more interface
-        if netns_phy:
-            ifaces = list_ifaces(netns=netns_phy)
-            if 'lo' in ifaces:
-                ifaces.remove('lo')
-            if not ifaces:
-                delete_netns(netns_phy)
-
-
-def setup_lan_eth(
-        label,
-        lan_phy,
-        mac_addr,
-        netns=None,
-        netns_phy=None,
-        revert=False,
-    ):
-    '''
-    Set up the Ethernet LAN
-
-    Args:
-        label       the entity label
-        lan_phy     the LAN interface
-        mac_addr    the MAC address
-        netns       the internal network namespace
-        netns_phy   the network namespace of the emulation interface
-        revert      False to apply the configuration, True to revert it
-    '''
-    if not revert:
-        # Prepare physical net namespace
-        if netns_phy and not exist_netns(netns_phy):
-            create_netns(netns_phy)
-        enable_ip_forward(netns_phy)
-        enable_proxy_arp(netns_phy)
-
-        # Prepare internal net namespace
-        if netns and not exist_netns(netns):
-            create_netns(netns)
-        enable_ip_forward(netns)
-        enable_proxy_arp(netns)
-
-        # Prepare LAN physical interface
-        set_up(lan_phy, netns=netns_phy)
-        enable_iface_ip_forward(lan_phy, netns=netns_phy)
-
-        # Prepare TAP interface
-        create_tap_iface('{}_tap'.format(label), netns=netns)
-        set_up('{}_tap'.format(label), netns=netns)
-
-        # Prepare additional interfaces
-        if netns or netns_phy:
-            create_veth_ifaces_pair('{}_lan'.format(label), '{}_lan_int'.format(label))
-            if netns_phy:
-                move_iface('{}_lan'.format(label), netns_phy)
-            if netns:
-                move_iface('{}_lan_int'.format(label), netns)
-            set_up('{}_lan'.format(label), netns=netns_phy)
-            set_up('{}_lan_int'.format(label), netns=netns)
-
-            #set_mac_address('{}_lan'.format(label), mac_addr, netns=netns_phy)
-
-            create_bridge('br_{}_tap'.format(label), ['{}_tap'.format(label), '{}_lan_int'.format(label)], netns=netns)
-            set_up('br_{}_tap'.format(label), netns=netns)
-
-            create_bridge('br_{}_lan'.format(label), [lan_phy, '{}_lan'.format(label)], netns=netns_phy)
-            set_up('br_{}_lan'.format(label), netns=netns_phy)
-
-        else:
-            #set_mac_address('br_{}_tap'.format(label), mac_addr)
-
-            create_bridge('br_{}_lan'.format(label), ['{}_tap'.format(label), lan_phy])
-            set_up('br_{}_lan'.format(label))
-
-    else:
-        # Clean additional interfaces
-        if netns or netns_phy:
-            delete_iface('br_{}_lan'.format(label), netns=netns_phy)
-            delete_iface('br_{}_tap'.format(label), netns=netns)
-            delete_iface('{}_lan'.format(label), netns=netns_phy)
-        else:
-            delete_iface('br_{}_lan'.format(label))
-
-        # Clean TAP interface
-        delete_iface('{}_tap'.format(label), netns=netns)
-
-        # Clean internal net namespace if no more interface
-        if netns:
-            ifaces = list_ifaces(netns=netns)
-            if 'lo' in ifaces:
-                ifaces.remove('lo')
-            if not ifaces:
-                delete_netns(netns)
-
-        # Clean physical net namespace if no more interface
-        if netns_phy:
-            ifaces = list_ifaces(netns=netns_phy)
-            if 'lo' in ifaces:
-                ifaces.remove('lo')
-            if not ifaces:
-                delete_netns(netns_phy)
-
-
-def setup_network_sat(
-        emu_iface,
-        internal_netns=DEFAULT_INTERNAL_NETNS,
-        revert=False,
-    ):
-    '''
-    Set up the network configuration to an Satellite Terminal or to a Gateway.
-
-    Args:
-        emu_iface         the emulation interface
-        internal_netns    the internal network namespace
-        revert            False to apply the configuration, True to revert it
-    '''
-    if not revert and (emu_iface not in ni.interfaces() or ni.AF_INET not in ni.ifaddresses(emu_iface) or not ni.ifaddresses(emu_iface)[ni.AF_INET]):
-        raise ValueError('Emulation interface {} has no Ipv4 address'.format(emu_iface))
-
-    if not revert:
-        ifaddr = ni.ifaddresses(emu_iface)[ni.AF_INET][0]
-    else:
-        ifaddr = {'addr': '0.0.0.0', 'netmask': '255.255.255.255'}
-    setup_emu(
-            'sat',
-            emu_iface,
-            '{}/{}'.format(ifaddr['addr'], ifaddr['netmask']),
-            internal_netns,
-            None,
-            revert,
-        )
-
-
-def setup_network_st_gw(
-        entity,
-        label,
-        lan_iface,
-        emu_iface,
-        addr_idx,
-        type=DEFAULT_TYPE,
-        internal_netns=DEFAULT_INTERNAL_NETNS,
-        internal_network=DEFAULT_INTERNAL_NETWORK,
-        revert=False,
-    ):
-    '''
-    Set up the network configuration to an Satellite Terminal or to a Gateway.
-
-    Args:
-        entity            the entity type (st or gw)
-        label             the entity label
-        addr_idx          the addess index (e.g. 10.0.0.<addr_idx>)
-        lan_iface         the LAN interface
-        type              the network type (Ethernet or IP)
-        emu_iface         the emulation interface
-        internal_netns    the internal network namespace
-        internal_network  the internal network address
-        revert            False to apply the configuration, True to revert it
-    '''
-    if not revert and (emu_iface not in ni.interfaces() or ni.AF_INET not in ni.ifaddresses(emu_iface) or not ni.ifaddresses(emu_iface)[ni.AF_INET]):
-        raise ValueError('Emulation interface {} has no Ipv4 address'.format(emu_iface))
-    if not revert and (addr_idx <= 0 or addr_idx > 255):
-        raise ValueError('Address index must be a interger strictly positive and strictly lower than 255')
-
-    if not revert:
-        ifaddr = ni.ifaddresses(emu_iface)[ni.AF_INET][0]
-    else:
-        ifaddr = {'addr': '0.0.0.0', 'netmask': '255.255.255.255'}
-    setup_emu(
-            label,
-            emu_iface,
-            '{}/{}'.format(ifaddr['addr'], ifaddr['netmask']),
-            internal_netns,
-            None,
-            revert,
-        )
-    if type == ETH_TYPE:
-        setup_lan_eth(
-                label,
-                lan_iface,
-                '00:00:00:00:00:{0:02x}'.format(addr_idx),
-                internal_netns,
-                None,
-                revert,
-            )
-
-    elif type == IP_TYPE:
-        network = ipaddress.ip_network(internal_network)
-        setup_lan_ip(
-                label,
-                lan_iface,
-                '00:00:00:00:00:{0:02x}'.format(addr_idx),
-                '{}/{}'.format(network[addr_idx], network.prefixlen),
-                internal_netns,
-                None,
-                revert,
-            )
+    value = int(text)
+    if value <= 0:
+        raise ValueError('UDP port must be strictly positive')
+    return value
 
 
 if __name__ == '__main__':
@@ -694,103 +271,139 @@ if __name__ == '__main__':
             '--type',
             choices=ALL_TYPES,
             default=DEFAULT_TYPE,
-            help='the type of the LAN connection (IP or Ethernet)',
+            help='the type of the terrestrial network',
         )
         p.add_argument(
-            '-l',
-            '--lan-iface',
-            type=str,
+            '-n',
+            '--net-iface',
+            type=existing_iface,
             required=True,
-            help='the LAN interface',
+            help='the terrestrial network interface',
+        )
+        p.add_argument(
+            '--net-addr',
+            type=ipv4_address_netdigit,
+            default=None,
+            help='the terrestrial network address (format: "ADDRESS/NET_DIGIT")',
         )
 
     for p in [ st_parser, gw_parser, gw_phy_parser, sat_parser ]:
         p.add_argument(
             '-e',
             '--emu-iface',
-            type=str,
+            type=existing_iface,
             required=True,
-            help='the emulation interface (not required if all entities run locally)',
+            help='the emulation interface',
+        )
+        p.add_argument(
+            '-a',
+            '--emu-addr',
+            type=ipv4_address_netdigit,
+            required=True,
+            help='the emulation address (format: "ADDRESS/NET_DIGIT")',
         )
 
-#    for p in [ gw_net_acc_parser, gw_phy_parser ]:
-#        p.add_argument(
-#            '-o',
-#            '--interconnect-iface',
-#            type=int,
-#            help='the interconnect interface (not required if all entities run locally)',
-#        )
+    for p in [ gw_net_acc_parser, gw_phy_parser ]:
+        p.add_argument(
+            '-o',
+            '--interconnect-iface',
+            type=int,
+            required=True,
+            help='the interconnect interface',
+        )
+        p.add_argument(
+            '--interconnect-addr',
+            type=ipv4_address_netdigit,
+            required=True,
+            help='the interconnect address (format: "ADDRESS/NET_DIGIT")',
+        )
 
     for p in [ st_parser, gw_parser, gw_net_acc_parser ]:
         p.add_argument(
-            '--internal-network',
-            type=str,
-            default=DEFAULT_INTERNAL_NETWORK,
-            help='the internal network (format: "ADDRESS/NET_DIGIT")',
+            '--internal-addr',
+            type=ipv4_address_netdigit,
+            default=None,
+            help='the internal address (format: "ADDRESS/NET_DIGIT")',
         )
 
     for p in [ st_parser, gw_parser, gw_net_acc_parser, gw_phy_parser, sat_parser ]:
         p.add_argument(
-            '--disable-netns',
-            action='store_true',
-            help='disable the internal network namespace',
-        )
-        p.add_argument(
-            '--internal-netns',
-            type=str,
-            default=DEFAULT_INTERNAL_NETNS,
-            help='the internal network namespace',
-        )
-        p.add_argument(
             '-r',
             '--revert',
-            action='store_true',
+            action='store_false',
+            dest='configure',
             help='revert the current network configuration',
         )
 
     args = parser.parse_args()
+    actions = []
     if args.entity == 'sat':
-        setup_network_sat(
-            args.emu_iface,
-            args.internal_netns if not args.disable_netns else None,
-            args.revert,
-        )
+        link = EmulatedLinkNetConf(args.entity)
+        if args.configure:
+            actions.append(partial(link.configure, args.emu_iface, args.emu_addr))
+        else:
+            actions.append(partial(link.revert, args.emu_iface))
 
     elif args.entity in [ 'st', 'gw' ]:
-        setup_network_st_gw(
-            args.entity,
-            '{}{}'.format(args.entity, args.id),
-            args.lan_iface,
-            args.emu_iface,
-            args.id + 1,
-            args.type,
-            args.internal_netns if not args.disable_netns else None,
-            args.internal_network,
-            args.revert,
-        )
+        link = EmulatedLinkNetConf(args.entity)
+        if args.configure:
+            actions.append(partial(link.configure, args.emu_iface, args.emu_addr))
+        else:
+            actions.append(partial(link.revert, args.emu_iface))
+
+        if args.type == IP_TYPE:
+            link = IPv4LinkNetConf('{}{}'.format(args.entity, args.id))
+            if args.configure:
+                actions.append(partial(link.configure, args.net_iface, args.net_addr, args.int_addr))
+            else:
+                actions.append(partial(link.revert, args.net_iface))
+
+        elif args.type == ETH_TYPE:
+            link = EthernetLinkNetConf('{}{}'.format(args.entity, args.id))
+            if args.configure:
+                actions.append(partial(link.configure, args.net_iface))
+            else:
+                actions.append(partial(link.revert, args.net_iface))
+
+        else:
+            raise ValueError('Unexpected type value "{}"'.format(args.type))
 
     elif args.entity == 'gw_net_acc':
-        raise NotImplementedError()
-#        setup_network_gw_net_acc(
-#            '{}{}'.format(args.entity, args.id),
-#            args.id + 1,
-#            args.lan_iface,
-#            args.type,
-#            args.interconnect_iface,
-#            args.internal_netns if not args.disable_netns else None,
-#            args.internal_network,
-#            args.interconnect_network,
-#            args.revert,
-#        )
+        link = EmulatedLinkNetConf(args.entity)
+        if args.configure:
+            actions.append(partial(link.configure, args.interconnect_iface, args.interconnect_addr))
+        else:
+            actions.append(partial(link.revert, args.interconnect_iface))
+
+        if args.type == IP_TYPE:
+            link = IPv4LinkNetConf('{}{}'.format(args.entity, args.id))
+            if args.configure:
+                actions.append(partial(link.configure, args.net_iface, args.net_addr, args.int_addr))
+            else:
+                actions.append(partial(link.revert, args.net_iface))
+
+        elif args.type == ETH_TYPE:
+            link = EthernetLinkNetConf('{}{}'.format(args.entity, args.id))
+            if args.configure:
+                actions.append(partial(link.configure, args.net_iface))
+            else:
+                actions.append(partial(link.revert, args.net_iface))
+
+        else:
+            raise ValueError('Unexpected type value "{}"'.format(args.type))
 
     elif args.entiy == 'gw_phy':
-        raise NotImplementedError()
-#        setup_network_gw_phy(
-#            '{}{}'.format(args.entity, args.id),
-#            args.interconnect_iface,
-#            args.emu_iface,
-#            args.internal_netns if not args.disable_netns else None,
-#            args.internal_network,
-#            args.interconnect_network,
-#            args.revert,
-#        )
+        link = EmulatedLinkNetConf(args.entity)
+        if args.configure:
+            actions.append(partial(link.configure, args.emu_iface, args.emu_addr))
+        else:
+            actions.append(partial(link.revert, args.emu_iface))
+
+        link = EmulatedLinkNetConf(args.entity)
+        if args.configure:
+            actions.append(partial(link.configure, args.interconnect_iface, args.interconnect_addr))
+        else:
+            actions.append(partial(link.revert, args.interconnect_iface))
+
+    for action in actions:
+        action()
