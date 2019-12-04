@@ -236,7 +236,8 @@ class OpenSandService(object):
 
             self._names.append(name)
             if self._compo in {'gw', 'st', 'gw-net-acc'}:
-                OpenSandService._routes.add_distant_host(name, v4, v6)
+                LOGGER.info("Add distant host {}: v4={} v6={} gw4={} gw6={}".format(name, v4, v6, int_v4, int_v6))
+                OpenSandService._routes.add_distant_host(name, v4, v6, int_v4, int_v6)
             elif self._compo == 'ws' and not name.startswith('ws') and name not in {'sat','gw-phy'}:
                 if inst == self._instance:
                     # this host is our router (ST with the same ID)
@@ -244,6 +245,8 @@ class OpenSandService(object):
                     self._router_v6 = v6.rsplit('/')[0]
                     # add the route toward other network that was not added yet
                     for route in self._new_routes:
+                        LOGGER.info("Add distant host {}: v4={} v6={} gw4={} gw6={}".format(
+                            route[0], route[1], route[2], self._router_v4, self._router_v6))
                         OpenSandService._routes.add_distant_host(route[0],
                                                                  route[1],
                                                                  route[2],
@@ -251,6 +254,8 @@ class OpenSandService(object):
                                                                  self._router_v6)
                 elif self._router_v4 is not None or self._router_v6 is not None:
                     # add the distant network route
+                    LOGGER.info("Add distant host {}: v4={} v6={} gw4={} gw6={}".format(
+                        name, v4, v6, self._router_v4, self._router_v6))
                     OpenSandService._routes.add_distant_host(name, v4, v6,
                                                             self._router_v4,
                                                             self._router_v6)

@@ -131,7 +131,6 @@ set_sysctl(){
     evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/proxy_arp"=$PROXY_ARP
     # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
     evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
@@ -161,7 +160,6 @@ set_sysctl_net_acc(){
     echo "$BR_IFACE and $LAN_IFACE interfaces"
     evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/proxy_arp"=$PROXY_ARP
     # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
     evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
@@ -172,7 +170,6 @@ set_br_sysctl(){
     # enable forwarding
     echo "Set forwarding=$FORWARDING on $BR_IFACE inteface"
     evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/proxy_arp"=$PROXY_ARP
     evecho /sbin/sysctl -w "net/ipv6/conf/$BR_IFACE/forwarding"=$FORWARDING
 
     return
