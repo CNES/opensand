@@ -560,13 +560,6 @@ configure(){
             fi
             db_endblock
         ;;
-        28)
-            if [ "$NAME" != "WS" ]; then
-                db_beginblock
-                db_input low opensand-daemon/output/libpath || true
-                db_endblock
-            fi
-        ;;
         *)
             # The default case catches when $STATE is greater than the
             # last implemented state, and breaks out of the loop. This
@@ -629,7 +622,6 @@ reset(){
     db_reset opensand-daemon/interconnect/interface
     db_reset opensand-daemon/interconnect/interface_ip
     db_reset opensand-daemon/interconnect/interface_ip_preset
-    db_reset opensand-daemon/output/libpath
 }
 
 unseen(){
@@ -665,7 +657,6 @@ unseen(){
     db_fset opensand-daemon/interconnect/interface seen false
     db_fset opensand-daemon/interconnect/interface_ip_preset seen false
     db_fset opensand-daemon/interconnect/interface_ip seen false
-    db_fset opensand-daemon/output/libpath seen false
 }
 
 db_capb backup
