@@ -102,11 +102,11 @@ if __name__ == '__main__':
         help='Satellite',
     )
     gw_net_acc_parser = entity_cmd.add_parser(
-        'gw_net_acc',
+        'gw-net-acc',
         help='Gateway (network and access layers)',
     )
     gw_phy_parser = entity_cmd.add_parser(
-        'gw_phy',
+        'gw-phy',
         help='Gateway (physical layer)',
     )
 
@@ -222,7 +222,7 @@ if __name__ == '__main__':
         else:
             raise ValueError('Unexpected type value "{}"'.format(args.type))
 
-    elif args.entity == 'gw_net_acc':
+    elif args.entity == 'gw-net-acc':
         if args.type == onu.IP_TYPE:
             onu.host_ground_net_acc_ip(
                 '{}{}'.format(args.entity, args.id),
@@ -246,7 +246,7 @@ if __name__ == '__main__':
         else:
             raise ValueError('Unexpected type value "{}"'.format(args.type))
 
-    elif args.entity == 'gw_phy':
+    elif args.entity == 'gw-phy':
         onu.host_ground_phy(
             '{}{}'.format(args.entity, args.id),
             args.emu_iface,
