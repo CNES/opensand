@@ -24,6 +24,9 @@ override_dh_strip:
 	dh_strip --dbg-package=libopensand-plugin-dbg
 	dh_strip --dbg-package=opensand-core-dbg
 
+override_dh_auto_install:
+	python3 setup.py install --root=${CURDIR}/debian/opensand-core --install-layout=deb
+
 override_dh_install:
 	dh_install
 
@@ -70,6 +73,7 @@ override_dh_install:
 	# Satellite delay example for daemons and manager
 	install -D -m 0644 conf/mandatory_plugins/satdelay.csv $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/satdelay.csv
 
+override_dh_pysupport:
 
 %:
 	dh  $@

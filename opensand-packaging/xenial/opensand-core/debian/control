@@ -3,7 +3,7 @@ Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config,
  libopensand-conf-dev (>= 5.0.0), libopensand-output-dev (>= 5.0.0), libopensand-rt-dev (>= 5.0.0),
- python-lxml, libpcap-dev
+ python-lxml, libpcap-dev, python3, python3-netifaces, bridge-utils
 Standards-Version: 3.8.3
 Section: misc
 
@@ -42,7 +42,7 @@ Package: opensand-core
 Architecture: any
 Section: misc
 Depends: ${shlibs:Depends},
- ${misc:Depends}, rsyslog, logrotate
+ ${misc:Depends}, rsyslog, logrotate, python3, python3-netifaces, bridge-utils
 Provides: opensand-core-bin
 Conflicts: opensand-core-bin
 Replaces: opensand-core-bin
