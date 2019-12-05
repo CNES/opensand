@@ -36,7 +36,7 @@
 
 
 import argparse
-import opensand_core.opensand_network_utils as onu
+import opensand_network.opensand_network_utils as onu
 import netifaces as ni
 import ipaddress
 

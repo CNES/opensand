@@ -6,13 +6,13 @@
 from distutils.core import setup
 
 setup(
-    name='opensand',
+    name='opensand-network',
     version='5.1.2',
     author='Viveris Technologies',
     author_email='aurelien.delrieu@viveris.fr',
     url="http://opensand.org",
     license="GPL",
-    description=('OpenSAND Core'),
+    description=('OpenSAND network'),
     scripts=[ 'opensand-network', ],
-    packages=[ 'opensand_core' ],
+    packages=[ 'opensand_network' ],
 )

@@ -43,6 +43,7 @@ make_core()
 {
     echo "Building OpenSAND core for $TARGET_DIST"
     # Package and install opensand-core
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-network
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-core
     echo "Finished building OpenSAND core for $TARGET_DIST"
 }
