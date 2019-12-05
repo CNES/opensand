@@ -62,7 +62,7 @@ def host_sat(name, emu_iface, emu_addr=None, configure=True):
     actions = []
 
     link = EmulatedLinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, emu_iface, emu_addr))
     else:
         actions.append(partial(link.revert, emu_iface))
@@ -88,13 +88,13 @@ def host_ground_ip(name, emu_iface, net_iface, emu_addr=None, net_addr=None, int
     actions = []
 
     link = EmulatedLinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, emu_iface, emu_addr))
     else:
         actions.append(partial(link.revert, emu_iface))
 
     link = IPv4LinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, net_iface, net_addr, int_addr))
     else:
         actions.append(partial(link.revert, net_iface))
@@ -118,13 +118,13 @@ def host_ground_eth(name, emu_iface, net_iface, emu_addr=None, configure=True):
     actions = []
 
     link = EmulatedLinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, emu_iface, emu_addr))
     else:
         actions.append(partial(link.revert, emu_iface))
 
     link = EthernetLinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, net_iface))
     else:
         actions.append(partial(link.revert, net_iface))
@@ -150,13 +150,13 @@ def host_ground_net_acc_ip(name, interco_iface, net_iface, interco_addr=None, ne
     actions = []
 
     link = EmulatedLinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, interco_iface, interco_addr))
     else:
         actions.append(partial(link.revert, interco_iface))
 
     link = IPv4LinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, net_iface, net_addr, int_addr))
     else:
         actions.append(partial(link.revert, net_iface))
@@ -180,13 +180,13 @@ def host_ground_net_acc_eth(name, interco_iface, net_iface, interco_addr=None, c
     actions = []
 
     link = EmulatedLinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, interco_iface, interco_addr))
     else:
         actions.append(partial(link.revert, interco_iface))
 
     link = EthernetLinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, net_iface))
     else:
         actions.append(partial(link.revert, net_iface))
@@ -210,13 +210,13 @@ def host_ground_phy(name, emu_iface, interco_iface, emu_addr=None, interco_addr=
     actions = []
 
     link = EmulatedLinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, emu_iface, emu_addr))
     else:
         actions.append(partial(link.revert, emu_iface))
 
     link = EmulatedLinkNetConf(name)
-    if args.configure:
+    if configure:
         actions.append(partial(link.configure, interco_iface, interco_addr))
     else:
         actions.append(partial(link.revert, interco_iface))
