@@ -261,11 +261,11 @@ class EmulatedLinkNetConf(NetConf):
             emu_iface  the existing interface to configure for the emulated link
             emu_addr   the address to set to the emulated link interface
         '''
-        if emu_iface not in nu.list_ifaces(self._netns):
+        if emu_iface not in list_ifaces(self._netns):
             raise ValueError('No interface "{}"'.format(emu_iface))
-        nu.set_up(emu_iface, self._netns)
-        nu.flush_address(emu_iface, self._netns)
-        nu.add_address(emu_iface, emu_addr, self._netns)
+        set_up(emu_iface, self._netns)
+        flush_address(emu_iface, self._netns)
+        add_address(emu_iface, emu_addr, self._netns)
 
     def revert(self, emu_iface):
         '''
@@ -274,9 +274,9 @@ class EmulatedLinkNetConf(NetConf):
         Args:
             emu_iface  the existing interface to configure for the emulated link
         '''
-        if emu_iface not in nu.list_ifaces(self._netns):
+        if emu_iface not in list_ifaces(self._netns):
             raise ValueError('No interface "{}"'.format(emu_iface))
-        nu.flush_address(emu_iface, self._netns)
+        flush_address(emu_iface, self._netns)
 
 
 class IPv4LinkNetConf(NetConf):
@@ -292,19 +292,19 @@ class IPv4LinkNetConf(NetConf):
             net_addr   the address to set to the IPv4 network interface
             int_addr   the address to set to the internal IPv4 network interface
         '''
-        if net_iface not in nu.list_ifaces(self._netns):
+        if net_iface not in list_ifaces(self._netns):
             raise ValueError('No interface "{}"'.format(net_iface))
 
         tap_iface = '{}tap'.format(self._name)
         br_iface = '{}br'.format(self._name)
-        nu.set_up(net_iface, self._netns)
-        nu.flush_address(net_iface, self._netns)
-        nu.add_address(net_iface, net_addr, self._netns)
-        nu.create_tap_iface(tap_iface, self._netns)
-        nu.set_up(tap_iface, self._netns)
-        nu.create_bridge(br_iface, [ tap_iface ], self._netns)
-        nu.set_up(br_iface, self._netns)
-        nu.add_address(br_iface, int_addr, self._netns)
+        set_up(net_iface, self._netns)
+        flush_address(net_iface, self._netns)
+        add_address(net_iface, net_addr, self._netns)
+        create_tap_iface(tap_iface, self._netns)
+        set_up(tap_iface, self._netns)
+        create_bridge(br_iface, [ tap_iface ], self._netns)
+        set_up(br_iface, self._netns)
+        add_address(br_iface, int_addr, self._netns)
 
     def revert(self, net_iface):
         '''
@@ -313,14 +313,14 @@ class IPv4LinkNetConf(NetConf):
         Args:
             net_iface  the existing interface to configure the IPv4 network
         '''
-        if net_iface not in nu.list_ifaces(self._netns):
+        if net_iface not in list_ifaces(self._netns):
             raise ValueError('No interface "{}"'.format(net_iface))
 
         tap_iface = '{}tap'.format(self._name)
         br_iface = '{}br'.format(self._name)
-        nu.delete_iface(br_iface, self._netns)
-        nu.delete_iface(tap_iface, self._netns)
-        nu.flush_address(net_iface, self._netns)
+        delete_iface(br_iface, self._netns)
+        delete_iface(tap_iface, self._netns)
+        flush_address(net_iface, self._netns)
 
 
 class EthernetLinkNetConf(NetConf):
@@ -334,17 +334,17 @@ class EthernetLinkNetConf(NetConf):
         Args:
             net_iface  the existing interface to configure the IPv4 network
         '''
-        if net_iface not in nu.list_ifaces(self._netns):
+        if net_iface not in list_ifaces(self._netns):
             raise ValueError('No interface "{}"'.format(net_iface))
 
         tap_iface = '{}tap'.format(self._name)
         br_iface = '{}br'.format(self._name)
-        nu.set_up(net_iface, self._netns)
-        nu.flush_address(net_iface, self._netns)
-        nu.create_tap_iface(tap_iface, self._netns)
-        nu.set_up(tap_iface, self._netns)
-        nu.create_bridge(br_iface, [ tap_iface, net_iface ], self._netns)
-        nu.set_up(br_iface, self._netns)
+        set_up(net_iface, self._netns)
+        flush_address(net_iface, self._netns)
+        create_tap_iface(tap_iface, self._netns)
+        set_up(tap_iface, self._netns)
+        create_bridge(br_iface, [ tap_iface, net_iface ], self._netns)
+        set_up(br_iface, self._netns)
 
     def revert(self, net_iface):
         '''
@@ -353,13 +353,13 @@ class EthernetLinkNetConf(NetConf):
         Args:
             net_iface  the existing interface to configure the Ethernet network
         '''
-        if net_iface not in nu.list_ifaces(self._netns):
+        if net_iface not in list_ifaces(self._netns):
             raise ValueError('No interface "{}"'.format(net_iface))
 
         tap_iface = '{}tap'.format(self._name)
         br_iface = '{}br'.format(self._name)
-        nu.delete_iface(br_iface, self._netns)
-        nu.delete_iface(tap_iface, self._netns)
+        delete_iface(br_iface, self._netns)
+        delete_iface(tap_iface, self._netns)
 
 
 class NetworkUtilsError(Exception):
