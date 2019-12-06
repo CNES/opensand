@@ -179,6 +179,8 @@ bool init_process(int argc, char **argv,
             "missing mandatory interconnect address option");
     return false;
   }
+
+  return true;
 }
 
 

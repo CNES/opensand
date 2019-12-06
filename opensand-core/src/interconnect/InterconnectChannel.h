@@ -65,7 +65,7 @@ class InterconnectChannel
 		data_channel(NULL),
 		sig_channel(NULL)
 	{
-		this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, name);
+		this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, name + ".common");
 	};
 
 	~InterconnectChannel()
