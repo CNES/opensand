@@ -71,6 +71,7 @@ void FileStatHandler::emitStats(const std::vector<std::pair<std::string, std::st
     file << ";" << probe.second;
   }
   file << "\n";
+  file.flush();
 }
 
 
@@ -87,6 +88,7 @@ void FileStatHandler::configure(const std::vector<std::shared_ptr<BaseProbe>>& p
     file << ";" << probe->getName() << " (" << probe->getUnit() << ")";
   }
   file << "\n";
+  file.flush();
 }
 
 
@@ -106,6 +108,7 @@ FileLogHandler::~FileLogHandler() {
 void FileLogHandler::emitLog(const std::string& logName, const std::string& level, const std::string& message) {
   std::lock_guard<std::mutex> acquire{lock};
   file << "[" << getDate() << "]" << level << " " << logName << ": " << message << std::endl;
+  file.flush();
 }
 
 
