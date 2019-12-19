@@ -255,32 +255,26 @@ class MachineController:
         tuntap_iface = ''
         if component not in {SAT, GW_PHY}:
             tuntap_iface += '-t opensand_tap'
-        output_libpath = self._machine_model.get_output_libpath()
-        if output_libpath:
-            output_libpath = '-e ' + output_libpath
         if component == GW_NET_ACC:
-            command_line = '%s %s %s -u %s -w %s %s -c %s' % \
+            command_line = '%s %s %s -u %s -w %s -c %s' % \
                            (bin_file, instance_param, tuntap_iface,
                             self._machine_model.get_interconnect_interface(),
                             self._machine_model.get_interconnect_address(),
-                            output_libpath,
                             CONF_DESTINATION_PATH)
         elif component == GW_PHY:
-            command_line = '%s %s -a %s -u %s -w %s %s -c %s' % \
+            command_line = '%s %s -a %s -u %s -w %s -c %s' % \
                            (bin_file, instance_param, 
                             self._machine_model.get_emulation_address(),
                             self._machine_model.get_interconnect_interface(),
                             self._machine_model.get_interconnect_address(),
-                            output_libpath,
                             CONF_DESTINATION_PATH)
         else:
-            command_line = '%s -a %s %s %s %s -c %s' % \
+            command_line = '%s -a %s %s %s -c %s' % \
                            (bin_file,
                             self._machine_model.get_emulation_address(),
                             tuntap_iface, instance_param,
-                            output_libpath,
                             CONF_DESTINATION_PATH)
-        command_line += " -f '/var/log/opensand/{}/'".format(datetime.now())
+        command_line += " -f '/var/log/opensand/'"
         try:
             address, port = remote_address
         except ValueError:
