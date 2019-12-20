@@ -198,7 +198,7 @@ int main(int argc, char **argv)
   // retrieve arguments on command line
   init_ok = init_process(argc, argv, ip_addr, conf_path);
 
-  plugin_conf_path = conf_path + std::string("plugins/");
+  plugin_conf_path = conf_path + "/" + std::string("plugins/");
 
   status = Output::Get()->registerEvent("Status");
   if(!init_ok)
@@ -213,9 +213,9 @@ int main(int argc, char **argv)
   param.sched_priority = sched_get_priority_max(SCHED_FIFO);
   sched_setscheduler(0, SCHED_FIFO, &param);
 
-  topology_file = conf_path + std::string(CONF_TOPOLOGY);
-  global_file = conf_path + std::string(CONF_GLOBAL_FILE);
-  default_file = conf_path + std::string(CONF_DEFAULT_FILE);
+  topology_file = conf_path + "/" + std::string(CONF_TOPOLOGY);
+  global_file = conf_path + "/" + std::string(CONF_GLOBAL_FILE);
+  default_file = conf_path + "/" + std::string(CONF_DEFAULT_FILE);
 
   conf_files.push_back(topology_file.c_str());
   conf_files.push_back(global_file.c_str());
