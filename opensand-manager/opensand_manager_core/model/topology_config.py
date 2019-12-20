@@ -165,50 +165,6 @@ class TopologyConfig(AdvancedHostModel):
             self.update_host_address(name, net_config)
 
             if name != SAT:
-                # IPv4 SARP
-                net = IPv4Network(net_config[LAN_IPV4])
-                
-                line = {'addr': str(net.network),
-                        'mask': str(net.prefixlen),
-                        TAL_ID: instance,
-                       }
-                xpath = PATH_IPV4
-                
-                table = self._configuration.get(xpath)
-                new = etree.Element(TERMINAL_V4, line)
-                find = False
-                for elm in table.getchildren():
-                    if etree.tostring(new) == etree.tostring(elm):
-                        find =  True
-                        break
-
-                if not find:
-                    self._configuration.create_line(line, TERMINAL_V4, xpath)
-                    self._log.debug("topology create line %s" % line)
-
-                # IPv6 SARP
-                addr = net_config[LAN_IPV6].split('/')
-                ip = addr[0]
-                net = ip[0:ip.rfind(':') + 1] + "0"
-                mask = addr[1]
-                line = {'addr': net,
-                        'mask': mask,
-                        TAL_ID: instance,
-                       }
-                xpath = PATH_IPV6
-
-                table = self._configuration.get(xpath)
-                new = etree.Element(TERMINAL_V6, line)
-                find = False
-                for elm in table.getchildren():
-                    if etree.tostring(new) == etree.tostring(elm):
-                        find =  True
-                        break
-
-                if not find:
-                    self._configuration.create_line(line, TERMINAL_V6, xpath)
-                    self._log.debug("topology create line %s" % line)
-                
                 # Ethernet SARP
                 if 'mac' in net_config:
                     mac = net_config['mac']
@@ -248,12 +204,6 @@ class TopologyConfig(AdvancedHostModel):
         del self._list_host[name]
         
         try:
-            xpath = PATH_TERM_V4 + "[@" + TAL_ID + "='%s']" % instance
-            self._configuration.del_element(xpath)
-            self._log.debug("topology del %s" % xpath)
-            xpath = PATH_TERM_V6 + "[@" + TAL_ID + "='%s']" % instance
-            self._configuration.del_element(xpath)
-            self._log.debug("topology del %s" % xpath)
             xpath = PATH_TERM_ETH + "[@" + TAL_ID + "='%s']" % instance
             self._configuration.del_element(xpath)
             self._log.debug("topology del %s" % xpath)
