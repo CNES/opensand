@@ -34,7 +34,6 @@
 
 #include "CodingTypes.h"
 
-CodingTypes CodingTypes::instance;
 
 CodingTypes::CodingTypes() :
 	default_coding_rate(1),
@@ -60,6 +59,7 @@ CodingTypes::~CodingTypes()
 
 bool CodingTypes::exist(string coding_label)
 {
+	CodingTypes instance;
 	map<string, float>::iterator ite;
 
 	ite = instance.coding_rates.find(coding_label);
@@ -68,11 +68,13 @@ bool CodingTypes::exist(string coding_label)
 
 float CodingTypes::getDefaultRate()
 {
+	CodingTypes instance;
 	return instance.default_coding_rate;
 }
 
 float CodingTypes::getRate(string coding_label)
 {
+	CodingTypes instance;
 	map<string, float>::iterator ite;
 
 	ite = instance.coding_rates.find(coding_label);

@@ -76,8 +76,6 @@ class ModulationTypes
 	static unsigned int getEfficiency(string modulation_label);
 
  private:
-	static ModulationTypes instance;
-
 	unsigned int default_modulation_efficiency;
 	map<string, unsigned int> modulation_efficiencies;
 
