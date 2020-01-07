@@ -60,7 +60,6 @@ WS_LAN_IPV4=''
 WS_LAN_IPV6=''
 INTERCONNECT_IFACE=''
 INTERCONNECT_IPV4=''
-OUTPUT_LIBPATH=''
 
 # read the daemon configuration from debconf cache
 read_conf(){
@@ -127,8 +126,6 @@ read_conf(){
     INTERCONNECT_IFACE=$RET
     db_get opensand-daemon/interconnect/interface_ip
     INTERCONNECT_IPV4=$RET
-    db_get opensand-daemon/output/libpath
-    OUTPUT_LIBPATH=$RET
 }
 
 # write daemon configuration
@@ -209,12 +206,6 @@ write_conf(){
         fi
     fi
     echo "" >> ${DAEMON_CONF}
-
-    # output section
-    echo "[output]" >> ${DAEMON_CONF}
-    if [ ! -z ${OUTPUT_LIBPATH} ]; then
-        echo "libpath" = ${OUTPUT_LIBPATH} >> ${DAEMON_CONF}
-    fi
 }
 
 # initialize OpenSAND network
