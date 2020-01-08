@@ -30,7 +30,7 @@
 
 """
 @file     opensand_network
-@brief    Set up the network configuration to an OpenSAND entity.
+@brief    Set up the network interfaces to connect a terrestrial network.
 @author   Aurélien DELRIEU <aurelien.delrieu@viveris.fr>
 """
 
@@ -41,9 +41,9 @@ import netifaces as ni
 import ipaddress
 
 
-def ipv4_address_netdigit(text):
+def ip_address_mask(text):
     '''
-    Check a text represents an IPv4 address and a net digit
+    Check a text represents an IP address and a mask
 
     Args:
         text   text to check
@@ -79,179 +79,75 @@ def udp_port(text):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='Set up the network configuration to an OpenSAND entity',
+        description='Set up the network interfaces to connect a terrestrial network',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    entity_cmd = parser.add_subparsers(
-        dest='entity',
-        metavar='entity',
-        help='the OpenSAND entity type',
+    parser.add_argument(
+        '-t',
+        '--tap-name',
+        type=str,
+        default='opensand_tap',
+        help='the TAP interface name (default: opensand_tap)',
     )
-    entity_cmd.required = True
-
-    st_parser = entity_cmd.add_parser(
-        'st',
-        help='Satellite Terminal',
-    )
-    gw_parser = entity_cmd.add_parser(
-        'gw',
-        help='Gateway',
-    )
-    sat_parser = entity_cmd.add_parser(
-        'sat',
-        help='Satellite',
-    )
-    gw_net_acc_parser = entity_cmd.add_parser(
-        'gw-net-acc',
-        help='Gateway (network and access layers)',
-    )
-    gw_phy_parser = entity_cmd.add_parser(
-        'gw-phy',
-        help='Gateway (physical layer)',
+    parser.add_argument(
+        '-b',
+        '--bridge-name',
+        type=str,
+        default='opensand_br',
+        help='the bridge name (default: opensand_br)',
     )
 
-    for p in [ st_parser, gw_parser, gw_net_acc_parser, gw_phy_parser ]:
-        p.add_argument(
-            '-i',
-            '--id',
-            type=int,
-            required=True,
-            help='the OpenSAND entity identifier',
-        )
+    action_cmd = parser.add_subparsers(
+        dest='action',
+        metavar='action',
+        help='the action to perform',
+    )
+    action_cmd.required = True
 
-    for p in [ st_parser, gw_parser, gw_net_acc_parser ]:
-        p.add_argument(
-            '-t',
-            '--type',
-            choices=onu.ALL_TYPES,
-            default=onu.DEFAULT_TYPE,
-            help='the type of the terrestrial network',
-        )
-        p.add_argument(
-            '-n',
-            '--net-iface',
-            type=existing_iface,
-            required=True,
-            help='the terrestrial network interface',
-        )
-        p.add_argument(
-            '--net-addr',
-            type=ipv4_address_netdigit,
-            default=None,
-            help='the terrestrial network address (format: "ADDRESS/NET_DIGIT")',
-        )
+    ip_parser = action_cmd.add_parser(
+        onu.IP_TYPE,
+        help='create interfaces to connect an IP terrestrial network',
+    )
+    ip_parser.add_argument(
+        'address_mask',
+        type=ip_address_mask,
+        help='the terrestrial network address (format: "ADDRESS/NET_DIGIT")',
+    )
 
-    for p in [ st_parser, gw_parser, gw_phy_parser, sat_parser ]:
-        p.add_argument(
-            '-e',
-            '--emu-iface',
-            type=existing_iface,
-            required=True,
-            help='the emulation interface',
-        )
-        p.add_argument(
-            '-a',
-            '--emu-addr',
-            type=ipv4_address_netdigit,
-            required=True,
-            help='the emulation address (format: "ADDRESS/NET_DIGIT")',
-        )
+    eth_parser = action_cmd.add_parser(
+        onu.ETH_TYPE,
+        help='create interfaces to connect an Ethernet terrestrial network',
+    )
+    eth_parser.add_argument(
+        'interface',
+        type=existing_iface,
+        help='the terrestrial network interface',
+    )
 
-    for p in [ gw_net_acc_parser, gw_phy_parser ]:
-        p.add_argument(
-            '-o',
-            '--interco-iface',
-            type=existing_iface,
-            required=True,
-            help='the interconnection interface',
-        )
-        p.add_argument(
-            '--interco-addr',
-            type=ipv4_address_netdigit,
-            required=True,
-            help='the interconnection address (format: "ADDRESS/NET_DIGIT")',
-        )
-
-    for p in [ st_parser, gw_parser, gw_net_acc_parser ]:
-        p.add_argument(
-            '--int-addr',
-            type=ipv4_address_netdigit,
-            default=None,
-            help='the internal address (format: "ADDRESS/NET_DIGIT")',
-        )
-
-    for p in [ st_parser, gw_parser, gw_net_acc_parser, gw_phy_parser, sat_parser ]:
-        p.add_argument(
-            '-r',
-            '--revert',
-            action='store_false',
-            dest='configure',
-            help='revert the current network configuration',
-        )
+    clear_parser = action_cmd.add_parser(
+        'clear',
+        help='clear interfaces to connect terrestrial network',
+    )
 
     args = parser.parse_args()
-    if args.entity == 'sat':
-        onu.host_sat(
-            args.entity,
-            args.emu_iface,
-            args.emu_addr,
-            args.configure,
-        )
 
-    elif args.entity in [ 'gw', 'st' ]:
-        if args.type == onu.IP_TYPE:
-            onu.host_ground_ip(
-                '{}{}'.format(args.entity, args.id),
-                args.emu_iface,
-                args.net_iface,
-                args.emu_addr,
-                args.net_addr,
-                args.int_addr,
-                args.configure,
-            )
+    if args.action == onu.IP_TYPE:
+        onu.create_tap_iface(args.tap_name)
+        onu.set_up(args.tap_name)
+        onu.create_bridge(args.bridge_name, [ args.tap_name ])
+        onu.set_up(args.bridge_name)
 
-        elif args.type == onu.ETH_TYPE:
-            onu.host_ground_eth(
-                '{}{}'.format(args.entity, args.id),
-                args.emu_iface,
-                args.net_iface,
-                args.emu_addr,
-                args.configure,
-            )
+        onu.add_address(args.bridge_name, args.address_mask)
 
-        else:
-            raise ValueError('Unexpected type value "{}"'.format(args.type))
+    elif args.action == onu.ETH_TYPE:
+        onu.create_tap_iface(args.tap_name)
+        onu.set_up(args.tap_name)
+        onu.create_bridge(args.bridge_name, [ args.tap_name, args.interface ])
+        onu.set_up(args.bridge_name)
 
-    elif args.entity == 'gw-net-acc':
-        if args.type == onu.IP_TYPE:
-            onu.host_ground_net_acc_ip(
-                '{}{}'.format(args.entity, args.id),
-                args.interco_iface,
-                args.net_iface,
-                args.interco_addr,
-                args.net_addr,
-                args.int_addr,
-                args.configure,
-            )
+    elif args.action == 'clear':
+        onu.delete_iface(args.bridge_name)
+        onu.delete_iface(args.tap_name)
 
-        elif args.type == onu.ETH_TYPE:
-            onu.host_ground_net_acc_eth(
-                '{}{}'.format(args.entity, args.id),
-                args.interco_iface,
-                args.net_iface,
-                args.interco_addr,
-                args.configure,
-            )
-
-        else:
-            raise ValueError('Unexpected type value "{}"'.format(args.type))
-
-    elif args.entity == 'gw-phy':
-        onu.host_ground_phy(
-            '{}{}'.format(args.entity, args.id),
-            args.emu_iface,
-            args.interco_iface,
-            args.emu_addr,
-            args.interco_addr,
-            args.configure,
-        )
+    else:
+        raise ValueError('Network type "{}" is not supported'.format(args.network))
