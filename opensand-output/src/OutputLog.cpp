@@ -42,15 +42,15 @@ const char *OutputLog::levels[] =
 {
   "",
   "",
-  "[CRITICAL]",
-  "[   ERROR]",
-  "[ WARNING]",
-  "[  NOTICE]",
-  "[    INFO]",
-  "[   DEBUG]",
+  "CRITICAL",
+  "ERROR",
+  "WARNING",
+  "NOTICE",
+  "INFO",
+  "DEBUG",
   "",
   "",
-  "[   EVENT]",
+  "EVENT",
 };
 
 

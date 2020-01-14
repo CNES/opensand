@@ -72,7 +72,7 @@ class MessageSendProbes(object):
 
 
 class MessageSendLog(object):
-    pattern = re.compile(r'\[(?P<timestamp>[^\]]+)\]\[\s*(?P<log_level>\w+)\] (?P<log_name>[^:]+): (?P<log_message>.*)')
+    pattern = re.compile(r'\[(?P<timestamp>[^\]]+)\]\[\s*(?P<log_level>\w+)\]\[(?P<log_name>[^:]+)\](?P<log_message>.*)')
 
     def __init__(self, data):
         self.timestamp = None

@@ -107,7 +107,14 @@ FileLogHandler::~FileLogHandler() {
 
 void FileLogHandler::emitLog(const std::string& logName, const std::string& level, const std::string& message) {
   std::lock_guard<std::mutex> acquire{lock};
-  file << "[" << getDate() << "]" << level << " " << logName << ": " << message << std::endl;
+  if (message[message.size() - 1] != '\n')
+  {
+    file << "[" << getDate() << "][" << level << "][" << logName << "]" << message << std::endl;
+  }
+  else
+  {
+    file << "[" << getDate() << "][" << level << "][" << logName << "]" << message.substr(0, message.size() -1) << std::endl;
+  }
   file.flush();
 }
 
@@ -202,7 +209,14 @@ SocketLogHandler::~SocketLogHandler() {
 
 void SocketLogHandler::emitLog(const std::string& logName, const std::string& level, const std::string& message) {
   std::stringstream formatter;
-  formatter << "[" << getDate() << "]" << level << " " << logName << ": " << message;
+  if (message[message.size() - 1] != '\n')
+  {
+    formatter << "[" << getDate() << "][" << level << "][" << logName << "]" << message;
+  }
+  else
+  {
+    formatter << "[" << getDate() << "][" << level << "][" << logName << "]" << message.substr(0, message.size() -1);
+  }
   std::string msg = formatter.str();
 
   if (useTcp) {
