@@ -5,6 +5,9 @@
 
 set -e
 
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
 # summary of how this script can be called:
 #        * <postinst> `configure' <most-recently-configured-version>
 #        * <old-postinst> `abort-upgrade' <new version>
@@ -17,23 +20,134 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-set_owner(){
-    # Set owner to files and directories
-    EXE_CHOWN="/bin/chown"
-    USER_NAME="opensand"
+create_elasticsearch_conf(){
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    CONFIG_FILE="/etc/elasticsearch/elasticsearch.yml"
 
-    ${EXE_CHOWN} ${USER_NAME} /var/run/sand-collector
+    cat << EOF > "${CONFIG_FILE}"
+path.data: /var/lib/elasticsearch
+path.log: /var/log/elasticsearch
+cluster.name: "opensand"
+node.name: "collector"
+network.host: 0.0.0.0
+http.port: ${ELASTICSEARCH_PORT}
+path.repo: ["/tmp"]
+EOF
+
+    chown root:elasticsearch "${CONFIG_FILE}"
 }
 
 
-restart_syslog(){
-    service rsyslog restart
+create_logstash_conf(){
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    db_get opensand-collector/collector/stats/port
+    STATS_PORT="${RET}"
+    db_get opensand-collector/collector/logs/port
+    LOGS_PORT="${RET}"
+    db_get opensand-collector/manager/ip
+    MANAGER_IP="${RET}"
+    db_get opensand-collector/manager/stats/port
+    MANAGER_STATS_PORT="${RET}"
+    db_get opensand-collector/manager/logs/port
+    MANAGER_LOGS_PORT="${RET}"
+    CONFIG_FILE="/etc/logstash/conf.d/collector.conf"
+
+    cat << EOF > "${CONFIG_FILE}"
+input {
+  udp { port => ${STATS_PORT} }
+  tcp { port => ${STATS_PORT} }
+  udp { port => ${LOGS_PORT} }
+  tcp { port => ${LOGS_PORT} }
+}
+
+filter {
+  mutate {
+    remove_field => [ "@version", "host", "tags", "type", "port" ]
+  }
+
+  if ("[DEBUG]" in [message] or "[INFO]" in [message] or "[NOTICE]" in [message] or "[WARNING]" in [message] or "[ERROR]" in [message] or "[CRITICAL]" in [message]) {
+    dissect {
+      mapping => { "message" => "[%{timestamp}][%{log_level}][%{log_name}]%{log_message}" }
+      convert_datatype => { "timestamp" => "int" }
+    }
+    mutate {
+      rename => { "log_message" => "message" }
+    }
+  } else {
+    grok {
+      match => { "message" => "%{NUMBER:timestamp:int} %{GREEDYDATA:message}" }
+      overwrite => [ "message" ]
+    }
+    kv {
+      allow_duplicate_values => false
+      field_split => " "
+      value_split => " "
+      remove_field => [ "message" ]
+      target => "kv"
+    }
+    ruby {
+      code => '
+event.get("kv").each do |key, value|
+  event.set(key, value.to_f)
+end'
+      remove_field => [ "kv" ]
+    }
+  }
+
+  date {
+    match => [ "timestamp", "UNIX_MS" ]
+    remove_field => [ "timestamp" ]
+  }
+}
+
+output {
+  if "message" in event.fields {
+    elasticserach {
+      hosts => "localhost:${ELASTICSEARCH_PORT}"
+    }
+  } else {
+    influxdb {
+      measurement => "opensand"
+      use_event_fields_for_data_points => true
+      host => "localhost"
+      port => ${INFLUXDB_PORT}
+      db => "opensand"
+      time_precision => "ms"
+      retention_policy => "opensand"
+    }
+  }
+}
+EOF
+}
+
+
+install_logstash_plugin(){
+    cd /usr/share/logstash
+    bin/logstash-plugin install logstash-output-influxdb
+}
+
+
+restart_services(){
+    systemctl daemon-reload
+    systemctl enable elasticsearch.service
+    systemctl enable influxdb.service
+    systemctl enable logstash.service
+    systemctl restart elasticsearch.service
+    systemctl restart influxdb.service
+    systemctl restart logstash.service
 }
 
 case "$1" in
     configure)
-        restart_syslog
-        set_owner
+        chown -R elasticsearch:elasticsearch /usr/share/elasticsearch
+        create_elasticsearch_conf
+        create_logstash_conf
+        install_logstash_plugin
+        restart_services
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

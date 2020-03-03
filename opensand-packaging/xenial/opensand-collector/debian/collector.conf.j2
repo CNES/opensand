@@ -1,0 +1,129 @@
+input {
+	tcp {
+		port => {{ logstash_stats_port }}
+		add_field => { "[@metadata][type]" => "stats" }
+	}
+
+	udp {
+		port => {{ logstash_stats_port }}
+		add_field => { "[@metadata][type]" => "stats" }
+	}
+
+	syslog {
+		port => {{ logstash_logs_port }}
+		add_field => { "[@metadata][type]" => "logs" }
+	}
+}
+
+filter {
+	# If the type is 'stats', we parse the message and delete useless field
+	if [@metadata][type] == "stats" {
+		mutate {
+			# Remove these fields first so stats can override them
+			remove_field => [ "@version", "host", "tags", "type", "port" ]
+		}
+		json {
+			source => "message"
+		}
+		# If no flag provided or flag is 0 or the json parser has failed, drop the message
+		if !([_metadata][flag]) or [_metadata][flag] == 0 or "_jsonparsefailure" in [tags] {
+			drop {}
+		}
+		mutate {
+			remove_field => "message"
+			rename => { "_metadata" => "@metadata" }
+			# Put back the field we just overwrite & Save important fields for export (InfluxDB + broadcast)
+			add_field => {
+				"[@metadata][type]" => "stats"
+				"@owner_scenario_instance_id" => "%{[@metadata][owner_scenario_instance_id]}"
+				"@scenario_instance_id" => "%{[@metadata][scenario_instance_id]}"
+				"@job_instance_id" => "%{[@metadata][job_instance_id]}"
+				"@agent_name" => "%{[@metadata][agent_name]}"
+				"@job_name" => "%{[@metadata][job_name]}"
+        "@stored_file" => "%{[@metadata][is_file]}"
+			}
+		}
+		date {
+			match => [ "[@metadata][time]", "UNIX_MS" ]
+		}
+		if ([@metadata][suffix]) {
+				mutate {
+						add_field => { "@suffix" => "%{[@metadata][suffix]}" }
+				}
+		}
+	}
+
+	# If the type is 'logs', we add the flag (broadcast on severity ERROR or more)
+	if [@metadata][type] == "logs" {
+		if [severity] <= 3 {
+			mutate {
+				add_field => { "[@metadata][flag]" => 3 }
+			}
+		} else {
+			mutate {
+				add_field => { "[@metadata][flag]" => 1 }
+			}
+		}
+		grok {
+			patterns_dir => ["/etc/logstash/conf.d/pattern/"]
+			match => { "message" => "OWNER_SCENARIO_INSTANCE_ID %{NUMBER:owner_scenario_instance_id}, SCENARIO_INSTANCE_ID %{NUMBER:scenario_instance_id}, JOB_INSTANCE_ID %{NUMBER:job_instance_id}, AGENT_NAME %{HOSTNAME:agent_name}, %{GREEDYDATA:syslog_message}" }
+		}
+		mutate {
+			convert => { "[@metadata][flag]" => "integer" }
+			remove_field => [ "tags", "type", "port" ]
+		}
+		if "_grokparsefailure" in [tags] {
+			mutate {
+				remove_tag => "_grokparsefailure"
+			}
+		} else {
+			mutate {
+				rename => { "syslog_message" => "message" }
+			}
+		}
+	}
+}
+
+output {
+	# Flag & 0x01 => Storage
+	# Flag & 0x10 => Broadcast
+
+	# If the flag is 1 or 3, we have to store the data in the collector database
+	if [@metadata][flag] == 1 or [@metadata][flag] == 3 {
+		# If the type is 'logs', send the data to elasticsearch
+		if [@metadata][type] == "logs" {
+			elasticsearch {
+				hosts => "{{ ansible_default_ipv4.address }}"
+{% if openbach_ldap_auth is defined and openbach_ldap_auth %}
+				user => "{{ openbach_backend_admin_name }}"
+				password => "{{ openbach_backend_admin_password }}"
+{% else %}
+				user => "{{ elasticsearch_cluster_name }}"
+{% endif %}
+			}
+		}
+		# If type is 'stats', send the data to influxdb
+		if [@metadata][type] == "stats" {
+			influxdb {
+				measurement => "%{@job_name}"
+				use_event_fields_for_data_points => true
+				exclude_fields => [ "@job_name", "@timestamp" ]
+				send_as_tags => [ "@owner_scenario_instance_id", "@scenario_instance_id", "@job_instance_id", "@agent_name", "@stored_file", "@suffix" ]
+				host => "{{ ansible_default_ipv4.address }}"
+				port => {{ influxdb_port }}
+				db => "{{ influxdb_database_name }}"
+				time_precision => "{{ influxdb_database_precision }}"
+				retention_policy => "{{ influxdb_database_name }}"
+			}
+		}
+	}
+
+	# Broadcast the message to the Auditorium
+	if [@metadata][flag] == 2 or [@metadata][flag] == 3 {
+		{{ auditorium_broadcast_mode }} {
+			host => "{{ auditorium_ip }}"
+			port => {{ auditorium_broadcast_port }}
+		}
+	}
+}
+

@@ -9,19 +9,5 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-override_dh_auto_install:
-	python setup.py install --root=$(CURDIR)/debian/opensand-collector --install-layout=deb
-
-override_dh_install:
-	dh_install --with=systemd
-
-	# Configuration for syslog/logrotate
-	install -D -m 0644 conf/syslog.conf $(CURDIR)/debian/opensand-collector/etc/rsyslog.d/opensand-collector.conf
-	install -D -m 0644 conf/logrotate.conf $(CURDIR)/debian/opensand-collector/etc/logrotate.d/opensand-collector.conf
-
-
-override_dh_pysupport:
-
-
 %:
 	dh  $@ --with=systemd

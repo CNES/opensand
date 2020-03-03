@@ -1,15 +1,46 @@
-Template: opensand-collector/service/type
+Template: opensand-collector/manager/ip
 Type: string
-Description: Platform ID
-  Select the ID of the platform (leave empty by default). This name will be
-  used to form the zeroconf service type (_{platform_id}_opensand._tcp).
-  No spaces or special characters are admitted.
-  All the hosts from the same platform MUST have the same platform ID.
+Default: localhost
+Description: Manager IP
+  Address of the manager so Logstash can forward logs
+  and statistics.
 
-Template: opensand-collector/service/interface
-Type: select
-Choices: ${ifaces_list}
-Description: Name of the interface for service publishing
-  The name of the interface where the service should be published,
-  empty for all
+Template: opensand-collector/manager/stats/port
+Type: string
+Default: 5359
+Description: Manager Statistics Port
+  Port that the manager uses to listen to incomming statistics.
 
+Template: opensand-collector/manager/logs/port
+Type: string
+Default: 5360
+Description: Manager Logs Port
+  Port that the manager uses to listen to incomming logs.
+
+Template: opensand-collector/collector/stats/port
+Type: string
+Default: 5361
+Description: Statistics Port
+  Port that Logstash will use to listen to incomming
+  statistics from OpenSAND binaries.
+
+Template: opensand-collector/collector/logs/port
+Type: string
+Default: 5362
+Description: Logs Port
+  Port that Logstash will use to listen to incomming
+  logs from OpenSAND binaries.
+
+Template: opensand-collector/elasticsearch/port
+Type: string
+Default: 9200
+Description: ElasticSearch Port
+  Port that ElasticSearch will use to listen to incomming
+  logs from Logstash.
+
+Template: opensand-collector/influxdb/port
+Type: string
+Default: 8086
+Description: InfluxDB Port
+  Port that InfluxDB will use to listen to incomming
+  statistics from Logstash.
