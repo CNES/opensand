@@ -40,7 +40,7 @@ stop_services(){
 case "$1" in
     purge)
         stop_services
-        remove_syslog_conf
+        remove_config_files
     ;;    
         
     remove)
