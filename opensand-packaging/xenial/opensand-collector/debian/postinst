@@ -25,6 +25,12 @@ create_opensand_db(){
     INFLUXDB_PORT="${RET}"
     echo "Waiting for influxdb starts to accepting requests..."
     timeout 120 bash -c "until echo > /dev/tcp/localhost/${INFLUXDB_PORT}; do sleep 0.5; done" > /dev/null 2>&1
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then 
+       echo "Failed to connect to localhost port ${INFLUXDB_PORT}: Influxdb connection refused"
+       echo "Please check your connection settings and ensure 'influxd' is running. If so, increasing the 'timeout' in postinst script will solve this issue."
+       exit $exit_code
+    fi
     curl -i -XPOST http://localhost:${INFLUXDB_PORT}/query --data-urlencode "q=CREATE DATABASE opensand"
 }
 
