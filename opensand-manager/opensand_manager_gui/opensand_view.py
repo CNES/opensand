@@ -40,8 +40,7 @@ import os
 import shutil
 
 from opensand_manager_core.controller.tcp_server import CommandServer
-from opensand_manager_core.my_exceptions import ConfException, ProbeException, \
-                                                ViewException, ModelException
+from opensand_manager_core.my_exceptions import ConfException, ViewException, ModelException
 
 from opensand_manager_core.utils import OPENSAND_PATH, copytree
 from opensand_manager_gui.view.window_view import WindowView
@@ -50,9 +49,7 @@ from opensand_manager_gui.view.resource_event import ResourceEvent
 from opensand_manager_gui.view.run_event import RunEvent
 from opensand_manager_gui.view.tool_event import ToolEvent
 from opensand_manager_gui.view.event_handler import EventResponseHandler
-from opensand_manager_gui.view.popup.infos import error_popup, \
-                                                  info_popup, \
-                                                  yes_no_popup
+from opensand_manager_gui.view.popup.infos import error_popup, info_popup, yes_no_popup
 from opensand_manager_gui.view.popup.about_dialog import AboutDialog
 from opensand_manager_gui.view.utils.mines import SizeDialog, MineWindow
 
@@ -85,25 +82,21 @@ class View(WindowView):
         self._model = model
         
         # initialize each tab
-        try:
-            # run first because its starts the logging notebook
-            self._eventrun = RunEvent(self.get_current(), self._model,
-                                      dev_mode, adv_mode, self._log,
-                                      service_type)
-            self._eventresource = ResourceEvent(self.get_current(),
-                                                self._model, self._log)
-            self._eventconf = ConfEvent(self.get_current(),
-                                        self._model, self._log, 
-                                        self._eventresource.update_view)
-            self._eventtool = ToolEvent(self.get_current(),
-                                        self._model, self._log)
+        # run first because its starts the logging notebook
+        self._eventrun = RunEvent(self.get_current(), self._model,
+                                  dev_mode, adv_mode, self._log,
+                                  service_type)
+        self._eventresource = ResourceEvent(self.get_current(),
+                                            self._model, self._log)
+        self._eventconf = ConfEvent(self.get_current(),
+                                    self._model, self._log, 
+                                    self._eventresource.update_view)
+        self._eventtool = ToolEvent(self.get_current(),
+                                    self._model, self._log)
 
-            self._eventconf.activate(False)
-            self._eventresource.activate(False)
-            self._eventtool.activate(False)
-        except ProbeException:
-            self._log.warning("Probe tab was disabled")
-            self._ui.get_widget("probe_tab").set_sensitive(False)
+        self._eventconf.activate(False)
+        self._eventresource.activate(False)
+        self._eventtool.activate(False)
 
         status_box = self._ui.get_widget('status_box')
 #        status_box.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff,
@@ -610,13 +603,11 @@ class View(WindowView):
     
     def on_program_list_changed(self, programs_dict):
         """ called when the environment plane program list changes """
-        gobject.idle_add(self._eventrun.simu_program_list_changed,
-                         programs_dict)
+        pass
     
     def on_new_program_log(self, program, name, level, message):
         """ called when an environment plane log is received """
-        gobject.idle_add(self._eventrun.simu_program_new_log,
-                         program, name, level, message)
+        pass
 
     def on_new_probe_value(self, probe, timestamp, value):
         """ called when a new probe value is received """

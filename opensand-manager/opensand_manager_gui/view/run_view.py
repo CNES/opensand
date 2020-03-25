@@ -199,7 +199,7 @@ class RunView(WindowView):
         self.draw_collector_state(self._model.is_collector_known(),
             self._model.is_collector_functional())
 
-        self._log_view.update(self._model.get_all_hosts_list())
+        # self._log_view.update(self._model.get_all_hosts_list())
         
         return False
 
