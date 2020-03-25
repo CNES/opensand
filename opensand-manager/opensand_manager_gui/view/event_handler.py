@@ -42,16 +42,14 @@ from opensand_manager_gui.view.popup.progress_dialog import ProgressDialog
 
 class EventResponseHandler(threading.Thread):
     """ Get response events from hosts controllers """
-    def __init__(self, event_manager_response,
-                 run_view, conf_view, resource_view, tool_view, 
-                 probe_view, manager_log):
+    def __init__(self, event_manager_response, run_view,
+                 conf_view, resource_view, tool_view, manager_log):
         threading.Thread.__init__(self)
         self.setName("EventResponseHandler")
         self._run_view = run_view
         self._conf_view = conf_view
         self._resource_view = resource_view
         self._tool_view = tool_view
-        self._probe_view = probe_view
         self._event_manager_response = event_manager_response
         self._log = manager_log
         self._prog_dialog = None
@@ -113,8 +111,6 @@ class EventResponseHandler(threading.Thread):
                     # enable back the 'stop opensand' button
                     gobject.idle_add(self._run_view.disable_start_button, False,
                                      priority=gobject.PRIORITY_HIGH_IDLE+20)
-                    gobject.idle_add(self._probe_view.simu_state_changed,
-                                     priority=gobject.PRIORITY_HIGH_IDLE+20)
                     # check if everything went fine
                     while self._run_view.is_running() and idx < 10:
                         idx += 1
@@ -141,8 +137,6 @@ class EventResponseHandler(threading.Thread):
                 # update the label of the 'start/stop opensand' button
                 gobject.idle_add(self._run_view.set_start_stop_button,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
-                gobject.idle_add(self._probe_view.simu_state_changed,
-                                 priority=gobject.PRIORITY_HIGH_IDLE+20)
                 # enable all the buttons
                 gobject.idle_add(self._run_view.disable_start_button, False,
                                  priority=gobject.PRIORITY_HIGH_IDLE+20)
@@ -157,9 +151,6 @@ class EventResponseHandler(threading.Thread):
                 text = self._event_manager_response.get_text()
                 gobject.idle_add(self.on_probe_transfer_progress,
                                  False)
-                if text == 'done':
-                    self._probe_view.simu_data_available()
-                # TODO: if text == 'fail':
 
             elif event_type == 'quit':
                 # quit event

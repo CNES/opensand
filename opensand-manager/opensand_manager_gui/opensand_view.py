@@ -48,7 +48,6 @@ from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.conf_event import ConfEvent
 from opensand_manager_gui.view.resource_event import ResourceEvent
 from opensand_manager_gui.view.run_event import RunEvent
-from opensand_manager_gui.view.probe_event import ProbeEvent
 from opensand_manager_gui.view.tool_event import ToolEvent
 from opensand_manager_gui.view.event_handler import EventResponseHandler
 from opensand_manager_gui.view.popup.infos import error_popup, \
@@ -98,13 +97,10 @@ class View(WindowView):
                                         self._eventresource.update_view)
             self._eventtool = ToolEvent(self.get_current(),
                                         self._model, self._log)
-            self._eventprobe = ProbeEvent(self.get_current(),
-                                          self._model, self._log)
 
             self._eventconf.activate(False)
             self._eventresource.activate(False)
             self._eventtool.activate(False)
-            self._eventprobe.activate(False)
         except ProbeException:
             self._log.warning("Probe tab was disabled")
             self._ui.get_widget("probe_tab").set_sensitive(False)
@@ -119,13 +115,11 @@ class View(WindowView):
 
 
         self._current_page = self._ui.get_widget('notebook').get_current_page()
-        self._pages = \
-        {
+        self._pages = {
             'run'   : 0,
             'conf'  : 2,
             'resources'  : 1,
             'tools' : 3,
-            'probes': 4,
         }
         
         # update the window title
@@ -148,7 +142,6 @@ class View(WindowView):
                             self._eventconf,
                             self._eventresource,
                             self._eventtool,
-                            self._eventprobe,
                             self._log)
 
         # start event response handler
@@ -208,8 +201,6 @@ class View(WindowView):
         self._eventrun.close()
         self._log.debug("View: close tool view")
         self._eventtool.close()
-        self._log.debug("View: close probe view")
-        self._eventprobe.close()
         self._log.debug("View: closed")
         if self._event_response_handler.is_alive():
             self._log.debug("Run Event: join response event handler")
@@ -269,10 +260,6 @@ class View(WindowView):
                                    "please deploy the missing component(s), "
                                    "they will be automatically detected")
                 
-                if not self._model.is_collector_functional():
-                    self._log.warning("The OpenSAND collector is not known. "
-                                      "The probes will not be available.")
-
                 # check if some components are running
                 state = self._model.is_running()
                 # if at least one application is started at manager startup,
@@ -304,12 +291,7 @@ class View(WindowView):
         if self._current_page == self._pages['run']:
             gobject.idle_add(self._eventrun.refresh,
                              priority=gobject.PRIORITY_HIGH_IDLE+20)
-        
-        # Update simulation state for the probe view
-        gobject.idle_add(self._eventprobe.simu_state_changed,
-                         priority=gobject.PRIORITY_HIGH_IDLE+20)
 
-        
         # restart timer
         return True
 
@@ -376,8 +358,6 @@ class View(WindowView):
                 self._eventresource.activate(False)
             if self._eventtool is not None:
                 self._eventtool.activate(False)
-            if self._eventprobe is not None:
-                self._eventprobe.activate(False)
         elif page_num == self._pages['conf']:
             if self._eventrun is not None:
                 self._eventrun.activate(False)
@@ -387,8 +367,6 @@ class View(WindowView):
                 self._eventresource.activate(False)
             if self._eventtool is not None:
                 self._eventtool.activate(False)
-            if self._eventprobe is not None:
-                self._eventprobe.activate(False)
         elif page_num == self._pages['resources']:
             if self._eventrun is not None:
                 self._eventrun.activate(False)
@@ -399,8 +377,6 @@ class View(WindowView):
                 self._eventresource.update_view()
             if self._eventtool is not None:
                 self._eventtool.activate(False)
-            if self._eventprobe is not None:
-                self._eventprobe.activate(False)
         elif page_num == self._pages['tools']:
             if self._eventconf is not None:
                 self._eventconf.activate(False)
@@ -410,19 +386,6 @@ class View(WindowView):
                 self._eventrun.activate(False)
             if self._eventtool is not None:
                 self._eventtool.activate(True)
-            if self._eventprobe is not None:
-                self._eventprobe.activate(False)
-        elif page_num == self._pages['probes']:
-            if self._eventconf is not None:
-                self._eventconf.activate(False)
-            if self._eventresource is not None:
-                self._eventresource.activate(False)
-            if self._eventrun is not None:
-                self._eventrun.activate(False)
-            if self._eventtool is not None:
-                self._eventtool.activate(False)
-            if self._eventprobe is not None:
-                self._eventprobe.activate(True)
 
     def run(self):
         """ start gobject loops """
@@ -497,7 +460,6 @@ class View(WindowView):
         else:
             self.set_title("OpenSAND Manager - [%s]" % folder)
         # reload the configuration
-        self._eventprobe.scenario_changed()
         try:
             self._eventconf.update_view()
             self._eventconf.read_conf_free_spot()
@@ -631,7 +593,6 @@ class View(WindowView):
     def set_default_run(self):
         """ reset the run value """
         self._model.set_run("")
-        self._eventprobe.run_changed()
 
     def on_window_key_press_event(self, source=None, event=None):
         """ callback called on keyboard press """
@@ -651,8 +612,6 @@ class View(WindowView):
         """ called when the environment plane program list changes """
         gobject.idle_add(self._eventrun.simu_program_list_changed,
                          programs_dict)
-        gobject.idle_add(self._eventprobe.simu_program_list_changed,
-                         programs_dict)
     
     def on_new_program_log(self, program, name, level, message):
         """ called when an environment plane log is received """
@@ -661,8 +620,7 @@ class View(WindowView):
 
     def on_new_probe_value(self, probe, timestamp, value):
         """ called when a new probe value is received """
-        gobject.idle_add(self._eventprobe.new_probe_value,
-                         probe, timestamp, value)
+        pass
     
 
 ##### TEST #####
