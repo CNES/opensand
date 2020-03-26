@@ -34,6 +34,14 @@ create_opensand_db(){
     curl -i -XPOST http://localhost:${INFLUXDB_PORT}/query --data-urlencode "q=CREATE DATABASE opensand"
 }
 
+create_influxdb_conf(){
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    CONFIG_FILE="/etc/influxdb/influxdb.conf"
+
+    sed -i "/bind-address = \":8086\"/c\  bind-address = \"${INFLUXDB_PORT}\"" "${CONFIG_FILE}"
+}
+
 create_elasticsearch_conf(){
     db_get opensand-collector/elasticsearch/port
     ELASTICSEARCH_PORT="${RET}"
@@ -62,12 +70,6 @@ create_logstash_conf(){
     STATS_PORT="${RET}"
     db_get opensand-collector/collector/logs/port
     LOGS_PORT="${RET}"
-    db_get opensand-collector/manager/ip
-    MANAGER_IP="${RET}"
-    db_get opensand-collector/manager/stats/port
-    MANAGER_STATS_PORT="${RET}"
-    db_get opensand-collector/manager/logs/port
-    MANAGER_LOGS_PORT="${RET}"
     CONFIG_FILE="/etc/logstash/conf.d/collector.conf"
 
     cat << EOF > "${CONFIG_FILE}"
@@ -162,6 +164,7 @@ restart_services(){
 case "$1" in
     configure)
         chown -R elasticsearch:elasticsearch /usr/share/elasticsearch
+        create_influxdb_conf
         create_elasticsearch_conf
         create_logstash_conf
         install_logstash_plugin

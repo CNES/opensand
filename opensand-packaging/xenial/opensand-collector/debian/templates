@@ -1,22 +1,3 @@
-Template: opensand-collector/manager/ip
-Type: string
-Default: localhost
-Description: Manager IP
-  Address of the manager so Logstash can forward logs
-  and statistics.
-
-Template: opensand-collector/manager/stats/port
-Type: string
-Default: 5359
-Description: Manager Statistics Port
-  Port that the manager uses to listen to incomming statistics.
-
-Template: opensand-collector/manager/logs/port
-Type: string
-Default: 5360
-Description: Manager Logs Port
-  Port that the manager uses to listen to incomming logs.
-
 Template: opensand-collector/collector/stats/port
 Type: string
 Default: 5361

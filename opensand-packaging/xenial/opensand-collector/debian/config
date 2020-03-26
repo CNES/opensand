@@ -14,28 +14,17 @@ configure(){
         case "$STATE" in
         1)
             db_beginblock
-            db_input high opensand-collector/manager/ip || true
-        ;;
-        2)
-            db_input high opensand-collector/manager/stats/port || true
-        ;;
-        3)
-            db_input high opensand-collector/manager/logs/port || true
-            db_endblock
-        ;;
-        4)
-            db_beginblock
             db_input high opensand-collector/collector/stats/port || true
         ;;
-        5)
+        2)
             db_input high opensand-collector/collector/logs/port || true
             db_endblock
         ;;
-        6)
+        3)
             db_beginblock
             db_input high opensand-collector/elasticsearch/port || true
         ;;
-        7)
+        4)
             db_input high opensand-collector/influxdb/port || true
             db_endblock
         ;;
@@ -69,9 +58,6 @@ configure(){
 }
 
 unseen(){
-    db_fset opensand-collector/manager/ip seen false
-    db_fset opensand-collector/manager/stats/port seen false
-    db_fset opensand-collector/manager/logs/port seen false
     db_fset opensand-collector/collector/stats/port seen false
     db_fset opensand-collector/collector/logs/port seen false
     db_fset opensand-collector/elasticsearch/port seen false

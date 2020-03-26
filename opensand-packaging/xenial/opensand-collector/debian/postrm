@@ -21,10 +21,10 @@ set -e
 remove_config_files(){
     EXE_RM="/bin/rm"
     ELASTIC_CONF="/etc/elasticsearch/elasticsearch.yml"
-    INFLUX_CONF="/etc/logstash/conf.d/collector.conf"
+    LOGSTASH_CONF="/etc/logstash/conf.d/collector.conf"
 
     ${EXE_RM} -f ${ELASTIC_CONF} || true
-    ${EXE_RM} -f ${INFLUX_CONF} || true
+    ${EXE_RM} -f ${LOGSTASH_CONF} || true
 }
 
 
