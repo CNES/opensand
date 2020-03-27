@@ -29,12 +29,10 @@ update_start_cmd() {
    COLLECTOR_STATS_PORT="${RET}"
    db_get opensand-manager/collector/logs/port
    COLLECTOR_LOGS_PORT="${RET}"
-   # Update stat command, indent adding espace
-   START_CMD="        command_line += \" -f '/var/log/opensand/' -r ${COLLECTOR_IP} -l ${COLLECTOR_LOGS_PORT} -s ${COLLECTOR_STATS_PORT}\""
-   # Comment lines 278-283
-   sed -e '278,283s/^#*/#/g' -i ${SOURCE_FILE}
+   # Update stat command
+   START_CMD="command_line += \" -f '/var/log/opensand/' -r ${COLLECTOR_IP} -l ${COLLECTOR_LOGS_PORT} -s ${COLLECTOR_STATS_PORT}\""
    # Replace line 277 by start_cmd
-   sed -i "277s|^.*$|${START_CMD}|" ${SOURCE_FILE}
+   sed -i "277c\        ${START_CMD}" ${SOURCE_FILE}
 
 }
 

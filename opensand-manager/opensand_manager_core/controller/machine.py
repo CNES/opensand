@@ -276,12 +276,6 @@ class MachineController:
                             CONF_DESTINATION_PATH)
         command_line += " -f '/var/log/opensand/'"
         try:
-            address, port = remote_address
-        except ValueError:
-            pass
-        else:
-            command_line += ' -r %s -l %d -s %d' % (address, port, port)
-        try:
             start_ini.add_section(self._machine_model.get_component())
             start_ini.set(self._machine_model.get_component(), 'command',
                           command_line)
