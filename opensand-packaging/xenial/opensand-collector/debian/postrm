@@ -32,9 +32,11 @@ stop_services(){
     systemctl disable elasticsearch.service
     systemctl disable influxdb.service
     systemctl disable logstash.service
+    systemctl disable kibana.service
     systemctl stop elasticsearch.service
     systemctl stop influxdb.service
     systemctl stop logstash.service
+    systemctl stop kibana.service
 }
 
 case "$1" in

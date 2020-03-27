@@ -16,7 +16,8 @@ Depends: ${misc:Depends}, python (>= 2.7), python (<<3.0),
  python-avahi, avahi-daemon,
  rsyslog, logrotate, curl,
  elasticsearch (= 6.2.4), influxdb (= 1.7.1-1),
- openjdk-8-jdk, logstash (= 1:6.2.4-1)
+ openjdk-8-jdk, logstash (= 1:6.2.4-1),
+ kibana (= 6.2.4)
 Provides: opensand-env-plane
 Conflicts: opensand-env-plane
 Replaces: opensand-env-plane

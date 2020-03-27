@@ -25,3 +25,9 @@ Default: 8086
 Description: InfluxDB Port
   Port that InfluxDB will use to listen to incomming
   statistics from Logstash.
+
+Template: opensand-collector/kibana/port
+Type: string
+Default: 5601
+Description: Kibana HTTP Port
+  Port that Kibana will use to publish its HTTP service.

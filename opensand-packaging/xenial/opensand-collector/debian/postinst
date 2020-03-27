@@ -42,6 +42,18 @@ create_influxdb_conf(){
     sed -i "/bind-address = \":8086\"/c\  bind-address = \"${INFLUXDB_PORT}\"" "${CONFIG_FILE}"
 }
 
+create_kibana_conf(){
+    db_get opensand-collector/kibana/port
+    KIBANA_PORT="${RET}"
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    CONFIG_FILE="/etc/kibana/kibana.yml"
+
+    sed -i "/^#\?server\.port/c\server.port: ${KIBANA_PORT}" "${CONFIG_FILE}"
+    sed -i "/^#\?server\.host/c\server.host: \"0.0.0.0\"" "${CONFIG_FILE}"
+    sed -i "/^#\?elasticsearch.url/c\elasticsearch.url: \"http://localhost:${ELASTICSEARCH_PORT}\"" "${CONFIG_FILE}"
+}
+
 create_elasticsearch_conf(){
     db_get opensand-collector/elasticsearch/port
     ELASTICSEARCH_PORT="${RET}"
@@ -156,9 +168,11 @@ restart_services(){
     systemctl enable elasticsearch.service
     systemctl enable influxdb.service
     systemctl enable logstash.service
+    systemctl enable kibana.service
     systemctl restart elasticsearch.service
     systemctl restart influxdb.service
     systemctl restart logstash.service
+    systemctl restart kibana.service
 }
 
 case "$1" in
@@ -166,6 +180,7 @@ case "$1" in
         chown -R elasticsearch:elasticsearch /usr/share/elasticsearch
         create_influxdb_conf
         create_elasticsearch_conf
+        create_kibana_conf
         create_logstash_conf
         install_logstash_plugin
         restart_services

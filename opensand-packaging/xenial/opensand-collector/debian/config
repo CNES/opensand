@@ -28,6 +28,11 @@ configure(){
             db_input high opensand-collector/influxdb/port || true
             db_endblock
         ;;
+        5)
+            db_beginblock
+            db_input high opensand-collector/kibana/port || true
+            db_endblock
+        ;;
         *)
             # The default case catches when $STATE is greater than the
             # last implemented state, and breaks out of the loop. This
