@@ -1,15 +1,33 @@
-Template: opensand-collector/service/type
+Template: opensand-collector/collector/stats/port
 Type: string
-Description: Platform ID
-  Select the ID of the platform (leave empty by default). This name will be
-  used to form the zeroconf service type (_{platform_id}_opensand._tcp).
-  No spaces or special characters are admitted.
-  All the hosts from the same platform MUST have the same platform ID.
+Default: 5361
+Description: Statistics Port
+  Port that Logstash will use to listen to incomming
+  statistics from SATCOM Components.
 
-Template: opensand-collector/service/interface
-Type: select
-Choices: ${ifaces_list}
-Description: Name of the interface for service publishing
-  The name of the interface where the service should be published,
-  empty for all
+Template: opensand-collector/collector/logs/port
+Type: string
+Default: 5362
+Description: Logs Port
+  Port that Logstash will use to listen to incomming
+  logs from SATCOM components.
 
+Template: opensand-collector/elasticsearch/port
+Type: string
+Default: 9200
+Description: ElasticSearch Port
+  Port that ElasticSearch will use to listen to incomming
+  logs from Logstash.
+
+Template: opensand-collector/influxdb/port
+Type: string
+Default: 8086
+Description: InfluxDB Port
+  Port that InfluxDB will use to listen to incomming
+  statistics from Logstash.
+
+Template: opensand-collector/kibana/port
+Type: string
+Default: 5601
+Description: Kibana HTTP Port
+  Port that Kibana will use to publish its HTTP service.

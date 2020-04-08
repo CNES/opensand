@@ -117,10 +117,14 @@ bool init_process(int argc, char **argv, std::string &ip_addr, std::string &conf
         std::cerr << "usage: " << argv[0] << " [-h] -a ip_address -c conf_path "
                      "[-f output_folder] [-r remote_address [-l logs_port] [-s stats_port]]\n"
                      "\t-h                       print this message\n"
-                     "\t-a <ip_address>          set the IP address\n"
-                     "\t-c <conf_path>           specify the configuration path\n"
-                     "\t-f <output_folder>       activate and specify the folder for logs and probes files\n"
-                     "\t-r <remote_address>      activate and specify the address for logs and probes socket messages\n"
+                     "\t-a <ip_address>          set the IP address for emulation; this is the address\n"
+                     "\t                         this satellite should listen to for messages from other\n"
+                     "\t                         entities\n"
+                     "\t-c <conf_path>           specify the configuration folder path\n"
+                     "\t-f <output_folder>       activate and specify the folder for logs and probes\n"
+                     "\t                         files\n"
+                     "\t-r <remote_address>      activate and specify the address for logs and probes\n"
+                     "\t                         socket messages\n"
                      "\t-l <logs_port>           specify the port for logs socket messages\n"
                      "\t-s <stats_port>          specify the port for probes socket messages\n";
         stop = true;

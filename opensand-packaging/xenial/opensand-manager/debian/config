@@ -14,23 +14,13 @@ configure(){
         case "$STATE" in
         1)
             db_beginblock
-            db_input high opensand-collector/collector/stats/port || true
+            db_input high opensand-manager/collector/ip || true
         ;;
         2)
-            db_input high opensand-collector/collector/logs/port || true
-            db_endblock
+            db_input high opensand-manager/collector/stats/port || true
         ;;
         3)
-            db_beginblock
-            db_input high opensand-collector/elasticsearch/port || true
-        ;;
-        4)
-            db_input high opensand-collector/influxdb/port || true
-            db_endblock
-        ;;
-        5)
-            db_beginblock
-            db_input high opensand-collector/kibana/port || true
+            db_input high opensand-manager/collector/logs/port || true
             db_endblock
         ;;
         *)
@@ -63,10 +53,9 @@ configure(){
 }
 
 unseen(){
-    db_fset opensand-collector/collector/stats/port seen false
-    db_fset opensand-collector/collector/logs/port seen false
-    db_fset opensand-collector/elasticsearch/port seen false
-    db_fset opensand-collector/influxdb/port seen false
+    db_fset opensand-manager/collector/ip seen false
+    db_fset opensand-manager/collector/stats/port seen false
+    db_fset opensand-manager/collector/logs/port seen false
 }
 
 db_capb backup

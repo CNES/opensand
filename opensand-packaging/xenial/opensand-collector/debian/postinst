@@ -5,6 +5,9 @@
 
 set -e
 
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
 # summary of how this script can be called:
 #        * <postinst> `configure' <most-recently-configured-version>
 #        * <old-postinst> `abort-upgrade' <new version>
@@ -17,23 +20,171 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-set_owner(){
-    # Set owner to files and directories
-    EXE_CHOWN="/bin/chown"
-    USER_NAME="opensand"
+create_opensand_db(){
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    echo "Waiting for influxdb starts to accepting requests..."
+    timeout 120 bash -c "until echo > /dev/tcp/localhost/${INFLUXDB_PORT}; do sleep 0.5; done" > /dev/null 2>&1
+    exit_code=$?
+    if [ $exit_code -ne 0 ]; then 
+       echo "Failed to connect to localhost port ${INFLUXDB_PORT}: Influxdb connection refused"
+       echo "Please check your connection settings and ensure 'influxd' is running. If so, increasing the 'timeout' in postinst script will solve this issue."
+       exit $exit_code
+    fi
+    curl -i -XPOST http://localhost:${INFLUXDB_PORT}/query --data-urlencode "q=CREATE DATABASE opensand"
+}
 
-    ${EXE_CHOWN} ${USER_NAME} /var/run/sand-collector
+create_influxdb_conf(){
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    CONFIG_FILE="/etc/influxdb/influxdb.conf"
+
+    sed -i "/bind-address = \":8086\"/c\  bind-address = \"${INFLUXDB_PORT}\"" "${CONFIG_FILE}"
+}
+
+create_kibana_conf(){
+    db_get opensand-collector/kibana/port
+    KIBANA_PORT="${RET}"
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    CONFIG_FILE="/etc/kibana/kibana.yml"
+
+    sed -i "/^#\?server\.port/c\server.port: ${KIBANA_PORT}" "${CONFIG_FILE}"
+    sed -i "/^#\?server\.host/c\server.host: \"0.0.0.0\"" "${CONFIG_FILE}"
+    sed -i "/^#\?elasticsearch.url/c\elasticsearch.url: \"http://localhost:${ELASTICSEARCH_PORT}\"" "${CONFIG_FILE}"
+}
+
+create_elasticsearch_conf(){
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    CONFIG_FILE="/etc/elasticsearch/elasticsearch.yml"
+
+    cat << EOF > "${CONFIG_FILE}"
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+cluster.name: "opensand"
+node.name: "collector"
+network.host: 0.0.0.0
+http.port: ${ELASTICSEARCH_PORT}
+path.repo: ["/tmp"]
+EOF
+
+    chown root:elasticsearch "${CONFIG_FILE}"
 }
 
 
-restart_syslog(){
-    service rsyslog restart
+create_logstash_conf(){
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    db_get opensand-collector/collector/stats/port
+    STATS_PORT="${RET}"
+    db_get opensand-collector/collector/logs/port
+    LOGS_PORT="${RET}"
+    CONFIG_FILE="/etc/logstash/conf.d/collector.conf"
+
+    cat << EOF > "${CONFIG_FILE}"
+input {
+  udp { port => ${STATS_PORT} }
+  tcp { port => ${STATS_PORT} }
+  udp { port => ${LOGS_PORT} }
+  tcp { port => ${LOGS_PORT} }
+}
+
+filter {
+  mutate {
+    remove_field => [ "@version", "host", "tags", "type", "port" ]
+  }
+
+  if ("[EVENT]" in [message] or "[DEBUG]" in [message] or "[INFO]" in [message] or "[NOTICE]" in [message] or "[WARNING]" in [message] or "[ERROR]" in [message] or "[CRITICAL]" in [message]) {
+    dissect {
+      mapping => { "message" => "[%{timestamp}][%{log_level}][%{log_name}]%{log_message}" }
+      convert_datatype => { "timestamp" => "int" }
+    }
+    mutate {
+      rename => { "log_message" => "message" }
+    }
+  } else {
+    grok {
+      match => { "message" => "%{NUMBER:timestamp:int} %{GREEDYDATA:message}" }
+      overwrite => [ "message" ]
+    }
+    kv {
+      allow_duplicate_values => false
+      field_split => " "
+      value_split => " "
+      remove_field => [ "message" ]
+      target => "kv"
+    }
+    ruby {
+      code => '
+event.get("kv").each do |key, value|
+  event.set(key, value.to_f)
+end'
+      remove_field => [ "kv" ]
+    }
+  }
+
+  date {
+    match => [ "timestamp", "UNIX_MS", "yyyy-MM-dd HH:mm:ss.SSS" ]
+    remove_field => [ "timestamp" ]
+  }
+
+  mutate {
+    remove_field => [ "tags" ]
+  }
+}
+
+output {
+  if ("" in [message]) {
+    elasticsearch {
+      hosts => "localhost:${ELASTICSEARCH_PORT}"
+    }
+  } else {
+    influxdb {
+      measurement => "opensand"
+      use_event_fields_for_data_points => true
+      host => "localhost"
+      port => ${INFLUXDB_PORT}
+      db => "opensand"
+      time_precision => "ms"
+      retention_policy => "autogen"
+    }
+  }
+}
+EOF
+}
+
+
+install_logstash_plugin(){
+    cd /usr/share/logstash
+    bin/logstash-plugin install logstash-output-influxdb
+}
+
+
+restart_services(){
+    systemctl daemon-reload
+    systemctl enable elasticsearch.service
+    systemctl enable influxdb.service
+    systemctl enable logstash.service
+    systemctl enable kibana.service
+    systemctl restart elasticsearch.service
+    systemctl restart influxdb.service
+    systemctl restart logstash.service
+    systemctl restart kibana.service
 }
 
 case "$1" in
     configure)
-        restart_syslog
-        set_owner
+        chown -R elasticsearch:elasticsearch /usr/share/elasticsearch
+        create_influxdb_conf
+        create_elasticsearch_conf
+        create_kibana_conf
+        create_logstash_conf
+        install_logstash_plugin
+        restart_services
+        create_opensand_db
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

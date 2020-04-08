@@ -130,10 +130,14 @@ bool init_process(int argc, char **argv,
               "\t-h                       print this message\n"
               "\t-t <tap_iface>           set the GW TAP interface name\n"
               "\t-i <instance>            set the instance id\n"
-              "\t-w <interconnect_addr>   set the interconnect IP address\n"
-              "\t-c <conf_path>           specify the configuration path\n"
-              "\t-f <output_folder>       activate and specify the folder for logs and probes files\n"
-              "\t-r <remote_address>      activate and specify the address for logs and probes socket messages\n"
+              "\t-w <interconnect_addr>   set the interconnect IP address; this is the address\n"
+              "\t                         this gateway should listen to for messages from the\n"
+              "\t                         gw_phy part\n"
+              "\t-c <conf_path>           specify the configuration folder path\n"
+              "\t-f <output_folder>       activate and specify the folder for logs and probes\n"
+              "\t                         files\n"
+              "\t-r <remote_address>      activate and specify the address for logs and probes\n"
+              "\t                         socket messages\n"
               "\t-l <logs_port>           specify the port for logs socket messages\n"
               "\t-s <stats_port>          specify the port for probes socket messages\n";
       stop = true;
