@@ -39,7 +39,7 @@ create_influxdb_conf(){
     INFLUXDB_PORT="${RET}"
     CONFIG_FILE="/etc/influxdb/influxdb.conf"
 
-    sed -i "/bind-address = \":8086\"/c\  bind-address = \"${INFLUXDB_PORT}\"" "${CONFIG_FILE}"
+    sed -i "/bind-address = \":8086\"/c\  bind-address = \":${INFLUXDB_PORT}\"" "${CONFIG_FILE}"
 }
 
 create_kibana_conf(){
@@ -159,7 +159,7 @@ EOF
 
 install_logstash_plugin(){
     cd /usr/share/logstash
-    bin/logstash-plugin install logstash-output-influxdb
+    bin/logstash-plugin install logstash-output-influxdb || true
 }
 
 
