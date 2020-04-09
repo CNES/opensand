@@ -29,14 +29,14 @@ remove_config_files(){
 
 
 stop_services(){
-    systemctl disable elasticsearch.service
-    systemctl disable influxdb.service
-    systemctl disable logstash.service
-    systemctl disable kibana.service
-    systemctl stop elasticsearch.service
-    systemctl stop influxdb.service
-    systemctl stop logstash.service
-    systemctl stop kibana.service
+    systemctl disable elasticsearch.service || true
+    systemctl disable influxdb.service || true
+    systemctl disable logstash.service || true
+    systemctl disable kibana.service || true
+    systemctl stop elasticsearch.service || true
+    systemctl stop influxdb.service || true
+    systemctl stop logstash.service || true
+    systemctl stop kibana.service || true
 }
 
 case "$1" in
