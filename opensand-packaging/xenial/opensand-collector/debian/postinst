@@ -196,7 +196,7 @@ case "$1" in
         RECONFIGURE="${RET}"
         db_reset opensand-collector/configured
 
-        if [ "${RECONFIGURE}" = "true" ]; then
+        if [ "${RECONFIGURE}" = "false" ]; then
             chown -R elasticsearch:elasticsearch /usr/share/elasticsearch
             install_logstash_plugin
         fi
@@ -208,7 +208,7 @@ case "$1" in
         create_chronograf_conf
         restart_services
 
-        if [ "${RECONFIGURE}" = "true" ]; then
+        if [ "${RECONFIGURE}" = "false" ]; then
             create_opensand_db
         fi
     ;;
