@@ -31,6 +31,9 @@ configure(){
         5)
             db_beginblock
             db_input high opensand-collector/kibana/port || true
+        ;;
+        6)
+            db_input high opensand-collector/chronograf/port || true
             db_endblock
         ;;
         *)
@@ -62,20 +65,34 @@ configure(){
     fi
 }
 
+reset(){
+    db_reset opensand-collector/collector/stats/port
+    db_reset opensand-collector/collector/logs/port
+    db_reset opensand-collector/elasticsearch/port
+    db_reset opensand-collector/influxdb/port
+    db_reset opensand-collector/kibana/port
+    db_reset opensand-collector/chronograf/port
+    db_reset opensand-collector/configured
+}
+
 unseen(){
     db_fset opensand-collector/collector/stats/port seen false
     db_fset opensand-collector/collector/logs/port seen false
     db_fset opensand-collector/elasticsearch/port seen false
     db_fset opensand-collector/influxdb/port seen false
+    db_fset opensand-collector/kibana/port seen false
+    db_fset opensand-collector/chronograf/port seen false
 }
 
 db_capb backup
 
 if [ "$#" -gt 0 ]; then
     if [ "$1" = "configure" ]; then
-        configure
+        reset
+        db_stop
     elif [ "$1" = "reconfigure" ]; then
         unseen
+        db_set opensand-collector/configured true
         configure
     else
         usage

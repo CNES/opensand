@@ -33,10 +33,12 @@ stop_services(){
     systemctl disable influxdb.service || true
     systemctl disable logstash.service || true
     systemctl disable kibana.service || true
+    systemctl disable chronograf.service || true
     systemctl stop elasticsearch.service || true
     systemctl stop influxdb.service || true
     systemctl stop logstash.service || true
     systemctl stop kibana.service || true
+    systemctl stop chronograf.service || true
 }
 
 case "$1" in

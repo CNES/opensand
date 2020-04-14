@@ -31,3 +31,16 @@ Type: string
 Default: 5601
 Description: Kibana HTTP Port
   Port that Kibana will use to publish its HTTP service.
+
+Template: opensand-collector/chronograf/port
+Type: string
+Default: 8888
+Description: Kibana HTTP Port
+  Port that Chronograf will use to publish its HTTP service.
+
+Template: opensand-collector/configured
+Type: boolean
+Default: false
+Description: Has this packet already been configured ?
+  Helper variable that keep track of whether the packet
+  is being installed or reconfigured.

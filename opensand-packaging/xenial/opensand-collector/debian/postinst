@@ -20,26 +20,25 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-create_opensand_db(){
-    db_get opensand-collector/influxdb/port
-    INFLUXDB_PORT="${RET}"
-    echo "Waiting for influxdb starts to accepting requests..."
-    timeout 120 bash -c "until echo > /dev/tcp/localhost/${INFLUXDB_PORT}; do sleep 0.5; done" > /dev/null 2>&1
-    exit_code=$?
-    if [ $exit_code -ne 0 ]; then 
-       echo "Failed to connect to localhost port ${INFLUXDB_PORT}: Influxdb connection refused"
-       echo "Please check your connection settings and ensure 'influxd' is running. If so, increasing the 'timeout' in postinst script will solve this issue."
-       exit $exit_code
-    fi
-    curl -i -XPOST http://localhost:${INFLUXDB_PORT}/query --data-urlencode "q=CREATE DATABASE opensand"
-}
-
 create_influxdb_conf(){
     db_get opensand-collector/influxdb/port
     INFLUXDB_PORT="${RET}"
     CONFIG_FILE="/etc/influxdb/influxdb.conf"
 
     sed -i "/bind-address = \":8086\"/c\  bind-address = \":${INFLUXDB_PORT}\"" "${CONFIG_FILE}"
+}
+
+create_chronograf_conf(){
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    db_get opensand-collector/chronograf/port
+    CHRONOGRAF_PORT="${RET}"
+    CONFIG_FILE="/etc/default/chronograf"
+
+    cat << EOF > "${CONFIG_FILE}"
+INFLUXDB_URL=http://localhost:${INFLUXDB_PORT}
+PORT=${CHRONOGRAF_PORT}
+EOF
 }
 
 create_kibana_conf(){
@@ -156,12 +155,26 @@ output {
 EOF
 }
 
+fail_opensand_db(){
+    INFLUXDB_PORT="$1"
+    echo "Failed to connect to local InfluxDB server on port ${INFLUXDB_PORT}"
+    echo "This may be due to a lack of available memory. Check the status of the influxdb service and restart it."
+    echo "The database to hold OpenSAND probes could no be created. Please run:"
+    echo -e "\tcurl -i -XPOST http://localhost:${INFLUXDB_PORT}/query --data-urlencode \"q=CREATE DATABASE opensand\""
+    echo "once the problem is solved to create it."
+}
+
+create_opensand_db(){
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    echo "Waiting for influxdb starts to accepting requests..."
+    timeout 120 bash -c "until echo > /dev/tcp/localhost/${INFLUXDB_PORT}; do sleep 0.5; done" > /dev/null 2>&1 && curl -i -XPOST http://localhost:${INFLUXDB_PORT}/query --data-urlencode "q=CREATE DATABASE opensand" || fail_opensand_db ${INFLUXDB_PORT}
+}
 
 install_logstash_plugin(){
     cd /usr/share/logstash
     bin/logstash-plugin install logstash-output-influxdb || true
 }
-
 
 restart_services(){
     systemctl daemon-reload
@@ -169,22 +182,35 @@ restart_services(){
     systemctl enable influxdb.service
     systemctl enable logstash.service
     systemctl enable kibana.service
+    systemctl enable chronograf.service
     systemctl restart elasticsearch.service
     systemctl restart influxdb.service
     systemctl restart logstash.service
     systemctl restart kibana.service
+    systemctl restart chronograf.service
 }
 
 case "$1" in
     configure)
-        chown -R elasticsearch:elasticsearch /usr/share/elasticsearch
+        db_get opensand-collector/configured
+        RECONFIGURE="${RET}"
+        db_reset opensand-collector/configured
+
+        if [ "${RECONFIGURE}" = "true" ]; then
+            chown -R elasticsearch:elasticsearch /usr/share/elasticsearch
+            install_logstash_plugin
+        fi
+
+        create_logstash_conf
         create_influxdb_conf
         create_elasticsearch_conf
         create_kibana_conf
-        create_logstash_conf
-        install_logstash_plugin
+        create_chronograf_conf
         restart_services
-        create_opensand_db
+
+        if [ "${RECONFIGURE}" = "true" ]; then
+            create_opensand_db
+        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

@@ -19,7 +19,8 @@ Depends: ${misc:Depends}, python (>= 2.7), python (<<3.0),
  logstash (= 1:6.2.4-1),
  influxdb (= 1.7.1-1),
  elasticsearch (= 6.2.4),
- kibana (= 6.2.4)
+ kibana (= 6.2.4),
+ chronograf
 Provides: opensand-env-plane
 Conflicts: opensand-env-plane
 Replaces: opensand-env-plane
