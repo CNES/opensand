@@ -35,7 +35,7 @@ Description: Kibana HTTP Port
 Template: opensand-collector/chronograf/port
 Type: string
 Default: 8888
-Description: Kibana HTTP Port
+Description: Chronograf HTTP Port
   Port that Chronograf will use to publish its HTTP service.
 
 Template: opensand-collector/configured
