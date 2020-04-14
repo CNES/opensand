@@ -47,7 +47,6 @@ from opensand_manager_gui.view.window_view import WindowView
 from opensand_manager_gui.view.conf_event import ConfEvent
 from opensand_manager_gui.view.resource_event import ResourceEvent
 from opensand_manager_gui.view.run_event import RunEvent
-from opensand_manager_gui.view.tool_event import ToolEvent
 from opensand_manager_gui.view.event_handler import EventResponseHandler
 from opensand_manager_gui.view.popup.infos import error_popup, info_popup, yes_no_popup
 from opensand_manager_gui.view.popup.about_dialog import AboutDialog
@@ -91,12 +90,9 @@ class View(WindowView):
         self._eventconf = ConfEvent(self.get_current(),
                                     self._model, self._log, 
                                     self._eventresource.update_view)
-        self._eventtool = ToolEvent(self.get_current(),
-                                    self._model, self._log)
 
         self._eventconf.activate(False)
         self._eventresource.activate(False)
-        self._eventtool.activate(False)
 
         status_box = self._ui.get_widget('status_box')
 #        status_box.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(0xffff, 0xffff,
@@ -112,7 +108,6 @@ class View(WindowView):
             'run'   : 0,
             'conf'  : 2,
             'resources'  : 1,
-            'tools' : 3,
         }
         
         # update the window title
@@ -134,7 +129,6 @@ class View(WindowView):
                             self._eventrun,
                             self._eventconf,
                             self._eventresource,
-                            self._eventtool,
                             self._log)
 
         # start event response handler
@@ -192,8 +186,6 @@ class View(WindowView):
         self._eventresource.close()
         self._log.debug("View: close run view")
         self._eventrun.close()
-        self._log.debug("View: close tool view")
-        self._eventtool.close()
         self._log.debug("View: closed")
         if self._event_response_handler.is_alive():
             self._log.debug("Run Event: join response event handler")
@@ -324,22 +316,6 @@ class View(WindowView):
                 self._log.warning("error when trying to check if configuration "
                                   "was modified: " + str(msg))
 
-        # on tools tab keep page if some tools were modified
-        if self._current_page == self._pages['tools'] and \
-           page_num != self._pages['tools']:
-           #and not self._model.is_running():
-            # if the save button is sensitive,
-            # the configuration may have changed
-            if self._ui.get_widget('save_tool_conf').is_sensitive():
-                text =  "The tools configuration was not saved\n\n" \
-                        "Do you want to save it ?"
-                ret = yes_no_popup(text, "Save Tools - OpenSAND Manager",
-                                   gtk.STOCK_DIALOG_INFO)
-                if ret == gtk.RESPONSE_YES:
-                    self._eventtool.on_save_tool_conf_clicked()
-                else:
-                    self._eventtool.on_undo_tool_conf_clicked()
-
         self._current_page = page_num
 
         if page_num == self._pages['run']:
@@ -349,8 +325,6 @@ class View(WindowView):
                 self._eventconf.activate(False)
             if self._eventresource is not None:
                 self._eventresource.activate(False)
-            if self._eventtool is not None:
-                self._eventtool.activate(False)
         elif page_num == self._pages['conf']:
             if self._eventrun is not None:
                 self._eventrun.activate(False)
@@ -358,8 +332,6 @@ class View(WindowView):
                 self._eventconf.activate(True)
             if self._eventresource is not None:
                 self._eventresource.activate(False)
-            if self._eventtool is not None:
-                self._eventtool.activate(False)
         elif page_num == self._pages['resources']:
             if self._eventrun is not None:
                 self._eventrun.activate(False)
@@ -368,17 +340,6 @@ class View(WindowView):
             if self._eventresource is not None:
                 self._eventresource.activate(True)
                 self._eventresource.update_view()
-            if self._eventtool is not None:
-                self._eventtool.activate(False)
-        elif page_num == self._pages['tools']:
-            if self._eventconf is not None:
-                self._eventconf.activate(False)
-            if self._eventresource is not None:
-                self._eventresource.activate(False)
-            if self._eventrun is not None:
-                self._eventrun.activate(False)
-            if self._eventtool is not None:
-                self._eventtool.activate(True)
 
     def run(self):
         """ start gobject loops """
