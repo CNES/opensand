@@ -1,4 +1,4 @@
-bin_PROGRAMS = st sat gw gw-net-acc gw-phy
+bin_PROGRAMS = opensand-st opensand-sat opensand-gw opensand-gw-net-acc opensand-gw-phy
 
 PACKED_COMMON_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
@@ -41,33 +41,33 @@ allexec_LDADD = \
 	-lpthread \
 	-lrt
 
-st_SOURCES = st.cpp
-st_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-st_LDADD = \
+opensand_st_SOURCES = st.cpp
+opensand_st_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
+opensand_st_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 
-gw_SOURCES = gw.cpp
-gw_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-gw_LDADD = \
+opensand_gw_SOURCES = gw.cpp
+opensand_gw_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
+opensand_gw_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 
-gw_net_acc_SOURCES = gw_net_acc.cpp
-gw_net_acc_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-gw_net_acc_LDADD = \
+opensand_gw_net_acc_SOURCES = gw_net_acc.cpp
+opensand_gw_net_acc_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
+opensand_gw_net_acc_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 
-gw_phy_SOURCES = gw_phy.cpp
-gw_phy_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-gw_phy_LDADD = \
+opensand_gw_phy_SOURCES = gw_phy.cpp
+opensand_gw_phy_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
+opensand_gw_phy_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 
-sat_SOURCES = sat.cpp
-sat_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-sat_LDADD = \
+opensand_sat_SOURCES = sat.cpp
+opensand_sat_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
+opensand_sat_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
 

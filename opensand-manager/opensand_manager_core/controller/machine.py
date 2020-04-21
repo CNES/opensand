@@ -256,20 +256,20 @@ class MachineController:
         if component not in {SAT, GW_PHY}:
             tuntap_iface += '-t opensand_tap'
         if component == GW_NET_ACC:
-            command_line = '%s %s %s -u %s -w %s -c %s' % \
+            command_line = 'opensand-%s %s %s -u %s -w %s -c %s' % \
                            (bin_file, instance_param, tuntap_iface,
                             self._machine_model.get_interconnect_interface(),
                             self._machine_model.get_interconnect_address(),
                             CONF_DESTINATION_PATH)
         elif component == GW_PHY:
-            command_line = '%s %s -a %s -u %s -w %s -c %s' % \
+            command_line = 'opensand-%s %s -a %s -u %s -w %s -c %s' % \
                            (bin_file, instance_param, 
                             self._machine_model.get_emulation_address(),
                             self._machine_model.get_interconnect_interface(),
                             self._machine_model.get_interconnect_address(),
                             CONF_DESTINATION_PATH)
         else:
-            command_line = '%s -a %s %s %s -c %s' % \
+            command_line = 'opensand-%s -a %s %s %s -c %s' % \
                            (bin_file,
                             self._machine_model.get_emulation_address(),
                             tuntap_iface, instance_param,
