@@ -4,7 +4,7 @@ This is a small piece of software allowing to facility the setup of a minimal Op
 Unlike to 'OpenSAND CLI' where you have to manualy run each commands, 'Easy OpenSAND CLI' groups commands by steps: configure/clean network and run/stop opensand binaries.
 Technically, commands are grouped within makefiles and organized into Phony targets or recipes to be executed. Where a recipe consists to one or more actions to carry out.
 
-Its provides for both modes, IP and ETH, makefiles to run on each component SAT, GW and ST. 
+It provides for both modes, IP and ETH, makefiles to run on each component SAT, GW and ST. 
 
 ## Pre-requisite
 
@@ -22,12 +22,14 @@ Once this done, you have to run makefiles as root from your command line termina
 make network
 make run
 ```
-First command configure network interfaces and routing, and second one run OpenSAND binary.
+First command configures network interfaces and routing, and second one runs OpenSAND binary.
 If needed, you can run 
 
 ```bash
-make network
-make run
+make stop
+make clean
 ```
 to respectively stop emulation and clean network configurations.
 
+## Now, you can enjoy it! 
+.
