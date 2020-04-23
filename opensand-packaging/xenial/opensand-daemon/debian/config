@@ -191,7 +191,7 @@ configure(){
             db_beginblock
             if [ "$NAME" != "WS"  -a "$NAME" != "GW-NET-ACC" ]; then
                 db_subst opensand-daemon/network/emu_iface ifaces_list "${IFACES_LIST}"
-                db_input low opensand-daemon/network/emu_iface || true
+                db_input high opensand-daemon/network/emu_iface || true
             fi
             db_endblock
         ;;
