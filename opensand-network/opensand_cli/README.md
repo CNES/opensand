@@ -1,6 +1,6 @@
 # Easy OpenSAND CLI
 
-This is a small piece of software allowing to make the setup of a minimal OpenSAND platform following easier. We invite to follow this step-by-step approach. 
+This is a small piece of software allowing to make the setup of a minimal OpenSAND platform easier. We invite you to follow this step-by-step approach. 
 Unlike 'OpenSAND CLI' where you have to manualy run each command, 'Easy OpenSAND CLI' groups commands by steps: configure/clean network and run/stop opensand binaries.
 Technically, commands are grouped within makefiles and organized into Phony targets or recipes to be executed. Where a recipe consists of one or more actions to carry out.
 
