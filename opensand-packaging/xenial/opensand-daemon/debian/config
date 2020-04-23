@@ -338,7 +338,7 @@ configure(){
                         add=$((add + 4))
                     else
                         db_subst opensand-daemon/network/lan_iface ifaces_list "${IFACES_LIST}"
-                        db_input low opensand-daemon/network/lan_iface || true
+                        db_input high opensand-daemon/network/lan_iface || true
                     fi
                 fi
             else
