@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,9 +27,9 @@
 
 /**
  * @file OutputMutex.h
- * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  Wrapper for using a mutex with RAII method
- *
+ * @author Julien BERNARD     <jbernard@toulouse.viveris.com>
+ * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
 

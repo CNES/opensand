@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
  * @file OpenSandConfFile.h
  * @brief Reading parameters from a configuration file
  * @author Bénédicte MOTTO / <bmotto@toulouse.viveris.com>
+ * @author Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef OPENSAND_CONF_FILE_H

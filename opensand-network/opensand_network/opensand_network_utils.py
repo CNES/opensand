@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -28,11 +28,10 @@
 #
 #
 
-"""
-@file     opensand_network_utils.py
-@brief    Basic functions to configure network.
-@author   Aurélien DELRIEU <aurelien.delrieu@viveris.fr>
-"""
+# Author: Aurélien DELRIEU <aurelien.delrieu@viveris.fr>
+
+
+"""Basic functions to configure network."""
 
 
 import subprocess

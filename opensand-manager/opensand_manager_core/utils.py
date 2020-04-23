@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
-# Copyright © 2019 CNES
+# Copyright © 2020 TAS
+# Copyright © 2020 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
+# Author: Aurélien Delrieu / <aurelien.delrieu@viveris.fr>
 
 """
 opensand_manager_core/utils.py - Utilities for OpenSAND Manager

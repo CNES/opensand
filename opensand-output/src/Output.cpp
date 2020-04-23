@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,9 +29,10 @@
  * @file Output.cpp
  * @brief Methods of the Output static class, used by the application to
  *        interact with the output.
- * @author Vincent Duvert <vduvert@toulouse.viveris.com>
- * @author Fabrice Hobaya <fhobaya@toulouse.viveris.com>
- * @author Alban FRICOT <africot@toulouse.viveris.com>
+ * @author Vincent Duvert     <vduvert@toulouse.viveris.com>
+ * @author Fabrice Hobaya     <fhobaya@toulouse.viveris.com>
+ * @author Alban FRICOT       <africot@toulouse.viveris.com>
+ * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
 

@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
 
 # Author: Bénédicte Motto / <bmotto@toulouse.viveris.com>
 # Author: Joaquin Muguerza / <jmuguerza@toulouse.viveris.com>
+# Author: Aurélien Delrieu / <aurelien.delrieu@viveris.fr>
 
 """
 topology_configuration.py - the topology configuration description

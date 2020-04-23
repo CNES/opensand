@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 #
 
 # Author: Bénédicte Motto / <bmotto@toulouse.viveris.com>
+# Author: Mathias Ettinger / <mathias.ettinger@viveris.fr>
 
 """
 opensand_view.py - OpenSAND manager view

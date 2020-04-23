@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
 
 # Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
 # Author: Joaquin Muguerza / Viveris Technologies <jmuguerza@toulouse.viveris.com>
+# Author: Mathias Ettinger / Viveris Technologies <mathias.ettinger@viveris.fr>
 
 
 """

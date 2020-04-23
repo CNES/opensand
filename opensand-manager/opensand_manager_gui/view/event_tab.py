@@ -29,6 +29,7 @@
 #
 
 # Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
+# Author: Mathias Ettinger / Viveris Technologies <mathias.ettinger@viveris.fr>
 
 
 """

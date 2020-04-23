@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
 # Author: Joaquin MUGUERZA / Viveris Technologies <jmuguerza@toulouse.viveris.com>
 # Author: Aurélien DELRIEU / Viveris Technologies <aurelien.delrieu@viveris.fr>
+# Author: Franklin SIMO <armelfrancklin.simotegueu@viveris.fr>
 
 """
 interfaces.py - The OpenSAND interfaces management

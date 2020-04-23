@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,7 +29,8 @@
  * @file BaseProbe.cpp
  * @brief The BaseProbe class represents an untyped probe
  *        (base class for Probe<T> classes).
- * @author Vincent Duvert <vduvert@toulouse.viveris.com>
+ * @author Vincent Duvert     <vduvert@toulouse.viveris.com>
+ * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
 #include "BaseProbe.h"

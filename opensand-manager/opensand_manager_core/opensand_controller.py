@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -30,6 +30,8 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
+# Author: Aurélien Delrieu / <aurelien.delrieu@viveris.fr>
+# Author: Mathias Ettinger / <mathias.ettinger@viveris.fr>
 
 """
 opensand_controller.py - thread that configure, install, start, stop

@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,7 +31,8 @@
  *        This is a specific log that should always be sent to manager
  *        if collector is enabled, it is used to describe important
  *        steps in platform behaviour
- * @author Vincent Duvert <vduvert@toulouse.viveris.com>
+ * @author Vincent Duvert     <vduvert@toulouse.viveris.com>
+ * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
 

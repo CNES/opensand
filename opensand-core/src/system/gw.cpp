@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
- * Copyright © 2019 CNES
+ * Copyright © 2020 TAS
+ * Copyright © 2020 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -33,6 +33,7 @@
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
+ * @author Mathias Ettinger <mathias.ettinger@viveris.fr>
  *
  * Gateway uses the following stack of blocks installed over 2 NICs
  * (nic1 on user network side and nic2 on satellite network side):
