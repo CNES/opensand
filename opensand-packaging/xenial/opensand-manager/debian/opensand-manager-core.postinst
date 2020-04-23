@@ -31,8 +31,8 @@ update_start_cmd() {
    COLLECTOR_LOGS_PORT="${RET}"
    # Update stat command
    START_CMD="command_line += \" -f '/var/log/opensand/' -r ${COLLECTOR_IP} -l ${COLLECTOR_LOGS_PORT} -s ${COLLECTOR_STATS_PORT}\""
-   # Replace line 277 by start_cmd
-   sed -i "277c\        ${START_CMD}" ${SOURCE_FILE}
+   # Replace line 279 by start_cmd
+   sed -i "279c\        ${START_CMD}" ${SOURCE_FILE}
 
 }
 
