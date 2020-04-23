@@ -210,33 +210,23 @@ class OpenSandIfaces(object):
 
     def _check_sysctl(self):
         """ check sysctl values and log if the value may lead to errors """
-        if OpenSandIfaces._name == 'sat':
+        if OpenSandIfaces._name == 'sat' or  OpenSandIfaces._name == 'gw-phy':
             return
 
         with open("/proc/sys/net/ipv4/ip_forward", 'ro') as sysctl:
             if sysctl.read().rstrip('\n') != "1":
                 LOGGER.warning("IPv4 ip_forward is disabled, you should "
-                               "enable it")
+                               "enable it, so be able to route "
+                               "packets toward WS behind this host")
 
-        if OpenSandIfaces._name != 'gw-phy':
-            for iface in [OpenSandIfaces._lan_iface]:
-                with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface,
-                          'ro') as sysctl:
-                    if sysctl.read().rstrip('\n') != "1":
-                        LOGGER.warning("IPv4 forwarding on interface %s is "
-                                       "disabled, you won't be able to route "
-                                       "packets toward WS behind this host" %
-                                       iface)
-
-        if OpenSandIfaces._name != 'gw-net-acc':
-            for iface in [OpenSandIfaces._emu_iface]:
-                with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface,
-                          'ro') as sysctl:
-                    if sysctl.read().rstrip('\n') != "1":
-                        LOGGER.warning("IPv4 forwarding on interface %s is "
-                                       "disabled, you won't be able to route "
-                                       "packets toward WS behind this host" %
-                                       iface)
+        for iface in [OpenSandIfaces._lan_iface]:
+            with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface,
+                      'ro') as sysctl:
+                if sysctl.read().rstrip('\n') != "1":
+                   LOGGER.warning("IPv4 forwarding on interface %s is "
+                                  "disabled, you won't be able to route "
+                                  "packets toward WS behind this host" % 
+                                  iface)
 
     def get_descr(self):
         """ get the addresses elements """

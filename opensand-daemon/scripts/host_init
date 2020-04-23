@@ -46,7 +46,6 @@ SYSCTL="true"
 # workstations
 IP_FORWARD="1"
 FORWARDING="1"
-PROXY_ARP="1"
 
 # Source default library
 if [ -f /etc/default/opensand-daemon ]; then
@@ -120,15 +119,11 @@ check_root(){
 
 # Configure sysctl
 set_sysctl(){
-    db_get opensand-daemon/network/emu_iface
-    EMU_IFACE=$RET
-
     # enable forwarding
     echo "Set ip_forward=$IP_FORWARD"
     evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
     echo -n  "Set forwarding=$FORWARDING on "
-    echo "$EMU_IFACE, $LAN_IFACE and $BR_IFACE interfaces"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/forwarding"=$FORWARDING
+    echo "$LAN_IFACE and $BR_IFACE interfaces"
     evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/forwarding"=$FORWARDING
     # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
@@ -137,43 +132,6 @@ set_sysctl(){
     evecho /sbin/sysctl -w "net/ipv6/conf/$BR_IFACE/forwarding"=$FORWARDING
 }
 
-set_sysctl_phy(){
-    db_get opensand-daemon/network/emu_iface
-    EMU_IFACE=$RET
-
-    # enable forwarding
-    echo "Set ip_forward=$IP_FORWARD"
-    evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
-    echo -n  "Set forwarding=$FORWARDING on "
-    echo "$EMU_IFACE interfaces"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/forwarding"=$FORWARDING
-    # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
-    evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
-}
-
-set_sysctl_net_acc(){
-    # enable forwarding
-    echo "Set ip_forward=$IP_FORWARD"
-    evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
-    echo -n  "Set forwarding=$FORWARDING on "
-    echo "$BR_IFACE and $LAN_IFACE interfaces"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/forwarding"=$FORWARDING
-    # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
-    evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/$BR_IFACE/forwarding"=$FORWARDING
-}
-
-set_br_sysctl(){
-    # enable forwarding
-    echo "Set forwarding=$FORWARDING on $BR_IFACE inteface"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/$BR_IFACE/forwarding"=$FORWARDING
-
-    return
-}
 
 # load the configuration file
 load_net_config(){
@@ -322,20 +280,10 @@ config(){
         return
     fi
 
-    if [ ${SYSCTL} = "true" -a ${NAME} != 'SAT' ]; then
+    if [[ $NAME != SAT && $NAME != GW-PHY* ]]; then
         echo "# Configuring sysctl"
         echo "  See /etc/default/opensand-daemon to avoid this modifications"
-        if [[ $NAME = GW-PHY* ]]; then
-            set_sysctl_phy
-        elif [[ $NAME = GW-NET-ACC* ]]; then
-            set_sysctl_net_acc
-        else
-            set_sysctl
-        fi
-    fi
-    if [[ $NAME != SAT && $NAME != GW-PHY* ]]; then
-        echo "# Configuring sysctl for bridge"
-        set_br_sysctl
+        set_sysctl
     fi
 
     set_dhcp_server
