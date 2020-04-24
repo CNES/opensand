@@ -142,6 +142,12 @@ configure(){
             fi
         ;;
         9)
+            db_get opensand-daemon/service/interface
+            if [ "$RET" = "undefined" ]; then
+                COPY_EMU_IFACE_TO_SERVICE="true"
+            else
+                COPY_EMU_IFACE_TO_SERVICE="false"
+            fi
             db_subst opensand-daemon/service/interface ifaces_list "all, ${IFACES_LIST}"
             db_input low opensand-daemon/service/interface || true
             db_endblock
@@ -187,10 +193,8 @@ configure(){
                 db_subst opensand-daemon/network/emu_iface ifaces_list "${IFACES_LIST}"
                 db_input high opensand-daemon/network/emu_iface || true
             fi
-            db_endblock
 
-            db_get opensand-daemon/service/interface
-            if [ "$RET" = "undefined" ]; then
+            if [ "$COPY_EMU_IFACE_TO_SERVICE" = "true" ]; then
                 db_reset opensand-daemon/service/interface
                 db_get opensand-daemon/network/emu_iface
                 db_set opensand-daemon/service/interface "${RET}"
