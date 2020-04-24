@@ -14,13 +14,26 @@ configure(){
         case "$STATE" in
         1)
             db_beginblock
-            db_input high opensand-manager/collector/ip || true
+            db_input high opensand-manager/collector/exists || true
+            db_get opensand-manager/collector/exists
+            HAS_COLLECTOR=${RET}
+            db_endblock
         ;;
         2)
-            db_input high opensand-manager/collector/stats/port || true
+            db_beginblock
+            if [ "${HAS_COLLECTOR}" = "true" ]; then
+                db_input high opensand-manager/collector/ip || true
+            fi
         ;;
         3)
-            db_input high opensand-manager/collector/logs/port || true
+            if [ "${HAS_COLLECTOR}" = "true" ]; then
+                db_input low opensand-manager/collector/stats/port || true
+            fi
+        ;;
+        4)
+            if [ "${HAS_COLLECTOR}" = "true" ]; then
+                db_input low opensand-manager/collector/logs/port || true
+            fi
             db_endblock
         ;;
         *)

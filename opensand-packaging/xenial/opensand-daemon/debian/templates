@@ -71,6 +71,7 @@ Description: Worksation identifier
 Template: opensand-daemon/service/interface
 Type: select
 Choices: ${ifaces_list}
+Default: undefined
 Description: Select the interface for service publishing
   The name of the interface where the service should be published.
   Choose 'all' for all interfaces
@@ -121,6 +122,7 @@ Description: OpenSAND network IPv4 address
 Template: opensand-daemon/network/lan_iface
 Type: select
 Choices: ${ifaces_list}
+Default: None
 Description: Satellite Terminal network interface name
   Select the physical interface for Satellite Terminal or Gateway network
   This network corresponds to the sub-network used by the
@@ -193,6 +195,7 @@ Description: Satellite Terminal terrestrial network IPv6 address
 Template: opensand-daemon/network/ws_lan_iface
 Type: select
 Choices: ${ifaces_list}
+Default: None
 Description: Workstation network interface name
   Select the physical interface for workstation on the Satellite Terminal network
 
@@ -224,7 +227,7 @@ Description: Workstation IPv6 address
 
 Template: opensand-daemon/network/config_level
 Type: select
-Default: ADVANCED
+Default: AUTOMATIC
 Choices: AUTOMATIC, ADVANCED
 Description: Level of network configuration
   Select the level of configuration you need for your network:
