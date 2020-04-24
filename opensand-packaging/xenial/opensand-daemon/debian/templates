@@ -122,7 +122,6 @@ Description: OpenSAND network IPv4 address
 Template: opensand-daemon/network/lan_iface
 Type: select
 Choices: ${ifaces_list}
-Default: None
 Description: Satellite Terminal network interface name
   Select the physical interface for Satellite Terminal or Gateway network
   This network corresponds to the sub-network used by the
@@ -195,7 +194,6 @@ Description: Satellite Terminal terrestrial network IPv6 address
 Template: opensand-daemon/network/ws_lan_iface
 Type: select
 Choices: ${ifaces_list}
-Default: None
 Description: Workstation network interface name
   Select the physical interface for workstation on the Satellite Terminal network
 
@@ -224,25 +222,6 @@ Type: string
 Description: Workstation IPv6 address
   Select the IPv6 address/mask of the workstation
   This address should be in the same network as the associated Satellite Terminal
-
-Template: opensand-daemon/network/config_level
-Type: select
-Default: AUTOMATIC
-Choices: AUTOMATIC, ADVANCED
-Description: Level of network configuration
-  Select the level of configuration you need for your network:
-   - AUTOMATIC: the daemon automatically read your network configuration
-                according to the choosen interfaces and try to keep it for
-                OpenSAND, be sure that your network will be compatible with
-                OpenSAND,
-   - ADVANCED: you will be able to select the interfaces and addresses,
-               for default configuration choose this mode and press enter for
-               each value.
-  Basically, you need to respect the following constraints on emulation network:
-   - on emulation network all the hosts shall be on the same sub-network (i.e.
-     should have the same mask),
-   - on ST or GW lan, your workstations should be in the same subnetwork as the
-     terminal if not configured automatically with DHCP
 
 Template: opensand-daemon/network/dhcp
 Type: boolean
