@@ -155,10 +155,12 @@ output {
 EOF
 }
 
-limit_logstash_memory(){
-    CONFIG_FILE="/etc/logstash/jvm.options"
-    grep -e '-Xms' "${CONFIG_FILE}" > /dev/null && sed -i 's/.*-Xms.*/-Xms256m/' "${CONFIG_FILE}" || echo "-Xms256m" >> "${CONFIG_FILE}"
-    grep -e '-Xmx' "${CONFIG_FILE}" > /dev/null && sed -i 's/.*-Xmx.*/-Xmx512m/' "${CONFIG_FILE}" || echo "-Xmx512m" >> "${CONFIG_FILE}"
+limit_java_memory(){
+    for component in logstash elasticsearch; do
+        CONFIG_FILE="/etc/${component}/jvm.options"
+        grep -e '-Xms' "${CONFIG_FILE}" > /dev/null && sed -i 's/.*-Xms.*/-Xms512m/' "${CONFIG_FILE}" || echo "-Xms512m" >> "${CONFIG_FILE}"
+        grep -e '-Xmx' "${CONFIG_FILE}" > /dev/null && sed -i 's/.*-Xmx.*/-Xmx512m/' "${CONFIG_FILE}" || echo "-Xmx512m" >> "${CONFIG_FILE}"
+    done
 }
 
 fail_opensand_db(){
@@ -207,7 +209,7 @@ case "$1" in
             install_logstash_plugin
         fi
 
-        limit_logstash_memory
+        limit_java_memory
         create_logstash_conf
         create_influxdb_conf
         create_elasticsearch_conf
