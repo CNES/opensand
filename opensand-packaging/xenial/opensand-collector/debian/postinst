@@ -155,6 +155,12 @@ output {
 EOF
 }
 
+limit_logstash_memory(){
+    CONFIG_FILE="/etc/logstash/jvm.options"
+    grep -e '-Xms' "${CONFIG_FILE}" > /dev/null && sed -i 's/.*-Xms.*/-Xms256m/' "${CONFIG_FILE}" || echo "-Xms256m" >> "${CONFIG_FILE}"
+    grep -e '-Xmx' "${CONFIG_FILE}" > /dev/null && sed -i 's/.*-Xmx.*/-Xmx512m/' "${CONFIG_FILE}" || echo "-Xmx512m" >> "${CONFIG_FILE}"
+}
+
 fail_opensand_db(){
     INFLUXDB_PORT="$1"
     echo "Failed to connect to local InfluxDB server on port ${INFLUXDB_PORT}"
@@ -201,6 +207,7 @@ case "$1" in
             install_logstash_plugin
         fi
 
+        limit_logstash_memory
         create_logstash_conf
         create_influxdb_conf
         create_elasticsearch_conf
