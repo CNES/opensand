@@ -158,19 +158,23 @@ class OpenSandIfaces(object):
         OpenSandIfaces._lan_ipv6 = IPNetwork(addr) if addr else None
 
         # if interface is already up this is not an error
-        try:
-            LOGGER.info("set up iface {}".format(
-                OpenSandIfaces._lan_iface))
-            OpenSandIfaces._ifaces.up(OpenSandIfaces._lan_iface)
-        except NlExists:
-            LOGGER.debug("interface %s is already up" %
+        # if interface is '' or None this is not an error, it means that interface is not required
+        if OpenSandIfaces._lan_iface not in [None, '']:
+           try:
+               LOGGER.info("set up iface {}".format(
+                   OpenSandIfaces._lan_iface))
+               OpenSandIfaces._ifaces.up(OpenSandIfaces._lan_iface)
+           except NlExists:
+               LOGGER.debug("interface %s is already up" %
                          OpenSandIfaces._lan_iface)
-        except NlError, msg:
-            LOGGER.error("unable to set up: %s" % msg)
-            self.release()
-        except Exception, msg:
-            LOGGER.error("error when changing interface %s" %
-                         OpenSandIfaces._lan_iface)
+           except NlError, msg:
+               LOGGER.error("unable to set up: %s" % msg)
+               self.release()
+           except Exception, msg:
+               LOGGER.error("error when changing interface %s" %
+                            OpenSandIfaces._lan_iface)
+        else:
+           LOGGER.debug("interface lan is not specified")
 
     def _init_tap(self, conf):
         """ init the TAP interfaces """
@@ -221,13 +225,14 @@ class OpenSandIfaces(object):
                                "packets toward WS behind this host")
 
         for iface in [OpenSandIfaces._lan_iface]:
-            with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface,
-                      'ro') as sysctl:
-                if sysctl.read().rstrip('\n') != "1":
-                   LOGGER.warning("IPv4 forwarding on interface %s is "
-                                  "disabled, you won't be able to route "
-                                  "packets toward WS behind this host" % 
-                                  iface)
+            if OpenSandIfaces._ifaces.exists(iface):
+               with open("/proc/sys/net/ipv4/conf/%s/forwarding" % iface,
+                         'ro') as sysctl:
+                   if sysctl.read().rstrip('\n') != "1":
+                      LOGGER.warning("IPv4 forwarding on interface %s is "
+                                     "disabled, you won't be able to route "
+                                     "packets toward WS behind this host" % 
+                                     iface)
 
     def get_descr(self):
         """ get the addresses elements """
@@ -246,15 +251,19 @@ class OpenSandIfaces(object):
                 mac = get_mac_address(BR_NAME)
 
         else:
-            mac = get_mac_address(OpenSandIfaces._lan_iface)
+            if OpenSandIfaces._ifaces.exists(OpenSandIfaces._lan_iface):
+               mac = get_mac_address(OpenSandIfaces._lan_iface)
 
         if OpenSandIfaces._name not in {'sat', 'gw-phy'}:
-            descr.update({'lan_iface': OpenSandIfaces._lan_iface,
-                          'lan_ipv4': OpenSandIfaces._lan_ipv4 if OpenSandIfaces._lan_ipv4 is not None else '',
-                          'lan_ipv6': OpenSandIfaces._lan_ipv6 if OpenSandIfaces._lan_ipv6 is not None else '',
-                          'int_ipv4': OpenSandIfaces._br_ipv4 if OpenSandIfaces._br_ipv4 is not None else '',
+            if OpenSandIfaces._ifaces.exists(OpenSandIfaces._lan_iface):
+                descr.update({'lan_iface': OpenSandIfaces._lan_iface,
+                              'lan_ipv4': OpenSandIfaces._lan_ipv4 if OpenSandIfaces._lan_ipv4 is not None else '',
+                              'lan_ipv6': OpenSandIfaces._lan_ipv6 if OpenSandIfaces._lan_ipv6 is not None else ''
+                             })
+            descr.update({'int_ipv4': OpenSandIfaces._br_ipv4 if OpenSandIfaces._br_ipv4 is not None else '',
                           'int_ipv6': OpenSandIfaces._br_ipv6 if OpenSandIfaces._br_ipv6 is not None else '',
                          })
+
             if mac != '':
                 descr.update({'mac': mac})
 
@@ -301,38 +310,39 @@ class OpenSandIfaces(object):
 
     def _setup_l3(self):
         """ set interface in IP mode """
-        try:
-            if OpenSandIfaces._lan_ipv4 is not None:
-                # add IPv4 address on lan interface
-                try:
-                    LOGGER.info("set ipv4 address {} to lan iface {}".format(
-                        str(OpenSandIfaces._lan_ipv4),
-                        OpenSandIfaces._lan_iface,
-                    ))
-                    OpenSandIfaces._ifaces.add_address(
-                                str(OpenSandIfaces._lan_ipv4),
-                                OpenSandIfaces._lan_iface)
-                except NlExists:
-                    LOGGER.debug("address %s already exists on %s" %
-                        (OpenSandIfaces._lan_ipv4, OpenSandIfaces._lan_iface)
-                    )
-            if OpenSandIfaces._lan_ipv6 is not None:
-                # add IPv6 address on lan interface
-                try:
-                    LOGGER.info("set ipv6 address {} to lan iface {}".format(
-                        str(OpenSandIfaces._lan_ipv6),
-                        OpenSandIfaces._lan_iface,
-                    ))
-                    OpenSandIfaces._ifaces.add_address(
-                                    str(OpenSandIfaces._lan_ipv6),
-                                    OpenSandIfaces._lan_iface)
-                except NlExists:
-                    LOGGER.debug("address %s already exists on %s" %
-                        (OpenSandIfaces._lan_ipv6, OpenSandIfaces._lan_iface)
-                    )
-        except NlError:
-            LOGGER.error("error when configuring %s" % OpenSandIfaces._lan_iface)
-            raise
+        if OpenSandIfaces._lan_iface not in [None,'']:
+           try:
+               if OpenSandIfaces._lan_ipv4 is not None:
+                   # add IPv4 address on lan interface
+                   try:
+                       LOGGER.info("set ipv4 address {} to lan iface {}".format(
+                           str(OpenSandIfaces._lan_ipv4),
+                           OpenSandIfaces._lan_iface,
+                       ))
+                       OpenSandIfaces._ifaces.add_address(
+                                   str(OpenSandIfaces._lan_ipv4),
+                                   OpenSandIfaces._lan_iface)
+                   except NlExists:
+                       LOGGER.debug("address %s already exists on %s" %
+                           (OpenSandIfaces._lan_ipv4, OpenSandIfaces._lan_iface)
+                       )
+               if OpenSandIfaces._lan_ipv6 is not None:
+                   # add IPv6 address on lan interface
+                   try:
+                       LOGGER.info("set ipv6 address {} to lan iface {}".format(
+                           str(OpenSandIfaces._lan_ipv6),
+                           OpenSandIfaces._lan_iface,
+                       ))
+                       OpenSandIfaces._ifaces.add_address(
+                                       str(OpenSandIfaces._lan_ipv6),
+                                       OpenSandIfaces._lan_iface)
+                   except NlExists:
+                       LOGGER.debug("address %s already exists on %s" %
+                           (OpenSandIfaces._lan_ipv6, OpenSandIfaces._lan_iface)
+                       )
+           except NlError:
+               LOGGER.error("error when configuring %s" % OpenSandIfaces._lan_iface)
+               raise
 
         # the interfaces are used by opensand so we don't care if address is
         # already set or not
@@ -368,33 +378,35 @@ class OpenSandIfaces(object):
             raise
 
         # remove lan iface from bridge
-        OpenSandIfaces._ifaces.detach_iface(OpenSandIfaces._lan_iface)
+        if OpenSandIfaces._lan_iface not in [None, '']:
+           OpenSandIfaces._ifaces.detach_iface(OpenSandIfaces._lan_iface)
 
     def _setup_l2(self):
         """ set interface in Ethernet mode """
-        try:
-            if OpenSandIfaces._lan_ipv4 is not None:
-                # remove IPv4 address on lan interface
-                try:
-                    OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv4),
-                                                       OpenSandIfaces._lan_iface)
-                except NlMissing:
-                    LOGGER.debug("address %s already removed on %s" %
-                        (OpenSandIfaces._lan_ipv4, OpenSandIfaces._lan_iface)
-                    )
+        if OpenSandIfaces._lan_iface not in [None,'']:
+           try:
+               if OpenSandIfaces._lan_ipv4 is not None:
+                   # remove IPv4 address on lan interface
+                   try:
+                       OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv4),
+                                                          OpenSandIfaces._lan_iface)
+                   except NlMissing:
+                       LOGGER.debug("address %s already removed on %s" %
+                           (OpenSandIfaces._lan_ipv4, OpenSandIfaces._lan_iface)
+                       )
 
-            if OpenSandIfaces._lan_ipv6 is not None:
-                # remove IPv6 address on lan interface
-                try:
-                    OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv6),
-                                                       OpenSandIfaces._lan_iface)
-                except NlMissing:
-                    LOGGER.debug("address %s already removed on %s" %
-                        (OpenSandIfaces._lan_ipv6, OpenSandIfaces._lan_iface)
-                    )
-        except NlError:
-            LOGGER.error("error when configuring %s" % OpenSandIfaces._lan_iface)
-            raise
+               if OpenSandIfaces._lan_ipv6 is not None:
+                   # remove IPv6 address on lan interface
+                   try:
+                       OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv6),
+                                                          OpenSandIfaces._lan_iface)
+                   except NlMissing:
+                       LOGGER.debug("address %s already removed on %s" %
+                           (OpenSandIfaces._lan_ipv6, OpenSandIfaces._lan_iface)
+                       )
+           except NlError:
+               LOGGER.error("error when configuring %s" % OpenSandIfaces._lan_iface)
+               raise
 
         try:
             if OpenSandIfaces._br_ipv4 is not None:
@@ -420,8 +432,9 @@ class OpenSandIfaces(object):
             LOGGER.error("error when configuring bridge")
             raise
             
-        # add lan iface in bridge
-        OpenSandIfaces._ifaces.attach_iface(OpenSandIfaces._lan_iface, BR_NAME)
+        # add lan iface in bridge is not '' or not None
+        if OpenSandIfaces._lan_iface not in [None,'']:
+           OpenSandIfaces._ifaces.attach_iface(OpenSandIfaces._lan_iface, BR_NAME)
 
     def release(self):
         """ set interfaces for emulation """
@@ -439,25 +452,26 @@ class OpenSandIfaces(object):
 
     def _standby(self):
         """ internal wrapper to simplify lock management """
-        if OpenSandIfaces._lan_ipv4 is not None:
-            # remove IPv4 address on lan interface
-            try:
-                OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv4),
-                                                   OpenSandIfaces._lan_iface)
-            except NlMissing:
-                LOGGER.debug("address %s already removed on %s" %
-                    (OpenSandIfaces._lan_ipv4, OpenSandIfaces._lan_iface)
-                )
+        if OpenSandIfaces._lan_iface not in [None,'']:
+           if OpenSandIfaces._lan_ipv4 is not None:
+               # remove IPv4 address on lan interface
+               try:
+                   OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv4),
+                                                      OpenSandIfaces._lan_iface)
+               except NlMissing:
+                   LOGGER.debug("address %s already removed on %s" %
+                       (OpenSandIfaces._lan_ipv4, OpenSandIfaces._lan_iface)
+                   )
 
-        if OpenSandIfaces._lan_ipv6 is not None:
-            # remove IPv6 address on lan interface
-            try:
-                OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv6),
+           if OpenSandIfaces._lan_ipv6 is not None:
+               # remove IPv6 address on lan interface
+               try:
+                   OpenSandIfaces._ifaces.del_address(str(OpenSandIfaces._lan_ipv6),
                                                    OpenSandIfaces._lan_iface)
-            except NlMissing:
-                LOGGER.debug("address %s already removed on %s" %
-                    (OpenSandIfaces._lan_ipv6, OpenSandIfaces._lan_iface)
-                )
+               except NlMissing:
+                   LOGGER.debug("address %s already removed on %s" %
+                       (OpenSandIfaces._lan_ipv6, OpenSandIfaces._lan_iface)
+                   )
 
         if OpenSandIfaces._ifaces.exists(BR_NAME):
             # remove IPv4 address on bridge if it exists
@@ -480,5 +494,6 @@ class OpenSandIfaces(object):
                         (OpenSandIfaces._lan_ipv6, BR_NAME)
                     )
 
-        # remove lan iface from bridge
-        OpenSandIfaces._ifaces.detach_iface(OpenSandIfaces._lan_iface)
+        # remove lan iface from bridge if is not '' or not None
+        if OpenSandIfaces._lan_iface not in [None,'']:
+           OpenSandIfaces._ifaces.detach_iface(OpenSandIfaces._lan_iface)

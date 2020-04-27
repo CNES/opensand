@@ -98,9 +98,6 @@ read_conf(){
     COMMAND_PORT=$RET
     db_get opensand-daemon/state/port
     STATE_PORT=$RET
-    db_get opensand-daemon/network/config_level
-    RET=`echo $RET | tr 'A-Z' 'a-z'`
-    CONFIG_LEVEL=$RET
     db_get opensand-daemon/network/dhcp
     DHCP=$RET
     db_get opensand-daemon/network/emu_iface

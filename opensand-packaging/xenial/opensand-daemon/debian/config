@@ -193,16 +193,17 @@ configure(){
                 db_subst opensand-daemon/network/emu_iface ifaces_list "${IFACES_LIST}"
                 db_input high opensand-daemon/network/emu_iface || true
             fi
-
-            if [ "$COPY_EMU_IFACE_TO_SERVICE" = "true" ]; then
-                db_reset opensand-daemon/service/interface
-                db_get opensand-daemon/network/emu_iface
-                db_set opensand-daemon/service/interface "${RET}"
-            fi
             db_endblock
         ;;
         16)
             db_beginblock
+            if [ "$COPY_EMU_IFACE_TO_SERVICE" = "true" ]; then
+                db_get opensand-daemon/network/emu_iface
+                AVAHI_INTERFACE=$RET
+                db_reset opensand-daemon/service/interface
+                db_set opensand-daemon/service/interface "${AVAHI_INTERFACE}"
+            fi
+
             if [ "$NAME" != "WS"  -a "$NAME" != "GW-NET-ACC" ]; then
                 db_get opensand-daemon/network/emu_iface
                 EMU_IFACE=${RET}
@@ -250,7 +251,7 @@ configure(){
             if [ "$NAME" = "ST" -o "$NAME" = "GW" -o "$NAME" = "GW-NET-ACC" ]; then
                 db_beginblock
                 net="63"
-	        if [ "$NAME" = "ST" ]; then
+                if [ "$NAME" = "ST" ]; then
                     add=${INST}
                 else
                     add=254
@@ -326,12 +327,11 @@ configure(){
         ;;
         22)
             db_beginblock
-            LAN_IFACES_LIST="None, ${IFACES_LIST}"
             if [ "$NAME" != "SAT" -a "$NAME" != "GW-PHY" ]; then
                 add=1
                 if [ "$NAME" = "WS" ]; then
-                    db_subst opensand-daemon/network/ws_lan_iface ifaces_list "${LAN_IFACES_LIST}"
-                    db_input low opensand-daemon/network/ws_lan_iface || true
+                    db_subst opensand-daemon/network/ws_lan_iface ifaces_list "${IFACES_LIST}"
+                    db_input high opensand-daemon/network/ws_lan_iface || true
                     # use a random value to limit WS with the same address
                     # ST physical interface has address .1 and tap interface
                     # (opensand) has address .3
@@ -339,22 +339,9 @@ configure(){
                     add=$((add % 252))
                     add=$((add + 4))
                 else
-                    db_subst opensand-daemon/network/lan_iface ifaces_list "${LAN_IFACES_LIST}"
-                    db_input low opensand-daemon/network/lan_iface || true
+                    db_subst opensand-daemon/network/lan_iface ifaces_list "${IFACES_LIST}"
+                    db_input high opensand-daemon/network/lan_iface || true
                 fi
-            fi
-            db_endblock
-
-            db_get opensand-daemon/network/ws_lan_iface
-            if [ "$RET" = "None" ]; then
-                db_reset opensand-daemon/network/ws_lan_iface
-                db_set opensand-daemon/network/ws_lan_iface ""
-            fi
-
-            db_get opensand-daemon/network/lan_iface
-            if [ "$RET" = "None" ]; then
-                db_reset opensand-daemon/network/lan_iface
-                db_set opensand-daemon/network/lan_iface ""
             fi
             db_endblock
         ;;
