@@ -144,9 +144,9 @@ load_net_config(){
         db_get opensand-daemon/network/lan_ipv4
         LAN_IPV4=$RET
     else
-        if [ "$LAN_IFACE" != "" && "LAN_IFACE" != "None" ]; then
-           LAN_IPV4=`ip addr show ${LAN_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
-           LAN_IPV4=`echo ${LAN_IPV4} | cut -f 1 -d ' '`
+        if [ "$LAN_IFACE" != "" && "$LAN_IFACE" != "None" ]; then
+            LAN_IPV4=`ip addr show ${LAN_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
+            LAN_IPV4=`echo ${LAN_IPV4} | cut -f 1 -d ' '`
            if [ -z "$LAN_IPV4" ]; then
               halt_on_error "cannot retrieve ${LAN_IFACE} IPv4 address, please select ADVANCED mode or assign an address"
            fi
