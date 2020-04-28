@@ -122,7 +122,7 @@ void copyRleConf(const struct rle_config &src, struct rle_config &dst)
 	dst.type_0_alpdu_label_size = src.type_0_alpdu_label_size;
 }
 
-bool checkRleConf(OutputLog *log, const struct rle_config &conf)
+bool checkRleConf(std::shared_ptr<OutputLog> log, const struct rle_config &conf)
 {
 	if(conf.allow_alpdu_sequence_number == conf.allow_alpdu_crc)
 	{

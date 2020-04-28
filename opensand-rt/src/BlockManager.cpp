@@ -209,11 +209,14 @@ bool BlockManager::init(void)
 	//setrlimit(RLIMIT_CORE, &core_limits);
 
 	// Output log
-	this->log_rt = Output::registerLog(LEVEL_WARNING, "Rt");
+	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "Rt");
 
 	for(list<Block*>::iterator iter = this->block_list.begin();
 	    iter != this->block_list.end(); iter++)
 	{
+		LOG(this->log_rt, LEVEL_DEBUG,
+		    "Initializing block %s.",
+		    (*iter)->getName().c_str());
 		if((*iter)->isInitialized())
 		{
 			LOG(this->log_rt, LEVEL_NOTICE,
@@ -227,10 +230,17 @@ bool BlockManager::init(void)
 			// report error with critical to true
 			return false;
 		}
+		LOG(this->log_rt, LEVEL_NOTICE,
+		    "Block %s initialized.",
+		    (*iter)->getName().c_str());
 	}
+
 	for(list<Block*>::iterator iter = this->block_list.begin();
 	    iter != this->block_list.end(); iter++)
 	{
+		LOG(this->log_rt, LEVEL_DEBUG,
+		    "Initializing specifics of block %s.",
+		    (*iter)->getName().c_str());
 		if((*iter)->isInitialized())
 		{
 			LOG(this->log_rt, LEVEL_NOTICE,
@@ -243,6 +253,9 @@ bool BlockManager::init(void)
 			// report error with critical to true
 			return false;
 		}
+		LOG(this->log_rt, LEVEL_NOTICE,
+		    "Block %s initialized its specifics.",
+		    (*iter)->getName().c_str());
 	}
 
 	return true;

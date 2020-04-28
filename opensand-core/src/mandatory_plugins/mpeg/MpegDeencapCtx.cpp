@@ -43,8 +43,7 @@ MpegDeencapCtx::MpegDeencapCtx(uint16_t pid, uint16_t spot_id): _data()
 	this->_cc = 0;
 	this->_need_pusi = true;
 	this->_dest_spot = spot_id;
-	this->log = Output::registerLog(LEVEL_WARNING,
-	                                "Encap.MPEG");
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap.MPEG");
 }
 
 MpegDeencapCtx::~MpegDeencapCtx()

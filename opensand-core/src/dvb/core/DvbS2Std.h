@@ -68,7 +68,7 @@ class DvbS2Std: public PhysicStd
 	bool is_scpc;
 
 	// Output Log
-	OutputLog* log_rcv_from_down;
+	std::shared_ptr<OutputLog>  log_rcv_from_down;
 
  public:
 

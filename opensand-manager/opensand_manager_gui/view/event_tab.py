@@ -29,6 +29,7 @@
 #
 
 # Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
+# Author: Mathias Ettinger / Viveris Technologies <mathias.ettinger@viveris.fr>
 
 
 """
@@ -128,12 +129,6 @@ class EventTab(object):
             bg = "bg_" + LOG_LEVELS[severity].bg
             sev_text = LOG_LEVELS[severity].msg
             image = LOG_LEVELS[severity].icon
-        elif severity == LEVEL_EVENT:
-            #   TODO
-            sev_text = 'EVENT'
-            color = 'white'
-            bg = 'bg_green'
-            image = gtk.STOCK_DIALOG_INFO
 
         if new_line:
             self._buff.insert(at_end(), "\n")

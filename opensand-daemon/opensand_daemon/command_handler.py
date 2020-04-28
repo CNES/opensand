@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
+# Author: Aurélien Delrieu / Viveris Technologies <aurelien.delrieu@viveris.fr>
 
 """
 command_handler.py - server that get OpenSAND commands
@@ -48,7 +49,7 @@ from opensand_daemon.process_list import ProcessList
 from opensand_daemon.my_exceptions import Timeout, InstructionError, XmlError
 from opensand_daemon.stream import DirectoryHandler
 from opensand_daemon.routes import OpenSandRoutes
-from opensand_daemon.interfaces import OpenSandIfaces, TUN_NAME, BR_NAME
+from opensand_daemon.interfaces import OpenSandIfaces, BR_NAME
 from opensand_daemon.nl_utils import NlError
 
 #macros
@@ -110,13 +111,7 @@ class CommandHandler(MyTcpHandler):
             elif self._data == 'CONFIGURE':
                 self.handle_data_request()
             elif self._data.startswith('START'):
-                iface = None
-                try:
-                    (cmd, iface) = self._data.split(' ', 1)
-                except ValueError:
-                    # no iface
-                    pass
-                self.handle_start(iface)
+                self.handle_start()
             elif self._data == 'STOP':
                 self.handle_stop()
             elif self._data == 'TEST':
@@ -154,26 +149,20 @@ class CommandHandler(MyTcpHandler):
             self.wfile.write("ERROR %s\n" % msg)
             raise
 
-    def handle_start(self, iface):
+    def handle_start(self):
         """ handle a START request """
         try:
             if self._process_list.is_running():
                 LOGGER.error("some process are already started")
                 raise InstructionError("some process are already started")
 
-            is_l2 = False
-            if iface == "TUN":
-                iface = TUN_NAME
-            if iface == "TAP":
-                is_l2 = True
-                iface = BR_NAME
             # set interfaces before routes
             # TODO we can add interfaces in bridge here (see nl_link_enslave and
             # release)
             # and then remove the part that need interface name in cpp code
             # and then remove interface name from avahi data
-            self._interfaces.setup_interfaces(is_l2)
-            self._routes.setup_routes(iface)
+            self._interfaces.setup_interfaces()
+            self._routes.setup_routes(BR_NAME)
             self.start_binaries()
         except InstructionError as error:
             self.wfile.write("ERROR %s\n" % error.value)
@@ -209,7 +198,7 @@ class CommandHandler(MyTcpHandler):
         """ handle a STOP request """
         self._process_list.stop()
         self._routes.remove_routes()
-        self._interfaces.standby()
+        self._interfaces.release()
 
         LOGGER.debug("send: 'OK'")
         self.wfile.write("OK\n")

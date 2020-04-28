@@ -445,8 +445,6 @@ int main(int argc, char **argv)
 HeapLeakChecker heap_checker("test_multi_blocks");
 {
 #endif
-	Output::init(false);
-	Output::enableStdlog();
 	Block *top;
 	Block *middle;
 	string error;
@@ -499,7 +497,7 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 	                BottomBlock::Downward>("bottom", middle);
 
 	std::cout << "Start loop, please wait..." << std::endl;
-	Output::finishInit();
+	Output::Get()->finalizeConfiguration();
 	if(!Rt::run(true))
 	{
 		ret = 1;

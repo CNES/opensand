@@ -83,7 +83,7 @@ class DvbSpotList
 		default_spot(0),
 		log_spot(NULL)
 	{
-		this->log_spot = Output::registerLog(LEVEL_WARNING, "Dvb.Spot");
+		this->log_spot = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Spot");
 	};
 
 	virtual ~DvbSpotList()
@@ -159,7 +159,7 @@ class DvbSpotList
 	                        const map<spot_id_t, StFmtSimuList *> &sts);
 
 	/// logging
-	OutputLog *log_spot;
+	std::shared_ptr<OutputLog> log_spot;
 };
 
 
@@ -202,7 +202,7 @@ class BlockDvbNcc: public BlockDvb
 		int mac_id;
 
 		// log for slotted aloha
-		OutputLog *log_saloha;
+		std::shared_ptr<OutputLog> log_saloha;
 	};
 
 
@@ -275,7 +275,7 @@ class BlockDvbNcc: public BlockDvb
 		int pep_alloc_delay;
 
 		// Frame interval
-		Probe<float> *probe_frame_interval;
+    std::shared_ptr<Probe<float>> probe_frame_interval;
 	};
 
  protected:

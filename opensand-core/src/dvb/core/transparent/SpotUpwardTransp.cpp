@@ -366,22 +366,22 @@ bool SpotUpwardTransp::initAcmLoopMargin(void)
 
 bool SpotUpwardTransp::initOutput(void)
 {
+  auto output = Output::Get();
 	// Events
-	this->event_logon_req = Output::registerEvent("Spot_%d.DVB.logon_request",
-	                                                 this->spot_id);
+	this->event_logon_req = output->registerEvent("Spot_%d.DVB.logon_request",
+                                                this->spot_id);
 
 	if(this->saloha)
 	{
-		this->log_saloha = Output::registerLog(LEVEL_WARNING, "Spot_%d.Dvb.SlottedAloha",
+		this->log_saloha = output->registerLog(LEVEL_WARNING,
+                                           "Spot_%d.Dvb.SlottedAloha",
 		                                       this->spot_id);
 	}
 
 	// Output probes and stats
 	char probe_name[128];
-	snprintf(probe_name, sizeof(probe_name),
-	         "Spot_%d.Throughputs.L2_from_SAT", this->spot_id);
-	this->probe_gw_l2_from_sat=
-		Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
+	snprintf(probe_name, sizeof(probe_name), "Spot_%d.Throughputs.L2_from_SAT", this->spot_id);
+	this->probe_gw_l2_from_sat = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 	this->l2_from_sat_bytes = 0;
 
 	return true;

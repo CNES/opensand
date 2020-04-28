@@ -1,3 +1,9 @@
+2020-04-24 opensand-5.2.0
+
+   * Improved network integration (new interfaces bridge/tap)
+   * New logs/stats collection system with improved design and performances.
+   * New OpenSAND collector based on open-source databases (InfluxDB/ElasticSearch) and dashboards (Chronograf and Kibana).
+
 2019-04-04 opensand-5.1.2
 
    * Release 5.1.2

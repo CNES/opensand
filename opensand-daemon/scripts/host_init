@@ -6,7 +6,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -27,14 +27,16 @@
 #
 #
 
-THIS_SCRIPT=$(basename $0)
-
 #
 # This script is used to initialize the OpenSAND
 # sysctl parameters and DHCP configuration on host
 #
-# Authors Julien Bernard <julien.bernard@toulouse.viveris.com>
-# Authors Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
+# Author: Julien Bernard <julien.bernard@toulouse.viveris.com>
+# Author: Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
+# Author: Aurélien Delrieu <aurelien.delrieu@viveris.fr>
+# Author: Franklin SIMO <armelfrancklin.simotegueu@viveris.fr>
+
+THIS_SCRIPT=$(basename $0)
 
 # Source debconf library.
 . /usr/share/debconf/confmodule
@@ -51,7 +53,7 @@ FORWARDING="1"
 if [ -f /etc/default/opensand-daemon ]; then
     . /etc/default/opensand-daemon
 fi
-TUN0_IFACE="opensand_tun"
+BR_IFACE="opensand_br"
 
 DHCP_CONFIG_FILE="/etc/dnsmasq.d/lan_st.conf"
 DAEMON_CONF="/etc/opensand/daemon.conf"
@@ -119,60 +121,19 @@ check_root(){
 
 # Configure sysctl
 set_sysctl(){
-    db_get opensand-daemon/network/emu_iface
-    EMU_IFACE=$RET
-
     # enable forwarding
     echo "Set ip_forward=$IP_FORWARD"
     evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
     echo -n  "Set forwarding=$FORWARDING on "
-    echo "$EMU_IFACE, $LAN_IFACE and $TUN0_IFACE interfaces"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/forwarding"=$FORWARDING
+    echo "$LAN_IFACE and $BR_IFACE interfaces"
     evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv4/conf/$BR_IFACE/forwarding"=$FORWARDING
     # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
     evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
     evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/forwarding"=$FORWARDING
+    evecho /sbin/sysctl -w "net/ipv6/conf/$BR_IFACE/forwarding"=$FORWARDING
 }
 
-set_sysctl_phy(){
-    db_get opensand-daemon/network/emu_iface
-    EMU_IFACE=$RET
-
-    # enable forwarding
-    echo "Set ip_forward=$IP_FORWARD"
-    evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
-    echo -n  "Set forwarding=$FORWARDING on "
-    echo "$EMU_IFACE interfaces"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$EMU_IFACE/forwarding"=$FORWARDING
-    # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
-    evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
-}
-
-set_sysctl_net_acc(){
-    # enable forwarding
-    echo "Set ip_forward=$IP_FORWARD"
-    evecho /sbin/sysctl -w "net/ipv4/ip_forward"=$IP_FORWARD
-    echo -n  "Set forwarding=$FORWARDING on "
-    echo "$TUN0_IFACE and $LAN_IFACE interfaces"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$LAN_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
-    # if the IPv6 address does not exist we cannot change forwarding so apply it on all/default
-    evecho /sbin/sysctl -w "net/ipv6/conf/all/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/default/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/forwarding"=$FORWARDING
-}
-
-set_tun_sysctl(){
-    # enable forwarding
-    echo "Set forwarding=$FORWARDING on $TUN0_IFACE inteface"
-    evecho /sbin/sysctl -w "net/ipv4/conf/$TUN0_IFACE/forwarding"=$FORWARDING
-    evecho /sbin/sysctl -w "net/ipv6/conf/$TUN0_IFACE/forwarding"=$FORWARDING
-
-    return
-}
 
 # load the configuration file
 load_net_config(){
@@ -183,10 +144,12 @@ load_net_config(){
         db_get opensand-daemon/network/lan_ipv4
         LAN_IPV4=$RET
     else
-        LAN_IPV4=`ip addr show ${LAN_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
-        LAN_IPV4=`echo ${LAN_IPV4} | cut -f 1 -d ' '`
-        if [ -z "$LAN_IPV4" ]; then
-            halt_on_error "cannot retrieve ${LAN_IFACE} IPv4 address, please select ADVANCED mode or assign an address"
+        if [ "$LAN_IFACE" != "" && "$LAN_IFACE" != "None" ]; then
+            LAN_IPV4=`ip addr show ${LAN_IFACE} | grep -o -e "inet [^ ]*" | \grep -o -e "[^ ]*$"`
+            LAN_IPV4=`echo ${LAN_IPV4} | cut -f 1 -d ' '`
+           if [ -z "$LAN_IPV4" ]; then
+              halt_on_error "cannot retrieve ${LAN_IFACE} IPv4 address, please select ADVANCED mode or assign an address"
+           fi
         fi
     fi
 
@@ -306,7 +269,7 @@ EOF
 }
 
 set_dhcp_client(){
-    if [ "$DHCP" != "false" ]; then
+    if [ "$DHCP" != "false" && "$LAN_IFACE" != "" && "$LAN_IFACE" != "None" ]; then
         echo "Starting DHCP client"
         evecho $DHCP_CLIENT_CMD $LAN_IFACE 1>/dev/null
     fi
@@ -321,20 +284,10 @@ config(){
         return
     fi
 
-    if [ ${SYSCTL} = "true" -a ${NAME} != 'SAT' ]; then
+    if [[ $NAME != SAT && $NAME != GW-PHY* && $LAN_IFACE != "" && $LAN_IFACE != "None" ]]; then
         echo "# Configuring sysctl"
         echo "  See /etc/default/opensand-daemon to avoid this modifications"
-        if [[ $NAME = GW-PHY* ]]; then
-            set_sysctl_phy
-        elif [[ $NAME = GW-NET-ACC* ]]; then
-            set_sysctl_net_acc
-        else
-            set_sysctl
-        fi
-    fi
-    if [[ $NAME != SAT && $NAME != GW-PHY* ]]; then
-        echo "# Configuring sysctl for TUN interface"
-        set_tun_sysctl
+        set_sysctl
     fi
 
     set_dhcp_server

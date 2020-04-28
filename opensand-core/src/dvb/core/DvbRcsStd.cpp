@@ -47,8 +47,7 @@ DvbRcsStd::DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
 {
 	this->generic_switch = NULL;
 
-	this->log_rcv_from_down = Output::registerLog(LEVEL_WARNING,
-	                                              "Dvb.Upward.receive");
+	this->log_rcv_from_down = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Upward.receive");
 }
 
 DvbRcsStd::DvbRcsStd(string type, bool has_fixed_length,
@@ -58,8 +57,7 @@ DvbRcsStd::DvbRcsStd(string type, bool has_fixed_length,
 {
 	this->generic_switch = NULL;
 
-	this->log_rcv_from_down = Output::registerLog(LEVEL_WARNING,
-	                                              "Dvb.Upward.receive");
+	this->log_rcv_from_down = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Upward.receive");
 }
 
 DvbRcs2Std::DvbRcs2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):

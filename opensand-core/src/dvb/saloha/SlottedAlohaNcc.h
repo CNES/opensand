@@ -82,7 +82,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	/// Parameters to simulate Slotted Aloha traffic
 	vector<SlottedAlohaSimu *> simu;
 
-	typedef map<string, Probe<int> *> probe_per_cat_t;
+	typedef map<string, std::shared_ptr<Probe<int> > > probe_per_cat_t;
 	/// Statistics
 	probe_per_cat_t probe_collisions;
 	probe_per_cat_t probe_collisions_before;
@@ -251,7 +251,7 @@ class SlottedAlohaSimu
 		uint16_t nb_slots;
 		uint16_t slots_per_carrier;
 
-		this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
+		this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.init");
 		slots_per_carrier = floor(category->getSlotsNumber() /
 		                          category->getCarriersNumber());
 	
@@ -335,7 +335,7 @@ class SlottedAlohaSimu
 	/// The number of packets per terminal
 	uint16_t nb_packets_per_tal;
 	/// Logger
-	OutputLog *log_init;
+  std::shared_ptr<OutputLog> log_init;
 };
 
 #endif

@@ -124,7 +124,7 @@ class BBFrame: public DvbFrameTpl<T_DVB_BBFRAME>
 	size_t getOffsetForPayload(void); 
 
 	/// The BBFrame log
-	static OutputLog *bbframe_log;
+	static std::shared_ptr<OutputLog> bbframe_log;
 };
 
 #endif

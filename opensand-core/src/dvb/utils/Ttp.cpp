@@ -49,7 +49,7 @@
 /// The maximum number of TP per frame
 #define NBR_MAX_TP BROADCAST_TAL_ID
 
-OutputLog *Ttp::ttp_log = NULL;
+std::shared_ptr<OutputLog> Ttp::ttp_log = nullptr;
 
 Ttp::Ttp():
 	DvbFrameTpl<T_DVB_TTP>()

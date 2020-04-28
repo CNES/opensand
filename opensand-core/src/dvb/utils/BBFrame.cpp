@@ -40,7 +40,7 @@
 
 #include <string.h>
 
-OutputLog *BBFrame::bbframe_log = NULL;
+std::shared_ptr<OutputLog> BBFrame::bbframe_log = nullptr;
 
 BBFrame::BBFrame(const unsigned char *data, size_t length):
 	DvbFrameTpl<T_DVB_BBFRAME>(data, length)

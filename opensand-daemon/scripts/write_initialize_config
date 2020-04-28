@@ -6,7 +6,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -27,10 +27,11 @@
 #
 #
 
+# Authors Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
+# Author: Aurélien Delrieu / Viveris Technologies <aurelien.delrieu@viveris.fr>
+
 # Source debconf library.
 . /usr/share/debconf/confmodule
-
-# Authors Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
 
 DAEMON_CONF="/etc/opensand/daemon.conf"
 HOST_INIT="/usr/libexec/opensand/host_init"
@@ -50,6 +51,8 @@ CONFIG_LEVEL='advanced'
 DHCP=''
 EMU_IFACE='eth0'
 EMU_IPV4=''
+INT_IPV4=''
+INT_IPV6=''
 LAN_IFACE='eth1'
 LAN_IPV4=''
 LAN_IPV6=''
@@ -58,7 +61,6 @@ WS_LAN_IPV4=''
 WS_LAN_IPV6=''
 INTERCONNECT_IFACE=''
 INTERCONNECT_IPV4=''
-OUTPUT_LIBPATH=''
 
 # read the daemon configuration from debconf cache
 read_conf(){
@@ -96,15 +98,16 @@ read_conf(){
     COMMAND_PORT=$RET
     db_get opensand-daemon/state/port
     STATE_PORT=$RET
-    db_get opensand-daemon/network/config_level
-    RET=`echo $RET | tr 'A-Z' 'a-z'`
-    CONFIG_LEVEL=$RET
     db_get opensand-daemon/network/dhcp
     DHCP=$RET
     db_get opensand-daemon/network/emu_iface
     EMU_IFACE=$RET
     db_get opensand-daemon/network/emu_ipv4
     EMU_IPV4=$RET
+    db_get opensand-daemon/network/int_ipv4
+    INT_IPV4=$RET
+    db_get opensand-daemon/network/int_ipv6
+    INT_IPV6=$RET
     db_get opensand-daemon/network/lan_iface
     LAN_IFACE=$RET
     db_get opensand-daemon/network/lan_ipv4
@@ -121,8 +124,6 @@ read_conf(){
     INTERCONNECT_IFACE=$RET
     db_get opensand-daemon/interconnect/interface_ip
     INTERCONNECT_IPV4=$RET
-    db_get opensand-daemon/output/libpath
-    OUTPUT_LIBPATH=$RET
 }
 
 # write daemon configuration
@@ -176,6 +177,8 @@ write_conf(){
         fi
         if [ ${SERVICE_NAME} != 'sat' -a "${SERVICE_NAME}" != "gw-phy" ]; then
             if [ "${SERVICE_NAME}" != "ws" ]; then
+                echo "int_ipv4 = ${INT_IPV4}" >> ${DAEMON_CONF}
+                echo "int_ipv6 = ${INT_IPV6}" >> ${DAEMON_CONF}
                 echo "lan_iface = ${LAN_IFACE}" >> ${DAEMON_CONF}
                 echo "lan_ipv4 = ${LAN_IPV4}" >> ${DAEMON_CONF}
                 echo "lan_ipv6 = ${LAN_IPV6}" >> ${DAEMON_CONF}
@@ -201,12 +204,6 @@ write_conf(){
         fi
     fi
     echo "" >> ${DAEMON_CONF}
-
-    # output section
-    echo "[output]" >> ${DAEMON_CONF}
-    if [ ! -z ${OUTPUT_LIBPATH} ]; then
-        echo "libpath" = ${OUTPUT_LIBPATH} >> ${DAEMON_CONF}
-    fi
 }
 
 # initialize OpenSAND network
@@ -215,15 +212,7 @@ initialize(){
         return
     fi
     if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' -o "${SERVICE_NAME}" = 'gw-net-acc' ]; then
-        # create the OpenSAND tun/tap interface if it does not exist
-        is_iface=`ip link show | grep opensand_tun`
-        if [ "${is_iface}" == "" ]; then
-            ${TUN_TAP_INIT} -n > /dev/null
-            if [ $? -ne 0 ] ; then
-                echo "Error when creating the tun interface" >&2
-                exit 1
-            fi
-        fi
+        # create the OpenSAND tap interface if it does not exist
         is_iface=`ip link show | grep opensand_tap`
         if [ "${is_iface}" == "" ]; then
             ${TUN_TAP_INIT} -l > /dev/null
@@ -236,7 +225,7 @@ initialize(){
         # remove interfaces in case it was another type of host
         ${TUN_TAP_INIT} -d 1>/dev/null 2>&1
     fi
-    # remove old IP addresses from LAN, EMU and opensand_tun interfaces
+    # remove old IP addresses from LAN and EMU interfaces
     if [ ! "${SERVICE_NAME}" = 'ws' -a ! "${SERVICE_NAME}" = 'gw-net-acc' ]; then
         ifconfig ${EMU_IFACE} inet 0.0.0.0 2>/dev/null
     fi
@@ -245,9 +234,6 @@ initialize(){
     fi
     if [ "${SERVICE_NAME}" = 'ws' ]; then
         ifconfig ${WS_LAN_IFACE} inet 0.0.0.0 2>/dev/null
-    fi
-    if [ "${SERVICE_NAME}" = 'st' -o "${SERVICE_NAME}" = 'gw' -o "${SERVICE_NAME}" = 'gw-net-acc' ]; then
-        ifconfig opensand_tun inet 0.0.0.0 2>/dev/null
     fi
     if [ "${SERVICE_NAME}" = 'gw-net-acc' -o "${SERVICE_NAME}" = 'gw-phy' ]; then
         # Check if interconnect interface has the correct IP

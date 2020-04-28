@@ -46,8 +46,7 @@ SarpTable::SarpTable(unsigned int max_entries):
 	this->max_entries = (max_entries == 0 ? SARP_MAX : max_entries);
 
 	// Output Log
-	this->log_sarp = Output::registerLog(LEVEL_WARNING,
-	                                     "LanAdaptation.SarpTable");
+	this->log_sarp = Output::Get()->registerLog(LEVEL_WARNING, "LanAdaptation.SarpTable");
 }
 
 SarpTable::~SarpTable()

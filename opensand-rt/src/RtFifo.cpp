@@ -47,7 +47,7 @@
 RtFifo::RtFifo():
 	fifo(),
 	max_size(DEFAULT_FIFO_SIZE),
-	fifo_mutex("fifo")
+	fifo_mutex()
 {
 }
 
@@ -110,8 +110,7 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 		return false;
 	}
 
-	// lock mutex on fifo, we cannot use RAII method here due to semaphore
-	this->fifo_mutex.acquireLock();
+  RtLock acquire{fifo_mutex};
 
 	//assert(this->fifo.size() < this->max_size);
 	if(this->fifo.size() >= this->max_size)
@@ -144,37 +143,33 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 	status = true;
 
 error:
-	// unlock mutex on fifo
-	this->fifo_mutex.releaseLock();
 	return status;
-
 }
 
 bool RtFifo::pop(rt_msg_t &elem)
 {
 	bool status = true;
 	
-	// lock mutex on fifo, we cannot use RAII method here due to semaphore
-	this->fifo_mutex.acquireLock();
+  {
+    RtLock acquire{fifo_mutex};
 
-	// assert(!this->fifo.empty());
-	if(this->fifo.empty())
-	{
-		Rt::reportError("fifo", pthread_self(), false,
-		                "Fifo is already empty, this should not happend\n");
-		status = false;
-	}
-	else
-	{
-		// get element in queue
-		elem = this->fifo.front();
+    // assert(!this->fifo.empty());
+    if(this->fifo.empty())
+    {
+      Rt::reportError("fifo", pthread_self(), false,
+                      "Fifo is already empty, this should not happend\n");
+      status = false;
+    }
+    else
+    {
+      // get element in queue
+      elem = this->fifo.front();
 
-		// remove element from queue
-		this->fifo.pop();
-	}
+      // remove element from queue
+      this->fifo.pop();
+    }
 
-	// unlock mutex on fifo
-	this->fifo_mutex.releaseLock();
+  }
 
 	// fifo has empty space, we can unlock it
 	if(sem_post(&(this->fifo_size_sem)) != 0)

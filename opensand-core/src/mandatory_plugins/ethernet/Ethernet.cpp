@@ -1046,16 +1046,17 @@ bool Ethernet::Context::handleTap()
 void Ethernet::Context::initStats()
 {
 	uint8_t id;
+  auto output = Output::Get();
 
 	// create default probe with EVC=0 if it does no exist
 	id = 0;
 	// TODO try to do default in and default out
 	// we can receive any type of frames
 	this->probe_evc_throughput[id] =
-		Output::registerProbe<float>("EVC throughput.default",
+		output->registerProbe<float>("EVC throughput.default",
 		                             "kbits/s", true, SAMPLE_AVG);
 	this->probe_evc_size[id] =
-		Output::registerProbe<float>("EVC frame size.default",
+		output->registerProbe<float>("EVC frame size.default",
 		                             "Bytes", true, SAMPLE_SUM);
 
 	for(map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
@@ -1071,11 +1072,11 @@ void Ethernet::Context::initStats()
 		snprintf(probe_name, sizeof(probe_name),
 		         "EVC throughput.%u", id);
 		this->probe_evc_throughput[id] =
-			Output::registerProbe<float>(probe_name, "kbits/s", true, SAMPLE_AVG);
+			output->registerProbe<float>(probe_name, "kbits/s", true, SAMPLE_AVG);
 		snprintf(probe_name, sizeof(probe_name),
 		         "EVC frame size.%u", id);
 		this->probe_evc_size[id] =
-			Output::registerProbe<float>(probe_name, "Bytes", true, SAMPLE_SUM);
+			output->registerProbe<float>(probe_name, "Bytes", true, SAMPLE_SUM);
 	}
 }
 

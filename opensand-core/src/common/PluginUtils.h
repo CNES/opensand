@@ -175,7 +175,7 @@ class PluginUtils
 	}
 
 	/// the log
-	OutputLog *log_init;
+  std::shared_ptr<OutputLog> log_init;
 
 	// the configuration path
 	string conf_path;

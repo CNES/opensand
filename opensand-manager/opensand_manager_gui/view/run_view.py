@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
+# Author: Mathias Ettinger / <mathias.ettinger@viveris.fr>
 
 """
 run_view.py - the run tab view
@@ -199,7 +200,7 @@ class RunView(WindowView):
         self.draw_collector_state(self._model.is_collector_known(),
             self._model.is_collector_functional())
 
-        self._log_view.update(self._model.get_all_hosts_list())
+        # self._log_view.update(self._model.get_all_hosts_list())
         
         return False
 

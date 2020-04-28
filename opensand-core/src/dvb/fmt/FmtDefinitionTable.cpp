@@ -71,8 +71,7 @@ FmtDefinitionTable::FmtDefinitionTable():
 	definitions()
 {
 	// Output Log
-	this->log_fmt = Output::registerLog(LEVEL_WARNING,
-	                                    "Dvb.Fmt.DefinitionTable");
+	this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Fmt.DefinitionTable");
 }
 
 

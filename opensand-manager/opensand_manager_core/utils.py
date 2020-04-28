@@ -7,8 +7,8 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
-# Copyright © 2019 CNES
+# Copyright © 2020 TAS
+# Copyright © 2020 CNES
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
+# Author: Aurélien Delrieu / <aurelien.delrieu@viveris.fr>
 
 """
 opensand_manager_core/utils.py - Utilities for OpenSAND Manager
@@ -127,8 +128,6 @@ CTRL_IN       = "ctrl_in"
 CTRL_OUT      = "ctrl_out"
 IP_MULTICAST  = "ip_multicast"
 IP_ADDRESS    = "ip_address"
-TERMINAL_V4   = "terminal_v4"
-TERMINAL_V6   = "terminal_v6"
 TERMINAL_ETH  = "terminal_eth"
 LAN_IPV4      = "lan_ipv4"
 LAN_IPV6      = "lan_ipv6"
@@ -146,11 +145,7 @@ LOWER_IP_ADDRESS = "lower_ip_address"
 
 # Path
 PATH_BAND     = "_band/"
-PATH_IPV4     = "/configuration/sarp/ipv4"
-PATH_IPV6     = "/configuration/sarp/ipv6"
 PATH_ETERNET  = "/configuration/sarp/ethernet"
-PATH_TERM_V4  = "/configuration/sarp/ipv4/terminal_v4"
-PATH_TERM_V6  = "/configuration/sarp/ipv4/terminal_v6"
 PATH_TERM_ETH = "/configuration/sarp/ipv4/terminal_eth"
 PATH_DEFAULT_SPOT = "/configuration/spot_table/default_spot"
 PATH_SPOT = "/configuration/spot_table"

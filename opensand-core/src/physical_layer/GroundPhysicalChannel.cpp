@@ -59,7 +59,7 @@ GroundPhysicalChannel::GroundPhysicalChannel(tal_id_t mac_id):
 	fifo_timer(-1)
 {
 	// Initialize logs
-	this->log_channel = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Channel");
+	this->log_channel = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Channel");
 }
 
 GroundPhysicalChannel::~GroundPhysicalChannel()
@@ -71,7 +71,7 @@ void GroundPhysicalChannel::setSatDelay(SatDelayPlugin *satdelay)
 	this->satdelay_model = satdelay;
 }
 
-bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *channel, OutputLog *log_init)
+bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *channel, std::shared_ptr<OutputLog> log_init)
 {
 	ostringstream name;
 	char probe_name[128];
@@ -80,6 +80,7 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 	string attenuation_type;
 	string phy_layer_section;
 	string link, lc_link;
+  auto output = Output::Get();
 
 	if(channel_name.compare(UP) == 0)
 	{
@@ -132,7 +133,7 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 	// Initialize log
 	snprintf(probe_name, sizeof(probe_name),
 	         "PhysicalLayer.%sward.Event", channel_name.c_str());
-	this->log_event = Output::registerLog(LEVEL_WARNING, probe_name);
+	this->log_event = output->registerLog(LEVEL_WARNING, probe_name);
 
 	// Get the refresh period
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
@@ -200,11 +201,11 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 	// Initialize attenuation probes
 	snprintf(probe_name, sizeof(probe_name),
 	         "Phy.%slink_attenuation", link.c_str());
-	this->probe_attenuation = Output::registerProbe<float>(probe_name, "dB", true, SAMPLE_MAX);
+	this->probe_attenuation = output->registerProbe<float>(probe_name, "dB", true, SAMPLE_MAX);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Phy.%slink_clear_sky_condition", link.c_str());
-	this->probe_clear_sky_condition = Output::registerProbe<float>(probe_name, "dB", true, SAMPLE_MAX);
+	this->probe_clear_sky_condition = output->registerProbe<float>(probe_name, "dB", true, SAMPLE_MAX);
 
 	return true;
 }

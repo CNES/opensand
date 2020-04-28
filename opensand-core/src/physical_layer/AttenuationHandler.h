@@ -62,11 +62,11 @@ class AttenuationHandler
 	ErrorInsertionPlugin *error_insertion_model;
 
 	/// Log
-	OutputLog *log_channel;
+	std::shared_ptr<OutputLog> log_channel;
 
 	/// Probes
-	Probe<float> *probe_minimal_condition;
-	Probe<int> *probe_drops;
+  std::shared_ptr<Probe<float>> probe_minimal_condition;
+  std::shared_ptr<Probe<int>> probe_drops;
 
  public:
 
@@ -75,7 +75,7 @@ class AttenuationHandler
 	 *
 	 * @param log_channel   the log output to use during attenuation processing
 	 */
-	AttenuationHandler(OutputLog *log_channel);
+	AttenuationHandler(std::shared_ptr<OutputLog> log_channel);
 
 	/**
 	 * @brief Destroy the attenuation handler
@@ -90,7 +90,7 @@ class AttenuationHandler
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool initialize(const string &link_section, OutputLog *log_init);
+	bool initialize(const string &link_section, std::shared_ptr<OutputLog> log_init);
 
 	/**
 	 * @brief Process the attenuation on a DVB frame with a specific C/N

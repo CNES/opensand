@@ -75,7 +75,7 @@ class DamaCtrlRcs: public DamaCtrlRcsCommon
 	 * @param name            the probe name
 	 * @return                the probe
 	 */
-	virtual Probe<int> *generateGwCapacityProbe(
+	virtual std::shared_ptr<Probe<int>> generateGwCapacityProbe(
 		string name) const;
 
 	/**
@@ -85,7 +85,7 @@ class DamaCtrlRcs: public DamaCtrlRcsCommon
 	 * @param category_label  the category label
 	 * @return                the probe
 	 */
-	virtual Probe<int> *generateCategoryCapacityProbe(
+	virtual std::shared_ptr<Probe<int>> generateCategoryCapacityProbe(
 		string category_label,
 		string name) const;
 
@@ -97,7 +97,7 @@ class DamaCtrlRcs: public DamaCtrlRcsCommon
 	 * @param carrier_id      the carrier id
 	 * @return                the probe
 	 */
-	virtual Probe<int> *generateCarrierCapacityProbe(
+	virtual std::shared_ptr<Probe<int>> generateCarrierCapacityProbe(
 		string category_label,
 		unsigned int carrier_id,
 		string name) const;

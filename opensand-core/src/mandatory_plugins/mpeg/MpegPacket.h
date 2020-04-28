@@ -158,7 +158,7 @@ class MpegPacket: public NetPacket
 	static uint16_t getPidFromPacket(NetPacket *packet);
 
 	/// The MPEG packet log
-	static OutputLog *mpeg_log;
+	static std::shared_ptr<OutputLog> mpeg_log;
 };
 
 #endif

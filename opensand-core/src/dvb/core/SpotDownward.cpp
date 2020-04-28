@@ -98,9 +98,9 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	this->input_sts = input_sts;
 	this->output_sts = output_sts;
 
-	this->log_request_simulation = Output::registerLog(LEVEL_WARNING,
-	                                                   "Spot_%d.Dvb.RequestSimulation",
-	                                                   this->spot_id);
+	this->log_request_simulation = Output::Get()->registerLog(LEVEL_WARNING,
+                                                            "Spot_%d.Dvb.RequestSimulation",
+                                                            this->spot_id);
 
 }
 
@@ -481,8 +481,9 @@ bool SpotDownward::initRequestSimulation(void)
 
 bool SpotDownward::initOutput(void)
 {
+  auto output = Output::Get();
 	// Events
-	this->event_logon_resp = Output::registerEvent("Spot_%d.DVB.logon_response",
+	this->event_logon_resp = output->registerEvent("Spot_%d.DVB.logon_response",
 	                                               this->spot_id);
 
 	this->probe_gw_queue_size = new map<string, ProbeListPerId>();
@@ -503,61 +504,49 @@ bool SpotDownward::initOutput(void)
 			const char *fifo_name = ((*it2).second)->getName().data();
 			unsigned int id = (*it2).first;
 
-			Probe<int>* probe_temp;
+      std::shared_ptr<Probe<int>> probe_temp;
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Queue size.packets.%s",
 							 spot_id, cat_label.c_str(), fifo_name);
-			probe_temp = Output::registerProbe<int>(probe_name, "Packets", true, SAMPLE_LAST);
-			(*this->probe_gw_queue_size)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(
-							(unsigned int) id, (Probe<int> *) probe_temp));
+			probe_temp = output->registerProbe<int>(probe_name, "Packets", true, SAMPLE_LAST);
+			(*this->probe_gw_queue_size)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue size.%s",
+			         "Spot_%d.%s.Queue size.capacity.%s",
 							 spot_id, cat_label.c_str(), fifo_name);
-			probe_temp = Output::registerProbe<int>(probe_name, "kbits", true, SAMPLE_LAST);
-			(*this->probe_gw_queue_size_kb)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(
-							(unsigned int) id, (Probe<int> *) probe_temp));
+			probe_temp = output->registerProbe<int>(probe_name, "kbits", true, SAMPLE_LAST);
+			(*this->probe_gw_queue_size_kb)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Throughputs.L2_to_SAT_before_sched.%s",
 							 spot_id, cat_label.c_str(), fifo_name);
-			probe_temp = Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
-			(*this->probe_gw_l2_to_sat_before_sched)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(
-							(unsigned int) id, (Probe<int> *) probe_temp));
+			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
+			(*this->probe_gw_l2_to_sat_before_sched)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.%s",
 							 spot_id, cat_label.c_str(), fifo_name);
-			probe_temp = Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
-			(*this->probe_gw_l2_to_sat_after_sched)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(
-							(unsigned int) id, (Probe<int> *) probe_temp));
+			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
+			(*this->probe_gw_l2_to_sat_after_sched)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Queue loss.packets.%s",
 							 spot_id, cat_label.c_str(), fifo_name);
-			probe_temp = Output::registerProbe<int>(probe_name, "Packets", true, SAMPLE_SUM);
-			(*this->probe_gw_queue_loss)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(
-							(unsigned int) id, (Probe<int> *) probe_temp));
+			probe_temp = output->registerProbe<int>(probe_name, "Packets", true, SAMPLE_SUM);
+			(*this->probe_gw_queue_loss)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue loss.%s",
+			         "Spot_%d.%s.Queue loss.rate.%s",
 							 spot_id, cat_label.c_str(), fifo_name);
-			probe_temp = Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_SUM);
-			(*this->probe_gw_queue_loss_kb)[cat_label].insert(
-						make_pair<unsigned int, Probe<int> *>(
-							(unsigned int) id, (Probe<int> *) probe_temp));
+			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_SUM);
+			(*this->probe_gw_queue_loss_kb)[cat_label].emplace(id, probe_temp);
 		}
 		snprintf(probe_name, sizeof(probe_name),
 						 "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.total",
 						 spot_id, cat_label.c_str());
 		this->probe_gw_l2_to_sat_total[cat_label] =
-			Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
+			output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 
 	}
 
@@ -658,9 +647,8 @@ bool SpotDownward::handleLogonReq(const LogonRequest *logon_req)
 	}
 
 	// send the corresponding event
-	Output::sendEvent(this->event_logon_resp,
-	                  "Logon response send to ST%u on spot %u",
-	                  mac, this->spot_id);
+  event_logon_resp->sendEvent("Logon response send to ST%u on spot %u",
+                              mac, this->spot_id);
 
 	LOG(this->log_send_channel, LEVEL_DEBUG,
 	    "SF#%u: logon response sent to lower layer\n",

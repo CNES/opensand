@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
  * @file OpenSandConfFile.h
  * @brief Reading parameters from a configuration file
  * @author Bénédicte MOTTO / <bmotto@toulouse.viveris.com>
+ * @author Aurelien DELRIEU / <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef OPENSAND_CONF_FILE_H
@@ -76,6 +77,17 @@ class OpenSandConfFile
 	 * @param terminal_map the map between terminal id and spot id
 	 */
 	void loadGwTable(map<uint16_t, uint16_t> &gw_table);
+
+	/**
+	 * Get gateway id value in terminal map
+	 *
+	 * @param tal_id   the terminal id
+	 * @param gw_id    the gateway id
+	 * @return true on success, false otherwise
+	 */
+	bool getGwWithTalId(map<uint16_t, uint16_t> terminal_map,
+			    uint16_t tal_id,
+	                    uint16_t &gw_id);
 
 	/**
 	 * Get spot value in terminal map

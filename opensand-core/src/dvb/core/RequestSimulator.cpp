@@ -59,12 +59,14 @@ RequestSimulator::RequestSimulator(spot_id_t spot_id,
 	log_request_simulation(NULL),
 	log_init(NULL)
 {
-	this->log_init = Output::registerLog(LEVEL_WARNING,
+  auto output = Output::Get();
+
+	this->log_init = output->registerLog(LEVEL_WARNING,
 	                                     "Spot_%d.InitRequestSimulation",
-		                                 this->spot_id);
-	this->log_request_simulation = Output::registerLog(LEVEL_WARNING,
+                                       this->spot_id);
+	this->log_request_simulation = output->registerLog(LEVEL_WARNING,
 	                                                   "Spot_%d.RequestSimulation",
-		                                               this->spot_id);
+                                                     this->spot_id);
 
 	if(!this->initRequestSimulation(current_gw))
 	{

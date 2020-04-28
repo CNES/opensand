@@ -44,9 +44,9 @@ sat_carrier_channel_set::sat_carrier_channel_set(tal_id_t tal_id):
 	std::vector < UdpChannel * >(),
 	tal_id(tal_id)
 {
-	this->log_init = Output::registerLog(LEVEL_WARNING, "SatCarrier.init");
-	this->log_sat_carrier = Output::registerLog(LEVEL_WARNING,
-	                                            "SatCarrier.Channel");
+  auto output = Output::Get();
+	this->log_init = output->registerLog(LEVEL_WARNING, "SatCarrier.init");
+	this->log_sat_carrier = output->registerLog(LEVEL_WARNING, "SatCarrier.Channel");
 }
 
 sat_carrier_channel_set::~sat_carrier_channel_set()

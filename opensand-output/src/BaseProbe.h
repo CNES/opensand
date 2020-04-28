@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,115 +29,111 @@
  * @file BaseProbe.h
  * @brief The BaseProbe class represents an untyped probe
  *        (base class for Probe<T> classes).
- * @author Vincent Duvert <vduvert@toulouse.viveris.com>
+ * @author Vincent Duvert     <vduvert@toulouse.viveris.com>
+ * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
 #ifndef _BASE_PROBE_H
 #define _BASE_PROBE_H
 
-#include <stdint.h>
-
 #include <string>
 
-using std::string;
-
-class OutputInternal;
 
 /**
  * @brief Probe sample type
  **/
 enum sample_type_t
 {
-	SAMPLE_LAST,   /*!< Keep the last value */
-	SAMPLE_MIN,    /*!< Keep the minimum value */
-	SAMPLE_MAX,    /*!< Keep the maximum value */
-	SAMPLE_AVG,    /*!< Calculate the average */
-	SAMPLE_SUM     /*!< Calculate the sum */
+  SAMPLE_LAST,   /*!< Keep the last value */
+  SAMPLE_MIN,    /*!< Keep the minimum value */
+  SAMPLE_MAX,    /*!< Keep the maximum value */
+  SAMPLE_AVG,    /*!< Calculate the average */
+  SAMPLE_SUM     /*!< Calculate the sum */
 };
 
 enum datatype_t {
-	INT32_TYPE = 0,
-	FLOAT_TYPE = 1,
-	DOUBLE_TYPE = 2
+  INT32_TYPE = 0,
+  FLOAT_TYPE = 1,
+  DOUBLE_TYPE = 2
 };
+
 
 /**
  * @class the probe representation
  */
 class BaseProbe
 {
-	friend class OutputInternal;
+  friend class Output;
 
 public:
 
-	virtual ~BaseProbe();
+  virtual ~BaseProbe();
 
-	/**
-	 * @brief Check if the probe is enabled
-	 *
-	 * @return true if the probe is currently enabled
-	 **/
-	inline bool isEnabled() const { return this->enabled; };
+  /**
+   * @brief Enable or disable the probe
+   **/
+  void enable(bool enabled);
 
-	/**
-	 * @brief Get the name of the probe
-	 *
-	 * @return the name of the probe
-	 **/
-	inline const string getName() const { return this->name; };
+  /**
+   * @brief Check if the probe is enabled
+   *
+   * @return true if the probe is currently enabled
+   **/
+  inline bool isEnabled() const { return this->enabled; };
 
-	/**
-	 * @brief Get the unit of the probe
-	 *
-	 * @return the unit of the probe
-	 **/
-	inline const string getUnit() const { return this->unit; };
+  /**
+   * @brief Get the name of the probe
+   *
+   * @return the name of the probe
+   **/
+  inline const std::string getName() const { return this->name; };
 
-	/**
-	 * @brief get the byte size of data
-	 *
-	 * @return the size of data
-	 **/
-	virtual size_t getDataSize() const = 0;
-	
-	/**
-	 * @brief get data in byte
-	 *
-	 * @return data
-	 **/
-	virtual bool getData(unsigned char* buffer, size_t len) const = 0;
+  /**
+   * @brief Get the unit of the probe
+   *
+   * @return the unit of the probe
+   **/
+  inline const std::string getUnit() const { return this->unit; };
 
-	/**
-	 * @brief get data type
-	 *
-	 * @return data type
-	 */
-	virtual datatype_t getDataType() const = 0;
+  /**
+   * @brief get the byte size of data
+   *
+   * @return the size of data
+   **/
+  virtual size_t getDataSize() const = 0;
+  
+  /**
+   * @brief get data in byte
+   *
+   * @return data
+   **/
+  virtual std::string getData() = 0;
 
-	/**
-	 * @brief reset values count
-	 *
-	 **/
-	void reset();
+  /**
+   * @brief get data type
+   *
+   * @return data type
+   */
+  virtual datatype_t getDataType() const = 0;
+
+  /**
+   * @brief reset values count
+   *
+   **/
+  void reset();
+
+  inline bool isEmpty() const { return values_count == 0; };
 
 protected:
-	BaseProbe(uint8_t id, const string &name,
-	          const string &unit,
-	          bool enabled, sample_type_t type);
+  BaseProbe(const std::string &name, const std::string& unit, bool enabled, sample_type_t sample_type);
 
-	/// the probe ID
-	uint8_t id;
-	/// the probe name
-	string name;
-	/// the probe unit
-	string unit;
-	/// whether the probe is enabled
-	bool enabled;
-	/// the probe sample type
-	sample_type_t s_type;
+  std::string name;
+  std::string unit;
+  bool enabled;
+  sample_type_t s_type;
 
-	/// the number of values in probe
-	uint16_t values_count;
+  /// the number of values in probe
+  uint16_t values_count;
 };
 
 #endif

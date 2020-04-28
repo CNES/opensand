@@ -18,21 +18,37 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-remove_syslog_conf(){
+remove_config_files(){
     EXE_RM="/bin/rm"
-    SYSLOG_CONF="/etc/rsyslog.d/opensand-collector.conf"
-    LOGROTATE_CONF="/etc/logrotate.d/opensand-collector.conf"
+    ELASTIC_CONF="/etc/elasticsearch/elasticsearch.yml"
+    LOGSTASH_CONF="/etc/logstash/conf.d/collector.conf"
 
-    ${EXE_RM} -f ${SYSLOG_CONF} || true
-    ${EXE_RM} -f ${LOGROTATE_CONF} || true
+    ${EXE_RM} -f ${ELASTIC_CONF} || true
+    ${EXE_RM} -f ${LOGSTASH_CONF} || true
+}
+
+
+stop_services(){
+    systemctl disable elasticsearch.service || true
+    systemctl disable influxdb.service || true
+    systemctl disable logstash.service || true
+    systemctl disable kibana.service || true
+    systemctl disable chronograf.service || true
+    systemctl stop elasticsearch.service || true
+    systemctl stop influxdb.service || true
+    systemctl stop logstash.service || true
+    systemctl stop kibana.service || true
+    systemctl stop chronograf.service || true
 }
 
 case "$1" in
     purge)
-        remove_syslog_conf
+        stop_services
+        remove_config_files
     ;;    
         
     remove)
+        stop_services
     ;;
 
     upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)

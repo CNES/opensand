@@ -48,9 +48,7 @@ NccInterface::NccInterface()
 	this->is_connected = false;
 
 	// Output log
-	this->log_ncc_interface = Output::registerLog(LEVEL_WARNING,
-	                                              "Dvb.Ncc.Interface");
-
+	this->log_ncc_interface = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Ncc.Interface");
 }
 
 

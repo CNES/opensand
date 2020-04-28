@@ -65,7 +65,7 @@ class MpegDeencapCtx
 	uint16_t _dest_spot;
 
 	/// The output log
-	OutputLog *log;
+  std::shared_ptr<OutputLog> log;
 
  public:
 

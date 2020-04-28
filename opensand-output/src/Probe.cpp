@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -28,7 +28,8 @@
 /**
  * @file Probe.h
  * @brief Template specialization of the storage type ID for Probe<T> classes.
- * @author Vincent Duvert <vduvert@toulouse.viveris.com>
+ * @author Vincent Duvert     <vduvert@toulouse.viveris.com>
+ * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
 #include <Probe.h>
@@ -41,68 +42,17 @@
 template<>
 datatype_t Probe<int32_t>::getDataType() const
 {
-	return INT32_TYPE;
+  return INT32_TYPE;
 }
 
 template<>
 datatype_t Probe<float>::getDataType() const
 {
-	return FLOAT_TYPE;
+  return FLOAT_TYPE;
 }
 
 template<>
 datatype_t Probe<double>::getDataType() const
 {
-	return DOUBLE_TYPE;
-}
-
-template<>
-bool Probe<int32_t>::getData(unsigned char* buffer, size_t len) const
-{
-	if(!buffer || this->Probe<int32_t>::getDataSize() < len)
-	{
-		return false;
-	}
-	
-	int32_t value = this->Probe<int32_t>::get();
-	uint32_t data;
-	memcpy(&data, &value, sizeof(value));
-	data = htonl(data);
-	memcpy(buffer, &data, sizeof(data));
-
-	return true;
-}
-
-template<>
-bool Probe<float>::getData(unsigned char* buffer, size_t len) const
-{
-	if(!buffer || this->Probe<float>::getDataSize() < len)
-	{
-		return false;
-	}
-	
-	float value = this->Probe<float>::get();
-	uint32_t data;
-	memcpy(&data, &value, sizeof(value));
-	data = htonl(data);
-	memcpy(buffer, &data, sizeof(data));
-
-	return true;
-}
-
-template<>
-bool Probe<double>::getData(unsigned char* buffer, size_t len) const
-{
-	if(!buffer || this->Probe<double>::getDataSize() < len)
-	{
-		return false;
-	}
-	
-	double value = this->Probe<double>::get();
-	uint64_t data;
-	memcpy(&data, &value, sizeof(value));
-	data = htobe64(data);
-	memcpy(buffer, &data, sizeof(data));
-
-	return true;
+  return DOUBLE_TYPE;
 }

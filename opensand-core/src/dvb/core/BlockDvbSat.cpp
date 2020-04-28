@@ -368,7 +368,7 @@ void BlockDvbSat::Downward::setGws(const sat_gws_t &gws)
 
 bool BlockDvbSat::Downward::initOutput(void)
 {
-	this->probe_frame_interval = Output::registerProbe<float>(
+	this->probe_frame_interval = Output::Get()->registerProbe<float>(
 				"Perf.Frames_interval", "ms", true, SAMPLE_LAST);
 
 	return true;
@@ -573,7 +573,7 @@ void BlockDvbSat::Downward::updateStats(void)
 	}
 
 	// Send probes
-	Output::sendProbes();
+	Output::Get()->sendProbes();
 }
 
 

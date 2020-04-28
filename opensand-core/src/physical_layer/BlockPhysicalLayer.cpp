@@ -149,7 +149,7 @@ bool BlockPhysicalLayer::Upward::onInit()
 	}
 
 	// Initialize the total CN probe
-	this->probe_total_cn = Output::registerProbe<float>("Phy.Total_cn", "dB", true, SAMPLE_LAST);
+	this->probe_total_cn = Output::Get()->registerProbe<float>("Phy.Total_cn", "dB", true, SAMPLE_LAST);
 
 	// Initialize the attenuation handler
 	this->attenuation_hdl = new AttenuationHandler(this->log_channel);
@@ -312,10 +312,10 @@ bool BlockPhysicalLayer::Downward::onInit()
 
 	// Initialize the delay event
 	this->delay_update_timer = this->addTimerEvent("delay_timer",
-												   this->satdelay_model->getRefreshPeriod());
+                                                       this->satdelay_model->getRefreshPeriod());
 
 	// Initialize the delay probe
-	this->probe_delay = Output::registerProbe<int>("Delay", "ms", true, SAMPLE_LAST);
+	this->probe_delay = Output::Get()->registerProbe<int>("Phy.Delay", "ms", true, SAMPLE_LAST);
 
 	return true;
 }
@@ -393,7 +393,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 					return false;
 				}
 				// Send probes
-				Output::sendProbes();
+				Output::Get()->sendProbes();
 			}
 			else
 			{

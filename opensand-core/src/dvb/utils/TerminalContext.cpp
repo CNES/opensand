@@ -42,7 +42,7 @@ TerminalContext::TerminalContext(tal_id_t tal_id):
 	tal_id(tal_id),
 	category("")
 {
-	this->log_band = Output::registerLog(LEVEL_WARNING, "Dvb.Ncc.Band");
+	this->log_band = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Ncc.Band");
 }
 
 TerminalContext::~TerminalContext()

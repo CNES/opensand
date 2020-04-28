@@ -45,11 +45,11 @@ SlottedAlohaAlgoCrdsa::~SlottedAlohaAlgoCrdsa()
 {
 }
 
-uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(map<unsigned int, Slot *> &slots,
-                                                   saloha_packets_data_t *accepted_packets)
+uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> &slots,
+                                                 saloha_packets_data_t *accepted_packets)
 {
-	map<unsigned int, Slot *>::iterator slot_it;
-	map<tal_id_t, vector<saloha_id_t> > accepted_ids;
+  std::map<unsigned int, Slot *>::iterator slot_it;
+  std::map<tal_id_t, vector<saloha_id_t> > accepted_ids;
 	saloha_packets_data_t::iterator pkt_it;
 	uint16_t nbr_collisions = 0;
 	bool stop;
@@ -61,7 +61,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(map<unsigned int, Slot *> &slot
 	do
 	{
 		stop = true;
-		for(map<unsigned int, Slot *>::iterator slot_it = slots.begin();
+		for(std::map<unsigned int, Slot *>::iterator slot_it = slots.begin();
 			slot_it != slots.end(); ++slot_it)
 		{
 			Slot *slot = (*slot_it).second;
@@ -138,7 +138,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(map<unsigned int, Slot *> &slot
 	}
 	while(!stop);
 
-	for(map<unsigned int, Slot *>::iterator slot_it = slots.begin();
+	for(std::map<unsigned int, Slot *>::iterator slot_it = slots.begin();
 		slot_it != slots.end(); ++slot_it)
 	{
 		Slot *slot = (*slot_it).second;

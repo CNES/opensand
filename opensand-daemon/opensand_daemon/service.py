@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
 
 # Author: Julien BERNARD / Viveris Technologies <jbernard@toulouse.viveris.com>
 # Author: Joaquin MUGUERZA / Viveris Technologies <jmuguerza@toulouse.viveris.com>
+# Author: Aurélien Delrieu / Viveris Technologies <aurelien.delrieu@viveris.fr>
 
 """
 service.py - handle OpenSAND services with Avahi
@@ -43,7 +44,7 @@ import sys
 from dbus.mainloop.glib import DBusGMainLoop, threads_init
 from dbus.exceptions import DBusException
 from opensand_daemon.routes import OpenSandRoutes
-from opensand_daemon.interfaces import TUN_NAME
+from opensand_daemon.interfaces import BR_NAME
 
 #macros
 LOGGER = logging.getLogger('sand-daemon')
@@ -88,7 +89,7 @@ class OpenSandService(object):
             if name.lower() != "ws":
                 # by default we use TUN interface but this can be modified
                 # using setup routes when we are in Ethernet
-                OpenSandService._routes.load(cache_dir, name, TUN_NAME,
+                OpenSandService._routes.load(cache_dir, name, BR_NAME,
                                              is_ws=False, instance=instance)
             else:
                 OpenSandService._routes.load(cache_dir, name,
@@ -201,6 +202,8 @@ class OpenSandService(object):
 
             v4 = None
             v6 = None
+            int_v4 = None
+            int_v6 = None
             inst = ''
             i = 0
             args_nbr = len(args[9])
@@ -223,12 +226,19 @@ class OpenSandService(object):
                     v4 = val
                 elif key == 'lan_ipv6':
                     v6 = val
+                elif key == 'int_ipv4':
+                    int_v4 = val
+                elif key == 'int_ipv6':
+                    int_v6 = val
                 elif key == 'id':
                     inst = val
+            LOGGER.info("Received: lan {}, lan6 {}, int {}, int6 {}".format(
+                v4, v6, int_v4, int_v6))
 
             self._names.append(name)
             if self._compo in {'gw', 'st', 'gw-net-acc'}:
-                OpenSandService._routes.add_distant_host(name, v4, v6)
+                LOGGER.info("Add distant host {}: v4={} v6={} gw4={} gw6={}".format(name, v4, v6, int_v4, int_v6))
+                OpenSandService._routes.add_distant_host(name, v4, v6, int_v4, int_v6)
             elif self._compo == 'ws' and not name.startswith('ws') and name not in {'sat','gw-phy'}:
                 if inst == self._instance:
                     # this host is our router (ST with the same ID)
@@ -236,6 +246,8 @@ class OpenSandService(object):
                     self._router_v6 = v6.rsplit('/')[0]
                     # add the route toward other network that was not added yet
                     for route in self._new_routes:
+                        LOGGER.info("Add distant host {}: v4={} v6={} gw4={} gw6={}".format(
+                            route[0], route[1], route[2], self._router_v4, self._router_v6))
                         OpenSandService._routes.add_distant_host(route[0],
                                                                  route[1],
                                                                  route[2],
@@ -243,6 +255,8 @@ class OpenSandService(object):
                                                                  self._router_v6)
                 elif self._router_v4 is not None or self._router_v6 is not None:
                     # add the distant network route
+                    LOGGER.info("Add distant host {}: v4={} v6={} gw4={} gw6={}".format(
+                        name, v4, v6, self._router_v4, self._router_v6))
                     OpenSandService._routes.add_distant_host(name, v4, v6,
                                                             self._router_v4,
                                                             self._router_v6)

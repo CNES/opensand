@@ -110,7 +110,7 @@ class Aal5Packet: public NetPacket
 	Data atmCell(unsigned int index) const;
 
 	/// The AAL5 packet log
-	static OutputLog *aal5_log;
+	static std::shared_ptr<OutputLog> aal5_log;
 
  protected:
 

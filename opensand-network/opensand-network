@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+#
+#
+# OpenSAND is an emulation testbed aiming to represent in a cost effective way a
+# satellite telecommunication system for research and engineering activities.
+#
+#
+# Copyright © 2020 TAS
+#
+#
+# This file is part of the OpenSAND testbed.
+#
+#
+# OpenSAND is free software : you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY, without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program. If not, see http://www.gnu.org/licenses/.
+#
+#
+
+# Author: Aurélien DELRIEU <aurelien.delrieu@viveris.fr>
+
+
+"""Set up the network interfaces to connect a terrestrial network."""
+
+
+import argparse
+import opensand_network.opensand_network_utils as onu
+import netifaces as ni
+import ipaddress
+
+
+def ip_address_mask(text):
+    '''
+    Check a text represents an IP address and a mask
+
+    Args:
+        text   text to check
+    '''
+    addr = ipaddress.ip_network(text, False)
+    return text
+
+
+def existing_iface(text):
+    '''
+    Check a text represents an existing interface
+
+    Args:
+        text   text to check
+    '''
+    if text not in ni.interfaces():
+        raise ValueError('No "{}" interface'.format(text))
+    return text
+
+
+def udp_port(text):
+    '''
+    Check a text represents a UDP port
+
+    Args:
+        text   text to check
+    '''
+    value = int(text)
+    if value <= 0:
+        raise ValueError('UDP port must be strictly positive')
+    return value
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Set up the network interfaces to connect a terrestrial network',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        '-t',
+        '--tap-name',
+        type=str,
+        default='opensand_tap',
+        help='the TAP interface name (default: opensand_tap)',
+    )
+    parser.add_argument(
+        '-b',
+        '--bridge-name',
+        type=str,
+        default='opensand_br',
+        help='the bridge name (default: opensand_br)',
+    )
+
+    action_cmd = parser.add_subparsers(
+        dest='action',
+        metavar='action',
+        help='the action to perform',
+    )
+    action_cmd.required = True
+
+    ip_parser = action_cmd.add_parser(
+        onu.IP_TYPE,
+        help='create interfaces to connect an IP terrestrial network',
+    )
+    ip_parser.add_argument(
+        'address_mask',
+        type=ip_address_mask,
+        help='the terrestrial network address (format: "ADDRESS/NET_DIGIT")',
+    )
+
+    eth_parser = action_cmd.add_parser(
+        onu.ETH_TYPE,
+        help='create interfaces to connect an Ethernet terrestrial network',
+    )
+    eth_parser.add_argument(
+        'interface',
+        type=existing_iface,
+        help='the terrestrial network interface',
+    )
+
+    clear_parser = action_cmd.add_parser(
+        'clear',
+        help='clear interfaces to connect terrestrial network',
+    )
+
+    args = parser.parse_args()
+
+    if args.action == onu.IP_TYPE:
+        onu.create_tap_iface(args.tap_name)
+        onu.set_up(args.tap_name)
+        onu.create_bridge(args.bridge_name, [ args.tap_name ])
+        onu.set_up(args.bridge_name)
+
+        onu.add_address(args.bridge_name, args.address_mask)
+
+    elif args.action == onu.ETH_TYPE:
+        onu.create_tap_iface(args.tap_name)
+        onu.set_up(args.tap_name)
+        onu.create_bridge(args.bridge_name, [ args.tap_name, args.interface ])
+        onu.set_up(args.bridge_name)
+
+    elif args.action == 'clear':
+        onu.delete_iface(args.bridge_name)
+        onu.delete_iface(args.tap_name)
+
+    else:
+        raise ValueError('Network type "{}" is not supported'.format(args.network))

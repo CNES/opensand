@@ -63,7 +63,7 @@ class MpegEncapCtx
 	void initFrame();
 
 	/// The output log
-	OutputLog *log;
+  std::shared_ptr<OutputLog> log;
 
  public:
 

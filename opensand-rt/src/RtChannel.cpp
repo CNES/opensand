@@ -120,18 +120,18 @@ bool RtChannel::init(void)
 	int32_t pipefd[2];
 
 	// Output Log
-	this->log_rt = Output::registerLog(LEVEL_WARNING, "%s.%s.rt",
+	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.rt",
 	                                   this->channel_name.c_str(),
 	                                   this->channel_type.c_str());
-	this->log_init = Output::registerLog(LEVEL_WARNING, "%s.%s.init",
-	                                     this->channel_name.c_str(),
-	                                     this->channel_type.c_str());
-	this->log_receive = Output::registerLog(LEVEL_WARNING, "%s.%s.receive",
-	                                        this->channel_name.c_str(),
-	                                        this->channel_type.c_str());
-	this->log_send = Output::registerLog(LEVEL_WARNING, "%s.%s.send",
-	                                     this->channel_name.c_str(),
-	                                     this->channel_type.c_str());
+	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.init",
+                                     this->channel_name.c_str(),
+                                     this->channel_type.c_str());
+	this->log_receive = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.receive",
+                                     this->channel_name.c_str(),
+                                     this->channel_type.c_str());
+	this->log_send = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.send",
+	                                   this->channel_name.c_str(),
+	                                   this->channel_type.c_str());
 
 	LOG(this->log_init, LEVEL_INFO,
 	    "Starting initialization\n");
@@ -680,7 +680,7 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 #ifdef TIME_REPORTS
 void RtChannel::getDurationsStatistics(void) const
 {
-	OutputEvent *event = Output::registerEvent("Time Report");
+  std::shared_ptr<OutputEvent> event = Output::Get()->registerEvent("Time Report");
 	map<string, list<double> >::const_iterator it;
 	for(it = this->durations.begin(); it != this->durations.end(); ++it)
 	{
@@ -697,7 +697,7 @@ void RtChannel::getDurationsStatistics(void) const
 		                               duration.end());
 		double mean = sum / duration.size();
 
-		Output::sendEvent(event,
+		Output::Get()->sendEvent(event,
 		                  "[%s:%s] Event %s: mean = %.2f us, max = %d us, "
 		                  "min = %d us, total = %.2f ms\n",
 		                  this->channel_name.c_str(),

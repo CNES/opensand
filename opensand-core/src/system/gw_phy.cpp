@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
- * Copyright © 2019 CNES
+ * Copyright © 2020 TAS
+ * Copyright © 2020 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -31,6 +31,7 @@
  * @brief Gateway Physical (GW-PHY) process
  * @author Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @author Mathias Ettinger <mathias.ettinger@viveris.fr>
  *
  * Gateway uses the following stack of blocks installed over 2 NICs
  * (nic1 on user network side and nic2 on satellite network side):
@@ -64,317 +65,310 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
+#include <iostream>
 
 
 /**
  * Argument treatment
  */
 bool init_process(int argc, char **argv,
-                  string &ip_addr,
+                  std::string &ip_addr,
                   tal_id_t &instance_id,
-                  string &interconnect_addr,
-                  string &conf_path)
+                  std::string &interconnect_addr,
+                  std::string &conf_path)
 {
-	int opt;
-	bool output_enabled = true;
-	bool output_stdout = false;
-	bool stop = false;
-	string lib_external_output_path = "";
-	char entity[10];
-	/* setting environment agent parameters */
-	while(!stop && (opt = getopt(argc, argv, "-hqdi:a:u:w:c:e:")) != EOF)
-	{
-		switch(opt)
-		{
-		case 'q':
-			// disable output
-			output_enabled = false;
-			break;
-		case 'd':
-			// enable output debug
-			output_stdout = true;;
-			break;
-		case 'i':
-			// get instance id
-			instance_id = atoi(optarg);
-			break;
-		case 'a':
-			// get local IP address
-			ip_addr = optarg;
-			break;
-		case 'w':
-			// Get the interconnect IP address
-			interconnect_addr = optarg;
-			break;
-		case 'c':
-			// get the configuration path
-			conf_path = optarg;
-			break;
-		case 'e':
-			// get library external path
-			lib_external_output_path = optarg;
-			break;
-		case 'h':
-		case '?':
-			fprintf(stderr, "usage: %s [-h] [-q] [-d] -i instance_id -a ip_address "
-			        "-w interconnect_addr "
-			        "-c conf_path -e lib_ext_output_path\n", argv[0]);
-			fprintf(stderr, "\t-h                       print this message\n");
-			fprintf(stderr, "\t-q                       disable output\n");
-			fprintf(stderr, "\t-d                       enable output debug events\n");
-			fprintf(stderr, "\t-a <ip_address>          set the IP address for emulation\n");
-			fprintf(stderr, "\t-i <instance>            set the instance id\n");
-			fprintf(stderr, "\t-w <interconnect_addr>   set the interconnect IP address\n");
-			fprintf(stderr, "\t-c <conf_path>           specify the configuration path\n");
-			fprintf(stderr, "\t-e <lib_ext_output_path> specify the external output library path\n");
-			stop = true;
-			break;
-		}
-	}
+  int opt;
+  std::string output_folder = "";
+  std::string remote_address = "";
+  unsigned short stats_port = 12345;
+  unsigned short logs_port = 23456;
+  bool stop = false;
+  std::string entity{"gw_phy"};
 
-	if(lib_external_output_path != "")
-	{
-		sprintf(entity, "gw%d", instance_id);
-		// external output initialization
-		if(!Output::initExt(output_enabled, (const char *)entity, lib_external_output_path.c_str()))
-		{
-			stop = true;
-			fprintf(stderr, "Unable to initialize external output library\n");
-		}
-	}
-	else
-	{
-		// output initialization
-		if(!Output::init(output_enabled))
-		{
-			stop = true;
-			fprintf(stderr, "Unable to initialize output library\n");
-		}
-	}
-	if(output_stdout)
-	{
-		Output::enableStdlog();
-	}
-	if(stop)
-	{
-		return false;
-	}
+  /* setting environment agent parameters */
+  while(!stop && (opt = getopt(argc, argv, "-hi:a:u:w:c:f:r:l:s:")) != EOF)
+  {
+    switch(opt)
+    {
+    case 'i':
+      // get instance id
+      instance_id = atoi(optarg);
+      entity += optarg;
+      break;
+    case 'a':
+      // get local IP address
+      ip_addr = optarg;
+      break;
+    case 'w':
+      // Get the interconnect IP address
+      interconnect_addr = optarg;
+      break;
+    case 'c':
+      // get the configuration path
+      conf_path = optarg;
+      break;
+    case 'f':
+      output_folder = optarg;
+      break;
+    case 'r':
+      remote_address = optarg;
+      break;
+    case 'l':
+      logs_port = atoi(optarg);
+      break;
+    case 's':
+      stats_port = atoi(optarg);
+      break;
+    case 'h':
+    case '?':
+      std::cerr << "usage: " << argv[0] << " [-h] -i instance_id -a ip_address "
+                   "-w interconnect_addr -c conf_path [-f output_folder] [-r remote_address "
+                   "[-l logs_port] [-s stats_port]]\n"
+                   "\t-h                       print this message\n"
+                   "\t-a <ip_address>          set the IP address for emulation; this is the address\n"
+                   "\t                         this gateway should listen to for messages from the\n"
+                   "\t                         satellite\n"
+                   "\t-i <instance>            set the instance id\n"
+                   "\t-w <interconnect_addr>   set the interconnect IP address; this is the address\n"
+                   "\t                         this gateway should listen to for messages from the\n"
+                   "\t                         gw_net_acc part\n"
+                   "\t-c <conf_path>           specify the configuration folder path\n"
+                   "\t-f <output_folder>       activate and specify the folder for logs and probes\n"
+                   "\t                         files\n"
+                   "\t-r <remote_address>      activate and specify the address for logs and probes\n"
+                   "\t                         socket messages\n"
+                   "\t-l <logs_port>           specify the port for logs socket messages\n"
+                   "\t-s <stats_port>          specify the port for probes socket messages\n";
+      stop = true;
+      break;
+    }
+  }
 
-	DFLTLOG(LEVEL_NOTICE,
-	        "starting output\n");
+  if (!output_folder.empty())
+  {
+    stop = stop || !Output::Get()->configureLocalOutput(output_folder, entity);
+  }
 
-	if(ip_addr.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory IP address option");
-		return false;
-	}
+  if (!remote_address.empty())
+  {
+    stop = stop || !Output::Get()->configureRemoteOutput(remote_address, stats_port, logs_port);
+  }
 
-	if(conf_path.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory configuration path option");
-		return false;
-	}
+  if(stop)
+  {
+    return false;
+  }
 
-	if(interconnect_addr.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "missing mandatory interconnect address option");
-		return false;
-	}
+  DFLTLOG(LEVEL_NOTICE,
+          "starting output\n");
 
-	return true;
+  if(ip_addr.size() == 0)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "missing mandatory IP address option");
+    return false;
+  }
+
+  if(conf_path.size() == 0)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "missing mandatory configuration path option");
+    return false;
+  }
+
+  if(interconnect_addr.size() == 0)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "missing mandatory interconnect address option");
+    return false;
+  }
+
+  return true;
 }
 
 
 int main(int argc, char **argv)
 {
-	const char *progname = argv[0];
-	struct sched_param param;
-	bool init_ok;
-	string ip_addr;
-	tal_id_t mac_id = 0;
-	struct sc_specific specific;
-	string interconnect_addr;
-	struct ic_specific spec_ic;
+  const char *progname = argv[0];
+  struct sched_param param;
+  bool init_ok;
+  std::string ip_addr;
+  tal_id_t mac_id = 0;
+  struct sc_specific specific;
+  std::string interconnect_addr;
+  struct ic_specific spec_ic;
 
-	string satellite_type;
+  std::string satellite_type;
 
-	string conf_path;
-	string topology_file;
-	string global_file;
-	string default_file;
-	string plugin_conf_path;
+  std::string conf_path;
+  std::string topology_file;
+  std::string global_file;
+  std::string default_file;
+  std::string plugin_conf_path;
 
-	Block *block_phy_layer;
-	Block *block_sat_carrier;
-	Block *block_interconnect;
+  Block *block_phy_layer;
+  Block *block_sat_carrier;
+  Block *block_interconnect;
 
-	vector<string> conf_files;
-	map<string, log_level_t> levels;
-	map<string, log_level_t> spec_level;
+  vector<std::string> conf_files;
+  map<std::string, log_level_t> levels;
+  map<std::string, log_level_t> spec_level;
 
-	OutputEvent *status;
+  std::shared_ptr<OutputEvent> status;
 
-	int is_failure = 1;
+  int is_failure = 1;
 
-	// retrieve arguments on command line
-	init_ok = init_process(argc, argv, ip_addr, mac_id,
-	                       interconnect_addr, conf_path);
+  // retrieve arguments on command line
+  init_ok = init_process(argc, argv, ip_addr, mac_id,
+                         interconnect_addr, conf_path);
 
-	plugin_conf_path = conf_path + string("plugins/");
+  plugin_conf_path = conf_path + "/" + std::string("plugins/");
 
-	status = Output::registerEvent("Status");
-	if(!init_ok)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: failed to init the process\n", progname);
-		goto quit;
-	}
+  status = Output::Get()->registerEvent("Status");
+  if(!init_ok)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: failed to init the process\n", progname);
+    goto quit;
+  }
 
-	// increase the realtime responsiveness of the process
-	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
-	sched_setscheduler(0, SCHED_FIFO, &param);
+  // increase the realtime responsiveness of the process
+  param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+  sched_setscheduler(0, SCHED_FIFO, &param);
 
-	topology_file = conf_path + string(CONF_TOPOLOGY);
-	global_file = conf_path + string(CONF_GLOBAL_FILE);
-	default_file = conf_path + string(CONF_DEFAULT_FILE);
+  topology_file = conf_path + "/" + std::string(CONF_TOPOLOGY);
+  global_file = conf_path + "/" + std::string(CONF_GLOBAL_FILE);
+  default_file = conf_path + "/" + std::string(CONF_DEFAULT_FILE);
 
-	conf_files.push_back(topology_file.c_str());
-	conf_files.push_back(global_file.c_str());
-	conf_files.push_back(default_file.c_str());
+  conf_files.push_back(topology_file.c_str());
+  conf_files.push_back(global_file.c_str());
+  conf_files.push_back(default_file.c_str());
 
-	// Load configuration files content
-	if(!Conf::loadConfig(conf_files))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot load configuration files, quit\n",
-		        progname);
-		goto quit;
-	}
+  // Load configuration files content
+  if(!Conf::loadConfig(conf_files))
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot load configuration files, quit\n",
+            progname);
+    goto quit;
+  }
 
-	OpenSandConf::loadConfig();
+  OpenSandConf::loadConfig();
 
-	// read all packages debug levels
-	if(!Conf::loadLevels(levels, spec_level))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot load default levels, quit\n",
-		        progname);
-		goto quit;
-	}
-	Output::setLevels(levels, spec_level);
+  // read all packages debug levels
+  if(!Conf::loadLevels(levels, spec_level))
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot load default levels, quit\n",
+            progname);
+    goto quit;
+  }
+  // Output::setLevels(levels, spec_level);
 
-	// retrieve the type of satellite from configuration
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               SATELLITE_TYPE,
-	                   satellite_type))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "section '%s': missing parameter '%s'\n",
-		        COMMON_SECTION, SATELLITE_TYPE);
-		goto quit;
-	}
-	DFLTLOG(LEVEL_NOTICE,
-	        "Satellite type = %s\n", satellite_type.c_str());
+  // retrieve the type of satellite from configuration
+  if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+                   SATELLITE_TYPE,
+                     satellite_type))
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "section '%s': missing parameter '%s'\n",
+            COMMON_SECTION, SATELLITE_TYPE);
+    goto quit;
+  }
+  DFLTLOG(LEVEL_NOTICE,
+          "Satellite type = %s\n", satellite_type.c_str());
 
-	// load the plugins
-	if(!Plugin::loadPlugins(true, plugin_conf_path))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot load the plugins\n", progname);
-		goto quit;
-	}
+  // load the plugins
+  if(!Plugin::loadPlugins(true, plugin_conf_path))
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot load the plugins\n", progname);
+    goto quit;
+  }
 
-	// instantiate all blocs
+  // instantiate all blocs
 
-	spec_ic.interconnect_addr = interconnect_addr;
+  spec_ic.interconnect_addr = interconnect_addr;
 
-	block_interconnect = Rt::createBlock<BlockInterconnectUpward,
-	                                     BlockInterconnectUpward::Upward,
-	                                     BlockInterconnectUpward::Downward,
-	                                     struct ic_specific>
-	                                     ("InterconnectUpward", NULL, spec_ic);
-	if(!block_interconnect)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the InterconnectUpward block\n", progname);
-		goto release_plugins;
-	}
+  block_interconnect = Rt::createBlock<BlockInterconnectUpward,
+                                       BlockInterconnectUpward::Upward,
+                                       BlockInterconnectUpward::Downward,
+                                       struct ic_specific>
+                                       ("InterconnectUpward", NULL, spec_ic);
+  if(!block_interconnect)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot create the InterconnectUpward block\n", progname);
+    goto release_plugins;
+  }
 
-	block_phy_layer = NULL;
-	if(strToSatType(satellite_type) == TRANSPARENT)
-	{
-		block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-		                                  BlockPhysicalLayer::UpwardTransp,
-		                                  BlockPhysicalLayer::Downward,
-		                                  tal_id_t>("PhysicalLayer", block_interconnect, mac_id);
-	}
-	else if(strToSatType(satellite_type) == REGENERATIVE)
-	{
-		block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-		                                  BlockPhysicalLayer::UpwardRegen,
-		                                  BlockPhysicalLayer::Downward,
-		                                  tal_id_t>("PhysicalLayer", block_interconnect, mac_id);
-	}
-	if(block_phy_layer == NULL)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-						"%s: cannot create the PhysicalLayer block\n",
-						progname);
-		goto release_plugins;
-	}
-	specific.ip_addr = ip_addr;
-	specific.tal_id = mac_id;
-	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
-	                                    BlockSatCarrier::Upward,
-	                                    BlockSatCarrier::Downward,
-	                                    struct sc_specific>("SatCarrier",
-	                                                        block_phy_layer,
-	                                                        specific);
-	if(!block_sat_carrier)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the SatCarrier block\n", progname);
-		goto release_plugins;
-	}
+  block_phy_layer = NULL;
+  if(strToSatType(satellite_type) == TRANSPARENT)
+  {
+    block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
+                                      BlockPhysicalLayer::UpwardTransp,
+                                      BlockPhysicalLayer::Downward,
+                                      tal_id_t>("PhysicalLayer", block_interconnect, mac_id);
+  }
+  else if(strToSatType(satellite_type) == REGENERATIVE)
+  {
+    block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
+                                      BlockPhysicalLayer::UpwardRegen,
+                                      BlockPhysicalLayer::Downward,
+                                      tal_id_t>("PhysicalLayer", block_interconnect, mac_id);
+  }
+  if(block_phy_layer == NULL)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot create the PhysicalLayer block\n",
+            progname);
+    goto release_plugins;
+  }
+  specific.ip_addr = ip_addr;
+  specific.tal_id = mac_id;
+  block_sat_carrier = Rt::createBlock<BlockSatCarrier,
+                                      BlockSatCarrier::Upward,
+                                      BlockSatCarrier::Downward,
+                                      struct sc_specific>("SatCarrier",
+                                                          block_phy_layer,
+                                                          specific);
+  if(!block_sat_carrier)
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot create the SatCarrier block\n", progname);
+    goto release_plugins;
+  }
 
-	DFLTLOG(LEVEL_DEBUG,
-	        "All blocks are created, start\n");
+  DFLTLOG(LEVEL_DEBUG,
+          "All blocks are created, start\n");
 
-	// make the GW alive
-	if(!Rt::init())
-	{
-		goto release_plugins;
-	}
-	if(!Output::finishInit())
-	{
-		DFLTLOG(LEVEL_NOTICE,
-		        "%s: failed to init the output => disable it\n",
-		        progname);
-	}
+  // make the GW alive
+  if(!Rt::init())
+  {
+    goto release_plugins;
+  }
 
-	Output::sendEvent(status, "Blocks initialized");
-	if(!Rt::run())
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot run process loop\n",
-		        progname);
-	}
+  Output::Get()->finalizeConfiguration();
 
-	Output::sendEvent(status, "Simulation stopped");
+  status->sendEvent("Blocks initialized");
+  if(!Rt::run())
+  {
+    DFLTLOG(LEVEL_CRITICAL,
+            "%s: cannot run process loop\n",
+            progname);
+  }
 
-	// everything went fine, so report success
-	is_failure = 0;
+  status->sendEvent("Simulation stopped");
 
-	// cleanup before GW stops
+  // everything went fine, so report success
+  is_failure = 0;
+
+  // cleanup before GW stops
 release_plugins:
-	Plugin::releasePlugins();
+  Plugin::releasePlugins();
 quit:
-	DFLTLOG(LEVEL_NOTICE,
-	        "%s: GW process stopped with exit code %d\n",
-	        progname, is_failure);
-	Output::close();
-	return is_failure;
+  DFLTLOG(LEVEL_NOTICE,
+          "%s: GW process stopped with exit code %d\n",
+          progname, is_failure);
+  return is_failure;
 }

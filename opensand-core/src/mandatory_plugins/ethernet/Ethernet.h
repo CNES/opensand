@@ -213,9 +213,9 @@ class Ethernet: public LanAdaptationPlugin
 		/// The amount of data sent per EVC between two updates
 		map<uint8_t, size_t> evc_data_size;
 		/// The throughput per EVC
-		map<uint8_t, Probe<float> *> probe_evc_throughput;
+		map<uint8_t, std::shared_ptr<Probe<float> > > probe_evc_throughput;
 		/// The frame size per EVC
-		map<uint8_t, Probe<float> *> probe_evc_size;
+		map<uint8_t, std::shared_ptr<Probe<float> > > probe_evc_size;
 
 		uint16_t lan_frame_type; //< The type of Ethernet frame forwarded on LAN
 		uint16_t sat_frame_type; //< The type of Ethernet frame transmitted on satellite

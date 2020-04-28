@@ -160,8 +160,10 @@ bool SpotUpwardRegen::initAcmLoopMargin(void)
 
 bool SpotUpwardRegen::initOutput(void)
 {
+  auto output = Output::Get();
+
 	// Events
-	this->event_logon_req = Output::registerEvent("Spot_%d.DVB.logon_request",
+	this->event_logon_req = output->registerEvent("Spot_%d.DVB.logon_request",
 	                                                 this->spot_id);
 
 	// Output probes and stats
@@ -169,16 +171,16 @@ bool SpotUpwardRegen::initOutput(void)
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.Throughputs.L2_from_SAT", this->spot_id);
 	this->probe_gw_l2_from_sat=
-		Output::registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
+		output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 	this->l2_from_sat_bytes = 0;
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.Up_Return_modcod.Received_modcod", this->spot_id);
-	this->probe_received_modcod = Output::registerProbe<int>(probe_name, "modcod index",
+	this->probe_received_modcod = output->registerProbe<int>(probe_name, "modcod index",
 	                                                         true, SAMPLE_LAST);
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.Up_Return_modcod.Rejected_modcod", this->spot_id);
-	this->probe_rejected_modcod = Output::registerProbe<int>(probe_name, "modcod index",
+	this->probe_rejected_modcod = output->registerProbe<int>(probe_name, "modcod index",
 	                                                         true, SAMPLE_LAST);
 	return true;
 }

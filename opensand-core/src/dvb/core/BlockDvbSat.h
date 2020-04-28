@@ -262,10 +262,10 @@ class BlockDvbSat: public BlockDvb
 		map<tal_id_t, double> cni;
 
 		// Output probes and stats
-		typedef map<unsigned int, Probe<int> *> ProbeListPerSpot;
+		typedef map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerSpot;
 
 		// Frame interval
-		Probe<float> *probe_frame_interval;
+    std::shared_ptr<Probe<float>> probe_frame_interval;
 	};
 
 

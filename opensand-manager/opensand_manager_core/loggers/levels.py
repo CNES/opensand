@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -29,6 +29,7 @@
 #
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
+# Author: Mathias Ettinger / <mathias.ettinger@viveris.com>
 
 """
 levels.py - The events level
@@ -168,14 +169,23 @@ class LogDebug(LogLevel):
         self._level = MGR_DEBUG
         self._name = "Debug"
 
+class LogEvent(LogLevel):
+    """ The event log level """
+    def __init__(self):
+        LogLevel.__init__(self)
+        self._level = LEVEL_EVENT
+        self._name = "Event"
+        self._msg = "EVENT"
+        self._color = 'white'
+        self._bg_color = 'green'
+
 LOG_LEVELS = {
+    LEVEL_EVENT: LogEvent(),
     MGR_DEBUG: LogDebug(),
     MGR_INFO: LogInfo(),
     MGR_NOTICE: LogNotice(),
     MGR_WARNING: LogWarning(),
     MGR_ERROR: LogError(),
     MGR_CRITICAL: LogCritical(),
-#    MGR_ALERT: LogCritical(),
-#    MGR_EMERGENCY: LogCritical(),
 }
 

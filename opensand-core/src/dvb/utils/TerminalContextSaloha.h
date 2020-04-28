@@ -91,7 +91,7 @@ class TerminalContextSaloha: public TerminalContext
 	saloha_pdu_id_t old_count;
 
 	/// The slotted aloha logger
-	OutputLog *log_saloha;
+  std::shared_ptr<OutputLog> log_saloha;
 
 	/**
 	 * @brief Handle oldest PDU id

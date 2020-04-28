@@ -225,8 +225,6 @@
 //////////////////
 
 #define SARP_SECTION      "sarp"
-#define IPV4_LIST         "ipv4"
-#define IPV6_LIST         "ipv6"
 #define ETH_LIST          "ethernet"
 #define TERMINAL_ADDR     "addr"
 #define TERMINAL_IP_MASK  "mask"

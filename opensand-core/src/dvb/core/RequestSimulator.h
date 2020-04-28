@@ -115,9 +115,8 @@ class RequestSimulator
 	char simu_buffer[SIMU_BUFF_LEN];
 
 	// Output logs and events
-	OutputLog *log_request_simulation;
-	OutputLog *log_init;
-
+	std::shared_ptr<OutputLog> log_request_simulation;
+	std::shared_ptr<OutputLog> log_init;
 };
 
 #endif

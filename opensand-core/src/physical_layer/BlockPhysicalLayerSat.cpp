@@ -50,8 +50,9 @@ BlockPhysicalLayerSat::Upward::Upward(const string &name):
 	log_event(NULL),
 	attenuation_hdl(NULL)
 {
-	this->log_channel = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Channel");
-	this->log_event = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Upward.Event");
+  auto output = Output::Get();
+	this->log_channel = output->registerLog(LEVEL_WARNING, "PhysicalLayer.Channel");
+	this->log_event = output->registerLog(LEVEL_WARNING, "PhysicalLayer.Upward.Event");
 }
 
 BlockPhysicalLayerSat::Upward::~Upward()
@@ -132,7 +133,7 @@ BlockPhysicalLayerSat::Downward::Downward(const string &name):
 	RtDownward(name),
 	log_event(NULL)
 {
-	this->log_event = Output::registerLog(LEVEL_WARNING, "PhysicalLayer.Downward.Event");
+	this->log_event = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Downward.Event");
 }
 
 bool BlockPhysicalLayerSat::Downward::onEvent(const RtEvent *const event)

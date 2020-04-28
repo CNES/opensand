@@ -47,7 +47,7 @@
 #define DVB_CR_VBDC_SCALING_FACTOR_OFFSET 255
 #define DVB_CR_RBDC_SCALING_FACTOR_OFFSET 510
 
-OutputLog *Sac::sac_log = NULL;
+std::shared_ptr<OutputLog> Sac::sac_log = nullptr;
 
 static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value);
 static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step);

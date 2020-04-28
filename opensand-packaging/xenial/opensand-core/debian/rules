@@ -70,6 +70,7 @@ override_dh_install:
 	# Satellite delay example for daemons and manager
 	install -D -m 0644 conf/mandatory_plugins/satdelay.csv $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/satdelay.csv
 
+override_dh_pysupport:
 
 %:
 	dh  $@

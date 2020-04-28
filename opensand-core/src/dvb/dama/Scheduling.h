@@ -65,8 +65,7 @@ class Scheduling
 		simu_sts(simu_sts)
 	{
 		// Output log
-		this->log_scheduling = Output::registerLog(LEVEL_WARNING,
-		                                           "Dvb.Scheduling"); 
+		this->log_scheduling = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Scheduling"); 
 	};
 
 	virtual ~Scheduling() {};
@@ -112,7 +111,7 @@ class Scheduling
 	const StFmtSimuList *const simu_sts;
 
 	// Output Log
-	OutputLog *log_scheduling;
+  std::shared_ptr<OutputLog> log_scheduling;
 };
 
 #endif

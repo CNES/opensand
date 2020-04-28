@@ -50,12 +50,9 @@ Block::Block(const string &name, void *specific):
 	initialized(false)
 {
 	// Output logs
-	this->log_rt = Output::registerLog(LEVEL_WARNING, "%s.rt",
-	                                   this->name.c_str());
-	this->log_init = Output::registerLog(LEVEL_WARNING, "%s.init",
-	                                     this->name.c_str());
-	LOG(this->log_rt, LEVEL_INFO,
-	    "Block %s created\n", this->name.c_str());
+	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "%s.rt", this->name.c_str());
+	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "%s.init", this->name.c_str());
+	LOG(this->log_rt, LEVEL_INFO, "Block %s created\n", this->name.c_str());
 }
 
 Block::~Block()

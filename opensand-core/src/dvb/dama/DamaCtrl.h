@@ -192,7 +192,7 @@ class DamaCtrl
 	 * @param name            the probe name
 	 * @return                the probe
 	 */
-	virtual Probe<int> *generateGwCapacityProbe(
+	virtual std::shared_ptr<Probe<int>> generateGwCapacityProbe(
 		string name) const = 0;
 
 	/**
@@ -202,7 +202,7 @@ class DamaCtrl
 	 * @param category_label  the category label
 	 * @return                the probe
 	 */
-	virtual Probe<int> *generateCategoryCapacityProbe(
+	virtual std::shared_ptr<Probe<int>> generateCategoryCapacityProbe(
 		string category_label,
 		string name) const = 0;
 
@@ -214,7 +214,7 @@ class DamaCtrl
 	 * @param carrier_id      the carrier id
 	 * @return                the probe
 	 */
-	virtual Probe<int> *generateCarrierCapacityProbe(
+	virtual std::shared_ptr<Probe<int>> generateCarrierCapacityProbe(
 		string category_label,
 		unsigned int carrier_id,
 		string name) const = 0;
@@ -297,14 +297,14 @@ class DamaCtrl
 	virtual TerminalContextDama *getTerminalContext(tal_id_t tal_id) const;
 
 	// Output Log
-	OutputLog *log_init;
-	OutputLog *log_logon;
-	OutputLog *log_super_frame_tick;
-	OutputLog *log_run_dama;
-	OutputLog *log_sac;
-	OutputLog *log_ttp;
-	OutputLog *log_pep;
-	OutputLog *log_fmt;
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_logon;
+	std::shared_ptr<OutputLog> log_super_frame_tick;
+	std::shared_ptr<OutputLog> log_run_dama;
+	std::shared_ptr<OutputLog> log_sac;
+	std::shared_ptr<OutputLog> log_ttp;
+	std::shared_ptr<OutputLog> log_pep;
+	std::shared_ptr<OutputLog> log_fmt;
 
 	/** Flag if init of THIS DAMA class (DamaCtrl) has been done */
 	bool is_parent_init;
@@ -369,56 +369,56 @@ class DamaCtrl
 
 	/// Output probe and stats
 
-	typedef map<tal_id_t, Probe<int> *> ProbeListPerTerminal;
-	typedef map<string, Probe<int> *> ProbeListPerCategory;
-	typedef map<unsigned int, Probe<int> *> ProbeListPerCarrier;
+	typedef map<tal_id_t, std::shared_ptr<Probe<int> > > ProbeListPerTerminal;
+	typedef map<string, std::shared_ptr<Probe<int> > > ProbeListPerCategory;
+	typedef map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerCarrier;
 	typedef map<string, ProbeListPerCarrier> ProbeListPerCategoryPerCarrier;
 
 	/* RBDC request number */
-	Probe<int> *probe_gw_rbdc_req_num;
+	std::shared_ptr<Probe<int>> probe_gw_rbdc_req_num;
 	int gw_rbdc_req_num;
 
 	/* RBDC requested capacity */
-	Probe<int> *probe_gw_rbdc_req_size;
+	std::shared_ptr<Probe<int>> probe_gw_rbdc_req_size;
 
 	/* VBDC request number */
-	Probe<int> *probe_gw_vbdc_req_num;
+	std::shared_ptr<Probe<int>> probe_gw_vbdc_req_num;
 	int gw_vbdc_req_num;
 
 	/* VBDC requested capacity */
-	Probe<int> *probe_gw_vbdc_req_size;
+	std::shared_ptr<Probe<int>> probe_gw_vbdc_req_size;
 
 	/* Allocated resources */
 		// CRA
-	Probe<int> *probe_gw_cra_alloc;
+	std::shared_ptr<Probe<int>> probe_gw_cra_alloc;
 	int gw_cra_alloc_kbps;
 		// CRA by ST
 	ProbeListPerTerminal probes_st_cra_alloc;
 		// RBDC total
-	Probe<int> *probe_gw_rbdc_alloc;
+	std::shared_ptr<Probe<int>> probe_gw_rbdc_alloc;
 		// RBDC by ST
 	ProbeListPerTerminal probes_st_rbdc_alloc;
 		// RBDC max
-	Probe<int> *probe_gw_rbdc_max;
+	std::shared_ptr<Probe<int>> probe_gw_rbdc_max;
 	int gw_rbdc_max_kbps;
 		// RBDC max by ST
 	ProbeListPerTerminal probes_st_rbdc_max;
 		// VBDC	total
-	Probe<int> *probe_gw_vbdc_alloc;
+	std::shared_ptr<Probe<int>> probe_gw_vbdc_alloc;
 		// VBDC by ST
 	ProbeListPerTerminal probes_st_vbdc_alloc;
 		// FCA total
-	Probe<int> *probe_gw_fca_alloc;
+	std::shared_ptr<Probe<int>> probe_gw_fca_alloc;
 		// FCA by ST
 	ProbeListPerTerminal probes_st_fca_alloc;
 
 	/* Logged ST number  */
-	Probe<int> *probe_gw_st_num;
+	std::shared_ptr<Probe<int>> probe_gw_st_num;
 	int gw_st_num;
 
 		// Total and unused capacity
-	Probe<int> *probe_gw_return_total_capacity;
-	Probe<int> *probe_gw_return_remaining_capacity;
+	std::shared_ptr<Probe<int>> probe_gw_return_total_capacity;
+	std::shared_ptr<Probe<int>> probe_gw_return_remaining_capacity;
 	int gw_remaining_capacity;
 		// Capacity per category
 	ProbeListPerCategory probes_category_return_capacity;

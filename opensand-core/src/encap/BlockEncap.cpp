@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
- * Copyright © 2019 CNES
+ * Copyright © 2020 TAS
+ * Copyright © 2020 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -71,7 +71,7 @@ BlockEncap::BlockEncap(const string &name, tal_id_t mac_id):
 	mac_id(mac_id)
 {
 	// register static log
-	NetBurst::log_net_burst = Output::registerLog(LEVEL_WARNING, "NetBurst");
+	NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
 }
 
 BlockEncap::~BlockEncap()
@@ -290,26 +290,7 @@ bool BlockEncap::onInit()
 	    "return link standard = \"%s\"\n", ret_lnk_std.c_str());
 	
 	// Retrieve last packet handler in lan adaptation layer
-	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
-		                     LAN_ADAPTATION_SCHEME_LIST,
-	                         lan_nbr))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n", GLOBAL_SECTION,
-		    LAN_ADAPTATION_SCHEME_LIST);
-		goto error;
-	}
-	if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
-		                     LAN_ADAPTATION_SCHEME_LIST,
-	                         POSITION, toString(lan_nbr - 1),
-	                         PROTO, lan_name))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, invalid value %d for parameter "
-		    "'%s' in %s\n", GLOBAL_SECTION, i, POSITION,
-		    LAN_ADAPTATION_SCHEME_LIST);
-		goto error;
-	}
+	lan_name = "Ethernet";
 	if(!Plugin::getLanAdaptationPlugin(lan_name, &lan_plugin))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

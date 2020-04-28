@@ -107,7 +107,7 @@ static const uint32_t crc32tab[256] =
 #define CRC32(c,crc) \
 	(crc32tab[((size_t)(crc>>24) ^ (c)) & 0xff] ^ (((crc) << 8)))
 
-OutputLog *Aal5Packet::aal5_log = NULL;
+std::shared_ptr<OutputLog> Aal5Packet::aal5_log = nullptr;
 
 Aal5Packet::Aal5Packet(const unsigned char *data, size_t length):
 	NetPacket(data, length)

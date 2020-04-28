@@ -98,7 +98,7 @@ bool ConfigurationFile::loadConfig(const vector<string> conf_files)
 	vector<string>::const_iterator it;
 
 	// Output Log
-	this->log_conf = Output::registerLog(LEVEL_WARNING, "Conf");
+	this->log_conf = Output::Get()->registerLog(LEVEL_WARNING, "Conf");
 
 	if(conf_files.size() == 0)
 	{

@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -50,6 +50,14 @@ OpenSandConf::~OpenSandConf()
 	carrier_map.clear();
 	spot_table.clear();
 	gw_table.clear();
+}
+
+bool OpenSandConf::getGwWithTalId(uint16_t tal_id,
+                                  uint16_t &gw_id)
+{
+	return global_config.getGwWithTalId(OpenSandConf::gw_table,
+	                                    tal_id,
+	                                    gw_id);
 }
 
 bool OpenSandConf::getSpotWithTalId(uint16_t tal_id,

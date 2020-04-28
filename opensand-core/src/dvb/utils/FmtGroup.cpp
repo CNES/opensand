@@ -54,7 +54,7 @@ FmtGroup::FmtGroup(unsigned int group_id,
 	modcod_def(modcod_def)
 {
 	// Output log
-	this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Group");
+	this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Fmt.Group");
 
 	this->parse(ids);
 };

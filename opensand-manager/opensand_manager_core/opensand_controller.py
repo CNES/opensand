@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -30,6 +30,8 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
+# Author: Aurélien Delrieu / <aurelien.delrieu@viveris.fr>
+# Author: Mathias Ettinger / <mathias.ettinger@viveris.fr>
 
 """
 opensand_controller.py - thread that configure, install, start, stop
@@ -341,12 +343,15 @@ class Controller(threading.Thread):
                     modules = [modules_dir, # host specific modules
                                os.path.join(scenario, 'plugins')] # global modules
 
+                address = self._env_plane.listen_to_host(host)
                 for machine in host.get_ordered_machines():
                     thread = threading.Thread(None, machine.configure, "Configure%s" %
                                               name,
                                               (conf_files, modules,
                                                self._deploy_config,
-                                               self._model.get_dev_mode(), errors),
+                                               address,
+                                               self._model.get_dev_mode(),
+                                               errors),
                                               {})
                     threads.append(thread)
                     thread.start()
@@ -366,7 +371,8 @@ class Controller(threading.Thread):
                     thread = threading.Thread(None, machine.configure_ws, "Configure%s" %
                                               ws.get_name(),
                                               (self._deploy_config,
-                                               self._model.get_dev_mode(), errors),
+                                               self._model.get_dev_mode(),
+                                               errors),
                                              {})
                     threads.append(thread)
                     thread.start()
@@ -392,7 +398,7 @@ class Controller(threading.Thread):
         try:
             for host in self._hosts + self._ws:
                 self._log.info("Starting " + host.get_name().upper())
-                host.start_stop('START %s' % host.get_interface_type())
+                host.start_stop('START')
         except (ModelException, CommandException), err:
             msg = "OpenSAND platform failed to start"
             if self._model.get_dev_mode():

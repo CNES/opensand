@@ -133,37 +133,29 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		    "some terminals may not be able to log in\n");
 	}
 
+  auto output = Output::Get();
 	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
 	    ++cat_iter)
 	{
 		TerminalCategorySaloha *cat = (*cat_iter).second;
 		cat->computeSlotsNumber(converter);
-		Probe<int> *probe_coll;
-		Probe<int> *probe_coll_before;
-		Probe<int> *probe_coll_ratio;
+		std::shared_ptr<Probe<int>> probe_coll;
+		std::shared_ptr<Probe<int>> probe_coll_before;
+		std::shared_ptr<Probe<int>> probe_coll_ratio;
 		char probe_name[128];
 
-		snprintf(probe_name, sizeof(probe_name),
-		         "Aloha.collisions.%s", (*cat_iter).first.c_str());
-		probe_coll = Output::registerProbe<int>(probe_name, true, SAMPLE_SUM);
+		snprintf(probe_name, sizeof(probe_name), "Aloha.collisions.%s", (*cat_iter).first.c_str());
+		probe_coll = output->registerProbe<int>(probe_name, true, SAMPLE_SUM);
 		// disable by default
-		snprintf(probe_name, sizeof(probe_name),
-		         "Aloha.collisions.before_algo.%s", (*cat_iter).first.c_str());
-		probe_coll_before = Output::registerProbe<int>(probe_name, false, SAMPLE_SUM);
+		snprintf(probe_name, sizeof(probe_name), "Aloha.collisions.before_algo.%s", (*cat_iter).first.c_str());
+		probe_coll_before = output->registerProbe<int>(probe_name, false, SAMPLE_SUM);
 		// disable by default
-		snprintf(probe_name, sizeof(probe_name),
-		         "Aloha.collisions_ratio.%s", (*cat_iter).first.c_str());
-		probe_coll_ratio = Output::registerProbe<int>(probe_name, "%", false, SAMPLE_AVG);
+		snprintf(probe_name, sizeof(probe_name), "Aloha.collisions_ratio.%s", (*cat_iter).first.c_str());
+		probe_coll_ratio = output->registerProbe<int>(probe_name, "%", false, SAMPLE_AVG);
 
-		this->probe_collisions_before.insert(
-		            pair<string, Probe<int> *>((*cat_iter).first,
-		                                       probe_coll_before));
-		this->probe_collisions.insert(
-		            pair<string, Probe<int> *>((*cat_iter).first,
-		                                       probe_coll));
-		this->probe_collisions_ratio.insert(
-		            pair<string, Probe<int> *>((*cat_iter).first,
-		                                       probe_coll_ratio));
+		this->probe_collisions_before.emplace(cat_iter->first, probe_coll_before);
+		this->probe_collisions.emplace(cat_iter->first, probe_coll);
+		this->probe_collisions_ratio.emplace(cat_iter->first, probe_coll_ratio);
 	}
 	
 	if(!Conf::getListNode(saloha_section, SPOT_LIST, spots))

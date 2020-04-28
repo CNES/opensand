@@ -80,7 +80,7 @@ class SarpTable
 
  protected:
 	// Output Log
-	OutputLog *log_sarp;	
+  std::shared_ptr<OutputLog> log_sarp;	
 
  public:
 

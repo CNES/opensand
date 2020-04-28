@@ -53,8 +53,7 @@ DvbS2Std::DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
 	is_scpc(false)
 {
 	// Output Logs
-	this->log_rcv_from_down = Output::registerLog(LEVEL_WARNING,
-	                                              "Dvb.Upward.receive");
+	this->log_rcv_from_down = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Upward.receive");
 }
 
 DvbScpcStd::DvbScpcStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
@@ -73,8 +72,7 @@ DvbS2Std::DvbS2Std(string type,
 	is_scpc(false)
 {
 	// Output Logs
-	this->log_rcv_from_down = Output::registerLog(LEVEL_WARNING,
-	                                              "Dvb.Upward.receive");
+	this->log_rcv_from_down = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Upward.receive");
 }
 
 DvbS2Std::~DvbS2Std()

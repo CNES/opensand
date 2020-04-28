@@ -76,8 +76,6 @@ class CodingTypes
 	static float getRate(string coding_label);
 
  private:
-	static CodingTypes instance;
-
 	float default_coding_rate;
 	map<string, float> coding_rates;
 

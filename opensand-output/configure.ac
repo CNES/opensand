@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-output, 5.1.2, [http://opensand.org])
+AC_INIT(opensand-output, 5.2.0, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -33,6 +33,7 @@ AC_CHECK_FUNCS([malloc free])
 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
+CXXFLAGS="$CXXFLAGS -std=c++11"
 
 # check if -Werror must be appended to CFLAGS
 WERROR=""

@@ -1,0 +1,10 @@
+Build the network utils:
+
+ $ python3 setup.py build
+
+Install the network utils:
+
+ $ python3 setup.py install
+
+
+See the installation manual on OpenSAND website (www.opensand.org) for more details

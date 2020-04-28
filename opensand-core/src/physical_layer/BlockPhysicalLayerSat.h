@@ -68,8 +68,8 @@ class BlockPhysicalLayerSat: public Block
 	{
 	 protected:
 		/// Logs
-		OutputLog *log_channel;
-		OutputLog *log_event;
+		std::shared_ptr<OutputLog> log_channel;
+		std::shared_ptr<OutputLog> log_event;
 
 		/// The attenuation process
 		AttenuationHandler *attenuation_hdl;
@@ -121,7 +121,7 @@ class BlockPhysicalLayerSat: public Block
 	{
 	 protected:
 		/// Logs
-		OutputLog *log_event;
+		std::shared_ptr<OutputLog> log_event;
 
 	 public:
 		/**

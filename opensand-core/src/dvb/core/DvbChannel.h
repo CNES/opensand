@@ -80,10 +80,11 @@ class DvbChannel
 		check_send_stats(0)
 	{
 		// register static log
-		dvb_fifo_log = Output::registerLog(LEVEL_WARNING, "Dvb.FIFO");
-		this->log_init_channel = Output::registerLog(LEVEL_WARNING, "Dvb.Channel.init");
-		this->log_receive_channel = Output::registerLog(LEVEL_WARNING, "Dvb.Channel.receive");
-		this->log_send_channel = Output::registerLog(LEVEL_WARNING, "Dvb.Channel.send");
+    auto output = Output::Get();
+		dvb_fifo_log = output->registerLog(LEVEL_WARNING, "Dvb.FIFO");
+		this->log_init_channel = output->registerLog(LEVEL_WARNING, "Dvb.Channel.init");
+		this->log_receive_channel = output->registerLog(LEVEL_WARNING, "Dvb.Channel.receive");
+		this->log_send_channel = output->registerLog(LEVEL_WARNING, "Dvb.Channel.send");
 	};
 
 	virtual ~DvbChannel()
@@ -302,11 +303,11 @@ class DvbChannel
 	time_frame_t stats_period_frame;
 
 	// log
-	OutputLog *log_init_channel;
-	OutputLog *log_receive_channel;
-	OutputLog *log_send_channel;
+	std::shared_ptr<OutputLog> log_init_channel;
+	std::shared_ptr<OutputLog> log_receive_channel;
+	std::shared_ptr<OutputLog> log_send_channel;
 
-	static OutputLog *dvb_fifo_log;
+	static std::shared_ptr<OutputLog> dvb_fifo_log;
 
  private:
 	/// Whether we can send stats or not (can send stats when 0)
@@ -925,7 +926,7 @@ class DvbFmt
 		log_fmt(NULL)
 	{
 		// register static log
-		this->log_fmt = Output::registerLog(LEVEL_WARNING, "Dvb.Fmt.Channel");
+		this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Fmt.Channel");
 	};
 
 	virtual ~DvbFmt()
@@ -1126,7 +1127,7 @@ class DvbFmt
 	double ret_up_acm_margin_db;
 
 	// log
-	OutputLog *log_fmt;
+	std::shared_ptr<OutputLog> log_fmt;
 
  private:
 	/// Whether we can send stats or not (can send stats when 0)

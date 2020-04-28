@@ -7,7 +7,7 @@
 # satellite telecommunication system for research and engineering activities.
 #
 #
-# Copyright © 2019 TAS
+# Copyright © 2020 TAS
 #
 #
 # This file is part of the OpenSAND testbed.
@@ -30,19 +30,22 @@
 
 # Author: Julien BERNARD / <jbernard@toulouse.viveris.com>
 # Author: Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
+# Author: Aurélien Delrieu / <aurelien.delrieu@viveris.fr>
+# Author: Mathias Ettinger / <mathias.ettinger@viveris.fr>
 
 """
 host.py - controller that configure, install, start, stop
           and get status of OpenSAND processes on a specific host
 """
 
-import threading
-import socket
-import thread
-import os
 import ConfigParser
+import os
+import socket
 import tempfile
+import thread
+import threading
 import time
+from datetime import datetime
 
 from opensand_manager_core.my_exceptions import CommandException
 from opensand_manager_core.controller.stream import Stream
@@ -153,7 +156,8 @@ class MachineController:
             sock.close()
 
     def configure(self, conf_files, conf_modules,
-                  deploy_config, dev_mode=False, errors=[]):
+                  deploy_config, remote_address,
+                  dev_mode=False, errors=[]):
         """ send the configure command to command server """
         # connect to command server and send the configure command
         sock = None
@@ -252,37 +256,27 @@ class MachineController:
             instance_param = '-i ' + self._machine_model.get_instance()
         tuntap_iface = ''
         if component not in {SAT, GW_PHY}:
-            if self._machine_model.get_lan_adaptation()['0'] == 'IP':
-                tuntap_iface += '-t opensand_tun'
-            else:
-                tuntap_iface += '-t opensand_tap'
-        output_libpath = self._machine_model.get_output_libpath()
-        if output_libpath:
-            output_libpath = '-e ' + output_libpath
+            tuntap_iface += '-t opensand_tap'
         if component == GW_NET_ACC:
-            command_line = '%s %s %s -u %s -w %s %s -c %s' % \
+            command_line = 'opensand-%s %s %s -u %s -w %s -c %s' % \
                            (bin_file, instance_param, tuntap_iface,
                             self._machine_model.get_interconnect_interface(),
                             self._machine_model.get_interconnect_address(),
-                            output_libpath,
                             CONF_DESTINATION_PATH)
         elif component == GW_PHY:
-            command_line = '%s %s -a %s -u %s -w %s %s -c %s' % \
+            command_line = 'opensand-%s %s -a %s -u %s -w %s -c %s' % \
                            (bin_file, instance_param, 
                             self._machine_model.get_emulation_address(),
                             self._machine_model.get_interconnect_interface(),
                             self._machine_model.get_interconnect_address(),
-                            output_libpath,
                             CONF_DESTINATION_PATH)
         else:
-            command_line = '%s -a %s %s %s %s -c %s' % \
+            command_line = 'opensand-%s -a %s %s %s -c %s' % \
                            (bin_file,
                             self._machine_model.get_emulation_address(),
                             tuntap_iface, instance_param,
-                            output_libpath,
                             CONF_DESTINATION_PATH)
-        if not self._machine_model.is_collector_functional():
-            command_line += " -q"
+        command_line += " -f '/var/log/opensand/'"
         try:
             start_ini.add_section(self._machine_model.get_component())
             start_ini.set(self._machine_model.get_component(), 'command',

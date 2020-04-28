@@ -103,12 +103,12 @@ class ScpcScheduling: public Scheduling
 	tal_id_t gw_id;
 
 	// Total and unused capacity probes
-	Probe<int> *probe_scpc_total_capacity;
-	Probe<int> *probe_scpc_total_remaining_capacity;
-	Probe<int> *probe_scpc_bbframe_nbr;
-	Probe<int> *probe_sent_modcod;
-	map<unsigned int, vector<Probe<int> *> > probe_scpc_remaining_capacity;
-	map<unsigned int, vector<Probe<int> *> > probe_scpc_available_capacity;
+  std::shared_ptr<Probe<int>> probe_scpc_total_capacity;
+  std::shared_ptr<Probe<int>> probe_scpc_total_remaining_capacity;
+  std::shared_ptr<Probe<int>> probe_scpc_bbframe_nbr;
+  std::shared_ptr<Probe<int>> probe_sent_modcod;
+	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_scpc_remaining_capacity;
+	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_scpc_available_capacity;
 
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs

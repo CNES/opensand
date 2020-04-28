@@ -51,9 +51,8 @@ class SlottedAlohaAlgoCrdsa: public SlottedAlohaAlgo
 	~SlottedAlohaAlgoCrdsa();
 
  private:
-	uint16_t removeCollisions(map<unsigned int, Slot *> &slots,
+	uint16_t removeCollisions(std::map<unsigned int, Slot *> &slots,
 	                          saloha_packets_data_t *accepted_packets);
 };
 
 #endif
-

@@ -179,7 +179,7 @@ class StackPlugin: public OpenSandPlugin
 	  protected:
 
 		/// Output Logs
-		OutputLog *log;
+    std::shared_ptr<OutputLog> log;
 
 	  private:
 
@@ -350,7 +350,7 @@ class StackPlugin: public OpenSandPlugin
 		StackPlugin::StackPacketHandler *current_upper;
 
 		/// Output Logs
-		OutputLog *log;
+    std::shared_ptr<OutputLog> log;
 
 	  private:
 
@@ -464,7 +464,7 @@ class StackPlugin: public OpenSandPlugin
 	StackPacketHandler *packet_handler;
 
 	/// Output Logs
-	OutputLog *log;
+  std::shared_ptr<OutputLog> log;
 };
 
 typedef vector<StackPlugin::StackContext *> stack_contexts_t;

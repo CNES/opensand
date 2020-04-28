@@ -34,7 +34,6 @@
 
 #include "ModulationTypes.h"
 
-ModulationTypes ModulationTypes::instance;
 
 ModulationTypes::ModulationTypes() :
 	default_modulation_efficiency(1),
@@ -55,6 +54,7 @@ ModulationTypes::~ModulationTypes()
 
 bool ModulationTypes::exist(string modulation_label)
 {
+	ModulationTypes instance;
 	map<string, unsigned int>::iterator ite;
 
 	ite = instance.modulation_efficiencies.find(modulation_label);
@@ -63,11 +63,13 @@ bool ModulationTypes::exist(string modulation_label)
 
 unsigned int ModulationTypes::getDefaultEfficiency()
 {
+	ModulationTypes instance;
 	return instance.default_modulation_efficiency;
 }
 
 unsigned int ModulationTypes::getEfficiency(string modulation_label)
 {
+	ModulationTypes instance;
 	map<string, unsigned int>::iterator ite;
 
 	ite = instance.modulation_efficiencies.find(modulation_label);

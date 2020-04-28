@@ -89,10 +89,11 @@ class BlockDvb: public Block
 	BlockDvb(const string &name):
 		Block(name)
 	{
+    auto output = Output::Get();
 		// register static logs
-		BBFrame::bbframe_log = Output::registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
-		Sac::sac_log = Output::registerLog(LEVEL_WARNING, "Dvb.SAC");
-		Ttp::ttp_log = Output::registerLog(LEVEL_WARNING, "Dvb.TTP");
+		BBFrame::bbframe_log = output->registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
+		Sac::sac_log = output->registerLog(LEVEL_WARNING, "Dvb.SAC");
+		Ttp::ttp_log = output->registerLog(LEVEL_WARNING, "Dvb.TTP");
 	};
 
 

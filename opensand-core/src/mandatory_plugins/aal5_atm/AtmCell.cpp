@@ -37,7 +37,7 @@
 #include <opensand_output/Output.h>
 
 
-OutputLog *AtmCell::atm_log = NULL;
+std::shared_ptr<OutputLog> AtmCell::atm_log = nullptr;
 
 AtmCell::AtmCell(const unsigned char *data, size_t length):
 	NetPacket(data, length)

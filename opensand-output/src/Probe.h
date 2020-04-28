@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -28,7 +28,8 @@
 /**
  * @file Probe.h
  * @brief The Probe<T> class represents a probe of a defined type.
- * @author Vincent Duvert <vduvert@toulouse.viveris.com>
+ * @author Vincent Duvert     <vduvert@toulouse.viveris.com>
+ * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
 
@@ -39,14 +40,10 @@
 #include "OutputMutex.h"
 
 #include <algorithm>
-#include <string.h>
 #include <iostream>
 #include <cassert>
 #include <sstream>
 
-#include <pthread.h>
-
-using std::string;
 
 /**
  * @class the probe respresentation
@@ -54,44 +51,40 @@ using std::string;
 template<typename T>
 class Probe : public BaseProbe
 {
-	friend class OutputInternal;
+  friend class Output;
 
 public:
-	virtual ~Probe();
+  virtual ~Probe();
 
-	/**
-	 * @brief adds a value to the probe, to be sent when \send_probes is called.
-	 *
-	 * @param value The value to add to the probe
-	 **/
-	void put(T value);
+  /**
+   * @brief adds a value to the probe, to be sent when \send_probes is called.
+   *
+   * @param value The value to add to the probe
+   **/
+  void put(T value);
 
-	T get() const;
-	
-	size_t getDataSize() const;
+  T get() const;
+  
+  size_t getDataSize() const;
 
-	bool getData(unsigned char* buffer, size_t len) const;
+  std::string getData();
 
-	datatype_t getDataType() const;
+  datatype_t getDataType() const;
 
 private:
-	Probe(uint8_t id, const string &name,
-	      const string &unit,
-	      bool enabled, sample_type_t type);
+  Probe(const std::string &name, const std::string& unit, bool enabled, sample_type_t s_type);
 
-	/// the concatenation of all values
-	T accumulator;
+  /// the concatenation of all values
+  T accumulator;
 
-	/// mutex on probe (is it necessary ?)
-	OutputMutex mutex;
+  /// mutex on probe (is it necessary ?)
+  OutputMutex mutex;
 };
 
 template<typename T>
-Probe<T>::Probe(uint8_t id, const string &name,
-                const string &unit,
-                bool enabled, sample_type_t type):
-	BaseProbe(id, name, unit, enabled, type),
-	mutex("probe")
+Probe<T>::Probe(const std::string &name, const std::string& unit, bool enabled, sample_type_t s_type)
+  : BaseProbe(name, unit, enabled, s_type),
+  accumulator(0)
 {
 }
 
@@ -103,57 +96,57 @@ Probe<T>::~Probe()
 template<typename T>
 void Probe<T>::put(T value)
 {
-	OutputLock lock(this->mutex);
+  OutputLock lock(mutex);
 
-	if(this->values_count == 0)
-	{
-		this->accumulator = value;
-	
-	}
-	else
-	{
-		switch (this->s_type)
-		{
-			case SAMPLE_LAST:
-				this->accumulator = value;
-			break;
-			
-			case SAMPLE_MIN:
-				this->accumulator = std::min(this->accumulator, value);
-			break;
-			
-			case SAMPLE_MAX:
-				this->accumulator = std::max(this->accumulator, value);
-			break;
-			
-			case SAMPLE_AVG:
-			case SAMPLE_SUM:
-				this->accumulator += value;
-			break;
-		}
-	}
-	
-	this->values_count++;
+  if(this->values_count == 0)
+  {
+    this->accumulator = value;
+  
+  }
+  else
+  {
+    switch (this->s_type)
+    {
+      case SAMPLE_LAST:
+        this->accumulator = value;
+      break;
+      
+      case SAMPLE_MIN:
+        this->accumulator = std::min(this->accumulator, value);
+      break;
+      
+      case SAMPLE_MAX:
+        this->accumulator = std::max(this->accumulator, value);
+      break;
+      
+      case SAMPLE_AVG:
+      case SAMPLE_SUM:
+        this->accumulator += value;
+      break;
+    }
+  }
+  
+  this->values_count++;
 }
 
 template<typename T>
 T Probe<T>::get() const
 {
-	T value = this->accumulator;
-		
-	if(this->s_type == SAMPLE_AVG)
-	{
-		value /= this->values_count;
-		return value; 
-	}
-	
-	return value;
+  T value = this->accumulator;
+    
+  if(this->s_type == SAMPLE_AVG)
+  {
+    value /= this->values_count;
+    return value; 
+  }
+  
+  return value;
 }
 
 template<typename T>
 size_t Probe<T>::getDataSize() const
 {
-	return sizeof(this->accumulator);
+  return sizeof(this->accumulator);
 }
 
 template<>
@@ -165,14 +158,15 @@ datatype_t Probe<float>::getDataType() const;
 template<>
 datatype_t Probe<double>::getDataType() const;
 
-template<>
-bool Probe<int32_t>::getData(unsigned char* buffer, size_t len) const;
+template<typename T>
+std::string Probe<T>::getData()
+{
+  OutputLock lock(mutex);
+  if (this->isEmpty()) { return ""; }
+  T value = this->get();
+  this->reset();
+  return std::to_string(value);
+}
 
-template<>
-bool Probe<float>::getData(unsigned char* buffer, size_t len) const;
-
-template<>
-bool Probe<double>::getData(unsigned char* buffer, size_t len) const;
 
 #endif
-

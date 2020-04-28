@@ -74,7 +74,7 @@ class FmtGroup
 
  protected:
 	// Output log
-	OutputLog *log_fmt;
+  std::shared_ptr<OutputLog> log_fmt;
 
  public:
 

@@ -122,30 +122,28 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 
 bool DamaAgent::initOutput()
 {
+  auto output = Output::Get();
 
 	// Output Log
-	this->log_init = Output::registerLog(LEVEL_WARNING, "Dvb.init");
-	this->log_frame_tick = Output::registerLog(LEVEL_WARNING,
-	                                           "Dvb.DamaAgent.FrameTick");
+	this->log_init = output->registerLog(LEVEL_WARNING, "Dvb.init");
+	this->log_frame_tick = output->registerLog(LEVEL_WARNING, "Dvb.DamaAgent.FrameTick");
 	
-	this->log_schedule = Output::registerLog(LEVEL_WARNING,
-	                                           "Dvb.DamaAgent.Schedule");
-	this->log_ttp = Output::registerLog(LEVEL_WARNING, "Dvb.TTP");
-	this->log_sac = Output::registerLog(LEVEL_WARNING, "Dvb.SAC");
-	this->log_request = Output::registerLog(LEVEL_WARNING,
-	                                        "Dvb.DamaAgent.Request");
+	this->log_schedule = output->registerLog(LEVEL_WARNING, "Dvb.DamaAgent.Schedule");
+	this->log_ttp = output->registerLog(LEVEL_WARNING, "Dvb.TTP");
+	this->log_sac = output->registerLog(LEVEL_WARNING, "Dvb.SAC");
+	this->log_request = output->registerLog(LEVEL_WARNING, "Dvb.DamaAgent.Request");
 
 	// RBDC request size
-	this->probe_st_rbdc_req_size = Output::registerProbe<int>(
+	this->probe_st_rbdc_req_size = output->registerProbe<int>(
 		"Request.RBDC", "Kbits/s", true, SAMPLE_LAST);
 	// VBDC request size
-	this->probe_st_vbdc_req_size = Output::registerProbe<int>(
+	this->probe_st_vbdc_req_size = output->registerProbe<int>(
 		"Request.VBDC", "Kbits", true, SAMPLE_LAST);
 	// Total allocation
-	this->probe_st_total_allocation = Output::registerProbe<int>(
+	this->probe_st_total_allocation = output->registerProbe<int>(
 		"Allocation.Total", "Kbits/s", true, SAMPLE_LAST);
 	// Remaining allocation
-	this->probe_st_remaining_allocation = Output::registerProbe<int>(
+	this->probe_st_remaining_allocation = output->registerProbe<int>(
 		"Allocation.Remaining", "Kbits/s", true, SAMPLE_LAST);
 
 	return true;

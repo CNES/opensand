@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
- * Copyright © 2019 CNES
+ * Copyright © 2020 TAS
+ * Copyright © 2020 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -30,6 +30,7 @@
  * @file BlockLanAdaptationInit.cpp
  * @brief BlockLanAdaptation initialisation and termination
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @author Aurélien Delrieu <aurelien.delrieu@viveris.fr>
  */
 
 
@@ -86,21 +87,9 @@ bool BlockLanAdaptation::onInit(void)
 	LOG(this->log_init, LEVEL_INFO,
 	    "found %d lan adaptation contexts\n", lan_scheme_nbr);
 
-	for(int i = 0; i < lan_scheme_nbr; i++)
 	{
-		string name;
+		string name = "Ethernet";
 		LanAdaptationPlugin::LanAdaptationContext *context;
-
-		// get all the lan adaptation plugins to use from upper to lower
-		if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
-			                     LAN_ADAPTATION_SCHEME_LIST,
-		                         POSITION, toString(i), PROTO, name))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "Section %s, invalid value %d for parameter '%s'\n",
-			    GLOBAL_SECTION, i, POSITION);
-			return false;
-		}
 
 		if(!Plugin::getLanAdaptationPlugin(name, &plugin))
 		{
@@ -137,9 +126,8 @@ bool BlockLanAdaptation::onInit(void)
 		    plugin->getName().c_str());
 	}
 
-	this->is_tap = contexts.front()->handleTap();
-	// create TUN or TAP virtual interface
-	if(!this->allocTunTap(fd))
+	// create TAP virtual interface
+	if(!this->allocTap(fd))
 	{
 		return false;
 	}
@@ -225,8 +213,8 @@ void BlockLanAdaptation::Upward::setFd(int fd)
 
 void BlockLanAdaptation::Downward::setFd(int fd)
 {
-	// add file descriptor for TUN/TAP interface
-	this->addFileEvent("tun/tap", fd, TUNTAP_BUFSIZE + 4);
+	// add file descriptor for TAP interface
+	this->addFileEvent("tap", fd, TUNTAP_BUFSIZE + 4);
 }
 
 bool BlockLanAdaptation::Upward::initSarpTables(void)
@@ -234,114 +222,9 @@ bool BlockLanAdaptation::Upward::initSarpTables(void)
 	int i;
 
 	tal_id_t tal_id = 0;
-	int mask;
-	IpAddress *ip_addr;
 
 	ConfigurationList terminal_list;
 	ConfigurationList::iterator iter;
-
-	// IPv4 SARP table
-	if(!Conf::getListItems(Conf::section_map[SARP_SECTION],
-		                   IPV4_LIST, terminal_list))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "missing section [%s, %s]\n", SARP_SECTION,
-		    IPV4_LIST);
-	}
-
-	i = 0;
-	for(iter = terminal_list.begin(); iter != terminal_list.end(); iter++)
-	{
-		string ipv4_addr;
-
-		i++;
-		// get the IPv4 address
-		if(!Conf::getAttributeValue(iter, TERMINAL_ADDR, ipv4_addr))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SARP_SECTION, IPV4_LIST,
-			    TERMINAL_ADDR, i);
-			return false;
-		}
-		// get the IPv4 mask
-		if(!Conf::getAttributeValue(iter, TERMINAL_IP_MASK, mask))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SARP_SECTION, IPV4_LIST,
-			    TERMINAL_IP_MASK, i);
-			return false;
-		}
-		// get the terminal ID
-		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SARP_SECTION, IPV4_LIST,
-			    TAL_ID, i);
-			return false;
-		}
-		ip_addr = new Ipv4Address(ipv4_addr);
-
-		LOG(this->log_init, LEVEL_INFO,
-		    "%s/%d -> tal id %u \n",
-		    ip_addr->str().c_str(), mask, tal_id);
-		this->sarp_table.add(ip_addr, mask, tal_id);
-	} // for all IPv4 entries
-
-	// IPv6 SARP table
-	terminal_list.clear();
-	if(!Conf::getListItems(Conf::section_map[SARP_SECTION],
-		                   IPV6_LIST, terminal_list))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "missing section [%s, %s]\n", SARP_SECTION,
-		    IPV6_LIST);
-	}
-
-	i = 0;
-	for(iter = terminal_list.begin(); iter != terminal_list.end(); iter++)
-	{
-		string ipv6_addr;
-
-		i++;
-		// get the IPv6 address
-		if(!Conf::getAttributeValue(iter, TERMINAL_ADDR, ipv6_addr))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SARP_SECTION, IPV6_LIST,
-			    TERMINAL_ADDR, i);
-			return false;
-		}
-		// get the IPv6 mask
-		if(!Conf::getAttributeValue(iter, TERMINAL_IP_MASK, mask))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SARP_SECTION, IPV6_LIST,
-			    TERMINAL_IP_MASK, i);
-			return false;
-		}
-		// get the terminal ID
-		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SARP_SECTION, IPV6_LIST,
-			    TAL_ID, i);
-			return false;
-		}
-
-		ip_addr = new Ipv6Address(ipv6_addr);
-
-		LOG(this->log_init, LEVEL_INFO,
-		    "%s/%d -> tal id %u\n",
-		    ip_addr->str().c_str(), mask, tal_id);
-
-		this->sarp_table.add(ip_addr, mask, tal_id);
-	} // for all IPv6 entries
 
 	// Ethernet SARP table
 	// TODO we could only initialize IP or Ethernet tables according to stack

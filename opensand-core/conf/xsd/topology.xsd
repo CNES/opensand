@@ -15,13 +15,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="ipv4NetMask">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="32" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <xsd:simpleType name="talId">
     <xsd:restriction base="xsd:integer">
         <xsd:minInclusive value="0" />
@@ -88,74 +81,6 @@
 </xsd:simpleType>
 
 <!-- the terminals for sarp sections -->
-<xsd:element name="ipv4">
-    <xsd:complexType>
-        <xsd:choice>
-            <xsd:element ref="terminal_v4" minOccurs="0" maxOccurs="255" />
-        </xsd:choice>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="ipv6">
-    <xsd:complexType>
-        <xsd:choice>
-            <xsd:element ref="terminal_v6" minOccurs="0" maxOccurs="255" />
-        </xsd:choice>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="terminal_v4">
-    <xsd:complexType>
-        <xsd:attribute name="addr" type="ipv4Address">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal IPv4 address
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="mask" type="ipv4NetMask">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal IPv4 mask
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="tal_id" type="talId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the terminal
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
-<xsd:element name="terminal_v6">
-    <xsd:complexType>
-        <xsd:attribute name="addr" type="ipv6Address">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal IPv6 address
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="mask" type="ipv6NetMask">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The terminal IPv6 mask
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-        <xsd:attribute name="tal_id" type="talId">
-            <xsd:annotation>
-                <xsd:documentation xml:lang="en">
-                    The ID of the terminal
-                </xsd:documentation>
-            </xsd:annotation>
-        </xsd:attribute>
-    </xsd:complexType>
-</xsd:element>
-
 <xsd:element name="ethernet">
     <xsd:complexType>
         <xsd:choice>
@@ -285,20 +210,6 @@
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The default terminal ID if no one is found, -1 for none
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="ipv4">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The IPv4 SARP table
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element ref="ipv6">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The IPv6 SARP table
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

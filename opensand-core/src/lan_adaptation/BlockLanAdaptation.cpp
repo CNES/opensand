@@ -4,8 +4,8 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
- * Copyright © 2019 CNES
+ * Copyright © 2020 TAS
+ * Copyright © 2020 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -54,8 +54,7 @@
  */
 BlockLanAdaptation::BlockLanAdaptation(const string &name, struct la_specific specific):
 	Block(name),
-	tuntap_iface(specific.tuntap_iface),
-	is_tap(false)
+	tap_iface(specific.tap_iface)
 {
 }
 
@@ -103,7 +102,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 		break;
 
 		case evt_file:
-			// input data available on TUN handle
+			// input data available on TAP handle
 			this->onMsgFromUp((NetSocketEvent *)event);
 			break;
 
@@ -284,7 +283,7 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 				// add the protocol flag in the header
 				head[i] = (this->contexts.front())->getLanHeader(i, *burst_it);
 				LOG(this->log_receive, LEVEL_DEBUG,
-				    "Add 0x%2x for bit %u in TUN/TAP header\n",
+				    "Add 0x%2x for bit %u in TAP header\n",
 				    head[i], i);
 			}
 
@@ -292,7 +291,7 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			if(write(this->fd, packet.data(), packet.length()) < 0)
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
-				    "Unable to write data on tun or tap "
+				    "Unable to write data on tap "
 				    "interface: %s\n", strerror(errno));
 				success = false;
 				++burst_it;
@@ -379,7 +378,7 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 	NetPacket *packet;
 	NetBurst *burst;
 
-	// read  data received on tun/tap interface
+	// read  data received on tap interface
 	length = event->getSize() - TUNTAP_FLAGS_LEN;
 	read_data = event->getData();
 	data = read_data + TUNTAP_FLAGS_LEN;
@@ -387,7 +386,7 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 	if(this->state != link_up)
 	{
 		LOG(this->log_receive, LEVEL_NOTICE,
-		    "packets received from TUN/TAP, but link is down "
+		    "packets received from TAP, but link is down "
 		    "=> drop packets\n");
 		free(read_data);
 		return false;
@@ -423,7 +422,7 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 	return true;
 }
 
-bool BlockLanAdaptation::allocTunTap(int &fd)
+bool BlockLanAdaptation::allocTap(int &fd)
 {
 	struct ifreq ifr;
 	int err;
@@ -444,13 +443,12 @@ bool BlockLanAdaptation::allocTunTap(int &fd)
 	 *        IFF_NO_PI - Do not provide packet information
 	 */
 
-	/* create TUN or TAP interface */
+	/* create TAP interface */
 	LOG(this->log_init, LEVEL_INFO,
 	    "create %s interface %s\n",
-	    this->is_tap ? "TAP" : "TUN",
-	    this->tuntap_iface.c_str());
-	snprintf(ifr.ifr_name, IFNAMSIZ, this->tuntap_iface.c_str());
-	ifr.ifr_flags = (this->is_tap ? IFF_TAP : IFF_TUN);
+	    this->tap_iface.c_str());
+	snprintf(ifr.ifr_name, IFNAMSIZ, this->tap_iface.c_str());
+	ifr.ifr_flags = IFF_TAP;
 
 	err = ioctl(fd, TUNSETIFF, (void *) &ifr);
 	if(err < 0)
@@ -463,7 +461,7 @@ bool BlockLanAdaptation::allocTunTap(int &fd)
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "TUN/TAP handle with fd %d initialized\n", fd);
+	    "TAP handle with fd %d initialized\n", fd);
 
 	return true;
 }

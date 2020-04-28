@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -29,31 +29,35 @@
  * @file BaseProbe.cpp
  * @brief The BaseProbe class represents an untyped probe
  *        (base class for Probe<T> classes).
- * @author Vincent Duvert <vduvert@toulouse.viveris.com>
+ * @author Vincent Duvert     <vduvert@toulouse.viveris.com>
+ * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
 #include "BaseProbe.h"
 
-#include <stdlib.h>
-#include <string.h>
 
-BaseProbe::BaseProbe(uint8_t id, const string &name,
-                     const string &unit,
-                     bool enabled, sample_type_t type):
-	id(id),
-	name(name),
-	unit(unit),
-	enabled(enabled),
-	s_type(type),
-	values_count(0)
+BaseProbe::BaseProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t sample_type):
+  name(name),
+  unit(unit),
+  enabled(enabled),
+  s_type(sample_type),
+  values_count(0)
 {
 }
+
 
 BaseProbe::~BaseProbe()
 {
 }
 
+
+void BaseProbe::enable(bool enabled)
+{
+  this->enabled = enabled;
+}
+
+
 void BaseProbe::reset()
 {
-	this->values_count = 0;	
+  this->values_count = 0; 
 }

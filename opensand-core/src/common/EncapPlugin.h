@@ -101,9 +101,9 @@ class EncapPlugin: public StackPlugin
 
 		virtual bool init()
 		{
-			this->log = Output::registerLog(LEVEL_WARNING,
-			                                "Encap.%s",
-			                                this->getName().c_str());
+			this->log = Output::Get()->registerLog(LEVEL_WARNING,
+                                             "Encap.%s",
+                                             this->getName().c_str());
 			return true;
 		};
 
@@ -198,7 +198,7 @@ class EncapPlugin: public StackPlugin
 			NetPacket **remaining_data) const = 0;
 
 		/// Output Logs
-		OutputLog *log;
+    std::shared_ptr<OutputLog> log;
 
 		/// map call back name
 		list<string> callback_name;
@@ -256,9 +256,9 @@ class EncapPlugin: public StackPlugin
 
 		virtual bool init()
 		{
-			this->log = Output::registerLog(LEVEL_WARNING,
-			                                "Encap.%s",
-			                                this->getName().c_str());
+			this->log = Output::Get()->registerLog(LEVEL_WARNING,
+                                             "Encap.%s",
+                                             this->getName().c_str());
 			return true;
 		};
 
@@ -268,14 +268,14 @@ class EncapPlugin: public StackPlugin
 		uint8_t dst_tal_id;
 
 		/// Output Logs
-		OutputLog *log;
+    std::shared_ptr<OutputLog> log;
 	};
 
 	virtual bool init()
 	{
-		this->log = Output::registerLog(LEVEL_WARNING,
-		                                "Encap.%s",
-		                                this->getName().c_str());
+		this->log = Output::Get()->registerLog(LEVEL_WARNING,
+                                           "Encap.%s",
+                                           this->getName().c_str());
 		return true;
 	};
 

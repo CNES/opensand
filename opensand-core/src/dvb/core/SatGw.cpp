@@ -67,7 +67,7 @@ SatGw::SatGw(tal_id_t gw_id,
 	gw_scheduling(NULL),
 	l2_from_st_bytes(0),
 	l2_from_gw_bytes(0),
-	gw_mutex("GW"),
+	gw_mutex(),
 	probe_sat_output_gw_queue_size(),
 	probe_sat_output_gw_queue_size_kb(),
 	probe_sat_output_st_queue_size(),
@@ -86,12 +86,12 @@ SatGw::SatGw(tal_id_t gw_id,
 	this->data_out_gw_fifo = new DvbFifo(data_out_gw_id, fifo_size,
 	                                     "data_out_gw");
 	// Output Log
-	this->log_init = Output::registerLog(LEVEL_WARNING,
-	                                     "Dvb.init.spot_%d.gw_%d",
-	                                     this->spot_id, this->gw_id);
-	this->log_receive = Output::registerLog(LEVEL_WARNING,
-	                                     "Dvb.receive.spot_%d.gw_%d",
-	                                     this->spot_id, this->gw_id);
+	this->log_init = Output::Get()->registerLog(LEVEL_WARNING,
+                                              "Dvb.spot_%d.gw_%d.init",
+                                              this->spot_id, this->gw_id);
+	this->log_receive = Output::Get()->registerLog(LEVEL_WARNING,
+                                                 "Dvb.spot_%d.gw_%d.receive",
+                                                 this->spot_id, this->gw_id);
 	this->input_sts = new StFmtSimuList("in");
 	this->output_sts = new StFmtSimuList("out");
 }
@@ -291,86 +291,74 @@ bool SatGw::initAcmLoopMargin(void)
 
 bool SatGw::initProbes()
 {
-	Probe<int> *probe_output_st;
-	Probe<int> *probe_output_st_kb;
-	Probe<int> *probe_l2_to_st;
-	Probe<int> *probe_l2_from_st;
-	Probe<int> *probe_l2_to_gw;
-	Probe<int> *probe_l2_from_gw;
-	Probe<int> *probe_output_gw;
-	Probe<int> *probe_output_gw_kb;
+	std::shared_ptr<Probe<int>> probe_output_st;
+	std::shared_ptr<Probe<int>> probe_output_st_kb;
+	std::shared_ptr<Probe<int>> probe_l2_to_st;
+	std::shared_ptr<Probe<int>> probe_l2_from_st;
+	std::shared_ptr<Probe<int>> probe_l2_to_gw;
+	std::shared_ptr<Probe<int>> probe_l2_from_gw;
+	std::shared_ptr<Probe<int>> probe_output_gw;
+	std::shared_ptr<Probe<int>> probe_output_gw_kb;
 	char probe_name[128];
+  auto output = Output::Get();
 
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Delay buffer size.Output_ST",
 					 this->spot_id, this->gw_id);
-	probe_output_st = Output::registerProbe<int>(
+	probe_output_st = output->registerProbe<int>(
 			probe_name, "Packets", false, SAMPLE_LAST);
-	this->probe_sat_output_st_queue_size.insert(
-			std::pair<unsigned int, Probe<int> *>(this->gw_id,
-			                                      probe_output_st));
+	this->probe_sat_output_st_queue_size.emplace(gw_id, probe_output_st);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Delay buffer size.Output_ST_kb",
 					 this->spot_id, this->gw_id);
-	probe_output_st_kb = Output::registerProbe<int>(
+	probe_output_st_kb = output->registerProbe<int>(
 			probe_name, "Kbits", false, SAMPLE_LAST);
-	this->probe_sat_output_st_queue_size_kb.insert(
-			std::pair<unsigned int, Probe<int> *>(this->gw_id,
-			                                      probe_output_st_kb));
+	this->probe_sat_output_st_queue_size_kb.emplace(gw_id, probe_output_st_kb);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Throughputs.L2_to_ST",
 					 this->spot_id, this->gw_id);
-	probe_l2_to_st = Output::registerProbe<int>(
+	probe_l2_to_st = output->registerProbe<int>(
 			probe_name, "Kbits/s", true, SAMPLE_LAST);
-	this->probe_sat_l2_to_st.insert(
-			std::pair<unsigned int, Probe<int> *>(this->gw_id, probe_l2_to_st));
+	this->probe_sat_l2_to_st.emplace(gw_id, probe_l2_to_st);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Throughputs.L2_from_ST",
 					 this->spot_id, this->gw_id);
-	probe_l2_from_st = Output::registerProbe<int>(
+	probe_l2_from_st = output->registerProbe<int>(
 			probe_name, "Kbits/s", true, SAMPLE_LAST);
-	this->probe_sat_l2_from_st.insert(
-			std::pair<unsigned int, Probe<int> *>(this->gw_id,
-			                                      probe_l2_from_st));
+	this->probe_sat_l2_from_st.emplace(gw_id, probe_l2_from_st);
 
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Throughputs.L2_to_GW",
 					 this->spot_id, this->gw_id);
-	probe_l2_to_gw = Output::registerProbe<int>(
+	probe_l2_to_gw = output->registerProbe<int>(
 			probe_name, "Kbits/s", true, SAMPLE_LAST);
-	this->probe_sat_l2_to_gw.insert(
-			std::pair<unsigned int, Probe<int> *>(this->gw_id,
-			                                      probe_l2_to_gw));
+	this->probe_sat_l2_to_gw.emplace(gw_id, probe_l2_to_gw);
+
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Throughputs.L2_from_GW",
 					 this->spot_id, this->gw_id);
-	probe_l2_from_gw = Output::registerProbe<int>(
+	probe_l2_from_gw = output->registerProbe<int>(
 			probe_name, "Kbits/s", true, SAMPLE_LAST);
-	this->probe_sat_l2_from_gw.insert(
-			std::pair<unsigned int, Probe<int> *>(this->gw_id,
-			                                      probe_l2_from_gw));
+	this->probe_sat_l2_from_gw.emplace(gw_id, probe_l2_from_gw);
+
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Delay buffer size.Output_GW",
 					 this->spot_id, this->gw_id);
-	probe_output_gw = Output::registerProbe<int>(
+	probe_output_gw = output->registerProbe<int>(
 			probe_name, "Packets", false, SAMPLE_LAST);
-	this->probe_sat_output_gw_queue_size.insert(
-			std::pair<unsigned int, Probe<int> *>(this->gw_id,
-			                                      probe_output_gw));
+	this->probe_sat_output_gw_queue_size.emplace(gw_id, probe_output_gw);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Delay buffer size.Output_GW_kb",
 					 this->spot_id, this->gw_id);
-	probe_output_gw_kb = Output::registerProbe<int>(
+	probe_output_gw_kb = output->registerProbe<int>(
 			probe_name, "Kbits", false, SAMPLE_LAST);
-	this->probe_sat_output_gw_queue_size_kb.insert(
-			std::pair<unsigned int, Probe<int> *>(this->gw_id,
-			                                      probe_output_gw_kb));
+	this->probe_sat_output_gw_queue_size_kb.emplace(gw_id, probe_output_gw_kb);
 
 	return true;
 }

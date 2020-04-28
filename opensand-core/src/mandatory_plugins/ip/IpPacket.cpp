@@ -36,7 +36,7 @@
 
 #include <opensand_output/Output.h>
 
-OutputLog *IpPacket::ip_log = NULL;
+std::shared_ptr<OutputLog> IpPacket::ip_log = nullptr;
 
 IpPacket::IpPacket(const unsigned char *data, size_t length):
 	NetPacket(data, length)

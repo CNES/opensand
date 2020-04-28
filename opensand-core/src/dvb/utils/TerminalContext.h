@@ -81,7 +81,7 @@ class TerminalContext
   protected:
 
 	/** Output Log*/
-	OutputLog *log_band;
+  std::shared_ptr<OutputLog> log_band;
 
 	/** Terminal id */
 	tal_id_t tal_id;

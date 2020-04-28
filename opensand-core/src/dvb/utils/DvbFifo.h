@@ -278,7 +278,7 @@ class DvbFifo
 	uint8_t cni;                ///< is Scpc mode add cni as option into gse packet
 
 	// Output log
-	OutputLog *log_dvb_fifo;
+  std::shared_ptr<OutputLog> log_dvb_fifo;
 };
 
 typedef map<qos_t, DvbFifo *> fifos_t;

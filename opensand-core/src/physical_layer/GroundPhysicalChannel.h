@@ -65,16 +65,16 @@ class GroundPhysicalChannel
 	DelayFifo delay_fifo;
 
 	/// Probes
-	Probe<float> *probe_attenuation;
-	Probe<float> *probe_clear_sky_condition;
+	std::shared_ptr<Probe<float>> probe_attenuation;
+	std::shared_ptr<Probe<float>> probe_clear_sky_condition;
 
  protected:
 	/// The terminal or gateway id
 	tal_id_t mac_id;
 
 	/// Logs
-	OutputLog *log_event;
-	OutputLog *log_channel;
+	std::shared_ptr<OutputLog> log_event;
+	std::shared_ptr<OutputLog> log_channel;
 
 	/// The satellite delay model
 	SatDelayPlugin *satdelay_model;
@@ -97,7 +97,7 @@ class GroundPhysicalChannel
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool initGround(const string &channel_name, RtChannel *channel, OutputLog *log_init);
+	bool initGround(const string &channel_name, RtChannel *channel, std::shared_ptr<OutputLog> log_init);
 
 	/**
 	 * @brief Update the attenuation

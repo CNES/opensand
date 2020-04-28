@@ -4,7 +4,7 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 TAS
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,370 +27,329 @@
 
 /**
  * @file Output.h
- * @brief Definition of the Output static class, used by the application to
+ * @brief Definition of the Output singleton class, used by the application to
  *        interact with the output library.
- * @author Vincent Duvert <vduvert@toulouse.viveris.com>
- * @author Fabrice Hobaya <fhobaya@toulouse.viveris.com>
- * @author Alban FRICOT <africot@toulouse.viveris.com>
+ * @author Vincent Duvert     <vduvert@toulouse.viveris.com>
+ * @author Fabrice Hobaya     <fhobaya@toulouse.viveris.com>
+ * @author Alban FRICOT       <africot@toulouse.viveris.com>
+ * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
  */
 
 
 #ifndef _OUTPUT_H
 #define _OUTPUT_H
 
-#include "Probe.h"
-#include "OutputEvent.h"
-#include "OutputLog.h"
-#include "OutputInternal.h"
-#include "OutputOpensand.h"
-
 #include <vector>
-#include <assert.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <stdarg.h>
+#include <memory>
 #include <string>
-#include <dlfcn.h>
+
+#include "Probe.h"
+#include "OutputLog.h"
+#include "OutputMutex.h"
+
 
 #define PRINTFLIKE(fmt_pos, vararg_pos) __attribute__((format(printf,fmt_pos,vararg_pos)))
 
 #define DFLTLOG(level, fmt, args...) \
-	do \
-	{ \
-		Output::sendLog(level, \
-		                " [%s:%s():%d] " fmt, \
-		                __FILE__, __FUNCTION__, __LINE__, ##args); \
-	} \
-	while(0)
+  do \
+  { \
+    Output::Get()->sendLog(level, \
+                           "[%s:%s():%d] " fmt, \
+                           __FILE__, __FUNCTION__, __LINE__, ##args); \
+  } \
+  while(0)
 
 #define LOG(log, level, fmt, args...) \
-	do \
-	{ \
-		if(level <= log->getDisplayLevel()) \
-		{ \
-			Output::sendLog(log, level, \
-			                " [%s:%s():%d] " fmt, \
-			                __FILE__, __FUNCTION__, __LINE__, ##args); \
-		} \
-	} \
-	while(0)
+  do \
+  { \
+    log->sendLog(level, \
+                 "[%s:%s():%d] " fmt, \
+                 __FILE__, __FUNCTION__, __LINE__, ##args); \
+  } \
+  while(0)
 
 
 #define DUMP(data, len) \
-	do \
-	{ \
-		std::string str(""); char x[4]; int i; \
-		for(i=0;i<(signed)len;i++) \
-		{ \
-			sprintf(x, "%02X ", ((unsigned char *)data)[i]); \
-			str += x; \
-		} \
-		Output::sendLog(LEVEL_ERROR, \
-		                "%s", str.c_str()); \
-	} \
-	while(0)
+  do \
+  { \
+    std::string str(""); char x[4]; int i; \
+    for(i=0;i<(signed)len;i++) \
+    { \
+      sprintf(x, "%02X ", ((unsigned char *)data)[i]); \
+      str += x; \
+    } \
+    Output::Get()->sendLog(LEVEL_ERROR, "%s", str.c_str()); \
+  } \
+  while(0)
+
+
+class OutputEvent;
+class LogHandler;
+class StatHandler;
+
 
 class Output
 {
-	friend class CommandThread;
-	friend class OutputOpensand;
-
 public:
-	typedef OutputInternal* create_func_t(const char *);
-	typedef void destroy_func_t(OutputInternal **);
+  /**
+   * @brief Implements the singleton pattern. Initialize the output library
+   *        on first use and retrieve the same instance afterwards.
+   * @return the unique Output instance of the application
+   */
+  static std::shared_ptr<Output> Get();
 
-	~Output();
-	
-	/**
-	 * @brief Initialize the output library
-	 *        Prepares the library for registering probes and logs
-	 *
-	 * @param enabled      Set to false to disable the output library
-	 * @param sock_prefix  Custom socket path prefix (for testing purposes)
-	 * @return true on success, false otherwise
-	 */
-	static bool init(bool enabled,
-	                 const char *sock_prefix = NULL);
+  ~Output();
 
-	/**
-	 * @brief Initialize the output external library
-	 *
-	 * @param enabled      Set to false to disable the output library
-	 * @param path         custom external library path 
-	 * 	 * @return true on success, false otherwise
-	 */
-	static bool initExt(bool enabled, const char * entity,
-	                    const char *path = NULL);
+  /**
+   * @brief Check if output is initialized.
+   *
+   * @return True is it is initialized, false otherwise.
+   */
+  inline bool isInit() { return true; }
 
-	/**
-	 * @brief Check if output is initialized.
-	 *
-	 * @return True is it is initialized, false otherwise.
-	 */
-	static bool isInit();
+  /**
+   * @brief Register a probe in the output library
+   *
+   * @param name          The probe full name (section.subsection.name)
+   * @param enabled       Whether the probe is enabled by default
+   * @param sample_type_t   The sample type
+   *
+   * @return the probe object
+   **/
+  template<typename T>
+  std::shared_ptr<Probe<T>> registerProbe(const std::string& name, bool enabled, sample_type_t type);
 
-	/**
-	 * @brief Close the output
-	 */
-	static void close();
+  /**
+   * @brief Register a probe in the output library
+   *        with variable arguments in name
+   *
+   * @param enabled   Whether the probe is enabled by default
+   * @param type      The sample type
+   * @param name      The probe full name (section.subsection.name) with variable arguments
+   *
+   * @return the probe object
+   **/
+  template<typename T>
+  std::shared_ptr<Probe<T>> registerProbe(bool enabled, sample_type_t type, const char* msg_format, ...);
+      PRINTFLIKE(4, 5);
 
-	/**
-	 * @brief Register a probe in the output library
-	 *
-	 * @param name          The probe name
-	 * @param enabled       Whether the probe is enabled by default
-	 * @param sample_type_t   The sample type
-	 *
-	 * @return the probe object
-	 **/
-	template<typename T>
-	static Probe<T> *registerProbe(const string &name,
-	                               bool enabled,
-	                               sample_type_t type);
+  /**
+   * @brief Register a probe in the output library
+   *
+   * @param name          The probe full name (section.subsection.name)
+   * @param unit          The probe unit
+   * @param enabled       Whether the probe is enabled by default
+   * @param sample_type_t   The sample type
+   *
+   * @return the probe object
+   **/
+  template<typename T>
+  std::shared_ptr<Probe<T>> registerProbe(const std::string& name, const std::string& unit, bool enabled, sample_type_t type);
 
-	/**
-	 * @brief Register a probe in the output library
-	 *
-	 * @param name     The probe name
-	 * @param unit     The probe unit
-	 * @param enabled  Whether the probe is enabled by default
-	 * @param type     The sample type
-	 *
-	 * @return the probe object
-	 **/
-	template<typename T>
-	static Probe<T> *registerProbe(const string &name,
-	                               const string &unit,
-	                               bool enabled, sample_type_t type);
+  /**
+   * @brief Register a probe in the output library
+   *        with variable arguments in name
+   *
+   * @param unit          The probe unit
+   * @param enabled   Whether the probe is enabled by default
+   * @param type      The sample type
+   * @param name      The probe full name (section.subsection.name) with variable arguments
+   *
+   * @return the probe object
+   **/
+  template<typename T>
+  std::shared_ptr<Probe<T>> registerProbe(const std::string& unit, bool enabled, sample_type_t type, const char* msg_format, ...)
+      PRINTFLIKE(5, 6);
 
-	/**
-	 * @brief Register a probe in the output library
-	 *        with variable arguments in name
-	 *
-	 * @param enabled   Whether the probe is enabled by default
-	 * @param type      The sample type
-	 * @param name      The probe name with variable arguments
-	 *
-	 * @return the probe object
-	 **/
-	template<typename T>
-	static Probe<T> *registerProbe(bool enabled,
-	                               sample_type_t type,
-	                               const char *msg_format, ...);
+  /**
+   * @brief Register an event in the output library
+   *
+   * @param identifier   The event name
+   *
+   * @return the event object
+   **/
+  std::shared_ptr<OutputEvent> registerEvent(const std::string& identifier);
 
-	/**
-	 * @brief Register a probe in the output library
-	 *        with variable arguments in name
-	 *
-	 * @param unit     The probe unit
-	 * @param enabled  Whether the probe is enabled by default
-	 * @param type     The sample type
-	 * @param name     The probe name with variable arguments
-	 *
-	 * @return the probe object
-	 **/
-	template<typename T>
-	static Probe<T> *registerProbe(const string &unit,
-	                               bool enabled, sample_type_t type,
-	                               const char *name, ...);
-	/**
-	 * @brief Register an event in the output library
-	 *
-	 * @param identifier   The event name
-	 *
-	 * @return the event object
-	 **/
-	static OutputEvent *registerEvent(const string &identifier);
-	
-	/**
-	 * @brief Register a log with the level Warning in the output library
-	 *
-	 * @param display_level The minimum display level
-	 * @param name          The log name
-	 *
-	 * @return the log object
-	 **/
-	static OutputLog *registerLog(log_level_t display_level, 
-	                              const string &name);
+  /**
+   * @brief Register an event in the output library
+   *        with variable arguments
+   *
+   * @param identifier   The event name with variable arguments
+   *
+   * @return the event object
+   **/
+  std::shared_ptr<OutputEvent> registerEvent(const char* identifier, ...)
+      PRINTFLIKE(2, 3);
+  
+  /**
+   * @brief Register a log with the level Warning in the output library
+   *
+   * @param display_level The minimum display level
+   * @param name          The log name
+   *
+   * @return the log object
+   **/
+  std::shared_ptr<OutputLog> registerLog(log_level_t display_level, const std::string& name);
+  
+  /**
+   * @brief Register a log with the level Warning in the output library
+   *
+   * @param default_display_level  The default minimum display level for 
+   *                               this log
+   * @param name The log name
+   *
+   * @return the log object
+   **/
+  std::shared_ptr<OutputLog> registerLog(log_level_t default_display_level, const char* name, ...)
+      PRINTFLIKE(3, 4);
 
-	/**
-	 * @brief Register an event in the output library
-	 *        with variable arguments
-	 *
-	 * @param identifier   The event name with variable arguments
-	 *
-	 * @return the event object
-	 **/
-	static OutputEvent *registerEvent(const char *identifier, ...);
-	
-	/**
-	 * @brief Register a log with the level Warning in the output library
-	 *
-	 * @param default_display_level  The default minimum display level for 
-	 *                               this log
-	 * @param name The log name
-	 *
-	 * @return the log object
-	 **/
-	static OutputLog *registerLog(log_level_t default_display_level,
-	                              const char* name, ...);
-	
-	/**
-	 * @brief Finish the output library initialization
-	 *       Performs the library registration on the OpenSAND daemon.
-	 *
-	 * @warning Needs to be called after registering probes and before
-	 *          starting using them.
-	 **/
-	static bool finishInit(void);
+  /**
+   * @brief Set the probe state
+   *
+   * @param path      full name of a unit or a probe
+   * @param enabled   Whether the probe is enabled or not
+   */
+  void setProbeState(const std::string& path, bool enabled);
 
-	/**
-	 * @brief Send all probes which got new values sinces the last call.
-	 **/
-	static void sendProbes(void);
+  /**
+   * @brief Set the log level
+   *
+   * @param path    full name of a unit or a log
+   * @param level   The log level
+   */
+  void setLogLevel(const std::string& path, log_level_t level);
 
-	/**
-	 * @brief Send the specified event with the specified message format.
-	 *
-	 * @param event       The event
-	 * @param msg_format  The message format
-	 **/
-	static void sendEvent(OutputEvent *event, const char *msg_format, ...)
-		PRINTFLIKE(2, 3);
+  /**
+   * @brief Finalize the output library configuration.
+   *
+   * @warning Needs to be called after registering probes or they
+   *          wont send anything. Must also be called after each
+   *          reconfiguration.
+   **/
+  void finalizeConfiguration(void);
 
-	/**
-	 * @brief Sent the specified log (debug level) with the specified message
-	 *        format
-	 *
-	 * @param log         The log
-	 * @param log_level   The log level to send
-	 * @param msg_format  The message format
-	 **/
-	static void sendLog(const OutputLog *log,
-	                    log_level_t log_level, 
-	                    const char *msg_format, ...)
-		PRINTFLIKE(3, 4);
-	
-	/**
-	 * @brief Sent a message (with no level specified) with the specified
-	 *        message format
-	 *
-	 * @param log_level   The log level to send
-	 * @param msg_format  The message format
-	 **/
-	static void sendLog(log_level_t log_level, 
-	                    const char *msg_format, ...)
-		PRINTFLIKE(2, 3);
+  /**
+   * @brief Configure the output library to use file-based logs and probes
+   *
+   * @param folder      The path to store produced files in
+   * @param entityName  The name of the entity that will be part of the final files names
+   * @return            Whether or not the configuration was successful
+   **/
+  bool configureLocalOutput(const std::string& folder, const std::string& entityName);
 
-	/**
-	 * @brief Enable output on stdout/stderr
-	 */
-	static void enableStdlog(void);
+  /**
+   * @brief Configure the output library to use UDP socket-based logs and probes
+   *
+   * @param address   Address of the remote host listening for messages
+   * @param statsPort Port used by the remote host to listen for probes
+   * @param logsPort  Port used by the remote host to listen for logs
+   * @return          Whether or not the configuration was successful
+   **/
+  bool configureRemoteOutput(const std::string& address,
+                             unsigned short statsPort,
+                             unsigned short logsPort);
 
-	/**
-	 * @brief Adjust the output log display level
-	 *
-	 * @param level  the new display level
-	 */
-	static void setDisplayLevel(log_level_t level);
+  /**
+   * @brief Send all probes which got new values sinces the last call.
+   **/
+  void sendProbes(void);
 
-	/**
-	 * @brief Set the log levels as defined in the configuration
-	 *
-	 * @param levels    The log levels defines in configuration
-	 * @param specific  User defined levels
-	 */
-	static void setLevels(const map<string, log_level_t> &levels,
-	                      const map<string, log_level_t> &specific);
+  /**
+   * @brief Sent a message (with no level specified) with the specified
+   *        message format
+   *
+   * @param log_level   The log level to send
+   * @param msg_format  The message format
+   **/
+  void sendLog(log_level_t log_level, const char* msg_format, ...)
+      PRINTFLIKE(3, 4);
+
+  /**
+   * @brief Adjust the output log display level
+   *
+   * @param level  the new display level
+   */
+  void setDisplayLevel(log_level_t level);
+
+  /**
+   * @brief Set the log levels as defined in the configuration
+   *
+   * @param levels    The log levels defines in configuration
+   * @param specific  User defined levels
+   */
+  //void setLevels(const map<string, log_level_t> &levels,
+                 //const map<string, log_level_t> &specific);
 
 private:
+  Output();
+  void registerProbe(const std::string& name, std::shared_ptr<BaseProbe> probe);
 
-	Output();
+  class OutputSection;
+  std::shared_ptr<OutputSection> getOrCreateSection(const std::vector<std::string>& names);
 
-	/**
-	 * @brief Set the probe state
-	 *
-	 * @param probe_id  The probe ID
-	 * @param enabled   Whether the probe is enabled or not
-	 */
-	static void setProbeState(uint8_t probe_id, bool enabled);
-
-	/**
-	 * @brief Set the log level
-	 *
-	 * @param log_id  The log id
-	 * @param level   The log level
-	 */
-	static void setLogLevel(uint8_t log_id, log_level_t level);
-
-	/**
-	 * @brief disable all stats and logs
-	 */
-	static void disableCollector(void);
-
-	/**
-	 * @brief Enable output
-	 */
-	static void enableCollector(void);
-
-	/**
-	 * @brief disable logs output toward collector
-	 */
-	static void disableLogs(void);
-
-	/**
-	 * @brief Enable log output toward collector
-	 */
-	static void enableLogs(void);
-	
-	/**
-	 * @brief disable syslog output
-	 */
-	static void disableSyslog(void);
-
-	/**
-	 * @brief Enable syslog output
-	 */
-	static void enableSyslog(void);
-
-	/* handle for dynamic load library */
-	static void *handle;
-
-	/// The output instance
-	static OutputInternal *instance;
-	
+  OutputMutex lock;
+  std::shared_ptr<OutputSection> root;
+  std::shared_ptr<OutputLog> privateLog;
+  std::shared_ptr<OutputLog> defaultLog;
+  std::vector<std::shared_ptr<BaseProbe>> enabledProbes;
+  std::vector<std::shared_ptr<LogHandler>> logHandlers;
+  std::vector<std::shared_ptr<StatHandler>> probeHandlers;
 };
 
-template<typename T>
-Probe<T> *Output::registerProbe(const string &name, bool enabled,
-                                sample_type_t type)
-{
-	return Output::registerProbe<T>(name, "", enabled, type);
-}
 
 template<typename T>
-Probe<T> *Output::registerProbe(const string &name,
-                                const string &unit,
-                                bool enabled, sample_type_t type)
+std::shared_ptr<Probe<T>> Output::registerProbe(bool enabled, sample_type_t type, const char *name, ...)
 {
-	return Output::instance->registerProbe<T>(name, unit, enabled, type);
+  std::va_list args;
+  va_start(args, name);
+  std::string probeName = formatMessage(name, args);
+  va_end(args);
+
+  return registerProbe<T>(probeName, "", enabled, type);
 }
+
 
 template<typename T>
-Probe<T> *Output::registerProbe(bool enabled,
-                                sample_type_t type,
-                                const char *name, ...)
+std::shared_ptr<Probe<T>> Output::registerProbe(const std::string& unit,
+                                                bool enabled,
+                                                sample_type_t type,
+                                                const char *name, ...)
 {
-	char buf[1024];
-	va_list args;
-	
-	va_start(args, name);
+  std::va_list args;
+  va_start(args, name);
+  std::string probeName = formatMessage(name, args);
+  va_end(args);
 
-	vsnprintf(buf, sizeof(buf), name, args);
-
-	va_end(args);
-
-	return Output::registerProbe<T>(buf, "", enabled, type);
+  return registerProbe<T>(probeName, unit, enabled, type);
 }
+
+
+template<typename T>
+std::shared_ptr<Probe<T>> Output::registerProbe(const std::string& name, bool enabled, sample_type_t type)
+{
+  return registerProbe<T>(name, "", enabled, type);
+}
+
+
+template<>
+std::shared_ptr<Probe<int32_t>> Output::registerProbe(const std::string& name,
+                                                      const std::string& unit,
+                                                      bool enabled,
+                                                      sample_type_t type);
+
+
+template<>
+std::shared_ptr<Probe<float>> Output::registerProbe(const std::string& name,
+                                                    const std::string& unit,
+                                                    bool enabled,
+                                                    sample_type_t type);
+
+
+template<>
+std::shared_ptr<Probe<double>> Output::registerProbe(const std::string& name,
+                                                     const std::string& unit,
+                                                     bool enabled,
+                                                     sample_type_t type);
+
 
 #endif

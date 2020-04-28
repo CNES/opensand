@@ -108,9 +108,9 @@ class LanAdaptationPlugin: public StackPlugin
 
 		virtual bool init()
 		{
-			this->log = Output::registerLog(LEVEL_WARNING,
-			                                "LanAdaptation.%s",
-			                                this->getName().c_str());
+			this->log = Output::Get()->registerLog(LEVEL_WARNING,
+                                             "LanAdaptation.%s",
+                                             this->getName().c_str());
 			return true;
 		};
 	};
@@ -184,9 +184,9 @@ class LanAdaptationPlugin: public StackPlugin
 
 		virtual bool init()
 		{
-			this->log = Output::registerLog(LEVEL_WARNING,
-			                                "LanAdaptation.%s",
-			                                this->getName().c_str());
+			this->log = Output::Get()->registerLog(LEVEL_WARNING,
+                                             "LanAdaptation.%s",
+                                             this->getName().c_str());
 			return true;
 		};
 
@@ -234,9 +234,9 @@ class LanAdaptationPlugin: public StackPlugin
 
 	virtual bool init()
 	{
-		this->log = Output::registerLog(LEVEL_WARNING,
-		                                "LanAdaptation.%s",
-		                                this->getName().c_str());
+		this->log = Output::Get()->registerLog(LEVEL_WARNING,
+                                           "LanAdaptation.%s",
+                                           this->getName().c_str());
 		return true;
 	};
 

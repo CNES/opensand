@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODULES='all libs core services lan encap extra'
+MODULES='all libs core services lan encap'
 USEROPTS=""
 
 # Get list of all supported distributions
@@ -18,7 +18,6 @@ usage()
     echo '                      services: build only services packages'
     echo '                      encap:    build only encapsulation plugins'
     echo '                      lan:      build only lan adaptation plugins'
-    echo '                      extra:    build only openbach library'
     echo 'Available OPTIONS :   -m        move packages into manager, daemon and all'
     echo '                                directories.'
     echo '                      -i        install build-dependencies automatically'
@@ -44,6 +43,7 @@ make_core()
 {
     echo "Building OpenSAND core for $TARGET_DIST"
     # Package and install opensand-core
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-network
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-core
     echo "Finished building OpenSAND core for $TARGET_DIST"
 }
@@ -80,14 +80,6 @@ make_lan()
     echo "Finished building OpenSAND LAN adaptation plugins for $TARGET_DIST"
 }
 
-make_extra()
-{
-    echo "Building OpenSAND extra libraries for $TARGET_DIST"
-    # Package and install opensand-output-openbach
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output-openbach || error
-    echo "Finished building OpenSAND extra libraries for $TARGET_DIST"
-}
-
 error()
 {
     exit 1
@@ -116,7 +108,6 @@ move()
     cp $DST_DIR/pkgs/libopensand-conf_*.deb \
        $DST_DIR/pkgs/libopensand-plugin_*.deb \
        $DST_DIR/pkgs/libopensand-output_*.deb \
-       $DST_DIR/pkgs/libopensand-output-openbach_*.deb \
        $DST_DIR/pkgs/libopensand-rt_*.deb \
        $DST_DIR/pkgs/opensand-core_*.deb \
        $DST_DIR/pkgs/opensand-core-conf_*.deb \
@@ -243,9 +234,6 @@ case $MODULE in
         ;;
     "lan")
         make_lan
-        ;;
-    "extra")
-        make_extra
         ;;
     *)
         ;;

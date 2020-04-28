@@ -142,7 +142,7 @@ class BlockManager
 	bool getStatus(void);
 
 	/// Output Log
-	OutputLog *log_rt;
+  std::shared_ptr<OutputLog> log_rt;
 
    private:
 

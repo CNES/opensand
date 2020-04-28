@@ -48,7 +48,7 @@ BlockEncapSat::BlockEncapSat(const string &name):
 	lan_plugin()
 {
 	// register static log
-	NetBurst::log_net_burst = Output::registerLog(LEVEL_WARNING, "NetBurst");
+	NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
 }
 
 BlockEncapSat::~BlockEncapSat()
