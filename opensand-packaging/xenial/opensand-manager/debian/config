@@ -15,12 +15,13 @@ configure(){
         1)
             db_beginblock
             db_input high opensand-manager/collector/exists || true
-            db_get opensand-manager/collector/exists
-            HAS_COLLECTOR=${RET}
             db_endblock
         ;;
         2)
             db_beginblock
+            db_get opensand-manager/collector/exists
+            HAS_COLLECTOR=${RET}
+
             if [ "${HAS_COLLECTOR}" = "true" ]; then
                 db_input high opensand-manager/collector/ip || true
             fi
@@ -66,6 +67,7 @@ configure(){
 }
 
 unseen(){
+    db_fset opensand-manager/collector/exists seen false
     db_fset opensand-manager/collector/ip seen false
     db_fset opensand-manager/collector/stats/port seen false
     db_fset opensand-manager/collector/logs/port seen false

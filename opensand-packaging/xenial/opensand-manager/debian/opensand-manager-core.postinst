@@ -34,7 +34,7 @@ update_start_cmd() {
         # Update stat command
         START_CMD="command_line += \" -f '/var/log/opensand/' -r ${COLLECTOR_IP} -l ${COLLECTOR_LOGS_PORT} -s ${COLLECTOR_STATS_PORT}\""
     else
-        START_CMD="command_line += \" -f '/var/log/opensand/'"
+        START_CMD="command_line += \" -f '/var/log/opensand/'\""
     fi
     # Replace line 279 by start_cmd
     sed -i "279c\        ${START_CMD}" ${SOURCE_FILE}
