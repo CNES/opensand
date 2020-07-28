@@ -47,13 +47,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="satelliteType">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="transparent" />
-        <xsd:enumeration value="regenerative" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <xsd:simpleType name="returnLinkStandardType">
     <xsd:restriction base="xsd:string">
         <xsd:enumeration value="DVB-RCS" />
@@ -354,14 +347,6 @@
     </xsd:annotation>
     <xsd:complexType>
         <xsd:sequence>
-            <xsd:element name="satellite_type" type="satelliteType">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The satellite payload type
-                        <hide>true</hide>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="global_constant_delay" type="xsd:boolean">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">

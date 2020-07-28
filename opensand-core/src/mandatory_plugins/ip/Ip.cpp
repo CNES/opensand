@@ -293,8 +293,7 @@ bool Ip::Context::onMsgIp(IpPacket *ip_packet)
 	}
 	ip_packet->setQos(found_category->second->getId());
 
-	if(this->tal_id != this->gw_id && 
-	   this->satellite_type ==  TRANSPARENT)
+	if(this->tal_id != this->gw_id)
 	{
 		ip_packet->setDstTalId(this->gw_id);
 	}

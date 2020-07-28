@@ -62,28 +62,6 @@ inline bool fileExists(const string &filename)
 	return true;
 }
 
-
-bool DvbChannel::initSatType(void)
-{
-	string sat_type;
-
-	// satellite type
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               SATELLITE_TYPE,
-	                   sat_type))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SATELLITE_TYPE);
-		return false;
-	}
-	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "satellite type = %s\n", sat_type.c_str());
-	this->satellite_type = strToSatType(sat_type);
-
-	return true;
-}
-
 bool DvbChannel::initModcodDefinitionTypes(void)
 {
 	// return link standard type
@@ -238,13 +216,6 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	//********************************************************
 	//         init Common values from sections
 	//********************************************************
-	if(!this->initSatType())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to initialize satellite type\n");
-		goto error;
-	}
-
 	// frame duration
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
 	                   RET_UP_CARRIER_DURATION,

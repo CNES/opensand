@@ -120,12 +120,10 @@ static int gse_ext_check_cb(unsigned char *ext,
 Gse::Gse():
 	EncapPlugin(NET_PROTO_GSE)
 {
-	this->upper[TRANSPARENT].push_back("ROHC");
-	this->upper[TRANSPARENT].push_back("PHS");
-	this->upper[TRANSPARENT].push_back("IP");
-	this->upper[TRANSPARENT].push_back("Ethernet");
-	this->upper[REGENERATIVE].push_back("AAL5/ATM");
-	this->upper[REGENERATIVE].push_back("MPEG2-TS");
+	this->upper.push_back("ROHC");
+	this->upper.push_back("PHS");
+	this->upper.push_back("IP");
+	this->upper.push_back("Ethernet");
 }
 
 

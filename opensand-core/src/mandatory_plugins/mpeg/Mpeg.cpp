@@ -50,9 +50,7 @@
 Mpeg::Mpeg():
 	EncapPlugin(NET_PROTO_MPEG)
 {
-	this->upper[TRANSPARENT].push_back("ULE");
-	this->upper[REGENERATIVE].push_back("AAL5/ATM");
-	this->upper[REGENERATIVE].push_back("ULE");
+	this->upper.push_back("ULE");
 	// register the static packet log
 	MpegPacket::mpeg_log = Output::Get()->registerLog(LEVEL_WARNING, "Encap.Net.MPEG");
 }

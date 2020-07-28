@@ -53,7 +53,6 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	             time_ms_t fwd_down_frame_duration,
 	             time_ms_t ret_up_frame_duration,
 	             time_ms_t stats_period,
-	             sat_type_t sat_type,
 	             EncapPlugin::EncapPacketHandler *pkt_hdl,
 	             StFmtSimuList *input_sts,
 	             StFmtSimuList *output_sts);
@@ -167,9 +166,6 @@ class SpotDownward: public DvbChannel, public DvbFmt
 
 	void setPepCmdApplyTimer(event_id_t pep_cmd_a_timer);
 	event_id_t getPepCmdApplyTimer(void);
-
-	void setAcmTimer(event_id_t new_acm_timer);
-	event_id_t getAcmTimer(void);
 
  protected:
 
@@ -306,9 +302,6 @@ class SpotDownward: public DvbChannel, public DvbFmt
 
 	/// timer used for applying resources allocations received from PEP
 	event_id_t pep_cmd_apply_timer;
-
-	/// timer used to send acm parameter (only for Regenerative)
-	event_id_t acm_timer;
 
 	RequestSimulator *request_simu;
 

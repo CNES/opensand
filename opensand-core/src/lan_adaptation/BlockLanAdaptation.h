@@ -118,9 +118,6 @@ class BlockLanAdaptation: public Block
 		/// SARP table
 		SarpTable sarp_table;
 
-		/// The satellite type
-		sat_type_t satellite_type;
-
 		/// TAP file descriptor
 		int fd;
 

@@ -198,8 +198,6 @@ int main(int argc, char **argv)
   std::string interconnect_addr;
   struct ic_specific spec_ic;
 
-  std::string satellite_type;
-
   std::string conf_path;
   std::string topology_file;
   std::string global_file;
@@ -265,19 +263,6 @@ int main(int argc, char **argv)
   }
   // Output::setLevels(levels, spec_level);
 
-  // retrieve the type of satellite from configuration
-  if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-                   SATELLITE_TYPE,
-                     satellite_type))
-  {
-    DFLTLOG(LEVEL_CRITICAL,
-            "section '%s': missing parameter '%s'\n",
-            COMMON_SECTION, SATELLITE_TYPE);
-    goto quit;
-  }
-  DFLTLOG(LEVEL_NOTICE,
-          "Satellite type = %s\n", satellite_type.c_str());
-
   // load the plugins
   if(!Plugin::loadPlugins(true, plugin_conf_path))
   {
@@ -287,7 +272,6 @@ int main(int argc, char **argv)
   }
 
   // instantiate all blocs
-
   spec_ic.interconnect_addr = interconnect_addr;
 
   block_interconnect = Rt::createBlock<BlockInterconnectUpward,
@@ -302,22 +286,11 @@ int main(int argc, char **argv)
     goto release_plugins;
   }
 
-  block_phy_layer = NULL;
-  if(strToSatType(satellite_type) == TRANSPARENT)
-  {
-    block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-                                      BlockPhysicalLayer::UpwardTransp,
-                                      BlockPhysicalLayer::Downward,
-                                      tal_id_t>("PhysicalLayer", block_interconnect, mac_id);
-  }
-  else if(strToSatType(satellite_type) == REGENERATIVE)
-  {
-    block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-                                      BlockPhysicalLayer::UpwardRegen,
-                                      BlockPhysicalLayer::Downward,
-                                      tal_id_t>("PhysicalLayer", block_interconnect, mac_id);
-  }
-  if(block_phy_layer == NULL)
+  block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
+                                    BlockPhysicalLayer::Upward,
+                                    BlockPhysicalLayer::Downward,
+                                    tal_id_t>("PhysicalLayer", block_interconnect, mac_id);
+  if(!block_phy_layer)
   {
     DFLTLOG(LEVEL_CRITICAL,
             "%s: cannot create the PhysicalLayer block\n",

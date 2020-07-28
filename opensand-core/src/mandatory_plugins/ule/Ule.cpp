@@ -43,14 +43,10 @@
 Ule::Ule():
 	EncapPlugin(NET_PROTO_ULE)
 {
-	this->upper[TRANSPARENT].push_back("ROHC");
-	this->upper[TRANSPARENT].push_back("PHS");
-	this->upper[TRANSPARENT].push_back("IP");
-	this->upper[TRANSPARENT].push_back("Ethernet");
-	this->upper[REGENERATIVE].push_back("ROHC");
-	this->upper[REGENERATIVE].push_back("PHS");
-	this->upper[REGENERATIVE].push_back("IP");
-	this->upper[REGENERATIVE].push_back("Ethernet");
+	this->upper.push_back("ROHC");
+	this->upper.push_back("PHS");
+	this->upper.push_back("IP");
+	this->upper.push_back("Ethernet");
 	// register the static packet log
 	UlePacket::ule_log = Output::Get()->registerLog(LEVEL_WARNING, "Encap.Net.ULE");
 }

@@ -96,7 +96,6 @@ class Ethernet: public LanAdaptationPlugin
 		bool initLanAdaptationContext(
 			tal_id_t tal_id,
 			tal_id_t gw_id,
-			sat_type_t satellite_type,
 			const SarpTable *sarp_table);
 
 	  protected:

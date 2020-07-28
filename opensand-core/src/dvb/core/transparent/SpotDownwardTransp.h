@@ -51,7 +51,6 @@ class SpotDownwardTransp: public SpotDownward
 		             time_ms_t fwd_down_frame_duration,
 		             time_ms_t ret_up_frame_duration,
 		             time_ms_t stats_period,
-		             sat_type_t sat_type,
 		             EncapPlugin::EncapPacketHandler *pkt_hdl,
 		             StFmtSimuList *input_sts,
 		             StFmtSimuList *output_sts);

@@ -41,7 +41,6 @@
 #include "Plugin.h"
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
-#include "GenericSwitch.h"
 #include "SlottedAlohaFrame.h"
 #include "OpenSandConf.h"
 
@@ -642,29 +641,14 @@ bool BlockDvbSat::Upward::onInit()
 
 bool BlockDvbSat::Upward::initMode(void)
 {
-	// Delay to apply to the medium
-	if(this->satellite_type == REGENERATIVE)
+	// create the reception standard
+	if(this->return_link_std == DVB_RCS2)
 	{
-		if(this->return_link_std == DVB_RCS2)
-		{
-			this->reception_std = new DvbRcs2Std(this->pkt_hdl); 
-		}
-		else
-		{
-			this->reception_std = new DvbRcsStd(this->pkt_hdl); 
-		}
+		this->reception_std = new DvbRcs2Std(); 
 	}
 	else
 	{
-		// create the reception standard
-		if(this->return_link_std == DVB_RCS2)
-		{
-			this->reception_std = new DvbRcs2Std(); 
-		}
-		else
-		{
-			this->reception_std = new DvbRcsStd(); 
-		}
+		this->reception_std = new DvbRcsStd(); 
 	}
 	if(this->reception_std == NULL)
 	{
@@ -753,12 +737,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	{
 		case MSG_TYPE_DVB_BURST:
 		{
-			/* the DVB frame contains a burst of packets:
-			 *  - if the satellite is a regenerative one, forward the burst to the
-			 *    encapsulation layer,
-			 *  - if the satellite is a transparent one, forward DVB burst as the
-			 *    other DVB frames.
-			 */
 			LOG(this->log_receive, LEVEL_INFO,
 			    "DVB-Frame received\n");
 
@@ -783,7 +761,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				return false;
 			}
 
-			/* The satellite is a regenerative or transparent one 
+			/* The satellite is a transparent one 
 			 * and the DVB frame contains a burst:
 			 *  - extract the packets from the DVB frame,
 			 *  - find the destination spot ID for each packet
@@ -821,12 +799,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 		// Generic control frames (SAC, TTP, etc)
 		case MSG_TYPE_SAC:
-			if(!this->handleSac(dvb_frame,
-			                    current_gw))
-			{
-				return false;
-			}
-		// do not break here !
 		case MSG_TYPE_TTP:
 		case MSG_TYPE_SYNC:
 		case MSG_TYPE_SESSION_LOGON_RESP:

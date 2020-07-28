@@ -111,29 +111,6 @@ inline component_t getComponentType(string name)
 		return unknown_compo;
 };
 
-/// Satellite type
-typedef enum
-{
-	REGENERATIVE,
-	TRANSPARENT,
-} sat_type_t;
-
-
-/**
- * @brief get the satellite type according to its name
- *
- * @param sat_type the satellite type name
- *
- * @return the satellite type enum
- */
-inline sat_type_t strToSatType(string sat_type)
-{
-	if(sat_type == "regenerative")
-		return REGENERATIVE;
-	else
-		return TRANSPARENT;
-}
-
 /// Return link standard 
 typedef enum
 {
@@ -145,7 +122,7 @@ typedef enum
 /**
  * @brief get the return link standard according to its name
  *
- * @param sat_type the return link standard name
+ * @param return_link_standard  the return link standard name
  *
  * @return the return link standard enum
  */

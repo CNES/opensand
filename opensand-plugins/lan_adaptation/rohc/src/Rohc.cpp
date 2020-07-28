@@ -95,12 +95,9 @@ static void rohc_traces(void *const priv_ctx,
 Rohc::Rohc():
 	LanAdaptationPlugin(NET_PROTO_ROHC)
 {
-	this->upper[TRANSPARENT].push_back("IP");
-	this->upper[TRANSPARENT].push_back("Ethernet");
-	this->upper[TRANSPARENT].push_back("PHS");
-	this->upper[REGENERATIVE].push_back("IP");
-	this->upper[REGENERATIVE].push_back("Ethernet");
-	this->upper[REGENERATIVE].push_back("PHS");
+	this->upper.push_back("IP");
+	this->upper.push_back("Ethernet");
+	this->upper.push_back("PHS");
 }
 
 

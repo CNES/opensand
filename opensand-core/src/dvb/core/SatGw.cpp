@@ -61,10 +61,6 @@ SatGw::SatGw(tal_id_t gw_id,
 	spot_id(spot_id),
 	data_in_st_id(data_in_st_id),
 	data_in_gw_id(data_in_gw_id),
-	complete_st_dvb_frames(),
-	complete_gw_dvb_frames(),
-	st_scheduling(NULL),
-	gw_scheduling(NULL),
 	l2_from_st_bytes(0),
 	l2_from_gw_bytes(0),
 	gw_mutex(),
@@ -98,15 +94,6 @@ SatGw::SatGw(tal_id_t gw_id,
 
 SatGw::~SatGw()
 {
-	this->complete_st_dvb_frames.clear();
-	this->complete_gw_dvb_frames.clear();
-
-	// remove scheduling (only for regenerative satellite)
-	if(st_scheduling)
-		delete this->st_scheduling;
-	if(gw_scheduling)
-		delete this->gw_scheduling;
-
 	delete this->input_sts;
 	delete this->output_sts;
 
@@ -118,173 +105,12 @@ SatGw::~SatGw()
 
 bool SatGw::init()
 {
-	string sat_type;
-	string ret_lnk_std;
-	sat_type_t satellite_type;
-
-	// satellite type
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               SATELLITE_TYPE,
-	                   sat_type))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SATELLITE_TYPE);
-		return false;
-	}
-	satellite_type = strToSatType(sat_type);
-
-	if(satellite_type ==  REGENERATIVE)
-	{
-		// return link standard type
-		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		                   RETURN_LINK_STANDARD,
-		                   ret_lnk_std))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s': missing parameter '%s'\n",
-			    COMMON_SECTION, RETURN_LINK_STANDARD);
-			return false;
-		}
-
-		if(!this->initModcodSimu(strToReturnLinkStd(ret_lnk_std)))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to initialize modcod simulation\n");
-			return false;
-		}
-
-		if(!this->initAcmLoopMargin())
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to initialize ACM loop margins\n");
-			return false;
-		}
-	}
-
 	if(!this->initProbes())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize probes\n");
 		return false;
 	}
-
-	return true;
-}
-
-bool SatGw::initScheduling(time_ms_t fwd_timer_ms,
-                           EncapPlugin::EncapPacketHandler *pkt_hdl,
-                           const TerminalCategoryDama *const st_category,
-                           const TerminalCategoryDama *const gw_category)
-{
-	fifos_t st_fifos;
-	st_fifos[this->data_out_st_fifo->getCarrierId()] = this->data_out_st_fifo;
-	fifos_t gw_fifos;
-	gw_fifos[this->data_out_gw_fifo->getCarrierId()] = this->data_out_gw_fifo;
-	this->st_scheduling = new ForwardSchedulingS2(fwd_timer_ms,
-	                                              pkt_hdl,
-	                                              st_fifos,
-	                                              this->output_sts,
-	                                              this->s2_modcod_def,
-	                                              st_category,
-	                                              this->spot_id,
-	                                              false,
-	                                              this->gw_id,
-	                                              "ST");
-	if(!this->st_scheduling)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot create down ST scheduling for spot %u\n",
-		    this->spot_id);
-		return false;
-	}
-	this->gw_scheduling = new ForwardSchedulingS2(fwd_timer_ms,
-	                                              pkt_hdl,
-	                                              gw_fifos,
-	                                              this->output_sts,
-	                                              this->s2_modcod_def,
-	                                              gw_category,
-	                                              this->spot_id,
-	                                              false,
-	                                              this->gw_id,
-	                                              "GW");
-	if(!this->gw_scheduling)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot create down GW scheduling for spot %u\n",
-		    this->spot_id);
-		return false;
-	}
-	return true;
-}
-
-
-bool SatGw::initModcodSimu(return_link_standard_t return_link_standard)
-{
-	string def = MODCOD_DEF_RCS;
-	vol_sym_t length = 0;
-
-	// Get the required burst length in DVB-RCS2 case
-	if(return_link_standard == DVB_RCS2)
-	{
-		def = MODCOD_DEF_RCS2;
-
-		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-			               RCS2_BURST_LENGTH,
-		                   length))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s': missing parameter '%s'\n",
-			    COMMON_SECTION, RCS2_BURST_LENGTH);
-			return false;
-		}
-	}
-
-	if(!this->initModcodDefFile(def.c_str(),
-	                            &this->rcs_modcod_def,
-	                            length))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the modcod part of the "
-		    "initialisation\n");
-		return false;
-	}
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->s2_modcod_def))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the modcod part of the "
-		    "initialisation\n");
-		return false;
-	}
-
-	if(!this->addTerminal(this->gw_id))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to register simulated GW with MAC "
-		    "ID %u\n", this->gw_id);
-		return false;
-	}
-
-	return true;
-
-}
-
-bool SatGw::initAcmLoopMargin(void)
-{
-	double down_acm_margin_db;
-	// regenerative satellite handles downlink MODCOD, therefor
-	// downlink ACM loop margin should be applied here
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   FORWARD_DOWN_ACM_LOOP_MARGIN,
-	                   down_acm_margin_db))
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    PHYSICAL_LAYER_SECTION, FORWARD_DOWN_ACM_LOOP_MARGIN);
-		return false;
-	}
-	this->output_sts->setAcmLoopMargin(down_acm_margin_db);
 
 	return true;
 }
@@ -360,132 +186,6 @@ bool SatGw::initProbes()
 			probe_name, "Kbits", false, SAMPLE_LAST);
 	this->probe_sat_output_gw_queue_size_kb.emplace(gw_id, probe_output_gw_kb);
 
-	return true;
-}
-
-bool SatGw::schedule(const time_sf_t current_superframe_sf,
-                     time_ms_t current_time)
-{
-	// not used by scheduling here
-	uint32_t remaining_allocation = 0;
-
-	if(!this->st_scheduling || !this->gw_scheduling)
-	{
-		return false;
-	}
-
-	if(!this->st_scheduling->schedule(current_superframe_sf,
-	                                  current_time,
-	                                  &this->complete_st_dvb_frames,
-	                                  remaining_allocation))
-	{
-		return false;
-	}
-	if(!this->gw_scheduling->schedule(current_superframe_sf,
-	                                  current_time,
-	                                  &this->complete_gw_dvb_frames,
-	                                  remaining_allocation))
-	{
-		return false;
-	}
-	return true;
-}
-
-
-bool SatGw::addTerminal(tal_id_t tal_id)
-{
-	// check for column in FMT simulation list
-	if(!this->input_sts->isStPresent(tal_id) &&
-	   !this->addInputTerminal(tal_id, this->rcs_modcod_def))
-	{
-		LOG(this->log_receive, LEVEL_ERROR,
-				"failed to register simulated ST with MAC "
-				"ID %u\n", tal_id);
-		return false;
-	}
-	if(!this->output_sts->isStPresent(tal_id) &&
-	   !this->addOutputTerminal(tal_id, this->s2_modcod_def))
-	{
-		LOG(this->log_receive, LEVEL_ERROR,
-				"failed to register simulated ST with MAC "
-				"ID %u\n", tal_id);
-		return false;
-	}
-
-	return true;
-}
-
-bool SatGw::updateFmt(DvbFrame *dvb_frame,
-                      EncapPlugin::EncapPacketHandler *pkt_hdl)
-{
-	tal_id_t src_tal_id;
-	double cn;
-	uint8_t msg_type = dvb_frame->getMessageType();
-
-	switch(msg_type)
-	{
-		case MSG_TYPE_SAC:
-		{
-			Sac *sac = (Sac *)dvb_frame;
-			src_tal_id = sac->getTerminalId();
-			cn = dvb_frame->getCn();
-			LOG(this->log_receive, LEVEL_INFO,
-					"Uplink CNI for terminal %u = %f\n",
-					src_tal_id, cn);
-			this->setRequiredCniInput(src_tal_id, cn);
-			break;
-		}
-		case MSG_TYPE_DVB_BURST:
-		{
-			DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
-
-			// decode the first packet in frame to be able to get source terminal ID
-			if(!pkt_hdl->getSrc(frame->getPayload(), src_tal_id))
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-						"unable to read source terminal ID in "
-						"frame, won't be able to update C/N "
-						"value\n");
-			}
-			else
-			{
-				cn = frame->getCn();
-				LOG(this->log_receive, LEVEL_INFO,
-						"Uplink CNI for terminal %u = %f\n",
-						src_tal_id, cn);
-				this->setRequiredCniInput(src_tal_id, cn);
-			}
-			break;
-		}
-		default:
-		break;
-	}
-	return true;
-}
-
-bool SatGw::handleSac(DvbFrame *dvb_frame)
-{
-	double cni;
-	// handle SAC here to get the uplink ACM parameters
-	Sac *sac = (Sac *)dvb_frame;
-	tal_id_t tal_id = sac->getTerminalId();
-	LOG(this->log_receive, LEVEL_INFO,
-	    "Get SAC from ST%u, with C/N0 = %.2f\n",
-	    tal_id, sac->getCni());
-
-	// TODO we should apply the delay between terminal and satellite before
-	//      updating the C/N0 value !
-	//      we should have two FIFOs with half delay, one before handling frames,
-	//      the other after !
-	this->setRequiredCniOutput(tal_id, sac->getCni());
-
-	// update ACM parameters with uplink value, thus the GW will
-	// known uplink C/N and thus update uplink MODCOD used in TTP
-	cni = this->getRequiredCniInput(tal_id);
-	sac->setAcm(cni);
-
-	// TODO we won't update ACM parameters if we did not receive
-	// traffic from this terminal, GW will have a wrong value...
 	return true;
 }
 
@@ -571,16 +271,6 @@ DvbFifo *SatGw::getLogonFifo(void) const
 	return this->logon_fifo;
 }
 
-list<DvbFrame *> &SatGw::getCompleteStDvbFrames(void)
-{
-	return this->complete_st_dvb_frames;
-}
-
-list<DvbFrame *> &SatGw::getCompleteGwDvbFrames(void)
-{
-	return this->complete_gw_dvb_frames;
-}
-
 void SatGw::updateL2FromSt(vol_bytes_t bytes)
 {
 	RtLock lock(this->gw_mutex);
@@ -612,11 +302,6 @@ vol_bytes_t SatGw::getL2FromGw(void)
 spot_id_t SatGw::getSpotId(void)
 {
 	return this->spot_id;
-}
-
-FmtDefinitionTable* SatGw::getOutputModcodDef(void)
-{
-	return this->s2_modcod_def;
 }
 
 void SatGw::print(void)

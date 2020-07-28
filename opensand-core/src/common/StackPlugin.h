@@ -249,13 +249,11 @@ class StackPlugin: public OpenSandPlugin
 
 		/** @brief Get the list of protocols that can be encapsulated
 		 *
-		 *  @param sat_type The satellite payload type (REGENERATIVE or
-		 *                                              TRANSPARENT)
 		 *  @param return The list of protocols that can be encapsulated
 		 */
-		vector<string> getAvailableUpperProto(sat_type_t sat_type) const
+		vector<string> getAvailableUpperProto() const
 		{
-			return plugin.upper[sat_type];
+			return plugin.upper;
 		};
 
 		/**
@@ -269,11 +267,9 @@ class StackPlugin: public OpenSandPlugin
 		 * @brief Set the encapsulated packet handler
 		 *
 		 * @param pkt_hdl  The encapsulated packet handler
-		 * @param sat_type The type of satellite payload
 		 * @return true if this type of packet can be encapsulated, false otherwise
 		 */
-		virtual bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl,
-		                                   sat_type_t sat_type)
+		virtual bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl)
 		{
 			if(!pkt_hdl)
 			{
@@ -283,10 +279,10 @@ class StackPlugin: public OpenSandPlugin
 
 			vector<string>::iterator iter;
 
-			iter = find((plugin.upper[sat_type]).begin(),
-			            (plugin.upper[sat_type]).end(), pkt_hdl->getName());
+			iter = find((plugin.upper).begin(),
+			            (plugin.upper).end(), pkt_hdl->getName());
 
-			if(iter == (plugin.upper[sat_type]).end())
+			if(iter == (plugin.upper).end())
 				return false;
 
 			this->current_upper = pkt_hdl;
@@ -453,9 +449,8 @@ class StackPlugin: public OpenSandPlugin
 	/// The EtherType (or EtherType like) of the associated protocol
 	uint16_t ether_type;
 
-	/** The list of protocols that can be "encapsulated" according to satellite
-	 *  payload type */
-	map<sat_type_t, vector<string> > upper;
+	/// The list of protocols that can be "encapsulated"
+	vector<string> upper;
 
 	/// The context
 	StackContext *context;

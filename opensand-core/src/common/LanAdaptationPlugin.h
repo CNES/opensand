@@ -137,19 +137,16 @@ class LanAdaptationPlugin: public StackPlugin
 		 * @brief Initialize the plugin with some bloc configuration
 		 *
 		 * @param tal_id           The terminal ID
-		 * @param satellite_type   The satellite type
 		 * @param class_list       A list of service classes
 		 * @return true on success, false otherwise
 		 */
 		virtual bool initLanAdaptationContext(
 			tal_id_t tal_id,
 			tal_id_t gw_id,
-			sat_type_t satellite_type,
 			const SarpTable *sarp_table)
 		{
 			this->tal_id = tal_id;
 			this->gw_id = gw_id;
-			this->satellite_type = satellite_type;
 			this->sarp_table = sarp_table;
 			return true;
 		};
@@ -170,16 +167,14 @@ class LanAdaptationPlugin: public StackPlugin
 		 */
 		virtual bool handleTap() = 0;
 
-		bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl,
-		                           sat_type_t sat_type)
+		bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl)
 		{
 			if(!pkt_hdl && this->handle_net_packet)
 			{
 				this->current_upper = NULL;
 				return true;
 			}
-			return StackPlugin::StackContext::setUpperPacketHandler(pkt_hdl,
-			                                                        sat_type);
+			return StackPlugin::StackContext::setUpperPacketHandler(pkt_hdl);
 		}
 
 		virtual bool init()
@@ -200,9 +195,6 @@ class LanAdaptationPlugin: public StackPlugin
 		
 		/// The Gateway ID
 		tal_id_t gw_id;
-
-		/// The satellite type
-		sat_type_t satellite_type;
 
 		/// The SARP table
 		const SarpTable *sarp_table;

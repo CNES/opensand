@@ -172,7 +172,6 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 					{
 						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id,
 							                                      this->group_id,
-						                                          this->satellite_type,
 						                                          &this->sarp_table))
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
@@ -305,7 +304,6 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 		}
 
 		if(OpenSandConf::isGw(tal_id) &&
-		   this->satellite_type == TRANSPARENT &&
 		   !OpenSandConf::isGw(pkt_tal_id))
 		{
 			// packet should be forwarded

@@ -271,12 +271,12 @@ static bool test_lan_adapt(string src_filename,
 		}
 		pkt_hdl = plugin->getPacketHandler();
 		context = plugin->getContext();
-		if(!context->setUpperPacketHandler(NULL, TRANSPARENT))
+		if(!context->setUpperPacketHandler(NULL))
 		{
 			INFO("LAN adaptation plugin %s needs a packet handler, find one\n",
 			       name.c_str());
 
-			vector<string> upper = context->getAvailableUpperProto(TRANSPARENT);
+			vector<string> upper = context->getAvailableUpperProto();
 			// try to add a supported upper layer
 			for(vector<string>::iterator iter = upper.begin();
 			    iter != upper.end(); ++iter)
@@ -292,8 +292,7 @@ static bool test_lan_adapt(string src_filename,
 						break;
 					}
 					if(!context->setUpperPacketHandler(
-								up_plugin->getPacketHandler(),
-								TRANSPARENT))
+								up_plugin->getPacketHandler()))
 					{
 						ERROR("failed to set upper packet src_handler for "
 						        "%s context\n", name.c_str());
@@ -301,7 +300,7 @@ static bool test_lan_adapt(string src_filename,
 						break;
 					}
 					// set network as upper layer for the new context
-					if(!up_plugin->getContext()->setUpperPacketHandler(NULL, TRANSPARENT))
+					if(!up_plugin->getContext()->setUpperPacketHandler(NULL))
 					{
 						INFO("%s does not support %s as upper layer either\n",
 						      up_plugin->getName().c_str(), pkt_hdl->getName().c_str());
@@ -345,7 +344,7 @@ static bool test_lan_adapt(string src_filename,
 		for(lan_contexts_t::iterator ctx = contexts.begin();
 		    ctx != contexts.end(); ++ctx)
 	    {
-			(*ctx)->initLanAdaptationContext(1, 0, TRANSPARENT,
+			(*ctx)->initLanAdaptationContext(1, 0,
 			                                 &sarp_table);
 		}
 
@@ -429,13 +428,13 @@ static void test_encap_and_decap(
 			continue;
 		}
 		context = plugin->getContext();
-		if(!context->setUpperPacketHandler(pkt_hdl, TRANSPARENT))
+		if(!context->setUpperPacketHandler(pkt_hdl))
 		{
 
 			INFO("cannot set %s as upper layer for %s context, find another one\n",
 			       pkt_hdl->getName().c_str(), name.c_str());
 
-			vector<string> upper = context->getAvailableUpperProto(TRANSPARENT);
+			vector<string> upper = context->getAvailableUpperProto();
 			// try to add a supported upper layer
 			for(vector<string>::iterator iter = upper.begin();
 			    iter != upper.end(); ++iter)
@@ -456,8 +455,7 @@ static void test_encap_and_decap(
 						break;
 					}
 					if(!context->setUpperPacketHandler(
-								up_plugin->getPacketHandler(),
-								TRANSPARENT))
+								up_plugin->getPacketHandler()))
 					{
 						ERROR("failed to set upper packet src_handler for "
 						        "%s context\n", name.c_str());
@@ -471,7 +469,7 @@ static void test_encap_and_decap(
 					}
 
 					// add LAN Adapation packet handler over this context
-					if(!up_plugin->getContext()->setUpperPacketHandler(pkt_hdl, TRANSPARENT))
+					if(!up_plugin->getContext()->setUpperPacketHandler(pkt_hdl))
 					{
 						INFO("%s does not support %s as upper layer either\n",
 						      up_plugin->getName().c_str(), pkt_hdl->getName().c_str());

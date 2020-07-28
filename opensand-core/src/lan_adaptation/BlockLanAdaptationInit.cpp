@@ -57,22 +57,8 @@ bool BlockLanAdaptation::onInit(void)
 	int lan_scheme_nbr;
 	LanAdaptationPlugin *upper = NULL;
 	LanAdaptationPlugin *plugin;
-	string sat_type;
-	sat_type_t satellite_type;
 	lan_contexts_t contexts;
 	int fd = -1;
-
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
-		               SATELLITE_TYPE, sat_type))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "%s missing from section %s.\n", COMMON_SECTION,
-		    SATELLITE_TYPE);
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "satellite type = %s\n", sat_type.c_str());
-	satellite_type = strToSatType(sat_type);
 
 	// get the number of lan adaptation context to use
 	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
@@ -102,17 +88,14 @@ bool BlockLanAdaptation::onInit(void)
 		context = plugin->getContext();
 		contexts.push_back(context);
 		if(upper == NULL &&
-		   !context->setUpperPacketHandler(NULL,
-		                                   satellite_type))
+		   !context->setUpperPacketHandler(NULL))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot use %s for packets read on the interface",
 			    context->getName().c_str());
 			return false;
 		}
-		else if(upper && !context->setUpperPacketHandler(
-										upper->getPacketHandler(),
-										satellite_type))
+		else if(upper && !context->setUpperPacketHandler(upper->getPacketHandler()))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "upper lan adaptation type %s is not supported "
@@ -164,21 +147,7 @@ bool BlockLanAdaptation::Downward::onInit(void)
 
 bool BlockLanAdaptation::Upward::onInit(void)
 {
-	string sat_type;
 	int dflt = -1;
-
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               SATELLITE_TYPE, sat_type))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "%s missing from section %s.\n", COMMON_SECTION,
-		    SATELLITE_TYPE);
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "satellite type = %s\n", sat_type.c_str());
-	this->satellite_type = strToSatType(sat_type);
-
 
 	if(!Conf::getValue(Conf::section_map[SARP_SECTION],
 		               DEFAULT, dflt))

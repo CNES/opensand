@@ -124,7 +124,6 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	                                           RETURN_UP_BAND,
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
-	                                           this->satellite_type,
 	                                           this->rcs_modcod_def,
 	                                           sa_categories,
 	                                           sa_terminal_affectation,
@@ -560,7 +559,6 @@ bool SpotUpwardTransp::checkIfScpc()
 	                                         SCPC,
 	                                         // used for checking, no need to get a relevant value
 	                                         5,
-	                                         TRANSPARENT,
 	                                         // we need S2 modcod definitions
 	                                         this->s2_modcod_def,
 	                                         scpc_categories,

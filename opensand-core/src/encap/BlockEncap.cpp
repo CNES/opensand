@@ -245,7 +245,6 @@ bool BlockEncap::onInit()
 	string up_return_encap_proto;
 	string downlink_encap_proto;
 	string lan_name;
-	string sat_type;
 	string ret_lnk_std;
 	ConfigurationList option_list;
 	vector <EncapPlugin::EncapContext *> up_return_ctx;
@@ -257,23 +256,7 @@ bool BlockEncap::onInit()
 	string compo_name;
 	component_t host;
 
-	// satellite type: regenerative or transparent ?
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION], 
-	                   SATELLITE_TYPE,
-	                   sat_type))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, SATELLITE_TYPE);
-		goto error;
-	}
-
-	LOG(this->log_init, LEVEL_INFO,
-	    "satellite type = %s\n", sat_type.c_str());
-	
-	this->satellite_type = strToSatType(sat_type);
 	((Upward *)this->upward)->setMacId(this->mac_id);
-	((Upward *)this->upward)->setSatelliteType(this->satellite_type);
 
 	// return link standard
 	if (!Conf::getValue(Conf::section_map[COMMON_SECTION],
@@ -337,17 +320,14 @@ bool BlockEncap::onInit()
 	}
 	else
 	{
-		if (this->satellite_type == TRANSPARENT)
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "SCPC mode available - BlockEncap");
+		if(!this->getSCPCEncapContext(lan_plugin, up_return_ctx_scpc,
+		                              ret_lnk_std, "return/up")) 
 		{
-			LOG(this->log_init, LEVEL_NOTICE,
-			    "SCPC mode available - BlockEncap");
-			if(!this->getSCPCEncapContext(lan_plugin, up_return_ctx_scpc,
-			                              ret_lnk_std, "return/up")) 
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "Cannot get SCPC Up/Return Encapsulation context");
-				goto error;
-			}
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Cannot get SCPC Up/Return Encapsulation context");
+			goto error;
 		}
 
 		if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST, 
@@ -381,7 +361,7 @@ bool BlockEncap::onInit()
 	    compo_name.c_str());
 	host = getComponentType(compo_name);
 
-	if(host == terminal || this->satellite_type == REGENERATIVE)
+	if(host == terminal)
 	{
 		// reorder reception context to get the deencapsulation contexts in the
 		// right order
@@ -622,11 +602,6 @@ void BlockEncap::Upward::setMacId(tal_id_t id)
 	this->mac_id = id;
 }
 
-void BlockEncap::Upward::setSatelliteType(sat_type_t sat_type)
-{
-	this->satellite_type = sat_type;
-}
-
 bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 {
 	vector <EncapPlugin::EncapContext *>::iterator iter;
@@ -647,8 +622,7 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 	    nb_bursts, burst->name().c_str());
 
 	if(burst->name() == this->scpc_encap &&
-	   OpenSandConf::isGw(this->mac_id) &&
-	   this->satellite_type == TRANSPARENT)
+	   OpenSandConf::isGw(this->mac_id))
 	{
 		// SCPC case
 
@@ -784,8 +758,7 @@ bool BlockEncap::getEncapContext(const char *scheme_list,
 		context = plugin->getContext();
 		ctx.push_back(context);
 		if(!context->setUpperPacketHandler(
-					upper_encap->getPacketHandler(),
-					this->satellite_type))
+					upper_encap->getPacketHandler()))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "upper encapsulation type %s is not supported "
@@ -846,8 +819,7 @@ bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
 		context = plugin->getContext();
 		ctx.push_back(context);
 		if(!context->setUpperPacketHandler(
-					upper_encap->getPacketHandler(),
-					this->satellite_type))
+					upper_encap->getPacketHandler()))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "upper encapsulation type %s is not supported "

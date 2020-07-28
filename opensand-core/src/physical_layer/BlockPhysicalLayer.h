@@ -91,7 +91,7 @@ class BlockPhysicalLayer: public Block
 		 *
 		 * @return the current C/N
 		 */
-		virtual double getCn(DvbFrame *dvb_frame) const = 0;
+		double getCn(DvbFrame *dvb_frame) const;
 
 	 public:
 		/**
@@ -122,76 +122,6 @@ class BlockPhysicalLayer: public Block
 		 * @return true on success, false otherwise
 		 */
 		bool onEvent(const RtEvent *const event);
-	};
-
-	/**
-	 * @class UpwardTransp
-	 * @brief Ground Upward Physical Layer Channel for transparent satellite
-	 */
-	class UpwardTransp: public Upward
-	{
-	 public:
-		/**
-		 * @brief Constructor of the ground upward physical channel
-		 *
-		 * @param name  the name of the channel
-		 * @param mac_id  the id of the ST or of the GW
-		 */
-		UpwardTransp(const string &name, tal_id_t mac_id):
-			Upward(name, mac_id)
-		{
-		}
-
-		/**
-		 * @brief Destroy the Channel
-		 */
-		virtual ~UpwardTransp()
-		{
-		}
-
-		/**
-		 * @brief Get the C/N fot the current DVB frame
-		 *
-		 * @param dvb_frame  the current DVB frame
-		 *
-		 * @return the current C/N
-		 */
-		double getCn(DvbFrame *dvb_frame) const;
-	};
-
-	/**
-	 * @class UpwardRegen
-	 * @brief Ground Upward Physical Layer Channel for regenerative satellite
-	 */
-	class UpwardRegen: public Upward
-	{
-	 public:
-		/**
-		 * @brief Constructor of the ground upward physical channel
-		 *
-		 * @param name  the name of the channel
-		 * @param mac_id  the id of the ST or of the GW
-		 */
-		UpwardRegen(const string &name, tal_id_t mac_id):
-			Upward(name, mac_id)
-		{
-		}
-
-		/**
-		 * @brief Destroy the Channel
-		 */
-		virtual ~UpwardRegen()
-		{
-		}
-
-		/**
-		 * @brief Get the C/N fot the current DVB frame
-		 *
-		 * @param dvb_frame  the current DVB frame
-		 *
-		 * @return the current C/N
-		 */
-		double getCn(DvbFrame *UNUSED(dvb_frame)) const;
 	};
 
 	/**

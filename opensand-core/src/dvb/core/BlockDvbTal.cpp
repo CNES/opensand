@@ -672,7 +672,6 @@ bool BlockDvbTal::Downward::initDama(void)
 						 RETURN_UP_BAND,
 						 DAMA,
 						 this->ret_up_frame_duration_ms,
-						 this->satellite_type,
 						 this->rcs_modcod_def,
 						 dama_categories,
 						 terminal_affectation,
@@ -957,7 +956,6 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 						   RETURN_UP_BAND,
 						   ALOHA,
 						   this->ret_up_frame_duration_ms,
-						   this->satellite_type,
 						   // initialized in DAMA
 						   this->rcs_modcod_def,
 						   sa_categories,
@@ -1049,15 +1047,6 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 		{
 			delete (*cat_it).second;
 		}
-	}
-
-	// cannot use Slotted Aloha with regenerative satellite
-	if(this->satellite_type == REGENERATIVE)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Carrier configured with Slotted Aloha while satellite "
-		    "is regenerative\n");
-		return false;
 	}
 
 	// Create the Slotted ALoha part
@@ -1164,7 +1153,6 @@ bool BlockDvbTal::Downward::initScpc(void)
 						 RETURN_UP_BAND,
 						 SCPC,
 						 this->scpc_carr_duration_ms,
-						 this->satellite_type,
 						 // input modcod for S2
 						 this->s2_modcod_def,
 						 scpc_categories,
@@ -1223,15 +1211,6 @@ bool BlockDvbTal::Downward::initScpc(void)
 	}
 
 	//TODO: veritfy that 2ST are not using the same carrier and category
-
-	// TODO cannot use SCPC with regenerative satellite
-	if(this->satellite_type == REGENERATIVE)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Carrier configured with SCPC while satellite "
-		    "is regenerative\n");
-		goto error;
-	}
 
 	// Initialise Encapsulation scheme
 	if(!this->initScpcPktHdl(&this->pkt_hdl))

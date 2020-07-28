@@ -284,14 +284,9 @@ bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 	return true;
 }
 
-double BlockPhysicalLayer::UpwardTransp::getCn(DvbFrame *dvb_frame) const
+double BlockPhysicalLayer::Upward::getCn(DvbFrame *dvb_frame) const
 {
 	return GroundPhysicalChannel::computeTotalCn(dvb_frame->getCn(), this->getCurrentCn());
-}
-
-double BlockPhysicalLayer::UpwardRegen::getCn(DvbFrame *UNUSED(dvb_frame)) const
-{
-	return this->getCurrentCn();
 }
 
 BlockPhysicalLayer::Downward::Downward(const string &name, tal_id_t mac_id):

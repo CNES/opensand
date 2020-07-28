@@ -63,7 +63,6 @@ class DvbChannel
 {
  public:
 	DvbChannel():
-		satellite_type(),
 		return_link_std_str(""),
 		return_link_std(),
 		modcod_def_rcs_type(""),
@@ -92,13 +91,6 @@ class DvbChannel
 	};
 
  protected:
-
-	/**
-	 * @brief Read the satellite type
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool initSatType(void);
 
 	/**
 	 * @brief Read MODCOD Definition types
@@ -153,7 +145,6 @@ class DvbChannel
 	 *                               (up/return or down/forward)
 	 * @param   access_type          The access type value
 	 * @param   duration_ms          The frame duration on this band
-	 * @param   satellite_type       The satellite type
 	 * @param   fmt_def              The MODCOD definition table
 	 * @param   categories           OUT: The terminal categories
 	 * @param   terminal_affectation OUT: The terminal affectation in categories
@@ -167,7 +158,6 @@ class DvbChannel
 	              string section,
 	              access_type_t access_type,
 	              time_ms_t duration_ms,
-	              sat_type_t satellite_type,
 	              const FmtDefinitionTable *fmt_def,
 	              TerminalCategories<T> &categories,
 	              TerminalMapping<T> &terminal_affectation,
@@ -275,9 +265,6 @@ class DvbChannel
 	bool carriersTransfer(time_ms_t duration_ms, T* cat1, T* cat2,
 	                       map<rate_symps_t , unsigned int> carriers);
 
-	/// the satellite type (regenerative or transparent)
-	sat_type_t satellite_type;
-
 	/// the return link standard (DVB-RCS or DVB-RCS2)
 	string return_link_std_str;
 	return_link_standard_t return_link_std;
@@ -369,7 +356,6 @@ bool DvbChannel::initBand(ConfigurationList spot,
                           string section,
                           access_type_t access_type,
                           time_ms_t duration_ms,
-                          sat_type_t satellite_type,
                           const FmtDefinitionTable *fmt_def,
                           TerminalCategories<T> &categories,
                           TerminalMapping<T> &terminal_affectation,
@@ -627,12 +613,6 @@ bool DvbChannel::initBand(ConfigurationList spot,
 			{
 				LOG(this->log_init_channel, LEVEL_ERROR,
 				    "Too many FMT groups or ratio for non-VCM access type\n");
-				goto error;
-			}
-			if(access == ACCESS_VCM && satellite_type == REGENERATIVE)
-			{
-				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "Cannot use VCM carriers with regenerative satellite\n");
 				goto error;
 			}
 

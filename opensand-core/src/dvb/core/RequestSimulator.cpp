@@ -40,10 +40,8 @@
 
 RequestSimulator::RequestSimulator(spot_id_t spot_id,
                                    tal_id_t mac_id,
-                                   sat_type_t sat_type,
-	                               FILE** evt_file,
+	                           FILE** evt_file,
                                    ConfigurationList current_gw):
-	satellite_type(sat_type),
 	spot_id(spot_id),
 	mac_id(mac_id),
 	dvb_fifos(),

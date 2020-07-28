@@ -100,7 +100,6 @@ class BlockEncap: public Block
 			RtUpward(name),
 			EncapChannel(),
 			mac_id(mac_id),
-			satellite_type(),
 			scpc_encap("")
 		{};
 		bool onEvent(const RtEvent *const event);
@@ -109,7 +108,6 @@ class BlockEncap: public Block
 		void setSCPCContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx_scpc);
 		
 		void setMacId(tal_id_t id);
-		void setSatelliteType(sat_type_t sat_type);
 		
 	 private:
 		/// the reception contexts list from upper to lower context
@@ -119,9 +117,6 @@ class BlockEncap: public Block
 		
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
-
-		/// the satellite type (regenerative o transparent)
-		sat_type_t satellite_type;
 
 		/// the SCPC encapsulation lower item
 		string scpc_encap;
@@ -178,9 +173,6 @@ class BlockEncap: public Block
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
 
-	/// the satellite type (regenerative o transparent)
-	sat_type_t satellite_type;
-	
 	/**
 	 * @brief Checks if SCPC mode is activated and configured
 	 *        (Available FIFOs and Carriers for SCPC)

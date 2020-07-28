@@ -55,11 +55,8 @@
  */
 
 
-#include "BlockEncapSat.h"
 #include "BlockDvbSatTransp.h"
-#include "BlockDvbSatRegen.h"
 #include "BlockSatCarrier.h"
-#include "BlockPhysicalLayerSat.h"
 #include "Plugin.h"
 #include "OpenSandConf.h"
 
@@ -178,12 +175,7 @@ int main(int argc, char **argv)
   std::string ip_addr;
   struct sc_specific specific;
 
-  std::string satellite_type;
-
-  Block *block_encap;
   Block *block_dvb;
-  Block *block_phy_layer;
-  Block *up_sat_carrier;
   Block *block_sat_carrier;
 
   std::string conf_path;
@@ -212,7 +204,6 @@ int main(int argc, char **argv)
             "%s: failed to init the process\n", progname);
     goto quit;
   }
-
 
   // increase the realtime responsiveness of the process
   param.sched_priority = sched_get_priority_max(SCHED_FIFO);
@@ -246,19 +237,6 @@ int main(int argc, char **argv)
   }
   // Output::setLevels(levels, spec_level);
 
-  // retrieve the type of satellite from configuration
-  if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-                   SATELLITE_TYPE,
-                     satellite_type))
-  {
-    DFLTLOG(LEVEL_CRITICAL,
-            "section '%s': missing parameter '%s'\n",
-            COMMON_SECTION, SATELLITE_TYPE);
-    goto quit;
-  }
-  DFLTLOG(LEVEL_NOTICE,
-          "Satellite type = %s\n", satellite_type.c_str());
-
   // load the plugins
   if(!Plugin::loadPlugins(true, plugin_conf_path))
   {
@@ -267,34 +245,10 @@ int main(int argc, char **argv)
     goto quit;
   }
 
-  block_encap = NULL;
   // instantiate all blocs
-  if(strToSatType(satellite_type) == REGENERATIVE)
-  {
-    block_encap = Rt::createBlock<BlockEncapSat,
-                                  BlockEncapSat::Upward,
-                                  BlockEncapSat::Downward>("Encap");
-    if(!block_encap)
-    {
-      DFLTLOG(LEVEL_CRITICAL,
-              "%s: cannot create the Encap block\n", progname);
-      goto release_plugins;
-    }
-  }
-
-  if(strToSatType(satellite_type) == REGENERATIVE)
-  {
-    block_dvb = Rt::createBlock<BlockDvbSatRegen,
-                                BlockDvbSatRegen::UpwardRegen,
-                                BlockDvbSatRegen::DownwardRegen>("Dvb", block_encap);
-  }
-  else
-  {
-    block_dvb = Rt::createBlock<BlockDvbSatTransp,
-                                BlockDvbSatTransp::UpwardTransp,
-                                BlockDvbSatTransp::DownwardTransp>("Dvb", block_encap);
-  }
-
+  block_dvb = Rt::createBlock<BlockDvbSatTransp,
+                              BlockDvbSatTransp::UpwardTransp,
+                              BlockDvbSatTransp::DownwardTransp>("Dvb", NULL);
   if(!block_dvb)
   {
     DFLTLOG(LEVEL_CRITICAL,
@@ -302,28 +256,12 @@ int main(int argc, char **argv)
     goto release_plugins;
   }
 
-  up_sat_carrier = block_dvb;
-  if(strToSatType(satellite_type) == REGENERATIVE)
-  {
-    block_phy_layer = Rt::createBlock<BlockPhysicalLayerSat,
-                                      BlockPhysicalLayerSat::Upward,
-                                      BlockPhysicalLayerSat::Downward>("PhysicalLayer",
-                                                                       block_dvb);
-    if(block_phy_layer == NULL)
-    {
-      DFLTLOG(LEVEL_CRITICAL,
-              "%s: cannot create the PhysicalLayer block\n", progname);
-      goto release_plugins;
-    }
-    up_sat_carrier = block_phy_layer;
-  }
-
   specific.ip_addr = ip_addr;
   block_sat_carrier = Rt::createBlock<BlockSatCarrier,
                                       BlockSatCarrier::Upward,
                                       BlockSatCarrier::Downward,
                                       struct sc_specific>("SatCarrier",
-                                                          up_sat_carrier,
+                                                          block_dvb,
                                                           specific);
   if(!block_sat_carrier)
   {

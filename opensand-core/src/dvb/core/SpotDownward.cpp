@@ -47,7 +47,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
                            time_ms_t fwd_down_frame_duration,
                            time_ms_t ret_up_frame_duration,
                            time_ms_t stats_period,
-                           sat_type_t sat_type,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            StFmtSimuList *input_sts,
                            StFmtSimuList *output_sts):
@@ -73,7 +72,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	ret_fmt_groups(),
 	cni(100),
 	pep_cmd_apply_timer(),
-	acm_timer(-1),
 	request_simu(NULL),
 	event_file(NULL),
 	simulate(none_simu),
@@ -93,7 +91,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	this->fwd_down_frame_duration_ms = fwd_down_frame_duration;
 	this->ret_up_frame_duration_ms = ret_up_frame_duration;
 	this->stats_period_ms = stats_period;
-	this->satellite_type = sat_type;
 	this->pkt_hdl = pkt_hdl;
 	this->input_sts = input_sts;
 	this->output_sts = output_sts;
@@ -457,7 +454,6 @@ bool SpotDownward::initRequestSimulation(void)
 		this->simulate = file_simu;
 		this->request_simu = new FileSimulator(this->spot_id,
 		                                       this->mac_id,
-		                                       this->satellite_type,
 		                                       &this->event_file,
 		                                       current_gw);
 	}
@@ -466,7 +462,6 @@ bool SpotDownward::initRequestSimulation(void)
 		this->simulate = random_simu;
 		this->request_simu = new RandomSimulator(this->spot_id,
 		                                         this->mac_id,
-		                                         this->satellite_type,
 		                                         &this->event_file,
 		                                         current_gw);
 	}
@@ -814,18 +809,14 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				tal_id_t st_id = logon_req->getMac();
 
 				// check for column in FMT simulation list
-				if(!this->addInputTerminal(st_id,
-					        (this->satellite_type == TRANSPARENT) ? this->rcs_modcod_def :
-					                                                this->s2_modcod_def))
+				if(!this->addInputTerminal(st_id, this->rcs_modcod_def ))
 				{
 					LOG(this->log_request_simulation, LEVEL_ERROR,
 					    "failed to register simulated ST with MAC "
 					    "ID %u\n", st_id);
 					return false;
 				}
-				if(!this->addOutputTerminal(st_id,
-					        (this->satellite_type == TRANSPARENT) ? this->s2_modcod_def :
-					                                                this->rcs_modcod_def))
+				if(!this->addOutputTerminal(st_id, this->s2_modcod_def))
 				{
 					LOG(this->log_request_simulation, LEVEL_ERROR,
 					    "failed to register simulated ST with MAC "
@@ -946,16 +937,6 @@ event_id_t SpotDownward::getPepCmdApplyTimer(void)
 void SpotDownward::setPepCmdApplyTimer(event_id_t pep_cmd_a_timer)
 {
 	this->pep_cmd_apply_timer = pep_cmd_a_timer;
-}
-
-event_id_t SpotDownward::getAcmTimer(void)
-{
-	return this->acm_timer;
-}
-
-void SpotDownward::setAcmTimer(event_id_t new_acm_timer)
-{
-	this->acm_timer = new_acm_timer;
 }
 
 bool SpotDownward::handleSac(const DvbFrame *dvb_frame)

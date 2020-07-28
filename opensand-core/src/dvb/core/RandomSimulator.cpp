@@ -40,11 +40,10 @@
 
 RandomSimulator::RandomSimulator(spot_id_t spot_id,
                                  tal_id_t mac_id,
-                                 sat_type_t sat_type,
                                  FILE** evt_file,
                                  ConfigurationList current_gw):
 	RequestSimulator(spot_id, mac_id, 
-	                 sat_type, evt_file,
+	                 evt_file,
 	                 current_gw)
 {
 	int val;

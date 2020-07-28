@@ -136,16 +136,11 @@ bool checkRleConf(std::shared_ptr<OutputLog> log, const struct rle_config &conf)
 Rle::Rle():
 	EncapPlugin(NET_PROTO_RLE)
 {
-	this->upper[TRANSPARENT].push_back("ROHC");
-	this->upper[TRANSPARENT].push_back("PHS");
-	this->upper[TRANSPARENT].push_back("IP");
-	this->upper[TRANSPARENT].push_back("Ethernet");
+	this->upper.push_back("ROHC");
+	this->upper.push_back("PHS");
+	this->upper.push_back("IP");
+	this->upper.push_back("Ethernet");
 	
-	this->upper[REGENERATIVE].push_back("ROHC");
-	this->upper[REGENERATIVE].push_back("PHS");
-	this->upper[REGENERATIVE].push_back("IP");
-	this->upper[REGENERATIVE].push_back("Ethernet");
-
 	rle_set_trace_callback(&(rle_log));
 }
 

@@ -40,7 +40,6 @@
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
-#include "GenericSwitch.h"
 #include "SlottedAlohaFrame.h"
 #include "OpenSandConf.h"
 
@@ -221,13 +220,6 @@ bool BlockDvbSatTransp::UpwardTransp::handleDvbBurst(DvbFrame *dvb_frame,
 	{
 		return false;
 	}
-	return true;
-}
-
-// DO something only on regenerative mode
-bool BlockDvbSatTransp::UpwardTransp::handleSac(DvbFrame *UNUSED(dvb_frame),
-                                                SatGw *UNUSED(current_gw))
-{
 	return true;
 }
 

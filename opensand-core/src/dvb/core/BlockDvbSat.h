@@ -146,13 +146,6 @@ class BlockDvbSat: public BlockDvb
 		 */ 
 		virtual bool handleDvbBurst(DvbFrame *dvb_frame,
 		                            SatGw *current_gw) = 0;
-		/**
-		 * Handle Sac
-		 * 
-		 * @return true on success, false otherwise
-		 */ 
-		virtual bool handleSac(DvbFrame *dvb_frame,
-		                       SatGw *current_gw) = 0;
 
 		/**
 		 * Handle BB Frame

@@ -50,14 +50,13 @@ SpotDownwardTransp::SpotDownwardTransp(spot_id_t spot_id,
                            time_ms_t fwd_down_frame_duration,
                            time_ms_t ret_up_frame_duration,
                            time_ms_t stats_period,
-                           sat_type_t sat_type,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            StFmtSimuList *input_sts,
                            StFmtSimuList *output_sts):
 	SpotDownward(spot_id, mac_id,
 	             fwd_down_frame_duration,
 	             ret_up_frame_duration,
-	             stats_period, sat_type,
+	             stats_period,
 	             pkt_hdl, input_sts, output_sts)
 {
 }
@@ -152,7 +151,6 @@ bool SpotDownwardTransp::initMode(void)
 	                                         FORWARD_DOWN_BAND,
 	                                         TDM,
 	                                         this->fwd_down_frame_duration_ms,
-	                                         this->satellite_type,
 	                                         this->s2_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
@@ -312,7 +310,6 @@ bool SpotDownwardTransp::initDama(void)
 	                                         RETURN_UP_BAND,
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
-	                                         this->satellite_type,
 	                                         this->rcs_modcod_def,
 	                                         dc_categories,
 	                                         dc_terminal_affectation,

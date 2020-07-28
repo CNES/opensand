@@ -60,7 +60,6 @@ class RequestSimulator
  public:
 	RequestSimulator(spot_id_t spot_id,
 	                 tal_id_t mac_id,
-	                 sat_type_t sat_type,
 	                 FILE** evt_file,
 	                 ConfigurationList current_gw);
 	~RequestSimulator();
@@ -72,7 +71,6 @@ class RequestSimulator
 	virtual bool simulation(list<DvbFrame *>* msgs,
 	                        time_sf_t super_frame_counter) = 0;
 	
-		
 	virtual bool stopSimulation(void) = 0;
 
 	// statistics update
@@ -86,12 +84,6 @@ class RequestSimulator
 	 */
 	bool initRequestSimulation(ConfigurationList current_gw);
 
-	/// the satellite type (regenerative o transparent)
-	sat_type_t satellite_type;
-
-	/// Physical layer enable
-	bool with_phy_layer;
-	
 	/// spot id
 	uint8_t spot_id;
 	

@@ -37,7 +37,6 @@
 EncapPlugin::EncapPlugin(uint16_t ether_type):
 		StackPlugin(ether_type)
 {
-	this->upper[REGENERATIVE].push_back("LAN_SAT");
 }
 
 EncapPlugin::EncapPacketHandler::~EncapPacketHandler()

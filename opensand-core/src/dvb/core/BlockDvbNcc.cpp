@@ -41,28 +41,14 @@
 
 #include "SpotUpwardTransp.h"
 #include "SpotDownwardTransp.h"
-#include "SpotUpwardRegen.h"
-#include "SpotDownwardRegen.h"
 #include "DvbRcsFrame.h"
 #include "Sof.h"
 
 #include <errno.h>
 
-/*
- * REMINDER:
- *  // in transparent mode
- *        - downward => forward link
- *        - upward => return link
- *  // in regenerative mode
- *        - downward => uplink
- *        - upward => downlink
- */
-
-
 /*****************************************************************************/
 /*                                Block                                      */
 /*****************************************************************************/
-
 
 BlockDvbNcc::BlockDvbNcc(const string &name, tal_id_t UNUSED(mac_id)):
 	BlockDvb(name),
@@ -175,23 +161,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 	const char *scheme;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 
-	// TODO initSatType is done in initCommon too
-	if(!this->initSatType())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed get satellite type\n");
-		return false;
-	}
-
 	// get the common parameters
-	if(this->satellite_type == TRANSPARENT)
-	{
-		scheme = FORWARD_DOWN_ENCAP_SCHEME_LIST;
-	}
-	else
-	{
-		scheme = RETURN_UP_ENCAP_SCHEME_LIST;
-	}
+	scheme = FORWARD_DOWN_ENCAP_SCHEME_LIST;
 
 	if(!this->initDown())
 	{
@@ -233,29 +204,14 @@ bool BlockDvbNcc::Downward::onInit(void)
 			return false;
 		}
 		
-		if(this->satellite_type == TRANSPARENT)
-		{
-			spot = new SpotDownwardTransp(spot_id, this->mac_id,
-			                              this->fwd_down_frame_duration_ms,
-			                              this->ret_up_frame_duration_ms,
-			                              this->stats_period_ms,
-			                              this->satellite_type,
-			                              this->pkt_hdl,
-			                              input_sts,
-			                              output_sts);
+		spot = new SpotDownwardTransp(spot_id, this->mac_id,
+		                              this->fwd_down_frame_duration_ms,
+		                              this->ret_up_frame_duration_ms,
+		                              this->stats_period_ms,
+		                              this->pkt_hdl,
+		                              input_sts,
+		                              output_sts);
 
-		}
-		else
-		{
-			spot = new SpotDownwardRegen(spot_id, this->mac_id,
-			                             this->fwd_down_frame_duration_ms,
-			                             this->ret_up_frame_duration_ms,
-			                             this->stats_period_ms,
-			                             this->satellite_type,
-			                             this->pkt_hdl,
-			                             input_sts,
-			                             output_sts);
-		}
 		(*spot_iter).second = spot;
 		result &= spot->onInit();
 	}
@@ -354,11 +310,6 @@ bool BlockDvbNcc::Downward::initTimers(void)
 		                                              false, // no rearm
 		                                              false // do not start
 		                                              ));
-		if(this->satellite_type == REGENERATIVE)
-		{
-			spot->setAcmTimer(this->addTimerEvent("send_acm_param",
-			                                      acm_period_ms));
-		}
 	}
 
 	return true;
@@ -466,8 +417,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					list<SpotDownward*>::iterator spot_list_iter;
 
 					// FIXME at the moment broadcast is sent on all spots
-					if((tal_id == BROADCAST_TAL_ID) and 
-					   (this->satellite_type != REGENERATIVE))
+					if(tal_id == BROADCAST_TAL_ID)
 					{
 						for(spot_iter = this->spots.begin(); 
 						    spot_iter != this->spots.end(); ++spot_iter)
@@ -615,11 +565,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						// do not break if this fail in one spot
 						continue;
 					}
-				}
-				else if(*event == spot->getAcmTimer())
-				{
-					// regenerative satellite, send ACM parameters
-					this->sendAcmParameters(spot);
 				}
 				else if(*event == spot->getPepCmdApplyTimer())
 				{
@@ -941,30 +886,6 @@ release:
 	return false;
 }
 
-
-bool BlockDvbNcc::Downward::sendAcmParameters(SpotDownward *spot_downward)
-{
-	// function only used in regenerative scenario
-	double cni = spot_downward->getRequiredCniInput(this->mac_id);
-
-	Sac *send_sac = new Sac(this->mac_id);
-	send_sac->setAcm(cni);
-	LOG(this->log_send, LEVEL_DEBUG,
-	    "Send SAC with CNI = %.2f\n", cni);
-
-	// Send message
-	if(!this->sendDvbFrame((DvbFrame *)send_sac,
-	                       spot_downward->getCtrlCarrierId()))
-	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "SF#%u: failed to send SAC\n",
-		    this->super_frame_counter);
-		delete send_sac;
-		return false;
-	}
-	return true;
-}
-
 // updateStats is pure virtual in BlockDvb not used in this case
 void BlockDvbNcc::Downward::updateStats(void)
 {
@@ -994,13 +915,6 @@ bool BlockDvbNcc::Upward::onInit(void)
 	bool result = true;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 
-	if(!this->initSatType())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed get satellite type\n");
-		return false;
-	}
-
 	if(!this->initSpotList())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -1020,16 +934,8 @@ bool BlockDvbNcc::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create upward spot with ID %u\n", spot_id);
 
-		if(this->satellite_type == TRANSPARENT)
-		{
-			spot = new SpotUpwardTransp(spot_id, this->mac_id,
-			                            input_sts, output_sts);
-		}
-		else
-		{
-			spot = new SpotUpwardRegen(spot_id, this->mac_id,
-			                           input_sts, output_sts);
-		}
+		spot = new SpotUpwardTransp(spot_id, this->mac_id,
+		                            input_sts, output_sts);
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create spot with ID %u\n", spot_id);
 		(*spot_iter).second = spot;

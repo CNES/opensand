@@ -38,7 +38,6 @@
 
 #include "PhysicStd.h"
 #include "DvbRcsFrame.h"
-#include "GenericSwitch.h"
 
 #include <opensand_output/OutputLog.h>
 
@@ -67,9 +66,6 @@ class DvbRcsStd: public PhysicStd
 	                tal_id_t tal_id,
 	                NetBurst **burst);
 
-	/* function for regenerative satellite */
-	bool setSwitch(GenericSwitch *generic_switch);
-
  protected:
 	/**
 	 * Build a DVB-RCS Transmission Standard
@@ -86,13 +82,6 @@ class DvbRcsStd: public PhysicStd
 
 	/// Has encapsulation packet fixed length
 	bool has_fixed_length;
-
- private:
-
-	/// Switch which manages the different spots
-	/// (for regenerative satellite only)
-	GenericSwitch *generic_switch;
-
 };
 
 class DvbRcs2Std: public DvbRcsStd

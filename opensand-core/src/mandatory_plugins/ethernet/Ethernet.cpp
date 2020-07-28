@@ -85,11 +85,8 @@ bool Ethernet::init()
 	conf_eth_path = this->getConfPath() + string(CONF_ETH_FILENAME);
 	conf_files.push_back(conf_eth_path.c_str());
 
-	this->upper[TRANSPARENT].push_back("IP");
-	this->upper[TRANSPARENT].push_back("ROHC");
-
-	this->upper[REGENERATIVE].push_back("IP");
-	this->upper[REGENERATIVE].push_back("ROHC");
+	this->upper.push_back("IP");
+	this->upper.push_back("ROHC");
 
 	// here we need frame type on satellite for lower layers
 	if(config.loadConfig(conf_files) < 0)
@@ -469,12 +466,10 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 bool Ethernet::Context::initLanAdaptationContext(
 	tal_id_t tal_id,
 	tal_id_t gw_id,
-	sat_type_t satellite_type,
 	const SarpTable *sarp_table)
 {
-	if(!LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(
-										tal_id, gw_id, 
-										satellite_type, sarp_table))
+	if(!LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id, gw_id, 
+										sarp_table))
 	{
 		return false;
 	}
@@ -553,8 +548,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 				continue;
 			}
 			
-			if(this->tal_id != this->gw_id && 
-			   this->satellite_type ==  TRANSPARENT)
+			if(this->tal_id != this->gw_id)
 			{
 				dst = this->gw_id;
 			}
