@@ -37,8 +37,7 @@
 
 
 OpenSandConfFile OpenSandConf::global_config;
-map <unsigned int, std::pair<uint8_t, uint16_t> > OpenSandConf::carrier_map;
-map <uint16_t, uint8_t> OpenSandConf::spot_table;
+map <unsigned int, uint16_t> OpenSandConf::carrier_map;
 map <uint16_t, uint16_t> OpenSandConf::gw_table;
 
 OpenSandConf::OpenSandConf()
@@ -48,7 +47,6 @@ OpenSandConf::OpenSandConf()
 OpenSandConf::~OpenSandConf()
 {
 	carrier_map.clear();
-	spot_table.clear();
 	gw_table.clear();
 }
 
@@ -60,27 +58,17 @@ bool OpenSandConf::getGwWithTalId(uint16_t tal_id,
 	                                    gw_id);
 }
 
-bool OpenSandConf::getSpotWithTalId(uint16_t tal_id,
-                                    uint8_t &spot)
-{
-	return global_config.getSpotWithTalId(OpenSandConf::spot_table,
-	                                      tal_id,
-	                                      spot);
-}
-
-bool OpenSandConf::getSpotWithCarrierId(unsigned int car_id,
-                                        uint8_t &spot, 
+bool OpenSandConf::getGwWithCarrierId(unsigned int car_id,
                                         uint16_t &gw)
 {
-	return global_config.getSpotWithCarrierId(OpenSandConf::carrier_map,
-	                                          car_id,
-	                                          spot, gw);
+	return global_config.getGwWithCarrierId(OpenSandConf::carrier_map,
+	                                        car_id,
+	                                        gw);
 }
 
 void OpenSandConf::loadConfig(void)
 {
 	global_config.loadCarrierMap(OpenSandConf::carrier_map);
-	global_config.loadSpotTable(OpenSandConf::spot_table);
 	global_config.loadGwTable(OpenSandConf::gw_table);
 }
 
@@ -90,11 +78,10 @@ bool OpenSandConf::isGw(uint16_t gw_id)
 }
 
 bool OpenSandConf::getSpot(string section,
-                           uint8_t spot_id,
                            uint16_t gw_id,
                            ConfigurationList &current_gw)
 {
-	return global_config.getSpot(section, spot_id, gw_id, current_gw);
+	return global_config.getSpot(section, gw_id, current_gw);
 }
 
 bool OpenSandConf::getScpcEncapStack(string return_link_std,

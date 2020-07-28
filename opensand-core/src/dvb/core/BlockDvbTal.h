@@ -198,7 +198,6 @@ class BlockDvbTal: public BlockDvb
 		/// should be the same as the mac_id)
 		tal_id_t tal_id;
 		tal_id_t gw_id;
-		spot_id_t spot_id;
 		// is the terminal scpc
 		bool is_scpc;
 		
@@ -372,7 +371,6 @@ class BlockDvbTal: public BlockDvb
 		/// should be the same as the mac_id)
 		tal_id_t tal_id;
 		tal_id_t gw_id;
-		spot_id_t spot_id;
 		// is the terminal scpc
 		bool is_scpc;
 

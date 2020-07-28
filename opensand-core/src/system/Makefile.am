@@ -68,4 +68,3 @@ opensand_sat_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
 opensand_sat_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
-

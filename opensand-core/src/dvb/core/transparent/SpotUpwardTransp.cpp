@@ -111,12 +111,12 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	UnitConverter *converter;
 	int lan_scheme_nbr;
 
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id,
-	                          NO_GW, current_spot))
+	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
+	                          this->mac_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
-		    ID, this->spot_id, GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
+		    "there is no attribute %s with value %d into %s/%s\n",
+		    GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
 		return false;
 	}
 
@@ -545,12 +545,12 @@ bool SpotUpwardTransp::checkIfScpc()
 	fmt_groups_t ret_fmt_groups;
 	ConfigurationList current_spot;
 
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND, this->spot_id,
-	                          NO_GW, current_spot))
+	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
+	                          this->mac_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value %d and %s with value %d into %s/%s\n",
-		    ID, this->spot_id, GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
+		    "there is no attribute %s with value %d into %s/%s\n",
+		    GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
 		return false;
 	}
 

@@ -50,8 +50,9 @@
 /*                                Block                                      */
 /*****************************************************************************/
 
-BlockDvbNcc::BlockDvbNcc(const string &name, tal_id_t UNUSED(mac_id)):
+BlockDvbNcc::BlockDvbNcc(const string &name, tal_id_t mac_id):
 	BlockDvb(name),
+	mac_id(mac_id),
 	output_sts_list(),
 	input_sts_list()
 {
@@ -91,32 +92,23 @@ bool BlockDvbNcc::onInit(void)
 
 bool BlockDvbNcc::initListsSts()
 {
-	map<tal_id_t, spot_id_t>::iterator iter;
-
-	for(iter = OpenSandConf::spot_table.begin();
-	    iter != OpenSandConf::spot_table.end() ;
-	    ++iter)
+	// TODO: Remove obsolete lists (from multi-spot)
+	if(this->input_sts_list.find(this->mac_id) == this->input_sts_list.end())
 	{
-		spot_id_t spot_id = (*iter).second;
+		this->input_sts_list[this->mac_id] = new StFmtSimuList("in");
+	}
+	if(this->input_sts_list[this->mac_id] == NULL)
+	{
+		return false;
+	}
 
-		if(this->input_sts_list.find(spot_id) == this->input_sts_list.end())
-		{
-			this->input_sts_list[spot_id] = new StFmtSimuList("in");
-		}
-		if(this->input_sts_list[spot_id] == NULL)
-		{
-			return false;
-		}
-
-
-		if(this->output_sts_list.find(spot_id) == this->output_sts_list.end())
-		{
-			this->output_sts_list[spot_id] = new StFmtSimuList("out");
-		}
-		if(this->output_sts_list[spot_id] == NULL)
-		{
-			return false;
-		}
+	if(this->output_sts_list.find(this->mac_id) == this->output_sts_list.end())
+	{
+		this->output_sts_list[this->mac_id] = new StFmtSimuList("out");
+	}
+	if(this->output_sts_list[this->mac_id] == NULL)
+	{
+		return false;
 	}
 
 	// input and output sts are shared between up and down
@@ -125,7 +117,6 @@ bool BlockDvbNcc::initListsSts()
 	                                   this->input_sts_list);
 	((Downward *)this->downward)->setStFmt(this->output_sts_list,
 	                                       this->input_sts_list);
-
 
 	return true;
 }
@@ -140,7 +131,7 @@ bool BlockDvbNcc::initListsSts()
 
 BlockDvbNcc::Downward::Downward(const string &name, tal_id_t mac_id):
 	DvbDownward(name),
-	DvbSpotList(),
+	DvbSpotList(mac_id),
 	pep_interface(),
 	svno_interface(),
 	mac_id(mac_id),
@@ -435,16 +426,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 					else
 					{ 
-						if(OpenSandConf::spot_table.find(tal_id) ==
-								OpenSandConf::spot_table.end())
-						{
-							spot_id = this->default_spot;
-						}
-						else
-						{
-							spot_id = OpenSandConf::spot_table[tal_id];
-						}
-						spot = dynamic_cast<SpotDownward *>(this->getSpot(spot_id));
+						spot = dynamic_cast<SpotDownward *>(this->getSpot(this->mac_id));
 						if(!spot)
 						{
 							LOG(this->log_receive, LEVEL_WARNING,
@@ -627,21 +609,12 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				// allocations/releases they contain
 
 				// first get the spot associated with this terminal
-				if(OpenSandConf::spot_table.find(tal_id) == OpenSandConf::spot_table.end())
-				{
-					spot_id = this->default_spot;
-				}
-				else
-				{
-					spot_id = OpenSandConf::spot_table[tal_id];
-				}
-
-				spot_iter = this->spots.find(spot_id);
+				spot_iter = this->spots.find(this->mac_id);
 				if(spot_iter == this->spots.end())
 				{
 					LOG(this->log_receive, LEVEL_ERROR, 
-					    "couldn't find spot %d", 
-					    OpenSandConf::spot_table[tal_id]);
+					    "couldn't find spot of gw %d", 
+					    this->mac_id);
 					return false;
 				}
 				SpotDownward *spot;
@@ -898,7 +871,7 @@ void BlockDvbNcc::Downward::updateStats(void)
 
 BlockDvbNcc::Upward::Upward(const string &name, tal_id_t mac_id):
 	DvbUpward(name),
-	DvbSpotList(),
+	DvbSpotList(mac_id),
 	mac_id(mac_id),
 	log_saloha(NULL)
 {
@@ -1185,43 +1158,7 @@ bool BlockDvbNcc::Upward::shareFrame(DvbFrame *frame)
 
 bool DvbSpotList::initSpotList(void)
 {
-	map<tal_id_t, spot_id_t>::iterator iter;
-	bool find_default = false;
-
-	if(OpenSandConf::spot_table.empty())
-	{
-		LOG(this->log_spot, LEVEL_ERROR,
-		    "The terminal map is empty");
-		return false;
-	}
-	
-	if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
-	                   DEFAULT_SPOT, this->default_spot))
-	{
-		LOG(this->log_spot, LEVEL_ERROR, 
-		    "failed to get default terminal ID\n");
-		return false;
-	}
-	
-	for(iter = OpenSandConf::spot_table.begin();
-	    iter != OpenSandConf::spot_table.end() ;
-	    ++iter)
-	{
-		this->spots[iter->second] = NULL;
-		if(this->default_spot == iter->second)
-		{
-			find_default = true;
-		}
-	}
-	
-	if(!find_default)
-	{
-		LOG(this->log_spot, LEVEL_ERROR,
-		    "Default spot %d does not exist\n",
-		    this->default_spot);
-		return false;
-	}
-	
+	this->spots[this->default_spot] = NULL;
 	return true;
 }
 

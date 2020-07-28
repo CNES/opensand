@@ -155,7 +155,6 @@ BlockDvbTal::Downward::Downward(const string &name, tal_id_t mac_id):
 	group_id(),
 	tal_id(),
 	gw_id(),
-	spot_id(),
 	is_scpc(false),
 	cra_kbps(0),
 	max_rbdc_kbps(0),
@@ -385,39 +384,24 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	ConfigurationList::iterator iter;
 	this->gw_id = 0;
 
-	if(OpenSandConf::spot_table.find(this->mac_id) != OpenSandConf::spot_table.end())
+	if(!OpenSandConf::getGwWithTalId(this->mac_id, this->gw_id))
 	{
-		this->spot_id = OpenSandConf::spot_table[this->mac_id];
-	}
-	else if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION],
-				    DEFAULT_SPOT, this->spot_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "couldn't find spot for tal %d",
-		    this->mac_id);
-		return false;
-	}
-
-	if(OpenSandConf::gw_table.find(this->mac_id) != OpenSandConf::gw_table.end())
-	{
-		this->gw_id = OpenSandConf::gw_table[this->mac_id];
-	}
-	else if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION],
-				    DEFAULT_GW, this->gw_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "couldn't find gw for tal %d",
-		    this->mac_id);
-		return false;
+		if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION],
+		                   DEFAULT_GW, this->gw_id))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "couldn't find gw for tal %d",
+			    this->mac_id);
+			return false;
+		}
 	}
 
 	if(!OpenSandConf::getSpot(SATCAR_SECTION,
-				      this->spot_id,
 				      this->gw_id, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d and gw id %d\n",
-		    SATCAR_SECTION, this->spot_id, this->gw_id);
+		    "section '%s', missing spot for gw id %d\n",
+		    SATCAR_SECTION, this->gw_id);
 		return false;
 	}
 
@@ -442,7 +426,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "section '%s/%s%d/%s': missing parameter '%s'\n",
-			    SATCAR_SECTION, SPOT_LIST, this->spot_id,
+			    SATCAR_SECTION, SPOT_LIST, this->gw_id,
 			    CARRIER_LIST, CARRIER_ID);
 			goto error;
 		}
@@ -452,7 +436,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "section '%s/%s%d/%s': missing parameter '%s'\n",
-			    SATCAR_SECTION, SPOT_LIST, this->spot_id,
+			    SATCAR_SECTION, SPOT_LIST, this->gw_id,
 			    CARRIER_LIST, CARRIER_TYPE);
 			goto error;
 		}
@@ -483,7 +467,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		    "SF#%u %s missing from section %s/%s%d\n",
 		    this->super_frame_counter,
 		    DVB_CAR_ID_CTRL, SATCAR_SECTION,
-		    SPOT_LIST, this->spot_id);
+		    SPOT_LIST, this->gw_id);
 		goto error;
 	}
 
@@ -494,7 +478,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		    "SF#%u %s missing from section %s/%s%d\n",
 		    this->super_frame_counter,
 		    DVB_CAR_ID_LOGON, SATCAR_SECTION,
-		    SPOT_LIST, this->spot_id);
+		    SPOT_LIST, this->gw_id);
 		goto error;
 	}
 
@@ -505,7 +489,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		    "SF#%u %s missing from section %s/%s%d\n",
 		    this->super_frame_counter,
 		    DVB_CAR_ID_DATA, SATCAR_SECTION,
-		    SPOT_LIST, this->spot_id);
+		    SPOT_LIST, this->gw_id);
 		goto error;
 	}
 
@@ -658,12 +642,12 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// get current spot into return up band section
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-				      this->spot_id,
-				      NO_GW, current_spot))
+				      this->gw_id,
+				      current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d\n",
-		    RETURN_UP_BAND, this->spot_id);
+		    "section '%s', missing spot for gw %d\n",
+		    RETURN_UP_BAND, this->gw_id);
 		return false;
 	}
 
@@ -943,12 +927,12 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	// get current spot into return up band section
 	ConfigurationList current_spot;
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-				      this->spot_id,
-				      NO_GW, current_spot))
+				      this->gw_id,
+				      current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d\n",
-				RETURN_UP_BAND, this->spot_id);
+		    "section '%s', missing spot for gw %d\n",
+				RETURN_UP_BAND, this->gw_id);
 		return false;
 	}
 
@@ -1140,12 +1124,12 @@ bool BlockDvbTal::Downward::initScpc(void)
 
 	// get current spot into return up band section
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-				      this->spot_id,
-				      NO_GW, current_spot))
+				      this->gw_id,
+				      current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d\n",
-		    RETURN_UP_BAND, this->spot_id);
+		    "section '%s', missing spot for gw %d\n",
+		    RETURN_UP_BAND, this->gw_id);
 		return false;
 	}
 
@@ -2278,7 +2262,6 @@ BlockDvbTal::Upward::Upward(const string &name, tal_id_t mac_id):
 	group_id(),
 	tal_id(),
 	gw_id(),
-	spot_id(),
 	is_scpc(false),
 	state(state_initializing),
 	probe_st_l2_from_sat(NULL),
@@ -2348,23 +2331,9 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 
 bool BlockDvbTal::Upward::onInit(void)
 {
-	// Initialization of spot_id and gw_id
-	if(OpenSandConf::spot_table.find(this->mac_id) != OpenSandConf::spot_table.end())
+	// Initialization of gw_id
+	if(!OpenSandConf::getGwWithTalId(this->mac_id, this->gw_id))
 	{
-		this->spot_id = OpenSandConf::spot_table[this->mac_id];
-		this->gw_id = OpenSandConf::gw_table[this->mac_id];
-	}
-	else
-	{
-		if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION],
-				   DEFAULT_SPOT, this->spot_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-				"couldn't find spot for tal %d",
-			    this->mac_id);
-			return false;
-		}
-
 		if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION],
 				   DEFAULT_GW, this->gw_id))
 		{

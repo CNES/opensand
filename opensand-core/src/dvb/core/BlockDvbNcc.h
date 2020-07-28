@@ -78,9 +78,9 @@ class DvbSpotList
 {
  public:
 
-	DvbSpotList():
+	DvbSpotList(tal_id_t mac_id):
 		spots(),
-		default_spot(0),
+		default_spot(mac_id),
 		log_spot(NULL)
 	{
 		this->log_spot = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Spot");
@@ -275,10 +275,12 @@ class BlockDvbNcc: public BlockDvb
 		int pep_alloc_delay;
 
 		// Frame interval
-    std::shared_ptr<Probe<float>> probe_frame_interval;
+		std::shared_ptr<Probe<float>> probe_frame_interval;
 	};
 
  protected:
+	/// the MAC ID of the ST (as specified in configuration)
+	int mac_id;
 
 	/// The list of Sts with forward/down modcod per spot
 	map<spot_id_t, StFmtSimuList *> output_sts_list;

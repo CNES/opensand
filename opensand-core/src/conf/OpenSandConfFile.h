@@ -61,16 +61,10 @@ class OpenSandConfFile
 	virtual ~OpenSandConfFile(void);
 
 	/**
-	 * Create a Map which associate carrier id to spot id
-	 * @param carrier_map the map between carrier id and spot id
+	 * Create a Map which associate carrier id to gateway id
+	 * @param carrier_map the map between carrier id and gateway id
 	 */
-	void loadCarrierMap(map<unsigned int, std::pair<uint8_t, uint16_t> > &carrier_map);
-
-	/**
-	 * Create a Map which associate terminal id to spot id
-	 * @param terminal_map the map between terminal id and spot id
-	 */
-	void loadSpotTable(map<uint16_t, uint8_t> &spot_table);
+	void loadCarrierMap(map<unsigned int, uint16_t> &carrier_map);
 
 	/**
 	 * Create a Map which associate terminal id to gw id
@@ -90,28 +84,14 @@ class OpenSandConfFile
 	                    uint16_t &gw_id);
 
 	/**
-	 * Get spot value in terminal map
-	 *
-	 * @param tal_it   the terminal id
-	 * @param spot     the found spot
-	 * @return true on success, false otherwise
-	 */
-	bool getSpotWithTalId(map<uint16_t, uint8_t> terminal_map,
-	                      uint16_t tal_id,
-	                      uint8_t &spot);
-
-	/**
-	 * Get spot value in carrier map
+	 * Get gateway value in carrier map
 	 *
 	 * @param car_it   the carrier id
-	 * @param spot     the found spot
 	 * @param gw       the found gw
 	 * @return true on success, false otherwise
 	 */
-	bool getSpotWithCarrierId(map<unsigned int,
-	                          std::pair<uint8_t, uint16_t> > carrier_map,
+	bool getGwWithCarrierId(map<unsigned int, uint16_t> carrier_map,
 	                          unsigned int car_id,
-	                          uint8_t &spot,
 	                          uint16_t &gw);
 
 	/**
@@ -125,15 +105,13 @@ class OpenSandConfFile
 
 
 	/**
-	 * return current spot with gw and spot ids
+	 * return current spot with gw id
 	 * @param section    the section name
-	 * @param spot_id    the spot id
 	 * @param gw_id      the gw id
 	 * @param current_gw the found spot/gw
 	 * @return true on success, false otherwize
 	 */
 	bool getSpot(string section,
-	             uint8_t spot_id,
 	             uint16_t gw_id,
 	             ConfigurationList &current_gw);
 

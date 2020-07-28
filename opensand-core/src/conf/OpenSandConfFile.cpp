@@ -64,7 +64,7 @@ OpenSandConfFile::~OpenSandConfFile()
 {
 }
 
-void OpenSandConfFile::loadCarrierMap(map<unsigned int, std::pair<uint8_t, uint16_t> > &carrier_map)
+void OpenSandConfFile::loadCarrierMap(map<unsigned int, uint16_t> &carrier_map)
 {
 	ConfigurationList section_sat_car;
 	ConfigurationList spots;
@@ -85,14 +85,7 @@ void OpenSandConfFile::loadCarrierMap(map<unsigned int, std::pair<uint8_t, uint1
 		xmlpp::Node* spot_node = *iter_spots;
 		// TODO avoid using xmlpp::Node
 		current_spot.push_front(spot_node);
-		uint8_t spot_id = 0;
 		uint16_t gw_id = 0;
-
-		// get current spot id
-		if(!Conf::getAttributeValue(iter_spots, ID, spot_id))
-		{
-			return;
-		}
 
 		// get current gw id
 		if(!Conf::getAttributeValue(iter_spots, GW, gw_id))
@@ -118,61 +111,10 @@ void OpenSandConfFile::loadCarrierMap(map<unsigned int, std::pair<uint8_t, uint1
 				return;
 			}
 
-			carrier_map[carrier_id] = make_pair(spot_id, gw_id);
+			carrier_map[carrier_id] = gw_id;
 		}
 	}
 
-}
-
-void OpenSandConfFile::loadSpotTable(map<uint16_t, uint8_t> &spot_table)
-{
-	ConfigurationList spot_table_section;
-	ConfigurationList spots;
-	ConfigurationList::iterator iter_spots;
-
-	spot_table_section = Conf::section_map[SPOT_TABLE_SECTION];
-
-	if(!Conf::getListNode(spot_table_section, SPOT_LIST, spots))
-	{
-		return;
-	}
-
-	for(iter_spots = spots.begin() ; iter_spots != spots.end() ; ++iter_spots)
-	{
-		ConfigurationList current_spot;
-		ConfigurationList terminal_list;
-		ConfigurationList::iterator iter_terminal;
-		xmlpp::Node* spot_node = *iter_spots;
-		// TODO surcharger pour donner élément simple
-		current_spot.push_front(spot_node);
-		uint8_t spot_id = 0;
-
-		// get current spot id
-		if(!Conf::getAttributeValue(iter_spots, ID, spot_id))
-		{
-			return;
-		}
-
-		// get spot channel
-		if(!Conf::getListItems(current_spot, TERMINAL_LIST, terminal_list))
-		{
-			return;
-		}
-
-		// associate channel to spot
-		for(iter_terminal = terminal_list.begin() ; iter_terminal != terminal_list.end() ;
-		    ++iter_terminal)
-		{
-			uint16_t tal_id = 0;
-
-			//get carrier ID
-			if(!Conf::getAttributeValue(iter_terminal, ID, tal_id))
-			{
-				return;
-			}
-			spot_table[tal_id] = spot_id;
-		}
-	}
 }
 
 void OpenSandConfFile::loadGwTable(map<uint16_t, uint16_t> &gw_table)
@@ -240,34 +182,18 @@ bool OpenSandConfFile::getGwWithTalId(map<uint16_t, uint16_t> terminal_map,
 	return true;
 }
 
-bool OpenSandConfFile::getSpotWithTalId(map<uint16_t, uint8_t> terminal_map,
-                                        uint16_t tal_id,
-                                        uint8_t &spot)
-{
-	map<uint16_t, uint8_t>::iterator tal_iter;
-	tal_iter = terminal_map.find(tal_id);
-	if(tal_iter == terminal_map.end())
-	{
-		return false;
-	}
-	spot = (*tal_iter).second;
-	return true;
-}
-
-bool OpenSandConfFile::getSpotWithCarrierId(map<unsigned int, std::pair<uint8_t, uint16_t> > carrier_map,
+bool OpenSandConfFile::getGwWithCarrierId(map<unsigned int, uint16_t> carrier_map,
                                             unsigned int car_id,
-                                            uint8_t &spot,
                                             uint16_t &gw)
 {
-	map<unsigned int, std::pair<uint8_t, uint16_t> >::iterator car_iter;
+	map<unsigned int, uint16_t>::iterator car_iter;
 	car_iter = carrier_map.find(car_id);
 	if(car_iter == carrier_map.end())
 	{
 		return false;
 	}
 
-	spot = carrier_map[car_id].first;
-	gw = carrier_map[car_id].second;
+	gw = car_iter->second;
 	return true;
 }
 
@@ -286,12 +212,10 @@ bool OpenSandConfFile::isGw(map<uint16_t, uint16_t> &gw_table, uint16_t gw_id)
 }
 
 bool OpenSandConfFile::getSpot(string section,
-                               uint8_t spot_id,
                                uint16_t gw_id,
                                ConfigurationList &current_gw)
 {
 	ConfigurationList spot_list;
-	ConfigurationList current_spot;
 
 	if(!Conf::getListNode(Conf::section_map[section],
 	                      SPOT_LIST, spot_list))
@@ -299,21 +223,10 @@ bool OpenSandConfFile::getSpot(string section,
 		return false;;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spot_list, ID,
-	                                       spot_id, current_spot))
+	if(!Conf::getElementWithAttributeValue(spot_list, GW,
+	                                       gw_id, current_gw))
 	{
 		return false;
-	}
-
-	if(gw_id != NO_GW)
-	{
-		if(!Conf::getElementWithAttributeValue(current_spot, GW,
-		                                       gw_id, current_gw))
-		{
-			return false;
-		}
-	}else{
-		current_gw = current_spot;
 	}
 
 	return true;

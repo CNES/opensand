@@ -119,7 +119,6 @@ bool SpotDownwardTransp::initMode(void)
 	// depending on the satellite type
 	ConfigurationList forward_down_band = Conf::section_map[FORWARD_DOWN_BAND];
 	ConfigurationList spots;
-	ConfigurationList current_spot;
 	ConfigurationList current_gw;
 
 	if(!Conf::getListNode(forward_down_band, SPOT_LIST, spots))
@@ -130,21 +129,12 @@ bool SpotDownwardTransp::initMode(void)
 		return false;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-	                                       this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s\n",
-		    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(current_spot, GW,
+	if(!Conf::getElementWithAttributeValue(spots, GW,
 	                                       this->mac_id, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s/%s\n",
-		    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+		    GW, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
 		return false;
 	}
 	if(!this->initBand<TerminalCategoryDama>(current_gw,
@@ -297,12 +287,11 @@ bool SpotDownwardTransp::initDama(void)
 	    rbdc_timeout_sf, sync_period_frame);
 
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-		                      this->spot_id,
 		                      this->mac_id, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d and gw is %d\n",
-		    RETURN_UP_BAND, this->spot_id, this->mac_id);
+		    "section '%s', missing spot for gw %d\n",
+		    RETURN_UP_BAND, this->mac_id);
 		return false;
 	}
 
@@ -332,7 +321,7 @@ bool SpotDownwardTransp::initDama(void)
 
 	// dama algorithm
 	if(!Conf::getValue(Conf::section_map[DVB_NCC_SECTION],
-		               DVB_NCC_DAMA_ALGO,
+	                   DVB_NCC_DAMA_ALGO,
 	                   dama_algo))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

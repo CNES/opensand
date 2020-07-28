@@ -239,6 +239,6 @@ class SatGw: public DvbFmt
 
 
 /// The map of satellite spots
-typedef map<pair<spot_id_t, uint8_t>, SatGw *> sat_gws_t;
+typedef map<uint8_t, SatGw *> sat_gws_t;
 
 #endif

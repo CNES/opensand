@@ -91,57 +91,26 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	// for terminal get the corresponding spot
 	if(host == terminal)
 	{
-		ConfigurationList temp_spot;
 		ConfigurationList temp_gw;
-		spot_id_t spot_id;
 		tal_id_t gw_id;
 
-		if(OpenSandConf::spot_table.find(this->tal_id) == OpenSandConf::spot_table.end())
+		if(!OpenSandConf::getGwWithTalId(this->tal_id, gw_id))
 		{
-			if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
-						       DEFAULT_SPOT, spot_id))
+			if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION], 
+						       DEFAULT_GW, gw_id))
 			{
 				LOG(this->log_init, LEVEL_ERROR, 
-				    "couldn't find spot for tal %d", 
+				    "couldn't find gateway for tal %d", 
 				    this->tal_id);
 				goto error;
 			}
 		}
-		else
-		{
-			spot_id = OpenSandConf::spot_table[this->tal_id];
-		}
 
-		if(OpenSandConf::gw_table.find(this->tal_id) == OpenSandConf::gw_table.end())
-		{
-			if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION], 
-			                   DEFAULT_GW, gw_id))
-			{
-				LOG(this->log_init, LEVEL_ERROR, 
-				    "couldn't find gw for tal %d", 
-				    tal_id);
-				goto error;
-			}
-		}
-		else
-		{
-			gw_id = OpenSandConf::gw_table[this->tal_id];
-		}
-		
-
-		if(!Conf::getElementWithAttributeValue(spot_list, ID, spot_id, temp_spot))
+		if(!Conf::getElementWithAttributeValue(spot_list, GW, gw_id, temp_gw))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "couldn't get spot %d into %s/%s",
-			    spot_id, SATCAR_SECTION, SPOT_LIST);
-			goto error;
-		}
-
-		if(!Conf::getElementWithAttributeValue(temp_spot, GW, gw_id, temp_gw))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "couldn't get spot %d gw %d into %s/%s",
-			    spot_id, gw_id, SATCAR_SECTION, SPOT_LIST);
+			    "couldn't get gw %d into %s/%s",
+			    gw_id, SATCAR_SECTION, SPOT_LIST);
 			goto error;
 		}
 
@@ -167,13 +136,13 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	    ++iter_spots)
 	{
 		ConfigurationList carrier_list ; 
-		spot_id_t spot_id = 0;
+		tal_id_t gw_id;
 		
-		if(!Conf::getAttributeValue(iter_spots, ID, spot_id))
+		if(!Conf::getAttributeValue(iter_spots, GW, gw_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "there is not attribute %s in %s/%s",
-			    ID, SATCAR_SECTION, SPOT_LIST);
+			    GW, SATCAR_SECTION, SPOT_LIST);
 			goto error;
 		}
 
@@ -212,7 +181,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "section '%s %d/%s/%s': failed to retrieve %s at "
-				    "line %d\n", SPOT_LIST, spot_id,
+				    "line %d\n", SPOT_LIST, gw_id,
 				    SATCAR_SECTION, CARRIER_LIST,
 				    CARRIER_ID, i);
 				goto error;
@@ -223,7 +192,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "section '%s %d/%s/%s': failed to retrieve %s at "
-				    "line %d\n", SPOT_LIST, spot_id,
+				    "line %d\n", SPOT_LIST, gw_id,
 				    SATCAR_SECTION, CARRIER_LIST,
 				    CARRIER_IP, i);
 				goto error;
@@ -234,7 +203,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "section '%s %d/%s/%s': failed to retrieve %s at "
-				    "line %d\n", SPOT_LIST, spot_id,
+				    "line %d\n", SPOT_LIST, gw_id,
 				    SATCAR_SECTION, CARRIER_LIST,
 				    CARRIER_PORT, i);
 				goto error;
@@ -245,7 +214,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "section '%s %d/%s/%s': failed to retrieve %s at "
-				    "line %d\n",SPOT_LIST, spot_id,
+				    "line %d\n",SPOT_LIST, gw_id,
 				    SATCAR_SECTION, CARRIER_LIST,
 				    CARRIER_TYPE, i);
 				goto error;
@@ -297,7 +266,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "section '%s %d/%s/%s': failed to retrieve %s at "
-				    "line %d\n", SPOT_LIST, spot_id,
+				    "line %d\n", SPOT_LIST, gw_id,
 				    SATCAR_SECTION, CARRIER_LIST,
 				    CARRIER_MULTICAST, i);
 				goto error;
@@ -326,7 +295,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				{
 					LOG(this->log_init, LEVEL_ERROR,
 					    "Section %s, %s %d, %s missing\n",
-					    ADV_SECTION, SPOT_LIST, spot_id, SATCARRIER_UDP_STACK);
+					    ADV_SECTION, SPOT_LIST, gw_id, SATCARRIER_UDP_STACK);
 					goto error;
 				}
 				// get rmem
@@ -335,7 +304,7 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				{
 					LOG(this->log_init, LEVEL_ERROR,
 					    "Section %s, %s %d, %s missing\n",
-					    ADV_SECTION, SPOT_LIST, spot_id, SATCARRIER_UDP_RMEM);
+					    ADV_SECTION, SPOT_LIST, gw_id, SATCARRIER_UDP_RMEM);
 					goto error;
 				}
 				// get wmem
@@ -344,13 +313,13 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 				{
 					LOG(this->log_init, LEVEL_ERROR,
 					    "Section %s, %s %d, %s missing\n",
-					    ADV_SECTION, SPOT_LIST, spot_id, SATCARRIER_UDP_WMEM);
+					    ADV_SECTION, SPOT_LIST, gw_id, SATCARRIER_UDP_WMEM);
 					goto error;
 				}
 				// create a new udp channel configure it, with information from file
 				// and insert it in the channels vector
 				channel = new UdpChannel("SatCarrier",
-				                         spot_id,
+				                         gw_id,
 				                         carrier_id,
 				                         is_input,
 				                         is_output,

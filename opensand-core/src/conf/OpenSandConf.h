@@ -58,14 +58,9 @@ class OpenSandConf
 	~OpenSandConf(void);
 
 	/**
-	 * The spot association with each carrier
+	 * The gateway association with each carrier
 	 */
-	static map<unsigned int, std::pair<uint8_t, uint16_t> > carrier_map;
-
-	/**
-	 * The spot association with each terminal
-	 */
-	static map<tal_id_t, spot_id_t> spot_table;
+	static map<unsigned int, uint16_t> carrier_map;
 
 	/**
 	 * The spot association with each terminal
@@ -90,24 +85,13 @@ class OpenSandConf
 	                           uint16_t &gw_id);
 
 	/**
-	 * Get spot value in terminal map
-	 *
-	 * @param tal_it   the terminal id
-	 * @param spot     the found spot
-	 * @return true on success, false otherwise
-	 */
-	static bool getSpotWithTalId(uint16_t tal_id,
-	                             uint8_t &spot);
-
-	/**
-	 * Get spot value in carrier map
+	 * Get gateway value in carrier map
 	 *
 	 * @param car_it   the carrier id
 	 * @param car_iter the found iterator 
 	 * @return true on success, false otherwise
 	 */
-	static bool getSpotWithCarrierId(unsigned int car_id,
-	                                 uint8_t &spot,
+	static bool getGwWithCarrierId(unsigned int car_id,
 	                                 uint16_t &gw);
 
 	/**
@@ -118,15 +102,13 @@ class OpenSandConf
 	static bool isGw(uint16_t gw_id);
 
 	/**
-	 * return current spot with gw and spot ids
+	 * return current spot with gw id
 	 * @param section    the section name
-	 * @param spot_id    the spot id
 	 * @param gw_id      the gw id
 	 * @param current_gw the found spot/gw
 	 * @return true on success, false otherwize
 	 */
 	static bool getSpot(string section,
-	                    uint8_t spot_id,
 	                    uint16_t gw_id,
 	                    ConfigurationList &current_gw);
 

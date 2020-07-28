@@ -73,13 +73,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="spotId">
-    <xsd:restriction base="xsd:integer">
-        <xsd:minInclusive value="0" />
-        <xsd:maxInclusive value="255" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <!-- the terminals for sarp sections -->
 <xsd:element name="ethernet">
     <xsd:complexType>
@@ -120,7 +113,6 @@
                 </xsd:complexType>
             </xsd:element>
         </xsd:sequence>
-        <xsd:attribute name="id"/>
         <xsd:attribute name="gw"/>
     </xsd:complexType>
 </xsd:element>
@@ -188,7 +180,6 @@
         <xsd:sequence>
             <xsd:element ref="sarp" />
             <xsd:element ref="sat_carrier" />
-            <xsd:element ref="spot_table" />
             <xsd:element ref="gw_table" />
         </xsd:sequence>
         <xsd:attribute name="component" type="componentType" />
@@ -246,47 +237,6 @@
     </xsd:complexType>
 </xsd:element>
 
-<!-- spot_table section description -->
-<xsd:element name="spot_table">
-    <xsd:annotation>
-        <xsd:documentation xml:lang="en">
-            The satellite spot table
-            <adv>true</adv>
-        </xsd:documentation>
-    </xsd:annotation>
-    <xsd:complexType>
-        <xsd:sequence>
-            <xsd:element name="spot" minOccurs="1" maxOccurs="3">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The terminal list
-                    </xsd:documentation>
-                </xsd:annotation>
-                <!-- the tal_list for spot_table section -->
-                <xsd:complexType>
-                    <xsd:sequence>
-                        <xsd:element name="terminals">
-                            <xsd:complexType>
-                                <xsd:sequence>
-                                    <xsd:element ref="tal" minOccurs="1" maxOccurs="6"/>
-                                </xsd:sequence>
-                            </xsd:complexType>
-                        </xsd:element>
-                    </xsd:sequence>
-                    <xsd:attribute name="id" type="spotId"/>
-                </xsd:complexType>
-            </xsd:element>
-            <xsd:element name="default_spot" type="spotId">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The default spot if terminal is not found in switches
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-        </xsd:sequence>
-    </xsd:complexType>
-</xsd:element>
-
 <!-- gw_table section description -->
 <xsd:element name="gw_table">
     <xsd:annotation>
@@ -303,7 +253,7 @@
                         The terminal list
                     </xsd:documentation>
                 </xsd:annotation>
-                <!-- the tal_list for spot_table section -->
+                <!-- the tal_list for gw_table section -->
                 <xsd:complexType>
                     <xsd:sequence>
                         <xsd:element name="terminals">

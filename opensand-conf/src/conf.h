@@ -95,11 +95,7 @@
 #define ID                        "id"
 #define GW                        "gw"
 #define SPOT                      "spot"
-
-#define SPOT_TABLE_SECTION        "spot_table"
-#define TERMINAL_LIST			  "terminals"
-#define DEFAULT_SPOT              "default_spot"
-
+#define TERMINAL_LIST             "terminals"
 #define GW_TABLE_SECTION          "gw_table"
 #define DEFAULT_GW                "default_gw"
 
@@ -287,7 +283,6 @@
 #define DISABLED_NONE       "none"
 
 #define SPOT_LIST           "spot"
-#define NO_GW               10
 #define GW_LIST             "gw"
 #define CTRL_ID             "ctrl_id"
 #define DATA_IN_ID          "data_in_id"

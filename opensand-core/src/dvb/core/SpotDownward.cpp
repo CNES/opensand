@@ -217,12 +217,11 @@ bool SpotDownward::initCarrierIds(void)
 	ConfigurationList current_gw;
 
 	if(!OpenSandConf::getSpot(SATCAR_SECTION,
-		                      this->spot_id,
 		                      this->mac_id, current_gw))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d and gw id %d\n",
-		    SATCAR_SECTION, this->spot_id, this->mac_id);
+		    "section '%s', missing spot for gw %d\n",
+		    SATCAR_SECTION, this->mac_id);
 		return false;
 	}
 
@@ -322,15 +321,7 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 	ConfigurationList::iterator iter_spots;
 	ConfigurationList spot_node;
 
-	if(!OpenSandConf::getSpot(DVB_NCC_SECTION,
-		                      this->spot_id,
-		                      NO_GW, spot_node))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d\n",
-		    DVB_NCC_SECTION, this->spot_id);
-		return false;
-	}
+	spot_node = Conf::section_map[DVB_NCC_SECTION];
 
 	/*
 	 * Read the MAC queues configuration in the configuration file.
@@ -429,15 +420,7 @@ bool SpotDownward::initRequestSimulation(void)
 	ConfigurationList current_gw;
 	string str_config;
 
-	if(!OpenSandConf::getSpot(DVB_NCC_SECTION,
-		                      this->spot_id,
-		                      NO_GW, current_gw))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d\n",
-		    DVB_NCC_SECTION, spot_id);
-		return false;
-	}
+	current_gw = Conf::section_map[DVB_NCC_SECTION];
 
 	// Get and open the event file
 	if(!Conf::getValue(current_gw, DVB_SIMU_MODE, str_config))

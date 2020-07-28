@@ -101,8 +101,6 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 	ConfigurationList simu_list;
 	ConfigurationList saloha_section = Conf::section_map[SALOHA_SECTION];
-	ConfigurationList spots;
-	ConfigurationList current_spot;
 
 	// set spot id
 	if(spot_id == 0)
@@ -133,7 +131,7 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		    "some terminals may not be able to log in\n");
 	}
 
-  auto output = Output::Get();
+	auto output = Output::Get();
 	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
 	    ++cat_iter)
 	{
@@ -157,26 +155,8 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		this->probe_collisions.emplace(cat_iter->first, probe_coll);
 		this->probe_collisions_ratio.emplace(cat_iter->first, probe_coll_ratio);
 	}
-	
-	if(!Conf::getListNode(saloha_section, SPOT_LIST, spots))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "there is no %s into %s section\n",
-		    SPOT_LIST, SALOHA_SECTION);
-		return false;
-	}
 
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-	                                       this->spot_id, 
-	                                       current_spot))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s\n",
-		    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
-		return false;
-	}
-	
-	if(!Conf::getValue(current_spot,
+	if(!Conf::getValue(saloha_section,
 		               SALOHA_ALGO, algo_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -205,7 +185,7 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 
 	
 	// load Slotted Aloha traffic simulation parameters
-	if(!Conf::getListItems(current_spot,
+	if(!Conf::getListItems(saloha_section,
 		                   SALOHA_SIMU_LIST, 
 		                   simu_list))
 	{

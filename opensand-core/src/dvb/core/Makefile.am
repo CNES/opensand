@@ -56,4 +56,3 @@ libopensand_dvb_core_la_CPPFLAGS = \
 	-I$(top_srcdir)/src/qos_data \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common
-

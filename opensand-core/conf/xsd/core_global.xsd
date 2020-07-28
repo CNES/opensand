@@ -494,7 +494,6 @@
                             </xsd:annotation>
                         </xsd:element>
                     </xsd:sequence>
-                    <xsd:attribute name="id"/>
                     <xsd:attribute name="gw" type="talId"/>
                 </xsd:complexType>
             </xsd:element>
@@ -561,7 +560,6 @@
                             </xsd:annotation>
                         </xsd:element>
                     </xsd:sequence>
-                    <xsd:attribute name="id"/>
                     <xsd:attribute name="gw" type="talId"/>
                 </xsd:complexType>
             </xsd:element>
