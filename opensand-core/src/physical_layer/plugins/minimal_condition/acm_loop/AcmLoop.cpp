@@ -61,59 +61,36 @@ bool AcmLoop::init(void)
 {
 	string filename_rcs;
 	string filename_s2;
-	string modcod_def_rcs;
 
-	return_link_standard_t return_link_standard;
 	vol_sym_t req_burst_length;
 
-	// return link standard type
+	unsigned int dummy;
+
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               RETURN_LINK_STANDARD,
-	                   modcod_def_rcs))
+	                   RCS2_BURST_LENGTH,
+	                   dummy))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, RETURN_LINK_STANDARD);
+		    COMMON_SECTION, RCS2_BURST_LENGTH);
 		return false;
 	}
-	return_link_standard = strToReturnLinkStd(modcod_def_rcs);
-	if(return_link_standard == DVB_RCS2)
-	{
-		unsigned int dummy;
-
-		modcod_def_rcs = MODCOD_DEF_RCS2;
-
-		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-			               RCS2_BURST_LENGTH,
-		                   dummy))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s': missing parameter '%s'\n",
-			    COMMON_SECTION, RCS2_BURST_LENGTH);
-			return false;
-		}
-		req_burst_length = dummy;
-	}
-	else
-	{
-		modcod_def_rcs = MODCOD_DEF_RCS;
-		req_burst_length = 0;
-	}
+	req_burst_length = dummy;
 
 	// get appropriate MODCOD definitions for receving link
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   modcod_def_rcs.c_str(),
+	                   MODCOD_DEF_RCS2,
 	                   filename_rcs))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, modcod_def_rcs.c_str());
+		    PHYSICAL_LAYER_SECTION, MODCOD_DEF_RCS2);
 		return false;
 	}
 
 	// get appropriate MODCOD definitions for receving link
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               MODCOD_DEF_S2,
+	                   MODCOD_DEF_S2,
 	                   filename_s2))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

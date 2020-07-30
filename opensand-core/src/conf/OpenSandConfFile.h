@@ -116,22 +116,19 @@ class OpenSandConfFile
 	             ConfigurationList &current_gw);
 
 	/**
-	 * Get the SCPC encapsulation stack in function for a return link standard
+	 * Get the SCPC encapsulation stack
 	 *
-	 * @param return_link_std  the return link standard
-	 * @param encap_stack      the found encapsulation stack for SCPC
-	 * @return true on success, false otherwise
+	 * @return encap_stack
 	 */
-	bool getScpcEncapStack(string return_link_std,
-	                       vector<string> &encap_stack);
+	vector<string> &getScpcEncapStack();
 
  private:
 
 	/// Output Log
 	OutputLog *log_conf;
 
-	/// SCPC encapsulation stack for each return link standard
-	map< string, vector<string> > scpc_encap_stacks;
+	/// SCPC encapsulation stack
+	vector<string> scpc_encap_stack;
 };
 
 

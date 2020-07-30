@@ -18,7 +18,7 @@ HOSTS_XSD = \
 	xsd/common.xsd
 	
 MODCOD = \
-	modcod/rcs/ \
+	modcod/rcs2/ \
 	modcod/s2/
 	
 MANDATORY_PLUGINS = \

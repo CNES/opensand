@@ -39,7 +39,6 @@
 #include "SpotDownwardTransp.h"
 
 #include "ForwardSchedulingS2.h"
-#include "DamaCtrlRcsLegacy.h"
 #include "DamaCtrlRcs2Legacy.h"
 
 #include <errno.h>
@@ -92,7 +91,7 @@ bool SpotDownwardTransp::onInit(void)
 		    "failed to initialize the forward link definition MODCOD file\n");
 		return false;
 	}
-	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
+	if(!this->initModcodDefFile(MODCOD_DEF_RCS2,
 	                            &this->rcs_modcod_def,
 	                            this->req_burst_length))
 	{
@@ -342,24 +341,7 @@ bool SpotDownwardTransp::initDama(void)
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "creating Legacy DAMA controller\n");
-		if(this->return_link_std == DVB_RCS)
-		{
-			this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id,
-			                                        this->up_return_pkt_hdl->getFixedLength() << 3);
-		}
-		else if(this->return_link_std == DVB_RCS2)
-		{
-			this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
-		}
-		else
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-				"section '%s': bad value '%s' for parameter '%s'"
-				" (no matching dama controller for return link standard '%s')\n",
-				DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO,
-				this->return_link_std_str.c_str());
-			return false;
-		}
+		this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
 	}
 	else
 	{

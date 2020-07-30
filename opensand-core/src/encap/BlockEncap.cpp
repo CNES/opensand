@@ -245,7 +245,6 @@ bool BlockEncap::onInit()
 	string up_return_encap_proto;
 	string downlink_encap_proto;
 	string lan_name;
-	string ret_lnk_std;
 	ConfigurationList option_list;
 	vector <EncapPlugin::EncapContext *> up_return_ctx;
 	vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
@@ -257,20 +256,6 @@ bool BlockEncap::onInit()
 	component_t host;
 
 	((Upward *)this->upward)->setMacId(this->mac_id);
-
-	// return link standard
-	if (!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		                RETURN_LINK_STANDARD,
-		                ret_lnk_std))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, RETURN_LINK_STANDARD);
-		goto error;
-	}
-
-	LOG(this->log_init, LEVEL_INFO,
-	    "return link standard = \"%s\"\n", ret_lnk_std.c_str());
 	
 	// Retrieve last packet handler in lan adaptation layer
 	lan_name = "Ethernet";
@@ -310,7 +295,7 @@ bool BlockEncap::onInit()
 		else
 		{
 			if(!this->getSCPCEncapContext(lan_plugin, up_return_ctx,
-			                              ret_lnk_std, "return/up")) 
+			                              "return/up")) 
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Cannot get Return Encapsulation context");
@@ -323,7 +308,7 @@ bool BlockEncap::onInit()
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "SCPC mode available - BlockEncap");
 		if(!this->getSCPCEncapContext(lan_plugin, up_return_ctx_scpc,
-		                              ret_lnk_std, "return/up")) 
+		                              "return/up")) 
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Cannot get SCPC Up/Return Encapsulation context");
@@ -781,7 +766,6 @@ bool BlockEncap::getEncapContext(const char *scheme_list,
 
 bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
 	                                 vector <EncapPlugin::EncapContext *> &ctx,
-	                                 string return_link_std,
 	                                 const char *link_type)
 {
 	vector<string> scpc_encap;
@@ -791,7 +775,7 @@ bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
 	string encap_name;
 
 	// Get SCPC encapsulation context
-	if (!OpenSandConf::getScpcEncapStack(return_link_std, scpc_encap) ||
+	if (!OpenSandConf::getScpcEncapStack(scpc_encap) ||
 		scpc_encap.size() <= 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,

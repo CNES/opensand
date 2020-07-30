@@ -36,11 +36,10 @@
 
 #include "SpotUpward.h"
 
-#include "DamaCtrlRcsLegacy.h"
-
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "Sof.h"
+#include "Logon.h"
 
 SpotUpward::SpotUpward(spot_id_t spot_id,
                        tal_id_t mac_id,

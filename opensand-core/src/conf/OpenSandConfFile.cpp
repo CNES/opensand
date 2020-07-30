@@ -50,14 +50,10 @@
 
 
 OpenSandConfFile::OpenSandConfFile() :
-	scpc_encap_stacks()
+	scpc_encap_stack()
 {
-	this->scpc_encap_stacks["DVB-RCS"] = vector<string>();
-	this->scpc_encap_stacks["DVB-RCS"].push_back(string("GSE"));
-
-	this->scpc_encap_stacks["DVB-RCS2"] = vector<string>();
-	//this->scpc_encap_stacks["DVB-RCS2"].push_back(string("RLE"));
-	this->scpc_encap_stacks["DVB-RCS2"].push_back(string("GSE"));
+	//this->scpc_encap_stack.push_back(string("RLE"));
+	this->scpc_encap_stack.push_back(string("GSE"));
 }
 
 OpenSandConfFile::~OpenSandConfFile()
@@ -232,19 +228,8 @@ bool OpenSandConfFile::getSpot(string section,
 	return true;
 }
 
-bool OpenSandConfFile::getScpcEncapStack(string return_link_std,
-                                        vector<string> &encap_stack)
+vector<string> &OpenSandConfFile::getScpcEncapStack()
 {
-	map< string, vector<string> >::iterator ite;
-
-	// Check this return link standard is valid
-	ite = this->scpc_encap_stacks.find(return_link_std);
-	if (ite == this->scpc_encap_stacks.end())
-	{
-		return false;
-	}
-
 	// Return the encapsulation stack
-	encap_stack = this->scpc_encap_stacks[return_link_std];
-	return true;
+	return this->scpc_encap_stack;
 }

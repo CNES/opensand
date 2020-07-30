@@ -155,15 +155,7 @@ BlockDvbSatTransp::UpwardTransp::~UpwardTransp()
 bool BlockDvbSatTransp::UpwardTransp::initMode(void)
 {
 	// create the reception standard
-	if(this->return_link_std == DVB_RCS2)
-	{
-		this->reception_std = new DvbRcs2Std(); 
-	}
-	else
-	{
-		this->reception_std = new DvbRcsStd(); 
-	}
-	
+	this->reception_std = new DvbRcs2Std(); 
 	if(this->reception_std == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,

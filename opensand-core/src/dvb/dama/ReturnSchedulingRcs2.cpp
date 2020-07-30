@@ -58,10 +58,57 @@ typedef enum
 } sched_state_t;
 
 ReturnSchedulingRcs2::ReturnSchedulingRcs2(
-			EncapPlugin::EncapPacketHandler *packet_handler,
-			const fifos_t &fifos):
-	ReturnSchedulingRcsCommon(packet_handler, fifos)
+        EncapPlugin::EncapPacketHandler *packet_handler,
+        const fifos_t &fifos):
+        Scheduling(packet_handler, fifos, NULL),
+        max_burst_length_b(0)
 {
+}
+
+vol_b_t ReturnSchedulingRcs2::getMaxBurstLength() const
+{
+	return this->max_burst_length_b;
+}
+
+void ReturnSchedulingRcs2::setMaxBurstLength(vol_b_t length_b)
+{
+	this->max_burst_length_b = length_b;
+	LOG(this->log_scheduling, LEVEL_DEBUG,
+	    "DVB-RCS frame max burst length: %u bits (%u bytes)\n",
+	    this->max_burst_length_b, this->max_burst_length_b >> 3);
+}
+
+bool ReturnSchedulingRcs2::schedule(const time_sf_t current_superframe_sf,
+                                    clock_t UNUSED(current_time),
+                                    list<DvbFrame *> *complete_dvb_frames,
+                                    uint32_t &remaining_allocation)
+{
+	if(remaining_allocation > (unsigned int)pow(2.0, 8 * sizeof(vol_kb_t)))
+	{
+		LOG(this->log_scheduling, LEVEL_NOTICE,
+		    "Remaining allocation (%u) is too long and will be "
+		    "truncated\n", remaining_allocation);
+	}
+	// check max burst length
+	if(this->max_burst_length_b <= 0)
+	{
+		LOG(this->log_scheduling, LEVEL_NOTICE,
+		    "The max burst length does not allow to send data\n");
+		return true;
+	}
+	// extract and send encap packets from MAC FIFOs, in function of
+	// UL allocation
+	if(!this->macSchedule(current_superframe_sf,
+	                      complete_dvb_frames,
+	                      (vol_b_t &)remaining_allocation))
+	{
+		LOG(this->log_scheduling, LEVEL_ERROR,
+		    "SF#%u: MAC scheduling failed\n",
+		    current_superframe_sf);
+		return false;
+	}
+
+	return true;
 }
 
 bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
@@ -498,4 +545,3 @@ bool ReturnSchedulingRcs2::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_fram
 error:
 	return false;
 }
-

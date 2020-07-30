@@ -29,7 +29,7 @@
 
 /**
  * @file ReturnSchedulingRcs2.h
- * @brief Scheduling for MAC FIFOs for DVB-RCS return link
+ * @brief Scheduling for MAC FIFOs for DVB-RCS2 return link
  * @author Julien BERNARD <jbernard@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  *
@@ -38,7 +38,7 @@
 #ifndef _RETURN_SCHEDULING_RCS2_H_
 #define _RETURN_SCHEDULING_RCS2_H_
 
-#include "ReturnSchedulingRcsCommon.h"
+#include "Scheduling.h"
 #include "DvbRcsFrame.h"
 
 #include <opensand_output/OutputLog.h>
@@ -47,16 +47,28 @@
  * @class ReturnSchedulingRcs2
  * @brief Scheduling functions for MAC FIFOs with DVB-RCS2 return link
  */
-class ReturnSchedulingRcs2: public ReturnSchedulingRcsCommon
+class ReturnSchedulingRcs2: public Scheduling
 {
   public:
 
 	ReturnSchedulingRcs2(EncapPlugin::EncapPacketHandler *packet_handler,
-	                    const fifos_t &fifos);
+	                          const fifos_t &fifos);
 
 	virtual ~ReturnSchedulingRcs2() {};
 
-  private:
+	vol_b_t getMaxBurstLength() const;
+	void setMaxBurstLength(vol_b_t length_b);
+	
+	bool schedule(const time_sf_t current_superframe_sf,
+	              clock_t current_time,
+	              list<DvbFrame *> *complete_dvb_frames,
+	              uint32_t &remaining_allocation);
+
+  protected:
+
+	/// The maximum burst length in bits
+	vol_b_t max_burst_length_b;
+
 	/**
 	 * @brief schedule the DVB packets that are stored in the MAC Fifo
 	 *
@@ -79,7 +91,6 @@ class ReturnSchedulingRcs2: public ReturnSchedulingRcsCommon
 	 * @return true on sucess, false otherwise
 	 */
 	bool allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame);
-
 };
 
 #endif

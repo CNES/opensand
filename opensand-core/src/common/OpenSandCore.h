@@ -111,29 +111,6 @@ inline component_t getComponentType(string name)
 		return unknown_compo;
 };
 
-/// Return link standard 
-typedef enum
-{
-	DVB_RCS,
-	DVB_RCS2,
-} return_link_standard_t;
-
-
-/**
- * @brief get the return link standard according to its name
- *
- * @param return_link_standard  the return link standard name
- *
- * @return the return link standard enum
- */
-inline return_link_standard_t strToReturnLinkStd(string return_link_standard)
-{
-	if(return_link_standard == "DVB-RCS2")
-		return DVB_RCS2;
-	else
-		return DVB_RCS;
-}
-
 /// Carrier access type
 typedef enum
 {

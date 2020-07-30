@@ -38,7 +38,7 @@
 #define SPOT_DOWNWARD_H
 
 #include "DvbChannel.h"
-#include "DamaCtrlRcsCommon.h"
+#include "DamaCtrlRcs2.h"
 #include "Scheduling.h"
 #include "SlottedAlohaNcc.h"
 #include "RequestSimulator.h"
@@ -241,7 +241,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	virtual bool addCniExt(void) = 0;
 
 	/// The DAMA controller
-	DamaCtrlRcsCommon *dama_ctrl;
+	DamaCtrlRcs2 *dama_ctrl;
 
 	/// The uplink or forward scheduling per category
 	map<string, Scheduling*> scheduling;

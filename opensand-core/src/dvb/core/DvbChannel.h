@@ -63,9 +63,6 @@ class DvbChannel
 {
  public:
 	DvbChannel():
-		return_link_std_str(""),
-		return_link_std(),
-		modcod_def_rcs_type(""),
 		req_burst_length(0),
 		super_frame_counter(0),
 		fwd_down_frame_duration_ms(),
@@ -264,13 +261,6 @@ class DvbChannel
 	template<class T>
 	bool carriersTransfer(time_ms_t duration_ms, T* cat1, T* cat2,
 	                       map<rate_symps_t , unsigned int> carriers);
-
-	/// the return link standard (DVB-RCS or DVB-RCS2)
-	string return_link_std_str;
-	return_link_standard_t return_link_std;
-
-	/// the RCS or RCS2 type of MODCOD definition
-	string modcod_def_rcs_type;
 
 	/// the RCS2 required burst length in symbol
 	vol_b_t req_burst_length;

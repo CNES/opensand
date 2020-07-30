@@ -47,13 +47,6 @@
     </xsd:restriction>
 </xsd:simpleType>
 
-<xsd:simpleType name="returnLinkStandardType">
-    <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="DVB-RCS" />
-        <xsd:enumeration value="DVB-RCS2" />
-    </xsd:restriction>
-</xsd:simpleType>
-
 <xsd:simpleType name="rcs2BurstLength">
     <xsd:restriction base="xsd:positiveInteger">
         <xsd:enumeration value="536" />
@@ -354,21 +347,12 @@
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
-            <xsd:element name="return_link_standard" type="returnLinkStandardType">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The return link standard type
-                        <adv>true</adv>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
             <xsd:element name="rcs2_burst_length" type="rcs2BurstLength">
                 <xsd:annotation>
                     <xsd:documentation xml:lang="en">
                         The constant burst length for DVB-RCS2
                         <adv>true</adv>
                         <unit>sym</unit>
-                        <xpath common.return_link_standard="DVB-RCS2" />
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>
@@ -652,15 +636,6 @@
                         and SCPC
                         <default>modcod/s2/definition.txt</default>
                         <source>modcod/s2/modcod.txt</source>
-                    </xsd:documentation>
-                </xsd:annotation>
-            </xsd:element>
-            <xsd:element name="modcod_def_rcs" type="file">
-                <xsd:annotation>
-                    <xsd:documentation xml:lang="en">
-                        The MODCOD definition file for RCS return/up link
-                        <default>modcod/rcs/definition_MPEG.txt</default>
-                        <source>modcod/rcs/modcod.txt</source>
                     </xsd:documentation>
                 </xsd:annotation>
             </xsd:element>

@@ -203,14 +203,12 @@ class BlockEncap: public Block
 	 *
 	 * @param l_plugin         The LAN adaptation plugin
 	 * @param ctx              The encapsulation context for return link
-	 * @param return_link_std  The return link standard
 	 * @param link_type        The type of link: "return/up" or "forward/down"
 	 * @return                 Whether the Encapsulation context has been
 	 *                         correctly obtained or not
 	 */
 	bool getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
 	                         vector <EncapPlugin::EncapContext *> &ctx,
-	                         string return_link_std,
 	                         const char *link_type);
 
 	/// initialization method

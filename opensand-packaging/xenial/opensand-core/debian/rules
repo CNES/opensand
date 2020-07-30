@@ -44,7 +44,6 @@ override_dh_install:
 
 	# MODCOD files for manager
 	install -D -m 0644 conf/modcod/s2/*.txt -t $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/modcod/s2
-	install -D -m 0644 conf/modcod/rcs/*.txt -t $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/modcod/rcs
 	install -D -m 0644 conf/modcod/rcs2/*.txt -t $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/modcod/rcs2
 	# DAMA request simulation file
 	install -D -m 0644 conf/dama.input $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/request_simu/dama.input
@@ -54,9 +53,6 @@ override_dh_install:
 	install -D -m 0644 conf/logrotate.conf $(CURDIR)/debian/opensand-core/etc/logrotate.d/opensand-core.conf
 
 	# Mandatory plugins configuration
-	install -m 0644 conf/mandatory_plugins/mpeg.conf $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/mpeg.conf
-	install -m 0644 conf/mandatory_plugins/mpeg.xsd $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/mpeg.xsd
-
 	for host in gw st; do \
 		for plugin in ip ethernet ideal on_off file triangular constant file_delay constant_delay; do \
 			install -m 0644 conf/mandatory_plugins/$${plugin}.conf $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/$${host}/plugins/$${plugin}.conf ; \

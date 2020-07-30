@@ -53,7 +53,6 @@
 #define PROTO                     "proto"
 #define ENCAP_NAME                "encap"
 
-#define RETURN_LINK_STANDARD      "return_link_standard"
 #define RCS2_BURST_LENGTH         "rcs2_burst_length"
 
 #define RET_UP_CARRIER_DURATION     "return_up_carrier_duration"
@@ -241,7 +240,6 @@
 #define ERROR_INSERTION_TYPE      "error_insertion_type"
 #define CLEAR_SKY_CONDITION       "clear_sky_condition"
 #define MODCOD_DEF_S2                     "modcod_def_s2"
-#define MODCOD_DEF_RCS                    "modcod_def_rcs"
 #define MODCOD_DEF_RCS2                   "modcod_def_rcs2"
 #define RETURN_UP_ACM_LOOP_MARGIN         "return_up_acm_loop_margin"
 #define FORWARD_DOWN_ACM_LOOP_MARGIN      "forward_down_acm_loop_margin"

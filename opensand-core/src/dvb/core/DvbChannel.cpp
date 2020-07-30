@@ -64,43 +64,20 @@ inline bool fileExists(const string &filename)
 
 bool DvbChannel::initModcodDefinitionTypes(void)
 {
-	// return link standard type
+	// Set the MODCOD definition type
+	unsigned int dummy;
+
 	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               RETURN_LINK_STANDARD,
-	                   this->return_link_std_str))
+	                   RCS2_BURST_LENGTH,
+	                   dummy))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, RETURN_LINK_STANDARD);
+		    COMMON_SECTION, RCS2_BURST_LENGTH);
 		return false;
 	}
-	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "return link standard type = %s\n",
-	    this->return_link_std_str.c_str());
-	this->return_link_std = strToReturnLinkStd(this->return_link_std_str);
+	this->req_burst_length = dummy;
 
-	// Set the MODCOD definition type
-	if(this->return_link_std == DVB_RCS2)
-	{
-		unsigned int dummy;
-		this->modcod_def_rcs_type = MODCOD_DEF_RCS2;
-
-		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-			               RCS2_BURST_LENGTH,
-		                   dummy))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section '%s': missing parameter '%s'\n",
-			    COMMON_SECTION, RCS2_BURST_LENGTH);
-			return false;
-		}
-		this->req_burst_length = dummy;
-	}
-	else
-	{
-		this->modcod_def_rcs_type = MODCOD_DEF_RCS;
-		this->req_burst_length = 0;
-	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "required burst length = %d\n",
 	    this->req_burst_length);
@@ -174,8 +151,7 @@ bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 	EncapPlugin *plugin;
 
 	// Get SCPC encapsulation name stack
-	if (!OpenSandConf::getScpcEncapStack(this->return_link_std_str,
-		                                 encap_stack) ||
+	if (!OpenSandConf::getScpcEncapStack(encap_stack) ||
 		encap_stack.size() <= 0)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

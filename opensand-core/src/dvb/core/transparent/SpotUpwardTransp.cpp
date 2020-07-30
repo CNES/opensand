@@ -38,13 +38,12 @@
 
 #include "SpotUpwardTransp.h"
 
-#include "DamaCtrlRcsLegacy.h"
-
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "Sof.h"
+#include "TerminalCategoryDama.h"
+#include "Logon.h"
 
-#include "UnitConverterFixedBitLength.h"
 #include "UnitConverterFixedSymbolLength.h"
 
 SpotUpwardTransp::SpotUpwardTransp(spot_id_t spot_id,
@@ -110,6 +109,7 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	ConfigurationList current_spot;
 	UnitConverter *converter;
 	int lan_scheme_nbr;
+	vol_sym_t length_sym = 0;
 
 	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
 	                          this->mac_id, current_spot))
@@ -201,28 +201,17 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 		goto release_saloha;
 	}
 
-	if(this->return_link_std == DVB_RCS2)
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+	                   RCS2_BURST_LENGTH, length_sym))
 	{
-		vol_sym_t length_sym = 0;
-		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		                   RCS2_BURST_LENGTH, length_sym))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot get '%s' value", DELAY_BUFFER);
-			goto release_saloha;
-		}
-		converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
-		                                               0,
-		                                               length_sym
-		                                              );
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "cannot get '%s' value", DELAY_BUFFER);
+		goto release_saloha;
 	}
-	else
-	{
-		converter = new UnitConverterFixedBitLength(this->ret_up_frame_duration_ms,
-		                                            0,
-		                                            this->pkt_hdl->getFixedLength() << 3
-		                                           );
-	}
+	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
+	                                               0,
+	                                               length_sym
+	                                              );
 
 	if(!this->saloha->init(sa_categories,
 	                       sa_terminal_affectation,
@@ -254,7 +243,7 @@ bool SpotUpwardTransp::initModcodSimu(void)
 		    "failed to initialize the forward link definition MODCOD file\n");
 		return false;
 	}
-	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
+	if(!this->initModcodDefFile(MODCOD_DEF_RCS2,
 	                            &this->rcs_modcod_def,
 	                            this->req_burst_length))
 	{
@@ -270,14 +259,7 @@ bool SpotUpwardTransp::initMode(void)
 {
 	// initialize the reception standard
 	// depending on the satellite type
-	if(this->return_link_std == DVB_RCS2)
-	{
-		this->reception_std = new DvbRcs2Std(this->pkt_hdl);
-	}
-	else
-	{
-		this->reception_std = new DvbRcsStd(this->pkt_hdl);
-	}
+	this->reception_std = new DvbRcs2Std(this->pkt_hdl);
 
 	// If available SCPC carriers, a new packet handler is created at NCC
 	// to received BBFrames and to be able to deencapsulate GSE packets.
@@ -295,8 +277,7 @@ bool SpotUpwardTransp::initMode(void)
 			    "failed to get forward packet handler\n");
 			return false;
 		}
-		if (!OpenSandConf::getScpcEncapStack(this->return_link_std_str,
-			                                 scpc_encap) ||
+		if (!OpenSandConf::getScpcEncapStack(scpc_encap) ||
 			scpc_encap.size() <= 0)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,

@@ -41,8 +41,6 @@
 
 #include "BlockDvbTal.h"
 
-#include "DamaAgentRcsLegacy.h"
-#include "DamaAgentRcsRrmQos.h"
 #include "DamaAgentRcs2Legacy.h"
 #include "TerminalCategoryDama.h"
 #include "ScpcScheduling.h"
@@ -53,7 +51,6 @@
 #include "Ttp.h"
 #include "Sof.h"
 
-#include "UnitConverterFixedBitLength.h"
 #include "UnitConverterFixedSymbolLength.h"
 
 #include <opensand_rt/Rt.h>
@@ -631,7 +628,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// init
-	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
+	if(!this->initModcodDefFile(MODCOD_DEF_RCS2,
 				    &this->rcs_modcod_def,
 				    this->req_burst_length))
 	{
@@ -810,23 +807,9 @@ bool BlockDvbTal::Downward::initDama(void)
 		    "SF#%u: create Legacy DAMA agent\n",
 		    this->super_frame_counter);
 
-		if(this->return_link_std == DVB_RCS)
-		{
-			this->dama_agent = new DamaAgentRcsLegacy(this->rcs_modcod_def);
-		}
-		else if(this->return_link_std == DVB_RCS2)
-		{
-			this->dama_agent = new DamaAgentRcs2Legacy(this->rcs_modcod_def);
-		}
-		else
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot create DAMA agent: algo named '%s' is not "
-			    "managed by current MAC layer\n", dama_algo.c_str());
-			goto error;
-		}
+		this->dama_agent = new DamaAgentRcs2Legacy(this->rcs_modcod_def);
 	}
-	else if(dama_algo == "RrmQos")
+	/*else if(dama_algo == "RrmQos")
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "SF#%u: create RrmQos DAMA agent\n",
@@ -843,7 +826,7 @@ bool BlockDvbTal::Downward::initDama(void)
 			    "managed by current MAC layer\n", dama_algo.c_str());
 			goto error;
 		}
-	}
+	}*/
 	else
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -914,6 +897,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	TerminalMapping<TerminalCategorySaloha>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategorySaloha>::iterator cat_it;
 	UnitConverter *converter = NULL;
+	vol_sym_t length_sym = 0;
 
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
@@ -1054,28 +1038,17 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 		goto release_saloha;
 	}
 
-	if(this->return_link_std == DVB_RCS2)
+	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
+			   RCS2_BURST_LENGTH, length_sym))
 	{
-		vol_sym_t length_sym = 0;
-		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-				   RCS2_BURST_LENGTH, length_sym))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get '%s' value", DELAY_BUFFER);
-			goto release_saloha;
-		}
-		converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
-							       0,
-							       length_sym
-							      );
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot get '%s' value", DELAY_BUFFER);
+		goto release_saloha;
 	}
-	else
-	{
-		converter = new UnitConverterFixedBitLength(this->ret_up_frame_duration_ms,
-							    0,
-							    this->pkt_hdl->getFixedLength() << 3
-							   );
-	}
+	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
+						       0,
+						       length_sym
+						      );
 
 	if(!this->saloha->init(this->mac_id,
 			       tal_category,

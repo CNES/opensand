@@ -38,7 +38,6 @@
 #define SPOT_DOWNWARD_TRANSP_H
 
 #include "SpotDownward.h"
-#include "DamaCtrlRcs.h"
 #include "Scheduling.h"
 #include "SlottedAlohaNcc.h"
 
