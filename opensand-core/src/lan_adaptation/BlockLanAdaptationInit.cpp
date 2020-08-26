@@ -37,8 +37,6 @@
 
 #include "BlockLanAdaptation.h"
 #include "TrafficCategory.h"
-#include "Ipv4Address.h"
-#include "Ipv6Address.h"
 #include "Plugin.h"
 
 #include <opensand_output/Output.h>
@@ -47,7 +45,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <algorithm>
-
+#include <vector>
 
 #define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
 
@@ -59,6 +57,8 @@ bool BlockLanAdaptation::onInit(void)
 	LanAdaptationPlugin *plugin;
 	lan_contexts_t contexts;
 	int fd = -1;
+	vector<string> lan_scheme_names({"Ethernet"});
+	vector<string>::const_iterator iter;
 
 	// get the number of lan adaptation context to use
 	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
@@ -73,15 +73,32 @@ bool BlockLanAdaptation::onInit(void)
 	LOG(this->log_init, LEVEL_INFO,
 	    "found %d lan adaptation contexts\n", lan_scheme_nbr);
 
+	for(int i = 0; i < lan_scheme_nbr; i++)
 	{
-		string name = "Ethernet";
+		string name;
+
+		// get all the lan adaptation plugins to use from upper to lower
+		if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
+			                     LAN_ADAPTATION_SCHEME_LIST,
+		                         POSITION, toString(i), PROTO, name))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Section %s, invalid value %d for parameter '%s'\n",
+			    GLOBAL_SECTION, i, POSITION);
+			return false;
+		}
+		lan_scheme_names.push_back(name);
+	}
+
+	for(iter = lan_scheme_names.begin(); iter != lan_scheme_names.end(); iter++)
+	{
 		LanAdaptationPlugin::LanAdaptationContext *context;
 
-		if(!Plugin::getLanAdaptationPlugin(name, &plugin))
+		if(!Plugin::getLanAdaptationPlugin(*iter, &plugin))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get plugin for %s lan adaptation",
-			    name.c_str());
+			    iter->c_str());
 			return false;
 		}
 

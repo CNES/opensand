@@ -54,7 +54,7 @@ override_dh_install:
 
 	# Mandatory plugins configuration
 	for host in gw st; do \
-		for plugin in ip ethernet ideal on_off file triangular constant file_delay constant_delay; do \
+		for plugin in ethernet ideal on_off file triangular constant file_delay constant_delay; do \
 			install -m 0644 conf/mandatory_plugins/$${plugin}.conf $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/$${host}/plugins/$${plugin}.conf ; \
 			install -m 0644 conf/mandatory_plugins/$${plugin}.xsd $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/$${host}/plugins/$${plugin}.xsd ; \
 		done ; \

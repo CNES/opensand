@@ -101,7 +101,6 @@ AC_CONFIG_FILES([ \
 	src/dvb/core/transparent/Makefile \
 	src/encap/Makefile \
 	src/lan_adaptation/Makefile \
-	src/lan_adaptation/tests/Makefile \
 	src/interconnect/Makefile \
 	src/sat_carrier/Makefile \
 	src/sat_carrier/tests/Makefile \
@@ -123,7 +122,6 @@ AC_CONFIG_FILES([ \
 	src/physical_layer/plugins/satdelay/file/Makefile \
 	src/system/Makefile \
 	src/mandatory_plugins/Makefile \
-	src/mandatory_plugins/ip/Makefile \
 	src/mandatory_plugins/ethernet/Makefile \
 	src/interfaces/Makefile \
 	src/interfaces/tests/Makefile \

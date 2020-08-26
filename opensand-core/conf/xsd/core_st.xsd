@@ -13,10 +13,7 @@
 <!-- types for global section -->
 <xsd:simpleType name="LanProto">
     <xsd:restriction base="xsd:string">
-        <xsd:enumeration value="IP" />
-        <xsd:enumeration value="Ethernet" />
         <xsd:enumeration value="ROHC" />
-        <xsd:enumeration value="PHS" />
     </xsd:restriction>
 </xsd:simpleType>
 
@@ -38,7 +35,7 @@
 <xsd:element name="lan_adaptation_schemes">
     <xsd:complexType>
         <xsd:choice>
-            <xsd:element ref="lan_scheme" minOccurs="1" maxOccurs="5" />
+            <xsd:element ref="lan_scheme" minOccurs="0" maxOccurs="4" />
         </xsd:choice>
     </xsd:complexType>
 </xsd:element>

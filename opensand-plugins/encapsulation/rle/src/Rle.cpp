@@ -137,8 +137,6 @@ Rle::Rle():
 	EncapPlugin(NET_PROTO_RLE)
 {
 	this->upper.push_back("ROHC");
-	this->upper.push_back("PHS");
-	this->upper.push_back("IP");
 	this->upper.push_back("Ethernet");
 	
 	rle_set_trace_callback(&(rle_log));

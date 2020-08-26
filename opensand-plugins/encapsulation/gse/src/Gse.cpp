@@ -121,8 +121,6 @@ Gse::Gse():
 	EncapPlugin(NET_PROTO_GSE)
 {
 	this->upper.push_back("ROHC");
-	this->upper.push_back("PHS");
-	this->upper.push_back("IP");
 	this->upper.push_back("Ethernet");
 }
 

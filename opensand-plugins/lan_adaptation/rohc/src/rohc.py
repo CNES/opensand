@@ -42,7 +42,6 @@ class RohcModule(LanAdaptationModule):
     
     def __init__(self):
         LanAdaptationModule.__init__(self)
-        self._upper = ("IP", "Ethernet", "PHS")
         self._xml = 'rohc.conf'
         self._xsd  = 'rohc.xsd'
         start = "<span size='x-large' foreground='#1088EB'><b>"

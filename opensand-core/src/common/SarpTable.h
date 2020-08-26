@@ -34,7 +34,6 @@
 #ifndef SARP_TABLE_H
 #define SARP_TABLE_H
 
-#include "IpAddress.h"
 #include "MacAddress.h"
 #include "OpenSandCore.h"
 
@@ -45,14 +44,6 @@
 
 using std::list;
 using std::vector;
-
-/// SARP table entry for IP
-typedef struct
-{
-	IpAddress *ip;
-	unsigned int mask_len;
-	tal_id_t tal_id;
-} sarpIpEntry;
 
 /// SARP table entry for Ethernet
 typedef struct
@@ -74,7 +65,6 @@ class SarpTable
 	unsigned int max_entries;    ///< maximum number of entries in SARP table
 	// TODO we have only one of these two list that is used each time so we
 	//      need only one of these
-	list<sarpIpEntry *> ip_sarp;   ///< The IP entries in SARP table
 	list<sarpEthEntry *> eth_sarp; ///< The Ethernet entries in SARP table
 	tal_id_t default_dest;  ///< the default terminal ID if no entry is found
 
@@ -98,18 +88,6 @@ class SarpTable
 	~SarpTable();
 
 	/**
-	 * Add an IP entry in the SARP table
-	 *
-	 * @param ip_addr  the IP address for the SARP entry
-	 * @param mask_len the mask length of the IP address
-	 * @param tal the tal ID associated with the IP address
-	 * @return true if the entry was successfully added (the table was
-	 *         not full), false otherwise
-	 */
-	bool add(IpAddress *ip_addr, unsigned int mask_len,
-	         tal_id_t tal);
-
-	/**
 	 * Add an Ethernet entry in the SARP table
 	 *
 	 * @param max_addr  the MAC address for the SARP entry
@@ -118,16 +96,6 @@ class SarpTable
 	 *         not full), false otherwise
 	 */
 	bool add(MacAddress *mac_address, tal_id_t tal);
-
-	/**
-	 * Get the tal ID associated with the IP address in the SARP table
-	 *
-	 * @param ip the IP address to search for
-	 * @param tal_id  the tal ID associated with the IP address if found
-	 *                the default tal_id otherwise (false will be returned)
-	 * @return true on success, false otherwise
-	 */
-	bool getTalByIp(IpAddress *ip, tal_id_t &tal_id) const;
 
 	/**
 	 * Get the tal ID associated with the MAC address in the SARP table

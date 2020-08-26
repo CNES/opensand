@@ -20,7 +20,6 @@ libopensand_plugin_la_cpp = \
 	NetContainer.cpp \
 	NetPacket.cpp \
 	NetBurst.cpp \
-	IpAddress.cpp \
 	MacAddress.cpp \
 	TrafficCategory.cpp \
 	SarpTable.cpp \
@@ -34,7 +33,6 @@ libopensand_plugin_la_h = \
 	NetContainer.h \
 	NetPacket.h \
 	NetBurst.h \
-	IpAddress.h \
 	MacAddress.h \
 	TrafficCategory.h \
 	SarpTable.h \

@@ -258,7 +258,31 @@ bool BlockEncap::onInit()
 	((Upward *)this->upward)->setMacId(this->mac_id);
 	
 	// Retrieve last packet handler in lan adaptation layer
-	lan_name = "Ethernet";
+	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
+	                         LAN_ADAPTATION_SCHEME_LIST,
+	                         lan_nbr))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, %s missing\n", GLOBAL_SECTION,
+		    LAN_ADAPTATION_SCHEME_LIST);
+		goto error;
+	}
+	if(lan_nbr == 0)
+	{
+		lan_name = "Ethernet";
+	}
+	else if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
+	                         LAN_ADAPTATION_SCHEME_LIST,
+	                         POSITION, toString(lan_nbr - 1),
+	                         PROTO, lan_name))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Section %s, invalid value %d for parameter "
+		    "'%s' in %s\n", GLOBAL_SECTION, i, POSITION,
+		    LAN_ADAPTATION_SCHEME_LIST);
+		goto error;
+	}
+
 	if(!Plugin::getLanAdaptationPlugin(lan_name, &lan_plugin))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

@@ -46,9 +46,6 @@
 #include "StackPlugin.h"
 #include "EncapPlugin.h"
 #include "LanAdaptationPlugin.h"
-#include "IpAddress.h"
-#include "Ipv4Address.h"
-#include "Ipv6Address.h"
 #include "Plugin.h"
 
 #include <opensand_output/Output.h>
@@ -251,8 +248,6 @@ static bool test_lan_adapt(string src_filename,
 
 		// LanAdaptationContext initialisation
 		SarpTable sarp_table;
-		IpAddress *ip_addr;
-		IpAddress *ip6_addr;
 		MacAddress *src_mac;
 		MacAddress *dst_mac;
 
@@ -324,11 +319,6 @@ static bool test_lan_adapt(string src_filename,
 
 		contexts.push_back(context);
 		// init contexts
-		// both IPAddress will be deleted with SarpTable
-		ip_addr = new Ipv4Address("0.0.0.0");
-		ip6_addr = new Ipv6Address("0");
-		sarp_table.add(ip_addr, 0, 1);
-		sarp_table.add(ip6_addr, 0, 1);
 		// Add Ethernet entries in SARP table
 		// TODO get these value in capture
 		// for icmp28 test

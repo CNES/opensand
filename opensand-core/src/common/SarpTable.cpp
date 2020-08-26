@@ -40,7 +40,6 @@
 
 // max_entries = SARP_MAX by default
 SarpTable::SarpTable(unsigned int max_entries):
-	ip_sarp(),
 	eth_sarp()
 {
 	this->max_entries = (max_entries == 0 ? SARP_MAX : max_entries);
@@ -51,13 +50,6 @@ SarpTable::SarpTable(unsigned int max_entries):
 
 SarpTable::~SarpTable()
 {
-	for(list<sarpIpEntry *>::iterator it = this->ip_sarp.begin();
-	    it != this->ip_sarp.end(); ++it)
-	{
-		if((*it)->ip != NULL)
-			delete (*it)->ip;
-		delete *it;
-	}
 	for(list<sarpEthEntry *>::iterator it = this->eth_sarp.begin();
 	    it != this->eth_sarp.end(); ++it)
 	{
@@ -65,46 +57,6 @@ SarpTable::~SarpTable()
 			delete (*it)->mac;
 		delete *it;
 	}
-}
-
-bool SarpTable::add(IpAddress *ip_addr, unsigned int mask_len,
-                    tal_id_t tal)
-{
-	bool success = true;
-	sarpIpEntry *entry;
-
-	LOG(this->log_sarp, LEVEL_INFO,
-	    "add new entry in SARP table (%s/%u)\n",
-	    ip_addr->str().c_str(), mask_len);
-
-	if((this->ip_sarp.size() >= this->max_entries) || ip_addr == NULL)
-	{
-		LOG(this->log_sarp, LEVEL_ERROR,
-		    "SARP table full, cannot add entry\n");
-		success = false;
-		goto quit;
-	}
-
-	// get memory for a new entry
-	entry = new sarpIpEntry;
-	if(!entry)
-	{
-		LOG(this->log_sarp, LEVEL_ERROR,
-		    "cannot get memory for SARP entry\n");
-		success = false;
-		goto quit;
-	}
-
-	// set entry
-	entry->ip = ip_addr;
-	entry->mask_len = mask_len;
-	entry->tal_id = tal;
-
-	// append entry to table
-	this->ip_sarp.push_back(entry);
-
-quit:
-	return success;
 }
 
 bool SarpTable::add(MacAddress *mac_address,
@@ -147,34 +99,6 @@ bool SarpTable::add(MacAddress *mac_address,
 
 quit:
 	return success;
-}
-
-bool SarpTable::getTalByIp(IpAddress *ip, tal_id_t &tal_id) const
-{
-	sarpIpEntry *entry;
-	unsigned int max_mask_len;
-
-	max_mask_len = 0;
-	tal_id = this->default_dest; // if no set (-1) this will lead to an error
-
-	// search IP matching with longer mask
-	list <sarpIpEntry *>::const_iterator it;
-
-	for(it = this->ip_sarp.begin(); it != this->ip_sarp.end(); it++)
-	{
-		entry = *it;
-		if(entry->ip->matchAddressWithMask(ip, entry->mask_len))
-		{
-			if(entry->mask_len >= max_mask_len)
-			{
-				max_mask_len = entry->mask_len;
-				tal_id = entry->tal_id;
-				return true;
-			}
-		}
-	}
-
-	return false;
 }
 
 bool SarpTable::getTalByMac(MacAddress mac_address, tal_id_t &tal_id) const
