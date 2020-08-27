@@ -1,4 +1,4 @@
-bin_PROGRAMS = opensand-st opensand-sat opensand-gw opensand-gw-net-acc opensand-gw-phy
+bin_PROGRAMS = opensand
 
 PACKED_COMMON_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
@@ -39,32 +39,25 @@ allexec_LDADD = \
 	-lpthread \
 	-lrt
 
-opensand_st_SOURCES = st.cpp
-opensand_st_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-opensand_st_LDADD = \
-	$(PACKED_COMMON_LIBS) \
-	$(allexec_LDADD)
-
-opensand_gw_SOURCES = gw.cpp
-opensand_gw_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-opensand_gw_LDADD = \
-	$(PACKED_COMMON_LIBS) \
-	$(allexec_LDADD)
-
-opensand_gw_net_acc_SOURCES = gw_net_acc.cpp
-opensand_gw_net_acc_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-opensand_gw_net_acc_LDADD = \
-	$(PACKED_COMMON_LIBS) \
-	$(allexec_LDADD)
-
-opensand_gw_phy_SOURCES = gw_phy.cpp
-opensand_gw_phy_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-opensand_gw_phy_LDADD = \
-	$(PACKED_COMMON_LIBS) \
-	$(allexec_LDADD)
-
-opensand_sat_SOURCES = sat.cpp
-opensand_sat_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-opensand_sat_LDADD = \
+opensand_cpp = \
+	Entity.cpp \
+	EntitySat.cpp \
+	EntityGw.cpp \
+	EntityGwPhy.cpp \
+	EntityGwNetAcc.cpp \
+	EntitySt.cpp
+opensand_h = \
+	Entity.h \
+	EntitySat.h \
+	EntityGw.h \
+	EntityGwPhy.h \
+	EntityGwNetAcc.h \
+	EntitySt.h
+opensand_SOURCES = \
+	$(opensand_cpp) \
+	$(opensand_h) \
+	opensand.cpp
+opensand_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
+opensand_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
