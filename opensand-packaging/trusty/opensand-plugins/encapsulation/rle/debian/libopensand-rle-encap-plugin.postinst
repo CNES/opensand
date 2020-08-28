@@ -18,16 +18,8 @@ set -e
 # the debian-policy package
 
 
-add_module()
-{
-    name="RLE"
-    /usr/libexec/opensand/module_support.py add $name || true
-    service opensand-daemon restart || true
-}
-
 case "$1" in
     configure)
-        add_module
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

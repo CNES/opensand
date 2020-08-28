@@ -17,25 +17,8 @@ set -e
 # the debian-policy package
 
 
-remove_module()
-{
-    name="GSE"
-    /usr/libexec/opensand/module_support.py remove $name || true
-}
-
-restart_daemon()
-{
-    service opensand-daemon restart || true
-}
-
 case "$1" in
-    remove|deconfigure)
-        remove_module
-        restart_daemon
-    ;;
-
-    upgrade)
-        remove_module
+    remove|upgrade|deconfigure)
     ;;
 
     failed-upgrade)

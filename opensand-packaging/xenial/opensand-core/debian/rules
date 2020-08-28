@@ -42,7 +42,7 @@ override_dh_install:
 
 	install -m 0644 conf/deploy.ini $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/deploy.ini
 
-	# MODCOD files for manager
+	# MODCOD files
 	install -D -m 0644 conf/modcod/s2/*.txt -t $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/modcod/s2
 	install -D -m 0644 conf/modcod/rcs2/*.txt -t $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/modcod/rcs2
 	# DAMA request simulation file
@@ -61,9 +61,9 @@ override_dh_install:
 	done
 	install -D -m 0644 conf/mandatory_plugins/constant.conf $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/sat/plugins/constant.conf
 	install -D -m 0644 conf/mandatory_plugins/constant.xsd $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/sat/plugins/constant.xsd
-	# Attenuation example for daemons and manager
+	# Attenuation example
 	install -D -m 0644 conf/mandatory_plugins/attenuation.csv $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/attenuation.csv
-	# Satellite delay example for daemons and manager
+	# Satellite delay example
 	install -D -m 0644 conf/mandatory_plugins/satdelay.csv $(CURDIR)/debian/opensand-core-conf/usr/share/opensand/plugins/satdelay.csv
 
 override_dh_pysupport:

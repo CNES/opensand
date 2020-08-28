@@ -18,7 +18,7 @@ usage()
     echo '                      services: build only services packages'
     echo '                      encap:    build only encapsulation plugins'
     echo '                      lan:      build only lan adaptation plugins'
-    echo 'Available OPTIONS :   -m        move packages into manager, daemon and all'
+    echo 'Available OPTIONS :   -m        move packages into manager and all'
     echo '                                directories.'
     echo '                      -i        install build-dependencies automatically'
     echo '                      -f        add a user flag to packages'
@@ -53,8 +53,6 @@ make_services()
     echo "Building OpenSAND services for $TARGET_DIST"
     # Package and install opensand-collector
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-collector 
-    # Package and install opensand-daemon
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-daemon 
     # Package and install opensand-manager
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-manager
     # Package and install opensand-meta
@@ -101,22 +99,8 @@ move()
 {
     # Create dirs if they don't exist
     mkdir -p $DST_DIR/pkgs/manager
-    mkdir -p $DST_DIR/pkgs/daemon
     mkdir -p $DST_DIR/pkgs/all
 
-    # Copy packages for daemon
-    cp $DST_DIR/pkgs/libopensand-conf_*.deb \
-       $DST_DIR/pkgs/libopensand-plugin_*.deb \
-       $DST_DIR/pkgs/libopensand-output_*.deb \
-       $DST_DIR/pkgs/libopensand-rt_*.deb \
-       $DST_DIR/pkgs/opensand-core_*.deb \
-       $DST_DIR/pkgs/opensand-core-conf_*.deb \
-       $DST_DIR/pkgs/opensand-daemon_*.deb \
-       $DST_DIR/pkgs/libopensand-*plugin_*.deb \
-       $DST_DIR/pkgs/libopensand-*plugin-conf_*.deb \
-       $DST_DIR/pkgs/opensand_*.deb \
-       $DST_DIR/pkgs/daemon >/dev/null 2>&1 
-    echo 'Daemon packages copied to '$DST_DIR'/pkgs/daemon'
     # Copy packages for manager
     cp $DST_DIR/pkgs/libopensand-conf_*.deb \
        $DST_DIR/pkgs/libopensand-plugin_*.deb  \
@@ -124,7 +108,6 @@ move()
        $DST_DIR/pkgs/libopensand-rt_*.deb \
        $DST_DIR/pkgs/opensand-core_*.deb \
        $DST_DIR/pkgs/opensand-core-conf_*.deb \
-       $DST_DIR/pkgs/opensand-daemon_*.deb \
        $DST_DIR/pkgs/libopensand-*plugin_*.deb \
        $DST_DIR/pkgs/libopensand-*plugin-conf_*.deb \
        $DST_DIR/pkgs/opensand-manager*.deb \

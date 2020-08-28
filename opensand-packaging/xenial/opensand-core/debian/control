@@ -42,7 +42,7 @@ Package: opensand-core
 Architecture: any
 Section: misc
 Depends: ${shlibs:Depends},
- ${misc:Depends}, rsyslog, logrotate, opensand-network
+ ${misc:Depends}, rsyslog, logrotate
 Provides: opensand-core-bin
 Conflicts: opensand-core-bin
 Replaces: opensand-core-bin

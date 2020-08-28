@@ -446,7 +446,7 @@ int UdpChannel::receive(NetSocketEvent *const event,
 		// suppose we lost the packet
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
 		    "we may have lost UDP packets, check "
-		    "/etc/default/opensand-daemon and adjust UDP buffers\n");
+		    "and adjust UDP buffers\n");
 		// send the next packets from stack
 		current_sequencing = (current_sequencing + 1) % 256;
 		while(!this->stacks[ip_address]->hasNext(current_sequencing))
