@@ -1,4 +1,0 @@
-[test_command]
-exec=other/stats/files/check_stats.sh
-return=0
-stats=/tmp/opensand_tests/statistics
