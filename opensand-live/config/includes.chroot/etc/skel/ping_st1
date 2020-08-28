@@ -1,5 +1,0 @@
-#! /bin/bash
-#
-
-echo "Ping gateway --> st1"
-ssh gw ping 192.168.21.1
