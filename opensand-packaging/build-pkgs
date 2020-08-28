@@ -18,9 +18,7 @@ usage()
     echo '                      services: build only services packages'
     echo '                      encap:    build only encapsulation plugins'
     echo '                      lan:      build only lan adaptation plugins'
-    echo 'Available OPTIONS :   -m        move packages into manager and all'
-    echo '                                directories.'
-    echo '                      -i        install build-dependencies automatically'
+    echo 'Available OPTIONS :   -i        install build-dependencies automatically'
     echo '                      -f        add a user flag to packages'
     echo 'List of available distributions:'
     echo $DISTS
@@ -53,8 +51,6 @@ make_services()
     echo "Building OpenSAND services for $TARGET_DIST"
     # Package and install opensand-collector
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-collector 
-    # Package and install opensand-manager
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-manager
     # Package and install opensand-meta
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-meta
     echo "Finished building OpenSAND services for $TARGET_DIST"
@@ -95,33 +91,6 @@ clean()
     sudo rm -rf $DST_DIR/pkgs/*
 }
 
-move()
-{
-    # Create dirs if they don't exist
-    mkdir -p $DST_DIR/pkgs/manager
-    mkdir -p $DST_DIR/pkgs/all
-
-    # Copy packages for manager
-    cp $DST_DIR/pkgs/libopensand-conf_*.deb \
-       $DST_DIR/pkgs/libopensand-plugin_*.deb  \
-       $DST_DIR/pkgs/libopensand-output_*.deb \
-       $DST_DIR/pkgs/libopensand-rt_*.deb \
-       $DST_DIR/pkgs/opensand-core_*.deb \
-       $DST_DIR/pkgs/opensand-core-conf_*.deb \
-       $DST_DIR/pkgs/libopensand-*plugin_*.deb \
-       $DST_DIR/pkgs/libopensand-*plugin-conf_*.deb \
-       $DST_DIR/pkgs/opensand-manager*.deb \
-       $DST_DIR/pkgs/libopensand-*plugin-manager*.deb  \
-       $DST_DIR/pkgs/opensand-collector_*.deb \
-       $DST_DIR/pkgs/opensand_*.deb \
-       $DST_DIR/pkgs/manager >/dev/null 2>&1
-    echo 'Manager packages copied to '$DST_DIR'/pkgs/manager'
-    # Move all packages to all
-    mv $DST_DIR/pkgs/*.deb $DST_DIR/pkgs/all >/dev/null  2>&1
-    echo 'All packages moved to '$DST_DIR'/pkgs/all'
-
-}
-
 while getopts ":s:d:t:himf:" o; do
     case "${o}" in
         s)
@@ -132,9 +101,6 @@ while getopts ":s:d:t:himf:" o; do
             ;;
         t)
             TARGET_DIST=$OPTARG
-            ;;
-        m)
-            MOVE_PKG=true
             ;;
         i)
             INSTALL_DEP="-I"
@@ -223,8 +189,3 @@ case $MODULE in
 esac
 
 echo 'Finished packaging.'
-
-if [ -v "MOVE_PKG" ];
-then
-    move
-fi

@@ -28,11 +28,3 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, librle (>= 1.7.2),
  opensand-core (= ${binary:Version})
 Description: The RLE plugin for OpenSAND
-
-Package: libopensand-rle-encap-plugin-manager
-Section: libs
-Architecture: any
-Depends: libopensand-rle-encap-plugin-conf (= ${binary:Version}),
- python (>= 2.7), python (<<3.0), opensand-manager-gui
-Description: The RLE plugin configuration for OpenSAND Manager
-
