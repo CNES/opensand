@@ -123,8 +123,6 @@ AC_CONFIG_FILES([ \
 	src/system/Makefile \
 	src/mandatory_plugins/Makefile \
 	src/mandatory_plugins/ethernet/Makefile \
-	src/interfaces/Makefile \
-	src/interfaces/tests/Makefile \
 	conf/Makefile \
 	opensand_plugin.pc \
 	doc/doxygen \

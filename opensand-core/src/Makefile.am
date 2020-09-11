@@ -8,5 +8,4 @@ SUBDIRS= \
 	encap \
 	physical_layer \
 	system \
-	mandatory_plugins \
-	interfaces 
+	mandatory_plugins
