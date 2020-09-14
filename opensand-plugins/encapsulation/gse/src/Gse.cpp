@@ -43,7 +43,7 @@
 
 #define PACKING_THRESHOLD "packing_threshold"
 #define GSE_SECTION "gse"
-#define CONF_GSE_FILE "/etc/opensand/plugins/gse.conf"
+#define CONF_GSE_FILENAME "gse.conf"
 
 #define GSE_MIN_ETHER_TYPE 1536
 
@@ -142,12 +142,13 @@ bool Gse::Context::init(void)
 	gse_status_t status;
 	ConfigurationFile config;
 	map<string, ConfigurationList> config_section_map;
+	string conf_file_path = this->getConfPath() + string(CONF_GSE_FILENAME);
 
-	if(config.loadConfig(CONF_GSE_FILE) < 0)
+	if(config.loadConfig(conf_file_path.c_str()) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",
-		    CONF_GSE_FILE);
+		    conf_file_path.c_str());
 		goto error;
 	}
 

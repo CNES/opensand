@@ -45,7 +45,7 @@
 
 #define MAX_CID "max_cid"
 #define ROHC_SECTION "rohc"
-#define CONF_ROHC_FILE "/etc/opensand/plugins/rohc.conf"
+#define CONF_ROHC_FILENAME "rohc.conf"
 
 #define IS_ETHERNET(type) (type == NET_PROTO_802_1Q || \
                            type == NET_PROTO_802_1AD || \
@@ -116,12 +116,13 @@ bool Rohc::Context::init()
 	bool status;
 	ConfigurationFile config;
 	map<string, ConfigurationList> config_section_map;
+	string conf_file_path = this->getConfPath() + string(CONF_ROHC_FILENAME);
 
-	if(config.loadConfig(CONF_ROHC_FILE) < 0)
+	if(config.loadConfig(conf_file_path.c_str()) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",
-		    CONF_ROHC_FILE);
+		    conf_file_path.c_str());
 		goto error;
 	}
 	

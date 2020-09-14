@@ -46,7 +46,7 @@
 #define ALPDU_PROTECTION_CRC "crc"
 #define ALPDU_PROTECTION_SEQ_NUM "sequence_number"
 #define RLE_SECTION "rle"
-#define CONF_RLE_FILE "/etc/opensand/plugins/rle.conf"
+#define CONF_RLE_FILENAME "rle.conf"
 
 #define LABEL_SIZE 3        // bytes
 #define SDU_MAX_SIZE 4096   // bytes
@@ -151,6 +151,7 @@ bool Rle::init(void)
 	string protection;
 	rle_alpdu_protection_t alpdu_protection;
 	map<string, ConfigurationList> config_section_map;
+	string conf_file_path = this->getConfPath() + string(CONF_RLE_FILENAME);
 
 	if(!EncapPlugin::init())
 	{
@@ -160,11 +161,11 @@ bool Rle::init(void)
 	initRleConf(conf);
 
 	// Load configuration
-	if(config.loadConfig(CONF_RLE_FILE) < 0)
+	if(config.loadConfig(conf_file_path.c_str()) < 0)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",
-		    CONF_RLE_FILE);
+		    conf_file_path.c_str());
 		return false;
 	}
 
