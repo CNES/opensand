@@ -55,7 +55,6 @@ if test "x$fail_on_warning" != "xno"; then
 	WERROR="-Werror"
 fi
 
-AC_DEFINE(ENABLE_TCMALLOC, [0], [use fast and multi-threaded malloc])
 TCMALLOC=""
 GPERFTOOLS_INC=""
 AC_ARG_ENABLE(tcmalloc,
