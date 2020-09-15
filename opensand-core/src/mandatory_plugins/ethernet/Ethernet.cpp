@@ -1239,6 +1239,7 @@ uint16_t Ethernet::getPayloadEtherType(const Data &data)
 			{
 				break;
 			}
+			// fall through
 		case NET_PROTO_802_1AD:
 			if(data.length() < 21)
 			{
@@ -1275,6 +1276,7 @@ uint16_t Ethernet::getQTci(const Data &data)
 			{
 				break;
 			}
+			// fall through
 		case NET_PROTO_802_1AD:
 			tci = ((data.at(18) & 0xff) << 8) | data.at(19);
 			break;

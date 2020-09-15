@@ -2556,7 +2556,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				    "on start of frame failed\n");
 				goto error;
 			}
-			// continue here
+			// fall through
 		case MSG_TYPE_TTP:
 			const char *state_descr;
 

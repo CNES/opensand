@@ -123,7 +123,6 @@ bool TestSatCarriers::Downward::onEvent(const RtEvent *const event)
 	switch(event->getType())
 	{
 		case evt_message:
-		{
 			// Lan message to be sent on channel
 			if(((MessageEvent *)event)->getMessageType() == from_lan)
 			{
@@ -154,8 +153,7 @@ bool TestSatCarriers::Downward::onEvent(const RtEvent *const event)
 				delete packet;
 				break;
 			}
-			// do not break if none of the above
-		}
+			// fall through
 
 		default:
 			fprintf(stderr, "unknown event received %s", event->getName().c_str());
