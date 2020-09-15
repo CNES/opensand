@@ -199,7 +199,6 @@ int main(int argc, char **argv)
   tal_id_t mac_id = 0;
   std::string interconnect_addr;
   struct la_specific spec_la;
-  struct ic_specific spec_ic;
 
   std::string conf_path;
   std::string topology_file;
@@ -309,13 +308,11 @@ int main(int argc, char **argv)
     goto release_plugins;
   }
 
-  spec_ic.interconnect_addr = interconnect_addr;
-
   block_interconnect = Rt::createBlock<BlockInterconnectDownward,
                                        BlockInterconnectDownward::Upward,
                                        BlockInterconnectDownward::Downward,
-                                       struct ic_specific>
-                                       ("InterconnectDownward", block_dvb, spec_ic);
+                                       const string &>
+                                       ("InterconnectDownward", block_dvb, interconnect_addr);
   if(!block_interconnect)
   {
     DFLTLOG(LEVEL_CRITICAL,

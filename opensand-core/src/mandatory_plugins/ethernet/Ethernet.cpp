@@ -89,7 +89,7 @@ bool Ethernet::init()
 	this->upper.push_back("ROHC");
 
 	// here we need frame type on satellite for lower layers
-	if(config.loadConfig(conf_files) < 0)
+	if(!config.loadConfig(conf_files))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'", conf_eth_path.c_str());
@@ -150,7 +150,7 @@ bool Ethernet::Context::init()
 	
 	this->handle_net_packet = true;
 
-	if(this->config.loadConfig(conf_files) < 0)
+	if(!this->config.loadConfig(conf_files))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",

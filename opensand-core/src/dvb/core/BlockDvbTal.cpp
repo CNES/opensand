@@ -1880,7 +1880,7 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 
 	// we have consumed all of our frames, we start a new one immediately
 	// this is the first frame of the new superframe
-	if(this->processOnFrameTick() < 0)
+	if(!this->processOnFrameTick())
 	{
 		// exit because the bloc is unable to continue
 		LOG(this->log_frame_tick, LEVEL_ERROR,

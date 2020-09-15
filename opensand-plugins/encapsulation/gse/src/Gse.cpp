@@ -144,7 +144,7 @@ bool Gse::Context::init(void)
 	map<string, ConfigurationList> config_section_map;
 	string conf_file_path = this->getConfPath() + string(CONF_GSE_FILENAME);
 
-	if(config.loadConfig(conf_file_path.c_str()) < 0)
+	if(!config.loadConfig(conf_file_path.c_str()))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",
@@ -1643,8 +1643,8 @@ bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
 		0x05, /* length */
 		NET_PROTO_IPV4 >> 8 & 0xff,
 		NET_PROTO_IPV4 & 0xff,
-		tal_id_src,
-		tal_id_dst,
+		(unsigned char)tal_id_src,
+		(unsigned char)tal_id_dst,
 		0x00 /* highest priority fifo (eg. NM FIFO) */
 	};
 

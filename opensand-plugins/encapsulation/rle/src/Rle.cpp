@@ -161,7 +161,7 @@ bool Rle::init(void)
 	initRleConf(conf);
 
 	// Load configuration
-	if(config.loadConfig(conf_file_path.c_str()) < 0)
+	if(!config.loadConfig(conf_file_path.c_str()))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",

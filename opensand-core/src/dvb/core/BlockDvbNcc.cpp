@@ -402,7 +402,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				for(pkt_it = burst->begin(); pkt_it != burst->end(); ++pkt_it)
 				{
 					tal_id_t tal_id = (*pkt_it)->getDstTalId();
-					spot_id_t spot_id = 0;
 					SpotDownward *spot;
 					list<SpotDownward*> spot_list;
 					list<SpotDownward*>::iterator spot_list_iter;
@@ -581,7 +580,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			if(*event == this->pep_interface.getPepClientSocket())
 			{
 				tal_id_t tal_id;
-				spot_id_t spot_id;
 
 				// event received on PEP client socket
 				LOG(this->log_receive, LEVEL_NOTICE,
@@ -1001,7 +999,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				case MSG_TYPE_SAC:
 				{
 					// Update C/N0
-					Sac *sac = (Sac *) dvb_frame;
+					Sac *UNUSED(sac) = (Sac *) dvb_frame;
 					spot->handleFrameCni(dvb_frame);
 					if(!spot->handleSac(dvb_frame))
 					{

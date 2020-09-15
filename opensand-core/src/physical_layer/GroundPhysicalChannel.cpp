@@ -133,7 +133,7 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 	// Initialize log
 	snprintf(probe_name, sizeof(probe_name),
 	         "PhysicalLayer.%sward.Event", channel_name.c_str());
-	this->log_event = output->registerLog(LEVEL_WARNING, probe_name);
+	this->log_event = output->registerLog(LEVEL_WARNING, string(probe_name));
 
 	// Get the refresh period
 	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],

@@ -62,7 +62,7 @@ bool Ideal::init(time_ms_t refresh_period_ms, string link)
 	string conf_ideal_path;
 	conf_ideal_path = this->getConfPath() + string(CONF_IDEAL_FILENAME);
 
-	if(config.loadConfig(conf_ideal_path) < 0)
+	if(!config.loadConfig(conf_ideal_path))
 	{   
 		LOG(this->log_init, LEVEL_ERROR, 
 		    "failed to load config file '%s'",

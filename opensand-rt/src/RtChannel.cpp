@@ -161,7 +161,7 @@ bool RtChannel::init(void)
 		                  "cannot initialize opposite fifo\n");
 		return false;
 	}
-	if(this->addMessageEvent(this->in_opp_fifo, 4, true) < 0)
+	if(!this->addMessageEvent(this->in_opp_fifo, 4, true))
 	{
 		this->reportError(true,
 		                  "cannot create opposite message event\n");
@@ -175,7 +175,7 @@ bool RtChannel::init(void)
 			                  "cannot initialize previous fifo\n");
 			return false;
 		}
-		if(this->addMessageEvent(this->previous_fifo) < 0)
+		if(!this->addMessageEvent(this->previous_fifo))
 		{
 			this->reportError(true,
 			                  "cannot create previous message event\n");

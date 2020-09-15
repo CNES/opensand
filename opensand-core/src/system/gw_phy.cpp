@@ -196,7 +196,6 @@ int main(int argc, char **argv)
   tal_id_t mac_id = 0;
   struct sc_specific specific;
   std::string interconnect_addr;
-  struct ic_specific spec_ic;
 
   std::string conf_path;
   std::string topology_file;
@@ -272,13 +271,11 @@ int main(int argc, char **argv)
   }
 
   // instantiate all blocs
-  spec_ic.interconnect_addr = interconnect_addr;
-
   block_interconnect = Rt::createBlock<BlockInterconnectUpward,
                                        BlockInterconnectUpward::Upward,
                                        BlockInterconnectUpward::Downward,
-                                       struct ic_specific>
-                                       ("InterconnectUpward", NULL, spec_ic);
+                                       const string &>
+                                       ("InterconnectUpward", NULL, interconnect_addr);
   if(!block_interconnect)
   {
     DFLTLOG(LEVEL_CRITICAL,

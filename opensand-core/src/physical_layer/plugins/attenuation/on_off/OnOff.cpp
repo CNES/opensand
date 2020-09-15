@@ -68,7 +68,7 @@ bool OnOff::init(time_ms_t refresh_period_ms, string link)
 	string conf_on_off_path;
 	conf_on_off_path = this->getConfPath() + string(CONF_ON_OFF_FILENAME);
 
-	if(config.loadConfig(conf_on_off_path.c_str()) < 0)
+	if(!config.loadConfig(conf_on_off_path.c_str()))
 	{   
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to load config file '%s'",

@@ -226,8 +226,6 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	this->probe_backoff = output->registerProbe<int>(true, SAMPLE_MAX, "Aloha.backoff");
 
 	return true;
-error:
-	return false;
 }
 
 SlottedAlohaTal::~SlottedAlohaTal()

@@ -154,8 +154,8 @@ bool TestSatCarriers::Downward::onEvent(const RtEvent *const event)
 				delete packet;
 				break;
 			}
+			// do not break if none of the above
 		}
-		// do not break if none of the above
 
 		default:
 			fprintf(stderr, "unknown event received %s", event->getName().c_str());

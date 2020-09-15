@@ -445,7 +445,7 @@ bool BlockLanAdaptation::allocTap(int &fd)
 	LOG(this->log_init, LEVEL_INFO,
 	    "create %s interface %s\n",
 	    this->tap_iface.c_str());
-	snprintf(ifr.ifr_name, IFNAMSIZ, this->tap_iface.c_str());
+	memcpy(ifr.ifr_name, this->tap_iface.c_str(), IFNAMSIZ);
 	ifr.ifr_flags = IFF_TAP;
 
 	err = ioctl(fd, TUNSETIFF, (void *) &ifr);

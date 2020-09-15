@@ -118,7 +118,7 @@ bool Rohc::Context::init()
 	map<string, ConfigurationList> config_section_map;
 	string conf_file_path = this->getConfPath() + string(CONF_ROHC_FILENAME);
 
-	if(config.loadConfig(conf_file_path.c_str()) < 0)
+	if(!config.loadConfig(conf_file_path.c_str()))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to load config file '%s'",

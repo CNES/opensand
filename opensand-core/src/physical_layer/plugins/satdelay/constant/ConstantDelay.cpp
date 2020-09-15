@@ -83,7 +83,7 @@ bool ConstantDelay::init()
 	else
 	{
 		// Else, load conf from plugin
-		if(config.loadConfig(conf_file_path.c_str()) < 0)
+		if(!config.loadConfig(conf_file_path.c_str()))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to load config file '%s'",

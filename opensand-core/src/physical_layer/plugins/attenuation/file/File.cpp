@@ -68,7 +68,7 @@ bool File::init(time_ms_t refresh_period_ms, string link)
 	string conf_file_path;
 	conf_file_path = this->getConfPath() + string(CONF_FILE_FILENAME);
 
-	if(config.loadConfig(conf_file_path.c_str()) < 0)
+	if(!config.loadConfig(conf_file_path.c_str()))
 	{   
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to load config file '%s'",

@@ -147,15 +147,13 @@ size_t SlottedAlohaPacketData::getReplicasLength() const
 uint16_t SlottedAlohaPacketData::getReplica(uint16_t pos) const
 {
 	saloha_data_hdr_t *header;
-	uint16_t *replicas;
 
 	if(this->getNbReplicas() < pos)
 	{
 		return 0;
 	}
 	header = (saloha_data_hdr_t *)this->data.c_str();
-	replicas = header->replicas;
-	return ntohs(replicas[pos]);
+	return ntohs(header->replicas[pos]);
 }
 
 uint8_t SlottedAlohaPacketData::getQos() const
@@ -176,7 +174,6 @@ void SlottedAlohaPacketData::setTs(uint16_t ts)
 
 void SlottedAlohaPacketData::setReplicas(uint16_t *replicas, size_t nb_replicas)
 {
-	uint16_t *hreplicas;
 	saloha_data_hdr_t *header;
 
 	//Warning: a Slotted Aloha data packet (not ctrl signal) is composed
@@ -207,10 +204,9 @@ void SlottedAlohaPacketData::setReplicas(uint16_t *replicas, size_t nb_replicas)
 		return;
 	}
 
-	hreplicas = (uint16_t *)header->replicas;
 	for(unsigned int i = 0; i < nb_replicas; i++)
 	{
-		hreplicas[i] = htons(replicas[i]);
+		header->replicas[i] = htons(replicas[i]);
 	}
 }
 bool SlottedAlohaPacketData::isTimeout() const

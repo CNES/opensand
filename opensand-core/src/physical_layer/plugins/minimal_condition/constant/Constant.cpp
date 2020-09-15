@@ -60,7 +60,7 @@ bool Constant::init(void)
 	string conf_cst_path;
 	conf_cst_path = this->getConfPath() + string(CONF_CST_FILENAME);
 
-	if(config.loadConfig(conf_cst_path.c_str()) < 0)
+	if(!config.loadConfig(conf_cst_path.c_str()))
 	{   
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to load config file '%s'", conf_cst_path.c_str());
