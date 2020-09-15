@@ -479,50 +479,50 @@ bool SpotDownward::initOutput(void)
 		for(fifos_t::iterator it2 = it1->second.begin();
 			it2 != it1->second.end(); ++it2)
 		{
-			const char *fifo_name = ((*it2).second)->getName().data();
+			string fifo_name = ((*it2).second)->getName();
 			unsigned int id = (*it2).first;
 
-      std::shared_ptr<Probe<int>> probe_temp;
+			std::shared_ptr<Probe<int>> probe_temp;
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Queue size.packets.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "Packets", true, SAMPLE_LAST);
 			(*this->probe_gw_queue_size)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Queue size.capacity.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "kbits", true, SAMPLE_LAST);
 			(*this->probe_gw_queue_size_kb)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Throughputs.L2_to_SAT_before_sched.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 			(*this->probe_gw_l2_to_sat_before_sched)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 			(*this->probe_gw_l2_to_sat_after_sched)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Queue loss.packets.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "Packets", true, SAMPLE_SUM);
 			(*this->probe_gw_queue_loss)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Queue loss.rate.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_SUM);
 			(*this->probe_gw_queue_loss_kb)[cat_label].emplace(id, probe_temp);
 		}
 		snprintf(probe_name, sizeof(probe_name),
-						 "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.total",
-						 spot_id, cat_label.c_str());
+		         "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.total",
+		         spot_id, cat_label.c_str());
 		this->probe_gw_l2_to_sat_total[cat_label] =
 			output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 
