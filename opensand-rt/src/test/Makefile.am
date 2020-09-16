@@ -10,13 +10,17 @@ TESTS = \
 LIBS_COMMON = \
 	$(top_builddir)/src/libopensand_rt.la
 
-test_block_CPPFLAGS = ${AM_CPPFLAGS} -I$(top_srcdir)/src/
+test_block_CPPFLAGS = \
+	-I$(top_srcdir)/src/ \
+	${AM_CPPFLAGS}
 test_block_SOURCES = \
 	TestBlock.h \
 	TestBlock.cpp
 test_block_LDADD = $(LIBS_COMMON)
 
-test_multi_blocks_CPPFLAGS = ${AM_CPPFLAGS} -I$(top_srcdir)/src/
+test_multi_blocks_CPPFLAGS = \
+	-I$(top_srcdir)/src/ \
+	${AM_CPPFLAGS}
 test_multi_blocks_SOURCES = \
 	TestMultiBlocks.h \
 	TestMultiBlocks.cpp
