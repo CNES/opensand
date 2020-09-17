@@ -1,0 +1,35 @@
+Library
+-------
+
+Configure the library:
+
+ $ ./autogen.sh --prefix=/path/to/installation/directory
+
+Build the library:
+
+ $ make all
+
+Install the library:
+
+ $ make install
+
+The libraries are now located in the /path/to/installation/directory/lib
+directory and the header files in the /path/to/installation/directory/include/opensand_conf
+directory.
+
+Documentation
+-------------
+
+HTML documentation can be generated from the source code thanks to Doxygen:
+
+ $ make doc
+
+Open the ./doc/html/index.html file in your favorite web browser.
+
+If you want to clean the documentation:
+
+ $ make clean-doc
+
+
+
+See the installation manual on OpenSAND website (www.opensand.org) for more details

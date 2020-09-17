@@ -1,0 +1,27 @@
+Introduction
+------------
+
+This piece of software is the configuration library for the satellite
+emulation testbed OpenSAND
+
+License
+-------
+
+see COPYING
+
+
+Library
+-------
+
+The sources are in the src subdirectory. The sources build a library
+that allow OpenSAND configuration files parsing. See the INSTALL file to
+learn how to build the libraries.
+To compile an application using the OpenSAND configuration library use the
+following expression:
+g++ `pkg-config opensand_conf --cflags` myappli.cpp `pkg-config opensand_conf --libs` -o myappli
+
+
+References
+----------
+
+

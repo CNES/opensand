@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libopensand-conf
+Description: Set of tools for OpenSAND configuration parsing
+Requires: @OPENSAND_CONF_REQ@
+Version: @VERSION@
+Libs: -L${libdir} -lopensand_conf
+Cflags: -I${includedir}
+
