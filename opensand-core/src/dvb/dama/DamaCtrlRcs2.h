@@ -41,7 +41,7 @@
 #include "TerminalContextDamaRcs.h"
 #include "UnitConverter.h"
 
-#include <opensand_conf/conf.h>
+#include <opensand_old_conf/conf.h>
 #include <opensand_output/Output.h>
 
 #include <stdio.h>

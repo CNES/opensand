@@ -40,7 +40,7 @@
 #include "SlottedAlohaBackoffMimd.h"
 #include "SlottedAlohaPacketCtrl.h"
 
-#include <opensand_conf/conf.h>
+#include <opensand_old_conf/conf.h>
 #include "PhysicalLayerPlugin.h"
 
 SlottedAlohaTal::SlottedAlohaTal():

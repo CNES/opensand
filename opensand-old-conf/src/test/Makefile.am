@@ -18,7 +18,7 @@ test_configuration_SOURCES = \
 
 test_configuration_LDADD = \
 	$(AM_LDADD) \
-	-lopensand_conf 
+	-lopensand_old_conf 
 
 test_configuration_CPPFLAGS = \
 	$(AM_CPPFLAGS) \

@@ -42,7 +42,7 @@
 #include "OpenSandConf.h"
 
 #include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
+#include <opensand_old_conf/conf.h>
 
 BlockPhysicalLayer::BlockPhysicalLayer(const string &name, tal_id_t mac_id):
 	Block(name),

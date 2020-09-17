@@ -54,7 +54,7 @@
 #include <LanAdaptationPlugin.h>
 #include <TrafficCategory.h>
 #include <opensand_output/Output.h>
-#include <opensand_conf/ConfigurationFile.h>
+#include <opensand_old_conf/ConfigurationFile.h>
 
 #include <cassert>
 #include <vector>

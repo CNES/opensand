@@ -41,7 +41,7 @@
 #include <iostream>
 #include <stdint.h>
 
-#include <opensand_conf/conf.h>
+#include <opensand_old_conf/conf.h>
 
 #include <opensand_output/OutputLog.h>
 

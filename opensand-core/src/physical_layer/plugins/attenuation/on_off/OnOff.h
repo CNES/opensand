@@ -37,7 +37,7 @@
 
 
 #include "PhysicalLayerPlugin.h"
-#include <opensand_conf/ConfigurationFile.h>
+#include <opensand_old_conf/ConfigurationFile.h>
 
 #include <string>
 

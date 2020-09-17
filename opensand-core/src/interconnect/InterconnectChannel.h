@@ -36,7 +36,7 @@
 #define INTERCONNECT_CHANNEL_H
 
 #include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
+#include <opensand_old_conf/conf.h>
 #include <opensand_rt/Rt.h>
 
 #include "DvbFrame.h"

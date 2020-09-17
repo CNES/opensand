@@ -37,8 +37,8 @@
 #include "AcmLoop.h"
 #include "OpenSandFrames.h"
 
-#include <opensand_conf/Configuration.h>
-#include <opensand_conf/conf.h>
+#include <opensand_old_conf/Configuration.h>
+#include <opensand_old_conf/conf.h>
 #include <opensand_output/Output.h>
 
 #include <errno.h>

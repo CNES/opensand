@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-conf, 5.2.0, [http://opensand.org])
+AC_INIT(opensand-old-conf, 5.2.0, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -63,7 +63,7 @@ AM_DEP_TRACK
 AC_CONFIG_FILES([Makefile \
                  src/Makefile \
                  src/test/Makefile \
-                 opensand_conf.pc
+                 opensand_old_conf.pc
                  ])
 
 AC_OUTPUT

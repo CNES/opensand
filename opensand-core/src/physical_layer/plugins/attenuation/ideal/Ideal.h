@@ -35,7 +35,7 @@
 #define IDEAL_ATTENUATION_MODEL_H
 
 #include "PhysicalLayerPlugin.h"
-#include <opensand_conf/ConfigurationFile.h>
+#include <opensand_old_conf/ConfigurationFile.h>
 
 #include <string>
 

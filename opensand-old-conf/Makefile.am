@@ -20,7 +20,7 @@ EXTRA_DIST = \
 	doc/doxygen
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = opensand_conf.pc
+pkgconfig_DATA = opensand_old_conf.pc
 
 .PHONY: doc
 

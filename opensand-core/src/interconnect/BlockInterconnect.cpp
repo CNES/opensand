@@ -34,7 +34,7 @@
 
 #include "BlockInterconnect.h"
 
-#include <opensand_conf/conf.h>
+#include <opensand_old_conf/conf.h>
 
 bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
 {

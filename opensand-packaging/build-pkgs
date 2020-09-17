@@ -30,8 +30,8 @@ make_libs()
     echo "Building OpenSAND libraries for $TARGET_DIST"
     # Package and install opensand-output
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
-    # Package and install opensand-conf
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
+    # Package and install opensand-old-conf
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-old-conf || error
     # Package and install opensand-rt
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-rt || error
     echo "Finished building OpenSAND libraries for $TARGET_DIST"

@@ -13,4 +13,4 @@
 	dh  $@
 
 override_dh_strip:
-	dh_strip --dbg-package=libopensand-conf-dbg
+	dh_strip --dbg-package=libopensand-old-conf-dbg

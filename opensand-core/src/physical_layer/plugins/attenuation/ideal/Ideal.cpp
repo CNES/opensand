@@ -35,7 +35,7 @@
 
 #include "Ideal.h"
 
-#include <opensand_conf/conf.h>
+#include <opensand_old_conf/conf.h>
 #include <opensand_output/Output.h>
 
 #include <sstream>

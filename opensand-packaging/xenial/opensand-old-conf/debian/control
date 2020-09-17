@@ -1,4 +1,4 @@
-Source: opensand-conf
+Source: opensand-old-conf
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7), autotools-dev, automake,
@@ -7,19 +7,19 @@ Build-Depends: debhelper (>= 7), autotools-dev, automake,
 Standards-Version: 3.8.3
 Section: libs
 
-Package: libopensand-conf-dev
+Package: libopensand-old-conf-dev
 Section: libdevel
 Architecture: any
-Depends: libopensand-conf (= ${binary:Version}), libxml++2.6-dev
+Depends: libopensand-old-conf (= ${binary:Version}), libxml++2.6-dev
 Description: The configuration library and headers for OpenSAND
 
-Package: libopensand-conf-dbg
+Package: libopensand-old-conf-dbg
 Section: debug
 Architecture: any
-Depends: libopensand-conf (= ${binary:Version})
+Depends: libopensand-old-conf (= ${binary:Version})
 Description: Debugging symbols for OpenSAND configuration library
 
-Package: libopensand-conf
+Package: libopensand-old-conf
 Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}

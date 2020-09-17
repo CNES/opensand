@@ -1,5 +1,5 @@
 #!/bin/sh
-# postinst script for opensand-conf
+# postinst script for opensand-old-conf
 #
 # see: dh_installdeb(1)
 

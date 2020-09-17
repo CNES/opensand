@@ -40,7 +40,7 @@
 #include "OpenSandCore.h"
 #include "OpenSandConf.h"
 
-#include <opensand_conf/conf.h>
+#include <opensand_old_conf/conf.h>
 
 #include <vector>
 #include <net/if.h>

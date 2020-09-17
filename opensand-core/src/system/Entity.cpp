@@ -42,7 +42,7 @@
 #include "Plugin.h"
 #include "OpenSandConf.h"
 
-#include <opensand_conf/ConfigurationFile.h>
+#include <opensand_old_conf/ConfigurationFile.h>
 
 #include <opensand_rt/Rt.h>
 

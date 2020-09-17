@@ -1,5 +1,5 @@
 #!/bin/sh
-# preinst script for opensand-conf
+# preinst script for opensand-old-conf
 #
 # see: dh_installdeb(1)
 

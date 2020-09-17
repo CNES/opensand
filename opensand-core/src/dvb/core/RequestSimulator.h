@@ -43,7 +43,7 @@
 #include "DvbFifo.h"
 
 #include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
+#include <opensand_old_conf/conf.h>
 
 #define SIMU_BUFF_LEN 255
 
