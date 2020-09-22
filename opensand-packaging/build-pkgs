@@ -32,6 +32,8 @@ make_libs()
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
     # Package and install opensand-old-conf
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-old-conf || error
+    # Package and install opensand-conf
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
     # Package and install opensand-rt
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-rt || error
     echo "Finished building OpenSAND libraries for $TARGET_DIST"
@@ -41,7 +43,7 @@ make_core()
 {
     echo "Building OpenSAND core for $TARGET_DIST"
     # Package and install opensand-core
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-network
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-network
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-core
     echo "Finished building OpenSAND core for $TARGET_DIST"
 }
