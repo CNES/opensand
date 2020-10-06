@@ -4,6 +4,8 @@
 #	Description: create the OpenSAND configuration library
 ################################################################################
 
+ACLOCAL_AMFLAGS = -I m4
+
 SUBDIRS = \
 	src
 	

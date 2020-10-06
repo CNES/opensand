@@ -4,6 +4,7 @@
 AC_INIT(opensand-conf, 5.2.0, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
 
 # Disable static libraries by default
@@ -41,16 +42,12 @@ AC_CHECK_HEADER([catch.hpp], [], [AC_MSG_ERROR([Missing header catch.hpp])])
 AC_LANG([C])
 
 # Check python3-dev dependency for Python module
-AC_SUBST([PYTHON_REQ], ['python3'])
-PKG_CHECK_MODULES([LIBPYTHON], [$PYTHON_REQ])
-AC_SUBST(PY_LDADD, "$LIBPYTHON_LIBS")
-AC_SUBST(PY_CPPFLAGS, "$LIBPYTHON_CFLAGS")
+AC_SUBST([PYTHON_VERSION], [3])
+AX_PYTHON_DEVEL
 
 # Check boost-python dependency for Python module
-#AC_LANG([C++])
-#AC_CHECK_HEADERS([Python.h boost/python.hpp], [BOOST_PYTHON=yes; break;])
-#AS_IF([test "_$BOOST_PYTHON" != "_yes"], [AC_MSG_ERROR([Missing Boost Python])])
-#AC_LANG([C])
+AX_BOOST_BASE([1.71], [], [AC_MSG_ERROR([Missing Boost])])
+AX_BOOST_PYTHON
 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG

@@ -16,16 +16,16 @@ py_opensand_conf_la_SOURCES = \
 
 py_opensand_conf_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
-	$(LIBPYTHON_CFLAGS) \
+	$(PYTHON_CPPFLAGS) \
 	-I$(top_srcdir)/src/
 #	-I$(top_srcdir)/include/
 
 py_opensand_conf_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
-	$(LIBPYTHON_LIBS) \
+	$(PYTHON_LIBS) \
+	$(BOOST_PYTHON_LIB) \
 	-module \
 	-L$(top_builddir)/src/.libs \
-	-lopensand_conf \
-	-lboost_python38
+	-lopensand_conf
 #	-fno-implicit-templates 
 #	-Wl,--no-undefined 
