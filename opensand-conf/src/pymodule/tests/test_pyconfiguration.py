@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+import os
+import os.path
 import py_opensand_conf as OpenSandConf
 
 class ModelTests(unittest.TestCase):
@@ -1492,248 +1494,224 @@ class ModelValidityTests(unittest.TestCase):
         self._test(value_paths, direct_referenced_paths, indirect_referenced_paths, target, element, targetpath)
 
 
-#class EnvironmentEnumTests(unittest.TestCase):
-#    def setUp(self):
-#        self.env = OpenSandConf.Environment()
-#        self.env.addEnumType('e', 'enum', 'my custom enum')
-#
-#    def test_oneEnum(self):
-#        self.assertEqual(len(self.env.getEnumTypeList()), 1)
-#
-#    def test_enumExists(self):
-#        self.assertIsNotNone(self.env.getEnumType('e'))
-#        self.assertEqual(self.env.getEnumType('e').getTypeID(), OpenSandConf.TypeID.STRING)
-#
-#    def test_enumNoValues(self):
-#        self.assertEqual(len(self.env.getEnumType('e').getValues()), 0)
-#
-#    def test_enumAddValue(self):
-#        self.env.getEnumType('e').addValue('A')
-#        self.assertEqual(len(self.env.getEnumType('e').getValues()), 1)
-#        self.assertEqual(self.env.getEnumType('e').getValues()[0], 'A')
-#
-#    def test_enumAlreadyExists(self):
-#        self.env.addEnumType('e', '...', '...')
-#        self.assertEqual(len(self.env.getEnumTypeList()), 1)
-#        self.assertEqual(self.env.getEnumType('e').getName(), 'enum')
-#        self.assertEqual(self.env.getEnumType('e').getDescription(), 'my custom enum')
-#
-#class ModelTests(unittest.TestCase):
-#    def setUp(self):
-#        self.env = OpenSandConf.Environment()
-#        self.model = OpenSandConf.Model("5.1.2", "mm", "OpenSAND Model", "Describes OpenSAND MetaModel.")
-#        self.model.setEnvironment(self.env)
-#
-#    def test_modelWellDefined(self):
-#        self.assertEqual(self.model.getId(), 'mm')
-#        self.assertEqual(self.model.getName(), 'OpenSAND Model')
-#        self.assertEqual(self.model.getVersion(), '5.1.2')
-#        self.assertEqual(self.model.getDescription(), 'Describes OpenSAND MetaModel.')
-#
-#    def test_modelChangeNameDesc(self):
-#        self.model.setName('newName')
-#        self.model.setDescription('newDescription')
-#        self.assertEqual(self.model.getName(), 'newName')
-#        self.assertEqual(self.model.getDescription(), 'newDescription')
-#
-#    def test_modelHoldsEnvironment(self):
-#        self.assertIsNotNone(self.model.getEnvironment())
-#
-#    def test_modelHoldsRootComponent(self):
-#        self.assertIsNotNone(self.model.getRootComponent())
-#
-#    def test_modelEmpty(self):
-#        self.assertEqual(len(self.model.getRootComponent().getListList()), 0)
-#        self.assertEqual(len(self.model.getRootComponent().getComponentList()), 0)
-#        self.assertEqual(len(self.model.getRootComponent().getParameterList()), 0)
-#
-#    def test_modelAddPrimitiveParameter(self):
-#        self.model.addParameter(OpenSandConf.TypeID.FLOAT, 'pf', 'Parameter Float', 'My float parameter.', 'dB')
-#        self.assertEqual(len(self.model.getRootComponent().getParameterList()), 1)
-#        self.assertIsNotNone(self.model.getRootComponent().getParameter('pf'))
-#        self.assertEqual(self.model.getRootComponent().getParameter('pf').getType().getType(), OpenSandConf.ParameterType.PRIMITIVE)
-#        self.assertEqual(self.model.getRootComponent().getParameter('pf').getUnit(), 'dB')
-#
-#    def test_modelAddEnumParameter(self):
-#        self.env.addEnumType('e', 'enum', 'my custom enum')
-#        self.model.addParameter('e', 'pe', 'Parameter e', 'My e parameter.', '')
-#        self.assertEqual(len(self.model.getRootComponent().getParameterList()), 1)
-#        self.assertIsNotNone(self.model.getRootComponent().getParameter('pe'))
-#        self.assertEqual(self.model.getRootComponent().getParameter('pe').getType().getType(), OpenSandConf.ParameterType.ENUM)
-#        self.assertEqual(self.model.getRootComponent().getParameter('pe').getUnit(), '')
-#
-#    def test_modelAddList(self):
-#        self.model.addList('l', 'list', 'My custom list.', 'My custom pattern.')
-#        self.assertEqual(len(self.model.getRootComponent().getListList()), 1)
-#        l = self.model.getRootComponent().getList('l')
-#        p = self.model.getRootComponent().getList('l').getPattern()
-#        self.assertIsNotNone(l)
-#        self.assertEqual(l.getId(), 'l')
-#        self.assertEqual(l.getName(), 'list')
-#        self.assertEqual(l.getDescription(), 'My custom list.')
-#        self.assertIsNotNone(p)
-#        self.assertEqual(p.getDescription(), 'My custom pattern.')
-#
-#    def test_modelAddComponent(self):
-#        self.model.addComponent('c', 'component', 'My custom component.')
-#        self.assertEqual(len(self.model.getRootComponent().getComponentList()), 1)
-#        c = self.model.getRootComponent().getComponent('c')
-#        self.assertIsNotNone(c)
-#        self.assertEqual(c.getId(), 'c')
-#        self.assertEqual(c.getName(), 'component')
-#        self.assertEqual(c.getDescription(), 'My custom component.')
-#        self.assertEqual(len(c.getListList()), 0)
-#        self.assertEqual(len(c.getComponentList()), 0)
-#        self.assertEqual(len(c.getParameterList()), 0)
-#
-#class SimpleModelTest(unittest.TestCase):
-#    def setUp(self):
-#        self.env = OpenSandConf.Environment()
-#        self.model = OpenSandConf.Model("1.0", "simpleModel", "Model", "Describes my Model.")
-#        self.model.setEnvironment(self.env)
-#        self.env.addEnumType('e', 'enum', 'My custom enum.')
-#        self.model.addList('l', 'list', 'My custom list.', 'My custom list pattern.')
-#        self.model.addComponent('c', 'component', 'My custom component.')
-#        self.model.addParameter('e', 'pe', 'parameter e', 'My custom parameter e.', 'dB')
-#        self.model.addParameter(OpenSandConf.TypeID.FLOAT, 'pf', 'parameter f', 'My custom parameter f.', 'kbps').setValueFloat(5.0)
-#        self.assertTrue(OpenSandConf.toXSD(self.model, 'pysimpleModel.xsd'))
-#        self.loaded = OpenSandConf.fromXSD('pysimpleModel.xsd')
-#
-#    def test_EnvModelExist(self):
-#        self.assertIsNotNone(self.loaded.env)
-#        self.assertIsNotNone(self.loaded.model)
-#
-#    def test_SameContent(self):
-#        self.assertTrue(self.env.isSame(self.loaded.env))
-#        self.assertTrue(self.model.isSame(self.loaded.model))
-#
-#    def test_NotSameContent(self):
-#        self.model.getRootComponent().getParameter('pf').setName('parameter changed')
-#        self.assertTrue(self.env.isSame(self.loaded.env))
-#        self.assertFalse(self.model.isSame(self.loaded.model))
-#
-#    def test_toXML(self):
-#        self.assertTrue(OpenSandConf.toXML(self.model, 'pysimpleModel.xml'))
-#        self.assertTrue(OpenSandConf.fromXML(self.loaded, 'pysimpleModel.xml', 'pysimpleModel.xsd'))
-#
-#class ComplexModelTest(unittest.TestCase):
-#    def setUp(self):
-#        self.env = OpenSandConf.Environment()
-#        self.model = OpenSandConf.Model("5.1.2", "complexModel", "Model", "Describes my Model.")
-#        self.model.setEnvironment(self.env)
-#
-#        e = self.env.addEnumType('e', 'Enum', '...')
-#        e.addValue('A')
-#        e.addValue('B')
-#        e.addValue('C')
-#
-#        p1 = self.model.addParameter(OpenSandConf.TypeID.FLOAT, 'p1', 'Parameter 1', '...', '')
-#        p2 = self.model.addParameter(OpenSandConf.TypeID.INT, 'p2', 'Parameter 1', '...', '')
-#        p2.setDefaultValueInt(42)
-#        p3 = self.model.addParameter('e', 'p3', 'Parameter 1', '...', '')
-#        p3.setDefaultValueString("B")
-#        p4 = self.model.addParameter(OpenSandConf.TypeID.DOUBLE, 'p4', 'Parameter 1', '...', '')
-#        p5 = self.model.addParameter(OpenSandConf.TypeID.STRING, 'p5', 'Parameter 1', '...', '')
-#
-#        c1 = self.model.addComponent('c1', 'Component 1', '...')
-#        c2 = self.model.addComponent('c2', 'Component 2', '...')
-#        self.c2 = c2
-#        c3 = self.model.addComponent('c3', 'Component 3', '...')
-#
-#        l1 = self.model.addList('l1', 'List 1', '...', 'Pattern 1')
-#        l1.getPattern().addParameter(OpenSandConf.TypeID.INT, 'p1', 'Parameter 1', '...', '')
-#        self.l1p2 = l1.getPattern().addParameter(OpenSandConf.TypeID.FLOAT, 'p2', 'Parameter 2', '...', '')
-#        self.l1p2.setVisibility(OpenSandConf.VisibilityID.ADVANCED)
-#        l1.getPattern().addParameter('e', 'p3', 'Parameter 3', '...', '')
-#        l2 = self.model.addList('l2', 'List 2', '...', 'Pattern 2')
-#        l2.getPattern().addParameter(OpenSandConf.TypeID.FLOAT, 'p1', 'Parameter 1', '...', '')
-#        l2.getPattern().addParameter(OpenSandConf.TypeID.LONGDOUBLE, 'p2', 'Parameter 2', '...', '')
-#        l2.getPattern().addParameter('e', 'p3', 'Parameter 3', '...', '')
-#        l2.getPattern().addParameter(OpenSandConf.TypeID.DOUBLE, 'p4', 'Parameter 4', '...', '')
-#        l2.getPattern().addParameter('e', 'p5', 'Parameter 5', '...', '')
-#
-#        c1c1 = c1.addComponent('c1c1', 'C1 Component 1', '...')
-#        c1c1.addParameter(OpenSandConf.TypeID.INT, 'p1', 'Parameter 1', '...', '')
-#        c1c1p2 = c1c1.addParameter(OpenSandConf.TypeID.FLOAT, 'p2', 'Parameter 2', '...', '')
-#        self.c1c1p3 = c1c1.addParameter(OpenSandConf.TypeID.INT, 'p3', 'Parameter 3', '...', '')
-#        self.c1c1p3.setReference(c1c1p2, 'D');
-#        c1c2 = c1.addComponent('c1c2', 'C1 Component 2', '...')
-#        c1c2.addParameter(OpenSandConf.TypeID.LONGDOUBLE, 'p1', 'Parameter 1', '...', '')
-#        c1c2.addParameter(OpenSandConf.TypeID.FLOAT, 'p2', 'Parameter 2', '...', '')
-#        c1c3 = c1.addComponent('c1c3', 'C1 Component 3', '...')
-#        c1c3.addParameter(OpenSandConf.TypeID.DOUBLE, 'p1', 'Parameter 1', '...', '')
-#        c1c3.addParameter(OpenSandConf.TypeID.INT, 'p2', 'Parameter 2', '...', '')
-#
-#        c2c1 = c2.addComponent('c2c1', 'C2 Component 1', '...')
-#        c2c1.addParameter(OpenSandConf.TypeID.INT, 'p1', 'Parameter 1', '...', '')
-#        c2c1.addParameter(OpenSandConf.TypeID.STRING, 'p2', 'Parameter 2', '...', '')
-#        c2c2 = c2.addComponent('c2c2', 'C2 Component 2', '...')
-#        c2c2.addParameter(OpenSandConf.TypeID.STRING, 'p1', 'Parameter 1', '...', '')
-#        c2c2.addParameter(OpenSandConf.TypeID.LONGDOUBLE, 'p2', 'Parameter 2', '...', '')
-#        c2c2.addParameter(OpenSandConf.TypeID.INT, 'p3', 'Parameter 3', '...', '')
-#
-#        c2c1c1 = c2c1.addComponent('c2c1c1', 'C2C1 Component 1', '...')
-#        c2c1c1c1 = c2c1c1.addComponent('c2c1c1c1', 'C2C1C1 Component 1', '...')
-#        c2c1c1c1c1 = c2c1c1c1.addComponent('c2c1c1c1c1', 'C2C1C1C1 Component 1', '...')
-#        c2c1c1c1c1.addParameter(OpenSandConf.TypeID.FLOAT, 'p1', 'Parameter 1', '...', '')
-#        self.c2c1c1c1c1p2 = c2c1c1c1c1.addParameter(OpenSandConf.TypeID.STRING, 'p2', 'Parameter 2', '...', '')
-#
-#        self.assertTrue(OpenSandConf.toXSD(self.model, 'pycomplexModel.xsd'))
-#        self.loaded = OpenSandConf.fromXSD('pycomplexModel.xsd')
-#
-#    def test_SameContent(self):
-#        self.assertTrue(self.env.isSame(self.loaded.env))
-#        self.assertTrue(self.model.isSame(self.loaded.model))
-#
-#    def test_parametersVisibility(self):
-#        self.assertEqual(self.l1p2.getVisibility(), OpenSandConf.VisibilityID.ADVANCED)
-#        self.assertEqual(self.c2.getVisibility(), OpenSandConf.VisibilityID.NORMAL)
-#
-#    def test_parametersVisibilityAfterModelLoading(self):
-#        self.assertEqual(
-#            self.loaded.model.getRootComponent().getList('l1').getPattern().getParameter('p2').getVisibility(),
-#            OpenSandConf.VisibilityID.ADVANCED
-#        )
-#        self.assertEqual(
-#            self.loaded.model.getRootComponent().getComponent('c2').getVisibility(),
-#            OpenSandConf.VisibilityID.NORMAL
-#        )
-#
-#    def test_defaultValues(self):
-#        self.assertEqual(self.loaded.model.getRootComponent().getParameter("p2").getDefaultValueInt(), 42)
-#        self.assertEqual(self.loaded.model.getRootComponent().getParameter("p3").getDefaultValueString(), "B")
-#
-#    def test_parametersPath(self):
-#        self.assertEqual(self.l1p2.getPath(), '/L:l1/C:*/P:p2')
-#        self.assertEqual(self.c2c1c1c1c1p2.getPath(), '/C:c2/C:c2c1/C:c2c1c1/C:c2c1c1c1/C:c2c1c1c1c1/P:p2')
-#
-#    def test_parametersPathAfterModelLoading(self):
-#        self.assertEqual(
-#            self.loaded.model.getRootComponent().getList('l1').getPattern().getParameter('p2').getPath(),
-#            '/L:l1/C:*/P:p2'
-#        )
-#        self.assertEqual(
-#            self.loaded.model.getRootComponent().getComponent('c2').getComponent('c2c1').getComponent('c2c1c1').getComponent('c2c1c1c1').getComponent('c2c1c1c1c1').getParameter('p2').getPath(),
-#            '/C:c2/C:c2c1/C:c2c1c1/C:c2c1c1c1/C:c2c1c1c1c1/P:p2'
-#        )
-#
-#    def test_parametersGetRef(self):
-#        self.assertEqual(self.c1c1p3.getReference().first, '/C:c1/C:c1c1/P:p2')
-#        self.assertEqual(self.c1c1p3.getReference().second, 'D')
-#
-#    def test_parametersGetRefAfterModelLoading(self):
-#        self.assertEqual(
-#            self.loaded.model.getRootComponent().getComponent('c1').getComponent('c1c1').getParameter('p3').getReference().first,
-#            '/C:c1/C:c1c1/P:p2'
-#        )
-#        self.assertEqual(
-#            self.loaded.model.getRootComponent().getComponent('c1').getComponent('c1c1').getParameter('p3').getReference().second,
-#            'D'
-#        )
-#
-#    def test_toXML(self):
-#        self.assertTrue(OpenSandConf.toXML(self.model, 'pycomplexModel.xml'))
-#        self.assertTrue(OpenSandConf.fromXML(self.loaded, 'pycomplexModel.xml', 'pycomplexModel.xsd'))
+class ModelIOTests(unittest.TestCase):
+    def setUp(self):
+        self.version = "1.2.3"
+        self.model = OpenSandConf.MetaModel(self.version)
+        self.root = self.model.get_root()
+        self.types = self.model.get_types_definition()
+
+        # Add enum type
+        self.assertIsNotNone(self.types.add_enum_type("enum1", "Enum 1", [ "val1", "val2"]))
+        enum_type = self.types.get_type("enum1")
+        string_type = self.types.get_type("string")
+
+        # Create elements at level 1
+        self.assertIsNotNone(self.root.add_parameter("e", "Enum parameter (level 1)", enum_type))
+        self.assertIsNotNone(self.root.add_parameter("s", "String parameter (level 1)", string_type))
+        self.cpt = self.root.add_component("c", "Component (level 1)")
+        self.assertIsNotNone(self.cpt)
+
+        # Create elements at level 2
+        self.assertIsNotNone(self.cpt.add_parameter("e2", "Enum parameter (level 2)", enum_type))
+        self.assertIsNotNone(self.cpt.add_parameter("s2", "String parameter (level 2)", string_type))
+        self.cpt2 = self.cpt.add_component("c2", "Component (level 2)")
+        self.assertIsNotNone(self.cpt2)
+
+        # Create elements at level 3
+        self.assertIsNotNone(self.cpt2.add_parameter("e3", "Enum parameter (level 3)", enum_type))
+        self.assertIsNotNone(self.cpt2.add_parameter("s3", "String parameter (level 3)", string_type))
+        self.lst3 = self.cpt2.add_list("l3", "List (level 3)", "Item")
+        self.assertIsNotNone(self.lst3)
+        self.ptn3 = self.lst3.get_pattern()
+        self.assertIsNotNone(self.ptn3)
+        self.lst3b = self.cpt2.add_list("l3b", "List 2 (level 3)", "Item")
+        self.assertIsNotNone(self.lst3b)
+        self.ptn3b = self.lst3b.get_pattern()
+        self.assertIsNotNone(self.ptn3b)
+
+        # Create elements at level 4
+        self.assertIsNotNone(self.ptn3.add_parameter("e4", "Enum parameter (level 4)", enum_type))
+        self.assertIsNotNone(self.ptn3.add_parameter("s4", "String parameter (level 4)", string_type))
+        self.assertIsNotNone(self.ptn3b.add_parameter("e4", "Enum parameter (level 4)", enum_type))
+        self.assertIsNotNone(self.ptn3b.add_parameter("s4", "String parameter (level 4)", string_type))
+        self.lst4 = self.ptn3.add_list("l4", "List (level 4)", "Item")
+        self.assertIsNotNone(self.lst4)
+        self.ptn4 = self.lst4.get_pattern()
+        self.assertIsNotNone(self.ptn4)
+
+        # Create elements at level 5
+        self.assertIsNotNone(self.ptn4.add_parameter("e5", "Enum parameter (level 5)", enum_type))
+        self.assertIsNotNone(self.ptn4.add_parameter("s5", "String parameter (level 5)", string_type))
+        self.cpt5 = self.ptn4.add_component("c5", "Component (level 5)")
+
+        # Create elements at level 6
+        self.assertIsNotNone(self.cpt5.add_parameter("e6", "Enum parameter (level 6)", enum_type))
+        self.assertIsNotNone(self.cpt5.add_parameter("s6", "String parameter (level 6)", string_type))
+
+        self.datamodel = self.model.create_data()
+        self.assertIsNotNone(self.datamodel)
+        self.dataroot = self.datamodel.get_root()
+        self.assertIsNotNone(self.dataroot)
+
+        # Build data model
+        p = self.dataroot.get_parameter('e')
+        self.assertIsNotNone(p)
+        self.assertTrue(p.get_data().from_string('val1'))
+        p = self.dataroot.get_parameter('s')
+        self.assertIsNotNone(p)
+        self.assertTrue(p.get_data().from_string('val2'))
+
+        self.datacpt = self.dataroot.get_component('c')
+        self.assertIsNotNone(self.datacpt)
+        p = self.datacpt.get_parameter('e2')
+        self.assertIsNotNone(p)
+        self.assertTrue(p.get_data().from_string('val1'))
+        p = self.datacpt.get_parameter('s2')
+        self.assertIsNotNone(p)
+        self.assertTrue(p.get_data().from_string('val2'))
+
+        self.datacpt2 = self.datacpt.get_component('c2')
+        self.assertIsNotNone(self.datacpt2)
+        p = self.datacpt2.get_parameter('e3')
+        self.assertIsNotNone(p)
+        self.assertTrue(p.get_data().from_string('val1'))
+        p = self.datacpt2.get_parameter('s3')
+        self.assertIsNotNone(p)
+        self.assertTrue(p.get_data().from_string('val2'))
+
+        self.datalst3 = self.datacpt2.get_list('l3')
+        self.assertIsNotNone(self.datalst3)
+        for i in range(0, 3):
+            c3 = self.datalst3.add_item()
+            self.assertIsNotNone(c3)
+            p = c3.get_parameter('e4')
+            self.assertIsNotNone(p)
+            self.assertTrue(p.get_data().from_string('val1'))
+            p = c3.get_parameter('s4')
+            self.assertIsNotNone(p)
+            self.assertTrue(p.get_data().from_string('val2'))
+
+            datalst4 = c3.get_list('l4')
+            self.assertIsNotNone(datalst4)
+            for j in range(0, 2):
+                c4 = datalst4.add_item()
+                self.assertIsNotNone(c4)
+                p = c4.get_parameter('e5')
+                self.assertIsNotNone(p)
+                self.assertTrue(p.get_data().from_string('val1'))
+                p = c4.get_parameter('s5')
+                self.assertIsNotNone(p)
+                self.assertTrue(p.get_data().from_string('val2'))
+
+                c5 = c4.get_component('c5')
+                self.assertIsNotNone(c5)
+                p = c5.get_parameter('e6')
+                self.assertIsNotNone(p)
+                self.assertTrue(p.get_data().from_string('val1'))
+                p = c5.get_parameter('s6')
+                self.assertIsNotNone(p)
+                self.assertTrue(p.get_data().from_string('val2'))
+        self.assertIsNotNone(self.datalst3.add_item())
+
+        self.datalst3b = self.datacpt2.get_list('l3b')
+        self.assertIsNotNone(self.datalst3b)
+        for i in range(0, 5):
+            self.assertIsNotNone(self.datalst3b.add_item())
+
+    def _read_file_content(self, filepath):
+        content = ''
+        with open(filepath, 'r') as f:
+            content = f.read()
+        return content
+
+    def test_read_write_meta(self):
+        path = "my_py_model.xsd"
+        path2 = "my_py_model2.xsd"
+        if os.path.isfile(path):
+            os.remove(path)
+        if os.path.isfile(path2):
+            os.remove(path2)
+
+        # Test writing model to XSD
+        self.assertTrue(OpenSandConf.toXSD(self.model, path))
+
+        # Test reading model from XSD
+        model2 = OpenSandConf.fromXSD(path)
+        self.assertIsNotNone(model2)
+
+        # Compare XSD files
+        content = self._read_file_content(path)
+        self.assertTrue(OpenSandConf.toXSD(model2, path2))
+        content2 = self._read_file_content(path2)
+        self.assertEqual(content, content2)
+
+    def test_read_write_meta_with_ref(self):
+        path = "my_py_model_ref.xsd"
+        path2 = "my_py_model_ref2.xsd"
+        if os.path.isfile(path):
+            os.remove(path)
+        if os.path.isfile(path2):
+            os.remove(path2)
+
+        # Add reference 1
+        target = self.root.get_parameter('e')
+        self.assertIsNotNone(target)
+        element = self.cpt2.get_parameter('s3')
+        self.assertIsNotNone(element)
+        self.assertTrue(self.model.set_reference(element, target))
+        self.assertIsNotNone(element.get_reference_target())
+        self.assertEqual(element.get_reference_target().get_path(), target.get_path())
+        expected = element.get_reference_data()
+        self.assertIsNotNone(expected)
+        self.assertTrue(expected.set('val1'))
+
+        # Add reference 2
+        target2 = self.model.get_item_by_path('/c/e2')
+        self.assertIsNotNone(target2)
+        element2 = self.model.get_item_by_path('/c/c2/l3/*/s4')
+        self.assertIsNotNone(element2)
+        self.assertTrue(self.model.set_reference(element2, target2))
+        self.assertIsNotNone(element2.get_reference_target())
+        self.assertEqual(element2.get_reference_target().get_path(), target2.get_path())
+        expected2 = element2.get_reference_data()
+        self.assertIsNotNone(expected2)
+        self.assertTrue(expected2.set('val1'))
+
+        # Test writing model to XSD
+        self.assertTrue(OpenSandConf.toXSD(self.model, path))
+
+        # Test reading model from XSD
+        model2 = OpenSandConf.fromXSD(path)
+        self.assertIsNotNone(model2)
+
+        # Compare XSD files
+        content = self._read_file_content(path)
+        self.assertTrue(OpenSandConf.toXSD(model2, path2))
+        content2 = self._read_file_content(path2)
+        self.assertEqual(content, content2)
+
+    def test_read_write_data(self):
+        path = "my_py_datamodel.xml"
+        path2 = "my_py_datamodel2.xml"
+        if os.path.isfile(path):
+            os.remove(path)
+        if os.path.isfile(path2):
+            os.remove(path2)
+
+        # Test writing datamodel to XML
+        self.assertTrue(OpenSandConf.toXML(self.datamodel, path))
+
+        # Test reading datamodel from XML
+        datamodel2 = OpenSandConf.fromXML(self.model, path)
+        self.assertIsNotNone(datamodel2)
+
+        # Compare XSD files
+        content = self._read_file_content(path)
+        self.assertTrue(OpenSandConf.toXML(datamodel2, path2))
+        content2 = self._read_file_content(path2)
+        self.assertEqual(content, content2)
+ 
 
 if __name__ == "__main__":
     unittest.main()

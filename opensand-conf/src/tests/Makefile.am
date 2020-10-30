@@ -5,10 +5,14 @@
 ################################################################################
 
 TESTS = \
-	test_configuration
+	test_configuration \
+	test_configuration_ref \
+	test_configuration_io
 
 check_PROGRAMS = \
-	test_configuration
+	test_configuration \
+	test_configuration_ref \
+	test_configuration_io
 
 test_configuration_SOURCES = \
 	test_configuration.cpp
@@ -23,5 +27,37 @@ test_configuration_CPPFLAGS = \
 #	-I$(top_srcdir)/include/
 
 test_configuration_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-L$(top_builddir)/src/.libs
+
+test_configuration_ref_SOURCES = \
+	test_configuration_ref.cpp
+
+test_configuration_ref_LDADD = \
+	$(AM_LDADD) \
+	-lopensand_conf 
+
+test_configuration_ref_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/src/
+#	-I$(top_srcdir)/include/
+
+test_configuration_ref_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-L$(top_builddir)/src/.libs
+
+test_configuration_io_SOURCES = \
+	test_configuration_io.cpp
+
+test_configuration_io_LDADD = \
+	$(AM_LDADD) \
+	-lopensand_conf 
+
+test_configuration_io_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/src/
+#	-I$(top_srcdir)/include/
+
+test_configuration_io_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	-L$(top_builddir)/src/.libs

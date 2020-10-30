@@ -38,63 +38,13 @@
 #include <boost/python.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
 
-#include <MetaModel.h>
-#include <DataModel.h>
+#include <Configuration.h>
 
 using namespace OpenSANDConf;
 
 using std::shared_ptr;
 using std::string;
 using std::vector;
-
-// "python::no_init" is used to replace a protected/private constructor by an internal Python
-// constructor, raising an exception if someone tries to instantiate the class.
-// (Related source : https://www.boost.org/doc/libs/1_63_0/libs/python/doc/html/tutorial/tutorial/exposing.html#tutorial.exposing.constructors)
-//
-// If "Class" is exposed as a "shared_ptr<Class>", it should be set as a second template parameter
-// in python::class_<Class, ...>.
-// (Related source : https://wiki.python.org/moin/boost.python/PointersAndSmartPointers)
-//
-// "python::return_value_policy" is set to "python::return_by_value" when returning const references.
-// (Related source : https://mail.python.org/pipermail/cplusplus-sig/2017-April/017460.html)
-//
-// vector<Class> must be defined so that Python can expose them automatically.
-// (Related source : https://riptutorial.com/boost/example/25280/wrapping-std--vector-in-boost-python)
-//
-// Overloading needs you to define the different methods pointer before associating them to the exposed class.
-// (Related source : http://lutgw1.lunet.edu/boost/libs/python/doc/html/tutorial/tutorial/functions.html#tutorial.functions.overloading)
-
-/*struct ModelStructure {
-    Environment *env;
-    Model *model;
-};*/
-
-// It is necessary to wrap the original C++ functions Utils::fromXML and Utils::fromXSD
-// into "Wrapper functions". The reason is, Python does not allow to expose/manipulate
-// pointers to pointer so we have to hack it around. These functions take care of checking
-// the boolean returned value though, making it return {nullptr, nullptr} in case of failure.
-/*struct ModelStructure fromXSD_W(const std::string& filename) {
-    struct ModelStructure structure = {nullptr, nullptr};
-
-    Environment * env = nullptr;
-    Model * model = nullptr;
-
-    if(Utils::fromXSD(&env, &model, filename)) {
-        structure.env = env;
-        structure.model = model;
-    }
-
-    return structure;
-}
-
-struct ModelStructure fromXML_W(struct ModelStructure structure, const std::string& xmlFilename, const std::string& xsdFilename) {
-    if(!Utils::fromXML(&(structure.env), &(structure.model), xmlFilename, xsdFilename)) {
-        structure.env = nullptr;
-        structure.model = nullptr;
-    }
-
-    return structure;
-}*/
 
 struct iterable_converter
 {
@@ -362,12 +312,9 @@ BOOST_PYTHON_MODULE(py_opensand_conf)
 		.def("clone", &DataModel::clone)
 	;
 
-	/*
-	python::class_<vector<shared_ptr<ModelElement>>>("ModelElementVector")
-		.def(python::vector_indexing_suite<vector<shared_ptr<ModelElement>>>());
+	python::def("toXSD", toXSD);
+	python::def("fromXSD", fromXSD);
 
-	def("toXSD", &Utils::toXSD);
-	def("toXML", &Utils::toXML);
-	def("fromXSD", fromXSD_W);
-	def("fromXML", fromXML_W);*/
+	python::def("toXML", toXML);
+	python::def("fromXML", fromXML);
 }

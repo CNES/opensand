@@ -34,7 +34,8 @@ libopensand_conf_la_cpp = \
     MetaParameter.cpp \
     MetaList.cpp \
     MetaComponent.cpp \
-    MetaModel.cpp
+    MetaModel.cpp \
+    Configuration.cpp
 
 libopensand_conf_la_h = \
     BaseElement.h \
@@ -62,7 +63,8 @@ libopensand_conf_la_h = \
     MetaParameter.h \
     MetaList.h \
     MetaComponent.h \
-    MetaModel.h
+    MetaModel.h \
+    Configuration.h
 
 libopensand_conf_la_SOURCES = \
     $(libopensand_conf_la_cpp) \
