@@ -415,7 +415,7 @@ bool Output::configureRemoteOutput(const std::string& address,
 
   try {
     logHandler = std::make_shared<SocketLogHandler>(entityName, address, logsPort);
-    statHandler = std::make_shared<SocketStatHandler>(address, statsPort);
+    statHandler = std::make_shared<SocketStatHandler>(entityName, address, statsPort);
   } catch (const HandlerCreationFailedError& exc) {
     logException(privateLog, exc);
     return false;
@@ -449,8 +449,6 @@ void Output::sendProbes(void)
   OutputLock acquire{lock};
 
   std::vector<std::pair<std::string, std::string>> probesValues;
-  probesValues.emplace_back("entity", getEntityName());
-
   for (auto& probe : enabledProbes) {
     probesValues.emplace_back(probe->getName(), probe->getData());
   }

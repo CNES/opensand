@@ -79,7 +79,19 @@ std::ostream& operator<<(std::ostream& os, const getDate& date) {
 }
 
 
-FileStatHandler::FileStatHandler(const std::string& fileName, const std::string& originFolder) : filesOpened(0), folder(originFolder), filename(fileName) {
+Handler::Handler(const std::string& entityName) : entityName(entityName) {
+}
+
+
+StatHandler::StatHandler(const std::string& entityName) : Handler(entityName) {
+}
+
+
+LogHandler::LogHandler(const std::string& entityName) : Handler(entityName) {
+}
+
+
+FileStatHandler::FileStatHandler(const std::string& fileName, const std::string& originFolder) : StatHandler(fileName), filesOpened(0), folder(originFolder), filename(fileName) {
   std::experimental::filesystem::create_directories(folder);
   file.open(buildFullPath());
 }
@@ -126,10 +138,6 @@ void FileStatHandler::configure(const std::vector<std::shared_ptr<BaseProbe>>& p
 }
 
 
-LogHandler::LogHandler(const std::string& entityName) : entityName(entityName) {
-}
-
-
 void LogHandler::prepareMessage(std::ostream& formatter, const std::string& logName, const std::string& level, const std::string& message) {
   formatter << "[" << getDate() << "][" << level << "][" << entityName << "][" << logName << "]";
   if (message[message.size() - 1] != '\n')
@@ -163,7 +171,7 @@ void FileLogHandler::emitLog(const std::string& logName, const std::string& leve
 }
 
 
-SocketStatHandler::SocketStatHandler(const std::string& address, unsigned short port, bool useTCP) : useTcp(useTCP) {
+SocketStatHandler::SocketStatHandler(const std::string& entityName, const std::string& address, unsigned short port, bool useTCP) : StatHandler(entityName), useTcp(useTCP) {
   remote.sin_family = AF_INET;
   remote.sin_port = htons(port);
   if (inet_pton(AF_INET, address.c_str(), &remote.sin_addr) < 0) {
@@ -208,6 +216,7 @@ void SocketStatHandler::emitStats(const std::vector<std::pair<std::string, std::
     return;
   }
 
+  formatter << " entity " << entityName;
   std::string msg = formatter.str();
 
   if (useTcp) {

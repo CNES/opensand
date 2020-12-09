@@ -52,8 +52,18 @@ class HandlerCreationFailedError : public std::runtime_error {
 class BaseProbe;
 
 
-class StatHandler {
+class Handler {
   public:
+    Handler(const std::string& entityName);
+
+  protected:
+    std::string entityName;
+};
+
+
+class StatHandler : public Handler {
+  public:
+    StatHandler(const std::string& entityName);
     virtual void emitStats(const std::vector<std::pair<std::string, std::string>>& probesValues) = 0;
     virtual void configure(const std::vector<std::shared_ptr<BaseProbe>>& probes) = 0;
 };
@@ -79,7 +89,7 @@ class FileStatHandler : public StatHandler {
 
 class SocketStatHandler : public StatHandler {
   public:
-    SocketStatHandler(const std::string& address, unsigned short port, bool useTCP = false);
+    SocketStatHandler(const std::string& entityName, const std::string& address, unsigned short port, bool useTCP = false);
     ~SocketStatHandler();
 
     void emitStats(const std::vector<std::pair<std::string, std::string>>& probesValues);
@@ -94,7 +104,7 @@ class SocketStatHandler : public StatHandler {
 };
 
 
-class LogHandler {
+class LogHandler : public Handler {
   public:
     LogHandler(const std::string& entityName);
     virtual void emitLog(const std::string& logName, const std::string& level, const std::string& message) = 0;
@@ -102,7 +112,6 @@ class LogHandler {
   protected:
     void prepareMessage(std::ostream& formatter, const std::string& logName, const std::string& level, const std::string& message);
 
-    std::string entityName;
     std::mutex lock;
 };
 
