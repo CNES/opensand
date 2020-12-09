@@ -81,7 +81,9 @@ bool Entity::parseArguments(int argc, char **argv)
 			this->type);
 		return false;
 	}
-	if (!output_folder.empty() && !Output::Get()->configureLocalOutput(this->output_folder, this->name))
+
+  Output::Get()->setEntityName(this->name);
+	if (!output_folder.empty() && !Output::Get()->configureLocalOutput(this->output_folder))
 	{
 		return false;
 	}

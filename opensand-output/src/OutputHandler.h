@@ -96,9 +96,13 @@ class SocketStatHandler : public StatHandler {
 
 class LogHandler {
   public:
+    LogHandler(const std::string& entityName);
     virtual void emitLog(const std::string& logName, const std::string& level, const std::string& message) = 0;
 
   protected:
+    void prepareMessage(std::ostream& formatter, const std::string& logName, const std::string& level, const std::string& message);
+
+    std::string entityName;
     std::mutex lock;
 };
 
@@ -117,7 +121,7 @@ class FileLogHandler : public LogHandler {
 
 class SocketLogHandler : public LogHandler {
   public:
-    SocketLogHandler(const std::string& address, unsigned short port, bool useTCP = false);
+    SocketLogHandler(const std::string& entityName, const std::string& address, unsigned short port, bool useTCP = false);
     ~SocketLogHandler();
 
     void emitLog(const std::string& logName, const std::string& level, const std::string& message);

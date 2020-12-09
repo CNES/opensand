@@ -370,8 +370,19 @@ std::shared_ptr<OutputLog> Output::registerLog(log_level_t default_display_level
 }
 
 
-bool Output::configureLocalOutput(const std::string& folder, const std::string& entityName)
+std::string Output::getEntityName() const
 {
+  if (this->entityName.empty()) {
+    return "opensand";
+  }
+  return entityName;
+}
+
+
+bool Output::configureLocalOutput(const std::string& folder)
+{
+  std::string entityName = getEntityName();
+
   std::shared_ptr<FileLogHandler> logHandler;
   std::shared_ptr<FileStatHandler> statHandler;
 
@@ -397,11 +408,13 @@ bool Output::configureRemoteOutput(const std::string& address,
                                    unsigned short statsPort,
                                    unsigned short logsPort)
 {
+  std::string entityName = getEntityName();
+
   std::shared_ptr<SocketLogHandler> logHandler;
   std::shared_ptr<SocketStatHandler> statHandler;
 
   try {
-    logHandler = std::make_shared<SocketLogHandler>(address, logsPort);
+    logHandler = std::make_shared<SocketLogHandler>(entityName, address, logsPort);
     statHandler = std::make_shared<SocketStatHandler>(address, statsPort);
   } catch (const HandlerCreationFailedError& exc) {
     logException(privateLog, exc);
@@ -436,6 +449,8 @@ void Output::sendProbes(void)
   OutputLock acquire{lock};
 
   std::vector<std::pair<std::string, std::string>> probesValues;
+  probesValues.emplace_back("entity", getEntityName());
+
   for (auto& probe : enabledProbes) {
     probesValues.emplace_back(probe->getName(), probe->getData());
   }

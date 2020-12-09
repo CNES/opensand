@@ -108,6 +108,16 @@ public:
   inline bool isInit() { return true; }
 
   /**
+   * @brief Set this entity name to figure out who sent which logs and probes
+   */
+  inline void setEntityName(const std::string& name) { entityName = name; }
+
+  /**
+   * @brief Get this entity name
+   */
+  std::string getEntityName() const;
+
+  /**
    * @brief Register a probe in the output library
    *
    * @param name          The probe full name (section.subsection.name)
@@ -232,10 +242,9 @@ public:
    * @brief Configure the output library to use file-based logs and probes
    *
    * @param folder      The path to store produced files in
-   * @param entityName  The name of the entity that will be part of the final files names
    * @return            Whether or not the configuration was successful
    **/
-  bool configureLocalOutput(const std::string& folder, const std::string& entityName);
+  bool configureLocalOutput(const std::string& folder);
 
   /**
    * @brief Configure the output library to use UDP socket-based logs and probes
@@ -283,6 +292,8 @@ public:
 private:
   Output();
   void registerProbe(const std::string& name, std::shared_ptr<BaseProbe> probe);
+
+  std::string entityName;
 
   class OutputSection;
   std::shared_ptr<OutputSection> getOrCreateSection(const std::vector<std::string>& names);

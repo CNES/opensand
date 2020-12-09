@@ -98,7 +98,7 @@ filter {
 
   if ("[EVENT]" in [message] or "[DEBUG]" in [message] or "[INFO]" in [message] or "[NOTICE]" in [message] or "[WARNING]" in [message] or "[ERROR]" in [message] or "[CRITICAL]" in [message]) {
     dissect {
-      mapping => { "message" => "[%{timestamp}][%{log_level}][%{log_name}]%{log_message}" }
+      mapping => { "message" => "[%{timestamp}][%{log_level}][%{entity}][%{log_name}]%{log_message}" }
       convert_datatype => { "timestamp" => "int" }
     }
     mutate {
@@ -119,7 +119,11 @@ filter {
     ruby {
       code => '
 event.get("kv").each do |key, value|
-  event.set(key, value.to_f)
+  if key == "entity"
+    event.set(key, value)
+  else
+    event.set(key, value.to_f)
+  end
 end'
       remove_field => [ "kv" ]
     }
@@ -144,6 +148,7 @@ output {
     influxdb {
       measurement => "opensand"
       use_event_fields_for_data_points => true
+      send_as_tags => [ "entity" ]
       host => "localhost"
       port => ${INFLUXDB_PORT}
       db => "opensand"

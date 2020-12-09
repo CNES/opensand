@@ -126,7 +126,24 @@ void FileStatHandler::configure(const std::vector<std::shared_ptr<BaseProbe>>& p
 }
 
 
-FileLogHandler::FileLogHandler(const std::string& fileName, const std::string& originFolder) {
+LogHandler::LogHandler(const std::string& entityName) : entityName(entityName) {
+}
+
+
+void LogHandler::prepareMessage(std::ostream& formatter, const std::string& logName, const std::string& level, const std::string& message) {
+  formatter << "[" << getDate() << "][" << level << "][" << entityName << "][" << logName << "]";
+  if (message[message.size() - 1] != '\n')
+  {
+    formatter << message;
+  }
+  else
+  {
+    formatter << message.substr(0, message.size() -1);
+  }
+}
+
+
+FileLogHandler::FileLogHandler(const std::string& fileName, const std::string& originFolder) : LogHandler(fileName) {
   std::experimental::filesystem::create_directories(originFolder);
 
   file.open(originFolder + '/' + fileName + ".log");
@@ -141,15 +158,8 @@ FileLogHandler::~FileLogHandler() {
 
 void FileLogHandler::emitLog(const std::string& logName, const std::string& level, const std::string& message) {
   std::lock_guard<std::mutex> acquire{lock};
-  if (message[message.size() - 1] != '\n')
-  {
-    file << "[" << getDate() << "][" << level << "][" << logName << "]" << message << std::endl;
-  }
-  else
-  {
-    file << "[" << getDate() << "][" << level << "][" << logName << "]" << message.substr(0, message.size() -1) << std::endl;
-  }
-  file.flush();
+  prepareMessage(file, logName, level, message);
+  file << std::endl;
 }
 
 
@@ -214,7 +224,7 @@ void SocketStatHandler::configure(const std::vector<std::shared_ptr<BaseProbe>>&
 }
 
 
-SocketLogHandler::SocketLogHandler(const std::string& address, unsigned short port, bool useTCP) : useTcp(useTCP) {
+SocketLogHandler::SocketLogHandler(const std::string& entityName, const std::string& address, unsigned short port, bool useTCP) : LogHandler(entityName), useTcp(useTCP) {
   remote.sin_family = AF_INET;
   remote.sin_port = htons(port);
   if (inet_pton(AF_INET, address.c_str(), &remote.sin_addr) < 0) {
@@ -243,14 +253,7 @@ SocketLogHandler::~SocketLogHandler() {
 
 void SocketLogHandler::emitLog(const std::string& logName, const std::string& level, const std::string& message) {
   std::stringstream formatter;
-  if (message[message.size() - 1] != '\n')
-  {
-    formatter << "[" << getDate() << "][" << level << "][" << logName << "]" << message;
-  }
-  else
-  {
-    formatter << "[" << getDate() << "][" << level << "][" << logName << "]" << message.substr(0, message.size() -1);
-  }
+  prepareMessage(formatter, logName, level, message);
   std::string msg = formatter.str();
 
   if (useTcp) {

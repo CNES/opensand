@@ -100,6 +100,8 @@ bool EntityGwNetAcc::parseSpecificArguments(int argc, char **argv,
 {
 	int opt;
 
+	name = this->getType();
+
 	/* setting environment agent parameters */
 	while((opt = getopt(argc, argv, "-hi:t:u:w:c:f:r:l:s:")) != EOF)
 	{
