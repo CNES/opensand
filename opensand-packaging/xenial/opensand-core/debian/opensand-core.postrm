@@ -18,24 +18,10 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-EXE_GREP="/bin/grep"
-
-remove_user(){
-    USER_NAME="opensand"
-    EXE_DELUSER="/usr/sbin/deluser"
-
-    # Check that user exists
-    if [ -n "$(${EXE_GREP} ${USER_NAME} /etc/passwd)" ]
-    then
-        # Remove user
-        ${EXE_DELUSER} --system --quiet ${USER_NAME} || true
-    fi
-}
-
 remove_syslog_conf(){
     EXE_RM="/bin/rm"
     SYSLOG_CONF="/etc/rsyslog.d/opensand-core.conf"
-	LOGROTATE_CONF="/etc/logrotate.d/opensand-core.conf"
+    LOGROTATE_CONF="/etc/logrotate.d/opensand-core.conf"
 
     ${EXE_RM} -f ${SYSLOG_CONF} || true
     ${EXE_RM} -f ${LOGROTATE_CONF} || true
@@ -45,14 +31,9 @@ remove_syslog_conf(){
 case "$1" in
     purge)
         remove_syslog_conf
-        remove_user
     ;;
 
-    remove)
-        remove_user
-    ;;
-
-    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
     ;;
 
     *)

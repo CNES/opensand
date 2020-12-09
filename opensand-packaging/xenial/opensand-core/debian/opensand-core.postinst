@@ -17,21 +17,12 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-set_owner(){
-    # Set owner to files and directories
-    EXE_CHOWN="/bin/chown"
-    USER_NAME="opensand"
-
-    ${EXE_CHOWN} -R ${USER_NAME} /etc/opensand || true
-}
-
 restart_syslog(){
     service rsyslog restart
 }
 
 case "$1" in
     configure)
-        set_owner
         restart_syslog
     ;;
 
