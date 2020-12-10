@@ -39,19 +39,16 @@
 #include <string>
 #include <vector>
 
-#include <MetaValueType.h>
-#include <BaseEnum.h>
+#include "MetaValueType.h"
+#include "BaseEnum.h"
 
-using std::shared_ptr;
-using std::string;
-using std::vector;
 
 namespace OpenSANDConf
 {
 	/**
 	 * @brief String type with limited values
 	 */
-	class MetaEnumType: public MetaValueType<string>, public BaseEnum
+	class MetaEnumType: public MetaValueType<std::string>, public BaseEnum
 	{
 	public:
 		friend class MetaTypesList;
@@ -70,7 +67,7 @@ namespace OpenSANDConf
 		 * @param  description  The description
 		 * @param  values       The enumeration values
 		 */
-		MetaEnumType(const string &id, const string &name, const string &description, const vector<string> &values);
+		MetaEnumType(const std::string &id, const std::string &name, const std::string &description, const std::vector<std::string> &values);
 
 		/**
 		 * @brief Constructor by copy.
@@ -84,14 +81,14 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<MetaType> clone() const override;
+		virtual std::shared_ptr<MetaType> clone() const override;
 
 		/**
 		 * @brief Create a data type.
 		 *
 		 * @return New data type
 		 */
-		virtual shared_ptr<DataType> createData() const override;
+		virtual std::shared_ptr<DataType> createData() const override;
 
 	public:
 		/**

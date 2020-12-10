@@ -34,15 +34,16 @@
 
 #include <algorithm>
 
-#include <MetaContainer.h>
-#include <DataContainer.h>
+#include "MetaContainer.h"
+#include "DataContainer.h"
+
 
 OpenSANDConf::MetaContainer::MetaContainer(
-		const string &id,
-		const string &parent,
-		const string &name,
-		const string &description,
-		weak_ptr<const MetaTypesList> types):
+		const std::string &id,
+		const std::string &parent,
+		const std::string &name,
+		const std::string &description,
+		std::weak_ptr<const MetaTypesList> types):
 	MetaElement(id, parent, name, description),
 	types(types),
 	items()
@@ -51,7 +52,7 @@ OpenSANDConf::MetaContainer::MetaContainer(
 
 OpenSANDConf::MetaContainer::MetaContainer(
 		const OpenSANDConf::MetaContainer &other,
-		weak_ptr<const MetaTypesList> types):
+		std::weak_ptr<const MetaTypesList> types):
 	MetaElement(other),
 	types(types),
 	items()
@@ -70,31 +71,31 @@ OpenSANDConf::MetaContainer::~MetaContainer()
 {
 }
 
-weak_ptr<const OpenSANDConf::MetaTypesList> OpenSANDConf::MetaContainer::getTypes() const
+std::weak_ptr<const OpenSANDConf::MetaTypesList> OpenSANDConf::MetaContainer::getTypes() const
 {
 	return this->types;
 }
 
-const vector<shared_ptr<OpenSANDConf::MetaElement>> &OpenSANDConf::MetaContainer::getItems() const
+const std::vector<std::shared_ptr<OpenSANDConf::MetaElement>> &OpenSANDConf::MetaContainer::getItems() const
 {
 	return this->items;
 }
 
-shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaContainer::getItem(const string &id) const
+std::shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaContainer::getItem(const std::string &id) const
 {
 	auto elt = std::find_if(this->items.begin(), this->items.end(),
-		[id](shared_ptr<MetaElement> elt) { return elt->getId() == id; });
+		[id](std::shared_ptr<MetaElement> elt) { return elt->getId() == id; });
 	return elt != this->items.end() ? *elt : nullptr;
 }
 
-void OpenSANDConf::MetaContainer::addItem(shared_ptr<OpenSANDConf::MetaElement> item)
+void OpenSANDConf::MetaContainer::addItem(std::shared_ptr<OpenSANDConf::MetaElement> item)
 {
 	this->items.push_back(item);
 }
 
 void OpenSANDConf::MetaContainer::createAndAddDataItems(
-		shared_ptr<OpenSANDConf::DataTypesList> types,
-		shared_ptr<DataContainer> container) const
+		std::shared_ptr<OpenSANDConf::DataTypesList> types,
+		std::shared_ptr<DataContainer> container) const
 {
 	for(auto item: this->items)
 	{

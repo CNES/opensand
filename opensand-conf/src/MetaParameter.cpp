@@ -32,20 +32,21 @@
  * @brief Represents a metamodel parameter
  */
 
-#include <MetaParameter.h>
-#include <MetaTypesList.h>
-#include <MetaType.h>
-#include <DataTypesList.h>
-#include <DataParameter.h>
-#include <DataType.h>
-#include <Data.h>
+#include "MetaParameter.h"
+#include "MetaTypesList.h"
+#include "MetaType.h"
+#include "DataTypesList.h"
+#include "DataParameter.h"
+#include "DataType.h"
+#include "Data.h"
+
 
 OpenSANDConf::MetaParameter::MetaParameter(
-		const string &id,
-		const string &parent,
-		const string &name,
-		const string &description,
-		shared_ptr<OpenSANDConf::MetaType> type):
+		const std::string &id,
+		const std::string &parent,
+		const std::string &name,
+		const std::string &description,
+		std::shared_ptr<OpenSANDConf::MetaType> type):
 	OpenSANDConf::MetaElement(id, parent, name, description),
 	std::enable_shared_from_this<OpenSANDConf::MetaParameter>(),
 	type(type),
@@ -55,7 +56,7 @@ OpenSANDConf::MetaParameter::MetaParameter(
 
 OpenSANDConf::MetaParameter::MetaParameter(
 		const OpenSANDConf::MetaParameter &other,
-		weak_ptr<const MetaTypesList> types):
+		std::weak_ptr<const MetaTypesList> types):
 	OpenSANDConf::MetaElement(other),
 	std::enable_shared_from_this<OpenSANDConf::MetaParameter>(),
 	type(types.lock()->getType(other.type->getId())),
@@ -67,32 +68,32 @@ OpenSANDConf::MetaParameter::~MetaParameter()
 {
 }
 
-shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaParameter::clone(weak_ptr<const OpenSANDConf::MetaTypesList> types) const
+std::shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaParameter::clone(std::weak_ptr<const OpenSANDConf::MetaTypesList> types) const
 {
-	return shared_ptr<OpenSANDConf::MetaParameter>(new OpenSANDConf::MetaParameter(*this, types));
+	return std::shared_ptr<OpenSANDConf::MetaParameter>(new OpenSANDConf::MetaParameter(*this, types));
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::MetaParameter::createData(shared_ptr<OpenSANDConf::DataTypesList> types) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::MetaParameter::createData(std::shared_ptr<OpenSANDConf::DataTypesList> types) const
 {
 	auto datatype = types->getType(this->type->getId());
 	if(datatype == nullptr)
 	{
 		return nullptr;
 	}
-	return shared_ptr<OpenSANDConf::DataParameter>(new OpenSANDConf::DataParameter(this->getId(), this->getParentPath(), datatype->createData()));
+	return std::shared_ptr<OpenSANDConf::DataParameter>(new OpenSANDConf::DataParameter(this->getId(), this->getParentPath(), datatype->createData()));
 }
 
-shared_ptr<OpenSANDConf::MetaType> OpenSANDConf::MetaParameter::getType() const
+std::shared_ptr<OpenSANDConf::MetaType> OpenSANDConf::MetaParameter::getType() const
 {
 	return this->type;
 }
 
-const string &OpenSANDConf::MetaParameter::getUnit() const
+const std::string &OpenSANDConf::MetaParameter::getUnit() const
 {
 	return this->unit;
 }
 
-void OpenSANDConf::MetaParameter::setUnit(const string &unit)
+void OpenSANDConf::MetaParameter::setUnit(const std::string &unit)
 {
 	this->unit = unit;
 }

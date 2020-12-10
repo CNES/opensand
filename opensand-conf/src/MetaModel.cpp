@@ -32,25 +32,26 @@
  * @brief Represents a metamodel.
  */
 
-#include <MetaModel.h>
-#include <DataModel.h>
-#include <DataComponent.h>
-#include <MetaElement.h>
-#include <MetaContainer.h>
-#include <MetaParameter.h>
-#include <Path.h>
-
 #include <queue>
 #include <sstream>
 
-OpenSANDConf::MetaModel::MetaModel(const string &version):
+#include "MetaModel.h"
+#include "DataModel.h"
+#include "DataComponent.h"
+#include "MetaElement.h"
+#include "MetaContainer.h"
+#include "MetaParameter.h"
+#include "Path.h"
+
+
+OpenSANDConf::MetaModel::MetaModel(const std::string &version):
 	version(version),
 	types(nullptr),
 	root(nullptr)
 {
-	this->types = shared_ptr<OpenSANDConf::MetaTypesList>(
+	this->types = std::shared_ptr<OpenSANDConf::MetaTypesList>(
 			new OpenSANDConf::MetaTypesList());
-	this->root = shared_ptr<OpenSANDConf::MetaComponent>(
+	this->root = std::shared_ptr<OpenSANDConf::MetaComponent>(
 			new OpenSANDConf::MetaComponent("", "", "Root", "Root component", this->types));
 }
 
@@ -68,14 +69,14 @@ OpenSANDConf::MetaModel::~MetaModel()
 {
 }
 
-shared_ptr<OpenSANDConf::MetaModel> OpenSANDConf::MetaModel::clone() const
+std::shared_ptr<OpenSANDConf::MetaModel> OpenSANDConf::MetaModel::clone() const
 {
 	// Copy data
 	auto clone = std::make_shared<OpenSANDConf::MetaModel>(*this);
 
 	// Find references
-	std::queue<shared_ptr<MetaElement>> queue;
-	vector<shared_ptr<MetaElement>> referenced;
+	std::queue<std::shared_ptr<MetaElement>> queue;
+  std::vector<std::shared_ptr<MetaElement>> referenced;
 	queue.push(this->root);
 	while(!queue.empty())
 	{
@@ -123,15 +124,15 @@ shared_ptr<OpenSANDConf::MetaModel> OpenSANDConf::MetaModel::clone() const
 	return clone;
 }
 
-shared_ptr<OpenSANDConf::DataModel> OpenSANDConf::MetaModel::createData() const
+std::shared_ptr<OpenSANDConf::DataModel> OpenSANDConf::MetaModel::createData() const
 {
 	// Create data
 	auto datatypes = this->types->createData();
 	auto dataroot = std::static_pointer_cast<OpenSANDConf::DataComponent>(this->root->createData(datatypes));
 
 	// Find references
-	std::queue<shared_ptr<MetaElement>> queue;
-	vector<shared_ptr<MetaElement>> referenced;
+	std::queue<std::shared_ptr<MetaElement>> queue;
+  std::vector<std::shared_ptr<MetaElement>> referenced;
 	queue.push(this->root);
 	while(!queue.empty())
 	{
@@ -180,14 +181,14 @@ shared_ptr<OpenSANDConf::DataModel> OpenSANDConf::MetaModel::createData() const
 		}
 	}
 
-	return shared_ptr<OpenSANDConf::DataModel>(
+	return std::shared_ptr<OpenSANDConf::DataModel>(
 			new OpenSANDConf::DataModel(this->version, datatypes, dataroot));
 }
 
-bool OpenSANDConf::MetaModel::setReference(shared_ptr<OpenSANDConf::MetaElement> element, shared_ptr<OpenSANDConf::MetaParameter> target) const
+bool OpenSANDConf::MetaModel::setReference(std::shared_ptr<OpenSANDConf::MetaElement> element, std::shared_ptr<OpenSANDConf::MetaParameter> target) const
 {
-	std::queue<string> remaining_ids;
-	shared_ptr<MetaElement> elt;
+	std::queue<std::string> remaining_ids;
+  std::shared_ptr<MetaElement> elt;
 
 	auto common_path = getCommonPath(element->getPath(), target->getPath());
 	for(auto id: splitPath(getRelativePath(common_path, target->getPath())))
@@ -229,7 +230,7 @@ bool OpenSANDConf::MetaModel::setReference(shared_ptr<OpenSANDConf::MetaElement>
 	return (elt != nullptr);
 }
 
-void OpenSANDConf::MetaModel::resetReference(shared_ptr<OpenSANDConf::MetaElement> element) const
+void OpenSANDConf::MetaModel::resetReference(std::shared_ptr<OpenSANDConf::MetaElement> element) const
 {
 	element->setReference(nullptr);
 }
@@ -241,22 +242,22 @@ bool OpenSANDConf::MetaModel::equal(const OpenSANDConf::MetaModel &other) const
 		&& *(this->root) == *(other.root);
 }
 
-const string &OpenSANDConf::MetaModel::getVersion() const
+const std::string &OpenSANDConf::MetaModel::getVersion() const
 {
 	return this->version;
 }
 
-shared_ptr<OpenSANDConf::MetaTypesList> OpenSANDConf::MetaModel::getTypesDefinition() const
+std::shared_ptr<OpenSANDConf::MetaTypesList> OpenSANDConf::MetaModel::getTypesDefinition() const
 {
 	return this->types;
 }
 
-shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaModel::getRoot() const
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaModel::getRoot() const
 {
 	return this->root;
 }
 
-shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaModel::getItemByPath(const string &path) const
+std::shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaModel::getItemByPath(const std::string &path) const
 {
 	return OpenSANDConf::MetaElement::getItemFromRoot(this->root, path);
 }

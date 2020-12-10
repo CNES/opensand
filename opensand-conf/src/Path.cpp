@@ -32,14 +32,15 @@
  * @brief Provides util functions to handle path.
  */
 
-#include <Path.h>
-
 #include <sstream>
 
-vector<string> OpenSANDConf::splitPath(const string &path, const char &separator)
+#include "Path.h"
+
+
+std::vector<std::string> OpenSANDConf::splitPath(const std::string &path, const char &separator)
 {
-	string item;
-	vector<string> split;
+  std::string item;
+  std::vector<std::string> split;
         std::stringstream ss(path);
 
 	if(path.empty())
@@ -56,11 +57,11 @@ vector<string> OpenSANDConf::splitPath(const string &path, const char &separator
 	return split;
 }
 
-string OpenSANDConf::getCommonPath(const string &path1, const string &path2, const char &separator)
+std::string OpenSANDConf::getCommonPath(const std::string &path1, const std::string &path2, const char &separator)
 {
 	bool equal;
 	unsigned int i, n;
-	vector<string> split1, split2;
+  std::vector<std::string> split1, split2;
 	std::stringstream ss;
 
 	// Check equality
@@ -85,7 +86,7 @@ string OpenSANDConf::getCommonPath(const string &path1, const string &path2, con
 	return ss.str();
 }
 
-string OpenSANDConf::getRelativePath(const string &parentpath, const string &path, const char &separator)
+std::string OpenSANDConf::getRelativePath(const std::string &parentpath, const std::string &path, const char &separator)
 {
 	if(parentpath.empty())
 	{
@@ -104,7 +105,7 @@ string OpenSANDConf::getRelativePath(const string &parentpath, const string &pat
 	return path.substr(pos);
 }
 
-bool OpenSANDConf::checkPathId(const string &id, const char &separator)
+bool OpenSANDConf::checkPathId(const std::string &id, const char &separator)
 {
-	return id.find(separator) == string::npos;
+	return id.find(separator) == std::string::npos;
 }

@@ -38,11 +38,9 @@
 #include <memory>
 #include <string>
 
-#include <NamedElement.h>
-#include <DataType.h>
+#include "NamedElement.h"
+#include "DataType.h"
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -83,7 +81,7 @@ namespace OpenSANDConf
 		 * @param  name         The name
 		 * @param  description  The description
 		 */
-		MetaType(const string &id, const string &name, const string &description);
+		MetaType(const std::string &id, const std::string &name, const std::string &description);
 
 		/**
 		 * @brief Constructor by copy.
@@ -97,14 +95,14 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<MetaType> clone() const = 0;
+		virtual std::shared_ptr<MetaType> clone() const = 0;
 
 		/**
 		 * @brief Create a data type
 		 *
 		 * @return new data type
 		 */
-		virtual shared_ptr<DataType> createData() const = 0;
+		virtual std::shared_ptr<DataType> createData() const = 0;
 	};
 
 	bool operator== (const MetaType &v1, const MetaType &v2);

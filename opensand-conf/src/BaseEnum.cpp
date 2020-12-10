@@ -32,31 +32,36 @@
  * @brief Represents the Base of enumeration
  */
 
-#include <BaseEnum.h>
-
 #include <set>
 #include <algorithm>
 
-OpenSANDConf::BaseEnum::BaseEnum(const vector<string> &values):
+#include "BaseEnum.h"
+
+
+OpenSANDConf::BaseEnum::BaseEnum(const std::vector<std::string> &values):
 	values()
 {
-	std::set<string> unique_values(values.begin(), values.end());
-	this->values = vector<string>(unique_values.begin(), unique_values.end());
+	std::set<std::string> unique_values(values.begin(), values.end());
+	this->values = std::vector<std::string>(unique_values.begin(), unique_values.end());
 }
+
 
 OpenSANDConf::BaseEnum::BaseEnum(const OpenSANDConf::BaseEnum &other):
 	values(other.values)
 {
 }
 
+
 OpenSANDConf::BaseEnum::~BaseEnum()
 {
 }
 
-const vector<string> &OpenSANDConf::BaseEnum::getValues() const
+
+const std::vector<std::string> &OpenSANDConf::BaseEnum::getValues() const
 {
 	return this->values;
 }
+
 
 bool OpenSANDConf::BaseEnum::equal(const BaseEnum &other) const
 {

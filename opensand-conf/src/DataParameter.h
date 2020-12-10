@@ -39,11 +39,9 @@
 #include <string>
 #include <tuple>
 
-#include <DataElement.h>
-#include <Data.h>
+#include "DataElement.h"
+#include "Data.h"
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -68,7 +66,7 @@ namespace OpenSANDConf
 		*
 		* @return  The parameter's data
 		*/
-		shared_ptr<Data> getData() const;
+    std::shared_ptr<Data> getData() const;
 
 	protected:
 		/**
@@ -78,7 +76,7 @@ namespace OpenSANDConf
 		 * @param  parent  The parent path
 		 * @param  data    The data
 		 */
-		DataParameter(const string &id, const string &parent, shared_ptr<Data> data);
+		DataParameter(const std::string &id, const std::string &parent, std::shared_ptr<Data> data);
 
 		/**
 		 * @brief Constructor by copy (cloning).
@@ -86,7 +84,7 @@ namespace OpenSANDConf
 		 * @param  other  The object to copy
 		 * @param  types  The types list
 		 */
-		DataParameter(const DataParameter &other, shared_ptr<DataTypesList> types);
+		DataParameter(const DataParameter &other, std::shared_ptr<DataTypesList> types);
 
 		/**
 		 * @brief Constructor by copy (duplication).
@@ -95,7 +93,7 @@ namespace OpenSANDConf
 		 * @param  parent  The parent path
 		 * @param  other   The object to copy
 		 */
-		DataParameter(const string &id, const string &parent, const DataParameter &other);
+		DataParameter(const std::string &id, const std::string &parent, const DataParameter &other);
 
 		/**
 		 * @brief Clone the current object.
@@ -104,7 +102,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<DataElement> clone(shared_ptr<DataTypesList> types) const override;
+		virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const override;
 
 		/**
 		 * @brief Duplicate the current object.
@@ -114,14 +112,14 @@ namespace OpenSANDConf
 		 *
 		 * @return The duplicated object
 		 */
-		virtual shared_ptr<DataElement> duplicateObject(const string &id, const string &parent) const override;
+		virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const override;
 
 		/**
 		 * @brief Create a reference to the current object.
 		 *
 		 * @return Reference
 		 */
-		std::tuple<shared_ptr<const DataParameter>, shared_ptr<Data>> createReference() const;
+		std::tuple<std::shared_ptr<const DataParameter>, std::shared_ptr<Data>> createReference() const;
 
 		/**
 		 * @brief Validate the data element.
@@ -141,7 +139,7 @@ namespace OpenSANDConf
 		virtual bool equal(const DataElement &other) const override;
 
 	private:
-		shared_ptr<Data> data;
+    std::shared_ptr<Data> data;
 	};
 }
 

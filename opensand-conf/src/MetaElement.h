@@ -39,12 +39,9 @@
 #include <string>
 #include <utility>
 
-#include <NamedElement.h>
-#include <MetaTypesList.h>
+#include "NamedElement.h"
+#include "MetaTypesList.h"
 
-using std::shared_ptr;
-using std::weak_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -73,7 +70,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The path
 		 */
-		string getPath() const;
+    std::string getPath() const;
 
 		/**
 		 * @brief Get the advanced status.
@@ -94,14 +91,14 @@ namespace OpenSANDConf
 		 *
 		 * @return The target parameter
 		 */
-		shared_ptr<MetaParameter> getReferenceTarget() const;
+    std::shared_ptr<MetaParameter> getReferenceTarget() const;
 
 		/**
 		 * @brief Get the expected data of the reference parameter.
 		 *
 		 * @return The expected data
 		 */
-		shared_ptr<Data> getReferenceData() const;
+    std::shared_ptr<Data> getReferenceData() const;
 
 		/**
 		 * @brief Compare to another element
@@ -124,7 +121,7 @@ namespace OpenSANDConf
 		 * @param  name         The name
 		 * @param  description  The description
 		 */
-		MetaElement(const string &id, const string &parent, const string &name, const string &description);
+		MetaElement(const std::string &id, const std::string &parent, const std::string &name, const std::string &description);
 
 		/**
 		 * @brief Constructor by copy.
@@ -140,7 +137,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<MetaElement> clone(weak_ptr<const MetaTypesList> types) const = 0;
+		virtual std::shared_ptr<MetaElement> clone(std::weak_ptr<const MetaTypesList> types) const = 0;
 
 		/**
 		 * @brief Create a datamodel element.
@@ -149,14 +146,14 @@ namespace OpenSANDConf
 		 *
 		 * @return  The new datamodel element if succeeds, nullptr otherwise
 		 */
-		virtual shared_ptr<DataElement> createData(shared_ptr<DataTypesList> types) const = 0;
+		virtual std::shared_ptr<DataElement> createData(std::shared_ptr<DataTypesList> types) const = 0;
 
 		/**
 		 * @brief Get the parent path.
 		 *
 		 * @return  The parent path
 		 */
-		const string &getParentPath() const;
+		const std::string &getParentPath() const;
 
 		/**
 		 * @brief Specify a reference to a parameter value.
@@ -165,12 +162,12 @@ namespace OpenSANDConf
 		 *
 		 * @return True on success, false otherwise
 		 */
-		void setReference(shared_ptr<MetaParameter> target);
+		void setReference(std::shared_ptr<MetaParameter> target);
 
 	private:
-		string parent;
+    std::string parent;
 		bool advanced;
-		std::tuple<shared_ptr<MetaParameter>, shared_ptr<Data>, shared_ptr<DataType>> reference;
+		std::tuple<std::shared_ptr<MetaParameter>, std::shared_ptr<Data>, std::shared_ptr<DataType>> reference;
 
 		/**
 		 * @brief Get an item by path.
@@ -180,7 +177,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The item if found, nullptr otherwise
 		 */
-		static shared_ptr<MetaElement> getItemFromRoot(shared_ptr<MetaElement> root, const string &path);
+		static std::shared_ptr<MetaElement> getItemFromRoot(std::shared_ptr<MetaElement> root, const std::string &path);
 	};
 
 	bool operator== (const MetaElement &v1, const MetaElement &v2);

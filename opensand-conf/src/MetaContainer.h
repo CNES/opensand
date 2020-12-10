@@ -39,12 +39,8 @@
 #include <string>
 #include <vector>
 
-#include <MetaElement.h>
+#include "MetaElement.h"
 
-using std::shared_ptr;
-using std::weak_ptr;
-using std::string;
-using std::vector;
 
 namespace OpenSANDConf
 {
@@ -80,7 +76,7 @@ namespace OpenSANDConf
 		 * @param  description  The description
 		 * @param  types        The types list
 		 */
-		MetaContainer(const string &id, const string &parent, const string &name, const string &description, weak_ptr<const MetaTypesList> types);
+		MetaContainer(const std::string &id, const std::string &parent, const std::string &name, const std::string &description, std::weak_ptr<const MetaTypesList> types);
 
 		/**
 		 * @brief Contructor by copy.
@@ -88,7 +84,7 @@ namespace OpenSANDConf
 		 * @param  other  The object to copy
 		 * @param  types  The types list
 		 */
-		MetaContainer(const MetaContainer &other, weak_ptr<const MetaTypesList> types);
+		MetaContainer(const MetaContainer &other, std::weak_ptr<const MetaTypesList> types);
 
 		/**
 		 * @brief Clone the current object.
@@ -97,7 +93,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<MetaElement> clone(weak_ptr<const MetaTypesList> types) const = 0;
+		virtual std::shared_ptr<MetaElement> clone(std::weak_ptr<const MetaTypesList> types) const = 0;
 
 		/**
 		 * @brief Create a datamodel element.
@@ -106,7 +102,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The new datamodel element if succeeds, nullptr otherwise
 		 */
-		virtual shared_ptr<DataElement> createData(shared_ptr<DataTypesList> types) const = 0;
+		virtual std::shared_ptr<DataElement> createData(std::shared_ptr<DataTypesList> types) const = 0;
 
 		/**
 		 * @brief Create a datamodel element for each items and add it to datamodel container.
@@ -114,21 +110,21 @@ namespace OpenSANDConf
 		 * @param  types  The types list
 		 * @param  container  The datamodel container to extend
 		 */
-		virtual void createAndAddDataItems(shared_ptr<DataTypesList> types, shared_ptr<DataContainer> container) const;
+		virtual void createAndAddDataItems(std::shared_ptr<DataTypesList> types, std::shared_ptr<DataContainer> container) const;
 
 		/**
 		 * @brief Get the meta types list.
 		 *
 		 * @return The meta types list
 		 */
-		weak_ptr<const MetaTypesList> getTypes() const;
+    std::weak_ptr<const MetaTypesList> getTypes() const;
 
 		/**
 		 * @brief Get the items.
 		 *
 		 * @return  The items
 		 */
-		virtual const vector<shared_ptr<MetaElement>> &getItems() const;
+		virtual const std::vector<std::shared_ptr<MetaElement>> &getItems() const;
 
 		/**
 		 * @brief Get an identified item.
@@ -137,18 +133,18 @@ namespace OpenSANDConf
 		 *
 		 * @return  The item if found, nullptr otherwise
 		 */
-		virtual shared_ptr<MetaElement> getItem(const string &id) const;
+		virtual std::shared_ptr<MetaElement> getItem(const std::string &id) const;
 
 		/**
 		 * @brief Add an item.
 		 *
 		 * @param  item  The item to add
 		 */
-		void addItem(shared_ptr<MetaElement> item);
+		void addItem(std::shared_ptr<MetaElement> item);
 
 	private:
-		weak_ptr<const MetaTypesList> types;
-		vector<shared_ptr<MetaElement>> items;
+    std::weak_ptr<const MetaTypesList> types;
+    std::vector<std::shared_ptr<MetaElement>> items;
 	};
 }
 

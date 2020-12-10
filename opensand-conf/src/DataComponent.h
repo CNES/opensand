@@ -39,12 +39,10 @@
 #include <memory>
 #include <string>
 
-#include <DataContainer.h>
-#include <DataList.h>
-#include <DataParameter.h>
+#include "DataContainer.h"
+#include "DataList.h"
+#include "DataParameter.h"
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -74,7 +72,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The parameter if found, nullptr otherwise
 		 */
-		shared_ptr<DataParameter> getParameter(const string &id) const;
+    std::shared_ptr<DataParameter> getParameter(const std::string &id) const;
 
 		/**
 		 * @brief Get an identified component.
@@ -83,7 +81,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The component if found, nullptr otherwise
 		 */
-		shared_ptr<DataComponent> getComponent(const string &id) const;
+    std::shared_ptr<DataComponent> getComponent(const std::string &id) const;
 
 		/**
 		 * @brief Get an identified list.
@@ -92,7 +90,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The list if found, nullptr otherwise
 		 */
-		shared_ptr<DataList> getList(const string &id) const;
+    std::shared_ptr<DataList> getList(const std::string &id) const;
 
 	protected:
 		/**
@@ -101,7 +99,7 @@ namespace OpenSANDConf
 		 * @param  id      The identifier
 		 * @param  parent  The parent path
 		 */
-		DataComponent(const string &id, const string &parent);
+		DataComponent(const std::string &id, const std::string &parent);
 
 		/**
 		 * @brief Constructor by copy (cloning).
@@ -109,7 +107,7 @@ namespace OpenSANDConf
 		 * @param  other  The object to copy
 		 * @param  types  The types list
 		 */
-		DataComponent(const DataComponent &other, shared_ptr<DataTypesList> types);
+		DataComponent(const DataComponent &other, std::shared_ptr<DataTypesList> types);
 
 		/**
 		 * @brief Constructor by copy (duplication).
@@ -118,14 +116,14 @@ namespace OpenSANDConf
 		 * @param  parent  The parent path
 		 * @param  other   The object to copy
 		 */
-		DataComponent(const string &id, const string &parent, const DataComponent &other);
+		DataComponent(const std::string &id, const std::string &parent, const DataComponent &other);
 
 		/**
 		 * @brief Add a new item to the component.
 		 *
 		 * @param  item  The item to add
 		 */
-		void addItem(shared_ptr<DataElement> item);
+		void addItem(std::shared_ptr<DataElement> item);
 
 		/**
 		 * @brief Clone the current object.
@@ -134,7 +132,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<DataElement> clone(shared_ptr<DataTypesList> types) const override;
+		virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const override;
 
 		/**
 		 * @brief Duplicate the current object.
@@ -144,7 +142,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The duplicated object
 		 */
-		virtual shared_ptr<DataElement> duplicateObject(const string &id, const string &parent) const override;
+		virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const override;
 
 	public:
 		/**

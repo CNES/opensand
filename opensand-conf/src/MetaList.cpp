@@ -33,18 +33,19 @@
  *        (holds list items following a pattern).
  */
 
-#include <MetaList.h>
-#include <MetaComponent.h>
-#include <DataComponent.h>
-#include <DataList.h>
+#include "MetaList.h"
+#include "MetaComponent.h"
+#include "DataComponent.h"
+#include "DataList.h"
+
 
 OpenSANDConf::MetaList::MetaList(
-		const string &id,
-		const string &parent,
-		const string &name,
-		const string &description,
-		shared_ptr<OpenSANDConf::MetaComponent> pattern,
-		weak_ptr<const OpenSANDConf::MetaTypesList> types):
+		const std::string &id,
+		const std::string &parent,
+		const std::string &name,
+		const std::string &description,
+		std::shared_ptr<OpenSANDConf::MetaComponent> pattern,
+		std::weak_ptr<const OpenSANDConf::MetaTypesList> types):
 	OpenSANDConf::MetaContainer(id, parent, name, description, types)
 {
 	this->addItem(pattern);
@@ -52,7 +53,7 @@ OpenSANDConf::MetaList::MetaList(
 
 OpenSANDConf::MetaList::MetaList(
 		const OpenSANDConf::MetaList &other,
-		weak_ptr<const OpenSANDConf::MetaTypesList> types):
+		std::weak_ptr<const OpenSANDConf::MetaTypesList> types):
 	OpenSANDConf::MetaContainer(other, types)
 {
 }
@@ -61,18 +62,18 @@ OpenSANDConf::MetaList::~MetaList()
 {
 }
 
-shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaList::clone(weak_ptr<const OpenSANDConf::MetaTypesList> types) const
+std::shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaList::clone(std::weak_ptr<const OpenSANDConf::MetaTypesList> types) const
 {
-	return shared_ptr<OpenSANDConf::MetaList>(new OpenSANDConf::MetaList(*this, types));
+	return std::shared_ptr<OpenSANDConf::MetaList>(new OpenSANDConf::MetaList(*this, types));
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::MetaList::createData(shared_ptr<OpenSANDConf::DataTypesList> types) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::MetaList::createData(std::shared_ptr<OpenSANDConf::DataTypesList> types) const
 {
 	auto datapattern = std::static_pointer_cast<OpenSANDConf::DataComponent>(this->getPattern()->createData(types));
-	return shared_ptr<OpenSANDConf::DataList>(new OpenSANDConf::DataList(this->getId(), this->getParentPath(), datapattern, types));
+	return std::shared_ptr<OpenSANDConf::DataList>(new OpenSANDConf::DataList(this->getId(), this->getParentPath(), datapattern, types));
 }
 
-shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaList::getPattern() const
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaList::getPattern() const
 {
 	return std::static_pointer_cast<MetaComponent>(this->getItems()[0]);
 }

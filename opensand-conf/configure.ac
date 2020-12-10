@@ -38,7 +38,7 @@ AC_SUBST(AM_CPPFLAGS, "$LIBXMLXX_CFLAGS")
 
 # Check Catch2 dependency for tests
 AC_LANG([C++])
-AC_CHECK_HEADER([catch.hpp], [], [AC_MSG_ERROR([Missing header catch.hpp])])
+AC_CHECK_HEADER([catch2/catch.hpp], [], [AC_MSG_ERROR([Missing header catch.hpp])])
 AC_LANG([C])
 
 # Check python3-dev dependency for Python module

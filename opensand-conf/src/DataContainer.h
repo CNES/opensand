@@ -38,12 +38,9 @@
 #include <string>
 #include <vector>
 
-#include <DataElement.h>
-#include <DataTypesList.h>
+#include "DataElement.h"
+#include "DataTypesList.h"
 
-using std::shared_ptr;
-using std::string;
-using std::vector;
 
 namespace OpenSANDConf
 {
@@ -76,7 +73,7 @@ namespace OpenSANDConf
 		 * @param  id      The identifier
 		 * @param  parent  The parent path
 		 */
-		DataContainer(const string &id, const string &parent);
+		DataContainer(const std::string &id, const std::string &parent);
 
 		/**
 		 * @brief Contructor by copy (cloning).
@@ -84,7 +81,7 @@ namespace OpenSANDConf
 		 * @param  other  The object to copy
 		 * @param  types  The types list
 		 */
-		DataContainer(const DataContainer &other, shared_ptr<DataTypesList> types);
+		DataContainer(const DataContainer &other, std::shared_ptr<DataTypesList> types);
 
 		/**
 		 * @brief Constructor by copy (duplication).
@@ -93,7 +90,7 @@ namespace OpenSANDConf
 		 * @param  parent  The parent path
 		 * @param  other   The object to copy
 		 */
-		DataContainer(const string &id, const string &parent, const DataContainer &other);
+		DataContainer(const std::string &id, const std::string &parent, const DataContainer &other);
 
 		/**
 		 * @brief Clone the current object.
@@ -102,7 +99,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<DataElement> clone(shared_ptr<DataTypesList> types) const = 0;
+		virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const = 0;
 
 		/**
 		 * @brief Duplicate the current object.
@@ -112,7 +109,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The duplicated object
 		 */
-		virtual shared_ptr<DataElement> duplicateObject(const string &id, const string &parent) const = 0;
+		virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const = 0;
 
 		/**
 		 * @brief Duplicate the reference to another object.
@@ -121,7 +118,7 @@ namespace OpenSANDConf
 		 *
 		 * @return True on success, false otherwise
 		 */
-		virtual bool duplicateReference(shared_ptr<DataElement> copy) const override;
+		virtual bool duplicateReference(std::shared_ptr<DataElement> copy) const override;
 
 		/**
 		 * @brief Validate the datamodel element.
@@ -135,7 +132,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The items
 		 */
-		virtual const vector<shared_ptr<DataElement>> &getItems() const;
+		virtual const std::vector<std::shared_ptr<DataElement>> &getItems() const;
 
 		/**
 		 * @brief Get an identified item.
@@ -144,17 +141,17 @@ namespace OpenSANDConf
 		 *
 		 * @return  The item if found, nullptr otherwise
 		 */
-		virtual shared_ptr<DataElement> getItem(string id) const;
+		virtual std::shared_ptr<DataElement> getItem(std::string id) const;
 
 		/**
 		 * @brief Add an item.
 		 *
 		 * @param  item  The item to add
 		 */
-		void addItem(shared_ptr<DataElement> item);
+		void addItem(std::shared_ptr<DataElement> item);
 
 	private:
-		vector<shared_ptr<DataElement>> items;
+    std::vector<std::shared_ptr<DataElement>> items;
 	};
 }
 

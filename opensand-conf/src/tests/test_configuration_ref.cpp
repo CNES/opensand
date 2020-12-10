@@ -32,7 +32,7 @@ using OpenSANDConf::fromXML;
 
 TEST_CASE("Model reference tests", "[Model][Reference]")
 {
-	string version = "1.0.0";
+  std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 	auto root = model->getRoot();
 	REQUIRE(root != nullptr);
@@ -238,7 +238,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(model->setReference(cpt, target));
 			REQUIRE(cpt->getReferenceTarget() == target);
 			REQUIRE(cpt->getReferenceData() != nullptr);
-			auto expected = std::dynamic_pointer_cast<DataValue<string>>(cpt->getReferenceData());
+			auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(cpt->getReferenceData());
 			REQUIRE(expected != nullptr);
 
 			// Check data creation failed if expected data is not set
@@ -255,7 +255,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(datamodel->getItemByPath(cpt->getPath()) != nullptr);
 			auto datacpt = std::dynamic_pointer_cast<DataComponent>(datamodel->getItemByPath(cpt->getPath()));
 			REQUIRE(datacpt != nullptr);
-			auto data = std::dynamic_pointer_cast<DataValue<string>>(datatarget->getData());
+			auto data = std::dynamic_pointer_cast<DataValue<std::string>>(datatarget->getData());
 			REQUIRE(data != nullptr);
 			REQUIRE(datatarget->checkReference() == true);
 			REQUIRE(datacpt->checkReference() == false);
@@ -274,7 +274,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(datamodel2->getItemByPath(cpt->getPath()) != nullptr);
 			auto datacpt2 = std::dynamic_pointer_cast<DataComponent>(datamodel2->getItemByPath(cpt->getPath()));
 			REQUIRE(datacpt2 != nullptr);
-			auto data2 = std::dynamic_pointer_cast<DataValue<string>>(datatarget2->getData());
+			auto data2 = std::dynamic_pointer_cast<DataValue<std::string>>(datatarget2->getData());
 			REQUIRE(data2 != nullptr);
 			REQUIRE(datatarget2->checkReference() == true);
 			REQUIRE(datacpt2->checkReference() == false);
@@ -297,7 +297,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(model->setReference(cpt, target));
 			REQUIRE(cpt->getReferenceTarget() == target);
 			REQUIRE(cpt->getReferenceData() != nullptr);
-			auto expected = std::dynamic_pointer_cast<DataValue<string>>(cpt->getReferenceData());
+			auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(cpt->getReferenceData());
 			REQUIRE(expected != nullptr);
 
 			// Check data creation failed if expected data is not set
@@ -315,7 +315,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(datamodel->getItemByPath(cpt->getPath()) != nullptr);
 			auto datacpt = std::dynamic_pointer_cast<DataComponent>(datamodel->getItemByPath(cpt->getPath()));
 			REQUIRE(datacpt != nullptr);
-			auto data = std::dynamic_pointer_cast<DataValue<string>>(datatarget->getData());
+			auto data = std::dynamic_pointer_cast<DataValue<std::string>>(datatarget->getData());
 			REQUIRE(data != nullptr);
 			REQUIRE(datatarget->checkReference() == true);
 			REQUIRE(datacpt->checkReference() == false);
@@ -334,7 +334,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(datamodel2->getItemByPath(cpt->getPath()) != nullptr);
 			auto datacpt2 = std::dynamic_pointer_cast<DataComponent>(datamodel2->getItemByPath(cpt->getPath()));
 			REQUIRE(datacpt2 != nullptr);
-			auto data2 = std::dynamic_pointer_cast<DataValue<string>>(datatarget2->getData());
+			auto data2 = std::dynamic_pointer_cast<DataValue<std::string>>(datatarget2->getData());
 			REQUIRE(data2 != nullptr);
 			REQUIRE(datatarget2->checkReference() == true);
 			REQUIRE(datacpt2->checkReference() == false);
@@ -401,7 +401,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			auto element = cpt2->getParameter("s3");
 			auto targetpath = target->getPath();
 			auto elementpath = element->getPath();
-			string elementpath2 = "";
+      std::string elementpath2 = "";
 			auto res2 = false;
 
 			// Configure reference
@@ -410,7 +410,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(model->setReference(element, target));
 			REQUIRE(element->getReferenceTarget() == target);
 			REQUIRE(element->getReferenceData() != nullptr);
-			auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+			auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 			REQUIRE(expected != nullptr);
 
 			// Check data creation failed if expected data is not set
@@ -442,7 +442,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(datatarget != nullptr);
 			auto dataelement = datamodel->getItemByPath(elementpath);
 			REQUIRE(dataelement != nullptr);
-			auto data = std::dynamic_pointer_cast<DataValue<string>>(datatarget->getData());
+			auto data = std::dynamic_pointer_cast<DataValue<std::string>>(datatarget->getData());
 			REQUIRE(data != nullptr);
 			REQUIRE(datatarget->checkReference() == true);
 			REQUIRE(dataelement->checkReference() == false);
@@ -464,7 +464,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			auto element = root->getParameter("s");
 			auto targetpath = target->getPath();
 			auto elementpath = element->getPath();
-			string elementpath2 = "";
+      std::string elementpath2 = "";
 			auto res2 = false;
 
 			// Configure reference
@@ -473,7 +473,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(model->setReference(element, target));
 			REQUIRE(element->getReferenceTarget() == target);
 			REQUIRE(element->getReferenceData() != nullptr);
-			auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+			auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 			REQUIRE(expected != nullptr);
 
 			// Check data creation failed if expected data is not set
@@ -505,7 +505,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(datatarget != nullptr);
 			auto dataelement = datamodel->getItemByPath(elementpath);
 			REQUIRE(dataelement != nullptr);
-			auto data = std::dynamic_pointer_cast<DataValue<string>>(datatarget->getData());
+			auto data = std::dynamic_pointer_cast<DataValue<std::string>>(datatarget->getData());
 			REQUIRE(data != nullptr);
 			REQUIRE(datatarget->checkReference() == true);
 			REQUIRE(dataelement->checkReference() == false);
@@ -527,7 +527,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			auto element = ptn3->getParameter("s4");
 			auto targetpath = target->getPath();
 			auto elementpath = "/c/c2/l3/1/s4";
-			string elementpath2 = "/c/c2/l3/0/s4";
+      std::string elementpath2 = "/c/c2/l3/0/s4";
 			auto res2 = true;
 
 			// Configure reference
@@ -536,7 +536,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(model->setReference(element, target));
 			REQUIRE(element->getReferenceTarget() == target);
 			REQUIRE(element->getReferenceData() != nullptr);
-			auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+			auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 			REQUIRE(expected != nullptr);
 
 			// Check data creation failed if expected data is not set
@@ -568,7 +568,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(datatarget != nullptr);
 			auto dataelement = datamodel->getItemByPath(elementpath);
 			REQUIRE(dataelement != nullptr);
-			auto data = std::dynamic_pointer_cast<DataValue<string>>(datatarget->getData());
+			auto data = std::dynamic_pointer_cast<DataValue<std::string>>(datatarget->getData());
 			REQUIRE(data != nullptr);
 			REQUIRE(datatarget->checkReference() == true);
 			REQUIRE(dataelement->checkReference() == false);
@@ -601,7 +601,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			auto element = ptn3->getParameter("s4");
 			auto targetpath = "/c/c2/l3/1/e4";
 			auto elementpath = "/c/c2/l3/1/s4";
-			string elementpath2 = "/c/c2/l3/0/s4";
+      std::string elementpath2 = "/c/c2/l3/0/s4";
 			auto res2 = false;
 
 			// Configure reference
@@ -610,7 +610,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(model->setReference(element, target));
 			REQUIRE(element->getReferenceTarget() == target);
 			REQUIRE(element->getReferenceData() != nullptr);
-			auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+			auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 			REQUIRE(expected != nullptr);
 
 			// Check data creation failed if expected data is not set
@@ -642,7 +642,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(datatarget != nullptr);
 			auto dataelement = datamodel->getItemByPath(elementpath);
 			REQUIRE(dataelement != nullptr);
-			auto data = std::dynamic_pointer_cast<DataValue<string>>(datatarget->getData());
+			auto data = std::dynamic_pointer_cast<DataValue<std::string>>(datatarget->getData());
 			REQUIRE(data != nullptr);
 			REQUIRE(datatarget->checkReference() == true);
 			REQUIRE(dataelement->checkReference() == false);
@@ -664,7 +664,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			auto element = ptn4->getParameter("s5");
 			auto targetpath = "/c/c2/l3/1/l4/0/e5";
 			auto elementpath = "/c/c2/l3/1/l4/0/s5";
-			string elementpath2 = "/c/c2/l3/1/l4/1/s5";
+      std::string elementpath2 = "/c/c2/l3/1/l4/1/s5";
 			auto res2 = false;
 
 			// Configure reference
@@ -673,7 +673,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(model->setReference(element, target));
 			REQUIRE(element->getReferenceTarget() == target);
 			REQUIRE(element->getReferenceData() != nullptr);
-			auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+			auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 			REQUIRE(expected != nullptr);
 
 			// Check data creation failed if expected data is not set
@@ -705,7 +705,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(datatarget != nullptr);
 			auto dataelement = datamodel->getItemByPath(elementpath);
 			REQUIRE(dataelement != nullptr);
-			auto data = std::dynamic_pointer_cast<DataValue<string>>(datatarget->getData());
+			auto data = std::dynamic_pointer_cast<DataValue<std::string>>(datatarget->getData());
 			REQUIRE(data != nullptr);
 			REQUIRE(datatarget->checkReference() == true);
 			REQUIRE(dataelement->checkReference() == false);
@@ -738,7 +738,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			auto element = ptn4->getParameter("s5");
 			auto targetpath = "/c/c2/l3/1/e4";
 			auto elementpath = "/c/c2/l3/1/l4/0/s5";
-			string elementpath2 = "/c/c2/l3/1/l4/1/s5";
+      std::string elementpath2 = "/c/c2/l3/1/l4/1/s5";
 			auto res2 = true;
 
 			// Configure reference
@@ -747,7 +747,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(model->setReference(element, target));
 			REQUIRE(element->getReferenceTarget() == target);
 			REQUIRE(element->getReferenceData() != nullptr);
-			auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+			auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 			REQUIRE(expected != nullptr);
 
 			// Check data creation failed if expected data is not set
@@ -779,7 +779,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			REQUIRE(datatarget != nullptr);
 			auto dataelement = datamodel->getItemByPath(elementpath);
 			REQUIRE(dataelement != nullptr);
-			auto data = std::dynamic_pointer_cast<DataValue<string>>(datatarget->getData());
+			auto data = std::dynamic_pointer_cast<DataValue<std::string>>(datatarget->getData());
 			REQUIRE(data != nullptr);
 			REQUIRE(datatarget->checkReference() == true);
 			REQUIRE(dataelement->checkReference() == false);
@@ -826,7 +826,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 
 		SECTION("Check validity of a datamodel with no reference")
 		{
-			vector<string> value_paths = {
+      std::vector<std::string> value_paths = {
 				"/e",
 				"/s",
 				"/c/e2",
@@ -836,13 +836,13 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 				"/c/l2/1/e3",
 				"/c/l2/1/s3",
 			};
-			vector<string> direct_referenced_paths = {
+      std::vector<std::string> direct_referenced_paths = {
 			};
-			vector<string> indirect_referenced_paths = {
+      std::vector<std::string> indirect_referenced_paths = {
 			};
-			shared_ptr<MetaParameter> target = nullptr;
-			shared_ptr<MetaElement> element = nullptr;
-			string targetpath = "";
+      std::shared_ptr<MetaParameter> target = nullptr;
+      std::shared_ptr<MetaElement> element = nullptr;
+      std::string targetpath = "";
 
 			// Add reference
 			if(target != nullptr)
@@ -851,7 +851,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 				REQUIRE(model->setReference(element, target));
 				REQUIRE(element->getReferenceTarget() == target);
 				REQUIRE(element->getReferenceData() != nullptr);
-				auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+				auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 				REQUIRE(expected != nullptr);
 				REQUIRE(expected->isSet() == false);
 				REQUIRE(model->createData() == nullptr);
@@ -872,7 +872,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == true);
@@ -882,7 +882,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == false);
@@ -891,7 +891,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == true);
@@ -901,7 +901,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(targetpath));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == true);
 				REQUIRE(data->set("val1"));
@@ -911,7 +911,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 
 		SECTION("Check validity of a datamodel with a lower element with reference")
 		{
-			vector<string> value_paths = {
+      std::vector<std::string> value_paths = {
 				"/e",
 				"/s",
 				"/c/e2",
@@ -920,14 +920,14 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 				"/c/l2/1/e3",
 				"/c/l2/1/s3",
 			};
-			vector<string> direct_referenced_paths = {
+      std::vector<std::string> direct_referenced_paths = {
 				"/c/s2",
 			};
-			vector<string> indirect_referenced_paths = {
+      std::vector<std::string> indirect_referenced_paths = {
 			};
-			shared_ptr<MetaParameter> target = std::dynamic_pointer_cast<MetaParameter>(model->getItemByPath("/e"));
-			shared_ptr<MetaElement> element = model->getItemByPath("/c/s2");
-			string targetpath = target->getPath();
+      std::shared_ptr<MetaParameter> target = std::dynamic_pointer_cast<MetaParameter>(model->getItemByPath("/e"));
+      std::shared_ptr<MetaElement> element = model->getItemByPath("/c/s2");
+      std::string targetpath = target->getPath();
 
 			// Add reference
 			if(target != nullptr)
@@ -936,7 +936,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 				REQUIRE(model->setReference(element, target));
 				REQUIRE(element->getReferenceTarget() == target);
 				REQUIRE(element->getReferenceData() != nullptr);
-				auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+				auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 				REQUIRE(expected != nullptr);
 				REQUIRE(expected->isSet() == false);
 				REQUIRE(model->createData() == nullptr);
@@ -957,7 +957,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == true);
@@ -967,7 +967,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == false);
@@ -976,7 +976,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == true);
@@ -986,7 +986,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(targetpath));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == true);
 				REQUIRE(data->set("val1"));
@@ -996,23 +996,23 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 
 		SECTION("Check validity of a datamodel with a upper element with reference")
 		{
-			vector<string> value_paths = {
+      std::vector<std::string> value_paths = {
 				"/e",
 				"/s",
 				"/c/e2",
 				"/c/s2",
 			};
-			vector<string> direct_referenced_paths = {
+      std::vector<std::string> direct_referenced_paths = {
 			};
-			vector<string> indirect_referenced_paths = {
+      std::vector<std::string> indirect_referenced_paths = {
 				"/c/l2/0/e3",
 				"/c/l2/0/s3",
 				"/c/l2/1/e3",
 				"/c/l2/1/s3",
 			};
-			shared_ptr<MetaParameter> target = std::dynamic_pointer_cast<MetaParameter>(model->getItemByPath("/e"));
-			shared_ptr<MetaElement> element = model->getItemByPath("/c");
-			string targetpath = target->getPath();
+      std::shared_ptr<MetaParameter> target = std::dynamic_pointer_cast<MetaParameter>(model->getItemByPath("/e"));
+      std::shared_ptr<MetaElement> element = model->getItemByPath("/c");
+      std::string targetpath = target->getPath();
 
 			// Add reference
 			if(target != nullptr)
@@ -1021,7 +1021,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 				REQUIRE(model->setReference(element, target));
 				REQUIRE(element->getReferenceTarget() == target);
 				REQUIRE(element->getReferenceData() != nullptr);
-				auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+				auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 				REQUIRE(expected != nullptr);
 				REQUIRE(expected->isSet() == false);
 				REQUIRE(model->createData() == nullptr);
@@ -1042,7 +1042,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == true);
@@ -1052,7 +1052,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == false);
@@ -1061,7 +1061,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == true);
@@ -1071,7 +1071,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(targetpath));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == true);
 				REQUIRE(data->set("val1"));
@@ -1081,7 +1081,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 
 		SECTION("Check validity of a datamodel with an element in a list item with reference")
 		{
-			vector<string> value_paths = {
+      std::vector<std::string> value_paths = {
 				"/e",
 				"/s",
 				"/c/e2",
@@ -1089,15 +1089,15 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 				"/c/l2/0/e3",
 				"/c/l2/1/e3",
 			};
-			vector<string> direct_referenced_paths = {
+      std::vector<std::string> direct_referenced_paths = {
 				"/c/l2/0/s3",
 				"/c/l2/1/s3",
 			};
-			vector<string> indirect_referenced_paths = {
+      std::vector<std::string> indirect_referenced_paths = {
 			};
-			shared_ptr<MetaParameter> target = std::dynamic_pointer_cast<MetaParameter>(model->getItemByPath("/e"));
-			shared_ptr<MetaElement> element = model->getItemByPath("/c/l2/*/s3");
-			string targetpath = target->getPath();
+      std::shared_ptr<MetaParameter> target = std::dynamic_pointer_cast<MetaParameter>(model->getItemByPath("/e"));
+      std::shared_ptr<MetaElement> element = model->getItemByPath("/c/l2/*/s3");
+      std::string targetpath = target->getPath();
 
 			// Add reference
 			if(target != nullptr)
@@ -1106,7 +1106,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 				REQUIRE(model->setReference(element, target));
 				REQUIRE(element->getReferenceTarget() == target);
 				REQUIRE(element->getReferenceData() != nullptr);
-				auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+				auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 				REQUIRE(expected != nullptr);
 				REQUIRE(expected->isSet() == false);
 				REQUIRE(model->createData() == nullptr);
@@ -1127,7 +1127,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == true);
@@ -1137,7 +1137,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == false);
@@ -1146,7 +1146,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == true);
@@ -1156,7 +1156,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(targetpath));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == true);
 				REQUIRE(data->set("val1"));
@@ -1166,7 +1166,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 
 		SECTION("Check validity of a datamodel with an element in a list item with reference in list pattern")
 		{
-			vector<string> value_paths = {
+      std::vector<std::string> value_paths = {
 				"/e",
 				"/s",
 				"/c/e2",
@@ -1174,15 +1174,15 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 				"/c/l2/0/e3",
 				"/c/l2/1/e3",
 			};
-			vector<string> direct_referenced_paths = {
+      std::vector<std::string> direct_referenced_paths = {
 				"/c/l2/0/s3",
 				"/c/l2/1/s3",
 			};
-			vector<string> indirect_referenced_paths = {
+      std::vector<std::string> indirect_referenced_paths = {
 			};
-			shared_ptr<MetaParameter> target = std::dynamic_pointer_cast<MetaParameter>(model->getItemByPath("/c/l2/*/e3"));
-			shared_ptr<MetaElement> element = model->getItemByPath("/c/l2/*/s3");
-			string targetpath = "/c/l2/1/e3";
+      std::shared_ptr<MetaParameter> target = std::dynamic_pointer_cast<MetaParameter>(model->getItemByPath("/c/l2/*/e3"));
+      std::shared_ptr<MetaElement> element = model->getItemByPath("/c/l2/*/s3");
+      std::string targetpath = "/c/l2/1/e3";
 
 			// Add reference
 			if(target != nullptr)
@@ -1191,7 +1191,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 				REQUIRE(model->setReference(element, target));
 				REQUIRE(element->getReferenceTarget() == target);
 				REQUIRE(element->getReferenceData() != nullptr);
-				auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+				auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 				REQUIRE(expected != nullptr);
 				REQUIRE(expected->isSet() == false);
 				REQUIRE(model->createData() == nullptr);
@@ -1212,7 +1212,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == true);
@@ -1222,7 +1222,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == false);
@@ -1231,7 +1231,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(path));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == false);
 				REQUIRE(param->checkReference() == true);
@@ -1241,7 +1241,7 @@ TEST_CASE("Model reference tests", "[Model][Reference]")
 			{
 				auto param = std::dynamic_pointer_cast<DataParameter>(datamodel->getItemByPath(targetpath));
 				REQUIRE(param != nullptr);
-				auto data = std::dynamic_pointer_cast<DataValue<string>>(param->getData());
+				auto data = std::dynamic_pointer_cast<DataValue<std::string>>(param->getData());
 				REQUIRE(data != nullptr);
 				REQUIRE(data->isSet() == true);
 				REQUIRE(data->set("val1"));

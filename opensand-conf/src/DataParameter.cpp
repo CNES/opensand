@@ -32,13 +32,14 @@
  * @brief Represents a datamodel parameter
  */
 
-#include <DataParameter.h>
-#include <DataType.h>
+#include "DataParameter.h"
+#include "DataType.h"
+
 
 OpenSANDConf::DataParameter::DataParameter(
-		const string &id,
-		const string &parent,
-		shared_ptr<OpenSANDConf::Data> data):
+		const std::string &id,
+		const std::string &parent,
+		std::shared_ptr<OpenSANDConf::Data> data):
 	OpenSANDConf::DataElement(id, parent),
 	std::enable_shared_from_this<OpenSANDConf::DataParameter>(),
 	data(data)
@@ -47,7 +48,7 @@ OpenSANDConf::DataParameter::DataParameter(
 
 OpenSANDConf::DataParameter::DataParameter(
 		const OpenSANDConf::DataParameter &other,
-		shared_ptr<DataTypesList> types):
+		std::shared_ptr<DataTypesList> types):
 	OpenSANDConf::DataElement(other),
 	std::enable_shared_from_this<OpenSANDConf::DataParameter>(),
 	data(other.data->clone(types))
@@ -55,8 +56,8 @@ OpenSANDConf::DataParameter::DataParameter(
 }
 
 OpenSANDConf::DataParameter::DataParameter(
-		const string &id,
-		const string &parent,
+		const std::string &id,
+		const std::string &parent,
 		const DataParameter &other):
 	OpenSANDConf::DataElement(id, parent),
 	std::enable_shared_from_this<OpenSANDConf::DataParameter>(),
@@ -68,17 +69,17 @@ OpenSANDConf::DataParameter::~DataParameter()
 {
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataParameter::clone(shared_ptr<OpenSANDConf::DataTypesList> types) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataParameter::clone(std::shared_ptr<OpenSANDConf::DataTypesList> types) const
 {
-	return shared_ptr<OpenSANDConf::DataParameter>(new OpenSANDConf::DataParameter(*this, types));
+	return std::shared_ptr<OpenSANDConf::DataParameter>(new OpenSANDConf::DataParameter(*this, types));
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataParameter::duplicateObject(const string &id, const string &parent) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataParameter::duplicateObject(const std::string &id, const std::string &parent) const
 {
-	return shared_ptr<OpenSANDConf::DataParameter>(new OpenSANDConf::DataParameter(id, parent, *this));
+	return std::shared_ptr<OpenSANDConf::DataParameter>(new OpenSANDConf::DataParameter(id, parent, *this));
 }
 
-std::tuple<shared_ptr<const OpenSANDConf::DataParameter>, shared_ptr<OpenSANDConf::Data>> OpenSANDConf::DataParameter::createReference() const
+std::tuple<std::shared_ptr<const OpenSANDConf::DataParameter>, std::shared_ptr<OpenSANDConf::Data>> OpenSANDConf::DataParameter::createReference() const
 {
 	auto expected = this->data->getType()->createData();
 	return std::make_tuple(this->shared_from_this(), expected);
@@ -93,7 +94,7 @@ bool OpenSANDConf::DataParameter::validate() const
 	return this->data->isSet();
 }
 
-shared_ptr<OpenSANDConf::Data> OpenSANDConf::DataParameter::getData() const
+std::shared_ptr<OpenSANDConf::Data> OpenSANDConf::DataParameter::getData() const
 {
 	return this->data;
 }

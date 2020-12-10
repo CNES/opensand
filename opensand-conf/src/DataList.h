@@ -39,10 +39,8 @@
 #include <memory>
 #include <string>
 
-#include <DataContainer.h>
+#include "DataContainer.h"
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -68,7 +66,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly added item
 		*/
-		shared_ptr<DataComponent> addItem();
+    std::shared_ptr<DataComponent> addItem();
 
 	protected:
 		/**
@@ -79,7 +77,7 @@ namespace OpenSANDConf
 		 * @param  pattern      The pattern
 		 * @param  types  The types list
 		 */
-		DataList(const string &id, const string &parent, shared_ptr<DataComponent> pattern, shared_ptr<DataTypesList> types);
+		DataList(const std::string &id, const std::string &parent, std::shared_ptr<DataComponent> pattern, std::shared_ptr<DataTypesList> types);
 
 		/**
 		 * @brief Constructor by copy (cloning).
@@ -87,7 +85,7 @@ namespace OpenSANDConf
 		 * @param  other  The object to copy
 		 * @param  types  The types list
 		 */
-		DataList(const DataList &other, shared_ptr<DataTypesList> types);
+		DataList(const DataList &other, std::shared_ptr<DataTypesList> types);
 		/**
 		 * @brief Constructor by copy (duplication.
 		 *
@@ -95,7 +93,7 @@ namespace OpenSANDConf
 		 * @param  parent  The parent path
 		 * @param  other   The object to copy
 		 */
-		DataList(const string &id, const string &parent, const DataList &other);
+		DataList(const std::string &id, const std::string &parent, const DataList &other);
 
 		/**
 		 * @brief Clone the current object.
@@ -104,7 +102,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<DataElement> clone(shared_ptr<DataTypesList> types) const override;
+		virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const override;
 
 		/**
 		 * @brief Duplicate the current object.
@@ -114,7 +112,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The duplicated object
 		 */
-		virtual shared_ptr<DataElement> duplicateObject(const string &id, const string &parent) const override;
+		virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const override;
 
 		/**
 		 * @brief Duplicate the reference to another object.
@@ -123,14 +121,14 @@ namespace OpenSANDConf
 		 *
 		 * @return True on success, false otherwise
 		 */
-		virtual bool duplicateReference(shared_ptr<DataElement> copy) const override;
+		virtual bool duplicateReference(std::shared_ptr<DataElement> copy) const override;
 
 		/**
 		* @brief Get the list's pattern.
 		*
 		* @return  The list's pattern
 		*/
-		shared_ptr<DataComponent> getPattern() const;
+    std::shared_ptr<DataComponent> getPattern() const;
 
 	public:
 		/**
@@ -143,8 +141,8 @@ namespace OpenSANDConf
 		virtual bool equal(const DataElement &other) const override;
 
 	private:
-		shared_ptr<DataComponent> pattern;
-		shared_ptr<DataTypesList> types;
+    std::shared_ptr<DataComponent> pattern;
+    std::shared_ptr<DataTypesList> types;
 	};
 }
 

@@ -38,8 +38,6 @@
 #include <memory>
 #include <string>
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -59,7 +57,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The identifier
 		 */
-		const string &getId() const;
+		const std::string &getId() const;
 
 	protected:
 		/**
@@ -67,7 +65,7 @@ namespace OpenSANDConf
 		 *
 		 * @param  id    The identifier
 		 */
-		BaseElement(const string &id);
+		BaseElement(const std::string &id);
 
 		/**
 		 * @brief Constructor by copy.
@@ -77,7 +75,7 @@ namespace OpenSANDConf
 		BaseElement(const BaseElement &other);
 
 	private:
-		string id;
+    std::string id;
 	};
 }
 

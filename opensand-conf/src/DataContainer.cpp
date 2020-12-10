@@ -34,15 +34,16 @@
 #include <algorithm>
 #include <queue>
 
-#include <DataContainer.h>
+#include "DataContainer.h"
 
-OpenSANDConf::DataContainer::DataContainer(const string &id, const string &parent):
+
+OpenSANDConf::DataContainer::DataContainer(const std::string &id, const std::string &parent):
 	DataElement(id, parent),
 	items()
 {
 }
 
-OpenSANDConf::DataContainer::DataContainer(const OpenSANDConf::DataContainer &other, shared_ptr<OpenSANDConf::DataTypesList> types):
+OpenSANDConf::DataContainer::DataContainer(const OpenSANDConf::DataContainer &other, std::shared_ptr<OpenSANDConf::DataTypesList> types):
 	DataElement(other),
 	items()
 {
@@ -56,7 +57,7 @@ OpenSANDConf::DataContainer::DataContainer(const OpenSANDConf::DataContainer &ot
 	}
 }
 
-OpenSANDConf::DataContainer::DataContainer(const string &id, const string &parent, const OpenSANDConf::DataContainer &other):
+OpenSANDConf::DataContainer::DataContainer(const std::string &id, const std::string &parent, const OpenSANDConf::DataContainer &other):
 	DataElement(id, parent),
 	items()
 {
@@ -74,7 +75,7 @@ OpenSANDConf::DataContainer::~DataContainer()
 {
 }
 
-bool OpenSANDConf::DataContainer::duplicateReference(shared_ptr<OpenSANDConf::DataElement> copy) const
+bool OpenSANDConf::DataContainer::duplicateReference(std::shared_ptr<OpenSANDConf::DataElement> copy) const
 {
 	if(!this->OpenSANDConf::DataElement::duplicateReference(copy))
 	{
@@ -109,19 +110,19 @@ bool OpenSANDConf::DataContainer::validate() const
 	return true;
 }
 
-const vector<shared_ptr<OpenSANDConf::DataElement>> &OpenSANDConf::DataContainer::getItems() const
+const std::vector<std::shared_ptr<OpenSANDConf::DataElement>> &OpenSANDConf::DataContainer::getItems() const
 {
 	return this->items;
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataContainer::getItem(string id) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataContainer::getItem(std::string id) const
 {
 	auto elt = std::find_if(this->items.begin(), this->items.end(),
-		[id](shared_ptr<DataElement> elt) { return elt->getId() == id; });
+		[id](std::shared_ptr<DataElement> elt) { return elt->getId() == id; });
 	return elt != this->items.end() ? *elt : nullptr;
 }
 
-void OpenSANDConf::DataContainer::addItem(shared_ptr<OpenSANDConf::DataElement> item)
+void OpenSANDConf::DataContainer::addItem(std::shared_ptr<OpenSANDConf::DataElement> item)
 {
 	this->items.push_back(item);
 }

@@ -37,8 +37,6 @@
 #include <memory>
 #include <string>
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -79,7 +77,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  Data value as string
 		 */
-		virtual string toString() const = 0;
+		virtual std::string toString() const = 0;
 
 		/**
 		 * @brief Set the data value from string.
@@ -88,7 +86,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  True on success, False otherwise
 		 */
-		virtual bool fromString(string val) = 0;
+		virtual bool fromString(std::string val) = 0;
 
 		/**
 		 * @brief Compare to another element
@@ -115,21 +113,21 @@ namespace OpenSANDConf
 		 *
 		 * @return New object
 		 */
-		virtual shared_ptr<Data> clone(shared_ptr<DataTypesList> types) const = 0;
+		virtual std::shared_ptr<Data> clone(std::shared_ptr<DataTypesList> types) const = 0;
 
 		/**
 		 * @brief Duplicate the current object.
 		 *
 		 * @return New object
 		 */
-		virtual shared_ptr<Data> duplicate() const = 0;
+		virtual std::shared_ptr<Data> duplicate() const = 0;
 
 		/**
 		 * @brief Get the data type.
 		 *
 		 * @return The type
 		 */
-		virtual shared_ptr<const DataType> getType() const = 0;
+		virtual std::shared_ptr<const DataType> getType() const = 0;
 
 		/**
 		 * @brief Copy the data value.
@@ -138,7 +136,7 @@ namespace OpenSANDConf
 		 *
 		 * @return True on success, false otherwise
 		 */
-		virtual bool copy(shared_ptr<Data> data) = 0;
+		virtual bool copy(std::shared_ptr<Data> data) = 0;
 
 	protected:
 		bool is_set;

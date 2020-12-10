@@ -32,23 +32,24 @@
  * @brief Base class of all metamodel elements.
  */
 
-#include <MetaElement.h>
-#include <DataElement.h>
-#include <MetaParameter.h>
-#include <MetaType.h>
-#include <DataType.h>
-#include <Data.h>
-#include <MetaContainer.h>
-
 #include <sstream>
 
-shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaElement::getItemFromRoot(shared_ptr<OpenSANDConf::MetaElement> root, const string &path)
-{
-	shared_ptr<OpenSANDConf::MetaElement> elt;
-	shared_ptr<OpenSANDConf::MetaContainer> cont;
+#include "MetaElement.h"
+#include "DataElement.h"
+#include "MetaParameter.h"
+#include "MetaType.h"
+#include "DataType.h"
+#include "Data.h"
+#include "MetaContainer.h"
 
-	string item;
-        std::stringstream ss(path);
+
+std::shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaElement::getItemFromRoot(std::shared_ptr<OpenSANDConf::MetaElement> root, const std::string &path)
+{
+  std::shared_ptr<OpenSANDConf::MetaElement> elt;
+  std::shared_ptr<OpenSANDConf::MetaContainer> cont;
+
+  std::string item;
+  std::stringstream ss(path);
 
 	if(path.empty())
 	{
@@ -73,15 +74,15 @@ shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaElement::getItemFromRoot
 }
 
 OpenSANDConf::MetaElement::MetaElement(
-		const string &id,
-		const string &parent,
-		const string &name,
-		const string &description):
+		const std::string &id,
+		const std::string &parent,
+		const std::string &name,
+		const std::string &description):
 	OpenSANDConf::NamedElement(id, name, description),
 	parent(parent),
 	advanced(false)
 {
-	this->reference = std::make_tuple<shared_ptr<OpenSANDConf::MetaParameter>, shared_ptr<OpenSANDConf::Data>, shared_ptr<OpenSANDConf::DataType>>(nullptr, nullptr, nullptr);
+	this->reference = std::make_tuple<std::shared_ptr<OpenSANDConf::MetaParameter>, std::shared_ptr<OpenSANDConf::Data>, std::shared_ptr<OpenSANDConf::DataType>>(nullptr, nullptr, nullptr);
 }
 
 OpenSANDConf::MetaElement::MetaElement(const OpenSANDConf::MetaElement &other):
@@ -91,19 +92,19 @@ OpenSANDConf::MetaElement::MetaElement(const OpenSANDConf::MetaElement &other):
 {
 	// This constructor by copy is used to clone the object.
 	// The reference must be set after the complete copy of the meta model.
-	this->reference = std::make_tuple<shared_ptr<OpenSANDConf::MetaParameter>, shared_ptr<OpenSANDConf::Data>, shared_ptr<OpenSANDConf::DataType>>(nullptr, nullptr, nullptr);
+	this->reference = std::make_tuple<std::shared_ptr<OpenSANDConf::MetaParameter>, std::shared_ptr<OpenSANDConf::Data>, std::shared_ptr<OpenSANDConf::DataType>>(nullptr, nullptr, nullptr);
 }
 
 OpenSANDConf::MetaElement::~MetaElement()
 {
 }
 
-const string &OpenSANDConf::MetaElement::getParentPath() const
+const std::string &OpenSANDConf::MetaElement::getParentPath() const
 {
 	return this->parent;
 }
 
-string OpenSANDConf::MetaElement::getPath() const
+std::string OpenSANDConf::MetaElement::getPath() const
 {
 	std::stringstream ss;
 	ss << this->parent << "/" << this->getId();
@@ -121,7 +122,7 @@ void OpenSANDConf::MetaElement::setAdvanced(bool advanced)
 	this->advanced = advanced;
 }
 
-void OpenSANDConf::MetaElement::setReference(shared_ptr<OpenSANDConf::MetaParameter> target)
+void OpenSANDConf::MetaElement::setReference(std::shared_ptr<OpenSANDConf::MetaParameter> target)
 {
 	if(target != nullptr)
 	{
@@ -131,16 +132,16 @@ void OpenSANDConf::MetaElement::setReference(shared_ptr<OpenSANDConf::MetaParame
 	}
 	else
 	{
-		this->reference = std::make_tuple<shared_ptr<OpenSANDConf::MetaParameter>, shared_ptr<OpenSANDConf::Data>, shared_ptr<OpenSANDConf::DataType>>(nullptr, nullptr, nullptr);
+		this->reference = std::make_tuple<std::shared_ptr<OpenSANDConf::MetaParameter>, std::shared_ptr<OpenSANDConf::Data>, std::shared_ptr<OpenSANDConf::DataType>>(nullptr, nullptr, nullptr);
 	}
 }
 
-shared_ptr<OpenSANDConf::MetaParameter> OpenSANDConf::MetaElement::getReferenceTarget() const
+std::shared_ptr<OpenSANDConf::MetaParameter> OpenSANDConf::MetaElement::getReferenceTarget() const
 {
 	return std::get<0>(this->reference);
 }
 
-shared_ptr<OpenSANDConf::Data> OpenSANDConf::MetaElement::getReferenceData() const
+std::shared_ptr<OpenSANDConf::Data> OpenSANDConf::MetaElement::getReferenceData() const
 {
 	return std::get<1>(this->reference);
 }

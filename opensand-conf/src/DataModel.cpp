@@ -32,13 +32,14 @@
  * @brief Represents a metamodel.
  */
 
-#include <DataModel.h>
-#include <DataTypesList.h>
-#include <DataElement.h>
-
 #include <queue>
 
-OpenSANDConf::DataModel::DataModel(const string &version, shared_ptr<OpenSANDConf::DataTypesList> types, shared_ptr<OpenSANDConf::DataComponent> root):
+#include "DataModel.h"
+#include "DataTypesList.h"
+#include "DataElement.h"
+
+
+OpenSANDConf::DataModel::DataModel(const std::string &version, std::shared_ptr<OpenSANDConf::DataTypesList> types, std::shared_ptr<OpenSANDConf::DataComponent> root):
 	version(version),
 	types(types),
 	root(root)
@@ -58,14 +59,14 @@ OpenSANDConf::DataModel::~DataModel()
 {
 }
 
-shared_ptr<OpenSANDConf::DataModel> OpenSANDConf::DataModel::clone() const
+std::shared_ptr<OpenSANDConf::DataModel> OpenSANDConf::DataModel::clone() const
 {
 	// Copy data
-	auto clone = shared_ptr<OpenSANDConf::DataModel>(new OpenSANDConf::DataModel(*this));
+	auto clone = std::shared_ptr<OpenSANDConf::DataModel>(new OpenSANDConf::DataModel(*this));
 
 	// Find references
-	std::queue<shared_ptr<DataElement>> queue;
-	vector<shared_ptr<DataElement>> referenced;
+	std::queue<std::shared_ptr<DataElement>> queue;
+  std::vector<std::shared_ptr<DataElement>> referenced;
 	queue.push(this->root);
 	while(!queue.empty())
 	{
@@ -130,22 +131,22 @@ bool OpenSANDConf::DataModel::equal(const OpenSANDConf::DataModel &other) const
 		&& *(this->root) == *(other.root);
 }
 
-const string &OpenSANDConf::DataModel::getVersion() const
+const std::string &OpenSANDConf::DataModel::getVersion() const
 {
 	return this->version;
 }
 
-shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataModel::getRoot() const
+std::shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataModel::getRoot() const
 {
 	return this->root;
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataModel::getItemByPath(const string &path) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataModel::getItemByPath(const std::string &path) const
 {
 	return OpenSANDConf::DataElement::getItemFromRoot(this->root, path, false);
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataModel::getItemByMetaPath(const string &path) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataModel::getItemByMetaPath(const std::string &path) const
 {
 	return OpenSANDConf::DataElement::getItemFromRoot(this->root, path, true);
 }

@@ -33,24 +33,25 @@
  *        (holds a list of components, lists and parameters).
  */
 
-#include <MetaComponent.h>
-#include <MetaTypesList.h>
-#include <DataComponent.h>
-#include <Path.h>
+#include "MetaComponent.h"
+#include "MetaTypesList.h"
+#include "DataComponent.h"
+#include "Path.h"
+
 
 OpenSANDConf::MetaComponent::MetaComponent(
-		const string &id,
-		const string &parent,
-		const string &name,
-		const string &description,
-		weak_ptr<const OpenSANDConf::MetaTypesList> types):
+		const std::string &id,
+		const std::string &parent,
+		const std::string &name,
+		const std::string &description,
+		std::weak_ptr<const OpenSANDConf::MetaTypesList> types):
 	OpenSANDConf::MetaContainer(id, parent, name, description, types)
 {
 }
 
 OpenSANDConf::MetaComponent::MetaComponent(
 		const OpenSANDConf::MetaComponent &other,
-		weak_ptr<const OpenSANDConf::MetaTypesList> types):
+		std::weak_ptr<const OpenSANDConf::MetaTypesList> types):
 	OpenSANDConf::MetaContainer(other, types)
 {
 }
@@ -59,39 +60,39 @@ OpenSANDConf::MetaComponent::~MetaComponent()
 {
 }
 
-shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaComponent::clone(weak_ptr<const OpenSANDConf::MetaTypesList> types) const
+std::shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaComponent::clone(std::weak_ptr<const OpenSANDConf::MetaTypesList> types) const
 {
-	return shared_ptr<OpenSANDConf::MetaComponent>(new OpenSANDConf::MetaComponent(*this, types));
+	return std::shared_ptr<OpenSANDConf::MetaComponent>(new OpenSANDConf::MetaComponent(*this, types));
 }
 
-shared_ptr<OpenSANDConf::MetaParameter> OpenSANDConf::MetaComponent::getParameter(const string &id) const
+std::shared_ptr<OpenSANDConf::MetaParameter> OpenSANDConf::MetaComponent::getParameter(const std::string &id) const
 {
 	return std::dynamic_pointer_cast<OpenSANDConf::MetaParameter>(this->getItem(id));
 }
 
-shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaComponent::getComponent(const string &id) const
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaComponent::getComponent(const std::string &id) const
 {
 	return std::dynamic_pointer_cast<OpenSANDConf::MetaComponent>(this->getItem(id));
 }
 
-shared_ptr<OpenSANDConf::MetaList> OpenSANDConf::MetaComponent::getList(const string &id) const
+std::shared_ptr<OpenSANDConf::MetaList> OpenSANDConf::MetaComponent::getList(const std::string &id) const
 {
 	return std::dynamic_pointer_cast<OpenSANDConf::MetaList>(this->getItem(id));
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::MetaComponent::createData(shared_ptr<OpenSANDConf::DataTypesList> types) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::MetaComponent::createData(std::shared_ptr<OpenSANDConf::DataTypesList> types) const
 {
-	auto data = shared_ptr<DataComponent>(new DataComponent(this->getId(), this->getParentPath()));
+	auto data = std::shared_ptr<DataComponent>(new DataComponent(this->getId(), this->getParentPath()));
 	this->createAndAddDataItems(types, data);
 	return data;
 }
 
-shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaComponent::addComponent(const string &id, const string &name)
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaComponent::addComponent(const std::string &id, const std::string &name)
 {
 	return this->addComponent(id, name, "");
 }
 
-shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaComponent::addComponent(const string &id, const string &name, const string &description)
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaComponent::addComponent(const std::string &id, const std::string &name, const std::string &description)
 {
 	if(!checkPathId(id))
 	{
@@ -101,22 +102,22 @@ shared_ptr<OpenSANDConf::MetaComponent> OpenSANDConf::MetaComponent::addComponen
 	{
 		return nullptr;
 	}
-	auto elt = shared_ptr<OpenSANDConf::MetaComponent>(new OpenSANDConf::MetaComponent(id, this->getPath(), name, description, this->getTypes()));
+	auto elt = std::shared_ptr<OpenSANDConf::MetaComponent>(new OpenSANDConf::MetaComponent(id, this->getPath(), name, description, this->getTypes()));
 	this->addItem(elt);
 	return elt;
 }
 
-shared_ptr<OpenSANDConf::MetaList> OpenSANDConf::MetaComponent::addList(const string &id, const string &name, const string &pattern_name)
+std::shared_ptr<OpenSANDConf::MetaList> OpenSANDConf::MetaComponent::addList(const std::string &id, const std::string &name, const std::string &pattern_name)
 {
 	return this->addList(id, name, pattern_name, "", "");
 }
 
-shared_ptr<OpenSANDConf::MetaList> OpenSANDConf::MetaComponent::addList(const string &id, const string &name, const string &pattern_name, const string &description)
+std::shared_ptr<OpenSANDConf::MetaList> OpenSANDConf::MetaComponent::addList(const std::string &id, const std::string &name, const std::string &pattern_name, const std::string &description)
 {
 	return this->addList(id, name, pattern_name, description, "");
 }
 
-shared_ptr<OpenSANDConf::MetaList> OpenSANDConf::MetaComponent::addList(const string &id, const string &name, const string &pattern_name, const string &description, const string &pattern_description)
+std::shared_ptr<OpenSANDConf::MetaList> OpenSANDConf::MetaComponent::addList(const std::string &id, const std::string &name, const std::string &pattern_name, const std::string &description, const std::string &pattern_description)
 {
 	if(!checkPathId(id))
 	{
@@ -127,18 +128,18 @@ shared_ptr<OpenSANDConf::MetaList> OpenSANDConf::MetaComponent::addList(const st
 		return nullptr;
 	}
 	auto path = this->getPath() + "/" + id;
-	auto pattern = shared_ptr<OpenSANDConf::MetaComponent>(new OpenSANDConf::MetaComponent("*", path, pattern_name, pattern_description, this->getTypes()));
-	auto elt = shared_ptr<OpenSANDConf::MetaList>(new OpenSANDConf::MetaList(id, this->getPath(), name, description, pattern, this->getTypes()));
+	auto pattern = std::shared_ptr<OpenSANDConf::MetaComponent>(new OpenSANDConf::MetaComponent("*", path, pattern_name, pattern_description, this->getTypes()));
+	auto elt = std::shared_ptr<OpenSANDConf::MetaList>(new OpenSANDConf::MetaList(id, this->getPath(), name, description, pattern, this->getTypes()));
 	this->addItem(elt);
 	return elt;
 }
 
-shared_ptr<OpenSANDConf::MetaParameter> OpenSANDConf::MetaComponent::addParameter(const string &id, const string &name, shared_ptr<OpenSANDConf::MetaType> type)
+std::shared_ptr<OpenSANDConf::MetaParameter> OpenSANDConf::MetaComponent::addParameter(const std::string &id, const std::string &name, std::shared_ptr<OpenSANDConf::MetaType> type)
 {
 	return this->addParameter(id, name, type, "");
 }
 
-shared_ptr<OpenSANDConf::MetaParameter> OpenSANDConf::MetaComponent::addParameter(const string &id, const string &name, shared_ptr<OpenSANDConf::MetaType> type, const string &description)
+std::shared_ptr<OpenSANDConf::MetaParameter> OpenSANDConf::MetaComponent::addParameter(const std::string &id, const std::string &name, std::shared_ptr<OpenSANDConf::MetaType> type, const std::string &description)
 {
 	if(!checkPathId(id))
 	{
@@ -155,7 +156,7 @@ shared_ptr<OpenSANDConf::MetaParameter> OpenSANDConf::MetaComponent::addParamete
 			return nullptr;
 		}
 	}
-	auto elt = shared_ptr<OpenSANDConf::MetaParameter>(new OpenSANDConf::MetaParameter(id, this->getPath(), name, description, type));
+	auto elt = std::shared_ptr<OpenSANDConf::MetaParameter>(new OpenSANDConf::MetaParameter(id, this->getPath(), name, description, type));
 	this->addItem(elt);
 	return elt;
 }

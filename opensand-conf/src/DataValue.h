@@ -34,17 +34,14 @@
 #ifndef OPENSAND_CONF_DATA_VALUE_H
 #define OPENSAND_CONF_DATA_VALUE_H
 
-#include <Data.h>
-#include <DataValueType.h>
-#include <DataTypesList.h>
-
 #include <memory>
 #include <string>
 #include <sstream>
 
-using std::weak_ptr;
-using std::shared_ptr;
-using std::string;
+#include "Data.h"
+#include "DataValueType.h"
+#include "DataTypesList.h"
+
 
 namespace OpenSANDConf
 {
@@ -67,7 +64,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  Data value as string
 		 */
-		virtual string toString() const;
+		virtual std::string toString() const;
 
 		/**
 		 * @brief Set the data value from string.
@@ -76,7 +73,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  True on success, False otherwise
 		 */
-		virtual bool fromString(string val);
+		virtual bool fromString(std::string val);
 
 		/**
 		 * @brief Get the data value.
@@ -100,7 +97,7 @@ namespace OpenSANDConf
 		 *
 		 * @param  type  The data type
 		 */
-		DataValue(weak_ptr<const DataValueType<T>> type);
+		DataValue(std::weak_ptr<const DataValueType<T>> type);
 
 		/**
 		 * @brief Clone the current object.
@@ -109,21 +106,21 @@ namespace OpenSANDConf
 		 *
 		 * @return New object
 		 */
-		virtual shared_ptr<Data> clone(shared_ptr<DataTypesList> types) const;
+		virtual std::shared_ptr<Data> clone(std::shared_ptr<DataTypesList> types) const;
 
 		/**
 		 * @brief Duplicate the current object.
 		 *
 		 * @return New object
 		 */
-		virtual shared_ptr<Data> duplicate() const;
+		virtual std::shared_ptr<Data> duplicate() const;
 
 		/**
 		 * @brief Get the data type.
 		 *
 		 * @return The type
 		 */
-		virtual shared_ptr<const DataType> getType() const override;
+		virtual std::shared_ptr<const DataType> getType() const override;
 
 		/**
 		 * @brief Copy the data value.
@@ -132,7 +129,7 @@ namespace OpenSANDConf
 		 *
 		 * @return True on success, false otherwise
 		 */
-		virtual bool copy(shared_ptr<Data> data) override;
+		virtual bool copy(std::shared_ptr<Data> data) override;
 
 	public:
 		/**
@@ -145,13 +142,13 @@ namespace OpenSANDConf
 		virtual bool equal(const Data &other) const override;
 
 	private:
-		weak_ptr<const DataValueType<T>> type;
+    std::weak_ptr<const DataValueType<T>> type;
 		T value;
 	};
 }
 
 template <typename T>
-OpenSANDConf::DataValue<T>::DataValue(weak_ptr<const DataValueType<T>> type):
+OpenSANDConf::DataValue<T>::DataValue(std::weak_ptr<const DataValueType<T>> type):
 	Data(),
 	type(type)
 {
@@ -163,14 +160,14 @@ OpenSANDConf::DataValue<T>::~DataValue()
 }
 
 template <typename T>
-shared_ptr<OpenSANDConf::Data> OpenSANDConf::DataValue<T>::clone(shared_ptr<DataTypesList> types) const
+std::shared_ptr<OpenSANDConf::Data> OpenSANDConf::DataValue<T>::clone(std::shared_ptr<DataTypesList> types) const
 {
 	auto type = std::static_pointer_cast<DataValueType<T>>(types->getType(this->type.lock()->getId()));
 	if(type == nullptr)
 	{
 		return nullptr;
 	}
-	auto data = shared_ptr<OpenSANDConf::DataValue<T>>(new OpenSANDConf::DataValue<T>(type));
+	auto data = std::shared_ptr<OpenSANDConf::DataValue<T>>(new OpenSANDConf::DataValue<T>(type));
 	if(this->isSet())
 	{
 		data->set(this->get());
@@ -179,9 +176,9 @@ shared_ptr<OpenSANDConf::Data> OpenSANDConf::DataValue<T>::clone(shared_ptr<Data
 }
 
 template <typename T>
-shared_ptr<OpenSANDConf::Data> OpenSANDConf::DataValue<T>::duplicate() const
+std::shared_ptr<OpenSANDConf::Data> OpenSANDConf::DataValue<T>::duplicate() const
 {
-	auto data = shared_ptr<OpenSANDConf::DataValue<T>>(new OpenSANDConf::DataValue<T>(this->type));
+	auto data = std::shared_ptr<OpenSANDConf::DataValue<T>>(new OpenSANDConf::DataValue<T>(this->type));
 	if(this->isSet())
 	{
 		data->set(this->get());
@@ -190,13 +187,13 @@ shared_ptr<OpenSANDConf::Data> OpenSANDConf::DataValue<T>::duplicate() const
 }
 
 template <typename T>
-shared_ptr<const OpenSANDConf::DataType> OpenSANDConf::DataValue<T>::getType() const
+std::shared_ptr<const OpenSANDConf::DataType> OpenSANDConf::DataValue<T>::getType() const
 {
 	return this->type.lock();
 }
 
 template <typename T>
-bool OpenSANDConf::DataValue<T>::copy(shared_ptr<Data> data)
+bool OpenSANDConf::DataValue<T>::copy(std::shared_ptr<Data> data)
 {
 	auto original = std::dynamic_pointer_cast<OpenSANDConf::DataValue<T>>(data);
 	if(original == nullptr)
@@ -208,7 +205,7 @@ bool OpenSANDConf::DataValue<T>::copy(shared_ptr<Data> data)
 }
 
 template <typename T>
-string OpenSANDConf::DataValue<T>::toString() const
+std::string OpenSANDConf::DataValue<T>::toString() const
 {
 	std::stringstream ss;
 	if(this->is_set)
@@ -219,7 +216,7 @@ string OpenSANDConf::DataValue<T>::toString() const
 }
 
 template <typename T>
-bool OpenSANDConf::DataValue<T>::fromString(string val)
+bool OpenSANDConf::DataValue<T>::fromString(std::string val)
 {
 	std::stringstream ss(val);
 	T tmp;

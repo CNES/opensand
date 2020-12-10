@@ -39,11 +39,8 @@
 #include <memory>
 #include <string>
 
-#include <MetaContainer.h>
+#include "MetaContainer.h"
 
-using std::shared_ptr;
-using std::weak_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -64,7 +61,7 @@ namespace OpenSANDConf
 		*
 		* @return  The list's pattern
 		*/
-		shared_ptr<MetaComponent> getPattern() const;
+    std::shared_ptr<MetaComponent> getPattern() const;
 
 	protected:
 		/**
@@ -77,7 +74,7 @@ namespace OpenSANDConf
 		 * @param  pattern      The pattern
 		 * @param  types        The types list
 		 */
-		MetaList(const string &id, const string &parent, const string &name, const string &description, shared_ptr<MetaComponent> pattern, weak_ptr<const MetaTypesList> types);
+		MetaList(const std::string &id, const std::string &parent, const std::string &name, const std::string &description, std::shared_ptr<MetaComponent> pattern, std::weak_ptr<const MetaTypesList> types);
 
 		/**
 		 * @brief Constructor by copy.
@@ -85,7 +82,7 @@ namespace OpenSANDConf
 		 * @param  other  The object to copy
 		 * @param  types  The types list
 		 */
-		MetaList(const MetaList &other, weak_ptr<const MetaTypesList> types);
+		MetaList(const MetaList &other, std::weak_ptr<const MetaTypesList> types);
 
 		/**
 		 * @brief Clone the current object.
@@ -94,7 +91,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<MetaElement> clone(weak_ptr<const MetaTypesList> types) const override;
+		virtual std::shared_ptr<MetaElement> clone(std::weak_ptr<const MetaTypesList> types) const override;
 
 		/**
 		 * @brief Create a datamodel element.
@@ -103,7 +100,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The new datamodel element if succeeds, nullptr otherwise
 		 */
-		virtual shared_ptr<DataElement> createData(shared_ptr<DataTypesList> types) const override;
+		virtual std::shared_ptr<DataElement> createData(std::shared_ptr<DataTypesList> types) const override;
 
 	public:
 		/**

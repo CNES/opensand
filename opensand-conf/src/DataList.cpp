@@ -33,18 +33,19 @@
  *        (holds list items following a pattern).
  */
 
-#include <DataList.h>
-#include <DataComponent.h>
-#include <Path.h>
-
 #include <queue>
 #include <sstream>
 
+#include "DataList.h"
+#include "DataComponent.h"
+#include "Path.h"
+
+
 OpenSANDConf::DataList::DataList(
-		const string &id,
-		const string &parent,
-		shared_ptr<OpenSANDConf::DataComponent> pattern,
-		shared_ptr<DataTypesList> types):
+		const std::string &id,
+		const std::string &parent,
+		std::shared_ptr<OpenSANDConf::DataComponent> pattern,
+		std::shared_ptr<DataTypesList> types):
 	OpenSANDConf::DataContainer(id, parent),
 	pattern(pattern),
 	types(types)
@@ -53,14 +54,14 @@ OpenSANDConf::DataList::DataList(
 
 OpenSANDConf::DataList::DataList(
 		const OpenSANDConf::DataList &other,
-		shared_ptr<DataTypesList> types):
+		std::shared_ptr<DataTypesList> types):
 	OpenSANDConf::DataContainer(other, types),
 	pattern(std::static_pointer_cast<OpenSANDConf::DataComponent>(other.pattern->clone(types))),
 	types(types)
 {
 }
 
-OpenSANDConf::DataList::DataList(const string &id, const string &parent, const DataList &other):
+OpenSANDConf::DataList::DataList(const std::string &id, const std::string &parent, const DataList &other):
 	OpenSANDConf::DataContainer(id, parent, other),
 	pattern(nullptr),
 	types(other.types)
@@ -72,20 +73,20 @@ OpenSANDConf::DataList::~DataList()
 {
 }
 
-shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataList::getPattern() const
+std::shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataList::getPattern() const
 {
 	return this->pattern;
 }
 
-shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataList::addItem()
+std::shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataList::addItem()
 {
 	std::stringstream ss;
 	ss << this->getItems().size();
 	auto item = std::static_pointer_cast<OpenSANDConf::DataComponent>(this->pattern->duplicate(ss.str(), this->getPath()));
 
 	// Get pattern references
-	std::queue<shared_ptr<DataElement>> queue;
-	vector<shared_ptr<DataElement>> referenced;
+	std::queue<std::shared_ptr<DataElement>> queue;
+  std::vector<std::shared_ptr<DataElement>> referenced;
 	queue.push(this->pattern);
 	while(!queue.empty())
 	{
@@ -149,17 +150,17 @@ shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataList::addItem()
 	return item;
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataList::clone(shared_ptr<DataTypesList> types) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataList::clone(std::shared_ptr<DataTypesList> types) const
 {
-	return shared_ptr<OpenSANDConf::DataList>(new OpenSANDConf::DataList(*this, types));
+	return std::shared_ptr<OpenSANDConf::DataList>(new OpenSANDConf::DataList(*this, types));
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataList::duplicateObject(const string &id, const string &parent) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataList::duplicateObject(const std::string &id, const std::string &parent) const
 {
-	return shared_ptr<OpenSANDConf::DataList>(new OpenSANDConf::DataList(id, parent, *this));
+	return std::shared_ptr<OpenSANDConf::DataList>(new OpenSANDConf::DataList(id, parent, *this));
 }
 
-bool OpenSANDConf::DataList::duplicateReference(shared_ptr<OpenSANDConf::DataElement> copy) const
+bool OpenSANDConf::DataList::duplicateReference(std::shared_ptr<OpenSANDConf::DataElement> copy) const
 {
 	if(!this->DataContainer::duplicateReference(copy))
 	{

@@ -38,15 +38,13 @@
 #include <memory>
 #include <string>
 
-#include <DataTypesList.h>
-#include <DataType.h>
-#include <DataValueType.h>
-#include <DataEnumType.h>
+#include "DataTypesList.h"
+#include "DataType.h"
+#include "DataValueType.h"
+#include "DataEnumType.h"
 
-#include <DataComponent.h>
+#include "DataComponent.h"
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -78,7 +76,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The newly cloned model
 		 */
-		shared_ptr<DataModel> clone() const;
+     std::shared_ptr<DataModel> clone() const;
 
 		/**
 		 * @brief Validate the datamodel.
@@ -101,14 +99,14 @@ namespace OpenSANDConf
 		 *
 		 * @return  The version
 		 */
-		const string &getVersion() const;
+		const std::string &getVersion() const;
 
 		/**
 		 * @brief Get the root component.
 		 *
 		 * @return  The root component
 		 */
-		shared_ptr<DataComponent> getRoot() const;
+    std::shared_ptr<DataComponent> getRoot() const;
 
 		/**
 		 * @brief Get an item by path.
@@ -117,7 +115,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The item if found, nullptr otherwise
 		 */
-		shared_ptr<DataElement> getItemByPath(const string &path) const;
+    std::shared_ptr<DataElement> getItemByPath(const std::string &path) const;
 
 		friend bool operator== (const DataModel &v1, const DataModel &v2);
 		friend bool operator!= (const DataModel &v1, const DataModel &v2);
@@ -130,7 +128,7 @@ namespace OpenSANDConf
 		 * @param  types    The data types list
 		 * @param  root     The root data component
 		 */
-		DataModel(const string &version, shared_ptr<DataTypesList> types, shared_ptr<DataComponent> root);
+		DataModel(const std::string &version, std::shared_ptr<DataTypesList> types, std::shared_ptr<DataComponent> root);
 
 		/**
 		 * @brief Get an item by meta path (list pattern can be returned).
@@ -139,12 +137,12 @@ namespace OpenSANDConf
 		 *
 		 * @return  The item if found, nullptr otherwise
 		 */
-		shared_ptr<DataElement> getItemByMetaPath(const string &path) const;
+    std::shared_ptr<DataElement> getItemByMetaPath(const std::string &path) const;
 
 	private:
-		string version;
-		shared_ptr<DataTypesList> types;
-		shared_ptr<DataComponent> root;
+    std::string version;
+    std::shared_ptr<DataTypesList> types;
+    std::shared_ptr<DataComponent> root;
 	};
 
 	bool operator== (const DataModel &v1, const DataModel &v2);

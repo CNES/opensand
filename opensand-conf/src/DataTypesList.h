@@ -38,12 +38,7 @@
 #include <memory>
 #include <string>
 #include <map>
-#include <vector>
 
-using std::shared_ptr;
-using std::string;
-using std::vector;
-using std::map;
 
 namespace OpenSANDConf
 {
@@ -83,7 +78,7 @@ namespace OpenSANDConf
 		*
 		* @return  The type if found, nullptr otherwise
 		*/
-		shared_ptr<DataType> getType(const string &id) const;
+    std::shared_ptr<DataType> getType(const std::string &id) const;
 
 	protected:
 		/**
@@ -103,7 +98,7 @@ namespace OpenSANDConf
 		 *
 		 * @return Cloned object
 		 */
-		shared_ptr<DataTypesList> clone() const;
+    std::shared_ptr<DataTypesList> clone() const;
 
 		/**
 		 * @brief Add a new type.
@@ -112,10 +107,10 @@ namespace OpenSANDConf
 		 *
 		 * @return True on success, false otherwise
 		 */
-		bool addType(shared_ptr<DataType> type);
+		bool addType(std::shared_ptr<DataType> type);
 
 	private:
-		map<string, shared_ptr<DataType>> types;
+    std::map<std::string, std::shared_ptr<DataType>> types;
 	};
 
 	bool operator== (const DataTypesList &v1, const DataTypesList &v2);

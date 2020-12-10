@@ -32,11 +32,12 @@
  * @brief Represents a data type
  */
 
-#include <DataType.h>
-#include <DataTypesList.h>
-#include <Data.h>
+#include "DataType.h"
+#include "DataTypesList.h"
+#include "Data.h"
 
-OpenSANDConf::DataType::DataType(const string &id):
+
+OpenSANDConf::DataType::DataType(const std::string &id):
 	OpenSANDConf::BaseElement(id)
 {
 }

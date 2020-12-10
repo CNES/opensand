@@ -31,23 +31,24 @@
  * @brief Base class of all datamodel elements.
  */
 
-#include <DataElement.h>
-#include <DataTypesList.h>
-#include <DataParameter.h>
-#include <DataList.h>
-#include <DataComponent.h>
-#include <Data.h>
-#include <DataContainer.h>
-
 #include <sstream>
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataElement::getItemFromRoot(shared_ptr<OpenSANDConf::DataElement> root, const string &path, bool meta)
-{
-	shared_ptr<OpenSANDConf::DataElement> elt;
-	shared_ptr<OpenSANDConf::DataContainer> cont;
+#include "DataElement.h"
+#include "DataTypesList.h"
+#include "DataParameter.h"
+#include "DataList.h"
+#include "DataComponent.h"
+#include "Data.h"
+#include "DataContainer.h"
 
-	string item;
-        std::stringstream ss(path);
+
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataElement::getItemFromRoot(std::shared_ptr<OpenSANDConf::DataElement> root, const std::string &path, bool meta)
+{
+  std::shared_ptr<OpenSANDConf::DataElement> elt;
+  std::shared_ptr<OpenSANDConf::DataContainer> cont;
+
+  std::string item;
+  std::stringstream ss(path);
 
 	if(path.empty())
 	{
@@ -82,11 +83,11 @@ shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataElement::getItemFromRoot
 	return elt;
 }
 
-OpenSANDConf::DataElement::DataElement(const string &id, const string &parent):
+OpenSANDConf::DataElement::DataElement(const std::string &id, const std::string &parent):
 	OpenSANDConf::BaseElement(id),
 	parent(parent)
 {
-	this->reference = std::make_tuple<shared_ptr<const OpenSANDConf::DataParameter>, shared_ptr<OpenSANDConf::Data>>(nullptr, nullptr);
+	this->reference = std::make_tuple<std::shared_ptr<const OpenSANDConf::DataParameter>, std::shared_ptr<OpenSANDConf::Data>>(nullptr, nullptr);
 }
 
 OpenSANDConf::DataElement::DataElement(const OpenSANDConf::DataElement &other):
@@ -95,14 +96,14 @@ OpenSANDConf::DataElement::DataElement(const OpenSANDConf::DataElement &other):
 {
 	// This constructor by copy is used to clone the object.
 	// The reference must be set after the complete copy of the meta model.
-	this->reference = std::make_tuple<shared_ptr<const OpenSANDConf::DataParameter>, shared_ptr<OpenSANDConf::Data>>(nullptr, nullptr);
+	this->reference = std::make_tuple<std::shared_ptr<const OpenSANDConf::DataParameter>, std::shared_ptr<OpenSANDConf::Data>>(nullptr, nullptr);
 }
 
 OpenSANDConf::DataElement::~DataElement()
 {
 }
 
-bool OpenSANDConf::DataElement::duplicateReference(shared_ptr<OpenSANDConf::DataElement> copy) const
+bool OpenSANDConf::DataElement::duplicateReference(std::shared_ptr<OpenSANDConf::DataElement> copy) const
 {
 	auto target = this->getReferenceTarget();
 	if(target == nullptr)
@@ -118,7 +119,7 @@ bool OpenSANDConf::DataElement::duplicateReference(shared_ptr<OpenSANDConf::Data
 	return true;
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataElement::duplicate(const string &id, const string &parent) const
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataElement::duplicate(const std::string &id, const std::string &parent) const
 {
 	auto copy = this->duplicateObject(id, parent);
 	if(!this->duplicateReference(copy))
@@ -148,12 +149,12 @@ bool OpenSANDConf::DataElement::checkReference() const
 	return *data == *expected;
 }
 
-const string &OpenSANDConf::DataElement::getParentPath() const
+const std::string &OpenSANDConf::DataElement::getParentPath() const
 {
 	return this->parent;
 }
 
-string OpenSANDConf::DataElement::getPath() const
+std::string OpenSANDConf::DataElement::getPath() const
 {
 	std::stringstream ss;
 	ss << this->parent << "/" << this->getId();
@@ -161,7 +162,7 @@ string OpenSANDConf::DataElement::getPath() const
 	return ss.str() != "/" ? ss.str() : "";
 }
 
-void OpenSANDConf::DataElement::setReference(shared_ptr<const OpenSANDConf::DataParameter> target)
+void OpenSANDConf::DataElement::setReference(std::shared_ptr<const OpenSANDConf::DataParameter> target)
 {
 	if(target != nullptr)
 	{
@@ -169,16 +170,16 @@ void OpenSANDConf::DataElement::setReference(shared_ptr<const OpenSANDConf::Data
 	}
 	else
 	{
-		this->reference = std::make_tuple<shared_ptr<const OpenSANDConf::DataParameter>, shared_ptr<OpenSANDConf::Data>>(nullptr, nullptr);
+		this->reference = std::make_tuple<std::shared_ptr<const OpenSANDConf::DataParameter>, std::shared_ptr<OpenSANDConf::Data>>(nullptr, nullptr);
 	}
 }
 
-shared_ptr<const OpenSANDConf::DataParameter> OpenSANDConf::DataElement::getReferenceTarget() const
+std::shared_ptr<const OpenSANDConf::DataParameter> OpenSANDConf::DataElement::getReferenceTarget() const
 {
 	return std::get<0>(this->reference);
 }
 
-shared_ptr<OpenSANDConf::Data> OpenSANDConf::DataElement::getReferenceData() const
+std::shared_ptr<OpenSANDConf::Data> OpenSANDConf::DataElement::getReferenceData() const
 {
 	return std::get<1>(this->reference);
 }

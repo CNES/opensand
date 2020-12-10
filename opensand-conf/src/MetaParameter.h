@@ -37,13 +37,9 @@
 
 #include <memory>
 #include <string>
-#include <tuple>
 
-#include <MetaElement.h>
+#include "MetaElement.h"
 
-using std::shared_ptr;
-using std::weak_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -70,21 +66,21 @@ namespace OpenSANDConf
 		*
 		* @return  The parameter's type
 		*/
-		shared_ptr<MetaType> getType() const;
+    std::shared_ptr<MetaType> getType() const;
 
 		/**
 		* @brief Get the parameter's unit.
 		*
 		* @return  The parameter's unit
 		*/
-		const string &getUnit() const;
+		const std::string &getUnit() const;
 
 		/**
 		 * @brief Set the parameter's unit.
 		 *
 		 * @param  unit  The unit
 		 */
-		void setUnit(const string &unit);
+		void setUnit(const std::string &unit);
 
 	protected:
 		/**
@@ -96,7 +92,7 @@ namespace OpenSANDConf
 		 * @param  description  The description
 		 * @param  type         The type
 		 */
-		MetaParameter(const string &id, const string &parent, const string &name, const string &description, shared_ptr<MetaType> type);
+		MetaParameter(const std::string &id, const std::string &parent, const std::string &name, const std::string &description, std::shared_ptr<MetaType> type);
 
 		/**
 		 * @brief Constructor by copy.
@@ -104,7 +100,7 @@ namespace OpenSANDConf
 		 * @param  other  The object to copy
 		 * @param  types  The types list
 		 */
-		MetaParameter(const MetaParameter &other, weak_ptr<const MetaTypesList> types);
+		MetaParameter(const MetaParameter &other, std::weak_ptr<const MetaTypesList> types);
 
 		/**
 		 * @brief Clone the current object.
@@ -113,7 +109,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<MetaElement> clone(weak_ptr<const MetaTypesList> types) const override;
+		virtual std::shared_ptr<MetaElement> clone(std::weak_ptr<const MetaTypesList> types) const override;
 
 		/**
 		 * @brief Create a datamodel element.
@@ -122,7 +118,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The new datamodel element if succeeds, nullptr otherwise
 		 */
-		virtual shared_ptr<DataElement> createData(shared_ptr<DataTypesList> types) const override;
+		virtual std::shared_ptr<DataElement> createData(std::shared_ptr<DataTypesList> types) const override;
 
 	public:
 		/**
@@ -135,8 +131,8 @@ namespace OpenSANDConf
 		virtual bool equal(const MetaElement &other) const override;
 
 	private:
-		shared_ptr<MetaType> type;
-		string unit;
+    std::shared_ptr<MetaType> type;
+    std::string unit;
 	};
 }
 

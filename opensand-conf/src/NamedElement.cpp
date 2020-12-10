@@ -32,12 +32,13 @@
  * @brief Base class of all described elements.
  */
 
-#include <NamedElement.h>
+#include "NamedElement.h"
+
 
 OpenSANDConf::NamedElement::NamedElement(
-		const string &id,
-		const string &name,
-		const string &description):
+		const std::string &id,
+		const std::string &name,
+		const std::string &description):
 	BaseElement(id),
 	name(name),
 	description(description)
@@ -55,17 +56,17 @@ OpenSANDConf::NamedElement::~NamedElement()
 {
 }
 
-const string &OpenSANDConf::NamedElement::getName() const
+const std::string &OpenSANDConf::NamedElement::getName() const
 {
 	return this->name;
 }
 
-const string &OpenSANDConf::NamedElement::getDescription() const
+const std::string &OpenSANDConf::NamedElement::getDescription() const
 {
 	return this->description;
 }
 
-void OpenSANDConf::NamedElement::setDescription(const string& description)
+void OpenSANDConf::NamedElement::setDescription(const std::string& description)
 {
 	this->description = description;
 }

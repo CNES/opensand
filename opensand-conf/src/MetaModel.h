@@ -38,15 +38,13 @@
 #include <memory>
 #include <string>
 
-#include <MetaTypesList.h>
-#include <MetaType.h>
-#include <MetaValueType.h>
-#include <MetaEnumType.h>
+#include "MetaTypesList.h"
+#include "MetaType.h"
+#include "MetaValueType.h"
+#include "MetaEnumType.h"
 
-#include <MetaComponent.h>
+#include "MetaComponent.h"
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -62,7 +60,7 @@ namespace OpenSANDConf
 		 *
 		 * @param  version  The version
 		 */
-		MetaModel(const string &version);
+		MetaModel(const std::string &version);
 
 		/**
 		 * @brief Constructor by copy.
@@ -81,14 +79,14 @@ namespace OpenSANDConf
 		 *
 		 * @return  The newly cloned model
 		 */
-		shared_ptr<MetaModel> clone() const;
+     std::shared_ptr<MetaModel> clone() const;
 
 		/**
 		 * @brief Create a datamodel.
 		 *
 		 * @return  The new datamodel if succeeds, nullptr otherwise
 		 */
-		shared_ptr<DataModel> createData() const;
+     std::shared_ptr<DataModel> createData() const;
 
 		/**
 		 * @brief Specify an element reference to a parameter value.
@@ -98,14 +96,14 @@ namespace OpenSANDConf
 		 *
 		 * @return True on success, false otherwise
 		 */
-		bool setReference(shared_ptr<MetaElement> element, shared_ptr<MetaParameter> target) const;
+		bool setReference(std::shared_ptr<MetaElement> element, std::shared_ptr<MetaParameter> target) const;
 
 		/**
 		 * @brief Reset the element reference to a parameter value.
 		 *
 		 * @param  element  The element to reset reference
 		 */
-		void resetReference(shared_ptr<MetaElement> element) const;
+		void resetReference(std::shared_ptr<MetaElement> element) const;
 
 		/**
 		 * @brief Compare to another object.
@@ -121,21 +119,21 @@ namespace OpenSANDConf
 		 *
 		 * @return  The version
 		 */
-		const string &getVersion() const;
+		const std::string &getVersion() const;
 
 		/**
 		 * @brief Get the types list.
 		 *
 		 * @return  The types list
 		 */
-		shared_ptr<MetaTypesList> getTypesDefinition() const;
+    std::shared_ptr<MetaTypesList> getTypesDefinition() const;
 
 		/**
 		 * @brief Get the root component.
 		 *
 		 * @return  The root component
 		 */
-		shared_ptr<MetaComponent> getRoot() const;
+    std::shared_ptr<MetaComponent> getRoot() const;
 
 		/**
 		 * @brief Get an item by path.
@@ -144,15 +142,15 @@ namespace OpenSANDConf
 		 *
 		 * @return  The item if found, nullptr otherwise
 		 */
-		shared_ptr<MetaElement> getItemByPath(const string &path) const;
+    std::shared_ptr<MetaElement> getItemByPath(const std::string &path) const;
 
 		friend bool operator== (const MetaModel &v1, const MetaModel &v2);
 		friend bool operator!= (const MetaModel &v1, const MetaModel &v2);
 
 	private:
-		string version;
-		shared_ptr<MetaTypesList> types;
-		shared_ptr<MetaComponent> root;
+    std::string version;
+    std::shared_ptr<MetaTypesList> types;
+    std::shared_ptr<MetaComponent> root;
 	};
 
 	bool operator== (const MetaModel &v1, const MetaModel &v2);

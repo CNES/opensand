@@ -35,13 +35,10 @@
 #ifndef OPENSAND_CONF_NAMED_ELEMENT_H
 #define OPENSAND_CONF_NAMED_ELEMENT_H
 
-#include <memory>
 #include <string>
 
-#include <BaseElement.h>
+#include "BaseElement.h"
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -61,21 +58,21 @@ namespace OpenSANDConf
 		 *
 		 * @return  The named element's name
 		 */
-		const string &getName() const;
+		const std::string &getName() const;
 
 		/**
 		 * @brief Get the named element's description.
 		 *
 		 * @return The named element's description
 		 */
-		const string &getDescription() const;
+		const std::string &getDescription() const;
 
 		/**
 		 * @brief Set the named element's description.
 		 *
 		 * @param description The new description
 		 */
-		void setDescription(const string& description);
+		void setDescription(const std::string& description);
 
 	protected:
 		/**
@@ -85,7 +82,7 @@ namespace OpenSANDConf
 		 * @param  name         The name
 		 * @param  description  The description
 		 */
-		NamedElement(const string &id, const string &name, const string &description);
+		NamedElement(const std::string &id, const std::string &name, const std::string &description);
 
 		/**
 		 * @brief Constructor by copy.
@@ -104,8 +101,8 @@ namespace OpenSANDConf
 		virtual bool equal(const NamedElement &other) const;
 
 	private:
-		string name;
-		string description;
+    std::string name;
+    std::string description;
 	};
 }
 

@@ -32,26 +32,29 @@
  * @brief Base class of all elements.
  */
 
-#include <BaseElement.h>
-
 #include <sstream>
 
-OpenSANDConf::BaseElement::BaseElement(const string &id):
+#include "BaseElement.h"
+
+
+OpenSANDConf::BaseElement::BaseElement(const std::string &id):
 	id(id)
 {
 }
+
 
 OpenSANDConf::BaseElement::BaseElement(const OpenSANDConf::BaseElement &other):
 	id(other.id)
 {
 }
 
+
 OpenSANDConf::BaseElement::~BaseElement()
 {
 }
 
-const string &OpenSANDConf::BaseElement::getId() const
+
+const std::string &OpenSANDConf::BaseElement::getId() const
 {
 	return this->id;
 }
-

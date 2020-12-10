@@ -32,10 +32,11 @@
  * @brief Represents a list of data types.
  */
 
-#include <DataTypesList.h>
-#include <DataType.h>
-
 #include <algorithm>
+
+#include "DataTypesList.h"
+#include "DataType.h"
+
 
 OpenSANDConf::DataTypesList::DataTypesList():
 	types()
@@ -58,9 +59,9 @@ OpenSANDConf::DataTypesList::~DataTypesList()
 {
 }
 
-shared_ptr<OpenSANDConf::DataTypesList> OpenSANDConf::DataTypesList::clone() const
+std::shared_ptr<OpenSANDConf::DataTypesList> OpenSANDConf::DataTypesList::clone() const
 {
-	return shared_ptr<OpenSANDConf::DataTypesList>(new OpenSANDConf::DataTypesList(*this));
+	return std::shared_ptr<OpenSANDConf::DataTypesList>(new OpenSANDConf::DataTypesList(*this));
 }
 
 bool OpenSANDConf::DataTypesList::equal(const OpenSANDConf::DataTypesList &other) const
@@ -69,13 +70,13 @@ bool OpenSANDConf::DataTypesList::equal(const OpenSANDConf::DataTypesList &other
 		&& std::equal(this->types.begin(), this->types.end(), other.types.begin());
 }
 
-shared_ptr<OpenSANDConf::DataType> OpenSANDConf::DataTypesList::getType(const string &id) const
+std::shared_ptr<OpenSANDConf::DataType> OpenSANDConf::DataTypesList::getType(const std::string &id) const
 {
 	auto type = this->types.find(id);
 	return type != this->types.end() ? type->second : nullptr;
 }
 
-bool OpenSANDConf::DataTypesList::addType(shared_ptr<DataType> type)
+bool OpenSANDConf::DataTypesList::addType(std::shared_ptr<DataType> type)
 {
 	auto id = type->getId();
 	if(this->getType(id) != nullptr)

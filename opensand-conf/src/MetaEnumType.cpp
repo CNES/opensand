@@ -34,21 +34,22 @@
 
 #include <algorithm>
 
-#include <MetaEnumType.h>
-#include <DataEnumType.h>
+#include "MetaEnumType.h"
+#include "DataEnumType.h"
+
 
 OpenSANDConf::MetaEnumType::MetaEnumType(
-		const string &id,
-		const string &name,
-		const string &description,
-		const vector<string> &values):
-	OpenSANDConf::MetaValueType<string>(id, name, description),
+		const std::string &id,
+		const std::string &name,
+		const std::string &description,
+		const std::vector<std::string> &values):
+	OpenSANDConf::MetaValueType<std::string>(id, name, description),
 	OpenSANDConf::BaseEnum(values)
 {
 }
 
 OpenSANDConf::MetaEnumType::MetaEnumType(const OpenSANDConf::MetaEnumType &other):
-	OpenSANDConf::MetaValueType<string>(other),
+	OpenSANDConf::MetaValueType<std::string>(other),
 	OpenSANDConf::BaseEnum(other)
 {
 }
@@ -57,20 +58,20 @@ OpenSANDConf::MetaEnumType::~MetaEnumType()
 {
 }
 
-shared_ptr<OpenSANDConf::MetaType> OpenSANDConf::MetaEnumType::clone() const
+std::shared_ptr<OpenSANDConf::MetaType> OpenSANDConf::MetaEnumType::clone() const
 {
-	return shared_ptr<OpenSANDConf::MetaEnumType>(new OpenSANDConf::MetaEnumType(*this));
+	return std::shared_ptr<OpenSANDConf::MetaEnumType>(new OpenSANDConf::MetaEnumType(*this));
 }
 
-shared_ptr<OpenSANDConf::DataType> OpenSANDConf::MetaEnumType::createData() const
+std::shared_ptr<OpenSANDConf::DataType> OpenSANDConf::MetaEnumType::createData() const
 {
-	return shared_ptr<OpenSANDConf::DataEnumType>(new OpenSANDConf::DataEnumType(this->getId(), this->getValues()));
+	return std::shared_ptr<OpenSANDConf::DataEnumType>(new OpenSANDConf::DataEnumType(this->getId(), this->getValues()));
 }
 
 bool OpenSANDConf::MetaEnumType::equal(const MetaType &other) const
 {
 	auto elt = dynamic_cast<const OpenSANDConf::MetaEnumType *>(&other);
-	if(elt == nullptr || !this->OpenSANDConf::MetaValueType<string>::equal(*elt))
+	if(elt == nullptr || !this->OpenSANDConf::MetaValueType<std::string>::equal(*elt))
 	{
 		return false;
 	}

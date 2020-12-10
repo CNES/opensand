@@ -38,11 +38,9 @@
 #include <memory>
 #include <string>
 
-#include <MetaType.h>
-#include <DataValueType.h>
+#include "MetaType.h"
+#include "DataValueType.h"
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -68,7 +66,7 @@ namespace OpenSANDConf
 		 * @param  name          The name
 		 * @param  description   The description
 		 */
-		MetaValueType(const string &id, const string &name, const string &description);
+		MetaValueType(const std::string &id, const std::string &name, const std::string &description);
 
 		/**
 		 * @brief Constructor by copy.
@@ -82,14 +80,14 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<MetaType> clone() const override;
+		virtual std::shared_ptr<MetaType> clone() const override;
 
 		/**
 		 * @brief Create a data type.
 		 *
 		 * @return New data type
 		 */
-		virtual shared_ptr<DataType> createData() const override;
+		virtual std::shared_ptr<DataType> createData() const override;
 
 	public:
 		/**
@@ -105,9 +103,9 @@ namespace OpenSANDConf
 
 template <typename T>
 OpenSANDConf::MetaValueType<T>::MetaValueType(
-		const string &id,
-		const string &name,
-		const string &description):
+		const std::string &id,
+		const std::string &name,
+		const std::string &description):
 	OpenSANDConf::MetaType(id, name, description)
 {
 }
@@ -125,15 +123,15 @@ OpenSANDConf::MetaValueType<T>::~MetaValueType()
 }
 
 template <typename T>
-shared_ptr<OpenSANDConf::MetaType> OpenSANDConf::MetaValueType<T>::clone() const
+std::shared_ptr<OpenSANDConf::MetaType> OpenSANDConf::MetaValueType<T>::clone() const
 {
-	return shared_ptr<OpenSANDConf::MetaValueType<T>>(new OpenSANDConf::MetaValueType<T>(*this));
+	return std::shared_ptr<OpenSANDConf::MetaValueType<T>>(new OpenSANDConf::MetaValueType<T>(*this));
 }
 
 template <typename T>
-shared_ptr<OpenSANDConf::DataType> OpenSANDConf::MetaValueType<T>::createData() const
+std::shared_ptr<OpenSANDConf::DataType> OpenSANDConf::MetaValueType<T>::createData() const
 {
-	return shared_ptr<OpenSANDConf::DataValueType<T>>(new OpenSANDConf::DataValueType<T>(this->getId()));
+	return std::shared_ptr<OpenSANDConf::DataValueType<T>>(new OpenSANDConf::DataValueType<T>(this->getId()));
 }
 
 template <typename T>

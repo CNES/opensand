@@ -39,12 +39,9 @@
 #include <string>
 #include <vector>
 
-#include <DataValueType.h>
-#include <BaseEnum.h>
+#include "DataValueType.h"
+#include "BaseEnum.h"
 
-using std::shared_ptr;
-using std::string;
-using std::vector;
 
 namespace OpenSANDConf
 {
@@ -53,7 +50,7 @@ namespace OpenSANDConf
 	/**
 	 * @brief String type with limited values
 	 */
-	class DataEnumType: public DataValueType<string>, public BaseEnum
+	class DataEnumType: public DataValueType<std::string>, public BaseEnum
 	{
 	public:
 		friend class MetaEnumType;
@@ -70,14 +67,14 @@ namespace OpenSANDConf
 		 * @param  id      The identifier
 		 * @param  values  The enumeration values
 		 */
-		DataEnumType(const string &id, const vector<string> &values);
+		DataEnumType(const std::string &id, const std::vector<std::string> &values);
 
 		/**
 		 * @brief Clone the current object.
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<DataType> clone() const override;
+		virtual std::shared_ptr<DataType> clone() const override;
 
 	public:
 		/**
@@ -96,7 +93,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  True if the data matches the current type, false otherwise
 		 */
-		virtual bool check(string value) const override;
+		virtual bool check(std::string value) const override;
 	};
 }
 

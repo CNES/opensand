@@ -38,8 +38,6 @@
 #include <string>
 #include <vector>
 
-using std::string;
-using std::vector;
 
 namespace OpenSANDConf
 {
@@ -59,7 +57,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The enumeration values
 		 */
-		const vector<string> &getValues() const;
+		const std::vector<std::string> &getValues() const;
 
 	protected:
 		/**
@@ -67,7 +65,7 @@ namespace OpenSANDConf
 		 *
 		 * @param values       The enumeration values
 		 */
-		BaseEnum(const vector<string> &values);
+		BaseEnum(const std::vector<std::string> &values);
 
 		/**
 		 * @brief Constructor by copy.
@@ -87,7 +85,7 @@ namespace OpenSANDConf
 		virtual bool equal(const BaseEnum &other) const;
 
 	private:
-		vector<string> values;
+    std::vector<std::string> values;
 	};
 }
 

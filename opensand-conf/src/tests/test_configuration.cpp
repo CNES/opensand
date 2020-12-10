@@ -39,7 +39,7 @@ TEST_CASE("Truth test", "[Common]")
 
 TEST_CASE("Model tests", "[Model]")
 {
-	string version = "1.0.0";
+  std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 
 	SECTION("Model is well-defined")
@@ -53,7 +53,7 @@ TEST_CASE("Model tests", "[Model]")
 
 	SECTION("We can change the Model Description")
 	{
-		string newDescription = "newDescription";
+    std::string newDescription = "newDescription";
 		model->getRoot()->setDescription(newDescription);
 		REQUIRE(model->getRoot()->getDescription() == newDescription);
 	}
@@ -90,7 +90,7 @@ TEST_CASE("Model enumeration types tests", "[Model][EnumTypes]")
 
 	SECTION("Adding an enum with values is possible")
 	{
-		std::initializer_list<string> vals = {"val1", "val2", "val3"};
+		std::initializer_list<std::string> vals = {"val1", "val2", "val3"};
 		REQUIRE(model->getTypesDefinition()->addEnumType("e", "enum", vals) != nullptr);
 		REQUIRE(model->getTypesDefinition()->getTypes().size() == primitive_type_count + 1);
 		REQUIRE(model->getTypesDefinition()->getType("e") != nullptr);
@@ -112,7 +112,7 @@ TEST_CASE("Model enumeration types tests", "[Model][EnumTypes]")
 
 	SECTION("Adding two enums with values is possible")
 	{
-		std::initializer_list<string> vals = {"val1", "val2", "val3"};
+		std::initializer_list<std::string> vals = {"val1", "val2", "val3"};
 
 		REQUIRE(model->getTypesDefinition()->addEnumType("e", "enum", {"test"}) != nullptr);
 		REQUIRE(model->getTypesDefinition()->getTypes().size() == primitive_type_count + 1);
@@ -139,7 +139,7 @@ TEST_CASE("Model enumeration types tests", "[Model][EnumTypes]")
 
 	SECTION("Adding an enum with duplicated values is possible")
 	{
-		std::initializer_list<string> vals = {"val1", "val1"};
+		std::initializer_list<std::string> vals = {"val1", "val1"};
 		REQUIRE(model->getTypesDefinition()->addEnumType("e", "enum", vals) != nullptr);
 		REQUIRE(model->getTypesDefinition()->getTypes().size() == primitive_type_count + 1);
 		REQUIRE(model->getTypesDefinition()->getType("e") != nullptr);
@@ -167,7 +167,7 @@ TEST_CASE("Model enumeration types tests", "[Model][EnumTypes]")
 
 TEST_CASE("Model component tests", "[Model][Component]")
 {
-	string version = "1.0.0";
+  std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 	REQUIRE(model != nullptr);
 
@@ -261,7 +261,7 @@ TEST_CASE("Model component tests", "[Model][Component]")
 
 TEST_CASE("Model parameter tests", "[Model][Parameter]")
 {
-	string version = "1.0.0";
+  std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 	REQUIRE(model != nullptr);
 
@@ -269,7 +269,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 	{
 		SECTION("We can add a boolean parameter")
 		{
-			string id = "id1";
+      std::string id = "id1";
 			bool val1 = true;
 			bool val2 = false;
 
@@ -305,10 +305,10 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 			SECTION("We can set a boolean data from string")
 			{
 				bool val1 = false;
-				string str1 = "false";
+        std::string str1 = "false";
 				bool val2 = true;
-				string str2 = "true";
-				string invalid = "42";
+        std::string str2 = "true";
+        std::string invalid = "42";
 
 				data->reset();
 				REQUIRE(data->isSet() == false);
@@ -343,7 +343,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 		SECTION("We can add a integer parameter")
 		{
-			string id = "id1";
+      std::string id = "id1";
 			int val1 = 23;
 			int val2 = 42;
 
@@ -379,14 +379,14 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 			SECTION("We can set an integer data from string")
 			{
 				int val1 = 42;
-				string str1 = "42";
+        std::string str1 = "42";
 				int val2 = 23;
-				string str2 = "23";
+        std::string str2 = "23";
 				int val3 = 86;
-				string str3 = "86.2";
-				string str3b = "86";
-				string invalid = "azerty";
-				//string invalid = "42.23azerty"; // FIXME? fromString succeeds but would not
+        std::string str3 = "86.2";
+        std::string str3b = "86";
+        std::string invalid = "azerty";
+				//std::string invalid = "42.23azerty"; // FIXME? fromString succeeds but would not
 
 				data->reset();
 				REQUIRE(data->isSet() == false);
@@ -426,7 +426,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 		SECTION("We can add a double parameter")
 		{
-			string id = "id1";
+      std::string id = "id1";
 			double val1 = 0.23;
 			double val2 = 0.42;
 
@@ -462,15 +462,15 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 			SECTION("We can set a double data from string")
 			{
 				double val1 = 42.42;
-				string str1 = "42.42";
+        std::string str1 = "42.42";
 				double val2 = 23.23;
-				string str2 = "23.23";
+        std::string str2 = "23.23";
 				double val3 = 1.12e3;
-				string str3 = "1.12e3";
-				string str3b = "1120";
+        std::string str3 = "1.12e3";
+        std::string str3b = "1120";
 				int val4 = 86;
-				string str4 = "86";
-				string invalid = "azerty";
+        std::string str4 = "86";
+        std::string invalid = "azerty";
 
 				data->reset();
 				REQUIRE(data->isSet() == false);
@@ -515,13 +515,13 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 		SECTION("We can add a string parameter")
 		{
-			string id = "id1";
-			string val1 = "value 1";
-			string val2 = "value 2";
+      std::string id = "id1";
+      std::string val1 = "value 1";
+      std::string val2 = "value 2";
 
 			auto param = model->getRoot()->addParameter(id, "Parameter 1", model->getTypesDefinition()->getType("string"));
 			REQUIRE(param != nullptr);
-			REQUIRE(std::dynamic_pointer_cast<MetaValueType<string>>(param->getType()) != nullptr);
+			REQUIRE(std::dynamic_pointer_cast<MetaValueType<std::string>>(param->getType()) != nullptr);
 			REQUIRE(param->getUnit() == "");
 			auto unit = "u";
 			param->setUnit(unit);
@@ -535,7 +535,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 			auto dataparam = datamodel->getRoot()->getParameter(param->getId());
 			REQUIRE(dataparam != nullptr);
-			auto data = std::dynamic_pointer_cast<DataValue<string>>(dataparam->getData());
+			auto data = std::dynamic_pointer_cast<DataValue<std::string>>(dataparam->getData());
 			REQUIRE(data != nullptr);
 			REQUIRE(dataparam->getData()->isSet() == false);
 
@@ -550,10 +550,10 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 			SECTION("We can set a string data from string")
 			{
-				string val1 = "42.42azerty";
-				string str1 = val1;
-				string val2 = "23.23!?*";
-				string str2 = val2;
+        std::string val1 = "42.42azerty";
+        std::string str1 = val1;
+        std::string val2 = "23.23!?*";
+        std::string str2 = val2;
 
 				data->reset();
 				REQUIRE(data->isSet() == false);
@@ -578,10 +578,10 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 		SECTION("We can add an enumeration parameter")
 		{
-			string id = "id1";
-			string val1 = "value 1";
-			string val2 = "value 2";
-			string invalid = "value 3";
+      std::string id = "id1";
+      std::string val1 = "value 1";
+      std::string val2 = "value 2";
+      std::string invalid = "value 3";
 
 			auto type = model->getTypesDefinition()->addEnumType("enum1", "Parameter enum 1", { val1, val2 });
 			REQUIRE(type != nullptr);
@@ -604,7 +604,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 			auto dataparam = datamodel->getRoot()->getParameter(param->getId());
 			REQUIRE(dataparam != nullptr);
-			auto data = std::dynamic_pointer_cast<DataValue<string>>(dataparam->getData());
+			auto data = std::dynamic_pointer_cast<DataValue<std::string>>(dataparam->getData());
 			REQUIRE(data != nullptr);
 			REQUIRE(dataparam->getData()->isSet() == false);
 
@@ -650,9 +650,9 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 		REQUIRE(dataparam1 != nullptr);
 		auto dataparam2 = datamodel->getRoot()->getParameter(param2->getId());
 		REQUIRE(dataparam2 != nullptr);
-		auto data1 = std::dynamic_pointer_cast<DataValue<string>>(dataparam1->getData());
+		auto data1 = std::dynamic_pointer_cast<DataValue<std::string>>(dataparam1->getData());
 		REQUIRE(data1 != nullptr);
-		auto data2 = std::dynamic_pointer_cast<DataValue<string>>(dataparam2->getData());
+		auto data2 = std::dynamic_pointer_cast<DataValue<std::string>>(dataparam2->getData());
 		REQUIRE(data2 != nullptr);
 
 		REQUIRE(data1->isSet() == false);
@@ -689,9 +689,9 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 		REQUIRE(datacpt1 != nullptr);
 		auto dataparam2 = datacpt1->getParameter(param2->getId());
 		REQUIRE(dataparam2 != nullptr);
-		auto data1 = std::dynamic_pointer_cast<DataValue<string>>(dataparam1->getData());
+		auto data1 = std::dynamic_pointer_cast<DataValue<std::string>>(dataparam1->getData());
 		REQUIRE(data1 != nullptr);
-		auto data2 = std::dynamic_pointer_cast<DataValue<string>>(dataparam2->getData());
+		auto data2 = std::dynamic_pointer_cast<DataValue<std::string>>(dataparam2->getData());
 		REQUIRE(data2 != nullptr);
 
 		REQUIRE(data1->isSet() == false);
@@ -722,7 +722,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 		auto param2 = std::dynamic_pointer_cast<MetaParameter>(elt);
 		REQUIRE(param == param2);
 
-		string desc = "This is a description";
+    std::string desc = "This is a description";
 		param2->setDescription(desc);
 		REQUIRE(param->getDescription() == desc);
 	}
@@ -730,7 +730,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 TEST_CASE("Model list tests", "[Model][List]")
 {
-	string version = "1.0.0";
+  std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 	REQUIRE(model != nullptr);
 
@@ -764,7 +764,7 @@ TEST_CASE("Model list tests", "[Model][List]")
 		REQUIRE(lst->getPattern() != nullptr);
 
 		// Build pattern
-		string desc = "This is a description";
+    std::string desc = "This is a description";
 		auto ptn = std::dynamic_pointer_cast<MetaComponent>(lst->getPattern());
 		REQUIRE(ptn != nullptr);
 		ptn->setDescription(desc);
@@ -794,11 +794,11 @@ TEST_CASE("Model list tests", "[Model][List]")
 		// Check items parameters
 		auto i1p1 = item1->getParameter("p1");
 		REQUIRE(i1p1 != nullptr);
-		auto i1d1 = std::dynamic_pointer_cast<DataValue<string>>(i1p1->getData());
+		auto i1d1 = std::dynamic_pointer_cast<DataValue<std::string>>(i1p1->getData());
 		REQUIRE(i1d1 != nullptr);
 		auto i2p1 = item2->getParameter("p1");
 		REQUIRE(i2p1 != nullptr);
-		auto i2d1 = std::dynamic_pointer_cast<DataValue<string>>(i2p1->getData());
+		auto i2d1 = std::dynamic_pointer_cast<DataValue<std::string>>(i2p1->getData());
 		REQUIRE(i2d1 != nullptr);
 
 		REQUIRE(i1d1->isSet() == false);
@@ -866,11 +866,11 @@ TEST_CASE("Model list tests", "[Model][List]")
 		// Check items parameters
 		auto i1p1 = item1->getParameter("p1");
 		REQUIRE(i1p1 != nullptr);
-		auto i1d1 = std::dynamic_pointer_cast<DataValue<string>>(i1p1->getData());
+		auto i1d1 = std::dynamic_pointer_cast<DataValue<std::string>>(i1p1->getData());
 		REQUIRE(i1d1 != nullptr);
 		auto i2p1 = item2->getParameter("p1");
 		REQUIRE(i2p1 != nullptr);
-		auto i2d1 = std::dynamic_pointer_cast<DataValue<string>>(i2p1->getData());
+		auto i2d1 = std::dynamic_pointer_cast<DataValue<std::string>>(i2p1->getData());
 		REQUIRE(i2d1 != nullptr);
 
 		REQUIRE(i1d1->isSet() == false);
@@ -941,7 +941,7 @@ TEST_CASE("Model list tests", "[Model][List]")
 		auto dataparam = dataitem1->getParameter("p1");
 		REQUIRE(dataparam != nullptr);
 		REQUIRE(dataparam == datamodel->getItemByPath("/cpt1/cpt2/l1/0/p1"));
-		auto data = std::static_pointer_cast<DataValue<string>>(dataparam->getData());
+		auto data = std::static_pointer_cast<DataValue<std::string>>(dataparam->getData());
 		REQUIRE(data != nullptr);
 		REQUIRE(data->isSet() == false);
 		REQUIRE(data->set("value") == true);
@@ -955,7 +955,7 @@ TEST_CASE("Model list tests", "[Model][List]")
 		auto dataparam2 = dataitem2->getParameter("p1");
 		REQUIRE(dataparam2 != nullptr);
 		REQUIRE(dataparam2 == datamodel->getItemByPath("/cpt1/cpt2/l1/1/p1"));
-		auto data2 = std::dynamic_pointer_cast<DataValue<string>>(dataparam2->getData());
+		auto data2 = std::dynamic_pointer_cast<DataValue<std::string>>(dataparam2->getData());
 		REQUIRE(data2 != nullptr);
 		REQUIRE(data2->isSet() == false);
 	}
@@ -963,7 +963,7 @@ TEST_CASE("Model list tests", "[Model][List]")
 
 TEST_CASE("Model data tests", "[Model][Data]")
 {
-	string version = "1.0.0";
+  std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 
 	SECTION("We can create a data model from a meta model")

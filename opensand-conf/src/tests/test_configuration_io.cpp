@@ -30,11 +30,11 @@ using OpenSANDConf::fromXSD;
 using OpenSANDConf::toXML;
 using OpenSANDConf::fromXML;
 
-string readFile(const string &filepath);
+std::string readFile(const std::string &filepath);
 
 TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 {
-	string version = "1.0.0";
+  std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 	auto root = model->getRoot();
 	REQUIRE(root != nullptr);
@@ -77,7 +77,7 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 	REQUIRE(cpt5->addParameter("e6", "Enum parameter (level 6)", types->getType("enum1")) != nullptr);
 	REQUIRE(cpt5->addParameter("s6", "String parameter (level 6)", types->getType("string")) != nullptr);
 
-	shared_ptr<DataParameter> p;
+  std::shared_ptr<DataParameter> p;
 	auto datamodel = model->createData();
 	REQUIRE(datamodel != nullptr);
 	auto dataroot = datamodel->getRoot();
@@ -156,8 +156,8 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 
 	SECTION("Read/Write model")
 	{
-		string path = "my_model.xsd";
-		string path2 = "my_model2.xsd";
+    std::string path = "my_model.xsd";
+    std::string path2 = "my_model2.xsd";
 		remove(path.c_str());
 		remove(path2.c_str());
 
@@ -177,8 +177,8 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 
 	SECTION("Read/Write model with reference")
 	{
-		string path = "my_model_ref.xsd";
-		string path2 = "my_model_ref2.xsd";
+    std::string path = "my_model_ref.xsd";
+    std::string path2 = "my_model_ref2.xsd";
 		remove(path.c_str());
 		remove(path2.c_str());
 
@@ -190,7 +190,7 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 		REQUIRE(model->setReference(element, target));
 		REQUIRE(element->getReferenceTarget() == target);
 		REQUIRE(element->getReferenceData() != nullptr);
-		auto expected = std::dynamic_pointer_cast<DataValue<string>>(element->getReferenceData());
+		auto expected = std::dynamic_pointer_cast<DataValue<std::string>>(element->getReferenceData());
 		REQUIRE(expected != nullptr);
 		REQUIRE(expected->set("val1"));
 
@@ -202,7 +202,7 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 		REQUIRE(model->setReference(element2, target2));
 		REQUIRE(element2->getReferenceTarget() == target2);
 		REQUIRE(element2->getReferenceData() != nullptr);
-		auto expected2 = std::dynamic_pointer_cast<DataValue<string>>(element2->getReferenceData());
+		auto expected2 = std::dynamic_pointer_cast<DataValue<std::string>>(element2->getReferenceData());
 		REQUIRE(expected2 != nullptr);
 		REQUIRE(expected2->set("val1"));
 
@@ -222,8 +222,8 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 
 	SECTION("Read/Write data model")
 	{
-		string path = "my_datamodel.xml";
-		string path2 = "my_datamodel2.xml";
+    std::string path = "my_datamodel.xml";
+    std::string path2 = "my_datamodel2.xml";
 		remove(path.c_str());
 		remove(path2.c_str());
 
@@ -240,10 +240,10 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 	}
 }
 
-string readFile(const string &filepath)
+std::string readFile(const std::string &filepath)
 {
 	std::ifstream ifs(filepath);
-	string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+  std::string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
 	return content;
 }
 

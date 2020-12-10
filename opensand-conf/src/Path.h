@@ -38,8 +38,6 @@
 #include <string>
 #include <vector>
 
-using std::string;
-using std::vector;
 
 namespace OpenSANDConf
 {
@@ -51,7 +49,7 @@ namespace OpenSANDConf
 	 *
 	 * @return The vector of ids
 	 */
-	vector<string> splitPath(const string &path, const char &separator='/');
+  std::vector<std::string> splitPath(const std::string &path, const char &separator='/');
 
 	/**
 	 * @brief Get the common path shared by two paths, using a specific separator.
@@ -62,7 +60,7 @@ namespace OpenSANDConf
 	 *
 	 * @return The common path shared by path1 and path2
 	 */
-	string getCommonPath(const string &path1, const string &path2, const char &separator='/');
+  std::string getCommonPath(const std::string &path1, const std::string &path2, const char &separator='/');
 
 	/**
 	 * @brief Get the relative path based on a parent path, using a specific separator.
@@ -73,7 +71,7 @@ namespace OpenSANDConf
 	 *
 	 * @return The relative path of the passed path regarding the parentpath
 	 */
-	string getRelativePath(const string &parentpath, const string &path, const char &separator='/');
+  std::string getRelativePath(const std::string &parentpath, const std::string &path, const char &separator='/');
 
 	/**
 	 * @brief Check a string is a valid id for a path, using a specific separator.
@@ -83,7 +81,7 @@ namespace OpenSANDConf
 	 *
 	 * @return True if the string is a valid path id, False otherwise
 	 */
-	bool checkPathId(const string &id, const char &separator='/');
+	bool checkPathId(const std::string &id, const char &separator='/');
 }
 
 #endif // OPENSAND_CONF_PATH_H

@@ -38,10 +38,8 @@
 #include <memory>
 #include <string>
 
-#include <BaseElement.h>
+#include "BaseElement.h"
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -81,21 +79,21 @@ namespace OpenSANDConf
 		 *
 		 * @param  id  The identifier
 		 */
-		DataType(const string &id);
+		DataType(const std::string &id);
 
 		/**
 		 * @brief Clone the current object.
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<DataType> clone() const = 0;
+		virtual std::shared_ptr<DataType> clone() const = 0;
 
 		/**
 		 * @brief Create a data
 		 *
 		 * @return New data
 		 */
-		virtual shared_ptr<Data> createData() const = 0;
+		virtual std::shared_ptr<Data> createData() const = 0;
 	};
 
 	bool operator== (const DataType &v1, const DataType &v2);

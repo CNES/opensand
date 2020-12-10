@@ -33,56 +33,66 @@
  *        (holds a list of components, lists and parameters).
  */
 
-#include <DataComponent.h>
+#include "DataComponent.h"
 
-OpenSANDConf::DataComponent::DataComponent(const string &id, const string &parent):
+
+OpenSANDConf::DataComponent::DataComponent(const std::string &id, const std::string &parent):
 	OpenSANDConf::DataContainer(id, parent)
 {
 }
 
+
 OpenSANDConf::DataComponent::DataComponent(
 		const OpenSANDConf::DataComponent &other,
-		shared_ptr<OpenSANDConf::DataTypesList> types):
+		std::shared_ptr<OpenSANDConf::DataTypesList> types):
 	OpenSANDConf::DataContainer(other, types)
 {
 }
 
+
 OpenSANDConf::DataComponent::DataComponent(
-		const string &id,
-		const string &parent,
+		const std::string &id,
+		const std::string &parent,
 		const DataComponent &other):
 	OpenSANDConf::DataContainer(id, parent, other)
 {
 }
 
+
 OpenSANDConf::DataComponent::~DataComponent()
 {
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataComponent::clone(shared_ptr<OpenSANDConf::DataTypesList> types) const
+
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataComponent::clone(std::shared_ptr<OpenSANDConf::DataTypesList> types) const
 {
-	return shared_ptr<OpenSANDConf::DataComponent>(new OpenSANDConf::DataComponent(*this, types));
+	return std::shared_ptr<OpenSANDConf::DataComponent>(new OpenSANDConf::DataComponent(*this, types));
 }
 
-shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataComponent::duplicateObject(const string &id, const string &parent) const
+
+std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataComponent::duplicateObject(const std::string &id, const std::string &parent) const
 {
-	return shared_ptr<OpenSANDConf::DataComponent>(new OpenSANDConf::DataComponent(id, parent, *this));
+	return std::shared_ptr<OpenSANDConf::DataComponent>(new OpenSANDConf::DataComponent(id, parent, *this));
 }
 
-shared_ptr<OpenSANDConf::DataParameter> OpenSANDConf::DataComponent::getParameter(const string &id) const
+
+std::shared_ptr<OpenSANDConf::DataParameter> OpenSANDConf::DataComponent::getParameter(const std::string &id) const
 {
 	return std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(this->getItem(id));
 }
 
-shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataComponent::getComponent(const string &id) const
+
+std::shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataComponent::getComponent(const std::string &id) const
 {
 	return std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(this->getItem(id));
 }
 
-shared_ptr<OpenSANDConf::DataList> OpenSANDConf::DataComponent::getList(const string &id) const
+
+std::shared_ptr<OpenSANDConf::DataList> OpenSANDConf::DataComponent::getList(const std::string &id) const
 {
 	return std::dynamic_pointer_cast<OpenSANDConf::DataList>(this->getItem(id));
 }
+
 
 bool OpenSANDConf::DataComponent::equal(const OpenSANDConf::DataElement &other) const
 {

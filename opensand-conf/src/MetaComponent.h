@@ -39,15 +39,12 @@
 #include <memory>
 #include <string>
 
-#include <MetaContainer.h>
-#include <MetaParameter.h>
-#include <MetaList.h>
-#include <MetaType.h>
-#include <MetaEnumType.h>
+#include "MetaContainer.h"
+#include "MetaParameter.h"
+#include "MetaList.h"
+#include "MetaType.h"
+#include "MetaEnumType.h"
 
-using std::shared_ptr;
-using std::weak_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -76,7 +73,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The parameter if found, nullptr otherwise
 		 */
-		shared_ptr<MetaParameter> getParameter(const string &id) const;
+    std::shared_ptr<MetaParameter> getParameter(const std::string &id) const;
 
 		/**
 		 * @brief Get an identified component.
@@ -85,7 +82,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The component if found, nullptr otherwise
 		 */
-		shared_ptr<MetaComponent> getComponent(const string &id) const;
+    std::shared_ptr<MetaComponent> getComponent(const std::string &id) const;
 
 		/**
 		 * @brief Get an identified list.
@@ -94,7 +91,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The list if found, nullptr otherwise
 		 */
-		shared_ptr<MetaList> getList(const string &id) const;
+    std::shared_ptr<MetaList> getList(const std::string &id) const;
 
 		/**
 		* @brief Add a new component to the component.
@@ -104,7 +101,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created component on success, nullptr otherwise
 		*/
-		shared_ptr<MetaComponent> addComponent(const string &id, const string &name);
+    std::shared_ptr<MetaComponent> addComponent(const std::string &id, const std::string &name);
 
 		/**
 		* @brief Add a new component to the component.
@@ -115,7 +112,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created component on success, nullptr otherwise
 		*/
-		shared_ptr<MetaComponent> addComponent(const string &id, const string &name, const string &description);
+    std::shared_ptr<MetaComponent> addComponent(const std::string &id, const std::string &name, const std::string &description);
 
 		/**
 		* @brief Add a new list to the component.
@@ -126,7 +123,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created list on success, nullptr otherwise
 		*/
-		shared_ptr<MetaList> addList(const string &id, const string &name, const string &pattern_name);
+    std::shared_ptr<MetaList> addList(const std::string &id, const std::string &name, const std::string &pattern_name);
 
 		/**
 		* @brief Add a new list to the component.
@@ -138,7 +135,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created list on success, nullptr otherwise
 		*/
-		shared_ptr<MetaList> addList(const string &id, const string &name, const string &pattern_name, const string &description);
+    std::shared_ptr<MetaList> addList(const std::string &id, const std::string &name, const std::string &pattern_name, const std::string &description);
 
 		/**
 		* @brief Add a new list to the component.
@@ -151,7 +148,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created list on success, nullptr otherwise
 		*/
-		shared_ptr<MetaList> addList(const string &id, const string &name, const string &pattern_name, const string &description, const string &pattern_description);
+    std::shared_ptr<MetaList> addList(const std::string &id, const std::string &name, const std::string &pattern_name, const std::string &description, const std::string &pattern_description);
 
 		/**
 		* @brief Add a new parameter to the component.
@@ -162,7 +159,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created parameter on success, nullptr otherwise
 		*/
-		shared_ptr<MetaParameter> addParameter(const string &id, const string &name, shared_ptr<MetaType> type);
+    std::shared_ptr<MetaParameter> addParameter(const std::string &id, const std::string &name, std::shared_ptr<MetaType> type);
 
 		/**
 		* @brief Add a new parameter to the component.
@@ -174,7 +171,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created parameter on success, nullptr otherwise
 		*/
-		shared_ptr<MetaParameter> addParameter(const string &id, const string &name, shared_ptr<MetaType> type, const string &description);
+    std::shared_ptr<MetaParameter> addParameter(const std::string &id, const std::string &name, std::shared_ptr<MetaType> type, const std::string &description);
 
 	protected:
 		/**
@@ -186,7 +183,7 @@ namespace OpenSANDConf
 		 * @param  description  The description
 		 * @param  types        The types list
 		 */
-		MetaComponent(const string &id, const string &parent, const string &name, const string &description, weak_ptr<const MetaTypesList> types);
+		MetaComponent(const std::string &id, const std::string &parent, const std::string &name, const std::string &description, std::weak_ptr<const MetaTypesList> types);
 
 		/**
 		 * @brief Constructor by copy.
@@ -194,7 +191,7 @@ namespace OpenSANDConf
 		 * @param  other  The object to copy
 		 * @param  types  The types list
 		 */
-		MetaComponent(const MetaComponent &other, weak_ptr<const MetaTypesList> types);
+		MetaComponent(const MetaComponent &other, std::weak_ptr<const MetaTypesList> types);
 
 		/**
 		 * @brief Clone the current object.
@@ -203,7 +200,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<MetaElement> clone(weak_ptr<const MetaTypesList> types) const override;
+		virtual std::shared_ptr<MetaElement> clone(std::weak_ptr<const MetaTypesList> types) const override;
 
 		/**
 		 * @brief Create a datamodel element.
@@ -212,7 +209,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The new datamodel element if succeeds, nullptr otherwise
 		 */
-		virtual shared_ptr<DataElement> createData(shared_ptr<DataTypesList> types) const override;
+		virtual std::shared_ptr<DataElement> createData(std::shared_ptr<DataTypesList> types) const override;
 
 	public:
 		/**

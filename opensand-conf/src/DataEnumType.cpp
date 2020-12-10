@@ -34,12 +34,13 @@
 
 #include <algorithm>
 
-#include <DataEnumType.h>
-#include <DataValue.h>
-#include <DataTypesList.h>
+#include "DataEnumType.h"
+#include "DataValue.h"
+#include "DataTypesList.h"
 
-OpenSANDConf::DataEnumType::DataEnumType(const string &id, const vector<string> &values):
-	OpenSANDConf::DataValueType<string>(id),
+
+OpenSANDConf::DataEnumType::DataEnumType(const std::string &id, const std::vector<std::string> &values):
+	OpenSANDConf::DataValueType<std::string>(id),
 	OpenSANDConf::BaseEnum(values)
 {
 }
@@ -48,24 +49,24 @@ OpenSANDConf::DataEnumType::~DataEnumType()
 {
 }
 
-shared_ptr<OpenSANDConf::DataType> OpenSANDConf::DataEnumType::clone() const
+std::shared_ptr<OpenSANDConf::DataType> OpenSANDConf::DataEnumType::clone() const
 {
-	return shared_ptr<OpenSANDConf::DataEnumType>(new OpenSANDConf::DataEnumType(this->getId(), this->getValues()));
+	return std::shared_ptr<OpenSANDConf::DataEnumType>(new OpenSANDConf::DataEnumType(this->getId(), this->getValues()));
 }
 
 bool OpenSANDConf::DataEnumType::equal(const DataType &other) const
 {
 	const OpenSANDConf::DataEnumType *elt = dynamic_cast<const OpenSANDConf::DataEnumType *>(&other);
-	if(elt == nullptr || !this->OpenSANDConf::DataValueType<string>::equal(*elt))
+	if(elt == nullptr || !this->OpenSANDConf::DataValueType<std::string>::equal(*elt))
 	{
 		return false;
 	}
 	return this->OpenSANDConf::BaseEnum::equal(*elt);
 }
 
-bool OpenSANDConf::DataEnumType::check(string value) const
+bool OpenSANDConf::DataEnumType::check(std::string value) const
 {
-	if(!this->OpenSANDConf::DataValueType<string>::check(value))
+	if(!this->OpenSANDConf::DataValueType<std::string>::check(value))
 	{
 		return true;
 	}

@@ -38,11 +38,9 @@
 #include <memory>
 #include <string>
 
-#include <MetaModel.h>
-#include <DataModel.h>
+#include "MetaModel.h"
+#include "DataModel.h"
 
-using std::string;
-using std::shared_ptr;
 
 namespace OpenSANDConf
 {
@@ -54,7 +52,7 @@ namespace OpenSANDConf
 	 *
 	 * @return True on success, false otherwise
 	 */
-	bool toXSD(shared_ptr<MetaModel> model, const string &filepath);
+	bool toXSD(std::shared_ptr<MetaModel> model, const std::string &filepath);
 
 	/**
 	 * @brief Read a XSD file to generate a new model.
@@ -63,7 +61,7 @@ namespace OpenSANDConf
 	 *
 	 * @return The new generated model from XSD on success, nullptr otherwise
 	 */
-	shared_ptr<MetaModel> fromXSD(const string &filepath);
+  std::shared_ptr<MetaModel> fromXSD(const std::string &filepath);
 
 	/**
 	 * @brief Write a XML file from a datamodel
@@ -73,7 +71,7 @@ namespace OpenSANDConf
 	 *
 	 * @return True on success, false otherwise
 	 */
-	bool toXML(shared_ptr<DataModel> datamodel, const string &filepath);
+	bool toXML(std::shared_ptr<DataModel> datamodel, const std::string &filepath);
 
 	/**
 	 * @brief Read a XML file to generate a new datamodel matching a model.
@@ -83,7 +81,7 @@ namespace OpenSANDConf
 	 *
 	 * @return The new generated datamodel from XML on success, nullptr otherwise
 	 */
-	shared_ptr<DataModel> fromXML(shared_ptr<MetaModel> model, const string &filepath);
+  std::shared_ptr<DataModel> fromXML(std::shared_ptr<MetaModel> model, const std::string &filepath);
 }
 
 #endif // OPENSAND_CONF_CONFIGURATION_HPP

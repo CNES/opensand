@@ -32,12 +32,13 @@
  * @brief Represents a meta type
  */
 
-#include <MetaType.h>
+#include "MetaType.h"
+
 
 OpenSANDConf::MetaType::MetaType(
-		const string &id,
-		const string &name,
-		const string &description):
+		const std::string &id,
+		const std::string &name,
+		const std::string &description):
 	NamedElement(id, name, description)
 {
 }

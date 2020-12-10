@@ -38,10 +38,8 @@
 #include <string>
 #include <tuple>
 
-#include <BaseElement.h>
+#include "BaseElement.h"
 
-using std::shared_ptr;
-using std::string;
 
 namespace OpenSANDConf
 {
@@ -70,7 +68,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The path
 		 */
-		string getPath() const;
+    std::string getPath() const;
 
 		/**
 		 * @brief Check the reference value matches the expected value.
@@ -98,7 +96,7 @@ namespace OpenSANDConf
 		 * @param  id      The identifier
 		 * @param  parent  The parent path
 		 */
-		DataElement(const string &id, const string &parent);
+		DataElement(const std::string &id, const std::string &parent);
 
 		/**
 		 * @brief Constructor by copy (cloning).
@@ -114,7 +112,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The cloned object
 		 */
-		virtual shared_ptr<DataElement> clone(shared_ptr<DataTypesList> types) const = 0;
+		virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const = 0;
 
 		/**
 		 * @brief Duplicate the current object.
@@ -124,7 +122,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The duplicated object
 		 */
-		virtual shared_ptr<DataElement> duplicateObject(const string &id, const string &parent) const = 0;
+		virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const = 0;
 
 		/**
 		 * @brief Duplicate the reference to another object.
@@ -133,7 +131,7 @@ namespace OpenSANDConf
 		 *
 		 * @return True on success, false otherwise
 		 */
-		virtual bool duplicateReference(shared_ptr<DataElement> copy) const;
+		virtual bool duplicateReference(std::shared_ptr<DataElement> copy) const;
 
 		/**
 		 * @brief Duplicate the current object.
@@ -143,7 +141,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The duplicated object
 		 */
-		shared_ptr<DataElement> duplicate(const string &id, const string &parent) const;
+    std::shared_ptr<DataElement> duplicate(const std::string &id, const std::string &parent) const;
 
 		/**
 		 * @brief Specify a reference to a parameter value.
@@ -152,21 +150,21 @@ namespace OpenSANDConf
 		 *
 		 * @return True on success, false otherwise
 		 */
-		void setReference(shared_ptr<const DataParameter> target);
+		void setReference(std::shared_ptr<const DataParameter> target);
 
 		/**
 		 * @brief Get the reference parameter.
 		 *
 		 * @return The target parameter
 		 */
-		shared_ptr<const DataParameter> getReferenceTarget() const;
+    std::shared_ptr<const DataParameter> getReferenceTarget() const;
 
 		/**
 		 * @brief Get the expected data of the reference parameter.
 		 *
 		 * @return The expected data
 		 */
-		shared_ptr<Data> getReferenceData() const;
+    std::shared_ptr<Data> getReferenceData() const;
 
 		/**
 		 * @brief Validate the datamodel element.
@@ -180,11 +178,11 @@ namespace OpenSANDConf
 		 *
 		 * @return  The parent path
 		 */
-		const string &getParentPath() const;
+		const std::string &getParentPath() const;
 
 	private:
-		string parent;
-		std::tuple<shared_ptr<const DataParameter>, shared_ptr<Data>> reference;
+    std::string parent;
+		std::tuple<std::shared_ptr<const DataParameter>, std::shared_ptr<Data>> reference;
 
 		/**
 		 * @brief Get an item by path.
@@ -195,7 +193,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The item if found, nullptr otherwise
 		 */
-		static shared_ptr<DataElement> getItemFromRoot(shared_ptr<DataElement> root, const string &path, bool meta);
+		static std::shared_ptr<DataElement> getItemFromRoot(std::shared_ptr<DataElement> root, const std::string &path, bool meta);
 	};
 
 	bool operator== (const DataElement &v1, const DataElement &v2);
