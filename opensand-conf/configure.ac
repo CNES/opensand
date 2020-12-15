@@ -36,11 +36,6 @@ PKG_CHECK_MODULES([LIBXMLXX], [$OPENSAND_CONF_REQ])
 LIBS="$LIBXMLXX_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$LIBXMLXX_CFLAGS")
 
-# Check Catch2 dependency for tests
-AC_LANG([C++])
-AC_CHECK_HEADER([catch2/catch.hpp], [], [AC_MSG_ERROR([Missing header catch.hpp])])
-AC_LANG([C])
-
 # Check python3-dev dependency for Python module
 AC_SUBST([PYTHON_VERSION], [3])
 AX_PYTHON_DEVEL

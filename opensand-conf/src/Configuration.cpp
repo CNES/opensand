@@ -661,16 +661,19 @@ bool addXSDChild(xmlNodePtr &node, const std::vector<std::shared_ptr<OpenSANDCon
 	for(auto elt: elements)
 	{
 		xmlNodePtr eltnode = nullptr;
-		if(auto param = std::dynamic_pointer_cast<OpenSANDConf::MetaParameter>(elt); param != nullptr)
+		if(std::dynamic_pointer_cast<OpenSANDConf::MetaParameter>(elt) != nullptr)
 		{
+			auto param = std::dynamic_pointer_cast<OpenSANDConf::MetaParameter>(elt);
 			eltnode = elementToXSD(param);
 		}
-		else if(auto comp = std::dynamic_pointer_cast<OpenSANDConf::MetaComponent>(elt); comp != nullptr)
+		else if(std::dynamic_pointer_cast<OpenSANDConf::MetaComponent>(elt) != nullptr)
 		{
+			auto comp = std::dynamic_pointer_cast<OpenSANDConf::MetaComponent>(elt);
 			eltnode = elementToXSD(comp);
 		}
-		else if(auto lst = std::dynamic_pointer_cast<OpenSANDConf::MetaList>(elt); lst != nullptr)
+		else if(std::dynamic_pointer_cast<OpenSANDConf::MetaList>(elt) != nullptr)
 		{
+			auto lst = std::dynamic_pointer_cast<OpenSANDConf::MetaList>(elt);
 			eltnode = elementToXSD(lst);
 		}
 		if(eltnode == nullptr)
@@ -1075,16 +1078,19 @@ xmlNodePtr parameterToXML(std::shared_ptr<OpenSANDConf::DataParameter> element)
 xmlNodePtr elementToXML(std::shared_ptr<OpenSANDConf::DataElement> element)
 {
 	xmlNodePtr node = nullptr;
-	if(auto param = std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(element); param != nullptr)
+	if(std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(element) != nullptr)
 	{
+		auto param = std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(element);
 		node = parameterToXML(param);
 	}
-	else if(auto comp = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(element); comp != nullptr)
+	else if(std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(element) != nullptr)
 	{
+		auto comp = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(element);
 		node = componentToXML(comp);
 	}
-	else if(auto lst = std::dynamic_pointer_cast<OpenSANDConf::DataList>(element); lst != nullptr)
+	else if(std::dynamic_pointer_cast<OpenSANDConf::DataList>(element) != nullptr)
 	{
+		auto lst = std::dynamic_pointer_cast<OpenSANDConf::DataList>(element);
 		node = listToXML(lst);
 	}
 	return node;
@@ -1133,23 +1139,26 @@ bool loadComponentFromXML(std::shared_ptr<OpenSANDConf::DataComponent> current, 
 		{
 			return false;
 		}
-		else if(auto param = std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(element); param != nullptr)
+		else if(std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(element) != nullptr)
 		{
+			auto param = std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(element);
 			auto content = getNodeContent(child);
 			if(content != "" && !param->getData()->fromString(content))
 			{
 				return false;
 			}
 		}
-		else if(auto comp = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(element); comp != nullptr)
+		else if(std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(element) != nullptr)
 		{
+			auto comp = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(element);
 			if(!loadComponentFromXML(comp, child))
 			{
 				return false;
 			}
 		}
-		else if(auto lst = std::dynamic_pointer_cast<OpenSANDConf::DataList>(element); lst != nullptr)
+		else if(std::dynamic_pointer_cast<OpenSANDConf::DataList>(element) != nullptr)
 		{
+			auto lst = std::dynamic_pointer_cast<OpenSANDConf::DataList>(element);
 			auto nodes = getChildNodes(child, "", "item");
 			for(auto itemnode: nodes)
 			{

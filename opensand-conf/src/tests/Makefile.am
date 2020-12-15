@@ -15,7 +15,8 @@ check_PROGRAMS = \
 	test_configuration_io
 
 test_configuration_SOURCES = \
-	test_configuration.cpp
+	test_configuration.cpp \
+	catch.hpp
 
 test_configuration_LDADD = \
 	$(AM_LDADD) \
@@ -31,7 +32,8 @@ test_configuration_LDFLAGS = \
 	-L$(top_builddir)/src/.libs
 
 test_configuration_ref_SOURCES = \
-	test_configuration_ref.cpp
+	test_configuration_ref.cpp \
+	catch.hpp
 
 test_configuration_ref_LDADD = \
 	$(AM_LDADD) \
@@ -47,7 +49,8 @@ test_configuration_ref_LDFLAGS = \
 	-L$(top_builddir)/src/.libs
 
 test_configuration_io_SOURCES = \
-	test_configuration_io.cpp
+	test_configuration_io.cpp \
+	catch.hpp
 
 test_configuration_io_LDADD = \
 	$(AM_LDADD) \
