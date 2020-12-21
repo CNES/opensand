@@ -64,7 +64,6 @@
 #include "BlockDvbSatTransp.h"
 #include "BlockSatCarrier.h"
 #include "Plugin.h"
-#include "OpenSandConf.h"
 
 
 vector<string> EntitySat::generateUsage(const string &progname) const
@@ -131,7 +130,7 @@ bool EntitySat::parseSpecificArguments(int argc, char **argv,
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: missing mandatory IP address option",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 
@@ -153,7 +152,7 @@ bool EntitySat::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the DvbSat block",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 
@@ -168,7 +167,7 @@ bool EntitySat::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the SatCarrier block",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 

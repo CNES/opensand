@@ -34,7 +34,7 @@
 
 
 #include "DamaCtrlRcs2.h"
-#include "OpenSandConf.h"
+#include "OpenSandModelConf.h"
 #include "TerminalContextDamaRcs.h"
 #include "CarriersGroupDama.h"
 #include "UnitConverterFixedSymbolLength.h"
@@ -120,7 +120,7 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 	// Checking if the station is registered
 	// if we get GW terminal ID this is for physical layer parameters
 	terminal = (TerminalContextDamaRcs *)this->getTerminalContext(tal_id);
-	if(terminal == NULL && !OpenSandConf::isGw(tal_id))
+	if(terminal == NULL && !OpenSandModelConf::Get()->isGw(tal_id))
 	{
 		LOG(this->log_sac, LEVEL_ERROR, 
 		    "SF#%u: CR for an unknown st (logon_id=%u). "

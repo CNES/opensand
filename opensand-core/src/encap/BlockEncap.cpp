@@ -37,7 +37,7 @@
 #include "BlockEncap.h"
 
 #include "Plugin.h"
-#include "OpenSandConf.h"
+#include "OpenSandModelConf.h"
 
 
 #include <opensand_output/Output.h>
@@ -293,7 +293,7 @@ bool BlockEncap::onInit()
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "lan adaptation upper layer is %s\n", lan_name.c_str());
 
-	if (!OpenSandConf::isGw(this->mac_id))
+	if (!OpenSandModelConf::Get()->isGw(this->mac_id))
 	{
 		bool no_scpc = !this->checkIfScpc();
 		
@@ -631,7 +631,7 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 	    nb_bursts, burst->name().c_str());
 
 	if(burst->name() == this->scpc_encap &&
-	   OpenSandConf::isGw(this->mac_id))
+	   OpenSandModelConf::Get()->isGw(this->mac_id))
 	{
 		// SCPC case
 
@@ -799,7 +799,7 @@ bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
 	string encap_name;
 
 	// Get SCPC encapsulation context
-	if (!OpenSandConf::getScpcEncapStack(scpc_encap) ||
+	if (!OpenSandModelConf::Get()->getScpcEncapStack(scpc_encap) ||
 		scpc_encap.size() <= 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -849,62 +849,3 @@ bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
 		return false;
 }
 
-// TODO try to factorize or remove
-/*bool BlockEncap::initModcodFiles(const char *def,
-                                 const char *simu,
-                                 FmtSimulation &fmt_simu,
-                                 FmtDefinitionTable &modcod_def)
-{
-	string modcod_simu_file;
-	string modcod_def_file;
-
-	// MODCOD simulations and definitions for down/forward link
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   simu, modcod_simu_file))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, simu);
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "down/forward link MODCOD simulation path set to %s\n",
-	    modcod_simu_file.c_str());
-
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   def, modcod_def_file))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, def);
-		goto error;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "down/forward link MODCOD definition path set to %s\n",
-	    modcod_def_file.c_str());
-
-	// load all the MODCOD definitions from file
-	if(!fileExists(modcod_def_file.c_str()))
-	{
-		goto error;
-	}
-	if(!modcod_def.load(modcod_def_file))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load the MODCOD definitions from file "
-		    "'%s'\n", modcod_def_file.c_str());
-		return false;
-	}
-
-	// no need for simulation file if there is a physical layer
-		// set the MODCOD simulation file
-	if(!fmt_simu.setModcodSimu(modcod_simu_file,0))
-	{
-		goto error;
-	}
-
-	return true;
-
-error:
-	return false;
-}*/

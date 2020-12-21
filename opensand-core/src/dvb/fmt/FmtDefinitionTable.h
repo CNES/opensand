@@ -64,7 +64,7 @@ class FmtDefinitionTable
  protected:
 
 	// Output Log
-  std::shared_ptr<OutputLog> log_fmt;
+	std::shared_ptr<OutputLog> log_fmt;
 
 	/**
 	 * @brief Add a new FMT definition in the table

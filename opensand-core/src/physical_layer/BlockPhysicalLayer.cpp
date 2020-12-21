@@ -39,7 +39,7 @@
 #include "Plugin.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
-#include "OpenSandConf.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_old_conf/conf.h>
@@ -177,7 +177,8 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			// Ignore SAC messages if ST
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Check the entity is a ST and DVB frame is SAC");
-			if(!OpenSandConf::isGw(this->mac_id) && dvb_frame->getMessageType() == MSG_TYPE_SAC)
+			if(!OpenSandModelConf::Get()->isGw(this->mac_id) &&
+			   dvb_frame->getMessageType() == MSG_TYPE_SAC)
 			{
 				LOG(this->log_event, LEVEL_DEBUG,
 				    "The SAC is deleted because the entity is not a GW");

@@ -41,7 +41,6 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "SlottedAlohaFrame.h"
-#include "OpenSandConf.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_old_conf/conf.h>

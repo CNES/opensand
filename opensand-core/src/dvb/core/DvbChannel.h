@@ -48,7 +48,7 @@
 #include "Sac.h"
 #include "Ttp.h"
 #include "StFmtSimu.h"
-#include "OpenSandConf.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
@@ -146,12 +146,12 @@ class DvbChannel
 	 * @param   categories           OUT: The terminal categories
 	 * @param   terminal_affectation OUT: The terminal affectation in categories
 	 * @param   default_category     OUT: The default category if terminal is not
-	 *                                  in terminal affectation
+	 *                                    in terminal affectation
 	 * @param   fmt_groups           OUT: The groups of FMT ids
 	 * @return true on success, false otherwise
 	 */
 	template<class T>
-	bool initBand(ConfigurationList spot,
+	bool initBand(const OpenSandModelConf::spot &spot,
 	              string section,
 	              access_type_t access_type,
 	              time_ms_t duration_ms,
@@ -342,7 +342,7 @@ inline vector<unsigned int> tempSplit(string values)
 // Implementation of functions with templates
 
 template<class T>
-bool DvbChannel::initBand(ConfigurationList spot,
+bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
                           string section,
                           access_type_t access_type,
                           time_ms_t duration_ms,
@@ -352,304 +352,48 @@ bool DvbChannel::initBand(ConfigurationList spot,
                           T **default_category,
                           fmt_groups_t &fmt_groups)
 {
-	freq_khz_t bandwidth_khz;
-	double roll_off;
-	freq_mhz_t bandwidth_mhz = 0;
-	ConfigurationList conf_list;
-	ConfigurationList aff_list;
-	typename TerminalCategories<T>::iterator cat_iter;
-	unsigned int carrier_id = 0;
-	int i;
-	string default_category_name;
-	vector<unsigned int> used_group_ids;
-
 	// Get the value of the bandwidth
-	if(!Conf::getValue(spot, BANDWIDTH,
-	                   bandwidth_mhz))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    section.c_str(), BANDWIDTH);
-		goto error;
-	}
-	bandwidth_khz = bandwidth_mhz * 1000;
+	freq_khz_t bandwidth_khz = spot.bandwidth_khz;
 	LOG(this->log_init_channel, LEVEL_INFO,
 	    "%s: bandwitdh is %u kHz\n",
 	    section.c_str(), bandwidth_khz);
 
 	// Get the value of the roll off
-	if(!Conf::getValue(Conf::section_map[section],
-		               ROLL_OFF, roll_off))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    section.c_str(), ROLL_OFF);
-		goto error;
-	}
+	double roll_off = spot.roll_off;
 
-	conf_list.clear();
-	// get the carriers distribution
-	if(!Conf::getListItems(spot, CARRIERS_DISTRI_LIST, conf_list))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    section.c_str(),
-		    CARRIERS_DISTRI_LIST);
-		goto error;
-	}
+	unsigned int carrier_id = 0;
+	group_id_t group_id = 0;
+	for (auto& carrier : spot.carriers) {
+		bool is_vcm = carrier.format_ratios.size() > 1;
+		for (auto& format_ratios : carrier.format_ratios) {
+			FmtGroup *group = nullptr;
+			std::string fmt_ids = format_ratios.first;
+			if (carrier.access_type == access_type) {
+				// we won't initialize FMT group here for other access
+				++group_id;
+				group = new FmtGroup(group_id, fmt_ids, fmt_def);
+				fmt_groups[group_id] = group;
 
-	// before initializing FMT groups, we need to get the IDs to initialize
-	// thanks to the access type
-	// indeed, we won't be able to initiliaze FMT groups for SCPC while parsing
-	// DAMA RCS carriers as the FMT definitions are not the same
-	i = 0;
-	for(ConfigurationList::iterator iter = conf_list.begin();
-	    iter != conf_list.end(); ++iter)
-	{
-		string access;
-		string group_id;
-		vector<unsigned int> group_ids;
-		i++;
-
-		// Get carriers' access type
-		if(!Conf::getAttributeValue(iter, ACCESS_TYPE, access))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n",
-			    section.c_str(),
-			    ACCESS_TYPE, i);
-			goto error;
-		}
-		if(strToAccessType(access) != access_type)
-		{
-			// we won't initialize FMT group here
-			continue;
-		}
-
-		// Get carriers' FMT id
-		if(!Conf::getAttributeValue(iter, FMT_GROUP, group_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n",
-			    section.c_str(),
-			    FMT_GROUP, i);
-			goto error;
-		}
-		group_ids = tempSplit(group_id);
-		used_group_ids.insert(used_group_ids.end(), group_ids.begin(), group_ids.end());
-	}
-
-	conf_list.clear();
-	// get the FMT groups
-	if(!Conf::getListItems(spot,
-	                       FMT_GROUP_LIST,
-	                       conf_list))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    section.c_str(), FMT_GROUP_LIST);
-		goto error;
-	}
-
-	// create group list
-	for(ConfigurationList::iterator iter = conf_list.begin();
-	    iter != conf_list.end(); ++iter)
-	{
-		group_id_t group_id = 0;
-		string fmt_id;
-		FmtGroup *group;
-
-		// Get group id name
-		if(!Conf::getAttributeValue(iter, GROUP_ID, group_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in FMT "
-			    "groups\n", section.c_str(),
-			    GROUP_ID);
-			goto error;
-		}
-
-		// check if we need to intialize this group id
-		if(std::find(used_group_ids.begin(), used_group_ids.end(), group_id) ==
-		   used_group_ids.end())
-		{
-			continue;
-		}
-
-		// Get FMT IDs
-		if(!Conf::getAttributeValue(iter, FMT_ID, fmt_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in FMT "
-			    "groups\n", section.c_str(),
-			    FMT_ID);
-			goto error;
-		}
-
-		if(fmt_groups.find(group_id) != fmt_groups.end())
-		{
-			LOG(this->log_init_channel, LEVEL_INFO,
-			    "Section %s, FMT group %u already loaded\n",
-			    section.c_str(),
-			    group_id);
-			continue;
-		}
-		group = new FmtGroup(group_id, fmt_id, fmt_def);
-		fmt_groups[group_id] = group;
-	}
-
-	conf_list.clear();
-	// get the carriers distribution
-	if(!Conf::getListItems(spot, CARRIERS_DISTRI_LIST, conf_list))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    section.c_str(),
-		    CARRIERS_DISTRI_LIST);
-		goto error;
-	}
-
-	i = 0;
-	// create terminal categories according to channel distribution
-	for(ConfigurationList::iterator iter = conf_list.begin();
-	    iter != conf_list.end(); ++iter)
-	{
-		string name;
-		string ratio;
-		vector<unsigned int> ratios;
-		rate_symps_t symbol_rate_symps;
-		string group_id;
-		vector<unsigned int> group_ids;
-		string access;
-		unsigned int vcm_id = 0;
-		T *category;
-
-		i++;
-
-		// Get carriers' name
-		if(!Conf::getAttributeValue(iter, CATEGORY, name))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n",
-			    section.c_str(),
-			    CATEGORY, i);
-			goto error;
-		}
-
-		// Get carriers' ratio
-		if(!Conf::getAttributeValue(iter, RATIO, ratio))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n",
-			    section.c_str(), RATIO, i);
-			goto error;
-		}
-		// parse ratio if there is many values
-		ratios = tempSplit(ratio);
-
-		// Get carriers' symbol rate
-		if(!Conf::getAttributeValue(iter, SYMBOL_RATE, symbol_rate_symps))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n",
-			    section.c_str(),
-			    SYMBOL_RATE, i);
-			goto error;
-		}
-
-		// Get carriers' FMT id
-		if(!Conf::getAttributeValue(iter, FMT_GROUP, group_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n",
-			    section.c_str(),
-			    FMT_GROUP, i);
-			goto error;
-		}
-		// parse group ids if there is many values
-		group_ids = tempSplit(group_id);
-
-		if(group_ids.size() != ratios.size())
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "There should be as many ratio values as fmt groups values\n");
-			goto error;
-		}
-
-		// Get carriers' access type
-		if(!Conf::getAttributeValue(iter, ACCESS_TYPE, access))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in carriers "
-			    "distribution table entry %u\n",
-			    section.c_str(),
-			    ACCESS_TYPE, i);
-			goto error;
-		}
-
-
-		// check access only when loading it to avoid problems with fmt_groups
-		// that are not loaded
-		if(access_type == strToAccessType(access))
-		{
-			if(access != ACCESS_VCM &&
-			   (group_ids.size() > 1 || ratios.size() > 1))
-			{
-				LOG(this->log_init_channel, LEVEL_ERROR,
-				    "Too many FMT groups or ratio for non-VCM access type\n");
-				goto error;
-			}
-
-			if(access == ACCESS_ALOHA and group_ids.size() == 1 and
-			   fmt_groups[group_ids[0]]->getFmtIds().size() > 1)
-			{
-				LOG(this->log_init_channel, LEVEL_ERROR,
-					"Fmt group cannot have more than one modcod for saloha\n");
-				goto error;
-			}
-		}
-
-		LOG(this->log_init_channel, LEVEL_NOTICE,
-		    "%s: new carriers: category=%s, Rs=%G, FMT group=%s, "
-		    "ratio=%s, access type=%s\n",
-		    section.c_str(), name.c_str(),
-		    symbol_rate_symps, group_id.c_str(), ratio.c_str(),
-		    access.c_str());
-
-		for(vector<unsigned int>::iterator it = group_ids.begin();
-		    it != group_ids.end(); ++it)
-		{
-			fmt_groups_t::const_iterator group_it;
-			group_it = fmt_groups.find(*it);
-			FmtGroup *group = NULL;
-			if(group_it == fmt_groups.end())
-			{
-				// we should have initialized the FMT group here
-				if(access_type == strToAccessType(access))
-				{
+				auto modcod_amount = group->getFmtIds().size();
+				if ((is_vcm || access_type == ALOHA) && modcod_amount > 1) {
 					LOG(this->log_init_channel, LEVEL_ERROR,
-					    "Section %s, no entry for FMT group with ID %u\n",
-					    section.c_str(), (*it));
-					goto error;
+					    "Carrier cannot have more than one modcod for saloha or VCM\n");
+					return false;
 				}
 			}
-			else
-			{
-				group = (*group_it).second;
-				if(group_ids.size() > 1 && group->getFmtIds().size() > 1)
-				{
-					LOG(this->log_init_channel, LEVEL_ERROR,
-					    "For each VCM carriers, the FMT group should only "
-					    "contain one FMT id\n");
-					goto error;
-				}
-			}
+
+			std::string name = carrier.category;
+			unsigned int ratio = format_ratios.second;
+			rate_symps_t symbol_rate_symps = carrier.symbol_rate;
+
+			// TODO: Improve this log, esp. for access type
+			LOG(this->log_init_channel, LEVEL_NOTICE,
+			    "%s: new carriers: category=%s, Rs=%G, FMTs=%s, "
+			    "ratio=%d, access type=%d\n",
+			    section.c_str(), name.c_str(),
+			    symbol_rate_symps, fmt_ids.c_str(), ratio,
+			    carrier.access_type);
+
 			// group may be NULL if this is not the good access type, this should be
 			// only used in other_carriers in TerminalCategory that won't access
 			// fmt_groups
@@ -658,21 +402,23 @@ bool DvbChannel::initBand(ConfigurationList spot,
 			// we also create categories with wrong access type because:
 			//  - we may have many access types in the category
 			//  - we need to get all carriers for band computation
-			cat_iter = categories.find(name);
-			category = dynamic_cast<T *>((*cat_iter).second);
+			T *category;
+			auto cat_iter = categories.find(name);
 			if(cat_iter == categories.end())
 			{
 				category = new T(name, access_type);
 				categories[name] = category;
 			}
-			category->addCarriersGroup(carrier_id, group,
-			                           ratios[vcm_id],
+			else
+			{
+				category = dynamic_cast<T *>(cat_iter->second);
+			}
+			category->addCarriersGroup(carrier_id,
+			                           group, ratio,
 			                           symbol_rate_symps,
-			                           strToAccessType(access));
-			vcm_id++;
-			// do not increment carrier_id here
+			                           carrier.access_type);
 		}
-		carrier_id++;
+		++carrier_id;
 	}
 
 	// Compute bandplan
@@ -681,10 +427,10 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Cannot compute band plan for %s\n",
 		    section.c_str());
-		goto error;
+		return false;
 	}
 
-	cat_iter = categories.begin();
+	auto cat_iter = categories.begin();
 	// delete category with no carriers corresponding to the access type
 	while(cat_iter != categories.end())
 	{
@@ -711,25 +457,27 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		return true;
 	}
 
-	// get the default terminal category
-	if(!Conf::getValue(spot, DEFAULT_AFF,
-	                   default_category_name))
+
+	spot_id_t default_spot_id;
+	string default_category_name;
+	std::map<tal_id_t, std::pair<spot_id_t, std::string>> terminals;
+	if (!OpenSandModelConf::Get()->getTerminalAffectation(default_spot_id,
+	                                                      default_category_name,
+	                                                      terminals))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, missing %s parameter\n",
-		    section.c_str(),
-		    DEFAULT_AFF);
-		goto error;
+		    "Terminals categories initialisation failed\n");
+		return false;
 	}
 
 	// Look for associated category
-	*default_category = NULL;
+	*default_category = nullptr;
 	cat_iter = categories.find(default_category_name);
 	if(cat_iter != categories.end())
 	{
 		*default_category = (*cat_iter).second;
 	}
-	if(*default_category == NULL)
+	if(*default_category == nullptr)
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "Section %s, could not find category %s, "
@@ -745,51 +493,17 @@ bool DvbChannel::initBand(ConfigurationList spot,
 		    section.c_str());
 	}
 
-	// get the terminal affectations
-	if(!Conf::getListItems(spot, TAL_AFF_LIST, aff_list))
+	for (auto& terminal : terminals)
 	{
-		LOG(this->log_init_channel, LEVEL_NOTICE,
-		    "Section %s, missing %s parameter\n",
-		    section.c_str(),
-		    TAL_AFF_LIST);
-		goto error;
-	}
-
-	i = 0;
-	for(ConfigurationList::iterator iter = aff_list.begin();
-	    iter != aff_list.end(); ++iter)
-	{
-		// To prevent compilator to issue warning about non initialised variable
-		tal_id_t tal_id = -1;
-		string name;
-		T *category;
-
-		i++;
-		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in terminal "
-			    "affection table entry %u\n",
-			    section.c_str(), TAL_ID, i);
-			goto error;
-		}
-		if(!Conf::getAttributeValue(iter, CATEGORY, name))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, problem retrieving %s in terminal "
-			    "affection table entry %u\n",
-			    section.c_str(), CATEGORY, i);
-			goto error;
-		}
-
-		// Look for the category
-		category = NULL;
+		tal_id_t tal_id = terminal.first;
+		string name = terminal.second.second;
+		T *category = nullptr;
 		cat_iter = categories.find(name);
-		if(cat_iter != categories.end())
+		if (cat_iter != categories.end())
 		{
-			category = (*cat_iter).second;
+			category = cat_iter->second;
 		}
-		if(category == NULL)
+		if (category == nullptr)
 		{
 			LOG(this->log_init_channel, LEVEL_NOTICE,
 			    "Could not find category %s for terminal %u affectation, "
@@ -797,7 +511,7 @@ bool DvbChannel::initBand(ConfigurationList spot,
 			    name.c_str(), tal_id);
 			// keep the NULL affectation for this terminal to avoid
 			// setting default category
-			terminal_affectation[tal_id] = NULL;
+			terminal_affectation[tal_id] = nullptr;
 		}
 		else
 		{
@@ -809,9 +523,6 @@ bool DvbChannel::initBand(ConfigurationList spot,
 	}
 
 	return true;
-
-error:
-	return false;
 }
 
 

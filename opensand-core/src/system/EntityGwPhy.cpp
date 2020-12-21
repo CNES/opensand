@@ -143,7 +143,7 @@ bool EntityGwPhy::parseSpecificArguments(int argc, char **argv,
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: missing mandatory IP address option",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 
@@ -151,7 +151,7 @@ bool EntityGwPhy::parseSpecificArguments(int argc, char **argv,
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: missing mandatory interconnect address option",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 
@@ -176,7 +176,7 @@ bool EntityGwPhy::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the InterconnectUpward block",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 
@@ -188,7 +188,7 @@ bool EntityGwPhy::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the PhysicalLayer block",
-		        this->getType());
+		        this->getType().c_str());
 		return false;;
 	}
 	specific.ip_addr = this->ip_address;
@@ -203,7 +203,7 @@ bool EntityGwPhy::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the SatCarrier block",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 

@@ -44,8 +44,6 @@
 
 #include <opensand_output/Output.h>
 
-#include "OpenSandConf.h"
-
 using std::string;
 using std::vector;
 

@@ -40,6 +40,7 @@
 
 #include "ForwardSchedulingS2.h"
 #include "DamaCtrlRcs2Legacy.h"
+#include "OpenSandModelConf.h"
 
 #include <errno.h>
 
@@ -116,27 +117,16 @@ bool SpotDownwardTransp::initMode(void)
 
 	// initialize scheduling
 	// depending on the satellite type
-	ConfigurationList forward_down_band = Conf::section_map[FORWARD_DOWN_BAND];
-	ConfigurationList spots;
-	ConfigurationList current_gw;
-
-	if(!Conf::getListNode(forward_down_band, SPOT_LIST, spots))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n",
-		    SPOT_LIST, FORWARD_DOWN_BAND);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(spots, GW,
-	                                       this->mac_id, current_gw))
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotForwardCarriers(this->mac_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value: %d into %s/%s\n",
-		    GW, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
+		    GW, this->mac_id, FORWARD_DOWN_BAND, SPOT_LIST);
 		return false;
 	}
-	if(!this->initBand<TerminalCategoryDama>(current_gw,
+
+	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         FORWARD_DOWN_BAND,
 	                                         TDM,
 	                                         this->fwd_down_frame_duration_ms,
@@ -285,8 +275,8 @@ bool SpotDownwardTransp::initDama(void)
 	    "rbdc_timeout = %d superframes computed from sync period %d superframes\n",
 	    rbdc_timeout_sf, sync_period_frame);
 
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-		                      this->mac_id, current_gw))
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->mac_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing spot for gw %d\n",
@@ -294,7 +284,7 @@ bool SpotDownwardTransp::initDama(void)
 		return false;
 	}
 
-	if(!this->initBand<TerminalCategoryDama>(current_gw,
+	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         RETURN_UP_BAND,
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,

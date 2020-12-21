@@ -40,7 +40,6 @@
 #include "Entity.h"
 
 #include "Plugin.h"
-#include "OpenSandConf.h"
 
 #include <opensand_old_conf/ConfigurationFile.h>
 
@@ -55,6 +54,11 @@
 #include <unistd.h>
 
 using std::vector;
+
+const std::string CONF_TOPOLOGY = "topology.conf"
+const std::string CONF_GLOBAL_FILE = "core_global.conf"
+const std::string CONF_DEFAULT_FILE = "core.conf"
+
 
 const string &Entity::getType() const
 {
@@ -71,14 +75,14 @@ bool Entity::parseArguments(int argc, char **argv)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: failed to init the process",
-		        this->type);
+		        this->type.c_str());
 		return false;
 	}
 	if(this->conf_path.size() == 0)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: missing mandatory configuration path option",
-			this->type);
+            this->type.c_str());
 		return false;
 	}
 	if (!output_folder.empty() && !Output::Get()->configureLocalOutput(this->output_folder, this->name))
@@ -126,18 +130,16 @@ bool Entity::loadConfiguration()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load configuration files, quit",
-		        this->type);
+		        this->type.c_str());
 		return false;
 	}
-
-	OpenSandConf::loadConfig();
 
 	// read all packages debug levels
 	if(!Conf::loadLevels(levels, spec_level))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load default levels, quit",
-		        this->type);
+		        this->type.c_str());
 		return false;
 	}
 	// Output::setLevels(levels, spec_level);
@@ -151,7 +153,7 @@ bool Entity::loadPlugins()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load the plugins",
-		        this->type);
+		        this->type.c_str());
 		return false;
 	}
 	return true;
@@ -182,7 +184,7 @@ bool Entity::run()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot run process loop",
-		        this->type);
+		        this->type.c_str());
 		return false;
 	}
 	status->sendEvent("Simulation stopped");

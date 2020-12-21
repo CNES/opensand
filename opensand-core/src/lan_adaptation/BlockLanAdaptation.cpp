@@ -37,6 +37,7 @@
 #include "NetPacket.h"
 #include "NetBurst.h"
 #include "OpenSandFrames.h"
+#include "OpenSandModelConf.h"
 
 #include <cstdio>
 #include <sys/ioctl.h>
@@ -303,8 +304,8 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			    (*burst_it)->getName().c_str());
 		}
 
-		if(OpenSandConf::isGw(tal_id) &&
-		   !OpenSandConf::isGw(pkt_tal_id))
+		auto Conf = OpenSandModelConf::Get();
+		if(Conf->isGw(tal_id) && !Conf->isGw(pkt_tal_id))
 		{
 			// packet should be forwarded
 			/*  TODO avoid allocating new packet here !

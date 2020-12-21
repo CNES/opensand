@@ -106,13 +106,12 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	TerminalCategories<TerminalCategorySaloha> sa_categories;
 	TerminalMapping<TerminalCategorySaloha> sa_terminal_affectation;
 	TerminalCategorySaloha *sa_default_category;
-	ConfigurationList current_spot;
 	UnitConverter *converter;
 	int lan_scheme_nbr;
 	vol_sym_t length_sym = 0;
 
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-	                          this->mac_id, current_spot))
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->mac_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value %d into %s/%s\n",
@@ -277,7 +276,7 @@ bool SpotUpwardTransp::initMode(void)
 			    "failed to get forward packet handler\n");
 			return false;
 		}
-		if (!OpenSandConf::getScpcEncapStack(scpc_encap) ||
+		if (!OpenSandModelConf::Get()->getScpcEncapStack(scpc_encap) ||
 			scpc_encap.size() <= 0)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
@@ -524,10 +523,9 @@ bool SpotUpwardTransp::checkIfScpc()
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
 	TerminalCategoryDama *default_category;
 	fmt_groups_t ret_fmt_groups;
-	ConfigurationList current_spot;
 
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-	                          this->mac_id, current_spot))
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->mac_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no attribute %s with value %d into %s/%s\n",

@@ -38,6 +38,7 @@
 
 #include "FileSimulator.h"
 #include "RandomSimulator.h"
+#include "OpenSandModelConf.h"
 
 #include <errno.h>
 
@@ -211,104 +212,19 @@ bool SpotDownward::onInit(void)
 
 bool SpotDownward::initCarrierIds(void)
 {
-	ConfigurationList carrier_list ;
-	ConfigurationList::iterator iter;
-	ConfigurationList::iterator iter_spots;
-	ConfigurationList current_gw;
+  auto Conf = OpenSandModelConf::Get();
 
-	if(!OpenSandConf::getSpot(SATCAR_SECTION,
-		                      this->mac_id, current_gw))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for gw %d\n",
-		    SATCAR_SECTION, this->mac_id);
-		return false;
-	}
+  OpenSandModelConf::spot_infrastructure carriers;
+  if (!Conf->getSpotInfrastructure(this->mac_id, carriers)) {
+    LOG(this->log_init_channel, LEVEL_ERROR,
+        "couldn't create spot infrastructure for gw %d",
+        this->mac_id);
+    return false;
+  }
 
-	// get satellite channels from configuration
-	if(!Conf::getListItems(current_gw, CARRIER_LIST, carrier_list))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s, %s': missing satellite channels\n",
-		    SATCAR_SECTION, CARRIER_LIST);
-		return false;
-	}
-
-	for(iter = carrier_list.begin(); iter != carrier_list.end(); ++iter)
-	{
-		unsigned int carrier_id;
-		string carrier_type;
-		// Get the carrier id
-		if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section '%s/%s%d/%s': missing parameter '%s'\n",
-			    SATCAR_SECTION, SPOT_LIST, this->spot_id,
-			    CARRIER_LIST, CARRIER_ID);
-			return false;
-		}
-
-		// Get the carrier type
-		if(!Conf::getAttributeValue(iter, CARRIER_TYPE, carrier_type))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section '%s/%s%d/%s': missing parameter '%s'\n",
-			    SATCAR_SECTION, SPOT_LIST, this->spot_id,
-			    CARRIER_LIST, CARRIER_TYPE);
-			return false;
-		}
-
-		if(strcmp(carrier_type.c_str(), CTRL_IN) == 0)
-		{
-			this->ctrl_carrier_id = carrier_id;
-			this->sof_carrier_id = carrier_id;
-		}
-		else if(strcmp(carrier_type.c_str(), DATA_IN_GW) == 0)
-		{
-			this->data_carrier_id = carrier_id;
-		}
-	}
-
-	// Check carrier errors
-
-	// Control carrier error
-	if(this->ctrl_carrier_id == 0)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "SF#%u %s missing from section %s/%s%d\n",
-		    this->super_frame_counter,
-		    DVB_CAR_ID_CTRL, SATCAR_SECTION,
-		    SPOT_LIST, this->spot_id);
-		return false;
-	}
-
-	// Logon carrier error
-	if(this->sof_carrier_id == 0)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "SF#%u %s missing from section %s/%s%d\n",
-		    this->super_frame_counter,
-		    DVB_SOF_CAR, SATCAR_SECTION,
-		    SPOT_LIST, this->spot_id);
-		return false;
-	}
-
-	// Data carrier error
-	if(this->data_carrier_id == 0)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "SF#%u %s missing from section %s/%s%d\n",
-		    this->super_frame_counter,
-		    DVB_CAR_ID_DATA, SATCAR_SECTION,
-		    SPOT_LIST, this->spot_id);
-		return false;
-	}
-
-	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "SF#%u: carrier IDs for Ctrl = %u, Sof = %u, "
-	    "Data = %u\n", this->super_frame_counter,
-	    this->ctrl_carrier_id,
-	    this->sof_carrier_id, this->data_carrier_id);
+  this->ctrl_carrier_id = carriers.ctrl_in.id;
+  this->sof_carrier_id = carriers.ctrl_in.id;
+  this->data_carrier_id = carriers.data_in_gw.id;
 
 	return true;
 }

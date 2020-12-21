@@ -34,7 +34,7 @@
  */
 
 
-
+#include "OpenSandModelConf.h"
 #include "BlockLanAdaptation.h"
 #include "TrafficCategory.h"
 #include "Plugin.h"
@@ -164,22 +164,7 @@ bool BlockLanAdaptation::Downward::onInit(void)
 
 bool BlockLanAdaptation::Upward::onInit(void)
 {
-	int dflt = -1;
-
-	if(!Conf::getValue(Conf::section_map[SARP_SECTION],
-		               DEFAULT, dflt))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get default destination terminal, "
-		    "this is not fatal\n");
-		// do not return, this is not fatal
-	}
-	this->sarp_table.setDefaultTal(dflt);
-	if(!this->initSarpTables())
-	{
-		return false;
-	}
-	return true;
+  return OpenSandModelConf::Get()->getSarp(this->sarp_table);
 }
 
 void BlockLanAdaptation::Upward::setContexts(const lan_contexts_t &contexts)
@@ -202,62 +187,4 @@ void BlockLanAdaptation::Downward::setFd(int fd)
 	// add file descriptor for TAP interface
 	this->addFileEvent("tap", fd, TUNTAP_BUFSIZE + 4);
 }
-
-bool BlockLanAdaptation::Upward::initSarpTables(void)
-{
-	int i;
-
-	tal_id_t tal_id = 0;
-
-	ConfigurationList terminal_list;
-	ConfigurationList::iterator iter;
-
-	// Ethernet SARP table
-	// TODO we could only initialize IP or Ethernet tables according to stack
-	terminal_list.clear();
-	if(!Conf::getListItems(Conf::section_map[SARP_SECTION],
-		                   ETH_LIST, terminal_list))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "missing section [%s, %s]\n", SARP_SECTION,
-		    ETH_LIST);
-	}
-
-	i = 0;
-	for(iter = terminal_list.begin(); iter != terminal_list.end(); iter++)
-	{
-		string addr;
-		MacAddress *mac_addr;
-
-		i++;
-		// get the MAC address
-		if(!Conf::getAttributeValue(iter, MAC_ADDR, addr))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SARP_SECTION, ETH_LIST,
-			    MAC_ADDR, i);
-			return false;
-		}
-		// get the terminal ID
-		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SARP_SECTION, ETH_LIST,
-			    TAL_ID, i);
-			return false;
-		}
-
-		mac_addr = new MacAddress(addr);
-		LOG(this->log_init, LEVEL_INFO,
-		    "%s -> tal id %u\n",
-		    mac_addr->str().c_str(), tal_id);
-
-		this->sarp_table.add(mac_addr, tal_id);
-	} // for all Ethernet entries
-
-	return true;
-}
-
 

@@ -144,7 +144,7 @@ bool EntityGwNetAcc::parseSpecificArguments(int argc, char **argv,
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: missing mandatory TAP interface name option",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 
@@ -152,7 +152,7 @@ bool EntityGwNetAcc::parseSpecificArguments(int argc, char **argv,
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: missing mandatory interconnect address option",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 
@@ -178,7 +178,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the LanAdaptation block",
-		        this->getType());
+		        this->getType().c_str());
 		return false;
 	}
 
@@ -190,7 +190,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the Encap block",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 
@@ -202,7 +202,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the DvbNcc block",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 
@@ -215,7 +215,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the InterconnectDownward block",
-			this->getType());
+            this->getType().c_str());
 		return false;
 	}
 

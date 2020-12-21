@@ -54,296 +54,159 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
 	std::vector < UdpChannel * >::iterator it;
 
 	for(it = this->begin(); it != this->end(); it++)
-	    delete(*it);
+		delete(*it);
+}
+
+
+bool sat_carrier_channel_set::readCarrier(const string &local_ip_addr,
+                                          tal_id_t gw_id,
+                                          const OpenSandModelConf::carrier_socket &carrier,
+                                          bool in,
+                                          bool is_satellite,
+                                          bool carrier_up,
+                                          bool carrier_down)
+{
+	int carrier_id = carrier.id;
+	long carrier_port = carrier.port;
+	bool carrier_multicast = carrier.is_multicast;
+	string carrier_ip = carrier.address;
+
+	bool is_input = is_satellite ? carrier_up : carrier_down;
+	bool is_output = is_satellite ? carrier_down : carrier_up;
+	if ((in && !is_input) || (!in && !is_output))
+	{
+		return true;
+	}
+
+	LOG(this->log_init, LEVEL_INFO,
+	    "Carrier ID: %u, IP address: %s, "
+	    "port: %ld, up: %s, down: %s, multicast: %s\n",
+	    carrier_id, carrier_ip.c_str(),
+	    carrier_port, (carrier_up ? "true" : "false"),
+	    (carrier_down ? "true" : "false"),
+	    (carrier_multicast ? "true" : "false"));
+
+	// if for a a channel in=false and out=false channel is not active
+	if(is_input || is_output)
+	{
+		// create a new udp channel configure it, with information from file
+		// and insert it in the channels vector
+		UdpChannel *channel = new UdpChannel("SatCarrier",
+		                                     gw_id,
+		                                     carrier_id,
+		                                     is_input,
+		                                     is_output,
+		                                     carrier_port,
+		                                     carrier_multicast,
+		                                     local_ip_addr,
+		                                     carrier_ip,
+		                                     carrier.udp_stack,
+		                                     carrier.udp_rmem,
+		                                     carrier.udp_wmem);
+		
+		if(!channel->isInit())
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to create UDP channel %d\n", carrier_id);
+			delete channel;
+			return false;
+		}
+		this->push_back(channel);
+	}
+
+	return true;
+}
+
+
+bool sat_carrier_channel_set::readSpot(const string &local_ip_addr,
+                                       bool in,
+                                       component_t host,
+                                       const string &compo_name,
+                                       tal_id_t gw_id)
+{
+	auto Conf = OpenSandModelConf::Get();
+	OpenSandModelConf::spot_infrastructure carriers;
+	if(!Conf->getSpotInfrastructure(gw_id, carriers))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+			"couldn't create spot infrastructure for gw %d",
+			gw_id);
+		return false;
+	}
+
+	LOG(this->log_init, LEVEL_INFO,
+	    "host type = %s\n", compo_name.c_str());
+
+	bool is_satellite = host == satellite;
+
+	if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_out, in, is_satellite, false, true)) return false;
+	if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_in, in, is_satellite, true, false)) return false;
+
+	if (host != gateway)
+	{
+		if (!readCarrier(local_ip_addr, gw_id, carriers.logon_in, in, is_satellite, true, false)) return false;
+		if (!readCarrier(local_ip_addr, gw_id, carriers.data_out_st, in, is_satellite, false, true)) return false;
+		if (!readCarrier(local_ip_addr, gw_id, carriers.data_in_st, in, is_satellite, true, false)) return false;
+	}
+
+	if (host != terminal)
+	{
+		if (!readCarrier(local_ip_addr, gw_id, carriers.logon_out, in, is_satellite, false, true)) return false;
+		if (!readCarrier(local_ip_addr, gw_id, carriers.data_out_gw, in, is_satellite, false, true)) return false;
+		if (!readCarrier(local_ip_addr, gw_id, carriers.data_in_gw, in, is_satellite, true, false)) return false;
+	}
+
+	return true;
 }
 
 
 bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
                                          bool in)
 {
+	auto Conf = OpenSandModelConf::Get();
 
-	int i = 0;
-	string compo_name = "";
-	component_t host = unknown_compo;
-	ConfigurationList spot_list;
-	ConfigurationList::iterator iter;
-	ConfigurationList::iterator iter_spots;
-	
 	// get host type
-	if(!Conf::getComponent(compo_name))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get component type\n");
-		goto error;
-	}
-	host = getComponentType(compo_name);
-
-	// get satellite channels from configuration
-	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION], SPOT_LIST,
-				spot_list))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s, %s': missing satellite channels\n",
-		    SATCAR_SECTION, SPOT_LIST);
-		goto error;
-	}
+	component_t host = Conf->getComponentType();
 
 	// for terminal get the corresponding spot
-	if(host == terminal)
+	if (host == terminal)
 	{
-		ConfigurationList temp_gw;
 		tal_id_t gw_id;
-
-		if(!OpenSandConf::getGwWithTalId(this->tal_id, gw_id))
-		{
-			if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION], 
-						       DEFAULT_GW, gw_id))
-			{
-				LOG(this->log_init, LEVEL_ERROR, 
-				    "couldn't find gateway for tal %d", 
-				    this->tal_id);
-				goto error;
-			}
-		}
-
-		if(!Conf::getElementWithAttributeValue(spot_list, GW, gw_id, temp_gw))
+		if(!Conf->getGwWithTalId(this->tal_id, gw_id))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "couldn't get gw %d into %s/%s",
-			    gw_id, SATCAR_SECTION, SPOT_LIST);
-			goto error;
+			    "couldn't find gateway for tal %d",
+			    this->tal_id);
+			return false;
 		}
-
-		spot_list = temp_gw;
+		return readSpot(local_ip_addr, in, host, "st", gw_id);
 	}
-	else if(host == gateway)
+	else if (host == gateway)
 	{
-		ConfigurationList temp_gw;
-
-		if(!Conf::getElementWithAttributeValue(spot_list, GW,
-		                                       this->tal_id, temp_gw))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "couldn't get spot for gw %d into %s/%s",
-			    this->tal_id, SATCAR_SECTION, SPOT_LIST);
-			goto error;
-		}
-
-		spot_list = temp_gw;
+		return readSpot(local_ip_addr, in, host, "gw", this->tal_id);
 	}
-	
-	for(iter_spots = spot_list.begin(); iter_spots != spot_list.end();
-	    ++iter_spots)
+	else if (host == satellite)
 	{
-		ConfigurationList carrier_list ; 
-		tal_id_t gw_id;
-		
-		if(!Conf::getAttributeValue(iter_spots, GW, gw_id))
-		{
+		std::vector<tal_id_t> gw_ids;
+		if (!Conf->getGwIds(gw_ids)) {
 			LOG(this->log_init, LEVEL_ERROR,
-			    "there is not attribute %s in %s/%s",
-			    GW, SATCAR_SECTION, SPOT_LIST);
-			goto error;
+			    "couldn't get the list of gateway IDs\n");
+			return false;
 		}
-
-		// get satellite channels from configuration
-		if(!Conf::getListItems(*iter_spots, CARRIER_LIST, carrier_list))
+		for (auto& gw_id : gw_ids)
 		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': missing satellite channels\n",
-			    SATCAR_SECTION, CARRIER_LIST);
-			goto error;
-		}
-
-		LOG(this->log_init, LEVEL_INFO,
-		    "host type = %s\n", compo_name.c_str());
-		
-		// get all carrier from this spot
-		for(iter = carrier_list.begin(); iter != carrier_list.end(); iter++)
-		{
-			UdpChannel *channel;
-			string strConfig;
-			int carrier_id = 0;
-			long carrier_port = 0;
-			bool carrier_up = false;
-			bool carrier_down = false;
-			string carrier_type;
-			bool is_input = false;
-			bool is_output = false;
-			bool carrier_multicast = false;
-			string carrier_ip("");
-			string carrier_disabled("");
-
-			i++;
-
-			// get carrier ID
-			if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "section '%s %d/%s/%s': failed to retrieve %s at "
-				    "line %d\n", SPOT_LIST, gw_id,
-				    SATCAR_SECTION, CARRIER_LIST,
-				    CARRIER_ID, i);
-				goto error;
-			}
-			
-			// get IP address
-			if(!Conf::getAttributeValue(iter, CARRIER_IP, carrier_ip))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "section '%s %d/%s/%s': failed to retrieve %s at "
-				    "line %d\n", SPOT_LIST, gw_id,
-				    SATCAR_SECTION, CARRIER_LIST,
-				    CARRIER_IP, i);
-				goto error;
-			}
-
-			// get port
-			if(!Conf::getAttributeValue(iter, CARRIER_PORT, carrier_port))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "section '%s %d/%s/%s': failed to retrieve %s at "
-				    "line %d\n", SPOT_LIST, gw_id,
-				    SATCAR_SECTION, CARRIER_LIST,
-				    CARRIER_PORT, i);
-				goto error;
-			}
-	
-			// get type
-			if(!Conf::getAttributeValue(iter, CARRIER_TYPE, carrier_type))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "section '%s %d/%s/%s': failed to retrieve %s at "
-				    "line %d\n",SPOT_LIST, gw_id,
-				    SATCAR_SECTION, CARRIER_LIST,
-				    CARRIER_TYPE, i);
-				goto error;
-			}
-
-			// get up and down
-			if(carrier_type.find("in") != std::string::npos)
-			{
-				carrier_up = true;
-			}
-			else if(carrier_type.find("out") != std::string::npos)
-			{
-				carrier_down = true;
-			}
-			is_input = (host == satellite) ? carrier_up : carrier_down;
-			is_output = (host == satellite) ? carrier_down : carrier_up;
-			if((in && !is_input) || (!in && !is_output))
-			{
-				continue;
-			}
-			
-			
-			// get Disabled
-			if(!strcmp(carrier_type.c_str(), LOGON_IN) ||
-			   !strcmp(carrier_type.c_str(), DATA_IN_ST) ||
-			   !strcmp(carrier_type.c_str(), DATA_OUT_ST))
-			{
-				carrier_disabled = DISABLED_GW;
-			}
-			else if(!strcmp(carrier_type.c_str(), LOGON_OUT) ||
-			        !strcmp(carrier_type.c_str(), DATA_IN_GW) ||
-			        !strcmp(carrier_type.c_str(), DATA_OUT_GW))
-			{
-				carrier_disabled = DISABLED_ST;
-			}
-			else
-			{
-				carrier_disabled = DISABLED_NONE;
-			}
-			
-			if(carrier_disabled == compo_name)
-			{
-				continue;
-			}
-
-			// get multicast
-			if(!Conf::getAttributeValue(iter, CARRIER_MULTICAST,
-			                             carrier_multicast))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "section '%s %d/%s/%s': failed to retrieve %s at "
-				    "line %d\n", SPOT_LIST, gw_id,
-				    SATCAR_SECTION, CARRIER_LIST,
-				    CARRIER_MULTICAST, i);
-				goto error;
-			}
-
-			LOG(this->log_init, LEVEL_INFO,
-			    "Line: %d, Carrier ID: %u, IP address: %s, "
-			    "port: %ld, up: %s, down: %s, multicast: %s, "
-			    "disabled on: %s\n",
-			    i, carrier_id, carrier_ip.c_str(),
-			    carrier_port, (carrier_up ? "true" : "false"),
-			    (carrier_down ? "true" : "false"),
-			    (carrier_multicast ? "true" : "false"),
-			    carrier_disabled.c_str());
-
-			// if for a a channel in=false and out=false channel is not active
-			if(is_input || is_output)
-			{
-				unsigned int stack;
-				unsigned int rmem;
-				unsigned int wmem;
-
-				// get UDP stack
-				if(!Conf::getValue(Conf::section_map[ADV_SECTION], 
-				   SATCARRIER_UDP_STACK, stack))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "Section %s, %s %d, %s missing\n",
-					    ADV_SECTION, SPOT_LIST, gw_id, SATCARRIER_UDP_STACK);
-					goto error;
-				}
-				// get rmem
-				if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-				                   SATCARRIER_UDP_RMEM, rmem))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "Section %s, %s %d, %s missing\n",
-					    ADV_SECTION, SPOT_LIST, gw_id, SATCARRIER_UDP_RMEM);
-					goto error;
-				}
-				// get wmem
-				if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-				                   SATCARRIER_UDP_WMEM, wmem))
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "Section %s, %s %d, %s missing\n",
-					    ADV_SECTION, SPOT_LIST, gw_id, SATCARRIER_UDP_WMEM);
-					goto error;
-				}
-				// create a new udp channel configure it, with information from file
-				// and insert it in the channels vector
-				channel = new UdpChannel("SatCarrier",
-				                         gw_id,
-				                         carrier_id,
-				                         is_input,
-				                         is_output,
-				                         carrier_port,
-				                         carrier_multicast,
-				                         local_ip_addr,
-				                         carrier_ip,
-				                         stack, rmem, wmem);
-				
-				if(!channel->isInit())
-				{
-					LOG(this->log_init, LEVEL_ERROR,
-					    "failed to create UDP channel %d\n", i);
-					goto error;
-				}
-				this->push_back(channel);
+			if (!readSpot(local_ip_addr, in, host, "sat", gw_id)) {
+				return false;
 			}
 		}
 	}
-
+	else
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "couldn't get component type\n");
+		return false;
+	}
 	return true;
-
-error:
-	return false;
 }
 
 bool sat_carrier_channel_set::readInConfig(const string local_ip_addr)

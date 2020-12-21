@@ -44,7 +44,6 @@
 #include "NetPacket.h"
 #include "LanAdaptationPlugin.h"
 #include "OpenSandCore.h"
-#include "OpenSandConf.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_output/Output.h>
@@ -98,13 +97,6 @@ class BlockLanAdaptation: public Block
 		void setFd(int fd);
 
 	 private:
-		/**
-		 * @brief Instantiate the traffic classes
-		 * 
-		 * @return true on success, false otherwise
-		 */
-		bool initSarpTables(void);
-
 		/**
 		 * @brief Handle a message from lower block
 		 *  - build the TAP header with appropriate protocol identifier

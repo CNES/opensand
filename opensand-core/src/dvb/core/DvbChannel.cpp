@@ -151,7 +151,7 @@ bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 	EncapPlugin *plugin;
 
 	// Get SCPC encapsulation name stack
-	if (!OpenSandConf::getScpcEncapStack(encap_stack) ||
+	if (!OpenSandModelConf::Get()->getScpcEncapStack(encap_stack) ||
 		encap_stack.size() <= 0)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

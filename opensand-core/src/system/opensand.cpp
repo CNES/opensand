@@ -33,6 +33,7 @@
  */
 
 
+#include "OpenSandModelConf.h"
 #include "Entity.h"
 
 #include "EntitySat.h"
@@ -105,6 +106,11 @@ int main(int argc, char **argv)
 	entities[entity->getType()] = entity;
 	entity = new EntitySt();
 	entities[entity->getType()] = entity;
+
+  auto just_a_test = OpenSandModelConf::Get();
+  just_a_test->createModels();
+  just_a_test->writeInfrastructureModel("just_a_test.xsd");
+  just_a_test->readInfrastructure("just_a_test.xml");
 
 	// Check minimal arguments count
 	if(argc < 2)

@@ -52,6 +52,7 @@
 #include "Sof.h"
 
 #include "UnitConverterFixedSymbolLength.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_rt/Rt.h>
 
@@ -272,7 +273,7 @@ bool BlockDvbTal::Downward::onInit(void)
 
 	// Initialization od fow_modcod_def (useful to send SAC)
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-				    &this->s2_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");
@@ -373,122 +374,29 @@ bool BlockDvbTal::Downward::onInit(void)
 
 bool BlockDvbTal::Downward::initCarrierId(void)
 {
-	// get current spot id withing sat switching table
-	ConfigurationList::iterator spot_iter;
-	// get satelite carrier spot configuration
-	ConfigurationList current_gw;
-	ConfigurationList carrier_list ;
-	ConfigurationList::iterator iter;
+	auto Conf = OpenSandModelConf::Get();
+
 	this->gw_id = 0;
-
-	if(!OpenSandConf::getGwWithTalId(this->mac_id, this->gw_id))
-	{
-		if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION],
-		                   DEFAULT_GW, this->gw_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "couldn't find gw for tal %d",
-			    this->mac_id);
-			return false;
-		}
-	}
-
-	if(!OpenSandConf::getSpot(SATCAR_SECTION,
-				      this->gw_id, current_gw))
+	if(!Conf->getGwWithTalId(this->mac_id, this->gw_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for gw id %d\n",
-		    SATCAR_SECTION, this->gw_id);
+		    "couldn't find gw for tal %d",
+		    this->mac_id);
 		return false;
 	}
 
-	// get satellite channels from configuration
-	if(!Conf::getListItems(current_gw, CARRIER_LIST, carrier_list))
+	OpenSandModelConf::spot_infrastructure carriers;
+	if (!Conf->getSpotInfrastructure(this->gw_id, carriers))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s, %s': missing satellite channels\n",
-		    SATCAR_SECTION, CARRIER_LIST);
-		goto error;
+		    "couldn't create spot infrastructure for gw %d",
+		    this->gw_id);
+		return false;
 	}
 
-	// check id du spot correspond au id du spot dans lequel est le bloc actuel!
-	for(iter = carrier_list.begin(); iter != carrier_list.end(); ++iter)
-	{
-
-		unsigned int carrier_id;
-		string carrier_type;
-
-		// Get the carrier id
-		if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section '%s/%s%d/%s': missing parameter '%s'\n",
-			    SATCAR_SECTION, SPOT_LIST, this->gw_id,
-			    CARRIER_LIST, CARRIER_ID);
-			goto error;
-		}
-
-		// Get the carrier type
-		if(!Conf::getAttributeValue(iter, CARRIER_TYPE, carrier_type))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section '%s/%s%d/%s': missing parameter '%s'\n",
-			    SATCAR_SECTION, SPOT_LIST, this->gw_id,
-			    CARRIER_LIST, CARRIER_TYPE);
-			goto error;
-		}
-
-		// Get the ID for control carrier
-		if(strcmp(carrier_type.c_str(), CTRL_IN) == 0)
-		{
-			this->carrier_id_ctrl = carrier_id;
-		}
-		// Get the ID for data carrier
-		else if(strcmp(carrier_type.c_str(), DATA_IN_ST) == 0)
-		{
-			this->carrier_id_data = carrier_id;
-		}
-		// Get the ID for logon carrier
-		else if(strcmp(carrier_type.c_str(), LOGON_IN) == 0)
-		{
-			this->carrier_id_logon = carrier_id;
-		}
-	}
-
-	// Check carrier error
-
-	// Control carrier error
-	if(this->carrier_id_ctrl == 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "SF#%u %s missing from section %s/%s%d\n",
-		    this->super_frame_counter,
-		    DVB_CAR_ID_CTRL, SATCAR_SECTION,
-		    SPOT_LIST, this->gw_id);
-		goto error;
-	}
-
-	// Logon carrier error
-	if(this->carrier_id_logon == 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "SF#%u %s missing from section %s/%s%d\n",
-		    this->super_frame_counter,
-		    DVB_CAR_ID_LOGON, SATCAR_SECTION,
-		    SPOT_LIST, this->gw_id);
-		goto error;
-	}
-
-	// Data carrier error
-	if(this->carrier_id_data == 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "SF#%u %s missing from section %s/%s%d\n",
-		    this->super_frame_counter,
-		    DVB_CAR_ID_DATA, SATCAR_SECTION,
-		    SPOT_LIST, this->gw_id);
-		goto error;
-	}
+	this->carrier_id_ctrl = carriers.ctrl_in.id;
+	this->carrier_id_data = carriers.data_in_st.id;
+	this->carrier_id_logon = carriers.logon_in.id;
 
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "SF#%u: carrier IDs for Ctrl = %u, Logon = %u, "
@@ -497,8 +405,6 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	    this->carrier_id_logon, this->carrier_id_data);
 
 	return true;
-error:
-	return false;
 }
 
 bool BlockDvbTal::Downward::initMacFifo(void)
@@ -614,8 +520,6 @@ bool BlockDvbTal::Downward::initDama(void)
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
-	ConfigurationList current_spot;
-
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
@@ -629,8 +533,8 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// init
 	if(!this->initModcodDefFile(MODCOD_DEF_RCS2,
-				    &this->rcs_modcod_def,
-				    this->req_burst_length))
+	                            &this->rcs_modcod_def,
+	                            this->req_burst_length))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");
@@ -638,9 +542,8 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// get current spot into return up band section
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-				      this->gw_id,
-				      current_spot))
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->gw_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing spot for gw %d\n",
@@ -650,14 +553,14 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// init band
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
-						 RETURN_UP_BAND,
-						 DAMA,
-						 this->ret_up_frame_duration_ms,
-						 this->rcs_modcod_def,
-						 dama_categories,
-						 terminal_affectation,
-						 &default_category,
-						 this->ret_fmt_groups))
+	                                         RETURN_UP_BAND,
+	                                         DAMA,
+	                                         this->ret_up_frame_duration_ms,
+	                                         this->rcs_modcod_def,
+	                                         dama_categories,
+	                                         terminal_affectation,
+	                                         &default_category,
+	                                         this->ret_fmt_groups))
 	{
 		return false;
 	}
@@ -909,27 +812,25 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	}
 
 	// get current spot into return up band section
-	ConfigurationList current_spot;
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-				      this->gw_id,
-				      current_spot))
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->gw_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing spot for gw %d\n",
-				RETURN_UP_BAND, this->gw_id);
+		    RETURN_UP_BAND, this->gw_id);
 		return false;
 	}
 
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
-						   RETURN_UP_BAND,
-						   ALOHA,
-						   this->ret_up_frame_duration_ms,
-						   // initialized in DAMA
-						   this->rcs_modcod_def,
-						   sa_categories,
-						   terminal_affectation,
-						   &default_category,
-						   this->ret_fmt_groups))
+	                                           RETURN_UP_BAND,
+	                                           ALOHA,
+	                                           this->ret_up_frame_duration_ms,
+	                                           // initialized in DAMA
+	                                           this->rcs_modcod_def,
+	                                           sa_categories,
+	                                           terminal_affectation,
+	                                           &default_category,
+	                                           this->ret_fmt_groups))
 	{
 		return false;
 	}
@@ -944,7 +845,8 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	// TODO should manage several Saloha carrier
 	for(cat_it = sa_categories.begin();
 	    cat_it != sa_categories.end(); ++cat_it)
-	{	if((*cat_it).second->getCarriersGroups().size() > 1)
+	{
+		if((*cat_it).second->getCarriersGroups().size() > 1)
 		{
 			LOG(this->log_init, LEVEL_WARNING,
 			    "If you use more than one Slotted Aloha carrier group "
@@ -1080,12 +982,10 @@ bool BlockDvbTal::Downward::initScpc(void)
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
-	ConfigurationList current_spot;
-
 	//  Duration of the carrier -- in ms
 	if(!Conf::getValue(Conf::section_map[SCPC_SECTION],
-			   SCPC_C_DURATION,
-			   this->scpc_carr_duration_ms))
+	                   SCPC_C_DURATION,
+	                   this->scpc_carr_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Missing %s\n", SCPC_C_DURATION);
@@ -1096,9 +996,8 @@ bool BlockDvbTal::Downward::initScpc(void)
 	    "scpc_carr_duration_ms = %d ms\n", this->scpc_carr_duration_ms);
 
 	// get current spot into return up band section
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-				      this->gw_id,
-				      current_spot))
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->gw_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section '%s', missing spot for gw %d\n",
@@ -1107,15 +1006,15 @@ bool BlockDvbTal::Downward::initScpc(void)
 	}
 
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
-						 RETURN_UP_BAND,
-						 SCPC,
-						 this->scpc_carr_duration_ms,
-						 // input modcod for S2
-						 this->s2_modcod_def,
-						 scpc_categories,
-						 terminal_affectation,
-						 &default_category,
-						 this->ret_fmt_groups))
+	                                         RETURN_UP_BAND,
+	                                         SCPC,
+	                                         this->scpc_carr_duration_ms,
+	                                         // input modcod for S2
+	                                         this->s2_modcod_def,
+	                                         scpc_categories,
+	                                         terminal_affectation,
+	                                         &default_category,
+	                                         this->ret_fmt_groups))
 	{
 		LOG(this->log_init, LEVEL_WARNING,
 		    "InitBand not correctly initialized \n");
@@ -1178,7 +1077,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	}
 
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-				    &this->s2_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the return MODCOD definition file for SCPC\n");
@@ -1277,7 +1176,7 @@ error:
 
 bool BlockDvbTal::Downward::initOutput(void)
 {
-  auto output = Output::Get();
+	auto output = Output::Get();
 
 	this->event_login = output->registerEvent("DVB.login");
 
@@ -1688,7 +1587,7 @@ bool BlockDvbTal::Downward::sendLogonReq(void)
 	}
 
 	// send the corresponding event
-  event_login->sendEvent("Login sent to GW");
+	event_login->sendEvent("Login sent to GW");
 	return true;
 
 error:
@@ -1990,7 +1889,7 @@ bool BlockDvbTal::Downward::handleLogonResp(DvbFrame *frame)
 	this->state = state_running;
 
 	// send the corresponding event
-  event_login->sendEvent("Login complete with MAC %d", this->mac_id);
+	event_login->sendEvent("Login complete with MAC %d", this->mac_id);
 
 	return true;
 }
@@ -2305,7 +2204,7 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 bool BlockDvbTal::Upward::onInit(void)
 {
 	// Initialization of gw_id
-	if(!OpenSandConf::getGwWithTalId(this->mac_id, this->gw_id))
+	if(!OpenSandModelConf::Get()->getGwWithTalId(this->mac_id, this->gw_id))
 	{
 		if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION],
 				   DEFAULT_GW, this->gw_id))
@@ -2389,13 +2288,7 @@ bool BlockDvbTal::Upward::initMode(void)
 bool BlockDvbTal::Upward::initModcodSimu(void)
 {
 	tal_id_t gw_id = 0;
-
-	if(OpenSandConf::gw_table.find(this->mac_id) != OpenSandConf::gw_table.end())
-	{
-		gw_id = OpenSandConf::gw_table[this->mac_id];
-	}
-	else if(!Conf::getValue(Conf::section_map[GW_TABLE_SECTION],
-				    DEFAULT_GW, gw_id))
+	if(!OpenSandModelConf::Get()->getGwWithTalId(this->mac_id, gw_id))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "couldn't find gw for tal %d",
@@ -2404,7 +2297,7 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 	}
 
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-				    &this->s2_modcod_def))
+	                            &this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the down/forward MODCOD definition file\n");
@@ -2414,7 +2307,7 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 	if(this->is_scpc)
 	{
 		if(!this->initModcodDefFile(MODCOD_DEF_S2,
-					    &this->s2_modcod_def))
+		                            &this->s2_modcod_def))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to initialize the up/return MODCOD definition file\n");
@@ -2428,7 +2321,7 @@ bool BlockDvbTal::Upward::initModcodSimu(void)
 
 bool BlockDvbTal::Upward::initOutput(void)
 {
-  auto output = Output::Get();
+	auto output = Output::Get();
 
 	this->probe_st_received_modcod = output->registerProbe<int>("Down_Forward_modcod.Received_modcod",
 								    "modcod index",
