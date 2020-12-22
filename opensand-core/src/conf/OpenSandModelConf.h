@@ -107,6 +107,9 @@ class OpenSandModelConf
 		bool readProfile (const std::string& filename);
 
 		component_t getComponentType() const;
+		bool getComponentType(std::string &type, tal_id_t &id) const;
+		bool getLocalStorage(bool &enabled, std::string &output_folder) const;
+		bool getRemoteStorage(bool &enabled, std::string &address, unsigned short &stats_port, unsigned short &logs_port) const;
 		bool getGwIds(std::vector<tal_id_t> &gws) const;
 		bool logLevels(std::map<std::string, log_level_t> &levels, std::map<std::string, log_level_t> &specific) const;
 		bool getSarp(SarpTable &sarp_table) const;

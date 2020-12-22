@@ -58,11 +58,7 @@
 
 
 #include "EntityGwNetAcc.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
-#include <unistd.h>
+#include "OpenSandModelConf.h"
 
 #include "BlockInterconnect.h"
 #include "BlockLanAdaptation.h"
@@ -70,93 +66,12 @@
 #include "BlockEncap.h"
 
 
-vector<string> EntityGwNetAcc::generateUsage(const string &progname) const
+EntityGwNetAcc::EntityGwNetAcc(tal_id_t instance_id): Entity("gw_net_acc" + std::to_string(instance_id), instance_id)
 {
-	vector<string> usage({
-		progname + " " + this->getType() + " [-h] -i instance_id "
-			"-t tap_iface -w interconnect_addr -c conf_path "
-			"[-f output_folder] [-r remote_address [-l logs_port] [-s stats_port]]",
-		"\t-h                       print this message",
-		"\t-t <tap_iface>           set the GW TAP interface name",
-		"\t-i <instance>            set the instance id",
-		"\t-w <interconnect_addr>   set the interconnect IP address; this is the address",
-		"\t                         this gateway should listen to for messages from the",
-		"\t                         gw_phy part",
-		"\t-c <conf_path>           specify the configuration folder path",
-		"\t-f <output_folder>       activate and specify the folder for logs and probes",
-		"\t                         files",
-		"\t-r <remote_address>      activate and specify the address for logs and probes",
-		"\t                         socket messages",
-		"\t-l <logs_port>           specify the port for logs socket messages",
-		"\t-s <stats_port>          specify the port for probes socket messages"});
-	return usage;
 }
 
-bool EntityGwNetAcc::parseSpecificArguments(int argc, char **argv,
-	string &name,
-	string &conf_path,
-	string &output_folder, string &remote_address,
-	unsigned short &stats_port, unsigned short &logs_port)
+EntityGwNetAcc::~EntityGwNetAcc()
 {
-	int opt;
-
-	/* setting environment agent parameters */
-	while((opt = getopt(argc, argv, "-hi:t:u:w:c:f:r:l:s:")) != EOF)
-	{
-		switch(opt)
-		{
-		case 'i':
-			// get instance id
-			this->instance_id = atoi(optarg);
-			name += optarg;
-			break;
-		case 't':
-			// get TAP interface name
-			this->tap_iface = optarg;
-			break;
-		case 'w':
-			// Get the interconnect IP address
-			this->interconnect_address = optarg;
-			break;
-		case 'c':
-			// get the configuration path
-			conf_path = optarg;
-			break;
-		case 'f':
-			output_folder = optarg;
-			break;
-		case 'r':
-			remote_address = optarg;
-			break;
-		case 'l':
-			logs_port = atoi(optarg);
-			break;
-		case 's':
-			stats_port = atoi(optarg);
-			break;
-		case 'h':
-		case '?':
-			return false;
-		}
-	}
-
-	if(this->tap_iface.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: missing mandatory TAP interface name option",
-            this->getType().c_str());
-		return false;
-	}
-
-	if(this->interconnect_address.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: missing mandatory interconnect address option",
-            this->getType().c_str());
-		return false;
-	}
-
-	return true;
 }
 
 bool EntityGwNetAcc::createSpecificBlocks()
@@ -178,7 +93,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the LanAdaptation block",
-		        this->getType().c_str());
+		        this->getName().c_str());
 		return false;
 	}
 
@@ -190,7 +105,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the Encap block",
-            this->getType().c_str());
+            this->getName().c_str());
 		return false;
 	}
 
@@ -202,7 +117,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the DvbNcc block",
-            this->getType().c_str());
+            this->getName().c_str());
 		return false;
 	}
 
@@ -215,9 +130,35 @@ bool EntityGwNetAcc::createSpecificBlocks()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the InterconnectDownward block",
-            this->getType().c_str());
+            this->getName().c_str());
 		return false;
 	}
 
 	return true;
+}
+
+bool EntityGwNetAcc::loadConfiguration(const std::string &profile_path)
+{
+	this->defineProfileMetaModel();
+	auto Conf = OpenSandModelConf::Get();
+	if(!Conf->readProfile(profile_path))
+	{
+		return false;
+	}
+	// TODO populate attributes
+	return true;
+}
+
+bool EntityGwNetAcc::createSpecificConfiguration(const std::string &filepath) const
+{
+	auto Conf = OpenSandModelConf::Get();
+	Conf->createModels();
+	this->defineProfileMetaModel();
+	return Conf->writeProfileModel(filepath);
+}
+
+void EntityGwNetAcc::defineProfileMetaModel() const
+{
+	auto profile = OpenSandModelConf::Get()->getProfileModel();
+	// TODO
 }

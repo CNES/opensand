@@ -353,6 +353,88 @@ component_t OpenSandModelConf::getComponentType() const
 }
 
 
+bool OpenSandModelConf::getComponentType(std::string &type, tal_id_t &id) const
+{
+	if (infrastructure == nullptr) {
+		return false;
+	}
+
+	auto entity = infrastructure->getRoot()->getComponent("entity");
+	std::string component_type;
+	extractParameterData(entity->getParameter("entity_type"), component_type);
+
+	if (component_type == "Satellite") {
+		type = "sat";
+		return true;
+	} else if (component_type == "Terminal") {
+		type = "st";
+	} else if (component_type == "Gateway") {
+		type = "gw";
+	} else if (component_type == "Gateway Net Access") {
+		type = "gw_net_acc";
+	} else if (component_type == "Gateway Phy") {
+		type = "gw_phy";
+	} else {
+		return false;
+	}
+
+	int entity_id;
+	if (!extractParameterData(entity->getParameter("entity_id_" + type), entity_id)) {
+		return false;
+	}
+
+	id = entity_id;
+	return true;
+}
+
+
+bool OpenSandModelConf::getLocalStorage(bool &enabled, std::string &output_folder) const
+{
+	if (infrastructure == nullptr) {
+		return false;
+	}
+
+	auto storage = infrastructure->getRoot()->getComponent("storage");
+	if (!extractParameterData(storage->getParameter("enable_local"), enabled)) {
+		return false;
+	}
+	if (enabled && !extractParameterData(storage->getParameter("path_local"), output_folder)) {
+		return false;
+	}
+	return true;
+}
+
+
+bool OpenSandModelConf::getRemoteStorage(bool &enabled, std::string &address, unsigned short &stats_port, unsigned short &logs_port) const
+{
+	if (infrastructure == nullptr) {
+		return false;
+	}
+
+	auto storage = infrastructure->getRoot()->getComponent("storage");
+	if (!extractParameterData(storage->getParameter("enable_collector"), enabled)) {
+		return false;
+	}
+	if (!enabled) {
+		return true;
+	}
+
+	if (!extractParameterData(storage->getParameter("collector_address"), address)) {
+		return false;
+	}
+
+	int stats = 5361;
+	extractParameterData(storage->getParameter("collector_probes"), stats);
+
+	int logs = 5362;
+	extractParameterData(storage->getParameter("collector_logs"), logs);
+
+	stats_port = stats;
+	logs_port = logs;
+	return true;
+}
+
+
 bool OpenSandModelConf::getGwIds(std::vector<tal_id_t> &gws) const
 {
 	if (infrastructure != nullptr) {

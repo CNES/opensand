@@ -37,113 +37,220 @@
  */
 
 
-#include "Entity.h"
-
-#include "Plugin.h"
-
-#include <opensand_old_conf/ConfigurationFile.h>
-
-#include <opensand_rt/Rt.h>
-
+#include <iostream>
 #include <vector>
 #include <map>
-
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
 #include <unistd.h>
 
-using std::vector;
+#include "Entity.h"
+#include "EntityGw.h"
+#include "EntityGwNetAcc.h"
+#include "EntityGwPhy.h"
+#include "EntitySat.h"
+#include "EntitySt.h"
+#include "Plugin.h"
+#include "OpenSandModelConf.h"
 
-const std::string CONF_TOPOLOGY = "topology.conf"
-const std::string CONF_GLOBAL_FILE = "core_global.conf"
-const std::string CONF_DEFAULT_FILE = "core.conf"
+#include <opensand_output/Output.h>
+#include <opensand_rt/Rt.h>
 
 
-const string &Entity::getType() const
+void usage(std::ostream &stream, const std::string &progname)
 {
-	return this->type;
+	stream << progname << " [-h] (-i infrastructure_path -t topology_path [-p profile_path] | -g configuration_folder)" << std::endl;
+	stream << "\t-h                         print this message and exit" << std::endl;
+	stream << "\t-i <infrastructure_path>   path to the XML file describing the network infrastructure of the platform" << std::endl;
+	stream << "\t-t <topology_path>         path to the XML file describing the satcom topology of the platform" << std::endl;
+	stream << "\t-p <profile_path>          path to the XML file selecting options for this specific entity" << std::endl;
+	stream << "\t-g <configuration_folder>  path to a folder where to generate XSD files for the various entities" << std::endl;
 }
 
-bool Entity::parseArguments(int argc, char **argv)
+
+Entity::Entity(const std::string& name, tal_id_t instance_id): name(name), instance_id(instance_id)
 {
-	if(!this->parseSpecificArguments(argc, argv,
-		this->name,
-		this->conf_path,
-		this->output_folder, this->remote_address,
-		this->stats_port, this->logs_port))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: failed to init the process",
-		        this->type.c_str());
-		return false;
-	}
-	if(this->conf_path.size() == 0)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: missing mandatory configuration path option",
-            this->type.c_str());
-		return false;
-	}
-	if (!output_folder.empty() && !Output::Get()->configureLocalOutput(this->output_folder, this->name))
-	{
-		return false;
-	}
-	if (!remote_address.empty() && !Output::Get()->configureRemoteOutput(this->remote_address, this->stats_port, this->logs_port))
-	{
-		return false;
-	}
-
-	DFLTLOG(LEVEL_NOTICE, "starting output\n");
-
-	return true;
+	this->status = Output::Get()->registerEvent("Status");
 }
 
-bool Entity::loadConfiguration()
+
+Entity::~Entity()
 {
-	struct sched_param param;
+}
 
-	string topology_file;
-	string global_file;
-	string default_file;
 
-	vector<string> conf_files;
-	map<string, log_level_t> levels;
-	map<string, log_level_t> spec_level;
+const std::string &Entity::getName() const
+{
+	return this->name;
+}
 
-	this->plugin_conf_path = this->conf_path + "/" + string("plugins/");
 
-	// increase the realtime responsiveness of the process
-	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
-	sched_setscheduler(0, SCHED_FIFO, &param);
+tal_id_t Entity::getInstanceId() const
+{
+	return this->instance_id;
+}
 
-	topology_file = this->conf_path + "/" + string(CONF_TOPOLOGY);
-	global_file = this->conf_path + "/" + string(CONF_GLOBAL_FILE);
-	default_file = this->conf_path + "/" + string(CONF_DEFAULT_FILE);
 
-	conf_files.push_back(topology_file);
-	conf_files.push_back(global_file);
-	conf_files.push_back(default_file);
+std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &return_code)
+{
+	int opt;
+	const std::string progname = argv[0];
+	std::string infrastructure_path;
+	std::string topology_path;
+	std::string profile_path;
 
-	// Load configuration files content
-	if(!Conf::loadConfig(conf_files))
+	auto Conf = OpenSandModelConf::Get();
+	return_code = 0;
+	while((opt = getopt(argc, argv, "-hi:t:p:g:")) != EOF)
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot load configuration files, quit",
-		        this->type.c_str());
-		return false;
+		switch(opt)
+		{
+		case 'i':
+			infrastructure_path = optarg;
+			break;
+		case 't':
+			topology_path = optarg;
+			break;
+		case 'p':
+			profile_path = optarg;
+			break;
+		case 'g':
+			{
+				// TODO: Error handling
+				std::string folder = optarg;
+				Conf->createModels();
+				Conf->writeInfrastructureModel(folder + "/infrastructure.xsd");
+				Conf->writeTopologyModel(folder + "/topology.xsd");
+
+				std::shared_ptr<Entity> temporary;
+				temporary = std::make_shared<EntitySat>();
+				temporary->createSpecificConfiguration(folder + "/profile_sat.xsd");
+				temporary = std::make_shared<EntitySt>(0);
+				temporary->createSpecificConfiguration(folder + "/profile_st.xsd");
+				temporary = std::make_shared<EntityGw>(0);
+				temporary->createSpecificConfiguration(folder + "/profile_gw.xsd");
+				temporary = std::make_shared<EntityGwNetAcc>(0);
+				temporary->createSpecificConfiguration(folder + "/profile_gw_net acc.xsd");
+				temporary = std::make_shared<EntityGwPhy>(0);
+				temporary->createSpecificConfiguration(folder + "/profile_gw_phy.xsd");
+			}
+			return nullptr;
+		case 'h':
+		case '?':
+			usage(std::cout, progname);
+			return nullptr;
+		default:
+			usage(std::cerr, progname);
+			std::cerr << "\n" << progname << ": error: unknown option '-" << (char)opt << "'." << std::endl;
+			return_code = 1;
+			return nullptr;
+		}
 	}
 
-	// read all packages debug levels
-	if(!Conf::loadLevels(levels, spec_level))
+	if(infrastructure_path.empty())
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot load default levels, quit",
-		        this->type.c_str());
-		return false;
+		usage(std::cerr, progname);
+		std::cerr << "\n" << progname << ": error: option '-i' is missing." << std::endl;
+		return_code = 2;
+		return nullptr;
 	}
-	// Output::setLevels(levels, spec_level);
-	return true;
+
+	if(topology_path.empty())
+	{
+		usage(std::cerr, progname);
+		std::cerr << "\n" << progname << ": error: option '-t' is missing." << std::endl;
+		return_code = 3;
+		return nullptr;
+	}
+
+	Conf->createModels();
+	if(!Conf->readInfrastructure(infrastructure_path))
+	{
+		std::cerr << progname <<
+		             ": error: impossible to validate network infrastructure in " <<
+		             infrastructure_path << "." << std::endl;
+		return_code = 10;
+		return nullptr;
+	}
+
+	std::string type;
+	tal_id_t entity_id;
+	if(!Conf->getComponentType(type, entity_id))
+	{
+		if(type.empty())
+		{
+			std::cerr << progname << ": error: infrastructure file is missing this entity type." << std::endl;
+			return_code = 11;
+		}
+		else
+		{
+			std::cerr << progname << ": error: infrastructure file is missing this entity ID." << std::endl;
+			return_code = 12;
+		}
+		return nullptr;
+	}
+
+	std::shared_ptr<Entity> entity;
+	if(type == "sat")
+	{
+		entity = std::make_shared<EntitySat>();
+	}
+	else if(type == "gw")
+	{
+		entity = std::make_shared<EntityGw>(entity_id);
+	}
+	else if(type == "gw_net_acc")
+	{
+		entity = std::make_shared<EntityGwNetAcc>(entity_id);
+	}
+	else if(type == "gw_phy")
+	{
+		entity = std::make_shared<EntityGwPhy>(entity_id);
+	}
+	else if(type == "st")
+	{
+		entity = std::make_shared<EntitySt>(entity_id);
+	}
+	else
+	{
+		std::cerr << progname << ": error: infrastructure file defines an entity that is not handled by this program." << std::endl;
+		return_code = 13;
+		return nullptr;
+	}
+
+	bool enabled = false;
+	std::string output_folder;
+	if(Conf->getLocalStorage(enabled, output_folder) && enabled)
+	{
+		// TODO: Error handling
+		Output::Get()->configureLocalOutput(output_folder, entity->getName());
+	}
+	std::string remote_address;
+	unsigned short stats_port = 12345;
+	unsigned short logs_port = 23456;
+	if(Conf->getRemoteStorage(enabled, remote_address, stats_port, logs_port) && enabled)
+	{
+		// TODO: Error handling
+		Output::Get()->configureRemoteOutput(remote_address, stats_port, logs_port);
+	}
+
+	if(!Conf->readInfrastructure(topology_path))
+	{
+		std::cerr << progname <<
+		             ": error: impossible to validate satcom topology in " <<
+		             topology_path << "." << std::endl;
+		return_code = 14;
+		return entity;
+	}
+
+	if(!entity->loadConfiguration(profile_path))
+	{
+		std::cerr << progname <<
+		             ": error: impossible to validate entity profile in " <<
+		             profile_path << "." << std::endl;
+		return_code = 15;
+		return entity;
+	}
+
+	return entity;
 }
 
 bool Entity::loadPlugins()
@@ -153,7 +260,7 @@ bool Entity::loadPlugins()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load the plugins",
-		        this->type.c_str());
+		        this->name.c_str());
 		return false;
 	}
 	return true;
@@ -184,7 +291,7 @@ bool Entity::run()
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot run process loop",
-		        this->type.c_str());
+		        this->name.c_str());
 		return false;
 	}
 	status->sendEvent("Simulation stopped");

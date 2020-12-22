@@ -38,14 +38,7 @@
 
 #include "Entity.h"
 
-#include <iostream>
 #include <string>
-#include <vector>
-
-#include <opensand_output/Output.h>
-
-using std::string;
-using std::vector;
 
 
 /**
@@ -58,46 +51,22 @@ class EntitySat: public Entity
 	/**
 	 * Build an entity satellite process
 	 */
-	EntitySat():
-		Entity("sat"),
-		ip_address()
-	{
-	};
+	EntitySat();
 
 	/**
 	 * Destroy an entity satellite process
 	 */
-	virtual ~EntitySat() {};
-
-	/**
-	 * Generate the usage message
-	 *
-	 * @param progname  The program name
-	 *
-	 * @return the usage message
-	 */
-	vector<string> generateUsage(const string &progname) const;
+	virtual ~EntitySat();
 
  protected:
 	/**
-	 * Parse arguments of the specific entity process
+	 * Load configuration files
 	 *
-	 * @param argc            The arguments count
-	 * @param argv            The arguments list
-	 * @param name            The entity name
-	 * @param conf_path       The configuration directory path
-	 * @param output_folder   The output folder path
-	 * @param remote_address  The remote collector ip address
-	 * @param stats_port      The remote collector port for stats
-	 * @param logs_port       The remote collector port for logs
+	 * @param profile_path   The path to the entity configuration file
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool parseSpecificArguments(int argc, char **argv,
-		string &name,
-		string &conf_path,
-		string &output_folder, string &remote_address,
-		unsigned short &stats_port, unsigned short &logs_port);
+	bool loadConfiguration(const std::string &profile_path);
 
 	/**
 	 * Create blocks of the specific entity process
@@ -106,7 +75,17 @@ class EntitySat: public Entity
 	 */
 	bool createSpecificBlocks();
 
-	string ip_address;
+	/**
+	 * Create configuration for the blocks of the specific entity process
+	 *
+	 * @param filepath   The path of the file to write the configuration into
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool createSpecificConfiguration(const std::string &filepath) const;
+
+ private:
+	std::string ip_address;
 };
 
 #endif

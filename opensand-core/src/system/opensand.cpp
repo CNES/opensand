@@ -33,148 +33,57 @@
  */
 
 
-#include "OpenSandModelConf.h"
-#include "Entity.h"
-
-#include "EntitySat.h"
-#include "EntityGw.h"
-#include "EntityGwPhy.h"
-#include "EntityGwNetAcc.h"
-#include "EntitySt.h"
-
-#include <string>
-#include <vector>
-#include <map>
 #include <iostream>
+#include <opensand_output/Output.h>
 
-using std::string;
-using std::vector;
-using std::map;
+#include "Entity.h"
+#include "OpenSandModelConf.h"
 
-
-void usage(std::ostream &stream, const string &progname, const map<string, Entity *> &entities)
-{
-	std::stringstream names;
-	string prefix("  ");
-	vector<string> names_list;
-	vector<string> usages_list;
-
-	map<string, Entity *>::const_iterator entity_iter;
-	vector<string>::const_iterator iter;
-
-	for(entity_iter = entities.begin(); entity_iter != entities.end(); entity_iter++)
-	{
-		vector<string> usage;
-
-		names_list.push_back(entity_iter->first);
-		usage = entity_iter->second->generateUsage(progname);
-		usage.push_back("");
-
-		usages_list.reserve(usages_list.size() + distance(usage.begin(), usage.end()));
-		usages_list.insert(usages_list.end(), usage.begin(), usage.end());
-	}
-	if(names_list.begin() != names_list.end())
-	{
-		iter = names_list.begin();
-		names << *iter++;
-		for(; iter != names_list.end(); iter++)
-		{
-			names << "|" << *iter;
-		}
-	}
-	stream << "usage: " << progname << " [-h] [{" << names.str() << "} ...]" << std::endl;
-	for(iter = usages_list.begin(); iter != usages_list.end(); iter++)
-	{
-		stream << prefix << *iter << std::endl;
-	}
-}
 
 int main(int argc, char **argv)
 {
 	int status = -1;
-	Entity *entity;
-	map<string, Entity *> entities;
-	map<string, Entity *>::iterator iter;
+	auto entity = Entity::parseArguments(argc, argv, status);
 
-	entity = new EntitySat();
-	entities[entity->getType()] = entity;
-	entity = new EntityGw();
-	entities[entity->getType()] = entity;
-	entity = new EntityGwPhy();
-	entities[entity->getType()] = entity;
-	entity = new EntityGwNetAcc();
-	entities[entity->getType()] = entity;
-	entity = new EntitySt();
-	entities[entity->getType()] = entity;
-
-  auto just_a_test = OpenSandModelConf::Get();
-  just_a_test->createModels();
-  just_a_test->writeInfrastructureModel("just_a_test.xsd");
-  just_a_test->readInfrastructure("just_a_test.xml");
-
-	// Check minimal arguments count
-	if(argc < 2)
+	if(status != 0 || entity == nullptr)
 	{
-		std::cerr << "Invalid arguments count" << std::endl;
- 		usage(std::cerr, argv[0], entities);
-		goto end;
+		// usage or error message handled through parseArguments
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: failed to init the process",
+		        entity == nullptr ? argv[0] : entity->getName().c_str());
+		return status;
 	}
 
-	// Check help message is required
-	for(int i = 1; i < argc; ++i)
+	DFLTLOG(LEVEL_NOTICE, "starting output\n");
+	std::map<std::string, log_level_t> levels;
+	std::map<std::string, log_level_t> spec_levels;
+	if(!OpenSandModelConf::Get()->logLevels(levels, spec_levels))
 	{
-		string arg(argv[i]);
-		if(arg == "-h")
-		{
-			usage(std::cout, argv[0], entities);
-			status = 0;
-			goto end;
-		}
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot load default levels, quit",
+		        entity->getName().c_str());
+		std::cerr << argv[0] << ": error: unable to load default log levels" << std::endl;
+		return 100;
 	}
+	// Output::Get()->setLevels(levels, spec_level);
 
-	// Get specific process
-	iter = entities.find(string(argv[1]));
-	if(iter == entities.end())
-	{
-		std::cerr << "Invalid command \"" << argv[1] << "\"" << std::endl;
-		usage(std::cerr, argv[0], entities);
-		goto end;
-	}
-	entity = iter->second;
-
-	// Parse specific arguments
-	if(!entity->parseArguments(argc - 1, &(argv[1])))
-	{
-		std::cerr << "Invalid \"" << argv[1] << "\" arguments" << std::endl;
-		usage(std::cerr, argv[0], entities);
-		goto end;
-	}
-
-	// Process
-	if(!entity->loadConfiguration())
-	{
-		goto end;
-	}
 	if(!entity->loadPlugins())
 	{
-		goto end;
+		std::cerr << argv[0] << ": error: unable to load plugins" << std::endl;
+		return 101;
 	}
+
 	if(!entity->createBlocks())
 	{
+		std::cerr << argv[0] << ": error: unable to create specific blocks" << std::endl;
 		entity->releasePlugins();
-		goto end;
+		return 102;
 	}
+
 	if(!entity->run())
 	{
+		std::cerr << argv[0] << ": error during entity execution" << std::endl;
 		entity->releasePlugins();
-		goto end;
+		return 103;
 	}
-	status = 0;
-
-end:
-	for(iter = entities.begin(); iter != entities.end(); iter++)
-	{
-		delete iter->second;
-	}
-	return status;
 }
