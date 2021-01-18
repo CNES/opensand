@@ -66,14 +66,6 @@ class FmtDefinitionTable
 	// Output Log
 	std::shared_ptr<OutputLog> log_fmt;
 
-	/**
-	 * @brief Add a new FMT definition in the table
-	 *
-	 * @param fmt_def  the new FMT
-	 * @return         true if the addition is successful, false otherwise
-	 */
-	bool add(FmtDefinition *fmt_def);
-
  public:
 
 	/**** constructor/destructor ****/
@@ -87,13 +79,12 @@ class FmtDefinitionTable
 	/**** operations ****/
 
 	/**
-	 * @brief Load FMT definition table from file
+	 * @brief Add a new FMT definition in the table
 	 *
-	 * @param filename       the name of the file to load FMT definitions from
-	 * @param burst_length   the burst length to load in symbol
-	 * @return               true if definitions are successfully loaded, false otherwise
+	 * @param fmt_def  the new FMT
+	 * @return         true if the addition is successful, false otherwise
 	 */
-	bool load(const string filename, vol_sym_t req_burst_length = 0);
+	bool add(FmtDefinition *fmt_def);
 
 	/**
 	 * @brief Does a FMT definition with the given ID exist ?

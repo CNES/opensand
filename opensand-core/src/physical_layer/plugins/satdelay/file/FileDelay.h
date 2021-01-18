@@ -36,14 +36,12 @@
 
 
 #include "PhysicalLayerPlugin.h"
-
-#include <opensand_old_conf/conf.h>
+#include "OpenSandPlugin.h"
+#include "OpenSandCore.h"
 
 #include <fstream>
 #include <string>
 
-using std::string;
-using std::map;
 
 /**
  * @class FileDelay
@@ -52,6 +50,7 @@ using std::map;
 class FileDelay: public SatDelayPlugin
 {
  private:
+	static std::string config_path;
 
 	bool is_init;
 
@@ -59,12 +58,10 @@ class FileDelay: public SatDelayPlugin
 	unsigned int current_time;
 
 	/// The satdelay values we will interpolate
-	map<unsigned int, time_ms_t> delays;
+	std::map<unsigned int, time_ms_t> delays;
 
 	/// Reading mode
 	bool loop;
-
-	map<string, ConfigurationList> config_section_map;
 
 	/**
 	 * @brief Load the sat delay file
@@ -75,7 +72,6 @@ class FileDelay: public SatDelayPlugin
 	bool load(string filename);
 
  public:
-
 	/**
 	 * @brief Build a File
 	 */
@@ -85,6 +81,13 @@ class FileDelay: public SatDelayPlugin
 	 * @brief Destroy the File
 	 */
 	~FileDelay();
+
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 
 	bool init();
 

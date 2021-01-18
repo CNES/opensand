@@ -41,8 +41,9 @@
 #ifndef DVB_CHANNEL_H
 #define DVB_CHANNEL_H
 
+#include <sstream>
+
 #include "PhysicStd.h"
-#include "NccPepInterface.h"
 #include "TerminalCategory.h"
 #include "BBFrame.h"
 #include "Sac.h"
@@ -52,7 +53,6 @@
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
-#include <opensand_old_conf/conf.h>
 
 
 /**
@@ -76,7 +76,7 @@ class DvbChannel
 		check_send_stats(0)
 	{
 		// register static log
-    auto output = Output::Get();
+		auto output = Output::Get();
 		dvb_fifo_log = output->registerLog(LEVEL_WARNING, "Dvb.FIFO");
 		this->log_init_channel = output->registerLog(LEVEL_WARNING, "Dvb.Channel.init");
 		this->log_receive_channel = output->registerLog(LEVEL_WARNING, "Dvb.Channel.receive");
@@ -104,7 +104,7 @@ class DvbChannel
 	 * @param pkt_hdl       The packet handler corresponding to the encapsulation scheme
 	 * @return true on success, false otherwise
 	 */
-	bool initPktHdl(const char *encap_schemes,
+	bool initPktHdl(encap_scheme_list_t encap_schemes,
 	                EncapPlugin::EncapPacketHandler **pkt_hdl);
 
 	/**
@@ -122,7 +122,7 @@ class DvbChannel
 	 *                      schemes (up/return or down/forward)
 	 * @return true on success, false otherwise
 	 */
-	bool initCommon(const char *encap_schemes);
+	bool initCommon(encap_scheme_list_t encap_schemes);
 
 	/**
 	 * @brief Init the timer for statistics
@@ -325,7 +325,7 @@ inline vector<unsigned int> tempSplit(string values)
 			tokenize(*it2, third_step, "-");
 			for(it3 = third_step.begin(); it3 != third_step.end(); ++it3)
 			{
-				stringstream str(*it3);
+				std::stringstream str(*it3);
 				unsigned int val;
 				str >> val;
 				if(str.fail())
@@ -599,28 +599,15 @@ error:
 class DvbFmt
 {
  public:
-	DvbFmt():
-		input_sts(NULL),
-		s2_modcod_def(NULL),
-		output_sts(NULL),
-		rcs_modcod_def(NULL),
-		log_fmt(NULL)
+	enum ModcodDefFileType
 	{
-		// register static log
-		this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Fmt.Channel");
+		MODCOD_DEF_S2,
+		MODCOD_DEF_RCS2,
 	};
 
-	virtual ~DvbFmt()
-	{
-		if(this->s2_modcod_def)
-		{
-			delete this->s2_modcod_def;
-		}
-		if(this->rcs_modcod_def)
-		{
-			delete this->rcs_modcod_def;
-		}
-	};
+	DvbFmt();
+
+	virtual ~DvbFmt();
 
 	/**
 	 * @brief setter of input_sts
@@ -692,7 +679,7 @@ class DvbFmt
 	 * @param req_burst_length  The required burst length (only for DVB-RCS2)
 	 * @return  true on success, false otherwise
 	 */
-	bool initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def, vol_sym_t req_burst_length = 0);
+	bool initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable **modcod_def, vol_sym_t req_burst_length = 0);
 
 	/**
 	 * @brief Add a new Satellite Terminal (ST) in the output list
@@ -1001,9 +988,9 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 		{
 			if(carriers.find(carriers_ite2->first) == carriers.end())
 			{
-				carriers.insert(make_pair<rate_symps_t, unsigned int>(
+				carriers.insert(std::make_pair<rate_symps_t, unsigned int>(
 				                   (rate_symps_t) carriers_ite2->first,
-						   (unsigned int) 1));
+				                   (unsigned int) 1));
 			}
 			else
 			{
@@ -1040,9 +1027,9 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 			num_carriers = carriers_ite1->second;
 		}
 		carriers_available.find(carriers_ite1->first)->second -= num_carriers;
-		carriers.insert(make_pair<rate_symps_t, unsigned int>(
+		carriers.insert(std::make_pair<rate_symps_t, unsigned int>(
 		                    (rate_symps_t) carriers_ite1->first,
-				    (unsigned int) num_carriers));
+		                    (unsigned int) num_carriers));
 		rate_symps -= (carriers_ite1->first * num_carriers);
 		if(num_carriers != carriers_ite1->second)
 		{

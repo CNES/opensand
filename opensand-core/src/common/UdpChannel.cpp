@@ -44,7 +44,6 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <unistd.h>
-//#include <netinet/in.h>
 
 
 /**
@@ -577,3 +576,75 @@ bool UdpChannel::send(const unsigned char *data, size_t length)
 	return false;
 }
 
+
+UdpStack::UdpStack()
+{
+	// Output log
+	this->log_sat_carrier = Output::Get()->registerLog(LEVEL_WARNING, "SatCarrier.Channel");
+	// reserve space for all UDP counters
+	this->reserve(256);
+	for(unsigned int i = 0; i < 256; i++)
+	{
+		this->push_back(std::make_pair<unsigned char *, size_t>(NULL, 0));
+	}
+	this->counter = 0;
+}
+
+
+UdpStack::~UdpStack()
+{
+	this->reset();
+	this->clear();
+}
+
+
+void UdpStack::add(uint8_t udp_counter, unsigned char *data, size_t data_length)
+{
+	if(this->at(udp_counter).first)
+	{
+		LOG(this->log_sat_carrier, LEVEL_ERROR, 
+		    "new data for UDP stack at position %u, erase "
+		    "previous data\n", udp_counter);
+		this->counter--;
+		delete (this->at(udp_counter).first);
+	}
+	this->at(udp_counter).first = data;
+	this->at(udp_counter).second = data_length;
+	this->counter++;
+}
+
+
+void UdpStack::remove(uint8_t udp_counter, unsigned char **data, size_t &data_length)
+{
+	*data = this->at(udp_counter).first;
+	if(*data)
+	{
+		this->counter--;
+	}
+	data_length = this->at(udp_counter).second;
+	this->at(udp_counter).first = NULL;
+	this->at(udp_counter).second = 0;
+}
+
+
+bool UdpStack::hasNext(uint8_t udp_counter)
+{
+	auto& value = this->at(udp_counter);
+	return (value.first != nullptr && value.second != 0);
+}
+
+
+void UdpStack::reset()
+{
+	vector<pair<unsigned char *, size_t> >::iterator it;
+	for(it = this->begin(); it != this->end(); ++it)
+	{
+		if((*it).first)
+		{
+			delete (*it).first;
+			(*it).first = NULL;
+			(*it).second = 0;
+		}
+		this->counter = 0;
+	}
+}

@@ -38,13 +38,9 @@
 
 #include "PhysicalLayerPlugin.h"
 
-#include <opensand_old_conf/ConfigurationFile.h>
-
 #include <fstream>
 #include <string>
 
-using std::string;
-using std::map;
 
 /**
  * @class File
@@ -53,17 +49,14 @@ using std::map;
 class File: public AttenuationModelPlugin
 {
  private:
-
 	/// The current time (in refresh_period_ms)
 	unsigned int current_time;
 
 	/// The attenuation values we will interpolate
-	map<unsigned int, double> attenuation;
+	std::map<unsigned int, double> attenuation;
 
 	/// Reading mode
 	bool loop;
-
-	map<string, ConfigurationList> config_section_map;
 
 	/**
 	 * @brief Load the attenuation file
@@ -74,7 +67,6 @@ class File: public AttenuationModelPlugin
 	bool load(string filename);
 
  public:
-
 	/**
 	 * @brief Build a File
 	 */
@@ -85,10 +77,16 @@ class File: public AttenuationModelPlugin
 	 */
 	~File();
 
-	bool init(time_ms_t refresh_period_ms, string link);
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
+
+	bool init(time_ms_t refresh_period_ms, std::string link);
 
 	bool updateAttenuationModel();
-
 };
 
 CREATE(File, attenuation_plugin, "File");

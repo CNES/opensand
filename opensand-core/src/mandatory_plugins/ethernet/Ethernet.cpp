@@ -37,6 +37,7 @@
 
 #include "Ethernet.h"
 #include "TrafficCategory.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
@@ -71,6 +72,12 @@ Ethernet::Ethernet():
 {
 }
 
+void Ethernet::generateConfiguration(const std::string &, const std::string &, const std::string &)
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
+}
+
 bool Ethernet::init()
 {
 	if(!LanAdaptationPlugin::init())
@@ -82,7 +89,7 @@ bool Ethernet::init()
 	string sat_eth;
 	vector<string> conf_files;
 	string conf_eth_path;
-	conf_eth_path = this->getConfPath() + string(CONF_ETH_FILENAME);
+	conf_eth_path = string(CONF_ETH_FILENAME);
 	conf_files.push_back(conf_eth_path.c_str());
 
 	this->upper.push_back("IP");
@@ -145,7 +152,7 @@ bool Ethernet::Context::init()
 	string sat_eth;
 	vector<string> conf_files;
 	string conf_eth_path;
-	conf_eth_path = this->getConfPath() + string(CONF_ETH_FILENAME);
+	conf_eth_path = string(CONF_ETH_FILENAME);
 	conf_files.push_back(conf_eth_path.c_str());
 	
 	this->handle_net_packet = true;

@@ -129,8 +129,12 @@ bool EntityGwPhy::loadConfiguration(const std::string &profile_path)
 	{
 		return false;
 	}
-	// TODO populate attributes
-	return true;
+
+	std::string tap, interco;
+	return Conf->getSplitGwInfrastructure(this->instance_id,
+	                                      this->ip_address,
+	                                      this->interconnect_address,
+										  interco, tap);
 }
 
 bool EntityGwPhy::createSpecificConfiguration(const std::string &filepath) const
@@ -143,6 +147,6 @@ bool EntityGwPhy::createSpecificConfiguration(const std::string &filepath) const
 
 void EntityGwPhy::defineProfileMetaModel() const
 {
-	auto profile = OpenSandModelConf::Get()->getProfileModel();
-	// TODO
+	BlockInterconnectUpward::generateConfiguration();
+	BlockPhysicalLayer::generateConfiguration();
 }

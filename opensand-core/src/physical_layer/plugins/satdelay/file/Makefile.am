@@ -21,4 +21,5 @@ libopensand_file_satdelay_plugin_la_SOURCES = \
 pluginsdir = $(libdir)/opensand/plugins
 
 INCLUDES = \
+	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common

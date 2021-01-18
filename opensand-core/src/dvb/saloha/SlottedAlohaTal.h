@@ -117,6 +117,8 @@ class SlottedAlohaTal: public SlottedAloha
 	 */
 	~SlottedAlohaTal();
 
+	static void generateConfiguration();
+
 	/**
 	 * @brief Initialize Slotted Aloha for terminal
 	 *

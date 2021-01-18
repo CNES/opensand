@@ -141,8 +141,6 @@ protected:
 	std::string name;
 	tal_id_t instance_id;
 
-	std::string plugin_conf_path;
-
 	std::shared_ptr<OutputEvent> status;
 };
 

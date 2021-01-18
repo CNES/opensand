@@ -42,6 +42,8 @@
 
 #include <math.h>
 #include <string>
+#include <sstream>
+
 
 /**
  * Constructor
@@ -299,7 +301,7 @@ void DamaCtrlRcs2Legacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
                                                   rate_kbps_t &request_rate_kbps,
                                                   rate_kbps_t &alloc_rate_kbps)
 {
-	ostringstream buf;
+	std::ostringstream buf;
 	string label = category->getLabel();
 	string debug;
 
@@ -419,7 +421,7 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	vector<TerminalContextDamaRcs *>::iterator tal_it;
 	int simu_rbdc = 0;
 	tal_id_t tal_id;
-	ostringstream buf;
+	std::ostringstream buf;
 	string label = category->getLabel();
 	string debug;
 
@@ -692,7 +694,7 @@ void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
 	rate_pktpf_t total_capacity_pktpf;
 	vector<TerminalContextDamaRcs *>::iterator tal_it;
 	int simu_vbdc = 0;
-	ostringstream buf;
+	std::ostringstream buf;
 	string label = category->getLabel();
 	string debug;
 
@@ -880,7 +882,7 @@ void DamaCtrlRcs2Legacy::computeDamaFcaPerCarrier(CarriersGroupDama *carriers,
 	rate_pktpf_t fca_pktpf;
 	int simu_fca = 0;
 	vector<TerminalContextDamaRcs *>::iterator tal_it;
-	ostringstream buf;
+	std::ostringstream buf;
 	string label = category->getLabel();
 	string debug;
 

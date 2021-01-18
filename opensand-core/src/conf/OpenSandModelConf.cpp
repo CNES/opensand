@@ -41,6 +41,9 @@
 
 #include "OpenSandModelConf.h"
 #include "MacAddress.h"
+#include "SarpTable.h"
+#include "FmtDefinition.h"
+#include "FmtDefinitionTable.h"
 
 
 const std::map<std::string, log_level_t> levels_map{
@@ -51,23 +54,6 @@ const std::map<std::string, log_level_t> levels_map{
 	{"error", LEVEL_ERROR},
 	{"critical", LEVEL_CRITICAL},
 };
-
-
-template<typename T>
-bool extractParameterData(std::shared_ptr<const OpenSANDConf::DataParameter> parameter, T& result)
-{
-	auto data = std::dynamic_pointer_cast<OpenSANDConf::DataValue<T>>(parameter->getData());
-	if (data == nullptr) {
-		return false;
-	}
-
-	if (!data->isSet()) {
-		return false;
-	}
-
-	result = data->get();
-	return true;
-}
 
 
 OpenSandModelConf::OpenSandModelConf():
@@ -208,6 +194,11 @@ void OpenSandModelConf::createModels()
 	sarp->setAdvanced(true);
 	sarp->addParameter("default_gw", "Default Gateway", types->getType("int"), "Default Gateway ID for a packet destination when the MAC address is not found in the SARP Table; use -1 to drop such packets");
 
+	auto ncc = infrastructure_model->getRoot()->addComponent("ncc", "NCC");
+	ncc->setAdvanced(true);
+	ncc->addParameter("pep_port", "PEP DAMA Port", types->getType("int"));
+	ncc->addParameter("svno_port", "SVNO Port", types->getType("int"));
+
 
 	topology_model = std::make_shared<OpenSANDConf::MetaModel>("1.0.0");
 	topology_model->getRoot()->setDescription("topology");
@@ -215,7 +206,7 @@ void OpenSandModelConf::createModels()
 	types->addEnumType("burst_length", "DVB-RCS2 Burst Length", {"536 sym", "1616 sym"});
 	types->addEnumType("forward_type", "Forward Carrier Type", {"ACM", "VCM"});
 	types->addEnumType("return_type", "Return Carrier Type", {"DAMA", "ALOHA", "SCPC"});
-	types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional"});
+	types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
 
 	auto frequency_plan = topology_model->getRoot()->addComponent("frequency_plan", "Spots / Frequency Plan");
 	auto spots = frequency_plan->addList("spots", "Spots", "spot_detail")->getPattern();
@@ -271,48 +262,172 @@ void OpenSandModelConf::createModels()
 	auto links = advanced->addComponent("links", "Links");
 	links->addParameter("forward_duration", "Forward link frame duration", types->getType("int"))->setUnit("ms"); 
 	links->addParameter("forward_margin", "Forward link ACM loop margin", types->getType("double"))->setUnit("dB");
+	// auto forward_encap = links->addList("forward_encap_schemes", "Forward link Encapsulation Schemes", "forward_encap_scheme")->getPattern();
 	links->addParameter("return_duration", "Return link frame duration", types->getType("int"))->setUnit("ms"); 
 	links->addParameter("return_margin", "Return link ACM loop margin", types->getType("double"))->setUnit("dB");
+	// auto return_encap = links->addList("return_encap_schemes", "Forward link Encapsulation Schemes", "return_encap_scheme")->getPattern();
 	auto schedulers = advanced->addComponent("schedulers", "Schedulers");
 	schedulers->addParameter("burst_length", "DVB-RCS2 Burst Length", types->getType("burst_length"));
 	schedulers->addParameter("crdsa_frame", "CRDSA Frame", types->getType("int"))->setUnit("DVB-RCS2 SuperFrames");
 	schedulers->addParameter("crdsa_delay", "CRDSA Max Satellite Delay", types->getType("int"))->setUnit("ms");
+	schedulers->addParameter("pep_allocation", "PEP Allocation Delay", types->getType("int"))->setUnit("ms");
 	auto timers = advanced->addComponent("timers", "Timers");
 	timers->addParameter("statistics", "Statistics Timer", types->getType("int"))->setUnit("ms");
 	timers->addParameter("synchro", "Sync Period", types->getType("int"))->setUnit("ms");
 	timers->addParameter("acm_refresh", "ACM Refresh Period", types->getType("int"))->setUnit("ms");
+	auto delay = advanced->addComponent("delay", "Delay");
+	delay->addParameter("fifo_size", "Buffer Size", types->getType("int"),
+	                    "Amount of packets that can be stored at once in the "
+	                    "delay FIFO before being sent through the physical "
+	                    "channels; acts as default values for the Gateways "
+	                    "channels FIFO sizes if not specified")->setUnit("packets");
+	delay->addParameter("delay_timer", "Timer", types->getType("int"));
 
 	profile_model = std::make_shared<OpenSANDConf::MetaModel>("1.0.0");
 	profile_model->getRoot()->setDescription("profile");
 }
 
 
-std::shared_ptr<OpenSANDConf::MetaModel> OpenSandModelConf::getProfileModel() const
+std::shared_ptr<OpenSANDConf::DataComponent> OpenSandModelConf::getProfileData(const std::string &path) const
 {
-	return profile_model;
+	if (profile == nullptr)
+	{
+		return nullptr;
+	}
+
+	if (path.empty())
+	{
+		return profile->getRoot();
+	}
+
+	return std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(profile->getItemByPath(path));
+}
+
+
+std::shared_ptr<OpenSANDConf::MetaTypesList> OpenSandModelConf::getModelTypesDefinition() const
+{
+	if (profile_model == nullptr)
+	{
+		return nullptr;
+	}
+
+	return profile_model->getTypesDefinition();
+}
+
+
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getOrCreateComponent(
+		const std::string& id,
+		const std::string& name,
+		std::shared_ptr<OpenSANDConf::MetaComponent> from)
+{
+	return getOrCreateComponent(id, name, "", from);
+}
+
+
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getOrCreateComponent(
+		const std::string& id,
+		const std::string& name,
+		const std::string& description,
+		std::shared_ptr<OpenSANDConf::MetaComponent> from)
+{
+	if (from == nullptr && profile_model == nullptr)
+	{
+		createModels();
+	}
+
+	auto parent = from == nullptr ? profile_model->getRoot() : from;
+	auto child = parent->getComponent(id);
+	if (child == nullptr) {
+		child = parent->addComponent(id, name, description);
+	}
+	return child;
+}
+
+
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getComponentByPath(
+		const std::string &path,
+		std::shared_ptr<OpenSANDConf::MetaModel> from)
+{
+	if (from == nullptr && profile_model == nullptr)
+	{
+		createModels();
+	}
+
+	auto element = (from == nullptr ? profile_model : from)->getItemByPath(path);
+	return std::dynamic_pointer_cast<OpenSANDConf::MetaComponent>(element);
+}
+
+
+void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
+                                            std::shared_ptr<OpenSANDConf::MetaParameter> referee,
+											const std::string &expected_value)
+{
+	if (profile_model == nullptr)
+	{
+		return;
+	}
+
+	profile_model->setReference(parameter, referee);
+	auto expected = parameter->getReferenceData();
+	std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(expected)->set(expected_value);
+}
+
+
+void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
+                                            std::shared_ptr<OpenSANDConf::MetaParameter> referee,
+											bool expected_value)
+{
+	if (profile_model == nullptr)
+	{
+		return;
+	}
+
+	profile_model->setReference(parameter, referee);
+	auto expected = parameter->getReferenceData();
+	std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(expected)->set(expected_value);
 }
 
 
 bool OpenSandModelConf::writeTopologyModel(const std::string& filename) const
 {
+	if (topology_model == nullptr)
+	{
+		return false;
+	}
+
 	return OpenSANDConf::toXSD(topology_model, filename);
 }
 
 
 bool OpenSandModelConf::writeInfrastructureModel(const std::string& filename) const
 {
+	if (infrastructure_model == nullptr)
+	{
+		return false;
+	}
+
 	return OpenSANDConf::toXSD(infrastructure_model, filename);
 }
 
 
 bool OpenSandModelConf::writeProfileModel(const std::string& filename) const
 {
+	if (profile_model == nullptr)
+	{
+		return false;
+	}
+
 	return OpenSANDConf::toXSD(profile_model, filename);
 }
 
 
 bool OpenSandModelConf::readTopology(const std::string& filename)
 {
+	if (topology_model == nullptr)
+	{
+		createModels();
+	}
+
 	topology = OpenSANDConf::fromXML(topology_model, filename);
 	return topology != nullptr;
 }
@@ -320,6 +435,11 @@ bool OpenSandModelConf::readTopology(const std::string& filename)
 
 bool OpenSandModelConf::readInfrastructure(const std::string& filename)
 {
+	if (infrastructure_model == nullptr)
+	{
+		createModels();
+	}
+
 	infrastructure = OpenSANDConf::fromXML(infrastructure_model, filename);
 	return infrastructure != nullptr;
 }
@@ -327,6 +447,11 @@ bool OpenSandModelConf::readInfrastructure(const std::string& filename)
 
 bool OpenSandModelConf::readProfile(const std::string& filename)
 {
+	if (profile_model == nullptr)
+	{
+		createModels();
+	}
+
 	profile = OpenSANDConf::fromXML(profile_model, filename);
 	return profile != nullptr;
 }
@@ -385,6 +510,113 @@ bool OpenSandModelConf::getComponentType(std::string &type, tal_id_t &id) const
 
 	id = entity_id;
 	return true;
+}
+
+
+bool OpenSandModelConf::getSatInfrastructure(std::string &ip_address) const
+{
+	if (infrastructure == nullptr) {
+		return false;
+	}
+
+	auto satellite = infrastructure->getRoot()->getComponent("infrastructure")->getComponent("satellite");
+	return extractParameterData(satellite->getParameter("emu_address"), ip_address);
+}
+
+
+bool OpenSandModelConf::getGwInfrastructure(tal_id_t id, std::string &ip_address, std::string &tap_iface) const
+{
+	if (infrastructure == nullptr) {
+		return false;
+	}
+
+	for (auto& gateway_item : infrastructure->getRoot()->getComponent("infrastructure")->getList("gateways")->getItems()) {
+		auto gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(gateway_item);
+
+		int gateway_id = -id;
+		if (!extractParameterData(gateway->getParameter("entity_id"), gateway_id)) {
+			continue;
+		}
+
+		if (gateway_id == id) {
+			if (!extractParameterData(gateway->getParameter("emu_address"), ip_address)) {
+				return false;
+			}
+			if (!extractParameterData(gateway->getParameter("tap_iface"), tap_iface)) {
+				return false;
+			}
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+bool OpenSandModelConf::getSplitGwInfrastructure(tal_id_t id, std::string& ip_address,
+                                                 std::string &interconnect_phy,
+                                                 std::string &interconnect_net_access,
+                                                 std::string &tap_iface) const
+{
+	if (infrastructure == nullptr) {
+		return false;
+	}
+
+	for (auto& gateway_item : infrastructure->getRoot()->getComponent("infrastructure")->getList("split_gateways")->getItems()) {
+		auto gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(gateway_item);
+
+		int gateway_id = -id;
+		if (!extractParameterData(gateway->getParameter("entity_id"), gateway_id)) {
+			continue;
+		}
+
+		if (gateway_id == id) {
+			if (!extractParameterData(gateway->getParameter("emu_address"), ip_address)) {
+				return false;
+			}
+			if (!extractParameterData(gateway->getParameter("interco_phy"), interconnect_phy)) {
+				return false;
+			}
+			if (!extractParameterData(gateway->getParameter("interco_net_access"), interconnect_net_access)) {
+				return false;
+			}
+			if (!extractParameterData(gateway->getParameter("tap_iface"), tap_iface)) {
+				return false;
+			}
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+bool OpenSandModelConf::getStInfrastructure(tal_id_t id, std::string &ip_address, std::string &tap_iface) const
+{
+	if (infrastructure == nullptr) {
+		return false;
+	}
+
+	for (auto& terminal_item : infrastructure->getRoot()->getComponent("infrastructure")->getList("terminals")->getItems()) {
+		auto terminal = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(terminal_item);
+
+		int terminal_id = -id;
+		if (!extractParameterData(terminal->getParameter("entity_id"), terminal_id)) {
+			continue;
+		}
+
+		if (terminal_id == id) {
+			if (!extractParameterData(terminal->getParameter("emu_address"), ip_address)) {
+				return false;
+			}
+			if (!extractParameterData(terminal->getParameter("tap_iface"), tap_iface)) {
+				return false;
+			}
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
@@ -541,6 +773,335 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 		}
 	}
 
+	return true;
+}
+
+
+bool OpenSandModelConf::getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const
+{
+	if (infrastructure == nullptr) {
+		return false;
+	}
+
+	// Default values
+	pep_tcp_port = 4998;
+	svno_tcp_port = 4999;
+
+	auto ncc = infrastructure->getRoot()->getComponent("ncc");
+	extractParameterData(ncc->getParameter("pep_port"), pep_tcp_port);
+	extractParameterData(ncc->getParameter("svno_port"), svno_tcp_port);
+	return true;
+}
+
+
+bool OpenSandModelConf::getS2WaveFormsDefinition(std::vector<fmt_definition_parameters> &fmt_definitions) const
+{
+	if(topology == nullptr) {
+		return false;
+	}
+
+	auto waveforms = topology->getRoot()->getComponent("wave_forms")->getList("dvb_s2");
+	for (auto& waveform_item : waveforms->getItems()) {
+		auto waveform = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(waveform_item);
+
+		int scheme_number;
+		if (!extractParameterData(waveform->getParameter("id"), scheme_number)) {
+			return false;
+		}
+		if (scheme_number <= 0) {
+			return false;
+		}
+
+		std::string modulation;
+		if (!extractParameterData(waveform->getParameter("modulation"), modulation)) {
+			return false;
+		}
+
+		std::string coding;
+		if (!extractParameterData(waveform->getParameter("coding"), coding)) {
+			return false;
+		}
+
+		double spectral_efficiency;
+		if (!extractParameterData(waveform->getParameter("efficiency"), spectral_efficiency)) {
+			return false;
+		}
+
+		double threshold;
+		if (!extractParameterData(waveform->getParameter("threshold"), threshold)) {
+			return false;
+		}
+
+		fmt_definition_parameters params{scheme_number,
+		                                 modulation,
+		                                 coding,
+		                                 spectral_efficiency,
+		                                 threshold};
+		fmt_definitions.push_back(params);
+	}
+
+	return true;
+}
+
+
+bool OpenSandModelConf::getRcs2WaveFormsDefinition(std::vector<fmt_definition_parameters> &fmt_definitions, vol_sym_t req_burst_length) const
+{
+	if(topology == nullptr) {
+		return false;
+	}
+
+	auto waveforms = topology->getRoot()->getComponent("wave_forms")->getList("dvb_rcs2");
+	for (auto& waveform_item : waveforms->getItems()) {
+		auto waveform = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(waveform_item);
+
+		std::string burst_length;
+		if (!extractParameterData(waveform->getParameter("burst_length"), burst_length)) {
+			return false;
+		}
+
+		std::stringstream parser(burst_length);
+		vol_sym_t defined_burst_length;
+		parser >> defined_burst_length;
+		if (parser.fail()) {
+			return false;
+		}
+
+		if (defined_burst_length != req_burst_length) {
+			continue;
+		}
+
+		int scheme_number;
+		if (!extractParameterData(waveform->getParameter("id"), scheme_number)) {
+			return false;
+		}
+		if (scheme_number <= 0) {
+			return false;
+		}
+
+		std::string modulation;
+		if (!extractParameterData(waveform->getParameter("modulation"), modulation)) {
+			return false;
+		}
+
+		std::string coding;
+		if (!extractParameterData(waveform->getParameter("coding"), coding)) {
+			return false;
+		}
+
+		double spectral_efficiency;
+		if (!extractParameterData(waveform->getParameter("efficiency"), spectral_efficiency)) {
+			return false;
+		}
+
+		double threshold;
+		if (!extractParameterData(waveform->getParameter("threshold"), threshold)) {
+			return false;
+		}
+
+		fmt_definition_parameters params{scheme_number,
+		                                 modulation,
+		                                 coding,
+		                                 spectral_efficiency,
+		                                 threshold};
+		fmt_definitions.push_back(params);
+	}
+
+	return true;
+}
+
+
+bool OpenSandModelConf::getRcs2BurstLength(vol_sym_t &length_sym) const
+{
+	if (topology == nullptr) {
+		return false;
+	}
+
+	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("schedulers");
+	std::string burst_length;
+	if (!extractParameterData(schedulers->getParameter("burst_length"), burst_length)) {
+		return false;
+	}
+
+	std::stringstream parser(burst_length);
+	parser >> length_sym;
+	return !parser.fail();
+}
+
+
+bool OpenSandModelConf::getSuperframePerSlottedAlohaFrame(time_sf_t &sf_per_saframe) const
+{
+	if (topology == nullptr) {
+		return false;
+	}
+
+	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("schedulers");
+	int value;
+	if (!extractParameterData(schedulers->getParameter("crdsa_frame"), value)) {
+		return false;
+	}
+
+	sf_per_saframe = value;
+	return true;
+}
+
+
+bool OpenSandModelConf::getCrdsaMaxSatelliteDelay(time_ms_t &sat_delay) const
+{
+	if (topology == nullptr) {
+		return false;
+	}
+
+	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("schedulers");
+	int value;
+	if (!extractParameterData(schedulers->getParameter("crdsa_delay"), value)) {
+		return false;
+	}
+
+	sat_delay = value;
+	return true;
+}
+
+
+bool OpenSandModelConf::getPepAllocationDelay(int &pep_allocation_delay) const
+{
+	if (topology == nullptr) {
+		return false;
+	}
+
+	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("schedulers");
+	return extractParameterData(schedulers->getParameter("pep_allocation"), pep_allocation_delay);
+}
+
+
+template<typename T>
+bool getAdvancedLinksParameter(std::shared_ptr<OpenSANDConf::DataModel> model, const std::string& parameter, T &result)
+{
+	if (model == nullptr) {
+		return false;
+	}
+
+	auto schedulers = model->getRoot()->getComponent("advanced_settings")->getComponent("links");
+	return OpenSandModelConf::extractParameterData(schedulers->getParameter(parameter), result);
+}
+
+
+bool OpenSandModelConf::getReturnFrameDuration(time_ms_t &frame_duration) const
+{
+	int value;
+	if (!getAdvancedLinksParameter(topology, "return_duration", value)) {
+		return false;
+	}
+
+	frame_duration = value;
+	return true;
+}
+
+
+bool OpenSandModelConf::getForwardFrameDuration(time_ms_t &frame_duration) const
+{
+	int value;
+	if (!getAdvancedLinksParameter(topology, "forward_duration", value)) {
+		return false;
+	}
+
+	frame_duration = value;
+	return true;
+}
+
+
+bool OpenSandModelConf::getReturnAcmLoopMargin(double &margin) const
+{
+	return getAdvancedLinksParameter(topology, "return_margin", margin);
+}
+
+
+bool OpenSandModelConf::getForwardAcmLoopMargin(double &margin) const
+{
+	return getAdvancedLinksParameter(topology, "forward_margin", margin);
+}
+
+
+bool OpenSandModelConf::getStatisticsPeriod(time_ms_t &period) const
+{
+	if (topology == nullptr) {
+		return false;
+	}
+
+	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("timers");
+	int value;
+	if (!extractParameterData(schedulers->getParameter("statistics"), value)) {
+		return false;
+	}
+
+	period = value;
+	return true;
+}
+
+
+bool OpenSandModelConf::getSynchroPeriod(time_ms_t &period) const
+{
+	if (topology == nullptr) {
+		return false;
+	}
+
+	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("timers");
+	int value;
+	if (!extractParameterData(schedulers->getParameter("synchro"), value)) {
+		return false;
+	}
+
+	period = value;
+	return true;
+}
+
+
+bool OpenSandModelConf::getAcmRefreshPeriod(time_ms_t &period) const
+{
+	if (topology == nullptr) {
+		return false;
+	}
+
+	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("timers");
+	int value;
+	if (!extractParameterData(schedulers->getParameter("acm_refresh"), value)) {
+		return false;
+	}
+
+	period = value;
+	return true;
+}
+
+
+bool OpenSandModelConf::getDelayBufferSize(std::size_t &size) const
+{
+	if (topology == nullptr) {
+		return false;
+	}
+
+	auto delay = topology->getRoot()->getComponent("advanced_settings")->getComponent("delay");
+	int value;
+	if (!extractParameterData(delay->getParameter("fifo_size"), value)) {
+		return false;
+	}
+
+	size = value;
+	return true;
+}
+
+
+bool OpenSandModelConf::getDelayTimer(time_ms_t &period) const
+{
+	if (topology == nullptr) {
+		return false;
+	}
+
+	auto delay = topology->getRoot()->getComponent("advanced_settings")->getComponent("delay");
+	int value;
+	if (!extractParameterData(delay->getParameter("delay_timer"), value)) {
+		return false;
+	}
+
+	period = value;
 	return true;
 }
 
@@ -727,14 +1288,113 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 			int udp_wmem = 1048580;
 			extractParameterData(gateway->getParameter("udp_wmem"), udp_wmem);
 
-			carriers.ctrl_out = carrier_socket{carrier_id + 0, ctrl_multicast_address, ctrl_out_port, true, udp_stack, udp_rmem, udp_wmem};
-			carriers.ctrl_in = carrier_socket{carrier_id + 1, satellite_address, ctrl_in_port, false, udp_stack, udp_rmem, udp_wmem};
-			carriers.logon_out = carrier_socket{carrier_id + 2, gateway_address, logon_out_port, false, udp_stack, udp_rmem, udp_wmem};
-			carriers.logon_in = carrier_socket{carrier_id + 3, satellite_address, logon_in_port, false, udp_stack, udp_rmem, udp_wmem};
-			carriers.data_out_st = carrier_socket{carrier_id + 4, data_multicast_address, data_out_st_port, true, udp_stack, udp_rmem, udp_wmem};
-			carriers.data_in_st = carrier_socket{carrier_id + 5, satellite_address, data_in_st_port, false, udp_stack, udp_rmem, udp_wmem};
-			carriers.data_out_gw = carrier_socket{carrier_id + 6, gateway_address, data_out_gw_port, false, udp_stack, udp_rmem, udp_wmem};
-			carriers.data_in_gw = carrier_socket{carrier_id + 7, satellite_address, data_in_gw_port, false, udp_stack, udp_rmem, udp_wmem};
+			int fifo_sizes = 0;
+			// TODO
+			// extractParameterData(gateway->getParameter("fifos_size"), fifo_sizes);
+			bool individual_fifos = false;
+			// TODO
+			// extractParameterData(gateway->getParameter("individual_fifo_sizes"), individual_fifos);
+
+			int ctrl_out_fifo_size = fifo_sizes;
+			int ctrl_in_fifo_size = fifo_sizes;
+			int logon_out_fifo_size = fifo_sizes;
+			int logon_in_fifo_size = fifo_sizes;
+			int data_out_st_fifo_size = fifo_sizes;
+			int data_in_st_fifo_size = fifo_sizes;
+			int data_out_gw_fifo_size = fifo_sizes;
+			int data_in_gw_fifo_size = fifo_sizes;
+			if (individual_fifos) {
+				// TODO
+				// extractParameterData(gateway->getParameter("ctrl_out_fifo_size"), ctrl_out_fifo_size);
+				// extractParameterData(gateway->getParameter("ctrl_in_fifo_size"), ctrl_in_fifo_size);
+				// extractParameterData(gateway->getParameter("logon_out_fifo_size"), logon_out_fifo_size);
+				// extractParameterData(gateway->getParameter("logon_in_fifo_size"), logon_in_fifo_size);
+				// extractParameterData(gateway->getParameter("data_out_st_fifo_size"), data_out_st_fifo_size);
+				// extractParameterData(gateway->getParameter("data_in_st_fifo_size"), data_in_st_fifo_size);
+				// extractParameterData(gateway->getParameter("data_out_gw_fifo_size"), data_out_gw_fifo_size);
+				// extractParameterData(gateway->getParameter("data_in_gw_fifo_size"), data_in_gw_fifo_size);
+			}
+
+			carriers.ctrl_out = carrier_socket{
+			    carrier_id + 0,
+			    ctrl_multicast_address,
+			    ctrl_out_port,
+			    true,
+			    ctrl_out_fifo_size,
+			    udp_stack,
+			    udp_rmem,
+			    udp_wmem
+			};
+			carriers.ctrl_in = carrier_socket{
+			    carrier_id + 1,
+			    satellite_address,
+			    ctrl_in_port,
+			    false,
+			    ctrl_in_fifo_size,
+			    udp_stack,
+			    udp_rmem,
+			    udp_wmem
+			};
+			carriers.logon_out = carrier_socket{
+			    carrier_id + 2,
+			    gateway_address,
+			    logon_out_port,
+			    false,
+			    logon_out_fifo_size,
+			    udp_stack,
+			    udp_rmem,
+			    udp_wmem
+			};
+			carriers.logon_in = carrier_socket{
+			    carrier_id + 3,
+			    satellite_address,
+			    logon_in_port,
+			    false,
+			    logon_in_fifo_size,
+			    udp_stack,
+			    udp_rmem,
+			    udp_wmem
+			};
+			carriers.data_out_st = carrier_socket{
+			    carrier_id + 4,
+			    data_multicast_address,
+			    data_out_st_port,
+			    true,
+			    data_out_st_fifo_size,
+			    udp_stack,
+			    udp_rmem,
+			    udp_wmem
+			};
+			carriers.data_in_st = carrier_socket{
+			    carrier_id + 5,
+			    satellite_address,
+			    data_in_st_port,
+			    false,
+			    data_in_st_fifo_size,
+			    udp_stack,
+			    udp_rmem,
+			    udp_wmem
+			};
+			carriers.data_out_gw = carrier_socket{
+			    carrier_id + 6,
+			    gateway_address,
+			    data_out_gw_port,
+			    false,
+			    data_out_gw_fifo_size,
+			    udp_stack,
+			    udp_rmem,
+			    udp_wmem
+			};
+			carriers.data_in_gw = carrier_socket{
+			    carrier_id + 7,
+			    satellite_address,
+			    data_in_gw_port,
+			    false,
+			    data_in_gw_fifo_size,
+			    udp_stack,
+			    udp_rmem,
+			    udp_wmem
+			};
 
 			return true;
 		}
@@ -757,7 +1417,7 @@ bool OpenSandModelConf::getSpotReturnCarriers(uint16_t gw_id, OpenSandModelConf:
 bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot &spot, bool forward) const
 {
 	const std::string roll_off_parameter = forward ? "forward" : "return";
-	const std::string band_parameter = forward ? "forward_band" : "return_band";
+	const std::string band_parameter = roll_off_parameter + "_band";
 
 	if (topology == nullptr) {
 		return false;

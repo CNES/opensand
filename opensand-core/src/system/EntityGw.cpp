@@ -162,8 +162,7 @@ bool EntityGw::loadConfiguration(const std::string &profile_path)
 	{
 		return false;
 	}
-	// TODO populate attributes
-	return true;
+	return Conf->getGwInfrastructure(this->instance_id, this->ip_address, this->tap_iface);
 }
 
 bool EntityGw::createSpecificConfiguration(const std::string &filepath) const
@@ -176,6 +175,8 @@ bool EntityGw::createSpecificConfiguration(const std::string &filepath) const
 
 void EntityGw::defineProfileMetaModel() const
 {
-	auto profile = OpenSandModelConf::Get()->getProfileModel();
-	// TODO
+	BlockLanAdaptation::generateConfiguration();
+	BlockDvbNcc::generateConfiguration();
+	BlockEncap::generateConfiguration();
+	BlockPhysicalLayer::generateConfiguration();
 }

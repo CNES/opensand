@@ -34,47 +34,51 @@
 #ifndef CONSTANT_MINIMAL_CONDITION_PLUGIN_H
 #define CONSTANT_MINIMAL_CONDITION_PLUGIN_H 
 
-
 #include "PhysicalLayerPlugin.h"
 #include "OpenSandCore.h"
-#include <opensand_old_conf/ConfigurationFile.h>
+
 
 /**
  * @class Constant 
  */
 class Constant: public MinimalConditionPlugin
 {
-	private:
-		
-		map<string,ConfigurationList> config_section_map;
+ private:
+	static std::string config_path;
 
-	public:
+ public:
+	/**
+	 * @brief Build the defaultMinimalCondition
+	 */
+	Constant();
 
-		/**
-		 * @brief Build the defaultMinimalCondition
-		 */
-		Constant();
+	/**
+	 * @brief Destroy the defaultMinimalCondition
+	 */
+	~Constant();
 
-		/**
-		 * @brief Destroy the defaultMinimalCondition
-		 */
-		~Constant();
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 
-		/**
-		 * @brief initialize the minimal condition
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool init();
+	/**
+	 * @brief initialize the minimal condition
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool init();
 
-		/**
-		 * @brief Updates Thresold when a msg arrives to Channel
-		 *
-		 * @param modcod_id  The MODCOD id carried by the BBFrame
-		 * @param message_type  The Frame type
-		 * @return true on success, false otherwise
-		 */
-		bool updateThreshold(uint8_t modcod_id, uint8_t message_type);
+	/**
+	 * @brief Updates Thresold when a msg arrives to Channel
+	 *
+	 * @param modcod_id  The MODCOD id carried by the BBFrame
+	 * @param message_type  The Frame type
+	 * @return true on success, false otherwise
+	 */
+	bool updateThreshold(uint8_t modcod_id, uint8_t message_type);
 };
 
 CREATE(Constant, minimal_plugin, "Constant");

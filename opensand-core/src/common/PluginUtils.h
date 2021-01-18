@@ -38,23 +38,30 @@
 #ifndef PLUGIN_UTILS_HEADER_H
 #define PLUGIN_UTILS_HEADER_H
 
-#include "EncapPlugin.h"
-#include "LanAdaptationPlugin.h"
-#include "PhysicalLayerPlugin.h"
 
-#include <opensand_output/OutputLog.h>
+#include "OpenSandPlugin.h"
 
 #include <map>
 #include <vector>
 #include <string>
+#include <utility>
+#include <memory>
 
 
-using std::map;
-using std::vector;
-using std::string;
+class EncapPlugin;
+class LanAdaptationPlugin;
+class AttenuationModelPlugin;
+class MinimalConditionPlugin;
+class ErrorInsertionPlugin;
+class SatDelayPlugin;
 
-typedef map<string, fn_create> pl_list_t;
-typedef map<string, fn_create>::const_iterator pl_list_it_t;
+class OutputLog;
+
+namespace OpenSANDConf {
+	class MetaComponent;
+}
+
+typedef std::map<std::string, std::pair<fn_configure, fn_create>> pl_list_t;
 
 
 /**
@@ -64,16 +71,16 @@ typedef map<string, fn_create>::const_iterator pl_list_it_t;
 class PluginUtils
 {
 	friend class Plugin;
-  protected:
 
+ protected:
 	pl_list_t encapsulation;
 	pl_list_t lan_adaptation;
 	pl_list_t attenuation;
 	pl_list_t minimal;
 	pl_list_t error;
 	pl_list_t sat_delay;
-	vector <void *> handlers;
-	vector<OpenSandPlugin *> plugins;
+	std::vector<void *> handlers;
+	std::vector<OpenSandPlugin *> plugins;
 
 	PluginUtils();
 
@@ -81,11 +88,19 @@ class PluginUtils
 	 * @brief load the plugins
 	 *
 	 * @param enable_phy_layer Whether the physical layer is enabled or not
-	 * @param conf_path the configuration path
 	 * @return true on success, false otherwise
 	 */
-	bool loadPlugins(bool enable_phy_layer,
-	                 string conf_path);
+	bool loadPlugins(bool enable_phy_layer);
+
+	/**
+	 * @brief store the plugin in the appropirate container
+	 *        Check for duplicates before doing so.
+	 *
+	 * @param container  The container where to store the plugin
+	 * @param plugin     The plugin to store into the container
+	 * @param handle     The handle to the library storing the plugin
+	 */
+	void storePlugin(pl_list_t &container, opensand_plugin_t *plugin, void *handle);
 
 	/**
 	 * @brief release the class elements for plugins
@@ -99,7 +114,7 @@ class PluginUtils
 	 * @param encapsulation  The encapsulation plugin
 	 * @return true on success, false otherwise
 	 */
-	bool getEncapsulationPlugin(string name,
+	bool getEncapsulationPlugin(std::string name,
 	                            EncapPlugin **encapsulation);
 
 	/**
@@ -109,7 +124,7 @@ class PluginUtils
 	 * @param lan_adaptation  The lan adaptation plugin
 	 * @return true on success, false otherwise
 	 */
-	bool getLanAdaptationPlugin(string name,
+	bool getLanAdaptationPlugin(std::string name,
 	                            LanAdaptationPlugin **lan_adaptation);
 
 	/**
@@ -119,7 +134,7 @@ class PluginUtils
 	 * @param sat_delay      The satellite delay plugin
 	 * @return true on success, false otherwise
 	 */
-	bool getSatDelayPlugin(string name,
+	bool getSatDelayPlugin(std::string name,
 	                       SatDelayPlugin **sat_delay);
 
 	/**
@@ -129,7 +144,7 @@ class PluginUtils
 	 * @param attenuation  The attenuation model plugin
 	 * @return true on success, false otherwise
 	 */
-	bool getAttenuationPlugin(string att_pl_name,
+	bool getAttenuationPlugin(std::string att_pl_name,
 	                          AttenuationModelPlugin **attenuation);
 
 	/**
@@ -139,7 +154,7 @@ class PluginUtils
 	 * @param minimal      The minimal condition plugin
 	 * @return true on success, false otherwise
 	 */
-	bool getMinimalConditionPlugin(string min_pl_name,
+	bool getMinimalConditionPlugin(std::string min_pl_name,
 	                               MinimalConditionPlugin **minimal);
 
 	/**
@@ -149,7 +164,7 @@ class PluginUtils
 	 * @param error        The error insertion plugin
 	 * @return true on success, false otherwise
 	 */
-	bool getErrorInsertionPlugin(string err_pl_name,
+	bool getErrorInsertionPlugin(std::string err_pl_name,
 	                             ErrorInsertionPlugin **error);
 
 	/**
@@ -158,7 +173,7 @@ class PluginUtils
 	 * @param encapsulation  The encapsulation plugins
 	 * @return true on success, false otherwise
 	 */
-	void getAllEncapsulationPlugins(pl_list_t &encapsulation)
+	inline void getAllEncapsulationPlugins(pl_list_t &encapsulation)
 	{
 		encapsulation = this->encapsulation;
 	}
@@ -169,16 +184,21 @@ class PluginUtils
 	 * @param encapsulation  The lan adaptation plugins
 	 * @return true on success, false otherwise
 	 */
-	void getAllLanAdaptationPlugins(pl_list_t &lan_adaptation)
+	inline void getAllLanAdaptationPlugins(pl_list_t &lan_adaptation)
 	{
 		lan_adaptation = this->lan_adaptation;
 	}
 
-	/// the log
-  std::shared_ptr<OutputLog> log_init;
+	void generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
+	                                  plugin_type_t plugin_type,
+	                                  const std::string &parameter_id,
+	                                  const std::string &parameter_name,
+	                                  const std::string &parameter_description);
 
-	// the configuration path
-	string conf_path;
+	std::vector<std::string> generatePluginsConfiguration(plugin_type_t plugin_type);
+
+	/// the log
+	std::shared_ptr<OutputLog> log_init;
 };
 
 

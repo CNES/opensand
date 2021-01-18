@@ -256,7 +256,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 bool Entity::loadPlugins()
 {
 	// load the plugins
-	if(!Plugin::loadPlugins(true, this->plugin_conf_path))
+	if(!Plugin::loadPlugins(true))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load the plugins",

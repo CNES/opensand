@@ -51,8 +51,6 @@
 #include <string>
 #include <map>
 
-using std::string;
-using std::map;
 
 /**
  * @class BlockPhysicalLayer
@@ -69,7 +67,7 @@ class BlockPhysicalLayer: public Block
 	{
 	 private:
 		/// Probes
-     std::shared_ptr<Probe<float>> probe_total_cn;
+		std::shared_ptr<Probe<float>> probe_total_cn;
 
 	 protected:
 		/// The attenuation process
@@ -208,6 +206,8 @@ class BlockPhysicalLayer: public Block
 	 * Destroy the PhysicalLayer block
 	 */
 	~BlockPhysicalLayer();
+
+	static void generateConfiguration();
 
 	// initialization method
 	bool onInit();

@@ -36,17 +36,12 @@
 
 
 #include "File.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_old_conf/conf.h>
 #include <opensand_output/Output.h>
 
 #include <errno.h>
 
-#define FILE_SECTION   "file"
-#define FILE_LIST      "file_attenuations"
-#define PATH          "path"
-#define LOOP          "loop_mode"
-#define CONF_FILE_FILENAME "file.conf"
 
 File::File():
 	AttenuationModelPlugin(),
@@ -61,43 +56,53 @@ File::~File()
 	this->attenuation.clear();
 }
 
-bool File::init(time_ms_t refresh_period_ms, string link)
+void File::generateConfiguration(const std::string &parent_path,
+	                             const std::string &param_id,
+	                             const std::string &plugin_name)
 {
-	string filename;
-	ConfigurationFile config;
-	string conf_file_path;
-	conf_file_path = this->getConfPath() + string(CONF_FILE_FILENAME);
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
 
-	if(!config.loadConfig(conf_file_path.c_str()))
-	{   
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load config file '%s'",
-		    conf_file_path.c_str());
-		return false;
+	auto attenuation = Conf->getComponentByPath(parent_path);
+	if (attenuation == nullptr)
+	{
+		return;
+	}
+	auto attenuation_type = attenuation->getParameter(param_id);
+	if (attenuation_type == nullptr)
+	{
+		return;
 	}
 
-	config.loadSectionMap(this->config_section_map);
+	auto attenuation_file = attenuation->addParameter("file_attenuation_file",
+	                                                  "Attenuation File Path",
+	                                                  types->getType("string"));
+	Conf->setProfileReference(attenuation_file, attenuation_type, plugin_name);
+	auto attenuation_loop = attenuation->addParameter("file_attenuation_loop",
+	                                                  "Attenuation File Loop Mode",
+	                                                  types->getType("bool"));
+	Conf->setProfileReference(attenuation_loop, attenuation_type, plugin_name);
+}
 
-
+bool File::init(time_ms_t refresh_period_ms, std::string link_path)
+{
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!config.getValueInList(this->config_section_map[FILE_SECTION], 
-		                      FILE_LIST, LINK, link,
-	                          PATH, filename))
+	auto attenuation = OpenSandModelConf::Get()->getProfileData(link_path);
+	std::string filename;
+	if(!OpenSandModelConf::extractParameterData(attenuation->getParameter("file_attenuation_file"), filename))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE attenuation %slink: cannot get %s",
-		    link.c_str(), PATH);
+		    "FILE attenuation %s: cannot get filename",
+		    link_path.c_str());
 		return false;
 	}
 
-	if(!config.getValueInList(this->config_section_map[FILE_SECTION], 
-		                      FILE_LIST, LINK, link,
-	                          LOOP, this->loop))
+	if(!OpenSandModelConf::extractParameterData(attenuation->getParameter("file_attenuation_loop"), this->loop))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE %slink: cannot get %s",
-		    link.c_str(), LOOP);
+		    "FILE %s: cannot get loop mode",
+		    link_path.c_str());
 		return false;
 	}
 

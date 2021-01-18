@@ -53,6 +53,10 @@ Gate::~Gate()
 {
 }
 
+void Gate::generateConfiguration(const std::string &, const std::string &, const std::string &)
+{
+}
+
 bool Gate::init()
 {
 	return true;

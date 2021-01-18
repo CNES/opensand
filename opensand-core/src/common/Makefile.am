@@ -67,6 +67,10 @@ libopensand_plugin_utils_la_SOURCES = \
 	$(libopensand_plugin_utils_la_cpp) \
 	$(libopensand_plugin_utils_la_h)
 
+libopensand_plugin_utils_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/src/conf/
+
 libopensand_plugin_includedir = ${includedir}/opensand_plugin
 
 libopensand_plugin_include_HEADERS = \

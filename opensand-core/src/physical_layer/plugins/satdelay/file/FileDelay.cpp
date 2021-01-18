@@ -33,14 +33,14 @@
 
 
 #include "FileDelay.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
 #include <errno.h>
 
-#define PATH           "path"
-#define LOOP           "loop_mode"
-#define CONF_FILENAME  "file_delay.conf"
+
+std::string config_path = "";
 
 FileDelay::FileDelay():
 	SatDelayPlugin(),
@@ -56,50 +56,62 @@ FileDelay::~FileDelay()
 	this->delays.clear();
 }
 
+void FileDelay::generateConfiguration(const std::string &parent_path,
+                                      const std::string &param_id,
+                                      const std::string& plugin_name)
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+
+	FileDelay::config_path = parent_path;
+	auto delay = Conf->getComponentByPath(parent_path);
+	if (delay == nullptr)
+	{
+		return;
+	}
+	auto delay_type = delay->getParameter(param_id);
+	if (delay_type == nullptr)
+	{
+		return;
+	}
+
+	auto path = delay->addParameter("file_path", "File Path", types->getType("string"));
+	Conf->setProfileReference(path, delay_type, plugin_name);
+	auto refresh_period = delay->addParameter("refresh_period", "Refresh Period", types->getType("int"));
+	refresh_period->setUnit("ms");
+	Conf->setProfileReference(refresh_period, delay_type, plugin_name);
+	auto loop = delay->addParameter("loop", "Loop Mode", types->getType("bool"));
+	Conf->setProfileReference(loop, delay_type, plugin_name);
+}
+
 bool FileDelay::init()
 {
-	string filename;
-	time_ms_t refresh_period_ms;
-	ConfigurationFile config;
-	string conf_file_path;
-	conf_file_path = this->getConfPath() + string(CONF_FILENAME);
+	auto delay = OpenSandModelConf::Get()->getProfileData(config_path);
 
 	if(this->is_init)
 		return true;
 
-	if(!config.loadConfig(conf_file_path.c_str()))
+	int refresh_period_ms;
+	if(!OpenSandModelConf::extractParameterData(delay->getParameter("refresh_period"), refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load config file '%s'",
-		    conf_file_path.c_str());
+		    "FILE delay: cannot get refresh period");
 		return false;
 	}
-
-	config.loadSectionMap(this->config_section_map);
-
-	if(!Conf::getValue(Conf::section_map[SAT_DELAY_SECTION],
-	                   REFRESH_PERIOD_MS, refresh_period_ms))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE delay: cannot get %s", REFRESH_PERIOD_MS);
-		return false;
-	}
-
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!Conf::getValue(this->config_section_map[SAT_DELAY_CONF],
-	                   PATH, filename))
+	std::string filename;
+	if(!OpenSandModelConf::extractParameterData(delay->getParameter("file_path"), filename))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE delay: cannot get %s", PATH);
+		    "FILE delay: cannot get file path");
 		return false;
 	}
 
-	if(!Conf::getValue(this->config_section_map[SAT_DELAY_CONF],
-	                   LOOP, this->loop))
+	if(!OpenSandModelConf::extractParameterData(delay->getParameter("loop"), loop))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE delay: cannot get %s", LOOP);
+		    "FILE delay: cannot get loop mode");
 		return false;
 	}
 

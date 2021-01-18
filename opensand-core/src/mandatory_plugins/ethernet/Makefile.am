@@ -29,5 +29,6 @@ pluginsdir = $(prefix)/lib/opensand/plugins
 libopensand_eth_lan_adapt_plugin_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/lan_adaptation
 

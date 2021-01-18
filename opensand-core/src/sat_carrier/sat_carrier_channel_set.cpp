@@ -34,6 +34,7 @@
 
 #include "sat_carrier_channel_set.h"
 
+#include "OpenSandModelConf.h"
 #include <opensand_output/Output.h>
 
 
@@ -44,7 +45,7 @@ sat_carrier_channel_set::sat_carrier_channel_set(tal_id_t tal_id):
 	std::vector < UdpChannel * >(),
 	tal_id(tal_id)
 {
-  auto output = Output::Get();
+	auto output = Output::Get();
 	this->log_init = output->registerLog(LEVEL_WARNING, "SatCarrier.init");
 	this->log_sat_carrier = output->registerLog(LEVEL_WARNING, "SatCarrier.Channel");
 }

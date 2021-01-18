@@ -38,7 +38,6 @@
 #include "NccInterface.h"
 #include <vector>
 
-#include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
 
 /**
@@ -78,7 +77,7 @@ class NccSvnoInterface: public NccInterface
 	/**** socket management ****/
 
 	/* create a TCP socket that listens for incoming SVNO connections */
-	bool initSvnoSocket();
+	bool initSvnoSocket(int tcp_port);
 
 	/**
 	 * @brief Read a set of commands sent by the connected SVNO component

@@ -36,6 +36,20 @@
 
 #include <opensand_old_conf/conf.h>
 
+BlockInterconnectDownward::BlockInterconnectDownward(const string &name,
+                                                     const string &):
+	Block(name)
+{
+}
+
+BlockInterconnectDownward::~BlockInterconnectDownward()
+{
+}
+
+void BlockInterconnectDownward::generateConfiguration()
+{
+}
+
 bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
@@ -283,6 +297,20 @@ bool BlockInterconnectDownward::Downward::onInit()
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
 	return true;
+}
+
+BlockInterconnectUpward::BlockInterconnectUpward(const string &name,
+                                                 const string &):
+	Block(name)
+{
+}
+
+BlockInterconnectUpward::~BlockInterconnectUpward()
+{
+}
+
+void BlockInterconnectUpward::generateConfiguration()
+{
 }
 
 bool BlockInterconnectUpward::Downward::onEvent(const RtEvent *const event)

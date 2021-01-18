@@ -45,7 +45,7 @@ class FileSimulator: public RequestSimulator
 	FileSimulator(spot_id_t spot_id,
 	              tal_id_t mac_id,
 	              FILE** evt_file,
-	              ConfigurationList current_gw);
+				  string &str_config);
 	~FileSimulator();
 	
 	/**

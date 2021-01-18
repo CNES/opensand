@@ -41,43 +41,46 @@
  */
 class Gate: public ErrorInsertionPlugin
 {
+ public:
+	/**
+	 * @brief Channel ctor
+	 */
+	Gate();
 
-	public:
+	/**
+	 * @brief Gate dtor
+	 */
+	~Gate();
 
-		/**
-		 * @brief Channel ctor
-		 */
-		Gate();
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 
+	bool init();
 
-		/**
-		 * @brief Gate dtor
-		 */
-		~Gate();
+	/**
+	 * @brief Corrupt a package with error bits 
+	 *
+	 * @param payload the payload to the frame that should be modified 
+	 * @return true if DVB header should be tagged as corrupted,
+	 *         false otherwise
+	 */
+	bool modifyPacket(const Data &payload);
 
-		bool init();
-
-		/**
-		 * @brief Corrupt a package with error bits 
-		 *
-		 * @param payload the payload to the frame that should be modified 
-		 * @return true if DVB header should be tagged as corrupted,
-		 *         false otherwise
-		 */
-		bool modifyPacket(const Data &payload);
-
-		/**
-		 * @brief Determine if a Packet shall be corrupted or not depending on
-		 *        the attenuationModel conditions 
-		 *
-		 * @param cn_total       The total C/N of the link
-		 * @param threshold_qef  The minimal C/N of the link
-		 *
-		 * @return true if it must be corrupted, false otherwise 
-		 */
-		bool isToBeModifiedPacket(double cn_total,
-		                          double threshold_qef);
-
+	/**
+	 * @brief Determine if a Packet shall be corrupted or not depending on
+	 *        the attenuationModel conditions 
+	 *
+	 * @param cn_total       The total C/N of the link
+	 * @param threshold_qef  The minimal C/N of the link
+	 *
+	 * @return true if it must be corrupted, false otherwise 
+	 */
+	bool isToBeModifiedPacket(double cn_total,
+							  double threshold_qef);
 };
 
 CREATE(Gate, error_plugin, "Gate");

@@ -40,6 +40,9 @@
 
 #include "PluginUtils.h"
 
+#include <memory>
+
+
 /**
  * @class Plugin
  *
@@ -47,7 +50,7 @@
  */
 class Plugin
 {
-  public:
+ public:
 
 	Plugin();
 	~Plugin();
@@ -56,11 +59,9 @@ class Plugin
 	 * @brief load the plugins
 	 *
 	 * @param enable_phy_layer Whether the physical layer is enabled or not
-	 * @param conf_path the configuration path
 	 * @return true on success, false otherwise
 	 */
-	static bool loadPlugins(bool enable_phy_layer,
-                          string conf_path);
+	static bool loadPlugins(bool enable_phy_layer);
 
 	/**
 	 * @brief release the class elements for plugins
@@ -74,7 +75,7 @@ class Plugin
 	 * @param encapsulation  The encapsulation plugin
 	 * @return true on success, false otherwise
 	 */
-	static bool getEncapsulationPlugin(string name,
+	static bool getEncapsulationPlugin(std::string name,
 	                                   EncapPlugin **encapsulation);
 
 	/**
@@ -84,7 +85,7 @@ class Plugin
 	 * @param lan_adaptation  The lan adaptation plugin
 	 * @return true on success, false otherwise
 	 */
-	static bool getLanAdaptationPlugin(string name,
+	static bool getLanAdaptationPlugin(std::string name,
 	                                   LanAdaptationPlugin **lan_adaptation);
 
 	/**
@@ -94,7 +95,7 @@ class Plugin
 	 * @param attenuation  The attenuation model plugin
 	 * @return true on success, false otherwise
 	 */
-	static bool getAttenuationPlugin(string att_pl_name,
+	static bool getAttenuationPlugin(std::string att_pl_name,
 	                                 AttenuationModelPlugin **attenuation);
 
 	/**
@@ -104,7 +105,7 @@ class Plugin
 	 * @param minimal      The minimal condition plugin
 	 * @return true on success, false otherwise
 	 */
-	static bool getMinimalConditionPlugin(string min_pl_name,
+	static bool getMinimalConditionPlugin(std::string min_pl_name,
 	                                      MinimalConditionPlugin **minimal);
 
 	/**
@@ -114,7 +115,7 @@ class Plugin
 	 * @param error        The error insertion plugin
 	 * @return true on success, false otherwise
 	 */
-	static bool getErrorInsertionPlugin(string err_pl_name,
+	static bool getErrorInsertionPlugin(std::string err_pl_name,
 	                                    ErrorInsertionPlugin **error);
 
 	/**
@@ -124,7 +125,7 @@ class Plugin
 	 * @param sat_delay      The satellite delay plugin
 	 * @return true on success, false otherwise
 	 */
-	static bool getSatDelayPlugin(string name,
+	static bool getSatDelayPlugin(std::string name,
 	                              SatDelayPlugin **sat_delay);
 
 	/**
@@ -144,14 +145,18 @@ class Plugin
 	 */
 	static void getAllLanAdaptationPlugins(pl_list_t &lan_adaptation);
 
+	static void generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
+	                                         plugin_type_t plugin_type,
+	                                         const std::string &parameter_id,
+	                                         const std::string &parameter_name,
+	                                         const std::string &parameter_description = "");
 
-   private:
+	static std::vector<std::string> generatePluginsConfiguration(plugin_type_t plugin_type);
 
+ private:
 	/// The block manager instance
 	static PluginUtils utils;
-
 };
 
+
 #endif
-
-

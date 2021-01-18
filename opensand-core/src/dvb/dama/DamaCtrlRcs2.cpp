@@ -40,7 +40,6 @@
 #include "UnitConverterFixedSymbolLength.h"
 
 #include <opensand_output/Output.h>
-#include <opensand_old_conf/conf.h>
 
 #include <math.h>
 
@@ -78,17 +77,16 @@ bool DamaCtrlRcs2::init()
 		goto error;
 	}
 	
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   RCS2_BURST_LENGTH, length_sym))
+	if(!OpenSandModelConf::Get()->getRcs2BurstLength(length_sym))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get '%s' value", DELAY_BUFFER);
+		    "cannot get RCS2 burst length value");
 		return NULL;
 	}
 	if(length_sym == 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "invalid value '%u' value of '%s", length_sym, DELAY_BUFFER);
+		    "invalid value '%u' value of RCS2 burst length", length_sym);
 		return NULL;
 	}
 	LOG(this->log_init, LEVEL_INFO,

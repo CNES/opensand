@@ -36,10 +36,6 @@
 #ifndef SAT_CARRIER_UDP_CHANNEL_H
 #define SAT_CARRIER_UDP_CHANNEL_H
 
-#include <opensand_output/Output.h>
-#include <opensand_old_conf/conf.h>
-#include <opensand_rt/Rt.h>
-
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <vector>
@@ -49,9 +45,11 @@
 #include <sys/ioctl.h>
 
 #include <OpenSandCore.h>
+#include <opensand_rt/Rt.h>
 
 
 class UdpStack;
+class OutputLog;
 
 /*
  * @class UdpChannel
@@ -175,8 +173,8 @@ class UdpChannel
 	unsigned int max_stack;
 
 	/// Output Log
-  std::shared_ptr<OutputLog> log_sat_carrier;
-  std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_sat_carrier;
+	std::shared_ptr<OutputLog> log_init;
 };
 
 /*
@@ -192,24 +190,9 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 * @brief Create the stack
 	 *
 	 */
-	UdpStack()
-	{
-		// Output log
-		this->log_sat_carrier = Output::Get()->registerLog(LEVEL_WARNING, "SatCarrier.Channel");
-		// reserve space for all UDP counters
-		this->reserve(256);
-		for(unsigned int i = 0; i < 256; i++)
-		{
-			this->push_back(make_pair<unsigned char *, size_t>(NULL, 0));
-		}
-		this->counter = 0;
-	};
+	UdpStack();
 
-	~UdpStack()
-	{
-		this->reset();
-		this->clear();
-	};
+	~UdpStack();
 
 	/**
 	 * @brief Add a packet in the stack
@@ -218,20 +201,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 * @param data         The packet to store
 	 * @param data_length  The packet length
 	 */
-	void add(uint8_t udp_counter, unsigned char *data, size_t data_length)
-	{
-		if(this->at(udp_counter).first)
-		{
-			LOG(this->log_sat_carrier, LEVEL_ERROR, 
-			    "new data for UDP stack at position %u, erase "
-			    "previous data\n", udp_counter);
-			this->counter--;
-			delete (this->at(udp_counter).first);
-		}
-		this->at(udp_counter).first = data;
-		this->at(udp_counter).second = data_length;
-		this->counter++;
-	};
+	void add(uint8_t udp_counter, unsigned char *data, size_t data_length);
 
 	/**
 	 * @brief Remove a packet from the stack
@@ -241,17 +211,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 *                          is no packet with this counter
 	 * @param data_length  OUT: the packet length or 0 if there is no packet
 	 */
-	void remove(uint8_t udp_counter, unsigned char **data, size_t &data_length)
-	{
-		*data = this->at(udp_counter).first;
-		if(*data)
-		{
-			this->counter--;
-		}
-		data_length = this->at(udp_counter).second;
-		this->at(udp_counter).first = NULL;
-		this->at(udp_counter).second = 0;
-	};
+	void remove(uint8_t udp_counter, unsigned char **data, size_t &data_length);
 
 	/**
 	 * @brief Check if we have a packet at a specified counter
@@ -259,11 +219,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	 * @param udp_counter  The counter for which we need a packet
 	 * @return true if we have a packet, false otherwise
 	 */
-	bool hasNext(uint8_t udp_counter)
-	{
-		return (this->at(udp_counter).first != NULL &&
-		        this->at(udp_counter).second != 0);
-	};
+	bool hasNext(uint8_t udp_counter);
 
 	/**
 	 * @brief Get the packet counter
@@ -277,20 +233,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	/**
 	 * @brief Reset the stack
 	 */
-	void reset()
-	{
-		vector<pair<unsigned char *, size_t> >::iterator it;
-		for(it = this->begin(); it != this->end(); ++it)
-		{
-			if((*it).first)
-			{
-				delete (*it).first;
-				(*it).first = NULL;
-				(*it).second = 0;
-			}
-			this->counter = 0;
-		}
-	};
+	void reset();
 
  private:
 
@@ -299,7 +242,7 @@ class UdpStack: vector<pair<unsigned char *, size_t> >
 	uint8_t counter;
 
 	// Output log
-  std::shared_ptr<OutputLog> log_sat_carrier;
+	std::shared_ptr<OutputLog> log_sat_carrier;
 };
 
 

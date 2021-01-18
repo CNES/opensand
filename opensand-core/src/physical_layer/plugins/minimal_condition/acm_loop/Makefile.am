@@ -24,7 +24,8 @@ libopensand_acm_loop_minimal_plugin_la_LIBADD= \
 libopensand_acm_loop_minimal_plugin_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/utils \
-    -I$(top_srcdir)/src/dvb/fmt \
-	-I$(top_srcdir)/src/common
+	-I$(top_srcdir)/src/dvb/fmt \
+	-I$(top_srcdir)/src/common \
+	-I$(top_srcdir)/src/conf
 
 pluginsdir = $(libdir)/opensand/plugins

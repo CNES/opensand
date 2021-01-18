@@ -164,8 +164,7 @@ bool EntitySt::loadConfiguration(const std::string &profile_path)
 	{
 		return false;
 	}
-	// TODO populate attributes
-	return true;
+	return Conf->getStInfrastructure(this->instance_id, this->ip_address, this->tap_iface);
 }
 
 bool EntitySt::createSpecificConfiguration(const std::string &filepath) const
@@ -178,6 +177,8 @@ bool EntitySt::createSpecificConfiguration(const std::string &filepath) const
 
 void EntitySt::defineProfileMetaModel() const
 {
-	auto profile = OpenSandModelConf::Get()->getProfileModel();
-	// TODO
+	BlockLanAdaptation::generateConfiguration();
+	BlockDvbTal::generateConfiguration();
+	BlockEncap::generateConfiguration();
+	BlockPhysicalLayer::generateConfiguration();
 }

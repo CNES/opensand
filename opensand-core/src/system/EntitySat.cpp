@@ -59,7 +59,6 @@
 
 #include "BlockDvbSatTransp.h"
 #include "BlockSatCarrier.h"
-#include "Plugin.h"
 
 
 EntitySat::EntitySat(): Entity("sat", 0)
@@ -110,8 +109,7 @@ bool EntitySat::createSpecificBlocks()
 bool EntitySat::loadConfiguration(const std::string &profile_path)
 {
 	auto Conf = OpenSandModelConf::Get();
-	// TODO populate attributes
-	return true;
+	return Conf->getSatInfrastructure(this->ip_address);
 }
 
 bool EntitySat::createSpecificConfiguration(const std::string &filepath) const

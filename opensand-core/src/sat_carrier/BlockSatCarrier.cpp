@@ -176,7 +176,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 
 		if(channel->isInputOk() && channel->getChannelFd() != -1)
 		{
-			ostringstream name;
+			std::ostringstream name;
 
 			LOG(this->log_init, LEVEL_NOTICE,
 			    "Listen on fd %d for channel %d\n",

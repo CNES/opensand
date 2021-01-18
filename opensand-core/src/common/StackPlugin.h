@@ -58,18 +58,14 @@ using std::vector;
  */
 class StackPlugin: public OpenSandPlugin
 {
-
  public:
-
 	/**
 	 * @class StackPacketHandler
 	 * @brief Functions to handle the encapsulated packets
 	 */
 	class StackPacketHandler
 	{
-
 	  public:
-
 		/**
 		 * @brief StackPacketHandler constructor
 		 */
@@ -177,12 +173,10 @@ class StackPlugin: public OpenSandPlugin
 		virtual bool init() = 0;
 
 	  protected:
-
 		/// Output Logs
-    std::shared_ptr<OutputLog> log;
+		std::shared_ptr<OutputLog> log;
 
 	  private:
-
 		StackPlugin &plugin;
 	};
 
@@ -192,9 +186,7 @@ class StackPlugin: public OpenSandPlugin
 	 */
 	class StackContext
 	{
-
 	  public:
-
 		/* Allow context to access StackPlugin members */
 		/**
 		 * @brief StackContext constructor
@@ -304,13 +296,6 @@ class StackPlugin: public OpenSandPlugin
 		string getName() const {return plugin.name;};
 
 		/**
-		 * @brief Get the configuration path
-		 *
-		 * @return the configuration path
-		 */
-		string getConfPath() const {return plugin.conf_path;};
-
-		/**
 		 * @brief Create a NetPacket from data with the relevant attributes
 		 *
 		 * @param data        The packet data
@@ -341,18 +326,15 @@ class StackPlugin: public OpenSandPlugin
 		virtual bool init() = 0;
 
 	  protected:
-
 		/// the current upper encapsulation protocol EtherType
 		StackPlugin::StackPacketHandler *current_upper;
 
 		/// Output Logs
-    std::shared_ptr<OutputLog> log;
+		std::shared_ptr<OutputLog> log;
 
 	  private:
-
 		/// The plugin
 		StackPlugin &plugin;
-
 	};
 
 	/**
@@ -407,7 +389,7 @@ class StackPlugin: public OpenSandPlugin
 	 * @return The plugin
 	 */
 	template<class Plugin, class Context, class Handler>
-	static OpenSandPlugin *create(const string name, const string conf_path)
+	static OpenSandPlugin *create(const string name)
 	{
 		Plugin *plugin = new Plugin();
 		Context *context = new Context(*plugin);
@@ -415,7 +397,6 @@ class StackPlugin: public OpenSandPlugin
 		plugin->context = context;
 		plugin->packet_handler = handler;
 		plugin->name = name;
-		plugin->conf_path = conf_path;
 		if(!plugin->init())
 		{
 			goto error;
@@ -445,7 +426,6 @@ class StackPlugin: public OpenSandPlugin
 	virtual bool init() = 0;
 
  protected:
-
 	/// The EtherType (or EtherType like) of the associated protocol
 	uint16_t ether_type;
 
@@ -459,21 +439,26 @@ class StackPlugin: public OpenSandPlugin
 	StackPacketHandler *packet_handler;
 
 	/// Output Logs
-  std::shared_ptr<OutputLog> log;
+	std::shared_ptr<OutputLog> log;
 };
 
 typedef vector<StackPlugin::StackContext *> stack_contexts_t;
 
 /// Define the function that will create the plugin class
 #define CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, pl_type) \
-	extern "C" OpenSandPlugin *create_ptr(const string conf_path) \
+	extern "C" OpenSandPlugin *create_ptr(void) \
 	{ \
-		return CLASS::create<CLASS, CONTEXT, HANDLER>(pl_name, conf_path); \
+		return CLASS::create<CLASS, CONTEXT, HANDLER>(pl_name); \
+	}; \
+	extern "C" void configure_ptr(const char *parent_path, const char *param_id) \
+    {\
+		CLASS::configure<CLASS>(parent_path, param_id, pl_name); \
 	}; \
 	extern "C" opensand_plugin_t *init() \
 	{ \
 		opensand_plugin_t *pl = new opensand_plugin_t; \
 		pl->create = create_ptr; \
+		pl->configure = configure_ptr; \
 		pl->type = pl_type; \
 		pl->name = pl_name; \
 		return pl; \

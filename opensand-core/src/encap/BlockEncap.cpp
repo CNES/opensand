@@ -39,7 +39,6 @@
 #include "Plugin.h"
 #include "OpenSandModelConf.h"
 
-
 #include <opensand_output/Output.h>
 
 #include <algorithm>
@@ -76,6 +75,11 @@ BlockEncap::BlockEncap(const string &name, tal_id_t mac_id):
 
 BlockEncap::~BlockEncap()
 {
+}
+
+void BlockEncap::generateConfiguration()
+{
+	Plugin::generatePluginsConfiguration(encapsulation_plugin);
 }
 
 bool BlockEncap::Downward::onEvent(const RtEvent *const event)
@@ -245,12 +249,9 @@ bool BlockEncap::onInit()
 	string up_return_encap_proto;
 	string downlink_encap_proto;
 	string lan_name;
-	ConfigurationList option_list;
 	vector <EncapPlugin::EncapContext *> up_return_ctx;
 	vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
 	vector <EncapPlugin::EncapContext *> down_forward_ctx;
-	int lan_nbr;
-	int i = 0;
 	LanAdaptationPlugin *lan_plugin = NULL;
 	string compo_name;
 	component_t host;
@@ -258,28 +259,21 @@ bool BlockEncap::onInit()
 	((Upward *)this->upward)->setMacId(this->mac_id);
 	
 	// Retrieve last packet handler in lan adaptation layer
-	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
-	                         LAN_ADAPTATION_SCHEME_LIST,
-	                         lan_nbr))
+	auto Conf = OpenSandModelConf::Get();
+	auto encap = Conf->getProfileData()->getComponent("encapsulation");
+	std::shared_ptr<OpenSANDConf::DataComponent> lan_adaptation_scheme = nullptr;
+	for(auto& item : encap->getList("lan_adaptation_schemes")->getItems())
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n", GLOBAL_SECTION,
-		    LAN_ADAPTATION_SCHEME_LIST);
-		goto error;
+		lan_adaptation_scheme = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 	}
-	if(lan_nbr == 0)
+	if(lan_adaptation_scheme == nullptr)
 	{
 		lan_name = "Ethernet";
 	}
-	else if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
-	                         LAN_ADAPTATION_SCHEME_LIST,
-	                         POSITION, toString(lan_nbr - 1),
-	                         PROTO, lan_name))
+	else if(!OpenSandModelConf::extractParameterData(lan_adaptation_scheme->getParameter("protocol"), lan_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, invalid value %d for parameter "
-		    "'%s' in %s\n", GLOBAL_SECTION, i, POSITION,
-		    LAN_ADAPTATION_SCHEME_LIST);
+		    "Section 'encapsulation', missing parameter 'protocol'\n");
 		goto error;
 	}
 
@@ -295,17 +289,20 @@ bool BlockEncap::onInit()
 
 	if (!OpenSandModelConf::Get()->isGw(this->mac_id))
 	{
-		bool no_scpc = !this->checkIfScpc();
-		
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Going to check if Tal with id:  %d is in Scpc mode\n",
 		    this->mac_id);
+		
+		auto access = Conf->getProfileData()->getComponent("access");
+		auto scpc_enabled = access->getComponent("scpc")->getParameter("scpc_enabled");
+		bool is_scpc = false;
+		OpenSandModelConf::extractParameterData(scpc_enabled, is_scpc);
 
 		LOG(this->log_init, LEVEL_INFO,
 			"SCPC mode %savailable for ST%d - BlockEncap \n", 
-			no_scpc ? "not " : "",
+			is_scpc ? "" : "not ",
 			this->mac_id);
-		if (no_scpc)
+		if (!is_scpc)
 		{
 			if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST,
 			                          lan_plugin, up_return_ctx,
@@ -359,16 +356,9 @@ bool BlockEncap::onInit()
 	}
 
 	// get host type
-	compo_name = "";
-	if(!Conf::getComponent(compo_name))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get component type\n");
-		goto error;
-	}
+	host = Conf->getComponentType();
 	LOG(this->log_init, LEVEL_NOTICE, "host type = %s\n",
-	    compo_name.c_str());
-	host = getComponentType(compo_name);
+	    getComponentName(host).c_str());
 
 	if(host == terminal)
 	{
@@ -517,7 +507,7 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 		if(!found && (*time_iter).first != 0)
 		{
 			event_id_t timer;
-			ostringstream name;
+			std::ostringstream name;
 
 			name << "context_" << (*time_iter).second;
 			timer = this->addTimerEvent(name.str(),
@@ -701,67 +691,43 @@ error:
 	return false;
 }
 
-bool BlockEncap::checkIfScpc()
+bool BlockEncap::getEncapContext(encap_scheme_list_t scheme_list,
+                                 LanAdaptationPlugin *l_plugin,
+                                 vector <EncapPlugin::EncapContext *> &ctx,
+                                 const char *link_type)
 {
-	bool is_scpc = false;
-	
-	if(!Conf::getValue(Conf::section_map[DVB_TAL_SECTION], IS_SCPC, is_scpc))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    DVB_TAL_SECTION, IS_SCPC);
-		return false;
-	}
-
-	return is_scpc;
-}
-
-bool BlockEncap::getEncapContext(const char *scheme_list,
-	                             LanAdaptationPlugin *l_plugin,
-	                             vector <EncapPlugin::EncapContext *> &ctx,
-	                             const char *link_type)
-{
-	StackPlugin *upper_encap = NULL;
 	EncapPlugin *plugin;
-	int encap_nbr = 1;
-	int i;
-	
-	// get the number of encapsulation context if Tal is not in SCPC mode
-	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
-							 scheme_list,
-							 encap_nbr))
+	std::vector<std::string> encapsulations;
+	switch(scheme_list)
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-			"Section %s, %s missing\n", COMMON_SECTION,
-			scheme_list);
-		goto error;
-	}
+		case RETURN_UP_ENCAP_SCHEME_LIST:
+			encapsulations.push_back("RLE");
+			break;
 
-	upper_encap = l_plugin;
+		case FORWARD_DOWN_ENCAP_SCHEME_LIST:
+			encapsulations.push_back("GSE");
+			break;
+
+		default:
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Unknown encap schemes link: '%s'\n",
+			    scheme_list);
+			return false;
+	}
+	
+	StackPlugin *upper_encap = l_plugin;
 
 	// get all the encapsulation to use upper to lower
-	for(i = 0; i < encap_nbr; i++)
+	for(auto& encap_name : encapsulations)
 	{
-	
-		string encap_name;
 		EncapPlugin::EncapContext *context;
 		
-		if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
-								 scheme_list, POSITION, toString(i),
-								 ENCAP_NAME, encap_name))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-				"Section %s, invalid value %d for parameter '%s'\n",
-				COMMON_SECTION, i, POSITION);
-			goto error;
-		}
-
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get plugin for %s encapsulation\n",
 			    encap_name.c_str());
-			goto error;
+			return false;
 		}
 
 		context = plugin->getContext();
@@ -774,7 +740,7 @@ bool BlockEncap::getEncapContext(const char *scheme_list,
 			    "for %s encapsulation",
 			    upper_encap->getName().c_str(),
 			    context->getName().c_str());
-			goto error;
+			return false;
 		}
 		upper_encap = plugin;
 		
@@ -783,9 +749,6 @@ bool BlockEncap::getEncapContext(const char *scheme_list,
 		    upper_encap->getName().c_str(), link_type);
 	}
 	return true;
-	
-	error:
-		return false;
 }
 
 bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,

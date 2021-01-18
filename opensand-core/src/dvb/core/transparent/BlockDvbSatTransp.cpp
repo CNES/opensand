@@ -41,10 +41,9 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "SlottedAlohaFrame.h"
+#include "SatGw.h"
 
 #include <opensand_rt/Rt.h>
-#include <opensand_old_conf/conf.h>
-
 #include <opensand_output/Output.h>
 
 #include <math.h>

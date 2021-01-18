@@ -69,6 +69,13 @@ class Ethernet: public LanAdaptationPlugin
   public:
 	Ethernet();
 
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
+
 	bool init();
 
 	/**

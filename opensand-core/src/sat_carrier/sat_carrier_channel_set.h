@@ -40,10 +40,9 @@
 #include "OpenSandCore.h"
 #include "OpenSandModelConf.h"
 
-#include <opensand_old_conf/conf.h>
-
 #include <vector>
 #include <net/if.h>
+
 
 /**
  * @class sat_carrier_channel_set

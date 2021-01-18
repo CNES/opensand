@@ -38,11 +38,8 @@
 
 #include "PhysicalLayerPlugin.h"
 
-#include <opensand_old_conf/ConfigurationFile.h>
-
 #include <string>
 
-using std::string;
 
 /**
  * @class Triangular
@@ -50,36 +47,37 @@ using std::string;
  */
 class Triangular: public AttenuationModelPlugin
 {
+ private:
+	/** The Triangular slope */
+	double slope;
 
-	private:
+	/** The Triangular period:
+	 *  period * refresh_period_ms/1000 = period in seconds */
+	int period;
 
-		/** The Triangular slope */
-		double slope;
+	int duration_counter;
 
-		/** The Triangular period:
-		 *  period * refresh_period_ms/1000 = period in seconds */
-		int period;
+ public:
+	/**
+	 * @brief Build a Triangular
+	 */
+	Triangular();
 
-		int duration_counter;
+	/**
+	 *@brief Destroy the Triangular
+	 */
+	~Triangular();
 
-		map<string, ConfigurationList> config_section_map;
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 
-	public:
+	bool init(time_ms_t refresh_period_ms, string link);
 
-		/**
-		 * @brief Build a Triangular
-		 */
-		Triangular();
-
-		/**
-		 *@brief Destroy the Triangular
-		 */
-		~Triangular();
-
-
-		bool init(time_ms_t refresh_period_ms, string link);
-
-		bool updateAttenuationModel();
+	bool updateAttenuationModel();
 };
 
 CREATE(Triangular, attenuation_plugin, "Triangular");

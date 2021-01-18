@@ -38,7 +38,6 @@
 #include "NccInterface.h"
 #include <vector>
 
-#include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
 
 /**
@@ -81,7 +80,7 @@ class NccPepInterface: public NccInterface
 	/**** socket management ****/
 
 	/* create a TCP socket that listens for incoming PEP connections */
-	bool initPepSocket();
+	bool initPepSocket(int tcp_port);
 
 	/**
 	 * @brief Read a set of commands sent by the connected PEP component

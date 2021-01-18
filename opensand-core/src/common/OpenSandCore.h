@@ -162,6 +162,13 @@ enum
 };
 
 
+typedef enum
+{
+	RETURN_UP_ENCAP_SCHEME_LIST,
+	FORWARD_DOWN_ENCAP_SCHEME_LIST,
+} encap_scheme_list_t;
+
+
 /** Compare two floats */
 inline bool equals(double val1, double val2)
 {

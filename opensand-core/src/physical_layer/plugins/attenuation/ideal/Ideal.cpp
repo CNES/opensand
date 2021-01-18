@@ -34,16 +34,11 @@
  */
 
 #include "Ideal.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_old_conf/conf.h>
 #include <opensand_output/Output.h>
 
 #include <sstream>
-
-#define IDEAL_SECTION     "ideal"
-#define IDEAL_LIST        "ideal_attenuations"
-#define ATTENUATION_VALUE "attenuation_value"
-#define CONF_IDEAL_FILENAME   "ideal.conf"
 
 
 Ideal::Ideal():
@@ -51,43 +46,52 @@ Ideal::Ideal():
 {
 }
 
+
 Ideal::~Ideal()
 {
 }
 
 
-bool Ideal::init(time_ms_t refresh_period_ms, string link)
+void Ideal::generateConfiguration(const std::string &parent_path,
+	                              const std::string &param_id,
+	                              const std::string &plugin_name)
 {
-	ConfigurationFile config;
-	string conf_ideal_path;
-	conf_ideal_path = this->getConfPath() + string(CONF_IDEAL_FILENAME);
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
 
-	if(!config.loadConfig(conf_ideal_path))
-	{   
-		LOG(this->log_init, LEVEL_ERROR, 
-		    "failed to load config file '%s'",
-		    conf_ideal_path.c_str());
-		goto error;
+	auto attenuation = Conf->getComponentByPath(parent_path);
+	if (attenuation == nullptr)
+	{
+		return;
+	}
+	auto attenuation_type = attenuation->getParameter(param_id);
+	if (attenuation_type == nullptr)
+	{
+		return;
 	}
 
-	config.loadSectionMap(this->config_section_map);
+	auto attenuation_value = attenuation->addParameter("ideal_attenuation_value",
+	                                                   "Attenuation Value",
+	                                                   types->getType("double"));
+	attenuation_value->setUnit("dB");
+	Conf->setProfileReference(attenuation_value, attenuation_type, plugin_name);
+}
 
+
+bool Ideal::init(time_ms_t refresh_period_ms, std::string link_path)
+{
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!config.getValueInList(this->config_section_map[IDEAL_SECTION],
-		                      IDEAL_LIST,
-	                          LINK, link,
-	                          ATTENUATION_VALUE, this->value))
+	auto attenuation = OpenSandModelConf::Get()->getProfileData(link_path);
+	if(!OpenSandModelConf::extractParameterData(attenuation->getParameter("ideal_attenuation_value"), this->value))
 	{
 		LOG(this->log_init, LEVEL_ERROR, 
-		    "Ideal attenuation %slink: cannot get %s",
-		    link.c_str(), ATTENUATION_VALUE);
-		goto error;
+		    "Ideal attenuation %s: cannot get attenuation value",
+		    link_path.c_str());
+		return false;
 	}
 
 	return true;
-error:
-	return false;
 }
 
 bool Ideal::updateAttenuationModel()

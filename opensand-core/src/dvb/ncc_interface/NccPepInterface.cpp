@@ -33,9 +33,6 @@
 
 #include "NccPepInterface.h"
 
-#include <opensand_output/Output.h>
-#include <opensand_old_conf/conf.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -155,26 +152,12 @@ PepRequest * NccPepInterface::getNextPepRequest()
  *
  * @return  true on success, false on failure
  */
-bool NccPepInterface::initPepSocket()
+bool NccPepInterface::initPepSocket(int tcp_port)
 {
-	int tcp_port;
-
-	// retrieve the TCP communication port dedicated
-	// for NCC/PEP communications
-    // TODO move configuration reading in bloc
-	if(!Conf::getValue(Conf::section_map[NCC_SECTION_PEP], PEP_DAMA_PORT, tcp_port))
-	{
-		LOG(this->log_ncc_interface, LEVEL_NOTICE,
-		    "section '%s': missing parameter '%s'\n",
-		    NCC_SECTION_PEP, PEP_DAMA_PORT);
-		return false;
-	}
-
 	if(tcp_port <= 0 && tcp_port >= 0xffff)
 	{
 		LOG(this->log_ncc_interface, LEVEL_ERROR,
-		    "section '%s': bad value for parameter '%s'\n",
-		    NCC_SECTION_PEP, PEP_DAMA_PORT);
+		    "bad value for parameter 'PEP DAMA port'\n");
 		return false;
 	}
 
@@ -233,7 +216,7 @@ error:
  */
 bool NccPepInterface::parsePepMessage(const char *message, tal_id_t &tal_id)
 {
-	stringstream stream;
+	std::stringstream stream;
 	char cmd[64];
 	unsigned int nb_cmds;
 	int all_cmds_type = -1; /* initialized because GCC is not smart enough

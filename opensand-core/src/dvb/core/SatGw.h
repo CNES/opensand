@@ -42,16 +42,12 @@
 #include "Scheduling.h"
 #include "StFmtSimu.h"
 #include "TerminalCategoryDama.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/OutputLog.h>
 
 #include <sys/times.h>
 #include <map>
-#include <list>
-
-
-using std::list;
-using std::map;
 
 
 /**
@@ -84,14 +80,14 @@ class SatGw: public DvbFmt
 	RtMutex gw_mutex;
 	
 	// Output probes and stats
-	typedef map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerSpot;
+	typedef std::map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerSpot;
 
-		// Queue sizes
+	// Queue sizes
 	ProbeListPerSpot probe_sat_output_gw_queue_size;
 	ProbeListPerSpot probe_sat_output_gw_queue_size_kb;
 	ProbeListPerSpot probe_sat_output_st_queue_size;
 	ProbeListPerSpot probe_sat_output_st_queue_size_kb;
-		// Rates
+	// Rates
 	ProbeListPerSpot probe_sat_l2_from_st;
 	ProbeListPerSpot probe_sat_l2_to_st;
 	ProbeListPerSpot probe_sat_l2_from_gw;
@@ -118,12 +114,7 @@ class SatGw: public DvbFmt
 	 */
 	SatGw(tal_id_t gw_id,
 	      spot_id_t spot_id,
-	      uint8_t log_id,
-	      uint8_t ctrl_id,
-	      uint8_t data_in_st_id,
-	      uint8_t data_in_gw_id,
-	      uint8_t data_out_st_id,
-	      uint8_t data_out_gw_id,
+	      const OpenSandModelConf::spot_infrastructure &carriers,
 	      size_t fifo_size);
 	~SatGw();
 
@@ -239,6 +230,6 @@ class SatGw: public DvbFmt
 
 
 /// The map of satellite spots
-typedef map<uint8_t, SatGw *> sat_gws_t;
+typedef std::map<uint8_t, SatGw *> sat_gws_t;
 
 #endif

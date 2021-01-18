@@ -39,6 +39,7 @@
 #include "Plugin.h"
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
+#include "OpenSandModelConf.h"
 
 #include <unistd.h>
 #include <errno.h>
@@ -65,15 +66,12 @@ inline bool fileExists(const string &filename)
 bool DvbChannel::initModcodDefinitionTypes(void)
 {
 	// Set the MODCOD definition type
-	unsigned int dummy;
+	vol_sym_t dummy = 0;
 
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   RCS2_BURST_LENGTH,
-	                   dummy))
+	if(!OpenSandModelConf::Get()->getRcs2BurstLength(dummy))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, RCS2_BURST_LENGTH);
+		    "cannot get RCS2 burst length value");
 		return false;
 	}
 	this->req_burst_length = dummy;
@@ -85,41 +83,27 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 	return true;
 }
 
-bool DvbChannel::initPktHdl(const char *encap_schemes,
+bool DvbChannel::initPktHdl(encap_scheme_list_t encap_schemes,
                             EncapPlugin::EncapPacketHandler **pkt_hdl)
 {
 	string encap_name;
-	int encap_nbr;
 	EncapPlugin *plugin;
 
-	// get the packet types
-	if(!Conf::getNbListItems(Conf::section_map[COMMON_SECTION],
-							 encap_schemes,
-						 encap_nbr))
+	switch(encap_schemes)
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-			"Section %s, %s missing\n",
-			COMMON_SECTION, encap_schemes);
-		return false;
-	}
-	if (encap_nbr <= 0)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-			"Section %s, invalid value for %s (%d)\n",
-			COMMON_SECTION, encap_schemes, encap_nbr);
-		return false;
-	}
+		case FORWARD_DOWN_ENCAP_SCHEME_LIST:
+			encap_name = "GSE";
+			break;
 
-	// get all the encapsulation to use from lower to upper
-	if(!Conf::getValueInList(Conf::section_map[COMMON_SECTION],
-							 encap_schemes,
-							 POSITION, toString(encap_nbr - 1),
-							 ENCAP_NAME, encap_name))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-			"Section %s, invalid value %d for parameter '%s'\n",
-			COMMON_SECTION, encap_nbr - 1, POSITION);
-		return false;
+		case RETURN_UP_ENCAP_SCHEME_LIST:
+			encap_name = "RLE";
+			break;
+
+		default:
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Unknown encap schemes link: '%d'\n",
+			    encap_schemes);
+			return false;
 	}
 
 	if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
@@ -151,8 +135,7 @@ bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 	EncapPlugin *plugin;
 
 	// Get SCPC encapsulation name stack
-	if (!OpenSandModelConf::Get()->getScpcEncapStack(encap_stack) ||
-		encap_stack.size() <= 0)
+	if (!OpenSandModelConf::Get()->getScpcEncapStack(encap_stack) || encap_stack.size() <= 0)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "cannot get SCPC encapsulation names\n");
@@ -187,19 +170,18 @@ bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 	return true;
 }
 
-bool DvbChannel::initCommon(const char *encap_schemes)
+bool DvbChannel::initCommon(encap_scheme_list_t encap_schemes)
 {
+	auto Conf = OpenSandModelConf::Get();
+
 	//********************************************************
 	//         init Common values from sections
 	//********************************************************
 	// frame duration
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   RET_UP_CARRIER_DURATION,
-	                   this->ret_up_frame_duration_ms))
+	if(!Conf->getReturnFrameDuration(this->ret_up_frame_duration_ms))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, RET_UP_CARRIER_DURATION);
+		    "missing parameter 'return link frame duration'\n");
 		goto error;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
@@ -213,13 +195,10 @@ bool DvbChannel::initCommon(const char *encap_schemes)
 	}
 
 	// statistics timer
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               STATS_TIMER,
-	                   this->stats_period_ms))
+	if(!Conf->getStatisticsPeriod(this->stats_period_ms))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, STATS_TIMER);
+		    "missing parameter 'statistics period'\n");
 		goto error;
 	}
 
@@ -291,37 +270,85 @@ bool DvbChannel::doSendStats(void)
 
 
 /***** DvbFmt ****/
-
-bool DvbFmt::initModcodDefFile(const char *def, FmtDefinitionTable **modcod_def, vol_sym_t req_burst_length)
+DvbFmt::DvbFmt():
+	input_sts(nullptr),
+	s2_modcod_def(nullptr),
+	output_sts(nullptr),
+	rcs_modcod_def(nullptr),
+	log_fmt(nullptr)
 {
-	string modcod_def_file;
+	this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Fmt.Channel");
+}
+
+DvbFmt::~DvbFmt()
+{
+	if(this->s2_modcod_def)
+	{
+		delete this->s2_modcod_def;
+	}
+	if(this->rcs_modcod_def)
+	{
+		delete this->rcs_modcod_def;
+	}
+}
+
+bool DvbFmt::initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable **modcod_def, vol_sym_t req_burst_length)
+{
+	auto Conf = OpenSandModelConf::Get();
 	*modcod_def = new FmtDefinitionTable();
+	std::vector<OpenSandModelConf::fmt_definition_parameters> modcod_params;
 
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               def, modcod_def_file))
+	switch(def)
 	{
+	case MODCOD_DEF_S2:
+		if (!Conf->getS2WaveFormsDefinition(modcod_params))
+		{
+			LOG(this->log_fmt, LEVEL_ERROR,
+			    "failed to load the MODCOD definitions for S2 waveforms\n");
+			return false;
+		}
+		for(auto& param : modcod_params)
+		{
+			if(!(*modcod_def)->add(new FmtDefinition(param.id,
+			                                         param.modulation_type,
+			                                         param.coding_type,
+			                                         param.spectral_efficiency,
+			                                         param.required_es_no)))
+			{
+				LOG(this->log_fmt, LEVEL_ERROR,
+				    "failed to create MODCOD table for S2 waveforms\n");
+				return false;
+			}
+		}
+		return true;
+	case MODCOD_DEF_RCS2:
+		if (!Conf->getRcs2WaveFormsDefinition(modcod_params, req_burst_length))
+		{
+			LOG(this->log_fmt, LEVEL_ERROR,
+			    "failed to load the MODCOD definitions for RCS2 waveforms\n");
+			return false;
+		}
+		for(auto& param : modcod_params)
+		{
+			if(!(*modcod_def)->add(new FmtDefinition(param.id,
+			                                         param.modulation_type,
+			                                         param.coding_type,
+			                                         param.spectral_efficiency,
+			                                         param.required_es_no,
+			                                         req_burst_length)))
+			{
+				LOG(this->log_fmt, LEVEL_ERROR,
+				    "failed to create MODCOD table for RCS2 waveforms\n");
+				return false;
+			}
+		}
+		return true;
+	default:
 		LOG(this->log_fmt, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, def);
+		    "modcod definition file type '%s' is unknown\n",
+		    def);
 		return false;
 	}
-	LOG(this->log_fmt, LEVEL_NOTICE,
-	    "down/forward link MODCOD definition path set to %s\n",
-	    modcod_def_file.c_str());
-
-	// load all the MODCOD definitions from file
-	if(!fileExists(modcod_def_file.c_str()))
-	{
-		return false;
-	}
-	if(!(*modcod_def)->load(modcod_def_file, req_burst_length))
-	{
-		LOG(this->log_fmt, LEVEL_ERROR,
-		    "failed to load the MODCOD definitions from file "
-		    "'%s'\n", modcod_def_file.c_str());
-		return false;
-	}
-	return true;
 }
 
 bool DvbFmt::addInputTerminal(tal_id_t id,

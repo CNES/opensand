@@ -93,11 +93,11 @@ class GroundPhysicalChannel
 	/**
 	 * @brief Initialize the ground physical channel
 	 *
-	 * @param channel_name    the channel name
+	 * @param upward_channel    whether the channel is going upward or downward
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool initGround(const string &channel_name, RtChannel *channel, std::shared_ptr<OutputLog> log_init);
+	bool initGround(bool upward_channel, RtChannel *channel, std::shared_ptr<OutputLog> log_init);
 
 	/**
 	 * @brief Update the attenuation
@@ -140,11 +140,12 @@ class GroundPhysicalChannel
 	virtual bool forwardPacket(DvbFrame *dvb_frame) = 0;
 
  public:
-
 	/**
 	 * @brief Destroy the Channel
 	 */
 	virtual ~GroundPhysicalChannel();
+
+	static void generateConfiguration();
 
 	/**
 	 * @brief Set the shared satellite delay plugin

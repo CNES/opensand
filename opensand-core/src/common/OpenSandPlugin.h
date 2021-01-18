@@ -37,11 +37,11 @@
 #ifndef OPENSAND_PLUGIN_H
 #define OPENSAND_PLUGIN_H
 
+
 #include <string>
 #include <cstdlib>
 #include <cstring>
 
-using std::string;
 
 typedef enum
 {
@@ -56,16 +56,18 @@ typedef enum
 
 class OpenSandPlugin;
 
-typedef OpenSandPlugin *(*fn_create)(const string);
+typedef OpenSandPlugin *(*fn_create)(void);
+typedef void (*fn_configure)(const char *, const char *);
 
 typedef struct
 {
 	fn_create create;
+	fn_configure configure;
 	plugin_type_t type;
-	string name;
+	std::string name;
 } opensand_plugin_t;
 
-typedef opensand_plugin_t *fn_init();
+typedef opensand_plugin_t *fn_init(void);
 
 /**
  * @class OpenSandPlugin
@@ -73,9 +75,7 @@ typedef opensand_plugin_t *fn_init();
  */
 class OpenSandPlugin
 {
-
  public:
-
 	/**
 	 * @brief Plugin constructor
 	 */
@@ -92,12 +92,22 @@ class OpenSandPlugin
 	 * @return the plugin
 	 */
 	template<class Plugin>
-	static OpenSandPlugin *create(const string name, const string conf_path)
+	static OpenSandPlugin *create(const std::string &name)
 	{
 		Plugin *plugin = new Plugin();
 		plugin->name = name;
-		plugin->conf_path = conf_path;
 		return plugin;
+	};
+
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	template<class Plugin>
+	static void configure(const std::string &parent_path,
+	                      const std::string &param_id,
+	                      const std::string &name)
+	{
+		Plugin::generateConfiguration(parent_path, param_id, name);
 	};
 
 	/**
@@ -105,36 +115,31 @@ class OpenSandPlugin
 	 *
 	 * @return the plugin data
 	 */
-	static opensand_plugin_t *init;
+	// static opensand_plugin_t *init;
 
 	/**
 	 * @brief Get the plugin name
 	 *
 	 * @return the plugin name
 	 */
-	string getName() const {return this->name;};
-
-	/**
-	 * @brief get the configuration path
-	 *
-	 * @return the configuration path
-	 */
-	string getConfPath() const {return this->conf_path;};
+	inline std::string getName() const {return this->name;};
 
   protected:
-
-	string name;
-	string conf_path; 
-
+	std::string name;
 };
 
 /// Define the function that will create the plugin class
 #define CREATE(CLASS, pl_type, pl_name) \
-	extern "C" OpenSandPlugin *create_ptr(const string conf_path){return CLASS::create<CLASS>(pl_name, conf_path);}; \
-	extern "C" opensand_plugin_t *init() \
+	extern "C" OpenSandPlugin *create_ptr(void){return CLASS::create<CLASS>(pl_name);}; \
+	extern "C" void configure_ptr(const char *parent_path, const char *param_id) \
+    {\
+		CLASS::configure<CLASS>(parent_path, param_id, pl_name); \
+	}; \
+	extern "C" opensand_plugin_t *init(void) \
 	{\
 		opensand_plugin_t *pl = new opensand_plugin_t; \
 		pl->create = create_ptr; \
+		pl->configure = configure_ptr; \
 		pl->type = pl_type; \
 		pl->name = pl_name; \
 		return pl; \

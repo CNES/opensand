@@ -40,8 +40,9 @@
 #include "SlottedAlohaBackoffMimd.h"
 #include "SlottedAlohaPacketCtrl.h"
 
-#include <opensand_old_conf/conf.h>
+#include "OpenSandModelConf.h"
 #include "PhysicalLayerPlugin.h"
+
 
 SlottedAlohaTal::SlottedAlohaTal():
 	SlottedAloha(),
@@ -57,6 +58,37 @@ SlottedAlohaTal::SlottedAlohaTal():
 	category(NULL),
 	dvb_fifos()
 {
+}
+
+void SlottedAlohaTal::generateConfiguration()
+{
+	auto Conf = OpenSandModelConf::Get();
+
+	auto types = Conf->getModelTypesDefinition();
+	types->addEnumType("backoff_algo", "Randow Access Back Off Algorithm", {"BEB", "EIED", "MIMD"});
+
+	auto conf = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");
+	auto ra = conf->addComponent("random_access", "Random Access");
+	auto enabled = ra->addParameter("ra_enabled", "Enable CRDSA", types->getType("bool"));
+	auto timeout = ra->addParameter("timeout", "Timeout", types->getType("int"));
+	timeout->setUnit("slotted aloha frames");
+	Conf->setProfileReference(timeout, enabled, true);
+	auto replicas = ra->addParameter("replicas", "Replicas", types->getType("int"));
+	replicas->setUnit("packets");
+	Conf->setProfileReference(replicas, enabled, true);
+	auto max_packets = ra->addParameter("max_packets", "Max Packets", types->getType("int"));
+	max_packets->setUnit("packets");
+	Conf->setProfileReference(max_packets, enabled, true);
+	auto max_retry = ra->addParameter("max_retry", "Max Retransmissions", types->getType("int"));
+	max_retry->setUnit("packets");
+	Conf->setProfileReference(max_retry, enabled, true);
+	auto backoff_algo = ra->addParameter("backoff_algo", "Back Off Algorithm", types->getType("backoff_algo"));
+	Conf->setProfileReference(backoff_algo, enabled, true);
+	auto max_cw = ra->addParameter("max_cw", "Max Cw", types->getType("int"));
+	max_cw->setUnit("slotted aloha frames");
+	Conf->setProfileReference(max_cw, enabled, true);
+	auto backoff_multiple = ra->addParameter("backoff_multiple", "Back Off Multiple", types->getType("int"));
+	Conf->setProfileReference(backoff_multiple, enabled, true);
 }
 
 bool SlottedAlohaTal::init(tal_id_t tal_id,
@@ -88,21 +120,27 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	//******************************************************
 	// get all value into saloha section and common section
 	//******************************************************
-	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION],
-		               SALOHA_NB_MAX_PACKETS, this->nb_max_packets))
+
+	auto Conf = OpenSandModelConf::Get();
+	auto saloha_section = Conf->getProfileData()->getComponent("access")->getComponent("random_access");
+
+	int nb_max_packets;
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("max_packets"), nb_max_packets))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_NB_MAX_PACKETS);
+		    "section 'random_access': missing parameter 'max packets'\n");
 		return false;
 	}
-	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_NB_REPLICAS, this->nb_replicas))
+	this->nb_max_packets = nb_max_packets;
+
+	int nb_replicas;
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("replicas"), nb_replicas))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_NB_REPLICAS);
+		    "section 'random_access': missing parameter 'replicas'\n");
 		return false;
 	}
+	this->nb_replicas = nb_replicas;
 
 	/// check nb_max_packets
 	//  we limit maximum to the number of slots per carrier to avoid two packets to
@@ -119,19 +157,20 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		                       (this->nb_replicas * this->category->getCarriersNumber());
 	}
 
-	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_TIMEOUT, this->timeout_saf))
+	int timeout_saf;
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("timeout"), timeout_saf))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_TIMEOUT);
+		    "section 'random_access': missing parameter 'timeout'\n");
 		return false;
 	}
+	this->timeout_saf = timeout_saf;
+
 	// Get the max delay
-	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_MAXDELAY, sat_delay_ms))
+	if(!Conf->getCrdsaMaxSatelliteDelay(sat_delay_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_MAXDELAY);
+		    "section 'schedulers': missing parameter 'crdsa max delay'\n");
 		return false;
 	}
 
@@ -145,38 +184,40 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
-	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_NB_MAX_RETRANSMISSIONS,
-	                   this->nb_max_retransmissions))
+	int max_retry;
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("max_retry"), max_retry))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_NB_MAX_RETRANSMISSIONS);
+		    "section 'random_access': missing parameter 'maximum retransmissions'\n");
+		return false;
+	}
+	this->nb_max_retransmissions = max_retry;
+
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("backoff_algo"), backoff_name))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section 'random_access': missing parameter 'backoff algorithm'\n");
 		return false;
 	}
 
-	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_BACKOFF_ALGORITHM, backoff_name))
+	int max_cw;
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("max_cw"), max_cw))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_BACKOFF_ALGORITHM);
+		    "section 'random_access': missing parameter 'max CW'\n");
 		return false;
 	}
+	max = max_cw;
 
-	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_CW_MAX, max))
+	int backoff_multiple;
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("backoff_multiple"),
+	                                            backoff_multiple))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_CW_MAX);
+		    "section 'random_access': missing parameter 'backoff multiple'\n");
 		return false;
 	}
-
-	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION], SALOHA_BACKOFF_MULTIPLE, multiple))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_BACKOFF_MULTIPLE);
-		return false;
-	}
+	multiple = backoff_multiple;
 
 	if(backoff_name == "BEB")
 	{
@@ -198,7 +239,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
-  auto output = Output::Get();
+	auto output = Output::Get();
 	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 	    it != this->dvb_fifos.end(); ++it)
 	{
@@ -602,7 +643,7 @@ saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
 			nb_packets += (*it).second->getCurrentSize();
 		}
 	}
-	max = min(nb_packets, this->nb_max_packets) * this->nb_replicas;
+	max = std::min(nb_packets, this->nb_max_packets) * this->nb_replicas;
 
 	if(max)
 	{

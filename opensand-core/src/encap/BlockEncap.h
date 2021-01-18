@@ -46,11 +46,8 @@
 #include "LanAdaptationPlugin.h"
 #include "OpenSandFrames.h"
 
-
-
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
-#include <opensand_old_conf/conf.h>
 
 /**
  * @class BlockEncap
@@ -72,6 +69,8 @@ class BlockEncap: public Block
 	 * Destroy the encapsulation block
 	 */
 	~BlockEncap();
+
+	static void generateConfiguration();
 	
 	class EncapChannel
 	{
@@ -174,14 +173,6 @@ class BlockEncap: public Block
 	int mac_id;
 
 	/**
-	 * @brief Checks if SCPC mode is activated and configured
-	 *        (Available FIFOs and Carriers for SCPC)
-	 *
-	 * @return       Whether there are SCPC FIFOs and SCPC Carriers available or not
-	 */
-	bool checkIfScpc();
-
-	/**
 	 * 
 	 * Get the Encapsulation context of the Up/Return or the Down/Forward link
 	 *
@@ -192,7 +183,7 @@ class BlockEncap: public Block
 	 * @return              Whether the Encapsulation context has been
 	 *                      correctly obtained or not
 	 */
-	bool getEncapContext(const char *scheme_list,
+	bool getEncapContext(encap_scheme_list_t scheme_list,
 	                     LanAdaptationPlugin *l_plugin,
 	                     vector <EncapPlugin::EncapContext *> &ctx,
 	                     const char *link_type);

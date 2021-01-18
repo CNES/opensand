@@ -52,6 +52,9 @@ class SpotUpwardTransp: public SpotUpward
 		                 StFmtSimuList *input_sts,
 		                 StFmtSimuList *output_sts);
 		virtual ~SpotUpwardTransp();
+
+		static void generateConfiguration();
+
 		bool onInit();
 
 

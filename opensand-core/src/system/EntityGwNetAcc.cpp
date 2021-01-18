@@ -145,8 +145,12 @@ bool EntityGwNetAcc::loadConfiguration(const std::string &profile_path)
 	{
 		return false;
 	}
-	// TODO populate attributes
-	return true;
+
+	std::string emu, interco;
+	return Conf->getSplitGwInfrastructure(this->instance_id,
+	                                      emu, interco,
+	                                      this->interconnect_address,
+	                                      this->tap_iface);
 }
 
 bool EntityGwNetAcc::createSpecificConfiguration(const std::string &filepath) const
@@ -159,6 +163,8 @@ bool EntityGwNetAcc::createSpecificConfiguration(const std::string &filepath) co
 
 void EntityGwNetAcc::defineProfileMetaModel() const
 {
-	auto profile = OpenSandModelConf::Get()->getProfileModel();
-	// TODO
+	BlockLanAdaptation::generateConfiguration();
+	BlockDvbNcc::generateConfiguration();
+	BlockEncap::generateConfiguration();
+	BlockInterconnectDownward::generateConfiguration();
 }

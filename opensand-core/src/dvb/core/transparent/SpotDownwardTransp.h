@@ -55,6 +55,8 @@ class SpotDownwardTransp: public SpotDownward
 		             StFmtSimuList *output_sts);
 
 		virtual ~SpotDownwardTransp();
+
+		static void generateConfiguration();
 		
 		/**
 		 * @brief Spot Downward initialisation

@@ -81,6 +81,7 @@ SpotUpward::~SpotUpward()
 
 }
 
+
 bool SpotUpward::onInit(void)
 {
 	// Get and open the files

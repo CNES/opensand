@@ -36,14 +36,14 @@
 
 #include "AcmLoop.h"
 #include "OpenSandFrames.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_old_conf/Configuration.h>
-#include <opensand_old_conf/conf.h>
 #include <opensand_output/Output.h>
 
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+
 
 AcmLoop::AcmLoop():
 	MinimalConditionPlugin(),
@@ -56,84 +56,65 @@ AcmLoop::~AcmLoop()
 {
 }
 
+void AcmLoop::generateConfiguration(const std::string &, const std::string &, const std::string &)
+{
+}
+
 
 bool AcmLoop::init(void)
 {
-	string filename_rcs;
-	string filename_s2;
+	auto Conf = OpenSandModelConf::Get();
+	std::vector<OpenSandModelConf::fmt_definition_parameters> modcod_params;
 
 	vol_sym_t req_burst_length;
-
-	unsigned int dummy;
-
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   RCS2_BURST_LENGTH,
-	                   dummy))
+	if(!Conf->getRcs2BurstLength(req_burst_length))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, RCS2_BURST_LENGTH);
-		return false;
-	}
-	req_burst_length = dummy;
-
-	// get appropriate MODCOD definitions for receving link
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   MODCOD_DEF_RCS2,
-	                   filename_rcs))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, MODCOD_DEF_RCS2);
+		    "missing parameter 'RCS2 burst length'\n");
 		return false;
 	}
 
-	// get appropriate MODCOD definitions for receving link
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   MODCOD_DEF_S2,
-	                   filename_s2))
+	modcod_params.clear();
+	if(!Conf->getRcs2WaveFormsDefinition(modcod_params, req_burst_length))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, MODCOD_DEF_S2);
+		    "unable to load the acm_loop definition table for RCS2");
 		return false;
 	}
-
-	if(access(filename_rcs.c_str(), R_OK) < 0)
+	for(auto& param : modcod_params)
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot access '%s' file (%s)\n",
-		    filename_rcs.c_str(), strerror(errno));
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "ACM loop definition file for minimal condition = '%s'\n",
-	    filename_rcs.c_str());
-
-	if(access(filename_s2.c_str(), R_OK) < 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot access '%s' file (%s)\n",
-		    filename_s2.c_str(), strerror(errno));
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "ACM loop definition file for minimal condition = '%s'\n",
-	    filename_s2.c_str());
-
-	// load all the ACM_LOOP definitions from file
-	if(!(this->modcod_table_rcs).load(filename_rcs, req_burst_length))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "unable to load the acm_loop definition table");
-		return false;
+		if(!this->modcod_table_rcs.add(new FmtDefinition(param.id,
+		                                                 param.modulation_type,
+		                                                 param.coding_type,
+		                                                 param.spectral_efficiency,
+		                                                 param.required_es_no,
+		                                                 req_burst_length)))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to create MODCOD table for RCS2 waveforms\n");
+			return false;
+		}
 	}
 
-	if(!(this->modcod_table_s2).load(filename_s2))
+	modcod_params.clear();
+	if(!Conf->getS2WaveFormsDefinition(modcod_params))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "unable to load the acm_loop definition table");
+		    "unable to load the acm_loop definition table for S2");
 		return false;
+	}
+	for(auto& param : modcod_params)
+	{
+		if(!this->modcod_table_s2.add(new FmtDefinition(param.id,
+		                                                param.modulation_type,
+		                                                param.coding_type,
+		                                                param.spectral_efficiency,
+		                                                param.required_es_no)))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to create MODCOD table for S2 waveforms\n");
+			return false;
+		}
 	}
 
 	return true;

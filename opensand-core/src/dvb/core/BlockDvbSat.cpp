@@ -38,6 +38,7 @@
 
 #include "BlockDvbSat.h"
 
+#include "SatGw.h"
 #include "Plugin.h"
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
@@ -48,8 +49,6 @@
 #include "Logoff.h"
 
 #include <opensand_rt/Rt.h>
-#include <opensand_old_conf/conf.h>
-
 #include <opensand_output/Output.h>
 
 #include <math.h>
@@ -104,36 +103,35 @@ bool BlockDvbSat::onInit()
 
 bool BlockDvbSat::initSpots(void)
 {
-	size_t fifo_size;
-  // Retrive FIFO size
-  if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-                     DELAY_BUFFER, fifo_size))
-  {
-    LOG(this->log_init, LEVEL_ERROR,
-        "section '%s': missing parameter '%s'\n",
-        ADV_SECTION, DELAY_BUFFER);
-    return false;
-  }
+	auto Conf = OpenSandModelConf::Get();
 
-  auto Conf = OpenSandModelConf::Get();
-  std::vector<tal_id_t> gw_ids;
-  if (!Conf->getGwIds(gw_ids))
-  {
-	  LOG(this->log_init, LEVEL_ERROR,
-	      "couldn't get the list of gateway IDs\n");
-	  return false;
-  }
+	// Retrive FIFO size
+	std::size_t fifo_size;
+	if(!Conf->getDelayBufferSize(fifo_size))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section 'delay': missing parameter 'fifo_size'\n");
+		return false;
+	}
 
-  for (auto& gw_id : gw_ids)
-  {
-    OpenSandModelConf::spot_infrastructure carriers;
-    if (!Conf->getSpotInfrastructure(gw_id, carriers))
-    {
-        LOG(this->log_init, LEVEL_ERROR,
-          "couldn't create spot infrastructure for gw %d",
-          gw_id);
-        return false;
-    }
+	std::vector<tal_id_t> gw_ids;
+	if (!Conf->getGwIds(gw_ids))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "couldn't get the list of gateway IDs\n");
+		return false;
+	}
+
+	for (auto& gw_id : gw_ids)
+	{
+		OpenSandModelConf::spot_infrastructure carriers;
+		if (!Conf->getSpotInfrastructure(gw_id, carriers))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "couldn't create spot infrastructure for gw %d",
+			    gw_id);
+			return false;
+		}
 
 		uint8_t ctrl_id = carriers.ctrl_out.id;
 		uint8_t data_in_gw_id = carriers.data_in_gw.id;
@@ -152,13 +150,7 @@ bool BlockDvbSat::initSpots(void)
 		//***************************
 		// create a new gw
 		//***************************
-		SatGw *new_gw = new SatGw(gw_id, gw_id,
-                              log_id, ctrl_id,
-                              data_in_st_id,
-                              data_in_gw_id,
-                              data_out_st_id,
-                              data_out_gw_id,
-                              fifo_size);
+		SatGw *new_gw = new SatGw(gw_id, gw_id, carriers, fifo_size);
 		new_gw->init();
 
 		this->gws[gw_id] = new_gw;
@@ -168,8 +160,7 @@ bool BlockDvbSat::initSpots(void)
 		    "data out ST = %u, data out GW = %u\n",
 		    gw_id, log_id, ctrl_id, data_out_st_id,
 		    data_out_gw_id);
-  }
-
+	}
 
 	((Upward *)this->upward)->setGws(this->gws);
 	((Downward *)this->downward)->setGws(this->gws);
@@ -192,7 +183,6 @@ BlockDvbSat::Downward::Downward(const string &name):
 	probe_frame_interval(NULL)
 {
 };
-
 
 
 BlockDvbSat::Downward::~Downward()

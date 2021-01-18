@@ -22,4 +22,5 @@ pluginsdir = $(libdir)/opensand/plugins
 
 libopensand_triangular_attenuation_plugin_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common

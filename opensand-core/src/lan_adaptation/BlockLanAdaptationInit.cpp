@@ -49,9 +49,23 @@
 
 #define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
 
+void BlockLanAdaptation::generateConfiguration()
+{
+	auto Conf = OpenSandModelConf::Get();
+
+	auto global = OpenSandModelConf::Get()->getOrCreateComponent("encapsulation", "Encapsulation");
+	auto lan_adaptation = global->addList("lan_adaptation_schemes", "LAN Adaptation scheme", "lan_adaptation_scheme")->getPattern();
+
+	auto lan_adaptation_protocols = Plugin::generatePluginsConfiguration(lan_adaptation_plugin);
+	lan_adaptation_protocols.push_back("IP");
+
+	auto types = Conf->getModelTypesDefinition();
+	types->addEnumType("lan_adaptation_protocol", "LAN Adaptation Protocol", lan_adaptation_protocols);
+	lan_adaptation->addParameter("protocol", "Protocol", types->getType("lan_adaptation_protocol"));
+}
+
 bool BlockLanAdaptation::onInit(void)
 {
-	ConfigurationList lan_list;
 	int lan_scheme_nbr;
 	LanAdaptationPlugin *upper = NULL;
 	LanAdaptationPlugin *plugin;
@@ -60,31 +74,17 @@ bool BlockLanAdaptation::onInit(void)
 	vector<string> lan_scheme_names({"Ethernet"});
 	vector<string>::const_iterator iter;
 
-	// get the number of lan adaptation context to use
-	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
-		                     LAN_ADAPTATION_SCHEME_LIST,
-	                         lan_scheme_nbr))
+	auto encap = OpenSandModelConf::Get()->getProfileData()->getComponent("encapsulation");
+	for(auto& item : encap->getList("lan_adaptation_schemes")->getItems())
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n", GLOBAL_SECTION,
-		    LAN_ADAPTATION_SCHEME_LIST);
-		return false;
-	}
-	LOG(this->log_init, LEVEL_INFO,
-	    "found %d lan adaptation contexts\n", lan_scheme_nbr);
-
-	for(int i = 0; i < lan_scheme_nbr; i++)
-	{
-		string name;
+		auto lan_adaptation_scheme = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
+		std::string name;
 
 		// get all the lan adaptation plugins to use from upper to lower
-		if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
-			                     LAN_ADAPTATION_SCHEME_LIST,
-		                         POSITION, toString(i), PROTO, name))
+		if(!OpenSandModelConf::extractParameterData(lan_adaptation_scheme->getParameter("protocol"), name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "Section %s, invalid value %d for parameter '%s'\n",
-			    GLOBAL_SECTION, i, POSITION);
+			    "Section encapsulation, missing parameter 'lan adaptation scheme protocol'\n");
 			return false;
 		}
 		lan_scheme_names.push_back(name);
@@ -145,13 +145,10 @@ bool BlockLanAdaptation::onInit(void)
 bool BlockLanAdaptation::Downward::onInit(void)
 {
 	// statistics timer
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               STATS_TIMER,
-	                   this->stats_period_ms))
+	if(!OpenSandModelConf::Get()->getStatisticsPeriod(this->stats_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, STATS_TIMER);
+		    "section 'timers': missing parameter 'statistics'\n");
 		return false;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,

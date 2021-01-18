@@ -37,13 +37,11 @@
 #include "Plugin.h"
 #include "DelayFifoElement.h"
 #include "OpenSandCore.h"
-
-#include <opensand_old_conf/conf.h>
+#include "OpenSandModelConf.h"
 
 #include <math.h>
 #include <algorithm>
 
-using std::ostringstream;
 
 GroundPhysicalChannel::GroundPhysicalChannel(tal_id_t mac_id):
 	attenuation_model(NULL),
@@ -66,50 +64,49 @@ GroundPhysicalChannel::~GroundPhysicalChannel()
 {
 }
 
+void GroundPhysicalChannel::generateConfiguration()
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+
+	auto conf = Conf->getOrCreateComponent("physical_layer", "Physical Layer", "The Physical layer configuration");
+	auto uplink = Conf->getOrCreateComponent("uplink_attenuation", "UpLink Attenuation", conf);
+	uplink->addParameter("clear_sky", "Clear Sky Condition", types->getType("int"))->setUnit("dB");
+
+	auto downlink = Conf->getOrCreateComponent("downlink_attenuation", "DownLink Attenuation", conf);
+	uplink->addParameter("clear_sky", "Clear Sky Condition", types->getType("int"))->setUnit("dB");
+
+	Plugin::generatePluginsConfiguration(uplink, attenuation_plugin, "attenuation_type", "Attenuation Type");
+	Plugin::generatePluginsConfiguration(downlink, attenuation_plugin, "attenuation_type", "Attenuation Type");
+}
+
 void GroundPhysicalChannel::setSatDelay(SatDelayPlugin *satdelay)
 {
 	this->satdelay_model = satdelay;
 }
 
-bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *channel, std::shared_ptr<OutputLog> log_init)
+bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, std::shared_ptr<OutputLog> log_init)
 {
-	ostringstream name;
-	char probe_name[128];
-	vol_pkt_t max_size;
-	time_ms_t refresh_period_ms;
-	string attenuation_type;
-	string phy_layer_section;
-	string link, lc_link;
-  auto output = Output::Get();
+	auto output = Output::Get();
+	auto Conf = OpenSandModelConf::Get();
 
-	if(channel_name.compare(UP) == 0)
-	{
-		link = DOWN;
-		lc_link = DOWN_LOWER_CASE;
-		phy_layer_section = DOWNLINK_PHYSICAL_LAYER_SECTION;
-	}
-	else if(channel_name.compare(DOWN) == 0)
-	{
-		link = UP;
-		lc_link = UP_LOWER_CASE;
-		phy_layer_section = UPLINK_PHYSICAL_LAYER_SECTION;
-	}
-	else
-	{
-		LOG(log_init, LEVEL_ERROR,
-		    "Invalid channel type specified");
-		return false;
-	}
+	std::string link = upward_channel ? "Down" : "Up";
+	std::string component = upward_channel ? "downlink_attenuation" : "uplink_attenuation";
+	std::string component_path = std::string{"physical_layer/"} + component;
+	auto phy_layer = Conf->getProfileData()->getComponent("physical_layer");
+	auto link_attenuation = phy_layer->getComponent(component);
+
 
 	// Sanity check
 	assert(this->satdelay_model != NULL);
 	
 	// Get the FIFO max size
-	if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-	                   DELAY_BUFFER, max_size))
+	// vol_pkt_t max_size;
+	std::size_t max_size;
+	if(!Conf->getDelayBufferSize(max_size))
 	{
 		LOG(log_init, LEVEL_ERROR,
-		    "cannot get '%s' value", DELAY_BUFFER);
+		    "cannot get 'delay_buffer' value");
 		return false;
 	}
 	this->delay_fifo.setMaxSize(max_size);
@@ -117,12 +114,12 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 	    "delay_fifo_max_size = %d pkt", max_size);
 
 	// Get the delay refresh period
-	if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-	                   DELAY_TIMER, refresh_period_ms))
+	time_ms_t refresh_period_ms;
+	if(!Conf->getDelayTimer(refresh_period_ms))
 	{
 		LOG(log_init, LEVEL_ERROR,
-		    "cannot get '%s' value", DELAY_TIMER);
-		return false;;
+		    "cannot get 'delay_timer' value");
+		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,
 	    "delay_refresh_period = %d ms", refresh_period_ms);
@@ -131,47 +128,41 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 	this->fifo_timer = channel->addTimerEvent("fifo_timer", refresh_period_ms);
 
 	// Initialize log
+	char probe_name[128];
 	snprintf(probe_name, sizeof(probe_name),
-	         "PhysicalLayer.%sward.Event", channel_name.c_str());
+	         "PhysicalLayer.%sward.Event", upward_channel ? "Up" : "Down");
 	this->log_event = output->registerLog(LEVEL_WARNING, string(probe_name));
 
 	// Get the refresh period
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   ACM_PERIOD_REFRESH,
-	                   refresh_period_ms))
+	if(!Conf->getAcmRefreshPeriod(refresh_period_ms))
 	{
 		LOG(log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'",
-		    PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
+		    "section 'timers': missing parameter 'ACM refresh period'");
 		return false;
 	}
-
 	LOG(log_init, LEVEL_NOTICE,
 	    "attenuation_refresh_period = %d ms", refresh_period_ms);
 
 	// Get the clear sky condition
-	if(!Conf::getValue(Conf::section_map[phy_layer_section.c_str()],
-	                   CLEAR_SKY_CONDITION,
-	                   this->clear_sky_condition))
+	int clear_sky;
+	if(!OpenSandModelConf::extractParameterData(link_attenuation->getParameter("clear_sky"), clear_sky))
 	{
 		LOG(log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'",
-		    phy_layer_section.c_str(),
-		    ATTENUATION_MODEL_TYPE);
+		    "section '%s': missing parameter 'clear sky condition'",
+		    component_path.c_str());
 		return false;
 	}
+	this->clear_sky_condition = clear_sky;
 	LOG(log_init, LEVEL_NOTICE,
 	    "clear_sky_conditions = %d dB", this->clear_sky_condition);
 
 	// Get the attenuation type
-	if(!Conf::getValue(Conf::section_map[phy_layer_section.c_str()],
-	                   ATTENUATION_MODEL_TYPE,
-	                   attenuation_type))
+	std::string attenuation_type;
+	if(!OpenSandModelConf::extractParameterData(link_attenuation->getParameter("attenuation_type"), attenuation_type))
 	{
 		LOG(log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'",
-		    phy_layer_section.c_str(),
-		    ATTENUATION_MODEL_TYPE);
+		    "section '%s': missing parameter 'attenuation type'",
+		    component_path.c_str());
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,
@@ -186,7 +177,7 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 	}
 
 	// Initialize the attenuation plugin
-	if(!this->attenuation_model->init(refresh_period_ms, lc_link))
+	if(!this->attenuation_model->init(refresh_period_ms, component_path))
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "Unable to initialize the physical layer attenuation plugin %s",
@@ -195,6 +186,7 @@ bool GroundPhysicalChannel::initGround(const string &channel_name, RtChannel *ch
 	}
 
 	// Initialize the attenuation event
+	std::ostringstream name;
 	name << "attenuation_" << link;
 	this->attenuation_update_timer = channel->addTimerEvent(name.str(), refresh_period_ms);
 

@@ -66,6 +66,8 @@ class BlockLanAdaptation: public Block
 	BlockLanAdaptation(const string &name, struct la_specific specific);
 	~BlockLanAdaptation();
 
+	static void generateConfiguration();
+
 	// initialization method
 	bool onInit(void);
 
