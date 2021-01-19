@@ -360,7 +360,7 @@ std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getComponentByPa
 
 void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
                                             std::shared_ptr<OpenSANDConf::MetaParameter> referee,
-											const std::string &expected_value)
+                                            const char *expected_value)
 {
 	if (profile_model == nullptr)
 	{
@@ -375,7 +375,22 @@ void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaPa
 
 void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
                                             std::shared_ptr<OpenSANDConf::MetaParameter> referee,
-											bool expected_value)
+                                            const std::string &expected_value)
+{
+	if (profile_model == nullptr)
+	{
+		return;
+	}
+
+	profile_model->setReference(parameter, referee);
+	auto expected = parameter->getReferenceData();
+	std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(expected)->set(expected_value);
+}
+
+
+void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
+                                            std::shared_ptr<OpenSANDConf::MetaParameter> referee,
+                                            bool expected_value)
 {
 	if (profile_model == nullptr)
 	{

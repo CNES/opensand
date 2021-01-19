@@ -129,10 +129,13 @@ class OpenSandModelConf
 				std::shared_ptr<OpenSANDConf::MetaModel> model=nullptr);
 		void setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
 		                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
-								 const std::string &expected_value);
+		                         const char *expected_value);
 		void setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
 		                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
-								 bool expected_value);
+		                         const std::string &expected_value);
+		void setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
+		                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
+		                         bool expected_value);
 
 		bool writeTopologyModel(const std::string& filename) const;
 		bool writeInfrastructureModel(const std::string& filename) const;

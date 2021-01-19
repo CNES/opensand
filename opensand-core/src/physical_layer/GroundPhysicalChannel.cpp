@@ -74,7 +74,7 @@ void GroundPhysicalChannel::generateConfiguration()
 	uplink->addParameter("clear_sky", "Clear Sky Condition", types->getType("int"))->setUnit("dB");
 
 	auto downlink = Conf->getOrCreateComponent("downlink_attenuation", "DownLink Attenuation", conf);
-	uplink->addParameter("clear_sky", "Clear Sky Condition", types->getType("int"))->setUnit("dB");
+	downlink->addParameter("clear_sky", "Clear Sky Condition", types->getType("int"))->setUnit("dB");
 
 	Plugin::generatePluginsConfiguration(uplink, attenuation_plugin, "attenuation_type", "Attenuation Type");
 	Plugin::generatePluginsConfiguration(downlink, attenuation_plugin, "attenuation_type", "Attenuation Type");
