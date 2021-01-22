@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="model">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <version>1.0.0</version>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="root">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              <type>component</type>
+              <name>Root</name>
+              <description>profile</description>
+              <advanced>false</advanced>
+              <reference/>
+              <expected/>
+            </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="physical_layer">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Physical Layer</name>
+                    <description>The Physical layer configuration</description>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="delay">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Delay</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence/>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="minimal_condition">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Minimal Condition</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence/>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="error_insertion">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Error Insertion</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence/>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="uplink_attenuation">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>UpLink Attenuation</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="clear_sky" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Clear Sky Condition</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>dB</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="downlink_attenuation">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>DownLink Attenuation</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="clear_sky" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Clear Sky Condition</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>dB</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

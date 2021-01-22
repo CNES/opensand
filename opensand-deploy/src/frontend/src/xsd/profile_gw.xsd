@@ -1,0 +1,665 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="model">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <version>1.0.0</version>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="root">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              <type>component</type>
+              <name>Root</name>
+              <description>profile</description>
+              <advanced>false</advanced>
+              <reference/>
+              <expected/>
+            </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="encapsulation">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Encapsulation</name>
+                    <description/>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="lan_adaptation_schemes">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>LAN Adaptation scheme</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>lan_adaptation_scheme</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="protocol" type="lan_adaptation_protocol">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>lan_adaptation_protocol</type>
+                                      <name>Protocol</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="ncc">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>NCC</name>
+                    <description>The DVB layer configuration</description>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="event_file" type="xs:string">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>string</type>
+                          <name>Event Trace File</name>
+                          <description>Should an event history be generated? Format would be acceptable for a simulation trace file. Leave empty to not generate anything.</description>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="fifos">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>FIFOs</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>fifo</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="priority" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Priority</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="name" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Name</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="capacity" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Capacity</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit>packets</unit>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="access_type" type="fifo_access_type">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>fifo_access_type</type>
+                                      <name>Access Type</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="simulation" type="ncc_simulation">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>ncc_simulation</type>
+                          <name>Simulated Requests</name>
+                          <description>Should OpenSAND simulate extraneous requests?</description>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="simulation_file" type="xs:string">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>string</type>
+                          <name>Simulation Trace File</name>
+                          <description>Path to a file containing requests traces; or stdin</description>
+                          <advanced>false</advanced>
+                          <reference>/ncc/simulation</reference>
+                          <expected>File</expected>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="simulation_nb_station" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Simulated Station ID</name>
+                          <description>Numbered &gt; 31</description>
+                          <advanced>false</advanced>
+                          <reference>/ncc/simulation</reference>
+                          <expected>Random</expected>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="simulation_rt_bandwidth" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>RT Bandwidth</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/ncc/simulation</reference>
+                          <expected>Random</expected>
+                          <unit>kbps</unit>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="simulation_max_rbdc" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Simulated Maximal RBDC</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/ncc/simulation</reference>
+                          <expected>Random</expected>
+                          <unit>kbps</unit>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="simulation_max_vbdc" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Simulated Maximal VBDC</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/ncc/simulation</reference>
+                          <expected>Random</expected>
+                          <unit>kb</unit>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="simulation_mean_requests" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Simulated Mean Requests</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/ncc/simulation</reference>
+                          <expected>Random</expected>
+                          <unit>kbps</unit>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="simulation_amplitude_request" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Simulated Amplitude Request</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/ncc/simulation</reference>
+                          <expected>Random</expected>
+                          <unit>kbps</unit>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="fca" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>FCA</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="dama_algorithm" type="dama_algorithm">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>dama_algorithm</type>
+                          <name>DAMA Algorithm</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="access">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Access</name>
+                    <description/>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="random_access">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Random Access</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="saloha_algo" type="saloha_algo">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>saloha_algo</type>
+                                <name>Slotted Aloha Algorithm</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="simulations">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>Simulated traffic</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>simulation</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="category" type="traffic_type">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>traffic_type</type>
+                                      <name>Category</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="max_packets" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Max Packets</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit>packets</unit>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="replicas" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Replicas</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit>packets</unit>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="ratio" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Ratio</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="physical_layer">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Physical Layer</name>
+                    <description>The Physical layer configuration</description>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="delay">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Delay</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence/>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="minimal_condition">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Minimal Condition</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence/>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="error_insertion">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Error Insertion</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence/>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="uplink_attenuation">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>UpLink Attenuation</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="clear_sky" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Clear Sky Condition</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>dB</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="downlink_attenuation">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>DownLink Attenuation</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="clear_sky" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Clear Sky Condition</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>dB</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="dama_algorithm">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>DAMA Algorithm</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Legacy"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="fifo_access_type">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>Access Type</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="CRDSA"/>
+      <xs:enumeration value="DAMA"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="lan_adaptation_protocol">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>LAN Adaptation Protocol</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="IP"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ncc_simulation">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>Simulated Requests</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="File"/>
+      <xs:enumeration value="None"/>
+      <xs:enumeration value="Random"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="saloha_algo">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>Slotted Aloha Algorithm</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="CRDSA"/>
+      <xs:enumeration value="DSA"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="traffic_type">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>Simulated Slotted Aloha Traffic</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Premium"/>
+      <xs:enumeration value="Professional"/>
+      <xs:enumeration value="SNO"/>
+      <xs:enumeration value="SVNO1"/>
+      <xs:enumeration value="SVNO2"/>
+      <xs:enumeration value="SVNO3"/>
+      <xs:enumeration value="Standard"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

@@ -1,0 +1,1219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="model">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <version>1.0.0</version>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="root">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              <type>component</type>
+              <name>Root</name>
+              <description>infrastructure</description>
+              <advanced>false</advanced>
+              <reference/>
+              <expected/>
+            </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="logs">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Logs</name>
+                    <description/>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="init">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>init</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="level" type="log_level">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>log_level</type>
+                                <name>Log Level</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="lan_adaptation">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>lan_adaptation</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="level" type="log_level">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>log_level</type>
+                                <name>Log Level</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="encap">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>encap</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="level" type="log_level">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>log_level</type>
+                                <name>Log Level</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="dvb">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>dvb</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="level" type="log_level">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>log_level</type>
+                                <name>Log Level</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="physical_layer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>physical_layer</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="level" type="log_level">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>log_level</type>
+                                <name>Log Level</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="sat_carrier">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>sat_carrier</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="level" type="log_level">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>log_level</type>
+                                <name>Log Level</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="extra_levels">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>Levels</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>levels</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="name" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Log Name</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="level" type="log_level">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>log_level</type>
+                                      <name>Log Level</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="storage">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Storage</name>
+                    <description/>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="enable_local" type="xs:boolean">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>bool</type>
+                          <name>Enable Storage to Local Filesystem</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="path_local" type="xs:string">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>string</type>
+                          <name>Folder for Storage</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/storage/enable_local</reference>
+                          <expected>true</expected>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="enable_collector" type="xs:boolean">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>bool</type>
+                          <name>Enable Storage to OpenSAND Collector</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="collector_address" type="xs:string">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>string</type>
+                          <name>IP address of the Collector</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/storage/enable_collector</reference>
+                          <expected>true</expected>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="collector_logs" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Port of the Collector Listening for Logs</name>
+                          <description/>
+                          <advanced>true</advanced>
+                          <reference>/storage/enable_collector</reference>
+                          <expected>true</expected>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="collector_probes" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Port of the Collector Listening for Probes</name>
+                          <description/>
+                          <advanced>true</advanced>
+                          <reference>/storage/enable_collector</reference>
+                          <expected>true</expected>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="entity">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Emulated Entity</name>
+                    <description/>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="entity_type" type="entity_type">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>entity_type</type>
+                          <name>Entity Type</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="entity_id_gw" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Gateway ID</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/entity/entity_type</reference>
+                          <expected>Gateway</expected>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="entity_id_gw_phy" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Gateway Phy ID</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/entity/entity_type</reference>
+                          <expected>Gateway Phy</expected>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="entity_id_gw_net_acc" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Gateway Net Access ID</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/entity/entity_type</reference>
+                          <expected>Gateway Net Access</expected>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="entity_id_st" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Terminal ID</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference>/entity/entity_type</reference>
+                          <expected>Terminal</expected>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="infrastructure">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Infrastructure</name>
+                    <description/>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="satellite">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Satellite</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="emu_address" type="xs:string">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>string</type>
+                                <name>Emulation Address</name>
+                                <description>Address this satellite should listen on for messages from ground entities</description>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="gateways">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>Gateways</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>gateway</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="entity_id" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Entity ID</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="emu_address" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Emulation Address</name>
+                                      <description>Address this gateway should listen on for messages from the satellite</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="tap_iface" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>TAP Interface</name>
+                                      <description>Name of the TAP interface used by this gateway</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="mac_address" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>MAC Address</name>
+                                      <description>MAC address this gateway routes traffic to</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="ctrl_multicast_address" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Multicast IP Address (Control Messages)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="data_multicast_address" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Multicast IP Address (Data)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="ctrl_out_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Control Messages Out)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="ctrl_in_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Control Messages In)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="logon_out_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Logon Messages Out)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="logon_in_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Logon Messages In)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="data_out_st_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Data Out ST)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="data_in_st_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Data In ST)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="data_out_gw_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Data Out GW)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="data_in_gw_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Data Out ST)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="udp_stack" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>UDP Stack</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="udp_rmem" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>UDP RMem</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="udp_wmem" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>UDP WMem</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="split_gateways">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>Split Gateways</name>
+                          <description/>
+                          <advanced>true</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>split_gateway</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="entity_id" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Entity ID</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="emu_address" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Emulation Address</name>
+                                      <description>Address the physical layer gateway should listen on for messages from the satellite</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="interco_net_access" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Interconnection Address (Net Access)</name>
+                                      <description>Address the net access gateway should listen on for messages from the physical layer gateway</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="interco_phy" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Interconnection Address (Phy)</name>
+                                      <description>Address the physical layer gateway should listen on for messages from the net access gateway</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="tap_iface" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>TAP Interface</name>
+                                      <description>Name of the TAP interface used by the net access gateway</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="mac_address" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>MAC Address</name>
+                                      <description>MAC address the net access gateway routes traffic to</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="ctrl_multicast_address" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Multicast IP Address (Control Messages)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="data_multicast_address" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Multicast IP Address (Data)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="ctrl_out_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Control Messages Out)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="ctrl_in_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Control Messages In)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="logon_out_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Logon Messages Out)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="logon_in_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Logon Messages In)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="data_out_st_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Data Out ST)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="data_in_st_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Data In ST)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="data_out_gw_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Data Out GW)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="data_in_gw_port" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Port (Data Out ST)</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="udp_stack" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>UDP Stack</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="udp_rmem" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>UDP RMem</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="udp_wmem" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>UDP WMem</name>
+                                      <description/>
+                                      <advanced>true</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="terminals">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>Terminals</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>terminal</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="entity_id" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Entity ID</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="emu_address" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>Emulation Address</name>
+                                      <description>Address this satellite terminal should listen on for messages from the satellite</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="tap_iface" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>TAP Interface</name>
+                                      <description>Name of the TAP interface used by this satellite terminal</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="mac_address" type="xs:string">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>string</type>
+                                      <name>MAC Address</name>
+                                      <description>MAC address this satellite terminal routes traffic to</description>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="sarp">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Sarp</name>
+                    <description/>
+                    <advanced>true</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="default_gw" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>Default Gateway</name>
+                          <description>Default Gateway ID for a packet destination when the MAC address is not found in the SARP Table; use -1 to drop such packets</description>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="ncc">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>NCC</name>
+                    <description/>
+                    <advanced>true</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="pep_port" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>PEP DAMA Port</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                    <xs:element name="svno_port" type="xs:integer">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>int</type>
+                          <name>SVNO Port</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                          <unit/>
+                        </xs:documentation>
+                      </xs:annotation>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="entity_type">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>Entity Type</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Gateway"/>
+      <xs:enumeration value="Gateway Net Access"/>
+      <xs:enumeration value="Gateway Phy"/>
+      <xs:enumeration value="Satellite"/>
+      <xs:enumeration value="Terminal"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="log_level">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>Log Level</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="critical"/>
+      <xs:enumeration value="debug"/>
+      <xs:enumeration value="error"/>
+      <xs:enumeration value="info"/>
+      <xs:enumeration value="notice"/>
+      <xs:enumeration value="warning"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>
