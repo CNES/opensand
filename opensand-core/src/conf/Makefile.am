@@ -15,3 +15,6 @@ libopensand_conf_core_la_CPPFLAGS = \
 	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dvb/fmt
 
+libopensand_conf_core_la_LDFLAGS = \
+	$(AM_LDFLAGS) \
+	-rdynamic

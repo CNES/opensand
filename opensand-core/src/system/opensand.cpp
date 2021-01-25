@@ -37,11 +37,23 @@
 #include <opensand_output/Output.h>
 
 #include "Entity.h"
+#include "Plugin.h"
 #include "OpenSandModelConf.h"
 
 
 int main(int argc, char **argv)
 {
+	// Load plugins first so they can generate their
+	// own configuration into the profile XSD
+	if(!Plugin::loadPlugins(true))
+	{
+		DFLTLOG(LEVEL_CRITICAL,
+		        "%s: cannot load the plugins",
+		        argv[0]);
+		std::cerr << argv[0] << ": error: unable to load plugins" << std::endl;
+		return 100;
+	}
+
 	int status = -1;
 	auto entity = Entity::parseArguments(argc, argv, status);
 
@@ -51,6 +63,7 @@ int main(int argc, char **argv)
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: failed to init the process",
 		        entity == nullptr ? argv[0] : entity->getName().c_str());
+		Plugin::releasePlugins();
 		return status;
 	}
 
@@ -63,27 +76,22 @@ int main(int argc, char **argv)
 		        "%s: cannot load default levels, quit",
 		        entity->getName().c_str());
 		std::cerr << argv[0] << ": error: unable to load default log levels" << std::endl;
-		return 100;
-	}
-	// Output::Get()->setLevels(levels, spec_level);
-
-	if(!entity->loadPlugins())
-	{
-		std::cerr << argv[0] << ": error: unable to load plugins" << std::endl;
+		Plugin::releasePlugins();
 		return 101;
 	}
+	// Output::Get()->setLevels(levels, spec_level);
 
 	if(!entity->createBlocks())
 	{
 		std::cerr << argv[0] << ": error: unable to create specific blocks" << std::endl;
-		entity->releasePlugins();
+		Plugin::releasePlugins();
 		return 102;
 	}
 
 	if(!entity->run())
 	{
 		std::cerr << argv[0] << ": error during entity execution" << std::endl;
-		entity->releasePlugins();
+		Plugin::releasePlugins();
 		return 103;
 	}
 }

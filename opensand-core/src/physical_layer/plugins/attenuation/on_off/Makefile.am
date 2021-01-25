@@ -15,8 +15,11 @@ libopensand_on_off_attenuation_plugin_la_h = \
 	OnOff.h
 
 libopensand_on_off_attenuation_plugin_la_SOURCES = \
-    $(libopensand_on_off_attenuation_plugin_la_cpp) \
-    $(libopensand_on_off_attenuation_plugin_la_h)
+	$(libopensand_on_off_attenuation_plugin_la_cpp) \
+	$(libopensand_on_off_attenuation_plugin_la_h)
+
+libopensand_on_off_attenuation_plugin_la_LIBADD = \
+	$(top_builddir)/src/conf/libopensand_conf_core.la
 
 pluginsdir = $(libdir)/opensand/plugins
 

@@ -15,8 +15,11 @@ libopensand_file_satdelay_plugin_la_h = \
 	FileDelay.h
 
 libopensand_file_satdelay_plugin_la_SOURCES = \
-    $(libopensand_file_satdelay_plugin_la_cpp) \
-    $(libopensand_file_satdelay_plugin_la_h)
+	$(libopensand_file_satdelay_plugin_la_cpp) \
+	$(libopensand_file_satdelay_plugin_la_h)
+
+libopensand_file_satdelay_plugin_la_LIBADD = \
+	$(top_builddir)/src/conf/libopensand_conf_core.la
 
 pluginsdir = $(libdir)/opensand/plugins
 

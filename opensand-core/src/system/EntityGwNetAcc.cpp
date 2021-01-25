@@ -146,11 +146,7 @@ bool EntityGwNetAcc::loadConfiguration(const std::string &profile_path)
 		return false;
 	}
 
-	std::string emu, interco;
-	return Conf->getSplitGwInfrastructure(this->instance_id,
-	                                      emu, interco,
-	                                      this->interconnect_address,
-	                                      this->tap_iface);
+	return Conf->getGroundInfrastructure(this->interconnect_address, this->tap_iface);
 }
 
 bool EntityGwNetAcc::createSpecificConfiguration(const std::string &filepath) const

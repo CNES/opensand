@@ -68,27 +68,18 @@ void SlottedAlohaTal::generateConfiguration()
 	types->addEnumType("backoff_algo", "Randow Access Back Off Algorithm", {"BEB", "EIED", "MIMD"});
 
 	auto conf = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");
+	auto settings = Conf->getOrCreateComponent("settings", "Settings", conf);
+	auto enabled = settings->addParameter("ra_enabled", "Enable CRDSA", types->getType("bool"));
+
 	auto ra = conf->addComponent("random_access", "Random Access");
-	auto enabled = ra->addParameter("ra_enabled", "Enable CRDSA", types->getType("bool"));
-	auto timeout = ra->addParameter("timeout", "Timeout", types->getType("int"));
-	timeout->setUnit("slotted aloha frames");
-	Conf->setProfileReference(timeout, enabled, true);
-	auto replicas = ra->addParameter("replicas", "Replicas", types->getType("int"));
-	replicas->setUnit("packets");
-	Conf->setProfileReference(replicas, enabled, true);
-	auto max_packets = ra->addParameter("max_packets", "Max Packets", types->getType("int"));
-	max_packets->setUnit("packets");
-	Conf->setProfileReference(max_packets, enabled, true);
-	auto max_retry = ra->addParameter("max_retry", "Max Retransmissions", types->getType("int"));
-	max_retry->setUnit("packets");
-	Conf->setProfileReference(max_retry, enabled, true);
-	auto backoff_algo = ra->addParameter("backoff_algo", "Back Off Algorithm", types->getType("backoff_algo"));
-	Conf->setProfileReference(backoff_algo, enabled, true);
-	auto max_cw = ra->addParameter("max_cw", "Max Cw", types->getType("int"));
-	max_cw->setUnit("slotted aloha frames");
-	Conf->setProfileReference(max_cw, enabled, true);
-	auto backoff_multiple = ra->addParameter("backoff_multiple", "Back Off Multiple", types->getType("int"));
-	Conf->setProfileReference(backoff_multiple, enabled, true);
+	Conf->setProfileReference(ra, enabled, true);
+	ra->addParameter("timeout", "Timeout", types->getType("int"))->setUnit("slotted aloha frames");
+	ra->addParameter("replicas", "Replicas", types->getType("int"))->setUnit("packets");
+	ra->addParameter("max_packets", "Max Packets", types->getType("int"))->setUnit("packets");
+	ra->addParameter("max_retry", "Max Retransmissions", types->getType("int"))->setUnit("packets");
+	ra->addParameter("backoff_algo", "Back Off Algorithm", types->getType("backoff_algo"));
+	ra->addParameter("max_cw", "Max Cw", types->getType("int"))->setUnit("slotted aloha frames");
+	ra->addParameter("backoff_multiple", "Back Off Multiple", types->getType("int"));
 }
 
 bool SlottedAlohaTal::init(tal_id_t tal_id,

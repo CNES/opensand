@@ -48,7 +48,6 @@
 #include "EntityGwPhy.h"
 #include "EntitySat.h"
 #include "EntitySt.h"
-#include "Plugin.h"
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
@@ -253,19 +252,6 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	return entity;
 }
 
-bool Entity::loadPlugins()
-{
-	// load the plugins
-	if(!Plugin::loadPlugins(true))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot load the plugins",
-		        this->name.c_str());
-		return false;
-	}
-	return true;
-}
-
 bool Entity::createBlocks()
 {
 	if(!this->createSpecificBlocks())
@@ -296,9 +282,4 @@ bool Entity::run()
 	}
 	status->sendEvent("Simulation stopped");
 	return true;
-}
-
-void Entity::releasePlugins()
-{
-	Plugin::releasePlugins();
 }

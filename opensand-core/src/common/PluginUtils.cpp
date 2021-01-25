@@ -384,9 +384,9 @@ void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::Met
 
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
-	auto type = types->addEnumType(type_name, parameter_name, plugin_names);
+	types->addEnumType(type_name, parameter_name, plugin_names);
 
-	parent->addParameter(parameter_id, parameter_name, type, parameter_description);
+	parent->addParameter(parameter_id, parameter_name, types->getType(type_name), parameter_description);
 
 	const char *parent_path = parent->getPath().c_str();
 	const char *param_id = parameter_id.c_str();

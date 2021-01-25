@@ -125,18 +125,70 @@ void OpenSandModelConf::createModels()
 
 	auto entity = infrastructure_model->getRoot()->addComponent("entity", "Emulated Entity");
 	auto entity_type = entity->addParameter("entity_type", "Entity Type", types->getType("entity_type"));
-	std::vector<std::tuple<std::string, std::string>> entity_id_loop{
-		{"gw", "Gateway"},
-		{"gw_phy", "Gateway Phy"},
-		{"gw_net_acc", "Gateway Net Access"},
-		{"st", "Terminal"},
-	};
-	for (auto& item : entity_id_loop) {
-		auto entity_id = entity->addParameter("entity_id_" + std::get<0>(item), std::get<1>(item) + " ID", types->getType("int"));
-		infrastructure_model->setReference(entity_id, entity_type);
-		auto expected = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(entity_id->getReferenceData());
-		expected->set(std::get<1>(item));
-	}
+
+	auto gateway = entity->addComponent("entity_gw", "Gateway", "Specific infrastructure information for a Gateway");
+	infrastructure_model->setReference(gateway, entity_type);
+	auto expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(gateway->getReferenceData());
+	expected_str->set("Gateway");
+	gateway->addParameter("entity_id", "Gateway ID", types->getType("int"));
+	gateway->addParameter("pep_port", "PEP DAMA Port", types->getType("int"))->setAdvanced(true);
+	gateway->addParameter("svno_port", "SVNO Port", types->getType("int"))->setAdvanced(true);
+
+	auto gateway_net_acc = entity->addComponent("entity_gw_net_acc", "Gateway Net Access", "Specific infrastructure information for a split Gateway (Net Access)");
+	infrastructure_model->setReference(gateway_net_acc, entity_type);
+	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(gateway_net_acc->getReferenceData());
+	expected_str->set("Gateway Net Access");
+	gateway_net_acc->addParameter("entity_id", "Gateway ID", types->getType("int"));
+	gateway_net_acc->addParameter("interconnect_address",
+	                              "Interconnection Address",
+	                              types->getType("string"),
+	                              "Address the net access gateway should listen on for "
+	                              "messages from the physical layer gateway");
+	gateway_net_acc->addParameter("interconnect_remote",
+	                              "Remote Interconnection Address",
+	                              types->getType("string"),
+	                              "Address the physical layer gateway is listening on for "
+	                              "messages from this net access gateway");
+	gateway_net_acc->addParameter("pep_port", "PEP DAMA Port", types->getType("int"))->setAdvanced(true);
+	gateway_net_acc->addParameter("svno_port", "SVNO Port", types->getType("int"))->setAdvanced(true);
+	gateway_net_acc->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"))->setAdvanced(true);
+	gateway_net_acc->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"))->setAdvanced(true);
+	gateway_net_acc->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"))->setAdvanced(true);
+	gateway_net_acc->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"))->setAdvanced(true);
+	gateway_net_acc->addParameter("udp_stack", "UDP Stack", types->getType("int"))->setAdvanced(true);
+	gateway_net_acc->addParameter("udp_rmem", "UDP RMem", types->getType("int"))->setAdvanced(true);
+	gateway_net_acc->addParameter("udp_wmem", "UDP WMem", types->getType("int"))->setAdvanced(true);
+
+	auto gateway_phy = entity->addComponent("entity_gw_phy", "Gateway Phy", "Specific infrastructure information for a split Gateway (Phy)");
+	infrastructure_model->setReference(gateway_phy, entity_type);
+	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(gateway_phy->getReferenceData());
+	expected_str->set("Gateway Phy");
+	gateway_phy->addParameter("entity_id", "Gateway ID", types->getType("int"));
+	gateway_phy->addParameter("interconnect_address",
+	                          "Interconnection Address",
+	                          types->getType("string"),
+	                          "Address the physical layer gateway should listen on for "
+	                          "messages from the net access gateway");
+	gateway_phy->addParameter("interconnect_remote",
+	                          "Remote Interconnection Address",
+	                          types->getType("string"),
+	                          "Address the net access gateway is listening on for "
+	                          "messages from this physical layer gateway");
+	gateway_phy->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"))->setAdvanced(true);
+	gateway_phy->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"))->setAdvanced(true);
+	gateway_phy->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"))->setAdvanced(true);
+	gateway_phy->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"))->setAdvanced(true);
+	gateway_phy->addParameter("udp_stack", "UDP Stack", types->getType("int"))->setAdvanced(true);
+	gateway_phy->addParameter("udp_rmem", "UDP RMem", types->getType("int"))->setAdvanced(true);
+	gateway_phy->addParameter("udp_wmem", "UDP WMem", types->getType("int"))->setAdvanced(true);
+
+	auto terminal = entity->addComponent("entity_st", "Terminal", "Specific infrastructure information for a split Terminal");
+	infrastructure_model->setReference(terminal, entity_type);
+	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(terminal->getReferenceData());
+	expected_str->set("Terminal");
+	terminal->addParameter("entity_id", "Terminal ID", types->getType("int"));
+	terminal->addParameter("qos_server_host", "QoS server Host Agent", types->getType("string"))->setAdvanced(true);
+	terminal->addParameter("qos_server_port", "QoS server Host Port", types->getType("int"))->setAdvanced(true);
 
 	auto infra = infrastructure_model->getRoot()->addComponent("infrastructure", "Infrastructure");
 	auto satellite = infra->addComponent("satellite", "Satellite");
@@ -161,43 +213,16 @@ void OpenSandModelConf::createModels()
 	gateways->addParameter("udp_rmem", "UDP RMem", types->getType("int"))->setAdvanced(true);
 	gateways->addParameter("udp_wmem", "UDP WMem", types->getType("int"))->setAdvanced(true);
 
-	auto split_gateways_list = infra->addList("split_gateways", "Split Gateways", "split_gateway");
-	split_gateways_list->setAdvanced(true);
-	auto split_gateways = split_gateways_list->getPattern();
-	split_gateways->addParameter("entity_id", "Entity ID", types->getType("int"));
-	split_gateways->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address the physical layer gateway should listen on for messages from the satellite");
-	split_gateways->addParameter("interco_net_access", "Interconnection Address (Net Access)", types->getType("string"), "Address the net access gateway should listen on for messages from the physical layer gateway");
-	split_gateways->addParameter("interco_phy", "Interconnection Address (Phy)", types->getType("string"), "Address the physical layer gateway should listen on for messages from the net access gateway");
-	split_gateways->addParameter("tap_iface", "TAP Interface", types->getType("string"), "Name of the TAP interface used by the net access gateway");
-	split_gateways->addParameter("mac_address", "MAC Address", types->getType("string"), "MAC address the net access gateway routes traffic to");
-	split_gateways->addParameter("ctrl_multicast_address", "Multicast IP Address (Control Messages)", types->getType("string"))->setAdvanced(true);
-	split_gateways->addParameter("data_multicast_address", "Multicast IP Address (Data)", types->getType("string"))->setAdvanced(true);
-	split_gateways->addParameter("ctrl_out_port", "Port (Control Messages Out)", types->getType("int"))->setAdvanced(true);
-	split_gateways->addParameter("ctrl_in_port", "Port (Control Messages In)", types->getType("int"))->setAdvanced(true);
-	split_gateways->addParameter("logon_out_port", "Port (Logon Messages Out)", types->getType("int"))->setAdvanced(true);
-	split_gateways->addParameter("logon_in_port", "Port (Logon Messages In)", types->getType("int"))->setAdvanced(true);
-	split_gateways->addParameter("data_out_st_port", "Port (Data Out ST)", types->getType("int"))->setAdvanced(true);
-	split_gateways->addParameter("data_in_st_port", "Port (Data In ST)", types->getType("int"))->setAdvanced(true);
-	split_gateways->addParameter("data_out_gw_port", "Port (Data Out GW)", types->getType("int"))->setAdvanced(true);
-	split_gateways->addParameter("data_in_gw_port", "Port (Data Out ST)", types->getType("int"))->setAdvanced(true);
-	split_gateways->addParameter("udp_stack", "UDP Stack", types->getType("int"))->setAdvanced(true);
-	split_gateways->addParameter("udp_rmem", "UDP RMem", types->getType("int"))->setAdvanced(true);
-	split_gateways->addParameter("udp_wmem", "UDP WMem", types->getType("int"))->setAdvanced(true);
-
 	auto terminals = infra->addList("terminals", "Terminals", "terminal")->getPattern();
 	terminals->addParameter("entity_id", "Entity ID", types->getType("int"));
 	terminals->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite terminal should listen on for messages from the satellite");
 	terminals->addParameter("tap_iface", "TAP Interface", types->getType("string"), "Name of the TAP interface used by this satellite terminal");
 	terminals->addParameter("mac_address", "MAC Address", types->getType("string"), "MAC address this satellite terminal routes traffic to");
 
-	auto sarp = infrastructure_model->getRoot()->addComponent("sarp", "Sarp");
-	sarp->setAdvanced(true);
-	sarp->addParameter("default_gw", "Default Gateway", types->getType("int"), "Default Gateway ID for a packet destination when the MAC address is not found in the SARP Table; use -1 to drop such packets");
-
-	auto ncc = infrastructure_model->getRoot()->addComponent("ncc", "NCC");
-	ncc->setAdvanced(true);
-	ncc->addParameter("pep_port", "PEP DAMA Port", types->getType("int"));
-	ncc->addParameter("svno_port", "SVNO Port", types->getType("int"));
+	infra->addParameter("default_gw", "Default Gateway", types->getType("int"),
+	                    "Default Gateway ID for a packet destination when the MAC "
+	                    "address is not found in the SARP Table; use -1 to drop "
+	                    "such packets")->setAdvanced(true);
 
 
 	topology_model = std::make_shared<OpenSANDConf::MetaModel>("1.0.0");
@@ -224,7 +249,7 @@ void OpenSandModelConf::createModels()
 	forward_band->addParameter("group", "Group", types->getType("carrier_group"));
 	auto ratio = forward_band->addParameter("ratio", "Ratio", types->getType("string"), "Separate temporal division ratios by ','; you should also specify as many wave form IDs also separated by ','");
 	topology_model->setReference(ratio, band_type);
-	auto expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(ratio->getReferenceData());
+	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(ratio->getReferenceData());
 	expected_str->set("VCM");
 	auto return_band = spots->addList("return_band", "Return Band", "rtn_band")->getPattern();
 	// return_band->addParameter("carrier_id", "Carrier ID", types->getType("int"));
@@ -358,7 +383,7 @@ std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getComponentByPa
 }
 
 
-void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
+void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
                                             std::shared_ptr<OpenSANDConf::MetaParameter> referee,
                                             const char *expected_value)
 {
@@ -373,7 +398,7 @@ void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaPa
 }
 
 
-void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
+void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
                                             std::shared_ptr<OpenSANDConf::MetaParameter> referee,
                                             const std::string &expected_value)
 {
@@ -388,7 +413,7 @@ void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaPa
 }
 
 
-void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
+void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
                                             std::shared_ptr<OpenSANDConf::MetaParameter> referee,
                                             bool expected_value)
 {
@@ -519,7 +544,7 @@ bool OpenSandModelConf::getComponentType(std::string &type, tal_id_t &id) const
 	}
 
 	int entity_id;
-	if (!extractParameterData(entity->getParameter("entity_id_" + type), entity_id)) {
+	if (!extractParameterData(entity->getComponent("entity_" + type)->getParameter("entity_id"), entity_id)) {
 		return false;
 	}
 
@@ -534,100 +559,67 @@ bool OpenSandModelConf::getSatInfrastructure(std::string &ip_address) const
 		return false;
 	}
 
+	std::string type;
+	tal_id_t id;
+	if (!this->getComponentType(type, id)) {
+		return false;
+	}
+
+	if (type != "sat") {
+		return false;
+	}
+
 	auto satellite = infrastructure->getRoot()->getComponent("infrastructure")->getComponent("satellite");
 	return extractParameterData(satellite->getParameter("emu_address"), ip_address);
 }
 
 
-bool OpenSandModelConf::getGwInfrastructure(tal_id_t id, std::string &ip_address, std::string &tap_iface) const
+bool OpenSandModelConf::getGroundInfrastructure(std::string &ip_address, std::string &tap_iface) const
 {
 	if (infrastructure == nullptr) {
 		return false;
 	}
 
-	for (auto& gateway_item : infrastructure->getRoot()->getComponent("infrastructure")->getList("gateways")->getItems()) {
-		auto gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(gateway_item);
-
-		int gateway_id = -id;
-		if (!extractParameterData(gateway->getParameter("entity_id"), gateway_id)) {
-			continue;
-		}
-
-		if (gateway_id == id) {
-			if (!extractParameterData(gateway->getParameter("emu_address"), ip_address)) {
-				return false;
-			}
-			if (!extractParameterData(gateway->getParameter("tap_iface"), tap_iface)) {
-				return false;
-			}
-			return true;
-		}
-	}
-
-	return false;
-}
-
-
-bool OpenSandModelConf::getSplitGwInfrastructure(tal_id_t id, std::string& ip_address,
-                                                 std::string &interconnect_phy,
-                                                 std::string &interconnect_net_access,
-                                                 std::string &tap_iface) const
-{
-	if (infrastructure == nullptr) {
+	std::string type;
+	tal_id_t id;
+	if (!this->getComponentType(type, id)) {
 		return false;
 	}
 
-	for (auto& gateway_item : infrastructure->getRoot()->getComponent("infrastructure")->getList("split_gateways")->getItems()) {
-		auto gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(gateway_item);
-
-		int gateway_id = -id;
-		if (!extractParameterData(gateway->getParameter("entity_id"), gateway_id)) {
-			continue;
-		}
-
-		if (gateway_id == id) {
-			if (!extractParameterData(gateway->getParameter("emu_address"), ip_address)) {
-				return false;
-			}
-			if (!extractParameterData(gateway->getParameter("interco_phy"), interconnect_phy)) {
-				return false;
-			}
-			if (!extractParameterData(gateway->getParameter("interco_net_access"), interconnect_net_access)) {
-				return false;
-			}
-			if (!extractParameterData(gateway->getParameter("tap_iface"), tap_iface)) {
-				return false;
-			}
-			return true;
-		}
-	}
-
-	return false;
-}
-
-
-bool OpenSandModelConf::getStInfrastructure(tal_id_t id, std::string &ip_address, std::string &tap_iface) const
-{
-	if (infrastructure == nullptr) {
+	std::string section;
+	if (type == "st") {
+		section = "terminals";
+	} else if (type == "gw" || type == "gw_net_acc" || type == "gw_phy") {
+		section = "gateways";
+	} else {
 		return false;
 	}
 
-	for (auto& terminal_item : infrastructure->getRoot()->getComponent("infrastructure")->getList("terminals")->getItems()) {
-		auto terminal = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(terminal_item);
+	auto entities = infrastructure->getRoot()->getComponent("infrastructure")->getList(section);
+	for (auto& item : entities->getItems()) {
+		auto entity = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
-		int terminal_id = -id;
-		if (!extractParameterData(terminal->getParameter("entity_id"), terminal_id)) {
+		int entity_id = -id;
+		if (!extractParameterData(entity->getParameter("entity_id"), entity_id)) {
 			continue;
 		}
 
-		if (terminal_id == id) {
-			if (!extractParameterData(terminal->getParameter("emu_address"), ip_address)) {
+		if (entity_id == id) {
+			if (!extractParameterData(entity->getParameter("emu_address"), ip_address)) {
 				return false;
 			}
-			if (!extractParameterData(terminal->getParameter("tap_iface"), tap_iface)) {
+			if (!extractParameterData(entity->getParameter("tap_iface"), tap_iface)) {
 				return false;
 			}
-			return true;
+
+			auto extra = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
+			if (type == "gw_net_acc") {
+				return extractParameterData(extra->getParameter("interconnect_address"), ip_address);
+			} else if (type == "gw_phy") {
+				return extractParameterData(extra->getParameter("interconnect_address"), tap_iface);
+			} else {
+				return true;
+			}
 		}
 	}
 
@@ -697,15 +689,6 @@ bool OpenSandModelConf::getGwIds(std::vector<tal_id_t> &gws) const
 		gws.push_back(gateway_id);
 	}
 
-	for (auto& entity_element : infrastructure->getRoot()->getList("split_gateways")->getItems()) {
-		auto gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
-		int gateway_id;
-		if (!extractParameterData(gateway->getParameter("entity_id"), gateway_id)) {
-				return false;
-		}
-		gws.push_back(gateway_id);
-	}
-
 	return true;
 }
 
@@ -765,13 +748,15 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 		return false;
 	}
 
+	auto infra = infrastructure->getRoot()->getComponent("infrastructure");
+
 	int default_gw = -1;
-	extractParameterData(infrastructure->getRoot()->getComponent("sarp")->getParameter("default_gw"), default_gw);
+	extractParameterData(infra->getParameter("default_gw"), default_gw);
 	sarp_table.setDefaultTal(default_gw);
 
-	static std::vector<std::string> list_names{"gateways", "split_gateways", "terminals"};
+	static std::vector<std::string> list_names{"gateways", "terminals"};
 	for (auto& list_name : list_names) {
-		for (auto& entity_element : infrastructure->getRoot()->getList(list_name)->getItems()) {
+		for (auto& entity_element : infra->getList(list_name)->getItems()) {
 			auto entity = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
 
 			int entity_id;
@@ -798,13 +783,50 @@ bool OpenSandModelConf::getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const
 		return false;
 	}
 
+	std::string type;
+	tal_id_t id;
+	if (!this->getComponentType(type, id)) {
+		return false;
+	}
+
+	if (type != "gw" || type != "gw_net_acc") {
+		return false;
+	}
+
 	// Default values
 	pep_tcp_port = 4998;
 	svno_tcp_port = 4999;
 
-	auto ncc = infrastructure->getRoot()->getComponent("ncc");
+	auto ncc = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
 	extractParameterData(ncc->getParameter("pep_port"), pep_tcp_port);
 	extractParameterData(ncc->getParameter("svno_port"), svno_tcp_port);
+	return true;
+}
+
+
+bool OpenSandModelConf::getQosServerHost(std::string &qos_server_host_agent, int &qos_server_host_port) const
+{
+	if (infrastructure == nullptr) {
+		return false;
+	}
+
+	std::string type;
+	tal_id_t id;
+	if (!this->getComponentType(type, id)) {
+		return false;
+	}
+
+	if (type != "st") {
+		return false;
+	}
+
+	// Default values
+	qos_server_host_agent = "127.0.0.1";
+	qos_server_host_port = 4000;
+
+	auto qos_server = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
+	extractParameterData(qos_server->getParameter("qos_server_host"), qos_server_host_agent);
+	extractParameterData(qos_server->getParameter("qos_server_port"), qos_server_host_port);
 	return true;
 }
 
@@ -1193,15 +1215,6 @@ bool OpenSandModelConf::isGw(uint16_t gw_id) const
 		}
 	}
 
-	for (auto& entity_element : infrastructure->getRoot()->getList("split_gateways")->getItems()) {
-		auto gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
-		int gateway_id = -gw_id;
-		extractParameterData(gateway->getParameter("entity_id"), gateway_id);
-		if (gateway_id == gw_id) {
-			return true;
-		}
-	}
-
 	return false;
 }
 
@@ -1234,20 +1247,6 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 			return false;
 		}
 		if (gateway_id == gw_id) {
-			gateway = possible_gateway;
-		}
-	}
-
-	for (auto& entity_element : infrastructure->getRoot()->getList("split_gateways")->getItems()) {
-		auto possible_gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
-		int gateway_id;
-		if (!extractParameterData(possible_gateway->getParameter("entity_id"), gateway_id)) {
-			return false;
-		}
-		if (gateway_id == gw_id) {
-			if (gateway != nullptr) {
-				return false;
-			}
 			gateway = possible_gateway;
 		}
 	}
@@ -1531,6 +1530,57 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 
 	spot.bandwidth_khz = total_bandwidth;
 	spot.carriers = carriers;
+
+	return true;
+}
+
+
+bool OpenSandModelConf::getInterconnectCarrier(bool upward,
+                                               std::string &remote,
+                                               unsigned int &data_port,
+                                               unsigned int &sig_port,
+                                               unsigned int &udp_stack,
+                                               unsigned int &udp_rmem,
+                                               unsigned int &udp_wmem) const
+{
+	if (infrastructure == nullptr) {
+		return false;
+	}
+
+	std::string type;
+	tal_id_t id;
+	if (!this->getComponentType(type, id)) {
+		return false;
+	}
+
+	if (type != "gw_net_acc" || type != "gw_phy") {
+		return false;
+	}
+
+	std::string direction = upward ? "upward_" : "downward_";
+
+	auto entity = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
+	if (!extractParameterData(entity->getParameter("interconnect_remote"), remote))
+	{
+		return false;
+	}
+
+	int data_port_value = upward ? 4500 : 4501;
+	extractParameterData(entity->getParameter(direction + "data_port"), data_port_value);
+	data_port = data_port_value;
+	int sig_port_value = upward ? 4502 : 4503;
+	extractParameterData(entity->getParameter(direction + "sig_port"), sig_port_value);
+	sig_port = sig_port_value;
+
+	int udp_stack_value = 5;
+	extractParameterData(entity->getParameter("udp_stack"), udp_stack_value);
+	udp_stack = udp_stack_value;
+	int udp_rmem_value = 1048580;
+	extractParameterData(entity->getParameter("udp_rmem"), udp_rmem_value);
+	udp_rmem = udp_rmem_value;
+	int udp_wmem_value = 1048580;
+	extractParameterData(entity->getParameter("udp_wmem"), udp_wmem_value);
+	udp_wmem = udp_wmem_value;
 
 	return true;
 }

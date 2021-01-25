@@ -18,10 +18,11 @@ libopensand_eth_lan_adapt_plugin_la_h = \
 	Ethernet.h
 
 libopensand_eth_lan_adapt_plugin_la_SOURCES = \
-    $(libopensand_eth_lan_adapt_plugin_la_cpp) \
-    $(libopensand_eth_lan_adapt_plugin_la_h)
+	$(libopensand_eth_lan_adapt_plugin_la_cpp) \
+	$(libopensand_eth_lan_adapt_plugin_la_h)
 
 libopensand_eth_lan_adapt_plugin_la_LIBADD = \
+	$(top_builddir)/src/conf/libopensand_conf_core.la \
 	$(top_builddir)/src/lan_adaptation/libopensand_lan_adaptation.la
 
 pluginsdir = $(prefix)/lib/opensand/plugins

@@ -130,11 +130,7 @@ bool EntityGwPhy::loadConfiguration(const std::string &profile_path)
 		return false;
 	}
 
-	std::string tap, interco;
-	return Conf->getSplitGwInfrastructure(this->instance_id,
-	                                      this->ip_address,
-	                                      this->interconnect_address,
-										  interco, tap);
+	return Conf->getGroundInfrastructure(this->ip_address, this->interconnect_address);
 }
 
 bool EntityGwPhy::createSpecificConfiguration(const std::string &filepath) const

@@ -87,13 +87,6 @@ public:
 	tal_id_t getInstanceId() const;
 
 	/**
-	 * Load plugins
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool loadPlugins();
-
-	/**
 	 * Create blocks of the entity process
 	 *
 	 * @return true on success, false otherwise
@@ -106,11 +99,6 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	bool run();
-
-	/**
-	 * Release plugins
-	 */
-	void releasePlugins();
 
 protected:
 	/**

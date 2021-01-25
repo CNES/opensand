@@ -66,7 +66,6 @@ void BlockLanAdaptation::generateConfiguration()
 
 bool BlockLanAdaptation::onInit(void)
 {
-	int lan_scheme_nbr;
 	LanAdaptationPlugin *upper = NULL;
 	LanAdaptationPlugin *plugin;
 	lan_contexts_t contexts;

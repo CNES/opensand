@@ -164,7 +164,7 @@ bool EntitySt::loadConfiguration(const std::string &profile_path)
 	{
 		return false;
 	}
-	return Conf->getStInfrastructure(this->instance_id, this->ip_address, this->tap_iface);
+	return Conf->getGroundInfrastructure(this->ip_address, this->tap_iface);
 }
 
 bool EntitySt::createSpecificConfiguration(const std::string &filepath) const

@@ -33,8 +33,8 @@
  */
 
 #include "BlockInterconnect.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_old_conf/conf.h>
 
 BlockInterconnectDownward::BlockInterconnectDownward(const string &name,
                                                      const string &):
@@ -141,62 +141,11 @@ bool BlockInterconnectDownward::Upward::onInit(void)
 	string remote_addr("");
 	int32_t socket_event;
 
-	// Get configuration
-	// NOTE: this works now that only one division is made per component. If we
-	// wanted to split one component in more than three, dedicated configuration
-	// is needed, to tell different configurations apart.
-	// get remote IP address
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                    INTERCONNECT_LOWER_IP, remote_addr))
+	auto Conf = OpenSandModelConf::Get();
+	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_LOWER_IP);
-		return false;
-	}
-	// get data port
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UPWARD_DATA_PORT, data_port))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UPWARD_DATA_PORT);
-		return false;
-	}
-	// get sig port
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UPWARD_SIG_PORT, sig_port))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UPWARD_SIG_PORT);
-		return false;
-	}
-	// get UDP stack
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_STACK, stack))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_STACK);
-		return false;
-	}
-	// get rmem
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_RMEM, rmem))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_RMEM);
-		return false;
-	}
-	// get wmem
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_WMEM, wmem))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_WMEM);
+		    "Entity infrastructure is missing interconnect data\n");
 		return false;
 	}
 
@@ -234,62 +183,11 @@ bool BlockInterconnectDownward::Downward::onInit()
 	unsigned int sig_port;
 	string remote_addr("");
 
-	// Get configuration
-	// NOTE: this works now that only one division is made per component. If we
-	// wanted to split one component in more than three, dedicated configuration
-	// is needed, to tell different configurations apart.
-	// get remote IP address
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_LOWER_IP, remote_addr))
+	auto Conf = OpenSandModelConf::Get();
+	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_LOWER_IP);
-		return false;
-	}
-	// get data port
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_DOWNWARD_DATA_PORT, data_port))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_DATA_PORT);
-		return false;
-	}
-	// get sig port
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_DOWNWARD_SIG_PORT, sig_port))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_SIG_PORT);
-		return false;
-	}
-	// get UDP stack
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_STACK, stack))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_STACK);
-		return false;
-	}
-	// get rmem
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_RMEM, rmem))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_RMEM);
-		return false;
-	}
-	// get wmem
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_WMEM, wmem))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_WMEM);
+		    "Entity infrastructure is missing interconnect data\n");
 		return false;
 	}
 
@@ -402,62 +300,11 @@ bool BlockInterconnectUpward::Upward::onInit(void)
 	unsigned int sig_port;
 	string remote_addr("");
 
-	// Get configuration
-	// NOTE: this works now that only one division is made per component. If we
-	// wanted to split one component in more than three, dedicated configuration
-	// is needed, to tell different configurations apart.
-	// get remote IP address
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UPPER_IP, remote_addr))
+	auto Conf = OpenSandModelConf::Get();
+	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UPPER_IP);
-		return false;
-	}
-	// get data port
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UPWARD_DATA_PORT, data_port))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UPWARD_DATA_PORT);
-		return false;
-	}
-	// get sig port
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UPWARD_SIG_PORT, sig_port))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UPWARD_SIG_PORT);
-		return false;
-	}
-	// get UDP stack
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_STACK, stack))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_STACK);
-		return false;
-	}
-	// get rmem
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_RMEM, rmem))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_RMEM);
-		return false;
-	}
-	// get wmem
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_WMEM, wmem))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_WMEM);
+		    "Entity infrastructure is missing interconnect data\n");
 		return false;
 	}
 
@@ -478,62 +325,11 @@ bool BlockInterconnectUpward::Downward::onInit()
 	string remote_addr("");
 	int32_t socket_event;
 
-	// Get configuration
-	// NOTE: this works now that only one division is made per component. If we
-	// wanted to split one component in more than three, dedicated configuration
-	// is needed, to tell different configurations apart.
-	// get remote IP address
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UPPER_IP, remote_addr))
+	auto Conf = OpenSandModelConf::Get();
+	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UPPER_IP);
-		return false;
-	}
-	// get data port
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_DOWNWARD_DATA_PORT, data_port))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_DATA_PORT);
-		return false;
-	}
-	// get data port
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_DOWNWARD_SIG_PORT, sig_port))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_DOWNWARD_SIG_PORT);
-		return false;
-	}
-	// get UDP stack
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_STACK, stack))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_STACK);
-		return false;
-	}
-	// get rmem
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_RMEM, rmem))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_RMEM);
-		return false;
-	}
-	// get wmem
-	if(!Conf::getValue(Conf::section_map[INTERCONNECT_SECTION],
-	                   INTERCONNECT_UDP_WMEM, wmem))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    INTERCONNECT_SECTION, INTERCONNECT_UDP_WMEM);
+		    "Entity infrastructure is missing interconnect data\n");
 		return false;
 	}
 

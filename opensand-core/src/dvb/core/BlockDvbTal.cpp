@@ -125,13 +125,12 @@ void BlockDvbTal::generateConfiguration()
 	conf = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");
 	auto settings = conf->addComponent("settings", "Settings");
 	settings->addParameter("category", "Category", types->getType("carrier_group"));
+
+	auto dama_enabled = settings->addParameter("dama_enabled", "Enable DAMA", types->getType("bool"));
 	auto dama = conf->addComponent("dama", "DAMA");
-	auto dama_enabled = dama->addParameter("dama_enabled", "Enable DAMA", types->getType("bool"));
-	auto cra = dama->addParameter("cra", "CRA", types->getType("int"));
-	cra->setUnit("kb/s");
-	Conf->setProfileReference(cra, dama_enabled, true);
+	Conf->setProfileReference(dama, dama_enabled, true);
+	dama->addParameter("cra", "CRA", types->getType("int"))->setUnit("kb/s");
 	auto enabled = dama->addParameter("rbdc_enabled", "Enable RBDC", types->getType("bool"));
-	Conf->setProfileReference(enabled, dama_enabled, true);
 	auto rbdc = dama->addParameter("rbdc_max", "Max RBDC", types->getType("int"));
 	rbdc->setUnit("kb/s");
 	Conf->setProfileReference(rbdc, enabled, true);
@@ -140,17 +139,15 @@ void BlockDvbTal::generateConfiguration()
 	auto vbdc = dama->addParameter("vbdc_max", "Max VBDC", types->getType("int"));
 	vbdc->setUnit("kb/s");
 	Conf->setProfileReference(vbdc, enabled, true);
-	auto algorithm = dama->addParameter("algorithm", "DAMA Agent Algorithm", types->getType("dama_algorithm"));
-	Conf->setProfileReference(algorithm, dama_enabled, true);
-	auto duration = dama->addParameter("duration", "MSL Duration", types->getType("int"));
-	duration->setUnit("frames");
-	Conf->setProfileReference(duration, dama_enabled, true);
+	dama->addParameter("algorithm", "DAMA Agent Algorithm", types->getType("dama_algorithm"));
+	dama->addParameter("duration", "MSL Duration", types->getType("int"))->setUnit("frames");
+
 	SlottedAlohaTal::generateConfiguration();
+
+	auto scpc_enabled = settings->addParameter("scpc_enabled", "Enabled SCPC", types->getType("bool"));
 	auto scpc = conf->addComponent("scpc", "SCPC");
-	enabled = scpc->addParameter("scpc_enabled", "Enabled SCPC", types->getType("bool"));
-	auto scpc_duration = scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"));
-	scpc_duration->setUnit("ms");
-	Conf->setProfileReference(scpc_duration, enabled, true);
+	Conf->setProfileReference(scpc, scpc_enabled, true);
+	scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
 }
 
 bool BlockDvbTal::onInit(void)
@@ -1168,39 +1165,19 @@ error:
 
 bool BlockDvbTal::Downward::initQoSServer(void)
 {
-	/*
-	 * TODO
-	 *
-	// QoS Server: read hostname and port from configuration
-	if(!Conf::getValue(Conf::section_map[SECTION_QOS_AGENT],
-			       QOS_SERVER_HOST,
-			   this->qos_server_host))
+	if(!OpenSandModelConf::Get()->getQosServerHost(this->qos_server_host, this->qos_server_port))
 	{
 		LOG(this->log_qos_server, LEVEL_ERROR,
-		    "section %s, %s missing",
-		    SECTION_QOS_AGENT, QOS_SERVER_HOST);
+		    "section entity, is missing QoS server informations\n");
 		return false;
 	}
-
-	if(!Conf::getValue(Conf::section_map[SECTION_QOS_AGENT],
-			       QOS_SERVER_PORT,
-			   this->qos_server_port))
-	{
-		LOG(this->log_qos_server, LEVEL_ERROR,
-		    "section %s, %s missing\n",
-		    SECTION_QOS_AGENT, QOS_SERVER_PORT);
-		return false;
-	}
-	else if(this->qos_server_port <= 1024 || this->qos_server_port > 0xffff)
+	if(this->qos_server_port <= 1024 || this->qos_server_port > 0xffff)
 	{
 		LOG(this->log_qos_server, LEVEL_ERROR,
 		    "QoS Server port (%d) not valid\n",
 		    this->qos_server_port);
 		return false;
 	}
-	*/
-	this->qos_server_host = "127.0.0.1";
-	this->qos_server_port = 4000;
 
 	// QoS Server: catch the SIGFIFO signal that is sent to the process
 	// when QoS Server kills the TCP connection

@@ -54,6 +54,7 @@
 namespace OpenSANDConf {
 	class MetaModel;
 	class MetaTypesList;
+	class MetaElement;
 	class MetaParameter;
 	class DataModel;
 }
@@ -127,13 +128,13 @@ class OpenSandModelConf
 		std::shared_ptr<OpenSANDConf::MetaComponent> getComponentByPath(
 				const std::string &path,
 				std::shared_ptr<OpenSANDConf::MetaModel> model=nullptr);
-		void setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
+		void setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
 		                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
 		                         const char *expected_value);
-		void setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
+		void setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
 		                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
 		                         const std::string &expected_value);
-		void setProfileReference(std::shared_ptr<OpenSANDConf::MetaParameter> parameter,
+		void setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
 		                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
 		                         bool expected_value);
 
@@ -151,18 +152,22 @@ class OpenSandModelConf
 		component_t getComponentType() const;
 		bool getComponentType(std::string &type, tal_id_t &id) const;
 		bool getSatInfrastructure(std::string &ip_address) const;
-		bool getGwInfrastructure(tal_id_t id, std::string &ip_address, std::string &tap_iface) const;
-		bool getSplitGwInfrastructure(tal_id_t id, std::string& ip_address,
-		                              std::string &interconnect_phy,
-		                              std::string &interconnect_net_access,
-		                              std::string &tap_iface) const;
-		bool getStInfrastructure(tal_id_t id, std::string &ip_address, std::string &tap_iface) const;
+		/*
+		 * Brief: get infrastructure informations for ground entities
+		 *
+		 * @param: ip_address    Emulation Network IP address (except for Gateway Net Access:
+		 *                       interconnection network IP) this entity is listening on.
+		 * @param: tap_iface     Name of the tap interface to communicate from/with the real
+		 *                       network (except for Gateway Phy: interconnection network IP).
+		 */
+		bool getGroundInfrastructure(std::string &ip_address, std::string &tap_iface) const;
 		bool getLocalStorage(bool &enabled, std::string &output_folder) const;
 		bool getRemoteStorage(bool &enabled, std::string &address, unsigned short &stats_port, unsigned short &logs_port) const;
 		bool getGwIds(std::vector<tal_id_t> &gws) const;
 		bool logLevels(std::map<std::string, log_level_t> &levels, std::map<std::string, log_level_t> &specific) const;
 		bool getSarp(SarpTable &sarp_table) const;
 		bool getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const;
+		bool getQosServerHost(std::string &qos_server_host_agent, int &qos_server_host_port) const;
 		bool getS2WaveFormsDefinition(std::vector<fmt_definition_parameters> &fmt_definitions) const;
 		bool getRcs2WaveFormsDefinition(std::vector<fmt_definition_parameters> &fmt_definitions, vol_sym_t req_burst_length) const;
 		bool getRcs2BurstLength(vol_sym_t &length_sym) const;
@@ -185,6 +190,13 @@ class OpenSandModelConf
 		bool getSpotInfrastructure(tal_id_t gw_id, OpenSandModelConf::spot_infrastructure &carriers) const;
 		bool getSpotReturnCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;
 		bool getSpotForwardCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;
+		bool getInterconnectCarrier(bool upward_connection,
+		                            std::string &remote_address,
+		                            unsigned int &data_port,
+		                            unsigned int &sig_port,
+		                            unsigned int &udp_stack,
+		                            unsigned int &udp_rmem,
+		                            unsigned int &udp_wmem) const;
 		bool getTerminalAffectation(spot_id_t &default_spot_id,
 		                            std::string &default_category_name,
 		                            std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
