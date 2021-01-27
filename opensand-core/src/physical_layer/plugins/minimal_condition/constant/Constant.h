@@ -34,8 +34,11 @@
 #ifndef CONSTANT_MINIMAL_CONDITION_PLUGIN_H
 #define CONSTANT_MINIMAL_CONDITION_PLUGIN_H 
 
+
 #include "PhysicalLayerPlugin.h"
 #include "OpenSandCore.h"
+
+#include <string>
 
 
 /**
@@ -81,7 +84,8 @@ class Constant: public MinimalConditionPlugin
 	bool updateThreshold(uint8_t modcod_id, uint8_t message_type);
 };
 
+
 CREATE(Constant, minimal_plugin, "Constant");
 
-#endif
 
+#endif

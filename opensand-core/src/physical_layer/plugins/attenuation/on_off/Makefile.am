@@ -4,7 +4,7 @@
 #   Description: create the on_off attenuation plugin for OpenSAND
 ################################################################################
 
-SUBDIRS = 
+SUBDIRS =
 
 plugins_LTLIBRARIES = libopensand_on_off_attenuation_plugin.la
 

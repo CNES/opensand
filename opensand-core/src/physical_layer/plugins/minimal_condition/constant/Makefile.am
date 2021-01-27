@@ -4,7 +4,7 @@
 #   Description: create the constant minimal condition plugin for OpenSAND
 ################################################################################
 
-SUBDIRS = 
+SUBDIRS =
 
 plugins_LTLIBRARIES = libopensand_constant_minimal_plugin.la
 

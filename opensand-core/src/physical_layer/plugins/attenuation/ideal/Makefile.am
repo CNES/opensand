@@ -4,7 +4,7 @@
 #   Description: create the ideal attenuation plugin for OpenSAND
 ################################################################################
 
-SUBDIRS = 
+SUBDIRS =
 
 plugins_LTLIBRARIES = libopensand_ideal_attenuation_plugin.la
 

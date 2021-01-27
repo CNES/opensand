@@ -36,16 +36,14 @@
 
 
 #include <string>
-#include <cfloat>
-#include <algorithm>
-#include <cmath>
-#include <stdint.h>
 #include <vector>
-#include <arpa/inet.h>
-#include <sys/time.h>
 
-using std::string;
-using std::vector;
+#include <stdint.h>
+#include <cfloat>
+#include <cmath>
+#include <sys/time.h>
+#include <arpa/inet.h>
+
 
 /** unused macro to avoid compilation warning with unused parameters. */
 #ifdef __GNUC__
@@ -74,41 +72,19 @@ typedef enum
  * @param host The component type
  * @return the abbreviated name of the component
  */
-inline string getComponentName(component_t host)
+inline std::string getComponentName(component_t host)
 {
 	switch(host)
 	{
 		case satellite:
 			return "sat";
-			break;
 		case gateway:
 			return "gw";
-			break;
 		case terminal:
 			return "st";
-			break;
 		default:
 			return "";
 	}
-};
-
-/**
- * @brief get the component type according to its name
- *
- * @param name  The component name
- *
- * @return the component name enum
- */
-inline component_t getComponentType(string name)
-{
-	if(name == "sat")
-		return satellite;
-	else if(name == "st")
-		return terminal;
-	else if(name == "gw")
-		return gateway;
-	else
-		return unknown_compo;
 };
 
 /// Carrier access type
@@ -129,7 +105,7 @@ typedef enum
  *
  * @return the access type enum
  */
-inline access_type_t strToAccessType(string access_type)
+inline access_type_t strToAccessType(std::string access_type)
 {
 	if(access_type == "DAMA")
 		return DAMA;
@@ -194,16 +170,16 @@ inline clock_t getCurrentTime(void)
  * @param  tokens     The list to add tokens into
  * @param  delimiter  The tokens' delimiter
  */
-inline void tokenize(const string &str,
-                     vector<string> &tokens,
-                     const string& delimiters=":")
+inline void tokenize(const std::string &str,
+                     std::vector<std::string> &tokens,
+                     const std::string& delimiters=":")
 {
 	// Skip delimiters at beginning.
-	string::size_type last_pos = str.find_first_not_of(delimiters, 0);
+	std::string::size_type last_pos = str.find_first_not_of(delimiters, 0);
 	// Find first "non-delimiter".
-	string::size_type pos = str.find_first_of(delimiters, last_pos);
+	std::string::size_type pos = str.find_first_of(delimiters, last_pos);
 
-	while(string::npos != pos || string::npos != last_pos)
+	while(std::string::npos != pos || std::string::npos != last_pos)
 	{
 		// Found a token, add it to the vector.
 		tokens.push_back(str.substr(last_pos, pos - last_pos));
@@ -223,7 +199,7 @@ inline void tokenize(const string &str,
  */
 inline uint32_t hcnton(double cn)
 {
-	int16_t tmp_cn = (int16_t)(round(cn * 100)); // we take two digits in decimal part
+	int16_t tmp_cn = (int16_t)(std::round(cn * 100));  // we take two digits in decimal part
 	uint32_t new_cn = htonl((uint32_t)tmp_cn);
 	return new_cn;
 };

@@ -36,6 +36,7 @@
 
 
 #include "Ethernet.h"
+#include "SarpTable.h"
 #include "TrafficCategory.h"
 #include "OpenSandModelConf.h"
 
@@ -44,27 +45,6 @@
 #include <vector>
 #include <map>
 #include <arpa/inet.h>
-
-#define CONF_ETH_FILENAME "ethernet.conf"
-
-#define CONF_ETH_SECTION "ethernet"
-#define CONF_SAT_FRAME_TYPE "sat_frame_type"
-#define CONF_LAN_FRAME_TYPE "lan_frame_type"
-#define CONNECTION_LIST  "virtual_connections"
-#define EVC_ID           "id"
-#define MAC_SRC          "mac_src"
-#define MAC_DST          "mac_dst"
-#define IP_SRC           "ip_src"
-#define IP_DST           "ip_dst"
-#define Q_TCI            "tci_802_1q"
-#define AD_TCI           "tci_802_1ad"
-#define PROTOCOL_TYPE    "protocol"
-
-#define CLASS_LIST       "classes"
-#define PCP              "pcp"
-#define MAC_PRIO         "mac_prio"
-#define CLASS_NAME       "name"
-#define DEFAULT_PCP      "default_pcp"
 
 
 Ethernet::Ethernet():
@@ -75,7 +55,32 @@ Ethernet::Ethernet():
 void Ethernet::generateConfiguration(const std::string &, const std::string &, const std::string &)
 {
 	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+	types->addEnumType("frame_type", "Frame Protocol Type", {"Ethernet", "802.1Q", "802.1ad"});
+
 	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
+
+	auto categories = conf->addList("qos_classes", "QoS Classes", "qos_class")->getPattern();
+	categories->addParameter("pcp", "PCP", types->getType("int"));
+	categories->addParameter("name", "Class Name", types->getType("string"));
+	categories->addParameter("fifo", "Fifo Name", types->getType("string"));  // <- Try using this instead of this v
+	// categories->addParameter("mac_prio", "Fifo Priority", types->getType("int"));
+
+	auto evcs = conf->addList("virtual_connections", "Virtual Connections", "virtual_connection")->getPattern();
+	evcs->setAdvanced(true);
+	evcs->addParameter("id", "Connection ID", types->getType("int"));
+	evcs->addParameter("mac_src", "Source MAC Address", types->getType("string"));
+	evcs->addParameter("mac_dst", "Destination MAC Address", types->getType("string"));
+	evcs->addParameter("tci_802_1q", "TCI of the 802.1q tag", types->getType("int"));
+	evcs->addParameter("tci_802_1ad", "TCI of the 802.1ad tag", types->getType("int"));
+	evcs->addParameter("protocol", "Inner Payload Type", types->getType("string"), "2 Bytes Hexadecimal value");
+
+	auto settings = conf->addComponent("qos_settings", "QoS Settings");
+	settings->addParameter("lan_frame_type", "Lan Frame Type", types->getType("frame_type"),
+	                       "The type of 802.1 Ethernet extension transmitted to network");
+	settings->addParameter("sat_frame_type", "Satellite Frame Type", types->getType("frame_type"),
+	                       "The type of 802.1 Ethernet extension carried on satellite");
+	settings->addParameter("default_pcp", "Default PCP", types->getType("int"));
 }
 
 bool Ethernet::init()
@@ -84,36 +89,20 @@ bool Ethernet::init()
 	{
 		return false;
 	}
-	ConfigurationFile config;
-	map<string, ConfigurationList> config_section_map;
-	string sat_eth;
-	vector<string> conf_files;
-	string conf_eth_path;
-	conf_eth_path = string(CONF_ETH_FILENAME);
-	conf_files.push_back(conf_eth_path.c_str());
 
 	this->upper.push_back("IP");
 	this->upper.push_back("ROHC");
 
+	auto network = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
+	auto qos_parameter = network->getComponent("qos_settings")->getParameter("sat_frame_type");
+
 	// here we need frame type on satellite for lower layers
-	if(!config.loadConfig(conf_files))
+	std::string sat_eth;
+	if(!OpenSandModelConf::extractParameterData(qos_parameter, sat_eth))
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "failed to load config file '%s'", conf_eth_path.c_str());
-		return false;
+		    "Section QoS settings, missing parameter satellite frame type\n");
 	}
-
-	config.loadSectionMap(config_section_map);
-
-	if(!config.getValue(config_section_map[CONF_ETH_SECTION], 
-		                CONF_SAT_FRAME_TYPE, sat_eth))
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "missing %s parameter\n", CONF_SAT_FRAME_TYPE);
-	}
-
-	config.unloadConfig();
-	config_section_map.clear();
 
 	if(sat_eth == "Ethernet")
 	{
@@ -147,46 +136,34 @@ bool Ethernet::Context::init()
 	{
 		return false;
 	}
-	map<string, ConfigurationList> config_section_map;
-	string lan_eth;
-	string sat_eth;
-	vector<string> conf_files;
-	string conf_eth_path;
-	conf_eth_path = string(CONF_ETH_FILENAME);
-	conf_files.push_back(conf_eth_path.c_str());
 	
 	this->handle_net_packet = true;
 
-	if(!this->config.loadConfig(conf_files))
+	auto qos = OpenSandModelConf::Get()->getProfileData()->getComponent("network")->getComponent("qos_settings");
+
+	std::string lan_eth;
+	auto lan_qos = qos->getParameter("lan_frame_type");
+	if(!OpenSandModelConf::extractParameterData(lan_qos, lan_eth))
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "failed to load config file '%s'",
-		    conf_eth_path.c_str());
-		return false;
+		    "Section QoS settings, missing parameter LAN frame type\n");
 	}
 
-	this->config.loadSectionMap(config_section_map);
-
-	if(!this->config.getValue(config_section_map[CONF_ETH_SECTION], 
-		                CONF_LAN_FRAME_TYPE, lan_eth))
+	std::string sat_eth;
+	auto sat_qos = qos->getParameter("sat_frame_type");
+	if(!OpenSandModelConf::extractParameterData(sat_qos, sat_eth))
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "missing %s parameter\n", CONF_LAN_FRAME_TYPE);
-	}
-	if(!this->config.getValue(config_section_map[CONF_ETH_SECTION], 
-		                CONF_SAT_FRAME_TYPE, sat_eth))
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "missing %s parameter\n", CONF_SAT_FRAME_TYPE);
+		    "Section QoS settings, missing parameter satellite frame type\n");
 	}
 
-	if(!this->initEvc(this->config))
+	if(!this->initEvc())
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to Initialize EVC\n");
 	}
 
-	if(!this->initTrafficCategories(this->config))
+	if(!this->initTrafficCategories())
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot Initialize traffic categories\n");
@@ -242,15 +219,12 @@ bool Ethernet::Context::init()
 		this->sat_frame_type = NET_PROTO_ERROR;
 	}
 
-	config_section_map.clear();
 	return true;
 }
 
 Ethernet::Context::~Context()
 {
-	this->config.unloadConfig();
-	
-	map<uint8_t, Evc *>::iterator evc_it;
+	std::map<uint8_t, Evc *>::iterator evc_it;
 	std::map<qos_t, TrafficCategory *>::iterator cat_it;
 	for(evc_it = this->evc_map.begin(); evc_it != this->evc_map.end(); ++evc_it)
 	{
@@ -268,96 +242,69 @@ Ethernet::Context::~Context()
 	this->probe_evc_size.clear();
 }
 
-bool Ethernet::Context::initEvc(ConfigurationFile &config)
+bool Ethernet::Context::initEvc()
 {
-	int i = 0;
-	ConfigurationList evc_list;
-	ConfigurationList::iterator iter;
-	map<string, ConfigurationList> config_section_map;
-	config.loadSectionMap(config_section_map);
-
-	if(!config.getListItems(config_section_map[CONF_ETH_SECTION], 
-		                    CONNECTION_LIST, evc_list))
+	auto network = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
+	
+	for(auto& item : network->getList("virtual_connections")->getItems())
 	{
-		LOG(this->log, LEVEL_ERROR,
-		    "missing or empty section [%s, %s]\n",
-		    CONF_ETH_SECTION, CONNECTION_LIST);
-		return false;
-	}
+		auto vconnection = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
-	for(iter = evc_list.begin(); iter != evc_list.end(); iter++)
-	{
-		Evc *evc;
-		string src;
-		string dst;
-		uint8_t id = 0;
-		MacAddress *mac_src;
-		MacAddress *mac_dst;
-		uint16_t q_tci = 0;
-		uint16_t ad_tci = 0;
-		stringstream proto;
+		int id_value;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("id"), id_value))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "Section network, missing virtual connection ID\n");
+			return false;
+		}
+		uint8_t id = id_value;
+
+		std::string src;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("mac_src"), src))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "Section network, missing virtual connection MAC source\n");
+			return false;
+		}
+		MacAddress *mac_src = new MacAddress(src);
+
+		std::string dst;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("mac_dst"), dst))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "Section network, missing virtual connection MAC destination\n");
+			return false;
+		}
+		MacAddress *mac_dst = new MacAddress(dst);
+
+		int q_tci_value;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1q"), q_tci_value))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "Section network, missing virtual connection TCI for 802.1q tag\n");
+			return false;
+		}
+		uint16_t q_tci = q_tci_value;
+
+		int ad_tci_value;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1ad"), ad_tci_value))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "Section network, missing virtual connection TCI for 802.1ad tag\n");
+			return false;
+		}
+		uint16_t ad_tci = ad_tci_value;
+
+		std::string protocol;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("protocol"), protocol))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "Section network, missing virtual connection protocol\n");
+			return false;
+		}
+
+		std::stringstream proto{protocol};
 		uint16_t pt;
-
-		i++;
-
-		// get ID
-		if(!config.getAttributeValue(iter, EVC_ID, id))
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			    EVC_ID,  i);
-			return false;
-		}
-
-		// get source MAC address
-		if(!config.getAttributeValue(iter, MAC_SRC, src))
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			    MAC_SRC, i);
-			return false;
-		}
-		mac_src = new MacAddress(src);
-		// get destination MAC address
-		if(!config.getAttributeValue(iter, MAC_DST, dst))
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			    MAC_DST, i);
-			return false;
-		}
-		mac_dst = new MacAddress(dst);
-
-		// get 802.1Q tag
-		if(!config.getAttributeValue(iter, Q_TCI, q_tci))
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			    Q_TCI,  i);
-			return false;
-		}
-		// get 802.1ad tag
-		if(!config.getAttributeValue(iter, AD_TCI, ad_tci))
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			    AD_TCI, i);
-			return false;
-		}
-		// get source protocol type
-		if(!config.getAttributeValue(iter, PROTOCOL_TYPE, proto))
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "at line %d\n", CONF_ETH_SECTION, CONNECTION_LIST,
-			    PROTOCOL_TYPE, i);
-			return false;
-		}
 		proto >> std::hex >> pt;
 
 		LOG(this->log, LEVEL_INFO,
@@ -366,14 +313,14 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 		    mac_src->str().c_str(), mac_dst->str().c_str(),
 		    q_tci, ad_tci, pt);
 
-		evc = new Evc(mac_src, mac_dst, q_tci, ad_tci, pt);
-
 		if(this->evc_map.find(id) != this->evc_map.end())
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "Duplicated ID %u in Ethernet Virtual Connections\n", id);
 			return false;
 		}
+
+		Evc *evc = new Evc(mac_src, mac_dst, q_tci, ad_tci, pt);
 		this->evc_map[id] = evc;
 	}
 	// initialize the statistics on EVC
@@ -382,60 +329,65 @@ bool Ethernet::Context::initEvc(ConfigurationFile &config)
 	return true;
 }
 
-bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
+bool Ethernet::Context::initTrafficCategories()
 {
-	int i = 0;
-	TrafficCategory *category;
-	vector<TrafficCategory *>::iterator cat_iter;
-	ConfigurationList category_list;
-	ConfigurationList::iterator iter;
-	map<string, ConfigurationList> config_section_map;
-	config.loadSectionMap(config_section_map);
+	auto network = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
 
-	// Traffic flow categories
-	if(!config.getListItems(config_section_map[CONF_ETH_SECTION], 
-		                    CLASS_LIST,
-	                        category_list))
+	std::map<std::string, int> fifo_priorities;
+	for(auto& item : network->getList("fifos")->getItems())
 	{
-		LOG(this->log, LEVEL_ERROR,
-		    "missing or empty section [%s, %s]\n",
-		    CONF_ETH_SECTION, CLASS_LIST);
-		return false;
+		auto fifo = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
+
+		int priority;
+		if(!OpenSandModelConf::extractParameterData(fifo->getParameter("priority"), priority))
+		{
+			continue;
+		}
+
+		std::string name;
+		if(!OpenSandModelConf::extractParameterData(fifo->getParameter("name"), name))
+		{
+			continue;
+		}
+
+		fifo_priorities[name] = priority;
 	}
-
-	for(iter = category_list.begin(); iter != category_list.end(); iter++)
+	
+	for(auto& item : network->getList("qos_classes")->getItems())
 	{
-		long int pcp;
-		long int mac_queue_prio;
-		string class_name;
+		auto category = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
-		i++;
-		// get category id
-		if(!config.getAttributeValue(iter, PCP, pcp))
+		int pcp;
+		if(!OpenSandModelConf::extractParameterData(category->getParameter("pcp"), pcp))
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", CONF_ETH_SECTION, CLASS_LIST,
-			    PCP, i);
+			    "Section network, missing QoS class PCP parameter\n");
 			return false;
 		}
-		// get category name
-		if(!config.getAttributeValue(iter, CLASS_NAME, class_name))
+
+		std::string fifo_name;
+		if(!OpenSandModelConf::extractParameterData(category->getParameter("fifo"), fifo_name))
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", CONF_ETH_SECTION, CLASS_LIST,
-			    CLASS_NAME, i);
+			    "Section network, missing QoS class FIFO name parameter\n");
 			return false;
 		}
-		// get service class
-		if(!config.getAttributeValue(iter, MAC_PRIO,
-		                             mac_queue_prio))
+
+		auto priority = fifo_priorities.find(fifo_name);
+		if(priority == fifo_priorities.end())
 		{
 			LOG(this->log, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", CONF_ETH_SECTION, CLASS_LIST,
-			    MAC_PRIO, i);
+			    "Section network, missing QoS class has unknown FIFO name %s\n",
+			    fifo_name.c_str());
+			return false;
+		}
+		int mac_queue_prio = priority->second;
+
+		std::string class_name;
+		if(!OpenSandModelConf::extractParameterData(category->getParameter("name"), class_name))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "Section network, missing QoS class FIFO priority parameter\n");
 			return false;
 		}
 
@@ -449,16 +401,16 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 			return false;
 		}
 
-		category = new TrafficCategory();
+		TrafficCategory *traffic_category = new TrafficCategory();
 
-		category->setId(mac_queue_prio);
-		category->setName(class_name);
-		this->category_map[pcp] = category;
+		traffic_category->setId(mac_queue_prio);
+		traffic_category->setName(class_name);
+		this->category_map[pcp] = traffic_category;
 	}
-	// Get default category
-	if(!config.getValue(config_section_map[CONF_ETH_SECTION], 
-		                DEFAULT_PCP,
-	                    this->default_category))
+
+	auto default_pcp = network->getComponent("qos_settings")->getParameter("default_pcp");
+	int default_category;
+	if(!OpenSandModelConf::extractParameterData(default_pcp, default_category))
 	{
 		this->default_category = (this->category_map.begin())->first;
 		LOG(this->log, LEVEL_ERROR,
@@ -466,6 +418,7 @@ bool Ethernet::Context::initTrafficCategories(ConfigurationFile &config)
 		return false;
 	}
 
+	this->default_category = default_category;
 	return true;
 }
 
@@ -485,7 +438,7 @@ bool Ethernet::Context::initLanAdaptationContext(
 
 
 NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
-                                         map<long, int> &UNUSED(time_contexts))
+                                         std::map<long, int> &UNUSED(time_contexts))
 {
 	NetBurst *eth_frames = NULL;
 	NetBurst::iterator packet;
@@ -541,8 +494,8 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			qos_t pcp = (q_tci & 0xe000) >> 13;
 			qos_t qos = 0;
 			Evc *evc;
-			map<qos_t, TrafficCategory *>::const_iterator default_category;
-			map<qos_t, TrafficCategory *>::const_iterator found_category;
+			std::map<qos_t, TrafficCategory *>::const_iterator default_category;
+			std::map<qos_t, TrafficCategory *>::const_iterator found_category;
 
 			// Do not print errors here because we may want to reject trafic as spanning
 			// tree coming from miscellaneous host
@@ -869,8 +822,8 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 
 NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc_id)
 {
-	vector<MacAddress> src_macs;
-	vector<MacAddress> dst_macs;
+	std::vector<MacAddress> src_macs;
+	std::vector<MacAddress> dst_macs;
 	MacAddress src_mac;
 	MacAddress dst_mac;
 	tal_id_t src_tal = packet->getSrcTalId();
@@ -883,7 +836,7 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 
 	// search traffic category associated with QoS value
 	// TODO we should filter on IP addresses instead of QoS
-	for(map<qos_t, TrafficCategory *>::const_iterator it = this->category_map.begin();
+	for(std::map<qos_t, TrafficCategory *>::const_iterator it = this->category_map.begin();
 	    it != this->category_map.end(); ++it)
 	{
 		if((*it).second->getId() == qos)
@@ -908,10 +861,10 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 		    dst_tal);
 		return NULL;
 	}
-	for(vector<MacAddress>::iterator it1 = src_macs.begin();
+	for(std::vector<MacAddress>::iterator it1 = src_macs.begin();
 	    it1 != src_macs.end(); ++it1)
 	{
-		for(vector<MacAddress>::iterator it2 = dst_macs.begin();
+		for(std::vector<MacAddress>::iterator it2 = dst_macs.begin();
 		    it2 != dst_macs.end(); ++it2)
 		{
 			// TODO remove tags from here and search with IP addresses
@@ -928,7 +881,7 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 	}
 	if(!evc)
 	{
-		map<qos_t, TrafficCategory *>::const_iterator default_category;
+		std::map<qos_t, TrafficCategory *>::const_iterator default_category;
 		LOG(this->log, LEVEL_NOTICE,
 		    "no EVC for this flow, use default values");
 		src_mac = src_macs.front();
@@ -1060,7 +1013,7 @@ void Ethernet::Context::initStats()
 		output->registerProbe<float>("EVC frame size.default",
 		                             "Bytes", true, SAMPLE_SUM);
 
-	for(map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
+	for(std::map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
 	    it != this->evc_map.end(); ++it)
 	{
 		char probe_name[128];
@@ -1083,10 +1036,10 @@ void Ethernet::Context::initStats()
 
 void Ethernet::Context::updateStats(unsigned int period)
 {
-	map<uint8_t, size_t>::iterator it;
-	map<uint8_t, Probe<float> *>::iterator found;
+	std::map<uint8_t, size_t>::iterator it;
+	std::map<uint8_t, Probe<float> *>::iterator found;
 	uint8_t id;
-	stringstream name;
+	std::stringstream name;
 
 	for(it = this->evc_data_size.begin(); it != this->evc_data_size.end(); ++it)
 	{
@@ -1140,7 +1093,7 @@ Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
                                uint16_t ether_type,
                                uint8_t &evc_id) const
 {
-	for(map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
+	for(std::map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
 	    it != this->evc_map.end(); ++it)
 	{
 		if((*it).second->matches(&src_mac, &dst_mac, ether_type))
@@ -1159,7 +1112,7 @@ Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
                                uint16_t ether_type,
                                uint8_t &evc_id) const
 {
-	for(map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
+	for(std::map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
 	    it != this->evc_map.end(); ++it)
 	{
 		if((*it).second->matches(&src_mac, &dst_mac, q_tci, ether_type))
@@ -1179,7 +1132,7 @@ Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
                                uint16_t ether_type,
                                uint8_t &evc_id) const
 {
-	for(map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
+	for(std::map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
 	    it != this->evc_map.end(); ++it)
 	{
 		if((*it).second->matches(&src_mac, &dst_mac, q_tci, ad_tci, ether_type))

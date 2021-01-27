@@ -33,30 +33,29 @@
  */
 
 
-
 #include "AcmLoop.h"
 #include "OpenSandFrames.h"
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
-
 
 AcmLoop::AcmLoop():
-	MinimalConditionPlugin(),
-	modcod_table_rcs(),
-	modcod_table_s2()
+		MinimalConditionPlugin(),
+		modcod_table_rcs(),
+		modcod_table_s2()
 {
 }
+
 
 AcmLoop::~AcmLoop()
 {
 }
 
-void AcmLoop::generateConfiguration(const std::string &, const std::string &, const std::string &)
+
+void AcmLoop::generateConfiguration(const std::string &,
+                                    const std::string &,
+                                    const std::string &)
 {
 }
 
@@ -120,29 +119,25 @@ bool AcmLoop::init(void)
 	return true;
 }
 
+
 bool AcmLoop::updateThreshold(uint8_t modcod_id, uint8_t message_type)
 {
-	double threshold;  // Value to be updated with the current ACM_LOOP
-
-	// Init variables
-	threshold = this->minimal_cn; // Default, keep previous threshold
+	double threshold = this->minimal_cn; // Default, keep previous threshold
 	switch(message_type)
 	{
 		case MSG_TYPE_DVB_BURST:
-			threshold = (double)(this->modcod_table_rcs.getRequiredEsN0(modcod_id));
+			threshold = double(this->modcod_table_rcs.getRequiredEsN0(modcod_id));
 			LOG(this->log_minimal, LEVEL_DEBUG,
 			    "Required Es/N0 for ACM loop %u --> %.2f dB\n",
-				modcod_id, this->modcod_table_rcs.getRequiredEsN0(modcod_id));
-
+			    modcod_id, this->modcod_table_rcs.getRequiredEsN0(modcod_id));
+			break;
 		default:
-			threshold = (double)(this->modcod_table_s2.getRequiredEsN0(modcod_id));
+			threshold = double(this->modcod_table_s2.getRequiredEsN0(modcod_id));
 			LOG(this->log_minimal, LEVEL_DEBUG,
 			    "Required Es/N0 for ACM loop %u --> %.2f dB\n",
-				modcod_id, this->modcod_table_s2.getRequiredEsN0(modcod_id));
+			    modcod_id, this->modcod_table_s2.getRequiredEsN0(modcod_id));
 	}
 
 	this->minimal_cn = threshold;
 	return true;
 }
-
-

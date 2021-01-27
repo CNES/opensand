@@ -51,8 +51,7 @@ class Triangular: public AttenuationModelPlugin
 	/** The Triangular slope */
 	double slope;
 
-	/** The Triangular period:
-	 *  period * refresh_period_ms/1000 = period in seconds */
+	/** The Triangular period: period * refresh_period_ms/1000 = period in seconds */
 	int period;
 
 	int duration_counter;
@@ -64,7 +63,7 @@ class Triangular: public AttenuationModelPlugin
 	Triangular();
 
 	/**
-	 *@brief Destroy the Triangular
+	 * @brief Destroy the Triangular
 	 */
 	~Triangular();
 
@@ -75,11 +74,13 @@ class Triangular: public AttenuationModelPlugin
 	                                  const std::string &param_id,
 	                                  const std::string &plugin_name);
 
-	bool init(time_ms_t refresh_period_ms, string link);
+	bool init(time_ms_t refresh_period_ms, std::string link);
 
 	bool updateAttenuationModel();
 };
 
+
 CREATE(Triangular, attenuation_plugin, "Triangular");
+
 
 #endif

@@ -4,7 +4,7 @@
 #   Description: create the Gate error insertion plugin for OpenSAND
 ################################################################################
 
-SUBDIRS = 
+SUBDIRS =
 
 plugins_LTLIBRARIES = libopensand_gate_error_plugin.la
 

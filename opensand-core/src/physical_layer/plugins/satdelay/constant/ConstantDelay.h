@@ -35,9 +35,10 @@
 #define CONSTANT_SATDELAY_PLUGIN_H 
 
 
-#include "PhysicalLayerPlugin.h"
-#include "OpenSandPlugin.h"
 #include "OpenSandCore.h"
+#include "PhysicalLayerPlugin.h"
+
+#include <string>
 
 
 /**
@@ -87,9 +88,11 @@ class ConstantDelay: public SatDelayPlugin
 	 * @param the delay
 	 * @return true on success
 	 */
-	bool getMaxDelay(time_ms_t &delay);
+	bool getMaxDelay(time_ms_t &delay) const;
 };
 
+
 CREATE(ConstantDelay, satdelay_plugin, "ConstantDelay");
+
 
 #endif

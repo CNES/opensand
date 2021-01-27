@@ -40,25 +40,28 @@
 
 #include <opensand_output/Output.h>
 
-#include <errno.h>
+#include <sstream>
+#include <fstream>
 
 
 File::File():
-	AttenuationModelPlugin(),
-	current_time(0),
-	attenuation(),
-	loop(false)
+		AttenuationModelPlugin(),
+		current_time(0),
+		attenuation(),
+		loop(false)
 {
 }
+
 
 File::~File()
 {
 	this->attenuation.clear();
 }
 
+
 void File::generateConfiguration(const std::string &parent_path,
-	                             const std::string &param_id,
-	                             const std::string &plugin_name)
+                                 const std::string &param_id,
+                                 const std::string &plugin_name)
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
@@ -83,6 +86,7 @@ void File::generateConfiguration(const std::string &parent_path,
 	                                                  types->getType("bool"));
 	Conf->setProfileReference(attenuation_loop, attenuation_type, plugin_name);
 }
+
 
 bool File::init(time_ms_t refresh_period_ms, std::string link_path)
 {
@@ -110,9 +114,9 @@ bool File::init(time_ms_t refresh_period_ms, std::string link_path)
 }
 
 
-bool File::load(string filename)
+bool File::load(std::string filename)
 {
-	string line;
+	std::string line;
 	std::istringstream line_stream;
 	unsigned int line_number = 0;
 
@@ -146,11 +150,11 @@ bool File::load(string filename)
 		if(line_stream.bad() || line_stream.fail())
 		{
 			LOG(this->log_attenuation, LEVEL_ERROR,
-					"Bad syntax in file '%s', line %u: "
-					"there should be a timestamp (integer) "
-					"instead of '%s'\n",
-					filename.c_str(), line_number,
-					line.c_str());
+			    "Bad syntax in file '%s', line %u: "
+			    "there should be a timestamp (integer) "
+			    "instead of '%s'\n",
+			    filename.c_str(), line_number,
+			    line.c_str());
 			goto malformed;
 		}
 
@@ -178,10 +182,9 @@ malformed:
 	    "Malformed attenuation configuration file '%s'\n",
 	    filename.c_str());
 	file.close();
- error:
+error:
 	return false;
 }
-
 
 
 bool File::updateAttenuationModel()
@@ -191,7 +194,7 @@ bool File::updateAttenuationModel()
 	double old_attenuation, new_attenuation;
 	double next_attenuation;
 
-	this->current_time++;;
+	this->current_time++;
 
 	LOG(this->log_attenuation, LEVEL_INFO,
 	    "Updating attenuation scenario: current time: %u "
@@ -226,9 +229,7 @@ bool File::updateAttenuationModel()
 			    old_time, old_attenuation);
 
 			// Linear interpolation
-			coef = (new_attenuation - old_attenuation) /
-			        (new_time - old_time);
-
+			coef = (new_attenuation - old_attenuation) / (new_time - old_time);
 
 			next_attenuation = old_attenuation +
 			                   coef * (this->current_time - old_time);
@@ -270,6 +271,3 @@ bool File::updateAttenuationModel()
 
 	return true;
 }
-
-
-

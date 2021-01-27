@@ -4,7 +4,7 @@
 #   Description: create the constant satellite delay plugin for OpenSAND
 ################################################################################
 
-SUBDIRS = 
+SUBDIRS =
 
 plugins_LTLIBRARIES = libopensand_constant_satdelay_plugin.la
 

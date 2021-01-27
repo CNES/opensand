@@ -35,11 +35,9 @@
  *
  */
 
+
 #include "Plugin.h"
 
-#include <stdarg.h>
-#include <cstdio>
-#include <algorithm>
 
 // Create Plugin instance
 PluginUtils Plugin::utils;
@@ -49,6 +47,7 @@ bool Plugin::loadPlugins(bool enable_phy_layer)
 {
 	return utils.loadPlugins(enable_phy_layer);
 }
+
 
 void Plugin::releasePlugins()
 {
@@ -62,32 +61,34 @@ bool Plugin::getEncapsulationPlugin(std::string name,
 	return utils.getEncapsulationPlugin(name, encapsulation);
 }
 
+
 bool Plugin::getLanAdaptationPlugin(std::string name,
                                     LanAdaptationPlugin **lan_adaptation)
 {
 	return utils.getLanAdaptationPlugin(name, lan_adaptation);
 }
 
+
 bool Plugin::getAttenuationPlugin(std::string att_pl_name,
                                      AttenuationModelPlugin **attenuation)
 {
-	return utils.getAttenuationPlugin(att_pl_name,
-	                                  attenuation);
+	return utils.getAttenuationPlugin(att_pl_name, attenuation);
 }
+
 
 bool Plugin::getMinimalConditionPlugin(std::string min_pl_name,
                                        MinimalConditionPlugin **minimal)
 {
-	return utils.getMinimalConditionPlugin(min_pl_name,
-	                                       minimal);
+	return utils.getMinimalConditionPlugin(min_pl_name, minimal);
 }
+
 
 bool Plugin::getErrorInsertionPlugin(std::string err_pl_name,
                                      ErrorInsertionPlugin **error)
 {
-	return utils.getErrorInsertionPlugin(err_pl_name,
-	                                     error);
+	return utils.getErrorInsertionPlugin(err_pl_name, error);
 }
+
 
 bool Plugin::getSatDelayPlugin(std::string name,
                                SatDelayPlugin **sat_delay)
@@ -95,15 +96,18 @@ bool Plugin::getSatDelayPlugin(std::string name,
 	return utils.getSatDelayPlugin(name, sat_delay);
 }
 
+
 void Plugin::getAllEncapsulationPlugins(pl_list_t &encapsulation)
 {
 	return utils.getAllEncapsulationPlugins(encapsulation);
 }
 
+
 void Plugin::getAllLanAdaptationPlugins(pl_list_t &lan_adaptation)
 {
 	return utils.getAllLanAdaptationPlugins(lan_adaptation);
 }
+
 
 void Plugin::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
                                           plugin_type_t plugin_type,
@@ -111,8 +115,13 @@ void Plugin::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComp
                                           const std::string &parameter_name,
                                           const std::string &parameter_description)
 {
-	utils.generatePluginsConfiguration(parent, plugin_type, parameter_id, parameter_name, parameter_description);
+	utils.generatePluginsConfiguration(parent,
+	                                   plugin_type,
+	                                   parameter_id,
+	                                   parameter_name,
+	                                   parameter_description);
 }
+
 
 std::vector<std::string> Plugin::generatePluginsConfiguration(plugin_type_t plugin_type)
 {

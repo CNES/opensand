@@ -49,6 +49,7 @@
 
 #define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
 
+
 void BlockLanAdaptation::generateConfiguration()
 {
 	auto Conf = OpenSandModelConf::Get();
@@ -57,7 +58,6 @@ void BlockLanAdaptation::generateConfiguration()
 	auto lan_adaptation = global->addList("lan_adaptation_schemes", "LAN Adaptation scheme", "lan_adaptation_scheme")->getPattern();
 
 	auto lan_adaptation_protocols = Plugin::generatePluginsConfiguration(lan_adaptation_plugin);
-	lan_adaptation_protocols.push_back("IP");
 
 	auto types = Conf->getModelTypesDefinition();
 	types->addEnumType("lan_adaptation_protocol", "LAN Adaptation Protocol", lan_adaptation_protocols);
@@ -69,35 +69,35 @@ bool BlockLanAdaptation::onInit(void)
 	LanAdaptationPlugin *upper = NULL;
 	LanAdaptationPlugin *plugin;
 	lan_contexts_t contexts;
-	int fd = -1;
-	vector<string> lan_scheme_names({"Ethernet"});
-	vector<string>::const_iterator iter;
+	std::vector<std::string> lan_adaptation_plugins{"Ethernet"};
 
 	auto encap = OpenSandModelConf::Get()->getProfileData()->getComponent("encapsulation");
-	for(auto& item : encap->getList("lan_adaptation_schemes")->getItems())
+	for (auto& item : encap->getList("lan_adaptation_schemes")->getItems())
 	{
+		std::string plugin_name;
 		auto lan_adaptation_scheme = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
-		std::string name;
-
-		// get all the lan adaptation plugins to use from upper to lower
-		if(!OpenSandModelConf::extractParameterData(lan_adaptation_scheme->getParameter("protocol"), name))
+		if(!OpenSandModelConf::extractParameterData(lan_adaptation_scheme->getParameter("protocol"), plugin_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "Section encapsulation, missing parameter 'lan adaptation scheme protocol'\n");
+			    "cannot get plugin name for lan adaptation\n");
 			return false;
 		}
-		lan_scheme_names.push_back(name);
+
+		if(plugin_name != "Ethernet")
+		{
+			lan_adaptation_plugins.push_back(name);
+		}
 	}
 
-	for(iter = lan_scheme_names.begin(); iter != lan_scheme_names.end(); iter++)
+	for (auto& plugin_name : lan_adaptation_plugins)
 	{
 		LanAdaptationPlugin::LanAdaptationContext *context;
 
-		if(!Plugin::getLanAdaptationPlugin(*iter, &plugin))
+		if(!Plugin::getLanAdaptationPlugin(plugin_name, &plugin))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get plugin for %s lan adaptation",
-			    iter->c_str());
+			    plugin_name.c_str());
 			return false;
 		}
 
@@ -126,6 +126,7 @@ bool BlockLanAdaptation::onInit(void)
 	}
 
 	// create TAP virtual interface
+	int fd = -1;
 	if(!this->allocTap(fd))
 	{
 		return false;

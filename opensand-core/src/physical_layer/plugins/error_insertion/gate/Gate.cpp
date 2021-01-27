@@ -36,54 +36,54 @@
  */
 
 
-
 #include "Gate.h"
 
 #include <opensand_output/Output.h>
-
-#include <strings.h>
-#include <cstring>
 
 
 Gate::Gate():ErrorInsertionPlugin()
 {
 }
 
+
 Gate::~Gate()
 {
 }
 
-void Gate::generateConfiguration(const std::string &, const std::string &, const std::string &)
+
+void Gate::generateConfiguration(const std::string &,
+                                 const std::string &,
+                                 const std::string &)
 {
 }
+
 
 bool Gate::init()
 {
 	return true;
 }
 
+
 bool Gate::isToBeModifiedPacket(double cn_total,
                                 double threshold_qef)
 {
-	bool do_modify;
-
 	// Comparison between current and required C/N values
 	if(cn_total >= threshold_qef)
 	{
 		LOG(this->log_error, LEVEL_DEBUG,
 		    "Packet should not be modified\n");
-		do_modify = false;
+		return false;
 	}
 	else
 	{
 		LOG(this->log_error, LEVEL_DEBUG,
 		    "Payload is should be modified\n");
-		do_modify = true;
+		return true;
 	}
-	return do_modify;
 }
 
-bool Gate::modifyPacket(const Data &UNUSED(payload))
+
+bool Gate::modifyPacket(const Data &)
 {
 	LOG(this->log_error, LEVEL_INFO,
 	    "Payload is modified\n");
@@ -91,4 +91,3 @@ bool Gate::modifyPacket(const Data &UNUSED(payload))
 	// memset(payload, '\0', length);
 	return true;
 }
-

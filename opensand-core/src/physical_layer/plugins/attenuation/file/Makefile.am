@@ -4,7 +4,7 @@
 #   Description: create the file attenuation plugin for OpenSAND
 ################################################################################
 
-SUBDIRS = 
+SUBDIRS =
 
 plugins_LTLIBRARIES = libopensand_file_attenuation_plugin.la
 

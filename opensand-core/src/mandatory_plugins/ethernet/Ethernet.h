@@ -54,10 +54,7 @@
 #include <LanAdaptationPlugin.h>
 #include <TrafficCategory.h>
 #include <opensand_output/Output.h>
-#include <opensand_old_conf/ConfigurationFile.h>
 
-#include <cassert>
-#include <vector>
 #include <map>
 
 /**
@@ -95,7 +92,7 @@ class Ethernet: public LanAdaptationPlugin
 		~Context();
 
 		bool init();
-		NetBurst *encapsulate(NetBurst *burst, map<long, int> &(time_contexts));
+		NetBurst *encapsulate(NetBurst *burst, std::map<long, int> &(time_contexts));
 		NetBurst *deencapsulate(NetBurst *burst);
 		char getLanHeader(unsigned int pos, NetPacket *packet);
 		bool handleTap();
@@ -199,7 +196,7 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param config  The configuration elements
 		 * @return true on success, false otherwise
 		 */
-		bool initEvc(ConfigurationFile &config);
+		bool initEvc();
 
 		/**
 		 * @brief Initialize the traffic categories from IP configuration
@@ -209,25 +206,22 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param config  The configuration elements
 		 * @return true on success, false otherwise
 		 */
-		bool initTrafficCategories(ConfigurationFile &config);
-
-		/// The configuration
-		ConfigurationFile config;
+		bool initTrafficCategories();
 
 		/// The Ethernet Virtual Connections
-		map<uint8_t, Evc *> evc_map;
+		std::map<uint8_t, Evc *> evc_map;
 		/// The amount of data sent per EVC between two updates
-		map<uint8_t, size_t> evc_data_size;
+		std::map<uint8_t, size_t> evc_data_size;
 		/// The throughput per EVC
-		map<uint8_t, std::shared_ptr<Probe<float> > > probe_evc_throughput;
+		std::map<uint8_t, std::shared_ptr<Probe<float> > > probe_evc_throughput;
 		/// The frame size per EVC
-		map<uint8_t, std::shared_ptr<Probe<float> > > probe_evc_size;
+		std::map<uint8_t, std::shared_ptr<Probe<float> > > probe_evc_size;
 
 		uint16_t lan_frame_type; //< The type of Ethernet frame forwarded on LAN
 		uint16_t sat_frame_type; //< The type of Ethernet frame transmitted on satellite
 
 		/// The traffic categories
-		map<qos_t, TrafficCategory *> category_map;
+		std::map<qos_t, TrafficCategory *> category_map;
 
 		/// The default traffic category
 		qos_t default_category;
@@ -260,7 +254,7 @@ class Ethernet: public LanAdaptationPlugin
 			return length;
 		}
 
-		string getName() const {return "Ethernet";}
+		std::string getName() const {return "Ethernet";}
 
 		NetPacket *build(const Data &data,
 		                 size_t data_length,

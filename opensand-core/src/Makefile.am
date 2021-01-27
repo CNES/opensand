@@ -1,6 +1,6 @@
 SUBDIRS= \
-	common \
 	conf \
+	common \
 	dvb \
 	lan_adaptation \
 	sat_carrier \

@@ -36,62 +36,69 @@
 #include "NetContainer.h"
 
 
-NetContainer::NetContainer(const unsigned char *data, size_t length):
-	data(),
-	name("unknown"),
-	header_length(0),
-	trailer_length(0),
-	spot(255)
+NetContainer::NetContainer(const unsigned char *data, std::size_t length):
+		data(),
+		name("unknown"),
+		header_length(0),
+		trailer_length(0),
+		spot(255)
 {
 	this->data.append(data, length);
 }
 
-NetContainer::NetContainer(const Data &data, size_t length):
-	data(data, 0, length),
-	name("unknown"),
-	header_length(0),
-	trailer_length(0),
-	spot(255)
+
+NetContainer::NetContainer(const Data &data, std::size_t length):
+		data(data, 0, length),
+		name("unknown"),
+		header_length(0),
+		trailer_length(0),
+		spot(255)
 {
 }
+
 
 NetContainer::NetContainer(const Data &data):
-	data(data),
-	name("unknown"),
-	header_length(0),
-	trailer_length(0),
-	spot(255)
+		data(data),
+		name("unknown"),
+		header_length(0),
+		trailer_length(0),
+		spot(255)
 {
 }
 
+
 NetContainer::NetContainer():
-	data(),
-	name("unknown"),
-	header_length(0),
-	trailer_length(0),
-	spot(255)
+		data(),
+		name("unknown"),
+		header_length(0),
+		trailer_length(0),
+		spot(255)
 {
 }
+
 
 NetContainer::~NetContainer()
 {
 }
 
 
-string NetContainer::getName() const
+std::string NetContainer::getName() const
 {
 	return this->name;
 }
+
 
 Data NetContainer::getData() const
 {
 	return this->data;
 }
 
-Data NetContainer::getData(size_t pos) const
+
+Data NetContainer::getData(std::size_t pos) const
 {
 	return this->data.substr(pos, this->getTotalLength() - pos);
 }
+
 
 
 Data NetContainer::getPayload() const
@@ -100,29 +107,33 @@ Data NetContainer::getPayload() const
 	                         this->getPayloadLength());
 }
 
-Data NetContainer::getPayload(size_t pos) const
+
+Data NetContainer::getPayload(std::size_t pos) const
 {
 	return this->data.substr(this->header_length + pos,
 	                         this->getPayloadLength());
 }
 
 
-size_t NetContainer::getPayloadLength() const
+std::size_t NetContainer::getPayloadLength() const
 {
 	return (this->getTotalLength() -
 	        this->header_length -
 	        this->trailer_length);
 }
 
-size_t NetContainer::getTotalLength() const
+
+std::size_t NetContainer::getTotalLength() const
 {
 	return this->data.length();
 }
 
-size_t NetContainer::getHeaderLength() const
+
+std::size_t NetContainer::getHeaderLength() const
 {
 	return this->header_length;
 }
+
 
 void NetContainer::setSpot(spot_id_t spot_id)
 {
@@ -133,4 +144,3 @@ spot_id_t NetContainer::getSpot() const
 {
 	return this->spot;
 }
-

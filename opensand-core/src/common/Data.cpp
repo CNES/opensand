@@ -33,13 +33,14 @@
 
 #include "Data.h"
 
+
 Data::Data(): std::basic_string<unsigned char>()
 {
 }
 
 Data::Data(std::string string):
-	std::basic_string<unsigned char>((unsigned char *)string.c_str(),
-	                                  string.size())
+	std::basic_string<unsigned char>(reinterpret_cast<const unsigned char *>(string.c_str()),
+	                                 string.size())
 {
 }
 

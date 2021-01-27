@@ -76,6 +76,8 @@ class OnOff: public AttenuationModelPlugin
 	bool updateAttenuationModel();
 };
 
+
 CREATE(OnOff, attenuation_plugin, "On/Off");
+
 
 #endif

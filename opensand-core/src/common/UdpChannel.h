@@ -36,20 +36,23 @@
 #ifndef SAT_CARRIER_UDP_CHANNEL_H
 #define SAT_CARRIER_UDP_CHANNEL_H
 
+
+#include "OpenSandCore.h"
+
+#include <opensand_rt/Rt.h>
+
+#include <vector>
+
 #include <sys/types.h>
 #include <netinet/in.h>
-#include <vector>
 #include <linux/if_packet.h>
 #include <net/if.h>
-#include <errno.h>
 #include <sys/ioctl.h>
-
-#include <OpenSandCore.h>
-#include <opensand_rt/Rt.h>
 
 
 class UdpStack;
 class OutputLog;
+
 
 /*
  * @class UdpChannel
@@ -59,14 +62,14 @@ class UdpChannel
 {
  public:
 
-	UdpChannel(string name,
+	UdpChannel(std::string name,
 	           spot_id_t s_id,
 	           unsigned int channel_id,
 	           bool input, bool output,
 	           unsigned short port,
 	           bool multicast,
-	           const string local_ip_addr,
-	           const string ip_addr,
+	           const std::string local_ip_addr,
+	           const std::string ip_addr,
 	           unsigned int stack,
 	           unsigned int rmem,
 	           unsigned int wmem);
@@ -152,7 +155,7 @@ class UdpChannel
 	/// (counter ranges from 0 to 255)
 	/// (IP address, counter) map used to check that UDP packets are received in
 	/// sequence on every UDP communication channel
-	map<string , uint8_t> udp_counters;
+	std::map<std::string , uint8_t> udp_counters;
 
 	/// Counter for sending packets
 	uint8_t counter;
@@ -163,11 +166,11 @@ class UdpChannel
 	/// sometimes an UDP datagram containing unfragmented IP packet overtake one
 	/// containing fragmented IP packets during its reassembly
 	/// Thus, we use the stacks per IP sources to keep the UDP datagram arrived too early
-	map<string, UdpStack *> stacks;
+	std::map<std::string, UdpStack *> stacks;
 
 	/// the IP address of the stack for which we need to send a packet or
 	//  empty string if we have nothing to send
-	string stacked_ip;
+	std::string stacked_ip;
 
 	/// The maximum number of packets buffered in the software stack before sending content
 	unsigned int max_stack;
@@ -182,7 +185,7 @@ class UdpChannel
  * @brief This stack allows UDP packets ordering in order to avoid
  *        sequence desynchronizations
  */
-class UdpStack: vector<pair<unsigned char *, size_t> > 
+class UdpStack: std::vector<std::pair<unsigned char *, size_t> > 
 {
  public:
 

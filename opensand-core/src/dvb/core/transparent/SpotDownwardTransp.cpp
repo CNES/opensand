@@ -72,7 +72,7 @@ void SpotDownwardTransp::generateConfiguration()
 	auto types = OpenSandModelConf::Get()->getModelTypesDefinition();
 	types->addEnumType("dama_algorithm", "DAMA Algorithm", {"Legacy",});
 
-	auto conf = OpenSandModelConf::Get()->getOrCreateComponent("ncc", "NCC", "The DVB layer configuration");
+	auto conf = OpenSandModelConf::Get()->getOrCreateComponent("network", "Network", "The DVB layer configuration");
 	conf->addParameter("fca", "FCA", types->getType("int"));
 	conf->addParameter("dama_algorithm", "DAMA Algorithm", types->getType("dama_algorithm"));
 }
@@ -260,7 +260,7 @@ bool SpotDownwardTransp::initDama(void)
 	TerminalCategoryDama *dc_default_category = NULL;
 
 	auto Conf = OpenSandModelConf::Get();
-	auto ncc = Conf->getProfileData()->getComponent("ncc");
+	auto ncc = Conf->getProfileData()->getComponent("network");
 
 	// Retrieving the free capacity assignement parameter
 	int fca;

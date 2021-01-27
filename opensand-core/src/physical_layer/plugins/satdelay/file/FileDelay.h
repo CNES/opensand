@@ -35,12 +35,11 @@
 #define FILE_SATDELAY_PLUGIN_H
 
 
-#include "PhysicalLayerPlugin.h"
-#include "OpenSandPlugin.h"
 #include "OpenSandCore.h"
+#include "PhysicalLayerPlugin.h"
 
-#include <fstream>
 #include <string>
+#include <map>
 
 
 /**
@@ -69,7 +68,7 @@ class FileDelay: public SatDelayPlugin
 	 * @param filename  The sat delay file name
 	 * @return true on success, false otherwise
 	 */
-	bool load(string filename);
+	bool load(std::string filename);
 
  public:
 	/**
@@ -93,9 +92,11 @@ class FileDelay: public SatDelayPlugin
 
 	bool updateSatDelay();
 
-	bool getMaxDelay(time_ms_t &delay);
+	bool getMaxDelay(time_ms_t &delay) const;
 };
 
+
 CREATE(FileDelay, satdelay_plugin, "FileDelay");
+
 
 #endif

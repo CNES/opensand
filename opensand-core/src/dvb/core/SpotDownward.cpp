@@ -170,7 +170,7 @@ void SpotDownward::generateConfiguration()
 	types->addEnumType("ncc_simulation", "Simulated Requests", {"None", "Random", "File"});
 	types->addEnumType("fifo_access_type", "Access Type", {"DAMA", "CRDSA"});
 
-	auto conf = Conf->getOrCreateComponent("ncc", "NCC", "The DVB layer configuration");
+	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
 	auto fifos = conf->addList("fifos", "FIFOs", "fifo")->getPattern();
 	fifos->addParameter("priority", "Priority", types->getType("int"));
 	fifos->addParameter("name", "Name", types->getType("string"));
@@ -292,7 +292,7 @@ bool SpotDownward::initCarrierIds(void)
 bool SpotDownward::initFifo(fifos_t &fifos)
 {
 	auto Conf = OpenSandModelConf::Get();
-	auto ncc = Conf->getProfileData()->getComponent("ncc");
+	auto ncc = Conf->getProfileData()->getComponent("network");
 
 	for (auto& item : ncc->getList("fifos")->getItems())
 	{
@@ -368,7 +368,7 @@ err_fifo_release:
 bool SpotDownward::initRequestSimulation(void)
 {
 	auto Conf = OpenSandModelConf::Get();
-	auto ncc = Conf->getProfileData()->getComponent("ncc");
+	auto ncc = Conf->getProfileData()->getComponent("network");
 
 	std::string str_config;
 	if(!OpenSandModelConf::extractParameterData(ncc->getParameter("simulation"), str_config))

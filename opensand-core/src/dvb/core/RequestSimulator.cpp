@@ -100,7 +100,7 @@ void RequestSimulator::generateConfiguration()
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
-	auto conf = Conf->getOrCreateComponent("ncc", "NCC", "The DVB layer configuration");
+	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
 	conf->addParameter("event_file", "Event Trace File",
 	                   types->getType("string"),
 	                   "Should an event history be generated? "
@@ -114,7 +114,7 @@ bool RequestSimulator::initRequestSimulation()
 
 	// Get and open the event file
 	std::string evt_type;
-	auto ncc = OpenSandModelConf::Get()->getProfileData()->getComponent("ncc");
+	auto ncc = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
 	if(!OpenSandModelConf::extractParameterData(ncc->getParameter("event_file"), evt_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,

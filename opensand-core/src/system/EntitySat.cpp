@@ -106,13 +106,13 @@ bool EntitySat::createSpecificBlocks()
 	return true;
 }
 
-bool EntitySat::loadConfiguration(const std::string &profile_path)
+bool EntitySat::loadConfiguration(const std::string &)
 {
 	auto Conf = OpenSandModelConf::Get();
 	return Conf->getSatInfrastructure(this->ip_address);
 }
 
-bool EntitySat::createSpecificConfiguration(const std::string &filepath) const
+bool EntitySat::createSpecificConfiguration(const std::string &) const
 {
 	return true;
 }

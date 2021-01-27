@@ -39,8 +39,6 @@
 
 
 #include <string>
-#include <cstdlib>
-#include <cstring>
 
 
 typedef enum
@@ -54,8 +52,8 @@ typedef enum
 	satdelay_plugin,
 } plugin_type_t;
 
-class OpenSandPlugin;
 
+class OpenSandPlugin;
 typedef OpenSandPlugin *(*fn_create)(void);
 typedef void (*fn_configure)(const char *, const char *);
 
@@ -68,6 +66,7 @@ typedef struct
 } opensand_plugin_t;
 
 typedef opensand_plugin_t *fn_init(void);
+
 
 /**
  * @class OpenSandPlugin

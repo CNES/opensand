@@ -38,6 +38,7 @@
 #ifndef OPENSAND_PLUGIN_STATIC_H
 #define OPENSAND_PLUGIN_STATIC_H
 
+
 #include "PluginUtils.h"
 
 #include <memory>

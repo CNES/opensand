@@ -34,15 +34,18 @@
 #ifndef ACM_LOOP_MINIMAL_CONDITION_PLUGIN_H
 #define ACM_LOOP_MINIMAL_CONDITION_PLUGIN_H 
 
+
 #include "PhysicalLayerPlugin.h"
 #include "FmtDefinitionTable.h"
+
+#include <string>
 
 
 /**
  * @class AcmLoop 
  * @brief Load the max CN from the config files (core.conf) 
  */
-class AcmLoop:public MinimalConditionPlugin
+class AcmLoop: public MinimalConditionPlugin
 {
  private:
 	FmtDefinitionTable modcod_table_rcs;
@@ -82,6 +85,8 @@ class AcmLoop:public MinimalConditionPlugin
 	bool updateThreshold(uint8_t modcod_id, uint8_t message_type);
 };
 
+
 CREATE(AcmLoop, minimal_plugin, "ACM-Loop");
+
 
 #endif

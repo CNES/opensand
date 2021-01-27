@@ -4,7 +4,7 @@
 #   Description: create the triangular attenuation plugin for OpenSAND
 ################################################################################
 
-SUBDIRS = 
+SUBDIRS =
 
 plugins_LTLIBRARIES = libopensand_triangular_attenuation_plugin.la
 

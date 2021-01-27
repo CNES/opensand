@@ -4,7 +4,7 @@
 #   Description: create the file sat delay plugin for OpenSAND
 ################################################################################
 
-SUBDIRS = 
+SUBDIRS =
 
 plugins_LTLIBRARIES = libopensand_file_satdelay_plugin.la
 

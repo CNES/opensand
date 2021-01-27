@@ -63,15 +63,15 @@
  * @param rmem                The size of the reception UDP buffers in kernel
  * @param wmem                The size of the emission UDP buffers in kernel
  */
-UdpChannel::UdpChannel(string name,
+UdpChannel::UdpChannel(std::string name,
                        spot_id_t s_id,
                        unsigned int channel_id,
                        bool input,
                        bool output,
                        unsigned short port,
                        bool multicast,
-                       const string local_ip_addr,
-                       const string ip_addr,
+                       const std::string local_ip_addr,
+                       const std::string ip_addr,
                        unsigned int stack,
                        unsigned int rmem,
                        unsigned int wmem):
@@ -255,7 +255,7 @@ UdpChannel::~UdpChannel()
 {
 	close(this->sock_channel);
 	this->udp_counters.clear();
-	for(map<string, UdpStack *>::iterator it = this->stacks.begin();
+	for(std::map<std::string, UdpStack *>::iterator it = this->stacks.begin();
 	    it != this->stacks.end(); ++it)
 	{
 		delete (*it).second;
@@ -332,7 +332,7 @@ int UdpChannel::receive(NetSocketEvent *const event,
                                      unsigned char **buf, size_t &data_len)
 {
 	struct sockaddr_in remote_addr;
-	map<string , uint8_t>::iterator ip_count_it;
+	std::map<std::string , uint8_t>::iterator ip_count_it;
 	std::string ip_address;
 	uint8_t nb_sequencing;
 	uint8_t current_sequencing;
@@ -473,8 +473,8 @@ error:
 
 bool UdpChannel::handleStack(unsigned char **buf, size_t &data_len)
 {
-	map<string , uint8_t>::iterator count_it = this->udp_counters.find(this->stacked_ip);
-	map<string, UdpStack *>::iterator stack_it = this->stacks.find(this->stacked_ip);
+	std::map<std::string , uint8_t>::iterator count_it = this->udp_counters.find(this->stacked_ip);
+	std::map<std::string, UdpStack *>::iterator stack_it = this->stacks.find(this->stacked_ip);
 	uint8_t counter;
 	
 	if(count_it == this->udp_counters.end())
@@ -636,7 +636,7 @@ bool UdpStack::hasNext(uint8_t udp_counter)
 
 void UdpStack::reset()
 {
-	vector<pair<unsigned char *, size_t> >::iterator it;
+	std::vector<std::pair<unsigned char *, size_t> >::iterator it;
 	for(it = this->begin(); it != this->end(); ++it)
 	{
 		if((*it).first)

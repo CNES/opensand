@@ -52,7 +52,7 @@
  *
  * @return true if the file is found, false otherwise
  */
-inline bool fileExists(const string &filename)
+inline bool fileExists(const std::string &filename)
 {
 	if(access(filename.c_str(), R_OK) < 0)
 	{
@@ -65,7 +65,7 @@ inline bool fileExists(const string &filename)
 }
 
 
-BlockEncap::BlockEncap(const string &name, tal_id_t mac_id):
+BlockEncap::BlockEncap(const std::string &name, tal_id_t mac_id):
 	Block(name),
 	mac_id(mac_id)
 {
@@ -150,7 +150,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 			{
 				T_LINK_UP *link_up_msg;
 				T_LINK_UP *shared_link_up_msg;
-				vector<EncapPlugin::EncapContext*>::iterator encap_it;
+				std::vector<EncapPlugin::EncapContext*>::iterator encap_it;
 
 				// 'link up' message received => forward it to upper layer
 
@@ -246,14 +246,14 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 
 bool BlockEncap::onInit()
 {
-	string up_return_encap_proto;
-	string downlink_encap_proto;
-	string lan_name;
-	vector <EncapPlugin::EncapContext *> up_return_ctx;
-	vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
-	vector <EncapPlugin::EncapContext *> down_forward_ctx;
+	std::string up_return_encap_proto;
+	std::string downlink_encap_proto;
+	std::string lan_name;
+	std::vector <EncapPlugin::EncapContext *> up_return_ctx;
+	std::vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
+	std::vector <EncapPlugin::EncapContext *> down_forward_ctx;
 	LanAdaptationPlugin *lan_plugin = NULL;
-	string compo_name;
+	std::string compo_name;
 	component_t host;
 
 	((Upward *)this->upward)->setMacId(this->mac_id);
@@ -457,8 +457,8 @@ error:
 bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 {
 	map<long, int> time_contexts;
-	vector<EncapPlugin::EncapContext *>::iterator iter;
-	string name;
+	std::vector<EncapPlugin::EncapContext *>::iterator iter;
+	std::string name;
 	size_t size;
 	bool status = false;
 
@@ -603,7 +603,7 @@ void BlockEncap::Upward::setMacId(tal_id_t id)
 
 bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 {
-	vector <EncapPlugin::EncapContext *>::iterator iter;
+	std::vector <EncapPlugin::EncapContext *>::iterator iter;
 	unsigned int nb_bursts;
 
 
@@ -693,7 +693,7 @@ error:
 
 bool BlockEncap::getEncapContext(encap_scheme_list_t scheme_list,
                                  LanAdaptationPlugin *l_plugin,
-                                 vector <EncapPlugin::EncapContext *> &ctx,
+                                 std::vector <EncapPlugin::EncapContext *> &ctx,
                                  const char *link_type)
 {
 	EncapPlugin *plugin;
@@ -752,14 +752,14 @@ bool BlockEncap::getEncapContext(encap_scheme_list_t scheme_list,
 }
 
 bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
-	                                 vector <EncapPlugin::EncapContext *> &ctx,
-	                                 const char *link_type)
+                                     std::vector <EncapPlugin::EncapContext *> &ctx,
+                                     const char *link_type)
 {
-	vector<string> scpc_encap;
-	vector<string>::iterator ite;
+	std::vector<std::string> scpc_encap;
+	std::vector<std::string>::iterator ite;
 	StackPlugin *upper_encap = NULL;
 	EncapPlugin *plugin;
-	string encap_name;
+	std::string encap_name;
 
 	// Get SCPC encapsulation context
 	if (!OpenSandModelConf::Get()->getScpcEncapStack(scpc_encap) ||

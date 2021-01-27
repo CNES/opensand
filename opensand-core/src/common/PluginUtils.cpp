@@ -388,7 +388,8 @@ void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::Met
 
 	parent->addParameter(parameter_id, parameter_name, types->getType(type_name), parameter_description);
 
-	const char *parent_path = parent->getPath().c_str();
+	const std::string parent_path = parent->getPath();
+	const char *path = parent_path.c_str();
 	const char *param_id = parameter_id.c_str();
 	for(auto const &element : *container)
 	{
@@ -397,7 +398,7 @@ void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::Met
 		{
 			continue;
 		}
-		configure(parent_path, param_id);
+		configure(path, param_id);
 	}
 }
 

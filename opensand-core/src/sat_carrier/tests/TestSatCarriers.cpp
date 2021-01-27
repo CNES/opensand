@@ -262,7 +262,7 @@ bool TestSatCarriers::onInit(void)
 
 bool TestSatCarriers::Upward::onInit(void)
 {
-	vector<UdpChannel *>::iterator it;
+	std::vector<UdpChannel *>::iterator it;
 	UdpChannel *channel;
 
 	// initialize all channels from the configuration file

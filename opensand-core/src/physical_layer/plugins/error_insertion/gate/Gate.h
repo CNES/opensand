@@ -33,7 +33,14 @@
 #ifndef GATE_ERROR_PLUGIN_H
 #define GATE_ERROR_PLUGIN_H
 
+
 #include "PhysicalLayerPlugin.h"
+
+#include <string>
+
+
+class Data;
+
 
 /**
  * @class Gate
@@ -80,9 +87,11 @@ class Gate: public ErrorInsertionPlugin
 	 * @return true if it must be corrupted, false otherwise 
 	 */
 	bool isToBeModifiedPacket(double cn_total,
-							  double threshold_qef);
+	                          double threshold_qef);
 };
 
+
 CREATE(Gate, error_plugin, "Gate");
+
 
 #endif

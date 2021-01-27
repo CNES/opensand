@@ -38,7 +38,7 @@
 
 #include "PhysicalLayerPlugin.h"
 
-#include <fstream>
+#include <map>
 #include <string>
 
 
@@ -64,7 +64,7 @@ class File: public AttenuationModelPlugin
 	 * @param filename  The attenuation file name
 	 * @return true on success, false otherwise
 	 */
-	bool load(string filename);
+	bool load(std::string filename);
 
  public:
 	/**
@@ -89,6 +89,8 @@ class File: public AttenuationModelPlugin
 	bool updateAttenuationModel();
 };
 
+
 CREATE(File, attenuation_plugin, "File");
+
 
 #endif

@@ -33,15 +33,57 @@
  */
 
 #include "EncapPlugin.h"
+#include "NetBurst.h"
+#include "NetContainer.h"
+#include "NetPacket.h"
+
+#include <opensand_output/Output.h>
+
+#include <cassert>
+
 
 EncapPlugin::EncapPlugin(uint16_t ether_type):
 		StackPlugin(ether_type)
 {
 }
 
+bool EncapPlugin::init()
+{
+	this->log = Output::Get()->registerLog(LEVEL_WARNING,
+	                                       "Encap.%s",
+	                                       this->getName().c_str());
+	return true;
+}
+
+
+EncapPlugin::EncapContext::EncapContext(EncapPlugin &pl):
+		StackContext(pl)
+{
+	this->dst_tal_id = BROADCAST_TAL_ID;
+}
+
+void EncapPlugin::EncapContext::setFilterTalId(uint8_t tal_id)
+{
+	this->dst_tal_id = tal_id;
+}
+
+bool EncapPlugin::EncapContext::init()
+{
+	this->log = Output::Get()->registerLog(LEVEL_WARNING,
+	                                       "Encap.%s",
+	                                       this->getName().c_str());
+	return true;
+}
+
+
+EncapPlugin::EncapPacketHandler::EncapPacketHandler(EncapPlugin &pl):
+		StackPacketHandler(pl)
+{
+}
+
 EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
 {
-	map<NetPacket *, NetPacket *>::iterator it;
+	std::map<NetPacket *, NetPacket *>::iterator it;
 
 	for(it = this->encap_packets.begin();
 		it != this->encap_packets.end();
@@ -53,17 +95,30 @@ EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
 	this->encap_packets.clear();
 }
 
+bool EncapPlugin::EncapPacketHandler::init()
+{
+	this->log = Output::Get()->registerLog(LEVEL_WARNING,
+	                                       "Encap.%s",
+	                                       this->getName().c_str());
+	return true;
+}
+
+std::list<std::string> EncapPlugin::EncapPacketHandler::getCallback()
+{
+	return this->callback_name;
+}
+
 bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
-	size_t remaining_length,
-	bool UNUSED(new_burst),
-	bool &partial_encap,
-	NetPacket **encap_packet)
+                                                      std::size_t remaining_length,
+                                                      bool UNUSED(new_burst),
+                                                      bool &partial_encap,
+                                                      NetPacket **encap_packet)
 {
 	bool ret;
 	NetPacket *packet_to_encap;
 	NetPacket *data;
 	NetPacket *remaining_data;
-	map<NetPacket *, NetPacket *>::iterator it;
+	std::map<NetPacket *, NetPacket *>::iterator it;
 
 	// Set default returned values
 	partial_encap = false;
@@ -121,12 +176,12 @@ bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
 }
 
 bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packet,
-	bool &partial_decap,
-	vector<NetPacket *> &decap_packets,
-	unsigned int decap_packets_count)
+                                                             bool &partial_decap,
+                                                             std::vector<NetPacket *> &decap_packets,
+                                                             unsigned int decap_packets_count)
 {
-	vector<NetPacket *> packets;
-	size_t previous_length = 0;
+	std::vector<NetPacket *> packets;
+	std::size_t previous_length = 0;
 
 	// Set the default returned values
 	partial_decap = false;
@@ -134,7 +189,7 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packe
 	// Sanity check
 	if(decap_packets_count <= 0)
 	{
-		decap_packets = vector<NetPacket *>();
+		decap_packets = std::vector<NetPacket *>();
 		LOG(this->log, LEVEL_INFO,
 			"No packet to decapsulate\n");
 		return true;
@@ -146,7 +201,7 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packe
 	for(unsigned int i = 0; i < decap_packets_count; ++i)
 	{
 		NetPacket *current;
-		size_t current_length;
+		std::size_t current_length;
 
 		// Get the current packet length
 		current_length = this->getLength(packet->getPayload(previous_length).c_str());
@@ -180,7 +235,7 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packe
 	return true;
 
 destroy_packets:
-	for(vector<NetPacket *>::iterator it = packets.begin();
+	for(std::vector<NetPacket *>::iterator it = packets.begin();
 		it != packets.end();
 		++it)
 	{
@@ -189,3 +244,26 @@ destroy_packets:
 	packets.clear();
 	return false;
 }
+
+
+NetPacket *EncapPlugin::EncapPacketHandler::getPacketForHeaderExtensions(const std::vector<NetPacket*>&)
+{
+	assert(0);
+}
+
+bool EncapPlugin::EncapPacketHandler::setHeaderExtensions(const NetPacket*,
+                                                          NetPacket**,
+                                                          tal_id_t,
+                                                          tal_id_t,
+                                                          std::string,
+                                                          void *)
+{
+	assert(0);
+};
+
+bool EncapPlugin::EncapPacketHandler::getHeaderExtensions(const NetPacket *,
+                                                          std::string,
+                                                          void *)
+{
+	assert(0);
+};

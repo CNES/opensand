@@ -63,7 +63,7 @@ class BlockEncap: public Block
 	 * @param name  The name of the block
 	 * @param name  The mac id of the terminal
 	 */
-	BlockEncap(const string &name, tal_id_t mac_id);
+	BlockEncap(const std::string &name, tal_id_t mac_id);
 
 	/**
 	 * Destroy the encapsulation block
@@ -95,7 +95,7 @@ class BlockEncap: public Block
 	class Upward: public RtUpward, EncapChannel
 	{
 	 public:
-		Upward(const string &name, tal_id_t mac_id) :
+		Upward(const std::string &name, tal_id_t mac_id) :
 			RtUpward(name),
 			EncapChannel(),
 			mac_id(mac_id),
@@ -118,7 +118,7 @@ class BlockEncap: public Block
 		int mac_id;
 
 		/// the SCPC encapsulation lower item
-		string scpc_encap;
+		std::string scpc_encap;
 		
 	 protected:
 		/// the MAC ID of the ST (as specified in configuration)
@@ -135,7 +135,7 @@ class BlockEncap: public Block
 	class Downward: public RtDownward, EncapChannel
 	{
 	 public:
-		Downward(const string &name, tal_id_t UNUSED(mac_id)) :
+		Downward(const std::string &name, tal_id_t UNUSED(mac_id)) :
 			RtDownward(name),
 			EncapChannel()
 		{};
@@ -185,7 +185,7 @@ class BlockEncap: public Block
 	 */
 	bool getEncapContext(encap_scheme_list_t scheme_list,
 	                     LanAdaptationPlugin *l_plugin,
-	                     vector <EncapPlugin::EncapContext *> &ctx,
+	                     std::vector<EncapPlugin::EncapContext *> &ctx,
 	                     const char *link_type);
 
 	/**
@@ -199,7 +199,7 @@ class BlockEncap: public Block
 	 *                         correctly obtained or not
 	 */
 	bool getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
-	                         vector <EncapPlugin::EncapContext *> &ctx,
+	                         std::vector<EncapPlugin::EncapContext *> &ctx,
 	                         const char *link_type);
 
 	/// initialization method

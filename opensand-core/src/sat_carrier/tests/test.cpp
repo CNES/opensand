@@ -51,7 +51,7 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, string &ip_addr)
+bool init_process(int argc, char **argv, std::string &ip_addr)
 {
 	int opt;
 
@@ -89,10 +89,10 @@ bool init_process(int argc, char **argv, string &ip_addr)
 int main(int argc, char **argv)
 {
 	const char *progname = argv[0];
-	string ip_addr;
+	std::string ip_addr;
 
 	Block *block_sat_carrier;
-	vector<string> conf_files;
+	std::vector<std::string> conf_files;
 
 	int is_failure = 1;
 	struct sc_specific specific;

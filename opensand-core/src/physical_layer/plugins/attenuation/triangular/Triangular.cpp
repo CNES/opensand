@@ -38,10 +38,7 @@
 #include "Triangular.h"
 #include "OpenSandModelConf.h"
 
-#include <string>
-#include <iostream>
-#include <math.h>
-#include <sstream>
+#include <opensand_output/Output.h>
 
 
 const std::string SLOPE = "triangle_attenuation_slope";
@@ -49,8 +46,8 @@ const std::string PERIOD = "triangle_attenuation_period";
 
 
 Triangular::Triangular():
-	AttenuationModelPlugin(),
-	duration_counter(0)
+		AttenuationModelPlugin(),
+		duration_counter(0)
 {
 }
 
@@ -61,8 +58,8 @@ Triangular::~Triangular()
 
 
 void Triangular::generateConfiguration(const std::string &parent_path,
-	                                   const std::string &param_id,
-	                                   const std::string &plugin_name)
+                                       const std::string &param_id,
+                                       const std::string &plugin_name)
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
@@ -115,10 +112,8 @@ bool Triangular::init(time_ms_t refresh_period_ms, std::string link_path)
 
 bool Triangular::updateAttenuationModel()
 {
-	double time;
-
 	this->duration_counter = (this->duration_counter + 1) % this->period;
-	time = this->duration_counter * this->refresh_period_ms / 1000;
+	double time = this->duration_counter * this->refresh_period_ms / 1000;
 
 	if(time < this->period / 2)
 	{

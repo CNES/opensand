@@ -37,20 +37,21 @@
 
 #include <opensand_output/Output.h>
 
-#include <sstream>
 
+std::string ConstantDelay::config_path = "";
 
-std::string config_path = "";
 
 ConstantDelay::ConstantDelay():
-	SatDelayPlugin(),
-	is_init(false)
+		SatDelayPlugin(),
+		is_init(false)
 {
 }
+
 
 ConstantDelay::~ConstantDelay()
 {  
 }
+
 
 void ConstantDelay::generateConfiguration(const std::string &parent_path,
                                           const std::string &param_id,
@@ -76,6 +77,7 @@ void ConstantDelay::generateConfiguration(const std::string &parent_path,
 	Conf->setProfileReference(delay_value, delay_type, plugin_name);
 }
 
+
 bool ConstantDelay::init()
 {
 	time_ms_t delay_ms;
@@ -85,7 +87,8 @@ bool ConstantDelay::init()
 		return true;
 
 	int delay_value;
-	if(!OpenSandModelConf::extractParameterData(delay->getParameter("delay_value"), delay_value))
+	auto delay_parameter = delay->getParameter("delay_value");
+	if(!OpenSandModelConf::extractParameterData(delay_parameter, delay_value))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'physical_layer', missing parameter 'delay value'\n");
@@ -102,18 +105,21 @@ bool ConstantDelay::init()
 	return true;
 }
 
+
 bool ConstantDelay::updateSatDelay()
 {
 	// Empty function, not necessary for a constant delay
 	return true;
 }
 
-bool ConstantDelay::getMaxDelay(time_ms_t &delay)
+
+bool ConstantDelay::getMaxDelay(time_ms_t &delay) const
 {
-	// Get delay from conf in case it is needed before the SatDelay
-	// plugin is initialized
 	if(!this->is_init)
+	{
 		return false;
+	}
+
 	delay = this->getSatDelay();
 	return true;
 }

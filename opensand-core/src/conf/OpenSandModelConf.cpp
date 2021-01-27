@@ -234,7 +234,7 @@ void OpenSandModelConf::createModels()
 	types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
 
 	auto frequency_plan = topology_model->getRoot()->addComponent("frequency_plan", "Spots / Frequency Plan");
-	auto spots = frequency_plan->addList("spots", "Spots", "spot_detail")->getPattern();
+	auto spots = frequency_plan->addList("spots", "Spots", "spot")->getPattern();
 	auto spot_assignment = spots->addComponent("assignments", "Spot Assignment");
 	spot_assignment->addParameter("spot_id", "Spot ID", types->getType("int"));
 	spot_assignment->addParameter("gateway_id", "Gateway ID", types->getType("int"), "ID of the gateway this spot belongs to");

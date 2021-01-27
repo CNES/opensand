@@ -39,27 +39,24 @@
 
 #include <opensand_output/Output.h>
 
-#include <sstream>
 
-#define CONSTANT_SECTION "constant"
-#define THRESHOLD        "threshold"
-#define CONF_CST_FILENAME    "constant.conf"
+std::string Constant::config_path = "";
 
-
-std::string config_path = "";
 
 Constant::Constant():
-	MinimalConditionPlugin()
+		MinimalConditionPlugin()
 {
 }
+
 
 Constant::~Constant()
 {  
 }
 
+
 void Constant::generateConfiguration(const std::string &parent_path,
-	                                 const std::string &param_id,
-	                                 const std::string &plugin_name)
+                                     const std::string &param_id,
+                                     const std::string &plugin_name)
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
@@ -83,11 +80,13 @@ void Constant::generateConfiguration(const std::string &parent_path,
 	Conf->setProfileReference(minimal_cn, minimal_type, plugin_name);
 }
 
+
 bool Constant::init(void)
 {
 	auto minimal = OpenSandModelConf::Get()->getProfileData(config_path);
 
-	if(!OpenSandModelConf::extractParameterData(minimal->getParameter("threshold"), this->minimal_cn))
+	auto threshold = minimal->getParameter("threshold");
+	if(!OpenSandModelConf::extractParameterData(threshold, this->minimal_cn))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Constant minimal conditions: cannot get threshodl");
@@ -104,4 +103,3 @@ bool Constant::updateThreshold(uint8_t UNUSED(modcod_id), uint8_t UNUSED(message
 	// Constant Minimal conditions
 	return true;
 }
-

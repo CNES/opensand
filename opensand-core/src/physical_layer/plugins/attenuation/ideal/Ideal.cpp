@@ -33,16 +33,15 @@
  * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.fr>
  */
 
+
 #include "Ideal.h"
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
-#include <sstream>
-
 
 Ideal::Ideal():
-	AttenuationModelPlugin()
+		AttenuationModelPlugin()
 {
 }
 
@@ -53,8 +52,8 @@ Ideal::~Ideal()
 
 
 void Ideal::generateConfiguration(const std::string &parent_path,
-	                              const std::string &param_id,
-	                              const std::string &plugin_name)
+                                  const std::string &param_id,
+                                  const std::string &plugin_name)
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
@@ -94,6 +93,7 @@ bool Ideal::init(time_ms_t refresh_period_ms, std::string link_path)
 	return true;
 }
 
+
 bool Ideal::updateAttenuationModel()
 {
 	this->attenuation = this->value;
@@ -102,5 +102,3 @@ bool Ideal::updateAttenuationModel()
 
 	return true;
 }
-
-

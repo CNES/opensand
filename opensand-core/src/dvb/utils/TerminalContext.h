@@ -39,7 +39,12 @@
 
 #include "OpenSandCore.h"
 
-#include <opensand_output/OutputLog.h>
+#include <string>
+#include <memory>
+
+
+class OutputLog;
+
 
 /**
  * @class TerminalContext
@@ -69,25 +74,25 @@ class TerminalContext
 	 *
 	 * param name  The name of the terminal category
 	 */
-	void setCurrentCategory(string name);
+	void setCurrentCategory(std::string name);
 
 	/**
 	 * @brief Get the current terminal category
 	 *
 	 * @return  The name of the terminal current category
 	 */
-	string getCurrentCategory() const;
+	std::string getCurrentCategory() const;
 
   protected:
 
 	/** Output Log*/
-  std::shared_ptr<OutputLog> log_band;
+	std::shared_ptr<OutputLog> log_band;
 
 	/** Terminal id */
 	tal_id_t tal_id;
 
 	/** The terminal category */
-	string category;
+	std::string category;
 
 };
 

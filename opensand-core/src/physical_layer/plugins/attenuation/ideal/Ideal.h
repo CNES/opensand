@@ -34,6 +34,7 @@
 #ifndef IDEAL_ATTENUATION_MODEL_H
 #define IDEAL_ATTENUATION_MODEL_H
 
+
 #include "PhysicalLayerPlugin.h"
 
 #include <string>
@@ -73,5 +74,6 @@ class Ideal: public AttenuationModelPlugin
 
 
 CREATE(Ideal, attenuation_plugin, "Ideal");
+
 
 #endif
