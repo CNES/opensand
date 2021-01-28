@@ -160,7 +160,7 @@ bool EntityGwNetAcc::createSpecificConfiguration(const std::string &filepath) co
 void EntityGwNetAcc::defineProfileMetaModel() const
 {
 	BlockLanAdaptation::generateConfiguration();
-	BlockDvbNcc::generateConfiguration();
 	BlockEncap::generateConfiguration();
+	BlockDvbNcc::generateConfiguration();
 	BlockInterconnectDownward::generateConfiguration();
 }

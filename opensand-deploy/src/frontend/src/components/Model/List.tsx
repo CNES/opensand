@@ -1,4 +1,5 @@
 import React from 'react';
+
 import Box from '@material-ui/core/Box';
 import Collapse from '@material-ui/core/Collapse';
 import IconButton from '@material-ui/core/IconButton';
@@ -8,7 +9,6 @@ import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
-// import Typography from '@material-ui/core/Typography';
 import Paper from '@material-ui/core/Paper';
 
 import { makeStyles } from '@material-ui/core/styles';
@@ -59,17 +59,17 @@ const Row = (props: RowProps) => {
     return (
         <React.Fragment>
             <TableRow className={classes.root}>
-                <TableCell key={0}>
+                <TableCell key={0} align="left">
                     <IconButton size="small" onClick={() => setOpen(!open)}>
                         {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
                     </IconButton>
                 </TableCell>
                 {headers.map((id: string, i: number) => (
-                    <TableCell key={i+1}>
+                    <TableCell key={i+1} align="center">
                         {component.parameters.find(p => p.id === id)?.value}
                     </TableCell>
                 ))}
-                <TableCell key={headers.length + 1}>
+                <TableCell key={headers.length + 1} align="right">
                     {onDelete &&
                     <IconButton size="small" onClick={onDelete}>
                         <DeleteIcon />
@@ -116,17 +116,17 @@ const List = (props: Props) => {
             <Table>
                 <TableHead>
                     <TableRow>
-                        <TableCell key={0}>
+                        <TableCell key={0} align="left">
                             <IconButton size="small">
                                 <MoreIcon />
                             </IconButton>
                         </TableCell>
                         {headers.map((id: string, i: number) => (
-                            <TableCell key={i+1}>
+                            <TableCell key={i+1} align="center">
                                 {list.pattern.parameters.find(p => p.id === id)?.name}
                             </TableCell>
                         ))}
-                        <TableCell key={headers.length + 1}>
+                        <TableCell key={headers.length + 1} align="right">
                             <IconButton size="small" onClick={addListItem}>
                                 <AddIcon />
                             </IconButton>

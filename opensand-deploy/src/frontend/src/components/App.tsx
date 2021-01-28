@@ -16,7 +16,7 @@ const App = () => {
     }, [changeModel]);
 
     React.useEffect(() => {
-        getXSD(loadModel, console.log, 'topology.xsd');
+        getXSD(loadModel, console.log, 'profile_st.xsd');
         return () => {changeModel(undefined);}
     }, [loadModel]);
 

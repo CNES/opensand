@@ -22,17 +22,14 @@ export const createTheme = (prefersDarkMode: boolean): Theme => createMuiTheme({
         },
         MuiAccordionSummary: {
             root: {
-                // backgroundColor: "rgba(255,215,0,0.2)",
                 backgroundColor: blue[200],
                 '&$expanded': {
-                    // backgroundColor: "rgba(255,215,0,0.5)",
                     backgroundColor: blue[400],
                 },
             },
         },
         MuiAppBar: {
             colorPrimary: {
-                // backgroundColor: "rgba(255,215,0,0.5)",
                 backgroundColor: "#FFFACD",
             },
         },

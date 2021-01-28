@@ -17,6 +17,7 @@ import {makeStyles, Theme} from '@material-ui/core/styles';
 import {Model as ModelType, Component as ComponentType, Visibility, Visibilities} from '../../xsd/model';
 
 import Component from './Component';
+import SingleListComponent from './SingleListComponent';
 
 
 interface Props {
@@ -40,9 +41,6 @@ const useStyles = makeStyles((theme: Theme) => ({
     },
     version: {
         flexGrow: 1,
-    },
-    tab: {
-        marginTop: theme.spacing(1),
     },
     fullHeight: {
         minHeight: "100vh",
@@ -119,8 +117,12 @@ const Model = (props: Props) => {
                 </Tabs>
             </AppBar>
             {children.map((c: ComponentType, i: number) => (
-                <TabPanel key={i} value={value} index={i} className={classes.tab}>
-                    <Component component={c} changeModel={changeModel} />
+                <TabPanel key={i} value={value} index={i}>
+                    {c.lists.length === 1 && c.children.length === 0 && c.parameters.length === 0 ? (
+                        <SingleListComponent list={c.lists[0]} changeModel={changeModel} />
+                    ) : (
+                        <Component component={c} changeModel={changeModel} />
+                    )}
                 </TabPanel>
             ))}
         </Paper>

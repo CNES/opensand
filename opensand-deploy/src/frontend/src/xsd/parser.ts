@@ -222,6 +222,10 @@ const componentFromXSD = (component: Model.Component, node: Element[]) => {
                     child.refValue = infos.expected.toString();
                     child.advanced = infos.advanced.toString() === "true";
 
+                    child.pattern.refPath = patternInfos.reference.toString();
+                    child.pattern.refValue = patternInfos.expected.toString();
+                    child.pattern.advanced = patternInfos.advanced.toString() === "true";
+
                     componentFromXSD(child.pattern, pattern["xs:complexType"][0]["xs:sequence"][0]["xs:element"]);
                 } else {
                     /* ??? Error ??? */

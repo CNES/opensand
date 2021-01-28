@@ -176,7 +176,7 @@ bool EntityGw::createSpecificConfiguration(const std::string &filepath) const
 void EntityGw::defineProfileMetaModel() const
 {
 	BlockLanAdaptation::generateConfiguration();
-	BlockDvbNcc::generateConfiguration();
 	BlockEncap::generateConfiguration();
+	BlockDvbNcc::generateConfiguration();
 	BlockPhysicalLayer::generateConfiguration();
 }

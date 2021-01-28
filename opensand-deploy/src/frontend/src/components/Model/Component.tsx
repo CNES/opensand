@@ -29,6 +29,7 @@ const useStyles = makeStyles((theme: Theme) => ({
         width: "98%",
         marginLeft: "1%",
         marginRight: "1%",
+        marginTop: theme.spacing(1),
     },
     heading: {
         fontSize: theme.typography.pxToRem(15),
@@ -66,6 +67,20 @@ const Component = (props: Props) => {
                     changeModel={forceUpdate}
                 />
             ))}
+            {component.lists.filter(l => l.isVisible()).map(l => (
+                <Accordion key={l.id} defaultExpanded>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Typography className={classes.heading}>{l.name}</Typography>
+                        <Typography className={classes.secondaryHeading}>{l.description}</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <List
+                            list={l}
+                            changeModel={forceUpdate}
+                        />
+                    </AccordionDetails>
+                </Accordion>
+            ))}
             {component.children.filter(c => c.isVisible()).map(c => (
                 <Accordion key={c.id} defaultExpanded>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -80,20 +95,6 @@ const Component = (props: Props) => {
                     <AccordionDetails>
                         <Component
                             component={c}
-                            changeModel={forceUpdate}
-                        />
-                    </AccordionDetails>
-                </Accordion>
-            ))}
-            {component.lists.filter(l => l.isVisible()).map(l => (
-                <Accordion key={l.id} defaultExpanded>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography className={classes.heading}>{l.name}</Typography>
-                        <Typography className={classes.secondaryHeading}>{l.description}</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <List
-                            list={l}
                             changeModel={forceUpdate}
                         />
                     </AccordionDetails>

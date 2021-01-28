@@ -178,7 +178,7 @@ bool EntitySt::createSpecificConfiguration(const std::string &filepath) const
 void EntitySt::defineProfileMetaModel() const
 {
 	BlockLanAdaptation::generateConfiguration();
-	BlockDvbTal::generateConfiguration();
 	BlockEncap::generateConfiguration();
+	BlockDvbTal::generateConfiguration();
 	BlockPhysicalLayer::generateConfiguration();
 }
