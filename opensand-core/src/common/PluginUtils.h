@@ -195,8 +195,6 @@ class PluginUtils
 	                                  const std::string &parameter_name,
 	                                  const std::string &parameter_description);
 
-	std::vector<std::string> generatePluginsConfiguration(plugin_type_t plugin_type);
-
 	/// the log
 	std::shared_ptr<OutputLog> log_init;
 };

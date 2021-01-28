@@ -79,7 +79,10 @@ BlockEncap::~BlockEncap()
 
 void BlockEncap::generateConfiguration()
 {
-	Plugin::generatePluginsConfiguration(encapsulation_plugin);
+	Plugin::generatePluginsConfiguration(nullptr,
+	                                     encapsulation_plugin,
+	                                     "encapsulation_scheme",
+	                                     "Encapsulation Scheme");
 }
 
 bool BlockEncap::Downward::onEvent(const RtEvent *const event)
@@ -260,20 +263,20 @@ bool BlockEncap::onInit()
 	
 	// Retrieve last packet handler in lan adaptation layer
 	auto Conf = OpenSandModelConf::Get();
-	auto encap = Conf->getProfileData()->getComponent("encapsulation");
-	std::shared_ptr<OpenSANDConf::DataComponent> lan_adaptation_scheme = nullptr;
+	auto encap = Conf->getProfileData()->getComponent("lan_adaptation");
+	std::shared_ptr<OpenSANDConf::DataComponent> scheme = nullptr;
 	for(auto& item : encap->getList("lan_adaptation_schemes")->getItems())
 	{
-		lan_adaptation_scheme = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
+		scheme = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 	}
-	if(lan_adaptation_scheme == nullptr)
+	if(scheme == nullptr)
 	{
 		lan_name = "Ethernet";
 	}
-	else if(!OpenSandModelConf::extractParameterData(lan_adaptation_scheme->getParameter("protocol"), lan_name))
+	else if(!OpenSandModelConf::extractParameterData(scheme->getParameter("lan_adaptation_protocol"), lan_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section 'encapsulation', missing parameter 'protocol'\n");
+		    "Section LAN adaptation, missing parameter 'protocol'\n");
 		goto error;
 	}
 

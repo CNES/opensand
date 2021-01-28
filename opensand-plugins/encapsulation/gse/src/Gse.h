@@ -36,15 +36,14 @@
 #ifndef GSE_CONTEXT_H
 #define GSE_CONTEXT_H
 
-#include "GseEncapCtx.h"
+
 #include "GseIdentifier.h"
 
 #include <EncapPlugin.h>
-#include <NetPacket.h>
-#include <NetBurst.h>
 
-#include <vector>
 #include <map>
+#include <string>
+#include <vector>
 
 extern "C"
 {
@@ -57,25 +56,29 @@ extern "C"
 	#include <gse/header_fields.h>
 }
 
+
+class GseEncapCtx;
+class NetPacket;
+class NetBurst;
+
+
 /**
  * @class Gse
  * @brief GSE encapsulation plugin implementation
  */
 class Gse: public EncapPlugin
 {
-  public:
-
+ public:
 	/**
 	 * @class Context
 	 * @brief GSE encapsulation / desencapsulation context
 	 */
 	class Context: public EncapContext
 	{
-	  private:
-
+	 private:
 		/// The GSE encapsulation context
 		gse_encap_t *encap;
-		 /// The GSE deencapsulation context
+		/// The GSE deencapsulation context
 		gse_deencap_t *deencap;
 		/// Vector of GSE virtual fragments
 		std::vector<gse_vfrag_t *> vfrag_pkt_vec; // <-not used. remove ? 
@@ -87,14 +90,13 @@ class Gse: public EncapPlugin
 		uint8_t *buf;
 		/// Temporary buffers for encapsulation contexts. Contexts are identified
 		/// by an unique identifier
-		std::map <GseIdentifier *, GseEncapCtx *, ltGseIdentifier> contexts;
+		std::map<GseIdentifier *, GseEncapCtx *, ltGseIdentifier> contexts;
 		/// The packing threshold for encapsulation. Packing Threshold is the time
 		/// the context can wait for additional SNDU packets to fill the incomplete
 		/// GSE packet before sending the GSE packet with padding.
 		unsigned long packing_threshold;
 
-	  public:
-
+	 public:
 		/// constructor
 		Context(EncapPlugin &plugin);
 
@@ -109,18 +111,21 @@ class Gse: public EncapPlugin
 		NetBurst *flush(int context_id);
 		NetBurst *flushAll();
 
-	  private:
-		bool encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
-		                      long &time);
+	 private:
+		bool encapFixedLength(NetPacket *packet, NetBurst *gse_packets, long &time);
 		bool encapVariableLength(NetPacket *packet, NetBurst *gse_packets);
 		bool encapPacket(NetPacket *packet, NetBurst *gse_packets);
-		bool deencapPacket(gse_vfrag_t *vfrag_gse, uint16_t dest_spot,
+		bool deencapPacket(gse_vfrag_t *vfrag_gse,
+		                   uint16_t dest_spot,
 		                   NetBurst *net_packets);
-		bool deencapFixedLength(gse_vfrag_t *vfrag_pdu, uint16_t dest_spot,
-		                        uint8_t label[6], NetBurst *net_packets);
-		bool deencapVariableLength(gse_vfrag_t *vfrag_pdu, uint16_t dest_spot,
-		                           uint8_t label[6], NetBurst *net_packets);
-
+		bool deencapFixedLength(gse_vfrag_t *vfrag_pdu,
+		                        uint16_t dest_spot,
+		                        uint8_t label[6],
+		                        NetBurst *net_packets);
+		bool deencapVariableLength(gse_vfrag_t *vfrag_pdu,
+		                           uint16_t dest_spot,
+		                           uint8_t label[6],
+		                           NetBurst *net_packets);
 	};
 
 	/**
@@ -129,13 +134,11 @@ class Gse: public EncapPlugin
 	 */
 	class PacketHandler: public EncapPacketHandler
 	{
-	  private:
+	 private:
+		std::map<std::string, gse_encap_build_header_ext_cb_t> encap_callback;
+		std::map<std::string, gse_deencap_read_header_ext_cb_t> deencap_callback;
 
-		map<string, gse_encap_build_header_ext_cb_t> encap_callback;
-		map<string, gse_deencap_read_header_ext_cb_t> deencap_callback;
-
-	  public:
-
+	 public:
 		PacketHandler(EncapPlugin &plugin);
 
 		NetPacket *build(const Data &data,
@@ -154,20 +157,28 @@ class Gse: public EncapPlugin
 		                         NetPacket** new_packet,
 		                         tal_id_t tal_id_src,
 		                         tal_id_t tal_id_dst,
-		                         string callback,
+		                         std::string callback,
 		                         void *opaque);
 
 		bool getHeaderExtensions(const NetPacket *packet,
-		                         string callback,
+		                         std::string callback,
 		                         void *opaque);
 
-	  protected:
+	 protected:
 		bool getChunk(NetPacket *packet, size_t remaining_length,
 		              NetPacket **data, NetPacket **remaining_data) const;
 	};
 
 	/// Constructor
 	Gse();
+	~Gse();
+
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 
 	// Static methods: getter/setter for label/fragId
 
@@ -246,7 +257,8 @@ class Gse: public EncapPlugin
 	static uint8_t getQosFromFragId(const uint8_t frag_id);
 };
 
+
 CREATE(Gse, Gse::Context, Gse::PacketHandler, "GSE");
 
-#endif
 
+#endif

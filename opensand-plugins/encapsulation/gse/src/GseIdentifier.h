@@ -35,6 +35,7 @@
 #ifndef GSE_IDENT_H
 #define GSE_IDENT_H
 
+
 #include <stdint.h>
 
 
@@ -46,7 +47,6 @@
 class GseIdentifier
 {
  private:
-
 	/// The source Tal Id value
 	uint8_t src_tal_id;
 	/// The destination Tal Id value
@@ -55,7 +55,6 @@ class GseIdentifier
 	uint8_t qos;
 
  public:
-
 	/**
 	 * Build an GSE identifier
 	 *
@@ -75,22 +74,23 @@ class GseIdentifier
 	 *
 	 * @return the source Tal Id
 	 */
-	uint8_t getSrcTalId();
+	uint8_t getSrcTalId() const;
 
 	/**
 	 * Get the destination Tal Id
 	 *
 	 * @return the destination Tal Id
 	 */
-	uint8_t getDstTalId();
+	uint8_t getDstTalId() const;
 
 	/**
 	 * Get the QoS
 	 *
 	 * @return the QoS
 	 */
-	uint8_t getQos();
+	uint8_t getQos() const;
 };
+
 
 /**
  * @brief Operator to compare two GSE identifiers
@@ -106,24 +106,8 @@ struct ltGseIdentifier
 	 * @return true if first GSE identifier is lesser than the second,
 	 *         false otherwise
 	 */
-	bool operator() (GseIdentifier * ai1, GseIdentifier * ai2) const
-	{
-		if(ai1->getSrcTalId() == ai2->getSrcTalId())
-		{
-			if(ai1->getDstTalId() == ai2->getDstTalId())
-			{
-				return (ai1->getQos() < ai2->getQos());
-			}
-			else
-			{
-				return (ai1->getDstTalId() < ai2->getDstTalId());
-			}
-		}
-		else
-		{
-			return (ai1->getSrcTalId() < ai2->getSrcTalId());
-		}
-	}
+	bool operator() (GseIdentifier * ai1, GseIdentifier * ai2) const;
 };
+
 
 #endif

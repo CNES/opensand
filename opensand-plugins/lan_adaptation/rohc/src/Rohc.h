@@ -35,16 +35,11 @@
 #ifndef ROHC_CONTEXT_H
 #define ROHC_CONTEXT_H
 
+
 #include <LanAdaptationPlugin.h>
-#include <NetPacket.h>
-#include <NetBurst.h>
-#include <cassert>
 
-#include <vector>
 #include <map>
-
-
-#include <RohcPacket.h>
+#include <string>
 
 extern "C"
 {
@@ -53,7 +48,10 @@ extern "C"
 	#include <rohc/rohc_decomp.h>
 }
 
-#define MAX_ROHC_SIZE      (5 * 1024)
+
+class NetPacket;
+class NetBurst;
+
 
 /**
  * @class Rohc
@@ -61,23 +59,20 @@ extern "C"
  */
 class Rohc: public LanAdaptationPlugin
 {
-  public:
-
+ public:
 	/**
 	 * @class Context
 	 * @brief ROHC compression / decompression context
 	 */
 	class Context: public LanAdaptationContext
 	{
-	  private:
-
+	 private:
 		/// The ROHC compressor
 		struct rohc_comp *comp;
 		/// The ROHC decompressors
 		std::map<uint8_t, struct rohc_decomp*> decompressors;
 
-	  public:
-
+	 public:
 		/// constructor
 		Context(LanAdaptationPlugin &plugin);
 
@@ -88,16 +83,11 @@ class Rohc: public LanAdaptationPlugin
 
 		bool init();
 		NetBurst *encapsulate(NetBurst *burst,
-		                      std::map<long, int> &(time_contexts));
+		                      std::map<long, int> &time_contexts);
 		NetBurst *deencapsulate(NetBurst *burst);
-		char getLanHeader(unsigned int UNUSED(pos),
-		                  NetPacket *UNUSED(packet))
-		{
-			assert(0);
-		};
+		char getLanHeader(unsigned int pos, NetPacket *packet);
 
-	  private:
-
+	 private:
 		bool compressRohc(NetPacket *packet, NetPacket **comp_packet);
 		bool decompressRohc(NetPacket *packet, NetPacket **dec_packet);
 
@@ -143,9 +133,7 @@ class Rohc: public LanAdaptationPlugin
 	 */
 	class PacketHandler: public LanAdaptationPacketHandler
 	{
-
-	  public:
-
+	 public:
 		PacketHandler(LanAdaptationPlugin &plugin);
 
 		NetPacket *build(const Data &data,
@@ -154,16 +142,24 @@ class Rohc: public LanAdaptationPlugin
 		                 uint8_t src_tal_id,
 		                 uint8_t dst_tal_id) const;
 
-		size_t getLength(const unsigned char *UNUSED(data)) const {return 0;};
-		size_t getFixedLength() const {return 0;};
-
+		size_t getLength(const unsigned char *data) const;
+		size_t getFixedLength() const;
 	};
 
 	/// Constructor
 	Rohc();
+	~Rohc();
+
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 };
+
 
 CREATE(Rohc, Rohc::Context, Rohc::PacketHandler, "ROHC");
 
-#endif
 
+#endif

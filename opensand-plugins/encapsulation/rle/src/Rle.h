@@ -35,24 +35,29 @@
 #ifndef RLE_CONTEXT_H
 #define RLE_CONTEXT_H
 
+
 #include "RleIdentifier.h"
 
 #include <EncapPlugin.h>
-#include <NetPacket.h>
-#include <NetBurst.h>
 
-#include <vector>
 #include <map>
+#include <string>
+#include <vector>
 
 extern "C"
 {
 	#include <rle.h>
 }
 
+
+class NetPacket;
+
+
 typedef enum {
 	rle_alpdu_crc,
 	rle_alpdu_sequence_number
 } rle_alpdu_protection_t;
+
 
 /**
  * @class Rle
@@ -61,7 +66,6 @@ typedef enum {
 class Rle: public EncapPlugin
 {
   public:
-
 	/**
 	 * @class Context
 	 * @brief RLE encapsulation / desencapsulation context
@@ -69,7 +73,6 @@ class Rle: public EncapPlugin
 	class Context: public EncapContext
 	{
 	  public:
-
 		/// constructor
 		Context(EncapPlugin &plugin);
 
@@ -91,7 +94,7 @@ class Rle: public EncapPlugin
 		struct rle_config rle_conf;
 
 		/// Receivers identified by an unique identifier
-		std::map <RleIdentifier *, struct rle_receiver *, ltRleIdentifier> receivers;
+		std::map<RleIdentifier *, struct rle_receiver *, ltRleIdentifier> receivers;
 
 		bool decapNextPacket(NetPacket *packet, NetBurst *burst);
 	};
@@ -103,16 +106,14 @@ class Rle: public EncapPlugin
 	class PacketHandler: public EncapPacketHandler
 	{
 	  private:
-
 		/// RLE configuration
 		struct rle_config rle_conf;
 
 		// Transmitters and partial sent packets list
 		typedef std::pair<struct rle_transmitter *, std::vector<NetPacket *> > rle_trans_ctxt_t;
-		std::map <RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier> transmitters;
+		std::map<RleIdentifier *, rle_trans_ctxt_t, ltRleIdentifier> transmitters;
 
 	  public:
-
 		PacketHandler(EncapPlugin &plugin);
 		~PacketHandler();
 
@@ -131,15 +132,15 @@ class Rle: public EncapPlugin
 		bool getQos(const Data &data, qos_t &qos) const;
 
 		bool encapNextPacket(NetPacket *packet,
-			size_t remaining_length,
-			bool new_burst,
-			bool &partial_encap,
-			NetPacket **encap_packet);
+		                     std::size_t remaining_length,
+		                     bool new_burst,
+		                     bool &partial_encap,
+		                     NetPacket **encap_packet);
 
 		bool getEncapsulatedPackets(NetContainer *packet,
-			bool &partial_decap,
-			vector<NetPacket *> &decap_packets,
-			unsigned int decap_packet_count = 0);
+		                            bool &partial_decap,
+		                            std::vector<NetPacket *> &decap_packets,
+		                            unsigned int decap_packet_count = 0);
 
 	  protected:
 		bool getChunk(NetPacket *packet, size_t remaining_length,
@@ -148,7 +149,14 @@ class Rle: public EncapPlugin
 
 	/// Constructor
 	Rle();
-	~Rle() {};
+	~Rle();
+
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 
 	bool init();
 
@@ -156,7 +164,8 @@ class Rle: public EncapPlugin
 	static bool getLabel(const Data &data, uint8_t label[]);
 };
 
+
 CREATE(Rle, Rle::Context, Rle::PacketHandler, "RLE");
 
-#endif
 
+#endif

@@ -34,22 +34,23 @@
 
 
 #include "Rohc.h"
-
+#include "RohcPacket.h"
 #include <NetPacket.h>
-#include <opensand_old_conf/ConfigurationFile.h>
+#include <NetBurst.h>
+#include <OpenSandModelConf.h>
+
 #include <opensand_output/Output.h>
 
-#include <vector>
-#include <map>
 #include <ctime>
+#include <cassert>
 
-#define MAX_CID "max_cid"
-#define ROHC_SECTION "rohc"
-#define CONF_ROHC_FILENAME "rohc.conf"
+
+constexpr std::size_t MAX_ROHC_SIZE = 5 * 1024;
 
 #define IS_ETHERNET(type) (type == NET_PROTO_802_1Q || \
                            type == NET_PROTO_802_1AD || \
                            type == NET_PROTO_ETH)
+
 
 /* Callbacks */
 static int random_cb(const struct rohc_comp *const UNUSED(comp),
@@ -65,7 +66,7 @@ static void rohc_traces(void *const priv_ctx,
                         const char *const format,
                         ...)
 {
-  OutputLog* rohc_log = static_cast<OutputLog*>(priv_ctx);
+	OutputLog* rohc_log = static_cast<OutputLog*>(priv_ctx);
 	log_level_t output_level = LEVEL_DEBUG;
 	char buf[1024];
 	va_list args;
@@ -98,10 +99,40 @@ Rohc::Rohc():
 	this->upper.push_back("Ethernet");
 }
 
+Rohc::~Rohc()
+{
+}
+
+void Rohc::generateConfiguration(const std::string &parent_path,
+                                 const std::string &param_id,
+                                 const std::string &plugin_name)
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+
+	auto scheme = Conf->getComponentByPath(parent_path);
+	if (scheme == nullptr)
+	{
+		return;
+	}
+	auto protocol = scheme->getParameter(param_id);
+	if (protocol == nullptr)
+	{
+		return;
+	}
+
+	auto lan = Conf->getOrCreateComponent("lan_adaptation", "LAN Adaptation");
+	auto rohc = lan->addComponent("rohc", "ROHC", "ROHC Plugin Configuration");
+	Conf->setProfileReference(rohc, protocol, plugin_name);
+
+	rohc->addParameter("max_cid", "Maximal cID", types->getType("int"));
+}
+
 
 Rohc::Context::Context(LanAdaptationPlugin &plugin):
 	LanAdaptationPlugin::LanAdaptationContext(plugin)
 {
+	this->comp = nullptr;
 }
 
 bool Rohc::Context::init()
@@ -110,31 +141,20 @@ bool Rohc::Context::init()
 	{
 		return false;
 	}
-	unsigned int max_cid;
 	int max_alloc = 0;
 	rohc_cid_type_t cid_type = ROHC_SMALL_CID;
-	bool status;
-	ConfigurationFile config;
-	map<string, ConfigurationList> config_section_map;
-	string conf_file_path = this->getConfPath() + string(CONF_ROHC_FILENAME);
 
-	if(!config.loadConfig(conf_file_path.c_str()))
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "failed to load config file '%s'",
-		    conf_file_path.c_str());
-		goto error;
-	}
-	
-	config.loadSectionMap(config_section_map);
+	auto rohc = OpenSandModelConf::Get()->getProfileData()->getComponent("lan_adaptation")->getComponent("rohc");
 
 	// Retrieving the QoS number
-	if(!config.getValue(config_section_map[ROHC_SECTION], MAX_CID, max_cid))
+	int max_cid_value;
+	if(!OpenSandModelConf::extractParameterData(rohc->getParameter("max_cid"), max_cid_value))
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "missing %s parameter\n", MAX_CID);
-		goto unload;
+		    "Section ROHC, missing max cID parameter\n");
+		return false;
 	}
+	unsigned int max_cid = max_cid_value;
 	LOG(this->log, LEVEL_INFO,
 	    "Max CID: %d\n", max_cid);
 	if(max_cid > ROHC_SMALL_CID_MAX)
@@ -145,14 +165,14 @@ bool Rohc::Context::init()
 
 	// create the ROHC compressor
 	this->comp = rohc_comp_new2(cid_type, max_cid, random_cb, NULL);
-	if(this->comp == NULL)
+	if(this->comp == nullptr)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot create ROHC compressor\n");
-		goto unload;
+		return false;
 	}
 
-	status = rohc_comp_set_traces_cb2(this->comp, rohc_traces, this->log.get());
+	bool status = rohc_comp_set_traces_cb2(this->comp, rohc_traces, this->log.get());
 	if(!status)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -178,7 +198,7 @@ bool Rohc::Context::init()
 	{
 		this->decompressors[tal_id] = rohc_decomp_new2(cid_type, max_cid,
 		                                              ROHC_O_MODE);
-		if(this->decompressors[tal_id] == NULL)
+		if(this->decompressors[tal_id] == nullptr)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "cannot create ROHC decompressor\n");
@@ -209,8 +229,6 @@ bool Rohc::Context::init()
 		}
 	}
 
-	config.unloadConfig();
-
 	return true;
 
 free_decomp:
@@ -220,22 +238,19 @@ free_decomp:
 	}
 free_comp:
 	rohc_comp_free(this->comp);
-unload:
-	config.unloadConfig();
-error:
-	this->comp = NULL;
+	this->comp = nullptr;
 	return false;
 }
 
 Rohc::Context::~Context()
 {
 	// free ROHC compressor/decompressor if created
-	if(this->comp != NULL)
+	if(this->comp != nullptr)
 		rohc_comp_free(this->comp);
 
 	for(uint8_t tal_id = 0; tal_id <= BROADCAST_TAL_ID; ++tal_id)
 	{
-		if(this->decompressors[tal_id] != NULL)
+		if(this->decompressors[tal_id] != nullptr)
 		{
 			rohc_decomp_free(this->decompressors[tal_id]);
 		}
@@ -428,6 +443,11 @@ NetBurst *Rohc::Context::deencapsulate(NetBurst *burst)
 	// delete the burst and all packets in it
 	delete burst;
 	return net_packets;
+}
+
+char Rohc::Context::getLanHeader(unsigned int, NetPacket *)
+{
+	assert(0);
 }
 
 bool Rohc::Context::compressRohc(NetPacket *packet,
@@ -651,6 +671,16 @@ NetPacket *Rohc::PacketHandler::build(const Data &data,
 	return new NetPacket(data, data_length,
 	                     this->getName(), this->getEtherType(),
 	                     qos, src_tal_id, dst_tal_id, header_length);
+}
+
+size_t Rohc::PacketHandler::getLength(const unsigned char *) const
+{
+	return 0;
+}
+
+size_t Rohc::PacketHandler::getFixedLength() const
+{
+	return 0;
 }
 
 Rohc::PacketHandler::PacketHandler(LanAdaptationPlugin &plugin):

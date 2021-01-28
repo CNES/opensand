@@ -152,8 +152,6 @@ class Plugin
 	                                         const std::string &parameter_name,
 	                                         const std::string &parameter_description = "");
 
-	static std::vector<std::string> generatePluginsConfiguration(plugin_type_t plugin_type);
-
  private:
 	/// The block manager instance
 	static PluginUtils utils;

@@ -121,9 +121,3 @@ void Plugin::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComp
 	                                   parameter_name,
 	                                   parameter_description);
 }
-
-
-std::vector<std::string> Plugin::generatePluginsConfiguration(plugin_type_t plugin_type)
-{
-	return utils.generatePluginsConfiguration(plugin_type);
-}

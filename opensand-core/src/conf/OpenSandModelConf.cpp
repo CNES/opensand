@@ -392,9 +392,11 @@ void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaEl
 		return;
 	}
 
-	profile_model->setReference(parameter, referee);
-	auto expected = parameter->getReferenceData();
-	std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(expected)->set(expected_value);
+	if (profile_model->setReference(parameter, referee))
+	{
+		auto expected = parameter->getReferenceData();
+		std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(expected)->set(expected_value);
+	}
 }
 
 
@@ -407,9 +409,11 @@ void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaEl
 		return;
 	}
 
-	profile_model->setReference(parameter, referee);
-	auto expected = parameter->getReferenceData();
-	std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(expected)->set(expected_value);
+	if (profile_model->setReference(parameter, referee))
+	{
+		auto expected = parameter->getReferenceData();
+		std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(expected)->set(expected_value);
+	}
 }
 
 
@@ -422,9 +426,11 @@ void OpenSandModelConf::setProfileReference(std::shared_ptr<OpenSANDConf::MetaEl
 		return;
 	}
 
-	profile_model->setReference(parameter, referee);
-	auto expected = parameter->getReferenceData();
-	std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(expected)->set(expected_value);
+	if (profile_model->setReference(parameter, referee))
+	{
+		auto expected = parameter->getReferenceData();
+		std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(expected)->set(expected_value);
+	}
 }
 
 

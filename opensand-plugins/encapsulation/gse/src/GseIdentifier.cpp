@@ -32,10 +32,12 @@
  * @author Julien BERNARD <julien.bernard@toulouse.viveris.com>
  */
 
+
 #include "GseIdentifier.h"
 
 
-GseIdentifier::GseIdentifier(uint8_t src_tal_id, uint8_t dst_tal_id,
+GseIdentifier::GseIdentifier(uint8_t src_tal_id,
+                             uint8_t dst_tal_id,
                              uint8_t qos)
 {
 	this->src_tal_id = src_tal_id;
@@ -43,21 +45,42 @@ GseIdentifier::GseIdentifier(uint8_t src_tal_id, uint8_t dst_tal_id,
 	this->qos = qos;
 }
 
+
 GseIdentifier::~GseIdentifier()
 {
 }
 
-uint8_t GseIdentifier::getSrcTalId()
+
+uint8_t GseIdentifier::getSrcTalId() const
 {
 	return this->src_tal_id;
 }
 
-uint8_t GseIdentifier::getDstTalId()
+
+uint8_t GseIdentifier::getDstTalId() const
 {
 	return this->dst_tal_id;
 }
 
-uint8_t GseIdentifier::getQos()
+
+uint8_t GseIdentifier::getQos() const
 {
 	return this->qos;
+}
+
+
+bool ltGseIdentifier::operator() (GseIdentifier *ai1, GseIdentifier *ai2) const
+{
+	const auto srcTalId1 = ai1->getSrcTalId();
+	const auto srcTalId2 = ai2->getSrcTalId();
+
+	if (srcTalId1 == srcTalId2)
+	{
+		const auto dstTalId1 = ai1->getDstTalId();
+		const auto dstTalId2 = ai2->getDstTalId();
+
+		return dstTalId1 == dstTalId2 ? ai1->getQos() < ai2->getQos() : dstTalId1 < dstTalId2;
+	}
+
+	return srcTalId1 < srcTalId2;
 }

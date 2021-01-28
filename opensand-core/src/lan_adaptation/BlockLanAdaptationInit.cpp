@@ -54,14 +54,15 @@ void BlockLanAdaptation::generateConfiguration()
 {
 	auto Conf = OpenSandModelConf::Get();
 
-	auto global = OpenSandModelConf::Get()->getOrCreateComponent("encapsulation", "Encapsulation");
-	auto lan_adaptation = global->addList("lan_adaptation_schemes", "LAN Adaptation scheme", "lan_adaptation_scheme")->getPattern();
+	auto global = OpenSandModelConf::Get()->getOrCreateComponent("lan_adaptation", "LAN Adaptation");
+	auto lan_adaptation = global->addList("lan_adaptation_schemes",
+	                                      "LAN Adaptation scheme",
+	                                      "lan_adaptation_scheme")->getPattern();
 
-	auto lan_adaptation_protocols = Plugin::generatePluginsConfiguration(lan_adaptation_plugin);
-
-	auto types = Conf->getModelTypesDefinition();
-	types->addEnumType("lan_adaptation_protocol", "LAN Adaptation Protocol", lan_adaptation_protocols);
-	lan_adaptation->addParameter("protocol", "Protocol", types->getType("lan_adaptation_protocol"));
+	Plugin::generatePluginsConfiguration(lan_adaptation,
+	                                     lan_adaptation_plugin,
+	                                     "lan_adaptation_protocol",
+	                                     "LAN Adaptation Protocol");
 }
 
 bool BlockLanAdaptation::onInit(void)
@@ -71,12 +72,13 @@ bool BlockLanAdaptation::onInit(void)
 	lan_contexts_t contexts;
 	std::vector<std::string> lan_adaptation_plugins{"Ethernet"};
 
-	auto encap = OpenSandModelConf::Get()->getProfileData()->getComponent("encapsulation");
+	auto encap = OpenSandModelConf::Get()->getProfileData()->getComponent("lan_adaptation");
 	for (auto& item : encap->getList("lan_adaptation_schemes")->getItems())
 	{
 		std::string plugin_name;
 		auto lan_adaptation_scheme = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
-		if(!OpenSandModelConf::extractParameterData(lan_adaptation_scheme->getParameter("protocol"), plugin_name))
+		auto protocol = lan_adaptation_scheme->getParameter("lan_adaptation_protocol");
+		if(!OpenSandModelConf::extractParameterData(protocol, plugin_name))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get plugin name for lan adaptation\n");

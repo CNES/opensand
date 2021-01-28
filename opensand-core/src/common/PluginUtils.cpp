@@ -386,9 +386,13 @@ void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::Met
 	auto types = Conf->getModelTypesDefinition();
 	types->addEnumType(type_name, parameter_name, plugin_names);
 
-	parent->addParameter(parameter_id, parameter_name, types->getType(type_name), parameter_description);
+	std::string parent_path;
+	if (parent != nullptr)
+	{
+		parent_path = parent->getPath();
+		parent->addParameter(parameter_id, parameter_name, types->getType(type_name), parameter_description);
+	}
 
-	const std::string parent_path = parent->getPath();
 	const char *path = parent_path.c_str();
 	const char *param_id = parameter_id.c_str();
 	for(auto const &element : *container)
@@ -400,59 +404,4 @@ void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::Met
 		}
 		configure(path, param_id);
 	}
-}
-
-
-std::vector<std::string> PluginUtils::generatePluginsConfiguration(plugin_type_t plugin_type)
-{
-	pl_list_t *container;
-
-	switch(plugin_type)
-	{
-		case encapsulation_plugin:
-			container = &this->encapsulation;
-			break;
-
-		case satdelay_plugin:
-			container = &this->sat_delay;
-			break;
-
-		case lan_adaptation_plugin:
-			container = &this->lan_adaptation;
-			break;
-
-		case attenuation_plugin:
-			container = &this->attenuation;
-			break;
-
-		case minimal_plugin:
-			container = &this->minimal;
-			break;
-
-		case error_plugin:
-			container = &this->error;
-			break;
-
-		default:
-			LOG(this->log_init, LEVEL_ERROR,
-				"Unable to generate configuration for plugin type %d",
-				plugin_type);
-			return std::vector<std::string>{};
-	}
-
-	std::vector<std::string> plugin_names;
-	plugin_names.reserve(container->size());
-	for(auto const &element : *container)
-	{
-		plugin_names.push_back(element.first);
-
-		fn_configure configure = element.second.first;
-		if(!configure)
-		{
-			continue;
-		}
-		configure("", "");
-	}
-
-	return plugin_names;
 }

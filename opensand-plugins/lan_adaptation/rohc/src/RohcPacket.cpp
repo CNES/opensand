@@ -32,6 +32,7 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
+
 #include "RohcPacket.h"
 
 
@@ -43,12 +44,15 @@ RohcPacket::RohcPacket(const unsigned char *data, size_t length, uint16_t type):
 	this->data.reserve(1500);
 }
 
-RohcPacket::RohcPacket(const Data &data, uint16_t type): NetPacket(data)
+
+RohcPacket::RohcPacket(const Data &data, uint16_t type):
+	NetPacket(data)
 {
 	this->name = "ROHC";
 	this->type = type;
 	this->data.reserve(1500);
 }
+
 
 RohcPacket::RohcPacket(const Data &data, size_t length, uint16_t type):
 	NetPacket(data, length)
@@ -58,14 +62,16 @@ RohcPacket::RohcPacket(const Data &data, size_t length, uint16_t type):
 	this->data.reserve(1500);
 }
 
-RohcPacket::RohcPacket(uint16_t type): NetPacket()
+
+RohcPacket::RohcPacket(uint16_t type):
+	NetPacket()
 {
 	this->name = "ROHC";
 	this->type = type;
 	this->data.reserve(1500);
 }
 
+
 RohcPacket::~RohcPacket()
 {
 }
-

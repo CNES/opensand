@@ -35,7 +35,13 @@
 #ifndef ROHC_PACKET_H
 #define ROHC_PACKET_H
 
+
 #include <NetPacket.h>
+
+#include <stdint.h>
+
+
+class Data;
 
 
 /**
@@ -45,7 +51,6 @@
 class RohcPacket: public NetPacket
 {
  public:
-
 	/**
 	 * Build a ROHC packet
 	 *
@@ -83,7 +88,7 @@ class RohcPacket: public NetPacket
 	 * Destroy the ROHC packet
 	 */
 	~RohcPacket();
-
 };
+
 
 #endif
