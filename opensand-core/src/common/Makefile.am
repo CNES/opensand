@@ -78,4 +78,5 @@ libopensand_plugin_utils_la_CPPFLAGS = \
 libopensand_plugin_includedir = ${includedir}/opensand_plugin
 
 libopensand_plugin_include_HEADERS = \
+	$(top_srcdir)/src/conf/OpenSandModelConf.h \
 	$(libopensand_plugin_la_h)

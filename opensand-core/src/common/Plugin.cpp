@@ -62,13 +62,6 @@ bool Plugin::getEncapsulationPlugin(std::string name,
 }
 
 
-bool Plugin::getLanAdaptationPlugin(std::string name,
-                                    LanAdaptationPlugin **lan_adaptation)
-{
-	return utils.getLanAdaptationPlugin(name, lan_adaptation);
-}
-
-
 bool Plugin::getAttenuationPlugin(std::string att_pl_name,
                                      AttenuationModelPlugin **attenuation)
 {
@@ -100,12 +93,6 @@ bool Plugin::getSatDelayPlugin(std::string name,
 void Plugin::getAllEncapsulationPlugins(pl_list_t &encapsulation)
 {
 	return utils.getAllEncapsulationPlugins(encapsulation);
-}
-
-
-void Plugin::getAllLanAdaptationPlugins(pl_list_t &lan_adaptation)
-{
-	return utils.getAllLanAdaptationPlugins(lan_adaptation);
 }
 
 

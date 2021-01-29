@@ -73,7 +73,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The parameter if found, nullptr otherwise
 		 */
-    std::shared_ptr<MetaParameter> getParameter(const std::string &id) const;
+		std::shared_ptr<MetaParameter> getParameter(const std::string &id) const;
 
 		/**
 		 * @brief Get an identified component.
@@ -82,7 +82,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The component if found, nullptr otherwise
 		 */
-    std::shared_ptr<MetaComponent> getComponent(const std::string &id) const;
+		std::shared_ptr<MetaComponent> getComponent(const std::string &id) const;
 
 		/**
 		 * @brief Get an identified list.
@@ -91,7 +91,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The list if found, nullptr otherwise
 		 */
-    std::shared_ptr<MetaList> getList(const std::string &id) const;
+		std::shared_ptr<MetaList> getList(const std::string &id) const;
 
 		/**
 		* @brief Add a new component to the component.
@@ -101,7 +101,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created component on success, nullptr otherwise
 		*/
-    std::shared_ptr<MetaComponent> addComponent(const std::string &id, const std::string &name);
+		std::shared_ptr<MetaComponent> addComponent(const std::string &id, const std::string &name);
 
 		/**
 		* @brief Add a new component to the component.
@@ -112,7 +112,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created component on success, nullptr otherwise
 		*/
-    std::shared_ptr<MetaComponent> addComponent(const std::string &id, const std::string &name, const std::string &description);
+		std::shared_ptr<MetaComponent> addComponent(const std::string &id, const std::string &name, const std::string &description);
 
 		/**
 		* @brief Add a new list to the component.
@@ -123,7 +123,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created list on success, nullptr otherwise
 		*/
-    std::shared_ptr<MetaList> addList(const std::string &id, const std::string &name, const std::string &pattern_name);
+		std::shared_ptr<MetaList> addList(const std::string &id, const std::string &name, const std::string &pattern_name);
 
 		/**
 		* @brief Add a new list to the component.
@@ -135,7 +135,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created list on success, nullptr otherwise
 		*/
-    std::shared_ptr<MetaList> addList(const std::string &id, const std::string &name, const std::string &pattern_name, const std::string &description);
+		std::shared_ptr<MetaList> addList(const std::string &id, const std::string &name, const std::string &pattern_name, const std::string &description);
 
 		/**
 		* @brief Add a new list to the component.
@@ -148,7 +148,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created list on success, nullptr otherwise
 		*/
-    std::shared_ptr<MetaList> addList(const std::string &id, const std::string &name, const std::string &pattern_name, const std::string &description, const std::string &pattern_description);
+		std::shared_ptr<MetaList> addList(const std::string &id, const std::string &name, const std::string &pattern_name, const std::string &description, const std::string &pattern_description);
 
 		/**
 		* @brief Add a new parameter to the component.
@@ -159,7 +159,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created parameter on success, nullptr otherwise
 		*/
-    std::shared_ptr<MetaParameter> addParameter(const std::string &id, const std::string &name, std::shared_ptr<MetaType> type);
+		std::shared_ptr<MetaParameter> addParameter(const std::string &id, const std::string &name, std::shared_ptr<MetaType> type);
 
 		/**
 		* @brief Add a new parameter to the component.
@@ -171,7 +171,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created parameter on success, nullptr otherwise
 		*/
-    std::shared_ptr<MetaParameter> addParameter(const std::string &id, const std::string &name, std::shared_ptr<MetaType> type, const std::string &description);
+		std::shared_ptr<MetaParameter> addParameter(const std::string &id, const std::string &name, std::shared_ptr<MetaType> type, const std::string &description);
 
 	protected:
 		/**

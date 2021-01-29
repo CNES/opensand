@@ -141,10 +141,6 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						storePlugin(this->sat_delay, plugin, handle);
 						break;
 
-					case lan_adaptation_plugin:
-						storePlugin(this->lan_adaptation, plugin, handle);
-						break;
-
 					case attenuation_plugin:
 						if(!enable_phy_layer)
 						{
@@ -268,34 +264,13 @@ bool PluginUtils::getEncapsulationPlugin(std::string name,
 	return getPlugin(name, this->encapsulation, this->plugins, encapsulation);
 };
 
+
 bool PluginUtils::getSatDelayPlugin(std::string name,
                                     SatDelayPlugin **sat_delay)
 {
 	return getPlugin(name, this->sat_delay, this->plugins, sat_delay);
 };
 
-bool PluginUtils::getLanAdaptationPlugin(std::string name,
-	                                     LanAdaptationPlugin **lan_adaptation)
-{
-	for(std::vector<OpenSandPlugin *>::iterator it = this->plugins.begin();
-	    it != this->plugins.end(); ++it)
-	{
-		if((*it)->getName() == name)
-		{
-			*lan_adaptation = (LanAdaptationPlugin *)*it;
-			return true;
-		}
-	}
-	for(auto& existing_plugin : this->plugins)
-	{
-		if(existing_plugin->getName() == name)
-		{
-			*lan_adaptation = static_cast<LanAdaptationPlugin *>(existing_plugin);
-			return true;
-		}
-	}
-	return getPlugin(name, this->lan_adaptation, this->plugins, lan_adaptation);
-};
 
 bool PluginUtils::getAttenuationPlugin(std::string name,
                                        AttenuationModelPlugin **attenuation)
@@ -349,10 +324,6 @@ void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::Met
 
 		case satdelay_plugin:
 			container = &this->sat_delay;
-			break;
-
-		case lan_adaptation_plugin:
-			container = &this->lan_adaptation;
 			break;
 
 		case attenuation_plugin:

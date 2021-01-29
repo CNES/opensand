@@ -118,16 +118,6 @@ class PluginUtils
 	                            EncapPlugin **encapsulation);
 
 	/**
-	 * @brief get a lan adaptation plugin
-	 *
-	 * @param name           The name of the lan_adaptation plugin
-	 * @param lan_adaptation  The lan adaptation plugin
-	 * @return true on success, false otherwise
-	 */
-	bool getLanAdaptationPlugin(std::string name,
-	                            LanAdaptationPlugin **lan_adaptation);
-
-	/**
 	 * @brief get a satellite delay plugin
 	 *
 	 * @param name           The name of the satellite delay plugin
@@ -176,17 +166,6 @@ class PluginUtils
 	inline void getAllEncapsulationPlugins(pl_list_t &encapsulation)
 	{
 		encapsulation = this->encapsulation;
-	}
-
-	/**
-	 * @brief get the lan adaptation plugins list
-	 *
-	 * @param encapsulation  The lan adaptation plugins
-	 * @return true on success, false otherwise
-	 */
-	inline void getAllLanAdaptationPlugins(pl_list_t &lan_adaptation)
-	{
-		lan_adaptation = this->lan_adaptation;
 	}
 
 	void generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,

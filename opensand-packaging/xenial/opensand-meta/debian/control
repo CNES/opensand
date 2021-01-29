@@ -9,8 +9,9 @@ Section:metapackages
 Package: opensand
 Architecture: any
 Section: metapackages
-Depends: libopensand-old-conf (>= ${binary:Version}), libopensand-output (>= ${binary:Version}),
- libopensand-rt (>= ${binary:Version}), opensand-core (>= ${binary:Version}),
+Depends: opensand-core (>= ${binary:Version}),
+ libopensand-output (>= ${binary:Version}),
+ libopensand-rt (>= ${binary:Version}),
  libopensand-plugin (>= ${binary:Version}),
  libopensand-gse-encap-plugin (>= ${binary:Version}),
  libopensand-rle-encap-plugin (>= ${binary:Version})

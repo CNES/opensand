@@ -33,6 +33,7 @@
  * @author Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
  */
 
+
 #include "Gse.h"
 #include "GseEncapCtx.h"
 #include <NetPacket.h>
@@ -121,6 +122,11 @@ Gse::Gse():
 }
 
 
+Gse::~Gse()
+{
+}
+
+
 Gse::Context::Context(EncapPlugin &plugin):
 	EncapPlugin::EncapContext(plugin), contexts()
 {
@@ -137,6 +143,7 @@ void Gse::generateConfiguration(const std::string &, const std::string &, const 
 
 	auto conf = Conf->getOrCreateComponent("encap", "Encapsulation", "The Encapsulation Plugins Configuration");
 	auto gse = conf->addComponent("gse", "GSE", "The GSE Plugin Configuration");
+	gse->setAdvanced(true);
 	gse->addParameter("packing_threshold", "Packing Threshold", types->getType("int"));
 }
 

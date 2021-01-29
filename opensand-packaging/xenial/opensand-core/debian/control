@@ -1,8 +1,10 @@
 Source: opensand-core
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
-Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool, pkg-config,
- libopensand-old-conf-dev (>= 5.2.0), libopensand-output-dev (>= 5.2.0), libopensand-rt-dev (>= 5.2.0),
+Build-Depends: debhelper (>= 7),
+ autotools-dev, automake, libtool, pkg-config,
+ libopensand-output-dev (>= 5.2.0),
+ libopensand-rt-dev (>= 5.2.0),
  python-lxml, libpcap-dev
 Standards-Version: 3.8.3
 Section: misc
@@ -49,7 +51,7 @@ Replaces: opensand-core-bin
 Description: The OpenSAND emulation testbed core
   OpenSAND is an emulation testbed aiming to represent in a cost effective way a
   satellite telecommunication system for research and engineering activities.
-  
+
 Package: libopensand-plugin
 Section: libdevel
 Architecture: any
@@ -100,5 +102,4 @@ Replaces: libopensand-encap-plugin-dbg, libopensand-atm-aal5-encap-plugin-dbg, l
  libopensand-default-nominal-plugin-dbg, libopensand-gate-error-plugin-dbg, libopensand-constant-satdelay-plugin-dbg,
  libopensand-file-satdelay-plugin-dbg
 Description: Debugging symbols for OpenSAND plugins' library
-
 

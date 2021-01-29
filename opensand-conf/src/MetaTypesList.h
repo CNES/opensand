@@ -74,7 +74,7 @@ namespace OpenSANDConf
 		*
 		* @return  The all types
 		*/
-    std::vector<std::shared_ptr<MetaType>> getTypes() const;
+		std::vector<std::shared_ptr<MetaType>> getTypes() const;
 
 		/**
 		* @brief Get a type.
@@ -83,14 +83,14 @@ namespace OpenSANDConf
 		*
 		* @return  The type if found, nullptr otherwise
 		*/
-    std::shared_ptr<MetaType> getType(const std::string &id) const;
+		std::shared_ptr<MetaType> getType(const std::string &id) const;
 
 		/**
 		* @brief Get enumeration types.
 		*
 		* @return  The enumeration types
 		*/
-    std::vector<std::shared_ptr<MetaEnumType>> getEnumTypes() const;
+		std::vector<std::shared_ptr<MetaEnumType>> getEnumTypes() const;
 
 		/**
 		* @brief Add a new enumeration
@@ -101,7 +101,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created enumeration on success, nullptr otherwise
 		*/
-    std::shared_ptr<MetaEnumType> addEnumType(const std::string &id, const std::string &name, const std::vector<std::string> &values);
+		std::shared_ptr<MetaEnumType> addEnumType(const std::string &id, const std::string &name, const std::vector<std::string> &values);
 
 		/**
 		* @brief Add a new enumeration
@@ -113,7 +113,7 @@ namespace OpenSANDConf
 		*
 		* @return  The newly created enumeration on success, nullptr otherwise
 		*/
-    std::shared_ptr<MetaEnumType> addEnumType(const std::string &id, const std::string &name, const std::vector<std::string> &values, const std::string &description);
+		std::shared_ptr<MetaEnumType> addEnumType(const std::string &id, const std::string &name, const std::vector<std::string> &values, const std::string &description);
 
 	protected:
 		/**
@@ -133,18 +133,18 @@ namespace OpenSANDConf
 		 *
 		 * @return The new meta types list
 		 */
-    std::shared_ptr<MetaTypesList> clone() const;
+		std::shared_ptr<MetaTypesList> clone() const;
 
 		/**
 		 * @brief Create the data types list.
 		 *
 		 * @return The new data types list
 		 */
-    std::shared_ptr<DataTypesList> createData() const;
+		std::shared_ptr<DataTypesList> createData() const;
 		
 	private:
-    std::map<std::string, std::shared_ptr<MetaType>> types;
-    std::map<std::string, std::shared_ptr<MetaType>> enums;
+		std::map<std::string, std::shared_ptr<MetaType>> types;
+		std::map<std::string, std::shared_ptr<MetaType>> enums;
 
 		/**
 		 * @brief Add a type to a types map.

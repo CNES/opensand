@@ -56,8 +56,8 @@ std::shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaElement::getItemFro
 		return nullptr;
 	}
 	elt = root;
-        while(elt != nullptr && std::getline(ss, item, '/'))
-        {
+	while(elt != nullptr && std::getline(ss, item, '/'))
+	{
 		if(item.empty())
 		{
 			continue;
@@ -69,7 +69,7 @@ std::shared_ptr<OpenSANDConf::MetaElement> OpenSANDConf::MetaElement::getItemFro
 			break;
 		}
 		elt = cont->getItem(item);
-        }
+	}
 	return elt;
 }
 

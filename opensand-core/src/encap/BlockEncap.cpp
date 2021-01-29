@@ -37,6 +37,7 @@
 #include "BlockEncap.h"
 
 #include "Plugin.h"
+#include "Ethernet.h"
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
@@ -249,48 +250,19 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 
 bool BlockEncap::onInit()
 {
-	std::string up_return_encap_proto;
-	std::string downlink_encap_proto;
-	std::string lan_name;
 	std::vector <EncapPlugin::EncapContext *> up_return_ctx;
 	std::vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
 	std::vector <EncapPlugin::EncapContext *> down_forward_ctx;
-	LanAdaptationPlugin *lan_plugin = NULL;
-	std::string compo_name;
 	component_t host;
 
 	((Upward *)this->upward)->setMacId(this->mac_id);
 	
-	// Retrieve last packet handler in lan adaptation layer
-	auto Conf = OpenSandModelConf::Get();
-	auto encap = Conf->getProfileData()->getComponent("lan_adaptation");
-	std::shared_ptr<OpenSANDConf::DataComponent> scheme = nullptr;
-	for(auto& item : encap->getList("lan_adaptation_schemes")->getItems())
-	{
-		scheme = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
-	}
-	if(scheme == nullptr)
-	{
-		lan_name = "Ethernet";
-	}
-	else if(!OpenSandModelConf::extractParameterData(scheme->getParameter("lan_adaptation_protocol"), lan_name))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Section LAN adaptation, missing parameter 'protocol'\n");
-		goto error;
-	}
-
-	if(!Plugin::getLanAdaptationPlugin(lan_name, &lan_plugin))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get plugin for %s lan adaptation\n",
-		    lan_name.c_str());
-		goto error;
-	}
+	LanAdaptationPlugin *lan_plugin = Ethernet::constructPlugin();
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "lan adaptation upper layer is %s\n", lan_name.c_str());
+	    "lan adaptation upper layer is %s\n", lan_plugin->getName().c_str());
 
-	if (!OpenSandModelConf::Get()->isGw(this->mac_id))
+	auto Conf = OpenSandModelConf::Get();
+	if (!Conf->isGw(this->mac_id))
 	{
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Going to check if Tal with id:  %d is in Scpc mode\n",

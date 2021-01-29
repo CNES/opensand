@@ -53,19 +53,19 @@ OpenSANDConf::MetaTypesList::MetaTypesList():
 {
 	// TODO: specify numerical limit
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-			new OpenSANDConf::MetaValueType<bool>("bool", "Boolean", "A boolean")));
+	         new OpenSANDConf::MetaValueType<bool>("bool", "Boolean", "A boolean")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-			new OpenSANDConf::MetaValueType<double>("double", "Double", "A double")));
+	         new OpenSANDConf::MetaValueType<double>("double", "Double", "A double")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-			new OpenSANDConf::MetaValueType<float>("float", "Float", "A float")));
+	         new OpenSANDConf::MetaValueType<float>("float", "Float", "A float")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-			new OpenSANDConf::MetaValueType<int>("int", "Integer", "An integer")));
+	         new OpenSANDConf::MetaValueType<int>("int", "Integer", "An integer")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-			new OpenSANDConf::MetaValueType<short>("short", "Short integer", "A short integer")));
+	         new OpenSANDConf::MetaValueType<short>("short", "Short integer", "A short integer")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-			new OpenSANDConf::MetaValueType<long>("long", "Long integer", "A lon integer")));
+	         new OpenSANDConf::MetaValueType<long>("long", "Long integer", "A lon integer")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-			new OpenSANDConf::MetaValueType<std::string>("string", "String", "A string")));
+	         new OpenSANDConf::MetaValueType<std::string>("string", "String", "A string")));
 }
 
 OpenSANDConf::MetaTypesList::MetaTypesList(const OpenSANDConf::MetaTypesList &other):
@@ -75,12 +75,12 @@ OpenSANDConf::MetaTypesList::MetaTypesList(const OpenSANDConf::MetaTypesList &ot
 	for(auto type: other.types)
 	{
 		addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-					type.second->clone()));
+		         type.second->clone()));
 	}
 	for(auto type: other.enums)
 	{
 		addToMap(this->enums, std::shared_ptr<OpenSANDConf::MetaType>(
-					type.second->clone()));
+		         type.second->clone()));
 	}
 }
 

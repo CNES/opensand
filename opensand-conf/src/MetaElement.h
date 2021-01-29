@@ -70,7 +70,7 @@ namespace OpenSANDConf
 		 *
 		 * @return  The path
 		 */
-    std::string getPath() const;
+		std::string getPath() const;
 
 		/**
 		 * @brief Get the advanced status.
@@ -165,7 +165,7 @@ namespace OpenSANDConf
 		void setReference(std::shared_ptr<MetaParameter> target);
 
 	private:
-    std::string parent;
+		std::string parent;
 		bool advanced;
 		std::tuple<std::shared_ptr<MetaParameter>, std::shared_ptr<Data>, std::shared_ptr<DataType>> reference;
 

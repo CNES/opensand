@@ -52,7 +52,11 @@ Ethernet::Ethernet():
 {
 }
 
-void Ethernet::generateConfiguration(const std::string &, const std::string &, const std::string &)
+Ethernet::~Ethernet()
+{
+}
+
+void Ethernet::generateConfiguration()
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
@@ -82,6 +86,14 @@ void Ethernet::generateConfiguration(const std::string &, const std::string &, c
 	                       "The type of 802.1 Ethernet extension carried on satellite");
 	settings->addParameter("default_pcp", "Default PCP", types->getType("int"));
 }
+
+
+Ethernet *Ethernet::constructPlugin()
+{
+	static Ethernet *plugin = static_cast<Ethernet *>(Ethernet::create<Ethernet, Ethernet::Context, Ethernet::PacketHandler>("Ethernet"));
+	return plugin;
+}
+
 
 bool Ethernet::init()
 {

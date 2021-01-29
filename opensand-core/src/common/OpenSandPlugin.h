@@ -45,7 +45,6 @@ typedef enum
 {
 	unknown_plugin,
 	encapsulation_plugin,
-	lan_adaptation_plugin,
 	attenuation_plugin,
 	minimal_plugin,
 	error_plugin,

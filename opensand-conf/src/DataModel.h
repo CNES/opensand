@@ -48,105 +48,107 @@
 
 namespace OpenSANDConf
 {
-	class DataTypesList;
-	class DataComponent;
+
+class DataTypesList;
+class DataComponent;
+
+/**
+ * @brief Represents a datamodel.
+ */
+class DataModel
+{
+ public:
+	friend class MetaModel;
 
 	/**
-	 * @brief Represents a datamodel.
+	 * @brief Constructor by copy.
+	 *
+	 * @param  other  The object to copy
 	 */
-	class DataModel
-	{
-	public:
-		friend class MetaModel;
+	DataModel(const DataModel &other);
 
-		/**
-		 * @brief Constructor by copy.
-		 *
-		 * @param  other  The object to copy
-		 */
-		DataModel(const DataModel &other);
+	/**
+	 * @brief Desctructor.
+	 */
+	~DataModel();
 
-		/**
-		 * @brief Desctructor.
-		 */
-		 ~DataModel();
+	/**
+	 * @brief Clone the current model.
+	 *
+	 * @return  The newly cloned model
+	 */
+	std::shared_ptr<DataModel> clone() const;
 
-		/**
-		 * @brief Clone the current model.
-		 *
-		 * @return  The newly cloned model
-		 */
-     std::shared_ptr<DataModel> clone() const;
+	/**
+	 * @brief Validate the datamodel.
+	 *
+	 * @return True if the datamodel is valid, false otherwise
+	 */
+	bool validate() const;
 
-		/**
-		 * @brief Validate the datamodel.
-		 *
-		 * @return True if the datamodel is valid, false otherwise
-		 */
-		bool validate() const;
+	/**
+	 * @brief Compare to another object.
+	 *
+	 * @param  other  Object to compare to
+	 *
+	 * @return  True if objects are equals, false otherwise
+	 */
+	bool equal(const DataModel &other) const;
 
-		/**
-		 * @brief Compare to another object.
-		 *
-		 * @param  other  Object to compare to
-		 *
-		 * @return  True if objects are equals, false otherwise
-		 */
-		bool equal(const DataModel &other) const;
+	/**
+	 * @brief Get the version.
+	 *
+	 * @return  The version
+	 */
+	const std::string &getVersion() const;
 
-		/**
-		 * @brief Get the version.
-		 *
-		 * @return  The version
-		 */
-		const std::string &getVersion() const;
+	/**
+	 * @brief Get the root component.
+	 *
+	 * @return  The root component
+	 */
+	std::shared_ptr<DataComponent> getRoot() const;
 
-		/**
-		 * @brief Get the root component.
-		 *
-		 * @return  The root component
-		 */
-    std::shared_ptr<DataComponent> getRoot() const;
+	/**
+	 * @brief Get an item by path.
+	 *
+	 * @param  path  The item's path
+	 *
+	 * @return  The item if found, nullptr otherwise
+	 */
+	std::shared_ptr<DataElement> getItemByPath(const std::string &path) const;
 
-		/**
-		 * @brief Get an item by path.
-		 *
-		 * @param  path  The item's path
-		 *
-		 * @return  The item if found, nullptr otherwise
-		 */
-    std::shared_ptr<DataElement> getItemByPath(const std::string &path) const;
+	friend bool operator== (const DataModel &v1, const DataModel &v2);
+	friend bool operator!= (const DataModel &v1, const DataModel &v2);
 
-		friend bool operator== (const DataModel &v1, const DataModel &v2);
-		friend bool operator!= (const DataModel &v1, const DataModel &v2);
+ protected:
+	/**
+	 * @brief Constructor.
+	 *
+	 * @param  version  The version
+	 * @param  types    The data types list
+	 * @param  root     The root data component
+	 */
+	DataModel(const std::string &version, std::shared_ptr<DataTypesList> types, std::shared_ptr<DataComponent> root);
 
-	protected:
-		/**
-		 * @brief Constructor.
-		 *
-		 * @param  version  The version
-		 * @param  types    The data types list
-		 * @param  root     The root data component
-		 */
-		DataModel(const std::string &version, std::shared_ptr<DataTypesList> types, std::shared_ptr<DataComponent> root);
+	/**
+	 * @brief Get an item by meta path (list pattern can be returned).
+	 *
+	 * @param  path  The item's path
+	 *
+	 * @return  The item if found, nullptr otherwise
+	 */
+	std::shared_ptr<DataElement> getItemByMetaPath(const std::string &path) const;
 
-		/**
-		 * @brief Get an item by meta path (list pattern can be returned).
-		 *
-		 * @param  path  The item's path
-		 *
-		 * @return  The item if found, nullptr otherwise
-		 */
-    std::shared_ptr<DataElement> getItemByMetaPath(const std::string &path) const;
+ private:
+	std::string version;
+	std::shared_ptr<DataTypesList> types;
+	std::shared_ptr<DataComponent> root;
+};
 
-	private:
-    std::string version;
-    std::shared_ptr<DataTypesList> types;
-    std::shared_ptr<DataComponent> root;
-	};
+bool operator== (const DataModel &v1, const DataModel &v2);
+bool operator!= (const DataModel &v1, const DataModel &v2);
 
-	bool operator== (const DataModel &v1, const DataModel &v2);
-	bool operator!= (const DataModel &v1, const DataModel &v2);
 }
 
 #endif // OPENSAND_CONF_DATA_MODEL_H

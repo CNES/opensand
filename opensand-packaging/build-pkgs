@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODULES='all libs core services lan encap'
+MODULES='all libs core services encap'
 USEROPTS=""
 
 # Get list of all supported distributions
@@ -17,7 +17,6 @@ usage()
     echo '                      core:     build only core packages'
     echo '                      services: build only services packages'
     echo '                      encap:    build only encapsulation plugins'
-    echo '                      lan:      build only lan adaptation plugins'
     echo 'Available OPTIONS :   -i        install build-dependencies automatically'
     echo '                      -f        add a user flag to packages'
     echo 'List of available distributions:'
@@ -30,8 +29,6 @@ make_libs()
     echo "Building OpenSAND libraries for $TARGET_DIST"
     # Package and install opensand-output
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
-    # Package and install opensand-old-conf
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-old-conf || error
     # Package and install opensand-conf
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
     # Package and install opensand-rt
@@ -66,14 +63,6 @@ make_encap()
     # Package and install opensand-plugins/encapsulation/rle
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/rle
     echo "Finished building OpenSAND encapsulation plugins for $TARGET_DIST"
-}
-
-make_lan()
-{
-    echo "Building OpenSAND LAN adaptation plugins for $TARGET_DIST"
-    # Package and install opensand-plugins/encapsulation/gse
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/lan_adaptation/rohc
-    echo "Finished building OpenSAND LAN adaptation plugins for $TARGET_DIST"
 }
 
 error()
@@ -169,7 +158,6 @@ case $MODULE in
         make_core
         make_services
         make_encap
-        make_lan
         ;;
     "libs")
         make_libs
@@ -182,9 +170,6 @@ case $MODULE in
         ;;
     "encap")
         make_encap
-        ;;
-    "lan")
-        make_lan
         ;;
     *)
         ;;

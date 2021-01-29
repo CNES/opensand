@@ -50,9 +50,6 @@ CXXFLAGS="$CXXFLAGS -std=c++11"
 PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf = 5.2.0])
 LIBS="$OPENSAND_CONF_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_CONF_CFLAGS $AM_CPPFLAGS")
-PKG_CHECK_MODULES([OPENSAND_OLD_CONF], [opensand_old_conf = 5.2.0])
-LIBS="$OPENSAND_OLD_CONF_LIBS $LIBS"
-AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OLD_CONF_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-output library
 PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 5.2.0])
@@ -124,8 +121,6 @@ AC_CONFIG_FILES([ \
 	src/physical_layer/plugins/satdelay/constant/Makefile \
 	src/physical_layer/plugins/satdelay/file/Makefile \
 	src/system/Makefile \
-	src/mandatory_plugins/Makefile \
-	src/mandatory_plugins/ethernet/Makefile \
 	conf/Makefile \
 	opensand_plugin.pc \
 	doc/doxygen \

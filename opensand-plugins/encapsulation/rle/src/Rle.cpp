@@ -154,6 +154,7 @@ void Rle::generateConfiguration(const std::string &, const std::string &, const 
 
 	auto conf = Conf->getOrCreateComponent("encap", "Encapsulation", "The Encapsulation Plugins Configuration");
 	auto rle = conf->addComponent("rle", "RLE", "The RLE Plugin Configuration");
+	rle->setAdvanced(true);
 	rle->addParameter("alpdu_protection", "ALPDU Protection", types->getType("alpdu_protection_kind"));
 }
 

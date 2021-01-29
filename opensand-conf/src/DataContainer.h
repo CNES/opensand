@@ -44,115 +44,117 @@
 
 namespace OpenSANDConf
 {
-	class DataContainer: public DataElement
-	{
-	public:
-		friend class MetaContainer;
-		friend class DataList;
-		friend class DataElement;
-		friend class DataModel;
 
-		/**
-		 * @brief Destructor.
-		 */
-		virtual ~DataContainer();
+class DataContainer: public DataElement
+{
+ public:
+	friend class MetaContainer;
+	friend class DataList;
+	friend class DataElement;
+	friend class DataModel;
 
-		/**
-		 * @brief Compare to another element
-		 *
-		 * @param  other  Element to compare to
-		 *
-		 * @return  True if elements are equals, false otherwise
-		 */
-		virtual bool equal(const DataElement &other) const override;
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~DataContainer();
 
-	protected:
-		/**
-		 * @brief Constructor.
-		 *
-		 * @param  id      The identifier
-		 * @param  parent  The parent path
-		 */
-		DataContainer(const std::string &id, const std::string &parent);
+	/**
+	 * @brief Compare to another element
+	 *
+	 * @param  other  Element to compare to
+	 *
+	 * @return  True if elements are equals, false otherwise
+	 */
+	virtual bool equal(const DataElement &other) const override;
 
-		/**
-		 * @brief Contructor by copy (cloning).
-		 *
-		 * @param  other  The object to copy
-		 * @param  types  The types list
-		 */
-		DataContainer(const DataContainer &other, std::shared_ptr<DataTypesList> types);
+ protected:
+	/**
+	 * @brief Constructor.
+	 *
+	 * @param  id      The identifier
+	 * @param  parent  The parent path
+	 */
+	DataContainer(const std::string &id, const std::string &parent);
 
-		/**
-		 * @brief Constructor by copy (duplication).
-		 *
-		 * @param  id      The new identifier
-		 * @param  parent  The parent path
-		 * @param  other   The object to copy
-		 */
-		DataContainer(const std::string &id, const std::string &parent, const DataContainer &other);
+	/**
+	 * @brief Contructor by copy (cloning).
+	 *
+	 * @param  other  The object to copy
+	 * @param  types  The types list
+	 */
+	DataContainer(const DataContainer &other, std::shared_ptr<DataTypesList> types);
 
-		/**
-		 * @brief Clone the current object.
-		 *
-		 * @param  types  The types list
-		 *
-		 * @return The cloned object
-		 */
-		virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const = 0;
+	/**
+	 * @brief Constructor by copy (duplication).
+	 *
+	 * @param  id      The new identifier
+	 * @param  parent  The parent path
+	 * @param  other   The object to copy
+	 */
+	DataContainer(const std::string &id, const std::string &parent, const DataContainer &other);
 
-		/**
-		 * @brief Duplicate the current object.
-		 *
-		 * @param  id      The new identifier
-		 * @param  parent  The parent path
-		 *
-		 * @return The duplicated object
-		 */
-		virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const = 0;
+	/**
+	 * @brief Clone the current object.
+	 *
+	 * @param  types  The types list
+	 *
+	 * @return The cloned object
+	 */
+	virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const = 0;
 
-		/**
-		 * @brief Duplicate the reference to another object.
-		 *
-		 * @param  copy  The object to set a copy of the reference
-		 *
-		 * @return True on success, false otherwise
-		 */
-		virtual bool duplicateReference(std::shared_ptr<DataElement> copy) const override;
+	/**
+	 * @brief Duplicate the current object.
+	 *
+	 * @param  id      The new identifier
+	 * @param  parent  The parent path
+	 *
+	 * @return The duplicated object
+	 */
+	virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const = 0;
 
-		/**
-		 * @brief Validate the datamodel element.
-		 *
-		 * @return  True if the element is valid, false otherwise
-		 */
-		virtual bool validate() const override;
+	/**
+	 * @brief Duplicate the reference to another object.
+	 *
+	 * @param  copy  The object to set a copy of the reference
+	 *
+	 * @return True on success, false otherwise
+	 */
+	virtual bool duplicateReference(std::shared_ptr<DataElement> copy) const override;
 
-		/**
-		 * @brief Get the items.
-		 *
-		 * @return  The items
-		 */
-		virtual const std::vector<std::shared_ptr<DataElement>> &getItems() const;
+	/**
+	 * @brief Validate the datamodel element.
+	 *
+	 * @return  True if the element is valid, false otherwise
+	 */
+	virtual bool validate() const override;
 
-		/**
-		 * @brief Get an identified item.
-		 *
-		 * @param  id  The identifier
-		 *
-		 * @return  The item if found, nullptr otherwise
-		 */
-		virtual std::shared_ptr<DataElement> getItem(std::string id) const;
+	/**
+	 * @brief Get the items.
+	 *
+	 * @return  The items
+	 */
+	virtual const std::vector<std::shared_ptr<DataElement>> &getItems() const;
 
-		/**
-		 * @brief Add an item.
-		 *
-		 * @param  item  The item to add
-		 */
-		void addItem(std::shared_ptr<DataElement> item);
+	/**
+	 * @brief Get an identified item.
+	 *
+	 * @param  id  The identifier
+	 *
+	 * @return  The item if found, nullptr otherwise
+	 */
+	virtual std::shared_ptr<DataElement> getItem(std::string id) const;
 
-	private:
-    std::vector<std::shared_ptr<DataElement>> items;
-	};
+	/**
+	 * @brief Add an item.
+	 *
+	 * @param  item  The item to add
+	 */
+	void addItem(std::shared_ptr<DataElement> item);
+
+ private:
+	std::vector<std::shared_ptr<DataElement>> items;
+};
+
 }
 
 #endif // OPENSAND_CONF_DATA_CONTAINER_H

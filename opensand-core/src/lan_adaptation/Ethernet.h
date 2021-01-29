@@ -65,13 +65,14 @@ class Ethernet: public LanAdaptationPlugin
 {
   public:
 	Ethernet();
+	~Ethernet();
 
 	/**
 	 * @brief Generate the configuration for the plugin
 	 */
-	static void generateConfiguration(const std::string &parent_path,
-	                                  const std::string &param_id,
-	                                  const std::string &plugin_name);
+	static void generateConfiguration();
+
+	static Ethernet *constructPlugin();
 
 	bool init();
 
@@ -82,7 +83,6 @@ class Ethernet: public LanAdaptationPlugin
 	class Context: public LanAdaptationContext
 	{
 	  public:
-
 		/// constructor
 		Context(LanAdaptationPlugin &plugin);
 
@@ -103,7 +103,6 @@ class Ethernet: public LanAdaptationPlugin
 			const SarpTable *sarp_table);
 
 	  protected:
-
 		/**
 		 * @brief create an Ethernet frame from IP data
 		 *
@@ -234,9 +233,7 @@ class Ethernet: public LanAdaptationPlugin
 	 */
 	class PacketHandler: public LanAdaptationPacketHandler
 	{
-
 	  public:
-
 		PacketHandler(LanAdaptationPlugin &plugin):
 			LanAdaptationPlugin::LanAdaptationPacketHandler(plugin)
 		{};
@@ -254,8 +251,6 @@ class Ethernet: public LanAdaptationPlugin
 			return length;
 		}
 
-		std::string getName() const {return "Ethernet";}
-
 		NetPacket *build(const Data &data,
 		                 size_t data_length,
 		                 uint8_t qos,
@@ -265,7 +260,6 @@ class Ethernet: public LanAdaptationPlugin
 	};
 
   private:
-
 	/**
 	 * @brief Retrieve the type of frame
 	 *
@@ -316,8 +310,5 @@ class Ethernet: public LanAdaptationPlugin
 
 };
 
-CREATE(Ethernet, Ethernet::Context, Ethernet::PacketHandler, "Ethernet");
-
 
 #endif
-

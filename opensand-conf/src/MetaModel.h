@@ -79,14 +79,14 @@ namespace OpenSANDConf
 		 *
 		 * @return  The newly cloned model
 		 */
-     std::shared_ptr<MetaModel> clone() const;
+		 std::shared_ptr<MetaModel> clone() const;
 
 		/**
 		 * @brief Create a datamodel.
 		 *
 		 * @return  The new datamodel if succeeds, nullptr otherwise
 		 */
-     std::shared_ptr<DataModel> createData() const;
+		 std::shared_ptr<DataModel> createData() const;
 
 		/**
 		 * @brief Specify an element reference to a parameter value.
@@ -126,14 +126,14 @@ namespace OpenSANDConf
 		 *
 		 * @return  The types list
 		 */
-    std::shared_ptr<MetaTypesList> getTypesDefinition() const;
+		std::shared_ptr<MetaTypesList> getTypesDefinition() const;
 
 		/**
 		 * @brief Get the root component.
 		 *
 		 * @return  The root component
 		 */
-    std::shared_ptr<MetaComponent> getRoot() const;
+		std::shared_ptr<MetaComponent> getRoot() const;
 
 		/**
 		 * @brief Get an item by path.
@@ -142,15 +142,15 @@ namespace OpenSANDConf
 		 *
 		 * @return  The item if found, nullptr otherwise
 		 */
-    std::shared_ptr<MetaElement> getItemByPath(const std::string &path) const;
+		std::shared_ptr<MetaElement> getItemByPath(const std::string &path) const;
 
 		friend bool operator== (const MetaModel &v1, const MetaModel &v2);
 		friend bool operator!= (const MetaModel &v1, const MetaModel &v2);
 
 	private:
-    std::string version;
-    std::shared_ptr<MetaTypesList> types;
-    std::shared_ptr<MetaComponent> root;
+		std::string version;
+		std::shared_ptr<MetaTypesList> types;
+		std::shared_ptr<MetaComponent> root;
 	};
 
 	bool operator== (const MetaModel &v1, const MetaModel &v2);

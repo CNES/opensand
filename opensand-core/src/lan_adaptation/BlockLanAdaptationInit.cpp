@@ -34,10 +34,10 @@
  */
 
 
-#include "OpenSandModelConf.h"
 #include "BlockLanAdaptation.h"
 #include "TrafficCategory.h"
-#include "Plugin.h"
+#include "Ethernet.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
@@ -52,80 +52,23 @@
 
 void BlockLanAdaptation::generateConfiguration()
 {
-	auto Conf = OpenSandModelConf::Get();
-
-	auto global = OpenSandModelConf::Get()->getOrCreateComponent("lan_adaptation", "LAN Adaptation");
-	auto lan_adaptation = global->addList("lan_adaptation_schemes",
-	                                      "LAN Adaptation scheme",
-	                                      "lan_adaptation_scheme")->getPattern();
-
-	Plugin::generatePluginsConfiguration(lan_adaptation,
-	                                     lan_adaptation_plugin,
-	                                     "lan_adaptation_protocol",
-	                                     "LAN Adaptation Protocol");
+	Ethernet::generateConfiguration();
 }
 
 bool BlockLanAdaptation::onInit(void)
 {
-	LanAdaptationPlugin *upper = NULL;
-	LanAdaptationPlugin *plugin;
-	lan_contexts_t contexts;
-	std::vector<std::string> lan_adaptation_plugins{"Ethernet"};
-
-	auto encap = OpenSandModelConf::Get()->getProfileData()->getComponent("lan_adaptation");
-	for (auto& item : encap->getList("lan_adaptation_schemes")->getItems())
+	LanAdaptationPlugin *plugin = Ethernet::constructPlugin();
+	LanAdaptationPlugin::LanAdaptationContext *context = plugin->getContext();
+	if(!context->setUpperPacketHandler(nullptr))
 	{
-		std::string plugin_name;
-		auto lan_adaptation_scheme = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
-		auto protocol = lan_adaptation_scheme->getParameter("lan_adaptation_protocol");
-		if(!OpenSandModelConf::extractParameterData(protocol, plugin_name))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get plugin name for lan adaptation\n");
-			return false;
-		}
-
-		if(plugin_name != "Ethernet")
-		{
-			lan_adaptation_plugins.push_back(name);
-		}
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot use %s for packets read on the interface",
+		    context->getName().c_str());
+		return false;
 	}
-
-	for (auto& plugin_name : lan_adaptation_plugins)
-	{
-		LanAdaptationPlugin::LanAdaptationContext *context;
-
-		if(!Plugin::getLanAdaptationPlugin(plugin_name, &plugin))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get plugin for %s lan adaptation",
-			    plugin_name.c_str());
-			return false;
-		}
-
-		context = plugin->getContext();
-		contexts.push_back(context);
-		if(upper == NULL &&
-		   !context->setUpperPacketHandler(NULL))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot use %s for packets read on the interface",
-			    context->getName().c_str());
-			return false;
-		}
-		else if(upper && !context->setUpperPacketHandler(upper->getPacketHandler()))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "upper lan adaptation type %s is not supported "
-			    "by %s", upper->getName().c_str(),
-			    context->getName().c_str());
-			return false;
-		}
-		upper = plugin;
-		LOG(this->log_init, LEVEL_INFO,
-		    "add lan adaptation: %s\n",
-		    plugin->getName().c_str());
-	}
+	LOG(this->log_init, LEVEL_INFO,
+	    "add lan adaptation: %s\n",
+	    plugin->getName().c_str());
 
 	// create TAP virtual interface
 	int fd = -1;
@@ -134,6 +77,8 @@ bool BlockLanAdaptation::onInit(void)
 		return false;
 	}
 
+	lan_contexts_t contexts;
+	contexts.push_back(context);
 	((Upward *)this->upward)->setContexts(contexts);
 	((Downward *)this->downward)->setContexts(contexts);
 	// we can share FD as one thread will write, the second will read

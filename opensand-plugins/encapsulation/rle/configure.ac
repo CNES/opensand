@@ -35,14 +35,8 @@ CXXFLAGS="$CXXFLAGS -std=c++11"
 
 # check for rle library
 PKG_CHECK_MODULES([OPENSAND_RLE], [rle >= 1.7.2], [])
-
 LIBS="$OPENSAND_RLE_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_RLE_CFLAGS $AM_CPPFLAGS")
-
-# check for opensand-conf library
-PKG_CHECK_MODULES([OPENSAND_OLD_CONF], [opensand_old_conf = 5.2.0])
-LIBS="$OPENSAND_OLD_CONF_LIBS $LIBS"
-AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OLD_CONF_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-plugin library
 PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_plugin = 5.2.0])

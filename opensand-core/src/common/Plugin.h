@@ -80,16 +80,6 @@ class Plugin
 	                                   EncapPlugin **encapsulation);
 
 	/**
-	 * @brief get a lan adaptation plugin
-	 *
-	 * @param name           The name of the lan_adaptation plugin
-	 * @param lan_adaptation  The lan adaptation plugin
-	 * @return true on success, false otherwise
-	 */
-	static bool getLanAdaptationPlugin(std::string name,
-	                                   LanAdaptationPlugin **lan_adaptation);
-
-	/**
 	 * @brief get physical layer attenuation plugin
 	 *
 	 * @param att_pl_name  The name of the attenuation model plugin
@@ -137,14 +127,6 @@ class Plugin
 	 * @return true on success, false otherwise
 	 */
 	static void getAllEncapsulationPlugins(pl_list_t &encapsulation);
-
-	/**
-	 * @brief get the lan adaptation plugins list
-	 *
-	 * @param encapsulation  The lan adaptation plugins
-	 * @return true on success, false otherwise
-	 */
-	static void getAllLanAdaptationPlugins(pl_list_t &lan_adaptation);
 
 	static void generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
 	                                         plugin_type_t plugin_type,

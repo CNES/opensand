@@ -7,5 +7,4 @@ SUBDIRS= \
 	interconnect \
 	encap \
 	physical_layer \
-	system \
-	mandatory_plugins
+	system

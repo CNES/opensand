@@ -162,11 +162,6 @@ opensand-plugins/encapsulation/gse/debian/libopensand-gse-encap-plugin
 opensand-plugins/encapsulation/gse/debian/libopensand-gse-encap-plugin-dbg
 opensand-plugins/encapsulation/gse/debian/libopensand-gse-encap-plugin-manager
 opensand-plugins/encapsulation/gse/debian/tmp
-opensand-plugins/lan_adaptation/rohc/debian/files
-opensand-plugins/lan_adaptation/rohc/debian/libopensand-rohc-lan-adapt-plugin
-opensand-plugins/lan_adaptation/rohc/debian/libopensand-rohc-lan-adapt-plugin-dbg
-opensand-plugins/lan_adaptation/rohc/debian/libopensand-rohc-lan-adapt-plugin-manager
-opensand-plugins/lan_adaptation/rohc/debian/tmp
 opensand-tests/tests/base/*/*/scenario*/
 opensand-tests/tests/other/*/scenario*/
 opensand-tests/tests/base/configs/enrich/saloha/scenario*/
