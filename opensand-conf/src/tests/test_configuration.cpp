@@ -39,7 +39,7 @@ TEST_CASE("Truth test", "[Common]")
 
 TEST_CASE("Model tests", "[Model]")
 {
-  std::string version = "1.0.0";
+	std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 
 	SECTION("Model is well-defined")
@@ -53,7 +53,7 @@ TEST_CASE("Model tests", "[Model]")
 
 	SECTION("We can change the Model Description")
 	{
-    std::string newDescription = "newDescription";
+		std::string newDescription = "newDescription";
 		model->getRoot()->setDescription(newDescription);
 		REQUIRE(model->getRoot()->getDescription() == newDescription);
 	}
@@ -167,7 +167,7 @@ TEST_CASE("Model enumeration types tests", "[Model][EnumTypes]")
 
 TEST_CASE("Model component tests", "[Model][Component]")
 {
-  std::string version = "1.0.0";
+	std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 	REQUIRE(model != nullptr);
 
@@ -261,7 +261,7 @@ TEST_CASE("Model component tests", "[Model][Component]")
 
 TEST_CASE("Model parameter tests", "[Model][Parameter]")
 {
-  std::string version = "1.0.0";
+	std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 	REQUIRE(model != nullptr);
 
@@ -269,7 +269,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 	{
 		SECTION("We can add a boolean parameter")
 		{
-      std::string id = "id1";
+			std::string id = "id1";
 			bool val1 = true;
 			bool val2 = false;
 
@@ -305,10 +305,10 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 			SECTION("We can set a boolean data from string")
 			{
 				bool val1 = false;
-        std::string str1 = "false";
+				std::string str1 = "false";
 				bool val2 = true;
-        std::string str2 = "true";
-        std::string invalid = "42";
+				std::string str2 = "true";
+				std::string invalid = "42";
 
 				data->reset();
 				REQUIRE(data->isSet() == false);
@@ -343,7 +343,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 		SECTION("We can add a integer parameter")
 		{
-      std::string id = "id1";
+			std::string id = "id1";
 			int val1 = 23;
 			int val2 = 42;
 
@@ -379,13 +379,13 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 			SECTION("We can set an integer data from string")
 			{
 				int val1 = 42;
-        std::string str1 = "42";
+				std::string str1 = "42";
 				int val2 = 23;
-        std::string str2 = "23";
+				std::string str2 = "23";
 				int val3 = 86;
-        std::string str3 = "86.2";
-        std::string str3b = "86";
-        std::string invalid = "azerty";
+				std::string str3 = "86.2";
+				std::string str3b = "86";
+				std::string invalid = "azerty";
 				//std::string invalid = "42.23azerty"; // FIXME? fromString succeeds but would not
 
 				data->reset();
@@ -426,7 +426,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 		SECTION("We can add a double parameter")
 		{
-      std::string id = "id1";
+			std::string id = "id1";
 			double val1 = 0.23;
 			double val2 = 0.42;
 
@@ -462,15 +462,15 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 			SECTION("We can set a double data from string")
 			{
 				double val1 = 42.42;
-        std::string str1 = "42.42";
+				std::string str1 = "42.42";
 				double val2 = 23.23;
-        std::string str2 = "23.23";
+				std::string str2 = "23.23";
 				double val3 = 1.12e3;
-        std::string str3 = "1.12e3";
-        std::string str3b = "1120";
+				std::string str3 = "1.12e3";
+				std::string str3b = "1120";
 				int val4 = 86;
-        std::string str4 = "86";
-        std::string invalid = "azerty";
+				std::string str4 = "86";
+				std::string invalid = "azerty";
 
 				data->reset();
 				REQUIRE(data->isSet() == false);
@@ -515,9 +515,9 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 		SECTION("We can add a string parameter")
 		{
-      std::string id = "id1";
-      std::string val1 = "value 1";
-      std::string val2 = "value 2";
+			std::string id = "id1";
+			std::string val1 = "value 1";
+			std::string val2 = "value 2";
 
 			auto param = model->getRoot()->addParameter(id, "Parameter 1", model->getTypesDefinition()->getType("string"));
 			REQUIRE(param != nullptr);
@@ -550,10 +550,10 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 			SECTION("We can set a string data from string")
 			{
-        std::string val1 = "42.42azerty";
-        std::string str1 = val1;
-        std::string val2 = "23.23!?*";
-        std::string str2 = val2;
+				std::string val1 = "42.42azerty";
+				std::string str1 = val1;
+				std::string val2 = "23.23!?*";
+				std::string str2 = val2;
 
 				data->reset();
 				REQUIRE(data->isSet() == false);
@@ -578,10 +578,10 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 		SECTION("We can add an enumeration parameter")
 		{
-      std::string id = "id1";
-      std::string val1 = "value 1";
-      std::string val2 = "value 2";
-      std::string invalid = "value 3";
+			std::string id = "id1";
+			std::string val1 = "value 1";
+			std::string val2 = "value 2";
+			std::string invalid = "value 3";
 
 			auto type = model->getTypesDefinition()->addEnumType("enum1", "Parameter enum 1", { val1, val2 });
 			REQUIRE(type != nullptr);
@@ -722,7 +722,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 		auto param2 = std::dynamic_pointer_cast<MetaParameter>(elt);
 		REQUIRE(param == param2);
 
-    std::string desc = "This is a description";
+		std::string desc = "This is a description";
 		param2->setDescription(desc);
 		REQUIRE(param->getDescription() == desc);
 	}
@@ -730,7 +730,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 
 TEST_CASE("Model list tests", "[Model][List]")
 {
-  std::string version = "1.0.0";
+	std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 	REQUIRE(model != nullptr);
 
@@ -764,7 +764,7 @@ TEST_CASE("Model list tests", "[Model][List]")
 		REQUIRE(lst->getPattern() != nullptr);
 
 		// Build pattern
-    std::string desc = "This is a description";
+		std::string desc = "This is a description";
 		auto ptn = std::dynamic_pointer_cast<MetaComponent>(lst->getPattern());
 		REQUIRE(ptn != nullptr);
 		ptn->setDescription(desc);
@@ -963,7 +963,7 @@ TEST_CASE("Model list tests", "[Model][List]")
 
 TEST_CASE("Model data tests", "[Model][Data]")
 {
-  std::string version = "1.0.0";
+	std::string version = "1.0.0";
 	auto model = std::make_shared<MetaModel>(version);
 
 	SECTION("We can create a data model from a meta model")
@@ -1087,18 +1087,18 @@ TEST_CASE("Model data tests", "[Model][Data]")
 
 struct MyListener : Catch::TestEventListenerBase
 {
-    using TestEventListenerBase::TestEventListenerBase;
+		using TestEventListenerBase::TestEventListenerBase;
 
-    virtual void testCaseEnded( Catch::TestCaseStats const& testCaseStats ) override {
-        if(testCaseStats.totals.testCases.allPassed())
-        {
-            std::cout << "[PASSED] " << testCaseStats.testInfo.name << std::endl;
-        }
-        else
-        {
-            std::cout << "[FAILED] " << testCaseStats.testInfo.name << std::endl;
-        }
-    }
+		virtual void testCaseEnded( Catch::TestCaseStats const& testCaseStats ) override {
+				if(testCaseStats.totals.testCases.allPassed())
+				{
+						std::cout << "[PASSED] " << testCaseStats.testInfo.name << std::endl;
+				}
+				else
+				{
+						std::cout << "[FAILED] " << testCaseStats.testInfo.name << std::endl;
+				}
+		}
 };
 
 CATCH_REGISTER_LISTENER( MyListener )

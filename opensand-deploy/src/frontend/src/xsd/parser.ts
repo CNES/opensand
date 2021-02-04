@@ -1,6 +1,6 @@
 import * as Model from './model';
 
-import {parseString as parseXSD} from 'xml2js';
+import {parseString as parseXML} from 'xml2js';
 
 
 interface Documentation {
@@ -82,7 +82,7 @@ interface ModelComponent {
 interface Schema {
     "$": {"xmlns:xs": string; elementFormDefault: string;};
     "xs:element": ModelComponent[];
-    "xs:simpleType": TypeDefinition[];
+    "xs:simpleType"?: TypeDefinition[];
 }
 
 
@@ -123,7 +123,7 @@ export const fromXSD = (xsdContent: string): Model.Model => {
         "xs:simpleType": [],
     };
 
-    parseXSD(xsdContent, function(err: Error, result: {"xs:schema": Schema}) {
+    parseXML(xsdContent, function(err: Error, result: {"xs:schema": Schema}) {
         schema = result["xs:schema"];
     });
 
@@ -152,7 +152,7 @@ export const fromXSD = (xsdContent: string): Model.Model => {
     model.environment.addType("short", "Short", "Short primitive type.");
     model.environment.addType("string", "String", "String primitive type.");
 
-    schema["xs:simpleType"].forEach((e: TypeDefinition) => {
+    schema["xs:simpleType"]?.forEach((e: TypeDefinition) => {
         const infos = e["xs:annotation"][0]["xs:documentation"][0];
         const enumeration = model.environment.addEnum(
             e["$"].name.toString(),
@@ -236,167 +236,96 @@ const componentFromXSD = (component: Model.Component, node: Element[]) => {
 };
 
 
-/*
-
-const builder = require('xmlbuilder');
-
-
-export const toXML = (model: Model.Model) => {
-    var configuration = builder.create('Configuration', { encoding: 'UTF-8' });
-        configuration.att('version', model.version);
-        configuration.att('id', model.id);
-    var datamodel = configuration.ele('DataModel');
-
-    componentToXML(model.root, datamodel);
-
-    var xml = configuration.end({
-        pretty: true,
-        newline: '\n',
-        allowEmpty: false
-    });
-
-    return xml;
+interface XMLElement {
+    [name: string]: XMLElement[] | string[];
 }
 
-let componentToXML = (component: Model.Component, parentNode: any) => {
-    var componentNode = parentNode.ele(component.id);
-    componentNode.att('MT', 'C');
 
-    component.parameters.forEach(p => {
-        componentNode.ele(p.id, {'MT' : 'P'}, p.value);
-    });
-
-    component.childs.forEach(c => {
-        componentToXML(c, componentNode);
-    });
-
-    component.lists.forEach(l => {
-        listToXML(l, componentNode);
-    });
+interface DataModel {
+    "$": {version: string;};
+    root: XMLElement[];
 }
 
-let listToXML = (list: Model.List, parentNode: any) => {
-    var listNode = parentNode.ele(list.id);
-    listNode.att('MT', 'L');
 
-    list.elements.forEach(e => {
-        componentToXML(e, listNode);
-    });
-}
+const isXmlElement = (element: XMLElement | string): element is XMLElement => {
+    return typeof(element) !== "string";
+};
+
 
 export const fromXML = (model: Model.Model, xmlContent: string) => {
-    var jsonModel;
+    var dataModel: DataModel = {
+        "$": {version: model.version},
+        root: [],
+    };
 
-    xml2js.parseString(xmlContent, function (err: any, result:any) {
-        jsonModel = JSON.parse(JSON.stringify(result));
+    parseXML(xmlContent, function (err: Error, result: {model: DataModel;}) {
+        dataModel = result.model;
     });
 
-    return schemaFromXML(model, jsonModel);
-}
-
-let schemaFromXML = (model: Model.Model, jsonObject: any) => {
-    var schema = jsonObject["Configuration"]["DataModel"][0]["root"][0];
-
-    componentFromXML(model.root, schema);
+    if (model.version === dataModel["$"].version) {
+        fillComponentFromXML(model.root, dataModel.root[0]);
+    }
 
     return model;
-}
+};
 
-let cloneLists = (parent: Model.List, pattern: Model.Component, clone: Model.Component) => {
-    pattern.lists.forEach(l => {
-        let cloneL = clone.addList(l.id, l.name, l.description, l.pattern.description);
-        cloneL.refPath = l.refPath.replace('*', parent.elements.length.toString());
-        cloneL.refValue = l.refValue;
-        cloneL.visibility = l.visibility;
-        cloneLists(parent, l.pattern, cloneL.pattern);
-        cloneChilds(parent, l.pattern, cloneL.pattern);
-        cloneParameters(parent, l.pattern, cloneL.pattern);
-    })
-}
 
-let cloneChilds = (parent: Model.List, pattern: Model.Component, clone: Model.Component) => {
-    pattern.childs.forEach(c => {
-        let cloneC = clone.addChild(c.id, c.name, c.description);
-        cloneC.refPath = c.refPath.replace('*', parent.elements.length.toString());
-        cloneC.refValue = c.refValue;
-        cloneC.visibility = c.visibility;
-        cloneLists(parent, c, cloneC);
-        cloneChilds(parent, c, cloneC);
-        cloneParameters(parent, c, cloneC);
-    })
-}
+const fillComponentFromXML = (component?: Model.Component, xml?: XMLElement) => {
+    if (component == null || xml == null) {
+        return;
+    }
 
-let cloneParameters = (parent: Model.List, pattern: Model.Component, clone: Model.Component) => {
-    pattern.parameters.forEach(p => {
-        let cloneP = clone.addParameter(p.type, p.id, p.name, p.description, p.unit);
-        cloneP.value = p.value;
-        cloneP.refPath = p.refPath.replace('*', parent.elements.length.toString());
-        cloneP.refValue = p.refValue;
-        cloneP.visibility = p.visibility;
-    });
-}
-
-let addItem = (list: Model.List) => {
-    let patternClone = new Model.Component(list.id + "_item", "Item " + list.elements.length, list.pattern.description);
-    patternClone.model = list.model;
-
-    cloneLists(list, list.pattern, patternClone);
-    cloneChilds(list, list.pattern, patternClone);
-    cloneParameters(list, list.pattern, patternClone);
-
-    list.elements.push(patternClone);
-
-    return list.elements[list.elements.length - 1];
-}
-
-let componentFromXML = (component: Model.Component, jsonObject: any) => {
-    Object.entries(jsonObject).slice(1).forEach((node: any) => {
-        var nodeId = node[0].toString();
-        var node = node[1][0];
-
-        console.log(nodeId);
-        console.log(node);
-
-        switch(node["$"]["MT"].toString()) {
-            case 'P':
-                var p = component.parameters.find(p => {
-                    return p.id === nodeId;
-                });
-
-                if(p && node["_"]) {
-                    p.value = node["_"].toString();
-                }
-            break;
-            case 'C':
-                var c = component.childs.find(c => {
-                    return c.id === nodeId;
-                });
-
-                if(c) {
-                    componentFromXML(c, node);
-                }
-            break;
-            case 'L':
-                var l = component.lists.find(l => {
-                    return l.id === nodeId;
-                });
-
-                if(l) {
-                    var list = l;
-                    if(node[l.id + "_item"]) {
-                        var i = 0;
-
-                        Object.entries(node[l.id + "_item"]).forEach((e: any) => {
-                            var element = (list.elements[i]) ? list.elements[i] : addItem(list);
-                            var elementNode = e[1];
-                            componentFromXML(element, elementNode);
-
-                            i += 1;
-                        });
-                    }
-                }
-            break;
+    component.children.forEach((c: Model.Component) => {
+        if (xml.hasOwnProperty(c.id)) {
+            const element = xml[c.id][0];
+            if (isXmlElement(element)) {
+                fillComponentFromXML(c, element);
+            }
         }
-    })
-}
-*/
+    });
+
+    component.lists.forEach((l: Model.List) => {
+        const patternId = l.pattern.id + "_item_";
+        if (xml.hasOwnProperty(l.id)) {
+            const xmlElements = xml[l.id][0];
+            if (!isXmlElement(xmlElements)) {
+                // Pretty unlikely, but we shall follow typescript instructions
+                return;
+            }
+
+            const keys = Object.keys(xmlElements).filter((key: string) => key.startsWith(patternId));
+            keys.forEach((key: string) => {
+                const id = Number(key.substr(patternId.length));
+                if (isNaN(id)) {
+                    return;
+                }
+
+                const element = xmlElements[key][0];
+                if (!isXmlElement(element)) {
+                    return;
+                }
+
+                let length = l.elements.length;
+                while (id >= length) {
+                    l.addItem();
+                    if (l.elements.length === length) {
+                        // reached maxOccurences
+                        return;
+                    }
+                    length = l.elements.length;
+                }
+
+                fillComponentFromXML(l.elements[id], element);
+            });
+        }
+    });
+
+    component.parameters.forEach((p: Model.Parameter) => {
+        if (xml.hasOwnProperty(p.id)) {
+            const element = xml[p.id][0];
+            if (!isXmlElement(element)) {
+                p.value = element;
+            }
+        }
+    });
+};

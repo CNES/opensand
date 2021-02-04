@@ -52,7 +52,7 @@ export class Model {
         this.visibility = "NORMAL";
         this.environment = new Environment();
         this.root = new Component(id, name, description === "" ? "Model" : description, this);
-        this.saved = true;
+        this.saved = false;
     }
 
     isComplete = (): boolean => {
@@ -242,6 +242,11 @@ export class List extends NamedElement {
         this.minOccurences = minOccurences;
         this.maxOccurences = maxOccurences;
         this.pattern = new Component(patternId, patternName, patternDescription, model);
+
+        // Array.from(Array(minOccurences)).forEach(this.addItem);
+        for (let i = 0; i < minOccurences; i++) {
+            this.addItem();
+        }
     }
 
     isVisible(): boolean {
@@ -262,18 +267,22 @@ export class List extends NamedElement {
     };
 
     addItem = () => {
-        const {id, name, description} = this.pattern;
-        const index = this.elements.length;
-        const item = new Component(id + "_item_" + index, name + " " + index, description, this.model);
-        item.refPath = this.pattern.refPath.replace('*', index.toString());
-        item.refValue = this.pattern.refValue;
-        item.advanced = this.pattern.advanced;
-        item.clone(this.pattern, index);
+        if (this.elements.length < this.maxOccurences) {
+            const {id, name, description} = this.pattern;
+            const index = this.elements.length;
+            const item = new Component(id + "_item_" + index, name + " " + index, description, this.model);
+            item.refPath = this.pattern.refPath.replace('*', index.toString());
+            item.refValue = this.pattern.refValue;
+            item.advanced = this.pattern.advanced;
+            item.clone(this.pattern, index);
 
-        this.elements.push(item);
+            this.elements.push(item);
+        }
     };
 
     removeItem = () => {
-        this.elements.pop();
+        if (this.elements.length > this.minOccurences) {
+            this.elements.pop();
+        }
     };
 }

@@ -11,10 +11,9 @@ import Select from '@material-ui/core/Select';
 import TextField from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 
-import {makeStyles, Theme} from '@material-ui/core/styles';
-
 import HelpIcon from '@material-ui/icons/Help';
 
+import {parameterStyles} from '../../utils/theme';
 import {Parameter as ParameterType} from '../../xsd/model';
 
 
@@ -36,19 +35,9 @@ interface EnumProps extends Props {
 }
 
 
-const useStyles = makeStyles((theme: Theme) => ({
-    fullWidth: {
-        width: "100%",
-    },
-    spaced: {
-        marginBottom: theme.spacing(1),
-    },
-}));
-
-
 const BooleanParam = (props: Props) => {
     const {parameter, changeModel} = props;
-    const classes = useStyles();
+    const classes = parameterStyles();
 
     const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         parameter.value = String(parameter.value !== "true");
@@ -76,7 +65,7 @@ const BooleanParam = (props: Props) => {
 
 const NumberParam = (props: NumberProps) => {
     const {parameter, min, max, step, changeModel} = props;
-    const classes = useStyles();
+    const classes = parameterStyles();
 
     const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         parameter.value = event.target.value;
@@ -120,7 +109,7 @@ const NumberParam = (props: NumberProps) => {
 
 const StringParam = (props: Props) => {
     const {parameter, changeModel} = props;
-    const classes = useStyles();
+    const classes = parameterStyles();
 
     const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         parameter.value = event.target.value;
@@ -162,7 +151,7 @@ const StringParam = (props: Props) => {
 
 const EnumParam = (props: EnumProps) => {
     const {parameter, changeModel, enumeration} = props;
-    const classes = useStyles();
+    const classes = parameterStyles();
 
     const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: unknown;}>) => {
         parameter.value = event.target.value as string;

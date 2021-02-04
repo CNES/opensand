@@ -116,8 +116,26 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				// TODO: Error handling
 				std::string folder = optarg;
 				Conf->createModels();
-				Conf->writeInfrastructureModel(folder + "/infrastructure.xsd");
 				Conf->writeTopologyModel(folder + "/topology.xsd");
+				Conf->writeInfrastructureModel(folder + "/infrastructure.xsd");
+
+				auto types = Conf->getModelTypesDefinition();
+				types->addEnumType("topology_xsd", "Topology XSD Files", {"topology.xsd",});
+				types->addEnumType("infrastructure_xsd", "Infrastructure XSD Files", {"infrastructure.xsd",});
+				types->addEnumType("profile_xsd", "Profile XSD Files", {"profile_sat.xsd",
+				                                                        "profile_st.xsd",
+				                                                        "profile_gw.xsd",
+				                                                        "profile_gw_net_acc.xsd",
+				                                                        "profile_gw_phy.xsd"});
+
+				auto project = Conf->getOrCreateComponent("project", "Project", "The Project Layout");
+				project->addParameter("name", "Name", types->getType("string"));
+				project->addParameter("topology", "Topology Model", types->getType("topology_xsd"));
+				auto entities = project->addList("entities", "Entities", "entity")->getPattern();
+				entities->addParameter("name", "Name",types->getType("string"));
+				entities->addParameter("infrastructure", "Infrastructure Model", types->getType("infrastructure_xsd"));
+				entities->addParameter("profile", "Profile Model", types->getType("profile_xsd"));
+				Conf->writeProfileModel(folder + "/project.xsd");
 
 				std::shared_ptr<Entity> temporary;
 				temporary = std::make_shared<EntitySat>();
@@ -127,7 +145,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				temporary = std::make_shared<EntityGw>(0);
 				temporary->createSpecificConfiguration(folder + "/profile_gw.xsd");
 				temporary = std::make_shared<EntityGwNetAcc>(0);
-				temporary->createSpecificConfiguration(folder + "/profile_gw_net acc.xsd");
+				temporary->createSpecificConfiguration(folder + "/profile_gw_net_acc.xsd");
 				temporary = std::make_shared<EntityGwPhy>(0);
 				temporary->createSpecificConfiguration(folder + "/profile_gw_phy.xsd");
 			}

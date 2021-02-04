@@ -53,7 +53,7 @@ const useRowStyles = makeStyles({
 
 const Row = (props: RowProps) => {
     const {component, headers, changeModel, onDelete} = props;
-    const [open, setOpen] = React.useState<boolean>(true);
+    const [open, setOpen] = React.useState<boolean>(false);
     const classes = useRowStyles();
 
     return (
@@ -109,6 +109,7 @@ const List = (props: Props) => {
         forceUpdate();
     }, [list, forceUpdate]);
 
+    const count = list.elements.length;
     const headers = list.pattern.parameters.filter(p => p.isVisible()).map(p => p.id);
 
     return (
@@ -140,7 +141,7 @@ const List = (props: Props) => {
                             component={c}
                             headers={headers}
                             changeModel={forceUpdate}
-                            onDelete={i === list.elements.length - 1 && removeListItem}
+                            onDelete={i === count - 1 && count > list.minOccurences && removeListItem}
                         />
                     ))}
                 </TableBody>

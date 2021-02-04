@@ -1,6 +1,7 @@
 import React from 'react';
 
 import AppBar from '@material-ui/core/AppBar';
+import Button from '@material-ui/core/Button';
 import FormControl from '@material-ui/core/FormControl';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -15,6 +16,7 @@ import Typography from '@material-ui/core/Typography';
 import {makeStyles, Theme} from '@material-ui/core/styles';
 
 import {Model as ModelType, Component as ComponentType, Visibility, Visibilities} from '../../xsd/model';
+import {updateProjectXML, IApiSuccess} from '../../api';
 
 import Component from './Component';
 import SingleListComponent from './SingleListComponent';
@@ -22,6 +24,8 @@ import SingleListComponent from './SingleListComponent';
 
 interface Props {
     model: ModelType;
+    projectName: string;
+    urlFragment: string;
 }
 
 
@@ -45,6 +49,9 @@ const useStyles = makeStyles((theme: Theme) => ({
     fullHeight: {
         minHeight: "100vh",
     },
+    button: {
+        marginRight: theme.spacing(2),
+    },
 }));
 
 
@@ -60,13 +67,23 @@ const TabPanel = (props: PanelProps) => {
 
 
 const Model = (props: Props) => {
-    const classes = useStyles();
-    const version = props.model.version;
-    const {description, children} = props.model.root;
+    const {model, projectName, urlFragment} = props;
+    const {root, version} = model;
+    const {description, children} = root;
 
     const [value, setValue] = React.useState<number>(0);
     const [, setState] = React.useState<object>({});
     const [visibility, setVisibility] = React.useState<Visibility>("NORMAL");
+    const classes = useStyles();
+
+    const validateSaved = React.useCallback((status: IApiSuccess) => {
+        model.saved = true;
+        setState({});
+    }, [model, setState]);
+
+    const handleSave = React.useCallback(() => {
+        updateProjectXML(validateSaved, console.log, projectName, urlFragment, model);
+    }, [validateSaved, projectName, urlFragment, model]);
 
     const handleChange = React.useCallback((event: React.ChangeEvent<{}>, index: number) => {
         setValue(index);
@@ -74,14 +91,14 @@ const Model = (props: Props) => {
 
     const changeVisibility = React.useCallback((event: React.ChangeEvent<{name?: string; value: unknown;}>) => {
         const visibility = event.target.value as Visibility;
-        props.model.visibility = visibility;
+        model.visibility = visibility;
         setVisibility(visibility);
-    }, [props.model, setVisibility]);
+    }, [model, setVisibility]);
 
     const changeModel = React.useCallback(() => {
-        props.model.saved = false;
+        model.saved = false;
         setState({});
-    }, [props.model, setState]);
+    }, [model, setState]);
 
     return (
         <Paper elevation={0} className={classes.fullHeight}>
@@ -92,6 +109,15 @@ const Model = (props: Props) => {
                 <Typography variant="h6" className={classes.version}>
                     (v{version})
                 </Typography>
+                <Button
+                    className={classes.button}
+                    disabled={model.saved}
+                    color="secondary"
+                    variant="contained"
+                    onClick={handleSave}
+                >
+                    Save
+                </Button>
                 <FormControl>
                     <InputLabel htmlFor="visibility">Visibility</InputLabel>
                     <Select value={visibility} onChange={changeVisibility} inputProps={{id: "visibility"}}>
@@ -110,7 +136,7 @@ const Model = (props: Props) => {
                     {children.map((c: ComponentType, i: number) => c.description === "" ? (
                         <Tab key={c.id} label={c.name} value={i} />
                     ) : (
-                        <Tooltip title={c.description} placement="top">
+                        <Tooltip title={c.description} placement="top" key={c.id}>
                             <Tab key={c.id} label={c.name} value={i} />
                         </Tooltip>
                     ))}

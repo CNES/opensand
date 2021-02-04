@@ -8,67 +8,68 @@ import Typography from "@material-ui/core/Typography";
 
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
+import {ITemplatesContent} from '../../api';
 import {componentStyles} from '../../utils/theme';
-import {Component as ComponentType} from '../../xsd/model';
+import {Component, Enum} from '../../xsd/model';
 
-import List from './List';
-import Parameter from './Parameter';
+import Parameters from './Parameter';
+import Lists from './List';
 
 
 interface Props {
-    component: ComponentType;
-    changeModel: () => void;
+    component: Component;
+    templates: ITemplatesContent;
+    forceUpdate: () => void;
+    onEdit: (entity: string | null, model: string, xsd: string, xml?: string) => void;
 }
 
 
-const Component = (props: Props) => {
-    const {component, changeModel} = props;
+const ProjectComponent = (props: Props) => {
+    const {component, templates, forceUpdate} = props;
+    const {enums} = component.model.environment;
     const classes = componentStyles();
-
-    const [, setState] = React.useState<object>({});
-
-    const forceUpdate = React.useCallback(() => {
-        setState({});
-        changeModel();
-    }, [changeModel, setState]);
-
-    if (!component.isVisible()) {
-        return null;
-    }
+    const onEdit = props.onEdit.bind(this, null);
 
     return (
         <Paper elevation={0} className={classes.root}>
             {component.parameters.filter(p => p.isVisible()).map(p => (
-                <Parameter
+                <Parameters
                     key={p.id}
                     parameter={p}
-                    changeModel={forceUpdate}
+                    templates={templates}
+                    forceUpdate={forceUpdate}
+                    onEdit={onEdit}
+                    enumeration={enums.find((e: Enum) => e.id === p.type)}
                 />
             ))}
             {component.lists.filter(l => l.isVisible()).map(l => (
-                <Accordion key={l.id} defaultExpanded={false}>
+                <Accordion key={l.id} defaultExpanded>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                         <Typography className={classes.heading}>{l.name}</Typography>
                         <Typography className={classes.secondaryHeading}>{l.description}</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <List
+                        <Lists
                             list={l}
-                            changeModel={forceUpdate}
+                            templates={templates}
+                            forceUpdate={forceUpdate}
+                            onEdit={props.onEdit}
                         />
                     </AccordionDetails>
                 </Accordion>
             ))}
             {component.children.filter(c => c.isVisible()).map(c => (
-                <Accordion key={c.id} defaultExpanded={false}>
+                <Accordion key={c.id} defaultExpanded>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                         <Typography className={classes.heading}>{c.name}</Typography>
                         <Typography className={classes.secondaryHeading}>{c.description}</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
-                        <Component
+                        <ProjectComponent
                             component={c}
-                            changeModel={forceUpdate}
+                            templates={templates}
+                            onEdit={props.onEdit}
+                            forceUpdate={forceUpdate}
                         />
                     </AccordionDetails>
                 </Accordion>
@@ -78,4 +79,4 @@ const Component = (props: Props) => {
 };
 
 
-export default Component;
+export default ProjectComponent;
