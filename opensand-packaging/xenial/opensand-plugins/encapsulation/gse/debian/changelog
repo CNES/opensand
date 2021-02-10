@@ -1,3 +1,9 @@
+opensand-collector (6.0.0) xenial; urgency=low
+
+  * Release 6.0.0
+
+ -- mettinger <mathias.ettinger@viveris.fr>  Tue, 9 Mar 2021 15:00:00 +0200
+
 opensand-gse-encap-plugin (5.2.0) xenial; urgency=low
 
   * Release 5.2.0

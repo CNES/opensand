@@ -48,6 +48,8 @@ make_core()
 make_services()
 {
     echo "Building OpenSAND services for $TARGET_DIST"
+    # Package and install opensand-deploy
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-deploy
     # Package and install opensand-collector
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-collector 
     # Package and install opensand-meta
@@ -156,8 +158,8 @@ case $MODULE in
     "all")
         make_libs
         make_core
-        make_services
         make_encap
+        make_services
         ;;
     "libs")
         make_libs
