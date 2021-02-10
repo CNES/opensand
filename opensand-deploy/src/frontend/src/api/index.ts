@@ -16,6 +16,10 @@ export interface IApiSuccess {
 }
 
 
+export const silenceSuccess = (success: IApiSuccess) => {
+};
+
+
 export interface IXsdContent {
     content: string;
 }
@@ -77,6 +81,13 @@ const doFetch = <T>(
 };
 
 
+export const getXSD = (
+        callback: TCallback<IXsdContent>,
+        errorCallback: ErrorCallback,
+        filename: string,
+): Promise<void> => doFetch<IXsdContent>(callback, errorCallback, `/api/model/${filename}`);
+
+
 export const listProjects = (
         callback: TCallback<string[]>,
         errorCallback: ErrorCallback,
@@ -87,6 +98,13 @@ export const getProjectModel = (
         callback: TCallback<IXsdContent>,
         errorCallback: ErrorCallback,
 ): Promise<void> => doFetch<IXsdContent>(callback, errorCallback, "/api/project");
+
+
+export const listProjectTemplates = (
+        callback: TCallback<ITemplatesContent>,
+        errorCallback: ErrorCallback,
+        projectName: string,
+): Promise<void> => doFetch<ITemplatesContent>(callback, errorCallback, "/api/project/" + projectName + "/templates");
 
 
 export const getProject = (
@@ -134,116 +152,3 @@ export const deleteProjectXML = (
         projectName: string,
         urlFragment: string,
 ): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${urlFragment}`, "DELETE");
-
-
-export const getProjectTopology = (
-        callback: TCallback<IXmlContent>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-): Promise<void> => doFetch<IXmlContent>(callback, errorCallback, "/api/project/" + projectName + "/topology");
-
-
-export const updateProjectTopology = (
-        callback: TCallback<IApiSuccess>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        topology: Model,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, "/api/project/" + projectName + "/topology", "PUT", {xml_data: toXML(topology)});
-
-
-export const getProjectInfrastructure = (
-        callback: TCallback<IXmlContent>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        entityName: string,
-): Promise<void> => doFetch<IXmlContent>(callback, errorCallback, "/api/project/" + projectName + "/infrastructure/" + entityName);
-
-
-export const updateProjectInfrastructure = (
-        callback: TCallback<IApiSuccess>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        entityName: string,
-        infrastructure: Model,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, "/api/project/" + projectName + "/infrastructure/" + entityName, "PUT", {xml_data: toXML(infrastructure)});
-
-
-export const deleteProjectInfrastructure = (
-        callback: TCallback<IApiSuccess>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        entityName: string,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, "/api/project/" + projectName + "/infrastructure/" + entityName, "DELETE");
-
-
-export const getProjectProfile = (
-        callback: TCallback<IXmlContent>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        entityName: string,
-): Promise<void> => doFetch<IXmlContent>(callback, errorCallback, "/api/project/" + projectName + "/profile/" + entityName);
-
-
-export const updateProjectProfile = (
-        callback: TCallback<IApiSuccess>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        entityName: string,
-        profile: Model,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, "/api/project/" + projectName + "/profile/" + entityName, "PUT", {xml_data: toXML(profile)});
-
-
-export const deleteProjectProfile = (
-        callback: TCallback<IApiSuccess>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        entityName: string,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, "/api/project/" + projectName + "/profile/" + entityName, "DELETE");
-
-
-export const listProjectTemplates = (
-        callback: TCallback<ITemplatesContent>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-): Promise<void> => doFetch<ITemplatesContent>(callback, errorCallback, "/api/project/" + projectName + "/templates");
-
-
-export const getProjectTemplate = (
-        callback: TCallback<IXmlContent>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        templateName: string,
-        fileName: string,
-): Promise<void> => doFetch<IXmlContent>(callback, errorCallback, "/api/project/" + projectName + "/template/" + templateName + "/" + fileName);
-
-
-export const updateProjectTemplate = (
-        callback: TCallback<IApiSuccess>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        templateName: string,
-        fileName: string,
-        template: Model,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, "/api/project/" + projectName + "/template/" + templateName + "/" + fileName, "PUT", {xml_data: toXML(template)});
-
-
-export const deleteProjectTemplate = (
-        callback: TCallback<IApiSuccess>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        templateName: string,
-        fileName: string,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, "/api/project/" + projectName + "/template/" + templateName + "/" + fileName, "DELETE");
-
-
-export const listXSD = (
-        callback: TCallback<string[]>,
-        errorCallback: ErrorCallback,
-): Promise<void> => doFetch<string[]>(callback, errorCallback, "/api/models");
-
-
-export const getXSD = (
-        callback: TCallback<IXsdContent>,
-        errorCallback: ErrorCallback,
-        filename: string,
-): Promise<void> => doFetch<IXsdContent>(callback, errorCallback, `/api/model/${filename}`);

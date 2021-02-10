@@ -9,6 +9,7 @@ import Button from '@material-ui/core/Button';
 import Typography from '@material-ui/core/Typography';
 
 import {deleteProject, IApiSuccess} from '../../api';
+import {sendError} from '../../utils/dispatcher';
 
 
 interface Props {
@@ -31,7 +32,7 @@ const ProjectCard = (props: Props) => {
     }, [onReload]);
 
     const removeProject = React.useCallback(() => {
-        deleteProject(onSuccess, console.log, project);
+        deleteProject(onSuccess, sendError, project);
     }, [onSuccess, project]);
 
     return (

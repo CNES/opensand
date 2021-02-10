@@ -14,7 +14,8 @@ const Routes = () => (
             <Switch>
                 <Route exact path="/projects" component={Projects} />
                 <Route exact path="/project/:name" component={Project} />
-                <Route exact path="/edit/:name" component={Editor} />
+                <Route exact path="/edit/:project/:model/:entity" component={Editor} />
+                <Route exact path="/edit/:project/:model" component={Editor} />
                 <Route exact path="/not-found" component={NotFound} />
                 <Redirect exact from="/" to="/projects" />
                 <Redirect from="*" to="/not-found" />

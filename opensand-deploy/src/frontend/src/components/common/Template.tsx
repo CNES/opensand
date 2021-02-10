@@ -1,15 +1,15 @@
 import React from 'react';
 
 import AppBar from '@material-ui/core/AppBar';
-import Badge from '@material-ui/core/Badge';
-import IconButton from '@material-ui/core/IconButton';
 import Paper from '@material-ui/core/Paper';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 
-import LogIcon from '@material-ui/icons/Announcement';
-
 import {makeStyles, Theme} from '@material-ui/core/styles';
+
+import {registerCallback, unregisterCallback} from '../../utils/dispatcher';
+
+import Logger from './Logger';
 
 
 interface Props {
@@ -26,6 +26,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     },
 /*
     footer: {
+        // Fixed height
         flex: "0 1 " + theme.spacing(5),
     },
 */
@@ -36,7 +37,21 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 
 const Template = (props: Props) => {
+    const [error, changeError] = React.useState<string | undefined>(undefined);
+    const [date, changeDate] = React.useState<Date>(new Date());
     const classes = useStyles();
+
+    const newError = React.useCallback((message: string) => {
+        changeError(message);
+        changeDate(new Date());
+    }, [changeError, changeDate]);
+
+    React.useEffect(() => {
+        if (!registerCallback("errorCallback", newError)) {
+            newError("Failed registering error callback: further errors will not display here.");
+        }
+        return () => {unregisterCallback("errorCallback");}
+    }, [newError]);
 
     return (
         <React.Fragment>
@@ -45,11 +60,7 @@ const Template = (props: Props) => {
                     <Typography variant="h6" className={classes.expand}>
                         OpenSAND Conf 6.0.0
                     </Typography>
-                    <IconButton color="inherit">
-                        <Badge badgeContent={4} color="secondary">
-                            <LogIcon />
-                        </Badge>
-                    </IconButton>
+                    <Logger message={error} date={date} />
                 </Toolbar>
             </AppBar>
             <Paper elevation={0} className={classes.content}>

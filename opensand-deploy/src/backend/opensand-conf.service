@@ -1,0 +1,15 @@
+[Unit]
+Description=Startup script for OpenSAND configuration tool
+Requires=network.target
+
+[Service]
+Type=simple
+RuntimeDirectory=opensand
+WorkingDirectory=/var/opensand/www/
+ExecStart=uwsgi --http-socket :80 --wsgi-file /var/opensand/opensand-conf/backend.py --callable app --check-static /var/opensand/opensand-conf/static/ --master --workers 5 --die-on-term --pidfile /var/run/opensand/opensand-conf.pid
+ExecStop=uwsgi --stop /var/run/opensand/opensand-conf.pid
+ExecReload=uwsgi --reload /var/run/opensand/opensand-conf.pid
+PIDFile=/var/run/opensand/opensand-conf.pid
+
+[Install]
+WantedBy=multi-user.target

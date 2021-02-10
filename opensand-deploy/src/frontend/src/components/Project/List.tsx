@@ -8,10 +8,11 @@ import TableCell from '@material-ui/core/TableCell';
 import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
+import Tooltip from '@material-ui/core/Tooltip';
 
 import AddIcon from '@material-ui/icons/AddCircleOutline';
 import DeleteIcon from '@material-ui/icons/HighlightOff';
-import MoreIcon from '@material-ui/icons/MoreHoriz';
+import DownloadIcon from '@material-ui/icons/GetApp';
 
 import {ITemplatesContent} from '../../api';
 import {Component, List, Parameter, Enum} from '../../xsd/model';
@@ -25,6 +26,7 @@ interface Props {
     templates: ITemplatesContent;
     forceUpdate: () => void;
     onEdit: (entity: string | null, model: string, xsd: string, xml?: string) => void;
+    onDelete: (entity: string | null, model: string) => void;
 }
 
 
@@ -62,9 +64,11 @@ const ProjectList = (props: Props) => {
                 <TableHead>
                     <TableRow>
                         <TableCell key={0} align="left">
-                            <IconButton size="small">
-                                <MoreIcon />
-                            </IconButton>
+                            <Tooltip placement="top" title="Download configuration files of the project">
+                                <IconButton size="small">
+                                    <DownloadIcon />
+                                </IconButton>
+                            </Tooltip>
                         </TableCell>
                         {headers.map((id: string, i: number) => (
                             <TableCell key={i+1} align="center">
@@ -72,9 +76,11 @@ const ProjectList = (props: Props) => {
                             </TableCell>
                         ))}
                         <TableCell key={headers.length + 1} align="right">
-                            <IconButton size="small" onClick={handleOpen}>
-                                <AddIcon />
-                            </IconButton>
+                            <Tooltip placement="top" title="Add a new entity to the project">
+                                <IconButton size="small" onClick={handleOpen}>
+                                    <AddIcon />
+                                </IconButton>
+                            </Tooltip>
                         </TableCell>
                     </TableRow>
                 </TableHead>
@@ -82,12 +88,15 @@ const ProjectList = (props: Props) => {
                     {list.elements.map((c: Component, i: number) => {
                         const entity = c.parameters.find((p: Parameter) => p.id === "name")?.value;
                         const onEdit = props.onEdit.bind(this, entity || null);
+                        const onDelete = props.onDelete.bind(this, entity || null);
                         return (
                             <TableRow key={i}>
                                 <TableCell key={0} align="left">
-                                    <IconButton size="small">
-                                        <MoreIcon />
-                                    </IconButton>
+                                    <Tooltip placement="top" title="Download configuration files of this entity">
+                                        <IconButton size="small">
+                                            <DownloadIcon />
+                                        </IconButton>
+                                    </Tooltip>
                                 </TableCell>
                                 {headers.map((id: string, i: number) => {
                                     const param = c.parameters.find((p: Parameter) => p.id === id);
@@ -100,17 +109,19 @@ const ProjectList = (props: Props) => {
                                                 key={i+1}
                                                 parameter={param}
                                                 templates={templates}
-                                                forceUpdate={forceUpdate}
                                                 onEdit={onEdit}
+                                                onDelete={onDelete}
                                                 enumeration={enums.find((e: Enum) => e.id === param.type)}
                                             />
                                         </TableCell>
                                     );
                                 })}
                                 <TableCell key={headers.length + 1} align="right">
-                                    <IconButton size="small" onClick={() => removeListItem(i)}>
-                                        <DeleteIcon />
-                                    </IconButton>
+                                    <Tooltip placement="top" title="Remove this entity">
+                                        <IconButton size="small" onClick={() => removeListItem(i)}>
+                                            <DeleteIcon />
+                                        </IconButton>
+                                    </Tooltip>
                                 </TableCell>
                             </TableRow>
                         );

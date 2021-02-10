@@ -1,49 +1,50 @@
 import React from 'react';
 import {useHistory} from 'react-router-dom';
 
-import {updateProject, listProjectTemplates, ITemplatesContent} from '../../api';
-import {Model, Component, Parameter} from '../../xsd/model';
+import {updateProject, deleteProjectXML, listProjectTemplates, silenceSuccess, ITemplatesContent} from '../../api';
+import {sendError} from '../../utils/dispatcher';
+import {Model, Component} from '../../xsd/model';
 
 import Components from './Component';
 
 
 interface Props {
     project: Model;
+    projectName: string;
 }
 
 
 const Entities = (props: Props) => {
-    const projectComponent = props.project.root.children.find((c: Component) => c.id === "project");
-    const projectName = projectComponent?.parameters.find((p: Parameter) => p.id === "name")?.value;
+    const {project, projectName} = props;
     const [templates, setTemplates] = React.useState<ITemplatesContent>({});
     const [, setState] = React.useState<object>({});
     const history = useHistory();
 
     const handleUpdate = React.useCallback(() => {
-        if (projectName != null) {
-            updateProject(console.log, console.log, projectName, props.project);
-        }
+        updateProject(silenceSuccess, sendError, projectName, project);
         setState({});
-    }, [setState, projectName, props.project]);
+    }, [setState, projectName, project]);
 
     const handleEdit = React.useCallback((entity: string | null, model: string, xsd: string, xml?: string) => {
-        if (projectName != null) {
-            const url = entity == null ? model : model + "/" + entity;
-            const file = xml == null ? url : "template/" + xsd + "/" + xml;
-            history.push({
-                pathname: "/edit/" + projectName,
-                search: "?url=" + url + "&xsd=" + xsd + "&xml=" + file,
-            });
-        }
-    }, [history, projectName]);
+        handleUpdate();
+        history.push({
+            pathname: "/edit/" + projectName + "/" + model + (entity == null ? "" : "/" + entity),
+            search: "?xsd=" + xsd + (xml == null ? "" : "&xml=" + xml),
+        });
+    }, [history, projectName, handleUpdate]);
+
+    const handleDelete = React.useCallback((entity: string | null, model: string) => {
+        handleUpdate();
+        const url = model + (entity == null ? "" : "/" + entity);
+        deleteProjectXML(silenceSuccess, sendError, projectName, url);
+    }, [projectName, handleUpdate]);
 
     React.useEffect(() => {
-        if (projectName != null) {
-            listProjectTemplates(setTemplates, console.log, projectName);
-        }
+        listProjectTemplates(setTemplates, sendError, projectName);
         return () => {setTemplates({});};
     }, [setTemplates, projectName]);
 
+    const projectComponent = project.root.children.find((c: Component) => c.id === "project");
     if (projectComponent == null) {
         return null;
     }
@@ -53,6 +54,7 @@ const Entities = (props: Props) => {
             component={projectComponent}
             templates={templates}
             onEdit={handleEdit}
+            onDelete={handleDelete}
             forceUpdate={handleUpdate}
         />
     );

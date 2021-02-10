@@ -242,6 +242,12 @@ def list_models():
     return jsonify(XSDs)
 
 
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def index(path):
+    return app.send_static_file('index.html')
+
+
 if __name__ == '__main__':
     import argparse
 

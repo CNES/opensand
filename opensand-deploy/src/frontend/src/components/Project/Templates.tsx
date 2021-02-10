@@ -20,15 +20,17 @@ import DeleteIcon from '@material-ui/icons/HighlightOff';
 import EditIcon from '@material-ui/icons/Edit';
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
-import {listProjectTemplates, deleteProjectTemplate, ITemplatesContent} from '../../api';
+import {listProjectTemplates, deleteProjectXML, ITemplatesContent} from '../../api';
+import {sendError} from '../../utils/dispatcher';
 import {componentStyles} from '../../utils/theme';
-import {Model, Component, Parameter, Enum} from '../../xsd/model';
+import {Model, Enum} from '../../xsd/model';
 
 import SingleFieldDialog from '../common/SingleFieldDialog';
 
 
 interface Props {
     project: Model;
+    projectName: string;
 }
 
 
@@ -139,10 +141,8 @@ const TemplatesTable = (props: TableProps) => {
 
 
 const Templates = (props: Props) => {
-    const projectComponent = props.project.root.children.find((c: Component) => c.id === "project");
-    const projectName = projectComponent?.parameters.find((p: Parameter) => p.id === "name")?.value;
-
-    const templateTypes = props.project.environment.enums;
+    const {project, projectName} = props;
+    const templateTypes = project.environment.enums;
     const [templates, setTemplates] = React.useState<ITemplatesContent>({});
     const classes = componentStyles();
     const history = useHistory();
@@ -160,24 +160,19 @@ const Templates = (props: Props) => {
             const templateNames = templates[templateFile].filter((name: string) => name !== templateName);
             setTemplates({...templates, [templateFile]: templateNames});
         }
-        if (projectName != null) {
-            deleteProjectTemplate(console.log, console.log, projectName, templateFile, templateName);
-        }
+        const url = "template/" + templateFile + "/" + templateName;
+        deleteProjectXML(console.log, sendError, projectName, url);
     }, [setTemplates, templates, projectName]);
 
     const editTemplate = React.useCallback((templateFile: string, templateName: string) => {
-        if (projectName != null) {
-            history.push({
-                pathname: "/edit/" + projectName,
-                search: "?url=template/" + templateFile + "/" + templateName + "&xsd=" + templateFile,
-            });
-        }
+        history.push({
+            pathname: "/edit/" + projectName,
+            search: "?url=template/" + templateFile + "/" + templateName + "&xsd=" + templateFile,
+        });
     }, [history, projectName]);
 
     React.useEffect(() => {
-        if (projectName != null) {
-            listProjectTemplates(setTemplates, console.log, projectName);
-        }
+        listProjectTemplates(setTemplates, sendError, projectName);
         return () => {setTemplates({});};
     }, [setTemplates, projectName]);
 

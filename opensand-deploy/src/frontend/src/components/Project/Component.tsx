@@ -21,6 +21,7 @@ interface Props {
     templates: ITemplatesContent;
     forceUpdate: () => void;
     onEdit: (entity: string | null, model: string, xsd: string, xml?: string) => void;
+    onDelete: (entity: string | null, model: string) => void;
 }
 
 
@@ -29,6 +30,7 @@ const ProjectComponent = (props: Props) => {
     const {enums} = component.model.environment;
     const classes = componentStyles();
     const onEdit = props.onEdit.bind(this, null);
+    const onDelete = props.onDelete.bind(this, null);
 
     return (
         <Paper elevation={0} className={classes.root}>
@@ -37,8 +39,8 @@ const ProjectComponent = (props: Props) => {
                     key={p.id}
                     parameter={p}
                     templates={templates}
-                    forceUpdate={forceUpdate}
                     onEdit={onEdit}
+                    onDelete={onDelete}
                     enumeration={enums.find((e: Enum) => e.id === p.type)}
                 />
             ))}
@@ -54,6 +56,7 @@ const ProjectComponent = (props: Props) => {
                             templates={templates}
                             forceUpdate={forceUpdate}
                             onEdit={props.onEdit}
+                            onDelete={props.onDelete}
                         />
                     </AccordionDetails>
                 </Accordion>
@@ -69,6 +72,7 @@ const ProjectComponent = (props: Props) => {
                             component={c}
                             templates={templates}
                             onEdit={props.onEdit}
+                            onDelete={props.onDelete}
                             forceUpdate={forceUpdate}
                         />
                     </AccordionDetails>

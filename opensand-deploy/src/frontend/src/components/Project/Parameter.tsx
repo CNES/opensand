@@ -8,6 +8,7 @@ import ListSubheader from '@material-ui/core/ListSubheader';
 import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 import TextField from '@material-ui/core/TextField';
+import Tooltip from '@material-ui/core/Tooltip';
 
 import DeleteIcon from '@material-ui/icons/HighlightOff';
 import EditIcon from '@material-ui/icons/Edit';
@@ -20,8 +21,8 @@ import {Parameter, Enum} from '../../xsd/model';
 interface Props {
     parameter: Parameter;
     templates: ITemplatesContent;
-    forceUpdate: () => void;
     onEdit: (model: string, xsd: string, xml?: string) => void;
+    onDelete: (model: string) => void;
     enumeration?: Enum;
 }
 
@@ -33,21 +34,24 @@ interface Option {
 
 
 const ProjectParameter = (props: Props) => {
-    const {parameter, templates, enumeration, forceUpdate, onEdit} = props;
+    const {parameter, templates, enumeration, onEdit, onDelete} = props;
     const classes = parameterStyles();
 
     const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: Option;}>) => {
-        console.log(event.target);
-        const {xsd, xml} = event.target.value;
+        const {value} = event.target;
+        if (value == null || !value.hasOwnProperty("xsd")) {
+            return;
+        }
+
+        const {xsd, xml} = value;
         parameter.value = xsd;
-        forceUpdate();
         onEdit(parameter.id, xsd, xml);
-    }, [parameter, forceUpdate, onEdit]);
+    }, [parameter, onEdit]);
 
     const handleClear = React.useCallback(() => {
         parameter.value = "";
-        forceUpdate();
-    }, [parameter, forceUpdate]);
+        onDelete(parameter.id);
+    }, [parameter, onDelete]);
 
     const handleEdit = React.useCallback(() => {
         onEdit(parameter.id, parameter.value);
@@ -117,13 +121,7 @@ const ProjectParameter = (props: Props) => {
         <ListSubheader key={choiceModels.length + 3}>From Template</ListSubheader>,
     ];
     const choices = [
-        <MenuItem
-            // @ts-ignore [1]
-            value={{xsd: ""}}
-            key={0}
-        >
-            {header}
-        </MenuItem>,
+        <MenuItem value="" key={0}>{header}</MenuItem>,
         <ListSubheader key={1}>Models</ListSubheader>,
     ].concat(choiceModels, dividers, ...choiceTemplates);
 
@@ -146,8 +144,20 @@ const ProjectParameter = (props: Props) => {
                     {choices}
                 </Select>
             </FormControl>
-            {disabled && <IconButton onClick={handleEdit}><EditIcon /></IconButton>}
-            {disabled && <IconButton onClick={handleClear}><DeleteIcon /></IconButton>}
+            {disabled && (
+                <Tooltip placement="top" title="Edit this configuration file">
+                    <IconButton onClick={handleEdit}>
+                        <EditIcon />
+                    </IconButton>
+                </Tooltip>
+            )}
+            {disabled && (
+                <Tooltip placement="top" title="Remove this configuration file">
+                    <IconButton onClick={handleClear}>
+                        <DeleteIcon />
+                    </IconButton>
+                </Tooltip>
+            )}
         </div>
     );
 };

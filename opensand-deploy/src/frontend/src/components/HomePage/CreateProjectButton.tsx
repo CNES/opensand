@@ -4,8 +4,8 @@ import {useHistory} from 'react-router-dom';
 import Button from '@material-ui/core/Button';
 
 import {getProjectModel, updateProject, IApiSuccess, IXsdContent} from '../../api';
+import {sendError} from '../../utils/dispatcher';
 import {fromXSD} from '../../xsd/parser';
-import {Component, Parameter} from '../../xsd/model';
 
 import SingleFieldDialog from '../common/SingleFieldDialog';
 
@@ -23,7 +23,6 @@ const CreateProjectButton = () => {
     }, [setOpen]);
 
     const handleCreatedProject = React.useCallback((projectName: string, success: IApiSuccess) => {
-        console.log(success);
         if (success.status === "OK") {
             setOpen(false);
             history.push("/project/" + projectName);
@@ -32,21 +31,13 @@ const CreateProjectButton = () => {
 
     const fillProjectModel = React.useCallback((projectName: string, content: IXsdContent) => {
         const model = fromXSD(content.content);
-        model.root.children.forEach((c: Component) => {
-            if (c.id === "project") {
-                c.parameters.forEach((p: Parameter) => {
-                    if (p.id === "name") {
-                        p.value = projectName;
-                    }
-                });
-            }
-        });
-        updateProject(handleCreatedProject.bind(this, projectName), console.log, projectName, model);
+        const onSuccess = handleCreatedProject.bind(this, projectName);
+        updateProject(onSuccess, sendError, projectName, model);
     }, [handleCreatedProject]);
 
     const doCreateProject = React.useCallback((projectName: string) => {
         if (projectName !== "") {
-            getProjectModel(fillProjectModel.bind(this, projectName), console.log);
+            getProjectModel(fillProjectModel.bind(this, projectName), sendError);
         }
     }, [fillProjectModel]);
 

@@ -15,10 +15,12 @@ import Typography from '@material-ui/core/Typography';
 
 import {makeStyles, Theme} from '@material-ui/core/styles';
 
+import {updateProjectXML, silenceSuccess, IApiSuccess} from '../../api';
+import {sendError} from '../../utils/dispatcher';
 import {Model as ModelType, Component as ComponentType, Visibility, Visibilities} from '../../xsd/model';
-import {updateProjectXML, IApiSuccess} from '../../api';
 
 import Component from './Component';
+import SaveAsButton from './SaveAsButton';
 import SingleListComponent from './SingleListComponent';
 
 
@@ -26,6 +28,7 @@ interface Props {
     model: ModelType;
     projectName: string;
     urlFragment: string;
+    xsd: string | null;
 }
 
 
@@ -47,7 +50,7 @@ const useStyles = makeStyles((theme: Theme) => ({
         flexGrow: 1,
     },
     fullHeight: {
-        minHeight: "100vh",
+        height: "100%",
     },
     button: {
         marginRight: theme.spacing(2),
@@ -67,7 +70,7 @@ const TabPanel = (props: PanelProps) => {
 
 
 const Model = (props: Props) => {
-    const {model, projectName, urlFragment} = props;
+    const {model, xsd, projectName, urlFragment} = props;
     const {root, version} = model;
     const {description, children} = root;
 
@@ -82,8 +85,13 @@ const Model = (props: Props) => {
     }, [model, setState]);
 
     const handleSave = React.useCallback(() => {
-        updateProjectXML(validateSaved, console.log, projectName, urlFragment, model);
+        updateProjectXML(validateSaved, sendError, projectName, urlFragment, model);
     }, [validateSaved, projectName, urlFragment, model]);
+
+    const handleSaveAs = React.useCallback((template: string) => {
+        const url = "template/" + xsd + "/" + template;
+        updateProjectXML(silenceSuccess, sendError, projectName, url, model);
+    }, [projectName, xsd, model]);
 
     const handleChange = React.useCallback((event: React.ChangeEvent<{}>, index: number) => {
         setValue(index);
@@ -109,6 +117,7 @@ const Model = (props: Props) => {
                 <Typography variant="h6" className={classes.version}>
                     (v{version})
                 </Typography>
+                <SaveAsButton disabled={xsd == null} onSave={handleSaveAs} />
                 <Button
                     className={classes.button}
                     disabled={model.saved}
@@ -116,7 +125,7 @@ const Model = (props: Props) => {
                     variant="contained"
                     onClick={handleSave}
                 >
-                    Save
+                    Save Configuration for {urlFragment.replace("/", " of ")}
                 </Button>
                 <FormControl>
                     <InputLabel htmlFor="visibility">Visibility</InputLabel>

@@ -9,6 +9,7 @@ import Typography from '@material-ui/core/Typography';
 import {makeStyles, Theme} from '@material-ui/core/styles';
 
 import {listProjects} from '../../api';
+import {sendError} from '../../utils/dispatcher';
 
 import CreateProjectButton from './CreateProjectButton';
 import ProjectCard from './ProjectCard';
@@ -33,11 +34,11 @@ const Projects = () => {
     const classes = useStyles();
 
     const forceRedraw = React.useCallback(() => {
-        listProjects(setProjects, console.log);
+        listProjects(setProjects, sendError);
     }, [setProjects]);
 
     React.useEffect(() => {
-        listProjects(setProjects, console.log);
+        listProjects(setProjects, sendError);
         return () => {setProjects([]);}
     }, [setProjects]);
 
