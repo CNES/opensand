@@ -35,7 +35,6 @@
  */
 
 
-#include <opensand_conf/conf.h>
 #include <opensand_rt/Rt.h>
 
 #include "TestDelayFifo.h"

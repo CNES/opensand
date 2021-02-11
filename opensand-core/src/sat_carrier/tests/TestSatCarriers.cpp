@@ -52,6 +52,7 @@
 #include "Data.h"
 #include "OpenSandCore.h"
 
+#include <sstream>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -261,7 +262,7 @@ bool TestSatCarriers::onInit(void)
 
 bool TestSatCarriers::Upward::onInit(void)
 {
-	vector<UdpChannel *>::iterator it;
+	std::vector<UdpChannel *>::iterator it;
 	UdpChannel *channel;
 
 	// initialize all channels from the configuration file
@@ -279,7 +280,7 @@ bool TestSatCarriers::Upward::onInit(void)
 
 		if(channel->isInputOk() && channel->getChannelFd() != -1)
 		{
-			ostringstream name;
+			std::ostringstream name;
 
 			name << "Channel_" << channel->getChannelID();
 			this->addNetSocketEvent(name.str(),

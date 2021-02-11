@@ -35,21 +35,45 @@
 
 #include "TrafficCategory.h"
 
-#include <stdio.h>
-#include <stdlib.h>
 
 
 /**
  * constructor
  */
-TrafficCategory::TrafficCategory(): name()
+TrafficCategory::TrafficCategory():
+		id(0),
+		name()
 {
-	id = 0;
 }
+
 
 /**
  * Destroy the TrafficCategory object
  */
 TrafficCategory::~TrafficCategory()
 {
+}
+
+
+void TrafficCategory::setId(qos_t id)
+{
+	this->id = id;
+}
+
+
+void TrafficCategory::setName(std::string name)
+{
+	this->name = name;
+}
+
+
+qos_t TrafficCategory::getId() const
+{
+	return this->id;
+}
+
+
+std::string TrafficCategory::getName() const
+{
+	return this->name;
 }

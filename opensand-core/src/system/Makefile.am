@@ -35,6 +35,9 @@ PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/common/libopensand_plugin_utils.la \
 	$(top_builddir)/src/common/libopensand_utils.la
 
+allexec_LDFLAGS = \
+	-rdynamic
+
 allexec_LDADD = \
 	-lpthread \
 	-lrt
@@ -58,6 +61,7 @@ opensand_SOURCES = \
 	$(opensand_h) \
 	opensand.cpp
 opensand_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
+opensand_LDFLAGS = $(allexec_LDFLAGS)
 opensand_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)

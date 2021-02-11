@@ -42,16 +42,27 @@ RleIdentifier::RleIdentifier(uint8_t src_tal_id, uint8_t dst_tal_id):
 {
 }
 
+
 RleIdentifier::~RleIdentifier()
 {
 }
 
-uint8_t RleIdentifier::getSrcTalId()
+
+uint8_t RleIdentifier::getSrcTalId() const
 {
 	return this->src_tal_id;
 }
 
-uint8_t RleIdentifier::getDstTalId()
+
+uint8_t RleIdentifier::getDstTalId() const
 {
 	return this->dst_tal_id;
+}
+
+
+bool ltRleIdentifier::operator() (RleIdentifier *ai1, RleIdentifier *ai2) const
+{
+	const auto talId1 = ai1->getSrcTalId();
+	const auto talId2 = ai2->getSrcTalId();
+	return talId1 == talId2 ? ai1->getDstTalId() < ai2->getDstTalId() : talId1 < talId2;
 }

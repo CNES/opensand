@@ -38,14 +38,14 @@
 #define LAN_ADAPTATION_CONTEXT_H
 
 
-#include "NetBurst.h"
 #include "OpenSandCore.h"
 #include "StackPlugin.h"
-#include "SarpTable.h"
 
-#include <opensand_output/Output.h>
 
-#include <cassert>
+class NetBurst;
+class SarpTable;
+class OutputLog;
+
 
 /**
  * @class LanAdaptationPlugin
@@ -53,9 +53,7 @@
  */
 class LanAdaptationPlugin: public StackPlugin
 {
-
  public:
-
 	/**
 	 * @class LanAdaptationPacketHandler
 	 * @brief Functions to handle the encapsulated packets
@@ -73,46 +71,28 @@ class LanAdaptationPlugin: public StackPlugin
 	 */
 	class LanAdaptationPacketHandler: public StackPacketHandler
 	{
-
 	  public:
-
 		/**
 		 * @brief LanAdaptationPacketHandler constructor
 		 */
 		/* Allow packets to access LanAdaptationPlugin members */
-		LanAdaptationPacketHandler(LanAdaptationPlugin &pl):
-			StackPacketHandler(pl)
-		{
-		};
+		LanAdaptationPacketHandler(LanAdaptationPlugin &pl);
 
 		/* the following functions should not be called */
+		std::size_t getMinLength() const;
 
-		size_t getMinLength() const {assert(0);};
+		virtual bool encapNextPacket(NetPacket *packet,
+		                             std::size_t remaining_length,
+		                             bool new_burst,
+		                             bool &partial_encap,
+		                             NetPacket **encap_packet);
 
-		virtual bool encapNextPacket(NetPacket *UNUSED(packet),
-			size_t UNUSED(remaining_length),
-			bool UNUSED(new_burst),
-			bool &UNUSED(partial_encap),
-			NetPacket **UNUSED(encap_packet))
-		{
-			assert(0);
-		};
+		virtual bool getEncapsulatedPackets(NetContainer *packet,
+		                                    bool &partial_decap,
+		                                    std::vector<NetPacket *> &decap_packets,
+		                                    unsigned int decap_packets_count);
 
-		virtual bool getEncapsulatedPackets(NetContainer *UNUSED(packet),
-			bool &UNUSED(partial_decap),
-			vector<NetPacket *> &UNUSED(decap_packets),
-			unsigned int UNUSED(decap_packets_count))
-		{
-			assert(0);
-		};
-
-		virtual bool init()
-		{
-			this->log = Output::Get()->registerLog(LEVEL_WARNING,
-                                             "LanAdaptation.%s",
-                                             this->getName().c_str());
-			return true;
-		};
+		virtual bool init();
 	};
 
 	/**
@@ -122,16 +102,11 @@ class LanAdaptationPlugin: public StackPlugin
 	class LanAdaptationContext: public StackContext
 	{
 	  public:
-
 		/* Allow context to access LanAdaptationPlugin members */
 		/**
 		 * @brief LanAdaptationContext constructor
 		 */
-		LanAdaptationContext(LanAdaptationPlugin &pl):
-			StackContext(pl),
-			handle_net_packet(false)
-		{
-		};
+		LanAdaptationContext(LanAdaptationPlugin &pl);
 
 		/**
 		 * @brief Initialize the plugin with some bloc configuration
@@ -140,16 +115,9 @@ class LanAdaptationPlugin: public StackPlugin
 		 * @param class_list       A list of service classes
 		 * @return true on success, false otherwise
 		 */
-		virtual bool initLanAdaptationContext(
-			tal_id_t tal_id,
-			tal_id_t gw_id,
-			const SarpTable *sarp_table)
-		{
-			this->tal_id = tal_id;
-			this->gw_id = gw_id;
-			this->sarp_table = sarp_table;
-			return true;
-		};
+		virtual bool initLanAdaptationContext(tal_id_t tal_id,
+		                                      tal_id_t gw_id,
+		                                      const SarpTable *sarp_table);
 
 		/**
 		 * @brief Get the bytes of LAN header for TUN/TAP interface
@@ -167,32 +135,17 @@ class LanAdaptationPlugin: public StackPlugin
 		 */
 		virtual bool handleTap() = 0;
 
-		bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl)
-		{
-			if(!pkt_hdl && this->handle_net_packet)
-			{
-				this->current_upper = NULL;
-				return true;
-			}
-			return StackPlugin::StackContext::setUpperPacketHandler(pkt_hdl);
-		}
+		bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl);
 
-		virtual bool init()
-		{
-			this->log = Output::Get()->registerLog(LEVEL_WARNING,
-                                             "LanAdaptation.%s",
-                                             this->getName().c_str());
-			return true;
-		};
+		virtual bool init();
 
 	  protected:
-
 		/// Can we handle packet read from TUN or TAP interface
 		bool handle_net_packet;
 
 		/// The terminal ID
 		tal_id_t tal_id;
-		
+
 		/// The Gateway ID
 		tal_id_t gw_id;
 
@@ -200,16 +153,16 @@ class LanAdaptationPlugin: public StackPlugin
 		const SarpTable *sarp_table;
 	};
 
-	LanAdaptationPlugin(uint16_t ether_type): StackPlugin(ether_type)
-	{
-	};
+	LanAdaptationPlugin(uint16_t ether_type);
+
+	virtual bool init();
 
 	/**
 	 * @brief Get the context
 	 *
 	 * @return the context
 	 */
-	LanAdaptationContext *getContext() const
+	inline LanAdaptationContext *getContext() const
 	{
 		return static_cast<LanAdaptationContext *>(this->context);
 	};
@@ -219,28 +172,19 @@ class LanAdaptationPlugin: public StackPlugin
 	 *
 	 * @return the packet handler
 	 */
-	LanAdaptationPacketHandler *getPacketHandler() const
+	inline LanAdaptationPacketHandler *getPacketHandler() const
 	{
 		return static_cast<LanAdaptationPacketHandler *>(this->packet_handler);
 	};
-
-	virtual bool init()
-	{
-		this->log = Output::Get()->registerLog(LEVEL_WARNING,
-                                           "LanAdaptation.%s",
-                                           this->getName().c_str());
-		return true;
-	};
-
 };
 
-
 typedef std::vector<LanAdaptationPlugin::LanAdaptationContext *> lan_contexts_t;
+
 
 #ifdef CREATE
 #undef CREATE
 #define CREATE(CLASS, CONTEXT, HANDLER, pl_name) \
-		CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, lan_adaptation_plugin)
+	CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, lan_adaptation_plugin)
 #endif
 
 #endif

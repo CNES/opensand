@@ -36,14 +36,13 @@
 #define ENTITY_H
 
 
-#include <iostream>
 #include <string>
-#include <vector>
+#include <memory>
 
-#include <opensand_output/Output.h>
+#include "OpenSandCore.h"
 
-using std::string;
-using std::vector;
+
+class OutputEvent;
 
 
 /**
@@ -52,43 +51,16 @@ using std::vector;
  */
 class Entity
 {
- public:
+public:
 	/**
 	 * Build an entity process
 	 */
-	Entity(const string &type):
-		type(type),
-		name(),
-		conf_path(),
-		plugin_conf_path(),
-		output_folder(),
-		remote_address(),
-		stats_port(12345),
-		logs_port(23456)
-	{
-		this->status = Output::Get()->registerEvent("Status");
-	};
+	Entity(const std::string& name, tal_id_t instance_id);
 
 	/**
 	 * Destroy an entity process
 	 */
-	virtual ~Entity() {};
-
-	/**
-	 * Get the entity type
-	 *
-	 * @return the type
-	 */
-	const string &getType() const;
-
-	/**
-	 * Generate the usage message
-	 *
-	 * @param progname  The program name
-	 *
-	 * @return the usage message
-	 */
-	virtual vector<string> generateUsage(const string &name) const = 0;
+	virtual ~Entity();
 
 	/**
 	 * Parse arguments of the entity process
@@ -98,21 +70,21 @@ class Entity
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool parseArguments(int argc, char **argv);
+	static std::shared_ptr<Entity> parseArguments(int argc, char **argv, int &return_code);
 
 	/**
-	 * Load configuration files
+	 * Get the entity name
 	 *
-	 * @return true on success, false otherwise
+	 * @return the type
 	 */
-	bool loadConfiguration();
+	const std::string &getName() const;
 
 	/**
-	 * Load plugins
+	 * Get the entity id
 	 *
-	 * @return true on success, false otherwise
+	 * @return the type
 	 */
-	bool loadPlugins();
+	tal_id_t getInstanceId() const;
 
 	/**
 	 * Create blocks of the entity process
@@ -128,31 +100,15 @@ class Entity
 	 */
 	bool run();
 
+protected:
 	/**
-	 * Release plugins
-	 */
-	void releasePlugins();
-
- protected:
-	/**
-	 * Parse arguments of the specific entity process
+	 * Load configuration files
 	 *
-	 * @param argc            The arguments count
-	 * @param argv            The arguments list
-	 * @param name            The entity name
-	 * @param conf_path       The configuration directory path
-	 * @param output_folder   The output folder path
-	 * @param remote_address  The remote collector ip address
-	 * @param stats_port      The remote collector port for stats
-	 * @param logs_port       The remote collector port for logs
+	 * @param profile_path   The path to the entity configuration file
 	 *
 	 * @return true on success, false otherwise
 	 */
-	virtual bool parseSpecificArguments(int argc, char **argv,
-		string &name,
-		string &conf_path,
-		string &output_folder, string &remote_address,
-		unsigned short &stats_port, unsigned short &logs_port) = 0;
+	virtual bool loadConfiguration(const std::string &profile_path) = 0;
 
 	/**
 	 * Create blocks of the specific entity process
@@ -161,17 +117,17 @@ class Entity
 	 */
 	virtual bool createSpecificBlocks() = 0;
 
- private:
-	string type;
-	string name;
+	/**
+	 * Create configuration for the blocks of the specific entity process
+	 *
+	 * @param filepath   The path of the file to write the configuration into
+	 *
+	 * @return true on success, false otherwise
+	 */
+	virtual bool createSpecificConfiguration(const std::string &filepath) const = 0;
 
-	string conf_path;
-	string plugin_conf_path;
-
-	string output_folder;
-	string remote_address;
-	unsigned short stats_port;
-	unsigned short logs_port;
+	std::string name;
+	tal_id_t instance_id;
 
 	std::shared_ptr<OutputEvent> status;
 };

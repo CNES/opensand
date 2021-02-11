@@ -63,14 +63,10 @@
 #include "BBFrame.h"
 #include "Sac.h"
 #include "Ttp.h"
-#include "OpenSandConf.h"
 #include "DvbChannel.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
-#include <opensand_conf/conf.h>
-
-
 
 
 class BlockDvbSat;

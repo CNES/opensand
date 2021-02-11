@@ -36,87 +36,94 @@
 
 
 #include "OnOff.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
-
-#include <fstream>
-#include <sstream>
-
-#define ON_OFF_SECTION   "on_off"
-#define ON_OFF_LIST      "on_off_attenuations"
-#define PERIOD_ON        "period_on"
-#define PERIOD_OFF       "period_off"
-#define AMPLITUDE        "amplitude"
-#define CONF_ON_OFF_FILENAME "on_off.conf"
 
 
 OnOff::OnOff():
-	AttenuationModelPlugin(),
-	duration_counter(0)
+		AttenuationModelPlugin(),
+		duration_counter(0)
 {
 }
+
 
 OnOff::~OnOff()
 {
 }
 
 
-bool OnOff::init(time_ms_t refresh_period_ms, string link)
+void OnOff::generateConfiguration(const std::string &parent_path,
+                                  const std::string &param_id,
+                                  const std::string &plugin_name)
 {
-	ConfigurationFile config;
-	string conf_on_off_path;
-	conf_on_off_path = this->getConfPath() + string(CONF_ON_OFF_FILENAME);
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
 
-	if(!config.loadConfig(conf_on_off_path.c_str()))
-	{   
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load config file '%s'",
-		    conf_on_off_path.c_str());
-		goto error;
+	auto attenuation = Conf->getComponentByPath(parent_path);
+	if (attenuation == nullptr)
+	{
+		return;
+	}
+	auto attenuation_type = attenuation->getParameter(param_id);
+	if (attenuation_type == nullptr)
+	{
+		return;
 	}
 
-	config.loadSectionMap(this->config_section_map);
+	auto attenuation_on = attenuation->addParameter("onoff_attenuation_on",
+	                                                "Attenuation On Duration",
+	                                                types->getType("int"));
+	attenuation_on->setUnit("refresh period");
+	Conf->setProfileReference(attenuation_on, attenuation_type, plugin_name);
+	auto attenuation_off = attenuation->addParameter("onoff_attenuation_off",
+	                                                 "Attenuation Off Duration",
+	                                                 types->getType("int"));
+	attenuation_on->setUnit("refresh period");
+	Conf->setProfileReference(attenuation_off, attenuation_type, plugin_name);
+	auto attenuation_value = attenuation->addParameter("onoff_attenuation_amplitude",
+													   "Attenuation On/Off Amplitude",
+	                                                   types->getType("double"));
+	attenuation_on->setUnit("dB");
+	Conf->setProfileReference(attenuation_value, attenuation_type, plugin_name);
+}
 
+
+bool OnOff::init(time_ms_t refresh_period_ms, std::string link_path)
+{
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!config.getValueInList(this->config_section_map[ON_OFF_SECTION],
-		                      ON_OFF_LIST,
-	                          LINK, link,
-	                          PERIOD_ON, this->on_duration))
+	auto attenuation = OpenSandModelConf::Get()->getProfileData(link_path);
+	auto parameter_on = attenuation->getParameter("onoff_attenuation_on");
+	if(!OpenSandModelConf::extractParameterData(parameter_on, this->on_duration))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "On/Off attenuation %slink: cannot get %s",
-		    link.c_str(), PERIOD_ON);
-		goto error;
+		    "On/Off attenuation %s: cannot get ON duration",
+		    link_path.c_str());
+		return false;
 	}
 
-	if(!config.getValueInList(this->config_section_map[ON_OFF_SECTION],
-		                      ON_OFF_LIST,
-	                          LINK, link,
-	                          PERIOD_OFF, this->off_duration))
+	auto parameter_off = attenuation->getParameter("onoff_attenuation_off");
+	if(!OpenSandModelConf::extractParameterData(parameter_off, this->off_duration))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "On/Off attenuation %slink: cannot get %s",
-		    link.c_str(), PERIOD_OFF);
-		goto error;
+		    "On/Off attenuation %s: cannot get OFF duration",
+		    link_path.c_str());
+		return false;
 	}
 
-	if(!config.getValueInList(this->config_section_map[ON_OFF_SECTION],
-		                      ON_OFF_LIST,
-	                          LINK, link,
-	                          AMPLITUDE, this->amplitude))
+	auto parameter_amplitude = attenuation->getParameter("onoff_attenuation_amplitude");
+	if(!OpenSandModelConf::extractParameterData(parameter_amplitude, this->amplitude))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "On/Off attenuation %slink: cannot get %s",
-		    link.c_str(), AMPLITUDE);
-		goto error;
+		    "On/Off attenuation %s: cannot get amplitude",
+		    link_path.c_str());
+		return false;
 	}
 
 	return true;
-error:
-	return false;
 }
+
 
 bool OnOff::updateAttenuationModel()
 {
@@ -138,5 +145,3 @@ bool OnOff::updateAttenuationModel()
 	    "On/Off Attenuation %.2f dB\n", this->getAttenuation());
 	return true;
 }
-
-

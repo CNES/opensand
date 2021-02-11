@@ -36,8 +36,10 @@
 #ifndef MAC_ADDRESS_H
 #define MAC_ADDRESS_H
 
+
 #include <string>
 #include <stdint.h>
+
 
 /**
  * @class MacAddress
@@ -46,12 +48,13 @@
 class MacAddress
 {
  private:
+	static constexpr std::size_t bytes_count = 6;
 
 	/// The MAC address bytes
-	uint8_t mac[6];
+	uint8_t mac[bytes_count];
 
 	/// The bytes that matches all occurences
-	bool generic_bytes[6];
+	bool generic_bytes[bytes_count];
 
  public:
 	/**
@@ -67,12 +70,12 @@ class MacAddress
 	/**
 	 * @brief Build a MAC address from 6 bytes
 	 *
-     * @param b0 first byte of address
-     * @param b1 second byte of address
-     * @param b2 third byte of address
-     * @param b3 fourth byte of address
-     * @param b4 fifth byte of address
-     * @param b5 sixth byte of address
+	 * @param b0 first byte of address
+	 * @param b1 second byte of address
+	 * @param b2 third byte of address
+	 * @param b3 fourth byte of address
+	 * @param b4 fifth byte of address
+	 * @param b5 sixth byte of address
 	 */
 	MacAddress(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5);
 
@@ -106,5 +109,6 @@ class MacAddress
 	 */
 	bool matches(const MacAddress *addr) const;
 };
+
 
 #endif

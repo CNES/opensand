@@ -34,10 +34,10 @@
  */
 
 
-
 #include "BlockLanAdaptation.h"
 #include "TrafficCategory.h"
-#include "Plugin.h"
+#include "Ethernet.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
@@ -49,89 +49,36 @@
 
 #define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
 
+
+void BlockLanAdaptation::generateConfiguration()
+{
+	Ethernet::generateConfiguration();
+}
+
 bool BlockLanAdaptation::onInit(void)
 {
-	ConfigurationList lan_list;
-	int lan_scheme_nbr;
-	LanAdaptationPlugin *upper = NULL;
-	LanAdaptationPlugin *plugin;
-	lan_contexts_t contexts;
-	int fd = -1;
-	vector<string> lan_scheme_names({"Ethernet"});
-	vector<string>::const_iterator iter;
-
-	// get the number of lan adaptation context to use
-	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
-		                     LAN_ADAPTATION_SCHEME_LIST,
-	                         lan_scheme_nbr))
+	LanAdaptationPlugin *plugin = Ethernet::constructPlugin();
+	LanAdaptationPlugin::LanAdaptationContext *context = plugin->getContext();
+	if(!context->setUpperPacketHandler(nullptr))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Section %s, %s missing\n", GLOBAL_SECTION,
-		    LAN_ADAPTATION_SCHEME_LIST);
+		    "cannot use %s for packets read on the interface",
+		    context->getName().c_str());
 		return false;
 	}
 	LOG(this->log_init, LEVEL_INFO,
-	    "found %d lan adaptation contexts\n", lan_scheme_nbr);
-
-	for(int i = 0; i < lan_scheme_nbr; i++)
-	{
-		string name;
-
-		// get all the lan adaptation plugins to use from upper to lower
-		if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
-			                     LAN_ADAPTATION_SCHEME_LIST,
-		                         POSITION, toString(i), PROTO, name))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "Section %s, invalid value %d for parameter '%s'\n",
-			    GLOBAL_SECTION, i, POSITION);
-			return false;
-		}
-		lan_scheme_names.push_back(name);
-	}
-
-	for(iter = lan_scheme_names.begin(); iter != lan_scheme_names.end(); iter++)
-	{
-		LanAdaptationPlugin::LanAdaptationContext *context;
-
-		if(!Plugin::getLanAdaptationPlugin(*iter, &plugin))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get plugin for %s lan adaptation",
-			    iter->c_str());
-			return false;
-		}
-
-		context = plugin->getContext();
-		contexts.push_back(context);
-		if(upper == NULL &&
-		   !context->setUpperPacketHandler(NULL))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot use %s for packets read on the interface",
-			    context->getName().c_str());
-			return false;
-		}
-		else if(upper && !context->setUpperPacketHandler(upper->getPacketHandler()))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "upper lan adaptation type %s is not supported "
-			    "by %s", upper->getName().c_str(),
-			    context->getName().c_str());
-			return false;
-		}
-		upper = plugin;
-		LOG(this->log_init, LEVEL_INFO,
-		    "add lan adaptation: %s\n",
-		    plugin->getName().c_str());
-	}
+	    "add lan adaptation: %s\n",
+	    plugin->getName().c_str());
 
 	// create TAP virtual interface
+	int fd = -1;
 	if(!this->allocTap(fd))
 	{
 		return false;
 	}
 
+	lan_contexts_t contexts;
+	contexts.push_back(context);
 	((Upward *)this->upward)->setContexts(contexts);
 	((Downward *)this->downward)->setContexts(contexts);
 	// we can share FD as one thread will write, the second will read
@@ -145,13 +92,10 @@ bool BlockLanAdaptation::onInit(void)
 bool BlockLanAdaptation::Downward::onInit(void)
 {
 	// statistics timer
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               STATS_TIMER,
-	                   this->stats_period_ms))
+	if(!OpenSandModelConf::Get()->getStatisticsPeriod(this->stats_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, STATS_TIMER);
+		    "section 'timers': missing parameter 'statistics'\n");
 		return false;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -164,22 +108,7 @@ bool BlockLanAdaptation::Downward::onInit(void)
 
 bool BlockLanAdaptation::Upward::onInit(void)
 {
-	int dflt = -1;
-
-	if(!Conf::getValue(Conf::section_map[SARP_SECTION],
-		               DEFAULT, dflt))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get default destination terminal, "
-		    "this is not fatal\n");
-		// do not return, this is not fatal
-	}
-	this->sarp_table.setDefaultTal(dflt);
-	if(!this->initSarpTables())
-	{
-		return false;
-	}
-	return true;
+  return OpenSandModelConf::Get()->getSarp(this->sarp_table);
 }
 
 void BlockLanAdaptation::Upward::setContexts(const lan_contexts_t &contexts)
@@ -202,62 +131,4 @@ void BlockLanAdaptation::Downward::setFd(int fd)
 	// add file descriptor for TAP interface
 	this->addFileEvent("tap", fd, TUNTAP_BUFSIZE + 4);
 }
-
-bool BlockLanAdaptation::Upward::initSarpTables(void)
-{
-	int i;
-
-	tal_id_t tal_id = 0;
-
-	ConfigurationList terminal_list;
-	ConfigurationList::iterator iter;
-
-	// Ethernet SARP table
-	// TODO we could only initialize IP or Ethernet tables according to stack
-	terminal_list.clear();
-	if(!Conf::getListItems(Conf::section_map[SARP_SECTION],
-		                   ETH_LIST, terminal_list))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "missing section [%s, %s]\n", SARP_SECTION,
-		    ETH_LIST);
-	}
-
-	i = 0;
-	for(iter = terminal_list.begin(); iter != terminal_list.end(); iter++)
-	{
-		string addr;
-		MacAddress *mac_addr;
-
-		i++;
-		// get the MAC address
-		if(!Conf::getAttributeValue(iter, MAC_ADDR, addr))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SARP_SECTION, ETH_LIST,
-			    MAC_ADDR, i);
-			return false;
-		}
-		// get the terminal ID
-		if(!Conf::getAttributeValue(iter, TAL_ID, tal_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SARP_SECTION, ETH_LIST,
-			    TAL_ID, i);
-			return false;
-		}
-
-		mac_addr = new MacAddress(addr);
-		LOG(this->log_init, LEVEL_INFO,
-		    "%s -> tal id %u\n",
-		    mac_addr->str().c_str(), tal_id);
-
-		this->sarp_table.add(mac_addr, tal_id);
-	} // for all Ethernet entries
-
-	return true;
-}
-
 

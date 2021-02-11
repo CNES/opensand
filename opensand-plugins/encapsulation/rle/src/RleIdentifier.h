@@ -36,6 +36,7 @@
 #ifndef RLE_IDENT_H
 #define RLE_IDENT_H
 
+
 #include <stdint.h>
 
 
@@ -47,7 +48,6 @@
 class RleIdentifier
 {
  private:
-
 	/// The source Tal Id value
 	uint8_t src_tal_id;
 	/// The destination Tal Id value
@@ -73,15 +73,16 @@ class RleIdentifier
 	 *
 	 * @return the source Tal Id
 	 */
-	uint8_t getSrcTalId();
+	uint8_t getSrcTalId() const;
 
 	/**
 	 * Get the destination Tal Id
 	 *
 	 * @return the destination Tal Id
 	 */
-	uint8_t getDstTalId();
+	uint8_t getDstTalId() const;
 };
+
 
 /**
  * @brief Operator to compare two RLE identifiers
@@ -97,14 +98,8 @@ struct ltRleIdentifier
 	 * @return true if first RLE identifier is lesser than the second,
 	 *         false otherwise
 	 */
-	bool operator() (RleIdentifier * ai1, RleIdentifier * ai2) const
-	{
-		if(ai1->getSrcTalId() == ai2->getSrcTalId())
-		{
-			return (ai1->getDstTalId() < ai2->getDstTalId());
-		}
-		return (ai1->getSrcTalId() < ai2->getSrcTalId());
-	}
+	bool operator() (RleIdentifier * ai1, RleIdentifier * ai2) const;
 };
+
 
 #endif

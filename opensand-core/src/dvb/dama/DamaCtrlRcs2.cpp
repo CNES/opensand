@@ -34,13 +34,12 @@
 
 
 #include "DamaCtrlRcs2.h"
-#include "OpenSandConf.h"
+#include "OpenSandModelConf.h"
 #include "TerminalContextDamaRcs.h"
 #include "CarriersGroupDama.h"
 #include "UnitConverterFixedSymbolLength.h"
 
 #include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
 
 #include <math.h>
 
@@ -78,17 +77,16 @@ bool DamaCtrlRcs2::init()
 		goto error;
 	}
 	
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   RCS2_BURST_LENGTH, length_sym))
+	if(!OpenSandModelConf::Get()->getRcs2BurstLength(length_sym))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get '%s' value", DELAY_BUFFER);
+		    "cannot get RCS2 burst length value");
 		return NULL;
 	}
 	if(length_sym == 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "invalid value '%u' value of '%s", length_sym, DELAY_BUFFER);
+		    "invalid value '%u' value of RCS2 burst length", length_sym);
 		return NULL;
 	}
 	LOG(this->log_init, LEVEL_INFO,
@@ -120,7 +118,7 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 	// Checking if the station is registered
 	// if we get GW terminal ID this is for physical layer parameters
 	terminal = (TerminalContextDamaRcs *)this->getTerminalContext(tal_id);
-	if(terminal == NULL && !OpenSandConf::isGw(tal_id))
+	if(terminal == NULL && !OpenSandModelConf::Get()->isGw(tal_id))
 	{
 		LOG(this->log_sac, LEVEL_ERROR, 
 		    "SF#%u: CR for an unknown st (logon_id=%u). "

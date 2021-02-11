@@ -34,16 +34,17 @@
 #ifndef SARP_TABLE_H
 #define SARP_TABLE_H
 
-#include "MacAddress.h"
-#include "OpenSandCore.h"
 
-#include <opensand_output/OutputLog.h>
+#include "OpenSandCore.h"
 
 #include <list>
 #include <vector>
+#include <memory>
 
-using std::list;
-using std::vector;
+
+class MacAddress;
+class OutputLog;
+
 
 /// SARP table entry for Ethernet
 typedef struct
@@ -52,7 +53,6 @@ typedef struct
 	tal_id_t tal_id;
 } sarpEthEntry;
 
-#define SARP_MAX 50
 
 /**
  * @class SarpTable
@@ -61,16 +61,17 @@ typedef struct
 class SarpTable
 {
  private:
+	static constexpr unsigned int SARP_MAX = 50;
 
 	unsigned int max_entries;    ///< maximum number of entries in SARP table
 	// TODO we have only one of these two list that is used each time so we
 	//      need only one of these
-	list<sarpEthEntry *> eth_sarp; ///< The Ethernet entries in SARP table
+	std::list<sarpEthEntry *> eth_sarp; ///< The Ethernet entries in SARP table
 	tal_id_t default_dest;  ///< the default terminal ID if no entry is found
 
  protected:
 	// Output Log
-  std::shared_ptr<OutputLog> log_sarp;	
+	std::shared_ptr<OutputLog> log_sarp;	
 
  public:
 
@@ -80,7 +81,7 @@ class SarpTable
 	 * @param max_entries the maximum number of entries in the table
 	 *                    SARP_MAX is the default value
 	 */
-	SarpTable(unsigned int max_entries = SARP_MAX);
+	SarpTable(unsigned int max_entries = SarpTable::SARP_MAX);
 
 	/**
 	 * Destroy the SARP table
@@ -105,7 +106,7 @@ class SarpTable
 	 *                the default tal_id otherwise (false will be returned)
 	 * @return true on success, false otherwise
 	 */
-	bool getTalByMac(MacAddress mac_address, tal_id_t &tal_id) const;
+	bool getTalByMac(const MacAddress &mac_address, tal_id_t &tal_id) const;
 
 	/**
 	 * Get the MAC address associated with the terminal ID in the SARP table
@@ -114,7 +115,7 @@ class SarpTable
 	 * @param mac     the MAC address associated to the terminal ID if found
 	 * @return true on success, false otherwise
 	 */
-	bool getMacByTal(tal_id_t tal_id, vector<MacAddress> &mac_address) const;
+	bool getMacByTal(tal_id_t tal_id, std::vector<MacAddress> &mac_address) const;
 
 	/**
 	 * @brief Set the default destination terminal if no entry is found

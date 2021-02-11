@@ -35,51 +35,65 @@
 
 
 #include "Constant.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
-#include <sstream>
 
-#define CONSTANT_SECTION "constant"
-#define THRESHOLD        "threshold"
-#define CONF_CST_FILENAME    "constant.conf"
+std::string Constant::config_path = "";
+
 
 Constant::Constant():
-	MinimalConditionPlugin()
+		MinimalConditionPlugin()
 {
 }
+
 
 Constant::~Constant()
 {  
 }
 
+
+void Constant::generateConfiguration(const std::string &parent_path,
+                                     const std::string &param_id,
+                                     const std::string &plugin_name)
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+
+	Constant::config_path = parent_path;
+	auto minimal = Conf->getComponentByPath(parent_path);
+	if(minimal == nullptr)
+	{
+		return;
+	}
+	auto minimal_type = minimal->getParameter(param_id);
+	if(minimal_type == nullptr)
+	{
+		return;
+	}
+
+	auto minimal_cn = minimal->addParameter("threshold", "Threshold",
+	                                        types->getType("double"),
+	                                        "Threshold value for QEF communications");
+	minimal_cn->setUnit("dB");
+	Conf->setProfileReference(minimal_cn, minimal_type, plugin_name);
+}
+
+
 bool Constant::init(void)
 {
-	ConfigurationFile config;
-	string conf_cst_path;
-	conf_cst_path = this->getConfPath() + string(CONF_CST_FILENAME);
+	auto minimal = OpenSandModelConf::Get()->getProfileData(config_path);
 
-	if(!config.loadConfig(conf_cst_path.c_str()))
-	{   
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load config file '%s'", conf_cst_path.c_str());
-		goto error;
-	}
-
-	config.loadSectionMap(this->config_section_map);
-
-	if(!config.getValue(this->config_section_map[CONSTANT_SECTION], 
-		                THRESHOLD, this->minimal_cn))
+	auto threshold = minimal->getParameter("threshold");
+	if(!OpenSandModelConf::extractParameterData(threshold, this->minimal_cn))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Constant minimal conditions: cannot get %s",
-		    THRESHOLD);
-		goto error;
+		    "Constant minimal conditions: cannot get threshodl");
+		return false;
 	}
+
 	return true;
-error:
-	return false;
 }
 
 
@@ -89,4 +103,3 @@ bool Constant::updateThreshold(uint8_t UNUSED(modcod_id), uint8_t UNUSED(message
 	// Constant Minimal conditions
 	return true;
 }
-

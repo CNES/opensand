@@ -42,25 +42,18 @@
 #include "DvbRcsFrame.h"
 
 #include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
 
 #include <stdlib.h>
 
-// TODO size per fifo ?
 // TODO to not do...: do not create all fifo in the regenerative case
 SatGw::SatGw(tal_id_t gw_id,
              spot_id_t spot_id,
-             uint8_t log_id,
-             uint8_t ctrl_id,
-             uint8_t data_in_st_id,
-             uint8_t data_in_gw_id,
-             uint8_t data_out_st_id,
-             uint8_t data_out_gw_id,
+             const OpenSandModelConf::spot_infrastructure &carriers,
              size_t fifo_size):
 	gw_id(gw_id),
 	spot_id(spot_id),
-	data_in_st_id(data_in_st_id),
-	data_in_gw_id(data_in_gw_id),
+	data_in_st_id(carriers.data_in_st.id),
+	data_in_gw_id(carriers.data_in_gw.id),
 	l2_from_st_bytes(0),
 	l2_from_gw_bytes(0),
 	gw_mutex(),
@@ -74,20 +67,25 @@ SatGw::SatGw(tal_id_t gw_id,
 	probe_sat_l2_to_gw()
 {
 	// initialize MAC FIFOs
-#define SIG_FIFO_SIZE 1000
-	this->logon_fifo = new DvbFifo(log_id, SIG_FIFO_SIZE, "logon_fifo");
-	this->control_fifo = new DvbFifo(ctrl_id, SIG_FIFO_SIZE, "control_fifo");
-	this->data_out_st_fifo = new DvbFifo(data_out_st_id, fifo_size,
+	this->logon_fifo = new DvbFifo(carriers.logon_out.id,
+	                               carriers.logon_out.fifo_size || fifo_size,
+	                               "logon_fifo");
+	this->control_fifo = new DvbFifo(carriers.ctrl_out.id,
+	                                 carriers.ctrl_out.fifo_size || fifo_size,
+	                                 "control_fifo");
+	this->data_out_st_fifo = new DvbFifo(carriers.data_out_st.id,
+	                                     carriers.data_out_st.fifo_size || fifo_size,
 	                                     "data_out_st");
-	this->data_out_gw_fifo = new DvbFifo(data_out_gw_id, fifo_size,
+	this->data_out_gw_fifo = new DvbFifo(carriers.data_out_gw.id,
+	                                     carriers.data_out_gw.fifo_size || fifo_size,
 	                                     "data_out_gw");
 	// Output Log
 	this->log_init = Output::Get()->registerLog(LEVEL_WARNING,
-                                              "Dvb.spot_%d.gw_%d.init",
-                                              this->spot_id, this->gw_id);
+	                                            "Dvb.spot_%d.gw_%d.init",
+	                                            this->spot_id, this->gw_id);
 	this->log_receive = Output::Get()->registerLog(LEVEL_WARNING,
-                                                 "Dvb.spot_%d.gw_%d.receive",
-                                                 this->spot_id, this->gw_id);
+	                                               "Dvb.spot_%d.gw_%d.receive",
+	                                               this->spot_id, this->gw_id);
 	this->input_sts = new StFmtSimuList("in");
 	this->output_sts = new StFmtSimuList("out");
 }
@@ -126,64 +124,63 @@ bool SatGw::initProbes()
 	std::shared_ptr<Probe<int>> probe_output_gw;
 	std::shared_ptr<Probe<int>> probe_output_gw_kb;
 	char probe_name[128];
-  auto output = Output::Get();
-
+	auto output = Output::Get();
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Delay buffer size.Output_ST",
-					 this->spot_id, this->gw_id);
+	         this->spot_id, this->gw_id);
 	probe_output_st = output->registerProbe<int>(
-			probe_name, "Packets", false, SAMPLE_LAST);
+	        probe_name, "Packets", false, SAMPLE_LAST);
 	this->probe_sat_output_st_queue_size.emplace(gw_id, probe_output_st);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Delay buffer size.Output_ST_kb",
-					 this->spot_id, this->gw_id);
+	         this->spot_id, this->gw_id);
 	probe_output_st_kb = output->registerProbe<int>(
-			probe_name, "Kbits", false, SAMPLE_LAST);
+	        probe_name, "Kbits", false, SAMPLE_LAST);
 	this->probe_sat_output_st_queue_size_kb.emplace(gw_id, probe_output_st_kb);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Throughputs.L2_to_ST",
-					 this->spot_id, this->gw_id);
+	         this->spot_id, this->gw_id);
 	probe_l2_to_st = output->registerProbe<int>(
-			probe_name, "Kbits/s", true, SAMPLE_LAST);
+	        probe_name, "Kbits/s", true, SAMPLE_LAST);
 	this->probe_sat_l2_to_st.emplace(gw_id, probe_l2_to_st);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Throughputs.L2_from_ST",
-					 this->spot_id, this->gw_id);
+	         this->spot_id, this->gw_id);
 	probe_l2_from_st = output->registerProbe<int>(
-			probe_name, "Kbits/s", true, SAMPLE_LAST);
+	        probe_name, "Kbits/s", true, SAMPLE_LAST);
 	this->probe_sat_l2_from_st.emplace(gw_id, probe_l2_from_st);
 
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Throughputs.L2_to_GW",
-					 this->spot_id, this->gw_id);
+	         this->spot_id, this->gw_id);
 	probe_l2_to_gw = output->registerProbe<int>(
-			probe_name, "Kbits/s", true, SAMPLE_LAST);
+	        probe_name, "Kbits/s", true, SAMPLE_LAST);
 	this->probe_sat_l2_to_gw.emplace(gw_id, probe_l2_to_gw);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Throughputs.L2_from_GW",
-					 this->spot_id, this->gw_id);
+	         this->spot_id, this->gw_id);
 	probe_l2_from_gw = output->registerProbe<int>(
-			probe_name, "Kbits/s", true, SAMPLE_LAST);
+	        probe_name, "Kbits/s", true, SAMPLE_LAST);
 	this->probe_sat_l2_from_gw.emplace(gw_id, probe_l2_from_gw);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Delay buffer size.Output_GW",
-					 this->spot_id, this->gw_id);
+	         this->spot_id, this->gw_id);
 	probe_output_gw = output->registerProbe<int>(
-			probe_name, "Packets", false, SAMPLE_LAST);
+	        probe_name, "Packets", false, SAMPLE_LAST);
 	this->probe_sat_output_gw_queue_size.emplace(gw_id, probe_output_gw);
 
 	snprintf(probe_name, sizeof(probe_name),
 	         "Spot_%d.GW_%d.Delay buffer size.Output_GW_kb",
-					 this->spot_id, this->gw_id);
+	         this->spot_id, this->gw_id);
 	probe_output_gw_kb = output->registerProbe<int>(
-			probe_name, "Kbits", false, SAMPLE_LAST);
+	        probe_name, "Kbits", false, SAMPLE_LAST);
 	this->probe_sat_output_gw_queue_size_kb.emplace(gw_id, probe_output_gw_kb);
 
 	return true;

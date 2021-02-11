@@ -51,7 +51,7 @@
 /**
  * @brief log severity levels
  **/
-enum log_level_t
+enum log_level_t : unsigned int
 {
   // Sorted from the least important to the most important
   // with the same id as in syslog except for event

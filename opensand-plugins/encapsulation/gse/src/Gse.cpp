@@ -33,24 +33,21 @@
  * @author Joaquin Muguerza <jmuguerza@toulouse.viveris.com>
  */
 
+
 #include "Gse.h"
+#include "GseEncapCtx.h"
+#include <NetPacket.h>
+#include <NetBurst.h>
+#include <OpenSandModelConf.h>
 
 #include <opensand_output/Output.h>
-#include <opensand_conf/ConfigurationFile.h>
-#include <NetPacket.h>
-#include <vector>
-#include <map>
 
-#define PACKING_THRESHOLD "packing_threshold"
-#define GSE_SECTION "gse"
-#define CONF_GSE_FILENAME "gse.conf"
-
-#define GSE_MIN_ETHER_TYPE 1536
-
-#define MAX_QOS_NBR 0xFF
-#define MAX_CNI_EXT_LEN 6
+#include <utility>
 
 
+constexpr uint16_t GSE_MIN_ETHER_TYPE = 1536;
+constexpr uint8_t MAX_QOS_NBR = 0xFF;
+constexpr std::size_t MAX_CNI_EXT_LEN = 6;
 
 
 static int encodeHeaderCniExtensions(unsigned char *ext,
@@ -125,13 +122,31 @@ Gse::Gse():
 }
 
 
+Gse::~Gse()
+{
+}
+
+
 Gse::Context::Context(EncapPlugin &plugin):
 	EncapPlugin::EncapContext(plugin), contexts()
 {
-	this->vfrag_pkt = NULL;
-	this->vfrag_gse = NULL;
-	this->buf = NULL;
+	this->vfrag_pkt = nullptr;
+	this->vfrag_gse = nullptr;
+	this->buf = nullptr;
 }
+
+
+void Gse::generateConfiguration(const std::string &, const std::string &, const std::string &)
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+
+	auto conf = Conf->getOrCreateComponent("encap", "Encapsulation", "The Encapsulation Plugins Configuration");
+	auto gse = conf->addComponent("gse", "GSE", "The GSE Plugin Configuration");
+	gse->setAdvanced(true);
+	gse->addParameter("packing_threshold", "Packing Threshold", types->getType("int"));
+}
+
 
 bool Gse::Context::init(void)
 {
@@ -140,28 +155,18 @@ bool Gse::Context::init(void)
 		return false;
 	}
 	gse_status_t status;
-	ConfigurationFile config;
-	map<string, ConfigurationList> config_section_map;
-	string conf_file_path = this->getConfPath() + string(CONF_GSE_FILENAME);
 
-	if(!config.loadConfig(conf_file_path.c_str()))
-	{
-		LOG(this->log, LEVEL_ERROR,
-		    "failed to load config file '%s'",
-		    conf_file_path.c_str());
-		goto error;
-	}
-
-	config.loadSectionMap(config_section_map);
+	auto gse = OpenSandModelConf::Get()->getProfileData()->getComponent("encap")->getComponent("gse");
 
 	// Retrieving the packing threshold
-	if(!config.getValue(config_section_map[GSE_SECTION],
-	                    PACKING_THRESHOLD, this->packing_threshold))
+	int threshold;
+	if(!OpenSandModelConf::extractParameterData(gse->getParameter("packing_threshold"), threshold))
 	{
 		LOG(this->log, LEVEL_ERROR,
-		    "missing %s parameter\n", PACKING_THRESHOLD);
-		goto unload;
+		    "Section GSE, missing packing threshold parameter\n");
+		goto error;
 	}
+	this->packing_threshold = threshold;
 	LOG(this->log, LEVEL_NOTICE,
 	    "packing threshold: %lu\n", this->packing_threshold);
 
@@ -174,7 +179,7 @@ bool Gse::Context::init(void)
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot init GSE encapsulation context (%s)\n",
 		    gse_get_status(status));
-		goto unload;
+		goto error;
 	}
 	status = gse_deencap_init(MAX_QOS_NBR, &this->deencap);
 	if(status != GSE_STATUS_OK)
@@ -184,8 +189,6 @@ bool Gse::Context::init(void)
 		    gse_get_status(status));
 		goto release_encap;
 	}
-
-	config.unloadConfig();
 	
 	// we need to set a callback else GSE won't be able to deencapsulate
 	// packets with extension
@@ -214,18 +217,17 @@ release_encap:
 		    "cannot release GSE encapsulation context (%s)\n",
 		    gse_get_status(status));
 	}
-unload:
-	config.unloadConfig();
+
 error:
-	this->encap = NULL;
-	this->deencap = NULL;
+	this->encap = nullptr;
+	this->deencap = nullptr;
 	return false;
 }
 
 Gse::Context::~Context()
 {
 	gse_status_t status;
-	std::map <GseIdentifier *, GseEncapCtx *, ltGseIdentifier>::iterator it;
+	std::map<GseIdentifier *, GseEncapCtx *, ltGseIdentifier>::iterator it;
 
 	// free the vfrags and buffer if created
 	if(this->vfrag_pkt != NULL)
@@ -290,7 +292,7 @@ Gse::Context::~Context()
 }
 
 NetBurst *Gse::Context::encapsulate(NetBurst *burst,
-                                    map<long, int> &time_contexts)
+                                    std::map<long, int> &time_contexts)
 {
 	NetBurst *gse_packets = NULL;
 
@@ -357,7 +359,7 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 		{
 			continue;
 		}
-		time_contexts.insert(make_pair(time, context_id));
+		time_contexts.insert(std::make_pair(time, context_id));
 	}
 
 	// delete the burst and all packets in it
@@ -376,8 +378,7 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
                                     long &time)
 {
-	std::map <GseIdentifier *, GseEncapCtx *,
-	          ltGseIdentifier >::iterator context_it;
+	std::map<GseIdentifier *, GseEncapCtx *, ltGseIdentifier >::iterator context_it;
 	GseEncapCtx *context = NULL;
 	gse_status_t status;
 	GseIdentifier *identifier;
@@ -403,7 +404,7 @@ bool Gse::Context::encapFixedLength(NetPacket *packet, NetBurst *gse_packets,
 		LOG(this->log, LEVEL_INFO,
 		    "encapsulation context does not exist yet\n");
 		context = new GseEncapCtx(identifier, dest_spot);
-		this->contexts.insert(std::pair <GseIdentifier *, GseEncapCtx *>
+		this->contexts.insert(std::pair<GseIdentifier *, GseEncapCtx *>
 		                      (identifier, context));
 		LOG(this->log, LEVEL_INFO,
 		    "new encapsulation context created, "
@@ -984,8 +985,7 @@ NetBurst *Gse::Context::flush(int context_id)
 	NetBurst *gse_packets;
 	GseEncapCtx *context;
 	GseIdentifier *identifier;
-	std::map <GseIdentifier *, GseEncapCtx *,
-	          ltGseIdentifier >::iterator context_it;
+	std::map<GseIdentifier *, GseEncapCtx *, ltGseIdentifier >::iterator context_it;
 	uint8_t label[6];
 	std::string packet_name;
 	uint16_t protocol;
@@ -1625,7 +1625,7 @@ bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
                                              NetPacket** new_packet,
                                              tal_id_t tal_id_src,
                                              tal_id_t tal_id_dst,
-                                             string callback_name,
+                                             std::string callback_name,
                                              void *opaque)
 {
 
@@ -1727,7 +1727,7 @@ bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
 }
 
 bool Gse::PacketHandler::getHeaderExtensions(const NetPacket *packet,
-                                             string callback_name,
+                                             std::string callback_name,
                                              void *opaque)
 {
 	gse_vfrag_t *gse_data;

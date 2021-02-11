@@ -32,6 +32,7 @@
  * @author Remy Pienne <remy.pienne@toulouse.viveris.com>
  */
 
+
 #include "MacAddress.h"
 
 #include <cstdio>
@@ -52,29 +53,25 @@ MacAddress::MacAddress(uint8_t b0,
                        uint8_t b2,
                        uint8_t b3,
                        uint8_t b4,
-                       uint8_t b5)
+                       uint8_t b5):
+	mac{b0, b1, b2, b3, b4, b5}
 {
-	this->mac[0] = b0;
-	this->mac[1] = b1;
-	this->mac[2] = b2;
-	this->mac[3] = b3;
-	this->mac[4] = b4;
-	this->mac[5] = b5;
 }
+
 
 MacAddress::MacAddress(std::string mac_address)
 {
 	// TODO do the same for Ipv6Addr (i.e. use pure C++ functions)
-	std::stringstream addr(mac_address);
-	unsigned int index = 0;
-	while(!addr.fail() && index < 6)
-	{   
-		std::stringbuf token;
+	std::stringstream addr{mac_address};
+
+	for(std::size_t index = 0; index < 6; ++index)
+	{
+		std::stringbuf token{""};
 		std::stringstream ss;
-		unsigned int tmp;
-		token.str("");
+
 		addr.get(token, ':');
 		ss << token.str();
+
 		if(ss.str() == "**")
 		{
 			this->generic_bytes[index] = true;
@@ -83,30 +80,30 @@ MacAddress::MacAddress(std::string mac_address)
 		else
 		{
 			this->generic_bytes[index] = false;
+			uint8_t tmp;
 			ss >> std::hex >> tmp;
 			this->mac[index] = tmp;
 		}
+
 		addr.ignore();
-		index++;
-	}   
+		if(addr.fail()) break;
+	}
 }
+
 
 std::string MacAddress::str() const
 {
 	std::stringstream mac_addr;
+	mac_addr << std::hex;
 
-	mac_addr << std::hex << std::setw(2) << std::internal << std::setfill('0')
-	         << (unsigned int) this->mac[0] << ":"
-	         << std::setw(2) << std::internal << std::setfill('0')
-	         << (unsigned int) this->mac[1] << ":"
-	         << std::setw(2) << std::internal << std::setfill('0')
-	         << (unsigned int) this->mac[2] << ":"
-	         << std::setw(2) << std::internal << std::setfill('0')
-	         << (unsigned int) this->mac[3] << ":"
-	         << std::setw(2) << std::internal << std::setfill('0')
-	         << (unsigned int) this->mac[4] << ":"
-	         << std::setw(2) << std::internal << std::setfill('0')
-	         << (unsigned int) this->mac[5];
+	for(std::size_t i = 0; i < MacAddress::bytes_count; ++i)
+	{
+		if (i) mac_addr << ":";
+		mac_addr << std::setw(2)
+		         << std::internal
+		         << std::setfill('0')
+		         << (unsigned int) this->mac[i];
+	}
 
 	return mac_addr.str();
 }
@@ -114,16 +111,17 @@ std::string MacAddress::str() const
 
 unsigned char MacAddress::at(unsigned int i) const
 {
-	if(i < 6)
+	if(i < MacAddress::bytes_count)
 	{
 		return this->mac[i];
 	}
 	return 0;
 }
 
+
 bool MacAddress::matches(const MacAddress *addr) const
 {
-	for(unsigned int i = 0; i < 6; i++)
+	for(std::size_t i = 0; i < MacAddress::bytes_count; ++i)
 	{
 		if(this->generic_bytes[i])
 		{

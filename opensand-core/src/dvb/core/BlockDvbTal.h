@@ -43,7 +43,7 @@
 
 #include "BlockDvb.h"
 
-#include "PhysicStd.h" 
+#include "PhysicStd.h"
 #include "DamaAgent.h"
 #include "SlottedAlohaTal.h"
 #include "Scheduling.h"
@@ -51,7 +51,6 @@
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
 
@@ -110,8 +109,10 @@ class BlockDvbTal: public BlockDvb
 
 	BlockDvbTal(const string &name, tal_id_t mac_id);
 	~BlockDvbTal();
-	bool initListsSts();
 
+	static void generateConfiguration();
+
+	bool initListsSts();
 
 	class Upward: public DvbUpward, public DvbFmt
 	{
@@ -205,16 +206,16 @@ class BlockDvbTal: public BlockDvb
 		tal_state_t state;
 
 		/* Output probes and stats */
-			// Rates
-					// Layer 2 from SAT
+		// Rates
+		// Layer 2 from SAT
 		std::shared_ptr<Probe<int>> probe_st_l2_from_sat;
 		int l2_from_sat_bytes;
-			// Physical layer information
+		// Physical layer information
 		std::shared_ptr<Probe<int>> probe_st_required_modcod;
 		std::shared_ptr<Probe<int>> probe_st_received_modcod;
 		std::shared_ptr<Probe<int>> probe_st_rejected_modcod;
-			// Stability
-    std::shared_ptr<Probe<float>> probe_sof_interval;
+		// Stability
+		std::shared_ptr<Probe<float>> probe_sof_interval;
 	};
 
 
@@ -227,7 +228,6 @@ class BlockDvbTal: public BlockDvb
 		bool onEvent(const RtEvent *const event);
 
 	 protected:
-
 		/**
 		 * @brief Initialize the transmission mode
 		 *
@@ -432,7 +432,7 @@ class BlockDvbTal: public BlockDvb
 		event_id_t qos_server_timer;   ///< The timer for connection retry to QoS Server
 
 		// Output events
-    std::shared_ptr<OutputEvent> event_login;
+		std::shared_ptr<OutputEvent> event_login;
 
 		// Output Logs
 		std::shared_ptr<OutputLog> log_frame_tick;
@@ -441,22 +441,22 @@ class BlockDvbTal: public BlockDvb
 		std::shared_ptr<OutputLog> log_saloha;
 
 		/* Output probes and stats */
-			// Queue sizes
+		// Queue sizes
 		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size;
 		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size_kb;
-			// Queue loss
+		// Queue loss
 		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss;
 		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss_kb;
-			// Rates
-				// Layer 2 to SAT
+		// Rates
+		// Layer 2 to SAT
 		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_before_sched;
 		map<unsigned int, int> l2_to_sat_cells_before_sched;
 		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_after_sched;
 		int l2_to_sat_total_bytes;
 		std::shared_ptr<Probe<int>> probe_st_l2_to_sat_total;
-				// PHY to SAT
+		// PHY to SAT
 		std::shared_ptr<Probe<int>> probe_st_phy_to_sat;
-				// Layer 2 from SAT
+		// Layer 2 from SAT
 	};
 
  protected:

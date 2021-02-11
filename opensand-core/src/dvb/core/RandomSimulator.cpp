@@ -41,43 +41,29 @@
 RandomSimulator::RandomSimulator(spot_id_t spot_id,
                                  tal_id_t mac_id,
                                  FILE** evt_file,
-                                 ConfigurationList current_gw):
-	RequestSimulator(spot_id, mac_id, 
-	                 evt_file,
-	                 current_gw)
+                                 int simu_st,
+                                 int simu_rt,
+                                 int simu_max_rbdc,
+                                 int simu_max_vbdc,
+                                 int simu_cr,
+                                 int simu_interval):
+	RequestSimulator(spot_id, mac_id, evt_file)
 {
-	int val;
-	string str_config;
-	if(!Conf::getValue(current_gw, DVB_SIMU_RANDOM, str_config))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-				"cannot load parameter %s from section %s\n",
-				DVB_SIMU_RANDOM, DVB_NCC_SECTION);
-		// cannot return value from constructer
-		assert(0);
-	}
-	val = sscanf(str_config.c_str(), "%ld:%ld:%ld:%ld:%ld:%ld",
-			&this->simu_st, &this->simu_rt, &this->simu_max_rbdc,
-			&this->simu_max_vbdc, &this->simu_cr, &this->simu_interval);
-	if(val < 4)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-				"cannot load parameter %s from section %s\n",
-				DVB_SIMU_RANDOM, DVB_NCC_SECTION);
-		// cannot return value from constructer
-		assert(0);
-	}
-	else
-	{
-		LOG(this->log_init, LEVEL_NOTICE,
-				"random events simulated for %ld terminals with "
-				"%ld kb/s bandwidth, %ld kb/s max RBDC, "
-				"%ld kb max VBDC, a mean request of %ld kb/s "
-				"and a request amplitude of %ld kb/s)i\n",
-				this->simu_st, this->simu_rt, this->simu_max_rbdc,
-				this->simu_max_vbdc, this->simu_cr,
-				this->simu_interval);
-	}
+	this->simu_st = simu_st;
+	this->simu_rt = simu_rt;
+	this->simu_max_rbdc = simu_max_rbdc;
+	this->simu_max_vbdc = simu_max_vbdc;
+	this->simu_cr = simu_cr;
+	this->simu_interval = simu_interval;
+
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "random events simulated for %ld terminals with "
+	    "%ld kb/s bandwidth, %ld kb/s max RBDC, "
+	    "%ld kb max VBDC, a mean request of %ld kb/s "
+	    "and a request amplitude of %ld kb/s)i\n",
+	    this->simu_st, this->simu_rt, this->simu_max_rbdc,
+	    this->simu_max_vbdc, this->simu_cr,
+	    this->simu_interval);
 	srandom(times(NULL));
 }
 

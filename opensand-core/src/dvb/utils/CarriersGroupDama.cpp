@@ -52,7 +52,7 @@ CarriersGroupDama::CarriersGroupDama(unsigned int carriers_id,
 
 CarriersGroupDama::~CarriersGroupDama()
 {
-	vector<CarriersGroupDama *>::iterator it;
+	std::vector<CarriersGroupDama *>::iterator it;
 	for(it = this->vcm_carriers.begin();
 	    it != this->vcm_carriers.end();
 	    ++it)
@@ -64,7 +64,7 @@ CarriersGroupDama::~CarriersGroupDama()
 void CarriersGroupDama::setCapacity(const vol_sym_t capacity_sym)
 {
 	CarriersGroup::setCapacity(capacity_sym);
-	vector<CarriersGroupDama *>::iterator it;
+	std::vector<CarriersGroupDama *>::iterator it;
 
 	// compute VCM capacities	
 	for(it = this->vcm_carriers.begin();
@@ -79,7 +79,7 @@ void CarriersGroupDama::setCapacity(const vol_sym_t capacity_sym)
 void CarriersGroupDama::setCarriersNumber(const unsigned int carriers_number)
 {
 	CarriersGroup::setCarriersNumber(carriers_number);
-	vector<CarriersGroupDama *>::iterator it;
+	std::vector<CarriersGroupDama *>::iterator it;
 
 	// compute VCM capacities	
 	for(it = this->vcm_carriers.begin();
@@ -93,7 +93,7 @@ void CarriersGroupDama::setCarriersNumber(const unsigned int carriers_number)
 void CarriersGroupDama::setSymbolRate(const double symbol_rate_symps)
 {
 	CarriersGroup::setSymbolRate(symbol_rate_symps);
-	vector<CarriersGroupDama *>::iterator it;
+	std::vector<CarriersGroupDama *>::iterator it;
 
 	// compute VCM capacities	
 	for(it = this->vcm_carriers.begin();
@@ -155,7 +155,7 @@ unsigned int CarriersGroupDama::getNearestFmtId(unsigned int fmt_id)
 	return this->fmt_group->getNearest(fmt_id);
 }
 
-vector<CarriersGroupDama *> CarriersGroupDama::getVcmCarriers()
+std::vector<CarriersGroupDama *> CarriersGroupDama::getVcmCarriers()
 {
 	return this->vcm_carriers;
 }

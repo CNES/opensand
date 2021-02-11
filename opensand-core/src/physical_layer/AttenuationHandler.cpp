@@ -38,9 +38,10 @@
 #include "BBFrame.h"
 #include "DvbRcsFrame.h"
 #include "OpenSandCore.h"
+#include "OpenSandPlugin.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
 
 #include <math.h>
 
@@ -57,32 +58,40 @@ AttenuationHandler::~AttenuationHandler()
 {
 }
 
-bool AttenuationHandler::initialize(const string &link_section, std::shared_ptr<OutputLog> log_init)
+void AttenuationHandler::generateConfiguration()
 {
-	string minimal_type;
-	string error_type;
+	auto Conf = OpenSandModelConf::Get();
+	auto conf = Conf->getOrCreateComponent("physical_layer", "Physical Layer", "The Physical layer configuration");
+
+	auto minimal = Conf->getOrCreateComponent("minimal_condition", "Minimal Condition", conf);
+	Plugin::generatePluginsConfiguration(minimal, minimal_plugin, "minimal_condition_type", "Minimal Condition Type");
+
+	auto error = Conf->getOrCreateComponent("error_insertion", "Error Insertion", conf);
+	Plugin::generatePluginsConfiguration(error, error_plugin, "error_insertion_type", "Error Insertion Type");
+}
+
+bool AttenuationHandler::initialize(std::shared_ptr<OutputLog> log_init)
+{
+	auto phy = OpenSandModelConf::Get()->getProfileData()->getComponent("physical_layer");
+	auto minimal = phy->getComponent("minimal_condition");
+	auto error = phy->getComponent("error_insertion");
 
 	// Get parameters
-	if(!Conf::getValue(Conf::section_map[link_section],
-	                   MINIMAL_CONDITION_TYPE,
-	                   minimal_type))
+	std::string minimal_type;
+	if(!OpenSandModelConf::extractParameterData(minimal->getParameter("minimal_condition_type"), minimal_type))
 	{
 		LOG(log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'",
-		    link_section.c_str(),
-		    MINIMAL_CONDITION_TYPE);
+		    "section 'physical_layer': missing parameter 'minimal condition type'");
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,
 	    "minimal_condition_type = %s", minimal_type.c_str());
-	if(!Conf::getValue(Conf::section_map[link_section],
-	                   ERROR_INSERTION_TYPE,
-	                   error_type))
+
+	std::string error_type;
+	if(!OpenSandModelConf::extractParameterData(error->getParameter("error_insertion_type"), error_type))
 	{
 		LOG(log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'",
-		    link_section.c_str(),
-		    ERROR_INSERTION_TYPE);
+		    "section 'physical_layer': missing parameter 'error insertion type'");
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,

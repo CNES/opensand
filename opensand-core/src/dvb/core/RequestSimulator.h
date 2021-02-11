@@ -42,17 +42,17 @@
 #include "Logoff.h"
 #include "DvbFifo.h"
 
-#include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
-
 #define SIMU_BUFF_LEN 255
+
+
+class OutputLog;
 
 enum Simulate
 {
 	none_simu,
 	file_simu,
 	random_simu,
-} ;
+};
 
 
 class RequestSimulator 
@@ -60,9 +60,10 @@ class RequestSimulator
  public:
 	RequestSimulator(spot_id_t spot_id,
 	                 tal_id_t mac_id,
-	                 FILE** evt_file,
-	                 ConfigurationList current_gw);
+	                 FILE** evt_file);
 	~RequestSimulator();
+
+	static void generateConfiguration();
 	
 	/**
 	 * Simulate event based on an input file
@@ -77,12 +78,11 @@ class RequestSimulator
 	void updateStatistics(void);
 
  protected:
-
 	/** Read configuration for the request simulation
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initRequestSimulation(ConfigurationList current_gw);
+	bool initRequestSimulation();
 
 	/// spot id
 	uint8_t spot_id;

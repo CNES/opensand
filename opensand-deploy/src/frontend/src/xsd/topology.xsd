@@ -1,0 +1,951 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="model">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <version>1.0.0</version>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="root">
+          <xs:annotation>
+            <xs:documentation xml:lang="en">
+              <type>component</type>
+              <name>Root</name>
+              <description>topology</description>
+              <advanced>false</advanced>
+              <reference/>
+              <expected/>
+            </xs:documentation>
+          </xs:annotation>
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="frequency_plan">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Spots / Frequency Plan</name>
+                    <description/>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="spots">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>Spots</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>spot_detail</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="assignments">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>component</type>
+                                      <name>Spot Assignment</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                  <xs:complexType>
+                                    <xs:sequence>
+                                      <xs:element name="spot_id" type="xs:integer">
+                                        <xs:annotation>
+                                          <xs:documentation xml:lang="en">
+                                            <type>int</type>
+                                            <name>Spot ID</name>
+                                            <description/>
+                                            <advanced>false</advanced>
+                                            <reference/>
+                                            <expected/>
+                                            <unit/>
+                                          </xs:documentation>
+                                        </xs:annotation>
+                                      </xs:element>
+                                      <xs:element name="gateway_id" type="xs:integer">
+                                        <xs:annotation>
+                                          <xs:documentation xml:lang="en">
+                                            <type>int</type>
+                                            <name>Gateway ID</name>
+                                            <description>ID of the gateway this spot belongs to</description>
+                                            <advanced>false</advanced>
+                                            <reference/>
+                                            <expected/>
+                                            <unit/>
+                                          </xs:documentation>
+                                        </xs:annotation>
+                                      </xs:element>
+                                    </xs:sequence>
+                                  </xs:complexType>
+                                </xs:element>
+                                <xs:element name="roll_off">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>component</type>
+                                      <name>Roll Off</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                  <xs:complexType>
+                                    <xs:sequence>
+                                      <xs:element name="forward" type="xs:decimal">
+                                        <xs:annotation>
+                                          <xs:documentation xml:lang="en">
+                                            <type>double</type>
+                                            <name>Forward Band Roll Off</name>
+                                            <description>Usually 0.35, 0.25 or 0.2 for DVB-S2</description>
+                                            <advanced>false</advanced>
+                                            <reference/>
+                                            <expected/>
+                                            <unit/>
+                                          </xs:documentation>
+                                        </xs:annotation>
+                                      </xs:element>
+                                      <xs:element name="return" type="xs:decimal">
+                                        <xs:annotation>
+                                          <xs:documentation xml:lang="en">
+                                            <type>double</type>
+                                            <name>Return Band Roll Off</name>
+                                            <description>Usually 0.2 for DVB-RCS2</description>
+                                            <advanced>false</advanced>
+                                            <reference/>
+                                            <expected/>
+                                            <unit/>
+                                          </xs:documentation>
+                                        </xs:annotation>
+                                      </xs:element>
+                                    </xs:sequence>
+                                  </xs:complexType>
+                                </xs:element>
+                                <xs:element name="forward_band">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>list</type>
+                                      <name>Forward Band</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                  <xs:complexType>
+                                    <xs:sequence>
+                                      <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                                        <xs:annotation>
+                                          <xs:documentation xml:lang="en">
+                                            <type>component</type>
+                                            <name>fwd_band</name>
+                                            <description/>
+                                            <advanced>false</advanced>
+                                            <reference/>
+                                            <expected/>
+                                          </xs:documentation>
+                                        </xs:annotation>
+                                        <xs:complexType>
+                                          <xs:sequence>
+                                            <xs:element name="symbol_rate" type="xs:decimal">
+                                              <xs:annotation>
+                                                <xs:documentation xml:lang="en">
+                                                  <type>double</type>
+                                                  <name>Symbol Rate</name>
+                                                  <description/>
+                                                  <advanced>false</advanced>
+                                                  <reference/>
+                                                  <expected/>
+                                                  <unit>Mbauds</unit>
+                                                </xs:documentation>
+                                              </xs:annotation>
+                                            </xs:element>
+                                            <xs:element name="type" type="forward_type">
+                                              <xs:annotation>
+                                                <xs:documentation xml:lang="en">
+                                                  <type>forward_type</type>
+                                                  <name>Type</name>
+                                                  <description/>
+                                                  <advanced>false</advanced>
+                                                  <reference/>
+                                                  <expected/>
+                                                  <unit/>
+                                                </xs:documentation>
+                                              </xs:annotation>
+                                            </xs:element>
+                                            <xs:element name="wave_form" type="xs:string">
+                                              <xs:annotation>
+                                                <xs:documentation xml:lang="en">
+                                                  <type>string</type>
+                                                  <name>Wave Form IDs</name>
+                                                  <description>Supported Wave Forms. Use ';' separator for unique IDs, '-' separator for all the IDs between bounds</description>
+                                                  <advanced>false</advanced>
+                                                  <reference/>
+                                                  <expected/>
+                                                  <unit/>
+                                                </xs:documentation>
+                                              </xs:annotation>
+                                            </xs:element>
+                                            <xs:element name="group" type="carrier_group">
+                                              <xs:annotation>
+                                                <xs:documentation xml:lang="en">
+                                                  <type>carrier_group</type>
+                                                  <name>Group</name>
+                                                  <description/>
+                                                  <advanced>false</advanced>
+                                                  <reference/>
+                                                  <expected/>
+                                                  <unit/>
+                                                </xs:documentation>
+                                              </xs:annotation>
+                                            </xs:element>
+                                            <xs:element name="ratio" type="xs:string">
+                                              <xs:annotation>
+                                                <xs:documentation xml:lang="en">
+                                                  <type>string</type>
+                                                  <name>Ratio</name>
+                                                  <description>Separate temporal division ratios by ','; you should also specify as many wave form IDs also separated by ','</description>
+                                                  <advanced>false</advanced>
+                                                  <reference>/frequency_plan/spots/*/forward_band/*/type</reference>
+                                                  <expected>VCM</expected>
+                                                  <unit/>
+                                                </xs:documentation>
+                                              </xs:annotation>
+                                            </xs:element>
+                                          </xs:sequence>
+                                        </xs:complexType>
+                                      </xs:element>
+                                    </xs:sequence>
+                                  </xs:complexType>
+                                </xs:element>
+                                <xs:element name="return_band">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>list</type>
+                                      <name>Return Band</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                  <xs:complexType>
+                                    <xs:sequence>
+                                      <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                                        <xs:annotation>
+                                          <xs:documentation xml:lang="en">
+                                            <type>component</type>
+                                            <name>rtn_band</name>
+                                            <description/>
+                                            <advanced>false</advanced>
+                                            <reference/>
+                                            <expected/>
+                                          </xs:documentation>
+                                        </xs:annotation>
+                                        <xs:complexType>
+                                          <xs:sequence>
+                                            <xs:element name="symbol_rate" type="xs:decimal">
+                                              <xs:annotation>
+                                                <xs:documentation xml:lang="en">
+                                                  <type>double</type>
+                                                  <name>Symbol Rate</name>
+                                                  <description/>
+                                                  <advanced>false</advanced>
+                                                  <reference/>
+                                                  <expected/>
+                                                  <unit>Mbauds</unit>
+                                                </xs:documentation>
+                                              </xs:annotation>
+                                            </xs:element>
+                                            <xs:element name="type" type="return_type">
+                                              <xs:annotation>
+                                                <xs:documentation xml:lang="en">
+                                                  <type>return_type</type>
+                                                  <name>Type</name>
+                                                  <description/>
+                                                  <advanced>false</advanced>
+                                                  <reference/>
+                                                  <expected/>
+                                                  <unit/>
+                                                </xs:documentation>
+                                              </xs:annotation>
+                                            </xs:element>
+                                            <xs:element name="wave_form" type="xs:string">
+                                              <xs:annotation>
+                                                <xs:documentation xml:lang="en">
+                                                  <type>string</type>
+                                                  <name>Wave Forms</name>
+                                                  <description/>
+                                                  <advanced>false</advanced>
+                                                  <reference/>
+                                                  <expected/>
+                                                  <unit/>
+                                                </xs:documentation>
+                                              </xs:annotation>
+                                            </xs:element>
+                                            <xs:element name="group" type="carrier_group">
+                                              <xs:annotation>
+                                                <xs:documentation xml:lang="en">
+                                                  <type>carrier_group</type>
+                                                  <name>Group</name>
+                                                  <description/>
+                                                  <advanced>false</advanced>
+                                                  <reference/>
+                                                  <expected/>
+                                                  <unit/>
+                                                </xs:documentation>
+                                              </xs:annotation>
+                                            </xs:element>
+                                          </xs:sequence>
+                                        </xs:complexType>
+                                      </xs:element>
+                                    </xs:sequence>
+                                  </xs:complexType>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="st_assignment">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Satellite Terminal Assignment</name>
+                    <description/>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="defaults">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Default Settings</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="default_spot" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Spot</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                          <xs:element name="default_group" type="carrier_group">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>carrier_group</type>
+                                <name>Group</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="assignments">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>Additional Assignments</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>assigned</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="terminal_id" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Terminal ID</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="spot_id" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Spot ID</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="group" type="carrier_group">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>carrier_group</type>
+                                      <name>Group</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="wave_forms">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Wave Forms</name>
+                    <description/>
+                    <advanced>false</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="dvb_s2">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>DVB-S2 Wave Forms</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>dvb_s2_waveforms</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="id" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Wave Form ID</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="efficiency" type="xs:decimal">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>double</type>
+                                      <name>Spectral Efficiency</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="threshold" type="xs:decimal">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>double</type>
+                                      <name>Required Es/N0</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit>dB</unit>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="dvb_rcs2">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>list</type>
+                          <name>DVB-RCS2 Wave Forms</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="item" minOccurs="0" maxOccurs="unbounded">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>component</type>
+                                <name>dvb_rcs2_waveforms</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                              </xs:documentation>
+                            </xs:annotation>
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="id" type="xs:integer">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>int</type>
+                                      <name>Wave Form ID</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="efficiency" type="xs:decimal">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>double</type>
+                                      <name>Spectral Efficiency</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="threshold" type="xs:decimal">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>double</type>
+                                      <name>Required Es/N0</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit>dB</unit>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                                <xs:element name="burst_length" type="burst_length">
+                                  <xs:annotation>
+                                    <xs:documentation xml:lang="en">
+                                      <type>burst_length</type>
+                                      <name>Burst Length</name>
+                                      <description/>
+                                      <advanced>false</advanced>
+                                      <reference/>
+                                      <expected/>
+                                      <unit/>
+                                    </xs:documentation>
+                                  </xs:annotation>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="advanced_settings">
+                <xs:annotation>
+                  <xs:documentation xml:lang="en">
+                    <type>component</type>
+                    <name>Advanced Settings</name>
+                    <description/>
+                    <advanced>true</advanced>
+                    <reference/>
+                    <expected/>
+                  </xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="links">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Links</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="forward_duration" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Forward link frame duration</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>ms</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                          <xs:element name="forward_margin" type="xs:decimal">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>double</type>
+                                <name>Forward link ACM loop margin</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>dB</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                          <xs:element name="return_duration" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Return link frame duration</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>ms</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                          <xs:element name="return_margin" type="xs:decimal">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>double</type>
+                                <name>Return link ACM loop margin</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>dB</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="schedulers">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Schedulers</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="burst_length" type="burst_length">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>burst_length</type>
+                                <name>DVB-RCS2 Burst Length</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                          <xs:element name="crdsa_frame" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>CRDSA Frame</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>DVB-RCS2 SuperFrames</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                          <xs:element name="crdsa_delay" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>CRDSA Max Satellite Delay</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>ms</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                          <xs:element name="pep_allocation" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>PEP Allocation Delay</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>ms</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="timers">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Timers</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="statistics" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Statistics Timer</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>ms</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                          <xs:element name="synchro" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Sync Period</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>ms</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                          <xs:element name="acm_refresh" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>ACM Refresh Period</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>ms</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="delay">
+                      <xs:annotation>
+                        <xs:documentation xml:lang="en">
+                          <type>component</type>
+                          <name>Delay</name>
+                          <description/>
+                          <advanced>false</advanced>
+                          <reference/>
+                          <expected/>
+                        </xs:documentation>
+                      </xs:annotation>
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="fifo_size" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Buffer Size</name>
+                                <description>Amount of packets that can be stored at once in the delay FIFO before being sent through the physical channels; acts as default values for the Gateways channels FIFO sizes if not specified</description>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit>packets</unit>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                          <xs:element name="delay_timer" type="xs:integer">
+                            <xs:annotation>
+                              <xs:documentation xml:lang="en">
+                                <type>int</type>
+                                <name>Timer</name>
+                                <description/>
+                                <advanced>false</advanced>
+                                <reference/>
+                                <expected/>
+                                <unit/>
+                              </xs:documentation>
+                            </xs:annotation>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:simpleType name="burst_length">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>DVB-RCS2 Burst Length</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="1616 sym"/>
+      <xs:enumeration value="536 sym"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="carrier_group">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>Carrier Group</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="Premium"/>
+      <xs:enumeration value="Professional"/>
+      <xs:enumeration value="SNO"/>
+      <xs:enumeration value="SVNO1"/>
+      <xs:enumeration value="SVNO2"/>
+      <xs:enumeration value="SVNO3"/>
+      <xs:enumeration value="Standard"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="forward_type">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>Forward Carrier Type</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ACM"/>
+      <xs:enumeration value="VCM"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="return_type">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        <name>Return Carrier Type</name>
+        <description/>
+      </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ALOHA"/>
+      <xs:enumeration value="DAMA"/>
+      <xs:enumeration value="SCPC"/>
+      <xs:enumeration value=""/>
+    </xs:restriction>
+  </xs:simpleType>
+</xs:schema>

@@ -185,4 +185,3 @@ fmt_id_t FmtGroup::getMaxFmtId() const
 	return this->num_fmt_ids.back();
 }
 
-

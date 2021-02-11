@@ -36,15 +36,12 @@
 #ifndef NET_CONTAINER_H
 #define NET_CONTAINER_H
 
-#include "Data.h"
 
 #include "OpenSandCore.h"
 
-#include <string>
-#include <stdint.h>
-#include <syslog.h>
+#include "Data.h"
 
-using std::string;
+#include <string>
 
 
 /**
@@ -56,31 +53,29 @@ using std::string;
 class NetContainer
 {
  protected:
-
 	/// Internal buffer for packet data
 	Data data;
 
 	/// The name of the network protocol
-	string name;
+	std::string name;
 
 	/// The packet header length
-	size_t header_length;
+	std::size_t header_length;
 
 	/// The packet trailer length
-	size_t trailer_length;
+	std::size_t trailer_length;
 	
 	/// The destination spot ID
 	spot_id_t spot;
 
  public:
-
 	/**
 	 * Build a generic OpenSAND network container
 	 *
 	 * @param data raw data from which a network-layer packet can be created
 	 * @param length length of raw data
 	 */
-	NetContainer(const unsigned char *data, size_t length);
+	NetContainer(const unsigned char *data, std::size_t length);
 
 
 	/**
@@ -96,7 +91,7 @@ class NetContainer
 	 * @param data raw data from which a network-layer packet can be created
 	 * @param length length of raw data
 	 */
-	NetContainer(const Data &data, size_t length);
+	NetContainer(const Data &data, std::size_t length);
 
 
 	/**
@@ -114,14 +109,14 @@ class NetContainer
 	 *
 	 * @return the name of the network protocol
 	 */
-	string getName() const;
+	std::string getName() const;
 
 	/**
 	 * Retrieve the total length of the packet
 	 *
 	 * @return the total length of the packet
 	 */
-	virtual size_t getTotalLength() const;
+	virtual std::size_t getTotalLength() const;
 
 	/**
 	 * Get data string
@@ -136,14 +131,14 @@ class NetContainer
 	 * @param  the position of the data beginning
 	 * @return the data starting at the given position
 	 */
-	virtual Data getData(size_t pos) const;
+	virtual Data getData(std::size_t pos) const;
 
 	/**
 	 * Retrieve the length of the packet payload
 	 *
 	 * @return the length of the packet payload
 	 */
-	virtual size_t getPayloadLength() const;
+	virtual std::size_t getPayloadLength() const;
 
 	/**
 	 * Retrieve the data corresponding to the payload of the packet
@@ -158,14 +153,14 @@ class NetContainer
 	 * @param  the position of the data beginning in the payload
 	 * @return the data starting at the given position from the payload
 	 */
-	virtual Data getPayload(size_t pos) const;
+	virtual Data getPayload(std::size_t pos) const;
 
 	/**
 	 * Get the packet header length
 	 *
 	 * @return the header length
 	 */
-	virtual size_t getHeaderLength() const;
+	virtual std::size_t getHeaderLength() const;
 
 	/**
 	 * Set the destination spot ID

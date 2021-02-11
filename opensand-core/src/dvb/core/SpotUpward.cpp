@@ -81,6 +81,7 @@ SpotUpward::~SpotUpward()
 
 }
 
+
 bool SpotUpward::onInit(void)
 {
 	// Get and open the files
@@ -141,7 +142,7 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 
 	// refuse to register a ST with same MAC ID as the NCC
 	// or if it's a gw
-	if(OpenSandConf::isGw(mac) or mac == this->mac_id)
+	if(OpenSandModelConf::Get()->isGw(mac) or mac == this->mac_id)
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "a ST wants to register with the MAC ID of the NCC "

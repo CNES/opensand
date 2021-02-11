@@ -37,9 +37,9 @@
 #include "DamaAgentRcs2.h"
 
 #include "UnitConverterFixedSymbolLength.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
 
 #include <algorithm>
 
@@ -108,17 +108,16 @@ bool DamaAgentRcs2::init()
 	}
 
 	// Initializes unit converter
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   RCS2_BURST_LENGTH, length_sym))
+	if(!OpenSandModelConf::Get()->getRcs2BurstLength(length_sym))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get '%s' value", DELAY_BUFFER);
+		    "cannot get RCS2 burst length value");
 		return NULL;
 	}
 	if(length_sym == 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "invalid value '%u' value of '%s", length_sym, DELAY_BUFFER);
+		    "invalid value '%u' value of RCS2 burst length", length_sym);
 		return NULL;
 	}
 	LOG(this->log_init, LEVEL_INFO,
@@ -152,8 +151,8 @@ bool DamaAgentRcs2::init()
 	    this->modcod_id, this->converter->getModulationEfficiency());
 
 	this->probe_st_sent_modcod = Output::Get()->registerProbe<int>("Up_Return_modcod.Sent_modcod",
-                                                                 "modcod index",
-                                                                 true, SAMPLE_LAST);
+	                                                               "modcod index",
+	                                                               true, SAMPLE_LAST);
 
 	return true;
 }

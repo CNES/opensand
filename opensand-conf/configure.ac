@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-conf, 5.2.0, [http://opensand.org])
+AC_INIT(opensand-conf, 6.0.0, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE
 
 # Disable static libraries by default
@@ -17,7 +18,8 @@ AC_PROG_LIBTOOL
 
 # Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdio.h stdlib.h])
+AC_CHECK_HEADER([stdio.h], [], [AC_MSG_ERROR([Missing header stdio.h])])
+AC_CHECK_HEADER([stdlib.h], [], [AC_MSG_ERROR([Missing header stdlib.h])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
@@ -30,20 +32,21 @@ AC_PROG_GCC_TRADITIONAL
 AC_CHECK_FUNCS([])
 
 AC_SUBST([OPENSAND_CONF_REQ], ['libxml++-2.6 >= 2.10.0'])
-
 PKG_CHECK_MODULES([LIBXMLXX], [$OPENSAND_CONF_REQ])
 LIBS="$LIBXMLXX_LIBS $LIBS"
-
 AC_SUBST(AM_CPPFLAGS, "$LIBXMLXX_CFLAGS")
+
+# Check python3-dev dependency for Python module
+AC_SUBST([PYTHON_VERSION], [3])
+AX_PYTHON_DEVEL
+
+# Check boost-python dependency for Python module
+AX_BOOST_BASE([1.71], [], [AC_MSG_ERROR([Missing Boost])])
+AX_BOOST_PYTHON
 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
-CXXFLAGS="$CXXFLAGS -std=c++11"
-
-# check for opensand-output library
-PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 5.2.0])
-LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
-AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
+CXXFLAGS="$CXXFLAGS -std=c++17"
 
 # check if -Werror must be appended to CFLAGS
 WERROR=""
@@ -62,7 +65,9 @@ AM_DEP_TRACK
 
 AC_CONFIG_FILES([Makefile \
                  src/Makefile \
-                 src/test/Makefile \
+                 src/tests/Makefile \
+                 src/pymodule/Makefile \
+                 src/pymodule/tests/Makefile \
                  opensand_conf.pc
                  ])
 

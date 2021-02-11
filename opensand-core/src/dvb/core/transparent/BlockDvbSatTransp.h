@@ -54,7 +54,6 @@
 
 
 #include "BlockDvbSat.h"
-#include "SatGw.h"
 #include "PhysicStd.h" 
 
 // output

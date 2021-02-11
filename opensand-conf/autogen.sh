@@ -19,7 +19,7 @@ run()
 rm -f config.cache
 rm -f config.log
 
-run aclocal
+run aclocal -I m4 --install
 run libtoolize --force
 run autoconf
 run autoheader

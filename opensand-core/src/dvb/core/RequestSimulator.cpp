@@ -34,14 +34,15 @@
  */
 
 #include "RequestSimulator.h"
+#include "OpenSandModelConf.h"
 
+#include <opensand_output/Output.h>
 #include <errno.h>
 
 
 RequestSimulator::RequestSimulator(spot_id_t spot_id,
                                    tal_id_t mac_id,
-	                           FILE** evt_file,
-                                   ConfigurationList current_gw):
+                                   FILE** evt_file):
 	spot_id(spot_id),
 	mac_id(mac_id),
 	dvb_fifos(),
@@ -57,16 +58,16 @@ RequestSimulator::RequestSimulator(spot_id_t spot_id,
 	log_request_simulation(NULL),
 	log_init(NULL)
 {
-  auto output = Output::Get();
+	auto output = Output::Get();
 
 	this->log_init = output->registerLog(LEVEL_WARNING,
-	                                     "Spot_%d.InitRequestSimulation",
-                                       this->spot_id);
+                                         "Spot_%d.InitRequestSimulation",
+                                         this->spot_id);
 	this->log_request_simulation = output->registerLog(LEVEL_WARNING,
-	                                                   "Spot_%d.RequestSimulation",
-                                                     this->spot_id);
+                                                       "Spot_%d.RequestSimulation",
+                                                       this->spot_id);
 
-	if(!this->initRequestSimulation(current_gw))
+	if(!this->initRequestSimulation())
 	{
 		assert(0);
 	}
@@ -95,17 +96,29 @@ RequestSimulator::~RequestSimulator()
 	this->dvb_fifos.clear();
 }
 
-bool RequestSimulator::initRequestSimulation(ConfigurationList current_gw)
+void RequestSimulator::generateConfiguration()
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
+	conf->addParameter("event_file", "Event Trace File",
+	                   types->getType("string"),
+	                   "Should an event history be generated? "
+	                   "Format would be acceptable for a simulation trace file. "
+	                   "Leave empty to not generate anything.");
+}
+
+bool RequestSimulator::initRequestSimulation()
 {
 	memset(this->simu_buffer, '\0', SIMU_BUFF_LEN);
-	string evt_type;
-                                             
+
 	// Get and open the event file
-	if(!Conf::getValue(current_gw, DVB_EVENT_FILE, evt_type))
+	std::string evt_type;
+	auto ncc = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
+	if(!OpenSandModelConf::extractParameterData(ncc->getParameter("event_file"), evt_type))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot load parameter %s from section %s\n",
-		    DVB_EVENT_FILE, DVB_NCC_SECTION);
+		    "cannot load parameter event_file from section ncc\n");
 		return false;
 	}
 
@@ -139,6 +152,4 @@ bool RequestSimulator::initRequestSimulation(ConfigurationList current_gw)
 
 	return true;
 }
-
-
 

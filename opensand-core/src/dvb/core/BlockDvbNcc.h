@@ -68,8 +68,9 @@
 #include "NccPepInterface.h"
 #include "NccSvnoInterface.h"
 
-#include "SpotUpward.h"
-#include "SpotDownward.h"
+
+class SpotDownward;
+
 
 /**
  * @brief  The list of spots for GW channels and other common elements
@@ -174,6 +175,8 @@ class BlockDvbNcc: public BlockDvb
 	BlockDvbNcc(const string &name, tal_id_t mac_id);
 
 	~BlockDvbNcc();
+
+	static void generateConfiguration();
 
 	bool initListsSts();
 

@@ -39,6 +39,9 @@
 
 #include "BlockDvbNcc.h"
 
+#include "OpenSandModelConf.h"
+#include "SpotUpward.h"
+#include "SpotDownward.h"
 #include "SpotUpwardTransp.h"
 #include "SpotDownwardTransp.h"
 #include "DvbRcsFrame.h"
@@ -75,6 +78,13 @@ BlockDvbNcc::~BlockDvbNcc()
 	}
 	this->output_sts_list.clear();
 	this->input_sts_list.clear();
+}
+
+void BlockDvbNcc::generateConfiguration()
+{
+	SpotDownward::generateConfiguration();
+	SpotDownwardTransp::generateConfiguration();
+	SpotUpwardTransp::generateConfiguration();
 }
 
 bool BlockDvbNcc::onInit(void)
@@ -149,12 +159,10 @@ BlockDvbNcc::Downward::~Downward()
 bool BlockDvbNcc::Downward::onInit(void)
 {
 	bool result = true;
-	const char *scheme;
+	int pep_tcp_port, svno_tcp_port;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 
 	// get the common parameters
-	scheme = FORWARD_DOWN_ENCAP_SCHEME_LIST;
-
 	if(!this->initDown())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -163,7 +171,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 
-	if(!this->initCommon(scheme))
+	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the common part of the "
@@ -216,9 +224,17 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 
+	// retrieve the TCP communication port dedicated
+	// for NCC/PEP and NCC/SVNO communications
+	if(!OpenSandModelConf::Get()->getNccPorts(pep_tcp_port, svno_tcp_port))
+	{
+		LOG(this->log_init_channel, LEVEL_NOTICE,
+		    "section 'ncc': missing parameter 'pep port' or 'svno port'\n");
+		return false;
+	}
 
 	// listen for connections from external PEP components
-	if(!this->pep_interface.initPepSocket())
+	if(!this->pep_interface.initPepSocket(pep_tcp_port))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to listen for PEP connections\n");
@@ -228,7 +244,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	                        this->pep_interface.getPepListenSocket(), 200);
 
 	// listen for connections from external SVNO components
-	if(!this->svno_interface.initSvnoSocket())
+	if(!this->svno_interface.initSvnoSocket(svno_tcp_port))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to listen for SVNO connections\n");
@@ -239,8 +255,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 
 	// Output probes and stats
 	this->probe_frame_interval = Output::Get()->registerProbe<float>("Perf.Frames_interval",
-                                                                   "ms", true,
-                                                                   SAMPLE_LAST);
+	                                                                 "ms", true,
+	                                                                 SAMPLE_LAST);
 
 	return result;
 }
@@ -249,6 +265,8 @@ bool BlockDvbNcc::Downward::initTimers(void)
 {
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 	time_ms_t acm_period_ms;
+
+	auto Conf = OpenSandModelConf::Get();
 
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
@@ -259,24 +277,19 @@ bool BlockDvbNcc::Downward::initTimers(void)
 
 
 	// read the pep allocation delay
-	if(!Conf::getValue(Conf::section_map[NCC_SECTION_PEP], DVB_NCC_ALLOC_DELAY,
-	                   this->pep_alloc_delay))
+	if(!Conf->getPepAllocationDelay(this->pep_alloc_delay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY);
+		    "section 'schedulers': missing parameter 'pep allocation delay'\n");
 		return false;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "pep_alloc_delay set to %d ms\n", this->pep_alloc_delay);
 
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   ACM_PERIOD_REFRESH,
-	                   acm_period_ms))
+	if(!Conf->getAcmRefreshPeriod(acm_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		   "section '%s': missing parameter '%s'\n",
-		   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
+		   "section 'timers': missing parameter 'acm refresh period'\n");
 		return false;
 	}
 

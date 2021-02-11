@@ -64,11 +64,11 @@ class BlockInterconnectDownward: public Block
 	 * @param specific  Specific block parameters
 	 */
 	BlockInterconnectDownward(const string &name,
-	                          const string &UNUSED(interconnect_addr)):
-		Block(name)
-	{};
+	                          const string &interconnect_addr);
 
-	~BlockInterconnectDownward() {};
+	~BlockInterconnectDownward();
+
+	static void generateConfiguration();
 
 	class Upward: public RtUpward, public InterconnectChannelReceiver
 	{
@@ -127,11 +127,11 @@ class BlockInterconnectUpward: public Block
 	 * @param specific  Specific block parameters
 	 */
 	BlockInterconnectUpward(const string &name,
-	                        const string &UNUSED(interconnect_addr)):
-		Block(name)
-	{};
+	                        const string &interconnect_addr);
 
-	~BlockInterconnectUpward() {};
+	~BlockInterconnectUpward();
+
+	static void generateConfiguration();
 
 	class Upward: public RtUpward, public InterconnectChannelSender
 	{

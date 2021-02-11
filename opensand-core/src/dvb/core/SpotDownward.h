@@ -58,6 +58,8 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	             StFmtSimuList *output_sts);
 
 	virtual ~SpotDownward();
+
+	static void generateConfiguration();
 	
 	/**
 	 * @brief Spot Downward initialisation

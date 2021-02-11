@@ -43,8 +43,8 @@
 #include <cstring>
 
 
-DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
-                 string type_name,
+DvbFifo::DvbFifo(unsigned int fifo_priority, std::string fifo_name,
+                 std::string type_name,
                  vol_pkt_t max_size_pkt):
 	queue(),
 	fifo_priority(fifo_priority),
@@ -99,7 +99,7 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 
 DvbFifo::DvbFifo(uint8_t carrier_id,
                  vol_pkt_t max_size_pkt,
-                 string fifo_name):
+                 std::string fifo_name):
 	queue(),
 	fifo_priority(0),
 	fifo_name(fifo_name),
@@ -121,7 +121,7 @@ DvbFifo::~DvbFifo()
 	this->flush();
 }
 
-string DvbFifo::getName() const
+std::string DvbFifo::getName() const
 {
 	return this->fifo_name;
 }
@@ -209,7 +209,7 @@ uint8_t DvbFifo::getCni(void) const
 	return this->cni;
 }
 
-vector<MacFifoElement *> DvbFifo::getQueue(void)
+std::vector<MacFifoElement *> DvbFifo::getQueue(void)
 {
 	return this->queue;
 }
@@ -317,7 +317,7 @@ MacFifoElement *DvbFifo::pop()
 void DvbFifo::flush()
 {
 	RtLock lock(this->fifo_mutex);
-	vector<MacFifoElement *>::iterator it;
+	std::vector<MacFifoElement *>::iterator it;
 	for(it = this->queue.begin(); it != this->queue.end(); ++it)
 	{
 //		NetContainer *elem = (*it)->getElem();

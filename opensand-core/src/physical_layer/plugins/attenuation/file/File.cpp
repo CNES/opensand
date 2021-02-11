@@ -36,68 +36,77 @@
 
 
 #include "File.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
-#include <errno.h>
+#include <sstream>
+#include <fstream>
 
-#define FILE_SECTION   "file"
-#define FILE_LIST      "file_attenuations"
-#define PATH          "path"
-#define LOOP          "loop_mode"
-#define CONF_FILE_FILENAME "file.conf"
 
 File::File():
-	AttenuationModelPlugin(),
-	current_time(0),
-	attenuation(),
-	loop(false)
+		AttenuationModelPlugin(),
+		current_time(0),
+		attenuation(),
+		loop(false)
 {
 }
+
 
 File::~File()
 {
 	this->attenuation.clear();
 }
 
-bool File::init(time_ms_t refresh_period_ms, string link)
-{
-	string filename;
-	ConfigurationFile config;
-	string conf_file_path;
-	conf_file_path = this->getConfPath() + string(CONF_FILE_FILENAME);
 
-	if(!config.loadConfig(conf_file_path.c_str()))
-	{   
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load config file '%s'",
-		    conf_file_path.c_str());
-		return false;
+void File::generateConfiguration(const std::string &parent_path,
+                                 const std::string &param_id,
+                                 const std::string &plugin_name)
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+
+	auto attenuation = Conf->getComponentByPath(parent_path);
+	if (attenuation == nullptr)
+	{
+		return;
+	}
+	auto attenuation_type = attenuation->getParameter(param_id);
+	if (attenuation_type == nullptr)
+	{
+		return;
 	}
 
-	config.loadSectionMap(this->config_section_map);
+	auto attenuation_file = attenuation->addParameter("file_attenuation_file",
+	                                                  "Attenuation File Path",
+	                                                  types->getType("string"));
+	Conf->setProfileReference(attenuation_file, attenuation_type, plugin_name);
+	auto attenuation_loop = attenuation->addParameter("file_attenuation_loop",
+	                                                  "Attenuation File Loop Mode",
+	                                                  types->getType("bool"));
+	Conf->setProfileReference(attenuation_loop, attenuation_type, plugin_name);
+}
 
 
+bool File::init(time_ms_t refresh_period_ms, std::string link_path)
+{
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!config.getValueInList(this->config_section_map[FILE_SECTION], 
-		                      FILE_LIST, LINK, link,
-	                          PATH, filename))
+	auto attenuation = OpenSandModelConf::Get()->getProfileData(link_path);
+	std::string filename;
+	if(!OpenSandModelConf::extractParameterData(attenuation->getParameter("file_attenuation_file"), filename))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE attenuation %slink: cannot get %s",
-		    link.c_str(), PATH);
+		    "FILE attenuation %s: cannot get filename",
+		    link_path.c_str());
 		return false;
 	}
 
-	if(!config.getValueInList(this->config_section_map[FILE_SECTION], 
-		                      FILE_LIST, LINK, link,
-	                          LOOP, this->loop))
+	if(!OpenSandModelConf::extractParameterData(attenuation->getParameter("file_attenuation_loop"), this->loop))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE %slink: cannot get %s",
-		    link.c_str(), LOOP);
+		    "FILE %s: cannot get loop mode",
+		    link_path.c_str());
 		return false;
 	}
 
@@ -105,9 +114,9 @@ bool File::init(time_ms_t refresh_period_ms, string link)
 }
 
 
-bool File::load(string filename)
+bool File::load(std::string filename)
 {
-	string line;
+	std::string line;
 	std::istringstream line_stream;
 	unsigned int line_number = 0;
 
@@ -141,11 +150,11 @@ bool File::load(string filename)
 		if(line_stream.bad() || line_stream.fail())
 		{
 			LOG(this->log_attenuation, LEVEL_ERROR,
-					"Bad syntax in file '%s', line %u: "
-					"there should be a timestamp (integer) "
-					"instead of '%s'\n",
-					filename.c_str(), line_number,
-					line.c_str());
+			    "Bad syntax in file '%s', line %u: "
+			    "there should be a timestamp (integer) "
+			    "instead of '%s'\n",
+			    filename.c_str(), line_number,
+			    line.c_str());
 			goto malformed;
 		}
 
@@ -173,10 +182,9 @@ malformed:
 	    "Malformed attenuation configuration file '%s'\n",
 	    filename.c_str());
 	file.close();
- error:
+error:
 	return false;
 }
-
 
 
 bool File::updateAttenuationModel()
@@ -186,7 +194,7 @@ bool File::updateAttenuationModel()
 	double old_attenuation, new_attenuation;
 	double next_attenuation;
 
-	this->current_time++;;
+	this->current_time++;
 
 	LOG(this->log_attenuation, LEVEL_INFO,
 	    "Updating attenuation scenario: current time: %u "
@@ -221,9 +229,7 @@ bool File::updateAttenuationModel()
 			    old_time, old_attenuation);
 
 			// Linear interpolation
-			coef = (new_attenuation - old_attenuation) /
-			        (new_time - old_time);
-
+			coef = (new_attenuation - old_attenuation) / (new_time - old_time);
 
 			next_attenuation = old_attenuation +
 			                   coef * (this->current_time - old_time);
@@ -265,6 +271,3 @@ bool File::updateAttenuationModel()
 
 	return true;
 }
-
-
-

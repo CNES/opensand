@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-rle-encap-plugin, 5.2.0, [http://opensand.org])
+AC_INIT(opensand-rle-encap-plugin, 6.0.0, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -35,17 +35,11 @@ CXXFLAGS="$CXXFLAGS -std=c++11"
 
 # check for rle library
 PKG_CHECK_MODULES([OPENSAND_RLE], [rle >= 1.7.2], [])
-
 LIBS="$OPENSAND_RLE_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_RLE_CFLAGS $AM_CPPFLAGS")
 
-# check for opensand-conf library
-PKG_CHECK_MODULES([OPENSAND_CONF], [opensand_conf = 5.2.0])
-LIBS="$OPENSAND_CONF_LIBS $LIBS"
-AC_SUBST(AM_CPPFLAGS, "$OPENSAND_CONF_CFLAGS $AM_CPPFLAGS")
-
 # check for opensand-plugin library
-PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_plugin = 5.2.0])
+PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_plugin = 6.0.0])
 LIBS="$OPENSAND_PLUG_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_PLUG_CFLAGS $AM_CPPFLAGS")
 

@@ -8,7 +8,7 @@ from distutils.core import setup
 
 setup(
     name='opensand-network',
-    version='5.2.0',
+    version='6.0.0',
     author='Viveris Technologies',
     author_email='aurelien.delrieu@viveris.fr',
     url="http://opensand.org",

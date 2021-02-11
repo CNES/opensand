@@ -45,6 +45,8 @@
 #include "Logon.h"
 
 #include "UnitConverterFixedSymbolLength.h"
+#include "OpenSandModelConf.h"
+
 
 SpotUpwardTransp::SpotUpwardTransp(spot_id_t spot_id,
                                    tal_id_t mac_id,
@@ -64,10 +66,14 @@ SpotUpwardTransp::~SpotUpwardTransp()
 }
 
 
+void SpotUpwardTransp::generateConfiguration()
+{
+	SlottedAlohaNcc::generateConfiguration();
+}
+
+
 bool SpotUpwardTransp::onInit(void)
 {
-	string scheme = RETURN_UP_ENCAP_SCHEME_LIST;
-
 	if(!this->initModcodDefinitionTypes())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -76,7 +82,7 @@ bool SpotUpwardTransp::onInit(void)
 	}
 
 	// get the common parameters
-	if(!this->initCommon(scheme.c_str()))
+	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the common part of the "
@@ -106,22 +112,21 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 	TerminalCategories<TerminalCategorySaloha> sa_categories;
 	TerminalMapping<TerminalCategorySaloha> sa_terminal_affectation;
 	TerminalCategorySaloha *sa_default_category;
-	ConfigurationList current_spot;
 	UnitConverter *converter;
-	int lan_scheme_nbr;
 	vol_sym_t length_sym = 0;
 
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-	                          this->mac_id, current_spot))
+	auto Conf = OpenSandModelConf::Get();
+	OpenSandModelConf::spot current_spot;
+	if (!Conf->getSpotReturnCarriers(this->mac_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value %d into %s/%s\n",
-		    GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
+		    "there is no spot definition attached to the gateway %d\n",
+		    this->mac_id);
 		return false;
 	}
 
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
-	                                           RETURN_UP_BAND,
+	                                           "return up frequency plan",
 	                                           ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->rcs_modcod_def,
@@ -149,28 +154,21 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 		    "Cannot guarantee no loss with MPEG2-TS and Slotted Aloha "
 		    "on return link due to interleaving\n");
 	}
-	if(!Conf::getNbListItems(Conf::section_map[GLOBAL_SECTION],
-		                     LAN_ADAPTATION_SCHEME_LIST,
-	                         lan_scheme_nbr))
+
+	auto encap = Conf->getProfileData()->getComponent("encapsulation");
+	for(auto& item : encap->getList("lan_adaptation_schemes")->getItems())
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Section %s, %s missing\n", GLOBAL_SECTION,
-		    LAN_ADAPTATION_SCHEME_LIST);
-		return false;
-	}
-	for(int i = 0; i < lan_scheme_nbr; i++)
-	{
-		string name;
-		if(!Conf::getValueInList(Conf::section_map[GLOBAL_SECTION],
-		                         LAN_ADAPTATION_SCHEME_LIST,
-		                         POSITION, toString(i), PROTO, name))
+		std::string protocol_name;
+		auto lan_adaptation_scheme = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
+		if(!OpenSandModelConf::extractParameterData(lan_adaptation_scheme->getParameter("protocol"), protocol_name))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "Section %s, invalid value %d for parameter '%s'\n",
-			    GLOBAL_SECTION, i, POSITION);
+			    "LAN Adaptation Scheme in global section "
+				"is missing a protocol name\n");
 			return false;
 		}
-		if(name == "ROHC")
+
+		if(protocol_name == "ROHC")
 		{
 			LOG(this->log_init_channel, LEVEL_WARNING,
 			    "Cannot guarantee no loss with RoHC and Slotted Aloha "
@@ -201,11 +199,10 @@ bool SpotUpwardTransp::initSlottedAloha(void)
 		goto release_saloha;
 	}
 
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   RCS2_BURST_LENGTH, length_sym))
+	if(!Conf->getRcs2BurstLength(length_sym))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot get '%s' value", DELAY_BUFFER);
+		    "cannot get 'RCS2 Burst Length' value");
 		goto release_saloha;
 	}
 	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
@@ -277,7 +274,7 @@ bool SpotUpwardTransp::initMode(void)
 			    "failed to get forward packet handler\n");
 			return false;
 		}
-		if (!OpenSandConf::getScpcEncapStack(scpc_encap) ||
+		if (!OpenSandModelConf::Get()->getScpcEncapStack(scpc_encap) ||
 			scpc_encap.size() <= 0)
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
@@ -318,23 +315,19 @@ bool SpotUpwardTransp::initAcmLoopMargin(void)
 {
 	double ret_acm_margin_db;
 	double fwd_acm_margin_db;
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   RETURN_UP_ACM_LOOP_MARGIN,
-	                   ret_acm_margin_db))
+	auto Conf = OpenSandModelConf::Get();
+
+	if(!Conf->getReturnAcmLoopMargin(ret_acm_margin_db))
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    PHYSICAL_LAYER_SECTION, RETURN_UP_ACM_LOOP_MARGIN);
+		    "Section Advanced Links Settings, Return link ACM loop margin missing\n");
 		return false;
 	}
 
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   FORWARD_DOWN_ACM_LOOP_MARGIN,
-	                   fwd_acm_margin_db))
+	if(!Conf->getForwardAcmLoopMargin(fwd_acm_margin_db))
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
-		    "Section %s, %s missing\n",
-		    PHYSICAL_LAYER_SECTION, FORWARD_DOWN_ACM_LOOP_MARGIN);
+		    "Section Advanced Links Settings, Forward link ACM loop margin missing\n");
 		return false;
 	}
 
@@ -524,19 +517,18 @@ bool SpotUpwardTransp::checkIfScpc()
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
 	TerminalCategoryDama *default_category;
 	fmt_groups_t ret_fmt_groups;
-	ConfigurationList current_spot;
 
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-	                          this->mac_id, current_spot))
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->mac_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value %d into %s/%s\n",
-		    GW, this->mac_id, RETURN_UP_BAND, SPOT_LIST);
+		    "there is no spot definition attached to the gateway %d\n",
+		    this->mac_id);
 		return false;
 	}
 
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
-	                                         RETURN_UP_BAND,
+	                                         "return up frequency plan",
 	                                         SCPC,
 	                                         // used for checking, no need to get a relevant value
 	                                         5,
