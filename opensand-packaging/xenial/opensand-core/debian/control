@@ -3,34 +3,12 @@ Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7),
  autotools-dev, automake, libtool, pkg-config,
- libopensand-output-dev (>= 5.2.0),
- libopensand-rt-dev (>= 5.2.0),
+ libopensand-conf-dev (>= 6.0.0),
+ libopensand-output-dev (>= 6.0.0),
+ libopensand-rt-dev (>= 6.0.0),
  python-lxml, libpcap-dev
 Standards-Version: 3.8.3
 Section: misc
-
-Package: opensand-core-conf
-Architecture: any
-Section: misc
-Depends: 
-Provides: opensand-core-all, libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager,
- libopensand-ideal-attenuation-plugin-manager, libopensand-on-off-attenuation-plugin-manager, libopensand-triangular-attenuation-plugin-manager,
- libopensand-constant-minimal-plugin-manager, libopensand-modcod-minimal-plugin-manager, libopensand-ethernet-lan-adapt-manager,
- libopensand-default-nominal-plugin-manager, libopensand-gate-error-plugin-manager, libopensand-constant-satdelay-plugin-manager,
- libopensand-file-satdelay-plugin-manager
-Conflicts: opensand-core-all, libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager,
- libopensand-ideal-attenuation-plugin-manager, libopensand-on-off-attenuation-plugin-manager, libopensand-triangular-attenuation-plugin-manager,
- libopensand-constant-minimal-plugin-manager, libopensand-modcod-minimal-plugin-manager, libopensand-ethernet-lan-adapt-manager,
- libopensand-default-nominal-plugin-manager, libopensand-gate-error-plugin-manager, libopensand-constant-satdelay-plugin-manager,
- libopensand-file-satdelay-plugin-manager
-Replaces: opensand-core-all, libopensand-encap-plugin-manager, libopensand-atm-aal5-encap-plugin-manager, libopensand-mpeg-encap-plugin-manager, libopensand-ule-encap-plugin-manager,
- libopensand-ideal-attenuation-plugin-manager, libopensand-on-off-attenuation-plugin-manager, libopensand-triangular-attenuation-plugin-manager,
- libopensand-constant-minimal-plugin-manager, libopensand-modcod-minimal-plugin-manager, libopensand-ethernet-lan-adapt-manager,
- libopensand-default-nominal-plugin-manager, libopensand-gate-error-plugin-manager, libopensand-constant-satdelay-plugin-manager,
- libopensand-file-satdelay-plugin-manager
-Description: The configuration files of the OpenSAND emulation testbed
-  OpenSAND is an emulation testbed aiming to represent in a cost effective way a
-  satellite telecommunication system for research and engineering activities.
 
 Package: opensand-core-dbg
 Section: debug
@@ -43,8 +21,7 @@ Description: Debugging symbols for OpenSAND Core binaries
 Package: opensand-core
 Architecture: any
 Section: misc
-Depends: ${shlibs:Depends},
- ${misc:Depends}, rsyslog, logrotate
+Depends: ${shlibs:Depends}, ${misc:Depends}, rsyslog, logrotate, libopensand-conf (= ${binary:Version})
 Provides: opensand-core-bin
 Conflicts: opensand-core-bin
 Replaces: opensand-core-bin
@@ -55,7 +32,7 @@ Description: The OpenSAND emulation testbed core
 Package: libopensand-plugin
 Section: libdevel
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, libopensand-conf (= ${binary:Version})
 Provides: libopensand-encap-plugin, libopensand-atm-aal5-encap-plugin, libopensand-mpeg-encap-plugin, libopensand-ule-encap-plugin,
  libopensand-ideal-attenuation-plugin, libopensand-on-off-attenuation-plugin, libopensand-triangular-attenuation-plugin,
  libopensand-constant-minimal-plugin, libopensand-modcod-minimal-plugin, libopensand-ethernet-lan-adapt,

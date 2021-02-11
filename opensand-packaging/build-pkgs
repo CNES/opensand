@@ -30,6 +30,7 @@ make_libs()
     # Package and install opensand-output
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
     # Package and install opensand-conf
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-boost-python || error
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
     # Package and install opensand-rt
     $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-rt || error

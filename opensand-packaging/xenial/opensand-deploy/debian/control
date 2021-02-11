@@ -2,18 +2,14 @@ Source: opensand-deploy
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7),
- autotools-dev, automake, libtool, pkg-config,
- libopensand-conf (>= 5.2.0),
- libopensand-gse-encap-plugin (>= 5.2.0),
- libopensand-rle-encap-plugin (>= 5.2.0),
- opensand-core (>= 5.2.0)
+ autotools-dev, automake, libtool, pkg-config
 Standards-Version: 3.8.3
 Section: misc
 
 Package: opensand-deploy
 Architecture: any
 Section: misc
-Depends: libopensand-conf (= ${binary:Version})
+Depends: libopensand-conf (= ${binary:Version}), python3-flask, uwsgi
 Provides:
 Conflicts:
 Replaces:

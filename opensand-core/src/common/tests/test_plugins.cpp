@@ -47,6 +47,8 @@
 #include "EncapPlugin.h"
 #include "LanAdaptationPlugin.h"
 #include "Plugin.h"
+#include "NetBurst.h"
+#include "NetPacket.h"
 
 #include <opensand_output/Output.h>
 
@@ -213,7 +215,6 @@ static void test_encap_and_decap(
 	bool compare)
 {
 	pl_list_t encap_plug;
-	pl_list_it_t plugit;
 	string stack = "";
 
 	for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
@@ -229,7 +230,7 @@ static void test_encap_and_decap(
 	Plugin::getAllEncapsulationPlugins(encap_plug);
 
 	// test each encap context
-	for(plugit = encap_plug.begin(); plugit != encap_plug.end(); ++plugit)
+	for(auto plugit = encap_plug.begin(); plugit != encap_plug.end(); ++plugit)
 	{
 		encap_contexts_t encap_contexts;
 		string name = plugit->first;
@@ -261,7 +262,7 @@ static void test_encap_and_decap(
 			for(vector<string>::iterator iter = upper.begin();
 			    iter != upper.end(); ++iter)
 			{
-				if(encap_plug[*iter] != NULL)
+				if(encap_plug[*iter].second != NULL)
 				{
 					EncapPlugin *up_plugin;
 					if(!Plugin::getEncapsulationPlugin(*iter, &up_plugin))
