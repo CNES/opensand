@@ -25,8 +25,16 @@ interface Props {
     list: List;
     templates: ITemplatesContent;
     forceUpdate: () => void;
+    entityTypes: EntityTypes;
+    onSelect: (entity: string) => void;
     onEdit: (entity: string | null, model: string, xsd: string, xml?: string) => void;
     onDelete: (entity: string | null, model: string) => void;
+    onDownload: (entity: string | null) => void;
+}
+
+
+interface EntityTypes {
+    [entityName: string]: string | undefined;
 }
 
 
@@ -65,7 +73,7 @@ const ProjectList = (props: Props) => {
                     <TableRow>
                         <TableCell key={0} align="left">
                             <Tooltip placement="top" title="Download configuration files of the project">
-                                <IconButton size="small">
+                                <IconButton size="small" onClick={props.onDownload.bind(this, null)}>
                                     <DownloadIcon />
                                 </IconButton>
                             </Tooltip>
@@ -87,13 +95,16 @@ const ProjectList = (props: Props) => {
                 <TableBody>
                     {list.elements.map((c: Component, i: number) => {
                         const entity = c.parameters.find((p: Parameter) => p.id === "name")?.value;
+                        const entityType = props.entityTypes[entity || ""];
                         const onEdit = props.onEdit.bind(this, entity || null);
                         const onDelete = props.onDelete.bind(this, entity || null);
+                        const onDownload = props.onDownload.bind(this, entity || null);
+                        const onSelect = props.onSelect.bind(this, entity || "");
                         return (
                             <TableRow key={i}>
                                 <TableCell key={0} align="left">
                                     <Tooltip placement="top" title="Download configuration files of this entity">
-                                        <IconButton size="small">
+                                        <IconButton size="small" onClick={onDownload}>
                                             <DownloadIcon />
                                         </IconButton>
                                     </Tooltip>
@@ -109,8 +120,10 @@ const ProjectList = (props: Props) => {
                                                 key={i+1}
                                                 parameter={param}
                                                 templates={templates}
+                                                entityType={entityType}
                                                 onEdit={onEdit}
                                                 onDelete={onDelete}
+                                                onSelect={param.id === "infrastructure" ? onSelect : undefined}
                                                 enumeration={enums.find((e: Enum) => e.id === param.type)}
                                             />
                                         </TableCell>

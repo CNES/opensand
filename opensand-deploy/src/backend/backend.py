@@ -1,16 +1,18 @@
 import os
 import shutil
+import tarfile
 import tempfile
+from io import BytesIO
 from pathlib import Path
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Flask, request, jsonify, send_file
+# from flask_cors import CORS
 
 import py_opensand_conf
 
 
 app = Flask(__name__)
-CORS(app)
+# CORS(app)
 
 
 MODELS_FOLDER = Path()
@@ -179,6 +181,25 @@ def remove_project_topology(name):
     return success()
 
 
+@app.route('/api/project/<string:name>/<string:entity>', methods=['POST'])
+def download_entity(name, entity):
+    files = [
+            MODELS_FOLDER / name / 'topology.xml',
+            MODELS_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
+            MODELS_FOLDER / name / 'entities' / entity / 'profile.xml',
+    ]
+
+    in_memory = BytesIO()
+    with tarfile.open(fileobj=in_memory, mode='w:gz') as tar:
+        for filepath in files:
+            if filepath.exists() and filepath.is_file():
+                tar.add(filepath.as_posix(), filepath.name)
+
+    in_memory.seek(0)
+    dl_name = '{}.tar.gz'.format(entity)
+    return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
+
+
 @app.route('/api/project/<string:name>', methods=['GET'])
 def get_project_content(name):
     return get_file_content(name + '/project', '.xml')
@@ -202,13 +223,52 @@ def update_project_content(name):
 
 @app.route('/api/project/<string:name>', methods=['POST'])
 def validate_project(name):
-    # TODO. Only validate ? Download ? Start ?
-    return success()
+    try:
+        new_project_name = request.json['name']
+    except (KeyError, TypeError):
+        # Do download
+        in_memory = BytesIO()
+        with tarfile.open(fileobj=in_memory, mode='w:gz') as tar:
+            for entity_folder in MODELS_FOLDER.joinpath(name, 'entities').iterdir():
+                if not entity_folder.is_dir():
+                    continue
+                entity = entity_folder.name
+                files = [
+                        MODELS_FOLDER / name / 'topology.xml',
+                        MODELS_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
+                        MODELS_FOLDER / name / 'entities' / entity / 'profile.xml',
+                ]
+                for filepath in files:
+                    if filepath.exists() and filepath.is_file():
+                        tar.add(filepath.as_posix(), '{}/{}'.format(entity, filepath.name))
+
+        in_memory.seek(0)
+        dl_name = '{}.tar.gz'.format(name)
+        return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
+    else:
+        # Do copy
+        source = MODELS_FOLDER / name
+        if not source.exists() or not source.is_dir():
+            return error('Project {} not found'.format(name)), 404
+
+        destination = MODELS_FOLDER / new_project_name
+        if destination.exists():
+            return error('Project {} already exists'.format(new_project_name)), 409
+
+        shutil.copytree(source.as_posix(), destination.as_posix())
+
+        return success(new_project_name)
+
+    return error('Missing branch in code'), 500
 
 
 @app.route('/api/project/<string:name>', methods=['DELETE'])
 def delete_project(name):
-    shutil.rmtree(MODELS_FOLDER.joinpath(name), ignore_errors=True)
+    project = MODELS_FOLDER / name
+    if not project.exists():
+        return error('Project {} not found'.format(name)), 404
+
+    shutil.rmtree(project.as_posix())
     return success()
 
 

@@ -114,6 +114,14 @@ export const getProject = (
 ): Promise<void> => doFetch<IXmlContent>(callback, errorCallback, "/api/project/" + projectName);
 
 
+export const copyProject = (
+        callback: TCallback<IApiSuccess>,
+        errorCallback: ErrorCallback,
+        projectName: string,
+        newProjectName: string,
+): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, "/api/project/" + projectName, "POST", {name: newProjectName});
+
+
 export const updateProject = (
         callback: TCallback<IApiSuccess>,
         errorCallback: ErrorCallback,

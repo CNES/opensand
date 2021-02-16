@@ -20,18 +20,15 @@ export DH_OPTIONS
 # Disable for releases !
 #override_dh_auto_clean:
 
-override_dh_build:
-	dh_build
-
-	cd src/frontend; yarn build
-
 override_dh_install:
 	dh_install
 
+	install -d $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/
 	install -m 0644 src/backend/backend.py $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/backend.py
 	install -m 0644 src/backend/opensand-conf.service $(CURDIR)/debian/opensand-deploy/etc/systemd/system/opensand-conf.service
 	install -d $(CURDIR)/debian/opensand-deploy/var/opensand/www/
 
+	cd src/frontend; npm install; npm run build
 	install -D -m 0644 src/frontend/build/* -t $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/static
 
 override_dh_pysupport:

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import FormControl from '@material-ui/core/FormControl';
+import FormHelperText from '@material-ui/core/FormHelperText';
 import Divider from '@material-ui/core/Divider';
 import IconButton from '@material-ui/core/IconButton';
 import InputLabel from '@material-ui/core/InputLabel';
@@ -15,15 +16,18 @@ import EditIcon from '@material-ui/icons/Edit';
 
 import {ITemplatesContent} from '../../api';
 import {parameterStyles} from '../../utils/theme';
+import {useDidMount} from '../../utils/hooks';
 import {Parameter, Enum} from '../../xsd/model';
 
 
 interface Props {
     parameter: Parameter;
     templates: ITemplatesContent;
+    onSelect?: () => void;
     onEdit: (model: string, xsd: string, xml?: string) => void;
     onDelete: (model: string) => void;
     enumeration?: Enum;
+    entityType?: string;
 }
 
 
@@ -33,8 +37,25 @@ interface Option {
 }
 
 
+const xsdFromType = (entityType?: string) => {
+    switch (entityType) {
+        case "Gateway":
+            return "profile_gw.xsd";
+        case "Gateway Net Access":
+            return "profile_gw_net_acc.xsd";
+        case "Gateway Phy":
+            return "profile_gw_phy.xsd";
+        case "Terminal":
+            return "profile_st.xsd";
+        default:
+            return "";
+    }
+}
+
+
 const ProjectParameter = (props: Props) => {
-    const {parameter, templates, enumeration, onEdit, onDelete} = props;
+    const {parameter, templates, enumeration, onSelect, onEdit, onDelete, entityType} = props;
+    const didMount = useDidMount();
     const classes = parameterStyles();
 
     const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: Option;}>) => {
@@ -66,6 +87,10 @@ const ProjectParameter = (props: Props) => {
             return selected;
         }
     }, [header]);
+
+    React.useEffect(() => {
+        if (didMount && onSelect) onSelect();
+    }, [onSelect, didMount]);
 
     if (enumeration == null) {
         return (
@@ -126,10 +151,19 @@ const ProjectParameter = (props: Props) => {
     ].concat(choiceModels, dividers, ...choiceTemplates);
 
     const disabled = parameter.value != null && parameter.value !== "";
+    let error: string | undefined = undefined;
+    if (disabled) {
+        const expectedType = xsdFromType(entityType);
+        if (!entityType && parameter.id === "infrastructure") {
+            error = "No entity type selected on this configuration file";
+        } else if (parameter.id === "profile" && expectedType !== parameter.value) {
+            error = `Profile ${parameter.value} selected but entity type ${entityType} expects ${expectedType}`;
+        }
+    }
 
     return (
         <div className={classes.spaced}>
-            <FormControl className={classes.fullWidth}>
+            <FormControl className={classes.fullWidth} error={Boolean(error)}>
                 <InputLabel htmlFor={parameter.id}>
                     {parameter.value === "" ? null : parameter.name}
                 </InputLabel>
@@ -143,6 +177,7 @@ const ProjectParameter = (props: Props) => {
                 >
                     {choices}
                 </Select>
+                {error && <FormHelperText>{error}</FormHelperText>}
             </FormControl>
             {disabled && (
                 <Tooltip placement="top" title="Edit this configuration file">
