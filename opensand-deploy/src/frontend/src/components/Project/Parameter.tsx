@@ -48,7 +48,7 @@ const xsdFromType = (entityType?: string) => {
         case "Terminal":
             return "profile_st.xsd";
         default:
-            return "";
+            return "nothing";
     }
 }
 

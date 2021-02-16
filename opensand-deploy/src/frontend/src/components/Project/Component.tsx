@@ -20,21 +20,15 @@ interface Props {
     component: Component;
     templates: ITemplatesContent;
     forceUpdate: () => void;
-    entityTypes: EntityTypes;
-    onSelect: (entity: string) => void;
+    onSelect: (entity: string, setEntityType: (entityType?: string) => void) => void;
     onEdit: (entity: string | null, model: string, xsd: string, xml?: string) => void;
     onDelete: (entity: string | null, model: string) => void;
     onDownload: (entity: string | null) => void;
 }
 
 
-interface EntityTypes {
-    [entityName: string]: string | undefined;
-}
-
-
 const ProjectComponent = (props: Props) => {
-    const {component, templates, forceUpdate, entityTypes, onSelect, onDownload} = props;
+    const {component, templates, forceUpdate, onSelect, onDownload} = props;
     const {enums} = component.model.environment;
     const classes = componentStyles();
     const onEdit = props.onEdit.bind(this, null);
@@ -63,7 +57,6 @@ const ProjectComponent = (props: Props) => {
                             list={l}
                             templates={templates}
                             forceUpdate={forceUpdate}
-                            entityTypes={entityTypes}
                             onSelect={onSelect}
                             onEdit={props.onEdit}
                             onDelete={props.onDelete}
@@ -82,7 +75,6 @@ const ProjectComponent = (props: Props) => {
                         <ProjectComponent
                             component={c}
                             templates={templates}
-                            entityTypes={entityTypes}
                             onSelect={onSelect}
                             onEdit={props.onEdit}
                             onDelete={props.onDelete}

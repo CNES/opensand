@@ -25,17 +25,87 @@ interface Props {
     list: List;
     templates: ITemplatesContent;
     forceUpdate: () => void;
-    entityTypes: EntityTypes;
-    onSelect: (entity: string) => void;
+    onSelect: (entity: string, setEntityType: (entityType?: string) => void) => void;
     onEdit: (entity: string | null, model: string, xsd: string, xml?: string) => void;
     onDelete: (entity: string | null, model: string) => void;
     onDownload: (entity: string | null) => void;
 }
 
 
-interface EntityTypes {
-    [entityName: string]: string | undefined;
+interface EntityItemProps {
+    entity?: string;
+    onSelect: (entity: string, setEntityType: (entityType?: string) => void) => void;
+    onEdit: (entity: string | null, model: string, xsd: string, xml?: string) => void;
+    onDelete: (entity: string | null, model: string) => void;
+    onDownload: (entity: string | null) => void;
+    onRemove: () => void;
+    headers: string[];
+    parameters: Parameter[];
+    templates: ITemplatesContent;
+    enumerations: Enum[];
 }
+
+
+const ProjectListEntityItem = (props: EntityItemProps) => {
+    const {entity, onSelect, onEdit, onDelete, onDownload, onRemove, headers, parameters, templates, enumerations} = props;
+    const [entityType, setEntityType] = React.useState<string | undefined>(undefined);
+
+    const handleSelect = React.useCallback(() => {
+        if (entity != null) {
+            onSelect(entity, setEntityType);
+        }
+    }, [entity, onSelect]);
+
+    const handleEdit = React.useCallback((model: string, xsd: string, xml?: string) => {
+        onEdit(entity || null, model, xsd, xml);
+    }, [entity, onEdit]);
+
+    const handleDelete = React.useCallback((model: string) => {
+        onDelete(entity || null, model);
+    }, [entity, onDelete]);
+
+    const handleDownload = React.useCallback(() => {
+        onDownload(entity || null);
+    }, [entity, onDownload]);
+
+    return (
+        <TableRow>
+            <TableCell key={0} align="left">
+                <Tooltip placement="top" title="Download configuration files of this entity">
+                    <IconButton size="small" onClick={handleDownload}>
+                        <DownloadIcon />
+                    </IconButton>
+                </Tooltip>
+            </TableCell>
+            {headers.map((id: string, i: number) => {
+                const param = parameters.find((p: Parameter) => p.id === id);
+                if (param == null) {
+                    return <TableCell key={i+1} align="center" />;
+                }
+                return (
+                    <TableCell key={i+1} align="center">
+                        <Parameters
+                            parameter={param}
+                            templates={templates}
+                            entityType={entityType}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            onSelect={param.id === "infrastructure" ? handleSelect : undefined}
+                            enumeration={enumerations.find((e: Enum) => e.id === param.type)}
+                        />
+                    </TableCell>
+                );
+            })}
+            <TableCell key={headers.length + 1} align="right">
+                <Tooltip placement="top" title="Remove this entity">
+                    <IconButton size="small" onClick={onRemove}>
+                        <DeleteIcon />
+                    </IconButton>
+                </Tooltip>
+            </TableCell>
+        </TableRow>
+    );
+};
 
 
 const ProjectList = (props: Props) => {
@@ -93,52 +163,21 @@ const ProjectList = (props: Props) => {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {list.elements.map((c: Component, i: number) => {
-                        const entity = c.parameters.find((p: Parameter) => p.id === "name")?.value;
-                        const entityType = props.entityTypes[entity || ""];
-                        const onEdit = props.onEdit.bind(this, entity || null);
-                        const onDelete = props.onDelete.bind(this, entity || null);
-                        const onDownload = props.onDownload.bind(this, entity || null);
-                        const onSelect = props.onSelect.bind(this, entity || "");
-                        return (
-                            <TableRow key={i}>
-                                <TableCell key={0} align="left">
-                                    <Tooltip placement="top" title="Download configuration files of this entity">
-                                        <IconButton size="small" onClick={onDownload}>
-                                            <DownloadIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                </TableCell>
-                                {headers.map((id: string, i: number) => {
-                                    const param = c.parameters.find((p: Parameter) => p.id === id);
-                                    if (param == null) {
-                                        return <TableCell key={i+1} align="center" />;
-                                    }
-                                    return (
-                                        <TableCell key={i+1} align="center">
-                                            <Parameters
-                                                key={i+1}
-                                                parameter={param}
-                                                templates={templates}
-                                                entityType={entityType}
-                                                onEdit={onEdit}
-                                                onDelete={onDelete}
-                                                onSelect={param.id === "infrastructure" ? onSelect : undefined}
-                                                enumeration={enums.find((e: Enum) => e.id === param.type)}
-                                            />
-                                        </TableCell>
-                                    );
-                                })}
-                                <TableCell key={headers.length + 1} align="right">
-                                    <Tooltip placement="top" title="Remove this entity">
-                                        <IconButton size="small" onClick={() => removeListItem(i)}>
-                                            <DeleteIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })}
+                    {list.elements.map((c: Component, i: number) => (
+                        <ProjectListEntityItem
+                            key={i}
+                            entity={c.parameters.find((p: Parameter) => p.id === "name")?.value}
+                            onEdit={props.onEdit}
+                            onDelete={props.onDelete}
+                            onDownload={props.onDownload}
+                            onSelect={props.onSelect}
+                            onRemove={() => removeListItem(i)}
+                            headers={headers}
+                            parameters={c.parameters}
+                            templates={templates}
+                            enumerations={enums}
+                        />
+                    ))}
                 </TableBody>
             </Table>
             <SingleFieldDialog

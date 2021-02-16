@@ -25,15 +25,12 @@ interface Props {
 }
 
 
-interface EntityTypes {
-    [entityName: string]: string | undefined;
-}
+type EntityTypeSetter = (entityType?: string) => void;
 
 
 const Entities = (props: Props) => {
     const {project, projectName} = props;
     const [templates, setTemplates] = React.useState<ITemplatesContent>({});
-    const [entityTypes, setEntityTypes] = React.useState<EntityTypes>({});
     const [, setState] = React.useState<object>({});
     const history = useHistory();
 
@@ -42,25 +39,25 @@ const Entities = (props: Props) => {
         setState({});
     }, [setState, projectName, project]);
 
-    const checkModel = React.useCallback((xsd: string, entity: string) => {
+    const checkModel = React.useCallback((xsd: string, entity: string, setEntityType: EntityTypeSetter) => {
         const dataModel = fromXSD(xsd);
         const onSuccess = (content: IXmlContent) => {
             const model = fromXML(dataModel, content.content);
             const entityComponent = model.root.children.find((c: Component) => c.id === "entity");
             const entityParameter = entityComponent?.parameters.find((p: Parameter) => p.id === "entity_type");
             const entityValue = entityParameter?.value;
-            const entityType = entityValue == null || entityValue === "" ? undefined : entityValue;
-            setEntityTypes({...entityTypes, [entity]: entityType});
+            setEntityType(entityValue == null || entityValue === "" ? undefined : entityValue);
         }
         const onError = (error: string) => {
-            setEntityTypes({...entityTypes, [entity]: undefined});
+            setEntityType(undefined);
             sendError(error);
         }
         getProjectXML(onSuccess, onError, projectName, "infrastructure/" + entity);
-    }, [projectName, entityTypes, setEntityTypes]);
+    }, [projectName]);
 
-    const handleSelect = React.useCallback((entity: string) => {
-        getXSD((content: IXsdContent) => checkModel(content.content, entity), sendError, "infrastructure.xsd");
+    const handleSelect = React.useCallback((entity: string, setEntityType: EntityTypeSetter) => {
+        const onSuccess = (content: IXsdContent) => checkModel(content.content, entity, setEntityType);
+        getXSD(onSuccess, sendError, "infrastructure.xsd");
     }, [checkModel]);
 
     const handleDownload = React.useCallback((entity: string | null) => {
@@ -100,7 +97,6 @@ const Entities = (props: Props) => {
         <Components
             component={projectComponent}
             templates={templates}
-            entityTypes={entityTypes}
             onSelect={handleSelect}
             onEdit={handleEdit}
             onDelete={handleDelete}
