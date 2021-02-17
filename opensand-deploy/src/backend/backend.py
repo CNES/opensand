@@ -15,7 +15,7 @@ app = Flask(__name__)
 # CORS(app)
 
 
-MODELS_FOLDER = Path()
+MODELS_FOLDER = Path().resolve()
 
 
 def success(message='OK'):
@@ -226,25 +226,68 @@ def validate_project(name):
     try:
         new_project_name = request.json['name']
     except (KeyError, TypeError):
-        # Do download
-        in_memory = BytesIO()
-        with tarfile.open(fileobj=in_memory, mode='w:gz') as tar:
-            for entity_folder in MODELS_FOLDER.joinpath(name, 'entities').iterdir():
-                if not entity_folder.is_dir():
-                    continue
-                entity = entity_folder.name
-                files = [
-                        MODELS_FOLDER / name / 'topology.xml',
-                        MODELS_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
-                        MODELS_FOLDER / name / 'entities' / entity / 'profile.xml',
-                ]
-                for filepath in files:
-                    if filepath.exists() and filepath.is_file():
-                        tar.add(filepath.as_posix(), '{}/{}'.format(entity, filepath.name))
+        if request.files and 'project' in request.files:
+            # Do upload
+            destination = MODELS_FOLDER / name
+            if destination.exists():
+                return error('Project {} already exists'.format(name)), 409
 
-        in_memory.seek(0)
-        dl_name = '{}.tar.gz'.format(name)
-        return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
+            destination.mkdir()
+            entities = destination / 'entities'
+            project_archive = request.files['project']
+            with tarfile.open(fileobj=project_archive.stream, mode='r:gz') as tar:
+                while True:
+                    info = tar.next()
+                    if info is None:
+                        break
+                    if not info.isfile():
+                        continue
+                    if info.name == 'project.xml':
+                        tar.extract(info, path=destination.as_posix())
+                    else:
+                        extracted = entities.joinpath(info.name).resolve()
+                        if extracted.parent.parent == entities:
+                            # Nothing fishy in the filepath, we can extract safely
+                            entities.mkdir(exist_ok=True)
+                            tar.extract(info, path=entities.as_posix())
+
+            project_xml = destination / 'project.xml'
+            if not project_xml.exists() or not project_xml.is_file():
+                shutil.rmtree(destination.as_posix())
+                return error('Provided archive does not contain a "project.xml" file'), 422
+
+            if entities.exists():
+                project_topology = destination.joinpath('topology.xml').as_posix()
+                for entity_folder in entities.iterdir():
+                    topology = entity_folder / 'topology.xml'
+                    if topology.exists() and topology.is_file():
+                        os.rename(topology.as_posix(), project_topology)
+
+            return success()
+        else:
+            # Do download
+            in_memory = BytesIO()
+            with tarfile.open(fileobj=in_memory, mode='w:gz') as tar:
+                filepath = MODELS_FOLDER / name / 'project.xml'
+                if filepath.exists() and filepath.is_file():
+                    tar.add(filepath.as_posix(), filepath.name)
+
+                for entity_folder in MODELS_FOLDER.joinpath(name, 'entities').iterdir():
+                    if not entity_folder.is_dir():
+                        continue
+                    entity = entity_folder.name
+                    files = [
+                            MODELS_FOLDER / name / 'topology.xml',
+                            MODELS_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
+                            MODELS_FOLDER / name / 'entities' / entity / 'profile.xml',
+                    ]
+                    for filepath in files:
+                        if filepath.exists() and filepath.is_file():
+                            tar.add(filepath.as_posix(), '{}/{}'.format(entity, filepath.name))
+
+            in_memory.seek(0)
+            dl_name = '{}.tar.gz'.format(name)
+            return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
     else:
         # Do copy
         source = MODELS_FOLDER / name
@@ -324,7 +367,7 @@ if __name__ == '__main__':
             help='host port to listen on')
     args = parser.parse_args()
 
-    MODELS_FOLDER = args.folder
+    MODELS_FOLDER = args.folder.resolve()
     if not MODELS_FOLDER.is_dir():
         parser.error('XSD folder: the path is not a valid directory')
 

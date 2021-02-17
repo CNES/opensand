@@ -130,6 +130,38 @@ export const updateProject = (
 ): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, "/api/project/" + projectName, "PUT", {xml_data: toXML(project)});
 
 
+export const uploadProject = (
+        callback: TCallback<IApiSuccess>,
+        errorCallback: ErrorCallback,
+        projectName: string,
+        projectArchive: File,
+): Promise<void> => {
+    const form = new FormData ();
+    form.append("project", projectArchive);
+
+    const configuration: RequestInit = {
+        method: "POST",
+        body: form,
+        credentials: "same-origin",
+        headers: {Accept: "application/json"},
+    };
+
+    return fetch("/api/project/" + projectName, configuration).then(
+        (response: Response) => response.json().then(onApiResponse<IApiSuccess>(callback, errorCallback)).catch(
+            (ex) => {
+                if (response.ok) {
+                    errorCallback("Error in the HTTP response: " + ex);
+                } else {
+                    errorCallback("HTTP request sent back error code: " + response.status + " " + response.statusText);
+                }
+            }
+        )
+    ).catch(
+        (ex) => errorCallback("HTTP request error: " + ex)
+    );
+};
+
+
 export const deleteProject = (
         callback: TCallback<IApiSuccess>,
         errorCallback: ErrorCallback,
