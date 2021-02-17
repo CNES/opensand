@@ -15,9 +15,4 @@ PYTHON2=$(shell pyversions -vr)
 override_dh_strip:
 	dh_strip --dbg-package=libopensand-rle-encap-plugin-dbg
 	
-override_dh_install:
-	dh_install
-	install -m 0644 conf/rle.conf $(CURDIR)/debian/libopensand-rle-encap-plugin-conf/usr/share/opensand/plugins/rle.conf
-	install -m 0644 conf/rle.xsd $(CURDIR)/debian/libopensand-rle-encap-plugin-conf/usr/share/opensand/plugins/rle.xsd
-
 override_dh_pysupport:

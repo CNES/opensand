@@ -15,9 +15,4 @@ PYTHON2=$(shell pyversions -vr)
 override_dh_strip:
 	dh_strip --dbg-package=libopensand-gse-encap-plugin-dbg
 	
-override_dh_install:
-	dh_install
-	install -m 0644 conf/gse.conf $(CURDIR)/debian/libopensand-gse-encap-plugin-conf/usr/share/opensand/plugins/gse.conf
-	install -m 0644 conf/gse.xsd $(CURDIR)/debian/libopensand-gse-encap-plugin-conf/usr/share/opensand/plugins/gse.xsd
-
 override_dh_pysupport:
