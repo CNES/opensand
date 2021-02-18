@@ -232,6 +232,8 @@ void OpenSandModelConf::createModels()
 	types->addEnumType("forward_type", "Forward Carrier Type", {"ACM", "VCM"});
 	types->addEnumType("return_type", "Return Carrier Type", {"DAMA", "ALOHA", "SCPC"});
 	types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
+	types->addEnumType("modulation", "Modulation", {"BPSK", "Pi/2BPSK", "QPSK", "8PSK", "16APSK", "16QAM", "32APSK"});
+	types->addEnumType("coding", "Coding", {"1/4", "1/3", "2/5", "1/2", "3/5", "2/3", "3/4", "4/5", "5/6", "6/7", "8/9", "9/10"});
 
 	auto frequency_plan = topology_model->getRoot()->addComponent("frequency_plan", "Spots / Frequency Plan");
 	auto spots = frequency_plan->addList("spots", "Spots", "spot")->getPattern();

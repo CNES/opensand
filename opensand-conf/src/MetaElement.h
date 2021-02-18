@@ -91,7 +91,7 @@ namespace OpenSANDConf
 		 *
 		 * @return The target parameter
 		 */
-    std::shared_ptr<MetaParameter> getReferenceTarget() const;
+		std::shared_ptr<MetaParameter> getReferenceTarget() const;
 
 		/**
 		 * @brief Get the expected data of the reference parameter.

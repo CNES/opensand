@@ -6,16 +6,70 @@ from io import BytesIO
 from pathlib import Path
 
 from flask import Flask, request, jsonify, send_file
-# from flask_cors import CORS
 
 import py_opensand_conf
 
 
 app = Flask(__name__)
-# CORS(app)
 
 
 MODELS_FOLDER = Path().resolve()
+
+
+DVB_S2 = [
+        (1, 'QPSK', '1/4', 0.490, -2.35),
+        (2, 'QPSK', '1/3', 0.656, -1.24),
+        (3, 'QPSK', '2/5', 0.789, -0.30),
+        (4, 'QPSK', '1/2', 0.988, 1.00),
+        (5, 'QPSK', '3/5', 1.188, 2.23),
+        (6, 'QPSK', '2/3', 1.322, 3.10),
+        (7, 'QPSK', '3/4', 1.487, 4.03),
+        (8, 'QPSK', '4/5', 1.587, 4.68),
+        (9, 'QPSK', '5/6', 1.655, 5.18),
+        (10, 'QPSK', '8/9', 1.767, 6.20),
+        (11, 'QPSK', '9/10', 1.789, 6.42),
+        (12, '8PSK', '3/5', 1.780, 5.50),
+        (13, '8PSK', '2/3', 1.981, 6.62),
+        (14, '8PSK', '3/4', 2.228, 7.91),
+        (15, '8PSK', '5/6', 2.479, 9.35),
+        (16, '8PSK', '8/9', 2.646, 10.69),
+        (17, '8PSK', '9/10', 2.679, 10.98),
+        (18, '16APSK', '2/3', 2.637, 8.97),
+        (19, '16APSK', '3/4', 2.967, 10.21),
+        (20, '16APSK', '4/5', 3.166, 11.03),
+        (21, '16APSK', '5/6', 3.300, 11.61),
+        (22, '16APSK', '8/9', 3.523, 12.89),
+        (23, '16APSK', '9/10', 3.567, 13.13),
+        (24, '32APSK', '3/4', 3.703, 12.73),
+        (25, '32APSK', '4/5', 3.952, 13.64),
+        (26, '32APSK', '5/6', 4.120, 14.28),
+        (27, '32APSK', '8/9', 4.398, 15.69),
+        (28, '32APSK', '9/10', 4.453, 16.05),
+]
+
+
+DVB_RCS2 = [
+        (3, 'QPSK', '1/3', 0.56, 0.22, '536 sym'),
+        (4, 'QPSK', '1/2', 0.87, 2.34, '536 sym'),
+        (5, 'QPSK', '2/3', 1.26, 4.29, '536 sym'),
+        (6, 'QPSK', '3/4', 1.42, 5.36, '536 sym'),
+        (7, 'QPSK', '5/6', 1.60, 6.68, '536 sym'),
+        (8, '8PSK', '2/3', 1.70, 8.08, '536 sym'),
+        (9, '8PSK', '3/4', 1.93, 9.31, '536 sym'),
+        (10, '8PSK', '5/6', 2.13, 10.82, '536 sym'),
+        (11, '16QAM', '3/4', 2.59, 11.17, '536 sym'),
+        (12, '16QAM', '5/6', 2.87, 12.56, '536 sym'),
+        (13, 'QPSK', '1/3', 0.61, -0.51, '1616 sym'),
+        (14, 'QPSK', '1/2', 0.93, 1.71, '1616 sym'),
+        (15, 'QPSK', '2/3', 1.30, 3.69, '1616 sym'),
+        (16, 'QPSK', '3/4', 1.47, 4.73, '1616 sym'),
+        (17, 'QPSK', '5/6', 1.64, 5.94, '1616 sym'),
+        (18, '8PSK', '2/3', 1.75, 7.49, '1616 sym'),
+        (19, '8PSK', '3/4', 1.98, 8.77, '1616 sym'),
+        (20, '8PSK', '5/6', 2.19, 10.23, '1616 sym'),
+        (21, '16QAM', '3/4', 2.66, 10.72, '1616 sym'),
+        (22, '16QAM', '5/6', 2.96, 12.04, '1616 sym'),
+]
 
 
 def success(message='OK'):
@@ -64,22 +118,157 @@ def normalize_xsd_folder(folder_name):
     return folder.name
 
 
-def validate_model(xsd, xml, raw_xml_content=False):
-    if raw_xml_content:
-        with tempfile.NamedTemporaryFile(delete=False) as f:
-            f.write(xml)
-            f.flush()
-        xml = f.name
+def _get_component(component, name):
+    if component is None:
+        return None
 
-    filepath = MODELS_FOLDER.joinpath(xsd).as_posix()
-    xsd = py_opensand_conf.fromXSD(filepath)
-    xml = py_opensand_conf.fromXML(xsd, xml)
+    return component.get_component(name)
 
-    os.remove(f.name)
 
-    if not xml:
-        return error('Invalid XML data against {}'.format(filepath)), 400
-    return success()
+def _create_list_item(component, name):
+    if component is None:
+        return None
+
+    lst = component.get_list(name)
+    if lst is None:
+        return None
+
+    return lst.add_item()
+
+
+def _set_parameter(component, name, value):
+    if component is None:
+        return False
+
+    parameter = component.get_parameter(name)
+    if parameter is None:
+        return False
+
+    try:
+        return parameter.get_data().set(value)
+    except TypeError:
+        return False
+
+
+def create_default_infrastructure(meta_model, filepath):
+    infra = meta_model.create_data()
+    infrastructure = infra.get_root()
+
+    logs = _get_component(infrastructure, 'logs')
+    for log in ('init', 'lan_adaptation', 'encap', 'dvb', 'physical_layer', 'sat_carrier'):
+        _set_parameter(_get_component(logs, log), 'level', 'warning')
+
+    _set_parameter(_get_component(infrastructure, 'entity'), 'entity_type', 'Satellite')
+
+    sarp = _get_component(infrastructure, 'infrastructure')
+    _set_parameter(sarp, 'default_gw', -1)
+    _set_parameter(_get_component(sarp, 'satellite'), 'emu_address', '192.168.0.63')
+    gateway = _create_list_item(sarp, 'gateways')
+    _set_parameter(gateway, 'entity_id', 0)
+    _set_parameter(gateway, 'emu_address', '192.168.0.1')
+    _set_parameter(gateway, 'tap_iface', 'opensand_tap')
+    _set_parameter(gateway, 'mac_address', 'FF:FF:FF:00:00:01')
+    terminal = _create_list_item(sarp, 'gateways')
+    _set_parameter(terminal, 'entity_id', 1)
+    _set_parameter(terminal, 'emu_address', '192.168.0.10')
+    _set_parameter(terminal, 'tap_iface', 'opensand_tap')
+    _set_parameter(terminal, 'mac_address', 'FF:FF:FF:00:00:02')
+
+    py_opensand_conf.toXML(infra, str(filepath))
+
+
+def create_default_topology(meta_model, filepath):
+    topo = meta_model.create_data()
+    topology = topo.get_root()
+
+    spot = _create_list_item(_get_component(topology, 'frequency_plan'), 'spots')
+    _set_parameter(_get_component(spot, 'assignments'), 'spot_id', 1)
+    _set_parameter(_get_component(spot, 'assignments'), 'gateway_id', 0)
+    _set_parameter(_get_component(spot, 'roll_off'), 'forward', 0.35)
+    _set_parameter(_get_component(spot, 'roll_off'), 'return', 0.2)
+    forward_carrier = _create_list_item(spot, 'forward_band')
+    _set_parameter(forward_carrier, 'symbol_rate', 0.6)
+    _set_parameter(forward_carrier, 'type', 'ACM')
+    _set_parameter(forward_carrier, 'wave_form', '1-28')
+    _set_parameter(forward_carrier, 'group', 'Standard')
+    return_carrier = _create_list_item(spot, 'return_band')
+    _set_parameter(return_carrier, 'symbol_rate', 0.6)
+    _set_parameter(return_carrier, 'type', 'DAMA')
+    _set_parameter(return_carrier, 'wave_form', '3-22')
+    _set_parameter(return_carrier, 'group', 'Standard')
+
+    default_assignment = _get_component(_get_component(topology, 'st_assignement'), 'defaults')
+    _set_parameter(default_assignment, 'default_spot', 1)
+    _set_parameter(default_assignment, 'default_group', 'Standard')
+
+    wave_forms = _get_component(topology, 'wave_forms')
+    for i, modulation, coding, efficiency, es_n0 in DVB_S2:
+        wave_form = _create_list_item(wave_forms, 'dvb_s2')
+        _set_parameter(wave_form, 'id', i)
+        _set_parameter(wave_form, 'modulation', modulation)
+        _set_parameter(wave_form, 'coding', coding)
+        _set_parameter(wave_form, 'efficiency', efficiency)
+        _set_parameter(wave_form, 'threshold', es_n0)
+    for i, modulation, coding, efficiency, es_n0, burst in DVB_RCS2:
+        wave_form = _create_list_item(wave_forms, 'dvb_rcs2')
+        _set_parameter(wave_form, 'id', i)
+        _set_parameter(wave_form, 'modulation', modulation)
+        _set_parameter(wave_form, 'coding', coding)
+        _set_parameter(wave_form, 'efficiency', efficiency)
+        _set_parameter(wave_form, 'threshold', es_n0)
+        _set_parameter(wave_form, 'burst_length', burst)
+
+    advanced = _get_component(topology, 'advanced_settings')
+    links = _get_component(advanced, 'links')
+    _set_parameter(links, 'forward_duration', 23)
+    _set_parameter(links, 'forward_margin', 0.3)
+    _set_parameter(links, 'return_duration', 23)
+    _set_parameter(links, 'return_margin', 0.3)
+    schedulers = _get_component(advanced, 'schedulers')
+    _set_parameter(schedulers, 'burst_length', '536 sym')
+    _set_parameter(schedulers, 'crdsa_frame', 3)
+    _set_parameter(schedulers, 'crdsa_delay', 250)
+    _set_parameter(schedulers, 'pep_allocation', 100)
+    timers = _get_component(advanced, 'timers')
+    _set_parameter(timers, 'statistics', 250)
+    _set_parameter(timers, 'synchro', 25)
+    _set_parameter(timers, 'acm_refresh', 1000)
+    delay = _get_component(advanced, 'delay')
+    _set_parameter(delay, 'fifo_size', 5000)
+    _set_parameter(delay, 'delay_timer', 100)
+
+    py_opensand_conf.toXML(topo, str(filepath))
+
+
+def create_default_profile(meta_model, filepath):
+    mod = meta_model.create_data()
+    model = mod.get_root()
+
+    # TODO
+
+    py_opensand_conf.toXML(mod, str(filepath))
+
+
+def create_default_templates(project):
+    XSDs = (
+            filepath
+            for filepath in MODELS_FOLDER.iterdir()
+            if filepath.suffix == '.xsd' and filepath.is_file()
+    )
+
+    template_folder = MODELS_FOLDER / project / 'templates'
+    for xsd in XSDs:
+        template = template_folder / (xsd.name + '.d') / 'Default.xml'
+        template.parent.mkdir(parents=True, exist_ok=True)
+        meta_model = py_opensand_conf.fromXSD(xsd.as_posix())
+        if meta_model is not None:
+            kind = meta_model.get_root().get_description()
+            if kind == 'infrastructure':
+                create_default_infrastructure(meta_model, template)
+            elif kind == 'topology':
+                create_default_topology(meta_model, template)
+            elif kind == 'profile':
+                create_default_profile(meta_model, template)
 
 
 @app.route('/api/project/<string:name>/template/<string:xsd>/<string:filename>', methods=['GET'])
@@ -207,17 +396,12 @@ def get_project_content(name):
 
 @app.route('/api/project/<string:name>', methods=['PUT'])
 def update_project_content(name):
-    folder = MODELS_FOLDER / name
-    folder.mkdir(exist_ok=True)
-
-    topology = folder / 'topology.xml'
-    if not topology.exists():
-        topology_model = MODELS_FOLDER.joinpath('topology.xsd').as_posix()
-        xsd = py_opensand_conf.fromXSD(topology_model)
-        xml = xsd.create_data()
-        py_opensand_conf.toXML(xml, topology.as_posix())
-
     content = request.json['xml_data']
+
+    folder = MODELS_FOLDER / name
+    if not folder.exists():
+        create_default_templates(name)
+
     return write_file_content(name + '/project.xml', content)
 
 
@@ -262,6 +446,8 @@ def validate_project(name):
                     topology = entity_folder / 'topology.xml'
                     if topology.exists() and topology.is_file():
                         os.rename(topology.as_posix(), project_topology)
+
+            create_default_templates(name)
 
             return success()
         else:

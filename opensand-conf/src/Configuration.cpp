@@ -48,15 +48,6 @@
 
 // FIXME: use xmlNs structure to handle 'xs:' prefix
 
-/** unused macro to avoid compilation warning with unused parameters. */
-#ifdef __GNUC__
-#  define UNUSED(x) x __attribute__((unused))
-#elif __LCLINT__
-#  define UNUSED(x) /*@unused@*/ x
-#else               /* !__GNUC__ && !__LCLINT__ */
-#  define UNUSED(x) x
-#endif              /* !__GNUC__ && !__LCLINT__ */
-
 #define CONFIGURATION_FILES_VERSION "1.0"
 #define CONFIGURATION_FILES_ENCODING "UTF-8"
 
@@ -91,13 +82,13 @@ bool OpenSANDConf::toXSD(std::shared_ptr<OpenSANDConf::MetaModel> model, const s
 	int code;
 
 	// Initialize XSD document
-        auto doc = xmlNewDoc(BAD_CAST CONFIGURATION_FILES_VERSION);
+	auto doc = xmlNewDoc(BAD_CAST CONFIGURATION_FILES_VERSION);
 	auto schema = xmlNewNode(nullptr, BAD_CAST "xs:schema");
 
 	// FIXME: use xmlNs structure to handle 'xs:' prefix
 	xmlNewProp(schema, BAD_CAST "xmlns:xs", BAD_CAST "http://www.w3.org/2001/XMLSchema");
 	xmlNewProp(schema, BAD_CAST "elementFormDefault", BAD_CAST "qualified");
-        xmlDocSetRootElement(doc, schema);
+	xmlDocSetRootElement(doc, schema);
 
 	auto node = xmlNewNode(nullptr, BAD_CAST "xs:element");
 	xmlNewProp(node, BAD_CAST "name", BAD_CAST "model");
@@ -145,22 +136,22 @@ bool OpenSANDConf::toXSD(std::shared_ptr<OpenSANDConf::MetaModel> model, const s
 	xmlAddChild(seq, root);
 
 	// Write XSD file
-        code = xmlSaveFormatFileEnc(filepath.c_str(), doc, CONFIGURATION_FILES_ENCODING, 1);
+	code = xmlSaveFormatFileEnc(filepath.c_str(), doc, CONFIGURATION_FILES_ENCODING, 1);
 	xmlFreeDoc(doc);
 	xmlCleanupParser();
 	xmlMemoryDump();
-        return (code != -1);
+	return (code != -1);
 }
 
-std::shared_ptr<OpenSANDConf::MetaModel> OpenSANDConf::fromXSD(const std::string &UNUSED(filepath))
+std::shared_ptr<OpenSANDConf::MetaModel> OpenSANDConf::fromXSD(const std::string &filepath)
 {
 	xmlDocPtr doc;
-  std::shared_ptr<OpenSANDConf::MetaModel> model = nullptr;
-  std::string version;
+	std::shared_ptr<OpenSANDConf::MetaModel> model = nullptr;
+	std::string version;
 	xmlNodePtr schema, modelnode, node1, node2;
 	xmlNodePtr rootnode;
-  std::vector<xmlNodePtr> nodes;
-  std::vector<xmlNodePtr> enumsnodes;
+	std::vector<xmlNodePtr> nodes;
+	std::vector<xmlNodePtr> enumsnodes;
 
 	// Read document
 	doc = xmlReadFile(filepath.c_str(), CONFIGURATION_FILES_ENCODING, 0);
@@ -240,9 +231,9 @@ std::shared_ptr<OpenSANDConf::MetaModel> OpenSANDConf::fromXSD(const std::string
 
 error:
 	nodes.clear();
-        xmlFreeDoc(doc);
-        xmlCleanupParser();
-        xmlMemoryDump();
+	xmlFreeDoc(doc);
+	xmlCleanupParser();
+	xmlMemoryDump();
 
 	return model;
 }
@@ -252,9 +243,9 @@ bool OpenSANDConf::toXML(std::shared_ptr<OpenSANDConf::DataModel> datamodel, con
 	int code;
 
 	// Initialize XML document
-        auto doc = xmlNewDoc(BAD_CAST CONFIGURATION_FILES_VERSION);
+	auto doc = xmlNewDoc(BAD_CAST CONFIGURATION_FILES_VERSION);
 	auto node = xmlNewNode(nullptr, BAD_CAST "model");
-        xmlDocSetRootElement(doc, node);
+	xmlDocSetRootElement(doc, node);
 	xmlNewProp(node, BAD_CAST "version", BAD_CAST datamodel->getVersion().c_str());
 
 	// Append root schema
@@ -269,23 +260,24 @@ bool OpenSANDConf::toXML(std::shared_ptr<OpenSANDConf::DataModel> datamodel, con
 	xmlAddChild(node, root);
 
 	// Write XSD file
-        code = xmlSaveFormatFileEnc(filepath.c_str(), doc, CONFIGURATION_FILES_ENCODING, 1);
+	code = xmlSaveFormatFileEnc(filepath.c_str(), doc, CONFIGURATION_FILES_ENCODING, 1);
 	xmlFreeDoc(doc);
 	xmlCleanupParser();
 	xmlMemoryDump();
-        return (code != -1);
+	return (code != -1);
 }
 
-std::shared_ptr<OpenSANDConf::DataModel> OpenSANDConf::fromXML(std::shared_ptr<OpenSANDConf::MetaModel> model, const std::string &filepath)
+std::shared_ptr<OpenSANDConf::DataModel> OpenSANDConf::fromXML(std::shared_ptr<OpenSANDConf::MetaModel> model,
+                                                               const std::string &filepath)
 {
 	xmlDocPtr doc;
 	xmlSchemaPtr schema;
-  std::shared_ptr<OpenSANDConf::DataModel> datamodel;
+	std::shared_ptr<OpenSANDConf::DataModel> datamodel;
 	xmlNodePtr node;
-  std::string version;
+	std::string version;
 
 	// Get XSD schema
-  std::string tmppath(tmpnam(nullptr));
+	std::string tmppath(tmpnam(nullptr));
 	if(!toXSD(model, tmppath))
 	{
 		return nullptr;
@@ -350,10 +342,10 @@ std::shared_ptr<OpenSANDConf::DataModel> OpenSANDConf::fromXML(std::shared_ptr<O
 	}
 
 error:
-        xmlFreeDoc(doc);
-        xmlSchemaCleanupTypes();
-        xmlCleanupParser();
-        xmlMemoryDump();
+	xmlFreeDoc(doc);
+	xmlSchemaCleanupTypes();
+	xmlCleanupParser();
+	xmlMemoryDump();
 
 	return datamodel;
 }
@@ -372,10 +364,10 @@ xmlNodePtr checkUniqueNode(std::vector<xmlNodePtr> &nodes)
 
 std::vector<xmlNodePtr> getChildNodes(xmlNodePtr &node, const std::string &ns, const std::string &name)
 {
-  std::vector<xmlNodePtr> nodes;
+	std::vector<xmlNodePtr> nodes;
 	for(xmlNodePtr child=node->children; child != nullptr; child = child->next)
 	{
-    std::string tmp = child->ns != nullptr ? std::string((char *)child->ns->prefix) : "NULL";
+		std::string tmp = child->ns != nullptr ? std::string((char *)child->ns->prefix) : "NULL";
 		if(child->type != XML_ELEMENT_NODE
 		   || xmlStrcmp(child->name, BAD_CAST name.c_str()) != 0)
 		{
@@ -397,9 +389,13 @@ xmlNodePtr getUniqueChildNode(xmlNodePtr &node, const std::string &ns, const std
 	return checkUniqueNode(nodes);
 }
 
-std::vector<xmlNodePtr> getChildNodesWithAttribute(xmlNodePtr &node, const std::string &ns, const std::string &name, const std::string &attribute, const std::string &value)
+std::vector<xmlNodePtr> getChildNodesWithAttribute(xmlNodePtr &node,
+                                                   const std::string &ns,
+                                                   const std::string &name,
+                                                   const std::string &attribute,
+                                                   const std::string &value)
 {
-  std::vector<xmlNodePtr> nodes;
+	std::vector<xmlNodePtr> nodes;
 	for(xmlNodePtr child=node->children; child != nullptr; child = child->next)
 	{
 		if(child->type != XML_ELEMENT_NODE
@@ -422,7 +418,11 @@ std::vector<xmlNodePtr> getChildNodesWithAttribute(xmlNodePtr &node, const std::
 	return nodes;
 }
 
-xmlNodePtr getUniqueChildNodeWithAttribute(xmlNodePtr &node, const std::string &ns, const std::string &name, const std::string &attribute, const std::string &value)
+xmlNodePtr getUniqueChildNodeWithAttribute(xmlNodePtr &node,
+                                           const std::string &ns,
+                                           const std::string &name,
+                                           const std::string &attribute,
+                                           const std::string &value)
 {
 	auto nodes = getChildNodesWithAttribute(node, ns, name, attribute, value);
 	return checkUniqueNode(nodes);
@@ -431,7 +431,7 @@ xmlNodePtr getUniqueChildNodeWithAttribute(xmlNodePtr &node, const std::string &
 std::string getAttribute(xmlNodePtr &node, const std::string &name)
 {
 	auto tmp = (char *)xmlGetProp(node, BAD_CAST name.c_str());
-  std::string attribute(tmp);
+	std::string attribute(tmp);
 	xmlFree(tmp);
 	return attribute;
 }
@@ -439,7 +439,7 @@ std::string getAttribute(xmlNodePtr &node, const std::string &name)
 std::string getNodeContent(xmlNodePtr &node)
 {
 	auto tmp = (char *)xmlNodeGetContent(node);
-  std::string content(tmp);
+	std::string content(tmp);
 	xmlFree(tmp);
 	return content;
 }
@@ -451,7 +451,7 @@ bool addXSDChild(xmlNodePtr &node, const std::vector<std::shared_ptr<OpenSANDCon
 
 std::vector<xmlNodePtr> enumerationsToXSD(std::shared_ptr<OpenSANDConf::MetaTypesList> types)
 {
-  std::vector<xmlNodePtr> nodes;
+	std::vector<xmlNodePtr> nodes;
 	for(auto element: types->getEnumTypes())
 	{
 		auto node = xmlNewNode(nullptr, BAD_CAST "xs:simpleType");
@@ -491,7 +491,9 @@ std::vector<xmlNodePtr> enumerationsToXSD(std::shared_ptr<OpenSANDConf::MetaType
 	return nodes;
 }
 
-xmlNodePtr createXSDNode(const std::string &id, const std::string &type, std::shared_ptr<OpenSANDConf::MetaElement> element)
+xmlNodePtr createXSDNode(const std::string &id,
+                         const std::string &type,
+                         std::shared_ptr<OpenSANDConf::MetaElement> element)
 {
 	if(id == "" || type == "")
 	{
@@ -595,7 +597,7 @@ xmlNodePtr elementToXSD(std::shared_ptr<OpenSANDConf::MetaList> element)
 
 xmlNodePtr elementToXSD(std::shared_ptr<OpenSANDConf::MetaParameter> element)
 {
-  std::vector<xmlNodePtr> childnodes;
+	std::vector<xmlNodePtr> childnodes;
 
 	// Create node
 	auto typei = element->getType()->getId();
@@ -631,7 +633,7 @@ xmlNodePtr elementToXSD(std::shared_ptr<OpenSANDConf::MetaParameter> element)
 	xmlAddChild(docu, punit);
 
 	// Add additional type description
-  std::string xstype = typei;
+	std::string xstype = typei;
 	if(typei == "string")
 	{
 		xstype = "xs:string";
@@ -709,9 +711,9 @@ bool addEnumTypeFromXSD(std::shared_ptr<OpenSANDConf::MetaModel> model, xmlNodeP
 {
 	unsigned int count;
 	xmlNodePtr docu, n;
-  std::string id, name, desc;
-  std::vector<std::string> values;
-  std::shared_ptr<OpenSANDConf::MetaEnumType> type = nullptr;
+	std::string id, name, desc;
+	std::vector<std::string> values;
+	std::shared_ptr<OpenSANDConf::MetaEnumType> type = nullptr;
 
 	// Parse data of enumeration type
 	id = getAttribute(node, "name");
@@ -771,10 +773,17 @@ bool addEnumTypeFromXSD(std::shared_ptr<OpenSANDConf::MetaModel> model, xmlNodeP
 	return (type != nullptr);
 }
 
-bool getElementFromXSD(xmlNodePtr node, std::string &id, std::string &type, std::string &name, std::string &description, bool &advanced, std::string &reference, std::string &expected)
+bool getElementFromXSD(xmlNodePtr node,
+                       std::string &id,
+                       std::string &type,
+                       std::string &name,
+                       std::string &description,
+                       bool &advanced,
+                       std::string &reference,
+                       std::string &expected)
 {
 	xmlNodePtr docu, child;
-  std::string tmp;
+	std::string tmp;
 	id = getAttribute(node, "name");
 	child = getUniqueChildNode(node, "xs", "annotation");
 	if(child == nullptr || xmlChildElementCount(child) != 1)
@@ -859,7 +868,7 @@ xmlNodePtr getPatternListXSDNode(xmlNodePtr node)
 bool loadParameterFromXSD(std::shared_ptr<OpenSANDConf::MetaParameter> param, xmlNodePtr node)
 {
 	xmlNodePtr docu, child;
-  std::string tmp;
+	std::string tmp;
 	child = getUniqueChildNode(node, "xs", "annotation");
 	if(child == nullptr || xmlChildElementCount(child) != 1)
 	{
@@ -880,15 +889,14 @@ bool loadParameterFromXSD(std::shared_ptr<OpenSANDConf::MetaParameter> param, xm
 	return true;
 }
 
-bool loadComponentFromXSD(
-    std::shared_ptr<OpenSANDConf::MetaComponent> current,
-    xmlNodePtr node,
-    std::shared_ptr<OpenSANDConf::MetaModel> model,
-    std::vector<std::tuple<std::shared_ptr<OpenSANDConf::MetaElement>, std::string, std::string>> &references)
+bool loadComponentFromXSD(std::shared_ptr<OpenSANDConf::MetaComponent> current,
+                          xmlNodePtr node,
+                          std::shared_ptr<OpenSANDConf::MetaModel> model,
+                          std::vector<std::tuple<std::shared_ptr<OpenSANDConf::MetaElement>, std::string, std::string>> &references)
 {
 	xmlNodePtr sequence;
-  std::vector<xmlNodePtr> nodes;
-  std::shared_ptr<OpenSANDConf::MetaElement> elt = current;
+	std::vector<xmlNodePtr> nodes;
+	std::shared_ptr<OpenSANDConf::MetaElement> elt = current;
 
 	sequence = getComponentContentXSDNode(node);
 	if(sequence == nullptr)
@@ -903,9 +911,9 @@ bool loadComponentFromXSD(
 	for(auto child: nodes)
 	{
 		bool adv;
-    std::string id, type, name, desc;
-    std::string ref = "";
-    std::string exp = "";
+		std::string id, type, name, desc;
+		std::string ref = "";
+		std::string exp = "";
 
 		elt = nullptr;
 		if(!getElementFromXSD(child, id, type, name, desc, adv, ref, exp))
@@ -924,9 +932,9 @@ bool loadComponentFromXSD(
 		else if(type == "list")
 		{
 			bool ptn_adv;
-      std::string ptn_id, ptn_type, ptn_name, ptn_desc;
-      std::string ptn_ref = "";
-      std::string ptn_exp = "";
+			std::string ptn_id, ptn_type, ptn_name, ptn_desc;
+			std::string ptn_ref = "";
+			std::string ptn_exp = "";
 			xmlNodePtr ptn_node;
 			ptn_node = getPatternListXSDNode(child);
 			if(ptn_node == nullptr || !getElementFromXSD(ptn_node, ptn_id, ptn_type, ptn_name, ptn_desc, ptn_adv, ptn_ref, ptn_exp))
@@ -975,10 +983,30 @@ bool loadComponentFromXSD(
 
 bool loadRootFromXSD(std::shared_ptr<OpenSANDConf::MetaModel> model, xmlNodePtr node)
 {
-  std::vector<xmlNodePtr> nodes;
-  std::vector<std::tuple<std::shared_ptr<OpenSANDConf::MetaElement>, std::string, std::string>> references;
+	std::vector<xmlNodePtr> nodes;
+	std::vector<std::tuple<std::shared_ptr<OpenSANDConf::MetaElement>, std::string, std::string>> references;
 
-	if(!loadComponentFromXSD(model->getRoot(), node, model, references))
+	bool adv;
+	std::string id, type, name, desc;
+	std::string ref = "";
+	std::string exp = "";
+	if(!getElementFromXSD(node, id, type, name, desc, adv, ref, exp))
+	{
+		return false;
+	}
+	if(type != "component" || id != "root" || name != "Root")
+	{
+		return false;
+	}
+	auto root = model->getRoot();
+	root->setDescription(desc);
+	root->setAdvanced(adv);
+	if(ref != "")
+	{
+		auto t = std::make_tuple(root, ref, exp);
+		references.push_back(t);
+	}
+	if(!loadComponentFromXSD(root, node, model, references))
 	{
 		return false;
 	}
@@ -1064,7 +1092,7 @@ xmlNodePtr listToXML(std::shared_ptr<OpenSANDConf::DataList> element)
 
 xmlNodePtr parameterToXML(std::shared_ptr<OpenSANDConf::DataParameter> element)
 {
-  std::vector<xmlNodePtr> childnodes;
+	std::vector<xmlNodePtr> childnodes;
 
 	// Create node
 	auto node = xmlNewNode(nullptr, BAD_CAST element->getId().c_str());
@@ -1133,7 +1161,7 @@ bool loadComponentFromXML(std::shared_ptr<OpenSANDConf::DataComponent> current, 
 			continue;
 		}
 
-    std::string id((char *)(child->name));
+		std::string id((char *)(child->name));
 		auto element = current->getItem(id);
 		if(element == nullptr)
 		{
