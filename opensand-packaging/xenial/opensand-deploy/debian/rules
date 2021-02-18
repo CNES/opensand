@@ -16,9 +16,10 @@
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
 
-# To avoid rebuilding everything when creating package
-# Disable for releases !
-#override_dh_auto_clean:
+override_dh_clean:
+	dh_clean
+
+	rm -r src/frontend/build/
 
 override_dh_install:
 	dh_install
@@ -33,7 +34,7 @@ override_dh_install:
 	install -d $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/static/
 	cp -r src/frontend/build/* $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/static/
 
-override_dh_pysupport:
+override_dh_installdocs:
 
 %:
 	dh  $@
