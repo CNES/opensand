@@ -72,6 +72,27 @@ DVB_RCS2 = [
 ]
 
 
+FIFOS = [
+        (0, 'NM', 1000, 'DAMA'),
+        (1, 'EF', 3000, 'DAMA'),
+        (2, 'SIG', 1000, 'DAMA'),
+        (3, 'AF', 2000, 'DAMA'),
+        (4, 'BE', 6000, 'CRDSA'),
+]
+
+
+QOS_CLASSES = [
+        (7, 'NC', 'NM'),
+        (6, 'IC', 'SIG'),
+        (5, 'VO', 'EF'),
+        (4, 'VI', 'AF'),
+        (3, 'CA', 'AF'),
+        (2, 'EE', 'AF'),
+        (1, 'BK', 'BE'),
+        (0, 'BE', 'BE'),
+]
+
+
 def success(message='OK'):
     return jsonify({'status': message})
 
@@ -244,7 +265,55 @@ def create_default_profile(meta_model, filepath):
     mod = meta_model.create_data()
     model = mod.get_root()
 
-    # TODO
+    encapsulation = _get_component(model, 'encap')
+    _set_parameter(_get_component(encapsulation, 'gse'), 'packing_threshold', 3)
+    _set_parameter(_get_component(encapsulation, 'rle'), 'alpdu_protection', 'Sequence Number')
+
+    access = _get_component(model, 'access')
+    _set_parameter(_get_component(access, 'random_access'), 'saloha_algo', 'CRDSA')
+    _set_parameter(_get_component(access, 'settings'), 'category', 'Standard')
+    _set_parameter(_get_component(access, 'settings'), 'dama_enabled', True)
+    dama = _get_component(access, 'dama')
+    _set_parameter(dama, 'cra', 100)
+    _set_parameter(dama, 'algorithm', 'Legacy')
+    _set_parameter(dama, 'duration', 1)
+
+    phy_layer = _get_component(model, 'physical_layer')
+    delay = _get_component(model, 'delay')
+    _set_parameter(delay, 'delay_type', 'ConstantDelay')
+    _set_parameter(delay, 'delay_value', 125)
+    minimal_condition = _get_component(model, 'minimal_condition')
+    _set_parameter(minimal_condition, 'minimal_condition_type', 'ACM-Loop')
+    error_insertion = _get_component(model, 'error_insertion')
+    _set_parameter(error_insertion, 'error_insertion_type', 'Gate')
+    uplink_attenuation = _get_component(phy_layer, 'uplink_attenuation')
+    _set_parameter(uplink_attenuation, 'clear_sky', 2.0)
+    _set_parameter(uplink_attenuation, 'attenuation_type', 'Ideal')
+    _set_parameter(uplink_attenuation, 'ideal_attenuation_value', 0.0)
+    downlink_attenuation = _get_component(phy_layer, 'downlink_attenuation')
+    _set_parameter(downlink_attenuation, 'clear_sky', 2.0)
+    _set_parameter(downlink_attenuation, 'attenuation_type', 'Ideal')
+    _set_parameter(downlink_attenuation, 'ideal_attenuation_value', 0.0)
+
+    network = _get_component(model, 'network')
+    _set_parameter(network, 'simulation', 'None')
+    _set_parameter(network, 'fca', 100)
+    _set_parameter(network, 'dama_algorithm', 'Legacy')
+    for priority, name, capacity, access in FIFOS:
+        fifo = _create_list_item(network, 'fifos')
+        _set_parameter(fifo, 'priority', priority)
+        _set_parameter(fifo, 'name', name)
+        _set_parameter(fifo, 'capacity', capacity)
+        _set_parameter(fifo, 'access_type', access)
+    for pcp, name, fifo in QOS_CLASSES:
+        qos = _create_list_item(network, 'qos_classes')
+        _set_parameter(qos, 'pcp', pcp)
+        _set_parameter(qos, 'name', name)
+        _set_parameter(qos, 'fifo', fifo)
+    settings = _get_component(network, 'qos_settings')
+    _set_parameter(settings, 'lan_frame_type', 'Ethernet')
+    _set_parameter(settings, 'sat_frame_type', 'Ethernet')
+    _set_parameter(settings, 'default_pcp', 0)
 
     py_opensand_conf.toXML(mod, str(filepath))
 
