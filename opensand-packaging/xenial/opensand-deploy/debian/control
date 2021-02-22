@@ -2,7 +2,8 @@ Source: opensand-deploy
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7),
- autotools-dev, automake, libtool, pkg-config
+ autotools-dev, automake, libtool, pkg-config,
+ opensand (>= 6.0.0)
 Standards-Version: 3.8.3
 Section: misc
 

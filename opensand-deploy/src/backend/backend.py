@@ -14,6 +14,7 @@ app = Flask(__name__)
 
 
 MODELS_FOLDER = Path().resolve()
+WWW_FOLDER = MODELS_FOLDER.parent / 'www'
 
 
 DVB_S2 = [
@@ -101,13 +102,15 @@ def error(message):
     return jsonify({'error': message})
 
 
-def get_file_content(filename, expected_suffix='.xsd'):
+def get_file_content(filename, xml=False):
+    expected_suffix = '.xml' if xml else '.xsd'
     if not filename.endswith(expected_suffix):
         filename += expected_suffix
 
-    filepath = MODELS_FOLDER / filename
+    base_folder = WWW_FOLDER if xml else MODELS_FOLDER
+    filepath = base_folder / filename
     if not filepath.exists():
-        folder = filepath.relative_to(MODELS_FOLDER).parent
+        folder = filepath.relative_to(base_folder).parent
         return error('cannot find {} in {}'.format(filepath.name, folder)), 404
 
     with filepath.open() as f:
@@ -120,7 +123,7 @@ def write_file_content(filename, content, expected_suffix='.xml'):
     if not filename.endswith(expected_suffix):
         filename += expected_suffix
 
-    filepath = MODELS_FOLDER.joinpath(filename)
+    filepath = WWW_FOLDER.joinpath(filename)
     filepath.parent.mkdir(parents=True, exist_ok=True)
     with filepath.open('w') as f:
         f.write(content)
@@ -325,7 +328,7 @@ def create_default_templates(project):
             if filepath.suffix == '.xsd' and filepath.is_file()
     )
 
-    template_folder = MODELS_FOLDER / project / 'templates'
+    template_folder = WWW_FOLDER / project / 'templates'
     for xsd in XSDs:
         template = template_folder / (xsd.name + '.d') / 'Default.xml'
         template.parent.mkdir(parents=True, exist_ok=True)
@@ -343,7 +346,7 @@ def create_default_templates(project):
 @app.route('/api/project/<string:name>/template/<string:xsd>/<string:filename>', methods=['GET'])
 def get_project_template(name, xsd, filename):
     xsd = normalize_xsd_folder(xsd)
-    return get_file_content(name + '/templates/' + xsd + '/' + filename, '.xml')
+    return get_file_content(name + '/templates/' + xsd + '/' + filename, xml=True)
 
 
 @app.route('/api/project/<string:name>/template/<string:xsd>/<string:filename>', methods=['PUT'])
@@ -355,7 +358,7 @@ def write_project_template(name, xsd, filename):
 
 @app.route('/api/project/<string:name>/template/<string:xsd>/<string:filename>', methods=['DELETE'])
 def remove_project_template(name, xsd, filename):
-    filepath = MODELS_FOLDER / name / 'templates' / normalize_xsd_folder(xsd) / filename
+    filepath = WWW_FOLDER / name / 'templates' / normalize_xsd_folder(xsd) / filename
     if not filepath.suffix == '.xml':
         filepath = filepath.with_name(filepath.name + '.xml')
 
@@ -367,7 +370,7 @@ def remove_project_template(name, xsd, filename):
 
 @app.route('/api/project/<string:name>/templates', methods=['GET'])
 def list_templates(name):
-    templates_folder = MODELS_FOLDER / name / 'templates'
+    templates_folder = WWW_FOLDER / name / 'templates'
     if not templates_folder.exists():
         return jsonify({})
 
@@ -381,7 +384,7 @@ def list_templates(name):
 
 @app.route('/api/project/<string:name>/profile/<string:entity>', methods=['GET'])
 def get_project_profile(name, entity):
-    return get_file_content(name + '/entities/' + entity + '/profile', '.xml')
+    return get_file_content(name + '/entities/' + entity + '/profile', xml=True)
 
 
 @app.route('/api/project/<string:name>/profile/<string:entity>', methods=['PUT'])
@@ -392,7 +395,7 @@ def write_project_profile(name, entity):
 
 @app.route('/api/project/<string:name>/profile/<string:entity>', methods=['DELETE'])
 def remove_project_profile(name, entity):
-    filepath = MODELS_FOLDER / name / 'entities' / entity / 'profile.xml'
+    filepath = WWW_FOLDER / name / 'entities' / entity / 'profile.xml'
     if filepath.exists():
         os.remove(filepath.as_posix())
 
@@ -401,7 +404,7 @@ def remove_project_profile(name, entity):
 
 @app.route('/api/project/<string:name>/infrastructure/<string:entity>', methods=['GET'])
 def get_project_infrastructure(name, entity):
-    return get_file_content(name + '/entities/' + entity + '/infrastructure', '.xml')
+    return get_file_content(name + '/entities/' + entity + '/infrastructure', xml=True)
 
 
 @app.route('/api/project/<string:name>/infrastructure/<string:entity>', methods=['PUT'])
@@ -412,7 +415,7 @@ def write_project_infrastructure(name, entity):
 
 @app.route('/api/project/<string:name>/infrastructure/<string:entity>', methods=['DELETE'])
 def remove_project_infrastructure(name, entity):
-    filepath = MODELS_FOLDER / name / 'entities' / entity / 'infrastructure.xml'
+    filepath = WWW_FOLDER / name / 'entities' / entity / 'infrastructure.xml'
     if filepath.exists():
         os.remove(filepath.as_posix())
 
@@ -421,7 +424,7 @@ def remove_project_infrastructure(name, entity):
 
 @app.route('/api/project/<string:name>/topology', methods=['GET'])
 def get_project_topology(name):
-    return get_file_content(name + '/topology', '.xml')
+    return get_file_content(name + '/topology', xml=True)
 
 
 @app.route('/api/project/<string:name>/topology', methods=['PUT'])
@@ -432,7 +435,7 @@ def write_project_topology(name):
 
 @app.route('/api/project/<string:name>/topology', methods=['DELETE'])
 def remove_project_topology(name):
-    filepath = MODELS_FOLDER / name / 'topology.xml'
+    filepath = WWW_FOLDER / name / 'topology.xml'
     if filepath.exists():
         os.remove(filepath.as_posix())
 
@@ -442,9 +445,9 @@ def remove_project_topology(name):
 @app.route('/api/project/<string:name>/<string:entity>', methods=['POST'])
 def download_entity(name, entity):
     files = [
-            MODELS_FOLDER / name / 'topology.xml',
-            MODELS_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
-            MODELS_FOLDER / name / 'entities' / entity / 'profile.xml',
+            WWW_FOLDER / name / 'topology.xml',
+            WWW_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
+            WWW_FOLDER / name / 'entities' / entity / 'profile.xml',
     ]
 
     in_memory = BytesIO()
@@ -460,14 +463,14 @@ def download_entity(name, entity):
 
 @app.route('/api/project/<string:name>', methods=['GET'])
 def get_project_content(name):
-    return get_file_content(name + '/project', '.xml')
+    return get_file_content(name + '/project', xml=True)
 
 
 @app.route('/api/project/<string:name>', methods=['PUT'])
 def update_project_content(name):
     content = request.json['xml_data']
 
-    folder = MODELS_FOLDER / name
+    folder = WWW_FOLDER / name
     if not folder.exists():
         create_default_templates(name)
 
@@ -481,7 +484,7 @@ def validate_project(name):
     except (KeyError, TypeError):
         if request.files and 'project' in request.files:
             # Do upload
-            destination = MODELS_FOLDER / name
+            destination = WWW_FOLDER / name
             if destination.exists():
                 return error('Project {} already exists'.format(name)), 409
 
@@ -523,18 +526,18 @@ def validate_project(name):
             # Do download
             in_memory = BytesIO()
             with tarfile.open(fileobj=in_memory, mode='w:gz') as tar:
-                filepath = MODELS_FOLDER / name / 'project.xml'
+                filepath = WWW_FOLDER / name / 'project.xml'
                 if filepath.exists() and filepath.is_file():
                     tar.add(filepath.as_posix(), filepath.name)
 
-                for entity_folder in MODELS_FOLDER.joinpath(name, 'entities').iterdir():
+                for entity_folder in WWW_FOLDER.joinpath(name, 'entities').iterdir():
                     if not entity_folder.is_dir():
                         continue
                     entity = entity_folder.name
                     files = [
-                            MODELS_FOLDER / name / 'topology.xml',
-                            MODELS_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
-                            MODELS_FOLDER / name / 'entities' / entity / 'profile.xml',
+                            WWW_FOLDER / name / 'topology.xml',
+                            WWW_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
+                            WWW_FOLDER / name / 'entities' / entity / 'profile.xml',
                     ]
                     for filepath in files:
                         if filepath.exists() and filepath.is_file():
@@ -545,11 +548,11 @@ def validate_project(name):
             return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
     else:
         # Do copy
-        source = MODELS_FOLDER / name
+        source = WWW_FOLDER / name
         if not source.exists() or not source.is_dir():
             return error('Project {} not found'.format(name)), 404
 
-        destination = MODELS_FOLDER / new_project_name
+        destination = WWW_FOLDER / new_project_name
         if destination.exists():
             return error('Project {} already exists'.format(new_project_name)), 409
 
@@ -562,7 +565,7 @@ def validate_project(name):
 
 @app.route('/api/project/<string:name>', methods=['DELETE'])
 def delete_project(name):
-    project = MODELS_FOLDER / name
+    project = WWW_FOLDER / name
     if not project.exists():
         return error('Project {} not found'.format(name)), 404
 
@@ -579,7 +582,7 @@ def get_project_model():
 def list_projects():
     projects = [
             entry.name
-            for entry in MODELS_FOLDER.iterdir()
+            for entry in WWW_FOLDER.iterdir()
             if entry.is_dir()
     ]
     return jsonify(projects)
@@ -615,6 +618,10 @@ if __name__ == '__main__':
             type=Path, default=MODELS_FOLDER,
             help='path to the folder containing XSD files')
     parser.add_argument(
+            '-w', '--data', '--www-folder',
+            type=Path, default=WWW_FOLDER,
+            help='path to the folder containing projects files')
+    parser.add_argument(
             '-a', '--address', default='0.0.0.0',
             help='host address to listen on')
     parser.add_argument(
@@ -625,5 +632,9 @@ if __name__ == '__main__':
     MODELS_FOLDER = args.folder.resolve()
     if not MODELS_FOLDER.is_dir():
         parser.error('XSD folder: the path is not a valid directory')
+
+    WWW_FOLDER = args.data.resolve()
+    if not WWW_FOLDER.is_dir():
+        parser.error('WWW folder: the path is not a valid directory')
 
     app.run(host=args.address, port=args.port)
