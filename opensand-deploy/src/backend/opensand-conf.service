@@ -6,9 +6,9 @@ Requires=network.target
 Type=simple
 RuntimeDirectory=opensand
 WorkingDirectory=/var/opensand/www/
-ExecStart=uwsgi --http-socket :80 --wsgi-file /var/opensand/opensand-conf/backend.py --callable app --check-static /var/opensand/opensand-conf/static/ --master --workers 5 --die-on-term --wsgi-disable-file-wrapper --pidfile /var/run/opensand/opensand-conf.pid
-ExecStop=uwsgi --stop /var/run/opensand/opensand-conf.pid
-ExecReload=uwsgi --reload /var/run/opensand/opensand-conf.pid
+ExecStart=/usr/bin/env uwsgi --http-socket :80 --wsgi-file /var/opensand/opensand-conf/backend.py --callable app --check-static /var/opensand/opensand-conf/static/ --master --workers 5 --die-on-term --wsgi-disable-file-wrapper --pidfile /var/run/opensand/opensand-conf.pid
+ExecStop=/usr/bin/env uwsgi --stop /var/run/opensand/opensand-conf.pid
+ExecReload=/usr/bin/env uwsgi --reload /var/run/opensand/opensand-conf.pid
 PIDFile=/var/run/opensand/opensand-conf.pid
 
 [Install]
