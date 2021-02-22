@@ -3,7 +3,9 @@ Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7),
  autotools-dev, automake, libtool, pkg-config,
- opensand (>= 6.0.0)
+ opensand-core (>= 6.0.0),
+ libopensand-gse-encap-plugin (>= 6.0.0),
+ libopensand-rle-encap-plugin (>= 6.0.0)
 Standards-Version: 3.8.3
 Section: misc
 
