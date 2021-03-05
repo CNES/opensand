@@ -13,7 +13,7 @@ esac
 
 UWSGI=`which uwsgi`
 
-if [ -x /etc/systemd/system/opensand-conf.service ]; then
+if [ -f /etc/systemd/system/opensand-conf.service ]; then
   if [ -f /var/run/opensand/opensand-conf.pid ] && pidof "${UWSGI}" >/dev/null; then
     "${UWSGI}" --stop /var/run/opensand/opensand-conf.pid
   fi

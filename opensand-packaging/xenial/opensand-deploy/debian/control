@@ -12,7 +12,7 @@ Section: misc
 Package: opensand-deploy
 Architecture: any
 Section: misc
-Depends: libopensand-conf (= ${binary:Version}), python3-flask, uwsgi
+Depends: libopensand-conf (= ${binary:Version}), python3-flask, uwsgi, uwsgi-plugin-python3
 Provides:
 Conflicts:
 Replaces:
