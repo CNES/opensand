@@ -30,6 +30,11 @@ export interface IXmlContent {
 }
 
 
+export interface IProjectsContent {
+    projects: string[];
+}
+
+
 export interface ITemplatesContent {
     [name: string]: string[];
 }
@@ -89,9 +94,9 @@ export const getXSD = (
 
 
 export const listProjects = (
-        callback: TCallback<string[]>,
+        callback: TCallback<IProjectsContent>,
         errorCallback: ErrorCallback,
-): Promise<void> => doFetch<string[]>(callback, errorCallback, "/api/projects");
+): Promise<void> => doFetch<IProjectsContent>(callback, errorCallback, "/api/projects");
 
 
 export const getProjectModel = (

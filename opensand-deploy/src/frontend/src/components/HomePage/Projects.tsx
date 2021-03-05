@@ -7,7 +7,7 @@ import Typography from '@material-ui/core/Typography';
 
 import {makeStyles, Theme} from '@material-ui/core/styles';
 
-import {listProjects} from '../../api';
+import {listProjects, IProjectsContent} from '../../api';
 import {sendError} from '../../utils/dispatcher';
 
 import CreateProjectButton from './CreateProjectButton';
@@ -33,14 +33,18 @@ const Projects = () => {
     const [projects, setProjects] = React.useState<string[]>([]);
     const classes = useStyles();
 
-    const forceRedraw = React.useCallback(() => {
-        listProjects(setProjects, sendError);
+    const storeProjects = React.useCallback((response: IProjectsContent) => {
+        setProjects(response.projects);
     }, [setProjects]);
 
+    const forceRedraw = React.useCallback(() => {
+        listProjects(storeProjects, sendError);
+    }, [storeProjects]);
+
     React.useEffect(() => {
-        listProjects(setProjects, sendError);
+        listProjects(storeProjects, sendError);
         return () => {setProjects([]);}
-    }, [setProjects]);
+    }, [storeProjects]);
 
     const projectsCards = projects.map((p: string, i: number) => (
         <ProjectCard

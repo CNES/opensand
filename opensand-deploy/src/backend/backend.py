@@ -13,7 +13,7 @@ import py_opensand_conf
 app = Flask(__name__)
 
 
-MODELS_FOLDER = Path().resolve()
+MODELS_FOLDER = Path(__file__).parent.resolve()
 WWW_FOLDER = MODELS_FOLDER.parent / 'www'
 
 
@@ -95,11 +95,11 @@ QOS_CLASSES = [
 
 
 def success(message='OK'):
-    return jsonify({'status': message})
+    return jsonify(status=message)
 
 
 def error(message):
-    return jsonify({'error': message})
+    return jsonify(error=message)
 
 
 def get_file_content(filename, xml=False):
@@ -116,7 +116,7 @@ def get_file_content(filename, xml=False):
     with filepath.open() as f:
         content = f.read()
 
-    return jsonify({'content': content})
+    return jsonify(content=content)
 
 
 def write_file_content(filename, content, expected_suffix='.xml'):
@@ -585,7 +585,7 @@ def list_projects():
             for entry in WWW_FOLDER.iterdir()
             if entry.is_dir()
     ]
-    return jsonify(projects)
+    return jsonify(projects=projects)
 
 
 @app.route('/api/model/<string:filename>', methods=['GET'])
@@ -600,7 +600,7 @@ def list_models():
             for entry in MODELS_FOLDER.iterdir()
             if entry.suffix == '.xsd' and entry.is_file()
     ]
-    return jsonify(XSDs)
+    return jsonify(models=XSDs)
 
 
 @app.route('/', defaults={'path': ''})

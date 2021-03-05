@@ -3,7 +3,8 @@ set -e
 
 case "$1" in
   remove|remove-in-favour|deconfigure|deconfigure-in-favour)
-    if [ -x /etc/init.d/nginx ]; then
+    if [ -f /etc/systemd/system/opensand-conf.service ]; then
+      systemctl disable opensand-conf || exit $?
       systemctl stop opensand-conf || exit $?
     fi
     ;;
