@@ -11,15 +11,11 @@ case "$1" in
     ;;
 esac
 
-UWSGI=`which uwsgi`
 
 if [ -f /etc/systemd/system/opensand-conf.service ]; then
-  if [ -f /var/run/opensand/opensand-conf.pid ] && pidof "${UWSGI}" >/dev/null; then
-    "${UWSGI}" --stop /var/run/opensand/opensand-conf.pid
-  fi
   systemctl daemon-reload
   systemctl enable opensand-conf.service
-  systemctl start opensand-conf.service
+  systemctl restart opensand-conf.service
 fi
 
 
