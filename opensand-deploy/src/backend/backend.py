@@ -221,7 +221,7 @@ def create_default_topology(meta_model, filepath):
     _set_parameter(return_carrier, 'wave_form', '3-22')
     _set_parameter(return_carrier, 'group', 'Standard')
 
-    default_assignment = _get_component(_get_component(topology, 'st_assignement'), 'defaults')
+    default_assignment = _get_component(_get_component(topology, 'st_assignment'), 'defaults')
     _set_parameter(default_assignment, 'default_spot', 1)
     _set_parameter(default_assignment, 'default_group', 'Standard')
 
@@ -530,18 +530,20 @@ def validate_project(name):
                 if filepath.exists() and filepath.is_file():
                     tar.add(filepath.as_posix(), filepath.name)
 
-                for entity_folder in WWW_FOLDER.joinpath(name, 'entities').iterdir():
-                    if not entity_folder.is_dir():
-                        continue
-                    entity = entity_folder.name
-                    files = [
-                            WWW_FOLDER / name / 'topology.xml',
-                            WWW_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
-                            WWW_FOLDER / name / 'entities' / entity / 'profile.xml',
-                    ]
-                    for filepath in files:
-                        if filepath.exists() and filepath.is_file():
-                            tar.add(filepath.as_posix(), '{}/{}'.format(entity, filepath.name))
+                filepath = filepath.parent / 'entities'
+                if filepath.exists() and filepath.is_dir():
+                    for entity_folder in filepath.iterdir():
+                        if not entity_folder.is_dir():
+                            continue
+                        files = [
+                                WWW_FOLDER / name / 'topology.xml',
+                                entity_folder / 'infrastructure.xml',
+                                entity_folder / 'profile.xml',
+                        ]
+                        for filepath in files:
+                            if filepath.exists() and filepath.is_file():
+                                filename = '{}/{}'.format(entity_folder.name, filepath.name)
+                                tar.add(filepath.as_posix(), filename)
 
             in_memory.seek(0)
             dl_name = '{}.tar.gz'.format(name)

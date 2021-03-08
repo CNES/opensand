@@ -113,42 +113,31 @@ const ProjectParameter = (props: Props) => {
     const cumulativeSum = ((sum: number) => (
         ([name, templateNames]: [string, string[]]) => {
             const old = sum;
-            sum += templateNames.length + 1;
+            sum += templateNames.length + 2;
             return old;
         })
-    )(templateMapping.length + 4);
+    )(1);
     const offsets = templateMapping.map(cumulativeSum);
 
     const choiceTemplates = templateMapping.map(([name, templateNames]: [string, string[]], i: number) => {
         const offset = offsets[i];
-        const choices = templateNames.map((n: string, j: number) => (
-            <MenuItem
-                // @ts-ignore [1]
-                value={{xsd: name, xml: n}}
-                key={offset + j + 1}
-            >
-                {n}
-            </MenuItem>
-        ));
-        return [<ListSubheader key={offset}>{name}</ListSubheader>, ...choices];
+        return [
+            <Divider key={offset} />,
+            <ListSubheader key={offset + 1}>From Template {name}</ListSubheader>,
+            ...templateNames.map((n: string, j: number) => (
+                <MenuItem
+                    // @ts-ignore [1]
+                    value={{xsd: name, xml: n}}
+                    key={offset + j + 2}
+                >
+                    {n}
+                </MenuItem>
+            )),
+        ];
     });
-    const choiceModels = templateMapping.map(([name, templateNames]: [string, string[]], i: number) => (
-        <MenuItem
-            // @ts-ignore [1]
-            value={{xsd: name}}
-            key={i + 2}
-        >
-            {name}
-        </MenuItem>
-    ));
-    const dividers = [
-        <Divider key={choiceModels.length + 2} />,
-        <ListSubheader key={choiceModels.length + 3}>From Template</ListSubheader>,
-    ];
     const choices = [
         <MenuItem value="" key={0}>{header}</MenuItem>,
-        <ListSubheader key={1}>Models</ListSubheader>,
-    ].concat(choiceModels, dividers, ...choiceTemplates);
+    ].concat(...choiceTemplates);
 
     const disabled = parameter.value != null && parameter.value !== "";
     let error: string | undefined = undefined;

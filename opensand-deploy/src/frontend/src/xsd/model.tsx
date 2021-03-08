@@ -268,9 +268,9 @@ export class List extends NamedElement {
 
     addItem = () => {
         if (this.elements.length < this.maxOccurences) {
-            const {id, name, description} = this.pattern;
+            const {name, description} = this.pattern;
             const index = this.elements.length;
-            const item = new Component(id + "_item_" + index, name + " " + index, description, this.model);
+            const item = new Component("item", name + " " + index, description, this.model);
             item.refPath = this.pattern.refPath.replace('*', index.toString());
             item.refValue = this.pattern.refValue;
             item.advanced = this.pattern.advanced;

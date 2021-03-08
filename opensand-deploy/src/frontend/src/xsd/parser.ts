@@ -285,37 +285,19 @@ const fillComponentFromXML = (component?: Model.Component, xml?: XMLElement) => 
     });
 
     component.lists.forEach((l: Model.List) => {
-        const patternId = l.pattern.id + "_item_";
         if (xml.hasOwnProperty(l.id)) {
             const xmlElements = xml[l.id][0];
-            if (!isXmlElement(xmlElements)) {
+            if (!isXmlElement(xmlElements) || !xmlElements.item) {
                 // Pretty unlikely, but we shall follow typescript instructions
                 return;
             }
 
-            const keys = Object.keys(xmlElements).filter((key: string) => key.startsWith(patternId));
-            keys.forEach((key: string) => {
-                const id = Number(key.substr(patternId.length));
-                if (isNaN(id)) {
-                    return;
-                }
-
-                const element = xmlElements[key][0];
+            xmlElements.item.forEach((element: XMLElement | string, index: number) => {
                 if (!isXmlElement(element)) {
                     return;
                 }
-
-                let length = l.elements.length;
-                while (id >= length) {
-                    l.addItem();
-                    if (l.elements.length === length) {
-                        // reached maxOccurences
-                        return;
-                    }
-                    length = l.elements.length;
-                }
-
-                fillComponentFromXML(l.elements[id], element);
+                l.addItem();
+                fillComponentFromXML(l.elements[l.elements.length - 1], element);
             });
         }
     });
