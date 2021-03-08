@@ -14,9 +14,9 @@ import {
 } from '../../api';
 import {sendError} from '../../utils/dispatcher';
 import {fromXSD, fromXML} from '../../xsd/parser';
-import {Model, Component, Parameter} from '../../xsd/model';
+import {Model} from '../../xsd/model';
 
-import Components from './Component';
+import Component from './Component';
 
 
 interface Props {
@@ -43,10 +43,16 @@ const Entities = (props: Props) => {
         const dataModel = fromXSD(xsd);
         const onSuccess = (content: IXmlContent) => {
             const model = fromXML(dataModel, content.content);
-            const entityComponent = model.root.children.find((c: Component) => c.id === "entity");
-            const entityParameter = entityComponent?.parameters.find((p: Parameter) => p.id === "entity_type");
-            const entityValue = entityParameter?.value;
-            setEntityType(entityValue == null || entityValue === "" ? undefined : entityValue);
+            const entityComponent = model.root.elements.find(e => e.element.id === "entity");
+            if (entityComponent && entityComponent.type === "component") {
+                const entityParameter = entityComponent.element.elements.find(e => e.element.id === "entity_type");
+                if (entityParameter && entityParameter.type === "parameter") {
+                    const entityValue = entityParameter.element.value;
+                    setEntityType(entityValue === "" ? undefined : entityValue);
+                    return;
+                }
+            }
+            setEntityType(undefined);
         }
         const onError = (error: string) => {
             setEntityType(undefined);
@@ -88,14 +94,14 @@ const Entities = (props: Props) => {
         return () => {setTemplates({});};
     }, [setTemplates, projectName]);
 
-    const projectComponent = project.root.children.find((c: Component) => c.id === "project");
-    if (projectComponent == null) {
+    const projectComponent = project.root.elements.find(e => e.element.id === "project");
+    if (projectComponent == null || projectComponent.type !== "component") {
         return null;
     }
 
     return (
-        <Components
-            component={projectComponent}
+        <Component
+            component={projectComponent.element}
             templates={templates}
             onSelect={handleSelect}
             onEdit={handleEdit}

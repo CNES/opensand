@@ -36,54 +36,73 @@ const ProjectComponent = (props: Props) => {
 
     return (
         <Paper elevation={0} className={classes.root}>
-            {component.parameters.filter(p => p.isVisible()).map(p => (
-                <Parameters
-                    key={p.id}
-                    parameter={p}
-                    templates={templates}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    enumeration={enums.find((e: Enum) => e.id === p.type)}
-                />
-            ))}
-            {component.lists.filter(l => l.isVisible()).map(l => (
-                <Accordion key={l.id} defaultExpanded>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography className={classes.heading}>{l.name}</Typography>
-                        <Typography className={classes.secondaryHeading}>{l.description}</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <Lists
-                            list={l}
-                            templates={templates}
-                            forceUpdate={forceUpdate}
-                            onSelect={onSelect}
-                            onEdit={props.onEdit}
-                            onDelete={props.onDelete}
-                            onDownload={onDownload}
-                        />
-                    </AccordionDetails>
-                </Accordion>
-            ))}
-            {component.children.filter(c => c.isVisible()).map(c => (
-                <Accordion key={c.id} defaultExpanded>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography className={classes.heading}>{c.name}</Typography>
-                        <Typography className={classes.secondaryHeading}>{c.description}</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <ProjectComponent
-                            component={c}
-                            templates={templates}
-                            onSelect={onSelect}
-                            onEdit={props.onEdit}
-                            onDelete={props.onDelete}
-                            onDownload={onDownload}
-                            forceUpdate={forceUpdate}
-                        />
-                    </AccordionDetails>
-                </Accordion>
-            ))}
+            {component.elements.filter(e => e.element.isVisible()).map(e => {
+                const id = e.element.id;
+                switch (e.type) {
+                    case "parameter":
+                        const type = e.element.type;
+                        return (
+                            <Parameters
+                                key={id}
+                                parameter={e.element}
+                                templates={templates}
+                                onEdit={onEdit}
+                                onDelete={onDelete}
+                                enumeration={enums.find((enumeration: Enum) => enumeration.id === type)}
+                            />
+                        );
+                    case "list":
+                        return (
+                            <Accordion key={id} defaultExpanded>
+                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                    <Typography className={classes.heading}>
+                                        {e.element.name}
+                                    </Typography>
+                                    <Typography className={classes.secondaryHeading}>
+                                        {e.element.description}
+                                    </Typography>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <Lists
+                                        list={e.element}
+                                        templates={templates}
+                                        forceUpdate={forceUpdate}
+                                        onSelect={onSelect}
+                                        onEdit={props.onEdit}
+                                        onDelete={props.onDelete}
+                                        onDownload={onDownload}
+                                    />
+                                </AccordionDetails>
+                            </Accordion>
+                        );
+                    case "component":
+                        return (
+                            <Accordion key={id} defaultExpanded>
+                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                    <Typography className={classes.heading}>
+                                        {e.element.name}
+                                    </Typography>
+                                    <Typography className={classes.secondaryHeading}>
+                                        {e.element.description}
+                                    </Typography>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <ProjectComponent
+                                        component={e.element}
+                                        templates={templates}
+                                        onSelect={onSelect}
+                                        onEdit={props.onEdit}
+                                        onDelete={props.onDelete}
+                                        onDownload={onDownload}
+                                        forceUpdate={forceUpdate}
+                                    />
+                                </AccordionDetails>
+                            </Accordion>
+                        );
+                    default:
+                        return <div />;
+                }
+            })}
         </Paper>
     );
 };

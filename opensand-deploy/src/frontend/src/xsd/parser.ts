@@ -275,38 +275,37 @@ const fillComponentFromXML = (component?: Model.Component, xml?: XMLElement) => 
         return;
     }
 
-    component.children.forEach((c: Model.Component) => {
-        if (xml.hasOwnProperty(c.id)) {
-            const element = xml[c.id][0];
-            if (isXmlElement(element)) {
-                fillComponentFromXML(c, element);
-            }
-        }
-    });
+    component.elements.forEach((e: Model.Element) => {
+        if (xml.hasOwnProperty(e.element.id)) {
+            const element = xml[e.element.id][0];
+            switch (e.type) {
+                case "component":
+                    const c: Model.Component = e.element;
+                    if (isXmlElement(element)) {
+                        fillComponentFromXML(c, element);
+                    }
+                    break;
+                case "list":
+                    const l: Model.List = e.element;
+                    if (!isXmlElement(element) || !element.item) {
+                        // Pretty unlikely, but we shall follow typescript instructions
+                        break;
+                    }
 
-    component.lists.forEach((l: Model.List) => {
-        if (xml.hasOwnProperty(l.id)) {
-            const xmlElements = xml[l.id][0];
-            if (!isXmlElement(xmlElements) || !xmlElements.item) {
-                // Pretty unlikely, but we shall follow typescript instructions
-                return;
-            }
-
-            xmlElements.item.forEach((element: XMLElement | string, index: number) => {
-                if (!isXmlElement(element)) {
-                    return;
-                }
-                l.addItem();
-                fillComponentFromXML(l.elements[l.elements.length - 1], element);
-            });
-        }
-    });
-
-    component.parameters.forEach((p: Model.Parameter) => {
-        if (xml.hasOwnProperty(p.id)) {
-            const element = xml[p.id][0];
-            if (!isXmlElement(element)) {
-                p.value = element;
+                    element.item.forEach((elem: XMLElement | string, index: number) => {
+                        if (!isXmlElement(elem)) {
+                            return;
+                        }
+                        l.addItem();
+                        fillComponentFromXML(l.elements[l.elements.length - 1], elem);
+                    });
+                    break;
+                case "parameter":
+                    const p: Model.Parameter = e.element;
+                    if (!isXmlElement(element)) {
+                        p.value = element;
+                    }
+                    break;
             }
         }
     });

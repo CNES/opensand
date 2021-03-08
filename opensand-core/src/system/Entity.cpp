@@ -253,7 +253,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 		output->configureRemoteOutput(remote_address, stats_port, logs_port);
 	}
 
-	if(!Conf->readInfrastructure(topology_path))
+	if(!Conf->readTopology(topology_path))
 	{
 		std::cerr << progname <<
 		             ": error: impossible to validate satcom topology in " <<

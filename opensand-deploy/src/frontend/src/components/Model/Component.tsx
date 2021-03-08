@@ -38,41 +38,58 @@ const Component = (props: Props) => {
 
     return (
         <Paper elevation={0} className={classes.root}>
-            {component.parameters.filter(p => p.isVisible()).map(p => (
-                <Parameter
-                    key={p.id}
-                    parameter={p}
-                    changeModel={forceUpdate}
-                />
-            ))}
-            {component.lists.filter(l => l.isVisible()).map(l => (
-                <Accordion key={l.id} defaultExpanded={false}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography className={classes.heading}>{l.name}</Typography>
-                        <Typography className={classes.secondaryHeading}>{l.description}</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <List
-                            list={l}
-                            changeModel={forceUpdate}
-                        />
-                    </AccordionDetails>
-                </Accordion>
-            ))}
-            {component.children.filter(c => c.isVisible()).map(c => (
-                <Accordion key={c.id} defaultExpanded={false}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <Typography className={classes.heading}>{c.name}</Typography>
-                        <Typography className={classes.secondaryHeading}>{c.description}</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <Component
-                            component={c}
-                            changeModel={forceUpdate}
-                        />
-                    </AccordionDetails>
-                </Accordion>
-            ))}
+            {component.elements.filter(e => e.element.isVisible()).map(e => {
+                switch (e.type) {
+                    case "parameter":
+                        return (
+                            <Parameter
+                                key={e.element.id}
+                                parameter={e.element}
+                                changeModel={forceUpdate}
+                            />
+                        );
+                    case "list":
+                        return (
+                            <Accordion key={e.element.id} defaultExpanded={false}>
+                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                    <Typography className={classes.heading}>
+                                        {e.element.name}
+                                    </Typography>
+                                    <Typography className={classes.secondaryHeading}>
+                                        {e.element.description}
+                                    </Typography>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <List
+                                        list={e.element}
+                                        changeModel={forceUpdate}
+                                    />
+                                </AccordionDetails>
+                            </Accordion>
+                        );
+                    case "component":
+                        return (
+                            <Accordion key={e.element.id} defaultExpanded={false}>
+                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                    <Typography className={classes.heading}>
+                                        {e.element.name}
+                                    </Typography>
+                                    <Typography className={classes.secondaryHeading}>
+                                        {e.element.description}
+                                    </Typography>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <Component
+                                        component={e.element}
+                                        changeModel={forceUpdate}
+                                    />
+                                </AccordionDetails>
+                            </Accordion>
+                        );
+                    default:
+                        return <div />;
+                }
+            })}
         </Paper>
     );
 };

@@ -123,8 +123,8 @@ const ProjectList = (props: Props) => {
 
     const addListItem = React.useCallback((name: string) => {
         list.addItem();
-        const param = list.elements[list.elements.length - 1].parameters.find((p: Parameter) => p.id === "name");
-        if (param) {param.value = name;}
+        const param = list.elements[list.elements.length - 1].elements.find(e => e.element.id === "name");
+        if (param && param.type === "parameter") {param.element.value = name;}
         setOpen(false);
         forceUpdate();
     }, [list, forceUpdate, setOpen]);
@@ -134,7 +134,7 @@ const ProjectList = (props: Props) => {
         forceUpdate();
     }, [list, forceUpdate]);
 
-    const headers = list.pattern.parameters.map((p: Parameter) => p.id);
+    const headers = list.pattern.getParameters().map(p => p.id);
 
     return (
         <TableContainer component={Paper}>
@@ -150,7 +150,7 @@ const ProjectList = (props: Props) => {
                         </TableCell>
                         {headers.map((id: string, i: number) => (
                             <TableCell key={i+1} align="center">
-                                {list.pattern.parameters.find(p => p.id === id)?.name}
+                                {list.pattern.elements.find(p => p.element.id === id)?.element.name}
                             </TableCell>
                         ))}
                         <TableCell key={headers.length + 1} align="right">
@@ -163,21 +163,24 @@ const ProjectList = (props: Props) => {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {list.elements.map((c: Component, i: number) => (
-                        <ProjectListEntityItem
-                            key={i}
-                            entity={c.parameters.find((p: Parameter) => p.id === "name")?.value}
-                            onEdit={props.onEdit}
-                            onDelete={props.onDelete}
-                            onDownload={props.onDownload}
-                            onSelect={props.onSelect}
-                            onRemove={() => removeListItem(i)}
-                            headers={headers}
-                            parameters={c.parameters}
-                            templates={templates}
-                            enumerations={enums}
-                        />
-                    ))}
+                    {list.elements.map((c: Component, i: number) => {
+                        const params = c.getParameters(false);
+                        return (
+                            <ProjectListEntityItem
+                                key={i}
+                                entity={params.find((p: Parameter) => p.id === "name")?.value}
+                                onEdit={props.onEdit}
+                                onDelete={props.onDelete}
+                                onDownload={props.onDownload}
+                                onSelect={props.onSelect}
+                                onRemove={() => removeListItem(i)}
+                                headers={headers}
+                                parameters={params}
+                                templates={templates}
+                                enumerations={enums}
+                            />
+                        );
+                    })}
                 </TableBody>
             </Table>
             <SingleFieldDialog

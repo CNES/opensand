@@ -72,7 +72,7 @@ const TabPanel = (props: PanelProps) => {
 const Model = (props: Props) => {
     const {model, xsd, projectName, urlFragment} = props;
     const {root, version} = model;
-    const {description, children} = root;
+    const components = root.getComponents();
 
     const [value, setValue] = React.useState<number>(0);
     const [, setState] = React.useState<object>({});
@@ -112,7 +112,7 @@ const Model = (props: Props) => {
         <Paper elevation={0} className={classes.fullHeight}>
             <Toolbar>
                 <Typography variant="h6" className={classes.description}>
-                    {description}
+                    {root.description}
                 </Typography>
                 <Typography variant="h6" className={classes.version}>
                     (v{version})
@@ -142,7 +142,7 @@ const Model = (props: Props) => {
                     textColor="inherit"
                     variant="fullWidth"
                 >
-                    {children.map((c: ComponentType, i: number) => c.description === "" ? (
+                    {components.map((c: ComponentType, i: number) => c.description === "" ? (
                         <Tab key={c.id} label={c.name} value={i} />
                     ) : (
                         <Tooltip title={c.description} placement="top" key={c.id}>
@@ -151,10 +151,10 @@ const Model = (props: Props) => {
                     ))}
                 </Tabs>
             </AppBar>
-            {children.map((c: ComponentType, i: number) => (
+            {components.map((c: ComponentType, i: number) => (
                 <TabPanel key={i} value={value} index={i}>
-                    {c.lists.length === 1 && c.children.length === 0 && c.parameters.length === 0 ? (
-                        <SingleListComponent list={c.lists[0]} changeModel={changeModel} />
+                    {c.elements.length === 1 && c.elements[0].type === "list" ? (
+                        <SingleListComponent list={c.elements[0].element} changeModel={changeModel} />
                     ) : (
                         <Component component={c} changeModel={changeModel} />
                     )}

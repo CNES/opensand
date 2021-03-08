@@ -55,6 +55,7 @@ const Row = (props: RowProps) => {
     const {component, headers, changeModel, onDelete} = props;
     const [open, setOpen] = React.useState<boolean>(false);
     const classes = useRowStyles();
+    const parameters = component.getParameters(false);
 
     return (
         <React.Fragment>
@@ -66,7 +67,7 @@ const Row = (props: RowProps) => {
                 </TableCell>
                 {headers.map((id: string, i: number) => (
                     <TableCell key={i+1} align="center">
-                        {component.parameters.find(p => p.id === id)?.value}
+                        {parameters.find(p => p?.id === id)?.value}
                     </TableCell>
                 ))}
                 <TableCell key={headers.length + 1} align="right">
@@ -110,7 +111,7 @@ const List = (props: Props) => {
     }, [list, forceUpdate]);
 
     const count = list.elements.length;
-    const headers = list.pattern.parameters.filter(p => p.isVisible()).map(p => p.id);
+    const headers = list.pattern.getParameters().map(p => p.id);
 
     return (
         <TableContainer component={Paper}>
@@ -124,7 +125,7 @@ const List = (props: Props) => {
                         </TableCell>
                         {headers.map((id: string, i: number) => (
                             <TableCell key={i+1} align="center">
-                                {list.pattern.parameters.find(p => p.id === id)?.name}
+                                {list.pattern.elements.find(p => p.element.id === id)?.element.name}
                             </TableCell>
                         ))}
                         <TableCell key={headers.length + 1} align="right">
