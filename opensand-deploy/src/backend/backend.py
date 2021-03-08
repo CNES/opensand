@@ -78,7 +78,7 @@ FIFOS = [
         (1, 'EF', 3000, 'DAMA'),
         (2, 'SIG', 1000, 'DAMA'),
         (3, 'AF', 2000, 'DAMA'),
-        (4, 'BE', 6000, 'CRDSA'),
+        (4, 'BE', 6000, 'DAMA'),
 ]
 
 
@@ -192,7 +192,7 @@ def create_default_infrastructure(meta_model, filepath):
     _set_parameter(gateway, 'emu_address', '192.168.0.1')
     _set_parameter(gateway, 'tap_iface', 'opensand_tap')
     _set_parameter(gateway, 'mac_address', 'FF:FF:FF:00:00:01')
-    terminal = _create_list_item(sarp, 'gateways')
+    terminal = _create_list_item(sarp, 'terminals')
     _set_parameter(terminal, 'entity_id', 1)
     _set_parameter(terminal, 'emu_address', '192.168.0.10')
     _set_parameter(terminal, 'tap_iface', 'opensand_tap')
@@ -211,12 +211,12 @@ def create_default_topology(meta_model, filepath):
     _set_parameter(_get_component(spot, 'roll_off'), 'forward', 0.35)
     _set_parameter(_get_component(spot, 'roll_off'), 'return', 0.2)
     forward_carrier = _create_list_item(spot, 'forward_band')
-    _set_parameter(forward_carrier, 'symbol_rate', 0.6)
+    _set_parameter(forward_carrier, 'symbol_rate', 40e6)
     _set_parameter(forward_carrier, 'type', 'ACM')
     _set_parameter(forward_carrier, 'wave_form', '1-28')
     _set_parameter(forward_carrier, 'group', 'Standard')
     return_carrier = _create_list_item(spot, 'return_band')
-    _set_parameter(return_carrier, 'symbol_rate', 0.6)
+    _set_parameter(return_carrier, 'symbol_rate', 40e6)
     _set_parameter(return_carrier, 'type', 'DAMA')
     _set_parameter(return_carrier, 'wave_form', '3-22')
     _set_parameter(return_carrier, 'group', 'Standard')
@@ -244,22 +244,22 @@ def create_default_topology(meta_model, filepath):
 
     advanced = _get_component(topology, 'advanced_settings')
     links = _get_component(advanced, 'links')
-    _set_parameter(links, 'forward_duration', 23)
-    _set_parameter(links, 'forward_margin', 0.3)
-    _set_parameter(links, 'return_duration', 23)
-    _set_parameter(links, 'return_margin', 0.3)
+    _set_parameter(links, 'forward_duration', 10.0)
+    _set_parameter(links, 'forward_margin', 0.0)
+    _set_parameter(links, 'return_duration', 26.5)
+    _set_parameter(links, 'return_margin', 0.0)
     schedulers = _get_component(advanced, 'schedulers')
     _set_parameter(schedulers, 'burst_length', '536 sym')
     _set_parameter(schedulers, 'crdsa_frame', 3)
     _set_parameter(schedulers, 'crdsa_delay', 250)
-    _set_parameter(schedulers, 'pep_allocation', 100)
+    _set_parameter(schedulers, 'pep_allocation', 1000)
     timers = _get_component(advanced, 'timers')
-    _set_parameter(timers, 'statistics', 250)
-    _set_parameter(timers, 'synchro', 25)
+    _set_parameter(timers, 'statistics', 53)
+    _set_parameter(timers, 'synchro', 1000)
     _set_parameter(timers, 'acm_refresh', 1000)
     delay = _get_component(advanced, 'delay')
-    _set_parameter(delay, 'fifo_size', 5000)
-    _set_parameter(delay, 'delay_timer', 100)
+    _set_parameter(delay, 'fifo_size', 10000)
+    _set_parameter(delay, 'delay_timer', 1)
 
     py_opensand_conf.toXML(topo, str(filepath))
 
@@ -279,7 +279,7 @@ def create_default_profile(meta_model, filepath):
     dama = _get_component(access, 'dama')
     _set_parameter(dama, 'cra', 100)
     _set_parameter(dama, 'algorithm', 'Legacy')
-    _set_parameter(dama, 'duration', 1)
+    _set_parameter(dama, 'duration', 23)
 
     phy_layer = _get_component(model, 'physical_layer')
     delay = _get_component(model, 'delay')
@@ -290,17 +290,17 @@ def create_default_profile(meta_model, filepath):
     error_insertion = _get_component(model, 'error_insertion')
     _set_parameter(error_insertion, 'error_insertion_type', 'Gate')
     uplink_attenuation = _get_component(phy_layer, 'uplink_attenuation')
-    _set_parameter(uplink_attenuation, 'clear_sky', 2.0)
+    _set_parameter(uplink_attenuation, 'clear_sky', 20.0)
     _set_parameter(uplink_attenuation, 'attenuation_type', 'Ideal')
     _set_parameter(uplink_attenuation, 'ideal_attenuation_value', 0.0)
     downlink_attenuation = _get_component(phy_layer, 'downlink_attenuation')
-    _set_parameter(downlink_attenuation, 'clear_sky', 2.0)
+    _set_parameter(downlink_attenuation, 'clear_sky', 20.0)
     _set_parameter(downlink_attenuation, 'attenuation_type', 'Ideal')
     _set_parameter(downlink_attenuation, 'ideal_attenuation_value', 0.0)
 
     network = _get_component(model, 'network')
     _set_parameter(network, 'simulation', 'None')
-    _set_parameter(network, 'fca', 100)
+    _set_parameter(network, 'fca', 0)
     _set_parameter(network, 'dama_algorithm', 'Legacy')
     for priority, name, capacity, access in FIFOS:
         fifo = _create_list_item(network, 'fifos')

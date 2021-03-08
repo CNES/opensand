@@ -287,10 +287,10 @@ void OpenSandModelConf::createModels()
 	auto advanced = topology_model->getRoot()->addComponent("advanced_settings", "Advanced Settings");
 	advanced->setAdvanced(true);
 	auto links = advanced->addComponent("links", "Links");
-	links->addParameter("forward_duration", "Forward link frame duration", types->getType("int"))->setUnit("ms"); 
+	links->addParameter("forward_duration", "Forward link frame duration", types->getType("double"))->setUnit("ms");
 	links->addParameter("forward_margin", "Forward link ACM loop margin", types->getType("double"))->setUnit("dB");
 	// auto forward_encap = links->addList("forward_encap_schemes", "Forward link Encapsulation Schemes", "forward_encap_scheme")->getPattern();
-	links->addParameter("return_duration", "Return link frame duration", types->getType("int"))->setUnit("ms"); 
+	links->addParameter("return_duration", "Return link frame duration", types->getType("double"))->setUnit("ms");
 	links->addParameter("return_margin", "Return link ACM loop margin", types->getType("double"))->setUnit("dB");
 	// auto return_encap = links->addList("return_encap_schemes", "Forward link Encapsulation Schemes", "return_encap_scheme")->getPattern();
 	auto schedulers = advanced->addComponent("schedulers", "Schedulers");
