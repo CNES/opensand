@@ -651,6 +651,7 @@ xmlNodePtr elementToXSD(std::shared_ptr<OpenSANDConf::MetaParameter> element)
 		xstype = "xs:decimal";
 	}
 	xmlNewProp(node, BAD_CAST "type", BAD_CAST xstype.c_str());
+	xmlNewProp(node, BAD_CAST "minOccurs", BAD_CAST "0");
 
 	return node;
 }

@@ -18,7 +18,7 @@ export const toXML = (model: Model.Model) => {
 
 const componentToXML = (component: Model.Component, parentNode: builder.XMLElement) => {
     const componentNode = parentNode.element(component.id);
-    component.parameters.forEach((p: Model.Parameter) => {componentNode.element(p.id, {}, p.value);});
+    component.parameters.forEach((p: Model.Parameter) => {if (p.value !== "") componentNode.element(p.id, {}, p.value);});
     component.children.forEach((c: Model.Component) => {componentToXML(c, componentNode);});
     component.lists.forEach((l: Model.List) => {
         const listNode = componentNode.element(l.id);
