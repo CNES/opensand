@@ -13,6 +13,14 @@ import py_opensand_conf
 app = Flask(__name__)
 
 
+try:
+    from flask_cors import CORS
+except ImportError:
+    pass
+else:
+    CORS(app)
+
+
 MODELS_FOLDER = Path(__file__).parent.resolve()
 WWW_FOLDER = MODELS_FOLDER.parent / 'www'
 

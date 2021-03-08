@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+  abort-upgrade|abort-remove|abort-deconfigure|configure)
+    ;;
+
+  *)
+    echo "postinst called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+
+UWSGI=`which uwsgi`
+
+if [ -f /etc/systemd/system/opensand-conf.service ]; then
+  if [ -f /var/run/opensand/opensand-conf.pid ] && pidof "${UWSGI}" >/dev/null; then
+    "${UWSGI}" --stop /var/run/opensand/opensand-conf.pid
+  fi
+  systemctl daemon-reload
+  systemctl enable opensand-conf.service
+  systemctl start opensand-conf.service
+fi
+
+
+
+exit 0
+

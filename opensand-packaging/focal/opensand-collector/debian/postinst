@@ -1,0 +1,279 @@
+#!/bin/sh
+# postinst script for opensand-collector
+#
+# see: dh_installdeb(1)
+
+set -e
+
+# Source debconf library.
+. /usr/share/debconf/confmodule
+
+# summary of how this script can be called:
+#        * <postinst> `configure' <most-recently-configured-version>
+#        * <old-postinst> `abort-upgrade' <new version>
+#        * <conflictor's-postinst> `abort-remove' `in-favour' <package>
+#          <new-version>
+#        * <postinst> `abort-remove'
+#        * <deconfigured's-postinst> `abort-deconfigure' `in-favour'
+#          <failed-install-package> <version> `removing'
+#          <conflicting-package> <version>
+# for details, see http://www.debian.org/doc/debian-policy/ or
+# the debian-policy package
+
+create_influxdb_conf(){
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    CONFIG_FILE="/etc/influxdb/influxdb.conf"
+
+    sed -i "/bind-address = \":8086\"/c\  bind-address = \":${INFLUXDB_PORT}\"" "${CONFIG_FILE}"
+}
+
+create_chronograf_conf(){
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    db_get opensand-collector/chronograf/port
+    CHRONOGRAF_PORT="${RET}"
+    CONFIG_FILE="/etc/default/chronograf"
+
+    cat << EOF > "${CONFIG_FILE}"
+INFLUXDB_URL=http://localhost:${INFLUXDB_PORT}
+PORT=${CHRONOGRAF_PORT}
+EOF
+}
+
+create_kibana_conf(){
+    db_get opensand-collector/kibana/port
+    KIBANA_PORT="${RET}"
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    CONFIG_FILE="/etc/kibana/kibana.yml"
+
+    sed -i "/^#\?server\.port/c\server.port: ${KIBANA_PORT}" "${CONFIG_FILE}"
+    sed -i "/^#\?server\.host/c\server.host: \"0.0.0.0\"" "${CONFIG_FILE}"
+    sed -i "/^#\?elasticsearch.url/c\elasticsearch.url: \"http://localhost:${ELASTICSEARCH_PORT}\"" "${CONFIG_FILE}"
+}
+
+create_elasticsearch_conf(){
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    CONFIG_FILE="/etc/elasticsearch/elasticsearch.yml"
+
+    cat << EOF > "${CONFIG_FILE}"
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+cluster.name: "opensand"
+node.name: "collector"
+network.host: 0.0.0.0
+http.port: ${ELASTICSEARCH_PORT}
+path.repo: ["/tmp"]
+EOF
+
+    chown root:elasticsearch "${CONFIG_FILE}"
+}
+
+
+create_logstash_conf(){
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    db_get opensand-collector/collector/stats/port
+    STATS_PORT="${RET}"
+    db_get opensand-collector/collector/logs/port
+    LOGS_PORT="${RET}"
+    CONFIG_FILE="/etc/logstash/conf.d/collector.conf"
+
+    cat << EOF > "${CONFIG_FILE}"
+input {
+  udp { port => ${STATS_PORT} }
+  tcp { port => ${STATS_PORT} }
+  udp { port => ${LOGS_PORT} }
+  tcp { port => ${LOGS_PORT} }
+}
+
+filter {
+  mutate {
+    remove_field => [ "@version", "host", "tags", "type", "port" ]
+  }
+
+  if ("[EVENT]" in [message] or "[DEBUG]" in [message] or "[INFO]" in [message] or "[NOTICE]" in [message] or "[WARNING]" in [message] or "[ERROR]" in [message] or "[CRITICAL]" in [message]) {
+    dissect {
+      mapping => { "message" => "[%{timestamp}][%{log_level}][%{entity}][%{log_name}]%{log_message}" }
+      convert_datatype => { "timestamp" => "int" }
+    }
+    mutate {
+      rename => { "log_message" => "message" }
+    }
+  } else {
+    grok {
+      match => { "message" => "%{NUMBER:timestamp:int} %{GREEDYDATA:message}" }
+      overwrite => [ "message" ]
+    }
+    kv {
+      allow_duplicate_values => false
+      field_split => " "
+      value_split => " "
+      remove_field => [ "message" ]
+      target => "kv"
+    }
+    ruby {
+      code => '
+event.get("kv").each do |key, value|
+  if key == "entity"
+    event.set(key, value)
+  else
+    event.set(key, value.to_f)
+  end
+end'
+      remove_field => [ "kv" ]
+    }
+  }
+
+  date {
+    match => [ "timestamp", "UNIX_MS", "yyyy-MM-dd HH:mm:ss.SSS" ]
+    remove_field => [ "timestamp" ]
+  }
+
+  mutate {
+    remove_field => [ "tags" ]
+  }
+}
+
+output {
+  if ("" in [message]) {
+    elasticsearch {
+      hosts => "localhost:${ELASTICSEARCH_PORT}"
+    }
+  } else {
+    influxdb {
+      measurement => "opensand"
+      use_event_fields_for_data_points => true
+      send_as_tags => [ "entity" ]
+      host => "localhost"
+      port => ${INFLUXDB_PORT}
+      db => "opensand"
+      time_precision => "ms"
+      retention_policy => "autogen"
+    }
+  }
+}
+EOF
+}
+
+limit_java_memory(){
+    for component in logstash elasticsearch; do
+        CONFIG_FILE="/etc/${component}/jvm.options"
+        grep -e '-Xms' "${CONFIG_FILE}" > /dev/null && sed -i 's/.*-Xms.*/-Xms512m/' "${CONFIG_FILE}" || echo "-Xms512m" >> "${CONFIG_FILE}"
+        grep -e '-Xmx' "${CONFIG_FILE}" > /dev/null && sed -i 's/.*-Xmx.*/-Xmx512m/' "${CONFIG_FILE}" || echo "-Xmx512m" >> "${CONFIG_FILE}"
+    done
+}
+
+fail_opensand_db(){
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    echo "Failed to connect to local InfluxDB server on port ${INFLUXDB_PORT}"
+    echo "This may be due to a lack of available memory. Check the status of the influxdb service and restart it."
+    echo "The database to hold OpenSAND probes could no be created. Please run:"
+    echo -e "\tcurl -i -XPOST http://localhost:${INFLUXDB_PORT}/query --data-urlencode \"q=CREATE DATABASE opensand\""
+    echo "once the problem is solved to create it."
+}
+
+create_opensand_db(){
+    db_get opensand-collector/influxdb/port
+    INFLUXDB_PORT="${RET}"
+    echo "Waiting for influxdb starts to accepting requests..."
+    timeout 120 bash -c "until echo > /dev/tcp/localhost/${INFLUXDB_PORT}; do sleep 0.5; done" > /dev/null 2>&1 && curl -i -XPOST http://localhost:${INFLUXDB_PORT}/query --data-urlencode "q=CREATE DATABASE opensand" || fail_opensand_db
+}
+
+fail_index_pattern(){
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    db_get opensand-collector/kibana/port
+    KIBANA_PORT="${RET}"
+    echo "Failed to connect to local ElasticSearch server on port ${ELASTICSEARCH_PORT}"
+    echo "This may be due to a lack of available memory. Check the status of the elasticsearch service and restart it."
+    echo "The default index pattern in Kibana could not be created properly. Please open the page at:"
+    echo -e "\thttp://localhost:${KIBANA_PORT}/"
+    echo "and follow the instructions at:"
+    echo -e "\thttps://www.elastic.co/guide/en/kibana/6.2/tutorial-define-index.html"
+    echo "to create it once the problem is solved."
+}
+
+create_index_pattern(){
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+
+    # Create index as if Kibana was used through a browser
+    curl -XPUT http://localhost:${ELASTICSEARCH_PORT}/.kibana/?pretty -H 'Content-Type: application/json' -d '{"mappings":{"doc":{"dynamic":"strict","properties":{"config":{"dynamic":"true","properties":{"buildNum":{"type":"keyword"},"defaultIndex":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}}}},"dashboard":{"properties":{"description":{"type":"text"},"hits":{"type":"integer"},"kibanaSavedObjectMeta":{"properties":{"searchSourceJSON":{"type":"text"}}},"optionsJSON":{"type":"text"},"panelsJSON":{"type":"text"},"refreshInterval":{"properties":{"display":{"type":"keyword"},"pause":{"type":"boolean"},"section":{"type":"integer"},"value":{"type":"integer"}}},"timeFrom":{"type":"keyword"},"timeRestore":{"type":"boolean"},"timeTo":{"type":"keyword"},"title":{"type":"text"},"uiStateJSON":{"type":"text"},"version":{"type":"integer"}}},"index-pattern":{"properties":{"fieldFormatMap":{"type":"text"},"fields":{"type":"text"},"intervalName":{"type":"keyword"},"notExpandable":{"type":"boolean"},"sourceFilters":{"type":"text"},"timeFieldName":{"type":"keyword"},"title":{"type":"text"}}},"search":{"properties":{"columns":{"type":"keyword"},"description":{"type":"text"},"hits":{"type":"integer"},"kibanaSavedObjectMeta":{"properties":{"searchSourceJSON":{"type":"text"}}},"sort":{"type":"keyword"},"title":{"type":"text"},"version":{"type":"integer"}}},"server":{"properties":{"uuid":{"type":"keyword"}}},"timelion-sheet":{"properties":{"description":{"type":"text"},"hits":{"type":"integer"},"kibanaSavedObjectMeta":{"properties":{"searchSourceJSON":{"type":"text"}}},"timelion_chart_height":{"type":"integer"},"timelion_columns":{"type":"integer"},"timelion_interval":{"type":"keyword"},"timelion_other_interval":{"type":"keyword"},"timelion_rows":{"type":"integer"},"timelion_sheet":{"type":"text"},"title":{"type":"text"},"version":{"type":"integer"}}},"type":{"type":"keyword"},"updated_at":{"type":"date"},"url":{"properties":{"accessCount":{"type":"long"},"accessDate":{"type":"date"},"createDate":{"type":"date"},"url":{"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":2048}}}}},"visualization":{"properties":{"description":{"type":"text"},"kibanaSavedObjectMeta":{"properties":{"searchSourceJSON":{"type":"text"}}},"savedSearchId":{"type":"keyword"},"title":{"type":"text"},"uiStateJSON":{"type":"text"},"version":{"type":"integer"},"visState":{"type":"text"}}}}}}}'
+    # Add index pattern
+    curl -XPUT http://localhost:${ELASTICSEARCH_PORT}/.kibana/doc/index-pattern:logstash_default -H 'Content-Type: application/json' -d '{"index-pattern": {"title" : "logstash*",  "timeFieldName": "@timestamp"}, "type": "index-pattern"}'
+    # Configure added index pattern as the default one
+    curl -XPUT http://localhost:${ELASTICSEARCH_PORT}/.kibana/doc/config:6.2.4 -H 'Content-Type: application/json' -d '{"config": {"defaultIndex" : "logstash_default"}, "type": "config"}'
+}
+
+create_kibana_index_pattern(){
+    db_get opensand-collector/elasticsearch/port
+    ELASTICSEARCH_PORT="${RET}"
+    echo "Waiting for elasticsearch starts to accepting requests..."
+    timeout 120 bash -c "until echo > /dev/tcp/localhost/${ELASTICSEARCH_PORT}; do sleep 0.5; done" > /dev/null 2>&1 && create_index_pattern || fail_index_pattern
+}
+
+install_logstash_plugin(){
+    cd /usr/share/logstash
+    bin/logstash-plugin install logstash-output-influxdb || true
+}
+
+restart_services(){
+    systemctl daemon-reload
+    systemctl enable elasticsearch.service
+    systemctl enable influxdb.service
+    systemctl enable logstash.service
+    systemctl enable kibana.service
+    systemctl enable chronograf.service
+    systemctl restart elasticsearch.service
+    systemctl restart influxdb.service
+    systemctl restart logstash.service
+    systemctl restart kibana.service
+    systemctl restart chronograf.service
+}
+
+case "$1" in
+    configure)
+        db_get opensand-collector/configured
+        RECONFIGURE="${RET}"
+        db_reset opensand-collector/configured
+
+        if [ "${RECONFIGURE}" = "false" ]; then
+            chown -R elasticsearch:elasticsearch /usr/share/elasticsearch
+            install_logstash_plugin
+        fi
+
+        limit_java_memory
+        create_logstash_conf
+        create_influxdb_conf
+        create_elasticsearch_conf
+        create_kibana_conf
+        create_chronograf_conf
+        restart_services
+
+        if [ "${RECONFIGURE}" = "false" ]; then
+            create_opensand_db
+            create_kibana_index_pattern
+        fi
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+# dh_installdeb will replace this with shell code automatically
+# generated by other debhelper scripts.
+
+#DEBHELPER#
+
+exit 0
