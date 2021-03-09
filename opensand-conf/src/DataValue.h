@@ -210,7 +210,7 @@ std::string OpenSANDConf::DataValue<T>::toString() const
 	std::stringstream ss;
 	if(this->is_set)
 	{
-		ss << std::boolalpha << this->value;
+		ss << std::fixed << std::boolalpha << this->value;
 	}
 	return ss.str();
 }
