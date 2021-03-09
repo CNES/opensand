@@ -261,4 +261,7 @@ bool OpenSANDConf::DataValue<T>::equal(const OpenSANDConf::Data &other) const
 	return this->is_set ? this->value == elt->value : true;
 }
 
+template <>
+bool OpenSANDConf::DataValue<std::string>::fromString(std::string val);
+
 #endif // OPENSAND_CONF_DATA_VALUE_H

@@ -17,6 +17,7 @@ libopensand_conf_la_cpp = \
     NamedElement.cpp \
     Path.cpp \
     Data.cpp \
+    DataValue.cpp \
     DataType.cpp \
     DataEnumType.cpp \
     DataTypesList.cpp \
