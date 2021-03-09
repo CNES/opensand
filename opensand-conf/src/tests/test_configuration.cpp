@@ -462,14 +462,15 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 			SECTION("We can set a double data from string")
 			{
 				double val1 = 42.42;
-				std::string str1 = "42.42";
+				std::string str1 = "42.420000";
 				double val2 = 23.23;
-				std::string str2 = "23.23";
+				std::string str2 = "23.230000";
 				double val3 = 1.12e3;
 				std::string str3 = "1.12e3";
-				std::string str3b = "1120";
+				std::string str3b = "1120.000000";
 				int val4 = 86;
 				std::string str4 = "86";
+				std::string str4b = "86.000000";
 				std::string invalid = "azerty";
 
 				data->reset();
@@ -497,7 +498,7 @@ TEST_CASE("Model parameter tests", "[Model][Parameter]")
 				REQUIRE(data->fromString(str4) == true);
 				REQUIRE(data->isSet() == true);
 				REQUIRE(data->get() == (double)val4);
-				REQUIRE(data->toString() == str4);
+				REQUIRE(data->toString() == str4b);
 
 				data->reset();
 				REQUIRE(data->isSet() == false);
