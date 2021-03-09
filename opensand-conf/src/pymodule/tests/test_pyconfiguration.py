@@ -387,14 +387,15 @@ class ModelParameterTest(unittest.TestCase):
         data.reset()
         self.assertFalse(data.is_set())
         val1 = 42.42
-        str1 = "42.42"
+        str1 = "42.420000"
         val2 = 23.23
-        str2 = "23.23"
+        str2 = "23.230000"
         val3 = 1.12e3
         str3 = "1.12e3"
-        str3b = "1120"
+        str3b = "1120.000000"
         val4 = 86
         str4 = "86"
+        str4b = "86.000000"
         invalid = "azerty"
         self.assertTrue(data.set(val1))
         self.assertTrue(data.is_set())
@@ -419,7 +420,7 @@ class ModelParameterTest(unittest.TestCase):
         self.assertTrue(data.from_string(str4))
         self.assertTrue(data.is_set())
         self.assertEqual(data.get(), val4)
-        self.assertEqual(str(data), str4)
+        self.assertEqual(str(data), str4b)
 
         data.reset()
         self.assertFalse(data.is_set())
