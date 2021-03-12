@@ -17,12 +17,13 @@ import Parameter from './Parameter';
 
 interface Props {
     component: ComponentType;
+    readOnly?: boolean;
     changeModel: () => void;
 }
 
 
 const Component = (props: Props) => {
-    const {component, changeModel} = props;
+    const {component, readOnly, changeModel} = props;
     const classes = componentStyles();
 
     const [, setState] = React.useState<object>({});
@@ -36,6 +37,8 @@ const Component = (props: Props) => {
         return null;
     }
 
+    const isReadOnly = readOnly || component.readOnly;
+
     return (
         <Paper elevation={0} className={classes.root}>
             {component.elements.filter(e => e.element.isVisible()).map(e => {
@@ -45,6 +48,7 @@ const Component = (props: Props) => {
                             <Parameter
                                 key={e.element.id}
                                 parameter={e.element}
+                                readOnly={isReadOnly}
                                 changeModel={forceUpdate}
                             />
                         );
@@ -62,6 +66,7 @@ const Component = (props: Props) => {
                                 <AccordionDetails>
                                     <List
                                         list={e.element}
+                                        readOnly={isReadOnly}
                                         changeModel={forceUpdate}
                                     />
                                 </AccordionDetails>
@@ -81,6 +86,7 @@ const Component = (props: Props) => {
                                 <AccordionDetails>
                                     <Component
                                         component={e.element}
+                                        readOnly={isReadOnly}
                                         changeModel={forceUpdate}
                                     />
                                 </AccordionDetails>

@@ -20,6 +20,7 @@ import Component from './Component';
 
 interface Props {
     list: ListType;
+    readOnly?: boolean;
     changeModel: () => void;
 }
 
@@ -48,7 +49,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 
 const SingleListComponent = (props: Props) => {
-    const {list, changeModel} = props;
+    const {list, readOnly, changeModel} = props;
     const classes = useStyles();
 
     const [open, setOpen] = React.useState<number>(0);
@@ -69,17 +70,21 @@ const SingleListComponent = (props: Props) => {
         forceUpdate();
     }, [list, forceUpdate]);
 
+    const isEditable = !readOnly && !list.isReadOnly();
+
     return (
         <div className={classes.root}>
             <List className={classes.leftPanel}>
-                <ListItem key={0} button selected onClick={addListItem}>
-                    <ListItemIcon><AddIcon /></ListItemIcon>
-                    <ListItemText primary={`Add New ${list.pattern.name}`} />
-                </ListItem>
+                {isEditable && (
+                    <ListItem key={0} button selected onClick={addListItem}>
+                        <ListItemIcon><AddIcon /></ListItemIcon>
+                        <ListItemText primary={`Add New ${list.pattern.name}`} />
+                    </ListItem>
+                )}
                 {list.elements.map((c: ComponentType, i: number) => (
                     <ListItem key={i+1} button selected={i === open} onClick={() => setOpen(i)}>
                         <ListItemText primary={c.name} />
-                        {i + 1=== list.elements.length && (
+                        {i + 1 === list.elements.length && isEditable && (
                             <ListItemSecondaryAction>
                                 <IconButton edge="end" onClick={removeListItem} color="inherit">
                                     <DeleteIcon />
@@ -92,7 +97,7 @@ const SingleListComponent = (props: Props) => {
             <div className={classes.rightPanel}>
                 {list.elements.map((c: ComponentType, i: number) => (
                     <Collapse in={open === i} timeout="auto" unmountOnExit>
-                        <Component component={c} changeModel={changeModel} />
+                        <Component component={c} readOnly={!isEditable} changeModel={changeModel} />
                     </Collapse>
                 ))}
             </div>

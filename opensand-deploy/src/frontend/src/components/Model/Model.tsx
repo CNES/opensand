@@ -154,7 +154,11 @@ const Model = (props: Props) => {
             {components.map((c: ComponentType, i: number) => (
                 <TabPanel key={i} value={value} index={i}>
                     {c.elements.length === 1 && c.elements[0].type === "list" ? (
-                        <SingleListComponent list={c.elements[0].element} changeModel={changeModel} />
+                        <SingleListComponent
+                            list={c.elements[0].element}
+                            readOnly={c.readOnly}
+                            changeModel={changeModel}
+                        />
                     ) : (
                         <Component component={c} changeModel={changeModel} />
                     )}

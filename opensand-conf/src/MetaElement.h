@@ -45,143 +45,160 @@
 
 namespace OpenSANDConf
 {
-	class TypeList;
-	class DataElement;
-	class MetaParameter;
-	class DataType;
-	class Data;
+
+class TypeList;
+class DataElement;
+class MetaParameter;
+class DataType;
+class Data;
+
+/**
+ * @brief Base class of all metamodel elements.
+ */
+class MetaElement: public NamedElement
+{
+public:
+	friend class MetaContainer;
+	friend class MetaModel;
 
 	/**
-	 * @brief Base class of all metamodel elements.
+	 * @brief Destructor.
 	 */
-	class MetaElement: public NamedElement
-	{
-	public:
-		friend class MetaContainer;
-		friend class MetaModel;
+	virtual ~MetaElement();
 
-		/**
-		 * @brief Destructor.
-		 */
-		virtual ~MetaElement();
+	/**
+	 * @brief Get the path.
+	 *
+	 * @return  The path
+	 */
+	std::string getPath() const;
 
-		/**
-		 * @brief Get the path.
-		 *
-		 * @return  The path
-		 */
-		std::string getPath() const;
+	/**
+	 * @brief Get the advanced status.
+	 *
+	 * @return  The advanced status
+	 */
+	bool isAdvanced() const;
 
-		/**
-		 * @brief Get the advanced status.
-		 *
-		 * @return  The advanced status
-		 */
-		bool isAdvanced() const;
+	/**
+	 * @brief Set the advanced status.
+	 *
+	 * @param  advanced  The advanced status
+	 */
+	void setAdvanced(bool advanced);
 
-		/**
-		 * @brief Set the advanced status.
-		 *
-		 * @param  advanced  The advanced status
-		 */
-		void setAdvanced(bool advanced);
+	/**
+	 * @brief Get the read-only status.
+	 *
+	 * @return	The read-only status
+	 */
+	bool isReadOnly() const;
 
-		/**
-		 * @brief Get the reference parameter.
-		 *
-		 * @return The target parameter
-		 */
-		std::shared_ptr<MetaParameter> getReferenceTarget() const;
+	/**
+	 * @brief Set the read-only status.
+	 *
+	 * @param readOnly	The read-only status
+	 */
+	void setReadOnly(bool readOnly);
 
-		/**
-		 * @brief Get the expected data of the reference parameter.
-		 *
-		 * @return The expected data
-		 */
-    std::shared_ptr<Data> getReferenceData() const;
+	/**
+	 * @brief Get the reference parameter.
+	 *
+	 * @return The target parameter
+	 */
+	std::shared_ptr<MetaParameter> getReferenceTarget() const;
 
-		/**
-		 * @brief Compare to another element
-		 *
-		 * @param  other  Element to compare to
-		 *
-		 * @return  True if elements are equals, false otherwise
-		 */
-		virtual bool equal(const MetaElement &other) const;
+	/**
+	 * @brief Get the expected data of the reference parameter.
+	 *
+	 * @return The expected data
+	 */
+	std::shared_ptr<Data> getReferenceData() const;
 
-		friend bool operator== (const MetaElement &v1, const MetaElement &v2);
-		friend bool operator!= (const MetaElement &v1, const MetaElement &v2);
-	
-	protected:
-		/**
-		 * @brief Constructor.
-		 *
-		 * @param  id           The identifier
-		 * @param  parent       The parent path
-		 * @param  name         The name
-		 * @param  description  The description
-		 */
-		MetaElement(const std::string &id, const std::string &parent, const std::string &name, const std::string &description);
+	/**
+	 * @brief Compare to another element
+	 *
+	 * @param  other  Element to compare to
+	 *
+	 * @return  True if elements are equals, false otherwise
+	 */
+	virtual bool equal(const MetaElement &other) const;
 
-		/**
-		 * @brief Constructor by copy.
-		 *
-		 * @param  other  The object to copy
-		 */
-		MetaElement(const MetaElement &other);
+	friend bool operator== (const MetaElement &v1, const MetaElement &v2);
+	friend bool operator!= (const MetaElement &v1, const MetaElement &v2);
 
-		/**
-		 * @brief Clone the current object.
-		 *
-		 * @param  types  The types list
-		 *
-		 * @return The cloned object
-		 */
-		virtual std::shared_ptr<MetaElement> clone(std::weak_ptr<const MetaTypesList> types) const = 0;
+protected:
+	/**
+	 * @brief Constructor.
+	 *
+	 * @param  id           The identifier
+	 * @param  parent       The parent path
+	 * @param  name         The name
+	 * @param  description  The description
+	 */
+	MetaElement(const std::string &id, const std::string &parent, const std::string &name, const std::string &description);
 
-		/**
-		 * @brief Create a datamodel element.
-		 *
-		 * @param  types  The types list
-		 *
-		 * @return  The new datamodel element if succeeds, nullptr otherwise
-		 */
-		virtual std::shared_ptr<DataElement> createData(std::shared_ptr<DataTypesList> types) const = 0;
+	/**
+	 * @brief Constructor by copy.
+	 *
+	 * @param  other  The object to copy
+	 */
+	MetaElement(const MetaElement &other);
 
-		/**
-		 * @brief Get the parent path.
-		 *
-		 * @return  The parent path
-		 */
-		const std::string &getParentPath() const;
+	/**
+	 * @brief Clone the current object.
+	 *
+	 * @param  types  The types list
+	 *
+	 * @return The cloned object
+	 */
+	virtual std::shared_ptr<MetaElement> clone(std::weak_ptr<const MetaTypesList> types) const = 0;
 
-		/**
-		 * @brief Specify a reference to a parameter value.
-		 *
-		 * @param  target  The target parameter
-		 *
-		 * @return True on success, false otherwise
-		 */
-		void setReference(std::shared_ptr<MetaParameter> target);
+	/**
+	 * @brief Create a datamodel element.
+	 *
+	 * @param  types  The types list
+	 *
+	 * @return  The new datamodel element if succeeds, nullptr otherwise
+	 */
+	virtual std::shared_ptr<DataElement> createData(std::shared_ptr<DataTypesList> types) const = 0;
 
-	private:
-		std::string parent;
-		bool advanced;
-		std::tuple<std::shared_ptr<MetaParameter>, std::shared_ptr<Data>, std::shared_ptr<DataType>> reference;
+	/**
+	 * @brief Get the parent path.
+	 *
+	 * @return  The parent path
+	 */
+	const std::string &getParentPath() const;
 
-		/**
-		 * @brief Get an item by path.
-		 *
-		 * @param  root  The root element
-		 * @param  path  The item's path
-		 *
-		 * @return  The item if found, nullptr otherwise
-		 */
-		static std::shared_ptr<MetaElement> getItemFromRoot(std::shared_ptr<MetaElement> root, const std::string &path);
-	};
+	/**
+	 * @brief Specify a reference to a parameter value.
+	 *
+	 * @param  target  The target parameter
+	 *
+	 * @return True on success, false otherwise
+	 */
+	void setReference(std::shared_ptr<MetaParameter> target);
 
-	bool operator== (const MetaElement &v1, const MetaElement &v2);
-	bool operator!= (const MetaElement &v1, const MetaElement &v2);
+private:
+	std::string parent;
+	bool advanced;
+	bool readOnly;
+	std::tuple<std::shared_ptr<MetaParameter>, std::shared_ptr<Data>, std::shared_ptr<DataType>> reference;
+
+	/**
+	 * @brief Get an item by path.
+	 *
+	 * @param  root  The root element
+	 * @param  path  The item's path
+	 *
+	 * @return  The item if found, nullptr otherwise
+	 */
+	static std::shared_ptr<MetaElement> getItemFromRoot(std::shared_ptr<MetaElement> root, const std::string &path);
+};
+
+bool operator== (const MetaElement &v1, const MetaElement &v2);
+bool operator!= (const MetaElement &v1, const MetaElement &v2);
+
 }
 
 #endif // OPENSAND_CONF_META_ELEMENT_H

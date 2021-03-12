@@ -527,6 +527,10 @@ xmlNodePtr createXSDNode(const std::string &id,
 	xmlNodeSetContent(padv, BAD_CAST (element->isAdvanced() ? "true" : "false"));
 	xmlAddChild(docu, padv);
 
+	auto prdonly = xmlNewNode(nullptr, BAD_CAST "readonly");
+	xmlNodeSetContent(prdonly, BAD_CAST (element->isReadOnly() ? "true" : "false"));
+	xmlAddChild(docu, prdonly);
+
 	// Add reference
 	auto ref = element->getReferenceTarget();
 	auto pref = xmlNewNode(nullptr, BAD_CAST "reference");

@@ -182,7 +182,7 @@ void OpenSandModelConf::createModels()
 	gateway_phy->addParameter("udp_rmem", "UDP RMem", types->getType("int"))->setAdvanced(true);
 	gateway_phy->addParameter("udp_wmem", "UDP WMem", types->getType("int"))->setAdvanced(true);
 
-	auto terminal = entity->addComponent("entity_st", "Terminal", "Specific infrastructure information for a split Terminal");
+	auto terminal = entity->addComponent("entity_st", "Terminal", "Specific infrastructure information for a Terminal");
 	infrastructure_model->setReference(terminal, entity_type);
 	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(terminal->getReferenceData());
 	expected_str->set("Terminal");
@@ -265,11 +265,13 @@ void OpenSandModelConf::createModels()
 	defaults->addParameter("default_spot", "Spot", types->getType("int"));
 	defaults->addParameter("default_group", "Group", types->getType("carrier_group"));
 	auto assignments = st_assignment->addList("assignments", "Additional Assignments", "assigned")->getPattern();
+	assignments->setAdvanced(true);
 	assignments->addParameter("terminal_id", "Terminal ID", types->getType("int"));
 	assignments->addParameter("spot_id", "Spot ID", types->getType("int"));
 	assignments->addParameter("group", "Group", types->getType("carrier_group"));
 
 	auto wave_forms = topology_model->getRoot()->addComponent("wave_forms", "Wave Forms");
+	wave_forms->setReadOnly(true);
 	auto dvb_s2 = wave_forms->addList("dvb_s2", "DVB-S2 Wave Forms", "dvb_s2_waveforms")->getPattern();
 	dvb_s2->addParameter("id", "Wave Form ID", types->getType("int"));
 	dvb_s2->addParameter("modulation", "Modulation", types->getType("modulation"));

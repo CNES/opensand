@@ -165,6 +165,8 @@ BOOST_PYTHON_MODULE(py_opensand_conf)
 		.def("get_path", &MetaElement::getPath)
 		.def("is_advanced", &MetaElement::isAdvanced)
 		.def("set_advanced", &MetaElement::setAdvanced)
+		.def("is_read_only", &MetaElement::isReadOnly)
+		.def("set_read_only", &MetaElement::setReadOnly)
 		.def("get_reference_target", &MetaElement::getReferenceTarget)
 		.def("get_reference_data", &MetaElement::getReferenceData)
 	;

@@ -80,7 +80,8 @@ OpenSANDConf::MetaElement::MetaElement(
 		const std::string &description):
 	OpenSANDConf::NamedElement(id, name, description),
 	parent(parent),
-	advanced(false)
+	advanced(false),
+	readOnly(false)
 {
 	this->reference = std::make_tuple<std::shared_ptr<OpenSANDConf::MetaParameter>, std::shared_ptr<OpenSANDConf::Data>, std::shared_ptr<OpenSANDConf::DataType>>(nullptr, nullptr, nullptr);
 }
@@ -88,7 +89,8 @@ OpenSANDConf::MetaElement::MetaElement(
 OpenSANDConf::MetaElement::MetaElement(const OpenSANDConf::MetaElement &other):
 	OpenSANDConf::NamedElement(other),
 	parent(other.parent),
-	advanced(other.advanced)
+	advanced(other.advanced),
+	readOnly(other.readOnly)
 {
 	// This constructor by copy is used to clone the object.
 	// The reference must be set after the complete copy of the meta model.
@@ -120,6 +122,16 @@ bool OpenSANDConf::MetaElement::isAdvanced() const
 void OpenSANDConf::MetaElement::setAdvanced(bool advanced)
 {
 	this->advanced = advanced;
+}
+
+bool OpenSANDConf::MetaElement::isReadOnly() const
+{
+	return this->readOnly;
+}
+
+void OpenSANDConf::MetaElement::setReadOnly(bool readOnly)
+{
+	this->readOnly = readOnly;
 }
 
 void OpenSANDConf::MetaElement::setReference(std::shared_ptr<OpenSANDConf::MetaParameter> target)
@@ -170,7 +182,8 @@ bool OpenSANDConf::MetaElement::equal(const OpenSANDConf::MetaElement &other) co
 		return false;
 	}
 	return this->parent == other.parent
-		&& this->advanced == other.advanced;
+		&& this->advanced == other.advanced
+		&& this->readOnly == other.readOnly;
 }
 
 bool OpenSANDConf::operator== (const OpenSANDConf::MetaElement &v1, const OpenSANDConf::MetaElement &v2)

@@ -37,6 +37,9 @@ interface Option {
 }
 
 
+const formatWithoutExtension = (filename: string) => filename.replace(/\.[^/.]+$/, '').split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+
+
 const xsdFromType = (entityType?: string) => {
     switch (entityType) {
         case "Gateway":
@@ -50,7 +53,7 @@ const xsdFromType = (entityType?: string) => {
         default:
             return "nothing";
     }
-}
+};
 
 
 const ProjectParameter = (props: Props) => {
@@ -84,7 +87,7 @@ const ProjectParameter = (props: Props) => {
         if (selected == null || selected === "") {
             return header;
         } else {
-            return selected;
+            return formatWithoutExtension(selected);
         }
     }, [header]);
 
@@ -123,14 +126,14 @@ const ProjectParameter = (props: Props) => {
         const offset = offsets[i];
         return [
             <Divider key={offset} />,
-            <ListSubheader key={offset + 1}>From Template {name}</ListSubheader>,
+            <ListSubheader key={offset + 1}>From Template {formatWithoutExtension(name)}</ListSubheader>,
             ...templateNames.map((n: string, j: number) => (
                 <MenuItem
                     // @ts-ignore [1]
                     value={{xsd: name, xml: n}}
                     key={offset + j + 2}
                 >
-                    {n}
+                    {formatWithoutExtension(n)}
                 </MenuItem>
             )),
         ];
@@ -140,6 +143,7 @@ const ProjectParameter = (props: Props) => {
     ].concat(...choiceTemplates);
 
     const disabled = parameter.value != null && parameter.value !== "";
+    const isSatellite = entityType === "Satellite";
     let error: string | undefined = undefined;
     if (disabled) {
         const expectedType = xsdFromType(entityType);
@@ -162,7 +166,7 @@ const ProjectParameter = (props: Props) => {
                     inputProps={{id: parameter.id}}
                     displayEmpty
                     renderValue={renderValue}
-                    disabled={disabled}
+                    disabled={disabled || isSatellite}
                 >
                     {choices}
                 </Select>

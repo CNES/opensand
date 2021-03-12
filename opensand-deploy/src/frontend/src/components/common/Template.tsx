@@ -17,6 +17,12 @@ interface Props {
 }
 
 
+interface ErrorMessage {
+    message?: string;
+    date: Date;
+}
+
+
 const useStyles = makeStyles((theme: Theme) => ({
     header: {
         flex: "0 1 auto",
@@ -37,14 +43,12 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 
 const Template = (props: Props) => {
-    const [error, changeError] = React.useState<string | undefined>(undefined);
-    const [date, changeDate] = React.useState<Date>(new Date());
+    const [error, changeError] = React.useState<ErrorMessage>({date: new Date()});
     const classes = useStyles();
 
     const newError = React.useCallback((message: string) => {
-        changeError(message);
-        changeDate(new Date());
-    }, [changeError, changeDate]);
+        changeError({message, date: new Date()});
+    }, [changeError]);
 
     React.useEffect(() => {
         if (!registerCallback("errorCallback", newError)) {
@@ -60,7 +64,7 @@ const Template = (props: Props) => {
                     <Typography variant="h6" className={classes.expand}>
                         OpenSAND Conf 6.0.0
                     </Typography>
-                    <Logger message={error} date={date} />
+                    <Logger message={error.message} date={error.date} />
                 </Toolbar>
             </AppBar>
             <Paper elevation={0} className={classes.content}>

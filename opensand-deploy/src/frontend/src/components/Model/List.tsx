@@ -26,12 +26,14 @@ import Component from './Component';
 
 interface Props {
     list: ListType;
+    readOnly?: boolean;
     changeModel: () => void;
 }
 
 
 interface RowProps {
     component: ComponentType;
+    isEditable: boolean;
     headers: string[];
     changeModel: () => void;
     onDelete: false | (() => void);
@@ -52,7 +54,7 @@ const useRowStyles = makeStyles({
 
 
 const Row = (props: RowProps) => {
-    const {component, headers, changeModel, onDelete} = props;
+    const {component, isEditable, headers, changeModel, onDelete} = props;
     const [open, setOpen] = React.useState<boolean>(false);
     const classes = useRowStyles();
     const parameters = component.getParameters(false);
@@ -71,17 +73,22 @@ const Row = (props: RowProps) => {
                     </TableCell>
                 ))}
                 <TableCell key={headers.length + 1} align="right">
-                    {onDelete &&
-                    <IconButton size="small" onClick={onDelete}>
-                        <DeleteIcon />
-                    </IconButton>}
+                    {isEditable && onDelete && (
+                        <IconButton size="small" onClick={onDelete}>
+                            <DeleteIcon />
+                        </IconButton>
+                    )}
                 </TableCell>
             </TableRow>
             <TableRow>
                 <TableCell className={classes.reduced} colSpan={headers.length + 2}>
                     <Collapse in={open} timeout="auto" unmountOnExit>
                         <Box margin={1}>
-                            <Component component={component} changeModel={changeModel} />
+                            <Component
+                                component={component}
+                                readOnly={!isEditable}
+                                changeModel={changeModel}
+                            />
                         </Box>
                     </Collapse>
                 </TableCell>
@@ -92,7 +99,7 @@ const Row = (props: RowProps) => {
 
 
 const List = (props: Props) => {
-    const {list, changeModel} = props;
+    const {list, readOnly, changeModel} = props;
     const [, setState] = React.useState<object>({});
 
     const forceUpdate = React.useCallback(() => {
@@ -112,6 +119,7 @@ const List = (props: Props) => {
 
     const count = list.elements.length;
     const headers = list.pattern.getParameters().map(p => p.id);
+    const isEditable = !readOnly && !list.isReadOnly();
 
     return (
         <TableContainer component={Paper}>
@@ -129,9 +137,11 @@ const List = (props: Props) => {
                             </TableCell>
                         ))}
                         <TableCell key={headers.length + 1} align="right">
-                            <IconButton size="small" onClick={addListItem}>
-                                <AddIcon />
-                            </IconButton>
+                            {isEditable && (
+                                <IconButton size="small" onClick={addListItem}>
+                                    <AddIcon />
+                                </IconButton>
+                            )}
                         </TableCell>
                     </TableRow>
                 </TableHead>
@@ -140,6 +150,7 @@ const List = (props: Props) => {
                         <Row
                             key={i}
                             component={c}
+                            isEditable={isEditable}
                             headers={headers}
                             changeModel={forceUpdate}
                             onDelete={i === count - 1 && count > list.minOccurences && removeListItem}

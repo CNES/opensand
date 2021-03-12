@@ -6,6 +6,7 @@ import {parseString as parseXML} from 'xml2js';
 interface Documentation {
     "$": {"xml:lang": string;};
     advanced: string[];
+    "readonly": string[];
     description: string[];
     expected: string[];
     name: string[];
@@ -185,6 +186,7 @@ const componentFromXSD = (component: Model.Component, node: Element[]) => {
                 parameter.refPath = infos.reference.toString()
                 parameter.refValue = infos.expected.toString()
                 parameter.advanced = infos.advanced.toString() === "true";
+                parameter.readOnly = infos.readonly.toString() === "true";
 
                 /*
                 const default = infos.default.toString();
@@ -199,6 +201,7 @@ const componentFromXSD = (component: Model.Component, node: Element[]) => {
                     child.refPath = infos.reference.toString();
                     child.refValue = infos.expected.toString();
                     child.advanced = infos.advanced.toString() === "true";
+                    child.readOnly = infos.readonly.toString() === "true";
 
                     componentFromXSD(child, element);
                 } else if (infos.type.toString() === "list") {
@@ -221,10 +224,12 @@ const componentFromXSD = (component: Model.Component, node: Element[]) => {
                     child.refPath = infos.reference.toString();
                     child.refValue = infos.expected.toString();
                     child.advanced = infos.advanced.toString() === "true";
+                    child.readOnly = infos.readonly.toString() === "true";
 
                     child.pattern.refPath = patternInfos.reference.toString();
                     child.pattern.refValue = patternInfos.expected.toString();
                     child.pattern.advanced = patternInfos.advanced.toString() === "true";
+                    child.pattern.readOnly = patternInfos.readonly.toString() === "true";
 
                     componentFromXSD(child.pattern, pattern["xs:complexType"][0]["xs:sequence"][0]["xs:element"]);
                 } else {

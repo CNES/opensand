@@ -19,6 +19,7 @@ import {Parameter as ParameterType} from '../../xsd/model';
 
 interface Props {
     parameter: ParameterType;
+    readOnly?: boolean;
     changeModel: () => void;
 }
 
@@ -36,7 +37,7 @@ interface EnumProps extends Props {
 
 
 const BooleanParam = (props: Props) => {
-    const {parameter, changeModel} = props;
+    const {parameter, readOnly, changeModel} = props;
     const classes = parameterStyles();
 
     const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,13 +51,18 @@ const BooleanParam = (props: Props) => {
         </Tooltip>
     );
 
+    const checkbox = (
+        <Checkbox
+            checked={parameter.value === "true"}
+            onChange={handleChange}
+            disabled={readOnly}
+        />
+    );
+
     // Need to wrap in a <div> not a <React.Fragment> for the display block
     return (
         <div className={classes.spaced}>
-            <FormControlLabel
-                control={<Checkbox checked={parameter.value === "true"} onChange={handleChange} />}
-                label={parameter.name}
-            />
+            <FormControlLabel control={checkbox} label={parameter.name} />
             {help}
         </div>
     );
@@ -64,7 +70,7 @@ const BooleanParam = (props: Props) => {
 
 
 const NumberParam = (props: NumberProps) => {
-    const {parameter, min, max, step, changeModel} = props;
+    const {parameter, readOnly, min, max, step, changeModel} = props;
     const classes = parameterStyles();
 
     const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,6 +95,7 @@ const NumberParam = (props: NumberProps) => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 fullWidth
+                disabled={readOnly}
                 type="number"
                 InputProps={{
                     endAdornment: <InputAdornment position="end">
@@ -108,7 +115,7 @@ const NumberParam = (props: NumberProps) => {
 
 
 const StringParam = (props: Props) => {
-    const {parameter, changeModel} = props;
+    const {parameter, readOnly, changeModel} = props;
     const classes = parameterStyles();
 
     const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,6 +140,7 @@ const StringParam = (props: Props) => {
                 onChange={handleChange}
                 onBlur={handleBlur}
                 fullWidth
+                disabled={readOnly}
                 InputProps={{
                     endAdornment: <InputAdornment position="end">
                         { parameter.unit }
@@ -150,7 +158,7 @@ const StringParam = (props: Props) => {
 
 
 const EnumParam = (props: EnumProps) => {
-    const {parameter, changeModel, enumeration} = props;
+    const {parameter, readOnly, changeModel, enumeration} = props;
     const classes = parameterStyles();
 
     const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: unknown;}>) => {
@@ -188,6 +196,7 @@ const EnumParam = (props: EnumProps) => {
                     onChange={handleChange}
                     inputProps={{id: parameter.id}}
                     displayEmpty
+                    disabled={readOnly}
                     renderValue={renderValue}
                 >
                     {choices}
@@ -200,23 +209,39 @@ const EnumParam = (props: EnumProps) => {
 
 
 const Parameter = (props: Props) => {
-    const {parameter, changeModel} = props;
+    const {parameter, readOnly, changeModel} = props;
+
+    const isReadOnly = readOnly || parameter.readOnly;
 
     const enumeration = parameter.model.environment.enums.find(e => e.id === parameter.type);
     if (enumeration != null) {
-        return <EnumParam parameter={parameter} enumeration={enumeration.values} changeModel={changeModel} />;
+        return (
+            <EnumParam
+                parameter={parameter}
+                readOnly={isReadOnly}
+                enumeration={enumeration.values}
+                changeModel={changeModel}
+            />
+        );
     }
 
     switch (parameter.type) {
         case "bool":
         case "boolean":
-            return <BooleanParam parameter={parameter} changeModel={changeModel} />;
+            return (
+                <BooleanParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
+                    changeModel={changeModel}
+                />
+            );
         case "longdouble":
         case "double":
         case "float":
             return (
                 <NumberParam
                     parameter={parameter}
+                    readOnly={isReadOnly}
                     min={Number.MIN_SAFE_INTEGER}
                     max={Number.MAX_SAFE_INTEGER}
                     step={0.01}
@@ -227,6 +252,7 @@ const Parameter = (props: Props) => {
             return (
                 <NumberParam
                     parameter={parameter}
+                    readOnly={isReadOnly}
                     min={0}
                     max={255}
                     step={1}
@@ -237,6 +263,7 @@ const Parameter = (props: Props) => {
             return (
                 <NumberParam
                     parameter={parameter}
+                    readOnly={isReadOnly}
                     min={-32768}
                     max={32767}
                     step={1}
@@ -247,6 +274,7 @@ const Parameter = (props: Props) => {
             return (
                 <NumberParam
                     parameter={parameter}
+                    readOnly={isReadOnly}
                     min={-2147483648}
                     max={2147483647}
                     step={1}
@@ -257,6 +285,7 @@ const Parameter = (props: Props) => {
             return (
                 <NumberParam
                     parameter={parameter}
+                    readOnly={isReadOnly}
                     min={Number.MIN_SAFE_INTEGER}
                     max={Number.MAX_SAFE_INTEGER}
                     step={1}
@@ -266,7 +295,13 @@ const Parameter = (props: Props) => {
         case "string":
         case "char":
         default:
-            return <StringParam parameter={parameter} changeModel={changeModel} />;
+            return (
+                <StringParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
+                    changeModel={changeModel}
+                />
+            );
     }
 };
 

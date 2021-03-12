@@ -19,6 +19,7 @@ export class NamedElement extends Named {
     refPath: string;
     refValue: string;
     advanced: boolean;
+    readOnly: boolean;
     model: Model;
 
     constructor(id: string, name: string, description: string, model: Model) {
@@ -27,6 +28,7 @@ export class NamedElement extends Named {
         this.refPath = "";
         this.refValue = "";
         this.advanced = false;
+        this.readOnly = false;
     }
 
     isVisible(): boolean {
@@ -237,9 +239,11 @@ export class Component extends NamedElement {
                     cloned.refPath = e.element.refPath.replace('*', index.toString());
                     cloned.refValue = e.element.refValue;
                     cloned.advanced = e.element.advanced;
+                    cloned.readOnly = e.element.readOnly;
                     cloned.pattern.refPath = e.element.pattern.refPath.replace('*', index.toString());
                     cloned.pattern.refValue = e.element.pattern.refValue;
                     cloned.pattern.advanced = e.element.pattern.advanced;
+                    cloned.pattern.readOnly = e.element.pattern.readOnly;
                     cloned.pattern.clone(e.element.pattern, index);
                     break;
                 }
@@ -248,6 +252,7 @@ export class Component extends NamedElement {
                     cloned.refPath = e.element.refPath.replace('*', index.toString());
                     cloned.refValue = e.element.refValue;
                     cloned.advanced = e.element.advanced;
+                    cloned.readOnly = e.element.readOnly;
                     cloned.clone(e.element, index);
                     break;
                 }
@@ -261,6 +266,7 @@ export class Component extends NamedElement {
                     cloned.refPath = e.element.refPath.replace('*', index.toString());
                     cloned.refValue = e.element.refValue;
                     cloned.advanced = e.element.advanced;
+                    cloned.readOnly = e.element.readOnly;
                     cloned.value = e.element.value;
                     break;
                 }
@@ -299,6 +305,10 @@ export class List extends NamedElement {
         return this.pattern.isVisible();
     }
 
+    isReadOnly = (): boolean => {
+        return this.readOnly || this.pattern.readOnly;
+    };
+
     getPathValueInternal = (path: string[]): string => {
         const [index, ...subPath] = path;
 
@@ -316,6 +326,7 @@ export class List extends NamedElement {
             item.refPath = this.pattern.refPath.replace('*', index.toString());
             item.refValue = this.pattern.refValue;
             item.advanced = this.pattern.advanced;
+            item.readOnly = this.pattern.readOnly;
             item.clone(this.pattern, index);
 
             this.elements.push(item);
