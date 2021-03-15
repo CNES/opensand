@@ -4,6 +4,7 @@ import tarfile
 import tempfile
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 
 from flask import Flask, request, jsonify, send_file
 
@@ -182,6 +183,17 @@ def _set_parameter(component, name, value):
         return False
 
 
+def _get_parameter(component, name, default=None):
+    if component is None:
+        return None
+
+    parameter = component.get_parameter(name)
+    if parameter is None:
+        return None
+
+    return parameter.get_data().get() or default
+
+
 def create_default_infrastructure(meta_model, filepath):
     infra = meta_model.create_data()
     infrastructure = infra.get_root()
@@ -190,21 +202,37 @@ def create_default_infrastructure(meta_model, filepath):
     for log in ('init', 'lan_adaptation', 'encap', 'dvb', 'physical_layer', 'sat_carrier'):
         _set_parameter(_get_component(logs, log), 'level', 'warning')
 
-    _set_parameter(_get_component(infrastructure, 'entity'), 'entity_type', 'Satellite')
+    entity = _get_component(infrastructure, 'entity')
+    _set_parameter(entity, 'entity_type', 'Satellite')
 
-    sarp = _get_component(infrastructure, 'infrastructure')
-    _set_parameter(sarp, 'default_gw', -1)
-    _set_parameter(_get_component(sarp, 'satellite'), 'emu_address', '192.168.0.63')
-    gateway = _create_list_item(sarp, 'gateways')
+    satellite = _get_component(entity, 'entity_sat')
+    _set_parameter(satellite, 'emu_address', '192.168.0.63')
+    _set_parameter(satellite, 'default_gw', -1)
+
+    terminal = _get_component(entity, 'entity_st')
+    _set_parameter(terminal, 'entity_id', 1)
+    _set_parameter(terminal, 'emu_address', '192.168.0.10')
+    _set_parameter(terminal, 'tap_iface', 'opensand_tap')
+    _set_parameter(terminal, 'mac_address', 'FF:FF:FF:00:00:10')
+
+    gateway = _get_component(entity, 'entity_gw')
     _set_parameter(gateway, 'entity_id', 0)
     _set_parameter(gateway, 'emu_address', '192.168.0.1')
     _set_parameter(gateway, 'tap_iface', 'opensand_tap')
     _set_parameter(gateway, 'mac_address', 'FF:FF:FF:00:00:01')
-    terminal = _create_list_item(sarp, 'terminals')
-    _set_parameter(terminal, 'entity_id', 1)
-    _set_parameter(terminal, 'emu_address', '192.168.0.10')
-    _set_parameter(terminal, 'tap_iface', 'opensand_tap')
-    _set_parameter(terminal, 'mac_address', 'FF:FF:FF:00:00:02')
+
+    gateway_net_acc = _get_component(entity, 'entity_gw_net_acc')
+    _set_parameter(gateway_net_acc, 'entity_id', 0)
+    _set_parameter(gateway_net_acc, 'tap_iface', 'opensand_tap')
+    _set_parameter(gateway_net_acc, 'mac_address', 'FF:FF:FF:00:00:01')
+    _set_parameter(gateway_net_acc, 'interconnect_address', '192.168.1.1')
+    _set_parameter(gateway_net_acc, 'interconnect_remote', '192.168.1.2')
+
+    gateway_phy = _get_component(entity, 'entity_gw_phy')
+    _set_parameter(gateway_phy, 'entity_id', 0)
+    _set_parameter(gateway_phy, 'emu_address', '192.168.0.1')
+    _set_parameter(gateway_phy, 'interconnect_address', '192.168.1.2')
+    _set_parameter(gateway_phy, 'interconnect_remote', '192.168.1.1')
 
     py_opensand_conf.toXML(infra, str(filepath))
 
@@ -351,6 +379,173 @@ def create_default_templates(project):
                 create_default_profile(meta_model, template)
 
 
+def create_platform_infrastructure(project):
+    project_xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath('project.xsd').as_posix())
+    if project_xsd is None:
+        return
+
+    project_xml = WWW_FOLDER / project / 'project.xml'
+    project_layout = py_opensand_conf.fromXML(project_xsd, project_xml.as_posix())
+    if project_layout is None:
+        return
+
+    root = project_layout.get_root().get_component('project')
+    if root is None:
+        return
+
+    entities = root.get_list('entities')
+    if entities is None:
+        return
+
+    infrastructure = {
+            'satellite': ('192.168.0.63', -1),
+            'gateways': {},
+            'terminals': {},
+    }
+    for entity_id, _ in enumerate(entities.get_items()):
+        # Can't directly use the items iterated over because of bad cast;
+        # so retrieve them one by one instead to get the proper type.
+        entity = entities.get_item(str(entity_id))
+        name = _get_parameter(entity, 'name')
+        infra = _get_parameter(entity, 'infra')
+        if not name or not infra:
+            continue
+
+        xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath(infra).as_posix())
+        if xsd is None:
+            continue
+        xml = py_opensand_conf.fromXML(xsd, WWW_FOLDER.joinpath(project, 'entities', name, 'infrastructure.xml'))
+        if xml is None:
+            continue
+
+        entity = xml.get_root().get_component('entity')
+        entity_type = _get_parameter(entity, 'entity_type')
+        if entity_type == "Satellite":
+            entity_sat = entity.get_component('entity_sat')
+            emu_address = _get_parameter(entity_sat, 'emu_address', '')
+            default_gw = _get_parameter(entity_sat, 'default_gw', -1)
+            if emu_address is not None and default_gw is not None:
+                infrastructure['satellite'] = (emu_address, default_gw)
+        elif entity_type == "Gateway":
+            entity_gw = entity.get_component('entity_gw')
+            entity_id = _get_parameter(entity_gw, 'entity_id')
+            if entity_id is not None:
+                gateway = {'entity_id': entity_id}
+                gateway['emu_address'] = _get_parameter(entity_gw, 'emu_address')
+                gateway['mac_address'] = _get_parameter(entity_gw, 'mac_address')
+                gateway['ctrl_multicast_address'] = _get_parameter(entity_gw, 'ctrl_multicast_address')
+                gateway['data_multicast_address'] = _get_parameter(entity_gw, 'data_multicast_address')
+                gateway['ctrl_out_port'] = _get_parameter(entity_gw, 'ctrl_out_port')
+                gateway['ctrl_in_port'] = _get_parameter(entity_gw, 'ctrl_in_port')
+                gateway['logon_out_port'] = _get_parameter(entity_gw, 'logon_out_port')
+                gateway['logon_in_port'] = _get_parameter(entity_gw, 'logon_in_port')
+                gateway['data_out_st_port'] = _get_parameter(entity_gw, 'data_out_st_port')
+                gateway['data_in_st_port'] = _get_parameter(entity_gw, 'data_in_st_port')
+                gateway['data_out_gw_port'] = _get_parameter(entity_gw, 'data_out_gw_port')
+                gateway['data_in_gw_port'] = _get_parameter(entity_gw, 'data_in_gw_port')
+                gateway['udp_stack'] = _get_parameter(entity_gw, 'udp_stack')
+                gateway['udp_rmem'] = _get_parameter(entity_gw, 'udp_rmem')
+                gateway['udp_wmem'] = _get_parameter(entity_gw, 'udp_wmem')
+                infrastructure['gateways'][entity_id] = gateway
+        elif entity_type == "Gateway Net Access":
+            entity_gw_net_acc = entity.get_component('entity_gw_net_acc')
+            entity_id = _get_parameter(entity_gw_net_acc, 'entity_id')
+            if entity_id is not None:
+                gateway = infrastructure['gateways'].get(entity_id, {'entity_id': entity_id})
+                gateway['mac_address'] = _get_parameter(entity_gw_net_acc, 'mac_address')
+                infrastructure['gateways'][entity_id] = gateway
+        elif entity_type == "Gateway Phy":
+            entity_gw_phy = entity.get_component('entity_gw_phy')
+            entity_id = _get_parameter(entity_gw_phy, 'entity_id')
+            if entity_id is not None:
+                gateway = infrastructure['gateways'].get(entity_id, {'entity_id': entity_id})
+                gateway['emu_address'] = _get_parameter(entity_gw_phy, 'emu_address')
+                gateway['ctrl_multicast_address'] = _get_parameter(entity_gw_phy, 'ctrl_multicast_address')
+                gateway['data_multicast_address'] = _get_parameter(entity_gw_phy, 'data_multicast_address')
+                gateway['ctrl_out_port'] = _get_parameter(entity_gw_phy, 'ctrl_out_port')
+                gateway['ctrl_in_port'] = _get_parameter(entity_gw_phy, 'ctrl_in_port')
+                gateway['logon_out_port'] = _get_parameter(entity_gw_phy, 'logon_out_port')
+                gateway['logon_in_port'] = _get_parameter(entity_gw_phy, 'logon_in_port')
+                gateway['data_out_st_port'] = _get_parameter(entity_gw_phy, 'data_out_st_port')
+                gateway['data_in_st_port'] = _get_parameter(entity_gw_phy, 'data_in_st_port')
+                gateway['data_out_gw_port'] = _get_parameter(entity_gw_phy, 'data_out_gw_port')
+                gateway['data_in_gw_port'] = _get_parameter(entity_gw_phy, 'data_in_gw_port')
+                gateway['udp_stack'] = _get_parameter(entity_gw_phy, 'udp_stack')
+                gateway['udp_rmem'] = _get_parameter(entity_gw_phy, 'udp_rmem')
+                gateway['udp_wmem'] = _get_parameter(entity_gw_phy, 'udp_wmem')
+                infrastructure['gateways'][entity_id] = gateway
+        elif entity_type == "Terminal":
+            entity_st = entity.get_component('entity_st')
+            entity_id = _get_parameter(entity_st, 'entity_id')
+            if entity_id is not None:
+                terminal = {'entity_id': entity_id}
+                terminal['emu_address'] = _get_parameter(entity_st, 'emu_address')
+                terminal['mac_address'] = _get_parameter(entity_st, 'mac_address')
+                infrastructure['terminals'][entity_id] = terminal
+
+    for entity_id, _ in enumerate(entities.get_items()):
+        # Can't directly use the items iterated over because of bad cast;
+        # so retrieve them one by one instead to get the proper type.
+        entity = entities.get_item(str(entity_id))
+        name = _get_parameter(entity, 'name')
+        infra = _get_parameter(entity, 'infra')
+        if not name or not infra:
+            continue
+
+        xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath(infra).as_posix())
+        if xsd is None:
+            continue
+
+        filepath = WWW_FOLDER.joinpath(project, 'entities', name, 'infrastructure.xml')
+        xml = py_opensand_conf.fromXML(xsd, filepath.as_posix())
+        if xml is None:
+            continue
+
+        infra = xml.get_root().get_component('infrastructure')
+        if infra is None:
+            continue
+
+        satellite = _get_component(infra, 'satellite')
+        emu_address, default_gw = infrastructure['satellite']
+        _set_parameter(satellite, 'emu_address', emu_address)
+        _set_parameter(infra, 'default_gw', default_gw)
+
+        gateways = infra.get_list('gateways')
+        if gateways is not None:
+            gateways.clear_items()
+
+        for gateway in infrastructure['gateways'].values():
+            gw = _create_list_item(infra, 'gateways')
+            _set_parameter(gw, 'entity_id', gateway.get('entity_id'))
+            _set_parameter(gw, 'emu_address', gateway.get('emu_address'))
+            _set_parameter(gw, 'mac_address', gateway.get('mac_address'))
+            _set_parameter(gw, 'ctrl_multicast_address', gateway.get('ctrl_multicast_address'))
+            _set_parameter(gw, 'data_multicast_address', gateway.get('data_multicast_address'))
+            _set_parameter(gw, 'ctrl_out_port', gateway.get('ctrl_out_port'))
+            _set_parameter(gw, 'ctrl_in_port', gateway.get('ctrl_in_port'))
+            _set_parameter(gw, 'logon_out_port', gateway.get('logon_out_port'))
+            _set_parameter(gw, 'logon_in_port', gateway.get('logon_in_port'))
+            _set_parameter(gw, 'data_out_st_port', gateway.get('data_out_st_port'))
+            _set_parameter(gw, 'data_in_st_port', gateway.get('data_in_st_port'))
+            _set_parameter(gw, 'data_out_gw_port', gateway.get('data_out_gw_port'))
+            _set_parameter(gw, 'data_in_gw_port', gateway.get('data_in_gw_port'))
+            _set_parameter(gw, 'udp_stack', gateway.get('udp_stack'))
+            _set_parameter(gw, 'udp_rmem', gateway.get('udp_rmem'))
+            _set_parameter(gw, 'udp_wmem', gateway.get('udp_wmem'))
+
+        terminals = infra.get_list('terminals')
+        if terminals is not None:
+            terminals.clear_items()
+
+        for terminal in infrastructure['terminals'].values():
+            st = _create_list_item(infra, 'terminals')
+            _set_parameter(st, 'entity_id', terminal.get('entity_id'))
+            _set_parameter(st, 'emu_address', terminal.get('emu_address'))
+            _set_parameter(st, 'mac_address', terminal.get('mac_address'))
+
+        py_opensand_conf.toXML(xml, filepath.as_posix())
+
+
 @app.route('/api/project/<string:name>/template/<string:xsd>/<string:filename>', methods=['GET'])
 def get_project_template(name, xsd, filename):
     xsd = normalize_xsd_folder(xsd)
@@ -418,7 +613,9 @@ def get_project_infrastructure(name, entity):
 @app.route('/api/project/<string:name>/infrastructure/<string:entity>', methods=['PUT'])
 def write_project_infrastructure(name, entity):
     content = request.json['xml_data']
-    return write_file_content(name + '/entities/' + entity + '/infrastructure.xml', content)
+    response = write_file_content(name + '/entities/' + entity + '/infrastructure.xml', content)
+    create_platform_infrastructure(name)
+    return response
 
 
 @app.route('/api/project/<string:name>/infrastructure/<string:entity>', methods=['DELETE'])

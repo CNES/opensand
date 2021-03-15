@@ -86,7 +86,7 @@ std::shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataList::addItem()
 
 	// Get pattern references
 	std::queue<std::shared_ptr<DataElement>> queue;
-  std::vector<std::shared_ptr<DataElement>> referenced;
+	std::vector<std::shared_ptr<DataElement>> referenced;
 	queue.push(this->pattern);
 	while(!queue.empty())
 	{
@@ -148,6 +148,11 @@ std::shared_ptr<OpenSANDConf::DataComponent> OpenSANDConf::DataList::addItem()
 
 	this->OpenSANDConf::DataContainer::addItem(item);
 	return item;
+}
+
+void OpenSANDConf::DataList::clearItems()
+{
+	this->OpenSANDConf::DataContainer::clearItems();
 }
 
 std::shared_ptr<OpenSANDConf::DataElement> OpenSANDConf::DataList::clone(std::shared_ptr<DataTypesList> types) const

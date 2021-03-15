@@ -87,7 +87,7 @@ const ProjectParameter = (props: Props) => {
         if (selected == null || selected === "") {
             return header;
         } else {
-            return formatWithoutExtension(selected);
+            return formatWithoutExtension(selected) + " selected";
         }
     }, [header]);
 

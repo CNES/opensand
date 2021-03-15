@@ -151,6 +151,11 @@ class DataContainer: public DataElement
 	 */
 	void addItem(std::shared_ptr<DataElement> item);
 
+	/**
+	 * @brief Clear the container from its items.
+	 */
+	void clearItems();
+
  private:
 	std::vector<std::shared_ptr<DataElement>> items;
 };

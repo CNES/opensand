@@ -96,7 +96,7 @@ const SingleListComponent = (props: Props) => {
             </List>
             <div className={classes.rightPanel}>
                 {list.elements.map((c: ComponentType, i: number) => (
-                    <Collapse in={open === i} timeout="auto" unmountOnExit>
+                    <Collapse key={i} in={open === i} timeout="auto" unmountOnExit>
                         <Component component={c} readOnly={!isEditable} changeModel={changeModel} />
                     </Collapse>
                 ))}

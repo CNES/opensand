@@ -44,106 +44,113 @@
 
 namespace OpenSANDConf
 {
-	class DataComponent;
 
-	class DataList: public DataContainer
-	{
-	public:
-		friend class MetaList;
-		friend class DataModel;
-		friend class DataElement;
+class DataComponent;
 
-		using DataContainer::getItems;
-		using DataContainer::getItem;
+class DataList: public DataContainer
+{
+ public:
+	friend class MetaList;
+	friend class DataModel;
+	friend class DataElement;
 
-		/**
-		 * @brief Destructor.
-		 */
-		virtual ~DataList();
+	using DataContainer::getItems;
+	using DataContainer::getItem;
 
-		/**
-		* @brief Add an item to the list.
-		*
-		* @return  The newly added item
-		*/
-    std::shared_ptr<DataComponent> addItem();
+	/**
+	 * @brief Destructor.
+	 */
+	virtual ~DataList();
 
-	protected:
-		/**
-		 * @brief Constructor.
-		 *
-		 * @param  id           The identifier
-		 * @param  parent       The parent path
-		 * @param  pattern      The pattern
-		 * @param  types  The types list
-		 */
-		DataList(const std::string &id, const std::string &parent, std::shared_ptr<DataComponent> pattern, std::shared_ptr<DataTypesList> types);
+	/**
+	 * @brief Add an item to the list.
+	 *
+	 * @return  The newly added item
+	 */
+	std::shared_ptr<DataComponent> addItem();
 
-		/**
-		 * @brief Constructor by copy (cloning).
-		 *
-		 * @param  other  The object to copy
-		 * @param  types  The types list
-		 */
-		DataList(const DataList &other, std::shared_ptr<DataTypesList> types);
-		/**
-		 * @brief Constructor by copy (duplication.
-		 *
-		 * @param  id      The identifier
-		 * @param  parent  The parent path
-		 * @param  other   The object to copy
-		 */
-		DataList(const std::string &id, const std::string &parent, const DataList &other);
+	/**
+	 * @brief Clear the list from its items.
+	 */
+	void clearItems();
 
-		/**
-		 * @brief Clone the current object.
-		 *
-		 * @param  types  The types list
-		 *
-		 * @return The cloned object
-		 */
-		virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const override;
+ protected:
+	/**
+	 * @brief Constructor.
+	 *
+	 * @param  id           The identifier
+	 * @param  parent       The parent path
+	 * @param  pattern      The pattern
+	 * @param  types  The types list
+	 */
+	DataList(const std::string &id, const std::string &parent, std::shared_ptr<DataComponent> pattern, std::shared_ptr<DataTypesList> types);
 
-		/**
-		 * @brief Duplicate the current object.
-		 *
-		 * @param  id      The new identifier
-		 * @param  parent  The parent path
-		 *
-		 * @return The duplicated object
-		 */
-		virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const override;
+	/**
+	 * @brief Constructor by copy (cloning).
+	 *
+	 * @param  other  The object to copy
+	 * @param  types  The types list
+	 */
+	DataList(const DataList &other, std::shared_ptr<DataTypesList> types);
+	/**
+	 * @brief Constructor by copy (duplication.
+	 *
+	 * @param  id      The identifier
+	 * @param  parent  The parent path
+	 * @param  other   The object to copy
+	 */
+	DataList(const std::string &id, const std::string &parent, const DataList &other);
 
-		/**
-		 * @brief Duplicate the reference to another object.
-		 *
-		 * @param  copy  The object to set a copy of the reference
-		 *
-		 * @return True on success, false otherwise
-		 */
-		virtual bool duplicateReference(std::shared_ptr<DataElement> copy) const override;
+	/**
+	 * @brief Clone the current object.
+	 *
+	 * @param  types  The types list
+	 *
+	 * @return The cloned object
+	 */
+	virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const override;
 
-		/**
-		* @brief Get the list's pattern.
-		*
-		* @return  The list's pattern
-		*/
-    std::shared_ptr<DataComponent> getPattern() const;
+	/**
+	 * @brief Duplicate the current object.
+	 *
+	 * @param  id      The new identifier
+	 * @param  parent  The parent path
+	 *
+	 * @return The duplicated object
+	 */
+	virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const override;
 
-	public:
-		/**
-		 * @brief Compare to another element
-		 *
-		 * @param  other  Element to compare to
-		 *
-		 * @return  True if elements are equals, false otherwise
-		 */
-		virtual bool equal(const DataElement &other) const override;
+	/**
+	 * @brief Duplicate the reference to another object.
+	 *
+	 * @param  copy  The object to set a copy of the reference
+	 *
+	 * @return True on success, false otherwise
+	 */
+	virtual bool duplicateReference(std::shared_ptr<DataElement> copy) const override;
 
-	private:
-    std::shared_ptr<DataComponent> pattern;
-    std::shared_ptr<DataTypesList> types;
-	};
+	/**
+	* @brief Get the list's pattern.
+	*
+	* @return  The list's pattern
+	*/
+	std::shared_ptr<DataComponent> getPattern() const;
+
+ public:
+	/**
+	 * @brief Compare to another element
+	 *
+	 * @param  other  Element to compare to
+	 *
+	 * @return  True if elements are equals, false otherwise
+	 */
+	virtual bool equal(const DataElement &other) const override;
+
+ private:
+	std::shared_ptr<DataComponent> pattern;
+	std::shared_ptr<DataTypesList> types;
+};
+
 }
 
 #endif // OPENSAND_CONF_DATA_LIST_H

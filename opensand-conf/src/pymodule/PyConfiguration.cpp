@@ -296,6 +296,7 @@ BOOST_PYTHON_MODULE(py_opensand_conf)
 		.def("get_items", &DataList::getItems, python::return_value_policy<python::return_by_value>())
 		.def("get_item", &DataList::getItem)
 		.def("add_item", &DataList::addItem)
+		.def("clear_items", &DataList::clearItems)
 	;
 
 	python::class_<DataComponent, shared_ptr<DataComponent>, python::bases<DataElement>, boost::noncopyable>("DataComponent", python::no_init)

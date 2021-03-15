@@ -127,6 +127,11 @@ void OpenSANDConf::DataContainer::addItem(std::shared_ptr<OpenSANDConf::DataElem
 	this->items.push_back(item);
 }
 
+void OpenSANDConf::DataContainer::clearItems()
+{
+	this->items.clear();
+}
+
 bool OpenSANDConf::DataContainer::equal(const OpenSANDConf::DataElement &other) const
 {
 	const OpenSANDConf::DataContainer *cont = dynamic_cast<const OpenSANDConf::DataContainer *>(&other);
