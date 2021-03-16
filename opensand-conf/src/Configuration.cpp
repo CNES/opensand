@@ -38,6 +38,8 @@
 #include <libxml/parser.h>
 
 #include <cstdio>
+#include <locale>
+#include <codecvt>
 
 #include <vector>
 #include <tuple>
@@ -430,18 +432,46 @@ xmlNodePtr getUniqueChildNodeWithAttribute(xmlNodePtr &node,
 
 std::string getAttribute(xmlNodePtr &node, const std::string &name)
 {
-	auto tmp = (char *)xmlGetProp(node, BAD_CAST name.c_str());
-	std::string attribute(tmp);
-	xmlFree(tmp);
-	return attribute;
+	auto tmp = xmlGetProp(node, BAD_CAST name.c_str());
+	if(tmp != nullptr)
+	{
+		try
+		{
+			std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> conv;
+			std::wstring wcontent = conv.from_bytes((const char *)tmp);
+			std::string content = conv.to_bytes(wcontent);
+			xmlFree(tmp);
+			return content;
+		}
+		catch(const std::range_error& e)
+		{
+			xmlFree(tmp);
+		}
+	}
+
+	return "";
 }
 
 std::string getNodeContent(xmlNodePtr &node)
 {
-	auto tmp = (char *)xmlNodeGetContent(node);
-	std::string content(tmp);
-	xmlFree(tmp);
-	return content;
+	auto tmp = xmlNodeGetContent(node);
+	if(tmp != nullptr)
+	{
+		try
+		{
+			std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> conv;
+			std::wstring wcontent = conv.from_bytes((const char *)tmp);
+			std::string content = conv.to_bytes(wcontent);
+			xmlFree(tmp);
+			return content;
+		}
+		catch(const std::range_error& e)
+		{
+			xmlFree(tmp);
+		}
+	}
+
+	return "";
 }
 
 //================================================================
@@ -1064,7 +1094,11 @@ xmlNodePtr componentToXML(std::shared_ptr<OpenSANDConf::DataComponent> element)
 			node = nullptr;
 			break;
 		}
-		xmlAddChild(node, eltnode);
+		auto content = getNodeContent(eltnode);
+		if(content.size() || std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(elt) == nullptr)
+		{
+			xmlAddChild(node, eltnode);
+		}
 	}
 
 	return node;
@@ -1088,8 +1122,12 @@ xmlNodePtr listToXML(std::shared_ptr<OpenSANDConf::DataList> element)
 			xmlFreeNode(node);
 			return nullptr;
 		}
-		xmlNodeSetName(itemnode, BAD_CAST "item");
-		xmlAddChild(node, itemnode);
+		auto content = getNodeContent(itemnode);
+		if(content.size() || std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(item) == nullptr)
+		{
+			xmlNodeSetName(itemnode, BAD_CAST "item");
+			xmlAddChild(node, itemnode);
+		}
 	}
 
 	return node;
@@ -1097,17 +1135,15 @@ xmlNodePtr listToXML(std::shared_ptr<OpenSANDConf::DataList> element)
 
 xmlNodePtr parameterToXML(std::shared_ptr<OpenSANDConf::DataParameter> element)
 {
-	auto data = element->getData();
-	if (!data->isSet())
-	{
-		return nullptr;
-	}
-
 	// Create node
 	auto node = xmlNewNode(nullptr, BAD_CAST element->getId().c_str());
 
 	// Set value
-	xmlNodeSetContent(node, BAD_CAST data->toString().c_str());
+	auto data = element->getData();
+	if (data->isSet())
+	{
+		xmlNodeSetContent(node, BAD_CAST data->toString().c_str());
+	}
 
 	return node;
 }
@@ -1152,7 +1188,11 @@ xmlNodePtr rootToXML(std::shared_ptr<OpenSANDConf::DataComponent> element)
 			node = nullptr;
 			break;
 		}
-		xmlAddChild(node, eltnode);
+		auto content = getNodeContent(eltnode);
+		if(content.size() || std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(elt) == nullptr)
+		{
+			xmlAddChild(node, eltnode);
+		}
 	}
 
 	return node;
