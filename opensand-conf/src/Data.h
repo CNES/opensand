@@ -40,110 +40,112 @@
 
 namespace OpenSANDConf
 {
-	class DataTypesList;
-	class DataType;
+
+class DataTypesList;
+class DataType;
+
+/**
+ * @brief Generic data
+ */
+class Data
+{
+ public:
+	friend class DataElement;
+	friend class DataParameter;
+	friend class DataList;
+	friend class DataModel;
+	friend class MetaModel;
 
 	/**
-	 * @brief Generic data
+	 * @brief Destructor.
 	 */
-	class Data
-	{
-	public:
-		friend class DataElement;
-		friend class DataParameter;
-		friend class DataList;
-		friend class DataModel;
-		friend class MetaModel;
+	virtual ~Data();
 
-		/**
-		 * @brief Destructor.
-		 */
-		virtual ~Data();
+	/**
+	 * @brief Check if data is set.
+	 *
+	 * @return  True if data is set, false otherwise
+	 */
+	virtual bool isSet() const;
 
-		/**
-		 * @brief Check if data is set.
-		 *
-		 * @return  True if data is set, false otherwise
-		 */
-		virtual bool isSet() const;
+	/**
+	 * @brief Reset data.
+	 */
+	virtual void reset();
 
-		/**
-		 * @brief Reset data.
-		 */
-		virtual void reset();
+	/**
+	 * @brief Get the data value as string.
+	 *
+	 * @return  Data value as string
+	 */
+	virtual std::string toString() const = 0;
 
-		/**
-		 * @brief Get the data value as string.
-		 *
-		 * @return  Data value as string
-		 */
-		virtual std::string toString() const = 0;
+	/**
+	 * @brief Set the data value from string.
+	 *
+	 * @param  val  Data value as string
+	 *
+	 * @return  True on success, False otherwise
+	 */
+	virtual bool fromString(std::string val) = 0;
 
-		/**
-		 * @brief Set the data value from string.
-		 *
-		 * @param  val  Data value as string
-		 *
-		 * @return  True on success, False otherwise
-		 */
-		virtual bool fromString(std::string val) = 0;
+	/**
+	 * @brief Compare to another element
+	 *
+	 * @param  other  Element to compare to
+	 *
+	 * @return  True if elements are equals, false otherwise
+	 */
+	virtual bool equal(const Data &other) const;
 
-		/**
-		 * @brief Compare to another element
-		 *
-		 * @param  other  Element to compare to
-		 *
-		 * @return  True if elements are equals, false otherwise
-		 */
-		virtual bool equal(const Data &other) const;
+	friend bool operator== (const Data &v1, const Data &v2);
+	friend bool operator!= (const Data &v1, const Data &v2);
 
-		friend bool operator== (const Data &v1, const Data &v2);
-		friend bool operator!= (const Data &v1, const Data &v2);
+ protected:
+	/**
+	 * @brief Constructor.
+	 */
+	Data();
 
-	protected:
-		/**
-		 * @brief Constructor.
-		 */
-		Data();
+	/**
+	 * @brief Clone the current object.
+	 *
+	 * @param  types  The new types list
+	 *
+	 * @return New object
+	 */
+	virtual std::shared_ptr<Data> clone(std::shared_ptr<DataTypesList> types) const = 0;
 
-		/**
-		 * @brief Clone the current object.
-		 *
-		 * @param  types  The new types list
-		 *
-		 * @return New object
-		 */
-		virtual std::shared_ptr<Data> clone(std::shared_ptr<DataTypesList> types) const = 0;
+	/**
+	 * @brief Duplicate the current object.
+	 *
+	 * @return New object
+	 */
+	virtual std::shared_ptr<Data> duplicate() const = 0;
 
-		/**
-		 * @brief Duplicate the current object.
-		 *
-		 * @return New object
-		 */
-		virtual std::shared_ptr<Data> duplicate() const = 0;
+	/**
+	 * @brief Get the data type.
+	 *
+	 * @return The type
+	 */
+	virtual std::shared_ptr<const DataType> getType() const = 0;
 
-		/**
-		 * @brief Get the data type.
-		 *
-		 * @return The type
-		 */
-		virtual std::shared_ptr<const DataType> getType() const = 0;
+	/**
+	 * @brief Copy the data value.
+	 *
+	 * @param  data  The data to copy
+	 *
+	 * @return True on success, false otherwise
+	 */
+	virtual bool copy(std::shared_ptr<Data> data) = 0;
 
-		/**
-		 * @brief Copy the data value.
-		 *
-		 * @param  data  The data to copy
-		 *
-		 * @return True on success, false otherwise
-		 */
-		virtual bool copy(std::shared_ptr<Data> data) = 0;
+ protected:
+	bool is_set;
+};
 
-	protected:
-		bool is_set;
-	};
+bool operator== (const Data &v1, const Data &v2);
+bool operator!= (const Data &v1, const Data &v2);
 
-	bool operator== (const Data &v1, const Data &v2);
-	bool operator!= (const Data &v1, const Data &v2);
 }
 
 #endif // OPENSAND_CONF_DATA_H

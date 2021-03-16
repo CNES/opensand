@@ -407,7 +407,7 @@ def create_platform_infrastructure(project):
         # so retrieve them one by one instead to get the proper type.
         entity = entities.get_item(str(entity_id))
         name = _get_parameter(entity, 'name')
-        infra = _get_parameter(entity, 'infra')
+        infra = _get_parameter(entity, 'infrastructure')
         if not name or not infra:
             continue
 
@@ -488,7 +488,7 @@ def create_platform_infrastructure(project):
         # so retrieve them one by one instead to get the proper type.
         entity = entities.get_item(str(entity_id))
         name = _get_parameter(entity, 'name')
-        infra = _get_parameter(entity, 'infra')
+        infra = _get_parameter(entity, 'infrastructure')
         if not name or not infra:
             continue
 

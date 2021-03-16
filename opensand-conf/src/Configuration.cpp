@@ -1097,13 +1097,17 @@ xmlNodePtr listToXML(std::shared_ptr<OpenSANDConf::DataList> element)
 
 xmlNodePtr parameterToXML(std::shared_ptr<OpenSANDConf::DataParameter> element)
 {
-	std::vector<xmlNodePtr> childnodes;
+	auto data = element->getData();
+	if (!data->isSet())
+	{
+		return nullptr;
+	}
 
 	// Create node
 	auto node = xmlNewNode(nullptr, BAD_CAST element->getId().c_str());
 
 	// Set value
-	xmlNodeSetContent(node, BAD_CAST element->getData()->toString().c_str());
+	xmlNodeSetContent(node, BAD_CAST data->toString().c_str());
 
 	return node;
 }

@@ -45,102 +45,104 @@
 
 namespace OpenSANDConf
 {
-	class DataParameter;
+
+class DataParameter;
+
+/**
+ * @brief Represents a datamodel parameter
+ */
+class DataParameter: public DataElement, public std::enable_shared_from_this<DataParameter>
+{
+ public:
+	friend class MetaParameter;
+	friend class DataElement;
 
 	/**
-	 * @brief Represents a datamodel parameter
+	 * Destructor.
 	 */
-	class DataParameter: public DataElement, public std::enable_shared_from_this<DataParameter>
-	{
-	public:
-		friend class MetaParameter;
-		friend class DataElement;
+	virtual ~DataParameter();
 
-		/**
-		 * Destructor.
-		 */
-		virtual ~DataParameter();
+	/**
+	* @brief Get the parameter data.
+	*
+	* @return  The parameter's data
+	*/
+	std::shared_ptr<Data> getData() const;
 
-		/**
-		* @brief Get the parameter data.
-		*
-		* @return  The parameter's data
-		*/
-    std::shared_ptr<Data> getData() const;
+ protected:
+	/**
+	 * @brief Constructor.
+	 *
+	 * @param  id      The identifier
+	 * @param  parent  The parent path
+	 * @param  data    The data
+	 */
+	DataParameter(const std::string &id, const std::string &parent, std::shared_ptr<Data> data);
 
-	protected:
-		/**
-		 * @brief Constructor.
-		 *
-		 * @param  id      The identifier
-		 * @param  parent  The parent path
-		 * @param  data    The data
-		 */
-		DataParameter(const std::string &id, const std::string &parent, std::shared_ptr<Data> data);
+	/**
+	 * @brief Constructor by copy (cloning).
+	 *
+	 * @param  other  The object to copy
+	 * @param  types  The types list
+	 */
+	DataParameter(const DataParameter &other, std::shared_ptr<DataTypesList> types);
 
-		/**
-		 * @brief Constructor by copy (cloning).
-		 *
-		 * @param  other  The object to copy
-		 * @param  types  The types list
-		 */
-		DataParameter(const DataParameter &other, std::shared_ptr<DataTypesList> types);
+	/**
+	 * @brief Constructor by copy (duplication).
+	 *
+	 * @param  id      The identifier
+	 * @param  parent  The parent path
+	 * @param  other   The object to copy
+	 */
+	DataParameter(const std::string &id, const std::string &parent, const DataParameter &other);
 
-		/**
-		 * @brief Constructor by copy (duplication).
-		 *
-		 * @param  id      The identifier
-		 * @param  parent  The parent path
-		 * @param  other   The object to copy
-		 */
-		DataParameter(const std::string &id, const std::string &parent, const DataParameter &other);
+	/**
+	 * @brief Clone the current object.
+	 *
+	 * @param  types  The types list
+	 *
+	 * @return The cloned object
+	 */
+	virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const override;
 
-		/**
-		 * @brief Clone the current object.
-		 *
-		 * @param  types  The types list
-		 *
-		 * @return The cloned object
-		 */
-		virtual std::shared_ptr<DataElement> clone(std::shared_ptr<DataTypesList> types) const override;
+	/**
+	 * @brief Duplicate the current object.
+	 *
+	 * @param  id      The new identifier
+	 * @param  parent  The parent path
+	 *
+	 * @return The duplicated object
+	 */
+	virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const override;
 
-		/**
-		 * @brief Duplicate the current object.
-		 *
-		 * @param  id      The new identifier
-		 * @param  parent  The parent path
-		 *
-		 * @return The duplicated object
-		 */
-		virtual std::shared_ptr<DataElement> duplicateObject(const std::string &id, const std::string &parent) const override;
+	/**
+	 * @brief Create a reference to the current object.
+	 *
+	 * @return Reference
+	 */
+	std::tuple<std::shared_ptr<const DataParameter>, std::shared_ptr<Data>> createReference() const;
 
-		/**
-		 * @brief Create a reference to the current object.
-		 *
-		 * @return Reference
-		 */
-		std::tuple<std::shared_ptr<const DataParameter>, std::shared_ptr<Data>> createReference() const;
+	/**
+	 * @brief Validate the data element.
+	 *
+	 * @return  True if the data element is valid, false otherwise
+	 */
+	virtual bool validate() const override;
 
-		/**
-		 * @brief Validate the data element.
-		 *
-		 * @return  True if the data element is valid, false otherwise
-		 */
-		virtual bool validate() const override;
+ public:
+	/**
+	 * @brief Compare to another element
+	 *
+	 * @param  other  Element to compare to
+	 *
+	 * @return  True if elements are equals, false otherwise
+	 */
+	virtual bool equal(const DataElement &other) const override;
 
-	public:
-		/**
-		 * @brief Compare to another element
-		 *
-		 * @param  other  Element to compare to
-		 *
-		 * @return  True if elements are equals, false otherwise
-		 */
-		virtual bool equal(const DataElement &other) const override;
+ private:
+	std::shared_ptr<Data> data;
+};
 
-	private:
-    std::shared_ptr<Data> data;
-	};
 }
 
 #endif // OPENSAND_CONF_DATA_PARAMETER_H
