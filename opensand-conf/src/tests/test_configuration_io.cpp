@@ -77,7 +77,7 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 	REQUIRE(cpt5->addParameter("e6", "Enum parameter (level 6)", types->getType("enum1")) != nullptr);
 	REQUIRE(cpt5->addParameter("s6", "String parameter (level 6)", types->getType("string")) != nullptr);
 
-  std::shared_ptr<DataParameter> p;
+	std::shared_ptr<DataParameter> p;
 	auto datamodel = model->createData();
 	REQUIRE(datamodel != nullptr);
 	auto dataroot = datamodel->getRoot();
@@ -156,8 +156,8 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 
 	SECTION("Read/Write model")
 	{
-    std::string path = "my_model.xsd";
-    std::string path2 = "my_model2.xsd";
+		std::string path = "my_model.xsd";
+		std::string path2 = "my_model2.xsd";
 		remove(path.c_str());
 		remove(path2.c_str());
 
@@ -177,8 +177,8 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 
 	SECTION("Read/Write model with reference")
 	{
-    std::string path = "my_model_ref.xsd";
-    std::string path2 = "my_model_ref2.xsd";
+		std::string path = "my_model_ref.xsd";
+		std::string path2 = "my_model_ref2.xsd";
 		remove(path.c_str());
 		remove(path2.c_str());
 
@@ -222,15 +222,15 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 
 	SECTION("Read/Write data model")
 	{
-    std::string path = "my_datamodel.xml";
-    std::string path2 = "my_datamodel2.xml";
+		std::string path = "my_datamodel.xml";
+		std::string path2 = "my_datamodel2.xml";
 		remove(path.c_str());
 		remove(path2.c_str());
 
 		// Test writing datamodel to XML
 		REQUIRE(toXML(datamodel, path) == true);
 
-		// Test reading dtamodel from XML
+		// Test reading datamodel from XML
 		auto datamodel2 = fromXML(model, path);
 		REQUIRE(datamodel2 != nullptr);
 		REQUIRE(toXML(datamodel2, path2) == true);
@@ -243,7 +243,7 @@ TEST_CASE("Model read/write from/to file", "[Model][Read/Write]")
 std::string readFile(const std::string &filepath)
 {
 	std::ifstream ifs(filepath);
-  std::string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+	std::string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
 	return content;
 }
 

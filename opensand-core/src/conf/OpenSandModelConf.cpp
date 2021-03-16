@@ -87,42 +87,6 @@ void OpenSandModelConf::createModels()
 	types->addEnumType("log_level", "Log Level", {"debug", "info", "notice", "warning", "error", "critical"});
 	types->addEnumType("entity_type", "Entity Type", {"Gateway", "Gateway Net Access", "Gateway Phy", "Satellite", "Terminal"});
 
-	auto log_levels = infrastructure_model->getRoot()->addComponent("logs", "Logs");
-	log_levels->addComponent("init", "init")->addParameter("level", "Log Level", types->getType("log_level"));
-	log_levels->addComponent("lan_adaptation", "lan_adaptation")->addParameter("level", "Log Level", types->getType("log_level"));
-	log_levels->addComponent("encap", "encap")->addParameter("level", "Log Level", types->getType("log_level"));
-	log_levels->addComponent("dvb", "dvb")->addParameter("level", "Log Level", types->getType("log_level"));
-	log_levels->addComponent("physical_layer", "physical_layer")->addParameter("level", "Log Level", types->getType("log_level"));
-	log_levels->addComponent("sat_carrier", "sat_carrier")->addParameter("level", "Log Level", types->getType("log_level"));
-	auto extra_logs = log_levels->addList("extra_levels", "Levels", "levels")->getPattern();
-	extra_logs->addParameter("name", "Log Name", types->getType("string"));
-	extra_logs->addParameter("level", "Log Level", types->getType("log_level"));
-
-	auto storage = infrastructure_model->getRoot()->addComponent("storage", "Storage");
-	auto local_storage = storage->addParameter("enable_local", "Enable Storage to Local Filesystem", types->getType("bool"));
-	auto path_storage = storage->addParameter("path_local", "Folder for Storage", types->getType("string"));
-	infrastructure_model->setReference(path_storage, local_storage);
-	auto expected = std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(path_storage->getReferenceData());
-	expected->set(true);
-
-	auto collector_storage = storage->addParameter("enable_collector", "Enable Storage to OpenSAND Collector", types->getType("bool"));
-	auto collector_address = storage->addParameter("collector_address", "IP address of the Collector", types->getType("string"));
-	infrastructure_model->setReference(collector_address, collector_storage);
-	expected = std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(collector_address->getReferenceData());
-	expected->set(true);
-
-	auto collector_logs = storage->addParameter("collector_logs", "Port of the Collector Listening for Logs", types->getType("int"));
-	infrastructure_model->setReference(collector_logs, collector_storage);
-	expected = std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(collector_logs->getReferenceData());
-	expected->set(true);
-	collector_logs->setAdvanced(true);
-
-	auto collector_probes = storage->addParameter("collector_probes", "Port of the Collector Listening for Probes", types->getType("int"));
-	infrastructure_model->setReference(collector_probes, collector_storage);
-	expected = std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(collector_probes->getReferenceData());
-	expected->set(true);
-	collector_probes->setAdvanced(true);
-
 	auto entity = infrastructure_model->getRoot()->addComponent("entity", "Emulated Entity");
 	auto entity_type = entity->addParameter("entity_type", "Entity Type", types->getType("entity_type"));
 
@@ -234,6 +198,42 @@ void OpenSandModelConf::createModels()
 	terminal->addParameter("mac_address", "MAC Address", types->getType("string"), "MAC address this satellite terminal routes traffic to");
 	terminal->addParameter("qos_server_host", "QoS server Host Agent", types->getType("string"))->setAdvanced(true);
 	terminal->addParameter("qos_server_port", "QoS server Host Port", types->getType("int"))->setAdvanced(true);
+
+	auto log_levels = infrastructure_model->getRoot()->addComponent("logs", "Logs");
+	log_levels->addComponent("init", "init")->addParameter("level", "Log Level", types->getType("log_level"));
+	log_levels->addComponent("lan_adaptation", "lan_adaptation")->addParameter("level", "Log Level", types->getType("log_level"));
+	log_levels->addComponent("encap", "encap")->addParameter("level", "Log Level", types->getType("log_level"));
+	log_levels->addComponent("dvb", "dvb")->addParameter("level", "Log Level", types->getType("log_level"));
+	log_levels->addComponent("physical_layer", "physical_layer")->addParameter("level", "Log Level", types->getType("log_level"));
+	log_levels->addComponent("sat_carrier", "sat_carrier")->addParameter("level", "Log Level", types->getType("log_level"));
+	auto extra_logs = log_levels->addList("extra_levels", "Levels", "levels")->getPattern();
+	extra_logs->addParameter("name", "Log Name", types->getType("string"));
+	extra_logs->addParameter("level", "Log Level", types->getType("log_level"));
+
+	auto storage = infrastructure_model->getRoot()->addComponent("storage", "Storage");
+	auto local_storage = storage->addParameter("enable_local", "Enable Storage to Local Filesystem", types->getType("bool"));
+	auto path_storage = storage->addParameter("path_local", "Folder for Storage", types->getType("string"));
+	infrastructure_model->setReference(path_storage, local_storage);
+	auto expected = std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(path_storage->getReferenceData());
+	expected->set(true);
+
+	auto collector_storage = storage->addParameter("enable_collector", "Enable Storage to OpenSAND Collector", types->getType("bool"));
+	auto collector_address = storage->addParameter("collector_address", "IP address of the Collector", types->getType("string"));
+	infrastructure_model->setReference(collector_address, collector_storage);
+	expected = std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(collector_address->getReferenceData());
+	expected->set(true);
+
+	auto collector_logs = storage->addParameter("collector_logs", "Port of the Collector Listening for Logs", types->getType("int"));
+	infrastructure_model->setReference(collector_logs, collector_storage);
+	expected = std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(collector_logs->getReferenceData());
+	expected->set(true);
+	collector_logs->setAdvanced(true);
+
+	auto collector_probes = storage->addParameter("collector_probes", "Port of the Collector Listening for Probes", types->getType("int"));
+	infrastructure_model->setReference(collector_probes, collector_storage);
+	expected = std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(collector_probes->getReferenceData());
+	expected->set(true);
+	collector_probes->setAdvanced(true);
 
 	auto infra = infrastructure_model->getRoot()->addComponent("infrastructure", "Infrastructure");
 	infra->setAdvanced(true);
