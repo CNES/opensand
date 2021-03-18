@@ -54,14 +54,17 @@
 #include <opensand_rt/Rt.h>
 
 
+constexpr char OPENSAND_VERSION[] = "6.0.0";
+
+
 void usage(std::ostream &stream, const std::string &progname)
 {
-	stream << progname << " [-h] (-i infrastructure_path -t topology_path [-p profile_path] | -g configuration_folder)" << std::endl;
+	stream << progname << " [-h] [-v] -i infrastructure_path -t topology_path [-p profile_path]" << std::endl;
 	stream << "\t-h                         print this message and exit" << std::endl;
+	stream << "\t-v                         print version and exit" << std::endl;
 	stream << "\t-i <infrastructure_path>   path to the XML file describing the network infrastructure of the platform" << std::endl;
 	stream << "\t-t <topology_path>         path to the XML file describing the satcom topology of the platform" << std::endl;
 	stream << "\t-p <profile_path>          path to the XML file selecting options for this specific entity" << std::endl;
-	stream << "\t-g <configuration_folder>  path to a folder where to generate XSD files for the various entities" << std::endl;
 }
 
 
@@ -150,6 +153,9 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				temporary = std::make_shared<EntityGwPhy>(0);
 				temporary->createSpecificConfiguration(folder + "/profile_gw_phy.xsd");
 			}
+			return nullptr;
+		case 'v':
+			std::cout << "OpenSAND version " << OPENSAND_VERSION << std::endl;
 			return nullptr;
 		case 'h':
 		case '?':

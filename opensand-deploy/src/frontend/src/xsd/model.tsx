@@ -54,7 +54,7 @@ export class Model {
         this.visibility = "NORMAL";
         this.environment = new Environment();
         this.root = new Component(id, name, description === "" ? "Model" : description, this);
-        this.saved = false;
+        this.saved = true;
     }
 
     isComplete = (): boolean => {

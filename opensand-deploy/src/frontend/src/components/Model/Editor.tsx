@@ -4,7 +4,7 @@ import {RouteComponentProps} from 'react-router-dom';
 import Box from '@material-ui/core/Box';
 import Typography from '@material-ui/core/Typography';
 
-import {getXSD, getProjectXML, IXsdContent, IXmlContent} from '../../api';
+import {getXSD, getProjectXML, updateProjectXML, silenceSuccess, IXsdContent, IXmlContent} from '../../api';
 import {sendError} from '../../utils/dispatcher';
 import {fromXSD, fromXML} from '../../xsd/parser';
 import {Model as ModelType} from '../../xsd/model';
@@ -35,8 +35,14 @@ const Editor = (props: Props) => {
     const loadModel = React.useCallback((content: IXsdContent) => {
         const dataModel = fromXSD(content.content);
         const url = template == null ? urlFragment : "template/" + xsd + "/" + template;
-        const onSuccess = (content: IXmlContent) => changeModel(fromXML(dataModel, content.content));
+        console.log(url);
+        const onSaveError = (error: string) => sendError("Configuration has not been automatically saved: " + error);
         const onError = (error: string) => {sendError(error); changeModel(dataModel);};
+        const onSuccess = (content: IXmlContent) => {
+            const newModel = fromXML(dataModel, content.content);
+            changeModel(newModel);
+            updateProjectXML(silenceSuccess, onSaveError, projectName, urlFragment, newModel);
+        }
         getProjectXML(onSuccess, onError, projectName, url);
     }, [changeModel, projectName, urlFragment, xsd, template]);
 

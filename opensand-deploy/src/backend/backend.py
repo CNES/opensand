@@ -191,7 +191,10 @@ def _get_parameter(component, name, default=None):
     if parameter is None:
         return None
 
-    return parameter.get_data().get() or default
+    data = parameter.get_data()
+    if not data.is_set():
+        return default
+    return data.get()
 
 
 def create_default_infrastructure(meta_model, filepath):
@@ -414,7 +417,8 @@ def create_platform_infrastructure(project):
         xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath(infra).as_posix())
         if xsd is None:
             continue
-        xml = py_opensand_conf.fromXML(xsd, WWW_FOLDER.joinpath(project, 'entities', name, 'infrastructure.xml'))
+        filepath = WWW_FOLDER / project / 'entities' / name / 'infrastructure.xml'
+        xml = py_opensand_conf.fromXML(xsd, filepath.as_posix())
         if xml is None:
             continue
 
@@ -496,7 +500,7 @@ def create_platform_infrastructure(project):
         if xsd is None:
             continue
 
-        filepath = WWW_FOLDER.joinpath(project, 'entities', name, 'infrastructure.xml')
+        filepath = WWW_FOLDER / project / 'entities' / name / 'infrastructure.xml'
         xml = py_opensand_conf.fromXML(xsd, filepath.as_posix())
         if xml is None:
             continue
@@ -659,7 +663,7 @@ def download_entity(name, entity):
     with tarfile.open(fileobj=in_memory, mode='w:gz') as tar:
         for filepath in files:
             if filepath.exists() and filepath.is_file():
-                tar.add(filepath.as_posix(), filepath.name)
+                tar.add(filepath.as_posix(), '{}/{}'.format(entity, filepath.name))
 
     in_memory.seek(0)
     dl_name = '{}.tar.gz'.format(entity)

@@ -2,6 +2,7 @@ import React from 'react';
 
 import AppBar from '@material-ui/core/AppBar';
 import Button from '@material-ui/core/Button';
+import Box from '@material-ui/core/Box';
 import FormControl from '@material-ui/core/FormControl';
 import InputLabel from '@material-ui/core/InputLabel';
 import MenuItem from '@material-ui/core/MenuItem';
@@ -117,16 +118,6 @@ const Model = (props: Props) => {
                 <Typography variant="h6" className={classes.version}>
                     (v{version})
                 </Typography>
-                <SaveAsButton disabled={xsd == null} onSave={handleSaveAs} />
-                <Button
-                    className={classes.button}
-                    disabled={model.saved}
-                    color="secondary"
-                    variant="contained"
-                    onClick={handleSave}
-                >
-                    Save Configuration for {urlFragment.replace("/", " of ")}
-                </Button>
                 <FormControl>
                     <InputLabel htmlFor="visibility">Visibility</InputLabel>
                     <Select value={visibility} onChange={changeVisibility} inputProps={{id: "visibility"}}>
@@ -164,6 +155,18 @@ const Model = (props: Props) => {
                     )}
                 </TabPanel>
             ))}
+            <Box textAlign="center" marginTop="3em" marginBottom="3px">
+                <SaveAsButton disabled={xsd == null} onSave={handleSaveAs} />
+                <Button
+                    className={classes.button}
+                    disabled={model.saved}
+                    color="secondary"
+                    variant="contained"
+                    onClick={handleSave}
+                >
+                    Save Configuration for {urlFragment.replace("/", " of ")}
+                </Button>
+            </Box>
         </Paper>
     );
 };
