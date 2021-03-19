@@ -59,9 +59,11 @@ constexpr char OPENSAND_VERSION[] = "6.0.0";
 
 void usage(std::ostream &stream, const std::string &progname)
 {
-	stream << progname << " [-h] [-v] -i infrastructure_path -t topology_path [-p profile_path]" << std::endl;
+	stream << progname << " [-h] [-v] [-V] -i infrastructure_path -t topology_path [-p profile_path]" << std::endl;
 	stream << "\t-h                         print this message and exit" << std::endl;
-	stream << "\t-v                         print version and exit" << std::endl;
+	stream << "\t-V                         print version and exit" << std::endl;
+	stream << "\t-v                         enable verbose output: logs are handed to stderr in addition" << std::endl;
+	stream << "\t                           to the configuration in the infrastructure configuration file" << std::endl;
 	stream << "\t-i <infrastructure_path>   path to the XML file describing the network infrastructure of the platform" << std::endl;
 	stream << "\t-t <topology_path>         path to the XML file describing the satcom topology of the platform" << std::endl;
 	stream << "\t-p <profile_path>          path to the XML file selecting options for this specific entity" << std::endl;
@@ -98,10 +100,11 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	std::string infrastructure_path;
 	std::string topology_path;
 	std::string profile_path;
+	bool verbose = false;
 
 	auto Conf = OpenSandModelConf::Get();
 	return_code = 0;
-	while((opt = getopt(argc, argv, "-hi:t:p:g:")) != EOF)
+	while((opt = getopt(argc, argv, "-hVvi:t:p:g:")) != EOF)
 	{
 		switch(opt)
 		{
@@ -113,6 +116,9 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 			break;
 		case 'p':
 			profile_path = optarg;
+			break;
+		case 'v':
+			verbose = true;
 			break;
 		case 'g':
 			{
@@ -154,7 +160,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				temporary->createSpecificConfiguration(folder + "/profile_gw_phy.xsd");
 			}
 			return nullptr;
-		case 'v':
+		case 'V':
 			std::cout << "OpenSAND version " << OPENSAND_VERSION << std::endl;
 			return nullptr;
 		case 'h':
@@ -243,6 +249,11 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	bool enabled = false;
 	auto output = Output::Get();
 	output->setEntityName(entity->getName());
+
+	if (verbose)
+	{
+		output->configureTerminalOutput();
+	}
 
 	std::string output_folder;
 	if(Conf->getLocalStorage(enabled, output_folder) && enabled)

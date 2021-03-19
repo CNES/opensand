@@ -39,6 +39,7 @@
 #ifndef _OUTPUT_H
 #define _OUTPUT_H
 
+#include <map>
 #include <vector>
 #include <memory>
 #include <string>
@@ -260,6 +261,13 @@ class Output
 	                           unsigned short logsPort);
 
 	/**
+	 * @brief Configure the output library to use the stderr stream for logs
+	 *
+	 * @return          Whether or not the configuration was successful
+	 */
+	bool configureTerminalOutput();
+
+	/**
 	 * @brief Send all probes which got new values sinces the last call.
 	 **/
 	void sendProbes(void);
@@ -284,11 +292,9 @@ class Output
 	/**
 	 * @brief Set the log levels as defined in the configuration
 	 *
-	 * @param levels    The log levels defines in configuration
-	 * @param specific  User defined levels
+	 * @param levels    The log levels defined in configuration
 	 */
-	//void setLevels(const map<string, log_level_t> &levels,
-	                 //const map<string, log_level_t> &specific);
+	void setLevels(const std::map<std::string, log_level_t> &levels);
 
  private:
 	Output();

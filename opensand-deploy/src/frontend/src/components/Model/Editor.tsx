@@ -35,7 +35,6 @@ const Editor = (props: Props) => {
     const loadModel = React.useCallback((content: IXsdContent) => {
         const dataModel = fromXSD(content.content);
         const url = template == null ? urlFragment : "template/" + xsd + "/" + template;
-        console.log(url);
         const onSaveError = (error: string) => sendError("Configuration has not been automatically saved: " + error);
         const onError = (error: string) => {sendError(error); changeModel(dataModel);};
         const onSuccess = (content: IXmlContent) => {
@@ -45,6 +44,19 @@ const Editor = (props: Props) => {
         }
         getProjectXML(onSuccess, onError, projectName, url);
     }, [changeModel, projectName, urlFragment, xsd, template]);
+
+    const reloadModel = React.useCallback((content: IXsdContent) => {
+        const dataModel = fromXSD(content.content);
+        const onError = (error: string) => {sendError(error); changeModel(dataModel);};
+        const onSuccess = (content: IXmlContent) => changeModel(fromXML(dataModel, content.content));
+        getProjectXML(onSuccess, onError, projectName, urlFragment);
+    }, [projectName, urlFragment]);
+
+    const reload = React.useCallback(() => {
+        if (xsd && urlFragment.startsWith('infrastructure')) {
+            getXSD(reloadModel, sendError, xsd);
+        }
+    }, [reloadModel, urlFragment, xsd]);
 
     React.useEffect(() => {
         if (xsd != null) {
@@ -63,6 +75,7 @@ const Editor = (props: Props) => {
             xsd={xsd}
             projectName={projectName}
             urlFragment={urlFragment}
+            reloadModel={reload}
         />
     );
 };

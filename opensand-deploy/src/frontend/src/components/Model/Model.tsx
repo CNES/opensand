@@ -30,6 +30,7 @@ interface Props {
     projectName: string;
     urlFragment: string;
     xsd: string | null;
+    reloadModel: () => void;
 }
 
 
@@ -71,7 +72,7 @@ const TabPanel = (props: PanelProps) => {
 
 
 const Model = (props: Props) => {
-    const {model, xsd, projectName, urlFragment} = props;
+    const {model, xsd, projectName, urlFragment, reloadModel} = props;
     const {root, version} = model;
     const components = root.getComponents();
 
@@ -83,7 +84,8 @@ const Model = (props: Props) => {
     const validateSaved = React.useCallback((status: IApiSuccess) => {
         model.saved = true;
         setState({});
-    }, [model, setState]);
+        reloadModel();
+    }, [model, setState, reloadModel]);
 
     const handleSave = React.useCallback(() => {
         updateProjectXML(validateSaved, sendError, projectName, urlFragment, model);

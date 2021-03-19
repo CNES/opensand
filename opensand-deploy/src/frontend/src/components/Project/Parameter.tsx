@@ -92,8 +92,9 @@ const ProjectParameter = (props: Props) => {
     }, [header]);
 
     React.useEffect(() => {
-        if (didMount && onSelect) onSelect();
-    }, [onSelect, didMount]);
+        const hasValue = parameter.value && parameter.value !== "";
+        if (hasValue && didMount && onSelect) onSelect();
+    }, [onSelect, didMount, parameter.value]);
 
     if (enumeration == null) {
         return (

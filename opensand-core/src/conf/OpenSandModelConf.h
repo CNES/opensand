@@ -164,7 +164,7 @@ class OpenSandModelConf
 	bool getLocalStorage(bool &enabled, std::string &output_folder) const;
 	bool getRemoteStorage(bool &enabled, std::string &address, unsigned short &stats_port, unsigned short &logs_port) const;
 	bool getGwIds(std::vector<tal_id_t> &gws) const;
-	bool logLevels(std::map<std::string, log_level_t> &levels, std::map<std::string, log_level_t> &specific) const;
+	bool logLevels(std::map<std::string, log_level_t> &levels) const;
 	bool getSarp(SarpTable &sarp_table) const;
 	bool getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const;
 	bool getQosServerHost(std::string &qos_server_host_agent, int &qos_server_host_port) const;

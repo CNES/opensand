@@ -741,8 +741,7 @@ bool OpenSandModelConf::getGwIds(std::vector<tal_id_t> &gws) const
 }
 
 
-bool OpenSandModelConf::logLevels(std::map<std::string, log_level_t> &levels,
-                                  std::map<std::string, log_level_t> &specific) const
+bool OpenSandModelConf::logLevels(std::map<std::string, log_level_t> &levels) const
 {
 	if (infrastructure == nullptr) {
 		return false;
@@ -750,12 +749,12 @@ bool OpenSandModelConf::logLevels(std::map<std::string, log_level_t> &levels,
 
 	auto log_levels = infrastructure->getRoot()->getComponent("logs");
 	static std::vector<std::string> log_names_loop{
-		{"init"},
-		{"lan_adaptation"},
-		{"encap"},
-		{"dvb"},
-		{"physical_layer"},
-		{"sat_carrier"},
+		"init",
+		"lan_adaptation",
+		"encap",
+		"dvb",
+		"physical_layer",
+		"sat_carrier",
 	};
 	for (auto& log_name : log_names_loop) {
 		std::string log_level;
@@ -783,7 +782,7 @@ bool OpenSandModelConf::logLevels(std::map<std::string, log_level_t> &levels,
 		if (iterator == levels_map.end()) {
 			return false;
 		}
-		specific[log_name] = iterator->second;
+		levels[log_name] = iterator->second;
 	}
 
 	return true;

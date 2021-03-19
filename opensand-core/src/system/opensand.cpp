@@ -69,8 +69,7 @@ int main(int argc, char **argv)
 
 	DFLTLOG(LEVEL_NOTICE, "starting output\n");
 	std::map<std::string, log_level_t> levels;
-	std::map<std::string, log_level_t> spec_levels;
-	if(!OpenSandModelConf::Get()->logLevels(levels, spec_levels))
+	if(!OpenSandModelConf::Get()->logLevels(levels))
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot load default levels, quit",
@@ -79,7 +78,7 @@ int main(int argc, char **argv)
 		Plugin::releasePlugins();
 		return 101;
 	}
-	// Output::Get()->setLevels(levels, spec_level);
+	Output::Get()->setLevels(levels);
 
 	if(!entity->createBlocks())
 	{
