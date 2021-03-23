@@ -312,6 +312,8 @@ class Output
 	std::vector<std::shared_ptr<BaseProbe>> enabledProbes;
 	std::vector<std::shared_ptr<LogHandler>> logHandlers;
 	std::vector<std::shared_ptr<StatHandler>> probeHandlers;
+
+	std::map<std::string, log_level_t> levelsYetToConfigure;
 };
 
 
