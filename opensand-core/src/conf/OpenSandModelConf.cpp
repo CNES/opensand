@@ -729,7 +729,7 @@ bool OpenSandModelConf::getRemoteStorage(bool &enabled, std::string &address, un
 
 bool OpenSandModelConf::getGwIds(std::vector<tal_id_t> &gws) const
 {
-	if (infrastructure != nullptr) {
+	if (infrastructure == nullptr) {
 		return false;
 	}
 
