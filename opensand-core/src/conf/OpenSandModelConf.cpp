@@ -1276,13 +1276,13 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 		return false;
 	}
 
-	auto satellite = infrastructure->getRoot()->getComponent("satellite");
+	auto infra = infrastructure->getRoot()->getComponent("infrastructure");
+	auto emu_address = infra->getComponent("satellite")->getParameter("emu_address");
 	std::string satellite_address;
-	if (!extractParameterData(satellite->getParameter("emu_address"), satellite_address)) {
+	if (!extractParameterData(emu_address, satellite_address)) {
 		return false;
 	}
 
-	auto infra = infrastructure->getRoot()->getComponent("infrastructure");
 	std::shared_ptr<OpenSANDConf::DataComponent> gateway = nullptr;
 	for (auto& entity_element : infra->getList("gateways")->getItems()) {
 		auto possible_gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
