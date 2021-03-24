@@ -287,4 +287,5 @@ StreamLogHandler::~StreamLogHandler() {
 void StreamLogHandler::emitLog(const std::string& logName, const std::string& level, const std::string& message) {
 	std::lock_guard<std::mutex> acquire{lock};
 	prepareMessage(std::cerr, logName, level, message);
+	std::cerr << std::endl;
 }

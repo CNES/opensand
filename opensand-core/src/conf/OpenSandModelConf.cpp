@@ -1071,7 +1071,7 @@ bool getAdvancedLinksParameter(std::shared_ptr<OpenSANDConf::DataModel> model, c
 
 bool OpenSandModelConf::getReturnFrameDuration(time_ms_t &frame_duration) const
 {
-	int value;
+	double value;
 	if (!getAdvancedLinksParameter(topology, "return_duration", value)) {
 		return false;
 	}
@@ -1083,7 +1083,7 @@ bool OpenSandModelConf::getReturnFrameDuration(time_ms_t &frame_duration) const
 
 bool OpenSandModelConf::getForwardFrameDuration(time_ms_t &frame_duration) const
 {
-	int value;
+	double value;
 	if (!getAdvancedLinksParameter(topology, "forward_duration", value)) {
 		return false;
 	}
