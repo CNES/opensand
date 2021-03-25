@@ -201,9 +201,7 @@ BlockDvbSat::Downward::~Downward()
 bool BlockDvbSat::Downward::onInit()
 {
 	// get the common parameters
-	// TODO no need to init pkt hdl in transparent mode,
-	//      this will avoid loggers for encap to be instanciated
-	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(TRANSPARENT_SATELLITE_NO_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
@@ -503,9 +501,7 @@ bool BlockDvbSat::Upward::onInit()
 	}
 
 	// get the common parameters
-	// TODO no need to init pkt hdl in transparent mode,
-	//      this will avoid loggers for encap to be instanciated
-	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(TRANSPARENT_SATELLITE_NO_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "

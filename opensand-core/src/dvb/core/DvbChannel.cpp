@@ -99,6 +99,12 @@ bool DvbChannel::initPktHdl(encap_scheme_list_t encap_schemes,
 			encap_name = "RLE";
 			break;
 
+		case TRANSPARENT_SATELLITE_NO_SCHEME_LIST:
+			LOG(this->log_init_channel, LEVEL_INFO,
+			    "Skipping packet handler initialization for "
+			    "transparent satellite");
+			return true;
+
 		default:
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "Unknown encap schemes link: '%d'\n",
