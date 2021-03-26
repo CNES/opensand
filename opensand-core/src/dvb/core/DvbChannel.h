@@ -370,8 +370,7 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 			std::string fmt_ids = format_ratios.first;
 			if (carrier.access_type == access_type) {
 				// we won't initialize FMT group here for other access
-				++group_id;
-				group = new FmtGroup(group_id, fmt_ids, fmt_def);
+				group = new FmtGroup(++group_id, fmt_ids, fmt_def);
 				fmt_groups[group_id] = group;
 
 				auto modcod_amount = group->getFmtIds().size();

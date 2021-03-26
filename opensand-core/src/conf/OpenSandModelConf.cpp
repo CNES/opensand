@@ -42,8 +42,6 @@
 #include "OpenSandModelConf.h"
 #include "MacAddress.h"
 #include "SarpTable.h"
-#include "FmtDefinition.h"
-#include "FmtDefinitionTable.h"
 
 
 const std::map<std::string, log_level_t> levels_map{
@@ -1490,7 +1488,7 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 			return false;
 		}
 		if (gateway_id == gw_id) {
-			selected_spot = spot_assignment;
+			selected_spot = spot_topology;
 			break;
 		}
 	}
@@ -1639,15 +1637,16 @@ bool OpenSandModelConf::getTerminalAffectation(spot_id_t &default_spot_id,
 	}
 
 	auto assignments = topology->getRoot()->getComponent("st_assignment");
+	auto defaults = assignments->getComponent("defaults");
 
 	int spot_id;
-	if (!extractParameterData(assignments->getParameter("default_spot"), spot_id)) {
+	if (!extractParameterData(defaults->getParameter("default_spot"), spot_id)) {
 		return false;
 	}
 	default_spot_id = spot_id;
 
 	std::string category;
-	if (!extractParameterData(assignments->getParameter("default_group"), category)) {
+	if (!extractParameterData(defaults->getParameter("default_group"), category)) {
 		return false;
 	}
 	default_category_name = category;

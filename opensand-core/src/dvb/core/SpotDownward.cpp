@@ -168,7 +168,7 @@ void SpotDownward::generateConfiguration()
 
 	auto types = Conf->getModelTypesDefinition();
 	types->addEnumType("ncc_simulation", "Simulated Requests", {"None", "Random", "File"});
-	types->addEnumType("fifo_access_type", "Access Type", {"DAMA", "CRDSA"});
+	types->addEnumType("fifo_access_type", "Access Type", {"ACM", "VCM0", "VCM1", "VCM2", "VCM3"});
 
 	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
 	auto fifos = conf->addList("fifos", "FIFOs", "fifo")->getPattern();

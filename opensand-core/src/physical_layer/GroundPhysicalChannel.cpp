@@ -144,17 +144,15 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, 
 	    "attenuation_refresh_period = %d ms", refresh_period_ms);
 
 	// Get the clear sky condition
-	int clear_sky;
-	if(!OpenSandModelConf::extractParameterData(link_attenuation->getParameter("clear_sky"), clear_sky))
+	if(!OpenSandModelConf::extractParameterData(link_attenuation->getParameter("clear_sky"), this->clear_sky_condition))
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "section '%s': missing parameter 'clear sky condition'",
 		    component_path.c_str());
 		return false;
 	}
-	this->clear_sky_condition = clear_sky;
 	LOG(log_init, LEVEL_NOTICE,
-	    "clear_sky_conditions = %d dB", this->clear_sky_condition);
+	    "clear_sky_conditions = %f dB", this->clear_sky_condition);
 
 	// Get the attenuation type
 	std::string attenuation_type;

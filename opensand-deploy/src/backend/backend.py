@@ -83,11 +83,11 @@ DVB_RCS2 = [
 
 
 FIFOS = [
-        (0, 'NM', 1000, 'DAMA'),
-        (1, 'EF', 3000, 'DAMA'),
-        (2, 'SIG', 1000, 'DAMA'),
-        (3, 'AF', 2000, 'DAMA'),
-        (4, 'BE', 6000, 'DAMA'),
+        (0, 'NM', 1000, 'DAMA_RBDC', 'ACM'),
+        (1, 'EF', 3000, 'DAMA_RBDC', 'ACM'),
+        (2, 'SIG', 1000, 'DAMA_RBDC', 'ACM'),
+        (3, 'AF', 2000, 'DAMA_RBDC', 'ACM'),
+        (4, 'BE', 6000, 'DAMA_RBDC', 'ACM'),
 ]
 
 
@@ -257,7 +257,7 @@ def create_default_topology(meta_model, filepath):
     return_carrier = _create_list_item(spot, 'return_band')
     _set_parameter(return_carrier, 'symbol_rate', 40e6)
     _set_parameter(return_carrier, 'type', 'DAMA')
-    _set_parameter(return_carrier, 'wave_form', '3-22')
+    _set_parameter(return_carrier, 'wave_form', '3-12')
     _set_parameter(return_carrier, 'group', 'Standard')
 
     default_assignment = _get_component(_get_component(topology, 'st_assignment'), 'defaults')
@@ -303,7 +303,7 @@ def create_default_topology(meta_model, filepath):
     py_opensand_conf.toXML(topo, str(filepath))
 
 
-def create_default_profile(meta_model, filepath):
+def create_default_profile(meta_model, filepath, is_terminal):
     mod = meta_model.create_data()
     model = mod.get_root()
 
@@ -341,12 +341,12 @@ def create_default_profile(meta_model, filepath):
     _set_parameter(network, 'simulation', 'None')
     _set_parameter(network, 'fca', 0)
     _set_parameter(network, 'dama_algorithm', 'Legacy')
-    for priority, name, capacity, access in FIFOS:
+    for priority, name, capacity, access_st, access_gw in FIFOS:
         fifo = _create_list_item(network, 'fifos')
         _set_parameter(fifo, 'priority', priority)
         _set_parameter(fifo, 'name', name)
         _set_parameter(fifo, 'capacity', capacity)
-        _set_parameter(fifo, 'access_type', access)
+        _set_parameter(fifo, 'access_type', access_st if is_terminal else access_gw)
     for pcp, name, fifo in QOS_CLASSES:
         qos = _create_list_item(network, 'qos_classes')
         _set_parameter(qos, 'pcp', pcp)
@@ -379,7 +379,7 @@ def create_default_templates(project):
             elif kind == 'topology':
                 create_default_topology(meta_model, template)
             elif kind == 'profile':
-                create_default_profile(meta_model, template)
+                create_default_profile(meta_model, template, xsd.stem.endswith('_st'))
 
 
 def create_platform_infrastructure(project):

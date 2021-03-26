@@ -110,7 +110,7 @@ void BlockDvbTal::generateConfiguration()
 	auto Conf = OpenSandModelConf::Get();
 
 	auto types = Conf->getModelTypesDefinition();
-	types->addEnumType("fifo_access_type", "Access Type", {"DAMA", "CRDSA"});
+	types->addEnumType("fifo_access_type", "Access Type", {"DAMA_RBDC", "DAMA_VBDC", "DAMA_CRA", "SALOHA"});
 	// TODO: Keep in sync with topology
 	types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
 	types->addEnumType("dama_algorithm", "DAMA Agent Algorithm", {"Legacy",});
@@ -333,12 +333,7 @@ bool BlockDvbTal::Downward::onInit(void)
 
 	auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
 	auto scpc_enabled = access->getComponent("scpc")->getParameter("scpc_enabled");
-	if(!OpenSandModelConf::extractParameterData(scpc_enabled, this->is_scpc))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section 'access': missing parameter 'scpc'\n");
-		return false;
-	}
+	OpenSandModelConf::extractParameterData(scpc_enabled, this->is_scpc);
 
 	if(!this->is_scpc)
 	{

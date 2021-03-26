@@ -49,6 +49,7 @@
 #include <opensand_conf/DataComponent.h>
 #include <opensand_conf/DataParameter.h>
 #include <opensand_conf/DataValue.h>
+#include <opensand_output/OutputLog.h>
 
 
 namespace OpenSANDConf {
@@ -58,9 +59,7 @@ namespace OpenSANDConf {
 	class MetaParameter;
 	class DataModel;
 }
-enum log_level_t : unsigned int;
 class SarpTable;
-class FmtDefinitionTable;
 
 
 class OpenSandModelConf

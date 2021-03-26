@@ -83,8 +83,7 @@ bool BlockPhysicalLayer::onInit(void)
 	}
 
 	/// Load de SatDelay Plugin
-	if(!Plugin::getSatDelayPlugin(satdelay_name + "Delay",
-	                              &this->satdelay))
+	if(!Plugin::getSatDelayPlugin(satdelay_name, &this->satdelay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "error when getting the sat delay plugin '%s'",

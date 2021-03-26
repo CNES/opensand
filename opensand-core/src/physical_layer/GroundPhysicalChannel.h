@@ -59,7 +59,7 @@ class GroundPhysicalChannel
 	AttenuationModelPlugin *attenuation_model;
 
 	/// Clear Sky Conditions (best C/N in clear-sky conditions)
-	unsigned int clear_sky_condition;
+	double clear_sky_condition;
 
 	/// The FIFO that implements the delay
 	DelayFifo delay_fifo;
