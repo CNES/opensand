@@ -245,7 +245,6 @@ def create_default_topology(meta_model, filepath):
     topology = topo.get_root()
 
     spot = _create_list_item(_get_component(topology, 'frequency_plan'), 'spots')
-    _set_parameter(_get_component(spot, 'assignments'), 'spot_id', 1)
     _set_parameter(_get_component(spot, 'assignments'), 'gateway_id', 0)
     _set_parameter(_get_component(spot, 'roll_off'), 'forward', 0.35)
     _set_parameter(_get_component(spot, 'roll_off'), 'return', 0.2)
@@ -261,7 +260,7 @@ def create_default_topology(meta_model, filepath):
     _set_parameter(return_carrier, 'group', 'Standard')
 
     default_assignment = _get_component(_get_component(topology, 'st_assignment'), 'defaults')
-    _set_parameter(default_assignment, 'default_spot', 1)
+    _set_parameter(default_assignment, 'default_spot', 0)
     _set_parameter(default_assignment, 'default_group', 'Standard')
 
     wave_forms = _get_component(topology, 'wave_forms')

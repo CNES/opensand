@@ -228,7 +228,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	// for NCC/PEP and NCC/SVNO communications
 	if(!OpenSandModelConf::Get()->getNccPorts(pep_tcp_port, svno_tcp_port))
 	{
-		LOG(this->log_init_channel, LEVEL_NOTICE,
+		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "section 'ncc': missing parameter 'pep port' or 'svno port'\n");
 		return false;
 	}
