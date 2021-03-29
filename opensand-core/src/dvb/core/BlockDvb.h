@@ -85,7 +85,7 @@ class BlockDvb: public Block
 	BlockDvb(const string &name):
 		Block(name)
 	{
-    auto output = Output::Get();
+		auto output = Output::Get();
 		// register static logs
 		BBFrame::bbframe_log = output->registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
 		Sac::sac_log = output->registerLog(LEVEL_WARNING, "Dvb.SAC");

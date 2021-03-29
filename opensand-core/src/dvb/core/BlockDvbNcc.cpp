@@ -305,8 +305,8 @@ bool BlockDvbNcc::Downward::initTimers(void)
 		spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
 		if(!spot)
 		{
-			LOG(this->log_receive, LEVEL_WARNING,
-			    "Error when getting spot\n");
+			LOG(this->log_init, LEVEL_WARNING,
+			    "Error when getting spot %d\n", (*spot_iter).first);
 			return false;
 		}
 		spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",

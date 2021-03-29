@@ -282,13 +282,11 @@ void OpenSandModelConf::createModels()
 	auto frequency_plan = topology_model->getRoot()->addComponent("frequency_plan", "Spots / Frequency Plan");
 	auto spots = frequency_plan->addList("spots", "Spots", "spot")->getPattern();
 	auto spot_assignment = spots->addComponent("assignments", "Spot Assignment");
-	spot_assignment->addParameter("spot_id", "Spot ID", types->getType("int"));
 	spot_assignment->addParameter("gateway_id", "Gateway ID", types->getType("int"), "ID of the gateway this spot belongs to");
 	auto roll_offs = spots->addComponent("roll_off", "Roll Off");
 	roll_offs->addParameter("forward", "Forward Band Roll Off", types->getType("double"), "Usually 0.35, 0.25 or 0.2 for DVB-S2");
 	roll_offs->addParameter("return", "Return Band Roll Off", types->getType("double"), "Usually 0.2 for DVB-RCS2");
 	auto forward_band = spots->addList("forward_band", "Forward Band", "fwd_band")->getPattern();
-	// forward_band->addParameter("carrier_id", "Carrier ID", types->getType("int"));
 	forward_band->addParameter("symbol_rate", "Symbol Rate", types->getType("double"))->setUnit("Mbauds");
 	auto band_type = forward_band->addParameter("type", "Type", types->getType("forward_type"));
 	forward_band->addParameter("wave_form", "Wave Form IDs", types->getType("string"), "Supported Wave Forms. Use ';' separator for unique IDs, '-' separator for all the IDs between bounds");
@@ -298,7 +296,6 @@ void OpenSandModelConf::createModels()
 	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(ratio->getReferenceData());
 	expected_str->set("VCM");
 	auto return_band = spots->addList("return_band", "Return Band", "rtn_band")->getPattern();
-	// return_band->addParameter("carrier_id", "Carrier ID", types->getType("int"));
 	return_band->addParameter("symbol_rate", "Symbol Rate", types->getType("double"))->setUnit("Mbauds");
 	return_band->addParameter("type", "Type", types->getType("return_type"));
 	return_band->addParameter("wave_form", "Wave Forms", types->getType("string"));
@@ -834,7 +831,7 @@ bool OpenSandModelConf::getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const
 		return false;
 	}
 
-	if (type != "gw" || type != "gw_net_acc") {
+	if (type != "gw" && type != "gw_net_acc") {
 		return false;
 	}
 
@@ -1212,7 +1209,9 @@ bool OpenSandModelConf::getGwWithTalId(uint16_t tal_id, uint16_t &gw_id) const
 	if (!extractParameterData(assigned_spot, assigned_spot_id)) {
 		return false;
 	}
-	return getGwWithCarrierId(assigned_spot_id * 10, gw_id);
+
+	gw_id = assigned_spot_id;
+	return true;
 }
 
 
@@ -1222,21 +1221,16 @@ bool OpenSandModelConf::getGwWithCarrierId(unsigned int car_id, uint16_t &gw) co
 		return false;
 	}
 
-	unsigned int assigned_spot_id = car_id / 10;
+	gw = car_id / 10;
 
+	// Check the spot exists
 	for (auto& spot : topology->getRoot()->getComponent("frequency_plan")->getList("spots")->getItems()) {
 		auto gw_assignment = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(spot)->getComponent("assignments");
 		int spot_id;
-		if (!extractParameterData(gw_assignment->getParameter("spot_id"), spot_id)) {
+		if (!extractParameterData(gw_assignment->getParameter("gateway_id"), spot_id)) {
 			return false;
 		}
-		if (assigned_spot_id == spot_id) {
-			int assigned_gw;
-			if (!extractParameterData(gw_assignment->getParameter("gateway_id"), assigned_gw)) {
-				return false;
-			}
-
-			gw = assigned_gw;
+		if (gw == spot_id) {
 			return true;
 		}
 	}
@@ -1304,20 +1298,16 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 			return false;
 		}
 		if (assigned_gw == gw_id) {
-			int spot_id;
-			if (!extractParameterData(gw_assignment->getParameter("spot_id"), spot_id)) {
-				return false;
-			}
-			uint16_t carrier_id = spot_id * 10;
+			uint16_t carrier_id = gw_id * 10;
 
 			std::string gateway_address;
 			if (!extractParameterData(gateway->getParameter("emu_address"), gateway_address)) {
 				return false;
 			}
 
-			std::string ctrl_multicast_address = "239.137.194." + std::to_string(220 + spot_id * 2);
+			std::string ctrl_multicast_address = "239.137.194." + std::to_string(220 + gw_id * 2);
 			extractParameterData(gateway->getParameter("ctrl_multicast_address"), ctrl_multicast_address);
-			std::string data_multicast_address = "239.137.194." + std::to_string(221 + spot_id * 2);
+			std::string data_multicast_address = "239.137.194." + std::to_string(221 + gw_id * 2);
 			extractParameterData(gateway->getParameter("data_multicast_address"), data_multicast_address);
 
 			int ctrl_out_port = 55000 + carrier_id;
@@ -1494,11 +1484,6 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 	}
 
 	if (selected_spot == nullptr) {
-		return false;
-	}
-
-	int spot_id;
-	if (!extractParameterData(selected_spot->getComponent("assignments")->getParameter("spot_id"), spot_id)) {
 		return false;
 	}
 
