@@ -41,15 +41,14 @@
 #include "OpenSandFrames.h"
 #include "DvbFrame.h"
 
-#include <opensand_output/OutputLog.h>
-
 #include <vector>
 #include <endian.h>
 
-using std::vector;
-
 /// The maximum number of CR in a SAC
-#define NBR_MAX_CR 2
+constexpr uint8_t NBR_MAX_CR = 2;
+
+
+class OutputLog;
 
 
 ///> The type of access for return/up link
@@ -197,7 +196,7 @@ class Sac: public DvbFrameTpl<T_DVB_SAC>
 	 *
 	 * @return  the requets
 	 */
-	vector<cr_info_t> getRequests(void) const;
+	std::vector<cr_info_t> getRequests(void) const;
 
 	/**
 	 * @brief Get the C/N0 ratio

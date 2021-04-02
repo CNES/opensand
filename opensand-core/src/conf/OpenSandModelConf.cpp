@@ -62,6 +62,7 @@ OpenSandModelConf::OpenSandModelConf():
 	infrastructure(nullptr),
 	profile(nullptr)
 {
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Configuration");
 }
 
 
@@ -282,7 +283,7 @@ void OpenSandModelConf::createModels()
 	auto frequency_plan = topology_model->getRoot()->addComponent("frequency_plan", "Spots / Frequency Plan");
 	auto spots = frequency_plan->addList("spots", "Spots", "spot")->getPattern();
 	auto spot_assignment = spots->addComponent("assignments", "Spot Assignment");
-	spot_assignment->addParameter("gateway_id", "Gateway ID", types->getType("int"), "ID of the gateway this spot belongs to");
+	spot_assignment->addParameter("gateway_id", "Gateway ID", types->getType("int"), "ID of the gateway this spot belongs to; note that only one spot must be managed by a given gateway");
 	auto roll_offs = spots->addComponent("roll_off", "Roll Off");
 	roll_offs->addParameter("forward", "Forward Band Roll Off", types->getType("double"), "Usually 0.35, 0.25 or 0.2 for DVB-S2");
 	roll_offs->addParameter("return", "Return Band Roll Off", types->getType("double"), "Usually 0.2 for DVB-RCS2");
@@ -303,12 +304,15 @@ void OpenSandModelConf::createModels()
 
 	auto st_assignment = topology_model->getRoot()->addComponent("st_assignment", "Satellite Terminal Assignment");
 	auto defaults = st_assignment->addComponent("defaults", "Default Settings");
-	defaults->addParameter("default_spot", "Spot", types->getType("int"));
+	defaults->addParameter("default_gateway", "Gateway", types->getType("int"),
+	                       "ID of the gateway terminals should connect to by default; since a gateway manages only "
+	                       "one spot, this also defines the spot terminals belong to by default");
 	defaults->addParameter("default_group", "Group", types->getType("carrier_group"));
 	auto assignments = st_assignment->addList("assignments", "Additional Assignments", "assigned")->getPattern();
 	assignments->setAdvanced(true);
+	assignments->setDescription("Additional terminal assignments that does not fit the default values");
 	assignments->addParameter("terminal_id", "Terminal ID", types->getType("int"));
-	assignments->addParameter("spot_id", "Spot ID", types->getType("int"));
+	assignments->addParameter("gateway_id", "Gateway ID", types->getType("int"));
 	assignments->addParameter("group", "Group", types->getType("carrier_group"));
 
 	auto wave_forms = topology_model->getRoot()->addComponent("wave_forms", "Wave Forms");
@@ -1192,7 +1196,7 @@ bool OpenSandModelConf::getGwWithTalId(uint16_t tal_id, uint16_t &gw_id) const
 	}
 
 	auto st_assignments = topology->getRoot()->getComponent("st_assignment");
-	auto assigned_spot = st_assignments->getComponent("defaults")->getParameter("default_spot");
+	auto assigned_spot = st_assignments->getComponent("defaults")->getParameter("default_gateway");
 
 	for (auto& assignment : st_assignments->getList("assignments")->getItems()) {
 		auto st_assignment = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(assignment);
@@ -1201,7 +1205,7 @@ bool OpenSandModelConf::getGwWithTalId(uint16_t tal_id, uint16_t &gw_id) const
 			return false;
 		}
 		if (tal_id == st_id) {
-			assigned_spot = st_assignment->getParameter("spot_id");
+			assigned_spot = st_assignment->getParameter("gateway_id");
 		}
 	}
 
@@ -1223,19 +1227,20 @@ bool OpenSandModelConf::getGwWithCarrierId(unsigned int car_id, uint16_t &gw) co
 
 	gw = car_id / 10;
 
-	// Check the spot exists
+	// Check the spot exists, fail in case of multiple spots configured for a gateway
+	unsigned int amount_found = 0;
 	for (auto& spot : topology->getRoot()->getComponent("frequency_plan")->getList("spots")->getItems()) {
 		auto gw_assignment = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(spot)->getComponent("assignments");
-		int spot_id;
-		if (!extractParameterData(gw_assignment->getParameter("gateway_id"), spot_id)) {
+		int gw_id;
+		if (!extractParameterData(gw_assignment->getParameter("gateway_id"), gw_id)) {
 			return false;
 		}
-		if (gw == spot_id) {
-			return true;
+		if (gw == gw_id) {
+			++amount_found;
 		}
 	}
 
-	return false;
+	return amount_found == 1;
 }
 
 
@@ -1625,7 +1630,7 @@ bool OpenSandModelConf::getTerminalAffectation(spot_id_t &default_spot_id,
 	auto defaults = assignments->getComponent("defaults");
 
 	int spot_id;
-	if (!extractParameterData(defaults->getParameter("default_spot"), spot_id)) {
+	if (!extractParameterData(defaults->getParameter("default_gateway"), spot_id)) {
 		return false;
 	}
 	default_spot_id = spot_id;
@@ -1644,7 +1649,7 @@ bool OpenSandModelConf::getTerminalAffectation(spot_id_t &default_spot_id,
 		if (!extractParameterData(terminal->getParameter("terminal_id"), terminal_id)) {
 			return false;
 		}
-		if (!extractParameterData(terminal->getParameter("spot_id"), spot_id)) {
+		if (!extractParameterData(terminal->getParameter("gateway_id"), spot_id)) {
 			return false;
 		}
 		if (!extractParameterData(terminal->getParameter("group"), category)) {

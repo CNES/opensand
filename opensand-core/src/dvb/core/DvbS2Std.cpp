@@ -89,7 +89,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	BBFrame *bbframe_burst;
 	int real_mod = 0;     // real modcod of the receiver
 
-	vector<NetPacket *> decap_packets;
+	std::vector<NetPacket *> decap_packets;
 	bool partial_decap = false;
 
 	*burst = NULL;
@@ -191,7 +191,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		goto release_burst;
 	}
 	// add packets to the newly created burst
-	for(vector<NetPacket *>::iterator it = decap_packets.begin();
+	for(std::vector<NetPacket *>::iterator it = decap_packets.begin();
 		it != decap_packets.end();
 		++it)
 	{

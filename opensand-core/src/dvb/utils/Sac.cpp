@@ -40,12 +40,12 @@
 
 
 // RBDC request granularity in SAC (in Kbits/s)
-#define DVB_CR_RBDC_GRANULARITY             2
-#define DVB_CR_RBDC_SCALING_FACTOR         16
-#define DVB_CR_RBDC_SCALING_FACTOR2        32
-#define DVB_CR_VBDC_SCALING_FACTOR         16
-#define DVB_CR_VBDC_SCALING_FACTOR_OFFSET 255
-#define DVB_CR_RBDC_SCALING_FACTOR_OFFSET 510
+constexpr unsigned int DVB_CR_RBDC_GRANULARITY = 2;
+constexpr unsigned int DVB_CR_RBDC_SCALING_FACTOR = 16;
+constexpr unsigned int DVB_CR_RBDC_SCALING_FACTOR2 = 32;
+constexpr unsigned int DVB_CR_VBDC_SCALING_FACTOR = 16;
+constexpr unsigned int DVB_CR_VBDC_SCALING_FACTOR_OFFSET = 255;
+constexpr unsigned int DVB_CR_RBDC_SCALING_FACTOR_OFFSET = 510;
 
 std::shared_ptr<OutputLog> Sac::sac_log = nullptr;
 
@@ -118,9 +118,9 @@ double Sac::getCni() const
 	return ncntoh(this->frame()->sac.acm.cni);
 }
 
-vector<cr_info_t> Sac::getRequests(void) const
+std::vector<cr_info_t> Sac::getRequests(void) const
 {
-	vector<cr_info_t> requests;
+	std::vector<cr_info_t> requests;
 
 	for(unsigned int i = 0; i < this->frame()->sac.cr_number; i++)
 	{

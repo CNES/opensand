@@ -611,7 +611,7 @@ void Output::setProbeState(const std::string& path, bool enabled) {
 
 probe_not_found:
 	if (privateLog != nullptr) {
-		privateLog->sendLog(LEVEL_ERROR, "Cannot change probes states: %s is not a valid group or probe name.", path.c_str());
+		privateLog->sendLog(LEVEL_WARNING, "Cannot change probes states: %s is not a valid group or probe name.", path.c_str());
 	}
 }
 
@@ -632,7 +632,7 @@ void Output::setLogLevel(const std::string& path, log_level_t level) {
 
 log_not_found:
 	if (privateLog != nullptr) {
-		privateLog->sendLog(LEVEL_ERROR, "Cannot change logs levels: %s is not a valid group or log name.", path.c_str());
+		privateLog->sendLog(LEVEL_WARNING, "Cannot change logs levels: %s is not a valid group or log name.", path.c_str());
 	}
 }
 

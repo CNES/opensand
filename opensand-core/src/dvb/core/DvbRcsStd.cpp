@@ -72,7 +72,7 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 {
 	DvbRcsFrame *dvb_rcs_frame;
 
-	vector<NetPacket *> decap_packets;
+	std::vector<NetPacket *> decap_packets;
 	bool partial_decap = false;
 
 	// sanity check
@@ -152,7 +152,7 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	}
 
 	// add packets to the newly created burst
-	for(vector<NetPacket *>::iterator it = decap_packets.begin();
+	for(std::vector<NetPacket *>::iterator it = decap_packets.begin();
 		it != decap_packets.end();
 		++it)
 	{
