@@ -35,7 +35,7 @@
 
 #include "MacAddress.h"
 
-#include <cstdio>
+#include <cstdlib>
 #include <sstream>
 #include <iomanip>
 
@@ -54,39 +54,23 @@ MacAddress::MacAddress(uint8_t b0,
                        uint8_t b3,
                        uint8_t b4,
                        uint8_t b5):
-	mac{b0, b1, b2, b3, b4, b5}
+	mac{b0, b1, b2, b3, b4, b5},
+	generic_bytes{false, false, false, false, false, false}
 {
 }
 
 
 MacAddress::MacAddress(std::string mac_address)
 {
-	// TODO do the same for Ipv6Addr (i.e. use pure C++ functions)
-	std::stringstream addr{mac_address};
+	std::size_t index = 0;
+	std::istringstream addr{mac_address};
 
-	for(std::size_t index = 0; index < 6; ++index)
+	for (std::string token;
+	     index < MacAddress::bytes_count && std::getline(addr, token, ':');
+	     ++index)
 	{
-		std::stringbuf token{""};
-		std::stringstream ss;
-
-		addr.get(token, ':');
-		ss << token.str();
-
-		if(ss.str() == "**")
-		{
-			this->generic_bytes[index] = true;
-			this->mac[index] = 0;
-		}
-		else
-		{
-			this->generic_bytes[index] = false;
-			uint8_t tmp;
-			ss >> std::hex >> tmp;
-			this->mac[index] = tmp;
-		}
-
-		addr.ignore();
-		if(addr.fail()) break;
+		this->generic_bytes[index] = token == "**";
+		this->mac[index] = std::strtoul(token.c_str(), nullptr, 16);
 	}
 }
 
@@ -123,11 +107,7 @@ bool MacAddress::matches(const MacAddress *addr) const
 {
 	for(std::size_t i = 0; i < MacAddress::bytes_count; ++i)
 	{
-		if(this->generic_bytes[i])
-		{
-			continue;
-		}
-		if(this->mac[i] != addr->mac[i])
+		if(!this->generic_bytes[i] && this->mac[i] != addr->mac[i])
 		{
 			return false;
 		}

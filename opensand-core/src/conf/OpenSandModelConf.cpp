@@ -545,7 +545,7 @@ bool OpenSandModelConf::readInfrastructure(const std::string& filename)
 	for (auto& entity_element : gws->getItems()) {
 		auto gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
 		int gateway_id;
-		if (extractParameterData(gateway->getParameter("entity_id"), gateway_id)) {
+		if (extractParameterData(gateway, "entity_id", gateway_id)) {
 			gateways[gateway_id] = true;
 		}
 	}
@@ -573,7 +573,7 @@ component_t OpenSandModelConf::getComponentType() const
 	}
 
 	std::string component_type;
-	extractParameterData(infrastructure->getRoot()->getComponent("entity")->getParameter("entity_type"), component_type);
+	extractParameterData(infrastructure->getRoot()->getComponent("entity"), "entity_type", component_type);
 
 	if (component_type == "Satellite") {
 		return satellite;
@@ -595,7 +595,7 @@ bool OpenSandModelConf::getComponentType(std::string &type, tal_id_t &id) const
 
 	auto entity = infrastructure->getRoot()->getComponent("entity");
 	std::string component_type;
-	extractParameterData(entity->getParameter("entity_type"), component_type);
+	extractParameterData(entity, "entity_type", component_type);
 
 	if (component_type == "Satellite") {
 		type = "sat";
@@ -613,7 +613,7 @@ bool OpenSandModelConf::getComponentType(std::string &type, tal_id_t &id) const
 	}
 
 	int entity_id;
-	if (!extractParameterData(entity->getComponent("entity_" + type)->getParameter("entity_id"), entity_id)) {
+	if (!extractParameterData(entity->getComponent("entity_" + type), "entity_id", entity_id)) {
 		return false;
 	}
 
@@ -639,7 +639,7 @@ bool OpenSandModelConf::getSatInfrastructure(std::string &ip_address) const
 	}
 
 	auto satellite = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_sat");
-	return extractParameterData(satellite->getParameter("emu_address"), ip_address);
+	return extractParameterData(satellite, "emu_address", ip_address);
 }
 
 
@@ -657,20 +657,20 @@ bool OpenSandModelConf::getGroundInfrastructure(std::string &ip_address, std::st
 
 	auto entity = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
 	if (type == "st" || type == "gw") {
-		if (!extractParameterData(entity->getParameter("emu_address"), ip_address)) {
+		if (!extractParameterData(entity, "emu_address", ip_address)) {
 			return false;
 		}
-		return extractParameterData(entity->getParameter("tap_iface"), tap_iface);
+		return extractParameterData(entity, "tap_iface", tap_iface);
 	} else if (type == "gw_net_acc") {
-		if (!extractParameterData(entity->getParameter("interconnect_address"), ip_address)) {
+		if (!extractParameterData(entity, "interconnect_address", ip_address)) {
 			return false;
 		}
-		return extractParameterData(entity->getParameter("tap_iface"), tap_iface);
+		return extractParameterData(entity, "tap_iface", tap_iface);
 	} else if (type == "gw_phy") {
-		if (!extractParameterData(entity->getParameter("emu_address"), ip_address)) {
+		if (!extractParameterData(entity, "emu_address", ip_address)) {
 			return false;
 		}
-		return extractParameterData(entity->getParameter("interconnect_address"), tap_iface);
+		return extractParameterData(entity, "interconnect_address", tap_iface);
 	} else {
 		return false;
 	}
@@ -686,10 +686,10 @@ bool OpenSandModelConf::getLocalStorage(bool &enabled, std::string &output_folde
 	}
 
 	auto storage = infrastructure->getRoot()->getComponent("storage");
-	if (!extractParameterData(storage->getParameter("enable_local"), enabled)) {
+	if (!extractParameterData(storage, "enable_local", enabled)) {
 		return false;
 	}
-	if (enabled && !extractParameterData(storage->getParameter("path_local"), output_folder)) {
+	if (enabled && !extractParameterData(storage, "path_local", output_folder)) {
 		return false;
 	}
 	return true;
@@ -703,22 +703,22 @@ bool OpenSandModelConf::getRemoteStorage(bool &enabled, std::string &address, un
 	}
 
 	auto storage = infrastructure->getRoot()->getComponent("storage");
-	if (!extractParameterData(storage->getParameter("enable_collector"), enabled)) {
+	if (!extractParameterData(storage, "enable_collector", enabled)) {
 		return false;
 	}
 	if (!enabled) {
 		return true;
 	}
 
-	if (!extractParameterData(storage->getParameter("collector_address"), address)) {
+	if (!extractParameterData(storage, "collector_address", address)) {
 		return false;
 	}
 
 	int stats = 5361;
-	extractParameterData(storage->getParameter("collector_probes"), stats);
+	extractParameterData(storage, "collector_probes", stats);
 
 	int logs = 5362;
-	extractParameterData(storage->getParameter("collector_logs"), logs);
+	extractParameterData(storage, "collector_logs", logs);
 
 	stats_port = stats;
 	logs_port = logs;
@@ -757,7 +757,7 @@ bool OpenSandModelConf::logLevels(std::map<std::string, log_level_t> &levels) co
 	};
 	for (auto& log_name : log_names_loop) {
 		std::string log_level;
-		if (!extractParameterData(log_levels->getComponent(log_name)->getParameter("level"), log_level)) {
+		if (!extractParameterData(log_levels->getComponent(log_name), "level", log_level)) {
 			return false;
 		}
 		auto iterator = levels_map.find(log_level);
@@ -770,11 +770,11 @@ bool OpenSandModelConf::logLevels(std::map<std::string, log_level_t> &levels) co
 	for (auto& log_item : log_levels->getList("extra_levels")->getItems()) {
 		auto log = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(log_item);
 		std::string log_name;
-		if (!extractParameterData(log->getParameter("name"), log_name)) {
+		if (!extractParameterData(log, "name", log_name)) {
 			return false;
 		}
 		std::string log_level;
-		if (!extractParameterData(log->getParameter("level"), log_level)) {
+		if (!extractParameterData(log, "level", log_level)) {
 			return false;
 		}
 		auto iterator = levels_map.find(log_level);
@@ -797,7 +797,7 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 	auto infra = infrastructure->getRoot()->getComponent("infrastructure");
 
 	int default_gw = -1;
-	extractParameterData(infra->getParameter("default_gw"), default_gw);
+	extractParameterData(infra, "default_gw", default_gw);
 	sarp_table.setDefaultTal(default_gw);
 
 	static std::vector<std::string> list_names{"gateways", "terminals"};
@@ -806,12 +806,12 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 			auto entity = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
 
 			int entity_id;
-			if (!extractParameterData(entity->getParameter("entity_id"), entity_id)) {
+			if (!extractParameterData(entity, "entity_id", entity_id)) {
 				return false;
 			}
 
 			std::string mac_address;
-			if (!extractParameterData(entity->getParameter("mac_address"), mac_address)) {
+			if (!extractParameterData(entity, "mac_address", mac_address)) {
 				return false;
 			}
 
@@ -844,8 +844,8 @@ bool OpenSandModelConf::getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const
 	svno_tcp_port = 4999;
 
 	auto ncc = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
-	extractParameterData(ncc->getParameter("pep_port"), pep_tcp_port);
-	extractParameterData(ncc->getParameter("svno_port"), svno_tcp_port);
+	extractParameterData(ncc, "pep_port", pep_tcp_port);
+	extractParameterData(ncc, "svno_port", svno_tcp_port);
 	return true;
 }
 
@@ -871,8 +871,8 @@ bool OpenSandModelConf::getQosServerHost(std::string &qos_server_host_agent, int
 	qos_server_host_port = 4000;
 
 	auto qos_server = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
-	extractParameterData(qos_server->getParameter("qos_server_host"), qos_server_host_agent);
-	extractParameterData(qos_server->getParameter("qos_server_port"), qos_server_host_port);
+	extractParameterData(qos_server, "qos_server_host", qos_server_host_agent);
+	extractParameterData(qos_server, "qos_server_port", qos_server_host_port);
 	return true;
 }
 
@@ -888,7 +888,7 @@ bool OpenSandModelConf::getS2WaveFormsDefinition(std::vector<fmt_definition_para
 		auto waveform = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(waveform_item);
 
 		int scheme_number;
-		if (!extractParameterData(waveform->getParameter("id"), scheme_number)) {
+		if (!extractParameterData(waveform, "id", scheme_number)) {
 			return false;
 		}
 		if (scheme_number <= 0) {
@@ -896,22 +896,22 @@ bool OpenSandModelConf::getS2WaveFormsDefinition(std::vector<fmt_definition_para
 		}
 
 		std::string modulation;
-		if (!extractParameterData(waveform->getParameter("modulation"), modulation)) {
+		if (!extractParameterData(waveform, "modulation", modulation)) {
 			return false;
 		}
 
 		std::string coding;
-		if (!extractParameterData(waveform->getParameter("coding"), coding)) {
+		if (!extractParameterData(waveform, "coding", coding)) {
 			return false;
 		}
 
 		double spectral_efficiency;
-		if (!extractParameterData(waveform->getParameter("efficiency"), spectral_efficiency)) {
+		if (!extractParameterData(waveform, "efficiency", spectral_efficiency)) {
 			return false;
 		}
 
 		double threshold;
-		if (!extractParameterData(waveform->getParameter("threshold"), threshold)) {
+		if (!extractParameterData(waveform, "threshold", threshold)) {
 			return false;
 		}
 
@@ -938,7 +938,7 @@ bool OpenSandModelConf::getRcs2WaveFormsDefinition(std::vector<fmt_definition_pa
 		auto waveform = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(waveform_item);
 
 		std::string burst_length;
-		if (!extractParameterData(waveform->getParameter("burst_length"), burst_length)) {
+		if (!extractParameterData(waveform, "burst_length", burst_length)) {
 			return false;
 		}
 
@@ -954,7 +954,7 @@ bool OpenSandModelConf::getRcs2WaveFormsDefinition(std::vector<fmt_definition_pa
 		}
 
 		int scheme_number;
-		if (!extractParameterData(waveform->getParameter("id"), scheme_number)) {
+		if (!extractParameterData(waveform, "id", scheme_number)) {
 			return false;
 		}
 		if (scheme_number <= 0) {
@@ -962,22 +962,22 @@ bool OpenSandModelConf::getRcs2WaveFormsDefinition(std::vector<fmt_definition_pa
 		}
 
 		std::string modulation;
-		if (!extractParameterData(waveform->getParameter("modulation"), modulation)) {
+		if (!extractParameterData(waveform, "modulation", modulation)) {
 			return false;
 		}
 
 		std::string coding;
-		if (!extractParameterData(waveform->getParameter("coding"), coding)) {
+		if (!extractParameterData(waveform, "coding", coding)) {
 			return false;
 		}
 
 		double spectral_efficiency;
-		if (!extractParameterData(waveform->getParameter("efficiency"), spectral_efficiency)) {
+		if (!extractParameterData(waveform, "efficiency", spectral_efficiency)) {
 			return false;
 		}
 
 		double threshold;
-		if (!extractParameterData(waveform->getParameter("threshold"), threshold)) {
+		if (!extractParameterData(waveform, "threshold", threshold)) {
 			return false;
 		}
 
@@ -1001,7 +1001,7 @@ bool OpenSandModelConf::getRcs2BurstLength(vol_sym_t &length_sym) const
 
 	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("schedulers");
 	std::string burst_length;
-	if (!extractParameterData(schedulers->getParameter("burst_length"), burst_length)) {
+	if (!extractParameterData(schedulers, "burst_length", burst_length)) {
 		return false;
 	}
 
@@ -1019,7 +1019,7 @@ bool OpenSandModelConf::getSuperframePerSlottedAlohaFrame(time_sf_t &sf_per_safr
 
 	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("schedulers");
 	int value;
-	if (!extractParameterData(schedulers->getParameter("crdsa_frame"), value)) {
+	if (!extractParameterData(schedulers, "crdsa_frame", value)) {
 		return false;
 	}
 
@@ -1036,7 +1036,7 @@ bool OpenSandModelConf::getCrdsaMaxSatelliteDelay(time_ms_t &sat_delay) const
 
 	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("schedulers");
 	int value;
-	if (!extractParameterData(schedulers->getParameter("crdsa_delay"), value)) {
+	if (!extractParameterData(schedulers, "crdsa_delay", value)) {
 		return false;
 	}
 
@@ -1052,7 +1052,7 @@ bool OpenSandModelConf::getPepAllocationDelay(int &pep_allocation_delay) const
 	}
 
 	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("schedulers");
-	return extractParameterData(schedulers->getParameter("pep_allocation"), pep_allocation_delay);
+	return extractParameterData(schedulers, "pep_allocation", pep_allocation_delay);
 }
 
 
@@ -1112,7 +1112,7 @@ bool OpenSandModelConf::getStatisticsPeriod(time_ms_t &period) const
 
 	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("timers");
 	int value;
-	if (!extractParameterData(schedulers->getParameter("statistics"), value)) {
+	if (!extractParameterData(schedulers, "statistics", value)) {
 		return false;
 	}
 
@@ -1129,7 +1129,7 @@ bool OpenSandModelConf::getSynchroPeriod(time_ms_t &period) const
 
 	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("timers");
 	int value;
-	if (!extractParameterData(schedulers->getParameter("synchro"), value)) {
+	if (!extractParameterData(schedulers, "synchro", value)) {
 		return false;
 	}
 
@@ -1146,7 +1146,7 @@ bool OpenSandModelConf::getAcmRefreshPeriod(time_ms_t &period) const
 
 	auto schedulers = topology->getRoot()->getComponent("advanced_settings")->getComponent("timers");
 	int value;
-	if (!extractParameterData(schedulers->getParameter("acm_refresh"), value)) {
+	if (!extractParameterData(schedulers, "acm_refresh", value)) {
 		return false;
 	}
 
@@ -1163,7 +1163,7 @@ bool OpenSandModelConf::getDelayBufferSize(std::size_t &size) const
 
 	auto delay = topology->getRoot()->getComponent("advanced_settings")->getComponent("delay");
 	int value;
-	if (!extractParameterData(delay->getParameter("fifo_size"), value)) {
+	if (!extractParameterData(delay, "fifo_size", value)) {
 		return false;
 	}
 
@@ -1180,7 +1180,7 @@ bool OpenSandModelConf::getDelayTimer(time_ms_t &period) const
 
 	auto delay = topology->getRoot()->getComponent("advanced_settings")->getComponent("delay");
 	int value;
-	if (!extractParameterData(delay->getParameter("delay_timer"), value)) {
+	if (!extractParameterData(delay, "delay_timer", value)) {
 		return false;
 	}
 
@@ -1201,7 +1201,7 @@ bool OpenSandModelConf::getGwWithTalId(uint16_t tal_id, uint16_t &gw_id) const
 	for (auto& assignment : st_assignments->getList("assignments")->getItems()) {
 		auto st_assignment = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(assignment);
 		int st_id;
-		if (!extractParameterData(st_assignment->getParameter("terminal_id"), st_id)) {
+		if (!extractParameterData(st_assignment, "terminal_id", st_id)) {
 			return false;
 		}
 		if (tal_id == st_id) {
@@ -1232,7 +1232,7 @@ bool OpenSandModelConf::getGwWithCarrierId(unsigned int car_id, uint16_t &gw) co
 	for (auto& spot : topology->getRoot()->getComponent("frequency_plan")->getList("spots")->getItems()) {
 		auto gw_assignment = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(spot)->getComponent("assignments");
 		int gw_id;
-		if (!extractParameterData(gw_assignment->getParameter("gateway_id"), gw_id)) {
+		if (!extractParameterData(gw_assignment, "gateway_id", gw_id)) {
 			return false;
 		}
 		if (gw == gw_id) {
@@ -1274,9 +1274,8 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	}
 
 	auto infra = infrastructure->getRoot()->getComponent("infrastructure");
-	auto emu_address = infra->getComponent("satellite")->getParameter("emu_address");
 	std::string satellite_address;
-	if (!extractParameterData(emu_address, satellite_address)) {
+	if (!extractParameterData(infra->getComponent("satellite"), "emu_address", satellite_address)) {
 		return false;
 	}
 
@@ -1284,7 +1283,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	for (auto& entity_element : infra->getList("gateways")->getItems()) {
 		auto possible_gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
 		int gateway_id;
-		if (!extractParameterData(possible_gateway->getParameter("entity_id"), gateway_id)) {
+		if (!extractParameterData(possible_gateway, "entity_id", gateway_id)) {
 			return false;
 		}
 		if (gateway_id == gw_id) {
@@ -1299,52 +1298,52 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	for (auto& spot : topology->getRoot()->getComponent("frequency_plan")->getList("spots")->getItems()) {
 		auto gw_assignment = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(spot)->getComponent("assignments");
 		int assigned_gw;
-		if (!extractParameterData(gw_assignment->getParameter("gateway_id"), assigned_gw)) {
+		if (!extractParameterData(gw_assignment, "gateway_id", assigned_gw)) {
 			return false;
 		}
 		if (assigned_gw == gw_id) {
 			uint16_t carrier_id = gw_id * 10;
 
 			std::string gateway_address;
-			if (!extractParameterData(gateway->getParameter("emu_address"), gateway_address)) {
+			if (!extractParameterData(gateway, "emu_address", gateway_address)) {
 				return false;
 			}
 
 			std::string ctrl_multicast_address = "239.137.194." + std::to_string(220 + gw_id * 2);
-			extractParameterData(gateway->getParameter("ctrl_multicast_address"), ctrl_multicast_address);
+			extractParameterData(gateway, "ctrl_multicast_address", ctrl_multicast_address);
 			std::string data_multicast_address = "239.137.194." + std::to_string(221 + gw_id * 2);
-			extractParameterData(gateway->getParameter("data_multicast_address"), data_multicast_address);
+			extractParameterData(gateway, "data_multicast_address", data_multicast_address);
 
 			int ctrl_out_port = 55000 + carrier_id;
-			extractParameterData(gateway->getParameter("ctrl_out_port"), ctrl_out_port);
+			extractParameterData(gateway, "ctrl_out_port", ctrl_out_port);
 			int ctrl_in_port = 55001 + carrier_id;
-			extractParameterData(gateway->getParameter("ctrl_in_port"), ctrl_in_port);
+			extractParameterData(gateway, "ctrl_in_port", ctrl_in_port);
 			int logon_out_port = 55002 + carrier_id;
-			extractParameterData(gateway->getParameter("logon_out_port"), logon_out_port);
+			extractParameterData(gateway, "logon_out_port", logon_out_port);
 			int logon_in_port = 55003 + carrier_id;
-			extractParameterData(gateway->getParameter("logon_in_port"), logon_in_port);
+			extractParameterData(gateway, "logon_in_port", logon_in_port);
 			int data_out_st_port = 55004 + carrier_id;
-			extractParameterData(gateway->getParameter("data_out_st_port"), data_out_st_port);
+			extractParameterData(gateway, "data_out_st_port", data_out_st_port);
 			int data_in_st_port = 55005 + carrier_id;
-			extractParameterData(gateway->getParameter("data_in_st_port"), data_in_st_port);
+			extractParameterData(gateway, "data_in_st_port", data_in_st_port);
 			int data_out_gw_port = 55006 + carrier_id;
-			extractParameterData(gateway->getParameter("data_out_gw_port"), data_out_gw_port);
+			extractParameterData(gateway, "data_out_gw_port", data_out_gw_port);
 			int data_in_gw_port = 55007 + carrier_id;
-			extractParameterData(gateway->getParameter("data_in_gw_port"), data_in_gw_port);
+			extractParameterData(gateway, "data_in_gw_port", data_in_gw_port);
 
 			int udp_stack = 5;
-			extractParameterData(gateway->getParameter("udp_stack"), udp_stack);
+			extractParameterData(gateway, "udp_stack", udp_stack);
 			int udp_rmem = 1048580;
-			extractParameterData(gateway->getParameter("udp_rmem"), udp_rmem);
+			extractParameterData(gateway, "udp_rmem", udp_rmem);
 			int udp_wmem = 1048580;
-			extractParameterData(gateway->getParameter("udp_wmem"), udp_wmem);
+			extractParameterData(gateway, "udp_wmem", udp_wmem);
 
 			int fifo_sizes = 0;
 			// TODO
-			// extractParameterData(gateway->getParameter("fifos_size"), fifo_sizes);
+			// extractParameterData(gateway, "fifos_size", fifo_sizes);
 			bool individual_fifos = false;
 			// TODO
-			// extractParameterData(gateway->getParameter("individual_fifo_sizes"), individual_fifos);
+			// extractParameterData(gateway, "individual_fifo_sizes", individual_fifos);
 
 			int ctrl_out_fifo_size = fifo_sizes;
 			int ctrl_in_fifo_size = fifo_sizes;
@@ -1356,14 +1355,14 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 			int data_in_gw_fifo_size = fifo_sizes;
 			if (individual_fifos) {
 				// TODO
-				// extractParameterData(gateway->getParameter("ctrl_out_fifo_size"), ctrl_out_fifo_size);
-				// extractParameterData(gateway->getParameter("ctrl_in_fifo_size"), ctrl_in_fifo_size);
-				// extractParameterData(gateway->getParameter("logon_out_fifo_size"), logon_out_fifo_size);
-				// extractParameterData(gateway->getParameter("logon_in_fifo_size"), logon_in_fifo_size);
-				// extractParameterData(gateway->getParameter("data_out_st_fifo_size"), data_out_st_fifo_size);
-				// extractParameterData(gateway->getParameter("data_in_st_fifo_size"), data_in_st_fifo_size);
-				// extractParameterData(gateway->getParameter("data_out_gw_fifo_size"), data_out_gw_fifo_size);
-				// extractParameterData(gateway->getParameter("data_in_gw_fifo_size"), data_in_gw_fifo_size);
+				// extractParameterData(gateway, "ctrl_out_fifo_size", ctrl_out_fifo_size);
+				// extractParameterData(gateway, "ctrl_in_fifo_size", ctrl_in_fifo_size);
+				// extractParameterData(gateway, "logon_out_fifo_size", logon_out_fifo_size);
+				// extractParameterData(gateway, "logon_in_fifo_size", logon_in_fifo_size);
+				// extractParameterData(gateway, "data_out_st_fifo_size", data_out_st_fifo_size);
+				// extractParameterData(gateway, "data_in_st_fifo_size", data_in_st_fifo_size);
+				// extractParameterData(gateway, "data_out_gw_fifo_size", data_out_gw_fifo_size);
+				// extractParameterData(gateway, "data_in_gw_fifo_size", data_in_gw_fifo_size);
 			}
 
 			carriers.ctrl_out = carrier_socket{
@@ -1479,7 +1478,7 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 		auto spot_topology = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(spot_topology_item);
 		auto spot_assignment = spot_topology->getComponent("assignments");
 		int gateway_id;
-		if (!extractParameterData(spot_assignment->getParameter("gateway_id"), gateway_id)) {
+		if (!extractParameterData(spot_assignment, "gateway_id", gateway_id)) {
 			return false;
 		}
 		if (gateway_id == gw_id) {
@@ -1492,7 +1491,7 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 		return false;
 	}
 
-	if (!extractParameterData(selected_spot->getComponent("roll_off")->getParameter(roll_off_parameter), spot.roll_off)) {
+	if (!extractParameterData(selected_spot->getComponent("roll_off"), roll_off_parameter, spot.roll_off)) {
 		return false;
 	}
 
@@ -1502,27 +1501,27 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 		auto carrier = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(carrier_item);
 
 		double symbol_rate;
-		if (!extractParameterData(carrier->getParameter("symbol_rate"), symbol_rate)) {
+		if (!extractParameterData(carrier, "symbol_rate", symbol_rate)) {
 			return false;
 		}
 
 		std::string category;
-		if (!extractParameterData(carrier->getParameter("group"), category)) {
+		if (!extractParameterData(carrier, "group", category)) {
 			return false;
 		}
 
 		std::string access_type;
-		if (!extractParameterData(carrier->getParameter("type"), access_type)) {
+		if (!extractParameterData(carrier, "type", access_type)) {
 			return false;
 		}
 
 		std::string format_ids;
-		if (!extractParameterData(carrier->getParameter("wave_form"), format_ids)) {
+		if (!extractParameterData(carrier, "wave_form", format_ids)) {
 			return false;
 		}
 
 		std::string ratio = "1000";
-		if (access_type == "VCM" && !extractParameterData(carrier->getParameter("ratio"), ratio)) {
+		if (access_type == "VCM" && !extractParameterData(carrier, "ratio", ratio)) {
 			return false;
 		}
 
@@ -1592,26 +1591,26 @@ bool OpenSandModelConf::getInterconnectCarrier(bool upward,
 	std::string direction = upward ? "upward_" : "downward_";
 
 	auto entity = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
-	if (!extractParameterData(entity->getParameter("interconnect_remote"), remote))
+	if (!extractParameterData(entity, "interconnect_remote", remote))
 	{
 		return false;
 	}
 
 	int data_port_value = upward ? 4500 : 4501;
-	extractParameterData(entity->getParameter(direction + "data_port"), data_port_value);
+	extractParameterData(entity, direction + "data_port", data_port_value);
 	data_port = data_port_value;
 	int sig_port_value = upward ? 4502 : 4503;
-	extractParameterData(entity->getParameter(direction + "sig_port"), sig_port_value);
+	extractParameterData(entity, direction + "sig_port", sig_port_value);
 	sig_port = sig_port_value;
 
 	int udp_stack_value = 5;
-	extractParameterData(entity->getParameter("interco_udp_stack"), udp_stack_value);
+	extractParameterData(entity, "interco_udp_stack", udp_stack_value);
 	udp_stack = udp_stack_value;
 	int udp_rmem_value = 1048580;
-	extractParameterData(entity->getParameter("interco_udp_rmem"), udp_rmem_value);
+	extractParameterData(entity, "interco_udp_rmem", udp_rmem_value);
 	udp_rmem = udp_rmem_value;
 	int udp_wmem_value = 1048580;
-	extractParameterData(entity->getParameter("interco_udp_wmem"), udp_wmem_value);
+	extractParameterData(entity, "interco_udp_wmem", udp_wmem_value);
 	udp_wmem = udp_wmem_value;
 
 	return true;
@@ -1630,13 +1629,13 @@ bool OpenSandModelConf::getTerminalAffectation(spot_id_t &default_spot_id,
 	auto defaults = assignments->getComponent("defaults");
 
 	int spot_id;
-	if (!extractParameterData(defaults->getParameter("default_gateway"), spot_id)) {
+	if (!extractParameterData(defaults, "default_gateway", spot_id)) {
 		return false;
 	}
 	default_spot_id = spot_id;
 
 	std::string category;
-	if (!extractParameterData(defaults->getParameter("default_group"), category)) {
+	if (!extractParameterData(defaults, "default_group", category)) {
 		return false;
 	}
 	default_category_name = category;
@@ -1646,13 +1645,13 @@ bool OpenSandModelConf::getTerminalAffectation(spot_id_t &default_spot_id,
 		auto terminal = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(terminal_assignment);
 
 		int terminal_id;
-		if (!extractParameterData(terminal->getParameter("terminal_id"), terminal_id)) {
+		if (!extractParameterData(terminal, "terminal_id", terminal_id)) {
 			return false;
 		}
-		if (!extractParameterData(terminal->getParameter("gateway_id"), spot_id)) {
+		if (!extractParameterData(terminal, "gateway_id", spot_id)) {
 			return false;
 		}
-		if (!extractParameterData(terminal->getParameter("group"), category)) {
+		if (!extractParameterData(terminal, "group", category)) {
 			return false;
 		}
 		auto result = terminal_categories.emplace(terminal_id, std::make_pair(spot_id, category));
