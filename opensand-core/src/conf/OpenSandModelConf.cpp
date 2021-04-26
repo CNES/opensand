@@ -1295,7 +1295,13 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 		return false;
 	}
 
-	for (auto& spot : topology->getRoot()->getComponent("frequency_plan")->getList("spots")->getItems()) {
+	auto topo = topology->getRoot();
+	auto delay = topo->getComponent("advanced_settings")->getComponent("delay");
+
+	int default_fifos_size = 10000;
+	extractParameterData(delay, "fifo_size", default_fifos_size);
+
+	for (auto& spot : topo->getComponent("frequency_plan")->getList("spots")->getItems()) {
 		auto gw_assignment = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(spot)->getComponent("assignments");
 		int assigned_gw;
 		if (!extractParameterData(gw_assignment, "gateway_id", assigned_gw)) {
@@ -1338,12 +1344,10 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 			int udp_wmem = 1048580;
 			extractParameterData(gateway, "udp_wmem", udp_wmem);
 
-			int fifo_sizes = 0;
-			// TODO
-			// extractParameterData(gateway, "fifos_size", fifo_sizes);
+			int fifo_sizes = default_fifos_size;
+			extractParameterData(gateway, "fifos_size", fifo_sizes);  // TODO: add this to conf file?
 			bool individual_fifos = false;
-			// TODO
-			// extractParameterData(gateway, "individual_fifo_sizes", individual_fifos);
+			extractParameterData(gateway, "individual_fifo_sizes", individual_fifos);  // TODO: add this to conf file?
 
 			int ctrl_out_fifo_size = fifo_sizes;
 			int ctrl_in_fifo_size = fifo_sizes;
@@ -1354,15 +1358,15 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 			int data_out_gw_fifo_size = fifo_sizes;
 			int data_in_gw_fifo_size = fifo_sizes;
 			if (individual_fifos) {
-				// TODO
-				// extractParameterData(gateway, "ctrl_out_fifo_size", ctrl_out_fifo_size);
-				// extractParameterData(gateway, "ctrl_in_fifo_size", ctrl_in_fifo_size);
-				// extractParameterData(gateway, "logon_out_fifo_size", logon_out_fifo_size);
-				// extractParameterData(gateway, "logon_in_fifo_size", logon_in_fifo_size);
-				// extractParameterData(gateway, "data_out_st_fifo_size", data_out_st_fifo_size);
-				// extractParameterData(gateway, "data_in_st_fifo_size", data_in_st_fifo_size);
-				// extractParameterData(gateway, "data_out_gw_fifo_size", data_out_gw_fifo_size);
-				// extractParameterData(gateway, "data_in_gw_fifo_size", data_in_gw_fifo_size);
+				// TODO: add these to conf file?
+				 extractParameterData(gateway, "ctrl_out_fifo_size", ctrl_out_fifo_size);
+				 extractParameterData(gateway, "ctrl_in_fifo_size", ctrl_in_fifo_size);
+				 extractParameterData(gateway, "logon_out_fifo_size", logon_out_fifo_size);
+				 extractParameterData(gateway, "logon_in_fifo_size", logon_in_fifo_size);
+				 extractParameterData(gateway, "data_out_st_fifo_size", data_out_st_fifo_size);
+				 extractParameterData(gateway, "data_in_st_fifo_size", data_in_st_fifo_size);
+				 extractParameterData(gateway, "data_out_gw_fifo_size", data_out_gw_fifo_size);
+				 extractParameterData(gateway, "data_in_gw_fifo_size", data_in_gw_fifo_size);
 			}
 
 			carriers.ctrl_out = carrier_socket{
