@@ -201,6 +201,16 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 		return nullptr;
 	}
 
+	auto output = Output::Get();
+	std::map<std::string, log_level_t> levels;
+	if(!Conf->logLevels(levels))
+	{
+		std::cerr << progname << ": error: unable to load default log levels" << std::endl;
+		return_code = 101;
+		return nullptr;
+	}
+	output->setLevels(levels);
+
 	std::string type;
 	tal_id_t entity_id;
 	if(!Conf->getComponentType(type, entity_id))
@@ -247,7 +257,6 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	}
 
 	bool enabled = false;
-	auto output = Output::Get();
 	output->setEntityName(entity->getName());
 
 	if (verbose)
@@ -269,6 +278,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 		// TODO: Error handling
 		output->configureRemoteOutput(remote_address, stats_port, logs_port);
 	}
+	DFLTLOG(LEVEL_NOTICE, "starting output\n");
 
 	if(!Conf->readTopology(topology_path))
 	{

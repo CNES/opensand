@@ -67,19 +67,6 @@ int main(int argc, char **argv)
 		return status;
 	}
 
-	DFLTLOG(LEVEL_NOTICE, "starting output\n");
-	std::map<std::string, log_level_t> levels;
-	if(!OpenSandModelConf::Get()->logLevels(levels))
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot load default levels, quit",
-		        entity->getName().c_str());
-		std::cerr << argv[0] << ": error: unable to load default log levels" << std::endl;
-		Plugin::releasePlugins();
-		return 101;
-	}
-	Output::Get()->setLevels(levels);
-
 	if(!entity->createBlocks())
 	{
 		std::cerr << argv[0] << ": error: unable to create specific blocks" << std::endl;
