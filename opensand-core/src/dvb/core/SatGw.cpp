@@ -48,8 +48,7 @@
 // TODO to not do...: do not create all fifo in the regenerative case
 SatGw::SatGw(tal_id_t gw_id,
              spot_id_t spot_id,
-             const OpenSandModelConf::spot_infrastructure &carriers,
-             size_t fifo_size):
+             const OpenSandModelConf::spot_infrastructure &carriers):
 	gw_id(gw_id),
 	spot_id(spot_id),
 	data_in_st_id(carriers.data_in_st.id),
@@ -68,16 +67,16 @@ SatGw::SatGw(tal_id_t gw_id,
 {
 	// initialize MAC FIFOs
 	this->logon_fifo = new DvbFifo(carriers.logon_out.id,
-	                               carriers.logon_out.fifo_size || fifo_size,
+	                               carriers.logon_out.fifo_size,
 	                               "logon_fifo");
 	this->control_fifo = new DvbFifo(carriers.ctrl_out.id,
-	                                 carriers.ctrl_out.fifo_size || fifo_size,
+	                                 carriers.ctrl_out.fifo_size,
 	                                 "control_fifo");
 	this->data_out_st_fifo = new DvbFifo(carriers.data_out_st.id,
-	                                     carriers.data_out_st.fifo_size || fifo_size,
+	                                     carriers.data_out_st.fifo_size,
 	                                     "data_out_st");
 	this->data_out_gw_fifo = new DvbFifo(carriers.data_out_gw.id,
-	                                     carriers.data_out_gw.fifo_size || fifo_size,
+	                                     carriers.data_out_gw.fifo_size,
 	                                     "data_out_gw");
 	// Output Log
 	this->log_init = Output::Get()->registerLog(LEVEL_WARNING,

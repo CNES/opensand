@@ -105,15 +105,6 @@ bool BlockDvbSat::initSpots(void)
 {
 	auto Conf = OpenSandModelConf::Get();
 
-	// Retrive FIFO size
-	std::size_t fifo_size;
-	if(!Conf->getDelayBufferSize(fifo_size))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section 'delay': missing parameter 'fifo_size'\n");
-		return false;
-	}
-
 	std::vector<tal_id_t> gw_ids;
 	if (!Conf->getGwIds(gw_ids))
 	{
@@ -124,6 +115,7 @@ bool BlockDvbSat::initSpots(void)
 
 	for (auto& gw_id : gw_ids)
 	{
+		// Retrive FIFO sizes
 		OpenSandModelConf::spot_infrastructure carriers;
 		if (!Conf->getSpotInfrastructure(gw_id, carriers))
 		{
@@ -150,7 +142,7 @@ bool BlockDvbSat::initSpots(void)
 		//***************************
 		// create a new gw
 		//***************************
-		SatGw *new_gw = new SatGw(gw_id, gw_id, carriers, fifo_size);
+		SatGw *new_gw = new SatGw(gw_id, gw_id, carriers);
 		new_gw->init();
 
 		this->gws[gw_id] = new_gw;

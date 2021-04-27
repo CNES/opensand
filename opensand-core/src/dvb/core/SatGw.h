@@ -104,18 +104,11 @@ class SatGw: public DvbFmt
 	 *
 	 * @param gw_id              The gw id
 	 * @param spot_id            The spot id
-	 * @param log_id             The carrier id for logon packets
-	 * @param ctrl_id            The carrier id for control frames
-	 * @param data_in_st_id      The carrier id for incoming GW data
-	 * @param data_in_gw_id      The carrier id for incoming GW data
-	 * @param data_out_st_id     The carrier id for outgoing terminal data
-	 * @param data_out_gw_id     The carrier id for outgoing GW data
-	 * @param fifo_size          The size of data FIFOs
+	 * @param carriers           The carriers definition informations
 	 */
 	SatGw(tal_id_t gw_id,
 	      spot_id_t spot_id,
-	      const OpenSandModelConf::spot_infrastructure &carriers,
-	      size_t fifo_size);
+	      const OpenSandModelConf::spot_infrastructure &carriers);
 	~SatGw();
 
 	bool init();
