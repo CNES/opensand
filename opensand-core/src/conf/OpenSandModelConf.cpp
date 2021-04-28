@@ -800,6 +800,12 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 	extractParameterData(infra, "default_gw", default_gw);
 	sarp_table.setDefaultTal(default_gw);
 
+	// Broadcast
+	sarp_table.add(new MacAddress("ff:ff:ff:ff:ff:ff"), 31);
+	// Multicast
+	sarp_table.add(new MacAddress("33:33:**:**:**:**"), 31);
+	sarp_table.add(new MacAddress("01:00:5E:**:**:**"), 31);
+
 	static std::vector<std::string> list_names{"gateways", "terminals"};
 	for (auto& list_name : list_names) {
 		for (auto& entity_element : infra->getList(list_name)->getItems()) {
