@@ -106,15 +106,16 @@ build()
     echo -n "  * Packaging module ... "
     if [ -f ./autogen.sh ]
     then
-        ./autogen.sh 1>configure.log 2>&1 || error
+        ./autogen.sh 1>configure.log 2>&1 || error configure.log
     fi
-    dpkg-buildpackage -rsudo -uc -us -tc 1>build.log 2>&1 && success || error
+    dpkg-buildpackage -rsudo -uc -us -tc 1>build.log 2>&1 && success || error build.log
     cd $THIS_DIR
 }
 
 error()
 {
     echo "ERROR!"
+    cat "$1" >&2
     exit 1
 }
 
