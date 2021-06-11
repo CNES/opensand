@@ -98,7 +98,7 @@ build()
 
         # Install dependencies
         echo -n "  * Installing build-dependencies ... "
-        sudo apt-get install --no-install-recommends -y --allow-downgrades ${DEPS} 1>/dev/null && success || error
+        sudo apt-get install --no-install-recommends -y --allow-downgrades ${DEPS} 1>/dev/null && success || error "Failed" "installing" ${DEPS}
     fi
     
     # Launch dpkg command to build package
@@ -115,7 +115,14 @@ build()
 error()
 {
     echo "ERROR!"
-    cat "$1" >&2
+    if [ $# == 1 ]
+    then
+      cat "$1" >&2
+    fi
+    if [ $# != 0 ]
+    then
+      echo "$@" >&2
+    fi
     exit 1
 }
 
