@@ -17,7 +17,7 @@ build: src/boost_1_75_0.tar.bz2
 
 src/boost_1_75_0.tar.bz2:
 	mkdir -p src
-	cd src; wget https://dl.bintray.com/boostorg/release/1.75.0/source/boost_1_75_0.tar.bz2
+	cd src; wget https://boostorg.jfrog.io/artifactory/main/release/1.75.0/source/boost_1_75_0.tar.bz2
 
 clean:
 	rm -rf src/boost_1_75_0/
