@@ -3,15 +3,16 @@ noinst_LTLIBRARIES = \
 
 libopensand_lan_adaptation_la_cpp = \
 	BlockLanAdaptation.cpp \
-	BlockLanAdaptationInit.cpp \
 	Evc.cpp \
-	Ethernet.cpp
+	Ethernet.cpp \
+	PacketSwitch.cpp
 
 libopensand_lan_adaptation_la_h = \
 	BlockLanAdaptation.h \
 	EthernetHeader.h \
 	Evc.h \
-	Ethernet.h
+	Ethernet.h \
+	PacketSwitch.h
 
 libopensand_lan_adaptation_la_SOURCES = \
 	$(libopensand_lan_adaptation_la_cpp) \

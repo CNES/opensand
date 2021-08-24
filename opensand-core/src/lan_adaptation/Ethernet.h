@@ -100,7 +100,8 @@ class Ethernet: public LanAdaptationPlugin
 		bool initLanAdaptationContext(
 			tal_id_t tal_id,
 			tal_id_t gw_id,
-			const SarpTable *sarp_table);
+			//const SarpTable *sarp_table);
+			PacketSwitch *packet_switch);
 
 	  protected:
 		/**
@@ -259,7 +260,7 @@ class Ethernet: public LanAdaptationPlugin
 
 	};
 
-  private:
+  public:
 	/**
 	 * @brief Retrieve the type of frame
 	 *

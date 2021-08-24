@@ -45,7 +45,7 @@
 class NetBurst;
 class SarpTable;
 class OutputLog;
-
+class PacketSwitch;
 
 /**
  * @class LanAdaptationPlugin
@@ -117,7 +117,8 @@ class LanAdaptationPlugin: public StackPlugin
 		 */
 		virtual bool initLanAdaptationContext(tal_id_t tal_id,
 		                                      tal_id_t gw_id,
-		                                      const SarpTable *sarp_table);
+		                                      ///const SarpTable *sarp_table);
+		                                      PacketSwitch *packet_switch);
 
 		/**
 		 * @brief Get the bytes of LAN header for TUN/TAP interface
@@ -150,7 +151,7 @@ class LanAdaptationPlugin: public StackPlugin
 		tal_id_t gw_id;
 
 		/// The SARP table
-		const SarpTable *sarp_table;
+		PacketSwitch *packet_switch;
 	};
 
 	LanAdaptationPlugin(uint16_t ether_type);

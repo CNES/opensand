@@ -86,12 +86,15 @@ bool SarpTable::add(MacAddress *mac_address,
 		return false;
 	}
 
-	// set entry
-	entry->mac = mac_address;
-	entry->tal_id = tal;
-
-	// append entry to table
-	this->eth_sarp.push_back(entry);
+	// add entry to if not presents
+	tal_id_t tal_id = 255;
+	if(!SarpTable::getTalByMac(*mac_address, tal_id))
+	{
+		// set entry
+		entry->mac = mac_address;
+		entry->tal_id = tal;
+		this->eth_sarp.push_back(entry);
+	}	
 
 	return true;
 }

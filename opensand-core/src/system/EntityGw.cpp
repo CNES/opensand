@@ -67,6 +67,7 @@
 #include "BlockEncap.h"
 #include "BlockPhysicalLayer.h"
 
+#include "PacketSwitch.h"
 
 EntityGw::EntityGw(tal_id_t instance_id): Entity("gw" + std::to_string(instance_id), instance_id)
 {
@@ -89,6 +90,7 @@ bool EntityGw::createSpecificBlocks()
 
 	// instantiate all blocs
 	laspecific.tap_iface = this->tap_iface;
+        laspecific.packet_switch = new GatewayPacketSwitch(this->instance_id);
 	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
 		 BlockLanAdaptation::Upward,
 		 BlockLanAdaptation::Downward,
