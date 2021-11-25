@@ -62,9 +62,9 @@ make_encap()
 {
     echo "Building OpenSAND encapsulation plugins for $TARGET_DIST"
     # Package and install opensand-plugins/encapsulation/gse
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/gse
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-plugins/encapsulation/gse
     # Package and install opensand-plugins/encapsulation/rle
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/rle
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-plugins/encapsulation/rle
     echo "Finished building OpenSAND encapsulation plugins for $TARGET_DIST"
 }
 
