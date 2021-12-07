@@ -2,7 +2,7 @@
   "name": "opensand_deploy",
   "version": "0.1.0",
   "private": true,
-  "proxy": "http://172.20.34.140",
+  "proxy": "http://172.20.34.75:9000/",
   "dependencies": {
     "@material-ui/core": "^4.11.2",
     "@material-ui/icons": "^4.11.2",
@@ -29,7 +29,7 @@
     "@types/react-router": "^5.1.11",
     "@types/react-router-dom": "^5.1.7",
     "@types/xml2js": "^0.4.7",
-    "react-scripts": "4.0.1",
+    "react-scripts": "4.0.3",
     "typescript": "^4.0.3"
   },
   "scripts": {

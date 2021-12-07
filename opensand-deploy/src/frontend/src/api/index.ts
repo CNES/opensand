@@ -2,6 +2,20 @@ import {Model} from '../xsd/model';
 import {toXML} from '../xsd/serialiser';
 
 
+interface IAction {
+    onEdit?: (key: string, xsd: string, xml?: string) => void;
+    onSelect?: () => void;
+    onDelete?: (key: string) => void;
+    onCreate?: () => void;
+}
+
+
+export interface IActions {
+    '$'?: IAction;
+    [id: string]: IActions | IAction | undefined;
+}
+
+
 type TCallback<T> = (x: T) => void;
 type ErrorCallback = TCallback<string>;
 

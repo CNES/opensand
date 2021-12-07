@@ -1,8 +1,6 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router-dom';
 
-// import Tab from '@material-ui/core/Tab';
-// import Tabs from '@material-ui/core/Tabs';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 
@@ -11,8 +9,7 @@ import {sendError} from '../../utils/dispatcher';
 import {Model} from '../../xsd/model';
 import {fromXSD, fromXML} from '../../xsd/parser';
 
-// import Templates from './Templates';
-import Entities from './Entities';
+import RootComponent from '../Model/RootComponent';
 
 
 interface Props extends RouteComponentProps<{name: string;}> {
@@ -21,14 +18,9 @@ interface Props extends RouteComponentProps<{name: string;}> {
 
 const Project = (props: Props) => {
     const projectName = props.match.params.name;
-    // const [value, setValue] = React.useState<number>(0);
     const [model, changeModel] = React.useState<Model | undefined>(undefined);
+    const [, modelChanged] = React.useState<object>({});
 
-/*
-    const handleChange = React.useCallback((event: React.ChangeEvent<{}>, index: number) => {
-        setValue(index);
-    }, [setValue]);
-*/
     const loadProject = React.useCallback((content: IXsdContent) => {
         const newModel = fromXSD(content.content);
         const onSuccess = (xml: IXmlContent) => {
@@ -36,6 +28,10 @@ const Project = (props: Props) => {
         };
         getProject(onSuccess, sendError, projectName);
     }, [changeModel, projectName]);
+
+    const refreshModel = React.useCallback(() => {
+        modelChanged({});
+    }, []);
 
     React.useEffect(() => {
         getProjectModel(loadProject, sendError);
@@ -48,30 +44,9 @@ const Project = (props: Props) => {
                 <Typography variant="h6">Project:&nbsp;</Typography>
                 <Typography variant="h6">{projectName}</Typography>
             </Toolbar>
-            {model != null && <Entities project={model} projectName={projectName} />}
+            {model != null && <RootComponent root={model.root} modelChanged={refreshModel} />}
         </React.Fragment>
     );
-/*
-
-    return (
-        <React.Fragment>
-            <AppBar position="static" color="primary">
-                <Tabs
-                    value={value}
-                    onChange={handleChange}
-                    indicatorColor="secondary"
-                    textColor="inherit"
-                    variant="fullWidth"
-                >
-                    <Tab label="Entities" value={0} />
-                    <Tab label="Templates" value={1} />
-                </Tabs>
-            </AppBar>
-            {value === 0 && model != null && <Entities project={model} projectName={projectName} />}
-            {value === 1 && model != null && <Templates project={model} projectName={projectName} />}
-        </React.Fragment>
-    );
-*/
 };
 
 

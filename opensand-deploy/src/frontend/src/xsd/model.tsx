@@ -116,6 +116,11 @@ interface ListElement {
 export type Element = ParameterElement | ComponentElement | ListElement;
 
 
+export const isParameterElement = (e?: Element): e is ParameterElement => e != null && e.type === "parameter";
+export const isComponentElement = (e?: Element): e is ComponentElement => e != null && e.type === "component";
+export const isListElement = (e?: Element): e is ListElement => e != null && e.type === "list";
+
+
 export class Parameter extends NamedElement {
     type: string;
     unit: string;
@@ -168,13 +173,13 @@ export class Component extends NamedElement {
     };
 
     getComponents = (checkVisibility: boolean = true): Component[] => {
-        const keepComponents = ((e: Element): e is ComponentElement => e.type === "component" && (!checkVisibility || e.element.isVisible()));
+        const keepComponents = ((e: Element): e is ComponentElement => isComponentElement(e) && (!checkVisibility || e.element.isVisible()));
         const components: ComponentElement[] = this.elements.filter(keepComponents);
         return components.map((e: ComponentElement) => e.element);
     };
 
     getParameters = (checkVisibility: boolean = true): Parameter[] => {
-        const keepParameters = ((e: Element): e is ParameterElement => e.type === "parameter" && (!checkVisibility || e.element.isVisible()));
+        const keepParameters = ((e: Element): e is ParameterElement => isParameterElement(e) && (!checkVisibility || e.element.isVisible()));
         const parameters: ParameterElement[] = this.elements.filter(keepParameters);
         return parameters.map((e: ParameterElement) => e.element);
     };

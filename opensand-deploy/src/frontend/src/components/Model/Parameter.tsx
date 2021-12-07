@@ -3,6 +3,7 @@ import React from 'react';
 import Checkbox from '@material-ui/core/Checkbox';
 import FormControl from '@material-ui/core/FormControl';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
+import FormHelperText from '@material-ui/core/FormHelperText';
 import IconButton from '@material-ui/core/IconButton';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import InputLabel from '@material-ui/core/InputLabel';
@@ -11,28 +12,27 @@ import Select from '@material-ui/core/Select';
 import TextField from '@material-ui/core/TextField';
 import Tooltip from '@material-ui/core/Tooltip';
 
+import DeleteIcon from '@material-ui/icons/HighlightOff';
+import EditIcon from '@material-ui/icons/Edit';
 import HelpIcon from '@material-ui/icons/Help';
 
+import {
+    listProjectTemplates,
+    IActions,
+    ITemplatesContent,
+} from '../../api';
+import {sendError} from '../../utils/dispatcher';
+import {useDidMount} from '../../utils/hooks';
 import {parameterStyles} from '../../utils/theme';
-import {Parameter as ParameterType} from '../../xsd/model';
+import {Parameter as ParameterType, isComponentElement, isParameterElement} from '../../xsd/model';
 
 
 interface Props {
     parameter: ParameterType;
     readOnly?: boolean;
+    entity?: string;
     changeModel: () => void;
-}
-
-
-interface NumberProps extends Props {
-    min: number;
-    max: number;
-    step: number;
-}
-
-
-interface EnumProps extends Props {
-    enumeration: string[];
+    actions?: IActions;
 }
 
 
@@ -67,6 +67,13 @@ const BooleanParam = (props: Props) => {
         </div>
     );
 };
+
+
+interface NumberProps extends Props {
+    min: number;
+    max: number;
+    step: number;
+}
 
 
 const NumberParam = (props: NumberProps) => {
@@ -157,6 +164,11 @@ const StringParam = (props: Props) => {
 };
 
 
+interface EnumProps extends Props {
+    enumeration: string[];
+}
+
+
 const EnumParam = (props: EnumProps) => {
     const {parameter, readOnly, changeModel, enumeration} = props;
     const classes = parameterStyles();
@@ -208,10 +220,129 @@ const EnumParam = (props: EnumProps) => {
 };
 
 
+interface XsdEnumProps extends Props {
+}
+
+
+// TODO:
+// add onSelect action
+// add onEdit action
+// add onDelete action
+const XsdParameter = (props: XsdEnumProps) => {
+    const {parameter, readOnly, changeModel, entity, actions} = props;
+    const {onEdit, onSelect, onDelete} = actions?.$ || {};
+
+    const didMount = useDidMount();
+    const classes = parameterStyles();
+
+    const [templates, setTemplates] = React.useState<ITemplatesContent>({});
+
+    // TODO improve for profile
+    const xsd = React.useMemo(() => parameter.id === "profile" ? `profile_${entity}.xsd` : `${parameter.id}.xsd`, [parameter.id, entity]);
+
+    const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: unknown;}>) => {
+        const value = event.target.value as string;
+        if (value == null) {
+            return;
+        }
+
+        parameter.value = xsd;
+        onEdit && onEdit(parameter.id, xsd, value);
+    }, [parameter, xsd, onEdit]);
+
+    const handleClear = React.useCallback(() => {
+        parameter.value = "";
+        onDelete && onDelete(parameter.id);
+    }, [parameter, onDelete]);
+
+    const handleEdit = React.useCallback(() => {
+        onEdit && onEdit(parameter.id, parameter.value);
+    }, [parameter, onEdit]);
+
+    const header = React.useMemo(() => <em>Please select a template</em>, []);
+    const hasValue = React.useMemo(() => parameter.value && parameter.value !== "", [parameter.value]);
+
+    const projectName = React.useMemo(() => {
+        const platform = parameter.model.root.elements.find(e => e.element.id === "platform");
+        if (isComponentElement(platform)) {
+            const project = platform.element.elements.find(e => e.element.id === "project");
+            if (isParameterElement(project)) {
+                return project.element.value;
+            }
+        }
+
+        return "";
+    }, [parameter.model]);
+
+    const renderValue = React.useCallback((selected: any) => {
+        if (selected == null || selected === "") {
+            return header;
+        } else {
+            return selected;
+        }
+    }, [header]);
+
+    React.useEffect(() => {
+        if (hasValue && didMount && onSelect) onSelect();
+        listProjectTemplates(setTemplates, sendError, projectName);
+        return () => {setTemplates({});};
+    }, [onSelect, didMount, hasValue, projectName]);
+
+    const templatesNames = templates[xsd] || [];
+    const choices = templatesNames.map((v: string, i: number) => <MenuItem value={v} key={i+1}>{v}</MenuItem>);
+    choices.splice(0, 0, <MenuItem value="" key={0}>{header}</MenuItem>);
+
+    return (
+        <div className={classes.spaced}>
+            <FormControl className={classes.fullWidth}>
+                <InputLabel htmlFor={parameter.id}>
+                    {parameter.value === "" ? null : parameter.name}
+                </InputLabel>
+                <Select
+                    value={parameter.value}
+                    onChange={handleChange}
+                    inputProps={{id: parameter.id}}
+                    displayEmpty
+                    renderValue={renderValue}
+                    disabled={entity === "sat"}
+                >
+                    {choices}
+                </Select>
+            </FormControl>
+            {hasValue && (
+                <Tooltip placement="top" title="Edit this configuration file">
+                    <IconButton onClick={handleEdit}>
+                        <EditIcon />
+                    </IconButton>
+                </Tooltip>
+            )}
+            {hasValue && (
+                <Tooltip placement="top" title="Remove this configuration file">
+                    <IconButton onClick={handleClear}>
+                        <DeleteIcon />
+                    </IconButton>
+                </Tooltip>
+            )}
+        </div>
+    );
+};
+
+
 const Parameter = (props: Props) => {
-    const {parameter, readOnly, changeModel} = props;
+    const {parameter, readOnly, entity, changeModel, actions} = props;
 
     const isReadOnly = readOnly || parameter.readOnly;
+
+    if (parameter.type.endsWith("_xsd")) {
+        return (
+            <XsdParameter
+                parameter={parameter}
+                readOnly={isReadOnly}
+                changeModel={changeModel}
+                actions={actions}
+            />
+        );
+    }
 
     const enumeration = parameter.model.environment.enums.find(e => e.id === parameter.type);
     if (enumeration != null) {
@@ -221,6 +352,7 @@ const Parameter = (props: Props) => {
                 readOnly={isReadOnly}
                 enumeration={enumeration.values}
                 changeModel={changeModel}
+                actions={actions}
             />
         );
     }
@@ -233,6 +365,7 @@ const Parameter = (props: Props) => {
                     parameter={parameter}
                     readOnly={isReadOnly}
                     changeModel={changeModel}
+                    actions={actions}
                 />
             );
         case "longdouble":
@@ -246,6 +379,7 @@ const Parameter = (props: Props) => {
                     max={Number.MAX_SAFE_INTEGER}
                     step={0.01}
                     changeModel={changeModel}
+                    actions={actions}
                 />
             );
         case "byte":
@@ -257,6 +391,7 @@ const Parameter = (props: Props) => {
                     max={255}
                     step={1}
                     changeModel={changeModel}
+                    actions={actions}
                 />
             );
         case "short":
@@ -268,6 +403,7 @@ const Parameter = (props: Props) => {
                     max={32767}
                     step={1}
                     changeModel={changeModel}
+                    actions={actions}
                 />
             );
         case "int":
@@ -279,6 +415,7 @@ const Parameter = (props: Props) => {
                     max={2147483647}
                     step={1}
                     changeModel={changeModel}
+                    actions={actions}
                 />
             );
         case "long":
@@ -290,6 +427,7 @@ const Parameter = (props: Props) => {
                     max={Number.MAX_SAFE_INTEGER}
                     step={1}
                     changeModel={changeModel}
+                    actions={actions}
                 />
             );
         case "string":
@@ -300,6 +438,7 @@ const Parameter = (props: Props) => {
                     parameter={parameter}
                     readOnly={isReadOnly}
                     changeModel={changeModel}
+                    actions={actions}
                 />
             );
     }

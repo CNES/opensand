@@ -1,6 +1,11 @@
 import React from 'react';
 import {useHistory} from 'react-router-dom';
 
+import AppBar from '@material-ui/core/AppBar';
+import Tab from '@material-ui/core/Tab';
+import Tabs from '@material-ui/core/Tabs';
+import Tooltip from '@material-ui/core/Tooltip';
+
 import {
     getXSD,
     updateProject,
@@ -14,7 +19,7 @@ import {
 } from '../../api';
 import {sendError} from '../../utils/dispatcher';
 import {fromXSD, fromXML} from '../../xsd/parser';
-import {Model} from '../../xsd/model';
+import {Model, Component as ComponentType} from '../../xsd/model';
 
 import Component from './Component';
 
@@ -25,19 +30,44 @@ interface Props {
 }
 
 
+interface PanelProps {
+    className?: string;
+    children?: React.ReactNode;
+    index: any;
+    value: any;
+}
+
+
 type EntityTypeSetter = (entityType?: string) => void;
+
+
+const TabPanel = (props: PanelProps) => {
+    const {children, value, index, ...other} = props;
+
+    return (
+        <div hidden={value !== index} {...other}>
+            {value === index && children}
+        </div>
+    );
+};
 
 
 const Entities = (props: Props) => {
     const {project, projectName} = props;
+
+    const [value, setValue] = React.useState<number>(0);
     const [templates, setTemplates] = React.useState<ITemplatesContent>({});
     const [, setState] = React.useState<object>({});
     const history = useHistory();
 
+    const handleTabChange = React.useCallback((event: React.ChangeEvent<{}>, index: number) => {
+        setValue(index);
+    }, []);
+
     const handleUpdate = React.useCallback(() => {
         updateProject(silenceSuccess, sendError, projectName, project);
         setState({});
-    }, [setState, projectName, project]);
+    }, [projectName, project]);
 
     const checkModel = React.useCallback((xsd: string, entity: string, setEntityType: EntityTypeSetter) => {
         const dataModel = fromXSD(xsd);
@@ -94,21 +124,47 @@ const Entities = (props: Props) => {
         return () => {setTemplates({});};
     }, [setTemplates, projectName]);
 
+/*
     const projectComponent = project.root.elements.find(e => e.element.id === "project");
     if (projectComponent == null || projectComponent.type !== "component") {
         return null;
     }
+*/
+    const components = project.root.getComponents();
 
     return (
-        <Component
-            component={projectComponent.element}
-            templates={templates}
-            onSelect={handleSelect}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onDownload={handleDownload}
-            forceUpdate={handleUpdate}
-        />
+        <>
+            <AppBar position="static" color="primary">
+                <Tabs
+                    value={value}
+                    onChange={handleTabChange}
+                    indicatorColor="secondary"
+                    textColor="inherit"
+                    variant="fullWidth"
+                >
+                    {components.map((c: ComponentType, i: number) => c.description === "" ? (
+                        <Tab key={c.id} label={c.name} value={i} />
+                    ) : (
+                        <Tooltip title={c.description} placement="top" key={c.id}>
+                            <Tab key={c.id} label={c.name} value={i} />
+                        </Tooltip>
+                    ))}
+                </Tabs>
+            </AppBar>
+            {components.map((c: ComponentType, i: number) => (
+                <TabPanel key={i} value={value} index={i}>
+                    <Component
+                        component={c}
+                        templates={templates}
+                        onSelect={handleSelect}
+                        onEdit={handleEdit}
+                        onDelete={handleDelete}
+                        onDownload={handleDownload}
+                        forceUpdate={handleUpdate}
+                    />
+                </TabPanel>
+            ))}
+        </>
     );
 };
 
