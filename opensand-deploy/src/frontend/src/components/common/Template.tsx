@@ -39,6 +39,9 @@ const useStyles = makeStyles((theme: Theme) => ({
 }));
 
 
+const opensandVersion = process.env.REACT_APP_OPENSAND_VERSION || `(${process.env.NODE_ENV}  build)`;
+
+
 const Template = (props: Props) => {
     const [error, changeError] = React.useState<ErrorMessage>({date: new Date()});
     const history = useHistory();
@@ -72,7 +75,7 @@ const Template = (props: Props) => {
                         <BackIcon />
                     </IconButton>
                     <Typography variant="h6" className={classes.expand}>
-                        OpenSAND Conf 6.0.0
+                        OpenSAND Conf {opensandVersion}
                     </Typography>
                     <Logger message={error.message} date={error.date} />
                 </Toolbar>

@@ -13,6 +13,7 @@ import {makeStyles, Theme} from '@material-ui/core/styles';
 import AddIcon from '@material-ui/icons/AddCircleOutline';
 import DeleteIcon from '@material-ui/icons/HighlightOff';
 
+import {IActions, noActions} from '../../utils/actions';
 import {List as ListType, Component as ComponentType} from '../../xsd/model';
 
 import Component from './Component';
@@ -22,6 +23,7 @@ interface Props {
     list: ListType;
     readOnly?: boolean;
     changeModel: () => void;
+    actions: IActions;
 }
 
 
@@ -49,7 +51,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 
 const SingleListComponent = (props: Props) => {
-    const {list, readOnly, changeModel} = props;
+    const {list, readOnly, actions, changeModel} = props;
     const classes = useStyles();
 
     const [open, setOpen] = React.useState<number>(0);
@@ -61,9 +63,13 @@ const SingleListComponent = (props: Props) => {
     }, [changeModel, setState]);
 
     const addListItem = React.useCallback(() => {
-        list.addItem();
-        forceUpdate();
-    }, [list, forceUpdate]);
+        if (actions.$.onCreate != null) {
+            actions.$.onCreate();
+        } else {
+            list.addItem();
+            forceUpdate();
+        }
+    }, [list, forceUpdate, actions.$]);
 
     const removeListItem = React.useCallback(() => {
         list.removeItem();
@@ -97,7 +103,12 @@ const SingleListComponent = (props: Props) => {
             <div className={classes.rightPanel}>
                 {list.elements.map((c: ComponentType, i: number) => (
                     <Collapse key={i} in={open === i} timeout="auto" unmountOnExit>
-                        <Component component={c} readOnly={!isEditable} changeModel={changeModel} />
+                        <Component
+                            component={c}
+                            readOnly={!isEditable}
+                            changeModel={changeModel}
+                            actions={actions['#'][c.id] || noActions}
+                        />
                     </Collapse>
                 ))}
             </div>

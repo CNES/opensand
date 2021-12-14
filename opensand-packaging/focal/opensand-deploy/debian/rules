@@ -32,6 +32,7 @@ override_dh_install:
 
 	opensand -g $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/
 
+	echo "REACT_APP_OPENSAND_VERSION=$(dpkg-parsechangelog --show-field Version)" > src/frontend/.env
 	cd src/frontend; yarn install; yarn build
 	install -d $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/static/
 	cp -r src/frontend/build/* $(CURDIR)/debian/opensand-deploy/var/opensand/opensand-conf/static/

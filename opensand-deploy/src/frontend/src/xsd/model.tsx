@@ -323,7 +323,7 @@ export class List extends NamedElement {
         return "";
     };
 
-    addItem = () => {
+    addItem = (): Component | undefined => {
         if (this.elements.length < this.maxOccurences) {
             const {name, description} = this.pattern;
             const index = this.elements.length;
@@ -335,6 +335,7 @@ export class List extends NamedElement {
             item.clone(this.pattern, index);
 
             this.elements.push(item);
+            return item;
         }
     };
 

@@ -19,6 +19,7 @@ import ArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
 import DeleteIcon from '@material-ui/icons/HighlightOff';
 import MoreIcon from '@material-ui/icons/MoreHoriz';
 
+import {IActions, noActions} from '../../utils/actions';
 import {Component as ComponentType, List as ListType} from '../../xsd/model';
 
 import Component from './Component';
@@ -28,15 +29,19 @@ interface Props {
     list: ListType;
     readOnly?: boolean;
     changeModel: () => void;
+    actions: IActions;
 }
 
 
 interface RowProps {
     component: ComponentType;
+    index: number;
+    readOnly?: boolean;
     isEditable: boolean;
     headers: string[];
     changeModel: () => void;
     onDelete: false | (() => void);
+    actions: IActions;
 }
 
 
@@ -54,9 +59,11 @@ const useRowStyles = makeStyles({
 
 
 const Row = (props: RowProps) => {
-    const {component, isEditable, headers, changeModel, onDelete} = props;
-    const [open, setOpen] = React.useState<boolean>(false);
+    const {component, index, readOnly, isEditable, headers, actions, changeModel, onDelete} = props;
     const classes = useRowStyles();
+
+    const [open, setOpen] = React.useState<boolean>(false);
+
     const parameters = component.getParameters(false);
 
     return (
@@ -67,12 +74,17 @@ const Row = (props: RowProps) => {
                         {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
                     </IconButton>
                 </TableCell>
+                {actions.$.onAction && (
+                    <TableCell key={1} align="center">
+                        {actions.$.onAction(index)}
+                    </TableCell>
+                )}
                 {headers.map((id: string, i: number) => (
-                    <TableCell key={i+1} align="center">
+                    <TableCell key={i+2} align="center">
                         {parameters.find(p => p?.id === id)?.value}
                     </TableCell>
                 ))}
-                <TableCell key={headers.length + 1} align="right">
+                <TableCell key={headers.length + (actions.$.onAction ? 3 : 2)} align="right">
                     {isEditable && onDelete && (
                         <IconButton size="small" onClick={onDelete}>
                             <DeleteIcon />
@@ -86,8 +98,9 @@ const Row = (props: RowProps) => {
                         <Box margin={1}>
                             <Component
                                 component={component}
-                                readOnly={!isEditable}
+                                readOnly={readOnly}
                                 changeModel={changeModel}
+                                actions={actions}
                             />
                         </Box>
                     </Collapse>
@@ -99,7 +112,7 @@ const Row = (props: RowProps) => {
 
 
 const List = (props: Props) => {
-    const {list, readOnly, changeModel} = props;
+    const {list, readOnly, actions, changeModel} = props;
     const [, setState] = React.useState<object>({});
 
     const forceUpdate = React.useCallback(() => {
@@ -108,18 +121,27 @@ const List = (props: Props) => {
     }, [changeModel, setState]);
 
     const addListItem = React.useCallback(() => {
-        list.addItem();
-        forceUpdate();
-    }, [list, forceUpdate]);
+        if (actions.$.onCreate != null) {
+            actions.$.onCreate();
+        } else {
+            list.addItem();
+            forceUpdate();
+        }
+    }, [list, forceUpdate, actions.$]);
 
     const removeListItem = React.useCallback(() => {
-        list.removeItem();
-        forceUpdate();
-    }, [list, forceUpdate]);
+        if (actions.$.onDelete != null) {
+            actions.$.onDelete();
+        } else {
+            list.removeItem();
+            forceUpdate();
+        }
+    }, [list, forceUpdate, actions.$]);
 
     const count = list.elements.length;
     const headers = list.pattern.getParameters().map(p => p.id);
-    const isEditable = !readOnly && !list.isReadOnly();
+    const isEditable = !readOnly && !list.readOnly;
+    const patternActions = actions['#'][list.pattern.id] || noActions;
 
     return (
         <TableContainer component={Paper}>
@@ -131,12 +153,17 @@ const List = (props: Props) => {
                                 <MoreIcon />
                             </IconButton>
                         </TableCell>
+                        {patternActions.$.onAction && (
+                            <TableCell key={1} align="center">
+                                Action
+                            </TableCell>
+                        )}
                         {headers.map((id: string, i: number) => (
-                            <TableCell key={i+1} align="center">
+                            <TableCell key={i+2} align="center">
                                 {list.pattern.elements.find(p => p.element.id === id)?.element.name}
                             </TableCell>
                         ))}
-                        <TableCell key={headers.length + 1} align="right">
+                        <TableCell key={headers.length + 2} align="right">
                             {isEditable && (
                                 <IconButton size="small" onClick={addListItem}>
                                     <AddIcon />
@@ -150,10 +177,13 @@ const List = (props: Props) => {
                         <Row
                             key={i}
                             component={c}
+                            index={i}
+                            readOnly={readOnly}
                             isEditable={isEditable}
                             headers={headers}
                             changeModel={forceUpdate}
                             onDelete={i === count - 1 && count > list.minOccurences && removeListItem}
+                            actions={patternActions}
                         />
                     ))}
                 </TableBody>

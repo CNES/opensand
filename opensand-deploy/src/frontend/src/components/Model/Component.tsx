@@ -8,8 +8,9 @@ import Typography from "@material-ui/core/Typography";
 
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
+import {IActions, noActions} from '../../utils/actions';
 import {componentStyles} from '../../utils/theme';
-import {Component as ComponentType} from '../../xsd/model';
+import {Component as ComponentType, isParameterElement} from '../../xsd/model';
 
 import List from './List';
 import Parameter from './Parameter';
@@ -19,11 +20,20 @@ interface Props {
     component: ComponentType;
     readOnly?: boolean;
     changeModel: () => void;
+    actions: IActions;
 }
 
 
+const findParameterValue = (component: ComponentType, id: string) => {
+    const parameter = component.elements.find((e) => e.type === "parameter" && e.element.id === id);
+    if (isParameterElement(parameter)) {
+        return parameter.element.value;
+    }
+};
+
+
 const Component = (props: Props) => {
-    const {component, readOnly, changeModel} = props;
+    const {component, readOnly, actions, changeModel} = props;
     const classes = componentStyles();
 
     const [, setState] = React.useState<object>({});
@@ -38,10 +48,14 @@ const Component = (props: Props) => {
     }
 
     const isReadOnly = readOnly || component.readOnly;
+    const entityName = findParameterValue(component, "entity_name");
+    const entityType = findParameterValue(component, "entity_type");
+    const entity = entityName != null && entityType != null ? {name: entityName, type: entityType} : undefined;
 
     return (
         <Paper elevation={0} className={classes.root}>
             {component.elements.filter(e => e.element.isVisible()).map(e => {
+                const elementActions = actions['#'][e.element.id] || noActions;
                 switch (e.type) {
                     case "parameter":
                         return (
@@ -50,6 +64,8 @@ const Component = (props: Props) => {
                                 parameter={e.element}
                                 readOnly={isReadOnly}
                                 changeModel={forceUpdate}
+                                actions={elementActions}
+                                entity={entity}
                             />
                         );
                     case "list":
@@ -68,6 +84,7 @@ const Component = (props: Props) => {
                                         list={e.element}
                                         readOnly={isReadOnly}
                                         changeModel={forceUpdate}
+                                        actions={elementActions}
                                     />
                                 </AccordionDetails>
                             </Accordion>
@@ -88,6 +105,7 @@ const Component = (props: Props) => {
                                         component={e.element}
                                         readOnly={isReadOnly}
                                         changeModel={forceUpdate}
+                                        actions={elementActions}
                                     />
                                 </AccordionDetails>
                             </Accordion>

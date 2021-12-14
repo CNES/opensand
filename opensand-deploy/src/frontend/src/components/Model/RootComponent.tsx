@@ -8,12 +8,14 @@ import Tooltip from '@material-ui/core/Tooltip';
 import Component from './Component';
 import SingleListComponent from './SingleListComponent';
 
+import {IActions, noActions} from '../../utils/actions';
 import {Component as ComponentType} from '../../xsd/model';
 
 
 interface Props {
     root: ComponentType;
     modelChanged: () => void;
+    actions?: IActions;
 }
 
 
@@ -37,7 +39,7 @@ const TabPanel = (props: PanelProps) => {
 
 
 const RootComponent = (props: Props) => {
-    const {root, modelChanged} = props;
+    const {root, actions = noActions, modelChanged} = props;
 
     const [value, setValue] = React.useState<number>(0);
 
@@ -66,19 +68,23 @@ const RootComponent = (props: Props) => {
                     ))}
                 </Tabs>
             </AppBar>
-            {components.map((c: ComponentType, i: number) => (
-                <TabPanel key={i} value={value} index={i}>
-                    {c.elements.length === 1 && c.elements[0].type === "list" ? (
-                        <SingleListComponent
-                            list={c.elements[0].element}
-                            readOnly={c.readOnly}
-                            changeModel={modelChanged}
-                        />
-                    ) : (
-                        <Component component={c} changeModel={modelChanged} />
-                    )}
-                </TabPanel>
-            ))}
+            {components.map((c: ComponentType, i: number) => {
+                const elementActions = actions['#'][c.id] || noActions;
+                return (
+                    <TabPanel key={i} value={value} index={i}>
+                        {c.elements.length === 1 && c.elements[0].type === "list" ? (
+                            <SingleListComponent
+                                list={c.elements[0].element}
+                                readOnly={c.readOnly}
+                                changeModel={modelChanged}
+                                actions={elementActions}
+                            />
+                        ) : (
+                            <Component component={c} changeModel={modelChanged} actions={elementActions} />
+                        )}
+                    </TabPanel>
+                )
+            })}
         </React.Fragment>
     );
 };

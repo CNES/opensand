@@ -31,6 +31,15 @@ const CreateProjectButton = () => {
 
     const fillProjectModel = React.useCallback((projectName: string, content: IXsdContent) => {
         const model = fromXSD(content.content);
+        model.root.elements.forEach((e) => {
+            if (e.type === "component" && e.element.id === "platform") {
+                e.element.elements.forEach((p) => {
+                    if (p.type === "parameter" && p.element.id === "project") {
+                        p.element.value = projectName;
+                    }
+                });
+            }
+        });
         const onSuccess = handleCreatedProject.bind(this, projectName);
         updateProject(onSuccess, sendError, projectName, model);
     }, [handleCreatedProject]);

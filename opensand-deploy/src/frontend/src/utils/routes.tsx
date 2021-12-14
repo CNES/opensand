@@ -1,7 +1,7 @@
 import React from 'react';
 import {BrowserRouter as Router, Route, Redirect, Switch} from 'react-router-dom';
 
-import Editor from '../components/Model/Editor';
+import Editor from '../components/Editor/Editor';
 import NotFound from '../components/common/NotFound';
 import Project from '../components/Project/Project';
 import Projects from '../components/HomePage/Projects';

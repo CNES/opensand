@@ -3,7 +3,6 @@ import React from 'react';
 import Checkbox from '@material-ui/core/Checkbox';
 import FormControl from '@material-ui/core/FormControl';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-import FormHelperText from '@material-ui/core/FormHelperText';
 import IconButton from '@material-ui/core/IconButton';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import InputLabel from '@material-ui/core/InputLabel';
@@ -16,11 +15,8 @@ import DeleteIcon from '@material-ui/icons/HighlightOff';
 import EditIcon from '@material-ui/icons/Edit';
 import HelpIcon from '@material-ui/icons/Help';
 
-import {
-    listProjectTemplates,
-    IActions,
-    ITemplatesContent,
-} from '../../api';
+import {listProjectTemplates, ITemplatesContent} from '../../api';
+import {IActions} from '../../utils/actions';
 import {sendError} from '../../utils/dispatcher';
 import {useDidMount} from '../../utils/hooks';
 import {parameterStyles} from '../../utils/theme';
@@ -30,9 +26,9 @@ import {Parameter as ParameterType, isComponentElement, isParameterElement} from
 interface Props {
     parameter: ParameterType;
     readOnly?: boolean;
-    entity?: string;
+    entity?: {name: string; type: string;};
     changeModel: () => void;
-    actions?: IActions;
+    actions: IActions;
 }
 
 
@@ -224,42 +220,62 @@ interface XsdEnumProps extends Props {
 }
 
 
-// TODO:
-// add onSelect action
-// add onEdit action
-// add onDelete action
 const XsdParameter = (props: XsdEnumProps) => {
     const {parameter, readOnly, changeModel, entity, actions} = props;
-    const {onEdit, onSelect, onDelete} = actions?.$ || {};
+    const {onEdit, onRemove} = actions.$;
 
     const didMount = useDidMount();
     const classes = parameterStyles();
 
     const [templates, setTemplates] = React.useState<ITemplatesContent>({});
 
-    // TODO improve for profile
-    const xsd = React.useMemo(() => parameter.id === "profile" ? `profile_${entity}.xsd` : `${parameter.id}.xsd`, [parameter.id, entity]);
-
-    const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: unknown;}>) => {
-        const value = event.target.value as string;
-        if (value == null) {
-            return;
+    const xsd = React.useMemo(() => {
+        if (parameter.id !== "profile") {
+            return parameter.id + ".xsd";
         }
 
-        parameter.value = xsd;
-        onEdit && onEdit(parameter.id, xsd, value);
-    }, [parameter, xsd, onEdit]);
+        switch (entity?.type) {
+            case "Gateway":
+                return "profile_gw.xsd";
+            case "Gateway Net Access":
+                return "profile_gw_net_acc.xsd";
+            case "Gateway Phy":
+                return "profile_gw_phy.xsd";
+            case "Terminal":
+                return "profile_st.xsd";
+            case "Satellite":
+                return "profile_sat.xsd";
+            default:
+                return "profile.xsd";
+        }
+    }, [parameter.id, entity]);
+
+    const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: unknown;}>) => {
+        const value = (event.target.value as string) || "";
+
+        parameter.value = value;
+        if (value !== "") {
+            onEdit ? onEdit(entity, parameter.id, xsd, value) : changeModel();
+        } else {
+            onRemove ? onRemove(entity?.name, parameter.id) : changeModel();
+        }
+    }, [parameter, xsd, entity, onEdit, onRemove, changeModel]);
 
     const handleClear = React.useCallback(() => {
         parameter.value = "";
-        onDelete && onDelete(parameter.id);
-    }, [parameter, onDelete]);
+        onRemove ? onRemove(entity?.name, parameter.id) : changeModel();
+    }, [parameter, entity, onRemove, changeModel]);
 
     const handleEdit = React.useCallback(() => {
-        onEdit && onEdit(parameter.id, parameter.value);
-    }, [parameter, onEdit]);
+        onEdit && onEdit(entity, parameter.id, xsd);
+    }, [parameter, xsd, entity, onEdit]);
 
-    const header = React.useMemo(() => <em>Please select a template</em>, []);
+    const templatesNames = React.useMemo(() => templates[xsd] || [], [templates, xsd]);
+    const header = React.useMemo(() => (
+        <em>
+            {templatesNames.length ? "Please select a template for the" : "This entity does not require a"} {parameter.name}
+        </em>
+    ), [templatesNames.length, parameter.name]);
     const hasValue = React.useMemo(() => parameter.value && parameter.value !== "", [parameter.value]);
 
     const projectName = React.useMemo(() => {
@@ -283,12 +299,12 @@ const XsdParameter = (props: XsdEnumProps) => {
     }, [header]);
 
     React.useEffect(() => {
-        if (hasValue && didMount && onSelect) onSelect();
-        listProjectTemplates(setTemplates, sendError, projectName);
-        return () => {setTemplates({});};
-    }, [onSelect, didMount, hasValue, projectName]);
+        if (didMount) {
+            listProjectTemplates(setTemplates, sendError, projectName);
+        }
+        // return () => {setTemplates({});};
+    }, [didMount, projectName]);
 
-    const templatesNames = templates[xsd] || [];
     const choices = templatesNames.map((v: string, i: number) => <MenuItem value={v} key={i+1}>{v}</MenuItem>);
     choices.splice(0, 0, <MenuItem value="" key={0}>{header}</MenuItem>);
 
@@ -296,29 +312,29 @@ const XsdParameter = (props: XsdEnumProps) => {
         <div className={classes.spaced}>
             <FormControl className={classes.fullWidth}>
                 <InputLabel htmlFor={parameter.id}>
-                    {parameter.value === "" ? null : parameter.name}
+                    {hasValue ? parameter.name : null}
                 </InputLabel>
                 <Select
-                    value={parameter.value}
+                    value={templatesNames.length ? parameter.value : ""}
                     onChange={handleChange}
                     inputProps={{id: parameter.id}}
                     displayEmpty
                     renderValue={renderValue}
-                    disabled={entity === "sat"}
+                    disabled={readOnly || !templatesNames.length}
                 >
                     {choices}
                 </Select>
             </FormControl>
             {hasValue && (
                 <Tooltip placement="top" title="Edit this configuration file">
-                    <IconButton onClick={handleEdit}>
+                    <IconButton onClick={handleEdit} disabled={readOnly}>
                         <EditIcon />
                     </IconButton>
                 </Tooltip>
             )}
             {hasValue && (
                 <Tooltip placement="top" title="Remove this configuration file">
-                    <IconButton onClick={handleClear}>
+                    <IconButton onClick={handleClear} disabled={readOnly}>
                         <DeleteIcon />
                     </IconButton>
                 </Tooltip>
@@ -340,6 +356,7 @@ const Parameter = (props: Props) => {
                 readOnly={isReadOnly}
                 changeModel={changeModel}
                 actions={actions}
+                entity={entity}
             />
         );
     }

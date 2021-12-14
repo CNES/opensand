@@ -16,7 +16,7 @@ import {updateProjectXML, silenceSuccess, IApiSuccess} from '../../api';
 import {sendError} from '../../utils/dispatcher';
 import {Model as ModelType, Visibility, Visibilities} from '../../xsd/model';
 
-import RootComponent from './RootComponent';
+import RootComponent from '../Model/RootComponent';
 import SaveAsButton from './SaveAsButton';
 
 
