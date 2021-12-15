@@ -88,6 +88,7 @@ void OpenSandModelConf::createModels()
 
 	auto entity = infrastructure_model->getRoot()->addComponent("entity", "Emulated Entity");
 	auto entity_type = entity->addParameter("entity_type", "Entity Type", types->getType("entity_type"));
+	entity_type->setReadOnly(true);
 
 	auto satellite = entity->addComponent("entity_sat", "Satellite", "Specific infrastructure information for a Satellite");
 	infrastructure_model->setReference(satellite, entity_type);
