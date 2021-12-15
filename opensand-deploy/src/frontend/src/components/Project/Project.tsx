@@ -17,15 +17,14 @@ import UploadIcon from '@material-ui/icons/Publish';
 import {
     copyEntityConfiguration,
     deleteProjectXML,
+    deployEntity,
     getProject,
     getProjectModel,
     getProjectXML,
     getXSD,
-    runEntity,
     silenceSuccess,
     updateProject,
     updateProjectXML,
-    uploadEntityConfiguration,
     IApiSuccess,
     IXsdContent,
     IXmlContent,
@@ -218,12 +217,8 @@ const Project = (props: Props) => {
         copyEntityConfiguration(silenceSuccess, sendError, projectName, entity, folder);
     }, [projectName]);
 
-    const handleUpload = React.useCallback((entity: string, upload: string, folder: string, address: string, user: string, password: string, isPassphrase: boolean) => {
-        uploadEntityConfiguration(silenceSuccess, sendError, projectName, entity, folder, upload, address, user, password, isPassphrase);
-    }, [projectName]);
-
-    const handleRun = React.useCallback((entity: string, run: string, address: string, user: string, password: string, isPassphrase: boolean) => {
-        runEntity(silenceSuccess, sendError, projectName, entity, run, address, user, password, isPassphrase);
+    const handleDeploy = React.useCallback((entity: string, mode: string, folder: string, address: string, user: string, password: string, isPassphrase: boolean) => {
+        deployEntity(silenceSuccess, sendError, projectName, entity, folder, mode, address, user, password, isPassphrase);
     }, [projectName]);
 
     const displayAction = React.useCallback((index: number) => {
@@ -263,13 +258,14 @@ const Project = (props: Props) => {
                         }
 
                         const {entity_name, upload, folder, run, user, address} = entityConfig;
+                        const handleAction = (password: string, isPassphrase: boolean) => (
+                            handleDeploy(entity_name, upload, folder, address, user, password, isPassphrase)
+                        );
                         if (run === "") {
                             const handleClick = upload === "NFS" ? (
                                 () => handleCopy(entity_name, folder)
                             ) : (
-                                () => setAction(
-                                    () => (password: string, isPassphrase: boolean) => handleUpload(entity_name, upload, folder, address, user, password, isPassphrase)
-                                )
+                                () => setAction(() => handleAction)
                             );
                             return (
                                 <Tooltip title="Deploy configuration files" placement="top">
@@ -279,14 +275,6 @@ const Project = (props: Props) => {
                                 </Tooltip>
                             );
                         } else {
-                            const handleAction = (password: string, isPassphrase: boolean) => {
-                                if (upload === "NFS") {
-                                    handleCopy(entity_name, folder);
-                                } else {
-                                    handleUpload(entity_name, upload, folder, address, user, password, isPassphrase);
-                                }
-                                handleRun(entity_name, run, address, user, password, isPassphrase);
-                            };
                             return (
                                 <Tooltip title="Configure and launch OpenSAND" placement="top">
                                     <IconButton size="small" onClick={() => setAction(() => handleAction)}>
@@ -319,7 +307,7 @@ const Project = (props: Props) => {
                 </span>
             </Tooltip>
         );
-    }, [model, handleDownload, handleCopy, handleUpload, handleRun]);
+    }, [model, handleDownload, handleCopy, handleDeploy]);
 
     const [entityName, entityType]: [Parameter | undefined, Parameter | undefined] = React.useMemo(() => {
         const entity: [Parameter | undefined, Parameter | undefined] = [undefined, undefined];

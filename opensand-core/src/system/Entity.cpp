@@ -141,7 +141,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 																  "Gateway Phy",
 																  "Satellite",
 																  "Terminal"});
-				types->addEnumType("upload", "Upload Method", {"Download", "NFS", "SCP"});
+				types->addEnumType("upload", "Upload Method", {"Download", "NFS", "SCP", "SFTP"});
 				types->addEnumType("run", "Run Method", {"SSH"});
 
 				auto platform = Conf->getOrCreateComponent("platform", "Platform", "The Machines of the Project");

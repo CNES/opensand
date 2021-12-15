@@ -205,31 +205,18 @@ export const copyEntityConfiguration = (
         projectName: string,
         entityName: string,
         destinationFolder: string,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${entityName}`, "PUT", {destination_folder: destinationFolder, method: "CP"});
+): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${entityName}`, "PUT", {destination_folder: destinationFolder, copy_method: "NFS"});
 
 
-export const uploadEntityConfiguration = (
+export const deployEntity = (
         callback: TCallback<IApiSuccess>,
         errorCallback: ErrorCallback,
         projectName: string,
         entityName: string,
         destinationFolder: string,
-        method: string,
+        copyMethod: string,
         address: string,
         user: string,
         password: string,
         isPassphrase: boolean,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${entityName}`, "PUT", {destination_folder: destinationFolder, method, ssh: {address, user, password, is_passhprase: isPassphrase}});
-
-
-export const runEntity = (
-        callback: TCallback<IApiSuccess>,
-        errorCallback: ErrorCallback,
-        projectName: string,
-        entityName: string,
-        method: string,
-        address: string,
-        user: string,
-        password: string,
-        isPassphrase: boolean,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${entityName}`, "PUT", {method, ssh: {address, user, password, is_passhprase: isPassphrase}});
+): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${entityName}`, "PUT", {destination_folder: destinationFolder, copy_method: copyMethod, ssh: {address, user, password, is_passhprase: isPassphrase}});

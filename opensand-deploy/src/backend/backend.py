@@ -6,6 +6,8 @@ from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 
+import scp
+import paramiko.client as ssh
 from flask import Flask, request, jsonify, send_file
 
 import py_opensand_conf
@@ -667,6 +669,64 @@ def download_entity(name, entity):
     in_memory.seek(0)
     dl_name = '{}.tar.gz'.format(entity)
     return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
+
+
+@app.route('/api/project/<string:name>/<string:entity>', methods=['PUT'])
+def upload_entity(name, entity):
+    files = [
+            WWW_FOLDER / name / 'topology.xml',
+            WWW_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
+            WWW_FOLDER / name / 'entities' / entity / 'profile.xml',
+    ]
+    files = [f for f in files if f.exists()]
+
+    method = request.json['copy_method']
+    destination = Path(request.json['destination_folder'])
+    ssh_config = request.json.get('ssh')
+
+    if method == 'NFS':
+        destination = destination.expanduser().resolve()
+        destination.mkdir(parents=True, exist_ok=True)
+
+        for file in files:
+            with file.open('rb') as source, destination.joinpath(file.name).open('wb') as dest:
+                dest.write(source.read())
+
+    if ssh_config is None:
+        return success()
+
+    client = ssh.SSHClient()
+    client.load_system_host_keys()
+    client.set_missing_host_key_policy(ssh.MissingHostKeyPolicy())
+
+    password = passphrase = None
+    if ssh_config.get('is_passphrase', False):
+        passphrase = ssh_config['password'] or None
+    else:
+        password = ssh_config['password'] or None
+    client.connect(
+            ssh_config['address'] or 'localhost',
+            username=ssh_config['user'] or None,
+            password=password,
+            passphrase=passphrase)
+    client.exec_command(f'mkdir -p "{destination}"')
+
+    if method == 'SCP':
+        with scp.SCPClient(client.get_transport()) as cp:
+            cp.put(files, destination.as_posix())
+    elif method == 'SFTP':
+        with client.open_sftp() as sftp:
+            sftp.chdir(destination.as_posix())
+            for file in files:
+                sftp.put(file, file.name)
+
+    client.exec_command('opensand ' + ' '.join(
+            f'-{f.name[0]} "{destination.joinpath(f.name)}"'
+            for f in files
+    ) + ' </dev/null >/dev/null 2>&1 &')
+
+    return success()
+
 
 
 @app.route('/api/project/<string:name>', methods=['GET'])
