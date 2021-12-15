@@ -197,3 +197,39 @@ export const deleteProjectXML = (
         projectName: string,
         urlFragment: string,
 ): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${urlFragment}`, "DELETE");
+
+
+export const copyEntityConfiguration = (
+        callback: TCallback<IApiSuccess>,
+        errorCallback: ErrorCallback,
+        projectName: string,
+        entityName: string,
+        destinationFolder: string,
+): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${entityName}`, "PUT", {destination_folder: destinationFolder, method: "CP"});
+
+
+export const uploadEntityConfiguration = (
+        callback: TCallback<IApiSuccess>,
+        errorCallback: ErrorCallback,
+        projectName: string,
+        entityName: string,
+        destinationFolder: string,
+        method: string,
+        address: string,
+        user: string,
+        password: string,
+        isPassphrase: boolean,
+): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${entityName}`, "PUT", {destination_folder: destinationFolder, method, ssh: {address, user, password, is_passhprase: isPassphrase}});
+
+
+export const runEntity = (
+        callback: TCallback<IApiSuccess>,
+        errorCallback: ErrorCallback,
+        projectName: string,
+        entityName: string,
+        method: string,
+        address: string,
+        user: string,
+        password: string,
+        isPassphrase: boolean,
+): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${entityName}`, "PUT", {method, ssh: {address, user, password, is_passhprase: isPassphrase}});

@@ -30,7 +30,7 @@ const SingleFieldDialog = (props: Props) => {
 
     const changeValue = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         setValue(event.target.value);
-    }, [setValue]);
+    }, []);
 
     const handleValidate = React.useCallback((event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();

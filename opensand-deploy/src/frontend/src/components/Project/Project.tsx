@@ -1,6 +1,8 @@
 import React from 'react';
 import {RouteComponentProps, useHistory} from 'react-router-dom';
 
+import Box from '@material-ui/core/Box';
+import Button from '@material-ui/core/Button';
 import IconButton from '@material-ui/core/IconButton';
 import Toolbar from '@material-ui/core/Toolbar';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -13,14 +15,17 @@ import NothingIcon from '@material-ui/icons/Cancel';
 import UploadIcon from '@material-ui/icons/Publish';
 
 import {
+    copyEntityConfiguration,
     deleteProjectXML,
     getProject,
     getProjectModel,
     getProjectXML,
     getXSD,
+    runEntity,
+    silenceSuccess,
     updateProject,
     updateProjectXML,
-    silenceSuccess,
+    uploadEntityConfiguration,
     IApiSuccess,
     IXsdContent,
     IXmlContent,
@@ -32,6 +37,7 @@ import {isComponentElement, isListElement, isParameterElement} from '../../xsd/m
 import {fromXSD, fromXML} from '../../xsd/parser';
 
 import RootComponent from '../Model/RootComponent';
+import DeployEntityDialog from './DeployEntityDialog';
 import NewEntityDialog from './NewEntityDialog';
 
 
@@ -43,6 +49,9 @@ interface IEntity {
     name: string;
     type: string;
 }
+
+
+type ActionCallback = (password: string, isPassphrase: boolean) => void;
 
 
 const addNewEntity = (l: List, entity: string, entityType: string) => {
@@ -101,6 +110,7 @@ const Project = (props: Props) => {
     const [model, changeModel] = React.useState<Model | undefined>(undefined);
     const [open, setOpen] = React.useState<boolean>(false);
     const [, modelChanged] = React.useState<object>({});
+    const [action, setAction] = React.useState<ActionCallback | undefined>(undefined);
 
     const handleNewEntityOpen = React.useCallback(() => {
         setOpen(true);
@@ -108,6 +118,10 @@ const Project = (props: Props) => {
 
     const handleNewEntityClose = React.useCallback(() => {
         setOpen(false);
+    }, []);
+
+    const handleActionClose = React.useCallback(() => {
+        setAction(undefined);
     }, []);
 
     const saveModel = React.useCallback(() => {
@@ -191,35 +205,52 @@ const Project = (props: Props) => {
         getProject(onSuccess, sendError, projectName);
     }, [changeModel, projectName]);
 
+    const handleDownload = React.useCallback((entity?: string) => {
+        const form = document.createElement("form") as HTMLFormElement;
+        form.method = "post";
+        form.action = "/api/project/" + projectName + (entity == null ? "" : "/" + entity);
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }, [projectName]);
+
+    const handleCopy = React.useCallback((entity: string, folder: string) => {
+        copyEntityConfiguration(silenceSuccess, sendError, projectName, entity, folder);
+    }, [projectName]);
+
+    const handleUpload = React.useCallback((entity: string, upload: string, folder: string, address: string, user: string, password: string, isPassphrase: boolean) => {
+        uploadEntityConfiguration(silenceSuccess, sendError, projectName, entity, folder, upload, address, user, password, isPassphrase);
+    }, [projectName]);
+
+    const handleRun = React.useCallback((entity: string, run: string, address: string, user: string, password: string, isPassphrase: boolean) => {
+        runEntity(silenceSuccess, sendError, projectName, entity, run, address, user, password, isPassphrase);
+    }, [projectName]);
+
     const displayAction = React.useCallback((index: number) => {
         if (model) {
             const machines = findMachines(model);
             if (machines) {
                 const entity = machines.elements[index];
                 if (entity) {
-                    let config = "";
-                    let folder = "";
-                    let deploy = "";
+                    const entityConfig: {[key: string]: string;} = {};
                     entity.elements.forEach((p) => {
                         if (isParameterElement(p)) {
-                            if (p.element.id === "upload") { config = p.element.value; }
-                            if (p.element.id === "folder") { folder = p.element.value; }
-                            if (p.element.id === "run") { deploy = p.element.value; }
+                            entityConfig[p.element.id] = p.element.value;
                         }
                     });
 
-                    if (config === "Download") {
+                    if (entityConfig.upload === "Download") {
                         return (
                             <Tooltip title="Download configuration files" placement="top">
-                                <IconButton size="small">
+                                <IconButton size="small" onClick={() => handleDownload(entityConfig.entity_name)}>
                                     <DownloadIcon />
                                 </IconButton>
                             </Tooltip>
                         );
                     }
 
-                    if (config !== "") {
-                        if (folder === "") {
+                    if (entityConfig.upload !== "") {
+                        if (entityConfig.folder === "") {
                             return (
                                 <Tooltip title="No folder to upload into" placement="top">
                                     <span>
@@ -231,18 +262,34 @@ const Project = (props: Props) => {
                             );
                         }
 
-                        if (deploy === "") {
+                        const {entity_name, upload, folder, run, user, address} = entityConfig;
+                        if (run === "") {
+                            const handleClick = upload === "NFS" ? (
+                                () => handleCopy(entity_name, folder)
+                            ) : (
+                                () => setAction(
+                                    () => (password: string, isPassphrase: boolean) => handleUpload(entity_name, upload, folder, address, user, password, isPassphrase)
+                                )
+                            );
                             return (
                                 <Tooltip title="Deploy configuration files" placement="top">
-                                    <IconButton size="small">
+                                    <IconButton size="small" onClick={handleClick}>
                                         <UploadIcon />
                                     </IconButton>
                                 </Tooltip>
                             );
                         } else {
+                            const handleAction = (password: string, isPassphrase: boolean) => {
+                                if (upload === "NFS") {
+                                    handleCopy(entity_name, folder);
+                                } else {
+                                    handleUpload(entity_name, upload, folder, address, user, password, isPassphrase);
+                                }
+                                handleRun(entity_name, run, address, user, password, isPassphrase);
+                            };
                             return (
                                 <Tooltip title="Configure and launch OpenSAND" placement="top">
-                                    <IconButton size="small">
+                                    <IconButton size="small" onClick={() => setAction(() => handleAction)}>
                                         <LaunchIcon />
                                     </IconButton>
                                 </Tooltip>
@@ -272,7 +319,7 @@ const Project = (props: Props) => {
                 </span>
             </Tooltip>
         );
-    }, [model]);
+    }, [model, handleDownload, handleCopy, handleUpload, handleRun]);
 
     const [entityName, entityType]: [Parameter | undefined, Parameter | undefined] = React.useMemo(() => {
         const entity: [Parameter | undefined, Parameter | undefined] = [undefined, undefined];
@@ -312,6 +359,22 @@ const Project = (props: Props) => {
                 <Typography variant="h6">{projectName}</Typography>
             </Toolbar>
             {model != null && <RootComponent root={model.root} modelChanged={refreshModel} actions={actions} />}
+            {model != null && (
+                <Box textAlign="center" marginTop="3em" marginBottom="3px">
+                    <Button
+                        color="secondary"
+                        variant="contained"
+                        onClick={() => handleDownload()}
+                    >
+                        Download Project Configuration
+                    </Button>
+                </Box>
+            )}
+            <DeployEntityDialog
+                open={Boolean(action)}
+                onValidate={action}
+                onClose={handleActionClose}
+            />
             {entityName != null && entityType != null && (
                 <NewEntityDialog
                     open={open}
