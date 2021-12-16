@@ -160,7 +160,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				auto configuration = Conf->getOrCreateComponent("configuration", "Configuration", "The Project Configuration Files");
 				configuration->addParameter("topology", "Topology Model", types->getType("topology_xsd"));
 
-				auto entities = configuration->addList("entities", "Entities", "entity")
+				auto entities = configuration->addList("entities", "Entities", "entity");
 				entities->setReadOnly(true);
 				auto entity = entities->getPattern();
 				entity->addParameter("entity_name", "Name",types->getType("string"))->setReadOnly(true);
