@@ -691,6 +691,7 @@ def upload_entity(name, entity):
         for file in files:
             with file.open('rb') as source, destination.joinpath(file.name).open('wb') as dest:
                 dest.write(source.read())
+            destination.joinpath(file.name).chmod(0o0666)
 
     if ssh_config is None:
         return success()
