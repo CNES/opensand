@@ -26,6 +26,12 @@ else:
 
 MODELS_FOLDER = Path(__file__).parent.resolve()
 WWW_FOLDER = MODELS_FOLDER.parent / 'www'
+SSH_CONFIG_PATHS = [
+        Path('~/.opensand_config').expanduser(),
+        Path('~/.ssh/config').expanduser(),
+        Path('~/.ssh/ssh_config').expanduser(),
+        Path('~/.ssh_config').expanduser(),
+]
 
 
 DVB_S2 = [
@@ -696,6 +702,20 @@ def upload_entity(name, entity):
     if ssh_config is None:
         return success()
 
+    for path in SSH_CONFIG_PATHS:
+        try:
+            with path.open() as f:
+                config = SSHConfig()
+                config.parse(f)
+        except OSError:
+            pass
+        else:
+            hostname = ssh_config['address'] or 'localhost'
+            host_config = config.lookup(hostname)
+            user = host_config.get('user')
+            key = host_config.get('identityfile')
+            hostname = host_config.get('hostname', hostname)
+
     client = ssh.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(ssh.MissingHostKeyPolicy())
@@ -706,8 +726,9 @@ def upload_entity(name, entity):
     else:
         password = ssh_config['password'] or None
     client.connect(
-            ssh_config['address'] or 'localhost',
-            username=ssh_config['user'] or None,
+            hostname,
+            username=ssh_config['user'] or user,
+            key_filename=key,
             password=password,
             passphrase=passphrase)
     client.exec_command(f'mkdir -p "{destination}"')
