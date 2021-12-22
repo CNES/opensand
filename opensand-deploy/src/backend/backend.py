@@ -1,14 +1,17 @@
 import os
+import shlex
 import shutil
 import tarfile
 import tempfile
+import traceback
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 
-import scp
-import paramiko.client as ssh
+from fabric import Connection
+from paramiko.client import MissingHostKeyPolicy
 from flask import Flask, request, jsonify, send_file
+from werkzeug.exceptions import HTTPException
 
 import py_opensand_conf
 
@@ -26,12 +29,7 @@ else:
 
 MODELS_FOLDER = Path(__file__).parent.resolve()
 WWW_FOLDER = MODELS_FOLDER.parent / 'www'
-SSH_CONFIG_PATHS = [
-        Path('~/.opensand_config').expanduser(),
-        Path('~/.ssh/config').expanduser(),
-        Path('~/.ssh/ssh_config').expanduser(),
-        Path('~/.ssh_config').expanduser(),
-]
+LAUNCHED_PIDS = {}
 
 
 DVB_S2 = [
@@ -115,8 +113,17 @@ def success(message='OK'):
     return jsonify(status=message)
 
 
-def error(message):
-    return jsonify(error=message)
+def error(message, return_code=500):
+    return jsonify(error=message), return_code
+
+
+@app.errorhandler(Exception)
+def handle_exception(exc):
+    if isinstance(exc, HTTPException):
+        return exc
+
+    stack_trace = traceback.format_exception(exc)
+    return error(''.join(stack_trace))
 
 
 def get_file_content(filename, xml=False):
@@ -128,7 +135,7 @@ def get_file_content(filename, xml=False):
     filepath = base_folder / filename
     if not filepath.exists():
         folder = filepath.relative_to(base_folder).parent
-        return error('cannot find {} in {}'.format(filepath.name, folder)), 404
+        return error('cannot find {} in {}'.format(filepath.name, folder), 404)
 
     with filepath.open() as f:
         content = f.read()
@@ -688,7 +695,8 @@ def upload_entity(name, entity):
 
     method = request.json['copy_method']
     destination = Path(request.json['destination_folder'])
-    ssh_config = request.json.get('ssh')
+    run = request.json.get('run_method')
+    ssh_config = request.json.get('ssh', {})
 
     if method == 'NFS':
         destination = destination.expanduser().resolve()
@@ -699,56 +707,54 @@ def upload_entity(name, entity):
                 dest.write(source.read())
             destination.joinpath(file.name).chmod(0o0666)
 
-    if ssh_config is None:
-        return success()
-
-    for path in SSH_CONFIG_PATHS:
-        try:
-            with path.open() as f:
-                config = SSHConfig()
-                config.parse(f)
-        except OSError:
-            pass
-        else:
-            hostname = ssh_config['address'] or 'localhost'
-            host_config = config.lookup(hostname)
-            user = host_config.get('user')
-            key = host_config.get('identityfile')
-            hostname = host_config.get('hostname', hostname)
-
-    client = ssh.SSHClient()
-    client.load_system_host_keys()
-    client.set_missing_host_key_policy(ssh.MissingHostKeyPolicy())
-
     password = passphrase = None
     if ssh_config.get('is_passphrase', False):
-        passphrase = ssh_config['password'] or None
+        passphrase = ssh_config.get('password') or None
     else:
-        password = ssh_config['password'] or None
-    client.connect(
-            hostname,
-            username=ssh_config['user'] or user,
-            key_filename=key,
-            password=password,
-            passphrase=passphrase)
-    client.exec_command(f'mkdir -p "{destination}"')
+        password = ssh_config.get('password') or None
 
-    if method == 'SCP':
-        with scp.SCPClient(client.get_transport()) as cp:
-            cp.put(files, destination.as_posix())
-    elif method == 'SFTP':
-        with client.open_sftp() as sftp:
-            sftp.chdir(destination.as_posix())
+    client = Connection(
+            ssh_config.get('address') or 'localhost',
+            user=ssh_config.get('user') or None,  # Is this necessary?
+            connect_kwargs={'password': password, 'passphrase': passphrase})
+
+    with client:
+        client.client.set_missing_host_key_policy(MissingHostKeyPolicy())
+
+        if method == 'SCP':
+            client.run(shlex.join(['mkdir', '-p', destination.as_posix()]), hide=True)
             for file in files:
-                sftp.put(file, file.name)
+                client.put(file.as_posix(), destination.as_posix())
+        elif method == 'SFTP':
+            client.run(shlex.join(['mkdir', '-p', destination.as_posix()]), hide=True)
+            with client.sftp() as sftp:
+                sftp.chdir(destination.as_posix())
+                for file in files:
+                    sftp.put(file.as_posix(), file.name)
 
-    client.exec_command('opensand ' + ' '.join(
-            f'-{f.name[0]} "{destination.joinpath(f.name)}"'
-            for f in files
-    ) + ' </dev/null >/dev/null 2>&1 &')
+        launched_pid = LAUNCHED_PIDS.setdefault(name, {}).get(entity)
+        if run == 'SSH':
+            if launched_pid is not None:
+                return error('opensand process already launched for this entity', 409)
+
+            pids = set(client.run('pidof opensand', hide=True, warn=True).stdout.split())
+            client.run('opensand ' + ' '.join(
+                    f'-{f.name[0]} "{destination.joinpath(f.name)}"'
+                    for f in files
+            ) + ' </dev/null >/dev/null 2>&1 &', hide=True)
+            pid, = set(client.run('pidof opensand', hide=True, warn=True).stdout.split()) - pids
+
+            LAUNCHED_PIDS[name][entity] = int(pid)
+        elif run == 'PING':
+            result = client.run(shlex.join(['ping', '-c', '6', request.json['ping_address']]), hide=True, warn=True)
+            if result.exited:
+                return jsonify(error='ping exited with non-zero status', ping=result.stderr), 422
+            return jsonify(status='OK', ping=result.stdout)
+        elif run == 'STOP':
+            if launched_pid is not None:
+                client.run(f'kill {launched_pid}', hide=True, warn=True)
 
     return success()
-
 
 
 @app.route('/api/project/<string:name>', methods=['GET'])
@@ -776,7 +782,7 @@ def validate_project(name):
             # Do upload
             destination = WWW_FOLDER / name
             if destination.exists():
-                return error('Project {} already exists'.format(name)), 409
+                return error('Project {} already exists'.format(name), 409)
 
             destination.mkdir()
             entities = destination / 'entities'
@@ -800,7 +806,7 @@ def validate_project(name):
             project_xml = destination / 'project.xml'
             if not project_xml.exists() or not project_xml.is_file():
                 shutil.rmtree(destination.as_posix())
-                return error('Provided archive does not contain a "project.xml" file'), 422
+                return error('Provided archive does not contain a "project.xml" file', 422)
 
             if entities.exists():
                 project_topology = destination.joinpath('topology.xml').as_posix()
@@ -842,24 +848,24 @@ def validate_project(name):
         # Do copy
         source = WWW_FOLDER / name
         if not source.exists() or not source.is_dir():
-            return error('Project {} not found'.format(name)), 404
+            return error('Project {} not found'.format(name), 404)
 
         destination = WWW_FOLDER / new_project_name
         if destination.exists():
-            return error('Project {} already exists'.format(new_project_name)), 409
+            return error('Project {} already exists'.format(new_project_name), 409)
 
         shutil.copytree(source.as_posix(), destination.as_posix())
 
         return success(new_project_name)
 
-    return error('Missing branch in code'), 500
+    return error('Missing branch in code', 500)
 
 
 @app.route('/api/project/<string:name>', methods=['DELETE'])
 def delete_project(name):
     project = WWW_FOLDER / name
     if not project.exists():
-        return error('Project {} not found'.format(name)), 404
+        return error('Project {} not found'.format(name), 404)
 
     shutil.rmtree(project.as_posix())
     return success()
