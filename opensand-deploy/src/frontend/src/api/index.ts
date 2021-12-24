@@ -16,21 +16,31 @@ export interface IApiSuccess {
 }
 
 
+export interface IPingSuccess extends IApiSuccess {
+    ping: string;
+};
+
+
+export interface IPingDestinations extends IApiSuccess {
+    addresses: string[];
+};
+
+
 export const silenceSuccess = (success: IApiSuccess) => {
 };
 
 
-export interface IXsdContent {
+export interface IXsdContent extends IApiSuccess {
     content: string;
 }
 
 
-export interface IXmlContent {
+export interface IXmlContent extends IApiSuccess {
     content: string;
 }
 
 
-export interface IProjectsContent {
+export interface IProjectsContent extends IApiSuccess {
     projects: string[];
 }
 
@@ -205,7 +215,7 @@ export const copyEntityConfiguration = (
         projectName: string,
         entityName: string,
         destinationFolder: string,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${entityName}`, "PUT", {destination_folder: destinationFolder, copy_method: "NFS"});
+): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/entity/${entityName}`, "PUT", {destination_folder: destinationFolder, copy_method: "NFS"});
 
 
 export const deployEntity = (
@@ -215,8 +225,32 @@ export const deployEntity = (
         entityName: string,
         destinationFolder: string,
         copyMethod: string,
+        runMethod: string,
         address: string,
-        user: string,
         password: string,
         isPassphrase: boolean,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/${entityName}`, "PUT", {destination_folder: destinationFolder, copy_method: copyMethod, ssh: {address, user, password, is_passhprase: isPassphrase}});
+): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/entity/${entityName}`, "PUT", {
+      destination_folder: destinationFolder,
+      copy_method: copyMethod,
+      run_method: runMethod,
+      ssh: {address, password, is_passhprase: isPassphrase},
+});
+
+
+export const pingEntity = (
+        callback: TCallback<IPingSuccess>,
+        errorCallback: ErrorCallback,
+        projectName: string,
+        entityName: string,
+        pingDestination: string,
+        address: string,
+        password: string,
+        isPassphrase: boolean,
+): Promise<void> => doFetch<IPingSuccess>(callback, errorCallback, `/api/project/${projectName}/entity/${entityName}`, "PUT", {run_method: "PING", ssh: {address, password, is_passphrase: isPassphrase}});
+
+
+export const findPingDestinations = (
+        callback: TCallback<IPingDestinations>,
+        errorCallback: ErrorCallback,
+        projectName: string,
+): Promise<void> => doFetch<IPingDestinations>(callback, errorCallback, `/api/project/${projectName}/ping`);

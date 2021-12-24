@@ -142,7 +142,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 																  "Satellite",
 																  "Terminal"});
 				types->addEnumType("upload", "Upload Method", {"Download", "NFS", "SCP", "SFTP"});
-				types->addEnumType("run", "Run Method", {"SSH"});
+				types->addEnumType("run", "Run Method", {"SSH", "PING", "STOP"});
 
 				auto platform = Conf->getOrCreateComponent("platform", "Platform", "The Machines of the Project");
 				auto project = platform->addParameter("project", "Project Name", types->getType("string"));
@@ -151,8 +151,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				auto machines = platform->addList("machines", "Machines", "machine")->getPattern();
 				machines->addParameter("entity_name", "Name", types->getType("string"))->setReadOnly(true);
 				machines->addParameter("entity_type", "Type", types->getType("entity_type"))->setReadOnly(true);
-				machines->addParameter("address", "IP", types->getType("string"));
-				machines->addParameter("user", "User", types->getType("string"));
+				machines->addParameter("address", "[USER@]IP[:PORT]", types->getType("string"));
 				machines->addParameter("upload", "Upload Method", types->getType("upload"));
 				machines->addParameter("folder", "Upload Folder", types->getType("string"));
 				machines->addParameter("run", "Run Method", types->getType("run"));

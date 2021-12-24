@@ -12,20 +12,26 @@ import DownloadIcon from '@material-ui/icons/GetApp';
 import ErrorIcon from '@material-ui/icons/Error';
 import LaunchIcon from '@material-ui/icons/PlaylistPlay';
 import NothingIcon from '@material-ui/icons/Cancel';
+import PingIcon from '@material-ui/icons/Router';
+import StopIcon from '@material-ui/icons/Stop';
 import UploadIcon from '@material-ui/icons/Publish';
 
 import {
     copyEntityConfiguration,
     deleteProjectXML,
     deployEntity,
+	findPingDestinations,
     getProject,
     getProjectModel,
     getProjectXML,
     getXSD,
+    pingEntity,
     silenceSuccess,
     updateProject,
     updateProjectXML,
     IApiSuccess,
+	IPingDestinations,
+    IPingSuccess,
     IXsdContent,
     IXmlContent,
 } from '../../api';
@@ -38,6 +44,8 @@ import {fromXSD, fromXML} from '../../xsd/parser';
 import RootComponent from '../Model/RootComponent';
 import DeployEntityDialog from './DeployEntityDialog';
 import NewEntityDialog from './NewEntityDialog';
+import PingDialog from './PingDialog';
+import PingResultDialog from './PingResultDialog';
 
 
 interface Props extends RouteComponentProps<{name: string;}> {
@@ -51,9 +59,24 @@ interface IEntity {
 
 
 type ActionCallback = (password: string, isPassphrase: boolean) => void;
+type PingActionCallback = (destination: string) => void;
 
 
 const addNewEntity = (l: List, entity: string, entityType: string) => {
+    let hasError = false;
+    l.elements.forEach((c) => {
+        c.elements.forEach((p) => {
+            if (p.type === "parameter" && p.element.id === "entity_name" && p.element.value === entity) {
+                hasError = true;
+            }
+        });
+    });
+
+    if (hasError) {
+        sendError(`Entity ${entity} already exists in ${l.name}`);
+        return;
+    }
+
     const newEntity = l.addItem();
     if (newEntity != null) {
         newEntity.elements.forEach((p) => {
@@ -110,6 +133,9 @@ const Project = (props: Props) => {
     const [open, setOpen] = React.useState<boolean>(false);
     const [, modelChanged] = React.useState<object>({});
     const [action, setAction] = React.useState<ActionCallback | undefined>(undefined);
+    const [pingResult, setPingResult] = React.useState<string | undefined>(undefined);
+    const [pingDestinations, setPingDestinations] = React.useState<string[]>([]);
+    const [pingAction, setPingAction] = React.useState<PingActionCallback | undefined>(undefined);
 
     const handleNewEntityOpen = React.useCallback(() => {
         setOpen(true);
@@ -121,6 +147,11 @@ const Project = (props: Props) => {
 
     const handleActionClose = React.useCallback(() => {
         setAction(undefined);
+    }, []);
+
+    const handlePingClose = React.useCallback(() => {
+        setPingAction(undefined);
+        setPingResult(undefined);
     }, []);
 
     const saveModel = React.useCallback(() => {
@@ -217,9 +248,26 @@ const Project = (props: Props) => {
         copyEntityConfiguration(silenceSuccess, sendError, projectName, entity, folder);
     }, [projectName]);
 
-    const handleDeploy = React.useCallback((entity: string, mode: string, folder: string, address: string, user: string, password: string, isPassphrase: boolean) => {
-        deployEntity(silenceSuccess, sendError, projectName, entity, folder, mode, address, user, password, isPassphrase);
+    const handleDeploy = React.useCallback((entity: string, mode: string, folder: string, action: string, address: string, password: string, isPassphrase: boolean) => {
+        deployEntity(silenceSuccess, sendError, projectName, entity, folder, mode, action, address, password, isPassphrase);
     }, [projectName]);
+
+    const handlePingResult = React.useCallback((result: IPingSuccess) => {
+        const {ping} = result;
+        setPingResult(ping);
+    }, []);
+
+    const handlePingDestinations = React.useCallback((entity: string, address: string, destinations: string[]) => {
+        setPingDestinations(destinations);
+        setPingAction(() => (destination: string) => setAction(() => (password: string, isPassphrase: boolean) => (
+            pingEntity(handlePingResult, sendError, projectName, entity, destination, address, password, isPassphrase)
+        )));
+    }, [projectName, handlePingResult]);
+
+    const handlePing = React.useCallback((entity: string, address: string) => {
+        const callback = (result: IPingDestinations) => handlePingDestinations(entity, address, result.addresses);
+        findPingDestinations(callback, sendError, projectName);
+    }, [projectName, handlePingDestinations]);
 
     const displayAction = React.useCallback((index: number) => {
         if (model) {
@@ -234,47 +282,85 @@ const Project = (props: Props) => {
                         }
                     });
 
-                    if (entityConfig.upload === "Download") {
-                        return (
-                            <Tooltip title="Download configuration files" placement="top">
-                                <IconButton size="small" onClick={() => handleDownload(entityConfig.entity_name)}>
-                                    <DownloadIcon />
-                                </IconButton>
-                            </Tooltip>
-                        );
-                    }
-
-                    if (entityConfig.upload !== "") {
-                        if (entityConfig.folder === "") {
+                    const {entity_name, upload, folder, run, address} = entityConfig;
+                    const handleAction = (password: string, isPassphrase: boolean) => (
+                        handleDeploy(entity_name, upload, folder, run, address, password, isPassphrase)
+                    );
+                    switch (run) {
+                        case "PING":
                             return (
-                                <Tooltip title="No folder to upload into" placement="top">
-                                    <span>
-                                        <IconButton size="small" disabled>
-                                            <UploadIcon />
-                                        </IconButton>
-                                    </span>
-                                </Tooltip>
-                            );
-                        }
-
-                        const {entity_name, upload, folder, run, user, address} = entityConfig;
-                        const handleAction = (password: string, isPassphrase: boolean) => (
-                            handleDeploy(entity_name, upload, folder, address, user, password, isPassphrase)
-                        );
-                        if (run === "") {
-                            const handleClick = upload === "NFS" ? (
-                                () => handleCopy(entity_name, folder)
-                            ) : (
-                                () => setAction(() => handleAction)
-                            );
-                            return (
-                                <Tooltip title="Deploy configuration files" placement="top">
-                                    <IconButton size="small" onClick={handleClick}>
-                                        <UploadIcon />
+                                <Tooltip title="Ping the emulated network" placement="top">
+                                    <IconButton size="small" onClick={() => handlePing(entity_name, address)}>
+                                        <PingIcon />
                                     </IconButton>
                                 </Tooltip>
                             );
-                        } else {
+                        case "STOP":
+                            return (
+                                <Tooltip title="Stop OpenSAND" placement="top">
+                                    <IconButton size="small" onClick={() => setAction(() => handleAction)}>
+                                        <StopIcon />
+                                    </IconButton>
+                                </Tooltip>
+                            );
+                        default:
+                            if (upload === "Download") {
+                                return (
+                                    <Tooltip title="Download configuration files" placement="top">
+                                        <IconButton size="small" onClick={() => handleDownload(entityConfig.entity_name)}>
+                                            <DownloadIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                );
+                            }
+
+                            if (upload == null || upload === "") {
+                                return run == null || run === "" ? (
+                                    <Tooltip title="No action configured for this entity" placement="top">
+                                        <span>
+                                            <IconButton size="small" disabled>
+                                                <NothingIcon />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                ) :(
+                                    <Tooltip title="No configuration option selected" placement="top">
+                                        <span>
+                                            <IconButton size="small" disabled>
+                                                <LaunchIcon />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                );
+                            }
+
+                            if (folder == null || folder === "") {
+                                return (
+                                    <Tooltip title="No folder to upload into" placement="top">
+                                        <span>
+                                            <IconButton size="small" disabled>
+                                                <UploadIcon />
+                                            </IconButton>
+                                        </span>
+                                    </Tooltip>
+                                );
+                            }
+
+                            if (run === "") {
+                                const handleClick = upload === "NFS" ? (
+                                    () => handleCopy(entity_name, folder)
+                                ) : (
+                                    () => setAction(() => handleAction)
+                                );
+                                return (
+                                    <Tooltip title="Deploy configuration files" placement="top">
+                                        <IconButton size="small" onClick={handleClick}>
+                                            <UploadIcon />
+                                        </IconButton>
+                                    </Tooltip>
+                                );
+                            }
+
                             return (
                                 <Tooltip title="Configure and launch OpenSAND" placement="top">
                                     <IconButton size="small" onClick={() => setAction(() => handleAction)}>
@@ -282,18 +368,7 @@ const Project = (props: Props) => {
                                     </IconButton>
                                 </Tooltip>
                             );
-                        }
                     }
-
-                    return (
-                        <Tooltip title="No action configured for this entity" placement="top">
-                            <span>
-                                <IconButton size="small" disabled>
-                                    <NothingIcon />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-                    );
                 }
             }
         }
@@ -307,7 +382,7 @@ const Project = (props: Props) => {
                 </span>
             </Tooltip>
         );
-    }, [model, handleDownload, handleCopy, handleDeploy]);
+    }, [model, handleDownload, handleCopy, handleDeploy, handlePing]);
 
     const [entityName, entityType]: [Parameter | undefined, Parameter | undefined] = React.useMemo(() => {
         const entity: [Parameter | undefined, Parameter | undefined] = [undefined, undefined];
@@ -362,6 +437,17 @@ const Project = (props: Props) => {
                 open={Boolean(action)}
                 onValidate={action}
                 onClose={handleActionClose}
+            />
+            <PingDialog
+                open={Boolean(pingAction)}
+                destinations={pingDestinations}
+                onValidate={pingAction}
+                onClose={handlePingClose}
+            />
+            <PingResultDialog
+                open={pingResult != null}
+                content={pingResult}
+                onClose={handlePingClose}
             />
             {entityName != null && entityType != null && (
                 <NewEntityDialog

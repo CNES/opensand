@@ -29,7 +29,6 @@ else:
 
 MODELS_FOLDER = Path(__file__).parent.resolve()
 WWW_FOLDER = MODELS_FOLDER.parent / 'www'
-LAUNCHED_PIDS = {}
 
 
 DVB_S2 = [
@@ -109,12 +108,14 @@ QOS_CLASSES = [
 ]
 
 
-def success(message='OK'):
-    return jsonify(status=message)
+def success(message='OK', **kwargs):
+    result = {'status': message, **kwargs}
+    return jsonify(result)
 
 
-def error(message, return_code=500):
-    return jsonify(error=message), return_code
+def error(message, return_code=500, **kwargs):
+    result = {'error': message, **kwargs}
+    return jsonify(result), return_code
 
 
 @app.errorhandler(Exception)
@@ -140,7 +141,7 @@ def get_file_content(filename, xml=False):
     with filepath.open() as f:
         content = f.read()
 
-    return jsonify(content=content)
+    return success(content=content)
 
 
 def write_file_content(filename, content, expected_suffix='.xml'):
@@ -564,6 +565,24 @@ def create_platform_infrastructure(project):
         py_opensand_conf.toXML(xml, filepath.as_posix())
 
 
+def extract_emulation_address(path):
+    xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath('infrastructure.xsd').as_posix())
+    xml = py_opensand_conf.fromXML(xsd, path.as_posix())
+
+    entity = _get_component(xml.get_root(), 'entity')
+    entity_type = _get_parameter(entity, 'entity_type')
+
+    component_name = {
+            'Satellite': 'entity_sat',
+            'Terminal': 'entity_st',
+            'Gateway': 'entity_gw',
+            'Gateway Net Access': 'entity_gw_net_acc',
+            'Gateway Phy': 'entity_gw_phy',
+    }.get(entity_type)
+    entity_component = _get_component(entity, component_name)
+    return _get_parameter(entity_component, 'emu_address') or None
+
+
 @app.route('/api/project/<string:name>/template/<string:xsd>/<string:filename>', methods=['GET'])
 def get_project_template(name, xsd, filename):
     xsd = normalize_xsd_folder(xsd)
@@ -665,7 +684,7 @@ def remove_project_topology(name):
     return success()
 
 
-@app.route('/api/project/<string:name>/<string:entity>', methods=['POST'])
+@app.route('/api/project/<string:name>/entity/<string:entity>', methods=['POST'])
 def download_entity(name, entity):
     files = [
             WWW_FOLDER / name / 'topology.xml',
@@ -684,7 +703,7 @@ def download_entity(name, entity):
     return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
 
 
-@app.route('/api/project/<string:name>/<string:entity>', methods=['PUT'])
+@app.route('/api/project/<string:name>/entity/<string:entity>', methods=['PUT'])
 def upload_entity(name, entity):
     files = [
             WWW_FOLDER / name / 'topology.xml',
@@ -693,8 +712,8 @@ def upload_entity(name, entity):
     ]
     files = [f for f in files if f.exists()]
 
-    method = request.json['copy_method']
-    destination = Path(request.json['destination_folder'])
+    destination = Path(request.json.get('destination_folder') or '.')
+    method = request.json.get('copy_method')
     run = request.json.get('run_method')
     ssh_config = request.json.get('ssh', {})
 
@@ -707,18 +726,17 @@ def upload_entity(name, entity):
                 dest.write(source.read())
             destination.joinpath(file.name).chmod(0o0666)
 
-    password = passphrase = None
+    password = {
+            'password': None,
+            'passphrase': None,
+    }
     if ssh_config.get('is_passphrase', False):
-        passphrase = ssh_config.get('password') or None
+        passwords['passphrase'] = ssh_config.get('password') or None
     else:
-        password = ssh_config.get('password') or None
+        passwords['password'] = ssh_config.get('password') or None
+    host = ssh_config.get('address') or 'localhost'
 
-    client = Connection(
-            ssh_config.get('address') or 'localhost',
-            user=ssh_config.get('user') or None,  # Is this necessary?
-            connect_kwargs={'password': password, 'passphrase': passphrase})
-
-    with client:
+    with Connection(host, connect_kwargs=passwords) as client:
         client.client.set_missing_host_key_policy(MissingHostKeyPolicy())
 
         if method == 'SCP':
@@ -732,7 +750,13 @@ def upload_entity(name, entity):
                 for file in files:
                     sftp.put(file.as_posix(), file.name)
 
-        launched_pid = LAUNCHED_PIDS.setdefault(name, {}).get(entity)
+        pid_file = WWW_FOLDER / name / 'entities' / entity / 'process.pid'
+        try:
+            with pid_file.open() as f:
+                launched_pid = int(f.read())
+        except OSError:
+            launched_pid = None
+
         if run == 'SSH':
             if launched_pid is not None:
                 return error('opensand process already launched for this entity', 409)
@@ -742,19 +766,39 @@ def upload_entity(name, entity):
                     f'-{f.name[0]} "{destination.joinpath(f.name)}"'
                     for f in files
             ) + ' </dev/null >/dev/null 2>&1 &', hide=True)
-            pid, = set(client.run('pidof opensand', hide=True, warn=True).stdout.split()) - pids
 
-            LAUNCHED_PIDS[name][entity] = int(pid)
+            try:
+                pid, = set(client.run('pidof opensand', hide=True, warn=True).stdout.split()) - pids
+                pid = int(pid)
+            except ValueError:
+                return error(f'OpenSAND process could not be launched on entity {entity}', 422)
+            else:
+                with pid_file.open('w') as f:
+                    print(pid, file=f)
         elif run == 'PING':
             result = client.run(shlex.join(['ping', '-c', '6', request.json['ping_address']]), hide=True, warn=True)
             if result.exited:
-                return jsonify(error='ping exited with non-zero status', ping=result.stderr), 422
-            return jsonify(status='OK', ping=result.stdout)
+                return error('ping exited with non-zero status', 422, ping=result.stderr)
+            return success(ping=result.stdout)
         elif run == 'STOP':
             if launched_pid is not None:
                 client.run(f'kill {launched_pid}', hide=True, warn=True)
+            try:
+                os.remove(pid_file)
+            except OSError:
+                pass
 
     return success()
+
+
+@app.route('/api/project/<string:name>/ping', methods=['GET'])
+def get_project_ping_destinations(name):
+    entities = WWW_FOLDER / name / 'entities'
+    addresses = (
+        extract_emulation_address(infrastructure)
+        for infrastructure in entities.glob('*/infrastructure.xml')
+    )
+    return success(addresses=list(filter(None, addressses)))
 
 
 @app.route('/api/project/<string:name>', methods=['GET'])
@@ -883,7 +927,7 @@ def list_projects():
             for entry in WWW_FOLDER.iterdir()
             if entry.is_dir()
     ]
-    return jsonify(projects=projects)
+    return success(projects=projects)
 
 
 @app.route('/api/model/<string:filename>', methods=['GET'])
@@ -898,7 +942,7 @@ def list_models():
             for entry in MODELS_FOLDER.iterdir()
             if entry.suffix == '.xsd' and entry.is_file()
     ]
-    return jsonify(models=XSDs)
+    return success(models=XSDs)
 
 
 @app.route('/', defaults={'path': ''})
