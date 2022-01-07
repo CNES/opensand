@@ -6,7 +6,14 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import IconButton from '@material-ui/core/IconButton';
+import InputAdornment from '@material-ui/core/InputAdornment';
+import Menu from '@material-ui/core/Menu';
+import MenuItem from '@material-ui/core/MenuItem';
 import TextField from '@material-ui/core/TextField';
+
+import OpenedIcon from '@material-ui/icons/ArrowDropUp';
+import ClosedIcon from '@material-ui/icons/ArrowDropDown';
 
 
 interface Props {
@@ -18,8 +25,9 @@ interface Props {
 
 
 const PingDialog = (props: Props) => {
-    const {open, onValidate, onClose} = props;
+    const {open, destinations, onValidate, onClose} = props;
 
+    const [destinationsAnchor, setDestinationsAnchor] = React.useState<HTMLElement | null>(null);
     const [destination, setDestination] = React.useState<string>("");
 
     const changeDestination = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,6 +45,25 @@ const PingDialog = (props: Props) => {
         handleClose();
     }, [onValidate, handleClose, destination]);
 
+    const handleCloseDestinations = React.useCallback(() => {
+        setDestinationsAnchor(null);
+    }, []);
+
+    const handleShowDestinations = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+        setDestinationsAnchor(event.currentTarget);
+    }, []);
+
+    const handleSelectDestination = React.useCallback((dest: string) => {
+        setDestination(dest);
+        setDestinationsAnchor(null);
+    }, []);
+
+    const handleMouseDownPrevent = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+    }, []);
+
+    const selectedIndex = destinations.findIndex((dest: string) => dest === destination);
+
     return (
         <Dialog open={open} onClose={handleClose}>
             <form onSubmit={handleValidate}>
@@ -50,11 +77,37 @@ const PingDialog = (props: Props) => {
                         value={destination}
                         onChange={changeDestination}
                         fullWidth
+                        InputProps={{endAdornment: (
+                            <InputAdornment position="end">
+                                <IconButton
+                                  onClick={handleShowDestinations}
+                                  onMouseDown={handleMouseDownPrevent}
+                                >
+                                    {destinationsAnchor ? <OpenedIcon /> : <ClosedIcon />}
+                                </IconButton>
+                            </InputAdornment>
+                        )}}
                     />
+                    <Menu
+                        keepMounted
+                        anchorEl={destinationsAnchor}
+                        open={Boolean(destinationsAnchor)}
+                        onClose={handleCloseDestinations}
+                    >
+                        {destinations.map((dest: string, index: number) => (
+                            <MenuItem
+                                key={index}
+                                selected={index === selectedIndex}
+                                onClick={() => handleSelectDestination(dest)}
+                            >
+                                {dest}
+                            </MenuItem>
+                        ))}
+                    </Menu>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose} color="primary">Cancel</Button>
-                    <Button type="submit" color="primary">Deploy</Button>
+                    <Button type="submit" color="primary">Ping</Button>
                 </DialogActions>
             </form>
         </Dialog>

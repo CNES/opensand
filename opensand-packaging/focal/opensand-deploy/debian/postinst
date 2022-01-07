@@ -2,7 +2,23 @@
 set -e
 
 case "$1" in
-  abort-upgrade|abort-remove|abort-deconfigure|configure)
+  configure)
+
+    # create opensand group if it isn't already there
+    if ! getent group opensand >/dev/null; then
+      addgroup --quiet --system opensand
+    fi
+
+    # create opensand user if it isn't already there
+    if ! getent passwd opensand >/dev/null; then
+      adduser --system --ingroup opensand --home /var/opensand opensand --gecos "OpenSAND web configuration server"
+    fi
+
+    # ensure /var/opensand/ has appropriate permissions
+    chown -R opensand:opensand /var/opensand/*
+    ;;
+
+  abort-upgrade|abort-remove|abort-deconfigure)
     ;;
 
   *)
@@ -14,8 +30,9 @@ esac
 
 if [ -f /etc/systemd/system/opensand-conf.service ]; then
   systemctl daemon-reload
+  systemctl enable opensand-conf.socket
   systemctl enable opensand-conf.service
-  systemctl restart opensand-conf.service
+  systemctl start opensand-conf.socket
 fi
 
 

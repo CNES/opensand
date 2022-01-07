@@ -20,7 +20,7 @@ import {
     copyEntityConfiguration,
     deleteProjectXML,
     deployEntity,
-	findPingDestinations,
+    findPingDestinations,
     getProject,
     getProjectModel,
     getProjectXML,
@@ -30,7 +30,8 @@ import {
     updateProject,
     updateProjectXML,
     IApiSuccess,
-	IPingDestinations,
+    IPidSuccess,
+    IPingDestinations,
     IPingSuccess,
     IXsdContent,
     IXmlContent,
@@ -247,6 +248,16 @@ const Project = (props: Props) => {
     const handleCopy = React.useCallback((entity: string, folder: string) => {
         copyEntityConfiguration(silenceSuccess, sendError, projectName, entity, folder);
     }, [projectName]);
+
+    const handleStatus = React.useCallback((project: string, entity: string, address: string, password: string, isPassphrase: boolean) => {
+        return (result: IPidSuccess) => {
+            if (result.running) {
+                const newHandler = handleStatus(project, entity, address, password, isPassphrase);
+                const recursiveCall = () => deployEntity(newHandler, sendError, project, entity, '', '', 'STATUS', address, password, isPassphrase);
+                setTimeout(recursiveCall, 5000);
+            }
+        };
+    }, []);
 
     const handleDeploy = React.useCallback((entity: string, mode: string, folder: string, action: string, address: string, password: string, isPassphrase: boolean) => {
         deployEntity(silenceSuccess, sendError, projectName, entity, folder, mode, action, address, password, isPassphrase);

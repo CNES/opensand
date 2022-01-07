@@ -578,7 +578,7 @@ def extract_emulation_address(path):
             'Gateway': 'entity_gw',
             'Gateway Net Access': 'entity_gw_net_acc',
             'Gateway Phy': 'entity_gw_phy',
-    }.get(entity_type)
+    }.get(entity_type, 'entity_unknown')
     entity_component = _get_component(entity, component_name)
     return _get_parameter(entity_component, 'emu_address') or None
 
@@ -713,11 +713,11 @@ def upload_entity(name, entity):
     files = [f for f in files if f.exists()]
 
     destination = Path(request.json.get('destination_folder') or '.')
+    run = request.json.get('run_method') or ''
     method = request.json.get('copy_method')
-    run = request.json.get('run_method')
     ssh_config = request.json.get('ssh', {})
 
-    if method == 'NFS':
+    if method == 'NFS' and run in ('', 'SSH'):
         destination = destination.expanduser().resolve()
         destination.mkdir(parents=True, exist_ok=True)
 
@@ -726,7 +726,7 @@ def upload_entity(name, entity):
                 dest.write(source.read())
             destination.joinpath(file.name).chmod(0o0666)
 
-    password = {
+    passwords = {
             'password': None,
             'passphrase': None,
     }
@@ -739,16 +739,17 @@ def upload_entity(name, entity):
     with Connection(host, connect_kwargs=passwords) as client:
         client.client.set_missing_host_key_policy(MissingHostKeyPolicy())
 
-        if method == 'SCP':
-            client.run(shlex.join(['mkdir', '-p', destination.as_posix()]), hide=True)
-            for file in files:
-                client.put(file.as_posix(), destination.as_posix())
-        elif method == 'SFTP':
-            client.run(shlex.join(['mkdir', '-p', destination.as_posix()]), hide=True)
-            with client.sftp() as sftp:
-                sftp.chdir(destination.as_posix())
+        if run in ('', 'SSH'):
+            if method == 'SCP':
+                client.run(shlex.join(['mkdir', '-p', destination.as_posix()]), hide=True)
                 for file in files:
-                    sftp.put(file.as_posix(), file.name)
+                    client.put(file.as_posix(), destination.as_posix())
+            elif method == 'SFTP':
+                client.run(shlex.join(['mkdir', '-p', destination.as_posix()]), hide=True)
+                with client.sftp() as sftp:
+                    sftp.chdir(destination.as_posix())
+                    for file in files:
+                        sftp.put(file.as_posix(), file.name)
 
         pid_file = WWW_FOLDER / name / 'entities' / entity / 'process.pid'
         try:
@@ -775,6 +776,13 @@ def upload_entity(name, entity):
             else:
                 with pid_file.open('w') as f:
                     print(pid, file=f)
+        elif run == 'STATUS':
+            if launched_pid is None:
+                running = False
+            else:
+                pids = set(map(int, client.run('pidof opensand', hide=True, warn=True).stdout.split()))
+                running = launched_pid in pids
+            return success(running=running)
         elif run == 'PING':
             result = client.run(shlex.join(['ping', '-c', '6', request.json['ping_address']]), hide=True, warn=True)
             if result.exited:
@@ -798,7 +806,7 @@ def get_project_ping_destinations(name):
         extract_emulation_address(infrastructure)
         for infrastructure in entities.glob('*/infrastructure.xml')
     )
-    return success(addresses=list(filter(None, addressses)))
+    return success(addresses=list(filter(None, addresses)))
 
 
 @app.route('/api/project/<string:name>', methods=['GET'])

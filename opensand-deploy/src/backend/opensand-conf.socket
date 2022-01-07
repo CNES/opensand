@@ -1,0 +1,11 @@
+[Unit]
+Description=Socket for uWSGI app OpenSAND
+
+[Socket]
+ListenStream=/var/run/uwsgi/opensand.socket
+SocketUser=opensand
+SocketGroup=opensand
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target

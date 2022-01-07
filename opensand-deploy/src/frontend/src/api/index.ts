@@ -16,6 +16,11 @@ export interface IApiSuccess {
 }
 
 
+export interface IPidSuccess extends IApiSuccess {
+    running?: boolean;
+};
+
+
 export interface IPingSuccess extends IApiSuccess {
     ping: string;
 };
@@ -219,7 +224,7 @@ export const copyEntityConfiguration = (
 
 
 export const deployEntity = (
-        callback: TCallback<IApiSuccess>,
+        callback: TCallback<IPidSuccess>,
         errorCallback: ErrorCallback,
         projectName: string,
         entityName: string,
@@ -229,11 +234,11 @@ export const deployEntity = (
         address: string,
         password: string,
         isPassphrase: boolean,
-): Promise<void> => doFetch<IApiSuccess>(callback, errorCallback, `/api/project/${projectName}/entity/${entityName}`, "PUT", {
-      destination_folder: destinationFolder,
-      copy_method: copyMethod,
-      run_method: runMethod,
-      ssh: {address, password, is_passhprase: isPassphrase},
+): Promise<void> => doFetch<IPidSuccess>(callback, errorCallback, `/api/project/${projectName}/entity/${entityName}`, "PUT", {
+    destination_folder: destinationFolder,
+    copy_method: copyMethod,
+    run_method: runMethod,
+    ssh: {address, password, is_passhprase: isPassphrase},
 });
 
 
@@ -246,7 +251,11 @@ export const pingEntity = (
         address: string,
         password: string,
         isPassphrase: boolean,
-): Promise<void> => doFetch<IPingSuccess>(callback, errorCallback, `/api/project/${projectName}/entity/${entityName}`, "PUT", {run_method: "PING", ssh: {address, password, is_passphrase: isPassphrase}});
+): Promise<void> => doFetch<IPingSuccess>(callback, errorCallback, `/api/project/${projectName}/entity/${entityName}`, "PUT", {
+    run_method: "PING",
+    ping_address: pingDestination,
+    ssh: {address, password, is_passphrase: isPassphrase},
+});
 
 
 export const findPingDestinations = (
