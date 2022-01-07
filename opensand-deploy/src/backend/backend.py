@@ -760,7 +760,7 @@ def upload_entity(name, entity):
 
         if run == 'SSH':
             if launched_pid is not None:
-                return error('opensand process already launched for this entity', 409)
+                return error('OpenSAND process already launched for this entity', 409)
 
             pids = set(client.run('pidof opensand', hide=True, warn=True).stdout.split())
             client.run('opensand ' + ' '.join(
@@ -776,12 +776,21 @@ def upload_entity(name, entity):
             else:
                 with pid_file.open('w') as f:
                     print(pid, file=f)
+
+            return success(running=True)
         elif run == 'STATUS':
             if launched_pid is None:
                 running = False
             else:
                 pids = set(map(int, client.run('pidof opensand', hide=True, warn=True).stdout.split()))
                 running = launched_pid in pids
+
+            if not running:
+                try:
+                    os.remove(pid_file)
+                except OSError:
+                    pass
+
             return success(running=running)
         elif run == 'PING':
             result = client.run(shlex.join(['ping', '-c', '6', request.json['ping_address']]), hide=True, warn=True)

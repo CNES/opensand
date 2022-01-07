@@ -3,24 +3,11 @@ import {RouteComponentProps, useHistory} from 'react-router-dom';
 
 import Box from '@material-ui/core/Box';
 import Button from '@material-ui/core/Button';
-import IconButton from '@material-ui/core/IconButton';
 import Toolbar from '@material-ui/core/Toolbar';
-import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
 
-import DownloadIcon from '@material-ui/icons/GetApp';
-import ErrorIcon from '@material-ui/icons/Error';
-import LaunchIcon from '@material-ui/icons/PlaylistPlay';
-import NothingIcon from '@material-ui/icons/Cancel';
-import PingIcon from '@material-ui/icons/Router';
-import StopIcon from '@material-ui/icons/Stop';
-import UploadIcon from '@material-ui/icons/Publish';
-
 import {
-    copyEntityConfiguration,
     deleteProjectXML,
-    deployEntity,
-    findPingDestinations,
     getProject,
     getProjectModel,
     getProjectXML,
@@ -30,8 +17,6 @@ import {
     updateProject,
     updateProjectXML,
     IApiSuccess,
-    IPidSuccess,
-    IPingDestinations,
     IPingSuccess,
     IXsdContent,
     IXmlContent,
@@ -44,6 +29,7 @@ import {fromXSD, fromXML} from '../../xsd/parser';
 
 import RootComponent from '../Model/RootComponent';
 import DeployEntityDialog from './DeployEntityDialog';
+import EntityAction from './EntityAction';
 import NewEntityDialog from './NewEntityDialog';
 import PingDialog from './PingDialog';
 import PingResultDialog from './PingResultDialog';
@@ -245,24 +231,6 @@ const Project = (props: Props) => {
         document.body.removeChild(form);
     }, [projectName]);
 
-    const handleCopy = React.useCallback((entity: string, folder: string) => {
-        copyEntityConfiguration(silenceSuccess, sendError, projectName, entity, folder);
-    }, [projectName]);
-
-    const handleStatus = React.useCallback((project: string, entity: string, address: string, password: string, isPassphrase: boolean) => {
-        return (result: IPidSuccess) => {
-            if (result.running) {
-                const newHandler = handleStatus(project, entity, address, password, isPassphrase);
-                const recursiveCall = () => deployEntity(newHandler, sendError, project, entity, '', '', 'STATUS', address, password, isPassphrase);
-                setTimeout(recursiveCall, 5000);
-            }
-        };
-    }, []);
-
-    const handleDeploy = React.useCallback((entity: string, mode: string, folder: string, action: string, address: string, password: string, isPassphrase: boolean) => {
-        deployEntity(silenceSuccess, sendError, projectName, entity, folder, mode, action, address, password, isPassphrase);
-    }, [projectName]);
-
     const handlePingResult = React.useCallback((result: IPingSuccess) => {
         const {ping} = result;
         setPingResult(ping);
@@ -275,125 +243,19 @@ const Project = (props: Props) => {
         )));
     }, [projectName, handlePingResult]);
 
-    const handlePing = React.useCallback((entity: string, address: string) => {
-        const callback = (result: IPingDestinations) => handlePingDestinations(entity, address, result.addresses);
-        findPingDestinations(callback, sendError, projectName);
-    }, [projectName, handlePingDestinations]);
-
     const displayAction = React.useCallback((index: number) => {
-        if (model) {
-            const machines = findMachines(model);
-            if (machines) {
-                const entity = machines.elements[index];
-                if (entity) {
-                    const entityConfig: {[key: string]: string;} = {};
-                    entity.elements.forEach((p) => {
-                        if (isParameterElement(p)) {
-                            entityConfig[p.element.id] = p.element.value;
-                        }
-                    });
-
-                    const {entity_name, upload, folder, run, address} = entityConfig;
-                    const handleAction = (password: string, isPassphrase: boolean) => (
-                        handleDeploy(entity_name, upload, folder, run, address, password, isPassphrase)
-                    );
-                    switch (run) {
-                        case "PING":
-                            return (
-                                <Tooltip title="Ping the emulated network" placement="top">
-                                    <IconButton size="small" onClick={() => handlePing(entity_name, address)}>
-                                        <PingIcon />
-                                    </IconButton>
-                                </Tooltip>
-                            );
-                        case "STOP":
-                            return (
-                                <Tooltip title="Stop OpenSAND" placement="top">
-                                    <IconButton size="small" onClick={() => setAction(() => handleAction)}>
-                                        <StopIcon />
-                                    </IconButton>
-                                </Tooltip>
-                            );
-                        default:
-                            if (upload === "Download") {
-                                return (
-                                    <Tooltip title="Download configuration files" placement="top">
-                                        <IconButton size="small" onClick={() => handleDownload(entityConfig.entity_name)}>
-                                            <DownloadIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                );
-                            }
-
-                            if (upload == null || upload === "") {
-                                return run == null || run === "" ? (
-                                    <Tooltip title="No action configured for this entity" placement="top">
-                                        <span>
-                                            <IconButton size="small" disabled>
-                                                <NothingIcon />
-                                            </IconButton>
-                                        </span>
-                                    </Tooltip>
-                                ) :(
-                                    <Tooltip title="No configuration option selected" placement="top">
-                                        <span>
-                                            <IconButton size="small" disabled>
-                                                <LaunchIcon />
-                                            </IconButton>
-                                        </span>
-                                    </Tooltip>
-                                );
-                            }
-
-                            if (folder == null || folder === "") {
-                                return (
-                                    <Tooltip title="No folder to upload into" placement="top">
-                                        <span>
-                                            <IconButton size="small" disabled>
-                                                <UploadIcon />
-                                            </IconButton>
-                                        </span>
-                                    </Tooltip>
-                                );
-                            }
-
-                            if (run === "") {
-                                const handleClick = upload === "NFS" ? (
-                                    () => handleCopy(entity_name, folder)
-                                ) : (
-                                    () => setAction(() => handleAction)
-                                );
-                                return (
-                                    <Tooltip title="Deploy configuration files" placement="top">
-                                        <IconButton size="small" onClick={handleClick}>
-                                            <UploadIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                );
-                            }
-
-                            return (
-                                <Tooltip title="Configure and launch OpenSAND" placement="top">
-                                    <IconButton size="small" onClick={() => setAction(() => handleAction)}>
-                                        <LaunchIcon />
-                                    </IconButton>
-                                </Tooltip>
-                            );
-                    }
-                }
-            }
-        }
-
+        const machines = model ? findMachines(model) : undefined;
+        const entity = machines?.elements[index];
         return (
-            <Tooltip title="Error retrieving entity configuration" placement="top">
-                <span>
-                    <IconButton size="small" disabled>
-                        <ErrorIcon />
-                    </IconButton>
-                </span>
-            </Tooltip>
+            <EntityAction
+                project={projectName}
+                entity={entity}
+                onDownload={handleDownload}
+                setAction={setAction}
+                setPingDestinations={handlePingDestinations}
+            />
         );
-    }, [model, handleDownload, handleCopy, handleDeploy, handlePing]);
+    }, [model, projectName, handleDownload, handlePingDestinations]);
 
     const [entityName, entityType]: [Parameter | undefined, Parameter | undefined] = React.useMemo(() => {
         const entity: [Parameter | undefined, Parameter | undefined] = [undefined, undefined];
