@@ -7,7 +7,7 @@ import CardActions from '@material-ui/core/CardActions';
 import CardContent from '@material-ui/core/CardContent';
 import Typography from '@material-ui/core/Typography';
 
-import {copyProject, deleteProject, IApiSuccess} from '../../api';
+import {copyProject, IApiSuccess} from '../../api';
 import {sendError} from '../../utils/dispatcher';
 
 import CardButton from './CardButton';
@@ -17,14 +17,15 @@ import SingleFieldDialog from '../common/SingleFieldDialog';
 interface Props {
     project: string;
     className: string;
-    onReload: () => void;
+    onDelete: (name: string) => void;
 }
 
 
 const ProjectCard = (props: Props) => {
-    const {project, className, onReload} = props;
-    const [open, setOpen] = React.useState<boolean>(false);
+    const {project, className, onDelete} = props;
     const history = useHistory();
+
+    const [open, setOpen] = React.useState<boolean>(false);
 
     const handleOpen = React.useCallback(() => {
         setOpen(true);
@@ -39,13 +40,9 @@ const ProjectCard = (props: Props) => {
         history.push("/project/" + project);
     }, [history, project]);
 
-    const onSuccess = React.useCallback((status: IApiSuccess) => {
-        onReload();
-    }, [onReload]);
-
     const removeProject = React.useCallback(() => {
-        deleteProject(onSuccess, sendError, project);
-    }, [onSuccess, project]);
+        onDelete(project);
+    }, [onDelete, project]);
 
     const downloadProject = React.useCallback(() => {
         const form = document.createElement("form") as HTMLFormElement;
