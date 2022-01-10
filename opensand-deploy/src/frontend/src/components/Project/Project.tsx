@@ -162,12 +162,12 @@ const Project = (props: Props) => {
         refreshModel(0);
     }, [model, refreshModel]);
 
-    const handleDeleteEntity = React.useCallback(() => {
+    const handleDeleteEntity = React.useCallback((index: number) => {
         if (!model) {
             return;
         }
 
-        applyOnMachinesAndEntities(model, (l: List) => l.removeItem());
+        applyOnMachinesAndEntities(model, (l: List) => l.removeItem(index));
         refreshModel(0);
     }, [model, refreshModel]);
 

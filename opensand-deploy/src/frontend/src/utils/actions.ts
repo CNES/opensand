@@ -8,7 +8,7 @@ interface IAction {
     readonly onEdit?: (entity: IEntity | undefined, key: string, xsd: string, xml?: string) => void;
     readonly onRemove?: (entity: string | undefined, key: string) => void;
     readonly onCreate?: () => void;
-    readonly onDelete?: () => void;
+    readonly onDelete?: (index: number) => void;
     readonly onAction?: (index: number) => JSX.Element;
 }
 

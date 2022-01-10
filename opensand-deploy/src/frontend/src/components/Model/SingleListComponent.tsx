@@ -71,17 +71,19 @@ const SingleListComponent = (props: Props) => {
         }
     }, [list, forceUpdate, actions.$]);
 
-    const removeListItem = React.useCallback(() => {
-        list.removeItem();
+    const removeListItem = React.useCallback((index: number) => {
+        list.removeItem(index);
         forceUpdate();
     }, [list, forceUpdate]);
 
     const isEditable = !readOnly && !list.isReadOnly();
+    const canGrow = list.elements.length < list.maxOccurences;
+    const canShrink = list.elements.length > list.minOccurences;
 
     return (
         <div className={classes.root}>
             <List className={classes.leftPanel}>
-                {isEditable && (
+                {isEditable && canGrow && (
                     <ListItem key={0} button selected onClick={addListItem}>
                         <ListItemIcon><AddIcon /></ListItemIcon>
                         <ListItemText primary={`Add New ${list.pattern.name}`} />
@@ -90,9 +92,9 @@ const SingleListComponent = (props: Props) => {
                 {list.elements.map((c: ComponentType, i: number) => (
                     <ListItem key={i+1} button selected={i === open} onClick={() => setOpen(i)}>
                         <ListItemText primary={c.name} />
-                        {i + 1 === list.elements.length && isEditable && (
+                        {isEditable && canShrink && (
                             <ListItemSecondaryAction>
-                                <IconButton edge="end" onClick={removeListItem} color="inherit">
+                                <IconButton edge="end" onClick={() => removeListItem(i)} color="inherit">
                                     <DeleteIcon />
                                 </IconButton>
                             </ListItemSecondaryAction>

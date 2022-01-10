@@ -339,9 +339,16 @@ export class List extends NamedElement {
         }
     };
 
-    removeItem = () => {
-        if (this.elements.length > this.minOccurences) {
-            this.elements.pop();
+    removeItem = (i?: number) => {
+        const length = this.elements.length;
+        const index = i == null ? length - 1 : i;
+        
+        if (index < length && length > this.minOccurences) {
+            this.elements.splice(index, 1);
+            this.elements.forEach((item: Component, idx: number) => {
+                item.refPath = this.pattern.refPath.replace('*', idx.toString());  // TODO: recursive descent
+                item.name = this.pattern.name + " " + idx;
+            });
         }
     };
 }

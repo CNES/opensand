@@ -129,11 +129,11 @@ const List = (props: Props) => {
         }
     }, [list, forceUpdate, actions.$]);
 
-    const removeListItem = React.useCallback(() => {
+    const removeListItem = React.useCallback((index: number) => {
         if (actions.$.onDelete != null) {
-            actions.$.onDelete();
+            actions.$.onDelete(index);
         } else {
-            list.removeItem();
+            list.removeItem(index);
             forceUpdate();
         }
     }, [list, forceUpdate, actions.$]);
@@ -141,6 +141,8 @@ const List = (props: Props) => {
     const count = list.elements.length;
     const headers = list.pattern.getParameters().map(p => p.id);
     const isEditable = !readOnly && !list.readOnly;
+    const canGrow = count < list.maxOccurences;
+    const canShrink = count > list.minOccurences;
     const patternActions = actions['#'][list.pattern.id] || noActions;
 
     return (
@@ -164,7 +166,7 @@ const List = (props: Props) => {
                             </TableCell>
                         ))}
                         <TableCell key={headers.length + 2} align="right">
-                            {isEditable && (
+                            {isEditable && canGrow && (
                                 <IconButton size="small" onClick={addListItem}>
                                     <AddIcon />
                                 </IconButton>
@@ -182,7 +184,7 @@ const List = (props: Props) => {
                             isEditable={isEditable}
                             headers={headers}
                             changeModel={forceUpdate}
-                            onDelete={i === count - 1 && count > list.minOccurences && removeListItem}
+                            onDelete={canShrink && (() => removeListItem(i))}
                             actions={patternActions}
                         />
                     ))}
