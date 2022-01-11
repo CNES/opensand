@@ -57,14 +57,14 @@ able to reuse the same level configured when you select the template that you ju
 ## Deployment and Emulation
 
 Once an entity is fully configured, you can start the OpenSAND binary on the machine by
-choosing the SSH "Run Method" in the "Platform" tab. Don't forget to specify in which
+choosing the LAUNCH "Run Method" in the "Platform" tab. Don't forget to specify in which
 folder the configuration files must be pushed into. If the OpenSAND binary starts
 successfully, a progression circle will replace the launch button: as long as the process
 is running on the machine, the circle will spin. If the process stops, the launch button
 is displayed back.
 
 You can manually stop the OpenSAND binary by selecting the STOP "Run Method". Success
-can be monitored by switching back to the SSH method and checking wether the launch
+can be monitored by switching back to the LAUNCH method and checking wether the launch
 button or the progress circle is displayed.
 
 ## Testing
