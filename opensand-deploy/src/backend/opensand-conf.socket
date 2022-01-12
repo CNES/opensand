@@ -2,7 +2,7 @@
 Description=Socket for uWSGI app OpenSAND
 
 [Socket]
-ListenStream=/var/run/opensand/opensand-conf.socket
+ListenStream=/run/opensand/opensand-conf.socket
 SocketUser=opensand
 SocketGroup=opensand
 SocketMode=0660
