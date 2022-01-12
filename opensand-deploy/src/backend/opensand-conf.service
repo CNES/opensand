@@ -7,7 +7,7 @@ Type=notify
 User=opensand
 Group=opensand
 WorkingDirectory=/var/opensand/www/
-ExecStart=/usr/bin/uwsgi --plugin python3 --socket /var/run/uwsgi/opensand.socket --wsgi-file /var/opensand/opensand-conf/backend.py --callable app --master --workers 5 --die-on-term --wsgi-disable-file-wrapper
+ExecStart=/usr/bin/uwsgi --plugin python3 --socket /var/run/opensand/opensand-conf.socket --wsgi-file /var/opensand/opensand-conf/backend.py --callable app --master --workers 5 --die-on-term --wsgi-disable-file-wrapper
 
 [Install]
 WantedBy=multi-user.target

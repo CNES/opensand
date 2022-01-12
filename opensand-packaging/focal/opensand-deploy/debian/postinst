@@ -15,7 +15,8 @@ case "$1" in
     fi
 
     # ensure /var/opensand/ has appropriate permissions
-    chown -R opensand:opensand /var/opensand/*
+    chown -R opensand:opensand /var/opensand/
+    chown -R opensand:opensand /var/run/opensand/
 
     # reload Nginx with the new website if not already present
     if [ ! -f /etc/nginx/sites-enabled/opensand ]; then
