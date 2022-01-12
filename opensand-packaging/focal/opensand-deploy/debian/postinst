@@ -16,13 +16,14 @@ case "$1" in
 
     # ensure /var/opensand/ has appropriate permissions
     chown -R opensand:opensand /var/opensand/*
-    ;;
 
     # reload Nginx with the new website if not already present
     if [ ! -f /etc/nginx/sites-enabled/opensand ]; then
       ln -s /etc/nginx/sites-available/opensand /etc/nginx/sites-enabled/opensand
       systemctl restart nginx.service
     fi
+
+    ;;
 
   abort-upgrade|abort-remove|abort-deconfigure)
     ;;
