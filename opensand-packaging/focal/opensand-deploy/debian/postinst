@@ -20,9 +20,9 @@ case "$1" in
     # reload Nginx with the new website if not already present
     if [ ! -f /etc/nginx/sites-enabled/opensand ]; then
       ln -s /etc/nginx/sites-available/opensand /etc/nginx/sites-enabled/opensand
-      systemctl stop nginx.service
-      systemctl start nginx.service
     fi
+    systemctl stop nginx.service
+    systemctl start nginx.service
 
     ;;
 

@@ -4,7 +4,7 @@ Description=Socket for uWSGI app OpenSAND
 [Socket]
 ListenStream=/run/opensand/opensand-conf.socket
 SocketUser=opensand
-SocketGroup=opensand
+SocketGroup=www-data
 SocketMode=0660
 
 [Install]
