@@ -1,12 +1,12 @@
 # Configuring the OpenSAND Configuration Backend
 
-The OpenSAND configuration manager will need to access the machines onto which you
-want to run the OpenSAND process through SSH. But to keep things simple, the frontend
-will only let you specify the IP address of the machine you are trying to reach
-(you can optionally use the user@ip:port syntax, though) so every special configuration
-that you need on your network like using private keys or the like should be specified
-in the .ssh/config file of the opensand user on the machine you installed the
-opensand-deploy packet.
+The OpenSAND configuration manager will need to access the machines onto which
+you want to run the OpenSAND process through SSH. But to keep things simple,
+the frontend will only let you specify the IP address of the machine you are
+trying to reach (you can optionally use the user@ip:port syntax, though) so
+every special configuration that you need on your network such as using private
+keys or the like should be specified in the /var/opensand/.ssh/config file on
+the machine you installed the opensand-deploy packet.
 
 # Using the OpenSAND Configuration Frontend
 
