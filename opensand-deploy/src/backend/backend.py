@@ -799,9 +799,12 @@ def upload_entity(name, entity):
             return success(running=running)
         elif run == 'PING':
             result = client.run(shlex.join(['ping', '-c', '6', request.json['ping_address']]), hide=True, warn=True)
+            ping = result.stdout
             if result.exited:
-                return error('ping exited with non-zero status', 422, ping=result.stderr)
-            return success(ping=result.stdout)
+                if ping and not ping.endswith('\n'):
+                    ping += '\n'
+                ping += result.stderr
+            return success(ping=ping)
         elif run == 'STOP':
             if launched_pid is not None:
                 client.run(f'kill {launched_pid}', hide=True, warn=True)

@@ -22,7 +22,7 @@ const PingResultDialog = (props: Props) => {
         <Dialog open={open} onClose={onClose}>
             <DialogTitle>Ping Results</DialogTitle>
             <DialogContent>
-                <DialogContentText>{content}</DialogContentText>
+                <DialogContentText><pre>{content}</pre></DialogContentText>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} color="primary">OK</Button>
