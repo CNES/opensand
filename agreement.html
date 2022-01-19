@@ -1,0 +1,447 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>OpenSAND</title>
+
+    <!-- JQuery Core CSS -->
+	<link href="css/jquery-ui.css" rel="stylesheet">
+	<link href="css/jquery-ui.min.css" rel="stylesheet">
+	<link href="css/jquery-ui.theme.css" rel="stylesheet">
+	<link href="css/jquery-ui.theme.min.css" rel="stylesheet">
+	<link href="css/jquery-ui.structure.css" rel="stylesheet">
+	<link href="css/jquery-ui.structure.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="css/opensand.css" rel="stylesheet">
+    <link href="css/scrolling-nav.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="img/opensand-manager.png" />
+
+    <!-- Custom Fonts -->
+    <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js" defer></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js" defer></script>
+    <![endif]-->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" defer></script>
+
+    <!-- jQuery -->
+    <script src="js/jquery.js" defer></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="js/bootstrap.min.js" defer></script>
+
+    <!-- Scrolling Nav JavaScript -->
+	<script src="js/jquery/jquery.js" defer></script>
+	<script src="js/jquery/jquery-ui.js" defer></script>
+	<script src="js/jquery/jquery-ui.min.js" defer></script>
+    <script src="js/jquery.easing.min.js" defer></script>
+    <script src="js/scrolling-nav.js" defer></script>
+	<script src="js/jqBootstrapValidation.js" defer></script>
+  </head>
+
+
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-fixed-top navbar-custom" role="navigation">
+      <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <!-- <a class="navbar-brand page-scroll" href="index.html"> <img id="logo" src="img/logo2.png" alt=""/></a>-->
+          <div id="imgLogo">
+            <img class="logo" src="img/logo2.png" onclick="document.location.href = 'index.html'" alt=""></img>
+          </div>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav navbar-right">
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> About <b class="caret"></b> </p> </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="overview.html" style="font-size:100%">Overview</a>
+              </li>
+              <li>
+                <a href="references.html" style="font-size:100%">References</a>
+              </li>
+              <li>
+                <a href="commitee.html" style="font-size:100%">Steering commitee</a>
+              </li>
+            </ul>
+          </li>
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Get & Learn <b class="caret"></b> </p></a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="get.html" style="font-size:100%">Installation</a>
+              </li>
+              <li>
+                <a href="mail.html" style="font-size:100%">Mailing-lists</a>
+              </li>
+              <li>
+                <a href="https://wiki.net4sat.org/doku.php?id=opensand:index" style="font-size:100%">Wiki</a>
+              </li>
+              <li>
+                <a href="libraries.html" style="font-size:100%">Libraries</a>
+              </li>
+              <li>
+                <a href="relatedtools.html" style="font-size:100%">Related Tools</a>
+              </li>
+            </ul>
+          </li>
+          <li class="dropdown page-scroll active">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Contribute  <b class="caret"></b> </p> </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="contribution.html" style="font-size:100%">Contribution</a>
+              </li>
+              <li>
+                <a href="bugtracker.html" style="font-size:100%">Bugtracker</a>
+              </li>
+              <li>
+                <a href="https://forge.net4sat.org/opensand/opensand" style="font-size:100%">Forge OpenSAND</a>
+              </li>
+            </ul>
+          </li>
+          <li class="page-scroll">
+            <a href="blog.html" ><p class="text-custom">Blog </p></a>
+          </li>
+
+          <li class="page-scroll">
+            <a href="https://www.net4sat.org"> <img src="img/gitlab-logo-square.png"/> </a>
+          </li>
+        </ul>
+        </div>
+      </div>
+    </nav>
+
+<section>
+	<div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <h1 class="page-header">INDIVIDUAL CONTRIBUTOR AGREEMENT FOR OpenSAND<br/>(“Contributor Agreement”)</h1>
+      </div>
+    </div>
+  </div>
+	<div class="container page-wrap">
+    <div class="row">
+      <div class="col-lg-12">
+        <div>
+          <p>Thank you for your participation in the OpenSAND Open Source <b>Community</b> (“OpenSAND Community”),
+          an open source community originally created and sponsored by the “Centre National des Etudes Spatiales”
+          (“CNES”) and by Thales Alenia Space France (“TASF”) (the “<b>CNES</b>” and “<b>TASF</b>” being
+          designed in this agreement as the “Members of Steering Committee”).</p>
+          <p>“OpenSAND” is the name of the software engineering and research platform, including its documentation,
+          the aim of which is to emulate satellite telecommunication systems. Originally created by TASF
+          (“OpenSAND <b>Initial Work</b>”), it has been promoted afterwards by CNES as a reference open-source
+          software tool for use within its research and development studies and activities in the domain of
+          satellite communication systems and networks.</p>
+          <p>By distributing and making available the source codes of OpenSAND components “as is” under the terms
+          and conditions of the GNU General Public License version 3 (“<b>GPL</b>”) or the GNU Lesser General
+          Public License version 3 (“<b>LGPL</b>”), the intention of the CNES and TASF is to facilitate its use
+          and encourage any Contributions, improvement and perpetuation of OpenSAND for the benefit of the whole
+          OpenSAND Community, the objective of the CNES and TASF being also to optimize and rationalize more the
+          research and development in this domain, avoid duplication of efforts and therefore facilitate programs
+          of new satellite solutions. In order to better exchange, share and learn information about OpenSAND,
+          contributors will have also the possibility to participate to meetings organized and announced by the
+          Steering Committee of OpenSAND Community on the web site
+          <a href="http://www.opensand.org" title="OpenSAND website"><b>http://www.opensand.org</b></a>.</p>
+          <p>In this Contributor Agreement, “<b>Contribution</b>” shall mean any and all original work(s) of
+          authorship, including any modifications, corrections, translations, adaptations, additions and/or new
+          functions integrated into OpenSAND as well as any or all  module, that is (intentionally) submitted by
+          any copyright owner (whether individual or company) (« <b>Contributor(s)</b> »), by any electronic or
+          written means, to the Steering Committee of OpenSAND Community, for possible inclusion in OpenSAND.
+          This inclusion will be decided at the entire discretion of the Steering Committee of OpenSAND
+          Community. (Nothing in this Agreement shall be deemed to require the Steering Committee of OpenSAND
+          Community to include the Contribution in any OpenSAND version).</p>
+          <p>In order to submit Contribution to OpenSAND and to define the intellectual property rights granted
+          with your Contribution, you must indicate your agreement to the terms of this Contributor Agreement by
+          completing the information required in bottom <a rel="section" href="#formular">formular</a> and
+          sending it.</p>
+          <p>Note that your name and email address may be visible worldwide via the internet.</p>
+          <p>PLEASE READ THIS DOCUMENT CAREFULLY AND RETAIN A COPY FOR YOUR PERSONAL RECORDS.</p>
+          <p>WHEREAS Contributor wishes to contribute certain intellectual property defined hereunder
+          for possible inclusion to OpenSAND.</p>
+          <p>NOW THEREFORE, in the consideration of the mutual covenants set forth herein and intending to
+          be legally bound, the parties agree as follows:</p>
+          <ol class="charter_list">
+            <br>
+            <li><b>INTELLECTUAL PROPERTY RIGHT</b>
+              <br>
+              <br>
+              TASF remains the sole and exclusive copyright owner of OpenSAND Initial Work and except as provided
+              for in the GPL v3 and LGPL v3, reserves all right, title and interest in and to its Initial Work.
+              Any or all use of the Initial Work is subject to compliance with the terms and conditions under
+              which TASF has elected to distribute its Initial Work and no one shall be entitled to modify the
+              terms and conditions for the distribution of said Initial Work.
+              <br>
+              <br>
+              This Agreement does not grant permission to use the trade names, trademarks, service marks, or
+              product names of the Members of the Steering Committee , except for copyright notice to be
+              reproduced and the name OpenSAND as required by the terms and conditions of GPL or LGPL for
+              reasonable and customary use in describing the origin of OpenSAND.
+              <br>
+              <br>
+              This Contributor agreement is for your protection as Contributor as well as for the protection of
+              the copyright owner of OpenSAND Initial Work and its users: it does not change your rights to use
+              your own Contributions for any other purpose.
+              <br>
+              <br>
+              By signing this Contributor Agreement, you hereby accept to grant to the Members of the Steering
+              Committee of OpenSAND Community, for the whole term of the protection granted by the rights over
+              your Contribution and only as far as necessary for implementation of your Contribution into OpenSAND,
+              a worldwide, non-exclusive, transferable, royalty free, irrevocable copyright license to use,
+              reproduce, alter, modify, prepare derivative works of, publicly display, publicly perform, and
+              distribute (internally and externally in object code or source code form) your Contributions and
+              such derivative works, with the right to sublicense all of these rights through multiple
+              sub-licensees. By granting such rights to the Members of the Steering Committee, you accept that
+              they may decide to include your Contributions or a part thereof, as is or modified, into OpenSAND
+              and therefore apply  the terms and conditions of GPL or LGPL to your Contribution as new components
+              included into OpenSAND. In any case, Members of the Steering Committee undertake not to use your
+              Contributions otherwise as expressly permitted above in this Contributor Agreement or in a way that
+              is contrary to the benefit or inconsistent with the interests of OpenSAND Community.
+              <br>
+              <br>
+              Besides, if you own or come to own one or more patents protecting all or part of the functions of
+              OpenSAND, their Contribution or of its components, you undertake not to enforce the rights granted
+              by these patents against successive licensees using, exploiting or modifying OpenSAND. If these
+              patents are transferred, you undertake to have the transferees subscribe to the same obligations
+              set forth in this paragraph.
+            </li>
+            <br>
+            <li><b>GOVERNANCE OF OpenSAND COMMUNITY</b>
+              <br>
+              <br>
+              The OpenSAND Community is governed and managed by a Steering Committee in charge of all
+              technical and administrative decisions concerning OpenSAND.
+              <br>
+              <br>
+              TASF and the CNES as co-founders of OpenSAND Community and major contributors, are the first
+              Members of such Steering Committee. Depending on their Contributions into OpenSAND, the Steering
+              Committee may decide, by unanimous decision, to invite other important contributors to join the
+              Steering Committee as new Members.
+            </li>
+            <br>
+            <li><b>REPRESENTATIONS AND WARRANTIES / LIABILITY</b>
+              <br>
+              <br>
+              You represent that you are legally entitled to grant the above license. If your employer(s) has
+              rights to intellectual property that you create that includes your Contributions, you represent
+              that you have received permission to make Contribution on behalf of that employer.
+              <br>
+              <br>
+              You represent that each of your Contributions is your original creation. If not, complete details
+              of any third party license or other restriction must be included in the
+              <a rel="section" href="#rights">required field</a> if any in your Contributions submissions
+              (including but not limited to related patents and trademarks) of which you are personally aware
+              and which are associated with any part of Your Contributions.
+              <br>
+              <br>
+              Contributors acknowledge that the scientific and technical state-of-the art when OpenSAND Initial
+              Work was distributed did not enable all possible uses to be tested and verified, nor the presence
+              of possible defects to be detected. As far as permitted  by applicable law, Members of the Steering
+              Committee  and Contributors will provide OpenSAND Initial Work and any Contributions on an “AS IS”
+              BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without
+              limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS
+              FOR A PARTICULAR PURPOSE.
+            </li>
+            <br>
+            <li><b>LIABILITY OF THE STEERING COMMITTEE’S MEMBERS</b>
+              <br>
+              <br>
+              The Members of the Steering Committee’s liability is limited to the commitments made under this
+              Contributor Agreement and shall not be incurred as a result of notably total or partial failure
+              of Contributor to fulfil its obligations, direct or consequential loss suffered by Contributors
+              due to the use or performance of OpenSAND. More generally, members of the Steering Committee
+              shall have no liability for any incidental, consequential, special, exemplary and punitive
+              damages, whether such claim is based on warranty, contract, tort (including negligence) or
+              otherwise.  In particular, any and all pecuniary or business loss (i.e. loss of data, loss of
+              profits, operating loss, loss of customers or orders, any disturbance to business activities)
+              or any or all legal proceedings instituted against Contributors by a third party shall
+              constitute consequential loss and shall not provide entitlement to any compensation from Members
+              of the Steering Committee.
+              <br>
+              <br>
+              Members of the Steering Committee disclaims any and all liability as regards the Contributor’s use
+              of the name OpenSAND. No warranty is given as regards the existence of prior rights over the name
+              of OpenSAND or as regards the existence of a trademark.
+            </li>
+            <br>
+            <li><b>EFFECTIVE DATE</b>
+              <br>
+              <br>
+              The effective date of this Agreement shall be the date of receipt of this Contributor Agreement,
+              together with its <a rel="section" href="#formular">formular</a>, duly completed and signed by
+              each Contributor, such date being confirmed by an automatic acknowledgement of receipt made by
+              the administrator of OpenSAND web site.
+            </li>
+            <br>
+            <li><b>GOVERNING LAW &amp; DISPUTES</b>
+              <br>
+              <br>
+              This Contributor Agreement shall be governed by the laws of France. Parties agree to endeavour to
+              seek an amicable solution to any disagreements or disputes that may arise during the performance
+              of this Agreement.
+              <br>
+              <br>
+              All disputes arising out of or in connection with the validity, interpretation, performance,
+              non-performance or termination of this Contributor Agreement shall be submitted to the Paris
+              Mediation and Arbitration Centre (CMAP) Rules of Mediation.
+              <br>
+              <br>
+              Failing an amicable solution within three (3) months as from their occurrence, and unless
+              emergency proceedings are necessary, the disagreements or disputes shall be referred to the
+              Paris Court jurisdiction by the more diligent Party.
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+	</div>
+</section>
+
+<!-- Contact Form -->
+<!-- In order to set the email address and subject line for the contact form go to the bin/contact_me.php file. -->
+<section class="font-blue">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <h3 id="formular">Contributor's Identity and charter agreement</h3>
+        <form name="sentMessage" id="contactForm" novalidate>
+          <div class="control-group form-group">
+            <div class="controls">
+              <label>Full Name*:</label>
+              <input type="text" class="form-control" id="name" required data-validation-required-message="Please enter your name.">
+            </div>
+          </div>
+          <div class="control-group form-group">
+            <!-- Datepicker -->
+            <div class="controls">
+              <label>Date*:</label>
+              <input type="text" class="form-control" id="datepicker" required data-validation-required-message="Please enter the date.">
+            </div>	
+          </div>
+          <div class="control-group form-group">
+            <div class="controls">
+              <label>Legal status*:</label>
+              <select id="selectmenu" class="form-input">
+                <option>Association</option>
+                <option>Company</option>
+                <option selected="selected">Private Individual</option>
+                <option>Other</option>
+              </select>
+            </div>	
+          </div>
+          <div class="control-group form-group">
+            <div class="controls">
+              <label>Activities:</label>
+              <input type="text" class="form-input" id="activities">
+            </div>	
+          </div>
+          <div class="control-group form-group">
+            <div class="controls">
+              <label>Address*:</label>
+              <input type="text" class="form-control" id="address" required data-validation-required-message="Please enter your address.">
+            </div>
+          </div>
+          <div class="control-group form-group">
+            <div class="controls">
+              <label>Postcode*:</label>
+              <input type="tel" class="form-control" id="postcode" required data-validation-required-message="Please enter your postcode.">
+            </div>
+          </div>
+          <div class="control-group form-group">
+            <div class="controls">
+              <label>Country*:</label>
+              <input type="text" class="form-control" id="country" required data-validation-required-message="Please enter your country.">
+              <!--<p class="help-block"></p>-->
+            </div>
+          </div>
+          <div class="control-group form-group">
+            <div class="controls">
+              <label>Phone Number*:</label>
+              <input type="tel" class="form-control" id="phone" required data-validation-required-message="Please enter your phone number.">
+            </div>
+          </div>
+          <div class="control-group form-group">
+            <div class="controls">
+              <label>Email Address*:</label>
+              <input type="email" class="form-control" id="email" required data-validation-required-message="Please enter your email address.">
+            </div>
+          </div>
+          <div class="control-group form-group">
+            <div class="controls">
+              <label>Identification of the third party rights and/or any restriction of use on Contributions*:</label>
+              <textarea rows="10" cols="100" class="form-control" id="message" required data-validation-required-message="Please enter your message" maxlength="999" style="resize:none" placeholder="Refer to part 3 to complete this field"></textarea>
+            </div>
+          </div>
+          <div class="controls">
+            <label bold=false id="rights">* required fields</label>
+          </div>
+          <div id="success"></div>
+          <!-- For success/fail messages -->
+          <button type="submit" class="btn btn-primary">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="js/contact_me.js" defer></script>
+
+<script defer>
+  document.addEventListener("DOMContentLoaded", function() {
+    // this function runs when the DOM is ready, i.e. when the document has been parsed
+    $("#datepicker").datepicker({
+      inline: true
+    });
+  });
+</script>
+
+
+    <!-- Footer -->
+    <footer>
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-12">
+            <div id="licenses">
+              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ opensand _DOT_ org" title="OpenSAND contact">
+              OpenSAND Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
+              <p style="font-size:90%">The text content of this website is published under the <a 
+              href="http://creativecommons.org/licenses/by-nc-sa/3.0/" title="See license details"
+              rel="license" hreflang="en">Creative Commons BY-NC-SA license</a> (except where otherwise
+              stated). Some sections icons are derivative work of the GPL2 icons provided by the Gnome
+              project.</p>
+              <p style="font-size:90%">Logos and trademarks are the property of their respective owners. Any representation,
+              reproduction and/or exploitation, whether partial or total, of trademarks and logos
+              is prohibited without prior written permission from the owners.</p>
+              <p style="font-size:90%"><a href="privacy_policy.html" title="Read the privacy policy">
+              Privacy policy</a>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+

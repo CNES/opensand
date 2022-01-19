@@ -1,0 +1,42 @@
+<section>
+  <!-- Page Content -->
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <h1 class="page-header">Related Tools</h1>
+      </div>
+    </div>
+  </div>
+  <div class="page-wrap">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-12">
+          <p>This page presents external tools compatible with the OpenSAND platform.</p>
+          <h2 class="relatedtools" id="pepsal">PEPsal</h2>
+          <p>PEPsal [1] is an integrated, multi-layer, transparent TCP Performance Enhancing Proxy which
+          splits the connection into two parts, making use of Linux TCP enhancements when sending data,
+          and largely improving performance in links with different characteristics.</p>
+          <br />
+          <p>A PEP (Performance Enhancement Proxy) is specially helpful for satellite communications
+          since it allows to isolate (from a TCP point fo view) the satellite segment and improve
+          degraded TCP performance caused by long satellite RTT.</p>
+          <p>In short, one of the main attractive features of a PEP is to simply split the TCP
+          connection for avoiding the RTT impact on the growth of the congestion window.</p>
+          <br />
+          <p>PEPsal operates at three different layers (IP, TCP, and Application). It uses netfilter to 
+          intercept those connections that would involve a satellite links and
+          "steals" the TCP SYN packet in the three-way handshake phase of a TCP connection, then pretends
+          to be the other side of that connection, and initiate a new connection to the real endpoint,
+          using a userspace application that directly copy data between the two sockets.</p>
+          <p>The PEPsal is classified as an integrated PEP, since it runs only on a single linux box that 
+          normally forwards packet between two or more networks, and can select which connections have to
+          be enhanced by means of netfilter.</p>
+          <br />
+          <p>The PEPsal sources are hosted on the <a rel="nofollow" href="https://forge.net4sat.org/pepsal/pepsal" hreflang="en">gitlab forge</a>
+          from the <a rel="nofollow" href="http://net4sat.org" hreflang="en">Net4Sat platform</a>.</p>
+          <p>[1] <a rel="nofollow" href="https://artes.esa.int/sites/default/files/Presentation_Pepsal_2008_ETSI_BSM.pdf">ESI_BSM</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
