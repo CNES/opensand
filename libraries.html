@@ -1,0 +1,324 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>OpenSAND</title>
+
+    <!-- JQuery Core CSS -->
+    <link href="css/jquery-ui.css" rel="stylesheet">
+    <link href="css/jquery-ui.min.css" rel="stylesheet">
+    <link href="css/jquery-ui.theme.css" rel="stylesheet">
+    <link href="css/jquery-ui.theme.min.css" rel="stylesheet">
+    <link href="css/jquery-ui.structure.css" rel="stylesheet">
+    <link href="css/jquery-ui.structure.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Core CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="css/opensand.css" rel="stylesheet">
+    <link href="css/scrolling-nav.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="img/opensand-manager.png" />
+
+    <!-- Custom Fonts -->
+    <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js" defer></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js" defer></script>
+    <![endif]-->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js" defer></script>
+
+    <!-- jQuery -->
+    <script src="js/jquery.js" defer></script>
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="js/bootstrap.min.js" defer></script>
+
+    <!-- Scrolling Nav JavaScript -->
+    <script src="js/jquery/jquery.js" defer></script>
+    <script src="js/jquery/jquery-ui.js" defer></script>
+    <script src="js/jquery/jquery-ui.min.js" defer></script>
+    <script src="js/jquery.easing.min.js" defer></script>
+    <script src="js/scrolling-nav.js" defer></script>
+    <script src="js/jqBootstrapValidation.js" defer></script>
+  </head>
+
+
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-inverse navbar-fixed-top navbar-custom" role="navigation">
+      <div class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <!-- <a class="navbar-brand page-scroll" href="index.html"> <img id="logo" src="img/logo2.png" alt=""/></a>-->
+          <div id="imgLogo">
+            <img class="logo" src="img/logo2.png" onclick="document.location.href = 'index.html'" alt=""></img>
+          </div>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav navbar-right">
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> About <b class="caret"></b> </p> </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="overview.html" style="font-size:100%">Overview</a>
+              </li>
+              <li>
+                <a href="references.html" style="font-size:100%">References</a>
+              </li>
+              <li>
+                <a href="commitee.html" style="font-size:100%">Steering commitee</a>
+              </li>
+            </ul>
+          </li>
+          <li class="dropdown page-scroll active">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Get & Learn <b class="caret"></b> </p></a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="get.html" style="font-size:100%">Installation</a>
+              </li>
+              <li>
+                <a href="mail.html" style="font-size:100%">Mailing-lists</a>
+              </li>
+              <li>
+                <a href="https://wiki.net4sat.org/doku.php?id=opensand:index" style="font-size:100%">Wiki</a>
+              </li>
+              <li>
+                <a href="libraries.html" style="font-size:100%">Libraries</a>
+              </li>
+              <li>
+                <a href="relatedtools.html" style="font-size:100%">Related Tools</a>
+              </li>
+            </ul>
+          </li>
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Contribute  <b class="caret"></b> </p> </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="contribution.html" style="font-size:100%">Contribution</a>
+              </li>
+              <li>
+                <a href="bugtracker.html" style="font-size:100%">Bugtracker</a>
+              </li>
+              <li>
+                <a href="https://forge.net4sat.org/opensand/opensand" style="font-size:100%">Forge OpenSAND</a>
+              </li>
+            </ul>
+          </li>
+          <li class="page-scroll">
+            <a href="blog.html" ><p class="text-custom">Blog </p></a>
+          </li>
+
+          <li class="page-scroll">
+            <a href="https://www.net4sat.org"> <img src="img/gitlab-logo-square.png"/> </a>
+          </li>
+        </ul>
+        </div>
+      </div>
+    </nav>
+
+<section>
+  <!-- Page Content -->
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <h1 class="page-header">Libraries
+        </h1>
+      </div>
+    </div>
+  </div>
+  <div class="page-wrap">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-12">
+          <p>This page presents external libraries used by the OpenSAND platform.</p>
+
+          <h2 class="libraries" id="libgse">GSE Library</h2>
+          <p>This piece of software is an implementation of the Generic Stream Encapsulation
+          (GSE) standard defined by ETSI [1] for Linux (or other Unix-compatible OS). The
+          library may be used to add GSE encapsulation/de-encapsulation capabilities to
+          an application.</p>
+          <p>The GSE library is released under the LGPL version licence either version 3, or
+          (at your option) any later version.</p>
+          <p>This is the procedure to install the libgse package, libgse-dbg and libgse-dev are also available.
+            <ol class="wizard_steps">
+              <li>Add the OpenSAND repository:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <li>On Ubuntu 14.04 LTS or lower
+                    <br>
+                    <code class="shell">
+                    $ echo "deb http://packages.net4sat.org/opensand trusty stable"
+                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+                  </li>
+                  <li>On Ubuntu 16.04 LTS or upper
+                    <br>
+                    <code class="shell">
+                    $ echo "deb http://packages.net4sat.org/opensand xenial stable"
+                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+                  </li>
+                </div>
+              </ul>
+              <li>Update the list of available packages:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <code class="shell">
+                  $ sudo apt-get update</code>
+                </div>
+              </ul>
+              <li>Install libgse:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <code class="shell">
+                  $ sudo apt-get install libgse</code>
+                </div>
+              </ul>
+            </ol>
+          </p>
+          <p>The libgse sources are hosted on the <a rel="nofollow" href="https://forge.net4sat.org/opensand/libgse" hreflang="en">libgse gitlab project</a>
+          from the <a rel="nofollow" href="http://net4sat.org" hreflang="en">Net4Sat platform</a>.</p>
+          <p>[1] <a rel="nofollow" href="http://www.etsi.org/deliver/etsi_ts/102600_102699/102606/01.01.01_60/ts_102606v010101p.pdf">ETSI TS 102 606</a></p>
+
+          <h2 class="libraries" id="librle">RLE Library</h2>
+          <p>This piece of software is an implementation of the Return Link Encapsulation (RLE) 
+          standard defined by ETSI [1] for Linux (or other Unix-compatible OS). The library may be 
+          used to add RLE encapsulation/de-encapsulation capabilities to an application.</p>
+          <p>The RLE library is licensed under the GNU GPL version 3 or later.</p>
+          <p>This is the procedure to install the librle package, librle-dbg and librle-dev are also available.
+            <ol class="wizard_steps">
+              <li>Add the OpenSAND repository:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <li>On Ubuntu 14.04 LTS or lower
+                    <br>
+                    <code class="shell">
+                    $ echo "deb http://packages.net4sat.org/opensand trusty stable"
+                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+                  </li>
+                  <li>On Ubuntu 16.04 LTS or upper
+                    <br>
+                    <code class="shell">
+                    $ echo "deb http://packages.net4sat.org/opensand xenial stable"
+                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+                  </li>
+                </div>
+              </ul>
+              <li>Update the list of available packages:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <code class="shell">
+                  $ sudo apt-get update</code>
+                </div>
+              </ul>
+              <li>Install librle:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <code class="shell">
+                  $ sudo apt-get install librle</code>
+                </div>
+              </ul>
+            </ol>
+          </p>
+          <p>The librle sources are hosted on the <a rel="nofollow" href="https://forge.net4sat.org/opensand/librle" hreflang="en">librle gitlab project</a>
+          from the <a rel="nofollow" href="http://net4sat.org" hreflang="en">Net4Sat platform</a>.</p>
+          <p>[1] <a rel="nofollow" href="http://www.etsi.org/deliver/etsi_ts/103100_103199/103179/01.01.01_60/ts_103179v010101p.pdf">ETSI TS 103 179 v1.1.1 (2013-08)</a></p>
+
+          <h2 class="libraries" id="librrohc">ROHC Library</h2>
+          <p>The ROHC library provides an easy and robust way for applications to reduce 
+          their bandwidth usage on network links with limited capacity or expensive costs.
+          Headers of network packets are compressed with the ROHC protocol and algorithms.</p>
+          <p>The ROHC protocol is very efficient for compressing VoIP streams that use RTP as 
+          transport protocol. ROHC is also suitable for compressing IP-only (IPv4 or IPv6), 
+          UDP or TCP flows and many others.</p>
+          <p>The library is published as Opensource under the GNU LGPL2.1+ license starting 
+          with version 1.7.0. Previous versions were published under the GNU GPL2+ license.</p>
+          <p>Fo more information, please consult the <a rel="nofollow" href="https://rohc-lib.org/" hreflang="en">librohc website</a>.</p>
+          <p>This is the procedure to install the librohc package, librohc-dbg and librohc-dev are also available.
+            <ol class="wizard_steps">
+              <li>Add the OpenSAND repository:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <li>On Ubuntu 14.04 LTS or lower
+                    <br>
+                    <code class="shell">
+                    $ echo "deb http://packages.net4sat.org/opensand trusty stable"
+                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+                  </li>
+                  <li>On Ubuntu 16.04 LTS or upper
+                    <br>
+                    <code class="shell">
+                    $ echo "deb http://packages.net4sat.org/opensand xenial stable"
+                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+                  </li>
+                </div>
+              </ul>
+              <li>Update the list of available packages:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <code class="shell">
+                  $ sudo apt-get update</code>
+                </div>
+              </ul>
+              <li>Install librohc:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <code class="shell">
+                  $ sudo apt-get install librohc</code>
+                </div>
+              </ul>
+            </ol>
+          </p>
+          <p>The librohc sources are hosted on <a rel="nofollow" href="https://github.com/didier-barvaux/rohc" hreflang="en">rohc github</a>
+          and its Debian packaging scripts on <a rel="nofollow" href="https://github.com/didier-barvaux/rohc_debian.git" hreflang="en">rohc_debian github</a>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+    <!-- Footer -->
+    <footer>
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-12">
+            <div id="licenses">
+              <br />
+              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ opensand _DOT_ org" title="OpenSAND contact">
+              OpenSAND Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
+              <p style="font-size:90%">The text content of this website is published under the <a 
+              href="http://creativecommons.org/licenses/by-nc-sa/3.0/" title="See license details"
+              rel="license" hreflang="en">Creative Commons BY-NC-SA license</a> (except where otherwise
+              stated). Some sections icons are derivative work of the GPL2 icons provided by the Gnome
+              project.</p>
+              <p style="font-size:90%">Logos and trademarks are the property of their respective owners. Any representation,
+              reproduction and/or exploitation, whether partial or total, of trademarks and logos
+              is prohibited without prior written permission from the owners.</p>
+              <p style="font-size:90%"><a href="privacy_policy.html" title="Read the privacy policy">
+              Privacy policy</a>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
