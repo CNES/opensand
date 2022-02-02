@@ -11,7 +11,7 @@ case "$1" in
 
     # create opensand user if it isn't already there
     if ! getent passwd opensand >/dev/null; then
-      adduser --system --ingroup opensand --home /var/opensand opensand --gecos "OpenSAND web configuration server"
+      adduser --system --ingroup opensand -M --home /var/opensand opensand --gecos "OpenSAND web configuration server"
     fi
 
     # ensure /var/opensand/ has appropriate permissions
