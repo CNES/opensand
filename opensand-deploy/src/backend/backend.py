@@ -407,7 +407,7 @@ def create_platform_infrastructure(project):
     if project_layout is None:
         return
 
-    root = project_layout.get_root().get_component('project')
+    root = project_layout.get_root().get_component('configuration')
     if root is None:
         return
 
@@ -424,7 +424,7 @@ def create_platform_infrastructure(project):
         # Can't directly use the items iterated over because of bad cast;
         # so retrieve them one by one instead to get the proper type.
         entity = entities.get_item(str(entity_id))
-        name = _get_parameter(entity, 'name')
+        name = _get_parameter(entity, 'entity_name')
         infra = _get_parameter(entity, 'infrastructure')
         if not name or not infra:
             continue
