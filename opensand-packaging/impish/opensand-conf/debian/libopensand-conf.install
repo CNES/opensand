@@ -1,0 +1,3 @@
+usr/lib/lib*.so.*
+usr/lib/python3/dist-packages/*.so.*
+usr/lib/python3/dist-packages/*.so

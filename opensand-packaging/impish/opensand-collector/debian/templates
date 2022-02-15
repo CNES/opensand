@@ -1,0 +1,46 @@
+Template: opensand-collector/collector/stats/port
+Type: string
+Default: 5361
+Description: Statistics Port
+  Port that Logstash will use to listen to incomming
+  statistics from SATCOM Components.
+
+Template: opensand-collector/collector/logs/port
+Type: string
+Default: 5362
+Description: Logs Port
+  Port that Logstash will use to listen to incomming
+  logs from SATCOM components.
+
+Template: opensand-collector/elasticsearch/port
+Type: string
+Default: 9200
+Description: ElasticSearch Port
+  Port that ElasticSearch will use to listen to incomming
+  logs from Logstash.
+
+Template: opensand-collector/influxdb/port
+Type: string
+Default: 8086
+Description: InfluxDB Port
+  Port that InfluxDB will use to listen to incomming
+  statistics from Logstash.
+
+Template: opensand-collector/kibana/port
+Type: string
+Default: 5601
+Description: Kibana HTTP Port
+  Port that Kibana will use to publish its HTTP service.
+
+Template: opensand-collector/chronograf/port
+Type: string
+Default: 8888
+Description: Chronograf HTTP Port
+  Port that Chronograf will use to publish its HTTP service.
+
+Template: opensand-collector/configured
+Type: boolean
+Default: false
+Description: Has this packet already been configured ?
+  Helper variable that keep track of whether the packet
+  is being installed or reconfigured.

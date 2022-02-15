@@ -1,0 +1,2 @@
+usr/lib/libopensand_plugin*.so*
+usr/lib/opensand/plugins/*.so*

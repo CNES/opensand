@@ -1,0 +1,30 @@
+Source: opensand-gse-encap-plugin
+Priority: optional
+Maintainer: OpenSAND Maintainers <admin@opensand.org>
+Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
+ libgse-dev (>= 1.0.1),
+ libopensand-conf-dev (>= 6.0.0),
+ libopensand-output-dev (>= 6.0.0),
+ libopensand-plugin-dev (>= 6.0.0)
+XS-Python-Version: >= 2.7
+Standards-Version: 3.8.3
+Section: libs
+
+Package: libopensand-gse-encap-plugin-dbg
+Section: debug
+Architecture: any
+Depends: libopensand-gse-encap-plugin (= ${binary:Version})
+Provides: libopensand-gse-plugin-dbg
+Conflicts: libopensand-gse-plugin-dbg
+Replaces: libopensand-gse-plugin-dbg
+Description: Debugging symbols for OpenSAND GSE plugin
+
+Package: libopensand-gse-encap-plugin
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+ opensand-core (= ${binary:Version})
+Provides: libopensand-gse-plugin
+Conflicts: libopensand-gse-plugin
+Replaces: libopensand-gse-plugin
+Description: The GSE plugin for OpenSAND
