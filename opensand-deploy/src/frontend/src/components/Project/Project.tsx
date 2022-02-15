@@ -26,6 +26,7 @@ import {sendError} from '../../utils/dispatcher';
 import {Model, Parameter, List} from '../../xsd/model';
 import {isComponentElement, isListElement, isParameterElement} from '../../xsd/model';
 import {fromXSD, fromXML} from '../../xsd/parser';
+import {getXsdName}  from '../../xsd/utils';
 
 import RootComponent from '../Model/RootComponent';
 import DeployEntityDialog from './DeployEntityDialog';
@@ -158,6 +159,17 @@ const Project = (props: Props) => {
         }
 
         applyOnMachinesAndEntities(model, (l: List) => addNewEntity(l, entity, entityType));
+        const entities = findEntities(model);
+        if (entities) {
+            entities.elements.forEach((c) => {
+                c.elements.forEach((p) => {
+                    if (p.type === "parameter" && p.element.type.endsWith("_xsd")) {
+                        p.element.value = getXsdName(p.element.id, entityType);
+                    }
+                });
+            });
+        }
+
         setOpen(false);
         refreshModel(0);
     }, [model, refreshModel]);

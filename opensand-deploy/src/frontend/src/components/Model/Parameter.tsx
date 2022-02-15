@@ -21,6 +21,7 @@ import {sendError} from '../../utils/dispatcher';
 import {useDidMount} from '../../utils/hooks';
 import {parameterStyles} from '../../utils/theme';
 import {Parameter as ParameterType, isComponentElement, isParameterElement} from '../../xsd/model';
+import {getXsdName}  from '../../xsd/utils';
 
 
 interface Props {
@@ -229,46 +230,28 @@ const XsdParameter = (props: XsdEnumProps) => {
 
     const [templates, setTemplates] = React.useState<ITemplatesContent>({});
 
-    const xsd = React.useMemo(() => {
-        if (parameter.id !== "profile") {
-            return parameter.id + ".xsd";
-        }
-
-        switch (entity?.type) {
-            case "Gateway":
-                return "profile_gw.xsd";
-            case "Gateway Net Access":
-                return "profile_gw_net_acc.xsd";
-            case "Gateway Phy":
-                return "profile_gw_phy.xsd";
-            case "Terminal":
-                return "profile_st.xsd";
-            case "Satellite":
-                return "profile_sat.xsd";
-            default:
-                return "profile.xsd";
-        }
-    }, [parameter.id, entity]);
+    const parameter_key = React.useMemo(() => parameter.id.substr(0, parameter.id.indexOf("__template")), [parameter.id]);
+    const xsd = React.useMemo(() => getXsdName(parameter_key, entity?.type), [parameter_key, entity]);
 
     const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: unknown;}>) => {
         const value = (event.target.value as string) || "";
 
         parameter.value = value;
         if (value !== "") {
-            onEdit ? onEdit(entity, parameter.id, xsd, value) : changeModel();
+            onEdit ? onEdit(entity, parameter_key, xsd, value) : changeModel();
         } else {
-            onRemove ? onRemove(entity?.name, parameter.id) : changeModel();
+            onRemove ? onRemove(entity?.name, parameter_key) : changeModel();
         }
-    }, [parameter, xsd, entity, onEdit, onRemove, changeModel]);
+    }, [parameter, parameter_key, xsd, entity, onEdit, onRemove, changeModel]);
 
     const handleClear = React.useCallback(() => {
         parameter.value = "";
-        onRemove ? onRemove(entity?.name, parameter.id) : changeModel();
-    }, [parameter, entity, onRemove, changeModel]);
+        onRemove ? onRemove(entity?.name, parameter_key) : changeModel();
+    }, [parameter, parameter_key, entity, onRemove, changeModel]);
 
     const handleEdit = React.useCallback(() => {
-        onEdit && onEdit(entity, parameter.id, xsd);
-    }, [parameter, xsd, entity, onEdit]);
+        onEdit && onEdit(entity, parameter_key, xsd);
+    }, [parameter_key, xsd, entity, onEdit]);
 
     const templatesNames = React.useMemo(() => templates[xsd] || [], [templates, xsd]);
     const header = React.useMemo(() => (
@@ -349,7 +332,7 @@ const Parameter = (props: Props) => {
 
     const isReadOnly = readOnly || parameter.readOnly;
 
-    if (parameter.type.endsWith("_xsd")) {
+    if (parameter.id.endsWith("__template")) {
         return (
             <XsdParameter
                 parameter={parameter}

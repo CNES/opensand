@@ -158,6 +158,9 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 
 				auto configuration = Conf->getOrCreateComponent("configuration", "Configuration", "The Project Configuration Files");
 				configuration->addParameter("topology", "Topology Model", types->getType("topology_xsd"));
+				auto temp = configuration->addParameter("topology__template", "Topology Template", types->getType("string"));
+				temp->setReadOnly(true);
+				temp->setAdvanced(true);
 
 				auto entities = configuration->addList("entities", "Entities", "entity");
 				entities->setReadOnly(true);
@@ -167,7 +170,13 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				entityType->setReadOnly(true);
 				entityType->setAdvanced(true);
 				entity->addParameter("infrastructure", "Infrastructure Model", types->getType("infrastructure_xsd"));
+				temp = entity->addParameter("infrastructure__template", "Infrastructure Template", types->getType("string"));
+				temp->setReadOnly(true);
+				temp->setAdvanced(true);
 				entity->addParameter("profile", "Profile Model", types->getType("profile_xsd"));
+				temp = entity->addParameter("profile__template", "Profile Template", types->getType("string"));
+				temp->setReadOnly(true);
+				temp->setAdvanced(true);
 
 				Conf->writeProfileModel(folder + "/project.xsd");
 
