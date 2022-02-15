@@ -34,9 +34,6 @@ interface Props {
 }
 
 
-const empty = (value?: string | null): boolean => value == null || value === "";
-
-
 const EntityAction = (props: Props) => {
     const {project, entity, onDownload, setAction, setPingDestinations} = props;
 
@@ -107,8 +104,8 @@ const EntityAction = (props: Props) => {
                     );
                 }
 
-                const noUpload = empty(upload);
-                const noRun = empty(run);
+                const noUpload = Boolean(upload);
+                const noRun = Boolean(run);
                 if (noUpload && noRun) {
                     return (
                         <Tooltip title="No action configured for this entity" placement="top">
@@ -121,7 +118,7 @@ const EntityAction = (props: Props) => {
                     );
                 }
 
-                if (empty(folder)) {
+                if (Boolean(folder)) {
                     return (
                         <Tooltip title="No folder to upload into" placement="top">
                             <span>

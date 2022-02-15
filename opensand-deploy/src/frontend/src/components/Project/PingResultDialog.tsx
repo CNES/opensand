@@ -1,6 +1,7 @@
 import React from 'react';
 
 import Button from '@material-ui/core/Button';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -18,11 +19,13 @@ interface Props {
 const PingResultDialog = (props: Props) => {
     const {open, content, onClose} = props;
 
+    const message = Boolean(content) ? <pre>{content}</pre> : <CircularProgress />;
+
     return (
         <Dialog open={open} onClose={onClose}>
             <DialogTitle>Ping Results</DialogTitle>
             <DialogContent>
-                <DialogContentText><pre>{content}</pre></DialogContentText>
+                <DialogContentText>{message}</DialogContentText>
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} color="primary">OK</Button>

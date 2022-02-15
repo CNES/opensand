@@ -17,7 +17,6 @@ import AddIcon from '@material-ui/icons/AddCircleOutline';
 import ArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
 import ArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
 import DeleteIcon from '@material-ui/icons/HighlightOff';
-import MoreIcon from '@material-ui/icons/MoreHoriz';
 
 import {IActions, noActions} from '../../utils/actions';
 import {Component as ComponentType, List as ListType} from '../../xsd/model';
@@ -151,9 +150,7 @@ const List = (props: Props) => {
                 <TableHead>
                     <TableRow>
                         <TableCell key={0} align="left">
-                            <IconButton size="small">
-                                <MoreIcon />
-                            </IconButton>
+                            <div />
                         </TableCell>
                         {patternActions.$.onAction && (
                             <TableCell key={1} align="center">

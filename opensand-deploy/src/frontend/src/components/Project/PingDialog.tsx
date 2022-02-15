@@ -18,6 +18,7 @@ import ClosedIcon from '@material-ui/icons/ArrowDropDown';
 
 interface Props {
     open: boolean;
+    entity?: string;
     destinations: string[];
     onValidate?: (destination: string) => void;
     onClose: () => void;
@@ -25,7 +26,7 @@ interface Props {
 
 
 const PingDialog = (props: Props) => {
-    const {open, destinations, onValidate, onClose} = props;
+    const {open, entity, destinations, onValidate, onClose} = props;
 
     const [destinationsAnchor, setDestinationsAnchor] = React.useState<HTMLElement | null>(null);
     const [destination, setDestination] = React.useState<string>("");
@@ -67,7 +68,7 @@ const PingDialog = (props: Props) => {
     return (
         <Dialog open={open} onClose={handleClose}>
             <form onSubmit={handleValidate}>
-                <DialogTitle>Ping from an Entity</DialogTitle>
+                <DialogTitle>Ping from {entity ? `the entity ${entity}` : "an Entity"}</DialogTitle>
                 <DialogContent>
                     <DialogContentText>Please specify the destination of the ping command</DialogContentText>
                     <TextField
