@@ -124,7 +124,7 @@ const Project = (props: Props) => {
     const [pingResult, setPingResult] = React.useState<string | undefined>(undefined);
     const [pingDestinations, setPingDestinations] = React.useState<string[]>([]);
     const [pingAction, setPingAction] = React.useState<PingActionCallback | undefined>(undefined);
-    const [pingEntity, setPingEntity] = React.useState<string | undefined>(undefined);
+    const [pingingEntity, setPingingEntity] = React.useState<string | undefined>(undefined);
 
     const handleNewEntityOpen = React.useCallback(() => {
         setOpen(true);
@@ -141,7 +141,7 @@ const Project = (props: Props) => {
     const handlePingClose = React.useCallback(() => {
         setPingAction(undefined);
         setPingResult(undefined);
-        setPingEntity(undefined);
+        setPingingEntity(undefined);
     }, []);
 
     const saveModel = React.useCallback(() => {
@@ -252,7 +252,7 @@ const Project = (props: Props) => {
 
     const handlePingDestinations = React.useCallback((entity: string, address: string, destinations: string[]) => {
         setPingDestinations(destinations);
-        setPingEntity(entity);
+        setPingingEntity(entity);
         setPingAction(() => (destination: string) => setAction(() => (password: string, isPassphrase: boolean) => {
             setPingResult("");
             pingEntity(handlePingResult, sendError, projectName, entity, destination, address, password, isPassphrase);
@@ -329,7 +329,7 @@ const Project = (props: Props) => {
             />
             <PingDialog
                 open={Boolean(pingAction)}
-                entity={pingEntity}
+                entity={pingingEntity}
                 destinations={pingDestinations}
                 onValidate={pingAction}
                 onClose={handlePingClose}
