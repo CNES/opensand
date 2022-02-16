@@ -142,7 +142,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 																  "Satellite",
 																  "Terminal"});
 				types->addEnumType("upload", "Upload Method", {"Download", "NFS", "SCP", "SFTP"});
-				types->addEnumType("run", "Run Method", {"LAUNCH", "PING", "STOP"});
+				types->addEnumType("run", "Run Method", {"LAUNCH", "STATUS", "PING", "STOP"});
 
 				auto platform = Conf->getOrCreateComponent("platform", "Platform", "The Machines of the Project");
 				auto project = platform->addParameter("project", "Project Name", types->getType("string"));

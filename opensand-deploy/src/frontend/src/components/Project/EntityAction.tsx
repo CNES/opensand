@@ -93,6 +93,14 @@ const EntityAction = (props: Props) => {
                         </IconButton>
                     </Tooltip>
                 );
+            case "STATUS":
+                return (
+                    <Tooltip title="Check if OpenSAND is running" placement="top">
+                        <IconButton size="small" onClick={() => setAction(() => handleAction)}>
+                            <CircularProgress color="inherit" variant="determinate" value={30} size={24} />
+                        </IconButton>
+                    </Tooltip>
+                );
             default:
                 if (upload === "Download") {
                     return (
