@@ -157,8 +157,8 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				machines->addParameter("run", "Run Method", types->getType("run"));
 
 				auto configuration = Conf->getOrCreateComponent("configuration", "Configuration", "The Project Configuration Files");
-				configuration->addParameter("topology", "Topology Model", types->getType("topology_xsd"));
-				auto temp = configuration->addParameter("topology__template", "Topology Template", types->getType("string"));
+				configuration->addParameter("topology__template", "Topology Template", types->getType("string"));
+				auto temp = configuration->addParameter("topology", "Topology Model", types->getType("topology_xsd"));
 				temp->setReadOnly(true);
 				temp->setAdvanced(true);
 
@@ -169,12 +169,12 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				auto entityType = entity->addParameter("entity_type", "Type", types->getType("entity_type"));
 				entityType->setReadOnly(true);
 				entityType->setAdvanced(true);
-				entity->addParameter("infrastructure", "Infrastructure Model", types->getType("infrastructure_xsd"));
-				temp = entity->addParameter("infrastructure__template", "Infrastructure Template", types->getType("string"));
+				entity->addParameter("infrastructure__template", "Infrastructure Template", types->getType("string"));
+				temp = entity->addParameter("infrastructure", "Infrastructure Model", types->getType("infrastructure_xsd"));
 				temp->setReadOnly(true);
 				temp->setAdvanced(true);
-				entity->addParameter("profile", "Profile Model", types->getType("profile_xsd"));
-				temp = entity->addParameter("profile__template", "Profile Template", types->getType("string"));
+				entity->addParameter("profile__template", "Profile Template", types->getType("string"));
+				temp = entity->addParameter("profile", "Profile Model", types->getType("profile_xsd"));
 				temp->setReadOnly(true);
 				temp->setAdvanced(true);
 

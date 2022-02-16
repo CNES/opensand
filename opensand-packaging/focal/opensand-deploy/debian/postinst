@@ -44,7 +44,8 @@ if [ -f /etc/systemd/system/opensand-conf.service ]; then
   systemctl daemon-reload
   systemctl enable opensand-conf.socket
   systemctl enable opensand-conf.service
-  systemctl start opensand-conf.socket
+  systemctl stop opensand-conf.service
+  systemctl restart opensand-conf.socket
 fi
 
 
