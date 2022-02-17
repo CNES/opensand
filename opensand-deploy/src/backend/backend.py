@@ -893,7 +893,7 @@ def validate_project(name):
             with tarfile.open(fileobj=in_memory, mode='w:gz') as tar:
                 filepath = WWW_FOLDER / name / 'project.xml'
                 if filepath.exists() and filepath.is_file():
-                    tar.add(filepath.as_posix(), '{}/{}'.format(name, filepath.name))
+                    tar.add(filepath.as_posix(), filepath.name)
 
                 filepath = filepath.parent / 'entities'
                 if filepath.exists() and filepath.is_dir():
@@ -907,7 +907,7 @@ def validate_project(name):
                         ]
                         for filepath in files:
                             if filepath.exists() and filepath.is_file():
-                                filename = '{}/{}/{}'.format(name, entity_folder.name, filepath.name)
+                                filename = '{}/{}'.format(entity_folder.name, filepath.name)
                                 tar.add(filepath.as_posix(), filename)
 
             in_memory.seek(0)
