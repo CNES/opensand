@@ -294,9 +294,9 @@ const Project = (props: Props) => {
     const actions = React.useMemo(() => combineActions([
         {path: ['platform', 'machines'], actions: {onCreate: handleNewEntityOpen, onDelete: handleDeleteEntity}},
         {path: ['platform', 'machines', 'item'], actions: {onAction: displayAction}},
-        {path: ['configuration', 'topology'], actions: {onEdit: handleSelect, onRemove: handleDelete}},
-        {path: ['configuration', 'entities', 'item', 'profile'], actions: {onEdit: handleSelect, onRemove: handleDelete}},
-        {path: ['configuration', 'entities', 'item', 'infrastructure'], actions: {onEdit: handleSelectForceEntity, onRemove: handleDelete}},
+        {path: ['configuration', 'topology__template'], actions: {onEdit: handleSelect, onRemove: handleDelete}},
+        {path: ['configuration', 'entities', 'item', 'profile__template'], actions: {onEdit: handleSelect, onRemove: handleDelete}},
+        {path: ['configuration', 'entities', 'item', 'infrastructure__template'], actions: {onEdit: handleSelectForceEntity, onRemove: handleDelete}},
     ]), [handleNewEntityOpen, handleDeleteEntity, handleDelete, handleSelect, handleSelectForceEntity, displayAction]);
 
     React.useEffect(() => {
