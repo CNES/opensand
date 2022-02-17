@@ -16,6 +16,8 @@ interface Props {
     root: ComponentType;
     modelChanged: () => void;
     actions?: IActions;
+    tab?: number;
+    changeTab?: (t: number) => void;
 }
 
 
@@ -39,15 +41,20 @@ const TabPanel = (props: PanelProps) => {
 
 
 const RootComponent = (props: Props) => {
-    const {root, actions = noActions, modelChanged} = props;
+    const {root, actions = noActions, modelChanged, tab, changeTab} = props;
 
-    const [value, setValue] = React.useState<number>(0);
+    const [ownTab, setOwnTab] = React.useState<number>(0);
 
     const handleChange = React.useCallback((event: React.ChangeEvent<{}>, index: number) => {
-        setValue(index);
-    }, [setValue]);
+        if (changeTab) {
+            changeTab(index);
+        } else {
+            setOwnTab(index);
+        }
+    }, [setOwnTab, changeTab]);
 
     const components = root.getComponents();
+    const value = tab == null ? ownTab : tab;
 
     return (
         <React.Fragment>

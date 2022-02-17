@@ -37,6 +37,8 @@ import PingResultDialog from './PingResultDialog';
 
 
 interface Props extends RouteComponentProps<{name: string;}> {
+    tab: number;
+    changeTab: (t: number) => void;
 }
 
 
@@ -113,6 +115,7 @@ const applyOnMachinesAndEntities = (model: Model, operation: (l: List) => void) 
 
 
 const Project = (props: Props) => {
+    const {tab, changeTab} = props;
     const projectName = props.match.params.name;
     const history = useHistory();
 
@@ -310,7 +313,7 @@ const Project = (props: Props) => {
                 <Typography variant="h6">Project:&nbsp;</Typography>
                 <Typography variant="h6">{projectName}</Typography>
             </Toolbar>
-            {model != null && <RootComponent root={model.root} modelChanged={refreshModel} actions={actions} />}
+            {model != null && <RootComponent root={model.root} modelChanged={refreshModel} actions={actions} tab={tab} changeTab={changeTab} />}
             {model != null && (
                 <Box textAlign="center" marginTop="3em" marginBottom="3px">
                     <Button
