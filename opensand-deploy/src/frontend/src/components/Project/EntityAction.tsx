@@ -112,9 +112,7 @@ const EntityAction = (props: Props) => {
                     );
                 }
 
-                const noUpload = Boolean(upload);
-                const noRun = Boolean(run);
-                if (noUpload && noRun) {
+                if (!upload && !run) {
                     return (
                         <Tooltip title="No action configured for this entity" placement="top">
                             <span>
@@ -126,7 +124,7 @@ const EntityAction = (props: Props) => {
                     );
                 }
 
-                if (Boolean(folder)) {
+                if (!folder) {
                     return (
                         <Tooltip title="No folder to upload into" placement="top">
                             <span>
@@ -138,7 +136,7 @@ const EntityAction = (props: Props) => {
                     );
                 }
 
-                if (noRun) {
+                if (!run) {
                     const handleClick = upload === "NFS" ? (
                         () => handleCopy(entity_name, folder)
                     ) : (
@@ -161,11 +159,11 @@ const EntityAction = (props: Props) => {
                     );
                 }
 
-                const title = noUpload ? "Launch OpenSAND without configuration" : "Configure and launch OpenSAND";
+                const title = !upload ? "Launch OpenSAND without configuration" : "Configure and launch OpenSAND";
                 return (
                     <Tooltip title={title} placement="top">
                         <IconButton size="small" onClick={() => setAction(() => handleAction)}>
-                            <LaunchIcon color={noUpload ? "disabled" : "inherit"} />
+                            <LaunchIcon color={!upload ? "disabled" : "inherit"} />
                         </IconButton>
                     </Tooltip>
                 );
