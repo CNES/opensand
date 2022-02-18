@@ -37,6 +37,7 @@ interface Props {
 const EntityAction = (props: Props) => {
     const {project, entity, onDownload, setAction, setPingDestinations} = props;
 
+    const [disabled, setDisabled] = React.useState<boolean>(false);
     const [running, setRunning] = React.useState<boolean>(false);
 
     const handleCopy = React.useCallback((entity: string, folder: string) => {
@@ -45,6 +46,7 @@ const EntityAction = (props: Props) => {
 
     const handleStatus = React.useCallback((entity: string, address: string, password: string, isPassphrase: boolean) => {
         return (result: IPidSuccess) => {
+            setDisabled(false);
             setRunning(result.running === true);
             if (result.running) {
                 const newHandler = handleStatus(entity, address, password, isPassphrase);
@@ -56,6 +58,7 @@ const EntityAction = (props: Props) => {
 
     const handleDeploy = React.useCallback((entity: string, mode: string, folder: string, action: string, address: string, password: string, isPassphrase: boolean) => {
         const handler = handleStatus(entity, address, password, isPassphrase);
+        setDisabled(true);
         deployEntity(handler, sendError, project, entity, folder, mode, action, address, password, isPassphrase);
     }, [project, handleStatus]);
 
@@ -63,6 +66,15 @@ const EntityAction = (props: Props) => {
         const callback = (result: IPingDestinations) => setPingDestinations(entity, address, result.addresses);
         findPingDestinations(callback, sendError, project);
     }, [project, setPingDestinations]);
+
+    let title = "Error retrieving entity configuration";
+    let clickAction: (() => void) | undefined = undefined;
+    let child = <ErrorIcon />;
+
+    if (running) {
+        title = "OpenSAND is running";
+        child = <CircularProgress size={24} />;
+    }
 
     if (entity) {
         const entityConfig: {[key: string]: string;} = {};
@@ -76,113 +88,72 @@ const EntityAction = (props: Props) => {
         const handleAction = (password: string, isPassphrase: boolean) => (
             handleDeploy(entity_name, upload, folder, run, address, password, isPassphrase)
         );
+
         switch (run) {
             case "PING":
-                return (
-                    <Tooltip title="Ping the emulated network" placement="top">
-                        <IconButton size="small" onClick={() => handlePing(entity_name, address)}>
-                            <PingIcon />
-                        </IconButton>
-                    </Tooltip>
-                );
+                title = "Ping the emulated network";
+                child = <PingIcon />;
+                clickAction = () => handlePing(entity_name, address);
+                break;
             case "STOP":
-                return (
-                    <Tooltip title="Stop OpenSAND" placement="top">
-                        <IconButton size="small" onClick={() => setAction(() => handleAction)}>
-                            <StopIcon />
-                        </IconButton>
-                    </Tooltip>
-                );
+                title = "Stop OpenSAND";
+                child = <StopIcon />;
+                clickAction = () => setAction(() => handleAction);
+                break;
             case "STATUS":
-                if (running) {
-                    return (
-                        <Tooltip title="OpenSAND is running" placement="top">
-                            <CircularProgress size={24} />
-                        </Tooltip>
-                    );
-                } else {
-                    return (
-                        <Tooltip title="Check if OpenSAND is running" placement="top">
-                            <IconButton size="small" onClick={() => setAction(() => handleAction)}>
-                                <CircularProgress color="inherit" variant="determinate" value={30} size={24} />
-                            </IconButton>
-                        </Tooltip>
-                    );
+                if (!running) {
+                    title = "Check if OpenSAND is running";
+                    child = <CircularProgress color="inherit" variant="determinate" value={30} size={24} />;
+                    clickAction = () => setAction(() => handleAction);
                 }
+                break;
             default:
                 if (upload === "Download") {
-                    return (
-                        <Tooltip title="Download configuration files" placement="top">
-                            <IconButton size="small" onClick={() => onDownload(entityConfig.entity_name)}>
-                                <DownloadIcon />
-                            </IconButton>
-                        </Tooltip>
-                    );
+                    title = "Download configuration files";
+                    child = <DownloadIcon />;
+                    clickAction = () => onDownload(entity_name);
+                    break;
+                }
+
+                if (running) {
+                    break;
                 }
 
                 if (!upload && !run) {
-                    return (
-                        <Tooltip title="No action configured for this entity" placement="top">
-                            <span>
-                                <IconButton size="small" disabled>
-                                    <NothingIcon />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-                    );
+                    title = "No action configured for this entity";
+                    child = <NothingIcon />;
+                    break;
                 }
 
                 if (!folder) {
-                    return (
-                        <Tooltip title="No folder to upload into" placement="top">
-                            <span>
-                                <IconButton size="small" disabled>
-                                    <UploadIcon />
-                                </IconButton>
-                            </span>
-                        </Tooltip>
-                    );
+                    title = "No folder to upload into";
+                    child = <UploadIcon />;
+                    break;
                 }
 
                 if (!run) {
-                    const handleClick = upload === "NFS" ? (
+                    title = "Deploy configuration files";
+                    child = <UploadIcon />;
+                    clickAction = upload === "NFS" ? (
                         () => handleCopy(entity_name, folder)
                     ) : (
                         () => setAction(() => handleAction)
                     );
-                    return (
-                        <Tooltip title="Deploy configuration files" placement="top">
-                            <IconButton size="small" onClick={handleClick}>
-                                <UploadIcon />
-                            </IconButton>
-                        </Tooltip>
-                    );
+                    break;
                 }
 
-                if (running) {
-                    return (
-                        <Tooltip title="OpenSAND is running" placement="top">
-                            <CircularProgress size={24} />
-                        </Tooltip>
-                    );
-                }
-
-                const title = !upload ? "Launch OpenSAND without configuration" : "Configure and launch OpenSAND";
-                return (
-                    <Tooltip title={title} placement="top">
-                        <IconButton size="small" onClick={() => setAction(() => handleAction)}>
-                            <LaunchIcon color={!upload ? "disabled" : "inherit"} />
-                        </IconButton>
-                    </Tooltip>
-                );
+                title = !upload ? "Launch OpenSAND without configuration" : "Configure and launch OpenSAND";
+                child = <LaunchIcon color={!upload ? "disabled" : "inherit"} />;
+                clickAction = () => setAction(() => handleAction);
+                break;
         }
     }
 
     return (
-        <Tooltip title="Error retrieving entity configuration" placement="top">
+        <Tooltip title={title} placement="top">
             <span>
-                <IconButton size="small" disabled>
-                    <ErrorIcon />
+                <IconButton size="small" disabled={disabled || (!clickAction && !running)} onClick={clickAction}>
+                    {child}
                 </IconButton>
             </span>
         </Tooltip>
