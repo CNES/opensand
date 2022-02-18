@@ -275,7 +275,7 @@ def create_default_topology(meta_model, filepath):
     _set_parameter(return_carrier, 'group', 'Standard')
 
     default_assignment = _get_component(_get_component(topology, 'st_assignment'), 'defaults')
-    _set_parameter(default_assignment, 'default_spot', 0)
+    _set_parameter(default_assignment, 'default_gateway', 0)
     _set_parameter(default_assignment, 'default_group', 'Standard')
 
     wave_forms = _get_component(topology, 'wave_forms')
