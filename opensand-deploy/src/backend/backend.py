@@ -123,8 +123,7 @@ def handle_exception(exc):
     if isinstance(exc, HTTPException):
         return exc
 
-    stack_trace = traceback.format_exception(exc)
-    return error(''.join(stack_trace))
+    return error(traceback.format_exc())
 
 
 def get_file_content(filename, xml=False):

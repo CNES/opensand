@@ -6,7 +6,6 @@ import Box from '@material-ui/core/Box';
 import Divider from '@material-ui/core/Divider';
 import IconButton from '@material-ui/core/IconButton';
 import Popover from '@material-ui/core/Popover';
-import Typography from '@material-ui/core/Typography';
 
 import LogIcon from '@material-ui/icons/Announcement';
 
@@ -111,9 +110,7 @@ const Logger = (props: Props) => {
             >
                 <Box width="300px" p={2}>
                     {headers.concat(...state.messages.map((message: string, i: number) => [
-                        <Typography key={2*i+headers.length} variant="body1" onClick={() => handleRemove(i)}>
-                            {message}
-                        </Typography>,
+                        <pre key={2*i+headers.length} onClick={() => handleRemove(i)}>{message}</pre>,
                         <Divider key={2*i+headers.length+1}/>,
                     ]))}
                 </Box>
