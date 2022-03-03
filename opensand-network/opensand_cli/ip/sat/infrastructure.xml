@@ -4,9 +4,23 @@
     <entity>
       <entity_type>Satellite</entity_type>
       <entity_sat>
-        <emu_address>192.168.18.1</emu_address>
+        <emu_address>EMU_IP_SAT</emu_address>
         <default_gw>-1</default_gw>
       </entity_sat>
+      <entity_gw>
+        <entity_id>GW_ID</entity_id>
+        <emu_address>EMU_IP_GW</emu_address>
+        <tap_iface>TAP_IFACE</tap_iface>
+      </entity_gw>
+      <entity_gw_net_acc>
+      </entity_gw_net_acc>
+      <entity_gw_phy>
+      </entity_gw_phy>
+      <entity_st>
+        <entity_id>ST_ID</entity_id>
+        <emu_address>EMU_IP_ST</emu_address>
+        <tap_iface>TAP_IFACE</tap_iface>
+      </entity_st>
     </entity>
     <logs>
       <init>
@@ -28,42 +42,42 @@
         <level>warning</level>
       </sat_carrier>
       <extra_levels>
-<item><name>Configuration</name><level>debug</level></item>
-<item><name>output</name><level>debug</level></item>
-<item><name>default</name><level>debug</level></item>
-<item><name>lanadaptation.ethernet</name><level>debug</level></item>
+        <item><name>Configuration</name><level>debug</level></item>
+        <item><name>output</name><level>debug</level></item>
+        <item><name>default</name><level>debug</level></item>
+        <item><name>lanadaptation.ethernet</name><level>debug</level></item>
       </extra_levels>
     </logs>
     <storage>
       <enable_local>true</enable_local>
-      <path_local>/tmp</path_local>
+      <path_local>LOG_FOLDER</path_local>
       <enable_collector>true</enable_collector>
-      <collector_address>10.10.0.191</collector_address>
+      <collector_address>COLLECTOR_IP</collector_address>
     </storage>
     <infrastructure>
       <satellite>
-        <emu_address>192.168.18.1</emu_address>
+        <emu_address>EMU_IP_SAT</emu_address>
       </satellite>
       <gateways>
         <item>
-          <entity_id>0</entity_id>
-          <emu_address>192.168.18.42</emu_address>
-          <mac_address>00:00:00:00:00:01</mac_address>
+          <entity_id>GW_ID</entity_id>
+          <emu_address>EMU_IP_GW</emu_address>
+          <mac_address>TAP_MAC_GW</mac_address>
         </item>
       </gateways>
       <terminals>
         <item>
-          <entity_id>1</entity_id>
-          <emu_address>192.168.18.15</emu_address>
-          <mac_address>00:00:00:00:00:02</mac_address>
+          <entity_id>ST_ID</entity_id>
+          <emu_address>EMU_IP_ST</emu_address>
+          <mac_address>TAP_MAC_ST</mac_address>
         </item>
         <item>
-          <entity_id>0</entity_id>
-          <mac_address>fa:16:3e:65:95:e1</mac_address>
+          <entity_id>GW_ID</entity_id>
+          <mac_address>WS_GW_MAC</mac_address>
         </item>
         <item>
-          <entity_id>1</entity_id>
-          <mac_address>fa:16:3e:64:76:1f</mac_address>
+          <entity_id>ST_ID</entity_id>
+          <mac_address>WS_ST_MAC</mac_address>
         </item>
       </terminals>
       <default_gw>-1</default_gw>
