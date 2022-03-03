@@ -26,30 +26,39 @@
 #
 
 # Author: Franklin SIMO <armelfrancklin.simotegueu@viveris.fr>
+#         Bastien TAURAN <bastien.tauran@viveris.fr>
 
 
 EMU_IFACE=ens4
-EMU_IFACE_IP=192.168.18.15
+EMU_IFACE_IP=192.168.18.1
 NET_DIGITS=24
 CONF_PATH=/etc/opensand_ip/
-COLLECTOR_IP=172.20.34.82
+COLLECTOR_IP=172.20.34.160
+
+# TODO generate xml value for infrastructure.xml, and add path variable ?
+# TODO clean: useful to del lan interface and set down ?
+# TODO run: collector + logs ?
+# TODO clean non used vars
+# TODO do not print opensand logs on console
 
 
 all: clean network run 
 
-clean:
-	-ip address del $(EMU_IFACE_IP)/$(NET_DIGITS) dev $(EMU_IFACE)
-	-ip link set $(EMU_IFACE) down
+clean: stop
+	ip address flush dev $(EMU_IFACE)
+	ip link set $(EMU_IFACE) down
 
 network:  
 	ip address add $(EMU_IFACE_IP)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip link set $(EMU_IFACE) up
-        
+
 run:
-	opensand-sat -a $(EMU_IFACE_IP) -c $(CONF_PATH) -r $(COLLECOR_IP) -l 5362 -s 5361 &
+	mkdir -p /var/log/opensand
+	opensand -i infrastructure.xml -t topology.xml -v > /var/log/opensand/opensand_sat.log &
 
 stop:
-	-pkill  opensand-sat
+	killall -q opensand || true
 
 .PHONY: all run network clean stop
+.SILENT: run
 
