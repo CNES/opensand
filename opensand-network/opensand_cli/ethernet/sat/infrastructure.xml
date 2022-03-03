@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="1.0.0">
+  <root>
+    <entity>
+      <entity_type>Satellite</entity_type>
+      <entity_sat>
+        <emu_address>192.168.18.1</emu_address>
+        <default_gw>-1</default_gw>
+      </entity_sat>
+    </entity>
+    <logs>
+      <init>
+        <level>warning</level>
+      </init>
+      <lan_adaptation>
+        <level>warning</level>
+      </lan_adaptation>
+      <encap>
+        <level>warning</level>
+      </encap>
+      <dvb>
+        <level>warning</level>
+      </dvb>
+      <physical_layer>
+        <level>warning</level>
+      </physical_layer>
+      <sat_carrier>
+        <level>warning</level>
+      </sat_carrier>
+      <extra_levels>
+<item><name>Configuration</name><level>debug</level></item>
+<item><name>output</name><level>debug</level></item>
+<item><name>default</name><level>debug</level></item>
+<item><name>lanadaptation.ethernet</name><level>debug</level></item>
+      </extra_levels>
+    </logs>
+    <storage>
+      <enable_local>true</enable_local>
+      <path_local>/tmp</path_local>
+      <enable_collector>true</enable_collector>
+      <collector_address>10.10.0.191</collector_address>
+    </storage>
+    <infrastructure>
+      <satellite>
+        <emu_address>192.168.18.1</emu_address>
+      </satellite>
+      <gateways>
+        <item>
+          <entity_id>0</entity_id>
+          <emu_address>192.168.18.42</emu_address>
+          <mac_address>00:00:00:00:00:01</mac_address>
+        </item>
+      </gateways>
+      <terminals>
+        <item>
+          <entity_id>1</entity_id>
+          <emu_address>192.168.18.15</emu_address>
+          <mac_address>00:00:00:00:00:02</mac_address>
+        </item>
+        <item>
+          <entity_id>0</entity_id>
+          <mac_address>fa:16:3e:65:95:e1</mac_address>
+        </item>
+        <item>
+          <entity_id>1</entity_id>
+          <mac_address>fa:16:3e:64:76:1f</mac_address>
+        </item>
+      </terminals>
+      <default_gw>-1</default_gw>
+    </infrastructure>
+  </root>
+</model>

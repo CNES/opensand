@@ -26,6 +26,7 @@
 #
 
 # Author: Franklin SIMO <armelfrancklin.simotegueu@viveris.fr>
+#         Bastien TAURAN <bastien.tauran@viveris.fr>
 
 
 EMU_IFACE=ens4
@@ -34,28 +35,37 @@ LAN_IFACE=ens5
 TAP_IFACE=opensand_tap
 TAP_IFACE_MAC=00:00:00:00:00:01
 BR_IFACE=opensand_br
+BR_IFACE_IP=192.168.63.254
 NET_DIGITS=24
 GW_ID=0
-CONF_PATH=/etc/opensand_eth/
-COLLECTOR_IP=172.20.34.82
+CONF_PATH=/etc/opensand_ip/
+COLLECTOR_IP=172.20.34.160
 
+.SILENT: run
 
 all: clean network run
 
-clean:
-	-ip address del $(EMU_IFACE_IP)/$(NET_DIGITS) dev $(EMU_IFACE)
-	-ip link set dev $(TAP_IFACE) nomaster
-	-ip link set dev $(LAN_IFACE) nomaster
-	-ip link del $(TAP_IFACE)
-	-ip link del $(BR_IFACE)
-	-ip link set $(EMU_IFACE) down
-	-ip link set $(LAN_IFACE) down
+# TODO generate xml value for infrastructure.xml, and add path variable ?
+# TODO clean: useful to del lan interface and set down ?
+# TODO run: collector + logs ?
+# TODO need bridge-utils
+# TODO clean non used vars
+# TODO do not print opensand logs on console
 
-network:
+clean: stop
+	ip address flush dev $(EMU_IFACE)
+	ip address flush dev $(LAN_IFACE)
+	ip link del $(TAP_IFACE) || true
+	ip link del $(BR_IFACE) || true
+	ip link set $(EMU_IFACE) down
+	ip link set $(LAN_IFACE) down
+
+network: clean
 	ip address add $(EMU_IFACE_IP)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip tuntap add mode tap $(TAP_IFACE)
 	ip link set dev $(TAP_IFACE) address $(TAP_IFACE_MAC)
 	ip link add name $(BR_IFACE) type bridge
+	ip address add $(BR_IFACE_IP)/$(NET_DIGITS) dev $(BR_IFACE)
 	ip link set dev $(TAP_IFACE) master $(BR_IFACE)
 	ip link set dev $(LAN_IFACE) master $(BR_IFACE)
 	brctl setageing $(BR_IFACE) 0
@@ -65,11 +75,11 @@ network:
 	ip link set $(LAN_IFACE) up
 
 run:
-	opensand-gw -i $(GW_ID) -a $(EMU_IFACE_IP) -t $(TAP_IFACE) -c $(CONF_PATH) -f /var/log/opensand/ -r $(COLLECTOR_IP) -l 5362 -s 5361 &
+	mkdir -p /var/log/opensand
+	opensand -i infrastructure.xml -t topology.xml -p profile.xml -v > /var/log/opensand/opensand_gw.log &
 
 stop:
-	-pkill  opensand-gw
+	killall -q opensand || true
 
 
 .PHONY: all run network clean stop
-

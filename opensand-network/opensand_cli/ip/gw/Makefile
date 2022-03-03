@@ -63,7 +63,7 @@ clean: stop
 	ip link set $(EMU_IFACE) down
 	ip link set $(LAN_IFACE) down
 
-network:
+network: clean
 	ip address add $(EMU_IFACE_IP)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip tuntap add mode tap $(TAP_IFACE)
 	ip link set dev $(TAP_IFACE) address $(TAP_IFACE_MAC)

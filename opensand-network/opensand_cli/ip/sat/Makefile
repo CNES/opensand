@@ -48,7 +48,7 @@ clean: stop
 	ip address flush dev $(EMU_IFACE)
 	ip link set $(EMU_IFACE) down
 
-network:  
+network: clean
 	ip address add $(EMU_IFACE_IP)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip link set $(EMU_IFACE) up
 
