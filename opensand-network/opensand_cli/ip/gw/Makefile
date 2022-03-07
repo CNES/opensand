@@ -37,6 +37,7 @@ EMU_IP_SAT=192.168.18.1
 EMU_IP_ST=192.168.18.15
 ST_LAN_NET=192.168.2.0/24
 LAN_IFACE=ens5
+LAN_IP=192.168.1.1
 TAP_IFACE=opensand_tap
 TAP_MAC_GW=00:00:00:00:00:01
 TAP_MAC_ST=00:00:00:00:00:02
@@ -61,6 +62,7 @@ clean: stop
 	ip link set $(LAN_IFACE) down
 
 network: clean
+	ip address add $(LAN_IP)/$(NET_DIGITS) dev $(LAN_IFACE)
 	ip address add $(EMU_IP_GW)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip tuntap add mode tap $(TAP_IFACE)
 	ip link set dev $(TAP_IFACE) address $(TAP_MAC_GW)
@@ -75,6 +77,7 @@ network: clean
 	sysctl -w net.ipv4.conf.$(BR_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.conf.$(LAN_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.ip_forward=$(FORWARDING)
+	sleep 0.2
 	ip route add $(ST_LAN_NET) via $(BR_IFACE_IP_ST) dev $(BR_IFACE)
 
 generate-xml:
@@ -99,4 +102,4 @@ stop:
 	killall -q opensand || true
 
 
-.PHONY: all run network clean stop
+.PHONY: all run network clean stop generate-xml

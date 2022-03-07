@@ -75,5 +75,5 @@ run: generate-xml
 stop:
 	killall -q opensand || true
 
-.PHONY: all run network clean stop
+.PHONY: all run network clean stop generate-xml
 
