@@ -54,14 +54,16 @@ LOG_FOLDER=/var/log/opensand
 all: clean network run
 
 clean: stop
-	ip address flush dev $(EMU_IFACE)
-	ip address flush dev $(LAN_IFACE)
 	ip link del $(TAP_IFACE) || true
 	ip link del $(BR_IFACE) || true
 	ip link set $(EMU_IFACE) down
 	ip link set $(LAN_IFACE) down
 
 network: clean
+	ip link set $(EMU_IFACE) up
+	ip link set $(LAN_IFACE) up
+	ip address flush dev $(EMU_IFACE)
+	ip address flush dev $(LAN_IFACE)
 	ip address add $(LAN_IP)/$(NET_DIGITS) dev $(LAN_IFACE)
 	ip address add $(EMU_IP_GW)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip tuntap add mode tap $(TAP_IFACE)
@@ -69,10 +71,8 @@ network: clean
 	ip link add name $(BR_IFACE) type bridge
 	ip address add $(BR_IFACE_IP_GW)/$(NET_DIGITS) dev $(BR_IFACE)
 	ip link set dev $(TAP_IFACE) master $(BR_IFACE)
-	ip link set $(EMU_IFACE) up
 	ip link set $(BR_IFACE) up
 	ip link set $(TAP_IFACE) up
-	ip link set $(LAN_IFACE) up
 	sysctl -w net.ipv4.conf.$(EMU_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.conf.$(BR_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.conf.$(LAN_IFACE).forwarding=$(FORWARDING)

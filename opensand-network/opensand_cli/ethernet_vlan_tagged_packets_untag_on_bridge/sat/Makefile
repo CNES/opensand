@@ -47,10 +47,10 @@ LOG_FOLDER=/var/log/opensand
 all: clean network run 
 
 clean: stop
-	ip address flush dev $(EMU_IFACE)
 	ip link set $(EMU_IFACE) down
 
 network: clean
+	ip address flush dev $(EMU_IFACE)
 	ip address add $(EMU_IP_SAT)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip link set $(EMU_IFACE) up
 

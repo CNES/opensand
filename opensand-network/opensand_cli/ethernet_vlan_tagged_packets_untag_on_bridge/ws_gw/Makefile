@@ -38,21 +38,21 @@ VLAN_IP_TERM=2
 all: clean network
 
 clean:
-	ip address flush dev $(LAN_IFACE)
 	ip link set $(LAN_IFACE) down
 	@for VLAN in $(VLAN_USED) ; do \
-		ip address flush dev $(LAN_IFACE).$$VLAN up ; \
-		ip link set $(LAN_IFACE).$$VLAN up down ; \
+		ip link set $(LAN_IFACE).$$VLAN down ; \
 		ip link del link $(LAN_IFACE) name $(LAN_IFACE).$$VLAN type vlan id $$VLAN || true ; \
 	done
 
 network: clean
-	ip address add $(LAN_IP_WS_GW)/$(NET_DIGITS) dev $(LAN_IFACE)
 	ip link set $(LAN_IFACE) up
+	ip address flush dev $(LAN_IFACE)
+	ip address add $(LAN_IP_WS_GW)/$(NET_DIGITS) dev $(LAN_IFACE)
 	@for VLAN in $(VLAN_USED) ; do \
 		ip link add link $(LAN_IFACE) name $(LAN_IFACE).$$VLAN type vlan id $$VLAN ; \
-		ip address add $(VLAN_IP_BASE).$$VLAN.$(VLAN_IP_TERM)/$(NET_DIGITS) dev $(LAN_IFACE).$$VLAN ; \
 		ip link set $(LAN_IFACE).$$VLAN up ; \
+		ip address flush dev $(LAN_IFACE).$$VLAN ; \
+		ip address add $(VLAN_IP_BASE).$$VLAN.$(VLAN_IP_TERM)/$(NET_DIGITS) dev $(LAN_IFACE).$$VLAN ; \
 	done
 
 

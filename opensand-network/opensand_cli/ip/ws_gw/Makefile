@@ -37,13 +37,12 @@ NET_DIGITS=24
 all: clean network
 
 clean:
-	ip address flush dev $(LAN_IFACE)
 	ip link set $(LAN_IFACE) down
 
 network: clean
-	ip address add $(LAN_IP_WS_GW)/$(NET_DIGITS) dev $(LAN_IFACE)
 	ip link set $(LAN_IFACE) up
-	sleep 0.2
+	ip address flush dev $(LAN_IFACE)
+	ip address add $(LAN_IP_WS_GW)/$(NET_DIGITS) dev $(LAN_IFACE)
 	ip route add $(LAN_NET_ST)/$(NET_DIGITS) via $(LAN_IP_GW) dev $(LAN_IFACE)
 
 

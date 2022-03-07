@@ -52,14 +52,16 @@ VLAN_ID_DEFAULT=2
 all: clean network run
 
 clean: stop
-	ip address flush dev $(EMU_IFACE)
-	ip address flush dev $(LAN_IFACE)
 	ip link del $(TAP_IFACE) || true
 	ip link del $(BR_IFACE) || true
 	ip link set $(EMU_IFACE) down
 	ip link set $(LAN_IFACE) down
 
 network: clean
+	ip link set $(EMU_IFACE) up
+	ip link set $(LAN_IFACE) up
+	ip address flush dev $(EMU_IFACE)
+	ip address flush dev $(LAN_IFACE)
 	ip address add $(EMU_IP_ST)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip tuntap add mode tap $(TAP_IFACE)
 	ip link set dev $(TAP_IFACE) address $(TAP_MAC_ST)
@@ -76,10 +78,8 @@ network: clean
 		bridge vlan add dev $(BR_IFACE) vid $$VLAN untagged self ; \
 		bridge vlan add dev $(LAN_IFACE) vid $$VLAN tagged master ; \
 	done
-	ip link set $(EMU_IFACE) up
 	ip link set $(BR_IFACE) up
 	ip link set $(TAP_IFACE) up
-	ip link set $(LAN_IFACE) up
 
 generate-xml:
 	cp infrastructure.xml infrastructure_updated.xml

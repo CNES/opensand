@@ -55,14 +55,16 @@ VLAN_ID_DEFAULT=2
 all: clean network run
 
 clean: stop
-	ip address flush dev $(EMU_IFACE)
-	ip address flush dev $(LAN_IFACE)
 	ip link del $(TAP_IFACE) || true
 	ip link del $(BR_IFACE) || true
 	ip link set $(EMU_IFACE) down
 	ip link set $(LAN_IFACE) down
 
 network: clean
+	ip link set $(EMU_IFACE) up
+	ip link set $(LAN_IFACE) up
+	ip address flush dev $(EMU_IFACE)
+	ip address flush dev $(LAN_IFACE)
 	ip address add $(LAN_IP)/$(NET_DIGITS) dev $(LAN_IFACE)
 	ip address add $(EMU_IP_ST)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip tuntap add mode tap $(TAP_IFACE)
@@ -73,10 +75,8 @@ network: clean
 	ip link set $(BR_IFACE) type bridge vlan_filtering 1
 	bridge vlan add dev $(TAP_IFACE) vid $(VLAN_ID_DEFAULT) pvid tagged master
 	bridge vlan add dev $(BR_IFACE) vid $(VLAN_ID_DEFAULT) pvid untagged self
-	ip link set $(EMU_IFACE) up
 	ip link set $(BR_IFACE) up
 	ip link set $(TAP_IFACE) up
-	ip link set $(LAN_IFACE) up
 	sysctl -w net.ipv4.conf.$(EMU_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.conf.$(BR_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.conf.$(LAN_IFACE).forwarding=$(FORWARDING)
