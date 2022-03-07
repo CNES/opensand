@@ -70,7 +70,6 @@ network: clean
 	bridge vlan add dev $(TAP_IFACE) vid $(VLAN_ID_DEFAULT) pvid tagged master
 	bridge vlan add dev $(BR_IFACE) vid $(VLAN_ID_DEFAULT) pvid untagged self
 	bridge vlan add dev $(LAN_IFACE) vid $(VLAN_ID_DEFAULT) pvid untagged master
-	brctl setageing $(BR_IFACE) 0
 	ip link set $(EMU_IFACE) up
 	ip link set $(BR_IFACE) up
 	ip link set $(TAP_IFACE) up

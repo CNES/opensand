@@ -80,7 +80,6 @@ network: clean
 		bridge vlan add dev $(BR_IFACE) vid $$VLAN tagged self ; \
 		bridge vlan add dev $(LAN_IFACE) vid $$VLAN tagged master ; \
 	done
-	brctl setageing $(BR_IFACE) 0
 	ip link set $(EMU_IFACE) up
 	ip link set $(BR_IFACE) up
 	ip link set $(TAP_IFACE) up

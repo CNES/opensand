@@ -65,7 +65,6 @@ network: clean
 	ip address add $(BR_IFACE_IP)/$(NET_DIGITS) dev $(BR_IFACE)
 	ip link set dev $(TAP_IFACE) master $(BR_IFACE)
 	ip link set dev $(LAN_IFACE) master $(BR_IFACE)
-	brctl setageing $(BR_IFACE) 0
 	ip link set $(EMU_IFACE) up
 	ip link set $(BR_IFACE) up
 	ip link set $(TAP_IFACE) up
