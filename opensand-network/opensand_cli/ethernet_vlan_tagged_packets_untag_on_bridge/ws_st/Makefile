@@ -42,6 +42,7 @@ clean:
 	@for VLAN in $(VLAN_USED) ; do \
 		ip link del link $(LAN_IFACE) name $(LAN_IFACE).$$VLAN type vlan id $$VLAN || true ; \
 	done
+	iptables -t mangle -F
 
 network: clean
 	ip link set $(LAN_IFACE) up
@@ -52,7 +53,9 @@ network: clean
 		ip link set $(LAN_IFACE).$$VLAN up ; \
 		ip address flush dev $(LAN_IFACE).$$VLAN ; \
 		ip address add $(VLAN_IP_BASE).$$VLAN.$(VLAN_IP_TERM)/$(NET_DIGITS) dev $(LAN_IFACE).$$VLAN ; \
+		ip link set $(LAN_IFACE).$$VLAN type vlan egress-qos-map 1:0 2:1 3:2 4:3 5:4 6:5 7:6 8:7 ; \
 	done
+	python3 yaml_parser.py
 
 
 .PHONY: all network clean
