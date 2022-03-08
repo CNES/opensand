@@ -32,7 +32,6 @@ LAN_IFACE=ens4
 LAN_IP_WS_ST=192.168.1.3
 NET_DIGITS=24
 VLAN_USED=10 20
-VLAN_USED=10 20
 VLAN_IP_BASE=192.168
 VLAN_IP_TERM=3
 
@@ -41,7 +40,6 @@ all: clean network
 clean:
 	ip link set $(LAN_IFACE) down
 	@for VLAN in $(VLAN_USED) ; do \
-		ip link set $(LAN_IFACE).$$VLAN down ; \
 		ip link del link $(LAN_IFACE) name $(LAN_IFACE).$$VLAN type vlan id $$VLAN || true ; \
 	done
 

@@ -72,7 +72,7 @@ network: clean
 	ip link add name $(BR_IFACE) type bridge
 	ip address add $(BR_IFACE_IP_ST)/$(NET_DIGITS) dev $(BR_IFACE)
 	ip link set dev $(TAP_IFACE) master $(BR_IFACE)
-	ip link set $(BR_IFACE) type bridge vlan_filtering 1
+	ip link set $(BR_IFACE) type bridge vlan_filtering 1 ageing_time 0
 	bridge vlan add dev $(TAP_IFACE) vid $(VLAN_ID_DEFAULT) pvid tagged master
 	bridge vlan add dev $(BR_IFACE) vid $(VLAN_ID_DEFAULT) pvid untagged self
 	ip link set $(BR_IFACE) up

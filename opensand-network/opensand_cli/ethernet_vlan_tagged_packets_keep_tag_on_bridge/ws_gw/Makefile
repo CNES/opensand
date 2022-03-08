@@ -40,7 +40,6 @@ all: clean network
 clean:
 	ip link set $(LAN_IFACE) down
 	@for VLAN in $(VLAN_USED) ; do \
-		ip link set $(LAN_IFACE).$$VLAN down ; \
 		ip link del link $(LAN_IFACE) name $(LAN_IFACE).$$VLAN type vlan id $$VLAN || true ; \
 	done
 
