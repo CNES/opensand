@@ -876,6 +876,19 @@ def validate_project(name):
                 shutil.rmtree(destination.as_posix())
                 return error('Provided archive does not contain a "project.xml" file', 422)
 
+            project_xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath('project.xsd').as_posix())
+            if project_xsd is None:
+                shutil.rmtree(destination.as_posix())
+                return error('Internal Server Error: Impossible to open the projects XSD file', 500)
+
+            project_layout = py_opensand_conf.fromXML(project_xsd, project_xml.as_posix())
+            if project_layout is None:
+                shutil.rmtree(destination.as_posix())
+                return error('Impossible to validate the "project.xml" file in the archive against its XSD', 422)
+
+            _set_parameter(_get_component(project_layout.get_root(), 'platform'), 'project', name)
+            py_opensand_conf.toXML(project_layout, project_xml.as_posix())
+
             if entities.exists():
                 project_topology = destination.joinpath('topology.xml').as_posix()
                 for entity_folder in entities.iterdir():
