@@ -1,73 +1,56 @@
 import React from 'react';
+import type {FormikProps} from 'formik';
 
-import Box from '@material-ui/core/Box';
-import Collapse from '@material-ui/core/Collapse';
-import IconButton from '@material-ui/core/IconButton';
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableContainer from '@material-ui/core/TableContainer';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
-import Paper from '@material-ui/core/Paper';
+import Box from '@mui/material/Box';
+import Collapse from '@mui/material/Collapse';
+import IconButton from '@mui/material/IconButton';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
 
-import { makeStyles } from '@material-ui/core/styles';
-
-import AddIcon from '@material-ui/icons/AddCircleOutline';
-import ArrowDownIcon from '@material-ui/icons/KeyboardArrowDown';
-import ArrowUpIcon from '@material-ui/icons/KeyboardArrowUp';
-import DeleteIcon from '@material-ui/icons/HighlightOff';
-
-import {IActions, noActions} from '../../utils/actions';
-import {Component as ComponentType, List as ListType} from '../../xsd/model';
+import {styled} from '@mui/material/styles';
+import AddIcon from '@mui/icons-material/AddCircleOutline';
+import ArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import DeleteIcon from '@mui/icons-material/HighlightOff';
 
 import Component from './Component';
 
-
-interface Props {
-    list: ListType;
-    readOnly?: boolean;
-    changeModel: () => void;
-    actions: IActions;
-}
-
-
-interface RowProps {
-    component: ComponentType;
-    index: number;
-    readOnly?: boolean;
-    isEditable: boolean;
-    headers: string[];
-    changeModel: () => void;
-    onDelete: false | (() => void);
-    actions: IActions;
-}
+import {useSelector} from '../../redux';
+import {noActions} from '../../utils/actions';
+import type {IActions} from '../../utils/actions';
+import {useListMutators} from '../../utils/hooks';
+import {getParameters} from '../../xsd';
+import type {Component as ComponentType, List as ListType} from '../../xsd';
 
 
-const useRowStyles = makeStyles({
-    root: {
-        '& > *': {
-            borderBottom: 'unset',
-        },
-    },
-    reduced: {
-        paddingTop: 0,
-        paddingBottom: 0,
+const BorderlessTableRow = styled(TableRow, {name: "BorderlessTableRow", slot: "Wrapper"})({
+    '& > *': {
+        borderBottom: 'unset',
     },
 });
 
 
-const Row = (props: RowProps) => {
-    const {component, index, readOnly, isEditable, headers, actions, changeModel, onDelete} = props;
-    const classes = useRowStyles();
+const ReducedTableCell = styled(TableCell, {name: "ReducedTableCell", slot: "Wrapper"})({
+    paddingTop: 0,
+    paddingBottom: 0,
+});
+
+
+const Row: React.FC<RowProps> = (props) => {
+    const {component, index, readOnly, isEditable, headers, prefix, form, autoSave, actions, onDelete} = props;
 
     const [open, setOpen] = React.useState<boolean>(false);
 
-    const parameters = component.getParameters(false);
+    const parameters = getParameters(component, form.values);
 
     return (
         <React.Fragment>
-            <TableRow className={classes.root}>
+            <BorderlessTableRow>
                 <TableCell key={0} align="left">
                     <IconButton size="small" onClick={() => setOpen(!open)}>
                         {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
@@ -90,55 +73,50 @@ const Row = (props: RowProps) => {
                         </IconButton>
                     )}
                 </TableCell>
-            </TableRow>
+            </BorderlessTableRow>
             <TableRow>
-                <TableCell className={classes.reduced} colSpan={headers.length + 2}>
+                <ReducedTableCell colSpan={headers.length + 2}>
                     <Collapse in={open} timeout="auto" unmountOnExit>
                         <Box margin={1}>
                             <Component
                                 component={component}
                                 readOnly={readOnly}
-                                changeModel={changeModel}
+                                prefix={prefix}
+                                form={form}
                                 actions={actions}
+                                autoSave={autoSave}
                             />
                         </Box>
                     </Collapse>
-                </TableCell>
+                </ReducedTableCell>
             </TableRow>
         </React.Fragment>
     );
 };
 
 
-const List = (props: Props) => {
-    const {list, readOnly, actions, changeModel} = props;
-    const [, setState] = React.useState<object>({});
+interface RowProps {
+    component: ComponentType;
+    index: number;
+    readOnly?: boolean;
+    prefix: string;
+    form: FormikProps<ComponentType>;
+    isEditable: boolean;
+    headers: string[];
+    onDelete: false | (() => void);
+    actions: IActions;
+    autoSave: () => void;
+}
 
-    const forceUpdate = React.useCallback(() => {
-        setState({});
-        changeModel();
-    }, [changeModel, setState]);
 
-    const addListItem = React.useCallback(() => {
-        if (actions.$.onCreate != null) {
-            actions.$.onCreate();
-        } else {
-            list.addItem();
-            forceUpdate();
-        }
-    }, [list, forceUpdate, actions.$]);
+const List: React.FC<Props> = (props) => {
+    const {list, readOnly, prefix, form, actions, autoSave} = props;
 
-    const removeListItem = React.useCallback((index: number) => {
-        if (actions.$.onDelete != null) {
-            actions.$.onDelete(index);
-        } else {
-            list.removeItem(index);
-            forceUpdate();
-        }
-    }, [list, forceUpdate, actions.$]);
+    const visibility = useSelector((state) => state.form.visibility);
+    const [addListItem, removeListItem] = useListMutators(list, actions.$, form, prefix);
 
     const count = list.elements.length;
-    const headers = list.pattern.getParameters().map(p => p.id);
+    const headers = getParameters(list.pattern, form.values, visibility).map(p => p.id);
     const isEditable = !readOnly && !list.readOnly;
     const canGrow = count < list.maxOccurences;
     const canShrink = count > list.minOccurences;
@@ -178,11 +156,13 @@ const List = (props: Props) => {
                             component={c}
                             index={i}
                             readOnly={readOnly}
+                            prefix={`${prefix}.elements.${i}`}
+                            form={form}
                             isEditable={isEditable}
                             headers={headers}
-                            changeModel={forceUpdate}
                             onDelete={canShrink && (() => removeListItem(i))}
                             actions={patternActions}
+                            autoSave={autoSave}
                         />
                     ))}
                 </TableBody>
@@ -190,6 +170,16 @@ const List = (props: Props) => {
         </TableContainer>
     );
 };
+
+
+interface Props {
+    list: ListType;
+    readOnly?: boolean;
+    prefix: string;
+    form: FormikProps<ComponentType>;
+    actions: IActions;
+    autoSave: (timeout?: number) => void;
+}
 
 
 export default List;

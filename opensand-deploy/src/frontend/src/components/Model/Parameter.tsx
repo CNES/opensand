@@ -1,46 +1,42 @@
 import React from 'react';
+import {useParams} from 'react-router-dom';
+import type {FormikProps} from 'formik';
 
-import Checkbox from '@material-ui/core/Checkbox';
-import FormControl from '@material-ui/core/FormControl';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import IconButton from '@material-ui/core/IconButton';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
-import TextField from '@material-ui/core/TextField';
-import Tooltip from '@material-ui/core/Tooltip';
+import Checkbox from '@mui/material/Checkbox';
+import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 
-import DeleteIcon from '@material-ui/icons/HighlightOff';
-import EditIcon from '@material-ui/icons/Edit';
-import HelpIcon from '@material-ui/icons/Help';
+import {styled} from '@mui/material/styles';
+import DeleteIcon from '@mui/icons-material/HighlightOff';
+import EditIcon from '@mui/icons-material/Edit';
+import HelpIcon from '@mui/icons-material/Help';
 
-import {listProjectTemplates, ITemplatesContent} from '../../api';
+import {forceEntityInXML} from '../../api';
+import {useSelector, useDispatch} from '../../redux';
 import {IActions} from '../../utils/actions';
-import {sendError} from '../../utils/dispatcher';
-import {useDidMount} from '../../utils/hooks';
-import {parameterStyles} from '../../utils/theme';
-import {Parameter as ParameterType, isComponentElement, isParameterElement} from '../../xsd/model';
-import {getXsdName}  from '../../xsd/utils';
+import {getXsdName} from '../../xsd';
+import type {Parameter as ParameterType} from '../../xsd';
 
 
-interface Props {
-    parameter: ParameterType;
-    readOnly?: boolean;
-    entity?: {name: string; type: string;};
-    changeModel: () => void;
-    actions: IActions;
-}
+const FlexBox = styled('div')(({ theme }) => ({
+    display: "flex",
+    marginBottom: theme.spacing(1),
+}));
 
 
-const BooleanParam = (props: Props) => {
-    const {parameter, readOnly, changeModel} = props;
-    const classes = parameterStyles();
+const BooleanParam: React.FC<BaseProps> = (props) => {
+    const {parameter, readOnly, name, form: {handleChange, setFieldValue, handleBlur}, autoSave} = props;
 
-    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        parameter.value = String(parameter.value !== "true");
-        changeModel();
-    }, [parameter, changeModel]);
+    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        handleChange(event);
+        setFieldValue(name, String(event.target.checked));
+        autoSave();
+    }, [handleChange, name, setFieldValue, autoSave]);
 
     const help = parameter.description === "" ? null : (
         <Tooltip title={parameter.description} placement="top">
@@ -50,53 +46,40 @@ const BooleanParam = (props: Props) => {
 
     const checkbox = (
         <Checkbox
+            name={name}
             checked={parameter.value === "true"}
-            onChange={handleChange}
+            onChange={myHandleChange}
+            onBlur={handleBlur}
             disabled={readOnly}
         />
     );
 
-    // Need to wrap in a <div> not a <React.Fragment> for the display block
     return (
-        <div className={classes.spaced}>
+        <FlexBox>
             <FormControlLabel control={checkbox} label={parameter.name} />
             {help}
-        </div>
+        </FlexBox>
     );
 };
 
 
-interface NumberProps extends Props {
-    min: number;
-    max: number;
-    step: number;
-}
+const NumberParam: React.FC<NumberProps> = (props) => {
+    const {parameter, readOnly, min, max, step, name, form: {handleChange, handleBlur}, autoSave} = props;
 
-
-const NumberParam = (props: NumberProps) => {
-    const {parameter, readOnly, min, max, step, changeModel} = props;
-    const classes = parameterStyles();
-
-    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        parameter.value = event.target.value;
-        changeModel();
-    }, [parameter, changeModel]);
-
-    const handleBlur = React.useCallback(() => {
-        const saved = parameter.model.saved;
-        changeModel();
-        parameter.model.saved = saved;
-    }, [parameter, changeModel]);
+    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        handleChange(event);
+        autoSave();
+    }, [handleChange, autoSave]);
 
     // label={ parameter.name + " (" + parameter.type + ")" } ???
-    // Need to wrap in a <div> not a <React.Fragment> for the display block
     return (
-        <div className={classes.spaced}>
+        <FlexBox>
             <TextField
                 variant="outlined"
+                name={name}
                 label={parameter.name}
                 value={parameter.value}
-                onChange={handleChange}
+                onChange={myHandleChange}
                 onBlur={handleBlur}
                 fullWidth
                 disabled={readOnly}
@@ -113,37 +96,31 @@ const NumberParam = (props: NumberProps) => {
                     inputProps: {min, max, step},
                 }}
             />
-        </div>
+        </FlexBox>
     );
 };
 
 
-const StringParam = (props: Props) => {
-    const {parameter, readOnly, changeModel} = props;
-    const classes = parameterStyles();
+const StringParam: React.FC<BaseProps> = (props) => {
+    const {parameter, readOnly, name, form: {handleChange, handleBlur}, autoSave} = props;
 
-    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        parameter.value = event.target.value;
-        changeModel();
-    }, [parameter, changeModel]);
-
-    const handleBlur = React.useCallback(() => {
-        const saved = parameter.model.saved;
-        changeModel();
-        parameter.model.saved = saved;
-    }, [parameter, changeModel]);
+    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        handleChange(event);
+        autoSave();
+    }, [handleChange, autoSave]);
 
     // label={ parameter.name + " (" + parameter.type + ")" } ???
-    // Need to wrap in a <div> not a <React.Fragment> for the display block
     return (
-        <div className={classes.spaced}>
+        <FlexBox>
             <TextField
                 variant="outlined"
+                name={name}
                 label={parameter.name}
                 value={parameter.value}
-                onChange={handleChange}
+                onChange={myHandleChange}
                 onBlur={handleBlur}
                 fullWidth
+                autoFocus
                 disabled={readOnly}
                 InputProps={{
                     endAdornment: <InputAdornment position="end">
@@ -156,26 +133,20 @@ const StringParam = (props: Props) => {
                     </InputAdornment>,
                 }}
             />
-        </div>
+        </FlexBox>
     );
 };
 
 
-interface EnumProps extends Props {
-    enumeration: string[];
-}
+const EnumParam: React.FC<EnumProps> = (props) => {
+    const {parameter, readOnly, enumeration, name, form: {handleChange, handleBlur}, autoSave} = props;
 
+    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        handleChange(event);
+        autoSave();
+    }, [handleChange, autoSave]);
 
-const EnumParam = (props: EnumProps) => {
-    const {parameter, readOnly, changeModel, enumeration} = props;
-    const classes = parameterStyles();
-
-    const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: unknown;}>) => {
-        parameter.value = event.target.value as string;
-        changeModel();
-    }, [parameter, changeModel]);
-
-    const header = React.useMemo(() => <em>Please select a {parameter.name}</em>, [parameter]);
+    const header = React.useMemo(() => <em>Please select a {parameter.name}</em>, [parameter.name]);
 
     const renderValue = React.useCallback((selected: any) => {
         if (selected == null || selected === "") {
@@ -193,65 +164,95 @@ const EnumParam = (props: EnumProps) => {
     const choices = enumeration.map((v: string, i: number) => <MenuItem value={v} key={i+1}>{v}</MenuItem>);
     choices.splice(0, 0, <MenuItem value="" key={0}>{header}</MenuItem>);
 
-    // Need to wrap in a <div> not a <React.Fragment> for the display block
     return (
-        <div className={classes.spaced}>
-            <FormControl className={classes.fullWidth}>
-                <InputLabel htmlFor={parameter.id}>
-                    {parameter.value === "" ? null : parameter.name}
-                </InputLabel>
-                <Select
-                    value={parameter.value}
-                    onChange={handleChange}
-                    inputProps={{id: parameter.id}}
-                    displayEmpty
-                    disabled={readOnly}
-                    renderValue={renderValue}
-                >
-                    {choices}
-                </Select>
-            </FormControl>
+        <FlexBox>
+            <TextField
+                select
+                fullWidth
+                name={name}
+                label={parameter.value ? parameter.name : null}
+                value={parameter.value}
+                onChange={myHandleChange}
+                onBlur={handleBlur}
+                disabled={readOnly}
+                SelectProps={{
+                    displayEmpty: true,
+                    renderValue
+                }}
+            >
+                {choices}
+            </TextField>
             {help}
-        </div>
+        </FlexBox>
     );
 };
 
 
-interface XsdEnumProps extends Props {
-}
-
-
-const XsdParameter = (props: XsdEnumProps) => {
-    const {parameter, readOnly, changeModel, entity, actions} = props;
+const XsdParameter: React.FC<XsdProps> = (props) => {
+    const {parameter, readOnly, entity, actions, name, form: {handleChange, handleBlur, setFieldValue, submitForm}} = props;
     const {onEdit, onRemove} = actions.$;
 
-    const didMount = useDidMount();
-    const classes = parameterStyles();
+    const loading = useSelector((state) => state.model.status);
+    const templates = useSelector((state) => state.form.templates);
+    const dispatch = useDispatch();
+    const url = useParams();
 
-    const [templates, setTemplates] = React.useState<ITemplatesContent>({});
+    const [onSubmitted, setSubmitted] = React.useState<(() => void) | undefined>(undefined);
+    const [saved, setSaved] = React.useState<boolean>(false);
 
     const parameter_key = React.useMemo(() => parameter.id.substr(0, parameter.id.indexOf("__template")), [parameter.id]);
     const xsd = React.useMemo(() => getXsdName(parameter_key, entity?.type), [parameter_key, entity]);
 
-    const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: unknown;}>) => {
-        const value = (event.target.value as string) || "";
+    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        handleChange(event);
+        const value = event.target.value || "";
 
-        parameter.value = value;
         if (value !== "") {
-            onEdit ? onEdit(entity, parameter_key, xsd, value) : changeModel();
+            if (onEdit) {
+                if (xsd === "infrastructure.xsd") {
+                    setSubmitted(() => () => {
+                        if (url.name && entity) {
+                            const saveUrl = parameter_key + "/" + entity.name;
+                            const loadUrl = `template/${xsd}/${value}`;
+                            dispatch(forceEntityInXML({project: url.name, xsd, loadUrl, saveUrl, entity: entity.type}));
+                            setSubmitted(() => () => {
+                                setSubmitted(undefined);
+                                onEdit(entity, parameter_key, xsd);
+                            });
+                        } else {
+                            setSubmitted(undefined);
+                            onEdit(entity, parameter_key, xsd, value);
+                        }
+                    });
+                } else {
+                    setSubmitted(() => () => onEdit(entity, parameter_key, xsd, value));
+                }
+            }
         } else {
-            onRemove ? onRemove(entity?.name, parameter_key) : changeModel();
+            onRemove && onRemove(entity?.name, parameter_key);
         }
-    }, [parameter, parameter_key, xsd, entity, onEdit, onRemove, changeModel]);
+        submitForm();
+    }, [dispatch, url.name, parameter_key, xsd, entity, onEdit, onRemove, handleChange, submitForm]);
 
     const handleClear = React.useCallback(() => {
-        parameter.value = "";
-        onRemove ? onRemove(entity?.name, parameter_key) : changeModel();
-    }, [parameter, parameter_key, entity, onRemove, changeModel]);
+        setFieldValue(name, "");
+        onRemove && onRemove(entity?.name, parameter_key);
+        submitForm();
+    }, [setFieldValue, name, parameter_key, entity, onRemove, submitForm]);
 
     const handleEdit = React.useCallback(() => {
         onEdit && onEdit(entity, parameter_key, xsd);
     }, [parameter_key, xsd, entity, onEdit]);
+
+    React.useEffect(() => {
+        if (onSubmitted && loading === "saved") {
+            setSaved(true);
+        }
+        if (onSubmitted && saved && loading === "success") {
+            setSaved(false);
+            onSubmitted();
+        }
+    }, [loading, onSubmitted, saved]);
 
     const templatesNames = React.useMemo(() => templates[xsd] || [], [templates, xsd]);
     const header = React.useMemo(() => (
@@ -261,18 +262,6 @@ const XsdParameter = (props: XsdEnumProps) => {
     ), [templatesNames.length, parameter.name]);
     const hasValue = React.useMemo(() => parameter.value && parameter.value !== "", [parameter.value]);
 
-    const projectName = React.useMemo(() => {
-        const platform = parameter.model.root.elements.find(e => e.element.id === "platform");
-        if (isComponentElement(platform)) {
-            const project = platform.element.elements.find(e => e.element.id === "project");
-            if (isParameterElement(project)) {
-                return project.element.value;
-            }
-        }
-
-        return "";
-    }, [parameter.model]);
-
     const renderValue = React.useCallback((selected: any) => {
         if (selected == null || selected === "") {
             return header;
@@ -281,78 +270,84 @@ const XsdParameter = (props: XsdEnumProps) => {
         }
     }, [header]);
 
-    React.useEffect(() => {
-        if (didMount) {
-            listProjectTemplates(setTemplates, sendError, projectName);
-        }
-        // return () => {setTemplates({});};
-    }, [didMount, projectName]);
-
     const choices = templatesNames.map((v: string, i: number) => <MenuItem value={v} key={i+1}>{v}</MenuItem>);
     choices.splice(0, 0, <MenuItem value="" key={0}>{header}</MenuItem>);
 
     return (
-        <div className={classes.spaced}>
-            <FormControl className={classes.fullWidth}>
-                <InputLabel htmlFor={parameter.id}>
-                    {hasValue ? parameter.name : null}
-                </InputLabel>
-                <Select
-                    value={templatesNames.length ? parameter.value : ""}
-                    onChange={handleChange}
-                    inputProps={{id: parameter.id}}
-                    displayEmpty
-                    renderValue={renderValue}
-                    disabled={readOnly || !templatesNames.length}
-                >
-                    {choices}
-                </Select>
-            </FormControl>
-            {hasValue && (
-                <Tooltip placement="top" title="Edit this configuration file">
-                    <IconButton onClick={handleEdit} disabled={readOnly}>
-                        <EditIcon />
-                    </IconButton>
-                </Tooltip>
-            )}
-            {hasValue && (
-                <Tooltip placement="top" title="Remove this configuration file">
-                    <IconButton onClick={handleClear} disabled={readOnly}>
-                        <DeleteIcon />
-                    </IconButton>
-                </Tooltip>
-            )}
-        </div>
+        <FlexBox>
+            <TextField
+                select
+                fullWidth
+                name={name}
+                label={hasValue ? parameter.name : null}
+                value={templatesNames.length ? parameter.value : ""}
+                onChange={myHandleChange}
+                onBlur={handleBlur}
+                disabled={readOnly || !templatesNames.length}
+                SelectProps={{
+                    displayEmpty: true,
+                    renderValue
+                }}
+                InputProps={{
+                    endAdornment: <InputAdornment position="end">
+                        {hasValue && (
+                            <Tooltip placement="top" title="Edit this configuration file">
+                                <IconButton onClick={handleEdit} disabled={readOnly}>
+                                    <EditIcon />
+                                </IconButton>
+                            </Tooltip>
+                        )}
+                        {hasValue && (
+                            <Tooltip placement="top" title="Remove this configuration file">
+                                <IconButton onClick={handleClear} disabled={readOnly} sx={{mr: 2}}>
+                                    <DeleteIcon />
+                                </IconButton>
+                            </Tooltip>
+                        )}
+                        {onSubmitted != null && loading === "pending" && (
+                            <CircularProgress />
+                        )}
+                    </InputAdornment>,
+                }}
+            >
+                {choices}
+            </TextField>
+        </FlexBox>
     );
 };
 
 
-const Parameter = (props: Props) => {
-    const {parameter, readOnly, entity, changeModel, actions} = props;
+const Parameter: React.FC<Props> = (props) => {
+    const {parameter, readOnly, entity, actions, prefix, form, autoSave} = props;
+
+    const model = useSelector((state) => state.model.model);
 
     const isReadOnly = readOnly || parameter.readOnly;
+    const name = prefix + ".value";
 
     if (parameter.id.endsWith("__template")) {
         return (
             <XsdParameter
                 parameter={parameter}
                 readOnly={isReadOnly}
-                changeModel={changeModel}
                 actions={actions}
                 entity={entity}
+                name={name}
+                form={form}
             />
         );
     }
 
-    const enumeration = parameter.model.environment.enums.find(e => e.id === parameter.type);
+    const enumeration = model?.environment?.enums?.find(e => e.id === parameter.type);
     if (enumeration != null) {
         return (
             <EnumParam
                 parameter={parameter}
                 readOnly={isReadOnly}
                 enumeration={enumeration.values}
-                changeModel={changeModel}
-                actions={actions}
+                name={name}
+                form={form}
+                autoSave={autoSave}
             />
         );
     }
@@ -364,8 +359,9 @@ const Parameter = (props: Props) => {
                 <BooleanParam
                     parameter={parameter}
                     readOnly={isReadOnly}
-                    changeModel={changeModel}
-                    actions={actions}
+                    name={name}
+                    form={form}
+                    autoSave={autoSave}
                 />
             );
         case "longdouble":
@@ -378,8 +374,9 @@ const Parameter = (props: Props) => {
                     min={Number.MIN_SAFE_INTEGER}
                     max={Number.MAX_SAFE_INTEGER}
                     step={0.01}
-                    changeModel={changeModel}
-                    actions={actions}
+                    name={name}
+                    form={form}
+                    autoSave={autoSave}
                 />
             );
         case "byte":
@@ -390,8 +387,9 @@ const Parameter = (props: Props) => {
                     min={0}
                     max={255}
                     step={1}
-                    changeModel={changeModel}
-                    actions={actions}
+                    name={name}
+                    form={form}
+                    autoSave={autoSave}
                 />
             );
         case "short":
@@ -402,8 +400,9 @@ const Parameter = (props: Props) => {
                     min={-32768}
                     max={32767}
                     step={1}
-                    changeModel={changeModel}
-                    actions={actions}
+                    name={name}
+                    form={form}
+                    autoSave={autoSave}
                 />
             );
         case "int":
@@ -414,8 +413,9 @@ const Parameter = (props: Props) => {
                     min={-2147483648}
                     max={2147483647}
                     step={1}
-                    changeModel={changeModel}
-                    actions={actions}
+                    name={name}
+                    form={form}
+                    autoSave={autoSave}
                 />
             );
         case "long":
@@ -426,8 +426,9 @@ const Parameter = (props: Props) => {
                     min={Number.MIN_SAFE_INTEGER}
                     max={Number.MAX_SAFE_INTEGER}
                     step={1}
-                    changeModel={changeModel}
-                    actions={actions}
+                    name={name}
+                    form={form}
+                    autoSave={autoSave}
                 />
             );
         case "string":
@@ -437,12 +438,47 @@ const Parameter = (props: Props) => {
                 <StringParam
                     parameter={parameter}
                     readOnly={isReadOnly}
-                    changeModel={changeModel}
-                    actions={actions}
+                    name={name}
+                    form={form}
+                    autoSave={autoSave}
                 />
             );
     }
 };
+
+
+interface BaseProps {
+    parameter: ParameterType;
+    readOnly?: boolean;
+    name: string;
+    form: FormikProps<any>;
+    autoSave: () => void;
+}
+
+
+interface Props extends Omit<BaseProps, "name"> {
+    entity?: {name: string; type: string;};
+    prefix: string;
+    actions: IActions;
+}
+
+
+interface NumberProps extends BaseProps {
+    min: number;
+    max: number;
+    step: number;
+}
+
+
+interface EnumProps extends BaseProps {
+    enumeration: string[];
+}
+
+
+interface XsdProps extends Omit<BaseProps, "autoSave"> {
+    entity?: {name: string; type: string;};
+    actions: IActions;
+}
 
 
 export default Parameter;

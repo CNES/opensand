@@ -1,54 +1,36 @@
 import React from 'react';
-import {useHistory} from 'react-router-dom';
 
-import Button from '@material-ui/core/Button';
+import Button from '@mui/material/Button';
 
-import {getProjectModel, updateProject, IApiSuccess, IXsdContent} from '../../api';
-import {sendError} from '../../utils/dispatcher';
-import {fromXSD} from '../../xsd/parser';
+import {createProject} from '../../api';
+import {useSelector, useDispatch} from '../../redux';
+import {useOpen, useProject} from '../../utils/hooks';
 
 import SingleFieldDialog from '../common/SingleFieldDialog';
 
 
-const CreateProjectButton = () => {
-    const [open, setOpen] = React.useState<boolean>(false);
-    const history = useHistory();
+const CreateProjectButton: React.FC<Props> = (props) => {
+    const status = useSelector((state) => state.project.status);
+    const dispatch = useDispatch();
+    const goToProject = useProject(dispatch);
 
-    const handleOpen = React.useCallback(() => {
-        setOpen(true);
-    }, [setOpen]);
+    const [projectName, setProjectName] = React.useState<string>("");
+    const [open, handleOpen, handleClose] = useOpen();
 
-    const handleClose = React.useCallback(() => {
-        setOpen(false);
-    }, [setOpen]);
-
-    const handleCreatedProject = React.useCallback((projectName: string, success: IApiSuccess) => {
-        if (success.status === "OK") {
-            setOpen(false);
-            history.push("/project/" + projectName);
+    const doCreateProject = React.useCallback((project: string) => {
+        if (project) {
+            setProjectName(project);
+            dispatch(createProject({project}));
         }
-    }, [setOpen, history]);
+        handleClose();
+    }, [dispatch, handleClose]);
 
-    const fillProjectModel = React.useCallback((projectName: string, content: IXsdContent) => {
-        const model = fromXSD(content.content);
-        model.root.elements.forEach((e) => {
-            if (e.type === "component" && e.element.id === "platform") {
-                e.element.elements.forEach((p) => {
-                    if (p.type === "parameter" && p.element.id === "project") {
-                        p.element.value = projectName;
-                    }
-                });
-            }
-        });
-        const onSuccess = handleCreatedProject.bind(this, projectName);
-        updateProject(onSuccess, sendError, projectName, model);
-    }, [handleCreatedProject]);
-
-    const doCreateProject = React.useCallback((projectName: string) => {
-        if (projectName !== "") {
-            getProjectModel(fillProjectModel.bind(this, projectName), sendError);
+    React.useEffect(() => {
+        if (projectName && status === "created") {
+            setProjectName("");
+            goToProject(projectName);
         }
-    }, [fillProjectModel]);
+    }, [status, projectName, goToProject]);
 
     return (
         <React.Fragment>
@@ -64,6 +46,10 @@ const CreateProjectButton = () => {
         </React.Fragment>
     );
 };
+
+
+interface Props {
+}
 
 
 export default CreateProjectButton;

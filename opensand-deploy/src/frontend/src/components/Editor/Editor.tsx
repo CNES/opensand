@@ -1,84 +1,72 @@
 import React from 'react';
-import {RouteComponentProps} from 'react-router-dom';
+import {useParams, useSearchParams} from 'react-router-dom';
 
-import Box from '@material-ui/core/Box';
-import Typography from '@material-ui/core/Typography';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 
-import {getXSD, getProjectXML, updateProjectXML, silenceSuccess, IXsdContent, IXmlContent} from '../../api';
-import {sendError} from '../../utils/dispatcher';
-import {fromXSD, fromXML} from '../../xsd/parser';
-import {Model as ModelType} from '../../xsd/model';
+import {getXML, updateXML} from '../../api';
+import {useSelector, useDispatch} from '../../redux';
+import {clearModel} from '../../redux/model';
+import {useDidMount} from '../../utils/hooks';
 
 import Model from './Model';
 
 
-interface RouteParams {
-    project: string;
-    model: string;
-    entity?: string;
-}
+const Editor: React.FC<Props> = (props) => {
+    const {project, model, entity} = useParams();
+    const urlFragment = React.useMemo(() => entity == null ? `${model}` : `${model}/${entity}`, [model, entity]);
 
+    const [urlParams,] = useSearchParams();
+    const xsd = React.useMemo(() => urlParams.get("xsd"), [urlParams]);
+    const xml = React.useMemo(() => urlParams.get("xml"), [urlParams]);
 
-type Props = RouteComponentProps<RouteParams>;
+    const dataModel = useSelector((state) => state.model.model);
+    const dispatch = useDispatch();
+    const didMount = useDidMount();
 
-
-const Editor = (props: Props) => {
-    const [model, changeModel] = React.useState<ModelType | undefined>(undefined);
-
-    const [projectName, urlFragment, xsd, template] = React.useMemo(() => {
-        const urlParams = new URLSearchParams(props.location.search);
-        const {project, model, entity} = props.match.params;
-        const fragment = model + (entity == null ? "" : "/" + entity);
-        return [project, fragment, urlParams.get("xsd"), urlParams.get("xml")];
-    }, [props.match.params, props.location.search]);
-
-    const loadModel = React.useCallback((content: IXsdContent) => {
-        const dataModel = fromXSD(content.content);
-        const url = template == null ? urlFragment : "template/" + xsd + "/" + template;
-        const onSaveError = (error: string) => sendError("Configuration has not been automatically saved: " + error);
-        const onError = (error: string) => {sendError(error); changeModel(dataModel);};
-        const onSuccess = (content: IXmlContent) => {
-            const newModel = fromXML(dataModel, content.content);
-            changeModel(newModel);
-            updateProjectXML(silenceSuccess, onSaveError, projectName, urlFragment, newModel);
-        }
-        getProjectXML(onSuccess, onError, projectName, url);
-    }, [changeModel, projectName, urlFragment, xsd, template]);
-
-    const reloadModel = React.useCallback((content: IXsdContent) => {
-        const dataModel = fromXSD(content.content);
-        const onError = (error: string) => {sendError(error); changeModel(dataModel);};
-        const onSuccess = (content: IXmlContent) => changeModel(fromXML(dataModel, content.content));
-        getProjectXML(onSuccess, onError, projectName, urlFragment);
-    }, [projectName, urlFragment]);
-
-    const reload = React.useCallback(() => {
-        if (xsd && urlFragment.startsWith('infrastructure')) {
-            getXSD(reloadModel, sendError, xsd);
-        }
-    }, [reloadModel, urlFragment, xsd]);
+    const [autoSaved, setAutoSaved] = React.useState<boolean>(false);
 
     React.useEffect(() => {
-        if (xsd != null) {
-            getXSD(loadModel, sendError, xsd);
+        if (project && xsd) {
+            const url = xml == null ? urlFragment : `template/${xsd}/${xml}`;
+            dispatch(getXML({project, xsd, urlFragment: url}));
         }
-        return () => {changeModel(undefined);}
-    }, [loadModel, xsd]);
+        return () => {dispatch(clearModel());};
+    }, [dispatch, project, urlFragment, xsd, xml]);
 
-    if (model == null) {
+    React.useEffect(() => {
+        // Weird timings involved here:
+        //   Project/Project.tsx does a clearModel on unmount
+        //   but we somehow end up with the project model still
+        //   in dataModel on initial render.
+        // So make sure to avoid this inconsistency with didMount
+        // TODO: FIXME
+        if (dataModel && !didMount && !autoSaved) {
+            setAutoSaved(true);
+            if (project && xsd && xml) {
+                // Save model only if loaded from an XML template
+                dispatch(updateXML({project, xsd, urlFragment}));
+            }
+        }
+    }, [dispatch, didMount, autoSaved, dataModel, project, urlFragment, xsd, xml]);
+
+    if (!dataModel || !xsd || !project) {
         return <Box m={3}><Typography align="center">Model does not exist!</Typography></Box>;
     }
 
     return (
         <Model
-            model={model}
+            model={dataModel}
             xsd={xsd}
-            projectName={projectName}
+            projectName={project}
             urlFragment={urlFragment}
-            reloadModel={reload}
         />
     );
 };
+
+
+interface Props {
+}
 
 
 export default Editor;

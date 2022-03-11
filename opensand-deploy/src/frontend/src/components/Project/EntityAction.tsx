@@ -1,80 +1,59 @@
 import React from 'react';
 
-import CircularProgress from '@material-ui/core/CircularProgress';
-import IconButton from '@material-ui/core/IconButton';
-import Tooltip from '@material-ui/core/Tooltip';
+import CircularProgress from '@mui/material/CircularProgress';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 
-import DownloadIcon from '@material-ui/icons/GetApp';
-import ErrorIcon from '@material-ui/icons/Error';
-import LaunchIcon from '@material-ui/icons/PlaylistPlay';
-import NothingIcon from '@material-ui/icons/Cancel';
-import PingIcon from '@material-ui/icons/Router';
-import StopIcon from '@material-ui/icons/Stop';
-import UploadIcon from '@material-ui/icons/Publish';
+import DownloadIcon from '@mui/icons-material/GetApp';
+import ErrorIcon from '@mui/icons-material/Error';
+import LaunchIcon from '@mui/icons-material/PlaylistPlay';
+import NothingIcon from '@mui/icons-material/Cancel';
+import PingIcon from '@mui/icons-material/Router';
+import StopIcon from '@mui/icons-material/Stop';
+import UploadIcon from '@mui/icons-material/Publish';
 
-import {
-    copyEntityConfiguration,
-    deployEntity,
-    findPingDestinations,
-    silenceSuccess,
-    IPidSuccess,
-    IPingDestinations,
-} from '../../api';
-import {sendError} from '../../utils/dispatcher';
-
-import {Component, isParameterElement} from '../../xsd/model';
+import {copyEntityConfiguration, deployEntity, findPingDestinations} from '../../api';
+import {useSelector, useDispatch} from '../../redux';
+import {createEntityAction} from '../../redux/action';
+import {setPingingEntity} from '../../redux/ping';
+import {isParameterElement} from '../../xsd';
+import type {Component} from '../../xsd';
 
 
-interface Props {
-    project: string;
-    entity?: Component;
-    onDownload: (entity?: string) => void;
-    setAction: (fn?: () => (password: string, isPassphrase: boolean) => void) => void;
-    setPingDestinations: (entity: string, address: string, destinations: string[]) => void;
-}
+const EntityAction: React.FC<Props> = (props) => {
+    const {project, entity, onDownload, setAction} = props;
 
-
-const EntityAction = (props: Props) => {
-    const {project, entity, onDownload, setAction, setPingDestinations} = props;
-
-    const [disabled, setDisabled] = React.useState<boolean>(false);
-    const [running, setRunning] = React.useState<boolean>(false);
+    const state = useSelector((state) => state.action);
+    const dispatch = useDispatch();
 
     const handleCopy = React.useCallback((entity: string, folder: string) => {
-        copyEntityConfiguration(silenceSuccess, sendError, project, entity, folder);
-    }, [project]);
-
-    const handleStatus = React.useCallback((entity: string, address: string, password: string, isPassphrase: boolean) => {
-        return (result: IPidSuccess) => {
-            setDisabled(false);
-            setRunning(result.running === true);
-            if (result.running) {
-                const newHandler = handleStatus(entity, address, password, isPassphrase);
-                const recursiveCall = () => deployEntity(newHandler, sendError, project, entity, '', '', 'STATUS', address, password, isPassphrase);
-                setTimeout(recursiveCall, 5000);
-            }
-        };
-    }, [project]);
+        if (project) {
+            dispatch(copyEntityConfiguration({project, entity, folder}));
+        }
+    }, [dispatch, project]);
 
     const handleDeploy = React.useCallback((entity: string, mode: string, folder: string, action: string, address: string, password: string, isPassphrase: boolean) => {
-        const handler = handleStatus(entity, address, password, isPassphrase);
-        setDisabled(true);
-        deployEntity(handler, sendError, project, entity, folder, mode, action, address, password, isPassphrase);
-    }, [project, handleStatus]);
+        if (project) {
+            dispatch(deployEntity({
+                project, entity, address,
+                folder, copyMethod: mode,
+                runMethod: action,
+                password, isPassphrase,
+            }));
+        }
+    }, [dispatch, project]);
 
     const handlePing = React.useCallback((entity: string, address: string) => {
-        const callback = (result: IPingDestinations) => setPingDestinations(entity, address, result.addresses);
-        findPingDestinations(callback, sendError, project);
-    }, [project, setPingDestinations]);
+        if (project) {
+            dispatch(findPingDestinations({project}));
+            dispatch(setPingingEntity({name: entity, address}));
+        }
+    }, [dispatch, project]);
 
     let title = "Error retrieving entity configuration";
     let clickAction: (() => void) | undefined = undefined;
     let child = <ErrorIcon />;
-
-    if (running) {
-        title = "OpenSAND is running";
-        child = <CircularProgress size={24} />;
-    }
+    let disabled = true;
 
     if (entity) {
         const entityConfig: {[key: string]: string;} = {};
@@ -88,6 +67,20 @@ const EntityAction = (props: Props) => {
         const handleAction = (password: string, isPassphrase: boolean) => (
             handleDeploy(entity_name, upload, folder, run, address, password, isPassphrase)
         );
+
+        const entity_config = state[entity_name];
+        if (!entity_config) {
+            dispatch(createEntityAction(entity_name));
+            return null;
+        }
+
+        const running = entity_config.running;
+        disabled = !running && entity_config.status === "pending";
+
+        if (running) {
+            title = "OpenSAND is running";
+            child = <CircularProgress size={24} />;
+        }
 
         switch (run) {
             case "PING":
@@ -122,12 +115,14 @@ const EntityAction = (props: Props) => {
                 if (!upload && !run) {
                     title = "No action configured for this entity";
                     child = <NothingIcon />;
+                    disabled = true;
                     break;
                 }
 
                 if (!folder) {
                     title = "No folder to upload into";
                     child = <UploadIcon />;
+                    disabled = true;
                     break;
                 }
 
@@ -152,13 +147,21 @@ const EntityAction = (props: Props) => {
     return (
         <Tooltip title={title} placement="top">
             <span>
-                <IconButton size="small" disabled={disabled || (!clickAction && !running)} onClick={clickAction}>
+                <IconButton size="small" disabled={disabled} onClick={clickAction}>
                     {child}
                 </IconButton>
             </span>
         </Tooltip>
     );
 };
+
+
+interface Props {
+    project?: string;
+    entity?: Component;
+    onDownload: (entity?: string) => void;
+    setAction: (fn?: () => (password: string, isPassphrase: boolean) => void) => void;
+}
 
 
 export default EntityAction;

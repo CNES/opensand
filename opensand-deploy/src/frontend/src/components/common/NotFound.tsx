@@ -1,10 +1,10 @@
 import React from 'react';
 
-import Box from '@material-ui/core/Box';
-import Typography from '@material-ui/core/Typography';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 
 
-const NotFound = () => {
+const NotFound: React.FC<Props> = (props) => {
     return (
         <Box display="flex" alignItems="center" justifyContent="center" height="100%">
             <Typography display="block" align="center" variant="h2">
@@ -13,6 +13,10 @@ const NotFound = () => {
         </Box>
     );
 };
+
+
+interface Props {
+}
 
 
 export default NotFound;

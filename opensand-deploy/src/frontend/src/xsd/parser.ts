@@ -134,34 +134,43 @@ export const fromXSD = (xsdContent: string): Model.Model => {
     const rootNode = modelNode["xs:complexType"][0]["xs:sequence"][0]["xs:element"][0];
     const rootInfos = rootNode["xs:annotation"][0]["xs:documentation"][0];
 
-    const model = new Model.Model(
-        rootNode["$"].name.toString(),
-        rootInfos.name.toString(),
-        rootInfos.description.toString(),
-        infos.version.toString());
+    const model: Model.Model = {
+        version: infos.version.toString(),
+        environment: {
+            types: [],
+            enums: [],
+        },
+        saved: true,
+        root: Model.newComponent(
+            rootNode["$"].name.toString(),
+            rootInfos.name.toString(),
+            rootInfos.description.toString(),
+        ),
+    };
 
     componentFromXSD(model.root, rootNode["xs:complexType"][0]["xs:sequence"][0]["xs:element"]);
 
-    model.environment.addType("boolean", "Boolean", "Boolean primitive type.");
-    model.environment.addType("byte", "Byte", "Byte primitive type.");
-    model.environment.addType("char", "Char", "Char primitive type.");
-    model.environment.addType("double", "Double", "Double primitive type.");
-    model.environment.addType("float", "Float", "Float primitive type.");
-    model.environment.addType("int", "Int", "Int primitive type.");
-    model.environment.addType("long", "Long", "Long primitive type.");
-    model.environment.addType("longdouble", "Long Double", "Long Double primitive type.");
-    model.environment.addType("short", "Short", "Short primitive type.");
-    model.environment.addType("string", "String", "String primitive type.");
+    Model.addType(model.environment, "boolean", "Boolean", "Boolean primitive type.");
+    Model.addType(model.environment, "byte", "Byte", "Byte primitive type.");
+    Model.addType(model.environment, "char", "Char", "Char primitive type.");
+    Model.addType(model.environment, "double", "Double", "Double primitive type.");
+    Model.addType(model.environment, "float", "Float", "Float primitive type.");
+    Model.addType(model.environment, "int", "Int", "Int primitive type.");
+    Model.addType(model.environment, "long", "Long", "Long primitive type.");
+    Model.addType(model.environment, "longdouble", "Long Double", "Long Double primitive type.");
+    Model.addType(model.environment, "short", "Short", "Short primitive type.");
+    Model.addType(model.environment, "string", "String", "String primitive type.");
 
     schema["xs:simpleType"]?.forEach((e: TypeDefinition) => {
         const infos = e["xs:annotation"][0]["xs:documentation"][0];
-        const enumeration = model.environment.addEnum(
+        const enumeration = Model.addEnum(
+            model.environment,
             e["$"].name.toString(),
             infos.name.toString(),
             infos.description.toString());
 
         e["xs:restriction"][0]["xs:enumeration"].forEach((v: Enumeration) => {
-            enumeration.addValue(v["$"].value.toString());
+            Model.addValue(enumeration, v["$"].value.toString());
         })
     })
 
@@ -176,7 +185,8 @@ const componentFromXSD = (component: Model.Component, node: Element[]) => {
             const infos = elmt["xs:annotation"][0]["xs:documentation"][0];
 
             if (isParameter(elmt)) {
-                const parameter = component.addParameter(
+                const parameter = Model.addParameter(
+                    component,
                     infos.type.toString(),
                     id.toString(),
                     infos.name.toString(),
@@ -197,7 +207,11 @@ const componentFromXSD = (component: Model.Component, node: Element[]) => {
             } else {
                 const element = elmt["xs:complexType"][0]["xs:sequence"][0]["xs:element"];
                 if (infos.type.toString() === "component") {
-                    const child = component.addChild(id.toString(), infos.name.toString(), infos.description.toString());
+                    const child = Model.addChild(
+                        component,
+                        id.toString(),
+                        infos.name.toString(),
+                        infos.description.toString());
                     child.refPath = infos.reference.toString();
                     child.refValue = infos.expected.toString();
                     child.advanced = infos.advanced.toString() === "true";
@@ -216,9 +230,14 @@ const componentFromXSD = (component: Model.Component, node: Element[]) => {
                     const maxOccurences = Number(pattern["$"].maxOccurs);
                     const maxOccurs = isNaN(maxOccurences) ? Infinity : Math.max(minOccurs, maxOccurences);
                     const patternInfos = pattern["xs:annotation"][0]["xs:documentation"][0];
-                    const child = component.addList(
-                        id.toString(), infos.name.toString(), infos.description.toString(),
-                        patternId.toString(), patternInfos.name.toString(), patternInfos.description.toString(),
+                    const child = Model.addList(
+                        component,
+                        id.toString(),
+                        infos.name.toString(),
+                        infos.description.toString(),
+                        patternId.toString(),
+                        patternInfos.name.toString(),
+                        patternInfos.description.toString(),
                         minOccurs, maxOccurs);
 
                     child.refPath = infos.reference.toString();
@@ -301,8 +320,10 @@ const fillComponentFromXML = (component?: Model.Component, xml?: XMLElement) => 
                         if (!isXmlElement(elem)) {
                             return;
                         }
-                        l.addItem();
-                        fillComponentFromXML(l.elements[l.elements.length - 1], elem);
+                        const newItem = Model.addItem(l);
+                        if (newItem) {
+                            fillComponentFromXML(newItem, elem);
+                        }
                     });
                     break;
                 case "parameter":

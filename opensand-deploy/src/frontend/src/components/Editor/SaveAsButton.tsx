@@ -1,54 +1,49 @@
 import React from 'react';
+import type {FormikProps} from 'formik';
 
-import Button from '@material-ui/core/Button';
+import Button from '@mui/material/Button';
 
-import {makeStyles, Theme} from '@material-ui/core/styles';
+import {styled} from '@mui/material/styles';
 
 import SingleFieldDialog from '../common//SingleFieldDialog';
 
+import {updateXML} from '../../api';
+import {useDispatch} from '../../redux';
+import {useOpen, useFormSubmit} from '../../utils/hooks';
+import type {Component} from '../../xsd';
 
-interface Props {
-    disabled: boolean;
-    onSave: (template: string) => void;
-}
 
-
-const useStyles = makeStyles((theme: Theme) => ({
-    button: {
-        marginRight: theme.spacing(2),
-    },
+export const SpacedButton = styled(Button, {name: "SpacedButton", slot: "Wrapper"})(({ theme }) => ({
+    marginRight: theme.spacing(2),
 }));
 
 
-const SaveAsButton = (props: Props) => {
-    const {disabled, onSave} = props;
-    const [open, setOpen] = React.useState<boolean>(false);
-    const classes = useStyles();
+const SaveAsButton: React.FC<Props> = (props) => {
+    const {project, xsd, form: {values, setSubmitting, isSubmitting}} = props;
 
-    const handleOpen = React.useCallback(() => {
-        setOpen(true);
-    }, [setOpen]);
+    const dispatch = useDispatch();
+    const onSubmitted = useFormSubmit();
 
-    const handleClose = React.useCallback(() => {
-        setOpen(false);
-    }, [setOpen]);
+    const [open, handleOpen, handleClose] = useOpen();
 
     const handleSave = React.useCallback((template: string) => {
-        setOpen(false);
-        onSave(template);
-    }, [setOpen, onSave]);
+        handleClose();
+        setSubmitting(true);
+        const url = "template/" + xsd + "/" + template;
+        dispatch(updateXML({project, xsd, urlFragment: url, root: values}));
+        onSubmitted(() => () => setSubmitting(false));
+    }, [dispatch, project, xsd, values, onSubmitted, setSubmitting, handleClose]);
 
     return (
         <React.Fragment>
-            <Button
-                className={classes.button}
-                disabled={disabled}
+            <SpacedButton
+                disabled={xsd == null || isSubmitting}
                 color="secondary"
                 variant="contained"
                 onClick={handleOpen}
             >
                 Save As Template
-            </Button>
+            </SpacedButton>
             <SingleFieldDialog
                 open={open}
                 title="Save Template"
@@ -61,6 +56,13 @@ const SaveAsButton = (props: Props) => {
         </React.Fragment>
     );
 };
+
+
+interface Props {
+    project: string;
+    xsd: string;
+    form: FormikProps<Component>;
+}
 
 
 export default SaveAsButton;

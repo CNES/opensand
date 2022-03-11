@@ -1,71 +1,44 @@
-import {unstable_createMuiStrictModeTheme as createMuiTheme, makeStyles, Theme} from '@material-ui/core/styles';
-import {blue} from '@material-ui/core/colors';
+import {createTheme, Theme} from '@mui/material/styles';
+import {blue} from '@mui/material/colors';
 
 
-export const componentStyles = makeStyles((theme: Theme) => ({
-    root: {
-        width: "98%",
-        marginLeft: "1%",
-        marginRight: "1%",
-        marginTop: theme.spacing(1),
-    },
-    heading: {
-        fontSize: theme.typography.pxToRem(15),
-        flexBasis: "33.33%",
-        flexShrink: 0,
-    },
-    secondaryHeading: {
-        fontSize: theme.typography.pxToRem(15),
-        color: theme.palette.text.secondary,
-    },
-}));
-
-
-export const parameterStyles = makeStyles((theme: Theme) => ({
-    fullWidth: {
-        width: "100%",
-        flexGrow: 1,
-    },
-    spaced: {
-        display: "flex",
-        marginBottom: theme.spacing(1),
-    },
-}));
-
-
-export const createTheme = (prefersDarkMode: boolean): Theme => createMuiTheme({
+export const createOpensandTheme = (prefersDarkMode: boolean): Theme => createTheme({
     palette: {
-        type: prefersDarkMode ? 'dark' : 'light',
+        mode: prefersDarkMode ? 'dark' : 'light',
         primary: {
             main: "#00BCD4",
         },
+        secondary: {
+            main: "#FFAE42",
+        },
     },
-    overrides: {
-        MuiTooltip: {
-            tooltip: {
-                fontSize: "1em",
-            },
-        },
-        MuiToolbar: {
-            root: {
-                backgroundColor: blue[700],
-            },
-        },
+    components: {
         MuiAccordionSummary: {
-            root: {
-                backgroundColor: blue[200],
-                '&$expanded': {
-                    backgroundColor: blue[400],
+            styleOverrides: {
+                root: {
+                    backgroundColor: blue[200],
+                    '&.Mui-expanded': {
+                        backgroundColor: blue[400],
+                    },
                 },
             },
         },
-        MuiAppBar: {
-            colorPrimary: {
-                backgroundColor: "#FFFACD",
+        MuiTooltip: {
+            styleOverrides: {
+                tooltip: {
+                    fontSize: "1em",
+                },
+            },
+        },
+        MuiToolbar: {
+            styleOverrides: {
+                root: {
+                    backgroundColor: blue[700],
+                },
             },
         },
     },
 });
 
 
-export default createTheme;
+export default createOpensandTheme;

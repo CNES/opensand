@@ -1,21 +1,14 @@
 import React from 'react';
 
-import Button from '@material-ui/core/Button';
-import Checkbox from '@material-ui/core/Checkbox';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import TextField from '@material-ui/core/TextField';
-
-
-interface Props {
-    open: boolean;
-    onValidate?: (password: string, isPassphrase: boolean) => void;
-    onClose: () => void;
-}
+import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import TextField from '@mui/material/TextField';
 
 
 const DeployEntityDialog = (props: Props) => {
@@ -76,6 +69,13 @@ const DeployEntityDialog = (props: Props) => {
         </Dialog>
     );
 };
+
+
+interface Props {
+    open: boolean;
+    onValidate?: (password: string, isPassphrase: boolean) => void;
+    onClose: () => void;
+}
 
 
 export default DeployEntityDialog;

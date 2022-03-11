@@ -1,32 +1,12 @@
 import React from 'react';
-import {RouteComponentProps, useHistory} from 'react-router-dom';
+import {useParams, useNavigate} from 'react-router-dom';
+import {Formik} from 'formik';
+import type {FormikProps, FormikHelpers} from 'formik';
 
-import Box from '@material-ui/core/Box';
-import Button from '@material-ui/core/Button';
-import Toolbar from '@material-ui/core/Toolbar';
-import Typography from '@material-ui/core/Typography';
-
-import {
-    deleteProjectXML,
-    getProject,
-    getProjectModel,
-    getProjectXML,
-    getXSD,
-    pingEntity,
-    silenceSuccess,
-    updateProject,
-    updateProjectXML,
-    IApiSuccess,
-    IPingSuccess,
-    IXsdContent,
-    IXmlContent,
-} from '../../api';
-import {combineActions} from '../../utils/actions';
-import {sendError} from '../../utils/dispatcher';
-import {Model, Parameter, List} from '../../xsd/model';
-import {isComponentElement, isListElement, isParameterElement} from '../../xsd/model';
-import {fromXSD, fromXML} from '../../xsd/parser';
-import {getXsdName}  from '../../xsd/utils';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
 
 import RootComponent from '../Model/RootComponent';
 import DeployEntityDialog from './DeployEntityDialog';
@@ -35,11 +15,21 @@ import NewEntityDialog from './NewEntityDialog';
 import PingDialog from './PingDialog';
 import PingResultDialog from './PingResultDialog';
 
-
-interface Props extends RouteComponentProps<{name: string;}> {
-    tab: number;
-    changeTab: (t: number) => void;
-}
+import {
+    deleteXML,
+    getProject,
+    listProjectTemplates,
+    pingEntity,
+    updateProject,
+} from '../../api';
+import {useSelector, useDispatch} from '../../redux';
+import {newError} from '../../redux/error';
+import {clearTemplates} from '../../redux/form';
+import {clearModel} from '../../redux/model';
+import {combineActions} from '../../utils/actions';
+import type {MutatorCallback} from '../../utils/actions';
+import {getXsdName, isComponentElement, isListElement, isParameterElement, newItem} from '../../xsd';
+import type {Component, Parameter, List} from '../../xsd';
 
 
 interface IEntity {
@@ -49,311 +39,261 @@ interface IEntity {
 
 
 type ActionCallback = (password: string, isPassphrase: boolean) => void;
-type PingActionCallback = (destination: string) => void;
+type SaveCallback = () => void;
 
 
-const addNewEntity = (l: List, entity: string, entityType: string) => {
-    let hasError = false;
-    l.elements.forEach((c) => {
-        c.elements.forEach((p) => {
-            if (p.type === "parameter" && p.element.id === "entity_name" && p.element.value === entity) {
-                hasError = true;
-            }
-        });
-    });
+const findMachines = (root?: Component, operation?: (l: List, path: string) => void): List | undefined => {
+    if (root) {
+        const platformIndex = root.elements.findIndex((e) => isComponentElement(e) && e.element.id === "platform");
+        if (platformIndex < 0) { return; }
 
-    if (hasError) {
-        sendError(`Entity ${entity} already exists in ${l.name}`);
-        return;
-    }
+        const platform = root.elements[platformIndex];
+        if (isComponentElement(platform)) {
+            const machinesIndex = platform.element.elements.findIndex((e) => isListElement(e) && e.element.id === "machines");
+            if (machinesIndex < 0) { return; }
 
-    const newEntity = l.addItem();
-    if (newEntity != null) {
-        newEntity.elements.forEach((p) => {
-            if (p.type === "parameter") {
-                if (p.element.id === "entity_name") {
-                    p.element.value = entity;
-                }
-                if (p.element.id === "entity_type") {
-                    p.element.value = entityType;
+            const machines = platform.element.elements[machinesIndex];
+            if (isListElement(machines)) {
+                if (operation) {
+                    operation(machines.element, `elements.${platformIndex}.element.elements.${machinesIndex}.element`);
+                } else {
+                    return machines.element;
                 }
             }
-        });
-    }
-};
-
-
-const findMachines = (model: Model): List | undefined => {
-    const platform = model.root.elements.find((e) => e.type === "component" && e.element.id === "platform");
-    if (isComponentElement(platform)) {
-        const machines = platform.element.elements.find((e) => e.type === "list" && e.element.id === "machines");
-        if (isListElement(machines)) {
-            return machines.element;
         }
     }
 };
 
 
-const findEntities = (model: Model): List | undefined => {
-    const configuration = model.root.elements.find((e) => e.type === "component" && e.element.id === "configuration");
-    if (isComponentElement(configuration)) {
-        const entities = configuration.element.elements.find((e) => e.type === "list" && e.element.id === "entities");
-        if (isListElement(entities)) {
-            return entities.element;
+const findEntities = (root?: Component, operation?: (l: List, path: string) => void): List | undefined => {
+    if (root) {
+        const configurationIndex = root.elements.findIndex((e) => isComponentElement(e) && e.element.id === "configuration");
+        if (configurationIndex < 0) { return; }
+
+        const configuration = root.elements[configurationIndex];
+        if (isComponentElement(configuration)) {
+            const entitiesIndex = configuration.element.elements.findIndex((e) => isListElement(e) && e.element.id === "entities");
+            if (entitiesIndex < 0) { return; }
+
+            const entities = configuration.element.elements[entitiesIndex];
+            if (isListElement(entities)) {
+                if (operation) {
+                    operation(entities.element, `elements.${configurationIndex}.element.elements.${entitiesIndex}.element`);
+                } else {
+                    return entities.element;
+                }
+            }
         }
     }
 };
 
 
-const applyOnMachinesAndEntities = (model: Model, operation: (l: List) => void) => {
-    const machines = findMachines(model);
-    if (machines) { operation(machines); }
-
-    const entities = findEntities(model);
-    if (entities) { operation(entities); }
+const applyOnMachinesAndEntities = (root: Component, operation: (l: List, path: string) => void) => {
+    findMachines(root, operation);
+    findEntities(root, operation);
 };
 
 
-const Project = (props: Props) => {
-    const {tab, changeTab} = props;
-    const projectName = props.match.params.name;
-    const history = useHistory();
+const Project: React.FC<Props> = (props) => {
+    const model = useSelector((state) => state.model.model);
+    const source = useSelector((state) => state.ping.source);
+    const {name} = useParams();
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
 
-    const [timeout, changeTimeout] = React.useState<NodeJS.Timeout|undefined>(undefined);
-    const [model, changeModel] = React.useState<Model | undefined>(undefined);
-    const [open, setOpen] = React.useState<boolean>(false);
-    const [, modelChanged] = React.useState<object>({});
     const [action, setAction] = React.useState<ActionCallback | undefined>(undefined);
-    const [pingResult, setPingResult] = React.useState<string | undefined>(undefined);
-    const [pingDestinations, setPingDestinations] = React.useState<string[]>([]);
-    const [pingAction, setPingAction] = React.useState<PingActionCallback | undefined>(undefined);
-    const [pingingEntity, setPingingEntity] = React.useState<string | undefined>(undefined);
-
-    const handleNewEntityOpen = React.useCallback(() => {
-        setOpen(true);
-    }, []);
-
-    const handleNewEntityClose = React.useCallback(() => {
-        setOpen(false);
-    }, []);
+    const [handleNewEntityCreate, setNewEntityCreate] = React.useState<((entity: string, entityType: string) => void) | undefined>(undefined);
 
     const handleActionClose = React.useCallback(() => {
         setAction(undefined);
     }, []);
 
-    const handlePingClose = React.useCallback(() => {
-        setPingAction(undefined);
-        setPingResult(undefined);
-        setPingingEntity(undefined);
+    const handleOpen = React.useCallback((root: Component, mutator: MutatorCallback, submitForm: SaveCallback) => {
+        setNewEntityCreate(() => (entity: string, entityType: string) => {
+            const addNewEntity = (l: List) => {
+                let hasError = false;
+                l.elements.forEach((c) => {
+                    c.elements.forEach((p) => {
+                        if (isParameterElement(p)) {
+                            if (p.element.id === "entity_name" && p.element.value === entity) {
+                                hasError = true;
+                            }
+                        }
+                    });
+                });
+
+                if (hasError) {
+                    dispatch(newError(`Entity ${entity} already exists in ${l.name}`));
+                    return;
+                }
+
+                if (l.elements.length < l.maxOccurences) {
+                    const newEntity = newItem(l.pattern, l.elements.length);
+                    newEntity.elements.forEach((p) => {
+                        if (isParameterElement(p)) {
+                            if (p.element.id === "entity_name") {
+                                p.element.value = entity;
+                            }
+                            if (p.element.id === "entity_type") {
+                                p.element.value = entityType;
+                            }
+                            if (p.element.type.endsWith("_xsd")) {
+                                p.element.value = getXsdName(p.element.id, entityType);
+                            }
+                        }
+                    });
+                    return newEntity;
+                }
+            };
+            applyOnMachinesAndEntities(root, (l: List, p: string) => mutator(l, p, addNewEntity));
+            submitForm();
+        });
+    }, [dispatch]);
+
+    const handleClose = React.useCallback(() => {
+        setNewEntityCreate(undefined);
     }, []);
 
-    const saveModel = React.useCallback(() => {
-        if (model) updateProject(silenceSuccess, sendError, projectName, model);
-        changeTimeout(undefined);
-    }, [projectName, model]);
-
-    const refreshModel = React.useCallback((delay: number = 1500) => {
-        if (timeout != null) { clearTimeout(timeout); }
-        modelChanged({});
-        changeTimeout(setTimeout(saveModel, delay));
-    }, [timeout, saveModel]);
-
-    const handleNewEntityCreate = React.useCallback((entity: string, entityType: string) => {
-        if (!model) {
-            return;
+    const handleSubmit = React.useCallback((values: Component, helpers: FormikHelpers<Component>) => {
+        if (name) {
+            dispatch(updateProject({project: name, root: values}));
         }
+        helpers.setSubmitting(false);
+    }, [dispatch, name]);
 
-        applyOnMachinesAndEntities(model, (l: List) => addNewEntity(l, entity, entityType));
-        const entities = findEntities(model);
-        if (entities) {
-            entities.elements.forEach((c) => {
-                c.elements.forEach((p) => {
-                    if (p.type === "parameter" && p.element.type.endsWith("_xsd")) {
-                        p.element.value = getXsdName(p.element.id, entityType);
-                    }
-                });
-            });
-        }
-
-        setOpen(false);
-        refreshModel(0);
-    }, [model, refreshModel]);
-
-    const handleDeleteEntity = React.useCallback((index: number) => {
-        if (!model) {
-            return;
-        }
-
-        applyOnMachinesAndEntities(model, (l: List) => l.removeItem(index));
-        refreshModel(0);
-    }, [model, refreshModel]);
+    const handleDeleteEntity = React.useCallback((root: Component, mutator: (l: List, path: string) => void) => {
+        applyOnMachinesAndEntities(root, mutator);
+    }, []);
 
     const handleSelect = React.useCallback((entity: IEntity | undefined, key: string, xsd: string, xml?: string) => {
-        refreshModel(0);
-        history.push({
-            pathname: "/edit/" + projectName + "/" + key + (entity == null ? "" : "/" + entity.name),
-            search: "?xsd=" + xsd + (xml == null ? "" : "&xml=" + xml),
-        });
-    }, [projectName, refreshModel, history]);
-
-    const forceEditEntityType = React.useCallback((content: IXsdContent, entity: IEntity, key: string, xsd: string, xml?: string) => {
-        const saveURL = key + "/" + entity.name;
-        const loadURL = xml != null ? `template/${xsd}/${xml}` : saveURL;
-
-        const onSaveSuccess = (status: IApiSuccess) => {
-            handleSelect(entity, key, xsd);
-        };
-
-        const onLoadSuccess = (data: IXmlContent) => {
-            const dataModel = fromXML(fromXSD(content.content), data.content);
-            const entityComponent = dataModel.root.elements.find((e) => e.element.id === "entity");
-            if (isComponentElement(entityComponent)) {
-                const entityParameter = entityComponent.element.elements.find((e) => e.element.id === "entity_type");
-                if (isParameterElement(entityParameter)) {
-                    entityParameter.element.value = entity.type;
-                    updateProjectXML(onSaveSuccess, sendError, projectName, saveURL, dataModel);
-                }
-            }
-        };
-
-        getProjectXML(onLoadSuccess, sendError, projectName, loadURL);
-    }, [projectName, handleSelect]);
-
-    const handleSelectForceEntity = React.useCallback((entity: IEntity | undefined, key: string, xsd: string, xml?: string) => {
-        if (entity == null) { return; }
-        const onSuccess = (content: IXsdContent) => forceEditEntityType(content, entity, key, xsd, xml);
-        getXSD(onSuccess, sendError, xsd);
-    }, [forceEditEntityType]);
+        const query: {xsd: string; xml: string;} | {xsd: string;} = xml ? {xsd, xml} : {xsd};
+        const url = "/edit/" + name + "/" + key + (entity ? "/" + entity.name : "");
+        navigate(url + "?" + new URLSearchParams(query));
+    }, [name, navigate]);
 
     const handleDelete = React.useCallback((entity: string | undefined, key: string) => {
-        refreshModel(0);
-        const url = key + (entity == null ? "" : "/" + entity);
-        deleteProjectXML(silenceSuccess, sendError, projectName, url);
-    }, [projectName, refreshModel]);
-
-    const loadProject = React.useCallback((content: IXsdContent) => {
-        const newModel = fromXSD(content.content);
-        const onSuccess = (xml: IXmlContent) => {
-            changeModel(fromXML(newModel, xml.content));
-        };
-        getProject(onSuccess, sendError, projectName);
-    }, [changeModel, projectName]);
+        if (name) {
+            const urlFragment = key + (entity == null ? "" : "/" + entity);
+            dispatch(deleteXML({project: name, urlFragment}));
+        }
+    }, [dispatch, name]);
 
     const handleDownload = React.useCallback((entity?: string) => {
         const form = document.createElement("form") as HTMLFormElement;
         form.method = "post";
-        form.action = "/api/project/" + projectName + (entity == null ? "" : "/" + entity);
+        form.action = "/api/project/" + name + (entity == null ? "" : "/" + entity);
         document.body.appendChild(form);
         form.submit();
         document.body.removeChild(form);
-    }, [projectName]);
+    }, [name]);
 
-    const handlePingResult = React.useCallback((result: IPingSuccess) => {
-        const {ping} = result;
-        setPingResult(ping);
-    }, []);
-
-    const handlePingDestinations = React.useCallback((entity: string, address: string, destinations: string[]) => {
-        setPingDestinations(destinations);
-        setPingingEntity(entity);
-        setPingAction(() => (destination: string) => setAction(() => (password: string, isPassphrase: boolean) => {
-            setPingResult("");
-            pingEntity(handlePingResult, sendError, projectName, entity, destination, address, password, isPassphrase);
-        }));
-    }, [projectName, handlePingResult]);
+    const handlePing = React.useCallback((destination: string) => {
+        if (name && source) {
+            setAction(() => (password: string, isPassphrase: boolean) => {
+                dispatch(pingEntity({
+                    project: name,
+                    entity: source.name,
+                    address: source.address,
+                    destination,
+                    password,
+                    isPassphrase,
+                }));
+            });
+        }
+    }, [dispatch, name, source]);
 
     const displayAction = React.useCallback((index: number) => {
-        const machines = model ? findMachines(model) : undefined;
-        const entity = machines?.elements[index];
+        const entity = findMachines(model?.root)?.elements[index];
         return (
             <EntityAction
-                project={projectName}
+                project={name}
                 entity={entity}
                 onDownload={handleDownload}
                 setAction={setAction}
-                setPingDestinations={handlePingDestinations}
             />
         );
-    }, [model, projectName, handleDownload, handlePingDestinations]);
+    }, [model, name, handleDownload]);
 
     const [entityName, entityType]: [Parameter | undefined, Parameter | undefined] = React.useMemo(() => {
         const entity: [Parameter | undefined, Parameter | undefined] = [undefined, undefined];
 
-        if (model) {
-            const machines = findMachines(model);
-            if (machines) {
-                machines.pattern.elements.forEach((p) => {
-                    if (isParameterElement(p)) {
-                        if (p.element.id === "entity_name") { entity[0] = p.element; }
-                        if (p.element.id === "entity_type") { entity[1] = p.element; }
-                    }
-                });
-            }
-        }
+        findMachines(model?.root, (machines: List) => {
+            machines.pattern.elements.forEach((p) => {
+                if (isParameterElement(p)) {
+                    if (p.element.id === "entity_name") { entity[0] = p.element; }
+                    if (p.element.id === "entity_type") { entity[1] = p.element; }
+                }
+            });
+        });
 
         return entity;
     }, [model]);
 
     const actions = React.useMemo(() => combineActions([
-        {path: ['platform', 'machines'], actions: {onCreate: handleNewEntityOpen, onDelete: handleDeleteEntity}},
+        {path: ['platform', 'machines'], actions: {onCreate: handleOpen, onDelete: handleDeleteEntity}},
         {path: ['platform', 'machines', 'item'], actions: {onAction: displayAction}},
         {path: ['configuration', 'topology__template'], actions: {onEdit: handleSelect, onRemove: handleDelete}},
         {path: ['configuration', 'entities', 'item', 'profile__template'], actions: {onEdit: handleSelect, onRemove: handleDelete}},
-        {path: ['configuration', 'entities', 'item', 'infrastructure__template'], actions: {onEdit: handleSelectForceEntity, onRemove: handleDelete}},
-    ]), [handleNewEntityOpen, handleDeleteEntity, handleDelete, handleSelect, handleSelectForceEntity, displayAction]);
+        {path: ['configuration', 'entities', 'item', 'infrastructure__template'], actions: {onEdit: handleSelect, onRemove: handleDelete}},
+    ]), [handleOpen, handleDeleteEntity, handleDelete, handleSelect, displayAction]);
 
     React.useEffect(() => {
-        getProjectModel(loadProject, sendError);
-        return () => {changeModel(undefined);};
-    }, [loadProject]);
+        if (name) {
+            dispatch(getProject({project: name}));
+            dispatch(listProjectTemplates({project: name}));
+        }
+
+        return () => {
+            dispatch(clearTemplates());
+            dispatch(clearModel());
+        };
+    }, [dispatch, name]);
 
     return (
         <React.Fragment>
             <Toolbar>
                 <Typography variant="h6">Project:&nbsp;</Typography>
-                <Typography variant="h6">{projectName}</Typography>
+                <Typography variant="h6">{name}</Typography>
             </Toolbar>
-            {model != null && <RootComponent root={model.root} modelChanged={refreshModel} actions={actions} tab={tab} changeTab={changeTab} />}
             {model != null && (
-                <Box textAlign="center" marginTop="3em" marginBottom="3px">
-                    <Button
-                        color="secondary"
-                        variant="contained"
-                        onClick={() => handleDownload()}
-                    >
-                        Download Project Configuration
-                    </Button>
-                </Box>
+                <Formik enableReinitialize initialValues={model.root} onSubmit={handleSubmit}>
+                    {(formik: FormikProps<Component>) => (<>
+                        <RootComponent form={formik} actions={actions} xsd="project.xsd" autosave />
+                        <Box textAlign="center" marginTop="3em" marginBottom="3px">
+                            <Button
+                                color="secondary"
+                                variant="contained"
+                                onClick={() => handleDownload()}
+                            >
+                                Download Project Configuration
+                            </Button>
+                        </Box>
+                        <DeployEntityDialog
+                            open={Boolean(action)}
+                            onValidate={action}
+                            onClose={handleActionClose}
+                        />
+                        <PingDialog onValidate={handlePing} />
+                        <PingResultDialog />
+                    </>)}
+                </Formik>
             )}
-            <DeployEntityDialog
-                open={Boolean(action)}
-                onValidate={action}
-                onClose={handleActionClose}
-            />
-            <PingDialog
-                open={Boolean(pingAction)}
-                entity={pingingEntity}
-                destinations={pingDestinations}
-                onValidate={pingAction}
-                onClose={handlePingClose}
-            />
-            <PingResultDialog
-                open={pingResult != null}
-                content={pingResult}
-                onClose={handlePingClose}
-            />
-            {entityName != null && entityType != null && (
+            {handleNewEntityCreate != null && entityName != null && entityType != null && (
                 <NewEntityDialog
-                    open={open}
+                    open={true}
                     entityName={entityName}
                     entityType={entityType}
                     onValidate={handleNewEntityCreate}
-                    onClose={handleNewEntityClose}
+                    onClose={handleClose}
                 />
             )}
         </React.Fragment>
     );
 };
+
+
+interface Props {
+}
 
 
 export default Project;

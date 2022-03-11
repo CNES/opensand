@@ -1,38 +1,44 @@
 import React from 'react';
 
-import Button from '@material-ui/core/Button';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+
+import {useSelector, useDispatch} from '../../redux';
+import {clearPing} from '../../redux/ping';
 
 
-interface Props {
-    open: boolean;
-    content?: string;
-    onClose: () => void;
-}
+const PingResultDialog: React.FC<Props> = (props) => {
+    const content = useSelector((state) => state.ping.result);
+    const open = useSelector((state) => state.ping.status);
+    const dispatch = useDispatch();
 
-
-const PingResultDialog = (props: Props) => {
-    const {open, content, onClose} = props;
+    const handleClose = React.useCallback(() => {
+        dispatch(clearPing());
+    }, [dispatch]);
 
     const message = Boolean(content) ? <pre>{content}</pre> : <CircularProgress />;
 
     return (
-        <Dialog open={open} onClose={onClose}>
+        <Dialog open={open === "pending" || open === "success"} onClose={handleClose}>
             <DialogTitle>Ping Results</DialogTitle>
             <DialogContent>
                 <DialogContentText>{message}</DialogContentText>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose} color="primary">OK</Button>
+                <Button onClick={handleClose} color="primary">OK</Button>
             </DialogActions>
         </Dialog>
     );
 };
+
+
+interface Props {
+}
 
 
 export default PingResultDialog;

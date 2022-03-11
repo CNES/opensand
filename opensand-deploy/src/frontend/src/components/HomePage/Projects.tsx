@@ -1,82 +1,69 @@
 import React from 'react';
 
-import Button from '@material-ui/core/Button';
-import Card from '@material-ui/core/Card';
-import CardActions from '@material-ui/core/CardActions';
-import CardContent from '@material-ui/core/CardContent';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import Typography from '@material-ui/core/Typography';
+import Button from '@mui/material/Button';
+import CardActions from '@mui/material/CardActions';
+import CardContent from '@mui/material/CardContent';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import Typography from '@mui/material/Typography';
 
-import {makeStyles, Theme} from '@material-ui/core/styles';
-
-import {deleteProject, listProjects, IApiSuccess, IProjectsContent} from '../../api';
-import {sendError} from '../../utils/dispatcher';
+import {styled} from '@mui/material/styles';
 
 import CreateProjectButton from './CreateProjectButton';
 import UploadProjectButton from './UploadProjectButton';
-import ProjectCard from './ProjectCard';
+import ProjectCard, {LargeCard} from './ProjectCard';
+
+import {deleteProject, listProjects} from '../../api';
+import {useSelector, useDispatch} from '../../redux';
 
 
-const useStyles = makeStyles((theme: Theme) => ({
-    root: {
-        width: "96%",
-        marginLeft: "2%",
-        marginRight: "2%",
-    },
-    card: {
-        width: "100%",
-        marginTop: "2%",
-        marginBottom: "2%",
-    },
-}));
+const Root = styled('div')({
+    width: "96%",
+    marginLeft: "2%",
+    marginRight: "2%",
+});
 
 
-const Projects = () => {
-    const classes = useStyles();
+const Projects: React.FC<Props> = (props) => {
+    const projects = useSelector((state) => state.project.projects);
+    const loading = useSelector((state) => state.project.status);
+    const dispatch = useDispatch();
 
-    const [projects, setProjects] = React.useState<string[]>([]);
     const [deleteThis, setProjectToDelete] = React.useState<string | null>(null);
-
-    const storeProjects = React.useCallback((response: IProjectsContent) => {
-        setProjects(response.projects);
-    }, [setProjects]);
-
-    const forceRedraw = React.useCallback((status: IApiSuccess) => {
-        listProjects(storeProjects, sendError);
-    }, [storeProjects]);
 
     const clearDeleteProject = React.useCallback(() => {
         setProjectToDelete(null);
     }, []);
 
     const handleDeleteProject = React.useCallback(() => {
-        if (deleteThis != null) {
-            deleteProject(forceRedraw, sendError, deleteThis);
-        }
-        clearDeleteProject();
-    }, [forceRedraw, deleteThis, clearDeleteProject]);
+        setProjectToDelete((removable: string | null) => {
+            if (removable != null) {
+                dispatch(deleteProject({project: removable}));
+            }
+            return null;
+        });
+    }, [dispatch]);
 
     React.useEffect(() => {
-        listProjects(storeProjects, sendError);
-        return () => {setProjects([]);}
-    }, [storeProjects]);
+        if (loading === "idle") {
+            dispatch(listProjects());
+        }
+    }, [loading, dispatch]);
 
     const projectsCards = projects.map((p: string, i: number) => (
         <ProjectCard
-            key={i+1}
-            className={classes.card}
+            key={p}
             project={p}
             onDelete={setProjectToDelete}
         />
     ));
 
     return (
-        <div className={classes.root}>
-            <Card key={0} className={classes.card}>
+        <Root>
+            <LargeCard key="app/root">
                 <CardContent>
                     <Typography>
                         New Project
@@ -86,7 +73,7 @@ const Projects = () => {
                     <CreateProjectButton />
                     <UploadProjectButton />
                 </CardActions>
-            </Card>
+            </LargeCard>
             {projectsCards}
             <Dialog open={deleteThis != null} onClose={clearDeleteProject}>
                 <DialogTitle>Delete a project</DialogTitle>
@@ -99,9 +86,13 @@ const Projects = () => {
                     <Button onClick={handleDeleteProject} color="primary">Yes, Delete {deleteThis}</Button>
                 </DialogActions>
             </Dialog>
-        </div>
+        </Root>
     );
 };
+
+
+interface Props {
+}
 
 
 export default Projects;

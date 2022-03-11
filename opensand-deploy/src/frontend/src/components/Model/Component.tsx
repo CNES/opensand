@@ -1,49 +1,59 @@
 import React from 'react';
+import type {FormikProps} from 'formik';
 
-import Accordion from "@material-ui/core/Accordion";
-import AccordionSummary from "@material-ui/core/AccordionSummary";
-import AccordionDetails from "@material-ui/core/AccordionDetails";
-import Paper from '@material-ui/core/Paper';
-import Typography from "@material-ui/core/Typography";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import Paper from '@mui/material/Paper';
+import Typography from "@mui/material/Typography";
 
-import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
-
-import {IActions, noActions} from '../../utils/actions';
-import {componentStyles} from '../../utils/theme';
-import {Component as ComponentType, isParameterElement} from '../../xsd/model';
+import {styled} from '@mui/material/styles';
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import List from './List';
 import Parameter from './Parameter';
 
+import {useSelector} from '../../redux';
+import {IActions, noActions} from '../../utils/actions';
+import {isParameterElement, isVisible} from '../../xsd';
+import type {Element, Component as ComponentType} from '../../xsd';
 
-interface Props {
-    component: ComponentType;
-    readOnly?: boolean;
-    changeModel: () => void;
-    actions: IActions;
-}
+
+const LargePaper = styled(Paper, {name: "LargePaper", slot: "Wrapper"})(({ theme }) => ({
+    width: "98%",
+    marginLeft: "1%",
+    marginRight: "1%",
+    marginTop: theme.spacing(1),
+}));
+
+
+const Heading = styled(Typography, {name: "Heading", slot: "Wrapper"})(({ theme }) => ({
+    fontSize: theme.typography.pxToRem(15),
+    flexBasis: "33.33%",
+    flexShrink: 0,
+}));
+
+
+const SecondaryHeading = styled(Typography, {name: "SecondaryHeading", slot: "Wrapper"})(({ theme }) => ({
+    fontSize: theme.typography.pxToRem(15),
+    color: theme.palette.text.secondary,
+}));
 
 
 const findParameterValue = (component: ComponentType, id: string) => {
-    const parameter = component.elements.find((e) => e.type === "parameter" && e.element.id === id);
+    const parameter = component.elements.find((e) => isParameterElement(e) && e.element.id === id);
     if (isParameterElement(parameter)) {
         return parameter.element.value;
     }
 };
 
 
-const Component = (props: Props) => {
-    const {component, readOnly, actions, changeModel} = props;
-    const classes = componentStyles();
+const Component: React.FC<Props> = (props) => {
+    const {component, readOnly, prefix, form, actions, autoSave} = props;
 
-    const [, setState] = React.useState<object>({});
+    const visibility = useSelector((state) => state.form.visibility);
 
-    const forceUpdate = React.useCallback(() => {
-        setState({});
-        changeModel();
-    }, [changeModel, setState]);
-
-    if (!component.isVisible()) {
+    if (!isVisible(component, visibility, form.values)) {
         return null;
     }
 
@@ -52,9 +62,16 @@ const Component = (props: Props) => {
     const entityType = findParameterValue(component, "entity_type");
     const entity = entityName != null && entityType != null ? {name: entityName, type: entityType} : undefined;
 
+    const visibleComponents = component.elements.map(
+        (e, i): [number, Element] => [i, e]
+    ).filter(
+        ([i, e]: [number, Element]): boolean => isVisible(e.element, visibility, form.values)
+    );
+
     return (
-        <Paper elevation={0} className={classes.root}>
-            {component.elements.filter(e => e.element.isVisible()).map(e => {
+        <LargePaper elevation={0}>
+            {visibleComponents.map(([i, e]: [number, Element]) => {
+                const childPrefix = `${prefix}.elements.${i}.element`;
                 const elementActions = actions['#'][e.element.id] || noActions;
                 switch (e.type) {
                     case "parameter":
@@ -63,49 +80,55 @@ const Component = (props: Props) => {
                                 key={e.element.id}
                                 parameter={e.element}
                                 readOnly={isReadOnly}
-                                changeModel={forceUpdate}
+                                prefix={childPrefix}
+                                form={form}
                                 actions={elementActions}
                                 entity={entity}
+                                autoSave={autoSave}
                             />
                         );
                     case "list":
                         return (
-                            <Accordion key={e.element.id} defaultExpanded={false}>
+                            <Accordion key={e.element.id} defaultExpanded={false} TransitionProps={{unmountOnExit: true}}>
                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                    <Typography className={classes.heading}>
+                                    <Heading>
                                         {e.element.name}
-                                    </Typography>
-                                    <Typography className={classes.secondaryHeading}>
+                                    </Heading>
+                                    <SecondaryHeading>
                                         {e.element.description}
-                                    </Typography>
+                                    </SecondaryHeading>
                                 </AccordionSummary>
                                 <AccordionDetails>
                                     <List
                                         list={e.element}
                                         readOnly={isReadOnly}
-                                        changeModel={forceUpdate}
+                                        prefix={childPrefix}
+                                        form={form}
                                         actions={elementActions}
+                                        autoSave={autoSave}
                                     />
                                 </AccordionDetails>
                             </Accordion>
                         );
                     case "component":
                         return (
-                            <Accordion key={e.element.id} defaultExpanded={false}>
+                            <Accordion key={e.element.id} defaultExpanded={false} TransitionProps={{unmountOnExit: true}}>
                                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                    <Typography className={classes.heading}>
+                                    <Heading>
                                         {e.element.name}
-                                    </Typography>
-                                    <Typography className={classes.secondaryHeading}>
+                                    </Heading>
+                                    <SecondaryHeading>
                                         {e.element.description}
-                                    </Typography>
+                                    </SecondaryHeading>
                                 </AccordionSummary>
                                 <AccordionDetails>
                                     <Component
                                         component={e.element}
                                         readOnly={isReadOnly}
-                                        changeModel={forceUpdate}
+                                        prefix={childPrefix}
+                                        form={form}
                                         actions={elementActions}
+                                        autoSave={autoSave}
                                     />
                                 </AccordionDetails>
                             </Accordion>
@@ -114,9 +137,19 @@ const Component = (props: Props) => {
                         return <div />;
                 }
             })}
-        </Paper>
+        </LargePaper>
     );
 };
+
+
+interface Props {
+    component: ComponentType;
+    readOnly?: boolean;
+    prefix: string;
+    form: FormikProps<ComponentType>;
+    actions: IActions;
+    autoSave: () => void;
+}
 
 
 export default Component;
