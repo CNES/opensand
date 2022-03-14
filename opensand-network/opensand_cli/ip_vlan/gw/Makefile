@@ -59,6 +59,7 @@ clean: stop
 	ip link del $(BR_IFACE) || true
 	ip link set $(EMU_IFACE) down
 	ip link set $(LAN_IFACE) down
+	iptables -t mangle -F
 
 network: clean
 	ip link set $(EMU_IFACE) up
@@ -73,7 +74,6 @@ network: clean
 	ip address add $(BR_IFACE_IP_GW)/$(NET_DIGITS) dev $(BR_IFACE)
 	ip link set dev $(TAP_IFACE) master $(BR_IFACE)
 	ip link set $(BR_IFACE) type bridge vlan_filtering 1 ageing_time 0
-	bridge vlan add dev $(TAP_IFACE) vid $(VLAN_ID_DEFAULT) pvid tagged master
 	bridge vlan add dev $(BR_IFACE) vid $(VLAN_ID_DEFAULT) pvid untagged self
 	ip link set $(BR_IFACE) up
 	ip link set $(TAP_IFACE) up
@@ -83,6 +83,12 @@ network: clean
 	sysctl -w net.ipv4.ip_forward=$(FORWARDING)
 	sleep 0.2
 	ip route add $(ST_LAN_NET) via $(BR_IFACE_IP_ST) dev $(BR_IFACE)
+	ip link add link $(TAP_IFACE) name $(TAP_IFACE).1 type vlan id $(VLAN_ID_DEFAULT)
+	ip link set $(TAP_IFACE).1 type vlan egress-qos-map 2:1 3:2 4:3 5:4 6:5 7:6 8:7
+	ip link set dev $(TAP_IFACE).1 master $(BR_IFACE)
+	bridge vlan add dev $(TAP_IFACE).1 vid $(VLAN_ID_DEFAULT) pvid untagged master
+	ip link set $(TAP_IFACE).1 up
+	python3 yaml_parser.py
 
 generate-xml:
 	cp infrastructure.xml infrastructure_updated.xml
