@@ -50,6 +50,21 @@ const EntityAction: React.FC<Props> = (props) => {
         }
     }, [dispatch, project]);
 
+    React.useEffect(() => {
+        if (entity) {
+            const entityName = entity.elements.find((p) => (
+                isParameterElement(p) && p.element.id === "entity_name"
+            ));
+            if (isParameterElement(entityName)) {
+                const name = entityName.element.value;
+                const config = state[name];
+                if (!config) {
+                    dispatch(createEntityAction(name));
+                }
+            }
+        }
+    }, [dispatch, state, entity]);
+
     let title = "Error retrieving entity configuration";
     let clickAction: (() => void) | undefined = undefined;
     let child = <ErrorIcon />;
@@ -70,7 +85,6 @@ const EntityAction: React.FC<Props> = (props) => {
 
         const entity_config = state[entity_name];
         if (!entity_config) {
-            dispatch(createEntityAction(entity_name));
             return null;
         }
 

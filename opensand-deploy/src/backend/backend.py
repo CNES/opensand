@@ -166,6 +166,15 @@ def normalize_xsd_folder(folder_name):
     return folder.name
 
 
+def read_xml_file(filepath, xsd_name):
+    if not xsd_name.endswith('.xsd'):
+        xsd_name += '.xsd'
+
+    xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath(xsd_name).as_posix())
+    if xsd is not None:
+        return py_opensand_conf.fromXML(xsd, filepath.as_posix())
+
+
 def _get_component(component, name):
     if component is None:
         return None
@@ -397,12 +406,7 @@ def create_default_templates(project):
 
 
 def create_platform_infrastructure(project):
-    project_xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath('project.xsd').as_posix())
-    if project_xsd is None:
-        return
-
-    project_xml = WWW_FOLDER / project / 'project.xml'
-    project_layout = py_opensand_conf.fromXML(project_xsd, project_xml.as_posix())
+    project_layout = read_xml_file(WWW_FOLDER / project / 'project.xml', 'project.xsd')
     if project_layout is None:
         return
 
@@ -428,11 +432,8 @@ def create_platform_infrastructure(project):
         if not name or not infra:
             continue
 
-        xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath(infra).as_posix())
-        if xsd is None:
-            continue
         filepath = WWW_FOLDER / project / 'entities' / name / 'infrastructure.xml'
-        xml = py_opensand_conf.fromXML(xsd, filepath.as_posix())
+        xml = read_xml_file(filepath, infra)
         if xml is None:
             continue
 
@@ -510,12 +511,8 @@ def create_platform_infrastructure(project):
         if not name or not infra:
             continue
 
-        xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath(infra).as_posix())
-        if xsd is None:
-            continue
-
         filepath = WWW_FOLDER / project / 'entities' / name / 'infrastructure.xml'
-        xml = py_opensand_conf.fromXML(xsd, filepath.as_posix())
+        xml = read_xml_file(filepath, infra)
         if xml is None:
             continue
 
@@ -565,8 +562,9 @@ def create_platform_infrastructure(project):
 
 
 def extract_emulation_address(path):
-    xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath('infrastructure.xsd').as_posix())
-    xml = py_opensand_conf.fromXML(xsd, path.as_posix())
+    xml = read_xml_file(path, 'infrastructure.xsd')
+    if xml is None:
+        return
 
     entity = _get_component(xml.get_root(), 'entity')
     entity_type = _get_parameter(entity, 'entity_type')
@@ -580,6 +578,24 @@ def extract_emulation_address(path):
     }.get(entity_type, 'entity_unknown')
     entity_component = _get_component(entity, component_name)
     return _get_parameter(entity_component, 'emu_address') or None
+
+
+def extract_entities_names(project):
+    platform = _get_component(project.get_root(), 'platform')
+    if platform is None:
+        return
+
+    entities = platform.get_list('machines')
+    if entities is None:
+        return
+
+    for entity_id, _ in enumerate(entities.get_items()):
+        # Can't directly use the items iterated over because of bad cast;
+        # so retrieve them one by one instead to get the proper type.
+        entity = entities.get_item(str(entity_id))
+        name = _get_parameter(entity, 'entity_name')
+        if name:
+            yield name
 
 
 def pidof_opensand(ssh_client):
@@ -837,8 +853,27 @@ def update_project_content(name):
     folder = WWW_FOLDER / name
     if not folder.exists():
         create_default_templates(name)
+        backup = False
+    else:
+        with folder.joinpath('project.xml') open as f:
+            backup = f.read()
 
-    return write_file_content(name + '/project.xml', content)
+    result = write_file_content(name + '/project.xml', content)
+
+    project_layout = read_xml_file(folder / 'project.xml', 'project.xsd')
+    if project_layout is None:
+        if not backup:
+            shutil.rmtree(folder.as_posix())
+        else:
+            write_file_content(name + '/project.xml', backup)
+        return error('Invalid project layout, update canceled', 422)
+
+    entities = set(extract_entities_names(project_layout))
+    for entity in folder.joinpath('entities').iterdir():
+        if entity.name not in entities:
+            shutil.rmtree(entity.as_posix())
+
+    return result
 
 
 @app.route('/api/project/<string:name>', methods=['POST'])
@@ -876,15 +911,10 @@ def validate_project(name):
                 shutil.rmtree(destination.as_posix())
                 return error('Provided archive does not contain a "project.xml" file', 422)
 
-            project_xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath('project.xsd').as_posix())
-            if project_xsd is None:
-                shutil.rmtree(destination.as_posix())
-                return error('Internal Server Error: Impossible to open the projects XSD file', 500)
-
-            project_layout = py_opensand_conf.fromXML(project_xsd, project_xml.as_posix())
+            project_layout = read_xml_file(project_xml, 'project.xsd')
             if project_layout is None:
                 shutil.rmtree(destination.as_posix())
-                return error('Impossible to validate the "project.xml" file in the archive against its XSD', 422)
+                return error('Invalid "project.xml" file in the archive', 422)
 
             _set_parameter(_get_component(project_layout.get_root(), 'platform'), 'project', name)
             py_opensand_conf.toXML(project_layout, project_xml.as_posix())
