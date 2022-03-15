@@ -1,64 +1,29 @@
-pcp0:
-    dscp: [0]
-    tos: []
-    sport: []
-    dport: []
-    saddr: []
-    daddr: []
-    icmp_type: []
-pcp1:
-    dscp: [8,10,12,14]
-    tos: []
-    sport: []
-    dport: []
-    saddr: []
-    daddr: []
-    icmp_type: []
-pcp2:
-    dscp: [16,18,20,22]
-    tos: []
-    sport: []
-    dport: []
-    saddr: []
-    daddr: []
-    icmp_type: []
-pcp3:
-    dscp: [24,26,28,30]
-    tos: []
-    sport: []
-    dport: []
-    saddr: []
-    daddr: []
-    icmp_type: []
-pcp4:
-    dscp: [32,34,36,38]
-    tos: []
-    sport: []
-    dport: []
-    saddr: []
-    daddr: []
-    icmp_type: []
-pcp5:
-    dscp: [40,46]
-    tos: []
-    sport: []
-    dport: []
-    saddr: []
-    daddr: []
-    icmp_type: []
-pcp6:
-    dscp: [48]
-    tos: []
-    sport: []
-    dport: []
-    saddr: []
-    daddr: []
-    icmp_type: []
-pcp7:
-    dscp: [56]
-    tos: []
-    sport: []
-    dport: []
-    saddr: []
-    daddr: []
-    icmp_type: []
+0:
+    - dscp: 0
+1:
+    - dscp: 8
+    - dscp: 10
+    - dscp: 12
+    - dscp: 14
+2:
+    - dscp: 16
+    - dscp: 18
+    - dscp: 20
+    - dscp: 22
+3:
+    - dscp: 24
+    - dscp: 26
+    - dscp: 28
+    - dscp: 30
+4:
+    - dscp: 32
+    - dscp: 34
+    - dscp: 36
+    - dscp: 38
+5:
+    - dscp: 40
+    - dscp: 46
+6:
+    - dscp: 48
+7:
+    - dscp: 56
