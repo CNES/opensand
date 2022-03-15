@@ -855,7 +855,7 @@ def update_project_content(name):
         create_default_templates(name)
         backup = False
     else:
-        with folder.joinpath('project.xml') open as f:
+        with folder.joinpath('project.xml').open() as f:
             backup = f.read()
 
     result = write_file_content(name + '/project.xml', content)
