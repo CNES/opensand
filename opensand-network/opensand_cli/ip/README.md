@@ -25,4 +25,4 @@ to respectively stop emulation and clean network configurations.
 
 ## Now, you can enjoy it! 
 
-![Topology](/ip_without_vlan.png)
+![Topology](/opensand-network/opensand_cli/ip/ip_without_vlan.png)
