@@ -7,7 +7,7 @@ apt-get install iproute2 make
 
 ## Goal of this configuration
 
-This configuration allows to deploy OpenSAND with an IP configuration. No VLAN are present in this configuration, and no QoS can be done in this case.
+This configuration allows to deploy OpenSAND with an IP configuration. No VLAN is present in this configuration, and no QoS can be done in this case.
 
 ## Example configuration
 
