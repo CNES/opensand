@@ -71,7 +71,7 @@ const modelSlice = createSlice({
                 state.status = "pending";
             })
             .addCase(forceEntityInXML.fulfilled, (state, action) => {
-                state.status = "saved";
+                state.status = "success";
             });
     },
 });

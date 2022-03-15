@@ -18,7 +18,7 @@ import HelpIcon from '@mui/icons-material/Help';
 
 import {forceEntityInXML} from '../../api';
 import {useSelector, useDispatch} from '../../redux';
-import {IActions} from '../../utils/actions';
+import type {IActions} from '../../utils/actions';
 import {getXsdName} from '../../xsd';
 import type {Parameter as ParameterType} from '../../xsd';
 
@@ -215,6 +215,7 @@ const XsdParameter: React.FC<XsdProps> = (props) => {
                             const saveUrl = parameter_key + "/" + entity.name;
                             const loadUrl = `template/${xsd}/${value}`;
                             dispatch(forceEntityInXML({project: url.name, xsd, loadUrl, saveUrl, entity: entity.type}));
+                            setSaved(true);
                             setSubmitted(() => () => {
                                 setSubmitted(undefined);
                                 onEdit(entity, parameter_key, xsd);
