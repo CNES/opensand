@@ -52,7 +52,7 @@ clean: stop
 network: clean
 	ip link set $(EMU_IFACE) up
 	ip address flush dev $(EMU_IFACE)
-	ip address add $(EMU_IP_SAT)/$(NET_DIGITS) dev $(EMU_IFACE)
+	ip address replace $(EMU_IP_SAT)/$(NET_DIGITS) dev $(EMU_IFACE)
 
 generate-xml:
 	cp infrastructure.xml infrastructure_updated.xml

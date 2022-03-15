@@ -42,7 +42,7 @@ clean:
 network: clean
 	ip link set $(LAN_IFACE) up
 	ip address flush dev $(LAN_IFACE)
-	ip address add $(LAN_IP_WS_GW)/$(NET_DIGITS) dev $(LAN_IFACE)
+	ip address replace $(LAN_IP_WS_GW)/$(NET_DIGITS) dev $(LAN_IFACE)
 	ip route add $(LAN_NET_ST)/$(NET_DIGITS) via $(LAN_IP_GW) dev $(LAN_IFACE)
 
 

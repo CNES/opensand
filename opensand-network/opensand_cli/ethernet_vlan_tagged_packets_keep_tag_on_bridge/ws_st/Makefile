@@ -47,7 +47,7 @@ clean:
 network: clean
 	ip link set $(LAN_IFACE) up
 	ip address flush dev $(LAN_IFACE)
-	ip address add $(LAN_IP_WS_ST)/$(NET_DIGITS) dev $(LAN_IFACE)
+	ip address replace $(LAN_IP_WS_ST)/$(NET_DIGITS) dev $(LAN_IFACE)
 	@for VLAN in $(VLAN_USED) ; do \
 		ip link add link $(LAN_IFACE) name $(LAN_IFACE).$$VLAN type vlan id $$VLAN ; \
 		ip link set $(LAN_IFACE).$$VLAN up ; \

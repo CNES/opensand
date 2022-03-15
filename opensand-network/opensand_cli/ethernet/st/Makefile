@@ -60,7 +60,7 @@ network: clean
 	ip link set $(LAN_IFACE) up
 	ip address flush dev $(EMU_IFACE)
 	ip address flush dev $(LAN_IFACE)
-	ip address add $(EMU_IP_ST)/$(NET_DIGITS) dev $(EMU_IFACE)
+	ip address replace $(EMU_IP_ST)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip tuntap add mode tap $(TAP_IFACE)
 	ip link set dev $(TAP_IFACE) address $(TAP_MAC_ST)
 	ip link add name $(BR_IFACE) type bridge

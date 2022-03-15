@@ -64,8 +64,8 @@ network: clean
 	ip link set $(LAN_IFACE) up
 	ip address flush dev $(EMU_IFACE)
 	ip address flush dev $(LAN_IFACE)
-	ip address add $(LAN_IP)/$(NET_DIGITS) dev $(LAN_IFACE)
-	ip address add $(EMU_IP_ST)/$(NET_DIGITS) dev $(EMU_IFACE)
+	ip address replace $(LAN_IP)/$(NET_DIGITS) dev $(LAN_IFACE)
+	ip address replace $(EMU_IP_ST)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip tuntap add mode tap $(TAP_IFACE)
 	ip link set dev $(TAP_IFACE) address $(TAP_MAC_ST)
 	ip link add name $(BR_IFACE) type bridge
@@ -77,7 +77,6 @@ network: clean
 	sysctl -w net.ipv4.conf.$(BR_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.conf.$(LAN_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.ip_forward=$(FORWARDING)
-	sleep 0.2
 	ip route add $(GW_LAN_NET) via $(BR_IFACE_IP_GW) dev $(BR_IFACE)
 
 generate-xml:
