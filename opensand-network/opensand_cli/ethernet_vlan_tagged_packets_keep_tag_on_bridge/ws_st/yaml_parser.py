@@ -101,7 +101,7 @@ subprocess.run("iptables -t filter -F".split())
 subprocess.run("iptables -t mangle -F".split())
 subprocess.run("iptables -t nat -F".split())
 
-subprocess.run("iptables -t mangle -A FORWARD -j CLASSIFY --set-class 0:1".split())
+subprocess.run("iptables -t mangle -A OUTPUT -j CLASSIFY --set-class 0:1".split())
 
 for c in commands:
 	subprocess.run(c.split())

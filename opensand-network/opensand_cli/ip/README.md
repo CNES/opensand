@@ -1,13 +1,13 @@
 ## Pre-requisite
 
-As with OpenSAND CLI, 'iproute2' and 'make' packages are required. You can install them from your command line terminal by issuing
+'iproute2' and 'make' packages are required. You can install them from your command line terminal by issuing
 ```bash
 apt-get install iproute2 make
 ```
 
 ## Goal of this configuration
 
-This configuration allows to deploy OpenSAND with an IP configuration. No VLAN are present in this configuration, and no QoS can be done in this case.
+This configuration allows to deploy OpenSAND with an IP configuration. No VLAN are present in this configuration, and no QoS can be done in this case. Ethernet frames on OpenSAND are default IPv4 frames (Ethertype = 0x0800).
 
 ## Example configuration
 
@@ -37,6 +37,12 @@ To test the good behavior, with the example topology we chose, we can ping WS_ST
 ping 192.168.2.2
 ```
 
-The ping should receive response, with a delay of around 500ms
+The ping should receive response, with a delay of around 500ms.
+
+The ping must also pass between GW and ST directly, still with 500ms delay. For example on GW:
+
+```bash
+ping 192.168.63.15
+```
 
 ## Now, you can enjoy it! 

@@ -77,10 +77,12 @@ network: clean
 	bridge vlan add dev $(BR_IFACE) vid $(VLAN_ID_DEFAULT) pvid untagged self
 	ip link set $(BR_IFACE) up
 	ip link set $(TAP_IFACE) up
+	modprobe br_netfilter
 	sysctl -w net.ipv4.conf.$(EMU_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.conf.$(BR_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.conf.$(LAN_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.ip_forward=$(FORWARDING)
+	sysctl -w net.bridge.bridge-nf-call-iptables=1
 	ip route add $(ST_LAN_NET) via $(BR_IFACE_IP_ST) dev $(BR_IFACE)
 	ip link add link $(TAP_IFACE) name $(TAP_IFACE).1 type vlan id $(VLAN_ID_DEFAULT)
 	ip link set $(TAP_IFACE).1 type vlan egress-qos-map 2:1 3:2 4:3 5:4 6:5 7:6 8:7
