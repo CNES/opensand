@@ -868,10 +868,12 @@ def update_project_content(name):
             write_file_content(name + '/project.xml', backup)
         return error('Invalid project layout, update canceled', 422)
 
-    entities = set(extract_entities_names(project_layout))
-    for entity in folder.joinpath('entities').iterdir():
-        if entity.name not in entities:
-            shutil.rmtree(entity.as_posix())
+    entities_folder = folder / 'entities'
+    if entities_folder.is_dir():
+        entities = set(extract_entities_names(project_layout))
+        for entity in entities_folder.iterdir():
+            if entity.name not in entities:
+                shutil.rmtree(entity.as_posix())
 
     return result
 
