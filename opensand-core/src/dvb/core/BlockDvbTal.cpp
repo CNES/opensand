@@ -2350,7 +2350,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			    "Receive a frame of type %d\n", dvb_frame->getMessageType());
 
 	// get ACM parameters that will be transmited to GW in SAC  TODO check it
-	if(IS_CN_CAPABLE_FRAME(msg_type))
+	if(IS_CN_CAPABLE_FRAME(msg_type) && this->state == state_running)
 	{
 		double cni = dvb_frame->getCn();
 		LOG(this->log_receive, LEVEL_INFO,
