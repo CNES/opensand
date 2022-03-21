@@ -780,26 +780,19 @@ def upload_entity(name, entity):
         if run == 'LAUNCH':
             pids = pidof_opensand(client)
 
-            if launched_pid is not None:
-                if launched_pid in pids:
-                    launched = {launched_pid}
-                else:
-                    launched_pid = None
-
-            if launched_pid is None:
-                client.run('opensand ' + ' '.join(
+            if launched_pid not in pids:
+                result = client.run('opensand ' + ' '.join(
                         f'-{f.name[0]} "{destination.joinpath(f.name)}"'
                         for f in files
-                ) + ' </dev/null >/dev/null 2>&1 &', hide=True)
-                launched = pidof_opensand(client) - pids
+                ) + ' </dev/null >/dev/null 2>&1 & echo $!', hide=True)
 
-            try:
-                pid, = launched
-            except ValueError:
-                return error(f'OpenSAND process could not be launched on entity {entity}', 422)
-            else:
-                with pid_file.open('w') as f:
-                    print(pid, file=f)
+                try:
+                    launched_pid = int(result.stdout)
+                except ValueError:
+                    return error(f'OpenSAND process could not be launched on entity {entity}', 422)
+
+            with pid_file.open('w') as f:
+                print(launched_pid, file=f)
 
             return success(running=True)
         elif run == 'STATUS':
