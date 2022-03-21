@@ -70,6 +70,11 @@
 #define IS_DELAYED_FRAME(msg_type) \
     (msg_type != MSG_TYPE_SOF)
 
+/// Whether the frame can carry C/N information
+/// Warning: all frames that are not C/N capable
+///          should not be attenuated.
+#define IS_CN_CAPABLE_FRAME(msg_type) \
+    (msg_type != MSG_TYPE_SOF)
 
 /**
  * Here are defined internal dvb message types
