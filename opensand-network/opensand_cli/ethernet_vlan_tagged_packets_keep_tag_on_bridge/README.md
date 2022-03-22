@@ -7,7 +7,7 @@ apt-get install iproute2 make
 
 ## Goal of this configuration
 
-This configuration allows to deploy OpenSAND with an Ethernet 802.1Q configuration. The used can specify several VLANs that are in use between workstations. Thus, packets entering GW or ST are already tagged with a 802.1Q header, and a PCP priority. A default VLAN is present in this configuration, for packets entering OpenSAND without 802.1Q header; in this case the lowest priority is assigned (pcp=0). Ethernet frames on OpenSAND are VLAN tagged frames (Ethertype = 0x8100, IEEE 802.1Q).
+This configuration allows to deploy OpenSAND with an Ethernet 802.1Q configuration. The user can specify several VLANs that are in use between workstations. Thus, packets entering GW or ST are already tagged with a 802.1Q header, and a PCP priority. A default VLAN is present in this configuration, for packets entering OpenSAND without 802.1Q header; in this case the lowest priority is assigned (pcp=0). Ethernet frames on OpenSAND are VLAN tagged frames (Ethertype = 0x8100, IEEE 802.1Q).
 
 ## Example configuration
 
@@ -119,4 +119,4 @@ You can try several configurations:
 
 You can try other mapping and check with ```tcpdump``` if the result is still what you expect.
 
-## Now, you can enjoy it! 
+## Now, you can enjoy it!
