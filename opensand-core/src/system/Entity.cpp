@@ -149,12 +149,12 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				project->setReadOnly(true);
 
 				auto machines = platform->addList("machines", "Machines", "machine")->getPattern();
+				machines->addParameter("run", "Run Method", types->getType("run"));
 				machines->addParameter("entity_name", "Name", types->getType("string"))->setReadOnly(true);
 				machines->addParameter("entity_type", "Type", types->getType("entity_type"))->setReadOnly(true);
 				machines->addParameter("address", "[USER@]IP[:PORT]", types->getType("string"));
 				machines->addParameter("upload", "Upload Method", types->getType("upload"));
 				machines->addParameter("folder", "Upload Folder", types->getType("string"));
-				machines->addParameter("run", "Run Method", types->getType("run"));
 
 				auto configuration = Conf->getOrCreateComponent("configuration", "Configuration", "The Project Configuration Files");
 				configuration->addParameter("topology__template", "Topology Template", types->getType("string"));

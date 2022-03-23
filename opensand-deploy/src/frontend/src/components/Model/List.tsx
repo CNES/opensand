@@ -19,6 +19,7 @@ import ArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import DeleteIcon from '@mui/icons-material/HighlightOff';
 
 import Component from './Component';
+import Parameter from './Parameter';
 
 import {useSelector} from '../../redux';
 import {noActions} from '../../utils/actions';
@@ -61,11 +62,25 @@ const Row: React.FC<RowProps> = (props) => {
                         {actions.$.onAction(index)}
                     </TableCell>
                 )}
-                {headers.map((id: string, i: number) => (
-                    <TableCell key={i+2} align="center">
-                        {parameters.find(p => p?.id === id)?.value}
-                    </TableCell>
-                ))}
+                {headers.map((id: string, i: number) => {
+                    const param = parameters.find(p => p.id === id);
+                    const value = param?.value;
+                    return (
+                        <TableCell key={i+2} align="center">
+                            {actions.$.onAction && id === "run" && param ? (
+                                <Parameter
+                                    parameter={param}
+                                    readOnly={readOnly || component.readOnly}
+                                    prefix={`${prefix}.elements.${i}.element`}
+                                    form={form}
+                                    actions={actions['#'][param.id] || noActions}
+                                    entity={undefined /* TODO? */}
+                                    autosave={autosave}
+                                />
+                            ) : value}
+                        </TableCell>
+                    );
+                })}
                 <TableCell key={headers.length + (actions.$.onAction ? 3 : 2)} align="right">
                     {isEditable && onDelete && (
                         <IconButton size="small" onClick={onDelete}>

@@ -71,7 +71,7 @@ const StopEntitiesButton: React.FC<Props> = (props) => {
 
     return (
         <SpacedButton
-            color="secondary"
+            color="error"
             variant="contained"
             onClick={handleClick}
         >

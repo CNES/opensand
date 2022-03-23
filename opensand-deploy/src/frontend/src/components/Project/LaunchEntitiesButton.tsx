@@ -80,7 +80,7 @@ const LaunchEntitiesButton: React.FC<Props> = (props) => {
 
     return (
         <SpacedButton
-            color="secondary"
+            color="success"
             variant="contained"
             onClick={handleClick}
         >

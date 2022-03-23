@@ -19,9 +19,10 @@ import {getComponents} from '../../xsd';
 import type {Component as ComponentType} from '../../xsd';
 
 
-const ColoredAppBar = styled(AppBar, {name: "ColoredAppBar", slot: "Wrapper"})({
+const ColoredAppBar = styled(AppBar, {name: "ColoredAppBar", slot: "Wrapper"})(({ theme }) => ({
     backgroundColor: "#FFFACD",
-});
+    color: theme.palette.common.black,
+}));
 
 
 const TabPanel: React.FC<{index: any; value: any;}> = (props) => {
