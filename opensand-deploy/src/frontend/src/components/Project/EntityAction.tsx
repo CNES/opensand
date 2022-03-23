@@ -30,6 +30,8 @@ const EntityAction: React.FC<Props> = (props) => {
     const dispatch = useDispatch();
 
     const [deployParameters, setDeployParameters] = React.useState<DeployParameters | null>(null);
+    const [lastStatus, setLastStatus] = React.useState<Date>(new Date(0));
+    const [forceStatusCheck, setForceStatusCheck] = React.useState<object>({});
 
     const handleCopy = React.useCallback((entity: string, folder: string) => {
         if (project) {
@@ -73,6 +75,13 @@ const EntityAction: React.FC<Props> = (props) => {
 
     React.useEffect(() => {
         if (project && entity && sshConfigured) {
+            const now = new Date();
+            const expired = new Date(lastStatus);
+            expired.setSeconds(expired.getSeconds() + 5);
+            if (now < expired) {
+                return;
+            }
+
             const entityName = entity.elements.find((p) => (
                 isParameterElement(p) && p.element.id === "entity_name"
             ));
@@ -88,11 +97,15 @@ const EntityAction: React.FC<Props> = (props) => {
                 });
             }
         }
-    }, [sshConfigured, entity, project, dispatch]);
+    }, [sshConfigured, entity, project, lastStatus, forceStatusCheck]);
 
     React.useEffect(() => {
         if (deployParameters) {
             setDeployParameters(null);
+            if (deployParameters.runMethod === "STATUS") {
+                setLastStatus(new Date());
+                setTimeout(() => setForceStatusCheck({}), 5000);
+            }
             dispatch(deployEntity(deployParameters));
         }
     }, [dispatch, deployParameters]);

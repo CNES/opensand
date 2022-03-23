@@ -333,12 +333,12 @@ export const deployEntity = asyncThunk<IPidSuccess, DeployParameters>(
         };
         const response = await doFetch<IPidSuccess>(`/api/project/${project}/entity/${entity}`, dispatch, "PUT", body);
 
-        if (response.running) {
+        if (runMethod !== "STATUS") {
             setTimeout(() => dispatch(deployEntity({
                 project, entity, address,
                 folder: "", copyMethod: "",
                 runMethod: "STATUS",
-            })), runMethod === "STATUS" ? 5000 : 500);
+            })), 500);
         }
         return response;
     },
