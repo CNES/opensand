@@ -133,12 +133,12 @@ def get_file_content(filename, xml=False):
 
     base_folder = WWW_FOLDER if xml else MODELS_FOLDER
     filepath = base_folder / filename
-    if not filepath.exists():
+    try:
+        with filepath.open() as f:
+            content = f.read()
+    except OSError:
         folder = filepath.relative_to(base_folder).parent
-        return error('cannot find {} in {}'.format(filepath.name, folder), 404)
-
-    with filepath.open() as f:
-        content = f.read()
+        return error('cannot find or read {} in {}'.format(filepath.name, folder), 404)
 
     return success(content=content)
 
@@ -791,6 +791,7 @@ def upload_entity(name, entity):
                 except ValueError:
                     return error(f'OpenSAND process could not be launched on entity {entity}', 422)
 
+            pid_file.parent.mkdir(parents=True, exist_ok=True)
             with pid_file.open('w') as f:
                 print(launched_pid, file=f)
 
