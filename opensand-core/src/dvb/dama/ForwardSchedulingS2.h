@@ -113,6 +113,9 @@ class ForwardSchedulingS2: public Scheduling
 	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_fwd_remaining_capacity;
 	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_fwd_available_capacity;
 
+	/// The MODCOD for emmited frames
+  std::shared_ptr<Probe<int>> probe_gw_sent_modcod;
+
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs
 	 *        The available capacity is obtained from carrier capacity in symbols

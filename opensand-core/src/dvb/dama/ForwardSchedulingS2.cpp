@@ -133,6 +133,10 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	         this->probe_section.c_str());
 	this->probe_bbframe_nbr = Output::Get()->registerProbe<int>(probe_name, true, SAMPLE_AVG);
 
+	this->probe_gw_sent_modcod = Output::Get()->registerProbe<int>("Up_Forward_modcod.Sent_modcod",
+	                                                               "modcod index",
+	                                                               true, SAMPLE_LAST);
+
 	carriers_group = this->category->getCarriersGroups();
 	for(carrier_it = carriers_group.begin();
 	    carrier_it != carriers_group.end();
@@ -837,6 +841,9 @@ sched_status_t ForwardSchedulingS2::addCompleteBBFrame(list<DvbFrame *> *complet
 	unsigned int modcod_id = bbframe->getModcodId();
 	size_t bbframe_size_bytes = bbframe->getMaxSize();
 	vol_sym_t bbframe_size_sym;
+
+	// TODO
+	this->probe_gw_sent_modcod->put(modcod_id);
 
 	// how much time do we need to send the BB frame ?
 	if(!this->getBBFrameSizeSym(bbframe_size_bytes, modcod_id,

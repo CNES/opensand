@@ -132,7 +132,7 @@ class DamaAgentRcs2 : public DamaAgent
 	virtual vol_kb_t computeVbdcRequest() = 0;
 
 	/// The MODCOD for emmited frames as received in TTP
-  std::shared_ptr<Probe<int>> probe_st_sent_modcod;
+	std::shared_ptr<Probe<int>> probe_st_sent_modcod;
 
 	/**
 	 * @brief Check RBDC request value is lower than the max value it could
