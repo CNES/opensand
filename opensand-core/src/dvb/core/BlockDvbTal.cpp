@@ -239,7 +239,8 @@ BlockDvbTal::Downward::Downward(const string &name, tal_id_t mac_id):
 	probe_st_l2_to_sat_before_sched(),
 	probe_st_l2_to_sat_after_sched(),
 	l2_to_sat_total_bytes(0),
-	probe_st_l2_to_sat_total()
+	probe_st_l2_to_sat_total(),
+	probe_st_required_modcod(NULL)
 {
 }
 
@@ -1230,6 +1231,10 @@ bool BlockDvbTal::Downward::initOutput(void)
 	this->probe_st_l2_to_sat_total =
 		output->registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",
 					   "Kbits/s", true, SAMPLE_AVG);
+
+	this->probe_st_required_modcod = output->registerProbe<int>("Down_Forward_modcod.Required_modcod",
+								    "modcod index",
+								    true, SAMPLE_LAST);
 	return true;
 }
 
@@ -1712,6 +1717,8 @@ bool BlockDvbTal::Downward::sendSAC(void)
 	cni = this->getRequiredCniInput(this->tal_id);
 	sac->setAcm(cni);
 
+	this->probe_st_required_modcod->put(this->getCurrentModcodIdInput(this->tal_id));
+
 	if(empty)
 	{
 		LOG(this->log_send, LEVEL_DEBUG,
@@ -2143,7 +2150,6 @@ BlockDvbTal::Upward::Upward(const string &name, tal_id_t mac_id):
 	is_scpc(false),
 	state(state_initializing),
 	probe_st_l2_from_sat(NULL),
-	probe_st_required_modcod(NULL),
 	probe_st_received_modcod(NULL),
 	probe_st_rejected_modcod(NULL),
 	probe_sof_interval(NULL)

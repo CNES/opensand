@@ -885,7 +885,6 @@ BlockDvbNcc::Upward::Upward(const string &name, tal_id_t mac_id):
 	DvbSpotList(mac_id),
 	mac_id(mac_id),
 	log_saloha(NULL),
-	probe_gw_required_modcod(NULL),
 	probe_gw_received_modcod(NULL),
 	probe_gw_rejected_modcod(NULL)
 {
@@ -981,6 +980,7 @@ bool BlockDvbNcc::Upward::initOutput(void)
 	this->probe_gw_rejected_modcod = output->registerProbe<int>("Down_Return_modcod.Rejected_modcod",
 								    "modcod index",
 								    true, SAMPLE_LAST);
+
 	return true;
 }
 

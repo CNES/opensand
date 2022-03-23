@@ -215,9 +215,8 @@ class BlockDvbNcc: public BlockDvb
 		std::shared_ptr<OutputLog> log_saloha;
 
 		// Physical layer information
-		std::shared_ptr<Probe<int>> probe_gw_required_modcod;
-		std::shared_ptr<Probe<int>> probe_gw_received_modcod;
-		std::shared_ptr<Probe<int>> probe_gw_rejected_modcod;
+		std::shared_ptr<Probe<int>> probe_gw_received_modcod; // MODCOD of BBFrame received
+		std::shared_ptr<Probe<int>> probe_gw_rejected_modcod; // MODCOD of BBFrame rejected
 	};
 
 
