@@ -193,6 +193,13 @@ class BlockDvbNcc: public BlockDvb
 
 	 protected:
 		/**
+		 * @brief Initialize the output
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initOutput(void);
+
+		/**
 		 * Transmist a frame to the opposite channel
 		 *
 		 * @param frame The dvb frame
@@ -206,6 +213,11 @@ class BlockDvbNcc: public BlockDvb
 
 		// log for slotted aloha
 		std::shared_ptr<OutputLog> log_saloha;
+
+		// Physical layer information
+		std::shared_ptr<Probe<int>> probe_gw_required_modcod;
+		std::shared_ptr<Probe<int>> probe_gw_received_modcod;
+		std::shared_ptr<Probe<int>> probe_gw_rejected_modcod;
 	};
 
 
