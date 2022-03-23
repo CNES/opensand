@@ -22,9 +22,7 @@ interface Values {
 
 
 const NewEntityDialog = (props: Props) => {
-    const {open, entityName, entityType, onValidate, onClose} = props;
-
-    const autoSave = React.useMemo(() => () => {}, []);
+    const {entityName, entityType, onValidate, onClose} = props;
 
     const nameParam = React.useMemo(() => {
         const cloned = {...entityName};
@@ -55,7 +53,7 @@ const NewEntityDialog = (props: Props) => {
     }, [onValidate, handleClose]);
 
     return (
-        <Dialog open={open} onClose={handleClose}>
+        <Dialog open={true} onClose={handleClose}>
             <Formik initialValues={initialValues} onSubmit={handleSubmit}>
                 {(formik: FormikProps<Values>) => (
                     <form onSubmit={formik.handleSubmit}>
@@ -64,8 +62,8 @@ const NewEntityDialog = (props: Props) => {
                             <DialogContentText>
                                 Please give a name and select the role of your machine.
                             </DialogContentText>
-                            <Parameter parameter={formik.values.name} prefix="name" form={formik} actions={noActions} autoSave={autoSave} />
-                            <Parameter parameter={formik.values.type} prefix="type" form={formik} actions={noActions} autoSave={autoSave} />
+                            <Parameter parameter={formik.values.name} prefix="name" form={formik} actions={noActions} autosave={false} />
+                            <Parameter parameter={formik.values.type} prefix="type" form={formik} actions={noActions} autosave={false} />
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={handleClose} color="primary">Cancel</Button>
@@ -80,7 +78,6 @@ const NewEntityDialog = (props: Props) => {
 
 
 interface Props {
-    open: boolean;
     entityName: ParameterType;
     entityType: ParameterType;
     onValidate: (entity: string, entityType: string) => void;

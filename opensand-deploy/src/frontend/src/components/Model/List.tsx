@@ -42,7 +42,7 @@ const ReducedTableCell = styled(TableCell, {name: "ReducedTableCell", slot: "Wra
 
 
 const Row: React.FC<RowProps> = (props) => {
-    const {component, index, readOnly, isEditable, headers, prefix, form, autoSave, actions, onDelete} = props;
+    const {component, index, readOnly, isEditable, headers, prefix, form, autosave, actions, onDelete} = props;
 
     const [open, setOpen] = React.useState<boolean>(false);
 
@@ -84,7 +84,7 @@ const Row: React.FC<RowProps> = (props) => {
                                 prefix={prefix}
                                 form={form}
                                 actions={actions}
-                                autoSave={autoSave}
+                                autosave={autosave}
                             />
                         </Box>
                     </Collapse>
@@ -105,12 +105,12 @@ interface RowProps {
     headers: string[];
     onDelete: false | (() => void);
     actions: IActions;
-    autoSave: () => void;
+    autosave: boolean;
 }
 
 
 const List: React.FC<Props> = (props) => {
-    const {list, readOnly, prefix, form, actions, autoSave} = props;
+    const {list, readOnly, prefix, form, actions, autosave} = props;
 
     const visibility = useSelector((state) => state.form.visibility);
     const [addListItem, removeListItem] = useListMutators(list, actions.$, form, prefix);
@@ -162,7 +162,7 @@ const List: React.FC<Props> = (props) => {
                             headers={headers}
                             onDelete={canShrink && (() => removeListItem(i))}
                             actions={patternActions}
-                            autoSave={autoSave}
+                            autosave={autosave}
                         />
                     ))}
                 </TableBody>
@@ -178,7 +178,7 @@ interface Props {
     prefix: string;
     form: FormikProps<ComponentType>;
     actions: IActions;
-    autoSave: (timeout?: number) => void;
+    autosave: boolean;
 }
 
 

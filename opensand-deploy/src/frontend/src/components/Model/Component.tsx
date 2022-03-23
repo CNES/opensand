@@ -49,7 +49,7 @@ const findParameterValue = (component: ComponentType, id: string) => {
 
 
 const Component: React.FC<Props> = (props) => {
-    const {component, readOnly, prefix, form, actions, autoSave} = props;
+    const {component, readOnly, prefix, form, actions, autosave} = props;
 
     const visibility = useSelector((state) => state.form.visibility);
 
@@ -84,7 +84,7 @@ const Component: React.FC<Props> = (props) => {
                                 form={form}
                                 actions={elementActions}
                                 entity={entity}
-                                autoSave={autoSave}
+                                autosave={autosave}
                             />
                         );
                     case "list":
@@ -105,7 +105,7 @@ const Component: React.FC<Props> = (props) => {
                                         prefix={childPrefix}
                                         form={form}
                                         actions={elementActions}
-                                        autoSave={autoSave}
+                                        autosave={autosave}
                                     />
                                 </AccordionDetails>
                             </Accordion>
@@ -128,7 +128,7 @@ const Component: React.FC<Props> = (props) => {
                                         prefix={childPrefix}
                                         form={form}
                                         actions={elementActions}
-                                        autoSave={autoSave}
+                                        autosave={autosave}
                                     />
                                 </AccordionDetails>
                             </Accordion>
@@ -148,7 +148,7 @@ interface Props {
     prefix: string;
     form: FormikProps<ComponentType>;
     actions: IActions;
-    autoSave: () => void;
+    autosave: boolean;
 }
 
 

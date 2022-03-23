@@ -46,7 +46,7 @@ const LeftPanel = styled(List, {name: "LeftPanel", slot: "Wrapper"})(({ theme })
 
 
 const SingleListComponent: React.FC<Props> = (props) => {
-    const {list, readOnly, prefix, form, autoSave, actions} = props;
+    const {list, readOnly, prefix, form, autosave, actions} = props;
 
     const [open, setOpen] = React.useState<number>(0);
     const [addListItem, removeListItem] = useListMutators(list, actions.$, form, prefix);
@@ -86,7 +86,7 @@ const SingleListComponent: React.FC<Props> = (props) => {
                             prefix={`${prefix}.elements.${i}`}
                             form={form}
                             actions={actions['#'][c.id] || noActions}
-                            autoSave={autoSave}
+                            autosave={autosave}
                         />
                     </Collapse>
                 ))}
@@ -102,7 +102,7 @@ interface Props {
     prefix: string;
     form: FormikProps<ComponentType>;
     actions: IActions;
-    autoSave: () => void;
+    autosave: boolean;
 }
 
 

@@ -304,12 +304,10 @@ interface SshParameters {
     project: string;
     entity: string;
     address: string;
-    password: string;
-    isPassphrase: boolean;
 }
 
 
-interface DeployParameters extends SshParameters {
+export interface DeployParameters extends SshParameters {
     folder: string;
     copyMethod: string;
     runMethod: string;
@@ -318,7 +316,15 @@ interface DeployParameters extends SshParameters {
 
 export const deployEntity = asyncThunk<IPidSuccess, DeployParameters>(
     'action/deployEntity',
-    async ({project, entity, folder, copyMethod, runMethod, address, password, isPassphrase}, {dispatch}) => {
+    async ({project, entity, folder, copyMethod, runMethod, address}, {getState, dispatch}) => {
+        const sshConfig = getState().ssh;
+        if (!sshConfig?.configured) {
+            const msg = "Cannot deploy entity " + entity + " of project " + project + ": SSH Credentials not set";
+            dispatch(newError(msg));
+            throw new Error(msg);
+        }
+
+        const {password, isPassphrase} = sshConfig;
         const body = {
             destination_folder: folder,
             copy_method: copyMethod,
@@ -330,7 +336,6 @@ export const deployEntity = asyncThunk<IPidSuccess, DeployParameters>(
         if (response.running) {
             setTimeout(() => dispatch(deployEntity({
                 project, entity, address,
-                password, isPassphrase,
                 folder: "", copyMethod: "",
                 runMethod: "STATUS",
             })), runMethod === "STATUS" ? 5000 : 500);
@@ -347,7 +352,15 @@ interface PingParameters extends SshParameters {
 
 export const pingEntity = asyncThunk<IPingSuccess, PingParameters>(
     'action/pingEntity',
-    async ({project, entity, destination, address, password, isPassphrase}, {dispatch}) => {
+    async ({project, entity, destination, address}, {getState, dispatch}) => {
+        const sshConfig = getState().ssh;
+        if (!sshConfig?.configured) {
+            const msg = "Cannot ping from entity " + entity + " of project " + project + ": SSH Credentials not set";
+            dispatch(newError(msg));
+            throw new Error(msg);
+        }
+
+        const {password, isPassphrase} = sshConfig;
         const body = {
             run_method: "PING",
             ping_address: destination,

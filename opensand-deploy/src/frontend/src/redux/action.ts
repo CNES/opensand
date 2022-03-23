@@ -23,9 +23,10 @@ const actionSlice = createSlice({
             return {};
         },
         createEntityAction: (state, action: PayloadAction<string>) => {
+            const entity = action.payload;
             return {
                 ...state,
-                [action.payload]: {running: false, status: "idle"},
+                [entity]: state[entity] || {running: false, status: "idle"},
             };
         },
     },

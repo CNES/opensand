@@ -15,7 +15,6 @@ import {useSelector, useDispatch} from '../../redux';
 import {changeTab} from '../../redux/tab';
 import {noActions} from '../../utils/actions';
 import type {IActions} from '../../utils/actions';
-import {useTimer} from '../../utils/hooks';
 import {getComponents} from '../../xsd';
 import type {Component as ComponentType} from '../../xsd';
 
@@ -38,25 +37,16 @@ const TabPanel: React.FC<{index: any; value: any;}> = (props) => {
 
 const RootComponent: React.FC<Props> = (props) => {
     const {form, xsd, autosave, actions = noActions} = props;
-    const {values, submitForm} = form;
 
     const selectedTabs = useSelector((state) => state.tab);
     const visibility = useSelector((state) => state.form.visibility);
     const dispatch = useDispatch();
-    const timer = useTimer(autosave ? (autosave === true ? 1500 : autosave) : 1500);
-
-    const autoSave = React.useMemo(() => {
-        if (autosave) {
-            return () => timer(submitForm);
-        }
-        return () => {};
-    }, [autosave, timer, submitForm]);
 
     const handleChange = React.useCallback((event: React.ChangeEvent<{}>, index: number) => {
         dispatch(changeTab({xsd, tab: index}));
     }, [dispatch, xsd]);
 
-    const components = getComponents(values, values, visibility);
+    const components = getComponents(form.values, form.values, visibility);
     const savedTab = selectedTabs[xsd];
     const value = !(savedTab && savedTab < components.length) ? 0 : savedTab;
 
@@ -90,7 +80,7 @@ const RootComponent: React.FC<Props> = (props) => {
                                 prefix={`elements.${idx}.element.elements.0.element`}
                                 form={form}
                                 actions={elementActions}
-                                autoSave={autoSave}
+                                autosave={Boolean(autosave)}
                             />
                         ) : (
                             <Component
@@ -98,7 +88,7 @@ const RootComponent: React.FC<Props> = (props) => {
                                 prefix={`elements.${idx}.element`}
                                 form={form}
                                 actions={elementActions}
-                                autoSave={autoSave}
+                                autosave={Boolean(autosave)}
                             />
                         )}
                     </TabPanel>
@@ -113,7 +103,7 @@ interface Props {
     form: FormikProps<ComponentType>;
     xsd: string;
     actions?: IActions;
-    autosave?: boolean | number;
+    autosave?: boolean;
 }
 
 

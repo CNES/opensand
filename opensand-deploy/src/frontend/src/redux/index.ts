@@ -8,6 +8,7 @@ import formReducer from './form';
 import modelReducer from './model';
 import pingReducer from './ping';
 import projectReducer from './projects';
+import sshReducer from './ssh';
 import tabReducer from './tab';
 
 
@@ -19,6 +20,7 @@ const store = configureStore({
         model: modelReducer,
         ping: pingReducer,
         project: projectReducer,
+        ssh: sshReducer,
         tab: tabReducer,
     },
     devTools: process.env.NODE_ENV === "development",

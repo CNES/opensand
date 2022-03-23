@@ -8,12 +8,16 @@ import Button from '@mui/material/Button';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 
+import SpacedButton from '../common/SpacedButton';
 import RootComponent from '../Model/RootComponent';
 import DeployEntityDialog from './DeployEntityDialog';
 import EntityAction from './EntityAction';
 import NewEntityDialog from './NewEntityDialog';
 import PingDialog from './PingDialog';
 import PingResultDialog from './PingResultDialog';
+import LaunchEntitiesButton from './LaunchEntitiesButton';
+// import StatusEntitiesButton from './StatusEntitiesButton';
+import StopEntitiesButton from './StopEntitiesButton';
 
 import {
     deleteXML,
@@ -26,6 +30,7 @@ import {useSelector, useDispatch} from '../../redux';
 import {newError} from '../../redux/error';
 import {clearTemplates} from '../../redux/form';
 import {clearModel} from '../../redux/model';
+import {openSshDialog, runSshCommand} from '../../redux/ssh';
 import {combineActions} from '../../utils/actions';
 import type {MutatorCallback} from '../../utils/actions';
 import {getXsdName, isComponentElement, isListElement, isParameterElement, newItem} from '../../xsd';
@@ -38,7 +43,6 @@ interface IEntity {
 }
 
 
-type ActionCallback = (password: string, isPassphrase: boolean) => void;
 type SaveCallback = () => void;
 
 
@@ -101,12 +105,7 @@ const Project: React.FC<Props> = (props) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    const [action, setAction] = React.useState<ActionCallback | undefined>(undefined);
     const [handleNewEntityCreate, setNewEntityCreate] = React.useState<((entity: string, entityType: string) => void) | undefined>(undefined);
-
-    const handleActionClose = React.useCallback(() => {
-        setAction(undefined);
-    }, []);
 
     const handleOpen = React.useCallback((root: Component, mutator: MutatorCallback, submitForm: SaveCallback) => {
         setNewEntityCreate(() => (entity: string, entityType: string) => {
@@ -189,16 +188,14 @@ const Project: React.FC<Props> = (props) => {
 
     const handlePing = React.useCallback((destination: string) => {
         if (name && source) {
-            setAction(() => (password: string, isPassphrase: boolean) => {
-                dispatch(pingEntity({
+            dispatch(runSshCommand({
+                action: () => dispatch(pingEntity({
                     project: name,
                     entity: source.name,
                     address: source.address,
                     destination,
-                    password,
-                    isPassphrase,
-                }));
-            });
+                })),
+            }));
         }
     }, [dispatch, name, source]);
 
@@ -209,7 +206,6 @@ const Project: React.FC<Props> = (props) => {
                 project={name}
                 entity={entity}
                 onDownload={handleDownload}
-                setAction={setAction}
             />
         );
     }, [model, name, handleDownload]);
@@ -257,30 +253,36 @@ const Project: React.FC<Props> = (props) => {
             </Toolbar>
             {model != null && (
                 <Formik enableReinitialize initialValues={model.root} onSubmit={handleSubmit}>
-                    {(formik: FormikProps<Component>) => (<>
+                    {(formik: FormikProps<Component>) => (
                         <RootComponent form={formik} actions={actions} xsd="project.xsd" autosave />
-                        <Box textAlign="center" marginTop="3em" marginBottom="3px">
-                            <Button
-                                color="secondary"
-                                variant="contained"
-                                onClick={() => handleDownload()}
-                            >
-                                Download Project Configuration
-                            </Button>
-                        </Box>
-                        <DeployEntityDialog
-                            open={Boolean(action)}
-                            onValidate={action}
-                            onClose={handleActionClose}
-                        />
-                        <PingDialog onValidate={handlePing} />
-                        <PingResultDialog />
-                    </>)}
+                    )}
                 </Formik>
             )}
+            {model != null && (<>
+                <Box textAlign="center" marginTop="3em" marginBottom="3px">
+                    <LaunchEntitiesButton project={model.root} />
+                    <StopEntitiesButton project={model.root} />
+                    <SpacedButton
+                        color="secondary"
+                        variant="contained"
+                        onClick={() => dispatch(openSshDialog())}
+                    >
+                        Configure SSH Credentials
+                    </SpacedButton>
+                    <Button
+                        color="secondary"
+                        variant="contained"
+                        onClick={() => handleDownload()}
+                    >
+                        Download Project Configuration
+                    </Button>
+                </Box>
+                <DeployEntityDialog />
+                <PingDialog onValidate={handlePing} />
+                <PingResultDialog />
+            </>)}
             {handleNewEntityCreate != null && entityName != null && entityType != null && (
                 <NewEntityDialog
-                    open={true}
                     entityName={entityName}
                     entityType={entityType}
                     onValidate={handleNewEntityCreate}

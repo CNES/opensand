@@ -19,6 +19,7 @@ import HelpIcon from '@mui/icons-material/Help';
 import {forceEntityInXML} from '../../api';
 import {useSelector, useDispatch} from '../../redux';
 import type {IActions} from '../../utils/actions';
+import {useTimer} from '../../utils/hooks';
 import {getXsdName} from '../../xsd';
 import type {Parameter as ParameterType} from '../../xsd';
 
@@ -30,13 +31,15 @@ const FlexBox = styled('div')(({ theme }) => ({
 
 
 const BooleanParam: React.FC<BaseProps> = (props) => {
-    const {parameter, readOnly, name, form: {handleChange, setFieldValue, handleBlur}, autoSave} = props;
+    const {parameter, readOnly, name, form: {handleChange, setFieldValue, handleBlur, submitForm}, autosave} = props;
 
     const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         handleChange(event);
         setFieldValue(name, String(event.target.checked));
-        autoSave();
-    }, [handleChange, name, setFieldValue, autoSave]);
+        if (autosave) {
+            submitForm();
+        }
+    }, [handleChange, name, setFieldValue, submitForm, autosave]);
 
     const help = parameter.description === "" ? null : (
         <Tooltip title={parameter.description} placement="top">
@@ -64,12 +67,16 @@ const BooleanParam: React.FC<BaseProps> = (props) => {
 
 
 const NumberParam: React.FC<NumberProps> = (props) => {
-    const {parameter, readOnly, min, max, step, name, form: {handleChange, handleBlur}, autoSave} = props;
+    const {parameter, readOnly, min, max, step, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
+
+    const timer = useTimer(1500);
 
     const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         handleChange(event);
-        autoSave();
-    }, [handleChange, autoSave]);
+        if (autosave) {
+            timer(submitForm);
+        }
+    }, [timer, handleChange, submitForm, autosave]);
 
     // label={ parameter.name + " (" + parameter.type + ")" } ???
     return (
@@ -102,12 +109,16 @@ const NumberParam: React.FC<NumberProps> = (props) => {
 
 
 const StringParam: React.FC<BaseProps> = (props) => {
-    const {parameter, readOnly, name, form: {handleChange, handleBlur}, autoSave} = props;
+    const {parameter, readOnly, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
+
+    const timer = useTimer(1500);
 
     const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         handleChange(event);
-        autoSave();
-    }, [handleChange, autoSave]);
+        if (autosave) {
+            timer(submitForm);
+        }
+    }, [timer, handleChange, submitForm, autosave]);
 
     // label={ parameter.name + " (" + parameter.type + ")" } ???
     return (
@@ -139,12 +150,14 @@ const StringParam: React.FC<BaseProps> = (props) => {
 
 
 const EnumParam: React.FC<EnumProps> = (props) => {
-    const {parameter, readOnly, enumeration, name, form: {handleChange, handleBlur}, autoSave} = props;
+    const {parameter, readOnly, enumeration, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
 
     const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         handleChange(event);
-        autoSave();
-    }, [handleChange, autoSave]);
+        if (autosave) {
+            submitForm();
+        }
+    }, [handleChange, submitForm, autosave]);
 
     const header = React.useMemo(() => <em>Please select a {parameter.name}</em>, [parameter.name]);
 
@@ -189,7 +202,7 @@ const EnumParam: React.FC<EnumProps> = (props) => {
 
 
 const XsdParameter: React.FC<XsdProps> = (props) => {
-    const {parameter, readOnly, entity, actions, name, form: {handleChange, handleBlur, setFieldValue, submitForm}} = props;
+    const {parameter, readOnly, entity, actions, name, form: {handleChange, handleBlur, setFieldValue, submitForm}, autosave} = props;
     const {onEdit, onRemove} = actions.$;
 
     const loading = useSelector((state) => state.model.status);
@@ -232,14 +245,19 @@ const XsdParameter: React.FC<XsdProps> = (props) => {
         } else {
             onRemove && onRemove(entity?.name, parameter_key);
         }
-        submitForm();
-    }, [dispatch, url.name, parameter_key, xsd, entity, onEdit, onRemove, handleChange, submitForm]);
+
+        if (autosave) {
+            submitForm();
+        }
+    }, [dispatch, url.name, parameter_key, xsd, entity, onEdit, onRemove, handleChange, submitForm, autosave]);
 
     const handleClear = React.useCallback(() => {
         setFieldValue(name, "");
         onRemove && onRemove(entity?.name, parameter_key);
-        submitForm();
-    }, [setFieldValue, name, parameter_key, entity, onRemove, submitForm]);
+        if (autosave) {
+            submitForm();
+        }
+    }, [setFieldValue, name, parameter_key, entity, onRemove, submitForm, autosave]);
 
     const handleEdit = React.useCallback(() => {
         onEdit && onEdit(entity, parameter_key, xsd);
@@ -319,7 +337,7 @@ const XsdParameter: React.FC<XsdProps> = (props) => {
 
 
 const Parameter: React.FC<Props> = (props) => {
-    const {parameter, readOnly, entity, actions, prefix, form, autoSave} = props;
+    const {parameter, readOnly, entity, actions, prefix, ...rest} = props;
 
     const model = useSelector((state) => state.model.model);
 
@@ -334,7 +352,7 @@ const Parameter: React.FC<Props> = (props) => {
                 actions={actions}
                 entity={entity}
                 name={name}
-                form={form}
+                {...rest}
             />
         );
     }
@@ -347,8 +365,7 @@ const Parameter: React.FC<Props> = (props) => {
                 readOnly={isReadOnly}
                 enumeration={enumeration.values}
                 name={name}
-                form={form}
-                autoSave={autoSave}
+                {...rest}
             />
         );
     }
@@ -361,8 +378,7 @@ const Parameter: React.FC<Props> = (props) => {
                     parameter={parameter}
                     readOnly={isReadOnly}
                     name={name}
-                    form={form}
-                    autoSave={autoSave}
+                    {...rest}
                 />
             );
         case "longdouble":
@@ -376,8 +392,7 @@ const Parameter: React.FC<Props> = (props) => {
                     max={Number.MAX_SAFE_INTEGER}
                     step={0.01}
                     name={name}
-                    form={form}
-                    autoSave={autoSave}
+                    {...rest}
                 />
             );
         case "byte":
@@ -389,8 +404,7 @@ const Parameter: React.FC<Props> = (props) => {
                     max={255}
                     step={1}
                     name={name}
-                    form={form}
-                    autoSave={autoSave}
+                    {...rest}
                 />
             );
         case "short":
@@ -402,8 +416,7 @@ const Parameter: React.FC<Props> = (props) => {
                     max={32767}
                     step={1}
                     name={name}
-                    form={form}
-                    autoSave={autoSave}
+                    {...rest}
                 />
             );
         case "int":
@@ -415,8 +428,7 @@ const Parameter: React.FC<Props> = (props) => {
                     max={2147483647}
                     step={1}
                     name={name}
-                    form={form}
-                    autoSave={autoSave}
+                    {...rest}
                 />
             );
         case "long":
@@ -428,8 +440,7 @@ const Parameter: React.FC<Props> = (props) => {
                     max={Number.MAX_SAFE_INTEGER}
                     step={1}
                     name={name}
-                    form={form}
-                    autoSave={autoSave}
+                    {...rest}
                 />
             );
         case "string":
@@ -440,8 +451,7 @@ const Parameter: React.FC<Props> = (props) => {
                     parameter={parameter}
                     readOnly={isReadOnly}
                     name={name}
-                    form={form}
-                    autoSave={autoSave}
+                    {...rest}
                 />
             );
     }
@@ -453,7 +463,7 @@ interface BaseProps {
     readOnly?: boolean;
     name: string;
     form: FormikProps<any>;
-    autoSave: () => void;
+    autosave: boolean;
 }
 
 
@@ -476,7 +486,7 @@ interface EnumProps extends BaseProps {
 }
 
 
-interface XsdProps extends Omit<BaseProps, "autoSave"> {
+interface XsdProps extends BaseProps {
     entity?: {name: string; type: string;};
     actions: IActions;
 }

@@ -76,7 +76,7 @@ void Triangular::generateConfiguration(const std::string &parent_path,
 	}
 
 	auto attenuation_slope = attenuation->addParameter(SLOPE, "Attenuation Slope", types->getType("double"));
-	// TODO: attenuation_slope->setUnit("°");  // which unit?
+	attenuation_slope->setUnit("dB / refresh period");
 	Conf->setProfileReference(attenuation_slope, attenuation_type, plugin_name);
 	auto attenuation_period = attenuation->addParameter(PERIOD, "Attenuation Period", types->getType("int"));
 	attenuation_period->setUnit("refresh period");
