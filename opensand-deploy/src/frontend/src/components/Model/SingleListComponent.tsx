@@ -5,7 +5,6 @@ import Collapse from '@mui/material/Collapse';
 import IconButton from '@mui/material/IconButton';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
 import ListItemText from '@mui/material/ListItemText';
 
@@ -32,17 +31,28 @@ const RightPanel = styled('div')({
 });
 
 
-const LeftPanel = styled(List, {name: "LeftPanel", slot: "Wrapper"})(({ theme }) => ({
-    color: theme.palette.mode === "dark" ? theme.palette.common.black : theme.palette.text.primary,
-    flexGrow: 1,
-    '& .MuiListItem-root': {
-        backgroundColor: "#FFFACD",
-        textTransform: "capitalize",
-        '&.Mui-selected': {
-            backgroundColor: "#FFE1AC",
+const LeftPanel = styled(List, {name: "LeftPanel", slot: "Wrapper"})(({ theme }) => {
+    const hover = theme.palette.mode === "dark" ? "rgba(223, 115, 0, .93)" : "rgba(223, 115, 0, .12)";
+    const color = theme.palette.mode === "dark" ? theme.palette.common.black : theme.palette.text.primary;
+
+    return {
+        color,
+        flexGrow: 1,
+        '& .MuiListItem-root': {
+            backgroundColor: "#FFFACD",
+            textTransform: "capitalize",
+            '&.Mui-selected': {
+                backgroundColor: "#FFE1AC",
+                '&:hover': {
+                    backgroundColor: hover,
+                },
+            },
+            '&:hover': {
+                backgroundColor: hover,
+            },
         },
-    },
-}));
+    };
+});
 
 
 const SingleListComponent: React.FC<Props> = (props) => {
@@ -60,8 +70,12 @@ const SingleListComponent: React.FC<Props> = (props) => {
             <LeftPanel>
                 {isEditable && canGrow && (
                     <ListItem key={0} button selected onClick={addListItem}>
-                        <ListItemIcon><AddIcon /></ListItemIcon>
                         <ListItemText primary={`Add New ${list.pattern.name}`} />
+                        <ListItemSecondaryAction>
+                            <IconButton edge="end" onClick={addListItem} color="inherit">
+                                <AddIcon />
+                            </IconButton>
+                        </ListItemSecondaryAction>
                     </ListItem>
                 )}
                 {list.elements.map((c: ComponentType, i: number) => (
