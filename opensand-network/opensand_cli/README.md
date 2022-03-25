@@ -15,14 +15,14 @@ It provides for six modes:
 
 Here is a table summarizing the main characteristics of each configuration
 
-| Name                                                                   | Frame type in LAN networks        | Frame type in OpenSAND network | QoS capable | VLANs in OpenSAND                           |
-| :---------:                                                            | :---------:                       | :---------:                    | :---------: | :---------:                                 |
-| ```IP network without VLAN```                                          | IPv4 (0x0800)                     | IPv4 (0x0800)                  | No          | None                                        |
-| ```IP network with one default VLAN```                                 | IPv4 (0x0800)                     | 802.1Q (0x8100)                | Yes         | 1 default                                   |
-| ```Ethernet network without VLAN```                                    | IPv4 (0x0800)                     | IPv4 (0x0800)                  | No          | None                                        |
-| ```Ethernet network with one default VLAN```                           | IPv4 (0x0800)                     | 802.1Q (0x8100)                | No          | 1 default                                   |
-| ```Ethernet network with several VLAN, can ping bridge interface```    | 802.1Q (0x8100) and IPv4 (0x0800) | 802.1Q (0x8100)                | Yes         | 1 default + several VLANs for tagged frames |
-| ```Ethernet network with several VLAN, cannot ping bridge interface``` | 802.1Q (0x8100) and IPv4 (0x0800) | 802.1Q (0x8100)                | Yes         | 1 default + several VLANs for tagged frames |
+| Name                                                             | Frame type in LAN networks        | Frame type in OpenSAND network | QoS capable | VLANs in OpenSAND                           |
+| :---------:                                                      | :---------:                       | :---------:                    | :---------: | :---------:                                 |
+| IP network without VLAN                                          | IPv4 (0x0800)                     | IPv4 (0x0800)                  | No          | None                                        |
+| IP network with one default VLAN                                 | IPv4 (0x0800)                     | 802.1Q (0x8100)                | Yes         | 1 default                                   |
+| Ethernet network without VLAN                                    | IPv4 (0x0800)                     | IPv4 (0x0800)                  | No          | None                                        |
+| Ethernet network with one default VLAN                           | IPv4 (0x0800)                     | 802.1Q (0x8100)                | No          | 1 default                                   |
+| Ethernet network with several VLAN, can ping bridge interface    | 802.1Q (0x8100) and IPv4 (0x0800) | 802.1Q (0x8100)                | Yes         | 1 default + several VLANs for tagged frames |
+| Ethernet network with several VLAN, cannot ping bridge interface | 802.1Q (0x8100) and IPv4 (0x0800) | 802.1Q (0x8100)                | Yes         | 1 default + several VLANs for tagged frames |
 
 For each configuration, Makefiles are provided for GW, SAT, ST, GW_WS (Workstation connected to the GW LAN) and ST_WS (Workstation connected to the ST LAN).
 
