@@ -13,6 +13,17 @@ It provides for six modes:
 5. ```Ethernet network with several VLAN, can ping bridge interface```: Ethernet configuration with several VLANs between WSs and allowing to perform QoS. Incoming packets on GW and ST are 802.1Q trames (0x8100), tagged with VLAN ID and priority
 6. ```Ethernet network with several VLAN, cannot ping bridge interface```: A simplified version of the configuration where you will not be able to ping GW and ST via custom VLANs (only via the default one).
 
+Here is a table summarizing the main characteristics of each configuration
+
+| Name                                                                   | Frame type in LAN networks        | Frame type in OpenSAND network | QoS capable | VLANs in OpenSAND                           |
+| :---------:                                                            | :---------:                       | :---------:                    | :---------: | :---------:                                 |
+| ```IP network without VLAN```                                          | IPv4 (0x0800)                     | IPv4 (0x0800)                  | No          | None                                        |
+| ```IP network with one default VLAN```                                 | IPv4 (0x0800)                     | 802.1Q (0x8100)                | Yes         | 1 default                                   |
+| ```Ethernet network without VLAN```                                    | IPv4 (0x0800)                     | IPv4 (0x0800)                  | No          | None                                        |
+| ```Ethernet network with one default VLAN```                           | IPv4 (0x0800)                     | 802.1Q (0x8100)                | No          | 1 default                                   |
+| ```Ethernet network with several VLAN, can ping bridge interface```    | 802.1Q (0x8100) and IPv4 (0x0800) | 802.1Q (0x8100)                | Yes         | 1 default + several VLANs for tagged frames |
+| ```Ethernet network with several VLAN, cannot ping bridge interface``` | 802.1Q (0x8100) and IPv4 (0x0800) | 802.1Q (0x8100)                | Yes         | 1 default + several VLANs for tagged frames |
+
 For each configuration, Makefiles are provided for GW, SAT, ST, GW_WS (Workstation connected to the GW LAN) and ST_WS (Workstation connected to the ST LAN).
 
 Each configuration is described in the README of subfolders. Only configurations 2, 5 and 6 allow to handle QoS on OpenSAND.
