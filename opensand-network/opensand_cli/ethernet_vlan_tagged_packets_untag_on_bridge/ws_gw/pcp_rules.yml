@@ -1,0 +1,29 @@
+0:
+    - dscp: 0
+1:
+    - dscp: 8
+    - dscp: 10
+    - dscp: 12
+    - dscp: 14
+2:
+    - dscp: 16
+    - dscp: 18
+    - dscp: 20
+    - dscp: 22
+3:
+    - dscp: 24
+    - dscp: 26
+    - dscp: 28
+    - dscp: 30
+4:
+    - dscp: 32
+    - dscp: 34
+    - dscp: 36
+    - dscp: 38
+5:
+    - dscp: 40
+    - dscp: 46
+6:
+    - dscp: 48
+7:
+    - dscp: 56

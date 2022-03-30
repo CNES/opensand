@@ -35,21 +35,18 @@ EMU_IFACE=ens4
 EMU_IP_GW=192.168.18.42
 EMU_IP_SAT=192.168.18.1
 EMU_IP_ST=192.168.18.15
-ST_LAN_NET=192.168.2.0/24
 LAN_IFACE=ens5
-LAN_IP=192.168.1.1
 TAP_IFACE=opensand_tap
 TAP_MAC_GW=00:00:00:00:00:01
 TAP_MAC_ST=00:00:00:00:00:02
 WS_GW_MAC=FA:16:3E:65:95:E1
 WS_ST_MAC=FA:16:3E:64:76:1F
 BR_IFACE=opensand_br
-BR_IFACE_IP_GW=192.168.63.254
-BR_IFACE_IP_ST=192.168.63.15
+BR_IFACE_IP=192.168.63.254
 NET_DIGITS=24
-FORWARDING=1
 COLLECTOR_IP=10.10.0.191
 LOG_FOLDER=/var/log/opensand
+VLAN_ID_DEFAULT=2
 
 all: clean network run
 
@@ -64,20 +61,19 @@ network: clean
 	ip link set $(LAN_IFACE) up
 	ip address flush dev $(EMU_IFACE)
 	ip address flush dev $(LAN_IFACE)
-	ip address replace $(LAN_IP)/$(NET_DIGITS) dev $(LAN_IFACE)
 	ip address replace $(EMU_IP_GW)/$(NET_DIGITS) dev $(EMU_IFACE)
 	ip tuntap add mode tap $(TAP_IFACE)
 	ip link set dev $(TAP_IFACE) address $(TAP_MAC_GW)
 	ip link add name $(BR_IFACE) type bridge
-	ip address add $(BR_IFACE_IP_GW)/$(NET_DIGITS) dev $(BR_IFACE)
+	ip address add $(BR_IFACE_IP)/$(NET_DIGITS) dev $(BR_IFACE)
 	ip link set dev $(TAP_IFACE) master $(BR_IFACE)
+	ip link set dev $(LAN_IFACE) master $(BR_IFACE)
+	ip link set $(BR_IFACE) type bridge vlan_filtering 1 ageing_time 0
+	bridge vlan add dev $(TAP_IFACE) vid $(VLAN_ID_DEFAULT) pvid tagged master
+	bridge vlan add dev $(BR_IFACE) vid $(VLAN_ID_DEFAULT) pvid untagged self
+	bridge vlan add dev $(LAN_IFACE) vid $(VLAN_ID_DEFAULT) pvid untagged master
 	ip link set $(BR_IFACE) up
 	ip link set $(TAP_IFACE) up
-	sysctl -w net.ipv4.conf.$(EMU_IFACE).forwarding=$(FORWARDING)
-	sysctl -w net.ipv4.conf.$(BR_IFACE).forwarding=$(FORWARDING)
-	sysctl -w net.ipv4.conf.$(LAN_IFACE).forwarding=$(FORWARDING)
-	sysctl -w net.ipv4.ip_forward=$(FORWARDING)
-	ip route add $(ST_LAN_NET) via $(BR_IFACE_IP_ST) dev $(BR_IFACE)
 
 generate-xml:
 	cp infrastructure.xml infrastructure_updated.xml
