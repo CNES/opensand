@@ -52,6 +52,8 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, std::string fifo_name,
 	access_type(),
 	vcm_id(),
 	new_size_pkt(0),
+	cur_length_bytes(0),
+	new_length_bytes(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(0),
 	fifo_mutex(),
@@ -105,6 +107,8 @@ DvbFifo::DvbFifo(uint8_t carrier_id,
 	fifo_name(fifo_name),
 	access_type(0),
 	new_size_pkt(0),
+	cur_length_bytes(0),
+	new_length_bytes(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(carrier_id),
 	fifo_mutex()
@@ -238,6 +242,9 @@ bool DvbFifo::push(MacFifoElement *elem)
 	this->stat_context.current_length_bytes += length;
 	this->stat_context.in_length_bytes += length;
 
+	LOG(this->log_dvb_fifo, LEVEL_ERROR,
+		    "Added %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
+
 	return true;
 }
 
@@ -257,6 +264,10 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 		this->stat_context.current_length_bytes += length;
 		// remove the remainng part of element from out counter
 		this->stat_context.out_length_bytes -= length;
+
+		LOG(this->log_dvb_fifo, LEVEL_ERROR,
+			    "Added %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
+
 		return true;
 	}
 
@@ -280,6 +291,10 @@ bool DvbFifo::pushBack(MacFifoElement *elem)
 		this->stat_context.current_length_bytes += length;
 		// remove the remainng part of element from out counter
 		this->stat_context.out_length_bytes -= length;
+
+		LOG(this->log_dvb_fifo, LEVEL_ERROR,
+			    "Added %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
+
 		return true;
 	}
 
@@ -310,6 +325,9 @@ MacFifoElement *DvbFifo::pop()
 
 	this->stat_context.current_length_bytes -= length;
 	this->stat_context.out_length_bytes += length;
+
+	LOG(this->log_dvb_fifo, LEVEL_ERROR,
+		    "Removed %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
 
 	return elem;
 }
