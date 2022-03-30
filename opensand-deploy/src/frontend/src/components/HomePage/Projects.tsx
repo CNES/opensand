@@ -1,63 +1,69 @@
 import React from 'react';
 
-import Card from '@material-ui/core/Card';
-import CardActions from '@material-ui/core/CardActions';
-import CardContent from '@material-ui/core/CardContent';
-import Typography from '@material-ui/core/Typography';
+import Button from '@mui/material/Button';
+import CardActions from '@mui/material/CardActions';
+import CardContent from '@mui/material/CardContent';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import Typography from '@mui/material/Typography';
 
-import {makeStyles, Theme} from '@material-ui/core/styles';
-
-import {listProjects, IProjectsContent} from '../../api';
-import {sendError} from '../../utils/dispatcher';
+import {styled} from '@mui/material/styles';
 
 import CreateProjectButton from './CreateProjectButton';
 import UploadProjectButton from './UploadProjectButton';
-import ProjectCard from './ProjectCard';
+import ProjectCard, {LargeCard} from './ProjectCard';
+
+import {deleteProject, listProjects} from '../../api';
+import {useSelector, useDispatch} from '../../redux';
 
 
-const useStyles = makeStyles((theme: Theme) => ({
-    root: {
-        width: "96%",
-        marginLeft: "2%",
-        marginRight: "2%",
-    },
-    card: {
-        width: "100%",
-        marginTop: "2%",
-        marginBottom: "2%",
-    },
-}));
+const Root = styled('div')({
+    width: "96%",
+    marginLeft: "2%",
+    marginRight: "2%",
+});
 
 
-const Projects = () => {
-    const [projects, setProjects] = React.useState<string[]>([]);
-    const classes = useStyles();
+const Projects: React.FC<Props> = (props) => {
+    const projects = useSelector((state) => state.project.projects);
+    const loading = useSelector((state) => state.project.status);
+    const dispatch = useDispatch();
 
-    const storeProjects = React.useCallback((response: IProjectsContent) => {
-        setProjects(response.projects);
-    }, [setProjects]);
+    const [deleteThis, setProjectToDelete] = React.useState<string | null>(null);
 
-    const forceRedraw = React.useCallback(() => {
-        listProjects(storeProjects, sendError);
-    }, [storeProjects]);
+    const clearDeleteProject = React.useCallback(() => {
+        setProjectToDelete(null);
+    }, []);
+
+    const handleDeleteProject = React.useCallback(() => {
+        setProjectToDelete((removable: string | null) => {
+            if (removable != null) {
+                dispatch(deleteProject({project: removable}));
+            }
+            return null;
+        });
+    }, [dispatch]);
 
     React.useEffect(() => {
-        listProjects(storeProjects, sendError);
-        return () => {setProjects([]);}
-    }, [storeProjects]);
+        if (loading === "idle") {
+            dispatch(listProjects());
+        }
+    }, [loading, dispatch]);
 
     const projectsCards = projects.map((p: string, i: number) => (
         <ProjectCard
-            key={i+1}
-            className={classes.card}
+            key={p}
             project={p}
-            onReload={forceRedraw}
+            onDelete={setProjectToDelete}
         />
     ));
 
     return (
-        <div className={classes.root}>
-            <Card key={0} className={classes.card}>
+        <Root>
+            <LargeCard key="app/root">
                 <CardContent>
                     <Typography>
                         New Project
@@ -67,11 +73,26 @@ const Projects = () => {
                     <CreateProjectButton />
                     <UploadProjectButton />
                 </CardActions>
-            </Card>
+            </LargeCard>
             {projectsCards}
-        </div>
+            <Dialog open={deleteThis != null} onClose={clearDeleteProject}>
+                <DialogTitle>Delete a project</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>You're about to delete project {deleteThis}!</DialogContentText>
+                    <DialogContentText>This action can't be reverted, are you sure?</DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={clearDeleteProject} color="primary">No, Keep it</Button>
+                    <Button onClick={handleDeleteProject} color="primary">Yes, Delete {deleteThis}</Button>
+                </DialogActions>
+            </Dialog>
+        </Root>
     );
 };
+
+
+interface Props {
+}
 
 
 export default Projects;

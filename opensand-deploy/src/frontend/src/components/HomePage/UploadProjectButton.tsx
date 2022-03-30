@@ -1,46 +1,49 @@
 import React from 'react';
-import {useHistory} from 'react-router-dom';
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import FormControl from '@material-ui/core/FormControl';
-import FormHelperText from '@material-ui/core/FormHelperText';
-import TextField from '@material-ui/core/TextField';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import FormControl from '@mui/material/FormControl';
+import FormHelperText from '@mui/material/FormHelperText';
+import TextField from '@mui/material/TextField';
 
-import {uploadProject, IApiSuccess} from '../../api';
-import {sendError} from '../../utils/dispatcher';
+import {uploadProject} from '../../api';
+import {useSelector, useDispatch} from '../../redux';
+import {useProject} from '../../utils/hooks';
 
 
 const fileInputId = "project-upload-file-input-id";
 
 
 const UploadProjectButton = () => {
+    const status = useSelector((state) => state.project.status);
+    const dispatch = useDispatch();
+    const goToProject = useProject(dispatch);
+
     const [open, setOpen] = React.useState<boolean>(false);
     const [name, setName] = React.useState<string>("");
     const [nameError, setNameError] = React.useState<boolean>(false);
     const [file, setFile] = React.useState<File | undefined>(undefined);
     const [fileError, setFileError] = React.useState<boolean>(false);
-    const history = useHistory();
 
     const handleOpen = React.useCallback(() => {
+        setName("");
         setOpen(true);
-    }, [setOpen]);
+    }, []);
 
     const handleClose = React.useCallback(() => {
-        setName("");
         setNameError(false);
         setFile(undefined);
         setFileError(false);
         setOpen(false);
-    }, [setOpen, setName, setNameError, setFile, setFileError]);
+    }, []);
 
     const changeName = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         setName(event.target.value);
-    }, [setName]);
+    }, []);
 
     const changeFile = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         const selected = event.target.files ? event.target.files[0] : null;
@@ -49,24 +52,25 @@ const UploadProjectButton = () => {
         } else {
             setFile(selected);
         }
-    }, [setFile]);
-
-    const handleCreatedProject = React.useCallback((project: string, success: IApiSuccess) => {
-        if (success.status === "OK") {
-            history.push("/project/" + project);
-        }
-    }, [history]);
+    }, []);
 
     const handleValidate = React.useCallback((event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (name !== "" && file != null) {
-            uploadProject(handleCreatedProject.bind(this, name), sendError, name, file);
+            dispatch(uploadProject({project: name, archive: file}));
             handleClose();
         } else {
             setNameError(name === "");
             setFileError(file == null);
         }
-    }, [name, file, handleClose, setNameError, setFileError, handleCreatedProject]);
+    }, [name, file, handleClose, dispatch]);
+
+    React.useEffect(() => {
+        if (name && status === "created") {
+            setName("");
+            goToProject(name);
+        }
+    }, [status, name, goToProject]);
 
     return (
         <React.Fragment>
@@ -87,7 +91,7 @@ const UploadProjectButton = () => {
                             />
                             {nameError && <FormHelperText>Mandatory field</FormHelperText>}
                             <label htmlFor={fileInputId}>
-                                <Button variant="outlined" component="span" color={file ? "primary" : fileError ? "secondary" : "default"}>
+                                <Button variant="outlined" component="span" color={file ? "primary" : fileError ? "secondary" : "inherit"}>
                                     {file ? file.name : "Select a file to upload"}
                                 </Button>
                             </label>

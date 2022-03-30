@@ -1,49 +1,45 @@
 import React from 'react';
+import {useParams} from 'react-router-dom';
+import type {FormikProps} from 'formik';
 
-import Checkbox from '@material-ui/core/Checkbox';
-import FormControl from '@material-ui/core/FormControl';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import IconButton from '@material-ui/core/IconButton';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import InputLabel from '@material-ui/core/InputLabel';
-import MenuItem from '@material-ui/core/MenuItem';
-import Select from '@material-ui/core/Select';
-import TextField from '@material-ui/core/TextField';
-import Tooltip from '@material-ui/core/Tooltip';
+import Checkbox from '@mui/material/Checkbox';
+import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import IconButton from '@mui/material/IconButton';
+import InputAdornment from '@mui/material/InputAdornment';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Tooltip from '@mui/material/Tooltip';
 
-import HelpIcon from '@material-ui/icons/Help';
+import {styled} from '@mui/material/styles';
+import DeleteIcon from '@mui/icons-material/HighlightOff';
+import EditIcon from '@mui/icons-material/Edit';
+import HelpIcon from '@mui/icons-material/Help';
 
-import {parameterStyles} from '../../utils/theme';
-import {Parameter as ParameterType} from '../../xsd/model';
-
-
-interface Props {
-    parameter: ParameterType;
-    readOnly?: boolean;
-    changeModel: () => void;
-}
-
-
-interface NumberProps extends Props {
-    min: number;
-    max: number;
-    step: number;
-}
+import {forceEntityInXML} from '../../api';
+import {useSelector, useDispatch} from '../../redux';
+import type {IActions} from '../../utils/actions';
+import {useTimer} from '../../utils/hooks';
+import {getXsdName} from '../../xsd';
+import type {Parameter as ParameterType} from '../../xsd';
 
 
-interface EnumProps extends Props {
-    enumeration: string[];
-}
+const FlexBox = styled('div')(({ theme }) => ({
+    display: "flex",
+    marginBottom: theme.spacing(1),
+}));
 
 
-const BooleanParam = (props: Props) => {
-    const {parameter, readOnly, changeModel} = props;
-    const classes = parameterStyles();
+const BooleanParam: React.FC<BaseProps> = (props) => {
+    const {parameter, readOnly, name, form: {handleChange, setFieldValue, handleBlur, submitForm}, autosave} = props;
 
-    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        parameter.value = String(parameter.value !== "true");
-        changeModel();
-    }, [parameter, changeModel]);
+    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        handleChange(event);
+        setFieldValue(name, String(event.target.checked));
+        if (autosave) {
+            submitForm();
+        }
+    }, [handleChange, name, setFieldValue, submitForm, autosave]);
 
     const help = parameter.description === "" ? null : (
         <Tooltip title={parameter.description} placement="top">
@@ -53,46 +49,44 @@ const BooleanParam = (props: Props) => {
 
     const checkbox = (
         <Checkbox
+            name={name}
             checked={parameter.value === "true"}
-            onChange={handleChange}
+            onChange={myHandleChange}
+            onBlur={handleBlur}
             disabled={readOnly}
         />
     );
 
-    // Need to wrap in a <div> not a <React.Fragment> for the display block
     return (
-        <div className={classes.spaced}>
+        <FlexBox>
             <FormControlLabel control={checkbox} label={parameter.name} />
             {help}
-        </div>
+        </FlexBox>
     );
 };
 
 
-const NumberParam = (props: NumberProps) => {
-    const {parameter, readOnly, min, max, step, changeModel} = props;
-    const classes = parameterStyles();
+const NumberParam: React.FC<NumberProps> = (props) => {
+    const {parameter, readOnly, min, max, step, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
 
-    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        parameter.value = event.target.value;
-        changeModel();
-    }, [parameter, changeModel]);
+    const timer = useTimer(1500);
 
-    const handleBlur = React.useCallback(() => {
-        const saved = parameter.model.saved;
-        changeModel();
-        parameter.model.saved = saved;
-    }, [parameter, changeModel]);
+    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        handleChange(event);
+        if (autosave) {
+            timer(submitForm);
+        }
+    }, [timer, handleChange, submitForm, autosave]);
 
     // label={ parameter.name + " (" + parameter.type + ")" } ???
-    // Need to wrap in a <div> not a <React.Fragment> for the display block
     return (
-        <div className={classes.spaced}>
+        <FlexBox>
             <TextField
                 variant="outlined"
+                name={name}
                 label={parameter.name}
                 value={parameter.value}
-                onChange={handleChange}
+                onChange={myHandleChange}
                 onBlur={handleBlur}
                 fullWidth
                 disabled={readOnly}
@@ -109,37 +103,35 @@ const NumberParam = (props: NumberProps) => {
                     inputProps: {min, max, step},
                 }}
             />
-        </div>
+        </FlexBox>
     );
 };
 
 
-const StringParam = (props: Props) => {
-    const {parameter, readOnly, changeModel} = props;
-    const classes = parameterStyles();
+const StringParam: React.FC<BaseProps> = (props) => {
+    const {parameter, readOnly, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
 
-    const handleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        parameter.value = event.target.value;
-        changeModel();
-    }, [parameter, changeModel]);
+    const timer = useTimer(1500);
 
-    const handleBlur = React.useCallback(() => {
-        const saved = parameter.model.saved;
-        changeModel();
-        parameter.model.saved = saved;
-    }, [parameter, changeModel]);
+    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        handleChange(event);
+        if (autosave) {
+            timer(submitForm);
+        }
+    }, [timer, handleChange, submitForm, autosave]);
 
     // label={ parameter.name + " (" + parameter.type + ")" } ???
-    // Need to wrap in a <div> not a <React.Fragment> for the display block
     return (
-        <div className={classes.spaced}>
+        <FlexBox>
             <TextField
                 variant="outlined"
+                name={name}
                 label={parameter.name}
                 value={parameter.value}
-                onChange={handleChange}
+                onChange={myHandleChange}
                 onBlur={handleBlur}
                 fullWidth
+                autoFocus
                 disabled={readOnly}
                 InputProps={{
                     endAdornment: <InputAdornment position="end">
@@ -152,21 +144,22 @@ const StringParam = (props: Props) => {
                     </InputAdornment>,
                 }}
             />
-        </div>
+        </FlexBox>
     );
 };
 
 
-const EnumParam = (props: EnumProps) => {
-    const {parameter, readOnly, changeModel, enumeration} = props;
-    const classes = parameterStyles();
+const EnumParam: React.FC<EnumProps> = (props) => {
+    const {parameter, readOnly, enumeration, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
 
-    const handleChange = React.useCallback((event: React.ChangeEvent<{name?: string; value: unknown;}>) => {
-        parameter.value = event.target.value as string;
-        changeModel();
-    }, [parameter, changeModel]);
+    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        handleChange(event);
+        if (autosave) {
+            submitForm();
+        }
+    }, [handleChange, submitForm, autosave]);
 
-    const header = React.useMemo(() => <em>Please select a {parameter.name}</em>, [parameter]);
+    const header = React.useMemo(() => <em>Please select a {parameter.name}</em>, [parameter.name]);
 
     const renderValue = React.useCallback((selected: any) => {
         if (selected == null || selected === "") {
@@ -184,43 +177,195 @@ const EnumParam = (props: EnumProps) => {
     const choices = enumeration.map((v: string, i: number) => <MenuItem value={v} key={i+1}>{v}</MenuItem>);
     choices.splice(0, 0, <MenuItem value="" key={0}>{header}</MenuItem>);
 
-    // Need to wrap in a <div> not a <React.Fragment> for the display block
     return (
-        <div className={classes.spaced}>
-            <FormControl className={classes.fullWidth}>
-                <InputLabel htmlFor={parameter.id}>
-                    {parameter.value === "" ? null : parameter.name}
-                </InputLabel>
-                <Select
-                    value={parameter.value}
-                    onChange={handleChange}
-                    inputProps={{id: parameter.id}}
-                    displayEmpty
-                    disabled={readOnly}
-                    renderValue={renderValue}
-                >
-                    {choices}
-                </Select>
-            </FormControl>
+        <FlexBox>
+            <TextField
+                select
+                fullWidth
+                name={name}
+                label={parameter.value ? parameter.name : null}
+                value={parameter.value}
+                onChange={myHandleChange}
+                onBlur={handleBlur}
+                disabled={readOnly}
+                SelectProps={{
+                    displayEmpty: true,
+                    renderValue
+                }}
+            >
+                {choices}
+            </TextField>
             {help}
-        </div>
+        </FlexBox>
     );
 };
 
 
-const Parameter = (props: Props) => {
-    const {parameter, readOnly, changeModel} = props;
+const XsdParameter: React.FC<XsdProps> = (props) => {
+    const {parameter, readOnly, entity, actions, name, form: {handleChange, handleBlur, setFieldValue, submitForm}, autosave} = props;
+    const {onEdit, onRemove} = actions.$;
+
+    const loading = useSelector((state) => state.model.status);
+    const templates = useSelector((state) => state.form.templates);
+    const dispatch = useDispatch();
+    const url = useParams();
+
+    const [onSubmitted, setSubmitted] = React.useState<(() => void) | undefined>(undefined);
+    const [saved, setSaved] = React.useState<boolean>(false);
+
+    const parameter_key = React.useMemo(() => parameter.id.substr(0, parameter.id.indexOf("__template")), [parameter.id]);
+    const xsd = React.useMemo(() => getXsdName(parameter_key, entity?.type), [parameter_key, entity]);
+
+    const myHandleChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+        handleChange(event);
+        const value = event.target.value || "";
+
+        if (value !== "") {
+            if (onEdit) {
+                if (xsd === "infrastructure.xsd") {
+                    setSubmitted(() => () => {
+                        if (url.name && entity) {
+                            const saveUrl = parameter_key + "/" + entity.name;
+                            const loadUrl = `template/${xsd}/${value}`;
+                            dispatch(forceEntityInXML({project: url.name, xsd, loadUrl, saveUrl, entity: entity.type}));
+                            setSaved(true);
+                            setSubmitted(() => () => {
+                                setSubmitted(undefined);
+                                onEdit(entity, parameter_key, xsd);
+                            });
+                        } else {
+                            setSubmitted(undefined);
+                            onEdit(entity, parameter_key, xsd, value);
+                        }
+                    });
+                } else {
+                    setSubmitted(() => () => onEdit(entity, parameter_key, xsd, value));
+                }
+            }
+        } else {
+            onRemove && onRemove(entity?.name, parameter_key);
+        }
+
+        if (autosave) {
+            submitForm();
+        }
+    }, [dispatch, url.name, parameter_key, xsd, entity, onEdit, onRemove, handleChange, submitForm, autosave]);
+
+    const handleClear = React.useCallback(() => {
+        setFieldValue(name, "");
+        onRemove && onRemove(entity?.name, parameter_key);
+        if (autosave) {
+            submitForm();
+        }
+    }, [setFieldValue, name, parameter_key, entity, onRemove, submitForm, autosave]);
+
+    const handleEdit = React.useCallback(() => {
+        onEdit && onEdit(entity, parameter_key, xsd);
+    }, [parameter_key, xsd, entity, onEdit]);
+
+    React.useEffect(() => {
+        if (onSubmitted && loading === "saved") {
+            setSaved(true);
+        }
+        if (onSubmitted && saved && loading === "success") {
+            setSaved(false);
+            onSubmitted();
+        }
+    }, [loading, onSubmitted, saved]);
+
+    const templatesNames = React.useMemo(() => templates[xsd] || [], [templates, xsd]);
+    const header = React.useMemo(() => (
+        <em>
+            {templatesNames.length ? "Please select a template for the" : "This entity does not require a"} {parameter.name}
+        </em>
+    ), [templatesNames.length, parameter.name]);
+    const hasValue = React.useMemo(() => parameter.value && parameter.value !== "", [parameter.value]);
+
+    const renderValue = React.useCallback((selected: any) => {
+        if (selected == null || selected === "") {
+            return header;
+        } else {
+            return selected;
+        }
+    }, [header]);
+
+    const choices = templatesNames.map((v: string, i: number) => <MenuItem value={v} key={i+1}>{v}</MenuItem>);
+    choices.splice(0, 0, <MenuItem value="" key={0}>{header}</MenuItem>);
+
+    return (
+        <FlexBox>
+            <TextField
+                select
+                fullWidth
+                name={name}
+                label={hasValue ? parameter.name : null}
+                value={templatesNames.length ? parameter.value : ""}
+                onChange={myHandleChange}
+                onBlur={handleBlur}
+                disabled={readOnly || !templatesNames.length}
+                SelectProps={{
+                    displayEmpty: true,
+                    renderValue
+                }}
+                InputProps={{
+                    endAdornment: <InputAdornment position="end">
+                        {hasValue && (
+                            <Tooltip placement="top" title="Edit this configuration file">
+                                <IconButton onClick={handleEdit} disabled={readOnly}>
+                                    <EditIcon />
+                                </IconButton>
+                            </Tooltip>
+                        )}
+                        {hasValue && (
+                            <Tooltip placement="top" title="Remove this configuration file">
+                                <IconButton onClick={handleClear} disabled={readOnly} sx={{mr: 2}}>
+                                    <DeleteIcon />
+                                </IconButton>
+                            </Tooltip>
+                        )}
+                        {onSubmitted != null && loading === "pending" && (
+                            <CircularProgress />
+                        )}
+                    </InputAdornment>,
+                }}
+            >
+                {choices}
+            </TextField>
+        </FlexBox>
+    );
+};
+
+
+const Parameter: React.FC<Props> = (props) => {
+    const {parameter, readOnly, entity, actions, prefix, ...rest} = props;
+
+    const model = useSelector((state) => state.model.model);
 
     const isReadOnly = readOnly || parameter.readOnly;
+    const name = prefix + ".value";
 
-    const enumeration = parameter.model.environment.enums.find(e => e.id === parameter.type);
+    if (parameter.id.endsWith("__template")) {
+        return (
+            <XsdParameter
+                parameter={parameter}
+                readOnly={isReadOnly}
+                actions={actions}
+                entity={entity}
+                name={name}
+                {...rest}
+            />
+        );
+    }
+
+    const enumeration = model?.environment?.enums?.find(e => e.id === parameter.type);
     if (enumeration != null) {
         return (
             <EnumParam
                 parameter={parameter}
                 readOnly={isReadOnly}
                 enumeration={enumeration.values}
-                changeModel={changeModel}
+                name={name}
+                {...rest}
             />
         );
     }
@@ -232,7 +377,8 @@ const Parameter = (props: Props) => {
                 <BooleanParam
                     parameter={parameter}
                     readOnly={isReadOnly}
-                    changeModel={changeModel}
+                    name={name}
+                    {...rest}
                 />
             );
         case "longdouble":
@@ -245,7 +391,8 @@ const Parameter = (props: Props) => {
                     min={Number.MIN_SAFE_INTEGER}
                     max={Number.MAX_SAFE_INTEGER}
                     step={0.01}
-                    changeModel={changeModel}
+                    name={name}
+                    {...rest}
                 />
             );
         case "byte":
@@ -256,7 +403,8 @@ const Parameter = (props: Props) => {
                     min={0}
                     max={255}
                     step={1}
-                    changeModel={changeModel}
+                    name={name}
+                    {...rest}
                 />
             );
         case "short":
@@ -267,7 +415,8 @@ const Parameter = (props: Props) => {
                     min={-32768}
                     max={32767}
                     step={1}
-                    changeModel={changeModel}
+                    name={name}
+                    {...rest}
                 />
             );
         case "int":
@@ -278,7 +427,8 @@ const Parameter = (props: Props) => {
                     min={-2147483648}
                     max={2147483647}
                     step={1}
-                    changeModel={changeModel}
+                    name={name}
+                    {...rest}
                 />
             );
         case "long":
@@ -289,7 +439,8 @@ const Parameter = (props: Props) => {
                     min={Number.MIN_SAFE_INTEGER}
                     max={Number.MAX_SAFE_INTEGER}
                     step={1}
-                    changeModel={changeModel}
+                    name={name}
+                    {...rest}
                 />
             );
         case "string":
@@ -299,11 +450,46 @@ const Parameter = (props: Props) => {
                 <StringParam
                     parameter={parameter}
                     readOnly={isReadOnly}
-                    changeModel={changeModel}
+                    name={name}
+                    {...rest}
                 />
             );
     }
 };
+
+
+interface BaseProps {
+    parameter: ParameterType;
+    readOnly?: boolean;
+    name: string;
+    form: FormikProps<any>;
+    autosave: boolean;
+}
+
+
+interface Props extends Omit<BaseProps, "name"> {
+    entity?: {name: string; type: string;};
+    prefix: string;
+    actions: IActions;
+}
+
+
+interface NumberProps extends BaseProps {
+    min: number;
+    max: number;
+    step: number;
+}
+
+
+interface EnumProps extends BaseProps {
+    enumeration: string[];
+}
+
+
+interface XsdProps extends BaseProps {
+    entity?: {name: string; type: string;};
+    actions: IActions;
+}
 
 
 export default Parameter;

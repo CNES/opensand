@@ -79,12 +79,12 @@ void OnOff::generateConfiguration(const std::string &parent_path,
 	auto attenuation_off = attenuation->addParameter("onoff_attenuation_off",
 	                                                 "Attenuation Off Duration",
 	                                                 types->getType("int"));
-	attenuation_on->setUnit("refresh period");
+	attenuation_off->setUnit("refresh period");
 	Conf->setProfileReference(attenuation_off, attenuation_type, plugin_name);
 	auto attenuation_value = attenuation->addParameter("onoff_attenuation_amplitude",
 													   "Attenuation On/Off Amplitude",
 	                                                   types->getType("double"));
-	attenuation_on->setUnit("dB");
+	attenuation_value->setUnit("dB");
 	Conf->setProfileReference(attenuation_value, attenuation_type, plugin_name);
 }
 

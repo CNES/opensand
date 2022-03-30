@@ -88,6 +88,7 @@ void OpenSandModelConf::createModels()
 
 	auto entity = infrastructure_model->getRoot()->addComponent("entity", "Emulated Entity");
 	auto entity_type = entity->addParameter("entity_type", "Entity Type", types->getType("entity_type"));
+	entity_type->setReadOnly(true);
 
 	auto satellite = entity->addComponent("entity_sat", "Satellite", "Specific infrastructure information for a Satellite");
 	infrastructure_model->setReference(satellite, entity_type);
@@ -288,7 +289,7 @@ void OpenSandModelConf::createModels()
 	roll_offs->addParameter("forward", "Forward Band Roll Off", types->getType("double"), "Usually 0.35, 0.25 or 0.2 for DVB-S2");
 	roll_offs->addParameter("return", "Return Band Roll Off", types->getType("double"), "Usually 0.2 for DVB-RCS2");
 	auto forward_band = spots->addList("forward_band", "Forward Band", "fwd_band")->getPattern();
-	forward_band->addParameter("symbol_rate", "Symbol Rate", types->getType("double"))->setUnit("Mbauds");
+	forward_band->addParameter("symbol_rate", "Symbol Rate", types->getType("double"))->setUnit("Bauds");
 	auto band_type = forward_band->addParameter("type", "Type", types->getType("forward_type"));
 	forward_band->addParameter("wave_form", "Wave Form IDs", types->getType("string"), "Supported Wave Forms. Use ';' separator for unique IDs, '-' separator for all the IDs between bounds");
 	forward_band->addParameter("group", "Group", types->getType("carrier_group"));
@@ -297,7 +298,7 @@ void OpenSandModelConf::createModels()
 	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(ratio->getReferenceData());
 	expected_str->set("VCM");
 	auto return_band = spots->addList("return_band", "Return Band", "rtn_band")->getPattern();
-	return_band->addParameter("symbol_rate", "Symbol Rate", types->getType("double"))->setUnit("Mbauds");
+	return_band->addParameter("symbol_rate", "Symbol Rate", types->getType("double"))->setUnit("Bauds");
 	return_band->addParameter("type", "Type", types->getType("return_type"));
 	return_band->addParameter("wave_form", "Wave Forms", types->getType("string"));
 	return_band->addParameter("group", "Group", types->getType("carrier_group"));

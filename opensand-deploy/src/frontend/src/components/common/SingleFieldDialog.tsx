@@ -1,27 +1,15 @@
 import React from 'react';
 
-import Button from '@material-ui/core/Button';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import TextField from '@material-ui/core/TextField';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import TextField from '@mui/material/TextField';
 
 
-interface Props {
-    open: boolean;
-    title: string;
-    description: string;
-    fieldLabel: string;
-    onValidate: (value: string) => void;
-    onClose: () => void;
-    validateButtonLabel?: string;
-    closeButtonLabel?: string;
-}
-
-
-const SingleFieldDialog = (props: Props) => {
+const SingleFieldDialog: React.FC<Props> = (props) => {
     const {open, title, description, fieldLabel, onValidate, onClose} = props;
     const okLabel = props.validateButtonLabel != null ? props.validateButtonLabel : "Create";
     const koLabel = props.closeButtonLabel != null ? props.closeButtonLabel : "Cancel";
@@ -30,7 +18,7 @@ const SingleFieldDialog = (props: Props) => {
 
     const changeValue = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         setValue(event.target.value);
-    }, [setValue]);
+    }, []);
 
     const handleValidate = React.useCallback((event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -61,6 +49,18 @@ const SingleFieldDialog = (props: Props) => {
         </Dialog>
     );
 };
+
+
+interface Props {
+    open: boolean;
+    title: string;
+    description: string;
+    fieldLabel: string;
+    onValidate: (value: string) => void;
+    onClose: () => void;
+    validateButtonLabel?: string;
+    closeButtonLabel?: string;
+}
 
 
 export default SingleFieldDialog;

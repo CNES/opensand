@@ -72,7 +72,7 @@ build()
     then
         # Add flag to changelog version
         CUR_VERS=$(head -1 $CHANGELOG | sed -r -e 's/^(.*)\((.*)\)(.*)$/\2/')
-        NEW_VERS="$CUR_VERS+$FLAG"
+        NEW_VERS="$CUR_VERS-~$FLAG"
         sed -i -r -e "1s/^(.*)\(([^+]+)(\+.+)?\)(.*)$/\1\($NEW_VERS\)\4/" $CHANGELOG
         TEMP=$(echo $CUR_VERS | sed -r -e 's/\+/\\\+/g')
 

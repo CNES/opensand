@@ -2,96 +2,36 @@ export const Visibilities = ["FULL", "ADVANCED", "NORMAL"] as const;
 export type Visibility = typeof Visibilities[number];
 
 
-export class Named {
+interface Named {
     id: string;
     name: string;
     description: string;
-
-    constructor(id: string, name: string, description: string) {
-        this.id = id;
-        this.name = name;
-        this.description = description;
-    }
 }
 
 
-export class NamedElement extends Named {
+interface NamedElement extends Named {
     refPath: string;
     refValue: string;
     advanced: boolean;
     readOnly: boolean;
-    model: Model;
-
-    constructor(id: string, name: string, description: string, model: Model) {
-        super(id, name, description);
-        this.model = model;
-        this.refPath = "";
-        this.refValue = "";
-        this.advanced = false;
-        this.readOnly = false;
-    }
-
-    isVisible(): boolean {
-        if(this.model.visibility === "FULL") {
-            return true;
-        }
-
-        const drawable = this.refPath === "" ? true : this.model.getPathValue(this.refPath) === this.refValue;
-        return drawable && (!this.advanced || this.model.visibility !== "NORMAL");
-    }
 }
 
 
-export class Model {
+export interface Model {
     version: string;
     environment: Environment;
     root: Component;
-    visibility: Visibility;
     saved: boolean;
+}
 
-    constructor(id: string, name: string, description: string, version: string) {
-        this.version = version;
-        this.visibility = "NORMAL";
-        this.environment = new Environment();
-        this.root = new Component(id, name, description === "" ? "Model" : description, this);
-        this.saved = true;
-    }
-
-    isComplete = (): boolean => {
-        return this.root.isValid();
-    };
-
-    getPathValue = (path: string): string => {
-        const splitPath = path.split("/").slice(1);
-        return this.root.getPathValueInternal(splitPath);
-    };
+interface Enum extends Named {
+    values: string[];
 }
 
 
-export class Environment {
-    types: Named[] = [];
-    enums: Enum[] = [];
-
-    addType = (id: string, name: string, description: string): Named => {
-        const type = new Named(id, name, description);
-        this.types.push(type);
-        return type;
-    };
-
-    addEnum = (id: string, name: string, description: string): Enum => {
-        const enumeration = new Enum(id, name, description);
-        this.enums.push(enumeration);
-        return enumeration;
-    };
-}
-
-
-export class Enum extends Named {
-    values: string[] = [];
-
-    addValue = (value: string) => {
-        this.values.push(value);
-    };
+interface Environment {
+    types: Named[];
+    enums: Enum[];
 }
 
 
@@ -116,226 +56,306 @@ interface ListElement {
 export type Element = ParameterElement | ComponentElement | ListElement;
 
 
-export class Parameter extends NamedElement {
+export interface Parameter extends NamedElement {
     type: string;
     unit: string;
     value: string;
-
-    constructor(type: string, id: string, name: string, description: string, unit: string, model: Model) {
-        super(id, name, description, model);
-        this.type = type;
-        this.unit = unit;
-        this.value = type === "boolean" ? "false" : "";
-    }
-
-    getPathValueInternal = (path: string[]): string => {
-        return path.length === 0 ? this.value : "";
-    };
 }
 
 
-export class Component extends NamedElement {
-    elements: Element[] = [];
-
-    isVisible(): boolean {
-        if (!super.isVisible()) {
-            return false;
-        }
-
-        const count = this.elements.filter((e: Element) => e.element.isVisible()).length;
-        return count > 0;
-    }
-
-    addParameter = (type: string, id: string, name: string, description: string, unit: string): Parameter => {
-        const parameter = new Parameter(type, id, name, description, unit, this.model);
-        const element: ParameterElement = {type: "parameter", element: parameter};
-        this.elements.push(element);
-        return parameter;
-    };
-
-    addChild = (id: string, name: string, description: string): Component => {
-        const child = new Component(id, name, description, this.model);
-        const element: ComponentElement = {type: "component", element: child};
-        this.elements.push(element);
-        return child;
-    };
-
-    addList = (id: string, name: string, description: string, patternId: string, patternName: string, patternDescription: string, minOccurences: number, maxOccurences: number): List => {
-        const list = new List(id, name, description, patternId, patternName, patternDescription, minOccurences, maxOccurences, this.model);
-        const element: ListElement = {type: "list", element: list};
-        this.elements.push(element);
-        return list;
-    };
-
-    getComponents = (checkVisibility: boolean = true): Component[] => {
-        const keepComponents = ((e: Element): e is ComponentElement => e.type === "component" && (!checkVisibility || e.element.isVisible()));
-        const components: ComponentElement[] = this.elements.filter(keepComponents);
-        return components.map((e: ComponentElement) => e.element);
-    };
-
-    getParameters = (checkVisibility: boolean = true): Parameter[] => {
-        const keepParameters = ((e: Element): e is ParameterElement => e.type === "parameter" && (!checkVisibility || e.element.isVisible()));
-        const parameters: ParameterElement[] = this.elements.filter(keepParameters);
-        return parameters.map((e: ParameterElement) => e.element);
-    };
-
-    isValid = (): boolean => {
-        return this.elements.reduce((valid: boolean, element: Element) => {
-            switch (element.type) {
-                case "parameter":
-                    const parameter: Parameter = element.element;
-                    if (parameter.value === "" && parameter.isVisible()) {
-                        console.log(parameter.name);
-                        return false;
-                    }
-                    return valid;
-                case "component":
-                    const component: Component = element.element;
-                    if (!component.isValid() && component.isVisible()) {
-                        console.log(component.name);
-                        return false;
-                    }
-                    return valid;
-                case "list":
-                    const list: List = element.element;
-                    return list.elements.reduce((v: boolean, e: Component) => {
-                        if (!e.isValid() && e.isVisible() && list.isVisible()) {
-                            console.log(e.name);
-                            return false;
-                        }
-                        return v;
-                    }, valid);
-                default:
-                    console.log("Unknown component type", element);
-                    return false;
-            }
-        }, true);
-    };
-
-    getPathValueInternal = (path: string[]): string => {
-        const [id, ...subPath] = path;
-
-        const element = this.elements.find((e: Element) => e.element.id === id);
-        if (element) {
-            return element.element.getPathValueInternal(subPath);
-        }
-
-        return "";
-    };
-
-    clone = (parent: Component, index: number) => {
-        parent.elements.forEach((e: Element) => {
-            switch (e.type) {
-                case "list": {
-                    const cloned = this.addList(
-                        e.element.id,
-                        e.element.name,
-                        e.element.description,
-                        e.element.pattern.id,
-                        e.element.pattern.name,
-                        e.element.pattern.description,
-                        e.element.minOccurences,
-                        e.element.maxOccurences);
-                    cloned.refPath = e.element.refPath.replace('*', index.toString());
-                    cloned.refValue = e.element.refValue;
-                    cloned.advanced = e.element.advanced;
-                    cloned.readOnly = e.element.readOnly;
-                    cloned.pattern.refPath = e.element.pattern.refPath.replace('*', index.toString());
-                    cloned.pattern.refValue = e.element.pattern.refValue;
-                    cloned.pattern.advanced = e.element.pattern.advanced;
-                    cloned.pattern.readOnly = e.element.pattern.readOnly;
-                    cloned.pattern.clone(e.element.pattern, index);
-                    break;
-                }
-                case "component": {
-                    const cloned = this.addChild(e.element.id, e.element.name, e.element.description);
-                    cloned.refPath = e.element.refPath.replace('*', index.toString());
-                    cloned.refValue = e.element.refValue;
-                    cloned.advanced = e.element.advanced;
-                    cloned.readOnly = e.element.readOnly;
-                    cloned.clone(e.element, index);
-                    break;
-                }
-                case "parameter": {
-                    const cloned = this.addParameter(
-                        e.element.type,
-                        e.element.id,
-                        e.element.name,
-                        e.element.description,
-                        e.element.unit);
-                    cloned.refPath = e.element.refPath.replace('*', index.toString());
-                    cloned.refValue = e.element.refValue;
-                    cloned.advanced = e.element.advanced;
-                    cloned.readOnly = e.element.readOnly;
-                    cloned.value = e.element.value;
-                    break;
-                }
-            }
-        });
-    };
+export interface Component extends NamedElement {
+    elements: Element[];
 }
 
 
-export class List extends NamedElement {
+export interface List extends NamedElement {
     minOccurences: number;
     maxOccurences: number;
-
     pattern: Component;
-    elements: Component[] = [];
-
-    constructor(id: string, name: string, description: string,
-                patternId: string, patternName: string, patternDescription: string,
-                minOccurences: number, maxOccurences: number, model: Model) {
-        super(id, name, description, model);
-        this.minOccurences = minOccurences;
-        this.maxOccurences = maxOccurences;
-        this.pattern = new Component(patternId, patternName, patternDescription, model);
-
-        // Array.from(Array(minOccurences)).forEach(this.addItem);
-        for (let i = 0; i < minOccurences; i++) {
-            this.addItem();
-        }
-    }
-
-    isVisible(): boolean {
-        if (!super.isVisible()) {
-            return false;
-        }
-
-        return this.pattern.isVisible();
-    }
-
-    isReadOnly = (): boolean => {
-        return this.readOnly || this.pattern.readOnly;
-    };
-
-    getPathValueInternal = (path: string[]): string => {
-        const [index, ...subPath] = path;
-
-        const element = this.elements[Number(index)];
-        if (element) return element.getPathValueInternal(subPath);
-
-        return "";
-    };
-
-    addItem = () => {
-        if (this.elements.length < this.maxOccurences) {
-            const {name, description} = this.pattern;
-            const index = this.elements.length;
-            const item = new Component("item", name + " " + index, description, this.model);
-            item.refPath = this.pattern.refPath.replace('*', index.toString());
-            item.refValue = this.pattern.refValue;
-            item.advanced = this.pattern.advanced;
-            item.readOnly = this.pattern.readOnly;
-            item.clone(this.pattern, index);
-
-            this.elements.push(item);
-        }
-    };
-
-    removeItem = () => {
-        if (this.elements.length > this.minOccurences) {
-            this.elements.pop();
-        }
-    };
+    elements: Component[];
 }
+
+
+const isContainer = (element: NamedElement): element is Component | List => {
+    return element.hasOwnProperty("elements");
+};
+
+
+const isList = (element: Component | List): element is List => {
+    return element.hasOwnProperty("pattern");
+};
+
+
+export const isParameterElement = (e?: Element): e is ParameterElement => e != null && e.type === "parameter";
+export const isComponentElement = (e?: Element): e is ComponentElement => e != null && e.type === "component";
+export const isListElement = (e?: Element): e is ListElement => e != null && e.type === "list";
+
+
+export const newNamedElement = (id: string, name: string, description: string): NamedElement => {
+    return {
+        id, name, description,
+        refPath: "",
+        refValue: "",
+        advanced: false,
+        readOnly: false,
+    };
+};
+
+
+export const newParameter = (id: string, name: string, description: string, type: string, unit: string): Parameter => {
+    const value = type === "boolean" ? "false" : "";
+    return {
+        ...newNamedElement(id, name, description),
+        type, unit, value,
+    };
+};
+
+
+export const newComponent = (id: string, name: string, description: string): Component => {
+    return {
+        ...newNamedElement(id, name, description),
+        elements: [],
+    };
+};
+
+
+export const newList = (id: string, name: string, description: string, pattern: Component, minOccurences: number, maxOccurences: number): List => {
+    const list: List = {
+        ...newNamedElement(id, name, description),
+        minOccurences,
+        maxOccurences,
+        pattern,
+        elements: [],
+    };
+
+    for (let i = 0; i < minOccurences; ++i) {
+        addItem(list);
+    }
+    return list;
+};
+
+
+export const isVisible = (element: NamedElement, visibility: Visibility, root: Component): boolean => {
+    const {advanced, refPath, refValue} = element;
+    if (visibility === "FULL") {
+        return true;
+    }
+
+    const drawable = refPath === "" ? true : getPathValueComponent(root, refPath.split("/").slice(1)) === refValue;
+    const visible = drawable && (!advanced || visibility !== "NORMAL");
+
+    if (visible && isContainer(element)) {
+        if (isList(element)) {
+            return isVisible(element.pattern, visibility, root);
+        } else {
+            return element.elements.filter((e: Element) => isVisible(e.element, visibility, root)).length > 0;
+        }
+    }
+
+    return visible;
+};
+
+
+export const isComplete = (model: Model, visibility: Visibility) => {
+    return isValid(model.root, model.root, visibility);
+};
+
+
+const getPathValueComponent = (component: Component, path: string[]): string => {
+    const [id, ...subPath] = path;
+
+    const element = component.elements.find((e: Element) => e.element.id === id);
+    if (isComponentElement(element)) {
+        return getPathValueComponent(element.element, subPath);
+    } else if (isListElement(element)) {
+        return getPathValueList(element.element, subPath);
+    } else if (isParameterElement(element)) {
+        return getPathValueParameter(element.element, subPath);
+    }
+
+    return "";
+};
+
+
+const getPathValueList = (list: List, path: string[]): string => {
+    const [index, ...subPath] = path;
+
+    const element = list.elements[Number(index)];
+    if (element) {
+        return getPathValueComponent(element, subPath);
+    }
+
+    return "";
+};
+
+
+const getPathValueParameter = (parameter: Parameter, path: string[]): string => {
+    if (path.length) {
+        return "";
+    }
+    return parameter.value;
+};
+
+
+export const addType = (environment: Environment, id: string, name: string, description: string) => {
+    const newType: Named = {id, name, description};
+    environment.types.push(newType);
+    return newType;
+};
+
+
+export const addEnum = (environment: Environment, id: string, name: string, description: string) => {
+    const newEnum: Enum = {id, name, description, values: []};
+    environment.enums.push(newEnum);
+    return newEnum;
+};
+
+
+export const addValue = (enumeration: Enum, value: string) => {
+    enumeration.values.push(value);
+};
+
+
+export const addParameter = (component: Component, type: string, id: string, name: string, description: string, unit: string) => {
+    const parameter = newParameter(id, name, description, type, unit);
+    component.elements.push({type: "parameter", element: parameter});
+    return parameter;
+};
+
+
+export const addChild = (component: Component, id: string, name: string, description: string) => {
+    const child = newComponent(id, name, description);
+    component.elements.push({type: "component", element: child});
+    return child;
+};
+
+
+export const addList = (component: Component, id: string, name: string, description: string, patternId: string, patternName: string, patternDescription: string, minOccurences: number, maxOccurences: number) => {
+    const pattern = newComponent(patternId, patternName, patternDescription);
+    const list = newList(id, name, description, pattern, minOccurences, maxOccurences);
+    component.elements.push({type: "list", element: list});
+    return list;
+};
+
+
+export const newItem = (pattern: Component, index: number) => {
+    const {name, description, refPath, refValue, advanced, readOnly} = pattern;
+    const item = newComponent("item", name + " " + index, description);
+    item.refPath = refPath.replace('*', index.toString());
+    item.refValue = refValue;
+    item.readOnly = readOnly;
+    item.advanced = advanced;
+    clone(item, pattern, index);
+    return item;
+};
+
+
+export const addItem = (list: List) => {
+    const index = list.elements.length;
+    if (index < list.maxOccurences) {
+        const item = newItem(list.pattern, index);
+        list.elements.push(item);
+        return item;
+    }
+}; 
+
+
+export const isReadOnly = (list: List) => {
+    return list.readOnly || list.pattern.readOnly;
+};
+
+
+export const clone = (component: Component, parent: Component, index: number) => {
+    parent.elements.forEach((e: Element) => {
+        switch (e.type) {
+            case "list": {
+                const cloned = addList(
+                    component,
+                    e.element.id,
+                    e.element.name,
+                    e.element.description,
+                    e.element.pattern.id,
+                    e.element.pattern.name,
+                    e.element.pattern.description,
+                    e.element.minOccurences,
+                    e.element.maxOccurences);
+                cloned.refPath = e.element.refPath.replace('*', index.toString());
+                cloned.refValue = e.element.refValue;
+                cloned.advanced = e.element.advanced;
+                cloned.readOnly = e.element.readOnly;
+                cloned.pattern.refPath = e.element.pattern.refPath.replace('*', index.toString());
+                cloned.pattern.refValue = e.element.pattern.refValue;
+                cloned.pattern.advanced = e.element.pattern.advanced;
+                cloned.pattern.readOnly = e.element.pattern.readOnly;
+                clone(cloned.pattern, e.element.pattern, index);
+                break;
+            }
+            case "component": {
+                const cloned = addChild(component, e.element.id, e.element.name, e.element.description);
+                cloned.refPath = e.element.refPath.replace('*', index.toString());
+                cloned.refValue = e.element.refValue;
+                cloned.advanced = e.element.advanced;
+                cloned.readOnly = e.element.readOnly;
+                clone(cloned, e.element, index);
+                break;
+            }
+            case "parameter": {
+                const cloned = addParameter(
+                    component,
+                    e.element.type,
+                    e.element.id,
+                    e.element.name,
+                    e.element.description,
+                    e.element.unit);
+                cloned.refPath = e.element.refPath.replace('*', index.toString());
+                cloned.refValue = e.element.refValue;
+                cloned.advanced = e.element.advanced;
+                cloned.readOnly = e.element.readOnly;
+                cloned.value = e.element.value;
+                break;
+            }
+        }
+    });
+};
+
+
+const isValid = (component: Component, root: Component, visibility: Visibility): boolean => {
+    return component.elements.reduce((valid: boolean, element: Element) => {
+        if (valid) {
+            if (!isVisible(element.element, visibility, root)) {
+                return true;
+            }
+            switch (element.type) {
+                case "parameter":
+                    return element.element.value !== "";
+                case "component":
+                    return isValid(element.element, root, visibility);
+                case "list":
+                    return element.element.elements.reduce((v: boolean, c: Component) => {
+                        return v && (isValid(c, root, visibility) || !isVisible(c, visibility, root));
+                    }, true);
+                default:
+                    throw new Error("Unknown component type");
+            }
+        }
+        return valid;
+    }, true);
+};
+
+
+export const getParameters = (component: Component, root: Component, visibility?: Visibility) => {
+    const components = component.elements.filter((e: Element): e is ParameterElement => (
+        isParameterElement(e) && (!visibility || isVisible(e.element, visibility, root))
+    ));
+    return components.map((e: ParameterElement): Parameter => e.element);
+};
+
+
+export const getComponents = (component: Component, root: Component, visibility?: Visibility) => {
+    const components = component.elements.map((e: Element, i: number): [number, Element] => (
+        [i, e]
+    )).filter((entry: [number, Element]): entry is [number, ComponentElement] => (
+        isComponentElement(entry[1]) && (!visibility || isVisible(entry[1].element, visibility, root))
+    ));
+    return components.map(([i, e]: [number, ComponentElement]): [number, Component] => [i, e.element]);
+};

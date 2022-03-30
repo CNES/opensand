@@ -136,13 +136,48 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				                                                        "profile_gw.xsd",
 				                                                        "profile_gw_net_acc.xsd",
 				                                                        "profile_gw_phy.xsd"});
+				types->addEnumType("entity_type", "Entity Type", {"Gateway",
+																  "Gateway Net Access",
+																  "Gateway Phy",
+																  "Satellite",
+																  "Terminal"});
+				types->addEnumType("upload", "Upload Method", {"Download", "NFS", "SCP", "SFTP"});
+				types->addEnumType("run", "Run Method", {"LAUNCH", "STATUS", "PING", "STOP"});
 
-				auto project = Conf->getOrCreateComponent("project", "Project", "The Project Layout");
-				project->addParameter("topology", "Topology Model", types->getType("topology_xsd"));
-				auto entities = project->addList("entities", "Entities", "entity")->getPattern();
-				entities->addParameter("name", "Name",types->getType("string"));
-				entities->addParameter("infrastructure", "Infrastructure Model", types->getType("infrastructure_xsd"));
-				entities->addParameter("profile", "Profile Model", types->getType("profile_xsd"));
+				auto platform = Conf->getOrCreateComponent("platform", "Platform", "The Machines of the Project");
+				auto project = platform->addParameter("project", "Project Name", types->getType("string"));
+				project->setReadOnly(true);
+
+				auto machines = platform->addList("machines", "Machines", "machine")->getPattern();
+				machines->addParameter("run", "Run Method", types->getType("run"));
+				machines->addParameter("entity_name", "Name", types->getType("string"))->setReadOnly(true);
+				machines->addParameter("entity_type", "Type", types->getType("entity_type"))->setReadOnly(true);
+				machines->addParameter("address", "[USER@]IP[:PORT]", types->getType("string"));
+				machines->addParameter("upload", "Upload Method", types->getType("upload"));
+				machines->addParameter("folder", "Upload Folder", types->getType("string"));
+
+				auto configuration = Conf->getOrCreateComponent("configuration", "Configuration", "The Project Configuration Files");
+				configuration->addParameter("topology__template", "Topology Template", types->getType("string"));
+				auto temp = configuration->addParameter("topology", "Topology Model", types->getType("topology_xsd"));
+				temp->setReadOnly(true);
+				temp->setAdvanced(true);
+
+				auto entities = configuration->addList("entities", "Entities", "entity");
+				entities->setReadOnly(true);
+				auto entity = entities->getPattern();
+				entity->addParameter("entity_name", "Name",types->getType("string"))->setReadOnly(true);
+				auto entityType = entity->addParameter("entity_type", "Type", types->getType("entity_type"));
+				entityType->setReadOnly(true);
+				entityType->setAdvanced(true);
+				entity->addParameter("infrastructure__template", "Infrastructure Template", types->getType("string"));
+				temp = entity->addParameter("infrastructure", "Infrastructure Model", types->getType("infrastructure_xsd"));
+				temp->setReadOnly(true);
+				temp->setAdvanced(true);
+				entity->addParameter("profile__template", "Profile Template", types->getType("string"));
+				temp = entity->addParameter("profile", "Profile Model", types->getType("profile_xsd"));
+				temp->setReadOnly(true);
+				temp->setAdvanced(true);
+
 				Conf->writeProfileModel(folder + "/project.xsd");
 
 				std::shared_ptr<Entity> temporary;

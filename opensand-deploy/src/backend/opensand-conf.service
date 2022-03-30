@@ -3,13 +3,11 @@ Description=Startup script for OpenSAND configuration tool
 Requires=network.target
 
 [Service]
-Type=simple
-RuntimeDirectory=opensand
+Type=notify
+User=opensand
+Group=opensand
 WorkingDirectory=/var/opensand/www/
-ExecStart=/usr/bin/env uwsgi --plugin python3 --http-socket :80 --wsgi-file /var/opensand/opensand-conf/backend.py --callable app --check-static /var/opensand/opensand-conf/static/ --master --workers 5 --die-on-term --wsgi-disable-file-wrapper --pidfile /var/run/opensand/opensand-conf.pid
-ExecStop=/usr/bin/env uwsgi --plugin python3 --stop /var/run/opensand/opensand-conf.pid
-ExecReload=/usr/bin/env uwsgi --plugin python3 --reload /var/run/opensand/opensand-conf.pid
-PIDFile=/var/run/opensand/opensand-conf.pid
+ExecStart=/usr/bin/uwsgi --plugin python3 --socket /run/opensand/opensand-conf.socket --wsgi-file /var/opensand/opensand-conf/backend.py --callable app --master --workers 5 --die-on-term --wsgi-disable-file-wrapper
 
 [Install]
 WantedBy=multi-user.target

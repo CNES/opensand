@@ -1,88 +1,67 @@
 import React from 'react';
-import {useHistory} from 'react-router-dom';
+import {useLocation, useNavigate} from 'react-router-dom';
 
-import AppBar from '@material-ui/core/AppBar';
-import IconButton from '@material-ui/core/IconButton';
-import Paper from '@material-ui/core/Paper';
-import Toolbar from '@material-ui/core/Toolbar';
-import Typography from '@material-ui/core/Typography';
+import AppBar from '@mui/material/AppBar';
+import IconButton from '@mui/material/IconButton';
+import Paper from '@mui/material/Paper';
+import Toolbar from '@mui/material/Toolbar';
 
-import {makeStyles, Theme} from '@material-ui/core/styles';
-import BackIcon from '@material-ui/icons/ArrowBackIos';
-
-import {registerCallback, unregisterCallback} from '../../utils/dispatcher';
+import {styled} from '@mui/material/styles';
+import BackIcon from '@mui/icons-material/ArrowBackIos';
 
 import Logger from './Logger';
+import GrowingTypography from './GrowingTypography';
 
 
-interface Props {
-    children?: React.ReactNode;
-}
+const FlexAppBar = styled(AppBar, {name: "FlexAppBar", slot: "Wrapper"})({
+    flex: "0 1 auto",
+});
 
 
-interface ErrorMessage {
-    message?: string;
-    date: Date;
-}
+const FlexPaper = styled(Paper, {name: "FlexPaper", slot: "Wrapper"})({
+    flex: "1 1 auto",
+});
 
 
-const useStyles = makeStyles((theme: Theme) => ({
-    header: {
-        flex: "0 1 auto",
-    },
-    content: {
-        flex: "1 1 auto",
-    },
-    expand: {
-        flexGrow: 1,
-    },
-}));
+const opensandVersion = process.env.REACT_APP_OPENSAND_VERSION || `(${process.env.NODE_ENV}  build)`;
 
 
-const Template = (props: Props) => {
-    const [error, changeError] = React.useState<ErrorMessage>({date: new Date()});
-    const history = useHistory();
-    const classes = useStyles();
+const Template: React.FC<Props> = (props) => {
+    const {pathname} = useLocation();
+    const navigate = useNavigate();
 
-    const newError = React.useCallback((message: string) => {
-        changeError({message, date: new Date()});
-    }, [changeError]);
-
-    const showHistory = React.useCallback(() => {
-        const [, place, project] = history.location.pathname.split('/');
+    const navigateUp = React.useCallback(() => {
+        const [, place, project] = pathname.split('/');
         if (place === "edit") {
-            history.push(`/project/${project}`);
+            navigate(`/project/${project}`);
         } else {
-            history.push("/projects");
+            navigate("/projects");
         }
-    }, [history]);
-
-    React.useEffect(() => {
-        if (!registerCallback("errorCallback", newError)) {
-            newError("Failed registering error callback: further errors will not display here.");
-        }
-        return () => {unregisterCallback("errorCallback");}
-    }, [newError]);
+    }, [navigate, pathname]);
 
     return (
         <React.Fragment>
-            <AppBar className={classes.header} position="static">
+            <FlexAppBar position="static">
                 <Toolbar>
-                    <IconButton edge="start" color="inherit" onClick={showHistory}>
+                    <IconButton edge="start" color="inherit" onClick={navigateUp}>
                         <BackIcon />
                     </IconButton>
-                    <Typography variant="h6" className={classes.expand}>
-                        OpenSAND Conf 6.0.0
-                    </Typography>
-                    <Logger message={error.message} date={error.date} />
+                    <GrowingTypography variant="h6">
+                        OpenSAND Conf {opensandVersion}
+                    </GrowingTypography>
+                    <Logger />
                 </Toolbar>
-            </AppBar>
-            <Paper elevation={0} className={classes.content}>
+            </FlexAppBar>
+            <FlexPaper elevation={0}>
                 {props.children}
-            </Paper>
+            </FlexPaper>
         </React.Fragment>
     );
 };
+
+
+interface Props {
+}
 
 
 export default Template;

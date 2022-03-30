@@ -1,12 +1,17 @@
 import os
+import shlex
 import shutil
 import tarfile
 import tempfile
+import traceback
 from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 
+from fabric import Connection
+from paramiko.client import MissingHostKeyPolicy
 from flask import Flask, request, jsonify, send_file
+from werkzeug.exceptions import HTTPException
 
 import py_opensand_conf
 
@@ -103,12 +108,22 @@ QOS_CLASSES = [
 ]
 
 
-def success(message='OK'):
-    return jsonify(status=message)
+def success(message='OK', **kwargs):
+    result = {'status': message, **kwargs}
+    return jsonify(result)
 
 
-def error(message):
-    return jsonify(error=message)
+def error(message, return_code=500, **kwargs):
+    result = {'error': message, **kwargs}
+    return jsonify(result), return_code
+
+
+@app.errorhandler(Exception)
+def handle_exception(exc):
+    if isinstance(exc, HTTPException):
+        return exc
+
+    return error(traceback.format_exc())
 
 
 def get_file_content(filename, xml=False):
@@ -118,14 +133,14 @@ def get_file_content(filename, xml=False):
 
     base_folder = WWW_FOLDER if xml else MODELS_FOLDER
     filepath = base_folder / filename
-    if not filepath.exists():
+    try:
+        with filepath.open() as f:
+            content = f.read()
+    except OSError:
         folder = filepath.relative_to(base_folder).parent
-        return error('cannot find {} in {}'.format(filepath.name, folder)), 404
+        return error('cannot find or read {} in {}'.format(filepath.name, folder), 404)
 
-    with filepath.open() as f:
-        content = f.read()
-
-    return jsonify(content=content)
+    return success(content=content)
 
 
 def write_file_content(filename, content, expected_suffix='.xml'):
@@ -149,6 +164,15 @@ def normalize_xsd_folder(folder_name):
         folder = folder.with_name(folder.name + '.d')
 
     return folder.name
+
+
+def read_xml_file(filepath, xsd_name):
+    if not xsd_name.endswith('.xsd'):
+        xsd_name += '.xsd'
+
+    xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath(xsd_name).as_posix())
+    if xsd is not None:
+        return py_opensand_conf.fromXML(xsd, filepath.as_posix())
 
 
 def _get_component(component, name):
@@ -260,7 +284,7 @@ def create_default_topology(meta_model, filepath):
     _set_parameter(return_carrier, 'group', 'Standard')
 
     default_assignment = _get_component(_get_component(topology, 'st_assignment'), 'defaults')
-    _set_parameter(default_assignment, 'default_spot', 0)
+    _set_parameter(default_assignment, 'default_gateway', 0)
     _set_parameter(default_assignment, 'default_group', 'Standard')
 
     wave_forms = _get_component(topology, 'wave_forms')
@@ -382,16 +406,11 @@ def create_default_templates(project):
 
 
 def create_platform_infrastructure(project):
-    project_xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath('project.xsd').as_posix())
-    if project_xsd is None:
-        return
-
-    project_xml = WWW_FOLDER / project / 'project.xml'
-    project_layout = py_opensand_conf.fromXML(project_xsd, project_xml.as_posix())
+    project_layout = read_xml_file(WWW_FOLDER / project / 'project.xml', 'project.xsd')
     if project_layout is None:
         return
 
-    root = project_layout.get_root().get_component('project')
+    root = project_layout.get_root().get_component('configuration')
     if root is None:
         return
 
@@ -408,16 +427,13 @@ def create_platform_infrastructure(project):
         # Can't directly use the items iterated over because of bad cast;
         # so retrieve them one by one instead to get the proper type.
         entity = entities.get_item(str(entity_id))
-        name = _get_parameter(entity, 'name')
+        name = _get_parameter(entity, 'entity_name')
         infra = _get_parameter(entity, 'infrastructure')
         if not name or not infra:
             continue
 
-        xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath(infra).as_posix())
-        if xsd is None:
-            continue
         filepath = WWW_FOLDER / project / 'entities' / name / 'infrastructure.xml'
-        xml = py_opensand_conf.fromXML(xsd, filepath.as_posix())
+        xml = read_xml_file(filepath, infra)
         if xml is None:
             continue
 
@@ -490,17 +506,13 @@ def create_platform_infrastructure(project):
         # Can't directly use the items iterated over because of bad cast;
         # so retrieve them one by one instead to get the proper type.
         entity = entities.get_item(str(entity_id))
-        name = _get_parameter(entity, 'name')
+        name = _get_parameter(entity, 'entity_name')
         infra = _get_parameter(entity, 'infrastructure')
         if not name or not infra:
             continue
 
-        xsd = py_opensand_conf.fromXSD(MODELS_FOLDER.joinpath(infra).as_posix())
-        if xsd is None:
-            continue
-
         filepath = WWW_FOLDER / project / 'entities' / name / 'infrastructure.xml'
-        xml = py_opensand_conf.fromXML(xsd, filepath.as_posix())
+        xml = read_xml_file(filepath, infra)
         if xml is None:
             continue
 
@@ -547,6 +559,47 @@ def create_platform_infrastructure(project):
             _set_parameter(st, 'mac_address', terminal.get('mac_address'))
 
         py_opensand_conf.toXML(xml, filepath.as_posix())
+
+
+def extract_emulation_address(path):
+    xml = read_xml_file(path, 'infrastructure.xsd')
+    if xml is None:
+        return
+
+    entity = _get_component(xml.get_root(), 'entity')
+    entity_type = _get_parameter(entity, 'entity_type')
+
+    component_name = {
+            'Satellite': 'entity_sat',
+            'Terminal': 'entity_st',
+            'Gateway': 'entity_gw',
+            'Gateway Net Access': 'entity_gw_net_acc',
+            'Gateway Phy': 'entity_gw_phy',
+    }.get(entity_type, 'entity_unknown')
+    entity_component = _get_component(entity, component_name)
+    return _get_parameter(entity_component, 'emu_address') or None
+
+
+def extract_entities_names(project):
+    platform = _get_component(project.get_root(), 'platform')
+    if platform is None:
+        return
+
+    entities = platform.get_list('machines')
+    if entities is None:
+        return
+
+    for entity_id, _ in enumerate(entities.get_items()):
+        # Can't directly use the items iterated over because of bad cast;
+        # so retrieve them one by one instead to get the proper type.
+        entity = entities.get_item(str(entity_id))
+        name = _get_parameter(entity, 'entity_name')
+        if name:
+            yield name
+
+
+def pidof_opensand(ssh_client):
+    return set(map(int, ssh_client.run('pidof opensand', hide=True, warn=True).stdout.split()))
 
 
 @app.route('/api/project/<string:name>/template/<string:xsd>/<string:filename>', methods=['GET'])
@@ -650,7 +703,7 @@ def remove_project_topology(name):
     return success()
 
 
-@app.route('/api/project/<string:name>/<string:entity>', methods=['POST'])
+@app.route('/api/project/<string:name>/entity/<string:entity>', methods=['POST'])
 def download_entity(name, entity):
     files = [
             WWW_FOLDER / name / 'topology.xml',
@@ -669,6 +722,119 @@ def download_entity(name, entity):
     return send_file(in_memory, attachment_filename=dl_name, as_attachment=True)
 
 
+@app.route('/api/project/<string:name>/entity/<string:entity>', methods=['PUT'])
+def upload_entity(name, entity):
+    files = [
+            WWW_FOLDER / name / 'topology.xml',
+            WWW_FOLDER / name / 'entities' / entity / 'infrastructure.xml',
+            WWW_FOLDER / name / 'entities' / entity / 'profile.xml',
+    ]
+    files = [f for f in files if f.exists()]
+
+    destination = Path(request.json.get('destination_folder') or '.')
+    run = request.json.get('run_method') or ''
+    method = request.json.get('copy_method')
+    ssh_config = request.json.get('ssh', {})
+
+    if method == 'NFS' and run in ('', 'LAUNCH'):
+        destination = destination.expanduser().resolve()
+        destination.mkdir(parents=True, exist_ok=True)
+
+        for file in files:
+            with file.open('rb') as source, destination.joinpath(file.name).open('wb') as dest:
+                dest.write(source.read())
+            destination.joinpath(file.name).chmod(0o0666)
+
+    passwords = {
+            'password': None,
+            'passphrase': None,
+    }
+    if ssh_config.get('is_passphrase', False):
+        passwords['passphrase'] = ssh_config.get('password') or None
+    else:
+        passwords['password'] = ssh_config.get('password') or None
+    host = ssh_config.get('address') or 'localhost'
+
+    with Connection(host, connect_kwargs=passwords) as client:
+        client.client.set_missing_host_key_policy(MissingHostKeyPolicy())
+
+        if run in ('', 'LAUNCH'):
+            if method == 'SCP':
+                client.run(shlex.join(['mkdir', '-p', destination.as_posix()]), hide=True)
+                for file in files:
+                    client.put(file.as_posix(), destination.as_posix())
+            elif method == 'SFTP':
+                client.run(shlex.join(['mkdir', '-p', destination.as_posix()]), hide=True)
+                with client.sftp() as sftp:
+                    sftp.chdir(destination.as_posix())
+                    for file in files:
+                        sftp.put(file.as_posix(), file.name)
+
+        pid_file = WWW_FOLDER / name / 'entities' / entity / 'process.pid'
+        try:
+            with pid_file.open() as f:
+                launched_pid = int(f.read())
+        except OSError:
+            launched_pid = None
+
+        if run == 'LAUNCH':
+            pids = pidof_opensand(client)
+
+            if launched_pid not in pids:
+                result = client.run('opensand ' + ' '.join(
+                        f'-{f.name[0]} "{destination.joinpath(f.name)}"'
+                        for f in files
+                ) + ' </dev/null >/dev/null 2>&1 & echo $!', hide=True)
+
+                try:
+                    launched_pid = int(result.stdout)
+                except ValueError:
+                    return error(f'OpenSAND process could not be launched on entity {entity}', 422)
+
+            pid_file.parent.mkdir(parents=True, exist_ok=True)
+            with pid_file.open('w') as f:
+                print(launched_pid, file=f)
+
+            return success(running=True)
+        elif run == 'STATUS':
+            running = launched_pid in pidof_opensand(client) if launched_pid is not None else False
+
+            if not running:
+                try:
+                    os.remove(pid_file)
+                except OSError:
+                    pass
+
+            return success(running=running)
+        elif run == 'PING':
+            result = client.run(shlex.join(['ping', '-c', '6', request.json['ping_address']]), hide=True, warn=True)
+            ping = result.stdout
+            if result.exited:
+                if ping and not ping.endswith('\n'):
+                    ping += '\n'
+                ping += result.stderr
+            return success(ping=ping)
+        elif run == 'STOP':
+            if launched_pid is not None:
+                client.run(f'kill {launched_pid}', hide=True, warn=True)
+            try:
+                os.remove(pid_file)
+            except OSError:
+                pass
+
+    return success()
+
+
+@app.route('/api/project/<string:name>/ping', methods=['GET'])
+def get_project_ping_destinations(name):
+    entities = WWW_FOLDER / name / 'entities'
+    addresses = (
+        extract_emulation_address(infrastructure)
+        for infrastructure in entities.glob('*/infrastructure.xml')
+    )
+    return success(addresses=list(filter(None, addresses)))
+
+
 @app.route('/api/project/<string:name>', methods=['GET'])
 def get_project_content(name):
     return get_file_content(name + '/project', xml=True)
@@ -681,8 +847,29 @@ def update_project_content(name):
     folder = WWW_FOLDER / name
     if not folder.exists():
         create_default_templates(name)
+        backup = False
+    else:
+        with folder.joinpath('project.xml').open() as f:
+            backup = f.read()
 
-    return write_file_content(name + '/project.xml', content)
+    result = write_file_content(name + '/project.xml', content)
+
+    project_layout = read_xml_file(folder / 'project.xml', 'project.xsd')
+    if project_layout is None:
+        if not backup:
+            shutil.rmtree(folder.as_posix())
+        else:
+            write_file_content(name + '/project.xml', backup)
+        return error('Invalid project layout, update canceled', 422)
+
+    entities_folder = folder / 'entities'
+    if entities_folder.is_dir():
+        entities = set(extract_entities_names(project_layout))
+        for entity in entities_folder.iterdir():
+            if entity.name not in entities:
+                shutil.rmtree(entity.as_posix())
+
+    return result
 
 
 @app.route('/api/project/<string:name>', methods=['POST'])
@@ -694,7 +881,7 @@ def validate_project(name):
             # Do upload
             destination = WWW_FOLDER / name
             if destination.exists():
-                return error('Project {} already exists'.format(name)), 409
+                return error('Project {} already exists'.format(name), 409)
 
             destination.mkdir()
             entities = destination / 'entities'
@@ -718,7 +905,15 @@ def validate_project(name):
             project_xml = destination / 'project.xml'
             if not project_xml.exists() or not project_xml.is_file():
                 shutil.rmtree(destination.as_posix())
-                return error('Provided archive does not contain a "project.xml" file'), 422
+                return error('Provided archive does not contain a "project.xml" file', 422)
+
+            project_layout = read_xml_file(project_xml, 'project.xsd')
+            if project_layout is None:
+                shutil.rmtree(destination.as_posix())
+                return error('Invalid "project.xml" file in the archive', 422)
+
+            _set_parameter(_get_component(project_layout.get_root(), 'platform'), 'project', name)
+            py_opensand_conf.toXML(project_layout, project_xml.as_posix())
 
             if entities.exists():
                 project_topology = destination.joinpath('topology.xml').as_posix()
@@ -736,7 +931,7 @@ def validate_project(name):
             with tarfile.open(fileobj=in_memory, mode='w:gz') as tar:
                 filepath = WWW_FOLDER / name / 'project.xml'
                 if filepath.exists() and filepath.is_file():
-                    tar.add(filepath.as_posix(), '{}/{}'.format(name, filepath.name))
+                    tar.add(filepath.as_posix(), filepath.name)
 
                 filepath = filepath.parent / 'entities'
                 if filepath.exists() and filepath.is_dir():
@@ -750,7 +945,7 @@ def validate_project(name):
                         ]
                         for filepath in files:
                             if filepath.exists() and filepath.is_file():
-                                filename = '{}/{}/{}'.format(name, entity_folder.name, filepath.name)
+                                filename = '{}/{}'.format(entity_folder.name, filepath.name)
                                 tar.add(filepath.as_posix(), filename)
 
             in_memory.seek(0)
@@ -760,24 +955,24 @@ def validate_project(name):
         # Do copy
         source = WWW_FOLDER / name
         if not source.exists() or not source.is_dir():
-            return error('Project {} not found'.format(name)), 404
+            return error('Project {} not found'.format(name), 404)
 
         destination = WWW_FOLDER / new_project_name
         if destination.exists():
-            return error('Project {} already exists'.format(new_project_name)), 409
+            return error('Project {} already exists'.format(new_project_name), 409)
 
         shutil.copytree(source.as_posix(), destination.as_posix())
 
         return success(new_project_name)
 
-    return error('Missing branch in code'), 500
+    return error('Missing branch in code', 500)
 
 
 @app.route('/api/project/<string:name>', methods=['DELETE'])
 def delete_project(name):
     project = WWW_FOLDER / name
     if not project.exists():
-        return error('Project {} not found'.format(name)), 404
+        return error('Project {} not found'.format(name), 404)
 
     shutil.rmtree(project.as_posix())
     return success()
@@ -795,7 +990,7 @@ def list_projects():
             for entry in WWW_FOLDER.iterdir()
             if entry.is_dir()
     ]
-    return jsonify(projects=projects)
+    return success(projects=projects)
 
 
 @app.route('/api/model/<string:filename>', methods=['GET'])
@@ -810,7 +1005,7 @@ def list_models():
             for entry in MODELS_FOLDER.iterdir()
             if entry.suffix == '.xsd' and entry.is_file()
     ]
-    return jsonify(models=XSDs)
+    return success(models=XSDs)
 
 
 @app.route('/', defaults={'path': ''})

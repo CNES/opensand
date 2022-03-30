@@ -1,51 +1,45 @@
 import React from 'react';
-import {useHistory} from 'react-router-dom';
 
-import Box from '@material-ui/core/Box';
-import Card from '@material-ui/core/Card';
-import CardActions from '@material-ui/core/CardActions';
-import CardContent from '@material-ui/core/CardContent';
-import Typography from '@material-ui/core/Typography';
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardActions from '@mui/material/CardActions';
+import CardContent from '@mui/material/CardContent';
+import Typography from '@mui/material/Typography';
 
-import {copyProject, deleteProject, IApiSuccess} from '../../api';
-import {sendError} from '../../utils/dispatcher';
+import {styled} from '@mui/material/styles';
 
 import CardButton from './CardButton';
 import SingleFieldDialog from '../common/SingleFieldDialog';
 
+import {copyProject} from '../../api';
+import {useSelector, useDispatch} from '../../redux';
+import {useOpen, useProject} from '../../utils/hooks';
 
-interface Props {
-    project: string;
-    className: string;
-    onReload: () => void;
-}
+
+export const LargeCard = styled(Card, {name: "LargeCard", slot: "Wrapper"})({
+    width: "100%",
+    marginTop: "2%",
+    marginBottom: "2%",
+});
 
 
 const ProjectCard = (props: Props) => {
-    const {project, className, onReload} = props;
-    const [open, setOpen] = React.useState<boolean>(false);
-    const history = useHistory();
+    const {project, onDelete} = props;
 
-    const handleOpen = React.useCallback(() => {
-        setOpen(true);
-    }, [setOpen]);
+    const status = useSelector((state) => state.project.status);
+    const dispatch = useDispatch();
+    const goToProject = useProject(dispatch);
 
-    const handleClose = React.useCallback(() => {
-        setOpen(false);
-    }, [setOpen]);
-
+    const [createdProject, setCreatedProjectName] = React.useState<string>("");
+    const [open, handleOpen, handleClose] = useOpen();
 
     const openProject = React.useCallback(() => {
-        history.push("/project/" + project);
-    }, [history, project]);
-
-    const onSuccess = React.useCallback((status: IApiSuccess) => {
-        onReload();
-    }, [onReload]);
+        goToProject(project);
+    }, [goToProject, project]);
 
     const removeProject = React.useCallback(() => {
-        deleteProject(onSuccess, sendError, project);
-    }, [onSuccess, project]);
+        onDelete(project);
+    }, [onDelete, project]);
 
     const downloadProject = React.useCallback(() => {
         const form = document.createElement("form") as HTMLFormElement;
@@ -56,20 +50,24 @@ const ProjectCard = (props: Props) => {
         document.body.removeChild(form);
     }, [project]);
 
-    const handleCreatedProject = React.useCallback((success: IApiSuccess) => {
-        setOpen(false);
-        history.push("/project/" + success.status);
-    }, [setOpen, history]);
-
     const doCreateProject = React.useCallback((projectName: string) => {
-        if (projectName !== "") {
-            copyProject(handleCreatedProject, sendError, project, projectName);
+        if (projectName) {
+            setCreatedProjectName(projectName);
+            dispatch(copyProject({project, name: projectName}));
+            handleClose();
         }
-    }, [project, handleCreatedProject]);
+    }, [dispatch, project, handleClose]);
+
+    React.useEffect(() => {
+        if (createdProject && status === "created") {
+            setCreatedProjectName("");
+            goToProject(createdProject);
+        }
+    }, [status, createdProject, goToProject]);
 
     return (
         <React.Fragment>
-            <Card className={className} onClick={openProject}>
+            <LargeCard onClick={openProject}>
                 <CardContent>
                     <Typography>
                         {project}
@@ -82,7 +80,7 @@ const ProjectCard = (props: Props) => {
                     <CardButton title="Copy" onClick={handleOpen} />
                     <CardButton title="Delete" onClick={removeProject} />
                 </CardActions>
-            </Card>
+            </LargeCard>
             <SingleFieldDialog
                 open={open}
                 title="New Project"
@@ -94,6 +92,12 @@ const ProjectCard = (props: Props) => {
         </React.Fragment>
     );
 };
+
+
+interface Props {
+    project: string;
+    onDelete: (name: string) => void;
+}
 
 
 export default ProjectCard;
