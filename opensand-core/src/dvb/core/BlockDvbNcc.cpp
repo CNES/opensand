@@ -884,7 +884,9 @@ BlockDvbNcc::Upward::Upward(const string &name, tal_id_t mac_id):
 	DvbUpward(name),
 	DvbSpotList(mac_id),
 	mac_id(mac_id),
-	log_saloha(NULL)
+	log_saloha(NULL),
+	probe_gw_received_modcod(NULL),
+	probe_gw_rejected_modcod(NULL)
 {
 }
 
@@ -952,11 +954,34 @@ bool BlockDvbNcc::Upward::onInit(void)
 		}
 	}
 
+	// Init the output here since we now know the FIFOs
+	if(!this->initOutput())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the initialisation of output\n");
+		return false;
+	}
+
 	LOG(this->log_init_channel, LEVEL_DEBUG,
 	    "Link is up msg sent to upper layer\n");
 
 	// everything went fine
 	return result;
+}
+
+
+bool BlockDvbNcc::Upward::initOutput(void)
+{
+	auto output = Output::Get();
+
+	this->probe_gw_received_modcod = output->registerProbe<int>("Down_Return_modcod.Received_modcod",
+								    "modcod index",
+								    true, SAMPLE_LAST);
+	this->probe_gw_rejected_modcod = output->registerProbe<int>("Down_Return_modcod.Rejected_modcod",
+								    "modcod index",
+								    true, SAMPLE_LAST);
+
+	return true;
 }
 
 bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
@@ -978,9 +1003,22 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				delete dvb_frame;
 				return false;
 			}
+
+			fmt_id_t modcod_id = 0;
 			uint8_t msg_type = dvb_frame->getMessageType();
 			LOG(this->log_receive, LEVEL_INFO,
 			    "DVB frame received with type %u\n", msg_type);
+
+			if(msg_type == MSG_TYPE_BBFRAME)
+			{
+				BBFrame *bbframe = (BBFrame *)dvb_frame;
+				modcod_id = bbframe->getModcodId();
+			}
+			else if(msg_type == MSG_TYPE_DVB_BURST)
+			{
+				DvbRcsFrame *dvb_rcs_frame = (DvbRcsFrame *)dvb_frame;
+				modcod_id = dvb_rcs_frame->getModcodId();
+			}
 			switch(msg_type)
 			{
 				// burst
@@ -989,6 +1027,19 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				{
 					// Update C/N0
 					spot->handleFrameCni(dvb_frame);
+
+					bool corrupted = dvb_frame->isCorrupted();
+					if(!corrupted)
+					{
+						// update MODCOD probes
+						this->probe_gw_received_modcod->put(modcod_id);
+						this->probe_gw_rejected_modcod->put(0);
+					}
+					else
+					{
+						this->probe_gw_rejected_modcod->put(modcod_id);
+						this->probe_gw_received_modcod->put(0);
+					}
 
 					NetBurst *burst = NULL;
 					if(!spot->handleFrame(dvb_frame, &burst))

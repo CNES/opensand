@@ -211,9 +211,8 @@ class BlockDvbTal: public BlockDvb
 		std::shared_ptr<Probe<int>> probe_st_l2_from_sat;
 		int l2_from_sat_bytes;
 		// Physical layer information
-		std::shared_ptr<Probe<int>> probe_st_required_modcod;
-		std::shared_ptr<Probe<int>> probe_st_received_modcod;
-		std::shared_ptr<Probe<int>> probe_st_rejected_modcod;
+		std::shared_ptr<Probe<int>> probe_st_received_modcod; // MODCOD of DVB burst received
+		std::shared_ptr<Probe<int>> probe_st_rejected_modcod; // MODCOD of DVB burst rejected
 		// Stability
 		std::shared_ptr<Probe<float>> probe_sof_interval;
 	};
@@ -457,6 +456,9 @@ class BlockDvbTal: public BlockDvb
 		// PHY to SAT
 		std::shared_ptr<Probe<int>> probe_st_phy_to_sat;
 		// Layer 2 from SAT
+
+		// Physical layer information
+		std::shared_ptr<Probe<int>> probe_st_required_modcod; // MODCOD required for next DVB bursts. Correspond to the value put in SAC
 	};
 
  protected:

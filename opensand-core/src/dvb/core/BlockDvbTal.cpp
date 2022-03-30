@@ -239,7 +239,8 @@ BlockDvbTal::Downward::Downward(const string &name, tal_id_t mac_id):
 	probe_st_l2_to_sat_before_sched(),
 	probe_st_l2_to_sat_after_sched(),
 	l2_to_sat_total_bytes(0),
-	probe_st_l2_to_sat_total()
+	probe_st_l2_to_sat_total(),
+	probe_st_required_modcod(NULL)
 {
 }
 
@@ -1230,6 +1231,10 @@ bool BlockDvbTal::Downward::initOutput(void)
 	this->probe_st_l2_to_sat_total =
 		output->registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",
 					   "Kbits/s", true, SAMPLE_AVG);
+
+	this->probe_st_required_modcod = output->registerProbe<int>("Down_Forward_modcod.Required_modcod",
+								    "modcod index",
+								    true, SAMPLE_LAST);
 	return true;
 }
 
@@ -1712,6 +1717,8 @@ bool BlockDvbTal::Downward::sendSAC(void)
 	cni = this->getRequiredCniInput(this->tal_id);
 	sac->setAcm(cni);
 
+	this->probe_st_required_modcod->put(this->getCurrentModcodIdInput(this->tal_id));
+
 	if(empty)
 	{
 		LOG(this->log_send, LEVEL_DEBUG,
@@ -2143,7 +2150,6 @@ BlockDvbTal::Upward::Upward(const string &name, tal_id_t mac_id):
 	is_scpc(false),
 	state(state_initializing),
 	probe_st_l2_from_sat(NULL),
-	probe_st_required_modcod(NULL),
 	probe_st_received_modcod(NULL),
 	probe_st_rejected_modcod(NULL),
 	probe_sof_interval(NULL)
@@ -2346,6 +2352,19 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	uint8_t msg_type = dvb_frame->getMessageType();
 	bool corrupted = dvb_frame->isCorrupted();
 
+	LOG(this->log_receive, LEVEL_INFO,
+			    "Receive a frame of type %d\n", dvb_frame->getMessageType());
+
+	// get ACM parameters that will be transmited to GW in SAC  TODO check it
+	if(IS_CN_CAPABLE_FRAME(msg_type) && this->state == state_running)
+	{
+		double cni = dvb_frame->getCn();
+		LOG(this->log_receive, LEVEL_INFO,
+				    "Read a C/N of %f for packet of type %d\n",
+				    cni, dvb_frame->getMessageType());
+		this->setRequiredCniInput(this->tal_id, cni);
+	}
+
 	switch(msg_type)
 	{
 		case MSG_TYPE_BBFRAME:
@@ -2360,10 +2379,6 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 			NetBurst *burst = NULL;
 			DvbS2Std *std = (DvbS2Std *)this->reception_std;
-
-			// get ACM parameters that will be transmited to GW in SAC
-			double cni = dvb_frame->getCn();
-			this->setRequiredCniInput(this->tal_id, cni);
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_frame->getMessageLength();
@@ -2466,10 +2481,6 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 			if(this->state == state_running)
 			{
-				// get ACM parameters that will be transmited to GW in SAC
-				double cni = dvb_frame->getCn();
-				this->setRequiredCniInput(this->tal_id, cni);
-
 				if(!this->shareFrame(dvb_frame))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,

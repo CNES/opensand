@@ -246,11 +246,19 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 
 bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 {
-	if(IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
+	if(IS_CN_CAPABLE_FRAME(dvb_frame->getMessageType()))
 	{
 		// Set C/N to Dvb frame
 		dvb_frame->setCn(this->getCn(dvb_frame));
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Set C/N to the DVB frame forwardPacket %f. Message type %d\n", this->getCn(dvb_frame), dvb_frame->getMessageType());
 
+		// Update probe
+		this->probe_total_cn->put(dvb_frame->getCn());
+	}
+
+	if(IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
+	{
 		// Process Attenuation
 		if(!this->attenuation_hdl->process(dvb_frame, dvb_frame->getCn()))
 		{
@@ -259,9 +267,6 @@ bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 			delete dvb_frame;
 			return false;
 		}
-
-		// Update probe
-		this->probe_total_cn->put(dvb_frame->getCn());
 	}
 
 	// Send frame to upper layer
@@ -402,14 +407,13 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 
 void BlockPhysicalLayer::Downward::preparePacket(DvbFrame *dvb_frame)
 {
-	if(!IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
+	if(IS_CN_CAPABLE_FRAME(dvb_frame->getMessageType()))
 	{
-		return;
+		// Set C/N to Dvb frame
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Set C/N to the DVB frame preparePacket %f. Message type %d\n", this->getCurrentCn(), dvb_frame->getMessageType());
+		dvb_frame->setCn(this->getCurrentCn());
 	}
-	// Set C/N to Dvb frame
-	LOG(this->log_event, LEVEL_DEBUG,
-	    "Set C/N to the DVB frame");
-	dvb_frame->setCn(this->getCurrentCn());
 }
 
 bool BlockPhysicalLayer::Downward::updateDelay()
