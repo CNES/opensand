@@ -137,7 +137,7 @@ void BlockDvbTal::generateConfiguration()
 	enabled = dama->addParameter("vbdc_enabled", "Enable VBDC", types->getType("bool"));
 	Conf->setProfileReference(enabled, dama_enabled, true);
 	auto vbdc = dama->addParameter("vbdc_max", "Max VBDC", types->getType("int"));
-	vbdc->setUnit("kb/s");
+	vbdc->setUnit("kb/sync period");
 	Conf->setProfileReference(vbdc, enabled, true);
 	dama->addParameter("algorithm", "DAMA Agent Algorithm", types->getType("dama_algorithm"));
 	dama->addParameter("duration", "MSL Duration", types->getType("int"))->setUnit("frames");
