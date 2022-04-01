@@ -40,6 +40,7 @@
 
 
 #include "SarpTable.h"
+#include "PacketSwitch.h"
 #include "TrafficCategory.h"
 #include "NetPacket.h"
 #include "LanAdaptationPlugin.h"
@@ -53,6 +54,7 @@ using std::string;
 struct la_specific
 {
 	string tap_iface;
+	PacketSwitch *packet_switch;        
 };
 
 /**
@@ -70,6 +72,10 @@ class BlockLanAdaptation: public Block
 
 	// initialization method
 	bool onInit(void);
+
+	// The Packet Switch including packet forwarding logic and SARP 
+	inline static PacketSwitch *packet_switch;
+
 
 	class Upward: public RtUpward
 	{
@@ -187,6 +193,9 @@ class BlockLanAdaptation: public Block
 
 	/// The TAP interface name
 	string tap_iface;
+
+        /// Block specific parameters
+        la_specific specific;
 
 	/**
 	 * Create or connect to an existing TAP interface

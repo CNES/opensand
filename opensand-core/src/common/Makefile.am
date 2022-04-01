@@ -25,7 +25,7 @@ libopensand_plugin_la_cpp = \
 	SarpTable.cpp \
 	EncapPlugin.cpp \
 	LanAdaptationPlugin.cpp \
-	PhysicalLayerPlugin.cpp
+	PhysicalLayerPlugin.cpp 
 
 libopensand_plugin_la_h = \
 	OpenSandPlugin.h \
@@ -40,7 +40,7 @@ libopensand_plugin_la_h = \
 	SarpTable.h \
 	EncapPlugin.h \
 	LanAdaptationPlugin.h \
-	PhysicalLayerPlugin.h
+	PhysicalLayerPlugin.h 
 
 libopensand_utils_la_cpp = \
 	UdpChannel.cpp

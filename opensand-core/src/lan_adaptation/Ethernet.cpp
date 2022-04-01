@@ -36,7 +36,9 @@
 
 
 #include "Ethernet.h"
+#include "BlockLanAdaptation.h"
 #include "SarpTable.h"
+#include "PacketSwitch.h"
 #include "TrafficCategory.h"
 #include "OpenSandModelConf.h"
 
@@ -438,10 +440,10 @@ bool Ethernet::Context::initTrafficCategories()
 bool Ethernet::Context::initLanAdaptationContext(
 	tal_id_t tal_id,
 	tal_id_t gw_id,
-	const SarpTable *sarp_table)
+	PacketSwitch *packet_switch)
 {
 	if(!LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id, gw_id, 
-										sarp_table))
+										packet_switch))
 	{
 		return false;
 	}
@@ -500,7 +502,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			MacAddress src_mac = Ethernet::getSrcMac((*packet)->getData());
 			MacAddress dst_mac = Ethernet::getDstMac((*packet)->getData());
 			tal_id_t src = 255 ;
-			tal_id_t dst = 0;
+			tal_id_t dst = 255;
 			uint16_t q_tci = Ethernet::getQTci((*packet)->getData());
 			uint16_t ad_tci = Ethernet::getAdTci((*packet)->getData());
 			qos_t pcp = (q_tci & 0xe000) >> 13;
@@ -508,23 +510,11 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			Evc *evc;
 			std::map<qos_t, TrafficCategory *>::const_iterator default_category;
 			std::map<qos_t, TrafficCategory *>::const_iterator found_category;
+			SarpTable *sarp_table = BlockLanAdaptation::packet_switch->getSarpTable();
 
 			// Do not print errors here because we may want to reject trafic as spanning
 			// tree coming from miscellaneous host
-			if(!this->sarp_table->getTalByMac(src_mac, src))
-			{
-				// do not use default here, default is for destination !
-				LOG(this->log, LEVEL_WARNING,
-				    "cannot find source MAC address %s in sarp table\n",
-				    src_mac.str().c_str());
-				continue;
-			}
-			
-			if(this->tal_id != this->gw_id)
-			{
-				dst = this->gw_id;
-			}
-			else if(!this->sarp_table->getTalByMac(dst_mac, dst))
+			if(!BlockLanAdaptation::packet_switch->getPacketDestination((*packet)->getData(), src, dst))
 			{
 				// check default tal_id
 				if(dst > BROADCAST_TAL_ID)
@@ -710,6 +700,7 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 		Evc *evc;
 		size_t header_length;
 		uint8_t evc_id = 0;
+		SarpTable *sarp_table = BlockLanAdaptation::packet_switch->getSarpTable();
 
 		switch(frame_type)
 		{
@@ -767,7 +758,7 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 
 			// Here we have errors because if we received this packets
 			// the information should be in sarp table
-			if(!this->sarp_table->getTalByMac(dst_mac, dst))
+			/*if(!sarp_table->getTalByMac(dst_mac, dst))
 			{
 				// check default tal_id
 				if(dst > BROADCAST_TAL_ID)
@@ -784,7 +775,7 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 					    "cannot find destination tal ID, use default (%u)\n",
 					    dst);
 				}
-			}
+			}*/
 
 			if(frame_type != this->lan_frame_type)
 			{
@@ -845,6 +836,7 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 	uint16_t ad_tci = 0;
 	uint16_t ether_type = packet->getType();
 	Evc *evc = NULL;
+	SarpTable *sarp_table = BlockLanAdaptation::packet_switch->getSarpTable();
 
 	// search traffic category associated with QoS value
 	// TODO we should filter on IP addresses instead of QoS
@@ -859,14 +851,14 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 
 	// TODO here we use the ad_tci to store the qos in order to be able to find
 	//      an EVC, this is a bad workaround
-	if(!this->sarp_table->getMacByTal(src_tal, src_macs))
+	if(!sarp_table->getMacByTal(src_tal, src_macs))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "unable to find MAC address associated with terminal with ID %u\n",
 		    src_tal);
 		return NULL;
 	}
-	if(!this->sarp_table->getMacByTal(dst_tal, dst_macs))
+	if(!sarp_table->getMacByTal(dst_tal, dst_macs))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "unable to find MAC address associated with terminal with ID %u\n",

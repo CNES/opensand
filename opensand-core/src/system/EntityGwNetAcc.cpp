@@ -65,6 +65,7 @@
 #include "BlockDvbNcc.h"
 #include "BlockEncap.h"
 
+#include "PacketSwitch.h"
 
 EntityGwNetAcc::EntityGwNetAcc(tal_id_t instance_id): Entity("gw_net_acc" + std::to_string(instance_id), instance_id)
 {
@@ -85,6 +86,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 
 	// instantiate all blocs
 	spec_la.tap_iface = this->tap_iface;
+	spec_la.packet_switch = new GatewayPacketSwitch(this->instance_id);
 	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
 			 BlockLanAdaptation::Upward,
 			 BlockLanAdaptation::Downward,

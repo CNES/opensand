@@ -67,6 +67,7 @@
 #include "BlockSatCarrier.h"
 #include "BlockPhysicalLayer.h"
 
+#include "PacketSwitch.h"
 
 EntitySt::EntitySt(tal_id_t instance_id): Entity("st" + std::to_string(instance_id), instance_id)
 {
@@ -80,6 +81,7 @@ bool EntitySt::createSpecificBlocks()
 {
 	struct la_specific laspecific;
 	struct sc_specific scspecific;
+	auto Conf = OpenSandModelConf::Get();
 
 	Block *block_lan_adaptation;
 	Block *block_encap;
@@ -89,6 +91,9 @@ bool EntitySt::createSpecificBlocks()
 
 	// instantiate all blocs
 	laspecific.tap_iface = this->tap_iface;
+	tal_id_t gw_id;
+ 	Conf->getGwWithTalId(this->instance_id, gw_id);
+	laspecific.packet_switch = new TerminalPacketSwitch(this->instance_id, gw_id);
 	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
 			 BlockLanAdaptation::Upward,
 			 BlockLanAdaptation::Downward,
