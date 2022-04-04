@@ -99,7 +99,7 @@
                 <a href="mail.html" style="font-size:100%">Mailing-lists</a>
               </li>
               <li>
-                <a href="https://wiki.net4sat.org/doku.php?id=opensand:index" style="font-size:100%">Wiki</a>
+                <a href="https://github.com/CNES/opensand/wiki" style="font-size:100%">Wiki</a>
               </li>
               <li>
                 <a href="libraries.html" style="font-size:100%">Libraries</a>
@@ -119,7 +119,7 @@
                 <a href="bugtracker.html" style="font-size:100%">Bugtracker</a>
               </li>
               <li>
-                <a href="https://forge.net4sat.org/opensand/opensand" style="font-size:100%">Forge OpenSAND</a>
+                <a href="https://github.com/CNES/opensand" style="font-size:100%">Forge OpenSAND</a>
               </li>
             </ul>
           </li>
@@ -162,22 +162,21 @@
             <ol class="wizard_steps">
               <li>Add the OpenSAND repository:</li>
               <ul style="padding-left: 2em;">
-                <div class="shell-div">
-                  <li>On Ubuntu 14.04 LTS or lower
-                    <br>
-                    <code class="shell">
-                    $ echo "deb http://packages.net4sat.org/opensand trusty stable"
-                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-                  </li>
-                  <li>On Ubuntu 16.04 LTS or upper
-                    <br>
-                    <code class="shell">
-                    $ echo "deb http://packages.net4sat.org/opensand xenial stable"
-                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-                  </li>
-                </div>
+                <code class="shell">
+                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable"
+                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+                <br>
+                <code class="shell">
+                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal dev"
+                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
               </ul>
               <li>Update the list of available packages:</li>
+              <li> Add Net4Sat repository GPG key</li>
+              <ul style="padding-left: 2em;">
+                  <code class="shell">
+                    $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
+                  </code>
+              </ul>
               <ul style="padding-left: 2em;">
                 <div class="shell-div">
                   <code class="shell">
@@ -193,7 +192,7 @@
               </ul>
             </ol>
           </p>
-          <p>The libgse sources are hosted on the <a rel="nofollow" href="https://forge.net4sat.org/opensand/libgse" hreflang="en">libgse gitlab project</a>
+          <p>The libgse sources are hosted on the <a rel="nofollow" href="https://github.com/CNES/libgse" hreflang="en">libgse github project</a>
           from the <a rel="nofollow" href="http://net4sat.org" hreflang="en">Net4Sat platform</a>.</p>
           <p>[1] <a rel="nofollow" href="http://www.etsi.org/deliver/etsi_ts/102600_102699/102606/01.01.01_60/ts_102606v010101p.pdf">ETSI TS 102 606</a></p>
 
@@ -206,22 +205,21 @@
             <ol class="wizard_steps">
               <li>Add the OpenSAND repository:</li>
               <ul style="padding-left: 2em;">
-                <div class="shell-div">
-                  <li>On Ubuntu 14.04 LTS or lower
-                    <br>
-                    <code class="shell">
-                    $ echo "deb http://packages.net4sat.org/opensand trusty stable"
-                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-                  </li>
-                  <li>On Ubuntu 16.04 LTS or upper
-                    <br>
-                    <code class="shell">
-                    $ echo "deb http://packages.net4sat.org/opensand xenial stable"
-                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-                  </li>
-                </div>
+                <code class="shell">
+                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable"
+                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+                <br>
+                <code class="shell">
+                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal dev"
+                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
               </ul>
               <li>Update the list of available packages:</li>
+              <li> Add Net4Sat repository GPG key</li>
+              <ul style="padding-left: 2em;">
+                  <code class="shell">
+                    $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
+                  </code>
+              </ul>
               <ul style="padding-left: 2em;">
                 <div class="shell-div">
                   <code class="shell">
@@ -237,7 +235,7 @@
               </ul>
             </ol>
           </p>
-          <p>The librle sources are hosted on the <a rel="nofollow" href="https://forge.net4sat.org/opensand/librle" hreflang="en">librle gitlab project</a>
+          <p>The librle sources are hosted on the <a rel="nofollow" href="https://github.com/CNES/librle" hreflang="en">librle gitlab project</a>
           from the <a rel="nofollow" href="http://net4sat.org" hreflang="en">Net4Sat platform</a>.</p>
           <p>[1] <a rel="nofollow" href="http://www.etsi.org/deliver/etsi_ts/103100_103199/103179/01.01.01_60/ts_103179v010101p.pdf">ETSI TS 103 179 v1.1.1 (2013-08)</a></p>
 
@@ -255,22 +253,21 @@
             <ol class="wizard_steps">
               <li>Add the OpenSAND repository:</li>
               <ul style="padding-left: 2em;">
-                <div class="shell-div">
-                  <li>On Ubuntu 14.04 LTS or lower
-                    <br>
-                    <code class="shell">
-                    $ echo "deb http://packages.net4sat.org/opensand trusty stable"
-                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-                  </li>
-                  <li>On Ubuntu 16.04 LTS or upper
-                    <br>
-                    <code class="shell">
-                    $ echo "deb http://packages.net4sat.org/opensand xenial stable"
-                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-                  </li>
-                </div>
+                <code class="shell">
+                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable"
+                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+                <br>
+                <code class="shell">
+                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal dev"
+                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
               </ul>
               <li>Update the list of available packages:</li>
+              <li> Add Net4Sat repository GPG key</li>
+              <ul style="padding-left: 2em;">
+                  <code class="shell">
+                    $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
+                  </code>
+              </ul>
               <ul style="padding-left: 2em;">
                 <div class="shell-div">
                   <code class="shell">
