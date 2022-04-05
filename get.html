@@ -85,7 +85,7 @@
               <ul class="dropdown-menu">
                 <li><a href="get.html" style="font-size:100%">Installation</a></li>
                 <li><a href="mail.html" style="font-size:100%">Mailing-lists</a></li>
-                <li><a href="https://wiki.net4sat.org/doku.php?id=openbach:index" style="font-size:100%">Wiki</a></li>
+                <li><a href="https://github.com/CNES/openbach/blob/master/README.md" style="font-size:100%">Wiki</a></li>
                 <li><a href="jobs.html" style="font-size:100%">Related tools & Jobs</a></li>
               </ul>
             </li>
@@ -94,14 +94,14 @@
               <ul class="dropdown-menu">
                 <li><a href="contribution.html" style="font-size:100%">Contribution</a></li>
                 <li><a href="bugtracker.html" style="font-size:100%">Bugtracker</a></li>
-                <li><a href="https://forge.net4sat.org/openbach/openbach" style="font-size:100%">Forge OpenBACH</a></li>
+                <li><a href="https://github.com/CNES/openbach" style="font-size:100%">Forge OpenBACH</a></li>
               </ul>
             </li>
             <li class="page-scroll">
               <a href="blog.html"><p class="text-custom">Blog</p></a>
             </li>
             <li class="page-scroll">
-              <a href="https://forge.net4sat.org/openbach/openbach"> <img src="img/gitlab-logo-square.png"/> </a>
+              <a href="https://github.com/CNES/openbach"> <img src="img/gitlab-logo-square.png"/> </a>
             </li>
           </ul>
         </div>
@@ -122,7 +122,7 @@
     <div class="container">
       <div class="row">
         <div class="col-lg-12">
-          <p>The current page explains how to install an OpenBACH platform. For more details and advanced procedures (user manual debug information, etc.), please read the <a href="https://wiki.net4sat.org/doku.php?id=openbach:manuals:2.x:index">installation manual</a> in the OpenBACH wiki.</p>
+          <p>The current page explains how to install an OpenBACH platform. For more details and advanced procedures (user manual debug information, etc.), please read the <a href="https://github.com/CNES/openbach/blob/master/ansible/README.md">installation manual</a> in the OpenBACH wiki.</p>
           <h2 class="install" id="requirements">Requirements</h2>
           <p>In order to build an OpenBACH platform, you need at least the following components:
           <ul>
@@ -142,14 +142,14 @@
             </ul>
           </p>
           <p>The install of OpenBACH is performed via <a href="http://www.ansible.com">Ansible</a>. Be aware that you need to learn some Ansible concepts to ease the following procedure.</p>
-          <p>The step-by-step installation is described below (this is just an example with basic configuration details, please go to <a href="https://wiki.net4sat.org/doku.php?id=openbach:manuals:2.x:index">installation manual</a> for advanced informations):
+          <p>The step-by-step installation is described below (this is just an example with basic configuration details, please go to <a href="https://github.com/CNES/openbach/blob/master/ansible/README.md">installation manual</a> for advanced informations):
             <ol class="wizard_steps">
               <li>First you need to download the sources (it is recommended to get the master branch):</li>
               <ul style="padding-left: 4em;">
                 <div class="shell-div">
                   <br>
                   <code class="shell">
-                  $ git clone --depth 1 https://forge.net4sat.org/openbach/openbach.git </code>
+                  $ git clone --depth 1 https://github.com/CNES/openbach.git </code>
                 </div>
               </ul>
               <li>For SSH communication, (if it is not already done) you must add the Controller, the Collector, the Auditorium and the Agents to the ssh "known_hosts" file of the host from which you install OpenBACH:</li>
@@ -162,7 +162,7 @@
               </ul>
               <li>The machine from which you install OpenBACH requires Ansible (between version 2.10 and 2.10.5, as well as Python 3.8.5 or newer). Please refer to <a href="http://docs.ansible.com/ansible/intro_installation.html#latest-releases-via-apt-ubuntu">Ansible website</a> to install Ansible.</li>
               <li> You might need to install sshpass/openssh.</li>
-              <li> Before deploying OpenBACH to your target machines, you need to configure which component will be installed on which machine. Since the installation of OpenBACH is done through Ansible playbooks, this configuration uses their inventory files capabilities. Just create a file in the ansible/inventory folder of your sources and populate it with your installation instructions. We propose herein an example where Controller/Collector/Auditorium are installed in the same machine (indeed if Collector/Auditorium are not specified, they are installed with the Controller), and two Agents in separate machine (for advanced topologies go to <a href="https://wiki.net4sat.org/doku.php?id=openbach:manuals:2.x:index">installation manual</a>):</li>
+              <li> Before deploying OpenBACH to your target machines, you need to configure which component will be installed on which machine. Since the installation of OpenBACH is done through Ansible playbooks, this configuration uses their inventory files capabilities. Just create a file in the ansible/inventory folder of your sources and populate it with your installation instructions. We propose herein an example where Controller/Collector/Auditorium are installed in the same machine (indeed if Collector/Auditorium are not specified, they are installed with the Controller), and two Agents in separate machine (for advanced topologies go to <a href="https://github.com/CNES/openbach/blob/master/documents/installation/Topology.md">installation manual</a>):</li>
               <ul style="padding-left: 4em;">
                 <div class="shell-div">
                   <br>
@@ -187,7 +187,7 @@ ansible_python_interpreter=/usr/bin/python3
                     $ ansible -i *inventory/file* -u *ssh_username* -k -K -m ping all</code>
                 </div>
               </ul>
-              <li>You can install OpenBACH with the following command. For detailed options, go to <a href="https://wiki.net4sat.org/doku.php?id=openbach:manuals:2.x:index">installation manual</a> (Use the option --private-key=*path_to_private_key* if you connect to the machines via a private_key):</li>
+              <li>You can install OpenBACH with the following command. For detailed options, go to <a href="https://github.com/CNES/openbach/blob/master/ansible/README.md">installation manual</a> (Use the option --private-key=*path_to_private_key* if you connect to the machines via a private_key):</li>
               <ul style="padding-left: 4em;">
                 <div class="shell-div">
                   <br>
