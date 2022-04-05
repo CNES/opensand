@@ -75,7 +75,7 @@
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
         <ul class="nav navbar-nav navbar-right">
-          <li class="dropdown page-scroll active">
+          <li class="dropdown page-scroll">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> About <b class="caret"></b> </p> </a>
             <ul class="dropdown-menu">
               <li>
@@ -89,7 +89,7 @@
               </li>
             </ul>
           </li>
-          <li class="dropdown page-scroll">
+          <li class="dropdown page-scroll active">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Get & Learn <b class="caret"></b> </p></a>
             <ul class="dropdown-menu">
               <li>
@@ -135,106 +135,106 @@
       </div>
     </nav>
 
-<div class="page-wrap">
-	<section>
-		<div class="container">
-			<div class="row">
-					<div class="col-lg-12">
-						<h1 class="page-header">Steering commitee
-						</h1>
-					</div>
-			</div>
-		</div>
+<section>
+  <!-- Page Content -->
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <h1 class="page-header">Libraries
+        </h1>
+      </div>
+    </div>
+  </div>
+  <div class="page-wrap">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-12">
+          <p>This page presents external libraries used by the OpenSAND platform.</p>
 
-		<!-- Page Content -->
-    <div class="container">
-      <div class="row">
-        <div class="col-lg-12">
-          <p>The OpenSAND steering committee aims are:</p>
-          <ul>
-            <li>take administrative decisions related to platform steering,</li>
-            <li>define the contractual aspects associated (e.g. steering committee opening criterias
-              and confitions for eventual new members according to their contribution, ...),</li>
-            <li>keep the present agreement observed and take decisions related to its execution,</li>
-            <li>choose licenses applied on new platform modules,</li>
-            <li>maintain a <a rel="section" href="#contributor-agreement">Contributor Agreement</a>
-              in order to encourage platform users to identify and inform the whole community of all
-              modifications on the platform available in the applicable open sources conditions (GPLv3,
-              LGPLv3, ...),</li>
-            <li>animate the community and particularly organise annual meeting with all its members,</li>
-            <li>take technical decisions related to platform steering,</li>
-            <li>define maintenance jobs,</li>
-            <li>coordinate the different jobs realised by the contributors,</li>
-            <li>define the technical orientations of the platform (e.g. architecture choices, addition of
-              new functionalities, maintenance choices, ...).</li>
-          </ul>
+          <h2 class="libraries" id="libgse">GSE Library</h2>
+          <p>This piece of software is an implementation of the Generic Stream Encapsulation
+          (GSE) standard defined by ETSI [1] for Linux (or other Unix-compatible OS). The
+          library may be used to add GSE encapsulation/de-encapsulation capabilities to
+          an application.</p>
+          <p>The GSE library is released under the LGPL version licence either version 3, or
+          (at your option) any later version.</p>
+          <p>This is the procedure to install the libgse package, libgse-dbg and libgse-dev are also available.
+            <ol class="wizard_steps">
+              <li>Add the OpenSAND repository:</li>
+              <ul style="padding-left: 2em;">
+                <code class="shell">
+                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable"
+                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+              </ul>
+              <li> Add Net4Sat repository GPG key</li>
+              <ul style="padding-left: 2em;">
+                  <code class="shell">
+                    $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
+                  </code>
+              </ul>
+              <li>Update the list of available packages:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <code class="shell">
+                  $ sudo apt-get update</code>
+                </div>
+              </ul>
+              <li>Install libgse:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <code class="shell">
+                  $ sudo apt-get install libgse</code>
+                </div>
+              </ul>
+            </ol>
+          </p>
+          <p>The libgse sources are hosted on the <a rel="nofollow" href="https://github.com/CNES/libgse" hreflang="en">libgse github project</a>
+          from the <a rel="nofollow" href="http://net4sat.org" hreflang="en">Net4Sat platform</a>.</p>
+          <p>[1] <a rel="nofollow" href="http://www.etsi.org/deliver/etsi_ts/102600_102699/102606/01.01.01_60/ts_102606v010101p.pdf">ETSI TS 102 606</a></p>
+
+          <h2 class="libraries" id="librle">RLE Library</h2>
+          <p>This piece of software is an implementation of the Return Link Encapsulation (RLE) 
+          standard defined by ETSI [1] for Linux (or other Unix-compatible OS). The library may be 
+          used to add RLE encapsulation/de-encapsulation capabilities to an application.</p>
+          <p>The RLE library is licensed under the GNU GPL version 3 or later.</p>
+          <p>This is the procedure to install the librle package, librle-dbg and librle-dev are also available.
+            <ol class="wizard_steps">
+              <li>Add the OpenSAND repository:</li>
+              <ul style="padding-left: 2em;">
+                <code class="shell">
+                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable"
+                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+              </ul>
+              <li>Update the list of available packages:</li>
+              <ul style="padding-left: 2em;">
+                  <code class="shell">
+                  $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
+                  </code>
+              </ul>
+              <li> Add Net4Sat repository GPG key</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <code class="shell">
+                  $ sudo apt-get update</code>
+                </div>
+              </ul>
+              <li>Install librle:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <code class="shell">
+                  $ sudo apt-get install librle</code>
+                </div>
+              </ul>
+            </ol>
+          </p>
+          <p>The librle sources are hosted on the <a rel="nofollow" href="https://github.com/CNES/librle" hreflang="en">librle gitlab project</a>
+          from the <a rel="nofollow" href="http://net4sat.org" hreflang="en">Net4Sat platform</a>.</p>
+          <p>[1] <a rel="nofollow" href="http://www.etsi.org/deliver/etsi_ts/103100_103199/103179/01.01.01_60/ts_103179v010101p.pdf">ETSI TS 103 179 v1.1.1 (2013-08)</a></p>
         </div>
       </div>
     </div>
-	</section>
-	<section class="font-blue">
-		<div class="container">
-			<div class="row">
-				<div class="col-lg-12">
-					<h2 class="steering-committee" id="members">Members</h2>
-					<p><a href="http://www.thalesaleniaspace.com/" title="Thales Alenia Space website"
-					   hreflang="en">Thales Alenia Space</a> and the <a href="http://www.cnes.fr/web/CNES-en/7114-home-cnes.php"
-					   title="CNES website" hreflang="en">CNES</a> as co-founders of OpenSAND Community
-					   and major contributors, are the first Members of OpenSAND Steering Committee, in
-					   charge of all technical and administrative decisions concerning OpenSAND.
-					   Depending on their contributions into OpenSAND, the Steering Committee
-					   may decide, by unanimous decision, to invite other important contributors
-					   to join the Steering Committee as new Members.</p>
-					<p>The objective of the <abbr style="text-decoration:none" title="Centre National d'Etudes Spatiales">CNES
-					   </abbr>and <abbr style="text-decoration:none" title="Thales Alenia Space France">TASF</abbr> is to
-					   better optimize and rationalize the research and development in the satellite
-					   domain. It should avoid duplication of efforts and therefore facilitate programs
-					   of new satellite solutions.</p>
-				</div>
-			</div>
-		</div>
-	</section>
-	<section>
-		<div class="container">
-			<div class="row">
-				<div class="col-lg-12">
-					<h2 class="steering-committee" id="contributors">Contributors</h2>
-				</div>
-				<div class="col-lg-6">
-					<h3 id="maintainers">Maintainers</h3>
-					<p><a href="http://www.viveris.fr/" title="Viveris website" hreflang="fr">Viveris
-					   Technologies</a> is the current operational maintainer of OpenSAND and has a long
-					   experience on OpenSAND, via <abbr style="text-decoration:none" title="Thales Alenia Space France">TASF</abbr>
-					   and <abbr style="text-decoration:none" title="Centre National d'Etudes Spatiales">CNES</abbr> projects.</p>
-					<h3 id="others">Other Contributors</h3>
-					<ul>
-						<li>AQL</li>
-						<li>ASP - IUSO, DTP</li>
-						<li>B2i Toulouse (former Viveris Technologies)</li>
-						<li>CQ-Software (Margouilla)</li>
-						<li>LAAS (Core)</li>
-						<li>University of Rome (DAMA UoR)</li>
-						<li>TRANSICIEL (Environment Plane)</li>
-					</ul>
-				</div>
-				<div class="col-lg-6">
-					 <p id="logo"><a class="nolang" href="http://www.viveris.com" title="Viveris website"
-					   hreflang="fr"><center><img src="img/viveris_logo_small.png"
-					   alt="Viveris" width="180" height="180"/></center></a></p>
-				</div>
-			</div>
-		</div>
-    <div class="container">
-      <div class="row">
-        <div class="col-lg-12">
-          <h2 class="steering-committee" id="contributor-agreement">Contributor agreement</h2>
-          <p>Please read the <a href="agreement.html" title="Contributor agreement">
-             OpenSAND contributor agreement</a> and sign it if you wish to contribute to the project.</p>
-        </div>
-      </div>
-    </div>
-	</section>
-</div>
+  </div>
+</section>
 
 
     <!-- Footer -->

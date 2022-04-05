@@ -75,7 +75,7 @@
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
         <ul class="nav navbar-nav navbar-right">
-          <li class="dropdown page-scroll active">
+          <li class="dropdown page-scroll">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> About <b class="caret"></b> </p> </a>
             <ul class="dropdown-menu">
               <li>
@@ -89,7 +89,7 @@
               </li>
             </ul>
           </li>
-          <li class="dropdown page-scroll">
+          <li class="dropdown page-scroll active">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Get & Learn <b class="caret"></b> </p></a>
             <ul class="dropdown-menu">
               <li>
@@ -135,106 +135,48 @@
       </div>
     </nav>
 
-<div class="page-wrap">
-	<section>
-		<div class="container">
-			<div class="row">
-					<div class="col-lg-12">
-						<h1 class="page-header">Steering commitee
-						</h1>
-					</div>
-			</div>
-		</div>
-
-		<!-- Page Content -->
+<section>
+  <!-- Page Content -->
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-12">
+        <h1 class="page-header">Related Tools</h1>
+      </div>
+    </div>
+  </div>
+  <div class="page-wrap">
     <div class="container">
       <div class="row">
         <div class="col-lg-12">
-          <p>The OpenSAND steering committee aims are:</p>
-          <ul>
-            <li>take administrative decisions related to platform steering,</li>
-            <li>define the contractual aspects associated (e.g. steering committee opening criterias
-              and confitions for eventual new members according to their contribution, ...),</li>
-            <li>keep the present agreement observed and take decisions related to its execution,</li>
-            <li>choose licenses applied on new platform modules,</li>
-            <li>maintain a <a rel="section" href="#contributor-agreement">Contributor Agreement</a>
-              in order to encourage platform users to identify and inform the whole community of all
-              modifications on the platform available in the applicable open sources conditions (GPLv3,
-              LGPLv3, ...),</li>
-            <li>animate the community and particularly organise annual meeting with all its members,</li>
-            <li>take technical decisions related to platform steering,</li>
-            <li>define maintenance jobs,</li>
-            <li>coordinate the different jobs realised by the contributors,</li>
-            <li>define the technical orientations of the platform (e.g. architecture choices, addition of
-              new functionalities, maintenance choices, ...).</li>
-          </ul>
+          <p>This page presents external tools compatible with the OpenSAND platform.</p>
+          <h2 class="relatedtools" id="pepsal">PEPsal</h2>
+          <p>PEPsal [1] is an integrated, multi-layer, transparent TCP Performance Enhancing Proxy which
+          splits the connection into two parts, making use of Linux TCP enhancements when sending data,
+          and largely improving performance in links with different characteristics.</p>
+          <br />
+          <p>A PEP (Performance Enhancement Proxy) is specially helpful for satellite communications
+          since it allows to isolate (from a TCP point fo view) the satellite segment and improve
+          degraded TCP performance caused by long satellite RTT.</p>
+          <p>In short, one of the main attractive features of a PEP is to simply split the TCP
+          connection for avoiding the RTT impact on the growth of the congestion window.</p>
+          <br />
+          <p>PEPsal operates at three different layers (IP, TCP, and Application). It uses netfilter to 
+          intercept those connections that would involve a satellite links and
+          "steals" the TCP SYN packet in the three-way handshake phase of a TCP connection, then pretends
+          to be the other side of that connection, and initiate a new connection to the real endpoint,
+          using a userspace application that directly copy data between the two sockets.</p>
+          <p>The PEPsal is classified as an integrated PEP, since it runs only on a single linux box that 
+          normally forwards packet between two or more networks, and can select which connections have to
+          be enhanced by means of netfilter.</p>
+          <br />
+          <p>The PEPsal sources are hosted on the <a rel="nofollow" href="https://github.com/CNES/pepsal" hreflang="en">gitlab forge</a>
+          from the <a rel="nofollow" href="http://net4sat.org" hreflang="en">Net4Sat platform</a>.</p>
+          <p>[1] <a rel="nofollow" href="https://artes.esa.int/sites/default/files/Presentation_Pepsal_2008_ETSI_BSM.pdf">ESI_BSM</a></p>
         </div>
       </div>
     </div>
-	</section>
-	<section class="font-blue">
-		<div class="container">
-			<div class="row">
-				<div class="col-lg-12">
-					<h2 class="steering-committee" id="members">Members</h2>
-					<p><a href="http://www.thalesaleniaspace.com/" title="Thales Alenia Space website"
-					   hreflang="en">Thales Alenia Space</a> and the <a href="http://www.cnes.fr/web/CNES-en/7114-home-cnes.php"
-					   title="CNES website" hreflang="en">CNES</a> as co-founders of OpenSAND Community
-					   and major contributors, are the first Members of OpenSAND Steering Committee, in
-					   charge of all technical and administrative decisions concerning OpenSAND.
-					   Depending on their contributions into OpenSAND, the Steering Committee
-					   may decide, by unanimous decision, to invite other important contributors
-					   to join the Steering Committee as new Members.</p>
-					<p>The objective of the <abbr style="text-decoration:none" title="Centre National d'Etudes Spatiales">CNES
-					   </abbr>and <abbr style="text-decoration:none" title="Thales Alenia Space France">TASF</abbr> is to
-					   better optimize and rationalize the research and development in the satellite
-					   domain. It should avoid duplication of efforts and therefore facilitate programs
-					   of new satellite solutions.</p>
-				</div>
-			</div>
-		</div>
-	</section>
-	<section>
-		<div class="container">
-			<div class="row">
-				<div class="col-lg-12">
-					<h2 class="steering-committee" id="contributors">Contributors</h2>
-				</div>
-				<div class="col-lg-6">
-					<h3 id="maintainers">Maintainers</h3>
-					<p><a href="http://www.viveris.fr/" title="Viveris website" hreflang="fr">Viveris
-					   Technologies</a> is the current operational maintainer of OpenSAND and has a long
-					   experience on OpenSAND, via <abbr style="text-decoration:none" title="Thales Alenia Space France">TASF</abbr>
-					   and <abbr style="text-decoration:none" title="Centre National d'Etudes Spatiales">CNES</abbr> projects.</p>
-					<h3 id="others">Other Contributors</h3>
-					<ul>
-						<li>AQL</li>
-						<li>ASP - IUSO, DTP</li>
-						<li>B2i Toulouse (former Viveris Technologies)</li>
-						<li>CQ-Software (Margouilla)</li>
-						<li>LAAS (Core)</li>
-						<li>University of Rome (DAMA UoR)</li>
-						<li>TRANSICIEL (Environment Plane)</li>
-					</ul>
-				</div>
-				<div class="col-lg-6">
-					 <p id="logo"><a class="nolang" href="http://www.viveris.com" title="Viveris website"
-					   hreflang="fr"><center><img src="img/viveris_logo_small.png"
-					   alt="Viveris" width="180" height="180"/></center></a></p>
-				</div>
-			</div>
-		</div>
-    <div class="container">
-      <div class="row">
-        <div class="col-lg-12">
-          <h2 class="steering-committee" id="contributor-agreement">Contributor agreement</h2>
-          <p>Please read the <a href="agreement.html" title="Contributor agreement">
-             OpenSAND contributor agreement</a> and sign it if you wish to contribute to the project.</p>
-        </div>
-      </div>
-    </div>
-	</section>
-</div>
+  </div>
+</section>
 
 
     <!-- Footer -->

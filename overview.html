@@ -8,7 +8,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>OpenBACH</title>
+    <title>OpenSAND</title>
 
     <!-- JQuery Core CSS -->
     <link href="css/jquery-ui.css" rel="stylesheet">
@@ -22,9 +22,9 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="css/openbach.css" rel="stylesheet">
+    <link href="css/opensand.css" rel="stylesheet">
     <link href="css/scrolling-nav.css" rel="stylesheet">
-    <link rel="icon" type="image/png" href="img/tab_logo.png" />
+    <link rel="icon" type="image/png" href="img/opensand-manager.png" />
 
     <!-- Custom Fonts -->
     <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
@@ -53,6 +53,7 @@
     <script src="js/jqBootstrapValidation.js" defer></script>
   </head>
 
+
   <body>
     <!-- Navigation -->
     <nav class="navbar navbar-inverse navbar-fixed-top navbar-custom" role="navigation">
@@ -65,45 +66,71 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <div id = "imgLogo">
+          <!-- <a class="navbar-brand page-scroll" href="index.html"> <img id="logo" src="img/logo2.png" alt=""/></a>-->
+          <div id="imgLogo">
             <img class="logo" src="img/logo2.png" onclick="document.location.href = 'index.html'" alt=""></img>
           </div>
         </div>
+
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-          <ul class="nav navbar-nav navbar-right">
-            <li class="dropdown page-scroll active">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">About<b class="caret"></b></p></a>
-              <ul class="dropdown-menu">
-                <li><a href="overview.html" style="font-size:100%">Overview</a></li>
-                <li><a href="references.html" style="font-size:100%">References</a></li>
-                <li><a href="commitee.html" style="font-size:100%">Steering commitee</a></li>
-              </ul>
-            </li>
-            <li class="dropdown page-scroll">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Get & Learn<b class="caret"></b></p></a>
-              <ul class="dropdown-menu">
-                <li><a href="get.html" style="font-size:100%">Installation</a></li>
-                <li><a href="mail.html" style="font-size:100%">Mailing-lists</a></li>
-                <li><a href="https://github.com/CNES/openbach/blob/master/README.md" style="font-size:100%">Wiki</a></li>
-                <li><a href="jobs.html" style="font-size:100%">Related tools & Jobs</a></li>
-              </ul>
-            </li>
-            <li class="dropdown page-scroll">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Contribute<b class="caret"></b></p></a>
-              <ul class="dropdown-menu">
-                <li><a href="contribution.html" style="font-size:100%">Contribution</a></li>
-                <li><a href="bugtracker.html" style="font-size:100%">Bugtracker</a></li>
-                <li><a href="https://github.com/CNES/openbach" style="font-size:100%">Forge OpenBACH</a></li>
-              </ul>
-            </li>
-            <li class="page-scroll">
-              <a href="blog.html"><p class="text-custom">Blog</p></a>
-            </li>
-            <li class="page-scroll">
-              <a href="https://github.com/CNES/openbach"> <img src="img/gitlab-logo-square.png"/> </a>
-            </li>
-          </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <li class="dropdown page-scroll active">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> About <b class="caret"></b> </p> </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="overview.html" style="font-size:100%">Overview</a>
+              </li>
+              <li>
+                <a href="references.html" style="font-size:100%">References</a>
+              </li>
+              <li>
+                <a href="commitee.html" style="font-size:100%">Steering commitee</a>
+              </li>
+            </ul>
+          </li>
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Get & Learn <b class="caret"></b> </p></a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="get.html" style="font-size:100%">Installation</a>
+              </li>
+              <li>
+                <a href="mail.html" style="font-size:100%">Mailing-lists</a>
+              </li>
+              <li>
+                <a href="https://github.com/CNES/opensand/wiki" style="font-size:100%">Wiki</a>
+              </li>
+              <li>
+                <a href="libraries.html" style="font-size:100%">Libraries</a>
+              </li>
+              <li>
+                <a href="relatedtools.html" style="font-size:100%">Related Tools</a>
+              </li>
+            </ul>
+          </li>
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Contribute  <b class="caret"></b> </p> </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="contribution.html" style="font-size:100%">Contribution</a>
+              </li>
+              <li>
+                <a href="bugtracker.html" style="font-size:100%">Bugtracker</a>
+              </li>
+              <li>
+                <a href="https://github.com/CNES/opensand" style="font-size:100%">Forge OpenSAND</a>
+              </li>
+            </ul>
+          </li>
+          <li class="page-scroll">
+            <a href="blog.html" ><p class="text-custom">Blog </p></a>
+          </li>
+
+          <li class="page-scroll">
+            <a href="https://www.net4sat.org"> <img src="img/gitlab-logo-square.png"/> </a>
+          </li>
+        </ul>
         </div>
       </div>
     </nav>
@@ -113,174 +140,121 @@
     <!-- Marketing Icons Section -->
     <div class="row">
       <div class="col-lg-12">
-        <h1 class="page-header">Welcome to OpenBACH</h1>
+        <h1 class="page-header">Welcome to OpenSAND</h1>
         <br>
-        <p><abbr style="text-decoration:none" title="Open Benchmark Automation tools for Communication and Hypervision">OpenBACH </abbr>is a user-friendly and efficient benchmark to configure, supervise and control your network under test (e.g. terrestrial networks, satellite networks, WAN, LAN, etc.). It provides an efficient modular structure to facilitate the additions of new software tools, monitoring parameters, tasks, etc. The benchmark is able to be integrated in different types of equipments, servers, clients, hardware and software with minimal adaptation effort.</p>
+        <p><abbr style="text-decoration:none" title="Open Satellite Network Demonstrator">OpenSAND </abbr>, formerly known as Platine, is a user-friendly and efficient tool to emulate satellite communication systems, mainly <abbr style="text-decoration:none" title="Digital video broadcasting - Return Channel via Satellite 2nd generation">DVB-RCS2 </abbr>- <abbr style="text-decoration:none" title="Digital video Broadcasting - Second">DVB-S2 </abbr>. It provides a suitable and simple means for performance evaluation and innovative access and network techniques validation. Its ability to interconnect real equipments with real applications provides excellent demonstration means.</p>
       </div>
     </div>
     <div class="row">
       <div class="col-md-12">
         <center>
-          <p>This platform has been promoted by <a href="https://cnes.fr/en">CNES</a> (French Space Center) as a reference open-source software tool within its research and development studies and activities in the domain of satellite network communications systems. OpenBACH has been developped in order to be complementary to <a href="http://www.opensand.org">OpenSAND</a>, the satellite network emulator.</p>
+          <p>This platform has been initially developped by <a href="https://www.thalesgroup.com/fr/global-activities/espace">Thales Alenia Space</a> in the frame of IST european projects, R&T CNES studies and internal research.</p>
+          <p>It has been also promoted by <a href="https://cnes.fr/en">CNES</a> (French Space Center) as a reference open-source software tool within its research and development studies and activities in the domain of satellite communication systems and networks.</p>
         </center>
       </div>
     </div>
     <div class="row">
-      <div class="col-md-3"></div>
       <div class="col-md-6">
         <center>
-          <img class="img_hover" src="img/cnes_logo_small.png" style = "max-width:55%" onclick="document.location.href = 'https://cnes.fr/en'"/>
+          <img class = "img_hover" src="img/cnes_logo_small.png" style = "max-width:55%" onclick="document.location.href = 'https://cnes.fr/en'"/>
         </center>
       </div>
-      <div class="col-md-3"></div>
+      <div class="col-md-6">
+        <center>
+          <img class = "img_hover" src="img/tas_logo.png" style = "max-width:55%" onclick="document.location.href ='https://www.thalesgroup.com/fr/global-activities/espace'"/>
+        </center>
+      </div>
     </div>
   </div>
 </section>
+
+<!--
+<section>
+  <div class="container" >
+    <div class="row">
+      <div class="col-md-12">
+        <center>
+          <p>This platform has been initially developped by <a href="https://www.thalesgroup.com/fr/global-activities/espace">Thales Alenia Space</a> in the frame of IST european projects, R&T CNES studies and internal research.</p>
+          <p>It has been also promoted by <a href="https://cnes.fr/en">CNES</a> (French Space Center) as a reference open-source software tool within its research and development studies and activities in the domain of satellite communication systems and networks.</p>
+        </center>
+      </div>
+    </div>
+  </div>
+</section>
+-->
+
 <section class="font-blue">
   <div class="container">
     <div class="row">
-      
       <div class="col-md-12">
-        <h2>OpenBACH overview</h2>
+        <h2>OpenSAND overview</h2>
         <br>
-        <p>OpenBACH provides an easy and flexible way to perform engineering tests in the satellite and terrestrial network communication systems. The objectives of the OpenBACH benchmark are:</p>
+        <p>OpenSAND provides an easy and flexible way to emulate satellite communication systems. The objectives of the OpenSAND Satellite network emulation testbed are:</p>
         <ul>
-          <li>Provide a research and engineering tool able to validate network and service innovative functionalities.</li>
+          <li>Provide a research and engineering tool able to validate access and network innovative functionalities</li>
           <li>Provide measurements points and analysis tools for performance evaluation</li>
+          <li>Ensure interconnection with real terrestrial networks and applications for demonstration purposes</li>
         </ul>
-        <p>The OpenBACH documentation provides a list of all the available <a href="https://github.com/CNES/openbach/blob/master/README.md">features.</a></p>
-        <p>OpenBACH has been implemented using the following open-source solutions: </p>
-        <br>
-        <div class="row">
-          <div class="col-md-2"></div>
-          <div class="col-md-2">
-            <center>
-              <img class="img_hover" src="img/ansible.png" style="max-width:50%" onclick="document.location.href = 'https://www.ansible.com'"/>
-            </center>
-          </div>
-          <div class="col-md-2">
-            <center>
-              <img class="img_hover" src="img/influxdb.png" style="max-width:100%" onclick="document.location.href = 'https://www.influxdata.com'"/>
-            </center>
-          </div>
-          <div class="col-md-2">
-            <center>
-              <img class="img_hover" src="img/elastic.png" style="max-width:100%" onclick="document.location.href = 'https://www.elastic.co/products/elasticsearch'"/>
-            </center>
-          </div>
-          <div class="col-md-2">
-            <center>
-              <img class="img_hover" src="img/kibana.png" style="max-width:100%" onclick="document.location.href = 'https://www.elastic.co/products/kibana'"/>
-            </center>
-          </div>
-        </div>
-        <br>
-        <div class="row">
-          <div class="col-md-2"></div>
-          <div class="col-md-2">
-            <center>
-              <img class="img_hover" src="img/logstash.png" style="max-width:100%" onclick="document.location.href = 'https://www.elastic.co/products/logstash'"/>
-            </center>
-          </div>
-          <div class="col-md-2">
-            <center>
-              <img class="img_hover" src="img/grafana.svg" style="max-width:100%" onclick="document.location.href = 'https://www.grafana.net'"/>
-            </center>*
-          </div>
-          <div class="col-md-2">
-            <center>
-              <img class="img_hover" src="img/django.png" style="max-width:60%" onclick="document.location.href = 'https://www.djangoproject.com/'"/>
-            </center>
-          </div>
-          <div class="col-md-2">
-            <center>
-              <img class="img_hover" src="img/nginx.png" style="max-width:100%" onclick="document.location.href = 'https://www.nginx.com/'"/>
-            </center>
-          </div>
-        </div>
-        <br />
-        <p>Moreover, several common networking tools are also embedded within the OpenBACH <a href="jobs.html" title="Related tools & Jobs">Jobs.</a> 
+        <p>The OpenSAND platform can be seen as a highly configurable black box providing satellite network access on each terminal and gateway. Users can simply plug their workstations and servers behind gateways and/or terminals and perform tests through a satellite network.</p>
+        <p>The OpenSAND wiki provides a list of all the available <a href="https://github.com/CNES/opensand/wiki">features.</a></p>
       </div>
     </div>
   </div>
 </section>
-<br>
-<div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <h2>Benchmark functions</h2>
-      <br>
-      <div>
-        <center>
-          <img src="img/generic_use_case.png" style="max-height:80%; max-width:80%"/>
-        </center>
+
+<section>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12">
+        <h2>Satellite network architecture</h2>
+        <br>
+        <div>
+          <center>
+            <img src="img/platform_overview.png" style = "max-height:80%; max-width:80%"/>
+          </center>
+        </div>
       </div>
     </div>
   </div>
-</div>
-<br>
-<br>
-<div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <h2>OpenBACH design</h2>
-      <br>
-      <p>OpenBACH is based on 4 components:</p>
-        <ul>
-          <li>The Controller centralizes and deploys the configuration functionalities of OpenBACH as well as the jobs/scenarios to be launched.</li>
-          <li>The Collector collects all the statistics, data, logs/errors and other messages requested for supervising the benchmark in a centralized way.
-</li>
-          <li> The Agents are deloyed in the different end network entities (work stations, terminals, etc.), middle entities (server, proxy, etc.) that are supposed to be controlled by OpenBACH, or even in the same entities where the Controller and Collector are deployed. The Agents control (schedule/launch/stop) the jobs within a network entity according to the Controller commands, and collect the local stats/logs sent by these jobs.
-</li>
-          <li>The Auditorium centralises the frontends/web interfaces of configuration and monitoring (logs and statistics) of the bechmark.</li>
-        </ul>
-      <div>
-        <center>
-          <img src="img/basic_func_design.png" style="max-height:80%; max-width:80%"/>
-        </center>
-      </div>
-    </div>
-  </div>
-</div>
-<br>
-<br>
+</section>
+
 <section class="font-yellow">
   <div class="container">
     <!-- Marketing Icons Section -->
     <div class="row">
       <div class="col-lg-12">
-        <h2>The OpenBACH philosophy, terms and licences</h2>
+        <h2>The OpenSAND philosophy</h2>
         <br>
-        <p><abbr style="text-decoration:none" title="Open Satellite Network Demonstrator">OpenBACH</abbr> provides a suitable and simple means for performance evaluation and innovative validation techniques. Its ability to interconnect real equipments with real applications provides excellent demonstration means.</p>
-        <p>Owing to its modular design and implementation, the OpenBACH benchmark platform is able to help managing enginnering tests in a realistic and flexible way.</p>
-        <p>The source codes of OpenBACH components is distributed “as is” under the terms and conditions of the <a href ="http://www.gnu.org/licenses/gpl-3.0.html"><abbr style="text-decoration:none" title="GNU is Not Unix">GNU </abbr> <abbr style="text-decoration:none" title="GNU General Public License Version 3"> GPLv3 license</abbr></a>. The OpenBACH images are licensed under the <a href="https://creativecommons.org/publicdomain/zero/1.0/"><abbr style="text-decoration:none" title="Creative Commons">CC0 license</abbr></a>.</p>
-        <p>The intention of the OpenBACH <a href="commitee.html">Steering Commitee</a> is to facilitate its use and encourage contributions, improvements and perpetuation of OpenBACH for the benefit of the whole OpenBACH Community.</p>
+        <p><abbr style="text-decoration:none" title="Open Satellite Network Demonstrator">OpenSAND</abbr> provides a suitable and simple means for performance evaluation and innovative access and network techniques validation. Its ability to interconnect real equipments with real applications provides excellent demonstration means.</p>
+        <p>Owing to its modular design and implementation, the OpenSAND satellite emulation platform is able to emulate a complete <abbr style="text-decoration:none" title="Digital video broadcasting - Return Channel via Satellite 2nd generation">DVB-RCS2 </abbr> - <abbr style="text-decoration:none" title="Digital video Broadcasting - Second">DVB-S2 </abbr> system in a realistic and flexible way. The testbed supports both transparent and regenerative satellites for access or mesh satellite systems. It could be extended to handle alternate emulations (customized or other access standards, other type of satellite systems...).</p>
+        <p>The source codes of OpenSAND components is distributed “as is” under the terms and conditions of the <a href ="http://www.gnu.org/licenses/gpl-3.0.html"><abbr style="text-decoration:none" title="GNU is Not Unix">GNU </abbr> <abbr style="text-decoration:none" title="GNU General Public License Version 3"> GPLv3 license</abbr></a> or the <a href="http://www.gnu.org/licenses/lgpl-3.0.html">GNU <abbr style="text-decoration:none" title="GNU Lesser General Public License Version 3">LGPLv3 license</abbr></a>. The OpenSAND images are licensed under the <a href="https://creativecommons.org/publicdomain/zero/1.0/"><abbr style="text-decoration:none" title="Creative Commons">CC0 license </abbr></a>.</p>
+        <p>The intention of the OpenSAND <a href="commitee.html">Steering Commitee</a> is to facilitate its use and encourage any contributions, improvement and perpetuation of OpenSAND for the benefit of the whole OpenSAND Community.</p>
       </div>
     </div>
   </div>
 </section>
-<br>
+
 <section>
   <div class="container">
     <div class="row">
       <div class="col-md-6">
         <div>
           <center>
-          <img src="img/icon-goals.png" style="max-height:80%; max-width:80%"/>
+            <img src="img/icon-goals.png" style = "max-height:80%; max-width:80%"/>
           </center>
         </div>
       </div>
       <div class="col-md-6">
-        <h2>OpenBACH goal</h2>
+        <h2>OpenSAND goal</h2>
         <p>The major key drivers for this platform are the following:</p>
         <ul>
-          <li>Simply operable</li>
-          <li>Simplicity in design – allowing fast development</li>
-          <li>Flexibility – allowing to simply adapt to specific needs</li>
-          <li>Upgradeability – allowing to simply add specific functionalities</li>
-          <li>Offering various measurement points</li>
-          <li>Available on low-cost equipment</li>
-          <li>Documentation</li>
+          <li> Simply operable</li>
+          <li> Simplicity in design – allowing fast development</li>
+          <li> Flexibility – allowing to simply adapt to specific needs</li>
+          <li> Upgradeability – allowing to simply add specific functionalities</li>
+          <li> Offering various measurement points</li>
+          <li> Available on low-cost equipment</li>
+          <li> Documentation</li>
         </ul>
       </div>
     </div>
@@ -295,8 +269,8 @@
           <div class="col-lg-12">
             <div id="licenses">
               <br />
-              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ openbach _DOT_ org" title="OpenBACH contact">
-              OpenBACH Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
+              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ opensand _DOT_ org" title="OpenSAND contact">
+              OpenSAND Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
               <p style="font-size:90%">The text content of this website is published under the <a 
               href="http://creativecommons.org/licenses/by-nc-sa/3.0/" title="See license details"
               rel="license" hreflang="en">Creative Commons BY-NC-SA license</a> (except where otherwise

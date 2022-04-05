@@ -8,7 +8,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>OpenBACH</title>
+    <title>OpenSAND</title>
 
     <!-- JQuery Core CSS -->
     <link href="css/jquery-ui.css" rel="stylesheet">
@@ -22,9 +22,9 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="css/openbach.css" rel="stylesheet">
+    <link href="css/opensand.css" rel="stylesheet">
     <link href="css/scrolling-nav.css" rel="stylesheet">
-    <link rel="icon" type="image/png" href="img/tab_logo.png" />
+    <link rel="icon" type="image/png" href="img/opensand-manager.png" />
 
     <!-- Custom Fonts -->
     <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
@@ -53,6 +53,7 @@
     <script src="js/jqBootstrapValidation.js" defer></script>
   </head>
 
+
   <body>
     <!-- Navigation -->
     <nav class="navbar navbar-inverse navbar-fixed-top navbar-custom" role="navigation">
@@ -65,45 +66,71 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <div id = "imgLogo">
+          <!-- <a class="navbar-brand page-scroll" href="index.html"> <img id="logo" src="img/logo2.png" alt=""/></a>-->
+          <div id="imgLogo">
             <img class="logo" src="img/logo2.png" onclick="document.location.href = 'index.html'" alt=""></img>
           </div>
         </div>
+
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-          <ul class="nav navbar-nav navbar-right">
-            <li class="dropdown page-scroll">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">About<b class="caret"></b></p></a>
-              <ul class="dropdown-menu">
-                <li><a href="overview.html" style="font-size:100%">Overview</a></li>
-                <li><a href="references.html" style="font-size:100%">References</a></li>
-                <li><a href="commitee.html" style="font-size:100%">Steering commitee</a></li>
-              </ul>
-            </li>
-            <li class="dropdown page-scroll active">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Get & Learn<b class="caret"></b></p></a>
-              <ul class="dropdown-menu">
-                <li><a href="get.html" style="font-size:100%">Installation</a></li>
-                <li><a href="mail.html" style="font-size:100%">Mailing-lists</a></li>
-                <li><a href="https://github.com/CNES/openbach/blob/master/README.md" style="font-size:100%">Wiki</a></li>
-                <li><a href="jobs.html" style="font-size:100%">Related tools & Jobs</a></li>
-              </ul>
-            </li>
-            <li class="dropdown page-scroll">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Contribute<b class="caret"></b></p></a>
-              <ul class="dropdown-menu">
-                <li><a href="contribution.html" style="font-size:100%">Contribution</a></li>
-                <li><a href="bugtracker.html" style="font-size:100%">Bugtracker</a></li>
-                <li><a href="https://github.com/CNES/openbach" style="font-size:100%">Forge OpenBACH</a></li>
-              </ul>
-            </li>
-            <li class="page-scroll">
-              <a href="blog.html"><p class="text-custom">Blog</p></a>
-            </li>
-            <li class="page-scroll">
-              <a href="https://github.com/CNES/openbach"> <img src="img/gitlab-logo-square.png"/> </a>
-            </li>
-          </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> About <b class="caret"></b> </p> </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="overview.html" style="font-size:100%">Overview</a>
+              </li>
+              <li>
+                <a href="references.html" style="font-size:100%">References</a>
+              </li>
+              <li>
+                <a href="commitee.html" style="font-size:100%">Steering commitee</a>
+              </li>
+            </ul>
+          </li>
+          <li class="dropdown page-scroll active">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Get & Learn <b class="caret"></b> </p></a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="get.html" style="font-size:100%">Installation</a>
+              </li>
+              <li>
+                <a href="mail.html" style="font-size:100%">Mailing-lists</a>
+              </li>
+              <li>
+                <a href="https://github.com/CNES/opensand/wiki" style="font-size:100%">Wiki</a>
+              </li>
+              <li>
+                <a href="libraries.html" style="font-size:100%">Libraries</a>
+              </li>
+              <li>
+                <a href="relatedtools.html" style="font-size:100%">Related Tools</a>
+              </li>
+            </ul>
+          </li>
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Contribute  <b class="caret"></b> </p> </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="contribution.html" style="font-size:100%">Contribution</a>
+              </li>
+              <li>
+                <a href="bugtracker.html" style="font-size:100%">Bugtracker</a>
+              </li>
+              <li>
+                <a href="https://github.com/CNES/opensand" style="font-size:100%">Forge OpenSAND</a>
+              </li>
+            </ul>
+          </li>
+          <li class="page-scroll">
+            <a href="blog.html" ><p class="text-custom">Blog </p></a>
+          </li>
+
+          <li class="page-scroll">
+            <a href="https://www.net4sat.org"> <img src="img/gitlab-logo-square.png"/> </a>
+          </li>
+        </ul>
         </div>
       </div>
     </nav>
@@ -112,92 +139,115 @@
   <!-- Page Content -->
   <div class="container">
     <div class="row">
-      <div class="col-lg-12">
-        <h1 class="page-header">Installation
-        </h1>
-      </div>
+        <div class="col-lg-12">
+          <h1 class="page-header">Installation
+          </h1>
+        </div>
     </div>
   </div>
   <div class="page-wrap">
     <div class="container">
       <div class="row">
         <div class="col-lg-12">
-          <p>The current page explains how to install an OpenBACH platform. For more details and advanced procedures (user manual debug information, etc.), please read the <a href="https://github.com/CNES/openbach/blob/master/ansible/README.md">installation manual</a> in the OpenBACH wiki.</p>
+          <p>This page explains how to install an OpenSAND platform.</br>
+             For more details and advanced methods, please read the <a rel="nofollow"
+             href="https://github.com/CNES/opensand/wiki">installation manual</a> in the OpenSAND wiki.</p>
+
           <h2 class="install" id="requirements">Requirements</h2>
-          <p>In order to build an OpenBACH platform, you need at least the following components:
-          <ul>
-            <li>A Controller </li>
-            <li>A Collector</li>
-            <li>An Auditorium</li>
-            <li>1 or more Agents</li>
-          </ul>
-          <p>The Controller, the collector and the auditorium might be installed in the same host (i.e. a machine/entity) or in separate hosts.</p>
-          <h2 class="install" id="install">Install</h2>
-          <p>The target machines shall:
+          <p>In order to built an OpenSAND platform, you need at least the following hosts:
             <ul>
-              <li>be installed on Ubuntu 20.04 LTS (this restriction may be removed in the future for the agent component). </li>
-              <li>allow SSH connections. </li>
-              <li>have a 64 bits OS (only for the Collector). </li>
-              <li>have at least 2Gb of RAM (if Controller/Collector/Auditorium are in the same machine) and 512Mb for Agents.</li>
+              <li>A satellite emulator</li>
+              <li>A gateway</li>
+              <li>A satellite terminal</li>
+            </ul>
+            <p>You can install up to 30 gateways and satellite terminals but the packages will only allow
+            you to install up to 2 gateways and 5 satellite terminals.</p>
+          </p>
+          <p>Your hosts should met the following interfaces requirements:
+            <ul>
+              <li>Satellite emulator: one network interface (default: eth0)</li>
+              <li>Gateway and Satellite terminal: two network interfaces (default: eth0 and eth1)</li>
             </ul>
           </p>
-          <p>The install of OpenBACH is performed via <a href="http://www.ansible.com">Ansible</a>. Be aware that you need to learn some Ansible concepts to ease the following procedure.</p>
-          <p>The step-by-step installation is described below (this is just an example with basic configuration details, please go to <a href="https://github.com/CNES/openbach/blob/master/ansible/README.md">installation manual</a> for advanced informations):
-            <ol class="wizard_steps">
-              <li>First you need to download the sources (it is recommended to get the master branch):</li>
-              <ul style="padding-left: 4em;">
+          <img src="img/opensand_lan.png">
+          <h2 class="install" id="install">Install</h2>
+          <p>OpenSAND is distributed as Debian packages, built on Ubuntu 16.04 LTS 64bits or 32bits</br>
+             It is recommended to install OpenSAND with the last release packages.</p>
+          <p>For each host on your OpenSAND plateform:
+            <ul class="wizard_steps">
+              <li>Add the OpenSAND repository:</li>
+              <ul style="padding-left: 2em;">
                 <div class="shell-div">
-                  <br>
-                  <code class="shell">
-                  $ git clone --depth 1 https://github.com/CNES/openbach.git </code>
-                </div>
-              </ul>
-              <li>For SSH communication, (if it is not already done) you must add the Controller, the Collector, the Auditorium and the Agents to the ssh "known_hosts" file of the host from which you install OpenBACH:</li>
-              <ul style="padding-left: 4em;">
-                <div class="shell-div">
-                  <br>
-                  <code class="shell">
-                  $ ssh-keyscan -H *ip_address* >> ~/.ssh/known_hosts</code>
-                </div>
-              </ul>
-              <li>The machine from which you install OpenBACH requires Ansible (between version 2.10 and 2.10.5, as well as Python 3.8.5 or newer). Please refer to <a href="http://docs.ansible.com/ansible/intro_installation.html#latest-releases-via-apt-ubuntu">Ansible website</a> to install Ansible.</li>
-              <li> You might need to install sshpass/openssh.</li>
-              <li> Before deploying OpenBACH to your target machines, you need to configure which component will be installed on which machine. Since the installation of OpenBACH is done through Ansible playbooks, this configuration uses their inventory files capabilities. Just create a file in the ansible/inventory folder of your sources and populate it with your installation instructions. We propose herein an example where Controller/Collector/Auditorium are installed in the same machine (indeed if Collector/Auditorium are not specified, they are installed with the Controller), and two Agents in separate machine (for advanced topologies go to <a href="https://github.com/CNES/openbach/blob/master/documents/installation/Topology.md">installation manual</a>):</li>
-              <ul style="padding-left: 4em;">
-                <div class="shell-div">
-                  <br>
-                  <pre class="shell">
-[controller] 
-172.20.0.1 
-
-[agent]
-172.20.0.2
-172.20.0.3 
-
-[all:vars]
-ansible_python_interpreter=/usr/bin/python3
-</pre>
-                </div>
-              </ul>
-              <li> Before the install, we highly recommend to test the connectivity (between machines) and the ssh/ansible configuration by means of an ansible ping. <i>ssh_username</i> is a username with sudo rights on the target machines, <i>inventory/file</i> is the path to the file you have created in the step above (use the option --private-key=*path_to_private_key* if you connect to the machines via a private_key):</li>
-              <ul style="padding-left: 4em;">
-                <div class="shell-div">
+                  <li> Update sources.list with net4sat opensand repository
                     <br>
                     <code class="shell">
-                    $ ansible -i *inventory/file* -u *ssh_username* -k -K -m ping all</code>
+                    $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable"
+                    | sudo tee /etc/apt/sources.list.d/opensand.list</code>
+                  </li>
+                  <li> Add Net4Sat repository GPG key
+                      <br>
+                      <code class="shell">
+                      $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
+                      </code>
+                  </li>
                 </div>
               </ul>
-              <li>You can install OpenBACH with the following command. For detailed options, go to <a href="https://github.com/CNES/openbach/blob/master/ansible/README.md">installation manual</a> (Use the option --private-key=*path_to_private_key* if you connect to the machines via a private_key):</li>
-              <ul style="padding-left: 4em;">
+              <li>Update the list of available packages:</li>
+              <ul style="padding-left: 2em;">
+                  <div class="shell-div">
+                      <code class="shell">
+                      $ sudo apt-get update</code>
+                  </div>
+              </ul>
+              <li>Install OpenSAND:</li>
+              <ul style="padding-left: 2em;">
                 <div class="shell-div">
-                  <br>
-                  <code class="shell">
-                  $ ansible-playbook install.yml -u *ssh_username* -k -K</code>
+                  <li>For Manager (only one host (usually the satellite), used to control the platform)
+                    <br>
+                    <code class="shell">
+                    $ sudo apt-get install opensand opensand-manager opensand-collector</code>
+                  </li>
+                  <li>For all hosts
+                    <br>
+                    <code class="shell">
+                    $ sudo apt-get install opensand</code>
+                  </li>
                 </div>
               </ul>
-              <li>Finally, You can go to http://your_controller_ip/ for OpenBACH</li>
-            </ol>
+            </ul>
           </p>
+          <p>You will then be prompted with some parameters, for a basic configuration 
+             (if you kept the interface names recommended in the <a href="#requirements">
+             requirements</a>), only edit the following elements:
+            <ul>
+              <li><em>Service name:</em> choose your type of host, see <a href="#requirements">
+                requirements</a> to choose the appropriate type of hosts for your
+                platform.</li>
+              <li><em>Service instance:</em> (for gateway and satellite terminals)
+                choose a gateway/terminal ID, do not reuse twice the same ID on your platform.</li>
+            </ul>
+          </p>
+          <!--
+          <p>Additionally, you should install the ROHC plugin which is an option of the OpenSAND platform.
+            <ul>
+              <li>Install ROHC plugin:</li>
+              <ul style="padding-left: 2em;">
+                <div class="shell-div">
+                  <li>For Manager (only one host (usually the satellite), used to control the platform)
+                    <br>
+                    <code class="shell">
+                    $ sudo apt-get install libopensand-rohc-lan-adapt-plugin-manager</code>
+                  </li>
+                  <li>For all hosts
+                    <br>
+                    <code class="shell">
+                    $ sudo apt-get install libopensand-rohc-lan-adapt-plugin</code>
+                  </li>
+                </div>
+              </ul>
+            </ul>
+          </p>
+          -->
         </div>
       </div>
     </div>
@@ -212,8 +262,8 @@ ansible_python_interpreter=/usr/bin/python3
           <div class="col-lg-12">
             <div id="licenses">
               <br />
-              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ openbach _DOT_ org" title="OpenBACH contact">
-              OpenBACH Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
+              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ opensand _DOT_ org" title="OpenSAND contact">
+              OpenSAND Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
               <p style="font-size:90%">The text content of this website is published under the <a 
               href="http://creativecommons.org/licenses/by-nc-sa/3.0/" title="See license details"
               rel="license" hreflang="en">Creative Commons BY-NC-SA license</a> (except where otherwise

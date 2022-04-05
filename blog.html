@@ -8,7 +8,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>OpenBACH</title>
+    <title>OpenSAND</title>
 
     <!-- JQuery Core CSS -->
     <link href="css/jquery-ui.css" rel="stylesheet">
@@ -22,9 +22,9 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="css/openbach.css" rel="stylesheet">
+    <link href="css/opensand.css" rel="stylesheet">
     <link href="css/scrolling-nav.css" rel="stylesheet">
-    <link rel="icon" type="image/png" href="img/tab_logo.png" />
+    <link rel="icon" type="image/png" href="img/opensand-manager.png" />
 
     <!-- Custom Fonts -->
     <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
@@ -53,6 +53,7 @@
     <script src="js/jqBootstrapValidation.js" defer></script>
   </head>
 
+
   <body>
     <!-- Navigation -->
     <nav class="navbar navbar-inverse navbar-fixed-top navbar-custom" role="navigation">
@@ -65,45 +66,71 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <div id = "imgLogo">
+          <!-- <a class="navbar-brand page-scroll" href="index.html"> <img id="logo" src="img/logo2.png" alt=""/></a>-->
+          <div id="imgLogo">
             <img class="logo" src="img/logo2.png" onclick="document.location.href = 'index.html'" alt=""></img>
           </div>
         </div>
+
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-          <ul class="nav navbar-nav navbar-right">
-            <li class="dropdown page-scroll">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">About<b class="caret"></b></p></a>
-              <ul class="dropdown-menu">
-                <li><a href="overview.html" style="font-size:100%">Overview</a></li>
-                <li><a href="references.html" style="font-size:100%">References</a></li>
-                <li><a href="commitee.html" style="font-size:100%">Steering commitee</a></li>
-              </ul>
-            </li>
-            <li class="dropdown page-scroll">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Get & Learn<b class="caret"></b></p></a>
-              <ul class="dropdown-menu">
-                <li><a href="get.html" style="font-size:100%">Installation</a></li>
-                <li><a href="mail.html" style="font-size:100%">Mailing-lists</a></li>
-                <li><a href="https://github.com/CNES/openbach/blob/master/README.md" style="font-size:100%">Wiki</a></li>
-                <li><a href="jobs.html" style="font-size:100%">Related tools & Jobs</a></li>
-              </ul>
-            </li>
-            <li class="dropdown page-scroll">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Contribute<b class="caret"></b></p></a>
-              <ul class="dropdown-menu">
-                <li><a href="contribution.html" style="font-size:100%">Contribution</a></li>
-                <li><a href="bugtracker.html" style="font-size:100%">Bugtracker</a></li>
-                <li><a href="https://github.com/CNES/openbach" style="font-size:100%">Forge OpenBACH</a></li>
-              </ul>
-            </li>
-            <li class="page-scroll active">
-              <a href="blog.html"><p class="text-custom">Blog</p></a>
-            </li>
-            <li class="page-scroll">
-              <a href="https://github.com/CNES/openbach"> <img src="img/gitlab-logo-square.png"/> </a>
-            </li>
-          </ul>
+        <ul class="nav navbar-nav navbar-right">
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> About <b class="caret"></b> </p> </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="overview.html" style="font-size:100%">Overview</a>
+              </li>
+              <li>
+                <a href="references.html" style="font-size:100%">References</a>
+              </li>
+              <li>
+                <a href="commitee.html" style="font-size:100%">Steering commitee</a>
+              </li>
+            </ul>
+          </li>
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Get & Learn <b class="caret"></b> </p></a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="get.html" style="font-size:100%">Installation</a>
+              </li>
+              <li>
+                <a href="mail.html" style="font-size:100%">Mailing-lists</a>
+              </li>
+              <li>
+                <a href="https://github.com/CNES/opensand/wiki" style="font-size:100%">Wiki</a>
+              </li>
+              <li>
+                <a href="libraries.html" style="font-size:100%">Libraries</a>
+              </li>
+              <li>
+                <a href="relatedtools.html" style="font-size:100%">Related Tools</a>
+              </li>
+            </ul>
+          </li>
+          <li class="dropdown page-scroll">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Contribute  <b class="caret"></b> </p> </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="contribution.html" style="font-size:100%">Contribution</a>
+              </li>
+              <li>
+                <a href="bugtracker.html" style="font-size:100%">Bugtracker</a>
+              </li>
+              <li>
+                <a href="https://github.com/CNES/opensand" style="font-size:100%">Forge OpenSAND</a>
+              </li>
+            </ul>
+          </li>
+          <li class="page-scroll active">
+            <a href="blog.html" ><p class="text-custom">Blog </p></a>
+          </li>
+
+          <li class="page-scroll">
+            <a href="https://www.net4sat.org"> <img src="img/gitlab-logo-square.png"/> </a>
+          </li>
+        </ul>
         </div>
       </div>
     </nav>
@@ -128,307 +155,514 @@
             <!-- Blog Entries Column -->
             <div class="col-md-8">
                                 <div class="custom-blog-post">
-                                        <h2 style="color: #FFB95E;">
-                                                OpenBACH stable release 2.3.0
-                                        </h2>
-                                        <p class="lead">
-                                                by <a href="overview.html">OpenBACH team</a>
-                                        </p>
-                                        <p><i class="fa fa-clock-o"></i> Posted on Friday, 16 April 2021</p>
-                                        <hr style="border-top: 1px solid #FFB95E;">
-                                                        <p>Hi OpenBACH community,</p>
-
-                                                        <p>The new release of OpenBACH is now supporting Ubuntu 20.04!</p>
-                                                        <p>OpenBACH 2.3.0 includes the following evolutions:
-                                                        <ul>
-                                                                <li>Support of Ubuntu 20.04:</li>
-                                                                <ul>
-                                                                        <li>Controller/Collector/Auditorium and Agents support now Ubuntu 20.04.</li>
-                                                                        <li>All core jobs and external-stable jobs support now Ubuntu 20.04.</li>
-                                                                        <li>It is still possible to use/install OpenBACH on Ubuntu 16.04 if you git clone the tag openbach-2.2.0. However, the evolutions implemented on v2.3.0 (and newer versions) are not (will not be) available.</li>
-                                                                </ul>
-                                                                <li>The web interface load has been reduced allowing to improve scalability:</li>
-                                                                <ul>
-                                                                        <li>The graphical analysis has been removed.</li>
-                                                                        <li>By default, the number of scenario instances that are loaded (for each scenario) is 10, and you can load more thanks to a Load button.</li>
-                                                                </ul>
-                                                                <li>More documentation on openbach-api, command line usage and the validation suite.</li>
-                                                                <li>New features and improvements, e.g.:</li>
-                                                                <ul>
-                                                                        <li>Improved validation suite.</li>
-                                                                        <li>New jobs have been added and obsolete jobs have been cleaned.</li>
-                                                                        <li>A new executor/scenario example named TCP evaluation suite is now ready to be used: its objective is to provide a complex scenario for evaluating TCP protocol performances under different network conditions.</li>
-
-                                                                </ul>
-                                                                <li>Other minor bugfixes and improvements.</li>
-                                                        </ul>
-
-
-                                                        <p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtrackers [2].</p>
-                                                        <p>
-                                                        [1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
-                                                        <br />
-                                                        [2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a> and <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach-extra/issues">the OpenBACH-extra bugtracker</a>
-                                                        </p>
-
-                                                        <p>Kind Regards,</p>
-
-                                                        <p>The OpenBACH team</p>
-
-                                        <hr>
-                                </div>
-
-
-                                <div class="custom-blog-post">
-                                        <h2 style="color: #008000;">
-                                                OpenBACH stable release 2.2.0
-                                        </h2>
-                                        <p class="lead">
-                                                by <a href="overview.html">OpenBACH team</a>
-                                        </p>
-                                        <p><i class="fa fa-clock-o"></i> Posted on Friday, 4 December 2020</p>
-                                        <hr style="border-top: 1px solid #FFB95E;">
-                                                        <p>Hi OpenBACH community,</p>
-
-                                                        <p>We are happy to announce a new release on our favourite network metrology testing tool: the new version 2.2.0!!</p>
-                                                        <p>OpenBACH 2.2.0 includes the following evolutions:
-                                                        <ul>
-                                                                <li>Improved openbach-functions (bullets 1/2) and auditorium-scripts (bullets 3/4):</li>
-                                                                <ol>
-                                                                        <li>Push file is now available to send files to the controller and from the controller to an entity.</li>
-                                                                        <li>New function allowing to reboot your agents on your desired kernel, even within a scenario.</li>
-                                                                        <li>An unified console output lets you clearly know whether the operation was successful or not.</li>
-                                                                        <li>Added scripts to kill all jobs on any / all agents and to uninstall jobs before reinstalling a new version.</li>
-
-                                                                </ol>
-                                                                <li>Improvements on jobs stability and installation process, as well as:</li>
-                                                                <ul>
-                                                                        <li>Reorganisation of jobs (from openbach-extra to openbach and viceversa).</li>
-                                                                        <li>Splitted tcpdump job: tcpdump_pcap (for traffic captures) and pcap_postprocessing (computes different statistics from a pcap).</li>
-                                                                        <li>Evolutions on apache2 (e.g. it includes now dash streaming content and new web sites).</li>
-                                                                        <li>New jobs: synchronization (force ntp), ftp_clt/srv, tc_qdisc_stats (monitor tc queues status) and more postprocessing jobs (temporal_binning_histogram and temporal_binning_statistics).</li>
-                                                                        <li>etc.</li>
-
-                                                                </ul>
-                                                                <li>More accurate reference scenarios and executors and: </li>
-                                                                <ul>
-                                                                        <li>New executor examples allowing to show the modularity of the reference scenarios.
-                                                                        <li>Improved stability on all scenarios.</li>
-
-                                                                </ul>
-                                                                <li>More documentation on openbach-api (especially on the scenario_builder and the data_access).</li>
-                                                                <li>New features, e.g.:</li>
-                                                                <ul>
-                                                                        <li>Improved statistics management and the possibility to disable local storage.</li>
-                                                                        <li>New validation suite module: allows to test the OpenBACH capabilities to prevent regressions and help develop new features.</li>
-
-                                                                </ul>
-                                                                <li>Other minor bugfixes and improvements.</li>
-                                                        </ul>
-
-
-                                                        <p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtrackers [2].</p>
-                                                        <p>
-                                                        [1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
-                                                        <br />
-                                                        [2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a> and <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach-extra/issues">the OpenBACH-extra bugtracker</a>
-                                                        </p>
-
-                                                        <p>Best Regards,</p>
-
-                                                        <p>The OpenBACH team</p>
-
-                                        <hr>
-                                </div>
-
-				<div class="custom-blog-post">
-					<h2 style="color: #1BAEAE;">
-						OpenBACH stable release 2.1.0
+					<h2 style="color: #FFB95E;">
+	
+						OpenSAND new release 5.2.0
 					</h2>
 					<p class="lead">
-						by <a href="overview.html">OpenBACH team</a>
+						by <a href="overview.html">OpenSAND team</a>
 					</p>
-					<p><i class="fa fa-clock-o"></i> Posted on Monday, 29 June 2020</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Friday, 29 April 2020</p>
 					<hr style="border-top: 1px solid #FFB95E;">
 							<p>Hi everybody,</p>
+
+							<p>We are happy to announce that the new release of OpenSAND v5.2.0 is now available!!</p>
+							<p>This version includes the following updates:</p>
+                                                        
+							<ul>
+							   <li>Improved network integration (new interfaces bridge/tap).</li>
+							   <li>New logs/stats collection system with improved design and performances.</li>
+                                                           <li>New OpenSAND collector based on open-source databases (InfluxDB/ElasticSearch) and dashboards (Chronograf and Kibana).</li>
+							</ul></p>
+                                                        <p>In addition to the standard way to use OpenSAND (with daemon, collector and manager), we have added an example of an OpenSAND deployment with a very simple setup from CLI (less network  intrusive): <a rel="nofollow" href="https://wiki.net4sat.org/doku.php?id=opensand:manuals:5.2:user_manual_minimal_cli:index">available in the OpenSAND wiki</a>.</p>
+                                                        <p>Be careful if you use OpenSAND with the test bench OpenBACH [1], the OpenSAND jobs have been updated.</p>
 							
-							<p>We are happy to announce that the new release of OpenBACH 2.1.0 is now available!!</p>
-							<p>This version includes the following updates:
-                                                        <ul>
-								<li>Big effort on openbach-extra and openbach-api:</li>
-                                                                <ul>
-                                                                        <li>New and more robust reference scenarios (network, transport, service, etc.) and executors to launch them from CLI.</li>
-                                                                        <li>New and improved jobs/helpers.</li>
-                                                                        <li>Polished auditorium-scripts.</li>
-                                                               
-                                                                </ul>
-                                                        	<li>Reorganization of the wiki:</li>
-                                                                <ul>
-                                                                        <li>More understandable for new users (easy CLI and web interfaces manuals).</li>
-                                                                        <li>New conventions to standardize the way jobs/scenarios are developed.</li>
-                                                               
-                                                                </ul>
-                                                                <li>Improvements and corrections on post-processing, LDAP, platform update/backup and stability.</li>
-                                                                <li>New features, e.g.:</li>
-                                                                <ul>
-                                                                        <li>Allowed parallel job installation.</li>
-                                                                        <li>Improved admin web page for jobs: easier to install/uninstall/update jobs in your controller and agents.</li>
-                                                               
-                                                                </ul>
-                                                                <li>Other minor bugfixes and improvements.</li>
-                                                        </ul>
-
-
-							<p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtrackers [2].</p>
+						        <p>We will be glad to get your feedback on our mailing list [2] and bug reports on the bugtracker [3].</p>
 							<p>
-							[1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
+							[1] <a rel="nofollow" href="http://openbach.org" title="OpenBACH website">The OpenBACH website</a>
 							<br />
-							[2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a> and <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach-extra/issues">the OpenBACH-extra bugtracker</a>
-							</p>
-							
-							<p>Best Regards,</p>
-							
-							<p>The OpenBACH team</p>
-
-					<hr>
-				</div>
-
-
-				<div class="custom-blog-post">
-					<h2 style="color: #FFB95E;">
-						OpenBACH stable release 2.0.0
-					</h2>
-					<p class="lead">
-						by <a href="overview.html">OpenBACH team</a>
-					</p>
-					<p><i class="fa fa-clock-o"></i> Posted on Monday, 1 April 2019</p>
-					<hr style="border-top: 1px solid #FFB95E;">
-							<p>Hello OpenBACH community,</p>
-							
-							<p>We are glad to announce that stable major release of OpenBACH v2.0.0 is now available!!</p>
-							<p>This version includes many evolutions :
-                                                        <ul>
-								<li>Big effort on stability and scalability.</li>
-								<li>New HMI features.</li>
-                                       	                        <li>new Standalone features.</li>
-          	                                                <li>Job API evolution : more flexibility on parameters.</li>
-          	                                                <li>File collection in the collector</li>
-						                <li>More jobs and scenarios</li>
-                                                                <li>Many bugs corrections .</li>
-                                                        </ul>
-
-
-                                                        <p> Please do not reinstall this version on an existing OpenBACH v1.0.0 platform, the new version must be installed from scratch.
-							<p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtracker [2].</p>
-							<p>
-							[1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
+							[2] <a rel="nofollow" href="mailto:users _AT_ opensand _DOT_ org" title="OpenSAND mailing list">The OpenSAND mailing list</a>
 							<br />
-							[2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a>
+							[3] <a rel="nofollow" href="https://forge.net4sat.org/opensand/opensand/issues">The OpenSAND bugtracker</a>
 							</p>
-							
-							<p>Best Regards,</p>
-							
-							<p>The OpenBACH team</p>
 
+							<p>Best Regards,</p>
+
+							<p>The OpenSAND team</p>
 					<hr>
 				</div>
-
+ 
 
 				<div class="custom-blog-post">
-					<h2 style="color: #008000;">
-						OpenBACH stable release 1.0.0
+					<h2>
+						OpenSAND new release 5.1.2
 					</h2>
 					<p class="lead">
-						by <a href="overview.html">OpenBACH team</a>
+						by <a href="overview.html">OpenSAND team</a>
 					</p>
-					<p><i class="fa fa-clock-o"></i> Posted on Thursday, 15 February 2018</p>
-					<hr style="border-top: 1px solid #FFB95E;">
-							<p>Hello OpenBACH community,</p>
-							
-							<p>We are glad to announce that stable release of OpenBACH v1.0.0 is now available!!</p>
-							<p>This version includes many evolutions and a new way to install the platform. Some included evolutions are:
-                                                        <ul>
-								<li>Evolved HMI with more functionnalities (integrated logs, new visuals, status, etc.).</li>
-          	                                                <li>Extended library of jobs (metrology/traffic generation, etc).</li>
-							        <li>Automatic detection of your network topology.</li>
-							        <li>Better integration of Kibana logs and Grafana metrics per scenario.</li>
-                                                                <li>A new graphical analysis section allowing to create your post-processing plots (time-series, histograms and comparison of results).</li>
-                                                                <li>Many bugs corrections allowing to release a stable version.</li>
-		                                        </ul>
-
-
-                                                        <p> Please do not reinstall this version on an existing OpenBACH v0.10.0 platform, the new version must be installed from scratch.
-							<p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtracker [2].</p>
-							<p>
-							[1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
-							<br />
-							[2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a>
-							</p>
-							
-							<p>Best Regards,</p>
-							
-							<p>The OpenBACH team</p>
-
-					<hr>
-				</div>
-
-
-                                <!-- Second Blog Post -->		
-				<div class="custom-blog-post">
-					<h2 style="color: #1BAEAE;">
-						OpenBACH Opening Day at CNES
-					</h2>
-					<p class="lead">
-						by <a href="overview.html">OpenBACH team</a>
-					</p>
-					<p><i class="fa fa-clock-o"></i> Posted on Friday, 2 June 2017</p>
-					<hr style="border-top: 1px solid #FFB95E;">
-							<p>The OpenBACH opening day has been held at CNES premises!</p>
-							<p>Around 50 people from Toulouse labs and industry have attended the opening day. Different aspects of OpenBACH have been presented to the local community: i.e. a context/history and objectives, a global technical presentation including the architecture/design of OpenBACH, a detailed technical presentation ("how to use" oriented) within a telecom use case. You can find the slides below:
- 							<ul>
-								<li>The <a href="documents/01_OpenBACH_general_presentation_30052017.pdf" type="application/pdf">General and context presentation.</a></li>
-							        <li>The <a href="documents/02_OpenBACH_global_technical_presentation.pdf" type="application/pdf">Global technical presentation.</a></li>
-							        <li>The <a href="documents/03_OpenBACH_detailed_technical_presentation.pdf" type="application/pdf">Detailed technical presentation.</a></li>
-		
-							</ul>
-							<p>
-							
-							<p>Best Regards,</p>
-							
-							<p>The OpenBACH team</p>
-
-					<hr>
-				</div>
-                                <!-- First Blog Post -->
-				<div class="custom-blog-post">
-					<h2 style="color: #FFB95E;">
-						OpenBACH first release 0.9.0
-					</h2>
-					<p class="lead">
-						by <a href="overview.html">OpenBACH team</a>
-					</p>
-					<p><i class="fa fa-clock-o"></i> Posted on Friday, 3 Mars 2017</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Friday, 5 April 2019</p>
 					<hr style="border-top: 1px solid #FFB95E;">
 							<p>Hi all,</p>
-							
-							<p>The release of OpenBACH 0.9.0 is now available.</p>
-							<p>This version is still a beta version with different evolutions under development.
 
-							<p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtracker [2].</p>
+							<p>The minor release of OpenSAND 5.1.2 is now available.</p>
+							<p>This version is compatible with the new version of OpenBACH 2.0.0 [1].</p>
+
+						    <p>Send us your feedback on our mailing list [2] and bug reports on the bugtracker [3].</p>
 							<p>
-							[1] <a rel="nofollow" href="mailto:users _AT_ openbach _DOT_ org" title="OpenBACH mailing list">The OpenBACH mailing list</a>
+							[1] <a rel="nofollow" href="http://openbach.org" title="OpenBACH website">The OpenBACH website</a>
 							<br />
-							[2] <a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues">The OpenBACH bugtracker</a>
+							[2] <a rel="nofollow" href="mailto:users _AT_ opensand _DOT_ org" title="OpenSAND mailing list">The OpenSAND mailing list</a>
+							<br />
+							[3] <a rel="nofollow" href="https://forge.net4sat.org/opensand/opensand/issues">The OpenSAND bugtracker</a>
 							</p>
-							
-							<p>Best Regards,</p>
-							
-							<p>The OpenBACH team</p>
+
+							<p>Regards,</p>
+
+							<p>The OpenSAND team</p>
+					<hr>
+				</div>
+ 
+				<div class="custom-blog-post">
+					<h2 style="color: #1BAEAE;">
+						OpenSAND new release 5.1.1
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Monday, 28 January 2019</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+							<p>Hi all,</p>
+
+							<p>The minor release of OpenSAND 5.1.1 is now available.</p>
+							<p>This version fixes two bugs:
+							<ul>
+							   <li>The sending of float probes to the collector of the OpenBACH test bench</li></li>
+							   <li>The deletion of the PID file of the daemon</li>
+							</ul></p>
+
+						    <p>Send us your feedback on our mailing list [1] and bug reports on the bugtracker [2].</p>
+							<p>
+							[1] <a rel="nofollow" href="mailto:users _AT_ opensand _DOT_ org" title="OpenSAND mailing list">The OpenSAND mailing list</a>
+							<br />
+							[2] <a rel="nofollow" href="https://forge.net4sat.org/opensand/opensand/issues">The OpenSAND bugtracker</a>
+							</p>
+
+							<p>Regards,</p>
+
+							<p>The OpenSAND team</p>
+					<hr>
+				</div>
+		<div class="custom-blog-post">
+					<h2 style="color: #FFB95E;">
+						OpenSAND new release 5.1.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Tuesday, 11 December 2018</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+							<p>Hi all,</p>
+
+							<p>The release of OpenSAND 5.1.0 is now available.</p>
+							<p>This version contains mainly these updates:
+							<ul>
+							   <li>Improve interconnection between access gateway and physical gateway</li>
+							   <li>Refactor the physical layer block</li>
+							   <li>Replace service id by platform name</li>
+							   <li>Various other bugfixes and improvements</li>
+							</ul></p>
+							<p>Be careful if you use OpenSAND with the test bench OpenBACH [1], the OpenSAND jobs have been updated.</p>
+							<p>We will be glad to get your feedback on our mailing list [2] and bug reports on the bugtracker [3].</p>
+							<p>
+							[1] <a rel="nofollow" href="http://openbach.org">The OpenBACH website</a>
+							<br />
+							[2] <a rel="nofollow" href="mailto:users _AT_ opensand _DOT_ org" title="OpenSAND mailing list">The OpenSAND mailing list</a>
+							<br />
+							[3] <a rel="nofollow" href="https://forge.net4sat.org/opensand/opensand/issues">The OpenSAND bugtracker</a>
+							</p>
+
+							<p>Regards,</p>
+
+							<p>The OpenSAND team</p>
 
 					<hr>
 				</div>
 
+				<div class="custom-blog-post">
+					<h2>
+						OpenSAND new major release 5.0.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Thursday, 15 February 2018</p>
+					<hr>
+							<p>Hi all,</p>
 
+							<p>The release of OpenSAND 5.0.0 is now available.</p>
+
+							<p>This version contains mainly these updates:
+							<ul>
+							   <li>Add DVB-RCS2 support</li>
+							   <li>Add RLE encapsulation support</li>
+							   <li>Add external output collector support</li>
+							   <li>Add OpenBACH support (Collector and Jobs)</li>
+							   <li>Fix Rohc v2.1 compatibility</li>
+							   <li>Fix minor bugs</li>
+							</ul></p>
+							<p>A novelty of this version is its compatibility with the OpenBACH testbench [1].</p>
+							<p>We will be glad to get your feedback on our mailing list [2] and bug reports on the bugtracker [3].</p>
+							<p>
+							[1] <a rel="nofollow" href="http://openbach.org">The OpenBACH website</a>
+							<br />
+							[2] <a rel="nofollow" href="mailto:users _AT_ opensand _DOT_ org" title="OpenSAND mailing list">The OpenSAND mailing list</a>
+							<br />
+							[3] <a rel="nofollow" href="https://forge.net4sat.org/opensand/opensand/issues">The OpenSAND bugtracker</a>
+							</p>
+
+							<p>Best Regards,</p>
+
+							<p>The OpenSAND team.</p>
+
+
+					<hr style="border-top: 1px solid #1BAEAE;">
+				</div>
+                <!-- First Blog Post -->
+				<div class="custom-blog-post">
+					<h2 style="color: #1BAEAE;">
+						OpenSAND new release 4.2.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Friday, 21 July 2017</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+							<p>Hi all,</p>
+
+							<p>The release of OpenSAND 4.2.0 is now available.</p>
+							<p>This version is focused on stability and contains these updates:
+							<ul>
+							   <li>Add variable delay for each terminal and gateway</li>
+							   <li>Fix RTT bug</li>
+							   <li>Fix the multi-carrier in regenerative mode</li>
+							   <li>Fix routes management</li>
+							   <li>Fix probes bugs</li>
+							</ul></p>
+							<p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtracker [2].</p>
+							<p>
+							[1] <a rel="nofollow" href="mailto:users _AT_ opensand _DOT_ org" title="OpenSAND mailing list">The OpenSAND mailing list</a>
+							<br />
+							[2] <a rel="nofollow" href="https://forge.net4sat.org/opensand/opensand/issues">The OpenSAND bugtracker</a>
+							</p>
+
+							<p>Regards,</p>
+
+							<p>The OpenSAND team</p>
+
+					<hr>
+				</div>
+
+				<div class="custom-blog-post">
+					<h2 style="color: #FFB95E;">
+						OpenSAND new release 4.1.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Thursday, 22 December 2016</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+							<p>Hi all,</p>
+
+							<p>The release of OpenSAND 4.1.0 is now available.</p>
+							<p>This version contains mainly these updates:
+							<ul>
+							   <li>Add Ubuntu 16.04 LTS support</li>
+							   <li>Improve packaging to support multiple distributions</li>
+							   <li>Fix C++ 11 incompatibilies</li>
+							   <li>Improve GSE plugin performance</li>
+							   <li>Add the capability to split gateway into physical and access gateways</li>
+							   <li>Review debian packages dependencies</li>
+							   <li>Various other bugfixes and improvements</li>
+							</ul></p>
+							<p>We will be glad to get your feedback on our mailing list [1] and bug reports on the bugtracker [2].</p>
+							<p>
+							[1] <a rel="nofollow" href="mailto:users _AT_ opensand _DOT_ org" title="OpenSAND mailing list">The OpenSAND mailing list</a>
+							<br />
+							[2] <a rel="nofollow" href="https://forge.net4sat.org/opensand/opensand/issues">The OpenSAND bugtracker</a>
+							</p>
+							<p>Wishing you all a merry Christmas.</p>
+
+							<p>Regards,</p>
+
+							<p>The OpenSAND team</p>
+
+					<hr>
+				</div>
+				<div class="custom-blog-post">
+					<h2>
+						OpenSAND new major release 4.0.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Wednesday, 9 December 2015</p>
+					<hr>
+							<p>Hi all,</p>
+
+							<p>Some big news for this release of OpenSAND 4.0.0.</p>
+
+							<p>First of all, we moved from Launchpad to a new platform, Net4Sat [1], owned by the CNES and dedicated to
+							network research on satellite communications.</p>
+
+							<p>The OpenSAND website [2] has been updated consequently, you will get all the information you need to get the
+							sources and report bugs on the Net4Sat gitlab [3], to join the mailing list or to install the last version.</p>
+
+							<p>Be careful to update your sources for the new repository [4]</p>
+
+							<p>This version contains mainly these updates:
+							<ul>
+								<li>add SCPC access on return link</li>
+								<li>add multi-spot support</li>
+								<li>add multi-GW support</li>
+								<li>add support for Ubuntu 14.04 LTS</li>
+								<li>add a new interface for resources management</li>
+								<li>rework MODCOD handling</li>
+							</ul></p>
+
+							<p>This version contains a lot of new and tricky elements, we will be glad to get your
+							feedback on our new mailing list [5] and bug reports on the bugtracker [6].</p>
+
+							<p>
+							[1] <a rel="nofollow" href="http://net4sat.org/">The Net4Sat forge website</a></br>
+							[2] <a rel="nofollow" href="http://opensand.org/">The OpenSAND website</a></br>
+							[3] <a rel="nofollow" href="https://forge.net4sat.org/opensand/opensand">The OpenSAND gitlab on Net4Sat</a></br>
+							[4] <a rel="nofollow" href="http://packages.net4sat.org/opensand/">The OpenSAND repository</a></br>
+							[5] <a href="mailto:users _AT_ opensand _DOT_ org" title="OpenSAND mailing list">The OpenSAND mailing list</a></br>
+							[6] <a rel="nofollow" href="https://forge.net4sat.org/opensand/opensand/issues">The OpenSAND bugtracker</a></br>
+							</p>
+
+							<p>Wishing you all a merry Christmas.</p>
+
+							<p>Best Regards,</p>
+
+							<p>The OpenSAND team.</p>
+
+
+					<hr style="border-top: 1px solid #1BAEAE;">
+				</div>
+                <!-- Second Blog Post -->
+				<div class="custom-blog-post">
+					 <h2 style="color: #1BAEAE;">
+						OpenSAND new release 3.1.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Wednesday, 24 December 2014</p>
+					<hr style="border-top: 1px solid #1BAEAE;">
+							<p>Oh oh oh,</p>
+
+							<p>This Christmas, the OpenSAND team offers you the 3.1.0 release of the platform !</p>
+
+							<p>This version contains mainly:
+							 - the Slotted Aloha support on return link
+							 - an improved forward scheduling with multi-QoS and VCM support
+							 - a server that allows controlling OpenSAND through a simple interface
+							 - many interface and configuration improvements.</p>
+							 
+							<p>As usual, we would be glad to get your feedback on the mailing list or bugtracker. </p>
+
+							<p>The packages should soon be available on our repository.</p>
+
+							<p>The OpenSAND team wishes you a Merry Christmas and a Happy New year.</p>
+
+							<p>Regards,</p>
+
+							<p>The OpenSAND team</p>
+
+					<hr style="border-top: 1px solid #FFB95E;">
+				</div>
+                <!-- Third Blog Post -->
+				<div class="custom-blog-post">
+					<h2 style="color: #FFB95E;">
+						OpenSAND new major release 3.0.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Wednesday, 30 April 2014</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+							<p>Hi all,</p>
+
+							<p>After nearly one year of development, OpenSAND 3.0.0 is finally released.</p>
+
+							<p>Many parts have been reworked and improved, especially DAMA and logging. Moreover, we expect this version to be more user friendly.</p>
+
+							<p>The stable packages can be installed thanks to the OpenSAND repository, and the sources can be downloaded on Launchpad.</p>
+							<p>We also added a repository containing nightly packages.</p>
+							<p>All the useful information about how to use the repositories is available in the wiki [1].</p>
+
+							<p>We spent some time testing this release but you may still encounter some bugs. We will appreciate any feedback on the mailing list or bug reports.</p>
+
+							<p>Please visit http://opensand.org for further information.</p>
+
+							<p>
+							[1] wiki : <a rel="nofollow" href="https://wiki.net4sat.org">https://wiki.net4sat.org</a></br>
+							</p>
+
+							<p>Regards,</p>
+
+							<p>The OpenSAND team</p>
+
+					<hr>
+				</div>
+                <!-- Fourth Blog Post -->
+				<div class="custom-blog-post">
+					<h2>
+						OpenSAND major release 2.0.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Friday, 14 June 2013</p>
+					<hr>
+							<p>Hi all,</p>
+
+							<p>We are glad to announce a new OpenSAND major release !</p>
+							<p>You can find information and download the 2.0.0 version on http://opensand.org</p>
+
+							<p>This new version fixes some bugs from the 1.0.0 release and brings some major modifications:
+							 - runtime library (Margouilla) replacement by a new library, supporting multithread (see [1])
+							 - Ethernet support with 802.1Q and 802.1ad extensions
+							 - Ubuntu 12.04 LTS (and equivalent) support
+							 - 64 bits support</p>
+							 
+							<p>We also add a repository on opensand.org to simplify the OpenSAND installation.</p>
+							<p>To use this repository you can read the dedicated section on the wiki.</p>
+
+							<p>This is a new major release, we spent some time testing it but you may still encounter some bugs. We will appreciate any feedback on the mailing list or bug reports.</p>
+
+							<p>
+							[1] opensand-rt design:<a rel="nofollow" href="https://wiki.net4sat.org/doku.php?id=opensand:testbed_design:opensand_core:opensand_rt:design&s[]=rt&s[]=library">https://wiki.net4sat.org/doku.php?id=opensand:testbed_design:opensand_core:opensand_rt:design&s[]=rt&s[]=library</a></br>
+
+							</p>
+
+							<p>Regards,</p>
+
+							<p>The OpenSAND team</p>
+
+					<hr style="border-top: 1px solid #1BAEAE;">
+				</div>
+				<!-- Fifth Blog Post -->
+				<div class="custom-blog-post">
+					<h2 style="color: #1BAEAE;">
+						OpenSAND major release 1.0.0
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Thursday, 13 December 2012</p>
+					<hr style="border-top: 1px solid #1BAEAE;">
+							<p>Hi all,</p>
+
+							<p>OpenSAND 1.0.0 is now released !
+							You can find information and download the last version on http://opensand.org</p>
+
+							<p>This new version corrects some bugs from the 0.9.0 release and brings two major modifications:
+							 - environment plane replacement with a more efficient version (see [1])
+							 - (experimental) physical layer support (see [2])</p>
+							 
+							<p>This version is not compatible with the 0.9.x versions, especially the configuration part. If you wish to use the new version with old scenarios please contact us for support.</p>
+
+							<p>This is a new major release, we spent some time testing it but you may still encounter some bugs. We will appreciate any feedback on the mailing list or bug reports.
+							The physical layer support is for testing purpose at the moment.</p>
+
+							<p>
+							[1] environment plane design:
+							<a rel="nofollow" href="https://wiki.net4sat.org/doku.php?id=opensand:testbed_design:opensand_core:opensand_output:environment_plane_messages">https://wiki.net4sat.org/doku.php?id=opensand:testbed_design:opensand_core:opensand_output:environment_plane_messages</a></br>
+							[2] physical layer design:
+							<a rel="nofollow" href="https://wiki.net4sat.org/doku.php?id=opensand:satcom_emulation_design:physical_layer:the_physical_layer_block">https://wiki.net4sat.org/doku.php?id=opensand:satcom_emulation_design:physical_layer:the_physical_layer_block</a></br>
+							</p>
+
+							<p>Regards,</p>
+
+							<p>The OpenSAND team</p>
+
+					<hr style="border-top: 1px solid #FFB95E;">
+				</div>
+				<!-- Sixth Blog Post -->
+				<div class="custom-blog-post">
+					<h2 style="color: #FFB95E;">
+						OpenSAND live release
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team maintainers</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Monday, 17 September 2012</p>
+					<hr style="border-top: 1px solid #FFB95E;">
+						<p>The first version of the OpenSAND live image is now released !
+						You will now be able to test the OpenSAND platform by booting directly from a CD or USB key, without any modification to your installed OS.</p>
+
+						<p>The download link and some information on how to use or generate the image are available on the wiki: 
+						<a rel="nofollow" href="https://wiki.net4sat.org/doku.php?id=opensand:manuals:developer_manual:source_code:opensand_live">OpenSAND Live wiki</a>
+						</p>
+
+						<p>Feel free to send feedback on the mailing list opensand@lists.launchpad.net to help us improving it and adding new functionalities.</p>
+
+						<p>Regards,</p>
+
+						<p>OpenSAND team maintainers</p>
+
+					<hr>
+				</div>
+				<!-- Seventh Blog Post -->
+				<div class="custom-blog-post">
+					<h2>
+						OpenSAND in the SOCIS program
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team maintainers</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Friday, 20 July 2012</p>
+					<hr>
+						<p>We are glad to announce that OpenSAND has been accepted into SOCIS program.</p>
+
+						<p>SOCIS is a summer of code run by ESA for space-related open source software projects.
+						<a rel="nofollow" href="http://sophia.estec.esa.int/socis2012/?q=about">http://sophia.estec.esa.int/socis2012/?q=about</a>
+						</p>
+
+						<p>We are now waiting for student applications.
+						</p>
+
+						<p>Regards,</p>
+
+						<p>OpenSAND team maintainers</p>
+					<hr style="border-top: 1px solid #1BAEAE;">
+				</div>
+				<!-- Heighth Blog Post -->
+				<div class="custom-blog-post">
+					<h2 style="color: #1BAEAE;">
+						Welcome to OpenSAND Community
+					</h2>
+					<p class="lead">
+						by <a href="overview.html">OpenSAND team maintainers</a>
+					</p>
+					<p><i class="fa fa-clock-o"></i> Posted on Friday, 29 June 2012</p>
+					<hr style="border-top: 1px solid #1BAEAE;">
+						<p>Welcome to OpenSAND Community,</p>
+
+						<p>OpenSAND, formerly known as Platine, is a user-friendly and efficient tool to emulate satellite communication systems. It provides a suitable and simple means for performance evaluation and innovative access and network techniques validation. Its ability to interconnect real equipments with real applications provides excellent demonstration means.</p>
+
+						<p>This platform has been initially developped by Thales Alenia Space in the frame of IST european projects, R&T CNES studies and internal research. It has been also promoted by CNES (French Space Center) as a open-source reference software tool for use within its R&D activities in the domain of satellite communication systems and networks.</p>
+
+						<p>Please consult OpenSAND web site <a rel="nofollow" href="http://www.opensand.org/">http://www.opensand.org/</a> for more information.</p>
+
+						<p>Don't hesitate also to ask questions and raise problems on the mailing list opensand@lists.launchpad.net, composed of all openSAND interested people.</p>
+
+						<p>Cordially,</p>
+
+						<p>OpenSAND team maintainers</p>
+				</div>
 
             </div>
 
@@ -444,19 +678,11 @@
                             <button class="btn btn-default" type="button" id = "search_button" onclick="post_search()"><i class="fa fa-search"></i></button>
                         </span>
                     </div>
-                    <!-- /.input-group -->
                 </div>
-
             </div>
-
         </div>
-        <!-- /.row -->
 		</div>
-
-        <!-- Footer -->
-   
-
-    </div>
+  </div>
 </section>
 
 <script defer>
@@ -496,8 +722,8 @@
           <div class="col-lg-12">
             <div id="licenses">
               <br />
-              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ openbach _DOT_ org" title="OpenBACH contact">
-              OpenBACH Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
+              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ opensand _DOT_ org" title="OpenSAND contact">
+              OpenSAND Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
               <p style="font-size:90%">The text content of this website is published under the <a 
               href="http://creativecommons.org/licenses/by-nc-sa/3.0/" title="See license details"
               rel="license" hreflang="en">Creative Commons BY-NC-SA license</a> (except where otherwise
