@@ -8,7 +8,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>OpenSAND</title>
+    <title>OpenBACH</title>
 
     <!-- JQuery Core CSS -->
     <link href="css/jquery-ui.css" rel="stylesheet">
@@ -22,9 +22,9 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="css/opensand.css" rel="stylesheet">
+    <link href="css/openbach.css" rel="stylesheet">
     <link href="css/scrolling-nav.css" rel="stylesheet">
-    <link rel="icon" type="image/png" href="img/opensand-manager.png" />
+    <link rel="icon" type="image/png" href="img/tab_logo.png" />
 
     <!-- Custom Fonts -->
     <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
@@ -53,7 +53,6 @@
     <script src="js/jqBootstrapValidation.js" defer></script>
   </head>
 
-
   <body>
     <!-- Navigation -->
     <nav class="navbar navbar-inverse navbar-fixed-top navbar-custom" role="navigation">
@@ -66,71 +65,45 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <!-- <a class="navbar-brand page-scroll" href="index.html"> <img id="logo" src="img/logo2.png" alt=""/></a>-->
-          <div id="imgLogo">
+          <div id = "imgLogo">
             <img class="logo" src="img/logo2.png" onclick="document.location.href = 'index.html'" alt=""></img>
           </div>
         </div>
-
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-        <ul class="nav navbar-nav navbar-right">
-          <li class="dropdown page-scroll">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> About <b class="caret"></b> </p> </a>
-            <ul class="dropdown-menu">
-              <li>
-                <a href="overview.html" style="font-size:100%">Overview</a>
-              </li>
-              <li>
-                <a href="references.html" style="font-size:100%">References</a>
-              </li>
-              <li>
-                <a href="commitee.html" style="font-size:100%">Steering commitee</a>
-              </li>
-            </ul>
-          </li>
-          <li class="dropdown page-scroll">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Get & Learn <b class="caret"></b> </p></a>
-            <ul class="dropdown-menu">
-              <li>
-                <a href="get.html" style="font-size:100%">Installation</a>
-              </li>
-              <li>
-                <a href="mail.html" style="font-size:100%">Mailing-lists</a>
-              </li>
-              <li>
-                <a href="https://github.com/CNES/opensand/wiki" style="font-size:100%">Wiki</a>
-              </li>
-              <li>
-                <a href="libraries.html" style="font-size:100%">Libraries</a>
-              </li>
-              <li>
-                <a href="relatedtools.html" style="font-size:100%">Related Tools</a>
-              </li>
-            </ul>
-          </li>
-          <li class="dropdown page-scroll active">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Contribute  <b class="caret"></b> </p> </a>
-            <ul class="dropdown-menu">
-              <li>
-                <a href="contribution.html" style="font-size:100%">Contribution</a>
-              </li>
-              <li>
-                <a href="bugtracker.html" style="font-size:100%">Bugtracker</a>
-              </li>
-              <li>
-                <a href="https://github.com/CNES/opensand" style="font-size:100%">Forge OpenSAND</a>
-              </li>
-            </ul>
-          </li>
-          <li class="page-scroll">
-            <a href="blog.html" ><p class="text-custom">Blog </p></a>
-          </li>
-
-          <li class="page-scroll">
-            <a href="https://www.net4sat.org"> <img src="img/gitlab-logo-square.png"/> </a>
-          </li>
-        </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li class="dropdown page-scroll">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">About<b class="caret"></b></p></a>
+              <ul class="dropdown-menu">
+                <li><a href="overview.html" style="font-size:100%">Overview</a></li>
+                <li><a href="references.html" style="font-size:100%">References</a></li>
+                <li><a href="commitee.html" style="font-size:100%">Steering commitee</a></li>
+              </ul>
+            </li>
+            <li class="dropdown page-scroll">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Get & Learn<b class="caret"></b></p></a>
+              <ul class="dropdown-menu">
+                <li><a href="get.html" style="font-size:100%">Installation</a></li>
+                <li><a href="mail.html" style="font-size:100%">Mailing-lists</a></li>
+                <li><a href="https://wiki.net4sat.org/doku.php?id=openbach:index" style="font-size:100%">Wiki</a></li>
+                <li><a href="jobs.html" style="font-size:100%">Related tools & Jobs</a></li>
+              </ul>
+            </li>
+            <li class="dropdown page-scroll active">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Contribute<b class="caret"></b></p></a>
+              <ul class="dropdown-menu">
+                <li><a href="contribution.html" style="font-size:100%">Contribution</a></li>
+                <li><a href="bugtracker.html" style="font-size:100%">Bugtracker</a></li>
+                <li><a href="https://forge.net4sat.org/openbach/openbach" style="font-size:100%">Forge OpenBACH</a></li>
+              </ul>
+            </li>
+            <li class="page-scroll">
+              <a href="blog.html"><p class="text-custom">Blog</p></a>
+            </li>
+            <li class="page-scroll">
+              <a href="https://forge.net4sat.org/openbach/openbach"> <img src="img/gitlab-logo-square.png"/> </a>
+            </li>
+          </ul>
         </div>
       </div>
     </nav>
@@ -140,52 +113,50 @@
   <section>
     <div class="container">
       <div class="row">
-          <div class="col-lg-12">
-            <h1 class="page-header">Bugtracker
-            </h1>
-          </div>
+        <div class="col-lg-12">
+          <h1 class="page-header">Bugtracker</h1>
+        </div>
       </div>
     </div>
     <div class="container">
       <div class="row">
         <div class="col-lg-12">
           <p>The bugtracker is currently hosted on the <a rel="nofollow"
-             href="https://github.com/CNES/opensand/issues" hreflang="en">github issues tab</a> from the
-             <a rel="nofollow" href="https://github.com/CNES/opensand" hreflang="en">OpenSAND repository</a>.
+             href="https://forge.net4sat.org/openbach/openbach/" hreflang="en">gitlab forge</a> from the
+             <a rel="nofollow" href="http://net4sat.org/" hreflang="en">Net4Sat platform</a>.
           </p>
 
-          <h3 id="opensand-bug">Existing OpenSAND bug's reports</h3>
+          <h3 id="ochpen-bug">Existing OpenBACH bug's reports</h3>
           <ul>
-            <li><a rel="nofollow" href="https://github.com/CNES/opensand/issues"
-              title="See all bugs on github" hreflang="en">See bug reports of OpenSAND</a>,</li>
+            <li><a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues"
+              title="See all bugs on gitlab" hreflang="en">See bug reports of OpenBACH</a>,</li>
           </ul>
 
           <h3 id="report">Reporting a problem</h3>
-          <p>If you think you found a bug in the library, please follow these rules before opening
-             a new bug:</p>
+          <p>If you think you found a bug in the library, please follow these rules before opening a new bug:</p>
           <ol>
-            <li>If unsure whether your problem is a bug, ask on the <a href="./mail.html"
+            <li>If unsure whether your problem is a bug, ask on the <a href="mail.html"
               title="See information about the project mailing lists">mailing list</a> first.</li>
             <li>Ensure you use the latest release of your branch. If not, install the <a
               href="get.html" title="See the latest versions available for download">
               latest version</a> and try to reproduce the problem with it. If you failed to reproduce
               the problem, but you still want to open a bug, mention it in the ticket.</li>
-            <li><a rel="nofollow" href="https://github.com/CNES/opensand/issues"
+            <li><a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues?&state=all"
               title="Search the list of bug reports" hreflang="en">Search for a similar bug report</a>.
               If unsure whether a bug report is similar, ask on the <a href="./mail.html"
               title="See information about the project mailing lists">mailing list</a> first.</li>
-            <li>Open your bug on the <a rel="nofollow" href="https://github.com/CNES/opensand/issues"
-              title="OpenSAND bugtracker" hreflang="en">OpenSAND bugtracker</a> with the following information:
+            <li><a rel="nofollow" href="https://forge.net4sat.org/openbach/openbach/issues/new"
+              title="Report a bug on OpenBACH" hreflang="en">Open your bug</a> on the OpenBACH bugtracker
+              with the following information:
             </li>
           </ol>
           <ul style="padding-left: 7em;">
-            <li>the module in which the problem occurs (eg. opensand-core),</li>
-            <li>a short summary of your problem (eg. 'Cannot ping GW'),</li>
-            <li>the source release(s) which cause the problem (eg. '4.1.0', 'master revision XX'),</li>
-            <li>your operating system (eg. Ubuntu 16.04.2 LTS...),</li>
-            <li>whether you built the binaries and/or libraries from sources or installed a package,</li>
+            <li>the module in which the problem occurs,</li>
+            <li>a short summary of your problem,</li>
+            <li>the source release(s) which cause the problem ,</li>
+            <li>your operating system (eg. Ubuntu 16.04, ...),</li>
             <li>the steps to reproduce your problem (or the steps that caused the problem if you failed to reproduce it),</li>
-            <li>if relevant, the traces printed by the core, manager or daemon (see in /var/log/opensand/),</li>
+            <li>if relevant, the traces printed in Kibana/Ansible (or in /var/log/),</li>
             <li>if relevant, the process core.</li>
           </ul>
         </div>
@@ -202,8 +173,8 @@
           <div class="col-lg-12">
             <div id="licenses">
               <br />
-              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ opensand _DOT_ org" title="OpenSAND contact">
-              OpenSAND Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
+              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ openbach _DOT_ org" title="OpenBACH contact">
+              OpenBACH Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
               <p style="font-size:90%">The text content of this website is published under the <a 
               href="http://creativecommons.org/licenses/by-nc-sa/3.0/" title="See license details"
               rel="license" hreflang="en">Creative Commons BY-NC-SA license</a> (except where otherwise

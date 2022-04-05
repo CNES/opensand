@@ -8,7 +8,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>OpenSAND</title>
+    <title>OpenBACH</title>
 
     <!-- JQuery Core CSS -->
     <link href="css/jquery-ui.css" rel="stylesheet">
@@ -22,9 +22,9 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="css/opensand.css" rel="stylesheet">
+    <link href="css/openbach.css" rel="stylesheet">
     <link href="css/scrolling-nav.css" rel="stylesheet">
-    <link rel="icon" type="image/png" href="img/opensand-manager.png" />
+    <link rel="icon" type="image/png" href="img/tab_logo.png" />
 
     <!-- Custom Fonts -->
     <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
@@ -53,7 +53,6 @@
     <script src="js/jqBootstrapValidation.js" defer></script>
   </head>
 
-
   <body>
     <!-- Navigation -->
     <nav class="navbar navbar-inverse navbar-fixed-top navbar-custom" role="navigation">
@@ -66,91 +65,65 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <!-- <a class="navbar-brand page-scroll" href="index.html"> <img id="logo" src="img/logo2.png" alt=""/></a>-->
-          <div id="imgLogo">
+          <div id = "imgLogo">
             <img class="logo" src="img/logo2.png" onclick="document.location.href = 'index.html'" alt=""></img>
           </div>
         </div>
-
         <!-- Collect the nav links, forms, and other content for toggling -->
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-        <ul class="nav navbar-nav navbar-right">
-          <li class="dropdown page-scroll active">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> About <b class="caret"></b> </p> </a>
-            <ul class="dropdown-menu">
-              <li>
-                <a href="overview.html" style="font-size:100%">Overview</a>
-              </li>
-              <li>
-                <a href="references.html" style="font-size:100%">References</a>
-              </li>
-              <li>
-                <a href="commitee.html" style="font-size:100%">Steering commitee</a>
-              </li>
-            </ul>
-          </li>
-          <li class="dropdown page-scroll">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Get & Learn <b class="caret"></b> </p></a>
-            <ul class="dropdown-menu">
-              <li>
-                <a href="get.html" style="font-size:100%">Installation</a>
-              </li>
-              <li>
-                <a href="mail.html" style="font-size:100%">Mailing-lists</a>
-              </li>
-              <li>
-                <a href="https://github.com/CNES/opensand/wiki" style="font-size:100%">Wiki</a>
-              </li>
-              <li>
-                <a href="libraries.html" style="font-size:100%">Libraries</a>
-              </li>
-              <li>
-                <a href="relatedtools.html" style="font-size:100%">Related Tools</a>
-              </li>
-            </ul>
-          </li>
-          <li class="dropdown page-scroll">
-            <a href="#" class="dropdown-toggle" data-toggle="dropdown"> <p class="text-custom"> Contribute  <b class="caret"></b> </p> </a>
-            <ul class="dropdown-menu">
-              <li>
-                <a href="contribution.html" style="font-size:100%">Contribution</a>
-              </li>
-              <li>
-                <a href="bugtracker.html" style="font-size:100%">Bugtracker</a>
-              </li>
-              <li>
-                <a href="https://github.com/CNES/opensand" style="font-size:100%">Forge OpenSAND</a>
-              </li>
-            </ul>
-          </li>
-          <li class="page-scroll">
-            <a href="blog.html" ><p class="text-custom">Blog </p></a>
-          </li>
-
-          <li class="page-scroll">
-            <a href="https://www.net4sat.org"> <img src="img/gitlab-logo-square.png"/> </a>
-          </li>
-        </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li class="dropdown page-scroll active">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">About<b class="caret"></b></p></a>
+              <ul class="dropdown-menu">
+                <li><a href="overview.html" style="font-size:100%">Overview</a></li>
+                <li><a href="references.html" style="font-size:100%">References</a></li>
+                <li><a href="commitee.html" style="font-size:100%">Steering commitee</a></li>
+              </ul>
+            </li>
+            <li class="dropdown page-scroll">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Get & Learn<b class="caret"></b></p></a>
+              <ul class="dropdown-menu">
+                <li><a href="get.html" style="font-size:100%">Installation</a></li>
+                <li><a href="mail.html" style="font-size:100%">Mailing-lists</a></li>
+                <li><a href="https://wiki.net4sat.org/doku.php?id=openbach:index" style="font-size:100%">Wiki</a></li>
+                <li><a href="jobs.html" style="font-size:100%">Related tools & Jobs</a></li>
+              </ul>
+            </li>
+            <li class="dropdown page-scroll">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown"><p class="text-custom">Contribute<b class="caret"></b></p></a>
+              <ul class="dropdown-menu">
+                <li><a href="contribution.html" style="font-size:100%">Contribution</a></li>
+                <li><a href="bugtracker.html" style="font-size:100%">Bugtracker</a></li>
+                <li><a href="https://forge.net4sat.org/openbach/openbach" style="font-size:100%">Forge OpenBACH</a></li>
+              </ul>
+            </li>
+            <li class="page-scroll">
+              <a href="blog.html"><p class="text-custom">Blog</p></a>
+            </li>
+            <li class="page-scroll">
+              <a href="https://forge.net4sat.org/openbach/openbach"> <img src="img/gitlab-logo-square.png"/> </a>
+            </li>
+          </ul>
         </div>
       </div>
     </nav>
 
 <div class="page-wrap">
-	<section>
-		<div class="container">
-			<div class="row">
-					<div class="col-lg-12">
-						<h1 class="page-header">Steering commitee
-						</h1>
-					</div>
-			</div>
-		</div>
+  <section>
+    <div class="container">
+      <div class="row">
+          <div class="col-lg-12">
+            <h1 class="page-header">Steering commitee
+            </h1>
+          </div>
+      </div>
+    </div>
 
-		<!-- Page Content -->
+    <!-- Page Content -->
     <div class="container">
       <div class="row">
         <div class="col-lg-12">
-          <p>The OpenSAND steering committee aims are:</p>
+          <p>The OpenBACH steering committee aims are:</p>
           <ul>
             <li>take administrative decisions related to platform steering,</li>
             <li>define the contractual aspects associated (e.g. steering committee opening criterias
@@ -159,8 +132,7 @@
             <li>choose licenses applied on new platform modules,</li>
             <li>maintain a <a rel="section" href="#contributor-agreement">Contributor Agreement</a>
               in order to encourage platform users to identify and inform the whole community of all
-              modifications on the platform available in the applicable open sources conditions (GPLv3,
-              LGPLv3, ...),</li>
+              modifications on the platform available in the applicable open sources conditions (GPLv3),</li>
             <li>animate the community and particularly organise annual meeting with all its members,</li>
             <li>take technical decisions related to platform steering,</li>
             <li>define maintenance jobs,</li>
@@ -171,69 +143,29 @@
         </div>
       </div>
     </div>
-	</section>
-	<section class="font-blue">
-		<div class="container">
-			<div class="row">
-				<div class="col-lg-12">
-					<h2 class="steering-committee" id="members">Members</h2>
-					<p><a href="http://www.thalesaleniaspace.com/" title="Thales Alenia Space website"
-					   hreflang="en">Thales Alenia Space</a> and the <a href="http://www.cnes.fr/web/CNES-en/7114-home-cnes.php"
-					   title="CNES website" hreflang="en">CNES</a> as co-founders of OpenSAND Community
-					   and major contributors, are the first Members of OpenSAND Steering Committee, in
-					   charge of all technical and administrative decisions concerning OpenSAND.
-					   Depending on their contributions into OpenSAND, the Steering Committee
-					   may decide, by unanimous decision, to invite other important contributors
-					   to join the Steering Committee as new Members.</p>
-					<p>The objective of the <abbr style="text-decoration:none" title="Centre National d'Etudes Spatiales">CNES
-					   </abbr>and <abbr style="text-decoration:none" title="Thales Alenia Space France">TASF</abbr> is to
-					   better optimize and rationalize the research and development in the satellite
-					   domain. It should avoid duplication of efforts and therefore facilitate programs
-					   of new satellite solutions.</p>
-				</div>
-			</div>
-		</div>
-	</section>
-	<section>
-		<div class="container">
-			<div class="row">
-				<div class="col-lg-12">
-					<h2 class="steering-committee" id="contributors">Contributors</h2>
-				</div>
-				<div class="col-lg-6">
-					<h3 id="maintainers">Maintainers</h3>
-					<p><a href="http://www.viveris.fr/" title="Viveris website" hreflang="fr">Viveris
-					   Technologies</a> is the current operational maintainer of OpenSAND and has a long
-					   experience on OpenSAND, via <abbr style="text-decoration:none" title="Thales Alenia Space France">TASF</abbr>
-					   and <abbr style="text-decoration:none" title="Centre National d'Etudes Spatiales">CNES</abbr> projects.</p>
-					<h3 id="others">Other Contributors</h3>
-					<ul>
-						<li>AQL</li>
-						<li>ASP - IUSO, DTP</li>
-						<li>B2i Toulouse (former Viveris Technologies)</li>
-						<li>CQ-Software (Margouilla)</li>
-						<li>LAAS (Core)</li>
-						<li>University of Rome (DAMA UoR)</li>
-						<li>TRANSICIEL (Environment Plane)</li>
-					</ul>
-				</div>
-				<div class="col-lg-6">
-					 <p id="logo"><a class="nolang" href="http://www.viveris.com" title="Viveris website"
-					   hreflang="fr"><center><img src="img/viveris_logo_small.png"
-					   alt="Viveris" width="180" height="180"/></center></a></p>
-				</div>
-			</div>
-		</div>
+  </section>
+
+  <section class="font-blue">
     <div class="container">
       <div class="row">
         <div class="col-lg-12">
-          <h2 class="steering-committee" id="contributor-agreement">Contributor agreement</h2>
-          <p>Please read the <a href="agreement.html" title="Contributor agreement">
-             OpenSAND contributor agreement</a> and sign it if you wish to contribute to the project.</p>
+          <h2 class="steering-committee" id="members">Members</h2>
+          <p><a href="http://www.cnes.fr/web/CNES-en/7114-home-cnes.php"
+             title="CNES website" hreflang="en">CNES</a>  as founder of OpenBACH Community
+             and major contributor, is the first Member of OpenBACH Steering Committee, in
+             charge of all technical and administrative decisions concerning OpenBACH.
+             Depending on their contributions to OpenBACH, the Steering Committee
+             may decide, by unanimous decision, to invite other important contributors
+             to join the Steering Committee as new Member.</p>
+          <p>The objective of the <abbr style="text-decoration:none" title="Centre National d'Etudes Spatiales">CNES
+             </abbr> is to better optimize and rationalize the research and development in the telecommunications
+             domain. It should avoid duplication of efforts and therefore facilitate programs
+             of new networking solutions.</p>
         </div>
       </div>
     </div>
-	</section>
+  </section>
+  <br>
 </div>
 
 
@@ -244,8 +176,8 @@
           <div class="col-lg-12">
             <div id="licenses">
               <br />
-              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ opensand _DOT_ org" title="OpenSAND contact">
-              OpenSAND Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
+              <p style="font-size:90%">Contact <a href="mailto:admin _AT_ openbach _DOT_ org" title="OpenBACH contact">
+              OpenBACH Steering Committee <i class="fa fa-envelope" aria-hidden="true"></i></a></p>
               <p style="font-size:90%">The text content of this website is published under the <a 
               href="http://creativecommons.org/licenses/by-nc-sa/3.0/" title="See license details"
               rel="license" hreflang="en">Creative Commons BY-NC-SA license</a> (except where otherwise
