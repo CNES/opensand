@@ -165,18 +165,14 @@
                 <code class="shell">
                 $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable"
                 | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-                <br>
-                <code class="shell">
-                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal dev"
-                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
               </ul>
-              <li>Update the list of available packages:</li>
               <li> Add Net4Sat repository GPG key</li>
               <ul style="padding-left: 2em;">
                   <code class="shell">
                     $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
                   </code>
               </ul>
+              <li>Update the list of available packages:</li>
               <ul style="padding-left: 2em;">
                 <div class="shell-div">
                   <code class="shell">
@@ -208,18 +204,14 @@
                 <code class="shell">
                 $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable"
                 | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-                <br>
-                <code class="shell">
-                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal dev"
-                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
               </ul>
               <li>Update the list of available packages:</li>
-              <li> Add Net4Sat repository GPG key</li>
               <ul style="padding-left: 2em;">
                   <code class="shell">
                     $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
                   </code>
               </ul>
+              <li> Add Net4Sat repository GPG key</li>
               <ul style="padding-left: 2em;">
                 <div class="shell-div">
                   <code class="shell">
@@ -238,53 +230,6 @@
           <p>The librle sources are hosted on the <a rel="nofollow" href="https://github.com/CNES/librle" hreflang="en">librle gitlab project</a>
           from the <a rel="nofollow" href="http://net4sat.org" hreflang="en">Net4Sat platform</a>.</p>
           <p>[1] <a rel="nofollow" href="http://www.etsi.org/deliver/etsi_ts/103100_103199/103179/01.01.01_60/ts_103179v010101p.pdf">ETSI TS 103 179 v1.1.1 (2013-08)</a></p>
-
-          <h2 class="libraries" id="librrohc">ROHC Library</h2>
-          <p>The ROHC library provides an easy and robust way for applications to reduce 
-          their bandwidth usage on network links with limited capacity or expensive costs.
-          Headers of network packets are compressed with the ROHC protocol and algorithms.</p>
-          <p>The ROHC protocol is very efficient for compressing VoIP streams that use RTP as 
-          transport protocol. ROHC is also suitable for compressing IP-only (IPv4 or IPv6), 
-          UDP or TCP flows and many others.</p>
-          <p>The library is published as Opensource under the GNU LGPL2.1+ license starting 
-          with version 1.7.0. Previous versions were published under the GNU GPL2+ license.</p>
-          <p>Fo more information, please consult the <a rel="nofollow" href="https://rohc-lib.org/" hreflang="en">librohc website</a>.</p>
-          <p>This is the procedure to install the librohc package, librohc-dbg and librohc-dev are also available.
-            <ol class="wizard_steps">
-              <li>Add the OpenSAND repository:</li>
-              <ul style="padding-left: 2em;">
-                <code class="shell">
-                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable"
-                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-                <br>
-                <code class="shell">
-                $ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal dev"
-                | sudo tee /etc/apt/sources.list.d/opensand.list</code>
-              </ul>
-              <li>Update the list of available packages:</li>
-              <li> Add Net4Sat repository GPG key</li>
-              <ul style="padding-left: 2em;">
-                  <code class="shell">
-                    $ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
-                  </code>
-              </ul>
-              <ul style="padding-left: 2em;">
-                <div class="shell-div">
-                  <code class="shell">
-                  $ sudo apt-get update</code>
-                </div>
-              </ul>
-              <li>Install librohc:</li>
-              <ul style="padding-left: 2em;">
-                <div class="shell-div">
-                  <code class="shell">
-                  $ sudo apt-get install librohc</code>
-                </div>
-              </ul>
-            </ol>
-          </p>
-          <p>The librohc sources are hosted on <a rel="nofollow" href="https://github.com/didier-barvaux/rohc" hreflang="en">rohc github</a>
-          and its Debian packaging scripts on <a rel="nofollow" href="https://github.com/didier-barvaux/rohc_debian.git" hreflang="en">rohc_debian github</a>.</p>
         </div>
       </div>
     </div>
