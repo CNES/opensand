@@ -101,7 +101,6 @@ wget https://dl.influxdata.com/chronograf/releases/chronograf_1.7.3_amd64.deb
 wget https://artifacts.elastic.co/downloads/logstash/logstash-6.2.4.deb
 wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.2.4.deb
 wget https://dl.influxdata.com/influxdb/releases/influxdb_1.7.1_amd64.deb
-
 sudo dpkg -i kibana-6.2.4-amd64.deb
 sudo dpkg -i chronograf_1.7.3_amd64.deb
 sudo dpkg -i logstash-6.2.4.deb
