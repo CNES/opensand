@@ -51,35 +51,40 @@ Unless otherwise specified, all the commands here must be executed on all machin
 In order to install the packages using `apt`, the repository must be added to its sources. One way of doing it is by adding the following line to the file `/etc/apt/sources.list`.
 
 If using Ubuntu 20.04 LTS (focal):
-<code>
-deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable
-</code>
+
+```
+echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee –a /etc/apt/sources.list
+```
 
 Add GPG key for net4sat repository (as root) : 
-<code>
+
+```
 curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
-</code>
+```
 
 An apt sources update is necessary after adding the repository:
-<code>
+
+```
 sudo apt update
-</code>
+```
 
 Next, the packages must be installed. In this manual, the OpenSAND collector are installed on the machine with the satellite component, but they can be installed anywhere, even on a machine without opensand. The only constraint is that all the machines must be connected to a same network.
 
 The OpenSAND core, with all its dependencies, is distributed with the meta-package `opensand`; the OpenSAND configuration with `opensand-conf`; and the OpenSAND collector with `opensand-collector`.
 
 To install the OpenSAND core on the ST, GW and SAT, execute:
-<code>
+
+```
 sudo apt install opensand
-</code>
+```
 
 ### Optional configuration
 
 To install the OpenSAND configuration, execute:
-<code>
+
+```
 sudo apt install opensand-conf
-</code>
+```
 
 The configuration is stored in the `/usr/share/opensand`
 
@@ -93,33 +98,40 @@ Before installing the collector, some packages need to be installed first:
 - ElacticSearch v6.2.4
 - InfluxDB v1.7.1
 
-To do so, exectute:
-To install the OpenSAND configuration, execute:
-<code>
+To do so, execute the following commands to download the packages:
+
+```
 wget https://artifacts.elastic.co/downloads/kibana/kibana-6.2.4-amd64.deb
 wget https://dl.influxdata.com/chronograf/releases/chronograf_1.7.3_amd64.deb
 wget https://artifacts.elastic.co/downloads/logstash/logstash-6.2.4.deb
 wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.2.4.deb
 wget https://dl.influxdata.com/influxdb/releases/influxdb_1.7.1_amd64.deb
+```
+
+Then install the downloaded packages:
+
+```
 sudo dpkg -i kibana-6.2.4-amd64.deb
 sudo dpkg -i chronograf_1.7.3_amd64.deb
 sudo dpkg -i logstash-6.2.4.deb
 sudo dpkg -i elasticsearch-6.2.4.deb
 sudo dpkg -i influxdb_1.7.1_amd64.deb
-</code>
+```
 
 To install the OpenSAND collector, execute:
-<code>
+
+```
 sudo apt install opensand-collector
-</code>
+```
 
 > :warning: **If you are using OpenSAND through the OpenBach orchestrator, do **not** install this collector on the same machine than the OpenBach collector. Even though the tools installed are the same and used similarly, they have a mutually exclusive configuration. Installing one will break the other.**
 
 ## Uninstall
 
 In order to uninstall OpenSAND, you can remove every OpenSAND package easily by executing:
-<code>
+
+```
 sudo apt remove --purge opensand* libopensand* librle libgse
-</code>
+```
 
 Be careful not to execute the command while on an OpenSAND folder (uninstall may try to remove said folder).
