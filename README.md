@@ -98,6 +98,12 @@ Before installing the collector, some packages need to be installed first:
 - ElacticSearch v6.2.4
 - InfluxDB v1.7.1
 
+Logstash needs to have Java installed. JDK version 8 is recommended for this version of logstash, and can be installed via:
+
+```
+sudo apt install openjdk-8-jdk
+```
+
 To do so, execute the following commands to download the packages:
 
 ```
