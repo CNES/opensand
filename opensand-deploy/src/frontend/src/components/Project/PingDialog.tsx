@@ -44,7 +44,7 @@ const PingDialog: React.FC<Props> = (props) => {
         onValidate(destination);
         setDestination("");
         dispatch(closePing());
-    }, [onValidate, handleClose, destination]);
+    }, [onValidate, dispatch, destination]);
 
     const handleCloseDestinations = React.useCallback(() => {
         setDestinationsAnchor(null);
