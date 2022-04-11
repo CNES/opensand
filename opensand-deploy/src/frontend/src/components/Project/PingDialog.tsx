@@ -16,7 +16,7 @@ import OpenedIcon from '@mui/icons-material/ArrowDropUp';
 import ClosedIcon from '@mui/icons-material/ArrowDropDown';
 
 import {useSelector, useDispatch} from '../../redux';
-import {clearPing} from '../../redux/ping';
+import {clearPing, closePing} from '../../redux/ping';
 
 
 const PingDialog: React.FC<Props> = (props) => {
@@ -42,7 +42,8 @@ const PingDialog: React.FC<Props> = (props) => {
     const handleValidate = React.useCallback((event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         onValidate(destination);
-        handleClose();
+        setDestination("");
+        dispatch(closePing());
     }, [onValidate, handleClose, destination]);
 
     const handleCloseDestinations = React.useCallback(() => {

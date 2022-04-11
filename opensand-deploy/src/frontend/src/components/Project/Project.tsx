@@ -106,6 +106,7 @@ const Project: React.FC<Props> = (props) => {
     const navigate = useNavigate();
 
     const [handleNewEntityCreate, setNewEntityCreate] = React.useState<((entity: string, entityType: string) => void) | undefined>(undefined);
+    const [pingDestination, setPingDestination] = React.useState<string | null>(null);
 
     const handleOpen = React.useCallback((root: Component, mutator: MutatorCallback, submitForm: SaveCallback) => {
         setNewEntityCreate(() => (entity: string, entityType: string) => {
@@ -187,17 +188,10 @@ const Project: React.FC<Props> = (props) => {
     }, [name]);
 
     const handlePing = React.useCallback((destination: string) => {
-        if (name && source) {
-            dispatch(runSshCommand({
-                action: () => dispatch(pingEntity({
-                    project: name,
-                    entity: source.name,
-                    address: source.address,
-                    destination,
-                })),
-            }));
-        }
-    }, [dispatch, name, source]);
+        dispatch(runSshCommand({
+            action: () => setPingDestination(destination),
+        }));
+    }, [dispatch]);
 
     const displayAction = React.useCallback((index: number) => {
         const entity = findMachines(model?.root)?.elements[index];
@@ -244,6 +238,18 @@ const Project: React.FC<Props> = (props) => {
             dispatch(clearModel());
         };
     }, [dispatch, name]);
+
+    React.useEffect(() => {
+        if (name && source && pingDestination) {
+            dispatch(pingEntity({
+                project: name,
+                entity: source.name,
+                address: source.address,
+                destination: pingDestination,
+            }));
+            setPingDestination(null);
+        }
+    }, [dispatch, name, source, pingDestination]);
 
     return (
         <React.Fragment>

@@ -13,7 +13,7 @@ interface SshState {
     show: boolean;
     open: boolean;
     configured: boolean;
-    lastAction: Date;
+    lastAction: number;
     nextAction?: ActionCallback;
 }
 
@@ -24,7 +24,7 @@ const initialState: SshState = {
     show: false,
     open: false,
     configured: false,
-    lastAction: new Date(),
+    lastAction: Number(new Date()),
 };
 
 
@@ -42,7 +42,7 @@ const sshSlice = createSlice({
             return {
                 ...state,
                 ...action.payload,
-                lastAction: new Date(),
+                lastAction: Number(new Date()),
                 configured: true,
             };
         },
@@ -56,7 +56,7 @@ const sshSlice = createSlice({
                 nextAction();
                 return {
                     ...state,
-                    lastAction: now,
+                    lastAction: Number(now),
                 };
             }
 

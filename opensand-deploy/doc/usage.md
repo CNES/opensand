@@ -83,6 +83,16 @@ You can manually stop the OpenSAND binary by selecting the STOP "Run Method". Su
 can be monitored by switching back to the LAUNCH method and checking wether the launch
 button or the progress circle is displayed.
 
+Please note that SSH credentials will only be asked once, for the first process you launched
+in an attempt to make it more straightforward for the majority of the configurations that
+have the same credentials on all the machines running OpenSAND binaries. If you somewhat
+need to change SSH credentials between each machines, you can use the "Configure SSH
+Credentials" button to save new ones that will be applied to the next LAUNCH or STOP
+operation.
+
+Lastly, as changing the "Run Method" to LAUNCH or STOP on each entity may be tedious, the
+"Launch All Entities" and "Stop All Entities" buttons are provided as a shortcut.
+
 ## Testing
 
 ![Ping](Ping.png)

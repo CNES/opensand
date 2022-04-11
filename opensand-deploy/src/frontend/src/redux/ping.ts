@@ -24,6 +24,12 @@ const pingSlice = createSlice({
         clearPing: (state) => {
             return {...initialState};
         },
+        closePing: (state) => {
+            return {
+                ...state,
+                status: "idle",
+            };
+        },
         setPingingEntity: (state, action: PayloadAction<{name: string; address: string;} | undefined>) => {
             return {
                 ...initialState,
@@ -57,5 +63,5 @@ const pingSlice = createSlice({
 });
 
 
-export const {clearPing, setPingingEntity} = pingSlice.actions;
+export const {clearPing, closePing, setPingingEntity} = pingSlice.actions;
 export default pingSlice.reducer;
