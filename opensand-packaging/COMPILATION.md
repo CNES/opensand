@@ -66,6 +66,8 @@ $ yarn install
 $ yarn build
 ```
 
+Detailled installation instructions can be found in the [dedicated installation manual](../opensand-deploy/doc/install.md).
+
 ## Real Time
 
 The Real Time component provides real time threads and channels to exchange data between them.
