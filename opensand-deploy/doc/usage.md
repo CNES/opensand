@@ -44,7 +44,7 @@ will prompt for them and never store it.
 
 On this "Platform" tab, you can add a new machine that you want to control. You must give
 it a unique name and specify the kind of OpenSAND entity that you want to run on it. This
-does not need to be a unique machine for each entity, but you must tell each entity
+does not need to be a unique machine for each entity, but you must tell each entity apart
 if you want to manage several OpenSAND processes on a single machine.
 
 ![Entity Configuration](EntityConfiguration.png)

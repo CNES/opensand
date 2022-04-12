@@ -1,3 +1,16 @@
+2022-04-12 opensand-6.0.0
+
+   * A new web interface that replaces the manager and that allows to:
+       * Create the OpenSAND configuration.
+       * Deploy the configuration and start/stop the OpenSAND binaries (STs, GWs et SAT).
+       * Monitor the status of the binaries.
+   * The daemons are not anymore available and the network configuration is now external to OpenSAND, but we provide several solutions:
+       * A manual showing a simple setup from CLI is available
+       * Easy-to-use makefiles are available in order to configure/clean your network topology for different use-cases (IP/Ethernet with/without VLAN and with QoS mapping)
+   * Implementation of a SARP learning mechanism given that for full-Ethernet use-cases, work-stations MAC addresses are needed in the SARP table.
+   * Bug correction on the ACM loop (concerning the MODCOD selection).
+   * Minor bug correction on the VBDC algorithm.
+
 2020-04-24 opensand-5.2.0
 
    * Improved network integration (new interfaces bridge/tap)
