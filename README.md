@@ -10,9 +10,16 @@ and conditions of the GNU GPLv3 license or the GNU LGPLv3 license.
 
 Visit us at [opensand.org](https://www.opensand.org/).
 
-# Installation Manual v6.0 DEV
+# OpenSAND v6.0.0
 
-> :warning: **DEV version.**
+## Manuals
+
+ * [Installation Manual](README.md#installation-manual)
+ * [Compilation Manual](opensand-packaging/README.md)
+ * [Command-line User Manual](opensand-network/opensand_cli/README.md)
+ * [Web-interface User Manual](opensand-deploy/README.md)
+
+# Installation Manual
 
 This page describes how to install a simple OpenSAND platform, containing one satellite, one gateway (GW), and one Satellite terminal (ST).
 
@@ -38,11 +45,11 @@ In the image, two additional machines (`WS-ST1` and `WS-GW0`) are shown but are 
 
 ### Operating System
 
-The testbed was tested using Ubuntu 16.04 LTS, but it should work on every Linux distribution or Unix-like system provided that the required dependencies are installed. However, if you are not on a Debian-based system, you may need to [[opensand:manuals:5.2:compilation_manual:index|compile OpenSAND]] yourself.
+The testbed was tested using Ubuntu 16.04 LTS, but it should work on every Linux distribution or Unix-like system provided that the required dependencies are installed. However, if you are not on a Debian-based system, you may need to [compile OpenSAND](opensand-packaging/README.md) yourself.
 
 ## Install
 
-This manual describes how to obtain and install OpenSAND using the distributed debian packages. For more information about how to obtain OpenSAND sources, compile it, and install it, please refer to the [[opensand:manuals:5.1:compilation_manual:index|compilation manual]].
+This manual describes how to obtain and install OpenSAND using the distributed debian packages. For more information about how to obtain OpenSAND sources, compile it, and install it, please refer to the [compilation manual](opensand-packaging/README.md).
 
 The debian packages can be installed using `apt` commands.
 
