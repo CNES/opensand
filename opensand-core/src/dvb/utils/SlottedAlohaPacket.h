@@ -109,7 +109,7 @@ public:
 };
 
 /// A list of Slotted Aloha Packets 
-typedef vector<SlottedAlohaPacket *> saloha_packets_t;
+typedef std::vector<SlottedAlohaPacket *> saloha_packets_t;
 
 
 #endif

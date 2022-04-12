@@ -63,20 +63,28 @@ class MessageSendProbes(object):
         msg = iter(data.split())
         timestamp = next(msg)
         for name, value in grouper(msg, 2):
-            self.values[name] = json.loads(value)
+            try:
+                value = json.loads(value)
+            except ValueError:
+                pass
+            finally:
+                self.values[name] = value
 
     def assert_values(self, values):
-        assert self.values == values, self.values
+        expected_values = dict(entity='testing', **values)
+        assert self.values == expected_values, self.values
 
     def __repr__(self):
         return "<MessageSendProbes: %r>" % self.values
 
 
 class MessageSendLog(object):
-    pattern = re.compile(r'\[(?P<timestamp>[^\]]+)\]\[\s*(?P<log_level>\w+)\]\[(?P<log_name>[^:]+)\](?P<log_message>.*)')
+    ENTITY_NAME = 'testing'
+    pattern = re.compile(r'\[(?P<timestamp>[^\]]+)\]\[\s*(?P<log_level>\w+)\]\[(?P<entity_name>[^\]]+)\]\[(?P<log_name>[^:]+)\](?P<log_message>.*)')
 
     def __init__(self, data):
         self.timestamp = None
+        self.entity_name = None
         self.log_level = None
         self.log_name = None
         self.log_message = None
@@ -87,14 +95,17 @@ class MessageSendLog(object):
         self.original_message = data
 
     def assert_values(self, level, name, message):
+        assert self.entity_name == self.ENTITY_NAME, 'Log entity mismatch (expected {}): {}'.format(self.ENTITY_NAME, self)
         assert self.log_level == level, 'Log level mismatch (expected {}): {}'.format(level, self)
         assert self.log_name == name, 'Log name mismatch (expected {}): {}'.format(name, self)
         assert self.log_message == message, 'Log message mismatch (expected {}): {}'.format(message, self)
 
     def __repr__(self):
-        return "<MessageSendLog: %r (%r) - %r>" % (self.log_name,
-                                                   self.log_level,
-                                                   self.log_message)
+        return "<MessageSendLog: %r (%r) from %r- %r>" % (
+                self.log_name,
+                self.log_level,
+                self.entity_name,
+                self.log_message)
 
 
 class EnvironmentPlaneBaseTester(object):
@@ -200,7 +211,7 @@ class EnvironmentPlaneBaseTester(object):
         self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "i")
         self.assert_line("info\n")
         msg = self.get_message(MessageSendLog)
-        msg.assert_values('INFO', 'info', '[test_output.cpp:main():166] This is the info log message.')
+        msg.assert_values('INFO', 'info', '[test_output.cpp:main():167] This is the info log message.')
 
     def check_default_log(self):
         print("Test: default log")
@@ -284,7 +295,7 @@ class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
         self.send_cmd(0, 0, 0, 0, 0, 0, 0, 0, "d")
         self.assert_line("debug\n")
         msg = self.get_message(MessageSendLog)
-        msg.assert_values('DEBUG', 'debug', '[test_output.cpp:main():160] This is a debug log message.')
+        msg.assert_values('DEBUG', 'debug', '[test_output.cpp:main():161] This is a debug log message.')
 
     def run(self):
         self.check_startup()

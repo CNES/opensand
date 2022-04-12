@@ -36,8 +36,8 @@
 
 
 #include "TestSatCarriers.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_rt/Rt.h>
 
 #include <stdlib.h>
@@ -51,7 +51,7 @@
 /**
  * Argument treatment
  */
-bool init_process(int argc, char **argv, string &ip_addr)
+bool init_process(int argc, char **argv, std::string &ip_addr)
 {
 	int opt;
 
@@ -89,16 +89,18 @@ bool init_process(int argc, char **argv, string &ip_addr)
 int main(int argc, char **argv)
 {
 	const char *progname = argv[0];
-	string ip_addr;
+	std::string ip_addr;
 
 	Block *block_sat_carrier;
-	vector<string> conf_files;
+	std::vector<std::string> conf_files;
 
 	int is_failure = 1;
 	struct sc_specific specific;
 
+	auto Conf = OpenSandModelConf::Get();
+
 	// retrieve arguments on command line
-	if(init_process(argc, argv, ip_addr) == false)
+	if(!init_process(argc, argv, ip_addr))
 	{
 		fprintf(stderr, "%s: failed to init the process\n", progname);
 		goto quit;
@@ -106,12 +108,12 @@ int main(int argc, char **argv)
 
 	specific.ip_addr = ip_addr;
 
-	conf_files.push_back("test_topology.conf");
+	Conf->createModels();
 	// Load configuration files content
-	if(!Conf::loadConfig(conf_files))
+	if(!Conf->readInfrastructure("test_topology.conf"))
 	{
 		fprintf(stderr, "%s: cannot load configuration files, quit\n",
-		          progname);
+		        progname);
 		goto quit;
 	}
 

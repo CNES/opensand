@@ -4,7 +4,9 @@
  * satellite telecommunication system for research and engineering activities.
  *
  *
- * Copyright © 2019 TAS
+ * Copyright © 2020 Viveris Technologies
+ * Copyright © 2020 TAS
+ * Copyright © 2020 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,349 +29,59 @@
 
 /**
  * @file Configuration.h
- * @brief GLobal interface for configuration file reading
- * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @author Joaquin MUGUERZA / <jmuguerza@toulouse.viveris.com>
+ * @brief Functions to help MetaModel and DataModel (un)serialization.
  */
 
-#ifndef CONFIGURATION_H
-#define CONFIGURATION_H
+#ifndef OPENSAND_CONF_CONFIGURATION_HPP
+#define OPENSAND_CONF_CONFIGURATION_HPP
 
+#include <memory>
 #include <string>
 
-#include "ConfigurationList.h"
-#include "ConfigurationFile.h"
+#include "MetaModel.h"
+#include "DataModel.h"
 
-using namespace std;
 
-/** unused macro to avoid compilation warning with unused parameters */
-#ifdef __GNUC__
-#  define UNUSED(x) x __attribute__((unused))
-#elif __LCLINT__
-#  define UNUSED(x) /*@unused@*/ x
-#else               /* !__GNUC__ && !__LCLINT__ */
-#  define UNUSED(x) x
-#endif              /* !__GNUC__ && !__LCLINT__ */
-
-/*
- * @class Conf
- * @brief GLobal interface for configuration file reading
- *
- * At startup, the whole configuration files contents are loaded in memory
- *
- * XML format:
- * <?xml version="1.0" encoding="UTF-8"?>
- * <configuration component='compo'>
- *   <!-- section description -->
- *   <section>
- *     <!-- table and parameters description -->
- *     <table>
- *       <line param1="val1" param2="val2" />
- *     </table>
- *     <!-- key description -->
- *     <key>val</key>
- *    </section>
- *   <!-- section with spots -->
- *   <section>
- *     <spot id="SPOT_ID1">
- *       <!-- table in spot -->
- *       <table>
- *         <line param1="val1" param2="val2" />
- *       </table>
- *       <!-- key in spot -->
- *       <key>val</key>
- *     </spot>
- *     <spot id="SPOT_ID2">
- *       <!-- table in spot -->
- *       <table>
- *         <line param1="val1" param2="val2" />
- *       </table>
- *       <!-- key in spot -->
- *       <key>val</key>
- *      </spot>
- *    </section>
- *  </configuration>
- */
-class Conf
+namespace OpenSANDConf
 {
- public:
-
-	Conf(void);
-	~Conf(void);
-	
 	/**
-	 * map between section name and ConfigurationList of section
-	 */ 
-	static map<string, ConfigurationList> section_map;
-	
-	/**
-	 * Load the whole configuration file content into memory
-	 * @param conf_file the configuration file path
-	 * @return  true on success, false otherwise
-	 */
-	static bool loadConfig(const string conf_file);
-
-	/**
-	 * Load some configuration files content into memory
-	 * @param conf_files the configuration files path
-	 * @return  true on success, false otherwise
-	 */
-	static bool loadConfig(const vector<string> conf_files);
-
-	/**
-	 * @brief Get the component among sat, gw, st or ws
+	 * @brief Write a XSD file from a model.
 	 *
-	 * @param compo  OUT: the component type
-	 * @return true if an adequate component was found, false otherwise
-	 */
-	static bool getComponent(string &compo);
-
-	/**
-	 * Read a value from configuration
+	 * @param  model     The model to write
+	 * @param  filepath  The filepath to write
 	 *
-	 * @param  section  the section
-	 * @param  key      name of the key
-	 * @param  value    the value
-	 * @return  true on success, false otherwise
+	 * @return True on success, false otherwise
 	 */
-	template <class T>
-	static bool getValue(ConfigurationList section, const char *key, T &val);
+	bool toXSD(std::shared_ptr<MetaModel> model, const std::string &filepath);
 
 	/**
-	 * Read a value from configuration
+	 * @brief Read a XSD file to generate a new model.
 	 *
-	 * @param  iter     the iterator
-	 * @param  value    the value
-	 * @return  true on success, false otherwise
-	 */
-	/* TODO is this one used !!?? */
-	template <class T>
-	static bool getValue(ConfigurationList::iterator iter, 
-	                     T &val);
-
-	/**
-	 * Get the section node list
-	 * @param  sectionList section list
-	 * @param  key         node name
-	 * @param  nodeList    node list
-	 * @return true on success, false otherwise
-	 */
-	static bool getListNode(ConfigurationList sectionList,
-                            const char *key,
-                            xmlpp::Node::NodeList &nodeList);
-
-	/**
-	 * Get the node of a children Item
+	 * @param  filepath  The filepath to read
 	 *
-	 * @param  section   the section
-	 * @param  key   the key of the target node
-	 * @param  list  the output list
-	 * @return  true on success, false otherwise
+	 * @return The new generated model from XSD on success, nullptr otherwise
 	 */
-	static bool getItemNode(ConfigurationList section,
-	                        const char *key,
-	                        ConfigurationList &list);
+  std::shared_ptr<MetaModel> fromXSD(const std::string &filepath);
 
 	/**
-	 * Get the node of a children Item
+	 * @brief Write a XML file from a datamodel
 	 *
-	 * @param  node  the node
-	 * @param  key   the key of the target node
-	 * @param  list  the output list
-	 * @return  true on success, false otherwise
-	 */
-	static bool getItemNode(xmlpp::Node *node,
-	                        const char *key,
-	                        ConfigurationList &list);
-
-	/**
-	 * get the element from the list with attribute value
-	 * @param  list             the origal element list
-	 * @param  attribute_name   the attribute name
-	 * @param  attribute_value  the attribute value
-	 * @param  elements         the list of found elements
-	 * @return true on success and false otherwise
-	 */
-	template <class T>
-	static bool getElementWithAttributeValue(ConfigurationList list,
-                                             const char *attribute_name,
-                                             T &attribute_value,
-                                             ConfigurationList &elements);
-
-	/**
-	 * Read the number of elements in a list
+	 * @param  datamodel  The datamodel to write
+	 * @param  filepath  The filepath to write
 	 *
-	 * @param  section  name of the section
-	 * @param  key      name of the list key
-	 * @param  nbr      the number of elements in the list
-	 * @return  true on success, false otherwise
+	 * @return True on success, false otherwise
 	 */
-	static bool getNbListItems(ConfigurationList section, 
-	                           const char *key, 
-	                           int &value);
+	bool toXML(std::shared_ptr<DataModel> datamodel, const std::string &filepath);
 
 	/**
-	 * Read the number of elements in a list
+	 * @brief Read a XML file to generate a new datamodel matching a model.
 	 *
-	 * @param  section  the section
-	 * @param  key      name of the list key
-	 * @param  nbr      the number of elements in the list
-	 * @return  true on success, false otherwise
-	 */
-	static bool getNbListItems(ConfigurationList section, 
-	                           const char *key, 
-	                           unsigned int &value);
-
-	/**
-	 * Get the elements from the list
+	 * @param  model     The model which the new datamodel will match to
+	 * @param  filepath  The filepath to read
 	 *
-	 * @param  node     the node
-	 * @param  key      name of the list key
-	 * @param  list     the list
-	 * @return  true on success, false otherwise
+	 * @return The new generated datamodel from XML on success, nullptr otherwise
 	 */
-	static bool getListItems(xmlpp::Node *node, 
-	                         const char *key, 
-	                         ConfigurationList &list);
-
-	/**
-	 * Get the elements from the list
-	 *
-	 * @param  section  the section
-	 * @param  key      name of the list key
-	 * @param  list     the list
-	 * @return  true on success, false otherwise
-	 */
-	static bool getListItems(ConfigurationList section, 
-	                         const char *key, 
-	                         ConfigurationList &list);
-
-	/**
-	 * Get the value of an attribute in a list element
-	 *
-	 * @param  elt        an iterator on a ConfigurationList
-	 * @param  attribute  the attribute name
-	 * @param  value      attribute value
-	 * @return  true on success, false otherwise
-	 */
-	template <class T>
-	static bool getAttributeValue(ConfigurationList::iterator iter,
-	                              const char *attribute,
-	                              T &value);
-
-	/**
-	 * Get a value from a list element identified by an attribute value
-	 *
-	 * @param  section   name of the section identifying the list
-	 * @param  key       name of the list key identifying the list
-	 * @param  id        the reference attribute
-	 * @param  id_val    the reference attribute value
-	 * @param  attribute the desired attribute
-	 * @param  value     the desired value
-	 * @return  true on success, false otherwise
-	 */
-	template <class T>
-	static bool getValueInList(ConfigurationList section,
-	                           const char *key,
-	                           const char *id,
-	                           const string id_val,
-	                           const char *attribute,
-	                           T &value);
-
-	/**
-	 * Get a value from a list element identified by an attribute value
-	 *
-	 * @param  list      the list
-	 * @param  id        the reference attribute
-	 * @param  id_val    the reference attribute value
-	 * @param  attribute the desired attribute
-	 * @param  value     the desired value
-	 * @return  true on success, false otherwise
-	 */
-	template <class T>
-	static bool getValueInList(ConfigurationList list,
-	                           const char *id,
-	                           const string id_val,
-	                           const char *attribute,
-	                           T &value);
-	
-	
-	/**
-	 * Load the log desired display levels
-	 * 
-	 * @param levels    OUT: the log levels
-	 * @param specific  OUT: specific log levels
-	 * @return true on success, false otherwise
-	 */
-	static bool loadLevels(map<string, log_level_t> &levels,
-	                       map<string, log_level_t> &specific);
-
- private:
-
-	static ConfigurationFile global_config;
-
-	static void loadMap(void);
-};
-
-
-
-template <class T>
-bool Conf::getValue(ConfigurationList section, const char *key, T &val)
-{
-	return Conf::global_config.getValue(section, key, val);
+  std::shared_ptr<DataModel> fromXML(std::shared_ptr<MetaModel> model, const std::string &filepath);
 }
 
-template <class T>
-bool Conf::getValue(ConfigurationList::iterator iter, T &val)
-{
-	return Conf::global_config.getValue(iter, val);
-}
-
-
-template <class T>
-bool Conf::getAttributeValue(ConfigurationList::iterator iter,
-                             const char *attribute,
-                             T &value)
-{
-	return Conf::global_config.getAttributeValue(iter, attribute, value);
-}
-
-template <class T>
-bool Conf::getElementWithAttributeValue(ConfigurationList list,
-                                  const char *attribute_name,
-                                  T &attribute_value,
-                                  ConfigurationList &elements)
-{
-	return Conf::global_config.getElementWithAttributeValue(list,
-	                                                        attribute_name,
-	                                                        attribute_value,
-	                                                        elements);
-}
-
-
-template <class T>
-bool Conf::getValueInList(ConfigurationList list,
-                          const char *id,
-                          const string id_val,
-                          const char *attribute,
-                          T &value)
-{
-	return Conf::global_config.getValueInList(list, id, id_val,
-	                                          attribute, value);
-}
-
-
-template <class T>
-bool Conf::getValueInList(ConfigurationList section,
-                          const char *key,
-                          const char *id,
-                          const string id_val,
-                          const char *attribute,
-                          T &value)
-{
-	return Conf::global_config.getValueInList(section, key, id, id_val,
-	                                          attribute, value);
-}
-
-
-#endif
+#endif // OPENSAND_CONF_CONFIGURATION_HPP

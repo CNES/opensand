@@ -39,8 +39,8 @@
 #include "SpotDownwardTransp.h"
 
 #include "ForwardSchedulingS2.h"
-#include "DamaCtrlRcsLegacy.h"
 #include "DamaCtrlRcs2Legacy.h"
+#include "OpenSandModelConf.h"
 
 #include <errno.h>
 
@@ -50,14 +50,13 @@ SpotDownwardTransp::SpotDownwardTransp(spot_id_t spot_id,
                            time_ms_t fwd_down_frame_duration,
                            time_ms_t ret_up_frame_duration,
                            time_ms_t stats_period,
-                           sat_type_t sat_type,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            StFmtSimuList *input_sts,
                            StFmtSimuList *output_sts):
 	SpotDownward(spot_id, mac_id,
 	             fwd_down_frame_duration,
 	             ret_up_frame_duration,
-	             stats_period, sat_type,
+	             stats_period,
 	             pkt_hdl, input_sts, output_sts)
 {
 }
@@ -65,6 +64,17 @@ SpotDownwardTransp::SpotDownwardTransp(spot_id_t spot_id,
 SpotDownwardTransp::~SpotDownwardTransp()
 {
 	this->categories.clear();
+}
+
+
+void SpotDownwardTransp::generateConfiguration()
+{
+	auto types = OpenSandModelConf::Get()->getModelTypesDefinition();
+	types->addEnumType("dama_algorithm", "DAMA Algorithm", {"Legacy",});
+
+	auto conf = OpenSandModelConf::Get()->getOrCreateComponent("network", "Network", "The DVB layer configuration");
+	conf->addParameter("fca", "FCA", types->getType("int"));
+	conf->addParameter("dama_algorithm", "DAMA Algorithm", types->getType("dama_algorithm"));
 }
 
 
@@ -93,7 +103,7 @@ bool SpotDownwardTransp::onInit(void)
 		    "failed to initialize the forward link definition MODCOD file\n");
 		return false;
 	}
-	if(!this->initModcodDefFile(this->modcod_def_rcs_type.c_str(),
+	if(!this->initModcodDefFile(MODCOD_DEF_RCS2,
 	                            &this->rcs_modcod_def,
 	                            this->req_burst_length))
 	{
@@ -118,41 +128,20 @@ bool SpotDownwardTransp::initMode(void)
 
 	// initialize scheduling
 	// depending on the satellite type
-	ConfigurationList forward_down_band = Conf::section_map[FORWARD_DOWN_BAND];
-	ConfigurationList spots;
-	ConfigurationList current_spot;
-	ConfigurationList current_gw;
-
-	if(!Conf::getListNode(forward_down_band, SPOT_LIST, spots))
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotForwardCarriers(this->mac_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no %s into %s section\n",
-		    SPOT_LIST, FORWARD_DOWN_BAND);
+		    "there is no gateways with value: "
+			"%d into forward down frequency plan\n",
+		    this->mac_id);
 		return false;
 	}
 
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-	                                       this->spot_id, current_spot))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s\n",
-		    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
-		return false;
-	}
-
-	if(!Conf::getElementWithAttributeValue(current_spot, GW,
-	                                       this->mac_id, current_gw))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s\n",
-		    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
-		return false;
-	}
-	if(!this->initBand<TerminalCategoryDama>(current_gw,
-	                                         FORWARD_DOWN_BAND,
+	if(!this->initBand<TerminalCategoryDama>(current_spot,
+	                                         "forward down frequency plan",
 	                                         TDM,
 	                                         this->fwd_down_frame_duration_ms,
-	                                         this->satellite_type,
 	                                         this->s2_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
@@ -171,7 +160,7 @@ bool SpotDownwardTransp::initMode(void)
 		bool is_acm_carriers = false;
 		bool is_vcm_fifo = false;
 		fifos_t fifos;
-		string label;
+		std::string label;
 		Scheduling *schedule;
 
 		cat = (*cat_it).second;
@@ -249,7 +238,7 @@ bool SpotDownwardTransp::initMode(void)
 			    "failed initialize forward scheduling for category %s\n", label.c_str());
 			return false;
 		}
-		this->scheduling.insert(make_pair<string, Scheduling*>((string) label, (Scheduling*) schedule));
+		this->scheduling.emplace(label, schedule);
 	}
 
 	return true;
@@ -270,24 +259,27 @@ bool SpotDownwardTransp::initDama(void)
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
 	TerminalCategoryDama *dc_default_category = NULL;
 
-	ConfigurationList current_gw;
+	auto Conf = OpenSandModelConf::Get();
+	auto ncc = Conf->getProfileData()->getComponent("network");
 
 	// Retrieving the free capacity assignement parameter
-	if(!Conf::getValue(Conf::section_map[DC_SECTION_NCC],
-		               DC_FREE_CAP, fca_kbps))
+	int fca;
+	if(!OpenSandModelConf::extractParameterData(ncc->getParameter("fca"), fca))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "missing %s parameter\n", DC_FREE_CAP);
+		    "missing FCA parameter\n");
 		return false;
 	}
+
+	fca_kbps = fca;
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "fca = %d kb/s\n", fca_kbps);
 
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               SYNC_PERIOD, sync_period_ms))
+
+	if(!Conf->getSynchroPeriod(sync_period_ms))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "Missing %s\n", SYNC_PERIOD);
+		    "Missing synchronisation period\n");
 		return false;
 	}
 	sync_period_frame = (time_frame_t)round((double)sync_period_ms /
@@ -298,21 +290,20 @@ bool SpotDownwardTransp::initDama(void)
 	    "rbdc_timeout = %d superframes computed from sync period %d superframes\n",
 	    rbdc_timeout_sf, sync_period_frame);
 
-	if(!OpenSandConf::getSpot(RETURN_UP_BAND,
-		                      this->spot_id,
-		                      this->mac_id, current_gw))
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->mac_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d and gw is %d\n",
-		    RETURN_UP_BAND, this->spot_id, this->mac_id);
+		    "there is no gateways with value: "
+			"%d into return up frequency plan\n",
+		    this->mac_id);
 		return false;
 	}
 
-	if(!this->initBand<TerminalCategoryDama>(current_gw,
-	                                         RETURN_UP_BAND,
+	if(!this->initBand<TerminalCategoryDama>(current_spot,
+	                                         "return up frequency plan",
 	                                         DAMA,
 	                                         this->ret_up_frame_duration_ms,
-	                                         this->satellite_type,
 	                                         this->rcs_modcod_def,
 	                                         dc_categories,
 	                                         dc_terminal_affectation,
@@ -334,13 +325,10 @@ bool SpotDownwardTransp::initDama(void)
 	}
 
 	// dama algorithm
-	if(!Conf::getValue(Conf::section_map[DVB_NCC_SECTION],
-		               DVB_NCC_DAMA_ALGO,
-	                   dama_algo))
+	if(!OpenSandModelConf::extractParameterData(ncc->getParameter("dama_algorithm"), dama_algo))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    DVB_NCC_SECTION, DVB_NCC_DAMA_ALGO);
+		    "section 'ncc': missing parameter 'dama_algorithm'\n");
 		return false;
 	}
 
@@ -356,30 +344,14 @@ bool SpotDownwardTransp::initDama(void)
 	{
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "creating Legacy DAMA controller\n");
-		if(this->return_link_std == DVB_RCS)
-		{
-			this->dama_ctrl = new DamaCtrlRcsLegacy(this->spot_id,
-			                                        this->up_return_pkt_hdl->getFixedLength() << 3);
-		}
-		else if(this->return_link_std == DVB_RCS2)
-		{
-			this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
-		}
-		else
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-				"section '%s': bad value '%s' for parameter '%s'"
-				" (no matching dama controller for return link standard '%s')\n",
-				DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO,
-				this->return_link_std_str.c_str());
-			return false;
-		}
+		this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
 	}
 	else
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s': bad value '%s' for parameter '%s'\n",
-		    DVB_NCC_SECTION, dama_algo.c_str(), DVB_NCC_DAMA_ALGO);
+		    "section 'ncc': bad value '%s' for "
+		    "parameter 'dama_algorithm'\n",
+		    dama_algo.c_str());
 		return false;
 	}
 
@@ -489,7 +461,7 @@ bool SpotDownwardTransp::addCniExt(void)
 						                         &extension_pkt,
 						                         this->mac_id,
 						                         tal_id,
-						                         ENCODE_CNI_EXT,
+						                         "encodeCniExt",
 						                         this->super_frame_counter,
 						                         true))
 					{
@@ -571,7 +543,7 @@ bool SpotDownwardTransp::addCniExt(void)
 				                         &extension_pkt,
 				                         this->mac_id,
 				                         tal_id,
-				                         ENCODE_CNI_EXT,
+				                         "encodeCniExt",
 				                         this->super_frame_counter,
 				                         true))
 			{

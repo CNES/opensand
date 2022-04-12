@@ -1,4 +1,4 @@
-bin_PROGRAMS = opensand-st opensand-sat opensand-gw opensand-gw-net-acc opensand-gw-phy
+bin_PROGRAMS = opensand
 
 PACKED_COMMON_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
@@ -8,7 +8,6 @@ PACKED_COMMON_CPPFLAGS = \
 	-I$(top_srcdir)/src/dvb/fmt \
 	-I$(top_srcdir)/src/dvb/dama \
 	-I$(top_srcdir)/src/dvb/saloha \
-	-I$(top_srcdir)/src/dvb/core/regenerative \
 	-I$(top_srcdir)/src/dvb/core/transparent \
 	-I$(top_srcdir)/src/dvb/core \
 	-I$(top_srcdir)/src/lan_adaptation \
@@ -27,7 +26,6 @@ PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/dvb/dama/libopensand_dama.la \
 	$(top_builddir)/src/dvb/ncc_interface/libopensand_dvb_ncc_interface.la \
 	$(top_builddir)/src/dvb/saloha/libopensand_dvb_saloha.la \
-	$(top_builddir)/src/dvb/core/regenerative/libopensand_dvb_core_regen.la \
 	$(top_builddir)/src/dvb/core/transparent/libopensand_dvb_core_transp.la \
 	$(top_builddir)/src/dvb/utils/libopensand_dvb_utils.la \
 	$(top_builddir)/src/sat_carrier/libopensand_satcarrier.la \
@@ -37,37 +35,33 @@ PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/common/libopensand_plugin_utils.la \
 	$(top_builddir)/src/common/libopensand_utils.la
 
+allexec_LDFLAGS = \
+	-rdynamic
+
 allexec_LDADD = \
 	-lpthread \
 	-lrt
 
-opensand_st_SOURCES = st.cpp
-opensand_st_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-opensand_st_LDADD = \
+opensand_cpp = \
+	Entity.cpp \
+	EntitySat.cpp \
+	EntityGw.cpp \
+	EntityGwPhy.cpp \
+	EntityGwNetAcc.cpp \
+	EntitySt.cpp
+opensand_h = \
+	Entity.h \
+	EntitySat.h \
+	EntityGw.h \
+	EntityGwPhy.h \
+	EntityGwNetAcc.h \
+	EntitySt.h
+opensand_SOURCES = \
+	$(opensand_cpp) \
+	$(opensand_h) \
+	opensand.cpp
+opensand_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
+opensand_LDFLAGS = $(allexec_LDFLAGS)
+opensand_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
-
-opensand_gw_SOURCES = gw.cpp
-opensand_gw_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-opensand_gw_LDADD = \
-	$(PACKED_COMMON_LIBS) \
-	$(allexec_LDADD)
-
-opensand_gw_net_acc_SOURCES = gw_net_acc.cpp
-opensand_gw_net_acc_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-opensand_gw_net_acc_LDADD = \
-	$(PACKED_COMMON_LIBS) \
-	$(allexec_LDADD)
-
-opensand_gw_phy_SOURCES = gw_phy.cpp
-opensand_gw_phy_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-opensand_gw_phy_LDADD = \
-	$(PACKED_COMMON_LIBS) \
-	$(allexec_LDADD)
-
-opensand_sat_SOURCES = sat.cpp
-opensand_sat_CPPFLAGS = $(PACKED_COMMON_CPPFLAGS)
-opensand_sat_LDADD = \
-	$(PACKED_COMMON_LIBS) \
-	$(allexec_LDADD)
-

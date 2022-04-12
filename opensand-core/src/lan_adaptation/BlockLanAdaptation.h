@@ -40,11 +40,11 @@
 
 
 #include "SarpTable.h"
+#include "PacketSwitch.h"
 #include "TrafficCategory.h"
 #include "NetPacket.h"
 #include "LanAdaptationPlugin.h"
 #include "OpenSandCore.h"
-#include "OpenSandConf.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_output/Output.h>
@@ -54,6 +54,7 @@ using std::string;
 struct la_specific
 {
 	string tap_iface;
+	PacketSwitch *packet_switch;        
 };
 
 /**
@@ -67,8 +68,14 @@ class BlockLanAdaptation: public Block
 	BlockLanAdaptation(const string &name, struct la_specific specific);
 	~BlockLanAdaptation();
 
+	static void generateConfiguration();
+
 	// initialization method
 	bool onInit(void);
+
+	// The Packet Switch including packet forwarding logic and SARP 
+	inline static PacketSwitch *packet_switch;
+
 
 	class Upward: public RtUpward
 	{
@@ -99,13 +106,6 @@ class BlockLanAdaptation: public Block
 
 	 private:
 		/**
-		 * @brief Instantiate the traffic classes
-		 * 
-		 * @return true on success, false otherwise
-		 */
-		bool initSarpTables(void);
-
-		/**
 		 * @brief Handle a message from lower block
 		 *  - build the TAP header with appropriate protocol identifier
 		 *  - write TAP header + packet to TAP interface
@@ -117,9 +117,6 @@ class BlockLanAdaptation: public Block
 
 		/// SARP table
 		SarpTable sarp_table;
-
-		/// The satellite type
-		sat_type_t satellite_type;
 
 		/// TAP file descriptor
 		int fd;
@@ -196,6 +193,9 @@ class BlockLanAdaptation: public Block
 
 	/// The TAP interface name
 	string tap_iface;
+
+        /// Block specific parameters
+        la_specific specific;
 
 	/**
 	 * Create or connect to an existing TAP interface

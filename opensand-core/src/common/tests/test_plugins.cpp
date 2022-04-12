@@ -46,10 +46,9 @@
 #include "StackPlugin.h"
 #include "EncapPlugin.h"
 #include "LanAdaptationPlugin.h"
-#include "IpAddress.h"
-#include "Ipv4Address.h"
-#include "Ipv6Address.h"
 #include "Plugin.h"
+#include "NetBurst.h"
+#include "NetPacket.h"
 
 #include <opensand_output/Output.h>
 
@@ -126,9 +125,6 @@ static bool test_iter(string src_filename, string encap_filename,
                        bool compare, string name,
                        lan_contexts_t lan_contexts,
                        encap_contexts_t encap_contexts);
-static bool test_lan_adapt(string src_filename,
-                           string folder,
-                           bool compare);
 static void test_encap_and_decap(
 	LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl,
 	lan_contexts_t lan_contexts,
@@ -140,7 +136,6 @@ static void test_encap_and_decap(
 
 int main(int argc, char *argv[])
 {
-	int status = 1;
 	string src_filename = "";
 	string folder = "./";
 	string base_protocol = "IP";
@@ -150,7 +145,7 @@ int main(int argc, char *argv[])
 	if(argc <= 1)
 	{
 		ERROR(USAGE);
-		goto quit;
+		return EXIT_FAILURE;
 	}
 
 	for(argc--, argv++; argc > 0; argc -= args_used, argv += args_used)
@@ -161,13 +156,13 @@ int main(int argc, char *argv[])
 		{
 			// print version
 			ERROR(VERSION);
-			goto quit;
+			return EXIT_FAILURE;
 		}
 		else if(!strcmp(*argv, "-h"))
 		{
 			// print help
 			ERROR(USAGE);
-			goto quit;
+			return EXIT_FAILURE;
 		}
 		else if(!strcmp(*argv, "-o"))
 		{
@@ -196,7 +191,7 @@ int main(int argc, char *argv[])
 		{
 			// do not accept more than one filename without option name
 			ERROR(USAGE);
-			goto quit;
+			return EXIT_FAILURE;
 		}
 	}
 
@@ -204,182 +199,10 @@ int main(int argc, char *argv[])
 	if(src_filename.empty())
 	{
 		ERROR(USAGE);
-		goto quit;
+		return EXIT_FAILURE;
 	}
 
-	if(test_lan_adapt(src_filename, folder, compare))
-	{
-		// success
-		status = 0;
-	}
-
-quit:
-	return status;
-}
-
-static bool test_lan_adapt(string src_filename,
-                           string folder,
-                           bool compare)
-{
-	pl_list_t lan_plug;
-	pl_list_it_t plugit;
-	vector<string> failure;
-	unsigned int nbr_tests = 0;
-	bool success = false;
-
-	// load the plugins
-	if(!Plugin::loadPlugins(false, string("/etc/opensand/plugins/")))
-	{
-		ERROR("cannot load the plugins\n");
-		goto error;
-	}
-
-	Plugin::getAllLanAdaptationPlugins(lan_plug);
-
-	// test each lan adaptation plugin
-	for(plugit = lan_plug.begin(); plugit != lan_plug.end(); ++plugit)
-	{
-		lan_contexts_t contexts;
-		string name = plugit->first;
-		string name_low = name;
-		transform(name.begin(), name.end(),
-		          name_low.begin(), ::tolower);
-		LanAdaptationPlugin *plugin;
-		LanAdaptationPlugin::LanAdaptationContext *context;
-		LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl;
-		int found;
-
-		// LanAdaptationContext initialisation
-		SarpTable sarp_table;
-		IpAddress *ip_addr;
-		IpAddress *ip6_addr;
-		MacAddress *src_mac;
-		MacAddress *dst_mac;
-
-		found = name_low.find("/");
-		while(found != (signed)string::npos)
-		{
-			name_low.replace(found, 1, "_");
-			found = name_low.find("/", found);
-		}
-
-		if(!Plugin::getLanAdaptationPlugin(name, &plugin))
-		{
-			ERROR("failed to initialize plugin %s\n", name.c_str());
-			failure.push_back(name.c_str());
-			continue;
-		}
-		pkt_hdl = plugin->getPacketHandler();
-		context = plugin->getContext();
-		if(!context->setUpperPacketHandler(NULL, TRANSPARENT))
-		{
-			INFO("LAN adaptation plugin %s needs a packet handler, find one\n",
-			       name.c_str());
-
-			vector<string> upper = context->getAvailableUpperProto(TRANSPARENT);
-			// try to add a supported upper layer
-			for(vector<string>::iterator iter = upper.begin();
-			    iter != upper.end(); ++iter)
-			{
-				if(lan_plug[*iter] != NULL)
-				{
-					LanAdaptationPlugin *up_plugin = NULL;
-					if(!Plugin::getLanAdaptationPlugin(*iter, &up_plugin))
-					{
-						ERROR("failed to initialize upper plugin %s for %s\n",
-						      (*iter).c_str(), name.c_str());
-						failure.push_back(name.c_str());
-						break;
-					}
-					if(!context->setUpperPacketHandler(
-								up_plugin->getPacketHandler(),
-								TRANSPARENT))
-					{
-						ERROR("failed to set upper packet src_handler for "
-						        "%s context\n", name.c_str());
-						failure.push_back(name.c_str());
-						break;
-					}
-					// set network as upper layer for the new context
-					if(!up_plugin->getContext()->setUpperPacketHandler(NULL, TRANSPARENT))
-					{
-						INFO("%s does not support %s as upper layer either\n",
-						      up_plugin->getName().c_str(), pkt_hdl->getName().c_str());
-						continue;
-					}
-
-					INFO("add %s context over %s\n",
-					       up_plugin->getName().c_str(), name.c_str());
-
-					contexts.push_back(up_plugin->getContext());
-					break;
-				}
-			}
-			if(contexts.size() == 0)
-			{
-				ERROR("failed to get an upper layer for %s context\n", name.c_str());
-				failure.push_back(name.c_str());
-				continue;
-			}
-		}
-
-		contexts.push_back(context);
-		// init contexts
-		// both IPAddress will be deleted with SarpTable
-		ip_addr = new Ipv4Address("0.0.0.0");
-		ip6_addr = new Ipv6Address("0");
-		sarp_table.add(ip_addr, 0, 1);
-		sarp_table.add(ip6_addr, 0, 1);
-		// Add Ethernet entries in SARP table
-		// TODO get these value in capture
-		// for icmp28 test
-		src_mac = new MacAddress("00:B0:D0:C7:C1:9D");
-		sarp_table.add(src_mac, 0);
-		dst_mac = new MacAddress("00:13:72:32:3d:bc");
-		sarp_table.add(dst_mac, 1);
-		// for icmp64 test
-		src_mac = new MacAddress("00:50:04:2d:f3:30");
-		sarp_table.add(src_mac, 0);
-		dst_mac = new MacAddress("00:04:76:0B:31:8b");
-		sarp_table.add(dst_mac, 1);
-		for(lan_contexts_t::iterator ctx = contexts.begin();
-		    ctx != contexts.end(); ++ctx)
-	    {
-			(*ctx)->initLanAdaptationContext(1, 0, TRANSPARENT,
-			                                 &sarp_table);
-		}
-
-		test_encap_and_decap(pkt_hdl, contexts, failure, src_filename,
-		                     folder, compare);
-		nbr_tests += 1;
-	}
-	Plugin::releasePlugins();
-	if(nbr_tests == 0)
-	{
-		ERROR("No adequat plugin found\n");
-		success = false;
-		goto error;
-	}
-
-	if(failure.size() == 0)
-	{
-		INFO("All tests were successful\n");
-		success = true;
-	}
-	else
-	{
-		vector<string>::iterator it;
-		ERROR("The following tests failed:\n");
-		for(it = failure.begin(); it != failure.end(); ++it)
-		{
-			ERROR("  - %s\n", (*it).c_str());
-		}
-		success = false;
-	}
-	Output::Get()->finalizeConfiguration();
-
-error:
-	return success;
+	return EXIT_SUCCESS;
 }
 
 
@@ -392,7 +215,6 @@ static void test_encap_and_decap(
 	bool compare)
 {
 	pl_list_t encap_plug;
-	pl_list_it_t plugit;
 	string stack = "";
 
 	for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
@@ -408,7 +230,7 @@ static void test_encap_and_decap(
 	Plugin::getAllEncapsulationPlugins(encap_plug);
 
 	// test each encap context
-	for(plugit = encap_plug.begin(); plugit != encap_plug.end(); ++plugit)
+	for(auto plugit = encap_plug.begin(); plugit != encap_plug.end(); ++plugit)
 	{
 		encap_contexts_t encap_contexts;
 		string name = plugit->first;
@@ -429,18 +251,18 @@ static void test_encap_and_decap(
 			continue;
 		}
 		context = plugin->getContext();
-		if(!context->setUpperPacketHandler(pkt_hdl, TRANSPARENT))
+		if(!context->setUpperPacketHandler(pkt_hdl))
 		{
 
 			INFO("cannot set %s as upper layer for %s context, find another one\n",
 			       pkt_hdl->getName().c_str(), name.c_str());
 
-			vector<string> upper = context->getAvailableUpperProto(TRANSPARENT);
+			vector<string> upper = context->getAvailableUpperProto();
 			// try to add a supported upper layer
 			for(vector<string>::iterator iter = upper.begin();
 			    iter != upper.end(); ++iter)
 			{
-				if(encap_plug[*iter] != NULL)
+				if(encap_plug[*iter].second != NULL)
 				{
 					EncapPlugin *up_plugin;
 					if(!Plugin::getEncapsulationPlugin(*iter, &up_plugin))
@@ -456,8 +278,7 @@ static void test_encap_and_decap(
 						break;
 					}
 					if(!context->setUpperPacketHandler(
-								up_plugin->getPacketHandler(),
-								TRANSPARENT))
+								up_plugin->getPacketHandler()))
 					{
 						ERROR("failed to set upper packet src_handler for "
 						        "%s context\n", name.c_str());
@@ -471,7 +292,7 @@ static void test_encap_and_decap(
 					}
 
 					// add LAN Adapation packet handler over this context
-					if(!up_plugin->getContext()->setUpperPacketHandler(pkt_hdl, TRANSPARENT))
+					if(!up_plugin->getContext()->setUpperPacketHandler(pkt_hdl))
 					{
 						INFO("%s does not support %s as upper layer either\n",
 						      up_plugin->getName().c_str(), pkt_hdl->getName().c_str());

@@ -63,14 +63,10 @@
 #include "BBFrame.h"
 #include "Sac.h"
 #include "Ttp.h"
-#include "OpenSandConf.h"
 #include "DvbChannel.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
-#include <opensand_conf/conf.h>
-
-
 
 
 class BlockDvbSat;
@@ -89,7 +85,7 @@ class BlockDvb: public Block
 	BlockDvb(const string &name):
 		Block(name)
 	{
-    auto output = Output::Get();
+		auto output = Output::Get();
 		// register static logs
 		BBFrame::bbframe_log = output->registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
 		Sac::sac_log = output->registerLog(LEVEL_WARNING, "Dvb.SAC");

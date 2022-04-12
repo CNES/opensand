@@ -43,8 +43,8 @@
 #include <cstring>
 
 
-DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
-                 string type_name,
+DvbFifo::DvbFifo(unsigned int fifo_priority, std::string fifo_name,
+                 std::string type_name,
                  vol_pkt_t max_size_pkt):
 	queue(),
 	fifo_priority(fifo_priority),
@@ -52,6 +52,8 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	access_type(),
 	vcm_id(),
 	new_size_pkt(0),
+	cur_length_bytes(0),
+	new_length_bytes(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(0),
 	fifo_mutex(),
@@ -88,7 +90,7 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 	}
 	else
 	{
-		LOG(this->log_dvb_fifo, LEVEL_ERROR,
+		LOG(this->log_dvb_fifo, LEVEL_INFO,
 		    "unknown CR/Access type of FIFO: %s\n", type_name.c_str());
 	}
 	if(this->access_type == access_vcm)
@@ -99,16 +101,21 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, string fifo_name,
 
 DvbFifo::DvbFifo(uint8_t carrier_id,
                  vol_pkt_t max_size_pkt,
-                 string fifo_name):
+                 std::string fifo_name):
 	queue(),
 	fifo_priority(0),
 	fifo_name(fifo_name),
 	access_type(0),
 	new_size_pkt(0),
+	cur_length_bytes(0),
+	new_length_bytes(0),
 	max_size_pkt(max_size_pkt),
 	carrier_id(carrier_id),
 	fifo_mutex()
 {
+	// Output log
+	this->log_dvb_fifo = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Fifo");
+
 	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
 }
 
@@ -121,7 +128,7 @@ DvbFifo::~DvbFifo()
 	this->flush();
 }
 
-string DvbFifo::getName() const
+std::string DvbFifo::getName() const
 {
 	return this->fifo_name;
 }
@@ -209,7 +216,7 @@ uint8_t DvbFifo::getCni(void) const
 	return this->cni;
 }
 
-vector<MacFifoElement *> DvbFifo::getQueue(void)
+std::vector<MacFifoElement *> DvbFifo::getQueue(void)
 {
 	return this->queue;
 }
@@ -238,6 +245,9 @@ bool DvbFifo::push(MacFifoElement *elem)
 	this->stat_context.current_length_bytes += length;
 	this->stat_context.in_length_bytes += length;
 
+	LOG(this->log_dvb_fifo, LEVEL_INFO,
+		    "Added %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
+
 	return true;
 }
 
@@ -257,6 +267,10 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 		this->stat_context.current_length_bytes += length;
 		// remove the remainng part of element from out counter
 		this->stat_context.out_length_bytes -= length;
+
+		LOG(this->log_dvb_fifo, LEVEL_INFO,
+			    "Added %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
+
 		return true;
 	}
 
@@ -280,6 +294,10 @@ bool DvbFifo::pushBack(MacFifoElement *elem)
 		this->stat_context.current_length_bytes += length;
 		// remove the remainng part of element from out counter
 		this->stat_context.out_length_bytes -= length;
+
+		LOG(this->log_dvb_fifo, LEVEL_INFO,
+			    "Added %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
+
 		return true;
 	}
 
@@ -311,13 +329,16 @@ MacFifoElement *DvbFifo::pop()
 	this->stat_context.current_length_bytes -= length;
 	this->stat_context.out_length_bytes += length;
 
+	LOG(this->log_dvb_fifo, LEVEL_INFO,
+		    "Removed %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
+
 	return elem;
 }
 
 void DvbFifo::flush()
 {
 	RtLock lock(this->fifo_mutex);
-	vector<MacFifoElement *>::iterator it;
+	std::vector<MacFifoElement *>::iterator it;
 	for(it = this->queue.begin(); it != this->queue.end(); ++it)
 	{
 //		NetContainer *elem = (*it)->getElem();

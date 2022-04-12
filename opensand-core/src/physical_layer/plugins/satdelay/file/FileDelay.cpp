@@ -33,73 +33,96 @@
 
 
 #include "FileDelay.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
-#include <errno.h>
+#include <algorithm>
+#include <sstream>
+#include <fstream>
 
-#define PATH           "path"
-#define LOOP           "loop_mode"
-#define CONF_FILENAME  "file_delay.conf"
+
+std::string FileDelay::config_path = "";
+
 
 FileDelay::FileDelay():
-	SatDelayPlugin(),
-	is_init(false),
-	current_time(0),
-	delays(),
-	loop(false)
+		SatDelayPlugin(),
+		is_init(false),
+		current_time(0),
+		delays(),
+		loop(false)
 {
 }
+
 
 FileDelay::~FileDelay()
 {
 	this->delays.clear();
 }
 
+
+void FileDelay::generateConfiguration(const std::string &parent_path,
+                                      const std::string &param_id,
+                                      const std::string& plugin_name)
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+
+	FileDelay::config_path = parent_path;
+	auto delay = Conf->getComponentByPath(parent_path);
+	if (delay == nullptr)
+	{
+		return;
+	}
+	auto delay_type = delay->getParameter(param_id);
+	if (delay_type == nullptr)
+	{
+		return;
+	}
+
+	auto path = delay->addParameter("file_path", "File Path", types->getType("string"));
+	Conf->setProfileReference(path, delay_type, plugin_name);
+	auto refresh_period = delay->addParameter("refresh_period", "Refresh Period", types->getType("int"));
+	refresh_period->setUnit("ms");
+	Conf->setProfileReference(refresh_period, delay_type, plugin_name);
+	auto loop = delay->addParameter("loop", "Loop Mode", types->getType("bool"));
+	Conf->setProfileReference(loop, delay_type, plugin_name);
+}
+
+
 bool FileDelay::init()
 {
-	string filename;
-	time_ms_t refresh_period_ms;
-	ConfigurationFile config;
-	string conf_file_path;
-	conf_file_path = this->getConfPath() + string(CONF_FILENAME);
+	auto delay = OpenSandModelConf::Get()->getProfileData(config_path);
 
 	if(this->is_init)
+	{
 		return true;
-
-	if(config.loadConfig(conf_file_path.c_str()) < 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load config file '%s'",
-		    conf_file_path.c_str());
-		return false;
 	}
 
-	config.loadSectionMap(this->config_section_map);
-
-	if(!Conf::getValue(Conf::section_map[SAT_DELAY_SECTION],
-	                   REFRESH_PERIOD_MS, refresh_period_ms))
+	int refresh_period_ms;
+	auto period_parameter = delay->getParameter("refresh_period");
+	if(!OpenSandModelConf::extractParameterData(period_parameter, refresh_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE delay: cannot get %s", REFRESH_PERIOD_MS);
+		    "FILE delay: cannot get refresh period");
 		return false;
 	}
-
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!Conf::getValue(this->config_section_map[SAT_DELAY_CONF],
-	                   PATH, filename))
+	std::string filename;
+	auto path_parameter = delay->getParameter("file_path");
+	if(!OpenSandModelConf::extractParameterData(path_parameter, filename))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE delay: cannot get %s", PATH);
+		    "FILE delay: cannot get file path");
 		return false;
 	}
 
-	if(!Conf::getValue(this->config_section_map[SAT_DELAY_CONF],
-	                   LOOP, this->loop))
+	auto loop_parameter = delay->getParameter("loop");
+	if(!OpenSandModelConf::extractParameterData(loop_parameter, loop))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "FILE delay: cannot get %s", LOOP);
+		    "FILE delay: cannot get loop mode");
 		return false;
 	}
 
@@ -107,9 +130,9 @@ bool FileDelay::init()
 }
 
 
-bool FileDelay::load(string filename)
+bool FileDelay::load(std::string filename)
 {
-	string line;
+	std::string line;
 	std::istringstream line_stream;
 	unsigned int line_number = 0;
 
@@ -182,7 +205,6 @@ malformed:
 
 bool FileDelay::updateSatDelay()
 {
-	std::map<unsigned int, time_ms_t>::const_iterator delay_it;
 	unsigned int old_time, new_time;
 	time_ms_t old_delay, new_delay, next_delay;
 
@@ -194,7 +216,7 @@ bool FileDelay::updateSatDelay()
 	    this->refresh_period_ms);
 
 	// Look for the next entry whose key is equal or greater than 'current_time'
-	delay_it = this->delays.lower_bound(this->current_time);
+	auto delay_it = this->delays.lower_bound(this->current_time);
 
 	// Delay found
 	if(delay_it != this->delays.end())
@@ -221,12 +243,11 @@ bool FileDelay::updateSatDelay()
 			    old_time, old_delay);
 
 			// Linear interpolation
-			coef = (((double)new_delay) - old_delay) /
-			        (((double)new_time) - old_time);
+			coef = (double(new_delay) - old_delay) /
+			       (double(new_time) - old_time);
 
 
-			next_delay = old_delay +
-			                   (time_ms_t) (coef * (this->current_time - old_time));
+			next_delay = old_delay + time_ms_t(coef * (this->current_time - old_time));
 
 			LOG(this->log_delay, LEVEL_DEBUG,
 			    "Linear coef: %f, old step: %u\n",
@@ -266,17 +287,22 @@ bool FileDelay::updateSatDelay()
 	return true;
 }
 
-bool FileDelay::getMaxDelay(time_ms_t &delay)
+
+static bool pair_compare(const std::pair<unsigned int, time_ms_t> &a,
+                         const std::pair<unsigned int, time_ms_t> &b)
 {
-	std::map<unsigned int, time_ms_t>::const_iterator delay_it;
+	return a.second < b.second;
+}
+
+
+bool FileDelay::getMaxDelay(time_ms_t &delay) const
+{
 	if(!this->is_init)
 	{
 		return false;
 	}
-	for(delay_it = this->delays.begin(); delay_it != this->delays.end(); delay_it++)
-	{
-		if(delay_it->second > delay)
-			delay = delay_it->second;
-	}
+
+	auto result = std::max_element(this->delays.begin(), this->delays.end(), pair_compare);
+	delay = result->second;
 	return true;
 }

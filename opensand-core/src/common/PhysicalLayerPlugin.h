@@ -37,20 +37,16 @@
 #ifndef PHYSICAL_LAYER_PLUGIN_H
 #define PHYSICAL_LAYER_PLUGIN_H
 
-#include "OpenSandPlugin.h"
 #include "OpenSandCore.h"
-#include "Data.h"
+#include "OpenSandPlugin.h"
 
-#include <opensand_rt/RtMutex.h>
-#include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
-
+#include <memory>
+#include <mutex>
 #include <string>
-#include <map>
-#include <stdint.h>
 
 
-using std::string;
+class Data;
+class OutputLog;
 
 
 /**
@@ -61,8 +57,8 @@ class AttenuationModelPlugin: public OpenSandPlugin
 {
  protected:
 	/* Output log */
-   std::shared_ptr<OutputLog> log_init;
-   std::shared_ptr<OutputLog> log_attenuation;
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_attenuation;
 
 	/* The model current attenuation */
 	double attenuation;
@@ -71,22 +67,17 @@ class AttenuationModelPlugin: public OpenSandPlugin
 	time_ms_t refresh_period_ms;
 
  public:
-
 	/**
 	 * @brief AttenuationModelPlugin constructor
 	 *
 	 * @param refresh_period_ms  the attenuation model refreshing period
 	 */
-	AttenuationModelPlugin(): OpenSandPlugin() 
-	{
-		this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.init");
-		this->log_attenuation = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Attenuation");
-	};
+	AttenuationModelPlugin();
 
 	/**
 	 * @brief AttenuationModelPlugin destructor
 	 */
-	virtual ~AttenuationModelPlugin() {};
+	virtual ~AttenuationModelPlugin();
 
 	/**
 	 * @brief initialize the attenuation model
@@ -95,22 +86,19 @@ class AttenuationModelPlugin: public OpenSandPlugin
 	 * @param link        the link
 	 * @return true on success, false otherwise
 	 */
-	virtual bool init(time_ms_t refresh_period_ms, string link) = 0;
+	virtual bool init(time_ms_t refresh_period_ms, std::string link) = 0;
 
 	/**
 	 * @brief Get the model current attenuation
 	 */
-	double getAttenuation() {return this->attenuation;};
+	double getAttenuation() const;
 
 	/**
 	 * @brief Set the attenuation model current attenuation
 	 *
 	 * @param attenuation the model attenuation
 	 */
-	void setAttenuation(double attenuation)
-	{
-		this->attenuation = attenuation;
-	};
+	void setAttenuation(double attenuation);
 
 	/**
 	 * @brief update the attenuation model current attenuation
@@ -118,7 +106,6 @@ class AttenuationModelPlugin: public OpenSandPlugin
 	 * @return true on success, false otherwise
 	 */
 	virtual bool updateAttenuationModel() = 0;
-
 };
 
 
@@ -128,30 +115,24 @@ class AttenuationModelPlugin: public OpenSandPlugin
  */
 class MinimalConditionPlugin: public OpenSandPlugin
 {
-
-protected:
+ protected:
 	/* Output log */
-  std::shared_ptr<OutputLog> log_init;
-  std::shared_ptr<OutputLog> log_minimal;
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_minimal;
 
 	/// MinimalCondition C/N in clear sky conditions
 	double minimal_cn;
 
-public:
-
+ public:
 	/**
 	 * @brief MinimalConditionPlugin constructor
 	 */
-	MinimalConditionPlugin(): OpenSandPlugin() 
-	{
-		this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Init");
-		this->log_minimal = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.MinimalCondition");
-	};
+	MinimalConditionPlugin();
 
 	/**
 	 * @brief MinimalConditionPlugin destructor
 	 */
-	virtual ~MinimalConditionPlugin() {};
+	virtual ~MinimalConditionPlugin();
 
 	/**
 	 * @brief initialize the minimal condition
@@ -166,7 +147,7 @@ public:
 	 *
 	 * @param time the current time
 	 */
-	virtual double getMinimalCN() {return this->minimal_cn;};
+	virtual double getMinimalCN() const;
 
 	/**
 	 * @brief Updates Thresold when a msg arrives to Channel
@@ -185,20 +166,15 @@ public:
 class ErrorInsertionPlugin: public OpenSandPlugin 
 {
  public:
-
 	/**
 	 * @brief ErrorInsertionPlugin constructor
 	 */
-	ErrorInsertionPlugin(): OpenSandPlugin()
-	{
-		this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Init");
-		this->log_error = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.ErrorInsertion");
-	};
+	ErrorInsertionPlugin();
 
 	/**
 	 * @brief ErrorInsertionPlugin destructor
 	 */
-	virtual ~ErrorInsertionPlugin() {};
+	virtual ~ErrorInsertionPlugin();
 
 	/**
 	 * @brief initialize the error insertion
@@ -232,10 +208,10 @@ class ErrorInsertionPlugin: public OpenSandPlugin
 
  protected:
 	/* Output log */
-  std::shared_ptr<OutputLog> log_init;
-  std::shared_ptr<OutputLog> log_error;
-
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_error;
 };
+
 
 /**
  * @class SatDelay
@@ -244,87 +220,68 @@ class ErrorInsertionPlugin: public OpenSandPlugin
 class SatDelayPlugin: public OpenSandPlugin
 {
  protected:
-  /* Output log */
-   std::shared_ptr<OutputLog> log_init;
-   std::shared_ptr<OutputLog> log_delay;
+	/* Output log */
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_delay;
 
-  /* The current delay */
-  time_ms_t delay;
+	/* The current delay */
+	time_ms_t delay;
 
-  /* satdelay refreshing period */
-  time_ms_t refresh_period_ms;
+	/* satdelay refreshing period */
+	time_ms_t refresh_period_ms;
 
  private:
-  /* Mutex to prevent concurrent access to delay */
-  mutable RtMutex delay_mutex;
+	/* Mutex to prevent concurrent access to delay */
+	mutable std::mutex delay_mutex;
 
  public:
+	/**
+	* @brief SatDelayPlugin constructor
+	*/
+	SatDelayPlugin();
 
-  /**
-   * @brief SatDelayPlugin constructor
-   */
-  SatDelayPlugin():
-      OpenSandPlugin(),
-      delay(0),
-      refresh_period_ms(1000),
-      delay_mutex()
-  {
-    this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "SatDelay.init");
-    this->log_delay = Output::Get()->registerLog(LEVEL_WARNING, "SatDelay.Delay");
-  };
+	/**
+	* @brief SatDelayPlugin destructor
+	*/
+	virtual ~SatDelayPlugin();
 
-  /**
-   * @brief SatDelayPlugin destructor
-   */
-  virtual ~SatDelayPlugin() {};
+	/**
+	* @brief initialize the sat delay model
+	*
+	* @return true on success, false otherwise
+	*/
+	virtual bool init() = 0;
 
-  /**
-   * @brief initialize the sat delay model
-   *
-   * @return true on success, false otherwise
-   */
-  virtual bool init() = 0;
+	/**
+	* @brief Get the model current sat delay
+	*/
+	time_ms_t getSatDelay() const;
 
-  /**
-   * @brief Get the model current sat delay
-   */
-  time_ms_t getSatDelay() {
-    RtLock lock(this->delay_mutex);
-    return this->delay;
-  };
+	/**
+	* @brief Set the sat delay model current delay
+	*
+	* @param the current delay
+	*/
+	void setSatDelay(time_ms_t delay);
 
-  /**
-   * @brief Set the sat delay model current delay
-   *
-   * @param the current delay
-   */
-  void setSatDelay(time_ms_t delay)
-  {
-    RtLock lock(this->delay_mutex);
-    this->delay = delay;
-  };
+	/**
+	* @brief get the refresh period
+	*/
+	time_ms_t getRefreshPeriod() const;
 
-  /**
-   * @brief get the refresh period
-   */
-  time_ms_t getRefreshPeriod()
-  {
-    return this->refresh_period_ms;
-  };
+	/**
+	* @brief update the sat delay model current delay
+	*
+	* @return true on success, false otherwise
+	*/
+	virtual bool updateSatDelay() = 0;
 
-  /**
-   * @brief update the sat delay model current delay
-   *
-   * @return true on success, false otherwise
-   */
-  virtual bool updateSatDelay() = 0;
-
-  /**
-   * @brief Get the largest possible delay (needed to estimate timeouts)
-   * @param the delay
-   * @return true on succes
-   */
-  virtual bool getMaxDelay(time_ms_t &delay) = 0;
+	/**
+	* @brief Get the largest possible delay (needed to estimate timeouts)
+	* @param the delay
+	* @return true on succes
+	*/
+	virtual bool getMaxDelay(time_ms_t &delay) const = 0;
 };
 
 

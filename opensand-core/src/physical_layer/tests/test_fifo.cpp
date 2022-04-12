@@ -35,7 +35,6 @@
  */
 
 
-#include <opensand_conf/conf.h>
 #include <opensand_rt/Rt.h>
 
 #include "TestDelayFifo.h"
@@ -49,7 +48,7 @@
 
 time_ms_t elem_times[5] = {0, 10, 20, 30, 40};
 
-int main(int argc, char **argv)
+int main()
 {
 	int is_failure = 1;
 	time_ms_t current_time;
@@ -58,7 +57,7 @@ int main(int argc, char **argv)
 	// Add elements to fifo
 	current_time = getCurrentTime();
 
-	for(int i=0; i < sizeof(elem_times); i++)
+	for(unsigned int i=0; i < sizeof(elem_times); i++)
 	{
 		TestDelayFifoElement *elem = new TestDelayFifoElement(NULL, current_time, current_time + elem_times[i]);
 		fifo->push(elem);
@@ -67,7 +66,6 @@ int main(int argc, char **argv)
 	// everything went fine, so report success
 	is_failure = 0;
 
-quit:
 	while(fifo->getCurrentSize() > 0)
 	{
 		TestDelayFifoElement *elem = fifo->pop();

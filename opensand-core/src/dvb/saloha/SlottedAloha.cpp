@@ -41,8 +41,8 @@
 #include "SlottedAloha.h"
 
 #include "TerminalCategorySaloha.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_conf/conf.h>
 
 SlottedAloha::SlottedAloha():
 	sf_per_saframe(),
@@ -62,12 +62,10 @@ bool SlottedAloha::initParent(time_ms_t frame_duration_ms,
 	this->frame_duration_ms = frame_duration_ms;
 	this->pkt_hdl = pkt_hdl;
 
-	if(!Conf::getValue(Conf::section_map[SALOHA_SECTION],
-		               SALOHA_FPSAF, this->sf_per_saframe))
+	if(!OpenSandModelConf::Get()->getSuperframePerSlottedAlohaFrame(this->sf_per_saframe))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_FPSAF);
+		    "missing slotted aloha frame duration parameter\n");
 		return false;
 	}
 	this->is_parent_init = true;

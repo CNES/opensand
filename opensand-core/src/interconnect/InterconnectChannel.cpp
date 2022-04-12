@@ -34,6 +34,32 @@
 
 #include "InterconnectChannel.h"
 
+#include <opensand_output/Output.h>
+
+
+InterconnectChannel::InterconnectChannel(string name, string iface_addr):
+	name(name),
+	interconnect_addr(iface_addr),
+	data_channel(nullptr),
+	sig_channel(nullptr)
+{
+	this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, name + ".common");
+}
+
+InterconnectChannel::~InterconnectChannel()
+{
+	// Free the channel if it was created
+	if (this->data_channel)
+	{
+		delete this->data_channel;
+	}
+	// Free the channel if it was created
+	if (this->sig_channel)
+	{
+		delete this->sig_channel;
+	}
+}
+
 /*
  * INTERCONNECT_CHANNEL_SENDER
  */

@@ -33,158 +33,111 @@
  */
 
 
-
 #include "AcmLoop.h"
 #include "OpenSandFrames.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_conf/Configuration.h>
-#include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
 
 AcmLoop::AcmLoop():
-	MinimalConditionPlugin(),
-	modcod_table_rcs(),
-	modcod_table_s2()
+		MinimalConditionPlugin(),
+		modcod_table_rcs(),
+		modcod_table_s2()
 {
 }
+
 
 AcmLoop::~AcmLoop()
 {
 }
 
 
+void AcmLoop::generateConfiguration(const std::string &,
+                                    const std::string &,
+                                    const std::string &)
+{
+}
+
+
 bool AcmLoop::init(void)
 {
-	string filename_rcs;
-	string filename_s2;
-	string modcod_def_rcs;
+	auto Conf = OpenSandModelConf::Get();
+	std::vector<OpenSandModelConf::fmt_definition_parameters> modcod_params;
 
-	return_link_standard_t return_link_standard;
 	vol_sym_t req_burst_length;
-
-	// return link standard type
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               RETURN_LINK_STANDARD,
-	                   modcod_def_rcs))
+	if(!Conf->getRcs2BurstLength(req_burst_length))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, RETURN_LINK_STANDARD);
+		    "missing parameter 'RCS2 burst length'\n");
 		return false;
 	}
-	return_link_standard = strToReturnLinkStd(modcod_def_rcs);
-	if(return_link_standard == DVB_RCS2)
+
+	modcod_params.clear();
+	if(!Conf->getRcs2WaveFormsDefinition(modcod_params, req_burst_length))
 	{
-		unsigned int dummy;
-
-		modcod_def_rcs = MODCOD_DEF_RCS2;
-
-		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-			               RCS2_BURST_LENGTH,
-		                   dummy))
+		LOG(this->log_init, LEVEL_ERROR,
+		    "unable to load the acm_loop definition table for RCS2");
+		return false;
+	}
+	for(auto& param : modcod_params)
+	{
+		if(!this->modcod_table_rcs.add(new FmtDefinition(param.id,
+		                                                 param.modulation_type,
+		                                                 param.coding_type,
+		                                                 param.spectral_efficiency,
+		                                                 param.required_es_no,
+		                                                 req_burst_length)))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s': missing parameter '%s'\n",
-			    COMMON_SECTION, RCS2_BURST_LENGTH);
+			    "failed to create MODCOD table for RCS2 waveforms\n");
 			return false;
 		}
-		req_burst_length = dummy;
-	}
-	else
-	{
-		modcod_def_rcs = MODCOD_DEF_RCS;
-		req_burst_length = 0;
 	}
 
-	// get appropriate MODCOD definitions for receving link
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   modcod_def_rcs.c_str(),
-	                   filename_rcs))
+	modcod_params.clear();
+	if(!Conf->getS2WaveFormsDefinition(modcod_params))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, modcod_def_rcs.c_str());
+		    "unable to load the acm_loop definition table for S2");
 		return false;
 	}
-
-	// get appropriate MODCOD definitions for receving link
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-		               MODCOD_DEF_S2,
-	                   filename_s2))
+	for(auto& param : modcod_params)
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s', missing parameter '%s'\n",
-		    PHYSICAL_LAYER_SECTION, MODCOD_DEF_S2);
-		return false;
-	}
-
-	if(access(filename_rcs.c_str(), R_OK) < 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot access '%s' file (%s)\n",
-		    filename_rcs.c_str(), strerror(errno));
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "ACM loop definition file for minimal condition = '%s'\n",
-	    filename_rcs.c_str());
-
-	if(access(filename_s2.c_str(), R_OK) < 0)
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot access '%s' file (%s)\n",
-		    filename_s2.c_str(), strerror(errno));
-		return false;
-	}
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "ACM loop definition file for minimal condition = '%s'\n",
-	    filename_s2.c_str());
-
-	// load all the ACM_LOOP definitions from file
-	if(!(this->modcod_table_rcs).load(filename_rcs, req_burst_length))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "unable to load the acm_loop definition table");
-		return false;
-	}
-
-	if(!(this->modcod_table_s2).load(filename_s2))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "unable to load the acm_loop definition table");
-		return false;
+		if(!this->modcod_table_s2.add(new FmtDefinition(param.id,
+		                                                param.modulation_type,
+		                                                param.coding_type,
+		                                                param.spectral_efficiency,
+		                                                param.required_es_no)))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to create MODCOD table for S2 waveforms\n");
+			return false;
+		}
 	}
 
 	return true;
 }
 
+
 bool AcmLoop::updateThreshold(uint8_t modcod_id, uint8_t message_type)
 {
-	double threshold;  // Value to be updated with the current ACM_LOOP
-
-	// Init variables
-	threshold = this->minimal_cn; // Default, keep previous threshold
+	double threshold = this->minimal_cn; // Default, keep previous threshold
 	switch(message_type)
 	{
 		case MSG_TYPE_DVB_BURST:
-			threshold = (double)(this->modcod_table_rcs.getRequiredEsN0(modcod_id));
+			threshold = double(this->modcod_table_rcs.getRequiredEsN0(modcod_id));
 			LOG(this->log_minimal, LEVEL_DEBUG,
 			    "Required Es/N0 for ACM loop %u --> %.2f dB\n",
-				modcod_id, this->modcod_table_rcs.getRequiredEsN0(modcod_id));
-
+			    modcod_id, this->modcod_table_rcs.getRequiredEsN0(modcod_id));
+			break;
 		default:
-			threshold = (double)(this->modcod_table_s2.getRequiredEsN0(modcod_id));
+			threshold = double(this->modcod_table_s2.getRequiredEsN0(modcod_id));
 			LOG(this->log_minimal, LEVEL_DEBUG,
 			    "Required Es/N0 for ACM loop %u --> %.2f dB\n",
-				modcod_id, this->modcod_table_s2.getRequiredEsN0(modcod_id));
+			    modcod_id, this->modcod_table_s2.getRequiredEsN0(modcod_id));
 	}
 
 	this->minimal_cn = threshold;
 	return true;
 }
-
-

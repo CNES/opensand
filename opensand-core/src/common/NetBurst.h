@@ -36,31 +36,30 @@
 #ifndef NET_BURST_H
 #define NET_BURST_H
 
-#include "Data.h"
-#include "NetPacket.h"
 
-#include <opensand_output/OutputLog.h>
+#include "Data.h"
 
 #include <list>
 #include <string>
+#include <memory>
 
-using std::list;
-using std::string;
+
+class NetPacket;
+class OutputLog;
+
 
 /**
  * @class NetBurst
  * @brief Generic network burst
  */
-class NetBurst: public list<NetPacket *>
+class NetBurst: public std::list<NetPacket *>
 {
  protected:
-
 	/// The maximum number of network packets in the burst
 	/// (0 for unlimited length)
 	unsigned int max_packets;
 
  public:
-
 	/**
 	 * Build a network burst
 	 *
@@ -79,7 +78,7 @@ class NetBurst: public list<NetPacket *>
 	 *
 	 * @return the maximum number of network packets in the burst
 	 */
-	int getMaxPackets();
+	unsigned int getMaxPackets() const;
 
 	/**
 	 * Set the maximum number of network packets in the burst
@@ -104,14 +103,14 @@ class NetBurst: public list<NetPacket *>
 	 * @return true if the burst is full (no space left for additional packets),
 	 *         false otherwise
 	 */
-	bool isFull();
+	bool isFull() const;
 
 	/**
 	 * Get the number of packets in the burst
 	 *
 	 * @return the number of packets in the burst
 	 */
-	unsigned int length();
+	unsigned int length() const;
 
 	/**
 	 * Get the raw content of the network burst, ie. the concatenation of
@@ -119,14 +118,14 @@ class NetBurst: public list<NetPacket *>
 	 *
 	 * @return a string with the raw content of the burst
 	 */
-	Data data();
+	Data data() const;
 
 	/**
 	 * Get the amount of data (in bytes) stored in the burst
 	 *
 	 * @return the amount of data in the burst
 	 */
-	long bytes();
+	long bytes() const;
 
 	/**
 	 * Get the type of packets stored in the burst (ATM, MPEG...)
@@ -134,7 +133,7 @@ class NetBurst: public list<NetPacket *>
 	 *
 	 * @return the type of packets in the burst
 	 */
-	uint16_t type();
+	uint16_t type() const;
 
 	/**
 	 * Get the name of packets stored in the burst (ATM, MPEG...)
@@ -142,10 +141,11 @@ class NetBurst: public list<NetPacket *>
 	 *
 	 * @return the name of packets in the burst
 	 */
-	string name();
+	std::string name() const;
 
 	/// Netburst log
 	static std::shared_ptr<OutputLog> log_net_burst;
 };
+
 
 #endif

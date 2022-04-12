@@ -40,23 +40,10 @@
 
 FileSimulator::FileSimulator(spot_id_t spot_id,
                              tal_id_t mac_id,
-                             sat_type_t sat_type,
                              FILE** evt_file,
-						     ConfigurationList current_gw):
-	RequestSimulator(spot_id, mac_id, 
-	                  sat_type, evt_file,
-	                  current_gw)
+							 string &str_config):
+	RequestSimulator(spot_id, mac_id, evt_file)
 {
-	string str_config;
-	if(!Conf::getValue(current_gw, DVB_SIMU_FILE, str_config))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-				"cannot load parameter %s from section %s\n",
-				DVB_SIMU_FILE, DVB_NCC_SECTION);
-		// cannot return value from constructer
-		assert(0);
-	}
-	
 	if(str_config == "stdin")
 	{
 		this->simu_file = stdin;

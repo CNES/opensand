@@ -85,6 +85,7 @@ int main(int argc, char* argv[])
     return 1;
   }
 
+  output->setEntityName("testing");
   if (output_enabled)
   {
     output->configureRemoteOutput(argv[1], 58008, 58008);

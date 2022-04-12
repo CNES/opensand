@@ -35,55 +35,64 @@
 #define CONSTANT_SATDELAY_PLUGIN_H 
 
 
-#include "PhysicalLayerPlugin.h"
 #include "OpenSandCore.h"
-#include <opensand_conf/conf.h>
+#include "PhysicalLayerPlugin.h"
+
+#include <string>
+
 
 /**
  * @class Constant 
  */
 class ConstantDelay: public SatDelayPlugin
 {
-	private:
-		
-		bool is_init;
-		map<string, ConfigurationList> config_section_map;
+ private:
+	static std::string config_path;
 
-	public:
+	bool is_init;
 
-		/**
-		 * @brief Build the defaultMinimalCondition
-		 */
-		ConstantDelay();
+ public:
+	/**
+	 * @brief Build the defaultMinimalCondition
+	 */
+	ConstantDelay();
 
-		/**
-		 * @brief Destroy the defaultMinimalCondition
-		 */
-		~ConstantDelay();
+	/**
+	 * @brief Destroy the defaultMinimalCondition
+	 */
+	~ConstantDelay();
 
-		/**
-		 * @brief initialize the constant delay
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool init();
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 
-		/**
-		 * @brief Updates the satellite delay
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool updateSatDelay();
+	/**
+	 * @brief initialize the constant delay
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool init();
 
-		/**
-		 * @brief Get largest satellite delay
-		 * @param the delay
-		 * @return true on success
-		 */
-		bool getMaxDelay(time_ms_t &delay);
+	/**
+	 * @brief Updates the satellite delay
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool updateSatDelay();
+
+	/**
+	 * @brief Get largest satellite delay
+	 * @param the delay
+	 * @return true on success
+	 */
+	bool getMaxDelay(time_ms_t &delay) const;
 };
+
 
 CREATE(ConstantDelay, satdelay_plugin, "ConstantDelay");
 
-#endif
 
+#endif

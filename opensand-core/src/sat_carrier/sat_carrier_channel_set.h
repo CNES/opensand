@@ -38,12 +38,11 @@
 
 #include "UdpChannel.h"
 #include "OpenSandCore.h"
-#include "OpenSandConf.h"
-
-#include <opensand_conf/conf.h>
+#include "OpenSandModelConf.h"
 
 #include <vector>
 #include <net/if.h>
+
 
 /**
  * @class sat_carrier_channel_set
@@ -116,6 +115,18 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 */
 	bool readConfig(const string local_ip_addr,
 	                bool in);
+	bool readSpot(const string &local_ip_addr,
+	              bool in,
+	              component_t host,
+	              const string &compo_name,
+	              tal_id_t gw_id);
+	bool readCarrier(const string &local_ip_addr,
+	                 tal_id_t gw_id,
+	                 const OpenSandModelConf::carrier_socket &carrier,
+	                 bool in,
+	                 bool is_satellite,
+	                 bool carrier_up,
+	                 bool carrier_down);
 
 	/// The terminal ID
 	tal_id_t tal_id;

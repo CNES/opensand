@@ -1,12 +1,10 @@
 SUBDIRS= \
-	common \
 	conf \
+	common \
 	dvb \
 	lan_adaptation \
 	sat_carrier \
 	interconnect \
 	encap \
 	physical_layer \
-	system \
-	mandatory_plugins \
-	interfaces 
+	system

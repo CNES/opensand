@@ -64,19 +64,19 @@ class BlockInterconnectDownward: public Block
 	 * @param specific  Specific block parameters
 	 */
 	BlockInterconnectDownward(const string &name,
-	                          struct ic_specific specific):
-		Block(name)
-	{};
+	                          const string &interconnect_addr);
 
-	~BlockInterconnectDownward() {};
+	~BlockInterconnectDownward();
+
+	static void generateConfiguration();
 
 	class Upward: public RtUpward, public InterconnectChannelReceiver
 	{
 	 public:
-		Upward(const string &name, struct ic_specific specific):
+		Upward(const string &name, const string &interconnect_addr):
 			RtUpward(name),
 			InterconnectChannelReceiver(name + ".Upward",
-			                            specific.interconnect_addr)
+			                            interconnect_addr)
 		{};
 
 		bool onInit(void);
@@ -88,10 +88,10 @@ class BlockInterconnectDownward: public Block
 	class Downward: public RtDownward, public InterconnectChannelSender
 	{
 	 public:
-		Downward(const string &name, struct ic_specific specific):
+		Downward(const string &name, const string &interconnect_addr):
 			RtDownward(name),
 			InterconnectChannelSender(name + ".Downward",
-			                          specific.interconnect_addr)
+			                          interconnect_addr)
 		{};
 
 		bool onInit(void);
@@ -127,19 +127,19 @@ class BlockInterconnectUpward: public Block
 	 * @param specific  Specific block parameters
 	 */
 	BlockInterconnectUpward(const string &name,
-	                        struct ic_specific specific):
-		Block(name)
-	{};
+	                        const string &interconnect_addr);
 
-	~BlockInterconnectUpward() {};
+	~BlockInterconnectUpward();
+
+	static void generateConfiguration();
 
 	class Upward: public RtUpward, public InterconnectChannelSender
 	{
 	 public:
-		Upward(const string &name, struct ic_specific specific):
+		Upward(const string &name, const string &interconnect_addr):
 			RtUpward(name),
 			InterconnectChannelSender(name + ".Upward",
-			                          specific.interconnect_addr)
+			                          interconnect_addr)
 		{};
 
 		bool onInit(void);
@@ -151,10 +151,10 @@ class BlockInterconnectUpward: public Block
 	class Downward: public RtDownward, public InterconnectChannelReceiver
 	{
 	 public:
-		Downward(const string &name, struct ic_specific specific):
+		Downward(const string &name, const string &interconnect_addr):
 			RtDownward(name),
 			InterconnectChannelReceiver(name + ".Downward",
-			                            specific.interconnect_addr)
+			                            interconnect_addr)
 		{};
 
 		bool onInit(void);

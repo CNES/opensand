@@ -20,11 +20,12 @@ libopensand_plugin_la_cpp = \
 	NetContainer.cpp \
 	NetPacket.cpp \
 	NetBurst.cpp \
-	IpAddress.cpp \
 	MacAddress.cpp \
 	TrafficCategory.cpp \
 	SarpTable.cpp \
-	EncapPlugin.cpp
+	EncapPlugin.cpp \
+	LanAdaptationPlugin.cpp \
+	PhysicalLayerPlugin.cpp 
 
 libopensand_plugin_la_h = \
 	OpenSandPlugin.h \
@@ -34,13 +35,12 @@ libopensand_plugin_la_h = \
 	NetContainer.h \
 	NetPacket.h \
 	NetBurst.h \
-	IpAddress.h \
 	MacAddress.h \
 	TrafficCategory.h \
 	SarpTable.h \
 	EncapPlugin.h \
 	LanAdaptationPlugin.h \
-	PhysicalLayerPlugin.h
+	PhysicalLayerPlugin.h 
 
 libopensand_utils_la_cpp = \
 	UdpChannel.cpp
@@ -63,13 +63,20 @@ libopensand_plugin_la_SOURCES = \
 	$(libopensand_plugin_la_cpp) \
 	$(libopensand_plugin_la_h)
 
-libopensand_plugin_utils_la_LIBADD = -ldl
+libopensand_plugin_utils_la_LIBADD = \
+	$(top_builddir)/src/conf/libopensand_conf_core.la \
+	-ldl
 
 libopensand_plugin_utils_la_SOURCES = \
 	$(libopensand_plugin_utils_la_cpp) \
 	$(libopensand_plugin_utils_la_h)
 
+libopensand_plugin_utils_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/src/conf/
+
 libopensand_plugin_includedir = ${includedir}/opensand_plugin
 
 libopensand_plugin_include_HEADERS = \
+	$(top_srcdir)/src/conf/OpenSandModelConf.h \
 	$(libopensand_plugin_la_h)

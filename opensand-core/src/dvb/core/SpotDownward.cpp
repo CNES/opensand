@@ -38,6 +38,7 @@
 
 #include "FileSimulator.h"
 #include "RandomSimulator.h"
+#include "OpenSandModelConf.h"
 
 #include <errno.h>
 
@@ -47,7 +48,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
                            time_ms_t fwd_down_frame_duration,
                            time_ms_t ret_up_frame_duration,
                            time_ms_t stats_period,
-                           sat_type_t sat_type,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            StFmtSimuList *input_sts,
                            StFmtSimuList *output_sts):
@@ -73,7 +73,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	ret_fmt_groups(),
 	cni(100),
 	pep_cmd_apply_timer(),
-	acm_timer(-1),
 	request_simu(NULL),
 	event_file(NULL),
 	simulate(none_simu),
@@ -93,7 +92,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	this->fwd_down_frame_duration_ms = fwd_down_frame_duration;
 	this->ret_up_frame_duration_ms = ret_up_frame_duration;
 	this->stats_period_ms = stats_period;
-	this->satellite_type = sat_type;
 	this->pkt_hdl = pkt_hdl;
 	this->input_sts = input_sts;
 	this->output_sts = output_sts;
@@ -162,6 +160,65 @@ SpotDownward::~SpotDownward()
 }
 
 
+void SpotDownward::generateConfiguration()
+{
+	RequestSimulator::generateConfiguration();
+
+	auto Conf = OpenSandModelConf::Get();
+
+	auto types = Conf->getModelTypesDefinition();
+	types->addEnumType("ncc_simulation", "Simulated Requests", {"None", "Random", "File"});
+	types->addEnumType("fifo_access_type", "Access Type", {"ACM", "VCM0", "VCM1", "VCM2", "VCM3"});
+
+	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
+	auto fifos = conf->addList("fifos", "FIFOs", "fifo")->getPattern();
+	fifos->addParameter("priority", "Priority", types->getType("int"));
+	fifos->addParameter("name", "Name", types->getType("string"));
+	fifos->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
+	fifos->addParameter("access_type", "Access Type", types->getType("fifo_access_type"));
+	auto simulation = conf->addParameter("simulation",
+	                                     "Simulated Requests",
+	                                     types->getType("ncc_simulation"),
+	                                     "Should OpenSAND simulate extraneous requests?");
+	auto parameter = conf->addParameter("simulation_file",
+	                                    "Simulation Trace File",
+	                                    types->getType("string"),
+	                                    "Path to a file containing requests traces; or stdin");
+	Conf->setProfileReference(parameter, simulation, "File");
+
+	parameter = conf->addParameter("simulation_nb_station",
+	                               "Simulated Station ID",
+	                               types->getType("int"),
+	                               "Numbered > 31");
+	Conf->setProfileReference(parameter, simulation, "Random");
+	parameter = conf->addParameter("simulation_rt_bandwidth",
+	                               "RT Bandwidth",
+	                               types->getType("int"));
+	parameter->setUnit("kbps");
+	Conf->setProfileReference(parameter, simulation, "Random");
+	parameter = conf->addParameter("simulation_max_rbdc",
+	                               "Simulated Maximal RBDC",
+	                               types->getType("int"));
+	parameter->setUnit("kbps");
+	Conf->setProfileReference(parameter, simulation, "Random");
+	parameter = conf->addParameter("simulation_max_vbdc",
+	                               "Simulated Maximal VBDC",
+	                               types->getType("int"));
+	parameter->setUnit("kb");
+	Conf->setProfileReference(parameter, simulation, "Random");
+	parameter = conf->addParameter("simulation_mean_requests",
+	                               "Simulated Mean Requests",
+	                               types->getType("int"));
+	parameter->setUnit("kbps");
+	Conf->setProfileReference(parameter, simulation, "Random");
+	parameter = conf->addParameter("simulation_amplitude_request",
+	                               "Simulated Amplitude Request",
+	                               types->getType("int"));
+	parameter->setUnit("kbps");
+	Conf->setProfileReference(parameter, simulation, "Random");
+}
+
+
 bool SpotDownward::onInit(void)
 {
 	// Get the carrier Ids
@@ -214,105 +271,19 @@ bool SpotDownward::onInit(void)
 
 bool SpotDownward::initCarrierIds(void)
 {
-	ConfigurationList carrier_list ;
-	ConfigurationList::iterator iter;
-	ConfigurationList::iterator iter_spots;
-	ConfigurationList current_gw;
+	auto Conf = OpenSandModelConf::Get();
 
-	if(!OpenSandConf::getSpot(SATCAR_SECTION,
-		                      this->spot_id,
-		                      this->mac_id, current_gw))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d and gw id %d\n",
-		    SATCAR_SECTION, this->spot_id, this->mac_id);
-		return false;
+	OpenSandModelConf::spot_infrastructure carriers;
+	if (!Conf->getSpotInfrastructure(this->mac_id, carriers)) {
+	LOG(this->log_init_channel, LEVEL_ERROR,
+	    "couldn't create spot infrastructure for gw %d",
+	    this->mac_id);
+	return false;
 	}
 
-	// get satellite channels from configuration
-	if(!Conf::getListItems(current_gw, CARRIER_LIST, carrier_list))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s, %s': missing satellite channels\n",
-		    SATCAR_SECTION, CARRIER_LIST);
-		return false;
-	}
-
-	for(iter = carrier_list.begin(); iter != carrier_list.end(); ++iter)
-	{
-		unsigned int carrier_id;
-		string carrier_type;
-		// Get the carrier id
-		if(!Conf::getAttributeValue(iter, CARRIER_ID, carrier_id))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section '%s/%s%d/%s': missing parameter '%s'\n",
-			    SATCAR_SECTION, SPOT_LIST, this->spot_id,
-			    CARRIER_LIST, CARRIER_ID);
-			return false;
-		}
-
-		// Get the carrier type
-		if(!Conf::getAttributeValue(iter, CARRIER_TYPE, carrier_type))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "section '%s/%s%d/%s': missing parameter '%s'\n",
-			    SATCAR_SECTION, SPOT_LIST, this->spot_id,
-			    CARRIER_LIST, CARRIER_TYPE);
-			return false;
-		}
-
-		if(strcmp(carrier_type.c_str(), CTRL_IN) == 0)
-		{
-			this->ctrl_carrier_id = carrier_id;
-			this->sof_carrier_id = carrier_id;
-		}
-		else if(strcmp(carrier_type.c_str(), DATA_IN_GW) == 0)
-		{
-			this->data_carrier_id = carrier_id;
-		}
-	}
-
-	// Check carrier errors
-
-	// Control carrier error
-	if(this->ctrl_carrier_id == 0)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "SF#%u %s missing from section %s/%s%d\n",
-		    this->super_frame_counter,
-		    DVB_CAR_ID_CTRL, SATCAR_SECTION,
-		    SPOT_LIST, this->spot_id);
-		return false;
-	}
-
-	// Logon carrier error
-	if(this->sof_carrier_id == 0)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "SF#%u %s missing from section %s/%s%d\n",
-		    this->super_frame_counter,
-		    DVB_SOF_CAR, SATCAR_SECTION,
-		    SPOT_LIST, this->spot_id);
-		return false;
-	}
-
-	// Data carrier error
-	if(this->data_carrier_id == 0)
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "SF#%u %s missing from section %s/%s%d\n",
-		    this->super_frame_counter,
-		    DVB_CAR_ID_DATA, SATCAR_SECTION,
-		    SPOT_LIST, this->spot_id);
-		return false;
-	}
-
-	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "SF#%u: carrier IDs for Ctrl = %u, Sof = %u, "
-	    "Data = %u\n", this->super_frame_counter,
-	    this->ctrl_carrier_id,
-	    this->sof_carrier_id, this->data_carrier_id);
+	this->ctrl_carrier_id = carriers.ctrl_in.id;
+	this->sof_carrier_id = carriers.ctrl_in.id;
+	this->data_carrier_id = carriers.data_in_gw.id;
 
 	return true;
 }
@@ -320,80 +291,48 @@ bool SpotDownward::initCarrierIds(void)
 
 bool SpotDownward::initFifo(fifos_t &fifos)
 {
-	ConfigurationList fifo_list;
-	ConfigurationList::iterator iter;
-	ConfigurationList::iterator iter_spots;
-	ConfigurationList spot_node;
+	auto Conf = OpenSandModelConf::Get();
+	auto ncc = Conf->getProfileData()->getComponent("network");
 
-	if(!OpenSandConf::getSpot(DVB_NCC_SECTION,
-		                      this->spot_id,
-		                      NO_GW, spot_node))
+	for (auto& item : ncc->getList("fifos")->getItems())
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d\n",
-		    DVB_NCC_SECTION, this->spot_id);
-		return false;
-	}
+		auto fifo_item = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
-	/*
-	 * Read the MAC queues configuration in the configuration file.
-	 * Create and initialize MAC FIFOs
-	 */
-	if(!Conf::getListItems(spot_node,
-	                       FIFO_LIST,
-	                       fifo_list))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s, %s': missing fifo list\n", DVB_NCC_SECTION,
-		    FIFO_LIST);
-		goto err_fifo_release;
-	}
-
-	for(iter = fifo_list.begin(); iter != fifo_list.end(); ++iter)
-	{
-		unsigned int fifo_priority;
-		vol_pkt_t fifo_size = 0;
-		string fifo_name;
-		string fifo_access_type;
-		DvbFifo *fifo;
-
-		// get fifo_id --> fifo_priority
-		if(!Conf::getAttributeValue(iter, FIFO_PRIO, fifo_priority))
+		int fifo_prio;
+		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("priority"), fifo_prio))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_PRIO, DVB_NCC_SECTION, FIFO_LIST);
+			    "cannot get fifo priority from section 'ncc, fifos'\n");
 			goto err_fifo_release;
 		}
-		// get fifo_name
-		if(!Conf::getAttributeValue(iter, FIFO_NAME, fifo_name))
+		unsigned int fifo_priority = fifo_prio;
+
+		std::string fifo_name;
+		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("name"), fifo_name))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_NAME, DVB_NCC_SECTION, FIFO_LIST);
-			goto err_fifo_release;
-		}
-		// get fifo_size
-		if(!Conf::getAttributeValue(iter, FIFO_SIZE, fifo_size))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_SIZE, DVB_NCC_SECTION, FIFO_LIST);
-			goto err_fifo_release;
-		}
-		// get the fifo CR type
-		if(!Conf::getAttributeValue(iter, FIFO_ACCESS_TYPE,
-		                            fifo_access_type))
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    FIFO_ACCESS_TYPE, DVB_NCC_SECTION,
-			    FIFO_LIST);
+			    "cannot get fifo name from section 'ncc, fifos'\n");
 			goto err_fifo_release;
 		}
 
-		fifo = new DvbFifo(fifo_priority, fifo_name,
-		                   fifo_access_type, fifo_size);
+		int fifo_capa;
+		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("capacity"), fifo_capa))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot get fifo capacity from section 'ncc, fifos'\n");
+			goto err_fifo_release;
+		}
+		vol_pkt_t fifo_size = fifo_capa;
+
+		std::string fifo_access_type;
+		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("access_type"), fifo_access_type))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot get fifo access type from section 'ncc, fifos'\n");
+			goto err_fifo_release;
+		}
+
+		DvbFifo *fifo = new DvbFifo(fifo_priority, fifo_name, fifo_access_type, fifo_size);
 
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "Fifo priority = %u, FIFO name %s, size %u, "
@@ -411,9 +350,8 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 		this->default_fifo_id = std::max(this->default_fifo_id,
 		                                 fifo->getPriority());
 
-		fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(),
-		                                           fifo));
-	} // end for(queues are now instanciated and initialized)
+		fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
+	}
 
 	return true;
 
@@ -429,49 +367,93 @@ err_fifo_release:
 
 bool SpotDownward::initRequestSimulation(void)
 {
-	ConfigurationList current_gw;
-	string str_config;
+	auto Conf = OpenSandModelConf::Get();
+	auto ncc = Conf->getProfileData()->getComponent("network");
 
-	if(!OpenSandConf::getSpot(DVB_NCC_SECTION,
-		                      this->spot_id,
-		                      NO_GW, current_gw))
+	std::string str_config;
+	if(!OpenSandModelConf::extractParameterData(ncc->getParameter("simulation"), str_config))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section '%s', missing spot for id %d\n",
-		    DVB_NCC_SECTION, spot_id);
-		return false;
-	}
-
-	// Get and open the event file
-	if(!Conf::getValue(current_gw, DVB_SIMU_MODE, str_config))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "cannot load parameter %s from section %s\n",
-		    DVB_SIMU_FILE, DVB_NCC_SECTION);
+		    "cannot load simulation mode from section ncc\n");
 		return false;
 	}
 
 	// TODO for stdin use FileEvent for simu_timer ?
-	if(str_config == "file")
+	if(str_config == "File")
 	{
+		std::string simulation_file;
+		if(!OpenSandModelConf::extractParameterData(ncc->getParameter("simulation_file"), simulation_file))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot load simulation trace file from section ncc\n");
+			return false;
+		}
+
 		this->simulate = file_simu;
 		this->request_simu = new FileSimulator(this->spot_id,
 		                                       this->mac_id,
-		                                       this->satellite_type,
 		                                       &this->event_file,
-		                                       current_gw);
+		                                       simulation_file);
 	}
-	else if(str_config == "random")
+	else if(str_config == "Random")
 	{
+		int simu_st;
+		if(!OpenSandModelConf::extractParameterData(ncc->getParameter("simulation_nb_station"), simu_st))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot load simulated station ID from section ncc\n");
+			return false;
+		}
+		int simu_rt;
+		if(!OpenSandModelConf::extractParameterData(ncc->getParameter("simulation_rt_bandwidth"), simu_rt))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot load simulated RT bandwidth from section ncc\n");
+			return false;
+		}
+		int simu_rbdc;
+		if(!OpenSandModelConf::extractParameterData(ncc->getParameter("simulation_max_rbdc"), simu_rbdc))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot load simulated maximal RBDC from section ncc\n");
+			return false;
+		}
+		int simu_vbdc;
+		if(!OpenSandModelConf::extractParameterData(ncc->getParameter("simulation_max_vbdc"), simu_vbdc))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot load simulated maximal RBDC from section ncc\n");
+			return false;
+		}
+		int simu_cr;
+		if(!OpenSandModelConf::extractParameterData(ncc->getParameter("simulation_mean_requests"), simu_cr))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot load simulated mean capacity request from section ncc\n");
+			return false;
+		}
+		int simu_interval;
+		if(!OpenSandModelConf::extractParameterData(ncc->getParameter("simulation_amplitude_request"), simu_interval))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "cannot load simulated station ID from section ncc\n");
+			return false;
+		}
+
 		this->simulate = random_simu;
 		this->request_simu = new RandomSimulator(this->spot_id,
 		                                         this->mac_id,
-		                                         this->satellite_type,
 		                                         &this->event_file,
-		                                         current_gw);
+		                                         simu_st,
+		                                         simu_rt,
+		                                         simu_rbdc,
+		                                         simu_vbdc,
+		                                         simu_cr,
+		                                         simu_interval);
 	}
 	else
 	{
+		this->simulate = none_simu;
 		LOG(this->log_init_channel, LEVEL_NOTICE,
 		    "no event simulation\n");
 	}
@@ -501,50 +483,50 @@ bool SpotDownward::initOutput(void)
 		for(fifos_t::iterator it2 = it1->second.begin();
 			it2 != it1->second.end(); ++it2)
 		{
-			const char *fifo_name = ((*it2).second)->getName().data();
+			string fifo_name = ((*it2).second)->getName();
 			unsigned int id = (*it2).first;
 
-      std::shared_ptr<Probe<int>> probe_temp;
+			std::shared_ptr<Probe<int>> probe_temp;
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Queue size.packets.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "Packets", true, SAMPLE_LAST);
 			(*this->probe_gw_queue_size)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Queue size.capacity.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "kbits", true, SAMPLE_LAST);
 			(*this->probe_gw_queue_size_kb)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Throughputs.L2_to_SAT_before_sched.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 			(*this->probe_gw_l2_to_sat_before_sched)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 			(*this->probe_gw_l2_to_sat_after_sched)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Queue loss.packets.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "Packets", true, SAMPLE_SUM);
 			(*this->probe_gw_queue_loss)[cat_label].emplace(id, probe_temp);
 
 			snprintf(probe_name, sizeof(probe_name),
 			         "Spot_%d.%s.Queue loss.rate.%s",
-							 spot_id, cat_label.c_str(), fifo_name);
+			         spot_id, cat_label.c_str(), fifo_name.c_str());
 			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_SUM);
 			(*this->probe_gw_queue_loss_kb)[cat_label].emplace(id, probe_temp);
 		}
 		snprintf(probe_name, sizeof(probe_name),
-						 "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.total",
-						 spot_id, cat_label.c_str());
+		         "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.total",
+		         spot_id, cat_label.c_str());
 		this->probe_gw_l2_to_sat_total[cat_label] =
 			output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
 
@@ -814,18 +796,14 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				tal_id_t st_id = logon_req->getMac();
 
 				// check for column in FMT simulation list
-				if(!this->addInputTerminal(st_id,
-					        (this->satellite_type == TRANSPARENT) ? this->rcs_modcod_def :
-					                                                this->s2_modcod_def))
+				if(!this->addInputTerminal(st_id, this->rcs_modcod_def ))
 				{
 					LOG(this->log_request_simulation, LEVEL_ERROR,
 					    "failed to register simulated ST with MAC "
 					    "ID %u\n", st_id);
 					return false;
 				}
-				if(!this->addOutputTerminal(st_id,
-					        (this->satellite_type == TRANSPARENT) ? this->s2_modcod_def :
-					                                                this->rcs_modcod_def))
+				if(!this->addOutputTerminal(st_id, this->s2_modcod_def))
 				{
 					LOG(this->log_request_simulation, LEVEL_ERROR,
 					    "failed to register simulated ST with MAC "
@@ -946,16 +924,6 @@ event_id_t SpotDownward::getPepCmdApplyTimer(void)
 void SpotDownward::setPepCmdApplyTimer(event_id_t pep_cmd_a_timer)
 {
 	this->pep_cmd_apply_timer = pep_cmd_a_timer;
-}
-
-event_id_t SpotDownward::getAcmTimer(void)
-{
-	return this->acm_timer;
-}
-
-void SpotDownward::setAcmTimer(event_id_t new_acm_timer)
-{
-	this->acm_timer = new_acm_timer;
 }
 
 bool SpotDownward::handleSac(const DvbFrame *dvb_frame)

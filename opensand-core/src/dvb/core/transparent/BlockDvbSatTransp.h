@@ -54,7 +54,6 @@
 
 
 #include "BlockDvbSat.h"
-#include "SatGw.h"
 #include "PhysicStd.h" 
 
 // output
@@ -119,16 +118,7 @@ class BlockDvbSatTransp: public BlockDvbSat
 		 */ 
 		bool handleDvbBurst(DvbFrame *dvb_frame,
 		                    SatGw *current_gw);
-		
-		/**
-		 * Handle Sac
-		 * this function do something only on regenerative mode
-		 * 
-		 * @return true on success, false otherwise
-		 */ 
-		bool handleSac(DvbFrame *dvb_frame,
-		               SatGw *current_gw);
-		
+
 		/**
 		 * Handle BB Frame
 		 * 

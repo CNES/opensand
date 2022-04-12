@@ -41,7 +41,6 @@
 
 #include <string>
 
-using std::string;
 
 /**
  * @class TrafficCategory
@@ -50,7 +49,6 @@ using std::string;
 class TrafficCategory
 {
  public:
-
 	TrafficCategory();
 	~TrafficCategory();
 
@@ -59,37 +57,35 @@ class TrafficCategory
 	 *
 	 * @param id  the traffic category id
 	 */
-	void setId(qos_t id) {this->id = id;};
+	void setId(qos_t id);
 
 	/**
 	 * @brief Set the traffic category name
 	 *
 	 * @param name  the traffic category name
 	 */
-	void setName(string name) {this->name = name;};
+	void setName(std::string name);
 
 	/**
 	 * @brief Get the traffic caegory ID
 	 *
 	 * @return the traffic category id
 	 */
-	qos_t getId(void) const {return this->id;};
+	qos_t getId() const;
 
 	/**
 	 * @brief Get the traffic category name
 	 *
 	 * @return the traffic category name
 	 */
-	string getName(void) const {return this->name;};
+	std::string getName() const;
 
  private:
-
 	/// Traffic category identifier
 	qos_t id;
 
 	/// Traffic category name
-	string name;
-
+	std::string name;
 };
 
 #endif

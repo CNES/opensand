@@ -28,7 +28,7 @@
 /**
  * @file OutputHandler.h
  * @brief Handlers that implements behaviour to send outputs outside of OpenSAND.
- * @author Mathias Ettinger   <mathias.ettinger@viveris.fr>
+ * @author Mathias Ettinger		<mathias.ettinger@viveris.fr>
  */
 
 
@@ -44,86 +44,108 @@
 
 
 class HandlerCreationFailedError : public std::runtime_error {
-  public:
-    explicit HandlerCreationFailedError(const std::string& what_arg);
+ public:
+	explicit HandlerCreationFailedError(const std::string& what_arg);
 };
 
 
 class BaseProbe;
 
 
-class StatHandler {
-  public:
-    virtual void emitStats(const std::vector<std::pair<std::string, std::string>>& probesValues) = 0;
-    virtual void configure(const std::vector<std::shared_ptr<BaseProbe>>& probes) = 0;
+class Handler {
+ public:
+	Handler(const std::string& entityName);
+
+ protected:
+	std::string entityName;
+};
+
+
+class StatHandler : public Handler {
+ public:
+	StatHandler(const std::string& entityName);
+	virtual void emitStats(const std::vector<std::pair<std::string, std::string>>& probesValues) = 0;
+	virtual void configure(const std::vector<std::shared_ptr<BaseProbe>>& probes) = 0;
 };
 
 
 class FileStatHandler : public StatHandler {
-  public:
-    FileStatHandler(const std::string& fileName, const std::string& originFolder);
-    ~FileStatHandler();
+ public:
+	FileStatHandler(const std::string& fileName, const std::string& originFolder);
+	~FileStatHandler();
 
-    void emitStats(const std::vector<std::pair<std::string, std::string>>& probesValues);
-    void configure(const std::vector<std::shared_ptr<BaseProbe>>& probes);
+	void emitStats(const std::vector<std::pair<std::string, std::string>>& probesValues);
+	void configure(const std::vector<std::shared_ptr<BaseProbe>>& probes);
 
-  private:
-    std::string buildFullPath() const;
+ private:
+	std::string buildFullPath() const;
 
-    std::ofstream file;
-    unsigned long filesOpened;
-    std::string folder;
-    std::string filename;
+	std::ofstream file;
+	unsigned long filesOpened;
+	std::string folder;
+	std::string filename;
 };
 
 
 class SocketStatHandler : public StatHandler {
-  public:
-    SocketStatHandler(const std::string& address, unsigned short port, bool useTCP = false);
-    ~SocketStatHandler();
+ public:
+	SocketStatHandler(const std::string& entityName, const std::string& address, unsigned short port, bool useTCP=false);
+	~SocketStatHandler();
 
-    void emitStats(const std::vector<std::pair<std::string, std::string>>& probesValues);
-    void configure(const std::vector<std::shared_ptr<BaseProbe>>& probes);
+	void emitStats(const std::vector<std::pair<std::string, std::string>>& probesValues);
+	void configure(const std::vector<std::shared_ptr<BaseProbe>>& probes);
 
-  private:
-    int socketFd;
-    struct sockaddr_in remote;
-    bool useTcp;
+ private:
+	int socketFd;
+	struct sockaddr_in remote;
+	bool useTcp;
 
-    std::vector<std::string> statNames;
+	std::vector<std::string> statNames;
 };
 
 
-class LogHandler {
-  public:
-    virtual void emitLog(const std::string& logName, const std::string& level, const std::string& message) = 0;
+class LogHandler : public Handler {
+ public:
+	LogHandler(const std::string& entityName);
+	virtual void emitLog(const std::string& logName, const std::string& level, const std::string& message) = 0;
 
-  protected:
-    std::mutex lock;
+ protected:
+	void prepareMessage(std::ostream& formatter, const std::string& logName, const std::string& level, const std::string& message);
+
+	std::mutex lock;
+};
+
+
+class StreamLogHandler : public LogHandler {
+ public:
+	 StreamLogHandler(const std::string& entityName);
+	 ~StreamLogHandler();
+
+	void emitLog(const std::string& logName, const std::string& level, const std::string& message);
 };
 
 
 class FileLogHandler : public LogHandler {
-  public:
-    FileLogHandler(const std::string& fileName, const std::string& originFolder);
-    ~FileLogHandler();
+ public:
+	FileLogHandler(const std::string& fileName, const std::string& originFolder);
+	~FileLogHandler();
 
-    void emitLog(const std::string& logName, const std::string& level, const std::string& message);
+	void emitLog(const std::string& logName, const std::string& level, const std::string& message);
 
-  private:
-    std::ofstream file;
+ private:
+	std::ofstream file;
 };
 
 
 class SocketLogHandler : public LogHandler {
-  public:
-    SocketLogHandler(const std::string& address, unsigned short port, bool useTCP = false);
-    ~SocketLogHandler();
+ public:
+	SocketLogHandler(const std::string& entityName, const std::string& address, unsigned short port, bool useTCP=false);
+	~SocketLogHandler();
 
-    void emitLog(const std::string& logName, const std::string& level, const std::string& message);
+	void emitLog(const std::string& logName, const std::string& level, const std::string& message);
 
-  private:
-    int socketFd;
-    struct sockaddr_in remote;
-    bool useTcp;
+ private:
+	int socketFd;
+	struct sockaddr_in remote;
+	bool useTcp;
 };

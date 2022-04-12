@@ -1,35 +1,67 @@
-# Easy OpenSAND CLI
+# OpenSAND CLI
 
-This is a small piece of software allowing to make the setup of a minimal OpenSAND platform easier. We invite you to follow this step-by-step approach. 
-Unlike 'OpenSAND CLI' where you have to manualy run each command, 'Easy OpenSAND CLI' groups commands by steps: configure/clean network and run/stop opensand binaries.
-Technically, commands are grouped within makefiles and organized into Phony targets or recipes to be executed. Where a recipe consists of one or more actions to carry out.
+This piece of software allow to configure/clean the network topology of
+your OpenSAND entities (SAT, GWs and STs) and eventually the workstations
+(WS) but only for QoS purposes (IP-MAC level). It will also allow you to
+launch/stop the OpenSAND binaries.
 
-It provides for both modes, IP and ETH, makefiles to run on each component: SAT, GW and ST. 
+Technically, commands are grouped within makefiles and organized into Phony
+targets or recipes to be executed. Where a recipe consists of one or more
+actions to carry out. If you are using a simple topology (1 SAT, 1 GW and 1
+ST), you have to edit the variable values in the Makefiles to adapt to your
+topology, and the YAML files to customize QoS (mapping between Ethernet PCP
+and IP parameters such as DSCP, ToS, ip src/dst, etc.). If your topology is
+different (e.g. several STs or GWs), you might need to add some commands to
+the Makefiles.
+
+It provides for six modes:
+
+1. [`IP network without VLAN`](ip/README.md): IP configuration with no VLANs and no QoS capable. Ethernet frames on OpenSAND are default IPv4 frames (Ethertype = 0x0800).
+2. [`IP network with one default VLAN`](ip_vlan/README.md): IP configuration with one default VLAN available, allowing to perform QoS on OpenSAND. Ethernet frames on OpenSAND are VLAN tagged frames (Ethertype = 0x8100, IEEE 802.1Q)
+3. [`Ethernet network without VLAN`](ethernet/README.md): Ethernet configuration with no VLANs and no QoS capable. Incoming packets on GW and ST are default IPv4 trames (0x0800).
+4. [`Ethernet network with one default VLAN`](ethernet_vlan/README.md): Ethernet configuration with one default VLAN but no QoS capable. Incoming packets on GW and ST are default IPv4 trames (0x0800).
+5. [`Ethernet network with several VLAN, can ping bridge interface`](ethernet_vlan_tagged_packets_keep_tag_on_bridge/README.md): Ethernet configuration with several VLANs between WSs and allowing to perform QoS. Incoming packets on GW and ST are 802.1Q trames (0x8100), tagged with VLAN ID and priority
+6. [`Ethernet network with several VLAN, cannot ping bridge interface`](ethernet_vlan_tagged_packets_untag_on_bridge/README.md): A simplified version of the configuration where you will not be able to ping GW and ST via custom VLANs (only via the default one).
+
+Here is a table summarizing the main characteristics of each configuration
+
+| Name                                                             | Frame type in LAN networks        | Frame type in OpenSAND network | QoS capable | VLANs in OpenSAND                           |
+| :----------                                                      | :----------                       | :---------:                    | :---------: | :----------                                 |
+| IP network without VLAN                                          | IPv4 (0x0800)                     | IPv4 (0x0800)                  | No          | None                                        |
+| IP network with one default VLAN                                 | IPv4 (0x0800)                     | 802.1Q (0x8100)                | Yes         | 1 default                                   |
+| Ethernet network without VLAN                                    | IPv4 (0x0800)                     | IPv4 (0x0800)                  | No          | None                                        |
+| Ethernet network with one default VLAN                           | IPv4 (0x0800)                     | 802.1Q (0x8100)                | No          | 1 default                                   |
+| Ethernet network with several VLAN, can ping bridge interface    | 802.1Q (0x8100) and IPv4 (0x0800) | 802.1Q (0x8100)                | Yes         | 1 default + several VLANs for tagged frames |
+| Ethernet network with several VLAN, cannot ping bridge interface | 802.1Q (0x8100) and IPv4 (0x0800) | 802.1Q (0x8100)                | Yes         | 1 default + several VLANs for tagged frames |
+
+For each configuration, Makefiles are provided for GW, SAT, ST, GW_WS (Workstation connected to the GW LAN) and ST_WS (Workstation connected to the ST LAN).
+
+Each configuration is described in the README of subfolders. Only configurations 2, 5 and 6 allow to handle QoS on OpenSAND.
 
 ## Pre-requisite
 
-As with OpenSAND CLI, 'iproute2' and 'make' packages are required. You can install them from your command line terminal by issuing
-```bash
-apt-get install iproute2 make
-```
-
-## Usage
-It is assumed that the simulation files are already configured and installed on each component, as well as this tool.
-You need to modify each makefile to adapt them to your platform by correctly replacing variables value.
-
-Once this is done, you have to run makefiles as root from your command line terminal as follows:
-```bash
-make network
-make run
-```
-First command configures network interfaces and routing, and second one runs OpenSAND binary.
-If needed, you can run 
+`iproute2` and `make` packages are required. You can install them from your command line terminal by issuing
 
 ```bash
-make stop
-make clean
+sudo apt-get install iproute2 make
 ```
-to respectively stop emulation and clean network configurations.
 
-## Now, you can enjoy it! 
-.
+To do QoS with IP configuration (configuration 2), the module `br_netfilter` must be enabled on GW and ST:
+
+```bash
+sudo modprobe br_netfilter
+```
+
+## Now, you can enjoy it!
+
+The basic command to launch OpenSAND when your network is configured should look like
+
+```bash
+opensand -i infrastructure.xml -t topology.xml -p profile.xml
+```
+
+but may very well be a simple call to the Makefile default target
+
+```bash
+make
+```

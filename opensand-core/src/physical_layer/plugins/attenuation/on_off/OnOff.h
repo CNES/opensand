@@ -37,11 +37,9 @@
 
 
 #include "PhysicalLayerPlugin.h"
-#include <opensand_conf/ConfigurationFile.h>
 
 #include <string>
 
-using std::string;
 
 /**
  * @class OnOff
@@ -49,31 +47,37 @@ using std::string;
  */
 class OnOff: public AttenuationModelPlugin
 {
-	private:
+ private:
+	int duration_counter;
+	int on_duration;
+	int off_duration;
+	double amplitude;
 
-		int duration_counter;
-		int on_duration;
-		int off_duration;
-		double amplitude;
-		map<string, ConfigurationList> config_section_map;
+ public:
+	/**
+	 * @brief Build a OnOff
+	 */
+	OnOff();
 
-	public:
+	/**
+	 * @brief Destroy the OnOff
+	 */
+	~OnOff();
 
-		/**
-		 * @brief Build a OnOff
-		 */
-		OnOff();
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 
-		/**
-		 * @brief Destroy the OnOff
-		 */
-		~OnOff();
+	bool init(time_ms_t refresh_period_ms, std::string link);
 
-		bool init(time_ms_t refresh_period_ms, string link);
-
-		bool updateAttenuationModel();
+	bool updateAttenuationModel();
 };
 
+
 CREATE(OnOff, attenuation_plugin, "On/Off");
+
 
 #endif

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-MODULES='all libs core services lan encap'
+MODULES='all libs core services encap'
 USEROPTS=""
 
 # Get list of all supported distributions
@@ -17,10 +17,7 @@ usage()
     echo '                      core:     build only core packages'
     echo '                      services: build only services packages'
     echo '                      encap:    build only encapsulation plugins'
-    echo '                      lan:      build only lan adaptation plugins'
-    echo 'Available OPTIONS :   -m        move packages into manager, daemon and all'
-    echo '                                directories.'
-    echo '                      -i        install build-dependencies automatically'
+    echo 'Available OPTIONS :   -i        install build-dependencies automatically'
     echo '                      -f        add a user flag to packages'
     echo 'List of available distributions:'
     echo $DISTS
@@ -30,64 +27,51 @@ usage()
 make_libs()
 {
     echo "Building OpenSAND libraries for $TARGET_DIST"
-    # Package and install opensand-output
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-output || error
-    # Package and install opensand-conf
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-conf || error
-    # Package and install opensand-rt
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-rt || error
+    build opensand-output install
+    # build opensand-boost-python install
+    build opensand-conf install
+    build opensand-rt install
     echo "Finished building OpenSAND libraries for $TARGET_DIST"
 }
 
 make_core()
 {
     echo "Building OpenSAND core for $TARGET_DIST"
-    # Package and install opensand-core
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-network
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP -i opensand-core
+    build opensand-network
+    build opensand-core install
     echo "Finished building OpenSAND core for $TARGET_DIST"
 }
 
 make_services()
 {
     echo "Building OpenSAND services for $TARGET_DIST"
-    # Package and install opensand-collector
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-collector 
-    # Package and install opensand-daemon
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-daemon 
-    # Package and install opensand-manager
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-manager
-    # Package and install opensand-meta
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-meta
+    build opensand-deploy
+    build opensand-collector
+    build opensand-meta
     echo "Finished building OpenSAND services for $TARGET_DIST"
 }
 
 make_encap()
 {
     echo "Building OpenSAND encapsulation plugins for $TARGET_DIST"
-    # Package and install opensand-plugins/encapsulation/gse
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/gse
-    # Package and install opensand-plugins/encapsulation/rle
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/encapsulation/rle
+    build opensand-plugins/encapsulation/gse install
+    build opensand-plugins/encapsulation/rle install
     echo "Finished building OpenSAND encapsulation plugins for $TARGET_DIST"
 }
 
-make_lan()
+build()
 {
-    echo "Building OpenSAND LAN adaptation plugins for $TARGET_DIST"
-    # Package and install opensand-plugins/encapsulation/gse
-    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP opensand-plugins/lan_adaptation/rohc
-    echo "Finished building OpenSAND LAN adaptation plugins for $TARGET_DIST"
+    INSTALL=""
+    if [ $# -gt 1 ]; then
+      INSTALL="-i"
+    fi
+    $THIS_DIR/$TARGET_DIST/build-pkg $USEROPTS -s $SRC_DIR -d $DST_DIR $INSTALL_DEP $INSTALL $1 || error
 }
 
 error()
 {
+    echo "Build failed for $TARGET_DIST" >&2
     exit 1
-}
-
-success()
-{
-    echo "done."
 }
 
 clean()
@@ -95,48 +79,6 @@ clean()
     # Delete any remaining .deb or any files remaining from last packaging
     sudo rm -rf $DST_DIR/src/*
     sudo rm -rf $DST_DIR/pkgs/*
-}
-
-move()
-{
-    # Create dirs if they don't exist
-    mkdir -p $DST_DIR/pkgs/manager
-    mkdir -p $DST_DIR/pkgs/daemon
-    mkdir -p $DST_DIR/pkgs/all
-
-    # Copy packages for daemon
-    cp $DST_DIR/pkgs/libopensand-conf_*.deb \
-       $DST_DIR/pkgs/libopensand-plugin_*.deb \
-       $DST_DIR/pkgs/libopensand-output_*.deb \
-       $DST_DIR/pkgs/libopensand-rt_*.deb \
-       $DST_DIR/pkgs/opensand-core_*.deb \
-       $DST_DIR/pkgs/opensand-core-conf_*.deb \
-       $DST_DIR/pkgs/opensand-daemon_*.deb \
-       $DST_DIR/pkgs/libopensand-*plugin_*.deb \
-       $DST_DIR/pkgs/libopensand-*plugin-conf_*.deb \
-       $DST_DIR/pkgs/opensand_*.deb \
-       $DST_DIR/pkgs/daemon >/dev/null 2>&1 
-    echo 'Daemon packages copied to '$DST_DIR'/pkgs/daemon'
-    # Copy packages for manager
-    cp $DST_DIR/pkgs/libopensand-conf_*.deb \
-       $DST_DIR/pkgs/libopensand-plugin_*.deb  \
-       $DST_DIR/pkgs/libopensand-output_*.deb \
-       $DST_DIR/pkgs/libopensand-rt_*.deb \
-       $DST_DIR/pkgs/opensand-core_*.deb \
-       $DST_DIR/pkgs/opensand-core-conf_*.deb \
-       $DST_DIR/pkgs/opensand-daemon_*.deb \
-       $DST_DIR/pkgs/libopensand-*plugin_*.deb \
-       $DST_DIR/pkgs/libopensand-*plugin-conf_*.deb \
-       $DST_DIR/pkgs/opensand-manager*.deb \
-       $DST_DIR/pkgs/libopensand-*plugin-manager*.deb  \
-       $DST_DIR/pkgs/opensand-collector_*.deb \
-       $DST_DIR/pkgs/opensand_*.deb \
-       $DST_DIR/pkgs/manager >/dev/null 2>&1
-    echo 'Manager packages copied to '$DST_DIR'/pkgs/manager'
-    # Move all packages to all
-    mv $DST_DIR/pkgs/*.deb $DST_DIR/pkgs/all >/dev/null  2>&1
-    echo 'All packages moved to '$DST_DIR'/pkgs/all'
-
 }
 
 while getopts ":s:d:t:himf:" o; do
@@ -149,9 +91,6 @@ while getopts ":s:d:t:himf:" o; do
             ;;
         t)
             TARGET_DIST=$OPTARG
-            ;;
-        m)
-            MOVE_PKG=true
             ;;
         i)
             INSTALL_DEP="-I"
@@ -216,9 +155,8 @@ case $MODULE in
     "all")
         make_libs
         make_core
-        make_services
         make_encap
-        make_lan
+        make_services
         ;;
     "libs")
         make_libs
@@ -232,16 +170,8 @@ case $MODULE in
     "encap")
         make_encap
         ;;
-    "lan")
-        make_lan
-        ;;
     *)
         ;;
 esac
 
 echo 'Finished packaging.'
-
-if [ -v "MOVE_PKG" ];
-then
-    move
-fi

@@ -39,6 +39,7 @@
 #include "Plugin.h"
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
+#include "OpenSandModelConf.h"
 
 
 BlockDvb::~BlockDvb()
@@ -60,14 +61,11 @@ BlockDvb::DvbUpward::~DvbUpward()
 bool BlockDvb::DvbDownward::initDown(void)
 {
 	// forward timer
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-		               FWD_DOWN_CARRIER_DURATION,
-	                   this->fwd_down_frame_duration_ms))
+	if(!OpenSandModelConf::Get()->getForwardFrameDuration(this->fwd_down_frame_duration_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    COMMON_SECTION, FWD_DOWN_CARRIER_DURATION);
-		goto error;
+		    "section 'links': missing parameter 'forward frame duration'\n");
+		return false;
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -75,8 +73,6 @@ bool BlockDvb::DvbDownward::initDown(void)
 	    this->fwd_down_frame_duration_ms);
 
 	return true;
-error:
-	return false;
 }
 
 

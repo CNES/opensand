@@ -54,12 +54,12 @@ tal_id_t TerminalContext::getTerminalId() const
 	return this->tal_id;
 }
 
-void TerminalContext::setCurrentCategory(string name)
+void TerminalContext::setCurrentCategory(std::string name)
 {
 	this->category = name;
 }
 
-string TerminalContext::getCurrentCategory() const
+std::string TerminalContext::getCurrentCategory() const
 {
 	return this->category;
 }

@@ -49,7 +49,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
                                                  saloha_packets_data_t *accepted_packets)
 {
   std::map<unsigned int, Slot *>::iterator slot_it;
-  std::map<tal_id_t, vector<saloha_id_t> > accepted_ids;
+  std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
 	saloha_packets_data_t::iterator pkt_it;
 	uint16_t nbr_collisions = 0;
 	bool stop;
@@ -85,7 +85,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 				// create accepted_ids for this terminal if it does not exist
 				if(accepted_ids.find(tal_id) == accepted_ids.end())
 				{
-					accepted_ids[tal_id] = vector<saloha_id_t>();
+					accepted_ids[tal_id] = std::vector<saloha_id_t>();
 				}
 
 				if(std::find(accepted_ids[tal_id].begin(),
@@ -116,7 +116,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 				// create accepted_ids for this terminal if it does not exist
 				if(accepted_ids.find(tal_id) == accepted_ids.end())
 				{
-					accepted_ids[tal_id] = vector<saloha_id_t>();
+					accepted_ids[tal_id] = std::vector<saloha_id_t>();
 				}
 
 				accepted_packets->push_back(packet);

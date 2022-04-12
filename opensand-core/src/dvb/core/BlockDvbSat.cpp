@@ -38,19 +38,17 @@
 
 #include "BlockDvbSat.h"
 
+#include "SatGw.h"
 #include "Plugin.h"
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
-#include "GenericSwitch.h"
 #include "SlottedAlohaFrame.h"
-#include "OpenSandConf.h"
+#include "OpenSandModelConf.h"
 
 #include "Logon.h"
 #include "Logoff.h"
 
 #include <opensand_rt/Rt.h>
-#include <opensand_conf/conf.h>
-
 #include <opensand_output/Output.h>
 
 #include <math.h>
@@ -105,142 +103,34 @@ bool BlockDvbSat::onInit()
 
 bool BlockDvbSat::initSpots(void)
 {
-	int i = 0;
-	size_t fifo_size;
-	ConfigurationList spot_list;
-	ConfigurationList::iterator carrier_iter;
-	ConfigurationList::iterator spot_iter;
+	auto Conf = OpenSandModelConf::Get();
 
-	// get satellite channels from configuration
-	if(!Conf::getListNode(Conf::section_map[SATCAR_SECTION], 
-	                      SPOT_LIST, 
-	                      spot_list))
+	std::vector<tal_id_t> gw_ids;
+	if (!Conf->getGwIds(gw_ids))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-			"section '%s, %s': missing satellite channels\n",
-			SATCAR_SECTION, SPOT_LIST);
-		goto error;
+		    "couldn't get the list of gateway IDs\n");
+		return false;
 	}
 
-	for(spot_iter = spot_list.begin(); spot_iter != spot_list.end(); spot_iter++)
+	for (auto& gw_id : gw_ids)
 	{
-		ConfigurationList carrier_list ; 
-		
-		spot_id_t spot_id = 0;
-		tal_id_t gw_id = 0;
-		uint8_t ctrl_id = 0;
-		uint8_t data_in_gw_id = 0;
-		uint8_t data_in_st_id = 0;
-		uint8_t data_out_gw_id = 0;
-		uint8_t data_out_st_id = 0;
-		uint8_t log_id = 0;
-		SatGw *new_gw;
-
-		// Retrive FIFO size
-		if(!Conf::getValue(Conf::section_map[ADV_SECTION],
-		                   DELAY_BUFFER, fifo_size))
+		// Retrive FIFO sizes
+		OpenSandModelConf::spot_infrastructure carriers;
+		if (!Conf->getSpotInfrastructure(gw_id, carriers))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s': missing parameter '%s'\n",
-			    ADV_SECTION, DELAY_BUFFER);
-			goto error;
+			    "couldn't create spot infrastructure for gw %d",
+			    gw_id);
+			return false;
 		}
 
-		i++;
-		// get the spot_id
-		if(!Conf::getAttributeValue(spot_iter, 
-		                            ID, 
-		                            spot_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s, %s': failed to retrieve %s at "
-			    "line %d\n", SATCAR_SECTION, SPOT_LIST,
-			    ID, i);
-			goto error;
-		}
-		
-		// get the gw_id
-		if(!Conf::getAttributeValue(spot_iter, 
-		                            GW, 
-		                            gw_id))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-				"section '%s, %s': failed to retrieve %s at "
-				"line %d\n", SATCAR_SECTION, SPOT_LIST,
-				GW, i);
-			goto error;
-		}
-		// get satellite channels from configuration
-		if(!Conf::getListItems(*spot_iter, CARRIER_LIST, carrier_list))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "section '%s/%s%d, %s': missing satellite channels\n",
-			    SATCAR_SECTION, SPOT_LIST, spot_id, CARRIER_LIST);
-			goto error;
-		}
-
-		// check id du spot correspond au id du spot dans lequel est le bloc actuel!
-		for(carrier_iter = carrier_list.begin(); carrier_iter != carrier_list.end(); 
-		   carrier_iter++)
-		{
-			unsigned int carrier_id;
-			string carrier_type;
-			
-			// Get the carrier id
-			if(!Conf::getAttributeValue(carrier_iter,
-			                            CARRIER_ID,
-			                            carrier_id))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "section '%s/%s%d/%s': missing parameter '%s'\n",
-				    SATCAR_SECTION, SPOT_LIST, spot_id, 
-				    CARRIER_LIST, CARRIER_ID);
-				goto error;
-			}
-
-			// Get the carrier type
-			if(!Conf::getAttributeValue(carrier_iter,
-			                            CARRIER_TYPE,
-			                            carrier_type))
-			{
-				LOG(this->log_init, LEVEL_ERROR,
-				    "section '%s/%s%d/%s': missing parameter '%s'\n",
-				    SATCAR_SECTION, SPOT_LIST, spot_id, 
-				    CARRIER_LIST, CARRIER_TYPE);
-				goto error;
-			}
-
-			// Get the ID for control carrier
-			if(strcmp(carrier_type.c_str(), CTRL_OUT) == 0)
-			{
-				ctrl_id = carrier_id;
-			}
-			// Get the ID for data in gw carrier
-			else if(strcmp(carrier_type.c_str(), DATA_IN_GW) == 0)
-			{
-				data_in_gw_id = carrier_id;
-			}
-			// Get the ID for data in st carrier
-			else if(strcmp(carrier_type.c_str(), DATA_IN_ST) == 0)
-			{
-				data_in_st_id = carrier_id;
-			}
-			// Get the ID for data out gw carrier
-			else if(strcmp(carrier_type.c_str(), DATA_OUT_GW) == 0)
-			{
-				data_out_gw_id = carrier_id;
-			}
-			// Get the ID for data out st carrier
-			else if(strcmp(carrier_type.c_str(), DATA_OUT_ST) == 0)
-			{
-				data_out_st_id = carrier_id;
-			}
-			// Get the ID for logon out carrier
-			else if(strcmp(carrier_type.c_str(), LOGON_OUT) == 0)
-			{
-				log_id = carrier_id;
-			}
-		}
+		uint8_t ctrl_id = carriers.ctrl_out.id;
+		uint8_t data_in_gw_id = carriers.data_in_gw.id;
+		uint8_t data_in_st_id = carriers.data_in_st.id;
+		uint8_t data_out_gw_id = carriers.data_out_gw.id;
+		uint8_t data_out_st_id = carriers.data_out_st.id;
+		uint8_t log_id = carriers.logon_out.id;
 	
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "SF#: carrier IDs for Ctrl = %u, "
@@ -252,33 +142,22 @@ bool BlockDvbSat::initSpots(void)
 		//***************************
 		// create a new gw
 		//***************************
-		new_gw = new SatGw(gw_id, spot_id,
-		                   log_id, ctrl_id,
-		                   data_in_st_id,
-		                   data_in_gw_id,
-		                   data_out_st_id,
-		                   data_out_gw_id,
-		                   fifo_size);
+		SatGw *new_gw = new SatGw(gw_id, gw_id, carriers);
 		new_gw->init();
 
-		this->gws[std::make_pair(spot_id, gw_id)] = new_gw;
+		this->gws[gw_id] = new_gw;
 		
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "satellite spot %u: logon = %u, control = %u, "
 		    "data out ST = %u, data out GW = %u\n",
-		    spot_id, log_id, ctrl_id, data_out_st_id,
+		    gw_id, log_id, ctrl_id, data_out_st_id,
 		    data_out_gw_id);
-
 	}
-
 
 	((Upward *)this->upward)->setGws(this->gws);
 	((Downward *)this->downward)->setGws(this->gws);
 
 	return true;
-
-error:
-	return false;
 }
 
 
@@ -298,7 +177,6 @@ BlockDvbSat::Downward::Downward(const string &name):
 };
 
 
-
 BlockDvbSat::Downward::~Downward()
 {
 
@@ -315,9 +193,7 @@ BlockDvbSat::Downward::~Downward()
 bool BlockDvbSat::Downward::onInit()
 {
 	// get the common parameters
-	// TODO no need to init pkt hdl in transparent mode,
-	//      this will avoid loggers for encap to be instanciated
-	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(TRANSPARENT_SATELLITE_NO_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
@@ -387,33 +263,32 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				DvbFrame *dvb_frame;
 				dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 				sat_gws_t::iterator gw;
-				spot_id_t spot_id ;
 				unsigned int carrier_id = dvb_frame->getCarrierId();
-				tal_id_t gw_id = 0;
+				tal_id_t gw_id;
 				
-				if(!OpenSandConf::getSpotWithCarrierId(carrier_id, spot_id, gw_id))
+				if(!OpenSandModelConf::Get()->getGwWithCarrierId(carrier_id, gw_id))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-					    "cannot find spot with carrier ID %u in spot "
+					    "cannot find gateway with carrier ID %u in spot "
 					    "list\n", carrier_id);
 					delete dvb_frame;
 					break;
 				}
 
-				if(spot_id != dvb_frame->getSpot())
+				if(gw_id != dvb_frame->getSpot())
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-					    "Frame: wrong carrier id (%u) or spot id (%u)\n",
+					    "Frame: wrong carrier id (%u) or gateway id (%u)\n",
 					    carrier_id, dvb_frame->getSpot());
 					delete dvb_frame;
 					break;
 				}
 
-				SatGw *current_gw = this->gws[std::make_pair(spot_id, gw_id)];
+				SatGw *current_gw = this->gws[gw_id];
 				if(current_gw == NULL)
 				{
 					LOG(this->log_send, LEVEL_ERROR,
-					    "Spot %u does'nt have gw %u\n", spot_id, gw_id);
+					    "Spot %u does'nt have gw %u\n", gw_id);
 					delete dvb_frame;
 					break;
 				}
@@ -618,9 +493,7 @@ bool BlockDvbSat::Upward::onInit()
 	}
 
 	// get the common parameters
-	// TODO no need to init pkt hdl in transparent mode,
-	//      this will avoid loggers for encap to be instanciated
-	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(TRANSPARENT_SATELLITE_NO_SCHEME_LIST))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
@@ -642,30 +515,8 @@ bool BlockDvbSat::Upward::onInit()
 
 bool BlockDvbSat::Upward::initMode(void)
 {
-	// Delay to apply to the medium
-	if(this->satellite_type == REGENERATIVE)
-	{
-		if(this->return_link_std == DVB_RCS2)
-		{
-			this->reception_std = new DvbRcs2Std(this->pkt_hdl); 
-		}
-		else
-		{
-			this->reception_std = new DvbRcsStd(this->pkt_hdl); 
-		}
-	}
-	else
-	{
-		// create the reception standard
-		if(this->return_link_std == DVB_RCS2)
-		{
-			this->reception_std = new DvbRcs2Std(); 
-		}
-		else
-		{
-			this->reception_std = new DvbRcsStd(); 
-		}
-	}
+	// create the reception standard
+	this->reception_std = new DvbRcs2Std(); 
 	if(this->reception_std == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -717,25 +568,24 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 // The spots also protected for some shared elements
 bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
-	spot_id_t spot_id;
 	tal_id_t gw_id;
 	unsigned int carrier_id = dvb_frame->getCarrierId();
 	bool corrupted = dvb_frame->isCorrupted();
 
 	// get the satellite spot from which the DVB frame comes from
-	if(!OpenSandConf::getSpotWithCarrierId(carrier_id, spot_id, gw_id))
+	if(!OpenSandModelConf::Get()->getGwWithCarrierId(carrier_id, gw_id))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "cannot find gw id for carrier %u\n", carrier_id);
 		return false;
 	}
 
-	SatGw *current_gw = this->gws[std::make_pair(spot_id, gw_id)];
+	SatGw *current_gw = this->gws[gw_id];
 	if(current_gw == NULL)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
-		    "cannot find gw id %d in spot %u\n", 
-		    gw_id, spot_id);
+		    "cannot find gw id %d", 
+		    gw_id);
 		return false;
 	}
 
@@ -753,12 +603,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	{
 		case MSG_TYPE_DVB_BURST:
 		{
-			/* the DVB frame contains a burst of packets:
-			 *  - if the satellite is a regenerative one, forward the burst to the
-			 *    encapsulation layer,
-			 *  - if the satellite is a transparent one, forward DVB burst as the
-			 *    other DVB frames.
-			 */
 			LOG(this->log_receive, LEVEL_INFO,
 			    "DVB-Frame received\n");
 
@@ -783,7 +627,7 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				return false;
 			}
 
-			/* The satellite is a regenerative or transparent one 
+			/* The satellite is a transparent one 
 			 * and the DVB frame contains a burst:
 			 *  - extract the packets from the DVB frame,
 			 *  - find the destination spot ID for each packet
@@ -821,12 +665,6 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 		// Generic control frames (SAC, TTP, etc)
 		case MSG_TYPE_SAC:
-			if(!this->handleSac(dvb_frame,
-			                    current_gw))
-			{
-				return false;
-			}
-		// do not break here !
 		case MSG_TYPE_TTP:
 		case MSG_TYPE_SYNC:
 		case MSG_TYPE_SESSION_LOGON_RESP:

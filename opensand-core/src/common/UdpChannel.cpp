@@ -44,7 +44,6 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <unistd.h>
-//#include <netinet/in.h>
 
 
 /**
@@ -64,15 +63,15 @@
  * @param rmem                The size of the reception UDP buffers in kernel
  * @param wmem                The size of the emission UDP buffers in kernel
  */
-UdpChannel::UdpChannel(string name,
+UdpChannel::UdpChannel(std::string name,
                        spot_id_t s_id,
                        unsigned int channel_id,
                        bool input,
                        bool output,
                        unsigned short port,
                        bool multicast,
-                       const string local_ip_addr,
-                       const string ip_addr,
+                       const std::string local_ip_addr,
+                       const std::string ip_addr,
                        unsigned int stack,
                        unsigned int rmem,
                        unsigned int wmem):
@@ -256,7 +255,7 @@ UdpChannel::~UdpChannel()
 {
 	close(this->sock_channel);
 	this->udp_counters.clear();
-	for(map<string, UdpStack *>::iterator it = this->stacks.begin();
+	for(std::map<std::string, UdpStack *>::iterator it = this->stacks.begin();
 	    it != this->stacks.end(); ++it)
 	{
 		delete (*it).second;
@@ -333,7 +332,7 @@ int UdpChannel::receive(NetSocketEvent *const event,
                                      unsigned char **buf, size_t &data_len)
 {
 	struct sockaddr_in remote_addr;
-	map<string , uint8_t>::iterator ip_count_it;
+	std::map<std::string , uint8_t>::iterator ip_count_it;
 	std::string ip_address;
 	uint8_t nb_sequencing;
 	uint8_t current_sequencing;
@@ -446,7 +445,7 @@ int UdpChannel::receive(NetSocketEvent *const event,
 		// suppose we lost the packet
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
 		    "we may have lost UDP packets, check "
-		    "/etc/default/opensand-daemon and adjust UDP buffers\n");
+		    "and adjust UDP buffers\n");
 		// send the next packets from stack
 		current_sequencing = (current_sequencing + 1) % 256;
 		while(!this->stacks[ip_address]->hasNext(current_sequencing))
@@ -474,8 +473,8 @@ error:
 
 bool UdpChannel::handleStack(unsigned char **buf, size_t &data_len)
 {
-	map<string , uint8_t>::iterator count_it = this->udp_counters.find(this->stacked_ip);
-	map<string, UdpStack *>::iterator stack_it = this->stacks.find(this->stacked_ip);
+	std::map<std::string , uint8_t>::iterator count_it = this->udp_counters.find(this->stacked_ip);
+	std::map<std::string, UdpStack *>::iterator stack_it = this->stacks.find(this->stacked_ip);
 	uint8_t counter;
 	
 	if(count_it == this->udp_counters.end())
@@ -577,3 +576,75 @@ bool UdpChannel::send(const unsigned char *data, size_t length)
 	return false;
 }
 
+
+UdpStack::UdpStack()
+{
+	// Output log
+	this->log_sat_carrier = Output::Get()->registerLog(LEVEL_WARNING, "SatCarrier.Channel");
+	// reserve space for all UDP counters
+	this->reserve(256);
+	for(unsigned int i = 0; i < 256; i++)
+	{
+		this->push_back(std::make_pair<unsigned char *, size_t>(NULL, 0));
+	}
+	this->counter = 0;
+}
+
+
+UdpStack::~UdpStack()
+{
+	this->reset();
+	this->clear();
+}
+
+
+void UdpStack::add(uint8_t udp_counter, unsigned char *data, size_t data_length)
+{
+	if(this->at(udp_counter).first)
+	{
+		LOG(this->log_sat_carrier, LEVEL_ERROR, 
+		    "new data for UDP stack at position %u, erase "
+		    "previous data\n", udp_counter);
+		this->counter--;
+		delete (this->at(udp_counter).first);
+	}
+	this->at(udp_counter).first = data;
+	this->at(udp_counter).second = data_length;
+	this->counter++;
+}
+
+
+void UdpStack::remove(uint8_t udp_counter, unsigned char **data, size_t &data_length)
+{
+	*data = this->at(udp_counter).first;
+	if(*data)
+	{
+		this->counter--;
+	}
+	data_length = this->at(udp_counter).second;
+	this->at(udp_counter).first = NULL;
+	this->at(udp_counter).second = 0;
+}
+
+
+bool UdpStack::hasNext(uint8_t udp_counter)
+{
+	auto& value = this->at(udp_counter);
+	return (value.first != nullptr && value.second != 0);
+}
+
+
+void UdpStack::reset()
+{
+	std::vector<std::pair<unsigned char *, size_t> >::iterator it;
+	for(it = this->begin(); it != this->end(); ++it)
+	{
+		if((*it).first)
+		{
+			delete (*it).first;
+			(*it).first = NULL;
+			(*it).second = 0;
+		}
+		this->counter = 0;
+	}
+}

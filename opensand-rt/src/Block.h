@@ -200,8 +200,8 @@ class Block
 	RtChannel *getDownwardChannel(void) const;
 
 	/// Output Log
-  std::shared_ptr<OutputLog> log_rt;
-  std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_rt;
+	std::shared_ptr<OutputLog> log_init;
 
 	/// The upward channel
 	RtChannel *upward;
@@ -222,7 +222,7 @@ class Block
 	bool initialized;
 
 	/// The event for block initialization
-  std::shared_ptr<OutputEvent> event_init;
+	std::shared_ptr<OutputEvent> event_init;
 };
 
 // TODO malloc/new hook !!

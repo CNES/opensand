@@ -1,8 +1,10 @@
 ################################################################################
 #	Name       : Makefile
-#	Author     : Julien BERNARD <jbernard@toulouse.viveris.com>
+#	Author     : Aurélien DELRIEU <aurelien.delrieu@viveris.fr>
 #	Description: create the OpenSAND configuration library
 ################################################################################
+
+ACLOCAL_AMFLAGS = -I m4
 
 SUBDIRS = \
 	src
@@ -29,6 +31,7 @@ doc:
 
 clean-doc:
 	$(RM) -r doc/html
+	$(RM) -r doc/latex
 
 deb:
 	dpkg-buildpackage

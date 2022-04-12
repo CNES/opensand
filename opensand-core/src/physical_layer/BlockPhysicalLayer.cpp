@@ -39,10 +39,10 @@
 #include "Plugin.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
-#include "OpenSandConf.h"
+#include "OpenSandPlugin.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
 
 BlockPhysicalLayer::BlockPhysicalLayer(const string &name, tal_id_t mac_id):
 	Block(name),
@@ -57,45 +57,38 @@ BlockPhysicalLayer::~BlockPhysicalLayer()
 }
 
 
+void BlockPhysicalLayer::generateConfiguration()
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto conf = Conf->getOrCreateComponent("physical_layer", "Physical Layer", "The Physical layer configuration");
+	auto delay = Conf->getOrCreateComponent("delay", "Delay", conf);
+	Plugin::generatePluginsConfiguration(delay, satdelay_plugin, "delay_type", "Delay Type");
+
+	AttenuationHandler::generateConfiguration();
+	GroundPhysicalChannel::generateConfiguration();
+}
+
+
 bool BlockPhysicalLayer::onInit(void)
 {
 	uint8_t id;
-	bool global_constant_delay;
-	string satdelay_name;
 
-	/// Load de SatDelay Plugin
-	// Get the orbit type
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   GLOBAL_CONSTANT_DELAY, global_constant_delay))
+	std::string satdelay_name;
+	auto delay = OpenSandModelConf::Get()->getProfileData()->getComponent("physical_layer")->getComponent("delay");
+	if(!OpenSandModelConf::extractParameterData(delay->getParameter("delay_type"), satdelay_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get '%s' value", GLOBAL_CONSTANT_DELAY);
-		goto error;
+		    "section 'physical_layer', missing parameter 'delay_type'");
+		return false;
 	}
-	// if global constant delay, get the global delay configuration first
-	if(global_constant_delay)
-	{
-		satdelay_name = CONSTANT_DELAY;
-	}
-	else
-	{
-		// get plugin name
-		if(!Conf::getValue(Conf::section_map[SAT_DELAY_SECTION],
-		                   DELAY_TYPE, satdelay_name))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "missing parameter '%s'", DELAY_TYPE);
-			goto error;
-		}
-	}
-	// load plugin
-	if(!Plugin::getSatDelayPlugin(satdelay_name,
-	                              &this->satdelay))
+
+	/// Load de SatDelay Plugin
+	if(!Plugin::getSatDelayPlugin(satdelay_name, &this->satdelay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "error when getting the sat delay plugin '%s'",
 		    satdelay_name.c_str());
-		goto error;
+		return false;
 	}
 	// Check if the plugin was found
 	if(this->satdelay == NULL)
@@ -103,7 +96,7 @@ bool BlockPhysicalLayer::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Satellite delay plugin conf was not found for"
 		    " terminal %s", this->mac_id);
-		goto error;
+		return false;
 	}
 	// init plugin
 	if(!this->satdelay->init())
@@ -111,7 +104,7 @@ bool BlockPhysicalLayer::onInit(void)
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot initialize sat delay plugin '%s'"
 		    " for terminal id %u ", satdelay_name.c_str(), id);
-		goto error;
+		return false;
 	}
 
 	// share the plugin to channels
@@ -119,8 +112,6 @@ bool BlockPhysicalLayer::onInit(void)
 	((Downward *)this->downward)->setSatDelay(this->satdelay);
 
 	return true;
-error:
-	return false;
 }
 
 BlockPhysicalLayer::Upward::Upward(const string &name, tal_id_t mac_id):
@@ -143,7 +134,7 @@ BlockPhysicalLayer::Upward::~Upward()
 bool BlockPhysicalLayer::Upward::onInit()
 {
 	// Initialize parent class
-	if(!this->initGround(UP, this, this->log_init))
+	if(!this->initGround(true, this, this->log_init))
 	{
 		return false;
 	}
@@ -153,8 +144,7 @@ bool BlockPhysicalLayer::Upward::onInit()
 
 	// Initialize the attenuation handler
 	this->attenuation_hdl = new AttenuationHandler(this->log_channel);
-	if(!this->attenuation_hdl->initialize(DOWNLINK_PHYSICAL_LAYER_SECTION,
-	                                      this->log_init))
+	if(!this->attenuation_hdl->initialize(this->log_init))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Unable to initialize Attenuation Handler");
@@ -177,7 +167,8 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			// Ignore SAC messages if ST
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Check the entity is a ST and DVB frame is SAC");
-			if(!OpenSandConf::isGw(this->mac_id) && dvb_frame->getMessageType() == MSG_TYPE_SAC)
+			if(!OpenSandModelConf::Get()->isGw(this->mac_id) &&
+			   dvb_frame->getMessageType() == MSG_TYPE_SAC)
 			{
 				LOG(this->log_event, LEVEL_DEBUG,
 				    "The SAC is deleted because the entity is not a GW");
@@ -255,11 +246,19 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 
 bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 {
-	if(IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
+	if(IS_CN_CAPABLE_FRAME(dvb_frame->getMessageType()))
 	{
 		// Set C/N to Dvb frame
 		dvb_frame->setCn(this->getCn(dvb_frame));
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Set C/N to the DVB frame forwardPacket %f. Message type %d\n", this->getCn(dvb_frame), dvb_frame->getMessageType());
 
+		// Update probe
+		this->probe_total_cn->put(dvb_frame->getCn());
+	}
+
+	if(IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
+	{
 		// Process Attenuation
 		if(!this->attenuation_hdl->process(dvb_frame, dvb_frame->getCn()))
 		{
@@ -268,9 +267,6 @@ bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 			delete dvb_frame;
 			return false;
 		}
-
-		// Update probe
-		this->probe_total_cn->put(dvb_frame->getCn());
 	}
 
 	// Send frame to upper layer
@@ -284,14 +280,9 @@ bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 	return true;
 }
 
-double BlockPhysicalLayer::UpwardTransp::getCn(DvbFrame *dvb_frame) const
+double BlockPhysicalLayer::Upward::getCn(DvbFrame *dvb_frame) const
 {
 	return GroundPhysicalChannel::computeTotalCn(dvb_frame->getCn(), this->getCurrentCn());
-}
-
-double BlockPhysicalLayer::UpwardRegen::getCn(DvbFrame *UNUSED(dvb_frame)) const
-{
-	return this->getCurrentCn();
 }
 
 BlockPhysicalLayer::Downward::Downward(const string &name, tal_id_t mac_id):
@@ -305,7 +296,7 @@ BlockPhysicalLayer::Downward::Downward(const string &name, tal_id_t mac_id):
 bool BlockPhysicalLayer::Downward::onInit()
 {
 	// Initialize parent class
-	if(!this->initGround(DOWN, this, this->log_init))
+	if(!this->initGround(false, this, this->log_init))
 	{
 		return false;
 	}
@@ -416,14 +407,13 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 
 void BlockPhysicalLayer::Downward::preparePacket(DvbFrame *dvb_frame)
 {
-	if(!IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
+	if(IS_CN_CAPABLE_FRAME(dvb_frame->getMessageType()))
 	{
-		return;
+		// Set C/N to Dvb frame
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Set C/N to the DVB frame preparePacket %f. Message type %d\n", this->getCurrentCn(), dvb_frame->getMessageType());
+		dvb_frame->setCn(this->getCurrentCn());
 	}
-	// Set C/N to Dvb frame
-	LOG(this->log_event, LEVEL_DEBUG,
-	    "Set C/N to the DVB frame");
-	dvb_frame->setCn(this->getCurrentCn());
 }
 
 bool BlockPhysicalLayer::Downward::updateDelay()

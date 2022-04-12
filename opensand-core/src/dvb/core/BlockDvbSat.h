@@ -54,8 +54,9 @@
 #define BLOC_DVB_SAT_H
 
 #include "BlockDvb.h"
-#include "SatGw.h"
 #include "PhysicStd.h" 
+#include "TerminalCategoryDama.h"
+#include "SatGw.h"
 
 // output
 #include <opensand_output/Output.h>
@@ -63,6 +64,8 @@
 #include <linux/param.h>
 #include <set>
 
+
+class SatGw;
 
 
 class BlockDvbSat: public BlockDvb
@@ -146,13 +149,6 @@ class BlockDvbSat: public BlockDvb
 		 */ 
 		virtual bool handleDvbBurst(DvbFrame *dvb_frame,
 		                            SatGw *current_gw) = 0;
-		/**
-		 * Handle Sac
-		 * 
-		 * @return true on success, false otherwise
-		 */ 
-		virtual bool handleSac(DvbFrame *dvb_frame,
-		                       SatGw *current_gw) = 0;
 
 		/**
 		 * Handle BB Frame

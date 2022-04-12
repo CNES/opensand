@@ -34,44 +34,46 @@
 #ifndef IDEAL_ATTENUATION_MODEL_H
 #define IDEAL_ATTENUATION_MODEL_H
 
+
 #include "PhysicalLayerPlugin.h"
-#include <opensand_conf/ConfigurationFile.h>
 
 #include <string>
-
-using std::string;
 
 
 /**
  * @class Ideal
  * @brief Ideal
  */
-class Ideal:public AttenuationModelPlugin
+class Ideal: public AttenuationModelPlugin
 {
-	private:
+ private:
+	double value;
 
-		double value;
-		map<string, ConfigurationList> config_section_map;
+ public:
+	/**
+	 * @brief Build a Ideal
+	 */
+	Ideal();
 
-	public:
+	/**
+	 * @brief Destroy the Ideal
+	 */
+	~Ideal();
 
-		/**
-		 * @brief Build a Ideal
-		 */
-		Ideal();
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 
-		/**
-		 * @brief Destroy the Ideal
-		 */
-		~Ideal();
+	bool init(time_ms_t refresh_period_ms, std::string link);
 
-		bool init(time_ms_t refresh_period_ms, string link);
-
-		bool updateAttenuationModel();
-
+	bool updateAttenuationModel();
 };
 
 
 CREATE(Ideal, attenuation_plugin, "Ideal");
+
 
 #endif

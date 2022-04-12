@@ -40,13 +40,10 @@
 
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
-#include "GenericSwitch.h"
 #include "SlottedAlohaFrame.h"
-#include "OpenSandConf.h"
+#include "SatGw.h"
 
 #include <opensand_rt/Rt.h>
-#include <opensand_conf/conf.h>
-
 #include <opensand_output/Output.h>
 
 #include <math.h>
@@ -156,15 +153,7 @@ BlockDvbSatTransp::UpwardTransp::~UpwardTransp()
 bool BlockDvbSatTransp::UpwardTransp::initMode(void)
 {
 	// create the reception standard
-	if(this->return_link_std == DVB_RCS2)
-	{
-		this->reception_std = new DvbRcs2Std(); 
-	}
-	else
-	{
-		this->reception_std = new DvbRcsStd(); 
-	}
-	
+	this->reception_std = new DvbRcs2Std(); 
 	if(this->reception_std == NULL)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -221,13 +210,6 @@ bool BlockDvbSatTransp::UpwardTransp::handleDvbBurst(DvbFrame *dvb_frame,
 	{
 		return false;
 	}
-	return true;
-}
-
-// DO something only on regenerative mode
-bool BlockDvbSatTransp::UpwardTransp::handleSac(DvbFrame *UNUSED(dvb_frame),
-                                                SatGw *UNUSED(current_gw))
-{
 	return true;
 }
 

@@ -39,33 +39,23 @@
 
 #include "BlockDvbNcc.h"
 
+#include "OpenSandModelConf.h"
+#include "SpotUpward.h"
+#include "SpotDownward.h"
 #include "SpotUpwardTransp.h"
 #include "SpotDownwardTransp.h"
-#include "SpotUpwardRegen.h"
-#include "SpotDownwardRegen.h"
 #include "DvbRcsFrame.h"
 #include "Sof.h"
 
 #include <errno.h>
 
-/*
- * REMINDER:
- *  // in transparent mode
- *        - downward => forward link
- *        - upward => return link
- *  // in regenerative mode
- *        - downward => uplink
- *        - upward => downlink
- */
-
-
 /*****************************************************************************/
 /*                                Block                                      */
 /*****************************************************************************/
 
-
-BlockDvbNcc::BlockDvbNcc(const string &name, tal_id_t UNUSED(mac_id)):
+BlockDvbNcc::BlockDvbNcc(const string &name, tal_id_t mac_id):
 	BlockDvb(name),
+	mac_id(mac_id),
 	output_sts_list(),
 	input_sts_list()
 {
@@ -90,6 +80,13 @@ BlockDvbNcc::~BlockDvbNcc()
 	this->input_sts_list.clear();
 }
 
+void BlockDvbNcc::generateConfiguration()
+{
+	SpotDownward::generateConfiguration();
+	SpotDownwardTransp::generateConfiguration();
+	SpotUpwardTransp::generateConfiguration();
+}
+
 bool BlockDvbNcc::onInit(void)
 {
 	if(!this->initListsSts())
@@ -105,32 +102,23 @@ bool BlockDvbNcc::onInit(void)
 
 bool BlockDvbNcc::initListsSts()
 {
-	map<tal_id_t, spot_id_t>::iterator iter;
-
-	for(iter = OpenSandConf::spot_table.begin();
-	    iter != OpenSandConf::spot_table.end() ;
-	    ++iter)
+	// TODO: Remove obsolete lists (from multi-spot)
+	if(this->input_sts_list.find(this->mac_id) == this->input_sts_list.end())
 	{
-		spot_id_t spot_id = (*iter).second;
+		this->input_sts_list[this->mac_id] = new StFmtSimuList("in");
+	}
+	if(this->input_sts_list[this->mac_id] == NULL)
+	{
+		return false;
+	}
 
-		if(this->input_sts_list.find(spot_id) == this->input_sts_list.end())
-		{
-			this->input_sts_list[spot_id] = new StFmtSimuList("in");
-		}
-		if(this->input_sts_list[spot_id] == NULL)
-		{
-			return false;
-		}
-
-
-		if(this->output_sts_list.find(spot_id) == this->output_sts_list.end())
-		{
-			this->output_sts_list[spot_id] = new StFmtSimuList("out");
-		}
-		if(this->output_sts_list[spot_id] == NULL)
-		{
-			return false;
-		}
+	if(this->output_sts_list.find(this->mac_id) == this->output_sts_list.end())
+	{
+		this->output_sts_list[this->mac_id] = new StFmtSimuList("out");
+	}
+	if(this->output_sts_list[this->mac_id] == NULL)
+	{
+		return false;
 	}
 
 	// input and output sts are shared between up and down
@@ -139,7 +127,6 @@ bool BlockDvbNcc::initListsSts()
 	                                   this->input_sts_list);
 	((Downward *)this->downward)->setStFmt(this->output_sts_list,
 	                                       this->input_sts_list);
-
 
 	return true;
 }
@@ -154,7 +141,7 @@ bool BlockDvbNcc::initListsSts()
 
 BlockDvbNcc::Downward::Downward(const string &name, tal_id_t mac_id):
 	DvbDownward(name),
-	DvbSpotList(),
+	DvbSpotList(mac_id),
 	pep_interface(),
 	svno_interface(),
 	mac_id(mac_id),
@@ -172,27 +159,10 @@ BlockDvbNcc::Downward::~Downward()
 bool BlockDvbNcc::Downward::onInit(void)
 {
 	bool result = true;
-	const char *scheme;
+	int pep_tcp_port, svno_tcp_port;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 
-	// TODO initSatType is done in initCommon too
-	if(!this->initSatType())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed get satellite type\n");
-		return false;
-	}
-
 	// get the common parameters
-	if(this->satellite_type == TRANSPARENT)
-	{
-		scheme = FORWARD_DOWN_ENCAP_SCHEME_LIST;
-	}
-	else
-	{
-		scheme = RETURN_UP_ENCAP_SCHEME_LIST;
-	}
-
 	if(!this->initDown())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -201,7 +171,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 
-	if(!this->initCommon(scheme))
+	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the common part of the "
@@ -233,29 +203,14 @@ bool BlockDvbNcc::Downward::onInit(void)
 			return false;
 		}
 		
-		if(this->satellite_type == TRANSPARENT)
-		{
-			spot = new SpotDownwardTransp(spot_id, this->mac_id,
-			                              this->fwd_down_frame_duration_ms,
-			                              this->ret_up_frame_duration_ms,
-			                              this->stats_period_ms,
-			                              this->satellite_type,
-			                              this->pkt_hdl,
-			                              input_sts,
-			                              output_sts);
+		spot = new SpotDownwardTransp(spot_id, this->mac_id,
+		                              this->fwd_down_frame_duration_ms,
+		                              this->ret_up_frame_duration_ms,
+		                              this->stats_period_ms,
+		                              this->pkt_hdl,
+		                              input_sts,
+		                              output_sts);
 
-		}
-		else
-		{
-			spot = new SpotDownwardRegen(spot_id, this->mac_id,
-			                             this->fwd_down_frame_duration_ms,
-			                             this->ret_up_frame_duration_ms,
-			                             this->stats_period_ms,
-			                             this->satellite_type,
-			                             this->pkt_hdl,
-			                             input_sts,
-			                             output_sts);
-		}
 		(*spot_iter).second = spot;
 		result &= spot->onInit();
 	}
@@ -269,9 +224,17 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 
+	// retrieve the TCP communication port dedicated
+	// for NCC/PEP and NCC/SVNO communications
+	if(!OpenSandModelConf::Get()->getNccPorts(pep_tcp_port, svno_tcp_port))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "section 'ncc': missing parameter 'pep port' or 'svno port'\n");
+		return false;
+	}
 
 	// listen for connections from external PEP components
-	if(!this->pep_interface.initPepSocket())
+	if(!this->pep_interface.initPepSocket(pep_tcp_port))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to listen for PEP connections\n");
@@ -281,7 +244,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 	                        this->pep_interface.getPepListenSocket(), 200);
 
 	// listen for connections from external SVNO components
-	if(!this->svno_interface.initSvnoSocket())
+	if(!this->svno_interface.initSvnoSocket(svno_tcp_port))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to listen for SVNO connections\n");
@@ -292,8 +255,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 
 	// Output probes and stats
 	this->probe_frame_interval = Output::Get()->registerProbe<float>("Perf.Frames_interval",
-                                                                   "ms", true,
-                                                                   SAMPLE_LAST);
+	                                                                 "ms", true,
+	                                                                 SAMPLE_LAST);
 
 	return result;
 }
@@ -302,6 +265,8 @@ bool BlockDvbNcc::Downward::initTimers(void)
 {
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 	time_ms_t acm_period_ms;
+
+	auto Conf = OpenSandModelConf::Get();
 
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
@@ -312,24 +277,19 @@ bool BlockDvbNcc::Downward::initTimers(void)
 
 
 	// read the pep allocation delay
-	if(!Conf::getValue(Conf::section_map[NCC_SECTION_PEP], DVB_NCC_ALLOC_DELAY,
-	                   this->pep_alloc_delay))
+	if(!Conf->getPepAllocationDelay(this->pep_alloc_delay))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    NCC_SECTION_PEP, DVB_NCC_ALLOC_DELAY);
+		    "section 'schedulers': missing parameter 'pep allocation delay'\n");
 		return false;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "pep_alloc_delay set to %d ms\n", this->pep_alloc_delay);
 
-	if(!Conf::getValue(Conf::section_map[PHYSICAL_LAYER_SECTION],
-	                   ACM_PERIOD_REFRESH,
-	                   acm_period_ms))
+	if(!Conf->getAcmRefreshPeriod(acm_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		   "section '%s': missing parameter '%s'\n",
-		   PHYSICAL_LAYER_SECTION, ACM_PERIOD_REFRESH);
+		   "section 'timers': missing parameter 'acm refresh period'\n");
 		return false;
 	}
 
@@ -345,8 +305,8 @@ bool BlockDvbNcc::Downward::initTimers(void)
 		spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
 		if(!spot)
 		{
-			LOG(this->log_receive, LEVEL_WARNING,
-			    "Error when getting spot\n");
+			LOG(this->log_init, LEVEL_WARNING,
+			    "Error when getting spot %d\n", (*spot_iter).first);
 			return false;
 		}
 		spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",
@@ -354,11 +314,6 @@ bool BlockDvbNcc::Downward::initTimers(void)
 		                                              false, // no rearm
 		                                              false // do not start
 		                                              ));
-		if(this->satellite_type == REGENERATIVE)
-		{
-			spot->setAcmTimer(this->addTimerEvent("send_acm_param",
-			                                      acm_period_ms));
-		}
 	}
 
 	return true;
@@ -460,14 +415,12 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				for(pkt_it = burst->begin(); pkt_it != burst->end(); ++pkt_it)
 				{
 					tal_id_t tal_id = (*pkt_it)->getDstTalId();
-					spot_id_t spot_id = 0;
 					SpotDownward *spot;
 					list<SpotDownward*> spot_list;
 					list<SpotDownward*>::iterator spot_list_iter;
 
 					// FIXME at the moment broadcast is sent on all spots
-					if((tal_id == BROADCAST_TAL_ID) and 
-					   (this->satellite_type != REGENERATIVE))
+					if(tal_id == BROADCAST_TAL_ID)
 					{
 						for(spot_iter = this->spots.begin(); 
 						    spot_iter != this->spots.end(); ++spot_iter)
@@ -485,16 +438,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					}
 					else
 					{ 
-						if(OpenSandConf::spot_table.find(tal_id) ==
-								OpenSandConf::spot_table.end())
-						{
-							spot_id = this->default_spot;
-						}
-						else
-						{
-							spot_id = OpenSandConf::spot_table[tal_id];
-						}
-						spot = dynamic_cast<SpotDownward *>(this->getSpot(spot_id));
+						spot = dynamic_cast<SpotDownward *>(this->getSpot(this->mac_id));
 						if(!spot)
 						{
 							LOG(this->log_receive, LEVEL_WARNING,
@@ -616,11 +560,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						continue;
 					}
 				}
-				else if(*event == spot->getAcmTimer())
-				{
-					// regenerative satellite, send ACM parameters
-					this->sendAcmParameters(spot);
-				}
 				else if(*event == spot->getPepCmdApplyTimer())
 				{
 					// it is time to apply the command sent by the external
@@ -654,7 +593,6 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			if(*event == this->pep_interface.getPepClientSocket())
 			{
 				tal_id_t tal_id;
-				spot_id_t spot_id;
 
 				// event received on PEP client socket
 				LOG(this->log_receive, LEVEL_NOTICE,
@@ -682,21 +620,12 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				// allocations/releases they contain
 
 				// first get the spot associated with this terminal
-				if(OpenSandConf::spot_table.find(tal_id) == OpenSandConf::spot_table.end())
-				{
-					spot_id = this->default_spot;
-				}
-				else
-				{
-					spot_id = OpenSandConf::spot_table[tal_id];
-				}
-
-				spot_iter = this->spots.find(spot_id);
+				spot_iter = this->spots.find(this->mac_id);
 				if(spot_iter == this->spots.end())
 				{
 					LOG(this->log_receive, LEVEL_ERROR, 
-					    "couldn't find spot %d", 
-					    OpenSandConf::spot_table[tal_id]);
+					    "couldn't find spot of gw %d", 
+					    this->mac_id);
 					return false;
 				}
 				SpotDownward *spot;
@@ -941,30 +870,6 @@ release:
 	return false;
 }
 
-
-bool BlockDvbNcc::Downward::sendAcmParameters(SpotDownward *spot_downward)
-{
-	// function only used in regenerative scenario
-	double cni = spot_downward->getRequiredCniInput(this->mac_id);
-
-	Sac *send_sac = new Sac(this->mac_id);
-	send_sac->setAcm(cni);
-	LOG(this->log_send, LEVEL_DEBUG,
-	    "Send SAC with CNI = %.2f\n", cni);
-
-	// Send message
-	if(!this->sendDvbFrame((DvbFrame *)send_sac,
-	                       spot_downward->getCtrlCarrierId()))
-	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "SF#%u: failed to send SAC\n",
-		    this->super_frame_counter);
-		delete send_sac;
-		return false;
-	}
-	return true;
-}
-
 // updateStats is pure virtual in BlockDvb not used in this case
 void BlockDvbNcc::Downward::updateStats(void)
 {
@@ -977,9 +882,11 @@ void BlockDvbNcc::Downward::updateStats(void)
 
 BlockDvbNcc::Upward::Upward(const string &name, tal_id_t mac_id):
 	DvbUpward(name),
-	DvbSpotList(),
+	DvbSpotList(mac_id),
 	mac_id(mac_id),
-	log_saloha(NULL)
+	log_saloha(NULL),
+	probe_gw_received_modcod(NULL),
+	probe_gw_rejected_modcod(NULL)
 {
 }
 
@@ -993,13 +900,6 @@ bool BlockDvbNcc::Upward::onInit(void)
 {
 	bool result = true;
 	map<spot_id_t, DvbChannel *>::iterator spot_iter;
-
-	if(!this->initSatType())
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed get satellite type\n");
-		return false;
-	}
 
 	if(!this->initSpotList())
 	{
@@ -1020,16 +920,8 @@ bool BlockDvbNcc::Upward::onInit(void)
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create upward spot with ID %u\n", spot_id);
 
-		if(this->satellite_type == TRANSPARENT)
-		{
-			spot = new SpotUpwardTransp(spot_id, this->mac_id,
-			                            input_sts, output_sts);
-		}
-		else
-		{
-			spot = new SpotUpwardRegen(spot_id, this->mac_id,
-			                           input_sts, output_sts);
-		}
+		spot = new SpotUpwardTransp(spot_id, this->mac_id,
+		                            input_sts, output_sts);
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Create spot with ID %u\n", spot_id);
 		(*spot_iter).second = spot;
@@ -1062,11 +954,34 @@ bool BlockDvbNcc::Upward::onInit(void)
 		}
 	}
 
+	// Init the output here since we now know the FIFOs
+	if(!this->initOutput())
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to complete the initialisation of output\n");
+		return false;
+	}
+
 	LOG(this->log_init_channel, LEVEL_DEBUG,
 	    "Link is up msg sent to upper layer\n");
 
 	// everything went fine
 	return result;
+}
+
+
+bool BlockDvbNcc::Upward::initOutput(void)
+{
+	auto output = Output::Get();
+
+	this->probe_gw_received_modcod = output->registerProbe<int>("Down_Return_modcod.Received_modcod",
+								    "modcod index",
+								    true, SAMPLE_LAST);
+	this->probe_gw_rejected_modcod = output->registerProbe<int>("Down_Return_modcod.Rejected_modcod",
+								    "modcod index",
+								    true, SAMPLE_LAST);
+
+	return true;
 }
 
 bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
@@ -1088,9 +1003,22 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				delete dvb_frame;
 				return false;
 			}
+
+			fmt_id_t modcod_id = 0;
 			uint8_t msg_type = dvb_frame->getMessageType();
 			LOG(this->log_receive, LEVEL_INFO,
 			    "DVB frame received with type %u\n", msg_type);
+
+			if(msg_type == MSG_TYPE_BBFRAME)
+			{
+				BBFrame *bbframe = (BBFrame *)dvb_frame;
+				modcod_id = bbframe->getModcodId();
+			}
+			else if(msg_type == MSG_TYPE_DVB_BURST)
+			{
+				DvbRcsFrame *dvb_rcs_frame = (DvbRcsFrame *)dvb_frame;
+				modcod_id = dvb_rcs_frame->getModcodId();
+			}
 			switch(msg_type)
 			{
 				// burst
@@ -1099,6 +1027,19 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				{
 					// Update C/N0
 					spot->handleFrameCni(dvb_frame);
+
+					bool corrupted = dvb_frame->isCorrupted();
+					if(!corrupted)
+					{
+						// update MODCOD probes
+						this->probe_gw_received_modcod->put(modcod_id);
+						this->probe_gw_rejected_modcod->put(0);
+					}
+					else
+					{
+						this->probe_gw_rejected_modcod->put(modcod_id);
+						this->probe_gw_received_modcod->put(0);
+					}
 
 					NetBurst *burst = NULL;
 					if(!spot->handleFrame(dvb_frame, &burst))
@@ -1122,7 +1063,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 				case MSG_TYPE_SAC:
 				{
 					// Update C/N0
-					Sac *sac = (Sac *) dvb_frame;
+					Sac *UNUSED(sac) = (Sac *) dvb_frame;
 					spot->handleFrameCni(dvb_frame);
 					if(!spot->handleSac(dvb_frame))
 					{
@@ -1279,43 +1220,7 @@ bool BlockDvbNcc::Upward::shareFrame(DvbFrame *frame)
 
 bool DvbSpotList::initSpotList(void)
 {
-	map<tal_id_t, spot_id_t>::iterator iter;
-	bool find_default = false;
-
-	if(OpenSandConf::spot_table.empty())
-	{
-		LOG(this->log_spot, LEVEL_ERROR,
-		    "The terminal map is empty");
-		return false;
-	}
-	
-	if(!Conf::getValue(Conf::section_map[SPOT_TABLE_SECTION], 
-	                   DEFAULT_SPOT, this->default_spot))
-	{
-		LOG(this->log_spot, LEVEL_ERROR, 
-		    "failed to get default terminal ID\n");
-		return false;
-	}
-	
-	for(iter = OpenSandConf::spot_table.begin();
-	    iter != OpenSandConf::spot_table.end() ;
-	    ++iter)
-	{
-		this->spots[iter->second] = NULL;
-		if(this->default_spot == iter->second)
-		{
-			find_default = true;
-		}
-	}
-	
-	if(!find_default)
-	{
-		LOG(this->log_spot, LEVEL_ERROR,
-		    "Default spot %d does not exist\n",
-		    this->default_spot);
-		return false;
-	}
-	
+	this->spots[this->default_spot] = NULL;
 	return true;
 }
 

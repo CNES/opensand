@@ -45,8 +45,6 @@ DvbRcsStd::DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
 	PhysicStd("DVB-RCS", pkt_hdl),
 	has_fixed_length(true)
 {
-	this->generic_switch = NULL;
-
 	this->log_rcv_from_down = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Upward.receive");
 }
 
@@ -55,8 +53,6 @@ DvbRcsStd::DvbRcsStd(string type, bool has_fixed_length,
 	PhysicStd(type, pkt_hdl),
 	has_fixed_length(has_fixed_length)
 {
-	this->generic_switch = NULL;
-
 	this->log_rcv_from_down = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Upward.receive");
 }
 
@@ -67,10 +63,6 @@ DvbRcs2Std::DvbRcs2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
 
 DvbRcsStd::~DvbRcsStd()
 {
-	if(this->generic_switch != NULL)
-	{
-		delete this->generic_switch;
-	}
 }
 
 
@@ -80,7 +72,7 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 {
 	DvbRcsFrame *dvb_rcs_frame;
 
-	vector<NetPacket *> decap_packets;
+	std::vector<NetPacket *> decap_packets;
 	bool partial_decap = false;
 
 	// sanity check
@@ -160,30 +152,10 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	}
 
 	// add packets to the newly created burst
-	for(vector<NetPacket *>::iterator it = decap_packets.begin();
+	for(std::vector<NetPacket *>::iterator it = decap_packets.begin();
 		it != decap_packets.end();
 		++it)
 	{
-		// satellite part
-		if(this->generic_switch)
-		{
-			uint8_t spot_id;
-
-			// find the spot ID associated to the packet, it will
-			// be used to put the cell in right fifo after the Encap SAT bloc
-			spot_id = this->generic_switch->find(*it);
-			if(spot_id == 0)
-			{
-				LOG(this->log_rcv_from_down, LEVEL_ERROR,
-				    "unable to find destination spot, drop the "
-				    "packet\n");
-				delete (*it);
-				continue;
-			}
-			// associate the spot ID to the packet
-			(*it)->setSpot(spot_id);
-		}
-
 		// add the packet to the burst of packets
 		(*burst)->add(*it);
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
@@ -201,16 +173,3 @@ error:
 	delete dvb_frame;
 	return false;
 }
-
-bool DvbRcsStd::setSwitch(GenericSwitch *generic_switch)
-{
-	if(generic_switch == NULL)
-	{
-		return false;
-	}
-
-	this->generic_switch = generic_switch;
-
-	return true;
-}
-

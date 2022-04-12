@@ -34,6 +34,9 @@
  */
 
 #include "GseEncapCtx.h"
+#include "GseIdentifier.h"
+
+#include <NetPacket.h>
 
 #include <opensand_output/Output.h>
 

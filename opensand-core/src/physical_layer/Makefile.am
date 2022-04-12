@@ -6,7 +6,6 @@ libopensand_physical_layer_la_cpp = \
 	DelayFifo.cpp \
 	DelayFifoElement.cpp \
 	BlockPhysicalLayer.cpp \
-	BlockPhysicalLayerSat.cpp \
 	AttenuationHandler.cpp \
 	GroundPhysicalChannel.cpp
 
@@ -14,7 +13,6 @@ libopensand_physical_layer_la_h = \
 	DelayFifo.h \
 	DelayFifoElement.h \
 	BlockPhysicalLayer.h \
-	BlockPhysicalLayerSat.h \
 	AttenuationHandler.h \
 	GroundPhysicalChannel.h
 

@@ -45,8 +45,6 @@
 #include <map>
 #include <sys/times.h>
 
-using std::vector;
-using std::map;
 
 ///> The priority of FIFO that indicates the MAC QoS which is sometimes equivalent
 ///>  to Diffserv IP QoS
@@ -81,7 +79,6 @@ typedef enum
 class DvbFifo
 {
  public:
-
 	/**
 	 * @brief Create the DvbFifo
 	 *
@@ -92,8 +89,8 @@ class DvbFifo
 	 *                      this fifo if it is for the GW (forward link)
 	 * @param max_size_pkt  the fifo maximum size
 	 */
-	DvbFifo(unsigned int fifo_priority, string mac_fifo_name,
-	        string type_name,
+	DvbFifo(unsigned int fifo_priority, std::string mac_fifo_name,
+	        std::string type_name,
 	        vol_pkt_t max_size_pkt);
 
 	/**
@@ -105,8 +102,7 @@ class DvbFifo
 	 */
 	DvbFifo(uint8_t carrier_id,
 	        vol_pkt_t max_size_pkt,
-	        string fifo_name);
-
+	        std::string fifo_name);
 
 	virtual ~DvbFifo();
 
@@ -115,7 +111,7 @@ class DvbFifo
 	 *
 	 * @return the fifo_name of the fifo
 	 */
-	string getName() const;
+	std::string getName() const;
 
 	/**
 	 * @brief Get the access type associated to the fifo
@@ -249,19 +245,18 @@ class DvbFifo
 
 	uint8_t getCni(void) const;
 
-	vector<MacFifoElement *> getQueue(void);
+	std::vector<MacFifoElement *> getQueue(void);
 
  protected:
-
 	/**
 	 * @brief Reset the fifo counters
 	 */
 	void resetStats();
 
-	vector<MacFifoElement *> queue; ///< the FIFO itself
+	std::vector<MacFifoElement *> queue; ///< the FIFO itself
 
 	unsigned int fifo_priority;     ///< the MAC priority of the fifo
-	string fifo_name;               ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
+	std::string fifo_name;               ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
 	int access_type;                ///< the forward or return access type
 	unsigned int vcm_id;            ///< the associated VCM id (if VCM access type)
 	vol_pkt_t new_size_pkt;         ///< the number of packets that filled the fifo
@@ -278,9 +273,11 @@ class DvbFifo
 	uint8_t cni;                ///< is Scpc mode add cni as option into gse packet
 
 	// Output log
-  std::shared_ptr<OutputLog> log_dvb_fifo;
+	std::shared_ptr<OutputLog> log_dvb_fifo;
 };
 
-typedef map<qos_t, DvbFifo *> fifos_t;
+
+typedef std::map<qos_t, DvbFifo *> fifos_t;
+
 
 #endif

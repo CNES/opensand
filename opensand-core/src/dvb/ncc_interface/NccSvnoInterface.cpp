@@ -33,9 +33,6 @@
 
 #include "NccSvnoInterface.h"
 
-#include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -130,26 +127,12 @@ SvnoRequest * NccSvnoInterface::getNextSvnoRequest()
  *
  * @return  true on success, false on failure
  */
-bool NccSvnoInterface::initSvnoSocket()
+bool NccSvnoInterface::initSvnoSocket(int tcp_port)
 {
-	int tcp_port;
-
-	// retrieve the TCP communication port dedicated
-	// for NCC/SVNO communications
-    // TODO move configuration reading in bloc
-	if(!Conf::getValue(Conf::section_map[NCC_SECTION_SVNO], SVNO_NCC_PORT, tcp_port))
-	{
-		LOG(this->log_ncc_interface, LEVEL_NOTICE,
-		    "section '%s': missing parameter '%s'\n",
-		    NCC_SECTION_SVNO, SVNO_NCC_PORT);
-		return false;
-	}
-
 	if(tcp_port <= 0 && tcp_port >= 0xffff)
 	{
 		LOG(this->log_ncc_interface, LEVEL_ERROR,
-		    "section '%s': bad value for parameter '%s'\n",
-		    NCC_SECTION_SVNO, SVNO_NCC_PORT);
+		    "bad value for parameter 'SVNO NCC port'\n");
 		return false;
 	}
 
@@ -198,7 +181,7 @@ bool NccSvnoInterface::readSvnoMessage(NetSocketEvent *const event)
  */
 bool NccSvnoInterface::parseSvnoMessage(const char *message)
 {
-	stringstream stream;
+	std::stringstream stream;
 	char cmd[64];
 	unsigned int nb_cmds;
 	int all_cmds_type = -1; /* initialized because GCC is not smart enough

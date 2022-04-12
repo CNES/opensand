@@ -36,16 +36,14 @@
 
 
 #include <string>
-#include <cfloat>
-#include <algorithm>
-#include <cmath>
-#include <stdint.h>
 #include <vector>
-#include <arpa/inet.h>
-#include <sys/time.h>
 
-using std::string;
-using std::vector;
+#include <stdint.h>
+#include <cfloat>
+#include <cmath>
+#include <sys/time.h>
+#include <arpa/inet.h>
+
 
 /** unused macro to avoid compilation warning with unused parameters. */
 #ifdef __GNUC__
@@ -74,88 +72,20 @@ typedef enum
  * @param host The component type
  * @return the abbreviated name of the component
  */
-inline string getComponentName(component_t host)
+inline std::string getComponentName(component_t host)
 {
 	switch(host)
 	{
 		case satellite:
 			return "sat";
-			break;
 		case gateway:
 			return "gw";
-			break;
 		case terminal:
 			return "st";
-			break;
 		default:
 			return "";
 	}
 };
-
-/**
- * @brief get the component type according to its name
- *
- * @param name  The component name
- *
- * @return the component name enum
- */
-inline component_t getComponentType(string name)
-{
-	if(name == "sat")
-		return satellite;
-	else if(name == "st")
-		return terminal;
-	else if(name == "gw")
-		return gateway;
-	else
-		return unknown_compo;
-};
-
-/// Satellite type
-typedef enum
-{
-	REGENERATIVE,
-	TRANSPARENT,
-} sat_type_t;
-
-
-/**
- * @brief get the satellite type according to its name
- *
- * @param sat_type the satellite type name
- *
- * @return the satellite type enum
- */
-inline sat_type_t strToSatType(string sat_type)
-{
-	if(sat_type == "regenerative")
-		return REGENERATIVE;
-	else
-		return TRANSPARENT;
-}
-
-/// Return link standard 
-typedef enum
-{
-	DVB_RCS,
-	DVB_RCS2,
-} return_link_standard_t;
-
-
-/**
- * @brief get the return link standard according to its name
- *
- * @param sat_type the return link standard name
- *
- * @return the return link standard enum
- */
-inline return_link_standard_t strToReturnLinkStd(string return_link_standard)
-{
-	if(return_link_standard == "DVB-RCS2")
-		return DVB_RCS2;
-	else
-		return DVB_RCS;
-}
 
 /// Carrier access type
 typedef enum
@@ -175,7 +105,7 @@ typedef enum
  *
  * @return the access type enum
  */
-inline access_type_t strToAccessType(string access_type)
+inline access_type_t strToAccessType(std::string access_type)
 {
 	if(access_type == "DAMA")
 		return DAMA;
@@ -208,6 +138,14 @@ enum
 };
 
 
+typedef enum
+{
+	RETURN_UP_ENCAP_SCHEME_LIST,
+	FORWARD_DOWN_ENCAP_SCHEME_LIST,
+	TRANSPARENT_SATELLITE_NO_SCHEME_LIST,
+} encap_scheme_list_t;
+
+
 /** Compare two floats */
 inline bool equals(double val1, double val2)
 {
@@ -233,16 +171,16 @@ inline clock_t getCurrentTime(void)
  * @param  tokens     The list to add tokens into
  * @param  delimiter  The tokens' delimiter
  */
-inline void tokenize(const string &str,
-                     vector<string> &tokens,
-                     const string& delimiters=":")
+inline void tokenize(const std::string &str,
+                     std::vector<std::string> &tokens,
+                     const std::string& delimiters=":")
 {
 	// Skip delimiters at beginning.
-	string::size_type last_pos = str.find_first_not_of(delimiters, 0);
+	std::string::size_type last_pos = str.find_first_not_of(delimiters, 0);
 	// Find first "non-delimiter".
-	string::size_type pos = str.find_first_of(delimiters, last_pos);
+	std::string::size_type pos = str.find_first_of(delimiters, last_pos);
 
-	while(string::npos != pos || string::npos != last_pos)
+	while(std::string::npos != pos || std::string::npos != last_pos)
 	{
 		// Found a token, add it to the vector.
 		tokens.push_back(str.substr(last_pos, pos - last_pos));
@@ -262,7 +200,7 @@ inline void tokenize(const string &str,
  */
 inline uint32_t hcnton(double cn)
 {
-	int16_t tmp_cn = (int16_t)(round(cn * 100)); // we take two digits in decimal part
+	int16_t tmp_cn = (int16_t)(std::round(cn * 100));  // we take two digits in decimal part
 	uint32_t new_cn = htonl((uint32_t)tmp_cn);
 	return new_cn;
 };

@@ -34,48 +34,59 @@
 #ifndef ACM_LOOP_MINIMAL_CONDITION_PLUGIN_H
 #define ACM_LOOP_MINIMAL_CONDITION_PLUGIN_H 
 
+
 #include "PhysicalLayerPlugin.h"
 #include "FmtDefinitionTable.h"
+
+#include <string>
 
 
 /**
  * @class AcmLoop 
  * @brief Load the max CN from the config files (core.conf) 
  */
-class AcmLoop:public MinimalConditionPlugin
+class AcmLoop: public MinimalConditionPlugin
 {
-	private:
-		FmtDefinitionTable modcod_table_rcs;
-		FmtDefinitionTable modcod_table_s2;
+ private:
+	FmtDefinitionTable modcod_table_rcs;
+	FmtDefinitionTable modcod_table_s2;
 
-	public:
+ public:
+	/**
+	 * @brief Build the defaultMinimalCondition
+	 */
+	AcmLoop();
 
-		/**
-		 * @brief Build the defaultMinimalCondition
-		 */
-		AcmLoop();
+	/**
+	 * @brief Destroy the defaultMinimalCondition
+	 */
+	~AcmLoop();
 
-		/**
-		 * @brief Destroy the defaultMinimalCondition
-		 */
-		~AcmLoop();
+	/**
+	 * @brief Generate the configuration for the plugin
+	 */
+	static void generateConfiguration(const std::string &parent_path,
+	                                  const std::string &param_id,
+	                                  const std::string &plugin_name);
 
-		/**
-		 * @brief initialize the minimal condition
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool init(void);
+	/**
+	 * @brief initialize the minimal condition
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool init(void);
 
-		/**
-		 * @brief Updates Thresold when a msg arrives to Channel
-		 *
-		 * @param message_type  The frame type
-		 * @return true on success, false otherwise
-		 */
-		bool updateThreshold(uint8_t modcod_id, uint8_t message_type);
+	/**
+	 * @brief Updates Thresold when a msg arrives to Channel
+	 *
+	 * @param message_type  The frame type
+	 * @return true on success, false otherwise
+	 */
+	bool updateThreshold(uint8_t modcod_id, uint8_t message_type);
 };
 
+
 CREATE(AcmLoop, minimal_plugin, "ACM-Loop");
+
 
 #endif

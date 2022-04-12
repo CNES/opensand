@@ -1,3 +1,0 @@
-This test consists to ping WS and ST from WS1 (behind ST1) with a lot of packets
-and a high throughput and to check that no packet is loss.
-For this test WS1 shall have the identifier 'test'.

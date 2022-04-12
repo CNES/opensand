@@ -48,7 +48,6 @@
 class CarriersGroupDama: public CarriersGroup
 {
  public:
-
 	/**
 	 * @brief  Construct a group of carriers with the same characteristics
 	 *
@@ -132,11 +131,10 @@ class CarriersGroupDama: public CarriersGroup
 	 *
 	 * @return the VCM carriers
 	 */
-	vector<CarriersGroupDama *> getVcmCarriers();
+	std::vector<CarriersGroupDama *> getVcmCarriers();
 
  protected:
-
-    /** The remaining capacity on the current frame */
+	/** The remaining capacity on the current frame */
 	unsigned int remaining_capacity;
 
 	/** The previous capacity */
@@ -148,7 +146,7 @@ class CarriersGroupDama: public CarriersGroup
 	/** In case of VCM, this carriers group contains only global values over
 	 *  the entire frame (total ratio, total capacity, ...) and each VCM part
 	 *  is instantiated into a new carriers group */
-	vector<CarriersGroupDama *> vcm_carriers;
+	std::vector<CarriersGroupDama *> vcm_carriers;
 };
 
 #endif

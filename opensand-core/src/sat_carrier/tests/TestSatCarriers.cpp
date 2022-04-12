@@ -52,6 +52,7 @@
 #include "Data.h"
 #include "OpenSandCore.h"
 
+#include <sstream>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -123,7 +124,6 @@ bool TestSatCarriers::Downward::onEvent(const RtEvent *const event)
 	switch(event->getType())
 	{
 		case evt_message:
-		{
 			// Lan message to be sent on channel
 			if(((MessageEvent *)event)->getMessageType() == from_lan)
 			{
@@ -154,8 +154,7 @@ bool TestSatCarriers::Downward::onEvent(const RtEvent *const event)
 				delete packet;
 				break;
 			}
-		}
-		// do not break if none of the above
+			// fall through
 
 		default:
 			fprintf(stderr, "unknown event received %s", event->getName().c_str());
@@ -263,7 +262,7 @@ bool TestSatCarriers::onInit(void)
 
 bool TestSatCarriers::Upward::onInit(void)
 {
-	vector<UdpChannel *>::iterator it;
+	std::vector<UdpChannel *>::iterator it;
 	UdpChannel *channel;
 
 	// initialize all channels from the configuration file
@@ -281,7 +280,7 @@ bool TestSatCarriers::Upward::onInit(void)
 
 		if(channel->isInputOk() && channel->getChannelFd() != -1)
 		{
-			ostringstream name;
+			std::ostringstream name;
 
 			name << "Channel_" << channel->getChannelID();
 			this->addNetSocketEvent(name.str(),

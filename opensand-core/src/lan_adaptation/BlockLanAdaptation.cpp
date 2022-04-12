@@ -37,6 +37,11 @@
 #include "NetPacket.h"
 #include "NetBurst.h"
 #include "OpenSandFrames.h"
+#include "TrafficCategory.h"
+#include "Ethernet.h"
+#include "OpenSandModelConf.h"
+
+#include <opensand_output/Output.h>
 
 #include <cstdio>
 #include <sys/ioctl.h>
@@ -45,8 +50,14 @@
 #include <net/if.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <vector>
 
 #define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]
+#define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
+
 
 
 /**
@@ -56,7 +67,97 @@ BlockLanAdaptation::BlockLanAdaptation(const string &name, struct la_specific sp
 	Block(name),
 	tap_iface(specific.tap_iface)
 {
+	this->specific = specific;
 }
+ 
+
+/**
+ * initializers and setters
+*/
+
+void BlockLanAdaptation::generateConfiguration()
+{
+	Ethernet::generateConfiguration();
+}
+
+bool BlockLanAdaptation::onInit(void)
+{
+	LanAdaptationPlugin *plugin = Ethernet::constructPlugin();
+	LanAdaptationPlugin::LanAdaptationContext *context = plugin->getContext();
+	if(!context->setUpperPacketHandler(nullptr))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "cannot use %s for packets read on the interface",
+		    context->getName().c_str());
+		return false;
+	}
+	LOG(this->log_init, LEVEL_INFO,
+	    "add lan adaptation: %s\n",
+	    plugin->getName().c_str());
+
+	// create TAP virtual interface
+	int fd = -1;
+	if(!this->allocTap(fd))
+	{
+		return false;
+	}
+
+	BlockLanAdaptation::packet_switch = this->specific.packet_switch;
+	lan_contexts_t contexts;
+	contexts.push_back(context);
+	((Upward *)this->upward)->setContexts(contexts);
+	((Downward *)this->downward)->setContexts(contexts);
+	// we can share FD as one thread will write, the second will read
+	((Upward *)this->upward)->setFd(fd);
+	((Downward *)this->downward)->setFd(fd);
+
+	return true;
+}
+
+bool BlockLanAdaptation::Downward::onInit(void)
+{
+	// statistics timer
+	if(!OpenSandModelConf::Get()->getStatisticsPeriod(this->stats_period_ms))
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "section 'timers': missing parameter 'statistics'\n");
+		return false;
+	}
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "statistics_timer set to %d\n",
+	    this->stats_period_ms);
+	this->stats_timer = this->addTimerEvent("LanAdaptationStats",
+	                                        this->stats_period_ms);
+	return true;
+}
+
+bool BlockLanAdaptation::Upward::onInit(void)
+{
+	//return OpenSandModelConf::Get()->getSarp(this->sarp_table);
+	return true;
+}
+
+void BlockLanAdaptation::Upward::setContexts(const lan_contexts_t &contexts)
+{
+	this->contexts = contexts;
+}
+
+void BlockLanAdaptation::Downward::setContexts(const lan_contexts_t &contexts)
+{
+	this->contexts = contexts;
+}
+
+void BlockLanAdaptation::Upward::setFd(int fd)
+{
+	this->fd = fd;
+}
+
+void BlockLanAdaptation::Downward::setFd(int fd)
+{
+	// add file descriptor for TAP interface
+	this->addFileEvent("tap", fd, TUNTAP_BUFSIZE + 4);
+}
+
 
 /**
  * destructor : Free all resources
@@ -171,9 +272,8 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 					    ctx_iter != this->contexts.end(); ++ctx_iter)
 					{
 						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id,
-							                                      this->group_id,
-						                                          this->satellite_type,
-						                                          &this->sarp_table))
+							                                  this->group_id,
+						                                          BlockLanAdaptation::packet_switch))
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
 							    "cannot initialize %s context\n",
@@ -257,11 +357,15 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 	burst_it = burst->begin();
 	while(burst_it != burst->end())
 	{
-		tal_id_t pkt_tal_id = (*burst_it)->getDstTalId();
+		Data packet = (*burst_it)->getData();
+		tal_id_t pkt_tal_id_src = (*burst_it)->getSrcTalId();
+		tal_id_t pkt_tal_id_dst = (*burst_it)->getDstTalId();
+		bool forward = false;
+		
 		LOG(this->log_receive, LEVEL_INFO,
 		    "packet from lower layer has terminal ID %u\n",
-		    pkt_tal_id);
-		if((*burst_it)->getSrcTalId() == this->tal_id)
+		    pkt_tal_id_dst);
+		if(pkt_tal_id_src == this->tal_id)
 		{
 			// with broadcast, we would receive our own packets
 			LOG(this->log_receive, LEVEL_INFO,
@@ -269,14 +373,21 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			++burst_it;
 			continue;
 		}
+		// Learn source mac address
+		if(BlockLanAdaptation::packet_switch->learn(packet, pkt_tal_id_src))
+		{
+			LOG(this->log_receive, LEVEL_INFO,
+			    "The mac address %s learned from lower layer as "
+			    "associated to tal_id %u\n", Ethernet::getSrcMac(packet).str(), pkt_tal_id_src);
+			
+		}
 
-		if(pkt_tal_id == BROADCAST_TAL_ID || pkt_tal_id == this->tal_id)
+		if(BlockLanAdaptation::packet_switch->isPacketForMe(packet, pkt_tal_id_src, forward))
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "%s packet received from lower layer & should "
 			    "be read\n", (*burst_it)->getName().c_str());
 			
-			Data packet = (*burst_it)->getData();
 			unsigned char head[TUNTAP_FLAGS_LEN];
 			for(unsigned int i = 0; i < TUNTAP_FLAGS_LEN; i++)
 			{
@@ -304,9 +415,9 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			    (*burst_it)->getName().c_str());
 		}
 
-		if(OpenSandConf::isGw(tal_id) &&
-		   this->satellite_type == TRANSPARENT &&
-		   !OpenSandConf::isGw(pkt_tal_id))
+		auto Conf = OpenSandModelConf::Get();
+		//if(Conf->isGw(tal_id) && !Conf->isGw(pkt_tal_id))
+		if(forward)
 		{
 			// packet should be forwarded
 			/*  TODO avoid allocating new packet here !
@@ -323,7 +434,6 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 					continue;
 				}
 			}
-			//forward_burst->add(forward_packet);
 			forward_burst->add(*burst_it);
 			// remove packet from burst to avoid releasing it as it is now forwarded
 			// erase return next element
@@ -398,6 +508,10 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 	burst = new NetBurst();
 	burst->add(packet);
 	free(read_data);
+	// Learn source_mac address
+	tal_id_t pkt_tal_id_src = packet->getSrcTalId();
+        BlockLanAdaptation::packet_switch->learn(packet->getData(), pkt_tal_id_src);
+
 	for(lan_contexts_t::iterator iter = this->contexts.begin();
 	    iter != this->contexts.end(); ++iter)
 	{
@@ -447,7 +561,7 @@ bool BlockLanAdaptation::allocTap(int &fd)
 	LOG(this->log_init, LEVEL_INFO,
 	    "create %s interface %s\n",
 	    this->tap_iface.c_str());
-	snprintf(ifr.ifr_name, IFNAMSIZ, this->tap_iface.c_str());
+	memcpy(ifr.ifr_name, this->tap_iface.c_str(), IFNAMSIZ);
 	ifr.ifr_flags = IFF_TAP;
 
 	err = ioctl(fd, TUNSETIFF, (void *) &ifr);

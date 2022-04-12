@@ -1,4 +1,0 @@
-This test consists to launch an iperf command from  WS1 (behind ST1) and GW to
-ST2 to saturate the bandwith. Then, a ping is done to check that the RTT is 
-correct.
-For this test WS1 and WS3 shall have the identifier 'test'.

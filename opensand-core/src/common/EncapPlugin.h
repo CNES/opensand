@@ -37,17 +37,19 @@
 #ifndef ENCAP_CONTEXT_H
 #define ENCAP_CONTEXT_H
 
-#include <map>
-#include <string>
 
-#include "NetPacket.h"
-#include "NetBurst.h"
 #include "OpenSandCore.h"
 #include "StackPlugin.h"
 
-#include <opensand_output/Output.h>
+#include <map>
+#include <list>
+#include <string>
+#include <vector>
 
 
+class NetPacket;
+class NetBurst;
+class OutputLog;
 
 
 /**
@@ -56,9 +58,7 @@
  */
 class EncapPlugin: public StackPlugin
 {
-
  public:
-
 	EncapPlugin(uint16_t ether_type);
 
 	/**
@@ -67,17 +67,12 @@ class EncapPlugin: public StackPlugin
 	 */
 	class EncapPacketHandler: public StackPacketHandler
 	{
-
 	 public:
-
 		/**
 		 * @brief EncapPacketHandler constructor
 		 */
 		/* Allow packets to access EncapPlugin members */
-		EncapPacketHandler(EncapPlugin &pl):
-			StackPacketHandler(pl)
-		{
-		};
+		EncapPacketHandler(EncapPlugin &pl);
 
 		virtual ~EncapPacketHandler();
 
@@ -99,13 +94,7 @@ class EncapPlugin: public StackPlugin
 		 */
 		virtual bool getQos(const Data &data, qos_t &qos) const = 0;
 
-		virtual bool init()
-		{
-			this->log = Output::Get()->registerLog(LEVEL_WARNING,
-                                             "Encap.%s",
-                                             this->getName().c_str());
-			return true;
-		};
+		virtual bool init();
 
 		/**
 		 * @brief Encapsulate the packet and store unencapsulable part
@@ -121,10 +110,10 @@ class EncapPlugin: public StackPlugin
 		 * @return  true if success, false otherwise
 		 */
 		virtual bool encapNextPacket(NetPacket *packet,
-			size_t remaining_length,
-			bool new_burst,
-			bool &partial_encap,
-			NetPacket **encap_packet);
+		                             std::size_t remaining_length,
+		                             bool new_burst,
+		                             bool &partial_encap,
+		                             NetPacket **encap_packet);
 
 		/**
 		 * @brief Get encapsulated packet from payload
@@ -136,40 +125,26 @@ class EncapPlugin: public StackPlugin
 		 * @param[in decap_packets_count  The packet count to decapsulate (0 if unknown)
 		 */
 		virtual bool getEncapsulatedPackets(NetContainer *packet,
-			bool &partial_decap,
-			vector<NetPacket *> &decap_packets,
-			unsigned int decap_packet_count = 0);
+		                                    bool &partial_decap,
+		                                    std::vector<NetPacket *> &decap_packets,
+		                                    unsigned int decap_packet_count=0);
 
-		virtual NetPacket *getPacketForHeaderExtensions(const std::vector<NetPacket*>&UNUSED(packets))
-		{
-			assert(0);
-		};
+		virtual NetPacket *getPacketForHeaderExtensions(const std::vector<NetPacket*> &packets);
 
-		virtual bool setHeaderExtensions(const NetPacket* UNUSED(packet),
-		                                 NetPacket** UNUSED(new_packet),
-		                                 tal_id_t UNUSED(tal_id_src),
-		                                 tal_id_t UNUSED(tal_id_dst),
-		                                 string UNUSED(callback_name),
-		                                 void *UNUSED(opaque))
-		{
-			assert(0);
-		};
+		virtual bool setHeaderExtensions(const NetPacket* packet,
+		                                 NetPacket** new_packet,
+		                                 tal_id_t tal_id_src,
+		                                 tal_id_t tal_id_dst,
+		                                 std::string callback_name,
+		                                 void *opaque);
 
+		virtual bool getHeaderExtensions(const NetPacket *packet,
+		                                 std::string callback_name,
+		                                 void *opaque);
 
-		virtual bool getHeaderExtensions(const NetPacket *UNUSED(packet),
-		                                 string UNUSED(callback_name),
-		                                 void *UNUSED(opaque))
-		{
-			assert(0);
-		};
-
-		list<string> getCallback()
-		{
-			return this->callback_name;
-		};
+		std::list<std::string> getCallback();
 
 	 protected:
-
 		/**
 		 * @brief get a NetPacket that can be encapsulated in the frame
 		 *
@@ -193,18 +168,18 @@ class EncapPlugin: public StackPlugin
 		 * @return true on success (case 1, 2, 3), false otherwise (case 4)
 		 */
 		virtual bool getChunk(NetPacket *packet,
-			size_t remaining_length,
-			NetPacket **data,
-			NetPacket **remaining_data) const = 0;
+		                      std::size_t remaining_length,
+		                      NetPacket **data,
+		                      NetPacket **remaining_data) const = 0;
 
 		/// Output Logs
-    std::shared_ptr<OutputLog> log;
+		std::shared_ptr<OutputLog> log;
 
 		/// map call back name
-		list<string> callback_name;
+		std::list<std::string> callback_name;
 
 		/// map packets being encapsulated
-		map<NetPacket *, NetPacket *> encap_packets;
+		std::map<NetPacket *, NetPacket *> encap_packets;
 	};
 
 	/**
@@ -214,16 +189,11 @@ class EncapPlugin: public StackPlugin
 	class EncapContext: public StackContext
 	{
 	  public:
-
 		/* Allow context to access EncapPlugin members */
 		/**
 		 * @brief EncapContext constructor
 		 */
-		EncapContext(EncapPlugin &pl):
-			StackContext(pl)
-		{
-			this->dst_tal_id = BROADCAST_TAL_ID;
-		};
+		EncapContext(EncapPlugin &pl);
 
 		/**
 		 * Flush the encapsulation context identified by context_id (after a context
@@ -249,35 +219,19 @@ class EncapPlugin: public StackPlugin
 		 *
 		 * @param tal_id  The destination TAL Id.
 		 */
-		void setFilterTalId(uint8_t tal_id)
-		{
-			this->dst_tal_id = tal_id;
-		}
+		void setFilterTalId(uint8_t tal_id);
 
-		virtual bool init()
-		{
-			this->log = Output::Get()->registerLog(LEVEL_WARNING,
-                                             "Encap.%s",
-                                             this->getName().c_str());
-			return true;
-		};
+		virtual bool init();
 
-	  protected:
-
+	 protected:
 		/// The destination TAL Id to filter received packet on
 		uint8_t dst_tal_id;
 
 		/// Output Logs
-    std::shared_ptr<OutputLog> log;
+		std::shared_ptr<OutputLog> log;
 	};
 
-	virtual bool init()
-	{
-		this->log = Output::Get()->registerLog(LEVEL_WARNING,
-                                           "Encap.%s",
-                                           this->getName().c_str());
-		return true;
-	};
+	virtual bool init();
 
 	/* for the following functions we use "covariant return type" */
 
@@ -286,7 +240,7 @@ class EncapPlugin: public StackPlugin
 	 *
 	 * @return the context
 	 */
-	EncapContext *getContext() const
+	inline EncapContext *getContext() const
 	{
 		return static_cast<EncapContext *>(this->context);
 	};
@@ -296,7 +250,7 @@ class EncapPlugin: public StackPlugin
 	 *
 	 * @return the packet handler
 	 */
-	EncapPacketHandler *getPacketHandler() const
+	inline EncapPacketHandler *getPacketHandler() const
 	{
 		return static_cast<EncapPacketHandler *>(this->packet_handler);
 	};
@@ -305,10 +259,12 @@ class EncapPlugin: public StackPlugin
 
 typedef std::vector<EncapPlugin::EncapContext *> encap_contexts_t;
 
+
 #ifdef CREATE
 #undef CREATE
 #define CREATE(CLASS, CONTEXT, HANDLER, pl_name) \
-			CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, encapsulation_plugin)
+	CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, encapsulation_plugin)
 #endif
+
 
 #endif

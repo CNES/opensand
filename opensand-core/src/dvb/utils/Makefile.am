@@ -2,7 +2,6 @@ noinst_LTLIBRARIES = libopensand_dvb_utils.la
 
 libopensand_dvb_utils_la_cpp = \
 	UnitConverter.cpp \
-	UnitConverterFixedBitLength.cpp \
 	UnitConverterFixedSymbolLength.cpp \
 	Sac.cpp \
 	Ttp.cpp \
@@ -30,7 +29,6 @@ libopensand_dvb_utils_la_cpp = \
 
 libopensand_dvb_utils_la_h = \
 	UnitConverter.h \
-	UnitConverterFixedBitLength.h \
 	UnitConverterFixedSymbolLength.h \
 	Sac.h \
 	Ttp.h \

@@ -39,11 +39,10 @@
 #include "SlottedAlohaPacketCtrl.h"
 #include "SlottedAlohaAlgoDsa.h"
 #include "SlottedAlohaAlgoCrdsa.h"
+#include "OpenSandModelConf.h"
 
 #include <stdlib.h>
 #include <math.h>
-
-#include <opensand_conf/conf.h>
 
 
 // functor for SlottedAlohaPacket comparison
@@ -90,6 +89,24 @@ SlottedAlohaNcc::~SlottedAlohaNcc()
 	delete this->algo;
 }
 
+void SlottedAlohaNcc::generateConfiguration()
+{
+	auto Conf = OpenSandModelConf::Get();
+
+	auto types = Conf->getModelTypesDefinition();
+	types->addEnumType("saloha_algo", "Slotted Aloha Algorithm", {"DSA", "CRDSA"});
+	types->addEnumType("traffic_type", "Simulated Slotted Aloha Traffic", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
+
+	auto conf = Conf->getOrCreateComponent("access", "Access");
+	auto saloha = conf->addComponent("random_access", "Random Access");
+	saloha->addParameter("saloha_algo", "Slotted Aloha Algorithm", types->getType("saloha_algo"));
+	auto simu_list = conf->addList("simulations", "Simulated traffic", "simulation")->getPattern();
+	simu_list->addParameter("category", "Category", types->getType("traffic_type"));
+	simu_list->addParameter("max_packets", "Max Packets", types->getType("int"))->setUnit("packets");
+	simu_list->addParameter("replicas", "Replicas", types->getType("int"))->setUnit("packets");
+	simu_list->addParameter("ratio", "Ratio", types->getType("int"));
+}
+
 bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categories,
                            TerminalMapping<TerminalCategorySaloha> terminal_affectation,
                            TerminalCategorySaloha *default_category,
@@ -99,10 +116,7 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 {
 	string algo_name;
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
-	ConfigurationList simu_list;
-	ConfigurationList saloha_section = Conf::section_map[SALOHA_SECTION];
-	ConfigurationList spots;
-	ConfigurationList current_spot;
+	auto conf = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
 
 	// set spot id
 	if(spot_id == 0)
@@ -133,7 +147,7 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		    "some terminals may not be able to log in\n");
 	}
 
-  auto output = Output::Get();
+	auto output = Output::Get();
 	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
 	    ++cat_iter)
 	{
@@ -157,31 +171,12 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 		this->probe_collisions.emplace(cat_iter->first, probe_coll);
 		this->probe_collisions_ratio.emplace(cat_iter->first, probe_coll_ratio);
 	}
-	
-	if(!Conf::getListNode(saloha_section, SPOT_LIST, spots))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "there is no %s into %s section\n",
-		    SPOT_LIST, SALOHA_SECTION);
-		return false;
-	}
 
-	if(!Conf::getElementWithAttributeValue(spots, ID,
-	                                       this->spot_id, 
-	                                       current_spot))
+	if(!OpenSandModelConf::extractParameterData(conf->getComponent("random_access")->getParameter("saloha_algo"),
+	                                            algo_name))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "there is no attribute %s with value: %d into %s/%s\n",
-		    ID, this->spot_id, FORWARD_DOWN_BAND, SPOT_LIST);
-		return false;
-	}
-	
-	if(!Conf::getValue(current_spot,
-		               SALOHA_ALGO, algo_name))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s': missing parameter '%s'\n",
-		    SALOHA_SECTION, SALOHA_ALGO);
+		    "section 'random_access': missing parameter 'slotted aloha algorithm'\n");
 		return false;
 	}
 
@@ -203,59 +198,50 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	    "initialize Slotted Aloha with %s algorithm\n",
 	    algo_name.c_str());
 
-	
 	// load Slotted Aloha traffic simulation parameters
-	if(!Conf::getListItems(current_spot,
-		                   SALOHA_SIMU_LIST, 
-		                   simu_list))
+	for(auto& item : conf->getList("simulations")->getItems())
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "section '%s', '%s': missing simulation list\n",
-		    SALOHA_SECTION, SALOHA_SIMU_LIST);
-		return false;
-	}
+		auto simulated_traffic = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
-	for(ConfigurationList::iterator iter = simu_list.begin();
-	    iter != simu_list.end(); ++iter)
-	{
-		string label;
-		uint16_t nb_max_packets = 0;
-		uint16_t nb_replicas = 0;
-		uint8_t ratio = 0;
-		SlottedAlohaSimu *simulation;
+		std::string label;
+		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("category"), label))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "cannot get category from section 'access, simulated traffic'\n");
+			return false;
+		}
 
-		if(!Conf::getAttributeValue(iter, CATEGORY, label))
+		int max_packets;
+		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("max_packets"), max_packets))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    CATEGORY, SALOHA_SECTION, SALOHA_SIMU_LIST);
+			    "cannot get max packets from section 'access, simulated traffic'\n");
 			return false;
 		}
-		if(!Conf::getAttributeValue(iter, SALOHA_NB_MAX_PACKETS, nb_max_packets))
+		uint16_t nb_max_packets = max_packets;
+
+		int replicas;
+		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("replicas"), replicas))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    SALOHA_NB_MAX_PACKETS, SALOHA_SECTION, SALOHA_SIMU_LIST);
+			    "cannot get replicas count from section 'access, simulated traffic'\n");
 			return false;
 		}
-		if(!Conf::getAttributeValue(iter, SALOHA_NB_REPLICAS, nb_replicas))
+		uint16_t nb_replicas = replicas;
+
+		int raw_ratio;
+		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("ratio"), raw_ratio))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    SALOHA_NB_REPLICAS, SALOHA_SECTION, SALOHA_SIMU_LIST);
+			    "cannot get ratio from section 'access, simulated traffic'\n");
 			return false;
 		}
-		if(!Conf::getAttributeValue(iter, SALOHA_RATIO, ratio))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get %s from section '%s, %s'\n",
-			    SALOHA_RATIO, SALOHA_SECTION, SALOHA_SIMU_LIST);
-			return false;
-		}
+		uint8_t ratio = raw_ratio;
 
 		// FIXME: as in manager we need at least one element in a table
 		//        to add a new line, we will have at least one line here.
 		//        So this is a way to ignore it
+		// TODO: This is fixed with the new libconf, should we get rid of this check?
 		if(nb_max_packets == 0)
 		{
 			LOG(this->log_init, LEVEL_INFO,
@@ -274,10 +260,10 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 			continue;
 		}
 		
-		simulation = new SlottedAlohaSimu((*cat_iter).second,
-		                                  nb_max_packets,
-		                                  nb_replicas,
-		                                  ratio);
+		SlottedAlohaSimu *simulation = new SlottedAlohaSimu(cat_iter->second,
+		                                                    nb_max_packets,
+		                                                    nb_replicas,
+		                                                    ratio);
 		this->simu.push_back(simulation);
 	}
 
@@ -759,7 +745,7 @@ bool SlottedAlohaNcc::addTerminal(tal_id_t tal_id)
 
 		// Add the new terminal to the list
 		this->terminals.insert(
-			pair<unsigned int, TerminalContextSaloha *>(tal_id, terminal));
+			std::pair<unsigned int, TerminalContextSaloha *>(tal_id, terminal));
 
 		// add terminal in category and inform terminal of its category
 		category->addTerminal(terminal);

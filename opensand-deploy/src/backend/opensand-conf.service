@@ -1,0 +1,13 @@
+[Unit]
+Description=Startup script for OpenSAND configuration tool
+Requires=network.target
+
+[Service]
+Type=notify
+User=opensand
+Group=opensand
+WorkingDirectory=/var/opensand/www/
+ExecStart=/usr/bin/uwsgi --plugin python3 --socket /run/opensand/opensand-conf.socket --wsgi-file /var/opensand/opensand-conf/backend.py --callable app --master --workers 5 --die-on-term --wsgi-disable-file-wrapper
+
+[Install]
+WantedBy=multi-user.target

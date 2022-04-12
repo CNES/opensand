@@ -35,15 +35,16 @@
 #ifndef NET_PACKET_H
 #define NET_PACKET_H
 
-#include "Data.h"
 #include "NetContainer.h"
 
-#include <opensand_output/OutputLog.h>
 #include <linux/if_ether.h>
 
 #include <string>
 #include <stdint.h>
-#include <syslog.h>
+
+
+class Data;
+
 
 // These values are greater than 1535 to avoid error
 // with GSE in which a protocol type < 1536 indicates
@@ -119,7 +120,6 @@
 class NetPacket: public NetContainer
 {
  protected:
-
 	/// The type of network protocol
 	uint16_t type;
 	/// The packet QoS
@@ -130,21 +130,12 @@ class NetPacket: public NetContainer
 	uint8_t dst_tal_id;
 
  public:
-#if 0
-
-// call new in Rt
-	void *operator new(size_t size) throw();
-	void *operator new[](size_t size) throw();
-	void operator delete(void *p) throw();
-	void operator delete[](void *p) throw();
-#endif
-
 	/**
 	 * Build a network-layer packet
 	 * @param data raw data from which a network-layer packet can be created
 	 * @param length length of raw data
 	 */
-	NetPacket(const unsigned char *data, size_t length);
+	NetPacket(const unsigned char *data, std::size_t length);
 
 	/**
 	 * Build a network-layer packet
@@ -157,7 +148,7 @@ class NetPacket: public NetContainer
 	 * @param data raw data from which a network-layer packet can be created
 	 * @param length length of raw data
 	 */
-	NetPacket(const Data &data, size_t length);
+	NetPacket(const Data &data, std::size_t length);
 
 	/**
 	 * Build a network-layer packet
@@ -183,13 +174,13 @@ class NetPacket: public NetContainer
 	 * @param header_length     the header length of the packet
 	 */
 	NetPacket(const Data &data,
-	          size_t length,
-	          string name,
+	          std::size_t length,
+	          std::string name,
 	          uint16_t type,
 	          uint8_t qos,
 	          uint8_t src_tal_id,
 	          uint8_t dst_tal_id,
-	          size_t header_length);
+	          std::size_t header_length);
 
 	/**
 	 * Destroy the network-layer packet
@@ -244,7 +235,7 @@ class NetPacket: public NetContainer
 	 * @return the type of network protocol
 	 */
 	uint16_t getType() const;
-
 };
+
 
 #endif

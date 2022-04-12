@@ -1,0 +1,5 @@
+opensand-boost-python (1.75.0) xenial; urgency=low
+
+  * Initial release
+
+ -- OpenSAND Maintainers <admin@opensand.org>  Fri, 12 Feb 2021 11:10:24 +0000

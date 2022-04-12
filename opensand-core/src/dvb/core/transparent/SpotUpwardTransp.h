@@ -52,6 +52,9 @@ class SpotUpwardTransp: public SpotUpward
 		                 StFmtSimuList *input_sts,
 		                 StFmtSimuList *output_sts);
 		virtual ~SpotUpwardTransp();
+
+		static void generateConfiguration();
+
 		bool onInit();
 
 
@@ -140,7 +143,6 @@ class SpotUpwardTransp: public SpotUpward
 		 * Checks if SCPC mode is activated and configured
 		 * (Available FIFOs and Carriers for SCPC)
 		 *
-		 * @sat_type     The satellite type
 		 * @return       Whether there are SCPC FIFOs and SCPC Carriers
 		 *               available or not
 		 */

@@ -42,16 +42,12 @@
 #include "Scheduling.h"
 #include "StFmtSimu.h"
 #include "TerminalCategoryDama.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/OutputLog.h>
 
 #include <sys/times.h>
 #include <map>
-#include <list>
-
-
-using std::list;
-using std::map;
 
 
 /**
@@ -73,16 +69,6 @@ class SatGw: public DvbFmt
 	DvbFifo *data_out_gw_fifo; ///<  Fifo associated with Data for the GW
 	DvbFifo *data_out_st_fifo; ///<  Fifo associated with Data for the ST
 
-	/// the list of complete DVB-RCS/BB frames for ST that were not sent yet
-	list<DvbFrame *> complete_st_dvb_frames;
-	/// the list of complete DVB-RCS/BB frames fot GW that were not sent yet
-	list<DvbFrame *> complete_gw_dvb_frames;
-
-	/// The downlink scheduling for regenerative satellite toward ST
-	Scheduling *st_scheduling;
-	/// The downlink scheduling for regenerative satellite toward GW
-	Scheduling *gw_scheduling;
-
 	// statistics
 
 	/// Amount of layer 2 data received from ST
@@ -94,14 +80,14 @@ class SatGw: public DvbFmt
 	RtMutex gw_mutex;
 	
 	// Output probes and stats
-	typedef map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerSpot;
+	typedef std::map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerSpot;
 
-		// Queue sizes
+	// Queue sizes
 	ProbeListPerSpot probe_sat_output_gw_queue_size;
 	ProbeListPerSpot probe_sat_output_gw_queue_size_kb;
 	ProbeListPerSpot probe_sat_output_st_queue_size;
 	ProbeListPerSpot probe_sat_output_st_queue_size_kb;
-		// Rates
+	// Rates
 	ProbeListPerSpot probe_sat_l2_from_st;
 	ProbeListPerSpot probe_sat_l2_to_st;
 	ProbeListPerSpot probe_sat_l2_from_gw;
@@ -118,58 +104,14 @@ class SatGw: public DvbFmt
 	 *
 	 * @param gw_id              The gw id
 	 * @param spot_id            The spot id
-	 * @param log_id             The carrier id for logon packets
-	 * @param ctrl_id            The carrier id for control frames
-	 * @param data_in_st_id      The carrier id for incoming GW data
-	 * @param data_in_gw_id      The carrier id for incoming GW data
-	 * @param data_out_st_id     The carrier id for outgoing terminal data
-	 * @param data_out_gw_id     The carrier id for outgoing GW data
-	 * @param fifo_size          The size of data FIFOs
+	 * @param carriers           The carriers definition informations
 	 */
 	SatGw(tal_id_t gw_id,
 	      spot_id_t spot_id,
-	      uint8_t log_id,
-	      uint8_t ctrl_id,
-	      uint8_t data_in_st_id,
-	      uint8_t data_in_gw_id,
-	      uint8_t data_out_st_id,
-	      uint8_t data_out_gw_id,
-	      size_t fifo_size);
+	      const OpenSandModelConf::spot_infrastructure &carriers);
 	~SatGw();
 
 	bool init();
-
-	/**
-	 * initialize the scheduling attribute
-	 *
-	 * @param fwd_timer_ms    The timer for forward scheduling
-	 * @param pkt_hdl         The packet handler
-	 * @param fwd_modcod_def  The FMT defintion table associated
-	 * @param st_category     The related terminal category for ST
-	 * @param gw_category     The related terminal category for GW
-	 * @return true on success, false otherwise
-	 */
-	bool initScheduling(time_ms_t fwd_timer_ms,
-	                    EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                    const TerminalCategoryDama *const st_category,
-	                    const TerminalCategoryDama *const gw_category);
-
-	/**
-	 * @brief Read configuration for the different files and open them
-	 *
-	 * @param return_link_standard the return link standard (DVB-RCS or DVB-RCS2)
-	 * @return  true on success, false otherwise
-	 */
-	bool initModcodSimu(return_link_standard_t return_link_standard);
-	
-	/**
-	 * @brief Initialize the ACM loop margins
-	 *        Called in regenerative satellite as it handles
-	 *        downlink MODCODs
-	 *
-	 * @return  true on success, false otherwise
-	 */
-	bool initAcmLoopMargin(void);
 
 	/**
 	 * @brief initialize probes
@@ -179,50 +121,12 @@ class SatGw: public DvbFmt
 	bool initProbes();
 
 	/**
-	 * @brief Schedule packets emission
-	 *        Call scheduling @ref schedule function
-	 *
-	 * @param current_superframe_sf the current superframe (for logging)
-	 * @param current_time          the current time
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool schedule(const time_sf_t current_superframe_sf,
-	              time_ms_t current_time);
-
-	/**
-	 * Add a terminal to StFmtSimuList
-	 *
-	 * @param tal_id the new terminal id
-	 * @return true on success, false otherwise
-	 */ 
-	bool addTerminal(tal_id_t tal_id);
-
-	/**
-	 * Update fmt
-	 *
-	 * @param dvb_frame The dvb frame
-	 * @param pkt_hdl  The packet handler
-	 * 
-	 * @return true on success , false otherwise
-	 */ 
-	bool updateFmt(DvbFrame *dvb_frame,
-	               EncapPlugin::EncapPacketHandler *pkt_hdl);
-
-	/**
-	 * Handle Sac
-	 * 
-	 * @return true on success, false otherwise
-	 */ 
-	bool handleSac(DvbFrame *dvb_frame);
-
-	/**
 	 * @brief handle probes
 	 *
 	 * @return true on success, false otherwise
 	 */ 
 	bool updateProbes(time_ms_t stats_period_ms);
-	
+
 	/**
 	 * @brief Get the gw ID
 	 *
@@ -280,20 +184,6 @@ class SatGw: public DvbFmt
 	DvbFifo *getLogonFifo(void) const;
 
 	/**
-	 * @brief Get the complete DVB frames list for ST
-	 *
-	 * @return the list of complete DVB frames fot ST
-	 */
-	list<DvbFrame *> &getCompleteStDvbFrames(void);
-
-	/**
-	 * @brief Get the complete DVB frames list for GW
-	 *
-	 * @return the list of complete DVB frames for GW
-	 */
-	list<DvbFrame *> &getCompleteGwDvbFrames(void);
-
-	/**
 	 * @brief Update the amount of layer 2 data received from ST
 	 *
 	 * @param  bytes  The amount of layer 2 data received
@@ -327,17 +217,12 @@ class SatGw: public DvbFmt
 	 * @return ths spot id
 	 */
 	spot_id_t getSpotId(void);
-
-	/**
-	 * @brief get the output modcod definition table
-	 */
-	FmtDefinitionTable* getOutputModcodDef(void);
 	
 	void print(void); /// For debug
 };
 
 
 /// The map of satellite spots
-typedef map<pair<spot_id_t, uint8_t>, SatGw *> sat_gws_t;
+typedef std::map<uint8_t, SatGw *> sat_gws_t;
 
 #endif

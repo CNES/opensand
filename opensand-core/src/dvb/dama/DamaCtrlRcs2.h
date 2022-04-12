@@ -29,19 +29,18 @@
 /*
  * @file DamaCtrlRcs2.h
  * @brief This library defines DAMA controller interfaces.
- *
+ * @author satip6 (Eddy Fromentin)
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
 #ifndef _DAMA_CONTROLLER_RCS2_H_
 #define _DAMA_CONTROLLER_RCS2_H_
 
-#include "DamaCtrlRcsCommon.h"
-
+#include "DamaCtrl.h"
 #include "FmtDefinitionTable.h"
 #include "TerminalContextDamaRcs.h"
+#include "UnitConverter.h"
 
-#include <opensand_conf/conf.h>
 #include <opensand_output/Output.h>
 
 #include <stdio.h>
@@ -49,25 +48,59 @@
 #include <map>
 #include <vector>
 
-
 /**
  * @class DamaCtrlRcs2
  * @brief Define methods to process DAMA request in the NCC
  */
-class DamaCtrlRcs2: public DamaCtrlRcsCommon
+class DamaCtrlRcs2: public DamaCtrl
 {
  public:
 
 	DamaCtrlRcs2(spot_id_t spot);
 	virtual ~DamaCtrlRcs2();
 
+	/**
+	 * @brief  Initializes internal data structure according to configuration file
+	 *
+	 * @return  true on success, false otherwise
+	 */
+	virtual bool init();
+
+	// Process DVB frames
+	virtual bool hereIsSAC(const Sac *sac);
+
+	// Build allocation table
+	virtual bool buildTTP(Ttp *ttp);
+
+	// Apply a PEP command
+	virtual bool applyPepCommand(const PepRequest* request);
+	
+	// Update the required FMTs
+	virtual void updateRequiredFmts();
+
 	// Update wave forms
 	virtual bool updateWaveForms();
 
  protected:
 
-	/// Generate an unit converter
-	virtual UnitConverter *generateUnitConverter() const;
+	UnitConverter *converter;
+
+	/// Create a terminal context
+	virtual bool createTerminal(TerminalContextDama **terminal,
+	                            tal_id_t tal_id,
+	                            rate_kbps_t cra_kbps,
+	                            rate_kbps_t max_rbdc_kbps,
+	                            time_sf_t rbdc_timeout_sf,
+	                            vol_kb_t max_vbdc_kb);
+
+	/// Remove a terminal context
+	virtual bool removeTerminal(TerminalContextDama **terminal);
+
+	/// Reset all terminals allocations
+	virtual bool resetTerminalsAllocations();
+
+	 ///  Reset the capacity of carriers
+	virtual bool resetCarriersCapacity();
 
 	/**
 	 * @brief  Generate a probe for Gw capacity
@@ -101,9 +134,6 @@ class DamaCtrlRcs2: public DamaCtrlRcsCommon
 		string category_label,
 		unsigned int carrier_id,
 		string name) const;
-
-	 ///  Reset the capacity of carriers
-	virtual bool resetCarriersCapacity();
 };
 
 

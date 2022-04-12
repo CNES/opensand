@@ -1,2 +1,0 @@
-echo "Sudoers hook"
-sed -i "s/%sudo ALL=(ALL) ALL/%sudo ALL=(ALL) NOPASSWD: ALL/" /etc/sudoers

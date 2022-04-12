@@ -33,85 +33,78 @@
 
 
 #include "ConstantDelay.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
-#include <sstream>
 
-#define DELAY              "delay"
-#define CONF_FILENAME      "constant_delay.conf"
+std::string ConstantDelay::config_path = "";
+
 
 ConstantDelay::ConstantDelay():
-	SatDelayPlugin(),
-	is_init(false)
+		SatDelayPlugin(),
+		is_init(false)
 {
 }
+
 
 ConstantDelay::~ConstantDelay()
 {  
 }
 
+
+void ConstantDelay::generateConfiguration(const std::string &parent_path,
+                                          const std::string &param_id,
+                                          const std::string& plugin_name)
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+
+	ConstantDelay::config_path = parent_path;
+	auto delay = Conf->getComponentByPath(parent_path);
+	if (delay == nullptr)
+	{
+		return;
+	}
+	auto delay_type = delay->getParameter(param_id);
+	if (delay_type == nullptr)
+	{
+		return;
+	}
+
+	auto delay_value = delay->addParameter("delay_value", "Delay Value", types->getType("int"));
+	delay_value->setUnit("ms");
+	Conf->setProfileReference(delay_value, delay_type, plugin_name);
+}
+
+
 bool ConstantDelay::init()
 {
-	bool global_constant_delay;
-	time_ms_t delay;
-	ConfigurationFile config;
-	string conf_file_path;
-	conf_file_path = this->getConfPath() + string(CONF_FILENAME);
+	time_ms_t delay_ms;
+	auto delay = OpenSandModelConf::Get()->getProfileData(config_path);
 
 	if(this->is_init)
 		return true;
 
-	// If global delay, load delay from global conf
-	if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-	                   GLOBAL_CONSTANT_DELAY, global_constant_delay))
+	int delay_value;
+	auto delay_parameter = delay->getParameter("delay_value");
+	if(!OpenSandModelConf::extractParameterData(delay_parameter, delay_value))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot get '%s' value", GLOBAL_CONSTANT_DELAY);
-		goto error;
+		    "section 'physical_layer', missing parameter 'delay value'\n");
+		return false;
 	}
-	if(global_constant_delay)
-	{
-		if(!Conf::getValue(Conf::section_map[COMMON_SECTION],
-				   DELAY, delay))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "cannot get '%s' value", DELAY);
-			goto error;
-		}
-	}
-	else
-	{
-		// Else, load conf from plugin
-		if(config.loadConfig(conf_file_path.c_str()) < 0)
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to load config file '%s'",
-			    conf_file_path.c_str());
-			return false;
-		}
-
-		config.loadSectionMap(this->config_section_map);	
-
-		if(!Conf::getValue(this->config_section_map[SAT_DELAY_CONF],
-				   DELAY, delay))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "Constant delay: cannot get %s",
-			    DELAY);
-			goto error;
-		}
-	}
+	delay_ms = delay_value;
 
 	LOG(this->log_init, LEVEL_DEBUG,
-			"Constant delay: %d ms", delay);
-	this->setSatDelay(delay);
+	    "Constant delay: %d ms", delay_ms);
+	this->setSatDelay(delay_ms);
+
 	// TODO: should is_init use a mutex??
 	this->is_init = true;
 	return true;
-error:
-	return false;
 }
+
 
 bool ConstantDelay::updateSatDelay()
 {
@@ -119,12 +112,14 @@ bool ConstantDelay::updateSatDelay()
 	return true;
 }
 
-bool ConstantDelay::getMaxDelay(time_ms_t &delay)
+
+bool ConstantDelay::getMaxDelay(time_ms_t &delay) const
 {
-	// Get delay from conf in case it is needed before the SatDelay
-	// plugin is initialized
 	if(!this->is_init)
+	{
 		return false;
+	}
+
 	delay = this->getSatDelay();
 	return true;
 }

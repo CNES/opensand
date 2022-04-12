@@ -35,7 +35,7 @@
 
 
 #include "DvbS2Std.h"
-#include "OpenSandConf.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
@@ -85,10 +85,11 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
                           tal_id_t tal_id,
                           NetBurst **burst)
 {
+	auto Conf = OpenSandModelConf::Get();
 	BBFrame *bbframe_burst;
 	int real_mod = 0;     // real modcod of the receiver
 
-	vector<NetPacket *> decap_packets;
+	std::vector<NetPacket *> decap_packets;
 	bool partial_decap = false;
 
 	*burst = NULL;
@@ -125,7 +126,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	    this->packet_handler->getName().c_str());
 
 	// TODO This is not used on GW in SCPC mode as we do not use MODCOD options
-	if(!OpenSandConf::isGw(tal_id) && !this->is_scpc)
+	if(!Conf->isGw(tal_id) && !this->is_scpc)
 	{
 		// retrieve the current real MODCOD of the receiver
 		// (do this before any MODCOD update occurs)
@@ -146,7 +147,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 
 	// is the ST able to decode the received BB frame ?
 	// TODO This is not used on GW in SCPC mode as we do not use MODCOD options
-	if(!OpenSandConf::isGw(tal_id) && !this->is_scpc &&
+	if(!Conf->isGw(tal_id) && !this->is_scpc &&
 	   this->getRequiredEsN0(this->received_modcod) > this->getRequiredEsN0(real_mod))
 	{
 		// the BB frame is not robust enough to be decoded, drop it
@@ -190,7 +191,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		goto release_burst;
 	}
 	// add packets to the newly created burst
-	for(vector<NetPacket *>::iterator it = decap_packets.begin();
+	for(std::vector<NetPacket *>::iterator it = decap_packets.begin();
 		it != decap_packets.end();
 		++it)
 	{

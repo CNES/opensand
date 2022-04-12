@@ -35,70 +35,75 @@
 #include "NetPacket.h"
 
 
-NetPacket::NetPacket(const unsigned char *data, size_t length):
-	NetContainer(data, length),
-	type(NET_PROTO_ERROR),
-	qos(),
-	src_tal_id(),
-	dst_tal_id()
+NetPacket::NetPacket(const unsigned char *data, std::size_t length):
+		NetContainer(data, length),
+		type(NET_PROTO_ERROR),
+		qos(),
+		src_tal_id(),
+		dst_tal_id()
 {
 	this->name = "NetPacket";
 }
+
 
 NetPacket::NetPacket(const Data &data):
-	NetContainer(data),
-	type(NET_PROTO_ERROR),
-	qos(),
-	src_tal_id(),
-	dst_tal_id()
+		NetContainer(data),
+		type(NET_PROTO_ERROR),
+		qos(),
+		src_tal_id(),
+		dst_tal_id()
 {
 	this->name = "NetPacket";
 }
 
-NetPacket::NetPacket(const Data &data, size_t length):
-	NetContainer(data, length),
-	type(NET_PROTO_ERROR),
-	qos(),
-	src_tal_id(),
-	dst_tal_id()
+
+NetPacket::NetPacket(const Data &data, std::size_t length):
+		NetContainer(data, length),
+		type(NET_PROTO_ERROR),
+		qos(),
+		src_tal_id(),
+		dst_tal_id()
 {
 	this->name = "NetPacket";
 }
+
 
 NetPacket::NetPacket(NetPacket *pkt):
-	NetContainer(pkt->getData(), pkt->getTotalLength()),
-	type(pkt->getType()),
-	qos(pkt->getQos()),
-	src_tal_id(pkt->getSrcTalId()),
-	dst_tal_id(pkt->getDstTalId())
+		NetContainer(pkt->getData(), pkt->getTotalLength()),
+		type(pkt->getType()),
+		qos(pkt->getQos()),
+		src_tal_id(pkt->getSrcTalId()),
+		dst_tal_id(pkt->getDstTalId())
 {
 	this->name = pkt->getName();
 	this->spot = pkt->getSpot();
 }
 
+
 NetPacket::NetPacket():
-	NetContainer(),
-	type(NET_PROTO_ERROR),
-	qos(),
-	src_tal_id(),
-	dst_tal_id()
+		NetContainer(),
+		type(NET_PROTO_ERROR),
+		qos(),
+		src_tal_id(),
+		dst_tal_id()
 {
 	this->name = "NetPacket";
 }
 
+
 NetPacket::NetPacket(const Data &data,
-                     size_t length,
-                     string name,
+                     std::size_t length,
+                     std::string name,
                      uint16_t type,
                      uint8_t qos,
                      uint8_t src_tal_id,
                      uint8_t dst_tal_id,
-                     size_t header_length):
-	NetContainer(data, length),
-	type(type),
-	qos(qos),
-	src_tal_id(src_tal_id),
-	dst_tal_id(dst_tal_id)
+                     std::size_t header_length):
+		NetContainer(data, length),
+		type(type),
+		qos(qos),
+		src_tal_id(src_tal_id),
+		dst_tal_id(dst_tal_id)
 {
 	this->name = name;
 	this->header_length = header_length;
@@ -115,33 +120,38 @@ uint16_t NetPacket::getType() const
 	return this->type;
 }
 
+
 void NetPacket::setQos(uint8_t qos)
 {
 	this->qos = qos;
 }
+
 
 uint8_t NetPacket::getQos() const
 {
 	return this->qos;
 }
 
+
 void NetPacket::setSrcTalId(uint8_t tal_id)
 {
 	this->src_tal_id = tal_id;
 }
+
 
 uint8_t NetPacket::getSrcTalId() const
 {
 	return this->src_tal_id;
 }
 
+
 void NetPacket::setDstTalId(uint8_t tal_id)
 {
 	this->dst_tal_id = tal_id;
 }
 
+
 uint8_t NetPacket::getDstTalId() const
 {
 	return this->dst_tal_id;
 }
-

@@ -13,28 +13,8 @@ set -e
 # for details, see http://www.debian.org/doc/debian-policy/ or
 # the debian-policy package
 
-add_user(){
-    # add user opensand
-    NEW_USER="opensand"
-    EXE_GREP="/bin/grep"
-    EXE_ADDUSER="/usr/sbin/adduser"
-    EXE_NOLOGIN="/usr/sbin/nologin"
-
-    # Check that user does not exist yet
-    if [ -z "$(${EXE_GREP} ${NEW_USER} /etc/passwd)" ]
-    then
-        # Create or modify user
-        ${EXE_ADDUSER} --system --no-create-home --quiet --shell ${EXE_NOLOGIN} ${NEW_USER}
-    fi
-}
-
-
 case "$1" in
-    install)
-        add_user
-    ;;
-    
-    upgrade)
+    install|upgrade)
     ;;
 
     abort-upgrade)

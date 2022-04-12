@@ -36,80 +36,84 @@
 
 
 #include "Triangular.h"
+#include "OpenSandModelConf.h"
 
-#include <opensand_conf/conf.h>
+#include <opensand_output/Output.h>
 
-#include <string>
-#include <iostream>
-#include <math.h>
-#include <sstream>
 
-#define TRIANGULAR_SECTION   "triangular"
-#define TRIANGULAR_LIST      "triangular_attenuations"
-#define SLOPE                "slope"
-#define PERIOD               "period"
-#define CONF_TRIANGULAR_FILENAME "triangular.conf"
+const std::string SLOPE = "triangle_attenuation_slope";
+const std::string PERIOD = "triangle_attenuation_period";
+
 
 Triangular::Triangular():
-	AttenuationModelPlugin(),
-	duration_counter(0)
+		AttenuationModelPlugin(),
+		duration_counter(0)
 {
 }
+
 
 Triangular::~Triangular()
 {
 }
 
-bool Triangular::init(time_ms_t refresh_period_ms, string link)
-{
-	ConfigurationFile config;
-	string conf_triangular_path;
-	conf_triangular_path = this->getConfPath() + string(CONF_TRIANGULAR_FILENAME);
 
-	if(config.loadConfig(conf_triangular_path.c_str()) < 0)
-	{   
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to load config file '%s'", 
-		    conf_triangular_path.c_str());
-		goto error;
+void Triangular::generateConfiguration(const std::string &parent_path,
+                                       const std::string &param_id,
+                                       const std::string &plugin_name)
+{
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+
+	auto attenuation = Conf->getComponentByPath(parent_path);
+	if (attenuation == nullptr)
+	{
+		return;
+	}
+	auto attenuation_type = attenuation->getParameter(param_id);
+	if (attenuation_type == nullptr)
+	{
+		return;
 	}
 
-	config.loadSectionMap(this->config_section_map);
+	auto attenuation_slope = attenuation->addParameter(SLOPE, "Attenuation Slope", types->getType("double"));
+	attenuation_slope->setUnit("dB / refresh period");
+	Conf->setProfileReference(attenuation_slope, attenuation_type, plugin_name);
+	auto attenuation_period = attenuation->addParameter(PERIOD, "Attenuation Period", types->getType("int"));
+	attenuation_period->setUnit("refresh period");
+	Conf->setProfileReference(attenuation_period, attenuation_type, plugin_name);
+}
 
+
+bool Triangular::init(time_ms_t refresh_period_ms, std::string link_path)
+{
 	this->refresh_period_ms = refresh_period_ms;
 
-	if(!config.getValueInList(this->config_section_map[TRIANGULAR_SECTION], 
-		                      TRIANGULAR_LIST, LINK, link, 
-		                      PERIOD, this->period))
+	auto attenuation = OpenSandModelConf::Get()->getProfileData(link_path);
+
+	if(!OpenSandModelConf::extractParameterData(attenuation->getParameter(PERIOD), this->period))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Triangular attenuation %slink: cannot get %s",
-		    link.c_str(), PERIOD);
-		goto error;
+		    "Triangular attenuation %s: cannot get %s",
+		    link_path.c_str(), PERIOD.c_str());
+		return false;
 	}
 
-	if(!config.getValueInList(this->config_section_map[TRIANGULAR_SECTION], 
-		                      TRIANGULAR_LIST, LINK, link, 
-		                      SLOPE, this->slope))
+	if(!OpenSandModelConf::extractParameterData(attenuation->getParameter(SLOPE), this->slope))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Triangular attenuation %slink: cannot get %s",
-		    link.c_str(), SLOPE);
-		goto error;
+		    "Triangular attenuation %s: cannot get %s",
+		    link_path.c_str(), SLOPE.c_str());
+		return false;
 	}
 
 	return true;
-error:
-	return false;
 }
 
 
 bool Triangular::updateAttenuationModel()
 {
-	double time;
-
 	this->duration_counter = (this->duration_counter + 1) % this->period;
-	time = this->duration_counter * this->refresh_period_ms / 1000;
+	double time = this->duration_counter * this->refresh_period_ms / 1000;
 
 	if(time < this->period / 2)
 	{
@@ -126,5 +130,3 @@ bool Triangular::updateAttenuationModel()
 
 	return true;
 }
-
-

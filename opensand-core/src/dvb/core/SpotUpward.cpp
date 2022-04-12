@@ -36,11 +36,10 @@
 
 #include "SpotUpward.h"
 
-#include "DamaCtrlRcsLegacy.h"
-
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "Sof.h"
+#include "Logon.h"
 
 SpotUpward::SpotUpward(spot_id_t spot_id,
                        tal_id_t mac_id,
@@ -81,6 +80,7 @@ SpotUpward::~SpotUpward()
 		delete this->reception_std_scpc;
 
 }
+
 
 bool SpotUpward::onInit(void)
 {
@@ -142,7 +142,7 @@ bool SpotUpward::onRcvLogonReq(DvbFrame *dvb_frame)
 
 	// refuse to register a ST with same MAC ID as the NCC
 	// or if it's a gw
-	if(OpenSandConf::isGw(mac) or mac == this->mac_id)
+	if(OpenSandModelConf::Get()->isGw(mac) or mac == this->mac_id)
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "a ST wants to register with the MAC ID of the NCC "
@@ -194,7 +194,6 @@ bool SpotUpward::handleSac(const DvbFrame *dvb_frame)
 	Sac *sac = (Sac *)dvb_frame;
 
 	// transparent : the C/N0 of forward link
-	// regenerative : the C/N0 of uplink (updated by sat)
 	double cni = sac->getCni();
 	tal_id_t tal_id = sac->getTerminalId();
 	this->setRequiredCniOutput(tal_id, cni);

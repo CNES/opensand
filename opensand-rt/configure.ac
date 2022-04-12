@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-rt, 5.2.0, [http://opensand.org])
+AC_INIT(opensand-rt, 6.0.0, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -39,7 +39,7 @@ PKG_PROG_PKG_CONFIG
 CXXFLAGS="$CXXFLAGS -std=c++11"
 
 # check for opensand-output library
-PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 5.2.0])
+PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 6.0.0])
 LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
 
@@ -55,7 +55,6 @@ if test "x$fail_on_warning" != "xno"; then
 	WERROR="-Werror"
 fi
 
-AC_DEFINE(ENABLE_TCMALLOC, [0], [use fast and multi-threaded malloc])
 TCMALLOC=""
 GPERFTOOLS_INC=""
 AC_ARG_ENABLE(tcmalloc,

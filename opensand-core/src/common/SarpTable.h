@@ -34,25 +34,17 @@
 #ifndef SARP_TABLE_H
 #define SARP_TABLE_H
 
-#include "IpAddress.h"
-#include "MacAddress.h"
-#include "OpenSandCore.h"
 
-#include <opensand_output/OutputLog.h>
+#include "OpenSandCore.h"
 
 #include <list>
 #include <vector>
+#include <memory>
 
-using std::list;
-using std::vector;
 
-/// SARP table entry for IP
-typedef struct
-{
-	IpAddress *ip;
-	unsigned int mask_len;
-	tal_id_t tal_id;
-} sarpIpEntry;
+class MacAddress;
+class OutputLog;
+
 
 /// SARP table entry for Ethernet
 typedef struct
@@ -61,7 +53,6 @@ typedef struct
 	tal_id_t tal_id;
 } sarpEthEntry;
 
-#define SARP_MAX 50
 
 /**
  * @class SarpTable
@@ -70,17 +61,17 @@ typedef struct
 class SarpTable
 {
  private:
+	static constexpr unsigned int SARP_MAX = 50;
 
 	unsigned int max_entries;    ///< maximum number of entries in SARP table
 	// TODO we have only one of these two list that is used each time so we
 	//      need only one of these
-	list<sarpIpEntry *> ip_sarp;   ///< The IP entries in SARP table
-	list<sarpEthEntry *> eth_sarp; ///< The Ethernet entries in SARP table
+	std::list<sarpEthEntry *> eth_sarp; ///< The Ethernet entries in SARP table
 	tal_id_t default_dest;  ///< the default terminal ID if no entry is found
 
  protected:
 	// Output Log
-  std::shared_ptr<OutputLog> log_sarp;	
+	std::shared_ptr<OutputLog> log_sarp;	
 
  public:
 
@@ -90,24 +81,12 @@ class SarpTable
 	 * @param max_entries the maximum number of entries in the table
 	 *                    SARP_MAX is the default value
 	 */
-	SarpTable(unsigned int max_entries = SARP_MAX);
+	SarpTable(unsigned int max_entries = SarpTable::SARP_MAX);
 
 	/**
 	 * Destroy the SARP table
 	 */
 	~SarpTable();
-
-	/**
-	 * Add an IP entry in the SARP table
-	 *
-	 * @param ip_addr  the IP address for the SARP entry
-	 * @param mask_len the mask length of the IP address
-	 * @param tal the tal ID associated with the IP address
-	 * @return true if the entry was successfully added (the table was
-	 *         not full), false otherwise
-	 */
-	bool add(IpAddress *ip_addr, unsigned int mask_len,
-	         tal_id_t tal);
 
 	/**
 	 * Add an Ethernet entry in the SARP table
@@ -120,16 +99,6 @@ class SarpTable
 	bool add(MacAddress *mac_address, tal_id_t tal);
 
 	/**
-	 * Get the tal ID associated with the IP address in the SARP table
-	 *
-	 * @param ip the IP address to search for
-	 * @param tal_id  the tal ID associated with the IP address if found
-	 *                the default tal_id otherwise (false will be returned)
-	 * @return true on success, false otherwise
-	 */
-	bool getTalByIp(IpAddress *ip, tal_id_t &tal_id) const;
-
-	/**
 	 * Get the tal ID associated with the MAC address in the SARP table
 	 *
 	 * @param mac     the MAC address to search for
@@ -137,7 +106,7 @@ class SarpTable
 	 *                the default tal_id otherwise (false will be returned)
 	 * @return true on success, false otherwise
 	 */
-	bool getTalByMac(MacAddress mac_address, tal_id_t &tal_id) const;
+	bool getTalByMac(const MacAddress &mac_address, tal_id_t &tal_id) const;
 
 	/**
 	 * Get the MAC address associated with the terminal ID in the SARP table
@@ -146,7 +115,7 @@ class SarpTable
 	 * @param mac     the MAC address associated to the terminal ID if found
 	 * @return true on success, false otherwise
 	 */
-	bool getMacByTal(tal_id_t tal_id, vector<MacAddress> &mac_address) const;
+	bool getMacByTal(tal_id_t tal_id, std::vector<MacAddress> &mac_address) const;
 
 	/**
 	 * @brief Set the default destination terminal if no entry is found

@@ -36,9 +36,8 @@
 #ifndef GSE_ENCAP_CTX
 #define GSE_ENCAP_CTX
 
-#include <NetPacket.h>
 
-#include "GseIdentifier.h"
+#include <memory>
 
 extern "C"
 {
@@ -47,6 +46,12 @@ extern "C"
 	#include <gse/virtual_fragment.h>
 }
 
+
+class GseIdentifier;
+class NetPacket;
+class OutputLog;
+
+
 /**
  * @class GseEncapCtx
  * @brief GSE encapsulation context
@@ -54,7 +59,6 @@ extern "C"
 class GseEncapCtx
 {
  protected:
-
 	/// Internal buffer to store the GSE packet under build
 	gse_vfrag_t *vfrag;
 	/// Internal buffer used by the vfrag to store data
@@ -79,7 +83,6 @@ class GseEncapCtx
 	bool to_reset;
 
  public:
-
 	/*
 	 * Build an sencapsulation context identified with PID
 	 *
@@ -174,7 +177,7 @@ class GseEncapCtx
 	 * @return True if the context has to be reset, False if not
 	 */
 	bool getReset();
-
 };
+
 
 #endif

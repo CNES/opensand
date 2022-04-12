@@ -35,8 +35,6 @@
 #ifndef INTERCONNECT_CHANNEL_H
 #define INTERCONNECT_CHANNEL_H
 
-#include <opensand_output/Output.h>
-#include <opensand_conf/conf.h>
 #include <opensand_rt/Rt.h>
 
 #include "DvbFrame.h"
@@ -49,6 +47,8 @@
  *        used by the interconnect blocks
  */
 
+class OutputLog;
+
 typedef struct
 {
 	uint32_t data_len; // NOTE: sending data lenght may actually be redundant on UDP
@@ -59,28 +59,9 @@ typedef struct
 class InterconnectChannel
 {
  public:
-	InterconnectChannel(string name, string iface_addr):
-		name(name),
-		interconnect_addr(iface_addr),
-		data_channel(NULL),
-		sig_channel(NULL)
-	{
-		this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, name + ".common");
-	};
+	InterconnectChannel(string name, string iface_addr);
 
-	~InterconnectChannel()
-	{
-		// Free the channel if it was created
-		if (this->data_channel)
-		{
-			delete this->data_channel;
-		}
-		// Free the channel if it was created
-		if (this->sig_channel)
-		{
-			delete this->sig_channel;
-		}
-	};
+	~InterconnectChannel();
 
  protected:
 
@@ -102,7 +83,7 @@ class InterconnectChannel
 	/// The signalling channel
 	UdpChannel *sig_channel;
 	/// Output log
-  std::shared_ptr<OutputLog> log_interconnect;
+	std::shared_ptr<OutputLog> log_interconnect;
 };
 
 class InterconnectChannelSender: public InterconnectChannel

@@ -94,6 +94,8 @@ class SlottedAlohaNcc: public SlottedAloha
 
 	~SlottedAlohaNcc();
 
+	static void generateConfiguration();
+
 	/*
 	 * Init the Slotted Aloha NCC class
 	 *

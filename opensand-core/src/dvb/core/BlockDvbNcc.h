@@ -68,8 +68,9 @@
 #include "NccPepInterface.h"
 #include "NccSvnoInterface.h"
 
-#include "SpotUpward.h"
-#include "SpotDownward.h"
+
+class SpotDownward;
+
 
 /**
  * @brief  The list of spots for GW channels and other common elements
@@ -78,9 +79,9 @@ class DvbSpotList
 {
  public:
 
-	DvbSpotList():
+	DvbSpotList(tal_id_t mac_id):
 		spots(),
-		default_spot(0),
+		default_spot(mac_id),
 		log_spot(NULL)
 	{
 		this->log_spot = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Spot");
@@ -175,6 +176,8 @@ class BlockDvbNcc: public BlockDvb
 
 	~BlockDvbNcc();
 
+	static void generateConfiguration();
+
 	bool initListsSts();
 
 	bool onInit();
@@ -190,6 +193,13 @@ class BlockDvbNcc: public BlockDvb
 
 	 protected:
 		/**
+		 * @brief Initialize the output
+		 *
+		 * @return  true on success, false otherwise
+		 */
+		bool initOutput(void);
+
+		/**
 		 * Transmist a frame to the opposite channel
 		 *
 		 * @param frame The dvb frame
@@ -203,6 +213,10 @@ class BlockDvbNcc: public BlockDvb
 
 		// log for slotted aloha
 		std::shared_ptr<OutputLog> log_saloha;
+
+		// Physical layer information
+		std::shared_ptr<Probe<int>> probe_gw_received_modcod; // MODCOD of BBFrame received
+		std::shared_ptr<Probe<int>> probe_gw_rejected_modcod; // MODCOD of BBFrame rejected
 	};
 
 
@@ -275,10 +289,12 @@ class BlockDvbNcc: public BlockDvb
 		int pep_alloc_delay;
 
 		// Frame interval
-    std::shared_ptr<Probe<float>> probe_frame_interval;
+		std::shared_ptr<Probe<float>> probe_frame_interval;
 	};
 
  protected:
+	/// the MAC ID of the ST (as specified in configuration)
+	int mac_id;
 
 	/// The list of Sts with forward/down modcod per spot
 	map<spot_id_t, StFmtSimuList *> output_sts_list;

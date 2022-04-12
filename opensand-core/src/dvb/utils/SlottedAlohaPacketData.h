@@ -232,7 +232,7 @@ class SlottedAlohaPacketData: public SlottedAlohaPacket
 };
 
 /// A list of Slotted Aloha Data Packets
-typedef vector<SlottedAlohaPacketData *> saloha_packets_data_t;
+typedef std::vector<SlottedAlohaPacketData *> saloha_packets_data_t;
 
 #endif
 
