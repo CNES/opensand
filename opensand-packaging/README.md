@@ -14,8 +14,9 @@ The code is compiled regularly on __Ubuntu 20.04 LTS__ with __x64__ processors.
 
 The following table lists the required packages to compile OpenSAND:
 
-^ OS  ^ Required packages  ^
-| __Ubuntu 20.04 LTS__  | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config git gcc g++ python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python2-minimal python2-dev python3-netifaces bridge-utils python-lxml dpkg-dev |
+| OS | Required packages |
+| :---: | :--- |
+| __Ubuntu 20.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config git gcc g++ python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python2-minimal python2-dev python3-netifaces bridge-utils python-lxml dpkg-dev |
 
 You also need NodeJS and Yarn to be able to compile the `opensand-deploy` package:
 
@@ -48,45 +49,47 @@ This section describes the OpenSAND source code and packages that are generated 
 
 The OpenSAND source code is divided in several directories. This table lists the most important:
 
-^ Directory  ^ Language  ^ Description  ^
-| `opensand-output`  | C++  | Source code of the Output library which provides an API to send probes and logs to the Collector of the testbed  |
-| `opensand-conf`  | C++ & Python 3 | Source code of the Configuration library which provides an API to read the OpenSAND configuration  |
-| `opensand-rt`  | C++  | Source code of the Real Time library which provides real time threads and channels to exchange data between them  |
-| `opensand-core`  | C++  | Source code of the OpenSAND entities which emulate a ST, a GW or a SAT \\ Source code of the Plugin library which implements a structure to interface external libraries  |
-| `opensand-deploy` | Python 3 & Javascript | Source code of the web server allowing to configure, launch and monitor  OpenSAND entities  |
-| `opensand-plugins/encapsulation/gse`  | C++ | Source code of the GSE plugin which interfaces the external GSE library  |
-| `opensand-plugins/encapsulation/rle`  | C++ | Source code of the RLE plugin which interfaces the external RLE library  |
+| Directory | Language | Description |
+| :-------: | :------: | :---------- |
+| `opensand-output` | C++ | Source code of the Output library which provides an API to send probes and logs to the Collector of the testbed |
+| `opensand-conf` | C++ & Python 3 | Source code of the Configuration library which provides an API to read the OpenSAND configuration |
+| `opensand-rt` | C++ | Source code of the Real Time library which provides real time threads and channels to exchange data between them |
+| `opensand-core` | C++ | Source code of the OpenSAND entities which emulate a ST, a GW or a SAT \\ Source code of the Plugin library which implements a structure to interface external libraries |
+| `opensand-deploy` | Python 3 & Javascript | Source code of the web server allowing to configure, launch and monitor  OpenSAND entities |
+| `opensand-plugins/encapsulation/gse` | C++ | Source code of the GSE plugin which interfaces the external GSE library |
+| `opensand-plugins/encapsulation/rle` | C++ | Source code of the RLE plugin which interfaces the external RLE library |
 
 ### Generated Packages
 
 Each source code directory is able to generate one or more packages.
 They are detailed on the following table:
 
-^ Directory  ^ Package  ^ Contents  ^
-| `opensand-output`  | `libopensand-output`  | Output library for exploitation  |
-| :::  | `libopensand-output-dev`  | Output library headers for development  |
-| :::  | `libopensand-output-dbg`  | Output library symbols for debug  |
-| `opensand-conf`  | `libopensand-conf`  | Configuration library for exploitation  |
-| :::  | `libopensand-conf-dev`  | Configuration library headers for development  |
-| :::  | `libopensand-conf-dbg`  | Configuration library symbols for debug  |
-| `opensand-rt`  | `libopensand-rt`  | Real Time library for exploitation  |
-| :::  | `libopensand-rt-dev`  | Real Time library headers for development  |
-| :::  | `libopensand-rt-dbg`  | Real Time library symbols for debug  |
-| `opensand-core`  | `opensand-core-conf`  | Configuration files for Core exploitation  |
-| :::  | `opensand-core`  | Core binaries for exploitation  |
-| :::  | `opensand-core-dbg`  | Core binaries symbols for debug  |
-| :::  | `libopensand-plugin`  | Plugin library for exploitation  |
-| :::  | `libopensand-plugin-dev`  | Plugin library headers for development  |
-| :::  | `libopensand-plugin-dbg`  | Plugin library symbols for debug  |
-| `opensand-deploy`  | `opensand-deploy`  | Configuration web server files  |
-| `opensand-plugins/encapsulation/gse`  | `libopensand-gse-encap-plugin-conf`  | Configuration files of the GSE Encapsulation plugin for exploitation   |
-| :::  | `libopensand-gse-encap-plugin`  | Library the GSE Encapsulation plugin for exploitation   |
-| :::  | `libopensand-gse-encap-plugin-dbg`  | Library symbols the GSE Encapsulation plugin for debug  |
-| :::  | `libopensand-gse-encap-plugin-manager`  | Manager module of the GSE Encapsulation plugin  |
-| `opensand-plugins/encapsulation/rle`  | `libopensand-rle-encap-plugin-conf`  | Configuration files of the RLE Encapsulation plugin for exploitation   |
-| :::  | `libopensand-rle-encap-plugin`  | Library the RLE Encapsulation plugin for exploitation   |
-| :::  | `libopensand-rle-encap-plugin-dbg`  | Library symbols the RLE Encapsulation plugin for debug  |
-| :::  | `libopensand-rle-encap-plugin-manager`  | Manager module of the RLE Encapsulation plugin  |
+| Directory | Package | Contents |
+| :-------: | :-----: | :------- |
+| `opensand-output` | `libopensand-output` | Output library for exploitation |
+| ::: | `libopensand-output-dev` | Output library headers for development |
+| ::: | `libopensand-output-dbg` | Output library symbols for debug |
+| `opensand-conf` | `libopensand-conf` | Configuration library for exploitation |
+| ::: | `libopensand-conf-dev` | Configuration library headers for development |
+| ::: | `libopensand-conf-dbg` | Configuration library symbols for debug |
+| `opensand-rt` | `libopensand-rt` | Real Time library for exploitation |
+| ::: | `libopensand-rt-dev` | Real Time library headers for development |
+| ::: | `libopensand-rt-dbg` | Real Time library symbols for debug |
+| `opensand-core` | `opensand-core-conf` | Configuration files for Core exploitation |
+| ::: | `opensand-core` | Core binaries for exploitation |
+| ::: | `opensand-core-dbg` | Core binaries symbols for debug |
+| ::: | `libopensand-plugin` | Plugin library for exploitation |
+| ::: | `libopensand-plugin-dev` | Plugin library headers for development |
+| ::: | `libopensand-plugin-dbg` | Plugin library symbols for debug |
+| `opensand-deploy` | `opensand-deploy` | Configuration web server files |
+| `opensand-plugins/encapsulation/gse` | `libopensand-gse-encap-plugin-conf` | Configuration files of the GSE Encapsulation plugin for exploitation |
+| ::: | `libopensand-gse-encap-plugin` | Library the GSE Encapsulation plugin for exploitation |
+| ::: | `libopensand-gse-encap-plugin-dbg` | Library symbols the GSE Encapsulation plugin for debug |
+| ::: | `libopensand-gse-encap-plugin-manager` | Manager module of the GSE Encapsulation plugin |
+| `opensand-plugins/encapsulation/rle` | `libopensand-rle-encap-plugin-conf` | Configuration files of the RLE Encapsulation plugin for exploitation |
+| ::: | `libopensand-rle-encap-plugin` | Library the RLE Encapsulation plugin for exploitation |
+| ::: | `libopensand-rle-encap-plugin-dbg` | Library symbols the RLE Encapsulation plugin for debug |
+| ::: | `libopensand-rle-encap-plugin-manager` | Manager module of the RLE Encapsulation plugin |
 
 Additional meta packages can be generated:
 
