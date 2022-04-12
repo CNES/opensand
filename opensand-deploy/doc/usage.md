@@ -4,14 +4,14 @@ The OpenSAND configuration manager will need to access the machines onto which
 you want to run the OpenSAND process through SSH. But to keep things simple,
 the frontend will only let you specify the IP address of the machine you are
 trying to reach (you can optionally use the user@ip:port syntax, though) so
-every special configuration that you need on your network such as using private
-keys or the like should be specified in the /var/opensand/.ssh/config file on
+every special configuration that you need on your network (such as using private
+keys or the like) should be specified in the /var/opensand/.ssh/config file on
 the machine you installed the opensand-deploy packet.
 
-# Using the OpenSAND Configuration Frontend
+# Using the OpenSAND Configuration Frontend  (Web interface)
 
-The configuration frontend is available on the port 80 in the machine you installed
-it in. So just fire a browser to the IP of your install machine to access it.
+The configuration frontend is available on the port 80 in the machine where you installed
+the web interface. So just fire a browser to the IP of your install machine to access it.
 
 ## Managing projects
 
@@ -19,7 +19,7 @@ it in. So just fire a browser to the IP of your install machine to access it.
 
 On the main interface, you can create a new project by clicking on the "Create" button
 and specifying a name that doesn't already exist. You can also share projects with
-other peoples through a tarball and import them in your own platform through the "Upload"
+other people through a tarball and import them in your own platform through the "Upload"
 button.
 
 Projects that you created can also be copied to a new project by clicking their "Copy"
@@ -44,7 +44,7 @@ will prompt for them and never store it.
 
 On this "Platform" tab, you can add a new machine that you want to control. You must give
 it a unique name and specify the kind of OpenSAND entity that you want to run on it. This
-does not need to be a unique machine for each entity, but you must tell each entity apart
+does not need to be a unique machine for each entity, but you must tell each entity
 if you want to manage several OpenSAND processes on a single machine.
 
 ![Entity Configuration](EntityConfiguration.png)
@@ -62,7 +62,7 @@ In there, you will be able to edit the configuration files for each of your enti
 ![Editor](Editor.png)
 
 You also have the ability to save a configuration file as a template for others entities
-to not start anew each time. For instance, you can provide specific log levels in an
+to not start a new one each time. For instance, you can provide specific log levels in an
 infrastructure configuration file, save it as a template and others entities will be
 able to reuse the same level configured when you select the template that you just created.
 
