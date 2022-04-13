@@ -16,7 +16,7 @@ The following table lists the required packages to compile OpenSAND:
 
 | OS | Required packages |
 | :---: | :--- |
-| __Ubuntu 20.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config git gcc g++ python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python2-minimal python2-dev python3-netifaces bridge-utils python-lxml dpkg-dev |
+| __Ubuntu 20.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config git gcc g++ python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python-lxml dpkg-dev |
 
 You also need NodeJS and Yarn to be able to compile the `opensand-deploy` package:
 
