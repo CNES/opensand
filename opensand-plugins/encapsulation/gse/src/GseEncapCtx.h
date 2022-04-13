@@ -40,6 +40,7 @@
 #include <memory>
 #include <string>
 
+
 extern "C"
 {
 	#include <gse/constants.h>
