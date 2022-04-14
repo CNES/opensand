@@ -179,7 +179,7 @@ bool BlockDvbTal::initListsSts()
 	((Downward *)this->downward)->setInputSts(this->input_sts);
 
 	auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
-	auto scpc_enabled = access->getComponent("scpc")->getParameter("scpc_enabled");
+	auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
 	OpenSandModelConf::extractParameterData(scpc_enabled, is_scpc);
 	if(is_scpc)
 	{
@@ -333,7 +333,7 @@ bool BlockDvbTal::Downward::onInit(void)
 	}
 
 	auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
-	auto scpc_enabled = access->getComponent("scpc")->getParameter("scpc_enabled");
+	auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
 	OpenSandModelConf::extractParameterData(scpc_enabled, this->is_scpc);
 
 	if(!this->is_scpc)
@@ -2227,7 +2227,7 @@ bool BlockDvbTal::Upward::onInit(void)
 
 	this->is_scpc = false;
 	auto access = Conf->getProfileData()->getComponent("access");
-	auto scpc_enabled = access->getComponent("scpc")->getParameter("scpc_enabled");
+	auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
 	OpenSandModelConf::extractParameterData(scpc_enabled, this->is_scpc);
 
 	if(!this->initModcodDefinitionTypes())

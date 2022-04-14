@@ -113,7 +113,7 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 		"SCPC capacity.Total.Remaining",
 		"Symbols per frame", true, SAMPLE_LAST);
 	this->probe_scpc_bbframe_nbr = Output::Get()->registerProbe<int>(
-		"SCPC BBFrame number", true, SAMPLE_AVG);
+		"Up_return BBFrame number SCPC.BBFrame number", "BBFrame number", true, SAMPLE_AVG);
 	this->probe_sent_modcod = Output::Get()->registerProbe<int>(
     "Up_Return_modcod.Sent_modcod(SCPC)", "modcod index", true, SAMPLE_LAST);
 
