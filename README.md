@@ -60,7 +60,7 @@ In order to install the packages using `apt`, the repository must be added to it
 If using Ubuntu 20.04 LTS (focal):
 
 ```
-echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee –a /etc/apt/sources.list
+echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee -a /etc/apt/sources.list
 ```
 
 Add GPG key for net4sat repository (as root) : 
