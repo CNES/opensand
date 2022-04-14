@@ -229,6 +229,10 @@ li {
 	text-align: justify;
 }
 
+li ul li, li ol li {
+  font-size: 100%;
+}
+
 .shell-div > li {
 	font-family: Ubuntu;
 	font-size: 100%;
