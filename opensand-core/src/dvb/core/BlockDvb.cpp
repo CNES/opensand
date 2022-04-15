@@ -157,5 +157,3 @@ bool BlockDvb::DvbDownward::onRcvEncapPacket(NetPacket *packet,
 {
 	return this->pushInFifo(fifo, packet, fifo_delay);
 }
-
-

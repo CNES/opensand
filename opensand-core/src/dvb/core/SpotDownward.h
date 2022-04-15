@@ -38,11 +38,18 @@
 #define SPOT_DOWNWARD_H
 
 #include "DvbChannel.h"
-#include "DamaCtrlRcs2.h"
-#include "Scheduling.h"
-#include "SlottedAlohaNcc.h"
 #include "RequestSimulator.h"
-#include "SvnoRequest.h"
+#include "TerminalCategoryDama.h"
+
+
+class NetPacket;
+class LogonRequest;
+class PepRequest;
+class SvnoRequest;
+class Ttp;
+class DamaCtrlRcs2;
+class Scheduling;
+class RequestSimulator;
 
 
 class SpotDownward: public DvbChannel, public DvbFmt
@@ -57,7 +64,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	             StFmtSimuList *input_sts,
 	             StFmtSimuList *output_sts);
 
-	virtual ~SpotDownward();
+	~SpotDownward();
 
 	static void generateConfiguration();
 	
@@ -66,7 +73,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 *
 	 * @return true on success, false otherwise
 	 */ 
-	virtual bool onInit(void);
+	bool onInit(void);
 
 	/**
 	 * @brief Handle the Slotted Aloha ACKs
@@ -74,7 +81,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 * @param ack_frames  The Slotted Aloha ACKs
 	 * @return true on success, false otherwise
 	 */
-	virtual bool handleSalohaAcks(const list<DvbFrame *> *ack_frames);
+	bool handleSalohaAcks(const std::list<DvbFrame *> *ack_frames);
 
 	/**
 	 * @brief Handle an encapsulated packet
@@ -108,7 +115,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 * @return true if Dama is null, false otherwise
 	 */
 	bool checkDama();
-	
+
 	/**
 	 * @brief handler a frame timer and update frame counter
 	 *
@@ -116,14 +123,14 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 * @return true on success, false otherwise
 	 */
 	bool handleFrameTimer(time_sf_t super_frame_counter);
-	
+
 	/**
 	 * @brief handler a forward frame timer and update forward frame counter
 	 *
 	 * @param fwd_frame_counter  The forward frame counter
 	 * @return true on success, false otherwise
 	 */
-	virtual bool handleFwdFrameTimer(time_sf_t fwd_frame_counter);
+	bool handleFwdFrameTimer(time_sf_t fwd_frame_counter);
 
 	/**
 	 * @brief  handle a SAC frame
@@ -137,7 +144,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 * @brief update FMT in DAMA controller
 	 */
 	void updateFmt(void);
-	
+
 	/**
 	 * @briel apply PEP command
 	 * @param pep_request the pep request
@@ -164,13 +171,12 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	uint8_t getSofCarrierId(void) const;
 	uint8_t getDataCarrierId(void) const;
 
-	list<DvbFrame *> &getCompleteDvbFrames(void);
+	std::list<DvbFrame *> &getCompleteDvbFrames(void);
 
 	void setPepCmdApplyTimer(event_id_t pep_cmd_a_timer);
 	event_id_t getPepCmdApplyTimer(void);
 
  protected:
-
 	/**
 	 * Read configuration for the downward timers
 	 *
@@ -190,14 +196,14 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	virtual bool initMode(void) = 0;
+	bool initMode(void);
 
 	/**
 	 * Read configuration for the DAMA algorithm
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	virtual bool initDama(void) = 0;
+	bool initDama(void);
 
 	/**
 	 * @brief Read configuration for the FIFOs
@@ -212,7 +218,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	virtual bool initOutput(void);
+	bool initOutput(void);
 
 	/** Read configuration for the request simulation
 	 *
@@ -240,13 +246,13 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 *
 	 * @return true on success, false otherwise
 	 */ 
-	virtual bool addCniExt(void) = 0;
+	bool addCniExt(void);
 
 	/// The DAMA controller
 	DamaCtrlRcs2 *dama_ctrl;
 
 	/// The uplink or forward scheduling per category
-	map<string, Scheduling*> scheduling;
+	std::map<std::string, Scheduling*> scheduling;
 
 	/// counter for forward frames
 	time_sf_t fwd_frame_counter;
@@ -263,16 +269,16 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	uint8_t mac_id;
 
 	/// is terminal scpc map
-	list<tal_id_t> is_tal_scpc;
+	std::list<tal_id_t> is_tal_scpc;
 
 	/* Fifos */
 	/// FIFOs per MAX priority to manage different queues for each category
-	map<string, fifos_t> dvb_fifos;
+	std::map<std::string, fifos_t> dvb_fifos;
 	/// the default MAC fifo index = fifo with the smallest priority
 	unsigned int default_fifo_id;
 
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
-	list<DvbFrame *> complete_dvb_frames;
+	std::list<DvbFrame *> complete_dvb_frames;
 
 	/// The terminal categories for forward band
 	TerminalCategories<TerminalCategoryDama> categories;
@@ -312,28 +318,28 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	Simulate simulate;
 
 	// Output probes and stats
-	typedef map<unsigned int, std::shared_ptr<Probe<int>> > ProbeListPerId; 
+	typedef std::map<unsigned int, std::shared_ptr<Probe<int>> > ProbeListPerId; 
 	// Queue sizes
-	map<string, ProbeListPerId> * probe_gw_queue_size;
-	map<string, ProbeListPerId> *probe_gw_queue_size_kb;
+	std::map<std::string, ProbeListPerId> * probe_gw_queue_size;
+	std::map<std::string, ProbeListPerId> *probe_gw_queue_size_kb;
 	// Queue loss
-	map<string, ProbeListPerId> *probe_gw_queue_loss;
-	map<string, ProbeListPerId> *probe_gw_queue_loss_kb;
+	std::map<std::string, ProbeListPerId> *probe_gw_queue_loss;
+	std::map<std::string, ProbeListPerId> *probe_gw_queue_loss_kb;
 	// Rates
-	map<string, ProbeListPerId> *probe_gw_l2_to_sat_before_sched;
-	map<string, ProbeListPerId> *probe_gw_l2_to_sat_after_sched;
-	map<string, std::shared_ptr<Probe<int> > > probe_gw_l2_to_sat_total;
-	map<string, int> l2_to_sat_total_bytes;
+	std::map<std::string, ProbeListPerId> *probe_gw_l2_to_sat_before_sched;
+	std::map<std::string, ProbeListPerId> *probe_gw_l2_to_sat_after_sched;
+	std::map<std::string, std::shared_ptr<Probe<int> > > probe_gw_l2_to_sat_total;
+	std::map<std::string, int> l2_to_sat_total_bytes;
 	// Frame interval
-  std::shared_ptr<Probe<float>> probe_frame_interval;
+	std::shared_ptr<Probe<float>> probe_frame_interval;
 	// Physical layer information
 	std::shared_ptr<Probe<int>> probe_sent_modcod;
 
 	// Output logs and events
-  std::shared_ptr<OutputLog> log_request_simulation;
+	std::shared_ptr<OutputLog> log_request_simulation;
 
 	/// logon response sent
-  std::shared_ptr<OutputEvent> event_logon_resp;
+	std::shared_ptr<OutputEvent> event_logon_resp;
 };
 
 #endif

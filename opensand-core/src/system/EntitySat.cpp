@@ -57,7 +57,7 @@
 #include "EntitySat.h"
 #include "OpenSandModelConf.h"
 
-#include "BlockDvbSatTransp.h"
+#include "BlockDvbSat.h"
 #include "BlockSatCarrier.h"
 
 
@@ -77,9 +77,9 @@ bool EntitySat::createSpecificBlocks()
 	Block *block_sat_carrier;
 
 	// instantiate all blocs
-	block_dvb = Rt::createBlock<BlockDvbSatTransp,
-	BlockDvbSatTransp::UpwardTransp,
-	BlockDvbSatTransp::DownwardTransp>("Dvb", NULL);
+	block_dvb = Rt::createBlock<BlockDvbSat,
+		BlockDvbSat::Upward,
+		BlockDvbSat::Downward>("Dvb", NULL);
 	if(!block_dvb)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -90,16 +90,16 @@ bool EntitySat::createSpecificBlocks()
 
 	specific.ip_addr = this->ip_address;
 	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
-	      BlockSatCarrier::Upward,
-	      BlockSatCarrier::Downward,
-	      struct sc_specific>("SatCarrier",
-		  block_dvb,
-		  specific);
+		BlockSatCarrier::Upward,
+		BlockSatCarrier::Downward,
+		struct sc_specific>("SatCarrier",
+			block_dvb,
+			specific);
 	if(!block_sat_carrier)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot create the SatCarrier block",
-            this->getName().c_str());
+		        this->getName().c_str());
 		return false;
 	}
 

@@ -105,6 +105,9 @@ class BlockDvb: public Block
 		{};
 
 		~DvbUpward();
+
+	 protected:
+		virtual bool onRcvDvbFrame(DvbFrame *frame) = 0;
 	};
 
 	class DvbDownward: public DvbChannel, public RtDownward
@@ -158,7 +161,8 @@ class BlockDvb: public Block
 		 * @return            true on success, false otherwise
 		 */
 		bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
-		
+
+		virtual bool handleDvbFrame(DvbFrame *frame) = 0;
 		
 		/**
 		 * Update the statistics

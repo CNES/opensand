@@ -1372,11 +1372,10 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 			message.append("</Sender>\n");
 			message.append(" <Type type=\"CrossLayer\" >\n");
 			message.append(" <Infos ");
-			for(fifos_t::iterator it = this->dvb_fifos.begin();
-			    it != this->dvb_fifos.end(); ++it)
+			for (auto const& it : this->dvb_fifos)
 			{
-				int nbFreeFrames = (*it).second->getMaxSize() -
-						   (*it).second->getCurrentSize();
+				int nbFreeFrames = it.second->getMaxSize() -
+						   it.second->getCurrentSize();
 				// bits
 				int nbFreeBits = nbFreeFrames * this->pkt_hdl->getFixedLength() * 8;
 				// bits/ms or kbits/s

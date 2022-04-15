@@ -38,10 +38,11 @@
 
 #include "BlockDvbSat.h"
 
-#include "SatGw.h"
+#include "PhysicStd.h" 
 #include "Plugin.h"
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
+#include "SatGw.h"
 #include "SlottedAlohaFrame.h"
 #include "OpenSandModelConf.h"
 
@@ -77,12 +78,10 @@ BlockDvbSat::BlockDvbSat(const string &name):
 // BlockDvbSat dtor
 BlockDvbSat::~BlockDvbSat()
 {
-	sat_gws_t::iterator i_gw;
-
 	// delete the satellite spots
-	for(i_gw = this->gws.begin(); i_gw != this->gws.end(); ++i_gw)
+	for (auto& i_gw : this->gws)
 	{
-		delete i_gw->second;
+		delete i_gw.second;
 	}
 	
 }
@@ -172,7 +171,7 @@ BlockDvbSat::Downward::Downward(const string &name):
 	default_category(),
 	fmt_groups(),
 	gws(),
-	probe_frame_interval(NULL)
+	probe_frame_interval(nullptr)
 {
 };
 
@@ -181,14 +180,14 @@ BlockDvbSat::Downward::~Downward()
 {
 
 	// delete FMT groups here because they may be present in many carriers
-	for(fmt_groups_t::iterator it = this->fmt_groups.begin();
-		it != this->fmt_groups.end(); ++it)
+	for (auto& it : this->fmt_groups)
 	{
-		delete (*it).second;
+		delete it.second;
 	}
 
 	this->terminal_affectation.clear();
 }
+
 
 bool BlockDvbSat::Downward::onInit()
 {
@@ -237,10 +236,52 @@ bool BlockDvbSat::Downward::onInit()
 	return true;
 }
 
+
+bool BlockDvbSat::Downward::initSatLink(void)
+{
+	return true;
+}
+
+
+bool BlockDvbSat::Downward::initTimers(void)
+{
+	// create frame timer (also used to send packets waiting in fifo)
+	this->fwd_timer = this->addTimerEvent("fwd_timer",
+	                                       this->fwd_down_frame_duration_ms);
+
+	return true;
+}
+
+
+bool BlockDvbSat::Downward::handleMessageBurst(const RtEvent UNUSED(*const event))
+{
+	LOG(this->log_receive, LEVEL_ERROR,
+	    "message event while satellite is "
+	    "transparent");
+
+	return false;
+}
+
+
+bool BlockDvbSat::Downward::handleTimerEvent(SatGw *current_gw)
+{
+	// send frame for every satellite spot
+	LOG(this->log_receive, LEVEL_DEBUG,
+	    "send data frames on satellite spot "
+	    "%u\n", current_gw->getSpotId());
+
+	bool successGw = this->sendFrames(current_gw->getDataOutGwFifo());
+	bool successSt = this->sendFrames(current_gw->getDataOutStFifo());
+
+	return successGw && successSt;
+}
+
+
 void BlockDvbSat::Downward::setGws(const sat_gws_t &gws)
 {
 	this->gws = gws;
 }
+
 
 bool BlockDvbSat::Downward::initOutput(void)
 {
@@ -285,7 +326,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				}
 
 				SatGw *current_gw = this->gws[gw_id];
-				if(current_gw == NULL)
+				if(!current_gw)
 				{
 					LOG(this->log_send, LEVEL_ERROR,
 					    "Spot %u does'nt have gw %u\n", gw_id);
@@ -303,8 +344,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				}
 
 				// create a message for the DVB frame
-				if(!this->sendDvbFrame(dvb_frame,
-				                       current_gw->getControlCarrierId()))
+				if(!this->sendDvbFrame(dvb_frame, current_gw->getControlCarrierId()))
 				{
 					LOG(this->log_send, LEVEL_ERROR,
 					    "failed to send sig frame to lower layer, "
@@ -341,29 +381,29 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 				    "frame timer expired, send DVB frames\n");
 
 				// send frame for every satellite spot
-				for(sat_gws_t::iterator gw_iter = this->gws.begin();
-					gw_iter != this->gws.end(); ++gw_iter)
+				for (auto const& gw_iter : this->gws)
 				{
 
-					SatGw *current_gw = gw_iter->second;
+					SatGw *current_gw = gw_iter.second;
+					auto spotId = current_gw->getSpotId();
 					LOG(this->log_send, LEVEL_DEBUG,
 					    "send logon frames on satellite spot %u\n",
-					    current_gw->getSpotId());
+					    spotId);
 					if(!this->sendFrames(current_gw->getLogonFifo()))
 					{
 						LOG(this->log_send, LEVEL_ERROR,
 						    "Failed to send logon frames on spot %u\n",
-						    current_gw->getSpotId());
+						    spotId);
 					}
 
 					LOG(this->log_send, LEVEL_DEBUG,
 					    "send control frames on satellite spot %u\n",
-					    current_gw->getSpotId());
+					    spotId);
 					if(!this->sendFrames(current_gw->getControlFifo()))
 					{
 						LOG(this->log_send, LEVEL_ERROR,
 						    "Failed to send contol frames on spot %u\n",
-						    current_gw->getSpotId());
+						    spotId);
 					}
 
 					if(!this->handleTimerEvent(current_gw))
@@ -388,7 +428,6 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 
 	return true;
 }
-
 
 
 bool BlockDvbSat::Downward::sendFrames(DvbFifo *fifo)
@@ -432,6 +471,7 @@ error:
 	return false;
 }
 
+
 void BlockDvbSat::Downward::updateStats(void)
 {
 	if(!this->doSendStats())
@@ -439,20 +479,15 @@ void BlockDvbSat::Downward::updateStats(void)
 		return;
 	}
 	// Update stats and probes
-	sat_gws_t::iterator gw_iter;
-	for(gw_iter = this->gws.begin();
-	    gw_iter != this->gws.end(); ++gw_iter)
+	for (auto const& gw_iter : this->gws)
 	{
-		SatGw *current_gw = gw_iter->second;
+		SatGw *current_gw = gw_iter.second;
 		current_gw->updateProbes(this->stats_period_ms);
 	}
 
 	// Send probes
 	Output::Get()->sendProbes();
 }
-
-
-
 
 
 /*****************************************************************************/
@@ -517,17 +552,29 @@ bool BlockDvbSat::Upward::initMode(void)
 {
 	// create the reception standard
 	this->reception_std = new DvbRcs2Std(); 
-	if(this->reception_std == NULL)
+	if(!this->reception_std)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to create the reception standard\n");
-		goto error;
+		return false;
 	}
 
 	return true;
+}
 
-error:
+
+bool BlockDvbSat::Upward::initSwitchTable(void)
+{
+	LOG(this->log_receive, LEVEL_ERROR,
+	    "shouldn't init switch table in transparent mode");
+
 	return false;
+}
+
+
+bool BlockDvbSat::Upward::addSt(SatGw *UNUSED(current_gw), tal_id_t UNUSED(st_id))
+{
+	return true;
 }
 
 
@@ -738,6 +785,132 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			delete dvb_frame;
 		}
 		break;
+	}
+
+	return true;
+}
+
+bool BlockDvbSat::Upward::handleCorrupted(DvbFrame *dvb_frame)
+{
+	// in transparent scenario, satellite physical layer cannot corrupt
+	LOG(this->log_receive, LEVEL_INFO,
+	    "the message was corrupted by physical layer, "
+	    "drop it\n");
+
+	delete dvb_frame;
+	dvb_frame = NULL;
+		
+	return true;
+}
+
+bool BlockDvbSat::Upward::handleDvbBurst(DvbFrame *dvb_frame, SatGw *current_gw)
+{
+	LOG(this->log_receive, LEVEL_INFO,
+	    "DVB burst comes from spot %u (carrier "
+	    "%u) => forward it to spot %u (carrier "
+	    "%u)\n", current_gw->getSpotId(),
+	    dvb_frame->getCarrierId(),
+	    current_gw->getSpotId(),
+	    current_gw->getDataOutGwFifo()->getCarrierId());
+
+	if(!this->forwardDvbFrame(current_gw->getDataOutGwFifo(),
+	                          dvb_frame))
+	{
+		return false;
+	}
+	return true;
+}
+
+bool BlockDvbSat::Upward::handleBBFrame(DvbFrame *dvb_frame, SatGw *current_gw)
+{
+	DvbFifo *out_fifo = NULL;
+	unsigned int carrier_id = dvb_frame->getCarrierId();
+
+	// TODO remove if SCPC supports REGEN
+	LOG(this->log_receive, LEVEL_INFO,
+	    "BBFrame received\n");
+
+	// satellite spot found, forward BBframe on the same spot
+	BBFrame *bbframe = dvb_frame->operator BBFrame*();
+
+	// Check were the frame is coming from
+	// GW if S2, ST if SCPC
+	if(carrier_id == current_gw->getDataInGwId())
+	{
+		// Update probes and stats
+		current_gw->updateL2FromGw(bbframe->getPayloadLength());
+		out_fifo = current_gw->getDataOutStFifo();
+	}
+	else if(carrier_id == current_gw->getDataInStId())
+	{
+		// Update probes and stats
+		current_gw->updateL2FromSt(bbframe->getPayloadLength());
+		out_fifo = current_gw->getDataOutGwFifo();
+	}
+	else
+	{
+		LOG(this->log_receive, LEVEL_CRITICAL,
+		    "Wrong input carrier ID %u\n", carrier_id);
+		return false;
+	}
+	// TODO: forward according to a table
+	LOG(this->log_receive, LEVEL_INFO,
+	    "BBFRAME burst comes from spot %u (carrier "
+	    "%u) => forward it to spot %u (carrier %u)\n",
+	    current_gw->getSpotId(),
+	    dvb_frame->getCarrierId(),
+	    current_gw->getSpotId(),
+	    out_fifo->getCarrierId());
+	
+	if(!this->forwardDvbFrame(out_fifo,
+	                          dvb_frame))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "cannot forward burst\n");
+		return false;
+	}
+
+	return true;
+}
+
+
+bool BlockDvbSat::Upward::handleSaloha(DvbFrame *dvb_frame, SatGw *current_gw)
+{
+	LOG(this->log_receive, LEVEL_INFO,
+	    "Slotted Aloha frame received\n");
+
+	DvbFifo *fifo;
+		
+	// satellite spot found, forward frame on the same spot
+	SlottedAlohaFrame *sa_frame = dvb_frame->operator SlottedAlohaFrame*();
+
+	// Update probes and stats
+	current_gw->updateL2FromSt(sa_frame->getPayloadLength());
+
+	if(dvb_frame->getMessageType() == MSG_TYPE_SALOHA_DATA)
+	{
+		fifo = current_gw->getDataOutGwFifo();
+	}
+	else
+	{
+		fifo = current_gw->getDataOutStFifo();
+	}
+
+	// TODO: forward according to a table
+	LOG(this->log_receive, LEVEL_INFO,
+	    "Slotted Aloha frame comes from spot %u (carrier "
+	    "%u) => forward it to spot %u (carrier %u)\n",
+	    current_gw->getSpotId(),
+	    dvb_frame->getCarrierId(),
+	    current_gw->getSpotId(),
+	    fifo->getCarrierId());
+
+	if(!this->forwardDvbFrame(fifo,
+	                          dvb_frame))
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+		    "cannot forward burst\n");
+		return false;
 	}
 
 	return true;

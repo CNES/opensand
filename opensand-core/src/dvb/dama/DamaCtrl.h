@@ -358,9 +358,6 @@ class DamaCtrl
 	/** Fmt Definition table for input link */
 	FmtDefinitionTable *input_modcod_def;
 
-	/** Roll-off factor */
-	double roll_off;
-
 	/** Whethter we used simulated requests */
 	bool simulated;
 

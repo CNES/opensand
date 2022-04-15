@@ -60,7 +60,6 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 	default_category(NULL),
 	input_sts(NULL),
 	input_modcod_def(NULL),
-	roll_off(0.0),
 	simulated(false),
 	spot_id(spot)
 {

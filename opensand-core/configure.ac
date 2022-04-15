@@ -98,7 +98,6 @@ AC_CONFIG_FILES([ \
 	src/dvb/dama/Makefile \
 	src/dvb/saloha/Makefile \
 	src/dvb/core/Makefile \
-	src/dvb/core/transparent/Makefile \
 	src/encap/Makefile \
 	src/lan_adaptation/Makefile \
 	src/interconnect/Makefile \

@@ -42,8 +42,6 @@
 #include "OpenSandModelConf.h"
 #include "SpotUpward.h"
 #include "SpotDownward.h"
-#include "SpotUpwardTransp.h"
-#include "SpotDownwardTransp.h"
 #include "DvbRcsFrame.h"
 #include "Sof.h"
 
@@ -56,35 +54,24 @@
 BlockDvbNcc::BlockDvbNcc(const string &name, tal_id_t mac_id):
 	BlockDvb(name),
 	mac_id(mac_id),
-	output_sts_list(),
-	input_sts_list()
+	output_sts(nullptr),
+	input_sts(nullptr)
 {
 }
 
 BlockDvbNcc::~BlockDvbNcc()
 {
-	map<spot_id_t, StFmtSimuList *>::iterator it;
+	delete this->input_sts;
+	this->input_sts = nullptr;
 
-	for(it = this->output_sts_list.begin();
-	    it != this->output_sts_list.end(); ++it)
-	{
-		delete (*it).second;
-	}
-
-	for(it = this->input_sts_list.begin();
-	    it != this->input_sts_list.end(); ++it)
-	{
-		delete (*it).second;
-	}
-	this->output_sts_list.clear();
-	this->input_sts_list.clear();
+	delete this->output_sts;
+	this->output_sts = nullptr;
 }
 
 void BlockDvbNcc::generateConfiguration()
 {
 	SpotDownward::generateConfiguration();
-	SpotDownwardTransp::generateConfiguration();
-	SpotUpwardTransp::generateConfiguration();
+	SpotUpward::generateConfiguration();
 }
 
 bool BlockDvbNcc::onInit(void)
@@ -102,31 +89,30 @@ bool BlockDvbNcc::onInit(void)
 
 bool BlockDvbNcc::initListsSts()
 {
-	// TODO: Remove obsolete lists (from multi-spot)
-	if(this->input_sts_list.find(this->mac_id) == this->input_sts_list.end())
+	if (!this->input_sts)
 	{
-		this->input_sts_list[this->mac_id] = new StFmtSimuList("in");
+		this->input_sts = new StFmtSimuList("in");
 	}
-	if(this->input_sts_list[this->mac_id] == NULL)
+	if(!this->input_sts)
 	{
 		return false;
 	}
 
-	if(this->output_sts_list.find(this->mac_id) == this->output_sts_list.end())
+	if(!this->output_sts)
 	{
-		this->output_sts_list[this->mac_id] = new StFmtSimuList("out");
+		this->output_sts = new StFmtSimuList("out");
 	}
-	if(this->output_sts_list[this->mac_id] == NULL)
+	if(!this->output_sts)
 	{
 		return false;
 	}
 
 	// input and output sts are shared between up and down
 	// and protected by a mutex
-	((Upward *)this->upward)->setStFmt(this->output_sts_list,
-	                                   this->input_sts_list);
-	((Downward *)this->downward)->setStFmt(this->output_sts_list,
-	                                       this->input_sts_list);
+	((Upward *)this->upward)->setOutputSts(this->output_sts);
+	((Upward *)this->upward)->setInputSts(this->input_sts);
+	((Downward *)this->downward)->setOutputSts(this->output_sts);
+	((Downward *)this->downward)->setInputSts(this->input_sts);
 
 	return true;
 }
@@ -141,7 +127,7 @@ bool BlockDvbNcc::initListsSts()
 
 BlockDvbNcc::Downward::Downward(const string &name, tal_id_t mac_id):
 	DvbDownward(name),
-	DvbSpotList(mac_id),
+	DvbFmt(),
 	pep_interface(),
 	svno_interface(),
 	mac_id(mac_id),
@@ -158,9 +144,7 @@ BlockDvbNcc::Downward::~Downward()
 
 bool BlockDvbNcc::Downward::onInit(void)
 {
-	bool result = true;
 	int pep_tcp_port, svno_tcp_port;
-	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 
 	// get the common parameters
 	if(!this->initDown())
@@ -179,40 +163,22 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 
-	if(!this->initSpotList())
-	{
+	LOG(this->log_init, LEVEL_DEBUG,
+	    "Create downward spot with ID %u\n", mac_id);
+
+	this->spot = new SpotDownward(this->mac_id,
+	                              this->mac_id,
+	                              this->fwd_down_frame_duration_ms,
+	                              this->ret_up_frame_duration_ms,
+	                              this->stats_period_ms,
+	                              this->pkt_hdl,
+	                              this->input_sts,
+	                              this->output_sts);
+
+	if (!spot || !spot->onInit()) {
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the spot "
-		    "initialisation\n");
+		    "failed to create the downward spot\n");
 		return false;
-	}
-
-	for(spot_iter = this->spots.begin(); 
-	    spot_iter != this->spots.end(); ++spot_iter)
-	{
-		SpotDownward *spot;
-		spot_id_t spot_id = (*spot_iter).first;
-		StFmtSimuList *input_sts = this->getInputStFmt(spot_id);
-		StFmtSimuList *output_sts = this->getOutputStFmt(spot_id);
-
-		LOG(this->log_init, LEVEL_DEBUG,
-		    "Create downward spot with ID %u\n", spot_id);
-
-		if(!input_sts || !output_sts)
-		{
-			return false;
-		}
-		
-		spot = new SpotDownwardTransp(spot_id, this->mac_id,
-		                              this->fwd_down_frame_duration_ms,
-		                              this->ret_up_frame_duration_ms,
-		                              this->stats_period_ms,
-		                              this->pkt_hdl,
-		                              input_sts,
-		                              output_sts);
-
-		(*spot_iter).second = spot;
-		result &= spot->onInit();
 	}
 
 	// initialize the timers
@@ -258,12 +224,11 @@ bool BlockDvbNcc::Downward::onInit(void)
 	                                                                 "ms", true,
 	                                                                 SAMPLE_LAST);
 
-	return result;
+	return true;
 }
 
 bool BlockDvbNcc::Downward::initTimers(void)
 {
-	map<spot_id_t, DvbChannel *>::iterator spot_iter;
 	time_ms_t acm_period_ms;
 
 	auto Conf = OpenSandModelConf::Get();
@@ -298,32 +263,51 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	    acm_period_ms);
 
 	// create timer
-	for(spot_iter = this->spots.begin(); 
-		spot_iter != this->spots.end(); ++spot_iter)
+	if(!spot)
 	{
-		SpotDownward *spot;
-		spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-		if(!spot)
-		{
-			LOG(this->log_init, LEVEL_WARNING,
-			    "Error when getting spot %d\n", (*spot_iter).first);
+		LOG(this->log_init, LEVEL_WARNING,
+		    "Error when getting spot %d\n", mac_id);
+		return false;
+	}
+	spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",
+	                                              pep_alloc_delay,
+	                                              false, // no rearm
+	                                              false // do not start
+	                                              ));
+
+	return true;
+}
+
+
+bool BlockDvbNcc::Downward::handleDvbFrame(const RtEvent *const event)
+{
+	uint8_t msg_type = dvb_frame->getMessageType();
+	switch(msg_type)
+	{
+		case MSG_TYPE_SAC: // when physical layer is enabled
+			return spot->handleSac(dvb_frame);
+
+		case MSG_TYPE_SESSION_LOGON_REQ:
+			return this->handleLogonReq(dvb_frame, spot);
+
+		case MSG_TYPE_SESSION_LOGOFF:
+			return spot->handleLogoffReq(dvb_frame);
+
+		default:
+			LOG(this->log_receive, LEVEL_ERROR,
+					"SF#%u: unknown type of DVB frame (%u), ignore\n",
+					this->super_frame_counter, msg_type);
+			delete dvb_frame;
 			return false;
-		}
-		spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",
-		                                              pep_alloc_delay,
-		                                              false, // no rearm
-		                                              false // do not start
-		                                              ));
 	}
 
+	delete dvb_frame;
 	return true;
 }
 
 
 bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 {
-	map<spot_id_t, DvbChannel *>::iterator spot_iter;
-
 	switch(event->getType())
 	{
 		case evt_message:
@@ -335,63 +319,30 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
 				spot_id_t dest_spot = dvb_frame->getSpot();
-				uint8_t msg_type = dvb_frame->getMessageType();
-				SpotDownward *spot;
-				spot = dynamic_cast<SpotDownward *>(this->getSpot(dest_spot));
-				if(!spot)
+				if (dest_spot != this->mac_id)
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
-					    "Error when getting spot\n");
+						"Spot %d trying to send a DvbFrame destined to spot %d\n",
+						mac_id, dest_spot);
 					delete dvb_frame;
 					return false;
 				}
 
-				switch(msg_type)
-				{
-					case MSG_TYPE_SAC: // when physical layer is enabled
-						if(!spot->handleSac(dvb_frame))
-						{
-							goto error;
-						}
-						break;
-
-					case MSG_TYPE_SESSION_LOGON_REQ:
-						if(!this->handleLogonReq(dvb_frame, spot))
-						{
-							goto error;
-						}
-						break;
-
-					case MSG_TYPE_SESSION_LOGOFF:
-						if(!spot->handleLogoffReq(dvb_frame))
-						{
-							goto error;
-						}
-						break;
-
-					default:
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "SF#%u: unknown type of DVB frame (%u), ignore\n",
-						    this->super_frame_counter,
-						    dvb_frame->getMessageType());
-						delete dvb_frame;
-						goto error;
+				if(!this->handleDvbFrame(dvb_frame)) {
+					goto error;
 				}
-
-				delete dvb_frame;
-				return true;
+				break;
 			}
 			else if(((MessageEvent *)event)->getMessageType() == msg_saloha)
 			{
 				list<DvbFrame *> *ack_frames;
 				ack_frames = (list<DvbFrame *> *)((MessageEvent *)event)->getData();
 				spot_id_t spot_id = ack_frames->front()->getSpot();
-				SpotDownward *spot;
-				spot = dynamic_cast<SpotDownward *>(this->getSpot(spot_id));
-				if(!spot)
+				if (spot_id != this->mac_id)
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
-					    "Error when getting spot\n");
+						"Spot %d trying to send ACK frames destined to spot %d\n",
+						mac_id, spot_id);
 					delete ack_frames;
 					return false;
 				}
@@ -407,74 +358,18 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				burst = (NetBurst *)((MessageEvent *)event)->getData();
 
 				LOG(this->log_receive_channel, LEVEL_INFO,
-				    "SF#%u: encapsulation burst received "
-				    "(%d packet(s))\n", super_frame_counter,
-				    burst->length());
+						"SF#%u: encapsulation burst received "
+						"(%d packet(s))\n", super_frame_counter,
+						burst->length());
 
 				// set each packet of the burst in MAC FIFO
 				for(pkt_it = burst->begin(); pkt_it != burst->end(); ++pkt_it)
 				{
-					tal_id_t tal_id = (*pkt_it)->getDstTalId();
-					SpotDownward *spot;
-					list<SpotDownward*> spot_list;
-					list<SpotDownward*>::iterator spot_list_iter;
-
-					// FIXME at the moment broadcast is sent on all spots
-					if(tal_id == BROADCAST_TAL_ID)
+					if(!spot->handleEncapPacket(*pkt_it))
 					{
-						for(spot_iter = this->spots.begin(); 
-						    spot_iter != this->spots.end(); ++spot_iter)
-						{
-							spot = dynamic_cast<SpotDownward *>(
-							            this->getSpot((*spot_iter).first));
-							if(!spot)
-							{
-								LOG(this->log_receive, LEVEL_WARNING,
-								    "Error when getting spot\n");
-								return false;
-							}
-							spot_list.push_back(spot);
-						}
-					}
-					else
-					{ 
-						spot = dynamic_cast<SpotDownward *>(this->getSpot(this->mac_id));
-						if(!spot)
-						{
-							LOG(this->log_receive, LEVEL_WARNING,
-							    "Error when getting spot\n");
-							return false;
-						}
-						spot_list.push_back(spot);
-					}
-
-					for(spot_list_iter = spot_list.begin(); 
-					    spot_list_iter != spot_list.end();
-					    ++spot_list_iter)
-					{
-						NetPacket *pkt_copy;
-						spot = *spot_list_iter;
-						if(spot_list.size() > 1 )
-						{
-							pkt_copy = new NetPacket(*pkt_it);
-						}
-						else
-						{
-							pkt_copy = *pkt_it;
-						}
-
-						if(!spot->handleEncapPacket(pkt_copy))
-						{
-							LOG(this->log_receive, LEVEL_ERROR,
-							    "cannot push burst into fifo\n");
-							continue;
-						}
-					}
-					// free the iterator that was not send if there is
-					// more than on spot
-					if(spot_list.size() > 1)
-					{
-						delete *pkt_it;
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "cannot push burst into fifo\n");
+						continue;
 					}
 				}
 				burst->clear(); // avoid deteleting packets when deleting burst
@@ -486,7 +381,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		{
 			// receive the frame Timer event
 			LOG(this->log_receive, LEVEL_DEBUG,
-				"timer event received on downward channel");
+					"timer event received on downward channel");
 			if(*event == this->frame_timer)
 			{
 				if(this->probe_frame_interval->isEnabled())
@@ -504,87 +399,67 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				this->super_frame_counter++;
 			}
 
-			bool find_pep = false; 
-			for(spot_iter = this->spots.begin(); 
-			    spot_iter != this->spots.end(); ++spot_iter)
+			if(!spot)
 			{
-				SpotDownward *spot;
-				spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
-				if(!spot)
+				LOG(this->log_receive, LEVEL_WARNING,
+				    "Error when getting spot\n");
+				return false;
+			}
+
+			if(*event == this->frame_timer)
+			{
+				// send Start Of Frame
+				this->sendSOF(spot->getSofCarrierId());
+
+				if(spot->checkDama())
 				{
-					LOG(this->log_receive, LEVEL_WARNING,
-					    "Error when getting spot\n");
-					return false;
-				}
-
-				if(*event == this->frame_timer)
-				{
-					// send Start Of Frame
-					this->sendSOF(spot->getSofCarrierId());
-
-					if(spot->checkDama())
-					{
-						continue;
-					}
-
-					// Update Fmt here for TTP
-					spot->updateFmt();
-
-					if(!spot->handleFrameTimer(this->super_frame_counter))
-					{
-						// do not quit if this fail in one spot
-						continue;
-					}
-
-					// send TTP computed by DAMA
-					this->sendTTP(spot);
-				}
-
-				else if(*event == this->fwd_timer)
-				{
-					this->fwd_frame_counter++;
-					if(!spot->handleFwdFrameTimer(this->fwd_frame_counter))
-					{
-						// do not break if this fail in one spot
-						continue;
-					}
-
-					// send the scheduled frames
-					if(!this->sendBursts(&spot->getCompleteDvbFrames(),
-					                     spot->getDataCarrierId()))
-					{
-						LOG(this->log_receive, LEVEL_ERROR,
-						    "failed to build and send DVB/BB "
-						    "frames\n");
-						// do not break if this fail in one spot
-						continue;
-					}
-				}
-				else if(*event == spot->getPepCmdApplyTimer())
-				{
-					// it is time to apply the command sent by the external
-					// PEP component
-
-					PepRequest *pep_request;
-
-					LOG(this->log_receive, LEVEL_NOTICE,
-					    "apply PEP requests now\n");
-					while((pep_request = this->pep_interface.getNextPepRequest()) != NULL)
-					{
-						spot->applyPepCommand(pep_request);
-					}
-					find_pep = true;
 					break;
 				}
 
-				if(*event == spot->getPepCmdApplyTimer() && !find_pep)
+				// Update Fmt here for TTP
+				spot->updateFmt();
+
+				if(!spot->handleFrameTimer(this->super_frame_counter))
+				{
+					return false;
+				}
+
+				// send TTP computed by DAMA
+				this->sendTTP(spot);
+			}
+			else if(*event == this->fwd_timer)
+			{
+				this->fwd_frame_counter++;
+				if(!spot->handleFwdFrameTimer(this->fwd_frame_counter))
+				{
+					return false;
+				}
+
+				// send the scheduled frames
+				if(!this->sendBursts(&spot->getCompleteDvbFrames(),
+				                     spot->getDataCarrierId()))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-					    "unknown timer event received %s\n",
-					    event->getName().c_str());
+					    "failed to build and send DVB/BB "
+					    "frames\n");
 					return false;
 				}
 			}
+			else if(*event == spot->getPepCmdApplyTimer())
+			{
+				// it is time to apply the command sent by the external
+				// PEP component
+
+				PepRequest *pep_request;
+
+				LOG(this->log_receive, LEVEL_NOTICE,
+				    "apply PEP requests now\n");
+				while((pep_request = this->pep_interface.getNextPepRequest()) != NULL)
+				{
+					spot->applyPepCommand(pep_request);
+				}
+			}
+
 			break;
 		}
 		// TODO factorize, some elements are exactly the same between NccInterface classes
@@ -596,21 +471,21 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 				// event received on PEP client socket
 				LOG(this->log_receive, LEVEL_NOTICE,
-				    "event received on PEP client socket\n");
+						"event received on PEP client socket\n");
 
 				// read the message sent by PEP or delete socket
 				// if connection is dead
 				if(!this->pep_interface.readPepMessage((NetSocketEvent *)event, tal_id))
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
-					    "network problem encountered with PEP, "
-					    "connection was therefore closed\n");
+							"network problem encountered with PEP, "
+							"connection was therefore closed\n");
 					// Free the socket
 					if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
 					{
 						LOG(this->log_init, LEVEL_ERROR,
-						    "failed to clase socket: "
-						    "%s (%d)\n", strerror(errno), errno);
+								"failed to clase socket: "
+								"%s (%d)\n", strerror(errno), errno);
 					}
 					this->removeEvent(this->pep_interface.getPepClientSocket());
 					return false;
@@ -619,21 +494,10 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				// PEP component, let's apply the resources
 				// allocations/releases they contain
 
-				// first get the spot associated with this terminal
-				spot_iter = this->spots.find(this->mac_id);
-				if(spot_iter == this->spots.end())
-				{
-					LOG(this->log_receive, LEVEL_ERROR, 
-					    "couldn't find spot of gw %d", 
-					    this->mac_id);
-					return false;
-				}
-				SpotDownward *spot;
-				spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
 				if(!spot)
 				{
-				    LOG(this->log_receive, LEVEL_WARNING,
-				        "Error when getting spot\n");
+					LOG(this->log_receive, LEVEL_WARNING,
+							"Error when getting spot\n");
 					return false;
 				}
 
@@ -643,32 +507,32 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					if(!this->startTimer(spot->getPepCmdApplyTimer()))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
-						    "cannot start pep timer");
+								"cannot start pep timer");
 						return false;
 					}
 					LOG(this->log_receive, LEVEL_NOTICE,
-					    "PEP Allocation request, apply a %dms"
-					    " delay\n", pep_alloc_delay);
+							"PEP Allocation request, apply a %dms"
+							" delay\n", pep_alloc_delay);
 				}
 				else if(this->pep_interface.getPepRequestType() == PEP_REQUEST_RELEASE)
 				{
 					this->raiseTimer(spot->getPepCmdApplyTimer());
 					LOG(this->log_receive, LEVEL_NOTICE,
-					    "PEP Release request, no delay to "
-					    "apply\n");
+							"PEP Release request, no delay to "
+							"apply\n");
 				}
 				else
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-					    "cannot determine request type!\n");
+							"cannot determine request type!\n");
 					return false;
 				}
 				// Free the socket
 				if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
 				{
 					LOG(this->log_init, LEVEL_ERROR,
-					    "failed to clase socket: "
-					    "%s (%d)\n", strerror(errno), errno);
+							"failed to clase socket: "
+							"%s (%d)\n", strerror(errno), errno);
 				}
 				this->removeEvent(this->pep_interface.getPepClientSocket());
 			}
@@ -677,21 +541,21 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				SvnoRequest *request;
 				// event received on SVNO client socket
 				LOG(this->log_receive, LEVEL_NOTICE,
-				    "event received on SVNO client socket\n");
+						"event received on SVNO client socket\n");
 
 				// read the message sent by SVNO or delete socket
 				// if connection is dead
 				if(!this->svno_interface.readSvnoMessage((NetSocketEvent *)event))
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
-					    "network problem encountered with SVNO, "
-					    "connection was therefore closed\n");
+							"network problem encountered with SVNO, "
+							"connection was therefore closed\n");
 					// Free the socket
 					if(shutdown(this->svno_interface.getSvnoClientSocket(), SHUT_RDWR) != 0)
 					{
 						LOG(this->log_init, LEVEL_ERROR,
-						    "failed to clase socket: "
-						    "%s (%d)\n", strerror(errno), errno);
+								"failed to clase socket: "
+								"%s (%d)\n", strerror(errno), errno);
 					}
 					this->removeEvent(this->svno_interface.getSvnoClientSocket());
 					return false;
@@ -703,22 +567,10 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				request = this->svno_interface.getNextSvnoRequest();
 				while(request != NULL)
 				{
-					SpotDownward *spot;
-
-					// first get the spot concerned by the request
-					spot_iter = spots.find(request->getSpotId());
-					if(spot_iter == spots.end())
-					{
-						LOG(this->log_receive, LEVEL_ERROR, 
-						    "couldn't find spot %d", 
-						    request->getSpotId());
-						return false;
-					}
-					spot = dynamic_cast<SpotDownward *>((*spot_iter).second);
 					if(!spot)
 					{
-					    LOG(this->log_receive, LEVEL_WARNING,
-					        "Error when getting spot\n");
+						LOG(this->log_receive, LEVEL_WARNING,
+						    "Error when getting spot\n");
 						return false;
 					}
 
@@ -744,14 +596,14 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 				// event received on PEP listen socket
 				LOG(this->log_receive, LEVEL_NOTICE,
-				    "event received on PEP listen socket\n");
+						"event received on PEP listen socket\n");
 
 				LOG(this->log_receive, LEVEL_NOTICE,
-				    "NCC is now connected to PEP\n");
+						"NCC is now connected to PEP\n");
 				// add a fd to handle events on the client socket
 				this->addNetSocketEvent("pep_client",
-				                        this->pep_interface.getPepClientSocket(),
-				                        200);
+						this->pep_interface.getPepClientSocket(),
+						200);
 			}
 			else if(*event == this->svno_interface.getSvnoListenSocket())
 			{
@@ -760,23 +612,23 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 				// event received on SVNO listen socket
 				LOG(this->log_receive, LEVEL_NOTICE,
-				    "event received on SVNO listen socket\n");
+						"event received on SVNO listen socket\n");
 
 				// create the client socket to receive messages
 				LOG(this->log_receive, LEVEL_NOTICE,
-				    "NCC is now connected to SVNO\n");
+						"NCC is now connected to SVNO\n");
 				// add a fd to handle events on the client socket
 				this->addNetSocketEvent("svno_client",
-				                        this->svno_interface.getSvnoClientSocket(),
-				                        200);
+						this->svno_interface.getSvnoClientSocket(),
+						200);
 			}
 			break;
 		}
 		default:
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
-			    "unknown event received %s",
-			    event->getName().c_str());
+					"unknown event received %s",
+					event->getName().c_str());
 			return false;
 		}
 	}
@@ -785,8 +637,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 error:
 	LOG(this->log_receive, LEVEL_ERROR,
-	    "Treatments failed at SF#%u\n",
-	    this->super_frame_counter);
+			"Treatments failed at SF#%u\n",
+			this->super_frame_counter);
 	return false;
 
 }
@@ -799,13 +651,13 @@ void BlockDvbNcc::Downward::sendSOF(unsigned int carrier_id)
 	if(!this->sendDvbFrame((DvbFrame *)sof, carrier_id))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
-		    "Failed to call sendDvbFrame() for SOF\n");
+				"Failed to call sendDvbFrame() for SOF\n");
 		delete sof;
 		return;
 	}
 
 	LOG(this->log_send, LEVEL_DEBUG,
-	    "SF#%u: SOF sent\n", this->super_frame_counter);
+			"SF#%u: SOF sent\n", this->super_frame_counter);
 }
 
 void BlockDvbNcc::Downward::sendTTP(SpotDownward *spot)
@@ -816,7 +668,7 @@ void BlockDvbNcc::Downward::sendTTP(SpotDownward *spot)
 	{
 		delete ttp;
 		LOG(this->log_send, LEVEL_DEBUG,
-		    "Dama didn't build TTP\bn");
+				"Dama didn't build TTP\bn");
 		return;
 	};
 
@@ -824,16 +676,16 @@ void BlockDvbNcc::Downward::sendTTP(SpotDownward *spot)
 	{
 		delete ttp;
 		LOG(this->log_send, LEVEL_ERROR,
-		    "Failed to send TTP\n");
+				"Failed to send TTP\n");
 		return;
 	}
 
 	LOG(this->log_send, LEVEL_DEBUG,
-	    "SF#%u: TTP sent\n", this->super_frame_counter);
+			"SF#%u: TTP sent\n", this->super_frame_counter);
 }
 
 bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame,
-                                           SpotDownward *spot)
+		SpotDownward *spot)
 {
 	//TODO find why dynamic cast fail here and each time we do that on frames !?
 	LogonRequest *logon_req = (LogonRequest *)dvb_frame;
@@ -845,21 +697,21 @@ bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame,
 	{
 		goto release;
 	}
-	
+
 	// TODO only used here tal_id and logon_id are the same
 	// may be we can simplify the constructor
 	logon_resp = new LogonResponse(mac, this->mac_id, mac);
 
 	LOG(this->log_send, LEVEL_DEBUG,
-	    "SF#%u: logon response sent to lower layer\n",
-	    this->super_frame_counter);
+			"SF#%u: logon response sent to lower layer\n",
+			this->super_frame_counter);
 
 
 	if(!this->sendDvbFrame((DvbFrame *)logon_resp,
-	                       spot->getCtrlCarrierId()))
+				spot->getCtrlCarrierId()))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
-		    "Failed send logon response\n");
+				"Failed send logon response\n");
 		return false;
 	}
 
@@ -882,7 +734,7 @@ void BlockDvbNcc::Downward::updateStats(void)
 
 BlockDvbNcc::Upward::Upward(const string &name, tal_id_t mac_id):
 	DvbUpward(name),
-	DvbSpotList(mac_id),
+	DvbFmt(),
 	mac_id(mac_id),
 	log_saloha(NULL),
 	probe_gw_received_modcod(NULL),
@@ -898,60 +750,41 @@ BlockDvbNcc::Upward::~Upward()
 
 bool BlockDvbNcc::Upward::onInit(void)
 {
-	bool result = true;
-	map<spot_id_t, DvbChannel *>::iterator spot_iter;
+	LOG(this->log_init, LEVEL_DEBUG,
+	    "Create upward spot with ID %u\n", mac_id);
 
-	if(!this->initSpotList())
+	this->spot = new SpotUpward(this->mac_id,
+	                            this->mac_id,
+	                            this->input_sts,
+	                            this->output_sts);
+
+	if(!spot || !spot->onInit())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to complete the spot "
-		    "initialisation\n");
+		    "failed to create the upward spot\n");
 		return false;
 	}
 
-	for(spot_iter = this->spots.begin(); 
-	    spot_iter != this->spots.end(); ++spot_iter)
+	// create and send a "link is up" message to upper layer
+	T_LINK_UP *link_is_up = new T_LINK_UP;
+	if(!link_is_up)
 	{
-		spot_id_t spot_id = (*spot_iter).first;
-		SpotUpward *spot;
-		StFmtSimuList *input_sts = this->getInputStFmt(spot_id);
-		StFmtSimuList *output_sts = this->getOutputStFmt(spot_id);
-
-		LOG(this->log_init, LEVEL_DEBUG,
-		    "Create upward spot with ID %u\n", spot_id);
-
-		spot = new SpotUpwardTransp(spot_id, this->mac_id,
-		                            input_sts, output_sts);
-		LOG(this->log_init, LEVEL_DEBUG,
-		    "Create spot with ID %u\n", spot_id);
-		(*spot_iter).second = spot;
-
-		result &= spot->onInit();
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to allocate memory for link_is_up "
+		    "message\n");
+		return false;
 	}
+	link_is_up->group_id = this->mac_id;
+	link_is_up->tal_id = this->mac_id;
 
-	if(result)
+	if(!this->enqueueMessage((void **)(&link_is_up),
+	                         sizeof(T_LINK_UP),
+	                         msg_link_up))
 	{
-		T_LINK_UP *link_is_up;
-		// create and send a "link is up" message to upper layer
-		link_is_up = new T_LINK_UP;
-		if(link_is_up == NULL)
-		{
-			LOG(this->log_init_channel, LEVEL_ERROR,
-			    "failed to allocate memory for link_is_up "
-			    "message\n");
-			return false;
-		}
-		link_is_up->group_id = this->mac_id;
-		link_is_up->tal_id = this->mac_id;
-
-		if(!this->enqueueMessage((void **)(&link_is_up),
-		                         sizeof(T_LINK_UP),
-		                         msg_link_up))
-		{
-			LOG(this->log_init, LEVEL_ERROR,
-			    "failed to send link up message to upper layer\n");
-			delete link_is_up;
-		}
+		LOG(this->log_init, LEVEL_ERROR,
+		    "failed to send link up message to upper layer\n");
+		delete link_is_up;
+		return false;
 	}
 
 	// Init the output here since we now know the FIFOs
@@ -966,7 +799,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 	    "Link is up msg sent to upper layer\n");
 
 	// everything went fine
-	return result;
+	return true;
 }
 
 
@@ -994,12 +827,11 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 		{
 			dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 			spot_id_t dest_spot = dvb_frame->getSpot();
-			SpotUpward *spot;
-			spot = dynamic_cast<SpotUpward *>(this->getSpot(dest_spot));
-			if(!spot)
+			if (dest_spot != this->mac_id)
 			{
 				LOG(this->log_receive, LEVEL_WARNING,
-			        "Error when getting spot\n");
+				    "Spot %d received a DvbFrame destined to spot %d\n",
+				    mac_id, dest_spot);
 				delete dvb_frame;
 				return false;
 			}
@@ -1212,64 +1044,4 @@ bool BlockDvbNcc::Upward::shareFrame(DvbFrame *frame)
 		return false;
 	}
 	return true;
-}
-
-
-
-/***** DvbSpotList ****/
-
-bool DvbSpotList::initSpotList(void)
-{
-	this->spots[this->default_spot] = NULL;
-	return true;
-}
-
-
-DvbChannel *DvbSpotList::getSpot(spot_id_t spot_id) const
-{
-	map<spot_id_t, DvbChannel *>::const_iterator spot_it;
-
-	spot_it = this->spots.find(spot_id);
-	if(spot_it == this->spots.end())
-	{
-		LOG(this->log_spot, LEVEL_ERROR,
-		    "spot %d does not exist\n",
-		    spot_id);
-		return NULL;
-	}
-	return (*spot_it).second;
-}
-
-
-void DvbSpotList::setStFmt(const map<spot_id_t, StFmtSimuList *> &output_sts_list,
-                           const map<spot_id_t, StFmtSimuList *> &input_sts_list)
-{
-	this->output_sts_list = output_sts_list;
-	this->input_sts_list = input_sts_list;
-}
-
-StFmtSimuList *DvbSpotList::getOutputStFmt(spot_id_t spot_id)
-{
-	return this->getStFmt(spot_id, this->output_sts_list);
-}
-
-
-StFmtSimuList *DvbSpotList::getInputStFmt(spot_id_t spot_id)
-{
-	return this->getStFmt(spot_id, this->input_sts_list);
-}
-
-StFmtSimuList *DvbSpotList::getStFmt(spot_id_t spot_id,
-                                     const map<spot_id_t, StFmtSimuList *> &sts)
-{
-	map<spot_id_t, StFmtSimuList *>::const_iterator it;
-	it = sts.find(spot_id);
-	if(it == sts.end())
-	{
-		LOG(this->log_spot, LEVEL_ERROR,
-		    "cannot find StFmtSimuList for spot %u\n",
-		    spot_id);
-		return NULL;
-	}
-	return (*it).second;
 }

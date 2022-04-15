@@ -158,5 +158,3 @@ close_socket:
 error:
 	return false;
 }
-
-

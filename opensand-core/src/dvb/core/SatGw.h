@@ -221,8 +221,7 @@ class SatGw: public DvbFmt
 	void print(void); /// For debug
 };
 
-
 /// The map of satellite spots
-typedef std::map<uint8_t, SatGw *> sat_gws_t;
+//typedef std::map<uint8_t, SatGw *> sat_gws_t;
 
 #endif

@@ -67,104 +67,11 @@
 
 #include "NccPepInterface.h"
 #include "NccSvnoInterface.h"
+#include "DvbChannel.h"
 
 
 class SpotDownward;
-
-
-/**
- * @brief  The list of spots for GW channels and other common elements
- */
-class DvbSpotList
-{
- public:
-
-	DvbSpotList(tal_id_t mac_id):
-		spots(),
-		default_spot(mac_id),
-		log_spot(NULL)
-	{
-		this->log_spot = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Spot");
-	};
-
-	virtual ~DvbSpotList()
-	{
-		map<spot_id_t, DvbChannel *>::iterator spot_iter;
-		for(spot_iter = this->spots.begin(); 
-		    spot_iter != this->spots.end(); ++spot_iter)
-		{
-			delete (*spot_iter).second;
-		}
-	};
-
-	/**
-	 * @brief Set the list of StFmtSimu for spots
-	 *
-	 * @param output_sts  The list of output sts per spot
-	 * @param input_sts   The list of input sts per spot
-	 */
-	void setStFmt(const map<spot_id_t, StFmtSimuList *> &output_sts_list,
-	              const map<spot_id_t, StFmtSimuList *> &input_sts_list);
-
- protected:
-
-	/**
-	 * @brief Create a spot list from configuration
-	 *
-	 * @return true on success, false otherwise
-	 */
-	bool initSpotList(void);
-
-	/**
-	 * @brief Get a spot with its spot_id
-	 *
-	 * @param spot_id  The spot id
-	 * @return the spot if found, NULL otherwise
-	 */
-	DvbChannel *getSpot(spot_id_t spot_id) const;
-
-	/**
-	 * @brief Get the list of output StFmtSimu for a given spot
-	 *
-	 * @return the desired list of output StFmtSimu
-	 */
-	StFmtSimuList *getOutputStFmt(spot_id_t spot_id);
-
-	/**
-	 * @brief Get the list of input StFmtSimu for a given spot
-	 *
-	 * @return the desired list of input StFmtSimu
-	 */
-	StFmtSimuList *getInputStFmt(spot_id_t spot_id);
-
-	/// The spots
-	map<spot_id_t, DvbChannel *> spots;
-
-	/// the default destination spot
-	spot_id_t default_spot;
-
-	/// The list of Sts with forward/down modcod per spot
-	map<spot_id_t, StFmtSimuList *> output_sts_list;
-
-	/// The list of Sts with return/up modcod per spot
-	map<spot_id_t, StFmtSimuList *> input_sts_list;
-
- private:
-
-	/**
-	 * @brief Get the list of StFmtSimu for a given spot
-	 *
-	 * @return the desired list of StFmtSimu
-	 */
-	StFmtSimuList *getStFmt(spot_id_t spot,
-	                        const map<spot_id_t, StFmtSimuList *> &sts);
-
-	/// logging
-	std::shared_ptr<OutputLog> log_spot;
-};
-
-
-
+class SpotUpward;
 
 
 class BlockDvbNcc: public BlockDvb
@@ -183,7 +90,7 @@ class BlockDvbNcc: public BlockDvb
 	bool onInit();
 
 
-	class Upward: public DvbUpward, public DvbSpotList
+	class Upward: public DvbUpward, public DvbFmt
 	{
 	 public:
 		Upward(const string &name, tal_id_t mac_id);
@@ -207,9 +114,12 @@ class BlockDvbNcc: public BlockDvb
 		 */ 
 		bool shareFrame(DvbFrame *frame);
 		
+		bool onRcvDvbFrame(DvbFrame *frame);
 
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
+
+		SpotUpward* spot;
 
 		// log for slotted aloha
 		std::shared_ptr<OutputLog> log_saloha;
@@ -220,87 +130,91 @@ class BlockDvbNcc: public BlockDvb
 	};
 
 
-	class Downward: public DvbDownward, public DvbSpotList
+	class Downward: public DvbDownward, public DvbFmt
 	{
-	  public:
-		Downward(const string &name, tal_id_t mac_id);
-		~Downward();
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
+		public:
+			Downward(const string &name, tal_id_t mac_id);
+			~Downward();
+			bool onInit(void);
+			bool onEvent(const RtEvent *const event);
 
-	 protected:
-		/**
-		 * Read configuration for the downward timers
-		 *
-		 * @return  true on success, false otherwise
-		 */
-		bool initTimers(void);
-		
-		/**
-		 * Send a Terminal Time Plan
-		 */
-		void sendTTP(SpotDownward *spot_downward);
+		protected:
+			/**
+			 * Read configuration for the downward timers
+			 *
+			 * @return  true on success, false otherwise
+			 */
+			bool initTimers(void);
 
-		/**
-		 * Send a start of frame
-		 */
-		void sendSOF(unsigned int sof_carrier_id);
+			bool handleDvbFrame(DvbFrame *frame);
 
-		/**
-		 *  @brief Handle a logon request transmitted by the opposite
-		 *         block
-		 *
-		 *  @param dvb_frame  The frame contining the logon request
-		 *  @param spot       The spot concerned by the request
-		 *  @return true on success, false otherwise
-		 */
-		bool handleLogonReq(DvbFrame *dvb_frame,
-		                    SpotDownward *spot);
+			/**
+			 * Send a Terminal Time Plan
+			 */
+			void sendTTP(SpotDownward *spot_downward);
 
-		/**
-		 * @brief Send a SAC message containing ACM parameters
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool sendAcmParameters(SpotDownward *spot_downward);
-		
-		// statistics update
-		void updateStats(void);
+			/**
+			 * Send a start of frame
+			 */
+			void sendSOF(unsigned int sof_carrier_id);
 
-		/// The interface between Ncc and PEP
-		NccPepInterface pep_interface;
-		
-		/// The interface between Ncc and SVNO
-		NccSvnoInterface svno_interface;
+			/**
+			 *  @brief Handle a logon request transmitted by the opposite
+			 *         block
+			 *
+			 *  @param dvb_frame  The frame contining the logon request
+			 *  @param spot       The spot concerned by the request
+			 *  @return true on success, false otherwise
+			 */
+			bool handleLogonReq(DvbFrame *dvb_frame,
+					SpotDownward *spot);
 
-		/// the MAC ID of the ST (as specified in configuration)
-		tal_id_t mac_id;
+			/**
+			 * @brief Send a SAC message containing ACM parameters
+			 *
+			 * @return true on success, false otherwise
+			 */
+			bool sendAcmParameters(SpotDownward *spot_downward);
 
-		/// counter for forward frames
-		time_ms_t fwd_frame_counter;
+			// statistics update
+			void updateStats(void);
 
-		/// frame timer for return, used to awake the block every frame period
-		event_id_t frame_timer;
+			/// The interface between Ncc and PEP
+			NccPepInterface pep_interface;
 
-		/// frame timer for forward, used to awake the block every frame period
-		event_id_t fwd_timer;
+			/// The interface between Ncc and SVNO
+			NccSvnoInterface svno_interface;
 
-		/// Delay for allocation requests from PEP (in ms)
-		int pep_alloc_delay;
+			/// the MAC ID of the ST (as specified in configuration)
+			tal_id_t mac_id;
 
-		// Frame interval
-		std::shared_ptr<Probe<float>> probe_frame_interval;
+			/// counter for forward frames
+			time_ms_t fwd_frame_counter;
+
+			/// frame timer for return, used to awake the block every frame period
+			event_id_t frame_timer;
+
+			/// frame timer for forward, used to awake the block every frame period
+			event_id_t fwd_timer;
+
+			/// Delay for allocation requests from PEP (in ms)
+			int pep_alloc_delay;
+
+			SpotDownward* spot;
+
+			// Frame interval
+			std::shared_ptr<Probe<float>> probe_frame_interval;
 	};
 
  protected:
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
 
-	/// The list of Sts with forward/down modcod per spot
-	map<spot_id_t, StFmtSimuList *> output_sts_list;
+	/// The list of Sts with forward/down modcod for this spot
+	StFmtSimuList* output_sts;
 
-	/// The list of Sts with return/up modcod per spot
-	map<spot_id_t, StFmtSimuList *> input_sts_list;
+	/// The list of Sts with return/up modcod for this spot
+	StFmtSimuList* input_sts;
 };
 
 

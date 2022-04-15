@@ -1,5 +1,3 @@
-SUBDIRS = transparent
-
 noinst_LTLIBRARIES = libopensand_dvb_core.la
 
 libopensand_dvb_core_la_cpp = \
@@ -38,9 +36,6 @@ libopensand_dvb_core_la_SOURCES = \
 	$(libopensand_dvb_core_la_cpp) \
 	$(libopensand_dvb_core_la_h)
 
-libopensand_dvb_core_la_LIBADD = \
-	transparent/libopensand_dvb_core_transp.la
-
 libopensand_dvb_core_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/simu \
@@ -52,7 +47,6 @@ libopensand_dvb_core_la_CPPFLAGS = \
 	-I$(top_srcdir)/src/dvb/ncc_interface \
 	-I$(top_srcdir)/src/dvb/saloha \
 	-I$(top_srcdir)/src/dvb/scpc \
-	-I$(top_srcdir)/src/dvb/core/transparent \
 	-I$(top_srcdir)/src/qos_data \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common

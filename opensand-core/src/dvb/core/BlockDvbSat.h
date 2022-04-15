@@ -54,18 +54,19 @@
 #define BLOC_DVB_SAT_H
 
 #include "BlockDvb.h"
-#include "PhysicStd.h" 
 #include "TerminalCategoryDama.h"
 #include "SatGw.h"
 
-// output
 #include <opensand_output/Output.h>
 
-#include <linux/param.h>
-#include <set>
 
-
+class PhysicStd;
+class RtEvent;
 class SatGw;
+
+
+/// The map of satellite spots
+typedef std::map<uint8_t, SatGw *> sat_gws_t;
 
 
 class BlockDvbSat: public BlockDvb
@@ -83,7 +84,7 @@ class BlockDvbSat: public BlockDvb
 
 		~Upward();
 
-		virtual bool onInit(void);
+		bool onInit(void);
 		
 		bool onEvent(const RtEvent *const event);
 		
@@ -124,7 +125,7 @@ class BlockDvbSat: public BlockDvb
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		virtual bool initSwitchTable(void) = 0;
+		bool initSwitchTable(void);
 		
 		/**
 		 * @brief add st to the fmt simulation 
@@ -133,38 +134,35 @@ class BlockDvbSat: public BlockDvb
 		 * @param st_id      The terminal id 
 		 * @return true on success, false otherwise
 		 */ 
-		virtual bool addSt(SatGw *current_gw, tal_id_t st_id) = 0;
+		bool addSt(SatGw *current_gw, tal_id_t st_id);
 		
 		/**
 		 * Handle corrupted frame
 		 *
 		 * @return true on success, false otherwise
 		 */ 
-		virtual bool handleCorrupted(DvbFrame *dvb_frame) = 0;
+		bool handleCorrupted(DvbFrame *dvb_frame);
 
 		/**
 		 * Handle Net Burst packet
 		 * 
 		 * @return true on success , false otherwise
 		 */ 
-		virtual bool handleDvbBurst(DvbFrame *dvb_frame,
-		                            SatGw *current_gw) = 0;
+		bool handleDvbBurst(DvbFrame *dvb_frame, SatGw *current_gw);
 
 		/**
 		 * Handle BB Frame
 		 * 
 		 * @return true on success, false otherwise
 		 */ 
-		virtual bool handleBBFrame(DvbFrame *dvb_frame, 
-		                           SatGw *current_gw) = 0;
+		bool handleBBFrame(DvbFrame *dvb_frame, SatGw *current_gw);
 		
 		/**
 		 * Handle Saloha
 		 *
 		 * @return true on success, false otherwise
 		 */ 
-		virtual bool handleSaloha(DvbFrame *dvb_frame, 
-		                          SatGw *current_gw) = 0;
+		bool handleSaloha(DvbFrame *dvb_frame, SatGw *current_gw);
 
 		/// The satellite spots
 		sat_gws_t gws;
@@ -199,28 +197,28 @@ class BlockDvbSat: public BlockDvb
 		 *
 		 * @return true on success, false otherwise
 		 */ 
-		virtual bool handleMessageBurst(const RtEvent *const event) = 0;
+		bool handleMessageBurst(const RtEvent *const event);
 		
 		/**
 		 * @briel handle event timer
 		 *
 		 * @return true on success, false otherwise
 		 */ 
-		virtual bool handleTimerEvent(SatGw *current_gw) = 0;
+		bool handleTimerEvent(SatGw *current_gw);
 
 		/**
 		 * @brief Initialize the link
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		virtual bool initSatLink(void) = 0;
+		bool initSatLink(void);
 
 		/**
 		 * @brief Read configuration for the different timers
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		virtual bool initTimers(void) = 0;
+		bool initTimers(void);
 
 		/**
 		 * @brief Initialize the statistics part
@@ -255,13 +253,13 @@ class BlockDvbSat: public BlockDvb
 		sat_gws_t gws;
 
 		/// The uplink C/N0 per terminal
-		map<tal_id_t, double> cni;
+		std::map<tal_id_t, double> cni;
 
 		// Output probes and stats
-		typedef map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerSpot;
+		typedef std::map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerSpot;
 
 		// Frame interval
-    std::shared_ptr<Probe<float>> probe_frame_interval;
+		std::shared_ptr<Probe<float>> probe_frame_interval;
 	};
 
 
