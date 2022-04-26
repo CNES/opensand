@@ -64,13 +64,12 @@ The debian packages can be installed using `apt` commands.
 
 Unless otherwise specified, all the commands here must be executed on all machines.
 
-In order to install the packages using `apt`, the repository must be added to its sources.
-One way of doing it is by adding a new file into the `/etc/apt/sources.list.d/` folder.
+In order to install the packages using `apt`, the repository must be added to its sources. One way of doing it is by creating the file `/etc/apt/sources.list.d/net4sat.list`.
 
 If using Ubuntu 20.04 LTS (focal):
 
 ```
-echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee -a /etc/apt/sources.list.d/net4sat.list
+echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee /etc/apt/sources.list.d/net4sat.list
 ```
 
 Add GPG key for net4sat repository (as root) : 
