@@ -38,10 +38,10 @@ EMU_IP_ST=192.168.18.15
 TAP_IFACE=opensand_tap
 TAP_MAC_GW=00:00:00:00:00:01
 TAP_MAC_ST=00:00:00:00:00:02
-WS_GW_MAC=FA:16:3E:65:95:E1
-WS_ST_MAC=FA:16:3E:64:76:1F
 NET_DIGITS=24
-COLLECTOR_IP=10.10.0.191
+ENABLE_COLLECTOR=true
+COLLECTOR_IP=10.10.0.142
+ENABLE_LOCAL_LOGS=false
 LOG_FOLDER=/var/log/opensand
 
 all: clean network run 
@@ -51,6 +51,7 @@ clean: stop
 
 network: clean
 	ip link set $(EMU_IFACE) up
+	sleep 0.1
 	ip address flush dev $(EMU_IFACE)
 	ip address replace $(EMU_IP_SAT)/$(NET_DIGITS) dev $(EMU_IFACE)
 
@@ -64,9 +65,9 @@ generate-xml:
 	sed -i "s|TAP_IFACE|$(TAP_IFACE)|g" infrastructure_updated.xml
 	sed -i "s|TAP_MAC_GW|$(TAP_MAC_GW)|g" infrastructure_updated.xml
 	sed -i "s|TAP_MAC_ST|$(TAP_MAC_ST)|g" infrastructure_updated.xml
-	sed -i "s|WS_GW_MAC|$(WS_GW_MAC)|g" infrastructure_updated.xml
-	sed -i "s|WS_ST_MAC|$(WS_ST_MAC)|g" infrastructure_updated.xml
+	sed -i "s|ENABLE_COLLECTOR|$(ENABLE_COLLECTOR)|g" infrastructure_updated.xml
 	sed -i "s|COLLECTOR_IP|$(COLLECTOR_IP)|g" infrastructure_updated.xml
+	sed -i "s|ENABLE_LOCAL_LOGS|$(ENABLE_LOCAL_LOGS)|g" infrastructure_updated.xml
 	sed -i "s|LOG_FOLDER|$(LOG_FOLDER)|g" infrastructure_updated.xml
 
 run: generate-xml
@@ -74,6 +75,7 @@ run: generate-xml
 
 stop:
 	killall -q opensand || true
+
 
 .PHONY: all run network clean stop generate-xml
 
