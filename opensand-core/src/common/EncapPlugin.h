@@ -129,7 +129,7 @@ class EncapPlugin: public StackPlugin
 		                                    std::vector<NetPacket *> &decap_packets,
 		                                    unsigned int decap_packet_count=0);
 
-		virtual NetPacket *getPacketForHeaderExtensions(const std::vector<NetPacket*> &packets);
+		virtual bool getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets, NetPacket ** selected_pkt);
 
 		virtual bool setHeaderExtensions(const NetPacket* packet,
 		                                 NetPacket** new_packet,
