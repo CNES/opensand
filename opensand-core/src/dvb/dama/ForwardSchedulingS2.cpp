@@ -398,6 +398,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	vol_sym_t capacity_sym = carriers->getRemainingCapacity();
 	vol_sym_t previous_sym = carriers->getPreviousCapacity(current_superframe_sf);
 	vol_sym_t init_capa = capacity_sym;
+	vol_sym_t capacity_before_pending;
 	capacity_sym += previous_sym;
 
 	// retrieve the number of packets waiting for retransmission
@@ -405,7 +406,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	if (max_to_send <= 0 && this->pending_bbframes.size() == 0)
 	{
 		// reset previous capacity
-		carriers->setPreviousCapacity(0, 0);
+		carriers->setPreviousCapacity(0, current_superframe_sf + 1);
 		// set the remaining capacity for incomplete frames scheduling
 		carriers->setRemainingCapacity(capacity_sym);
 		goto skip;
@@ -422,10 +423,13 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	// we add previous remaining capacity here because if a BBFrame was
 	// not send before, previous_capacity contains the remaining capacity at the
 	// end of the previous frame
+	capacity_before_pending = capacity_sym;
 	this->schedulePending(supported_modcods, current_superframe_sf,
 	                      complete_dvb_frames, capacity_sym);
 	// reset previous capacity
-	carriers->setPreviousCapacity(0, 0);
+	carriers->setPreviousCapacity(
+			carriers->getPreviousCapacity(current_superframe_sf + 1) - (capacity_before_pending - capacity_sym),
+			current_superframe_sf + 1);
 
 	// all the previous capacity was not consumed, remove it as we are not on
 	// pending frames anymore of if there is no incomplete frame
