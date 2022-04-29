@@ -246,7 +246,7 @@ destroy_packets:
 }
 
 
-NetPacket *EncapPlugin::EncapPacketHandler::getPacketForHeaderExtensions(const std::vector<NetPacket*>&)
+bool EncapPlugin::EncapPacketHandler::getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets, NetPacket ** selected_pkt)
 {
 	assert(0);
 }

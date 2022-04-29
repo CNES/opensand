@@ -459,7 +459,7 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
                                 MacFifoElement *elem,
                                 DvbFifo *fifo,
-                                std::vector<NetPacket*> packet_list,
+                                NetPacket* packet,
                                 NetPacket **extension_pkt,
                                 tal_id_t source,
                                 tal_id_t dest,
@@ -484,21 +484,30 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	}
 	opaque = hcnton(cni);
 
-	bool replace = false;
-	NetPacket *selected_pkt = pkt_hdl->
-	                  getPacketForHeaderExtensions(packet_list);
-	if(selected_pkt != NULL)
+	bool replace = packet != nullptr;
+	NetPacket* selected_pkt = nullptr;
+	if(packet != nullptr)
 	{
-		LOG(this->log_fmt, LEVEL_DEBUG,
-		    "SF#%d: found no-fragmented packet without extensions\n",
-		    super_frame_counter);
-		replace = true;
-	}
-	else
-	{
-		LOG(this->log_fmt, LEVEL_DEBUG,
-		    "SF#%d: no non-fragmented or without extension packet found, "
-		    "create empty packet\n", super_frame_counter);
+		bool success = pkt_hdl->getPacketForHeaderExtensions({packet}, &selected_pkt);
+
+		if (!success)
+		{
+			LOG(this->log_fmt, LEVEL_DEBUG,
+			    "SF#%d: Cannot get packet to add header extension\n",
+			    super_frame_counter);
+		}
+		else if(selected_pkt != NULL)
+		{
+			LOG(this->log_fmt, LEVEL_DEBUG,
+			    "SF#%d: found no-fragmented packet without extensions\n",
+			    super_frame_counter);
+		}
+		else
+		{
+			LOG(this->log_fmt, LEVEL_DEBUG,
+			    "SF#%d: no non-fragmented or without extension packet found, "
+			    "create empty packet\n", super_frame_counter);
+		}
 	}
 
 	if(!pkt_hdl->setHeaderExtensions(selected_pkt,
