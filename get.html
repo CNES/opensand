@@ -202,52 +202,22 @@
               <li>Install OpenSAND:</li>
               <ul style="padding-left: 2em;">
                 <div class="shell-div">
-                  <li>For Manager (only one host (usually the satellite), used to control the platform)
-                    <br>
-                    <code class="shell">
-                    $ sudo apt-get install opensand opensand-manager opensand-collector</code>
-                  </li>
-                  <li>For all hosts
+                  <li>On all the entities
                     <br>
                     <code class="shell">
                     $ sudo apt-get install opensand</code>
                   </li>
+                  <li>For the Manager (only one host, usually the satellite, but not necessarilly an entity) used to control the platform
+                    <br>
+                    <code class="shell">
+                    $ sudo apt-get install opensand-deploy opensand-collector</code>
+                  </li>
+                  <ul><li>Note that in order to install the collector, you need to manually
+                      <a href="https://github.com/CNES/opensand#optional-collector" rel="nofollow">install some dependencies first</a></li></ul>
                 </div>
               </ul>
             </ul>
           </p>
-          <p>You will then be prompted with some parameters, for a basic configuration 
-             (if you kept the interface names recommended in the <a href="#requirements">
-             requirements</a>), only edit the following elements:
-            <ul>
-              <li><em>Service name:</em> choose your type of host, see <a href="#requirements">
-                requirements</a> to choose the appropriate type of hosts for your
-                platform.</li>
-              <li><em>Service instance:</em> (for gateway and satellite terminals)
-                choose a gateway/terminal ID, do not reuse twice the same ID on your platform.</li>
-            </ul>
-          </p>
-          <!--
-          <p>Additionally, you should install the ROHC plugin which is an option of the OpenSAND platform.
-            <ul>
-              <li>Install ROHC plugin:</li>
-              <ul style="padding-left: 2em;">
-                <div class="shell-div">
-                  <li>For Manager (only one host (usually the satellite), used to control the platform)
-                    <br>
-                    <code class="shell">
-                    $ sudo apt-get install libopensand-rohc-lan-adapt-plugin-manager</code>
-                  </li>
-                  <li>For all hosts
-                    <br>
-                    <code class="shell">
-                    $ sudo apt-get install libopensand-rohc-lan-adapt-plugin</code>
-                  </li>
-                </div>
-              </ul>
-            </ul>
-          </p>
-          -->
         </div>
       </div>
     </div>
