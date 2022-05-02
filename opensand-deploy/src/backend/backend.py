@@ -122,7 +122,7 @@ def error(message, return_code=500, **kwargs):
 def handle_exception(exc):
     if isinstance(exc, HTTPException):
         return exc
-
+    print(traceback.format_exc())
     return error(traceback.format_exc())
 
 
@@ -234,7 +234,7 @@ def create_default_infrastructure(meta_model, filepath):
 
     satellite = _get_component(entity, 'entity_sat')
     _set_parameter(satellite, 'emu_address', '192.168.0.63')
-    _set_parameter(satellite, 'default_gw', -1)
+    _set_parameter(satellite, 'default_entity', -1)
 
     terminal = _get_component(entity, 'entity_st')
     _set_parameter(terminal, 'entity_id', 1)
@@ -419,7 +419,7 @@ def create_platform_infrastructure(project):
         return
 
     infrastructure = {
-            'satellite': ('192.168.0.63', -1),
+            'satellite': {},
             'gateways': {},
             'terminals': {},
     }
@@ -441,10 +441,13 @@ def create_platform_infrastructure(project):
         entity_type = _get_parameter(entity, 'entity_type')
         if entity_type == "Satellite":
             entity_sat = entity.get_component('entity_sat')
-            emu_address = _get_parameter(entity_sat, 'emu_address', '')
-            default_gw = _get_parameter(entity_sat, 'default_gw', -1)
-            if emu_address is not None and default_gw is not None:
-                infrastructure['satellite'] = (emu_address, default_gw)
+            entity_id = _get_parameter(entity_sat, 'entity_id')
+            if entity_id is not None:
+                satellite = {'entity_id': entity_id}
+                satellite['emu_address'] = _get_parameter(entity_sat, 'emu_address', '')
+                satellite['default_entity'] = _get_parameter(entity_sat, 'default_entity', -1)
+                satellite['isl_port'] = _get_parameter(entity_sat, 'isl_port', -1)
+                infrastructure['satellite'][entity_id] = satellite
         elif entity_type == "Gateway":
             entity_gw = entity.get_component('entity_gw')
             entity_id = _get_parameter(entity_gw, 'entity_id')
@@ -520,10 +523,18 @@ def create_platform_infrastructure(project):
         if infra is None:
             continue
 
-        satellite = _get_component(infra, 'satellite')
-        emu_address, default_gw = infrastructure['satellite']
-        _set_parameter(satellite, 'emu_address', emu_address)
-        _set_parameter(infra, 'default_gw', default_gw)
+        satellites = infra.get_list('satellites')
+        if satellites is not None:
+            satellites.clear_items()
+
+        for satellite in infrastructure['satellite'].values():
+            sat = _create_list_item(infra, 'satellites')
+            _set_parameter(sat, 'entity_id', satellite.get('entity_id'))
+            _set_parameter(sat, 'emu_address', satellite.get('emu_address'))
+            _set_parameter(sat, 'isl_port', satellite.get('isl_port'))
+            _set_parameter(sat, 'default_entity', satellite.get('default_entity'))
+
+        _set_parameter(infra, 'default_gw', 0) # TODO
 
         gateways = infra.get_list('gateways')
         if gateways is not None:
