@@ -100,6 +100,43 @@ class BlockManager
 	                   T specific);
 
 	/**
+	 * @brief Creates and adds a multiplexer block to the top of
+	 *        the application.
+	 *
+	 * @tparam Bl       The block class
+	 * @tparam Up       The upward channel class
+	 * @tparam Down     The downward channel class
+	 * @tparam Specific The type of the specific parameter, if any
+	 * @param name      The block name
+	 * @param specific  User defined data (optional)
+	 * @return The block
+	 */
+	template <class Bl, class Up, class Down, class... Specific>
+	Block *createMuxBlock(const string &name,
+	                      Specific &&... specific);
+
+	/**
+	 * @brief Creates and adds a block to the application, below a
+	 *        multiplexer block.
+	 *
+	 * @tparam Bl       The block class
+	 * @tparam Up       The upward channel class
+	 * @tparam Down     The downward channel class
+	 * @tparam Specific The type of the specific parameter, if any
+	 * @param name      The block name
+	 * @param key       The key of this block, used to send messages 
+	 *                  from the multiplexer to this block
+	 * @param upper     The upper multiplexer block
+	 * @param specific  User defined data (optional)
+	 * @return The block
+	 */
+	template <class Bl, class Up, class Down, class Key, class... Specific>
+	Block *createMuxedBlock(const string &name,
+	                        Key key,
+	                        Block *upper,
+	                        Specific &&... specific);
+
+	/**
 	 * @brief stops the application
 	 *        Force kill if a thread don't stop
 	 *
@@ -177,16 +214,21 @@ Block *BlockManager::createBlock(const string &name,
 
 	if(upper)
 	{
+		auto upper_up = dynamic_cast<RtChannel *>(upper->getUpwardChannel());
+		auto upper_down = dynamic_cast<RtChannel *>(upper->getDownwardChannel());
+
+		assert(upper_up && upper_down && "Incoherent types of blocks");
+
 		RtFifo *up_fifo = new RtFifo();
 		RtFifo *down_fifo = new RtFifo();
 
 		// set upward fifo for upper block
 		up->setNextFifo(up_fifo);
-		upper->getUpwardChannel()->setPreviousFifo(up_fifo);
+		upper_up->setPreviousFifo(up_fifo);
 
 		// set downward fifo for block
 		down->setPreviousFifo(down_fifo);
-		upper->getDownwardChannel()->setNextFifo(down_fifo);
+		upper_down->setNextFifo(down_fifo);
 	}
 
 	this->block_list.push_back(block);
@@ -216,16 +258,21 @@ Block *BlockManager::createBlock(const string &name,
 
 	if(upper)
 	{
+		auto upper_up = dynamic_cast<RtChannel *>(upper->getUpwardChannel());
+		auto upper_down = dynamic_cast<RtChannel *>(upper->getDownwardChannel());
+
+		assert(upper_up && upper_down && "Incoherent types of blocks");
+
 		RtFifo *up_fifo = new RtFifo();
 		RtFifo *down_fifo = new RtFifo();
 
 		// set upward fifo for upper block
 		up->setNextFifo(up_fifo);
-		upper->getUpwardChannel()->setPreviousFifo(up_fifo);
+		upper_up->setPreviousFifo(up_fifo);
 
 		// set downward fifo for block
 		down->setPreviousFifo(down_fifo);
-		upper->getDownwardChannel()->setNextFifo(down_fifo);
+		upper_down->setNextFifo(down_fifo);
 	}
 
 	this->block_list.push_back(block);
@@ -233,6 +280,48 @@ Block *BlockManager::createBlock(const string &name,
 	return block;
 }
 
+template <class Bl, class Up, class Down, class... Specific>
+Block *BlockManager::createMuxBlock(const string &name,
+                                    Specific &&...specific)
+{
+	static_assert(std::is_base_of<Block::RtUpwardMux, Up>::value, "Up must derive from RtUpwardMux");
+	static_assert(std::is_base_of<Block::RtDownwardDemux<typename Down::DemuxKey>, Down>::value, "Down must derive from RtDownwardDemux");
+
+	return createBlock<Bl, Up, Down>(name, nullptr, specific...);
+}
+
+template <class Bl, class Up, class Down, class Key, class... Specific>
+Block *BlockManager::createMuxedBlock(const string &name,
+                                    Key key,
+                                    Block *upper,
+                                    Specific &&...specific)
+{
+	assert(upper != nullptr && "A muxed block cannot be at the top");
+	static_assert(std::is_base_of<RtChannel, Up>::value, "Up must derive from RtChannel");
+	static_assert(std::is_base_of<RtChannel, Down>::value, "Down must derive from RtChannel");
+
+	Block *block = createBlock<Bl, Up, Down>(name, nullptr, specific...);
+
+	RtFifo *up_fifo = new RtFifo();
+	RtFifo *down_fifo = new RtFifo();
+
+	auto up = dynamic_cast<RtChannel *>(block->getUpwardChannel());
+	auto down = dynamic_cast<RtChannel *>(block->getDownwardChannel());
+
+	auto upper_up = dynamic_cast<RtChannelMux *>(upper->getUpwardChannel());
+	auto upper_down = dynamic_cast<RtChannelDemux<Key> *>(upper->getDownwardChannel());
+	
+	assert(up && down && upper_up && upper_down && "Incoherent types of blocks");
+
+	// set upward fifo for upper block
+	up->setNextFifo(up_fifo);
+	upper_up->addPreviousFifo(up_fifo);
+
+	// set downward fifo for block
+	down->setPreviousFifo(down_fifo);
+	upper_down->addNextFifo(key, down_fifo);
+	return block;
+}
 
 #endif
 

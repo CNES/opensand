@@ -39,7 +39,7 @@
 
 #include "BlockManager.h"
 #include "Block.h"
-#include "RtChannel.h"
+#include "RtChannelBase.h"
 #include "RtEvent.h"
 #include "RtMutex.h"
 #include "Types.h"
@@ -58,7 +58,7 @@
  */
 class Rt
 {
-	friend class RtChannel;
+	friend class RtChannelBase;
 	friend class SignalEvent;
 
   public:
@@ -98,6 +98,43 @@ class Rt
 	static Block *createBlock(const string &name,
 	                          Block *const upper,
 	                          T specific);
+
+	/**
+	 * @brief Creates and adds a multiplexer block to the top of
+	 *        the application.
+	 *
+	 * @tparam Bl       The block class
+	 * @tparam Up       The upward channel class
+	 * @tparam Down     The downward channel class
+	 * @tparam Specific The type of the specific parameter, if any
+	 * @param name      The block name
+	 * @param specific  User defined data (optional)
+	 * @return The block
+	 */
+	template <class Bl, class Up, class Down, class... Specific>
+	static Block *createMuxBlock(const string &name,
+	                             Specific &&...specific);
+
+	/**
+	 * @brief Creates and adds a block to the application, below a
+	 *        multiplexer block.
+	 *
+	 * @tparam Bl       The block class
+	 * @tparam Up       The upward channel class
+	 * @tparam Down     The downward channel class
+	 * @tparam Specific The type of the specific parameter, if any
+	 * @param name      The block name
+	 * @param key       The key of this block, used to send messages
+	 *                  from the multiplexer to this block
+	 * @param upper     The upper multiplexer block
+	 * @param specific  User defined data (optional)
+	 * @return The block
+	 */
+	template <class Bl, class Up, class Down, class Key, class... Specific>
+	static Block *createMuxedBlock(const string &name,
+	                               Key key,
+	                               Block *upper,
+	                               Specific &&...specific);
 
 	/**
 	 * @brief Initialize the blocks
@@ -156,6 +193,20 @@ Block *Rt::createBlock(const string &name,
 	return Rt::manager.createBlock<Bl, Up, Down, T>(name, upper, specific);
 }
 
+template <class Bl, class Up, class Down, class... Specific>
+Block *Rt::createMuxBlock(const string &name,
+                          Specific &&...specific)
+{
+	return Rt::manager.createMuxBlock<Bl, Up, Down>(name, specific...);
+}
+
+template <class Bl, class Up, class Down, class Key, class... Specific>
+Block *Rt::createMuxedBlock(const string &name,
+                            Key key,
+                            Block *upper,
+                            Specific &&...specific)
+{
+	return Rt::manager.createMuxedBlock<Bl, Up, Down>(name, key, upper, specific...);
+}
+
 #endif
-
-

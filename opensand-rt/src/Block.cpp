@@ -226,12 +226,12 @@ bool Block::stop(int signal)
 	return status;
 }
 
-RtChannel *Block::getUpwardChannel(void) const
+RtChannelBase *Block::getUpwardChannel(void) const
 {
 	return this->upward;
 }
 
-RtChannel *Block::getDownwardChannel(void) const
+RtChannelBase *Block::getDownwardChannel(void) const
 {
 	return this->downward;
 }

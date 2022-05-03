@@ -57,6 +57,10 @@ class RtFifo
   protected:
 
 	friend class RtChannel;
+	friend class RtChannelBase;
+	friend class RtChannelMux;
+	template <typename Key>
+	friend class RtChannelDemux;
 	friend class MessageEvent;
 	friend class BlockManager;
 
