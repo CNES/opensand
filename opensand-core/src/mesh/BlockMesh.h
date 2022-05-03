@@ -52,7 +52,7 @@ class BlockMesh: public Block
   public:
 	BlockMesh(const std::string &name, tal_id_t sat_id);
 
-	class Upward: public RtUpward
+	class Upward: public RtUpwardMux
 	{
 	  public:
 		Upward(const std::string &name, tal_id_t sat_id);
@@ -73,7 +73,7 @@ class BlockMesh: public Block
 		std::unique_ptr<UdpChannel> isl_out_channel;
 	};
 
-	class Downward: public RtDownward
+	class Downward: public RtDownwardDemux<component_t>
 	{
 	  public:
 		Downward(const std::string &name, tal_id_t sat_id);
@@ -87,8 +87,7 @@ class BlockMesh: public Block
 		bool handleNetSocketEvent(NetSocketEvent *event);
 		bool handleNetBurst(std::unique_ptr<const NetBurst> burst);
 		bool sendToOppositeChannel(std::unique_ptr<const NetBurst> burst);
-		bool sendToLowerBlockGw(std::unique_ptr<const NetBurst> burst);
-		bool sendToLowerBlockSt(std::unique_ptr<const NetBurst> burst);
+		bool sendToLowerBlock(component_t dest, std::unique_ptr<const NetBurst> burst);
 
 		OpenSandModelConf::carrier_socket isl_in;
 		bool mesh_architecture;
