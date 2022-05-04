@@ -30,10 +30,13 @@
 
 LAN_IFACE=ens4
 LAN_IP_WS_GW=192.168.1.2
+LAN_IP_WS_ST=192.168.1.3
+LAN_MAC_ST=FA:16:3E:C2:89:A1
 NET_DIGITS=24
 VLAN_USED=10 20
 VLAN_IP_BASE=192.168
-VLAN_IP_TERM=2
+VLAN_IP_TERM_GW=2
+VLAN_IP_TERM_ST=3
 
 all: clean network
 
@@ -52,9 +55,11 @@ network: clean
 		ip link add link $(LAN_IFACE) name $(LAN_IFACE).$$VLAN type vlan id $$VLAN ; \
 		ip link set $(LAN_IFACE).$$VLAN up ; \
 		ip address flush dev $(LAN_IFACE).$$VLAN ; \
-		ip address add $(VLAN_IP_BASE).$$VLAN.$(VLAN_IP_TERM)/$(NET_DIGITS) dev $(LAN_IFACE).$$VLAN ; \
+		ip address add $(VLAN_IP_BASE).$$VLAN.$(VLAN_IP_TERM_GW)/$(NET_DIGITS) dev $(LAN_IFACE).$$VLAN ; \
 		ip link set $(LAN_IFACE).$$VLAN type vlan egress-qos-map 2:1 3:2 4:3 5:4 6:5 7:6 8:7 ; \
+		ip neighbor replace to $(VLAN_IP_BASE).$$VLAN.$(VLAN_IP_TERM_ST) dev $(LAN_IFACE).$$VLAN lladdr $(LAN_MAC_ST) ; \
 	done
+	ip neighbor replace to $(LAN_IP_WS_ST) dev $(LAN_IFACE) lladdr $(LAN_MAC_ST)
 	python3 yaml_parser.py
 
 

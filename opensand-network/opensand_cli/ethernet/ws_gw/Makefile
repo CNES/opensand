@@ -30,6 +30,8 @@
 
 LAN_IFACE=ens4
 LAN_IP_WS_GW=192.168.1.2
+LAN_IP_WS_ST=192.168.1.3
+LAN_MAC_ST=FA:16:3E:C2:89:A1
 NET_DIGITS=24
 
 all: clean network
@@ -41,6 +43,7 @@ network: clean
 	ip link set $(LAN_IFACE) up
 	ip address flush dev $(LAN_IFACE)
 	ip address replace $(LAN_IP_WS_GW)/$(NET_DIGITS) dev $(LAN_IFACE)
+	ip neighbor replace to $(LAN_IP_WS_ST) dev $(LAN_IFACE) lladdr $(LAN_MAC_ST)
 
 
 .PHONY: all network clean
