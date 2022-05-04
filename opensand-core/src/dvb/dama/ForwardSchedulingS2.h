@@ -125,12 +125,16 @@ class ForwardSchedulingS2: public Scheduling
 	 * @param current_time           The current time
 	 * @param complete_dvb_frames    The list of complete DVB frames
 	 * @param carriers               The carriers group
+	 * @param capacity_sym           The capacity for this cycle, including previous space
+	 * @param init_capa              The capacity for a whole cycle
 	 */
 	bool scheduleEncapPackets(DvbFifo *fifo,
 	                          const time_sf_t current_superframe_sf,
 	                          clock_t current_time,
 	                          list<DvbFrame *> *complete_dvb_frames,
-	                          CarriersGroupDama *carriers);
+	                          CarriersGroupDama *carriers,
+	                          vol_sym_t &capacity_sym,
+	                          vol_sym_t init_capa);
 
 
 	/**
@@ -152,12 +156,14 @@ class ForwardSchedulingS2: public Scheduling
 	 * @paarm carriers  the carriers group to which the terminal belongs
 	 * @param current_superframe_sf  The current superframe number
 	 * @param bbframe   OUT: the BBframe for this packet
+	 * @param capacity_sym The remaining capacity
 	 * @return          true on success, false otherwise
 	 */
 	bool getIncompleteBBFrame(tal_id_t tal_id,
 	                          CarriersGroupDama *carriers,
 	                          const time_sf_t current_superframe_sf,
-	                          BBFrame **bbframe);
+	                          BBFrame **bbframe,
+	                          vol_sym_t capacity_sym);
 
 	/**
 	 * @brief Add a BBframe to the list of complete BB frames
