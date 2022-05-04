@@ -440,7 +440,6 @@ bool SpotDownwardTransp::addCniExt(void)
 			    queue_it != queue.end();
 			    ++queue_it)
 			{
-				std::vector<NetPacket*> packet_list;
 				MacFifoElement* elem = (*queue_it);
 				NetPacket *packet = (NetPacket*)elem->getElem();
 				tal_id_t tal_id = packet->getDstTalId();
@@ -453,11 +452,10 @@ bool SpotDownwardTransp::addCniExt(void)
 				   this->getCniInputHasChanged(tal_id))
 				{
 					list_st.push_back(tal_id);
-					packet_list.push_back(packet);
 					// we could make specific SCPC function
 					if(!this->setPacketExtension(this->pkt_hdl,
 						                         elem, fifo,
-						                         packet_list,
+						                         packet,
 						                         &extension_pkt,
 						                         this->mac_id,
 						                         tal_id,
@@ -493,7 +491,6 @@ bool SpotDownwardTransp::addCniExt(void)
 		if(it_scpc != this->is_tal_scpc.end() && it == list_st.end()
 		   && this->getCniInputHasChanged(tal_id))
 		{
-			std::vector<NetPacket*> packet_list;
 			NetPacket *extension_pkt = NULL;
 			string cat_label;
 			map<string, fifos_t>::iterator fifos_it;
@@ -539,7 +536,7 @@ bool SpotDownwardTransp::addCniExt(void)
 				                         NULL,
 				                         // highest priority fifo
 				                         ((*fifos_it).second)[0],
-				                         packet_list,
+				                         nullptr,
 				                         &extension_pkt,
 				                         this->mac_id,
 				                         tal_id,

@@ -44,7 +44,9 @@ WS_ST_MAC=FA:16:3E:C2:89:A1
 BR_IFACE=opensand_br
 BR_IFACE_IP=192.168.63.15
 NET_DIGITS=24
-COLLECTOR_IP=10.10.0.191
+ENABLE_COLLECTOR=true
+COLLECTOR_IP=10.10.0.142
+ENABLE_LOCAL_LOGS=false
 LOG_FOLDER=/var/log/opensand
 VLAN_USED=10 20
 VLAN_ID_DEFAULT=2
@@ -60,6 +62,7 @@ clean: stop
 network: clean
 	ip link set $(EMU_IFACE) up
 	ip link set $(LAN_IFACE) up
+	sleep 0.1
 	ip address flush dev $(EMU_IFACE)
 	ip address flush dev $(LAN_IFACE)
 	ip address replace $(EMU_IP_ST)/$(NET_DIGITS) dev $(EMU_IFACE)
@@ -93,7 +96,9 @@ generate-xml:
 	sed -i "s|TAP_MAC_ST|$(TAP_MAC_ST)|g" infrastructure_updated.xml
 	sed -i "s|WS_GW_MAC|$(WS_GW_MAC)|g" infrastructure_updated.xml
 	sed -i "s|WS_ST_MAC|$(WS_ST_MAC)|g" infrastructure_updated.xml
+	sed -i "s|ENABLE_COLLECTOR|$(ENABLE_COLLECTOR)|g" infrastructure_updated.xml
 	sed -i "s|COLLECTOR_IP|$(COLLECTOR_IP)|g" infrastructure_updated.xml
+	sed -i "s|ENABLE_LOCAL_LOGS|$(ENABLE_LOCAL_LOGS)|g" infrastructure_updated.xml
 	sed -i "s|LOG_FOLDER|$(LOG_FOLDER)|g" infrastructure_updated.xml
 
 run: generate-xml

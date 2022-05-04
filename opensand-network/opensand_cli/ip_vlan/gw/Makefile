@@ -41,14 +41,14 @@ LAN_IP=192.168.1.1
 TAP_IFACE=opensand_tap
 TAP_MAC_GW=00:00:00:00:00:01
 TAP_MAC_ST=00:00:00:00:00:02
-WS_GW_MAC=FA:16:3E:65:95:E1
-WS_ST_MAC=FA:16:3E:64:76:1F
 BR_IFACE=opensand_br
 BR_IFACE_IP_GW=192.168.63.254
 BR_IFACE_IP_ST=192.168.63.15
 NET_DIGITS=24
 FORWARDING=1
-COLLECTOR_IP=10.10.0.191
+ENABLE_COLLECTOR=true
+COLLECTOR_IP=10.10.0.142
+ENABLE_LOCAL_LOGS=false
 LOG_FOLDER=/var/log/opensand
 VLAN_ID_DEFAULT=2
 
@@ -64,6 +64,7 @@ clean: stop
 network: clean
 	ip link set $(EMU_IFACE) up
 	ip link set $(LAN_IFACE) up
+	sleep 0.1
 	ip address flush dev $(EMU_IFACE)
 	ip address flush dev $(LAN_IFACE)
 	ip address replace $(LAN_IP)/$(NET_DIGITS) dev $(LAN_IFACE)
@@ -83,7 +84,7 @@ network: clean
 	sysctl -w net.ipv4.conf.$(LAN_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.ip_forward=$(FORWARDING)
 	sysctl -w net.bridge.bridge-nf-call-iptables=1
-	ip route add $(ST_LAN_NET) via $(BR_IFACE_IP_ST) dev $(BR_IFACE)
+	ip route replace $(ST_LAN_NET) via $(BR_IFACE_IP_ST) dev $(BR_IFACE)
 	ip link add link $(TAP_IFACE) name $(TAP_IFACE).1 type vlan id $(VLAN_ID_DEFAULT)
 	ip link set $(TAP_IFACE).1 type vlan egress-qos-map 2:1 3:2 4:3 5:4 6:5 7:6 8:7
 	ip link set dev $(TAP_IFACE).1 master $(BR_IFACE)
@@ -102,9 +103,9 @@ generate-xml:
 	sed -i "s|TAP_IFACE|$(TAP_IFACE)|g" infrastructure_updated.xml
 	sed -i "s|TAP_MAC_GW|$(TAP_MAC_GW)|g" infrastructure_updated.xml
 	sed -i "s|TAP_MAC_ST|$(TAP_MAC_ST)|g" infrastructure_updated.xml
-	sed -i "s|WS_GW_MAC|$(WS_GW_MAC)|g" infrastructure_updated.xml
-	sed -i "s|WS_ST_MAC|$(WS_ST_MAC)|g" infrastructure_updated.xml
+	sed -i "s|ENABLE_COLLECTOR|$(ENABLE_COLLECTOR)|g" infrastructure_updated.xml
 	sed -i "s|COLLECTOR_IP|$(COLLECTOR_IP)|g" infrastructure_updated.xml
+	sed -i "s|ENABLE_LOCAL_LOGS|$(ENABLE_LOCAL_LOGS)|g" infrastructure_updated.xml
 	sed -i "s|LOG_FOLDER|$(LOG_FOLDER)|g" infrastructure_updated.xml
 
 run: generate-xml

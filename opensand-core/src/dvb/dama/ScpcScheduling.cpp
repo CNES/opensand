@@ -355,6 +355,11 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 
 	// retrieve the number of packets waiting for retransmission
 	max_to_send = fifo->getCurrentSize();
+	LOG(this->log_scheduling, LEVEL_INFO,
+	    "SF#%u: ScpcScheduling::scheduleEncapPackets: "
+	    "max_to_send is %u, this->pending_bbframes.size() = %u\n",
+	    current_superframe_sf,
+	    max_to_send, this->pending_bbframes.size());
 	if (max_to_send <= 0 && this->pending_bbframes.size() == 0)
 	{
 		// reset previous capacity
@@ -706,7 +711,8 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 		    "on carrier %u\n", current_superframe_sf, desired_modcod,
 		    carriers->getCarriersId());
 
-		goto skip;
+		modcod_id = scpc_modcod_def->getMinId();
+		//goto skip;
 	}
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "SF#%u: Available MODCOD for GW = %u\n",

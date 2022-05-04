@@ -1567,7 +1567,7 @@ bool Gse::PacketHandler::getQos(const Data &data, qos_t &qos) const
 }
 
 
-NetPacket *Gse::PacketHandler::getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets)
+bool Gse::PacketHandler::getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets, NetPacket ** selected_pkt)
 {
 	for(std::vector<NetPacket*>::const_iterator packet_it = packets.begin();
 	    packet_it != packets.end();
@@ -1589,7 +1589,7 @@ NetPacket *Gse::PacketHandler::getPacketForHeaderExtensions(const std::vector<Ne
 		{
 			LOG(this->log, LEVEL_ERROR, "cannot get start indicator (%s)\n",
 			    gse_get_status(status));
-			return NULL;
+			return false;
 		}
 
 		if(indicator != 0)
@@ -1602,14 +1602,15 @@ NetPacket *Gse::PacketHandler::getPacketForHeaderExtensions(const std::vector<Ne
 				LOG(this->log, LEVEL_ERROR, 
 				    "cannot get protocol type of the GSE packet (%s)\n",
 				    gse_get_status(status));
-				return NULL;
+				return false;
 			}
 
 			// Test if packet already has extensions
 			// (case protocol_type < GSE_MIN_ETHER_TYPE)
 			if(protocol_type >= GSE_MIN_ETHER_TYPE)
 			{
-				return packet;
+				*selected_pkt = packet;
+				return true;
 			}
 			else
 			{
@@ -1618,7 +1619,8 @@ NetPacket *Gse::PacketHandler::getPacketForHeaderExtensions(const std::vector<Ne
 		}
 	}
 
-	return NULL;
+	*selected_pkt = nullptr;
+	return true;
 }
 
 bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
