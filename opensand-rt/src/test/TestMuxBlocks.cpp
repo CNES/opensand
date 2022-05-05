@@ -121,6 +121,54 @@ bool TopBlock::Downward::onEvent(const RtEvent *const event)
 	enqueueMessage(Side::RIGHT, &data);
 	return true;
 }
+///////////////////////// MiddleBlock /////////////////////////
+
+MiddleBlock::MiddleBlock(const std::string &name, Side side):
+    Block{name} {}
+
+MiddleBlock::Upward::Upward(const std::string &name, Side side):
+    RtUpwardMuxDemux<Side>(name), side{side} {}
+
+bool MiddleBlock::Upward::onEvent(const RtEvent *const event)
+{
+	if (event->getType() != evt_message)
+	{
+		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+		return false;
+	}
+	if (side == Side::RIGHT)
+	{
+		Rt::reportError(getName(), pthread_self(), true, "The wrong block received the message");
+		return false;
+	}
+	auto msg = static_cast<const MessageEvent *>(event);
+	auto data = msg->getData();
+	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
+	enqueueMessage(Side::LEFT, &data);
+	return true;
+}
+
+MiddleBlock::Downward::Downward(const std::string &name, Side side):
+    RtDownwardMuxDemux<Side>(name), side{side} {}
+
+bool MiddleBlock::Downward::onEvent(const RtEvent *const event)
+{
+	if (event->getType() != evt_message)
+	{
+		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+		return false;
+	}
+	if (side == Side::LEFT)
+	{
+		Rt::reportError(getName(), pthread_self(), true, "The wrong block received the message");
+		return false;
+	}
+	auto msg = static_cast<const MessageEvent *>(event);
+	auto data = msg->getData();
+	std::cout << getName() << ": Sending message downward: " << *static_cast<std::string *>(data) << "\n";
+	enqueueMessage(Side::RIGHT, &data);
+	return true;
+}
 
 ///////////////////////// BottomBlock /////////////////////////
 
@@ -178,21 +226,16 @@ BottomMux::Upward::Upward(const std::string &name):
 
 bool BottomMux::Upward::onInit()
 {
-	addTimerEvent("send", 100, false);
+	void *data = new std::string{"test"};
+	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
+	enqueueMessage(Side::LEFT, &data);
 	return true;
 }
 
 bool BottomMux::Upward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != evt_timer)
-	{
-		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
-		return false;
-	}
-	void *data = new std::string{"test"};
-	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::LEFT, &data);
-	return true;
+	Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+	return false;
 }
 
 BottomMux::Downward::Downward(const std::string &name):
@@ -213,7 +256,8 @@ bool BottomMux::Downward::onEvent(const RtEvent *const event)
 			auto msg = static_cast<const MessageEvent *>(event);
 			auto data = static_cast<std::string *>(msg->getData());
 			std::cout << "Received message: " << *data << "\n";
-			if (*data != "test") {
+			if (*data != "test")
+			{
 				Rt::reportError(getName(), pthread_self(), true, "Message has been modified");
 				return false;
 			}
@@ -236,13 +280,17 @@ int main()
 	auto top_mux = Rt::createBlock<TopMux>("top_mux");
 	auto top_left = Rt::createBlock<TopBlock>("top_left", Side::LEFT);
 	auto top_right = Rt::createBlock<TopBlock>("top_right", Side::RIGHT);
+	auto middle_left = Rt::createBlock<MiddleBlock>("middle_left", Side::LEFT);
+	auto middle_right = Rt::createBlock<MiddleBlock>("middle_right", Side::RIGHT);
 	auto bottom_left = Rt::createBlock<BottomBlock>("bottom_left", Side::LEFT);
 	auto bottom_right = Rt::createBlock<BottomBlock>("bottom_right", Side::RIGHT);
 	auto bottom_mux = Rt::createBlock<BottomMux>("bottom_mux");
 	Rt::connectBlocks(top_mux, top_left, Side::LEFT);
 	Rt::connectBlocks(top_mux, top_right, Side::RIGHT);
-	Rt::connectBlocks(top_left, bottom_left, Side::LEFT, Side::LEFT);
-	Rt::connectBlocks(top_right, bottom_right, Side::RIGHT, Side::RIGHT);
+	Rt::connectBlocks(top_left, middle_left, Side::LEFT, Side::LEFT);
+	Rt::connectBlocks(top_right, middle_right, Side::RIGHT, Side::RIGHT);
+	Rt::connectBlocks(middle_left, bottom_left, Side::LEFT, Side::LEFT);
+	Rt::connectBlocks(middle_right, bottom_right, Side::RIGHT, Side::RIGHT);
 	Rt::connectBlocks(bottom_left, bottom_mux, Side::LEFT);
 	Rt::connectBlocks(bottom_right, bottom_mux, Side::RIGHT);
 

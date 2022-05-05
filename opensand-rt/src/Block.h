@@ -41,6 +41,7 @@
 #include "RtChannel.h"
 #include "RtChannelMux.h"
 #include "RtChannelDemux.h"
+#include "RtChannelMuxDemux.h"
 #include "Types.h"
 
 
@@ -125,10 +126,15 @@ class Block
 	using RtUpwardMux = RtUpwardBase<RtChannelMux>;
 	template <typename Key>
 	using RtUpwardDemux = RtUpwardBase<RtChannelDemux<Key>>;
+	template <typename Key>
+	using RtUpwardMuxDemux = RtUpwardBase<RtChannelMuxDemux<Key>>;
+	
 	using RtDownward = RtDownwardBase<RtChannel>;
 	using RtDownwardMux = RtDownwardBase<RtChannelMux>;
 	template <typename Key>
 	using RtDownwardDemux = RtDownwardBase<RtChannelDemux<Key>>;
+	template <typename Key>
+	using RtDownwardMuxDemux = RtDownwardBase<RtChannelMuxDemux<Key>>;
 
   protected:
 

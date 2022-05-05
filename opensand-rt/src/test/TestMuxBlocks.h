@@ -63,6 +63,28 @@ class TopMux : public Block
 	};
 };
 
+class MiddleBlock: public Block
+{
+  public:
+	MiddleBlock(const std::string &name, Side side);
+
+	class Upward: public RtUpwardMuxDemux<Side>
+	{
+	  public:
+		Upward(const std::string &name, Side side);
+		bool onEvent(const RtEvent *const event);
+		Side side;
+	};
+
+	class Downward: public RtDownwardMuxDemux<Side>
+	{
+	  public:
+		Downward(const std::string &name, Side side);
+		bool onEvent(const RtEvent *const event);
+		Side side;
+	};
+};
+
 class TopBlock: public Block
 {
   public:

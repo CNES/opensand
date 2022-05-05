@@ -28,6 +28,7 @@ libopensand_rt_la_h = \
 	Rt.h \
 	RtChannelBase.h \
 	RtChannelMux.h \
+	RtChannelMuxDemux.h \
 	RtChannelDemux.h \
 	RtChannel.h \
 	RtMutex.h \

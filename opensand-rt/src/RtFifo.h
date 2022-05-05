@@ -61,6 +61,8 @@ class RtFifo
 	friend class RtChannelMux;
 	template <typename Key>
 	friend class RtChannelDemux;
+	template <typename Key>
+	friend class RtChannelMuxDemux;
 	friend class MessageEvent;
 	friend class BlockManager;
 
