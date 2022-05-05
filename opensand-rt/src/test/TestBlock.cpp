@@ -243,9 +243,7 @@ HeapLeakChecker heap_checker("test_block");
 
 	std::cout << "Launch test" << std::endl;
 
-	Rt::createBlock<TestBlock,
-	                TestBlock::Upward,
-	                TestBlock::Downward>("test");
+	Rt::createBlock<TestBlock>("test");
 	
 	std::cout << "Start loop, please wait..." << std::endl;
 	Output::Get()->finalizeConfiguration();

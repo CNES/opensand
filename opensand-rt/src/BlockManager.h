@@ -37,19 +37,15 @@
 #ifndef BLOCK_MANAGER_H
 #define BLOCK_MANAGER_H
 
-
 #include "Block.h"
 #include "MessageEvent.h"
 #include "RtFifo.h"
 
 #include <opensand_output/OutputLog.h>
 
+#include "TemplateHelper.h"
 #include <list>
 #include <string>
-
-using std::string;
-using std::list;
-
 
 /**
  * @class BlockManager
@@ -61,80 +57,94 @@ class BlockManager
 	friend class Rt;
 
   protected:
-
 	BlockManager();
 	~BlockManager();
 
-
 	/**
-	 * @brief Creates and adds a block to the application
-	 *        The block should be created from upper to lower
-	 *
-	 * @tparam Bl         The block class
-	 * @tparam Up       The upward channel class
-	 * @tparam Down     The downward channel class
-	 * @param name      The block name
-	 * @param upper     The upper block or NULL if none
-	 * @return The block
-	 */
-	template<class Bl, class Up, class Down>
-	Block *createBlock(const string &name,
-	                   Block *const upper = NULL);
-
-	/**
-	 * @brief Creates and adds a block to the application
-	 *        The block should be created from upper to lower
+	 * @brief Creates and adds a block to the application.
 	 *
 	 * @tparam Bl       The block class
-	 * @tparam Up       The upward channel class
-	 * @tparam Down     The downward channel class
-	 * @tparam T        The type of the specific parameter
 	 * @param name      The block name
-	 * @param upper     The upper block or NULL if none
-	 * @param specific  User defined data
-	 * @return The block
+	 * @return A pointer to the newly created block
 	 */
-	template<class Bl, class Up, class Down, class T>
-	Block *createBlock(const string &name,
-	                   Block *const upper,
-	                   T specific);
+	template <class Bl>
+	Bl *createBlock(const std::string &name)
+	{
+		auto *block = new Bl(name);
+		auto *upward = new typename Bl::Upward(name);
+		auto *downward = new typename Bl::Downward(name);
+		setupBlock(block, upward, downward);
+		return block;
+	}
 
 	/**
-	 * @brief Creates and adds a multiplexer block to the top of
-	 *        the application.
+	 * @brief Creates and adds a block to the application.
 	 *
 	 * @tparam Bl       The block class
-	 * @tparam Up       The upward channel class
-	 * @tparam Down     The downward channel class
-	 * @tparam Specific The type of the specific parameter, if any
 	 * @param name      The block name
-	 * @param specific  User defined data (optional)
-	 * @return The block
+	 * @param specific  User defined data to pass to the
+	 *                  constructor of the block
+	 * @return A pointer to the newly created block
 	 */
-	template <class Bl, class Up, class Down, class... Specific>
-	Block *createMuxBlock(const string &name,
-	                      Specific &&... specific);
+	template <class Bl, class Specific>
+	Bl *createBlock(const std::string &name,
+	                Specific specific);
 
 	/**
-	 * @brief Creates and adds a block to the application, below a
-	 *        multiplexer block.
+	 * @brief Connects two blocks
 	 *
-	 * @tparam Bl       The block class
-	 * @tparam Up       The upward channel class
-	 * @tparam Down     The downward channel class
-	 * @tparam Specific The type of the specific parameter, if any
-	 * @param name      The block name
-	 * @param key       The key of this block, used to send messages 
-	 *                  from the multiplexer to this block
-	 * @param upper     The upper multiplexer block
-	 * @param specific  User defined data (optional)
-	 * @return The block
+	 * @param upper     The upper block
+	 * @param upper     The lower block
 	 */
-	template <class Bl, class Up, class Down, class Key, class... Specific>
-	Block *createMuxedBlock(const string &name,
-	                        Key key,
-	                        Block *upper,
-	                        Specific &&... specific);
+	template <class UpperBl, class LowerBl>
+	void connectBlocks(const UpperBl *upper,
+	                   const LowerBl *lower);
+
+	/**
+	 * @brief Connects a multiplexer block to a simple block
+	 *
+	 * @param upper     The upper block, with a Mux upward channel
+	 *                  and a Demux downward channel
+	 * @param upper     The lower block
+	 * @param down_key  The key to send messages from the upper block to
+	 *                  the lower block
+	 */
+	template <class UpperBl, class LowerBl>
+	void connectBlocks(const UpperBl *upper,
+	                   const LowerBl *lower,
+	                   typename UpperBl::Downward::DemuxKey down_key);
+
+	/**
+	 * @brief Connects a simple block to a multiplexer block
+	 *
+	 * @param upper     The upper block
+	 * @param upper     The lower block, with a Demux upward channel
+	 *                  and a Mux downward channel
+	 * @param up_key    The key to send messages from the lower block to
+	 *                  the upper block
+	 */
+	template <class UpperBl, class LowerBl>
+	void connectBlocks(const UpperBl *upper,
+	                   const LowerBl *lower,
+	                   typename LowerBl::Upward::DemuxKey up_key);
+
+	/**
+	 * @brief Connects two multiplexer blocks
+	 *
+	 * @param upper     The upper block, with a Mux upward channel
+	 *                  and a Demux downward channel
+	 * @param upper     The lower block, with a Demux upward channel
+	 *                  and a Mux downward channel
+	 * @param up_key    The key to send messages from the lower block to
+	 *                  the upper block
+	 * @param down_key  The key to send messages from the upper block to
+	 *                  the lower block
+	 */
+	template <class UpperBl, class LowerBl>
+	void connectBlocks(const UpperBl *upper,
+	                   const LowerBl *lower,
+	                   typename LowerBl::Upward::DemuxKey up_key,
+	                   typename UpperBl::Downward::DemuxKey down_key);
 
 	/**
 	 * @brief stops the application
@@ -179,12 +189,13 @@ class BlockManager
 	bool getStatus(void);
 
 	/// Output Log
-  std::shared_ptr<OutputLog> log_rt;
+	std::shared_ptr<OutputLog> log_rt;
 
-   private:
+  private:
+	void setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward);
 
 	/// list of pointers to the blocks
-	list<Block *> block_list;
+	std::list<Block *> block_list;
 
 	/// check if we already tried to stop process
 	bool stopped;
@@ -193,136 +204,158 @@ class BlockManager
 	bool status;
 };
 
-template<class Bl, class Up, class Down>
-Block *BlockManager::createBlock(const string &name,
-                                 Block *const upper)
+template <class Bl, class Specific>
+Bl *BlockManager::createBlock(const std::string &name,
+                              Specific specific)
 {
-	Block *block = new Bl(name);
-
-	Up *up = new Up(name);
-	Down *down = new Down(name);
-
-	RtFifo *up_opp_fifo = new RtFifo();
-	RtFifo *down_opp_fifo = new RtFifo();
-
-	block->upward = up;
-	block->downward = down;
-
-	// set opposite fifo
-	up->setOppositeFifo(up_opp_fifo, down_opp_fifo);
-	down->setOppositeFifo(down_opp_fifo, up_opp_fifo);
-
-	if(upper)
-	{
-		auto upper_up = dynamic_cast<RtChannel *>(upper->getUpwardChannel());
-		auto upper_down = dynamic_cast<RtChannel *>(upper->getDownwardChannel());
-
-		assert(upper_up && upper_down && "Incoherent types of blocks");
-
-		RtFifo *up_fifo = new RtFifo();
-		RtFifo *down_fifo = new RtFifo();
-
-		// set upward fifo for upper block
-		up->setNextFifo(up_fifo);
-		upper_up->setPreviousFifo(up_fifo);
-
-		// set downward fifo for block
-		down->setPreviousFifo(down_fifo);
-		upper_down->setNextFifo(down_fifo);
-	}
-
-	this->block_list.push_back(block);
-
+	auto *block = new Bl(name, specific);
+	auto *upward = new typename Bl::Upward(name, specific);
+	auto *downward = new typename Bl::Downward(name, specific);
+	setupBlock(block, upward, downward);
 	return block;
 }
 
-template<class Bl, class Up, class Down, class T>
-Block *BlockManager::createBlock(const string &name,
-                                 Block *const upper,
-                                 T specific)
+template <class UpperBl, class LowerBl>
+void BlockManager::connectBlocks(const UpperBl *upper, const LowerBl *lower)
 {
-	Block *block = new Bl(name, specific);
+	static_assert(has_one_input<typename UpperBl::Upward>::value);
+	static_assert(has_one_output<typename UpperBl::Downward>::value);
+	static_assert(has_one_input<typename LowerBl::Upward>::value);
+	static_assert(has_one_output<typename LowerBl::Downward>::value);
 
-	Up *up = new Up(name, specific);
-	Down *down = new Down(name, specific);
-
-	RtFifo *up_opp_fifo = new RtFifo();
-	RtFifo *down_opp_fifo = new RtFifo();
-
-	block->upward = up;
-	block->downward = down;
-
-	// set opposite fifo
-	up->setOppositeFifo(up_opp_fifo, down_opp_fifo);
-	down->setOppositeFifo(down_opp_fifo, up_opp_fifo);
-
-	if(upper)
+	if (!upper || !lower)
 	{
-		auto upper_up = dynamic_cast<RtChannel *>(upper->getUpwardChannel());
-		auto upper_down = dynamic_cast<RtChannel *>(upper->getDownwardChannel());
-
-		assert(upper_up && upper_down && "Incoherent types of blocks");
-
-		RtFifo *up_fifo = new RtFifo();
-		RtFifo *down_fifo = new RtFifo();
-
-		// set upward fifo for upper block
-		up->setNextFifo(up_fifo);
-		upper_up->setPreviousFifo(up_fifo);
-
-		// set downward fifo for block
-		down->setPreviousFifo(down_fifo);
-		upper_down->setNextFifo(down_fifo);
+		LOG(log_rt, LEVEL_ERROR, "One of the blocks to connect is null");
+		return;
 	}
 
-	this->block_list.push_back(block);
+	auto lower_upward = dynamic_cast<typename LowerBl::Upward *>(lower->upward);
+	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
+	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
+	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	return block;
-}
-
-template <class Bl, class Up, class Down, class... Specific>
-Block *BlockManager::createMuxBlock(const string &name,
-                                    Specific &&...specific)
-{
-	static_assert(std::is_base_of<Block::RtUpwardMux, Up>::value, "Up must derive from RtUpwardMux");
-	static_assert(std::is_base_of<Block::RtDownwardDemux<typename Down::DemuxKey>, Down>::value, "Down must derive from RtDownwardDemux");
-
-	return createBlock<Bl, Up, Down>(name, nullptr, specific...);
-}
-
-template <class Bl, class Up, class Down, class Key, class... Specific>
-Block *BlockManager::createMuxedBlock(const string &name,
-                                    Key key,
-                                    Block *upper,
-                                    Specific &&...specific)
-{
-	assert(upper != nullptr && "A muxed block cannot be at the top");
-	static_assert(std::is_base_of<RtChannel, Up>::value, "Up must derive from RtChannel");
-	static_assert(std::is_base_of<RtChannel, Down>::value, "Down must derive from RtChannel");
-
-	Block *block = createBlock<Bl, Up, Down>(name, nullptr, specific...);
+	// Should never fail if all blocks are initialized using the createBlock() function
+	assert(lower_upward && lower_downward && upper_upward && upper_downward && "Incoherent types of blocks");
 
 	RtFifo *up_fifo = new RtFifo();
 	RtFifo *down_fifo = new RtFifo();
 
-	auto up = dynamic_cast<RtChannel *>(block->getUpwardChannel());
-	auto down = dynamic_cast<RtChannel *>(block->getDownwardChannel());
+	// connect upward fifo to both blocks
+	lower_upward->setNextFifo(up_fifo);
+	upper_upward->setPreviousFifo(up_fifo);
 
-	auto upper_up = dynamic_cast<RtChannelMux *>(upper->getUpwardChannel());
-	auto upper_down = dynamic_cast<RtChannelDemux<Key> *>(upper->getDownwardChannel());
+	// connect downward fifo to both blocks
+	lower_downward->setPreviousFifo(down_fifo);
+	upper_downward->setNextFifo(down_fifo);
+}
+
+template <class UpperBl, class LowerBl>
+void BlockManager::connectBlocks(const UpperBl *upper,
+                                 const LowerBl *lower,
+                                 typename UpperBl::Downward::DemuxKey down_key)
+{
+	static_assert(has_n_inputs<typename UpperBl::Upward>::value);
+	static_assert(has_n_outputs<typename UpperBl::Downward>::value);
+	static_assert(has_one_input<typename LowerBl::Upward>::value);
+	static_assert(has_one_output<typename LowerBl::Downward>::value);
+
+	if (!upper || !lower)
+	{
+		LOG(log_rt, LEVEL_ERROR, "One of the blocks to connect is null");
+		return;
+	}
+
+	auto lower_upward = dynamic_cast<typename LowerBl::Upward *>(lower->upward);
+	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
+	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
+	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
+
+	// Should never fail if all blocks are initialized using the createBlock() function
+	assert(lower_upward && lower_downward && upper_upward && upper_downward && "Incoherent types of blocks");
+
+	RtFifo *up_fifo = new RtFifo();
+	RtFifo *down_fifo = new RtFifo();
+
+	// connect upward fifo to both blocks
+	lower_upward->setNextFifo(up_fifo);
+	upper_upward->addPreviousFifo(up_fifo);
+
+	// connect downward fifo to both blocks
+	lower_downward->setPreviousFifo(down_fifo);
+	upper_downward->addNextFifo(down_key, down_fifo);
+}
+
+template <class UpperBl, class LowerBl>
+void BlockManager::connectBlocks(const UpperBl *upper,
+                                 const LowerBl *lower,
+                                 typename LowerBl::Upward::DemuxKey up_key)
+{
+	static_assert(has_one_input<typename UpperBl::Upward>::value);
+	static_assert(has_one_output<typename UpperBl::Downward>::value);
+	static_assert(has_n_inputs<typename LowerBl::Upward>::value);
+	static_assert(has_n_outputs<typename LowerBl::Downward>::value);
 	
-	assert(up && down && upper_up && upper_down && "Incoherent types of blocks");
+	if (!upper || !lower)
+	{
+		LOG(log_rt, LEVEL_ERROR, "One of the blocks to connect is null");
+		return;
+	}
 
-	// set upward fifo for upper block
-	up->setNextFifo(up_fifo);
-	upper_up->addPreviousFifo(up_fifo);
+	auto lower_upward = dynamic_cast<typename LowerBl::Upward *>(lower->upward);
+	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
+	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
+	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	// set downward fifo for block
-	down->setPreviousFifo(down_fifo);
-	upper_down->addNextFifo(key, down_fifo);
-	return block;
+	// Should never fail if all blocks are initialized using the createBlock() function
+	assert(lower_upward && lower_downward && upper_upward && upper_downward && "Incoherent types of blocks");
+
+	RtFifo *up_fifo = new RtFifo();
+	RtFifo *down_fifo = new RtFifo();
+
+	// connect upward fifo to both blocks
+	lower_upward->addNextFifo(up_key, up_fifo);
+	upper_upward->setPreviousFifo(up_fifo);
+
+	// connect downward fifo to both blocks
+	lower_downward->addPreviousFifo(down_fifo);
+	upper_downward->setNextFifo(down_fifo);
+}
+
+template <class UpperBl, class LowerBl>
+void BlockManager::connectBlocks(const UpperBl *upper,
+                                 const LowerBl *lower,
+                                 typename LowerBl::Upward::DemuxKey up_key,
+                                 typename UpperBl::Downward::DemuxKey down_key)
+{
+	static_assert(has_n_inputs<typename UpperBl::Upward>::value);
+	static_assert(has_n_outputs<typename UpperBl::Downward>::value);
+	static_assert(has_n_inputs<typename LowerBl::Upward>::value);
+	static_assert(has_n_outputs<typename LowerBl::Downward>::value);
+
+	if (!upper || !lower)
+	{
+		LOG(log_rt, LEVEL_ERROR, "One of the blocks to connect is null");
+		return;
+	}
+
+	auto lower_upward = dynamic_cast<typename LowerBl::Upward *>(lower->upward);
+	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
+	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
+	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
+
+	// Should never fail if all blocks are initialized using the createBlock() function
+	assert(lower_upward && lower_downward && upper_upward && upper_downward && "Incoherent types of blocks");
+
+	RtFifo *up_fifo = new RtFifo();
+	RtFifo *down_fifo = new RtFifo();
+
+	// connect upward fifo to both blocks
+	lower_upward->addNextFifo(up_key, up_fifo);
+	upper_upward->addPreviousFifo(up_fifo);
+
+	// connect downward fifo to both blocks
+	lower_downward->addPreviousFifo(down_fifo);
+	upper_downward->addNextFifo(down_key, down_fifo);
 }
 
 #endif
-
-

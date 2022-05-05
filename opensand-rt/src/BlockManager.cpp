@@ -359,3 +359,17 @@ bool BlockManager::getStatus()
 {
 	return this->status;
 }
+
+void BlockManager::setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward)
+{
+	block->upward = upward;
+	block->downward = downward;
+
+	auto *up_opp_fifo = new RtFifo();
+	auto *down_opp_fifo = new RtFifo();
+
+	upward->setOppositeFifo(up_opp_fifo, down_opp_fifo);
+	downward->setOppositeFifo(down_opp_fifo, up_opp_fifo);
+
+	this->block_list.push_back(block);
+}

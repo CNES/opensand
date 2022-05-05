@@ -41,7 +41,8 @@ libopensand_rt_la_h = \
 	NetSocketEvent.h \
 	FileEvent.h \
 	SignalEvent.h \
-	RtFifo.h
+	RtFifo.h \
+	TemplateHelper.h
 
 libopensand_rt_la_SOURCES = $(libopensand_rt_la_cpp) $(libopensand_rt_la_h)
 #libopensand_rt_la_LIBADD = -lrt -lpthread /usr/lib/libtcmalloc_minimal.so

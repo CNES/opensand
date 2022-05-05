@@ -55,9 +55,6 @@
 
 class RtEvent;
 
-using std::string;
-
-
 /**
  * @class Block
  * @brief describes a block
@@ -80,7 +77,7 @@ class Block
 	 * @param name      The name of the block
 	 * @param specific  Specific block parameters
 	 */
-	Block(const string &name, void *specific = NULL);
+	Block(const std::string &name, void *specific = NULL);
 
 	virtual ~Block();
 
@@ -94,12 +91,12 @@ class Block
 	class RtUpwardBase: public ChannelType
 	{
 	  public:
-		RtUpwardBase(const string &name):
+		RtUpwardBase(const std::string &name):
 			ChannelType(name, "Upward")
 		{};
 
 		template<class T>
-		RtUpwardBase(const string &name, T specific):
+		RtUpwardBase(const std::string &name, T specific):
 			ChannelType(name, "Upward", specific)
 		{};	
 	};
@@ -113,12 +110,12 @@ class Block
 	class RtDownwardBase: public ChannelType
 	{
 	  public:
-		RtDownwardBase(const string &name):
+		RtDownwardBase(const std::string &name):
 			ChannelType(name, "Downward")
 		{};
 
 		template<class T>
-		RtDownwardBase(const string &name, T specific):
+		RtDownwardBase(const std::string &name, T specific):
 			ChannelType(name, "Downward", specific)
 		{};
 	};
@@ -150,7 +147,7 @@ class Block
 	 *
 	 * @return the name of the block
 	 */
-	string getName(void) const {return this->name;};
+	std::string getName(void) const { return this->name; };
 
 	/**
 	 * @brief Check whether the block is initialized
@@ -213,7 +210,7 @@ class Block
 	RtChannelBase *downward;
 
 	/// The name of the block
-	const string name;
+	const std::string name;
 
   private:
 
