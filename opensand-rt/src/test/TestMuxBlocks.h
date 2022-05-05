@@ -43,17 +43,15 @@ enum struct Side
 	RIGHT
 };
 
-class DownMuxBlock : public Block
+class TopMux : public Block
 {
   public:
 	using Block::Block;
-	bool onInit();
 
 	class Upward: public RtUpwardMux
 	{
 	  public:
 		Upward(const std::string &name);
-		bool onInit();
 		bool onEvent(const RtEvent *const event);
 	};
 
@@ -61,33 +59,73 @@ class DownMuxBlock : public Block
 	{
 	  public:
 		Downward(const std::string &name);
-		bool onInit();
 		bool onEvent(const RtEvent *const event);
 	};
 };
 
-class SimpleBlock: public Block
+class TopBlock: public Block
 {
   public:
-	SimpleBlock(const std::string &name, bool send_msg);
-	bool onInit();
+	TopBlock(const std::string &name, Side side);
 
-	class Upward: public RtUpward
+	class Upward: public RtUpwardMux
 	{
 	  public:
-		Upward(const std::string &name, bool send_msg);
-		bool onInit();
-		bool onEvent(const RtEvent *const event);
-		bool send_msg;
+		Upward(const std::string &name, Side side);
+		bool onEvent(const RtEvent *const event) override;
+		Side side;
 	};
 
-	class Downward: public RtDownward
+	class Downward: public RtDownwardDemux<Side>
 	{
 	  public:
-		Downward(const std::string &name, bool send_msg);
-		bool onInit();
-		bool onEvent(const RtEvent *const event);
-		bool send_msg;
+		Downward(const std::string &name, Side side);
+		bool onEvent(const RtEvent *const event) override;
+		Side side;
+	};
+};
+
+class BottomBlock: public Block
+{
+  public:
+	BottomBlock(const std::string &name, Side side);
+
+	class Upward: public RtUpwardDemux<Side>
+	{
+	  public:
+		Upward(const std::string &name, Side side);
+		bool onEvent(const RtEvent *const event) override;
+		Side side;
+	};
+
+	class Downward: public RtDownwardMux
+	{
+	  public:
+		Downward(const std::string &name, Side side);
+		bool onEvent(const RtEvent *const event) override;
+		Side side;
+	};
+};
+
+class BottomMux: public Block
+{
+  public:
+	using Block::Block;
+
+	class Upward: public RtUpwardDemux<Side>
+	{
+	  public:
+		Upward(const std::string &name);
+		bool onInit() override;
+		bool onEvent(const RtEvent *const event) override;
+	};
+
+	class Downward: public RtDownwardMux
+	{
+	  public:
+		Downward(const std::string &name);
+		bool onInit() override;
+		bool onEvent(const RtEvent *const event) override;
 	};
 };
 
