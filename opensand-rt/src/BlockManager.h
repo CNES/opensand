@@ -220,8 +220,8 @@ void BlockManager::connectBlocks(const UpperBl *upper, const LowerBl *lower)
 {
 	static_assert(has_one_input<typename UpperBl::Upward>::value);
 	static_assert(has_one_output<typename UpperBl::Downward>::value);
-	static_assert(has_one_input<typename LowerBl::Upward>::value);
-	static_assert(has_one_output<typename LowerBl::Downward>::value);
+	static_assert(has_one_output<typename LowerBl::Upward>::value);
+	static_assert(has_one_input<typename LowerBl::Downward>::value);
 
 	if (!upper || !lower)
 	{
@@ -256,8 +256,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 {
 	static_assert(has_n_inputs<typename UpperBl::Upward>::value);
 	static_assert(has_n_outputs<typename UpperBl::Downward>::value);
-	static_assert(has_one_input<typename LowerBl::Upward>::value);
-	static_assert(has_one_output<typename LowerBl::Downward>::value);
+	static_assert(has_one_output<typename LowerBl::Upward>::value);
+	static_assert(has_one_input<typename LowerBl::Downward>::value);
 
 	if (!upper || !lower)
 	{
@@ -292,8 +292,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 {
 	static_assert(has_one_input<typename UpperBl::Upward>::value);
 	static_assert(has_one_output<typename UpperBl::Downward>::value);
-	static_assert(has_n_inputs<typename LowerBl::Upward>::value);
-	static_assert(has_n_outputs<typename LowerBl::Downward>::value);
+	static_assert(has_n_outputs<typename LowerBl::Upward>::value);
+	static_assert(has_n_inputs<typename LowerBl::Downward>::value);
 	
 	if (!upper || !lower)
 	{
@@ -329,8 +329,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 {
 	static_assert(has_n_inputs<typename UpperBl::Upward>::value);
 	static_assert(has_n_outputs<typename UpperBl::Downward>::value);
-	static_assert(has_n_inputs<typename LowerBl::Upward>::value);
-	static_assert(has_n_outputs<typename LowerBl::Downward>::value);
+	static_assert(has_n_outputs<typename LowerBl::Upward>::value);
+	static_assert(has_n_inputs<typename LowerBl::Downward>::value);
 
 	if (!upper || !lower)
 	{
