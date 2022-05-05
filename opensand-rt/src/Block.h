@@ -140,7 +140,7 @@ class Block
 	 *
 	 * @return true on success, false otherwise
 	 */
-	virtual bool onInit(void) = 0;
+	virtual bool onInit();
 	
 	/**
 	 * @brief Get the name of the block

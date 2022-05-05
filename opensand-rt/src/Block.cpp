@@ -115,6 +115,8 @@ bool Block::initSpecific(void)
 	return true;
 }
 
+bool Block::onInit() { return true; }
+
 bool Block::isInitialized(void)
 {
 	return this->initialized;
