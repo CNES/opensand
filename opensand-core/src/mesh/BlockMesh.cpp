@@ -29,7 +29,7 @@
 /**
  * @file BlockMesh.cpp
  * @brief Block that handles mesh or star architecture on satellites
- * @author Yohan Simard <yohan.simard@viveris.com>
+ * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
 #include "BlockMesh.h"

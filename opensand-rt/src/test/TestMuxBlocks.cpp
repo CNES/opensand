@@ -29,7 +29,7 @@
 /**
  * @file TestMuxBlocks.cpp
  * @brief
- * @author Yohan Simard <yohan.simard@viveris.com>
+ * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
 #include "TestMuxBlocks.h"

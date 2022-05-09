@@ -29,7 +29,7 @@
 /**
  * @file TestMuxBlocks.h
  * @brief
- * @author Yohan Simard <yohan.simard@viveris.com>
+ * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
 #ifndef TESTMUXBLOCKS_H
