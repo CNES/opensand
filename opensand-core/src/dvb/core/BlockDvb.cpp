@@ -35,11 +35,27 @@
 
 
 #include "BlockDvb.h"
+#include "BBFrame.h"
+#include "Sac.h"
+#include "Ttp.h"
 
 #include "Plugin.h"
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
 #include "OpenSandModelConf.h"
+
+#include <opensand_output/Output.h>
+
+
+BlockDvb::BlockDvb(const std::string& name):
+	Block(name)
+{
+	auto output = Output::Get();
+	// register static logs
+	BBFrame::bbframe_log = output->registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
+	Sac::sac_log = output->registerLog(LEVEL_WARNING, "Dvb.SAC");
+	Ttp::ttp_log = output->registerLog(LEVEL_WARNING, "Dvb.TTP");
+}
 
 
 BlockDvb::~BlockDvb()
@@ -50,6 +66,13 @@ BlockDvb::~BlockDvb()
 //****************************************************//
 //                   DVB  UPWARD                      // 
 //****************************************************//
+BlockDvb::DvbUpward::DvbUpward(const std::string& name):
+	DvbChannel(),
+	RtUpward(name)
+{
+}
+
+
 BlockDvb::DvbUpward::~DvbUpward()
 {
 }
@@ -58,6 +81,18 @@ BlockDvb::DvbUpward::~DvbUpward()
 //****************************************************//
 //                   DVB  DOWNWARD                    // 
 //****************************************************//
+BlockDvb::DvbDownward::DvbDownward(const std::string &name):
+	DvbChannel(),
+	RtDownward(name)
+{
+}
+
+
+BlockDvb::DvbDownward::~DvbDownward()
+{
+}
+
+
 bool BlockDvb::DvbDownward::initDown(void)
 {
 	// forward timer

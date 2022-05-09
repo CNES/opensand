@@ -72,15 +72,21 @@
 
 
 /// the current state of the ST
-typedef enum
+enum class TalState
 {
-	state_null,            /**< non-existant state */
-	state_off,             /**< The ST is stopped */
-	state_initializing,    /**< The ST is begin started */
-	state_wait_logon_resp, /**< The ST is not logged yet */
-	state_running,         /**< The ST is operational */
-} tal_state_t;
+	null,            /**< non-existant state */
+	off,             /**< The ST is stopped */
+	initializing,    /**< The ST is begin started */
+	wait_logon_resp, /**< The ST is not logged yet */
+	running,         /**< The ST is operational */
+};
 
+
+struct dvb_tal_specific
+{
+	tal_id_t mac_id;
+	bool disable_control_plane;
+};
 
 
 /**
@@ -107,7 +113,7 @@ class BlockDvbTal: public BlockDvb
 {
  public:
 
-	BlockDvbTal(const string &name, tal_id_t mac_id);
+	BlockDvbTal(const string &name, struct dvb_tal_specific specific);
 	~BlockDvbTal();
 
 	static void generateConfiguration();
@@ -117,7 +123,7 @@ class BlockDvbTal: public BlockDvb
 	class Upward: public DvbUpward, public DvbFmt
 	{
 	 public:
-		Upward(const string &name, tal_id_t mac_id);
+		Upward(const string &name, struct dvb_tal_specific specific);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -201,9 +207,10 @@ class BlockDvbTal: public BlockDvb
 		tal_id_t gw_id;
 		// is the terminal scpc
 		bool is_scpc;
+		bool disable_control_plane;
 		
 		/// the current state of the ST
-		tal_state_t state;
+		TalState state;
 
 		/* Output probes and stats */
 		// Rates
@@ -221,7 +228,7 @@ class BlockDvbTal: public BlockDvb
 	class Downward: public DvbDownward, public DvbFmt
 	{
 	 public:
-		Downward(const string &name, tal_id_t mac_id);
+		Downward(const string &name, struct dvb_tal_specific specific);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -362,7 +369,7 @@ class BlockDvbTal: public BlockDvb
 		int mac_id;
 
 		/// the current state of the ST
-		tal_state_t state;
+		TalState state;
 
 		/// the group ID sent by NCC (only valid in state_running)
 		group_id_t group_id;
@@ -372,6 +379,7 @@ class BlockDvbTal: public BlockDvb
 		tal_id_t gw_id;
 		// is the terminal scpc
 		bool is_scpc;
+		bool disable_control_plane;
 
 		/// fixed bandwidth (CRA) in kbits/s
 		rate_kbps_t cra_kbps;
@@ -462,8 +470,8 @@ class BlockDvbTal: public BlockDvb
 	};
 
  protected:
-
 	bool onInit(void);
+	bool disable_control_plane;
 
 	/// The list of Sts with return/up modcod
 	StFmtSimuList* input_sts;

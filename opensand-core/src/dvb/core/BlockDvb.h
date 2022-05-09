@@ -60,18 +60,9 @@
 
 #include "PhysicStd.h"
 #include "TerminalCategory.h"
-#include "BBFrame.h"
-#include "Sac.h"
-#include "Ttp.h"
 #include "DvbChannel.h"
 
-#include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
-
-
-class BlockDvbSat;
-class BlockDvbNcc;
-class BlockDvbTal;
 
 
 class BlockDvb: public Block
@@ -82,16 +73,7 @@ class BlockDvb: public Block
 	 * @brief DVB block constructor
 	 *
 	 */
-	BlockDvb(const string &name):
-		Block(name)
-	{
-		auto output = Output::Get();
-		// register static logs
-		BBFrame::bbframe_log = output->registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
-		Sac::sac_log = output->registerLog(LEVEL_WARNING, "Dvb.SAC");
-		Ttp::ttp_log = output->registerLog(LEVEL_WARNING, "Dvb.TTP");
-	};
-
+	BlockDvb(const std::string &name);
 
 	~BlockDvb();
 
@@ -99,10 +81,7 @@ class BlockDvb: public Block
 	class DvbUpward: public DvbChannel, public RtUpward
 	{
 	 public:
-		DvbUpward(const string &name):
-			DvbChannel(),
-			RtUpward(name)
-		{};
+		DvbUpward(const std::string &name);
 
 		~DvbUpward();
 
@@ -114,11 +93,9 @@ class BlockDvb: public Block
 	{
 	 
 	 public:
-		DvbDownward(const string &name):
-			DvbChannel(),
-			RtDownward(name)
-		{
-		};
+		DvbDownward(const std::string &name);
+
+		~DvbDownward();
 
 	 protected:
 		/**
@@ -150,7 +127,7 @@ class BlockDvb: public Block
 		 * @param carrier_id      the ID of the carrier where to send the frames
 		 * @return true on success, false otherwise
 		 */
-		bool sendBursts(list<DvbFrame *> *complete_frames,
+		bool sendBursts(std::list<DvbFrame *> *complete_frames,
 		                uint8_t carrier_id);
 
 		/**

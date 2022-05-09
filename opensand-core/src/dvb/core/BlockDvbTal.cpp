@@ -68,7 +68,7 @@ int BlockDvbTal::Downward::qos_server_sock = -1;
 template<typename T>
 bool releaseMap(T& container, bool isError)
 {
-	for(auto& item : container)
+	for(auto&& item : container)
 	{
 		delete item.second;
 	}
@@ -78,76 +78,90 @@ bool releaseMap(T& container, bool isError)
 }
 
 
+const char* stateDescription(TalState state)
+{
+	switch(state)
+	{
+		case TalState::running:
+			return "state_running";
+		case TalState::initializing:
+			return "state_initializing";
+		default:
+			return "other";
+	}
+}
+
+
 /*****************************************************************************/
 /*                                Block                                      */
 /*****************************************************************************/
 
 
-BlockDvbTal::BlockDvbTal(const string &name, tal_id_t UNUSED(mac_id)):
-	BlockDvb(name),
-	input_sts(NULL),
-	output_sts(NULL)
+BlockDvbTal::BlockDvbTal(const string &name, struct dvb_tal_specific specific):
+	BlockDvb{name},
+	disable_control_plane{specific.disable_control_plane},
+	input_sts{nullptr},
+	output_sts{nullptr}
 {
 }
 
 BlockDvbTal::~BlockDvbTal()
 {
-	map<tal_id_t, StFmtSimu *>::iterator it;
-
-	if(this->input_sts != NULL)
-	{
-		delete this->input_sts;
-	}
-
-	if(this->output_sts != NULL)
-	{
-		delete this->output_sts;
-	}
+	delete this->input_sts;
+	delete this->output_sts;
 }
 
-void BlockDvbTal::generateConfiguration()
+void BlockDvbTal::generateConfiguration(bool disable_control_plane)
 {
 	auto Conf = OpenSandModelConf::Get();
+	auto conf = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");
 
-	auto types = Conf->getModelTypesDefinition();
-	types->addEnumType("fifo_access_type", "Access Type", {"DAMA_RBDC", "DAMA_VBDC", "DAMA_CRA", "SALOHA"});
-	// TODO: Keep in sync with topology
-	types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
-	types->addEnumType("dama_algorithm", "DAMA Agent Algorithm", {"Legacy",});
+	if (disable_control_plane)
+	{
+		auto scpc = conf->addComponent("scpc", "SCPC");
+		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
+	}
+	else
+	{
+		auto types = Conf->getModelTypesDefinition();
+		types->addEnumType("fifo_access_type", "Access Type", {"DAMA_RBDC", "DAMA_VBDC", "DAMA_CRA", "SALOHA"});
+		// TODO: Keep in sync with topology
+		types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
+		types->addEnumType("dama_algorithm", "DAMA Agent Algorithm", {"Legacy",});
 
-	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
-	auto fifos = conf->addList("fifos", "FIFOs", "fifo")->getPattern();
-	fifos->addParameter("priority", "Priority", types->getType("int"));
-	fifos->addParameter("name", "Name", types->getType("string"));
-	fifos->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
-	fifos->addParameter("access_type", "Access Type", types->getType("fifo_access_type"));
+		auto settings = conf->addComponent("settings", "Settings");
+		settings->addParameter("category", "Category", types->getType("carrier_group"));
 
-	conf = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");
-	auto settings = conf->addComponent("settings", "Settings");
-	settings->addParameter("category", "Category", types->getType("carrier_group"));
+		auto dama_enabled = settings->addParameter("dama_enabled", "Enable DAMA", types->getType("bool"));
+		auto dama = conf->addComponent("dama", "DAMA");
+		Conf->setProfileReference(dama, dama_enabled, true);
+		dama->addParameter("cra", "CRA", types->getType("int"))->setUnit("kb/s");
+		auto enabled = dama->addParameter("rbdc_enabled", "Enable RBDC", types->getType("bool"));
+		auto rbdc = dama->addParameter("rbdc_max", "Max RBDC", types->getType("int"));
+		rbdc->setUnit("kb/s");
+		Conf->setProfileReference(rbdc, enabled, true);
+		enabled = dama->addParameter("vbdc_enabled", "Enable VBDC", types->getType("bool"));
+		Conf->setProfileReference(enabled, dama_enabled, true);
+		auto vbdc = dama->addParameter("vbdc_max", "Max VBDC", types->getType("int"));
+		vbdc->setUnit("kb/sync period");
+		Conf->setProfileReference(vbdc, enabled, true);
+		dama->addParameter("algorithm", "DAMA Agent Algorithm", types->getType("dama_algorithm"));
+		dama->addParameter("duration", "MSL Duration", types->getType("int"))->setUnit("frames");
 
-	auto dama_enabled = settings->addParameter("dama_enabled", "Enable DAMA", types->getType("bool"));
-	auto dama = conf->addComponent("dama", "DAMA");
-	Conf->setProfileReference(dama, dama_enabled, true);
-	dama->addParameter("cra", "CRA", types->getType("int"))->setUnit("kb/s");
-	auto enabled = dama->addParameter("rbdc_enabled", "Enable RBDC", types->getType("bool"));
-	auto rbdc = dama->addParameter("rbdc_max", "Max RBDC", types->getType("int"));
-	rbdc->setUnit("kb/s");
-	Conf->setProfileReference(rbdc, enabled, true);
-	enabled = dama->addParameter("vbdc_enabled", "Enable VBDC", types->getType("bool"));
-	Conf->setProfileReference(enabled, dama_enabled, true);
-	auto vbdc = dama->addParameter("vbdc_max", "Max VBDC", types->getType("int"));
-	vbdc->setUnit("kb/sync period");
-	Conf->setProfileReference(vbdc, enabled, true);
-	dama->addParameter("algorithm", "DAMA Agent Algorithm", types->getType("dama_algorithm"));
-	dama->addParameter("duration", "MSL Duration", types->getType("int"))->setUnit("frames");
+		SlottedAlohaTal::generateConfiguration();
 
-	SlottedAlohaTal::generateConfiguration();
+		auto scpc_enabled = settings->addParameter("scpc_enabled", "Enabled SCPC", types->getType("bool"));
+		auto scpc = conf->addComponent("scpc", "SCPC");
+		Conf->setProfileReference(scpc, scpc_enabled, true);
+		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
 
-	auto scpc_enabled = settings->addParameter("scpc_enabled", "Enabled SCPC", types->getType("bool"));
-	auto scpc = conf->addComponent("scpc", "SCPC");
-	Conf->setProfileReference(scpc, scpc_enabled, true);
-	scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
+		conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
+		auto fifos = conf->addList("fifos", "FIFOs", "fifo")->getPattern();
+		fifos->addParameter("priority", "Priority", types->getType("int"));
+		fifos->addParameter("name", "Name", types->getType("string"));
+		fifos->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
+		fifos->addParameter("access_type", "Access Type", types->getType("fifo_access_type"));
+	}
 }
 
 bool BlockDvbTal::onInit(void)
@@ -164,33 +178,35 @@ bool BlockDvbTal::onInit(void)
 
 bool BlockDvbTal::initListsSts()
 {
-	bool is_scpc = false;
-
 	this->input_sts = new StFmtSimuList("in");
-	if(this->input_sts == NULL)
+	if(this->input_sts == nullptr)
 	{
 		return false;
 	}
 
 	// no output except for SCPC because it is directly handled
 	// in Dama Agent (this->modcod_id)
+	static_cast<Upward*>(this->upward)->setInputSts(this->input_sts);
+	static_cast<Downward*>(this->downward)->setInputSts(this->input_sts);
 
-	((Upward *)this->upward)->setInputSts(this->input_sts);
-	((Downward *)this->downward)->setInputSts(this->input_sts);
+	bool is_scpc = this->disable_control_plane;;
+	if (!is_scpc)
+	{
+		auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
+		auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
+		OpenSandModelConf::extractParameterData(scpc_enabled, is_scpc);
+	}
 
-	auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
-	auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
-	OpenSandModelConf::extractParameterData(scpc_enabled, is_scpc);
 	if(is_scpc)
 	{
 		this->output_sts = new StFmtSimuList("out");
-		if(this->output_sts == NULL)
+		if(this->output_sts == nullptr)
 		{
 			return false;
 		}
 
-		((Upward *)this->upward)->setOutputSts(this->output_sts);
-		((Downward *)this->downward)->setOutputSts(this->output_sts);
+		static_cast<Upward*>(this->upward)->setOutputSts(this->output_sts);
+		static_cast<Downward*>(this->downward)->setOutputSts(this->output_sts);
 	}
 
 	return true;
@@ -202,71 +218,61 @@ bool BlockDvbTal::initListsSts()
 /*                              Downward                                     */
 /*****************************************************************************/
 
-BlockDvbTal::Downward::Downward(const string &name, tal_id_t mac_id):
-	DvbDownward(name),
-	mac_id(mac_id),
-	state(state_initializing),
-	group_id(),
-	tal_id(),
-	gw_id(),
-	is_scpc(false),
-	cra_kbps(0),
-	max_rbdc_kbps(0),
-	max_vbdc_kb(0),
-	dama_agent(NULL),
-	saloha(NULL),
-	scpc_carr_duration_ms(0),
-	scpc_timer(-1),
-	ret_fmt_groups(),
-	scpc_sched(NULL),
-	scpc_frame_counter(0),
-	carrier_id_ctrl(),
-	carrier_id_logon(),
-	carrier_id_data(),
-	dvb_fifos(),
-	default_fifo_id(0),
-	sync_period_frame(-1),
-	obr_slot_frame(-1),
-	complete_dvb_frames(),
-	logon_timer(-1),
-	qos_server_host(),
-	event_login(NULL),
-	log_frame_tick(NULL),
-	log_qos_server(NULL),
-	log_saloha(NULL),
-	probe_st_queue_size(),
-	probe_st_queue_size_kb(),
-	probe_st_l2_to_sat_before_sched(),
-	probe_st_l2_to_sat_after_sched(),
-	l2_to_sat_total_bytes(0),
-	probe_st_l2_to_sat_total(),
-	probe_st_required_modcod(NULL)
+BlockDvbTal::Downward::Downward(const string &name, struct dvb_tal_specific specific):
+	DvbDownward{name},
+	mac_id{specific.mac_id},
+	state{TalState::initializing},
+	group_id{},
+	tal_id{},
+	gw_id{},
+	is_scpc{specific.disable_control_plane},
+	disable_control_plane{specific.disable_control_plane},
+	cra_kbps{0},
+	max_rbdc_kbps{0},
+	max_vbdc_kb{0},
+	dama_agent{nullptr},
+	saloha{nullptr},
+	scpc_carr_duration_ms{0},
+	scpc_timer{-1},
+	ret_fmt_groups{},
+	scpc_sched{nullptr},
+	scpc_frame_counter{0},
+	carrier_id_ctrl{},
+	carrier_id_logon{},
+	carrier_id_data{},
+	dvb_fifos{},
+	default_fifo_id{0},
+	sync_period_frame{-1},
+	obr_slot_frame{-1},
+	complete_dvb_frames{},
+	logon_timer{-1},
+	qos_server_host{},
+	event_login{nullptr},
+	log_frame_tick{nullptr},
+	log_qos_server{nullptr},
+	log_saloha{nullptr},
+	probe_st_queue_size{},
+	probe_st_queue_size_kb{},
+	probe_st_l2_to_sat_before_sched{},
+	probe_st_l2_to_sat_after_sched{},
+	l2_to_sat_total_bytes{0},
+	probe_st_l2_to_sat_total{nullptr},
+	probe_st_phy_to_sat{nullptr},
+	probe_st_required_modcod{nullptr}
 {
 }
 
 BlockDvbTal::Downward::~Downward()
 {
-	if(this->dama_agent != NULL)
-	{
-		delete this->dama_agent;
-	}
-
-	if(this->saloha)
-	{
-		delete this->saloha;
-	}
-
-	if(this->scpc_sched)
-	{
-		delete this->scpc_sched;
-	}
+	delete this->dama_agent;
+	delete this->saloha;
+	delete this->scpc_sched;
 
 	// delete FMT groups here because they may be present in many carriers
 	// TODO do something to avoid groups here
-	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
-	    it != this->ret_fmt_groups.end(); ++it)
+	for (auto&& group : this->ret_fmt_groups)
 	{
-		delete (*it).second;
+		delete group.second;
 	}
 
 	// delete fifos
@@ -332,9 +338,12 @@ bool BlockDvbTal::Downward::onInit(void)
 		return false;
 	}
 
-	auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
-	auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
-	OpenSandModelConf::extractParameterData(scpc_enabled, this->is_scpc);
+	if (!this->disable_control_plane)
+	{
+		auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
+		auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
+		OpenSandModelConf::extractParameterData(scpc_enabled, this->is_scpc);
+	}
 
 	if(!this->is_scpc)
 	{
@@ -370,21 +379,14 @@ bool BlockDvbTal::Downward::onInit(void)
 		return false;
 	}
 
-	if(!this->initQoSServer())
+	if(!this->disable_conntrol_plane && !this->initQoSServer())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the QoS Server part of the initialisation\n");
 		return false;
 	}
 
-	if (this->dama_agent || this->saloha)
-	{ 
-		this->initStatsTimer(this->ret_up_frame_duration_ms);
-	}
-	else //Scpc mode
-	{
-		this->initStatsTimer(this->scpc_carr_duration_ms);
-	}
+	this->initStatsTimer(this->dama_agent || this->saloha ? this->ret_up_frame_duration_ms : this->scpc_carr_duration_ms);
 
 	// Init the output here since we now know the FIFOs
 	if(!this->initOutput())
@@ -402,18 +404,24 @@ bool BlockDvbTal::Downward::onInit(void)
 	}
 
 	// now everyhing is initialized so we can do some processing
-
-	// after all of things have been initialized successfully,
-	// send a logon request
-	LOG(this->log_init, LEVEL_DEBUG,
-	    "send a logon request with MAC ID %d to NCC\n",
-	    this->mac_id);
-	this->state = state_wait_logon_resp;
-	if(!this->sendLogonReq())
+	if (!this->disable_control_plane)
 	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to send the logon request to the NCC\n");
-		return false;
+		// after all of things have been initialized successfully,
+		// send a logon request
+		LOG(this->log_init, LEVEL_DEBUG,
+		    "send a logon request with MAC ID %d to NCC\n",
+		    this->mac_id);
+		this->state = TalState::wait_logon_resp;
+		if(!this->sendLogonReq())
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to send the logon request to the NCC\n");
+			return false;
+		}
+	}
+	else
+	{
+		this->state = TalState::running;
 	}
 
 	return true;
@@ -536,7 +544,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	TerminalCategories<TerminalCategoryDama> dama_categories;
 	TerminalMapping<TerminalCategoryDama> terminal_affectation;
 	TerminalCategoryDama *default_category;
-	TerminalCategoryDama *tal_category = NULL;
+	TerminalCategoryDama *tal_category{nullptr};
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
@@ -778,7 +786,7 @@ bool BlockDvbTal::Downward::initDama(void)
 		return releaseMap(dama_categories, true);
 	}
 
-	if(this->dama_agent == NULL)
+	if(this->dama_agent == nullptr)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to create DAMA agent\n");
@@ -823,10 +831,10 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	TerminalCategories<TerminalCategorySaloha> sa_categories;
 	TerminalMapping<TerminalCategorySaloha> terminal_affectation;
 	TerminalCategorySaloha *default_category;
-	TerminalCategorySaloha *tal_category = NULL;
+	TerminalCategorySaloha *tal_category{nullptr};
 	TerminalMapping<TerminalCategorySaloha>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategorySaloha>::iterator cat_it;
-	UnitConverter *converter = NULL;
+	UnitConverter *converter{nullptr};
 	vol_sym_t length_sym = 0;
 
 	for(fifos_t::iterator it = this->dvb_fifos.begin();
@@ -1003,13 +1011,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 
 bool BlockDvbTal::Downward::initScpc(void)
 {
-	TerminalCategories<TerminalCategoryDama> scpc_categories;
-	TerminalMapping<TerminalCategoryDama> terminal_affectation;
-	TerminalCategoryDama *default_category;
-	TerminalCategoryDama *tal_category = NULL;
-	TerminalCategoryDama *cat;
-	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
-	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
+	bool success = false;
 
 	//  Duration of the carrier -- in ms
 	auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
@@ -1032,11 +1034,14 @@ bool BlockDvbTal::Downward::initScpc(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no gateways with value: "
-			"%d into return up frequency plan\n",
+		    "%d into return up frequency plan\n",
 		    this->gw_id);
 		return false;
 	}
 
+	TerminalCategories<TerminalCategoryDama> scpc_categories{};
+	TerminalMapping<TerminalCategoryDama> terminal_affectation{};
+	TerminalCategoryDama *default_category{nullptr};
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
 	                                         SCPC,
@@ -1054,15 +1059,17 @@ bool BlockDvbTal::Downward::initScpc(void)
 		return false;
 	}
 
-	if(scpc_categories.size() == 0)
+	if(!scpc_categories.size())
 	{
 		LOG(this->log_init, LEVEL_WARNING,
 		    "No SCPC carriers\n");
-		// no SCPC return
+		// no SCPC: return
 		return false;
 	}
+
 	// Find the category for this terminal
-	tal_map_it = terminal_affectation.find(this->mac_id);
+	TerminalCategoryDama *tal_category{nullptr};
+	auto tal_map_it = terminal_affectation.find(this->mac_id);
 	if(tal_map_it == terminal_affectation.end())
 	{
 		// check if the default category is concerned by SCPC
@@ -1076,16 +1083,17 @@ bool BlockDvbTal::Downward::initScpc(void)
 	}
 	else
 	{
-		tal_category = (*tal_map_it).second;
+		tal_category = tal_map_it->second;
 	}
+
 	// check if there are SCPC carriers
 	if(!tal_category)
 	{
 		LOG(this->log_init, LEVEL_INFO,
 		    "No SCPC carrier\n");
 		LOG(this->log_init, LEVEL_ERROR,
-				"Remove SCPC FIFOs because there is no "
-				"SCPC carrier in the return_up_band configuration\n");
+		    "Remove SCPC FIFOs because there is no "
+		    "SCPC carrier in the return_up_band configuration\n");
 		goto error;
 	}
 
@@ -1126,36 +1134,29 @@ bool BlockDvbTal::Downward::initScpc(void)
 	}
 
 	// Create the SCPC scheduler
-	cat = scpc_categories.begin()->second;
 	this->scpc_sched = new ScpcScheduling(this->scpc_carr_duration_ms,
-					      this->pkt_hdl,
-					      this->dvb_fifos,
-					      this->output_sts,
-					      this->s2_modcod_def,
-					      cat, this->gw_id);
+	                                      this->pkt_hdl,
+	                                      this->dvb_fifos,
+	                                      this->output_sts,
+	                                      this->s2_modcod_def,
+	                                      scpc_categories.begin()->second,
+	                                      this->gw_id);
 	if(!this->scpc_sched)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize SCPC\n");
 		goto error;
 	}
-	terminal_affectation.clear();
-	cat_it = scpc_categories.begin();
-	for(std::advance(cat_it,1);
-	    cat_it != scpc_categories.end(); ++cat_it)
-	{
-		delete (*cat_it).second;
-	}
-	return true;
+	scpc_categories.begin()->second = nullptr;
+	success = true;
 
 error:
 	terminal_affectation.clear();
-	for(cat_it = scpc_categories.begin();
-	    cat_it != scpc_categories.end(); ++cat_it)
+	for (auto&& category : scpc_categories)
 	{
-		delete (*cat_it).second;
+		delete category.second;
 	}
-	return false;
+	return success;
 }
 
 
@@ -1241,16 +1242,20 @@ bool BlockDvbTal::Downward::initOutput(void)
 
 bool BlockDvbTal::Downward::initTimers(void)
 {
-	this->logon_timer = this->addTimerEvent("logon", 5000,
-						false, // do not rearm
-						false // do not start
-						);
-	// QoS Server: check connection status in 5 seconds
-	this->qos_server_timer = this->addTimerEvent("qos_server", 5000);
+	if (!this->disable_control_plane)
+	{
+		this->logon_timer = this->addTimerEvent("logon", 5000,
+		                                        false, // do not rearm
+		                                        false // do not start
+		                                        );
+		// QoS Server: check connection status in 5 seconds
+		this->qos_server_timer = this->addTimerEvent("qos_server", 5000);
+	}
+
 	if(this->scpc_sched)
 	{
 		this->scpc_timer = this->addTimerEvent("scpc_timer",
-						       this->scpc_carr_duration_ms);
+		                                       this->scpc_carr_duration_ms);
 	}
 
 	return true;
@@ -1263,29 +1268,18 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
+	    auto msg_event = static_cast<const MessageEvent* const>(event);
 			// first handle specific messages
-			if(((MessageEvent *)event)->getMessageType() == msg_sig)
+			if(msg_event->getMessageType() == msg_sig)
 			{
-				DvbFrame *frame = (DvbFrame *)((MessageEvent *)event)->getData();
-				if(!this->handleDvbFrame(frame))
-				{
-					return false;
-				}
-				break;
+				return this->handleDvbFrame(static_cast<DvbFrame*>(msg_event->getData()));
 			}
-			// messages from upper layer: burst of encapsulation packets
-			NetBurst *burst;
-			NetBurst::iterator pkt_it;
-			std::string message;
-			std::ostringstream oss;
-			int ret;
+
 			// TODO move saloha handling in a specific function ?
 			// Slotted Aloha variables
-			unsigned int sa_burst_size = 0; // burst size
+	    auto burst = static_cast<NetBurst*>(msg_event->getData());
+			unsigned int sa_burst_size = burst->length(); // burst size
 			unsigned int sa_offset = 0; // packet position (offset) in the burst
-			SlottedAlohaPacketData *sa_packet = NULL; // Slotted Aloha packet
-
-			burst = (NetBurst *)((MessageEvent *)event)->getData();
 
 			sa_burst_size = burst->length();
 			LOG(this->log_receive, LEVEL_INFO,
@@ -1295,9 +1289,9 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 
 
 			// set each packet of the burst in MAC FIFO
-			for(pkt_it = burst->begin(); pkt_it != burst->end(); pkt_it++)
+			for (auto&& packet : *burst)
 			{
-				qos_t fifo_priority = (*pkt_it)->getQos();
+				qos_t fifo_priority = packet->getQos();
 
 				LOG(this->log_receive, LEVEL_DEBUG,
 				    "SF#%u: encapsulation packet has QoS value %u\n",
@@ -1311,13 +1305,12 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				}
 
 				// Slotted Aloha
-				sa_packet = NULL;
-				if(this->saloha &&
-				   this->dvb_fifos[fifo_priority]->getAccessType() == access_saloha)
+				SlottedAlohaPacketData *sa_packet{nullptr}; // Slotted Aloha packet
+				if (this->saloha && this->dvb_fifos[fifo_priority]->getAccessType() == access_saloha)
 				{
-					sa_packet = this->saloha->addSalohaHeader(*pkt_it,
-										  sa_offset++,
-										  sa_burst_size);
+					sa_packet = this->saloha->addSalohaHeader(packet,
+					                                          sa_offset++,
+					                                          sa_burst_size);
 					if(!sa_packet)
 					{
 						LOG(this->log_saloha, LEVEL_ERROR,
@@ -1335,9 +1328,9 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				    fifo_priority);
 
 				// store the encapsulation packet in the FIFO
-				if(!this->onRcvEncapPacket(sa_packet ? sa_packet : *pkt_it,
-							   this->dvb_fifos[fifo_priority],
-							   0))
+				if(!this->onRcvEncapPacket(sa_packet ? sa_packet : packet,
+				                           this->dvb_fifos[fifo_priority],
+				                           0))
 				{
 					// a problem occured, we got memory allocation error
 					// or fifo full and we won't empty fifo until next
@@ -1364,34 +1357,30 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				break;
 			}
 
-			message = "";
-			message.append("<?xml version = \"1.0\" encoding = \"UTF-8\"?>\n");
-			message.append("<XMLQoSMessage>\n");
-			message.append(" <Sender>");
-			message.append("CrossLayer");
-			message.append("</Sender>\n");
-			message.append(" <Type type=\"CrossLayer\" >\n");
-			message.append(" <Infos ");
+			// messages from upper layer: burst of encapsulation packets
+			std::ostringstream oss{};
+			oss << "<?xml version = \"1.0\" encoding = \"UTF-8\"?>\n"
+			       "<XMLQoSMessage>\n"
+			       " <Sender>CrossLayer</Sender>\n"
+			       " <Type type=\"CrossLayer\" >\n"
+			       "  <Infos ";
 			for (auto const& it : this->dvb_fifos)
 			{
-				int nbFreeFrames = it.second->getMaxSize() -
-						   it.second->getCurrentSize();
+				int nbFreeFrames = it.second->getMaxSize() - it.second->getCurrentSize();
 				// bits
 				int nbFreeBits = nbFreeFrames * this->pkt_hdl->getFixedLength() * 8;
 				// bits/ms or kbits/s
 				float macRate = nbFreeBits / this->ret_up_frame_duration_ms ;
-				oss << "File=\"" << (int) macRate << "\" ";
-				message.append(oss.str());
-				oss.str("");
+				oss << "File=\"" << int(macRate) << "\" ";
 			}
-			message.append("/>");
-			message.append(" </Type>\n");
-			message.append("</XMLQoSMessage>\n");
+			oss << "/>\n"
+			       " </Type>\n"
+			       "</XMLQoSMessage>\n";
 
-			ret = write(BlockDvbTal::Downward::qos_server_sock,
-				    message.c_str(),
-				    message.length());
-			if(ret == -1)
+			std::string message{oss.str()};
+			if(0 > write(BlockDvbTal::Downward::qos_server_sock,
+			             message.c_str(),
+			             message.length()))
 			{
 				LOG(this->log_receive, LEVEL_NOTICE,
 				    "failed to send message to QoS Server: %s "
@@ -1404,7 +1393,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 		{
 			if(*event == this->logon_timer)
 			{
-				if(this->state == state_wait_logon_resp)
+				if(this->state == TalState::wait_logon_resp)
 				{
 					// send another logon_req and raise timer
 					// only if we are in the good state
@@ -1417,7 +1406,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				}
 				return true;
 			}
-			if(this->state != state_running)
+			if(this->state != TalState::running)
 			{
 				LOG(this->log_receive, LEVEL_DEBUG,
 				    "Ignore timer event %s while not logged\n",
@@ -1457,15 +1446,14 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				// TODO we should send packets containing CNI extension with
 				//      the most robust MODCOD
 				if(!this->scpc_sched->schedule(this->scpc_frame_counter,
-							       getCurrentTime(),
-							       &this->complete_dvb_frames,
-							       remaining_alloc_sym))
+				                               getCurrentTime(),
+				                               &this->complete_dvb_frames,
+				                               remaining_alloc_sym))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "failed to schedule SCPC encapsulation "
 					    "packets stored in DVB FIFO\n");
 					return false;
-
 				}
 
 				LOG(this->log_receive, LEVEL_INFO,
@@ -1523,7 +1511,7 @@ bool BlockDvbTal::Downward::addCniExt(void)
 			MacFifoElement* elem = (*queue_it);
 			NetPacket *packet = (NetPacket*)elem->getElem();
 			tal_id_t gw = packet->getDstTalId();
-			NetPacket *extension_pkt = NULL;
+			NetPacket *extension_pkt{nullptr};
 
 			if(gw == this->gw_id &&
 			   this->is_scpc && this->getCniInputHasChanged(this->tal_id))
@@ -1555,11 +1543,11 @@ bool BlockDvbTal::Downward::addCniExt(void)
 	   && !in_fifo)
 	{
 		std::vector<NetPacket*> packet_list;
-		NetPacket *extension_pkt = NULL;
+		NetPacket *extension_pkt{nullptr};
 
 		// set packet extension to this new empty packet
 		if(!this->setPacketExtension(this->pkt_hdl,
-		                             NULL, this->dvb_fifos[0],
+		                             nullptr, this->dvb_fifos[0],
 		                             packet_list,
 		                             &extension_pkt,
 		                             this->tal_id ,this->gw_id,
@@ -1614,8 +1602,13 @@ bool BlockDvbTal::Downward::sendLogonReq(void)
 bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 {
 	// frames transmitted from Upward
-	uint8_t msg_type = dvb_frame->getMessageType();
-	switch(msg_type)
+	if (this->disable_control_plane)
+	{
+		delete dvb_frame;
+	  return true;
+	}
+
+	switch(dvb_frame->getMessageType())
 	{
 		case MSG_TYPE_SALOHA_CTRL:
 			if(this->saloha && !this->saloha->onRcvFrame(dvb_frame))
@@ -1645,8 +1638,7 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 
 		case MSG_TYPE_TTP:
 		{
-			// TODO Ttp *ttp = dynamic_cast<Ttp *>(dvb_frame);
-			Ttp *ttp = (Ttp *)dvb_frame;
+			Ttp *ttp = static_cast<Ttp *>(dvb_frame);
 			if(this->dama_agent && !this->dama_agent->hereIsTTP(ttp))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -1776,7 +1768,7 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 			goto error;
 		}
 
-		this->state = state_wait_logon_resp;
+		this->state = TalState::wait_logon_resp;
 		this->super_frame_counter = sfn;
 		goto error;
 	}
@@ -1904,7 +1896,7 @@ bool BlockDvbTal::Downward::handleLogonResp(DvbFrame *frame)
 	}
 
 	// Set the state to "running"
-	this->state = state_running;
+	this->state = TalState::running;
 
 	// send the corresponding event
 	event_login->sendEvent("Login complete with MAC %d", this->mac_id);
@@ -2009,7 +2001,7 @@ bool BlockDvbTal::Downward::connectToQoSServer()
 
 	// get TCP protocol number
 	tcp_proto = getprotobyname("TCP");
-	if(tcp_proto == NULL)
+	if(tcp_proto == nullptr)
 	{
 		LOG(this->log_qos_server, LEVEL_ERROR,
 		    "TCP is not available on the system\n");
@@ -2019,7 +2011,7 @@ bool BlockDvbTal::Downward::connectToQoSServer()
 
 	// get service name
 	serv = getservbyport(htons(this->qos_server_port), "tcp");
-	if(serv == NULL)
+	if(serv == nullptr)
 	{
 		LOG(this->log_qos_server, LEVEL_INFO,
 		    "service on TCP/%d is not available\n",
@@ -2040,7 +2032,7 @@ bool BlockDvbTal::Downward::connectToQoSServer()
 
 	// try to create socket with available addresses
 	address = addresses;
-	while(address != NULL && BlockDvbTal::Downward::qos_server_sock == -1)
+	while(address != nullptr && BlockDvbTal::Downward::qos_server_sock == -1)
 	{
 		bool is_ipv4;
 		void *sin_addr;
@@ -2056,7 +2048,7 @@ bool BlockDvbTal::Downward::connectToQoSServer()
 				   sin_addr,
 				   straddr,
 				   sizeof(straddr));
-		if(retptr != NULL)
+		if(retptr != nullptr)
 		{
 			LOG(this->log_qos_server, LEVEL_INFO,
 			    "try IPv%d address %s\n",
@@ -2139,29 +2131,27 @@ void BlockDvbTal::Downward::deletePackets()
 /*                               Upward                                      */
 /*****************************************************************************/
 
-BlockDvbTal::Upward::Upward(const string &name, tal_id_t mac_id):
-	DvbUpward(name),
-	reception_std(NULL),
-	mac_id(mac_id),
-	group_id(),
-	tal_id(),
-	gw_id(),
-	is_scpc(false),
-	state(state_initializing),
-	probe_st_l2_from_sat(NULL),
-	probe_st_received_modcod(NULL),
-	probe_st_rejected_modcod(NULL),
-	probe_sof_interval(NULL)
+BlockDvbTal::Upward::Upward(const string &name, struct dvb_tal_specific specific):
+	DvbUpward{name},
+	reception_std{nullptr},
+	mac_id{specific.mac_id},
+	group_id{},
+	tal_id{},
+	gw_id{},
+	is_scpc{specific.disable_control_plane},
+	disable_control_plane{specific.disable_control_plane},
+	state{TalState::initializing},
+	probe_st_l2_from_sat{nullptr},
+	probe_st_received_modcod{nullptr},
+	probe_st_rejected_modcod{nullptr},
+	probe_sof_interval{nullptr}
 {
 }
 
 BlockDvbTal::Upward::~Upward()
 {
 	// release the reception DVB standards
-	if(this->reception_std != NULL)
-	{
-		delete this->reception_std;
-	}
+	delete this->reception_std;
 }
 
 
@@ -2171,7 +2161,7 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
+	    DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent* const>(event)->getData());
 
 			if(this->probe_sof_interval->isEnabled() &&
 			   dvb_frame->getMessageType() == MSG_TYPE_SOF)
@@ -2224,10 +2214,12 @@ bool BlockDvbTal::Upward::onInit(void)
 		return false;
 	}
 
-	this->is_scpc = false;
-	auto access = Conf->getProfileData()->getComponent("access");
-	auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
-	OpenSandModelConf::extractParameterData(scpc_enabled, this->is_scpc);
+	if (!this->disable_control_plane)
+	{
+		auto access = ConfgetProfileData()->getComponent("access");
+		auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
+		OpenSandModelConf::extractParameterData(scpc_enabled, this->is_scpc);
+	}
 
 	if(!this->initModcodDefinitionTypes())
 	{
@@ -2271,6 +2263,11 @@ bool BlockDvbTal::Upward::onInit(void)
 	// we synchornize with SoF reception so use the return frame duration here
 	this->initStatsTimer(this->ret_up_frame_duration_ms);
 
+	if (this->disable_control_plane)
+	{
+		this->state = TalState::running;
+	}
+
 	return true;
 }
 
@@ -2278,14 +2275,16 @@ bool BlockDvbTal::Upward::onInit(void)
 //      dedicated to each host ?
 bool BlockDvbTal::Upward::initMode(void)
 {
-	this->reception_std = new DvbS2Std(this->pkt_hdl);
-	((DvbS2Std *)this->reception_std)->setModcodDef(this->s2_modcod_def);
-	if(this->reception_std == NULL)
+	auto reception_std{new DvbS2Std(this->pkt_hdl)};
+	if (reception_std == nullptr)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Failed to initialize reception standard\n");
 		return false;
 	}
+
+	reception_std->setModcodDef(this->s2_modcod_def);
+	this->reception_std = reception_std;
 	return true;
 }
 
@@ -2329,18 +2328,18 @@ bool BlockDvbTal::Upward::initOutput(void)
 	auto output = Output::Get();
 
 	this->probe_st_received_modcod = output->registerProbe<int>("Down_Forward_modcod.Received_modcod",
-								    "modcod index",
-								    true, SAMPLE_LAST);
+	                                                            "modcod index",
+	                                                            true, SAMPLE_LAST);
 	this->probe_st_rejected_modcod = output->registerProbe<int>("Down_Forward_modcod.Rejected_modcod",
-								    "modcod index",
-								    true, SAMPLE_LAST);
+	                                                            "modcod index",
+	                                                            true, SAMPLE_LAST);
 	this->probe_sof_interval = output->registerProbe<float>("Perf.SOF_interval",
-								"ms", true,
-								SAMPLE_LAST);
+	                                                        "ms", true,
+	                                                        SAMPLE_LAST);
 
 	this->probe_st_l2_from_sat =
 		output->registerProbe<int>("Throughputs.L2_from_SAT.total",
-					   "Kbits/s", true, SAMPLE_AVG);
+		                           "Kbits/s", true, SAMPLE_AVG);
 	this->l2_from_sat_bytes = 0;
 	return true;
 }
@@ -2355,7 +2354,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			    "Receive a frame of type %d\n", dvb_frame->getMessageType());
 
 	// get ACM parameters that will be transmited to GW in SAC  TODO check it
-	if(IS_CN_CAPABLE_FRAME(msg_type) && this->state == state_running)
+	if(IS_CN_CAPABLE_FRAME(msg_type) && this->state == TalState::running)
 	{
 		double cni = dvb_frame->getCn();
 		LOG(this->log_receive, LEVEL_INFO,
@@ -2368,7 +2367,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	{
 		case MSG_TYPE_BBFRAME:
 		{
-			if(this->state != state_running)
+			if(this->state != TalState::running)
 			{
 				LOG(this->log_receive, LEVEL_NOTICE,
 				    "Ignore received BBFrames while not logged\n");
@@ -2376,7 +2375,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				return true;
 			}
 
-			NetBurst *burst = NULL;
+			NetBurst *burst{nullptr};
 			DvbS2Std *std = (DvbS2Std *)this->reception_std;
 
 			// Update stats
@@ -2387,8 +2386,8 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			std->setRealModcod(this->getCurrentModcodIdInput(this->tal_id));
 
 			if(!std->onRcvFrame(dvb_frame,
-					    this->tal_id,
-					    &burst))
+			                    this->tal_id,
+			                    &burst))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "failed to handle the reception of "
@@ -2465,20 +2464,11 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 			// fall through
 		case MSG_TYPE_TTP:
-			const char *state_descr;
-
-			if(this->state == state_running)
-				state_descr = "state_running";
-			else if(this->state == state_initializing)
-				state_descr = "state_initializing";
-			else
-				state_descr = "other";
-
 			LOG(this->log_receive, LEVEL_INFO,
 			    "SF#%u: received SOF or TTP in state %s\n",
-			    this->super_frame_counter, state_descr);
+			    this->super_frame_counter, stateDescription(this->state));
 
-			if(this->state == state_running)
+			if(this->state == TalState::running)
 			{
 				if(!this->shareFrame(dvb_frame))
 				{
@@ -2505,14 +2495,18 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		// messages sent by current or another ST for the NCC --> ignore
 		case MSG_TYPE_SAC:
 		case MSG_TYPE_SESSION_LOGON_REQ:
-			delete dvb_frame;
-			break;
+			if (!this->disable_control_plane)
+			{
+				delete dvb_frame;
+				break;
+			}
+			// else fallthrough
 
 		case MSG_TYPE_SALOHA_CTRL:
 			if(!this->shareFrame(dvb_frame))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
-				    "Unable to transmit Slotted Aloha Control frame "
+				    "Unable to transmit Control frame "
 				    "to opposite channel\n");
 				goto error;
 			}
@@ -2537,12 +2531,25 @@ error:
 
 bool BlockDvbTal::Upward::shareFrame(DvbFrame *frame)
 {
-	if(!this->shareMessage((void **)&frame, sizeof(frame), msg_sig))
+	if (this->disable_control_plane)
 	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "Unable to transmit frame to opposite channel\n");
-		delete frame;
-		return false;
+		if(!this->enqueueMessage((void **)&frame))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Unable to transmit frame to upper layer\n");
+			delete frame;
+			return false;
+		}
+	}
+	else
+	{
+		if(!this->shareMessage((void **)&frame, sizeof(frame), msg_sig))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Unable to transmit frame to opposite channel\n");
+			delete frame;
+			return false;
+		}
 	}
 	return true;
 }
@@ -2550,14 +2557,8 @@ bool BlockDvbTal::Upward::shareFrame(DvbFrame *frame)
 
 bool BlockDvbTal::Upward::onStartOfFrame(DvbFrame *dvb_frame)
 {
-	uint16_t sfn; // the superframe number piggybacked by SOF packet
-	// TODO Sof *sof = dynamic_cast<Sof *>(dvb_frame);
-	Sof *sof = (Sof *)dvb_frame;
-
-	sfn = sof->getSuperFrameNumber();
-
 	// update the frame numerotation
-	this->super_frame_counter = sfn;
+	this->super_frame_counter = static_cast<Sof *>(dvb_frame)->getSuperFrameNumber();
 
 	return true;
 }
@@ -2588,6 +2589,11 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 		    "Unable to transmit LogonResponse to opposite channel\n");
 	}
 
+	if (this->disable_control_plane)
+	{
+		return true;
+	}
+
 	// Send a link is up message to upper layer
 	// link_is_up
 	link_is_up = new T_LINK_UP;
@@ -2616,7 +2622,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	    this->super_frame_counter);
 
 	// Set the state to "running"
-	this->state = state_running;
+	this->state = TalState::running;
 	LOG(this->log_receive, LEVEL_NOTICE,
 	    "SF#%u: logon succeeded, running as group %u and logon"
 	    " %u\n", this->super_frame_counter,
