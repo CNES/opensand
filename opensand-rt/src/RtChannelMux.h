@@ -63,15 +63,14 @@ class RtChannelMux: public RtChannelBase
 	bool enqueueMessage(void **data, size_t size = 0, uint8_t type = 0);
 
 	/**
-	 * @brief Add a fifo for previous channel message
+	 * @brief Add a fifo of a previous channel
 	 *
-	 * @param key  The key that will be mapped to this fifo
 	 * @param fifo  The fifo
 	 */
 	void addPreviousFifo(RtFifo *fifo);
 
 	/**
-	 * @brief Set the fifo for next channel
+	 * @brief Set the fifo of the next channel
 	 *
 	 * @param fifo  The fifo of the next channel
 	 */
@@ -81,9 +80,9 @@ class RtChannelMux: public RtChannelBase
 	bool initPreviousFifo() override;
 
   private:
-	/// The fifo of the channel for messages from previous channel
+	/// The fifos of the previous channels
 	std::vector<RtFifo *> previous_fifos{};
-	/// The fifo on the next channel
+	/// The fifo of the next channel
 	RtFifo *next_fifo = nullptr;
 };
 

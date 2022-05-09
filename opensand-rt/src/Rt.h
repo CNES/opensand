@@ -90,7 +90,7 @@ class Rt
 	 * @brief Connects two blocks
 	 *
 	 * @param upper     The upper block
-	 * @param upper     The lower block
+	 * @param lower     The lower block
 	 */
 	template <class UpperBl, class LowerBl>
 	static void connectBlocks(const UpperBl *upper, const LowerBl *lower);
@@ -100,7 +100,7 @@ class Rt
 	 *
 	 * @param upper     The upper block, with a Mux upward channel
 	 *                  and a Demux downward channel
-	 * @param upper     The lower block
+	 * @param lower     The lower block
 	 * @param down_key  The key to send messages from the upper block to
 	 *                  the lower block
 	 */
@@ -113,7 +113,7 @@ class Rt
 	 * @brief Connects a simple block to a multiplexer block
 	 *
 	 * @param upper     The upper block
-	 * @param upper     The lower block, with a Demux upward channel
+	 * @param lower     The lower block, with a Demux upward channel
 	 *                  and a Mux downward channel
 	 * @param up_key    The key to send messages from the lower block to
 	 *                  the upper block
@@ -128,7 +128,7 @@ class Rt
 	 *
 	 * @param upper     The upper block, with a Mux upward channel
 	 *                  and a Demux downward channel
-	 * @param upper     The lower block, with a Demux upward channel
+	 * @param lower     The lower block, with a Demux upward channel
 	 *                  and a Mux downward channel
 	 * @param up_key    The key to send messages from the lower block to
 	 *                  the upper block

@@ -122,17 +122,25 @@ class Block
 	};
 	
   public:
+    /// An upward channel with 1 input and 1 output
 	using RtUpward = RtUpwardBase<RtChannel>;
+    /// An upward channel with N inputs and 1 output
 	using RtUpwardMux = RtUpwardBase<RtChannelMux>;
+    /// An upward channel with 1 input and N outputs
 	template <typename Key>
 	using RtUpwardDemux = RtUpwardBase<RtChannelDemux<Key>>;
+    /// An upward channel with N inputs and N outputs
 	template <typename Key>
 	using RtUpwardMuxDemux = RtUpwardBase<RtChannelMuxDemux<Key>>;
 	
+    /// A downward channel with 1 inputs and 1 outputs
 	using RtDownward = RtDownwardBase<RtChannel>;
+    /// A downward channel with N inputs and 1 outputs
 	using RtDownwardMux = RtDownwardBase<RtChannelMux>;
+    /// A downward channel with 1 inputs and N outputs
 	template <typename Key>
 	using RtDownwardDemux = RtDownwardBase<RtChannelDemux<Key>>;
+    /// A downward channel with N inputs and N outputs
 	template <typename Key>
 	using RtDownwardMuxDemux = RtDownwardBase<RtChannelMuxDemux<Key>>;
 

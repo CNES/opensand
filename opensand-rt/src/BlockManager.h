@@ -68,15 +68,7 @@ class BlockManager
 	 * @return A pointer to the newly created block
 	 */
 	template <class Bl>
-	Bl *createBlock(const std::string &name)
-	{
-		auto *block = new Bl(name);
-		auto *upward = new typename Bl::Upward(name);
-		auto *downward = new typename Bl::Downward(name);
-		setupBlock(block, upward, downward);
-		return block;
-	}
-
+	Bl *createBlock(const std::string &name);
 	/**
 	 * @brief Creates and adds a block to the application.
 	 *
@@ -94,7 +86,7 @@ class BlockManager
 	 * @brief Connects two blocks
 	 *
 	 * @param upper     The upper block
-	 * @param upper     The lower block
+	 * @param lower     The lower block
 	 */
 	template <class UpperBl, class LowerBl>
 	void connectBlocks(const UpperBl *upper,
@@ -105,7 +97,7 @@ class BlockManager
 	 *
 	 * @param upper     The upper block, with a Mux upward channel
 	 *                  and a Demux downward channel
-	 * @param upper     The lower block
+	 * @param lower     The lower block
 	 * @param down_key  The key to send messages from the upper block to
 	 *                  the lower block
 	 */
@@ -118,7 +110,7 @@ class BlockManager
 	 * @brief Connects a simple block to a multiplexer block
 	 *
 	 * @param upper     The upper block
-	 * @param upper     The lower block, with a Demux upward channel
+	 * @param lower     The lower block, with a Demux upward channel
 	 *                  and a Mux downward channel
 	 * @param up_key    The key to send messages from the lower block to
 	 *                  the upper block
@@ -133,7 +125,7 @@ class BlockManager
 	 *
 	 * @param upper     The upper block, with a Mux upward channel
 	 *                  and a Demux downward channel
-	 * @param upper     The lower block, with a Demux upward channel
+	 * @param lower     The lower block, with a Demux upward channel
 	 *                  and a Mux downward channel
 	 * @param up_key    The key to send messages from the lower block to
 	 *                  the upper block
@@ -204,6 +196,16 @@ class BlockManager
 	bool status;
 };
 
+template <class Bl>
+Bl *BlockManager::createBlock(const std::string &name)
+{
+	auto *block = new Bl(name);
+	auto *upward = new typename Bl::Upward(name);
+	auto *downward = new typename Bl::Downward(name);
+	setupBlock(block, upward, downward);
+	return block;
+}
+
 template <class Bl, class Specific>
 Bl *BlockManager::createBlock(const std::string &name,
                               Specific specific)
@@ -233,9 +235,6 @@ void BlockManager::connectBlocks(const UpperBl *upper, const LowerBl *lower)
 	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
-
-	// Should never fail if all blocks are initialized using the createBlock() function
-	assert(lower_upward && lower_downward && upper_upward && upper_downward && "Incoherent types of blocks");
 
 	RtFifo *up_fifo = new RtFifo();
 	RtFifo *down_fifo = new RtFifo();
@@ -269,9 +268,6 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
-
-	// Should never fail if all blocks are initialized using the createBlock() function
-	assert(lower_upward && lower_downward && upper_upward && upper_downward && "Incoherent types of blocks");
 
 	RtFifo *up_fifo = new RtFifo();
 	RtFifo *down_fifo = new RtFifo();
@@ -306,9 +302,6 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	// Should never fail if all blocks are initialized using the createBlock() function
-	assert(lower_upward && lower_downward && upper_upward && upper_downward && "Incoherent types of blocks");
-
 	RtFifo *up_fifo = new RtFifo();
 	RtFifo *down_fifo = new RtFifo();
 
@@ -342,9 +335,6 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	auto lower_downward = dynamic_cast<typename LowerBl::Downward *>(lower->downward);
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
-
-	// Should never fail if all blocks are initialized using the createBlock() function
-	assert(lower_upward && lower_downward && upper_upward && upper_downward && "Incoherent types of blocks");
 
 	RtFifo *up_fifo = new RtFifo();
 	RtFifo *down_fifo = new RtFifo();

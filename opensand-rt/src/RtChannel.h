@@ -49,7 +49,7 @@ class RtChannel: public RtChannelBase
 	~RtChannel() override;
 
 	/**
-	 * @brief Add a message in the next channel queue
+	 * @brief Add a message in the next channel fifo
 	 * @warning The message shall not be reused in the channel after this call
 	 *          because will be used in other blocks
 	 *
@@ -62,14 +62,14 @@ class RtChannel: public RtChannelBase
 	bool enqueueMessage(void **data, size_t size = 0, uint8_t type = 0);
 
 	/**
-	 * @brief Set the fifo for previous channel message
+	 * @brief Set the fifo of the previous channel
 	 *
 	 * @param fifo  The fifo
 	 */
 	void setPreviousFifo(RtFifo *fifo);
 
 	/**
-	 * @brief Set the fifo for next channel
+	 * @brief Set the fifo of the next channel
 	 *
 	 * @param fifo  The fifo of the next channel
 	 */
@@ -79,9 +79,9 @@ class RtChannel: public RtChannelBase
 	bool initPreviousFifo() override;
 
   private:
-	/// The fifo of the channel for messages from previous channel
+	/// The fifo of the previous channel
 	RtFifo *previous_fifo = nullptr;
-	/// The fifo on the next channel
+	/// The fifo of the next channel
 	RtFifo *next_fifo = nullptr;
 };
 

@@ -74,16 +74,16 @@ class RtChannelMuxDemux: public RtChannelBase
 	bool enqueueMessage(Key key, void **data, size_t size = 0, uint8_t type = 0);
 
 	/**
-	 * @brief Add a fifo for a previous channel
+	 * @brief Add a fifo of a previous channel
 	 *
 	 * @param fifo  The fifo of the previous channel
 	 */
 	void addPreviousFifo(RtFifo *fifo);
 
 	/**
-	 * @brief Add a fifo for a next channel
+	 * @brief Add a fifo of a next channel
 	 *
-	 * @param key  The key that will be mapped to this fifo
+	 * @param key   The key that will be mapped to this fifo
 	 * @param fifo  The fifo
 	 */
 	void addNextFifo(Key key, RtFifo *fifo);

@@ -60,7 +60,7 @@ class RtChannelDemux: public RtChannelBase
 	~RtChannelDemux() override;
 
 	/**
-	 * @brief Add a message in the next channel queue
+	 * @brief Add a message in the next channel fifo mapped to key
 	 * @warning The message shall not be reused in the channel after this call
 	 *          because will be used in other blocks
 	 *
@@ -74,14 +74,14 @@ class RtChannelDemux: public RtChannelBase
 	bool enqueueMessage(Key key, void **data, size_t size = 0, uint8_t type = 0);
 
 	/**
-	 * @brief Set the fifo for previous channel
+	 * @brief Set the fifo of the previous channel
 	 *
 	 * @param fifo  The fifo of the previous channel
 	 */
 	void setPreviousFifo(RtFifo *fifo);
 
 	/**
-	 * @brief Add a fifo for next channel message
+	 * @brief Add a fifo of a next channel
 	 *
 	 * @param key  The key that will be mapped to this fifo
 	 * @param fifo  The fifo
@@ -92,9 +92,9 @@ class RtChannelDemux: public RtChannelBase
 	bool initPreviousFifo() override;
 
   private:
-	/// The fifo of the channel for messages from previous channel
+	/// The fifo of the previous channel
 	RtFifo *previous_fifo = nullptr;
-	/// The fifos on the next channel
+	/// The fifos of the next channels
 	std::unordered_map<Key, RtFifo *> next_fifos{};
 };
 
