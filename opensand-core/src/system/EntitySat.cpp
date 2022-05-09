@@ -60,8 +60,9 @@
 #include "BlockDvbSatTransp.h"
 #include "BlockSatCarrier.h"
 
-
-EntitySat::EntitySat(): Entity("sat", 0)
+EntitySat::EntitySat(tal_id_t instance_id):
+    Entity("sat" + std::to_string(instance_id), instance_id),
+    instance_id{instance_id}
 {
 }
 
@@ -71,37 +72,27 @@ EntitySat::~EntitySat()
 
 bool EntitySat::createSpecificBlocks()
 {
-	struct sc_specific specific;
-
-	Block *block_dvb;
-	Block *block_sat_carrier;
-
 	// instantiate all blocs
-	block_dvb = Rt::createBlock<BlockDvbSatTransp,
-	BlockDvbSatTransp::UpwardTransp,
-	BlockDvbSatTransp::DownwardTransp>("Dvb", NULL);
-	if(!block_dvb)
+	auto block_dvb = Rt::createBlock<BlockDvbSatTransp>("Dvb");
+	if (!block_dvb)
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the DvbSat block",
+		DFLTLOG(LEVEL_CRITICAL, "%s: cannot create the DvbSat block",
             this->getName().c_str());
 		return false;
 	}
 
+	struct sc_specific specific;
 	specific.ip_addr = this->ip_address;
-	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
-	      BlockSatCarrier::Upward,
-	      BlockSatCarrier::Downward,
-	      struct sc_specific>("SatCarrier",
-		  block_dvb,
-		  specific);
+	specific.tal_id = this->instance_id;
+	auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", specific);
 	if(!block_sat_carrier)
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the SatCarrier block",
+		DFLTLOG(LEVEL_CRITICAL, "%s: cannot create the SatCarrier block",
             this->getName().c_str());
 		return false;
 	}
+
+	Rt::connectBlocks(block_dvb, block_sat_carrier);
 
 	return true;
 }

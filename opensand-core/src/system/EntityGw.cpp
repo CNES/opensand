@@ -82,19 +82,10 @@ bool EntityGw::createSpecificBlocks()
 	struct la_specific laspecific;
 	struct sc_specific scspecific;
 
-	Block *block_lan_adaptation;
-	Block *block_encap;
-	Block *block_dvb;
-	Block *block_phy_layer;
-	Block *block_sat_carrier;
-
 	// instantiate all blocs
 	laspecific.tap_iface = this->tap_iface;
-        laspecific.packet_switch = new GatewayPacketSwitch(this->instance_id);
-	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
-		 BlockLanAdaptation::Upward,
-		 BlockLanAdaptation::Downward,
-		 struct la_specific>("LanAdaptation", NULL, laspecific);
+	laspecific.packet_switch = new GatewayPacketSwitch(this->instance_id);
+	auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", laspecific);
 	if(!block_lan_adaptation)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -102,10 +93,8 @@ bool EntityGw::createSpecificBlocks()
 		        this->getName().c_str());
 		return false;
 	}
-	block_encap = Rt::createBlock<BlockEncap,
-		BlockEncap::Upward,
-		BlockEncap::Downward,
-		tal_id_t>("Encap", block_lan_adaptation, this->instance_id);
+	
+	auto block_encap = Rt::createBlock<BlockEncap>("Encap", this->instance_id);
 	if(!block_encap)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -114,10 +103,7 @@ bool EntityGw::createSpecificBlocks()
 		return false;
 	}
 
-	block_dvb = Rt::createBlock<BlockDvbNcc,
-		BlockDvbNcc::Upward,
-		BlockDvbNcc::Downward,
-		tal_id_t>("Dvb", block_encap, this->instance_id);
+	auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", this->instance_id);
 	if(!block_dvb)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -126,10 +112,7 @@ bool EntityGw::createSpecificBlocks()
 		return false;
 	}
 
-	block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-		BlockPhysicalLayer::Upward,
-		BlockPhysicalLayer::Downward,
-		tal_id_t>("PhysicalLayer", block_dvb, this->instance_id);
+	auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
 	if(!block_phy_layer)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -140,12 +123,7 @@ bool EntityGw::createSpecificBlocks()
 
 	scspecific.ip_addr = this->ip_address;
 	scspecific.tal_id = this->instance_id;
-	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
-		BlockSatCarrier::Upward,
-		BlockSatCarrier::Downward,
-		struct sc_specific>("SatCarrier",
-		                    block_phy_layer,
-		                    scspecific);
+	auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", scspecific);
 	if(!block_sat_carrier)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -153,6 +131,12 @@ bool EntityGw::createSpecificBlocks()
 		        this->getName().c_str());
 		return false;
 	}
+	
+	Rt::connectBlocks(block_lan_adaptation, block_encap);
+	Rt::connectBlocks(block_encap, block_dvb);
+	Rt::connectBlocks(block_dvb, block_phy_layer);
+	Rt::connectBlocks(block_phy_layer, block_sat_carrier);
+	
 	return true;
 }
 

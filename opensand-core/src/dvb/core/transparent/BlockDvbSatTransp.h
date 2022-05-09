@@ -172,5 +172,8 @@ class BlockDvbSatTransp: public BlockDvbSat
 		bool handleTimerEvent(SatGw *current_gw);
 	};
 
+	using Upward = UpwardTransp;
+	using Downward = DownwardTransp;
+
 };
 #endif

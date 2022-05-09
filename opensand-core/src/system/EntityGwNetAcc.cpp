@@ -79,18 +79,10 @@ bool EntityGwNetAcc::createSpecificBlocks()
 {
 	struct la_specific spec_la;
 
-	Block *block_lan_adaptation;
-	Block *block_encap;
-	Block *block_dvb;
-	Block *block_interconnect;
-
 	// instantiate all blocs
 	spec_la.tap_iface = this->tap_iface;
 	spec_la.packet_switch = new GatewayPacketSwitch(this->instance_id);
-	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
-			 BlockLanAdaptation::Upward,
-			 BlockLanAdaptation::Downward,
-			 struct la_specific>("LanAdaptation", NULL, spec_la);
+	auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", spec_la);
 	if(!block_lan_adaptation)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -99,10 +91,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 		return false;
 	}
 
-	block_encap = Rt::createBlock<BlockEncap,
-		BlockEncap::Upward,
-		BlockEncap::Downward,
-		tal_id_t>("Encap", block_lan_adaptation, this->instance_id);
+	auto block_encap = Rt::createBlock<BlockEncap>("Encap", this->instance_id);
 	if(!block_encap)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -111,10 +100,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 		return false;
 	}
 
-	block_dvb = Rt::createBlock<BlockDvbNcc,
-	      BlockDvbNcc::Upward,
-	      BlockDvbNcc::Downward,
-	      tal_id_t>("Dvb", block_encap, this->instance_id);
+	auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", this->instance_id);
 	if(!block_dvb)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -123,11 +109,8 @@ bool EntityGwNetAcc::createSpecificBlocks()
 		return false;
 	}
 
-	block_interconnect = Rt::createBlock<BlockInterconnectDownward,
-		       BlockInterconnectDownward::Upward,
-		       BlockInterconnectDownward::Downward,
-		       const string &>
-		       ("InterconnectDownward", block_dvb, this->interconnect_address);
+	auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>
+		       ("InterconnectDownward", this->interconnect_address);
 	if(!block_interconnect)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -135,6 +118,10 @@ bool EntityGwNetAcc::createSpecificBlocks()
             this->getName().c_str());
 		return false;
 	}
+
+	Rt::connectBlocks(block_lan_adaptation, block_encap);
+	Rt::connectBlocks(block_encap, block_dvb);
+	Rt::connectBlocks(block_dvb, block_interconnect);
 
 	return true;
 }
