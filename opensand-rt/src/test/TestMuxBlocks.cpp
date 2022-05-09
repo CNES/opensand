@@ -32,6 +32,34 @@
  * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
+
+// This test creates the following block structure:
+//
+//  ┌───────────────────────┐
+//  │       top_mux         │
+//  │                       │
+//  └─────▲──────────┬──────┘
+//  ┌─────┴────┐ ┌───▼──────┐
+//  │   top    │ │   top    │
+//  │   left   │ │  right   │
+//  └─────▲────┘ └───┬──────┘
+//  ┌─────┴────┐ ┌───▼──────┐
+//  │  middle  │ │  middle  │
+//  │   left   │ │  right   │
+//  └─────▲────┘ └───┬──────┘
+//  ┌─────┴────┐ ┌───▼──────┐
+//  │  bottom  │ │  bottom  │
+//  │   left   │ │  right   │
+//  └─────▲────┘ └───┬──────┘
+//  ┌─────┴──────────▼──────┐
+//  │      bottom_mux       │
+//  │                       │
+//  └───────────────────────┘
+//
+// All block can send messages to both their right and left vertical neighbours
+// Arrows only represents the messages that are actually sent
+
+
 #include "TestMuxBlocks.h"
 #include "Rt.h"
 #include <csignal>
