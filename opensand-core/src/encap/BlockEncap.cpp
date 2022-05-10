@@ -432,7 +432,7 @@ error:
 
 bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 {
-	map<long, int> time_contexts;
+	std::map<long, int> time_contexts;
 	std::vector<EncapPlugin::EncapContext *>::iterator iter;
 	std::string name;
 	size_t size;
@@ -467,7 +467,7 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 	}
 
 	// set encapsulate timers if needed
-	for(map<long, int>::iterator time_iter = time_contexts.begin();
+	for(std::map<long, int>::iterator time_iter = time_contexts.begin();
 	    time_iter != time_contexts.end(); time_iter++)
 	{
 		std::map<event_id_t, int>::iterator it;

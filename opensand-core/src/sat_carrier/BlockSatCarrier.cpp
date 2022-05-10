@@ -45,7 +45,7 @@
 /**
  * Constructor
  */
-BlockSatCarrier::BlockSatCarrier(const string &name,
+BlockSatCarrier::BlockSatCarrier(const std::string &name,
                                  struct sc_specific UNUSED(specific)):
 	Block(name)
 {

@@ -42,7 +42,7 @@
 #include <errno.h>
 
 
-SignalEvent::SignalEvent(const string &name,
+SignalEvent::SignalEvent(const std::string &name,
                          sigset_t signal_mask,
                          uint8_t priority):
 	RtEvent(evt_signal, name, -1, priority),

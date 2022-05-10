@@ -40,19 +40,18 @@
 #include "RtChannel.h"
 
 #include <utility>
-using std::pair;
 
 class TestBlock: public Block
 {
   public:
 
-	TestBlock(const string &name);
+	TestBlock(const std::string &name);
 	~TestBlock();
 
 	class Upward : public RtUpward
 	{
 	 public:
-	 	Upward(const string &name) :
+	 	Upward(const std::string &name) :
 			RtUpward(name),
 			nbr_timeouts(0),
 			output_fd(-1)
@@ -76,7 +75,7 @@ class TestBlock: public Block
 	class Downward : public RtDownward
 	{
 	 public:
-	 	Downward(const string &name) :
+	 	Downward(const std::string &name) :
 			RtDownward(name),
 			input_fd(-1)
 		{};

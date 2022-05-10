@@ -62,7 +62,7 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * @param local_ip_addr   The IP address for emulation network
 	 * @return true on success, false otherwise
 	 */
-	bool readInConfig(const string local_ip_addr);
+	bool readInConfig(const std::string local_ip_addr);
 
 	/**
 	 * Read data from the configuration file and create output channels
@@ -70,7 +70,7 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * @param local_ip_addr   The IP address for emulation network
 	 * @return true on success, false otherwise
 	 */
-	bool readOutConfig(const string local_ip_addr);
+	bool readOutConfig(const std::string local_ip_addr);
 
 	/**
 	 * @brief Send data on a satellite carrier
@@ -113,14 +113,14 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * @param in              Whether we want input or output channels
 	 * @return true on success, false otherwise
 	 */
-	bool readConfig(const string local_ip_addr,
+	bool readConfig(const std::string local_ip_addr,
 	                bool in);
-	bool readSpot(const string &local_ip_addr,
+	bool readSpot(const std::string &local_ip_addr,
 	              bool in,
 	              component_t host,
-	              const string &compo_name,
+	              const std::string &compo_name,
 	              tal_id_t gw_id);
-	bool readCarrier(const string &local_ip_addr,
+	bool readCarrier(const std::string &local_ip_addr,
 	                 tal_id_t gw_id,
 	                 const OpenSandModelConf::carrier_socket &carrier,
 	                 bool in,

@@ -350,7 +350,7 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 		this->default_fifo_id = std::max(this->default_fifo_id,
 		                                 fifo->getPriority());
 
-		fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
+		fifos.insert({fifo->getPriority(), fifo});
 	}
 
 	return true;

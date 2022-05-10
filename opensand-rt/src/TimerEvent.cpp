@@ -40,7 +40,7 @@
 #include <sys/timerfd.h>
 #include <unistd.h>
 
-TimerEvent::TimerEvent(const string &name,
+TimerEvent::TimerEvent(const std::string &name,
                        double timer_duration_ms,
                        bool auto_rearm,
                        bool start,

@@ -45,7 +45,7 @@
 #include <signal.h>
 
 
-Block::Block(const string &name, void *specific):
+Block::Block(const std::string &name, void *specific):
 	name(name),
 	initialized(false)
 {

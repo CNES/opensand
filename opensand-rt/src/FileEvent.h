@@ -61,7 +61,7 @@ class FileEvent: public RtEvent
 	 * @param fd        The file descriptor to monitor for the event
 	 * @param priority  The priority of the event
 	 */
-	FileEvent(const string &name,
+	FileEvent(const std::string &name,
 	          int32_t fd = -1,
 	          size_t max_size = MAX_SOCK_SIZE,
 	          uint8_t priority = 5,

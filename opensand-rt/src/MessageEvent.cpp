@@ -43,7 +43,7 @@
 
 
 MessageEvent::MessageEvent(RtFifo *const fifo,
-                           const string &name,
+                           const std::string &name,
                            int32_t fd,
                            uint8_t priority):
 	RtEvent(evt_message, name, fd, priority),

@@ -37,7 +37,7 @@
 #include <opensand_output/Output.h>
 
 
-InterconnectChannel::InterconnectChannel(string name, string iface_addr):
+InterconnectChannel::InterconnectChannel(std::string name, std::string iface_addr):
 	name(name),
 	interconnect_addr(iface_addr),
 	data_channel(nullptr),
@@ -65,7 +65,7 @@ InterconnectChannel::~InterconnectChannel()
  */
 
 void InterconnectChannelSender::initUdpChannels(unsigned int data_port, unsigned int sig_port,
-                                                string remote_addr, unsigned int stack,
+                                                std::string remote_addr, unsigned int stack,
                                                 unsigned int rmem, unsigned int wmem)
 {
 	// Create channels
@@ -189,7 +189,7 @@ void InterconnectChannelSender::serialize(std::list<DvbFrame *> *dvb_frame_list,
  */
 
 void InterconnectChannelReceiver::initUdpChannels(unsigned int data_port, unsigned int sig_port,
-                                                  string remote_addr, unsigned int stack,
+                                                  std::string remote_addr, unsigned int stack,
                                                   unsigned int rmem, unsigned int wmem)
 {
 	// Create channel

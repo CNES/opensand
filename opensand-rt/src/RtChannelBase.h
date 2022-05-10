@@ -53,10 +53,6 @@ class Block;
 class RtFifo;
 class RtEvent;
 
-using std::list;
-using std::map;
-using std::string;
-
 //#define TIME_REPORTS
 
 /**
@@ -88,7 +84,7 @@ class RtChannelBase
 	 * @param type       The type of the block channel (upward or downward)
 	 *
 	 */
-	RtChannelBase(const string &name, const string &type);
+	RtChannelBase(const std::string &name, const std::string &type);
 
 	/**
 	 * @brief Channel Constructor
@@ -99,7 +95,7 @@ class RtChannelBase
 	 *
 	 */
 	template<class T>
-	RtChannelBase(const string &name, const string &type, T specific);
+	RtChannelBase(const std::string &name, const std::string &type, T specific);
 
 	virtual ~RtChannelBase();
 
@@ -129,7 +125,7 @@ class RtChannelBase
 	 * 
 	 * @return channel name
 	 */
-	string getName() { return this->channel_name; }
+	std::string getName() { return this->channel_name; }
 	
 	/**
 	 * @brief Add a timer event to the channel
@@ -141,7 +137,7 @@ class RtChannelBase
 	 * @param priority     The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addTimerEvent(const string &name,
+	int32_t addTimerEvent(const std::string &name,
 	                      double duration_ms,
 	                      bool auto_rearm = true,
 	                      bool start = true,
@@ -156,7 +152,7 @@ class RtChannelBase
 	 * @param priority  The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addNetSocketEvent(const string &name,
+	int32_t addNetSocketEvent(const std::string &name,
 	                          int32_t fd,
 	                          size_t max_size = MAX_SOCK_SIZE,
 	                          uint8_t priority = 3);
@@ -170,7 +166,7 @@ class RtChannelBase
 	  * @param priority  The priority of the event (small for high priority)
 	  * @return the event id on success, -1 otherwise
 	  */
-	 int32_t addTcpListenEvent(const string &name,
+	 int32_t addTcpListenEvent(const std::string &name,
 	                           int32_t fd,
 	                           size_t max_size = MAX_SOCK_SIZE,
 	                           uint8_t priority = 4);
@@ -184,7 +180,7 @@ class RtChannelBase
 	 * @param priority  The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addFileEvent(const string &name,
+	int32_t addFileEvent(const std::string &name,
 	                     int32_t fd,
 	                     size_t max_size = MAX_SOCK_SIZE,
 	                     uint8_t priority = 4);
@@ -197,7 +193,7 @@ class RtChannelBase
 	 * @param priority     The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addSignalEvent(const string &name,
+	int32_t addSignalEvent(const std::string &name,
 	                       sigset_t signal_mask,
 	                       uint8_t priority = 1);
 
@@ -313,7 +309,7 @@ class RtChannelBase
 
 #ifdef TIME_REPORTS
 	/// statistics about events durations (in us)
-	map<string, list<double> > durations;
+	std::map<std::string, std::list<double> > durations;
 
 	/**
 	 * @brief print statistics on events durations
@@ -324,21 +320,21 @@ class RtChannelBase
   private:
 
 	/// name of the block channel
-	string channel_name;
+	std::string channel_name;
 	
 	/// type of the block channel (upward or downward)
-	string channel_type;
+	std::string channel_type;
 	
 	bool block_initialized;
 	
 	/// events that are currently monitored by the channel thread
-	map<event_id_t, RtEvent *> events;
+	std::map<event_id_t, RtEvent *> events;
 
 	/// the list of new events (used to avoid updates inside the loop)
-	list<RtEvent *> new_events;
+	std::list<RtEvent *> new_events;
 
 	/// the list of removed event id
-	list<event_id_t> removed_events;
+	std::list<event_id_t> removed_events;
 
 	/// The fifo for incoming messages from opposite channel
 	RtFifo *in_opp_fifo;
@@ -405,7 +401,7 @@ class RtChannelBase
 };
 
 template<class T>
-RtChannelBase::RtChannelBase(const string &name, const string &type, T specific):
+RtChannelBase::RtChannelBase(const std::string &name, const std::string &type, T specific):
 	log_init(NULL),
 	log_rt(NULL),
 	log_receive(NULL),

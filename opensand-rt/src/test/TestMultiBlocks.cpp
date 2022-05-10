@@ -88,9 +88,6 @@
 #include <heap-checker.h>
 #endif
 
-
-using std::ostringstream;
-
 /**
  * @brief Print usage of the test application
  */
@@ -101,7 +98,7 @@ static void usage(void)
 }
 
 
-static char *read_msg(const MessageEvent *const event, string name, string from)
+static char *read_msg(const MessageEvent *const event, std::string name, std::string from)
 {
 	char *data;
 	switch(event->getType())
@@ -131,7 +128,7 @@ static char *read_msg(const MessageEvent *const event, string name, string from)
  *  - upward: read message from lower block (MessageEvent) and compare to file
  */
 
-TopBlock::TopBlock(const string &name, string file):
+TopBlock::TopBlock(const std::string &name, std::string file):
 	Block(name)
 {
 }
@@ -188,7 +185,7 @@ bool TopBlock::Downward::onEvent(const RtEvent *const event)
 {
 	size_t size;
 	char *data;
-	string buffer;
+	std::string buffer;
 	switch(event->getType())
 	{
 		case evt_file:
@@ -268,7 +265,7 @@ bool TopBlock::Downward::onEvent(const RtEvent *const event)
  *  - downward/upward: read message (MessageEvent) and transmit to following block
  */
 
-MiddleBlock::MiddleBlock(const string &name):
+MiddleBlock::MiddleBlock(const std::string &name):
 	Block(name)
 {
 }
@@ -315,7 +312,7 @@ MiddleBlock::~MiddleBlock()
  *  - upward: read on pipe (NetSocketEvent) and transmit it to upper block
  */
 
-BottomBlock::BottomBlock(const string &name):
+BottomBlock::BottomBlock(const std::string &name):
 	Block(name)
 {
 }
@@ -445,8 +442,8 @@ int main(int argc, char **argv)
 HeapLeakChecker heap_checker("test_multi_blocks");
 {
 #endif
-	string error;
-	string input_file;
+	std::string error;
+	std::string input_file;
 	int args_used;
 
 	/* parse program arguments, print the help message in case of failure */

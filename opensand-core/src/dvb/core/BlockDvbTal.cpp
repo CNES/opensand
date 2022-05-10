@@ -516,7 +516,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		// are not coherent.
 		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getPriority());
 
-		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
+		this->dvb_fifos.insert({fifo->getPriority(), fifo});
 	}
 
 	this->l2_to_sat_total_bytes = 0;

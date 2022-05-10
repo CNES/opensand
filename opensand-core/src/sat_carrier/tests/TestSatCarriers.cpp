@@ -108,7 +108,7 @@ enum
 /**
  * Constructor
  */
-TestSatCarriers::TestSatCarriers(const string &name,
+TestSatCarriers::TestSatCarriers(const std::string &name,
                                  struct sc_specific UNUSED(specific)):
 	Block(name)
 {

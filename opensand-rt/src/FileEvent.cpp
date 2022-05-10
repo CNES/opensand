@@ -41,7 +41,7 @@
 #include <errno.h>
 
 
-FileEvent::FileEvent(const string &name,
+FileEvent::FileEvent(const std::string &name,
                      int32_t fd,
                      size_t max_size,
                      uint8_t priority,

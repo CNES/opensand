@@ -166,7 +166,7 @@ class Rt
 	 * @param critical    Whether the application should be stopped
 	 * @param msg_format  The error
 	 */
-	static void reportError(const string &name, pthread_t thread_id,
+	static void reportError(const std::string &name, pthread_t thread_id,
 	                        bool critical, const char *msg_format, ...);
 
 	/**
@@ -182,13 +182,13 @@ class Rt
 };
 
 template <class Bl>
-Bl *Rt::createBlock(const string &name)
+Bl *Rt::createBlock(const std::string &name)
 {
 	return Rt::manager.createBlock<Bl>(name);
 }
 
 template <class Bl, class Specific>
-Bl *Rt::createBlock(const string &name, Specific specific)
+Bl *Rt::createBlock(const std::string &name, Specific specific)
 {
 	return Rt::manager.createBlock<Bl>(name, specific);
 }

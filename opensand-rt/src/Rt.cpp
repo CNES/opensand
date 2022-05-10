@@ -42,8 +42,6 @@
 // Create bloc instance
 BlockManager Rt::manager;
 
-using std::max;
-
 bool Rt::init(void)
 {
 	return manager.init();
@@ -69,7 +67,7 @@ void Rt::stop(int signal)
 	manager.stop(signal);
 }
 
-void Rt::reportError(const string &name, pthread_t thread_id,
+void Rt::reportError(const std::string &name, pthread_t thread_id,
                      bool critical, const char *msg_format, ...)
 {
 	char buf[1024];

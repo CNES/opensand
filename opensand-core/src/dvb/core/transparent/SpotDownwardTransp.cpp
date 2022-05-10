@@ -171,7 +171,7 @@ bool SpotDownwardTransp::initMode(void)
 			    "failed initialize fifos for category %s\n", label.c_str());
 			return false;
 		}
-		this->dvb_fifos.insert(pair<string, fifos_t>(label, fifos));
+		this->dvb_fifos.insert({label, fifos});
 
 		// check if there is VCM carriers in this category
 		vector<CarriersGroupDama *>::iterator carrier_it;

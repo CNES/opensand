@@ -79,7 +79,7 @@
 #endif
 
 
-TestBlock::TestBlock(const string &name):
+TestBlock::TestBlock(const std::string &name):
 	Block(name)
 {
 }
@@ -120,7 +120,7 @@ bool TestBlock::Upward::onInit(void)
 
 bool TestBlock::Upward::onEvent(const RtEvent *const event)
 {
-	string error;
+	std::string error;
 	timeval elapsed_time;
 	int res = 0;
 	
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 HeapLeakChecker heap_checker("test_block");
 {
 #endif
-	string error;
+	std::string error;
 
 	std::cout << "Launch test" << std::endl;
 
