@@ -166,10 +166,9 @@ BlockManager::BlockManager():
 
 BlockManager::~BlockManager()
 {
-	for(list<Block *>::const_iterator iter = this->block_list.begin();
-	    iter != this->block_list.end(); ++iter)
+	for(auto &&block: block_list)
 	{
-		delete (*iter);
+		delete block;
 	}
 }
 
@@ -181,14 +180,13 @@ void BlockManager::stop(int signal)
 		    "already tried to stop process\n");
 		return;
 	}
-	for(list<Block *>::iterator iter = this->block_list.begin();
-	    iter != this->block_list.end(); ++iter)
+	for(auto &&block: block_list)
 	{
-		if(*iter != NULL)
+		if(block != nullptr)
 		{
-			if(!(*iter)->stop(signal))
+			if(!block->stop(signal))
 			{
-				(*iter)->stop(SIGKILL);
+				block->stop(SIGKILL);
 			}
 		}
 	}
@@ -210,20 +208,19 @@ bool BlockManager::init(void)
 	// Output log
 	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "Rt");
 
-	for(list<Block*>::iterator iter = this->block_list.begin();
-	    iter != this->block_list.end(); iter++)
+	for(auto &&block: block_list)
 	{
 		LOG(this->log_rt, LEVEL_DEBUG,
 		    "Initializing block %s.",
-		    (*iter)->getName().c_str());
-		if((*iter)->isInitialized())
+		    block->getName().c_str());
+		if(block->isInitialized())
 		{
 			LOG(this->log_rt, LEVEL_NOTICE,
 			    "Block %s already initialized...",
-			    (*iter)->getName().c_str());
+			    block->getName().c_str());
 			continue;
 		}
-		if(!(*iter)->init())
+		if(!block->init())
 		{
 			// only return false, the block init function should call
 			// report error with critical to true
@@ -231,22 +228,21 @@ bool BlockManager::init(void)
 		}
 		LOG(this->log_rt, LEVEL_NOTICE,
 		    "Block %s initialized.",
-		    (*iter)->getName().c_str());
+		    block->getName().c_str());
 	}
 
-	for(list<Block*>::iterator iter = this->block_list.begin();
-	    iter != this->block_list.end(); iter++)
+	for(auto &&block: block_list)
 	{
 		LOG(this->log_rt, LEVEL_DEBUG,
 		    "Initializing specifics of block %s.",
-		    (*iter)->getName().c_str());
-		if((*iter)->isInitialized())
+		    block->getName().c_str());
+		if(block->isInitialized())
 		{
 			LOG(this->log_rt, LEVEL_NOTICE,
 			    "Block %s already initialized...",
-			    (*iter)->getName().c_str());
+			    block->getName().c_str());
 		}
-		if(!(*iter)->initSpecific())
+		if(!block->initSpecific())
 		{
 			// only return false, the block initSpecific function should call
 			// report error with critical to true
@@ -254,7 +250,7 @@ bool BlockManager::init(void)
 		}
 		LOG(this->log_rt, LEVEL_NOTICE,
 		    "Block %s initialized its specifics.",
-		    (*iter)->getName().c_str());
+		    block->getName().c_str());
 	}
 
 	return true;
@@ -280,16 +276,15 @@ void BlockManager::reportError(const char *msg, bool critical)
 bool BlockManager::start(void)
 {
 	//start all threads
-	for(list<Block *>::iterator iter = this->block_list.begin();
-	    iter != this->block_list.end(); ++iter)
+	for(auto &&block: block_list)
 	{
-		if(!(*iter)->isInitialized())
+		if(!block->isInitialized())
 		{
 			Rt::reportError("manager", pthread_self(),
 			                true, "block not initialized");
 			return false;
 		}
-		if(!(*iter)->start())
+		if(!block->start())
 		{
 			Rt::reportError("manager", pthread_self(),
 			                true, "block does not start");

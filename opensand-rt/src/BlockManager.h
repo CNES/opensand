@@ -44,7 +44,7 @@
 #include <opensand_output/OutputLog.h>
 
 #include "TemplateHelper.h"
-#include <list>
+#include <vector>
 #include <string>
 
 /**
@@ -187,7 +187,7 @@ class BlockManager
 	void setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward);
 
 	/// list of pointers to the blocks
-	std::list<Block *> block_list;
+	std::vector<Block *> block_list;
 
 	/// check if we already tried to stop process
 	bool stopped;
