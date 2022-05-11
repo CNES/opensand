@@ -90,17 +90,6 @@ class RtChannelBase
 	 */
 	RtChannelBase(const string &name, const string &type);
 
-	/**
-	 * @brief Channel Constructor
-	 *
-	 * @param name       The name of the block channel
-	 * @param type       The type of the block channel (upward or downward)
-	 * @tparam specific  User defined data
-	 *
-	 */
-	template<class T>
-	RtChannelBase(const string &name, const string &type, T specific);
-
 	virtual ~RtChannelBase();
 
 	/**
@@ -402,24 +391,6 @@ class RtChannelBase
 	 * @return the timer  on success, NULL otherwise
 	 */
 	TimerEvent *getTimer(event_id_t id);
-};
-
-template<class T>
-RtChannelBase::RtChannelBase(const string &name, const string &type, T specific):
-	log_init(NULL),
-	log_rt(NULL),
-	log_receive(NULL),
-	log_send(NULL),
-	channel_name(name),
-	channel_type(type),
-	block_initialized(false),
-	in_opp_fifo(NULL),
-	max_input_fd(-1),
-	stop_fd(-1),
-	w_sel_break(-1),
-	r_sel_break(-1)
-{
-	FD_ZERO(&(this->input_fd_set));
 };
 
 #endif

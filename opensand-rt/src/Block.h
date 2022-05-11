@@ -76,9 +76,8 @@ class Block
 	 * @brief Block constructor
 	 *
 	 * @param name      The name of the block
-	 * @param specific  Specific block parameters
 	 */
-	Block(const std::string &name, void *specific = NULL);
+	Block(const std::string &name);
 
 	virtual ~Block();
 
@@ -95,11 +94,6 @@ class Block
 		RtUpwardBase(const std::string &name):
 			ChannelType(name, "Upward")
 		{};
-
-		template<class T>
-		RtUpwardBase(const std::string &name, T specific):
-			ChannelType(name, "Upward", specific)
-		{};	
 	};
 
 	/**
@@ -113,11 +107,6 @@ class Block
 	  public:
 		RtDownwardBase(const std::string &name):
 			ChannelType(name, "Downward")
-		{};
-
-		template<class T>
-		RtDownwardBase(const std::string &name, T specific):
-			ChannelType(name, "Downward", specific)
 		{};
 	};
 	
