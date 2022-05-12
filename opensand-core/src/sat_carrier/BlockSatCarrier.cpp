@@ -51,10 +51,21 @@ BlockSatCarrier::BlockSatCarrier(const string &name,
 {
 }
 
-BlockSatCarrier::~BlockSatCarrier()
-{
-}
+BlockSatCarrier::Upward::Upward(const string &name, struct sc_specific specific):
+    RtUpward{name},
+    ip_addr{std::move(specific.ip_addr)},
+    tal_id{specific.tal_id},
+    in_channel_set{specific.tal_id},
+    destination_host{specific.destination_host},
+    spot_id{specific.spot_id} {}
 
+BlockSatCarrier::Downward::Downward(const string &name, struct sc_specific specific):
+    RtDownward{name},
+    ip_addr{std::move(specific.ip_addr)},
+    tal_id{specific.tal_id},
+    out_channel_set{specific.tal_id},
+    destination_host{specific.destination_host},
+    spot_id{specific.spot_id} {}
 
 bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 {
@@ -161,7 +172,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 	UdpChannel *channel;
 
 	// initialize all channels from the configuration file
-	if(!this->in_channel_set.readInConfig(this->ip_addr))
+	if(!this->in_channel_set.readInConfig(this->ip_addr, destination_host, spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Wrong channel set configuration\n");
@@ -193,7 +204,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 bool BlockSatCarrier::Downward::onInit()
 {
 	// initialize all channels from the configuration file
-	if(!this->out_channel_set.readOutConfig(this->ip_addr))
+	if(!this->out_channel_set.readOutConfig(this->ip_addr, destination_host, spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Wrong channel set configuration\n");
