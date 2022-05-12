@@ -117,8 +117,10 @@ void OpenSandModelConf::createModels()
 	gateway->addParameter("mac_address", "MAC Address", types->getType("string"), "MAC address this gateway routes traffic to");
 	gateway->addParameter("ctrl_multicast_address", "Multicast IP Address (Control Messages)", types->getType("string"))->setAdvanced(true);
 	gateway->addParameter("data_multicast_address", "Multicast IP Address (Data)", types->getType("string"))->setAdvanced(true);
-	gateway->addParameter("ctrl_out_port", "Port (Control Messages Out)", types->getType("int"))->setAdvanced(true);
-	gateway->addParameter("ctrl_in_port", "Port (Control Messages In)", types->getType("int"))->setAdvanced(true);
+	gateway->addParameter("ctrl_out_st_port", "Port (Control Messages Out ST)", types->getType("int"))->setAdvanced(true);
+	gateway->addParameter("ctrl_out_gw_port", "Port (Control Messages Out GW)", types->getType("int"))->setAdvanced(true);
+	gateway->addParameter("ctrl_in_st_port", "Port (Control Messages In ST)", types->getType("int"))->setAdvanced(true);
+	gateway->addParameter("ctrl_in_gw_port", "Port (Control Messages In GW)", types->getType("int"))->setAdvanced(true);
 	gateway->addParameter("logon_out_port", "Port (Logon Messages Out)", types->getType("int"))->setAdvanced(true);
 	gateway->addParameter("logon_in_port", "Port (Logon Messages In)", types->getType("int"))->setAdvanced(true);
 	gateway->addParameter("data_out_st_port", "Port (Data Out ST)", types->getType("int"))->setAdvanced(true);
@@ -183,8 +185,10 @@ void OpenSandModelConf::createModels()
 	gateway_phy->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this gateway should listen on for messages from the satellite");
 	gateway_phy->addParameter("ctrl_multicast_address", "Multicast IP Address (Control Messages)", types->getType("string"))->setAdvanced(true);
 	gateway_phy->addParameter("data_multicast_address", "Multicast IP Address (Data)", types->getType("string"))->setAdvanced(true);
-	gateway_phy->addParameter("ctrl_out_port", "Port (Control Messages Out)", types->getType("int"))->setAdvanced(true);
-	gateway_phy->addParameter("ctrl_in_port", "Port (Control Messages In)", types->getType("int"))->setAdvanced(true);
+	gateway_phy->addParameter("ctrl_out_st_port", "Port (Control Messages Out ST)", types->getType("int"))->setAdvanced(true);
+	gateway_phy->addParameter("ctrl_out_gw_port", "Port (Control Messages Out GW)", types->getType("int"))->setAdvanced(true);
+	gateway_phy->addParameter("ctrl_in_st_port", "Port (Control Messages In ST)", types->getType("int"))->setAdvanced(true);
+	gateway_phy->addParameter("ctrl_in_gw_port", "Port (Control Messages In GW)", types->getType("int"))->setAdvanced(true);
 	gateway_phy->addParameter("logon_out_port", "Port (Logon Messages Out)", types->getType("int"))->setAdvanced(true);
 	gateway_phy->addParameter("logon_in_port", "Port (Logon Messages In)", types->getType("int"))->setAdvanced(true);
 	gateway_phy->addParameter("data_out_st_port", "Port (Data Out ST)", types->getType("int"))->setAdvanced(true);
@@ -258,8 +262,10 @@ void OpenSandModelConf::createModels()
 	gateways->addParameter("mac_address", "MAC Address", types->getType("string"), "MAC address this gateway routes traffic to");
 	gateways->addParameter("ctrl_multicast_address", "Multicast IP Address (Control Messages)", types->getType("string"))->setAdvanced(true);
 	gateways->addParameter("data_multicast_address", "Multicast IP Address (Data)", types->getType("string"))->setAdvanced(true);
-	gateways->addParameter("ctrl_out_port", "Port (Control Messages Out)", types->getType("int"))->setAdvanced(true);
-	gateways->addParameter("ctrl_in_port", "Port (Control Messages In)", types->getType("int"))->setAdvanced(true);
+	gateways->addParameter("ctrl_out_st_port", "Port (Control Messages Out ST)", types->getType("int"))->setAdvanced(true);
+	gateways->addParameter("ctrl_out_gw_port", "Port (Control Messages Out GW)", types->getType("int"))->setAdvanced(true);
+	gateways->addParameter("ctrl_in_st_port", "Port (Control Messages In ST)", types->getType("int"))->setAdvanced(true);
+	gateways->addParameter("ctrl_in_gw_port", "Port (Control Messages In GW)", types->getType("int"))->setAdvanced(true);
 	gateways->addParameter("logon_out_port", "Port (Logon Messages Out)", types->getType("int"))->setAdvanced(true);
 	gateways->addParameter("logon_in_port", "Port (Logon Messages In)", types->getType("int"))->setAdvanced(true);
 	gateways->addParameter("data_out_st_port", "Port (Data Out ST)", types->getType("int"))->setAdvanced(true);
@@ -1437,22 +1443,26 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	std::string data_multicast_address = "239.137.194." + std::to_string(221 + gw_id * 2);
 	extractParameterData(gateway, "data_multicast_address", data_multicast_address);
 
-	int ctrl_out_port = 55000 + carrier_id;
-	extractParameterData(gateway, "ctrl_out_port", ctrl_out_port);
-	int ctrl_in_port = 55001 + carrier_id;
-	extractParameterData(gateway, "ctrl_in_port", ctrl_in_port);
-	int logon_out_port = 55002 + carrier_id;
-	extractParameterData(gateway, "logon_out_port", logon_out_port);
-	int logon_in_port = 55003 + carrier_id;
+	int logon_in_port = 55000 + carrier_id;
 	extractParameterData(gateway, "logon_in_port", logon_in_port);
-	int data_out_st_port = 55004 + carrier_id;
-	extractParameterData(gateway, "data_out_st_port", data_out_st_port);
-	int data_in_st_port = 55005 + carrier_id;
+	int logon_out_port = 55001 + carrier_id;
+	extractParameterData(gateway, "logon_out_port", logon_out_port);
+	int ctrl_in_st_port = 55002 + carrier_id;
+	extractParameterData(gateway, "ctrl_in_st_port", ctrl_in_st_port);
+	int ctrl_out_gw_port = 55003 + carrier_id;
+	extractParameterData(gateway, "ctrl_out_gw_port", ctrl_out_gw_port);
+	int ctrl_in_gw_port = 55004 + carrier_id;
+	extractParameterData(gateway, "ctrl_in_gw_port", ctrl_in_gw_port);
+	int ctrl_out_st_port = 55005 + carrier_id;
+	extractParameterData(gateway, "ctrl_out_st_port", ctrl_out_st_port);
+	int data_in_st_port = 55006 + carrier_id;
 	extractParameterData(gateway, "data_in_st_port", data_in_st_port);
-	int data_out_gw_port = 55006 + carrier_id;
+	int data_out_gw_port = 55007 + carrier_id;
 	extractParameterData(gateway, "data_out_gw_port", data_out_gw_port);
-	int data_in_gw_port = 55007 + carrier_id;
+	int data_in_gw_port = 55008 + carrier_id;
 	extractParameterData(gateway, "data_in_gw_port", data_in_gw_port);
+	int data_out_st_port = 55009 + carrier_id;
+	extractParameterData(gateway, "data_out_st_port", data_out_st_port);
 
 	int udp_stack = 5;
 	extractParameterData(gateway, "udp_stack", udp_stack);
@@ -1466,8 +1476,10 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	bool individual_fifos = false;
 	extractParameterData(gateway, "individual_fifo_sizes", individual_fifos);  // TODO: add this to conf file?
 
-	int ctrl_out_fifo_size = fifo_sizes;
-	int ctrl_in_fifo_size = fifo_sizes;
+	int ctrl_out_gw_fifo_size = fifo_sizes;
+	int ctrl_in_gw_fifo_size = fifo_sizes;
+	int ctrl_out_st_fifo_size = fifo_sizes;
+	int ctrl_in_st_fifo_size = fifo_sizes;
 	int logon_out_fifo_size = fifo_sizes;
 	int logon_in_fifo_size = fifo_sizes;
 	int data_out_st_fifo_size = fifo_sizes;
@@ -1478,8 +1490,10 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	int isl_out_fifo_size = fifo_sizes;
 	if (individual_fifos) {
 		// TODO: add these to conf file?
-		 extractParameterData(gateway, "ctrl_out_fifo_size", ctrl_out_fifo_size);
-		 extractParameterData(gateway, "ctrl_in_fifo_size", ctrl_in_fifo_size);
+		 extractParameterData(gateway, "ctrl_out_gw_fifo_size", ctrl_out_gw_fifo_size);
+		 extractParameterData(gateway, "ctrl_in_gw_fifo_size", ctrl_in_gw_fifo_size);
+		 extractParameterData(gateway, "ctrl_out_st_fifo_size", ctrl_out_st_fifo_size);
+		 extractParameterData(gateway, "ctrl_in_st_fifo_size", ctrl_in_st_fifo_size);
 		 extractParameterData(gateway, "logon_out_fifo_size", logon_out_fifo_size);
 		 extractParameterData(gateway, "logon_in_fifo_size", logon_in_fifo_size);
 		 extractParameterData(gateway, "data_out_st_fifo_size", data_out_st_fifo_size);
@@ -1490,38 +1504,8 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 		 extractParameterData(gateway, "isl_out_fifo_size", isl_out_fifo_size);
 	}
 
-	carriers.ctrl_out = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 0),
-	    ctrl_multicast_address,
-	    static_cast<uint16_t>(ctrl_out_port),
-	    true,
-	    static_cast<std::size_t>(ctrl_out_fifo_size),
-	    static_cast<unsigned>(udp_stack),
-	    static_cast<unsigned>(udp_rmem),
-	    static_cast<unsigned>(udp_wmem)
-	};
-	carriers.ctrl_in = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 1),
-	    satellite_address,
-	    static_cast<uint16_t>(ctrl_in_port),
-	    false,
-	    static_cast<std::size_t>(ctrl_in_fifo_size),
-	    static_cast<unsigned>(udp_stack),
-	    static_cast<unsigned>(udp_rmem),
-	    static_cast<unsigned>(udp_wmem)
-	};
-	carriers.logon_out = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 2),
-	    gateway_address,
-	    static_cast<uint16_t>(logon_out_port),
-	    false,
-	    static_cast<std::size_t>(logon_out_fifo_size),
-	    static_cast<unsigned>(udp_stack),
-	    static_cast<unsigned>(udp_rmem),
-	    static_cast<unsigned>(udp_wmem)
-	};
 	carriers.logon_in = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 3),
+	    static_cast<uint16_t>(carrier_id + 0),
 	    satellite_address,
 	    static_cast<uint16_t>(logon_in_port),
 	    false,
@@ -1530,18 +1514,58 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_rmem),
 	    static_cast<unsigned>(udp_wmem)
 	};
-	carriers.data_out_st = carrier_socket{
+	carriers.logon_out = carrier_socket{
+	    static_cast<uint16_t>(carrier_id + 1),
+	    gateway_address,
+	    static_cast<uint16_t>(logon_out_port),
+	    false,
+	    static_cast<std::size_t>(logon_out_fifo_size),
+	    static_cast<unsigned>(udp_stack),
+	    static_cast<unsigned>(udp_rmem),
+	    static_cast<unsigned>(udp_wmem)
+	};
+	carriers.ctrl_in_st = carrier_socket{
+	    static_cast<uint16_t>(carrier_id + 2),
+	    satellite_address,
+	    static_cast<uint16_t>(ctrl_in_st_port),
+	    false,
+	    static_cast<std::size_t>(ctrl_in_st_fifo_size),
+	    static_cast<unsigned>(udp_stack),
+	    static_cast<unsigned>(udp_rmem),
+	    static_cast<unsigned>(udp_wmem)
+	};
+	carriers.ctrl_out_gw = carrier_socket{
+	    static_cast<uint16_t>(carrier_id + 3),
+	    gateway_address,
+	    static_cast<uint16_t>(ctrl_out_gw_port),
+	    false,
+	    static_cast<std::size_t>(ctrl_out_gw_fifo_size),
+	    static_cast<unsigned>(udp_stack),
+	    static_cast<unsigned>(udp_rmem),
+	    static_cast<unsigned>(udp_wmem)
+	};
+	carriers.ctrl_in_gw = carrier_socket{
 	    static_cast<uint16_t>(carrier_id + 4),
-	    data_multicast_address,
-	    static_cast<uint16_t>(data_out_st_port),
+	    satellite_address,
+	    static_cast<uint16_t>(ctrl_in_gw_port),
+	    false,
+	    static_cast<std::size_t>(ctrl_in_gw_fifo_size),
+	    static_cast<unsigned>(udp_stack),
+	    static_cast<unsigned>(udp_rmem),
+	    static_cast<unsigned>(udp_wmem)
+	};
+	carriers.ctrl_out_st = carrier_socket{
+	    static_cast<uint16_t>(carrier_id + 5),
+	    ctrl_multicast_address,
+	    static_cast<uint16_t>(ctrl_out_st_port),
 	    true,
-	    static_cast<std::size_t>(data_out_st_fifo_size),
+	    static_cast<std::size_t>(ctrl_out_st_fifo_size),
 	    static_cast<unsigned>(udp_stack),
 	    static_cast<unsigned>(udp_rmem),
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.data_in_st = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 5),
+	    static_cast<uint16_t>(carrier_id + 6),
 	    satellite_address,
 	    static_cast<uint16_t>(data_in_st_port),
 	    false,
@@ -1551,7 +1575,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.data_out_gw = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 6),
+	    static_cast<uint16_t>(carrier_id + 7),
 	    gateway_address,
 	    static_cast<uint16_t>(data_out_gw_port),
 	    false,
@@ -1561,11 +1585,21 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.data_in_gw = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 7),
+	    static_cast<uint16_t>(carrier_id + 8),
 	    satellite_address,
 	    static_cast<uint16_t>(data_in_gw_port),
 	    false,
 	    static_cast<std::size_t>(data_in_gw_fifo_size),
+	    static_cast<unsigned>(udp_stack),
+	    static_cast<unsigned>(udp_rmem),
+	    static_cast<unsigned>(udp_wmem)
+	};
+	carriers.data_out_st = carrier_socket{
+	    static_cast<uint16_t>(carrier_id + 9),
+	    data_multicast_address,
+	    static_cast<uint16_t>(data_out_st_port),
+	    true,
+	    static_cast<std::size_t>(data_out_st_fifo_size),
 	    static_cast<unsigned>(udp_stack),
 	    static_cast<unsigned>(udp_rmem),
 	    static_cast<unsigned>(udp_wmem)

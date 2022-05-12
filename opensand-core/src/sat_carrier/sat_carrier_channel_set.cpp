@@ -140,11 +140,10 @@ bool sat_carrier_channel_set::readSpot(const string &local_ip_addr,
 
 	bool is_satellite = host == satellite;
 
-	if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_out, in, is_satellite, false, true)) return false;
-	if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_in, in, is_satellite, true, false)) return false;
-
 	if (host != gateway)
 	{
+		if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_out_st, in, is_satellite, false, true)) return false;
+		if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_in_st, in, is_satellite, true, false)) return false;
 		if (!readCarrier(local_ip_addr, gw_id, carriers.logon_in, in, is_satellite, true, false)) return false;
 		if (!readCarrier(local_ip_addr, gw_id, carriers.data_out_st, in, is_satellite, false, true)) return false;
 		if (!readCarrier(local_ip_addr, gw_id, carriers.data_in_st, in, is_satellite, true, false)) return false;
@@ -152,6 +151,8 @@ bool sat_carrier_channel_set::readSpot(const string &local_ip_addr,
 
 	if (host != terminal)
 	{
+		if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_out_gw, in, is_satellite, false, true)) return false;
+		if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_in_gw, in, is_satellite, true, false)) return false;
 		if (!readCarrier(local_ip_addr, gw_id, carriers.logon_out, in, is_satellite, false, true)) return false;
 		if (!readCarrier(local_ip_addr, gw_id, carriers.data_out_gw, in, is_satellite, false, true)) return false;
 		if (!readCarrier(local_ip_addr, gw_id, carriers.data_in_gw, in, is_satellite, true, false)) return false;

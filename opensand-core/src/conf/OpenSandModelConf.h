@@ -86,14 +86,16 @@ class OpenSandModelConf
 	};
 
 	struct spot_infrastructure {
-		OpenSandModelConf::carrier_socket ctrl_out;
-		OpenSandModelConf::carrier_socket ctrl_in;
-		OpenSandModelConf::carrier_socket logon_out;
 		OpenSandModelConf::carrier_socket logon_in;
-		OpenSandModelConf::carrier_socket data_out_st;
+		OpenSandModelConf::carrier_socket logon_out;
+		OpenSandModelConf::carrier_socket ctrl_in_st;
+		OpenSandModelConf::carrier_socket ctrl_out_gw;
+		OpenSandModelConf::carrier_socket ctrl_in_gw;
+		OpenSandModelConf::carrier_socket ctrl_out_st;
 		OpenSandModelConf::carrier_socket data_in_st;
 		OpenSandModelConf::carrier_socket data_out_gw;
 		OpenSandModelConf::carrier_socket data_in_gw;
+		OpenSandModelConf::carrier_socket data_out_st;
 	};
 
 	struct carrier {
