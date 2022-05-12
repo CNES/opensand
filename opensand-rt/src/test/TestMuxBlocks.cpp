@@ -63,6 +63,8 @@
 #include "TestMuxBlocks.h"
 #include "Rt.h"
 #include <csignal>
+#include <sys/types.h>
+#include <unistd.h>
 
 ///////////////////////// TopMux /////////////////////////
 
