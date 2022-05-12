@@ -54,8 +54,8 @@ SpotUpward::SpotUpward(spot_id_t spot_id,
                        tal_id_t mac_id,
                        StFmtSimuList *input_sts,
                        StFmtSimuList *output_sts):
-    DvbChannel{},
-    DvbFmt{},
+	DvbChannel{},
+	DvbFmt{},
 	spot_id{spot_id},
 	mac_id{mac_id},
 	saloha{nullptr},
@@ -510,17 +510,15 @@ bool SpotUpward::handleFrame(DvbFrame *frame, NetBurst **burst)
 		    "failed to handle DVB frame or BB frame\n");
 		return false;
 	}
-	NetBurst::iterator pkt_it;
-	NetBurst *pkt_burst = (*burst);
+	NetBurst *pkt_burst = *burst;
 	if(pkt_burst)
 	{
-		for(pkt_it = pkt_burst->begin(); pkt_it != pkt_burst->end(); ++pkt_it)
+		for (auto&& packet : *pkt_burst)
 		{
-			const NetPacket *packet = (*pkt_it);
 			tal_id_t tal_id = packet->getSrcTalId();
-			list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(),
-			                                             this->is_tal_scpc.end(),
-				                                         tal_id);
+			auto it_scpc = std::find(this->is_tal_scpc.begin(),
+			                         this->is_tal_scpc.end(),
+			                         tal_id);
 			if(it_scpc != this->is_tal_scpc.end() &&
 			   packet->getDstTalId() == this->mac_id)
 			{
@@ -739,24 +737,28 @@ bool SpotUpward::scheduleSaloha(DvbFrame *dvb_frame,
 	{
 		return true;
 	}
-	uint16_t sfn;
-	Sof *sof = (Sof *)dvb_frame;
 
-	sfn = sof->getSuperFrameNumber();
-
-	ack_frames = new list<DvbFrame *>();
-	// increase the superframe number and reset
-	// counter of frames per superframe
-	this->super_frame_counter++;
-	if(this->super_frame_counter != sfn)
+	if (dvb_frame)
 	{
-		LOG(this->log_receive_channel, LEVEL_WARNING,
-		    "superframe counter (%u) is not the same as in"
-		    " SoF (%u)\n",
-		    this->super_frame_counter, sfn);
-		this->super_frame_counter = sfn;
+		uint16_t sfn;
+		Sof *sof = (Sof *)dvb_frame;
+
+		sfn = sof->getSuperFrameNumber();
+
+		// increase the superframe number and reset
+		// counter of frames per superframe
+		this->super_frame_counter++;
+		if(this->super_frame_counter != sfn)
+		{
+			LOG(this->log_receive_channel, LEVEL_WARNING,
+			    "superframe counter (%u) is not the same as in"
+			    " SoF (%u)\n",
+			    this->super_frame_counter, sfn);
+			this->super_frame_counter = sfn;
+		}
 	}
 
+	ack_frames = new std::list<DvbFrame *>();
 	if(!this->saloha->schedule(sa_burst,
 	                           *ack_frames,
 	                           this->super_frame_counter))

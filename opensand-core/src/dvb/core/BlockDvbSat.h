@@ -181,6 +181,7 @@ class BlockDvbSat: public BlockDvb
 
 		void setGws(const sat_gws_t &gws);
 
+		bool handleDvbFrame(DvbFrame *frame);
 	 
 	 protected:
 		/**

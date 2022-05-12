@@ -82,13 +82,6 @@ enum class TalState
 };
 
 
-struct dvb_tal_specific
-{
-	tal_id_t mac_id;
-	bool disable_control_plane;
-};
-
-
 /**
  * @class BlockDvbTal
  * @brief This bloc implements a DVB-S/RCS stack for a Terminal,
@@ -113,17 +106,17 @@ class BlockDvbTal: public BlockDvb
 {
  public:
 
-	BlockDvbTal(const string &name, struct dvb_tal_specific specific);
+	BlockDvbTal(const string &name, struct dvb_specific specific);
 	~BlockDvbTal();
 
-	static void generateConfiguration();
+	static void generateConfiguration(bool disable_control_plane);
 
 	bool initListsSts();
 
 	class Upward: public DvbUpward, public DvbFmt
 	{
 	 public:
-		Upward(const string &name, struct dvb_tal_specific specific);
+		Upward(const string &name, struct dvb_specific specific);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -228,7 +221,7 @@ class BlockDvbTal: public BlockDvb
 	class Downward: public DvbDownward, public DvbFmt
 	{
 	 public:
-		Downward(const string &name, struct dvb_tal_specific specific);
+		Downward(const string &name, struct dvb_specific specific);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);

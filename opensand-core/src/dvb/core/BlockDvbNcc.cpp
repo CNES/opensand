@@ -47,17 +47,20 @@
 
 #include <errno.h>
 
+
 /*****************************************************************************/
 /*                                Block                                      */
 /*****************************************************************************/
 
-BlockDvbNcc::BlockDvbNcc(const string &name, tal_id_t mac_id):
-	BlockDvb(name),
-	mac_id(mac_id),
-	output_sts(nullptr),
-	input_sts(nullptr)
+BlockDvbNcc::BlockDvbNcc(const string &name, struct dvb_specific specific):
+	BlockDvb{name},
+	mac_id{specific.mac_id},
+	disable_control_plane{specific.disable_control_plane},
+	output_sts{nullptr},
+	input_sts{nullptr}
 {
 }
+
 
 BlockDvbNcc::~BlockDvbNcc()
 {
@@ -68,11 +71,29 @@ BlockDvbNcc::~BlockDvbNcc()
 	this->output_sts = nullptr;
 }
 
-void BlockDvbNcc::generateConfiguration()
+
+void BlockDvbNcc::generateConfiguration(bool disable_control_plane)
 {
-	SpotDownward::generateConfiguration();
-	SpotUpward::generateConfiguration();
+	if (disable_control_plane)
+	{
+		auto Conf = OpenSandModelConf::Get();
+		auto types = Conf->getModelTypesDefinition();
+		types->addEnumType("fifo_access_type", "Access Type", {"ACM", "VCM0", "VCM1", "VCM2", "VCM3"});
+
+		auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
+		auto fifos = conf->addList("fifos", "FIFOs", "fifo")->getPattern();
+		fifos->addParameter("priority", "Priority", types->getType("int"));
+		fifos->addParameter("name", "Name", types->getType("string"));
+		fifos->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
+		fifos->addParameter("access_type", "Access Type", types->getType("fifo_access_type"));
+	}
+	else
+	{
+		SpotDownward::generateConfiguration();
+		SpotUpward::generateConfiguration();
+	}
 }
+
 
 bool BlockDvbNcc::onInit(void)
 {
@@ -109,10 +130,10 @@ bool BlockDvbNcc::initListsSts()
 
 	// input and output sts are shared between up and down
 	// and protected by a mutex
-	((Upward *)this->upward)->setOutputSts(this->output_sts);
-	((Upward *)this->upward)->setInputSts(this->input_sts);
-	((Downward *)this->downward)->setOutputSts(this->output_sts);
-	((Downward *)this->downward)->setInputSts(this->input_sts);
+	static_cast<Upward *>(this->upward)->setOutputSts(this->output_sts);
+	static_cast<Upward *>(this->upward)->setInputSts(this->input_sts);
+	static_cast<Downward *>(this->downward)->setOutputSts(this->output_sts);
+	static_cast<Downward *>(this->downward)->setInputSts(this->input_sts);
 
 	return true;
 }
@@ -124,18 +145,19 @@ bool BlockDvbNcc::initListsSts()
 
 
 // TODO lot of duplicated code for fifos between ST and GW
-
-BlockDvbNcc::Downward::Downward(const string &name, tal_id_t mac_id):
-	DvbDownward(name),
-	DvbFmt(),
-	pep_interface(),
-	svno_interface(),
-	mac_id(mac_id),
-	fwd_frame_counter(0),
-	fwd_timer(-1),
-	probe_frame_interval(NULL)
+BlockDvbNcc::Downward::Downward(const string &name, struct dvb_specific specific):
+	DvbDownward{name},
+	DvbFmt{},
+	pep_interface{},
+	svno_interface{},
+	mac_id{specific.mac_id},
+	disable_control_plane{specific.disable_control_plane},
+	fwd_frame_counter{0},
+	fwd_timer{-1},
+	probe_frame_interval{nullptr}
 {
 }
+
 
 BlockDvbNcc::Downward::~Downward()
 {
@@ -144,8 +166,6 @@ BlockDvbNcc::Downward::~Downward()
 
 bool BlockDvbNcc::Downward::onInit(void)
 {
-	int pep_tcp_port, svno_tcp_port;
-
 	// get the common parameters
 	if(!this->initDown())
 	{
@@ -190,34 +210,38 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 
-	// retrieve the TCP communication port dedicated
-	// for NCC/PEP and NCC/SVNO communications
-	if(!OpenSandModelConf::Get()->getNccPorts(pep_tcp_port, svno_tcp_port))
+	if (!this->disable_control_plane)
 	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "section 'ncc': missing parameter 'pep port' or 'svno port'\n");
-		return false;
-	}
+		// retrieve the TCP communication port dedicated
+		// for NCC/PEP and NCC/SVNO communications
+		int pep_tcp_port, svno_tcp_port;
+		if(!OpenSandModelConf::Get()->getNccPorts(pep_tcp_port, svno_tcp_port))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "section 'ncc': missing parameter 'pep port' or 'svno port'\n");
+			return false;
+		}
 
-	// listen for connections from external PEP components
-	if(!this->pep_interface.initPepSocket(pep_tcp_port))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "failed to listen for PEP connections\n");
-		return false;
-	}
-	this->addTcpListenEvent("pep_listen",
-	                        this->pep_interface.getPepListenSocket(), 200);
+		// listen for connections from external PEP components
+		if(!this->pep_interface.initPepSocket(pep_tcp_port))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "failed to listen for PEP connections\n");
+			return false;
+		}
+		this->addTcpListenEvent("pep_listen",
+		                        this->pep_interface.getPepListenSocket(), 200);
 
-	// listen for connections from external SVNO components
-	if(!this->svno_interface.initSvnoSocket(svno_tcp_port))
-	{
-		LOG(this->log_init, LEVEL_ERROR,
-		    "failed to listen for SVNO connections\n");
-		return false;
+		// listen for connections from external SVNO components
+		if(!this->svno_interface.initSvnoSocket(svno_tcp_port))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to listen for SVNO connections\n");
+			return false;
+		}
+		this->addTcpListenEvent("svno_listen",
+		                        this->svno_interface.getSvnoListenSocket(), 200);
 	}
-	this->addTcpListenEvent("svno_listen",
-	                        this->svno_interface.getSvnoListenSocket(), 200);
 
 	// Output probes and stats
 	this->probe_frame_interval = Output::Get()->registerProbe<float>("Perf.Frames_interval",
@@ -227,12 +251,9 @@ bool BlockDvbNcc::Downward::onInit(void)
 	return true;
 }
 
+
 bool BlockDvbNcc::Downward::initTimers(void)
 {
-	time_ms_t acm_period_ms;
-
-	auto Conf = OpenSandModelConf::Get();
-
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
 	this->frame_timer = this->addTimerEvent("frame",
@@ -240,6 +261,12 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                      this->fwd_down_frame_duration_ms);
 
+	if (this->disable_control_plane)
+	{
+		return true;
+	}
+
+	auto Conf = OpenSandModelConf::Get();
 
 	// read the pep allocation delay
 	if(!Conf->getPepAllocationDelay(this->pep_alloc_delay))
@@ -251,6 +278,7 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "pep_alloc_delay set to %d ms\n", this->pep_alloc_delay);
 
+	time_ms_t acm_period_ms;
 	if(!Conf->getAcmRefreshPeriod(acm_period_ms))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
@@ -279,8 +307,15 @@ bool BlockDvbNcc::Downward::initTimers(void)
 }
 
 
-bool BlockDvbNcc::Downward::handleDvbFrame(const RtEvent *const event)
+bool BlockDvbNcc::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 {
+  if (this->disable_control_plane)
+  {
+    bool result = this->sendDvbFrame(dvb_frame, spot->getCtrlCarrierId());
+    delete dvb_frame;  // FIXME if result is false, it may already be deleted
+    return result;
+  }
+
 	uint8_t msg_type = dvb_frame->getMessageType();
 	switch(msg_type)
 	{
@@ -312,18 +347,17 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			DvbFrame *dvb_frame = NULL;
+			auto msg_event = static_cast<const MessageEvent* const>(event);
 			// first handle specific messages
-			if(((MessageEvent *)event)->getMessageType() == msg_sig)
+			if(msg_event->getMessageType() == msg_sig)
 			{
-				dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-
-				spot_id_t dest_spot = dvb_frame->getSpot();
-				if (dest_spot != this->mac_id)
+				auto dvb_frame = static_cast<DvbFrame *>(msg_event->getData());
+				auto spot_id = dvb_frame->getSpot();
+				if (spot_id != this->mac_id)
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
 						"Spot %d trying to send a DvbFrame destined to spot %d\n",
-						mac_id, dest_spot);
+						mac_id, spot_id);
 					delete dvb_frame;
 					return false;
 				}
@@ -333,16 +367,15 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				}
 				break;
 			}
-			else if(((MessageEvent *)event)->getMessageType() == msg_saloha)
+			else if(msg_event->getMessageType() == msg_saloha)
 			{
-				list<DvbFrame *> *ack_frames;
-				ack_frames = (list<DvbFrame *> *)((MessageEvent *)event)->getData();
-				spot_id_t spot_id = ack_frames->front()->getSpot();
+				auto ack_frames = static_cast<std::list<DvbFrame *> *>(msg_event->getData());
+				auto spot_id = ack_frames->front()->getSpot();
 				if (spot_id != this->mac_id)
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
-						"Spot %d trying to send ACK frames destined to spot %d\n",
-						mac_id, spot_id);
+					    "Spot %d trying to send ACK frames destined to spot %d\n",
+					    mac_id, spot_id);
 					delete ack_frames;
 					return false;
 				}
@@ -352,10 +385,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			else
 			{
-				NetBurst *burst;
-				NetBurst::iterator pkt_it;
-
-				burst = (NetBurst *)((MessageEvent *)event)->getData();
+				auto burst = static_cast<NetBurst *>(msg_event->getData());
 
 				LOG(this->log_receive_channel, LEVEL_INFO,
 						"SF#%u: encapsulation burst received "
@@ -363,9 +393,9 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 						burst->length());
 
 				// set each packet of the burst in MAC FIFO
-				for(pkt_it = burst->begin(); pkt_it != burst->end(); ++pkt_it)
+				for(auto&& pkt : *burst)
 				{
-					if(!spot->handleEncapPacket(*pkt_it))
+					if(!spot->handleEncapPacket(pkt))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "cannot push burst into fifo\n");
@@ -624,6 +654,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			break;
 		}
+
 		default:
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
@@ -640,15 +671,15 @@ error:
 			"Treatments failed at SF#%u\n",
 			this->super_frame_counter);
 	return false;
-
 }
+
 
 void BlockDvbNcc::Downward::sendSOF(unsigned int carrier_id)
 {
 	Sof *sof = new Sof(this->super_frame_counter);
 
 	// Send it
-	if(!this->sendDvbFrame((DvbFrame *)sof, carrier_id))
+	if(!this->sendDvbFrame(static_cast<DvbFrame *>(sof), carrier_id))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 				"Failed to call sendDvbFrame() for SOF\n");
@@ -660,9 +691,11 @@ void BlockDvbNcc::Downward::sendSOF(unsigned int carrier_id)
 			"SF#%u: SOF sent\n", this->super_frame_counter);
 }
 
+
 void BlockDvbNcc::Downward::sendTTP(SpotDownward *spot)
 {
 	Ttp *ttp = new Ttp(this->mac_id, this->super_frame_counter);
+
 	// Build TTP
 	if(!spot->buildTtp(ttp))
 	{
@@ -672,7 +705,7 @@ void BlockDvbNcc::Downward::sendTTP(SpotDownward *spot)
 		return;
 	};
 
-	if(!this->sendDvbFrame((DvbFrame *)ttp, spot->getCtrlCarrierId()))
+	if(!this->sendDvbFrame(static_cast<DvbFrame *>(ttp), spot->getCtrlCarrierId()))
 	{
 		delete ttp;
 		LOG(this->log_send, LEVEL_ERROR,
@@ -684,31 +717,30 @@ void BlockDvbNcc::Downward::sendTTP(SpotDownward *spot)
 			"SF#%u: TTP sent\n", this->super_frame_counter);
 }
 
-bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame,
-		SpotDownward *spot)
+
+bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame, SpotDownward *spot)
 {
-	//TODO find why dynamic cast fail here and each time we do that on frames !?
-	LogonRequest *logon_req = (LogonRequest *)dvb_frame;
+	LogonRequest *logon_req = static_cast<LogonRequest *>(dvb_frame);
 	uint16_t mac = logon_req->getMac();
-	LogonResponse *logon_resp;
 
 	// Inform the Dama controller (for its own context)
 	if(!spot->handleLogonReq(logon_req))
 	{
-		goto release;
+		delete dvb_frame;
+		return false;
 	}
 
 	// TODO only used here tal_id and logon_id are the same
 	// may be we can simplify the constructor
-	logon_resp = new LogonResponse(mac, this->mac_id, mac);
+	LogonResponse *logon_resp = new LogonResponse(mac, this->mac_id, mac);
 
 	LOG(this->log_send, LEVEL_DEBUG,
 			"SF#%u: logon response sent to lower layer\n",
 			this->super_frame_counter);
 
 
-	if(!this->sendDvbFrame((DvbFrame *)logon_resp,
-				spot->getCtrlCarrierId()))
+	if(!this->sendDvbFrame(static_cast<DvbFrame *>(logon_resp),
+                         spot->getCtrlCarrierId()))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 				"Failed send logon response\n");
@@ -716,11 +748,8 @@ bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame,
 	}
 
 	return true;
-
-release:
-	delete dvb_frame;
-	return false;
 }
+
 
 // updateStats is pure virtual in BlockDvb not used in this case
 void BlockDvbNcc::Downward::updateStats(void)
@@ -732,13 +761,14 @@ void BlockDvbNcc::Downward::updateStats(void)
 /*                               Upward                                      */
 /*****************************************************************************/
 
-BlockDvbNcc::Upward::Upward(const string &name, tal_id_t mac_id):
-	DvbUpward(name),
-	DvbFmt(),
-	mac_id(mac_id),
-	log_saloha(NULL),
-	probe_gw_received_modcod(NULL),
-	probe_gw_rejected_modcod(NULL)
+BlockDvbNcc::Upward::Upward(const string &name, struct dvb_specific specific):
+	DvbUpward{name},
+	DvbFmt{},
+	mac_id{specific.mac_id},
+	disable_control_plane{specific.disable_control_plane},
+	log_saloha{nullptr},
+	probe_gw_received_modcod{nullptr},
+	probe_gw_rejected_modcod{nullptr}
 {
 }
 
@@ -753,6 +783,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 	LOG(this->log_init, LEVEL_DEBUG,
 	    "Create upward spot with ID %u\n", mac_id);
 
+  // TODO: check if disable_control_plane is needed here
 	this->spot = new SpotUpward(this->mac_id,
 	                            this->mac_id,
 	                            this->input_sts,
@@ -808,219 +839,29 @@ bool BlockDvbNcc::Upward::initOutput(void)
 	auto output = Output::Get();
 
 	this->probe_gw_received_modcod = output->registerProbe<int>("Down_Return_modcod.Received_modcod",
-								    "modcod index",
-								    true, SAMPLE_LAST);
+	                                                            "modcod index",
+	                                                            true, SAMPLE_LAST);
 	this->probe_gw_rejected_modcod = output->registerProbe<int>("Down_Return_modcod.Rejected_modcod",
-								    "modcod index",
-								    true, SAMPLE_LAST);
+	                                                            "modcod index",
+	                                                            true, SAMPLE_LAST);
 
 	return true;
 }
 
+
 bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 {
-	DvbFrame *dvb_frame = NULL;
-
 	switch(event->getType())
 	{
 		case evt_message:
 		{
-			dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-			spot_id_t dest_spot = dvb_frame->getSpot();
-			if (dest_spot != this->mac_id)
-			{
-				LOG(this->log_receive, LEVEL_WARNING,
-				    "Spot %d received a DvbFrame destined to spot %d\n",
-				    mac_id, dest_spot);
-				delete dvb_frame;
-				return false;
-			}
-
-			fmt_id_t modcod_id = 0;
-			uint8_t msg_type = dvb_frame->getMessageType();
-			LOG(this->log_receive, LEVEL_INFO,
-			    "DVB frame received with type %u\n", msg_type);
-
-			if(msg_type == MSG_TYPE_BBFRAME)
-			{
-				BBFrame *bbframe = (BBFrame *)dvb_frame;
-				modcod_id = bbframe->getModcodId();
-			}
-			else if(msg_type == MSG_TYPE_DVB_BURST)
-			{
-				DvbRcsFrame *dvb_rcs_frame = (DvbRcsFrame *)dvb_frame;
-				modcod_id = dvb_rcs_frame->getModcodId();
-			}
-			switch(msg_type)
-			{
-				// burst
-				case MSG_TYPE_BBFRAME:
-				case MSG_TYPE_DVB_BURST:
-				{
-					// Update C/N0
-					spot->handleFrameCni(dvb_frame);
-
-					bool corrupted = dvb_frame->isCorrupted();
-					if(!corrupted)
-					{
-						// update MODCOD probes
-						this->probe_gw_received_modcod->put(modcod_id);
-						this->probe_gw_rejected_modcod->put(0);
-					}
-					else
-					{
-						this->probe_gw_rejected_modcod->put(modcod_id);
-						this->probe_gw_received_modcod->put(0);
-					}
-
-					NetBurst *burst = NULL;
-					if(!spot->handleFrame(dvb_frame, &burst))
-					{
-						return false;
-					}
-
-					// send the message to the upper layer
-					if(burst && !this->enqueueMessage((void **)&burst))
-					{
-						LOG(this->log_send, LEVEL_ERROR,
-						    "failed to send burst of packets to upper layer\n");
-						delete burst;
-						return false;
-					}
-					LOG(this->log_send, LEVEL_INFO,
-					    "burst sent to the upper layer\n");
-				}
-				break;
-
-				case MSG_TYPE_SAC:
-				{
-					// Update C/N0
-					Sac *UNUSED(sac) = (Sac *) dvb_frame;
-					spot->handleFrameCni(dvb_frame);
-					if(!spot->handleSac(dvb_frame))
-					{
-						return false;
-					}
-					if(!this->shareFrame(dvb_frame))
-					{
-						return false;
-					}
-				}
-				break;
-
-				case MSG_TYPE_SESSION_LOGON_REQ:
-				{
-					LOG(this->log_receive, LEVEL_INFO,
-					    "Logon Req\n");
-					if(!spot->onRcvLogonReq(dvb_frame))
-					{
-						return false;
-					}
-
-					if(!this->shareFrame(dvb_frame))
-					{
-						return false;
-					}
-				}
-				break;
-
-				case MSG_TYPE_SESSION_LOGOFF:
-				{
-					LOG(this->log_receive, LEVEL_INFO,
-					    "Logoff Req\n");
-					if(!this->shareFrame(dvb_frame))
-					{
-						return false;
-					}
-				}
-				break;
-
-				case MSG_TYPE_TTP:
-				case MSG_TYPE_SESSION_LOGON_RESP:
-				{
-					// nothing to do in this case
-					LOG(this->log_receive, LEVEL_DEBUG,
-					    "ignore TTP or logon response "
-					    "(type = %d)\n", dvb_frame->getMessageType());
-					delete dvb_frame;
-				}
-				break;
-
-				case MSG_TYPE_SOF:
-				{
-					// use SoF for SAloha scheduling
-					spot->updateStats();
-					list<DvbFrame *> *ack_frames = NULL;
-					NetBurst *sa_burst = NULL;
-
-					if(!spot->scheduleSaloha(dvb_frame, ack_frames, &sa_burst))
-					{
-						return false;
-					}
-					delete dvb_frame;
-					
-					if(!ack_frames && !sa_burst)
-					{
-						// No slotted Aloha
-						break;
-					}
-					if(sa_burst && !this->enqueueMessage((void **)&sa_burst))
-					{
-						LOG(this->log_saloha, LEVEL_ERROR,
-						    "Failed to send encapsulation packets to upper"
-						    " layer\n");
-						if(ack_frames)
-						{
-							delete ack_frames;
-						}
-						return false;
-					}
-					if(ack_frames->size() &&
-					   !this->shareMessage((void **)&ack_frames,
-					                       sizeof(ack_frames),
-					                       msg_saloha))
-					{
-						LOG(this->log_saloha, LEVEL_ERROR,
-						    "Failed to send Slotted Aloha acks to opposite"
-						    " layer\n");
-						delete ack_frames;
-						return false;
-					}
-					// delete ack_frames if they are emtpy, else shareMessage
-					// would set ack_frames == NULL
-					if(ack_frames)
-					{
-						delete ack_frames;
-					}
-				}
-				break;
-
-				// Slotted Aloha
-				case MSG_TYPE_SALOHA_DATA:
-				{
-					if(!spot->handleSlottedAlohaFrame(dvb_frame))
-					{
-						return false;
-					}
-				}
-				break;
-
-				case MSG_TYPE_SALOHA_CTRL:
-				{
-					delete dvb_frame;
-				}
-				break;
-
-				default:
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "unknown type (%d) of DVB frame\n",
-					    dvb_frame->getMessageType());
-					delete dvb_frame;
-					return false;
-				}
-				break;
-			}
+      DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent* const>(event)->getData());
+      if (!this->onRcvDvbFrame(dvb_frame))
+      {
+        LOG(this->log_receive, LEVEL_ERROR,
+            "Failed handling DVB Frame\n");
+        return false;
+      }
 		}
 		break;
 
@@ -1034,14 +875,276 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 	return true;
 }
 
+
+bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
+{
+	spot_id_t dest_spot = dvb_frame->getSpot();
+	if (dest_spot != this->mac_id)
+	{
+		LOG(this->log_receive, LEVEL_WARNING,
+		    "Spot %d received a DvbFrame destined to spot %d\n",
+		    mac_id, dest_spot);
+		delete dvb_frame;
+		return false;
+	}
+
+	fmt_id_t modcod_id = 0;
+	uint8_t msg_type = dvb_frame->getMessageType();
+	LOG(this->log_receive, LEVEL_INFO,
+	    "DVB frame received with type %u\n", msg_type);
+
+	if(msg_type == MSG_TYPE_BBFRAME)
+	{
+		BBFrame *bbframe = *dvb_frame;
+		modcod_id = bbframe->getModcodId();
+	}
+	else if(msg_type == MSG_TYPE_DVB_BURST)
+	{
+		DvbRcsFrame *dvb_rcs_frame = *dvb_frame;
+		modcod_id = dvb_rcs_frame->getModcodId();
+	}
+	switch(msg_type)
+	{
+		// burst
+		case MSG_TYPE_BBFRAME:
+		case MSG_TYPE_DVB_BURST:
+		{
+			if (!this->disable_control_plane)
+			{
+				// Update C/N0
+				spot->handleFrameCni(dvb_frame);
+			}
+
+			if(!dvb_frame->isCorrupted())
+			{
+				// update MODCOD probes
+				this->probe_gw_received_modcod->put(modcod_id);
+				this->probe_gw_rejected_modcod->put(0);
+			}
+			else
+			{
+				this->probe_gw_rejected_modcod->put(modcod_id);
+				this->probe_gw_received_modcod->put(0);
+			}
+
+			NetBurst *burst{nullptr};
+			if(!spot->handleFrame(dvb_frame, &burst))
+			{
+				return false;
+			}
+
+			// send the message to the upper layer
+			if(burst && !this->enqueueMessage((void **)&burst))
+			{
+				LOG(this->log_send, LEVEL_ERROR,
+				    "failed to send burst of packets to upper layer\n");
+				delete burst;
+				return false;
+			}
+			LOG(this->log_send, LEVEL_INFO,
+			    "burst sent to the upper layer\n");
+		}
+		break;
+
+		case MSG_TYPE_SAC:
+		{
+			// Update C/N0
+			if (!this->disable_control_plane)
+			{
+				// Update C/N0
+				spot->handleFrameCni(dvb_frame);
+				if(!spot->handleSac(dvb_frame))
+				{
+					return false;
+				}
+			}
+
+			if(!this->shareFrame(dvb_frame))
+			{
+				return false;
+			}
+		}
+		break;
+
+		case MSG_TYPE_SESSION_LOGON_REQ:
+		{
+			LOG(this->log_receive, LEVEL_INFO,
+			    "Logon Req\n");
+
+			if(!this->disable_control_plane && !spot->onRcvLogonReq(dvb_frame))
+			{
+				return false;
+			}
+
+			if(!this->shareFrame(dvb_frame))
+			{
+				return false;
+			}
+		}
+		break;
+
+		case MSG_TYPE_SESSION_LOGOFF:
+		{
+			LOG(this->log_receive, LEVEL_INFO,
+			    "Logoff Req\n");
+			if(!this->shareFrame(dvb_frame))
+			{
+				return false;
+			}
+		}
+		break;
+
+		case MSG_TYPE_TTP:
+		case MSG_TYPE_SESSION_LOGON_RESP:
+		{
+			// nothing to do in this case
+			LOG(this->log_receive, LEVEL_DEBUG,
+			    "ignore TTP or logon response "
+			    "(type = %d)\n", dvb_frame->getMessageType());
+			if (!this->disable_control_plane)
+			{
+				delete dvb_frame;
+			}
+			else
+			{
+				if (!this->enqueueMessage((void **)&dvb_frame))
+				{
+					return false;
+				}
+			}
+		}
+		break;
+
+		case MSG_TYPE_SOF:
+		{
+			// use SoF for SAloha scheduling
+			spot->updateStats();
+
+			if (this->disable_control_plane)
+			{
+				if (!this->enqueueMessage((void **)&dvb_frame))
+				{
+					return false;
+				}
+				break;
+			}
+
+			std::list<DvbFrame *> *ack_frames{nullptr};
+			NetBurst *sa_burst{nullptr};
+
+			if(!spot->scheduleSaloha(dvb_frame, ack_frames, &sa_burst))
+			{
+				return false;
+			}
+			delete dvb_frame;
+			
+			if(!ack_frames && !sa_burst)
+			{
+				// No slotted Aloha
+				break;
+			}
+			if(sa_burst && !this->enqueueMessage((void **)&sa_burst))
+			{
+				LOG(this->log_saloha, LEVEL_ERROR,
+				    "Failed to send encapsulation packets to upper"
+				    " layer\n");
+				if(ack_frames)
+				{
+					delete ack_frames;
+				}
+				return false;
+			}
+			if(ack_frames->size() &&
+			   !this->shareMessage((void **)&ack_frames,
+			                       sizeof(ack_frames),
+			                       msg_saloha))
+			{
+				LOG(this->log_saloha, LEVEL_ERROR,
+				    "Failed to send Slotted Aloha acks to opposite"
+				    " layer\n");
+				delete ack_frames;
+				return false;
+			}
+			// delete ack_frames if they are emtpy, else shareMessage
+			// would set ack_frames == NULL
+			if(ack_frames)
+			{
+				delete ack_frames;
+			}
+		}
+		break;
+
+		// Slotted Aloha
+		case MSG_TYPE_SALOHA_DATA:
+		{
+			if(!spot->handleSlottedAlohaFrame(dvb_frame))
+			{
+				return false;
+			}
+
+			std::list<DvbFrame *> *ack_frames{nullptr};
+			NetBurst *sa_burst{nullptr};
+
+			if(!spot->scheduleSaloha(nullptr, ack_frames, &sa_burst))
+			{
+				return false;
+			}
+		}
+		break;
+
+		case MSG_TYPE_SALOHA_CTRL:
+		{
+			if (this->disable_control_plane)
+			{
+				if (!this->enqueueMessage((void **)&dvb_frame))
+				{
+					return false;
+				}
+				break;
+			}
+			else
+			{
+				delete dvb_frame;
+			}
+		}
+		break;
+
+		default:
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "unknown type (%d) of DVB frame\n",
+			    dvb_frame->getMessageType());
+			delete dvb_frame;
+			return false;
+		}
+		break;
+	}
+
+	return true;
+}
+
+
 bool BlockDvbNcc::Upward::shareFrame(DvbFrame *frame)
 {
-	if(!this->shareMessage((void **)&frame, sizeof(*frame), msg_sig))
+	if (this->disable_control_plane)
 	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "Unable to transmit frame to opposite channel\n");
-		delete frame;
-		return false;
+		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), msg_sig))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Unable to transmit frame to upper layer\n");
+			delete frame;
+			return false;
+		}
+	}
+	else
+	{
+		if(!this->shareMessage((void **)&frame, sizeof(*frame), msg_sig))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Unable to transmit frame to opposite channel\n");
+			delete frame;
+			return false;
+		}
 	}
 	return true;
 }

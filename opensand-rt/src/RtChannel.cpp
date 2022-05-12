@@ -121,17 +121,17 @@ bool RtChannel::init(void)
 
 	// Output Log
 	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.rt",
-	                                   this->channel_name.c_str(),
-	                                   this->channel_type.c_str());
+	                                          this->channel_name.c_str(),
+	                                          this->channel_type.c_str());
 	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.init",
-                                     this->channel_name.c_str(),
-                                     this->channel_type.c_str());
+                                            this->channel_name.c_str(),
+                                            this->channel_type.c_str());
 	this->log_receive = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.receive",
-                                     this->channel_name.c_str(),
-                                     this->channel_type.c_str());
+                                            this->channel_name.c_str(),
+                                            this->channel_type.c_str());
 	this->log_send = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.send",
-	                                   this->channel_name.c_str(),
-	                                   this->channel_type.c_str());
+	                                          this->channel_name.c_str(),
+	                                          this->channel_type.c_str());
 
 	LOG(this->log_init, LEVEL_INFO,
 	    "Starting initialization\n");
@@ -139,8 +139,7 @@ bool RtChannel::init(void)
 	// pipe used to break select when a new event is received
 	if(pipe(pipefd) != 0)
 	{
-		this->reportError(true,
-		                  "cannot initialize pipe\n");
+		this->reportError(true, "cannot initialize pipe\n");
 		return false;
 	}
 	this->r_sel_break = pipefd[0];
@@ -157,28 +156,24 @@ bool RtChannel::init(void)
 	// initialize fifos and create associated messages
 	if(!this->in_opp_fifo->init())
 	{
-		this->reportError(true,
-		                  "cannot initialize opposite fifo\n");
+		this->reportError(true, "cannot initialize opposite fifo\n");
 		return false;
 	}
 	if(!this->addMessageEvent(this->in_opp_fifo, 4, true))
 	{
-		this->reportError(true,
-		                  "cannot create opposite message event\n");
+		this->reportError(true, "cannot create opposite message event\n");
 		return false;
 	}
 	if(this->previous_fifo)
 	{
 		if(!this->previous_fifo->init())
 		{
-			this->reportError(true,
-			                  "cannot initialize previous fifo\n");
+			this->reportError(true, "cannot initialize previous fifo\n");
 			return false;
 		}
 		if(!this->addMessageEvent(this->previous_fifo))
 		{
-			this->reportError(true,
-			                  "cannot create previous message event\n");
+			this->reportError(true, "cannot create previous message event\n");
 			return false;
 		}
 	}
@@ -630,8 +625,7 @@ void RtChannel::reportError(bool critical, const char *msg_format, ...)
 
 	va_end(args);
 
-	Rt::reportError(this->channel_name, pthread_self(),
-	                critical, msg);
+	Rt::reportError(this->channel_name, pthread_self(), critical, msg);
 };
 
 void RtChannel::setPreviousFifo(RtFifo *fifo)
@@ -667,8 +661,7 @@ bool RtChannel::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t 
 
 	if(!out_fifo->push(*data, size, type))
 	{
-		this->reportError(false,
-		                  "cannot push data in fifo for next block\n");
+		this->reportError(false, "cannot push data in fifo for next block\n");
 		success = false;
 	}
 

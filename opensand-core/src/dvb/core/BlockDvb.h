@@ -65,6 +65,13 @@
 #include <opensand_rt/Rt.h>
 
 
+struct dvb_specific
+{
+	tal_id_t mac_id;
+	bool disable_control_plane;
+};
+
+
 class BlockDvb: public Block
 {
  public:

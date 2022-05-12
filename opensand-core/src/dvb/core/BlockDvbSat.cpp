@@ -299,61 +299,17 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 		case evt_message:
 		{
 			if(((MessageEvent *)event)->getMessageType() == msg_sig)
-			{
-				bool status = true;
-				DvbFrame *dvb_frame;
-				dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
-				sat_gws_t::iterator gw;
-				unsigned int carrier_id = dvb_frame->getCarrierId();
-				tal_id_t gw_id;
-				
-				if(!OpenSandModelConf::Get()->getGwWithCarrierId(carrier_id, gw_id))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "cannot find gateway with carrier ID %u in spot "
-					    "list\n", carrier_id);
-					delete dvb_frame;
-					break;
-				}
+      {
+        DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent* const>(event)->getData());
+        if (!this->handleDvbFrame(dvb_frame))
+        {
+          LOG(this->log_receive, LEVEL_ERROR,
+              "failed to handle received DVB frame\n");
+          return false;
+        }
 
-				if(gw_id != dvb_frame->getSpot())
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "Frame: wrong carrier id (%u) or gateway id (%u)\n",
-					    carrier_id, dvb_frame->getSpot());
-					delete dvb_frame;
-					break;
-				}
-
-				SatGw *current_gw = this->gws[gw_id];
-				if(!current_gw)
-				{
-					LOG(this->log_send, LEVEL_ERROR,
-					    "Spot %u does'nt have gw %u\n", gw_id);
-					delete dvb_frame;
-					break;
-				}
-
-				if(dvb_frame->getMessageType() != MSG_TYPE_SOF)
-				{
-					LOG(this->log_send, LEVEL_ERROR,
-					    "Forwarded frame is not a SoF\n");
-					status = false;
-					delete dvb_frame;
-					break;
-				}
-
-				// create a message for the DVB frame
-				if(!this->sendDvbFrame(dvb_frame, current_gw->getControlCarrierId()))
-				{
-					LOG(this->log_send, LEVEL_ERROR,
-					    "failed to send sig frame to lower layer, "
-					    "drop it\n");
-					status = false;
-					delete dvb_frame;
-				}
-				return status;
-			}
+        return true;
+      }
 
 			if(!this->handleMessageBurst(event))
 			{
@@ -427,6 +383,61 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 	}
 
 	return true;
+}
+
+
+bool BlockDvbSat::Downward::handleDvbFrame(DvbFrame* dvb_frame)
+{
+  sat_gws_t::iterator gw;
+  unsigned int carrier_id = dvb_frame->getCarrierId();
+  tal_id_t gw_id;
+  
+  if(!OpenSandModelConf::Get()->getGwWithCarrierId(carrier_id, gw_id))
+  {
+    LOG(this->log_receive, LEVEL_ERROR,
+        "cannot find gateway with carrier ID %u in spot "
+        "list\n", carrier_id);
+    delete dvb_frame;
+    return true;
+  }
+
+  if(gw_id != dvb_frame->getSpot())
+  {
+    LOG(this->log_receive, LEVEL_ERROR,
+        "Frame: wrong carrier id (%u) or gateway id (%u)\n",
+        carrier_id, dvb_frame->getSpot());
+    delete dvb_frame;
+    return true;
+  }
+
+  SatGw *current_gw = this->gws[gw_id];
+  if(!current_gw)
+  {
+    LOG(this->log_send, LEVEL_ERROR,
+        "Spot %u does'nt have gw %u\n", gw_id);
+    delete dvb_frame;
+    return true;
+  }
+
+  if(dvb_frame->getMessageType() != MSG_TYPE_SOF)
+  {
+    LOG(this->log_send, LEVEL_ERROR,
+        "Forwarded frame is not a SoF\n");
+    delete dvb_frame;
+    return true;
+  }
+
+  // create a message for the DVB frame
+  if(!this->sendDvbFrame(dvb_frame, current_gw->getControlCarrierId()))
+  {
+    LOG(this->log_send, LEVEL_ERROR,
+        "failed to send sig frame to lower layer, "
+        "drop it\n");
+    delete dvb_frame;
+    return false;
+  }
+
+  return true;
 }
 
 

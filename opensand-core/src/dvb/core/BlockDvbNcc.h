@@ -77,15 +77,12 @@ class SpotUpward;
 class BlockDvbNcc: public BlockDvb
 {
  public:
-
 	/// Class constructor
-	BlockDvbNcc(const string &name, tal_id_t mac_id);
+	BlockDvbNcc(const string &name, struct dvb_specific specific);
 
 	~BlockDvbNcc();
 
-	static void generateConfiguration();
-
-	bool initListsSts();
+	static void generateConfiguration(bool disable_control_plane);
 
 	bool onInit();
 
@@ -93,7 +90,7 @@ class BlockDvbNcc: public BlockDvb
 	class Upward: public DvbUpward, public DvbFmt
 	{
 	 public:
-		Upward(const string &name, tal_id_t mac_id);
+		Upward(const string &name, struct dvb_specific specific);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -118,6 +115,7 @@ class BlockDvbNcc: public BlockDvb
 
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
+		bool disable_control_plane;
 
 		SpotUpward* spot;
 
@@ -133,7 +131,7 @@ class BlockDvbNcc: public BlockDvb
 	class Downward: public DvbDownward, public DvbFmt
 	{
 		public:
-			Downward(const string &name, tal_id_t mac_id);
+			Downward(const string &name, struct dvb_specific specific);
 			~Downward();
 			bool onInit(void);
 			bool onEvent(const RtEvent *const event);
@@ -166,8 +164,7 @@ class BlockDvbNcc: public BlockDvb
 			 *  @param spot       The spot concerned by the request
 			 *  @return true on success, false otherwise
 			 */
-			bool handleLogonReq(DvbFrame *dvb_frame,
-					SpotDownward *spot);
+			bool handleLogonReq(DvbFrame *dvb_frame, SpotDownward *spot);
 
 			/**
 			 * @brief Send a SAC message containing ACM parameters
@@ -187,6 +184,7 @@ class BlockDvbNcc: public BlockDvb
 
 			/// the MAC ID of the ST (as specified in configuration)
 			tal_id_t mac_id;
+			bool disable_control_plane;
 
 			/// counter for forward frames
 			time_ms_t fwd_frame_counter;
@@ -207,8 +205,11 @@ class BlockDvbNcc: public BlockDvb
 	};
 
  protected:
+	bool initListsSts();
+
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
+	bool disable_control_plane;
 
 	/// The list of Sts with forward/down modcod for this spot
 	StFmtSimuList* output_sts;

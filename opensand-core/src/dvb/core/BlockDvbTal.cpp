@@ -97,7 +97,7 @@ const char* stateDescription(TalState state)
 /*****************************************************************************/
 
 
-BlockDvbTal::BlockDvbTal(const string &name, struct dvb_tal_specific specific):
+BlockDvbTal::BlockDvbTal(const string &name, struct dvb_specific specific):
 	BlockDvb{name},
 	disable_control_plane{specific.disable_control_plane},
 	input_sts{nullptr},
@@ -218,7 +218,7 @@ bool BlockDvbTal::initListsSts()
 /*                              Downward                                     */
 /*****************************************************************************/
 
-BlockDvbTal::Downward::Downward(const string &name, struct dvb_tal_specific specific):
+BlockDvbTal::Downward::Downward(const string &name, struct dvb_specific specific):
 	DvbDownward{name},
 	mac_id{specific.mac_id},
 	state{TalState::initializing},
@@ -2131,7 +2131,7 @@ void BlockDvbTal::Downward::deletePackets()
 /*                               Upward                                      */
 /*****************************************************************************/
 
-BlockDvbTal::Upward::Upward(const string &name, struct dvb_tal_specific specific):
+BlockDvbTal::Upward::Upward(const string &name, struct dvb_specific specific):
 	DvbUpward{name},
 	reception_std{nullptr},
 	mac_id{specific.mac_id},
@@ -2533,7 +2533,7 @@ bool BlockDvbTal::Upward::shareFrame(DvbFrame *frame)
 {
 	if (this->disable_control_plane)
 	{
-		if(!this->enqueueMessage((void **)&frame))
+		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), msg_sig))
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "Unable to transmit frame to upper layer\n");
@@ -2543,7 +2543,7 @@ bool BlockDvbTal::Upward::shareFrame(DvbFrame *frame)
 	}
 	else
 	{
-		if(!this->shareMessage((void **)&frame, sizeof(frame), msg_sig))
+		if(!this->shareMessage((void **)&frame, sizeof(*frame), msg_sig))
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "Unable to transmit frame to opposite channel\n");
@@ -2589,11 +2589,6 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 		    "Unable to transmit LogonResponse to opposite channel\n");
 	}
 
-	if (this->disable_control_plane)
-	{
-		return true;
-	}
-
 	// Send a link is up message to upper layer
 	// link_is_up
 	link_is_up = new T_LINK_UP;
@@ -2608,8 +2603,8 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	link_is_up->tal_id = this->tal_id;
 
 	if(!this->enqueueMessage((void **)(&link_is_up),
-				 sizeof(T_LINK_UP),
-				 msg_link_up))
+	                         sizeof(T_LINK_UP),
+	                         msg_link_up))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "SF#%u: failed to send link up message to upper layer",
@@ -2628,6 +2623,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	    " %u\n", this->super_frame_counter,
 	    this->group_id, this->tal_id);
 
+  // TODO: Should we disable it when disable_control_plane???
 	// Add the st id
 	if(!this->addInputTerminal(this->tal_id, this->s2_modcod_def))
 	{

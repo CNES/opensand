@@ -101,8 +101,8 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	this->output_sts = output_sts;
 
 	this->log_request_simulation = Output::Get()->registerLog(LEVEL_WARNING,
-                                                            "Spot_%d.Dvb.RequestSimulation",
-                                                            this->spot_id);
+	                                                          "Spot_%d.Dvb.RequestSimulation",
+	                                                          this->spot_id);
 
 }
 
@@ -770,7 +770,7 @@ bool SpotDownward::initRequestSimulation(void)
 
 bool SpotDownward::initOutput(void)
 {
-  auto output = Output::Get();
+	auto output = Output::Get();
 	// Events
 	this->event_logon_resp = output->registerEvent("Spot_%d.DVB.logon_response",
 	                                               this->spot_id);
@@ -845,10 +845,9 @@ bool SpotDownward::initOutput(void)
 
 bool SpotDownward::handleSalohaAcks(const std::list<DvbFrame *> *ack_frames)
 {
-	std::list<DvbFrame *>::const_iterator ack_it;
-	for(ack_it = ack_frames->begin(); ack_it != ack_frames->end(); ++ack_it)
+	for (auto&& ack : *ack_frames)
 	{
-		this->complete_dvb_frames.push_back(*ack_it);
+		this->complete_dvb_frames.push_back(ack);
 	}
 	return true;
 }
@@ -942,8 +941,8 @@ bool SpotDownward::handleLogonReq(const LogonRequest *logon_req)
 	}
 
 	// send the corresponding event
-  event_logon_resp->sendEvent("Logon response send to ST%u on spot %u",
-                              mac, this->spot_id);
+	event_logon_resp->sendEvent("Logon response send to ST%u on spot %u",
+	                            mac, this->spot_id);
 
 	LOG(this->log_send_channel, LEVEL_DEBUG,
 	    "SF#%u: logon response sent to lower layer\n",
@@ -1168,12 +1167,11 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 	// schedule encapsulation packets
 	// TODO In regenerative mode we should schedule in frame_timer ??
 	// do not schedule on all categories, in regenerative we only schedule on the GW category
-	for(map<string, Scheduling *>::iterator it = this->scheduling.begin();
-	    it != this->scheduling.end(); ++it)
+	for (auto&& it : this->scheduling)
 	{
 		uint32_t remaining_alloc_sym = 0;
-		string label = (*it).first;
-		Scheduling *scheduler = (*it).second;
+		std::string label = it.first;
+		Scheduling *scheduler = it.second;
 
 		if(!scheduler->schedule(this->fwd_frame_counter,
 		                        getCurrentTime(),
@@ -1182,8 +1180,8 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
 			    "failed to schedule encapsulation "
-				"packets stored in DVB FIFO for category %s\n",
-				label.c_str());
+			    "packets stored in DVB FIFO for category %s\n",
+			    label.c_str());
 			return false;
 		}
 
