@@ -1,7 +1,6 @@
 noinst_LTLIBRARIES = libopensand_dvb_core.la
 
 libopensand_dvb_core_la_cpp = \
-	SatGw.cpp \
 	PhysicStd.cpp \
 	DvbRcsStd.cpp \
 	DvbS2Std.cpp \
@@ -9,7 +8,6 @@ libopensand_dvb_core_la_cpp = \
 	DvbChannel.cpp \
 	SpotDownward.cpp \
 	SpotUpward.cpp \
-	BlockDvbSat.cpp \
 	BlockDvbNcc.cpp \
 	BlockDvbTal.cpp \
 	FileSimulator.cpp \
@@ -17,7 +15,6 @@ libopensand_dvb_core_la_cpp = \
 	RequestSimulator.cpp
 
 libopensand_dvb_core_la_h = \
-	SatGw.h \
 	PhysicStd.h \
 	DvbRcsStd.h \
 	DvbS2Std.h \
@@ -25,7 +22,6 @@ libopensand_dvb_core_la_h = \
 	DvbChannel.h \
 	SpotDownward.h \
 	SpotUpward.h \
-	BlockDvbSat.h \
 	BlockDvbNcc.h \
 	BlockDvbTal.h \
 	FileSimulator.h \
