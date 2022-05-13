@@ -76,17 +76,6 @@ RtChannelBase::RtChannelBase(const std::string &name, const std::string &type):
 
 RtChannelBase::~RtChannelBase()
 {
-	// delete all events
-	this->updateEvents(); // update to also clear new events
-	for(auto &&event: events)
-	{
-		if(event.second == NULL)
-		{
-			continue;
-		}
-		delete(event.second);
-	}
-	this->events.clear();
 	delete this->in_opp_fifo;
 	close(this->w_sel_break);
 	close(this->r_sel_break);
@@ -171,20 +160,22 @@ int32_t RtChannelBase::addTimerEvent(const std::string &name,
                                  bool start,
                                  uint8_t priority)
 {
-	TimerEvent *event = new TimerEvent(name, duration_ms,
-	                                   auto_rearm, start,
-	                                   priority);
+	std::unique_ptr<TimerEvent> event{new TimerEvent(name,
+	                                                 duration_ms,
+	                                                 auto_rearm,
+	                                                 start,
+	                                                 priority)};
 	if(!event)
 	{
 		this->reportError(true, "cannot create timer event\n");
 		return -1;
 	}
-	if(!this->addEvent((RtEvent *)event))
+	int32_t event_fd = event->getFd();
+	if (!this->addEvent(std::move(event)))
 	{
 		return -1;
 	}
-
-	return event->getFd();
+	return event_fd;
 }
 
 int32_t RtChannelBase::addTcpListenEvent(const std::string &name,
@@ -192,21 +183,21 @@ int32_t RtChannelBase::addTcpListenEvent(const std::string &name,
                                      size_t max_size,
                                      uint8_t priority)
 {
-	TcpListenEvent *event = new TcpListenEvent(name,
-	                                           fd,
-	                                           max_size,
-	                                           priority);
+	std::unique_ptr<TcpListenEvent> event{new TcpListenEvent(name,
+	                                                         fd,
+	                                                         max_size,
+	                                                         priority)};
 	if(!event)
 	{
 		this->reportError(true, "cannot create file event\n");
 		return -1;
 	}
-	if(!this->addEvent((RtEvent *)event))
+	int32_t event_fd = event->getFd();
+	if (!this->addEvent(std::move(event)))
 	{
 		return -1;
 	}
-
-	return event->getFd();
+	return event_fd;
 }
 
 int32_t RtChannelBase::addFileEvent(const std::string &name,
@@ -214,21 +205,21 @@ int32_t RtChannelBase::addFileEvent(const std::string &name,
                                 size_t max_size,
                                 uint8_t priority)
 {
-	FileEvent *event = new FileEvent(name,
-	                                 fd,
-	                                 max_size,
-	                                 priority);
+	std::unique_ptr<FileEvent> event{new FileEvent(name,
+	                                               fd,
+	                                               max_size,
+	                                               priority)};
 	if(!event)
 	{
 		this->reportError(true, "cannot create file event\n");
 		return -1;
 	}
-	if(!this->addEvent((RtEvent *)event))
+	int32_t event_fd = event->getFd();
+	if (!this->addEvent(std::move(event)))
 	{
 		return -1;
 	}
-
-	return event->getFd();
+	return event_fd;
 }
 
 int32_t RtChannelBase::addNetSocketEvent(const std::string &name,
@@ -236,47 +227,45 @@ int32_t RtChannelBase::addNetSocketEvent(const std::string &name,
                                      size_t max_size,
                                      uint8_t priority)
 {
-	NetSocketEvent *event = new NetSocketEvent(name,
-	                                           fd,
-	                                           max_size,
-	                                           priority);
+	std::unique_ptr<NetSocketEvent> event{new NetSocketEvent(name,
+	                                                         fd,
+	                                                         max_size,
+	                                                         priority)};
 	if(!event)
 	{
 		this->reportError(true, "cannot create net socket event\n");
 		return -1;
 	}
-	if(!this->addEvent((RtEvent *)event))
+	int32_t event_fd = event->getFd();
+	if (!this->addEvent(std::move(event)))
 	{
 		return -1;
 	}
-
-	return event->getFd();
+	return event_fd;
 }
 
 int32_t RtChannelBase::addSignalEvent(const std::string &name,
                                   sigset_t signal_mask,
                                   uint8_t priority)
 {
-	SignalEvent *event = new SignalEvent(name, signal_mask, priority);
+	std::unique_ptr<SignalEvent> event{new SignalEvent(name, signal_mask, priority)};
 	if(!event)
 	{
 		this->reportError(true, "cannot create signal event\n");
 		return -1;
 	}
-	if(!this->addEvent((RtEvent *)event))
+	int32_t event_fd = event->getFd();
+	if (!this->addEvent(std::move(event)))
 	{
 		return -1;
 	}
-
-	return event->getFd();
+	return event_fd;
 }
 
 bool RtChannelBase::addMessageEvent(RtFifo *out_fifo,
-                                uint8_t priority,
-                                bool opposite)
+                                    uint8_t priority,
+                                    bool opposite)
 {
-	MessageEvent *event;
-	
 	std::string name = this->channel_type;
 	std::transform(name.begin(), name.end(), name.begin(), ::tolower);
 	
@@ -284,23 +273,18 @@ bool RtChannelBase::addMessageEvent(RtFifo *out_fifo,
 	{
 		name += "_opposite";
 	}
-	event = new MessageEvent(out_fifo, name,
-	                         out_fifo->getSigFd(),
-	                         priority);
+	std::unique_ptr<MessageEvent> event{new MessageEvent(out_fifo, name,
+	                                                     out_fifo->getSigFd(),
+	                                                     priority)};
 	if(!event)
 	{
 		this->reportError(true, "cannot create message event\n");
 		return false;
 	}
-	if(!this->addEvent((RtEvent *)event))
-	{
-		return false;
-	}
-
-	return true;
+	return this->addEvent(std::move(event));
 }
 
-bool RtChannelBase::addEvent(RtEvent *event)
+bool RtChannelBase::addEvent(std::unique_ptr<RtEvent> event)
 {
 	auto it = this->events.find(event->getFd());
 	if(it != this->events.end())
@@ -308,7 +292,7 @@ bool RtChannelBase::addEvent(RtEvent *event)
 		this->reportError(true, "duplicated fd\n");
 		return false;
 	}
-	this->new_events.push_back(event);
+	this->new_events.push_back(std::move(event));
 
 	// break the select loop
 	if(write(this->w_sel_break,
@@ -336,7 +320,7 @@ void RtChannelBase::updateEvents(void)
 		    "Add new event \"%s\" in list\n",
 		    new_event->getName().c_str());
 		this->addInputFd(new_event->getFd());
-		this->events[new_event->getFd()] = new_event;
+		this->events[new_event->getFd()] = std::move(new_event);
 	}
 	this->new_events.clear();
 
@@ -356,7 +340,6 @@ void RtChannelBase::updateEvents(void)
 				this->updateMaxFd();
 			}
 			// remove fd from map
-			delete (*it).second;
 			this->events.erase(it);
 		}
 	}
@@ -395,7 +378,7 @@ TimerEvent *RtChannelBase::getTimer(event_id_t id)
 				LOG(this->log_rt, LEVEL_DEBUG,
 				    "event found in new events\n");
 				found = true;
-				event = new_event;
+				event = new_event.get();
 				break;
 			}
 		}
@@ -409,7 +392,7 @@ TimerEvent *RtChannelBase::getTimer(event_id_t id)
 	{
 		LOG(this->log_rt, LEVEL_DEBUG,
 		    "Timer found\n");
-		event = (*it).second;
+		event = (*it).second.get();
 	}
 	if(event && event->getType() != evt_timer)
 	{
@@ -524,7 +507,7 @@ void RtChannelBase::executeThread(void)
 		// handle each event
 		for(auto &&event_pair: events)
 		{
-			RtEvent *event = event_pair.second;
+			RtEvent *event = event_pair.second.get();
 			if(handled >= number_fd)
 			{
 				// all events treated, no need to continue the loop

@@ -328,10 +328,10 @@ class RtChannelBase
 	bool block_initialized;
 	
 	/// events that are currently monitored by the channel thread
-	std::map<event_id_t, RtEvent *> events;
+	std::map<event_id_t, std::unique_ptr<RtEvent>> events;
 
 	/// the list of new events (used to avoid updates inside the loop)
-	std::vector<RtEvent *> new_events;
+	std::vector<std::unique_ptr<RtEvent>> new_events;
 
 	/// the list of removed event id
 	std::vector<event_id_t> removed_events;
@@ -367,7 +367,7 @@ class RtChannelBase
 	 * @param event  The event
 	 * @return true on success, false otherwise
 	 */
-	bool addEvent(RtEvent *event);
+	bool addEvent(std::unique_ptr<RtEvent> event);
 
 	/**
 	 * @brief Update the events map with the new received event
