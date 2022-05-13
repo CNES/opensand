@@ -70,9 +70,11 @@
         </item>
         <item>
           <entity_id>GW_ID</entity_id>
+          <mac_address>WS_GW_MAC</mac_address>
         </item>
         <item>
           <entity_id>ST_ID</entity_id>
+          <mac_address>WS_ST_MAC</mac_address>
         </item>
       </terminals>
       <default_gw>-1</default_gw>

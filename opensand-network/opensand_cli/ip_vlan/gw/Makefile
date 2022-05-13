@@ -90,6 +90,7 @@ network: clean
 	ip link set dev $(TAP_IFACE).1 master $(BR_IFACE)
 	bridge vlan add dev $(TAP_IFACE).1 vid $(VLAN_ID_DEFAULT) pvid untagged master
 	ip link set $(TAP_IFACE).1 up
+	ip neighbor replace to $(BR_IFACE_IP_ST) dev $(BR_IFACE) lladdr $(TAP_MAC_ST)
 	python3 yaml_parser.py
 
 generate-xml:

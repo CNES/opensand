@@ -79,6 +79,7 @@ network: clean
 	sysctl -w net.ipv4.conf.$(LAN_IFACE).forwarding=$(FORWARDING)
 	sysctl -w net.ipv4.ip_forward=$(FORWARDING)
 	ip route replace $(ST_LAN_NET) via $(BR_IFACE_IP_ST) dev $(BR_IFACE)
+	ip neighbor replace to $(BR_IFACE_IP_ST) dev $(BR_IFACE) lladdr $(TAP_MAC_ST)
 
 generate-xml:
 	cp infrastructure.xml infrastructure_updated.xml

@@ -39,6 +39,8 @@ LAN_IFACE=ens5
 TAP_IFACE=opensand_tap
 TAP_MAC_GW=00:00:00:00:00:01
 TAP_MAC_ST=00:00:00:00:00:02
+WS_GW_MAC=FA:16:3E:36:72:89
+WS_ST_MAC=FA:16:3E:C2:89:A1
 BR_IFACE=opensand_br
 BR_IFACE_IP=192.168.63.15
 NET_DIGITS=24
@@ -86,6 +88,8 @@ generate-xml:
 	sed -i "s|TAP_IFACE|$(TAP_IFACE)|g" infrastructure_updated.xml
 	sed -i "s|TAP_MAC_GW|$(TAP_MAC_GW)|g" infrastructure_updated.xml
 	sed -i "s|TAP_MAC_ST|$(TAP_MAC_ST)|g" infrastructure_updated.xml
+	sed -i "s|WS_GW_MAC|$(WS_GW_MAC)|g" infrastructure_updated.xml
+	sed -i "s|WS_ST_MAC|$(WS_ST_MAC)|g" infrastructure_updated.xml
 	sed -i "s|ENABLE_COLLECTOR|$(ENABLE_COLLECTOR)|g" infrastructure_updated.xml
 	sed -i "s|COLLECTOR_IP|$(COLLECTOR_IP)|g" infrastructure_updated.xml
 	sed -i "s|ENABLE_LOCAL_LOGS|$(ENABLE_LOCAL_LOGS)|g" infrastructure_updated.xml
