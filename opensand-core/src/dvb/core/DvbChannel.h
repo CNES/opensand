@@ -104,7 +104,7 @@ class DvbChannel
 	 * @param pkt_hdl       The packet handler corresponding to the encapsulation scheme
 	 * @return true on success, false otherwise
 	 */
-	bool initPktHdl(encap_scheme_list_t encap_schemes,
+	bool initPktHdl(EncapSchemeList encap_schemes,
 	                EncapPlugin::EncapPacketHandler **pkt_hdl);
 
 	/**
@@ -122,7 +122,7 @@ class DvbChannel
 	 *                      schemes (up/return or down/forward)
 	 * @return true on success, false otherwise
 	 */
-	bool initCommon(encap_scheme_list_t encap_schemes);
+	bool initCommon(EncapSchemeList encap_schemes);
 
 	/**
 	 * @brief Init the timer for statistics
@@ -531,16 +531,12 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
                                  time_ms_t duration_ms,
                                  TerminalCategories<T> &categories)
 {
-	typename TerminalCategories<T>::const_iterator category_it;
-
 	double weighted_sum_ksymps = 0.0;
 
 	// compute weighted sum
-	for(category_it = categories.begin();
-	    category_it != categories.end();
-	    ++category_it)
+  for (auto&& category_it : categories)
 	{
-		T *category = (*category_it).second;
+		T *category = category_it.second;
 
 		// Compute weighted sum in ks/s since available bandplan is in kHz.
 		weighted_sum_ksymps += category->getWeightedSum();
@@ -549,7 +545,7 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 	LOG(this->log_init_channel, LEVEL_DEBUG,
 	    "Weigthed ratio sum: %f ksym/s\n", weighted_sum_ksymps);
 
-	if(equals(weighted_sum_ksymps, 0.0))
+	if (weighted_sum_ksymps == 0.0)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Weighted ratio sum is 0\n");
@@ -557,12 +553,10 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 	}
 
 	// compute carrier number per category
-	for(category_it = categories.begin();
-	    category_it != categories.end();
-		category_it++)
+  for (auto&& category_it : categories)
 	{
 		unsigned int carriers_number = 0;
-		T *category = (*category_it).second;
+		T *category = category_it.second;
 		unsigned int ratio = category->getRatio();
 
 		carriers_number = round(

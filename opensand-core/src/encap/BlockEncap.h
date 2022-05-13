@@ -78,7 +78,7 @@ class BlockEncap: public Block
 		EncapChannel() :
 			group_id(-1),
 			tal_id(-1),
-			state(link_down)
+			state(SatelliteLinkState::DOWN)
 		{};
 		
 	 protected:
@@ -89,7 +89,7 @@ class BlockEncap: public Block
 		tal_id_t tal_id;
 
 		/// State of the satellite link
-		link_state_t state;
+		SatelliteLinkState state;
 	};
 	
 	class Upward: public RtUpward, EncapChannel
@@ -183,7 +183,7 @@ class BlockEncap: public Block
 	 * @return              Whether the Encapsulation context has been
 	 *                      correctly obtained or not
 	 */
-	bool getEncapContext(encap_scheme_list_t scheme_list,
+	bool getEncapContext(EncapSchemeList scheme_list,
 	                     LanAdaptationPlugin *l_plugin,
 	                     std::vector<EncapPlugin::EncapContext *> &ctx,
 	                     const char *link_type);

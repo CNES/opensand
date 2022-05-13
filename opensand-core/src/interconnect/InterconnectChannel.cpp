@@ -116,13 +116,13 @@ bool InterconnectChannelSender::send(rt_msg_t &message)
 
 	switch(message.type)
 	{
-		case msg_sig:
-		case msg_data:
+    case InternalMessageType::msg_sig:
+		case InternalMessageType::msg_data:
 			// Serialize the dvb_frame into the output buffer
 			this->serialize((DvbFrame *) message.data,
 			                this->out_buffer.msg_data, data_len);
 			break;
-		case msg_saloha:
+		case InternalMessageType::msg_saloha:
 			this->serialize((std::list<DvbFrame *> *) message.data,
 			                this->out_buffer.msg_data, data_len);
 			break;
@@ -139,7 +139,7 @@ bool InterconnectChannelSender::send(rt_msg_t &message)
 	                             sizeof(this->out_buffer.data_len);
 
 	// Send the message
-	return this->sendBuffer(message.type == msg_sig);
+	return this->sendBuffer(message.type == InternalMessageType::msg_sig);
 }
 
 void InterconnectChannelSender::serialize(DvbFrame *dvb_frame,
@@ -307,13 +307,13 @@ bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
 			// Deserialize the message
 			switch(buf->msg_type)
 			{
-				case msg_data:
-				case msg_sig:
+				case InternalMessageType::msg_data:
+				case InternalMessageType::msg_sig:
 					// Deserialize the dvb_frame
 					this->deserialize(buf->msg_data, buf->data_len,
 					                  (DvbFrame **) &message.data);
 					break;
-				case msg_saloha:
+				case InternalMessageType::msg_saloha:
 					// Deserialize the list of dvb_frames
 					this->deserialize(buf->msg_data, buf->data_len,
 					                  (std::list<DvbFrame *> **) &message.data);

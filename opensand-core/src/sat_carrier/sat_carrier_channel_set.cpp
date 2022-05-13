@@ -106,7 +106,7 @@ bool sat_carrier_channel_set::readCarrier(const string &local_ip_addr,
 
 bool sat_carrier_channel_set::readSpot(const string &local_ip_addr,
                                        bool in,
-                                       component_t host,
+                                       Component host,
                                        tal_id_t gw_id,
                                        bool is_satellite)
 {
@@ -131,33 +131,34 @@ bool sat_carrier_channel_set::readSpot(const string &local_ip_addr,
 	
 	bool create_in_carriers = in && is_satellite || !in && !is_satellite;
 
-	if (host == terminal)
+	switch (host)
 	{
-		if (create_in_carriers) 
-		{
-			if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_in_st, is_satellite)) return false;
-			if (!readCarrier(local_ip_addr, gw_id, carriers.data_in_st, is_satellite)) return false;
-			if (!readCarrier(local_ip_addr, gw_id, carriers.logon_in, is_satellite)) return false;
-		} else {
-			if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_out_st, !is_satellite)) return false;
-			if (!readCarrier(local_ip_addr, gw_id, carriers.data_out_st, !is_satellite)) return false;
-		}
-	}
-	else if (host == gateway)
-	{
-		if (create_in_carriers) 
-		{
-			if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_in_gw, is_satellite)) return false;
-			if (!readCarrier(local_ip_addr, gw_id, carriers.data_in_gw, is_satellite)) return false;
-		} else {
-			if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_out_gw, !is_satellite)) return false;
-			if (!readCarrier(local_ip_addr, gw_id, carriers.logon_out, !is_satellite)) return false;
-			if (!readCarrier(local_ip_addr, gw_id, carriers.data_out_gw, !is_satellite)) return false;
-		}
-	}
-	else 
-	{
-		assert(false && "Host should be either terminal or gateway");
+		case Component::terminal:
+			if (create_in_carriers) 
+			{
+				if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_in_st, is_satellite)) return false;
+				if (!readCarrier(local_ip_addr, gw_id, carriers.data_in_st, is_satellite)) return false;
+				if (!readCarrier(local_ip_addr, gw_id, carriers.logon_in, is_satellite)) return false;
+			} else {
+				if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_out_st, !is_satellite)) return false;
+				if (!readCarrier(local_ip_addr, gw_id, carriers.data_out_st, !is_satellite)) return false;
+			}
+			break;
+		case Component::gateway:
+			if (create_in_carriers) 
+			{
+				if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_in_gw, is_satellite)) return false;
+				if (!readCarrier(local_ip_addr, gw_id, carriers.data_in_gw, is_satellite)) return false;
+			} else {
+				if (!readCarrier(local_ip_addr, gw_id, carriers.ctrl_out_gw, !is_satellite)) return false;
+				if (!readCarrier(local_ip_addr, gw_id, carriers.logon_out, !is_satellite)) return false;
+				if (!readCarrier(local_ip_addr, gw_id, carriers.data_out_gw, !is_satellite)) return false;
+			}
+			break;
+		default:
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Host should be either terminal or gateway");
+			return false;
 	}
 
 	return true;
@@ -171,10 +172,10 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	auto Conf = OpenSandModelConf::Get();
 
 	// get host type
-	component_t host = Conf->getComponentType();
+	Component host = Conf->getComponentType();
 
 	// for terminal get the corresponding spot
-	if (host == terminal)
+	if (host == Component::terminal)
 	{
 		tal_id_t gw_id;
 		if(!Conf->getGwWithTalId(this->tal_id, gw_id))
@@ -186,11 +187,11 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 		}
 		return readSpot(local_ip_addr, in, host, gw_id, false);
 	}
-	else if (host == gateway)
+	else if (host == Component::gateway)
 	{
 		return readSpot(local_ip_addr, in, host, this->tal_id, false);
 	}
-	else if (host == satellite)
+	else if (host == Component::satellite)
 	{
 		return readSpot(local_ip_addr, in, destination_host, spot_id, true);
 	}

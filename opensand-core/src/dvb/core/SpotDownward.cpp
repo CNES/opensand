@@ -221,7 +221,7 @@ void SpotDownward::generateConfiguration()
 
 bool SpotDownward::onInit(void)
 {
-	if(!this->initPktHdl(RETURN_UP_ENCAP_SCHEME_LIST,
+	if(!this->initPktHdl(EncapSchemeList::RETURN_UP,
 	                     &this->up_return_pkt_hdl))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,

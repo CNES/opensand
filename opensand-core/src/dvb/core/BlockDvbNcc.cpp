@@ -175,7 +175,7 @@ bool BlockDvbNcc::Downward::onInit(void)
 		return false;
 	}
 
-	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(EncapSchemeList::FORWARD_DOWN))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the common part of the "
@@ -349,7 +349,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		{
 			auto msg_event = static_cast<const MessageEvent* const>(event);
 			// first handle specific messages
-			if(msg_event->getMessageType() == msg_sig)
+			if(msg_event->getMessageType() == InternalMessageType::msg_sig)
 			{
 				auto dvb_frame = reinterpret_cast<DvbFrame *>(msg_event->getData());
 				auto spot_id = dvb_frame->getSpot();
@@ -367,7 +367,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				}
 				break;
 			}
-			else if(msg_event->getMessageType() == msg_saloha)
+			else if(msg_event->getMessageType() == InternalMessageType::msg_saloha)
 			{
 				auto ack_frames = reinterpret_cast<std::list<DvbFrame *> *>(msg_event->getData());
 				auto spot_id = ack_frames->front()->getSpot();
@@ -810,7 +810,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 
 	if(!this->enqueueMessage((void **)(&link_is_up),
 	                         sizeof(T_LINK_UP),
-	                         msg_link_up))
+	                         InternalMessageType::msg_link_up))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to send link up message to upper layer\n");
@@ -1057,7 +1057,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 			if(ack_frames->size() &&
 			   !this->shareMessage((void **)&ack_frames,
 			                       sizeof(ack_frames),
-			                       msg_saloha))
+			                       InternalMessageType::msg_saloha))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "Failed to send Slotted Aloha acks to opposite"
@@ -1128,7 +1128,7 @@ bool BlockDvbNcc::Upward::shareFrame(DvbFrame *frame)
 {
 	if (this->disable_control_plane)
 	{
-		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), msg_sig))
+		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), InternalMessageType::msg_sig))
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "Unable to transmit frame to upper layer\n");
@@ -1138,7 +1138,7 @@ bool BlockDvbNcc::Upward::shareFrame(DvbFrame *frame)
 	}
 	else
 	{
-		if(!this->shareMessage((void **)&frame, sizeof(*frame), msg_sig))
+		if(!this->shareMessage((void **)&frame, sizeof(*frame), InternalMessageType::msg_sig))
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "Unable to transmit frame to opposite channel\n");

@@ -114,35 +114,35 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 
  private:
 
-   /**
-	* Read data from the configuration file and create channels
-	*
-	* @param local_ip_addr   The IP address for emulation network
-	* @param destination_host  For sat only: destination handled by this part of the stack (terminal or gateway)
-	* @param spot_id           For sat only: the spot handled by this part of the stack
-	* @param in              Whether we want input or output channels
-	* @return true on success, false otherwise
-	*/
-   bool readConfig(const string local_ip_addr,
-	               component_t destination_host,
-	               spot_id_t spot_id,
-	               bool in);
-   bool readSpot(const string &local_ip_addr,
-	             bool in,
-	             component_t host,
-	             tal_id_t gw_id,
-	             bool is_satellite);
-   bool readCarrier(const string &local_ip_addr,
-	                tal_id_t gw_id,
-	                const OpenSandModelConf::carrier_socket &carrier,
-	                bool is_input);
+	/**
+	 * Read data from the configuration file and create channels
+	 *
+	 * @param local_ip_addr   The IP address for emulation network
+	 * @param destination_host  For sat only: destination handled by this part of the stack (terminal or gateway)
+	 * @param spot_id           For sat only: the spot handled by this part of the stack
+	 * @param in              Whether we want input or output channels
+	 * @return true on success, false otherwise
+	 */
+	bool readConfig(const string local_ip_addr,
+	                Component destination_host,
+	                spot_id_t spot_id,
+	                bool in);
+	bool readSpot(const string &local_ip_addr,
+	              bool in,
+	              component_t host,
+	              tal_id_t gw_id,
+	              bool is_satellite);
+	bool readCarrier(const string &local_ip_addr,
+	                 tal_id_t gw_id,
+	                 const OpenSandModelConf::carrier_socket &carrier,
+	                 bool is_input);
 
-   /// The terminal ID
-   tal_id_t tal_id;
+	/// The terminal ID
+	tal_id_t tal_id;
 
-   // Output Log
-   std::shared_ptr<OutputLog> log_init;
-   std::shared_ptr<OutputLog> log_sat_carrier;
+	// Output Log
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_sat_carrier;
 };
 
 #endif

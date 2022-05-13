@@ -84,7 +84,7 @@ class BlockLanAdaptation: public Block
 			RtUpward(name),
 			sarp_table(),
 			contexts(),
-			state(link_down)
+			state(SatelliteLinkState::DOWN)
 		{};
 
 		bool onInit(void);
@@ -130,7 +130,7 @@ class BlockLanAdaptation: public Block
 		tal_id_t tal_id;
 
 		/// State of the satellite link
-		link_state_t state;
+		SatelliteLinkState state;
 	};
 
 	class Downward: public RtDownward
@@ -140,7 +140,7 @@ class BlockLanAdaptation: public Block
 			RtDownward(name),
 			stats_period_ms(),
 			contexts(),
-			state(link_down)
+			state(SatelliteLinkState::DOWN)
 		{};
 
 		bool onInit(void);
@@ -186,7 +186,7 @@ class BlockLanAdaptation: public Block
 		tal_id_t tal_id;
 
 		/// State of the satellite link
-		link_state_t state;
+		SatelliteLinkState state;
 	};
 
  private:

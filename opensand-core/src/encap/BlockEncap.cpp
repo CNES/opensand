@@ -105,7 +105,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 			LOG(this->log_receive, LEVEL_INFO,
 			    "message received from the upper-layer bloc\n");
 			
-			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
+			if(((MessageEvent *)event)->getMessageType() == InternalMessageType::msg_link_up)
 			{
 				T_LINK_UP *link_up_msg;
 
@@ -115,7 +115,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 				// save group id and TAL id sent by MAC layer
 				this->group_id = link_up_msg->group_id;
 				this->tal_id = link_up_msg->tal_id;
-				this->state = link_up;
+				this->state = SatelliteLinkState::UP;
 				delete link_up_msg;
 				break;
 			}
@@ -150,7 +150,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 			LOG(this->log_receive, LEVEL_INFO,
 			    "message received from the lower layer\n");
 
-			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
+			if(((MessageEvent *)event)->getMessageType() == InternalMessageType::msg_link_up)
 			{
 				T_LINK_UP *link_up_msg;
 				T_LINK_UP *shared_link_up_msg;
@@ -164,7 +164,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 				    "tal = %u), forward it\n", link_up_msg->group_id,
 				    link_up_msg->tal_id);
 				
-				if(this->state == link_up)
+				if(this->state == SatelliteLinkState::UP)
 				{
 					LOG(this->log_receive, LEVEL_NOTICE,
 					    "duplicate link up msg\n");
@@ -175,7 +175,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 				// save group id and TAL id sent by MAC layer
 				this->group_id = link_up_msg->group_id;
 				this->tal_id = link_up_msg->tal_id;
-				this->state = link_up;
+				this->state = SatelliteLinkState::UP;
 
 				// transmit link u to opposite channel
 				shared_link_up_msg = new T_LINK_UP;
@@ -190,7 +190,8 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 				shared_link_up_msg->group_id = link_up_msg->group_id;
 				shared_link_up_msg->tal_id = link_up_msg->tal_id;
 				if(!this->shareMessage((void **)&shared_link_up_msg,
-					                     sizeof(T_LINK_UP), msg_link_up))
+				                       sizeof(T_LINK_UP),
+				                       InternalMessageType::msg_link_up))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "failed to transmit 'link up' message to "
@@ -202,7 +203,8 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 
 				// send the message to the upper layer
 				if(!this->enqueueMessage((void **)&link_up_msg,
-					                     sizeof(T_LINK_UP), msg_link_up))
+				                         sizeof(T_LINK_UP),
+				                         InternalMessageType::msg_link_up))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "cannot forward 'link up' message\n");
@@ -253,7 +255,6 @@ bool BlockEncap::onInit()
 	std::vector <EncapPlugin::EncapContext *> up_return_ctx;
 	std::vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
 	std::vector <EncapPlugin::EncapContext *> down_forward_ctx;
-	component_t host;
 
 	((Upward *)this->upward)->setMacId(this->mac_id);
 	
@@ -280,7 +281,7 @@ bool BlockEncap::onInit()
 
 		if (!is_scpc)
 		{
-			if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST,
+			if(!this->getEncapContext(EncapSchemeList::RETURN_UP,
 			                          lan_plugin, up_return_ctx,
 			                          "return/up")) 
 			{
@@ -312,7 +313,7 @@ bool BlockEncap::onInit()
 			goto error;
 		}
 
-		if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST, 
+		if(!this->getEncapContext(EncapSchemeList::RETURN_UP, 
 		                          lan_plugin, up_return_ctx,
 		                          "return/up")) 
 		{
@@ -322,7 +323,7 @@ bool BlockEncap::onInit()
 		}
 	}
 
-	if(!this->getEncapContext(FORWARD_DOWN_ENCAP_SCHEME_LIST,
+	if(!this->getEncapContext(EncapSchemeList::FORWARD_DOWN,
 	                          lan_plugin, down_forward_ctx,
 	                          "forward/down")) 
 	{
@@ -332,11 +333,12 @@ bool BlockEncap::onInit()
 	}
 
 	// get host type
-	host = Conf->getComponentType();
-	LOG(this->log_init, LEVEL_NOTICE, "host type = %s\n",
+	auto host = Conf->getComponentType();
+	LOG(this->log_init, LEVEL_NOTICE,
+	    "host type = %s\n",
 	    getComponentName(host).c_str());
 
-	if(host == terminal)
+	if(host == Component::terminal)
 	{
 		// reorder reception context to get the deencapsulation contexts in the
 		// right order
@@ -667,7 +669,7 @@ error:
 	return false;
 }
 
-bool BlockEncap::getEncapContext(encap_scheme_list_t scheme_list,
+bool BlockEncap::getEncapContext(EncapSchemeList scheme_list,
                                  LanAdaptationPlugin *l_plugin,
                                  std::vector <EncapPlugin::EncapContext *> &ctx,
                                  const char *link_type)
@@ -676,11 +678,11 @@ bool BlockEncap::getEncapContext(encap_scheme_list_t scheme_list,
 	std::vector<std::string> encapsulations;
 	switch(scheme_list)
 	{
-		case RETURN_UP_ENCAP_SCHEME_LIST:
+		case EncapSchemeList::RETURN_UP:
 			encapsulations.push_back("RLE");
 			break;
 
-		case FORWARD_DOWN_ENCAP_SCHEME_LIST:
+		case EncapSchemeList::FORWARD_DOWN:
 			encapsulations.push_back("GSE");
 			break;
 

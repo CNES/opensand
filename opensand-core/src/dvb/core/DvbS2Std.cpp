@@ -86,7 +86,6 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
                           NetBurst **burst)
 {
 	auto Conf = OpenSandModelConf::Get();
-	BBFrame *bbframe_burst;
 	int real_mod = 0;     // real modcod of the receiver
 
 	std::vector<NetPacket *> decap_packets;
@@ -118,8 +117,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		goto error;
 	}
 
-	// TODO bbframe_burst = static_cast<BBFrame *>(dvb_frame);
-	bbframe_burst = dvb_frame->operator BBFrame*();
+	BBFrame *bbframe_burst = *dvb_frame;
 	LOG(this->log_rcv_from_down, LEVEL_INFO,
 	    "BB frame received (%d %s packet(s))\n",
 	    bbframe_burst->getDataLength(),

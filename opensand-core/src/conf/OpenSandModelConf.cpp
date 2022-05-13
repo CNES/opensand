@@ -605,7 +605,7 @@ bool OpenSandModelConf::readInfrastructure(const std::string& filename)
 		auto gateway = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
 		int gateway_id;
 		if (extractParameterData(gateway, "entity_id", gateway_id)) {
-			entities_type[gateway_id] = component_t::gateway;
+			entities_type[gateway_id] = Component::gateway;
 		}
 	}
 	auto satellites = infrastructure->getRoot()->getComponent("infrastructure")->getList("satellites");
@@ -613,7 +613,7 @@ bool OpenSandModelConf::readInfrastructure(const std::string& filename)
 		auto sat = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
 		int sat_id;
 		if (extractParameterData(sat, "entity_id", sat_id)) {
-			entities_type[sat_id] = component_t::satellite;
+			entities_type[sat_id] = Component::satellite;
 		}
 	}
 	auto terminals = infrastructure->getRoot()->getComponent("infrastructure")->getList("terminals");
@@ -621,7 +621,7 @@ bool OpenSandModelConf::readInfrastructure(const std::string& filename)
 		auto st = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
 		int st_id;
 		if (extractParameterData(st, "entity_id", st_id)) {
-			entities_type[st_id] = component_t::terminal;
+			entities_type[st_id] = Component::terminal;
 		}
 	}
 
@@ -641,23 +641,23 @@ bool OpenSandModelConf::readProfile(const std::string& filename)
 }
 
 
-component_t OpenSandModelConf::getComponentType() const
+Component OpenSandModelConf::getComponentType() const
 {
 	if (infrastructure == nullptr) {
-		return unknown_compo;
+		return Component::unknown;
 	}
 
 	std::string component_type;
 	extractParameterData(infrastructure->getRoot()->getComponent("entity"), "entity_type", component_type);
 
 	if (component_type == "Satellite") {
-		return satellite;
+		return Component::satellite;
 	} else if (component_type == "Terminal") {
-		return terminal;
+		return Component::terminal;
 	} else if (component_type == "Gateway" || component_type == "Gateway Net Access" || component_type == "Gateway Phy") {
-		return gateway;
+		return Component::gateway;
 	} else {
-		return unknown_compo;
+		return Component::unknown;
 	}
 }
 
@@ -807,7 +807,7 @@ bool OpenSandModelConf::getGwIds(std::vector<tal_id_t> &gws) const
 	}
 
 	for (auto&& id_type_pair : entities_type) {
-		if (id_type_pair.second == gateway) {
+		if (id_type_pair.second == Component::gateway) {
 			gws.push_back(id_type_pair.first);
 		}
 	}
@@ -1333,16 +1333,16 @@ bool OpenSandModelConf::isGw(uint16_t gw_id) const
 	}
 
 	auto entity = entities_type.find(gw_id);
-	return entity != entities_type.end() && entity->second == gateway;
+	return entity != entities_type.end() && entity->second == Component::gateway;
 }
 
-component_t OpenSandModelConf::getEntityType(tal_id_t tal_id) const {
+Component OpenSandModelConf::getEntityType(tal_id_t tal_id) const {
 	if (infrastructure == nullptr) {
-		return component_t::unknown_compo;
+		return Component::unknown;
 	}
 	auto entity_it = entities_type.find(tal_id);
 	if (entity_it == entities_type.end()) {
-		return component_t::unknown_compo;
+		return Component::unknown;
 	}
 	return entity_it->second;
 }

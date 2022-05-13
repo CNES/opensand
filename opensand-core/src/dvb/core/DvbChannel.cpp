@@ -83,7 +83,7 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 	return true;
 }
 
-bool DvbChannel::initPktHdl(encap_scheme_list_t encap_schemes,
+bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
                             EncapPlugin::EncapPacketHandler **pkt_hdl)
 {
 	string encap_name;
@@ -91,15 +91,15 @@ bool DvbChannel::initPktHdl(encap_scheme_list_t encap_schemes,
 
 	switch(encap_schemes)
 	{
-		case FORWARD_DOWN_ENCAP_SCHEME_LIST:
+    case EncapSchemeList::FORWARD_DOWN:
 			encap_name = "GSE";
 			break;
 
-		case RETURN_UP_ENCAP_SCHEME_LIST:
+		case EncapSchemeList::RETURN_UP:
 			encap_name = "RLE";
 			break;
 
-		case TRANSPARENT_SATELLITE_NO_SCHEME_LIST:
+		case EncapSchemeList::TRANSPARENT_NO_SCHEME:
 			LOG(this->log_init_channel, LEVEL_INFO,
 			    "Skipping packet handler initialization for "
 			    "transparent satellite");
@@ -176,7 +176,7 @@ bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 	return true;
 }
 
-bool DvbChannel::initCommon(encap_scheme_list_t encap_schemes)
+bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 {
 	auto Conf = OpenSandModelConf::Get();
 

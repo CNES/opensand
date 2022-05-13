@@ -156,7 +156,7 @@ class OpenSandModelConf
 	                          const std::string& parameter,
 	                          T &result) const;
 
-	component_t getComponentType() const;
+	Component getComponentType() const;
 	bool getComponentType(std::string &type, tal_id_t &id) const;
 	bool getSatInfrastructure(std::string &ip_address) const;
 	/*
@@ -193,7 +193,7 @@ class OpenSandModelConf
 	bool getGwWithTalId(tal_id_t terminal_id, tal_id_t &gw_id) const;
 	bool getGwWithCarrierId(unsigned int carrier_id, tal_id_t &gw) const;
 	bool isGw(tal_id_t gw_id) const;
-	component_t getEntityType(tal_id_t tal_id) const;
+	Component getEntityType(tal_id_t tal_id) const;
 	bool getScpcEncapStack(std::vector<std::string> &encap_stack) const;
 	bool getSpotInfrastructure(tal_id_t gw_id, OpenSandModelConf::spot_infrastructure &carriers) const;
 	bool getSpotReturnCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;
@@ -227,7 +227,7 @@ class OpenSandModelConf
 
 	std::shared_ptr<OutputLog> log;
 	
-	std::unordered_map<tal_id_t, component_t> entities_type;
+	std::unordered_map<tal_id_t, Component> entities_type;
 	std::unordered_map<spot_id_t, std::unordered_set<tal_id_t>> spot_entities;
 
 	bool getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot &spot, bool forward) const;

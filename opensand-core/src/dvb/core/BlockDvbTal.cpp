@@ -304,7 +304,7 @@ bool BlockDvbTal::Downward::onInit(void)
 	}
 
 	// get the common parameters
-	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(EncapSchemeList::RETURN_UP))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the initialisation\n");
@@ -1272,7 +1272,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 		{
 	    auto msg_event = static_cast<const MessageEvent* const>(event);
 			// first handle specific messages
-			if(msg_event->getMessageType() == msg_sig)
+			if(msg_event->getMessageType() == InternalMessageType::msg_sig)
 			{
 				return this->handleDvbFrame(static_cast<DvbFrame*>(msg_event->getData()));
 			}
@@ -2229,7 +2229,7 @@ bool BlockDvbTal::Upward::onInit(void)
 	}
 
 	// get the common parameters
-	if(!this->initCommon(FORWARD_DOWN_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(EncapSchemeList::FORWARD_DOWN))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the common part of the "
@@ -2533,7 +2533,7 @@ bool BlockDvbTal::Upward::shareFrame(DvbFrame *frame)
 {
 	if (this->disable_control_plane)
 	{
-		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), msg_sig))
+		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), InternalMessageType::msg_sig))
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "Unable to transmit frame to upper layer\n");
@@ -2543,7 +2543,7 @@ bool BlockDvbTal::Upward::shareFrame(DvbFrame *frame)
 	}
 	else
 	{
-		if(!this->shareMessage((void **)&frame, sizeof(*frame), msg_sig))
+		if(!this->shareMessage((void **)&frame, sizeof(*frame), InternalMessageType::msg_sig))
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "Unable to transmit frame to opposite channel\n");
@@ -2604,7 +2604,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 
 	if(!this->enqueueMessage((void **)(&link_is_up),
 	                         sizeof(T_LINK_UP),
-	                         msg_link_up))
+	                         InternalMessageType::msg_link_up))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "SF#%u: failed to send link up message to upper layer",

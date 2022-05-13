@@ -39,7 +39,6 @@
 #include <vector>
 
 #include <stdint.h>
-#include <cfloat>
 #include <cmath>
 #include <sys/time.h>
 #include <arpa/inet.h>
@@ -57,14 +56,15 @@
 /// Broadcast tal id is maximal tal_id value authorized (5 bits).
 #define BROADCAST_TAL_ID 0x1F
 
+
 /** The different types of DVB components */
-typedef enum
+enum class Component
 {
 	satellite,
 	gateway,
 	terminal,
-	unknown_compo,
-} component_t;
+	unknown,
+};
 
 
 /** @brief Get the name of a component
@@ -72,15 +72,15 @@ typedef enum
  * @param host The component type
  * @return the abbreviated name of the component
  */
-inline std::string getComponentName(component_t host)
+inline std::string getComponentName(Component host)
 {
 	switch(host)
 	{
-		case satellite:
+    case Component::satellite:
 			return "sat";
-		case gateway:
+    case Component::gateway:
 			return "gw";
-		case terminal:
+    case Component::terminal:
 			return "st";
 		default:
 			return "";
@@ -105,7 +105,7 @@ typedef enum
  *
  * @return the access type enum
  */
-inline access_type_t strToAccessType(std::string access_type)
+inline access_type_t strToAccessType(const std::string& access_type)
 {
 	if(access_type == "DAMA")
 		return DAMA;
@@ -120,15 +120,15 @@ inline access_type_t strToAccessType(std::string access_type)
 	return ERROR;
 }
 
-/// State of the satellite link
-typedef enum
-{
-	link_down,
-	link_up
-} link_state_t;
 
-/// Internal message types
-enum
+enum class SatelliteLinkState
+{
+	DOWN,
+	UP
+};
+
+
+enum class InternalMessageType : uint8_t
 {
 	msg_data = 0,  ///< message containing useful data (DVB, encap, ...)
 	               //   default value of sendUp/Down function
@@ -138,19 +138,13 @@ enum
 };
 
 
-typedef enum
+enum class EncapSchemeList
 {
-	RETURN_UP_ENCAP_SCHEME_LIST,
-	FORWARD_DOWN_ENCAP_SCHEME_LIST,
-	TRANSPARENT_SATELLITE_NO_SCHEME_LIST,
-} encap_scheme_list_t;
-
-
-/** Compare two floats */
-inline bool equals(double val1, double val2)
-{
-	return std::abs(val1 - val2) < DBL_EPSILON;
+	RETURN_UP,
+	FORWARD_DOWN,
+	TRANSPARENT_NO_SCHEME,
 };
+
 
 /**
  * @brieg Get the current time
@@ -200,9 +194,8 @@ inline void tokenize(const std::string &str,
  */
 inline uint32_t hcnton(double cn)
 {
-	int16_t tmp_cn = (int16_t)(std::round(cn * 100));  // we take two digits in decimal part
-	uint32_t new_cn = htonl((uint32_t)tmp_cn);
-	return new_cn;
+	int16_t tmp_cn = static_cast<int16_t>(std::round(cn * 100));  // we take two digits in decimal part
+	return htonl(static_cast<uint32_t>(tmp_cn));
 };
 
 /**
@@ -214,9 +207,8 @@ inline uint32_t hcnton(double cn)
  */
 inline double ncntoh(uint32_t cn)
 {
-	int16_t tmp_cn = (int16_t)ntohl(cn);
-	double new_cn = double(tmp_cn / 100.0);
-	return new_cn;
+	int16_t tmp_cn = static_cast<int16_t>(ntohl(cn));
+	return tmp_cn / 100.0;
 };
 
 

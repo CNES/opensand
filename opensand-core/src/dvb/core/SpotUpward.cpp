@@ -107,7 +107,7 @@ bool SpotUpward::onInit(void)
 	}
 
 	// get the common parameters
-	if(!this->initCommon(RETURN_UP_ENCAP_SCHEME_LIST))
+	if(!this->initCommon(EncapSchemeList::RETURN_UP))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "failed to complete the common part of the "
@@ -330,7 +330,7 @@ bool SpotUpward::initMode(void)
 
 		// check that the forward encapsulation scheme is GSE
 		// (this should be automatically set by the manager)
-		if(!this->initPktHdl(FORWARD_DOWN_ENCAP_SCHEME_LIST,
+		if(!this->initPktHdl(EncapSchemeList::FORWARD_DOWN,
 		                     &fwd_pkt_hdl))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,

@@ -70,7 +70,6 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
                            tal_id_t UNUSED(tal_id),
                            NetBurst **burst)
 {
-	DvbRcsFrame *dvb_rcs_frame;
 
 	std::vector<NetPacket *> decap_packets;
 	bool partial_decap = false;
@@ -97,8 +96,8 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		    "the message received is not a DVB burst\n");
 		goto error;
 	}
-	// TODO dvb_frame = static_cast<DvbRcsFrame *>(dvb_frame);
-	dvb_rcs_frame = dvb_frame->operator DvbRcsFrame*();
+
+	DvbRcsFrame *dvb_rcs_frame = *dvb_frame;
 
 	if(dvb_rcs_frame->isCorrupted())
 	{

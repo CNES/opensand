@@ -172,7 +172,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
+			if(((MessageEvent *)event)->getMessageType() == InternalMessageType::msg_link_up)
 			{
 				T_LINK_UP *link_up_msg;
 
@@ -182,7 +182,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 				// save group id and TAL id sent by MAC layer
 				this->group_id = link_up_msg->group_id;
 				this->tal_id = link_up_msg->tal_id;
-				this->state = link_up;
+				this->state = SatelliteLinkState::UP;
 				delete link_up_msg;
 				break;
 			}
@@ -243,7 +243,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
+			if(((MessageEvent *)event)->getMessageType() == InternalMessageType::msg_link_up)
 			{
 				T_LINK_UP *link_up_msg;
 
@@ -255,7 +255,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 				    "tal = %u)\n", link_up_msg->group_id,
 				    link_up_msg->tal_id);
 
-				if(this->state == link_up)
+				if(this->state == SatelliteLinkState::UP)
 				{
 					LOG(this->log_receive, LEVEL_NOTICE,
 					    "duplicate link up msg\n");
@@ -282,7 +282,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 							return false;
 						}
 					}
-					this->state = link_up;
+					this->state = SatelliteLinkState::UP;
 					// transmit link up to opposite channel
 					if(!this->shareMessage((void **)&link_up_msg,
 					                       ((MessageEvent *)event)->getLength(),
@@ -303,7 +303,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 
 			burst = (NetBurst *)((MessageEvent *)event)->getData();
 
-			if(this->state != link_up)
+			if(this->state != SatelliteLinkState::UP)
 			{
 				LOG(this->log_receive, LEVEL_NOTICE,
 				    "packets received from lower layer, but "
@@ -493,7 +493,7 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 	read_data = event->getData();
 	data = read_data + TUNTAP_FLAGS_LEN;
 
-	if(this->state != link_up)
+	if(this->state != SatelliteLinkState::UP)
 	{
 		LOG(this->log_receive, LEVEL_NOTICE,
 		    "packets received from TAP, but link is down "
