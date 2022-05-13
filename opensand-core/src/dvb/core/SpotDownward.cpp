@@ -588,8 +588,8 @@ bool SpotDownward::initCarrierIds(void)
 	return false;
 	}
 
-	this->ctrl_carrier_id = carriers.ctrl_in.id;
-	this->sof_carrier_id = carriers.ctrl_in.id;
+	this->ctrl_carrier_id = carriers.ctrl_in_gw.id;
+	this->sof_carrier_id = carriers.ctrl_in_gw.id;
 	this->data_carrier_id = carriers.data_in_gw.id;
 
 	return true;

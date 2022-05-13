@@ -124,19 +124,20 @@ bool BlockDvbSat::initSpots(void)
 			return false;
 		}
 
-		uint8_t ctrl_id = carriers.ctrl_out.id;
+		uint8_t ctrl_out_gw_id = carriers.ctrl_out_gw.id;
+		uint8_t ctrl_out_st_id = carriers.ctrl_out_st.id;
 		uint8_t data_in_gw_id = carriers.data_in_gw.id;
 		uint8_t data_in_st_id = carriers.data_in_st.id;
 		uint8_t data_out_gw_id = carriers.data_out_gw.id;
 		uint8_t data_out_st_id = carriers.data_out_st.id;
 		uint8_t log_id = carriers.logon_out.id;
-	
+
 		LOG(this->log_init, LEVEL_NOTICE,
-		    "SF#: carrier IDs for Ctrl = %u, "
+		    "SF#: carrier IDs for Ctrl out gw = %u, ctrl out st = %u, "
 		    "data in gw = %u, data in st = %u, "
 		    "data out gw = %u, data out st = %u, "
-		    "log id = %u\n", 
-		    ctrl_id, data_in_gw_id, data_in_st_id,
+		    "log id = %u\n",
+		    ctrl_out_gw_id, ctrl_out_st_id, data_in_gw_id, data_in_st_id,
 		    data_out_gw_id, data_out_st_id, log_id);
 		//***************************
 		// create a new gw
@@ -145,11 +146,11 @@ bool BlockDvbSat::initSpots(void)
 		new_gw->init();
 
 		this->gws[gw_id] = new_gw;
-		
+
 		LOG(this->log_init, LEVEL_NOTICE,
-		    "satellite spot %u: logon = %u, control = %u, "
+		    "satellite spot %u: logon = %u, ctrl out GW = %u, ctrl out ST = %u, "
 		    "data out ST = %u, data out GW = %u\n",
-		    gw_id, log_id, ctrl_id, data_out_st_id,
+		    gw_id, log_id, ctrl_out_gw_id, ctrl_out_st_id, data_out_st_id,
 		    data_out_gw_id);
 	}
 
@@ -355,10 +356,16 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 					LOG(this->log_send, LEVEL_DEBUG,
 					    "send control frames on satellite spot %u\n",
 					    spotId);
-					if(!this->sendFrames(current_gw->getControlFifo()))
+					if (!this->sendFrames(current_gw->getControlOutGwFifo()))
 					{
 						LOG(this->log_send, LEVEL_ERROR,
-						    "Failed to send contol frames on spot %u\n",
+						    "Failed to send contol frames for GW on spot %u\n",
+						    spotId);
+					}
+					if (!this->sendFrames(current_gw->getControlOutStFifo()))
+					{
+						LOG(this->log_send, LEVEL_ERROR,
+						    "Failed to send contol frames for ST on spot %u\n",
 						    spotId);
 					}
 
@@ -428,7 +435,7 @@ bool BlockDvbSat::Downward::handleDvbFrame(DvbFrame* dvb_frame)
   }
 
   // create a message for the DVB frame
-  if(!this->sendDvbFrame(dvb_frame, current_gw->getControlCarrierId()))
+  if(!this->sendDvbFrame(dvb_frame, current_gw->getControlOutStFifo()->getCarrierId()))
   {
     LOG(this->log_send, LEVEL_ERROR,
         "failed to send sig frame to lower layer, "
@@ -722,21 +729,12 @@ bool BlockDvbSat::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		break;
 
 		// Generic control frames (SAC, TTP, etc)
-		case MSG_TYPE_SAC:
-		case MSG_TYPE_TTP:
+		case MSG_TYPE_SAC:   // ST->GW
+			return this->forwardDvbFrame(current_gw->getControlOutGwFifo(), dvb_frame);
+		case MSG_TYPE_TTP:   // GW->ST
 		case MSG_TYPE_SYNC:
 		case MSG_TYPE_SESSION_LOGON_RESP:
-		{
-			// forward the frame copy
-			if(!this->forwardDvbFrame(current_gw->getControlFifo(),
-			                          dvb_frame))
-			{
-				return false;
-			}
-
-
-		}
-		break;
+			return this->forwardDvbFrame(current_gw->getControlOutStFifo(), dvb_frame);
 
 		// Special case of logon frame with dedicated channel
 		case MSG_TYPE_SESSION_LOGON_REQ:

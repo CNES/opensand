@@ -26,30 +26,31 @@
  */
 
 /**
- * @file RtChannel.h
+ * @file RtChannelMux.h
  * @author Yohan SIMARD / <yohan.simard@viveris.fr>
- * @brief  A simple channel with 1 input fifo and 1 output fifo
+ * @brief  A channel with N input fifos and 1 output fifo
  */
 
-#ifndef RT_CHANNEL_H
-#define RT_CHANNEL_H
+#ifndef RT_CHANNEL_MUX_H
+#define RT_CHANNEL_MUX_H
 
 #include "RtChannelBase.h"
+#include <vector>
 
 /**
- * @class RtChannel
- * @brief A simple channel with 1 input fifo and 1 output fifo
+ * @class RtChannelMux
+ * @brief A channel with N input fifos and 1 output fifo.
  */
-class RtChannel: public RtChannelBase
+class RtChannelMux: public RtChannelBase
 {
   public:
 	// Inherit base constructors
 	using RtChannelBase::RtChannelBase;
 
-	~RtChannel() override;
+	~RtChannelMux() override;
 
 	/**
-	 * @brief Add a message in the next channel fifo
+	 * @brief Add a message in the next channel queue
 	 * @warning The message shall not be reused in the channel after this call
 	 *          because will be used in other blocks
 	 *
@@ -62,11 +63,11 @@ class RtChannel: public RtChannelBase
 	bool enqueueMessage(void **data, size_t size = 0, uint8_t type = 0);
 
 	/**
-	 * @brief Set the fifo of the previous channel
+	 * @brief Add a fifo of a previous channel
 	 *
 	 * @param fifo  The fifo
 	 */
-	void setPreviousFifo(RtFifo *fifo);
+	void addPreviousFifo(RtFifo *fifo);
 
 	/**
 	 * @brief Set the fifo of the next channel
@@ -79,10 +80,11 @@ class RtChannel: public RtChannelBase
 	bool initPreviousFifo() override;
 
   private:
-	/// The fifo of the previous channel
-	RtFifo *previous_fifo = nullptr;
+	/// The fifos of the previous channels
+	std::vector<RtFifo *> previous_fifos{};
 	/// The fifo of the next channel
 	RtFifo *next_fifo = nullptr;
 };
+
 
 #endif

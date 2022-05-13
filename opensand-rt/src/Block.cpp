@@ -45,7 +45,7 @@
 #include <signal.h>
 
 
-Block::Block(const string &name, void *specific):
+Block::Block(const string &name):
 	name(name),
 	initialized(false)
 {
@@ -114,6 +114,8 @@ bool Block::initSpecific(void)
 
 	return true;
 }
+
+bool Block::onInit() { return true; }
 
 bool Block::isInitialized(void)
 {
@@ -226,12 +228,12 @@ bool Block::stop(int signal)
 	return status;
 }
 
-RtChannel *Block::getUpwardChannel(void) const
+RtChannelBase *Block::getUpwardChannel(void) const
 {
 	return this->upward;
 }
 
-RtChannel *Block::getDownwardChannel(void) const
+RtChannelBase *Block::getDownwardChannel(void) const
 {
 	return this->downward;
 }

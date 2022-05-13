@@ -73,16 +73,9 @@ bool EntityGwPhy::createSpecificBlocks()
 {
 	struct sc_specific specific;
 
-	Block *block_phy_layer;
-	Block *block_sat_carrier;
-	Block *block_interconnect;
-
 	// instantiate all blocs
-	block_interconnect = Rt::createBlock<BlockInterconnectUpward,
-		       BlockInterconnectUpward::Upward,
-		       BlockInterconnectUpward::Downward,
-		       const string &>
-		       ("InterconnectUpward", NULL, this->interconnect_address);
+	auto block_interconnect = Rt::createBlock<BlockInterconnectUpward>("InterconnectUpward",
+	                                                                   this->interconnect_address);
 	if(!block_interconnect)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -91,10 +84,7 @@ bool EntityGwPhy::createSpecificBlocks()
 		return false;
 	}
 
-	block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-		    BlockPhysicalLayer::Upward,
-		    BlockPhysicalLayer::Downward,
-		    tal_id_t>("PhysicalLayer", block_interconnect, this->instance_id);
+	auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
 	if(!block_phy_layer)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -104,12 +94,7 @@ bool EntityGwPhy::createSpecificBlocks()
 	}
 	specific.ip_addr = this->ip_address;
 	specific.tal_id = this->instance_id;
-	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
-		      BlockSatCarrier::Upward,
-		      BlockSatCarrier::Downward,
-		      struct sc_specific>("SatCarrier",
-					  block_phy_layer,
-					  specific);
+	auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", specific);
 	if(!block_sat_carrier)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
@@ -117,6 +102,9 @@ bool EntityGwPhy::createSpecificBlocks()
             this->getName().c_str());
 		return false;
 	}
+
+	Rt::connectBlocks(block_interconnect, block_phy_layer);
+	Rt::connectBlocks(block_phy_layer, block_sat_carrier);
 
 	return true;
 }

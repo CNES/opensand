@@ -53,54 +53,73 @@
  *
  */
 
-
 #include "EntitySat.h"
 #include "OpenSandModelConf.h"
 
-#include "BlockDvbSat.h"
 #include "BlockSatCarrier.h"
+#include "BlockTransp.h"
 
 
-EntitySat::EntitySat(): Entity("sat", 0)
+EntitySat::EntitySat(tal_id_t instance_id):
+    Entity("sat" + std::to_string(instance_id), instance_id),
+    instance_id{instance_id}
 {
 }
+
 
 EntitySat::~EntitySat()
 {
 }
 
+
 bool EntitySat::createSpecificBlocks()
 {
-	struct sc_specific specific;
-
-	Block *block_dvb;
-	Block *block_sat_carrier;
-
 	// instantiate all blocs
-	block_dvb = Rt::createBlock<BlockDvbSat,
-		BlockDvbSat::Upward,
-		BlockDvbSat::Downward>("Dvb", NULL);
-	if(!block_dvb)
+	auto block_transp = Rt::createBlock<BlockTransp>("Transp");
+	if (!block_transp)
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the DvbSat block",
-            this->getName().c_str());
+		DFLTLOG(LEVEL_CRITICAL, "%s: cannot create the Transp block",
+		        this->getName().c_str());
 		return false;
 	}
 
-	specific.ip_addr = this->ip_address;
-	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
-		BlockSatCarrier::Upward,
-		BlockSatCarrier::Downward,
-		struct sc_specific>("SatCarrier",
-			block_dvb,
-			specific);
-	if(!block_sat_carrier)
+	auto conf = OpenSandModelConf::Get();
+	std::vector<tal_id_t> spot_ids{};
+	conf->getGwIds(spot_ids);
+	for (auto &&gw_id: spot_ids)
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the SatCarrier block",
-		        this->getName().c_str());
-		return false;
+		auto spot_id = static_cast<spot_id_t>(gw_id);
+
+		struct sc_specific specific;
+		specific.ip_addr = ip_address;
+		specific.tal_id = instance_id;
+		specific.spot_id = spot_id;
+		specific.destination_host = gateway;
+		std::ostringstream gw_name;
+		gw_name << "SatCarrierGw" << spot_id;
+		auto block_sc_gw = Rt::createBlock<BlockSatCarrier>(gw_name.str(), specific);
+		if (!block_sc_gw)
+		{
+			DFLTLOG(LEVEL_CRITICAL, "%s: cannot create the SatCarrierGw block",
+			        this->getName().c_str());
+			return false;
+		}
+
+		specific.ip_addr = this->ip_address;
+		specific.tal_id = this->instance_id;
+		specific.spot_id = spot_id;
+		specific.destination_host = terminal;
+		std::ostringstream st_name;
+		st_name << "SatCarrierSt" << spot_id;
+		auto block_sc_tal = Rt::createBlock<BlockSatCarrier>(st_name.str(), specific);
+		if (!block_sc_tal)
+		{
+			DFLTLOG(LEVEL_CRITICAL, "%s: cannot create the SatCarrierTal block",
+			        this->getName().c_str());
+			return false;
+		}
+		Rt::connectBlocks(block_transp, block_sc_gw, {spot_id, gateway});
+		Rt::connectBlocks(block_transp, block_sc_tal, {spot_id, terminal});
 	}
 
 	return true;

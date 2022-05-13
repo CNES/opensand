@@ -445,8 +445,6 @@ int main(int argc, char **argv)
 HeapLeakChecker heap_checker("test_multi_blocks");
 {
 #endif
-	Block *top;
-	Block *middle;
 	string error;
 	string input_file;
 	int args_used;
@@ -483,18 +481,11 @@ HeapLeakChecker heap_checker("test_multi_blocks");
 
 	std::cout << "Launch test" << std::endl;
 
-	top = Rt::createBlock<TopBlock,
-	                      TopBlock::Upward,
-	                      TopBlock::Downward,
-	                      string>("top", NULL, input_file);
-	
-	middle = Rt::createBlock<MiddleBlock,
-	                         MiddleBlock::Upward,
-	                         MiddleBlock::Downward>("middle", top);
-
-	Rt::createBlock<BottomBlock,
-	                BottomBlock::Upward,
-	                BottomBlock::Downward>("bottom", middle);
+	auto top = Rt::createBlock<TopBlock>("top", input_file);
+	auto middle = Rt::createBlock<MiddleBlock>("middle");
+	auto bottom = Rt::createBlock<BottomBlock>("bottom");
+	Rt::connectBlocks(top, middle);
+	Rt::connectBlocks(middle, bottom);
 
 	std::cout << "Start loop, please wait..." << std::endl;
 	Output::Get()->finalizeConfiguration();

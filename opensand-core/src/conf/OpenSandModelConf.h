@@ -41,7 +41,8 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "OpenSandCore.h"
 
@@ -85,14 +86,16 @@ class OpenSandModelConf
 	};
 
 	struct spot_infrastructure {
-		OpenSandModelConf::carrier_socket ctrl_out;
-		OpenSandModelConf::carrier_socket ctrl_in;
-		OpenSandModelConf::carrier_socket logon_out;
 		OpenSandModelConf::carrier_socket logon_in;
-		OpenSandModelConf::carrier_socket data_out_st;
+		OpenSandModelConf::carrier_socket logon_out;
+		OpenSandModelConf::carrier_socket ctrl_in_st;
+		OpenSandModelConf::carrier_socket ctrl_out_gw;
+		OpenSandModelConf::carrier_socket ctrl_in_gw;
+		OpenSandModelConf::carrier_socket ctrl_out_st;
 		OpenSandModelConf::carrier_socket data_in_st;
 		OpenSandModelConf::carrier_socket data_out_gw;
 		OpenSandModelConf::carrier_socket data_in_gw;
+		OpenSandModelConf::carrier_socket data_out_st;
 	};
 
 	struct carrier {
@@ -190,6 +193,7 @@ class OpenSandModelConf
 	bool getGwWithTalId(tal_id_t terminal_id, tal_id_t &gw_id) const;
 	bool getGwWithCarrierId(unsigned int carrier_id, tal_id_t &gw) const;
 	bool isGw(tal_id_t gw_id) const;
+	component_t getEntityType(tal_id_t tal_id) const;
 	bool getScpcEncapStack(std::vector<std::string> &encap_stack) const;
 	bool getSpotInfrastructure(tal_id_t gw_id, OpenSandModelConf::spot_infrastructure &carriers) const;
 	bool getSpotReturnCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;
@@ -201,10 +205,15 @@ class OpenSandModelConf
 								unsigned int &udp_stack,
 								unsigned int &udp_rmem,
 								unsigned int &udp_wmem) const;
+	bool getInterSatLinkCarriers(tal_id_t sat_id, carrier_socket &isl_in, carrier_socket &isl_out) const;
+	bool isMeshArchitecture() const;
+	bool getDefaultEntityForSat(tal_id_t sat_id, tal_id_t &default_entity) const;
 	bool getTerminalAffectation(spot_id_t &default_spot_id,
 								std::string &default_category_name,
 								std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
-
+	
+	const std::unordered_set<tal_id_t> getEntitiesHandledBySat(tal_id_t sat_id) const;
+	const std::unordered_set<tal_id_t> &getEntitiesInSpot(spot_id_t spot_id) const;
  private:
 	OpenSandModelConf();
 
@@ -217,7 +226,9 @@ class OpenSandModelConf
 	std::shared_ptr<OpenSANDConf::DataModel> profile;
 
 	std::shared_ptr<OutputLog> log;
-	std::map<tal_id_t, bool> gateways;
+	
+	std::unordered_map<tal_id_t, component_t> entities_type;
+	std::unordered_map<spot_id_t, std::unordered_set<tal_id_t>> spot_entities;
 
 	bool getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot &spot, bool forward) const;
 };
@@ -263,7 +274,7 @@ bool OpenSandModelConf::extractParameterData(std::shared_ptr<const OpenSANDConf:
 
 	if (!extractParameterData(component->getParameter(parameter), result))
 	{
-		LOG(this->log, LEVEL_WARNING,
+		LOG(this->log, LEVEL_NOTICE,
 		    "Extracting %s/%s failed, default value used instead",
 		    path.c_str(), parameter.c_str());
 		return false;

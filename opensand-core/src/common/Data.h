@@ -71,7 +71,7 @@ class Data: public std::basic_string<unsigned char>
 	 * @param data  the unsigned characters to copy
 	 * @param len   the number of unsigned characters to copy
 	 */
-	Data(unsigned char *data, unsigned int len);
+	Data(const unsigned char *data, unsigned int len);
 
 	/**
 	 * Create a set of data from a subset of data

@@ -37,7 +37,11 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
+#include "RtChannelBase.h"
 #include "RtChannel.h"
+#include "RtChannelMux.h"
+#include "RtChannelDemux.h"
+#include "RtChannelMuxDemux.h"
 #include "Types.h"
 
 
@@ -51,9 +55,6 @@
 #include <opensand_output/OutputEvent.h>
 
 class RtEvent;
-
-using std::string;
-
 
 /**
  * @class Block
@@ -75,34 +76,24 @@ class Block
 	 * @brief Block constructor
 	 *
 	 * @param name      The name of the block
-	 * @param specific  Specific block parameters
 	 */
-	Block(const string &name, void *specific = NULL);
+	Block(const std::string &name);
 
 	virtual ~Block();
 
+  private:
 	/**
 	 * @class Upward channel
 	 *        With this class we are able to define Upward channel
 	 *        functions in Block
 	 */
-	class RtUpward: public RtChannel
+	template <typename ChannelType>
+	class RtUpwardBase: public ChannelType
 	{
 	  public:
-		RtUpward(const string &name):
-			RtChannel(name, "Upward")
+		RtUpwardBase(const std::string &name):
+			ChannelType(name, "Upward")
 		{};
-
-		template<class T>
-		RtUpward(const string &name, T specific):
-			RtChannel(name, "Upward", specific)
-		{};
-
-		virtual ~RtUpward() {};
-		
-	  protected:
-		virtual bool onEvent(const RtEvent *const event) = 0;
-
 	};
 
 	/**
@@ -110,24 +101,37 @@ class Block
 	 *        With this class we are able to define Downward channel
 	 *        functions in Block
 	 */
-	class RtDownward: public RtChannel
+	template <typename ChannelType>
+	class RtDownwardBase: public ChannelType
 	{
 	  public:
-		RtDownward(const string &name):
-			RtChannel(name, "Downward")
+		RtDownwardBase(const std::string &name):
+			ChannelType(name, "Downward")
 		{};
-
-		template<class T>
-		RtDownward(const string &name, T specific):
-			RtChannel(name, "Downward", specific)
-		{};
-
-		virtual ~RtDownward() {};
-		
-	  protected:
-		virtual bool onEvent(const RtEvent *const event) = 0;
 	};
-
+	
+  public:
+    /// An upward channel with 1 input and 1 output
+	using RtUpward = RtUpwardBase<RtChannel>;
+    /// An upward channel with N inputs and 1 output
+	using RtUpwardMux = RtUpwardBase<RtChannelMux>;
+    /// An upward channel with 1 input and N outputs
+	template <typename Key>
+	using RtUpwardDemux = RtUpwardBase<RtChannelDemux<Key>>;
+    /// An upward channel with N inputs and N outputs
+	template <typename Key>
+	using RtUpwardMuxDemux = RtUpwardBase<RtChannelMuxDemux<Key>>;
+	
+    /// A downward channel with 1 inputs and 1 outputs
+	using RtDownward = RtDownwardBase<RtChannel>;
+    /// A downward channel with N inputs and 1 outputs
+	using RtDownwardMux = RtDownwardBase<RtChannelMux>;
+    /// A downward channel with 1 inputs and N outputs
+	template <typename Key>
+	using RtDownwardDemux = RtDownwardBase<RtChannelDemux<Key>>;
+    /// A downward channel with N inputs and N outputs
+	template <typename Key>
+	using RtDownwardMuxDemux = RtDownwardBase<RtChannelMuxDemux<Key>>;
 
   protected:
 
@@ -139,14 +143,14 @@ class Block
 	 *
 	 * @return true on success, false otherwise
 	 */
-	virtual bool onInit(void) = 0;
+	virtual bool onInit();
 	
 	/**
 	 * @brief Get the name of the block
 	 *
 	 * @return the name of the block
 	 */
-	string getName(void) const {return this->name;};
+	std::string getName(void) const { return this->name; };
 
 	/**
 	 * @brief Check whether the block is initialized
@@ -190,26 +194,26 @@ class Block
 	 *
 	 * @return the upward channel
 	 */
-	RtChannel *getUpwardChannel(void) const;
+	RtChannelBase *getUpwardChannel(void) const;
 
 	/**
 	 * @brief Get the downward channel
 	 *
 	 * @return the downward channel
 	 */
-	RtChannel *getDownwardChannel(void) const;
+	RtChannelBase *getDownwardChannel(void) const;
 
 	/// Output Log
 	std::shared_ptr<OutputLog> log_rt;
 	std::shared_ptr<OutputLog> log_init;
 
 	/// The upward channel
-	RtChannel *upward;
+	RtChannelBase *upward;
 	/// The downward channel
-	RtChannel *downward;
+	RtChannelBase *downward;
 
 	/// The name of the block
-	const string name;
+	const std::string name;
 
   private:
 

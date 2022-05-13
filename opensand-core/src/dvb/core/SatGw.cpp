@@ -69,8 +69,11 @@ SatGw::SatGw(tal_id_t gw_id,
 	this->logon_fifo = new DvbFifo(carriers.logon_out.id,
 	                               carriers.logon_out.fifo_size,
 	                               "logon_fifo");
-	this->control_fifo = new DvbFifo(carriers.ctrl_out.id,
-	                                 carriers.ctrl_out.fifo_size,
+	this->control_out_gw_fifo = new DvbFifo(carriers.ctrl_out_gw.id,
+	                                 carriers.ctrl_out_gw.fifo_size,
+	                                 "control_fifo");
+	this->control_out_st_fifo = new DvbFifo(carriers.ctrl_out_st.id,
+	                                 carriers.ctrl_out_st.fifo_size,
 	                                 "control_fifo");
 	this->data_out_st_fifo = new DvbFifo(carriers.data_out_st.id,
 	                                     carriers.data_out_st.fifo_size,
@@ -95,7 +98,8 @@ SatGw::~SatGw()
 	delete this->output_sts;
 
 	delete this->logon_fifo;
-	delete this->control_fifo;
+	delete this->control_out_gw_fifo;
+	delete this->control_out_st_fifo;
 	delete this->data_out_st_fifo;
 	delete this->data_out_gw_fifo;
 }
@@ -252,14 +256,14 @@ DvbFifo *SatGw::getDataOutGwFifo(void) const
 	return this->data_out_gw_fifo;
 }
 
-DvbFifo *SatGw::getControlFifo(void) const
+DvbFifo *SatGw::getControlOutGwFifo(void) const
 {
-	return this->control_fifo;
+	return this->control_out_gw_fifo;
 }
 
-uint8_t SatGw::getControlCarrierId(void) const
+DvbFifo *SatGw::getControlOutStFifo(void) const
 {
-	return this->control_fifo->getCarrierId();
+	return this->control_out_st_fifo;
 }
 
 DvbFifo *SatGw::getLogonFifo(void) const

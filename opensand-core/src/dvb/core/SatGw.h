@@ -64,7 +64,8 @@ class SatGw: public DvbFmt
 	uint8_t data_in_st_id;     ///< Carrier ID associated with Data from the ST
 	uint8_t data_in_gw_id;     ///< Carrier ID associated with Data from the GW
 
-	DvbFifo *control_fifo;     ///<  Fifo associated with Control carrier
+	DvbFifo *control_out_gw_fifo;  ///<  Fifo associated with Control out GW carrier
+	DvbFifo *control_out_st_fifo;  ///<  Fifo associated with Control out ST carrier
 	DvbFifo *logon_fifo;       ///<  Fifo associated with Logons
 	DvbFifo *data_out_gw_fifo; ///<  Fifo associated with Data for the GW
 	DvbFifo *data_out_st_fifo; ///<  Fifo associated with Data for the ST
@@ -163,18 +164,18 @@ class SatGw: public DvbFmt
 	DvbFifo *getDataOutGwFifo(void) const;
 
 	/**
-	 * @brief Get the control FIFO
+	 * @brief Get the control out GW FIFO
 	 *
 	 * @return the control FIFO
 	 */
-	DvbFifo *getControlFifo(void) const;
+	DvbFifo *getControlOutGwFifo(void) const;
 
- 	/**
-	 * @brief Get the control carrier ID
- 	 *
-	 * @return the control carrier ID
- 	 */
-	uint8_t getControlCarrierId(void) const;
+	/**
+	 * @brief Get the control out ST FIFO
+	 *
+	 * @return the control FIFO
+	 */
+	DvbFifo *getControlOutStFifo(void) const;
 
 	/**
 	 * @brief Get the logon FIFO

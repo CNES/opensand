@@ -49,7 +49,7 @@ Data::Data(std::basic_string<unsigned char> string):
 {
 }
 
-Data::Data(unsigned char *data, unsigned int len):
+Data::Data(const unsigned char *data, unsigned int len):
 	std::basic_string<unsigned char>(data, len)
 {
 }

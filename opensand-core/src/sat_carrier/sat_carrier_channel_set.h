@@ -59,18 +59,26 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	/**
 	 * Read data from the configuration file and create input channels
 	 *
-	 * @param local_ip_addr   The IP address for emulation network
+	 * @param local_ip_addr     The IP address for emulation network
+	 * @param destination_host  For sat only: destination handled by this part of the stack (terminal or gateway)
+	 * @param spot_id           For sat only: the spot handled by this part of the stack
 	 * @return true on success, false otherwise
 	 */
-	bool readInConfig(const string local_ip_addr);
+	bool readInConfig(const string local_ip_addr,
+	                  component_t destination_host,
+	                  spot_id_t spot_id);
 
 	/**
 	 * Read data from the configuration file and create output channels
 	 *
 	 * @param local_ip_addr   The IP address for emulation network
+     * @param destination_host  For sat only: destination handled by this part of the stack (terminal or gateway)
+	 * @param spot_id           For sat only: the spot handled by this part of the stack
 	 * @return true on success, false otherwise
 	 */
-	bool readOutConfig(const string local_ip_addr);
+	bool readOutConfig(const string local_ip_addr,
+	                   component_t destination_host,
+	                   spot_id_t spot_id);
 
 	/**
 	 * @brief Send data on a satellite carrier
@@ -106,34 +114,35 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 
  private:
 
-	/**
-	 * Read data from the configuration file and create channels
-	 *
-	 * @param local_ip_addr   The IP address for emulation network
-	 * @param in              Whether we want input or output channels
-	 * @return true on success, false otherwise
-	 */
-	bool readConfig(const string local_ip_addr,
-	                bool in);
-	bool readSpot(const string &local_ip_addr,
-	              bool in,
-	              component_t host,
-	              const string &compo_name,
-	              tal_id_t gw_id);
-	bool readCarrier(const string &local_ip_addr,
-	                 tal_id_t gw_id,
-	                 const OpenSandModelConf::carrier_socket &carrier,
-	                 bool in,
-	                 bool is_satellite,
-	                 bool carrier_up,
-	                 bool carrier_down);
+   /**
+	* Read data from the configuration file and create channels
+	*
+	* @param local_ip_addr   The IP address for emulation network
+	* @param destination_host  For sat only: destination handled by this part of the stack (terminal or gateway)
+	* @param spot_id           For sat only: the spot handled by this part of the stack
+	* @param in              Whether we want input or output channels
+	* @return true on success, false otherwise
+	*/
+   bool readConfig(const string local_ip_addr,
+	               component_t destination_host,
+	               spot_id_t spot_id,
+	               bool in);
+   bool readSpot(const string &local_ip_addr,
+	             bool in,
+	             component_t host,
+	             tal_id_t gw_id,
+	             bool is_satellite);
+   bool readCarrier(const string &local_ip_addr,
+	                tal_id_t gw_id,
+	                const OpenSandModelConf::carrier_socket &carrier,
+	                bool is_input);
 
-	/// The terminal ID
-	tal_id_t tal_id;
+   /// The terminal ID
+   tal_id_t tal_id;
 
-	// Output Log
-	std::shared_ptr<OutputLog> log_init;
-	std::shared_ptr<OutputLog> log_sat_carrier;
+   // Output Log
+   std::shared_ptr<OutputLog> log_init;
+   std::shared_ptr<OutputLog> log_sat_carrier;
 };
 
 #endif

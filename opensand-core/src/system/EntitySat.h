@@ -51,7 +51,7 @@ class EntitySat: public Entity
 	/**
 	 * Build an entity satellite process
 	 */
-	EntitySat();
+	EntitySat(tal_id_t instance_id);
 
 	/**
 	 * Destroy an entity satellite process
@@ -86,6 +86,7 @@ class EntitySat: public Entity
 
  private:
 	std::string ip_address;
+	tal_id_t instance_id;
 };
 
 #endif

@@ -450,7 +450,7 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		return false;
 	}
 
-	this->carrier_id_ctrl = carriers.ctrl_in.id;
+	this->carrier_id_ctrl = carriers.ctrl_in_st.id;
 	this->carrier_id_data = carriers.data_in_st.id;
 	this->carrier_id_logon = carriers.logon_in.id;
 

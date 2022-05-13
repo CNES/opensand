@@ -266,7 +266,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	std::shared_ptr<Entity> entity;
 	if(type == "sat")
 	{
-		entity = std::make_shared<EntitySat>();
+		entity = std::make_shared<EntitySat>(entity_id);
 	}
 	else if(type == "gw")
 	{
