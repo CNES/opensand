@@ -351,7 +351,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			// first handle specific messages
 			if(msg_event->getMessageType() == msg_sig)
 			{
-				auto dvb_frame = static_cast<DvbFrame *>(msg_event->getData());
+				auto dvb_frame = reinterpret_cast<DvbFrame *>(msg_event->getData());
 				auto spot_id = dvb_frame->getSpot();
 				if (spot_id != this->mac_id)
 				{
@@ -369,7 +369,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			else if(msg_event->getMessageType() == msg_saloha)
 			{
-				auto ack_frames = static_cast<std::list<DvbFrame *> *>(msg_event->getData());
+				auto ack_frames = reinterpret_cast<std::list<DvbFrame *> *>(msg_event->getData());
 				auto spot_id = ack_frames->front()->getSpot();
 				if (spot_id != this->mac_id)
 				{
@@ -385,7 +385,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			else
 			{
-				auto burst = static_cast<NetBurst *>(msg_event->getData());
+				auto burst = reinterpret_cast<NetBurst *>(msg_event->getData());
 
 				LOG(this->log_receive_channel, LEVEL_INFO,
 						"SF#%u: encapsulation burst received "
@@ -679,7 +679,7 @@ void BlockDvbNcc::Downward::sendSOF(unsigned int carrier_id)
 	Sof *sof = new Sof(this->super_frame_counter);
 
 	// Send it
-	if(!this->sendDvbFrame(static_cast<DvbFrame *>(sof), carrier_id))
+	if(!this->sendDvbFrame(reinterpret_cast<DvbFrame *>(sof), carrier_id))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 				"Failed to call sendDvbFrame() for SOF\n");
@@ -705,7 +705,7 @@ void BlockDvbNcc::Downward::sendTTP(SpotDownward *spot)
 		return;
 	};
 
-	if(!this->sendDvbFrame(static_cast<DvbFrame *>(ttp), spot->getCtrlCarrierId()))
+	if(!this->sendDvbFrame(reinterpret_cast<DvbFrame *>(ttp), spot->getCtrlCarrierId()))
 	{
 		delete ttp;
 		LOG(this->log_send, LEVEL_ERROR,
@@ -720,7 +720,7 @@ void BlockDvbNcc::Downward::sendTTP(SpotDownward *spot)
 
 bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame, SpotDownward *spot)
 {
-	LogonRequest *logon_req = static_cast<LogonRequest *>(dvb_frame);
+	LogonRequest *logon_req = reinterpret_cast<LogonRequest *>(dvb_frame);
 	uint16_t mac = logon_req->getMac();
 
 	// Inform the Dama controller (for its own context)
@@ -739,7 +739,7 @@ bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame, SpotDownward *sp
 			this->super_frame_counter);
 
 
-	if(!this->sendDvbFrame(static_cast<DvbFrame *>(logon_resp),
+	if(!this->sendDvbFrame(reinterpret_cast<DvbFrame *>(logon_resp),
                          spot->getCtrlCarrierId()))
 	{
 		LOG(this->log_send, LEVEL_ERROR,

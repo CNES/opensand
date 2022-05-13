@@ -38,6 +38,8 @@
  */
 
 
+#include <limits>
+
 #include "BlockDvbTal.h"
 
 #include "DamaAgentRcs2Legacy.h"
@@ -114,6 +116,7 @@ BlockDvbTal::~BlockDvbTal()
 void BlockDvbTal::generateConfiguration(bool disable_control_plane)
 {
 	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
 	auto conf = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");
 
 	if (disable_control_plane)
@@ -123,7 +126,6 @@ void BlockDvbTal::generateConfiguration(bool disable_control_plane)
 	}
 	else
 	{
-		auto types = Conf->getModelTypesDefinition();
 		types->addEnumType("fifo_access_type", "Access Type", {"DAMA_RBDC", "DAMA_VBDC", "DAMA_CRA", "SALOHA"});
 		// TODO: Keep in sync with topology
 		types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
@@ -242,8 +244,8 @@ BlockDvbTal::Downward::Downward(const string &name, struct dvb_specific specific
 	carrier_id_data{},
 	dvb_fifos{},
 	default_fifo_id{0},
-	sync_period_frame{-1},
-	obr_slot_frame{-1},
+	sync_period_frame{std::numeric_limits<decltype(sync_period_frame)>::max()},
+	obr_slot_frame{std::numeric_limits<decltype(obr_slot_frame)>::max()},
 	complete_dvb_frames{},
 	logon_timer{-1},
 	qos_server_host{},
@@ -379,7 +381,7 @@ bool BlockDvbTal::Downward::onInit(void)
 		return false;
 	}
 
-	if(!this->disable_conntrol_plane && !this->initQoSServer())
+	if(!this->disable_control_plane && !this->initQoSServer())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to complete the QoS Server part of the initialisation\n");
@@ -1636,7 +1638,7 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 
 		case MSG_TYPE_TTP:
 		{
-			Ttp *ttp = static_cast<Ttp *>(dvb_frame);
+			Ttp *ttp = reinterpret_cast<Ttp *>(dvb_frame);
 			if(this->dama_agent && !this->dama_agent->hereIsTTP(ttp))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -2214,7 +2216,7 @@ bool BlockDvbTal::Upward::onInit(void)
 
 	if (!this->disable_control_plane)
 	{
-		auto access = ConfgetProfileData()->getComponent("access");
+		auto access = Conf->getProfileData()->getComponent("access");
 		auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
 		OpenSandModelConf::extractParameterData(scpc_enabled, this->is_scpc);
 	}
@@ -2556,7 +2558,7 @@ bool BlockDvbTal::Upward::shareFrame(DvbFrame *frame)
 bool BlockDvbTal::Upward::onStartOfFrame(DvbFrame *dvb_frame)
 {
 	// update the frame numerotation
-	this->super_frame_counter = static_cast<Sof *>(dvb_frame)->getSuperFrameNumber();
+	this->super_frame_counter = reinterpret_cast<Sof *>(dvb_frame)->getSuperFrameNumber();
 
 	return true;
 }
@@ -2651,5 +2653,3 @@ void BlockDvbTal::Upward::updateStats(void)
 
 	// reset stat context for next frame
 }
-
-

@@ -46,6 +46,7 @@ class BBFrame;
 class DvbRcsFrame;
 class SlottedAlohaFrame;
 
+
 /**
  * @class DvbFrameTpl
  * @brief DVB frame template
@@ -355,26 +356,26 @@ class DvbFrameTpl: public NetContainer
 	 */
 	T *frame(void) const
 	{
-		return static_cast<T *>(this->data.c_str());
+		return (T *)(this->data.c_str());
 	}
 
 	// Overloaded cast
 	operator BBFrame* ()
 	{
 		this->header_length = sizeof(T_DVB_BBFRAME);
-		return static_cast<BBFrame *>(this);
+		return reinterpret_cast<BBFrame *>(this);
 	};
 
 	operator DvbRcsFrame* ()
 	{
 		this->header_length = sizeof(T_DVB_ENCAP_BURST);
-		return static_cast<DvbRcsFrame *>(this);
+		return reinterpret_cast<DvbRcsFrame *>(this);
 	};
 
 	operator SlottedAlohaFrame* ()
 	{
 		this->header_length = sizeof(T_DVB_SALOHA);
-		return static_cast<SlottedAlohaFrame *>(this);
+		return reinterpret_cast<SlottedAlohaFrame *>(this);
 	};
 
 };

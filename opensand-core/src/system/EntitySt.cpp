@@ -105,7 +105,7 @@ bool EntitySt::createSpecificBlocks()
 		return false;
 	}
 
-	auto block_dvb = Rt::createBlock<BlockDvbTal>("Dvb", this->instance_id);
+	auto block_dvb = Rt::createBlock<BlockDvbTal>("Dvb", dvb_specific{this->instance_id, false});
 	if(!block_dvb)
 	{
 		DFLTLOG(LEVEL_CRITICAL,
