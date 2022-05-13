@@ -45,7 +45,7 @@
 #define MAX_SOCK_SIZE 9000
 
 /// opensand-rt event types
-typedef enum
+enum event_type_t
 {
 	evt_net_socket,  ///< Event of type NetSocket
 	evt_timer,       ///< Event of type Timer
@@ -53,24 +53,24 @@ typedef enum
 	evt_signal,      ///< Event of type Signal
 	evt_file,        ///< Event of type File
 	evt_tcp_listen,  ///< Event of type TcpListen
-} event_type_t;
+};
 
 
 /// the channel direction
 // TODO won't be necessary anymore once everything will be done in channel
-typedef enum
+enum chan_type_t
 {
 	upward_chan,   ///< upward channel
 	downward_chan, ///< downward channel
-} chan_type_t;
+};
 
-typedef int32_t event_id_t;
+using event_id_t = int32_t;
 
-typedef struct
+struct rt_msg_t
 {
 	void *data;
 	size_t length;
 	uint8_t type;
-} rt_msg_t;
+};
 
 #endif
