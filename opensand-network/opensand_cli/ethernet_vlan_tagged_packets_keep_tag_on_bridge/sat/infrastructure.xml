@@ -42,16 +42,13 @@
         <level>warning</level>
       </sat_carrier>
       <extra_levels>
-        <item><name>Configuration</name><level>debug</level></item>
-        <item><name>output</name><level>debug</level></item>
-        <item><name>default</name><level>debug</level></item>
-        <item><name>lanadaptation.ethernet</name><level>debug</level></item>
+        <item><name>Configuration</name><level>warning</level></item>
       </extra_levels>
     </logs>
     <storage>
-      <enable_local>true</enable_local>
+      <enable_local>ENABLE_LOCAL_LOGS</enable_local>
       <path_local>LOG_FOLDER</path_local>
-      <enable_collector>true</enable_collector>
+      <enable_collector>ENABLE_COLLECTOR</enable_collector>
       <collector_address>COLLECTOR_IP</collector_address>
     </storage>
     <infrastructure>

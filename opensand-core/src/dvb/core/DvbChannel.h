@@ -755,7 +755,7 @@ class DvbFmt
 	 * @param elem            The fifo element to replace by the
 	 *                        packet with extension
 	 * @param fifo            The fifo to place the element
-	 * @param packet_list     The list of available packet
+	 * @param packet     The input packet
 	 * @param extension_pkt   The return packet with extension
 	 * @param source          The terminal source id
 	 * @param dest            The terminal dest id
@@ -769,7 +769,7 @@ class DvbFmt
 	bool setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                        MacFifoElement *elem,
 	                        DvbFifo *fifo,
-	                        std::vector<NetPacket*> packet_list,
+	                        NetPacket* packet,
 	                        NetPacket **extension_pkt,
 	                        tal_id_t source,
 	                        tal_id_t dest,

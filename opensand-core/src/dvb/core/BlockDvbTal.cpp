@@ -1507,7 +1507,6 @@ bool BlockDvbTal::Downward::addCniExt(void)
 		    queue_it != queue.end()  ;
 		    ++queue_it)
 		{
-			std::vector<NetPacket*> packet_list;
 			MacFifoElement* elem = (*queue_it);
 			NetPacket *packet = (NetPacket*)elem->getElem();
 			tal_id_t gw = packet->getDstTalId();
@@ -1516,10 +1515,9 @@ bool BlockDvbTal::Downward::addCniExt(void)
 			if(gw == this->gw_id &&
 			   this->is_scpc && this->getCniInputHasChanged(this->tal_id))
 			{
-				packet_list.push_back(packet);
 				if(!this->setPacketExtension(this->pkt_hdl,
 				                             elem, fifo,
-				                             packet_list,
+				                             packet,
 				                             &extension_pkt,
 				                             this->tal_id, gw,
 				                             "encodeCniExt",
@@ -1542,13 +1540,13 @@ bool BlockDvbTal::Downward::addCniExt(void)
 	if(this->is_scpc && this->getCniInputHasChanged(this->tal_id)
 	   && !in_fifo)
 	{
-		std::vector<NetPacket*> packet_list;
 		NetPacket *extension_pkt{nullptr};
 
 		// set packet extension to this new empty packet
 		if(!this->setPacketExtension(this->pkt_hdl,
-		                             nullptr, this->dvb_fifos[0],
-		                             packet_list,
+		                             nullptr,
+		                             this->dvb_fifos[0],
+		                             nullptr,
 		                             &extension_pkt,
 		                             this->tal_id ,this->gw_id,
 		                             "encodeCniExt",

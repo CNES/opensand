@@ -152,7 +152,7 @@ class Gse: public EncapPlugin
 		bool getSrc(const Data &data, tal_id_t &tal_id) const;
 		bool getQos(const Data &data, qos_t &qos) const;
 
-		NetPacket *getPacketForHeaderExtensions(const std::vector<NetPacket*>&packets);
+		bool getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets, NetPacket ** selected_pkt);
 		bool setHeaderExtensions(const NetPacket* packet,
 		                         NetPacket** new_packet,
 		                         tal_id_t tal_id_src,

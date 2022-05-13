@@ -21,7 +21,8 @@ Visit us at [opensand.org](https://www.opensand.org/).
 
 # Installation Manual
 
-This page describes how to install a simple OpenSAND platform, containing one satellite, one gateway (GW), and one Satellite terminal (ST).
+This page describes how to install a simple OpenSAND platform, containing one satellite,
+one gateway (GW), and one Satellite terminal (ST).
 
 ## Requirements
 
@@ -41,26 +42,35 @@ They must be connected as shown in the image below, with the following networks:
 
 ![Installation schema](/schema_install.png)
 
-In the image, two additional machines (`WS-ST1` and `WS-GW0`) are shown but are actually not necessary; traffic can be exchanged between the ST1 and GW0 without the need of workstations. However, the interfaces for the networks `LAN-ST1` and `LAN-GW0` must exist, even if no other computers are connected to it. 
+In the image, two additional machines (`WS-ST1` and `WS-GW0`) are shown but are actually not
+necessary; traffic can be exchanged between the ST1 and GW0 without the need of workstations.
+However, the interfaces for the networks `LAN-ST1` and `LAN-GW0` must exist, even if no other
+computers are connected to it. 
 
 ### Operating System
 
-The testbed was tested using Ubuntu 16.04 LTS, but it should work on every Linux distribution or Unix-like system provided that the required dependencies are installed. However, if you are not on a Debian-based system, you may need to [compile OpenSAND](opensand-packaging/README.md) yourself.
+The testbed was tested using Ubuntu 20.04 LTS, but it should work on every Linux distribution
+or Unix-like system provided that the required dependencies are installed. However, if you
+are not on a Debian-based system, you may need to [compile OpenSAND](opensand-packaging/README.md)
+yourself.
 
 ## Install
 
-This manual describes how to obtain and install OpenSAND using the distributed debian packages. For more information about how to obtain OpenSAND sources, compile it, and install it, please refer to the [compilation manual](opensand-packaging/README.md).
+This manual describes how to obtain and install OpenSAND using the distributed debian
+packages. For more information about how to obtain OpenSAND sources, compile it, and
+install it, please refer to the [compilation manual](opensand-packaging/README.md).
 
 The debian packages can be installed using `apt` commands.
 
 Unless otherwise specified, all the commands here must be executed on all machines.
 
-In order to install the packages using `apt`, the repository must be added to its sources. One way of doing it is by adding the following line to the file `/etc/apt/sources.list`.
+In order to install the packages using `apt`, the repository must be added to its sources.
+One way of doing it is by adding a new file into the `/etc/apt/sources.list.d/` folder.
 
 If using Ubuntu 20.04 LTS (focal):
 
 ```
-echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee -a /etc/apt/sources.list
+echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee -a /etc/apt/sources.list.d/net4sat.list
 ```
 
 Add GPG key for net4sat repository (as root) : 
@@ -75,9 +85,12 @@ An apt sources update is necessary after adding the repository:
 sudo apt update
 ```
 
-Next, the packages must be installed. In this manual, the OpenSAND collector are installed on the machine with the satellite component, but they can be installed anywhere, even on a machine without opensand. The only constraint is that all the machines must be connected to a same network.
+Next, the packages must be installed. In this manual, the OpenSAND collector are installed on
+the machine with the satellite component, but they can be installed anywhere, even on a machine
+without opensand. The only constraint is that all the machines must be connected to a same network.
 
-The OpenSAND core, with all its dependencies, is distributed with the meta-package `opensand`; the OpenSAND configuration with `opensand-conf`; and the OpenSAND collector with `opensand-collector`.
+The OpenSAND core, with all its dependencies, is distributed with the meta-package `opensand`; the
+OpenSAND collector with `opensand-collector`; and the OpenSAND configuration tool with `opensand-deploy`.
 
 To install the OpenSAND core on the ST, GW and SAT, execute:
 
@@ -87,13 +100,15 @@ sudo apt install opensand
 
 ### Optional configuration
 
-To install the OpenSAND configuration, execute:
+To install the OpenSAND configuration tool, execute:
 
 ```
-sudo apt install opensand-conf
+sudo apt install opensand-deploy
 ```
 
-The configuration is stored in the `/usr/share/opensand`
+The configuration tool is a web server and frontend allowing you to create configuration files
+for your OpenSAND entities and remotely deploy them to launch OpenSAND binaries. More information
+is available in the [dedicated documentation](opensand-deploy/README.md).
 
 ### Optional collector
 
@@ -137,7 +152,10 @@ To install the OpenSAND collector, execute:
 sudo apt install opensand-collector
 ```
 
-> :warning: **If you are using OpenSAND through the OpenBach orchestrator, do **not** install this collector on the same machine than the OpenBach collector. Even though the tools installed are the same and used similarly, they have a mutually exclusive configuration. Installing one will break the other.**
+> :warning: **If you are using OpenSAND through the OpenBach orchestrator, do **not** install this
+collector on the same machine than the OpenBach collector. Even though the tools installed are the
+same and used similarly, they have a mutually exclusive configuration. Installing one will break
+the other.**
 
 ## Uninstall
 
