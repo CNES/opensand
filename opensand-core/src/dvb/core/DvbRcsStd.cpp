@@ -75,18 +75,20 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	bool partial_decap = false;
 
 	// sanity check
-	if(dvb_frame == NULL)
+	if(dvb_frame == nullptr)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "invalid frame received\n");
-		goto error;
+		delete dvb_frame;
+		return false;
 	}
 
 	if(!this->packet_handler)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "packet handler is NULL\n");
-		goto error;
+		delete dvb_frame;
+		return false;
 	}
 
 	// sanity check: this function only handle DVB-RCS frame
@@ -94,7 +96,8 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "the message received is not a DVB burst\n");
-		goto error;
+		delete dvb_frame;
+		return false;
 	}
 
 	DvbRcsFrame *dvb_rcs_frame = *dvb_frame;
@@ -106,21 +109,25 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "The Frame was corrupted by physical layer, "
 		    "drop it\n");
-		goto skip;
+		delete dvb_frame;
+		return true;
 	}
 
 	if(dvb_rcs_frame->getNumPackets() <= 0)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "skip DVB-RCS frame with no encapsulation packet\n");
-		goto skip;
+		delete dvb_frame;
+		return true;
 	}
+
 	if(this->has_fixed_length && this->packet_handler->getFixedLength() == 0)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "encapsulated packets length is not fixed on "
 		    "a DVB-RCS emission link (packet type is %s)\n",
 		    this->packet_handler->getName().c_str());
+    // FIXME: No delete here ???
 		return false;
 	}
 
@@ -138,37 +145,32 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "cannot create one %s packet\n",
 		    this->packet_handler->getName().c_str());
-		goto error;
+		delete dvb_frame;
+		return false;
 	}
 
 	// create an empty burst of encapsulation packets
 	*burst = new NetBurst();
-	if(*burst == NULL)
+	if(*burst == nullptr)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "failed to create a burst of packets\n");
-		goto error;
+		delete dvb_frame;
+		return false;
 	}
 
 	// add packets to the newly created burst
-	for(std::vector<NetPacket *>::iterator it = decap_packets.begin();
-		it != decap_packets.end();
-		++it)
+	for (auto&& packet : decap_packets)
 	{
 		// add the packet to the burst of packets
-		(*burst)->add(*it);
+		(*burst)->add(packet);
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "%s packet (%zu bytes) added to burst\n",
 		    this->packet_handler->getName().c_str(),
-		    (*it)->getTotalLength());
+		    packet->getTotalLength());
 	}
 
-skip:
 	// release buffer (data is now saved in NetPacket objects)
 	delete dvb_frame;
 	return true;
-
-error:
-	delete dvb_frame;
-	return false;
 }

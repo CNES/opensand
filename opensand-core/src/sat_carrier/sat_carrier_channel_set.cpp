@@ -165,7 +165,7 @@ bool sat_carrier_channel_set::readSpot(const string &local_ip_addr,
 }
 
 bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
-                                         component_t destination_host,
+                                         Component destination_host,
                                          spot_id_t spot_id,
                                          bool in)
 {
@@ -205,14 +205,14 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 }
 
 bool sat_carrier_channel_set::readInConfig(const string local_ip_addr,
-                                           component_t destination_host,
+                                           Component destination_host,
                                            spot_id_t spot_id)
 {
 	return this->readConfig(local_ip_addr, destination_host, spot_id, true);
 }
 
 bool sat_carrier_channel_set::readOutConfig(const string local_ip_addr,
-                                            component_t destination_host,
+                                            Component destination_host,
                                             spot_id_t spot_id)
 {
 	return this->readConfig(local_ip_addr, destination_host, spot_id, false);

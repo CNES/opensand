@@ -172,13 +172,11 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			if(((MessageEvent *)event)->getMessageType() == InternalMessageType::msg_link_up)
+      auto msg_event = static_cast<const MessageEvent *>(event);
+			if(static_cast<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
 			{
-				T_LINK_UP *link_up_msg;
-
 				// 'link is up' message advertised
-
-				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
+				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
 				// save group id and TAL id sent by MAC layer
 				this->group_id = link_up_msg->group_id;
 				this->tal_id = link_up_msg->tal_id;
@@ -190,8 +188,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 			// this is not a link up message, this should be a forward burst
 			LOG(this->log_receive, LEVEL_DEBUG,
 			    "Get a forward burst from opposite channel\n");
-			NetBurst *forward_burst;
-			forward_burst = (NetBurst *)((MessageEvent *)event)->getData();
+			NetBurst *forward_burst = static_cast<NetBurst *>(msg_event->getData());
 			if(!this->enqueueMessage((void **)&forward_burst))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -243,13 +240,11 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			if(((MessageEvent *)event)->getMessageType() == InternalMessageType::msg_link_up)
+      auto msg_event = static_cast<const MessageEvent *>(event);
+			if(static_cast<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
 			{
-				T_LINK_UP *link_up_msg;
-
 				// 'link is up' message advertised
-
-				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
+				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
 				LOG(this->log_receive, LEVEL_INFO,
 				    "link up message received (group = %u, "
 				    "tal = %u)\n", link_up_msg->group_id,
@@ -285,8 +280,8 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 					this->state = SatelliteLinkState::UP;
 					// transmit link up to opposite channel
 					if(!this->shareMessage((void **)&link_up_msg,
-					                       ((MessageEvent *)event)->getLength(),
-					                       ((MessageEvent *)event)->getMessageType()))
+					                       msg_event->getLength(),
+					                       msg_event->getMessageType()))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "failed to transmit link up message to "
@@ -297,11 +292,10 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 				break;
 			}
 			// not a link up message
-			NetBurst *burst;
 			LOG(this->log_receive, LEVEL_INFO,
 			    "packet received from lower layer\n");
 
-			burst = (NetBurst *)((MessageEvent *)event)->getData();
+			NetBurst *burst = static_cast<NetBurst *>(msg_event->getData());
 
 			if(this->state != SatelliteLinkState::UP)
 			{

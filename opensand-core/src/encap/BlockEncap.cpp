@@ -105,12 +105,11 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 			LOG(this->log_receive, LEVEL_INFO,
 			    "message received from the upper-layer bloc\n");
 			
-			if(((MessageEvent *)event)->getMessageType() == InternalMessageType::msg_link_up)
+      auto msg_event = static_cast<const MessageEvent *>(event);
+			if(static_cast<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
 			{
-				T_LINK_UP *link_up_msg;
-
 				// 'link up' message received 
-				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
+				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
 
 				// save group id and TAL id sent by MAC layer
 				this->group_id = link_up_msg->group_id;
@@ -120,8 +119,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 				break;
 			}
 
-			NetBurst *burst;
-			burst = (NetBurst *)((MessageEvent *)event)->getData();
+			NetBurst *burst = static_cast<NetBurst *>(msg_event->getData());
 			return this->onRcvBurst(burst);
 		}
 		break;
@@ -150,15 +148,13 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 			LOG(this->log_receive, LEVEL_INFO,
 			    "message received from the lower layer\n");
 
-			if(((MessageEvent *)event)->getMessageType() == InternalMessageType::msg_link_up)
+      auto msg_event = static_cast<const MessageEvent *>(event);
+			if(static_cast<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
 			{
-				T_LINK_UP *link_up_msg;
-				T_LINK_UP *shared_link_up_msg;
 				std::vector<EncapPlugin::EncapContext*>::iterator encap_it;
 
 				// 'link up' message received => forward it to upper layer
-
-				link_up_msg = (T_LINK_UP *)((MessageEvent *)event)->getData();
+				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
 				LOG(this->log_receive, LEVEL_INFO,
 				    "'link up' message received (group = %u, "
 				    "tal = %u), forward it\n", link_up_msg->group_id,
@@ -178,8 +174,8 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 				this->state = SatelliteLinkState::UP;
 
 				// transmit link u to opposite channel
-				shared_link_up_msg = new T_LINK_UP;
-				if(shared_link_up_msg == 0)
+				T_LINK_UP *shared_link_up_msg = new T_LINK_UP;
+				if(shared_link_up_msg == nullptr)
 				{
 				     LOG(this->log_receive, LEVEL_ERROR,
 				         "failed to allocate a new 'link up' message "
@@ -191,7 +187,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 				shared_link_up_msg->tal_id = link_up_msg->tal_id;
 				if(!this->shareMessage((void **)&shared_link_up_msg,
 				                       sizeof(T_LINK_UP),
-				                       InternalMessageType::msg_link_up))
+				                       to_underlying(InternalMessageType::msg_link_up)))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "failed to transmit 'link up' message to "
@@ -204,7 +200,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 				// send the message to the upper layer
 				if(!this->enqueueMessage((void **)&link_up_msg,
 				                         sizeof(T_LINK_UP),
-				                         InternalMessageType::msg_link_up))
+				                         to_underlying(InternalMessageType::msg_link_up)))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "cannot forward 'link up' message\n");
@@ -235,8 +231,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 			}
 
 			// data received
-			NetBurst *burst;
-			burst = (NetBurst *)((MessageEvent *)event)->getData();
+			NetBurst *burst = static_cast<NetBurst *>(msg_event->getData());
 			return this->onRcvBurst(burst);
 		}
 
@@ -256,7 +251,7 @@ bool BlockEncap::onInit()
 	std::vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
 	std::vector <EncapPlugin::EncapContext *> down_forward_ctx;
 
-	((Upward *)this->upward)->setMacId(this->mac_id);
+	static_cast<Upward *>(this->upward)->setMacId(this->mac_id);
 	
 	LanAdaptationPlugin *lan_plugin = Ethernet::constructPlugin();
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -287,7 +282,7 @@ bool BlockEncap::onInit()
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Cannot get Up/Return Encapsulation context");
-				goto error;
+				return false;
 			}
 		}
 		else
@@ -297,7 +292,7 @@ bool BlockEncap::onInit()
 			{
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Cannot get Return Encapsulation context");
-				goto error;
+				return false;
 			}
 		}
 	}
@@ -310,7 +305,7 @@ bool BlockEncap::onInit()
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Cannot get SCPC Up/Return Encapsulation context");
-			goto error;
+			return false;
 		}
 
 		if(!this->getEncapContext(EncapSchemeList::RETURN_UP, 
@@ -319,7 +314,7 @@ bool BlockEncap::onInit()
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Cannot get Up/Return Encapsulation context");
-			goto error;
+			return false;
 		}
 	}
 
@@ -329,7 +324,7 @@ bool BlockEncap::onInit()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Cannot get Down/Forward Encapsulation context");
-		goto error;
+		return false;
 	}
 
 	// get host type
@@ -344,8 +339,8 @@ bool BlockEncap::onInit()
 		// right order
 		reverse(down_forward_ctx.begin(), down_forward_ctx.end());
 		
-		((Downward *)this->downward)->setContext(up_return_ctx);
-		((Upward *)this->upward)->setContext(down_forward_ctx);
+		static_cast<Downward *>(this->downward)->setContext(up_return_ctx);
+		static_cast<Upward *>(this->upward)->setContext(down_forward_ctx);
 	}
 	else
 	{
@@ -354,14 +349,12 @@ bool BlockEncap::onInit()
 		reverse(up_return_ctx.begin(), up_return_ctx.end());
 		reverse(up_return_ctx_scpc.begin(), up_return_ctx_scpc.end());
 		
-		((Downward *)this->downward)->setContext(down_forward_ctx);
-		((Upward *)this->upward)->setContext(up_return_ctx);
-		((Upward *)this->upward)->setSCPCContext(up_return_ctx_scpc);
+		static_cast<Downward *>(this->downward)->setContext(down_forward_ctx);
+		static_cast<Upward *>(this->upward)->setContext(up_return_ctx);
+		static_cast<Upward *>(this->upward)->setSCPCContext(up_return_ctx_scpc);
 	}
 
 	return true;
-error:
-	return false;
 }
 
 bool BlockEncap::Downward::onTimer(event_id_t timer_id)

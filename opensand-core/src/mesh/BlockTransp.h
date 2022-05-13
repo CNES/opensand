@@ -35,16 +35,20 @@
 #ifndef BLOCKTRANSP_H
 #define BLOCKTRANSP_H
 
-#include "DvbFrame.h"
 #include <memory>
+
 #include <opensand_rt/Rt.h>
+
+#include "DvbFrame.h"
+
 
 struct TranspDemuxKey
 {
 	spot_id_t spot_id;
-	component_t dest;
+	Component dest;
 	bool operator==(TranspDemuxKey o) const;
 };
+
 
 namespace std
 {
@@ -53,10 +57,11 @@ struct hash<TranspDemuxKey>
 {
 	size_t operator()(const TranspDemuxKey &k) const
 	{
-		return 4 * k.spot_id + k.dest;
+		return 4 * k.spot_id + to_underlying(k.dest);
 	}
 };
 } // namespace std
+
 
 /**
  * @class BlockTransp
@@ -64,7 +69,7 @@ struct hash<TranspDemuxKey>
  */
 class BlockTransp: public Block
 {
-  public:
+ public:
 	BlockTransp(const std::string &name);
 
 	class Upward: public RtUpwardMux
@@ -76,12 +81,13 @@ class BlockTransp: public Block
 		bool onEvent(const RtEvent *const event) override;
 		bool handleDvbFrame(std::unique_ptr<const DvbFrame> burst);
 	};
+
 	class Downward: public RtDownwardDemux<TranspDemuxKey>
 	{
-	  public:
+	 public:
 		Downward(const std::string &name);
 
-	  private:
+	 private:
 		bool onEvent(const RtEvent *const event) override;
 		bool handleDvbFrame(std::unique_ptr<DvbFrame> burst);
 		bool sendToLowerBlock(TranspDemuxKey key, std::unique_ptr<const DvbFrame> frame);

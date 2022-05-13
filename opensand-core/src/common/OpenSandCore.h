@@ -35,6 +35,7 @@
 #define OPENSAND_CORE_H
 
 
+#include <type_traits>
 #include <string>
 #include <vector>
 
@@ -144,6 +145,25 @@ enum class EncapSchemeList
 	FORWARD_DOWN,
 	TRANSPARENT_NO_SCHEME,
 };
+
+
+/**
+ * @brief Convert a strongly typed enum value into its underlying integral type
+ */
+template <typename E>
+constexpr auto to_underlying(E e) noexcept -> typename std::enable_if<std::is_enum<E>::value, typename std::underlying_type<E>::type>::type {
+	return static_cast<typename std::underlying_type<E>::type>(e);
+}
+
+
+/**
+ * @brief Convert an integral type into a strongly typed enum iff the integral type
+ * is the underlying type for the enum
+ */
+template <typename E, typename I>
+constexpr auto to_enum(I i) noexcept -> typename std::enable_if<std::is_same<I, typename std::underlying_type<E>::type>::value, E>::type {
+	return static_cast<E>(i);
+}
 
 
 /**

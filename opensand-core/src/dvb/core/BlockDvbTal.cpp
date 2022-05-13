@@ -1270,9 +1270,11 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-	    auto msg_event = static_cast<const MessageEvent* const>(event);
+	    auto msg_event = static_cast<const MessageEvent*>(event);
+      InternalMessageType msg_type = static_cast<InternalMessageType>(msg_event->getMessageType());
+
 			// first handle specific messages
-			if(msg_event->getMessageType() == InternalMessageType::msg_sig)
+			if(msg_type == InternalMessageType::msg_sig)
 			{
 				return this->handleDvbFrame(static_cast<DvbFrame*>(msg_event->getData()));
 			}
@@ -2132,14 +2134,13 @@ void BlockDvbTal::Downward::deletePackets()
 /*****************************************************************************/
 
 BlockDvbTal::Upward::Upward(const string &name, struct dvb_specific specific):
-	DvbUpward{name},
+	DvbUpward{name, specific.disable_control_plane},
 	reception_std{nullptr},
 	mac_id{specific.mac_id},
 	group_id{},
 	tal_id{},
 	gw_id{},
 	is_scpc{specific.disable_control_plane},
-	disable_control_plane{specific.disable_control_plane},
 	state{TalState::initializing},
 	probe_st_l2_from_sat{nullptr},
 	probe_st_received_modcod{nullptr},
@@ -2161,7 +2162,7 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-	    DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent* const>(event)->getData());
+	    DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
 
 			if(this->probe_sof_interval->isEnabled() &&
 			   dvb_frame->getMessageType() == MSG_TYPE_SOF)
@@ -2529,31 +2530,6 @@ error:
 	return false;
 }
 
-bool BlockDvbTal::Upward::shareFrame(DvbFrame *frame)
-{
-	if (this->disable_control_plane)
-	{
-		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), InternalMessageType::msg_sig))
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "Unable to transmit frame to upper layer\n");
-			delete frame;
-			return false;
-		}
-	}
-	else
-	{
-		if(!this->shareMessage((void **)&frame, sizeof(*frame), InternalMessageType::msg_sig))
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "Unable to transmit frame to opposite channel\n");
-			delete frame;
-			return false;
-		}
-	}
-	return true;
-}
-
 
 bool BlockDvbTal::Upward::onStartOfFrame(DvbFrame *dvb_frame)
 {
@@ -2604,7 +2580,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 
 	if(!this->enqueueMessage((void **)(&link_is_up),
 	                         sizeof(T_LINK_UP),
-	                         InternalMessageType::msg_link_up))
+	                         to_underlying(InternalMessageType::msg_link_up)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "SF#%u: failed to send link up message to upper layer",

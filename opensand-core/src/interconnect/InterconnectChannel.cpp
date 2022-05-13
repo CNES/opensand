@@ -114,7 +114,7 @@ bool InterconnectChannelSender::send(rt_msg_t &message)
 {
 	uint32_t data_len;
 
-	switch(message.type)
+	switch(static_cast<InternalMessageType>(message.type))
 	{
     case InternalMessageType::msg_sig:
 		case InternalMessageType::msg_data:
@@ -139,7 +139,7 @@ bool InterconnectChannelSender::send(rt_msg_t &message)
 	                             sizeof(this->out_buffer.data_len);
 
 	// Send the message
-	return this->sendBuffer(message.type == InternalMessageType::msg_sig);
+	return this->sendBuffer(static_cast<InternalMessageType>(message.type) == InternalMessageType::msg_sig);
 }
 
 void InterconnectChannelSender::serialize(DvbFrame *dvb_frame,
@@ -305,7 +305,7 @@ bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
 			message.length = buf->data_len;
 
 			// Deserialize the message
-			switch(buf->msg_type)
+			switch(static_cast<InternalMessageType>(buf->msg_type))
 			{
 				case InternalMessageType::msg_data:
 				case InternalMessageType::msg_sig:

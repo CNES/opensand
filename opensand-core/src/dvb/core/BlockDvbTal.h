@@ -175,14 +175,6 @@ class BlockDvbTal: public BlockDvb
 		 * @return true on success, false otherwise
 		 */
 		bool onRcvLogonResp(DvbFrame *dvb_frame);
-		
-		/**
-		 * Transmist a frame to the opposite channel
-		 *
-		 * @param frame  The dvb frame
-		 * @return true on success, false otherwise
-		 */
-		bool shareFrame(DvbFrame *frame);
 
 		// statistics update
 		void updateStats(void);
@@ -200,7 +192,6 @@ class BlockDvbTal: public BlockDvb
 		tal_id_t gw_id;
 		// is the terminal scpc
 		bool is_scpc;
-		bool disable_control_plane;
 		
 		/// the current state of the ST
 		TalState state;

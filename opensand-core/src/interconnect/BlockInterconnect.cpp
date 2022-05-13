@@ -56,7 +56,8 @@ bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			rt_msg_t message = ((MessageEvent *)event)->getMessage();
+			auto msg_event = static_cast<const MessageEvent*>(event);
+			rt_msg_t message = msg_event->getMessage();
 
 			// Check if object inside
 			if(!this->send(message))
@@ -263,7 +264,8 @@ bool BlockInterconnectUpward::Upward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			rt_msg_t message = ((MessageEvent *)event)->getMessage();
+			auto msg_event = static_cast<const MessageEvent*>(event);
+			rt_msg_t message = msg_event->getMessage();
 
 			// Check if object inside
 			if(!this->send(message))

@@ -94,7 +94,7 @@ bool EntitySat::createSpecificBlocks()
 		specific.ip_addr = ip_address;
 		specific.tal_id = instance_id;
 		specific.spot_id = spot_id;
-		specific.destination_host = gateway;
+		specific.destination_host = Component::gateway;
 		std::ostringstream gw_name;
 		gw_name << "SatCarrierGw" << spot_id;
 		auto block_sc_gw = Rt::createBlock<BlockSatCarrier>(gw_name.str(), specific);
@@ -108,7 +108,7 @@ bool EntitySat::createSpecificBlocks()
 		specific.ip_addr = this->ip_address;
 		specific.tal_id = this->instance_id;
 		specific.spot_id = spot_id;
-		specific.destination_host = terminal;
+		specific.destination_host = Component::terminal;
 		std::ostringstream st_name;
 		st_name << "SatCarrierSt" << spot_id;
 		auto block_sc_tal = Rt::createBlock<BlockSatCarrier>(st_name.str(), specific);
@@ -118,8 +118,8 @@ bool EntitySat::createSpecificBlocks()
 			        this->getName().c_str());
 			return false;
 		}
-		Rt::connectBlocks(block_transp, block_sc_gw, {spot_id, gateway});
-		Rt::connectBlocks(block_transp, block_sc_tal, {spot_id, terminal});
+		Rt::connectBlocks(block_transp, block_sc_gw, {spot_id, Component::gateway});
+		Rt::connectBlocks(block_transp, block_sc_tal, {spot_id, Component::terminal});
 	}
 
 	return true;

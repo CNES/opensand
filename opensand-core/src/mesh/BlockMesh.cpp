@@ -128,7 +128,7 @@ bool BlockMesh::Upward::onEvent(const RtEvent *const event)
 
 	auto msg_event = static_cast<const MessageEvent *>(event);
 
-	if (msg_event->getMessageType() != msg_data)
+	if (static_cast<InternalMessageType>(msg_event->getMessageType()) != InternalMessageType::msg_data)
 	{
 		LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
 		    msg_event->getName().c_str());
@@ -154,11 +154,11 @@ bool BlockMesh::Upward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 	    msg.getSrcTalId(), dest_entity);
 
 	auto conf = OpenSandModelConf::Get();
-	component_t default_entity_type = conf->getEntityType(default_entity);
+	Component default_entity_type = conf->getEntityType(default_entity);
 
 	if (mesh_architecture &&
 	    handled_entities.find(dest_entity) == handled_entities.end() &&
-	    default_entity_type == satellite)
+	    default_entity_type == Component::satellite)
 	{
 		return sendViaIsl(std::move(burst));
 	}
@@ -175,7 +175,7 @@ bool BlockMesh::Upward::sendToOppositeChannel(std::unique_ptr<const NetBurst> bu
 	LOG(log_send, LEVEL_INFO, "Sending a NetBurst to the opposite channel");
 
 	auto burst_ptr = burst.release();
-	bool ok = shareMessage((void **)&burst_ptr, sizeof(NetBurst), msg_data);
+	bool ok = shareMessage((void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::msg_data));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,
@@ -208,7 +208,7 @@ bool BlockMesh::Upward::sendViaIsl(std::unique_ptr<const NetBurst> burst)
 /*****************************************************************************/
 
 BlockMesh::Downward::Downward(const std::string &name, tal_id_t UNUSED(sat_id)):
-    RtDownwardDemux<component_t>(name) {}
+    RtDownwardDemux<Component>(name) {}
 
 bool BlockMesh::Downward::onInit()
 {
@@ -259,7 +259,7 @@ bool BlockMesh::Downward::onEvent(const RtEvent *const event)
 
 bool BlockMesh::Downward::handleMessageEvent(const MessageEvent *event)
 {
-	if (event->getMessageType() != msg_data)
+	if (static_cast<InternalMessageType>(event->getMessageType()) != InternalMessageType::msg_data)
 	{
 		LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
 		    event->getName().c_str());
@@ -318,14 +318,14 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 
 		if (handled_entities.find(dest_entity) != handled_entities.end())
 		{
-			component_t dest_type = conf->getEntityType(dest_entity);
-			if (dest_type == terminal)
+			Component dest_type = conf->getEntityType(dest_entity);
+			if (dest_type == Component::terminal)
 			{
-				return sendToLowerBlock(terminal, std::move(burst));
+				return sendToLowerBlock(Component::terminal, std::move(burst));
 			}
-			else if (dest_type == gateway)
+			else if (dest_type == Component::gateway)
 			{
-				return sendToLowerBlock(gateway, std::move(burst));
+				return sendToLowerBlock(Component::gateway, std::move(burst));
 			}
 			else
 			{
@@ -335,14 +335,14 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 		}
 		else // destination not handled by this satellite -> transmit to default entity
 		{
-			component_t default_entity_type = conf->getEntityType(default_entity);
-			if (default_entity_type == satellite)
+			Component default_entity_type = conf->getEntityType(default_entity);
+			if (default_entity_type == Component::satellite)
 			{
 				return sendToOppositeChannel(std::move(burst));
 			}
-			else if (default_entity_type == gateway)
+			else if (default_entity_type == Component::gateway)
 			{
-				return sendToLowerBlock(gateway, std::move(burst));
+				return sendToLowerBlock(Component::gateway, std::move(burst));
 			}
 			else
 			{
@@ -355,15 +355,15 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 	{
 		// TODO: check that getSrcTalId() returns the actual source
 		tal_id_t src_entity = first_pkt.getSrcTalId();
-		component_t src_type = conf->getEntityType(src_entity);
+		Component src_type = conf->getEntityType(src_entity);
 
-		if (src_type == terminal)
+		if (src_type == Component::terminal)
 		{
-			return sendToLowerBlock(gateway, std::move(burst));
+			return sendToLowerBlock(Component::gateway, std::move(burst));
 		}
-		else if (src_type == gateway)
+		else if (src_type == Component::gateway)
 		{
-			return sendToLowerBlock(terminal, std::move(burst));
+			return sendToLowerBlock(Component::terminal, std::move(burst));
 		}
 		else
 		{
@@ -375,11 +375,11 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 	return false;
 }
 
-bool BlockMesh::Downward::sendToLowerBlock(component_t dest, std::unique_ptr<const NetBurst> burst)
+bool BlockMesh::Downward::sendToLowerBlock(Component dest, std::unique_ptr<const NetBurst> burst)
 {
-	LOG(log_send, LEVEL_INFO, "Sending a NetBurst to the lower block, %s side", dest == gateway ? "GW" : "ST");
+	LOG(log_send, LEVEL_INFO, "Sending a NetBurst to the lower block, %s side", dest == Component::gateway ? "GW" : "ST");
 	auto burst_ptr = burst.release();
-	bool ok = enqueueMessage(dest, (void **)&burst_ptr, sizeof(NetBurst), msg_data);
+	bool ok = enqueueMessage(dest, (void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::msg_data));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,
@@ -395,7 +395,7 @@ bool BlockMesh::Downward::sendToOppositeChannel(std::unique_ptr<const NetBurst> 
 	LOG(log_send, LEVEL_INFO, "Sending a NetBurst to the opposite channel");
 
 	auto burst_ptr = burst.release();
-	bool ok = shareMessage((void **)&burst_ptr, sizeof(NetBurst), msg_data);
+	bool ok = shareMessage((void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::msg_data));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,

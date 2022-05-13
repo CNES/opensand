@@ -51,7 +51,7 @@ bool BlockTransp::Upward::onEvent(const RtEvent *const event)
 
 	auto msg_event = static_cast<const MessageEvent *>(event);
 
-	if (msg_event->getMessageType() != msg_data)
+	if (static_cast<InternalMessageType>(msg_event->getMessageType()) != InternalMessageType::msg_data)
 	{
 		LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
 		    msg_event->getName().c_str());
@@ -67,7 +67,7 @@ bool BlockTransp::Upward::handleDvbFrame(std::unique_ptr<const DvbFrame> frame)
 	LOG(log_send, LEVEL_INFO, "Sending a DvbFrame to the opposite channel");
 
 	auto frame_ptr = frame.release();
-	bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), msg_data);
+	bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,
@@ -92,7 +92,7 @@ bool BlockTransp::Downward::onEvent(const RtEvent *const event)
 
 	auto msg_event = static_cast<const MessageEvent *>(event);
 
-	if (msg_event->getMessageType() != msg_data)
+	if (static_cast<InternalMessageType>(msg_event->getMessageType()) != InternalMessageType::msg_data)
 	{
 		LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
 		    msg_event->getName().c_str());
@@ -115,7 +115,7 @@ bool BlockTransp::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 		return false;
 	}
 
-	component_t dest = (id == 4 || id == 8) ? terminal : gateway;
+	Component dest = (id == 4 || id == 8) ? Component::terminal : Component::gateway;
 	// add one to the input carrier id to get the corresponding output carrier id
 	frame->setCarrierId(frame->getCarrierId() + 1);
 	return sendToLowerBlock({spot_id, dest}, std::move(frame));
@@ -123,9 +123,9 @@ bool BlockTransp::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 
 bool BlockTransp::Downward::sendToLowerBlock(TranspDemuxKey key, std::unique_ptr<const DvbFrame> frame)
 {
-	LOG(log_send, LEVEL_INFO, "Sending a DvbFrame to the lower block, %s side", key.dest == gateway ? "GW" : "ST");
+	LOG(log_send, LEVEL_INFO, "Sending a DvbFrame to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
 	auto frame_ptr = frame.release();
-	bool ok = enqueueMessage(key, (void **)&frame_ptr, sizeof(DvbFrame), msg_data);
+	bool ok = enqueueMessage(key, (void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,

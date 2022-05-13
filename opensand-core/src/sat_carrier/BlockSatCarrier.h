@@ -47,7 +47,7 @@ struct sc_specific
 	tal_id_t tal_id;     ///< the terminal id for terminal
 	string ip_addr;      ///< the IP address for emulation
 	/// for sat only: destination handled by this part of the stack (terminal or gateway)
-	component_t destination_host = component_t::unknown_compo;    
+	Component destination_host = Component::unknown;    
 	/// for sat only: the spot handled by this part of the stack
 	spot_id_t spot_id = 255;
 };
@@ -85,7 +85,7 @@ class BlockSatCarrier: public Block
 		/// List of input channels
 		sat_carrier_channel_set in_channel_set;
 		/// for sat only: destination handled by this part of the stack (terminal or gateway)
-		component_t destination_host;
+		Component destination_host;
 		/// for sat only: the spot handled by this part of the stack
 		spot_id_t spot_id;
 
@@ -118,7 +118,7 @@ class BlockSatCarrier: public Block
 		/// List of output channels
 		sat_carrier_channel_set out_channel_set;
 		/// for sat only: destination handled by this part of the stack (terminal or gateway)
-		component_t destination_host;
+		Component destination_host;
 		/// for sat only: the spot handled by this part of the stack
 		spot_id_t spot_id;
 	};

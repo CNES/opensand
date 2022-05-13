@@ -88,12 +88,22 @@ class BlockDvb: public Block
 	class DvbUpward: public DvbChannel, public RtUpward
 	{
 	 public:
-		DvbUpward(const std::string &name);
+		DvbUpward(const std::string &name, bool disable_control_plane);
 
 		~DvbUpward();
 
 	 protected:
 		virtual bool onRcvDvbFrame(DvbFrame *frame) = 0;
+
+		/**
+		 * Transmist a frame to the opposite channel
+		 *
+		 * @param frame The dvb frame
+		 * @return true on success, false otherwise
+		 */ 
+		bool shareFrame(DvbFrame *frame);
+
+    bool disable_control_plane;
 	};
 
 	class DvbDownward: public DvbChannel, public RtDownward

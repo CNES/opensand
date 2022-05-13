@@ -66,15 +66,42 @@ BlockDvb::~BlockDvb()
 //****************************************************//
 //                   DVB  UPWARD                      // 
 //****************************************************//
-BlockDvb::DvbUpward::DvbUpward(const std::string& name):
-	DvbChannel(),
-	RtUpward(name)
+BlockDvb::DvbUpward::DvbUpward(const std::string& name, bool disable_control_plane):
+	DvbChannel{},
+	RtUpward{name},
+  disable_control_plane{disable_control_plane}
 {
 }
 
 
 BlockDvb::DvbUpward::~DvbUpward()
 {
+}
+
+
+bool BlockDvb::DvbUpward::shareFrame(DvbFrame *frame)
+{
+	if (this->disable_control_plane)
+	{
+		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), to_underlying(InternalMessageType::msg_sig)))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Unable to transmit frame to upper layer\n");
+			delete frame;
+			return false;
+		}
+	}
+	else
+	{
+		if(!this->shareMessage((void **)&frame, sizeof(*frame), to_underlying(InternalMessageType::msg_sig)))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Unable to transmit frame to opposite channel\n");
+			delete frame;
+			return false;
+		}
+	}
+	return true;
 }
 
 

@@ -65,7 +65,7 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * @return true on success, false otherwise
 	 */
 	bool readInConfig(const string local_ip_addr,
-	                  component_t destination_host,
+	                  Component destination_host,
 	                  spot_id_t spot_id);
 
 	/**
@@ -77,7 +77,7 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * @return true on success, false otherwise
 	 */
 	bool readOutConfig(const string local_ip_addr,
-	                   component_t destination_host,
+	                   Component destination_host,
 	                   spot_id_t spot_id);
 
 	/**
@@ -129,7 +129,7 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	                bool in);
 	bool readSpot(const string &local_ip_addr,
 	              bool in,
-	              component_t host,
+	              Component host,
 	              tal_id_t gw_id,
 	              bool is_satellite);
 	bool readCarrier(const string &local_ip_addr,

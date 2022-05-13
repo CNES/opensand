@@ -102,20 +102,11 @@ class BlockDvbNcc: public BlockDvb
 		 * @return  true on success, false otherwise
 		 */
 		bool initOutput(void);
-
-		/**
-		 * Transmist a frame to the opposite channel
-		 *
-		 * @param frame The dvb frame
-		 * @return true on success, false otherwise
-		 */ 
-		bool shareFrame(DvbFrame *frame);
 		
 		bool onRcvDvbFrame(DvbFrame *frame);
 
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
-		bool disable_control_plane;
 
 		SpotUpward* spot;
 

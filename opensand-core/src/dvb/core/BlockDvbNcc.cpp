@@ -347,11 +347,13 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-			auto msg_event = static_cast<const MessageEvent* const>(event);
+			auto msg_event = static_cast<const MessageEvent*>(event);
+      InternalMessageType msg_type = static_cast<InternalMessageType>(msg_event->getMessageType());
+
 			// first handle specific messages
-			if(msg_event->getMessageType() == InternalMessageType::msg_sig)
+			if(msg_type == InternalMessageType::msg_sig)
 			{
-				auto dvb_frame = reinterpret_cast<DvbFrame *>(msg_event->getData());
+				auto dvb_frame = static_cast<DvbFrame *>(msg_event->getData());
 				auto spot_id = dvb_frame->getSpot();
 				if (spot_id != this->mac_id)
 				{
@@ -367,9 +369,9 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				}
 				break;
 			}
-			else if(msg_event->getMessageType() == InternalMessageType::msg_saloha)
+			else if(msg_type == InternalMessageType::msg_saloha)
 			{
-				auto ack_frames = reinterpret_cast<std::list<DvbFrame *> *>(msg_event->getData());
+				auto ack_frames = static_cast<std::list<DvbFrame *> *>(msg_event->getData());
 				auto spot_id = ack_frames->front()->getSpot();
 				if (spot_id != this->mac_id)
 				{
@@ -385,7 +387,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			else
 			{
-				auto burst = reinterpret_cast<NetBurst *>(msg_event->getData());
+				auto burst = static_cast<NetBurst *>(msg_event->getData());
 
 				LOG(this->log_receive_channel, LEVEL_INFO,
 						"SF#%u: encapsulation burst received "
@@ -762,10 +764,9 @@ void BlockDvbNcc::Downward::updateStats(void)
 /*****************************************************************************/
 
 BlockDvbNcc::Upward::Upward(const string &name, struct dvb_specific specific):
-	DvbUpward{name},
+	DvbUpward{name, specific.disable_control_plane},
 	DvbFmt{},
 	mac_id{specific.mac_id},
-	disable_control_plane{specific.disable_control_plane},
 	log_saloha{nullptr},
 	probe_gw_received_modcod{nullptr},
 	probe_gw_rejected_modcod{nullptr}
@@ -810,7 +811,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 
 	if(!this->enqueueMessage((void **)(&link_is_up),
 	                         sizeof(T_LINK_UP),
-	                         InternalMessageType::msg_link_up))
+	                         to_underlying(InternalMessageType::msg_link_up)))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to send link up message to upper layer\n");
@@ -855,7 +856,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 	{
 		case evt_message:
 		{
-      DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent* const>(event)->getData());
+      DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
       if (!this->onRcvDvbFrame(dvb_frame))
       {
         LOG(this->log_receive, LEVEL_ERROR,
@@ -1057,7 +1058,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 			if(ack_frames->size() &&
 			   !this->shareMessage((void **)&ack_frames,
 			                       sizeof(ack_frames),
-			                       InternalMessageType::msg_saloha))
+			                       to_underlying(InternalMessageType::msg_saloha)))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "Failed to send Slotted Aloha acks to opposite"
@@ -1120,31 +1121,5 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		break;
 	}
 
-	return true;
-}
-
-
-bool BlockDvbNcc::Upward::shareFrame(DvbFrame *frame)
-{
-	if (this->disable_control_plane)
-	{
-		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), InternalMessageType::msg_sig))
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "Unable to transmit frame to upper layer\n");
-			delete frame;
-			return false;
-		}
-	}
-	else
-	{
-		if(!this->shareMessage((void **)&frame, sizeof(*frame), InternalMessageType::msg_sig))
-		{
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "Unable to transmit frame to opposite channel\n");
-			delete frame;
-			return false;
-		}
-	}
 	return true;
 }
