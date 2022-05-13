@@ -489,7 +489,7 @@ void RtChannelBase::executeThread(void)
 	int32_t handled;
 	fd_set readfds;
 
-	std::list<RtEvent *> priority_sorted_events;
+	std::vector<RtEvent *> priority_sorted_events;
 
 	while(true)
 	{
@@ -561,7 +561,7 @@ void RtChannelBase::executeThread(void)
 			}
 		}
 		// sort the list according to priority
-		priority_sorted_events.sort(RtEvent::compareEvents);
+		std::sort(priority_sorted_events.begin(), priority_sorted_events.end(), RtEvent::compareEvents);
 
 		// call processEvent on each event
 		for(auto &&event: priority_sorted_events)
@@ -638,7 +638,7 @@ void RtChannelBase::getDurationsStatistics(void) const
   std::shared_ptr<OutputEvent> event = Output::Get()->registerEvent("Time Report");
 	for(auto &&duration_pair: durations)
 	{
-		std::list<double> duration = duration_pair.second;
+		std::vector<double> duration = duration_pair.second;
 		if(duration.empty())
 		{
 			continue;

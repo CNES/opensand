@@ -309,7 +309,7 @@ class RtChannelBase
 
 #ifdef TIME_REPORTS
 	/// statistics about events durations (in us)
-	std::map<std::string, std::list<double> > durations;
+	std::map<std::string, std::vector<double> > durations;
 
 	/**
 	 * @brief print statistics on events durations
@@ -331,10 +331,10 @@ class RtChannelBase
 	std::map<event_id_t, RtEvent *> events;
 
 	/// the list of new events (used to avoid updates inside the loop)
-	std::list<RtEvent *> new_events;
+	std::vector<RtEvent *> new_events;
 
 	/// the list of removed event id
-	std::list<event_id_t> removed_events;
+	std::vector<event_id_t> removed_events;
 
 	/// The fifo for incoming messages from opposite channel
 	RtFifo *in_opp_fifo;
