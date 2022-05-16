@@ -79,67 +79,37 @@ EntitySt::~EntitySt()
 
 bool EntitySt::createSpecificBlocks()
 {
-	auto Conf = OpenSandModelConf::Get();
-
-	// instantiate all blocs
-	struct la_specific laspecific;
-	laspecific.tap_iface = this->tap_iface;
-	tal_id_t gw_id;
- 	Conf->getGwWithTalId(this->instance_id, gw_id);
-	laspecific.packet_switch = new TerminalPacketSwitch(this->instance_id, gw_id);
-	auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", laspecific);
-	if(!block_lan_adaptation)
+	try
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the LanAdaptation block",
-		        this->getName().c_str());
+		auto Conf = OpenSandModelConf::Get();
+	
+		struct sc_specific scspecific;
+		scspecific.ip_addr = this->ip_address;
+		scspecific.tal_id = this->instance_id;
+	
+		struct la_specific laspecific;
+		laspecific.tap_iface = this->tap_iface;
+		tal_id_t gw_id;
+	 	Conf->getGwWithTalId(this->instance_id, gw_id);
+		laspecific.packet_switch = new TerminalPacketSwitch(this->instance_id, gw_id);
+
+		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", laspecific);
+		auto block_encap = Rt::createBlock<BlockEncap>("Encap", this->instance_id);
+		auto block_dvb = Rt::createBlock<BlockDvbTal>("Dvb", dvb_specific{this->instance_id, false});
+		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
+		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", scspecific);
+	
+		Rt::connectBlocks(block_lan_adaptation, block_encap);
+		Rt::connectBlocks(block_encap, block_dvb);
+		Rt::connectBlocks(block_dvb, block_phy_layer);
+		Rt::connectBlocks(block_phy_layer, block_sat_carrier);
+	}
+	catch (const std::bad_alloc &e)
+	{
+		DFLTLOG(LEVEL_CRITICAL, "%s: error during block creation: could not allocate memory: %s",
+		        this->getName().c_str(), e.what());
 		return false;
 	}
-
-	auto block_encap = Rt::createBlock<BlockEncap>("Encap", this->instance_id);
-	if(!block_encap)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the Encap block",
-            this->getName().c_str());
-		return false;
-	}
-
-	auto block_dvb = Rt::createBlock<BlockDvbTal>("Dvb", dvb_specific{this->instance_id, false});
-	if(!block_dvb)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the DvbTal block",
-            this->getName().c_str());
-		return false;
-	}
-
-	auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
-	if(!block_phy_layer)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the PhysicalLayer block",
-		        this->getName().c_str());
-		return false;
-	}
-
-	struct sc_specific scspecific;
-	scspecific.ip_addr = this->ip_address;
-	scspecific.tal_id = this->instance_id;
-	auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", scspecific);
-	if(!block_sat_carrier)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the SatCarrier block",
-            this->getName().c_str());
-		return false;
-	}
-
-	Rt::connectBlocks(block_lan_adaptation, block_encap);
-	Rt::connectBlocks(block_encap, block_dvb);
-	Rt::connectBlocks(block_dvb, block_phy_layer);
-	Rt::connectBlocks(block_phy_layer, block_sat_carrier);
-
 	return true;
 }
 

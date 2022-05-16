@@ -71,19 +71,18 @@ EntitySatRegen::EntitySatRegen(tal_id_t instance_id):
 
 bool EntitySatRegen::createSpecificBlocks()
 {
-	auto conf = OpenSandModelConf::Get();
-	std::vector<tal_id_t> spot_ids{};
-	conf->getGwIds(spot_ids);
-
 	try
 	{
+		auto conf = OpenSandModelConf::Get();
+		std::vector<tal_id_t> spot_ids{};
+		conf->getGwIds(spot_ids);
+
 		auto block_transp = Rt::createBlock<BlockMesh>("Mesh", instance_id);
 
 		for (auto &&gw_id: spot_ids)
 		{
 			auto spot_id = static_cast<spot_id_t>(gw_id);
 			auto spot_id_str = std::to_string(spot_id);
-			std::cout << "configuring spot " << spot_id_str << '\n';
 
 			dvb_specific dvb_spec;
 			dvb_spec.disable_control_plane = true;

@@ -71,41 +71,26 @@ EntityGwPhy::~EntityGwPhy()
 
 bool EntityGwPhy::createSpecificBlocks()
 {
-	struct sc_specific specific;
-
-	// instantiate all blocs
-	auto block_interconnect = Rt::createBlock<BlockInterconnectUpward>("InterconnectUpward",
-	                                                                   this->interconnect_address);
-	if(!block_interconnect)
+	try
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the InterconnectUpward block",
-            this->getName().c_str());
+		struct sc_specific specific;
+		specific.ip_addr = this->ip_address;
+		specific.tal_id = this->instance_id;
+
+		auto block_interconnect = Rt::createBlock<BlockInterconnectUpward>("InterconnectUpward",
+		                                                                   this->interconnect_address);
+		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
+		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", specific);
+
+		Rt::connectBlocks(block_interconnect, block_phy_layer);
+		Rt::connectBlocks(block_phy_layer, block_sat_carrier);	
+	}
+	catch (const std::bad_alloc &e)
+	{
+		DFLTLOG(LEVEL_CRITICAL, "%s: error during block creation: could not allocate memory: %s",
+		        this->getName().c_str(), e.what());
 		return false;
 	}
-
-	auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
-	if(!block_phy_layer)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the PhysicalLayer block",
-		        this->getName().c_str());
-		return false;;
-	}
-	specific.ip_addr = this->ip_address;
-	specific.tal_id = this->instance_id;
-	auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", specific);
-	if(!block_sat_carrier)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the SatCarrier block",
-            this->getName().c_str());
-		return false;
-	}
-
-	Rt::connectBlocks(block_interconnect, block_phy_layer);
-	Rt::connectBlocks(block_phy_layer, block_sat_carrier);
-
 	return true;
 }
 

@@ -77,52 +77,27 @@ EntityGwNetAcc::~EntityGwNetAcc()
 
 bool EntityGwNetAcc::createSpecificBlocks()
 {
-	struct la_specific spec_la;
-
-	// instantiate all blocs
-	spec_la.tap_iface = this->tap_iface;
-	spec_la.packet_switch = new GatewayPacketSwitch(this->instance_id);
-	auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", spec_la);
-	if(!block_lan_adaptation)
+	try
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the LanAdaptation block",
-		        this->getName().c_str());
+		struct la_specific spec_la;
+		spec_la.tap_iface = this->tap_iface;
+		spec_la.packet_switch = new GatewayPacketSwitch(this->instance_id);
+
+		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", spec_la);
+		auto block_encap = Rt::createBlock<BlockEncap>("Encap", this->instance_id);
+		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_specific{this->instance_id, false});
+		auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>("InterconnectDownward", this->interconnect_address);
+		
+		Rt::connectBlocks(block_lan_adaptation, block_encap);
+		Rt::connectBlocks(block_encap, block_dvb);
+		Rt::connectBlocks(block_dvb, block_interconnect);
+	}
+	catch (const std::bad_alloc &e)
+	{
+		DFLTLOG(LEVEL_CRITICAL, "%s: error during block creation: could not allocate memory: %s",
+		        this->getName().c_str(), e.what());
 		return false;
 	}
-
-	auto block_encap = Rt::createBlock<BlockEncap>("Encap", this->instance_id);
-	if(!block_encap)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the Encap block",
-            this->getName().c_str());
-		return false;
-	}
-
-	auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_specific{this->instance_id, false});
-	if(!block_dvb)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the DvbNcc block",
-            this->getName().c_str());
-		return false;
-	}
-
-	auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>
-		       ("InterconnectDownward", this->interconnect_address);
-	if(!block_interconnect)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the InterconnectDownward block",
-            this->getName().c_str());
-		return false;
-	}
-
-	Rt::connectBlocks(block_lan_adaptation, block_encap);
-	Rt::connectBlocks(block_encap, block_dvb);
-	Rt::connectBlocks(block_dvb, block_interconnect);
-
 	return true;
 }
 
