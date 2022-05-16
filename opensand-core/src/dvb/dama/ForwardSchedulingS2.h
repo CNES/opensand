@@ -156,14 +156,12 @@ class ForwardSchedulingS2: public Scheduling
 	 * @paarm carriers  the carriers group to which the terminal belongs
 	 * @param current_superframe_sf  The current superframe number
 	 * @param bbframe   OUT: the BBframe for this packet
-	 * @param capacity_sym The remaining capacity
 	 * @return          true on success, false otherwise
 	 */
 	bool getIncompleteBBFrame(tal_id_t tal_id,
 	                          CarriersGroupDama *carriers,
 	                          const time_sf_t current_superframe_sf,
-	                          BBFrame **bbframe,
-	                          vol_sym_t capacity_sym);
+	                          BBFrame **bbframe);
 
 	/**
 	 * @brief Add a BBframe to the list of complete BB frames
