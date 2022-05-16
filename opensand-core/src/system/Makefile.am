@@ -45,6 +45,7 @@ allexec_LDADD = \
 opensand_cpp = \
 	Entity.cpp \
 	EntitySat.cpp \
+	EntitySatRegen.cpp \
 	EntityGw.cpp \
 	EntityGwPhy.cpp \
 	EntityGwNetAcc.cpp \
@@ -52,6 +53,7 @@ opensand_cpp = \
 opensand_h = \
 	Entity.h \
 	EntitySat.h \
+	EntitySatRegen.h \
 	EntityGw.h \
 	EntityGwPhy.h \
 	EntityGwNetAcc.h \

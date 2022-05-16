@@ -27,52 +27,33 @@
  */
 
 /**
- * @file BlockTransp.h
- * @brief
+ * @file SatDemuxKey.h
+ * @brief The demux key to select the right network stack in the satellite
  * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
-#ifndef BLOCKTRANSP_H
-#define BLOCKTRANSP_H
+#ifndef SATDEMUXKEY_H
+#define SATDEMUXKEY_H
 
-#include <memory>
+#include "OpenSandCore.h"
 
-#include <opensand_rt/Rt.h>
-
-#include "DvbFrame.h"
-#include "SatDemuxKey.h"
-
-/**
- * @class BlockTransp
- * @brief Block that sends DVB frames back to the opposite SatCarrier block
- */
-class BlockTransp: public Block
+struct SatDemuxKey
 {
- public:
-	BlockTransp(const std::string &name);
-
-	class Upward: public RtUpwardMux
-	{
-	  public:
-		Upward(const std::string &name);
-
-	  private:
-		bool onEvent(const RtEvent *const event) override;
-		bool handleDvbFrame(std::unique_ptr<const DvbFrame> burst);
-	};
-
-	class Downward: public RtDownwardDemux<SatDemuxKey>
-	{
-	 public:
-		Downward(const std::string &name);
-
-	 private:
-		bool onEvent(const RtEvent *const event) override;
-		bool handleDvbFrame(std::unique_ptr<DvbFrame> burst);
-		bool sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const DvbFrame> frame);
-	};
-
-  private:
+	spot_id_t spot_id;
+	Component dest;
+	bool operator==(SatDemuxKey o) const;
 };
+
+namespace std
+{
+template <>
+struct hash<SatDemuxKey>
+{
+	size_t operator()(const SatDemuxKey &k) const
+	{
+		return 4 * k.spot_id + to_underlying(k.dest);
+	}
+};
+} // namespace std
 
 #endif

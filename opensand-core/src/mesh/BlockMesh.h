@@ -37,6 +37,7 @@
 
 #include "NetBurst.h"
 #include "OpenSandModelConf.h"
+#include "SatDemuxKey.h"
 #include "UdpChannel.h"
 #include <memory>
 #include <opensand_rt/Rt.h>
@@ -73,7 +74,7 @@ class BlockMesh: public Block
 		std::unique_ptr<UdpChannel> isl_out_channel;
 	};
 
-	class Downward: public RtDownwardDemux<Component>
+	class Downward: public RtDownwardDemux<SatDemuxKey>
 	{
 	  public:
 		Downward(const std::string &name, tal_id_t sat_id);
@@ -87,7 +88,7 @@ class BlockMesh: public Block
 		bool handleNetSocketEvent(NetSocketEvent *event);
 		bool handleNetBurst(std::unique_ptr<const NetBurst> burst);
 		bool sendToOppositeChannel(std::unique_ptr<const NetBurst> burst);
-		bool sendToLowerBlock(Component dest, std::unique_ptr<const NetBurst> burst);
+		bool sendToLowerBlock(SatDemuxKey dest, std::unique_ptr<const NetBurst> burst);
 
 		OpenSandModelConf::carrier_socket isl_in;
 		bool mesh_architecture;

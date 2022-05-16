@@ -207,7 +207,7 @@ bool BlockMesh::Upward::sendViaIsl(std::unique_ptr<const NetBurst> burst)
 /*****************************************************************************/
 
 BlockMesh::Downward::Downward(const std::string &name, tal_id_t UNUSED(sat_id)):
-    RtDownwardDemux<Component>(name) {}
+    RtDownwardDemux<SatDemuxKey>(name) {}
 
 bool BlockMesh::Downward::onInit()
 {
@@ -309,6 +309,8 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 
 	LOG(log_receive, LEVEL_INFO, "Handling a NetBurst from entity %d to entity %d",
 	    first_pkt.getSrcTalId(), first_pkt.getDstTalId());
+	
+	spot_id_t spot_id = first_pkt.getSpot();
 
 	if (mesh_architecture) // Mesh architecture -> packet are routed according to their destination
 	{
@@ -320,11 +322,11 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 			Component dest_type = conf->getEntityType(dest_entity);
 			if (dest_type == Component::terminal)
 			{
-				return sendToLowerBlock(Component::terminal, std::move(burst));
+				return sendToLowerBlock({spot_id, Component::terminal}, std::move(burst));
 			}
 			else if (dest_type == Component::gateway)
 			{
-				return sendToLowerBlock(Component::gateway, std::move(burst));
+				return sendToLowerBlock({spot_id, Component::gateway}, std::move(burst));
 			}
 			else
 			{
@@ -341,7 +343,7 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 			}
 			else if (default_entity_type == Component::gateway)
 			{
-				return sendToLowerBlock(Component::gateway, std::move(burst));
+				return sendToLowerBlock({spot_id, Component::gateway}, std::move(burst));
 			}
 			else
 			{
@@ -358,11 +360,11 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 
 		if (src_type == Component::terminal)
 		{
-			return sendToLowerBlock(Component::gateway, std::move(burst));
+			return sendToLowerBlock({spot_id, Component::gateway}, std::move(burst));
 		}
 		else if (src_type == Component::gateway)
 		{
-			return sendToLowerBlock(Component::terminal, std::move(burst));
+			return sendToLowerBlock({spot_id, Component::terminal}, std::move(burst));
 		}
 		else
 		{
@@ -374,11 +376,11 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 	return false;
 }
 
-bool BlockMesh::Downward::sendToLowerBlock(Component dest, std::unique_ptr<const NetBurst> burst)
+bool BlockMesh::Downward::sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const NetBurst> burst)
 {
-	LOG(log_send, LEVEL_INFO, "Sending a NetBurst to the lower block, %s side", dest == Component::gateway ? "GW" : "ST");
+	LOG(log_send, LEVEL_INFO, "Sending a NetBurst to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
 	auto burst_ptr = burst.release();
-	bool ok = enqueueMessage(dest, (void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::msg_data));
+	bool ok = enqueueMessage(key, (void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::msg_data));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,

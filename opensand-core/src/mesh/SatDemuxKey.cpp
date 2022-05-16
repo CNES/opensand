@@ -27,52 +27,14 @@
  */
 
 /**
- * @file BlockTransp.h
- * @brief
+ * @file SatDemuxKey.cpp
+ * @brief The demux key to select the right network stack in the satellite
  * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
-#ifndef BLOCKTRANSP_H
-#define BLOCKTRANSP_H
-
-#include <memory>
-
-#include <opensand_rt/Rt.h>
-
-#include "DvbFrame.h"
 #include "SatDemuxKey.h"
 
-/**
- * @class BlockTransp
- * @brief Block that sends DVB frames back to the opposite SatCarrier block
- */
-class BlockTransp: public Block
+bool SatDemuxKey::operator==(SatDemuxKey o) const
 {
- public:
-	BlockTransp(const std::string &name);
-
-	class Upward: public RtUpwardMux
-	{
-	  public:
-		Upward(const std::string &name);
-
-	  private:
-		bool onEvent(const RtEvent *const event) override;
-		bool handleDvbFrame(std::unique_ptr<const DvbFrame> burst);
-	};
-
-	class Downward: public RtDownwardDemux<SatDemuxKey>
-	{
-	 public:
-		Downward(const std::string &name);
-
-	 private:
-		bool onEvent(const RtEvent *const event) override;
-		bool handleDvbFrame(std::unique_ptr<DvbFrame> burst);
-		bool sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const DvbFrame> frame);
-	};
-
-  private:
-};
-
-#endif
+	return spot_id == o.spot_id && dest == o.dest;
+}

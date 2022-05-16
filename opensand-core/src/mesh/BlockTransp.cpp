@@ -79,7 +79,7 @@ bool BlockTransp::Upward::handleDvbFrame(std::unique_ptr<const DvbFrame> frame)
 }
 
 BlockTransp::Downward::Downward(const std::string &name):
-    RtDownwardDemux<TranspDemuxKey>(name) {}
+    RtDownwardDemux<SatDemuxKey>(name) {}
 
 bool BlockTransp::Downward::onEvent(const RtEvent *const event)
 {
@@ -121,7 +121,7 @@ bool BlockTransp::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	return sendToLowerBlock({spot_id, dest}, std::move(frame));
 }
 
-bool BlockTransp::Downward::sendToLowerBlock(TranspDemuxKey key, std::unique_ptr<const DvbFrame> frame)
+bool BlockTransp::Downward::sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const DvbFrame> frame)
 {
 	LOG(log_send, LEVEL_INFO, "Sending a DvbFrame to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
 	auto frame_ptr = frame.release();
@@ -134,9 +134,4 @@ bool BlockTransp::Downward::sendToLowerBlock(TranspDemuxKey key, std::unique_ptr
 		return false;
 	}
 	return true;
-}
-
-bool TranspDemuxKey::operator==(TranspDemuxKey o) const
-{
-	return spot_id == o.spot_id && dest == o.dest;
 }

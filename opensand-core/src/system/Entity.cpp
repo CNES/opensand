@@ -47,6 +47,7 @@
 #include "EntityGwNetAcc.h"
 #include "EntityGwPhy.h"
 #include "EntitySat.h"
+#include "EntitySatRegen.h"
 #include "EntitySt.h"
 #include "OpenSandModelConf.h"
 
@@ -267,6 +268,10 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	if(type == "sat")
 	{
 		entity = std::make_shared<EntitySat>(entity_id);
+	}
+	if(type == "sat_regen")
+	{
+		entity = std::make_shared<EntitySatRegen>(entity_id);
 	}
 	else if(type == "gw")
 	{
