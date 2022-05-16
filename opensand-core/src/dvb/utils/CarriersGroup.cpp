@@ -39,7 +39,7 @@ CarriersGroup::CarriersGroup(unsigned int carriers_id,
                              const FmtGroup *const fmt_group,
                              unsigned int ratio,
                              rate_symps_t symbol_rate_symps,
-                             access_type_t access_type):
+                             AccessType access_type):
 	carriers_id(carriers_id),
 	fmt_group(fmt_group),
 	carriers_number(0),
@@ -104,7 +104,7 @@ const list<fmt_id_t> CarriersGroup::getFmtIds() const
 	return this->fmt_group->getFmtIds();
 }
 
-access_type_t CarriersGroup::getAccessType(void) const
+AccessType CarriersGroup::getAccessType(void) const
 {
 	return this->access_type;
 }

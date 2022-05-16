@@ -321,7 +321,7 @@ bool SpotDownward::initMode(void)
 
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "forward down frequency plan",
-	                                         TDM,
+	                                         AccessType::TDM,
 	                                         this->fwd_down_frame_duration_ms,
 	                                         this->s2_modcod_def,
 	                                         this->categories,
@@ -483,7 +483,7 @@ bool SpotDownward::initDama(void)
 
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
-	                                         DAMA,
+	                                         AccessType::DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->rcs_modcod_def,
 	                                         dc_categories,

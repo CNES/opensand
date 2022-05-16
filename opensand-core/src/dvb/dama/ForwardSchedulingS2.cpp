@@ -106,8 +106,8 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	spot_id(spot),
 	probe_section("")
 {
-	vector<CarriersGroupDama *> carriers_group;
-	vector<CarriersGroupDama *>::iterator carrier_it;
+  std::vector<CarriersGroupDama *> carriers_group;
+  std::vector<CarriersGroupDama *>::iterator carrier_it;
 	string label = this->category->getLabel();
 	std::stringstream section;
 	char probe_name[128];
@@ -143,10 +143,10 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	    ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-		vector<CarriersGroupDama *> vcm_carriers;
-		vector<CarriersGroupDama *>::iterator vcm_it;
-		vector<std::shared_ptr<Probe<int> > > remain_probes;
-		vector<std::shared_ptr<Probe<int> > > avail_probes;
+    std::vector<CarriersGroupDama *> vcm_carriers;
+    std::vector<CarriersGroupDama *>::iterator vcm_it;
+    std::vector<std::shared_ptr<Probe<int> > > remain_probes;
+    std::vector<std::shared_ptr<Probe<int> > > avail_probes;
 		unsigned int carriers_id = carriers->getCarriersId();
 	
 		vcm_carriers = carriers->getVcmCarriers();
@@ -186,8 +186,8 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
                                    uint32_t &remaining_allocation)
 {
 	fifos_t::const_iterator fifo_it;
-	vector<CarriersGroupDama *> carriers_group;
-	vector<CarriersGroupDama *>::iterator carrier_it;
+  std::vector<CarriersGroupDama *> carriers_group;
+  std::vector<CarriersGroupDama *>::iterator carrier_it;
 	carriers_group = this->category->getCarriersGroups();
 	vol_sym_t init_capacity_sym;
 	int total_capa = 0;
@@ -197,8 +197,8 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 	    ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-		vector<CarriersGroupDama *> vcm_carriers;
-		vector<CarriersGroupDama *>::iterator vcm_it;
+    std::vector<CarriersGroupDama *> vcm_carriers;
+    std::vector<CarriersGroupDama *>::iterator vcm_it;
 		unsigned int vcm_id = 0;
 			
 		vcm_carriers = carriers->getVcmCarriers();
@@ -342,8 +342,8 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 	    ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-		vector<CarriersGroupDama *> vcm_carriers;
-		vector<CarriersGroupDama *>::iterator vcm_it;
+    std::vector<CarriersGroupDama *> vcm_carriers;
+    std::vector<CarriersGroupDama *>::iterator vcm_it;
 		unsigned int carriers_id = carriers->getCarriersId();
 		unsigned int id = 0;
 
@@ -375,8 +375,8 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			if(this->probe_fwd_available_capacity.find(carriers_id)
 			   == this->probe_fwd_available_capacity.end())
 			{
-				vector<std::shared_ptr<Probe<int> > > remain_probes;
-				vector<std::shared_ptr<Probe<int> > > avail_probes;
+        std::vector<std::shared_ptr<Probe<int> > > remain_probes;
+        std::vector<std::shared_ptr<Probe<int> > > avail_probes;
 
 				this->createProbes(vcm_it, vcm_carriers, remain_probes,
 				                   avail_probes, carriers_id);
@@ -768,7 +768,7 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
                                                BBFrame **bbframe,
                                                vol_sym_t capacity_sym)
 {
-	map<unsigned int, BBFrame *>::iterator iter;
+  std::map<unsigned int, BBFrame *>::iterator iter;
 	unsigned int desired_modcod;
 	unsigned int modcod_id;
 
@@ -941,8 +941,8 @@ void ForwardSchedulingS2::schedulePending(const list<fmt_id_t> supported_modcods
 }
 
 
-void ForwardSchedulingS2::checkBBFrameSize(vector<CarriersGroupDama *>::iterator vcm_it,
-                                           vector<CarriersGroupDama *> vcm_carriers)
+void ForwardSchedulingS2::checkBBFrameSize(std::vector<CarriersGroupDama *>::iterator vcm_it,
+                                           std::vector<CarriersGroupDama *> vcm_carriers)
 {
 	unsigned int vcm_id = 0;
 	CarriersGroupDama *vcm = *vcm_it;
@@ -1007,10 +1007,10 @@ void ForwardSchedulingS2::checkBBFrameSize(vector<CarriersGroupDama *>::iterator
 }
 
 
-void ForwardSchedulingS2::createProbes(vector<CarriersGroupDama *>::iterator vcm_it,
-                                       vector<CarriersGroupDama *> vcm_carriers,
-                                       vector<std::shared_ptr<Probe<int> > > &remain_probes,
-                                       vector<std::shared_ptr<Probe<int> > > &avail_probes,
+void ForwardSchedulingS2::createProbes(std::vector<CarriersGroupDama *>::iterator vcm_it,
+                                       std::vector<CarriersGroupDama *> vcm_carriers,
+                                       std::vector<std::shared_ptr<Probe<int> > > &remain_probes,
+                                       std::vector<std::shared_ptr<Probe<int> > > &avail_probes,
                                        unsigned int carriers_id)
 {
 	unsigned int vcm_id = 0;

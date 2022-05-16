@@ -103,8 +103,8 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	category(category),
 	gw_id(gw_id)
 {
-	vector<CarriersGroupDama *> carriers_group;
-	vector<CarriersGroupDama *>::iterator carrier_it;
+  std::vector<CarriersGroupDama *> carriers_group;
+  std::vector<CarriersGroupDama *>::iterator carrier_it;
 
 	this->probe_scpc_total_capacity = Output::Get()->registerProbe<int>(
 		"SCPC capacity.Total.Available",
@@ -123,8 +123,8 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	    ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-		vector<std::shared_ptr<Probe<int> > > remain_probes;
-		vector<std::shared_ptr<Probe<int> > > avail_probes;
+    std::vector<std::shared_ptr<Probe<int> > > remain_probes;
+    std::vector<std::shared_ptr<Probe<int> > > avail_probes;
 		unsigned int carriers_id = carriers->getCarriersId();
 	
     std::shared_ptr<Probe<int>> remain_probe;
@@ -210,8 +210,8 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
                               uint32_t &remaining_allocation)
 {
 	fifos_t::const_iterator fifo_it;
-	vector<CarriersGroupDama *> carriers_group;
-	vector<CarriersGroupDama *>::iterator carrier_it;
+  std::vector<CarriersGroupDama *> carriers_group;
+  std::vector<CarriersGroupDama *>::iterator carrier_it;
 	carriers_group = this->category->getCarriersGroups();
 	vol_sym_t init_capacity_sym;
 	int total_capa = 0;
@@ -694,16 +694,13 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
                                           const time_sf_t current_superframe_sf,
                                           BBFrame **bbframe)
 {
-	map<unsigned int, BBFrame *>::iterator iter;
-	fmt_id_t modcod_id;
-	fmt_id_t desired_modcod = this->getCurrentModcodId(this->gw_id);
+	*bbframe = nullptr;
+	auto desired_modcod = this->getCurrentModcodId(this->gw_id);
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "Simulated MODCOD for GW = %u\n", desired_modcod);
 
-	*bbframe = NULL;
-
 	// get best modcod ID according to carrier
-	modcod_id = carriers->getNearestFmtId(desired_modcod);
+	auto modcod_id = carriers->getNearestFmtId(desired_modcod);
 	if(modcod_id == 0)
 	{
 		LOG(this->log_scheduling, LEVEL_WARNING,
@@ -712,20 +709,20 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 		    carriers->getCarriersId());
 
 		modcod_id = scpc_modcod_def->getMinId();
-		//goto skip;
 	}
+
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "SF#%u: Available MODCOD for GW = %u\n",
 	    current_superframe_sf, modcod_id);
 
 	// find if the BBFrame exists
-	iter = this->incomplete_bb_frames.find(modcod_id);
-	if(iter != this->incomplete_bb_frames.end() && (*iter).second != NULL)
+	auto bbframes = this->incomplete_bb_frames.find(modcod_id);
+	if(bbframes != this->incomplete_bb_frames.end() && bbframes->second != nullptr)
 	{
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "SF#%u: Found a BBFrame for MODCOD %u\n",
 		    current_superframe_sf, modcod_id);
-		*bbframe = (*iter).second;
+		*bbframe = bbframes->second;
 	}
 	// no BBFrame for this MOCDCOD create a new one
 	else
@@ -734,20 +731,16 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 		    "SF#%u: Create a new BBFrame for MODCOD %u\n",
 		    current_superframe_sf, modcod_id);
 		// if there is no incomplete BB frame create a new one
-		if(!this->createIncompleteBBFrame(bbframe, current_superframe_sf,
-		                                  modcod_id))
+		if(!this->createIncompleteBBFrame(bbframe, current_superframe_sf, modcod_id))
 		{
-			goto error;
+			return false;
 		}
 		// add the BBFrame in the map and list
 		this->incomplete_bb_frames[modcod_id] = *bbframe;
 		this->incomplete_bb_frames_ordered.push_back(*bbframe);
 	}
 
-skip:
 	return true;
-error:
-	return false;
 }
 
 

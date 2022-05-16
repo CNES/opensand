@@ -89,14 +89,14 @@ inline std::string getComponentName(Component host)
 };
 
 /// Carrier access type
-typedef enum
+enum class AccessType
 {
 	DAMA,
 	TDM,
 	ALOHA,
 	SCPC,
 	ERROR
-} access_type_t;
+};
 
 
 /**
@@ -106,19 +106,19 @@ typedef enum
  *
  * @return the access type enum
  */
-inline access_type_t strToAccessType(const std::string& access_type)
+inline AccessType strToAccessType(const std::string& access_type)
 {
 	if(access_type == "DAMA")
-		return DAMA;
+		return AccessType::DAMA;
 	else if(access_type == "ACM")
-		return TDM;
+		return AccessType::TDM;
 	else if(access_type == "ALOHA")
-		return ALOHA;
+		return AccessType::ALOHA;
 	else if(access_type == "VCM")
-		return TDM;
+		return AccessType::TDM;
 	else if(access_type == "SCPC")
-		return SCPC;
-	return ERROR;
+		return AccessType::SCPC;
+	return AccessType::ERROR;
 }
 
 

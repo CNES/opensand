@@ -71,7 +71,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	spot_id_t spot_id;
 
 	// Helper to simplify context manipulation
-	typedef map<tal_id_t, TerminalContextSaloha *> saloha_terminals_t;
+	typedef std::map<tal_id_t, TerminalContextSaloha *> saloha_terminals_t;
 
 	/** List of registered terminals */
 	saloha_terminals_t terminals;
@@ -80,9 +80,9 @@ class SlottedAlohaNcc: public SlottedAloha
 	SlottedAlohaAlgo *algo;
 
 	/// Parameters to simulate Slotted Aloha traffic
-	vector<SlottedAlohaSimu *> simu;
+  std::vector<SlottedAlohaSimu *> simu;
 
-	typedef map<string, std::shared_ptr<Probe<int> > > probe_per_cat_t;
+	typedef std::map<string, std::shared_ptr<Probe<int> > > probe_per_cat_t;
 	/// Statistics
 	probe_per_cat_t probe_collisions;
 	probe_per_cat_t probe_collisions_before;

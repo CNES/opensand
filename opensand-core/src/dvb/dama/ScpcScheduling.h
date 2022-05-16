@@ -84,7 +84,7 @@ class ScpcScheduling: public Scheduling
 	time_ms_t scpc_timer_ms;
 
 	/** the BBFrame being built identified by their modcod */
-	map<unsigned int, BBFrame *> incomplete_bb_frames;
+  std::map<unsigned int, BBFrame *> incomplete_bb_frames;
 
 	/** the BBframe being built in their created order */
 	list<BBFrame *> incomplete_bb_frames_ordered;
@@ -107,8 +107,8 @@ class ScpcScheduling: public Scheduling
   std::shared_ptr<Probe<int>> probe_scpc_total_remaining_capacity;
   std::shared_ptr<Probe<int>> probe_scpc_bbframe_nbr;
   std::shared_ptr<Probe<int>> probe_sent_modcod;
-	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_scpc_remaining_capacity;
-	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_scpc_available_capacity;
+  std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_scpc_remaining_capacity;
+  std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_scpc_available_capacity;
 
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs

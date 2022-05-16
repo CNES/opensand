@@ -40,9 +40,9 @@
 #include <algorithm>
 
 
-TerminalCategorySaloha::TerminalCategorySaloha(string label, access_type_t access_type):
+TerminalCategorySaloha::TerminalCategorySaloha(const std::string& label, AccessType access_type):
 	TerminalCategory<CarriersGroupSaloha>(label, access_type),
-	accepted_packets(NULL),
+	accepted_packets(nullptr),
 	received_packets_nbr(0)
 {
 	this->accepted_packets = new saloha_packets_data_t();
@@ -63,7 +63,7 @@ void TerminalCategorySaloha::computeSlotsNumber(UnitConverter *converter)
 	unsigned int total = 0;
 	unsigned int last = 0;
 
-	for(vector<CarriersGroupSaloha *>::const_iterator it = this->carriers_groups.begin();
+	for(std::vector<CarriersGroupSaloha *>::const_iterator it = this->carriers_groups.begin();
 	    it != this->carriers_groups.end(); ++it)
 	{
 		CarriersGroupSaloha *carriers = *it;
@@ -89,7 +89,7 @@ void TerminalCategorySaloha::computeSlotsNumber(UnitConverter *converter)
 unsigned int TerminalCategorySaloha::getSlotsNumber(void) const
 {
 	unsigned int total = 0;
-	for(vector<CarriersGroupSaloha *>::const_iterator it = this->carriers_groups.begin();
+	for(std::vector<CarriersGroupSaloha *>::const_iterator it = this->carriers_groups.begin();
 	    it != this->carriers_groups.end(); ++it)
 	{
 		CarriersGroupSaloha *carriers = *it;
@@ -98,14 +98,14 @@ unsigned int TerminalCategorySaloha::getSlotsNumber(void) const
 	return total;
 }
 
-map<unsigned int, Slot *> TerminalCategorySaloha::getSlots(void) const
+std::map<unsigned int, Slot *> TerminalCategorySaloha::getSlots(void) const
 {
-	map<unsigned int, Slot *> slots;
-	for(vector<CarriersGroupSaloha *>::const_iterator it = this->carriers_groups.begin();
+  std::map<unsigned int, Slot *> slots;
+	for(std::vector<CarriersGroupSaloha *>::const_iterator it = this->carriers_groups.begin();
 	    it != this->carriers_groups.end(); ++it)
 	{
 		CarriersGroupSaloha *carriers = *it;
-		map<unsigned int, Slot *> sl = carriers->getSlots();
+    std::map<unsigned int, Slot *> sl = carriers->getSlots();
 
 		slots.insert(sl.begin(), sl.end());
 	}

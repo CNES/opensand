@@ -106,7 +106,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 			    "message received from the upper-layer bloc\n");
 			
       auto msg_event = static_cast<const MessageEvent *>(event);
-			if(static_cast<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
+			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
 			{
 				// 'link up' message received 
 				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
@@ -149,7 +149,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 			    "message received from the lower layer\n");
 
       auto msg_event = static_cast<const MessageEvent *>(event);
-			if(static_cast<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
+			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
 			{
 				std::vector<EncapPlugin::EncapContext*>::iterator encap_it;
 

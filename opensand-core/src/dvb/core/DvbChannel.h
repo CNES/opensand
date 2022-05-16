@@ -153,7 +153,7 @@ class DvbChannel
 	template<class T>
 	bool initBand(const OpenSandModelConf::spot &spot,
 	              string section,
-	              access_type_t access_type,
+	              AccessType access_type,
 	              time_ms_t duration_ms,
 	              const FmtDefinitionTable *fmt_def,
 	              TerminalCategories<T> &categories,
@@ -344,7 +344,7 @@ inline vector<unsigned int> tempSplit(string values)
 template<class T>
 bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
                           string section,
-                          access_type_t access_type,
+                          AccessType access_type,
                           time_ms_t duration_ms,
                           const FmtDefinitionTable *fmt_def,
                           TerminalCategories<T> &categories,
@@ -374,7 +374,7 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 				fmt_groups[group_id] = group;
 
 				auto modcod_amount = group->getFmtIds().size();
-				if ((is_vcm || access_type == ALOHA) && modcod_amount > 1) {
+				if ((is_vcm || access_type == AccessType::ALOHA) && modcod_amount > 1) {
 					LOG(this->log_init_channel, LEVEL_ERROR,
 					    "Carrier cannot have more than one modcod for saloha or VCM\n");
 					return false;

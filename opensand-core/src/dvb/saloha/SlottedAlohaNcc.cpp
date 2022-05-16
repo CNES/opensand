@@ -80,7 +80,7 @@ SlottedAlohaNcc::~SlottedAlohaNcc()
 
 	this->terminal_affectation.clear();
 
-	for(vector<SlottedAlohaSimu *>::iterator it = this->simu.begin();
+	for(std::vector<SlottedAlohaSimu *>::iterator it = this->simu.begin();
 	    it != this->simu.end(); ++it)
 	{
 		delete *it;
@@ -293,8 +293,8 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 	for(unsigned int cpt = 0; cpt < frame->getDataLength(); cpt++)
 	{
 		SlottedAlohaPacketData *sa_packet;
-		map<unsigned int, Slot *> slots;
-		map<unsigned int, Slot *>::iterator slot_it;
+    std::map<unsigned int, Slot *> slots;
+    std::map<unsigned int, Slot *>::iterator slot_it;
 		TerminalContextSaloha *terminal;
 		saloha_terminals_t::iterator st;
 		TerminalCategorySaloha *category;
@@ -403,7 +403,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		return false;
 	}
 
-	for(vector<SlottedAlohaSimu *>::iterator it = this->simu.begin();
+	for(std::vector<SlottedAlohaSimu *>::iterator it = this->simu.begin();
 	    it != this->simu.end(); ++it)
 	{
 		if((*it)->getCategory() == category->getLabel())
@@ -580,14 +580,14 @@ void SlottedAlohaNcc::removeCollisions(TerminalCategorySaloha *category)
 	uint16_t nbr;
 	unsigned int slots_per_carrier = floor(category->getSlotsNumber() /
 	                                       category->getCarriersNumber());
-	map<unsigned int, Slot *> slots = category->getSlots();
+  std::map<unsigned int, Slot *> slots = category->getSlots();
 	AlohaPacketComparator comparator(slots_per_carrier);
 	saloha_packets_data_t *accepted_packets = category->getAcceptedPackets();
 
 	if(this->probe_collisions_before[category->getLabel()]->isEnabled())
 	{
 		uint16_t coll = 0;
-		for(map<unsigned int, Slot *>::iterator slot_it = slots.begin();
+		for(std::map<unsigned int, Slot *>::iterator slot_it = slots.begin();
 		    slot_it != slots.end(); ++slot_it)
 		{
 			Slot *slot = (*slot_it).second;
@@ -643,7 +643,7 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category,
 		it = time_slots.begin();
 		while(it != time_slots.end())
 		{
-			map<unsigned int, Slot *> slots = category->getSlots();
+      std::map<unsigned int, Slot *> slots = category->getSlots();
 			uint16_t nb_replicas = simulation->getNbReplicas();
 			uint16_t replicas[nb_replicas];
 			for(uint16_t rep_cpt = 0; rep_cpt < nb_replicas; rep_cpt++)

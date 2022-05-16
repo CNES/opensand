@@ -585,7 +585,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	// init band
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
-	                                         DAMA,
+	                                         AccessType::DAMA,
 	                                         this->ret_up_frame_duration_ms,
 	                                         this->rcs_modcod_def,
 	                                         dama_categories,
@@ -861,7 +861,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
 	                                           "return up frequency plan",
-	                                           ALOHA,
+	                                           AccessType::ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           // initialized in DAMA
 	                                           this->rcs_modcod_def,
@@ -1046,7 +1046,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	TerminalCategoryDama *default_category{nullptr};
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
-	                                         SCPC,
+	                                         AccessType::SCPC,
 	                                         this->scpc_carr_duration_ms,
 	                                         // input modcod for S2
 	                                         this->s2_modcod_def,
@@ -1271,7 +1271,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 		case evt_message:
 		{
 	    auto msg_event = static_cast<const MessageEvent*>(event);
-      InternalMessageType msg_type = static_cast<InternalMessageType>(msg_event->getMessageType());
+      InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
 
 			// first handle specific messages
 			if(msg_type == InternalMessageType::msg_sig)

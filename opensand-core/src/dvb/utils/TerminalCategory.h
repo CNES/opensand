@@ -47,10 +47,6 @@
 #include <map>
 #include <vector>
 
-using std::string;
-using std::map;
-using std::vector;
-
 
 /**
  * @class TerminalCategory
@@ -68,7 +64,7 @@ class TerminalCategory
 	 * @param  label           label of the category.
 	 * @param  desired_access  the access type we support for our carriers
 	 */
-	TerminalCategory(string label, access_type_t desired_access):
+	TerminalCategory(const std::string& label, AccessType desired_access):
 		terminals(),
 		carriers_groups(),
 		desired_access(desired_access),
@@ -82,8 +78,8 @@ class TerminalCategory
 
 	virtual ~TerminalCategory()
 	{
-		typename vector<T *>::const_iterator it;
-		vector<CarriersGroup *>::const_iterator other_it;
+		typename std::vector<T *>::const_iterator it;
+    std::vector<CarriersGroup *>::const_iterator other_it;
 
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); ++it)
@@ -106,7 +102,7 @@ class TerminalCategory
 	 *
 	 * @return  the label.
 	 */
-	string getLabel() const
+  std::string getLabel() const
 	{
 		return this->label;
 	};
@@ -121,8 +117,8 @@ class TerminalCategory
 	{
 		// Compute weighted sum in ks/s since available bandplan is in kHz
 		double weighted_sum_ksymps = 0.0;
-		typename vector<T *>::const_iterator it;
-		vector<CarriersGroup *>::const_iterator other_it;
+		typename std::vector<T *>::const_iterator it;
+    std::vector<CarriersGroup *>::const_iterator other_it;
 
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); ++it)
@@ -150,8 +146,8 @@ class TerminalCategory
 	unsigned int getRatio() const
 	{
 		unsigned int ratio = 0;
-		typename vector<T *>::const_iterator it;
-		vector<CarriersGroup *>::const_iterator other_it;
+		typename std::vector<T *>::const_iterator it;
+    std::vector<CarriersGroup *>::const_iterator other_it;
 
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); ++it)
@@ -176,7 +172,7 @@ class TerminalCategory
 	rate_kbps_t getMaxRate() const
 	{
 		rate_kbps_t rate_kbps;
-		typename vector<T *>::iterator it;
+		typename std::vector<T *>::iterator it;
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); it++)
 		{
@@ -193,8 +189,8 @@ class TerminalCategory
 	rate_symps_t getTotalSymbolRate() const
 	{
 		rate_symps_t  rate_symps = 0;
-		typename vector<T *>::const_iterator it;
-		vector<CarriersGroup *>::const_iterator other_it;
+		typename std::vector<T *>::const_iterator it;
+    std::vector<CarriersGroup *>::const_iterator other_it;
 
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); ++it)
@@ -223,8 +219,8 @@ class TerminalCategory
 	{
 		unsigned int total_ratio = this->getRatio();
 		unsigned int total_number = 0;
-		typename vector<T *>::const_iterator it;
-		vector<CarriersGroup *>::const_iterator other_it;
+		typename std::vector<T *>::const_iterator it;
+    std::vector<CarriersGroup *>::const_iterator other_it;
 
 		if(carriers_number < this->carriers_groups.size())
 		{
@@ -302,7 +298,7 @@ class TerminalCategory
 	 */
 	bool removeTerminal(TerminalContext *terminal)
 	{
-		vector<TerminalContext *>::iterator terminal_it
+    std::vector<TerminalContext *>::iterator terminal_it
 		                                    = this->terminals.begin();
 		const tal_id_t tal_id = terminal->getTerminalId();
 		while(terminal_it != this->terminals.end()
@@ -330,7 +326,7 @@ class TerminalCategory
 	 *
 	 * @return  the carriers groups
 	 */
-	vector<T *> getCarriersGroups(void) const
+  std::vector<T *> getCarriersGroups(void) const
 	{
 		return this->carriers_groups;
 	};
@@ -348,10 +344,10 @@ class TerminalCategory
 	                      const FmtGroup *const fmt_group,
 	                      unsigned int ratio,
 	                      rate_symps_t rate_symps,
-	                      access_type_t access_type)
+	                      AccessType access_type)
 	{
-		typename vector<T *>::const_iterator it;
-		vector<CarriersGroup *>::const_iterator other_it;
+		typename std::vector<T *>::const_iterator it;
+    std::vector<CarriersGroup *>::const_iterator other_it;
 		// first, check if we already have this carriers id in case
 		// of VCM carriers
 		for(it = this->carriers_groups.begin();
@@ -407,7 +403,7 @@ class TerminalCategory
 	unsigned int getCarriersNumber(void) const
 	{
 		unsigned int carriers_number = 0;
-		typename vector<T *>::const_iterator it;
+		typename std::vector<T *>::const_iterator it;
 
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); ++it)
@@ -422,7 +418,7 @@ class TerminalCategory
 	 *
 	 * @return  terminal list.
 	 */
-	vector<TerminalContext *> getTerminals() const
+  std::vector<TerminalContext *> getTerminals() const
 	{
 		return this->terminals;
 	};
@@ -446,10 +442,10 @@ class TerminalCategory
 	                      unsigned int carriers_number,
 	                      unsigned int ratio,
 	                      rate_symps_t rate_symps,
-	                      access_type_t access_type,
+	                      AccessType access_type,
 	                      time_ms_t duration_ms)
 	{
-		typename vector<T *>::const_iterator it;
+		typename std::vector<T *>::const_iterator it;
 		// first, we check if there is already a group with this symbol rate
 		T* carriers_group = this->searchCarriersGroup(rate_symps);
 		if(carriers_group != NULL)
@@ -513,7 +509,7 @@ class TerminalCategory
 	 *
 	 * @return  the symbol_rate_list.
 	 */
-	map<rate_symps_t, unsigned int> getSymbolRateList() const
+  std::map<rate_symps_t, unsigned int> getSymbolRateList() const
 	{
 		return this->symbol_rate_list;
 	}
@@ -526,7 +522,7 @@ class TerminalCategory
 	unsigned int getHighestCarrierId() const
 	{
 		unsigned int max_carrier_id = 0;
-		typename vector<T *>::const_iterator it;
+		typename std::vector<T *>::const_iterator it;
 
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); it++)
@@ -552,7 +548,7 @@ class TerminalCategory
 	                        unsigned int number,
 	                        unsigned int &associated_ratio)
 	{
-		typename vector<T *>::iterator it;
+		typename std::vector<T *>::iterator it;
 		unsigned int number_carriers = number;
 		unsigned int ratio;
 		unsigned int new_ratio;
@@ -604,7 +600,7 @@ class TerminalCategory
 	 *
 	 * @return  the access type of the carriers
 	 */
-	access_type_t getDesiredAccess() const
+	AccessType getDesiredAccess() const
 	{
 		return this->desired_access;
 	}
@@ -616,7 +612,7 @@ class TerminalCategory
 	 */
 	const FmtGroup* getFmtGroup()
 	{
-		typename vector<T *>::iterator it = this->carriers_groups.begin();
+		typename std::vector<T *>::iterator it = this->carriers_groups.begin();
 		if(it == this->carriers_groups.end())
 		{
 			return NULL;
@@ -629,7 +625,7 @@ class TerminalCategory
 	 */
 	void print()
 	{
-		typename vector<T *>::iterator it;
+		typename std::vector<T *>::iterator it;
 		LOG(this->log_terminal_category, LEVEL_ERROR,
 		    "Name : %s, access type = %u\n",
 		    this->label.c_str(), this->desired_access);
@@ -655,7 +651,7 @@ class TerminalCategory
 	T* searchCarriersGroup(rate_symps_t symbol_rate)
 	{
 		T* carriers_group = NULL;
-		typename vector<T *>::iterator it;
+		typename std::vector<T *>::iterator it;
 
 		for(it = this->carriers_groups.begin();
 		    it != this->carriers_groups.end(); it++)
@@ -675,31 +671,31 @@ class TerminalCategory
   std::shared_ptr<OutputLog> log_terminal_category;
 
 	/** List of terminals. */
-	vector<TerminalContext *> terminals;
+  std::vector<TerminalContext *> terminals;
 
 	/** List of carriers */
-	vector<T *> carriers_groups;
+  std::vector<T *> carriers_groups;
 
 	/** The access type of the carriers */
-	access_type_t desired_access;
+	AccessType desired_access;
 	
 	/** The label */
-	string label;
+  std::string label;
 
 	/** The list of Symbol rate, list(rs,nb_carriers) **/
-	map<rate_symps_t, unsigned int> symbol_rate_list;
+  std::map<rate_symps_t, unsigned int> symbol_rate_list;
 
  private:
 	/** The carriers groups that does not correspond to the desired access type
 	 *   needed for band computation */
-	vector<CarriersGroup *> other_carriers;
+  std::vector<CarriersGroup *> other_carriers;
 };
 
 
 template<class T>
-class TerminalCategories: public map<string, T *> {};
+class TerminalCategories: public std::map<std::string, T *> {};
 template<class T>
-class TerminalMapping: public map<tal_id_t, T *> {};
+class TerminalMapping: public std::map<tal_id_t, T *> {};
 
 #endif
 

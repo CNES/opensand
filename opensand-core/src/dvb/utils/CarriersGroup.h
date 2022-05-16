@@ -60,7 +60,7 @@ class CarriersGroup
 	              const FmtGroup *const fmt_group,
 	              unsigned int ratio,
 	              rate_symps_t rate_symps,
-	              access_type_t access_type);
+	              AccessType access_type);
 
 	/** Destructor */
 	virtual ~CarriersGroup();
@@ -140,7 +140,7 @@ class CarriersGroup
 	 *
 	 * @return  The carriers access type
 	 */
-	access_type_t getAccessType(void) const;
+	AccessType getAccessType(void) const;
 
  	/**
 	 * @brief Get the FMT Group
@@ -186,7 +186,7 @@ class CarriersGroup
 	rate_symps_t symbol_rate_symps;
 
 	/** Access type */
-	access_type_t access_type;
+	AccessType access_type;
 };
 
 

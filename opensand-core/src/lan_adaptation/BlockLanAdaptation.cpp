@@ -173,7 +173,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 		case evt_message:
 		{
       auto msg_event = static_cast<const MessageEvent *>(event);
-			if(static_cast<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
+			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
 			{
 				// 'link is up' message advertised
 				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
@@ -241,7 +241,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 		case evt_message:
 		{
       auto msg_event = static_cast<const MessageEvent *>(event);
-			if(static_cast<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
+			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
 			{
 				// 'link is up' message advertised
 				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());

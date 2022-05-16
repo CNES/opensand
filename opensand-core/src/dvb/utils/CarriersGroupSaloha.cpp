@@ -50,7 +50,7 @@ CarriersGroupSaloha::CarriersGroupSaloha(unsigned int carriers_id,
                                          const FmtGroup *const fmt_group,
                                          unsigned int ratio,
                                          rate_symps_t symbol_rate_symps,
-                                         access_type_t access_type):
+                                         AccessType access_type):
 	CarriersGroup(carriers_id, fmt_group, ratio, symbol_rate_symps, access_type),
 	slots()
 {

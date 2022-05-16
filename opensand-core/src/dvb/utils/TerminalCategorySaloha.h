@@ -58,7 +58,7 @@ class TerminalCategorySaloha: public TerminalCategory<CarriersGroupSaloha>
 	 * @param  label  label of the category.
 	 * @param  desired_access  the access type we support for our carriers
 	 */
-	TerminalCategorySaloha(string label, access_type_t desired_access);
+	TerminalCategorySaloha(const std::string& label, AccessType desired_access);
 
 	~TerminalCategorySaloha();
 
@@ -81,7 +81,7 @@ class TerminalCategorySaloha: public TerminalCategory<CarriersGroupSaloha>
 	 *
 	 * @return the slots from all carriers
 	 */
-	map<unsigned int, Slot *> getSlots(void) const;
+  std::map<unsigned int, Slot *> getSlots(void) const;
 
 	/**
 	 * @brief Get the packets that can be transmitted to

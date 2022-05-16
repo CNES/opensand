@@ -62,7 +62,7 @@ class CarriersGroupSaloha: public CarriersGroup
 	                    const FmtGroup *const fmt_group,
 	                    unsigned int ratio,
 	                    rate_symps_t rate_symps,
-	                    access_type_t access_type);
+	                    AccessType access_type);
 
 	/** Destructor */
 	virtual ~CarriersGroupSaloha();

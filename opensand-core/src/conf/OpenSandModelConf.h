@@ -99,7 +99,7 @@ class OpenSandModelConf
 	};
 
 	struct carrier {
-		access_type_t access_type;
+		AccessType access_type;
 		std::string category;
 		rate_symps_t symbol_rate;
 		std::map<std::string, unsigned int> format_ratios;

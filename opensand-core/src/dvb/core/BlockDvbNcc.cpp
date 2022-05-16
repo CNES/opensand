@@ -348,7 +348,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		case evt_message:
 		{
 			auto msg_event = static_cast<const MessageEvent*>(event);
-      InternalMessageType msg_type = static_cast<InternalMessageType>(msg_event->getMessageType());
+      InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
 
 			// first handle specific messages
 			if(msg_type == InternalMessageType::msg_sig)

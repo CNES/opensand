@@ -189,7 +189,7 @@ bool SpotUpward::initSlottedAloha(void)
 
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
 	                                           "return up frequency plan",
-	                                           ALOHA,
+	                                           AccessType::ALOHA,
 	                                           this->ret_up_frame_duration_ms,
 	                                           this->rcs_modcod_def,
 	                                           sa_categories,
@@ -444,7 +444,7 @@ bool SpotUpward::checkIfScpc()
 
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
-	                                         SCPC,
+	                                         AccessType::SCPC,
 	                                         // used for checking, no need to get a relevant value
 	                                         5,
 	                                         // we need S2 modcod definitions

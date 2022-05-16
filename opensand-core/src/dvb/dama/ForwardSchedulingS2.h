@@ -85,7 +85,7 @@ class ForwardSchedulingS2: public Scheduling
 	time_ms_t fwd_timer_ms;
 
 	/** the BBFrame being built identified by their modcod */
-	map<unsigned int, BBFrame *> incomplete_bb_frames;
+  std::map<unsigned int, BBFrame *> incomplete_bb_frames;
 
 	/** the BBframe being built in their created order */
 	list<BBFrame *> incomplete_bb_frames_ordered;
@@ -110,8 +110,8 @@ class ForwardSchedulingS2: public Scheduling
   std::shared_ptr<Probe<int>> probe_fwd_total_capacity;
   std::shared_ptr<Probe<int>> probe_fwd_total_remaining_capacity;
   std::shared_ptr<Probe<int>> probe_bbframe_nbr;
-	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_fwd_remaining_capacity;
-	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_fwd_available_capacity;
+  std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_fwd_remaining_capacity;
+  std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_fwd_available_capacity;
 
 	/// The MODCOD for emmited frames
   std::shared_ptr<Probe<int>> probe_gw_sent_modcod;
@@ -219,17 +219,17 @@ class ForwardSchedulingS2: public Scheduling
 	/**
 	 * @brief  Create the associated probes
 	 */
-	void createProbes(vector<CarriersGroupDama *>::iterator vcm_it,
-	                  vector<CarriersGroupDama *> vcm_carriers,
-	                  vector<std::shared_ptr<Probe<int> > > &remain_probes,
-	                  vector<std::shared_ptr<Probe<int> > > &avail_probes,
+	void createProbes(std::vector<CarriersGroupDama *>::iterator vcm_it,
+	                  std::vector<CarriersGroupDama *> vcm_carriers,
+	                  std::vector<std::shared_ptr<Probe<int> > > &remain_probes,
+	                  std::vector<std::shared_ptr<Probe<int> > > &avail_probes,
 	                  unsigned int carriers_id);
 
 	/**
 	 * @brief  Check that the size of the carrier is compatible with the BBFrame size
 	 */
-	void checkBBFrameSize(vector<CarriersGroupDama *>::iterator vcm_it,
-	                      vector<CarriersGroupDama *> vcm_carriers);
+	void checkBBFrameSize(std::vector<CarriersGroupDama *>::iterator vcm_it,
+	                      std::vector<CarriersGroupDama *> vcm_carriers);
 
 };
 
