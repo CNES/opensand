@@ -61,7 +61,6 @@ class SignalEvent: public RtEvent
 	SignalEvent(const std::string &name,
 	            sigset_t signal_mask,
 	            uint8_t priority = 1);
-	~SignalEvent(void);
 
 	/*
 	 * @brief Get triggered signal information

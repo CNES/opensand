@@ -51,10 +51,6 @@ MessageEvent::MessageEvent(RtFifo *const fifo,
 {
 }
 
-MessageEvent::~MessageEvent()
-{
-}
-
 bool MessageEvent::handle(void)
 {
 	unsigned char data[strlen(MAGIC_WORD)];

@@ -62,10 +62,6 @@ TimerEvent::TimerEvent(const std::string &name,
 	}
 }
 
-TimerEvent::~TimerEvent(void)
-{
-}
-
 void TimerEvent::start(void)
 {
 	itimerspec timer_value;

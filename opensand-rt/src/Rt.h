@@ -60,9 +60,6 @@ class Rt
 	friend class SignalEvent;
 
   public:
-	Rt();
-	~Rt();
-
 	/**
 	 * @brief Creates and adds a block to the application.
 	 *

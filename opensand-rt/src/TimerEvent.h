@@ -68,8 +68,6 @@ class TimerEvent: public RtEvent
 	           bool auto_rearm = false,
 	           bool start = true,
 	           uint8_t priority = 2);
-	~TimerEvent(void);
-
 
 	/**
 	 * @brief Start the timer

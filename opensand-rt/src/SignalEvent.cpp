@@ -60,10 +60,6 @@ SignalEvent::SignalEvent(const std::string &name,
 	}
 }
 
-SignalEvent::~SignalEvent(void)
-{
-}
-
 bool SignalEvent::handle(void)
 {
 	// be careful, if you read signal here, it won't be accessible by
