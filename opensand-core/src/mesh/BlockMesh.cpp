@@ -73,7 +73,7 @@ bool BlockMesh::onInit()
 	upward->default_entity = default_entity;
 	downward->default_entity = default_entity;
 	LOG(log_init, LEVEL_INFO, "Default entity: %d", default_entity);
-	
+
 	return true;
 }
 
@@ -127,16 +127,23 @@ bool BlockMesh::Upward::onEvent(const RtEvent *const event)
 	}
 
 	auto msg_event = static_cast<const MessageEvent *>(event);
-	if (to_enum<InternalMessageType>(msg_event->getMessageType()) != InternalMessageType::msg_data)
+	switch (to_enum<InternalMessageType>(msg_event->getMessageType()))
 	{
-		LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
-		    msg_event->getName().c_str());
-		return false;
+		case InternalMessageType::msg_data:
+		{
+			auto burst = static_cast<const NetBurst *>(msg_event->getData());
+			return handleNetBurst(std::unique_ptr<const NetBurst>{burst});
+		}
+		case InternalMessageType::msg_sig:
+		{
+			auto data = msg_event->getData();
+			return shareMessage(&data, msg_event->getLength(), msg_event->getMessageType());
+		}
+		default:
+			LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
+			    msg_event->getName().c_str());
+			return false;
 	}
-
-	auto burst = static_cast<const NetBurst *>(msg_event->getData());
-	return handleNetBurst(std::unique_ptr<const NetBurst>(burst));
-	// TODO: make event a unique_ptr? should we delete it or not?
 }
 
 bool BlockMesh::Upward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
@@ -180,6 +187,22 @@ bool BlockMesh::Upward::sendToOppositeChannel(std::unique_ptr<const NetBurst> bu
 		LOG(this->log_send, LEVEL_ERROR,
 		    "Failed to transmit message to the opposite channel");
 		delete burst_ptr;
+		return false;
+	}
+	return true;
+}
+
+bool BlockMesh::Upward::sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame)
+{
+	LOG(log_send, LEVEL_INFO, "Sending a control DVB frame to the opposite channel");
+
+	auto frame_ptr = frame.release();
+	bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_sig));
+	if (!ok)
+	{
+		LOG(this->log_send, LEVEL_ERROR,
+		    "Failed to transmit a control DVB frame to the opposite channel");
+		delete frame_ptr;
 		return false;
 	}
 	return true;
@@ -229,7 +252,7 @@ bool BlockMesh::Downward::onInit()
 	                   isl_in.port,
 	                   isl_in.is_multicast,
 	                   local_ip_addr,
-	                   isl_in.address,  // unused for now (dest IP), but may be used if we switch to multicast for ISL
+	                   isl_in.address, // unused for now (dest IP), but may be used if we switch to multicast for ISL
 	                   isl_in.udp_stack,
 	                   isl_in.udp_rmem,
 	                   isl_in.udp_wmem}};
@@ -258,16 +281,26 @@ bool BlockMesh::Downward::onEvent(const RtEvent *const event)
 
 bool BlockMesh::Downward::handleMessageEvent(const MessageEvent *event)
 {
-	if (to_enum<InternalMessageType>(event->getMessageType()) != InternalMessageType::msg_data)
-	{
-		LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
-		    event->getName().c_str());
-		return false;
-	}
-	LOG(log_receive, LEVEL_INFO, "Received a NetBurst MessageEvent");
 
-	auto burst = static_cast<const NetBurst *>(event->getData());
-	return handleNetBurst(std::unique_ptr<const NetBurst>(burst));
+	switch (to_enum<InternalMessageType>(event->getMessageType()))
+	{
+		case InternalMessageType::msg_data:
+		{
+			LOG(log_receive, LEVEL_INFO, "Received a NetBurst MessageEvent");
+			auto burst = static_cast<const NetBurst *>(event->getData());
+			return handleNetBurst(std::unique_ptr<const NetBurst>(burst));
+		}
+		case InternalMessageType::msg_sig:
+		{
+			LOG(log_receive, LEVEL_INFO, "Received a control message");
+			auto dvb_frame = static_cast<const DvbFrame *>(event->getData());
+			return handleControlMsg(std::unique_ptr<const DvbFrame>{dvb_frame});
+		}
+		default:
+			LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
+			    event->getName().c_str());
+			return false;
+	}
 }
 
 bool BlockMesh::Downward::handleNetSocketEvent(NetSocketEvent *event)
@@ -277,7 +310,7 @@ bool BlockMesh::Downward::handleNetSocketEvent(NetSocketEvent *event)
 	std::size_t length;
 	net_packet_buffer_t *buf;
 
-	// TODO: remove this 
+	// TODO: remove this
 	if (!NetBurst::log_net_burst)
 		NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
 
@@ -293,7 +326,8 @@ bool BlockMesh::Downward::handleNetSocketEvent(NetSocketEvent *event)
 		}
 		burst->add(buf->deserialize().release());
 		delete buf;
-	} while (ret == 1 && !burst->isFull());
+	}
+	while (ret == 1 && !burst->isFull());
 
 	return handleNetBurst(std::move(burst));
 }
@@ -309,7 +343,7 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 
 	LOG(log_receive, LEVEL_INFO, "Handling a NetBurst from entity %d to entity %d",
 	    first_pkt.getSrcTalId(), first_pkt.getDstTalId());
-	
+
 	spot_id_t spot_id = first_pkt.getSpot();
 
 	if (mesh_architecture) // Mesh architecture -> packet are routed according to their destination
@@ -376,16 +410,57 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 	return false;
 }
 
+bool BlockMesh::Downward::handleControlMsg(std::unique_ptr<const DvbFrame> frame)
+{
+	switch (frame->getMessageType())
+	{
+		// Control messages ST->GW
+		case MSG_TYPE_SAC:
+		case MSG_TYPE_CSC:
+		case MSG_TYPE_SESSION_LOGON_REQ:
+		case MSG_TYPE_SESSION_LOGOFF:
+			return sendToLowerBlock({frame->getSpot(), Component::gateway}, std::move(frame));
+
+		// Control messages GW->ST
+		case MSG_TYPE_SOF:
+		case MSG_TYPE_TTP:
+		case MSG_TYPE_SESSION_LOGON_RESP:
+			return sendToLowerBlock({frame->getSpot(), Component::terminal}, std::move(frame));
+
+		default:
+			LOG(log_receive, LEVEL_ERROR, "Unexpected control message type received: %s (%d)",
+			    frame->getName().c_str(), frame->getMessageType());
+			return false;
+	}
+}
+
 bool BlockMesh::Downward::sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const NetBurst> burst)
 {
-	LOG(log_send, LEVEL_INFO, "Sending a NetBurst to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
+	LOG(log_send, LEVEL_INFO, "Sending a NetBurst to the lower block, in the spot %d %s stack",
+	    key.spot_id, key.dest == Component::gateway ? "GW" : "ST");
 	auto burst_ptr = burst.release();
 	bool ok = enqueueMessage(key, (void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::msg_data));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,
-		    "Failed to transmit message to the opposite channel");
+		    "Failed to transmit a NetBurst to the lower block");
 		delete burst_ptr;
+		return false;
+	}
+	return true;
+}
+
+bool BlockMesh::Downward::sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const DvbFrame> frame)
+{
+	LOG(log_send, LEVEL_INFO, "Sending a control DVB frame to the lower block, in the spot %d %s stack",
+	    key.spot_id, key.dest == Component::gateway ? "GW" : "ST");
+	auto frame_ptr = frame.release();
+	bool ok = enqueueMessage(key, (void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_sig));
+	if (!ok)
+	{
+		LOG(this->log_send, LEVEL_ERROR,
+		    "Failed to transmit a control DVB frame to the lower block");
+		delete frame_ptr;
 		return false;
 	}
 	return true;
@@ -400,7 +475,7 @@ bool BlockMesh::Downward::sendToOppositeChannel(std::unique_ptr<const NetBurst> 
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,
-		    "Failed to transmit message to the opposite channel");
+		    "Failed to transmit a NetBurst to the opposite channel");
 		delete burst_ptr;
 		return false;
 	}

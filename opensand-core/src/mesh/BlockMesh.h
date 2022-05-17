@@ -35,6 +35,7 @@
 #ifndef BLOCK_MESH_H
 #define BLOCK_MESH_H
 
+#include "DvbFrame.h"
 #include "NetBurst.h"
 #include "OpenSandModelConf.h"
 #include "SatDemuxKey.h"
@@ -65,6 +66,7 @@ class BlockMesh: public Block
 		bool onEvent(const RtEvent *const event) override;
 		bool handleNetBurst(std::unique_ptr<const NetBurst> burst);
 		bool sendToOppositeChannel(std::unique_ptr<const NetBurst> burst);
+		bool sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame);
 		bool sendViaIsl(std::unique_ptr<const NetBurst> burst);
 
 		OpenSandModelConf::carrier_socket isl_out;
@@ -87,8 +89,10 @@ class BlockMesh: public Block
 		bool handleMessageEvent(const MessageEvent *event);
 		bool handleNetSocketEvent(NetSocketEvent *event);
 		bool handleNetBurst(std::unique_ptr<const NetBurst> burst);
+		bool handleControlMsg(std::unique_ptr<const DvbFrame> msg_event);
 		bool sendToOppositeChannel(std::unique_ptr<const NetBurst> burst);
 		bool sendToLowerBlock(SatDemuxKey dest, std::unique_ptr<const NetBurst> burst);
+		bool sendToLowerBlock(SatDemuxKey dest, std::unique_ptr<const DvbFrame> frame);
 
 		OpenSandModelConf::carrier_socket isl_in;
 		bool mesh_architecture;
