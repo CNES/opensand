@@ -113,29 +113,28 @@ BlockDvbTal::~BlockDvbTal()
 	delete this->output_sts;
 }
 
-void BlockDvbTal::generateConfiguration(bool disable_control_plane)
+void BlockDvbTal::generateConfiguration()
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
-	auto conf = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");
 
-	if (disable_control_plane)
-	{
-		auto scpc = conf->addComponent("scpc", "SCPC");
-		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
-	}
-	else
-	{
+	auto ctrl_plane = Conf->getOrCreateComponent("control_plane", "Control plane", "Control plane configuration");
+	auto enable_ctrl_plane = ctrl_plane->addParameter("enable_control_plane", "Enable control plane", types->getType("bool"));
+
+	{ // Access section when control plane is enabled
+		auto access = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");
+		Conf->setProfileReference(access, enable_ctrl_plane, true);
+
 		types->addEnumType("fifo_access_type", "Access Type", {"DAMA_RBDC", "DAMA_VBDC", "DAMA_CRA", "SALOHA"});
 		// TODO: Keep in sync with topology
 		types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
-		types->addEnumType("dama_algorithm", "DAMA Agent Algorithm", {"Legacy",});
+		types->addEnumType("dama_algorithm", "DAMA Agent Algorithm", {"Legacy"});
 
-		auto settings = conf->addComponent("settings", "Settings");
+		auto settings = access->addComponent("settings", "Settings");
 		settings->addParameter("category", "Category", types->getType("carrier_group"));
 
 		auto dama_enabled = settings->addParameter("dama_enabled", "Enable DAMA", types->getType("bool"));
-		auto dama = conf->addComponent("dama", "DAMA");
+		auto dama = access->addComponent("dama", "DAMA");
 		Conf->setProfileReference(dama, dama_enabled, true);
 		dama->addParameter("cra", "CRA", types->getType("int"))->setUnit("kb/s");
 		auto enabled = dama->addParameter("rbdc_enabled", "Enable RBDC", types->getType("bool"));
@@ -153,16 +152,27 @@ void BlockDvbTal::generateConfiguration(bool disable_control_plane)
 		SlottedAlohaTal::generateConfiguration();
 
 		auto scpc_enabled = settings->addParameter("scpc_enabled", "Enabled SCPC", types->getType("bool"));
-		auto scpc = conf->addComponent("scpc", "SCPC");
+		auto scpc = access->addComponent("scpc", "SCPC");
 		Conf->setProfileReference(scpc, scpc_enabled, true);
 		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
+	}
+	auto network = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
+	Conf->setProfileReference(network, enable_ctrl_plane, true);
+	auto fifos = network->addList("fifos", "FIFOs", "fifo");
+	if (fifos)
+	{
+		auto pattern = fifos->getPattern();
+		pattern->addParameter("priority", "Priority", types->getType("int"));
+		pattern->addParameter("name", "Name", types->getType("string"));
+		pattern->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
+		pattern->addParameter("access_type", "Access Type", types->getType("fifo_access_type"));
+	}
 
-		conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
-		auto fifos = conf->addList("fifos", "FIFOs", "fifo")->getPattern();
-		fifos->addParameter("priority", "Priority", types->getType("int"));
-		fifos->addParameter("name", "Name", types->getType("string"));
-		fifos->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
-		fifos->addParameter("access_type", "Access Type", types->getType("fifo_access_type"));
+	{ // Access section when control plane is disabled
+		auto access = Conf->getOrCreateComponent("access2", "Access", "MAC layer configuration");
+		Conf->setProfileReference(access, enable_ctrl_plane, false);
+		auto scpc = access->addComponent("scpc", "SCPC");
+		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
 	}
 }
 
