@@ -41,6 +41,7 @@
 #include "OpenSandModelConf.h"
 
 #include <errno.h>
+#include <opensand_output/OutputEvent.h>
 
 
 SpotDownward::SpotDownward(spot_id_t spot_id,

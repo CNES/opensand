@@ -82,6 +82,7 @@
 TestBlock::TestBlock(const std::string &name):
 	Block(name)
 {
+	LOG(this->log_rt, LEVEL_INFO, "Block %s created\n", name.c_str());
 }
 
 TestBlock::~TestBlock()
@@ -126,7 +127,7 @@ bool TestBlock::Upward::onEvent(const RtEvent *const event)
 	
 	switch(event->getType())
 	{
-		case evt_timer:
+    case EventType::Timer:
 			// timer only on upward channel
 			this->nbr_timeouts++;
 			// test for duration
@@ -145,7 +146,7 @@ bool TestBlock::Upward::onEvent(const RtEvent *const event)
 			            this->last_written, strlen(this->last_written));
 			if(res == -1)
 			{
-				Rt::reportError(this->getName(), pthread_self(), true,
+				Rt::reportError(this->getName(), std::this_thread::get_id(), true,
 				                "cannot write on pipe");
 			}
 			std::cout << "Timer triggered in block: " << this->getName()
@@ -154,7 +155,7 @@ bool TestBlock::Upward::onEvent(const RtEvent *const event)
 
 			break;
 
-		case evt_message:
+    case EventType::Message:
 		{
 			size_t length = ((MessageEvent *)event)->getLength();
 			char *data = (char *)((MessageEvent *)event)->getData();
@@ -164,7 +165,7 @@ bool TestBlock::Upward::onEvent(const RtEvent *const event)
 
 			if(strncmp(this->last_written, (char*)data, length))
 			{
-				Rt::reportError(this->getName(), pthread_self(), true,
+				Rt::reportError(this->getName(), std::this_thread::get_id(), true,
 				                "wrong data received '%s' instead of '%s'",
 				                data, this->last_written);
 			}
@@ -174,7 +175,7 @@ bool TestBlock::Upward::onEvent(const RtEvent *const event)
 		break;
 
 		default:
-			Rt::reportError(this->getName(), pthread_self(), true, "unknown event");
+			Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
 			return false;
 	}
 	return true;
@@ -206,7 +207,7 @@ bool TestBlock::Downward::onEvent(const RtEvent *const event)
 	size_t size;
 	switch(event->getType())
 	{
-		case evt_file:
+    case EventType::File:
 			size = ((FileEvent *)event)->getSize();
 			data = (char *)((FileEvent *)event)->getData();
 			std::cout << "Data received on socket in block: " << this->getName()
@@ -215,13 +216,13 @@ bool TestBlock::Downward::onEvent(const RtEvent *const event)
 
 			if(!this->shareMessage((void **)&data, size))
 			{
-				Rt::reportError(this->getName(), pthread_self(), true,
+				Rt::reportError(this->getName(), std::this_thread::get_id(), true,
 				                "unable to transmit data to opposite channel");
 			}
 			break;
 
 		default:
-			Rt::reportError(this->getName(), pthread_self(), true, "unknown event");
+			Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
 			return false;
 
 	}
@@ -246,6 +247,8 @@ HeapLeakChecker heap_checker("test_block");
 	Rt::createBlock<TestBlock>("test");
 	
 	std::cout << "Start loop, please wait..." << std::endl;
+  Output::Get()->setLogLevel("", log_level_t::LEVEL_DEBUG);
+	Output::Get()->configureTerminalOutput();
 	Output::Get()->finalizeConfiguration();
 	if(!Rt::run(true))
 	{

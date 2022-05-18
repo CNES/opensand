@@ -51,6 +51,7 @@
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_output/OutputEvent.h>
 #include <opensand_rt/Rt.h>
 
 

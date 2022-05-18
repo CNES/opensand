@@ -41,7 +41,7 @@
 #include <cstdlib>
 #include <unistd.h>
 
-RtEvent::RtEvent(event_type_t type, const std::string &name, int32_t fd, uint8_t priority):
+RtEvent::RtEvent(EventType type, const std::string &name, int32_t fd, uint8_t priority):
 	type(type),
 	name(name),
 	fd(fd),

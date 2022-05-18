@@ -45,7 +45,7 @@
 SignalEvent::SignalEvent(const std::string &name,
                          sigset_t signal_mask,
                          uint8_t priority):
-	RtEvent(evt_signal, name, -1, priority),
+	RtEvent(EventType::Signal, name, -1, priority),
 	mask(signal_mask)
 {
 	int ret;
@@ -55,7 +55,7 @@ SignalEvent::SignalEvent(const std::string &name,
 	ret = pthread_sigmask(SIG_BLOCK, &this->mask, NULL);
 	if(ret != 0)
 	{
-		Rt::reportError("signal constructor", pthread_self(),
+		Rt::reportError("signal constructor", std::this_thread::get_id(),
 		                true, "Cannot block signal [%u: %s]", ret, strerror(ret));
 	}
 }
@@ -71,13 +71,11 @@ bool SignalEvent::handle(void)
 
 bool SignalEvent::readHandler(void)
 {
-	int rlen;
-
 	// signal structure size is constant
-	rlen = read(this->fd, &this->sig_info, sizeof(struct signalfd_siginfo));
+	auto rlen = read(this->fd, &this->sig_info, sizeof(struct signalfd_siginfo));
 	if(rlen != sizeof(struct signalfd_siginfo))
 	{
-		Rt::reportError(this->name, pthread_self(), true,
+		Rt::reportError(this->name, std::this_thread::get_id(), true,
 		                "cannot read signal [%u: %s]", errno, strerror(errno));
 		return false;
 	}

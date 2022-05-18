@@ -55,6 +55,7 @@
 
 #include <opensand_rt/Rt.h>
 #include <opensand_output/Output.h>
+#include <opensand_output/OutputEvent.h>
 
 #include <sstream>
 #include <assert.h>
@@ -1261,7 +1262,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			// first handle specific messages
 			if(((MessageEvent *)event)->getMessageType() == msg_sig)
@@ -1401,7 +1402,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_timer:
+    case EventType::Timer:
 		{
 			if(*event == this->logon_timer)
 			{
@@ -2170,7 +2171,7 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 

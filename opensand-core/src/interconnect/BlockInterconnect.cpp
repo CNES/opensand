@@ -54,7 +54,7 @@ bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			rt_msg_t message = ((MessageEvent *)event)->getMessage();
 
@@ -83,7 +83,7 @@ bool BlockInterconnectDownward::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_net_socket:
+    case EventType::NetSocket:
 		{
 			std::list<rt_msg_t> messages;
 
@@ -217,7 +217,7 @@ bool BlockInterconnectUpward::Downward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_net_socket:
+    case EventType::NetSocket:
 		{
 			std::list<rt_msg_t> messages;
 
@@ -261,7 +261,7 @@ bool BlockInterconnectUpward::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			rt_msg_t message = ((MessageEvent *)event)->getMessage();
 

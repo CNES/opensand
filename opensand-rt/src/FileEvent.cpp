@@ -45,7 +45,7 @@ FileEvent::FileEvent(const std::string &name,
                      int32_t fd,
                      size_t max_size,
                      uint8_t priority,
-                     event_type_t type):
+                     EventType type):
 	RtEvent(type, name, fd, priority),
 	max_size(max_size),
 	data(NULL),
@@ -67,7 +67,7 @@ bool FileEvent::handle(void)
 
 	if(this->data)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: previous data was not handled\n",
 		                this->name.c_str());
 		free(this->data);
@@ -78,13 +78,13 @@ bool FileEvent::handle(void)
 	ret = read(this->fd, this->data, this->max_size);
 	if(ret < 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "unable to read on socket [%u: %s]", errno, strerror(errno));
 		goto error;
 	}
 	else if((size_t)ret > this->max_size)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: too many data received (%zu > %zu)\n",
 		                this->name.c_str(), this->size, this->max_size);
 		goto error;

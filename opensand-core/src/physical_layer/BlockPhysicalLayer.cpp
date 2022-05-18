@@ -158,7 +158,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Incoming DVB frame");
@@ -198,7 +198,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_timer:
+		case EventType::Timer:
 		{
 			if(*event == this->fifo_timer)
 			{
@@ -315,7 +315,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Incoming DVB frame");
@@ -346,7 +346,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_timer:
+    case EventType::Timer:
 		{
 			if(*event == this->fifo_timer)
 			{

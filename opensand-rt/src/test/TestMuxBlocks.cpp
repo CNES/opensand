@@ -72,9 +72,9 @@ TopMux::Upward::Upward(const std::string &name):
 
 bool TopMux::Upward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != evt_message)
+	if (event->getType() != EventType::Message)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 		return false;
 	}
 	auto msg = static_cast<const MessageEvent *>(event);
@@ -89,9 +89,9 @@ TopMux::Downward::Downward(const std::string &name):
 
 bool TopMux::Downward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != evt_message)
+	if (event->getType() != EventType::Message)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 		return false;
 	}
 	auto msg = static_cast<const MessageEvent *>(event);
@@ -111,14 +111,14 @@ TopBlock::Upward::Upward(const std::string &name, Side side):
 
 bool TopBlock::Upward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != evt_message)
+	if (event->getType() != EventType::Message)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 		return false;
 	}
 	if (side == Side::RIGHT)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "The wrong block received the message");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
 		return false;
 	}
 	auto msg = static_cast<const MessageEvent *>(event);
@@ -133,14 +133,14 @@ TopBlock::Downward::Downward(const std::string &name, Side side):
 
 bool TopBlock::Downward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != evt_message)
+	if (event->getType() != EventType::Message)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 		return false;
 	}
 	if (side == Side::LEFT)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "The wrong block received the message");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
 		return false;
 	}
 	auto msg = static_cast<const MessageEvent *>(event);
@@ -159,14 +159,14 @@ MiddleBlock::Upward::Upward(const std::string &name, Side side):
 
 bool MiddleBlock::Upward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != evt_message)
+	if (event->getType() != EventType::Message)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 		return false;
 	}
 	if (side == Side::RIGHT)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "The wrong block received the message");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
 		return false;
 	}
 	auto msg = static_cast<const MessageEvent *>(event);
@@ -181,14 +181,14 @@ MiddleBlock::Downward::Downward(const std::string &name, Side side):
 
 bool MiddleBlock::Downward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != evt_message)
+	if (event->getType() != EventType::Message)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 		return false;
 	}
 	if (side == Side::LEFT)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "The wrong block received the message");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
 		return false;
 	}
 	auto msg = static_cast<const MessageEvent *>(event);
@@ -208,14 +208,14 @@ BottomBlock::Upward::Upward(const std::string &name, Side side):
 
 bool BottomBlock::Upward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != evt_message)
+	if (event->getType() != EventType::Message)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 		return false;
 	}
 	if (side == Side::RIGHT)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "The wrong block received the message");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
 		return false;
 	}
 	auto msg = static_cast<const MessageEvent *>(event);
@@ -230,14 +230,14 @@ BottomBlock::Downward::Downward(const std::string &name, Side side):
 
 bool BottomBlock::Downward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != evt_message)
+	if (event->getType() != EventType::Message)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 		return false;
 	}
 	if (side == Side::LEFT)
 	{
-		Rt::reportError(getName(), pthread_self(), true, "The wrong block received the message");
+		Rt::reportError(getName(), std::this_thread::get_id(), true, "The wrong block received the message");
 		return false;
 	}
 	auto msg = static_cast<const MessageEvent *>(event);
@@ -262,7 +262,7 @@ bool BottomMux::Upward::onInit()
 
 bool BottomMux::Upward::onEvent(const RtEvent *const event)
 {
-	Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+	Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 	return false;
 }
 
@@ -279,25 +279,25 @@ bool BottomMux::Downward::onEvent(const RtEvent *const event)
 {
 	switch (event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			auto msg = static_cast<const MessageEvent *>(event);
 			auto data = static_cast<std::string *>(msg->getData());
 			std::cout << "Received message: " << *data << "\n";
 			if (*data != "test")
 			{
-				Rt::reportError(getName(), pthread_self(), true, "Message has been modified");
+				Rt::reportError(getName(), std::this_thread::get_id(), true, "Message has been modified");
 				return false;
 			}
 			delete data;
 			kill(getpid(), SIGTERM);
 			return true;
 		}
-		case evt_timer:
-			Rt::reportError(getName(), pthread_self(), true, "Timeout while waiting for message");
+    case EventType::Timer:
+			Rt::reportError(getName(), std::this_thread::get_id(), true, "Timeout while waiting for message");
 			return false;
 		default:
-			Rt::reportError(getName(), pthread_self(), true, "Unexpected message received");
+			Rt::reportError(getName(), std::this_thread::get_id(), true, "Unexpected message received");
 			return false;
 	}
 	return false;

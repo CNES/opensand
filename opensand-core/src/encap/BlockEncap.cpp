@@ -90,7 +90,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_timer:
+    case EventType::Timer:
 		{
 			// timer event, flush corresponding encapsulation context
 			LOG(this->log_receive, LEVEL_INFO,
@@ -99,7 +99,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_message:
+    case EventType::Message:
 		{
 			// message received from another bloc
 			LOG(this->log_receive, LEVEL_INFO,
@@ -145,7 +145,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "message received from the lower layer\n");

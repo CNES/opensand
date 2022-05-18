@@ -40,6 +40,7 @@
 #include "OpenSandCore.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/NetSocketEvent.h>
 
 #include <vector>
 

@@ -37,21 +37,22 @@
 #ifndef RT_CHANNEL_BASE_H
 #define RT_CHANNEL_BASE_H
 
-#include "Types.h"
-#include "TimerEvent.h"
-
-#include <opensand_output/OutputLog.h>
-
 #include <stdlib.h>
+#include <sys/select.h>
 #include <string>
 #include <map>
-#include <list>
-#include <sys/select.h>
+#include <vector>
+#include <memory>
+
+#include "Types.h"
+#include "TimerEvent.h"
 
 
 class Block;
 class RtFifo;
 class RtEvent;
+class OutputLog;
+
 
 //#define TIME_REPORTS
 
@@ -69,13 +70,12 @@ class RtChannelBase
 	friend class Block;
 	friend class BlockManager;
 
-  protected:
-
+ protected:
 	/// Output Log
-  std::shared_ptr<OutputLog> log_init;
-  std::shared_ptr<OutputLog> log_rt;
-  std::shared_ptr<OutputLog> log_receive;
-  std::shared_ptr<OutputLog> log_send;
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_rt;
+	std::shared_ptr<OutputLog> log_receive;
+	std::shared_ptr<OutputLog> log_send;
 
 	/**
 	 * @brief Channel Constructor
@@ -118,8 +118,7 @@ class RtChannelBase
 	 */
 	virtual bool onEvent(const RtEvent *const event) = 0;
 
-  public:
-
+ public:
 	/**
 	 * @brief Get the channel name
 	 * 
@@ -157,19 +156,19 @@ class RtChannelBase
 	                          size_t max_size = MAX_SOCK_SIZE,
 	                          uint8_t priority = 3);
 
-	 /**
-	  * @brief Add a tcp listen event to the channel
-	  *
-	  * @param name      The name of the event
-	  * @param fd        The file descriptor to monitor
-	  * @param max_size  The maximum data size
-	  * @param priority  The priority of the event (small for high priority)
-	  * @return the event id on success, -1 otherwise
-	  */
-	 int32_t addTcpListenEvent(const std::string &name,
-	                           int32_t fd,
-	                           size_t max_size = MAX_SOCK_SIZE,
-	                           uint8_t priority = 4);
+	/**
+	 * @brief Add a tcp listen event to the channel
+	 *
+	 * @param name      The name of the event
+	 * @param fd        The file descriptor to monitor
+	 * @param max_size  The maximum data size
+	 * @param priority  The priority of the event (small for high priority)
+	 * @return the event id on success, -1 otherwise
+	 */
+	int32_t addTcpListenEvent(const std::string &name,
+	                          int32_t fd,
+	                          size_t max_size = MAX_SOCK_SIZE,
+	                          uint8_t priority = 4);
 
 	/**
 	 * @brief Add a file event to the channel
@@ -250,8 +249,7 @@ class RtChannelBase
 	 */
 	bool shareMessage(void **data, size_t size=0, uint8_t type=0);
 
-  protected:
-
+ protected:
 	/**
 	 * @brief Internal channel initialization
 	 *        Call specific onInit function
@@ -299,14 +297,6 @@ class RtChannelBase
 	 */
 	bool pushMessage(RtFifo *fifo, void **data, size_t size, uint8_t type = 0);
 
-	/**
-	 * @brief Start the channel thread
-	 *
-	 * @param pthis  pointer to the channel
-	 *
-	 */
-	static void *startThread(void *pthis);
-
 #ifdef TIME_REPORTS
 	/// statistics about events durations (in us)
 	std::map<std::string, std::vector<double> > durations;
@@ -317,8 +307,7 @@ class RtChannelBase
 	void getDurationsStatistics(void) const;
 #endif
 
-  private:
-
+ private:
 	/// name of the block channel
 	std::string channel_name;
 	
@@ -373,13 +362,11 @@ class RtChannelBase
 	 * @brief Update the events map with the new received event
 	 *        We need to do that in order to avoid modifying the event
 	 *        map while itering on it
-	 *
 	 */
 	void updateEvents(void);
 
 	/**
 	 * @brief Update the maximum input fd after event removal
-	 *
 	 */
 	void updateMaxFd(void);
 
@@ -400,23 +387,12 @@ class RtChannelBase
 	TimerEvent *getTimer(event_id_t id);
 };
 
+
 template<class T>
 RtChannelBase::RtChannelBase(const std::string &name, const std::string &type, T specific):
-	log_init(NULL),
-	log_rt(NULL),
-	log_receive(NULL),
-	log_send(NULL),
-	channel_name(name),
-	channel_type(type),
-	block_initialized(false),
-	in_opp_fifo(NULL),
-	max_input_fd(-1),
-	stop_fd(-1),
-	w_sel_break(-1),
-	r_sel_break(-1)
+	RtChannelBase(name, type)
 {
-	FD_ZERO(&(this->input_fd_set));
 };
 
-#endif
 
+#endif

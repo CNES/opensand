@@ -41,6 +41,9 @@
 #include "Sof.h"
 #include "Logon.h"
 
+#include <opensand_output/OutputEvent.h>
+
+
 SpotUpward::SpotUpward(spot_id_t spot_id,
                        tal_id_t mac_id,
                        StFmtSimuList *input_sts,

@@ -60,7 +60,7 @@ bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
@@ -95,7 +95,7 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_net_socket:
+    case EventType::NetSocket:
 		{
 			// Data to read in Sat_Carrier socket buffer
 			size_t length;

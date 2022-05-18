@@ -62,7 +62,7 @@ class RtEvent
 	 * @param fd        The file descriptor to monitor for the event
 	 * @param priority  The priority of the event
 	 */
-	RtEvent(event_type_t type, const std::string &name, int32_t fd, uint8_t priority);
+	RtEvent(EventType type, const std::string &name, int32_t fd, uint8_t priority);
 	virtual ~RtEvent();
 
 	/**
@@ -70,7 +70,7 @@ class RtEvent
 	 *
 	 * @return the type of the event
 	 */
-	event_type_t getType(void) const {return this->type;};
+	EventType getType(void) const {return this->type;};
 
 	/**
 	 * @brief Get the time since event trigger
@@ -163,7 +163,7 @@ class RtEvent
   protected:
 
 	/// type of event, for now Message, Signal, Timer or NetSocket
-	event_type_t type;
+	EventType type;
 
 	/// event name
 	const std::string name;

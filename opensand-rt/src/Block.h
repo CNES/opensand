@@ -37,6 +37,13 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
+#include <stdlib.h>
+#include <string>
+#include <list>
+#include <vector>
+#include <thread>
+#include <sys/select.h>
+
 #include "RtChannelBase.h"
 #include "RtChannel.h"
 #include "RtChannelMux.h"
@@ -45,16 +52,10 @@
 #include "Types.h"
 
 
-#include <stdlib.h>
-#include <string>
-#include <list>
-#include <vector>
-#include <sys/select.h>
-
-#include <opensand_output/OutputLog.h>
-#include <opensand_output/OutputEvent.h>
-
 class RtEvent;
+class OutputLog;
+class OutputEvent;
+
 
 /**
  * @class Block
@@ -70,19 +71,18 @@ class Block
 	friend class RtChannel;
 	friend class BlockManager;
 
-  public:
-
+ public:
 	/**
 	 * @brief Block constructor
 	 *
 	 * @param name      The name of the block
 	 * @param specific  Specific block parameters
 	 */
-	Block(const std::string &name, void *specific = NULL);
+	Block(const std::string &name, void *specific = nullptr);
 
 	virtual ~Block();
 
-  private:
+ private:
 	/**
 	 * @class Upward channel
 	 *        With this class we are able to define Upward channel
@@ -91,7 +91,7 @@ class Block
 	template <typename ChannelType>
 	class RtUpwardBase: public ChannelType
 	{
-	  public:
+	 public:
 		RtUpwardBase(const std::string &name):
 			ChannelType(name, "Upward")
 		{};
@@ -110,7 +110,7 @@ class Block
 	template <typename ChannelType>
 	class RtDownwardBase: public ChannelType
 	{
-	  public:
+	 public:
 		RtDownwardBase(const std::string &name):
 			ChannelType(name, "Downward")
 		{};
@@ -120,32 +120,31 @@ class Block
 			ChannelType(name, "Downward", specific)
 		{};
 	};
-	
-  public:
-    /// An upward channel with 1 input and 1 output
+
+ public:
+	/// An upward channel with 1 input and 1 output
 	using RtUpward = RtUpwardBase<RtChannel>;
-    /// An upward channel with N inputs and 1 output
+	/// An upward channel with N inputs and 1 output
 	using RtUpwardMux = RtUpwardBase<RtChannelMux>;
-    /// An upward channel with 1 input and N outputs
+	/// An upward channel with 1 input and N outputs
 	template <typename Key>
 	using RtUpwardDemux = RtUpwardBase<RtChannelDemux<Key>>;
-    /// An upward channel with N inputs and N outputs
+	/// An upward channel with N inputs and N outputs
 	template <typename Key>
 	using RtUpwardMuxDemux = RtUpwardBase<RtChannelMuxDemux<Key>>;
-	
-    /// A downward channel with 1 inputs and 1 outputs
+
+	/// A downward channel with 1 inputs and 1 outputs
 	using RtDownward = RtDownwardBase<RtChannel>;
-    /// A downward channel with N inputs and 1 outputs
+	/// A downward channel with N inputs and 1 outputs
 	using RtDownwardMux = RtDownwardBase<RtChannelMux>;
-    /// A downward channel with 1 inputs and N outputs
+	/// A downward channel with 1 inputs and N outputs
 	template <typename Key>
 	using RtDownwardDemux = RtDownwardBase<RtChannelDemux<Key>>;
-    /// A downward channel with N inputs and N outputs
+	/// A downward channel with N inputs and N outputs
 	template <typename Key>
 	using RtDownwardMuxDemux = RtDownwardBase<RtChannelMuxDemux<Key>>;
 
-  protected:
-
+ protected:
 	/**
 	 * @brief Initialize the block
 	 *
@@ -195,10 +194,9 @@ class Block
 	/*
 	 * @brief Stop the channel threads and call block destructor
 	 *
-	 * @param signal  The received signal
 	 * @return true on success, false otherwise
 	 */
-	bool stop(int signal);
+	bool stop(void);
 
 	/**
 	 * @brief Get the upward channel
@@ -226,12 +224,11 @@ class Block
 	/// The name of the block
 	const std::string name;
 
-  private:
-
+ private:
 	/// The upward channel thread
-	pthread_t up_thread_id;
+  std::thread up_thread;
 	/// The downward channel thread
-	pthread_t down_thread_id;
+  std::thread down_thread;
 
 	/// Whether the block is initialized
 	bool initialized;
@@ -243,4 +240,3 @@ class Block
 // TODO malloc/new hook !!
 
 #endif
-

@@ -67,7 +67,7 @@ class NetSocketEvent: public FileEvent
 	               int32_t fd = -1,
 	               size_t max_size = MAX_SOCK_SIZE,
 	               uint8_t priority = 4):
-		FileEvent(name, fd, max_size, priority, evt_net_socket)
+		FileEvent(name, fd, max_size, priority, EventType::NetSocket)
 	{};
 
 	~NetSocketEvent();

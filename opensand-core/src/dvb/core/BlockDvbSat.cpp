@@ -255,7 +255,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			if(((MessageEvent *)event)->getMessageType() == msg_sig)
 			{
@@ -322,7 +322,7 @@ bool BlockDvbSat::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_timer:
+    case EventType::Timer:
 		{
 			if(*event == this->fwd_timer)
 			{
@@ -535,7 +535,7 @@ bool BlockDvbSat::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			// message from lower layer: dvb frame
 			DvbFrame *dvb_frame;

@@ -50,6 +50,7 @@
 #include <opensand_output/Output.h>
 
 using std::string;
+class NetSocketEvent;
 
 struct la_specific
 {

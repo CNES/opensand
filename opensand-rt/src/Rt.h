@@ -36,18 +36,17 @@
 #ifndef OPENSAND_RT_H
 #define OPENSAND_RT_H
 
-#include "Block.h"
+#include <thread>
+
 #include "BlockManager.h"
-#include "FileEvent.h"
-#include "MessageEvent.h"
-#include "NetSocketEvent.h"
+/*
+#include "Block.h"
 #include "RtChannelBase.h"
 #include "RtEvent.h"
 #include "RtMutex.h"
-#include "SignalEvent.h"
-#include "TcpListenEvent.h"
-#include "TimerEvent.h"
 #include "Types.h"
+*/
+
 
 /**
  * @class Rt
@@ -59,7 +58,7 @@ class Rt
 	friend class RtChannelBase;
 	friend class SignalEvent;
 
-  public:
+ public:
 	/**
 	 * @brief Creates and adds a block to the application.
 	 *
@@ -163,7 +162,7 @@ class Rt
 	 * @param critical    Whether the application should be stopped
 	 * @param msg_format  The error
 	 */
-	static void reportError(const std::string &name, pthread_t thread_id,
+	static void reportError(const std::string &name, std::thread::id thread_id,
 	                        bool critical, const char *msg_format, ...);
 
 	/**
@@ -171,12 +170,13 @@ class Rt
 	 *
 	 * @param signal  The signal to raise
 	 */
-	static void stop(int signal);
+	static void stop();
 
-  private:
+ private:
 	/// The block manager instance
 	static BlockManager manager;
 };
+
 
 template <class Bl>
 Bl *Rt::createBlock(const std::string &name)
@@ -184,17 +184,20 @@ Bl *Rt::createBlock(const std::string &name)
 	return Rt::manager.createBlock<Bl>(name);
 }
 
+
 template <class Bl, class Specific>
 Bl *Rt::createBlock(const std::string &name, Specific specific)
 {
 	return Rt::manager.createBlock<Bl>(name, specific);
 }
 
+
 template <class UpperBl, class LowerBl>
 void Rt::connectBlocks(const UpperBl *upper, const LowerBl *lower)
 {
 	Rt::manager.connectBlocks(upper, lower);
 }
+
 
 template <class UpperBl, class LowerBl>
 void Rt::connectBlocks(const UpperBl *upper,
@@ -204,6 +207,7 @@ void Rt::connectBlocks(const UpperBl *upper,
 	Rt::manager.connectBlocks(upper, lower, down_key);
 }
 
+
 template <class UpperBl, class LowerBl>
 void Rt::connectBlocks(const UpperBl *upper,
                        const LowerBl *lower,
@@ -211,6 +215,7 @@ void Rt::connectBlocks(const UpperBl *upper,
 {
 	Rt::manager.connectBlocks(upper, lower, up_key);
 }
+
 
 template <class UpperBl, class LowerBl>
 void Rt::connectBlocks(const UpperBl *upper,
@@ -220,5 +225,6 @@ void Rt::connectBlocks(const UpperBl *upper,
 {
 	Rt::manager.connectBlocks(upper, lower, up_key, down_key);
 }
+
 
 #endif

@@ -45,7 +45,7 @@ TimerEvent::TimerEvent(const std::string &name,
                        bool auto_rearm,
                        bool start,
                        uint8_t priority):
-	RtEvent(evt_timer, name, -1, priority),
+	RtEvent(EventType::Timer, name, -1, priority),
 	duration_ms(timer_duration_ms),
 	enabled(start),
 	auto_rearm(auto_rearm)

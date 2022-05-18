@@ -119,7 +119,7 @@ bool BlockMesh::Upward::onInit()
 
 bool BlockMesh::Upward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != event_type_t::evt_message)
+	if (event->getType() != EventType::Message)
 	{
 		LOG(log_receive, LEVEL_ERROR, "Unexpected event received: %s",
 		    event->getName().c_str());
@@ -245,9 +245,9 @@ bool BlockMesh::Downward::onEvent(const RtEvent *const event)
 {
 	switch (event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 			return handleMessageEvent(static_cast<const MessageEvent *>(event));
-		case evt_net_socket:
+    case EventType::NetSocket:
 			return handleNetSocketEvent((NetSocketEvent *)event);
 		default:
 			LOG(log_receive, LEVEL_ERROR, "Unexpected event received: %s",

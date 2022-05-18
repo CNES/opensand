@@ -48,6 +48,8 @@
 #include "Sof.h"
 
 #include <errno.h>
+#include <opensand_rt/TcpListenEvent.h>
+
 
 /*****************************************************************************/
 /*                                Block                                      */
@@ -326,7 +328,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			DvbFrame *dvb_frame = NULL;
 			// first handle specific messages
@@ -482,7 +484,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			break;
 		}
-		case evt_timer:
+    case EventType::Timer:
 		{
 			// receive the frame Timer event
 			LOG(this->log_receive, LEVEL_DEBUG,
@@ -588,7 +590,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			break;
 		}
 		// TODO factorize, some elements are exactly the same between NccInterface classes
-		case evt_net_socket:
+    case EventType::NetSocket:
 		{
 			if(*event == this->pep_interface.getPepClientSocket())
 			{
@@ -735,7 +737,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_tcp_listen:
+    case EventType::TcpListen:
 		{
 			if(*event == this->pep_interface.getPepListenSocket())
 			{
@@ -990,7 +992,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 			spot_id_t dest_spot = dvb_frame->getSpot();

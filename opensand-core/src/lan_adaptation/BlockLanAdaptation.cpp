@@ -42,6 +42,7 @@
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/NetSocketEvent.h>
 
 #include <cstdio>
 #include <sys/ioctl.h>
@@ -170,7 +171,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
 			{
@@ -202,12 +203,12 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_file:
+    case EventType::File:
 			// input data available on TAP handle
 			this->onMsgFromUp((NetSocketEvent *)event);
 			break;
 
-		case evt_timer:
+    case EventType::Timer:
 			if(*event == this->stats_timer)
 			{
 				for(lan_contexts_t::iterator it= this->contexts.begin();
@@ -241,7 +242,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			if(((MessageEvent *)event)->getMessageType() == msg_link_up)
 			{

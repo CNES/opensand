@@ -65,7 +65,7 @@ class FileEvent: public RtEvent
 	          int32_t fd = -1,
 	          size_t max_size = MAX_SOCK_SIZE,
 	          uint8_t priority = 5,
-	          event_type_t type = evt_file);
+	          EventType type = EventType::File);
 	~FileEvent();
 
 
