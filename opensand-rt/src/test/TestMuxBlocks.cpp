@@ -62,6 +62,7 @@
 
 #include "TestMuxBlocks.h"
 #include "Rt.h"
+#include "MessageEvent.h"
 #include <csignal>
 #include <sys/types.h>
 #include <unistd.h>

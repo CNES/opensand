@@ -36,6 +36,9 @@
 #define TESTMUXBLOCKS_H
 
 #include "Block.h"
+#include "RtChannelMux.h"
+#include "RtChannelDemux.h"
+#include "RtChannelMuxDemux.h"
 
 enum struct Side
 {

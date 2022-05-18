@@ -41,35 +41,38 @@
 #include <cstring>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 
 // TODO add send functions
-
-NetSocketEvent::~NetSocketEvent()
+NetSocketEvent::NetSocketEvent(const std::string &name,
+                               int32_t fd,
+                               std::size_t max_size,
+                               uint8_t priority):
+	FileEvent{name, fd, max_size, priority, EventType::NetSocket}
 {
-	if(this->data)
-	{
-		free(this->data);
-	}
 }
+
 
 bool NetSocketEvent::handle(void)
 {
-	int ret;
-	socklen_t addrlen;
 	if(this->data)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: previous data was not handled\n",
 		                this->name.c_str());
-		free(this->data);
+    delete [] this->data;
 	}
 	// one more byte so we can use it as char*
-	this->data = (unsigned char *)calloc(this->max_size + 1, sizeof(unsigned char));
+	this->data = new unsigned char[this->max_size + 1]();  // parens do value initialization to 0
 
-	addrlen = sizeof(struct sockaddr_in);
-	ret = recvfrom(this->fd, this->data, this->max_size, 0,
-	               (struct sockaddr *) &(this->src_addr), &addrlen);
+	socklen_t addrlen = sizeof(struct sockaddr_in);
+	int ret = recvfrom(this->fd, this->data, this->max_size, 0,
+	                   reinterpret_cast<struct sockaddr *>(&this->src_addr), &addrlen);
+  std::size_t actual_size = static_cast<std::size_t>(ret);
+
 	if(ret < 0)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
@@ -77,14 +80,15 @@ bool NetSocketEvent::handle(void)
 		                this->name.c_str(), errno, strerror(errno));
 		goto error;
 	}
-	else if((size_t)ret > this->max_size)
+
+	if(actual_size > this->max_size)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: too many data received (%zu > %zu)\n",
 		                this->name.c_str(), this->size, this->max_size);
 		goto error;
 	}
-	else if(ret == 0)
+	else if(actual_size == 0)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                 "event %s: distant host disconnected\n",
@@ -94,16 +98,9 @@ bool NetSocketEvent::handle(void)
 	this->size = ret;
 
 	return true;
+
 error:
-	free(this->data);
-	this->data = NULL;
+	delete [] this->data;
+	this->data = nullptr;
 	return false;
-}
-
-
-unsigned char *NetSocketEvent::getData(void)
-{
-	unsigned char *buf = this->data;
-	this->data = NULL;
-	return buf;
 }

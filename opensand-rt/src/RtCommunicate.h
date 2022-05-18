@@ -26,46 +26,14 @@
  */
 
 /**
- * @file Types.h
- * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
- * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  Types for opensand-rt
- *
+ * @file RtCommunicate.h
+ * @author Mathias ETTIINGER / <mathias.ettinger@viveris.fr>
+ * @brief  Simple read and write checks for communication through file descriptors
  */
 
+#include "Types.h"
 
 
-#ifndef TYPES_H
-#define TYPES_H
+bool check_write(int32_t file_descriptor);
 
-#include <cstddef>
-#include <cstdint>
-
-
-constexpr std::size_t MAX_SOCK_SIZE{9000};
-
-
-/// opensand-rt event types
-enum EventType
-{
-	NetSocket,   ///< Event of type NetSocket
-	Timer,       ///< Event of type Timer
-	Message,     ///< Event of type Message
-	Signal,      ///< Event of type Signal
-	File,        ///< Event of type File
-	TcpListen,   ///< Event of type TcpListen
-};
-
-
-using event_id_t = int32_t;
-
-
-struct rt_msg_t
-{
-	void *data;
-	size_t length;
-	uint8_t type;
-};
-
-
-#endif
+bool check_read(int32_t file_descriptor);

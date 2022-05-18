@@ -37,13 +37,11 @@
 #ifndef NET_SOCKET_EVENT_H
 #define NET_SOCKET_EVENT_H
 
+#include <netinet/in.h>
+
 #include "FileEvent.h"
 #include "Types.h"
 
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 /**
   * @class NetSocketEvent
@@ -52,9 +50,7 @@
   */
 class NetSocketEvent: public FileEvent
 {
-
-  public:
-
+ public:
 	/**
 	 * @brief NetSocketEvent constructor
 	 *
@@ -65,34 +61,22 @@ class NetSocketEvent: public FileEvent
 	 */
 	NetSocketEvent(const std::string &name,
 	               int32_t fd = -1,
-	               size_t max_size = MAX_SOCK_SIZE,
-	               uint8_t priority = 4):
-		FileEvent(name, fd, max_size, priority, EventType::NetSocket)
-	{};
-
-	~NetSocketEvent();
-
-	/**
-	 * @brief Get the message content
-	 *
-	 * @return the data contained in the message, it can be casted as a char*
-	 */
-	unsigned char *getData(void);
+	               std::size_t max_size = MAX_SOCK_SIZE,
+	               uint8_t priority = 4);
 
 	/**
 	 * @brief Get the message source address
 	 *
 	 * @return the message source address
 	 */
-	struct sockaddr_in getSrcAddr(void) const {return this->src_addr;};
+	inline struct sockaddr_in getSrcAddr(void) const {return this->src_addr;};
 
-	virtual bool handle(void);
+	bool handle(void) override;
 
-  protected:
-
+ protected:
 	/// The source address of the message;
 	struct sockaddr_in src_addr;
-
 };
+
 
 #endif

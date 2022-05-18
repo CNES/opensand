@@ -26,46 +26,37 @@
  */
 
 /**
- * @file Types.h
- * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
- * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  Types for opensand-rt
- *
+ * @file RtMutex.cpp
+ * @author Mathias ETTINGER / <mathias.ettinger@viveris.fr>
+ * @brief  Wrapper for using a mutex with RAII method
  */
 
 
-
-#ifndef TYPES_H
-#define TYPES_H
-
-#include <cstddef>
-#include <cstdint>
+#include "RtMutex.h"
 
 
-constexpr std::size_t MAX_SOCK_SIZE{9000};
+using InnerLock = std::unique_lock<std::mutex>;
 
 
-/// opensand-rt event types
-enum EventType
+RtSemaphore::RtSemaphore(std::size_t initial_value):
+	lock{},
+	condition{},
+	count{initial_value}
 {
-	NetSocket,   ///< Event of type NetSocket
-	Timer,       ///< Event of type Timer
-	Message,     ///< Event of type Message
-	Signal,      ///< Event of type Signal
-	File,        ///< Event of type File
-	TcpListen,   ///< Event of type TcpListen
-};
+}
 
 
-using event_id_t = int32_t;
-
-
-struct rt_msg_t
+void RtSemaphore::wait()
 {
-	void *data;
-	size_t length;
-	uint8_t type;
-};
+  InnerLock take{lock};
+	condition.wait(take, [this]() {return count != 0;});
+	--count;
+}
 
 
-#endif
+void RtSemaphore::notify()
+{
+	InnerLock take{lock};
+	++count;
+	condition.notify_one();
+}

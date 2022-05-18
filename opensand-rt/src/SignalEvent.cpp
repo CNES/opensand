@@ -40,19 +40,21 @@
 #include <cstring>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
+#include <sys/time.h>
 
 
 SignalEvent::SignalEvent(const std::string &name,
                          sigset_t signal_mask,
                          uint8_t priority):
-	RtEvent(EventType::Signal, name, -1, priority),
-	mask(signal_mask)
+	RtEvent{EventType::Signal, name, -1, priority},
+	mask{signal_mask},
+  sig_info{}
 {
-	int ret;
-	this->fd = signalfd(-1, &(this->mask), 0);
+	this->fd = signalfd(-1, &this->mask, 0);
 
 	// block the signal(s) so only our handler gets it
-	ret = pthread_sigmask(SIG_BLOCK, &this->mask, NULL);
+	int ret = pthread_sigmask(SIG_BLOCK, &this->mask, NULL);
 	if(ret != 0)
 	{
 		Rt::reportError("signal constructor", std::this_thread::get_id(),
@@ -71,13 +73,16 @@ bool SignalEvent::handle(void)
 
 bool SignalEvent::readHandler(void)
 {
+  constexpr auto siginfo_size = sizeof(struct signalfd_siginfo);
+
 	// signal structure size is constant
-	auto rlen = read(this->fd, &this->sig_info, sizeof(struct signalfd_siginfo));
-	if(rlen != sizeof(struct signalfd_siginfo))
+	auto rlen = read(this->fd, &this->sig_info, siginfo_size);
+	if(rlen != siginfo_size)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), true,
 		                "cannot read signal [%u: %s]", errno, strerror(errno));
 		return false;
 	}
+
 	return true;
 }

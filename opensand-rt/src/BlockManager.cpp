@@ -33,25 +33,28 @@
  *
  */
 
-#include "BlockManager.h"
-#include "RtFifo.h"
-#include "Rt.h"
-
-#include <opensand_output/Output.h>
-#include <opensand_output/OutputLog.h>
-
 #include <unistd.h>
 #include <signal.h>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <sys/signalfd.h>
 #include <sys/resource.h>
 #include <syslog.h>
+#include <pthread.h>
 
 #include <execinfo.h>
 #include <errno.h>
 #include <cxxabi.h>
-  
+
+#include <opensand_output/Output.h>
+#include <opensand_output/OutputLog.h>
+
+#include "BlockManager.h"
+#include "RtFifo.h"
+#include "RtChannelBase.h"
+#include "Rt.h"
+
 
 // taken from http://oroboro.com/stack-trace-on-crash/
 static inline void print_stack(unsigned int max_frames = 63)
@@ -362,11 +365,34 @@ void BlockManager::setupBlock(Block *block, RtChannelBase *upward, RtChannelBase
 	block->upward = upward;
 	block->downward = downward;
 
-	auto *up_opp_fifo = new RtFifo();
-	auto *down_opp_fifo = new RtFifo();
+	auto up_opp_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
+	auto down_opp_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
 
 	upward->setOppositeFifo(up_opp_fifo, down_opp_fifo);
 	downward->setOppositeFifo(down_opp_fifo, up_opp_fifo);
 
 	this->block_list.push_back(block);
+}
+
+
+bool BlockManager::checkConnectedBlocks(const Block *upper, const Block *lower)
+{
+	if (!upper)
+	{
+		LOG(log_rt, LEVEL_ERROR, "Upper block to connect is null");
+		return false;
+	}
+	if (!lower)
+	{
+		LOG(log_rt, LEVEL_ERROR, "Lower block to connect is null");
+		return false;
+	}
+	return true;
+}
+
+
+void BlockManager::createFifos(std::shared_ptr<RtFifo> &up_fifo, std::shared_ptr<RtFifo> &down_fifo)
+{
+  up_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
+  down_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
 }

@@ -37,11 +37,11 @@
 #ifndef SIGNALEVENT_H
 #define SIGNALEVENT_H
 
-#include <sys/time.h>
 #include <sys/signalfd.h>
 
-#include "Types.h"
 #include "RtEvent.h"
+#include "Types.h"
+
 
 /**
   * @class SignalEvent
@@ -49,8 +49,7 @@
   */
 class SignalEvent: public RtEvent
 {
-
-  public:
+ public:
 	/**
 	 * @brief Event constructor
 	 *
@@ -67,7 +66,7 @@ class SignalEvent: public RtEvent
 	 *
 	 * @return the information on the triggered signal
 	 */
-	signalfd_siginfo getTriggerInfo(void) {return this->sig_info;};
+	inline signalfd_siginfo getTriggerInfo(void) {return this->sig_info;};
 
 	/**
 	 * @brief Handle a signal event
@@ -78,8 +77,9 @@ class SignalEvent: public RtEvent
 	 *
 	 * @return true on success, false otherwise
 	 */
-	virtual bool handle(void);
+	bool handle(void) override;
 
+ protected:
 	/**
 	 * @brief Read a signal event
 	 *        This function should be used in handle if you want to read
@@ -89,12 +89,11 @@ class SignalEvent: public RtEvent
 	 */
 	bool readHandler(void);
 
-  protected:
-
 	/// The signal(s) to trigger this event
 	sigset_t mask;
 	/// The information that come when a signal triggers the event
 	signalfd_siginfo sig_info;
 };
+
 
 #endif

@@ -43,6 +43,7 @@
 
 #include "Block.h"
 #include "NetSocketEvent.h"
+#include "RtChannel.h"
 
 #include <queue>
 

@@ -59,6 +59,7 @@
 
 #include "Rt.h"
 #include "TimerEvent.h"
+#include "MessageEvent.h"
 #include "NetSocketEvent.h"
 
 #include <opensand_output/Output.h>
@@ -122,12 +123,12 @@ bool TestBlock::Upward::onInit(void)
 bool TestBlock::Upward::onEvent(const RtEvent *const event)
 {
 	std::string error;
-	timeval elapsed_time;
 	int res = 0;
 	
 	switch(event->getType())
 	{
     case EventType::Timer:
+		{
 			// timer only on upward channel
 			this->nbr_timeouts++;
 			// test for duration
@@ -138,9 +139,11 @@ bool TestBlock::Upward::onEvent(const RtEvent *const event)
 				kill(getpid(), SIGTERM);
 			}
 
-			elapsed_time = ((TimerEvent *)event)->getTimeFromTrigger();
+			time_val_t elapsed_time = event->getTimeFromTrigger();
+			long int elapsed_seconds = elapsed_time / 1000000,
+			         elapsed_microseconds = elapsed_time % 1000000;
 			sprintf(this->last_written, "%ld.%06ld",
-					elapsed_time.tv_sec, elapsed_time.tv_usec);
+			        elapsed_seconds, elapsed_microseconds);
 
 			res = write(this->output_fd,
 			            this->last_written, strlen(this->last_written));
@@ -151,17 +154,16 @@ bool TestBlock::Upward::onEvent(const RtEvent *const event)
 			}
 			std::cout << "Timer triggered in block: " << this->getName()
 			          << "; value: " << this->last_written << std::endl;
-			fflush(stdout);
-
-			break;
+		}
+		break;
 
     case EventType::Message:
 		{
-			size_t length = ((MessageEvent *)event)->getLength();
-			char *data = (char *)((MessageEvent *)event)->getData();
+      auto msg_event = static_cast<const MessageEvent*>(event);
+      std::size_t length = msg_event->getLength();
+			char *data = static_cast<char *>(msg_event->getData());
 			std::cout << "Data received from opposite channel in block: "
 			          << this->getName() << "; data: " << data << std::endl;
-			fflush(stdout);
 
 			if(strncmp(this->last_written, (char*)data, length))
 			{
@@ -170,7 +172,7 @@ bool TestBlock::Upward::onEvent(const RtEvent *const event)
 				                data, this->last_written);
 			}
 			bzero(this->last_written, 64);
-			free(data);
+      delete [] data;
 		}
 		break;
 

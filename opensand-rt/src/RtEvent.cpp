@@ -30,29 +30,24 @@
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  The generic event
- *
  */
 
 
 #include "RtEvent.h"
 
-#include <opensand_output/Output.h>
-
-#include <cstdlib>
 #include <unistd.h>
 
+
 RtEvent::RtEvent(EventType type, const std::string &name, int32_t fd, uint8_t priority):
-	type(type),
-	name(name),
-	fd(fd),
-	priority(priority)
+	type{type},
+	name{name},
+	fd{fd},
+	priority{priority}
 {
-/*	DFLTLOG(LEVEL_DEBUG,
-	        "Create new event \"%s\" of type %d\n",
-	        name.c_str(), type);*/
 	this->setTriggerTime();
 	this->setCustomTime();
 }
+
 
 RtEvent::~RtEvent()
 {
@@ -61,37 +56,51 @@ RtEvent::~RtEvent()
 
 void RtEvent::setTriggerTime(void)
 {
-	gettimeofday(&this->trigger_time, NULL);
+  this->trigger_time = std::chrono::high_resolution_clock::now();
 }
 
 void RtEvent::setCustomTime(void) const
 {
-	gettimeofday(&this->custom_time, NULL);
+  this->custom_time = std::chrono::high_resolution_clock::now();
 }
 
-timeval RtEvent::getTimeFromTrigger(void) const
+time_val_t RtEvent::getTimeFromTrigger(void) const
 {
-	timeval res;
-	timeval current;
-	gettimeofday(&current, NULL);
-
-	timersub(&current, &this->trigger_time, &res);
-	return res;
+	auto time = std::chrono::high_resolution_clock::now();
+	auto duration = time - this->trigger_time;
+	return std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
 }
 
-timeval RtEvent::getTimeFromCustom(void) const
+time_val_t RtEvent::getTimeFromCustom(void) const
 {
-	timeval res;
-	timeval current;
-	gettimeofday(&current, NULL);
-
-	timersub(&current, &this->custom_time, &res);
-	return res;
+	auto time = std::chrono::high_resolution_clock::now();
+	auto duration = time - this->custom_time;
+	return std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
 }
 
-timeval RtEvent::getAndSetCustomTime(void) const
+time_val_t RtEvent::getAndSetCustomTime(void) const
 {
-	timeval res = this->getTimeFromCustom();
+	auto res = this->getTimeFromCustom();
 	this->setCustomTime();
 	return res;
+}
+
+
+bool RtEvent::operator <(const RtEvent& event) const
+{
+	long int delta = 100000000L * (this->priority - event.priority);
+  delta += std::chrono::duration_cast<std::chrono::microseconds>(this->trigger_time - event.trigger_time).count();
+	return delta < 0;		
+}
+
+
+bool RtEvent::operator ==(const event_id_t id) const
+{
+  return this->fd == id;
+}
+
+
+bool RtEvent::operator !=(const event_id_t id) const
+{
+	return this->fd != id;
 }

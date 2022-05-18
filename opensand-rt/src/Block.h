@@ -37,22 +37,17 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#include <stdlib.h>
+#include <memory>
 #include <string>
-#include <list>
-#include <vector>
 #include <thread>
-#include <sys/select.h>
-
-#include "RtChannelBase.h"
-#include "RtChannel.h"
-#include "RtChannelMux.h"
-#include "RtChannelDemux.h"
-#include "RtChannelMuxDemux.h"
-#include "Types.h"
 
 
 class RtEvent;
+class RtChannelBase;
+class RtChannel;
+class RtChannelMux;
+template<typename Key> class RtChannelDemux;
+template<typename Key> class RtChannelMuxDemux;
 class OutputLog;
 class OutputEvent;
 

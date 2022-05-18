@@ -36,17 +36,15 @@
 
 #include "RtChannelBase.h"
 
+
 /**
  * @class RtChannel
  * @brief A simple channel with 1 input fifo and 1 output fifo
  */
 class RtChannel: public RtChannelBase
 {
-  public:
-	// Inherit base constructors
-	using RtChannelBase::RtChannelBase;
-
-	~RtChannel() override;
+ public:
+	RtChannel(const std::string &name, const std::string &type);
 
 	/**
 	 * @brief Add a message in the next channel fifo
@@ -66,23 +64,24 @@ class RtChannel: public RtChannelBase
 	 *
 	 * @param fifo  The fifo
 	 */
-	void setPreviousFifo(RtFifo *fifo);
+	void setPreviousFifo(std::shared_ptr<RtFifo> &fifo);
 
 	/**
 	 * @brief Set the fifo of the next channel
 	 *
 	 * @param fifo  The fifo of the next channel
 	 */
-	void setNextFifo(RtFifo *fifo);
+	void setNextFifo(std::shared_ptr<RtFifo> &fifo);
 
-  protected:
+ protected:
 	bool initPreviousFifo() override;
 
-  private:
+ private:
 	/// The fifo of the previous channel
-	RtFifo *previous_fifo = nullptr;
+  std::shared_ptr<RtFifo> previous_fifo;
 	/// The fifo of the next channel
-	RtFifo *next_fifo = nullptr;
+  std::shared_ptr<RtFifo> next_fifo;
 };
+
 
 #endif

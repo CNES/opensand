@@ -35,10 +35,13 @@
 #ifndef RT_CHANNEL_DEMUX_H
 #define RT_CHANNEL_DEMUX_H
 
+#include <unordered_map>
+
+#include <opensand_output/Output.h>
+
 #include "RtChannelBase.h"
 #include "RtFifo.h"
-#include <opensand_output/Output.h>
-#include <unordered_map>
+
 
 /**
  * @class RtChannelDemux
@@ -51,13 +54,10 @@
 template <typename Key>
 class RtChannelDemux: public RtChannelBase
 {
-  public:
-    using DemuxKey = Key;
-    
-	// Inherit base constructors
-	using RtChannelBase::RtChannelBase;
+ public:
+	using DemuxKey = Key;
 
-	~RtChannelDemux() override;
+	RtChannelDemux(const std::string &name, const std::string &type);
 
 	/**
 	 * @brief Add a message in the next channel fifo mapped to key
@@ -78,7 +78,7 @@ class RtChannelDemux: public RtChannelBase
 	 *
 	 * @param fifo  The fifo of the previous channel
 	 */
-	void setPreviousFifo(RtFifo *fifo);
+	void setPreviousFifo(std::shared_ptr<RtFifo> &fifo);
 
 	/**
 	 * @brief Add a fifo of a next channel
@@ -86,45 +86,34 @@ class RtChannelDemux: public RtChannelBase
 	 * @param key  The key that will be mapped to this fifo
 	 * @param fifo  The fifo
 	 */
-	void addNextFifo(Key key, RtFifo *fifo);
+	void addNextFifo(Key key, std::shared_ptr<RtFifo> &fifo);
 
-  protected:
+ protected:
 	bool initPreviousFifo() override;
 
-  private:
+ private:
 	/// The fifo of the previous channel
-	RtFifo *previous_fifo = nullptr;
+  std::shared_ptr<RtFifo> previous_fifo;
 	/// The fifos of the next channels
-	std::unordered_map<Key, RtFifo *> next_fifos{};
+	std::unordered_map<Key, std::shared_ptr<RtFifo>> next_fifos;
 };
 
+
 template <typename Key>
-RtChannelDemux<Key>::~RtChannelDemux()
+RtChannelDemux<Key>::RtChannelDemux(const std::string &name, const std::string &type):
+  RtChannelBase{name, type},
+  previous_fifo{nullptr},
+  next_fifos{}
 {
-	if (this->previous_fifo)
-	{
-		delete this->previous_fifo;
-	}
 }
+
 
 template <typename Key>
 bool RtChannelDemux<Key>::initPreviousFifo()
 {
-	if (this->previous_fifo)
-	{
-		if (!this->previous_fifo->init())
-		{
-			this->reportError(true, "cannot initialize previous fifo\n");
-			return false;
-		}
-		if (!this->addMessageEvent(this->previous_fifo))
-		{
-			this->reportError(true, "cannot create previous message event\n");
-			return false;
-		}
-	}
-	return true;
+  return this->initSingleFifo(this->previous_fifo);
 }
+
 
 template <typename Key>
 bool RtChannelDemux<Key>::enqueueMessage(Key key, void **data, size_t size, uint8_t type)
@@ -140,8 +129,9 @@ bool RtChannelDemux<Key>::enqueueMessage(Key key, void **data, size_t size, uint
 	return this->pushMessage(fifo, data, size, type);
 }
 
+
 template <typename Key>
-void RtChannelDemux<Key>::addNextFifo(Key key, RtFifo *fifo)
+void RtChannelDemux<Key>::addNextFifo(Key key, std::shared_ptr<RtFifo> &fifo)
 {
 	bool actually_inserted = this->next_fifos.emplace(key, fifo).second;
 	if (!actually_inserted) {
@@ -150,10 +140,12 @@ void RtChannelDemux<Key>::addNextFifo(Key key, RtFifo *fifo)
 	}
 };
 
+
 template <typename Key>
-void RtChannelDemux<Key>::setPreviousFifo(RtFifo *fifo)
+void RtChannelDemux<Key>::setPreviousFifo(std::shared_ptr<RtFifo> &fifo)
 {
 	this->previous_fifo = fifo;
 };
+
 
 #endif

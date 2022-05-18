@@ -34,8 +34,10 @@
 #ifndef RT_CHANNEL_MUX_H
 #define RT_CHANNEL_MUX_H
 
-#include "RtChannelBase.h"
 #include <vector>
+
+#include "RtChannelBase.h"
+
 
 /**
  * @class RtChannelMux
@@ -43,11 +45,8 @@
  */
 class RtChannelMux: public RtChannelBase
 {
-  public:
-	// Inherit base constructors
-	using RtChannelBase::RtChannelBase;
-
-	~RtChannelMux() override;
+ public:
+	RtChannelMux(const std::string &name, const std::string &type);
 
 	/**
 	 * @brief Add a message in the next channel queue
@@ -67,23 +66,23 @@ class RtChannelMux: public RtChannelBase
 	 *
 	 * @param fifo  The fifo
 	 */
-	void addPreviousFifo(RtFifo *fifo);
+	void addPreviousFifo(std::shared_ptr<RtFifo> &fifo);
 
 	/**
 	 * @brief Set the fifo of the next channel
 	 *
 	 * @param fifo  The fifo of the next channel
 	 */
-	void setNextFifo(RtFifo *fifo);
+	void setNextFifo(std::shared_ptr<RtFifo> &fifo);
 
-  protected:
+ protected:
 	bool initPreviousFifo() override;
 
-  private:
+ private:
 	/// The fifos of the previous channels
-	std::vector<RtFifo *> previous_fifos{};
+	std::vector<std::shared_ptr<RtFifo>> previous_fifos;
 	/// The fifo of the next channel
-	RtFifo *next_fifo = nullptr;
+  std::shared_ptr<RtFifo> next_fifo;
 };
 
 

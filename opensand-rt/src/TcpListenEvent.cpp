@@ -29,7 +29,6 @@
  * @file TcpListenEvent.cpp
  * @author Adrien THIBAUD / <athibaud@toulouse.viveris.com>
  * @brief  The event for message read on network socket
- *
  */
 
 #include "TcpListenEvent.h"
@@ -41,30 +40,30 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 
 // TODO add send functions
-
-TcpListenEvent::~TcpListenEvent()
+TcpListenEvent::TcpListenEvent(const std::string &name,
+                               int32_t fd,
+                               std::size_t max_size,
+                               uint8_t priority):
+	FileEvent{name, fd, max_size, priority, EventType::TcpListen}
 {
-	if(this->data)
-	{
-		free(this->data);
-	}
 }
+
 
 bool TcpListenEvent::handle(void)
 {
-	struct sockaddr_in addr;
-	socklen_t addr_length;
-	long option;
-	
-	addr_length = sizeof(struct sockaddr_in);
-	
 	// wait for a client to connect (this should not block because the
 	// function is called only when there is an event on the listen socket)
+	struct sockaddr_in addr;
+	socklen_t addr_length = sizeof(struct sockaddr_in);
 	this->socket_client = accept(this->fd,
-	                             (struct sockaddr *) &addr,
+	                             reinterpret_cast<struct sockaddr *>(&addr),
 	                             &addr_length);
 	if(this->socket_client < 0)
 	{
@@ -75,8 +74,7 @@ bool TcpListenEvent::handle(void)
 	}
 
 	// set the new socket in non blocking mode
-	option = O_NONBLOCK;
-	if(fcntl(this->socket_client, F_SETFL, option) != 0)
+	if(fcntl(this->socket_client, F_SETFL, O_NONBLOCK) != 0)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		    "set socket in non blocking mode failed: %s (%d)\n",
@@ -85,20 +83,11 @@ bool TcpListenEvent::handle(void)
 	}
 
 	return true;
+
 close:
 	close(this->socket_client);
 error:
-	free(this->data);
-	this->data = NULL;
+	delete [] this->data;
+	this->data = nullptr;
 	return false;
 }
-
-
-unsigned char *TcpListenEvent::getData(void)
-{
-	unsigned char *buf = this->data;
-	this->data = NULL;
-	return buf;
-}
-
-

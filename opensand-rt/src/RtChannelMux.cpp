@@ -1,34 +1,22 @@
 #include "RtChannelMux.h"
 #include "RtFifo.h"
 
-RtChannelMux::~RtChannelMux()
+
+RtChannelMux::RtChannelMux(const std::string &name, const std::string &type):
+	RtChannelBase{name, type},
+	previous_fifos{},
+	next_fifo{nullptr}
 {
-	for (RtFifo *fifo: previous_fifos)
-	{
-		if (fifo)
-		{
-			delete fifo;
-		}
-	}
 }
+
 
 bool RtChannelMux::initPreviousFifo()
 {
-	for (RtFifo *fifo: previous_fifos)
-		if (fifo)
-		{
-			if (!fifo->init())
-			{
-				this->reportError(true, "cannot initialize previous fifo\n");
-				return false;
-			}
-			if (!this->addMessageEvent(fifo))
-			{
-				this->reportError(true, "cannot create previous message event\n");
-				return false;
-			}
-		}
-	return true;
+	bool success = true;
+	for (auto&& fifo : this->previous_fifos)
+		success = success && this->initSingleFifo(fifo);
+
+	return success;
 }
 
 bool RtChannelMux::enqueueMessage(void **data, size_t size, uint8_t type)
@@ -36,12 +24,14 @@ bool RtChannelMux::enqueueMessage(void **data, size_t size, uint8_t type)
 	return this->pushMessage(this->next_fifo, data, size, type);
 }
 
-void RtChannelMux::addPreviousFifo(RtFifo *fifo)
+
+void RtChannelMux::addPreviousFifo(std::shared_ptr<RtFifo> &fifo)
 {
 	this->previous_fifos.push_back(fifo);
-};
+}
 
-void RtChannelMux::setNextFifo(RtFifo *fifo)
+
+void RtChannelMux::setNextFifo(std::shared_ptr<RtFifo> &fifo)
 {
 	this->next_fifo = fifo;
-};
+}

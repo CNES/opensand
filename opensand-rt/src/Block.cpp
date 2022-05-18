@@ -35,10 +35,20 @@
  */
 
 #include <csignal>
+#include <stdlib.h>
+#include <list>
+#include <vector>
+#include <sys/select.h>
+#include <pthread.h>
 
 #include "Block.h"
-#include "RtChannel.h"
 #include "Rt.h"
+#include "RtChannelBase.h"
+#include "RtChannel.h"
+#include "RtChannelMux.h"
+#include "RtChannelDemux.h"
+#include "RtChannelMuxDemux.h"
+#include "Types.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_output/OutputLog.h>

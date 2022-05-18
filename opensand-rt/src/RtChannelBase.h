@@ -37,8 +37,6 @@
 #ifndef RT_CHANNEL_BASE_H
 #define RT_CHANNEL_BASE_H
 
-#include <stdlib.h>
-#include <sys/select.h>
 #include <string>
 #include <map>
 #include <vector>
@@ -249,6 +247,8 @@ class RtChannelBase
 
 	virtual bool initPreviousFifo() = 0;
 
+  bool initSingleFifo(std::shared_ptr<RtFifo> &fifo);
+
 	/**
 	 * @brief Set the block initialization status
 	 * 
@@ -262,7 +262,7 @@ class RtChannelBase
 	 * @param in_fifo   The fifo for incoming messages
 	 * @param out_fifo  The fifo for outgoing messages
 	 */
-	void setOppositeFifo(RtFifo *in_fifo, RtFifo *out_fifo);
+	void setOppositeFifo(std::shared_ptr<RtFifo> &in_fifo, std::shared_ptr<RtFifo> &out_fifo);
 
 	/**
 	 * @brief Add a message  event to the channel
@@ -272,7 +272,7 @@ class RtChannelBase
 	 * @param opposite  Whether this is a message for opposite channels
 	 * @return true on success, false otherwise
 	 */
-	bool addMessageEvent(RtFifo *fifo, uint8_t priority = 6, bool opposite = false);
+	bool addMessageEvent(std::shared_ptr<RtFifo> &fifo, uint8_t priority = 6, bool opposite = false);
 
 	/**
 	 * @brief Push a message in another channel fifo
@@ -284,7 +284,7 @@ class RtChannelBase
 	 * @param type  The type of message
 	 * @return true on success, false otherwise
 	 */
-	bool pushMessage(RtFifo *fifo, void **data, size_t size, uint8_t type = 0);
+	bool pushMessage(std::shared_ptr<RtFifo> &fifo, void **data, size_t size, uint8_t type = 0);
 
 #ifdef TIME_REPORTS
 	/// statistics about events durations (in us)
@@ -315,9 +315,9 @@ class RtChannelBase
 	std::vector<event_id_t> removed_events;
 
 	/// The fifo for incoming messages from opposite channel
-	RtFifo *in_opp_fifo;
+  std::shared_ptr<RtFifo> in_opp_fifo;
 	/// The fifo for outgoing messages to opposite channel
-	RtFifo *out_opp_fifo;
+  std::shared_ptr<RtFifo> out_opp_fifo;
 
 	/// contains the highest FD of input events
 	int32_t max_input_fd;

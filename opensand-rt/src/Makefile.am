@@ -11,9 +11,11 @@ lib_LTLIBRARIES = libopensand_rt.la
 libopensand_rt_la_cpp = \
 	Rt.cpp \
 	Block.cpp \
+	RtCommunicate.cpp \
 	RtChannelBase.cpp \
 	RtChannelMux.cpp \
 	RtChannel.cpp \
+	RtMutex.cpp \
 	BlockManager.cpp \
 	RtEvent.cpp \
 	MessageEvent.cpp \
@@ -26,6 +28,7 @@ libopensand_rt_la_cpp = \
 
 libopensand_rt_la_h = \
 	Rt.h \
+	RtCommunicate.h \
 	RtChannelBase.h \
 	RtChannelMux.h \
 	RtChannelMuxDemux.h \

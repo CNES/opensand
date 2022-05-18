@@ -36,6 +36,8 @@
 #include "RtChannelBase.h"
 
 #include "Rt.h"
+#include "RtCommunicate.h"
+#include "RtFifo.h"
 #include "FileEvent.h"
 #include "MessageEvent.h"
 #include "NetSocketEvent.h"
@@ -51,10 +53,11 @@
 #include <fcntl.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <sys/select.h>
 #ifdef TIME_REPORTS
 	#include <numeric>
 	#include <algorithm>
@@ -71,6 +74,7 @@ RtChannelBase::RtChannelBase(const std::string &name, const std::string &type):
 	channel_type{type},
 	block_initialized{false},
 	in_opp_fifo{nullptr},
+	out_opp_fifo{nullptr},
 	max_input_fd{-1},
 	stop_fd{-1},
 	w_sel_break{-1},
@@ -82,7 +86,6 @@ RtChannelBase::RtChannelBase(const std::string &name, const std::string &type):
 
 RtChannelBase::~RtChannelBase()
 {
-	delete this->in_opp_fifo;
 	close(this->w_sel_break);
 	close(this->r_sel_break);
 #ifdef TIME_REPORTS
@@ -282,7 +285,7 @@ int32_t RtChannelBase::addSignalEvent(const std::string &name,
 }
 
 
-bool RtChannelBase::addMessageEvent(RtFifo *out_fifo,
+bool RtChannelBase::addMessageEvent(std::shared_ptr<RtFifo> &out_fifo,
                                     uint8_t priority,
                                     bool opposite)
 {
@@ -316,9 +319,7 @@ bool RtChannelBase::addEvent(std::unique_ptr<RtEvent> event)
 	this->new_events.push_back(std::move(event));
 
 	// break the select loop
-	if(write(this->w_sel_break,
-	         MAGIC_WORD,
-	         strlen(MAGIC_WORD)) != strlen(MAGIC_WORD))
+	if (!check_write(this->w_sel_break))
 	{
 		LOG(this->log_rt, LEVEL_ERROR,
 		    "failed to break select upon a new "
@@ -513,8 +514,7 @@ void RtChannelBase::executeThread(void)
 		// check for select break
 		if(FD_ISSET(this->r_sel_break, &readfds))
 		{
-			unsigned char data[strlen(MAGIC_WORD)];
-			if(read(this->r_sel_break, data, strlen(MAGIC_WORD)) < 0)
+			if (!check_read(this->r_sel_break))
 			{
 				LOG(this->log_rt, LEVEL_ERROR,
 				    "failed to read in pipe");
@@ -546,7 +546,7 @@ void RtChannelBase::executeThread(void)
 					// this is the only case where it is critical as
 					// stop event is a signal
 					this->reportError(true, "unable to handle signal event\n");
-					pthread_exit(NULL);
+          return;
 				}
 				this->reportError(false, "unable to handle event\n");
 				// ignore this event
@@ -558,11 +558,11 @@ void RtChannelBase::executeThread(void)
 				// we have to stop
 				LOG(this->log_rt, LEVEL_INFO,
 				    "stop signal received\n");
-				pthread_exit(NULL);
+        return;
 			}
 		}
 		// sort the list according to priority
-		std::sort(priority_sorted_events.begin(), priority_sorted_events.end(), RtEvent::compareEvents);
+		std::sort(priority_sorted_events.begin(), priority_sorted_events.end(), [](const RtEvent* e1, const RtEvent* e2) { return (*e1) < (*e2); });
 
 		// call processEvent on each event
 		for(auto &&event: priority_sorted_events)
@@ -599,14 +599,33 @@ void RtChannelBase::reportError(bool critical, const char *msg_format, ...)
 };
 
 
-void RtChannelBase::setOppositeFifo(RtFifo *in_fifo, RtFifo *out_fifo)
+void RtChannelBase::setOppositeFifo(std::shared_ptr<RtFifo> &in_fifo, std::shared_ptr<RtFifo> &out_fifo)
 {
 	this->in_opp_fifo = in_fifo;
 	this->out_opp_fifo = out_fifo;
-};
+}
 
 
-bool RtChannelBase::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint8_t type)
+bool RtChannelBase::initSingleFifo(std::shared_ptr<RtFifo> &fifo)
+{
+	if (fifo)
+	{
+		if (!fifo->init())
+		{
+			this->reportError(true, "cannot initialize previous fifo\n");
+			return false;
+		}
+		if (!this->addMessageEvent(fifo))
+		{
+			this->reportError(true, "cannot create previous message event\n");
+			return false;
+		}
+	}
+	return true;
+}
+
+
+bool RtChannelBase::pushMessage(std::shared_ptr<RtFifo> &out_fifo, void **data, size_t size, uint8_t type)
 {
 	bool success = true;
 
@@ -628,7 +647,7 @@ bool RtChannelBase::pushMessage(RtFifo *out_fifo, void **data, size_t size, uint
 	}
 
 	// be sure that the pointer won't be used anymore
-	*data = NULL;
+	*data = nullptr;
 	return success;
 }
 

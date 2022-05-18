@@ -36,15 +36,11 @@
 #ifndef RT_FIFO_H
 #define RT_FIFO_H
 
+#include <queue>
+
 #include "Types.h"
 #include "RtMutex.h"
 
-#include <queue>
-#include <stdint.h>
-#include <pthread.h>
-#include <semaphore.h>
-
-#define MAGIC_WORD "GO"
 
 /**
  * @class RtFifo
@@ -52,8 +48,10 @@
  */
 class RtFifo
 {
-  protected:
+ public:
+	~RtFifo();
 
+ protected:
 	friend class RtChannel;
 	friend class RtChannelBase;
 	friend class RtChannelMux;
@@ -69,7 +67,6 @@ class RtFifo
 	 *
 	 */
 	RtFifo();
-	~RtFifo();
 
 	/**
 	 * @brief Initialize the fifo
@@ -85,7 +82,7 @@ class RtFifo
 	 * @param the size of the element to add in the fifo
 	 * @return true on success, false otherwise
 	 */
-	bool push(void *data, size_t size, uint8_t type);
+	bool push(void *data, std::size_t size, uint8_t type);
 	
 	/**
 	 * @brief Access the first element but do not delete it
@@ -102,13 +99,12 @@ class RtFifo
 	 */
 	int32_t getSigFd(void) const {return this->r_sig_pipe;};
 
-  private:
-
+ private:
 	/// the queue
 	std::queue<rt_msg_t> fifo;
-  
+
 	/// The fifo size
-	size_t max_size;
+  std::size_t max_size;
 	
 	/// The signaling pipe file descriptor for writing operations
 	int32_t w_sig_pipe;
@@ -122,8 +118,8 @@ class RtFifo
 	/// The mutex for fifo full (we need a semaphore here because it is
 	//  lock and unlocked by different threads
 	//  This semaphore is intialized with the fifo size
-	sem_t fifo_size_sem;
+	RtSemaphore fifo_size_sem;
 };
 
-#endif
 
+#endif

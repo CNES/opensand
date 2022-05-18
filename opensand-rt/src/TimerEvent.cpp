@@ -33,34 +33,31 @@
  *
  */
 
-#include "TimerEvent.h"
-
-#include <opensand_output/Output.h>
-
 #include <sys/timerfd.h>
 #include <unistd.h>
+#include <sys/time.h>
+
+#include "TimerEvent.h"
+
 
 TimerEvent::TimerEvent(const std::string &name,
                        double timer_duration_ms,
                        bool auto_rearm,
                        bool start,
                        uint8_t priority):
-	RtEvent(EventType::Timer, name, -1, priority),
-	duration_ms(timer_duration_ms),
-	enabled(start),
-	auto_rearm(auto_rearm)
+	RtEvent{EventType::Timer, name, -1, priority},
+	duration_ms{timer_duration_ms},
+	enabled{start},
+	auto_rearm{auto_rearm}
 {
 	this->fd = timerfd_create(CLOCK_MONOTONIC, 0);
 
 	if(this->enabled)
 	{
-/*		DFLTLOG(LEVEL_DEBUG,
-		        "Timer \"%s\" enabled, start it for the first time "
-		        "(duration = %.2f ms)\n",
-		        name.c_str(), timer_duration_ms);*/
 		this->start();
 	}
 }
+
 
 void TimerEvent::start(void)
 {
@@ -81,12 +78,14 @@ void TimerEvent::start(void)
 	}
 	else
 	{
-		timer_value.it_value.tv_nsec = ((uint32_t)this->duration_ms % 1000) * 1000000 ;
+		timer_value.it_value.tv_nsec = (static_cast<uint32_t>(this->duration_ms) % 1000) * 1000000 ;
 		timer_value.it_value.tv_sec = this->duration_ms / 1000;
 	}
+
 	//start timer
 	timerfd_settime(this->fd, 0, &timer_value, NULL);
 }
+
 
 void TimerEvent::raise(void)
 {
@@ -104,6 +103,7 @@ void TimerEvent::raise(void)
 	timerfd_settime(this->fd, 0, &timer_value, NULL);
 }
 
+
 void TimerEvent::disable(void)
 {
 	itimerspec timer_value;
@@ -119,6 +119,7 @@ void TimerEvent::disable(void)
 	timerfd_settime(this->fd, 0, &timer_value, NULL);
 }
 
+
 bool TimerEvent::handle(void)
 {
 	// auto rearm ? if so rearm
@@ -132,4 +133,10 @@ bool TimerEvent::handle(void)
 		this->disable();
 	}
 	return true;
+}
+
+
+void TimerEvent::setDuration(double new_duration)
+{
+	this->duration_ms = new_duration;
 }

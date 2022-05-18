@@ -39,10 +39,6 @@
 #include "FileEvent.h"
 #include "Types.h"
 
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 /**
   * @class TcpListenEvent
@@ -51,9 +47,7 @@
   */
 class TcpListenEvent: public FileEvent
 {
-
-  public:
-
+ public:
 	/**
 	 * @brief TcpListenEvent constructor
 	 *
@@ -64,39 +58,27 @@ class TcpListenEvent: public FileEvent
 	 */
 	TcpListenEvent(const std::string &name,
 	               int32_t fd = -1,
-	               size_t max_size = MAX_SOCK_SIZE,
-	               uint8_t priority = 4):
-		FileEvent(name, fd, max_size, priority, EventType::TcpListen)
-	{};
-
-	~TcpListenEvent();
-
-	/**
-	 * @brief Get the message content
-	 *
-	 * @return the data contained in the message, it can be casted as a char*
-	 */
-	unsigned char *getData(void);
+	               std::size_t max_size = MAX_SOCK_SIZE,
+	               uint8_t priority = 4);
 
 	/**
 	 * @brief Get the file descriptor of the socket client
 	 *
 	 * @return the file descriptor of the socket client
 	 */
-	int32_t getSocketClient(void) const {return this->socket_client;};
+	inline int32_t getSocketClient(void) const {return this->socket_client;};
 
 	/**
 	 * @brief  handle event
 	 * 
 	 * @return  True on success, false otherwise
 	 */
-	virtual bool handle(void);
+	bool handle(void) override;
 
-  protected:
-
+ protected:
 	/// The file descriptor of the socket client
 	int32_t socket_client;
-
 };
+
 
 #endif

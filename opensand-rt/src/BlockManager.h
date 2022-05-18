@@ -38,15 +38,12 @@
 #define BLOCK_MANAGER_H
 
 #include <vector>
-#include <string>
 
 #include "Block.h"
-#include "MessageEvent.h"
-#include "RtFifo.h"
-
 #include "TemplateHelper.h"
 
 
+class RtFifo;
 class OutputLog;
 
 
@@ -188,6 +185,10 @@ class BlockManager
  private:
 	void setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward);
 
+  bool checkConnectedBlocks(const Block *upper, const Block *lower);
+
+  void createFifos(std::shared_ptr<RtFifo> &up_fifo, std::shared_ptr<RtFifo> &down_fifo);
+
 	/// list of pointers to the blocks
 	std::vector<Block *> block_list;
 
@@ -230,9 +231,8 @@ void BlockManager::connectBlocks(const UpperBl *upper, const LowerBl *lower)
 	static_assert(has_one_output<typename LowerBl::Upward>::value);
 	static_assert(has_one_input<typename LowerBl::Downward>::value);
 
-	if (!upper || !lower)
+	if (!this->checkConnectedBlocks(upper, lower))
 	{
-		LOG(log_rt, LEVEL_ERROR, "One of the blocks to connect is null");
 		return;
 	}
 
@@ -241,8 +241,8 @@ void BlockManager::connectBlocks(const UpperBl *upper, const LowerBl *lower)
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	RtFifo *up_fifo = new RtFifo();
-	RtFifo *down_fifo = new RtFifo();
+	std::shared_ptr<RtFifo> up_fifo, down_fifo;
+	this->createFifos(up_fifo, down_fifo);
 
 	// connect upward fifo to both blocks
 	lower_upward->setNextFifo(up_fifo);
@@ -263,9 +263,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	static_assert(has_one_output<typename LowerBl::Upward>::value);
 	static_assert(has_one_input<typename LowerBl::Downward>::value);
 
-	if (!upper || !lower)
+	if (!this->checkConnectedBlocks(upper, lower))
 	{
-		LOG(log_rt, LEVEL_ERROR, "One of the blocks to connect is null");
 		return;
 	}
 
@@ -274,8 +273,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	RtFifo *up_fifo = new RtFifo();
-	RtFifo *down_fifo = new RtFifo();
+	std::shared_ptr<RtFifo> up_fifo, down_fifo;
+	this->createFifos(up_fifo, down_fifo);
 
 	// connect upward fifo to both blocks
 	lower_upward->setNextFifo(up_fifo);
@@ -296,9 +295,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	static_assert(has_n_outputs<typename LowerBl::Upward>::value);
 	static_assert(has_n_inputs<typename LowerBl::Downward>::value);
 	
-	if (!upper || !lower)
+	if (!this->checkConnectedBlocks(upper, lower))
 	{
-		LOG(log_rt, LEVEL_ERROR, "One of the blocks to connect is null");
 		return;
 	}
 
@@ -307,8 +305,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	RtFifo *up_fifo = new RtFifo();
-	RtFifo *down_fifo = new RtFifo();
+	std::shared_ptr<RtFifo> up_fifo, down_fifo;
+	this->createFifos(up_fifo, down_fifo);
 
 	// connect upward fifo to both blocks
 	lower_upward->addNextFifo(up_key, up_fifo);
@@ -330,9 +328,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	static_assert(has_n_outputs<typename LowerBl::Upward>::value);
 	static_assert(has_n_inputs<typename LowerBl::Downward>::value);
 
-	if (!upper || !lower)
+	if (!this->checkConnectedBlocks(upper, lower))
 	{
-		LOG(log_rt, LEVEL_ERROR, "One of the blocks to connect is null");
 		return;
 	}
 
@@ -341,8 +338,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	RtFifo *up_fifo = new RtFifo();
-	RtFifo *down_fifo = new RtFifo();
+	std::shared_ptr<RtFifo> up_fifo, down_fifo;
+	this->createFifos(up_fifo, down_fifo);
 
 	// connect upward fifo to both blocks
 	lower_upward->addNextFifo(up_key, up_fifo);

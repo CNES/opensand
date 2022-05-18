@@ -67,6 +67,7 @@
 #include "TestMultiBlocks.h"
 
 #include "Rt.h"
+#include "MessageEvent.h"
 
 #include <opensand_output/Output.h>
 
@@ -100,25 +101,24 @@ static void usage(void)
 
 static char *read_msg(const MessageEvent *const event, std::string name, std::string from)
 {
-	char *data;
 	switch(event->getType())
 	{
-    case EventType::Message:
-			data = (char *)event->getData();
+		case EventType::Message:
+		{
+			char *data = static_cast<char *>(event->getData());
 			data[event->getLength()] = '\0';
 			std::cout << "Block " << name << ": " << strlen(data)
 			          << " bytes of data received from "
 			          << from << " block" << std::endl;
-			fflush(stdout);
-			break;
+			return data;
+		}
 
 		default:
 			Rt::reportError(name, std::this_thread::get_id(), true,
 			                "unknown event: %u", event->getType());
-			return NULL;
-
 	}
-	return data;
+
+	return nullptr;
 }
 
 
@@ -139,7 +139,7 @@ TopBlock::~TopBlock()
 
 bool TopBlock::Upward::onEvent(const RtEvent *const event)
 {
-	char *data = read_msg((MessageEvent *)event, this->getName(), "lower");
+	char *data = read_msg(static_cast<const MessageEvent *>(event), this->getName(), "lower");
 	if(!data)
 	{
 		return false;
@@ -150,7 +150,8 @@ bool TopBlock::Upward::onEvent(const RtEvent *const event)
 	{
 		Rt::reportError(this->getName(), std::this_thread::get_id(), true,
 		                "unable to transmit data to opposite channel");
-		free(data);
+
+    delete [] data;
 		return false;
 	}
 
@@ -272,7 +273,7 @@ MiddleBlock::MiddleBlock(const std::string &name):
 
 bool MiddleBlock::Upward::onEvent(const RtEvent *const event)
 {
-	char *data = read_msg((MessageEvent *)event, this->getName(), "lower");
+	char *data = read_msg(static_cast<const MessageEvent *>(event), this->getName(), "lower");
 	if(!data)
 	{
 		return false;
@@ -288,7 +289,7 @@ bool MiddleBlock::Upward::onEvent(const RtEvent *const event)
 
 bool MiddleBlock::Downward::onEvent(const RtEvent *const event)
 {
-	char *data = read_msg((MessageEvent *)event, this->getName(), "upper");
+	char *data = read_msg(static_cast<const MessageEvent *>(event), this->getName(), "upper");
 	if(!data)
 	{
 		return false;
@@ -371,7 +372,6 @@ bool BottomBlock::Upward::onEvent(const RtEvent *const event)
 			data = (char *)((NetSocketEvent *)event)->getData();
 			std::cout << "Block " << this->getName() << ": " << size
 			          << " bytes of data received on net socket" << std::endl;
-			fflush(stdout);
 
 			// transmit to upper layer
 			if(!this->enqueueMessage((void **)&data, strlen(data)))
@@ -415,7 +415,7 @@ bool BottomBlock::Downward::onInit(void)
 bool BottomBlock::Downward::onEvent(const RtEvent *const event)
 {
 	int res = 0;
-	char *data = read_msg((MessageEvent *)event, this->getName(), "upper");
+	char *data = read_msg(static_cast<const MessageEvent *>(event), this->getName(), "upper");
 	if(!data)
 	{
 		return false;
@@ -428,10 +428,11 @@ bool BottomBlock::Downward::onEvent(const RtEvent *const event)
 	{
 		Rt::reportError(this->getName(), std::this_thread::get_id(), true,
 		                "cannot write on pipe");
-		free(data);
+    delete [] data;
 		return false;
 	}
-	free(data);
+
+  delete [] data;
 	return true;
 }
 

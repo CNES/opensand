@@ -41,8 +41,6 @@
 #include "RtEvent.h"
 #include "Types.h"
 
-#include <sys/time.h>
-
 
 /**
   * @class FileEvent
@@ -51,9 +49,7 @@
   */
 class FileEvent: public RtEvent
 {
-
-  public:
-
+ public:
 	/**
 	 * @brief FileEvent constructor
 	 *
@@ -81,22 +77,20 @@ class FileEvent: public RtEvent
 	 *
 	 * @return the size of data in the message
 	 */
-	size_t getSize(void) const {return this->size;};
+	inline std::size_t getSize(void) const { return this->size; };
 
-	virtual bool handle(void);
+	bool handle(void) override;
 
-  protected:
-
+ protected:
 	/// The maximum size of received data
-	size_t max_size;
+  std::size_t max_size;
 
 	/// data pointer
 	unsigned char *data;
 
 	/// data size
-	size_t size;
-
-
+  std::size_t size;
 };
+
 
 #endif

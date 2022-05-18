@@ -26,46 +26,32 @@
  */
 
 /**
- * @file Types.h
- * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
- * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  Types for opensand-rt
- *
+ * @file RtCommunicate.cpp
+ * @author Mathias ETTIINGER / <mathias.ettinger@viveris.fr>
+ * @brief  Simple read and write checks for communication through file descriptors
  */
 
 
+#include <unistd.h>
+#include <cstring>
 
-#ifndef TYPES_H
-#define TYPES_H
-
-#include <cstddef>
-#include <cstdint>
+#include "RtCommunicate.h"
 
 
-constexpr std::size_t MAX_SOCK_SIZE{9000};
+constexpr const char *MAGIC_WORD = "GO";
 
 
-/// opensand-rt event types
-enum EventType
+bool check_write(int32_t fd)
 {
-	NetSocket,   ///< Event of type NetSocket
-	Timer,       ///< Event of type Timer
-	Message,     ///< Event of type Message
-	Signal,      ///< Event of type Signal
-	File,        ///< Event of type File
-	TcpListen,   ///< Event of type TcpListen
-};
+	const auto length = std::strlen(MAGIC_WORD);
+	return write(fd, MAGIC_WORD, length) == length;
+}
 
 
-using event_id_t = int32_t;
-
-
-struct rt_msg_t
+bool check_read(int32_t fd)
 {
-	void *data;
-	size_t length;
-	uint8_t type;
-};
-
-
-#endif
+	const auto length = std::strlen(MAGIC_WORD);
+	char data[length];
+	auto received = read(fd, data, length);
+	return received == length && std::strncmp(data, MAGIC_WORD, length) == 0;
+}
