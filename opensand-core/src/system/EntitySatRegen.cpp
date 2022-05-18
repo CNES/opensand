@@ -121,7 +121,7 @@ bool EntitySatRegen::createSpecificBlocks()
 void defineProfileMetaModel()
 {
 	BlockDvbNcc::generateConfiguration(true);
-	BlockDvbTal::generateConfiguration(true);
+	BlockDvbTal::generateConfiguration();
 }
 
 bool EntitySatRegen::loadConfiguration(const std::string &profile_path)

@@ -109,7 +109,7 @@ class BlockDvbTal: public BlockDvb
 	BlockDvbTal(const string &name, struct dvb_specific specific);
 	~BlockDvbTal();
 
-	static void generateConfiguration(bool disable_control_plane = false);
+	static void generateConfiguration();
 
 	bool initListsSts();
 
