@@ -712,7 +712,6 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 		    carriers->getCarriersId());
 
 		modcod_id = scpc_modcod_def->getMinId();
-		//goto skip;
 	}
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "SF#%u: Available MODCOD for GW = %u\n",
@@ -744,8 +743,6 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 		this->incomplete_bb_frames_ordered.push_back(*bbframe);
 	}
 
-skip:
-	return true;
 error:
 	return false;
 }
