@@ -46,8 +46,6 @@
 
 #define MAGIC_WORD "GO"
 
-using std::queue;
-
 /**
  * @class RtFifo
  * @brief A fifo between two blocks
@@ -107,7 +105,7 @@ class RtFifo
   private:
 
 	/// the queue
-	queue<rt_msg_t> fifo;
+	std::queue<rt_msg_t> fifo;
   
 	/// The fifo size
 	size_t max_size;

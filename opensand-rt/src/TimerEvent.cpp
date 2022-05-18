@@ -40,12 +40,12 @@
 #include <sys/timerfd.h>
 #include <unistd.h>
 
-TimerEvent::TimerEvent(const string &name,
+TimerEvent::TimerEvent(const std::string &name,
                        double timer_duration_ms,
                        bool auto_rearm,
                        bool start,
                        uint8_t priority):
-	RtEvent(evt_timer, name, -1, priority),
+	RtEvent(EventType::Timer, name, -1, priority),
 	duration_ms(timer_duration_ms),
 	enabled(start),
 	auto_rearm(auto_rearm)
@@ -60,10 +60,6 @@ TimerEvent::TimerEvent(const string &name,
 		        name.c_str(), timer_duration_ms);*/
 		this->start();
 	}
-}
-
-TimerEvent::~TimerEvent(void)
-{
 }
 
 void TimerEvent::start(void)

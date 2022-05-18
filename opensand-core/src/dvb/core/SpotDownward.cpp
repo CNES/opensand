@@ -46,6 +46,9 @@
 #include "RandomSimulator.h"
 #include "OpenSandModelConf.h"
 
+#include <errno.h>
+#include <opensand_output/OutputEvent.h>
+
 
 SpotDownward::SpotDownward(spot_id_t spot_id,
                            tal_id_t mac_id,
@@ -352,18 +355,18 @@ bool SpotDownward::initMode(void)
 			    "failed initialize fifos for category %s\n", label.c_str());
 			return false;
 		}
-		this->dvb_fifos.insert(pair<string, fifos_t>(label, fifos));
+		this->dvb_fifos.insert({label, fifos});
 
 		// check if there is VCM carriers in this category
-		vector<CarriersGroupDama *>::iterator carrier_it;
-		vector<CarriersGroupDama *> carriers_group;
+    std::vector<CarriersGroupDama *>::iterator carrier_it;
+    std::vector<CarriersGroupDama *> carriers_group;
 		carriers_group = (*cat_it).second->getCarriersGroups();
 		for(carrier_it = carriers_group.begin();
 		    carrier_it != carriers_group.end();
 		    ++carrier_it)
 		{
-			vector<CarriersGroupDama *> vcm_carriers;
-			vector<CarriersGroupDama *>::iterator vcm_it;
+      std::vector<CarriersGroupDama *> vcm_carriers;
+      std::vector<CarriersGroupDama *>::iterator vcm_it;
 			vcm_carriers = (*carrier_it)->getVcmCarriers();
 			if(vcm_carriers.size() > 1)
 			{
@@ -434,7 +437,7 @@ bool SpotDownward::initDama(void)
 	time_frame_t sync_period_frame;
 	time_sf_t rbdc_timeout_sf;
 	rate_kbps_t fca_kbps;
-	string dama_algo;
+  std::string dama_algo;
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
@@ -657,7 +660,7 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 		this->default_fifo_id = std::max(this->default_fifo_id,
 		                                 fifo->getPriority());
 
-		fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
+		fifos.insert({fifo->getPriority(), fifo});
 	}
 
 	return true;
@@ -775,22 +778,22 @@ bool SpotDownward::initOutput(void)
 	this->event_logon_resp = output->registerEvent("Spot_%d.DVB.logon_response",
 	                                               this->spot_id);
 
-	this->probe_gw_queue_size = new map<string, ProbeListPerId>();
-	this->probe_gw_queue_size_kb = new map<string, ProbeListPerId>();
-	this->probe_gw_queue_loss = new map<string, ProbeListPerId>();
-	this->probe_gw_queue_loss_kb = new map<string, ProbeListPerId>();
-	this->probe_gw_l2_to_sat_before_sched = new map<string, ProbeListPerId>();
-	this->probe_gw_l2_to_sat_after_sched = new map<string, ProbeListPerId>();
+	this->probe_gw_queue_size = new std::map<std::string, ProbeListPerId>();
+	this->probe_gw_queue_size_kb = new std::map<std::string, ProbeListPerId>();
+	this->probe_gw_queue_loss = new std::map<std::string, ProbeListPerId>();
+	this->probe_gw_queue_loss_kb = new std::map<std::string, ProbeListPerId>();
+	this->probe_gw_l2_to_sat_before_sched = new std::map<std::string, ProbeListPerId>();
+	this->probe_gw_l2_to_sat_after_sched = new std::map<std::string, ProbeListPerId>();
 	char probe_name[128];
 
-	for(map<string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
+	for(std::map<std::string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
 		it1 != this->dvb_fifos.end(); it1++)
 	{
-		string cat_label = it1->first;
+    std::string cat_label = it1->first;
 		for(fifos_t::iterator it2 = it1->second.begin();
 			it2 != it1->second.end(); ++it2)
 		{
-			string fifo_name = ((*it2).second)->getName();
+      std::string fifo_name = ((*it2).second)->getName();
 			unsigned int id = (*it2).first;
 
 			std::shared_ptr<Probe<int>> probe_temp;
@@ -856,8 +859,8 @@ bool SpotDownward::handleSalohaAcks(const std::list<DvbFrame *> *ack_frames)
 bool SpotDownward::handleEncapPacket(NetPacket *packet)
 {
 	qos_t fifo_priority = packet->getQos();
-	string cat_label;
-	map<string, fifos_t>::iterator fifos_it;
+  std::string cat_label;
+  std::map<std::string, fifos_t>::iterator fifos_it;
 	tal_id_t dst_tal_id;
 
 	LOG(this->log_receive_channel, LEVEL_INFO,
@@ -1009,10 +1012,10 @@ void SpotDownward::updateStatistics(void)
 
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
-	for(map<string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
+	for(std::map<std::string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
 		it1 != this->dvb_fifos.end(); it1++)
 	{
-		string cat_label = it1->first;
+    std::string cat_label = it1->first;
 		for(fifos_t::iterator it2 = it1->second.begin();
 		    it2 != it1->second.end(); ++it2)
 		{
@@ -1277,7 +1280,7 @@ bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
 {
 	svno_request_type_t req_type = svno_request->getType();
 	band_t band = svno_request->getBand();
-	string cat_label = svno_request->getLabel();
+  std::string cat_label = svno_request->getLabel();
 	rate_kbps_t new_rate_kbps = svno_request->getNewRate();
 	TerminalCategories<TerminalCategoryDama> *cat;
 	time_ms_t frame_duration_ms;
@@ -1347,8 +1350,8 @@ bool SpotDownward::addCniExt(void)
 		    ++fifos_it)
 		{
 			DvbFifo *fifo = (*fifos_it).second;
-			vector<MacFifoElement *> queue = fifo->getQueue();
-			vector<MacFifoElement *>::iterator queue_it;
+      std::vector<MacFifoElement *> queue = fifo->getQueue();
+      std::vector<MacFifoElement *>::iterator queue_it;
 
 			for(queue_it = queue.begin();
 			    queue_it != queue.end();
@@ -1406,8 +1409,8 @@ bool SpotDownward::addCniExt(void)
 		   && this->getCniInputHasChanged(tal_id))
 		{
 			NetPacket *extension_pkt = NULL;
-			string cat_label;
-			map<string, fifos_t>::iterator fifos_it;
+      std::string cat_label;
+      std::map<std::string, fifos_t>::iterator fifos_it;
 
 			// first get the relevant category for the packet to find appropriate fifo
 			if(this->terminal_affectation.find(tal_id) != this->terminal_affectation.end())

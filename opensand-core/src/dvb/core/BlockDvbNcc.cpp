@@ -46,6 +46,8 @@
 #include "Sof.h"
 
 #include <errno.h>
+#include <opensand_rt/TcpListenEvent.h>
+
 
 
 /*****************************************************************************/
@@ -345,7 +347,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			auto msg_event = static_cast<const MessageEvent*>(event);
       InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
@@ -409,7 +411,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			break;
 		}
-		case evt_timer:
+    case EventType::Timer:
 		{
 			// receive the frame Timer event
 			LOG(this->log_receive, LEVEL_DEBUG,
@@ -495,7 +497,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			break;
 		}
 		// TODO factorize, some elements are exactly the same between NccInterface classes
-		case evt_net_socket:
+    case EventType::NetSocket:
 		{
 			if(*event == this->pep_interface.getPepClientSocket())
 			{
@@ -619,7 +621,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_tcp_listen:
+    case EventType::TcpListen:
 		{
 			if(*event == this->pep_interface.getPepListenSocket())
 			{
@@ -854,7 +856,7 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
       DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
       if (!this->onRcvDvbFrame(dvb_frame))

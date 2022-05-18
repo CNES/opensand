@@ -45,7 +45,7 @@
 struct sc_specific
 {
 	tal_id_t tal_id;     ///< the terminal id for terminal
-	string ip_addr;      ///< the IP address for emulation
+	std::string ip_addr;      ///< the IP address for emulation
 	/// for sat only: destination handled by this part of the stack (terminal or gateway)
 	Component destination_host = Component::unknown;    
 	/// for sat only: the spot handled by this part of the stack
@@ -66,20 +66,20 @@ class BlockSatCarrier: public Block
 	 * @param name      The block name
 	 * @param specific  Specific block parameters
 	 */
-	BlockSatCarrier(const string &name,
+	BlockSatCarrier(const std::string &name,
 	                struct sc_specific specific);
 
 	class Upward: public RtUpward
 	{
 	 public:
-		Upward(const string &name, struct sc_specific specific);
+		Upward(const std::string &name, struct sc_specific specific);
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	 private:
 		/// the IP address for emulation newtork
-		string ip_addr;
+		std::string ip_addr;
 		/// the terminal id for the emulation newtork
 		tal_id_t tal_id;
 		/// List of input channels
@@ -105,14 +105,14 @@ class BlockSatCarrier: public Block
 	class Downward: public RtDownward
 	{
 	 public:
-		Downward(const string &name, struct sc_specific specific);
+		Downward(const std::string &name, struct sc_specific specific);
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
 	 private:
 		/// the IP address for emulation newtork
-		string ip_addr;
+		std::string ip_addr;
 		/// the terminal id for the emulation newtork
 		tal_id_t tal_id;
 		/// List of output channels

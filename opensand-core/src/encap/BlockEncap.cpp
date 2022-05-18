@@ -90,7 +90,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_timer:
+    case EventType::Timer:
 		{
 			// timer event, flush corresponding encapsulation context
 			LOG(this->log_receive, LEVEL_INFO,
@@ -99,7 +99,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_message:
+    case EventType::Message:
 		{
 			// message received from another bloc
 			LOG(this->log_receive, LEVEL_INFO,
@@ -143,7 +143,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "message received from the lower layer\n");
@@ -427,7 +427,7 @@ error:
 
 bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 {
-	map<long, int> time_contexts;
+	std::map<long, int> time_contexts;
 	std::vector<EncapPlugin::EncapContext *>::iterator iter;
 	std::string name;
 	size_t size;
@@ -462,7 +462,7 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 	}
 
 	// set encapsulate timers if needed
-	for(map<long, int>::iterator time_iter = time_contexts.begin();
+	for(std::map<long, int>::iterator time_iter = time_contexts.begin();
 	    time_iter != time_contexts.end(); time_iter++)
 	{
 		std::map<event_id_t, int>::iterator it;

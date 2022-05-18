@@ -59,7 +59,7 @@ sat_carrier_channel_set::~sat_carrier_channel_set()
 }
 
 
-bool sat_carrier_channel_set::readCarrier(const string &local_ip_addr,
+bool sat_carrier_channel_set::readCarrier(const std::string &local_ip_addr,
                                           tal_id_t gw_id,
                                           const OpenSandModelConf::carrier_socket &carrier,
                                           bool is_input)
@@ -67,8 +67,8 @@ bool sat_carrier_channel_set::readCarrier(const string &local_ip_addr,
 	int carrier_id = carrier.id;
 	long carrier_port = carrier.port;
 	bool carrier_multicast = carrier.is_multicast;
-	string carrier_ip = carrier.address;
-	
+	std::string carrier_ip = carrier.address;
+
 	LOG(this->log_init, LEVEL_INFO,
 	    "Creating carrier with ID: %u, IP address: %s, "
 	    "port: %ld, input: %s, multicast: %s\n",
@@ -104,7 +104,7 @@ bool sat_carrier_channel_set::readCarrier(const string &local_ip_addr,
 	return true;
 }
 
-bool sat_carrier_channel_set::readSpot(const string &local_ip_addr,
+bool sat_carrier_channel_set::readSpot(const std::string &local_ip_addr,
                                        bool in,
                                        Component host,
                                        tal_id_t gw_id,
@@ -164,7 +164,7 @@ bool sat_carrier_channel_set::readSpot(const string &local_ip_addr,
 	return true;
 }
 
-bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
+bool sat_carrier_channel_set::readConfig(const std::string local_ip_addr,
                                          Component destination_host,
                                          spot_id_t spot_id,
                                          bool in)
@@ -204,14 +204,14 @@ bool sat_carrier_channel_set::readConfig(const string local_ip_addr,
 	return true;
 }
 
-bool sat_carrier_channel_set::readInConfig(const string local_ip_addr,
+bool sat_carrier_channel_set::readInConfig(const std::string local_ip_addr,
                                            Component destination_host,
                                            spot_id_t spot_id)
 {
 	return this->readConfig(local_ip_addr, destination_host, spot_id, true);
 }
 
-bool sat_carrier_channel_set::readOutConfig(const string local_ip_addr,
+bool sat_carrier_channel_set::readOutConfig(const std::string local_ip_addr,
                                             Component destination_host,
                                             spot_id_t spot_id)
 {

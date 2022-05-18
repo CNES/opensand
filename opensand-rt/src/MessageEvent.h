@@ -42,10 +42,6 @@
 #include <string>
 #include <utility>
 
-using std::string;
-using std::pair;
-
-
 class RtFifo;
 
 /**
@@ -66,11 +62,9 @@ class MessageEvent: public RtEvent
 	 * @param priority  The priority of the event
 	 */
 	MessageEvent(RtFifo *const fifo,
-	             const string &name,
+	             const std::string &name,
 	             int32_t fd,
 	             uint8_t priority = 3);
-
-	~MessageEvent();
 
 	/**
 	 * @brief Get the message

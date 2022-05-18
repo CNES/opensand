@@ -46,20 +46,18 @@
 
 #include <queue>
 
-using std::queue;
-
 class TopBlock: public Block
 {
 
   public:
 
-	TopBlock(const string &name, string file);
+	TopBlock(const std::string &name, std::string file);
 	~TopBlock();
 	
 	class Upward : public RtUpward
 	{
 	  public:
-		Upward(const string &name, string file) :
+		Upward(const std::string &name, std::string file) :
 			RtUpward(name)
 		{}
 		~Upward() {}
@@ -71,7 +69,7 @@ class TopBlock: public Block
 	class Downward : public RtDownward
 	{
 	  public:
-		Downward(const string &name, string file) :
+		Downward(const std::string &name, std::string file) :
 			RtDownward(name),
 			input_file(file),
 			input_fd(-1),
@@ -83,10 +81,10 @@ class TopBlock: public Block
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 		
-		string input_file;
+		std::string input_file;
 		int32_t input_fd;
 		//char last_written[MAX_SOCK_SIZE + 1];
-		queue<string> last_written;
+		std::queue<std::string> last_written;
 	};
 	
   protected:
@@ -98,13 +96,13 @@ class MiddleBlock: public Block
 
   public:
 
-	MiddleBlock(const string &name);
+	MiddleBlock(const std::string &name);
 	~MiddleBlock();
 
 	class Upward : public RtUpward
 	{
 	  public:
-		Upward(const string &name) :
+		Upward(const std::string &name) :
 			RtUpward(name)
 		{}
 		~Upward() {}
@@ -116,7 +114,7 @@ class MiddleBlock: public Block
 	class Downward : public RtDownward
 	{
 	  public:
-		Downward(const string &name) :
+		Downward(const std::string &name) :
 			RtDownward(name)
 		{}
 		~Downward() {}
@@ -134,13 +132,13 @@ class BottomBlock: public Block
 
   public:
 
-	BottomBlock(const string &name);
+	BottomBlock(const std::string &name);
 	~BottomBlock();
 
 	class Upward : public RtUpward
 	{
 	  public:
-		Upward(const string &name) :
+		Upward(const std::string &name) :
 			RtUpward(name)
 		{}
 		~Upward();
@@ -157,7 +155,7 @@ class BottomBlock: public Block
 	class Downward : public RtDownward
 	{
 	  public:
-		Downward(const string &name) :
+		Downward(const std::string &name) :
 			RtDownward(name)
 		{}
 		~Downward();

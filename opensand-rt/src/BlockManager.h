@@ -37,15 +37,18 @@
 #ifndef BLOCK_MANAGER_H
 #define BLOCK_MANAGER_H
 
+#include <vector>
+#include <string>
+
 #include "Block.h"
 #include "MessageEvent.h"
 #include "RtFifo.h"
 
-#include <opensand_output/OutputLog.h>
-
 #include "TemplateHelper.h"
-#include <vector>
-#include <string>
+
+
+class OutputLog;
+
 
 /**
  * @class BlockManager
@@ -56,7 +59,7 @@ class BlockManager
 {
 	friend class Rt;
 
-  protected:
+ protected:
 	BlockManager();
 	~BlockManager();
 
@@ -69,6 +72,7 @@ class BlockManager
 	 */
 	template <class Bl>
 	Bl *createBlock(const std::string &name);
+
 	/**
 	 * @brief Creates and adds a block to the application.
 	 *
@@ -79,8 +83,7 @@ class BlockManager
 	 * @return A pointer to the newly created block
 	 */
 	template <class Bl, class Specific>
-	Bl *createBlock(const std::string &name,
-	                Specific specific);
+	Bl *createBlock(const std::string &name, Specific specific);
 
 	/**
 	 * @brief Connects two blocks
@@ -89,8 +92,7 @@ class BlockManager
 	 * @param lower     The lower block
 	 */
 	template <class UpperBl, class LowerBl>
-	void connectBlocks(const UpperBl *upper,
-	                   const LowerBl *lower);
+	void connectBlocks(const UpperBl *upper, const LowerBl *lower);
 
 	/**
 	 * @brief Connects a multiplexer block to a simple block
@@ -144,7 +146,7 @@ class BlockManager
 	 *
 	 * @param signal  The received signal
 	 */
-	void stop(int signal);
+	void stop(void);
 
 	/**
 	 * @brief Initialize the manager, creates and initialize blocks
@@ -165,7 +167,7 @@ class BlockManager
 	 * @param msg        The error message
 	 * @param critical   Whether the application should be stopped
 	 */
-	void reportError(const char *msg, bool critical);
+	void reportError(const std::string& msg, bool critical);
 
 	/**
 	 * @brief Checks if threads and application are alive or should be stopped
@@ -183,7 +185,7 @@ class BlockManager
 	/// Output Log
 	std::shared_ptr<OutputLog> log_rt;
 
-  private:
+ private:
 	void setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward);
 
 	/// list of pointers to the blocks
@@ -196,6 +198,7 @@ class BlockManager
 	bool status;
 };
 
+
 template <class Bl>
 Bl *BlockManager::createBlock(const std::string &name)
 {
@@ -205,6 +208,7 @@ Bl *BlockManager::createBlock(const std::string &name)
 	setupBlock(block, upward, downward);
 	return block;
 }
+
 
 template <class Bl, class Specific>
 Bl *BlockManager::createBlock(const std::string &name,
@@ -216,6 +220,7 @@ Bl *BlockManager::createBlock(const std::string &name,
 	setupBlock(block, upward, downward);
 	return block;
 }
+
 
 template <class UpperBl, class LowerBl>
 void BlockManager::connectBlocks(const UpperBl *upper, const LowerBl *lower)

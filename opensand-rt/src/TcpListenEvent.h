@@ -62,11 +62,11 @@ class TcpListenEvent: public FileEvent
 	 * @param max_size  The maximum data size
 	 * @param priority  The priority of the event
 	 */
-	TcpListenEvent(const string &name,
+	TcpListenEvent(const std::string &name,
 	               int32_t fd = -1,
 	               size_t max_size = MAX_SOCK_SIZE,
 	               uint8_t priority = 4):
-		FileEvent(name, fd, max_size, priority, evt_tcp_listen)
+		FileEvent(name, fd, max_size, priority, EventType::TcpListen)
 	{};
 
 	~TcpListenEvent();

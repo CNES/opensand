@@ -36,8 +36,8 @@
 #include "OpenSandModelConf.h"
 
 
-BlockInterconnectDownward::BlockInterconnectDownward(const string &name,
-                                                     const string &):
+BlockInterconnectDownward::BlockInterconnectDownward(const std::string &name,
+                                                     const std::string &):
 	Block(name)
 {
 }
@@ -54,7 +54,7 @@ bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			auto msg_event = static_cast<const MessageEvent*>(event);
 			rt_msg_t message = msg_event->getMessage();
@@ -84,7 +84,7 @@ bool BlockInterconnectDownward::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_net_socket:
+    case EventType::NetSocket:
 		{
 			std::list<rt_msg_t> messages;
 
@@ -133,13 +133,13 @@ bool BlockInterconnectDownward::onInit(void)
 
 bool BlockInterconnectDownward::Upward::onInit(void)
 {
-	string name="UpwardInterconnectChannel";
+	std::string name="UpwardInterconnectChannel";
 	unsigned int stack;
 	unsigned int rmem;
 	unsigned int wmem;
 	unsigned int data_port;
 	unsigned int sig_port;
-	string remote_addr("");
+	std::string remote_addr("");
 	int32_t socket_event;
 
 	auto Conf = OpenSandModelConf::Get();
@@ -182,7 +182,7 @@ bool BlockInterconnectDownward::Downward::onInit()
 	unsigned int wmem;
 	unsigned int data_port;
 	unsigned int sig_port;
-	string remote_addr("");
+	std::string remote_addr("");
 
 	auto Conf = OpenSandModelConf::Get();
 	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem))
@@ -198,8 +198,8 @@ bool BlockInterconnectDownward::Downward::onInit()
 	return true;
 }
 
-BlockInterconnectUpward::BlockInterconnectUpward(const string &name,
-                                                 const string &):
+BlockInterconnectUpward::BlockInterconnectUpward(const std::string &name,
+                                                 const std::string &):
 	Block(name)
 {
 }
@@ -218,7 +218,7 @@ bool BlockInterconnectUpward::Downward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_net_socket:
+    case EventType::NetSocket:
 		{
 			std::list<rt_msg_t> messages;
 
@@ -262,7 +262,7 @@ bool BlockInterconnectUpward::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			auto msg_event = static_cast<const MessageEvent*>(event);
 			rt_msg_t message = msg_event->getMessage();
@@ -300,7 +300,7 @@ bool BlockInterconnectUpward::Upward::onInit(void)
 	unsigned int wmem;
 	unsigned int data_port;
 	unsigned int sig_port;
-	string remote_addr("");
+	std::string remote_addr("");
 
 	auto Conf = OpenSandModelConf::Get();
 	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem))
@@ -318,13 +318,13 @@ bool BlockInterconnectUpward::Upward::onInit(void)
 
 bool BlockInterconnectUpward::Downward::onInit()
 {
-	string name="DownwardInterconnectChannel";
+	std::string name="DownwardInterconnectChannel";
 	unsigned int stack;
 	unsigned int rmem;
 	unsigned int wmem;
 	unsigned int data_port;
 	unsigned int sig_port;
-	string remote_addr("");
+	std::string remote_addr("");
 	int32_t socket_event;
 
 	auto Conf = OpenSandModelConf::Get();

@@ -68,7 +68,7 @@ bool TcpListenEvent::handle(void)
 	                             &addr_length);
 	if(this->socket_client < 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		    "failed to accept new connection on socket: "
 		    "%s (%d)\n", strerror(errno), errno);
 		goto error;
@@ -78,7 +78,7 @@ bool TcpListenEvent::handle(void)
 	option = O_NONBLOCK;
 	if(fcntl(this->socket_client, F_SETFL, option) != 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		    "set socket in non blocking mode failed: %s (%d)\n",
 		    strerror(errno), errno);
 		goto close;

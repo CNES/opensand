@@ -64,7 +64,7 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * @param spot_id           For sat only: the spot handled by this part of the stack
 	 * @return true on success, false otherwise
 	 */
-	bool readInConfig(const string local_ip_addr,
+	bool readInConfig(const std::string local_ip_addr,
 	                  Component destination_host,
 	                  spot_id_t spot_id);
 
@@ -76,7 +76,7 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * @param spot_id           For sat only: the spot handled by this part of the stack
 	 * @return true on success, false otherwise
 	 */
-	bool readOutConfig(const string local_ip_addr,
+	bool readOutConfig(const std::string local_ip_addr,
 	                   Component destination_host,
 	                   spot_id_t spot_id);
 
@@ -123,16 +123,16 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * @param in              Whether we want input or output channels
 	 * @return true on success, false otherwise
 	 */
-	bool readConfig(const string local_ip_addr,
+	bool readConfig(const std::string local_ip_addr,
 	                Component destination_host,
 	                spot_id_t spot_id,
 	                bool in);
-	bool readSpot(const string &local_ip_addr,
+	bool readSpot(const std::string &local_ip_addr,
 	              bool in,
 	              Component host,
 	              tal_id_t gw_id,
 	              bool is_satellite);
-	bool readCarrier(const string &local_ip_addr,
+	bool readCarrier(const std::string &local_ip_addr,
 	                 tal_id_t gw_id,
 	                 const OpenSandModelConf::carrier_socket &carrier,
 	                 bool is_input);

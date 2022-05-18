@@ -37,25 +37,22 @@
 #ifndef RT_CHANNEL_BASE_H
 #define RT_CHANNEL_BASE_H
 
-#include "Types.h"
-#include "TimerEvent.h"
-
-#include <opensand_output/OutputLog.h>
-
 #include <stdlib.h>
+#include <sys/select.h>
 #include <string>
 #include <map>
-#include <list>
-#include <sys/select.h>
+#include <vector>
+#include <memory>
+
+#include "Types.h"
+#include "TimerEvent.h"
 
 
 class Block;
 class RtFifo;
 class RtEvent;
+class OutputLog;
 
-using std::list;
-using std::map;
-using std::string;
 
 //#define TIME_REPORTS
 
@@ -73,13 +70,12 @@ class RtChannelBase
 	friend class Block;
 	friend class BlockManager;
 
-  protected:
-
+ protected:
 	/// Output Log
-  std::shared_ptr<OutputLog> log_init;
-  std::shared_ptr<OutputLog> log_rt;
-  std::shared_ptr<OutputLog> log_receive;
-  std::shared_ptr<OutputLog> log_send;
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_rt;
+	std::shared_ptr<OutputLog> log_receive;
+	std::shared_ptr<OutputLog> log_send;
 
 	/**
 	 * @brief Channel Constructor
@@ -88,7 +84,7 @@ class RtChannelBase
 	 * @param type       The type of the block channel (upward or downward)
 	 *
 	 */
-	RtChannelBase(const string &name, const string &type);
+	RtChannelBase(const std::string &name, const std::string &type);
 
 	virtual ~RtChannelBase();
 
@@ -111,14 +107,13 @@ class RtChannelBase
 	 */
 	virtual bool onEvent(const RtEvent *const event) = 0;
 
-  public:
-
+ public:
 	/**
 	 * @brief Get the channel name
 	 * 
 	 * @return channel name
 	 */
-	string getName() { return this->channel_name; }
+	std::string getName() { return this->channel_name; }
 	
 	/**
 	 * @brief Add a timer event to the channel
@@ -130,7 +125,7 @@ class RtChannelBase
 	 * @param priority     The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addTimerEvent(const string &name,
+	int32_t addTimerEvent(const std::string &name,
 	                      double duration_ms,
 	                      bool auto_rearm = true,
 	                      bool start = true,
@@ -145,24 +140,24 @@ class RtChannelBase
 	 * @param priority  The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addNetSocketEvent(const string &name,
+	int32_t addNetSocketEvent(const std::string &name,
 	                          int32_t fd,
 	                          size_t max_size = MAX_SOCK_SIZE,
 	                          uint8_t priority = 3);
 
-	 /**
-	  * @brief Add a tcp listen event to the channel
-	  *
-	  * @param name      The name of the event
-	  * @param fd        The file descriptor to monitor
-	  * @param max_size  The maximum data size
-	  * @param priority  The priority of the event (small for high priority)
-	  * @return the event id on success, -1 otherwise
-	  */
-	 int32_t addTcpListenEvent(const string &name,
-	                           int32_t fd,
-	                           size_t max_size = MAX_SOCK_SIZE,
-	                           uint8_t priority = 4);
+	/**
+	 * @brief Add a tcp listen event to the channel
+	 *
+	 * @param name      The name of the event
+	 * @param fd        The file descriptor to monitor
+	 * @param max_size  The maximum data size
+	 * @param priority  The priority of the event (small for high priority)
+	 * @return the event id on success, -1 otherwise
+	 */
+	int32_t addTcpListenEvent(const std::string &name,
+	                          int32_t fd,
+	                          size_t max_size = MAX_SOCK_SIZE,
+	                          uint8_t priority = 4);
 
 	/**
 	 * @brief Add a file event to the channel
@@ -173,7 +168,7 @@ class RtChannelBase
 	 * @param priority  The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addFileEvent(const string &name,
+	int32_t addFileEvent(const std::string &name,
 	                     int32_t fd,
 	                     size_t max_size = MAX_SOCK_SIZE,
 	                     uint8_t priority = 4);
@@ -186,7 +181,7 @@ class RtChannelBase
 	 * @param priority     The priority of the event (small for high priority)
 	 * @return the event id on success, -1 otherwise
 	 */
-	int32_t addSignalEvent(const string &name,
+	int32_t addSignalEvent(const std::string &name,
 	                       sigset_t signal_mask,
 	                       uint8_t priority = 1);
 
@@ -243,8 +238,7 @@ class RtChannelBase
 	 */
 	bool shareMessage(void **data, size_t size=0, uint8_t type=0);
 
-  protected:
-
+ protected:
 	/**
 	 * @brief Internal channel initialization
 	 *        Call specific onInit function
@@ -292,17 +286,9 @@ class RtChannelBase
 	 */
 	bool pushMessage(RtFifo *fifo, void **data, size_t size, uint8_t type = 0);
 
-	/**
-	 * @brief Start the channel thread
-	 *
-	 * @param pthis  pointer to the channel
-	 *
-	 */
-	static void *startThread(void *pthis);
-
 #ifdef TIME_REPORTS
 	/// statistics about events durations (in us)
-	map<string, list<double> > durations;
+	std::map<std::string, std::vector<double> > durations;
 
 	/**
 	 * @brief print statistics on events durations
@@ -310,24 +296,23 @@ class RtChannelBase
 	void getDurationsStatistics(void) const;
 #endif
 
-  private:
-
+ private:
 	/// name of the block channel
-	string channel_name;
+	std::string channel_name;
 	
 	/// type of the block channel (upward or downward)
-	string channel_type;
+	std::string channel_type;
 	
 	bool block_initialized;
 	
 	/// events that are currently monitored by the channel thread
-	map<event_id_t, RtEvent *> events;
+	std::map<event_id_t, std::unique_ptr<RtEvent>> events;
 
 	/// the list of new events (used to avoid updates inside the loop)
-	list<RtEvent *> new_events;
+	std::vector<std::unique_ptr<RtEvent>> new_events;
 
 	/// the list of removed event id
-	list<event_id_t> removed_events;
+	std::vector<event_id_t> removed_events;
 
 	/// The fifo for incoming messages from opposite channel
 	RtFifo *in_opp_fifo;
@@ -360,19 +345,17 @@ class RtChannelBase
 	 * @param event  The event
 	 * @return true on success, false otherwise
 	 */
-	bool addEvent(RtEvent *event);
+	bool addEvent(std::unique_ptr<RtEvent> event);
 
 	/**
 	 * @brief Update the events map with the new received event
 	 *        We need to do that in order to avoid modifying the event
 	 *        map while itering on it
-	 *
 	 */
 	void updateEvents(void);
 
 	/**
 	 * @brief Update the maximum input fd after event removal
-	 *
 	 */
 	void updateMaxFd(void);
 
@@ -393,5 +376,5 @@ class RtChannelBase
 	TimerEvent *getTimer(event_id_t id);
 };
 
-#endif
 
+#endif

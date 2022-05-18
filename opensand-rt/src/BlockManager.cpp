@@ -38,6 +38,7 @@
 #include "Rt.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_output/OutputLog.h>
 
 #include <unistd.h>
 #include <signal.h>
@@ -157,6 +158,7 @@ static void crash_handler(int sig)
 	exit(-42);
 }
 
+
 BlockManager::BlockManager():
 	stopped(false),
 	status(true)
@@ -172,7 +174,8 @@ BlockManager::~BlockManager()
 	}
 }
 
-void BlockManager::stop(int signal)
+
+void BlockManager::stop(void)
 {
 	if(this->stopped)
 	{
@@ -180,22 +183,18 @@ void BlockManager::stop(int signal)
 		    "already tried to stop process\n");
 		return;
 	}
+
+	// avoid calling many times stop, we may have loop else
+	this->stopped = true;
 	for(auto &&block: block_list)
 	{
 		if(block != nullptr)
 		{
-			if(!block->stop(signal))
-			{
-				block->stop(SIGKILL);
-			}
+			block->stop();
 		}
 	}
-	// avoid calling many times stop, we may have loop else
-	this->stopped = true;
-	// TODO try using pthread_cancel, select has a posix cancel point in it
-	// http://www.mkssoftware.com/docs/man3/pthread_cancel.3.asp
-	// https://stackoverflow.com/questions/433989/posix-cancellation-points
 }
+
 
 bool BlockManager::init(void)
 {
@@ -220,6 +219,7 @@ bool BlockManager::init(void)
 			    block->getName().c_str());
 			continue;
 		}
+
 		if(!block->init())
 		{
 			// only return false, the block init function should call
@@ -257,21 +257,21 @@ bool BlockManager::init(void)
 }
 
 
-void BlockManager::reportError(const char *msg, bool critical)
+void BlockManager::reportError(const std::string& msg, bool critical)
 {
-	if(critical == true)
+	if(critical)
 	{
-		LOG(this->log_rt, LEVEL_CRITICAL, "%s", msg);
+		LOG(this->log_rt, LEVEL_CRITICAL, "%s", msg.c_str());
 		// stop process to signal something goes wrong
 		this->status = false;
 		kill(getpid(), SIGTERM);
 	}
 	else
 	{
-		//LOG(this->log_rt, LEVEL_ERROR,
-		//    "%s", msg);
+		LOG(this->log_rt, LEVEL_ERROR, "%s", msg.c_str());
 	}
 }
+
 
 bool BlockManager::start(void)
 {
@@ -280,19 +280,20 @@ bool BlockManager::start(void)
 	{
 		if(!block->isInitialized())
 		{
-			Rt::reportError("manager", pthread_self(),
+			Rt::reportError("manager", std::this_thread::get_id(),
 			                true, "block not initialized");
 			return false;
 		}
 		if(!block->start())
 		{
-			Rt::reportError("manager", pthread_self(),
+			Rt::reportError("manager", std::this_thread::get_id(),
 			                true, "block does not start");
 			return false;
 		}
 	}
 	return true;
 }
+
 
 void BlockManager::wait(void)
 {
@@ -311,7 +312,7 @@ void BlockManager::wait(void)
 	ret = pthread_sigmask(SIG_SETMASK, &blocked_signals, NULL);
 	if(ret == -1)
 	{
-		Rt::reportError("manager", pthread_self(),
+		Rt::reportError("manager", std::this_thread::get_id(),
 		                true, "error setting signal mask");
 		this->status = false;
 	}
@@ -329,31 +330,32 @@ void BlockManager::wait(void)
 	ret = select(fd + 1, &fds, NULL, NULL, NULL);
 	if(ret == -1 || !FD_ISSET(fd, &fds))
 	{
-		Rt::reportError("manager", pthread_self(),
+		Rt::reportError("manager", std::this_thread::get_id(),
 		                true, "select error");
 		this->status = false;
 	}
 	else if(ret)
 	{
 		struct signalfd_siginfo fdsi;
-		int rlen;
-		rlen = read(fd, &fdsi, sizeof(struct signalfd_siginfo));
+		auto rlen = read(fd, &fdsi, sizeof(struct signalfd_siginfo));
 		if(rlen != sizeof(struct signalfd_siginfo))
 		{
-			Rt::reportError("manager", pthread_self(),
+			Rt::reportError("manager", std::this_thread::get_id(),
 			                true, "cannot read signal");
 			this->status = false;
 		}
 		LOG(this->log_rt, LEVEL_INFO,
 		    "signal received: %d\n", fdsi.ssi_signo);
-		this->stop(fdsi.ssi_signo);
+		this->stop();
 	}
 }
+
 
 bool BlockManager::getStatus()
 {
 	return this->status;
 }
+
 
 void BlockManager::setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward)
 {

@@ -59,7 +59,7 @@ bool NetSocketEvent::handle(void)
 	socklen_t addrlen;
 	if(this->data)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: previous data was not handled\n",
 		                this->name.c_str());
 		free(this->data);
@@ -72,21 +72,21 @@ bool NetSocketEvent::handle(void)
 	               (struct sockaddr *) &(this->src_addr), &addrlen);
 	if(ret < 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: unable to read on socket [%u: %s]",
 		                this->name.c_str(), errno, strerror(errno));
 		goto error;
 	}
 	else if((size_t)ret > this->max_size)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: too many data received (%zu > %zu)\n",
 		                this->name.c_str(), this->size, this->max_size);
 		goto error;
 	}
 	else if(ret == 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                 "event %s: distant host disconnected\n",
 		                 this->name.c_str());
 		goto error;

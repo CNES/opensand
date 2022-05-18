@@ -38,16 +38,18 @@
 #include <stdarg.h>
 #include <cstdio>
 #include <algorithm>
+#include <sstream>
+
 
 // Create bloc instance
 BlockManager Rt::manager;
 
-using std::max;
 
 bool Rt::init(void)
 {
 	return manager.init();
 }
+
 
 bool Rt::run(bool init)
 {
@@ -64,15 +66,16 @@ bool Rt::run(bool init)
 	return manager.getStatus();
 }
 
-void Rt::stop(int signal)
+
+void Rt::stop()
 {
-	manager.stop(signal);
+	manager.stop();
 }
 
-void Rt::reportError(const string &name, pthread_t thread_id,
+
+void Rt::reportError(const std::string &name, std::thread::id thread_id,
                      bool critical, const char *msg_format, ...)
 {
-	char buf[1024];
 	char msg[512];
 	va_list args;
 	va_start(args, msg_format);
@@ -81,8 +84,9 @@ void Rt::reportError(const string &name, pthread_t thread_id,
 
 	va_end(args);
 
-	snprintf(buf, 1024, "Error in %s (thread: %lu): %s\n",
-	         name.c_str(), (unsigned long)thread_id, msg);
+  std::ostringstream ss;
+  ss << "Error in " << name << " (thread: " << thread_id << "): " << msg << "\n";
+  std::string message = ss.str();
 
-	manager.reportError(buf, critical);
+	manager.reportError(message, critical);
 }

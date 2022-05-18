@@ -45,13 +45,13 @@
 /**
  * Constructor
  */
-BlockSatCarrier::BlockSatCarrier(const string &name,
-                                 struct sc_specific UNUSED(specific)):
+BlockSatCarrier::BlockSatCarrier(const std::string &name,
+                                 struct sc_specific):
 	Block(name)
 {
 }
 
-BlockSatCarrier::Upward::Upward(const string &name, struct sc_specific specific):
+BlockSatCarrier::Upward::Upward(const std::string &name, struct sc_specific specific):
     RtUpward{name},
     ip_addr{std::move(specific.ip_addr)},
     tal_id{specific.tal_id},
@@ -59,7 +59,7 @@ BlockSatCarrier::Upward::Upward(const string &name, struct sc_specific specific)
     destination_host{specific.destination_host},
     spot_id{specific.spot_id} {}
 
-BlockSatCarrier::Downward::Downward(const string &name, struct sc_specific specific):
+BlockSatCarrier::Downward::Downward(const std::string &name, struct sc_specific specific):
     RtDownward{name},
     ip_addr{std::move(specific.ip_addr)},
     tal_id{specific.tal_id},
@@ -71,7 +71,7 @@ bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
@@ -106,7 +106,7 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_net_socket:
+    case EventType::NetSocket:
 		{
 			// Data to read in Sat_Carrier socket buffer
 			size_t length;

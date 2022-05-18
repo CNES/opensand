@@ -59,7 +59,7 @@ typedef struct
 class InterconnectChannel
 {
  public:
-	InterconnectChannel(string name, string iface_addr);
+	InterconnectChannel(std::string name, std::string iface_addr);
 
 	~InterconnectChannel();
 
@@ -70,14 +70,14 @@ class InterconnectChannel
 	 */
 	virtual void initUdpChannels(unsigned int data_port,
 	                             unsigned int sig_port,
-	                             string remote_addr,
+	                             std::string remote_addr,
 	                             unsigned int stack,
 	                             unsigned int rmem,
 	                             unsigned int wmem) = 0;
 	/// This blocks name
-	string name;
+	std::string name;
 	/// The interconnect interface IP address
-	string interconnect_addr;
+	std::string interconnect_addr;
 	/// The data channel
 	UdpChannel *data_channel;
 	/// The signalling channel
@@ -89,7 +89,7 @@ class InterconnectChannel
 class InterconnectChannelSender: public InterconnectChannel
 {
  public:
-	InterconnectChannelSender(string name, string iface_addr):
+	InterconnectChannelSender(std::string name, std::string iface_addr):
 		InterconnectChannel(name, iface_addr)
 	{
 	};
@@ -105,7 +105,7 @@ class InterconnectChannelSender: public InterconnectChannel
 	 */
 	void initUdpChannels(unsigned int data_port,
 	                     unsigned int sig_port,
-	                     string remote_addr,
+	                     std::string remote_addr,
 	                     unsigned int stack,
 	                     unsigned int rmem,
 	                     unsigned int wmem);
@@ -148,7 +148,7 @@ class InterconnectChannelSender: public InterconnectChannel
 class InterconnectChannelReceiver: public InterconnectChannel
 {
  public:
-	InterconnectChannelReceiver(string name, string iface_addr):
+	InterconnectChannelReceiver(std::string name, std::string iface_addr):
 		InterconnectChannel(name, iface_addr)
 	{
 	};
@@ -164,7 +164,7 @@ class InterconnectChannelReceiver: public InterconnectChannel
 	 */
 	void initUdpChannels(unsigned int data_port,
 	                     unsigned int sig_port,
-	                     string remote_addr,
+	                     std::string remote_addr,
 	                     unsigned int stack,
 	                     unsigned int rmem,
 	                     unsigned int wmem);

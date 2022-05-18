@@ -43,15 +43,11 @@
 
 
 MessageEvent::MessageEvent(RtFifo *const fifo,
-                           const string &name,
+                           const std::string &name,
                            int32_t fd,
                            uint8_t priority):
-	RtEvent(evt_message, name, fd, priority),
+	RtEvent(EventType::Message, name, fd, priority),
 	fifo(fifo)
-{
-}
-
-MessageEvent::~MessageEvent()
 {
 }
 
@@ -66,7 +62,7 @@ bool MessageEvent::handle(void)
 	if(rlen != strlen(MAGIC_WORD) ||
 	   strncmp((char *)data, MAGIC_WORD, strlen(MAGIC_WORD)) != 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "pipe signaling message from previous block contain wrong data ",
 		                "[%u: %s]", errno, strerror(errno));
 		return false;

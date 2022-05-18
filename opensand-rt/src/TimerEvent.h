@@ -63,13 +63,11 @@ class TimerEvent: public RtEvent
 	 * @param start              default state when created
 	 * @param priority           The priority of the event
 	 */
-	TimerEvent(const string &name,
+	TimerEvent(const std::string &name,
 	           double timer_duration_ms,
 	           bool auto_rearm = false,
 	           bool start = true,
 	           uint8_t priority = 2);
-	~TimerEvent(void);
-
 
 	/**
 	 * @brief Start the timer

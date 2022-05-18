@@ -46,7 +46,7 @@
 
 struct ic_specific
 {
-	string interconnect_addr; // Interconnect interface IP address
+	std::string interconnect_addr; // Interconnect interface IP address
 };
 
 /**
@@ -63,8 +63,8 @@ class BlockInterconnectDownward: public Block
 	 * @param name      The block name
 	 * @param specific  Specific block parameters
 	 */
-	BlockInterconnectDownward(const string &name,
-	                          const string &interconnect_addr);
+	BlockInterconnectDownward(const std::string &name,
+	                          const std::string &interconnect_addr);
 
 	~BlockInterconnectDownward();
 
@@ -73,7 +73,7 @@ class BlockInterconnectDownward: public Block
 	class Upward: public RtUpward, public InterconnectChannelReceiver
 	{
 	 public:
-		Upward(const string &name, const string &interconnect_addr):
+		Upward(const std::string &name, const std::string &interconnect_addr):
 			RtUpward(name),
 			InterconnectChannelReceiver(name + ".Upward",
 			                            interconnect_addr)
@@ -88,7 +88,7 @@ class BlockInterconnectDownward: public Block
 	class Downward: public RtDownward, public InterconnectChannelSender
 	{
 	 public:
-		Downward(const string &name, const string &interconnect_addr):
+		Downward(const std::string &name, const std::string &interconnect_addr):
 			RtDownward(name),
 			InterconnectChannelSender(name + ".Downward",
 			                          interconnect_addr)
@@ -126,8 +126,8 @@ class BlockInterconnectUpward: public Block
 	 * @param name      The block name
 	 * @param specific  Specific block parameters
 	 */
-	BlockInterconnectUpward(const string &name,
-	                        const string &interconnect_addr);
+	BlockInterconnectUpward(const std::string &name,
+	                        const std::string &interconnect_addr);
 
 	~BlockInterconnectUpward();
 
@@ -136,7 +136,7 @@ class BlockInterconnectUpward: public Block
 	class Upward: public RtUpward, public InterconnectChannelSender
 	{
 	 public:
-		Upward(const string &name, const string &interconnect_addr):
+		Upward(const std::string &name, const std::string &interconnect_addr):
 			RtUpward(name),
 			InterconnectChannelSender(name + ".Upward",
 			                          interconnect_addr)
@@ -151,7 +151,7 @@ class BlockInterconnectUpward: public Block
 	class Downward: public RtDownward, public InterconnectChannelReceiver
 	{
 	 public:
-		Downward(const string &name, const string &interconnect_addr):
+		Downward(const std::string &name, const std::string &interconnect_addr):
 			RtDownward(name),
 			InterconnectChannelReceiver(name + ".Downward",
 			                            interconnect_addr)

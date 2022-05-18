@@ -57,6 +57,7 @@
 
 #include <opensand_rt/Rt.h>
 #include <opensand_output/Output.h>
+#include <opensand_output/OutputEvent.h>
 
 #include <sstream>
 #include <assert.h>
@@ -526,7 +527,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		// are not coherent.
 		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getPriority());
 
-		this->dvb_fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
+		this->dvb_fifos.insert({fifo->getPriority(), fifo});
 	}
 
 	this->l2_to_sat_total_bytes = 0;
@@ -1268,7 +1269,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 	    auto msg_event = static_cast<const MessageEvent*>(event);
       InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
@@ -1393,7 +1394,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_timer:
+    case EventType::Timer:
 		{
 			if(*event == this->logon_timer)
 			{
@@ -2160,7 +2161,7 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+    case EventType::Message:
 		{
 	    DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
 

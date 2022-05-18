@@ -42,7 +42,7 @@ BlockTransp::Upward::Upward(const std::string &name):
 
 bool BlockTransp::Upward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != event_type_t::evt_message)
+	if (event->getType() != EventType::Message)
 	{
 		LOG(log_receive, LEVEL_ERROR, "Unexpected event received: %s",
 		    event->getName().c_str());
@@ -83,7 +83,7 @@ BlockTransp::Downward::Downward(const std::string &name):
 
 bool BlockTransp::Downward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != event_type_t::evt_message)
+	if (event->getType() != EventType::Message)
 	{
 		LOG(log_receive, LEVEL_ERROR, "Unexpected event received: %s",
 		    event->getName().c_str());

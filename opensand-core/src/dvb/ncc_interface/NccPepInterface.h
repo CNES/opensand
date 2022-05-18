@@ -38,6 +38,7 @@
 #include "NccInterface.h"
 #include <vector>
 
+#include <opensand_rt/NetSocketEvent.h>
 #include <opensand_rt/Rt.h>
 
 /**
