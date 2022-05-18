@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 7),
  libopensand-conf-dev (>= ${binary:Version}),
  libopensand-output-dev (>= ${binary:Version}),
  libopensand-rt-dev (>= ${binary:Version}),
- python-lxml, libpcap-dev
+ python3-lxml, libpcap-dev
 Standards-Version: 3.8.3
 Section: misc
 

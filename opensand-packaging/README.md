@@ -5,7 +5,7 @@ Debian packages and install it from the source.
 
 The source code is available in the [Net4Sat GitHub OpenSAND project](https://github.com/CNES/opensand).
 
-These procedures are based on the release version `6.0.0`.
+These procedures are based on the release version `6.0.1`.
 
 
 ## Requirements
@@ -17,6 +17,7 @@ The following table lists the required packages to compile OpenSAND:
 | OS | Required packages |
 | :---: | :--- |
 | __Ubuntu 20.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config git gcc g++ python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python-lxml dpkg-dev |
+| __Ubuntu 22.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config git gcc g++ python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python-lxml dpkg-dev |
 
 You also need NodeJS and Yarn to be able to compile the `opensand-deploy` package:
 

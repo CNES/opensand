@@ -1,3 +1,8 @@
+2022-05-18 opensand-6.0.1
+
+   * Fix SCPC
+   * Fix QoS with strict priority
+
 2022-04-12 opensand-6.0.0
 
    * A new web interface that replaces the manager and that allows to:

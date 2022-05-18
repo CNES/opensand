@@ -1,7 +1,7 @@
 Source: opensand-deploy
 Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
-Build-Depends: debhelper (>= 7), yarn,
+Build-Depends: debhelper (>= 7), yarnpkg,
  autotools-dev, automake, libtool, pkg-config,
  opensand-core (>= ${binary:Version}),
  libopensand-gse-encap-plugin (>= ${binary:Version}),
@@ -12,7 +12,7 @@ Section: misc
 Package: opensand-deploy
 Architecture: any
 Section: misc
-Depends: libopensand-conf (= ${binary:Version}), python3-flask, python3-flask-cors, uwsgi, uwsgi-plugin-python3, python3-fabric, python3-decorator, nginx, nginx-extras
+Depends: libopensand-conf (= ${binary:Version}), python3-flask, python3-flask-cors, uwsgi, uwsgi-plugin-python3
 Provides:
 Conflicts:
 Replaces:
