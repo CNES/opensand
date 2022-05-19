@@ -463,10 +463,10 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 
 		// Encapsulate packet
 		ret = this->packet_handler->encapNextPacket(encap_packet,
-			current_bbframe->getFreeSpace(),
-			current_bbframe->getPacketsCount() == 0,
-			partial_encap,
-			&data);
+		                                            current_bbframe->getFreeSpace(),
+		                                            current_bbframe->getPacketsCount() == 0,
+		                                            partial_encap,
+		                                            &data);
 		if(!ret)
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
@@ -712,7 +712,6 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 		    carriers->getCarriersId());
 
 		modcod_id = scpc_modcod_def->getMinId();
-		//goto skip;
 	}
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "SF#%u: Available MODCOD for GW = %u\n",
@@ -744,8 +743,8 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 		this->incomplete_bb_frames_ordered.push_back(*bbframe);
 	}
 
-skip:
 	return true;
+
 error:
 	return false;
 }
@@ -846,4 +845,3 @@ void ScpcScheduling::schedulePending(const list<fmt_id_t> supported_modcods,
 	                              new_pending.begin(), new_pending.end());
 
 }
-

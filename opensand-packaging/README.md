@@ -16,8 +16,8 @@ The following table lists the required packages to compile OpenSAND:
 
 | OS | Required packages |
 | :---: | :--- |
-| __Ubuntu 20.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config git gcc g++ python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python-lxml dpkg-dev |
-| __Ubuntu 22.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config git gcc g++ python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python-lxml dpkg-dev |
+| __Ubuntu 20.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config gcc g++ python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python-lxml dpkg-dev |
+| __Ubuntu 22.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config gcc g++ python3-dev libxml++2.6-dev libboost-python1.74-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python3-lxml dpkg-dev |
 
 You also need NodeJS and Yarn to be able to compile the `opensand-deploy` package:
 
@@ -34,8 +34,8 @@ When compiling the encapsulation and lan adaptation plugins, the development ver
 The procedure to install these libraries is as follows:
 
 ```
-$ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
-$ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee /etc/apt/sources.list.d/github.net4sat.list
+$ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/net4satkey.gpg >/dev/null
+$ echo "deb [signed-by=/usr/share/keyrings/net4satkey.gpg] https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee /etc/apt/sources.list.d/github.net4sat.list
 $ sudo apt-get update
 $ sudo apt-get install librle-dev libgse-dev
 ```
