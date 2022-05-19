@@ -155,8 +155,8 @@ void BlockDvbTal::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParame
 		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
 	}
 	auto network = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
-	Conf->setProfileReference(network, disable_ctrl_plane, false);
 	auto fifos = network->addList("fifos", "FIFOs", "fifo");
+	Conf->setProfileReference(fifos, disable_ctrl_plane, false);
 	if (fifos)
 	{
 		auto pattern = fifos->getPattern();
