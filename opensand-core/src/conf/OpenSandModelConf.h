@@ -190,6 +190,7 @@ class OpenSandModelConf
 	bool getAcmRefreshPeriod(time_ms_t &period) const;
 	bool getDelayBufferSize(std::size_t &size) const;
 	bool getDelayTimer(time_ms_t &period) const;
+	bool getControlPlaneDisabled(bool &disabled) const;
 	bool getGwWithTalId(tal_id_t terminal_id, tal_id_t &gw_id) const;
 	bool getGwWithCarrierId(unsigned int carrier_id, tal_id_t &gw) const;
 	bool isGw(tal_id_t gw_id) const;

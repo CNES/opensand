@@ -120,11 +120,11 @@ void BlockDvbTal::generateConfiguration()
 	auto types = Conf->getModelTypesDefinition();
 
 	auto ctrl_plane = Conf->getOrCreateComponent("control_plane", "Control plane", "Control plane configuration");
-	auto enable_ctrl_plane = ctrl_plane->addParameter("enable_control_plane", "Enable control plane", types->getType("bool"));
+	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
 
 	{ // Access section when control plane is enabled
 		auto access = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");
-		Conf->setProfileReference(access, enable_ctrl_plane, true);
+		Conf->setProfileReference(access, disable_ctrl_plane, false);
 
 		types->addEnumType("fifo_access_type", "Access Type", {"DAMA_RBDC", "DAMA_VBDC", "DAMA_CRA", "SALOHA"});
 		// TODO: Keep in sync with topology
@@ -158,7 +158,7 @@ void BlockDvbTal::generateConfiguration()
 		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
 	}
 	auto network = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
-	Conf->setProfileReference(network, enable_ctrl_plane, true);
+	Conf->setProfileReference(network, disable_ctrl_plane, false);
 	auto fifos = network->addList("fifos", "FIFOs", "fifo");
 	if (fifos)
 	{
@@ -171,7 +171,7 @@ void BlockDvbTal::generateConfiguration()
 
 	{ // Access section when control plane is disabled
 		auto access = Conf->getOrCreateComponent("access2", "Access", "MAC layer configuration");
-		Conf->setProfileReference(access, enable_ctrl_plane, false);
+		Conf->setProfileReference(access, disable_ctrl_plane, true);
 		auto scpc = access->addComponent("scpc", "SCPC");
 		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
 	}
@@ -1027,7 +1027,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 	bool success = false;
 
 	//  Duration of the carrier -- in ms
-	auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
+	auto access = OpenSandModelConf::Get()->getProfileData()->getComponent(disable_control_plane ? "access2" : "access");
 	auto duration = access->getComponent("scpc")->getParameter("carrier_duration");
 	int scpc_carrier_duration;
 	if(!OpenSandModelConf::extractParameterData(duration, scpc_carrier_duration))

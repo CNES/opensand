@@ -1270,6 +1270,14 @@ bool OpenSandModelConf::getDelayTimer(time_ms_t &period) const
 	return true;
 }
 
+bool OpenSandModelConf::getControlPlaneDisabled(bool &disabled) const
+{
+	if (profile == nullptr)
+		return false;
+
+	auto elem = profile->getItemByPath("control_plane/disable_control_plane");
+	return extractParameterData(std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(elem), disabled);
+}
 
 bool OpenSandModelConf::getGwWithTalId(uint16_t tal_id, uint16_t &gw_id) const
 {

@@ -77,6 +77,9 @@ bool EntitySatRegen::createSpecificBlocks()
 		std::vector<tal_id_t> spot_ids{};
 		conf->getGwIds(spot_ids);
 
+		bool disable_ctrl_plane;
+		if (!conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
+
 		auto block_transp = Rt::createBlock<BlockMesh>("Mesh", instance_id);
 
 		for (auto &&gw_id: spot_ids)
@@ -85,7 +88,7 @@ bool EntitySatRegen::createSpecificBlocks()
 			auto spot_id_str = std::to_string(spot_id);
 
 			dvb_specific dvb_spec;
-			dvb_spec.disable_control_plane = true;
+			dvb_spec.disable_control_plane = disable_ctrl_plane;
 			dvb_spec.mac_id = instance_id;
 			auto block_dvb_ncc = Rt::createBlock<BlockDvbNcc>("DvbNcc" + spot_id_str, dvb_spec);
 			auto block_dvb_tal = Rt::createBlock<BlockDvbTal>("DvbTal" + spot_id_str, dvb_spec);
