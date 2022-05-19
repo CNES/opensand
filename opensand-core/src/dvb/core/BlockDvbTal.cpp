@@ -155,16 +155,13 @@ void BlockDvbTal::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParame
 		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
 	}
 	auto network = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
-	auto fifos = network->addList("fifos", "FIFOs", "fifo");
+	auto fifos = network->getOrCreateList("fifos", "FIFOs", "fifo");
 	Conf->setProfileReference(fifos, disable_ctrl_plane, false);
-	if (fifos)
-	{
-		auto pattern = fifos->getPattern();
-		pattern->addParameter("priority", "Priority", types->getType("int"));
-		pattern->addParameter("name", "Name", types->getType("string"));
-		pattern->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
-		pattern->addParameter("access_type", "Access Type", types->getType("fifo_access_type"));
-	}
+	auto pattern = fifos->getPattern();
+	pattern->getOrCreateParameter("priority", "Priority", types->getType("int"));
+	pattern->getOrCreateParameter("name", "Name", types->getType("string"));
+	pattern->getOrCreateParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
+	pattern->getOrCreateParameter("access_type", "Access Type", types->getType("fifo_access_type"));
 
 	{ // Access section when control plane is disabled
 		auto access = Conf->getOrCreateComponent("access2", "Access", "MAC layer configuration");

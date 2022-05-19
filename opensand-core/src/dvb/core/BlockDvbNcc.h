@@ -82,7 +82,7 @@ class BlockDvbNcc: public BlockDvb
 
 	~BlockDvbNcc();
 
-	static void generateConfiguration(bool disable_control_plane = false);
+	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
 
 	bool onInit();
 

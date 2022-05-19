@@ -93,10 +93,9 @@ SpotUpward::~SpotUpward()
 	delete this->saloha;
 }
 
-
-void SpotUpward::generateConfiguration()
+void SpotUpward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
 {
-	SlottedAlohaNcc::generateConfiguration();
+	SlottedAlohaNcc::generateConfiguration(disable_ctrl_plane);
 }
 
 

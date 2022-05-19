@@ -89,7 +89,7 @@ SlottedAlohaNcc::~SlottedAlohaNcc()
 	delete this->algo;
 }
 
-void SlottedAlohaNcc::generateConfiguration()
+void SlottedAlohaNcc::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
 {
 	auto Conf = OpenSandModelConf::Get();
 
@@ -98,7 +98,8 @@ void SlottedAlohaNcc::generateConfiguration()
 	types->addEnumType("traffic_type", "Simulated Slotted Aloha Traffic", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
 
 	auto conf = Conf->getOrCreateComponent("access", "Access");
-	auto saloha = conf->addComponent("random_access", "Random Access");
+	Conf->setProfileReference(conf, disable_ctrl_plane, false);
+	auto saloha = conf->getOrCreateComponent("random_access", "Random Access");
 	saloha->addParameter("saloha_algo", "Slotted Aloha Algorithm", types->getType("saloha_algo"));
 	auto simu_list = conf->addList("simulations", "Simulated traffic", "simulation")->getPattern();
 	simu_list->addParameter("category", "Category", types->getType("traffic_type"));

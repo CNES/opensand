@@ -128,7 +128,7 @@ void defineProfileMetaModel()
 	auto ctrl_plane = Conf->getOrCreateComponent("control_plane", "Control plane", "Control plane configuration");
 	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
 
-	BlockDvbNcc::generateConfiguration(true);
+	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
 	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
 }
 

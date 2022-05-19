@@ -66,8 +66,8 @@ class SpotDownward: public DvbChannel, public DvbFmt
 
 	~SpotDownward();
 
-	static void generateConfiguration();
-	
+	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
+
 	/**
 	 * @brief Spot Downward initialisation
 	 *

@@ -73,29 +73,11 @@ BlockDvbNcc::~BlockDvbNcc()
 	this->output_sts = nullptr;
 }
 
-
-void BlockDvbNcc::generateConfiguration(bool disable_control_plane)
+void BlockDvbNcc::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
 {
-	if (disable_control_plane)
-	{
-		auto Conf = OpenSandModelConf::Get();
-		auto types = Conf->getModelTypesDefinition();
-		types->addEnumType("fifo_access_type", "Access Type", {"ACM", "VCM0", "VCM1", "VCM2", "VCM3"});
-
-		auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
-		auto fifos = conf->addList("fifos", "FIFOs", "fifo")->getPattern();
-		fifos->addParameter("priority", "Priority", types->getType("int"));
-		fifos->addParameter("name", "Name", types->getType("string"));
-		fifos->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
-		fifos->addParameter("access_type", "Access Type", types->getType("fifo_access_type"));
-	}
-	else
-	{
-		SpotDownward::generateConfiguration();
-		SpotUpward::generateConfiguration();
-	}
+	SpotDownward::generateConfiguration(disable_ctrl_plane);
+	SpotUpward::generateConfiguration(disable_ctrl_plane);
 }
-
 
 bool BlockDvbNcc::onInit(void)
 {

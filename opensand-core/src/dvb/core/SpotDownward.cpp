@@ -158,8 +158,7 @@ SpotDownward::~SpotDownward()
 	delete this->probe_gw_l2_to_sat_after_sched;
 }
 
-
-void SpotDownward::generateConfiguration()
+void SpotDownward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
 {
 	RequestSimulator::generateConfiguration();
 
@@ -180,6 +179,7 @@ void SpotDownward::generateConfiguration()
 	                                     "Simulated Requests",
 	                                     types->getType("ncc_simulation"),
 	                                     "Should OpenSAND simulate extraneous requests?");
+	Conf->setProfileReference(simulation, disable_ctrl_plane, false);
 	auto parameter = conf->addParameter("simulation_file",
 	                                    "Simulation Trace File",
 	                                    types->getType("string"),
@@ -217,8 +217,10 @@ void SpotDownward::generateConfiguration()
 	parameter->setUnit("kbps");
 	Conf->setProfileReference(parameter, simulation, "Random");
 
-	conf->addParameter("fca", "FCA", types->getType("int"));
-	conf->addParameter("dama_algorithm", "DAMA Algorithm", types->getType("dama_algorithm"));
+	auto fca = conf->addParameter("fca", "FCA", types->getType("int"));
+	Conf->setProfileReference(fca, disable_ctrl_plane, false);
+	auto dama_algo = conf->addParameter("dama_algorithm", "DAMA Algorithm", types->getType("dama_algorithm"));
+	Conf->setProfileReference(dama_algo, disable_ctrl_plane, false);
 }
 
 

@@ -56,7 +56,7 @@ class SpotUpward: public DvbChannel, public DvbFmt
 
 		~SpotUpward();
 
-		static void generateConfiguration();
+		static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
 
 		/**
 		 * @brief Spot Upward initialisation

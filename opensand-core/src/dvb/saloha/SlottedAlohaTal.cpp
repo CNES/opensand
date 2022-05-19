@@ -71,15 +71,15 @@ void SlottedAlohaTal::generateConfiguration()
 	auto settings = Conf->getOrCreateComponent("settings", "Settings", conf);
 	auto enabled = settings->addParameter("ra_enabled", "Enable CRDSA", types->getType("bool"));
 
-	auto ra = conf->addComponent("random_access", "Random Access");
+	auto ra = conf->getOrCreateComponent("random_access", "Random Access");
 	Conf->setProfileReference(ra, enabled, true);
-	ra->addParameter("timeout", "Timeout", types->getType("int"))->setUnit("slotted aloha frames");
-	ra->addParameter("replicas", "Replicas", types->getType("int"))->setUnit("packets");
-	ra->addParameter("max_packets", "Max Packets", types->getType("int"))->setUnit("packets");
-	ra->addParameter("max_retry", "Max Retransmissions", types->getType("int"))->setUnit("packets");
-	ra->addParameter("backoff_algo", "Back Off Algorithm", types->getType("backoff_algo"));
-	ra->addParameter("max_cw", "Max Cw", types->getType("int"))->setUnit("slotted aloha frames");
-	ra->addParameter("backoff_multiple", "Back Off Multiple", types->getType("int"));
+	ra->getOrCreateParameter("timeout", "Timeout", types->getType("int"))->setUnit("slotted aloha frames");
+	ra->getOrCreateParameter("replicas", "Replicas", types->getType("int"))->setUnit("packets");
+	ra->getOrCreateParameter("max_packets", "Max Packets", types->getType("int"))->setUnit("packets");
+	ra->getOrCreateParameter("max_retry", "Max Retransmissions", types->getType("int"))->setUnit("packets");
+	ra->getOrCreateParameter("backoff_algo", "Back Off Algorithm", types->getType("backoff_algo"));
+	ra->getOrCreateParameter("max_cw", "Max Cw", types->getType("int"))->setUnit("slotted aloha frames");
+	ra->getOrCreateParameter("backoff_multiple", "Back Off Multiple", types->getType("int"));
 }
 
 bool SlottedAlohaTal::init(tal_id_t tal_id,

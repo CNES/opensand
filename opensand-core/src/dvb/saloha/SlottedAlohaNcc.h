@@ -45,6 +45,7 @@
 #include "TerminalCategorySaloha.h"
 #include "SlottedAlohaAlgo.h"
 #include "UnitConverter.h"
+#include "opensand_conf/MetaParameter.h"
 
 #include <list>
 
@@ -94,7 +95,7 @@ class SlottedAlohaNcc: public SlottedAloha
 
 	~SlottedAlohaNcc();
 
-	static void generateConfiguration();
+	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
 
 	/*
 	 * Init the Slotted Aloha NCC class
