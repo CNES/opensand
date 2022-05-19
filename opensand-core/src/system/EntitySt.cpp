@@ -137,8 +137,13 @@ bool EntitySt::createSpecificConfiguration(const std::string &filepath) const
 
 void EntitySt::defineProfileMetaModel() const
 {
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+	auto ctrl_plane = Conf->getOrCreateComponent("control_plane", "Control plane", "Control plane configuration");
+	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
+
 	BlockLanAdaptation::generateConfiguration();
 	BlockEncap::generateConfiguration();
-	BlockDvbTal::generateConfiguration();
+	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
 	BlockPhysicalLayer::generateConfiguration();
 }

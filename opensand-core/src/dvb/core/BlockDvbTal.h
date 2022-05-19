@@ -109,7 +109,7 @@ class BlockDvbTal: public BlockDvb
 	BlockDvbTal(const string &name, struct dvb_specific specific);
 	~BlockDvbTal();
 
-	static void generateConfiguration();
+	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
 
 	bool initListsSts();
 

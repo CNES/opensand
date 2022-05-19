@@ -114,13 +114,10 @@ BlockDvbTal::~BlockDvbTal()
 	delete this->output_sts;
 }
 
-void BlockDvbTal::generateConfiguration()
+void BlockDvbTal::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto types = Conf->getModelTypesDefinition();
-
-	auto ctrl_plane = Conf->getOrCreateComponent("control_plane", "Control plane", "Control plane configuration");
-	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
 
 	{ // Access section when control plane is enabled
 		auto access = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");

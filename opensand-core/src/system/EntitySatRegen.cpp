@@ -123,8 +123,13 @@ bool EntitySatRegen::createSpecificBlocks()
 
 void defineProfileMetaModel()
 {
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+	auto ctrl_plane = Conf->getOrCreateComponent("control_plane", "Control plane", "Control plane configuration");
+	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
+
 	BlockDvbNcc::generateConfiguration(true);
-	BlockDvbTal::generateConfiguration();
+	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
 }
 
 bool EntitySatRegen::loadConfiguration(const std::string &profile_path)
