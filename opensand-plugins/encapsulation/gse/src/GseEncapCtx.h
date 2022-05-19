@@ -38,6 +38,8 @@
 
 
 #include <memory>
+#include <string>
+
 
 extern "C"
 {

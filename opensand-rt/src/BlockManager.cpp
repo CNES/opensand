@@ -50,8 +50,8 @@
 #include <execinfo.h>
 #include <errno.h>
 #include <cxxabi.h>
- 
- 
+  
+
 // taken from http://oroboro.com/stack-trace-on-crash/
 static inline void print_stack(unsigned int max_frames = 63)
 {
@@ -148,8 +148,7 @@ static inline void print_stack(unsigned int max_frames = 63)
 
 static void crash_handler(int sig)
 {
-	syslog(LEVEL_CRITICAL, "Crash with signal %d: %s\n", sig,
-	       sys_siglist[sig]);
+	syslog(LEVEL_CRITICAL, "Crash with signal %d: %s\n", sig, strsignal(sig));
 	signal(sig, SIG_DFL);
 	print_stack();
 	closelog();

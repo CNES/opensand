@@ -113,7 +113,7 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 		"SCPC capacity.Total.Remaining",
 		"Symbols per frame", true, SAMPLE_LAST);
 	this->probe_scpc_bbframe_nbr = Output::Get()->registerProbe<int>(
-		"SCPC BBFrame number", true, SAMPLE_AVG);
+		"Up_return BBFrame number SCPC.BBFrame number", "BBFrame number", true, SAMPLE_AVG);
 	this->probe_sent_modcod = Output::Get()->registerProbe<int>(
     "Up_Return_modcod.Sent_modcod(SCPC)", "modcod index", true, SAMPLE_LAST);
 
@@ -355,6 +355,11 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 
 	// retrieve the number of packets waiting for retransmission
 	max_to_send = fifo->getCurrentSize();
+	LOG(this->log_scheduling, LEVEL_INFO,
+	    "SF#%u: ScpcScheduling::scheduleEncapPackets: "
+	    "max_to_send is %u, this->pending_bbframes.size() = %u\n",
+	    current_superframe_sf,
+	    max_to_send, this->pending_bbframes.size());
 	if (max_to_send <= 0 && this->pending_bbframes.size() == 0)
 	{
 		// reset previous capacity
@@ -458,10 +463,10 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 
 		// Encapsulate packet
 		ret = this->packet_handler->encapNextPacket(encap_packet,
-			current_bbframe->getFreeSpace(),
-			current_bbframe->getPacketsCount() == 0,
-			partial_encap,
-			&data);
+		                                            current_bbframe->getFreeSpace(),
+		                                            current_bbframe->getPacketsCount() == 0,
+		                                            partial_encap,
+		                                            &data);
 		if(!ret)
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
@@ -706,7 +711,7 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 		    "on carrier %u\n", current_superframe_sf, desired_modcod,
 		    carriers->getCarriersId());
 
-		goto skip;
+		modcod_id = scpc_modcod_def->getMinId();
 	}
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "SF#%u: Available MODCOD for GW = %u\n",
@@ -738,8 +743,8 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 		this->incomplete_bb_frames_ordered.push_back(*bbframe);
 	}
 
-skip:
 	return true;
+
 error:
 	return false;
 }
@@ -840,4 +845,3 @@ void ScpcScheduling::schedulePending(const list<fmt_id_t> supported_modcods,
 	                              new_pending.begin(), new_pending.end());
 
 }
-

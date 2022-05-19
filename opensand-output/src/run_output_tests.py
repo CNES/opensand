@@ -1,7 +1,5 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
-#
 #
 # OpenSAND is an emulation testbed aiming to represent in a cost effective way a
 # satellite telecommunication system for research and engineering activities.
@@ -26,42 +24,39 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see http://www.gnu.org/licenses/.
 #
-#
 
 # Author: Vincent Duvert / Viveris Technologies <vduvert@toulouse.viveris.com>
 # Author: Mathias Ettinger / Viveris Technologies <mathias.ettinger@viveris.fr>
 
-"""
-run_output_tests.py - Start the output test program and checks
-                      that it produces the correct messages
+"""Testing code for the opensand-output library.
+
+Starts the output test program and checks that it produces
+the correct messages.
 """
 
-from __future__ import print_function
-
-import itertools
-import json
-import os
 import re
+import json
 import select
 import signal
 import socket
-import subprocess
-import sys
+from pathlib import Path
+from subprocess import Popen, PIPE
 
 
-COMMAND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_output")
+COMMAND = Path(__file__).resolve().parent / "test_output"
 
 
 def grouper(iterable, n):
     args = [iter(iterable)] * n
-    return itertools.izip(*args)
+    yield from zip(*args)
 
 
 class MessageSendProbes(object):
     def __init__(self, data):
         self.values = {}
         msg = iter(data.split())
-        timestamp = next(msg)
+        next(msg)  # discard timestamp
+
         for name, value in grouper(msg, 2):
             try:
                 value = json.loads(value)
@@ -71,16 +66,17 @@ class MessageSendProbes(object):
                 self.values[name] = value
 
     def assert_values(self, values):
-        expected_values = dict(entity='testing', **values)
-        assert self.values == expected_values, self.values
+        expected_values = {'entity': 'testing', **values}
+        if self.values != expected_values:
+            raise AssertionError(f'Probes values mismatch (expected {expected_values!r}): {self.values!r}')
 
     def __repr__(self):
-        return "<MessageSendProbes: %r>" % self.values
+        return f"<MessageSendProbes: {self.values!r}>"
 
 
 class MessageSendLog(object):
     ENTITY_NAME = 'testing'
-    pattern = re.compile(r'\[(?P<timestamp>[^\]]+)\]\[\s*(?P<log_level>\w+)\]\[(?P<entity_name>[^\]]+)\]\[(?P<log_name>[^:]+)\](?P<log_message>.*)')
+    PATTERN = re.compile(r'\[(?P<timestamp>[^\]]+)\]\[\s*(?P<log_level>\w+)\]\[(?P<entity_name>[^\]]+)\]\[(?P<log_name>[^:]+)\](?P<log_message>.*)')
 
     def __init__(self, data):
         self.timestamp = None
@@ -88,39 +84,38 @@ class MessageSendLog(object):
         self.log_level = None
         self.log_name = None
         self.log_message = None
-        match = self.pattern.match(data)
+        match = self.PATTERN.match(data)
         if match:
             vars(self).update(match.groupdict())
         del self.timestamp
         self.original_message = data
 
     def assert_values(self, level, name, message):
-        assert self.entity_name == self.ENTITY_NAME, 'Log entity mismatch (expected {}): {}'.format(self.ENTITY_NAME, self)
-        assert self.log_level == level, 'Log level mismatch (expected {}): {}'.format(level, self)
-        assert self.log_name == name, 'Log name mismatch (expected {}): {}'.format(name, self)
-        assert self.log_message == message, 'Log message mismatch (expected {}): {}'.format(message, self)
+        if self.entity_name != self.ENTITY_NAME:
+            raise AssertionError(f'Log entity mismatch (expected {self.ENTITY_NAME}): {self!r}')
+        if self.log_level != level:
+            raise AssertionError(f'Log level mismatch (expected {level}): {self!r}')
+        if self.log_name != name:
+            raise AssertionError(f'Log name mismatch (expected {name}): {self!r}')
+        if self.log_message != message:
+            raise AssertionError(f'Log message mismatch (expected {message}): {self!r}')
 
     def __repr__(self):
-        return "<MessageSendLog: %r (%r) from %r- %r>" % (
-                self.log_name,
-                self.log_level,
-                self.entity_name,
-                self.log_message)
+        return f"<MessageSendLog: {self.log_name!r} ({self.log_level!r}) from {self.entity_name!r}- {self.log_message!r}>"
 
 
-class EnvironmentPlaneBaseTester(object):
-    def __init__(self, startup_arg=None):
+class EnvironmentPlaneBaseTester:
+    def __init__(self, *startup_args):
         self.socket = None
         self.proc = None
-        self.command = [COMMAND, 'localhost', startup_arg] if startup_arg else [COMMAND, 'localhost']
+        self.command = [COMMAND.as_posix(), 'localhost', *startup_args]
 
     def __enter__(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.bind(('', 58008))
         signal.signal(signal.SIGCHLD, self.sigchld_caught)
 
-        self.proc = subprocess.Popen(self.command, stdin=subprocess.PIPE,
-                                     stdout=subprocess.PIPE, bufsize=0)
+        self.proc = Popen(self.command, stdin=PIPE, stdout=PIPE, bufsize=0)
 
         return self
 
@@ -130,7 +125,8 @@ class EnvironmentPlaneBaseTester(object):
             self.proc.terminate()
         except OSError:
             pass
-        self.socket.close()
+        finally:
+            self.socket.close()
 
     def sigchld_caught(self, signum, sigframe):
         if not self.proc:
@@ -156,38 +152,42 @@ class EnvironmentPlaneBaseTester(object):
     def assert_line(self, expected_line, timeout=5):
         rlist, _, _ = select.select([self.proc.stdout], [], [], timeout)
         if not self.proc.stdout in rlist:
-            assert False, 'Timeout'
+            raise AssertionError('Timeout')
 
-        read = self.proc.stdout.readline()
-        assert read == expected_line, 'Expected {}; Got {}'.format(expected_line, read)
+        read = self.proc.stdout.readline().decode()
+        if read != expected_line:
+            raise AssertionError(f'Expected {expected_line}; Got {read}')
 
-    def send_cmd(self, vlast, vmin, vmax, vavg, vsum, vdis,
-                 vfloat, vdouble, cmd):
-        self.proc.stdin.write("%d %d %d %d %d %d %f %lf %c\n" %
-                              (vlast, vmin, vmax, vavg, vsum, vdis,
-                               vfloat, vdouble, cmd))
+    def send_cmd(self, vlast, vmin, vmax, vavg, vsum, vdis, vfloat, vdouble, cmd):
+        if not self.proc:
+            raise AssertionError('Test program is not running')
+
+        arguments = (vlast, vmin, vmax, vavg, vsum, vdis, vfloat, vdouble, cmd)
+        command = "%d %d %d %d %d %d %f %lf %c\n" % arguments
+        self.proc.stdin.write(command.encode())
 
     def send_quit(self):
-        self.proc.stdin.write(">\n")
+        if not self.proc:
+            raise AssertionError('Test program is not running')
+
+        self.proc.stdin.write(b">\n")
         self.proc.stdin.close()
 
     def get_message(self, expected_type):
-        try:
-            packet, addr = self.socket.recvfrom(4096)
-        except socket.error as e:
-            print("Error reading from socket:", e, file=sys.stderr)
-            sys.exit(1)
+        if not self.socket:
+            raise AssertionError('Socket to capture test program data is not connected')
 
-        if packet.startswith('['):
-            assert issubclass(MessageSendLog, expected_type), 'Expected {}; Got MessageSendLog'.format(expected_type)
-            return MessageSendLog(packet)
-        else:
-            assert issubclass(MessageSendProbes, expected_type), 'Expected {}; Got MessageSendProbes'.format(expected_type)
-            return MessageSendProbes(packet)
+        packet = self.socket.recv(4096).decode()
+        actual_type = MessageSendLog if packet.startswith('[') else MessageSendProbes
+
+        if not issubclass(actual_type, expected_type):
+            raise AssertionError(f'Expected {expected_type}; Got {actual_type}')
+        return actual_type(packet)
 
     def assert_no_msg(self):
         rlist, _, _ = select.select([self.socket], [], [], .5)
-        assert not rlist, "Unexpected message received: %s" % self.socket.recv(4096)
+        if rlist:
+            raise AssertionError(f'Unexpected message received: {self.socket.recv(4096).decode()}')
 
     def check_startup(self, min_level=7):
         print("Test: Startup")
@@ -224,7 +224,7 @@ class EnvironmentPlaneBaseTester(object):
 
 class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
     def __init__(self):
-        super(EnvironmentPlaneNormalTester, self).__init__()
+        super().__init__()
 
     def check_no_msg(self):
         print("Test: No message if no probe values to send")
@@ -311,7 +311,7 @@ class EnvironmentPlaneNormalTester(EnvironmentPlaneBaseTester):
 
 class EnvironmentPlaneDisabledTester(EnvironmentPlaneBaseTester):
     def __init__(self):
-        super(EnvironmentPlaneDisabledTester, self).__init__("disable")
+        super().__init__("disable")
 
     def check_startup(self):
         print("Test: Startup")
@@ -364,7 +364,7 @@ class EnvironmentPlaneDisabledTester(EnvironmentPlaneBaseTester):
 
 class EnvironmentPlaneNoDebugTester(EnvironmentPlaneBaseTester):
     def __init__(self):
-        super(EnvironmentPlaneNoDebugTester, self).__init__("nodebug")
+        super().__init__("nodebug")
 
     def check_all_probes(self):
         print("Test: All probes")
@@ -390,6 +390,7 @@ class EnvironmentPlaneNoDebugTester(EnvironmentPlaneBaseTester):
         self.check_info_log()
         self.check_default_log()
         self.check_quit()
+
 
 if __name__ == '__main__':
     print("* Normal startup:")

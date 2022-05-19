@@ -209,7 +209,8 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 		{
 			list<BBFrame *>::iterator it;
 			CarriersGroupDama *vcm = *vcm_it;
-			unsigned int capacity_sym = 0;
+			vol_sym_t capacity_sym;
+			vol_sym_t previous_sym;
 
 			// initialize carriers capacity, remaining capacity should be 0
 			// as we use previous capacity to keep track of unused capacity here
@@ -217,6 +218,10 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			                    vcm->getRemainingCapacity();
 			vcm->setRemainingCapacity(init_capacity_sym);
 			total_capa += init_capacity_sym;
+
+			capacity_sym = init_capacity_sym;
+			previous_sym = vcm->getPreviousCapacity(current_superframe_sf);
+			capacity_sym += previous_sym;
 
 			for(fifo_it = this->dvb_fifos.begin();
 			    fifo_it != this->dvb_fifos.end(); ++fifo_it)
@@ -269,16 +274,24 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 				                               current_superframe_sf,
 				                               current_time,
 				                               complete_dvb_frames,
-				                               *vcm_it))
+				                               *vcm_it,
+				                               capacity_sym,
+				                               init_capacity_sym))
 				{
 					return false;
 				}
-				// TODO with VCM, previous capacity should be handled differently
+
+				if(fifo->getCurrentSize() > 0)
+				{
+					// Still have data on FIFO, do not schedule BBF for lower QoS
+					break;
+				}
 			}
+
+			vcm->setPreviousCapacity(capacity_sym, current_superframe_sf + 1);
 
 			// try to fill the BBFrames list with the remaining
 			// incomplete BBFrames
-			capacity_sym = vcm->getRemainingCapacity();
 			for(it = this->incomplete_bb_frames_ordered.begin();
 			    it != this->incomplete_bb_frames_ordered.end();
 			    it = this->incomplete_bb_frames_ordered.erase(it))
@@ -315,7 +328,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 				}
 			}
 			// update remaining capacity for statistics
-			(*vcm_it)->setRemainingCapacity(std::min(capacity_sym,
+			vcm->setRemainingCapacity(std::min(capacity_sym,
 			                                         init_capacity_sym));
 			vcm_id++;
 		}
@@ -375,6 +388,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			this->probe_fwd_remaining_capacity[carriers_id][id]->put(remain);
 			id++;
 			// reset remaining capacity
+			(*vcm_it)->setPreviousCapacity((*vcm_it)->getRemainingCapacity(), current_superframe_sf + 1);
 			(*vcm_it)->setRemainingCapacity(0);
 		}
 	}
@@ -387,7 +401,9 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
                                                const time_sf_t current_superframe_sf,
                                                clock_t current_time,
                                                list<DvbFrame *> *complete_dvb_frames,
-                                               CarriersGroupDama *carriers)
+                                               CarriersGroupDama *carriers,
+					                           vol_sym_t &capacity_sym,
+					                           vol_sym_t init_capa)
 {
 	int ret;
 	unsigned int sent_packets = 0;
@@ -395,28 +411,20 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	long max_to_send;
 	BBFrame *current_bbframe;
 	list<fmt_id_t> supported_modcods = carriers->getFmtIds();
-	vol_sym_t capacity_sym = carriers->getRemainingCapacity();
-	vol_sym_t previous_sym = carriers->getPreviousCapacity(current_superframe_sf);
-	vol_sym_t init_capa = capacity_sym;
-	capacity_sym += previous_sym;
 
 	// retrieve the number of packets waiting for retransmission
 	max_to_send = fifo->getCurrentSize();
 	if (max_to_send <= 0 && this->pending_bbframes.size() == 0)
 	{
-		// reset previous capacity
-		carriers->setPreviousCapacity(0, 0);
-		// set the remaining capacity for incomplete frames scheduling
-		carriers->setRemainingCapacity(capacity_sym);
 		goto skip;
 	}
 
 	LOG(this->log_scheduling, LEVEL_INFO,
 	    "SF#%u: Scheduling FIFO %s, carriers group %u, "
-	    "capacity is %u symbols (+ %u previous)\n",
+	    "capacity is %u symbols\n",
 	    current_superframe_sf,
 	    fifo->getName().c_str(), carriers->getCarriersId(),
-	    capacity_sym, previous_sym);
+	    capacity_sym);
 
 	// first add the pending complete BBFrame in the complete BBframes list
 	// we add previous remaining capacity here because if a BBFrame was
@@ -424,8 +432,6 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	// end of the previous frame
 	this->schedulePending(supported_modcods, current_superframe_sf,
 	                      complete_dvb_frames, capacity_sym);
-	// reset previous capacity
-	carriers->setPreviousCapacity(0, 0);
 
 	// all the previous capacity was not consumed, remove it as we are not on
 	// pending frames anymore of if there is no incomplete frame
@@ -438,8 +444,6 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	// stop if there is nothing to send
 	if(max_to_send <= 0)
 	{
-		// set the remaining capacity for incomplete frames scheduling
-		carriers->setRemainingCapacity(capacity_sym);
 		goto skip;
 	}
 
@@ -630,7 +634,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 					// next frame
 					carriers->setPreviousCapacity(capacity_sym,
 					                              next_sf);
-					capacity_sym = 0;
+
 					this->pending_bbframes.push_back(current_bbframe);
 					break;
 				}
@@ -650,8 +654,6 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		    cpt_frame,
 		    (cpt_frame > 1) ? "frames were" : "frame was");
 	}
-	// update remaining capacity for incomplete frames scheduling
-	carriers->setRemainingCapacity(capacity_sym);
 
 skip:
 	return true;
@@ -821,6 +823,7 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
 		{
 			goto error;
 		}
+
 		// add the BBFrame in the map and list
 		this->incomplete_bb_frames[modcod_id] = *bbframe;
 		this->incomplete_bb_frames_ordered.push_back(*bbframe);

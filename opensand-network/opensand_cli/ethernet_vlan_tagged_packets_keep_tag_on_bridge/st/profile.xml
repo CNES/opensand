@@ -95,6 +95,8 @@
       <settings>
         <category>Standard</category>
         <dama_enabled>true</dama_enabled>
+        <ra_enabled>false</ra_enabled>
+        <scpc_enabled>false</scpc_enabled>
       </settings>
       <dama>
         <cra>100</cra>

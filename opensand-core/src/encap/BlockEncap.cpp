@@ -269,7 +269,7 @@ bool BlockEncap::onInit()
 		    this->mac_id);
 		
 		auto access = Conf->getProfileData()->getComponent("access");
-		auto scpc_enabled = access->getComponent("scpc")->getParameter("scpc_enabled");
+		auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
 		bool is_scpc = false;
 		OpenSandModelConf::extractParameterData(scpc_enabled, is_scpc);
 
@@ -277,6 +277,7 @@ bool BlockEncap::onInit()
 			"SCPC mode %savailable for ST%d - BlockEncap \n", 
 			is_scpc ? "" : "not ",
 			this->mac_id);
+
 		if (!is_scpc)
 		{
 			if(!this->getEncapContext(RETURN_UP_ENCAP_SCHEME_LIST,

@@ -28,7 +28,6 @@ make_libs()
 {
     echo "Building OpenSAND libraries for $TARGET_DIST"
     build opensand-output install
-    # build opensand-boost-python install
     build opensand-conf install
     build opensand-rt install
     echo "Finished building OpenSAND libraries for $TARGET_DIST"
