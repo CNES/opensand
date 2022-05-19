@@ -227,7 +227,6 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			    fifo_it != this->dvb_fifos.end(); ++fifo_it)
 			{
 				DvbFifo *fifo = (*fifo_it).second;
-				vol_pkt_t fifo_size = fifo->getCurrentSize();
 
 				// check if the FIFO can emit on this carriers group
 				if(vcm_carriers.size() <= 1)
@@ -513,7 +512,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		}
 
 		if(!this->getIncompleteBBFrame(tal_id, carriers, current_superframe_sf,
-		                               &current_bbframe, capacity_sym))
+		                               &current_bbframe))
 		{
 			// cannot initialize incomplete BB Frame
 			delete encap_packet;
@@ -765,8 +764,7 @@ unsigned int ForwardSchedulingS2::getBBFrameSizeBytes(unsigned int modcod_id)
 bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
                                                CarriersGroupDama *carriers,
                                                const time_sf_t current_superframe_sf,
-                                               BBFrame **bbframe,
-                                               vol_sym_t capacity_sym)
+                                               BBFrame **bbframe)
 {
   std::map<unsigned int, BBFrame *>::iterator iter;
 	unsigned int desired_modcod;

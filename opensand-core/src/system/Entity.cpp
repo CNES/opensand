@@ -56,7 +56,7 @@
 #include <opensand_rt/Rt.h>
 
 
-constexpr char OPENSAND_VERSION[] = "6.0.0";
+constexpr char OPENSAND_VERSION[] = "6.0.1";
 
 
 void usage(std::ostream &stream, const std::string &progname)
