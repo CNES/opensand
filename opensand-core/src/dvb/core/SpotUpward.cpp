@@ -180,6 +180,17 @@ bool SpotUpward::initSlottedAloha(void)
 	vol_sym_t length_sym = 0;
 
 	auto Conf = OpenSandModelConf::Get();
+	
+	// Skip if the control plane is disabled
+	bool ctrl_plane_disabled;
+	Conf->getControlPlaneDisabled(ctrl_plane_disabled);
+	if (ctrl_plane_disabled)
+	{
+		LOG(this->log_init_channel, LEVEL_NOTICE,
+		    "Control plane disabled: skipping slotted aloha initialization");
+		return true;
+	}
+
 	OpenSandModelConf::spot current_spot;
 	if (!Conf->getSpotReturnCarriers(this->mac_id, current_spot))
 	{

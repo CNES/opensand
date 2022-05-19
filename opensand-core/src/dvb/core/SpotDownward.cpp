@@ -439,13 +439,24 @@ bool SpotDownward::initDama(void)
 	time_frame_t sync_period_frame;
 	time_sf_t rbdc_timeout_sf;
 	rate_kbps_t fca_kbps;
-  std::string dama_algo;
+	std::string dama_algo;
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
 	TerminalCategoryDama *dc_default_category = NULL;
 
 	auto Conf = OpenSandModelConf::Get();
+
+	// Skip if the control plane is disabled
+	bool ctrl_plane_disabled;
+	Conf->getControlPlaneDisabled(ctrl_plane_disabled);
+	if (ctrl_plane_disabled)
+	{
+		LOG(this->log_init_channel, LEVEL_NOTICE,
+		    "Control plane disabled: skipping DAMA initialization");
+		return true;
+	}
+
 	auto ncc = Conf->getProfileData()->getComponent("network");
 
 	// Retrieving the free capacity assignement parameter
@@ -680,6 +691,18 @@ err_fifo_release:
 bool SpotDownward::initRequestSimulation(void)
 {
 	auto Conf = OpenSandModelConf::Get();
+
+	// Skip if the control plane is disabled
+	bool ctrl_plane_disabled;
+	Conf->getControlPlaneDisabled(ctrl_plane_disabled);
+	if (ctrl_plane_disabled)
+	{
+		this->simulate = none_simu;
+		LOG(this->log_init_channel, LEVEL_NOTICE,
+		    "Control plane disabled: skipping event simulation initialization");
+		return true;
+	}
+
 	auto ncc = Conf->getProfileData()->getComponent("network");
 
 	std::string str_config;
