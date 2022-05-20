@@ -348,7 +348,18 @@ bool Ethernet::Context::initTrafficCategories()
 	auto network = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
 
 	std::map<std::string, int> fifo_priorities;
-	for(auto& item : network->getList("fifos")->getItems())
+
+	auto conf = OpenSandModelConf::Get();
+	auto st_fifos = network->getList("st_fifos");
+	auto gw_fifos = network->getList("gw_fifos");
+	if(!((st_fifos == nullptr) ^ (gw_fifos == nullptr))) {
+		LOG(this->log, LEVEL_ERROR,
+		    "Exactly one of {st_fifos, gw_fifos} should be defined in the profile configuration file");
+		return false;
+	}
+	auto fifos = st_fifos ? st_fifos : gw_fifos;
+	
+	for(auto& item : fifos->getItems())
 	{
 		auto fifo = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 

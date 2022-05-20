@@ -166,15 +166,15 @@ void SpotDownward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParam
 
 	auto types = Conf->getModelTypesDefinition();
 	types->addEnumType("ncc_simulation", "Simulated Requests", {"None", "Random", "File"});
-	types->addEnumType("fifo_access_type", "Access Type", {"ACM", "VCM0", "VCM1", "VCM2", "VCM3"});
+	types->addEnumType("gw_fifo_access_type", "Access Type", {"ACM", "VCM0", "VCM1", "VCM2", "VCM3"});
 	types->addEnumType("dama_algorithm", "DAMA Algorithm", {"Legacy",});
 
 	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
-	auto fifos = conf->addList("fifos", "FIFOs", "fifo")->getPattern();
+	auto fifos = conf->addList("gw_fifos", "FIFOs to send messages to Terminals", "gw_fifo")->getPattern();
 	fifos->addParameter("priority", "Priority", types->getType("int"));
 	fifos->addParameter("name", "Name", types->getType("string"));
 	fifos->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
-	fifos->addParameter("access_type", "Access Type", types->getType("fifo_access_type"));
+	fifos->addParameter("access_type", "Access Type", types->getType("gw_fifo_access_type"));
 	auto simulation = conf->addParameter("simulation",
 	                                     "Simulated Requests",
 	                                     types->getType("ncc_simulation"),
@@ -617,7 +617,7 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 	auto Conf = OpenSandModelConf::Get();
 	auto ncc = Conf->getProfileData()->getComponent("network");
 
-	for (auto& item : ncc->getList("fifos")->getItems())
+	for (auto& item : ncc->getList("gw_fifos")->getItems())
 	{
 		auto fifo_item = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 

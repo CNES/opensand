@@ -123,7 +123,7 @@ void BlockDvbTal::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParame
 		auto access = Conf->getOrCreateComponent("access", "Access", "MAC layer configuration");
 		Conf->setProfileReference(access, disable_ctrl_plane, false);
 
-		types->addEnumType("fifo_access_type", "Access Type", {"DAMA_RBDC", "DAMA_VBDC", "DAMA_CRA", "SALOHA"});
+		types->addEnumType("st_fifo_access_type", "Access Type", {"DAMA_RBDC", "DAMA_VBDC", "DAMA_CRA", "SALOHA"});
 		// TODO: Keep in sync with topology
 		types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
 		types->addEnumType("dama_algorithm", "DAMA Agent Algorithm", {"Legacy"});
@@ -155,13 +155,12 @@ void BlockDvbTal::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParame
 		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
 	}
 	auto network = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
-	auto fifos = network->getOrCreateList("fifos", "FIFOs", "fifo");
-	Conf->setProfileReference(fifos, disable_ctrl_plane, false);
+	auto fifos = network->getOrCreateList("st_fifos", "FIFOs to send messages to Gateway", "st_fifo");
 	auto pattern = fifos->getPattern();
 	pattern->getOrCreateParameter("priority", "Priority", types->getType("int"));
 	pattern->getOrCreateParameter("name", "Name", types->getType("string"));
 	pattern->getOrCreateParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
-	pattern->getOrCreateParameter("access_type", "Access Type", types->getType("fifo_access_type"));
+	pattern->getOrCreateParameter("access_type", "Access Type", types->getType("st_fifo_access_type"));
 
 	{ // Access section when control plane is disabled
 		auto access = Conf->getOrCreateComponent("access2", "Access", "MAC layer configuration");
@@ -475,7 +474,7 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 	auto Conf = OpenSandModelConf::Get();
 	auto network = Conf->getProfileData()->getComponent("network");
 
-	for (auto& item : network->getList("fifos")->getItems())
+	for (auto& item : network->getList("st_fifos")->getItems())
 	{
 		auto fifo_item = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
