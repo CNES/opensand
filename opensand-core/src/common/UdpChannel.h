@@ -43,6 +43,7 @@
 #include <opensand_rt/NetSocketEvent.h>
 
 #include <vector>
+#include <map>
 
 #include <sys/types.h>
 #include <netinet/in.h>

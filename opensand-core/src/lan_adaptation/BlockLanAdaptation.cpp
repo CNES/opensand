@@ -43,6 +43,7 @@
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/NetSocketEvent.h>
+#include <opensand_rt/MessageEvent.h>
 
 #include <cstdio>
 #include <sys/ioctl.h>

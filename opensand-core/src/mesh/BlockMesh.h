@@ -42,8 +42,14 @@
 #include "UdpChannel.h"
 #include <memory>
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannelMux.h>
+#include <opensand_rt/RtChannelDemux.h>
 #include <string>
 #include <unordered_set>
+
+
+class MessageEvent;
+
 
 /**
  * @class BlockMesh

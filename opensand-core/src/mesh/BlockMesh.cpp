@@ -37,6 +37,8 @@
 #include "NetPacket.h"
 #include "NetPacketSerializer.h"
 #include <iterator>
+#include <opensand_rt/MessageEvent.h>
+
 
 BlockMesh::BlockMesh(const std::string &name, tal_id_t entity_id):
     Block(name), entity_id{entity_id} {}

@@ -46,6 +46,7 @@
 #include "AttenuationHandler.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
 #include <opensand_output/Output.h>
 
 #include <string>

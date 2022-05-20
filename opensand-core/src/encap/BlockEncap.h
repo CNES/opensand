@@ -48,6 +48,8 @@
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
+
 
 /**
  * @class BlockEncap

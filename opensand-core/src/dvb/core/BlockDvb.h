@@ -63,6 +63,7 @@
 #include "DvbChannel.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
 
 
 struct dvb_specific

@@ -37,6 +37,8 @@
 #ifndef SPOT_DOWNWARD_H
 #define SPOT_DOWNWARD_H
 
+#include <opensand_rt/Types.h>
+
 #include "DvbChannel.h"
 #include "RequestSimulator.h"
 #include "TerminalCategoryDama.h"

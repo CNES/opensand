@@ -36,6 +36,7 @@
 
 #include "BlockSatCarrier.h"
 
+#include <opensand_rt/MessageEvent.h>
 #include <opensand_output/Output.h>
 
 #include "DvbFrame.h"

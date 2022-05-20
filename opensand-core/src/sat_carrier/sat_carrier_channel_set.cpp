@@ -129,7 +129,7 @@ bool sat_carrier_channel_set::readSpot(const std::string &local_ip_addr,
 	LOG(this->log_init, LEVEL_INFO,
 	    "Creating carriers for %s\n", config_string.c_str());
 	
-	bool create_in_carriers = in && is_satellite || !in && !is_satellite;
+	bool create_in_carriers = (in && is_satellite) || (!in && !is_satellite);
 
 	switch (host)
 	{

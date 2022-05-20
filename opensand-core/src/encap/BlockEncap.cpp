@@ -41,6 +41,7 @@
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/MessageEvent.h>
 
 #include <algorithm>
 #include <stdint.h>

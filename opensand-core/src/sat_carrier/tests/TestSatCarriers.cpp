@@ -57,6 +57,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/if_tun.h>
+#include <cstring>
+#include <errno.h>
+
+#include <opensand_rt/MessageEvent.h>
 
 
 #define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]

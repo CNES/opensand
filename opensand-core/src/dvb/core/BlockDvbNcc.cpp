@@ -47,6 +47,7 @@
 
 #include <errno.h>
 #include <opensand_rt/TcpListenEvent.h>
+#include <opensand_rt/MessageEvent.h>
 
 
 
@@ -402,9 +403,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			{
 				if(this->probe_frame_interval->isEnabled())
 				{
-					timeval time = event->getAndSetCustomTime();
-					float val = time.tv_sec * 1000000L + time.tv_usec;
-					this->probe_frame_interval->put(val/1000);
+					time_val_t time = event->getAndSetCustomTime();
+					this->probe_frame_interval->put(time/1000.f);
 				}
 
 				// we reached the end of a superframe

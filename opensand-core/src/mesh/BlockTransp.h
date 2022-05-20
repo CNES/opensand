@@ -38,6 +38,8 @@
 #include <memory>
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannelMux.h>
+#include <opensand_rt/RtChannelDemux.h>
 
 #include "DvbFrame.h"
 #include "SatDemuxKey.h"

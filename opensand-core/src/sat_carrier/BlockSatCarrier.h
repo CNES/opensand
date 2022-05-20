@@ -40,6 +40,7 @@
 #include "sat_carrier_channel_set.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
 
 
 struct sc_specific

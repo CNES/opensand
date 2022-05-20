@@ -42,6 +42,8 @@
 #include <math.h>
 #include <algorithm>
 
+#include <opensand_rt/RtChannel.h>
+
 
 GroundPhysicalChannel::GroundPhysicalChannel(tal_id_t mac_id):
 	attenuation_model(NULL),

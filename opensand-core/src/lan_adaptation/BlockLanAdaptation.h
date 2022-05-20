@@ -47,7 +47,9 @@
 #include "OpenSandCore.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
 #include <opensand_output/Output.h>
+
 
 using std::string;
 class NetSocketEvent;

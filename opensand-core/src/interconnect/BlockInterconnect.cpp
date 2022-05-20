@@ -35,6 +35,8 @@
 #include "BlockInterconnect.h"
 #include "OpenSandModelConf.h"
 
+#include <opensand_rt/MessageEvent.h>
+
 
 BlockInterconnectDownward::BlockInterconnectDownward(const std::string &name,
                                                      const std::string &):

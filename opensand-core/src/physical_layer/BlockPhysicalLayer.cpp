@@ -43,6 +43,8 @@
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/MessageEvent.h>
+
 
 BlockPhysicalLayer::BlockPhysicalLayer(const string &name, tal_id_t mac_id):
 	Block(name),

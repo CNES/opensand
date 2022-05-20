@@ -34,6 +34,9 @@
 
 #include "BlockTransp.h"
 
+#include <opensand_rt/MessageEvent.h>
+
+
 BlockTransp::BlockTransp(const std::string &name):
     Block(name) {}
 

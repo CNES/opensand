@@ -56,6 +56,7 @@
 #include "OpenSandModelConf.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/MessageEvent.h>
 #include <opensand_output/Output.h>
 #include <opensand_output/OutputEvent.h>
 
@@ -2171,10 +2172,8 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 			if(this->probe_sof_interval->isEnabled() &&
 			   dvb_frame->getMessageType() == MSG_TYPE_SOF)
 			{
-				struct timeval time = event->getTimeFromCustom();
-				float val = time.tv_sec * 1000000L + time.tv_usec;
-				event->setCustomTime();
-				this->probe_sof_interval->put(val/1000);
+				time_val_t time = event->getAndSetCustomTime();
+				this->probe_sof_interval->put(time/1000.f);
 			}
 
 			// message from lower layer: DL dvb frame
