@@ -425,13 +425,19 @@ bool BlockMesh::Downward::handleControlMsg(std::unique_ptr<const DvbFrame> frame
 		case MSG_TYPE_CSC:
 		case MSG_TYPE_SESSION_LOGON_REQ:
 		case MSG_TYPE_SESSION_LOGOFF:
-			return sendToLowerBlock({frame->getSpot(), Component::gateway}, std::move(frame));
+		{
+			SatDemuxKey key{frame->getSpot(), Component::gateway};
+			return sendToLowerBlock(key, std::move(frame));
+		}
 
 		// Control messages GW->ST
 		case MSG_TYPE_SOF:
 		case MSG_TYPE_TTP:
 		case MSG_TYPE_SESSION_LOGON_RESP:
-			return sendToLowerBlock({frame->getSpot(), Component::terminal}, std::move(frame));
+		{
+			SatDemuxKey key{frame->getSpot(), Component::terminal};
+			return sendToLowerBlock(key, std::move(frame));
+		}
 
 		default:
 			LOG(log_receive, LEVEL_ERROR, "Unexpected control message type received: %s (%d)",
