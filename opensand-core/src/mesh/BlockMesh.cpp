@@ -86,33 +86,37 @@ BlockMesh::Upward::Upward(const std::string &name, tal_id_t UNUSED(sat_id)):
 
 bool BlockMesh::Upward::onInit()
 {
-	// Open the inter-satellite out channel
-	std::string local_ip_addr;
-	if (!OpenSandModelConf::Get()->getSatInfrastructure(local_ip_addr))
+	// the ISL out port is set to 0 if the default entity is not a sat
+	if (isl_out.port > 0)
 	{
-		return false;
-	};
-	std::string isl_name = getName() + "_isl_out";
-	LOG(log_init, LEVEL_INFO, "Creating ISL output channel bound to %s, sending to %s:%d",
-	    local_ip_addr.c_str(),
-	    isl_out.address.c_str(),
-	    isl_out.port);
-	isl_out_channel = std::unique_ptr<UdpChannel>{
-	    new UdpChannel{isl_name,
-	                   0, // unused (spot id)
-	                   isl_out.id,
-	                   false, // input
-	                   true,  // output
-	                   isl_out.port,
-	                   isl_out.is_multicast,
-	                   local_ip_addr,
-	                   isl_out.address,
-	                   isl_out.udp_stack,
-	                   isl_out.udp_rmem,
-	                   isl_out.udp_wmem}};
-	if (addNetSocketEvent(isl_name, isl_out_channel->getChannelFd()) == -1)
-	{
-		return false;
+		// Open the inter-satellite out channel
+		std::string local_ip_addr;
+		if (!OpenSandModelConf::Get()->getSatInfrastructure(local_ip_addr))
+		{
+			return false;
+		};
+		std::string isl_name = getName() + "_isl_out";
+		LOG(log_init, LEVEL_INFO, "Creating ISL output channel bound to %s, sending to %s:%d",
+		    local_ip_addr.c_str(),
+		    isl_out.address.c_str(),
+		    isl_out.port);
+		isl_out_channel = std::unique_ptr<UdpChannel>{
+		    new UdpChannel{isl_name,
+		                   0, // unused (spot id)
+		                   isl_out.id,
+		                   false, // input
+		                   true,  // output
+		                   isl_out.port,
+		                   isl_out.is_multicast,
+		                   local_ip_addr,
+		                   isl_out.address,
+		                   isl_out.udp_stack,
+		                   isl_out.udp_rmem,
+		                   isl_out.udp_wmem}};
+		if (addNetSocketEvent(isl_name, isl_out_channel->getChannelFd()) == -1)
+		{
+			return false;
+		}
 	}
 	return true;
 }

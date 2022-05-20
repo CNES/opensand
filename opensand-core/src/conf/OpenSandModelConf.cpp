@@ -84,8 +84,8 @@ void OpenSandModelConf::createModels()
 	infrastructure_model->getRoot()->setDescription("infrastructure");
 	auto types = infrastructure_model->getTypesDefinition();
 	types->addEnumType("log_level", "Log Level", {"debug", "info", "notice", "warning", "error", "critical"});
-	types->addEnumType("entity_type", "Entity Type", {"Gateway", "Gateway Net Access", "Gateway Phy", "Satellite", "Terminal"});
-	types->addEnumType("sat_regen_level", "Regeneration Level for Satellite", {"Transparent", "BBFrame", "IP"});
+	types->addEnumType("entity_type", "Entity Type", {"Gateway", "Gateway Net Access", "Gateway Phy", "Satellite", "Satellite Regen", "Terminal"});
+	types->addEnumType("sat_regen_level", "Regeneration Level for Satellite", {"BBFrame", "IP"});
 
 	auto entity = infrastructure_model->getRoot()->addComponent("entity", "Emulated Entity");
 	auto entity_type = entity->addParameter("entity_type", "Entity Type", types->getType("entity_type"));
@@ -97,15 +97,22 @@ void OpenSandModelConf::createModels()
 	expected_str->set("Satellite");
 	satellite->addParameter("entity_id", "Satellite ID", types->getType("int"));
 	satellite->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
-	auto regen_level = satellite->addParameter("regen_level", "Regeneration Level", types->getType("sat_regen_level"));
-    auto mesh = satellite->addParameter("mesh", "Mesh", types->getType("bool"), "Enable mesh architecture");
+
+	auto satellite_regen = entity->addComponent("entity_sat_regen", "Satellite", "Specific infrastructure information for a Regenerative Satellite");
+	infrastructure_model->setReference(satellite_regen, entity_type);
+	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(satellite_regen->getReferenceData());
+	expected_str->set("Satellite Regen");
+	satellite_regen->addParameter("entity_id", "Satellite ID", types->getType("int"));
+	satellite_regen->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
+	auto regen_level = satellite_regen->addParameter("regen_level", "Regeneration Level", types->getType("sat_regen_level"));
+	auto mesh = satellite_regen->addParameter("mesh", "Mesh", types->getType("bool"), "Enable mesh architecture");
 	infrastructure_model->setReference(mesh, regen_level);
 	mesh->getReferenceData()->fromString("IP");
-	satellite->addParameter("default_entity", "Default Entity", types->getType("int"),
-	                        "Default Gateway or Satellite ID for a packet destination when the MAC "
-	                        "address is not found in the SARP Table; use -1 to drop "
-	                        "such packets")->setAdvanced(true);
-	satellite->addParameter("isl_port", "Port (Inter Sat Link)", types->getType("int"))->setAdvanced(true);
+	satellite_regen->addParameter("default_entity", "Default Entity", types->getType("int"),
+	                              "Default Gateway or Satellite ID for a packet destination when the MAC "
+	                              "address is not found in the SARP Table; use -1 to drop "
+	                              "such packets")->setAdvanced(true);
+	satellite_regen->addParameter("isl_port", "Port (Inter Sat Link)", types->getType("int"))->setAdvanced(true);
 
 	auto gateway = entity->addComponent("entity_gw", "Gateway", "Specific infrastructure information for a Gateway");
 	infrastructure_model->setReference(gateway, entity_type);
@@ -674,6 +681,8 @@ bool OpenSandModelConf::getComponentType(std::string &type, tal_id_t &id) const
 
 	if (component_type == "Satellite") {
 		type = "sat";
+	} else if (component_type == "Satellite Regen") {
+		type = "sat_regen";
 	} else if (component_type == "Terminal") {
 		type = "st";
 	} else if (component_type == "Gateway") {
@@ -708,11 +717,11 @@ bool OpenSandModelConf::getSatInfrastructure(std::string &ip_address) const
 		return false;
 	}
 
-	if (type != "sat") {
+	if (type != "sat" && type != "sat_regen") {
 		return false;
 	}
 
-	auto satellite = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_sat");
+	auto satellite = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
 	return extractParameterData(satellite, "emu_address", ip_address);
 }
 

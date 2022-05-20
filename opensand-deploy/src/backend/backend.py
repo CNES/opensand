@@ -236,6 +236,12 @@ def create_default_infrastructure(meta_model, filepath):
     _set_parameter(satellite, 'emu_address', '192.168.0.63')
     _set_parameter(satellite, 'default_entity', -1)
 
+    satellite_regen = _get_component(entity, 'entity_sat_regen')
+    _set_parameter(satellite_regen, 'entity_id', 0)
+    _set_parameter(satellite_regen, 'emu_address', '192.168.0.63')
+    _set_parameter(satellite_regen, 'regen_level', "IP")
+    _set_parameter(satellite_regen, 'default_entity', -1)
+
     terminal = _get_component(entity, 'entity_st')
     _set_parameter(terminal, 'entity_id', 1)
     _set_parameter(terminal, 'emu_address', '192.168.0.10')
@@ -326,7 +332,7 @@ def create_default_topology(meta_model, filepath):
     py_opensand_conf.toXML(topo, str(filepath))
 
 
-def create_default_profile(meta_model, filepath, is_terminal):
+def create_default_profile(meta_model, filepath, entity_type):
     mod = meta_model.create_data()
     model = mod.get_root()
 
@@ -364,12 +370,21 @@ def create_default_profile(meta_model, filepath, is_terminal):
     _set_parameter(network, 'simulation', 'None')
     _set_parameter(network, 'fca', 0)
     _set_parameter(network, 'dama_algorithm', 'Legacy')
-    for priority, name, capacity, access_st, access_gw in FIFOS:
-        fifo = _create_list_item(network, 'fifos')
-        _set_parameter(fifo, 'priority', priority)
-        _set_parameter(fifo, 'name', name)
-        _set_parameter(fifo, 'capacity', capacity)
-        _set_parameter(fifo, 'access_type', access_st if is_terminal else access_gw)
+    if entity_type in ['st', 'sat_regen']:
+        for priority, name, capacity, access_st, access_gw in FIFOS:
+            fifo = _create_list_item(network, 'st_fifos')
+            _set_parameter(fifo, 'priority', priority)
+            _set_parameter(fifo, 'name', name)
+            _set_parameter(fifo, 'capacity', capacity)
+            _set_parameter(fifo, 'access_type', access_st)
+    if entity_type in ['gw', 'gw_net_acc', 'sat_regen']:
+        for priority, name, capacity, access_st, access_gw in FIFOS:
+            fifo = _create_list_item(network, 'gw_fifos')
+            _set_parameter(fifo, 'priority', priority)
+            _set_parameter(fifo, 'name', name)
+            _set_parameter(fifo, 'capacity', capacity)
+            _set_parameter(fifo, 'access_type', access_gw)
+    
     for pcp, name, fifo in QOS_CLASSES:
         qos = _create_list_item(network, 'qos_classes')
         _set_parameter(qos, 'pcp', pcp)
@@ -402,7 +417,7 @@ def create_default_templates(project):
             elif kind == 'topology':
                 create_default_topology(meta_model, template)
             elif kind == 'profile':
-                create_default_profile(meta_model, template, xsd.stem.endswith('_st'))
+                create_default_profile(meta_model, template, xsd.stem.removeprefix("profile_"))
 
 
 def create_platform_infrastructure(project):
@@ -445,9 +460,16 @@ def create_platform_infrastructure(project):
             if entity_id is not None:
                 satellite = {'entity_id': entity_id}
                 satellite['emu_address'] = _get_parameter(entity_sat, 'emu_address', '')
-                satellite['default_entity'] = _get_parameter(entity_sat, 'default_entity', -1)
-                satellite['isl_port'] = _get_parameter(entity_sat, 'isl_port', -1)
                 infrastructure['satellite'][entity_id] = satellite
+        elif entity_type == "Satellite Regen":
+            entity_sat_regen = entity.get_component('entity_sat_regen')
+            entity_id = _get_parameter(entity_sat_regen, 'entity_id')
+            if entity_id is not None:
+                satellite_regen = {'entity_id': entity_id}
+                satellite_regen['emu_address'] = _get_parameter(entity_sat_regen, 'emu_address', '')
+                satellite_regen['default_entity'] = _get_parameter(entity_sat_regen, 'default_entity', -1)
+                satellite_regen['isl_port'] = _get_parameter(entity_sat_regen, 'isl_port')
+                infrastructure['satellite'][entity_id] = satellite_regen
         elif entity_type == "Gateway":
             entity_gw = entity.get_component('entity_gw')
             entity_id = _get_parameter(entity_gw, 'entity_id')
@@ -588,6 +610,7 @@ def extract_emulation_address(path):
 
     component_name = {
             'Satellite': 'entity_sat',
+            'Satellite Regen': 'entity_sat_regen',
             'Terminal': 'entity_st',
             'Gateway': 'entity_gw',
             'Gateway Net Access': 'entity_gw_net_acc',
