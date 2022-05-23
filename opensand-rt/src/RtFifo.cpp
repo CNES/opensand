@@ -32,16 +32,12 @@
  *         intra-block messages
  */
 
-#include "Rt.h"
-#include "RtFifo.h"
-#include "RtCommunicate.h"
-
-#include <opensand_output/Output.h>
-
-#include <cstdlib>
-#include <cstring>
 #include <unistd.h>
-#include <errno.h>
+#include <cstring>
+
+#include "RtFifo.h"
+#include "Rt.h"
+#include "RtCommunicate.h"
 
 
 #define DEFAULT_FIFO_SIZE 3

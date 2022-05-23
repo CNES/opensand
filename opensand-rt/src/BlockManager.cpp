@@ -33,27 +33,20 @@
  *
  */
 
-#include <unistd.h>
-#include <signal.h>
-#include <cstdio>
 #include <cstring>
-#include <string>
 #include <sys/signalfd.h>
-#include <sys/resource.h>
+#include <signal.h>
 #include <syslog.h>
-#include <pthread.h>
 
-#include <execinfo.h>
-#include <errno.h>
 #include <cxxabi.h>
+#include <execinfo.h>
 
 #include <opensand_output/Output.h>
-#include <opensand_output/OutputLog.h>
 
 #include "BlockManager.h"
-#include "RtFifo.h"
-#include "RtChannelBase.h"
 #include "Rt.h"
+#include "RtChannelBase.h"
+#include "RtFifo.h"
 
 
 // taken from http://oroboro.com/stack-trace-on-crash/

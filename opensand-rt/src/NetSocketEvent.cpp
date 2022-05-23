@@ -33,17 +33,10 @@
  *
  */
 
+#include <cstring>
+
 #include "NetSocketEvent.h"
 #include "Rt.h"
-
-#include <opensand_output/Output.h>
-
-#include <cstring>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 
 
 // TODO add send functions

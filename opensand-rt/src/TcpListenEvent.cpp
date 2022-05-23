@@ -31,19 +31,14 @@
  * @brief  The event for message read on network socket
  */
 
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstring>
+
 #include "TcpListenEvent.h"
 #include "Rt.h"
-
-#include <opensand_output/Output.h>
-
-#include <cstring>
-#include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 
 // TODO add send functions

@@ -33,10 +33,14 @@
  * @brief  The channel included in blocks
  */
 
-#include "RtChannelBase.h"
+#include <unistd.h>
+#include <signal.h>
+#include <cstring>
 
+#include <opensand_output/Output.h>
+
+#include "RtChannelBase.h"
 #include "Rt.h"
-#include "RtCommunicate.h"
 #include "RtFifo.h"
 #include "FileEvent.h"
 #include "MessageEvent.h"
@@ -44,20 +48,8 @@
 #include "SignalEvent.h"
 #include "TcpListenEvent.h"
 #include "TimerEvent.h"
+#include "RtCommunicate.h"
 
-#include <opensand_output/Output.h>
-#include <opensand_output/OutputLog.h>
-
-#include <errno.h>
-#include <cstring>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <stdio.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <sys/select.h>
 #ifdef TIME_REPORTS
 	#include <numeric>
 	#include <algorithm>
@@ -327,7 +319,7 @@ bool RtChannelBase::addEvent(std::unique_ptr<RtEvent> event)
 	}
 
 #ifdef TIME_REPORTS
-	this->durations[event->getName()] = list<double>();
+	this->durations[event->getName()] = std::vector<double>();
 #endif
 
 	return true;
@@ -577,9 +569,8 @@ void RtChannelBase::executeThread(void)
 				    event->getName().c_str());
 			}
 #ifdef TIME_REPORTS
-			timeval time = (*iter)->getTimeFromTrigger();
-			double val = time.tv_sec * 1000000L + time.tv_usec;
-			this->durations[(*iter)->getName()].push_back(val);
+			time_val_t time = (*iter)->getTimeFromTrigger();
+			this->durations[(*iter)->getName()].push_back(time);
 #endif
 		}
 	}

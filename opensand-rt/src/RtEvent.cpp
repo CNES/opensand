@@ -32,10 +32,9 @@
  * @brief  The generic event
  */
 
+#include <unistd.h>
 
 #include "RtEvent.h"
-
-#include <unistd.h>
 
 
 RtEvent::RtEvent(EventType type, const std::string &name, int32_t fd, uint8_t priority):

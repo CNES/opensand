@@ -33,13 +33,12 @@
  *
  */
 
-#include "MessageEvent.h"
-#include "RtFifo.h"
-#include "Rt.h"
-#include "RtCommunicate.h"
-
 #include <cstring>
-#include <errno.h>
+
+#include "MessageEvent.h"
+#include "Rt.h"
+#include "RtFifo.h"
+#include "RtCommunicate.h"
 
 
 MessageEvent::MessageEvent(std::shared_ptr<RtFifo> &fifo,

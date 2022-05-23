@@ -33,12 +33,11 @@
  *
  */
 
+#include <unistd.h>
+#include <cstring>
+
 #include "FileEvent.h"
 #include "Rt.h"
-
-#include <cstring>
-#include <unistd.h>
-#include <errno.h>
 
 
 FileEvent::FileEvent(const std::string &name,

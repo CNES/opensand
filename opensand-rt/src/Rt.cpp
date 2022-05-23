@@ -33,12 +33,10 @@
  *
  */
 
-#include "Rt.h"
-
 #include <stdarg.h>
-#include <cstdio>
-#include <algorithm>
 #include <sstream>
+
+#include "Rt.h"
 
 
 // Create bloc instance

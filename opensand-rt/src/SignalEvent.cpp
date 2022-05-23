@@ -33,15 +33,12 @@
  *
  */
 
+#include <signal.h>
+#include <pthread.h>
+#include <cstring>
+
 #include "SignalEvent.h"
 #include "Rt.h"
-
-#include <signal.h>
-#include <cstring>
-#include <unistd.h>
-#include <errno.h>
-#include <pthread.h>
-#include <sys/time.h>
 
 
 SignalEvent::SignalEvent(const std::string &name,
