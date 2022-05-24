@@ -45,10 +45,6 @@
 #include <string>
 #include <map>
 
-using std::list;
-using std::string;
-using std::map;
-
 
 class FmtId;
 
@@ -64,10 +60,10 @@ class FmtGroup
 	fmt_id_t id;
 
 	/** The list of FMT IDs */
-	list<FmtId> fmt_ids;
+  std::list<FmtId> fmt_ids;
 
 	/** The list of IDs from FMT IDs */
-	list<fmt_id_t> num_fmt_ids;
+  std::list<fmt_id_t> num_fmt_ids;
 
 	/** The table of MODCOD definitions */
 	const FmtDefinitionTable *modcod_def;
@@ -86,7 +82,7 @@ class FmtGroup
 	 * @param modcod_def  The MODCOD definitions
 	 */
 	FmtGroup(unsigned int group_id,
-	         string ids,
+	         std::string ids,
 	         const FmtDefinitionTable *modcod_def);
 
 	/**
@@ -105,7 +101,7 @@ class FmtGroup
 	 *
 	 * @return the list of MODCODs
 	 */
-	const list<fmt_id_t> getFmtIds() const;
+	const std::list<fmt_id_t> getFmtIds() const;
 
 	/**
 	 * @brief Get the MODCOD definitions
@@ -128,7 +124,7 @@ class FmtGroup
 	 *
 	 * @param  fmt_ids  The FMT IDs as in configuration
 	 */
-	void parse(string fmt_ids);
+	void parse(std::string fmt_ids);
 };
 
 
@@ -214,7 +210,7 @@ class FmtId
 
 
 
-typedef map<fmt_id_t, FmtGroup *> fmt_groups_t;
+typedef std::map<fmt_id_t, FmtGroup *> fmt_groups_t;
 
 
 #endif

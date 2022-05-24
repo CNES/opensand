@@ -99,7 +99,7 @@ class BlockPhysicalLayer: public Block
 		 * @param name    the name of the channel
 		 * @param mac_id  the id of the ST or of the GW
 		 */
-		Upward(const string &name, tal_id_t mac_id);
+		Upward(const std::string &name, tal_id_t mac_id);
 
 		/**
 		 * @brief Destroy the Channel
@@ -167,7 +167,7 @@ class BlockPhysicalLayer: public Block
 		 * @param name  the name of the channel
 		 * @param mac_id  the id of the ST or of the GW
 		 */
-		Downward(const string &name, tal_id_t mac_id);
+		Downward(const std::string &name, tal_id_t mac_id);
 
 		/**
 		 * @brief Destroy the Channel
@@ -201,7 +201,7 @@ class BlockPhysicalLayer: public Block
 	 * @param name            The name of the block
 	 * @param mac_id          The mac id of the terminal
 	 */
-	BlockPhysicalLayer(const string &name, tal_id_t mac_id);
+	BlockPhysicalLayer(const std::string &name, tal_id_t mac_id);
 
 	/**
 	 * Destroy the PhysicalLayer block

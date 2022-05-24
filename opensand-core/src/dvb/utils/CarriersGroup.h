@@ -133,7 +133,7 @@ class CarriersGroup
 	 *
 	 * @return the list of MODCODs
 	 */
-	const list<fmt_id_t> getFmtIds() const;
+	const std::list<fmt_id_t> getFmtIds() const;
 
 	/**
 	 * @brief Get the carriers access type

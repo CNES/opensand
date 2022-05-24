@@ -48,7 +48,6 @@
 #include "OpenSandFrames.h"
 #include "MacFifoElement.h"
 
-using std::string;
 
 /**
  * @class PhysicStd
@@ -60,7 +59,7 @@ class PhysicStd
  private:
 
 	/** The type of the DVB standard ("DVB-RCS" or "DVB-S2") */
-	string type;
+   std::string type;
 
  protected:
 
@@ -75,7 +74,7 @@ class PhysicStd
 	 * @param type     the type of the DVB standard
 	 * @param pkt_hdl  the packet handler
 	 */
-	PhysicStd(string type,
+	PhysicStd(std::string type,
 	          EncapPlugin::EncapPacketHandler *pkt_hdl);
 
 	/**
@@ -88,7 +87,7 @@ class PhysicStd
 	 *
 	 * @return the type of Physical Transmission Standard
 	 */
-	string getType();
+  std::string getType();
 
 
 	/**

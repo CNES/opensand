@@ -67,7 +67,7 @@ class SlottedAlohaTal: public SlottedAloha
 	time_sf_t timeout_saf;
 
 	/// The packets waiting for ACK
-	map<qos_t, saloha_packets_data_t> packets_wait_ack;
+  std::map<qos_t, saloha_packets_data_t> packets_wait_ack;
 
 	/// list of  packets to be retransmitted
 	saloha_packets_data_t retransmission_packets;
@@ -98,7 +98,7 @@ class SlottedAlohaTal: public SlottedAloha
 	fifos_t dvb_fifos;
 
 	//TODO in opensandcore.h
-	typedef map<qos_t, std::shared_ptr<Probe<int> > > probe_per_qos_t;
+	typedef std::map<qos_t, std::shared_ptr<Probe<int> > > probe_per_qos_t;
 	/// Statistics
 	probe_per_qos_t probe_retransmission;
 	probe_per_qos_t probe_wait_ack;
@@ -155,7 +155,7 @@ class SlottedAlohaTal: public SlottedAloha
 	 *
 	 * @return true if packets was successful scheduled, false otherwise
 	 */
-	bool schedule(list<DvbFrame *> &complete_dvb_frames,
+	bool schedule(std::list<DvbFrame *> &complete_dvb_frames,
 	              time_sf_t sf_counter);
 
 	//Implementation of a virtual function
@@ -180,7 +180,7 @@ class SlottedAlohaTal: public SlottedAloha
 	 * @param qos                  qos of the packet
 	 * @return true if the packet was successful added, false otherwise
 	 */
-	bool addPacketInFrames(list<DvbFrame *> &complete_dvb_frames,
+	bool addPacketInFrames(std::list<DvbFrame *> &complete_dvb_frames,
 	                       SlottedAlohaFrame **frame,
 	                       SlottedAlohaPacketData *packet,
 	                       saloha_ts_list_t::iterator &slot,

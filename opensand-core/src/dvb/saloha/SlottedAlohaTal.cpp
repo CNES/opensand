@@ -92,7 +92,7 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	time_ms_t sat_delay_ms;
 	time_ms_t timeout_ms;
 	time_ms_t min_timeout_ms;
-	string backoff_name;
+	std::string backoff_name;
 	
 	// Ensure parent init has been done
 	if(!this->is_parent_init)
@@ -392,12 +392,12 @@ skip:
 	return true;
 }
 
-bool SlottedAlohaTal::schedule(list<DvbFrame *> &complete_dvb_frames,
+bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
                                time_sf_t sf_counter)
 {
 	uint16_t nb_retransmissions;
 	SlottedAlohaPacketData *sa_packet;
-	map<qos_t, saloha_packets_data_t>::iterator wack_it;
+  std::map<qos_t, saloha_packets_data_t>::iterator wack_it;
 	saloha_packets_data_t::iterator packet;
 	SlottedAlohaFrame *frame;
 	saloha_ts_list_t ts;
@@ -663,7 +663,7 @@ saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
 	return time_slots;
 }
 
-bool SlottedAlohaTal::addPacketInFrames(list<DvbFrame *> &complete_dvb_frames,
+bool SlottedAlohaTal::addPacketInFrames(std::list<DvbFrame *> &complete_dvb_frames,
                                         SlottedAlohaFrame **frame,
                                         SlottedAlohaPacketData *packet,
                                         saloha_ts_list_t::iterator &slot,

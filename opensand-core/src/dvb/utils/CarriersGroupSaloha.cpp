@@ -58,7 +58,7 @@ CarriersGroupSaloha::CarriersGroupSaloha(unsigned int carriers_id,
 
 CarriersGroupSaloha::~CarriersGroupSaloha()
 {
-	for(map<unsigned int, Slot *>::iterator it = this->slots.begin();
+	for(std::map<unsigned int, Slot *>::iterator it = this->slots.begin();
 	    it != this->slots.end(); ++it)
 	{
 		delete (*it).second;
@@ -85,7 +85,7 @@ unsigned int CarriersGroupSaloha::getSlotsNumber(void) const
 	return this->slots.size();
 }
 
-map<unsigned int, Slot *> CarriersGroupSaloha::getSlots(void) const
+std::map<unsigned int, Slot *> CarriersGroupSaloha::getSlots(void) const
 {
 	return this->slots;
 }

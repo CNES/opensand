@@ -79,7 +79,7 @@ clock_t TestDelayFifo::getTickOut() const
 	return 0;
 }
 
-vector<TestDelayFifoElement *> TestDelayFifo::getQueue(void)
+std::vector<TestDelayFifoElement *> TestDelayFifo::getQueue(void)
 {
 	return this->queue;
 }
@@ -156,7 +156,7 @@ TestDelayFifoElement *TestDelayFifo::pop()
 void TestDelayFifo::flush()
 {
 	RtLock lock(this->fifo_mutex);
-	vector<TestDelayFifoElement *>::iterator it;
+  std::vector<TestDelayFifoElement *>::iterator it;
 	for(it = this->queue.begin(); it != this->queue.end(); ++it)
 	{
 		delete *it;

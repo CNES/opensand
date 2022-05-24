@@ -50,8 +50,8 @@
  * @param burst_length         the burst length in symbols of the FMT
  */
 FmtDefinition::FmtDefinition(const unsigned int id,
-                             const string modulation_type,
-                             const string coding_type,
+                             const std::string modulation_type,
+                             const std::string coding_type,
                              const float spectral_efficiency,
                              const double required_Es_N0,
                              const vol_sym_t burst_length):
@@ -80,8 +80,8 @@ FmtDefinition::FmtDefinition(const unsigned int id,
  * @param required_Es_N0       the required Es/N0 of the FMT
  */
 FmtDefinition::FmtDefinition(const unsigned int id,
-                             const string modulation_type,
-                             const string coding_type,
+                             const std::string modulation_type,
+                             const std::string coding_type,
                              const float spectral_efficiency,
                              const double required_Es_N0):
 	id(id),
@@ -135,7 +135,7 @@ unsigned int FmtDefinition::getId() const
  *
  * @return  the type of modulation of the FMT
  */
-string FmtDefinition::getModulation() const
+std::string FmtDefinition::getModulation() const
 {
 	return this->modulation_type;
 }
@@ -155,7 +155,7 @@ unsigned int FmtDefinition::getModulationEfficiency() const
  *
  * @return  the type of coding of the FMT
  */
-string FmtDefinition::getCoding() const
+std::string FmtDefinition::getCoding() const
 {
 	return this->coding_type;
 }

@@ -1087,8 +1087,8 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 	// run the allocation algorithms (DAMA)
 	this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
 
-	list<DvbFrame *> msgs;
-	list<DvbFrame *>::iterator msg;
+  std::list<DvbFrame *> msgs;
+  std::list<DvbFrame *>::iterator msg;
 
 	// handle simulated terminals
 	if(!this->request_simu)
@@ -1250,7 +1250,7 @@ uint8_t SpotDownward::getDataCarrierId(void) const
 	return this->data_carrier_id;
 }
 
-list<DvbFrame *> &SpotDownward::getCompleteDvbFrames(void)
+std::list<DvbFrame *> &SpotDownward::getCompleteDvbFrames(void)
 {
 	return this->complete_dvb_frames;
 }
@@ -1387,7 +1387,7 @@ bool SpotDownward::addCniExt(void)
 				tal_id_t tal_id = packet->getDstTalId();
 				NetPacket *extension_pkt = NULL;
 
-				list<tal_id_t>::iterator it = std::find(this->is_tal_scpc.begin(),
+        std::list<tal_id_t>::iterator it = std::find(this->is_tal_scpc.begin(),
 				                                        this->is_tal_scpc.end(),
 				                                        tal_id);
 				if(it != this->is_tal_scpc.end() &&
@@ -1419,14 +1419,14 @@ bool SpotDownward::addCniExt(void)
 	}
 
 	// try to send empty packet if no packet has been found for a terminal
-	for(set<tal_id_t>::const_iterator st_it = this->input_sts->begin();
+	for(std::set<tal_id_t>::const_iterator st_it = this->input_sts->begin();
 	    st_it != this->input_sts->end(); ++st_it)
 	{
 		tal_id_t tal_id = *st_it;
-		list<tal_id_t>::iterator it = std::find(list_st.begin(),
+    std::list<tal_id_t>::iterator it = std::find(list_st.begin(),
 		                                        list_st.end(),
 		                                        tal_id);
-		list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(),
+    std::list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(),
 		                                             this->is_tal_scpc.end(),
 		                                             tal_id);
 

@@ -106,7 +106,7 @@ class BlockDvbTal: public BlockDvb
 {
  public:
 
-	BlockDvbTal(const string &name, struct dvb_specific specific);
+	BlockDvbTal(const std::string &name, struct dvb_specific specific);
 	~BlockDvbTal();
 
 	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
@@ -116,7 +116,7 @@ class BlockDvbTal: public BlockDvb
 	class Upward: public DvbUpward, public DvbFmt
 	{
 	 public:
-		Upward(const string &name, struct dvb_specific specific);
+		Upward(const std::string &name, struct dvb_specific specific);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -212,7 +212,7 @@ class BlockDvbTal: public BlockDvb
 	class Downward: public DvbDownward, public DvbFmt
 	{
 	 public:
-		Downward(const string &name, struct dvb_specific specific);
+		Downward(const std::string &name, struct dvb_specific specific);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -433,16 +433,16 @@ class BlockDvbTal: public BlockDvb
 
 		/* Output probes and stats */
 		// Queue sizes
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size;
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size_kb;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size_kb;
 		// Queue loss
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss;
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss_kb;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss_kb;
 		// Rates
 		// Layer 2 to SAT
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_before_sched;
-		map<unsigned int, int> l2_to_sat_cells_before_sched;
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_after_sched;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_before_sched;
+		std::map<unsigned int, int> l2_to_sat_cells_before_sched;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_after_sched;
 		int l2_to_sat_total_bytes;
 		std::shared_ptr<Probe<int>> probe_st_l2_to_sat_total;
 		// PHY to SAT

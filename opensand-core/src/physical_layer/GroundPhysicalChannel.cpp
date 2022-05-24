@@ -41,22 +41,23 @@
 
 #include <math.h>
 #include <algorithm>
+#include <string>
 
 #include <opensand_rt/RtChannel.h>
 
 
 GroundPhysicalChannel::GroundPhysicalChannel(tal_id_t mac_id):
-	attenuation_model(NULL),
-	clear_sky_condition(0),
-	delay_fifo(),
-	probe_attenuation(NULL),
-	probe_clear_sky_condition(NULL),
-	mac_id(mac_id),
-	log_event(NULL),
-	log_channel(NULL),
-	satdelay_model(NULL),
-	attenuation_update_timer(-1),
-	fifo_timer(-1)
+	attenuation_model{nullptr},
+	clear_sky_condition{0},
+	delay_fifo{},
+	probe_attenuation{nullptr},
+	probe_clear_sky_condition{nullptr},
+	mac_id{mac_id},
+	log_event{nullptr},
+	log_channel{nullptr},
+	satdelay_model{nullptr},
+	attenuation_update_timer{-1},
+	fifo_timer{-1}
 {
 	// Initialize logs
 	this->log_channel = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Channel");
@@ -133,7 +134,7 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, 
 	char probe_name[128];
 	snprintf(probe_name, sizeof(probe_name),
 	         "PhysicalLayer.%sward.Event", upward_channel ? "Up" : "Down");
-	this->log_event = output->registerLog(LEVEL_WARNING, string(probe_name));
+	this->log_event = output->registerLog(LEVEL_WARNING, std::string{probe_name});
 
 	// Get the refresh period
 	if(!Conf->getAcmRefreshPeriod(refresh_period_ms))

@@ -51,12 +51,11 @@
 #include <opensand_output/Output.h>
 
 
-using std::string;
 class NetSocketEvent;
 
 struct la_specific
 {
-	string tap_iface;
+  std::string tap_iface;
 	PacketSwitch *packet_switch;        
 };
 
@@ -68,7 +67,7 @@ class BlockLanAdaptation: public Block
 {
  public:
 
-	BlockLanAdaptation(const string &name, struct la_specific specific);
+	BlockLanAdaptation(const std::string &name, struct la_specific specific);
 	~BlockLanAdaptation();
 
 	static void generateConfiguration();
@@ -83,12 +82,7 @@ class BlockLanAdaptation: public Block
 	class Upward: public RtUpward
 	{
 	 public:
-		Upward(const string &name, struct la_specific UNUSED(specific)):
-			RtUpward(name),
-			sarp_table(),
-			contexts(),
-			state(SatelliteLinkState::DOWN)
-		{};
+		Upward(const std::string &name, struct la_specific specific);
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -139,12 +133,7 @@ class BlockLanAdaptation: public Block
 	class Downward: public RtDownward
 	{
 	 public:
-		Downward(const string &name, struct la_specific UNUSED(specific)):
-			RtDownward(name),
-			stats_period_ms(),
-			contexts(),
-			state(SatelliteLinkState::DOWN)
-		{};
+		Downward(const std::string &name, struct la_specific specific);
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -193,12 +182,11 @@ class BlockLanAdaptation: public Block
 	};
 
  private:
-
 	/// The TAP interface name
-	string tap_iface;
+	std::string tap_iface;
 
-        /// Block specific parameters
-        la_specific specific;
+	/// Block specific parameters
+	la_specific specific;
 
 	/**
 	 * Create or connect to an existing TAP interface
@@ -208,5 +196,6 @@ class BlockLanAdaptation: public Block
 	 */
 	bool allocTap(int &fd);
 };
+
 
 #endif

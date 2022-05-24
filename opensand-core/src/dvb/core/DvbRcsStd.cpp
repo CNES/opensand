@@ -48,7 +48,7 @@ DvbRcsStd::DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
 	this->log_rcv_from_down = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Upward.receive");
 }
 
-DvbRcsStd::DvbRcsStd(string type, bool has_fixed_length,
+DvbRcsStd::DvbRcsStd(std::string type, bool has_fixed_length,
 		EncapPlugin::EncapPacketHandler *pkt_hdl):
 	PhysicStd(type, pkt_hdl),
 	has_fixed_length(has_fixed_length)

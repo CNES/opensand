@@ -51,7 +51,7 @@ std::shared_ptr<OutputLog> DvbChannel::dvb_fifo_log = nullptr;
  *
  * @return true if the file is found, false otherwise
  */
-inline bool fileExists(const string &filename)
+inline bool fileExists(const std::string &filename)
 {
 	if(access(filename.c_str(), R_OK) < 0)
 	{
@@ -86,7 +86,7 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
                             EncapPlugin::EncapPacketHandler **pkt_hdl)
 {
-	string encap_name;
+  std::string encap_name;
 	EncapPlugin *plugin;
 
 	switch(encap_schemes)
@@ -136,8 +136,8 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 
 bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 {
-	vector<string> encap_stack;
-	string encap_name;
+  std::vector<std::string> encap_stack;
+  std::string encap_name;
 	EncapPlugin *plugin;
 
 	// Get SCPC encapsulation name stack
@@ -463,7 +463,7 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
                                 NetPacket **extension_pkt,
                                 tal_id_t source,
                                 tal_id_t dest,
-                                string extension_name,
+                                std::string extension_name,
                                 time_sf_t super_frame_counter,
                                 bool is_gw)
 {

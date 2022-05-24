@@ -42,17 +42,17 @@
 
 #include <fstream>
 #include <sstream>
+#include <string>
 
-using std::stringstream;
 
 /// The maximum entries number in FMT definitions table
 #define MAX_FMT 32
 
 
 // Returns false if the string contains any non-whitespace characters
-inline bool isSpace(string str)
+inline bool isSpace(std::string str)
 {
-	string::iterator it = str.begin();
+  std::string::iterator it = str.begin();
 	while(it != str.end())
 	{
 		if(!std::isspace(*it))
@@ -105,7 +105,7 @@ bool FmtDefinitionTable::doFmtIdExist(fmt_id_t id) const
 
 void FmtDefinitionTable::clear()
 {
-	map<fmt_id_t, FmtDefinition *>::iterator it;
+  std::map<fmt_id_t, FmtDefinition *>::iterator it;
 
 	// delete all stored FMT definitions
 	for(it = this->definitions.begin(); it != this->definitions.end(); ++it)
@@ -118,7 +118,7 @@ void FmtDefinitionTable::clear()
 }
 
 
-map<fmt_id_t, FmtDefinition* > FmtDefinitionTable::getDefinitions(void) const
+std::map<fmt_id_t, FmtDefinition* > FmtDefinitionTable::getDefinitions(void) const
 {
 	return this->definitions;
 }

@@ -37,6 +37,7 @@
 #ifndef SPOT_DOWNWARD_H
 #define SPOT_DOWNWARD_H
 
+#include <list>
 #include <opensand_rt/Types.h>
 
 #include "DvbChannel.h"

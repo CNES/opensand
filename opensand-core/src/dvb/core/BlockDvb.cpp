@@ -138,10 +138,10 @@ bool BlockDvb::DvbDownward::initDown(void)
 }
 
 
-bool BlockDvb::DvbDownward::sendBursts(list<DvbFrame *> *complete_frames,
+bool BlockDvb::DvbDownward::sendBursts(std::list<DvbFrame *> *complete_frames,
                                        uint8_t carrier_id)
 {
-	list<DvbFrame *>::iterator frame_it;
+  std::list<DvbFrame *>::iterator frame_it;
 	bool status = true;
 
 	// send all complete DVB-RCS frames

@@ -42,8 +42,6 @@
 #include <cassert>
 #include <algorithm>
 
-using std::list;
-
 
 DvbS2Std::DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):
 	PhysicStd("DVB-S2", pkt_hdl),
@@ -63,7 +61,7 @@ DvbScpcStd::DvbScpcStd(EncapPlugin::EncapPacketHandler *pkt_hdl):
 }
 
 
-DvbS2Std::DvbS2Std(string type,
+DvbS2Std::DvbS2Std(std::string type,
                    EncapPlugin::EncapPacketHandler *pkt_hdl):
 	PhysicStd(type, pkt_hdl),
 	// use maximum MODCOD ID at startup in order to authorize any incoming trafic

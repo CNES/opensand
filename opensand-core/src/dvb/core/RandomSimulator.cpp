@@ -72,7 +72,7 @@ RandomSimulator::~RandomSimulator()
 }
 
 
-bool RandomSimulator::simulation(list<DvbFrame *>* msgs,
+bool RandomSimulator::simulation(std::list<DvbFrame *>* msgs,
                                  time_sf_t UNUSED(super_frame_counter))
 {
 	static bool initialized = false;

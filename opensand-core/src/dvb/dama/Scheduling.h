@@ -42,7 +42,6 @@
 #include "DvbFrame.h"
 #include "StFmtSimu.h"
 
-using std::list;
 
 /**
  * Scheduling is done each frame (not each superframe),
@@ -83,7 +82,7 @@ class Scheduling
 	 */
 	virtual bool schedule(const time_sf_t current_superframe_sf,
 	                      clock_t current_time,
-	                      list<DvbFrame *> *complete_dvb_frames,
+	                      std::list<DvbFrame *> *complete_dvb_frames,
 	                      uint32_t &remaining_allocation) = 0;
 
 	

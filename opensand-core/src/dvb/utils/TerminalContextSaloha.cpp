@@ -68,7 +68,7 @@ prop_state_t TerminalContextSaloha::addPacket(SlottedAlohaPacketData *packet,
 	saloha_id_t pkt_id = packet->getUniqueId();
 	qos_t qos = packet->getQos();
 	saloha_packets_data_t sa_packets;
-	map<qos_t, pdus_t>::iterator wait_it;
+  std::map<qos_t, pdus_t>::iterator wait_it;
 	pdus_t pdus;
 	pdus_t::iterator pdu_it;
 	uint16_t id[4];
@@ -165,7 +165,7 @@ void TerminalContextSaloha::findOldest(qos_t qos)
 {
 	saloha_pdu_id_t diff;
 	saloha_pdu_id_t oldest;
-	map<qos_t, saloha_pdu_id_t>::iterator id_it;
+  std::map<qos_t, saloha_pdu_id_t>::iterator id_it;
 	pdus_t::iterator pdu_it;
 	saloha_pdu_id_t min_diff = (saloha_pdu_id_t)pow(2.0, 8 * sizeof(saloha_pdu_id_t));
 

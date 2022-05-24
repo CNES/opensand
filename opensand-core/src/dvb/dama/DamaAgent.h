@@ -44,11 +44,8 @@
 
 #include <opensand_output/Output.h>
 
-#include <map>
 #include <list>
 
-using std::map;
-using std::list;
 
 /**
  * @class DamaAgent
@@ -157,7 +154,7 @@ class DamaAgent
 	 * @param complete_dvb_frames  created DVB frames.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool returnSchedule(list<DvbFrame *> *complete_dvb_frames) = 0;
+	virtual bool returnSchedule(std::list<DvbFrame *> *complete_dvb_frames) = 0;
 
 	/**
 	 * @brief   Called at each SoF.

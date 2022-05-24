@@ -43,7 +43,6 @@
 
 #include <map>
 
-using std::map;
 
 typedef enum
 {
@@ -81,12 +80,12 @@ class TerminalContextSaloha: public TerminalContext
 
   protected:
 
-	typedef map<saloha_pdu_id_t, saloha_packets_data_t> pdus_t;
+	typedef std::map<saloha_pdu_id_t, saloha_packets_data_t> pdus_t;
 	/// The PDU fragments waiting to be propagated per QoS
 	//  Fragments are propagated once all fragments of the complete PDU are received
-	map<qos_t, pdus_t> wait_propagation;
+  std::map<qos_t, pdus_t> wait_propagation;
 	/// The oldest PDU ID per QoS in order to remove it after a certain amount of time
-	map<qos_t, saloha_pdu_id_t> oldest_id;
+  std::map<qos_t, saloha_pdu_id_t> oldest_id;
 	/// The counter for oldest packet
 	saloha_pdu_id_t old_count;
 

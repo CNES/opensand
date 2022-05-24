@@ -45,9 +45,6 @@
 #include <opensand_rt/Rt.h>
 #include <opensand_rt/Types.h>
 
-#include <string>
-
-using std::string;
 
 /**
  * @class GroundPhysicalChannel

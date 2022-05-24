@@ -52,7 +52,6 @@
 #include <cstdio>
 #include <map>
 
-using std::map;
 
 /**
  * @class DamaCtrl
@@ -192,8 +191,7 @@ class DamaCtrl
 	 * @param name            the probe name
 	 * @return                the probe
 	 */
-	virtual std::shared_ptr<Probe<int>> generateGwCapacityProbe(
-		string name) const = 0;
+	virtual std::shared_ptr<Probe<int>> generateGwCapacityProbe(std::string name) const = 0;
 
 	/**
 	 * @brief  Generate a probe for category capacity
@@ -203,8 +201,8 @@ class DamaCtrl
 	 * @return                the probe
 	 */
 	virtual std::shared_ptr<Probe<int>> generateCategoryCapacityProbe(
-		string category_label,
-		string name) const = 0;
+		std::string category_label,
+		std::string name) const = 0;
 
 	/**
 	 * @brief  Generate a probe for carrier capacity
@@ -215,9 +213,9 @@ class DamaCtrl
 	 * @return                the probe
 	 */
 	virtual std::shared_ptr<Probe<int>> generateCarrierCapacityProbe(
-		string category_label,
+		std::string category_label,
 		unsigned int carrier_id,
-		string name) const = 0;
+		std::string name) const = 0;
 
 	/**
 	 * @brief  Create a terminal context.
@@ -310,7 +308,7 @@ class DamaCtrl
 	bool is_parent_init;
 
 	// Helper to simplify context manipulation
-	typedef map<tal_id_t, TerminalContextDama *> DamaTerminalList;
+	typedef std::map<tal_id_t, TerminalContextDama *> DamaTerminalList;
 
 	/** List of registered terminals */
 	DamaTerminalList terminals;
@@ -366,10 +364,10 @@ class DamaCtrl
 
 	/// Output probe and stats
 
-	typedef map<tal_id_t, std::shared_ptr<Probe<int> > > ProbeListPerTerminal;
-	typedef map<string, std::shared_ptr<Probe<int> > > ProbeListPerCategory;
-	typedef map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerCarrier;
-	typedef map<string, ProbeListPerCarrier> ProbeListPerCategoryPerCarrier;
+	typedef std::map<tal_id_t, std::shared_ptr<Probe<int> > > ProbeListPerTerminal;
+	typedef std::map<std::string, std::shared_ptr<Probe<int> > > ProbeListPerCategory;
+	typedef std::map<unsigned int, std::shared_ptr<Probe<int> > > ProbeListPerCarrier;
+	typedef std::map<std::string, ProbeListPerCarrier> ProbeListPerCategoryPerCarrier;
 
 	/* RBDC request number */
 	std::shared_ptr<Probe<int>> probe_gw_rbdc_req_num;
@@ -420,11 +418,11 @@ class DamaCtrl
 		// Capacity per category
 	ProbeListPerCategory probes_category_return_capacity;
 	ProbeListPerCategory probes_category_return_remaining_capacity;
-	map<string, int> category_return_remaining_capacity;
+  std::map<std::string, int> category_return_remaining_capacity;
 		// Capacity per carrier
 	ProbeListPerCategoryPerCarrier probes_carrier_return_capacity;
 	ProbeListPerCategoryPerCarrier probes_carrier_return_remaining_capacity;
-	map<string, map<unsigned int, int> >  carrier_return_remaining_capacity;
+  std::map<std::string, std::map<unsigned int, int> >  carrier_return_remaining_capacity;
 
 	// Spot ID
 	spot_id_t spot_id;

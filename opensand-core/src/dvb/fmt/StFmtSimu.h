@@ -51,8 +51,6 @@
 #include <set>
 
 
-using std::set;
-
 /**
  * @class StFmtSimu
  * @brief The internal representation of a Satellite Terminal (ST)
@@ -95,7 +93,7 @@ class StFmtSimu
 	 * @param modcod_id        the initial MODCOD ID of the ST
 	 * @param modcod_def       the MODCOD definition for the terminal and associated link
 	 */
-	StFmtSimu(string name,
+	StFmtSimu(std::string name,
 	          tal_id_t id,
 	          uint8_t init_modcod_id,
 	          const FmtDefinitionTable *const modcod_def);
@@ -181,13 +179,13 @@ class StFmtSimu
  *        The class is also a list of registered terminal IDs
  * @brief The List of StFmtSimu per spot
  */
-class StFmtSimuList: public set<tal_id_t>
+class StFmtSimuList: public std::set<tal_id_t>
 {
  private:
 	typedef std::map<tal_id_t, StFmtSimu *> ListStFmt;
 
 	/** A name to know is this is input or output terminals */
-	string name;
+  std::string name;
 
 	/** the list of StFmtSimu per spot */
 	ListStFmt *sts;
@@ -206,7 +204,7 @@ class StFmtSimuList: public set<tal_id_t>
  public:
 
 	/// Constructor and destructor
-	StFmtSimuList(string name);
+	StFmtSimuList(std::string name);
 	~StFmtSimuList();
 
 

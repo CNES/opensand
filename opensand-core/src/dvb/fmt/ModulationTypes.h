@@ -38,8 +38,6 @@
 #include <string>
 #include <map>
 
-using std::string;
-using std::map;
 
 /**
  * @class ModulationTypes
@@ -57,7 +55,7 @@ class ModulationTypes
 	 *
 	 * @return  True if the label is managed, false otherwise
 	 */
-	static bool exist(string modulation_label);
+	static bool exist(std::string modulation_label);
 
 	/**
 	 * @brief Get the default modulation efficiency
@@ -73,11 +71,11 @@ class ModulationTypes
 	 *
 	 * @return  The modulation effiency
 	 */
-	static unsigned int getEfficiency(string modulation_label);
+	static unsigned int getEfficiency(std::string modulation_label);
 
  private:
 	unsigned int default_modulation_efficiency;
-	map<string, unsigned int> modulation_efficiencies;
+  std::map<std::string, unsigned int> modulation_efficiencies;
 
 	ModulationTypes();
 };

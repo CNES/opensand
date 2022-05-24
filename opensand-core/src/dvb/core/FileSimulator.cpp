@@ -41,7 +41,7 @@
 FileSimulator::FileSimulator(spot_id_t spot_id,
                              tal_id_t mac_id,
                              FILE** evt_file,
-							 string &str_config):
+                             std::string &str_config):
 	RequestSimulator(spot_id, mac_id, evt_file)
 {
 	if(str_config == "stdin")
@@ -73,7 +73,7 @@ FileSimulator::~FileSimulator()
 
 
 // TODO create a class for simulation and subclass file/random
-bool FileSimulator::simulation(list<DvbFrame *>* msgs,
+bool FileSimulator::simulation(std::list<DvbFrame *>* msgs,
                                time_sf_t super_frame_counter)
 {
 	enum

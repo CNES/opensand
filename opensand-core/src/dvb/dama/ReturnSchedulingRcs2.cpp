@@ -43,7 +43,6 @@
 
 #include <algorithm>
 
-using std::max;
 
 typedef enum
 {
@@ -80,7 +79,7 @@ void ReturnSchedulingRcs2::setMaxBurstLength(vol_b_t length_b)
 
 bool ReturnSchedulingRcs2::schedule(const time_sf_t current_superframe_sf,
                                     clock_t UNUSED(current_time),
-                                    list<DvbFrame *> *complete_dvb_frames,
+                                    std::list<DvbFrame *> *complete_dvb_frames,
                                     uint32_t &remaining_allocation)
 {
 	if(remaining_allocation > (unsigned int)pow(2.0, 8 * sizeof(vol_kb_t)))
@@ -112,7 +111,7 @@ bool ReturnSchedulingRcs2::schedule(const time_sf_t current_superframe_sf,
 }
 
 bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
-                                       list<DvbFrame *> *complete_dvb_frames,
+                                       std::list<DvbFrame *> *complete_dvb_frames,
                                        vol_b_t &remaining_allocation_b)
 {
 	int ret;
@@ -396,7 +395,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			// Store DVB-RCS2 frame with completed frames
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 			complete_frames_count++;
-			remaining_allocation_b = (vol_b_t)max((int)(remaining_allocation_b - frame_length_b), 0);
+			remaining_allocation_b = (vol_b_t)std::max((int)(remaining_allocation_b - frame_length_b), 0);
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 				"SF#%u: %d DVB frames completed, remaining allocation %d kbits (%d bytes)",
 				current_superframe_sf,
@@ -473,7 +472,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			// Store DVB-RCS2 frame with completed frames
 			complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 			complete_frames_count++;
-			remaining_allocation_b = (vol_b_t)max((int)(remaining_allocation_b - frame_length_b), 0);
+			remaining_allocation_b = (vol_b_t)std::max((int)(remaining_allocation_b - frame_length_b), 0);
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 				"SF#%u: %d DVB frames completed, remaining allocation %d kbits (%d bytes)",
 				current_superframe_sf,

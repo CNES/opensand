@@ -83,7 +83,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	/// Parameters to simulate Slotted Aloha traffic
   std::vector<SlottedAlohaSimu *> simu;
 
-	typedef std::map<string, std::shared_ptr<Probe<int> > > probe_per_cat_t;
+	typedef std::map<std::string, std::shared_ptr<Probe<int> > > probe_per_cat_t;
 	/// Statistics
 	probe_per_cat_t probe_collisions;
 	probe_per_cat_t probe_collisions_before;
@@ -125,7 +125,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	 * @return true if packets was successful scheduled, false otherwise
 	 */
 	bool schedule(NetBurst **burst,
-	              list<DvbFrame *> &complete_dvb_frames,
+	              std::list<DvbFrame *> &complete_dvb_frames,
 	              time_sf_t superframe_counter);
 
 	// Implementation of a virtual functions
@@ -176,7 +176,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	 */
 	bool scheduleCategory(TerminalCategorySaloha *category,
 	                      NetBurst **burst,
-	                      list<DvbFrame *> &complete_dvb_frames);
+	                      std::list<DvbFrame *> &complete_dvb_frames);
 };
 
 /**
@@ -290,7 +290,7 @@ class SlottedAlohaSimu
 	 *
 	 * @return the label of the category
 	 */
-	string getCategory(void) const
+  std::string getCategory(void) const
 	{
 		return this->cat_label;
 	};
@@ -330,7 +330,7 @@ class SlottedAlohaSimu
 	// TODO this would be better to do something more random with mean nbr of pkt per tal,
 	//      mean number of tal
 	/// The label of the category
-	string cat_label;
+  std::string cat_label;
 	/// The number of replicas
 	uint16_t nb_replicas;
 	/// The number of terminal

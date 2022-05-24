@@ -69,7 +69,7 @@ class RequestSimulator
 	 * Simulate event based on an input file
 	 * @return true on success, false otherwise
 	 */
-	virtual bool simulation(list<DvbFrame *>* msgs,
+	virtual bool simulation(std::list<DvbFrame *>* msgs,
 	                        time_sf_t super_frame_counter) = 0;
 	
 	virtual bool stopSimulation(void) = 0;

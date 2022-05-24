@@ -85,7 +85,7 @@ class DvbS2Std: public PhysicStd
 	 * @param type     the type of the DVB standard
 	 * @param packet_handler the packet handler
 	 */
-	DvbS2Std(string type,
+	DvbS2Std(std::string type,
 	         EncapPlugin::EncapPacketHandler *pkt_hdl);
 
 	/**

@@ -65,13 +65,30 @@
 /**
  * constructor
  */
-BlockLanAdaptation::BlockLanAdaptation(const string &name, struct la_specific specific):
-	Block(name),
-	tap_iface(specific.tap_iface)
+BlockLanAdaptation::BlockLanAdaptation(const std::string &name, struct la_specific specific):
+	Block{name},
+	tap_iface{specific.tap_iface}
 {
 	this->specific = specific;
 }
+
+
+BlockLanAdaptation::Downward::Downward(const std::string &name, struct la_specific):
+	RtDownward{name},
+	stats_period_ms{},
+	contexts{},
+	state{SatelliteLinkState::DOWN}
+{
+}
  
+
+BlockLanAdaptation::Upward::Upward(const std::string &name, struct la_specific):
+	RtUpward{name},
+	sarp_table{},
+	contexts{},
+	state{SatelliteLinkState::DOWN}
+{
+}
 
 /**
  * initializers and setters
@@ -236,7 +253,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 
 bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 {
-	string str;
+  std::string str;
 
 	switch(event->getType())
 	{

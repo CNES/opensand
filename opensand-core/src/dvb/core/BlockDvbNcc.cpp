@@ -55,7 +55,7 @@
 /*                                Block                                      */
 /*****************************************************************************/
 
-BlockDvbNcc::BlockDvbNcc(const string &name, struct dvb_specific specific):
+BlockDvbNcc::BlockDvbNcc(const std::string &name, struct dvb_specific specific):
 	BlockDvb{name},
 	mac_id{specific.mac_id},
 	disable_control_plane{specific.disable_control_plane},
@@ -130,7 +130,7 @@ bool BlockDvbNcc::initListsSts()
 
 
 // TODO lot of duplicated code for fifos between ST and GW
-BlockDvbNcc::Downward::Downward(const string &name, struct dvb_specific specific):
+BlockDvbNcc::Downward::Downward(const std::string &name, struct dvb_specific specific):
 	DvbDownward{name},
 	DvbFmt{},
 	pep_interface{},
@@ -747,7 +747,7 @@ void BlockDvbNcc::Downward::updateStats(void)
 /*                               Upward                                      */
 /*****************************************************************************/
 
-BlockDvbNcc::Upward::Upward(const string &name, struct dvb_specific specific):
+BlockDvbNcc::Upward::Upward(const std::string &name, struct dvb_specific specific):
 	DvbUpward{name, specific.disable_control_plane},
 	DvbFmt{},
 	mac_id{specific.mac_id},

@@ -101,7 +101,7 @@ const char* stateDescription(TalState state)
 /*****************************************************************************/
 
 
-BlockDvbTal::BlockDvbTal(const string &name, struct dvb_specific specific):
+BlockDvbTal::BlockDvbTal(const std::string &name, struct dvb_specific specific):
 	BlockDvb{name},
 	disable_control_plane{specific.disable_control_plane},
 	input_sts{nullptr},
@@ -225,7 +225,7 @@ bool BlockDvbTal::initListsSts()
 /*                              Downward                                     */
 /*****************************************************************************/
 
-BlockDvbTal::Downward::Downward(const string &name, struct dvb_specific specific):
+BlockDvbTal::Downward::Downward(const std::string &name, struct dvb_specific specific):
 	DvbDownward{name},
 	mac_id{specific.mac_id},
 	state{TalState::initializing},
@@ -545,7 +545,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	time_ms_t sync_period_ms = 0;
 	time_sf_t rbdc_timeout_sf = 0;
 	time_sf_t msl_sf = 0;
-	string dama_algo;
+  std::string dama_algo;
 	bool is_dama_fifo = false;
 
 	TerminalCategories<TerminalCategoryDama> dama_categories;
@@ -1509,8 +1509,8 @@ bool BlockDvbTal::Downward::addCniExt(void)
 	    fifos_it != this->dvb_fifos.end(); ++fifos_it)
 	{
 		DvbFifo *fifo = (*fifos_it).second;
-		vector<MacFifoElement *> queue = fifo->getQueue();
-		vector<MacFifoElement *>::iterator queue_it;
+    std::vector<MacFifoElement *> queue = fifo->getQueue();
+    std::vector<MacFifoElement *>::iterator queue_it;
 
 		for(queue_it = queue.begin() ;
 		    queue_it != queue.end()  ;
@@ -2138,7 +2138,7 @@ void BlockDvbTal::Downward::deletePackets()
 /*                               Upward                                      */
 /*****************************************************************************/
 
-BlockDvbTal::Upward::Upward(const string &name, struct dvb_specific specific):
+BlockDvbTal::Upward::Upward(const std::string &name, struct dvb_specific specific):
 	DvbUpward{name, specific.disable_control_plane},
 	reception_std{nullptr},
 	mac_id{specific.mac_id},

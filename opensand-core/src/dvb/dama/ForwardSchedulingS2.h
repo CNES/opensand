@@ -70,13 +70,13 @@ class ForwardSchedulingS2: public Scheduling
 	                    spot_id_t spot,
 	                    bool is_gw,
 	                    tal_id_t gw,
-	                    string dst_name);
+	                    std::string dst_name);
 
 	virtual ~ForwardSchedulingS2();
 
 	virtual bool schedule(const time_sf_t current_superframe_sf,
 	                      clock_t current_time,
-	                      list<DvbFrame *> *complete_dvb_frames,
+	                      std::list<DvbFrame *> *complete_dvb_frames,
 	                      uint32_t &remaining_allocation);
 
   protected:
@@ -88,11 +88,11 @@ class ForwardSchedulingS2: public Scheduling
   std::map<unsigned int, BBFrame *> incomplete_bb_frames;
 
 	/** the BBframe being built in their created order */
-	list<BBFrame *> incomplete_bb_frames_ordered;
+  std::list<BBFrame *> incomplete_bb_frames_ordered;
 
 	/** the pending BBFrame list if there was not enough space in previous iteration
 	 *  for the corresponding MODCOD */
-	list<BBFrame *> pending_bbframes;
+  std::list<BBFrame *> pending_bbframes;
 
 	/** The FMT Definition Table associed */
 	const FmtDefinitionTable *fwd_modcod_def;
@@ -104,7 +104,7 @@ class ForwardSchedulingS2: public Scheduling
 	spot_id_t spot_id;
 
 	/// The section for probes used to name them
-	string probe_section;
+  std::string probe_section;
 
 	// Total and unused capacity probes
   std::shared_ptr<Probe<int>> probe_fwd_total_capacity;
@@ -131,7 +131,7 @@ class ForwardSchedulingS2: public Scheduling
 	bool scheduleEncapPackets(DvbFifo *fifo,
 	                          const time_sf_t current_superframe_sf,
 	                          clock_t current_time,
-	                          list<DvbFrame *> *complete_dvb_frames,
+	                          std::list<DvbFrame *> *complete_dvb_frames,
 	                          CarriersGroupDama *carriers,
 	                          vol_sym_t &capacity_sym,
 	                          vol_sym_t init_capa);
@@ -173,7 +173,7 @@ class ForwardSchedulingS2: public Scheduling
 	 * @return                   status_ok on success, status_error on error and
 	 *                           status_full -2 if there is not enough capacity
 	 */
-	sched_status_t addCompleteBBFrame(list<DvbFrame *> *complete_bb_frames,
+	sched_status_t addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
 	                                  BBFrame *bbframe,
 	                                  const time_sf_t current_superframe_sf,
 	                                  vol_sym_t &remaining_capacity_sym);
@@ -187,9 +187,9 @@ class ForwardSchedulingS2: public Scheduling
 	 * @param complete_dvb_frames  IN/OUT: The list of complete DVB frames
 	 * @param capacity_sym         IN/OUT: The remaining capacity on carriers
 	 */
-	void schedulePending(const list<fmt_id_t> supported_modcods,
+	void schedulePending(const std::list<fmt_id_t> supported_modcods,
 	                     const time_sf_t current_superframe_sf,
-	                     list<DvbFrame *> *complete_dvb_frames,
+	                     std::list<DvbFrame *> *complete_dvb_frames,
 	                     vol_sym_t &remaining_capacity_sym);
 
 	/**

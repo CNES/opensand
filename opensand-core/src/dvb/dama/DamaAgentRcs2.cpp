@@ -49,9 +49,6 @@ const rate_kbps_t C_MAX_RBDC_IN_SAC = 16320.0; // 16320 kbits/s, limitation due
 const vol_kb_t C_MAX_VBDC_IN_SAC = 4080;       // 4080 packets/ceils, limitation
                                                // due to CR value size in to SAC field
 
-using std::max;
-using std::min;
-
 
 DamaAgentRcs2::DamaAgentRcs2(FmtDefinitionTable *ret_modcod_def):
 	DamaAgent(),
@@ -211,7 +208,7 @@ bool DamaAgentRcs2::hereIsTTP(Ttp *ttp)
 {
 	rate_kbps_t alloc_kbps;
 	fmt_id_t prev_modcod_id;
-	map<uint8_t, emu_tp_t> tp;
+  std::map<uint8_t, emu_tp_t> tp;
 
 	this->allocated_kb = 0;
 	if(this->group_id != ttp->getGroupId())
@@ -238,7 +235,7 @@ bool DamaAgentRcs2::hereIsTTP(Ttp *ttp)
 
 	prev_modcod_id = this->modcod_id;
 	this->allocated_kb = 0;
-	for(map<uint8_t, emu_tp_t>::iterator it = tp.begin();
+	for(std::map<uint8_t, emu_tp_t>::iterator it = tp.begin();
 	    it != tp.end(); ++it)
 	{
 		vol_kb_t assign_kb;
@@ -283,7 +280,7 @@ bool DamaAgentRcs2::hereIsTTP(Ttp *ttp)
 	return true;
 }
 
-bool DamaAgentRcs2::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
+bool DamaAgentRcs2::returnSchedule(std::list<DvbFrame *> *complete_dvb_frames)
 {
 	uint32_t remaining_alloc_b = this->remaining_allocation_b;
 	rate_kbps_t remaining_alloc_kbps;
@@ -322,7 +319,7 @@ bool DamaAgentRcs2::returnSchedule(list<DvbFrame *> *complete_dvb_frames)
 		return false;
 	}
 	// add modcod id in frames
-	for(list<DvbFrame *>::iterator it = complete_dvb_frames->begin();
+	for(std::list<DvbFrame *>::iterator it = complete_dvb_frames->begin();
 	    it != complete_dvb_frames->end(); ++it)
 	{
 		if((*it)->getMessageType() == MSG_TYPE_DVB_BURST)
@@ -480,12 +477,12 @@ bool DamaAgentRcs2::buildSAC(ret_access_type_t UNUSED(cr_type),
 
 rate_kbps_t DamaAgentRcs2::checkRbdcRequest(rate_kbps_t request_kbps)
 {
-	return min(request_kbps, C_MAX_RBDC_IN_SAC);
+	return std::min(request_kbps, C_MAX_RBDC_IN_SAC);
 }
 
 vol_kb_t DamaAgentRcs2::checkVbdcRequest(vol_kb_t request_kb)
 {
-	return min(request_kb, C_MAX_VBDC_IN_SAC);
+	return std::min(request_kb, C_MAX_VBDC_IN_SAC);
 }
 
 vol_b_t DamaAgentRcs2::getMacBufferLength(ret_access_type_t cr_type)

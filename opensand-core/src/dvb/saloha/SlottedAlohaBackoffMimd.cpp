@@ -38,7 +38,6 @@
 #include <stdlib.h>
 #include <algorithm>
 
-using std::min;
 
 /**
  * @class SlottedAlohaBackoffMimd
@@ -57,14 +56,14 @@ SlottedAlohaBackoffMimd::~SlottedAlohaBackoffMimd()
 
 uint16_t SlottedAlohaBackoffMimd::setReady()
 {
-	this->cw = min((int)this->cw / (int)this->multiple, (int)this->cw_max);
+	this->cw = std::min((int)this->cw / (int)this->multiple, (int)this->cw_max);
 	this->randomize();
 	return this->backoff;
 }
 
 uint16_t SlottedAlohaBackoffMimd::setCollision()
 {
-	this->cw = min((int)this->cw * (int)this->multiple, (int)this->cw_max);
+	this->cw = std::min((int)this->cw * (int)this->multiple, (int)this->cw_max);
 	this->randomize();
 	return this->backoff;
 }

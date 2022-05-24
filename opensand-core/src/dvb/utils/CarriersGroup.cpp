@@ -99,7 +99,7 @@ void CarriersGroup::setRatio(unsigned int new_ratio)
 	this->ratio = new_ratio;
 }
 
-const list<fmt_id_t> CarriersGroup::getFmtIds() const
+const std::list<fmt_id_t> CarriersGroup::getFmtIds() const
 {
 	return this->fmt_group->getFmtIds();
 }

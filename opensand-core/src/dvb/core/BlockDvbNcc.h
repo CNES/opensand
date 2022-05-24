@@ -78,7 +78,7 @@ class BlockDvbNcc: public BlockDvb
 {
  public:
 	/// Class constructor
-	BlockDvbNcc(const string &name, struct dvb_specific specific);
+	BlockDvbNcc(const std::string &name, struct dvb_specific specific);
 
 	~BlockDvbNcc();
 
@@ -90,7 +90,7 @@ class BlockDvbNcc: public BlockDvb
 	class Upward: public DvbUpward, public DvbFmt
 	{
 	 public:
-		Upward(const string &name, struct dvb_specific specific);
+		Upward(const std::string &name, struct dvb_specific specific);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -122,7 +122,7 @@ class BlockDvbNcc: public BlockDvb
 	class Downward: public DvbDownward, public DvbFmt
 	{
 		public:
-			Downward(const string &name, struct dvb_specific specific);
+			Downward(const std::string &name, struct dvb_specific specific);
 			~Downward();
 			bool onInit(void);
 			bool onEvent(const RtEvent *const event);

@@ -74,7 +74,7 @@ class DvbRcsStd: public PhysicStd
 	 * @param has_fixed_length  The fixed length status
 	 * @param packet_handler    The packet handler
 	 */
-	DvbRcsStd(string ype, bool has_fixed_length,
+	DvbRcsStd(std::string ype, bool has_fixed_length,
 		EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
 
 	// Output log and debug

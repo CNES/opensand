@@ -42,11 +42,9 @@
 #include <vector>
 #include <sstream>
 
-using std::vector;
-using std::stringstream;
 
 FmtGroup::FmtGroup(unsigned int group_id,
-                   string ids,
+                   std::string ids,
                    const FmtDefinitionTable *modcod_def):
 	id(group_id),
 	fmt_ids(),
@@ -61,7 +59,7 @@ FmtGroup::FmtGroup(unsigned int group_id,
 
 fmt_id_t FmtGroup::getNearest(fmt_id_t fmt_id) const
 {
-	list<FmtId>::const_reverse_iterator it; 
+  std::list<FmtId>::const_reverse_iterator it; 
 	double esn0 = this->modcod_def->getRequiredEsN0(fmt_id);
 	if(esn0 == 0.0)
 	{
@@ -83,26 +81,26 @@ fmt_id_t FmtGroup::getNearest(fmt_id_t fmt_id) const
 	return 0;
 };
 
-void FmtGroup::parse(string ids)
+void FmtGroup::parse(std::string ids)
 {
-	vector<string>::iterator it;
-	vector<string> first_step;
-	list<fmt_id_t>::const_iterator id_it;
+  std::vector<std::string>::iterator it;
+  std::vector<std::string> first_step;
+  std::list<fmt_id_t>::const_iterator id_it;
 
 	// first get groups of strings separated by ';'
 	tokenize(ids, first_step, ";");
 	for(it = first_step.begin(); it != first_step.end(); ++it)
 	{
-		string temp = *it;
-		vector<string> second_step;
-		vector<string>::iterator it2;
+    std::string temp = *it;
+    std::vector<std::string> second_step;
+    std::vector<std::string>::iterator it2;
 		fmt_id_t previous_id = 0;
 
 		// then split the integers separated by '-'
 		tokenize(temp, second_step, "-");
 		for(it2 = second_step.begin(); it2 != second_step.end(); ++it2)
 		{
-			stringstream str(*it2);
+      std::stringstream str(*it2);
 			unsigned int dummy;
 			fmt_id_t val;
 			str >> dummy;
@@ -161,7 +159,7 @@ void FmtGroup::parse(string ids)
 	this->fmt_ids.sort();
 	// we need the list of numeric IDs to avoid creating it each time
 	// we call getFmtIds
-	for(list<FmtId>::const_iterator id_it = this->fmt_ids.begin();
+	for(std::list<FmtId>::const_iterator id_it = this->fmt_ids.begin();
 	    id_it != this->fmt_ids.end(); ++id_it)
 	{
 		LOG(this->log_fmt, LEVEL_INFO,
@@ -170,7 +168,7 @@ void FmtGroup::parse(string ids)
 	}
 }
 
-const list<fmt_id_t> FmtGroup::getFmtIds() const
+const std::list<fmt_id_t> FmtGroup::getFmtIds() const
 {
 	return this->num_fmt_ids;
 }

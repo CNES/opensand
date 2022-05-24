@@ -52,7 +52,7 @@
  * @param coding_rate  The coding rate
  * @return the payload size in Bytes
  */
-static size_t getPayloadSize(string coding_rate)
+static size_t getPayloadSize(std::string coding_rate)
 {
 	size_t payload;
 
@@ -132,9 +132,9 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 		char probe_name[128];
 		vol_sym_t carrier_size_sym = carriers->getTotalCapacity() /
 		                             carriers->getCarriersNumber();
-		list<fmt_id_t> fmt_ids = carriers->getFmtIds();
+    std::list<fmt_id_t> fmt_ids = carriers->getFmtIds();
 
-		for(list<fmt_id_t>::const_iterator fmt_it = fmt_ids.begin();
+		for(std::list<fmt_id_t>::const_iterator fmt_it = fmt_ids.begin();
 			fmt_it != fmt_ids.end(); ++fmt_it)
 		{
 			fmt_id_t fmt_id = *fmt_it;
@@ -164,8 +164,8 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 
 		// For units, if there is only one MODCOD use Kbits/s else symbols
 		// check if the FIFO can emit on this carriers group
-		string type = "SCPC";
-		string unit = "Symbol number";
+    std::string type = "SCPC";
+    std::string unit = "Symbol number";
 	
 		snprintf(probe_name, sizeof(probe_name),
 		         "SCPC capacity.Category %s.Carrier%u.%s.Remaining",
@@ -188,7 +188,7 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 
 ScpcScheduling::~ScpcScheduling()
 {
-	list<BBFrame *>::iterator it;
+  std::list<BBFrame *>::iterator it;
 	for(it = this->incomplete_bb_frames_ordered.begin();
 	    it != this->incomplete_bb_frames_ordered.end(); ++it)
 	{
@@ -206,7 +206,7 @@ ScpcScheduling::~ScpcScheduling()
 
 bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
                               clock_t current_time,
-                              list<DvbFrame *> *complete_dvb_frames,
+                              std::list<DvbFrame *> *complete_dvb_frames,
                               uint32_t &remaining_allocation)
 {
 	fifos_t::const_iterator fifo_it;
@@ -221,7 +221,7 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 	    ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-		list<BBFrame *>::iterator it;
+    std::list<BBFrame *>::iterator it;
 		unsigned int capacity_sym = 0;
 
 		// initialize carriers capacity, remaining capacity should be 0
@@ -339,7 +339,7 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
                                           const time_sf_t current_superframe_sf,
                                           clock_t current_time,
-                                          list<DvbFrame *> *complete_dvb_frames,
+                                          std::list<DvbFrame *> *complete_dvb_frames,
                                           CarriersGroupDama *carriers)
 {
 	int ret;
@@ -347,7 +347,7 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 	MacFifoElement *elem;
 	long max_to_send;
 	BBFrame *current_bbframe;
-	list<fmt_id_t> supported_modcods = carriers->getFmtIds();
+  std::list<fmt_id_t> supported_modcods = carriers->getFmtIds();
 	vol_sym_t capacity_sym = carriers->getRemainingCapacity();
 	vol_sym_t previous_sym = carriers->getPreviousCapacity(current_superframe_sf);
 	vol_sym_t init_capa = capacity_sym;
@@ -744,7 +744,7 @@ bool ScpcScheduling::getIncompleteBBFrame(CarriersGroupDama *carriers,
 }
 
 
-sched_status_t ScpcScheduling::addCompleteBBFrame(list<DvbFrame *> *complete_bb_frames,
+sched_status_t ScpcScheduling::addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
                                                   BBFrame *bbframe,
                                                   const time_sf_t current_superframe_sf,
                                                   vol_sym_t &remaining_capacity_sym)
@@ -787,9 +787,9 @@ sched_status_t ScpcScheduling::addCompleteBBFrame(list<DvbFrame *> *complete_bb_
 }
 
 
-void ScpcScheduling::schedulePending(const list<fmt_id_t> supported_modcods,
+void ScpcScheduling::schedulePending(const std::list<fmt_id_t> supported_modcods,
                                      const time_sf_t current_superframe_sf,
-                                     list<DvbFrame *> *complete_dvb_frames,
+                                     std::list<DvbFrame *> *complete_dvb_frames,
                                      vol_sym_t &remaining_capacity_sym)
 {
 	if(this->pending_bbframes.size() == 0)
@@ -797,8 +797,8 @@ void ScpcScheduling::schedulePending(const list<fmt_id_t> supported_modcods,
 		return;
 	}
 
-	list<BBFrame *>::iterator it;
-	list<BBFrame *> new_pending;
+  std::list<BBFrame *>::iterator it;
+  std::list<BBFrame *> new_pending;
 
 	for(it = this->pending_bbframes.begin();
 		it != this->pending_bbframes.end();

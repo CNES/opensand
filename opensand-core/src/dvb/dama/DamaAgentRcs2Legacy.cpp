@@ -42,8 +42,6 @@
 #include <algorithm>
 #include <cmath>
 
-using std::max;
-using std::min;
 
 DamaAgentRcs2Legacy::DamaAgentRcs2Legacy(FmtDefinitionTable *ret_modcod_def):
 	DamaAgentRcs2(ret_modcod_def),
@@ -91,11 +89,11 @@ rate_kbps_t DamaAgentRcs2Legacy::computeRbdcRequest()
 		/* kbps = bpms */
 		rbdc_request_kbps = (int)ceil(rbdc_pkt_arrival_b /
 		                    (this->rbdc_timer_sf * this->frame_duration_ms)) +
-		                    max(0, (int)req_kbps);
+		                    std::max(0, (int)req_kbps);
 	}
 	else
 	{
-		rbdc_request_kbps = max(0, (int)req_kbps);
+		rbdc_request_kbps = std::max(0, (int)req_kbps);
 	}
 
 	LOG(this->log_request, LEVEL_DEBUG,
@@ -144,7 +142,7 @@ vol_kb_t DamaAgentRcs2Legacy::computeVbdcRequest()
 	    vbdc_need_kb, this->vbdc_credit_kb);
 
 	/* compute VBDC request: actual Vbdc request to be sent */
-	vbdc_request_kb = max(0, (vbdc_need_kb - this->vbdc_credit_kb));
+	vbdc_request_kb = std::max(0, (vbdc_need_kb - this->vbdc_credit_kb));
 	LOG(this->log_request, LEVEL_DEBUG,
 	    "SF#%u: theoretical VBDC request = %u kbits",
 	    this->current_superframe_sf,

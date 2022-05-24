@@ -37,6 +37,8 @@
 #ifndef SPOT_UPWARD_H
 #define SPOT_UPWARD_H
 
+#include <list>
+
 #include "DvbChannel.h"
 
 
@@ -91,7 +93,7 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		 *  @return true on success, false otherwise
 		 */
 		bool scheduleSaloha(DvbFrame *dvb_frame,
-		                    list<DvbFrame *>* &ack_frames,
+		                    std::list<DvbFrame *>* &ack_frames,
 		                    NetBurst **sa_burst);
 
 		/**

@@ -65,7 +65,6 @@
 // include for the PCAP library
 #include <pcap.h>
 
-using namespace std;
 
 /// The length of the Linux Cooked Sockets header
 #define LINUX_COOKED_HDR_LEN  16
@@ -119,26 +118,26 @@ static unsigned int verbose;
 
 static bool compare_packets(const unsigned char *pkt1, int pkt1_size,
                             const unsigned char *pkt2, int pkt2_size);
-static bool open_pcap(string filename, pcap_t **handle,
+static bool open_pcap(std::string filename, pcap_t **handle,
                       uint32_t &link_len);
-static bool test_iter(string src_filename, string encap_filename,
-                       bool compare, string name,
+static bool test_iter(std::string src_filename, std::string encap_filename,
+                       bool compare, std::string name,
                        lan_contexts_t lan_contexts,
                        encap_contexts_t encap_contexts);
 static void test_encap_and_decap(
 	LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl,
 	lan_contexts_t lan_contexts,
-	vector<string> &failure,
-	string src_filename,
-	string folder,
+	std::vector<std::string> &failure,
+	std::string src_filename,
+	std::string folder,
 	bool compare);
 
 
 int main(int argc, char *argv[])
 {
-	string src_filename = "";
-	string folder = "./";
-	string base_protocol = "IP";
+  std::string src_filename = "";
+  std::string folder = "./";
+  std::string base_protocol = "IP";
 	bool compare = true;
 	int args_used;
 
@@ -209,13 +208,13 @@ int main(int argc, char *argv[])
 static void test_encap_and_decap(
 	LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl,
 	lan_contexts_t lan_contexts,
-	vector<string> &failure,
-	string src_filename,
-	string folder,
+	std::vector<std::string> &failure,
+	std::string src_filename,
+	std::string folder,
 	bool compare)
 {
 	pl_list_t encap_plug;
-	string stack = "";
+  std::string stack = "";
 
 	for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
         ctxit != lan_contexts.rend(); ++ctxit)
@@ -233,8 +232,8 @@ static void test_encap_and_decap(
 	for(auto plugit = encap_plug.begin(); plugit != encap_plug.end(); ++plugit)
 	{
 		encap_contexts_t encap_contexts;
-		string name = plugit->first;
-		string name_low;
+    std::string name = plugit->first;
+    std::string name_low;
 		EncapPlugin *plugin = NULL;
 		EncapPlugin::EncapContext *context;
 		int found;
@@ -257,9 +256,9 @@ static void test_encap_and_decap(
 			INFO("cannot set %s as upper layer for %s context, find another one\n",
 			       pkt_hdl->getName().c_str(), name.c_str());
 
-			vector<string> upper = context->getAvailableUpperProto();
+      std::vector<std::string> upper = context->getAvailableUpperProto();
 			// try to add a supported upper layer
-			for(vector<string>::iterator iter = upper.begin();
+			for(std::vector<std::string>::iterator iter = upper.begin();
 			    iter != upper.end(); ++iter)
 			{
 				if(encap_plug[*iter].second != NULL)
@@ -350,7 +349,7 @@ static void test_encap_and_decap(
 		transform(stack.begin(), stack.end(),
 		          name_low.begin(), ::tolower);
 		found = name_low.find("/");
-		while(found != (signed)string::npos)
+		while(found != (signed)std::string::npos)
 		{
 			name_low.replace(found, 1, "_");
 			found = name_low.find("/", found);
@@ -383,8 +382,8 @@ static void test_encap_and_decap(
  *
  * @return true on success, false otherwise
  */
-static bool test_iter(string src_filename, string encap_filename,
-                       bool compare, string name,
+static bool test_iter(std::string src_filename, std::string encap_filename,
+                       bool compare, std::string name,
                        lan_contexts_t lan_contexts,
                        encap_contexts_t encap_contexts)
 {
@@ -408,7 +407,7 @@ static bool test_iter(string src_filename, string encap_filename,
 	NetBurst::iterator it;
 	NetBurst::iterator it2;
 
-	map<long, int> time_contexts;
+  std::map<long, int> time_contexts;
 
 	unsigned int counter_src = 0;
 	unsigned int counter_encap = 0;
@@ -757,7 +756,7 @@ static bool compare_packets(const unsigned char *pkt1, int pkt1_size,
 	min_size = pkt1_size > pkt2_size ? pkt2_size : pkt1_size;
 
 	/* do not compare more than 180 bytes to avoid huge output */
-	min_size = min(180, min_size);
+	min_size = std::min(180, min_size);
 
 	/* if packets are equal, do not print the packets */
 	if(pkt1_size == pkt2_size && memcmp(pkt1, pkt2, pkt1_size) == 0)
@@ -831,7 +830,7 @@ skip:
  * @param link_len  Link layer length
  * @return          true on success, false on failure
  */
-static bool open_pcap(string filename, pcap_t **handle,
+static bool open_pcap(std::string filename, pcap_t **handle,
                       uint32_t &link_len)
 {
 	char errbuf[PCAP_ERRBUF_SIZE];

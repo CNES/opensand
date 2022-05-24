@@ -125,7 +125,7 @@ bool Ttp::build(void)
 	for(frame_it = this->frames.begin(); frame_it != this->frames.end();
 	    ++frame_it)
 	{
-		vector<emu_tp_t> tp_list = (*frame_it).second;
+    std::vector<emu_tp_t> tp_list = (*frame_it).second;
 		emu_frame_t emu_frame;
 
 		emu_frame.frame_info.frame_number = (*frame_it).first;

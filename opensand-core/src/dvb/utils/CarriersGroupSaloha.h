@@ -88,13 +88,13 @@ class CarriersGroupSaloha: public CarriersGroup
 	 *
 	 * @return the slots
 	 */
-	map<unsigned int, Slot *> getSlots(void) const;
+  std::map<unsigned int, Slot *> getSlots(void) const;
 
 
  private:
 
 	/** The slots */
-	map<unsigned int, Slot *> slots;
+  std::map<unsigned int, Slot *> slots;
 };
 
 

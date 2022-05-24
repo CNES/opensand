@@ -43,7 +43,6 @@
 
 #include <algorithm>
 
-using std::pair;
 
 DamaCtrl::DamaCtrl(spot_id_t spot):
 	is_parent_init(false),
@@ -272,8 +271,8 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		TerminalMapping<TerminalCategoryDama>::const_iterator it;
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 		TerminalCategoryDama *category = NULL;
-		vector<CarriersGroupDama *> carriers;
-		vector<CarriersGroupDama *>::const_iterator carrier_it;
+    std::vector<CarriersGroupDama *> carriers;
+    std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 		uint32_t max_capa_kbps = 0;
 
 		// Find the associated category
@@ -365,8 +364,7 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		}
 
 		// Add the new terminal to the list
-		this->terminals.insert(
-			pair<unsigned int, TerminalContextDama *>(tal_id, terminal));
+		this->terminals.insert({tal_id, terminal});
 
 		// add terminal in category and inform terminal of its category
 		category->addTerminal(terminal);
@@ -634,9 +632,9 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 	    cat_it != categories.end(); ++cat_it)
 	{
 		TerminalCategoryDama *category = (*cat_it).second;
-		vector<CarriersGroupDama *> carriers;
-		vector<CarriersGroupDama *>::const_iterator carrier_it;
-		string label = category->getLabel();
+    std::vector<CarriersGroupDama *> carriers;
+    std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+    std::string label = category->getLabel();
 		this->probes_category_return_remaining_capacity[label]->put(
 			this->category_return_remaining_capacity[label]);
 		carriers = category->getCarriersGroups();
@@ -656,8 +654,7 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 			if(this->carrier_return_remaining_capacity[label].find(carrier_id)
 			   == this->carrier_return_remaining_capacity[label].end())
 			{
-				this->carrier_return_remaining_capacity[label].insert(
-					std::pair<unsigned int, int>(carrier_id, 0));
+				this->carrier_return_remaining_capacity[label].insert({carrier_id, 0});
 			}
 
 			this->probes_carrier_return_remaining_capacity[label][carrier_id]->put(

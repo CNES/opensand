@@ -38,7 +38,7 @@
 #include "StFmtSimu.h"
 
 
-StFmtSimu::StFmtSimu(string name,
+StFmtSimu::StFmtSimu(std::string name,
                      tal_id_t id,
                      uint8_t init_modcod_id,
                      const FmtDefinitionTable *const modcod_def):
@@ -158,7 +158,7 @@ bool StFmtSimu::getCniHasChanged()
 ////////////////////////////////////////////////////////////////////////////////
 
 
-StFmtSimuList::StFmtSimuList(string name):
+StFmtSimuList::StFmtSimuList(std::string name):
 	name(name),
 	sts(NULL),
 	acm_loop_margin_db(0.0),
@@ -314,7 +314,7 @@ bool StFmtSimuList::getCniHasChanged(tal_id_t st_id)
 bool StFmtSimuList::isStPresent(tal_id_t st_id) const
 {
 	RtLock lock(this->sts_mutex);
-	set<tal_id_t>::const_iterator it;
+  std::set<tal_id_t>::const_iterator it;
 	it = std::find(this->begin(),
 	               this->end(), st_id);
 

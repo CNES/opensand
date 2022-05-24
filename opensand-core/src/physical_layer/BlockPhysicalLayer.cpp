@@ -46,7 +46,7 @@
 #include <opensand_rt/MessageEvent.h>
 
 
-BlockPhysicalLayer::BlockPhysicalLayer(const string &name, tal_id_t mac_id):
+BlockPhysicalLayer::BlockPhysicalLayer(const std::string &name, tal_id_t mac_id):
 	Block(name),
 	mac_id(mac_id),
 	satdelay(NULL)
@@ -116,7 +116,7 @@ bool BlockPhysicalLayer::onInit(void)
 	return true;
 }
 
-BlockPhysicalLayer::Upward::Upward(const string &name, tal_id_t mac_id):
+BlockPhysicalLayer::Upward::Upward(const std::string &name, tal_id_t mac_id):
 	GroundPhysicalChannel(mac_id),
 	RtUpward(name),
 	probe_total_cn(NULL),
@@ -287,7 +287,7 @@ double BlockPhysicalLayer::Upward::getCn(DvbFrame *dvb_frame) const
 	return GroundPhysicalChannel::computeTotalCn(dvb_frame->getCn(), this->getCurrentCn());
 }
 
-BlockPhysicalLayer::Downward::Downward(const string &name, tal_id_t mac_id):
+BlockPhysicalLayer::Downward::Downward(const std::string &name, tal_id_t mac_id):
 	GroundPhysicalChannel(mac_id),
 	RtDownward(name),
 	probe_delay(NULL),

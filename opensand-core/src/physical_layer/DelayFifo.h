@@ -40,11 +40,7 @@
 #include <opensand_rt/RtMutex.h>
 
 #include <vector>
-#include <map>
 #include <sys/times.h>
-
-using std::vector;
-using std::map;
 
 
 /**
@@ -135,7 +131,7 @@ class DelayFifo
 	 */
 	void flush();
 
-	vector<DelayFifoElement *> getQueue(void);
+  std::vector<DelayFifoElement *> getQueue(void);
 
  protected:
 
@@ -146,7 +142,7 @@ class DelayFifo
 	 */
 	int getTickOutPosition(time_t time_out);
 
-	vector<DelayFifoElement *> queue; ///< the FIFO itself
+  std::vector<DelayFifoElement *> queue; ///< the FIFO itself
 
 	vol_pkt_t max_size_pkt;         ///< the maximum size for that FIFO
 

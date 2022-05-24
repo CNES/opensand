@@ -42,8 +42,8 @@
 #include <opensand_output/Output.h>
 
 #include <math.h>
+#include <vector>
 
-using namespace std;
 
 /**
  * Constructor
@@ -138,7 +138,7 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 				    "SF#%u: ST%u received VBDC requests %u kb\n",
 				    this->current_superframe_sf, tal_id, request_kb);
 				
-				request_kb = min(request_kb, terminal->getMaxVbdc());
+				request_kb = std::min(request_kb, terminal->getMaxVbdc());
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u updated VBDC requests %u kb (<= max VBDC %u kb)\n",
 				    this->current_superframe_sf, tal_id, request_kb, terminal->getMaxVbdc());
@@ -161,12 +161,12 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 
 				// remove the CRA of the RBDC request
 				// the CRA is not taken into acount on ST side
-				request_kbps = max(request_kbps - terminal->getRequiredCra(), 0);
+				request_kbps = std::max(request_kbps - terminal->getRequiredCra(), 0);
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u updated RBDC requests %u kb/s (removing CRA %u kb/s)\n",
 				    this->current_superframe_sf, tal_id, request_kbps, terminal->getRequiredCra());
 
-				request_kbps = min(request_kbps, terminal->getMaxRbdc());
+				request_kbps = std::min(request_kbps, terminal->getMaxRbdc());
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u updated RBDC requests %u kb/s (<= max RBDC %u kb/s)\n",
 				    this->current_superframe_sf, tal_id, request_kbps, terminal->getMaxRbdc());
@@ -293,7 +293,7 @@ bool DamaCtrlRcs2::applyPepCommand(const PepRequest *request)
 
 		terminal->setMaxRbdc(max_rbdc_kbps);
 		LOG(this->log_pep, LEVEL_NOTICE,
-		    "SF#%u: ST%u: update RBDC std::max to %u kbits/s\n",
+		    "SF#%u: ST%u: update RBDC max to %u kbits/s\n",
 		    this->current_superframe_sf,
 		    request->getStId(), request->getRbdcMax());
 
@@ -398,7 +398,7 @@ bool DamaCtrlRcs2::updateWaveForms()
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 		TerminalContextDamaRcs *terminal = dynamic_cast<TerminalContextDamaRcs *>(terminal_it->second);
 		tal_id_t tal_id = terminal->getTerminalId();
-		vector<CarriersGroupDama *> carriers_group;
+    std::vector<CarriersGroupDama *> carriers_group;
 		FmtDefinition *fmt_def;
 		CarriersGroupDama *carriers;
 		unsigned int required_fmt;
@@ -421,7 +421,7 @@ bool DamaCtrlRcs2::updateWaveForms()
 		carriers_group = category->getCarriersGroups();
 
 		// check current carrier has the required FMT
-		for(vector<CarriersGroupDama *>::iterator it = carriers_group.begin();
+		for(std::vector<CarriersGroupDama *>::iterator it = carriers_group.begin();
 		    it != carriers_group.end(); ++it)
 		{
 			unsigned int fmt;
@@ -444,7 +444,7 @@ bool DamaCtrlRcs2::updateWaveForms()
 		if(available_fmt == 0)
 		{
 			// get an available MODCOD id for this terminal among carriers
-			for(vector<CarriersGroupDama *>::const_iterator it = carriers_group.begin();
+			for(std::vector<CarriersGroupDama *>::const_iterator it = carriers_group.begin();
 				it != carriers_group.end(); ++it)
 			{
 				unsigned int fmt;
@@ -579,7 +579,7 @@ bool DamaCtrlRcs2::resetTerminalsAllocations()
 			timeslot_kbps = this->converter->pktpfToKbps(1);
 			
 			// Update RBDC request and credit (in kb/s)
-			credit_kbps = max(credit_kbps - timeslot_kbps, 0.0);
+			credit_kbps = std::max(credit_kbps - timeslot_kbps, 0.0);
 			request_kbps += timeslot_kbps;
 
 			// Set RBDC request and credit (in kb/s)
@@ -595,7 +595,7 @@ bool DamaCtrlRcs2::resetCarriersCapacity()
 {
 	rate_symps_t gw_return_total_capacity_symps = 0;
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-	vector<CarriersGroupDama *>::const_iterator carrier_it;
+  std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 
 	// Initialize the capacity of carriers
 	for(category_it = this->categories.begin();
@@ -604,8 +604,8 @@ bool DamaCtrlRcs2::resetCarriersCapacity()
 	{
 		rate_symps_t category_return_capacity_symps = 0;
 		TerminalCategoryDama *category = (*category_it).second;
-		vector<CarriersGroupDama *> carriers_group = category->getCarriersGroups();
-		string label = category->getLabel();
+    std::vector<CarriersGroupDama *> carriers_group = category->getCarriersGroups();
+    std::string label = category->getLabel();
 
 		for(carrier_it = carriers_group.begin();
 		    carrier_it != carriers_group.end();
@@ -664,8 +664,7 @@ bool DamaCtrlRcs2::resetCarriersCapacity()
 	return true;
 }
 
-std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateGwCapacityProbe(
-	string name) const
+std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateGwCapacityProbe(std::string name) const
 {
 	char probe_name[128];
 
@@ -677,8 +676,8 @@ std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateGwCapacityProbe(
 }
 
 std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCategoryCapacityProbe(
-	string category_label,
-	string name) const
+	std::string category_label,
+	std::string name) const
 {
 	char probe_name[128];
 
@@ -690,9 +689,9 @@ std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCategoryCapacityProbe(
 }
 
 std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCarrierCapacityProbe(
-	string category_label,
+	std::string category_label,
 	unsigned int carrier_id,
-	string name) const
+	std::string name) const
 {
 	char probe_name[128];
 

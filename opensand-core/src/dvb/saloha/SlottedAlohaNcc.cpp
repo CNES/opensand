@@ -115,7 +115,7 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
                            UnitConverter *converter)
 
 {
-	string algo_name;
+  std::string algo_name;
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 	auto conf = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
 
@@ -356,7 +356,7 @@ skip:
 
 
 bool SlottedAlohaNcc::schedule(NetBurst **burst,
-                               list<DvbFrame *> &complete_dvb_frames,
+                               std::list<DvbFrame *> &complete_dvb_frames,
                                time_sf_t superframe_counter)
 {
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
@@ -379,7 +379,7 @@ bool SlottedAlohaNcc::schedule(NetBurst **burst,
 
 bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
                                        NetBurst **burst,
-                                       list<DvbFrame *> &complete_dvb_frames)
+                                       std::list<DvbFrame *> &complete_dvb_frames)
 {
 	SlottedAlohaFrameCtrl *frame;
 	saloha_packets_data_t *accepted_packets;
