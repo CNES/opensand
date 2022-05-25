@@ -33,10 +33,11 @@
  *
  */
 
-#include <cstring>
+#include <unistd.h>
 #include <sys/signalfd.h>
 #include <signal.h>
 #include <syslog.h>
+#include <cstring>
 
 #include <cxxabi.h>
 #include <execinfo.h>
