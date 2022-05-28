@@ -80,7 +80,7 @@ class Triangular: public AttenuationModelPlugin
 };
 
 
-CREATE(Triangular, attenuation_plugin, "Triangular");
+CREATE(Triangular, PluginType::Attenuation, "Triangular");
 
 
 #endif

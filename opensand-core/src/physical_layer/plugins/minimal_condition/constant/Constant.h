@@ -85,7 +85,7 @@ class Constant: public MinimalConditionPlugin
 };
 
 
-CREATE(Constant, minimal_plugin, "Constant");
+CREATE(Constant, PluginType::Minimal, "Constant");
 
 
 #endif

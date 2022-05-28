@@ -465,7 +465,6 @@ bool Ethernet::Context::initLanAdaptationContext(
 NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
                                          std::map<long, int> &UNUSED(time_contexts))
 {
-	NetBurst *eth_frames = NULL;
 	NetBurst::iterator packet;
 
 	if(this->current_upper)
@@ -481,25 +480,29 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 	}
 
 	// create an empty burst of ETH frames
-	eth_frames = new NetBurst();
-	if(eth_frames == NULL)
+	NetBurst *eth_frames = nullptr;
+  try
+  {
+    eth_frames = new NetBurst();
+  }
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot allocate memory for burst of ETH frames\n");
 		delete burst;
-		return NULL;
+		return nullptr;
 	}
 
-	for(packet = burst->begin(); packet != burst->end(); packet++)
+	for(auto&& packet : *burst)
 	{
-		NetPacket *eth_frame;
+    std::unique_ptr<NetPacket> eth_frame;
 		uint8_t evc_id = 0;
 
 		if(this->current_upper)
 		{
 			// we have to create the Ethernet header from scratch,
 			// try to find an EVC and create the header with given information
-			eth_frame = this->createEthFrameData(*packet, evc_id);
+			eth_frame = this->createEthFrameData(packet, evc_id);
 			if(!eth_frame)
 			{
 				continue;
@@ -508,14 +511,14 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 		else
 		{
 			size_t header_length;
-			uint16_t ether_type = Ethernet::getPayloadEtherType((*packet)->getData());
-			uint16_t frame_type = Ethernet::getFrameType((*packet)->getData());
-			MacAddress src_mac = Ethernet::getSrcMac((*packet)->getData());
-			MacAddress dst_mac = Ethernet::getDstMac((*packet)->getData());
+			uint16_t ether_type = Ethernet::getPayloadEtherType(packet->getData());
+			uint16_t frame_type = Ethernet::getFrameType(packet->getData());
+			MacAddress src_mac = Ethernet::getSrcMac(packet->getData());
+			MacAddress dst_mac = Ethernet::getDstMac(packet->getData());
 			tal_id_t src = 255 ;
 			tal_id_t dst = 255;
-			uint16_t q_tci = Ethernet::getQTci((*packet)->getData());
-			uint16_t ad_tci = Ethernet::getAdTci((*packet)->getData());
+			uint16_t q_tci = Ethernet::getQTci(packet->getData());
+			uint16_t ad_tci = Ethernet::getAdTci(packet->getData());
 			qos_t pcp = (q_tci & 0xe000) >> 13;
 			qos_t qos = 0;
 			Evc *evc;
@@ -525,7 +528,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 
 			// Do not print errors here because we may want to reject trafic as spanning
 			// tree coming from miscellaneous host
-			if(!BlockLanAdaptation::packet_switch->getPacketDestination((*packet)->getData(), src, dst))
+			if(!BlockLanAdaptation::packet_switch->getPacketDestination(packet->getData(), src, dst))
 			{
 				// check default tal_id
 				if(dst > BROADCAST_TAL_ID)
@@ -625,7 +628,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 					    pcp, qos);
 				}
 				// TODO we should cast to an EthernetPacket and use getPayload instead
-				eth_frame = this->createEthFrameData((*packet)->getData().substr(header_length),
+				eth_frame = this->createEthFrameData(packet->getData().substr(header_length),
 				                                     src_mac, dst_mac,
 				                                     ether_type,
 				                                     q_tci, ad_tci,
@@ -634,11 +637,12 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			}
 			else
 			{
-				eth_frame = this->createPacket((*packet)->getData(),
-				                               (*packet)->getTotalLength(),
+				eth_frame = this->createPacket(packet->getData(),
+				                               packet->getTotalLength(),
 				                               qos, src, dst);
 			}
-			if(eth_frame == NULL)
+
+			if(eth_frame == nullptr)
 			{
 				LOG(this->log, LEVEL_ERROR,
 				    "cannot create the Ethernet frame\n");
@@ -652,62 +656,62 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			this->evc_data_size[evc_id] = 0;
 		}
 		this->evc_data_size[evc_id] += eth_frame->getTotalLength();
-		eth_frames->add(eth_frame);
+		eth_frames->add(std::move(eth_frame));
 	}
 	LOG(this->log, LEVEL_INFO,
 	    "encapsulate %zu Ethernet frames\n", eth_frames->size());
 
 	// delete the burst and all frames in it
 	delete burst;
+
 	// avoid returning empty bursts
 	if(eth_frames->size() > 0)
 	{
 		return eth_frames;
 	}
 	delete eth_frames;
-	return NULL;
+	return nullptr;
 }
 
 
 NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 {
-	NetBurst *net_packets;
-	NetBurst::iterator packet;
-
-	if(burst == NULL || burst->front() == NULL)
+	if(burst == nullptr || burst->front() == nullptr)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "empty burst received\n");
-		if(burst)
-		{
-			delete burst;
-		}
-		return NULL;
+    delete burst;
+		return nullptr;
 	}
+
 	LOG(this->log, LEVEL_INFO,
 	    "got a burst of %s packets to deencapsulate\n",
 	    (burst->front())->getName().c_str());
 
 	// create an empty burst of network frames
-	net_packets = new NetBurst();
-	if(net_packets == NULL)
+	NetBurst *net_packets = nullptr;
+  try
+  {
+    net_packets = new NetBurst();
+  }
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot allocate memory for burst of network frames\n");
 		delete burst;
-		return NULL;
+		return nullptr;
 	}
 
-	for(packet = burst->begin(); packet != burst->end(); packet++)
+	for(auto&& packet : *burst)
 	{
-		NetPacket *deenc_packet = NULL;
-		size_t data_length = (*packet)->getTotalLength();
-		MacAddress dst_mac = Ethernet::getDstMac((*packet)->getData());
-		MacAddress src_mac = Ethernet::getSrcMac((*packet)->getData());
-		uint16_t q_tci = Ethernet::getQTci((*packet)->getData());
-		uint16_t ad_tci = Ethernet::getAdTci((*packet)->getData());
-		uint16_t ether_type = Ethernet::getPayloadEtherType((*packet)->getData());
-		uint16_t frame_type = Ethernet::getFrameType((*packet)->getData());
+    std::unique_ptr<NetPacket> deenc_packet;
+		size_t data_length = packet->getTotalLength();
+		MacAddress dst_mac = Ethernet::getDstMac(packet->getData());
+		MacAddress src_mac = Ethernet::getSrcMac(packet->getData());
+		uint16_t q_tci = Ethernet::getQTci(packet->getData());
+		uint16_t ad_tci = Ethernet::getAdTci(packet->getData());
+		uint16_t ether_type = Ethernet::getPayloadEtherType(packet->getData());
+		uint16_t frame_type = Ethernet::getFrameType(packet->getData());
 		Evc *evc;
 		size_t header_length;
 		uint8_t evc_id = 0;
@@ -756,11 +760,11 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 			}
 
 			// strip eth header to get to IP
-			deenc_packet = this->current_upper->build((*packet)->getPayload(),
-			                                          (*packet)->getPayloadLength(),
-			                                          (*packet)->getQos(),
-			                                          (*packet)->getSrcTalId(),
-			                                          (*packet)->getDstTalId());
+			deenc_packet = this->current_upper->build(packet->getPayload(),
+			                                          packet->getPayloadLength(),
+			                                          packet->getQos(),
+			                                          packet->getSrcTalId(),
+			                                          packet->getDstTalId());
 		}
 		else
 		{
@@ -796,22 +800,22 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 					ad_tci = (evc->getAdTci() & 0xffff);
 				}
 				// TODO we should cast to an EthernetPacket and use getPayload instead
-				deenc_packet = this->createEthFrameData((*packet)->getData().substr(header_length),
+				deenc_packet = this->createEthFrameData(packet->getData().substr(header_length),
 				                                        src_mac, dst_mac,
 				                                        ether_type,
 				                                        q_tci, ad_tci,
-				                                        (*packet)->getQos(),
-				                                        (*packet)->getSrcTalId(),
+				                                        packet->getQos(),
+				                                        packet->getSrcTalId(),
 				                                        dst,
 				                                        this->lan_frame_type);
 			}
 			else
 			{
 				// create ETH packet
-				deenc_packet = this->createPacket((*packet)->getData(),
+				deenc_packet = this->createPacket(packet->getData(),
 				                                  data_length,
-				                                  (*packet)->getQos(),
-				                                  (*packet)->getSrcTalId(),
+				                                  packet->getQos(),
+				                                  packet->getSrcTalId(),
 				                                  dst);
 			}
 		}
@@ -822,7 +826,7 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 			continue;
 		}
 
-		net_packets->add(deenc_packet);
+		net_packets->add(std::move(deenc_packet));
 	}
 	LOG(this->log, LEVEL_INFO,
 	    "deencapsulate %zu ethernet frames\n",
@@ -834,7 +838,8 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 }
 
 
-NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc_id)
+std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(const std::unique_ptr<NetPacket>& packet,
+                                                                 uint8_t &evc_id)
 {
 	std::vector<MacAddress> src_macs;
 	std::vector<MacAddress> dst_macs;
@@ -928,16 +933,17 @@ NetPacket *Ethernet::Context::createEthFrameData(NetPacket *packet, uint8_t &evc
 	                                this->sat_frame_type);
 }
 
-NetPacket *Ethernet::Context::createEthFrameData(Data data,
-                                                 MacAddress src_mac,
-                                                 MacAddress dst_mac,
-                                                 uint16_t ether_type,
-                                                 uint16_t q_tci,
-                                                 uint16_t ad_tci,
-                                                 qos_t qos,
-                                                 tal_id_t src_tal_id,
-                                                 tal_id_t dst_tal_id,
-                                                 uint16_t desired_frame_type)
+
+std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(Data data,
+                                                                 MacAddress src_mac,
+                                                                 MacAddress dst_mac,
+                                                                 uint16_t ether_type,
+                                                                 uint16_t q_tci,
+                                                                 uint16_t ad_tci,
+                                                                 qos_t qos,
+                                                                 tal_id_t src_tal_id,
+                                                                 tal_id_t dst_tal_id,
+                                                                 uint16_t desired_frame_type)
 {
 	eth_2_header_t *eth_2_hdr;
 	eth_1q_header_t *eth_1q_hdr;
@@ -999,8 +1005,7 @@ NetPacket *Ethernet::Context::createEthFrameData(Data data,
 
 }
 
-char Ethernet::Context::getLanHeader(unsigned int UNUSED(pos),
-                                     NetPacket *UNUSED(frame))
+char Ethernet::Context::getLanHeader(unsigned int, const std::unique_ptr<NetPacket>&)
 {
 	return 0;
 }
@@ -1070,13 +1075,12 @@ void Ethernet::Context::updateStats(unsigned int period)
 	}
 }
 
-NetPacket *Ethernet::PacketHandler::build(const Data &data,
-                                          size_t data_length,
-                                          uint8_t qos,
-                                          uint8_t src_tal_id,
-                                          uint8_t dst_tal_id) const
+std::unique_ptr<NetPacket> Ethernet::PacketHandler::build(const Data &data,
+                                                          std::size_t data_length,
+                                                          uint8_t qos,
+                                                          uint8_t src_tal_id,
+                                                          uint8_t dst_tal_id) const
 {
-	NetPacket *frame = NULL;
 	size_t head_length = 0;
 	uint16_t frame_type = Ethernet::getFrameType(data);
 	switch(frame_type)
@@ -1093,14 +1097,13 @@ NetPacket *Ethernet::PacketHandler::build(const Data &data,
 			break;
 	}
 
-	frame = new NetPacket(data, data_length,
-	                      this->getName(),
-	                      frame_type,
-	                      qos,
-	                      src_tal_id,
-	                      dst_tal_id,
-	                      head_length);
-	return frame;
+	return std::unique_ptr<NetPacket>(new NetPacket(data, data_length,
+	                                                this->getName(),
+	                                                frame_type,
+	                                                qos,
+	                                                src_tal_id,
+	                                                dst_tal_id,
+	                                                head_length));
 }
 
 Evc *Ethernet::Context::getEvc(const MacAddress src_mac,

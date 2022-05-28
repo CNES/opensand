@@ -23,6 +23,7 @@ libopensand_plugin_la_cpp = \
 	MacAddress.cpp \
 	TrafficCategory.cpp \
 	SarpTable.cpp \
+	StackPlugin.cpp \
 	EncapPlugin.cpp \
 	LanAdaptationPlugin.cpp \
 	PhysicalLayerPlugin.cpp 

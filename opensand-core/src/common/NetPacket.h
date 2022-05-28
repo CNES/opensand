@@ -35,12 +35,9 @@
 #ifndef NET_PACKET_H
 #define NET_PACKET_H
 
-#include "NetContainer.h"
-
 #include <linux/if_ether.h>
 
-#include <string>
-#include <stdint.h>
+#include "NetContainer.h"
 
 
 class Data;

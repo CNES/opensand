@@ -55,12 +55,12 @@ const std::map<std::string, log_level_t> levels_map{
 
 
 OpenSandModelConf::OpenSandModelConf():
-	topology_model(nullptr),
-	infrastructure_model(nullptr),
-	profile_model(nullptr),
-	topology(nullptr),
-	infrastructure(nullptr),
-	profile(nullptr)
+	topology_model{nullptr},
+	infrastructure_model{nullptr},
+	profile_model{nullptr},
+	topology{nullptr},
+	infrastructure{nullptr},
+	profile{nullptr}
 {
 	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Configuration");
 }
@@ -211,9 +211,12 @@ void OpenSandModelConf::createModels()
 	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(terminal->getReferenceData());
 	expected_str->set("Terminal");
 	terminal->addParameter("entity_id", "Terminal ID", types->getType("int"));
-	terminal->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite terminal should listen on for messages from the satellite");
-	terminal->addParameter("tap_iface", "TAP Interface", types->getType("string"), "Name of the TAP interface used by this satellite terminal");
-	terminal->addParameter("mac_address", "MAC Address", types->getType("string"), "MAC address this satellite terminal routes traffic to");
+	terminal->addParameter("emu_address", "Emulation Address", types->getType("string"),
+	                       "Address this satellite terminal should listen on for messages from the satellite");
+	terminal->addParameter("tap_iface", "TAP Interface", types->getType("string"),
+	                       "Name of the TAP interface used by this satellite terminal");
+	terminal->addParameter("mac_address", "MAC Address", types->getType("string"),
+	                       "MAC address this satellite terminal routes traffic to");
 	terminal->addParameter("qos_server_host", "QoS server Host Agent", types->getType("string"))->setAdvanced(true);
 	terminal->addParameter("qos_server_port", "QoS server Host Port", types->getType("int"))->setAdvanced(true);
 
@@ -259,13 +262,15 @@ void OpenSandModelConf::createModels()
 
 	auto satellites = infra->addList("satellites", "Satellites", "satellite")->getPattern();
 	satellites->addParameter("entity_id", "Entity ID", types->getType("int"));
-	satellites->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
+	satellites->addParameter("emu_address", "Emulation Address", types->getType("string"),
+	                         "Address this satellite should listen on for messages from ground entities");
 	satellites->addParameter("isl_port", "Port (Inter Sat Link)", types->getType("int"))->setAdvanced(true);
 	satellites->addParameter("default_entity", "Default Entity ID", types->getType("int"))->setAdvanced(true);
 
 	auto gateways = infra->addList("gateways", "Gateways", "gateway")->getPattern();
 	gateways->addParameter("entity_id", "Entity ID", types->getType("int"));
-	gateways->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this gateway should listen on for messages from the satellite");
+	gateways->addParameter("emu_address", "Emulation Address", types->getType("string"),
+	                       "Address this gateway should listen on for messages from the satellite");
 	gateways->addParameter("mac_address", "MAC Address", types->getType("string"), "MAC address this gateway routes traffic to");
 	gateways->addParameter("ctrl_multicast_address", "Multicast IP Address (Control Messages)", types->getType("string"))->setAdvanced(true);
 	gateways->addParameter("data_multicast_address", "Multicast IP Address (Data)", types->getType("string"))->setAdvanced(true);
@@ -285,8 +290,10 @@ void OpenSandModelConf::createModels()
 
 	auto terminals = infra->addList("terminals", "Terminals", "terminal")->getPattern();
 	terminals->addParameter("entity_id", "Entity ID", types->getType("int"));
-	terminals->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite terminal should listen on for messages from the satellite");
-	terminals->addParameter("mac_address", "MAC Address", types->getType("string"), "MAC address this satellite terminal routes traffic to");
+	terminals->addParameter("emu_address", "Emulation Address", types->getType("string"),
+	                        "Address this satellite terminal should listen on for messages from the satellite");
+	terminals->addParameter("mac_address", "MAC Address", types->getType("string"),
+	                        "MAC address this satellite terminal routes traffic to");
 
 	infra->addParameter("default_gw", "Default Gateway", types->getType("int"),
 	                    "Default Gateway ID for a packet destination when the MAC "
@@ -307,17 +314,25 @@ void OpenSandModelConf::createModels()
 	auto frequency_plan = topology_model->getRoot()->addComponent("frequency_plan", "Spots / Frequency Plan");
 	auto spots = frequency_plan->addList("spots", "Spots", "spot")->getPattern();
 	auto spot_assignment = spots->addComponent("assignments", "Spot Assignment");
-	spot_assignment->addParameter("gateway_id", "Gateway ID", types->getType("int"), "ID of the gateway this spot belongs to; note that only one spot must be managed by a given gateway");
-	spot_assignment->addParameter("satellite_id", "Satellite ID", types->getType("int"), "ID of the satellite associated to this spot; note that one satellite can manage several spots");
+	spot_assignment->addParameter("gateway_id", "Gateway ID", types->getType("int"),
+	                              "ID of the gateway this spot belongs to; note that "
+	                              "only one spot must be managed by a given gateway");
+	spot_assignment->addParameter("satellite_id", "Satellite ID", types->getType("int"),
+	                              "ID of the satellite associated to this spot; note "
+	                              "that one satellite can manage several spots");
 	auto roll_offs = spots->addComponent("roll_off", "Roll Off");
 	roll_offs->addParameter("forward", "Forward Band Roll Off", types->getType("double"), "Usually 0.35, 0.25 or 0.2 for DVB-S2");
 	roll_offs->addParameter("return", "Return Band Roll Off", types->getType("double"), "Usually 0.2 for DVB-RCS2");
 	auto forward_band = spots->addList("forward_band", "Forward Band", "fwd_band")->getPattern();
 	forward_band->addParameter("symbol_rate", "Symbol Rate", types->getType("double"))->setUnit("Bauds");
 	auto band_type = forward_band->addParameter("type", "Type", types->getType("forward_type"));
-	forward_band->addParameter("wave_form", "Wave Form IDs", types->getType("string"), "Supported Wave Forms. Use ';' separator for unique IDs, '-' separator for all the IDs between bounds");
+	forward_band->addParameter("wave_form", "Wave Form IDs", types->getType("string"),
+	                           "Supported Wave Forms. Use ';' separator for unique IDs, "
+	                           "'-' separator for all the IDs between bounds");
 	forward_band->addParameter("group", "Group", types->getType("carrier_group"));
-	auto ratio = forward_band->addParameter("ratio", "Ratio", types->getType("string"), "Separate temporal division ratios by ','; you should also specify as many wave form IDs also separated by ','");
+	auto ratio = forward_band->addParameter("ratio", "Ratio", types->getType("string"),
+	                                        "Separate temporal division ratios by ','; you should "
+	                                        "also specify as many wave form IDs also separated by ','");
 	topology_model->setReference(ratio, band_type);
 	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(ratio->getReferenceData());
 	expected_str->set("VCM");
@@ -414,20 +429,18 @@ std::shared_ptr<OpenSANDConf::MetaTypesList> OpenSandModelConf::getModelTypesDef
 }
 
 
-std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getOrCreateComponent(
-		const std::string& id,
-		const std::string& name,
-		std::shared_ptr<OpenSANDConf::MetaComponent> from)
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getOrCreateComponent(const std::string& id,
+                                                                                     const std::string& name,
+                                                                                     std::shared_ptr<OpenSANDConf::MetaComponent> from)
 {
 	return getOrCreateComponent(id, name, "", from);
 }
 
 
-std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getOrCreateComponent(
-		const std::string& id,
-		const std::string& name,
-		const std::string& description,
-		std::shared_ptr<OpenSANDConf::MetaComponent> from)
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getOrCreateComponent(const std::string& id,
+                                                                                     const std::string& name,
+                                                                                     const std::string& description,
+                                                                                     std::shared_ptr<OpenSANDConf::MetaComponent> from)
 {
 	if (from == nullptr && profile_model == nullptr)
 	{
@@ -443,9 +456,8 @@ std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getOrCreateCompo
 }
 
 
-std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getComponentByPath(
-		const std::string &path,
-		std::shared_ptr<OpenSANDConf::MetaModel> from)
+std::shared_ptr<OpenSANDConf::MetaComponent> OpenSandModelConf::getComponentByPath(const std::string &path,
+                                                                                   std::shared_ptr<OpenSANDConf::MetaModel> from)
 {
 	if (from == nullptr && profile_model == nullptr)
 	{
@@ -873,6 +885,12 @@ bool OpenSandModelConf::logLevels(std::map<std::string, log_level_t> &levels) co
 }
 
 
+inline std::unique_ptr<MacAddress> make_unique_mac(std::string address)
+{
+	return std::unique_ptr<MacAddress>{new MacAddress{address}};
+}
+
+
 bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 {
 	if (infrastructure == nullptr) {
@@ -886,10 +904,10 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 	sarp_table.setDefaultTal(default_gw);
 
 	// Broadcast
-	sarp_table.add(new MacAddress("ff:ff:ff:ff:ff:ff"), 31);
+	sarp_table.add(make_unique_mac("ff:ff:ff:ff:ff:ff"), 31);
 	// Multicast
-	sarp_table.add(new MacAddress("33:33:**:**:**:**"), 31);
-	sarp_table.add(new MacAddress("01:00:5E:**:**:**"), 31);
+	sarp_table.add(make_unique_mac("33:33:**:**:**:**"), 31);
+	sarp_table.add(make_unique_mac("01:00:5E:**:**:**"), 31);
 
 	static std::vector<std::string> list_names{"gateways", "terminals"};
 	for (auto& list_name : list_names) {
@@ -906,7 +924,7 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 				return false;
 			}
 
-			sarp_table.add(new MacAddress(mac_address), entity_id);
+			sarp_table.add(make_unique_mac(mac_address), entity_id);
 		}
 	}
 
@@ -1279,6 +1297,7 @@ bool OpenSandModelConf::getDelayTimer(time_ms_t &period) const
 	return true;
 }
 
+
 bool OpenSandModelConf::getControlPlaneDisabled(bool &disabled) const
 {
 	if (profile == nullptr)
@@ -1287,6 +1306,7 @@ bool OpenSandModelConf::getControlPlaneDisabled(bool &disabled) const
 	auto elem = profile->getItemByPath("control_plane/disable_control_plane");
 	return extractParameterData(std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(elem), disabled);
 }
+
 
 bool OpenSandModelConf::getGwWithTalId(uint16_t tal_id, uint16_t &gw_id) const
 {
@@ -1353,7 +1373,9 @@ bool OpenSandModelConf::isGw(uint16_t gw_id) const
 	return entity != entities_type.end() && entity->second == Component::gateway;
 }
 
-Component OpenSandModelConf::getEntityType(tal_id_t tal_id) const {
+
+Component OpenSandModelConf::getEntityType(tal_id_t tal_id) const
+{
 	if (infrastructure == nullptr) {
 		return Component::unknown;
 	}
@@ -1372,6 +1394,7 @@ bool OpenSandModelConf::getScpcEncapStack(std::vector<std::string> &encap_stack)
 	return true;
 }
 
+
 std::shared_ptr<OpenSANDConf::DataComponent> getEntityById(std::shared_ptr<OpenSANDConf::DataList> list, int id)
 {
 	for(auto &item: list->getItems()) {
@@ -1385,6 +1408,7 @@ std::shared_ptr<OpenSANDConf::DataComponent> getEntityById(std::shared_ptr<OpenS
 	}
 	return nullptr;
 }
+
 
 std::shared_ptr<OpenSANDConf::DataComponent> getSpotById(std::shared_ptr<OpenSANDConf::DataComponent> topo, int id)
 {
@@ -1400,6 +1424,7 @@ std::shared_ptr<OpenSANDConf::DataComponent> getSpotById(std::shared_ptr<OpenSAN
 	}
 	return nullptr;
 }
+
 
 bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructure &carriers) const
 {
@@ -1637,6 +1662,7 @@ bool OpenSandModelConf::getSpotReturnCarriers(uint16_t gw_id, OpenSandModelConf:
 	return getSpotCarriers(gw_id, spot, false);
 }
 
+
 bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot &spot, bool forward) const
 {
 	const std::string roll_off_parameter = forward ? "forward" : "return";
@@ -1738,6 +1764,7 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 	return true;
 }
 
+
 bool OpenSandModelConf::getInterSatLinkCarriers(tal_id_t sat_id,
                                                 carrier_socket &isl_in, 
                                                 carrier_socket &isl_out) const
@@ -1804,14 +1831,18 @@ bool OpenSandModelConf::getInterSatLinkCarriers(tal_id_t sat_id,
 	return true;
 }
 
-bool OpenSandModelConf::isMeshArchitecture() const {
+
+bool OpenSandModelConf::isMeshArchitecture() const
+{
 	auto entity_sat = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_sat");
 	bool mesh_arch = false;
 	extractParameterData(entity_sat, "mesh", mesh_arch);
 	return mesh_arch;
 }
 
-bool OpenSandModelConf::getDefaultEntityForSat(tal_id_t sat_id, tal_id_t &default_entity) const {
+
+bool OpenSandModelConf::getDefaultEntityForSat(tal_id_t sat_id, tal_id_t &default_entity) const
+{
 	auto infra = infrastructure->getRoot()->getComponent("infrastructure");
 	auto satellite = getEntityById(infra->getList("satellites"), sat_id);
 	if (satellite == nullptr) {
@@ -1929,6 +1960,7 @@ bool OpenSandModelConf::getTerminalAffectation(spot_id_t &default_spot_id,
 	return true;
 }
 
+
 const std::unordered_set<tal_id_t> OpenSandModelConf::getEntitiesHandledBySat(tal_id_t sat_id) const {
 	std::unordered_set<tal_id_t> handled_entities;
 	for (auto &&spot_entity: spot_entities) {
@@ -1940,7 +1972,7 @@ const std::unordered_set<tal_id_t> OpenSandModelConf::getEntitiesHandledBySat(ta
 	return handled_entities;
 }
 
+
 const std::unordered_set<tal_id_t> &OpenSandModelConf::getEntitiesInSpot(spot_id_t spot_id) const {
 	return spot_entities.at(spot_id);
 }
-

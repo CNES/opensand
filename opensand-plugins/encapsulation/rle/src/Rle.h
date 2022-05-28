@@ -96,7 +96,7 @@ class Rle: public EncapPlugin
 		/// Receivers identified by an unique identifier
 		std::map<RleIdentifier *, struct rle_receiver *, ltRleIdentifier> receivers;
 
-		bool decapNextPacket(NetPacket *packet, NetBurst *burst);
+		bool decapNextPacket(const std::unique_ptr<NetPacket>& packet, NetBurst *burst);
 	};
 
 	/**
@@ -120,11 +120,11 @@ class Rle: public EncapPlugin
 		void loadRleConf(const struct rle_config &conf);
 		bool init();
 
-		NetPacket *build(const Data &data,
-		                 size_t data_length,
-		                 uint8_t qos,
-		                 uint8_t src_tal_id,
-		                 uint8_t dst_tal_id) const;
+		std::unique_ptr<NetPacket> build(const Data &data,
+		                                 size_t data_length,
+		                                 uint8_t qos,
+		                                 uint8_t src_tal_id,
+		                                 uint8_t dst_tal_id) const override;
 		size_t getFixedLength() const {return 0;};
 		size_t getMinLength() const {return 3;};
 		size_t getLength(const unsigned char *data) const;
@@ -135,16 +135,31 @@ class Rle: public EncapPlugin
 		                     std::size_t remaining_length,
 		                     bool new_burst,
 		                     bool &partial_encap,
-		                     NetPacket **encap_packet);
+		                     NetPacket **encap_packet) override;
 
 		bool getEncapsulatedPackets(NetContainer *packet,
 		                            bool &partial_decap,
-		                            std::vector<NetPacket *> &decap_packets,
-		                            unsigned int decap_packet_count = 0);
+		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+		                            unsigned int decap_packet_count = 0) override;
 
-	  protected:
-		bool getChunk(NetPacket *packet, size_t remaining_length,
-		              NetPacket **data, NetPacket **remaining_data) const;
+		bool getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets, NetPacket ** selected_pkt) override;
+
+		bool setHeaderExtensions(const NetPacket* packet,
+		                         std::unique_ptr<NetPacket>& new_packet,
+		                         tal_id_t tal_id_src,
+		                         tal_id_t tal_id_dst,
+		                         std::string callback_name,
+		                         void *opaque) override;
+
+		bool getHeaderExtensions(const std::unique_ptr<NetPacket>& packet,
+		                         std::string callback_name,
+		                         void *opaque) override;
+
+	 protected:
+		bool getChunk(std::unique_ptr<NetPacket> packet,
+                  std::size_t remaining_length,
+		              std::unique_ptr<NetPacket> &data,
+                  std::unique_ptr<NetPacket> &remaining_data) const override;
 	};
 
 	/// Constructor

@@ -91,7 +91,7 @@ class Gate: public ErrorInsertionPlugin
 };
 
 
-CREATE(Gate, error_plugin, "Gate");
+CREATE(Gate, PluginType::Error, "Gate");
 
 
 #endif

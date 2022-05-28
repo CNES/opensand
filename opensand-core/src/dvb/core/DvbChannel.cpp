@@ -460,7 +460,6 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
                                 MacFifoElement *elem,
                                 DvbFifo *fifo,
                                 NetPacket* packet,
-                                NetPacket **extension_pkt,
                                 tal_id_t source,
                                 tal_id_t dest,
                                 std::string extension_name,
@@ -510,6 +509,7 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 		}
 	}
 
+  std::unique_ptr<NetPacket> extension_pkt;
 	if(!pkt_hdl->setHeaderExtensions(selected_pkt,
 	                                 extension_pkt,
 	                                 source,
@@ -523,7 +523,7 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 		return false;
 	}
 
-	if(extension_pkt == NULL)
+	if(extension_pkt == nullptr)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "SF#%d: failed to create the GSE packet with "
@@ -533,11 +533,11 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	if(replace)
 	{
 		// And replace the packet in the FIFO
-		elem->setElem(*extension_pkt);
+		elem->setElem(extension_pkt.release());
 	}
 	else
 	{
-		MacFifoElement *new_el = new MacFifoElement(*extension_pkt, 0, 0);
+		MacFifoElement *new_el = new MacFifoElement(extension_pkt.release(), 0, 0);
 		fifo->pushBack(new_el);
 	}
 

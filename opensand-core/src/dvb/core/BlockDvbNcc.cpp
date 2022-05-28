@@ -382,14 +382,13 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				// set each packet of the burst in MAC FIFO
 				for(auto&& pkt : *burst)
 				{
-					if(!spot->handleEncapPacket(pkt))
+					if(!spot->handleEncapPacket(std::move(pkt)))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
 						    "cannot push burst into fifo\n");
 						continue;
 					}
 				}
-				burst->clear(); // avoid deteleting packets when deleting burst
 				delete burst;
 			}
 			break;

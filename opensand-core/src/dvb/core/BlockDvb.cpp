@@ -213,9 +213,10 @@ error:
 }
 
 
-bool BlockDvb::DvbDownward::onRcvEncapPacket(NetPacket *packet,
+bool BlockDvb::DvbDownward::onRcvEncapPacket(std::unique_ptr<NetPacket> packet,
                                              DvbFifo *fifo,
                                              time_ms_t fifo_delay)
 {
-	return this->pushInFifo(fifo, packet, fifo_delay);
+  //TODO: lift off the release call in favor of std::move
+	return this->pushInFifo(fifo, packet.release(), fifo_delay);
 }

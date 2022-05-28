@@ -96,7 +96,7 @@ class FileDelay: public SatDelayPlugin
 };
 
 
-CREATE(FileDelay, satdelay_plugin, "FileDelay");
+CREATE(FileDelay, PluginType::SatDelay, "FileDelay");
 
 
 #endif

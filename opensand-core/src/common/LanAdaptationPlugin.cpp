@@ -84,7 +84,7 @@ bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(NetPacket 
 
 bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(NetContainer *,
                                                                              bool &,
-                                                                             std::vector<NetPacket *> &,
+                                                                             std::vector<std::unique_ptr<NetPacket>> &,
                                                                              unsigned int)
 {
 	assert(0);

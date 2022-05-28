@@ -132,7 +132,7 @@ class BlockDvb: public Block
 		 *                      MAC FIFO (used on SAT to emulate delay)
 		 * @return              true on success, false otherwise
 		 */
-		bool onRcvEncapPacket(NetPacket *packet,
+		bool onRcvEncapPacket(std::unique_ptr<NetPacket> packet,
 		                      DvbFifo *fifo,
 		                      time_ms_t fifo_delay);
 

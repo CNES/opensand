@@ -35,6 +35,7 @@
 #include "InterconnectChannel.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/NetSocketEvent.h>
 
 
 InterconnectChannel::InterconnectChannel(std::string name, std::string iface_addr):

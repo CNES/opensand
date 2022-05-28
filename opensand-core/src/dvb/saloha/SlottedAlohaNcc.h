@@ -146,7 +146,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	 * @param packet The slotted aloha packet
 	 * @return Encap packet without Slotted Aloha encapsulation
 	 */
-	NetPacket *removeSalohaHeader(SlottedAlohaPacketData *packet);
+  std::unique_ptr<NetPacket> removeSalohaHeader(std::unique_ptr<SlottedAlohaPacketData> packet);
 
 	/**
 	 * @brief Call a specific algorithm to remove all collided packets
@@ -200,16 +200,11 @@ class AlohaPacketComparator
 	 *
 	 * @return true if order is good, false otherwise
 	 */
-	bool operator()(SlottedAlohaPacket *pkt1,
-	                SlottedAlohaPacket *pkt2)
+	bool operator()(const std::unique_ptr<SlottedAlohaPacketData>& pkt1,
+	                const std::unique_ptr<SlottedAlohaPacketData>& pkt2)
 	{
-		SlottedAlohaPacketData *data_pkt1 =
-			dynamic_cast<SlottedAlohaPacketData *>(pkt1);
-		SlottedAlohaPacketData *data_pkt2 =
-			dynamic_cast<SlottedAlohaPacketData *>(pkt2);
-		
-		uint16_t replica_1 = data_pkt1->getReplica(0);
-		uint16_t replica_2 = data_pkt2->getReplica(0);
+		uint16_t replica_1 = pkt1->getReplica(0);
+		uint16_t replica_2 = pkt2->getReplica(0);
 
 		// First replica slot allows ordering
 		// TODO in terminal, we use slots sorted in the entire category,

@@ -89,8 +89,8 @@ class LanAdaptationPlugin: public StackPlugin
 
 		virtual bool getEncapsulatedPackets(NetContainer *packet,
 		                                    bool &partial_decap,
-		                                    std::vector<NetPacket *> &decap_packets,
-		                                    unsigned int decap_packets_count);
+		                                    std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+		                                    unsigned int decap_packets_count) override;
 
 		virtual bool init();
 	};
@@ -127,7 +127,7 @@ class LanAdaptationPlugin: public StackPlugin
 		 * @param packet The current packet
 		 * @return     The byte indicated by pos
 		 */
-		virtual char getLanHeader(unsigned int pos, NetPacket *packet) = 0;
+		virtual char getLanHeader(unsigned int pos, const std::unique_ptr<NetPacket>& packet) = 0;
 
 		/**
 		 * @brief check if the packet should be read/written on TAP or TUN interface
@@ -185,7 +185,7 @@ typedef std::vector<LanAdaptationPlugin::LanAdaptationContext *> lan_contexts_t;
 #ifdef CREATE
 #undef CREATE
 #define CREATE(CLASS, CONTEXT, HANDLER, pl_name) \
-	CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, lan_adaptation_plugin)
+	CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, PluginType::LanAdaptation)
 #endif
 
 #endif

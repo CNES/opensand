@@ -294,46 +294,48 @@ Gse::Context::~Context()
 NetBurst *Gse::Context::encapsulate(NetBurst *burst,
                                     std::map<long, int> &time_contexts)
 {
-	NetBurst *gse_packets = NULL;
-
-	NetBurst::iterator packet;
+	NetBurst *gse_packets = nullptr;
 
 	// create an empty burst of GSE packets
-	gse_packets = new NetBurst();
-	if(gse_packets == NULL)
+  try
+  {
+    gse_packets = new NetBurst();
+  }
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot allocate memory for burst of GSE packets\n");
 		delete burst;
-		return NULL;
+		return nullptr;
 	}
 
-	for(packet = burst->begin(); packet != burst->end(); packet++)
+	for(auto&& packet_it : *burst)
 	{
 		uint32_t context_id;
 		long time = 0;
 
+    NetPacket* packet = packet_it.get();
 		// packet must be valid
-		if(*packet == NULL)
+		if(packet == nullptr)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "packet is not valid, drop the packet\n");
 			continue;
 		}
 
-		context_id = (((*packet)->getSrcTalId()	& 0x1f) << 8) |
-		             (((*packet)->getDstTalId() & 0x1f) << 3) |
-		             ((*packet)->getQos() & 0x07);
+		context_id = ((packet->getSrcTalId()	& 0x1f) << 8) |
+		             ((packet->getDstTalId() & 0x1f) << 3) |
+		             (packet->getQos() & 0x07);
 
 		LOG(this->log, LEVEL_INFO,
 		    "encapsulate a %zu-byte packet of type 0x%04x "
 		    "with SRC TAL Id = %u, DST TAL Id = %u, QoS = %u\n",
-		    (*packet)->getTotalLength(), (*packet)->getType(),
-		    (*packet)->getSrcTalId(), (*packet)->getDstTalId(),
-		    (*packet)->getQos());
+		    packet->getTotalLength(), packet->getType(),
+		    packet->getSrcTalId(), packet->getDstTalId(),
+		    packet->getQos());
 
 		// the GSE encapsulation context must exist
-		if(this->encap == NULL)
+		if(this->encap == nullptr)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "GSE encapsulation context unexisting, drop packet\n");
@@ -342,20 +344,20 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 
 		LOG(this->log, LEVEL_INFO,
 		    "received a packet with type 0x%.4x\n",
-		    (*packet)->getType());
+		    packet->getType());
 
 		// if packet size is fixed, more than one packet can be encapsulated in
 		// one GSE packet, we need to handle the context
 		if(this->current_upper->getFixedLength() > 0)
 		{
-			if(!this->encapFixedLength(*packet, gse_packets, time))
+			if(!this->encapFixedLength(packet, gse_packets, time))
 			{
 				continue;
 			}
 		}
 		// if packet size is variable, the whole packet and only it is
 		// encapsulated in the GSE packet
-		else if(!this->encapVariableLength(*packet, gse_packets))
+		else if(!this->encapVariableLength(packet, gse_packets))
 		{
 			continue;
 		}
@@ -625,14 +627,17 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 
 		if(status == GSE_STATUS_OK)
 		{
-			NetPacket *gse;
+      std::unique_ptr<NetPacket> gse;
 			Data gse_packet(gse_get_vfrag_start(this->vfrag_gse),
 			                gse_get_vfrag_length(this->vfrag_gse));
-			gse = this->createPacket(gse_packet,
-			                         gse_get_vfrag_length(this->vfrag_gse),
-			                         qos, src_tal_id, dst_tal_id);
-			// create a GSE packet from fragments computed by the GSE library
-			if(gse == NULL)
+      try
+      {
+        // create a GSE packet from fragments computed by the GSE library
+        gse = this->createPacket(gse_packet,
+                                 gse_get_vfrag_length(this->vfrag_gse),
+                                 qos, src_tal_id, dst_tal_id);
+      }
+			catch (const std::bad_alloc&)
 			{
 				LOG(this->log, LEVEL_ERROR,
 				    "cannot create GSE packet, drop the network "
@@ -643,11 +648,11 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 
 			// set the destination spot ID
 			gse->setSpot(dest_spot);
-			// add GSE packet to burst
-			gse_packets->add(gse);
 			LOG(this->log, LEVEL_INFO,
 			    "%zu-byte GSE packet added to burst\n",
 			    gse->getTotalLength());
+			// add GSE packet to burst
+			gse_packets->add(std::move(gse));
 
 			status = gse_free_vfrag_no_alloc(&this->vfrag_gse, 1, 0);
 			if(status != GSE_STATUS_OK)
@@ -858,7 +863,6 @@ bool Gse::Context::deencapFixedLength(gse_vfrag_t *vfrag_pdu,
                                       NetBurst *net_packets)
 {
 	gse_status_t status;
-	NetPacket *packet = NULL;
 	uint8_t src_tal_id, dst_tal_id;
 	uint8_t qos;
 	unsigned int pkt_nbr = 0;
@@ -878,12 +882,16 @@ bool Gse::Context::deencapFixedLength(gse_vfrag_t *vfrag_pdu,
 	}
 	while(gse_get_vfrag_length(vfrag_pdu) > 0)
 	{
+    std::unique_ptr<NetPacket> packet;
 		Data pdu_frag(gse_get_vfrag_start(vfrag_pdu),
 		              this->current_upper->getFixedLength());
-		packet = this->current_upper->build(pdu_frag,
-		                                    this->current_upper->getFixedLength(),
-		                                    qos, src_tal_id, dst_tal_id);
-		if(packet == NULL)
+    try
+    {
+      packet = this->current_upper->build(pdu_frag,
+                                          this->current_upper->getFixedLength(),
+                                          qos, src_tal_id, dst_tal_id);
+    }
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "cannot build a %s packet, drop the GSE packet\n",
@@ -906,7 +914,7 @@ bool Gse::Context::deencapFixedLength(gse_vfrag_t *vfrag_pdu,
 		// set the destination spot ID
 		packet->setSpot(dest_spot);
 		// add network packet to burst
-		net_packets->add(packet);
+		net_packets->add(std::move(packet));
 		pkt_nbr++;
 
 		// move the data pointer after the current packet
@@ -924,10 +932,9 @@ bool Gse::Context::deencapFixedLength(gse_vfrag_t *vfrag_pdu,
 	}
 
 	LOG(this->log, LEVEL_INFO,
-	    "Complete PDU received, got %u %zu-byte %s packet(s)/frame "
+	    "Complete PDU received, got %u GSE packet(s)/frame "
 	    "(GSE packet length = %zu, Src TAL id = %u, Dst TAL id = %u, qos = %u)\n",
-	    pkt_nbr, packet->getTotalLength(), packet->getName().c_str(),
-	    gse_get_vfrag_length(vfrag_pdu), src_tal_id, dst_tal_id, qos);
+	    pkt_nbr, gse_get_vfrag_length(vfrag_pdu), src_tal_id, dst_tal_id, qos);
 
 	gse_free_vfrag(&vfrag_pdu);
 
@@ -939,7 +946,6 @@ bool Gse::Context::deencapVariableLength(gse_vfrag_t *vfrag_pdu,
                                          uint8_t label[6],
                                          NetBurst *net_packets)
 {
-	NetPacket *packet = NULL;
 	uint8_t src_tal_id, dst_tal_id;
 	uint8_t qos;
 	unsigned int pkt_nbr = 0;
@@ -950,10 +956,14 @@ bool Gse::Context::deencapVariableLength(gse_vfrag_t *vfrag_pdu,
 	dst_tal_id = Gse::getDstTalIdFromLabel(label);
 	qos = Gse::getQosFromLabel(label);
 
-	packet = this->current_upper->build(pdu_frag,
-	                                    gse_get_vfrag_length(vfrag_pdu),
-	                                    qos, src_tal_id, dst_tal_id);
-	if(packet == NULL)
+  std::unique_ptr<NetPacket> packet;
+  try
+  {
+    packet = this->current_upper->build(pdu_frag,
+                                        gse_get_vfrag_length(vfrag_pdu),
+                                        qos, src_tal_id, dst_tal_id);
+  }
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR, 
 		    "cannot build a %s packet, drop the GSE packet\n",
@@ -964,8 +974,6 @@ bool Gse::Context::deencapVariableLength(gse_vfrag_t *vfrag_pdu,
 
 	// set the destination spot ID
 	packet->setSpot(dest_spot);
-	// add network packet to burst
-	net_packets->add(packet);
 	pkt_nbr++;
 
 	LOG(this->log, LEVEL_INFO,
@@ -973,6 +981,9 @@ bool Gse::Context::deencapVariableLength(gse_vfrag_t *vfrag_pdu,
 	    "(GSE packet length = %zu, Src TAL id = %u, Dst TAL id = %u, qos = %u)\n",
 	    pkt_nbr, packet->getTotalLength(), packet->getName().c_str(),
 	    gse_get_vfrag_length(vfrag_pdu), src_tal_id, dst_tal_id, qos);
+
+	// add network packet to burst
+	net_packets->add(std::move(packet));
 
 	gse_free_vfrag(&vfrag_pdu);
 
@@ -1131,14 +1142,17 @@ NetBurst *Gse::Context::flush(int context_id)
 
 		if(status == GSE_STATUS_OK)
 		{
-			NetPacket *gse;
+      std::unique_ptr<NetPacket> gse;
 			Data gse_frag(gse_get_vfrag_start(this->vfrag_gse),
 			              gse_get_vfrag_length(this->vfrag_gse));
-			gse = this->createPacket(gse_frag,
-			                         gse_get_vfrag_length(this->vfrag_gse),
-			                         qos, src_tal_id, dst_tal_id);
-			// create a GSE packet from fragments computed by the GSE library
-			if(gse == NULL)
+      try
+      {
+        // create a GSE packet from fragments computed by the GSE library
+          gse = this->createPacket(gse_frag,
+                                   gse_get_vfrag_length(this->vfrag_gse),
+                                   qos, src_tal_id, dst_tal_id);
+      }
+			catch (const std::bad_alloc&)
 			{
 				LOG(this->log, LEVEL_ERROR,
 				    "cannot create GSE packet, drop the network packet\n");
@@ -1147,11 +1161,11 @@ NetBurst *Gse::Context::flush(int context_id)
 
 			// set the destination spot ID
 			gse->setSpot(dest_spot);
-			// add GSE packet to burst
-			gse_packets->add(gse);
 			LOG(this->log, LEVEL_INFO,
 			    "%zu-byte GSE packet added to burst\n",
 			    gse->getTotalLength());
+			// add GSE packet to burst
+			gse_packets->add(std::move(gse));
 
 			status = gse_free_vfrag_no_alloc(&this->vfrag_gse, 1, 0);
 			if(status != GSE_STATUS_OK)
@@ -1193,11 +1207,11 @@ NetBurst *Gse::Context::flushAll()
 	return NULL;
 }
 
-NetPacket *Gse::PacketHandler::build(const Data &data,
-                                     size_t data_length,
-                                     uint8_t UNUSED(_qos),
-                                     uint8_t UNUSED(_src_tal_id),
-                                     uint8_t _dst_tal_id) const
+std::unique_ptr<NetPacket> Gse::PacketHandler::build(const Data &data,
+                                                     size_t data_length,
+                                                     uint8_t UNUSED(_qos),
+                                                     uint8_t UNUSED(_src_tal_id),
+                                                     uint8_t _dst_tal_id) const
 {
 	gse_status_t status;
 	uint8_t label[6];
@@ -1291,9 +1305,9 @@ NetPacket *Gse::PacketHandler::build(const Data &data,
 		    qos, src_tal_id, dst_tal_id, header_length);
 	}
 
-	return new NetPacket(data, data_length,
-	                     this->getName(), this->getEtherType(),
-	                     qos, src_tal_id, dst_tal_id, header_length);
+	return std::unique_ptr<NetPacket>{new NetPacket(data, data_length,
+	                                  this->getName(), this->getEtherType(),
+	                                  qos, src_tal_id, dst_tal_id, header_length)};
 }
 
 size_t Gse::PacketHandler::getLength(const unsigned char *data) const
@@ -1314,19 +1328,17 @@ size_t Gse::PacketHandler::getLength(const unsigned char *data) const
 	return length;
 }
 
-bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
-                                  NetPacket **data, NetPacket **remaining_data) const
+bool Gse::PacketHandler::getChunk(std::unique_ptr<NetPacket> packet,
+                                  std::size_t remaining_length,
+                                  std::unique_ptr<NetPacket>& data,
+                                  std::unique_ptr<NetPacket>& remaining_data) const
 {
 	gse_vfrag_t *first_frag;
 	gse_vfrag_t *second_frag;
 	gse_status_t status;
 	uint8_t frag_id;
 
-	// initialize data and remaining_data
-	*data = NULL;
-	*remaining_data = NULL;
-
-	frag_id = Gse::getFragId(packet);
+	frag_id = Gse::getFragId(packet.get());
 
 	LOG(this->log, LEVEL_DEBUG,
 	    "Create a virtual fragment with GSE packet to "
@@ -1358,20 +1370,20 @@ bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 		LOG(this->log, LEVEL_INFO,
 		    "Unable to refragment GSE packet (%s)\n",
 		    gse_get_status(status));
-		// the packet cannot be encapsulated, copy it on data but return false
-		// (use case 3)
-		*remaining_data = packet;
-		goto keep;
+		// the packet cannot be encapsulated, copy it in
+    // remaining data and return true (use case 3)
+		remaining_data = std::move(packet);
+		goto success;
 	}
 	else if(status == GSE_STATUS_REFRAG_UNNECESSARY)
 	{
 		LOG(this->log, LEVEL_DEBUG,
 		    "no need to refragment, the whole packet can be "
 		    "encapsulated\n");
-		// the whole packet can be encapsulated, copy it in data and return true
-		// (use case 1)
-		*data = packet;
-		goto keep;
+		// the whole packet can be encapsulated, copy it in
+    // data and return true (use case 1)
+		data = std::move(packet);
+		goto success;
 	}
 	else if(status == GSE_STATUS_OK)
 	{
@@ -1387,27 +1399,33 @@ bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 		    "%zu bytes long, second fragment is %zu bytes long\n",
 		    gse_get_vfrag_length(first_frag), gse_get_vfrag_length(second_frag));
 		// add the first fragment to the BB frame
-		*data = this->build(gse_first,
-		                    gse_get_vfrag_length(first_frag),
-		                    packet->getQos(),
-		                    packet->getSrcTalId(), packet->getDstTalId());
-		if(*data == NULL)
+    try
+    {
+      data = this->build(gse_first,
+                         gse_get_vfrag_length(first_frag),
+                         packet->getQos(),
+                         packet->getSrcTalId(), packet->getDstTalId());
+    }
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "failed to create the first fragment\n");
-			goto free;
+			goto error;
 		}
 
 		// create a new NetPacket containing the second fragment
-		*remaining_data = this->build(gse_second,
-		                              gse_get_vfrag_length(second_frag),
-		                              packet->getQos(),
-		                              packet->getSrcTalId(), packet->getDstTalId());
-		if(*remaining_data == NULL)
+    try
+    {
+      remaining_data = this->build(gse_second,
+		                               gse_get_vfrag_length(second_frag),
+		                               packet->getQos(),
+		                               packet->getSrcTalId(), packet->getDstTalId());
+    }
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "failed to create the second fragment\n");
-			goto free_data;
+			goto error;
 		}
 	}
 	else
@@ -1418,29 +1436,26 @@ bool Gse::PacketHandler::getChunk(NetPacket *packet, size_t remaining_length,
 		goto error;
 	}
 
-	if(second_frag != NULL)
-	{
-		gse_free_vfrag(&second_frag);
-	}
-	gse_free_vfrag(&first_frag);
-	delete packet;
-	return true;
-
-keep:
-	if(second_frag != NULL)
+success:
+	if(second_frag != nullptr)
 	{
 		gse_free_vfrag(&second_frag);
 	}
 	gse_free_vfrag(&first_frag);
 	return true;
 
-free_data:
-	delete *data;
-free:
-	gse_free_vfrag(&first_frag);
-	gse_free_vfrag(&second_frag);
 error:
-	delete packet;
+	delete data.release();
+
+  if (second_frag != nullptr)
+  {
+    gse_free_vfrag(&second_frag);
+  }
+  if (first_frag != nullptr)
+  {
+    gse_free_vfrag(&first_frag);
+  }
+
 	return false;
 }
 
@@ -1624,7 +1639,7 @@ bool Gse::PacketHandler::getPacketForHeaderExtensions(const std::vector<NetPacke
 }
 
 bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
-                                             NetPacket** new_packet,
+                                             std::unique_ptr<NetPacket>& new_packet,
                                              tal_id_t tal_id_src,
                                              tal_id_t tal_id_dst,
                                              std::string callback_name,
@@ -1710,11 +1725,14 @@ bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
 
 	Data gse_frag(gse_get_vfrag_start(vfrag),
 	              gse_get_vfrag_length(vfrag));
-	(*new_packet) = this->build(gse_frag,
-	                            gse_get_vfrag_length(vfrag),
-	                            /* qos and tal_ids are read from label */
-	                            0, 0, packet->getDstTalId());
-	if((*new_packet) == NULL)
+  try
+  {
+    new_packet = this->build(gse_frag,
+	                           gse_get_vfrag_length(vfrag),
+	                           /* qos and tal_ids are read from label */
+	                           0, 0, packet->getDstTalId());
+  }
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR, 
 		    "failed to create the GSE packet with extensions\n");
@@ -1728,7 +1746,7 @@ bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
 	return true;
 }
 
-bool Gse::PacketHandler::getHeaderExtensions(const NetPacket *packet,
+bool Gse::PacketHandler::getHeaderExtensions(const std::unique_ptr<NetPacket>& packet,
                                              std::string callback_name,
                                              void *opaque)
 {

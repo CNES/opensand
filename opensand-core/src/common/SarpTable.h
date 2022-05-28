@@ -35,11 +35,10 @@
 #define SARP_TABLE_H
 
 
-#include "OpenSandCore.h"
-
-#include <list>
 #include <vector>
 #include <memory>
+
+#include "OpenSandCore.h"
 
 
 class MacAddress;
@@ -47,11 +46,11 @@ class OutputLog;
 
 
 /// SARP table entry for Ethernet
-typedef struct
+struct SarpEthEntry
 {
-	MacAddress *mac;
+  std::unique_ptr<MacAddress> mac;
 	tal_id_t tal_id;
-} sarpEthEntry;
+};
 
 
 /**
@@ -64,9 +63,7 @@ class SarpTable
 	static constexpr unsigned int SARP_MAX = 50;
 
 	unsigned int max_entries;    ///< maximum number of entries in SARP table
-	// TODO we have only one of these two list that is used each time so we
-	//      need only one of these
-	std::list<sarpEthEntry *> eth_sarp; ///< The Ethernet entries in SARP table
+	std::vector<SarpEthEntry> eth_sarp; ///< The Ethernet entries in SARP table
 	tal_id_t default_dest;  ///< the default terminal ID if no entry is found
 
  protected:
@@ -74,7 +71,6 @@ class SarpTable
 	std::shared_ptr<OutputLog> log_sarp;	
 
  public:
-
 	/**
 	 * Build a SARP table
 	 *
@@ -96,7 +92,7 @@ class SarpTable
 	 * @return true if the entry was successfully added (the table was
 	 *         not full), false otherwise
 	 */
-	bool add(MacAddress *mac_address, tal_id_t tal);
+	bool add(std::unique_ptr<MacAddress> mac_address, tal_id_t tal);
 
 	/**
 	 * Get the tal ID associated with the MAC address in the SARP table
@@ -123,7 +119,7 @@ class SarpTable
 	 * @param dlft  the default terminal ID
 	 */
 	void setDefaultTal(tal_id_t dflt);
-
 };
+
 
 #endif

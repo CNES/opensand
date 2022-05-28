@@ -86,7 +86,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	auto Conf = OpenSandModelConf::Get();
 	int real_mod = 0;     // real modcod of the receiver
 
-	std::vector<NetPacket *> decap_packets;
+	std::vector<std::unique_ptr<NetPacket>> decap_packets;
 	bool partial_decap = false;
 
 	*burst = NULL;
@@ -200,11 +200,11 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	for (auto&& packet : decap_packets)
 	{
 		// add the packet to the burst of packets
-		(*burst)->add(packet);
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "%s packet (%zu bytes) added to burst\n",
 		    this->packet_handler->getName().c_str(),
 		    packet->getTotalLength());
+		(*burst)->add(std::move(packet));
 	}
 
 	// release buffer (data is now saved in NetPacket objects)

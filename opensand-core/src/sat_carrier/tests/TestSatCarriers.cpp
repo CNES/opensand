@@ -61,6 +61,7 @@
 #include <errno.h>
 
 #include <opensand_rt/MessageEvent.h>
+#include <opensand_rt/NetSocketEvent.h>
 
 
 #define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]

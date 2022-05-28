@@ -37,9 +37,10 @@
 #ifndef TRAFFICCATEGORY_H
 #define TRAFFICCATEGORY_H
 
-#include "OpenSandCore.h"
 
 #include <string>
+
+#include "OpenSandCore.h"
 
 
 /**

@@ -82,7 +82,7 @@ BlockEncap::~BlockEncap()
 void BlockEncap::generateConfiguration()
 {
 	Plugin::generatePluginsConfiguration(nullptr,
-	                                     encapsulation_plugin,
+	                                     PluginType::Encapsulation,
 	                                     "encapsulation_scheme",
 	                                     "Encapsulation Scheme");
 }

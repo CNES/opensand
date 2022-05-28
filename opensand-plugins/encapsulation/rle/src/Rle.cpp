@@ -275,35 +275,31 @@ NetBurst *Rle::Context::encapsulate(NetBurst *burst,
 	}
 
 	// Encapsulate each packet of the burst
-	for(NetBurst::iterator it = burst->begin();
-		it != burst->end();
-		++it)
+	for(auto&& packet : *burst)
 	{
-		NetPacket *packet;
-		NetPacket *encap_packet;
+    try
+    {
+      // Create a new packet (already encapsulated)
+      std::unique_ptr<NetPacket> encap_packet{new NetPacket(packet->getData(),
+                                                            packet->getTotalLength(),
+                                                            this->getName(),
+                                                            this->getEtherType(),
+                                                            packet->getQos(),
+                                                            packet->getSrcTalId(),
+                                                            packet->getDstTalId(),
+                                                            0)};
+      encap_packet->setSpot(packet->getSpot());
 
-		packet = *it;
-
-		// Create a new packet (already encapsulated)
-		encap_packet = new NetPacket(packet->getData(),
-			packet->getTotalLength(),
-			this->getName(),
-			this->getEtherType(),
-			packet->getQos(),
-			packet->getSrcTalId(),
-			packet->getDstTalId(),
-			0);
-		if(!encap_packet)
+      // Add the current encapsulated packet to the encapsulated burst
+      encap_burst->add(std::move(encap_packet));
+    }
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,
 				"cannot create a burst of packets, "
 				"drop the packet\n");
 			continue;
 		}
-		encap_packet->setSpot(packet->getSpot());
-
-		// Add the current encapsulated packet to the encapsulated burst
-		encap_burst->add(encap_packet);
 	}
 	delete burst;
 	return encap_burst;
@@ -325,16 +321,9 @@ NetBurst *Rle::Context::deencapsulate(NetBurst *burst)
 	}
 
 	// Decapsulate each packet of the burst
-	for(NetBurst::iterator it = burst->begin();
-		it != burst->end();
-		++it)
+	for(auto&& packet : *burst)
 	{
-		NetPacket *packet;
-		std::vector<NetPacket *> decap_packets;
-		std::vector<NetPacket *>::iterator pkt_it;
-
 		// Get and check the current packet
-		packet = *it;
 		if(packet->getType() != this->getEtherType())
 		{
 			LOG(this->log, LEVEL_ERROR,
@@ -367,7 +356,7 @@ NetBurst *Rle::Context::flushAll()
 	return NULL;
 }
 
-bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
+bool Rle::Context::decapNextPacket(const std::unique_ptr<NetPacket>& packet, NetBurst *burst)
 {
 	uint8_t src_tal_id, dst_tal_id, qos;
 	uint8_t label[LABEL_SIZE];
@@ -474,7 +463,7 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 	for(unsigned int i = 0; i< sdus_count; ++i)
 	{
 		struct rle_sdu sdu = sdus[i];
-		NetPacket *decap_packet;
+    std::unique_ptr<NetPacket> decap_packet;
 
 		LOG(this->log, LEVEL_DEBUG,
 		    "Build decapsulated packet %u/%u (len=%u bytes)",
@@ -488,9 +477,12 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 		}
 
 		// Create packet from SDU
-		decap_packet = this->current_upper->build(Data(sdu.buffer, sdu.size), sdu.size,
-		                                          qos, src_tal_id, dst_tal_id);
-		if(!decap_packet)
+    try
+    {
+      decap_packet = this->current_upper->build(Data(sdu.buffer, sdu.size), sdu.size,
+                                                qos, src_tal_id, dst_tal_id);
+    }
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "RLE failed to create decapsulated packet\n");
@@ -498,7 +490,7 @@ bool Rle::Context::decapNextPacket(NetPacket *packet, NetBurst *burst)
 		}
 
 		// Add SDU to decapsulated packets list
-		burst->add(decap_packet);
+		burst->add(std::move(decap_packet));
 		delete[] sdus[i].buffer;
 		sdus[i].buffer = NULL;
 		sdus[i].size = 0;
@@ -561,11 +553,11 @@ bool Rle::PacketHandler::init()
 	return checkRleConf(this->log, this->rle_conf);
 }
 
-NetPacket *Rle::PacketHandler::build(const Data &data,
-                                     size_t data_length,
-                                     uint8_t qos,
-                                     uint8_t src_tal_id,
-                                     uint8_t dst_tal_id) const
+std::unique_ptr<NetPacket> Rle::PacketHandler::build(const Data &data,
+                                                     std::size_t data_length,
+                                                     uint8_t qos,
+                                                     uint8_t src_tal_id,
+                                                     uint8_t dst_tal_id) const
 {
 	// Check payload length
 	if(data_length < LABEL_SIZE)
@@ -573,20 +565,19 @@ NetPacket *Rle::PacketHandler::build(const Data &data,
 		LOG(this->log, LEVEL_ERROR,
 		    "Payload length (%zu bytes) is lower than RLE label length (%u bytes)",
 		    data_length, LABEL_SIZE);
-		return NULL;
+		throw std::bad_alloc();
 	}
 
-	return new NetPacket(data, data_length,
-	                     this->getName(), this->getEtherType(),
-	                     qos, src_tal_id, dst_tal_id, 0);
+	return std::unique_ptr<NetPacket>{new NetPacket{data, data_length,
+	                                                this->getName(), this->getEtherType(),
+	                                                qos, src_tal_id, dst_tal_id, 0}};
 }
 
-size_t Rle::PacketHandler::getLength(const unsigned char *UNUSED(data)) const
+std::size_t Rle::PacketHandler::getLength(const unsigned char *) const
 {
 	LOG(this->log, LEVEL_ERROR,
 		"The %s getLength method will never be called\n",
 		this->getName().c_str());
-	assert(0);
 	return 0;
 }
 
@@ -843,19 +834,21 @@ encap_end:
 }
 
 bool Rle::PacketHandler::getEncapsulatedPackets(NetContainer *packet,
-	bool &partial_decap,
-	std::vector<NetPacket *> &decap_packets,
-	unsigned int UNUSED(decap_packet_count))
+                                                bool &partial_decap,
+                                                std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+                                                unsigned int)
 {
-	NetPacket *decap_packet;
-
 	// Set default
 	partial_decap = false;
 
 	// Build packet
-	decap_packet = this->build(packet->getPayload(), packet->getPayloadLength(),
-		0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
-	if(!decap_packet)
+  std::unique_ptr<NetPacket> decap_packet;
+  try
+  {
+    decap_packet = this->build(packet->getPayload(), packet->getPayloadLength(),
+                               0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
+  }
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
 			"cannot create one %s packet (length = %zu bytes, payload length = %zu bytes)\n",
@@ -864,18 +857,19 @@ bool Rle::PacketHandler::getEncapsulatedPackets(NetContainer *packet,
 	}
 	
 	// Add the packet to the list
-	decap_packets.push_back(decap_packet);
+	decap_packets.push_back(std::move(decap_packet));
 	
 	return true;
 }
 
-bool Rle::PacketHandler::getChunk(NetPacket *UNUSED(packet), size_t UNUSED(remaining_length),
-                                  NetPacket **UNUSED(data), NetPacket **UNUSED(remaining_data)) const
+bool Rle::PacketHandler::getChunk(std::unique_ptr<NetPacket>,
+                                  std::size_t,
+		                              std::unique_ptr<NetPacket>&,
+                                  std::unique_ptr<NetPacket>&) const
 {
 	LOG(this->log, LEVEL_ERROR,
-		"The %s getChunk method will never be called\n",
+		"The %s getChunk method should never be called\n",
 		this->getName().c_str());
-	assert(0);
 	return false;
 }
 
@@ -905,6 +899,39 @@ bool Rle::PacketHandler::getQos(const Data &data, qos_t &qos) const
 
 	qos = label[2];
 	return true;
+}
+
+
+bool Rle::PacketHandler::getPacketForHeaderExtensions(const std::vector<NetPacket*>&, NetPacket **)
+{
+	LOG(this->log, LEVEL_ERROR,
+		"The %s getPacketForHeaderExtensions method should never be called\n",
+		this->getName().c_str());
+	return false;
+}
+
+bool Rle::PacketHandler::setHeaderExtensions(const NetPacket*,
+                                             std::unique_ptr<NetPacket>&,
+                                             tal_id_t,
+                                             tal_id_t,
+                                             std::string,
+                                             void *)
+{
+	LOG(this->log, LEVEL_ERROR,
+		"The %s setHeaderExtensions method should never be called\n",
+		this->getName().c_str());
+	return false;
+}
+
+
+bool Rle::PacketHandler::getHeaderExtensions(const std::unique_ptr<NetPacket>&,
+                                             std::string,
+                                             void *)
+{
+	LOG(this->log, LEVEL_ERROR,
+		"The %s getHeaderExtensions method should never be called\n",
+		this->getName().c_str());
+	return false;
 }
 
 // Static methods

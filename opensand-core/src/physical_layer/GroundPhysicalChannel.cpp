@@ -79,8 +79,8 @@ void GroundPhysicalChannel::generateConfiguration()
 	auto downlink = Conf->getOrCreateComponent("downlink_attenuation", "DownLink Attenuation", conf);
 	downlink->addParameter("clear_sky", "Clear Sky Condition", types->getType("double"))->setUnit("dB");
 
-	Plugin::generatePluginsConfiguration(uplink, attenuation_plugin, "attenuation_type", "Attenuation Type");
-	Plugin::generatePluginsConfiguration(downlink, attenuation_plugin, "attenuation_type", "Attenuation Type");
+	Plugin::generatePluginsConfiguration(uplink, PluginType::Attenuation, "attenuation_type", "Attenuation Type");
+	Plugin::generatePluginsConfiguration(downlink, PluginType::Attenuation, "attenuation_type", "Attenuation Type");
 }
 
 void GroundPhysicalChannel::setSatDelay(SatDelayPlugin *satdelay)

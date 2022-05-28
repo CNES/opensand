@@ -37,23 +37,21 @@
 #define SAT_CARRIER_UDP_CHANNEL_H
 
 
-#include "OpenSandCore.h"
-
-#include <opensand_rt/Rt.h>
-#include <opensand_rt/NetSocketEvent.h>
-
-#include <vector>
-#include <map>
-
-#include <sys/types.h>
 #include <netinet/in.h>
-#include <linux/if_packet.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
+
+#include <map>
+#include <string>
+#include <memory>
+#include <vector>
+
+#include <opensand_rt/Types.h>
+
+#include "OpenSandCore.h"
 
 
 class UdpStack;
 class OutputLog;
+class NetSocketEvent;
 
 
 /*
@@ -93,9 +91,10 @@ class UdpChannel
 	 * @param length      The length of the data
 	 * @return true on success, false otherwise
 	 */
-	bool send(const unsigned char *data, size_t length);
+	bool send(const unsigned char *data, std::size_t length);
 	int receive(NetSocketEvent *const event,
-	            unsigned char **buf, size_t &data_len);
+	            unsigned char **buf,
+	            std::size_t &data_len);
 
 	int getChannelFd();
 	
@@ -122,7 +121,6 @@ class UdpChannel
 	                 uint8_t counter, UdpStack *stack);
 
  protected:
-
 	/// the spot id
 	spot_id_t spot_id;
 
@@ -230,10 +228,7 @@ class UdpStack: std::vector<std::pair<unsigned char *, size_t> >
 	 * @brief Get the packet counter
 	 * @return the counter
 	 */
-	uint8_t getCounter()
-	{
-		return this->counter;
-	};
+	inline uint8_t getCounter() const { return this->counter; };
 
 	/**
 	 * @brief Reset the stack
@@ -241,7 +236,6 @@ class UdpStack: std::vector<std::pair<unsigned char *, size_t> >
 	void reset();
 
  private:
-
 	/// A counter that increase each time we receive a packet and decrease each time
 	//  we handle a packet
 	uint8_t counter;

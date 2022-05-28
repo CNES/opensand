@@ -94,7 +94,7 @@ class Ethernet: public LanAdaptationPlugin
 		bool init();
 		NetBurst *encapsulate(NetBurst *burst, std::map<long, int> &(time_contexts));
 		NetBurst *deencapsulate(NetBurst *burst);
-		char getLanHeader(unsigned int pos, NetPacket *packet);
+		char getLanHeader(unsigned int pos, const std::unique_ptr<NetPacket>& packet);
 		bool handleTap();
 		void updateStats(unsigned int period);
 		bool initLanAdaptationContext(
@@ -111,7 +111,7 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param evc_id     The id of the EVC if found
 		 * @return the Ethernet frame
 		 */
-		NetPacket *createEthFrameData(NetPacket *packet, uint8_t &evc_id);
+		std::unique_ptr<NetPacket> createEthFrameData(const std::unique_ptr<NetPacket>& packet, uint8_t &evc_id);
 
 		/**
 		 * @brief create an Ethernet frame from IP data
@@ -129,7 +129,7 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param desired_frame_type The frame type we want to build
 		 * @return the Ethernet frame
 		 */
-		NetPacket *createEthFrameData(Data data,
+    std::unique_ptr<NetPacket> createEthFrameData(Data data,
 		                              MacAddress mac_src, MacAddress mac_dst,
 		                              uint16_t ether_type,
 		                              uint16_t q_tci, uint16_t ad_tci,
@@ -252,11 +252,11 @@ class Ethernet: public LanAdaptationPlugin
 			return length;
 		}
 
-		NetPacket *build(const Data &data,
-		                 size_t data_length,
-		                 uint8_t qos,
-		                 uint8_t src_tal_id,
-		                 uint8_t dst_tal_id) const;
+    std::unique_ptr<NetPacket> build(const Data &data,
+		                                 std::size_t data_length,
+		                                 uint8_t qos,
+		                                 uint8_t src_tal_id,
+		                                 uint8_t dst_tal_id) const override;
 
 	};
 

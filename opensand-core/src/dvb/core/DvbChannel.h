@@ -764,7 +764,6 @@ class DvbFmt
 	                        MacFifoElement *elem,
 	                        DvbFifo *fifo,
 	                        NetPacket* packet,
-	                        NetPacket **extension_pkt,
 	                        tal_id_t source,
 	                        tal_id_t dest,
 	                        std::string extension_name,

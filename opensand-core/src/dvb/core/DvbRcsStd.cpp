@@ -71,7 +71,7 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
                            NetBurst **burst)
 {
 
-	std::vector<NetPacket *> decap_packets;
+	std::vector<std::unique_ptr<NetPacket>> decap_packets;
 	bool partial_decap = false;
 
 	// sanity check
@@ -138,9 +138,9 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 
 	// get encapsulated packets received from lower layer
 	if(!this->packet_handler->getEncapsulatedPackets(dvb_rcs_frame,
-		partial_decap,
-		decap_packets,
-		dvb_rcs_frame->getNumPackets()))
+	                                                 partial_decap,
+	                                                 decap_packets,
+	                                                 dvb_rcs_frame->getNumPackets()))
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "cannot create one %s packet\n",
@@ -163,11 +163,11 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	for (auto&& packet : decap_packets)
 	{
 		// add the packet to the burst of packets
-		(*burst)->add(packet);
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "%s packet (%zu bytes) added to burst\n",
 		    this->packet_handler->getName().c_str(),
 		    packet->getTotalLength());
+		(*burst)->add(std::move(packet));
 	}
 
 	// release buffer (data is now saved in NetPacket objects)

@@ -1314,13 +1314,12 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				}
 
 				// Slotted Aloha
-				SlottedAlohaPacketData *sa_packet{nullptr}; // Slotted Aloha packet
 				if (this->saloha && this->dvb_fifos[fifo_priority]->getAccessType() == access_saloha)
 				{
-					sa_packet = this->saloha->addSalohaHeader(packet,
-					                                          sa_offset++,
-					                                          sa_burst_size);
-					if(!sa_packet)
+					packet = this->saloha->addSalohaHeader(std::move(packet),
+					                                       sa_offset++,
+					                                       sa_burst_size);
+					if(!packet)
 					{
 						LOG(this->log_saloha, LEVEL_ERROR,
 						    "SF#%u: unable to "
@@ -1337,7 +1336,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				    fifo_priority);
 
 				// store the encapsulation packet in the FIFO
-				if(!this->onRcvEncapPacket(sa_packet ? sa_packet : packet,
+				if(!this->onRcvEncapPacket(std::move(packet),
 				                           this->dvb_fifos[fifo_priority],
 				                           0))
 				{
@@ -1349,13 +1348,11 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 					    "store received encapsulation "
 					    "packet (see previous errors)\n",
 					    this->super_frame_counter);
-					burst->clear();
 					delete burst;
 					return false;
 				}
 
 			}
-			burst->clear(); // avoid deteleting packets when deleting burst
 			delete burst;
 
 			// Cross layer information: if connected to QoS Server, build XML
@@ -1519,7 +1516,6 @@ bool BlockDvbTal::Downward::addCniExt(void)
 			MacFifoElement* elem = (*queue_it);
 			NetPacket *packet = (NetPacket*)elem->getElem();
 			tal_id_t gw = packet->getDstTalId();
-			NetPacket *extension_pkt{nullptr};
 
 			if(gw == this->gw_id &&
 			   this->is_scpc && this->getCniInputHasChanged(this->tal_id))
@@ -1527,7 +1523,6 @@ bool BlockDvbTal::Downward::addCniExt(void)
 				if(!this->setPacketExtension(this->pkt_hdl,
 				                             elem, fifo,
 				                             packet,
-				                             &extension_pkt,
 				                             this->tal_id, gw,
 				                             "encodeCniExt",
 				                             this->super_frame_counter,
@@ -1549,14 +1544,12 @@ bool BlockDvbTal::Downward::addCniExt(void)
 	if(this->is_scpc && this->getCniInputHasChanged(this->tal_id)
 	   && !in_fifo)
 	{
-		NetPacket *extension_pkt{nullptr};
 
 		// set packet extension to this new empty packet
 		if(!this->setPacketExtension(this->pkt_hdl,
 		                             nullptr,
 		                             this->dvb_fifos[0],
 		                             nullptr,
-		                             &extension_pkt,
 		                             this->tal_id ,this->gw_id,
 		                             "encodeCniExt",
 		                             this->super_frame_counter,
@@ -2403,9 +2396,8 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			NetBurst::const_iterator it;
 			if(burst)
 			{
-				for(it = burst->begin(); it != burst->end(); it++)
+				for(auto&& packet : *burst)
 				{
-					const NetPacket *packet = (*it);
 					if(packet->getDstTalId() == this->tal_id && this->is_scpc)
 					{
 						uint32_t opaque = 0;

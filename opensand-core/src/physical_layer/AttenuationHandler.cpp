@@ -64,10 +64,10 @@ void AttenuationHandler::generateConfiguration()
 	auto conf = Conf->getOrCreateComponent("physical_layer", "Physical Layer", "The Physical layer configuration");
 
 	auto minimal = Conf->getOrCreateComponent("minimal_condition", "Minimal Condition", conf);
-	Plugin::generatePluginsConfiguration(minimal, minimal_plugin, "minimal_condition_type", "Minimal Condition Type");
+	Plugin::generatePluginsConfiguration(minimal, PluginType::Minimal, "minimal_condition_type", "Minimal Condition Type");
 
 	auto error = Conf->getOrCreateComponent("error_insertion", "Error Insertion", conf);
-	Plugin::generatePluginsConfiguration(error, error_plugin, "error_insertion_type", "Error Insertion Type");
+	Plugin::generatePluginsConfiguration(error, PluginType::Error, "error_insertion_type", "Error Insertion Type");
 }
 
 bool AttenuationHandler::initialize(std::shared_ptr<OutputLog> log_init)

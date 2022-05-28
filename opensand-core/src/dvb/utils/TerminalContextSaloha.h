@@ -44,11 +44,12 @@
 #include <map>
 
 
-typedef enum
+enum class PropagateState
 {
-	no_prop,
-	prop,
-} prop_state_t;
+	NoPropagation,
+	Propagation,
+};
+
 
 /**
  * @class TerminalContextSaloha
@@ -76,7 +77,7 @@ class TerminalContextSaloha: public TerminalContext
 	 * @return no_prop  if no PDU can be propagated,
 	 *         prop     if PDU can be propagated
 	 */
-	prop_state_t addPacket(SlottedAlohaPacketData *packet, saloha_packets_data_t &pdu);
+	PropagateState addPacket(std::unique_ptr<SlottedAlohaPacketData> packet, saloha_packets_data_t &pdu);
 
   protected:
 

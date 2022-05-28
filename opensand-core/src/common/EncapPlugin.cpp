@@ -83,14 +83,9 @@ EncapPlugin::EncapPacketHandler::EncapPacketHandler(EncapPlugin &pl):
 
 EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
 {
-	std::map<NetPacket *, NetPacket *>::iterator it;
-
-	for(it = this->encap_packets.begin();
-		it != this->encap_packets.end();
-		++it)
+	for(auto&& it : this->encap_packets)
 	{
-		delete it->first;
-		delete it->second;
+		delete it.first;
 	}
 	this->encap_packets.clear();
 }
@@ -103,10 +98,12 @@ bool EncapPlugin::EncapPacketHandler::init()
 	return true;
 }
 
+/*
 std::list<std::string> EncapPlugin::EncapPacketHandler::getCallback()
 {
 	return this->callback_name;
 }
+*/
 
 bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
                                                       std::size_t remaining_length,
@@ -114,40 +111,37 @@ bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
                                                       bool &partial_encap,
                                                       NetPacket **encap_packet)
 {
-	bool ret;
-	NetPacket *packet_to_encap;
-	NetPacket *data;
-	NetPacket *remaining_data;
-	std::map<NetPacket *, NetPacket *>::iterator it;
-
 	// Set default returned values
 	partial_encap = false;
-	*encap_packet = NULL;
+	*encap_packet = nullptr;
 
 	// Check there is a previous encapsulation of the packet
-	it = this->encap_packets.find(packet);
+  std::unique_ptr<NetPacket> packet_to_encap;
+	auto it = this->encap_packets.find(packet);
 	if(it == this->encap_packets.end())
 	{
-		packet_to_encap = new NetPacket(packet);
+		packet_to_encap = std::unique_ptr<NetPacket>{new NetPacket(packet)};
 	}
 	else
 	{
-		packet_to_encap = new NetPacket(it->second);
+		packet_to_encap = std::move(it->second);
 	}
 
 	// get the part of the packet to send
-	ret = this->getChunk(packet_to_encap, remaining_length,
-		&data, &remaining_data);
-	if(!ret || (!data && !remaining_data))
+  std::unique_ptr<NetPacket> data;
+  std::unique_ptr<NetPacket> remaining_data;
+	bool success = this->getChunk(std::move(packet_to_encap),
+                                remaining_length,
+                                data, remaining_data);
+	if(!success || (!data && !remaining_data))
 	{
-		delete packet_to_encap;
 		return false;
 	}
 
 	// Set the returned encap packet
 	if(data)
 	{
-		*encap_packet = data;
+		*encap_packet = data.release();
 	}
 
 	// Check the remaining data
@@ -157,30 +151,30 @@ bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
 		if(it == this->encap_packets.end())
 		{
 			// Insert the remaining data
-			this->encap_packets.insert(std::make_pair(packet, remaining_data));
+			this->encap_packets.insert({packet, std::move(remaining_data)});
 		}
 		else
 		{
 			// Modify the remaining data
-			delete it->second;
-			it->second = remaining_data;
+			it->second = std::move(remaining_data);
 		}
 	}
 	else if(it != this->encap_packets.end())
 	{
 		// Remove the remaining data
-		delete it->second;
+    delete it->first;
 		this->encap_packets.erase(it);
 	}
+
 	return true;
 }
 
 bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packet,
                                                              bool &partial_decap,
-                                                             std::vector<NetPacket *> &decap_packets,
+                                                             std::vector<std::unique_ptr<NetPacket>> &decap_packets,
                                                              unsigned int decap_packets_count)
 {
-	std::vector<NetPacket *> packets;
+	std::vector<std::unique_ptr<NetPacket>> packets{};
 	std::size_t previous_length = 0;
 
 	// Set the default returned values
@@ -189,85 +183,48 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packe
 	// Sanity check
 	if(decap_packets_count <= 0)
 	{
-		decap_packets = std::vector<NetPacket *>();
+		decap_packets = std::move(packets);
 		LOG(this->log, LEVEL_INFO,
 			"No packet to decapsulate\n");
 		return true;
 	}
+
 	LOG(this->log, LEVEL_DEBUG,
 		"%u packet(s) to decapsulate\n",
 		decap_packets_count);
-
 	for(unsigned int i = 0; i < decap_packets_count; ++i)
 	{
-		NetPacket *current;
-		std::size_t current_length;
-
 		// Get the current packet length
-		current_length = this->getLength(packet->getPayload(previous_length).c_str());
+    std::size_t current_length = this->getLength(packet->getPayload(previous_length).c_str());
 		if(current_length <= 0)
 		{
 			LOG(this->log, LEVEL_ERROR,
 				"cannot create one %s packet (no data)\n",
 				this->getName().c_str(), current_length);
-			goto destroy_packets;
+      return false;
 		}
 
 		// Get the current packet
-		current = this->build(packet->getPayload(previous_length), current_length,
-			0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
-		if(!current)
+    std::unique_ptr<NetPacket> current;
+    try
+    {
+      current = this->build(packet->getPayload(previous_length), current_length,
+                            0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
+    }
+    catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,
 				"cannot create one %s packet (length = %zu bytes)\n",
 				this->getName().c_str(), current_length);
-			goto destroy_packets;
+      return false;
 		}
 
 		// Add the current packet to decapsulated packets
-		packets.push_back(current);
+		packets.push_back(std::move(current));
 		previous_length += current_length;
 	}
 
 	// Set returned decapsulated packets
-	decap_packets = packets;
-
+	decap_packets = std::move(packets);
 	return true;
-
-destroy_packets:
-	for(std::vector<NetPacket *>::iterator it = packets.begin();
-		it != packets.end();
-		++it)
-	{
-		delete *it;
-	}
-	packets.clear();
-	return false;
-}
-
-
-bool EncapPlugin::EncapPacketHandler::getPacketForHeaderExtensions(const std::vector<NetPacket*>&, NetPacket **)
-{
-	// Must be implemented in actual plugin
-	assert(0);
-}
-
-bool EncapPlugin::EncapPacketHandler::setHeaderExtensions(const NetPacket*,
-                                                          NetPacket**,
-                                                          tal_id_t,
-                                                          tal_id_t,
-                                                          std::string,
-                                                          void *)
-{
-	// Must be implemented in actual plugin
-	assert(0);
-}
-
-
-bool EncapPlugin::EncapPacketHandler::getHeaderExtensions(const NetPacket *,
-                                                          std::string,
-                                                          void *)
-{
-	// Must be implemented in actual plugin
-	assert(0);
 }

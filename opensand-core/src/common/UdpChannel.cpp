@@ -33,17 +33,20 @@
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
-
-#include "UdpChannel.h"
-
-#include <opensand_output/Output.h>
-
 #include <cstring>
 #include <stdlib.h>
-#include <strings.h>
-#include <arpa/inet.h>
-#include <errno.h>
 #include <unistd.h>
+#include <errno.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <linux/if_packet.h>
+
+#include <opensand_output/Output.h>
+#include <opensand_rt/NetSocketEvent.h>
+
+#include "UdpChannel.h"
 
 
 /**

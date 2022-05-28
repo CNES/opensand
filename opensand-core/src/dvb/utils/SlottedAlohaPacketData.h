@@ -40,6 +40,8 @@
 #include "OpenSandCore.h"
 
 #include <stdlib.h>
+#include <memory>
+
 
 typedef uint32_t saloha_pdu_id_t;
 
@@ -232,7 +234,7 @@ class SlottedAlohaPacketData: public SlottedAlohaPacket
 };
 
 /// A list of Slotted Aloha Data Packets
-typedef std::vector<SlottedAlohaPacketData *> saloha_packets_data_t;
+typedef std::vector<std::unique_ptr<SlottedAlohaPacketData>> saloha_packets_data_t;
 
 #endif
 

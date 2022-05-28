@@ -881,7 +881,7 @@ bool SpotDownward::handleSalohaAcks(const std::list<DvbFrame *> *ack_frames)
 }
 
 
-bool SpotDownward::handleEncapPacket(NetPacket *packet)
+bool SpotDownward::handleEncapPacket(std::unique_ptr<NetPacket> packet)
 {
 	qos_t fifo_priority = packet->getQos();
   std::string cat_label;
@@ -931,7 +931,8 @@ bool SpotDownward::handleEncapPacket(NetPacket *packet)
 		fifo_priority = this->default_fifo_id;
 	}
 
-	if(!this->pushInFifo(fifos_it->second[fifo_priority], packet, 0))
+  // TODO: lift off the release call in favor of an std::move
+	if(!this->pushInFifo(fifos_it->second[fifo_priority], packet.release(), 0))
 	{
 		// a problem occured, we got memory allocation error
 		// or fifo full and we won't empty fifo until next
@@ -1385,7 +1386,6 @@ bool SpotDownward::addCniExt(void)
 				MacFifoElement* elem = (*queue_it);
 				NetPacket *packet = (NetPacket*)elem->getElem();
 				tal_id_t tal_id = packet->getDstTalId();
-				NetPacket *extension_pkt = NULL;
 
         std::list<tal_id_t>::iterator it = std::find(this->is_tal_scpc.begin(),
 				                                        this->is_tal_scpc.end(),
@@ -1398,7 +1398,6 @@ bool SpotDownward::addCniExt(void)
 					if(!this->setPacketExtension(this->pkt_hdl,
 						                         elem, fifo,
 						                         packet,
-						                         &extension_pkt,
 						                         this->mac_id,
 						                         tal_id,
 						                         "encodeCniExt",
@@ -1433,7 +1432,6 @@ bool SpotDownward::addCniExt(void)
 		if(it_scpc != this->is_tal_scpc.end() && it == list_st.end()
 		   && this->getCniInputHasChanged(tal_id))
 		{
-			NetPacket *extension_pkt = NULL;
       std::string cat_label;
       std::map<std::string, fifos_t>::iterator fifos_it;
 
@@ -1479,7 +1477,6 @@ bool SpotDownward::addCniExt(void)
 				                         // highest priority fifo
 				                         ((*fifos_it).second)[0],
 				                         nullptr,
-				                         &extension_pkt,
 				                         this->mac_id,
 				                         tal_id,
 				                         "encodeCniExt",

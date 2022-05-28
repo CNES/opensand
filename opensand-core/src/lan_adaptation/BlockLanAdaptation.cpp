@@ -447,7 +447,7 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 					continue;
 				}
 			}
-			forward_burst->add(*burst_it);
+			forward_burst->add(std::move(*burst_it));
 			// remove packet from burst to avoid releasing it as it is now forwarded
 			// erase return next element
 			burst_it = burst->erase(burst_it);
@@ -498,8 +498,6 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 	unsigned char *read_data;
 	const unsigned char *data;
 	unsigned int length;
-	NetPacket *packet;
-	NetBurst *burst;
 
 	// read  data received on tap interface
 	length = event->getSize() - TUNTAP_FLAGS_LEN;
@@ -511,19 +509,20 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 		LOG(this->log_receive, LEVEL_NOTICE,
 		    "packets received from TAP, but link is down "
 		    "=> drop packets\n");
-		free(read_data);
+		delete [] read_data;
 		return false;
 	}
 
 	LOG(this->log_receive, LEVEL_INFO,
 	    "new %u-bytes packet received from network\n", length);
-	packet = new NetPacket(data, length);
-	burst = new NetBurst();
-	burst->add(packet);
-	free(read_data);
+	auto packet = std::unique_ptr<NetPacket>(new NetPacket(data, length));
 	// Learn source_mac address
 	tal_id_t pkt_tal_id_src = packet->getSrcTalId();
-        BlockLanAdaptation::packet_switch->learn(packet->getData(), pkt_tal_id_src);
+  BlockLanAdaptation::packet_switch->learn(packet->getData(), pkt_tal_id_src);
+
+	NetBurst *burst = new NetBurst();
+	burst->add(std::move(packet));
+  delete [] read_data;
 
 	for(lan_contexts_t::iterator iter = this->contexts.begin();
 	    iter != this->contexts.end(); ++iter)

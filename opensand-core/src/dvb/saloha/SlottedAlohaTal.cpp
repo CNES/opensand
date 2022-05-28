@@ -265,31 +265,30 @@ SlottedAlohaTal::~SlottedAlohaTal()
 	delete this->backoff;
 }
 
-SlottedAlohaPacketData *SlottedAlohaTal::addSalohaHeader(NetPacket *encap_packet,
-                                                         uint16_t offset,
-                                                         uint16_t burst_size)
+std::unique_ptr<SlottedAlohaPacketData> SlottedAlohaTal::addSalohaHeader(std::unique_ptr<NetPacket> encap_packet,
+                                                            uint16_t offset,
+                                                            uint16_t burst_size)
 {
-	SlottedAlohaPacketData *sa_packet;
-
-	sa_packet = new SlottedAlohaPacketData(encap_packet->getData(),
-	                                       this->base_id,     // id
-	                                       0,                 // ts - set after initialization
-	                                       offset,            // seq
-	                                       burst_size,        // pdu_nb
-	                                       this->nb_replicas, // nb_replicas
-	                                       this->timeout_saf);
+	auto sa_packet = std::unique_ptr<SlottedAlohaPacketData>(
+      new SlottedAlohaPacketData(encap_packet->getData(),
+	                               this->base_id,     // id
+	                               0,                 // ts - set after initialization
+	                               offset,            // seq
+	                               burst_size,        // pdu_nb
+	                               this->nb_replicas, // nb_replicas
+	                               this->timeout_saf));
 	sa_packet->setSrcTalId(encap_packet->getSrcTalId());
 	sa_packet->setQos(encap_packet->getQos());
 	LOG(this->log_saloha, LEVEL_DEBUG,
 	    "New Slotted ALoha packet of size %zu, source terminal = %u, qos = %u\n",
 	    sa_packet->getTotalLength(), sa_packet->getSrcTalId(), sa_packet->getQos());
-	delete encap_packet;
 	if(offset == (burst_size - 1))
 	{
 		this->base_id++;
 	}
 	return sa_packet;
 }
+
 
 bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 {
@@ -350,16 +349,13 @@ bool SlottedAlohaTal::onRcvFrame(DvbFrame *dvb_frame)
 				    id.c_str());
 				while(packet != this->packets_wait_ack[ids[SALOHA_ID_QOS]].end())
 				{
-					SlottedAlohaPacketData *data_pkt = *packet;
-					saloha_id_t data_id;
-					data_id = data_pkt->getUniqueId();
+					saloha_id_t data_id = (*packet)->getUniqueId();
 					if(id == data_id)
 					{
 						uint16_t cw;
 						LOG(this->log_saloha, LEVEL_DEBUG,
 						    "Packet with ID %s found in packets waiting for ack "
 						    "and removed\n", data_id.c_str());
-						delete data_pkt;
 						this->nb_success++;
 						cw = this->backoff->setReady();
 						this->probe_backoff->put(cw);
@@ -396,7 +392,6 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
                                time_sf_t sf_counter)
 {
 	uint16_t nb_retransmissions;
-	SlottedAlohaPacketData *sa_packet;
   std::map<qos_t, saloha_packets_data_t>::iterator wack_it;
 	saloha_packets_data_t::iterator packet;
 	SlottedAlohaFrame *frame;
@@ -417,12 +412,9 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 	    wack_it != this->packets_wait_ack.end();
 	    ++wack_it)
 	{
-		for(packet = wack_it->second.begin();
-		    packet != wack_it->second.end();
-		    ++packet)
+		for(auto&& packet : wack_it->second)
 		{
-			sa_packet = *packet;
-			sa_packet->decTimeout();
+			packet->decTimeout();
 		}
 	}
 
@@ -443,10 +435,10 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 	    wack_it != this->packets_wait_ack.end();
 	    ++wack_it)
 	{
-		packet = (*wack_it).second.begin();
-		while(packet != (*wack_it).second.end())
+		packet = wack_it->second.begin();
+		while(packet != wack_it->second.end())
 		{
-			sa_packet = *packet;
+			auto& sa_packet = *packet;
 			if(sa_packet->isTimeout())
 			{
 				if(sa_packet->canBeRetransmitted(this->nb_max_retransmissions))
@@ -458,7 +450,7 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 					sa_packet->setTimeout(this->timeout_saf);
 					this->retransmission_packets.insert(
 						this->retransmission_packets.begin() + nb_retransmissions,
-						sa_packet);
+						std::move(sa_packet));
 					nb_retransmissions++;
 				}
 				else
@@ -468,7 +460,6 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 					    "Packet %s lost\n",
 					    sa_packet->getUniqueId().c_str());
 					this->probe_drop[sa_packet->getQos()]->put(1);
-					delete sa_packet;
 					cw = this->backoff->setCollision();
 					this->probe_backoff->put(cw);
 				}
@@ -488,12 +479,15 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 		this->nb_success = 0;
 	}
 
-	frame = new SlottedAlohaFrameData();
-	if(!frame)
+  try
+  {
+    frame = new SlottedAlohaFrameData();
+  }
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_saloha, LEVEL_ERROR,
 		    "failed to create a Slotted Aloha data frame");
-		goto error;
+    return false;
 	}
 	ts = this->getTimeSlots(); // Get random unique time slots
 
@@ -503,11 +497,12 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 	while(packet != this->retransmission_packets.end() &&
 	      nbr_packets_total + (*packet)->getNbReplicas() <= ts.size())
 	{
-		sa_packet = *packet;
+		auto& sa_packet = *packet;
 		qos_t qos = sa_packet->getQos();
+    auto replicas = sa_packet->getNbReplicas();
 
 		if(!this->addPacketInFrames(complete_dvb_frames,
-		                            &frame, sa_packet,
+		                            &frame, std::move(sa_packet),
 		                            i_ts, qos))
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
@@ -519,8 +514,9 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 		// erase goes to next iterator
 		this->retransmission_packets.erase(packet);
 		nbr_packets++;
-		nbr_packets_total += sa_packet->getNbReplicas();
+		nbr_packets_total += replicas;
 	}
+
 	if(nbr_packets)
 	{
 		LOG(this->log_saloha, LEVEL_INFO,
@@ -548,12 +544,12 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 		while(fifo->getCurrentSize() &&
 		      nbr_packets_total + this->nb_replicas <= ts.size())
 		{
-			MacFifoElement *elem;
-			elem = fifo->pop();
-			sa_packet = elem->getElem<SlottedAlohaPacketData>();
+			MacFifoElement *elem = fifo->pop();
+			SlottedAlohaPacketData* sa_packet = elem->getElem<SlottedAlohaPacketData>();
+      auto replicas = sa_packet->getNbReplicas();
 
 			if(!this->addPacketInFrames(complete_dvb_frames,
-			                            &frame, sa_packet,
+			                            &frame, std::unique_ptr<SlottedAlohaPacketData>(sa_packet),
 			                            i_ts, qos))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
@@ -562,7 +558,7 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 			}
 			delete elem;
 			nbr_packets++;
-			nbr_packets_total += sa_packet->getNbReplicas();
+			nbr_packets_total += replicas;
 		}
 		if(nbr_packets)
 		{
@@ -608,8 +604,6 @@ skip:
 		this->probe_drop[(*it).first]->put(0);
 	}
 	return true;
-error:
-	return false;
 }
 
 saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
@@ -665,7 +659,7 @@ saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
 
 bool SlottedAlohaTal::addPacketInFrames(std::list<DvbFrame *> &complete_dvb_frames,
                                         SlottedAlohaFrame **frame,
-                                        SlottedAlohaPacketData *packet,
+                                        std::unique_ptr<SlottedAlohaPacketData> packet,
                                         saloha_ts_list_t::iterator &slot,
                                         qos_t qos)
 {
@@ -687,8 +681,11 @@ bool SlottedAlohaTal::addPacketInFrames(std::list<DvbFrame *> &complete_dvb_fram
 		if((*frame)->getFreeSpace() < packet->getTotalLength())
 		{
 			complete_dvb_frames.push_back((DvbFrame *)(*frame));
-			*frame = new SlottedAlohaFrameData();
-			if(!(*frame))
+      try
+      {
+        *frame = new SlottedAlohaFrameData();
+      }
+			catch (const std::bad_alloc&)
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "failed to create a Slotted Aloha data frame");
@@ -696,7 +693,8 @@ bool SlottedAlohaTal::addPacketInFrames(std::list<DvbFrame *> &complete_dvb_fram
 			}
 		}
 		packet->setTs(replicas[cpt]);
-		if(!(*frame)->addPacket(packet))
+    // This copies packet->data() so we can do with bare pointers for now
+		if(!(*frame)->addPacket(packet.get()))
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "Failed to add packet into Slotted Aloha frame\n");
@@ -704,7 +702,7 @@ bool SlottedAlohaTal::addPacketInFrames(std::list<DvbFrame *> &complete_dvb_fram
 		}
 	}
 
-	this->packets_wait_ack[qos].push_back(packet);
+	this->packets_wait_ack[qos].push_back(std::move(packet));
 
 	return true;
 }

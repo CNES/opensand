@@ -126,10 +126,10 @@ class Plugin
 	 * @param encapsulation  The encapsulation plugin
 	 * @return true on success, false otherwise
 	 */
-	static void getAllEncapsulationPlugins(pl_list_t &encapsulation);
+	static void getAllEncapsulationPlugins(PluginConfigurationContainer &encapsulation);
 
 	static void generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
-	                                         plugin_type_t plugin_type,
+	                                         PluginType plugin_type,
 	                                         const std::string &parameter_id,
 	                                         const std::string &parameter_name,
 	                                         const std::string &parameter_description = "");

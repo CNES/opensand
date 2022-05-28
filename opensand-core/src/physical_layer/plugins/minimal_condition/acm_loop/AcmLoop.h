@@ -86,7 +86,7 @@ class AcmLoop: public MinimalConditionPlugin
 };
 
 
-CREATE(AcmLoop, minimal_plugin, "ACM-Loop");
+CREATE(AcmLoop, PluginType::Minimal, "ACM-Loop");
 
 
 #endif

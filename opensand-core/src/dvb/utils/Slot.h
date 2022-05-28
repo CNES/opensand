@@ -84,7 +84,6 @@ class Slot: public saloha_packets_data_t
 	void release(void);
 
  private:
-
 	/** Carrier id */
 	unsigned int carriers_id;
 
@@ -94,5 +93,3 @@ class Slot: public saloha_packets_data_t
 
 
 #endif
-
-

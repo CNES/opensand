@@ -213,7 +213,7 @@ static void test_encap_and_decap(
 	std::string folder,
 	bool compare)
 {
-	pl_list_t encap_plug;
+	PluginConfigurationContainer encap_plug;
   std::string stack = "";
 
 	for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
@@ -401,7 +401,6 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 	struct pcap_pkthdr header;
 	unsigned char *packet;
 
-	NetPacket *net_packet = NULL;
 	NetBurst *encap_packets;
 	NetBurst *packets = NULL;
 	NetBurst::iterator it;
@@ -476,8 +475,8 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 			header_init = 1;
 		}
 
-		net_packet = new NetPacket(packet + src_link_len,
-		                           header.len - src_link_len);
+    std::unique_ptr<NetPacket> net_packet{new NetPacket{packet + src_link_len,
+		                                                    header.len - src_link_len}};
 		if(net_packet == NULL)
 		{
 			ERROR("[packet #%d] failed to create input packet\n", counter_src);
@@ -498,7 +497,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 			goto close_encap;
 		}
 
-		encap_packets->push_back(net_packet);
+		encap_packets->push_back(std::move(net_packet));
 		DEBUG("[packet #%d] encapsulate in lan contexts\n", counter_src);
 
 		for(lan_contexts_t::iterator ctxit = lan_contexts.begin();
@@ -534,8 +533,11 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 			NetBurst *flushed = (*ctxit)->flushAll();
 			if(flushed && !flushed->empty())
 			{
-				encap_packets->insert(encap_packets->end(), flushed->begin(),
-				                      flushed->end());
+        // TODO: use back_inserter or something
+        for (auto&& p : *flushed)
+        {
+          encap_packets->push_back(std::move(p));
+        }
 			}
 		}
 		if(!encap_packets)

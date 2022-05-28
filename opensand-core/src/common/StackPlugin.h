@@ -38,14 +38,12 @@
 #ifndef STACK_CONTEXT_H
 #define STACK_CONTEXT_H
 
-#include "OpenSandCore.h"
-#include "OpenSandPlugin.h"
-
-#include <algorithm>
-#include <map>
 #include <memory>
-#include <string>
 #include <vector>
+#include <map>
+
+#include "OpenSandPlugin.h"
+#include "OpenSandCore.h"
 
 
 class Data;
@@ -73,12 +71,12 @@ class StackPlugin: public OpenSandPlugin
 		 * @brief StackPacketHandler constructor
 		 */
 		/* Allow packets to access StackPlugin members */
-		StackPacketHandler(StackPlugin &pl): plugin(pl) {};
+		StackPacketHandler(StackPlugin &pl);
 
 		/**
 		 * @brief StackPacketHandler destructor
 		 */
-		virtual ~StackPacketHandler() {};
+		virtual ~StackPacketHandler();
 
 		/**
 		 * @brief get the packet length if constant
@@ -98,11 +96,11 @@ class StackPlugin: public OpenSandPlugin
 		 *
 		 * @return The packet
 		 */
-		virtual NetPacket *build(const Data &data,
-		                         size_t data_length,
-		                         uint8_t qos,
-		                         uint8_t src_tal_id,
-		                         uint8_t dst_tal_id) const = 0;
+		virtual std::unique_ptr<NetPacket> build(const Data &data,
+		                                         std::size_t data_length,
+		                                         uint8_t qos,
+		                                         uint8_t src_tal_id,
+		                                         uint8_t dst_tal_id) const = 0;
 
 		/**
 		 * @brief Get a packet length
@@ -117,14 +115,14 @@ class StackPlugin: public OpenSandPlugin
 		 *
 		 * return The EtherType
 		 */
-		virtual uint16_t getEtherType() const {return plugin.ether_type;};
+		virtual uint16_t getEtherType() const;
 
 		/**
 		 * @brief Get the type of stack
 		 *
 		 * @return the name of the stack
 		 */
-		virtual std::string getName() const {return plugin.name;};
+		virtual std::string getName() const;
 
 		/* The functions below are only used by EncapPlugin but we need them to avoid
 		 * casting upper packet handlers for EncapPlugins that does not support
@@ -167,7 +165,7 @@ class StackPlugin: public OpenSandPlugin
 		 */
 		virtual bool getEncapsulatedPackets(NetContainer *packet,
 		                                    bool &partial_decap,
-		                                    std::vector<NetPacket *> &decap_packets,
+		                                    std::vector<std::unique_ptr<NetPacket>> &decap_packets,
 		                                    unsigned int decap_packet_count = 0) = 0;
 
 		/**
@@ -175,11 +173,11 @@ class StackPlugin: public OpenSandPlugin
 		 */
 		virtual bool init() = 0;
 
-	  protected:
+	 protected:
 		/// Output Logs
 		std::shared_ptr<OutputLog> log;
 
-	  private:
+	 private:
 		StackPlugin &plugin;
 	};
 
@@ -194,14 +192,12 @@ class StackPlugin: public OpenSandPlugin
 		/**
 		 * @brief StackContext constructor
 		 */
-		StackContext(StackPlugin &pl): current_upper(NULL), plugin(pl)
-		{
-		};
+		StackContext(StackPlugin &pl);
 
 		/**
 		 * @brief StackContext destructor
 		 */
-		virtual ~StackContext() {};
+		virtual ~StackContext();
 
 		/**
 		 * Encapsulate some packets into one or several packets.
@@ -227,11 +223,7 @@ class StackPlugin: public OpenSandPlugin
 		 * @param burst  the packets to encapsulate
 		 * @return       a list of packets
 		 */
-		virtual NetBurst *encapsulate(NetBurst *burst)
-		{
-			std::map<long, int> time_contexts;
-			return this->encapsulate(burst, time_contexts);
-		}
+		virtual NetBurst *encapsulate(NetBurst *burst);
 
 		/**
 		 * Deencapsulate some packets into one or several packets.
@@ -246,17 +238,14 @@ class StackPlugin: public OpenSandPlugin
 		 *
 		 *  @param return The list of protocols that can be encapsulated
 		 */
-		std::vector<std::string> getAvailableUpperProto() const
-		{
-			return plugin.upper;
-		};
+		std::vector<std::string> getAvailableUpperProto() const;
 
 		/**
 		 * @brief Get the EtherType associated with the encapsulation protocol
 		 *
 		 * return The EtherType
 		 */
-		uint16_t getEtherType() const {return plugin.ether_type;};
+		uint16_t getEtherType() const;
 
 		/**
 		 * @brief Set the encapsulated packet handler
@@ -264,40 +253,21 @@ class StackPlugin: public OpenSandPlugin
 		 * @param pkt_hdl  The encapsulated packet handler
 		 * @return true if this type of packet can be encapsulated, false otherwise
 		 */
-		virtual bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl)
-		{
-			if(!pkt_hdl)
-			{
-				this->current_upper = NULL;
-				return false;
-			}
-
-			std::vector<std::string>::iterator iter;
-
-			iter = std::find((plugin.upper).begin(),
-			                 (plugin.upper).end(),
-			                 pkt_hdl->getName());
-
-			if(iter == (plugin.upper).end())
-				return false;
-
-			this->current_upper = pkt_hdl;
-			return true;
-		};
+		virtual bool setUpperPacketHandler(StackPlugin::StackPacketHandler *pkt_hdl);
 
 		/**
 		 * @brief Update statistics periodically
 		 *
 		 * @param period  The time interval bewteen two updates
 		 */
-		virtual void updateStats(unsigned int UNUSED(period)) {};
+		virtual void updateStats(unsigned int period);
 
 		/**
 		 * @brief Get the name of the plugin
 		 *
 		 * @return the name of the plugin
 		 */
-		std::string getName() const {return plugin.name;};
+		std::string getName() const;
 
 		/**
 		 * @brief Create a NetPacket from data with the relevant attributes
@@ -309,18 +279,11 @@ class StackPlugin: public OpenSandPlugin
 		 * @param dst_tal_id  The destination terminal ID to associate with the packet
 		 * @return the packet on success, NULL otherwise
 		 */
-		NetPacket *createPacket(const Data &data,
-		                        size_t data_length,
-		                        uint8_t qos,
-		                        uint8_t src_tal_id,
-		                        uint8_t dst_tal_id)
-		{
-			return plugin.packet_handler->build(data,
-			                                    data_length,
-			                                    qos,
-			                                    src_tal_id,
-			                                    dst_tal_id);
-		}
+    std::unique_ptr<NetPacket> createPacket(const Data &data,
+		                                        std::size_t data_length,
+		                                        uint8_t qos,
+		                                        uint8_t src_tal_id,
+		                                        uint8_t dst_tal_id);
 
 		/**
 		 * @brief perform some plugin initialization
@@ -329,14 +292,14 @@ class StackPlugin: public OpenSandPlugin
 		 */
 		virtual bool init() = 0;
 
-	  protected:
+	 protected:
 		/// the current upper encapsulation protocol EtherType
 		StackPlugin::StackPacketHandler *current_upper;
 
 		/// Output Logs
 		std::shared_ptr<OutputLog> log;
 
-	  private:
+	 private:
 		/// The plugin
 		StackPlugin &plugin;
 	};
@@ -344,48 +307,34 @@ class StackPlugin: public OpenSandPlugin
 	/**
 	 * @brief StackPlugin constructor
 	 */
-	StackPlugin(uint16_t ether_type): OpenSandPlugin()
-	{
-		this->ether_type = ether_type;
-	};
+	StackPlugin(uint16_t ether_type);
 
 
 	/**
 	 * @brief StackPlugin destructor
 	 */
-	virtual ~StackPlugin()
-	{
-		if(this->context)
-		{
-			delete this->context;
-		}
-
-		if(this->packet_handler)
-		{
-			delete this->packet_handler;
-		}
-	};
+	virtual ~StackPlugin();
 
 	/**
 	 * @brief Get the encapsulation context
 	 *
 	 * @return the context
 	 */
-	StackContext *getContext() const {return this->context;};
+	StackContext *getContext() const;
 
 	/**
 	 * @brief Get the encapsulation packet handler
 	 *
 	 * @return the packet handler
 	 */
-	StackPacketHandler *getPacketHandler() const {return this->packet_handler;};
+	StackPacketHandler *getPacketHandler() const;
 
 	/**
 	 * @brief Get The plugin name
 	 *
 	 * @return the plugin name
 	 */
-	std::string getName() const {return this->name;};
+	std::string getName() const;
 
 	/**
 	 * @brief Create the Plugin, this function should be called instead of constructor
@@ -416,8 +365,6 @@ class StackPlugin: public OpenSandPlugin
 		return plugin;
 		
 	error:
-		delete handler;
-		delete context;
 		delete plugin;
 		return nullptr;
 	};
@@ -446,7 +393,9 @@ class StackPlugin: public OpenSandPlugin
 	std::shared_ptr<OutputLog> log;
 };
 
-typedef std::vector<StackPlugin::StackContext *> stack_contexts_t;
+
+using stack_contexts_t = std::vector<StackPlugin::StackContext *>;
+
 
 /// Define the function that will create the plugin class
 #define CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, pl_type) \
@@ -455,16 +404,17 @@ typedef std::vector<StackPlugin::StackContext *> stack_contexts_t;
 		return CLASS::create<CLASS, CONTEXT, HANDLER>(pl_name); \
 	}; \
 	extern "C" void configure_ptr(const char *parent_path, const char *param_id) \
-    {\
+	{\
 		CLASS::configure<CLASS>(parent_path, param_id, pl_name); \
 	}; \
-	extern "C" opensand_plugin_t *init() \
+	extern "C" OpenSandPluginFactory *init() \
 	{ \
-		opensand_plugin_t *pl = new opensand_plugin_t; \
-		pl->create = create_ptr; \
-		pl->configure = configure_ptr; \
-		pl->type = pl_type; \
-		pl->name = pl_name; \
+		auto pl = new OpenSandPluginFactory{ \
+			create_ptr, \
+			configure_ptr, \
+			pl_type, \
+			pl_name \
+		}; \
 		return pl; \
 	};
 

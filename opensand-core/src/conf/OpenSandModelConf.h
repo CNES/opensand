@@ -44,13 +44,13 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "OpenSandCore.h"
-
 #include <opensand_conf/MetaComponent.h>
 #include <opensand_conf/DataComponent.h>
 #include <opensand_conf/DataParameter.h>
 #include <opensand_conf/DataValue.h>
 #include <opensand_output/Output.h>
+
+#include "OpenSandCore.h"
 
 
 namespace OpenSANDConf {
@@ -61,6 +61,9 @@ namespace OpenSANDConf {
 	class DataModel;
 }
 class SarpTable;
+
+
+using MetaComponentPtr = std::shared_ptr<OpenSANDConf::MetaComponent>;
 
 
 class OpenSandModelConf
@@ -118,27 +121,24 @@ class OpenSandModelConf
 	void createModels();
 	std::shared_ptr<OpenSANDConf::DataComponent> getProfileData(const std::string &path="") const;
 	std::shared_ptr<OpenSANDConf::MetaTypesList> getModelTypesDefinition() const;
-	std::shared_ptr<OpenSANDConf::MetaComponent> getOrCreateComponent(
-			const std::string &id,
-			const std::string &name,
-			std::shared_ptr<OpenSANDConf::MetaComponent> from=nullptr);
-	std::shared_ptr<OpenSANDConf::MetaComponent> getOrCreateComponent(
-			const std::string &id,
-			const std::string &name,
-			const std::string &description,
-			std::shared_ptr<OpenSANDConf::MetaComponent> from=nullptr);
-	std::shared_ptr<OpenSANDConf::MetaComponent> getComponentByPath(
-			const std::string &path,
-			std::shared_ptr<OpenSANDConf::MetaModel> model=nullptr);
+	MetaComponentPtr getOrCreateComponent(const std::string &id,
+	                                      const std::string &name,
+	                                      MetaComponentPtr from=nullptr);
+	MetaComponentPtr getOrCreateComponent(const std::string &id,
+	                                      const std::string &name,
+	                                      const std::string &description,
+	                                      MetaComponentPtr from=nullptr);
+	MetaComponentPtr getComponentByPath(const std::string &path,
+	                                    std::shared_ptr<OpenSANDConf::MetaModel> model=nullptr);
 	void setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
-							 std::shared_ptr<OpenSANDConf::MetaParameter> referee,
-							 const char *expected_value);
+	                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
+	                         const char *expected_value);
 	void setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
-							 std::shared_ptr<OpenSANDConf::MetaParameter> referee,
-							 const std::string &expected_value);
+	                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
+	                         const std::string &expected_value);
 	void setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
-							 std::shared_ptr<OpenSANDConf::MetaParameter> referee,
-							 bool expected_value);
+	                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
+	                         bool expected_value);
 
 	bool writeTopologyModel(const std::string& filename) const;
 	bool writeInfrastructureModel(const std::string& filename) const;
@@ -169,14 +169,18 @@ class OpenSandModelConf
 	 */
 	bool getGroundInfrastructure(std::string &ip_address, std::string &tap_iface) const;
 	bool getLocalStorage(bool &enabled, std::string &output_folder) const;
-	bool getRemoteStorage(bool &enabled, std::string &address, unsigned short &stats_port, unsigned short &logs_port) const;
+	bool getRemoteStorage(bool &enabled,
+	                      std::string &address,
+	                      unsigned short &stats_port,
+	                      unsigned short &logs_port) const;
 	bool getGwIds(std::vector<tal_id_t> &gws) const;
 	bool logLevels(std::map<std::string, log_level_t> &levels) const;
 	bool getSarp(SarpTable &sarp_table) const;
 	bool getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const;
 	bool getQosServerHost(std::string &qos_server_host_agent, int &qos_server_host_port) const;
 	bool getS2WaveFormsDefinition(std::vector<fmt_definition_parameters> &fmt_definitions) const;
-	bool getRcs2WaveFormsDefinition(std::vector<fmt_definition_parameters> &fmt_definitions, vol_sym_t req_burst_length) const;
+	bool getRcs2WaveFormsDefinition(std::vector<fmt_definition_parameters> &fmt_definitions,
+	                                vol_sym_t req_burst_length) const;
 	bool getRcs2BurstLength(vol_sym_t &length_sym) const;
 	bool getSuperframePerSlottedAlohaFrame(time_sf_t &sf_per_saframe) const;
 	bool getCrdsaMaxSatelliteDelay(time_ms_t &sat_delay) const;
@@ -200,21 +204,22 @@ class OpenSandModelConf
 	bool getSpotReturnCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;
 	bool getSpotForwardCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;
 	bool getInterconnectCarrier(bool upward_connection,
-								std::string &remote_address,
-								unsigned int &data_port,
-								unsigned int &sig_port,
-								unsigned int &udp_stack,
-								unsigned int &udp_rmem,
-								unsigned int &udp_wmem) const;
+	                            std::string &remote_address,
+	                            unsigned int &data_port,
+	                            unsigned int &sig_port,
+	                            unsigned int &udp_stack,
+	                            unsigned int &udp_rmem,
+	                            unsigned int &udp_wmem) const;
 	bool getInterSatLinkCarriers(tal_id_t sat_id, carrier_socket &isl_in, carrier_socket &isl_out) const;
 	bool isMeshArchitecture() const;
 	bool getDefaultEntityForSat(tal_id_t sat_id, tal_id_t &default_entity) const;
 	bool getTerminalAffectation(spot_id_t &default_spot_id,
-								std::string &default_category_name,
-								std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
+	                            std::string &default_category_name,
+	                            std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
 	
 	const std::unordered_set<tal_id_t> getEntitiesHandledBySat(tal_id_t sat_id) const;
 	const std::unordered_set<tal_id_t> &getEntitiesInSpot(spot_id_t spot_id) const;
+
  private:
 	OpenSandModelConf();
 

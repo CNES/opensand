@@ -41,20 +41,16 @@
 
 
 TerminalCategorySaloha::TerminalCategorySaloha(const std::string& label, AccessType access_type):
-	TerminalCategory<CarriersGroupSaloha>(label, access_type),
-	accepted_packets(nullptr),
-	received_packets_nbr(0)
+	TerminalCategory<CarriersGroupSaloha>{label, access_type},
+	accepted_packets{nullptr},
+	received_packets_nbr{0}
 {
 	this->accepted_packets = new saloha_packets_data_t();
 }
 
 TerminalCategorySaloha::~TerminalCategorySaloha()
 {
-	for(saloha_packets_data_t::iterator it = this->accepted_packets->begin();
-	    it != this->accepted_packets->end(); ++it)
-	{
-		delete *it;
-	}
+  this->accepted_packets->clear();
 	delete this->accepted_packets;
 }
 

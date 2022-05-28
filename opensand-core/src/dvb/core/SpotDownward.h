@@ -92,7 +92,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	 * @param packet  The encapsulated packet
 	 * @return true on success, false otherwise
 	 */
-	bool handleEncapPacket(NetPacket *packet);
+	bool handleEncapPacket(std::unique_ptr<NetPacket> packet);
 
 	/**
 	 * @brief Handle a logon request transmitted by the opposite

@@ -92,7 +92,7 @@ class ConstantDelay: public SatDelayPlugin
 };
 
 
-CREATE(ConstantDelay, satdelay_plugin, "ConstantDelay");
+CREATE(ConstantDelay, PluginType::SatDelay, "ConstantDelay");
 
 
 #endif

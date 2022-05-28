@@ -37,11 +37,10 @@
 #define NET_CONTAINER_H
 
 
-#include "OpenSandCore.h"
-
-#include "Data.h"
-
 #include <string>
+
+#include "OpenSandCore.h"
+#include "Data.h"
 
 
 /**
@@ -77,7 +76,6 @@ class NetContainer
 	 */
 	NetContainer(const unsigned char *data, std::size_t length);
 
-
 	/**
 	 * Build a generic OpenSAND network container
 	 *
@@ -92,7 +90,6 @@ class NetContainer
 	 * @param length length of raw data
 	 */
 	NetContainer(const Data &data, std::size_t length);
-
 
 	/**
 	 * Build an empty generic OpenSAND network container

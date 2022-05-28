@@ -220,7 +220,7 @@ bool BlockMesh::Upward::sendViaIsl(std::unique_ptr<const NetBurst> burst)
 
 	for (auto &&pkt: *burst)
 	{
-		net_packet_buffer_t buf{pkt};
+		net_packet_buffer_t buf{*pkt};
 		if (!isl_out_channel->send((uint8_t *)&buf, sizeof(net_packet_buffer_t)))
 		{
 			LOG(this->log_send, LEVEL_ERROR,
@@ -330,7 +330,7 @@ bool BlockMesh::Downward::handleNetSocketEvent(NetSocketEvent *event)
 			LOG(this->log_receive, LEVEL_ERROR, "Error while receiving an ISL packet");
 			return false;
 		}
-		burst->add(buf->deserialize().release());
+		burst->add(buf->deserialize());
 		delete buf;
 	}
 	while (ret == 1 && !burst->isFull());

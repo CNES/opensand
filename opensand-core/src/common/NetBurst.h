@@ -37,13 +37,12 @@
 #define NET_BURST_H
 
 
-#include "Data.h"
-
 #include <list>
 #include <string>
 #include <memory>
 
 
+class Data;
 class NetPacket;
 class OutputLog;
 
@@ -52,7 +51,7 @@ class OutputLog;
  * @class NetBurst
  * @brief Generic network burst
  */
-class NetBurst: public std::list<NetPacket *>
+class NetBurst: public std::list<std::unique_ptr<NetPacket>>
 {
  protected:
 	/// The maximum number of network packets in the burst
@@ -95,7 +94,7 @@ class NetBurst: public std::list<NetPacket *>
 	 * @return        true if packet was successfully added (the burst was not
 	 *                full), false otherwise
 	 */
-	bool add(NetPacket *packet);
+	bool add(std::unique_ptr<NetPacket> packet);
 
 	/**
 	 * Is the network burst full?

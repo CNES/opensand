@@ -143,9 +143,9 @@ class SlottedAlohaTal: public SlottedAloha
 	 *
 	 * @return Slotted Aloha packet
 	 */
-	SlottedAlohaPacketData* addSalohaHeader(NetPacket *encap_packet,
-	                                        uint16_t offset,
-	                                        uint16_t burst_size);
+	std::unique_ptr<SlottedAlohaPacketData> addSalohaHeader(std::unique_ptr<NetPacket> encap_packet,
+	                                                        uint16_t offset,
+	                                                        uint16_t burst_size);
 
 	/**
 	 * Schedule Slotted Aloha packets
@@ -182,7 +182,7 @@ class SlottedAlohaTal: public SlottedAloha
 	 */
 	bool addPacketInFrames(std::list<DvbFrame *> &complete_dvb_frames,
 	                       SlottedAlohaFrame **frame,
-	                       SlottedAlohaPacketData *packet,
+	                       std::unique_ptr<SlottedAlohaPacketData> packet,
 	                       saloha_ts_list_t::iterator &slot,
 	                       qos_t qos);
 };

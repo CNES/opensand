@@ -90,7 +90,7 @@ class File: public AttenuationModelPlugin
 };
 
 
-CREATE(File, attenuation_plugin, "File");
+CREATE(File, PluginType::Attenuation, "File");
 
 
 #endif

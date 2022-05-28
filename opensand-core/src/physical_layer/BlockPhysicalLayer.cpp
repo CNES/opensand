@@ -64,7 +64,7 @@ void BlockPhysicalLayer::generateConfiguration()
 	auto Conf = OpenSandModelConf::Get();
 	auto conf = Conf->getOrCreateComponent("physical_layer", "Physical Layer", "The Physical layer configuration");
 	auto delay = Conf->getOrCreateComponent("delay", "Delay", conf);
-	Plugin::generatePluginsConfiguration(delay, satdelay_plugin, "delay_type", "Delay Type");
+	Plugin::generatePluginsConfiguration(delay, PluginType::SatDelay, "delay_type", "Delay Type");
 
 	AttenuationHandler::generateConfiguration();
 	GroundPhysicalChannel::generateConfiguration();

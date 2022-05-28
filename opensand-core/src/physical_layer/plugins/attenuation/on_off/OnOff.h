@@ -77,7 +77,7 @@ class OnOff: public AttenuationModelPlugin
 };
 
 
-CREATE(OnOff, attenuation_plugin, "On/Off");
+CREATE(OnOff, PluginType::Attenuation, "On/Off");
 
 
 #endif

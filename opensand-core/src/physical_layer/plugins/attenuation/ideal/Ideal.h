@@ -73,7 +73,7 @@ class Ideal: public AttenuationModelPlugin
 };
 
 
-CREATE(Ideal, attenuation_plugin, "Ideal");
+CREATE(Ideal, PluginType::Attenuation, "Ideal");
 
 
 #endif
