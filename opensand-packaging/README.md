@@ -16,10 +16,10 @@ The following table lists the required packages to compile OpenSAND:
 
 | OS | Required packages |
 | :---: | :--- |
-| __Ubuntu 20.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config gcc g++ python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python-lxml dpkg-dev |
-| __Ubuntu 22.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config gcc g++ python3-dev libxml++2.6-dev libboost-python1.74-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python3-lxml dpkg-dev |
+| __Ubuntu 20.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config gcc g++ python python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python-lxml dpkg-dev nodejs yarn |
+| __Ubuntu 22.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config gcc g++ python3-dev libxml++2.6-dev libboost-python1.74-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python3-lxml dpkg-dev nodejs yarn |
 
-You also need NodeJS and Yarn to be able to compile the `opensand-deploy` package:
+The versions of NodeJS and Yarn required to be able to compile the `opensand-deploy` package does not match the defaults provided with the OS. You will need to install them from an external repository:
 
 ```
 $ curl -fsSL https://deb.nodesource.com/setup_14.x | sudo -E bash -
