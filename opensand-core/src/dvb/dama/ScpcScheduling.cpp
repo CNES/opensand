@@ -149,17 +149,20 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 					"Cannot determine the maximum BBFrame size\n");
 				continue;
 			}
-			// send a warning message, this will work but this is not
-			// a good configuration
-			// if there is more than one carrier, this won't really
-			// be a problem but this won't be representative
-			LOG(this->log_scheduling, LEVEL_WARNING,
-			    "Category %s, Carriers group %u : the BBFrame size "
-			    "with MODCOD %u (%u symbols) is greater than the carrier "
-			    "size %u. This MODCOD will not work.\n",
-			    this->category->getLabel().c_str(),
-			    carriers->getCarriersId(), fmt_id,
-			    size, carrier_size_sym);
+
+			if (size > carrier_size_sym) {
+				// send a warning message, this will work but this is not
+				// a good configuration
+				// if there is more than one carrier, this won't really
+				// be a problem but this won't be representative
+				LOG(this->log_scheduling, LEVEL_WARNING,
+				    "Category %s, Carriers group %u : the BBFrame size "
+				    "with MODCOD %u (%u symbols) is greater than the carrier "
+				    "size %u. This MODCOD will not work.\n",
+				    this->category->getLabel().c_str(),
+				    carriers->getCarriersId(), fmt_id,
+				    size, carrier_size_sym);
+			}
 		}
 
 		// For units, if there is only one MODCOD use Kbits/s else symbols
