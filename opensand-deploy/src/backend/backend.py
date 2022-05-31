@@ -221,7 +221,7 @@ def _get_parameter(component, name, default=None):
     return data.get()
 
 
-def create_default_infrastructure(meta_model, filepath):
+def create_default_infrastructure(meta_model):
     infra = meta_model.create_data()
     infrastructure = infra.get_root()
 
@@ -267,10 +267,10 @@ def create_default_infrastructure(meta_model, filepath):
     _set_parameter(gateway_phy, 'interconnect_address', '192.168.1.2')
     _set_parameter(gateway_phy, 'interconnect_remote', '192.168.1.1')
 
-    py_opensand_conf.toXML(infra, str(filepath))
+    return infra
 
 
-def create_default_topology(meta_model, filepath):
+def create_default_topology(meta_model):
     topo = meta_model.create_data()
     topology = topo.get_root()
 
@@ -329,10 +329,9 @@ def create_default_topology(meta_model, filepath):
     _set_parameter(delay, 'fifo_size', 10000)
     _set_parameter(delay, 'delay_timer', 1)
 
-    py_opensand_conf.toXML(topo, str(filepath))
+    return topo
 
-
-def create_default_profile(meta_model, filepath, entity_type):
+def create_default_profile(meta_model, entity_type):
     mod = meta_model.create_data()
     model = mod.get_root()
 
@@ -394,8 +393,45 @@ def create_default_profile(meta_model, filepath, entity_type):
     _set_parameter(settings, 'lan_frame_type', 'Ethernet')
     _set_parameter(settings, 'sat_frame_type', 'Ethernet')
     _set_parameter(settings, 'default_pcp', 0)
+    
+    control_plane = _get_component(model, 'control_plane')
+    _set_parameter(control_plane, 'disable_control_plane',
+                   entity_type == 'sat_regen')
+                   
+    scpc = _get_component(_get_component(model, 'access2'), 'scpc')
+    _set_parameter(scpc, "carrier_duration", 5)
+    scpc = _get_component(_get_component(model, 'access'), 'scpc')
+    _set_parameter(scpc, "carrier_duration", 5)
+    
+    return mod
 
-    py_opensand_conf.toXML(mod, str(filepath))
+
+def create_scpc_topology(meta_model):
+    topo = create_default_topology(meta_model)
+    
+    root = topo.get_root()
+    freq_plan = _get_component(root, 'frequency_plan')
+    spots = freq_plan.get_list("spots")
+    spot = spots.get_item("0")
+    
+    return_carrier = _create_list_item(spot, 'return_band')
+    _set_parameter(return_carrier, 'symbol_rate', 40e6)
+    _set_parameter(return_carrier, 'type', 'SCPC')
+    _set_parameter(return_carrier, 'wave_form', '3-12')
+    _set_parameter(return_carrier, 'group', 'Standard')
+    
+    return topo
+
+
+def create_sat_ctrl_plane_profile(meta_model, entity_type):
+    mod = create_default_profile(meta_model, entity_type)
+    
+    root = mod.get_root()
+    control_plane = _get_component(root, 'control_plane')
+    _set_parameter(control_plane, 'disable_control_plane',
+                   entity_type != 'sat_regen')
+    
+    return mod
 
 
 def create_default_templates(project):
@@ -407,17 +443,28 @@ def create_default_templates(project):
 
     template_folder = WWW_FOLDER / project / 'templates'
     for xsd in XSDs:
-        template = template_folder / (xsd.name + '.d') / 'Default.xml'
-        template.parent.mkdir(parents=True, exist_ok=True)
         meta_model = py_opensand_conf.fromXSD(xsd.as_posix())
-        if meta_model is not None:
+        if meta_model is not None and xsd.stem != 'project':
+            template_path = template_folder / (xsd.name + '.d') / 'Default.xml'
+            template_path.parent.mkdir(parents=True, exist_ok=True)
             kind = meta_model.get_root().get_description()
             if kind == 'infrastructure':
-                create_default_infrastructure(meta_model, template)
+                template = create_default_infrastructure(meta_model)
+                py_opensand_conf.toXML(template, str(template_path))
             elif kind == 'topology':
-                create_default_topology(meta_model, template)
+                template = create_default_topology(meta_model)
+                py_opensand_conf.toXML(template, str(template_path))
+                scpc_template_path = template_folder / (xsd.name + '.d') / 'SCPC.xml'
+                scpc_template = create_scpc_topology(meta_model)
+                py_opensand_conf.toXML(scpc_template, str(scpc_template_path))
             elif kind == 'profile':
-                create_default_profile(meta_model, template, xsd.stem.removeprefix("profile_"))
+                entity_name = xsd.stem.removeprefix("profile_")
+                template = create_default_profile(meta_model, entity_name)
+                py_opensand_conf.toXML(template, str(template_path))
+                if entity_name != "gw_phy":
+                    sat_ctrl_plane_template_path = template_folder / (xsd.name + '.d') / 'Control plane handled by satellite.xml'
+                    regen_template = create_sat_ctrl_plane_profile(meta_model, entity_name)
+                    py_opensand_conf.toXML(regen_template, str(sat_ctrl_plane_template_path))
 
 
 def create_platform_infrastructure(project):
