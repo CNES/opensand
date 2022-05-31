@@ -34,8 +34,8 @@ When compiling the encapsulation and lan adaptation plugins, the development ver
 The procedure to install these libraries is as follows:
 
 ```
-$ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/net4satkey.gpg >/dev/null
-$ echo "deb [signed-by=/usr/share/keyrings/net4satkey.gpg] https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee /etc/apt/sources.list.d/github.net4sat.list
+$ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/net4sat.gpg >/dev/null
+$ echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee /etc/apt/sources.list.d/net4sat.list
 $ sudo apt-get update
 $ sudo apt-get install librle-dev libgse-dev
 ```

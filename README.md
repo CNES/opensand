@@ -70,13 +70,13 @@ One way of doing it is by adding a new file into the `/etc/apt/sources.list.d/` 
 Start by adding the GPG key for the Net4Sat repository:
 
 ```
-curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | gpg --dearmor | sudo tee /usr/share/keyrings/net4satkey.gpg >/dev/null
+curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/net4sat.gpg >/dev/null
 ```
 
 Then add the repository and link it to the aforementionned GPG key:
 
 ```
-echo "deb [signed-by=/usr/share/keyrings/net4satkey.gpg] https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee /etc/apt/sources.list.d/net4sat.list
+echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee /etc/apt/sources.list.d/net4sat.list
 ```
 
 An apt sources update is necessary after adding the repository:
