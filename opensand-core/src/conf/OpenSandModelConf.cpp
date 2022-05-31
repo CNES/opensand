@@ -669,7 +669,7 @@ Component OpenSandModelConf::getComponentType() const
 	std::string component_type;
 	extractParameterData(infrastructure->getRoot()->getComponent("entity"), "entity_type", component_type);
 
-	if (component_type == "Satellite") {
+	if (component_type == "Satellite" || component_type == "Satellite Regen") {
 		return Component::satellite;
 	} else if (component_type == "Terminal") {
 		return Component::terminal;
