@@ -242,8 +242,6 @@ bool BlockDvbNcc::Downward::initTimers(void)
 {
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
-	this->frame_timer = this->addTimerEvent("frame",
-	                                        this->ret_up_frame_duration_ms);
 	this->fwd_timer = this->addTimerEvent("fwd_timer",
 	                                      this->fwd_down_frame_duration_ms);
 
@@ -251,6 +249,9 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	{
 		return true;
 	}
+
+	this->frame_timer = this->addTimerEvent("frame",
+	                                        this->ret_up_frame_duration_ms);
 
 	auto Conf = OpenSandModelConf::Get();
 
