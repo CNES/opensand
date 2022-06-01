@@ -459,13 +459,29 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 		return false;
 	}
 
-	this->carrier_id_ctrl = carriers.ctrl_in_st.id;
-	this->carrier_id_data = carriers.data_in_st.id;
-	this->carrier_id_logon = carriers.logon_in.id;
+	Component entity_type = Conf->getEntityType(mac_id);
+	if (entity_type == Component::terminal)
+	{
+		this->carrier_id_ctrl = carriers.ctrl_in_st.id;
+		this->carrier_id_data = carriers.data_in_st.id;
+		this->carrier_id_logon = carriers.logon_in.id;
+	}
+	else if (entity_type == Component::satellite)
+	{
+		this->carrier_id_ctrl = carriers.ctrl_out_gw.id;
+		this->carrier_id_data = carriers.data_out_gw.id;
+		this->carrier_id_logon = carriers.logon_out.id;
+	}
+	else
+	{
+		LOG(log_init_channel, LEVEL_ERROR, "Cannot instantiate a BlockDvbTal with mac_id %d which is not a terminal nor a satellite");
+		return false;
+	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "SF#%u: carrier IDs for Ctrl = %u, Logon = %u, "
-	    "Data = %u\n", this->super_frame_counter,
+	    "Data = %u\n",
+	    this->super_frame_counter,
 	    this->carrier_id_ctrl,
 	    this->carrier_id_logon, this->carrier_id_data);
 
@@ -1606,8 +1622,10 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 	// frames transmitted from Upward
 	if (this->disable_control_plane)
 	{
-		delete dvb_frame;
-	  return true;
+		uint8_t msg_type = dvb_frame->getMessageType();
+		uint8_t carrier_id = msg_type == MSG_TYPE_SESSION_LOGON_REQ ? carrier_id_logon : carrier_id_ctrl;
+		LOG(log_receive, LEVEL_INFO, "Received a DVB frame (type %d), transmitting to carrier %d", msg_type, carrier_id);
+		return this->sendDvbFrame(dvb_frame, carrier_id);
 	}
 
 	switch(dvb_frame->getMessageType())

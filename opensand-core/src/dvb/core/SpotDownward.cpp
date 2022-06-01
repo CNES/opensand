@@ -597,16 +597,32 @@ bool SpotDownward::initCarrierIds(void)
 	auto Conf = OpenSandModelConf::Get();
 
 	OpenSandModelConf::spot_infrastructure carriers;
-	if (!Conf->getSpotInfrastructure(this->mac_id, carriers)) {
-	LOG(this->log_init_channel, LEVEL_ERROR,
-	    "couldn't create spot infrastructure for gw %d",
-	    this->mac_id);
-	return false;
+	if (!Conf->getSpotInfrastructure(this->spot_id, carriers))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "couldn't create spot infrastructure for gw %d",
+		    this->mac_id);
+		return false;
 	}
 
-	this->ctrl_carrier_id = carriers.ctrl_in_gw.id;
-	this->sof_carrier_id = carriers.ctrl_in_gw.id;
-	this->data_carrier_id = carriers.data_in_gw.id;
+	Component entity_type = Conf->getEntityType(mac_id);
+	if (entity_type == Component::gateway)
+	{
+		this->ctrl_carrier_id = carriers.ctrl_in_gw.id;
+		this->sof_carrier_id = carriers.ctrl_in_gw.id;
+		this->data_carrier_id = carriers.data_in_gw.id;
+	}
+	else if (entity_type == Component::satellite)
+	{
+		this->ctrl_carrier_id = carriers.ctrl_out_st.id;
+		this->sof_carrier_id = carriers.ctrl_out_st.id;
+		this->data_carrier_id = carriers.data_out_st.id;
+	}
+	else
+	{
+		LOG(log_init_channel, LEVEL_ERROR, "Cannot instantiate a SpotDownward with mac_id %d which is not a gateway nor a satellite");
+		return false;
+	}
 
 	return true;
 }
