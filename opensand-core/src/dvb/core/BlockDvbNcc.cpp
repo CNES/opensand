@@ -298,7 +298,6 @@ bool BlockDvbNcc::Downward::handleDvbFrame(DvbFrame *dvb_frame)
   if (this->disable_control_plane)
   {
     bool result = this->sendDvbFrame(dvb_frame, spot->getCtrlCarrierId());
-    delete dvb_frame;  // FIXME if result is false, it may already be deleted
     return result;
   }
 
