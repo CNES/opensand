@@ -80,7 +80,7 @@ bool EntitySatRegen::createSpecificBlocks()
 		bool disable_ctrl_plane;
 		if (!conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
 
-		auto block_transp = Rt::createBlock<BlockMesh>("Mesh", instance_id);
+		auto block_mesh = Rt::createBlock<BlockMesh>("Mesh", instance_id);
 
 		for (auto &&gw_id: spot_ids)
 		{
@@ -90,6 +90,7 @@ bool EntitySatRegen::createSpecificBlocks()
 			dvb_specific dvb_spec;
 			dvb_spec.disable_control_plane = disable_ctrl_plane;
 			dvb_spec.mac_id = instance_id;
+			dvb_spec.spot_id = spot_id;
 			auto block_dvb_ncc = Rt::createBlock<BlockDvbNcc>("DvbNcc" + spot_id_str, dvb_spec);
 			auto block_dvb_tal = Rt::createBlock<BlockDvbTal>("DvbTal" + spot_id_str, dvb_spec);
 
@@ -105,9 +106,9 @@ bool EntitySatRegen::createSpecificBlocks()
 
 			// Not a typo:
 			// The DVB NCC block communicates with the terminals
-			Rt::connectBlocks(block_transp, block_dvb_ncc, {spot_id, Component::terminal});
+			Rt::connectBlocks(block_mesh, block_dvb_ncc, {spot_id, Component::terminal});
 			// The DVB Tal block communicates with the gateways
-			Rt::connectBlocks(block_transp, block_dvb_tal, {spot_id, Component::gateway});
+			Rt::connectBlocks(block_mesh, block_dvb_tal, {spot_id, Component::gateway});
 			Rt::connectBlocks(block_dvb_tal, block_sc_gw);
 			Rt::connectBlocks(block_dvb_ncc, block_sc_st);
 		}

@@ -93,12 +93,17 @@ bool EntitySt::createSpecificBlocks()
 	 	Conf->getGwWithTalId(this->instance_id, gw_id);
 		laspecific.packet_switch = new TerminalPacketSwitch(this->instance_id, gw_id);
 
+		dvb_specific dvb_spec;
+		dvb_spec.disable_control_plane = false;
+		dvb_spec.mac_id = instance_id;
+		dvb_spec.spot_id = gw_id;
+
 		bool disable_ctrl_plane;
 		if (!Conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
 
 		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", laspecific);
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap", this->instance_id);
-		auto block_dvb = Rt::createBlock<BlockDvbTal>("Dvb", dvb_specific{this->instance_id, disable_ctrl_plane});
+		auto block_dvb = Rt::createBlock<BlockDvbTal>("Dvb", dvb_spec);
 		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
 		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", scspecific);
 	

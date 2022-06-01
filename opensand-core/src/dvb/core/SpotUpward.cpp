@@ -447,11 +447,11 @@ bool SpotUpward::checkIfScpc()
 	fmt_groups_t ret_fmt_groups;
 
 	OpenSandModelConf::spot current_spot;
-	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->mac_id, current_spot))
+	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no spot definition attached to the gateway %d\n",
-		    this->mac_id);
+		    this->spot_id);
 		return false;
 	}
 

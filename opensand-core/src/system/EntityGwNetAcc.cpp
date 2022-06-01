@@ -83,9 +83,14 @@ bool EntityGwNetAcc::createSpecificBlocks()
 		spec_la.tap_iface = this->tap_iface;
 		spec_la.packet_switch = new GatewayPacketSwitch(this->instance_id);
 
+		dvb_specific dvb_spec;
+		dvb_spec.disable_control_plane = false;
+		dvb_spec.mac_id = instance_id;
+		dvb_spec.spot_id = instance_id;
+
 		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", spec_la);
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap", this->instance_id);
-		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_specific{this->instance_id, false});
+		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
 		auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>("InterconnectDownward", this->interconnect_address);
 		
 		Rt::connectBlocks(block_lan_adaptation, block_encap);

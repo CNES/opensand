@@ -108,6 +108,9 @@ class BlockDvbNcc: public BlockDvb
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
 
+		/// The id of the associated spot
+		spot_id_t spot_id;
+
 		SpotUpward* spot;
 
 		// log for slotted aloha
@@ -175,6 +178,10 @@ class BlockDvbNcc: public BlockDvb
 
 			/// the MAC ID of the ST (as specified in configuration)
 			tal_id_t mac_id;
+			
+			/// The id of the associated spot
+			spot_id_t spot_id;
+			
 			bool disable_control_plane;
 
 			/// counter for forward frames

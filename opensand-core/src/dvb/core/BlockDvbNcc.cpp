@@ -131,15 +131,16 @@ bool BlockDvbNcc::initListsSts()
 
 // TODO lot of duplicated code for fifos between ST and GW
 BlockDvbNcc::Downward::Downward(const std::string &name, struct dvb_specific specific):
-	DvbDownward{name},
-	DvbFmt{},
-	pep_interface{},
-	svno_interface{},
-	mac_id{specific.mac_id},
-	disable_control_plane{specific.disable_control_plane},
-	fwd_frame_counter{0},
-	fwd_timer{-1},
-	probe_frame_interval{nullptr}
+    DvbDownward{name},
+    DvbFmt{},
+    pep_interface{},
+    svno_interface{},
+    mac_id{specific.mac_id},
+    spot_id{specific.spot_id},
+    disable_control_plane{specific.disable_control_plane},
+    fwd_frame_counter{0},
+    fwd_timer{-1},
+    probe_frame_interval{nullptr}
 {
 }
 
@@ -169,9 +170,9 @@ bool BlockDvbNcc::Downward::onInit(void)
 	}
 
 	LOG(this->log_init, LEVEL_DEBUG,
-	    "Create downward spot with ID %u\n", mac_id);
+	    "Create downward spot with ID %u\n", spot_id);
 
-	this->spot = new SpotDownward(this->mac_id,
+	this->spot = new SpotDownward(this->spot_id,
 	                              this->mac_id,
 	                              this->fwd_down_frame_duration_ms,
 	                              this->ret_up_frame_duration_ms,
@@ -279,7 +280,7 @@ bool BlockDvbNcc::Downward::initTimers(void)
 	if(!spot)
 	{
 		LOG(this->log_init, LEVEL_WARNING,
-		    "Error when getting spot %d\n", mac_id);
+		    "Error when getting spot %d\n", spot_id);
 		return false;
 	}
 	spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",
@@ -340,11 +341,11 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			{
 				auto dvb_frame = static_cast<DvbFrame *>(msg_event->getData());
 				auto spot_id = dvb_frame->getSpot();
-				if (spot_id != this->mac_id)
+				if (spot_id != this->spot_id)
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
-						"Spot %d trying to send a DvbFrame destined to spot %d\n",
-						mac_id, spot_id);
+					    "Spot %d trying to send a DvbFrame destined to spot %d\n",
+					    spot_id, spot_id);
 					delete dvb_frame;
 					return false;
 				}
@@ -358,11 +359,11 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			{
 				auto ack_frames = static_cast<std::list<DvbFrame *> *>(msg_event->getData());
 				auto spot_id = ack_frames->front()->getSpot();
-				if (spot_id != this->mac_id)
+				if (spot_id != this->spot_id)
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
 					    "Spot %d trying to send ACK frames destined to spot %d\n",
-					    mac_id, spot_id);
+					    spot_id, spot_id);
 					delete ack_frames;
 					return false;
 				}
@@ -747,12 +748,13 @@ void BlockDvbNcc::Downward::updateStats(void)
 /*****************************************************************************/
 
 BlockDvbNcc::Upward::Upward(const std::string &name, struct dvb_specific specific):
-	DvbUpward{name, specific.disable_control_plane},
-	DvbFmt{},
-	mac_id{specific.mac_id},
-	log_saloha{nullptr},
-	probe_gw_received_modcod{nullptr},
-	probe_gw_rejected_modcod{nullptr}
+    DvbUpward{name, specific.disable_control_plane},
+    DvbFmt{},
+    mac_id{specific.mac_id},
+    spot_id{specific.spot_id},
+    log_saloha{nullptr},
+    probe_gw_received_modcod{nullptr},
+    probe_gw_rejected_modcod{nullptr}
 {
 }
 
@@ -765,10 +767,10 @@ BlockDvbNcc::Upward::~Upward()
 bool BlockDvbNcc::Upward::onInit(void)
 {
 	LOG(this->log_init, LEVEL_DEBUG,
-	    "Create upward spot with ID %u\n", mac_id);
+	    "Create upward spot with ID %u\n", spot_id);
 
-  // TODO: check if disable_control_plane is needed here
-	this->spot = new SpotUpward(this->mac_id,
+	// TODO: check if disable_control_plane is needed here
+	this->spot = new SpotUpward(this->spot_id,
 	                            this->mac_id,
 	                            this->input_sts,
 	                            this->output_sts);
@@ -863,11 +865,11 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 {
 	spot_id_t dest_spot = dvb_frame->getSpot();
-	if (dest_spot != this->mac_id)
+	if (dest_spot != this->spot_id)
 	{
 		LOG(this->log_receive, LEVEL_WARNING,
 		    "Spot %d received a DvbFrame destined to spot %d\n",
-		    mac_id, dest_spot);
+		    spot_id, dest_spot);
 		delete dvb_frame;
 		return false;
 	}

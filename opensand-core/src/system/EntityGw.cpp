@@ -87,10 +87,15 @@ bool EntityGw::createSpecificBlocks()
 		struct sc_specific scspecific;
 		scspecific.ip_addr = this->ip_address;
 		scspecific.tal_id = this->instance_id;
+		
+		dvb_specific dvb_spec;
+		dvb_spec.disable_control_plane = false;
+		dvb_spec.mac_id = instance_id;
+		dvb_spec.spot_id = instance_id;
 
 		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", laspecific);	
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap", this->instance_id);
-		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_specific{this->instance_id, false});
+		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
 		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
 		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", scspecific);
 

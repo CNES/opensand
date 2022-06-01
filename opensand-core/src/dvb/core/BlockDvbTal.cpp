@@ -226,46 +226,46 @@ bool BlockDvbTal::initListsSts()
 /*****************************************************************************/
 
 BlockDvbTal::Downward::Downward(const std::string &name, struct dvb_specific specific):
-	DvbDownward{name},
-	mac_id{specific.mac_id},
-	state{TalState::initializing},
-	group_id{},
-	tal_id{},
-	gw_id{},
-	is_scpc{specific.disable_control_plane},
-	disable_control_plane{specific.disable_control_plane},
-	cra_kbps{0},
-	max_rbdc_kbps{0},
-	max_vbdc_kb{0},
-	dama_agent{nullptr},
-	saloha{nullptr},
-	scpc_carr_duration_ms{0},
-	scpc_timer{-1},
-	ret_fmt_groups{},
-	scpc_sched{nullptr},
-	scpc_frame_counter{0},
-	carrier_id_ctrl{},
-	carrier_id_logon{},
-	carrier_id_data{},
-	dvb_fifos{},
-	default_fifo_id{0},
-	sync_period_frame{std::numeric_limits<decltype(sync_period_frame)>::max()},
-	obr_slot_frame{std::numeric_limits<decltype(obr_slot_frame)>::max()},
-	complete_dvb_frames{},
-	logon_timer{-1},
-	qos_server_host{},
-	event_login{nullptr},
-	log_frame_tick{nullptr},
-	log_qos_server{nullptr},
-	log_saloha{nullptr},
-	probe_st_queue_size{},
-	probe_st_queue_size_kb{},
-	probe_st_l2_to_sat_before_sched{},
-	probe_st_l2_to_sat_after_sched{},
-	l2_to_sat_total_bytes{0},
-	probe_st_l2_to_sat_total{nullptr},
-	probe_st_phy_to_sat{nullptr},
-	probe_st_required_modcod{nullptr}
+    DvbDownward{name},
+    mac_id{specific.mac_id},
+    state{TalState::initializing},
+    group_id{},
+    tal_id{},
+    gw_id{specific.spot_id},
+    is_scpc{specific.disable_control_plane},
+    disable_control_plane{specific.disable_control_plane},
+    cra_kbps{0},
+    max_rbdc_kbps{0},
+    max_vbdc_kb{0},
+    dama_agent{nullptr},
+    saloha{nullptr},
+    scpc_carr_duration_ms{0},
+    scpc_timer{-1},
+    ret_fmt_groups{},
+    scpc_sched{nullptr},
+    scpc_frame_counter{0},
+    carrier_id_ctrl{},
+    carrier_id_logon{},
+    carrier_id_data{},
+    dvb_fifos{},
+    default_fifo_id{0},
+    sync_period_frame{std::numeric_limits<decltype(sync_period_frame)>::max()},
+    obr_slot_frame{std::numeric_limits<decltype(obr_slot_frame)>::max()},
+    complete_dvb_frames{},
+    logon_timer{-1},
+    qos_server_host{},
+    event_login{nullptr},
+    log_frame_tick{nullptr},
+    log_qos_server{nullptr},
+    log_saloha{nullptr},
+    probe_st_queue_size{},
+    probe_st_queue_size_kb{},
+    probe_st_l2_to_sat_before_sched{},
+    probe_st_l2_to_sat_after_sched{},
+    l2_to_sat_total_bytes{0},
+    probe_st_l2_to_sat_total{nullptr},
+    probe_st_phy_to_sat{nullptr},
+    probe_st_required_modcod{nullptr}
 {
 }
 
@@ -428,6 +428,8 @@ bool BlockDvbTal::Downward::onInit(void)
 	}
 	else
 	{
+		this->tal_id = this->mac_id;
+		this->group_id = this->gw_id;
 		this->state = TalState::running;
 	}
 
@@ -439,14 +441,14 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 {
 	auto Conf = OpenSandModelConf::Get();
 
-	this->gw_id = 0;
-	if(!Conf->getGwWithTalId(this->mac_id, this->gw_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "couldn't find gw for tal %d",
-		    this->mac_id);
-		return false;
-	}
+	// this->gw_id = 0;
+	// if(!Conf->getGwWithTalId(this->mac_id, this->gw_id))
+	// {
+	// 	LOG(this->log_init_channel, LEVEL_ERROR,
+	// 	    "couldn't find gw for tal %d",
+	// 	    this->mac_id);
+	// 	return false;
+	// }
 
 	OpenSandModelConf::spot_infrastructure carriers;
 	if (!Conf->getSpotInfrastructure(this->gw_id, carriers))
@@ -2132,18 +2134,18 @@ void BlockDvbTal::Downward::deletePackets()
 /*****************************************************************************/
 
 BlockDvbTal::Upward::Upward(const std::string &name, struct dvb_specific specific):
-	DvbUpward{name, specific.disable_control_plane},
-	reception_std{nullptr},
-	mac_id{specific.mac_id},
-	group_id{},
-	tal_id{},
-	gw_id{},
-	is_scpc{specific.disable_control_plane},
-	state{TalState::initializing},
-	probe_st_l2_from_sat{nullptr},
-	probe_st_received_modcod{nullptr},
-	probe_st_rejected_modcod{nullptr},
-	probe_sof_interval{nullptr}
+    DvbUpward{name, specific.disable_control_plane},
+    reception_std{nullptr},
+    mac_id{specific.mac_id},
+    group_id{},
+    tal_id{},
+    gw_id{specific.spot_id},
+    is_scpc{specific.disable_control_plane},
+    state{TalState::initializing},
+    probe_st_l2_from_sat{nullptr},
+    probe_st_received_modcod{nullptr},
+    probe_st_rejected_modcod{nullptr},
+    probe_sof_interval{nullptr}
 {
 }
 
@@ -2203,13 +2205,13 @@ bool BlockDvbTal::Upward::onInit(void)
 {
 	// Initialization of gw_id
 	auto Conf = OpenSandModelConf::Get();
-	if(!Conf->getGwWithTalId(this->mac_id, this->gw_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "couldn't find gw for tal %d",
-		    this->mac_id);
-		return false;
-	}
+	// if(!Conf->getGwWithTalId(this->mac_id, this->gw_id))
+	// {
+	// 	LOG(this->log_init_channel, LEVEL_ERROR,
+	// 	    "couldn't find gw for tal %d",
+	// 	    this->mac_id);
+	// 	return false;
+	// }
 
 	if (!this->disable_control_plane)
 	{
@@ -2262,6 +2264,8 @@ bool BlockDvbTal::Upward::onInit(void)
 
 	if (this->disable_control_plane)
 	{
+		this->tal_id = this->mac_id;
+		this->group_id = this->gw_id;
 		this->state = TalState::running;
 	}
 
@@ -2288,14 +2292,14 @@ bool BlockDvbTal::Upward::initMode(void)
 
 bool BlockDvbTal::Upward::initModcodSimu(void)
 {
-	tal_id_t gw_id = 0;
-	if(!OpenSandModelConf::Get()->getGwWithTalId(this->mac_id, gw_id))
-	{
-		LOG(this->log_init_channel, LEVEL_ERROR,
-		    "couldn't find gw for tal %d",
-		    this->mac_id);
-		return false;
-	}
+	// tal_id_t gw_id = 0;
+	// if(!OpenSandModelConf::Get()->getGwWithTalId(this->mac_id, gw_id))
+	// {
+	// 	LOG(this->log_init_channel, LEVEL_ERROR,
+	// 	    "couldn't find gw for tal %d",
+	// 	    this->mac_id);
+	// 	return false;
+	// }
 
 	if(!this->initModcodDefFile(MODCOD_DEF_S2,
 	                            &this->s2_modcod_def))

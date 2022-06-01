@@ -69,6 +69,7 @@
 struct dvb_specific
 {
 	tal_id_t mac_id;
+	spot_id_t spot_id;
 	bool disable_control_plane;
 };
 

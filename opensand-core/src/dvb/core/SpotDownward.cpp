@@ -315,7 +315,7 @@ bool SpotDownward::initMode(void)
 	// initialize scheduling
 	// depending on the satellite type
 	OpenSandModelConf::spot current_spot;
-	if (!OpenSandModelConf::Get()->getSpotForwardCarriers(this->mac_id, current_spot))
+	if (!OpenSandModelConf::Get()->getSpotForwardCarriers(this->spot_id, current_spot))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no gateways with value: "
