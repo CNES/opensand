@@ -69,7 +69,6 @@ DamaAgentRcs2::~DamaAgentRcs2()
 	{
 		delete this->ret_schedule;
 	}
-	delete this->ret_schedule;
 
 	if(this->rbdc_request_buffer != NULL)
 	{
