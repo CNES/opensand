@@ -49,6 +49,7 @@
 #include "EntitySat.h"
 #include "EntitySatRegen.h"
 #include "EntitySt.h"
+#include "NetBurst.h"
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
@@ -341,6 +342,9 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 		return_code = 15;
 		return entity;
 	}
+
+	// TODO: temp fix
+	NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
 
 	return entity;
 }
