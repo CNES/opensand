@@ -194,7 +194,7 @@ bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
 
 	// send the message to the lower layer
 	// do not count carrier_id in len, this is the dvb_meta->hdr length
-	if(!this->enqueueMessage((void **)(&dvb_frame)))
+	if(!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_unknown)))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "failed to send DVB frame to lower layer\n");

@@ -408,7 +408,7 @@ bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 	}
 
 	// send the message to the lower layer
-	if(!this->enqueueMessage((void **)&burst))
+	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "cannot send burst to lower layer failed\n");
@@ -528,7 +528,7 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 
 
 	// send the message to the lower layer
-	if(!this->enqueueMessage((void **)&burst))
+	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to lower layer\n");
@@ -645,7 +645,7 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 	}
 
 	// send the burst to the upper layer
-	if(!this->enqueueMessage((void **)&burst))
+	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to upper layer\n");

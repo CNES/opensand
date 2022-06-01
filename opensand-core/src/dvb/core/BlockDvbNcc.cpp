@@ -920,7 +920,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 			}
 
 			// send the message to the upper layer
-			if(burst && !this->enqueueMessage((void **)&burst))
+			if (burst && !this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
 			{
 				LOG(this->log_send, LEVEL_ERROR,
 				    "failed to send burst of packets to upper layer\n");
@@ -983,21 +983,17 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		case MSG_TYPE_TTP:
 		case MSG_TYPE_SESSION_LOGON_RESP:
 		{
+			if (this->disable_control_plane)
+			{
+				return this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_sig));
+			}
 			// nothing to do in this case
 			LOG(this->log_receive, LEVEL_DEBUG,
 			    "ignore TTP or logon response "
-			    "(type = %d)\n", dvb_frame->getMessageType());
-			if (!this->disable_control_plane)
-			{
-				delete dvb_frame;
-			}
-			else
-			{
-				if (!this->enqueueMessage((void **)&dvb_frame))
-				{
-					return false;
-				}
-			}
+			    "(type = %d)\n",
+			    dvb_frame->getMessageType());
+			delete dvb_frame;
+			return true;
 		}
 		break;
 
@@ -1008,11 +1004,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 
 			if (this->disable_control_plane)
 			{
-				if (!this->enqueueMessage((void **)&dvb_frame))
-				{
-					return false;
-				}
-				break;
+				return this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_sig));
 			}
 
 			std::list<DvbFrame *> *ack_frames{nullptr};
@@ -1029,7 +1021,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 				// No slotted Aloha
 				break;
 			}
-			if(sa_burst && !this->enqueueMessage((void **)&sa_burst))
+			if (sa_burst && !this->enqueueMessage((void **)&sa_burst, 0, to_underlying(InternalMessageType::msg_unknown)))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "Failed to send encapsulation packets to upper"
@@ -1082,7 +1074,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		{
 			if (this->disable_control_plane)
 			{
-				if (!this->enqueueMessage((void **)&dvb_frame))
+				if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_unknown)))
 				{
 					return false;
 				}

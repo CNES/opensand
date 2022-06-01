@@ -208,7 +208,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 			LOG(this->log_receive, LEVEL_DEBUG,
 			    "Get a forward burst from opposite channel\n");
 			NetBurst *forward_burst = static_cast<NetBurst *>(msg_event->getData());
-			if(!this->enqueueMessage((void **)&forward_burst))
+			if (!this->enqueueMessage((void **)&forward_burst, 0, to_underlying(InternalMessageType::msg_data)))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "failed to forward burst to lower layer\n");
@@ -537,7 +537,7 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 		}
 	}
 
-	if(!this->enqueueMessage((void **)&burst))
+	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to lower layer\n");

@@ -100,7 +100,7 @@ bool TopMux::Downward::onEvent(const RtEvent *const event)
 	auto msg = static_cast<const MessageEvent *>(event);
 	auto data = msg->getData();
 	std::cout << getName() << ": Sending message downward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::RIGHT, &data);
+	enqueueMessage(Side::RIGHT, &data, 0, 0);
 	return true;
 }
 
@@ -127,7 +127,7 @@ bool TopBlock::Upward::onEvent(const RtEvent *const event)
 	auto msg = static_cast<const MessageEvent *>(event);
 	auto data = msg->getData();
 	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(&data);
+	enqueueMessage(&data, 0, 0);
 	return true;
 }
 
@@ -149,7 +149,7 @@ bool TopBlock::Downward::onEvent(const RtEvent *const event)
 	auto msg = static_cast<const MessageEvent *>(event);
 	auto data = msg->getData();
 	std::cout << getName() << ": Sending message downward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::RIGHT, &data);
+	enqueueMessage(Side::RIGHT, &data, 0, 0);
 	return true;
 }
 ///////////////////////// MiddleBlock /////////////////////////
@@ -175,7 +175,7 @@ bool MiddleBlock::Upward::onEvent(const RtEvent *const event)
 	auto msg = static_cast<const MessageEvent *>(event);
 	auto data = msg->getData();
 	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::LEFT, &data);
+	enqueueMessage(Side::LEFT, &data, 0, 0);
 	return true;
 }
 
@@ -197,7 +197,7 @@ bool MiddleBlock::Downward::onEvent(const RtEvent *const event)
 	auto msg = static_cast<const MessageEvent *>(event);
 	auto data = msg->getData();
 	std::cout << getName() << ": Sending message downward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::RIGHT, &data);
+	enqueueMessage(Side::RIGHT, &data, 0, 0);
 	return true;
 }
 
@@ -224,7 +224,7 @@ bool BottomBlock::Upward::onEvent(const RtEvent *const event)
 	auto msg = static_cast<const MessageEvent *>(event);
 	auto data = msg->getData();
 	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::LEFT, &data);
+	enqueueMessage(Side::LEFT, &data, 0, 0);
 	return true;
 }
 
@@ -246,7 +246,7 @@ bool BottomBlock::Downward::onEvent(const RtEvent *const event)
 	auto msg = static_cast<const MessageEvent *>(event);
 	auto data = msg->getData();
 	std::cout << getName() << ": Sending message downward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(&data);
+	enqueueMessage(&data, 0, 0);
 	return true;
 }
 
@@ -259,7 +259,7 @@ bool BottomMux::Upward::onInit()
 {
 	void *data = new std::string{"test"};
 	std::cout << getName() << ": Sending message upward: " << *static_cast<std::string *>(data) << "\n";
-	enqueueMessage(Side::LEFT, &data);
+	enqueueMessage(Side::LEFT, &data, 0, 0);
 	return true;
 }
 

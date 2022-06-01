@@ -215,7 +215,7 @@ bool TopBlock::Downward::onEvent(const RtEvent *const event)
 
 
 			// transmit to lower layer
-			if(!this->enqueueMessage((void **)&data, strlen(data)))
+			if(!this->enqueueMessage((void **)&data, strlen(data), 0))
 			{
 				Rt::reportError(this->getName(), std::this_thread::get_id(), true,
 				                "cannot send data to lower block");
@@ -280,7 +280,7 @@ bool MiddleBlock::Upward::onEvent(const RtEvent *const event)
 	}
 
 	// transmit to upper layer
-	if(!this->enqueueMessage((void **)&data, strlen(data)))
+	if (!this->enqueueMessage((void **)&data, strlen(data), 0))
 	{
 		Rt::reportError(this->getName(), std::this_thread::get_id(), true, "cannot send data to upper block");
 	}
@@ -296,7 +296,7 @@ bool MiddleBlock::Downward::onEvent(const RtEvent *const event)
 	}
 
 	// transmit to lower layer
-	if(!this->enqueueMessage((void **)(&data), strlen(data)))
+	if (!this->enqueueMessage((void **)(&data), strlen(data), 0))
 	{
 		Rt::reportError(this->getName(), std::this_thread::get_id(), true, "cannot send data to lower block");
 	}
@@ -374,7 +374,7 @@ bool BottomBlock::Upward::onEvent(const RtEvent *const event)
 			          << " bytes of data received on net socket" << std::endl;
 
 			// transmit to upper layer
-			if(!this->enqueueMessage((void **)&data, strlen(data)))
+			if (!this->enqueueMessage((void **)&data, strlen(data), 0))
 			{
 				Rt::reportError(this->getName(), std::this_thread::get_id(), true, "cannot send data to upper block");
 			}

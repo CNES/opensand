@@ -136,6 +136,7 @@ enum class InternalMessageType : uint8_t
 	msg_link_up,   ///< link up message
 	msg_sig,       ///< message containing signalisation
 	msg_saloha,    ///< message containing Slotted Aloha content
+	msg_unknown,   ///< when the msg type is unknown or unused
 };
 
 

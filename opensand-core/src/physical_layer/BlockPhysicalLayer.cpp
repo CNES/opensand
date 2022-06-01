@@ -272,7 +272,7 @@ bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 	}
 
 	// Send frame to upper layer
-	if(!this->enqueueMessage((void **)&dvb_frame))
+	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_unknown)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, 
 		    "Failed to send burst of packets to upper layer");
@@ -442,7 +442,7 @@ bool BlockPhysicalLayer::Downward::updateDelay()
 bool BlockPhysicalLayer::Downward::forwardPacket(DvbFrame *dvb_frame)
 {
 	// Send frame to upper layer
-	if(!this->enqueueMessage((void **)&dvb_frame))
+	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_unknown)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, 
 		    "Failed to send burst of packets to upper layer");

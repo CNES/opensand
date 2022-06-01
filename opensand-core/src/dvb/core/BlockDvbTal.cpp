@@ -2437,7 +2437,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 
 			// send the message to the upper layer
-			if(burst && !this->enqueueMessage((void **)&burst))
+			if (burst && !this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
 			{
 				LOG(this->log_send, LEVEL_ERROR,
 				    "failed to send burst of packets to upper layer\n");
