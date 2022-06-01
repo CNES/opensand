@@ -2559,6 +2559,11 @@ bool BlockDvbTal::Upward::onStartOfFrame(DvbFrame *dvb_frame)
 
 bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 {
+	if (disable_control_plane)
+	{
+		return this->shareFrame(dvb_frame);
+	}
+
 	T_LINK_UP *link_is_up;
 	LogonResponse *logon_resp = (LogonResponse *)(dvb_frame);
 	// Retrieve the Logon Response frame
