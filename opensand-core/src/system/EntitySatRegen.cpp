@@ -60,6 +60,7 @@
 
 #include "BlockDvbNcc.h"
 #include "BlockDvbTal.h"
+#include "BlockEncap.h"
 #include "BlockMesh.h"
 #include "BlockSatCarrier.h"
 
@@ -131,6 +132,7 @@ void defineProfileMetaModel()
 
 	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
 	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
+	BlockEncap::generateConfiguration();
 }
 
 bool EntitySatRegen::loadConfiguration(const std::string &profile_path)
