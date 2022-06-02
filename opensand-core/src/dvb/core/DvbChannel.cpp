@@ -360,11 +360,8 @@ bool DvbFmt::initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable **modco
 bool DvbFmt::addInputTerminal(tal_id_t id,
                               const FmtDefinitionTable *const modcod_def)
 {
-	fmt_id_t modcod;
-	
 	// set less robust modcod at init
-	modcod = modcod_def->getMaxId();
-
+	fmt_id_t modcod = modcod_def->getMaxId();
 	this->input_sts->addTerminal(id, modcod, modcod_def);
 	return true;
 }
@@ -373,6 +370,7 @@ bool DvbFmt::addInputTerminal(tal_id_t id,
 bool DvbFmt::addOutputTerminal(tal_id_t id,
                                const FmtDefinitionTable *const modcod_def)
 {
+	// set less robust modcod at init
 	fmt_id_t modcod = modcod_def->getMaxId();
 	this->output_sts->addTerminal(id, modcod, modcod_def);
 	return true;

@@ -159,10 +159,10 @@ bool StFmtSimu::getCniHasChanged()
 
 
 StFmtSimuList::StFmtSimuList(std::string name):
-	name(name),
-	sts(NULL),
-	acm_loop_margin_db(0.0),
-	sts_mutex()
+	name{name},
+	sts{nullptr},
+	acm_loop_margin_db{0.0},
+	sts_mutex{}
 {
 	// Output Log
 	this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING,
@@ -175,10 +175,9 @@ StFmtSimuList::StFmtSimuList(std::string name):
 StFmtSimuList::~StFmtSimuList()
 {
 	RtLock lock(this->sts_mutex);
-	for(ListStFmt::iterator it = this->sts->begin();
-	    it != this->sts->end(); it++)
+	for(auto&& st : *this->sts)
 	{
-		delete it->second;
+		delete st.second;
 	}
 	this->sts->clear();
 	delete this->sts;
@@ -246,10 +245,8 @@ bool StFmtSimuList::delTerminal(tal_id_t st_id)
 void StFmtSimuList::setRequiredCni(tal_id_t st_id, double cni)
 {
 	RtLock lock(this->sts_mutex);
-	ListStFmt::iterator st_iter;
 
-
-	st_iter = this->sts->find(st_id);
+	auto st_iter = this->sts->find(st_id);
 	if(st_iter == this->sts->end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
@@ -259,15 +256,14 @@ void StFmtSimuList::setRequiredCni(tal_id_t st_id, double cni)
 	LOG(this->log_fmt, LEVEL_INFO,
 	    "set required CNI %.2f for ST%u\n", cni, st_id);
 
-	(*st_iter).second->updateCni(cni, this->acm_loop_margin_db);
+	st_iter->second->updateCni(cni, this->acm_loop_margin_db);
 }
 
 double StFmtSimuList::getRequiredCni(tal_id_t st_id) const
 {
 	RtLock lock(this->sts_mutex);
-	ListStFmt::iterator st_iter;
 
-	st_iter = this->sts->find(st_id);
+	auto st_iter = this->sts->find(st_id);
 	if(st_iter == this->sts->end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
@@ -275,16 +271,15 @@ double StFmtSimuList::getRequiredCni(tal_id_t st_id) const
 		return 0.0;
 	}
 
-	return (*st_iter).second->getRequiredCni();
+	return st_iter->second->getRequiredCni();
 }
 
 
 fmt_id_t StFmtSimuList::getCurrentModcodId(tal_id_t st_id) const
 {
 	RtLock lock(this->sts_mutex);
-	ListStFmt::const_iterator st_iter;
 
-	st_iter = this->sts->find(st_id);
+	auto st_iter = this->sts->find(st_id);
 	if(st_iter == this->sts->end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
@@ -292,15 +287,14 @@ fmt_id_t StFmtSimuList::getCurrentModcodId(tal_id_t st_id) const
 		return 0;
 	}
 
-	return (*st_iter).second->getCurrentModcodId();
+	return st_iter->second->getCurrentModcodId();
 }
 
 bool StFmtSimuList::getCniHasChanged(tal_id_t st_id)
 {
 	RtLock lock(this->sts_mutex);
-	ListStFmt::iterator st_iter;
 
-	st_iter = this->sts->find(st_id);
+	auto st_iter = this->sts->find(st_id);
 	if(st_iter == this->sts->end())
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
@@ -308,39 +302,29 @@ bool StFmtSimuList::getCniHasChanged(tal_id_t st_id)
 		return false;
 	}
 
-	return (*st_iter).second->getCniHasChanged();
+	return st_iter->second->getCniHasChanged();
 }
 
 bool StFmtSimuList::isStPresent(tal_id_t st_id) const
 {
 	RtLock lock(this->sts_mutex);
-  std::set<tal_id_t>::const_iterator it;
-	it = std::find(this->begin(),
-	               this->end(), st_id);
-
-	return(it != this->end());
+	return std::find(this->begin(), this->end(), st_id) != this->end();
 }
 
 tal_id_t StFmtSimuList::getTalIdWithLowerModcod() const
 {
 	RtLock lock(this->sts_mutex);
-	ListStFmt::const_iterator st_iterator;
-	uint8_t modcod_id;
-	uint8_t lower_modcod_id = 0;
-	tal_id_t tal_id;
-	tal_id_t lower_tal_id = 255;
+	uint8_t lower_modcod_id = std::numeric_limits<decltype(lower_modcod_id)>::max();
+	tal_id_t lower_tal_id = std::numeric_limits<decltype(lower_tal_id)>::max();
 
-	for(st_iterator = this->sts->begin();
-	    st_iterator != this->sts->end();
-	    ++st_iterator)
+	for(auto&& st_iterator : *this->sts)
 	{
 		// Retrieve the lower modcod
-		tal_id = (*st_iterator).first;
-		modcod_id = (*st_iterator).second->getCurrentModcodId();
+		tal_id_t tal_id = st_iterator.first;
+		uint8_t modcod_id = st_iterator.second->getCurrentModcodId();
 
 		// TODO:retrieve with lower Es/N0 not modcod_id
-		if((st_iterator == this->sts->begin()) ||
-		    (modcod_id < lower_modcod_id))
+		if(modcod_id < lower_modcod_id)
 		{
 			lower_modcod_id = modcod_id;
 			lower_tal_id = tal_id;
@@ -352,7 +336,3 @@ tal_id_t StFmtSimuList::getTalIdWithLowerModcod() const
 
 	return lower_tal_id;
 }
-
-
-
-

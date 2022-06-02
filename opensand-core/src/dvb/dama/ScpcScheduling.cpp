@@ -85,8 +85,8 @@ static size_t getPayloadSize(std::string coding_rate)
 	return payload;
 }
 
-// TODO try to factorize with S2Scheduling
 
+// TODO try to factorize with S2Scheduling
 ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
                                EncapPlugin::EncapPacketHandler *packet_handler,
                                const fifos_t &fifos,
@@ -103,9 +103,6 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	category(category),
 	gw_id(gw_id)
 {
-  std::vector<CarriersGroupDama *> carriers_group;
-  std::vector<CarriersGroupDama *>::iterator carrier_it;
-
 	this->probe_scpc_total_capacity = Output::Get()->registerProbe<int>(
 		"SCPC capacity.Total.Available",
 		"Symbols per frame", true, SAMPLE_LAST);
@@ -117,12 +114,8 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	this->probe_sent_modcod = Output::Get()->registerProbe<int>(
     "Up_Return_modcod.Sent_modcod(SCPC)", "modcod index", true, SAMPLE_LAST);
 
-	carriers_group = this->category->getCarriersGroups();
-	for(carrier_it = carriers_group.begin();
-	    carrier_it != carriers_group.end();
-	    ++carrier_it)
+	for(auto&& carriers : this->category->getCarriersGroups())
 	{
-		CarriersGroupDama *carriers = *carrier_it;
     std::vector<std::shared_ptr<Probe<int> > > remain_probes;
     std::vector<std::shared_ptr<Probe<int> > > avail_probes;
 		unsigned int carriers_id = carriers->getCarriersId();
@@ -132,12 +125,9 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 		char probe_name[128];
 		vol_sym_t carrier_size_sym = carriers->getTotalCapacity() /
 		                             carriers->getCarriersNumber();
-    std::list<fmt_id_t> fmt_ids = carriers->getFmtIds();
 
-		for(std::list<fmt_id_t>::const_iterator fmt_it = fmt_ids.begin();
-			fmt_it != fmt_ids.end(); ++fmt_it)
+		for(auto&& fmt_id : carriers->getFmtIds())
 		{
-			fmt_id_t fmt_id = *fmt_it;
 			vol_sym_t size;
 			// check that the BBFrame maximum size is smaller than the carrier size
 			if(!this->getBBFrameSizeSym(this->getBBFrameSizeBytes(fmt_id),
@@ -212,19 +202,12 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
                               std::list<DvbFrame *> *complete_dvb_frames,
                               uint32_t &remaining_allocation)
 {
-	fifos_t::const_iterator fifo_it;
-  std::vector<CarriersGroupDama *> carriers_group;
-  std::vector<CarriersGroupDama *>::iterator carrier_it;
-	carriers_group = this->category->getCarriersGroups();
+	auto carriers_group = this->category->getCarriersGroups();
 	vol_sym_t init_capacity_sym;
 	int total_capa = 0;
 
-	for(carrier_it = carriers_group.begin();
-	    carrier_it != carriers_group.end();
-	    ++carrier_it)
+	for(auto&& carriers : carriers_group)
 	{
-		CarriersGroupDama *carriers = *carrier_it;
-    std::list<BBFrame *>::iterator it;
 		unsigned int capacity_sym = 0;
 
 		// initialize carriers capacity, remaining capacity should be 0
@@ -234,25 +217,22 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 		carriers->setRemainingCapacity(init_capacity_sym);
 		total_capa += init_capacity_sym;
 
-		for(fifo_it = this->dvb_fifos.begin();
-			fifo_it != this->dvb_fifos.end(); ++fifo_it)
+		for(auto&& fifo_it : this->dvb_fifos)
 		{
-			DvbFifo *fifo = (*fifo_it).second;
-
 			// check if the FIFO can emit on this carriers group
 			// SCPC
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 			    "SF#%u: Can send data from fifo %s on carriers group "
 			    "%u in category %s\n",
 			    current_superframe_sf,
-			    fifo->getName().c_str(), carriers->getCarriersId(),
+			    fifo_it.second->getName().c_str(), carriers->getCarriersId(),
 			    this->category->getLabel().c_str());
 
-			if(!this->scheduleEncapPackets(fifo,
+			if(!this->scheduleEncapPackets(fifo_it.second,
 			                               current_superframe_sf,
 			                               current_time,
 			                               complete_dvb_frames,
-			                               *carrier_it))
+			                               carriers))
 			{
 				return false;
 			}
@@ -261,6 +241,7 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 		// try to fill the BBFrames list with the remaining
 		// incomplete BBFrames
 		capacity_sym = carriers->getRemainingCapacity();
+    std::list<BBFrame *>::iterator it;
 		for(it = this->incomplete_bb_frames_ordered.begin();
 		    it != this->incomplete_bb_frames_ordered.end();
 		    it = this->incomplete_bb_frames_ordered.erase(it))
@@ -290,38 +271,33 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 				time_sf_t next_sf = current_superframe_sf + 1;
 				// we keep the remaining capacity that won't be used for
 				// next frame
-				(*carrier_it)->setPreviousCapacity(std::min(capacity_sym,
-				                                            init_capacity_sym),
-				                                   next_sf);
+				carriers->setPreviousCapacity(std::min(capacity_sym, init_capacity_sym), next_sf);
 				break;
 			}
 		}
 		// update remaining capacity for statistics
-		(*carrier_it)->setRemainingCapacity(std::min(capacity_sym,
+		carriers->setRemainingCapacity(std::min(capacity_sym,
 		                                             init_capacity_sym));
 	}
 	this->probe_scpc_total_capacity->put(total_capa);
 	this->probe_scpc_bbframe_nbr->put(complete_dvb_frames->size());
 
-	for(carrier_it = carriers_group.begin();
-	    carrier_it != carriers_group.end();
-	    ++carrier_it)
+	for(auto&& carriers : carriers_group)
 	{
-		CarriersGroupDama *carriers = *carrier_it;
 		unsigned int carriers_id = carriers->getCarriersId();
 		unsigned int id = 0;
 
-		unsigned int remain = (*carrier_it)->getRemainingCapacity();
-		unsigned int avail = (*carrier_it)->getTotalCapacity();
+		unsigned int remain = carriers->getRemainingCapacity();
+		unsigned int avail = carriers->getTotalCapacity();
 		// keep total remaining capacity (for stats)
 		remaining_allocation += remain;
 
 		// get remain in Kbits/s instead of symbols if possible
-		if((*carrier_it)->getFmtIds().size() == 1)
+		if(carriers->getFmtIds().size() == 1)
 		{
-			remain = this->scpc_modcod_def->symToKbits((*carrier_it)->getFmtIds().front(),
+			remain = this->scpc_modcod_def->symToKbits(carriers->getFmtIds().front(),
 			                                 remain);
-			avail = this->scpc_modcod_def->symToKbits((*carrier_it)->getFmtIds().front(),
+			avail = this->scpc_modcod_def->symToKbits(carriers->getFmtIds().front(),
 			                               avail);
 			// we get kbits per frame, convert in kbits/s
 			remain = remain * 1000 / this->scpc_timer_ms;
@@ -332,7 +308,7 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 		this->probe_scpc_remaining_capacity[carriers_id][id]->put(remain);
 		id++;
 		// reset remaining capacity
-		(*carrier_it)->setRemainingCapacity(0);
+		carriers->setRemainingCapacity(0);
 	}
 	this->probe_scpc_total_remaining_capacity->put(remaining_allocation);
 

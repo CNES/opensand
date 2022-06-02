@@ -185,8 +185,11 @@ bool BlockDvbTal::onInit(void)
 
 bool BlockDvbTal::initListsSts()
 {
-	this->input_sts = new StFmtSimuList("in");
-	if(this->input_sts == nullptr)
+  try
+  {
+    this->input_sts = new StFmtSimuList("in");
+  }
+	catch (const std::bad_alloc&)
 	{
 		return false;
 	}
@@ -206,8 +209,11 @@ bool BlockDvbTal::initListsSts()
 
 	if(is_scpc)
 	{
-		this->output_sts = new StFmtSimuList("out");
-		if(this->output_sts == nullptr)
+    try
+    {
+      this->output_sts = new StFmtSimuList("out");
+    }
+		catch (const std::bad_alloc&)
 		{
 			return false;
 		}
@@ -2285,6 +2291,14 @@ bool BlockDvbTal::Upward::onInit(void)
 		this->tal_id = this->mac_id;
 		this->group_id = this->gw_id;
 		this->state = TalState::running;
+
+    if(!this->addInputTerminal(this->tal_id, this->s2_modcod_def))
+    {
+      LOG(this->log_init, LEVEL_ERROR,
+          "failed to handle FMT for ST %u, "
+          "won't finish initialization\n", this->tal_id);
+      return false;
+    }
 	}
 
 	return true;
@@ -2415,7 +2429,6 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				goto error;
 			}
 
-			NetBurst::const_iterator it;
 			if(burst)
 			{
 				for(auto&& packet : *burst)
@@ -2559,7 +2572,7 @@ bool BlockDvbTal::Upward::onStartOfFrame(DvbFrame *dvb_frame)
 
 bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 {
-	if (disable_control_plane)
+	if (this->disable_control_plane)
 	{
 		return this->shareFrame(dvb_frame);
 	}
@@ -2621,7 +2634,6 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	    " %u\n", this->super_frame_counter,
 	    this->group_id, this->tal_id);
 
-  // TODO: Should we disable it when disable_control_plane???
 	// Add the st id
 	if(!this->addInputTerminal(this->tal_id, this->s2_modcod_def))
 	{
