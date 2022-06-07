@@ -191,7 +191,7 @@ class DvbChannel
 	 * @return              true on success, false otherwise
 	 */
 	bool pushInFifo(DvbFifo *fifo,
-	                NetContainer *data,
+	                std::unique_ptr<NetContainer> data,
 	                time_ms_t fifo_delay);
 
 	/**
@@ -762,8 +762,7 @@ class DvbFmt
 	 */
 	bool setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	                        MacFifoElement *elem,
-	                        DvbFifo *fifo,
-	                        NetPacket* packet,
+	                        std::unique_ptr<NetPacket> packet,
 	                        tal_id_t source,
 	                        tal_id_t dest,
 	                        std::string extension_name,

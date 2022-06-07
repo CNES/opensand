@@ -947,8 +947,7 @@ bool SpotDownward::handleEncapPacket(std::unique_ptr<NetPacket> packet)
 		fifo_priority = this->default_fifo_id;
 	}
 
-  // TODO: lift off the release call in favor of an std::move
-	if(!this->pushInFifo(fifos_it->second[fifo_priority], packet.release(), 0))
+	if(!this->pushInFifo(fifos_it->second[fifo_priority], std::move(packet), 0))
 	{
 		// a problem occured, we got memory allocation error
 		// or fifo full and we won't empty fifo until next
@@ -1378,42 +1377,26 @@ bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
 bool SpotDownward::addCniExt(void)
 {
 	std::list<tal_id_t> list_st;
-	std::map<std::string, fifos_t>::iterator dvb_fifos_it;
 
 	// Create list of first packet from FIFOs
-	for(dvb_fifos_it = this->dvb_fifos.begin();
-	    dvb_fifos_it != this->dvb_fifos.end();
-	    ++dvb_fifos_it)
+	for(auto&& dvb_fifos_it : this->dvb_fifos)
 	{
-		fifos_t::iterator fifos_it;
-		fifos_t fifos = (*dvb_fifos_it).second;
-		for(fifos_it = fifos.begin();
-		    fifos_it != fifos.end();
-		    ++fifos_it)
+		for(auto&& fifos_it : dvb_fifos_it.second)
 		{
-			DvbFifo *fifo = (*fifos_it).second;
-      std::vector<MacFifoElement *> queue = fifo->getQueue();
-      std::vector<MacFifoElement *>::iterator queue_it;
-
-			for(queue_it = queue.begin();
-			    queue_it != queue.end();
-			    ++queue_it)
+			DvbFifo *fifo = fifos_it.second;
+			for(auto&& elem : fifo->getQueue())
 			{
-				MacFifoElement* elem = (*queue_it);
-				NetPacket *packet = (NetPacket*)elem->getElem();
+				std::unique_ptr<NetPacket> packet = elem->getElem<NetPacket>();
 				tal_id_t tal_id = packet->getDstTalId();
 
-        std::list<tal_id_t>::iterator it = std::find(this->is_tal_scpc.begin(),
-				                                        this->is_tal_scpc.end(),
-				                                        tal_id);
-				if(it != this->is_tal_scpc.end() &&
-				   this->getCniInputHasChanged(tal_id))
+				auto it = std::find(this->is_tal_scpc.begin(), this->is_tal_scpc.end(), tal_id);
+				if(it != this->is_tal_scpc.end() && this->getCniInputHasChanged(tal_id))
 				{
 					list_st.push_back(tal_id);
 					// we could make specific SCPC function
 					if(!this->setPacketExtension(this->pkt_hdl,
-						                         elem, fifo,
-						                         packet,
+						                         elem,
+						                         std::move(packet),
 						                         this->mac_id,
 						                         tal_id,
 						                         "encodeCniExt",
@@ -1425,31 +1408,26 @@ bool SpotDownward::addCniExt(void)
 
 					LOG(this->log_send_channel, LEVEL_DEBUG,
 					    "SF #%d: packet belongs to FIFO #%d\n",
-					    this->super_frame_counter, (*fifos_it).first);
-					// Delete old packet
-					delete packet;
+					    this->super_frame_counter, fifos_it.first);
+				}
+				else
+				{
+					// Put packet back into the fifo element
+					elem->setElem(std::move(packet));
 				}
 			}
 		}
 	}
 
 	// try to send empty packet if no packet has been found for a terminal
-	for(std::set<tal_id_t>::const_iterator st_it = this->input_sts->begin();
-	    st_it != this->input_sts->end(); ++st_it)
+	for (auto&& tal_id : *this->input_sts)
 	{
-		tal_id_t tal_id = *st_it;
-    std::list<tal_id_t>::iterator it = std::find(list_st.begin(),
-		                                        list_st.end(),
-		                                        tal_id);
-    std::list<tal_id_t>::iterator it_scpc = std::find(this->is_tal_scpc.begin(),
-		                                             this->is_tal_scpc.end(),
-		                                             tal_id);
+		auto it = std::find(list_st.begin(), list_st.end(), tal_id);
+		auto it_scpc = std::find(this->is_tal_scpc.begin(), this->is_tal_scpc.end(), tal_id);
 
-		if(it_scpc != this->is_tal_scpc.end() && it == list_st.end()
-		   && this->getCniInputHasChanged(tal_id))
+		if(it_scpc != this->is_tal_scpc.end() && it == list_st.end() && this->getCniInputHasChanged(tal_id))
 		{
-      std::string cat_label;
-      std::map<std::string, fifos_t>::iterator fifos_it;
+			std::string cat_label;
 
 			// first get the relevant category for the packet to find appropriate fifo
 			if(this->terminal_affectation.find(tal_id) != this->terminal_affectation.end())
@@ -1478,7 +1456,7 @@ bool SpotDownward::addCniExt(void)
 			}
 			// find the FIFO associated to the IP QoS (= MAC FIFO id)
 			// else use the default id
-			fifos_it = this->dvb_fifos.find(cat_label);
+			auto fifos_it = this->dvb_fifos.find(cat_label);
 			if(fifos_it == this->dvb_fifos.end())
 			{
 				LOG(this->log_send_channel, LEVEL_ERROR,
@@ -1487,11 +1465,12 @@ bool SpotDownward::addCniExt(void)
 				return false;
 			}
 
+			MacFifoElement *new_el = new MacFifoElement(nullptr, 0, 0);
+			// highest priority fifo
+			(fifos_it->second)[0]->pushBack(new_el);
 			// set packet extension to this new empty packet
 			if(!this->setPacketExtension(this->pkt_hdl,
-				                         NULL,
-				                         // highest priority fifo
-				                         ((*fifos_it).second)[0],
+				                         new_el,
 				                         nullptr,
 				                         this->mac_id,
 				                         tal_id,

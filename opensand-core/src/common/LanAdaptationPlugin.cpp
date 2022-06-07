@@ -68,19 +68,22 @@ bool LanAdaptationPlugin::LanAdaptationPacketHandler::init()
 	return true;
 }
 
+
 std::size_t LanAdaptationPlugin::LanAdaptationPacketHandler::getMinLength() const
 {
 	assert(0);
 }
 
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(NetPacket *,
+
+bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(std::unique_ptr<NetPacket>,
                                                                       std::size_t,
                                                                       bool,
-                                                                      bool &,
-                                                                      NetPacket **)
+                                                                      std::unique_ptr<NetPacket> &,
+                                                                      std::unique_ptr<NetPacket> &)
 {
 	assert(0);
 }
+
 
 bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(NetContainer *,
                                                                              bool &,

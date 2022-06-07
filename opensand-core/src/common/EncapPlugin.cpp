@@ -83,11 +83,6 @@ EncapPlugin::EncapPacketHandler::EncapPacketHandler(EncapPlugin &pl):
 
 EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
 {
-	for(auto&& it : this->encap_packets)
-	{
-		delete it.first;
-	}
-	this->encap_packets.clear();
 }
 
 bool EncapPlugin::EncapPacketHandler::init()
@@ -105,68 +100,21 @@ std::list<std::string> EncapPlugin::EncapPacketHandler::getCallback()
 }
 */
 
-bool EncapPlugin::EncapPacketHandler::encapNextPacket(NetPacket *packet,
+bool EncapPlugin::EncapPacketHandler::encapNextPacket(std::unique_ptr<NetPacket> packet,
                                                       std::size_t remaining_length,
-                                                      bool UNUSED(new_burst),
-                                                      bool &partial_encap,
-                                                      NetPacket **encap_packet)
+                                                      bool,
+                                                      std::unique_ptr<NetPacket> &encap_packet,
+                                                      std::unique_ptr<NetPacket> &remaining_data)
 {
 	// Set default returned values
-	partial_encap = false;
-	*encap_packet = nullptr;
-
-	// Check there is a previous encapsulation of the packet
-  std::unique_ptr<NetPacket> packet_to_encap;
-	auto it = this->encap_packets.find(packet);
-	if(it == this->encap_packets.end())
-	{
-		packet_to_encap = std::unique_ptr<NetPacket>{new NetPacket(packet)};
-	}
-	else
-	{
-		packet_to_encap = std::move(it->second);
-	}
+	remaining_data.reset();
 
 	// get the part of the packet to send
-  std::unique_ptr<NetPacket> data;
-  std::unique_ptr<NetPacket> remaining_data;
-	bool success = this->getChunk(std::move(packet_to_encap),
-                                remaining_length,
-                                data, remaining_data);
-	if(!success || (!data && !remaining_data))
-	{
-		return false;
-	}
+	bool success = this->getChunk(std::move(packet),
+	                              remaining_length,
+	                              encap_packet, remaining_data);
 
-	// Set the returned encap packet
-	if(data)
-	{
-		*encap_packet = data.release();
-	}
-
-	// Check the remaining data
-	if(remaining_data)
-	{
-		partial_encap = true;
-		if(it == this->encap_packets.end())
-		{
-			// Insert the remaining data
-			this->encap_packets.insert({packet, std::move(remaining_data)});
-		}
-		else
-		{
-			// Modify the remaining data
-			it->second = std::move(remaining_data);
-		}
-	}
-	else if(it != this->encap_packets.end())
-	{
-		// Remove the remaining data
-    delete it->first;
-		this->encap_packets.erase(it);
-	}
-
-	return true;
+	return success && (encap_packet != nullptr || remaining_data != nullptr);
 }
 
 bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packet,

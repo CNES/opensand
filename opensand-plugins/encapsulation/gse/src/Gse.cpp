@@ -1582,63 +1582,57 @@ bool Gse::PacketHandler::getQos(const Data &data, qos_t &qos) const
 }
 
 
-bool Gse::PacketHandler::getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets, NetPacket ** selected_pkt)
+bool Gse::PacketHandler::checkPacketForHeaderExtensions(std::unique_ptr<NetPacket> &packet)
 {
-	for(std::vector<NetPacket*>::const_iterator packet_it = packets.begin();
-	    packet_it != packets.end();
-	    ++packet_it)
+	// Search for a non-fragmented GSE packet, since extension cannot be
+	// added to a fragment.
+	uint8_t indicator;
+	uint16_t protocol_type;
+
+	// TODO: check if removing const-ness is neccessary from the libGSE point of view, as we’re heading into UB territory
+	unsigned char *packet_data = const_cast<unsigned char *>(static_cast<const unsigned char *>(packet->getData().c_str()));
+
+	auto status = gse_get_start_indicator(packet_data, &indicator);
+	if(status != GSE_STATUS_OK)
 	{
-		NetPacket *packet = (*packet_it);
-		// Search for a non-fragmented GSE packet, since extension cannot be
-		// added to a fragment.
-		uint8_t indicator;
-		uint16_t protocol_type;
-		unsigned char* packet_data;
-		gse_status_t status;
+		LOG(this->log, LEVEL_ERROR, "cannot get start indicator (%s)\n",
+		    gse_get_status(status));
+		packet.reset();
+		return false;
+	}
 
-		packet_data = (unsigned char *)packet->getData().c_str();
+	if(indicator != 0)
+	{
+		LOG(this->log, LEVEL_DEBUG, "non-fragmented GSE packet found\n");
 
-		status = gse_get_start_indicator(packet_data,
-		                                  &indicator);
+		status = gse_get_protocol_type(packet_data, &protocol_type);
 		if(status != GSE_STATUS_OK)
 		{
-			LOG(this->log, LEVEL_ERROR, "cannot get start indicator (%s)\n",
+			LOG(this->log, LEVEL_ERROR, 
+			    "cannot get protocol type of the GSE packet (%s)\n",
 			    gse_get_status(status));
+			packet.reset();
 			return false;
 		}
 
-		if(indicator != 0)
+		// Test if packet already has extensions
+		// (case protocol_type < GSE_MIN_ETHER_TYPE)
+		if(protocol_type >= GSE_MIN_ETHER_TYPE)
 		{
-			LOG(this->log, LEVEL_DEBUG, "non-fragmented GSE packet found\n");
-
-			status = gse_get_protocol_type(packet_data, &protocol_type);
-			if(status != GSE_STATUS_OK)
-			{
-				LOG(this->log, LEVEL_ERROR, 
-				    "cannot get protocol type of the GSE packet (%s)\n",
-				    gse_get_status(status));
-				return false;
-			}
-
-			// Test if packet already has extensions
-			// (case protocol_type < GSE_MIN_ETHER_TYPE)
-			if(protocol_type >= GSE_MIN_ETHER_TYPE)
-			{
-				*selected_pkt = packet;
-				return true;
-			}
-			else
-			{
-				LOG(this->log, LEVEL_DEBUG, "packet already has extensions\n");
-			}
+			return true;
+		}
+		else
+		{
+			LOG(this->log, LEVEL_DEBUG, "packet already has extensions\n");
 		}
 	}
 
-	*selected_pkt = nullptr;
+	packet.reset();  // TODO: check this is the right thing to do here
 	return true;
 }
 
-bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
+
+bool Gse::PacketHandler::setHeaderExtensions(std::unique_ptr<NetPacket> packet,
                                              std::unique_ptr<NetPacket>& new_packet,
                                              tal_id_t tal_id_src,
                                              tal_id_t tal_id_dst,
@@ -1669,8 +1663,9 @@ bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
 	{
 		LOG(this->log, LEVEL_INFO, 
 		    "no packet, create empty one\n");
-		packet = new NetPacket(empty_gse, 7);
+		packet.reset(new NetPacket(empty_gse, 7));
 	}
+
 	// TODO : this could be optimized using no_alloc
 	status = gse_create_vfrag_with_data(&vfrag, GSE_MAX_PACKET_LENGTH,
 	                                    MAX_CNI_EXT_LEN, 0,
@@ -1725,13 +1720,13 @@ bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
 
 	Data gse_frag(gse_get_vfrag_start(vfrag),
 	              gse_get_vfrag_length(vfrag));
-  try
-  {
-    new_packet = this->build(gse_frag,
-	                           gse_get_vfrag_length(vfrag),
-	                           /* qos and tal_ids are read from label */
-	                           0, 0, packet->getDstTalId());
-  }
+	try
+	{
+		new_packet = this->build(gse_frag,
+		                         gse_get_vfrag_length(vfrag),
+		                         /* qos and tal_ids are read from label */
+		                         0, 0, packet->getDstTalId());
+	}
 	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR, 
@@ -1745,6 +1740,7 @@ bool Gse::PacketHandler::setHeaderExtensions(const NetPacket* packet,
 
 	return true;
 }
+
 
 bool Gse::PacketHandler::getHeaderExtensions(const std::unique_ptr<NetPacket>& packet,
                                              std::string callback_name,

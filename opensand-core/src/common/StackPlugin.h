@@ -148,11 +148,11 @@ class StackPlugin: public OpenSandPlugin
 		 *
 		 * @return  true if success, false otherwise
 		 */
-		virtual bool encapNextPacket(NetPacket *packet,
+		virtual bool encapNextPacket(std::unique_ptr<NetPacket> packet,
 		                             std::size_t remaining_length,
 		                             bool new_burst,
-		                             bool &partial_encap,
-		                             NetPacket **encap_packet) = 0;
+		                             std::unique_ptr<NetPacket> &encap_packet,
+		                             std::unique_ptr<NetPacket> &remaining_data) = 0;
 
 		/**
 		 * @brief Get encapsulated packet from payload

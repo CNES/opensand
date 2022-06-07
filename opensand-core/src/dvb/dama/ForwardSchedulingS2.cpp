@@ -410,13 +410,13 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	MacFifoElement *elem;
 	long max_to_send;
 	BBFrame *current_bbframe;
-  std::list<fmt_id_t> supported_modcods = carriers->getFmtIds();
+	std::list<fmt_id_t> supported_modcods = carriers->getFmtIds();
 
 	// retrieve the number of packets waiting for retransmission
 	max_to_send = fifo->getCurrentSize();
 	if (max_to_send <= 0 && this->pending_bbframes.size() == 0)
 	{
-		goto skip;
+		return true;
 	}
 
 	LOG(this->log_scheduling, LEVEL_INFO,
@@ -444,7 +444,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	// stop if there is nothing to send
 	if(max_to_send <= 0)
 	{
-		goto skip;
+		return true;
 	}
 
 	// there are really packets to send
@@ -456,10 +456,10 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	// now build BB frames with packets extracted from the MAC FIFO
 	while(fifo->getCurrentSize() > 0)
 	{
-		NetPacket *encap_packet;
 		tal_id_t tal_id;
-		NetPacket *data;
-		bool partial_encap;
+		std::unique_ptr<NetPacket> encap_packet;
+		std::unique_ptr<NetPacket> data;
+		std::unique_ptr<NetPacket> remaining_data;
 
 		// simulate the satellite delay
 		if(fifo->getTickOut() > current_time)
@@ -476,13 +476,14 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 
 		encap_packet = elem->getElem<NetPacket>();
 		// retrieve the encapsulation packet
-		if(encap_packet == NULL)
+		if(!encap_packet)
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
 			    "SF#%u: invalid packet #%u in MAC FIFO "
 			    "element\n", current_superframe_sf,
 			    sent_packets + 1);
-			goto error_fifo_elem;
+			delete elem;
+			return false;
 		}
 
 		// retrieve the ST ID associated to the packet
@@ -503,7 +504,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 				    "SF#%u: The Tal_Id corresponding to "
 				    "the terminal using the lower modcod can not "
 				    "be retrieved\n", current_superframe_sf);
-				goto error;
+				return false;
 			}
 			LOG(this->log_scheduling, LEVEL_INFO,
 			    "SF#%u: TAL_ID corresponding to lower "
@@ -515,13 +516,12 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		                               &current_bbframe))
 		{
 			// cannot initialize incomplete BB Frame
-			delete encap_packet;
-			goto error_fifo_elem;
+			delete elem;
+			return false;
 		}
 		else if(!current_bbframe)
 		{
 			// cannot get modcod for the ST delete the element
-			delete encap_packet;
 			delete elem;
 			continue;
 		}
@@ -534,11 +534,11 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		    this->incomplete_bb_frames.size());
 
 		// Encapsulate packet
-		ret = this->packet_handler->encapNextPacket(encap_packet,
-			current_bbframe->getFreeSpace(),
-			current_bbframe->getPacketsCount() == 0,
-			partial_encap,
-			&data);
+		auto encap_packet_total_length = encap_packet->getTotalLength();
+		ret = this->packet_handler->encapNextPacket(std::move(encap_packet),
+		                                            current_bbframe->getFreeSpace(),
+		                                            current_bbframe->getPacketsCount() == 0,
+		                                            data, remaining_data);
 		if(!ret)
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
@@ -546,23 +546,13 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			    "#%u\n", current_superframe_sf,
 			    sent_packets + 1);
 			delete elem;
-			delete encap_packet;
 		}
-		if(!data && !partial_encap)
-		{
-			LOG(this->log_scheduling, LEVEL_ERROR,
-			    "SF#%u: bad getChunk function "
-			    "implementation, assert or skip packet #%u\n",
-			    current_superframe_sf,
-			    sent_packets + 1);
-			assert(0);
-			delete elem;
-			delete encap_packet;
-		}
+
+		bool partial_encap = remaining_data != nullptr;
 		if(data)
 		{
 			// Add data
-			if(!current_bbframe->addPacket(data))
+			if(!current_bbframe->addPacket(data.get()))
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: failed to add encapsulation "
@@ -573,7 +563,8 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 				    current_bbframe->getModcodId(),
 				    data->getTotalLength(),
 				    current_bbframe->getFreeSpace());
-				goto error_fifo_elem;
+				delete elem;
+				return false;
 			}
 
 			if(partial_encap)
@@ -583,7 +574,6 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 				    current_superframe_sf);
 			}
 			// delete the NetPacket once it has been copied in the BBFrame
-			delete data;
 			sent_packets++;
 		}
 		else
@@ -594,18 +584,18 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			    current_superframe_sf,
 			    current_bbframe->getFreeSpace(),
 			    this->packet_handler->getName().c_str(),
-			    encap_packet->getTotalLength());
+			    encap_packet_total_length);
 		}
 		if(partial_encap)
 		{
 			// Re-insert packet
+			elem->setElem(std::move(remaining_data));
 			fifo->pushFront(elem);
 		}
 		else
 		{
 			// Delete packet	
 			delete elem;
-			delete encap_packet;
 		}
 
 		// the BBFrame has been completed or the next packet is too long
@@ -619,7 +609,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			                               capacity_sym);
 			if(ret == status_error)
 			{
-				goto error;
+				return false;
 			}
 			else
 			{
@@ -655,12 +645,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		    (cpt_frame > 1) ? "frames were" : "frame was");
 	}
 
-skip:
 	return true;
-error_fifo_elem:
-	delete elem;
-error:
-	return false;
 }
 
 
@@ -766,7 +751,7 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
                                                const time_sf_t current_superframe_sf,
                                                BBFrame **bbframe)
 {
-  std::map<unsigned int, BBFrame *>::iterator iter;
+	std::map<unsigned int, BBFrame *>::iterator iter;
 	unsigned int desired_modcod;
 	unsigned int modcod_id;
 

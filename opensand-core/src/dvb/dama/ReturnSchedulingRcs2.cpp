@@ -115,14 +115,14 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
                                        vol_b_t &remaining_allocation_b)
 {
 	int ret;
-	bool partial_encap;
 	unsigned int complete_frames_count;
 	unsigned int sent_packets;
 	vol_b_t frame_length_b;
 	DvbRcsFrame *incomplete_dvb_frame = NULL;
 	fifos_t::const_iterator fifo_it;
-	NetPacket *encap_packet = NULL;
-	NetPacket *data = NULL;
+	std::unique_ptr<NetPacket> encap_packet;
+	std::unique_ptr<NetPacket> data;
+	std::unique_ptr<NetPacket> remaining_data;
 	MacFifoElement *elem = NULL;
 	DvbFifo *fifo = NULL;
 	sched_state_t state;
@@ -237,7 +237,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				    "#%u\n", current_superframe_sf,
 				    sent_packets + 1);
 				delete elem;
-				elem = NULL;
+				elem = nullptr;
 				break;
 			}
 
@@ -251,15 +251,13 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			break;
 
 		case state_get_chunk:     // Get the next chunk of encapsulated packets
-
 			// Encapsulate packet
-			data = NULL;
-			partial_encap = false;
-			ret = this->packet_handler->encapNextPacket(encap_packet,
-				incomplete_dvb_frame->getFreeSpace(),
-				incomplete_dvb_frame->getPacketsCount() == 0,
-				partial_encap,
-				&data);
+			data.reset();
+			remaining_data.reset();
+			ret = this->packet_handler->encapNextPacket(std::move(encap_packet),
+			                                            incomplete_dvb_frame->getFreeSpace(),
+			                                            incomplete_dvb_frame->getPacketsCount() == 0,
+			                                            data, remaining_data);
 			if(!ret)
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
@@ -268,22 +266,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				    sent_packets + 1);
 				delete elem;
 				elem = NULL;
-				delete encap_packet;
-				encap_packet = NULL;
-				state = state_next_encap_pkt;
-				break;
-			}
-			if(!data && !partial_encap)
-			{
-				LOG(this->log_scheduling, LEVEL_ERROR,
-				    "SF#%u: bad getChunk function "
-				    "implementation, assert or skip packet #%u\n",
-				    current_superframe_sf,
-				    sent_packets + 1);
-				delete elem;
-				elem = NULL;
-				delete encap_packet;
-				encap_packet = NULL;
 				state = state_next_encap_pkt;
 				break;
 			}
@@ -291,7 +273,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 			    "SF#%u: %s encapsulated packet length = %d kbits (%d bytes)",
 			    current_superframe_sf,
-			    partial_encap ? "Partial" : "Complete",
+			    remaining_data ? "Partial" : "Complete",
 			    data ? (data->getTotalLength() << 3) / 1000 : 0,
 			    data ? data->getTotalLength() : 0);
 
@@ -299,25 +281,23 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			state = data ? state_add_data : state_finalize_frame;
 
 			// Replace the fifo first element with the remaining data
-			if(partial_encap)
+			if(remaining_data)
 			{
 				// Re-insert packet
+				elem->setElem(std::move(remaining_data));
 				fifo->pushFront(elem);
 			}
 			else
 			{
-				// Delete packet	
+				// Delete packet
 				delete elem;
 				elem = NULL;
-				delete encap_packet;
-				encap_packet = NULL;
 			}
 			break;
 			
 		case state_add_data:       // Add data of the chunk of encapsulated packets
-
 			// Add data to the frame
-			if(!incomplete_dvb_frame->addPacket(data))
+			if(!incomplete_dvb_frame->addPacket(data.get()))
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: failed to add encapsulation "
@@ -328,9 +308,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				    incomplete_dvb_frame->getModcodId(),
 				    data->getTotalLength(),
 				    incomplete_dvb_frame->getFreeSpace());
-
-				delete data;
-				data = NULL;
 
 				state = state_error;
 				break;
@@ -348,9 +325,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				frame_length_b >> 3,
 				(incomplete_dvb_frame->getFreeSpace() << 3) / 1000,
 				incomplete_dvb_frame->getFreeSpace());
-
-			delete data;
-			data = NULL;
 
 			// Check the frame is completed
 			if(incomplete_dvb_frame->getFreeSpace() <= 0)
@@ -370,7 +344,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			break;
 
 		case state_finalize_frame: // Finalize frame
-
 			// is there any packets in the current DVB-RCS frame ?
 			if(incomplete_dvb_frame->getNumPackets() <= 0)
 			{
@@ -437,7 +410,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			break;
 
 		default:
-
 			state = state_error;
 			LOG(this->log_scheduling, LEVEL_ERROR,
 			    "SF#%u: an unexpected error occurred during scheduling\n",
@@ -449,11 +421,8 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	// Check error
 	if(state == state_error)
 	{
-		if(incomplete_dvb_frame != NULL)
-		{
-			delete incomplete_dvb_frame;
-			incomplete_dvb_frame = NULL;
-		}
+		delete incomplete_dvb_frame;
+		incomplete_dvb_frame = NULL;
 		return false;
 	}
 

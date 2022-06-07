@@ -58,7 +58,6 @@ class TerminalCategory
 {
 
  public:
-
 	/**
 	 * @brief  Create a terminal category.
 	 *
@@ -98,7 +97,7 @@ class TerminalCategory
 	 *
 	 * @return  the label.
 	 */
-  std::string getLabel() const
+	std::string getLabel() const
 	{
 		return this->label;
 	};
@@ -111,14 +110,14 @@ class TerminalCategory
 	 */
 	double getWeightedSum() const
 	{
-    static const auto get_symbols_rate = [](double weighted_sum_symps, CarriersGroup * carrier)
-    {
-      return weighted_sum_symps + carrier->getRatio() * carrier->getSymbolRate();
-    };
+		static const auto get_symbols_rate = [](double weighted_sum_symps, CarriersGroup * carrier)
+		{
+			return weighted_sum_symps + carrier->getRatio() * carrier->getSymbolRate();
+		};
 
 		// Compute weighted sum in ks/s since available bandplan is in kHz
 		return (std::accumulate(this->carriers_groups.begin(), this->carriers_groups.end(), 0.0, get_symbols_rate)
-          + std::accumulate(this->other_carriers.begin(), this->other_carriers.end(), 0.0, get_symbols_rate)) / 1e3;
+		      + std::accumulate(this->other_carriers.begin(), this->other_carriers.end(), 0.0, get_symbols_rate)) / 1e3;
 	};
 
 	/**
@@ -129,28 +128,28 @@ class TerminalCategory
 	 */
 	unsigned int getRatio() const
 	{
-    static const auto get_ratio = [](unsigned int ratio, CarriersGroup * carrier)
-    {
-      return ratio + carrier->getRatio();
-    };
+		static const auto get_ratio = [](unsigned int ratio, CarriersGroup * carrier)
+		{
+			return ratio + carrier->getRatio();
+		};
 
 		return (std::accumulate(this->carriers_groups.begin(), this->carriers_groups.end(), 0U, get_ratio)
-          + std::accumulate(this->other_carriers.begin(), this->other_carriers.end(), 0U, get_ratio));
+		      + std::accumulate(this->other_carriers.begin(), this->other_carriers.end(), 0U, get_ratio));
 	};
 
- 	/**
+	/**
 	 * @brief  Get the sum of the maximum rate of all carriers
 	 *
 	 * @return The total rate
 	 */
 	rate_kbps_t getMaxRate() const
 	{
-    static const auto get_rate = [](rate_kbps_t rate, CarriersGroup * carrier)
-    {
-      return rate + carrier->getMaxRate();
-    };
+		static const auto get_rate = [](rate_kbps_t rate, CarriersGroup * carrier)
+		{
+			return rate + carrier->getMaxRate();
+		};
 
-    return std::accumulate(this->carriers_groups.begin(), this->carriers_groups.end(), rate_kbps_t{}, get_rate);
+		return std::accumulate(this->carriers_groups.begin(), this->carriers_groups.end(), rate_kbps_t{}, get_rate);
 	}
 
 	/**
@@ -160,13 +159,13 @@ class TerminalCategory
 	 */
 	rate_symps_t getTotalSymbolRate() const
 	{
-    static const auto get_total_symbols_rate = [](rate_symps_t rate_symps, CarriersGroup * carrier)
-    {
-      return rate_symps + carrier->getCarriersNumber() * carrier->getSymbolRate();
-    };
+		static const auto get_total_symbols_rate = [](rate_symps_t rate_symps, CarriersGroup * carrier)
+		{
+			return rate_symps + carrier->getCarriersNumber() * carrier->getSymbolRate();
+		};
 
 		return (std::accumulate(this->carriers_groups.begin(), this->carriers_groups.end(), rate_symps_t{}, get_total_symbols_rate)
-          + std::accumulate(this->other_carriers.begin(), this->other_carriers.end(), rate_symps_t{}, get_total_symbols_rate));
+		      + std::accumulate(this->other_carriers.begin(), this->other_carriers.end(), rate_symps_t{}, get_total_symbols_rate));
 	};
 
 
@@ -214,7 +213,7 @@ class TerminalCategory
 			{
 				this->symbol_rate_list.find(rs_symps)->second += number;
 			}
-	
+
 			// get the capacity of the carriers
 			vol_sym_t capacity_sym = ceil(rs_symps * superframe_duration_ms / 1000.0);
 			carrier->setCapacity(capacity_sym);
@@ -252,10 +251,10 @@ class TerminalCategory
 	bool removeTerminal(TerminalContext *terminal)
 	{
 		const tal_id_t tal_id = terminal->getTerminalId();
-    auto terminal_it = std::find_if(this->terminals.begin(),
-                                    this->terminals.end(),
-                                    [tal_id](TerminalContext *t){ return t->getTerminalId() == tal_id; });
-	
+		auto terminal_it = std::find_if(this->terminals.begin(),
+		                                this->terminals.end(),
+		                                [tal_id](TerminalContext *t){ return t->getTerminalId() == tal_id; });
+
 		if(terminal_it != this->terminals.end())
 		{
 			this->terminals.erase(terminal_it);
@@ -275,7 +274,7 @@ class TerminalCategory
 	 *
 	 * @return  the carriers groups
 	 */
-  std::vector<T *> getCarriersGroups(void) const
+	std::vector<T *> getCarriersGroups(void) const
 	{
 		return this->carriers_groups;
 	};
@@ -337,7 +336,6 @@ class TerminalCategory
 		}
 	};
 
-
 	/**
 	 * @brief   Get number of carriers with the desired access type.
 	 *
@@ -360,7 +358,7 @@ class TerminalCategory
 	 *
 	 * @return  terminal list.
 	 */
-  std::vector<TerminalContext *> getTerminals() const
+	std::vector<TerminalContext *> getTerminals() const
 	{
 		return this->terminals;
 	};
@@ -391,8 +389,7 @@ class TerminalCategory
 		T* carriers_group = this->searchCarriersGroup(rate_symps);
 		if(carriers_group != NULL)
 		{
-			carriers_group->setCarriersNumber(carriers_number + 
-			                        carriers_group->getCarriersNumber());
+			carriers_group->setCarriersNumber(carriers_number + carriers_group->getCarriersNumber());
 			carriers_group->setRatio(ratio + carriers_group->getRatio());
 		}
 		else
@@ -431,14 +428,11 @@ class TerminalCategory
 				group->setCapacity(capacity);
 			}
 			if(this->symbol_rate_list.find(rate_symps) == this->symbol_rate_list.end()) {
-				this->symbol_rate_list.insert(
-				    std::make_pair<rate_symps_t, unsigned int>(
-				         (rate_symps_t) rate_symps, (unsigned int) carriers_number));
+				this->symbol_rate_list.insert({rate_symps, carriers_number});
 			}
 			else
 			{
-				this->symbol_rate_list.find(rate_symps)->second
-				                                      += carriers_number;
+				this->symbol_rate_list.find(rate_symps)->second += carriers_number;
 			}
 		}
 	}
@@ -449,7 +443,7 @@ class TerminalCategory
 	 *
 	 * @return  the symbol_rate_list.
 	 */
-  std::map<rate_symps_t, unsigned int> getSymbolRateList() const
+	std::map<rate_symps_t, unsigned int> getSymbolRateList() const
 	{
 		return this->symbol_rate_list;
 	}
@@ -515,8 +509,7 @@ class TerminalCategory
 				}
 				else
 				{
-					new_ratio = floor((ratio * (actual_number - number_carriers)
-					            / actual_number) + 0.5);
+					new_ratio = floor((ratio * (actual_number - number_carriers) / actual_number) + 0.5);
 					associated_ratio += (ratio - new_ratio);
 					carrier->setRatio(new_ratio);
 					carrier->setCarriersNumber(actual_number - number_carriers);
@@ -584,39 +577,39 @@ class TerminalCategory
 	 */
 	T* searchCarriersGroup(rate_symps_t symbol_rate)
 	{
-    auto carriers_it = std::find_if(this->carriers_groups.begin(),
-                                    this->carriers_groups.end(),
-                                    [symbol_rate](CarriersGroup *carrier){ return carrier->getSymbolRate() == symbol_rate; });
-    if (carriers_it == this->carriers_groups.end())
-    {
-      return nullptr;
-    }
-    return *carriers_it;
+		auto carriers_it = std::find_if(this->carriers_groups.begin(),
+		                                this->carriers_groups.end(),
+		                                [symbol_rate](CarriersGroup *carrier){ return carrier->getSymbolRate() == symbol_rate; });
+		if (carriers_it == this->carriers_groups.end())
+		{
+		  return nullptr;
+		}
+		return *carriers_it;
 	}
 
  protected:
 	// Output Log
-  std::shared_ptr<OutputLog> log_terminal_category;
+	std::shared_ptr<OutputLog> log_terminal_category;
 
 	/** List of terminals. */
-  std::vector<TerminalContext *> terminals;
+	std::vector<TerminalContext *> terminals;
 
 	/** List of carriers */
-  std::vector<T *> carriers_groups;
+	std::vector<T *> carriers_groups;
 
 	/** The access type of the carriers */
 	AccessType desired_access;
 	
 	/** The label */
-  std::string label;
+	std::string label;
 
 	/** The list of Symbol rate, list(rs,nb_carriers) **/
-  std::map<rate_symps_t, unsigned int> symbol_rate_list;
+	std::map<rate_symps_t, unsigned int> symbol_rate_list;
 
  private:
 	/** The carriers groups that does not correspond to the desired access type
 	 *   needed for band computation */
-  std::vector<CarriersGroup *> other_carriers;
+	std::vector<CarriersGroup *> other_carriers;
 };
 
 
@@ -625,5 +618,5 @@ class TerminalCategories: public std::map<std::string, T *> {};
 template<class T>
 class TerminalMapping: public std::map<tal_id_t, T *> {};
 
-#endif
 
+#endif

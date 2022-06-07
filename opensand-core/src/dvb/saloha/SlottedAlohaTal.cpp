@@ -270,13 +270,13 @@ std::unique_ptr<SlottedAlohaPacketData> SlottedAlohaTal::addSalohaHeader(std::un
                                                             uint16_t burst_size)
 {
 	auto sa_packet = std::unique_ptr<SlottedAlohaPacketData>(
-      new SlottedAlohaPacketData(encap_packet->getData(),
-	                               this->base_id,     // id
-	                               0,                 // ts - set after initialization
-	                               offset,            // seq
-	                               burst_size,        // pdu_nb
-	                               this->nb_replicas, // nb_replicas
-	                               this->timeout_saf));
+		new SlottedAlohaPacketData(encap_packet->getData(),
+		                           this->base_id,     // id
+		                           0,                 // ts - set after initialization
+		                           offset,            // seq
+		                           burst_size,        // pdu_nb
+		                           this->nb_replicas, // nb_replicas
+		                           this->timeout_saf));
 	sa_packet->setSrcTalId(encap_packet->getSrcTalId());
 	sa_packet->setQos(encap_packet->getQos());
 	LOG(this->log_saloha, LEVEL_DEBUG,
@@ -545,11 +545,11 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 		      nbr_packets_total + this->nb_replicas <= ts.size())
 		{
 			MacFifoElement *elem = fifo->pop();
-			SlottedAlohaPacketData* sa_packet = elem->getElem<SlottedAlohaPacketData>();
-      auto replicas = sa_packet->getNbReplicas();
+			std::unique_ptr<SlottedAlohaPacketData> sa_packet = elem->getElem<SlottedAlohaPacketData>();
+			auto replicas = sa_packet->getNbReplicas();
 
 			if(!this->addPacketInFrames(complete_dvb_frames,
-			                            &frame, std::unique_ptr<SlottedAlohaPacketData>(sa_packet),
+			                            &frame, std::move(sa_packet),
 			                            i_ts, qos))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,

@@ -78,21 +78,21 @@ class LanAdaptationPlugin: public StackPlugin
 		/* Allow packets to access LanAdaptationPlugin members */
 		LanAdaptationPacketHandler(LanAdaptationPlugin &pl);
 
+		bool init() override;
+
 		/* the following functions should not be called */
-		std::size_t getMinLength() const;
+		std::size_t getMinLength() const override;
 
-		virtual bool encapNextPacket(NetPacket *packet,
-		                             std::size_t remaining_length,
-		                             bool new_burst,
-		                             bool &partial_encap,
-		                             NetPacket **encap_packet);
+		bool encapNextPacket(std::unique_ptr<NetPacket> packet,
+		                     std::size_t remaining_length,
+		                     bool new_burst,
+		                     std::unique_ptr<NetPacket> &encap_packet,
+		                     std::unique_ptr<NetPacket> &remaining_packet) override;
 
-		virtual bool getEncapsulatedPackets(NetContainer *packet,
-		                                    bool &partial_decap,
-		                                    std::vector<std::unique_ptr<NetPacket>> &decap_packets,
-		                                    unsigned int decap_packets_count) override;
-
-		virtual bool init();
+		bool getEncapsulatedPackets(NetContainer *packet,
+		                            bool &partial_decap,
+		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+		                            unsigned int decap_packets_count) override;
 	};
 
 	/**

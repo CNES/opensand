@@ -34,7 +34,14 @@
 #ifndef FIFO_ELEMENT_H
 #define FIFO_ELEMENT_H
 
-#include "NetContainer.h"
+
+#include <memory>
+
+#include "OpenSandCore.h"
+
+
+class NetContainer;
+
 
 /**
  * @class MacFifoElement
@@ -43,9 +50,8 @@
 class MacFifoElement
 {
  protected:
-
 	/// The element stored in the FIFO
-	NetContainer *elem;
+	 std::unique_ptr<NetContainer> elem;
 
 	/// The arrival time of packet in FIFO (in ms)
 	time_t tick_in;
@@ -54,14 +60,13 @@ class MacFifoElement
 
 
  public:
-
 	/**
 	 * Build a fifo element
 	 * @param elem       The element to store in the FIFO
 	 * @param tick_in    The arrival time of element in FIFO (in ms)
 	 * @param tick_out   The minimal time the element will output the FIFO (in ms)
 	 */
-	MacFifoElement(NetContainer *elem,
+	MacFifoElement(std::unique_ptr<NetContainer> elem,
 	               time_t tick_in, time_t tick_out);
 
 	/**
@@ -73,14 +78,14 @@ class MacFifoElement
 	 * Get the FIFO elelement
 	 * @return The FIFO element
 	 */
-	NetContainer *getElem() const;
+	std::unique_ptr<NetContainer> getElem();
 
 	/**
 	 * Get the FIFO elelement
 	 * @return The FIFO element
 	 */
 	template<class T>
-	T *getElem() const;
+	std::unique_ptr<T> getElem();
 
 
 	/**
@@ -88,7 +93,7 @@ class MacFifoElement
 	 *
 	 * @param packet The new FIFO element
 	 */
-	void setElem(NetContainer *elem);
+	void setElem(std::unique_ptr<NetContainer> elem);
 
 	/**
 	 * Get the element length
@@ -109,11 +114,23 @@ class MacFifoElement
 	time_t getTickOut() const;
 };
 
-// TODO check that, static cast ? operator () ?
+
 template<class T>
-T *MacFifoElement::getElem() const
+std::unique_ptr<T> MacFifoElement::getElem()
 {
-	return (T *)this->getElem();
+	if (!elem)
+	{
+		return std::unique_ptr<T>{nullptr};
+	}
+
+	T* cast_elem = dynamic_cast<T*>(elem.get());
+	if (cast_elem)
+	{
+		elem.release();
+	}
+
+	return std::unique_ptr<T>{cast_elem};
 }
+
 
 #endif

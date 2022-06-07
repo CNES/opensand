@@ -151,7 +151,7 @@ class NetPacket: public NetContainer
 	 * Build a network-layer packet
 	 * @param pkt
 	 */
-	NetPacket(NetPacket *pkt);
+	NetPacket(const NetPacket &pkt);
 
 	/**
 	 * Build an empty network-layer packet

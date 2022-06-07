@@ -106,11 +106,11 @@ class EncapPlugin: public StackPlugin
 		 *
 		 * @return  true if success, false otherwise
 		 */
-		bool encapNextPacket(NetPacket *packet,
+		bool encapNextPacket(std::unique_ptr<NetPacket> packet,
 		                     std::size_t remaining_length,
 		                     bool new_burst,
-		                     bool &partial_encap,
-		                     NetPacket **encap_packet) override;
+		                     std::unique_ptr<NetPacket> &encap_packet,
+		                     std::unique_ptr<NetPacket> &remaining_data) override;
 
 		/**
 		 * @brief Get encapsulated packet from payload
@@ -126,9 +126,9 @@ class EncapPlugin: public StackPlugin
 		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
 		                            unsigned int decap_packet_count=0) override;
 
-		virtual bool getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets, NetPacket ** selected_pkt) = 0;
+		virtual bool checkPacketForHeaderExtensions(std::unique_ptr<NetPacket> &packet) = 0;
 
-		virtual bool setHeaderExtensions(const NetPacket* packet,
+		virtual bool setHeaderExtensions(std::unique_ptr<NetPacket> packet,
 		                                 std::unique_ptr<NetPacket>& new_packet,
 		                                 tal_id_t tal_id_src,
 		                                 tal_id_t tal_id_dst,
@@ -174,9 +174,6 @@ class EncapPlugin: public StackPlugin
 
 		/// map call back name
 		std::list<std::string> callback_name;
-
-		/// map packets being encapsulated
-		std::map<NetPacket *, std::unique_ptr<NetPacket>> encap_packets;
 	};
 
 	/**

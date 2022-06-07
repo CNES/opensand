@@ -131,20 +131,20 @@ class Rle: public EncapPlugin
 		bool getSrc(const Data &data, tal_id_t &tal_id) const;
 		bool getQos(const Data &data, qos_t &qos) const;
 
-		bool encapNextPacket(NetPacket *packet,
+		bool encapNextPacket(std::unique_ptr<NetPacket> packet,
 		                     std::size_t remaining_length,
 		                     bool new_burst,
-		                     bool &partial_encap,
-		                     NetPacket **encap_packet) override;
+		                     std::unique_ptr<NetPacket> &encap_packet,
+		                     std::unique_ptr<NetPacket> &remaining_data) override;
 
 		bool getEncapsulatedPackets(NetContainer *packet,
 		                            bool &partial_decap,
 		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
 		                            unsigned int decap_packet_count = 0) override;
 
-		bool getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets, NetPacket ** selected_pkt) override;
+		bool checkPacketForHeaderExtensions(std::unique_ptr<NetPacket> &packet) override;
 
-		bool setHeaderExtensions(const NetPacket* packet,
+		bool setHeaderExtensions(std::unique_ptr<NetPacket> packet,
 		                         std::unique_ptr<NetPacket>& new_packet,
 		                         tal_id_t tal_id_src,
 		                         tal_id_t tal_id_dst,

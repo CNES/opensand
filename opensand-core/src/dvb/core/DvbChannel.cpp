@@ -228,19 +228,22 @@ void DvbChannel::initStatsTimer(time_ms_t frame_duration_ms)
 
 
 bool DvbChannel::pushInFifo(DvbFifo *fifo,
-                            NetContainer *data,
+                            std::unique_ptr<NetContainer> data,
                             time_ms_t fifo_delay)
 {
 	MacFifoElement *elem;
 	time_ms_t current_time = getCurrentTime();
 
 	// create a new FIFO element to store the packet
-	elem = new MacFifoElement(data, current_time, current_time + fifo_delay);
-	if(!elem)
+	try
+	{
+		elem = new MacFifoElement(std::move(data), current_time, current_time + fifo_delay);
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(DvbChannel::dvb_fifo_log, LEVEL_ERROR,
 		    "cannot allocate FIFO element, drop data\n");
-		goto error;
+		return false;
 	}
 
 	// append the data in the fifo
@@ -248,7 +251,8 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 	{
 		LOG(DvbChannel::dvb_fifo_log, LEVEL_ERROR,
 		    "FIFO is full: drop data\n");
-		goto release_elem;
+		delete elem;
+		return false;
 	}
 
 	LOG(DvbChannel::dvb_fifo_log, LEVEL_NOTICE,
@@ -257,12 +261,6 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 	    elem->getTickIn(), elem->getTickOut());
 
 	return true;
-
-release_elem:
-	delete elem;
-error:
-	delete data;
-	return false;
 }
 
 
@@ -456,8 +454,7 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 
 bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
                                 MacFifoElement *elem,
-                                DvbFifo *fifo,
-                                NetPacket* packet,
+                                std::unique_ptr<NetPacket> packet,
                                 tal_id_t source,
                                 tal_id_t dest,
                                 std::string extension_name,
@@ -481,11 +478,9 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	}
 	opaque = hcnton(cni);
 
-	bool replace = packet != nullptr;
-	NetPacket* selected_pkt = nullptr;
 	if(packet != nullptr)
 	{
-		bool success = pkt_hdl->getPacketForHeaderExtensions({packet}, &selected_pkt);
+		bool success = pkt_hdl->checkPacketForHeaderExtensions(packet);
 
 		if (!success)
 		{
@@ -493,7 +488,7 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 			    "SF#%d: Cannot get packet to add header extension\n",
 			    super_frame_counter);
 		}
-		else if(selected_pkt != NULL)
+		else if(packet != nullptr)
 		{
 			LOG(this->log_fmt, LEVEL_DEBUG,
 			    "SF#%d: found no-fragmented packet without extensions\n",
@@ -507,8 +502,8 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 		}
 	}
 
-  std::unique_ptr<NetPacket> extension_pkt;
-	if(!pkt_hdl->setHeaderExtensions(selected_pkt,
+	std::unique_ptr<NetPacket> extension_pkt;
+	if(!pkt_hdl->setHeaderExtensions(std::move(packet),
 	                                 extension_pkt,
 	                                 source,
 	                                 dest,
@@ -528,16 +523,9 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 		    "extensions\n", super_frame_counter);
 		return false;
 	}
-	if(replace)
-	{
-		// And replace the packet in the FIFO
-		elem->setElem(extension_pkt.release());
-	}
-	else
-	{
-		MacFifoElement *new_el = new MacFifoElement(extension_pkt.release(), 0, 0);
-		fifo->pushBack(new_el);
-	}
+
+	// And replace the packet in the FIFO
+	elem->setElem(std::move(extension_pkt));
 
 	return true;
 }

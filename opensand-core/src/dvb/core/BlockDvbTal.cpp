@@ -1530,23 +1530,20 @@ bool BlockDvbTal::Downward::addCniExt(void)
 	    fifos_it != this->dvb_fifos.end(); ++fifos_it)
 	{
 		DvbFifo *fifo = (*fifos_it).second;
-    std::vector<MacFifoElement *> queue = fifo->getQueue();
-    std::vector<MacFifoElement *>::iterator queue_it;
+		std::vector<MacFifoElement *> queue = fifo->getQueue();
+		std::vector<MacFifoElement *>::iterator queue_it;
 
-		for(queue_it = queue.begin() ;
-		    queue_it != queue.end()  ;
-		    ++queue_it)
+		for(auto&& elem : queue)
 		{
-			MacFifoElement* elem = (*queue_it);
-			NetPacket *packet = (NetPacket*)elem->getElem();
+			std::unique_ptr<NetPacket> packet = elem->getElem<NetPacket>();
 			tal_id_t gw = packet->getDstTalId();
 
 			if(gw == this->gw_id &&
 			   this->is_scpc && this->getCniInputHasChanged(this->tal_id))
 			{
 				if(!this->setPacketExtension(this->pkt_hdl,
-				                             elem, fifo,
-				                             packet,
+				                             elem,
+				                             std::move(packet),
 				                             this->tal_id, gw,
 				                             "encodeCniExt",
 				                             this->super_frame_counter,
@@ -1559,8 +1556,12 @@ bool BlockDvbTal::Downward::addCniExt(void)
 				    "SF #%d: packet belongs to FIFO #%d\n",
 				    this->super_frame_counter, (*fifos_it).first);
 				// Delete old packet
-				delete packet;
 				in_fifo = true;
+			}
+			else
+			{
+				// Put the packet back into the fifo
+				elem->setElem(std::move(packet));
 			}
 		}
 	}
@@ -1568,11 +1569,12 @@ bool BlockDvbTal::Downward::addCniExt(void)
 	if(this->is_scpc && this->getCniInputHasChanged(this->tal_id)
 	   && !in_fifo)
 	{
-
+		MacFifoElement *new_el = new MacFifoElement(nullptr, 0, 0);
+		// highest priority fifo
+		this->dvb_fifos[0]->pushBack(new_el);
 		// set packet extension to this new empty packet
 		if(!this->setPacketExtension(this->pkt_hdl,
 		                             nullptr,
-		                             this->dvb_fifos[0],
 		                             nullptr,
 		                             this->tal_id ,this->gw_id,
 		                             "encodeCniExt",

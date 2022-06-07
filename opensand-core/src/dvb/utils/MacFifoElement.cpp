@@ -33,38 +33,46 @@
 
 
 #include "MacFifoElement.h"
+#include "NetContainer.h"
 
-MacFifoElement::MacFifoElement(NetContainer *elem,
+
+MacFifoElement::MacFifoElement(std::unique_ptr<NetContainer> elem,
                                time_t tick_in, time_t tick_out):
-	elem(elem),
-	tick_in(tick_in),
-	tick_out(tick_out)
+	elem{std::move(elem)},
+	tick_in{tick_in},
+	tick_out{tick_out}
 {
 }
+
 
 MacFifoElement::~MacFifoElement()
 {
 }
 
-NetContainer *MacFifoElement::getElem() const
+
+std::unique_ptr<NetContainer> MacFifoElement::getElem()
 {
-	return this->elem;
+	return std::move(this->elem);
 }
 
-void MacFifoElement::setElem(NetContainer *elem)
+
+void MacFifoElement::setElem(std::unique_ptr<NetContainer> elem)
 {
-	this->elem = elem;
+	this->elem = std::move(elem);
 }
+
 
 size_t MacFifoElement::getTotalLength() const
 {
 	return this->elem->getTotalLength();
 }
 
+
 time_t MacFifoElement::getTickIn() const
 {
 	return this->tick_in;
 }
+
 
 time_t MacFifoElement::getTickOut() const
 {

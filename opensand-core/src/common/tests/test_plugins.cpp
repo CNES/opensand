@@ -232,8 +232,8 @@ static void test_encap_and_decap(
 	for(auto plugit = encap_plug.begin(); plugit != encap_plug.end(); ++plugit)
 	{
 		encap_contexts_t encap_contexts;
-    std::string name = plugit->first;
-    std::string name_low;
+		std::string name = plugit->first;
+		std::string name_low;
 		EncapPlugin *plugin = NULL;
 		EncapPlugin::EncapContext *context;
 		int found;
@@ -256,7 +256,7 @@ static void test_encap_and_decap(
 			INFO("cannot set %s as upper layer for %s context, find another one\n",
 			       pkt_hdl->getName().c_str(), name.c_str());
 
-      std::vector<std::string> upper = context->getAvailableUpperProto();
+			std::vector<std::string> upper = context->getAvailableUpperProto();
 			// try to add a supported upper layer
 			for(std::vector<std::string>::iterator iter = upper.begin();
 			    iter != upper.end(); ++iter)
@@ -475,7 +475,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 			header_init = 1;
 		}
 
-    std::unique_ptr<NetPacket> net_packet{new NetPacket{packet + src_link_len,
+		std::unique_ptr<NetPacket> net_packet{new NetPacket{packet + src_link_len,
 		                                                    header.len - src_link_len}};
 		if(net_packet == NULL)
 		{
@@ -533,11 +533,11 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 			NetBurst *flushed = (*ctxit)->flushAll();
 			if(flushed && !flushed->empty())
 			{
-        // TODO: use back_inserter or something
-        for (auto&& p : *flushed)
-        {
-          encap_packets->push_back(std::move(p));
-        }
+			// TODO: use back_inserter or something
+			for (auto&& p : *flushed)
+			{
+				encap_packets->push_back(std::move(p));
+			}
 			}
 		}
 		if(!encap_packets)

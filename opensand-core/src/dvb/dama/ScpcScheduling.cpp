@@ -326,7 +326,7 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 	MacFifoElement *elem;
 	long max_to_send;
 	BBFrame *current_bbframe;
-  std::list<fmt_id_t> supported_modcods = carriers->getFmtIds();
+	std::list<fmt_id_t> supported_modcods = carriers->getFmtIds();
 	vol_sym_t capacity_sym = carriers->getRemainingCapacity();
 	vol_sym_t previous_sym = carriers->getPreviousCapacity(current_superframe_sf);
 	vol_sym_t init_capa = capacity_sym;
@@ -345,7 +345,7 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 		carriers->setPreviousCapacity(0, 0);
 		// set the remaining capacity for incomplete frames scheduling
 		carriers->setRemainingCapacity(capacity_sym);
-		goto skip;
+		return true;
 	}
 
 	LOG(this->log_scheduling, LEVEL_INFO,
@@ -377,7 +377,7 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 	{
 		// set the remaining capacity for incomplete frames scheduling
 		carriers->setRemainingCapacity(capacity_sym);
-		goto skip;
+		return true;
 	}
 
 	// there are really packets to send
@@ -389,9 +389,9 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 	// now build BB frames with packets extracted from the MAC FIFO
 	while(fifo->getCurrentSize() > 0)
 	{
-		NetPacket *encap_packet;
-		NetPacket *data;
-		bool partial_encap;
+		std::unique_ptr<NetPacket> encap_packet;
+		std::unique_ptr<NetPacket> data;
+		std::unique_ptr<NetPacket> remaining_data;
 
 		// simulate the satellite delay
 		if(fifo->getTickOut() > current_time)
@@ -408,13 +408,14 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 
 		encap_packet = elem->getElem<NetPacket>();
 		// retrieve the encapsulation packet
-		if(encap_packet == NULL)
+		if(!encap_packet)
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
 			    "SF#%u: invalid packet #%u in MAC FIFO "
 			    "element\n", current_superframe_sf,
 			    sent_packets + 1);
-			goto error_fifo_elem;
+			delete elem;
+			return false;
 		}
 
 
@@ -422,13 +423,12 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 		                               &current_bbframe))
 		{
 			// cannot initialize incomplete BB Frame
-			delete encap_packet;
-			goto error_fifo_elem;
+			delete elem;
+			return false;
 		}
 		else if(!current_bbframe)
 		{
 			// cannot get modcod for the ST delete the element
-			delete encap_packet;
 			delete elem;
 			continue;
 		}
@@ -441,11 +441,11 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 		    this->incomplete_bb_frames.size());
 
 		// Encapsulate packet
-		ret = this->packet_handler->encapNextPacket(encap_packet,
+		auto encap_packet_total_length = encap_packet->getTotalLength();
+		ret = this->packet_handler->encapNextPacket(std::move(encap_packet),
 		                                            current_bbframe->getFreeSpace(),
 		                                            current_bbframe->getPacketsCount() == 0,
-		                                            partial_encap,
-		                                            &data);
+		                                            data, remaining_data);
 		if(!ret)
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
@@ -453,8 +453,9 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			    "#%u\n", current_superframe_sf,
 			    sent_packets + 1);
 			delete elem;
-			delete encap_packet;
 		}
+
+		bool partial_encap = remaining_data != nullptr;
 		if(!data && !partial_encap)
 		{
 			LOG(this->log_scheduling, LEVEL_ERROR,
@@ -464,12 +465,11 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			    sent_packets + 1);
 			assert(0);
 			delete elem;
-			delete encap_packet;
 		}
 		if(data)
 		{
 			// Add data
-			if(!current_bbframe->addPacket(data))
+			if(!current_bbframe->addPacket(data.get()))
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: failed to add encapsulation "
@@ -480,7 +480,8 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 				    current_bbframe->getModcodId(),
 				    data->getTotalLength(),
 				    current_bbframe->getFreeSpace());
-				goto error_fifo_elem;
+				delete elem;
+				return false;
 			}
 
 			if(partial_encap)
@@ -491,7 +492,6 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			}
 
 			// delete the NetPacket once it has been copied in the BBFrame
-			delete data;
 			sent_packets++;
 		}
 		else
@@ -502,18 +502,18 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			    current_superframe_sf,
 			    current_bbframe->getFreeSpace(),
 			    this->packet_handler->getName().c_str(),
-			    encap_packet->getTotalLength());
+			    encap_packet_total_length);
 		}
 		if(partial_encap)
 		{
 			// Re-insert packet
+			elem->setElem(std::move(remaining_data));
 			fifo->pushFront(elem);
 		}
 		else
 		{
 			// Delete packet	
 			delete elem;
-			delete encap_packet;
 		}
 
 		// the BBFrame has been completed or the next packet is too long
@@ -527,7 +527,7 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			                               capacity_sym);
 			if(ret == status_error)
 			{
-				goto error;
+				return false;
 			}
 			else
 			{
@@ -565,12 +565,7 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 	// update remaining capacity for incomplete frames scheduling
 	carriers->setRemainingCapacity(capacity_sym);
 
-skip:
 	return true;
-error_fifo_elem:
-	delete elem;
-error:
-	return false;
 }
 
 

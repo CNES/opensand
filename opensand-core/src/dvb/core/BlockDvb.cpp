@@ -218,5 +218,5 @@ bool BlockDvb::DvbDownward::onRcvEncapPacket(std::unique_ptr<NetPacket> packet,
                                              time_ms_t fifo_delay)
 {
   //TODO: lift off the release call in favor of std::move
-	return this->pushInFifo(fifo, packet.release(), fifo_delay);
+	return this->pushInFifo(fifo, std::move(packet), fifo_delay);
 }

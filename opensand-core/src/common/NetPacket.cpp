@@ -36,56 +36,56 @@
 
 
 NetPacket::NetPacket(const unsigned char *data, std::size_t length):
-		NetContainer(data, length),
-		type(NET_PROTO_ERROR),
-		qos(),
-		src_tal_id(),
-		dst_tal_id()
+		NetContainer{data, length},
+		type{NET_PROTO_ERROR},
+		qos{},
+		src_tal_id{},
+		dst_tal_id{}
 {
 	this->name = "NetPacket";
 }
 
 
 NetPacket::NetPacket(const Data &data):
-		NetContainer(data),
-		type(NET_PROTO_ERROR),
-		qos(),
-		src_tal_id(),
-		dst_tal_id()
+		NetContainer{data},
+		type{NET_PROTO_ERROR},
+		qos{},
+		src_tal_id{},
+		dst_tal_id{}
 {
 	this->name = "NetPacket";
 }
 
 
 NetPacket::NetPacket(const Data &data, std::size_t length):
-		NetContainer(data, length),
-		type(NET_PROTO_ERROR),
-		qos(),
-		src_tal_id(),
-		dst_tal_id()
+		NetContainer{data, length},
+		type{NET_PROTO_ERROR},
+		qos{},
+		src_tal_id{},
+		dst_tal_id{}
 {
 	this->name = "NetPacket";
 }
 
 
-NetPacket::NetPacket(NetPacket *pkt):
-		NetContainer(pkt->getData(), pkt->getTotalLength()),
-		type(pkt->getType()),
-		qos(pkt->getQos()),
-		src_tal_id(pkt->getSrcTalId()),
-		dst_tal_id(pkt->getDstTalId())
+NetPacket::NetPacket(const NetPacket &pkt):
+		NetContainer{pkt.getData(), pkt.getTotalLength()},
+		type{pkt.getType()},
+		qos{pkt.getQos()},
+		src_tal_id{pkt.getSrcTalId()},
+		dst_tal_id{pkt.getDstTalId()}
 {
-	this->name = pkt->getName();
-	this->spot = pkt->getSpot();
+	this->name = pkt.getName();
+	this->spot = pkt.getSpot();
 }
 
 
 NetPacket::NetPacket():
-		NetContainer(),
-		type(NET_PROTO_ERROR),
-		qos(),
-		src_tal_id(),
-		dst_tal_id()
+		NetContainer{},
+		type{NET_PROTO_ERROR},
+		qos{},
+		src_tal_id{},
+		dst_tal_id{}
 {
 	this->name = "NetPacket";
 }
