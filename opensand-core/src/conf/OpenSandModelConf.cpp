@@ -105,14 +105,22 @@ void OpenSandModelConf::createModels()
 	satellite_regen->addParameter("entity_id", "Satellite ID", types->getType("int"));
 	satellite_regen->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
 	auto regen_level = satellite_regen->addParameter("regen_level", "Regeneration Level", types->getType("sat_regen_level"));
-	auto mesh = satellite_regen->addParameter("mesh", "Mesh", types->getType("bool"), "Enable mesh architecture");
+	auto mesh = satellite_regen->addParameter("mesh", "Mesh", types->getType("bool"), "Enable mesh architecture (routing based on the destination of the packet)");
 	infrastructure_model->setReference(mesh, regen_level);
 	mesh->getReferenceData()->fromString("IP");
-	satellite_regen->addParameter("default_entity", "Default Entity", types->getType("int"),
-	                              "Default Gateway or Satellite ID for a packet destination when the MAC "
-	                              "address is not found in the SARP Table; use -1 to drop "
-	                              "such packets")->setAdvanced(true);
-	satellite_regen->addParameter("isl_port", "Port (Inter Sat Link)", types->getType("int"))->setAdvanced(true);
+	auto default_entity = satellite_regen->addParameter("default_entity", "Default Entity", types->getType("int"),
+	                                                    "ID of a Gateway or a Satellite ID to send packets whose destination is unknown. "
+														"An ISL link will be created if this entity is a satellite.\n"
+	                                                    "Use -1 to drop such packets");
+	infrastructure_model->setReference(default_entity, mesh);
+	std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(default_entity->getReferenceData())->set(true);
+	auto isl_port = satellite_regen->addParameter("isl_port", "Port (Inter Sat Link)", types->getType("int"),
+	                                              "Port number for inter-satellite communication, "
+	                                              "used when the default entity is a satellite.\n"
+	                                              "Leave empty to choose a port automatically.");
+	isl_port->setAdvanced(true);
+	infrastructure_model->setReference(isl_port, mesh);
+	std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(isl_port->getReferenceData())->set(true);
 
 	auto gateway = entity->addComponent("entity_gw", "Gateway", "Specific infrastructure information for a Gateway");
 	infrastructure_model->setReference(gateway, entity_type);

@@ -240,6 +240,7 @@ def create_default_infrastructure(meta_model):
     _set_parameter(satellite_regen, 'entity_id', 0)
     _set_parameter(satellite_regen, 'emu_address', '192.168.0.63')
     _set_parameter(satellite_regen, 'regen_level', "IP")
+    _set_parameter(satellite_regen, 'mesh', True)
     _set_parameter(satellite_regen, 'default_entity', -1)
 
     terminal = _get_component(entity, 'entity_st')
