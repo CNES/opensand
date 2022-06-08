@@ -258,7 +258,7 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 
 	LOG(DvbChannel::dvb_fifo_log, LEVEL_NOTICE,
 	    "%s data stored in FIFO %s (tick_in = %ld, tick_out = %ld)\n",
-	    data->getName().c_str(), fifo->getName().c_str(),
+	    elem->getElem()->getName().c_str(), fifo->getName().c_str(),
 	    elem->getTickIn(), elem->getTickOut());
 
 	return true;
