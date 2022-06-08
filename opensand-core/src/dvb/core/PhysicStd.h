@@ -46,7 +46,6 @@
 #include "EncapPlugin.h"
 #include "DvbFrame.h"
 #include "OpenSandFrames.h"
-#include "MacFifoElement.h"
 
 
 /**

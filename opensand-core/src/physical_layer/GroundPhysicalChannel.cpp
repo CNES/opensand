@@ -35,7 +35,7 @@
 
 #include "GroundPhysicalChannel.h"
 #include "Plugin.h"
-#include "DelayFifoElement.h"
+#include "FifoElement.h"
 #include "OpenSandCore.h"
 #include "OpenSandModelConf.h"
 
@@ -101,7 +101,7 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, 
 
 
 	// Sanity check
-	assert(this->satdelay_model != NULL);
+	assert(this->satdelay_model != nullptr);
 	
 	// Get the FIFO max size
 	// vol_pkt_t max_size;
@@ -249,17 +249,20 @@ double GroundPhysicalChannel::computeTotalCn(double up_cn, double down_cn)
 
 bool GroundPhysicalChannel::pushPacket(NetContainer *pkt)
 {
-	DelayFifoElement *elem;
+	FifoElement *elem;
 	time_ms_t current_time = getCurrentTime();
 	time_ms_t delay = this->satdelay_model->getSatDelay();
 
 	// create a new FIFO element to store the packet
-	elem = new DelayFifoElement(pkt, current_time, current_time + delay);
-	if(!elem)
+	try
+	{
+		elem = new FifoElement(std::unique_ptr<NetContainer>{pkt}, current_time, current_time + delay);
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "Cannot allocate FIFO element, drop data");
-		goto error;
+		return false;
 	}
 
 	// append the data in the fifo
@@ -267,7 +270,8 @@ bool GroundPhysicalChannel::pushPacket(NetContainer *pkt)
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "FIFO is full: drop data");
-		goto release_elem;
+		delete elem;
+		return false;
 	}
 
 	LOG(this->log_channel, LEVEL_NOTICE,
@@ -277,13 +281,6 @@ bool GroundPhysicalChannel::pushPacket(NetContainer *pkt)
 	    elem->getTickOut(),
 	    delay);
 	return true;
-
-release_elem:
-	delete elem;
-
-error:
-	delete pkt;
-	return false;
 }
 
 bool GroundPhysicalChannel::forwardReadyPackets()
@@ -296,15 +293,12 @@ bool GroundPhysicalChannel::forwardReadyPackets()
 	while (this->delay_fifo.getCurrentSize() > 0 &&
 	       ((unsigned long)this->delay_fifo.getTickOut()) <= current_time)
 	{
-		NetContainer *pkt = NULL;
-		DelayFifoElement *elem;
+		FifoElement *elem = this->delay_fifo.pop();
+		assert(elem != nullptr);
 
-		elem = this->delay_fifo.pop();
-		assert(elem != NULL);
-
-		pkt = elem->getElem<NetContainer>();
+		std::unique_ptr<DvbFrame> pkt = elem->getElem<DvbFrame>();
 		delete elem;
-		this->forwardPacket((DvbFrame *)pkt);
+		this->forwardPacket(pkt.release());
 	}
 	return true;
 }

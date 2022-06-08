@@ -35,7 +35,7 @@
 #define DELAY_FIFO_H
 
 #include "OpenSandCore.h"
-#include "DelayFifoElement.h"
+#include "FifoElement.h"
 
 #include <opensand_rt/RtMutex.h>
 
@@ -76,14 +76,14 @@ class DelayFifo
 	 * @return true on success, false otherwise
 	 */
 	bool setMaxSize(vol_pkt_t max_size_pkt);
-	
+
 	/**
 	 * @brief Get the fifo maximum size
 	 *
 	 * @return the queue maximum size
 	 */
 	vol_pkt_t getMaxSize() const;
-	
+
 	/**
 	 * @brief Get the head element tick out
 	 *
@@ -95,46 +95,45 @@ class DelayFifo
 	 * @brief Add an element at the end of the list
 	 *        (Increments new_size_pkt)
 	 *
-	 * @param elem is the pointer on DelayFifoElement
+	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool push(DelayFifoElement *elem);
+	bool push(FifoElement *elem);
 
 	/**
 	 * @brief Add an element at the head of the list
 	 * @warning This function should be use only to replace a fragment of
 	 *          previously removed data in the fifo
 	 *
-	 * @param elem is the pointer on DelayFifoElement
+	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushFront(DelayFifoElement *elem);
+	bool pushFront(FifoElement *elem);
 
 	/**
 	 * @brief Add an element at the back of the list
 	 *
-	 * @param elem is the pointer on DelayFifoElement
+	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushBack(DelayFifoElement *elem);
+	bool pushBack(FifoElement *elem);
 
 	/**
 	 * @brief Remove an element at the head of the list
 	 *
 	 * @return NULL pointer if extraction failed because fifo is empty
-	 *         pointer on extracted DelayFifoElement otherwise
+	 *         pointer on extracted FifoElement otherwise
 	 */
-	DelayFifoElement *pop();
+	FifoElement *pop();
 
 	/**
 	 * @brief Flush the sat carrier fifo and reset counters
 	 */
 	void flush();
 
-  std::vector<DelayFifoElement *> getQueue(void);
+	std::vector<FifoElement *> getQueue(void);
 
  protected:
-
 	/**
 	 * @brief Get the index where time_out should be placed
 	 * @param time_out the tick out 
@@ -142,11 +141,12 @@ class DelayFifo
 	 */
 	int getTickOutPosition(time_t time_out);
 
-  std::vector<DelayFifoElement *> queue; ///< the FIFO itself
+	std::vector<FifoElement *> queue; ///< the FIFO itself
 
 	vol_pkt_t max_size_pkt;         ///< the maximum size for that FIFO
 
 	mutable RtMutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access
 };
+
 
 #endif

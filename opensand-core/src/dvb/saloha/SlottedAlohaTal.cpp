@@ -42,6 +42,7 @@
 
 #include "OpenSandModelConf.h"
 #include "PhysicalLayerPlugin.h"
+#include "FifoElement.h"
 
 
 SlottedAlohaTal::SlottedAlohaTal():
@@ -544,7 +545,7 @@ bool SlottedAlohaTal::schedule(std::list<DvbFrame *> &complete_dvb_frames,
 		while(fifo->getCurrentSize() &&
 		      nbr_packets_total + this->nb_replicas <= ts.size())
 		{
-			MacFifoElement *elem = fifo->pop();
+			FifoElement *elem = fifo->pop();
 			std::unique_ptr<SlottedAlohaPacketData> sa_packet = elem->getElem<SlottedAlohaPacketData>();
 			auto replicas = sa_packet->getNbReplicas();
 

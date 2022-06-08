@@ -39,7 +39,7 @@
 
 
 #include "ScpcScheduling.h"
-#include "MacFifoElement.h"
+#include "FifoElement.h"
 
 #include <opensand_output/Output.h>
 
@@ -323,7 +323,7 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 {
 	int ret;
 	unsigned int sent_packets = 0;
-	MacFifoElement *elem;
+	FifoElement *elem;
 	long max_to_send;
 	BBFrame *current_bbframe;
 	std::list<fmt_id_t> supported_modcods = carriers->getFmtIds();

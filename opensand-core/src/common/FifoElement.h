@@ -26,26 +26,32 @@
  */
 
 /**
- * @file TestDelayFifoElement.h
+ * @file FifoElement.h
  * @brief Fifo element
- * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.com>
+ * @author Julien BERNARD <julien.bernard@toulouse.viveris.com>
  */
 
-#ifndef TEST_DELAY_FIFO_ELEMENT_H
-#define TEST_DELAY_FIFO_ELEMENT_H
+#ifndef FIFO_ELEMENT_H
+#define FIFO_ELEMENT_H
 
-#include "NetContainer.h"
+
+#include <memory>
+
+#include "OpenSandCore.h"
+
+
+class NetContainer;
+
 
 /**
- * @class TestDelayFifoElement
+ * @class FifoElement
  * @brief Fifo element
  */
-class TestDelayFifoElement
+class FifoElement
 {
  protected:
-
 	/// The element stored in the FIFO
-	NetContainer *elem;
+	 std::unique_ptr<NetContainer> elem;
 
 	/// The arrival time of packet in FIFO (in ms)
 	time_t tick_in;
@@ -54,41 +60,33 @@ class TestDelayFifoElement
 
 
  public:
-
 	/**
 	 * Build a fifo element
 	 * @param elem       The element to store in the FIFO
 	 * @param tick_in    The arrival time of element in FIFO (in ms)
 	 * @param tick_out   The minimal time the element will output the FIFO (in ms)
 	 */
-	TestDelayFifoElement(NetContainer *elem,
-	                      time_t tick_in, time_t tick_out);
+	FifoElement(std::unique_ptr<NetContainer> elem,
+	               time_t tick_in, time_t tick_out);
 
 	/**
 	 * Destroy the fifo element
 	 */
-	~TestDelayFifoElement();
+	~FifoElement();
 
 	/**
 	 * Get the FIFO elelement
 	 * @return The FIFO element
 	 */
-	NetContainer *getElem() const;
-
-	/**
-	 * Get the FIFO elelement
-	 * @return The FIFO element
-	 */
-	template<class T>
-	T *getElem() const;
-
+	template<class T = NetContainer>
+	std::unique_ptr<T> getElem();
 
 	/**
 	 * Set the FIFO element
 	 *
 	 * @param packet The new FIFO element
 	 */
-	void setElem(NetContainer *elem);
+	void setElem(std::unique_ptr<NetContainer> elem);
 
 	/**
 	 * Get the element length
@@ -109,11 +107,27 @@ class TestDelayFifoElement
 	time_t getTickOut() const;
 };
 
-// TODO check that, static cast ? operator () ?
+
 template<class T>
-T *TestDelayFifoElement::getElem() const
+std::unique_ptr<T> FifoElement::getElem()
 {
-	return (T *)this->getElem();
+	if (!elem)
+	{
+		return std::unique_ptr<T>{nullptr};
+	}
+
+	T* cast_elem = dynamic_cast<T*>(elem.get());
+	if (cast_elem)
+	{
+		elem.release();
+	}
+
+	return std::unique_ptr<T>{cast_elem};
 }
+
+
+template<>
+std::unique_ptr<NetContainer> FifoElement::getElem();
+
 
 #endif

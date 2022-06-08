@@ -35,7 +35,7 @@
 #define DVD_FIFO_H
 
 #include "OpenSandCore.h"
-#include "MacFifoElement.h"
+#include "FifoElement.h"
 #include "Sac.h"
 
 #include <opensand_rt/RtMutex.h>
@@ -195,10 +195,10 @@ class DvbFifo
 	 * @brief Add an element at the end of the list
 	 *        (Increments new_size_pkt)
 	 *
-	 * @param elem is the pointer on MacFifoElement
+	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool push(MacFifoElement *elem);
+	bool push(FifoElement *elem);
 
 	/**
 	 * @brief Add an element at the head of the list
@@ -206,27 +206,27 @@ class DvbFifo
 	 * @warning This function should be use only to replace a fragment of
 	 *          previously removed data in the fifo
 	 *
-	 * @param elem is the pointer on MacFifoElement
+	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushFront(MacFifoElement *elem);
+	bool pushFront(FifoElement *elem);
 
 	/**
 	 * @brief Add an element at the back of the list
 	 *        (Decrements new_length_bytes)
 	 *
-	 * @param elem is the pointer on MacFifoElement
+	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushBack(MacFifoElement *elem);
+	bool pushBack(FifoElement *elem);
 
 	/**
 	 * @brief Remove an element at the head of the list
 	 *
 	 * @return NULL pointer if extraction failed because fifo is empty
-	 *         pointer on extracted MacFifoElement otherwise
+	 *         pointer on extracted FifoElement otherwise
 	 */
-	MacFifoElement *pop();
+	FifoElement *pop();
 
 	/**
 	 * @brief Flush the dvb fifo and reset counters
@@ -245,7 +245,7 @@ class DvbFifo
 
 	uint8_t getCni(void) const;
 
-	std::vector<MacFifoElement *> getQueue(void);
+	std::vector<FifoElement *> getQueue(void);
 
  protected:
 	/**
@@ -253,7 +253,7 @@ class DvbFifo
 	 */
 	void resetStats();
 
-	std::vector<MacFifoElement *> queue; ///< the FIFO itself
+	std::vector<FifoElement *> queue; ///< the FIFO itself
 
 	unsigned int fifo_priority;     ///< the MAC priority of the fifo
 	std::string fifo_name;               ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT

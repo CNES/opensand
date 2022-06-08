@@ -17,6 +17,7 @@ libopensand_plugin_utils_la_h = \
 
 libopensand_plugin_la_cpp = \
 	Data.cpp \
+	FifoElement.cpp \
 	NetContainer.cpp \
 	NetPacket.cpp \
 	NetBurst.cpp \
@@ -33,6 +34,7 @@ libopensand_plugin_la_h = \
 	StackPlugin.h \
 	OpenSandCore.h \
 	Data.h \
+	FifoElement.h \
 	NetContainer.h \
 	NetPacket.h \
 	NetBurst.h \

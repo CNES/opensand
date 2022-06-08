@@ -40,6 +40,7 @@
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
 #include "OpenSandModelConf.h"
+#include "FifoElement.h"
 
 #include <unistd.h>
 #include <errno.h>
@@ -231,13 +232,13 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
                             std::unique_ptr<NetContainer> data,
                             time_ms_t fifo_delay)
 {
-	MacFifoElement *elem;
+	FifoElement *elem;
 	time_ms_t current_time = getCurrentTime();
 
 	// create a new FIFO element to store the packet
 	try
 	{
-		elem = new MacFifoElement(std::move(data), current_time, current_time + fifo_delay);
+		elem = new FifoElement(std::move(data), current_time, current_time + fifo_delay);
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -453,7 +454,7 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 }
 
 bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
-                                MacFifoElement *elem,
+                                FifoElement *elem,
                                 std::unique_ptr<NetPacket> packet,
                                 tal_id_t source,
                                 tal_id_t dest,

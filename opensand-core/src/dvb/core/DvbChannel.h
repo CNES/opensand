@@ -55,6 +55,9 @@
 #include <opensand_rt/Rt.h>
 
 
+class FifoElement;
+
+
 /**
  * @brief A high level channel that implements some functions
  *        used by ST, SAT and/or GW
@@ -761,7 +764,7 @@ class DvbFmt
 	 * @return true on success, false otherwise
 	 */
 	bool setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                        MacFifoElement *elem,
+	                        FifoElement *elem,
 	                        std::unique_ptr<NetPacket> packet,
 	                        tal_id_t source,
 	                        tal_id_t dest,

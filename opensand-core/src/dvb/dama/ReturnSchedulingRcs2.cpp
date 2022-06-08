@@ -36,7 +36,7 @@
 
 
 #include "ReturnSchedulingRcs2.h"
-#include "MacFifoElement.h"
+#include "FifoElement.h"
 #include "OpenSandFrames.h"
 
 #include <opensand_output/Output.h>
@@ -123,7 +123,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	std::unique_ptr<NetPacket> encap_packet;
 	std::unique_ptr<NetPacket> data;
 	std::unique_ptr<NetPacket> remaining_data;
-	MacFifoElement *elem = NULL;
+	FifoElement *elem = NULL;
 	DvbFifo *fifo = NULL;
 	sched_state_t state;
 

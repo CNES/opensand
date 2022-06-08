@@ -216,12 +216,12 @@ uint8_t DvbFifo::getCni(void) const
 	return this->cni;
 }
 
-std::vector<MacFifoElement *> DvbFifo::getQueue(void)
+std::vector<FifoElement *> DvbFifo::getQueue(void)
 {
 	return this->queue;
 }
 
-bool DvbFifo::push(MacFifoElement *elem)
+bool DvbFifo::push(FifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 	vol_bytes_t length;
@@ -251,7 +251,7 @@ bool DvbFifo::push(MacFifoElement *elem)
 	return true;
 }
 
-bool DvbFifo::pushFront(MacFifoElement *elem)
+bool DvbFifo::pushFront(FifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 
@@ -278,7 +278,7 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 
 }
 
-bool DvbFifo::pushBack(MacFifoElement *elem)
+bool DvbFifo::pushBack(FifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 
@@ -304,10 +304,10 @@ bool DvbFifo::pushBack(MacFifoElement *elem)
 	return false;
 
 }
-MacFifoElement *DvbFifo::pop()
+FifoElement *DvbFifo::pop()
 {
 	RtLock lock(this->fifo_mutex);
-	MacFifoElement *elem;
+	FifoElement *elem;
 	vol_bytes_t length;
 
 	if(this->queue.size() <= 0)
@@ -338,7 +338,7 @@ MacFifoElement *DvbFifo::pop()
 void DvbFifo::flush()
 {
 	RtLock lock(this->fifo_mutex);
-	std::vector<MacFifoElement *>::iterator it;
+	std::vector<FifoElement *>::iterator it;
 	for(it = this->queue.begin(); it != this->queue.end(); ++it)
 	{
 //		NetContainer *elem = (*it)->getElem();
