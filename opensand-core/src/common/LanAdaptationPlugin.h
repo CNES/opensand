@@ -89,7 +89,7 @@ class LanAdaptationPlugin: public StackPlugin
 		                     std::unique_ptr<NetPacket> &encap_packet,
 		                     std::unique_ptr<NetPacket> &remaining_packet) override;
 
-		bool getEncapsulatedPackets(NetContainer *packet,
+		bool getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
 		                            bool &partial_decap,
 		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
 		                            unsigned int decap_packets_count) override;

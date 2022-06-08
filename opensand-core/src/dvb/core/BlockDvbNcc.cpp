@@ -839,15 +839,15 @@ bool BlockDvbNcc::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
-      DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
-      if (!this->onRcvDvbFrame(dvb_frame))
-      {
-        LOG(this->log_receive, LEVEL_ERROR,
-            "Failed handling DVB Frame\n");
-        return false;
-      }
+			DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
+			if (!this->onRcvDvbFrame(dvb_frame))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "Failed handling DVB Frame\n");
+				return false;
+			}
 		}
 		break;
 

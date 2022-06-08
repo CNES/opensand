@@ -121,7 +121,7 @@ class EncapPlugin: public StackPlugin
 		 * @param[out] decap_packets      The list of decapsulated packet
 		 * @param[in decap_packets_count  The packet count to decapsulate (0 if unknown)
 		 */
-		bool getEncapsulatedPackets(NetContainer *packet,
+		bool getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
 		                            bool &partial_decap,
 		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
 		                            unsigned int decap_packet_count=0) override;

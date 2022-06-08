@@ -85,7 +85,7 @@ bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(std::uniqu
 }
 
 
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(NetContainer *,
+bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(std::unique_ptr<NetContainer>,
                                                                              bool &,
                                                                              std::vector<std::unique_ptr<NetPacket>> &,
                                                                              unsigned int)

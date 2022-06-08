@@ -89,10 +89,10 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	std::vector<std::unique_ptr<NetPacket>> decap_packets;
 	bool partial_decap = false;
 
-	*burst = NULL;
+	*burst = nullptr;
 
 	// sanity check
-	if(dvb_frame == NULL)
+	if(dvb_frame == nullptr)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "invalid frame received\n");
@@ -118,10 +118,13 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		return false;
 	}
 
-	BBFrame *bbframe_burst = *dvb_frame;
+	BBFrame *bbframe_burst_ptr = *dvb_frame;
+	std::unique_ptr<BBFrame> bbframe_burst{bbframe_burst_ptr};
+
+	auto burst_length = bbframe_burst->getDataLength();
 	LOG(this->log_rcv_from_down, LEVEL_INFO,
 	    "BB frame received (%d %s packet(s))\n",
-	    bbframe_burst->getDataLength(),
+	    burst_length,
 	    this->packet_handler->getName().c_str());
 
 	// TODO This is not used on GW in SCPC mode as we do not use MODCOD options
@@ -141,7 +144,6 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "The BBFrame was corrupted by physical layer, drop "
 		    "it\n");
-		delete dvb_frame;
 		return true;
 	}
 
@@ -158,41 +160,39 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		    "that is not robust enough, so emulate a lost BB frame\n",
 		    real_mod, this->getRequiredEsN0(real_mod),
 		    this->received_modcod, this->getRequiredEsN0(this->received_modcod));
-		delete dvb_frame;
 		return true;
 	}
 
-	if(bbframe_burst->getDataLength() <= 0)
+	if(burst_length <= 0)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_INFO,
 		    "skip BB frame with no encapsulation packet\n");
-		delete dvb_frame;
 		return true;
 	}
 
-	// now we are sure that the BB frame is robust enough to be decoded,
-	// so create an empty burst of encapsulation packets to store the
-	// encapsulation packets we are about to extract from the BB frame
-	*burst = new NetBurst();
-	if(*burst == nullptr)
-	{
-		LOG(this->log_rcv_from_down, LEVEL_ERROR,
-		    "failed to create a burst of packets\n");
-		delete dvb_frame;
-		return false;
-	}
-
 	// get encapsulated packets received from lower layer
-	if(!this->packet_handler->getEncapsulatedPackets(bbframe_burst,
+	if(!this->packet_handler->getEncapsulatedPackets(std::move(bbframe_burst),
 	                                                 partial_decap,
 	                                                 decap_packets,
-	                                                 bbframe_burst->getDataLength()))
+	                                                 burst_length))
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "cannot create one %s packet\n",
 		    this->packet_handler->getName().c_str());
-		delete *burst;
-		delete dvb_frame;
+		return false;
+	}
+
+	// now we are sure that the BB frame is robust enough and has been
+	// decoded, create an empty burst of encapsulation packets to store the
+	// encapsulation packets we have extracted from the BB frame
+	try
+	{
+		*burst = new NetBurst();
+	}
+	catch (const std::bad_alloc&)
+	{
+		LOG(this->log_rcv_from_down, LEVEL_ERROR,
+		    "failed to create a burst of packets\n");
 		return false;
 	}
 
@@ -207,7 +207,5 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		(*burst)->add(std::move(packet));
 	}
 
-	// release buffer (data is now saved in NetPacket objects)
-	delete dvb_frame;
 	return true;
 }

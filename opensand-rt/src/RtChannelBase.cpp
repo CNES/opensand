@@ -538,7 +538,7 @@ void RtChannelBase::executeThread(void)
 					// this is the only case where it is critical as
 					// stop event is a signal
 					this->reportError(true, "unable to handle signal event\n");
-          return;
+					return;
 				}
 				this->reportError(false, "unable to handle event\n");
 				// ignore this event
@@ -550,11 +550,12 @@ void RtChannelBase::executeThread(void)
 				// we have to stop
 				LOG(this->log_rt, LEVEL_INFO,
 				    "stop signal received\n");
-        return;
+				return;
 			}
 		}
 		// sort the list according to priority
-		std::sort(priority_sorted_events.begin(), priority_sorted_events.end(), [](const RtEvent* e1, const RtEvent* e2) { return (*e1) < (*e2); });
+		static const auto eventSorter = [](const RtEvent* e1, const RtEvent* e2) { return (*e1) < (*e2); };
+		std::sort(priority_sorted_events.begin(), priority_sorted_events.end(), eventSorter);
 
 		// call processEvent on each event
 		for(auto &&event: priority_sorted_events)

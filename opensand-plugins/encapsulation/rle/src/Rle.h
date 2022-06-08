@@ -137,7 +137,7 @@ class Rle: public EncapPlugin
 		                     std::unique_ptr<NetPacket> &encap_packet,
 		                     std::unique_ptr<NetPacket> &remaining_data) override;
 
-		bool getEncapsulatedPackets(NetContainer *packet,
+		bool getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
 		                            bool &partial_decap,
 		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
 		                            unsigned int decap_packet_count = 0) override;

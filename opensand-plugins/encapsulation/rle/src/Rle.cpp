@@ -851,7 +851,7 @@ encap_end:
 }
 
 
-bool Rle::PacketHandler::getEncapsulatedPackets(NetContainer *packet,
+bool Rle::PacketHandler::getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
                                                 bool &partial_decap,
                                                 std::vector<std::unique_ptr<NetPacket>> &decap_packets,
                                                 unsigned int)

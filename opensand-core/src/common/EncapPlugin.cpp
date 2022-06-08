@@ -117,7 +117,8 @@ bool EncapPlugin::EncapPacketHandler::encapNextPacket(std::unique_ptr<NetPacket>
 	return success && (encap_packet != nullptr || remaining_data != nullptr);
 }
 
-bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packet,
+
+bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
                                                              bool &partial_decap,
                                                              std::vector<std::unique_ptr<NetPacket>> &decap_packets,
                                                              unsigned int decap_packets_count)
@@ -143,28 +144,28 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(NetContainer *packe
 	for(unsigned int i = 0; i < decap_packets_count; ++i)
 	{
 		// Get the current packet length
-    std::size_t current_length = this->getLength(packet->getPayload(previous_length).c_str());
+		std::size_t current_length = this->getLength(packet->getPayload(previous_length).c_str());
 		if(current_length <= 0)
 		{
 			LOG(this->log, LEVEL_ERROR,
 				"cannot create one %s packet (no data)\n",
 				this->getName().c_str(), current_length);
-      return false;
+			return false;
 		}
 
 		// Get the current packet
-    std::unique_ptr<NetPacket> current;
-    try
-    {
-      current = this->build(packet->getPayload(previous_length), current_length,
-                            0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
-    }
-    catch (const std::bad_alloc&)
+		std::unique_ptr<NetPacket> current;
+		try
+		{
+			current = this->build(packet->getPayload(previous_length), current_length,
+			                      0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
+		}
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,
-				"cannot create one %s packet (length = %zu bytes)\n",
-				this->getName().c_str(), current_length);
-      return false;
+			    "cannot create one %s packet (length = %zu bytes)\n",
+			    this->getName().c_str(), current_length);
+			return false;
 		}
 
 		// Add the current packet to decapsulated packets

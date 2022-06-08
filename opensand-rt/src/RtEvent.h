@@ -156,7 +156,7 @@ class RtEvent
 	uint8_t priority;
 
 	/// date, used as event trigger date
-  time_point_t trigger_time;
+	time_point_t trigger_time;
 	
 	/// date, used as custom processing date
 	mutable time_point_t custom_time;

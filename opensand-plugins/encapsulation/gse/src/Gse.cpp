@@ -48,6 +48,9 @@
 constexpr uint16_t GSE_MIN_ETHER_TYPE = 1536;
 constexpr uint8_t MAX_QOS_NBR = 0xFF;
 constexpr std::size_t MAX_CNI_EXT_LEN = 6;
+constexpr std::size_t GSE_MANDATORY_FIELDS_LENGTH = 2;
+constexpr std::size_t GSE_FRAG_ID_LENGTH = 1;
+constexpr std::size_t GSE_TOTAL_LENGTH_LENGTH = 2;
 
 
 static int encodeHeaderCniExtensions(unsigned char *ext,
@@ -1262,8 +1265,8 @@ std::unique_ptr<NetPacket> Gse::PacketHandler::build(const Data &data,
 		    "build a subsequent fragment "
 		    "SRC TAL Id = %u, QoS = %u, DST TAL Id=  %u\n",
 		    src_tal_id, qos, dst_tal_id);
-		header_length = 2 + //GSE_MANDATORY_FIELDS_LENGTH +
-		                1 + //GSE_FRAG_ID_LENGTH +
+		header_length = GSE_MANDATORY_FIELDS_LENGTH +
+		                GSE_FRAG_ID_LENGTH +
 		                label_length;
 	}
 	// complete or first fragment
@@ -1286,9 +1289,9 @@ std::unique_ptr<NetPacket> Gse::PacketHandler::build(const Data &data,
 		{
 			LOG(this->log, LEVEL_DEBUG,
 			    "build a first fragment\n");
-			header_length = 2 + //GSE_MANDATORY_FIELDS_LENGTH
-			                1 + //GSE_FRAG_ID_LENGTH +
-			                2 + //GSE_TOTAL_LENGTH_LENGTH +
+			header_length = GSE_MANDATORY_FIELDS_LENGTH +
+			                GSE_FRAG_ID_LENGTH +
+			                GSE_TOTAL_LENGTH_LENGTH +
 			                label_length;
 		}
 		// complete
@@ -1296,7 +1299,7 @@ std::unique_ptr<NetPacket> Gse::PacketHandler::build(const Data &data,
 		{
 			LOG(this->log, LEVEL_DEBUG,
 			    "build a complete packet\n");
-			header_length = 2 + //GSE_MANDATORY_FIELDS_LENGTH +
+			header_length = GSE_MANDATORY_FIELDS_LENGTH +
 			                label_length;
 		}
 		LOG(this->log, LEVEL_INFO,
@@ -1309,6 +1312,7 @@ std::unique_ptr<NetPacket> Gse::PacketHandler::build(const Data &data,
 	                                  this->getName(), this->getEtherType(),
 	                                  qos, src_tal_id, dst_tal_id, header_length)};
 }
+
 
 size_t Gse::PacketHandler::getLength(const unsigned char *data) const
 {
@@ -1323,10 +1327,11 @@ size_t Gse::PacketHandler::getLength(const unsigned char *data) const
 		    gse_get_status(status));
 		return 0;
 	}
+
 	// Add 2 bits for S, E and LT fields
-	length += 2; //GSE_MANDATORY_FIELDS_LENGTH;
-	return length;
+	return length + GSE_MANDATORY_FIELDS_LENGTH;
 }
+
 
 bool Gse::PacketHandler::getChunk(std::unique_ptr<NetPacket> packet,
                                   std::size_t remaining_length,
@@ -1371,7 +1376,7 @@ bool Gse::PacketHandler::getChunk(std::unique_ptr<NetPacket> packet,
 		    "Unable to refragment GSE packet (%s)\n",
 		    gse_get_status(status));
 		// the packet cannot be encapsulated, copy it in
-    // remaining data and return true (use case 3)
+		// remaining data and return true (use case 3)
 		remaining_data = std::move(packet);
 		goto success;
 	}
@@ -1381,7 +1386,7 @@ bool Gse::PacketHandler::getChunk(std::unique_ptr<NetPacket> packet,
 		    "no need to refragment, the whole packet can be "
 		    "encapsulated\n");
 		// the whole packet can be encapsulated, copy it in
-    // data and return true (use case 1)
+		// data and return true (use case 1)
 		data = std::move(packet);
 		goto success;
 	}
@@ -1399,13 +1404,14 @@ bool Gse::PacketHandler::getChunk(std::unique_ptr<NetPacket> packet,
 		    "%zu bytes long, second fragment is %zu bytes long\n",
 		    gse_get_vfrag_length(first_frag), gse_get_vfrag_length(second_frag));
 		// add the first fragment to the BB frame
-    try
-    {
-      data = this->build(gse_first,
-                         gse_get_vfrag_length(first_frag),
-                         packet->getQos(),
-                         packet->getSrcTalId(), packet->getDstTalId());
-    }
+		try
+		{
+			data = this->build(gse_first,
+			                   gse_get_vfrag_length(first_frag),
+			                   packet->getQos(),
+			                   packet->getSrcTalId(),
+			                   packet->getDstTalId());
+		}
 		catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,
@@ -1414,13 +1420,14 @@ bool Gse::PacketHandler::getChunk(std::unique_ptr<NetPacket> packet,
 		}
 
 		// create a new NetPacket containing the second fragment
-    try
-    {
-      remaining_data = this->build(gse_second,
-		                               gse_get_vfrag_length(second_frag),
-		                               packet->getQos(),
-		                               packet->getSrcTalId(), packet->getDstTalId());
-    }
+		try
+		{
+			remaining_data = this->build(gse_second,
+			                             gse_get_vfrag_length(second_frag),
+			                             packet->getQos(),
+			                             packet->getSrcTalId(),
+			                             packet->getDstTalId());
+		}
 		catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,
@@ -1447,17 +1454,18 @@ success:
 error:
 	delete data.release();
 
-  if (second_frag != nullptr)
-  {
-    gse_free_vfrag(&second_frag);
-  }
-  if (first_frag != nullptr)
-  {
-    gse_free_vfrag(&first_frag);
-  }
+	if (second_frag != nullptr)
+	{
+		gse_free_vfrag(&second_frag);
+	}
+	if (first_frag != nullptr)
+	{
+		gse_free_vfrag(&first_frag);
+	}
 
 	return false;
 }
+
 
 Gse::PacketHandler::PacketHandler(EncapPlugin &plugin):
 	EncapPlugin::EncapPacketHandler(plugin)

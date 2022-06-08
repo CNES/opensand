@@ -91,7 +91,7 @@ class MessageEvent: public RtEvent
 	 *
 	 * @return the message length
 	 */
-  inline std::size_t getLength() const {return this->message.length;};
+	inline std::size_t getLength() const {return this->message.length;};
 
 	bool handle(void) override;
 
@@ -100,7 +100,7 @@ class MessageEvent: public RtEvent
 	rt_msg_t message;
 
 	/// the fifo
-  const std::shared_ptr<RtFifo> fifo;
+	const std::shared_ptr<RtFifo> fifo;
 };
 
 
