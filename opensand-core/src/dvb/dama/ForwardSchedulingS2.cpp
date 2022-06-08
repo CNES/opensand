@@ -494,7 +494,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			// Select the tal_id corresponding to the lower modcod in order to
 			// make all terminal able to read the message
 			tal_id = this->simu_sts->getTalIdWithLowerModcod();
-			if(tal_id == 255)
+			if (tal_id == std::numeric_limits<decltype(tal_id)>::max())
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: The scheduling of a "
