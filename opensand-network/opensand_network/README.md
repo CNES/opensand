@@ -2,7 +2,7 @@
 
 ## Configure the entities
 
-Modify the file `opensand_netns_config.py` with the IDs of the entities you want to configure.
+Modify the file `opensand_netns.py` with the IDs of the entities you want to configure.
 
 ## Create the net namespaces
 

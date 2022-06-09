@@ -74,7 +74,7 @@ def clean():
 
 
 def print_usage_and_exit(exit_code):
-    print("Usage: opensand_network <up|down>")
+    print("Usage: opensand_netns.py <up|down>")
     sys.exit(exit_code)
 
 
