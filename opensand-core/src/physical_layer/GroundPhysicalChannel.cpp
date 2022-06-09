@@ -296,9 +296,9 @@ bool GroundPhysicalChannel::forwardReadyPackets()
 		FifoElement *elem = this->delay_fifo.pop();
 		assert(elem != nullptr);
 
-		std::unique_ptr<DvbFrame> pkt = elem->getElem<DvbFrame>();
+		std::unique_ptr<NetContainer> pkt = elem->getElem();
 		delete elem;
-		this->forwardPacket(pkt.release());
+		this->forwardPacket(reinterpret_cast<DvbFrame *>(pkt.release()));
 	}
 	return true;
 }
