@@ -43,13 +43,17 @@ IP_TYPE = 'ip'
 ALL_TYPES = [ IP_TYPE, ETH_TYPE ]
 DEFAULT_TYPE = ALL_TYPES[0]
 
-DEBUG = False
+PRINT = True
+EXEC = True
 RAISE_ERROR = True
 
 
 class NetworkUtilsError(Exception):
     pass
 
+def set_stop_on_error(stop):
+    global RAISE_ERROR
+    RAISE_ERROR = stop
 
 def __exec_cmd(cmd, error_msg):
     '''
@@ -61,13 +65,20 @@ def __exec_cmd(cmd, error_msg):
 
     Return lines of the stdout
     '''
-    if DEBUG:
+    if PRINT:
         print(cmd)
-    proc = subprocess.run(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if RAISE_ERROR and proc.returncode < 0:
-        raise NetworkUtilsError('{}: {}'.format(error, proc.stderr.decode()))
-    return proc.stdout.decode().splitlines()
-
+    if EXEC:
+        proc = subprocess.run(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out = proc.stdout.decode()
+        err = proc.stderr.decode()
+        if RAISE_ERROR and proc.returncode != 0:
+            raise NetworkUtilsError('{}: {}'.format(error_msg, err))
+        if len(out) > 1:
+            print(out)
+        if len(err) > 1:
+            print(err)
+        return out.splitlines()
+    return ""
 
 def create_netns(netns):
     __exec_cmd(
