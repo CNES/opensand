@@ -234,6 +234,7 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 {
 	FifoElement *elem;
 	time_ms_t current_time = getCurrentTime();
+	std::string data_name = data->getName();
 
 	// create a new FIFO element to store the packet
 	try
@@ -258,7 +259,7 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 
 	LOG(DvbChannel::dvb_fifo_log, LEVEL_NOTICE,
 	    "%s data stored in FIFO %s (tick_in = %ld, tick_out = %ld)\n",
-	    elem->getElem()->getName().c_str(), fifo->getName().c_str(),
+	    data_name.c_str(), fifo->getName().c_str(),
 	    elem->getTickIn(), elem->getTickOut());
 
 	return true;
