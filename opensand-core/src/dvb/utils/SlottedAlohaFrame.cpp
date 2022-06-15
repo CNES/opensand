@@ -84,14 +84,14 @@ SlottedAlohaFrame::SlottedAlohaFrame():
 SlottedAlohaFrameCtrl::SlottedAlohaFrameCtrl():
 	SlottedAlohaFrame()
 {
-	this->setMessageType(MSG_TYPE_SALOHA_CTRL);
+	this->setMessageType(EmulatedMessageType::SalohaCtrl);
 }
 
 
 SlottedAlohaFrameData::SlottedAlohaFrameData():
 	SlottedAlohaFrame()
 {
-	this->setMessageType(MSG_TYPE_SALOHA_DATA);
+	this->setMessageType(EmulatedMessageType::SalohaData);
 }
 
 SlottedAlohaFrame::~SlottedAlohaFrame()

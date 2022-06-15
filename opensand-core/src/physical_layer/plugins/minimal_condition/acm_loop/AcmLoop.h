@@ -82,7 +82,7 @@ class AcmLoop: public MinimalConditionPlugin
 	 * @param message_type  The frame type
 	 * @return true on success, false otherwise
 	 */
-	bool updateThreshold(uint8_t modcod_id, uint8_t message_type);
+	bool updateThreshold(uint8_t modcod_id, EmulatedMessageType message_type);
 };
 
 

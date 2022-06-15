@@ -126,14 +126,13 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 		goto error;
 	}
 
-	for(std::vector<cr_info_t>::iterator it = requests.begin();
-	    it != requests.end(); ++it)
+	for (auto&& cr_info: requests)
 	{
 		// take into account the new request
-		switch((*it).type)
+		switch(cr_info.type)
 		{
-			case access_dama_vbdc:
-				request_kb = it->value;
+			case ReturnAccessType::dama_vbdc:
+				request_kb = cr_info.value;
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u received VBDC requests %u kb\n",
 				    this->current_superframe_sf, tal_id, request_kb);
@@ -149,12 +148,12 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 				if(tal_id > BROADCAST_TAL_ID)
 				{
 					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
-					                tal_id, request_kb, access_dama_vbdc);
+					                tal_id, request_kb, ReturnAccessType::dama_vbdc);
 				}
 				break;
 
-			case access_dama_rbdc:
-				request_kbps = it->value;
+			case ReturnAccessType::dama_rbdc:
+				request_kbps = cr_info.value;
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u received RBDC requests %u kb/s\n",
 				    this->current_superframe_sf, tal_id, request_kbps);
@@ -176,14 +175,14 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 				if(tal_id > BROADCAST_TAL_ID)
 				{
 					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
-					                tal_id, request_kbps, access_dama_rbdc);
+					                tal_id, request_kbps, ReturnAccessType::dama_rbdc);
 				}
 				break;
 
 			default:
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u received request of unkwon type %d\n",
-				    this->current_superframe_sf, tal_id, it->type);
+				    this->current_superframe_sf, tal_id, cr_info.type);
 				break;
 		}
 	}

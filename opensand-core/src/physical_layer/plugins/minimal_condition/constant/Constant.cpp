@@ -97,7 +97,7 @@ bool Constant::init(void)
 }
 
 
-bool Constant::updateThreshold(uint8_t UNUSED(modcod_id), uint8_t UNUSED(message_type))
+bool Constant::updateThreshold(uint8_t, EmulatedMessageType)
 {
 	// Empty function, not necessary when
 	// Constant Minimal conditions

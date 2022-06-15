@@ -47,6 +47,7 @@
 
 class Data;
 class OutputLog;
+enum class EmulatedMessageType: uint8_t;
 
 
 /**
@@ -156,7 +157,7 @@ class MinimalConditionPlugin: public OpenSandPlugin
 	 * @param message_type  The frame type
 	 * @return true on success, false otherwise
 	 */
-	virtual bool updateThreshold(uint8_t modcod_id, uint8_t message_type) = 0;
+	virtual bool updateThreshold(uint8_t modcod_id, EmulatedMessageType message_type) = 0;
 };
 
 /**

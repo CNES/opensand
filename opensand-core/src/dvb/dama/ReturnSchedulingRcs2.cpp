@@ -186,7 +186,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 
 			// Check the fifo access
 			fifo = (*fifo_it).second;
-			if(fifo->getAccessType() == access_saloha)
+			if(fifo->getAccessType() == ForwardOrReturnAccessType{ReturnAccessType::saloha})
 			{
 				// not the good fifo
 				LOG(this->log_scheduling, LEVEL_DEBUG,

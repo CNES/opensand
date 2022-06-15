@@ -46,6 +46,8 @@
 
 /// A list of TS
 typedef std::set<uint16_t> saloha_ts_list_t;
+class OutputLog;
+
 
 /**
  * @class SlottedAlohaAlgo

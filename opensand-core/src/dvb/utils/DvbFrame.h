@@ -37,6 +37,8 @@
 #ifndef DVB_FRAME_H
 #define DVB_FRAME_H
 
+#include <cstring>
+
 #include "OpenSandFrames.h"
 #include "NetContainer.h"
 #include "NetPacket.h"
@@ -163,7 +165,7 @@ class DvbFrameTpl: public NetContainer
 	 * 
 	 * @param type  The DVB frame message type
 	 */
-	void setMessageType(uint8_t type)
+	void setMessageType(EmulatedMessageType type)
 	{
 		this->frame()->hdr.msg_type = type;
 	};
@@ -175,10 +177,13 @@ class DvbFrameTpl: public NetContainer
 	 */
 	void setCorrupted(bool corrupted)
 	{
-		this->frame()->hdr.corrupted = 0;
 		if(corrupted)
 		{
 			this->frame()->hdr.corrupted = 1;
+		}
+		else
+		{
+			this->frame()->hdr.corrupted = 0;
 		}
 	};
 	
@@ -197,7 +202,7 @@ class DvbFrameTpl: public NetContainer
 	 * 
 	 * @return  The DVB frame message type
 	 */
-	uint8_t getMessageType(void) const
+	EmulatedMessageType getMessageType(void) const
 	{
 		return this->frame()->hdr.msg_type;
 	};

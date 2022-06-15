@@ -58,7 +58,7 @@ class DamaAgentRcs2 : public DamaAgent
 	virtual bool returnSchedule(std::list<DvbFrame *> *complete_dvb_frames);
 	virtual bool hereIsSOF(time_sf_t superframe_number_sf);
 	virtual bool hereIsTTP(Ttp *ttp);
-	virtual bool buildSAC(ret_access_type_t cr_type,
+	virtual bool buildSAC(ReturnAccessType cr_type,
 	                      Sac *sac,
 	                      bool &emtpy);
 
@@ -103,7 +103,7 @@ class DamaAgentRcs2 : public DamaAgent
 	 *
 	 * @return                  total buffers size in bits
 	 */
-	vol_b_t getMacBufferLength(ret_access_type_t cr_type);
+	vol_b_t getMacBufferLength(ReturnAccessType cr_type);
 
 	/**
 	 * @brief Utility function to get total number of "last arrived" packets
@@ -114,7 +114,7 @@ class DamaAgentRcs2 : public DamaAgent
 	 * @return                  total number of "last arrived" packets
 	 *                          in bits
 	 */
-	vol_b_t getMacBufferArrivals(ret_access_type_t cr_type);
+	vol_b_t getMacBufferArrivals(ReturnAccessType cr_type);
 
 	/**
 	 * @brief Compute RBDC request

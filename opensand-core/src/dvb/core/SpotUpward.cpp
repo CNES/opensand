@@ -497,11 +497,11 @@ bool SpotUpward::checkIfScpc()
 
 bool SpotUpward::handleFrame(DvbFrame *frame, NetBurst **burst)
 {
-	uint8_t msg_type = frame->getMessageType();
+	EmulatedMessageType msg_type = frame->getMessageType();
 	bool corrupted = frame->isCorrupted();
 	PhysicStd *std = this->reception_std;
 
-	if(msg_type == MSG_TYPE_BBFRAME)
+	if(msg_type == EmulatedMessageType::BbFrame)
 	{
 		// decode the first packet in frame to be able to get source terminal ID
 		if(!this->reception_std_scpc)
@@ -581,13 +581,13 @@ bool SpotUpward::handleFrame(DvbFrame *frame, NetBurst **burst)
 void SpotUpward::handleFrameCni(DvbFrame *dvb_frame)
 {
 	double curr_cni = dvb_frame->getCn();
-	uint8_t msg_type = dvb_frame->getMessageType();
+	EmulatedMessageType msg_type = dvb_frame->getMessageType();
 	tal_id_t tal_id;
 
 	switch(msg_type)
 	{
 		// Cannot check frame type because of currupted frame
-		case MSG_TYPE_SAC:
+		case EmulatedMessageType::Sac:
 		{
 			Sac *sac = (Sac *)dvb_frame;
 			tal_id = sac->getTerminalId();
@@ -601,7 +601,7 @@ void SpotUpward::handleFrameCni(DvbFrame *dvb_frame)
 			}
 			break;
 		}
-		case MSG_TYPE_DVB_BURST:
+		case EmulatedMessageType::DvbBurst:
 		{
 			// transparent case : update return modcod for terminal
 			DvbRcsFrame *frame = dvb_frame->operator DvbRcsFrame*();
@@ -618,7 +618,7 @@ void SpotUpward::handleFrameCni(DvbFrame *dvb_frame)
 			}
 			break;
 		}
-		case MSG_TYPE_BBFRAME:
+		case EmulatedMessageType::BbFrame:
 		{
 			// SCPC
 			BBFrame *frame = dvb_frame->operator BBFrame*();

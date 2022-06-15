@@ -82,7 +82,7 @@ BBFrame::BBFrame():
 
 	// no data given as input, so create the BB header
 	this->setMessageLength(sizeof(T_DVB_BBFRAME));
-	this->setMessageType(MSG_TYPE_BBFRAME);
+	this->setMessageType(EmulatedMessageType::BbFrame);
 	this->frame()->data_length = 0; // no encapsulation packet at the beginning
 	this->frame()->used_modcod = 0; // by default, may be changed
 }

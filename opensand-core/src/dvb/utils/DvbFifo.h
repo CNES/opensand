@@ -62,12 +62,81 @@ typedef struct
 	vol_bytes_t drop_bytes;           ///< current length of data dropped
 } mac_fifo_stat_context_t;
 
+
 /// Access type for fifo (mapping between mac_fifo and carrier)
-typedef enum
+enum class ForwardAccessType : uint8_t
 {
-	access_acm,
-	access_vcm,
-} fwd_access_type_t;
+	acm,
+	vcm,
+};
+
+
+struct ForwardOrReturnAccessType
+{
+ private:
+	enum class Direction {Unknown, Forward, Return};
+
+ public:
+	Direction direction;
+	union
+	{
+		ReturnAccessType return_access_type;
+		ForwardAccessType forward_access_type;
+	};
+
+	ForwardOrReturnAccessType ():
+		direction{Direction::Unknown}
+	{};
+
+	ForwardOrReturnAccessType (ReturnAccessType access_type):
+		direction{Direction::Return},
+		return_access_type{access_type}
+	{};
+
+	ForwardOrReturnAccessType (ForwardAccessType access_type):
+		direction{Direction::Forward},
+		forward_access_type{access_type}
+	{};
+
+	bool IsForwardAccess () const
+	{
+		return direction == Direction::Forward;
+	};
+
+	bool IsReturnAccess () const
+	{
+		return direction == Direction::Return;
+	};
+
+	bool operator == (const ForwardOrReturnAccessType& other) const
+	{
+		switch (direction)
+		{
+			case Direction::Forward:
+				return other.direction == Direction::Forward && this->forward_access_type == other.forward_access_type;
+			case Direction::Return:
+				return other.direction == Direction::Return && this->return_access_type == other.return_access_type;
+
+			default:
+				return false;
+		}
+	}
+
+	bool operator != (const ForwardOrReturnAccessType& other) const
+	{
+		switch (direction)
+		{
+			case Direction::Forward:
+				return other.direction != Direction::Forward || this->forward_access_type != other.forward_access_type;
+
+			case Direction::Return:
+				return other.direction != Direction::Return || this->return_access_type != other.return_access_type;
+
+			default:
+				return true;
+		}
+	}
+};
 
 
 /**
@@ -118,7 +187,7 @@ class DvbFifo
 	 *
 	 * return the access type associated to the fifo
 	 */
-	int getAccessType() const;
+	ForwardOrReturnAccessType getAccessType() const;
 
 	/**
 	 * @brief Get the VCM id
@@ -189,7 +258,7 @@ class DvbFifo
 	 *
 	 * @param access_type is the CR type for which reset must be done
 	 */
-	void resetNew(const ret_access_type_t access_type);
+	void resetNew(const ForwardOrReturnAccessType access_type);
 
 	/**
 	 * @brief Add an element at the end of the list
@@ -256,8 +325,8 @@ class DvbFifo
 	std::vector<FifoElement *> queue; ///< the FIFO itself
 
 	unsigned int fifo_priority;     ///< the MAC priority of the fifo
-	std::string fifo_name;               ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
-	int access_type;                ///< the forward or return access type
+	std::string fifo_name;          ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
+	ForwardOrReturnAccessType access_type;   ///< the forward or return access type
 	unsigned int vcm_id;            ///< the associated VCM id (if VCM access type)
 	vol_pkt_t new_size_pkt;         ///< the number of packets that filled the fifo
 	                                ///< since previous check

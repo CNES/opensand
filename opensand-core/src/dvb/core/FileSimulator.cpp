@@ -36,6 +36,7 @@
 #include "FileSimulator.h"
 
 #include <errno.h>
+#include <cinttypes>
 
 
 FileSimulator::FileSimulator(spot_id_t spot_id,
@@ -86,7 +87,7 @@ bool FileSimulator::simulation(std::list<DvbFrame *>* msgs,
 	rate_kbps_t st_rt;
 	rate_kbps_t st_rbdc;
 	vol_kb_t st_vbdc;
-	int cr_type;
+	uint8_t cr_type;
 
 	if(this->simu_eof)
 	{
@@ -100,7 +101,7 @@ bool FileSimulator::simulation(std::list<DvbFrame *>* msgs,
 	{
 		if(4 ==
 		   sscanf(this->simu_buffer,
-		          "SF%hu CR st%hu cr=%u type=%d",
+		          "SF%hu CR st%hu cr=%u type=%" SCNu8,
 		          &sf_nr, &st_id, &st_request, &cr_type))
 		{
 			event_selected = cr;
@@ -140,7 +141,7 @@ bool FileSimulator::simulation(std::list<DvbFrame *>* msgs,
 			case cr:
 			{
 				Sac *sac = new Sac(st_id);
-				sac->addRequest(0, cr_type, st_request);
+				sac->addRequest(0, to_enum<ReturnAccessType>(cr_type), st_request);
 				sac->setAcm(0xffff);
 				msgs->push_back((DvbFrame*)sac);
 				LOG(this->log_request_simulation, LEVEL_INFO,

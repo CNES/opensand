@@ -90,6 +90,7 @@ bool EntitySatRegen::createSpecificBlocks()
 
 			dvb_specific dvb_spec;
 			dvb_spec.disable_control_plane = disable_ctrl_plane;
+			dvb_spec.disable_acm_loop = false;
 			dvb_spec.mac_id = instance_id;
 			dvb_spec.spot_id = spot_id;
 			auto block_dvb_ncc = Rt::createBlock<BlockDvbNcc>("DvbNcc" + spot_id_str, dvb_spec);

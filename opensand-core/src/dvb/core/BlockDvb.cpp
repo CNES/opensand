@@ -66,10 +66,11 @@ BlockDvb::~BlockDvb()
 //****************************************************//
 //                   DVB  UPWARD                      // 
 //****************************************************//
-BlockDvb::DvbUpward::DvbUpward(const std::string& name, bool disable_control_plane):
+BlockDvb::DvbUpward::DvbUpward(const std::string& name, dvb_specific specific):
 	DvbChannel{},
 	RtUpward{name},
-  disable_control_plane{disable_control_plane}
+	disable_control_plane{specific.disable_control_plane},
+	disable_acm_loop{specific.disable_acm_loop}
 {
 }
 
@@ -108,9 +109,10 @@ bool BlockDvb::DvbUpward::shareFrame(DvbFrame *frame)
 //****************************************************//
 //                   DVB  DOWNWARD                    // 
 //****************************************************//
-BlockDvb::DvbDownward::DvbDownward(const std::string &name):
+BlockDvb::DvbDownward::DvbDownward(const std::string &name, dvb_specific specific):
 	DvbChannel(),
-	RtDownward(name)
+	RtDownward(name),
+	disable_control_plane{specific.disable_control_plane}
 {
 }
 

@@ -232,7 +232,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 				if(vcm_carriers.size() <= 1)
 				{
 					// ACM
-					if(fifo->getAccessType() != access_acm)
+					if(fifo->getAccessType() != ForwardOrReturnAccessType{ForwardAccessType::acm})
 					{
 						LOG(this->log_scheduling, LEVEL_DEBUG,
 						    "SF#%u: Ignore carriers with id %u in category %s "
@@ -247,7 +247,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 				else
 				{
 					// VCM
-					if(fifo->getAccessType() != access_vcm)
+					if(fifo->getAccessType() != ForwardOrReturnAccessType{ForwardAccessType::vcm})
 					{
 						LOG(this->log_scheduling, LEVEL_DEBUG,
 						    "SF#%u: Ignore carriers with id %u in category %s "

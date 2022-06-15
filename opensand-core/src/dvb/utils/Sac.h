@@ -41,25 +41,28 @@
 #include "OpenSandFrames.h"
 #include "DvbFrame.h"
 
+#include <memory>
 #include <vector>
 #include <endian.h>
 
+
 /// The maximum number of CR in a SAC
-constexpr uint8_t NBR_MAX_CR = 2;
+constexpr const uint8_t NBR_MAX_CR = 2;
 
 
 class OutputLog;
 
 
 ///> The type of access for return/up link
-typedef enum
+enum class ReturnAccessType : uint8_t
 {
-	access_dama_vbdc   = 0, /* Volume Based CR */
-	access_dama_rbdc   = 1, /* Rate Based CR */
-	access_dama_avbdc  = 2, /* Absolute Volume Based */
-	access_dama_cra    = 3, /* No CR, only use Constant Allocation */
-	access_saloha      = 4, /* Slotted Aloha */
-} ret_access_type_t;
+	dama_vbdc   = 0, /* Volume Based CR */
+	dama_rbdc   = 1, /* Rate Based CR */
+	dama_avbdc  = 2, /* Absolute Volume Based */
+	dama_cra    = 3, /* No CR, only use Constant Allocation */
+	saloha      = 4, /* Slotted Aloha */
+};
+
 
 /**
  * The Emulated Capacity Requests field
@@ -67,7 +70,7 @@ typedef enum
 typedef struct
 {
 #if __BYTE_ORDER == __BIG_ENDIAN
-	uint8_t type:4;    ///< The CR type
+	ReturnAccessType type:4;    ///< The CR type
 	                   //   for DVB-RCS: 00 => VBDC
 	                   //                01 => RBDC
 	                   //                10 => AVBDC
@@ -84,7 +87,7 @@ typedef struct
 	                   //   below (should be as small as possible):
 	                   //   for DVB-RCS: 00 => 1
 	                   //   01 => 16
-	uint8_t type:4;    ///< The CR type
+	ReturnAccessType type:4;    ///< The CR type
 	                   //   for DVB-RCS: 00 => VBDC
 	                   //                01 => RBDC
 	                   //                10 => AVBDC
@@ -101,7 +104,7 @@ typedef struct
 typedef struct
 {
 	uint8_t prio;    ///< Request priority
-	uint8_t type;    ///< Request type
+	ReturnAccessType type;    ///< Request type
 	uint32_t value;  ///< Request value
 } cr_info_t;
 
@@ -147,7 +150,6 @@ typedef struct
 class Sac: public DvbFrameTpl<T_DVB_SAC>
 {
  public:
-
 	/**
 	 * @brief SAC constructor for agent
 	 *
@@ -168,7 +170,7 @@ class Sac: public DvbFrameTpl<T_DVB_SAC>
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool addRequest(uint8_t prio, uint8_t type, uint32_t value);
+	bool addRequest(uint8_t prio, ReturnAccessType type, uint32_t value);
 
 	/**
 	 * @brief Set the ACM parameters
@@ -216,5 +218,5 @@ class Sac: public DvbFrameTpl<T_DVB_SAC>
 
 };
 
-#endif
 
+#endif

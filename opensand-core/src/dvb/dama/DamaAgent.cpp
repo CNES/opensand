@@ -81,26 +81,32 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	this->dvb_fifos = dvb_fifos;
 
 	// Check if RBDC or VBDC CR are activated
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto&& it: this->dvb_fifos)
 	{
-		ret_access_type_t cr_type = (ret_access_type_t)((*it).second->getAccessType());
-		switch(cr_type)
+		auto cr_type = it.second->getAccessType();
+		if (!cr_type.IsReturnAccess())
 		{
-			case access_dama_rbdc:
+			LOG(this->log_init, LEVEL_ERROR,
+			    "CR type invalid as FIFO is not for Return Access");
+			return false;
+		}
+
+		switch(cr_type.return_access_type)
+		{
+			case ReturnAccessType::dama_rbdc:
 				this->rbdc_enabled = true;
 				break;
-			case access_dama_vbdc:
+			case ReturnAccessType::dama_vbdc:
 				this->vbdc_enabled = true;
 				break;
-			case access_dama_cra:
-			case access_saloha:
+			case ReturnAccessType::dama_cra:
+			case ReturnAccessType::saloha:
 				break;
 			default:
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Unknown CR type for FIFO %s: %d\n",
-				    (*it).second->getName().c_str(), cr_type);
-			goto error;
+				    it.second->getName().c_str(), cr_type);
+				return false;
 		}
 	}
 
@@ -115,10 +121,8 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	}
 
 	return true;
-
- error:
-	return false;
 }
+
 
 bool DamaAgent::initOutput()
 {

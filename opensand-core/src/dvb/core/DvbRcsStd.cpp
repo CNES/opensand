@@ -92,7 +92,7 @@ bool DvbRcsStd::onRcvFrame(DvbFrame *dvb_frame,
 	}
 
 	// sanity check: this function only handle DVB-RCS frame
-	if(dvb_frame->getMessageType() != MSG_TYPE_DVB_BURST)
+	if(dvb_frame->getMessageType() != EmulatedMessageType::DvbBurst)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "the message received is not a DVB burst\n");

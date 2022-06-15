@@ -33,6 +33,8 @@
  * @author Julien Bernard / Viveris technologies
 */
 
+#include <opensand_output/Output.h>
+
 #include "SlottedAlohaAlgoDsa.h"
 
 

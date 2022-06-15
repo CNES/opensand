@@ -58,7 +58,6 @@
 BlockDvbNcc::BlockDvbNcc(const std::string &name, struct dvb_specific specific):
 	BlockDvb{name},
 	mac_id{specific.mac_id},
-	disable_control_plane{specific.disable_control_plane},
 	output_sts{nullptr},
 	input_sts{nullptr}
 {
@@ -131,13 +130,12 @@ bool BlockDvbNcc::initListsSts()
 
 // TODO lot of duplicated code for fifos between ST and GW
 BlockDvbNcc::Downward::Downward(const std::string &name, struct dvb_specific specific):
-    DvbDownward{name},
+    DvbDownward{name, specific},
     DvbFmt{},
     pep_interface{},
     svno_interface{},
     mac_id{specific.mac_id},
     spot_id{specific.spot_id},
-    disable_control_plane{specific.disable_control_plane},
     fwd_frame_counter{0},
     fwd_timer{-1},
     probe_frame_interval{nullptr}
@@ -302,16 +300,16 @@ bool BlockDvbNcc::Downward::handleDvbFrame(DvbFrame *dvb_frame)
     return result;
   }
 
-	uint8_t msg_type = dvb_frame->getMessageType();
+	EmulatedMessageType msg_type = dvb_frame->getMessageType();
 	switch(msg_type)
 	{
-		case MSG_TYPE_SAC: // when physical layer is enabled
+		case EmulatedMessageType::Sac: // when physical layer is enabled
 			return spot->handleSac(dvb_frame);
 
-		case MSG_TYPE_SESSION_LOGON_REQ:
+		case EmulatedMessageType::SessionLogonReq:
 			return this->handleLogonReq(dvb_frame, spot);
 
-		case MSG_TYPE_SESSION_LOGOFF:
+		case EmulatedMessageType::SessionLogoff:
 			return spot->handleLogoffReq(dvb_frame);
 
 		default:
@@ -748,7 +746,7 @@ void BlockDvbNcc::Downward::updateStats(void)
 /*****************************************************************************/
 
 BlockDvbNcc::Upward::Upward(const std::string &name, struct dvb_specific specific):
-    DvbUpward{name, specific.disable_control_plane},
+    DvbUpward{name, specific},
     DvbFmt{},
     mac_id{specific.mac_id},
     spot_id{specific.spot_id},
@@ -875,16 +873,16 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 	}
 
 	fmt_id_t modcod_id = 0;
-	uint8_t msg_type = dvb_frame->getMessageType();
+	EmulatedMessageType msg_type = dvb_frame->getMessageType();
 	LOG(this->log_receive, LEVEL_INFO,
 	    "DVB frame received with type %u\n", msg_type);
 
-	if(msg_type == MSG_TYPE_BBFRAME)
+	if(msg_type == EmulatedMessageType::BbFrame)
 	{
 		BBFrame *bbframe = *dvb_frame;
 		modcod_id = bbframe->getModcodId();
 	}
-	else if(msg_type == MSG_TYPE_DVB_BURST)
+	else if(msg_type == EmulatedMessageType::DvbBurst)
 	{
 		DvbRcsFrame *dvb_rcs_frame = *dvb_frame;
 		modcod_id = dvb_rcs_frame->getModcodId();
@@ -892,8 +890,8 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 	switch(msg_type)
 	{
 		// burst
-		case MSG_TYPE_BBFRAME:
-		case MSG_TYPE_DVB_BURST:
+		case EmulatedMessageType::BbFrame:
+		case EmulatedMessageType::DvbBurst:
 		{
 			if (!this->disable_control_plane)
 			{
@@ -932,7 +930,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		}
 		break;
 
-		case MSG_TYPE_SAC:
+		case EmulatedMessageType::Sac:
 		{
 			// Update C/N0
 			if (!this->disable_control_plane)
@@ -952,7 +950,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		}
 		break;
 
-		case MSG_TYPE_SESSION_LOGON_REQ:
+		case EmulatedMessageType::SessionLogonReq:
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "Logon Req\n");
@@ -969,7 +967,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		}
 		break;
 
-		case MSG_TYPE_SESSION_LOGOFF:
+		case EmulatedMessageType::SessionLogoff:
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "Logoff Req\n");
@@ -980,8 +978,8 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		}
 		break;
 
-		case MSG_TYPE_TTP:
-		case MSG_TYPE_SESSION_LOGON_RESP:
+		case EmulatedMessageType::Ttp:
+		case EmulatedMessageType::SessionLogonResp:
 		{
 			if (this->disable_control_plane)
 			{
@@ -997,7 +995,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		}
 		break;
 
-		case MSG_TYPE_SOF:
+		case EmulatedMessageType::Sof:
 		{
 			// use SoF for SAloha scheduling
 			spot->updateStats();
@@ -1053,7 +1051,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		break;
 
 		// Slotted Aloha
-		case MSG_TYPE_SALOHA_DATA:
+		case EmulatedMessageType::SalohaData:
 		{
 			if(!spot->handleSlottedAlohaFrame(dvb_frame))
 			{
@@ -1070,7 +1068,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		}
 		break;
 
-		case MSG_TYPE_SALOHA_CTRL:
+		case EmulatedMessageType::SalohaCtrl:
 		{
 			if (this->disable_control_plane)
 			{

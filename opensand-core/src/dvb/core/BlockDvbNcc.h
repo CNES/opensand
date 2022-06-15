@@ -181,8 +181,6 @@ class BlockDvbNcc: public BlockDvb
 			
 			/// The id of the associated spot
 			spot_id_t spot_id;
-			
-			bool disable_control_plane;
 
 			/// counter for forward frames
 			time_ms_t fwd_frame_counter;
@@ -207,7 +205,6 @@ class BlockDvbNcc: public BlockDvb
 
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
-	bool disable_control_plane;
 
 	/// The list of Sts with forward/down modcod for this spot
 	StFmtSimuList* output_sts;

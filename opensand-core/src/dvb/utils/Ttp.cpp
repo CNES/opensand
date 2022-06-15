@@ -59,7 +59,7 @@ Ttp::Ttp():
 Ttp::Ttp(group_id_t group_id, time_sf_t sf_id):
 	DvbFrameTpl<T_DVB_TTP>()
 {
-	this->setMessageType(MSG_TYPE_TTP);
+	this->setMessageType(EmulatedMessageType::Ttp);
 	this->setMessageLength(sizeof(T_DVB_TTP));
 	this->setMaxSize(sizeof(T_DVB_TTP) +
 	                 NBR_MAX_FRAMES * (sizeof(emu_frame_t) +

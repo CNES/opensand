@@ -186,10 +186,10 @@ bool BlockDvbTal::onInit(void)
 
 bool BlockDvbTal::initListsSts()
 {
-  try
-  {
-    this->input_sts = new StFmtSimuList("in");
-  }
+	try
+	{
+		this->input_sts = new StFmtSimuList("in");
+	}
 	catch (const std::bad_alloc&)
 	{
 		return false;
@@ -200,7 +200,7 @@ bool BlockDvbTal::initListsSts()
 	static_cast<Upward*>(this->upward)->setInputSts(this->input_sts);
 	static_cast<Downward*>(this->downward)->setInputSts(this->input_sts);
 
-	bool is_scpc = this->disable_control_plane;;
+	bool is_scpc = this->disable_control_plane;
 	if (!is_scpc)
 	{
 		auto access = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
@@ -210,10 +210,10 @@ bool BlockDvbTal::initListsSts()
 
 	if(is_scpc)
 	{
-    try
-    {
-      this->output_sts = new StFmtSimuList("out");
-    }
+		try
+		{
+			this->output_sts = new StFmtSimuList("out");
+		}
 		catch (const std::bad_alloc&)
 		{
 			return false;
@@ -233,46 +233,45 @@ bool BlockDvbTal::initListsSts()
 /*****************************************************************************/
 
 BlockDvbTal::Downward::Downward(const std::string &name, struct dvb_specific specific):
-    DvbDownward{name},
-    mac_id{specific.mac_id},
-    state{TalState::initializing},
-    group_id{},
-    tal_id{},
-    gw_id{specific.spot_id},
-    is_scpc{specific.disable_control_plane},
-    disable_control_plane{specific.disable_control_plane},
-    cra_kbps{0},
-    max_rbdc_kbps{0},
-    max_vbdc_kb{0},
-    dama_agent{nullptr},
-    saloha{nullptr},
-    scpc_carr_duration_ms{0},
-    scpc_timer{-1},
-    ret_fmt_groups{},
-    scpc_sched{nullptr},
-    scpc_frame_counter{0},
-    carrier_id_ctrl{},
-    carrier_id_logon{},
-    carrier_id_data{},
-    dvb_fifos{},
-    default_fifo_id{0},
-    sync_period_frame{std::numeric_limits<decltype(sync_period_frame)>::max()},
-    obr_slot_frame{std::numeric_limits<decltype(obr_slot_frame)>::max()},
-    complete_dvb_frames{},
-    logon_timer{-1},
-    qos_server_host{},
-    event_login{nullptr},
-    log_frame_tick{nullptr},
-    log_qos_server{nullptr},
-    log_saloha{nullptr},
-    probe_st_queue_size{},
-    probe_st_queue_size_kb{},
-    probe_st_l2_to_sat_before_sched{},
-    probe_st_l2_to_sat_after_sched{},
-    l2_to_sat_total_bytes{0},
-    probe_st_l2_to_sat_total{nullptr},
-    probe_st_phy_to_sat{nullptr},
-    probe_st_required_modcod{nullptr}
+	DvbDownward{name, specific},
+	mac_id{specific.mac_id},
+	state{TalState::initializing},
+	group_id{},
+	tal_id{},
+	gw_id{specific.spot_id},
+	is_scpc{specific.disable_control_plane},
+	cra_kbps{0},
+	max_rbdc_kbps{0},
+	max_vbdc_kb{0},
+	dama_agent{nullptr},
+	saloha{nullptr},
+	scpc_carr_duration_ms{0},
+	scpc_timer{-1},
+	ret_fmt_groups{},
+	scpc_sched{nullptr},
+	scpc_frame_counter{0},
+	carrier_id_ctrl{},
+	carrier_id_logon{},
+	carrier_id_data{},
+	dvb_fifos{},
+	default_fifo_id{0},
+	sync_period_frame{std::numeric_limits<decltype(sync_period_frame)>::max()},
+	obr_slot_frame{std::numeric_limits<decltype(obr_slot_frame)>::max()},
+	complete_dvb_frames{},
+	logon_timer{-1},
+	qos_server_host{},
+	event_login{nullptr},
+	log_frame_tick{nullptr},
+	log_qos_server{nullptr},
+	log_saloha{nullptr},
+	probe_st_queue_size{},
+	probe_st_queue_size_kb{},
+	probe_st_l2_to_sat_before_sched{},
+	probe_st_l2_to_sat_after_sched{},
+	l2_to_sat_total_bytes{0},
+	probe_st_l2_to_sat_total{nullptr},
+	probe_st_phy_to_sat{nullptr},
+	probe_st_required_modcod{nullptr}
 {
 }
 
@@ -304,10 +303,8 @@ BlockDvbTal::Downward::~Downward()
 
 bool BlockDvbTal::Downward::onInit(void)
 {
-	this->log_qos_server = Output::Get()->registerLog(LEVEL_WARNING,
-						   "Dvb.QoSServer");
-	this->log_frame_tick = Output::Get()->registerLog(LEVEL_WARNING,
-						   "Dvb.DamaAgent.FrameTick");
+	this->log_qos_server = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.QoSServer");
+	this->log_frame_tick = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.DamaAgent.FrameTick");
 	if(!this->initModcodDefinitionTypes())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -344,8 +341,7 @@ bool BlockDvbTal::Downward::onInit(void)
 	}
 
 	// Initialization od fow_modcod_def (useful to send SAC)
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->s2_modcod_def))
+	if(!this->initModcodDefFile(MODCOD_DEF_S2, &this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the up/return MODCOD definition file\n");
@@ -570,7 +566,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	time_ms_t sync_period_ms = 0;
 	time_sf_t rbdc_timeout_sf = 0;
 	time_sf_t msl_sf = 0;
-  std::string dama_algo;
+	std::string dama_algo;
 	bool is_dama_fifo = false;
 
 	TerminalCategories<TerminalCategoryDama> dama_categories;
@@ -580,12 +576,12 @@ bool BlockDvbTal::Downward::initDama(void)
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
 	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for (auto&& it: this->dvb_fifos)
 	{
-		if((*it).second->getAccessType() == access_dama_rbdc ||
-		   (*it).second->getAccessType() == access_dama_vbdc ||
-		   (*it).second->getAccessType() == access_dama_cra)
+		const auto access_type = it.second->getAccessType();
+		if(access_type == ReturnAccessType::dama_rbdc ||
+		   access_type == ReturnAccessType::dama_vbdc ||
+		   access_type == ReturnAccessType::dama_cra)
 		{
 			is_dama_fifo = true;
 		}
@@ -664,15 +660,20 @@ bool BlockDvbTal::Downward::initDama(void)
 			LOG(this->log_init, LEVEL_WARNING,
 			    "Remove DAMA FIFOs because there is no "
 			    "DAMA carrier\n");
-			for(fifos_t::iterator it = this->dvb_fifos.begin();
-			    it != this->dvb_fifos.end(); ++it)
+			fifos_t::iterator it = this->dvb_fifos.begin();
+			while (it != this->dvb_fifos.end())
 			{
-				if((*it).second->getAccessType() == access_dama_rbdc ||
-				   (*it).second->getAccessType() == access_dama_vbdc ||
-				   (*it).second->getAccessType() == access_dama_cra)
+				const auto access_type = it->second->getAccessType();
+				if(access_type == ReturnAccessType::dama_rbdc ||
+				   access_type == ReturnAccessType::dama_vbdc ||
+				   access_type == ReturnAccessType::dama_cra)
 				{
-					delete (*it).second;
+					delete it->second;
 					this->dvb_fifos.erase(it);
+				}
+				else
+				{
+					++it;
 				}
 			}
 		}
@@ -869,10 +870,9 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	UnitConverter *converter{nullptr};
 	vol_sym_t length_sym = 0;
 
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for (auto&& it: this->dvb_fifos)
 	{
-		if((*it).second->getAccessType() == access_saloha)
+		if(it.second->getAccessType() == ReturnAccessType::saloha)
 		{
 			is_sa_fifo = true;
 		}
@@ -952,13 +952,17 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 			LOG(this->log_init, LEVEL_WARNING,
 			    "Remove Slotted Aloha FIFOs because there is no "
 			    "Slotted Aloha carrier\n");
-			for(fifos_t::iterator it = this->dvb_fifos.begin();
-			    it != this->dvb_fifos.end(); ++it)
+			fifos_t::iterator it = this->dvb_fifos.begin();
+			while (it != this->dvb_fifos.end())
 			{
-				if((*it).second->getAccessType() == access_saloha)
+				if((*it).second->getAccessType() == ReturnAccessType::saloha)
 				{
 					delete (*it).second;
 					this->dvb_fifos.erase(it);
+				}
+				else
+				{
+					++it;
 				}
 			}
 		}
@@ -1148,8 +1152,7 @@ bool BlockDvbTal::Downward::initScpc(void)
 		goto error;
 	}
 
-	if(!this->initModcodDefFile(MODCOD_DEF_S2,
-	                            &this->s2_modcod_def))
+	if(!this->initModcodDefFile(MODCOD_DEF_S2, &this->s2_modcod_def))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to initialize the return MODCOD definition file for SCPC\n");
@@ -1298,10 +1301,10 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
-	    auto msg_event = static_cast<const MessageEvent*>(event);
-      InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
+			auto msg_event = static_cast<const MessageEvent*>(event);
+			InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
 
 			// first handle specific messages
 			if(msg_type == InternalMessageType::msg_sig)
@@ -1339,7 +1342,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				}
 
 				// Slotted Aloha
-				if (this->saloha && this->dvb_fifos[fifo_priority]->getAccessType() == access_saloha)
+				if (this->saloha && this->dvb_fifos[fifo_priority]->getAccessType() == ReturnAccessType::saloha)
 				{
 					packet = this->saloha->addSalohaHeader(std::move(packet),
 					                                       sa_offset++,
@@ -1420,7 +1423,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-    case EventType::Timer:
+		case EventType::Timer:
 		{
 			if(*event == this->logon_timer)
 			{
@@ -1527,10 +1530,9 @@ bool BlockDvbTal::Downward::addCniExt(void)
 	bool in_fifo = false;
 
 	// Create list of first packet from FIFOs
-	for(fifos_t::iterator fifos_it = this->dvb_fifos.begin();
-	    fifos_it != this->dvb_fifos.end(); ++fifos_it)
+	for (auto&& fifos_it : dvb_fifos)
 	{
-		DvbFifo *fifo = (*fifos_it).second;
+		DvbFifo *fifo = fifos_it.second;
 		std::vector<FifoElement *> queue = fifo->getQueue();
 
 		for(auto&& elem : queue)
@@ -1538,8 +1540,7 @@ bool BlockDvbTal::Downward::addCniExt(void)
 			std::unique_ptr<NetPacket> packet = elem->getElem<NetPacket>();
 			tal_id_t gw = packet->getDstTalId();
 
-			if(gw == this->gw_id &&
-			   this->is_scpc && this->getCniInputHasChanged(this->tal_id))
+			if(gw == this->gw_id && this->is_scpc && this->getCniInputHasChanged(this->tal_id))
 			{
 				if(!this->setPacketExtension(this->pkt_hdl,
 				                             elem,
@@ -1554,7 +1555,7 @@ bool BlockDvbTal::Downward::addCniExt(void)
 
 				LOG(this->log_send_channel, LEVEL_DEBUG,
 				    "SF #%d: packet belongs to FIFO #%d\n",
-				    this->super_frame_counter, (*fifos_it).first);
+				    this->super_frame_counter, fifos_it.first);
 				// Delete old packet
 				in_fifo = true;
 			}
@@ -1630,15 +1631,15 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 	// frames transmitted from Upward
 	if (this->disable_control_plane)
 	{
-		uint8_t msg_type = dvb_frame->getMessageType();
-		uint8_t carrier_id = msg_type == MSG_TYPE_SESSION_LOGON_REQ ? carrier_id_logon : carrier_id_ctrl;
+		EmulatedMessageType msg_type = dvb_frame->getMessageType();
+		uint8_t carrier_id = msg_type == EmulatedMessageType::SessionLogonReq ? carrier_id_logon : carrier_id_ctrl;
 		LOG(log_receive, LEVEL_INFO, "Received a DVB frame (type %d), transmitting to carrier %d", msg_type, carrier_id);
 		return this->sendDvbFrame(dvb_frame, carrier_id);
 	}
 
 	switch(dvb_frame->getMessageType())
 	{
-		case MSG_TYPE_SALOHA_CTRL:
+		case EmulatedMessageType::SalohaCtrl:
 			if(this->saloha && !this->saloha->onRcvFrame(dvb_frame))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
@@ -1650,7 +1651,7 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 			}
 			break;
 
-		case MSG_TYPE_SOF:
+		case EmulatedMessageType::Sof:
 			if(!this->handleStartOfFrame(dvb_frame))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -1664,7 +1665,7 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 			delete dvb_frame;
 			break;
 
-		case MSG_TYPE_TTP:
+		case EmulatedMessageType::Ttp:
 		{
 			Ttp *ttp = reinterpret_cast<Ttp *>(dvb_frame);
 			if(this->dama_agent && !this->dama_agent->hereIsTTP(ttp))
@@ -1679,7 +1680,7 @@ bool BlockDvbTal::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 		}
 		break;
 
-		case MSG_TYPE_SESSION_LOGON_RESP:
+		case EmulatedMessageType::SessionLogonResp:
 			if(!this->handleLogonResp(dvb_frame))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -1723,9 +1724,7 @@ bool BlockDvbTal::Downward::sendSAC(void)
 	// Set CR body
 	// NB: access_type parameter is not used here as CR is built for both
 	// RBDC and VBDC
-	if(!this->dama_agent->buildSAC(access_dama_cra,
-				       sac,
-				       empty))
+	if(!this->dama_agent->buildSAC(ReturnAccessType::dama_cra, sac, empty))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "SF#%u: DAMA cannot build CR\n",
@@ -2160,18 +2159,18 @@ void BlockDvbTal::Downward::deletePackets()
 /*****************************************************************************/
 
 BlockDvbTal::Upward::Upward(const std::string &name, struct dvb_specific specific):
-    DvbUpward{name, specific.disable_control_plane},
-    reception_std{nullptr},
-    mac_id{specific.mac_id},
-    group_id{},
-    tal_id{},
-    gw_id{specific.spot_id},
-    is_scpc{specific.disable_control_plane},
-    state{TalState::initializing},
-    probe_st_l2_from_sat{nullptr},
-    probe_st_received_modcod{nullptr},
-    probe_st_rejected_modcod{nullptr},
-    probe_sof_interval{nullptr}
+	DvbUpward{name, specific},
+	reception_std{nullptr},
+	mac_id{specific.mac_id},
+	group_id{},
+	tal_id{},
+	gw_id{specific.spot_id},
+	is_scpc{specific.disable_control_plane},
+	state{TalState::initializing},
+	probe_st_l2_from_sat{nullptr},
+	probe_st_received_modcod{nullptr},
+	probe_st_rejected_modcod{nullptr},
+	probe_sof_interval{nullptr}
 {
 }
 
@@ -2186,12 +2185,11 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+	case EventType::Message:
 		{
-	    DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
+			DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
 
-			if(this->probe_sof_interval->isEnabled() &&
-			   dvb_frame->getMessageType() == MSG_TYPE_SOF)
+			if(this->probe_sof_interval->isEnabled() && dvb_frame->getMessageType() == EmulatedMessageType::Sof)
 			{
 				time_val_t time = event->getAndSetCustomTime();
 				this->probe_sof_interval->put(time/1000.f);
@@ -2294,13 +2292,13 @@ bool BlockDvbTal::Upward::onInit(void)
 		this->group_id = this->gw_id;
 		this->state = TalState::running;
 
-    if(!this->addInputTerminal(this->tal_id, this->s2_modcod_def))
-    {
-      LOG(this->log_init, LEVEL_ERROR,
-          "failed to handle FMT for ST %u, "
-          "won't finish initialization\n", this->tal_id);
-      return false;
-    }
+		if(!this->addInputTerminal(this->tal_id, this->s2_modcod_def))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "failed to handle FMT for ST %u, "
+			    "won't finish initialization\n", this->tal_id);
+			return false;
+		}
 	}
 
 	return true;
@@ -2382,14 +2380,14 @@ bool BlockDvbTal::Upward::initOutput(void)
 
 bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 {
-	uint8_t msg_type = dvb_frame->getMessageType();
+	EmulatedMessageType msg_type = dvb_frame->getMessageType();
 	bool corrupted = dvb_frame->isCorrupted();
 
 	LOG(this->log_receive, LEVEL_INFO,
-			    "Receive a frame of type %d\n", dvb_frame->getMessageType());
+	    "Receive a frame of type %d\n", dvb_frame->getMessageType());
 
 	// get ACM parameters that will be transmited to GW in SAC  TODO check it
-	if(IS_CN_CAPABLE_FRAME(msg_type) && this->state == TalState::running)
+	if(IsCnCapableFrame(msg_type) && this->state == TalState::running)
 	{
 		double cni = dvb_frame->getCn();
 		LOG(this->log_receive, LEVEL_INFO,
@@ -2400,7 +2398,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 
 	switch(msg_type)
 	{
-		case MSG_TYPE_BBFRAME:
+		case EmulatedMessageType::BbFrame:
 		{
 			if(this->state != TalState::running)
 			{
@@ -2420,9 +2418,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			// Set the real modcod of the ST
 			std->setRealModcod(this->getCurrentModcodIdInput(this->tal_id));
 
-			if(!std->onRcvFrame(dvb_frame,
-			                    this->tal_id,
-			                    &burst))
+			if(!std->onRcvFrame(dvb_frame, this->tal_id, &burst))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "failed to handle the reception of "
@@ -2485,7 +2481,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 		// Start of frame (SOF):
 		// treat only if state is running --> otherwise just ignore (other
 		// STs can be logged)
-		case MSG_TYPE_SOF:
+		case EmulatedMessageType::Sof:
 			this->updateStats();
 			// get superframe number
 			if(!this->onStartOfFrame(dvb_frame))
@@ -2496,7 +2492,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 				goto error;
 			}
 			// fall through
-		case MSG_TYPE_TTP:
+		case EmulatedMessageType::Ttp:
 			LOG(this->log_receive, LEVEL_INFO,
 			    "SF#%u: received SOF or TTP in state %s\n",
 			    this->super_frame_counter, stateDescription(this->state));
@@ -2516,7 +2512,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 			break;
 
-		case MSG_TYPE_SESSION_LOGON_RESP:
+		case EmulatedMessageType::SessionLogonResp:
 			if(!this->onRcvLogonResp(dvb_frame))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -2526,8 +2522,8 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			break;
 
 		// messages sent by current or another ST for the NCC --> ignore
-		case MSG_TYPE_SAC:
-		case MSG_TYPE_SESSION_LOGON_REQ:
+		case EmulatedMessageType::Sac:
+		case EmulatedMessageType::SessionLogonReq:
 			if (!this->disable_control_plane)
 			{
 				delete dvb_frame;
@@ -2535,7 +2531,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 			// else fallthrough
 
-		case MSG_TYPE_SALOHA_CTRL:
+		case EmulatedMessageType::SalohaCtrl:
 			if(!this->shareFrame(dvb_frame))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,

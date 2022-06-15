@@ -170,7 +170,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Check the entity is a ST and DVB frame is SAC");
 			if(!OpenSandModelConf::Get()->isGw(this->mac_id) &&
-			   dvb_frame->getMessageType() == MSG_TYPE_SAC)
+			   dvb_frame->getMessageType() == EmulatedMessageType::Sac)
 			{
 				LOG(this->log_event, LEVEL_DEBUG,
 				    "The SAC is deleted because the entity is not a GW");
@@ -181,7 +181,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			// Check a delay is applicable to the packet
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Check the DVB frame has to be delayed");
-			if(IS_DELAYED_FRAME(dvb_frame->getMessageType()))
+			if(IsDelayedFrame(dvb_frame->getMessageType()))
 			{
 				LOG(this->log_event, LEVEL_DEBUG,
 				    "Push the DVB frame in delay FIFO");
@@ -248,7 +248,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 
 bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 {
-	if(IS_CN_CAPABLE_FRAME(dvb_frame->getMessageType()))
+	if(IsCnCapableFrame(dvb_frame->getMessageType()))
 	{
 		// Set C/N to Dvb frame
 		dvb_frame->setCn(this->getCn(dvb_frame));
@@ -259,7 +259,7 @@ bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 		this->probe_total_cn->put(dvb_frame->getCn());
 	}
 
-	if(IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
+	if(IsAttenuatedFrame(dvb_frame->getMessageType()))
 	{
 		// Process Attenuation
 		if(!this->attenuation_hdl->process(dvb_frame, dvb_frame->getCn()))
@@ -329,7 +329,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 			// Check a delay is applicable to the packet
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Check the DVB frame has to be delayed");
-			if(IS_DELAYED_FRAME(dvb_frame->getMessageType()))
+			if(IsDelayedFrame(dvb_frame->getMessageType()))
 			{
 				LOG(this->log_event, LEVEL_DEBUG,
 				    "Push the DVB frame in delay FIFO");
@@ -409,7 +409,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 
 void BlockPhysicalLayer::Downward::preparePacket(DvbFrame *dvb_frame)
 {
-	if(IS_CN_CAPABLE_FRAME(dvb_frame->getMessageType()))
+	if(IsCnCapableFrame(dvb_frame->getMessageType()))
 	{
 		// Set C/N to Dvb frame
 		LOG(this->log_event, LEVEL_DEBUG,

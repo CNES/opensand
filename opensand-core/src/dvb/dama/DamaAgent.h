@@ -144,7 +144,7 @@ class DamaAgent
 	 * @param empty     flag if CR is 0.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool buildSAC(ret_access_type_t cr_type,
+	virtual bool buildSAC(ReturnAccessType cr_type,
 	                      Sac *sac,
 	                      bool &empty) = 0;
 

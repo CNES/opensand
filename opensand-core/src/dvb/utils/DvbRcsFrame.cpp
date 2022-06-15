@@ -80,7 +80,7 @@ DvbRcsFrame::DvbRcsFrame():
 	// no data given as input, so create the DVB-RCS header
 	this->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
 	this->setMessageLength(sizeof(T_DVB_ENCAP_BURST));
-	this->setMessageType(MSG_TYPE_DVB_BURST);
+	this->setMessageType(EmulatedMessageType::DvbBurst);
 	this->frame()->qty_element = 0; // no encapsulation packet at the beginning
 }
 

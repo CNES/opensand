@@ -363,7 +363,6 @@ class BlockDvbTal: public BlockDvb
 		tal_id_t gw_id;
 		// is the terminal scpc
 		bool is_scpc;
-		bool disable_control_plane;
 
 		/// fixed bandwidth (CRA) in kbits/s
 		rate_kbps_t cra_kbps;

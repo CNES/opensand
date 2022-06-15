@@ -71,6 +71,7 @@ struct dvb_specific
 	tal_id_t mac_id;
 	spot_id_t spot_id;
 	bool disable_control_plane;
+	bool disable_acm_loop;
 };
 
 
@@ -90,7 +91,7 @@ class BlockDvb: public Block
 	class DvbUpward: public DvbChannel, public RtUpward
 	{
 	 public:
-		DvbUpward(const std::string &name, bool disable_control_plane);
+		DvbUpward(const std::string &name, dvb_specific specific);
 
 		~DvbUpward();
 
@@ -105,14 +106,15 @@ class BlockDvb: public Block
 		 */ 
 		bool shareFrame(DvbFrame *frame);
 
-    bool disable_control_plane;
+		bool disable_control_plane;
+		bool disable_acm_loop;
 	};
 
 	class DvbDownward: public DvbChannel, public RtDownward
 	{
 	 
 	 public:
-		DvbDownward(const std::string &name);
+		DvbDownward(const std::string &name, dvb_specific specific);
 
 		~DvbDownward();
 
@@ -164,6 +166,8 @@ class BlockDvb: public Block
 		 * Update the statistics
 		 */
 		virtual void updateStats(void) = 0;
+
+		bool disable_control_plane;
 	};
 };
 

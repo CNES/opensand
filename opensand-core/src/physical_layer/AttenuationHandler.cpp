@@ -154,7 +154,7 @@ bool AttenuationHandler::process(DvbFrame *dvb_frame, double cn_total)
 	// (keep the complete header because we carry useful data)
 	switch(dvb_frame->getMessageType())
 	{
-		case MSG_TYPE_BBFRAME:
+		case EmulatedMessageType::BbFrame:
 		{
 			// TODO BBFrame *bbframe = dynamic_cast<BBFrame *>(dvb_frame);
 			BBFrame *bbframe = (BBFrame *)dvb_frame;
@@ -163,7 +163,7 @@ bool AttenuationHandler::process(DvbFrame *dvb_frame, double cn_total)
 		}
 		break;
 
-		case MSG_TYPE_DVB_BURST:
+		case EmulatedMessageType::DvbBurst:
 		{
 			// TODO DvbRcsFrame *dvb_rcs_frame = dynamic_cast<DvbRcsFrame *>(dvb_frame);
 			DvbRcsFrame *dvb_rcs_frame = (DvbRcsFrame *)dvb_frame;

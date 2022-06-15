@@ -66,34 +66,34 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, std::string fifo_name,
 
 	if(type_name == "DAMA_RBDC")
 	{
-		this->access_type = access_dama_rbdc;
+		this->access_type = ForwardOrReturnAccessType{ReturnAccessType::dama_rbdc};
 	}
 	else if(type_name == "DAMA_VBDC")
 	{
-		this->access_type = access_dama_vbdc;
+		this->access_type = ForwardOrReturnAccessType{ReturnAccessType::dama_vbdc};
 	}
 	else if(type_name == "SALOHA")
 	{
-		this->access_type = access_saloha;
+		this->access_type = ForwardOrReturnAccessType{ReturnAccessType::saloha};
 	}
 	else if(type_name == "DAMA_CRA")
 	{
-		this->access_type = access_dama_cra;
+		this->access_type = ForwardOrReturnAccessType{ReturnAccessType::dama_cra};
 	}
 	else if(type_name == "ACM")
 	{
-		this->access_type = access_acm;
+		this->access_type = ForwardOrReturnAccessType{ForwardAccessType::acm};
 	}
 	else if(type_name.find("VCM") == 0)
 	{
-		this->access_type = access_vcm;
+		this->access_type = ForwardOrReturnAccessType{ForwardAccessType::vcm};
 	}
 	else
 	{
 		LOG(this->log_dvb_fifo, LEVEL_INFO,
 		    "unknown CR/Access type of FIFO: %s\n", type_name.c_str());
 	}
-	if(this->access_type == access_vcm)
+	if(this->access_type == ForwardAccessType::vcm)
 	{
 		sscanf(type_name.c_str(), "VCM%d", &this->vcm_id);
 	}
@@ -105,7 +105,7 @@ DvbFifo::DvbFifo(uint8_t carrier_id,
 	queue(),
 	fifo_priority(0),
 	fifo_name(fifo_name),
-	access_type(0),
+	access_type(),
 	new_size_pkt(0),
 	cur_length_bytes(0),
 	new_length_bytes(0),
@@ -133,7 +133,7 @@ std::string DvbFifo::getName() const
 	return this->fifo_name;
 }
 
-int DvbFifo::getAccessType() const
+ForwardOrReturnAccessType DvbFifo::getAccessType() const
 {
 	return this->access_type;
 }
@@ -168,7 +168,7 @@ vol_bytes_t DvbFifo::getNewDataLength() const
 	return this->new_length_bytes;
 }
 
-void DvbFifo::resetNew(ret_access_type_t cr_type)
+void DvbFifo::resetNew(const ForwardOrReturnAccessType cr_type)
 {
 	if(this->access_type == cr_type)
 	{

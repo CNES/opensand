@@ -429,19 +429,19 @@ bool BlockMesh::Downward::handleControlMsg(std::unique_ptr<const DvbFrame> frame
 	switch (frame->getMessageType())
 	{
 		// Control messages ST->GW
-		case MSG_TYPE_SAC:
-		case MSG_TYPE_CSC:
-		case MSG_TYPE_SESSION_LOGON_REQ:
-		case MSG_TYPE_SESSION_LOGOFF:
+		case EmulatedMessageType::Sac:
+		case EmulatedMessageType::Csc:
+		case EmulatedMessageType::SessionLogonReq:
+		case EmulatedMessageType::SessionLogoff:
 		{
 			SatDemuxKey key{frame->getSpot(), Component::gateway};
 			return sendToLowerBlock(key, std::move(frame));
 		}
 
 		// Control messages GW->ST
-		case MSG_TYPE_SOF:
-		case MSG_TYPE_TTP:
-		case MSG_TYPE_SESSION_LOGON_RESP:
+		case EmulatedMessageType::Sof:
+		case EmulatedMessageType::Ttp:
+		case EmulatedMessageType::SessionLogonResp:
 		{
 			SatDemuxKey key{frame->getSpot(), Component::terminal};
 			return sendToLowerBlock(key, std::move(frame));

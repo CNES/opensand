@@ -43,7 +43,7 @@ LogonRequest::LogonRequest(tal_id_t mac,
                            vol_kb_t max_vbdc):
 	DvbFrameTpl<T_DVB_LOGON_REQ>()
 {
-	this->setMessageType(MSG_TYPE_SESSION_LOGON_REQ);
+	this->setMessageType(EmulatedMessageType::SessionLogonReq);
 	this->setMessageLength(sizeof(T_DVB_LOGON_REQ));
 	this->frame()->mac = htons(mac);
 	this->frame()->rt_bandwidth = htons(rt_bandwidth);
@@ -59,7 +59,7 @@ LogonRequest::LogonRequest(tal_id_t mac,
                            bool is_scpc):
 	DvbFrameTpl<T_DVB_LOGON_REQ>()
 {
-	this->setMessageType(MSG_TYPE_SESSION_LOGON_REQ);
+	this->setMessageType(EmulatedMessageType::SessionLogonReq);
 	this->setMessageLength(sizeof(T_DVB_LOGON_REQ));
 	this->frame()->mac = htons(mac);
 	this->frame()->rt_bandwidth = htons(rt_bandwidth);
@@ -107,7 +107,7 @@ bool LogonRequest::getIsScpc(void) const
 LogonResponse::LogonResponse(tal_id_t mac, group_id_t group_id, tal_id_t logon_id):
 	DvbFrameTpl<T_DVB_LOGON_RESP>()
 {
-	this->setMessageType(MSG_TYPE_SESSION_LOGON_RESP);
+	this->setMessageType(EmulatedMessageType::SessionLogonResp);
 	this->setMessageLength(sizeof(T_DVB_LOGON_RESP));
 	this->frame()->mac = htons(mac);
 	this->frame()->group_id = group_id;

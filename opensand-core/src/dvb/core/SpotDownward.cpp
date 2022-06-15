@@ -310,9 +310,6 @@ bool SpotDownward::onInit(void)
 
 bool SpotDownward::initMode(void)
 {
-	TerminalCategoryDama *cat;
-	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
-
 	// initialize scheduling
 	// depending on the satellite type
 	OpenSandModelConf::spot current_spot;
@@ -340,8 +337,7 @@ bool SpotDownward::initMode(void)
 
 
 	// check that there is at least DVB fifos for VCM carriers
-	for(cat_it = this->categories.begin();
-	    cat_it != this->categories.end(); ++cat_it)
+	for (auto&& cat_it: this->categories)
 	{
 		bool is_vcm_carriers = false;
 		bool is_acm_carriers = false;
@@ -350,7 +346,7 @@ bool SpotDownward::initMode(void)
 		std::string label;
 		Scheduling *schedule;
 
-		cat = (*cat_it).second;
+		TerminalCategoryDama *cat = cat_it.second;
 		label = cat->getLabel();
 		if(!this->initFifo(fifos))
 		{
@@ -361,17 +357,9 @@ bool SpotDownward::initMode(void)
 		this->dvb_fifos.insert({label, fifos});
 
 		// check if there is VCM carriers in this category
-    std::vector<CarriersGroupDama *>::iterator carrier_it;
-    std::vector<CarriersGroupDama *> carriers_group;
-		carriers_group = (*cat_it).second->getCarriersGroups();
-		for(carrier_it = carriers_group.begin();
-		    carrier_it != carriers_group.end();
-		    ++carrier_it)
+		for (auto&& carriers: cat->getCarriersGroups())
 		{
-      std::vector<CarriersGroupDama *> vcm_carriers;
-      std::vector<CarriersGroupDama *>::iterator vcm_it;
-			vcm_carriers = (*carrier_it)->getVcmCarriers();
-			if(vcm_carriers.size() > 1)
+			if(carriers->getVcmCarriers().size() > 1)
 			{
 				is_vcm_carriers = true;
 			}
@@ -381,10 +369,9 @@ bool SpotDownward::initMode(void)
 			}
 		}
 
-		for(fifos_t::iterator it = fifos.begin();
-		    it != fifos.end(); ++it)
+		for (auto&& fifo_it: fifos)
 		{
-			if((*it).second->getAccessType() == access_vcm)
+			if(fifo_it.second->getAccessType() == ForwardAccessType::vcm)
 			{
 				is_vcm_fifo = true;
 				break;
@@ -400,7 +387,7 @@ bool SpotDownward::initMode(void)
 				    "terminals in this category "
 				    "won't be able to send any trafic. "
 				    "Please check your configuration",
-				    (*cat_it).second->getLabel().c_str());
+				    label.c_str());
 				return false;
 			}
 			else
@@ -408,7 +395,7 @@ bool SpotDownward::initMode(void)
 				LOG(this->log_init_channel, LEVEL_WARNING,
 				    "There is VCM carriers in category %s but no VCM FIFOs, "
 				    "the VCM carriers won't be used",
-				    (*cat_it).second->getLabel().c_str());
+				    label.c_str());
 			}
 		}
 
@@ -1125,10 +1112,10 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 
 	for(msg = msgs.begin(); msg != msgs.end(); ++msg)
 	{
-		uint8_t msg_type = (*msg)->getMessageType();
+		EmulatedMessageType msg_type = (*msg)->getMessageType();
 		switch(msg_type)
 		{
-			case MSG_TYPE_SAC:
+			case EmulatedMessageType::Sac:
 			{
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message type SAC");
@@ -1144,7 +1131,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 
 				break;
 			}
-			case MSG_TYPE_SESSION_LOGON_REQ:
+			case EmulatedMessageType::SessionLogonReq:
 			{
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message session logon request");
@@ -1173,7 +1160,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				}
 				break;
 			}
-			case MSG_TYPE_SESSION_LOGOFF:
+			case EmulatedMessageType::SessionLogoff:
 			{
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message logoff");

@@ -46,6 +46,7 @@
 #include <opensand_rt/MessageEvent.h>
 
 #include <cstdio>
+#include <cstring>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <linux/if_tun.h>

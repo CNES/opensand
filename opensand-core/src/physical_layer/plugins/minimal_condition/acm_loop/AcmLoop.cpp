@@ -120,12 +120,12 @@ bool AcmLoop::init(void)
 }
 
 
-bool AcmLoop::updateThreshold(uint8_t modcod_id, uint8_t message_type)
+bool AcmLoop::updateThreshold(uint8_t modcod_id, EmulatedMessageType message_type)
 {
 	double threshold = this->minimal_cn; // Default, keep previous threshold
 	switch(message_type)
 	{
-		case MSG_TYPE_DVB_BURST:
+		case EmulatedMessageType::DvbBurst:
 			threshold = double(this->modcod_table_rcs.getRequiredEsN0(modcod_id));
 			LOG(this->log_minimal, LEVEL_DEBUG,
 			    "Required Es/N0 for ACM loop %u --> %.2f dB\n",

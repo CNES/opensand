@@ -321,7 +321,7 @@ bool DamaAgentRcs2::returnSchedule(std::list<DvbFrame *> *complete_dvb_frames)
 	for(std::list<DvbFrame *>::iterator it = complete_dvb_frames->begin();
 	    it != complete_dvb_frames->end(); ++it)
 	{
-		if((*it)->getMessageType() == MSG_TYPE_DVB_BURST)
+		if((*it)->getMessageType() == EmulatedMessageType::DvbBurst)
 		{
 			//TODO: DvbRcsFrame *frame = dynamic_cast<DvbRcsFrame *>(*it); // Non-functional
 			DvbRcsFrame *frame = (DvbRcsFrame *)(*it);
@@ -351,7 +351,7 @@ bool DamaAgentRcs2::returnSchedule(std::list<DvbFrame *> *complete_dvb_frames)
 	return true;
 }
 
-bool DamaAgentRcs2::buildSAC(ret_access_type_t UNUSED(cr_type),
+bool DamaAgentRcs2::buildSAC(ReturnAccessType,
                             Sac *sac,
                             bool &empty)
 {
@@ -428,7 +428,7 @@ bool DamaAgentRcs2::buildSAC(ret_access_type_t UNUSED(cr_type),
 	// set RBDC request (if any) in SAC
 	if(send_rbdc_request)
 	{
-		sac->addRequest(0, access_dama_rbdc, rbdc_request_kbps);
+		sac->addRequest(0, ReturnAccessType::dama_rbdc, rbdc_request_kbps);
 
 		// update variables used for next RBDC CR computation
 		this->rbdc_timer_sf = 0;
@@ -438,7 +438,7 @@ bool DamaAgentRcs2::buildSAC(ret_access_type_t UNUSED(cr_type),
 		for(fifos_t::const_iterator it = this->dvb_fifos.begin();
 		    it != this->dvb_fifos.end(); ++it)
 		{
-			(*it).second->resetNew(access_dama_rbdc);
+			(*it).second->resetNew(ReturnAccessType::dama_rbdc);
 		}
 
 		// Update statistics
@@ -454,7 +454,7 @@ bool DamaAgentRcs2::buildSAC(ret_access_type_t UNUSED(cr_type),
 	// set VBDC request (if any) in SAC
 	if(send_vbdc_request)
 	{
-		sac->addRequest(0, access_dama_vbdc, vbdc_request_kb);
+		sac->addRequest(0, ReturnAccessType::dama_vbdc, vbdc_request_kb);
 
 		// Update statistics
 		this->probe_st_vbdc_req_size->put(vbdc_request_kb);
@@ -484,17 +484,16 @@ vol_kb_t DamaAgentRcs2::checkVbdcRequest(vol_kb_t request_kb)
 	return std::min(request_kb, C_MAX_VBDC_IN_SAC);
 }
 
-vol_b_t DamaAgentRcs2::getMacBufferLength(ret_access_type_t cr_type)
+vol_b_t DamaAgentRcs2::getMacBufferLength(ReturnAccessType cr_type)
 {
 	vol_b_t nb_b_in_fifo; // absolute data length in fifo
 
 	nb_b_in_fifo = 0;
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto&& it: this->dvb_fifos)
 	{
-		if((*it).second->getAccessType() == cr_type)
+		if(it.second->getAccessType() == cr_type)
 		{
-			vol_bytes_t length = (*it).second->getCurrentDataLength();
+			vol_bytes_t length = it.second->getCurrentDataLength();
 			nb_b_in_fifo += (length << 3);
 		}
 	}
@@ -503,17 +502,16 @@ vol_b_t DamaAgentRcs2::getMacBufferLength(ret_access_type_t cr_type)
 }
 
 
-vol_b_t DamaAgentRcs2::getMacBufferArrivals(ret_access_type_t cr_type)
+vol_b_t DamaAgentRcs2::getMacBufferArrivals(ReturnAccessType cr_type)
 {
 	vol_b_t nb_b_input; // data that filled the queue since last RBDC request
 
 	nb_b_input = 0;
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto&& it: this->dvb_fifos)
 	{
-		if((*it).second->getAccessType() == cr_type)
+		if(it.second->getAccessType() == cr_type)
 		{
-			vol_bytes_t length = (*it).second->getNewDataLength();
+			vol_bytes_t length = it.second->getNewDataLength();
 			nb_b_input += (length << 3);
 		}
 	}
