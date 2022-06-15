@@ -39,12 +39,6 @@ import shlex
 from subprocess import run, PIPE, CalledProcessError
 
 
-ETH_TYPE = 'eth'
-IP_TYPE = 'ip'
-ALL_TYPES = [ IP_TYPE, ETH_TYPE ]
-DEFAULT_TYPE = ALL_TYPES[0]
-
-
 VERBOSITY = 0
 RAISE_ERROR = True
 
@@ -53,7 +47,7 @@ class NetworkUtilsError(Exception):
     pass
 
 
-def __exec_cmd(error_msg, *cmd, netns=None):
+def __exec_cmd(error_message, *cmd, netns=None):
     '''
     Execute a command and raise an error in case of non-null returned value
 
