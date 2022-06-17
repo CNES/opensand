@@ -9,7 +9,7 @@ import typing
 import argparse
 import subprocess
 
-import opensand_network_utils as utils
+from opensand_network import opensand_network_utils as utils
 
 
 IDs = typing.Iterable[int]
@@ -84,7 +84,7 @@ def _extract_file_name(filepath: File) -> str:
     return filepath
 
 
-def launch(entity_kind: str, entity_id: int, topology: File, infrastructure: File, profile: File=None):
+def launch(entity_kind: str, entity_id: int, topology: File, infrastructure: File, profile: File=None, debug: bool=False):
     topology = _extract_file_name(topology)
     infrastructure = _extract_file_name(infrastructure)
     profile = _extract_file_name(profile)
@@ -94,6 +94,9 @@ def launch(entity_kind: str, entity_id: int, topology: File, infrastructure: Fil
     sudo_user = os.getenv('SUDO_USER')
     if sudo_user:
         command.extend(('sudo', '-E', '-u', sudo_user))
+
+    if debug:
+        command.extend(('gdb', '--args'))
 
     command.extend(('opensand', '-v', '-i', infrastructure, '-t', topology))
     if profile is not None:
@@ -189,6 +192,10 @@ def command_line_parser() -> argparse.ArgumentParser:
             help='IDs of satellites to create netns for')
 
     parser_launch = subparsers.add_parser('launch', help='Run OpenSAND inside a netns')
+    parser_launch.add_argument(
+            '--debug', '--gdb',
+            action='store_true',
+            help='Run the OpenSAND process inside GDB')
     parser_launch.add_argument(
             'entity_kind',
             choices=('st', 'gw', 'sat'),
