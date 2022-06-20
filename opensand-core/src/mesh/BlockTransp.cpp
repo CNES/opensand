@@ -54,7 +54,7 @@ bool BlockTransp::Upward::onEvent(const RtEvent *const event)
 
 	auto msg_event = static_cast<const MessageEvent *>(event);
 
-	if (to_enum<InternalMessageType>(msg_event->getMessageType()) != InternalMessageType::msg_data)
+	if (to_enum<InternalMessageType>(msg_event->getMessageType()) != InternalMessageType::msg_unknown)
 	{
 		LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
 		    msg_event->getName().c_str());
