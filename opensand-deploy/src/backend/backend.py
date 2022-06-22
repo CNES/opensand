@@ -233,11 +233,12 @@ def create_default_infrastructure(meta_model):
     _set_parameter(entity, 'entity_type', 'Satellite')
 
     satellite = _get_component(entity, 'entity_sat')
+    _set_parameter(satellite, 'entity_id', 2)
     _set_parameter(satellite, 'emu_address', '192.168.0.63')
     _set_parameter(satellite, 'default_entity', -1)
 
     satellite_regen = _get_component(entity, 'entity_sat_regen')
-    _set_parameter(satellite_regen, 'entity_id', 0)
+    _set_parameter(satellite_regen, 'entity_id', 2)
     _set_parameter(satellite_regen, 'emu_address', '192.168.0.63')
     _set_parameter(satellite_regen, 'regen_level', "IP")
     _set_parameter(satellite_regen, 'mesh', True)
@@ -277,6 +278,7 @@ def create_default_topology(meta_model):
 
     spot = _create_list_item(_get_component(topology, 'frequency_plan'), 'spots')
     _set_parameter(_get_component(spot, 'assignments'), 'gateway_id', 0)
+    _set_parameter(_get_component(spot, 'assignments'), 'satellite_id', 2)
     _set_parameter(_get_component(spot, 'roll_off'), 'forward', 0.35)
     _set_parameter(_get_component(spot, 'roll_off'), 'return', 0.2)
     forward_carrier = _create_list_item(spot, 'forward_band')
