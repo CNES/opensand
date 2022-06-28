@@ -392,7 +392,7 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "The mac address %s learned from lower layer as "
-			    "associated to tal_id %u\n", Ethernet::getSrcMac(packet).str(), pkt_tal_id_src);
+			    "associated to tal_id %u\n", Ethernet::getSrcMac(packet).str().c_str(), pkt_tal_id_src);
 			
 		}
 
@@ -572,7 +572,7 @@ bool BlockLanAdaptation::allocTap(int &fd)
 
 	/* create TAP interface */
 	LOG(this->log_init, LEVEL_INFO,
-	    "create %s interface %s\n",
+	    "create %s interface\n",
 	    this->tap_iface.c_str());
 	memcpy(ifr.ifr_name, this->tap_iface.c_str(), IFNAMSIZ);
 	ifr.ifr_flags = IFF_TAP;
