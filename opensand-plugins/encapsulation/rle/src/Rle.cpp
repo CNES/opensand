@@ -463,7 +463,7 @@ bool Rle::Context::decapNextPacket(const std::unique_ptr<NetPacket>& packet, Net
 	for(unsigned int i = 0; i< sdus_count; ++i)
 	{
 		struct rle_sdu sdu = sdus[i];
-    std::unique_ptr<NetPacket> decap_packet;
+		std::unique_ptr<NetPacket> decap_packet;
 
 		LOG(this->log, LEVEL_DEBUG,
 		    "Build decapsulated packet %u/%u (len=%u bytes)",
@@ -477,11 +477,11 @@ bool Rle::Context::decapNextPacket(const std::unique_ptr<NetPacket>& packet, Net
 		}
 
 		// Create packet from SDU
-    try
-    {
-      decap_packet = this->current_upper->build(Data(sdu.buffer, sdu.size), sdu.size,
-                                                qos, src_tal_id, dst_tal_id);
-    }
+		try
+		{
+			decap_packet = this->current_upper->build(Data(sdu.buffer, sdu.size), sdu.size,
+			                                          qos, src_tal_id, dst_tal_id);
+		}
 		catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,

@@ -87,12 +87,12 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
                             EncapPlugin::EncapPacketHandler **pkt_hdl)
 {
-  std::string encap_name;
+	std::string encap_name;
 	EncapPlugin *plugin;
 
 	switch(encap_schemes)
 	{
-    case EncapSchemeList::FORWARD_DOWN:
+		case EncapSchemeList::FORWARD_DOWN:
 			encap_name = "GSE";
 			break;
 
@@ -137,8 +137,8 @@ bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
 
 bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 {
-  std::vector<std::string> encap_stack;
-  std::string encap_name;
+	std::vector<std::string> encap_stack;
+	std::string encap_name;
 	EncapPlugin *plugin;
 
 	// Get SCPC encapsulation name stack

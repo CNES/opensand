@@ -45,6 +45,7 @@
 
 typedef uint32_t saloha_pdu_id_t;
 
+
 /// Slotted Aloha data packet header
 typedef struct
 {

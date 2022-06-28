@@ -84,14 +84,14 @@ class TerminalContextSaloha: public TerminalContext
 	typedef std::map<saloha_pdu_id_t, saloha_packets_data_t> pdus_t;
 	/// The PDU fragments waiting to be propagated per QoS
 	//  Fragments are propagated once all fragments of the complete PDU are received
-  std::map<qos_t, pdus_t> wait_propagation;
+	std::map<qos_t, pdus_t> wait_propagation;
 	/// The oldest PDU ID per QoS in order to remove it after a certain amount of time
-  std::map<qos_t, saloha_pdu_id_t> oldest_id;
+	std::map<qos_t, saloha_pdu_id_t> oldest_id;
 	/// The counter for oldest packet
 	saloha_pdu_id_t old_count;
 
 	/// The slotted aloha logger
-  std::shared_ptr<OutputLog> log_saloha;
+	std::shared_ptr<OutputLog> log_saloha;
 
 	/**
 	 * @brief Handle oldest PDU id

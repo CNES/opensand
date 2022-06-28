@@ -141,6 +141,7 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(std::unique_ptr<Net
 	LOG(this->log, LEVEL_DEBUG,
 		"%u packet(s) to decapsulate\n",
 		decap_packets_count);
+	// auto dst_tal_id = packet->getDstTalId();
 	for(unsigned int i = 0; i < decap_packets_count; ++i)
 	{
 		// Get the current packet length
@@ -157,8 +158,11 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(std::unique_ptr<Net
 		std::unique_ptr<NetPacket> current;
 		try
 		{
-			current = this->build(packet->getPayload(previous_length), current_length,
-			                      0x00, BROADCAST_TAL_ID, BROADCAST_TAL_ID);
+			current = this->build(packet->getPayload(previous_length),
+			                      current_length,
+			                      0x00,
+			                      BROADCAST_TAL_ID,
+			                      BROADCAST_TAL_ID);
 		}
 		catch (const std::bad_alloc&)
 		{

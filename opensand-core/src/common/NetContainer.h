@@ -172,7 +172,7 @@ class NetContainer
 	 * @return the destination spot ID
 	 */
 	spot_id_t getSpot() const;
-
 };
+
 
 #endif

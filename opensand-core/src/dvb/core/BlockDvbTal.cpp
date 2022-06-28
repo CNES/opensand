@@ -184,6 +184,7 @@ bool BlockDvbTal::onInit(void)
 	return true;
 }
 
+
 bool BlockDvbTal::initListsSts()
 {
 	try
@@ -225,7 +226,6 @@ bool BlockDvbTal::initListsSts()
 
 	return true;
 }
-
 
 
 /*****************************************************************************/
@@ -274,6 +274,7 @@ BlockDvbTal::Downward::Downward(const std::string &name, struct dvb_specific spe
 	probe_st_required_modcod{nullptr}
 {
 }
+
 
 BlockDvbTal::Downward::~Downward()
 {
@@ -477,7 +478,9 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 	}
 	else
 	{
-		LOG(log_init_channel, LEVEL_ERROR, "Cannot instantiate a BlockDvbTal with mac_id %d which is not a terminal nor a satellite");
+		LOG(log_init_channel, LEVEL_ERROR,
+		    "Cannot instantiate a BlockDvbTal with mac_id %d "
+		    "which is not a terminal nor a satellite");
 		return false;
 	}
 
@@ -574,14 +577,13 @@ bool BlockDvbTal::Downward::initDama(void)
 	TerminalCategoryDama *default_category;
 	TerminalCategoryDama *tal_category{nullptr};
 	TerminalMapping<TerminalCategoryDama>::const_iterator tal_map_it;
-	TerminalCategories<TerminalCategoryDama>::iterator cat_it;
 
 	for (auto&& it: this->dvb_fifos)
 	{
 		const auto access_type = it.second->getAccessType();
-		if(access_type == ReturnAccessType::dama_rbdc ||
-		   access_type == ReturnAccessType::dama_vbdc ||
-		   access_type == ReturnAccessType::dama_cra)
+		if (access_type == ReturnAccessType::dama_rbdc ||
+		    access_type == ReturnAccessType::dama_vbdc ||
+		    access_type == ReturnAccessType::dama_cra)
 		{
 			is_dama_fifo = true;
 		}
@@ -603,7 +605,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no gateways with value: "
-			"%d into return up frequency plan\n",
+		    "%d into return up frequency plan\n",
 		    this->gw_id);
 		return false;
 	}
@@ -664,9 +666,9 @@ bool BlockDvbTal::Downward::initDama(void)
 			while (it != this->dvb_fifos.end())
 			{
 				const auto access_type = it->second->getAccessType();
-				if(access_type == ReturnAccessType::dama_rbdc ||
-				   access_type == ReturnAccessType::dama_vbdc ||
-				   access_type == ReturnAccessType::dama_cra)
+				if (access_type == ReturnAccessType::dama_rbdc ||
+				    access_type == ReturnAccessType::dama_vbdc ||
+				    access_type == ReturnAccessType::dama_cra)
 				{
 					delete it->second;
 					this->dvb_fifos.erase(it);
@@ -713,9 +715,8 @@ bool BlockDvbTal::Downward::initDama(void)
 	OpenSandModelConf::extractParameterData(dama->getParameter("rbdc_enabled"), rbdc_enabled);
 
 	int max_rbdc_kbps = 0;
-	if(rbdc_enabled && !OpenSandModelConf::extractParameterData(
-				dama->getParameter("rbdc_max"),
-				max_rbdc_kbps))
+	if(rbdc_enabled &&
+	   !OpenSandModelConf::extractParameterData(dama->getParameter("rbdc_max"), max_rbdc_kbps))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section 'access', Missing 'max RBDC'\n");
@@ -728,9 +729,8 @@ bool BlockDvbTal::Downward::initDama(void)
 	OpenSandModelConf::extractParameterData(dama->getParameter("vbdc_enabled"), vbdc_enabled);
 
 	int max_vbdc_kb = 0;
-	if(vbdc_enabled && !OpenSandModelConf::extractParameterData(
-				dama->getParameter("vbdc_max"),
-				max_vbdc_kb))
+	if(vbdc_enabled &&
+	   !OpenSandModelConf::extractParameterData(dama->getParameter("vbdc_max"), max_vbdc_kb))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section 'access', Missing 'max VBDC'\n");
@@ -756,7 +756,7 @@ bool BlockDvbTal::Downward::initDama(void)
 		return releaseMap(dama_categories, true);
 	}
 	this->sync_period_frame = (time_frame_t)round((double)sync_period_ms /
-						      (double)this->ret_up_frame_duration_ms);
+	                                              (double)this->ret_up_frame_duration_ms);
 
 	// deduce the Obr slot position within the multi-frame, from the mac
 	// address and the OBR period
@@ -828,14 +828,14 @@ bool BlockDvbTal::Downward::initDama(void)
 
 	// Initialize the DamaAgent parent class
 	if(!this->dama_agent->initParent(this->ret_up_frame_duration_ms,
-					 this->cra_kbps,
-					 this->max_rbdc_kbps,
-					 rbdc_timeout_sf,
-					 this->max_vbdc_kb,
-					 msl_sf,
-					 this->sync_period_frame,
-					 this->pkt_hdl,
-					 this->dvb_fifos))
+	                                 this->cra_kbps,
+	                                 this->max_rbdc_kbps,
+	                                 rbdc_timeout_sf,
+	                                 this->max_vbdc_kb,
+	                                 msl_sf,
+	                                 this->sync_period_frame,
+	                                 this->pkt_hdl,
+	                                 this->dvb_fifos))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "SF#%u Dama Agent Initialization failed.\n",
@@ -856,6 +856,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	return releaseMap(dama_categories, false);
 }
 
+
 bool BlockDvbTal::Downward::initSlottedAloha(void)
 {
 	bool is_sa_fifo = false;
@@ -866,7 +867,6 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	TerminalCategorySaloha *default_category;
 	TerminalCategorySaloha *tal_category{nullptr};
 	TerminalMapping<TerminalCategorySaloha>::const_iterator tal_map_it;
-	TerminalCategories<TerminalCategorySaloha>::iterator cat_it;
 	UnitConverter *converter{nullptr};
 	vol_sym_t length_sym = 0;
 
@@ -884,7 +884,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "there is no gateways with value: "
-			"%d into return up frequency plan\n",
+		    "%d into return up frequency plan\n",
 		    this->gw_id);
 		return false;
 	}
@@ -911,10 +911,9 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	}
 
 	// TODO should manage several Saloha carrier
-	for(cat_it = sa_categories.begin();
-	    cat_it != sa_categories.end(); ++cat_it)
+	for(auto&& cat_it : sa_categories)
 	{
-		if((*cat_it).second->getCarriersGroups().size() > 1)
+		if(cat_it.second->getCarriersGroups().size() > 1)
 		{
 			LOG(this->log_init, LEVEL_WARNING,
 			    "If you use more than one Slotted Aloha carrier group "
@@ -978,20 +977,18 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 		LOG(this->log_init, LEVEL_WARNING,
 		    "The Slotted Aloha carrier won't be used as there is no "
 		    "Slotted Aloha FIFO\n");
-		for(cat_it = sa_categories.begin();
-		    cat_it != sa_categories.end(); ++cat_it)
+		for(auto&& cat_it : sa_categories)
 		{
-			delete (*cat_it).second;
+			delete cat_it.second;
 		}
 		return true;
 	}
 
-	for(cat_it = sa_categories.begin();
-	    cat_it != sa_categories.end(); ++cat_it)
+	for(auto&& cat_it : sa_categories)
 	{
-		if((*cat_it).second->getLabel() != tal_category->getLabel())
+		if(cat_it.second->getLabel() != tal_category->getLabel())
 		{
-			delete (*cat_it).second;
+			delete cat_it.second;
 		}
 	}
 
@@ -1008,8 +1005,7 @@ bool BlockDvbTal::Downward::initSlottedAloha(void)
 	// Unlike (future) scheduling, Slotted Aloha get all categories because
 	// it also handles received frames and in order to know to which
 	// category a frame is affected we need to get source terminal ID
-	if(!this->saloha->initParent(this->ret_up_frame_duration_ms,
-				     this->pkt_hdl))
+	if(!this->saloha->initParent(this->ret_up_frame_duration_ms, this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Slotted Aloha Tal Initialization failed.\n");
@@ -1237,40 +1233,40 @@ bool BlockDvbTal::Downward::initOutput(void)
 		this->log_saloha = output->registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
 	}
 
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto&& it = this->dvb_fifos)
 	{
-		unsigned int id = (*it).first;
+		unsigned int id = it.first;
 
 		this->probe_st_queue_size[id] =
-			output->registerProbe<int>("Queue size.packets." + ((*it).second)->getName(),
-						   "Packets", true, SAMPLE_LAST);
+			output->registerProbe<int>("Queue size.packets." + it.second->getName(),
+			                           "Packets", true, SAMPLE_LAST);
 		this->probe_st_queue_size_kb[id] =
-			output->registerProbe<int>("Queue size.capacity." + ((*it).second)->getName(),
-						   "kbits", true, SAMPLE_LAST);
+			output->registerProbe<int>("Queue size.capacity." + it.second->getName(),
+			                           "kbits", true, SAMPLE_LAST);
 
 		this->probe_st_l2_to_sat_before_sched[id] =
 			output->registerProbe<int>("Throughputs.L2_to_SAT_before_sched." +
-						   ((*it).second)->getName(), "Kbits/s", true,
-																 SAMPLE_AVG);
+			                           it.second->getName(), "Kbits/s", true,
+			                           SAMPLE_AVG);
 		this->probe_st_l2_to_sat_after_sched[id] =
 			output->registerProbe<int>("Throughputs.L2_to_SAT_after_sched." +
-						   ((*it).second)->getName(), "Kbits/s", true,
-																 SAMPLE_AVG);
+			                           it.second->getName(), "Kbits/s", true,
+			                           SAMPLE_AVG);
 		this->probe_st_queue_loss[id] =
-			output->registerProbe<int>("Queue loss.packets." + ((*it).second)->getName(),
-						   "Packets", true, SAMPLE_LAST);
+			output->registerProbe<int>("Queue loss.packets." + it.second->getName(),
+			                           "Packets", true, SAMPLE_LAST);
 		this->probe_st_queue_loss_kb[id] =
-			output->registerProbe<int>("Queue loss.capacity." + ((*it).second)->getName(),
-						   "kbits", true, SAMPLE_LAST);
+			output->registerProbe<int>("Queue loss.capacity." + it.second->getName(),
+			                           "kbits", true, SAMPLE_LAST);
 	}
 	this->probe_st_l2_to_sat_total =
 		output->registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",
-					   "Kbits/s", true, SAMPLE_AVG);
+		                           "Kbits/s", true, SAMPLE_AVG);
 
-	this->probe_st_required_modcod = output->registerProbe<int>("Down_Forward_modcod.Required_modcod",
-								    "modcod index",
-								    true, SAMPLE_LAST);
+	this->probe_st_required_modcod =
+		output->registerProbe<int>("Down_Forward_modcod.Required_modcod",
+		                           "modcod index",
+		                           true, SAMPLE_LAST);
 	return true;
 }
 
@@ -1314,7 +1310,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 
 			// TODO move saloha handling in a specific function ?
 			// Slotted Aloha variables
-	    auto burst = static_cast<NetBurst*>(msg_event->getData());
+			auto burst = static_cast<NetBurst*>(msg_event->getData());
 			unsigned int sa_burst_size = burst->length(); // burst size
 			unsigned int sa_offset = 0; // packet position (offset) in the burst
 
@@ -1323,7 +1319,6 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 			    "SF#%u: encapsulation burst received (%d "
 			    "packets)\n", this->super_frame_counter,
 			    sa_burst_size);
-
 
 			// set each packet of the burst in MAC FIFO
 			for (auto&& packet : *burst)
@@ -1498,12 +1493,12 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 				// send on the emulated DVB network the DVB frames that contain
 				// the encapsulation packets scheduled by the SCPC agent algorithm
 				if(!this->sendBursts(&this->complete_dvb_frames,
-					this->carrier_id_data))
-					{
-						LOG(this->log_frame_tick, LEVEL_ERROR,
-						    "failed to send bursts in DVB frames\n");
-						return false;
-					}
+				                     this->carrier_id_data))
+				{
+					LOG(this->log_frame_tick, LEVEL_ERROR,
+					    "failed to send bursts in DVB frames\n");
+					return false;
+				}
 			}
 			else
 			{
@@ -1524,6 +1519,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 
 	return true;
 }
+
 
 bool BlockDvbTal::Downward::addCniExt(void)
 {
@@ -1567,7 +1563,7 @@ bool BlockDvbTal::Downward::addCniExt(void)
 	}
 
 	if(this->is_scpc && this->getCniInputHasChanged(this->tal_id)
-	   && !in_fifo)
+	                 && !in_fifo)
 	{
 		FifoElement *new_el = new FifoElement(nullptr, 0, 0);
 		// set packet extension to this new empty packet
@@ -1593,6 +1589,7 @@ bool BlockDvbTal::Downward::addCniExt(void)
 
 	return true;
 }
+
 
 bool BlockDvbTal::Downward::sendLogonReq(void)
 {
@@ -1748,7 +1745,7 @@ bool BlockDvbTal::Downward::sendSAC(void)
 
 	// Send message
 	if(!this->sendDvbFrame((DvbFrame *)sac,
-			       this->carrier_id_ctrl))
+	                       this->carrier_id_ctrl))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "SF#%u: failed to send SAC\n",
@@ -1770,8 +1767,7 @@ error:
 bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 {
 	uint16_t sfn; // the superframe number piggybacked by SOF packet
-	// TODO Sof *sof = dynamic_cast<Sof *>(dvb_frame);
-	Sof *sof = (Sof *)dvb_frame;
+	Sof *sof = reinterpret_cast<Sof *>(dvb_frame);
 
 	sfn = sof->getSuperFrameNumber();
 
@@ -1811,12 +1807,10 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 	}
 
 	// There is a risk of unprecise timing so the following hack
-
 	LOG(this->log_frame_tick, LEVEL_INFO,
 	    "SF#%u: all frames from previous SF are "
 	    "consumed or it is the first frame\n",
 	    this->super_frame_counter);
-
 
 	// we have consumed all of our frames, we start a new one immediately
 	// this is the first frame of the new superframe
@@ -1833,11 +1827,11 @@ bool BlockDvbTal::Downward::handleStartOfFrame(DvbFrame *dvb_frame)
 	{
 		// Slotted Aloha
 		if(!this->saloha->schedule(this->complete_dvb_frames,
-					   this->super_frame_counter))
+		                           this->super_frame_counter))
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "SF#%u: failed to process Slotted Aloha frame tick\n",
-			     this->super_frame_counter);
+			    this->super_frame_counter);
 			goto error;
 		}
 	}
@@ -1885,7 +1879,7 @@ bool BlockDvbTal::Downward::processOnFrameTick(void)
 	// send on the emulated DVB network the DVB frames that contain
 	// the encapsulation packets scheduled by the DAMA agent algorithm
 	if(!this->sendBursts(&this->complete_dvb_frames,
-			     this->carrier_id_data))
+	                     this->carrier_id_data))
 	{
 		LOG(this->log_frame_tick, LEVEL_ERROR,
 		    "failed to send bursts in DVB frames\n");
@@ -1947,29 +1941,29 @@ void BlockDvbTal::Downward::updateStats(void)
 
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto&& it : this->dvb_fifos)
 	{
-		(*it).second->getStatsCxt(fifo_stat);
+		it.second->getStatsCxt(fifo_stat);
 
 		this->l2_to_sat_total_bytes += fifo_stat.out_length_bytes;
 
 		// write in statitics file
-		this->probe_st_l2_to_sat_before_sched[(*it).first]->put(
+		this->probe_st_l2_to_sat_before_sched[it.first]->put(
 			fifo_stat.in_length_bytes * 8 /
 			this->stats_period_ms);
-		this->probe_st_l2_to_sat_after_sched[(*it).first]->put(
+		this->probe_st_l2_to_sat_after_sched[it.first]->put(
 			fifo_stat.out_length_bytes * 8 /
 			this->stats_period_ms);
 
-		this->probe_st_queue_size[(*it).first]->put(fifo_stat.current_pkt_nbr);
-		this->probe_st_queue_size_kb[(*it).first]->put(
-				fifo_stat.current_length_bytes * 8 / 1000);
-		this->probe_st_queue_loss[(*it).first]->put(fifo_stat.drop_pkt_nbr);
-		this->probe_st_queue_loss_kb[(*it).first]->put(fifo_stat.drop_bytes * 8);
+		this->probe_st_queue_size[it.first]->put(fifo_stat.current_pkt_nbr);
+		this->probe_st_queue_size_kb[it.first]->put(
+			fifo_stat.current_length_bytes * 8 / 1000);
+		this->probe_st_queue_loss[it.first]->put(fifo_stat.drop_pkt_nbr);
+		this->probe_st_queue_loss_kb[it.first]->put(fifo_stat.drop_bytes * 8);
 	}
-	this->probe_st_l2_to_sat_total->put(this->l2_to_sat_total_bytes * 8 /
-					    this->stats_period_ms);
+	this->probe_st_l2_to_sat_total->put(
+		this->l2_to_sat_total_bytes * 8 /
+		this->stats_period_ms);
 
 	// reset stat
 	this->l2_to_sat_total_bytes = 0;
@@ -1988,7 +1982,7 @@ void BlockDvbTal::Downward::closeQosSocket(int UNUSED(sig))
 {
 	// TODO static function, no this->
 	DFLTLOG(LEVEL_NOTICE,
-		"TCP connection broken, close socket\n");
+	        "TCP connection broken, close socket\n");
 	close(BlockDvbTal::Downward::qos_server_sock);
 	BlockDvbTal::Downward::qos_server_sock = -1;
 }
@@ -2073,9 +2067,9 @@ bool BlockDvbTal::Downward::connectToQoSServer()
 			sin_addr = &((struct sockaddr_in6 *) address->ai_addr)->sin6_addr;
 
 		retptr = inet_ntop(address->ai_family,
-				   sin_addr,
-				   straddr,
-				   sizeof(straddr));
+		                   sin_addr,
+		                   straddr,
+		                   sizeof(straddr));
 		if(retptr != nullptr)
 		{
 			LOG(this->log_qos_server, LEVEL_INFO,
@@ -2090,8 +2084,8 @@ bool BlockDvbTal::Downward::connectToQoSServer()
 		}
 
 		BlockDvbTal::Downward::qos_server_sock = socket(address->ai_family,
-						      address->ai_socktype,
-						      address->ai_protocol);
+		                                                address->ai_socktype,
+		                                                address->ai_protocol);
 		if(BlockDvbTal::Downward::qos_server_sock == -1)
 		{
 			LOG(this->log_qos_server, LEVEL_INFO,
@@ -2122,7 +2116,7 @@ bool BlockDvbTal::Downward::connectToQoSServer()
 
 	// try to connect with the socket
 	ret = connect(BlockDvbTal::Downward::qos_server_sock,
-		      address->ai_addr, address->ai_addrlen);
+	              address->ai_addr, address->ai_addrlen);
 	if(ret == -1)
 	{
 		LOG(this->log_qos_server, LEVEL_INFO,
@@ -2146,14 +2140,15 @@ bool BlockDvbTal::Downward::connectToQoSServer()
 	return true;
 }
 
+
 void BlockDvbTal::Downward::deletePackets()
 {
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto&& it : this->dvb_fifos)
 	{
-		(*it).second->flush();
+		it.second->flush();
 	}
 }
+
 
 /*****************************************************************************/
 /*                               Upward                                      */
@@ -2175,6 +2170,7 @@ BlockDvbTal::Upward::Upward(const std::string &name, struct dvb_specific specifi
 {
 }
 
+
 BlockDvbTal::Upward::~Upward()
 {
 	// release the reception DVB standards
@@ -2186,33 +2182,33 @@ bool BlockDvbTal::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-	case EventType::Message:
-		{
-			DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
-
-			if(this->probe_sof_interval->isEnabled() && dvb_frame->getMessageType() == EmulatedMessageType::Sof)
+		case EventType::Message:
 			{
-				time_val_t time = event->getAndSetCustomTime();
-				this->probe_sof_interval->put(time/1000.f);
-			}
+				DvbFrame *dvb_frame = static_cast<DvbFrame*>(static_cast<const MessageEvent*>(event)->getData());
 
-			// message from lower layer: DL dvb frame
-			LOG(this->log_receive, LEVEL_DEBUG,
-			    "SF#%u DVB frame received (len %u)\n",
-			    this->super_frame_counter,
-			    dvb_frame->getMessageLength());
+				if(this->probe_sof_interval->isEnabled() && dvb_frame->getMessageType() == EmulatedMessageType::Sof)
+				{
+					time_val_t time = event->getAndSetCustomTime();
+					this->probe_sof_interval->put(time/1000.f);
+				}
 
-			if(!this->onRcvDvbFrame(dvb_frame))
-			{
+				// message from lower layer: DL dvb frame
 				LOG(this->log_receive, LEVEL_DEBUG,
-				    "SF#%u: failed to handle received DVB frame\n",
-				    this->super_frame_counter);
-				// a problem occured, trace is made in onRcvDVBFrame()
-				// carry on simulation
-				return false;
+				    "SF#%u DVB frame received (len %u)\n",
+				    this->super_frame_counter,
+				    dvb_frame->getMessageLength());
+
+				if(!this->onRcvDvbFrame(dvb_frame))
+				{
+					LOG(this->log_receive, LEVEL_DEBUG,
+					    "SF#%u: failed to handle received DVB frame\n",
+					    this->super_frame_counter);
+					// a problem occured, trace is made in onRcvDVBFrame()
+					// carry on simulation
+					return false;
+				}
 			}
-		}
-		break;
+			break;
 
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
@@ -2291,13 +2287,41 @@ bool BlockDvbTal::Upward::onInit(void)
 	{
 		this->tal_id = this->mac_id;
 		this->group_id = this->gw_id;
+
+		// Send a link is up message to upper layer
+		T_LINK_UP *link_is_up;
+		try
+		{
+			link_is_up = new T_LINK_UP;
+		}
+		catch (const std::bad_alloc&)
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Init: Memory allocation error on link_is_up\n");
+			return false;
+		}
+		link_is_up->group_id = this->group_id;
+		link_is_up->tal_id = this->tal_id;
+
+		if(!this->enqueueMessage((void **)(&link_is_up),
+		                         sizeof(T_LINK_UP),
+		                         to_underlying(InternalMessageType::msg_link_up)))
+		{
+			LOG(this->log_init, LEVEL_ERROR,
+			    "Init: failed to send link up message to upper layer");
+			delete link_is_up;
+			return false;
+		}
+		LOG(this->log_receive, LEVEL_DEBUG,
+		    "Init: Link is up msg sent to upper layer\n");
 		this->state = TalState::running;
 
 		if(!this->addInputTerminal(this->tal_id, this->s2_modcod_def))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "failed to handle FMT for ST %u, "
-			    "won't finish initialization\n", this->tal_id);
+			    "won't finish initialization\n",
+			    this->tal_id);
 			return false;
 		}
 	}
@@ -2305,12 +2329,18 @@ bool BlockDvbTal::Upward::onInit(void)
 	return true;
 }
 
+
 // TODO remove reception_std as functions are merged but contains part
 //      dedicated to each host ?
 bool BlockDvbTal::Upward::initMode(void)
 {
-	auto reception_std{new DvbS2Std(this->pkt_hdl)};
-	if (reception_std == nullptr)
+	DvbS2Std *reception_std;
+
+	try
+	{
+		reception_std = new DvbS2Std(this->pkt_hdl);
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Failed to initialize reception standard\n");
@@ -2410,7 +2440,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 
 			NetBurst *burst{nullptr};
-			DvbS2Std *std = (DvbS2Std *)this->reception_std;
+			DvbS2Std *std = static_cast<DvbS2Std *>(this->reception_std);
 
 			// Update stats
 			this->l2_from_sat_bytes += dvb_frame->getMessageLength();
@@ -2577,7 +2607,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	}
 
 	T_LINK_UP *link_is_up;
-	LogonResponse *logon_resp = (LogonResponse *)(dvb_frame);
+	LogonResponse *logon_resp = reinterpret_cast<LogonResponse *>(dvb_frame);
 	// Retrieve the Logon Response frame
 	if(logon_resp->getMac() != this->mac_id)
 	{
@@ -2600,9 +2630,11 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 	}
 
 	// Send a link is up message to upper layer
-	// link_is_up
-	link_is_up = new T_LINK_UP;
-	if(link_is_up == 0)
+	try
+	{
+		link_is_up = new T_LINK_UP;
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "SF#%u Memory allocation error on link_is_up\n",

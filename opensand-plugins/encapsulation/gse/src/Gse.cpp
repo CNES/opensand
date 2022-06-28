@@ -1319,7 +1319,7 @@ size_t Gse::PacketHandler::getLength(const unsigned char *data) const
 	uint16_t length;
 	gse_status_t status;
 
-	status = gse_get_gse_length((unsigned char *)data, &length);
+	status = gse_get_gse_length(const_cast<unsigned char *>(data), &length);
 	if(status != GSE_STATUS_OK)
 	{
 		LOG(this->log, LEVEL_ERROR,

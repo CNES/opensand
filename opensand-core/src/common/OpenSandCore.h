@@ -56,7 +56,7 @@
 #endif              /* !__GNUC__ && !__LCLINT__ */
 
 /// Broadcast tal id is maximal tal_id value authorized (5 bits).
-#define BROADCAST_TAL_ID 0x1F
+constexpr const uint8_t BROADCAST_TAL_ID = 0x1F;
 
 
 /** The different types of DVB components */

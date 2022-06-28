@@ -37,7 +37,8 @@
 
 #include <opensand_output/Output.h>
 
-#define MAX_OLD_COUNTER 65535
+
+constexpr const saloha_pdu_id_t MAX_OLD_COUNTER = 0xFFFF;
 
 
 static bool sortSalohaPacketData(const std::unique_ptr<SlottedAlohaPacketData>& pkt1,

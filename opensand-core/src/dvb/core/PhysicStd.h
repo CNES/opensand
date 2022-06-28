@@ -54,19 +54,15 @@
  */
 class PhysicStd
 {
-
  private:
-
 	/** The type of the DVB standard ("DVB-RCS" or "DVB-S2") */
    std::string type;
 
  protected:
-
     /** The packet representation */
 	EncapPlugin::EncapPacketHandler *packet_handler;
 
  public:
-
 	/**
 	 * Build a Physical Transmission Standard
 	 *
@@ -86,8 +82,7 @@ class PhysicStd
 	 *
 	 * @return the type of Physical Transmission Standard
 	 */
-  std::string getType();
-
+	std::string getType();
 
 	/**
 	 * Receive frame from lower layer and get the EncapPackets
@@ -102,5 +97,6 @@ class PhysicStd
 	                        tal_id_t tal_id,
 	                        NetBurst **burst) = 0;
 };
+
 
 #endif
