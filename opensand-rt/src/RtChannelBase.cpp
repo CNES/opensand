@@ -619,6 +619,12 @@ bool RtChannelBase::initSingleFifo(std::shared_ptr<RtFifo> &fifo)
 
 bool RtChannelBase::pushMessage(std::shared_ptr<RtFifo> &out_fifo, void **data, size_t size, uint8_t type)
 {
+	if (out_fifo == nullptr)
+	{
+		LOG(this->log_send, LEVEL_ERROR, "Tried to send a message through a null FIFO");
+		return false;
+	}
+
 	bool success = true;
 
 	// check that block is initialized (i.e. we are in event processing)
