@@ -86,21 +86,54 @@ void OpenSandModelConf::createModels()
 	types->addEnumType("log_level", "Log Level", {"debug", "info", "notice", "warning", "error", "critical"});
 	types->addEnumType("entity_type", "Entity Type", {"Gateway", "Gateway Net Access", "Gateway Phy", "Satellite", "Satellite Regen", "Terminal"});
 	types->addEnumType("sat_regen_level", "Regeneration Level for Satellite", {"BBFrame", "IP"});
+	types->addEnumType("isl_type", "Type of ISL", {"LanAdaptation", "Interconnect", "None"});
 
 	auto entity = infrastructure_model->getRoot()->addComponent("entity", "Emulated Entity");
 	auto entity_type = entity->addParameter("entity_type", "Entity Type", types->getType("entity_type"));
 	entity_type->setReadOnly(true);
 
-	auto satellite = entity->addComponent("entity_sat", "Satellite", "Specific infrastructure information for a Satellite");
-	infrastructure_model->setReference(satellite, entity_type);
-	auto expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(satellite->getReferenceData());
-	expected_str->set("Satellite");
-	satellite->addParameter("entity_id", "Satellite ID", types->getType("int"));
-	satellite->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
+	{
+		auto satellite = entity->addComponent("entity_sat", "Satellite", "Specific infrastructure information for a Satellite");
+		infrastructure_model->setReference(satellite, entity_type);
+		auto expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(satellite->getReferenceData());
+		expected_str->set("Satellite");
+		satellite->addParameter("entity_id", "Satellite ID", types->getType("int"));
+		satellite->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
+		auto isl_type = satellite->addParameter("isl_type", "ISL Type", types->getType("isl_type"),
+		                                        "Whether the ISL packets should be routed by OpenSAND (Interconnect) "
+		                                        "or by the network (LanAdaptation). Set to \"None\" to disable ISL.");
+
+		// Interconnect params
+		auto interco_params = satellite->addComponent("interconnect_params", "Interconnect", "Interconnect parameters");
+		infrastructure_model->setReference(interco_params, isl_type);
+		interco_params->getReferenceData()->fromString("Interconnect");
+		interco_params->addParameter("interconnect_address",
+		                             "Interconnection Address",
+		                             types->getType("string"),
+		                             "Address this satellite should listen on for "
+		                             "messages from other satellites");
+		interco_params->addParameter("interconnect_remote",
+		                             "Remote Interconnection Address",
+		                             types->getType("string"),
+		                             "Address other satellites should listen on for "
+		                             "messages from this satellite");
+		interco_params->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"))->setAdvanced(true);
+		interco_params->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"))->setAdvanced(true);
+		interco_params->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"))->setAdvanced(true);
+		interco_params->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"))->setAdvanced(true);
+		interco_params->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("int"))->setAdvanced(true);
+		interco_params->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("int"))->setAdvanced(true);
+		interco_params->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
+		// LanAdaptation params
+		auto lan_params = satellite->addComponent("lan_adaptation", "Lan Adaptation", "Lan Adaptation parameters");
+		infrastructure_model->setReference(lan_params, isl_type);
+		lan_params->getReferenceData()->fromString("LanAdaptation");
+		lan_params->addParameter("tap_name", "TAP Name", types->getType("string"), "Name of the TAP interface");
+	}
 
 	auto satellite_regen = entity->addComponent("entity_sat_regen", "Satellite", "Specific infrastructure information for a Regenerative Satellite");
 	infrastructure_model->setReference(satellite_regen, entity_type);
-	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(satellite_regen->getReferenceData());
+	auto expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(satellite_regen->getReferenceData());
 	expected_str->set("Satellite Regen");
 	satellite_regen->addParameter("entity_id", "Satellite ID", types->getType("int"));
 	satellite_regen->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
@@ -108,6 +141,39 @@ void OpenSandModelConf::createModels()
 	auto mesh = satellite_regen->addParameter("mesh", "Mesh", types->getType("bool"), "Enable mesh architecture (routing based on the destination of the packet)");
 	infrastructure_model->setReference(mesh, regen_level);
 	mesh->getReferenceData()->fromString("IP");
+
+	auto isl_type = satellite_regen->addParameter("isl_type", "ISL Type", types->getType("isl_type"),
+	                                              "Whether the ISL packets should be routed by OpenSAND (Interconnect) "
+	                                              "or by the network (LanAdaptation). Set to \"None\" to disable ISL.");
+
+	// Interconnect params
+	auto interco_params = satellite_regen->addComponent("interconnect_params", "Interconnect", "Interconnect parameters");
+	infrastructure_model->setReference(interco_params, isl_type);
+	interco_params->getReferenceData()->fromString("Interconnect");
+	interco_params->addParameter("interconnect_address",
+	                             "Interconnection Address",
+	                             types->getType("string"),
+	                             "Address this satellite should listen on for "
+	                             "messages from other satellites");
+	interco_params->addParameter("interconnect_remote",
+	                             "Remote Interconnection Address",
+	                             types->getType("string"),
+	                             "Address other satellites should listen on for "
+	                             "messages from this satellite");
+	interco_params->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
+
+	// LanAdaptation params
+	auto lan_params = satellite_regen->addComponent("lan_adaptation", "Lan Adaptation", "Lan Adaptation parameters");
+	infrastructure_model->setReference(lan_params, isl_type);
+	lan_params->getReferenceData()->fromString("LanAdaptation");
+	lan_params->addParameter("tap_name", "TAP Name", types->getType("string"), "Name of the TAP interface");
+
 	auto default_entity = satellite_regen->addParameter("default_entity", "Default Entity", types->getType("int"),
 	                                                    "ID of a Gateway or a Satellite ID to send packets whose destination is unknown. "
 														"An ISL link will be created if this entity is a satellite.\n"
@@ -153,25 +219,26 @@ void OpenSandModelConf::createModels()
 	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(gateway_net_acc->getReferenceData());
 	expected_str->set("Gateway Net Access");
 	gateway_net_acc->addParameter("entity_id", "Gateway ID", types->getType("int"));
-	gateway_net_acc->addParameter("interconnect_address",
-	                              "Interconnection Address",
-	                              types->getType("string"),
-	                              "Address the net access gateway should listen on for "
-	                              "messages from the physical layer gateway");
-	gateway_net_acc->addParameter("interconnect_remote",
-	                              "Remote Interconnection Address",
-	                              types->getType("string"),
-	                              "Address the physical layer gateway is listening on for "
-	                              "messages from this net access gateway");
 	gateway_net_acc->addParameter("tap_iface", "TAP Interface", types->getType("string"), "Name of the TAP interface used by this gateway");
 	gateway_net_acc->addParameter("mac_address", "MAC Address", types->getType("string"), "MAC address this gateway routes traffic to");
-	gateway_net_acc->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"))->setAdvanced(true);
-	gateway_net_acc->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"))->setAdvanced(true);
-	gateway_net_acc->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"))->setAdvanced(true);
-	gateway_net_acc->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"))->setAdvanced(true);
-	gateway_net_acc->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("int"))->setAdvanced(true);
-	gateway_net_acc->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("int"))->setAdvanced(true);
-	gateway_net_acc->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
+	interco_params = gateway_net_acc->addComponent("interconnect_params", "Interconnect", "Interconnect parameters");
+	interco_params->addParameter("interconnect_address",
+	                             "Interconnection Address",
+	                             types->getType("string"),
+	                             "Address the net access gateway should listen on for "
+	                             "messages from the physical layer gateway");
+	interco_params->addParameter("interconnect_remote",
+	                             "Remote Interconnection Address",
+	                             types->getType("string"),
+	                             "Address the physical layer gateway is listening on for "
+	                             "messages from this net access gateway");
+	interco_params->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
 	gateway_net_acc->addParameter("pep_port", "PEP DAMA Port", types->getType("int"))->setAdvanced(true);
 	gateway_net_acc->addParameter("svno_port", "SVNO Port", types->getType("int"))->setAdvanced(true);
 
@@ -180,23 +247,24 @@ void OpenSandModelConf::createModels()
 	expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(gateway_phy->getReferenceData());
 	expected_str->set("Gateway Phy");
 	gateway_phy->addParameter("entity_id", "Gateway ID", types->getType("int"));
-	gateway_phy->addParameter("interconnect_address",
-	                          "Interconnection Address",
-	                          types->getType("string"),
-	                          "Address the physical layer gateway should listen on for "
-	                          "messages from the net access gateway");
-	gateway_phy->addParameter("interconnect_remote",
-	                          "Remote Interconnection Address",
-	                          types->getType("string"),
-	                          "Address the net access gateway is listening on for "
-	                          "messages from this physical layer gateway");
-	gateway_phy->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"))->setAdvanced(true);
-	gateway_phy->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"))->setAdvanced(true);
-	gateway_phy->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"))->setAdvanced(true);
-	gateway_phy->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"))->setAdvanced(true);
-	gateway_phy->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("int"))->setAdvanced(true);
-	gateway_phy->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("int"))->setAdvanced(true);
-	gateway_phy->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
+	interco_params = gateway_phy->addComponent("interconnect_params", "Interconnect", "Interconnect parameters");
+	interco_params->addParameter("interconnect_address",
+	                             "Interconnection Address",
+	                             types->getType("string"),
+	                             "Address the physical layer gateway should listen on for "
+	                             "messages from the net access gateway");
+	interco_params->addParameter("interconnect_remote",
+	                             "Remote Interconnection Address",
+	                             types->getType("string"),
+	                             "Address the net access gateway is listening on for "
+	                             "messages from this physical layer gateway");
+	interco_params->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("int"))->setAdvanced(true);
+	interco_params->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
 	gateway_phy->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this gateway should listen on for messages from the satellite");
 	gateway_phy->addParameter("ctrl_multicast_address", "Multicast IP Address (Control Messages)", types->getType("string"))->setAdvanced(true);
 	gateway_phy->addParameter("data_multicast_address", "Multicast IP Address (Data)", types->getType("string"))->setAdvanced(true);
@@ -765,7 +833,9 @@ bool OpenSandModelConf::getGroundInfrastructure(std::string &ip_address, std::st
 		}
 		return extractParameterData(entity, "tap_iface", tap_iface);
 	} else if (type == "gw_net_acc") {
-		if (!extractParameterData(entity, "interconnect_address", ip_address)) {
+		auto isl_params = entity->getComponent("interconnect_params");
+		if (!extractParameterData(isl_params, "interconnect_address", ip_address))
+		{
 			return false;
 		}
 		return extractParameterData(entity, "tap_iface", tap_iface);
@@ -773,7 +843,8 @@ bool OpenSandModelConf::getGroundInfrastructure(std::string &ip_address, std::st
 		if (!extractParameterData(entity, "emu_address", ip_address)) {
 			return false;
 		}
-		return extractParameterData(entity, "interconnect_address", tap_iface);
+		auto isl_params = entity->getComponent("interconnect_params");
+		return extractParameterData(isl_params, "interconnect_address", tap_iface);
 	} else {
 		return false;
 	}
@@ -1889,33 +1960,37 @@ bool OpenSandModelConf::getInterconnectCarrier(bool upward,
 		return false;
 	}
 
-	if (type != "gw_net_acc" || type != "gw_phy") {
+	if (type != "gw_net_acc" && type != "gw_phy" && type != "sat_regen" && type != "sat")
+	{
 		return false;
 	}
 
 	std::string direction = upward ? "upward_" : "downward_";
 
-	auto entity = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
-	if (!extractParameterData(entity, "interconnect_remote", remote))
+	auto isl_params = infrastructure->getRoot()
+	                      ->getComponent("entity")
+	                      ->getComponent("entity_" + type)
+	                      ->getComponent("interconnect_params");
+	if (!extractParameterData(isl_params, "interconnect_remote", remote))
 	{
 		return false;
 	}
 
 	int data_port_value = upward ? 4500 : 4501;
-	extractParameterData(entity, direction + "data_port", data_port_value);
+	extractParameterData(isl_params, direction + "data_port", data_port_value);
 	data_port = data_port_value;
 	int sig_port_value = upward ? 4502 : 4503;
-	extractParameterData(entity, direction + "sig_port", sig_port_value);
+	extractParameterData(isl_params, direction + "sig_port", sig_port_value);
 	sig_port = sig_port_value;
 
 	int udp_stack_value = 5;
-	extractParameterData(entity, "interco_udp_stack", udp_stack_value);
+	extractParameterData(isl_params, "interco_udp_stack", udp_stack_value);
 	udp_stack = udp_stack_value;
 	int udp_rmem_value = 1048580;
-	extractParameterData(entity, "interco_udp_rmem", udp_rmem_value);
+	extractParameterData(isl_params, "interco_udp_rmem", udp_rmem_value);
 	udp_rmem = udp_rmem_value;
 	int udp_wmem_value = 1048580;
-	extractParameterData(entity, "interco_udp_wmem", udp_wmem_value);
+	extractParameterData(isl_params, "interco_udp_wmem", udp_wmem_value);
 	udp_wmem = udp_wmem_value;
 
 	return true;
@@ -1983,4 +2058,66 @@ const std::unordered_set<tal_id_t> OpenSandModelConf::getEntitiesHandledBySat(ta
 
 const std::unordered_set<tal_id_t> &OpenSandModelConf::getEntitiesInSpot(spot_id_t spot_id) const {
 	return spot_entities.at(spot_id);
+}
+
+const std::unordered_set<spot_id_t> OpenSandModelConf::getSpotsByEntity(tal_id_t tal_id) const
+{
+	std::unordered_set<spot_id_t> spots;
+	for (auto &&spot_entity: spot_entities)
+	{
+		auto &tal_ids = spot_entity.second;
+		if (tal_ids.find(tal_id) != tal_ids.end())
+		{
+			spots.insert(spot_entity.first);
+		}
+	}
+	return spots;
+}
+
+bool OpenSandModelConf::getIslConfig(IslConfig &cfg) const
+{
+	if (infrastructure == nullptr)
+	{
+		std::cout << "infrastructure is null" << std::endl;
+		return false;
+	}
+
+	std::string type;
+	tal_id_t id;
+	if (!this->getComponentType(type, id))
+	{
+		return false;
+	}
+
+	if (type != "sat" && type != "sat_regen")
+	{
+		return false;
+	}
+
+	auto entity = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
+	std::string isl_type;
+	if (!extractParameterData(entity, "isl_type", isl_type))
+	{
+		std::cout << "type not found" << std::endl;
+		return false;
+	}
+	if (isl_type == "None")
+	{
+		cfg.type = IslType::None;
+		return true;
+	}
+	else if (isl_type == "LanAdaptation")
+	{
+		cfg.type = IslType::LanAdaptation;
+		auto lan_adaptation_params = entity->getComponent("lan_adaptation");
+		return extractParameterData(lan_adaptation_params, "tap_name", cfg.tap_iface);
+	}
+	else if (isl_type == "Interconnect")
+	{
+		cfg.type = IslType::Interconnect;
+		auto interconnect_params = entity->getComponent("interconnect_params");
+		return extractParameterData(interconnect_params, "interconnect_address", cfg.interco_addr);
+	}
+	std::cout << "unknown isl type" << std::endl;
+	return false;
 }

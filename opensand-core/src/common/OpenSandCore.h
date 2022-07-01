@@ -147,6 +147,19 @@ enum class EncapSchemeList
 	TRANSPARENT_NO_SCHEME,
 };
 
+enum struct IslType
+{
+	None,
+	LanAdaptation,
+	Interconnect,
+};
+
+struct IslConfig
+{
+	IslType type;
+	std::string interco_addr;
+	std::string tap_iface;
+};
 
 /**
  * @brief Convert a strongly typed enum value into its underlying integral type

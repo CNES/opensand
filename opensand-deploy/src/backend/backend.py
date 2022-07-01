@@ -260,14 +260,16 @@ def create_default_infrastructure(meta_model):
     _set_parameter(gateway_net_acc, 'entity_id', 0)
     _set_parameter(gateway_net_acc, 'tap_iface', 'opensand_tap')
     _set_parameter(gateway_net_acc, 'mac_address', 'FF:FF:FF:00:00:01')
-    _set_parameter(gateway_net_acc, 'interconnect_address', '192.168.1.1')
-    _set_parameter(gateway_net_acc, 'interconnect_remote', '192.168.1.2')
+    interco_params = _get_component(gateway_net_acc, 'interconnect_params')
+    _set_parameter(interco_params, 'interconnect_address', '192.168.1.1')
+    _set_parameter(interco_params, 'interconnect_remote', '192.168.1.2')
 
     gateway_phy = _get_component(entity, 'entity_gw_phy')
     _set_parameter(gateway_phy, 'entity_id', 0)
     _set_parameter(gateway_phy, 'emu_address', '192.168.0.1')
-    _set_parameter(gateway_phy, 'interconnect_address', '192.168.1.2')
-    _set_parameter(gateway_phy, 'interconnect_remote', '192.168.1.1')
+    interco_params = _get_component(gateway_phy, 'interconnect_params')
+    _set_parameter(interco_params, 'interconnect_address', '192.168.1.2')
+    _set_parameter(interco_params, 'interconnect_remote', '192.168.1.1')
 
     return infra
 
