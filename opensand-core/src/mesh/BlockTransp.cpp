@@ -34,14 +34,26 @@
 
 #include "BlockTransp.h"
 
+#include "OpenSandModelConf.h"
 #include <opensand_rt/MessageEvent.h>
 
+BlockTransp::BlockTransp(const std::string &name, TranspConfig transp_config):
+    Block(name), entity_id{transp_config.entity_id} {}
 
-BlockTransp::BlockTransp(const std::string &name):
-    Block(name) {}
+bool BlockTransp::onInit()
+{
+	auto conf = OpenSandModelConf::Get();
+	auto downward = dynamic_cast<Downward *>(this->downward);
+	auto upward = dynamic_cast<Upward *>(this->upward);
 
-BlockTransp::Upward::Upward(const std::string &name):
-    RtUpwardMux(name) {}
+	auto handled_spots = conf->getSpotsByEntity(entity_id);
+	upward->handled_spots = handled_spots;
+	downward->handled_spots = std::move(handled_spots);
+	return true;
+}
+
+BlockTransp::Upward::Upward(const std::string &name, TranspConfig transp_config):
+    RtUpwardMux(name), isl_enabled{transp_config.isl_enabled} {}
 
 bool BlockTransp::Upward::onEvent(const RtEvent *const event)
 {
@@ -53,36 +65,70 @@ bool BlockTransp::Upward::onEvent(const RtEvent *const event)
 	}
 
 	auto msg_event = static_cast<const MessageEvent *>(event);
-
-	if (to_enum<InternalMessageType>(msg_event->getMessageType()) != InternalMessageType::msg_unknown)
-	{
-		LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
-		    msg_event->getName().c_str());
-		return false;
-	}
-
-	auto frame = static_cast<const DvbFrame *>(msg_event->getData());
-	return handleDvbFrame(std::unique_ptr<const DvbFrame>(frame));
+	auto frame = static_cast<DvbFrame *>(msg_event->getData());
+	return handleDvbFrame(std::unique_ptr<DvbFrame>(frame));
 }
 
-bool BlockTransp::Upward::handleDvbFrame(std::unique_ptr<const DvbFrame> frame)
+bool BlockTransp::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 {
-	LOG(log_send, LEVEL_INFO, "Sending a DvbFrame to the opposite channel");
+	auto spot_id = frame->getSpot();
+	auto carrier_id = frame->getCarrierId();
+	auto log_level = carrier_id % 10 >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	LOG(log_receive, log_level, "Received a DvbFrame (spot_id %d, carrier id %d, msg type %d)",
+	    spot_id, carrier_id, frame->getMessageType());
 
+	if (!isl_enabled)
+	{
+		return sendToOppositeChannel(std::move(frame));
+	}
+
+	if (handled_spots.find(spot_id) == handled_spots.end())
+	{
+		// send by ISL
+		spot_id_t old_spot_id = carrier_id / 10;
+		frame->setSpot(spot_id);
+		frame->setCarrierId(carrier_id + 10 * (spot_id - old_spot_id));
+		return sendToUpperBlock(std::move(frame));
+	}
+	else
+	{
+		return sendToOppositeChannel(std::move(frame));
+	}
+	// Unreachable
+	return true;
+}
+
+bool BlockTransp::Upward::sendToUpperBlock(std::unique_ptr<const DvbFrame> frame)
+{
+	LOG(log_send, LEVEL_INFO, "Sending a DvbFrame to the upper block");
 	auto frame_ptr = frame.release();
-	bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
+	bool ok = enqueueMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
 	if (!ok)
 	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "Failed to transmit message to the opposite channel");
+		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the upper block");
 		delete frame_ptr;
 		return false;
 	}
 	return true;
 }
 
-BlockTransp::Downward::Downward(const std::string &name):
-    RtDownwardDemux<SatDemuxKey>(name) {}
+bool BlockTransp::Upward::sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame)
+{
+	auto log_level = frame->getCarrierId() % 10 >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	LOG(log_send, log_level, "Sending a DvbFrame to the opposite channel");
+	auto frame_ptr = frame.release();
+	bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
+	if (!ok)
+	{
+		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
+		delete frame_ptr;
+		return false;
+	}
+	return true;
+}
+
+BlockTransp::Downward::Downward(const std::string &name, TranspConfig transp_config):
+    RtDownwardDemux<SatDemuxKey>(name), isl_enabled{transp_config.isl_enabled} {}
 
 bool BlockTransp::Downward::onEvent(const RtEvent *const event)
 {
@@ -108,31 +154,58 @@ bool BlockTransp::Downward::onEvent(const RtEvent *const event)
 
 bool BlockTransp::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 {
-	LOG(log_receive, LEVEL_INFO, "Received a message (carrier id %d, msg type %d)",
-	    frame->getCarrierId(), frame->getMessageType());
 	auto spot_id = frame->getSpot();
-	uint8_t id = frame->getCarrierId() % 10;
-	if(id % 2 != 0) {
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "Received a message from an output carried id (%d)", frame->getCarrierId());
-		return false;
-	}
+	auto carrier_id = frame->getCarrierId();
+	auto log_level = carrier_id % 10 >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	LOG(log_receive, log_level, "Received a DvbFrame (spot_id %d, carrier id %d, msg type %d)",
+	    spot_id, carrier_id, frame->getMessageType());
 
-	Component dest = (id == 4 || id == 8) ? Component::terminal : Component::gateway;
-	// add one to the input carrier id to get the corresponding output carrier id
-	frame->setCarrierId(frame->getCarrierId() + 1);
-	return sendToLowerBlock({spot_id, dest}, std::move(frame));
+	if (handled_spots.find(spot_id) == handled_spots.end())
+	{
+		// Forward by ISL
+		return sendToOppositeChannel(std::move(frame));
+	}
+	else
+	{
+		uint8_t id = carrier_id % 10;
+		if (id % 2 != 0)
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Received a message from an output carried id (%d)", carrier_id);
+			return false;
+		}
+
+		Component dest = (id == 4 || id == 8) ? Component::terminal : Component::gateway;
+		// add one to the input carrier id to get the corresponding output carrier id
+		frame->setCarrierId(carrier_id + 1);
+		return sendToLowerBlock({spot_id, dest}, std::move(frame));
+	}
 }
 
 bool BlockTransp::Downward::sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const DvbFrame> frame)
 {
-	LOG(log_send, LEVEL_INFO, "Sending a DvbFrame to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
+	auto log_level = frame->getCarrierId() % 10 >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	LOG(log_send, log_level, "Sending a DvbFrame to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
 	auto frame_ptr = frame.release();
 	bool ok = enqueueMessage(key, (void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
 	if (!ok)
 	{
-		LOG(this->log_send, LEVEL_ERROR,
-		    "Failed to transmit message to the opposite channel");
+		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the lower block");
+		delete frame_ptr;
+		return false;
+	}
+	return true;
+}
+
+bool BlockTransp::Downward::sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame)
+{
+	auto log_level = frame->getCarrierId() % 10 >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	LOG(log_send, log_level, "Sending a DvbFrame to the opposite channel");
+	auto frame_ptr = frame.release();
+	bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
+	if (!ok)
+	{
+		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
 		delete frame_ptr;
 		return false;
 	}

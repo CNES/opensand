@@ -58,6 +58,7 @@
 
 #include "BlockSatCarrier.h"
 #include "BlockTransp.h"
+#include "BlockInterconnect.h"
 
 
 EntitySat::EntitySat(tal_id_t instance_id):
@@ -77,15 +78,26 @@ bool EntitySat::createSpecificBlocks()
 	try
 	{
 		auto conf = OpenSandModelConf::Get();
-		std::vector<tal_id_t> spot_ids{};
-		conf->getGwIds(spot_ids);
+		auto spot_ids = conf->getSpotsByEntity(instance_id);
 		
-		auto block_transp = Rt::createBlock<BlockTransp>("Transp");
+		TranspConfig transp_cfg;
+		transp_cfg.entity_id = instance_id;
+		transp_cfg.isl_enabled = isl_config.type != IslType::None;
+		auto block_transp = Rt::createBlock<BlockTransp>("Transp", transp_cfg);
 
-		for (auto &&gw_id: spot_ids)
+		if (isl_config.type == IslType::Interconnect)
 		{
-			auto spot_id = static_cast<spot_id_t>(gw_id);
+			auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect", isl_config.interco_addr);
+			Rt::connectBlocks(block_interco, block_transp);
+		}
+		else if (isl_config.type == IslType::LanAdaptation)
+		{
+			DFLTLOG(LEVEL_CRITICAL, "A transparent satellite cannot transmit ISL via LanAdaptation");
+			return false;
+		}
 
+		for (auto &&spot_id: spot_ids)
+		{
 			struct sc_specific specific;
 			specific.ip_addr = ip_address;
 			specific.tal_id = instance_id;
@@ -98,10 +110,10 @@ bool EntitySat::createSpecificBlocks()
 			specific.destination_host = Component::terminal;
 			std::ostringstream st_name;
 			st_name << "SatCarrierSt" << spot_id;
-			auto block_sc_tal = Rt::createBlock<BlockSatCarrier>(st_name.str(), specific);
+			auto block_sc_st = Rt::createBlock<BlockSatCarrier>(st_name.str(), specific);
 
 			Rt::connectBlocks(block_transp, block_sc_gw, {spot_id, Component::gateway});
-			Rt::connectBlocks(block_transp, block_sc_tal, {spot_id, Component::terminal});
+			Rt::connectBlocks(block_transp, block_sc_st, {spot_id, Component::terminal});
 		}
 	}
 	catch (const std::bad_alloc &e)
@@ -116,7 +128,7 @@ bool EntitySat::createSpecificBlocks()
 bool EntitySat::loadConfiguration(const std::string &)
 {
 	auto Conf = OpenSandModelConf::Get();
-	return Conf->getSatInfrastructure(this->ip_address);
+	return Conf->getSatInfrastructure(this->ip_address) && Conf->getIslConfig(this->isl_config);
 }
 
 bool EntitySat::createSpecificConfiguration(const std::string &) const

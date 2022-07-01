@@ -38,11 +38,20 @@
 #include <memory>
 
 #include <opensand_rt/Rt.h>
-#include <opensand_rt/RtChannelMux.h>
 #include <opensand_rt/RtChannelDemux.h>
+#include <opensand_rt/RtChannelMux.h>
+#include <unordered_set>
 
 #include "DvbFrame.h"
 #include "SatDemuxKey.h"
+
+struct TranspConfig {
+	tal_id_t entity_id;
+
+	// If true, the messages for spots that are not handled by 
+	// this satellite will be sent to the upper block
+	bool isl_enabled;
+};
 
 /**
  * @class BlockTransp
@@ -50,31 +59,45 @@
  */
 class BlockTransp: public Block
 {
- public:
-	BlockTransp(const std::string &name);
+  public:
+	BlockTransp(const std::string &name, TranspConfig transp_config);
+
+	bool onInit();
 
 	class Upward: public RtUpwardMux
 	{
 	  public:
-		Upward(const std::string &name);
+		Upward(const std::string &name, TranspConfig transp_config);
 
 	  private:
+		friend class BlockTransp;
+
 		bool onEvent(const RtEvent *const event) override;
-		bool handleDvbFrame(std::unique_ptr<const DvbFrame> burst);
+		bool handleDvbFrame(std::unique_ptr<DvbFrame> burst);
+		bool sendToUpperBlock(std::unique_ptr<const DvbFrame> frame);
+		bool sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame);
+		std::unordered_set<spot_id_t> handled_spots;
+		bool isl_enabled;
 	};
 
 	class Downward: public RtDownwardDemux<SatDemuxKey>
 	{
-	 public:
-		Downward(const std::string &name);
+	  public:
+		Downward(const std::string &name, TranspConfig transp_config);
 
-	 private:
+	  private:
+		friend class BlockTransp;
+
 		bool onEvent(const RtEvent *const event) override;
 		bool handleDvbFrame(std::unique_ptr<DvbFrame> burst);
 		bool sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const DvbFrame> frame);
+		bool sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame);
+		std::unordered_set<spot_id_t> handled_spots;
+		bool isl_enabled;
 	};
 
   private:
+	tal_id_t entity_id;
 };
 
 #endif
