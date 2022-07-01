@@ -900,22 +900,6 @@ bool OpenSandModelConf::getRemoteStorage(bool &enabled, std::string &address, un
 }
 
 
-bool OpenSandModelConf::getGwIds(std::vector<tal_id_t> &gws) const
-{
-	if (infrastructure == nullptr) {
-		return false;
-	}
-
-	for (auto&& id_type_pair : entities_type) {
-		if (id_type_pair.second == Component::gateway) {
-			gws.push_back(id_type_pair.first);
-		}
-	}
-
-	return true;
-}
-
-
 bool OpenSandModelConf::logLevels(std::map<std::string, log_level_t> &levels) const
 {
 	if (infrastructure == nullptr) {

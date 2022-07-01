@@ -75,17 +75,15 @@ bool EntitySatRegen::createSpecificBlocks()
 	try
 	{
 		auto conf = OpenSandModelConf::Get();
-		std::vector<tal_id_t> spot_ids{};
-		conf->getGwIds(spot_ids);
+		auto spot_ids = conf->getSpotsByEntity(instance_id);
 
 		bool disable_ctrl_plane;
 		if (!conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
 
 		auto block_mesh = Rt::createBlock<BlockMesh>("Mesh", instance_id);
 
-		for (auto &&gw_id: spot_ids)
+		for (auto &&spot_id: spot_ids)
 		{
-			auto spot_id = static_cast<spot_id_t>(gw_id);
 			auto spot_id_str = std::to_string(spot_id);
 
 			dvb_specific dvb_spec;

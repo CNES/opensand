@@ -173,7 +173,6 @@ class OpenSandModelConf
 	                      std::string &address,
 	                      unsigned short &stats_port,
 	                      unsigned short &logs_port) const;
-	bool getGwIds(std::vector<tal_id_t> &gws) const;
 	bool logLevels(std::map<std::string, log_level_t> &levels) const;
 	bool getSarp(SarpTable &sarp_table) const;
 	bool getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const;
