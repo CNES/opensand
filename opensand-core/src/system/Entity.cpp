@@ -103,9 +103,9 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	std::string infrastructure_path;
 	std::string topology_path;
 	std::string profile_path;
-	bool verbose = false;
+	
+	auto output = Output::Get();
 
-	auto Conf = OpenSandModelConf::Get();
 	return_code = 0;
 	while((opt = getopt(argc, argv, "-hVvi:t:p:g:")) != EOF)
 	{
@@ -121,12 +121,14 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 			profile_path = optarg;
 			break;
 		case 'v':
-			verbose = true;
+			// Configure terminal output before constructing Conf to see Conf logs
+			output->configureTerminalOutput();
 			break;
 		case 'g':
 			{
 				// TODO: Error handling
 				std::string folder = optarg;
+				auto Conf = OpenSandModelConf::Get();
 				Conf->createModels();
 				Conf->writeTopologyModel(folder + "/topology.xsd");
 				Conf->writeInfrastructureModel(folder + "/infrastructure.xsd");
@@ -215,6 +217,8 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 			return nullptr;
 		}
 	}
+	
+	auto Conf = OpenSandModelConf::Get();
 
 	if(infrastructure_path.empty())
 	{
@@ -242,7 +246,6 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 		return nullptr;
 	}
 
-	auto output = Output::Get();
 	std::map<std::string, log_level_t> levels;
 	if(!Conf->logLevels(levels))
 	{
@@ -303,11 +306,6 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 
 	bool enabled = false;
 	output->setEntityName(entity->getName());
-
-	if (verbose)
-	{
-		output->configureTerminalOutput();
-	}
 
 	std::string output_folder;
 	if(Conf->getLocalStorage(enabled, output_folder) && enabled)
