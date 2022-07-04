@@ -41,7 +41,7 @@
 #include <opensand_rt/RtMutex.h>
 #include <opensand_output/OutputLog.h>
 
-#include <vector>
+#include <deque>
 #include <map>
 #include <sys/times.h>
 
@@ -314,7 +314,7 @@ class DvbFifo
 
 	uint8_t getCni(void) const;
 
-	std::vector<FifoElement *> getQueue(void);
+	const std::deque<FifoElement *> &getQueue() const;
 
  protected:
 	/**
@@ -322,7 +322,7 @@ class DvbFifo
 	 */
 	void resetStats();
 
-	std::vector<FifoElement *> queue; ///< the FIFO itself
+	std::deque<FifoElement *> queue; ///< the FIFO itself
 
 	unsigned int fifo_priority;     ///< the MAC priority of the fifo
 	std::string fifo_name;          ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT

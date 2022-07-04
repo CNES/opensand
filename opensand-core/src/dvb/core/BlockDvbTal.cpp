@@ -1533,9 +1533,8 @@ bool BlockDvbTal::Downward::addCniExt(void)
 	for (auto&& fifos_it : dvb_fifos)
 	{
 		DvbFifo *fifo = fifos_it.second;
-		std::vector<FifoElement *> queue = fifo->getQueue();
 
-		for(auto&& elem : queue)
+		for (auto &&elem: fifo->getQueue())
 		{
 			std::unique_ptr<NetPacket> packet = elem->getElem<NetPacket>();
 			tal_id_t gw = packet->getDstTalId();

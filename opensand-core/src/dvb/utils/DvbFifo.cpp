@@ -216,7 +216,7 @@ uint8_t DvbFifo::getCni(void) const
 	return this->cni;
 }
 
-std::vector<FifoElement *> DvbFifo::getQueue(void)
+const std::deque<FifoElement *> &DvbFifo::getQueue() const
 {
 	return this->queue;
 }
@@ -260,7 +260,7 @@ bool DvbFifo::pushFront(FifoElement *elem)
 	{
 		vol_bytes_t length = elem->getTotalLength();
 
-		this->queue.insert(this->queue.begin(), elem);
+		this->queue.push_front(elem);
 		this->cur_length_bytes += length;
 		// update counter but not new ones as it is a fragment of an old element
 		this->stat_context.current_pkt_nbr = this->queue.size();
@@ -338,12 +338,9 @@ FifoElement *DvbFifo::pop()
 void DvbFifo::flush()
 {
 	RtLock lock(this->fifo_mutex);
-	std::vector<FifoElement *>::iterator it;
-	for(it = this->queue.begin(); it != this->queue.end(); ++it)
+	for(auto *elem: queue)
 	{
-//		NetContainer *elem = (*it)->getElem();
-//		delete elem;
-		delete *it;
+		delete elem;
 	}
 
 	this->queue.clear();
