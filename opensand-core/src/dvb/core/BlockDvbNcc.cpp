@@ -912,13 +912,15 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 			}
 
 			NetBurst *burst{nullptr};
-			if(!spot->handleFrame(dvb_frame, &burst))
+			if(!spot->handleFrame(dvb_frame, &burst) || burst == nullptr)
 			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "failed to handle the frame\n");
 				return false;
 			}
 
 			// send the message to the upper layer
-			if (burst && !this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
+			if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
 			{
 				LOG(this->log_send, LEVEL_ERROR,
 				    "failed to send burst of packets to upper layer\n");
