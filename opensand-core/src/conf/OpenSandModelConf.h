@@ -216,9 +216,9 @@ class OpenSandModelConf
 	                            std::string &default_category_name,
 	                            std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
 	
-	const std::unordered_set<tal_id_t> getEntitiesHandledBySat(tal_id_t sat_id) const;
+	std::unordered_set<tal_id_t> getEntitiesHandledBySat(tal_id_t sat_id) const;
 	const std::unordered_set<tal_id_t> &getEntitiesInSpot(spot_id_t spot_id) const;
-	const std::unordered_set<spot_id_t> getSpotsByEntity(tal_id_t tal_id) const;
+	std::unordered_set<spot_id_t> getSpotsByEntity(tal_id_t tal_id) const;
 
 	bool getIslConfig(IslConfig &cfg) const;
  private:

@@ -2028,7 +2028,7 @@ bool OpenSandModelConf::getTerminalAffectation(spot_id_t &default_spot_id,
 }
 
 
-const std::unordered_set<tal_id_t> OpenSandModelConf::getEntitiesHandledBySat(tal_id_t sat_id) const {
+std::unordered_set<tal_id_t> OpenSandModelConf::getEntitiesHandledBySat(tal_id_t sat_id) const {
 	std::unordered_set<tal_id_t> handled_entities;
 	for (auto &&spot_entity: spot_entities) {
 		auto &tal_ids = spot_entity.second;
@@ -2044,7 +2044,7 @@ const std::unordered_set<tal_id_t> &OpenSandModelConf::getEntitiesInSpot(spot_id
 	return spot_entities.at(spot_id);
 }
 
-const std::unordered_set<spot_id_t> OpenSandModelConf::getSpotsByEntity(tal_id_t tal_id) const
+std::unordered_set<spot_id_t> OpenSandModelConf::getSpotsByEntity(tal_id_t tal_id) const
 {
 	std::unordered_set<spot_id_t> spots;
 	for (auto &&spot_entity: spot_entities)
