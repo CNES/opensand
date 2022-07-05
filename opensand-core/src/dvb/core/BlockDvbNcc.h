@@ -61,7 +61,7 @@
  */
 
 #ifndef BLOCK_DVB_NCC_H
-#define BLOCk_DVB_NCC_H
+#define BLOCK_DVB_NCC_H
 
 #include "BlockDvb.h"
 
