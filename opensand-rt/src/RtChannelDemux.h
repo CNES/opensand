@@ -135,8 +135,7 @@ void RtChannelDemux<Key>::addNextFifo(Key key, std::shared_ptr<RtFifo> &fifo)
 {
 	bool actually_inserted = this->next_fifos.emplace(key, fifo).second;
 	if (!actually_inserted) {
-		LOG(this->log_init, LEVEL_ERROR,
-		    "Cannot add next FIFO: a FIFO already exists with this key");
+		std::cout << "ERROR: Cannot add next FIFO: a FIFO already exists with this key\n";
 	}
 };
 
