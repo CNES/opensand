@@ -86,7 +86,8 @@ void OpenSandModelConf::createModels()
 	types->addEnumType("log_level", "Log Level", {"debug", "info", "notice", "warning", "error", "critical"});
 	types->addEnumType("entity_type", "Entity Type", {"Gateway", "Gateway Net Access", "Gateway Phy", "Satellite", "Satellite Regen", "Terminal"});
 	types->addEnumType("sat_regen_level", "Regeneration Level for Satellite", {"BBFrame", "IP"});
-	types->addEnumType("isl_type", "Type of ISL", {"LanAdaptation", "Interconnect", "None"});
+	types->addEnumType("isl_type_regen", "Type of ISL", {"LanAdaptation", "Interconnect", "None"});
+	types->addEnumType("isl_type_transp", "Type of ISL", {"Interconnect", "None"});
 
 	auto entity = infrastructure_model->getRoot()->addComponent("entity", "Emulated Entity");
 	auto entity_type = entity->addParameter("entity_type", "Entity Type", types->getType("entity_type"));
@@ -99,9 +100,8 @@ void OpenSandModelConf::createModels()
 		expected_str->set("Satellite");
 		satellite->addParameter("entity_id", "Satellite ID", types->getType("int"));
 		satellite->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
-		auto isl_type = satellite->addParameter("isl_type", "ISL Type", types->getType("isl_type"),
-		                                        "Whether the ISL packets should be routed by OpenSAND (Interconnect) "
-		                                        "or by the network (LanAdaptation). Set to \"None\" to disable ISL.");
+		auto isl_type = satellite->addParameter("isl_type", "ISL Type", types->getType("isl_type_transp"),
+		                                        "Enable inter-satellite communication with an Interconnect block, or disable it (\"None\")");
 
 		// Interconnect params
 		auto interco_params = satellite->addComponent("interconnect_params", "Interconnect", "Interconnect parameters");
@@ -124,11 +124,6 @@ void OpenSandModelConf::createModels()
 		interco_params->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("int"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("int"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
-		// LanAdaptation params
-		auto lan_params = satellite->addComponent("lan_adaptation", "Lan Adaptation", "Lan Adaptation parameters");
-		infrastructure_model->setReference(lan_params, isl_type);
-		lan_params->getReferenceData()->fromString("LanAdaptation");
-		lan_params->addParameter("tap_name", "TAP Name", types->getType("string"), "Name of the TAP interface");
 	}
 
 	auto satellite_regen = entity->addComponent("entity_sat_regen", "Satellite", "Specific infrastructure information for a Regenerative Satellite");
@@ -142,7 +137,7 @@ void OpenSandModelConf::createModels()
 	infrastructure_model->setReference(mesh, regen_level);
 	mesh->getReferenceData()->fromString("IP");
 
-	auto isl_type = satellite_regen->addParameter("isl_type", "ISL Type", types->getType("isl_type"),
+	auto isl_type = satellite_regen->addParameter("isl_type", "ISL Type", types->getType("isl_type_regen"),
 	                                              "Whether the ISL packets should be routed by OpenSAND (Interconnect) "
 	                                              "or by the network (LanAdaptation). Set to \"None\" to disable ISL.");
 
