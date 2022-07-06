@@ -46,10 +46,12 @@ libopensand_plugin_la_h = \
 	PhysicalLayerPlugin.h 
 
 libopensand_utils_la_cpp = \
-	UdpChannel.cpp
+	UdpChannel.cpp \
+	SpotComponentPair.cpp
 
 libopensand_utils_la_h = \
-	UdpChannel.h
+	UdpChannel.h \
+	SpotComponentPair.h
 
 libopensand_utils_la_CPPFLAGS = \
 	$(AM_CPPFLAGS)

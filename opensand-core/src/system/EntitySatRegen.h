@@ -81,6 +81,7 @@ class EntitySatRegen: public Entity
   private:
 	std::string ip_address;
 	tal_id_t instance_id;
+	IslConfig isl_config;
 };
 
 #endif

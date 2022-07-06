@@ -59,13 +59,13 @@ bool BlockMesh::onInit()
 		return false;
 	}
 
-	auto handled_entities = conf->getEntitiesHandledBySat(entity_id);
-	upward->handled_entities = handled_entities;
-	downward->handled_entities = handled_entities;
+	// auto handled_entities = conf->getEntitiesHandledBySat(entity_id);
+	// upward->handled_entities = handled_entities;
+	// downward->handled_entities = handled_entities;
 
-	std::stringstream ss;
-	std::copy(handled_entities.begin(), handled_entities.end(), std::ostream_iterator<tal_id_t>{ss, " "});
-	LOG(log_init, LEVEL_INFO, "Handled entities: %s", ss.str().c_str());
+	// std::stringstream ss;
+	// std::copy(handled_entities.begin(), handled_entities.end(), std::ostream_iterator<tal_id_t>{ss, " "});
+	// LOG(log_init, LEVEL_INFO, "Handled entities: %s", ss.str().c_str());
 
 	tal_id_t default_entity;
 	if (!conf->getDefaultEntityForSat(entity_id, default_entity))
@@ -239,7 +239,7 @@ bool BlockMesh::Upward::sendViaIsl(std::unique_ptr<const NetBurst> burst)
 /*****************************************************************************/
 
 BlockMesh::Downward::Downward(const std::string &name, tal_id_t UNUSED(sat_id)):
-    RtDownwardDemux<SatDemuxKey>(name) {}
+    RtDownwardDemux<SpotComponentPair>(name) {}
 
 bool BlockMesh::Downward::onInit()
 {
@@ -300,7 +300,7 @@ bool BlockMesh::Downward::handleMessageEvent(const MessageEvent *event)
 		}
 		case InternalMessageType::msg_sig:
 		{
-			LOG(log_receive, LEVEL_DEBUG, "Received a control message");
+			// LOG(log_receive, LEVEL_DEBUG, "Received a control message");
 			auto dvb_frame = static_cast<const DvbFrame *>(event->getData());
 			return handleControlMsg(std::unique_ptr<const DvbFrame>{dvb_frame});
 		}
@@ -374,7 +374,7 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 			}
 			else
 			{
-				LOG(log_receive, LEVEL_ERROR, "Destination of the packet is neither a terminal nor a gateway");
+				LOG(log_receive, LEVEL_ERROR, "Destination of the packet (%d) is neither a terminal nor a gateway", dest_entity);
 				return false;
 			}
 		}
@@ -416,7 +416,7 @@ bool BlockMesh::Downward::handleNetBurst(std::unique_ptr<const NetBurst> burst)
 		}
 		else
 		{
-			LOG(log_receive, LEVEL_ERROR, "Source of the packet is neither a terminal nor a gateway");
+			LOG(log_receive, LEVEL_ERROR, "Source of the packet (%d) is neither a terminal nor a gateway", src_entity);
 			return false;
 		}
 	}
@@ -434,7 +434,7 @@ bool BlockMesh::Downward::handleControlMsg(std::unique_ptr<const DvbFrame> frame
 		case EmulatedMessageType::SessionLogonReq:
 		case EmulatedMessageType::SessionLogoff:
 		{
-			SatDemuxKey key{frame->getSpot(), Component::gateway};
+			SpotComponentPair key{frame->getSpot(), Component::gateway};
 			return sendToLowerBlock(key, std::move(frame));
 		}
 
@@ -443,7 +443,7 @@ bool BlockMesh::Downward::handleControlMsg(std::unique_ptr<const DvbFrame> frame
 		case EmulatedMessageType::Ttp:
 		case EmulatedMessageType::SessionLogonResp:
 		{
-			SatDemuxKey key{frame->getSpot(), Component::terminal};
+			SpotComponentPair key{frame->getSpot(), Component::terminal};
 			return sendToLowerBlock(key, std::move(frame));
 		}
 
@@ -454,7 +454,7 @@ bool BlockMesh::Downward::handleControlMsg(std::unique_ptr<const DvbFrame> frame
 	}
 }
 
-bool BlockMesh::Downward::sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const NetBurst> burst)
+bool BlockMesh::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_ptr<const NetBurst> burst)
 {
 	LOG(log_send, LEVEL_DEBUG, "Sending a NetBurst to the lower block, in the spot %d %s stack",
 	    key.spot_id, key.dest == Component::gateway ? "GW" : "ST");
@@ -470,10 +470,10 @@ bool BlockMesh::Downward::sendToLowerBlock(SatDemuxKey key, std::unique_ptr<cons
 	return true;
 }
 
-bool BlockMesh::Downward::sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const DvbFrame> frame)
+bool BlockMesh::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_ptr<const DvbFrame> frame)
 {
-	LOG(log_send, LEVEL_DEBUG, "Sending a control DVB frame to the lower block, in the spot %d %s stack",
-	    key.spot_id, key.dest == Component::gateway ? "GW" : "ST");
+	// LOG(log_send, LEVEL_DEBUG, "Sending a control DVB frame to the lower block, in the spot %d %s stack",
+	    // key.spot_id, key.dest == Component::gateway ? "GW" : "ST");
 	auto frame_ptr = frame.release();
 	bool ok = enqueueMessage(key, (void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_sig));
 	if (!ok)

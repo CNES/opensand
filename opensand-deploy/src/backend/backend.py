@@ -280,7 +280,8 @@ def create_default_topology(meta_model):
 
     spot = _create_list_item(_get_component(topology, 'frequency_plan'), 'spots')
     _set_parameter(_get_component(spot, 'assignments'), 'gateway_id', 0)
-    _set_parameter(_get_component(spot, 'assignments'), 'satellite_id', 2)
+    _set_parameter(_get_component(spot, 'assignments'), 'sat_id_gw', 2)
+    _set_parameter(_get_component(spot, 'assignments'), 'sat_id_st', 2)
     _set_parameter(_get_component(spot, 'roll_off'), 'forward', 0.35)
     _set_parameter(_get_component(spot, 'roll_off'), 'return', 0.2)
     forward_carrier = _create_list_item(spot, 'forward_band')

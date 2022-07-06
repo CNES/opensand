@@ -51,6 +51,7 @@
 #include <opensand_output/Output.h>
 
 #include "OpenSandCore.h"
+#include "SpotComponentPair.h"
 
 
 namespace OpenSANDConf {
@@ -159,8 +160,8 @@ class OpenSandModelConf
 	Component getComponentType() const;
 	bool getComponentType(std::string &type, tal_id_t &id) const;
 	bool getSatInfrastructure(std::string &ip_address) const;
-	/*
-	 * Brief: get infrastructure informations for ground entities
+	/**
+	 * @brief: get infrastructure informations for ground entities
 	 *
 	 * @param: ip_address    Emulation Network IP address (except for Gateway Net Access:
 	 *                       interconnection network IP) this entity is listening on.
@@ -215,12 +216,16 @@ class OpenSandModelConf
 	bool getTerminalAffectation(spot_id_t &default_spot_id,
 	                            std::string &default_category_name,
 	                            std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
-	
-	std::unordered_set<tal_id_t> getEntitiesHandledBySat(tal_id_t sat_id) const;
-	const std::unordered_set<tal_id_t> &getEntitiesInSpot(spot_id_t spot_id) const;
-	std::unordered_set<spot_id_t> getSpotsByEntity(tal_id_t tal_id) const;
 
+	const std::unordered_map<spot_id_t, SpotTopology> &getSpotsTopology() const;
 	bool getIslConfig(IslConfig &cfg) const;
+
+	/**
+	 * @brief Returns a map containing the ID of the satellite responsible for 
+	 * communicating with GW or ST for each spot.
+	 */
+	std::unordered_map<SpotComponentPair, tal_id_t> getIslRoutes() const;
+
  private:
 	OpenSandModelConf();
 
@@ -235,7 +240,7 @@ class OpenSandModelConf
 	std::shared_ptr<OutputLog> log;
 	
 	std::unordered_map<tal_id_t, Component> entities_type;
-	std::unordered_map<spot_id_t, std::unordered_set<tal_id_t>> spot_entities;
+	std::unordered_map<spot_id_t, SpotTopology> spots_topology;
 
 	bool getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot &spot, bool forward) const;
 };

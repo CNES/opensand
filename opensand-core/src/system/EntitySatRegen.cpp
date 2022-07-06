@@ -36,10 +36,12 @@
  * @author Mathias Ettinger <mathias.ettinger@viveris.fr>
  * @author Yohan Simard <yohan.simard@viveris.fr>
  *
- * SE uses the following stack of mgl blocs installed over 1 NIC:
- *
  * <pre>
+ *
  *  ┌───────────────────────┐
+ *  │ LanAdaptation/Interco │
+ *  └─────┬──────────▲──────┘
+ *  ┌─────▼──────────┴──────┐
  *  │      BlockMesh        │
  *  └──┬────▲───────┬────▲──┘
  *  ┌──▼────┴──┐ ┌──▼────┴──┐
@@ -48,9 +50,9 @@
  *  ┌──▼────┴──┐ ┌──▼────┴──┐
  *  │SatCarrier│ │SatCarrier│
  *  └──────────┘ └──────────┘
- *      
+ *
  *   terminals     gateways
- * 
+ *
  * </pre>
  *
  */
@@ -61,6 +63,8 @@
 #include "BlockDvbNcc.h"
 #include "BlockDvbTal.h"
 #include "BlockEncap.h"
+#include "BlockInterconnect.h"
+#include "BlockLanAdaptation.h"
 #include "BlockMesh.h"
 #include "BlockSatCarrier.h"
 
@@ -75,42 +79,70 @@ bool EntitySatRegen::createSpecificBlocks()
 	try
 	{
 		auto conf = OpenSandModelConf::Get();
-		auto spot_ids = conf->getSpotsByEntity(instance_id);
+		auto &spot_topo = conf->getSpotsTopology();
 
 		bool disable_ctrl_plane;
 		if (!conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
 
 		auto block_mesh = Rt::createBlock<BlockMesh>("Mesh", instance_id);
 
-		for (auto &&spot_id: spot_ids)
+		if (isl_config.type == IslType::Interconnect)
 		{
+			auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect", isl_config.interco_addr);
+			Rt::connectBlocks(block_interco, block_mesh);
+		}
+		else if (isl_config.type == IslType::LanAdaptation)
+		{
+			// TODO
+		}
+
+		for (auto &&spot: spot_topo)
+		{
+			const SpotTopology &topo = spot.second;
+			const spot_id_t spot_id = spot.first;
 			auto spot_id_str = std::to_string(spot_id);
 
-			dvb_specific dvb_spec;
-			dvb_spec.disable_control_plane = disable_ctrl_plane;
-			dvb_spec.disable_acm_loop = false;
-			dvb_spec.mac_id = instance_id;
-			dvb_spec.spot_id = spot_id;
-			auto block_dvb_ncc = Rt::createBlock<BlockDvbNcc>("DvbNcc" + spot_id_str, dvb_spec);
-			auto block_dvb_tal = Rt::createBlock<BlockDvbTal>("DvbTal" + spot_id_str, dvb_spec);
+			if (topo.sat_id_gw == instance_id)
+			{
+				dvb_specific dvb_spec;
+				dvb_spec.disable_control_plane = disable_ctrl_plane;
+				dvb_spec.disable_acm_loop = false;
+				dvb_spec.mac_id = instance_id;
+				dvb_spec.spot_id = spot_id;
+				auto block_dvb_tal = Rt::createBlock<BlockDvbTal>("DvbTal" + spot_id_str, dvb_spec);
 
-			sc_specific specific;
-			specific.ip_addr = ip_address;
-			specific.tal_id = instance_id;
-			specific.spot_id = spot_id;
-			specific.destination_host = Component::gateway;
-			auto block_sc_gw = Rt::createBlock<BlockSatCarrier>("SatCarrierGw" + spot_id_str, specific);
+				sc_specific specific;
+				specific.ip_addr = ip_address;
+				specific.tal_id = instance_id;
+				specific.spot_id = spot_id;
+				specific.destination_host = Component::gateway;
+				auto block_sc_gw = Rt::createBlock<BlockSatCarrier>("SatCarrierGw" + spot_id_str, specific);
 
-			specific.destination_host = Component::terminal;
-			auto block_sc_st = Rt::createBlock<BlockSatCarrier>("SatCarrierSt" + spot_id_str, specific);
+				// Not a typo, the DVB Tal block communicates with the gateway
+				Rt::connectBlocks(block_mesh, block_dvb_tal, {spot_id, Component::gateway});
+				Rt::connectBlocks(block_dvb_tal, block_sc_gw);
+			}
 
-			// Not a typo:
-			// The DVB NCC block communicates with the terminals
-			Rt::connectBlocks(block_mesh, block_dvb_ncc, {spot_id, Component::terminal});
-			// The DVB Tal block communicates with the gateways
-			Rt::connectBlocks(block_mesh, block_dvb_tal, {spot_id, Component::gateway});
-			Rt::connectBlocks(block_dvb_tal, block_sc_gw);
-			Rt::connectBlocks(block_dvb_ncc, block_sc_st);
+			if (topo.sat_id_st == instance_id)
+			{
+				dvb_specific dvb_spec;
+				dvb_spec.disable_control_plane = disable_ctrl_plane;
+				dvb_spec.disable_acm_loop = false;
+				dvb_spec.mac_id = instance_id;
+				dvb_spec.spot_id = spot_id;
+				auto block_dvb_ncc = Rt::createBlock<BlockDvbNcc>("DvbNcc" + spot_id_str, dvb_spec);
+
+				sc_specific specific;
+				specific.ip_addr = ip_address;
+				specific.tal_id = instance_id;
+				specific.spot_id = spot_id;
+				specific.destination_host = Component::terminal;
+				auto block_sc_st = Rt::createBlock<BlockSatCarrier>("SatCarrierSt" + spot_id_str, specific);
+
+				// Not a typo, the DVB NCC block communicates with the terminals
+				Rt::connectBlocks(block_mesh, block_dvb_ncc, {spot_id, Component::terminal});
+				Rt::connectBlocks(block_dvb_ncc, block_sc_st);
+			}
 		}
 	}
 	catch (const std::bad_alloc &e)
@@ -132,6 +164,8 @@ void defineProfileMetaModel()
 	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
 	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
 	BlockEncap::generateConfiguration();
+	BlockInterconnectUpward::generateConfiguration();
+	BlockLanAdaptation::generateConfiguration();
 }
 
 bool EntitySatRegen::loadConfiguration(const std::string &profile_path)
@@ -142,7 +176,7 @@ bool EntitySatRegen::loadConfiguration(const std::string &profile_path)
 	{
 		return false;
 	}
-	return Conf->getSatInfrastructure(this->ip_address);
+	return Conf->getSatInfrastructure(this->ip_address) && Conf->getIslConfig(this->isl_config);
 }
 
 bool EntitySatRegen::createSpecificConfiguration(const std::string &filepath) const

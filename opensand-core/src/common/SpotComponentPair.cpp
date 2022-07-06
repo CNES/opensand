@@ -27,14 +27,15 @@
  */
 
 /**
- * @file SatDemuxKey.cpp
- * @brief The demux key to select the right network stack in the satellite
+ * @file SpotComponentPair.cpp
+ * @brief A simple struct containing a spot ID and a component type.
+ *        It is used as demux key to select the right network stack in the satellite.
  * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
-#include "SatDemuxKey.h"
+#include "SpotComponentPair.h"
 
-bool SatDemuxKey::operator==(SatDemuxKey o) const
+bool SpotComponentPair::operator==(SpotComponentPair o) const
 {
 	return spot_id == o.spot_id && dest == o.dest;
 }

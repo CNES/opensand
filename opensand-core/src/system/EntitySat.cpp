@@ -78,8 +78,8 @@ bool EntitySat::createSpecificBlocks()
 	try
 	{
 		auto conf = OpenSandModelConf::Get();
-		auto spot_ids = conf->getSpotsByEntity(instance_id);
-		
+		auto &spot_topo = conf->getSpotsTopology();
+
 		TranspConfig transp_cfg;
 		transp_cfg.entity_id = instance_id;
 		transp_cfg.isl_enabled = isl_config.type != IslType::None;
@@ -96,24 +96,35 @@ bool EntitySat::createSpecificBlocks()
 			return false;
 		}
 
-		for (auto &&spot_id: spot_ids)
+		for (auto &&spot: spot_topo)
 		{
-			struct sc_specific specific;
-			specific.ip_addr = ip_address;
-			specific.tal_id = instance_id;
-			specific.spot_id = spot_id;
-			specific.destination_host = Component::gateway;
-			std::ostringstream gw_name;
-			gw_name << "SatCarrierGw" << spot_id;
-			auto block_sc_gw = Rt::createBlock<BlockSatCarrier>(gw_name.str(), specific);
+			const SpotTopology &topo = spot.second;
+			const spot_id_t spot_id = spot.first;
+			auto spot_id_str = std::to_string(spot_id);
 
-			specific.destination_host = Component::terminal;
-			std::ostringstream st_name;
-			st_name << "SatCarrierSt" << spot_id;
-			auto block_sc_st = Rt::createBlock<BlockSatCarrier>(st_name.str(), specific);
+			if (topo.sat_id_gw == instance_id)
+			{
+				sc_specific specific;
+				specific.ip_addr = ip_address;
+				specific.tal_id = instance_id;
+				specific.spot_id = spot_id;
+				specific.destination_host = Component::gateway;
+				auto block_sc_gw = Rt::createBlock<BlockSatCarrier>("SatCarrierGw" + spot_id_str, specific);
 
-			Rt::connectBlocks(block_transp, block_sc_gw, {spot_id, Component::gateway});
-			Rt::connectBlocks(block_transp, block_sc_st, {spot_id, Component::terminal});
+				Rt::connectBlocks(block_transp, block_sc_gw, {spot_id, Component::gateway});
+			}
+
+			if (topo.sat_id_st == instance_id)
+			{
+				sc_specific specific;
+				specific.ip_addr = ip_address;
+				specific.tal_id = instance_id;
+				specific.spot_id = spot_id;
+				specific.destination_host = Component::terminal;
+				auto block_sc_st = Rt::createBlock<BlockSatCarrier>("SatCarrierSt" + spot_id_str, specific);
+
+				Rt::connectBlocks(block_transp, block_sc_st, {spot_id, Component::terminal});
+			}
 		}
 	}
 	catch (const std::bad_alloc &e)

@@ -38,6 +38,7 @@
 #include <type_traits>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 #include <stdint.h>
 #include <cmath>
@@ -317,6 +318,14 @@ typedef uint8_t fmt_id_t;  ///< fmt id
  *  +-----------------------> time
  */
 
+struct SpotTopology
+{
+	spot_id_t spot_id;
+	tal_id_t gw_id;
+	std::unordered_set<tal_id_t> st_ids; ///< the terminals that belong to the spot
+	tal_id_t sat_id_gw;                  ///< The satellite connected to the gateway of this spot
+	tal_id_t sat_id_st;                  ///< The satellite connected to the terminals of this spot
+};
 
 #endif
 

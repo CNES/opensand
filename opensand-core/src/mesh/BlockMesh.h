@@ -38,15 +38,14 @@
 #include "DvbFrame.h"
 #include "NetBurst.h"
 #include "OpenSandModelConf.h"
-#include "SatDemuxKey.h"
+#include "SpotComponentPair.h"
 #include "UdpChannel.h"
 #include <memory>
 #include <opensand_rt/Rt.h>
-#include <opensand_rt/RtChannelMux.h>
 #include <opensand_rt/RtChannelDemux.h>
+#include <opensand_rt/RtChannelMux.h>
 #include <string>
 #include <unordered_set>
-
 
 class MessageEvent;
 
@@ -82,7 +81,7 @@ class BlockMesh: public Block
 		std::unique_ptr<UdpChannel> isl_out_channel;
 	};
 
-	class Downward: public RtDownwardDemux<SatDemuxKey>
+	class Downward: public RtDownwardDemux<SpotComponentPair>
 	{
 	  public:
 		Downward(const std::string &name, tal_id_t sat_id);
@@ -97,8 +96,8 @@ class BlockMesh: public Block
 		bool handleNetBurst(std::unique_ptr<const NetBurst> burst);
 		bool handleControlMsg(std::unique_ptr<const DvbFrame> msg_event);
 		bool sendToOppositeChannel(std::unique_ptr<const NetBurst> burst);
-		bool sendToLowerBlock(SatDemuxKey dest, std::unique_ptr<const NetBurst> burst);
-		bool sendToLowerBlock(SatDemuxKey dest, std::unique_ptr<const DvbFrame> frame);
+		bool sendToLowerBlock(SpotComponentPair dest, std::unique_ptr<const NetBurst> burst);
+		bool sendToLowerBlock(SpotComponentPair dest, std::unique_ptr<const DvbFrame> frame);
 
 		OpenSandModelConf::carrier_socket isl_in;
 		bool mesh_architecture;

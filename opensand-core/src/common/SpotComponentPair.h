@@ -27,29 +27,30 @@
  */
 
 /**
- * @file SatDemuxKey.h
- * @brief The demux key to select the right network stack in the satellite
+ * @file SpotComponentPair.h
+ * @brief A simple struct containing a spot ID and a component type.
+ *        It is used as demux key to select the right network stack in the satellite.
  * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
-#ifndef SATDEMUXKEY_H
-#define SATDEMUXKEY_H
+#ifndef SPOTCOMPONENTPAIR_H
+#define SPOTCOMPONENTPAIR_H
 
 #include "OpenSandCore.h"
 
-struct SatDemuxKey
+struct SpotComponentPair
 {
 	spot_id_t spot_id;
 	Component dest;
-	bool operator==(SatDemuxKey o) const;
+	bool operator==(SpotComponentPair o) const;
 };
 
 namespace std
 {
 template <>
-struct hash<SatDemuxKey>
+struct hash<SpotComponentPair>
 {
-	size_t operator()(const SatDemuxKey &k) const
+	size_t operator()(const SpotComponentPair &k) const
 	{
 		return 4 * k.spot_id + to_underlying(k.dest);
 	}

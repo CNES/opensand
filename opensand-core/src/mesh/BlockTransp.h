@@ -43,7 +43,7 @@
 #include <unordered_set>
 
 #include "DvbFrame.h"
-#include "SatDemuxKey.h"
+#include "SpotComponentPair.h"
 
 struct TranspConfig {
 	tal_id_t entity_id;
@@ -76,11 +76,13 @@ class BlockTransp: public Block
 		bool handleDvbFrame(std::unique_ptr<DvbFrame> burst);
 		bool sendToUpperBlock(std::unique_ptr<const DvbFrame> frame);
 		bool sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame);
-		std::unordered_set<spot_id_t> handled_spots;
+
+		tal_id_t entity_id;
+		std::unordered_map<SpotComponentPair, tal_id_t> routes;
 		bool isl_enabled;
 	};
 
-	class Downward: public RtDownwardDemux<SatDemuxKey>
+	class Downward: public RtDownwardDemux<SpotComponentPair>
 	{
 	  public:
 		Downward(const std::string &name, TranspConfig transp_config);
@@ -90,9 +92,11 @@ class BlockTransp: public Block
 
 		bool onEvent(const RtEvent *const event) override;
 		bool handleDvbFrame(std::unique_ptr<DvbFrame> burst);
-		bool sendToLowerBlock(SatDemuxKey key, std::unique_ptr<const DvbFrame> frame);
+		bool sendToLowerBlock(SpotComponentPair key, std::unique_ptr<const DvbFrame> frame);
 		bool sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame);
-		std::unordered_set<spot_id_t> handled_spots;
+
+		tal_id_t entity_id;
+		std::unordered_map<SpotComponentPair, tal_id_t> routes;
 		bool isl_enabled;
 	};
 
