@@ -2107,14 +2107,3 @@ bool OpenSandModelConf::getIslConfig(IslConfig &cfg) const
 	std::cout << "unknown isl type" << std::endl;
 	return false;
 }
-
-std::unordered_map<SpotComponentPair, tal_id_t> OpenSandModelConf::getIslRoutes() const
-{
-	std::unordered_map<SpotComponentPair, tal_id_t> routes;
-	for (auto &&spot: spots_topology) {
-		const SpotTopology &topo = spot.second;
-		routes[{topo.spot_id, Component::gateway}] = topo.sat_id_gw;
-		routes[{topo.spot_id, Component::terminal}] = topo.sat_id_st;
-	}
-	return routes;
-}

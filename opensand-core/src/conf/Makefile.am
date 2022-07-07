@@ -10,8 +10,6 @@ libopensand_conf_core_la_SOURCES = \
 	$(libopensand_conf_core_la_cpp) \
 	$(libopensand_conf_core_la_h)
 
-libopensand_conf_core_la_LIBADD = $(top_builddir)/src/common/libopensand_utils.la
-
 libopensand_conf_core_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/common \

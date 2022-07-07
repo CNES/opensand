@@ -79,7 +79,6 @@ class BlockTransp: public Block
 
 		tal_id_t entity_id;
 		std::unordered_map<SpotComponentPair, tal_id_t> routes;
-		bool isl_enabled;
 	};
 
 	class Downward: public RtDownwardDemux<SpotComponentPair>
@@ -97,11 +96,11 @@ class BlockTransp: public Block
 
 		tal_id_t entity_id;
 		std::unordered_map<SpotComponentPair, tal_id_t> routes;
-		bool isl_enabled;
 	};
 
   private:
 	tal_id_t entity_id;
+	bool isl_enabled;
 };
 
 #endif

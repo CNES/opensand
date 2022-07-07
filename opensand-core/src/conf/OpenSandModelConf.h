@@ -220,12 +220,6 @@ class OpenSandModelConf
 	const std::unordered_map<spot_id_t, SpotTopology> &getSpotsTopology() const;
 	bool getIslConfig(IslConfig &cfg) const;
 
-	/**
-	 * @brief Returns a map containing the ID of the satellite responsible for 
-	 * communicating with GW or ST for each spot.
-	 */
-	std::unordered_map<SpotComponentPair, tal_id_t> getIslRoutes() const;
-
  private:
 	OpenSandModelConf();
 

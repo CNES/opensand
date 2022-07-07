@@ -27,7 +27,8 @@ libopensand_plugin_la_cpp = \
 	StackPlugin.cpp \
 	EncapPlugin.cpp \
 	LanAdaptationPlugin.cpp \
-	PhysicalLayerPlugin.cpp 
+	PhysicalLayerPlugin.cpp \
+	SpotComponentPair.cpp
 
 libopensand_plugin_la_h = \
 	OpenSandPlugin.h \
@@ -43,15 +44,14 @@ libopensand_plugin_la_h = \
 	SarpTable.h \
 	EncapPlugin.h \
 	LanAdaptationPlugin.h \
-	PhysicalLayerPlugin.h 
+	PhysicalLayerPlugin.h \
+	SpotComponentPair.h
 
 libopensand_utils_la_cpp = \
-	UdpChannel.cpp \
-	SpotComponentPair.cpp
+	UdpChannel.cpp
 
 libopensand_utils_la_h = \
-	UdpChannel.h \
-	SpotComponentPair.h
+	UdpChannel.h
 
 libopensand_utils_la_CPPFLAGS = \
 	$(AM_CPPFLAGS)
