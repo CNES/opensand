@@ -603,7 +603,7 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 	}
 	LOG(this->log_receive, LEVEL_INFO,
 	    "%d %s packet => %zu %s packet(s)\n",
-	    nb_bursts, this->ctx_scpc[0]->getName().c_str(),
+	    nb_bursts, contexts[0]->getName().c_str(),
 	    burst->size(), burst->name().c_str());
 
 	if(burst->size() == 0)
