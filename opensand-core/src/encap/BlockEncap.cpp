@@ -431,17 +431,15 @@ error:
 bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 {
 	std::map<long, int> time_contexts;
-	std::vector<EncapPlugin::EncapContext *>::iterator iter;
 	std::string name;
 	size_t size;
-	bool status = false;
 
 	// check packet validity
-	if(burst == NULL)
+	if(burst == nullptr)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "burst is not valid\n");
-		goto error;
+		return false;
 	}
 
 	name = burst->name();
@@ -451,62 +449,62 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 	    size, name.c_str());
 
 	// encapsulate packet
-	for(iter = this->ctx.begin(); iter != this->ctx.end();
-	    iter++)
+	for(auto&& context : this->ctx)
 	{
-		burst = (*iter)->encapsulate(burst, time_contexts);
-		if(burst == NULL)
+		burst = context->encapsulate(burst, time_contexts);
+		if(burst == nullptr)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "encapsulation failed in %s context\n",
-			    (*iter)->getName().c_str());
-			goto error;
+			    context->getName().c_str());
+			return false;
 		}
 	}
 
 	// set encapsulate timers if needed
-	for(std::map<long, int>::iterator time_iter = time_contexts.begin();
-	    time_iter != time_contexts.end(); time_iter++)
+	for(auto&& time_iter : time_contexts)
 	{
-		std::map<event_id_t, int>::iterator it;
-		bool found = false;
-
 		// check if there is already a timer armed for the context
-		for(it = this->timers.begin(); !found && it != this->timers.end(); it++)
+		bool found = false;
+		for(auto&& it : this->timers)
 		{
-		    found = ((*it).second == (*time_iter).second);
+			if (it.second == time_iter.second)
+			{
+				found = true;
+				break;
+			}
 		}
 
 		// set a new timer if no timer was found and timer is not null
-		if(!found && (*time_iter).first != 0)
+		if(!found && time_iter.first != 0)
 		{
 			event_id_t timer;
 			std::ostringstream name;
 
-			name << "context_" << (*time_iter).second;
+			name << "context_" << time_iter.second;
 			timer = this->addTimerEvent(name.str(),
-			                            (*time_iter).first,
+			                            time_iter.first,
 			                            false);
 
-			this->timers.insert(std::make_pair(timer, (*time_iter).second));
+			this->timers.insert(std::make_pair(timer, time_iter.second));
 			LOG(this->log_receive, LEVEL_INFO,
 			    "timer for context ID %d armed with %ld ms\n",
-			    (*time_iter).second, (*time_iter).first);
+			    time_iter.second, time_iter.first);
 		}
 		else
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "timer already set for context ID %d\n",
-			    (*time_iter).second);
+			    time_iter.second);
 		}
 	}
 
 	// check burst validity
-	if(burst == NULL)
+	if(burst == nullptr)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "encapsulation failed\n");
-		goto error;
+		return false;
 	}
 
 	if(burst->size() > 0)
@@ -524,8 +522,8 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 	// if no encapsulation packet was created, avoid sending a message
 	if(burst->size() <= 0)
 	{
-		status = true;
-		goto clean;
+		delete burst;
+		return true;
 	}
 
 
@@ -534,7 +532,8 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to lower layer\n");
-		goto clean;
+		delete burst;
+		return false;
 	}
 
 	LOG(this->log_receive, LEVEL_INFO,
@@ -542,11 +541,6 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 
 	// everything is fine
 	return true;
-
-clean:
-	delete burst;
-error:
-	return status;
 }
 
 void BlockEncap::Upward::setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx)
@@ -577,16 +571,14 @@ void BlockEncap::Upward::setMacId(tal_id_t id)
 
 bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 {
-	std::vector <EncapPlugin::EncapContext *>::iterator iter;
 	unsigned int nb_bursts;
 
-
 	// check burst validity
-	if(burst == NULL)
+	if(burst == nullptr)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "burst is not valid\n");
-		goto error;
+		return false;
 	}
 
 	nb_bursts = burst->size();
@@ -594,51 +586,25 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 	    "message contains a burst of %d %s packet(s)\n",
 	    nb_bursts, burst->name().c_str());
 
-	if(burst->name() == this->scpc_encap &&
-	   OpenSandModelConf::Get()->isGw(this->mac_id))
-	{
-		// SCPC case
+	bool is_scpc = burst->name() == this->scpc_encap && OpenSandModelConf::Get()->isGw(this->mac_id);
+	auto &contexts = is_scpc ? this->ctx_scpc : this->ctx;
 
-		// iterate on all the deencapsulation contexts to get the ip packets
-		for(iter = this->ctx_scpc.begin();
-		    iter != this->ctx_scpc.end();
-		    ++iter)
-		{
-			burst = (*iter)->deencapsulate(burst);
-			if(burst == NULL)
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "deencapsulation failed in %s context\n",
-				    (*iter)->getName().c_str());
-				goto error;
-			}
-		}
-		LOG(this->log_receive, LEVEL_INFO,
-		    "%d %s packet => %zu %s packet(s)\n",
-		    nb_bursts, this->ctx_scpc[0]->getName().c_str(),
-		    burst->size(), burst->name().c_str());
-	}
-	else
+	// iterate on all the deencapsulation contexts to get the ip packets
+	for(auto&& context : contexts)
 	{
-		// iterate on all the deencapsulation contexts to get the ip packets
-		for(iter = this->ctx.begin(); 
-		    iter != this->ctx.end();
-		    ++iter)
+		burst = context->deencapsulate(burst);
+		if(burst == nullptr)
 		{
-			burst = (*iter)->deencapsulate(burst);
-			if(burst == NULL)
-			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "deencapsulation failed in %s context\n",
-				    (*iter)->getName().c_str());
-				goto error;
-			}
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "deencapsulation failed in %s context\n",
+			    context->getName().c_str());
+			return false;
 		}
-		LOG(this->log_receive, LEVEL_INFO,
-		    "%d %s packet => %zu %s packet(s)\n",
-		    nb_bursts, this->ctx[0]->getName().c_str(),
-		    burst->size(), burst->name().c_str());
 	}
+	LOG(this->log_receive, LEVEL_INFO,
+	    "%d %s packet => %zu %s packet(s)\n",
+	    nb_bursts, this->ctx_scpc[0]->getName().c_str(),
+	    burst->size(), burst->name().c_str());
 
 	if(burst->size() == 0)
 	{
@@ -660,10 +626,8 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 
 	// everthing is fine
 	return true;
-
-error:
-	return false;
 }
+
 
 bool BlockEncap::getEncapContext(EncapSchemeList scheme_list,
                                  LanAdaptationPlugin *l_plugin,

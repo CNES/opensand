@@ -318,13 +318,11 @@ bool DamaAgentRcs2::returnSchedule(std::list<DvbFrame *> *complete_dvb_frames)
 		return false;
 	}
 	// add modcod id in frames
-	for(std::list<DvbFrame *>::iterator it = complete_dvb_frames->begin();
-	    it != complete_dvb_frames->end(); ++it)
+	for (auto&& dvb_frame: *complete_dvb_frames)
 	{
-		if((*it)->getMessageType() == EmulatedMessageType::DvbBurst)
+		if(dvb_frame->getMessageType() == EmulatedMessageType::DvbBurst)
 		{
-			//TODO: DvbRcsFrame *frame = dynamic_cast<DvbRcsFrame *>(*it); // Non-functional
-			DvbRcsFrame *frame = (DvbRcsFrame *)(*it);
+			DvbRcsFrame *frame = *dvb_frame;
 			frame->setModcodId(this->modcod_id);
 		}
 	}

@@ -118,23 +118,6 @@ class DvbFrameTpl: public NetContainer
 	};
 
 	/**
-	 * Duplicate a DVB frame
-	 *
-	 * @param frame  the DVB frame to duplicate
-	 */
-	DvbFrameTpl(DvbFrameTpl<> *frame):
-		NetContainer(frame->getData()),
-		max_size(frame->getMaxSize()),
-		carrier_id(frame->getCarrierId())
-	{
-		this->name = frame->getName();
-		this->data.reserve(this->max_size);
-		this->trailer_length = this->getTotalLength() - this->getMessageLength();
-		this->header_length = sizeof(T);
-		this->spot = frame->getSpot();
-	};
-
-	/**
 	 * Build an empty DVB frame
 	 */
 	DvbFrameTpl():

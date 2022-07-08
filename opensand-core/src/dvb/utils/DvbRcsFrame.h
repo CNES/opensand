@@ -48,7 +48,6 @@
 class DvbRcsFrame: public DvbFrameTpl<T_DVB_ENCAP_BURST>
 {
  public:
-
 	/**
 	 * Build a DVB-RCS frame
 	 *
@@ -71,13 +70,6 @@ class DvbRcsFrame: public DvbFrameTpl<T_DVB_ENCAP_BURST>
 	 * @param length  length of raw data
 	 */
 	DvbRcsFrame(const Data &data, size_t length);
-
-	/**
-	 * Duplicate a DVB-RCS frame
-	 *
-	 * @param frame  the DVB-RCS frame to duplicate
-	 */
-	DvbRcsFrame(DvbFrame *frame);
 
 	/**
 	 * Build an empty DVB-RCS frame

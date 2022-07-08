@@ -212,10 +212,8 @@ class Sac: public DvbFrameTpl<T_DVB_SAC>
 	static std::shared_ptr<OutputLog> sac_log;
 
  private:
-
 	/// the number of requests
 	uint8_t request_nbr;
-
 };
 
 

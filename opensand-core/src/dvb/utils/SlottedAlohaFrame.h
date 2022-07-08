@@ -70,13 +70,6 @@ class SlottedAlohaFrame: public DvbFrameTpl<T_DVB_SALOHA>
 	SlottedAlohaFrame(const Data &data, size_t length);
 
 	/**
-	 * Duplicate a Slotted Aloha frame
-	 *
-	 * @param frame  the Slotted Aloha frame to duplicate
-	 */
-	SlottedAlohaFrame(DvbFrame *frame);
-
-	/**
 	 * Build an empty Slotted Aloha frame
 	 */
 	SlottedAlohaFrame();

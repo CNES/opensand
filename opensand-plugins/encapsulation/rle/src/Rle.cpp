@@ -264,35 +264,38 @@ NetBurst *Rle::Context::encapsulate(NetBurst *burst,
 	NetBurst *encap_burst;
 
 	// Create a new burst
-	encap_burst = new NetBurst();
-	if(!encap_burst)
+	try
+	{
+		encap_burst = new NetBurst();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
 			"cannot allocate memory for burst of network "
 			"packets\n");
 		delete burst;
-		return NULL;
+		return nullptr;
 	}
 
 	// Encapsulate each packet of the burst
 	for(auto&& packet : *burst)
 	{
-    try
-    {
-      // Create a new packet (already encapsulated)
-      std::unique_ptr<NetPacket> encap_packet{new NetPacket(packet->getData(),
-                                                            packet->getTotalLength(),
-                                                            this->getName(),
-                                                            this->getEtherType(),
-                                                            packet->getQos(),
-                                                            packet->getSrcTalId(),
-                                                            packet->getDstTalId(),
-                                                            0)};
-      encap_packet->setSpot(packet->getSpot());
+		try
+		{
+			// Create a new packet (already encapsulated)
+			std::unique_ptr<NetPacket> encap_packet{new NetPacket(packet->getData(),
+			                                                      packet->getTotalLength(),
+			                                                      this->getName(),
+			                                                      this->getEtherType(),
+			                                                      packet->getQos(),
+			                                                      packet->getSrcTalId(),
+			                                                      packet->getDstTalId(),
+			                                                      0)};
+			encap_packet->setSpot(packet->getSpot());
 
-      // Add the current encapsulated packet to the encapsulated burst
-      encap_burst->add(std::move(encap_packet));
-    }
+			// Add the current encapsulated packet to the encapsulated burst
+			encap_burst->add(std::move(encap_packet));
+		}
 		catch (const std::bad_alloc&)
 		{
 			LOG(this->log, LEVEL_ERROR,
@@ -310,14 +313,17 @@ NetBurst *Rle::Context::deencapsulate(NetBurst *burst)
 	NetBurst *decap_burst;
 
 	// Create a new burst
-	decap_burst = new NetBurst();
-	if(!decap_burst)
+	try
+	{
+		decap_burst = new NetBurst();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
 			"cannot allocate memory for burst of network "
 			"packets\n");
 		delete burst;
-		return NULL;
+		return nullptr;
 	}
 
 	// Decapsulate each packet of the burst
@@ -882,7 +888,7 @@ bool Rle::PacketHandler::getEncapsulatedPackets(std::unique_ptr<NetContainer> pa
 
 bool Rle::PacketHandler::getChunk(std::unique_ptr<NetPacket>,
                                   std::size_t,
-		                              std::unique_ptr<NetPacket>&,
+                                  std::unique_ptr<NetPacket>&,
                                   std::unique_ptr<NetPacket>&) const
 {
 	LOG(this->log, LEVEL_ERROR,

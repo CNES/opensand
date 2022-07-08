@@ -1233,7 +1233,7 @@ bool BlockDvbTal::Downward::initOutput(void)
 		this->log_saloha = output->registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
 	}
 
-	for(auto&& it = this->dvb_fifos)
+	for(auto&& it : this->dvb_fifos)
 	{
 		unsigned int id = it.first;
 

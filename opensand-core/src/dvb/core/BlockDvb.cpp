@@ -143,24 +143,21 @@ bool BlockDvb::DvbDownward::initDown(void)
 bool BlockDvb::DvbDownward::sendBursts(std::list<DvbFrame *> *complete_frames,
                                        uint8_t carrier_id)
 {
-  std::list<DvbFrame *>::iterator frame_it;
 	bool status = true;
 
 	// send all complete DVB-RCS frames
 	LOG(this->log_send, LEVEL_DEBUG,
 	    "send all %zu complete DVB frames...\n",
 	    complete_frames->size());
-	for(frame_it = complete_frames->begin();
-	    frame_it != complete_frames->end();
-	    ++frame_it)
+	for(auto&& frame: *complete_frames)
 	{
 		// Send DVB frames to lower layer
-		if(!this->sendDvbFrame(*frame_it, carrier_id))
+		if(!this->sendDvbFrame(frame, carrier_id))
 		{
 			status = false;
-			if(*frame_it)
+			if(frame)
 			{
-				delete *frame_it;
+				delete frame;
 			}
 			continue;
 		}
@@ -175,6 +172,7 @@ bool BlockDvb::DvbDownward::sendBursts(std::list<DvbFrame *> *complete_frames,
 	return status;
 }
 
+
 bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
                                          uint8_t carrier_id)
 {
@@ -182,7 +180,7 @@ bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "frame is %p\n", dvb_frame);
-		goto error;
+		return false;
 	}
 
 	dvb_frame->setCarrierId(carrier_id);
@@ -191,7 +189,7 @@ bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "empty frame, header and payload are not present\n");
-		goto error;
+		return false;
 	}
 
 	// send the message to the lower layer
@@ -200,18 +198,14 @@ bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "failed to send DVB frame to lower layer\n");
-		goto release_dvb_frame;
+		delete dvb_frame;
+		return false;
 	}
 	// TODO make a log_send_frame and a log_send_sig
 	LOG(this->log_send, LEVEL_INFO,
 	    "DVB frame sent to the lower layer\n");
 
 	return true;
-
-release_dvb_frame:
-	delete dvb_frame;
-error:
-	return false;
 }
 
 
@@ -219,6 +213,5 @@ bool BlockDvb::DvbDownward::onRcvEncapPacket(std::unique_ptr<NetPacket> packet,
                                              DvbFifo *fifo,
                                              time_ms_t fifo_delay)
 {
-  //TODO: lift off the release call in favor of std::move
 	return this->pushInFifo(fifo, std::move(packet), fifo_delay);
 }

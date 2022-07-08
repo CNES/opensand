@@ -48,6 +48,7 @@ SlottedAlohaFrame::SlottedAlohaFrame(const unsigned char *data, size_t length):
 	this->num_packets = this->getDataLength();
 }
 
+
 SlottedAlohaFrame::SlottedAlohaFrame(const Data &data):
 	DvbFrameTpl<T_DVB_SALOHA>(data)
 {
@@ -55,6 +56,7 @@ SlottedAlohaFrame::SlottedAlohaFrame(const Data &data):
 	this->setMaxSize(MSG_SALOHA_SIZE_MAX);
 	this->num_packets = this->getDataLength();
 }
+
 
 SlottedAlohaFrame::SlottedAlohaFrame(const Data &data, size_t length):
 	DvbFrameTpl<T_DVB_SALOHA>(data, length)
@@ -64,10 +66,6 @@ SlottedAlohaFrame::SlottedAlohaFrame(const Data &data, size_t length):
 	this->num_packets = this->getDataLength();
 }
 
-SlottedAlohaFrame::SlottedAlohaFrame(DvbFrame *frame):
-	DvbFrameTpl<T_DVB_SALOHA>(frame)
-{
-}
 
 SlottedAlohaFrame::SlottedAlohaFrame():
 	DvbFrameTpl<T_DVB_SALOHA>()

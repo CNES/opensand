@@ -72,13 +72,6 @@ class BBFrame: public DvbFrameTpl<T_DVB_BBFRAME>
 	BBFrame(const Data &data, size_t length);
 
 	/**
-	 * Duplicate a BB frame
-	 *
-	 * @param frame  the BB frame to duplicate
-	 */
-	BBFrame(DvbFrame *frame);
-
-	/**
 	 * Build an empty BB frame
 	 */
 	BBFrame();

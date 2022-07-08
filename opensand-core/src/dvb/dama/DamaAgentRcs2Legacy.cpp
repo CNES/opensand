@@ -31,7 +31,6 @@
  * @author  Audric Schiltknecht / Viveris Technologies
  * @author  Julien Bernard / Viveris Technologies
  * @author  Aurelien Delrieu / Viveris Technologies
- *
  */
 
 

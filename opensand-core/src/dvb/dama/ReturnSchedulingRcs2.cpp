@@ -44,6 +44,9 @@
 #include <algorithm>
 
 
+constexpr const uint32_t max_allocation = 1U << (8 * sizeof(vol_kb_t));
+
+
 typedef enum
 {
 	state_next_fifo,      // Go to the next fifo
@@ -56,6 +59,7 @@ typedef enum
 	state_error           // Error occurred
 } sched_state_t;
 
+
 ReturnSchedulingRcs2::ReturnSchedulingRcs2(
         EncapPlugin::EncapPacketHandler *packet_handler,
         const fifos_t &fifos):
@@ -64,10 +68,12 @@ ReturnSchedulingRcs2::ReturnSchedulingRcs2(
 {
 }
 
+
 vol_b_t ReturnSchedulingRcs2::getMaxBurstLength() const
 {
 	return this->max_burst_length_b;
 }
+
 
 void ReturnSchedulingRcs2::setMaxBurstLength(vol_b_t length_b)
 {
@@ -77,12 +83,13 @@ void ReturnSchedulingRcs2::setMaxBurstLength(vol_b_t length_b)
 	    this->max_burst_length_b, this->max_burst_length_b >> 3);
 }
 
+
 bool ReturnSchedulingRcs2::schedule(const time_sf_t current_superframe_sf,
                                     clock_t UNUSED(current_time),
                                     std::list<DvbFrame *> *complete_dvb_frames,
                                     uint32_t &remaining_allocation)
 {
-	if(remaining_allocation > (unsigned int)pow(2.0, 8 * sizeof(vol_kb_t)))
+	if(remaining_allocation > max_allocation)
 	{
 		LOG(this->log_scheduling, LEVEL_NOTICE,
 		    "Remaining allocation (%u) is too long and will be "
@@ -265,7 +272,7 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 				    "#%u\n", current_superframe_sf,
 				    sent_packets + 1);
 				delete elem;
-				elem = NULL;
+				elem = nullptr;
 				state = state_next_encap_pkt;
 				break;
 			}
@@ -471,12 +478,15 @@ bool ReturnSchedulingRcs2::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_fram
 {
 	vol_bytes_t length_bytes;
 
-	*incomplete_dvb_frame = new DvbRcsFrame();
-	if(*incomplete_dvb_frame == NULL)
+	try
+	{
+		*incomplete_dvb_frame = new DvbRcsFrame();
+	}
+	catch (const std::bad_alloc&)
 	{ 
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "failed to create DVB-RCS2 frame\n");
-		goto error;
+		return false;
 	}
 
 	// Get the max burst length
@@ -484,10 +494,10 @@ bool ReturnSchedulingRcs2::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_fram
 	if(length_bytes <= 0)
 	{
 		delete (*incomplete_dvb_frame);
-		*incomplete_dvb_frame = NULL;
+		*incomplete_dvb_frame = nullptr;
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "failed to create DVB-RCS2 frame: invalid burst length\n");
-		goto error;
+		return false;
 	}
 
 	length_bytes += (*incomplete_dvb_frame)->getHeaderLength();
@@ -509,7 +519,4 @@ bool ReturnSchedulingRcs2::allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_fram
 	    (*incomplete_dvb_frame)->getFreeSpace(),
 	    (*incomplete_dvb_frame)->getHeaderLength());
 	return true;
-
-error:
-	return false;
 }
