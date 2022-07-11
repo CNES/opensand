@@ -535,7 +535,7 @@ bool Gse::Context::encapVariableLength(NetPacket *packet, NetBurst *gse_packets)
 	}
 
 	// Copy data to buffer
-	status = gse_copy_data(this->vfrag_pkt, packet->getData().c_str(),
+	status = gse_copy_data(this->vfrag_pkt, packet->getRawData(),
 	                       packet->getTotalLength());
 	if(status != GSE_STATUS_OK)
 	{
@@ -755,10 +755,10 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 		// Create a virtual fragment containing the GSE packet
 		// TODO : this function could be optimized (preallocating vfrag_gse), but
 		// gse_deencap_packet call below frees vfrag struct (need to change that
-		// function in order to be no_alloc compatible). 
+		// function in order to be no_alloc compatible).
 		status = gse_create_vfrag_with_data(&vfrag_gse, (*packet)->getTotalLength(),
 		                                    0, 0,
-		                                    (*packet)->getData().c_str(),
+		                                    (*packet)->getRawData(),
 		                                    (*packet)->getTotalLength());
 		if(status != GSE_STATUS_OK)
 		{
@@ -1352,7 +1352,7 @@ bool Gse::PacketHandler::getChunk(std::unique_ptr<NetPacket> packet,
 	status = gse_create_vfrag_with_data(&first_frag,
 	                                    packet->getTotalLength(),
 	                                    GSE_MAX_REFRAG_HEAD_OFFSET, 0,
-	                                    packet->getData().c_str(),
+	                                    packet->getRawData(),
 	                                    packet->getTotalLength());
 	if(status != GSE_STATUS_OK)
 	{
@@ -1597,8 +1597,7 @@ bool Gse::PacketHandler::checkPacketForHeaderExtensions(std::unique_ptr<NetPacke
 	uint8_t indicator;
 	uint16_t protocol_type;
 
-	// TODO: check if removing const-ness is neccessary from the libGSE point of view, as we’re heading into UB territory
-	unsigned char *packet_data = const_cast<unsigned char *>(static_cast<const unsigned char *>(packet->getData().c_str()));
+	unsigned char *packet_data = packet->getRawData();
 
 	auto status = gse_get_start_indicator(packet_data, &indicator);
 	if(status != GSE_STATUS_OK)
@@ -1677,7 +1676,7 @@ bool Gse::PacketHandler::setHeaderExtensions(std::unique_ptr<NetPacket> packet,
 	// TODO : this could be optimized using no_alloc
 	status = gse_create_vfrag_with_data(&vfrag, GSE_MAX_PACKET_LENGTH,
 	                                    MAX_CNI_EXT_LEN, 0,
-	                                    (unsigned char *)packet->getData().c_str(),
+	                                    packet->getRawData(),
 	                                    packet->getTotalLength());
 
 	if(status != GSE_STATUS_OK)
@@ -1760,7 +1759,7 @@ bool Gse::PacketHandler::getHeaderExtensions(const std::unique_ptr<NetPacket>& p
 	status = gse_create_vfrag_with_data(&gse_data,
 	                                    packet->getTotalLength(),
 	                                    0, 0,
-	                                    packet->getData().c_str(),
+	                                    packet->getRawData(),
 	                                    packet->getTotalLength());
 	if(status != GSE_STATUS_OK)
 	{
@@ -1770,9 +1769,9 @@ bool Gse::PacketHandler::getHeaderExtensions(const std::unique_ptr<NetPacket>& p
 	}
 	
 	// Get the in-band extension
-	status = gse_deencap_get_header_ext((unsigned char *)packet->getData().c_str(),
-	                                     this->deencap_callback[callback_name],
-	                                     opaque);
+	status = gse_deencap_get_header_ext(packet->getRawData(),
+	                                    this->deencap_callback[callback_name],
+	                                    opaque);
 	if(status != GSE_STATUS_OK && status != GSE_STATUS_EXTENSION_UNAVAILABLE)
 	{
 		LOG(this->log, LEVEL_ERROR, 

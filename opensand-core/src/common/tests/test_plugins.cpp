@@ -564,7 +564,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 				{
 					memcpy(output_packet, output_header, src_link_len);
 				}
-				memcpy(output_packet + src_link_len, (*it)->getData().c_str(),
+				memcpy(output_packet + src_link_len, (*it)->getRawData(),
 				       (*it)->getTotalLength());
 				if(src_link_len == ETHER_HDR_LEN) /* Ethernet only */
 				{
@@ -610,7 +610,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 					continue;
 				}
 
-				if(!compare_packets((*it)->getData().c_str(),
+				if(!compare_packets((*it)->getRawData(),
 				                    (*it)->getTotalLength(),
 				                    cmp_packet + encap_link_len,
 				                    cmp_header.caplen - encap_link_len))
@@ -701,7 +701,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 					continue;
 				}
 
-				if(!compare_packets((*it2)->getData().c_str(),
+				if(!compare_packets((*it2)->getRawData(),
 				                    (*it2)->getTotalLength(),
 				                    cmp_packet + src_link_len,
 				                    cmp_header.caplen - src_link_len))

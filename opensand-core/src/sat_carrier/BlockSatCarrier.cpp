@@ -82,7 +82,7 @@ bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 			    event->getName().c_str());
 
 			if(!this->out_channel_set.send(dvb_frame->getCarrierId(),
-			                               dvb_frame->getData().c_str(),
+			                               dvb_frame->getRawData(),
 			                               dvb_frame->getTotalLength()))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,

@@ -123,6 +123,19 @@ class NetContainer
 	Data getData() const;
 
 	/**
+	 * Returns a const pointer to the raw data. 
+	 * Warning: the pointer is invalidated when the length of the string is modified.
+	 */
+	const uint8_t *getRawData() const;
+
+	/**
+	 * Returns a pointer to the raw data. 
+	 * Do not modify past the end of the string. 
+	 * Warning: the pointer is invalidated when the length of the string is modified.
+	 */
+	uint8_t *getRawData();
+
+	/**
 	 * Retrieve data from the desired position
 	 *
 	 * @param  the position of the data beginning

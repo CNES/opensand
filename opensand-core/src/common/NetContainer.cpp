@@ -93,12 +93,20 @@ Data NetContainer::getData() const
 	return this->data;
 }
 
+const uint8_t *NetContainer::getRawData() const
+{
+	return this->data.data();
+}
+
+uint8_t *NetContainer::getRawData()
+{
+	return &this->data[0];
+}
 
 Data NetContainer::getData(std::size_t pos) const
 {
 	return this->data.substr(pos, this->getTotalLength() - pos);
 }
-
 
 
 Data NetContainer::getPayload() const

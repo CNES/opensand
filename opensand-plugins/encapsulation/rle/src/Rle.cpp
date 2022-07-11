@@ -727,7 +727,7 @@ bool Rle::PacketHandler::encapNextPacket(std::unique_ptr<NetPacket> packet,
 		sdu.protocol_type = packet->getType();
 		sdu.size = packet->getTotalLength();
 		sdu.buffer = new unsigned char[sdu.size];
-		memcpy(sdu.buffer, packet->getData().c_str(), sdu.size);
+		memcpy(sdu.buffer, packet->getRawData(), sdu.size);
 
 		// Encapsulate RLE SDU
 		if(rle_encapsulate(transmitter, &sdu, frag_id) != 0)

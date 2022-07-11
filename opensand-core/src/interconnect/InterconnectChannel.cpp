@@ -155,8 +155,7 @@ bool InterconnectChannelSender::onTimerEvent()
 		assert(elem != nullptr);
 
 		auto container = elem->getElem<NetContainer>();
-		auto data = container->getData();
-		auto msg = reinterpret_cast<const interconnect_msg_buffer_t *>(data.data());
+		auto msg = reinterpret_cast<const interconnect_msg_buffer_t *>(container->getRawData());
 		bool is_sig = to_enum<InternalMessageType>(msg->msg_type) == InternalMessageType::msg_sig;
 		if (!sendBuffer(is_sig, *msg))
 		{
@@ -186,7 +185,7 @@ void InterconnectChannelSender::serialize(DvbFrame *dvb_frame,
 	pos += sizeof(spot);
 	memcpy(buf + pos, &carrier_id, sizeof(carrier_id));
 	pos += sizeof(carrier_id);
-	memcpy(buf + pos, dvb_frame->getData().c_str(),
+	memcpy(buf + pos, dvb_frame->getRawData(),
 	       dvb_frame->getTotalLength());
 	length = total_len;
 }
