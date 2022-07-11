@@ -99,6 +99,7 @@ class BlockInterconnectDownward: public Block
 		bool onEvent(const RtEvent *const event);
 
 	 private:
+		event_id_t delay_timer;
 	};
 
  protected:
@@ -147,6 +148,7 @@ class BlockInterconnectUpward: public Block
 		bool onEvent(const RtEvent *const event);
 
 	 private:
+		event_id_t delay_timer;
 	};
 
 	class Downward: public RtDownward, public InterconnectChannelReceiver

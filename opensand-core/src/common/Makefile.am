@@ -28,7 +28,8 @@ libopensand_plugin_la_cpp = \
 	EncapPlugin.cpp \
 	LanAdaptationPlugin.cpp \
 	PhysicalLayerPlugin.cpp \
-	SpotComponentPair.cpp
+	SpotComponentPair.cpp \
+	DelayFifo.cpp
 
 libopensand_plugin_la_h = \
 	OpenSandPlugin.h \
@@ -45,7 +46,8 @@ libopensand_plugin_la_h = \
 	EncapPlugin.h \
 	LanAdaptationPlugin.h \
 	PhysicalLayerPlugin.h \
-	SpotComponentPair.h
+	SpotComponentPair.h \
+	DelayFifo.h
 
 libopensand_utils_la_cpp = \
 	UdpChannel.cpp

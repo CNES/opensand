@@ -37,6 +37,7 @@
 
 #include <opensand_rt/MessageEvent.h>
 
+constexpr double POLLING_RATE = 10.0;
 
 BlockInterconnectDownward::BlockInterconnectDownward(const std::string &name,
                                                      const std::string &):
@@ -70,6 +71,13 @@ bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
 			}
 		}
 		break;
+
+		case EventType::Timer:
+			if (event->getFd() == delay_timer)
+			{
+				onTimerEvent();
+			}
+			break;
 
 		default:
 			LOG(this->log_interconnect, LEVEL_ERROR,
@@ -197,6 +205,8 @@ bool BlockInterconnectDownward::Downward::onInit()
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
+	delay_timer = this->addTimerEvent(name + ".delay_timer", POLLING_RATE);
+
 	return true;
 }
 
@@ -220,7 +230,7 @@ bool BlockInterconnectUpward::Downward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-    case EventType::NetSocket:
+		case EventType::NetSocket:
 		{
 			std::list<rt_msg_t> messages;
 
@@ -264,7 +274,7 @@ bool BlockInterconnectUpward::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
 			auto msg_event = static_cast<const MessageEvent*>(event);
 			rt_msg_t message = msg_event->getMessage();
@@ -278,6 +288,13 @@ bool BlockInterconnectUpward::Upward::onEvent(const RtEvent *const event)
 			}
 		}
 		break;
+
+		case EventType::Timer:
+			if (event->getFd() == delay_timer)
+			{
+				onTimerEvent();
+			}
+			break;
 
 		default:
 			LOG(this->log_interconnect, LEVEL_ERROR,
@@ -314,6 +331,8 @@ bool BlockInterconnectUpward::Upward::onInit(void)
 
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
+
+	delay_timer = this->addTimerEvent(name + ".delay_timer", POLLING_RATE);
 
 	return true;
 }

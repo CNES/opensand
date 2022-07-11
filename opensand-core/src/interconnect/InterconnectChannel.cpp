@@ -96,16 +96,11 @@ void InterconnectChannelSender::initUdpChannels(unsigned int data_port, unsigned
 	                                   wmem);
 }
 
-bool InterconnectChannelSender::sendBuffer(bool is_sig)
+bool InterconnectChannelSender::sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg)
 {
-	// Send the data
-	if(is_sig)
-	{
-		return this->sig_channel->send((const unsigned char *) &this->out_buffer,
-		                               this->out_buffer.data_len);
-	}
-	return this->data_channel->send((const unsigned char *) &this->out_buffer,
-	                                this->out_buffer.data_len);
+	auto buffer = reinterpret_cast<const uint8_t *>(&msg);
+	auto channel = is_sig ? this->sig_channel : this->data_channel;
+	return channel->send(buffer, msg.data_len);
 }
 
 /*
@@ -113,35 +108,63 @@ bool InterconnectChannelSender::sendBuffer(bool is_sig)
  */
 bool InterconnectChannelSender::send(rt_msg_t &message)
 {
-	uint32_t data_len;
+	time_ms_t current_time = getCurrentTime();
 
-  auto msg_type = to_enum<InternalMessageType>(message.type);
-	switch(msg_type)
+	interconnect_msg_buffer_t msg_buffer;
+	uint32_t len;
+
+	auto msg_type = to_enum<InternalMessageType>(message.type);
+	msg_buffer.msg_type = message.type;
+
+	// Serialize the message
+	if (msg_type == InternalMessageType::msg_data || msg_type == InternalMessageType::msg_sig)
 	{
-    case InternalMessageType::msg_sig:
-		case InternalMessageType::msg_data:
-			// Serialize the dvb_frame into the output buffer
-			this->serialize((DvbFrame *) message.data,
-			                this->out_buffer.msg_data, data_len);
-			break;
-		case InternalMessageType::msg_saloha:
-			this->serialize((std::list<DvbFrame *> *) message.data,
-			                this->out_buffer.msg_data, data_len);
-			break;
-		default:
-			LOG(this->log_interconnect, LEVEL_ERROR,
-			    "unknonw type of message received\n");
-			return false;
+		auto frame = std::unique_ptr<DvbFrame>{static_cast<DvbFrame *>(message.data)};
+		this->serialize(frame.get(), msg_buffer.msg_data, len);
 	}
-	this->out_buffer.msg_type = message.type;
-	this->out_buffer.data_len = data_len;
+	else if (msg_type == InternalMessageType::msg_saloha)
+	{
+		auto dvb_frames = std::unique_ptr<std::list<DvbFrame *>>{static_cast<std::list<DvbFrame *> *>(message.data)};
+		this->serialize(dvb_frames.get(), msg_buffer.msg_data, len);
+	}
+	else
+	{
+		LOG(this->log_interconnect, LEVEL_ERROR,
+		    "unsupported type of message received\n");
+		return false;
+	}
 
-	// Update total length with correct length
-	this->out_buffer.data_len += sizeof(this->out_buffer.msg_type) + 
-	                             sizeof(this->out_buffer.data_len);
+	// add the length of the other fields
+	msg_buffer.data_len = len + sizeof(msg_buffer.msg_type) + sizeof(msg_buffer.data_len);
 
-	// Send the message
-	return this->sendBuffer(msg_type == InternalMessageType::msg_sig);
+	// construct a NetContainer to store it in a FifoElement
+	auto buf = reinterpret_cast<const uint8_t *>(&msg_buffer);
+	std::unique_ptr<NetContainer> container{new NetContainer(buf, msg_buffer.data_len)};
+	FifoElement *elem = new FifoElement(std::move(container), current_time, current_time + delay);
+
+	return delay_fifo.pushBack(elem);
+}
+
+bool InterconnectChannelSender::onTimerEvent()
+{
+	time_ms_t current_time = getCurrentTime();
+
+	while (delay_fifo.getCurrentSize() > 0 && ((unsigned long)delay_fifo.getTickOut()) <= current_time)
+	{
+		FifoElement *elem = delay_fifo.pop();
+		assert(elem != nullptr);
+
+		auto container = elem->getElem<NetContainer>();
+		auto data = container->getData();
+		auto msg = reinterpret_cast<const interconnect_msg_buffer_t *>(data.data());
+		bool is_sig = to_enum<InternalMessageType>(msg->msg_type) == InternalMessageType::msg_sig;
+		if (!sendBuffer(is_sig, *msg))
+		{
+			LOG(this->log_interconnect, LEVEL_ERROR, "failed to send buffer\n");
+			return false;
+		};
+	}
+	return true;
 }
 
 void InterconnectChannelSender::serialize(DvbFrame *dvb_frame,
@@ -172,14 +195,13 @@ void InterconnectChannelSender::serialize(std::list<DvbFrame *> *dvb_frame_list,
                                           unsigned char *buf,
                                           uint32_t &length)
 {
-	std::list<DvbFrame *>::iterator it;
 	length = 0;
 	// Iterate over dvb_frames
-	for(it = dvb_frame_list->begin(); it != dvb_frame_list->end(); it++)
+	for (auto dvb_frame: *dvb_frame_list)
 	{
 		uint32_t partial_len;
 		// First serialize dvb_frame
-		this->serialize(*it, buf + length + sizeof(partial_len), partial_len);
+		this->serialize(dvb_frame, buf + length + sizeof(partial_len), partial_len);
 		// Copy the size of the dvb_frame before the frame itself
 		memcpy(buf + length, &partial_len, sizeof(partial_len));
 		length += partial_len + sizeof(partial_len);
