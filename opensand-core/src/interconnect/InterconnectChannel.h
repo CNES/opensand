@@ -37,9 +37,9 @@
 
 #include <opensand_rt/Rt.h>
 
+#include "DelayFifo.h"
 #include "DvbFrame.h"
 #include "UdpChannel.h"
-#include "DelayFifo.h"
 #include <list>
 
 /**
@@ -48,6 +48,7 @@
  */
 
 class OutputLog;
+class InterconnectConfig;
 
 struct __attribute__((__packed__)) interconnect_msg_buffer_t
 {
@@ -58,13 +59,12 @@ struct __attribute__((__packed__)) interconnect_msg_buffer_t
 
 class InterconnectChannel
 {
- public:
-	InterconnectChannel(std::string name, std::string iface_addr);
+  public:
+	InterconnectChannel(std::string name, const InterconnectConfig &config);
 
 	virtual ~InterconnectChannel();
 
- protected:
-
+  protected:
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
@@ -88,63 +88,61 @@ class InterconnectChannel
 
 class InterconnectChannelSender: public InterconnectChannel
 {
- public:
-	using InterconnectChannel::InterconnectChannel;
+  public:
+	InterconnectChannelSender(std::string name, const InterconnectConfig &config);
 
 	bool onTimerEvent();
 
- protected:
-   /**
-	* @brief Initialize the UdpChannel
-	*/
-   void initUdpChannels(unsigned int data_port,
-	                    unsigned int sig_port,
-	                    std::string remote_addr,
-	                    unsigned int stack,
-	                    unsigned int rmem,
-	                    unsigned int wmem) override;
-
-   /**
-	* @brief Send a RtMessage via the interconnect channel.
-	* @return false on error, true elsewise.
-	*/
-   bool send(rt_msg_t &message);
-
-   /**
-	* @brief Sends a message. total_length must contain the data length;
-	* @param is_sig indicates if the message must be sent via the sig channel
-	* @param msg the message to send
-	* @return false on error, true elsewise.
-	*/
-   bool sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg);
-
- private:
+  protected:
+	/**
+	 * @brief Initialize the UdpChannel
+	 */
+	void initUdpChannels(unsigned int data_port,
+	                     unsigned int sig_port,
+	                     std::string remote_addr,
+	                     unsigned int stack,
+	                     unsigned int rmem,
+	                     unsigned int wmem) override;
 
 	/**
-	 * @brief Serialize a Dvb Frame to be sent via the 
+	 * @brief Send a RtMessage via the interconnect channel.
+	 * @return false on error, true elsewise.
+	 */
+	bool send(rt_msg_t &message);
+
+	/**
+	 * @brief Sends a message. total_length must contain the data length;
+	 * @param is_sig indicates if the message must be sent via the sig channel
+	 * @param msg the message to send
+	 * @return false on error, true elsewise.
+	 */
+	bool sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg);
+
+  private:
+	/**
+	 * @brief Serialize a Dvb Frame to be sent via the
 	 *        interconnect channel.
 	 */
-   void serialize(DvbFrame *dvb_frame,
-	              unsigned char *buf, uint32_t &length);
+	void serialize(DvbFrame *dvb_frame,
+	               unsigned char *buf, uint32_t &length);
 
-   /**
-	* @brief Serialize a list of Dvb Frames to be sent
-	*        via the interconnect channel.
-	*/
-   void serialize(std::list<DvbFrame *> *dvb_frame_list,
-	              unsigned char *buf, uint32_t &length);
+	/**
+	 * @brief Serialize a list of Dvb Frames to be sent
+	 *        via the interconnect channel.
+	 */
+	void serialize(std::list<DvbFrame *> *dvb_frame_list,
+	               unsigned char *buf, uint32_t &length);
 
-   DelayFifo delay_fifo;
-   time_ms_t delay = 200;
+	DelayFifo delay_fifo;
+	time_ms_t delay = 0;
 };
 
 class InterconnectChannelReceiver: public InterconnectChannel
 {
- public:
+  public:
 	using InterconnectChannel::InterconnectChannel;
 
- protected:
-
+  protected:
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
@@ -169,9 +167,7 @@ class InterconnectChannelReceiver: public InterconnectChannel
 	bool receive(NetSocketEvent *const event,
 	             std::list<rt_msg_t> &messages);
 
-
- private:
-
+  private:
 	/**
 	 * @brief Create a DvbFrame from serialized data
 	 */

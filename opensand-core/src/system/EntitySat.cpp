@@ -82,19 +82,8 @@ bool EntitySat::createSpecificBlocks()
 
 		TranspConfig transp_cfg;
 		transp_cfg.entity_id = instance_id;
-		transp_cfg.isl_enabled = isl_config.type != IslType::None;
+		transp_cfg.isl_enabled = false;
 		auto block_transp = Rt::createBlock<BlockTransp>("Transp", transp_cfg);
-
-		if (isl_config.type == IslType::Interconnect)
-		{
-			auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect", isl_config.interco_addr);
-			Rt::connectBlocks(block_interco, block_transp);
-		}
-		else if (isl_config.type == IslType::LanAdaptation)
-		{
-			DFLTLOG(LEVEL_CRITICAL, "A transparent satellite cannot transmit ISL via LanAdaptation");
-			return false;
-		}
 
 		for (auto &&spot: spot_topo)
 		{
@@ -139,7 +128,7 @@ bool EntitySat::createSpecificBlocks()
 bool EntitySat::loadConfiguration(const std::string &)
 {
 	auto Conf = OpenSandModelConf::Get();
-	return Conf->getSatInfrastructure(this->ip_address) && Conf->getIslConfig(this->isl_config);
+	return Conf->getSatInfrastructure(this->ip_address);
 }
 
 bool EntitySat::createSpecificConfiguration(const std::string &) const

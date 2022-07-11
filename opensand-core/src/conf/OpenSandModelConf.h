@@ -152,10 +152,10 @@ class OpenSandModelConf
 	template<typename T>
 	static bool extractParameterData(std::shared_ptr<const OpenSANDConf::DataParameter> parameter, T &result);
 
-	template<typename T>
-	bool extractParameterData(std::shared_ptr<const OpenSANDConf::DataComponent> component,
-	                          const std::string& parameter,
-	                          T &result) const;
+	template <typename T>
+	static bool extractParameterData(std::shared_ptr<const OpenSANDConf::DataComponent> component,
+	                                 const std::string &parameter,
+	                                 T &result);
 
 	Component getComponentType() const;
 	bool getComponentType(std::string &type, tal_id_t &id) const;
@@ -219,6 +219,7 @@ class OpenSandModelConf
 
 	const std::unordered_map<spot_id_t, SpotTopology> &getSpotsTopology() const;
 	bool getIslConfig(IslConfig &cfg) const;
+	RegenLevel getRegenLevel() const;
 
  private:
 	OpenSandModelConf();
@@ -263,26 +264,26 @@ bool OpenSandModelConf::extractParameterData(std::shared_ptr<const OpenSANDConf:
 template<typename T>
 bool OpenSandModelConf::extractParameterData(std::shared_ptr<const OpenSANDConf::DataComponent> component,
                                              const std::string& parameter,
-                                             T &result) const
+                                             T &result)
 {
 	if (component == nullptr)
 	{
-		LOG(this->log, LEVEL_ERROR,
-		    "Trying to extract parameter %s from NULL component",
-		    parameter.c_str());
+		DFLTLOG(LEVEL_ERROR,
+		        "Conf: Trying to extract parameter %s from NULL component",
+		        parameter.c_str());
 		return false;
 	}
 
 	auto path = component->getPath();
-	LOG(this->log, LEVEL_INFO,
-	    "Extracting %s parameter from component %s",
-	    parameter.c_str(), path.c_str());
+	DFLTLOG(LEVEL_INFO,
+	        "Conf: Extracting %s parameter from component %s",
+	        parameter.c_str(), path.c_str());
 
 	if (!extractParameterData(component->getParameter(parameter), result))
 	{
-		LOG(this->log, LEVEL_NOTICE,
-		    "Extracting %s/%s failed, default value used instead",
-		    path.c_str(), parameter.c_str());
+		DFLTLOG(LEVEL_WARNING,
+		        "Conf: Extracting %s/%s failed, default value used instead",
+		        path.c_str(), parameter.c_str());
 		return false;
 	}
 

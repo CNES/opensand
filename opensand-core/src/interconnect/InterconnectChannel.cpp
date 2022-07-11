@@ -32,17 +32,16 @@
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.fr>
  */
 
+#include "BlockInterconnect.h"
 #include "InterconnectChannel.h"
-
 #include <opensand_output/Output.h>
 #include <opensand_rt/NetSocketEvent.h>
 
-
-InterconnectChannel::InterconnectChannel(std::string name, std::string iface_addr):
-	name(name),
-	interconnect_addr(iface_addr),
-	data_channel(nullptr),
-	sig_channel(nullptr)
+InterconnectChannel::InterconnectChannel(std::string name, const InterconnectConfig &config):
+    name(name),
+    interconnect_addr(config.interconnect_addr),
+    data_channel(nullptr),
+    sig_channel(nullptr)
 {
 	this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, name + ".common");
 }
@@ -64,6 +63,9 @@ InterconnectChannel::~InterconnectChannel()
 /*
  * INTERCONNECT_CHANNEL_SENDER
  */
+InterconnectChannelSender::InterconnectChannelSender(std::string name, const InterconnectConfig &config):
+    InterconnectChannel{name, config},
+    delay{config.delay} {}
 
 void InterconnectChannelSender::initUdpChannels(unsigned int data_port, unsigned int sig_port,
                                                 std::string remote_addr, unsigned int stack,
@@ -142,7 +144,18 @@ bool InterconnectChannelSender::send(rt_msg_t &message)
 	std::unique_ptr<NetContainer> container{new NetContainer(buf, msg_buffer.data_len)};
 	FifoElement *elem = new FifoElement(std::move(container), current_time, current_time + delay);
 
-	return delay_fifo.pushBack(elem);
+	if (!delay_fifo.pushBack(elem)) {
+		LOG(this->log_interconnect, LEVEL_ERROR, "failed to push the message in the fifo\n");
+		return false;
+	}
+	
+	// if no delay, send directly
+	if (delay == 0)
+	{
+		return onTimerEvent();
+	}
+
+	return true;
 }
 
 bool InterconnectChannelSender::onTimerEvent()

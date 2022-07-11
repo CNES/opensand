@@ -37,20 +37,22 @@
 
 #include <opensand_rt/MessageEvent.h>
 
-constexpr double POLLING_RATE = 10.0;
-
 BlockInterconnectDownward::BlockInterconnectDownward(const std::string &name,
-                                                     const std::string &):
-	Block(name)
-{
-}
+                                                     const InterconnectConfig &):
+    Block(name) {}
 
-BlockInterconnectDownward::~BlockInterconnectDownward()
-{
-}
+BlockInterconnectDownward::Upward::Upward(const std::string &name, const InterconnectConfig &config):
+    RtUpward(name),
+    InterconnectChannelReceiver(name + ".Upward", config) {}
 
-void BlockInterconnectDownward::generateConfiguration()
+BlockInterconnectDownward::Downward::Downward(const std::string &name, const InterconnectConfig &config):
+    RtDownward(name),
+    InterconnectChannelSender(name + ".Downward", config)
 {
+	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
+	{
+		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
+	}
 }
 
 bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
@@ -205,24 +207,28 @@ bool BlockInterconnectDownward::Downward::onInit()
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
-	delay_timer = this->addTimerEvent(name + ".delay_timer", POLLING_RATE);
+	delay_timer = this->addTimerEvent(name + ".delay_timer", polling_rate);
 
 	return true;
 }
 
 BlockInterconnectUpward::BlockInterconnectUpward(const std::string &name,
-                                                 const std::string &):
-	Block(name)
+                                                 const InterconnectConfig &):
+    Block(name) {}
+
+BlockInterconnectUpward::Upward::Upward(const std::string &name, const InterconnectConfig &config):
+    RtUpward(name),
+    InterconnectChannelSender(name + ".Upward", config)
 {
+	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
+	{
+		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
+	}
 }
 
-BlockInterconnectUpward::~BlockInterconnectUpward()
-{
-}
-
-void BlockInterconnectUpward::generateConfiguration()
-{
-}
+BlockInterconnectUpward::Downward::Downward(const std::string &name, const InterconnectConfig &config):
+    RtDownward(name),
+    InterconnectChannelReceiver(name + ".Downward", config){};
 
 bool BlockInterconnectUpward::Downward::onEvent(const RtEvent *const event)
 {
@@ -332,7 +338,7 @@ bool BlockInterconnectUpward::Upward::onInit(void)
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
-	delay_timer = this->addTimerEvent(name + ".delay_timer", POLLING_RATE);
+	delay_timer = this->addTimerEvent(name + ".delay_timer", polling_rate);
 
 	return true;
 }

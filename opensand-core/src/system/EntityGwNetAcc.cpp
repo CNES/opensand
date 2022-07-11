@@ -79,7 +79,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 {
 	try
 	{
-		struct la_specific spec_la;
+		la_specific spec_la;
 		spec_la.tap_iface = this->tap_iface;
 		spec_la.packet_switch = new GatewayPacketSwitch(this->instance_id);
 
@@ -88,11 +88,15 @@ bool EntityGwNetAcc::createSpecificBlocks()
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = instance_id;
 
+		InterconnectConfig interco_cfg;
+		interco_cfg.interconnect_addr = this->interconnect_address;
+		interco_cfg.delay = 0;
+
 		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", spec_la);
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap", this->instance_id);
 		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
-		auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>("InterconnectDownward", this->interconnect_address);
-		
+		auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>("InterconnectDownward", interco_cfg);
+
 		Rt::connectBlocks(block_lan_adaptation, block_encap);
 		Rt::connectBlocks(block_encap, block_dvb);
 		Rt::connectBlocks(block_dvb, block_interconnect);
@@ -136,5 +140,4 @@ void EntityGwNetAcc::defineProfileMetaModel() const
 	BlockLanAdaptation::generateConfiguration();
 	BlockEncap::generateConfiguration();
 	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
-	BlockInterconnectDownward::generateConfiguration();
 }

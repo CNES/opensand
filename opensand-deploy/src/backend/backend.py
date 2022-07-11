@@ -408,6 +408,9 @@ def create_default_profile(meta_model, entity_type):
     _set_parameter(scpc, "carrier_duration", 5)
     scpc = _get_component(_get_component(model, 'access'), 'scpc')
     _set_parameter(scpc, "carrier_duration", 5)
+
+    isl = _get_component(model, 'isl')
+    _set_parameter(isl, "delay", 10)
     
     return mod
 

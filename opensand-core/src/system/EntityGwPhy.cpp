@@ -73,12 +73,16 @@ bool EntityGwPhy::createSpecificBlocks()
 {
 	try
 	{
-		struct sc_specific specific;
+		sc_specific specific;
 		specific.ip_addr = this->ip_address;
 		specific.tal_id = this->instance_id;
 
+		InterconnectConfig interco_cfg;
+		interco_cfg.interconnect_addr = this->interconnect_address;
+		interco_cfg.delay = 0;
+
 		auto block_interconnect = Rt::createBlock<BlockInterconnectUpward>("InterconnectUpward",
-		                                                                   this->interconnect_address);
+		                                                                   interco_cfg);
 		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
 		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", specific);
 
@@ -116,6 +120,5 @@ bool EntityGwPhy::createSpecificConfiguration(const std::string &filepath) const
 
 void EntityGwPhy::defineProfileMetaModel() const
 {
-	BlockInterconnectUpward::generateConfiguration();
 	BlockPhysicalLayer::generateConfiguration();
 }

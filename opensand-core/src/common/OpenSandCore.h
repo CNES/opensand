@@ -162,6 +162,13 @@ struct IslConfig
 	std::string tap_iface;
 };
 
+enum struct RegenLevel {
+	Unknown,
+	Transparent, 
+	BBFrame,
+	IP
+};
+
 /**
  * @brief Convert a strongly typed enum value into its underlying integral type
  */

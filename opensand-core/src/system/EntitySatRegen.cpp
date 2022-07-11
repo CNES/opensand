@@ -65,7 +65,7 @@
 #include "BlockEncap.h"
 #include "BlockInterconnect.h"
 #include "BlockLanAdaptation.h"
-#include "BlockMesh.h"
+#include "BlockTransp.h"
 #include "BlockSatCarrier.h"
 
 EntitySatRegen::EntitySatRegen(tal_id_t instance_id):
@@ -79,21 +79,35 @@ bool EntitySatRegen::createSpecificBlocks()
 	try
 	{
 		auto conf = OpenSandModelConf::Get();
-		auto &spot_topo = conf->getSpotsTopology();
+		const auto &spot_topo = conf->getSpotsTopology();
 
 		bool disable_ctrl_plane;
 		if (!conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
 
-		auto block_mesh = Rt::createBlock<BlockMesh>("Mesh", instance_id);
+		RegenLevel regen_level = conf->getRegenLevel();
+
+		if (regen_level != RegenLevel::Transparent) {
+			DFLTLOG(LEVEL_CRITICAL, "Regenerative satellite is not yet implemented");
+			return false;
+		}
+
+		TranspConfig transp_config;
+		transp_config.entity_id = instance_id;
+		transp_config.isl_enabled = isl_config.type != IslType::None;
+		auto block_transp = Rt::createBlock<BlockTransp>("Transp", transp_config);
 
 		if (isl_config.type == IslType::Interconnect)
 		{
-			auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect", isl_config.interco_addr);
-			Rt::connectBlocks(block_interco, block_mesh);
+			InterconnectConfig interco_cfg;
+			interco_cfg.interconnect_addr = isl_config.interco_addr;
+			interco_cfg.delay = isl_delay;
+			auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect", interco_cfg);
+			Rt::connectBlocks(block_interco, block_transp);
 		}
 		else if (isl_config.type == IslType::LanAdaptation)
 		{
-			// TODO
+			DFLTLOG(LEVEL_CRITICAL, "ISL by LanAdaptation are not yet implemented");
+			return false;
 		}
 
 		for (auto &&spot: spot_topo)
@@ -104,12 +118,12 @@ bool EntitySatRegen::createSpecificBlocks()
 
 			if (topo.sat_id_gw == instance_id)
 			{
-				dvb_specific dvb_spec;
-				dvb_spec.disable_control_plane = disable_ctrl_plane;
-				dvb_spec.disable_acm_loop = false;
-				dvb_spec.mac_id = instance_id;
-				dvb_spec.spot_id = spot_id;
-				auto block_dvb_tal = Rt::createBlock<BlockDvbTal>("DvbTal" + spot_id_str, dvb_spec);
+				// dvb_specific dvb_spec;
+				// dvb_spec.disable_control_plane = disable_ctrl_plane;
+				// dvb_spec.disable_acm_loop = false;
+				// dvb_spec.mac_id = instance_id;
+				// dvb_spec.spot_id = spot_id;
+				// auto block_dvb_tal = Rt::createBlock<BlockDvbTal>("DvbTal" + spot_id_str, dvb_spec);
 
 				sc_specific specific;
 				specific.ip_addr = ip_address;
@@ -119,18 +133,18 @@ bool EntitySatRegen::createSpecificBlocks()
 				auto block_sc_gw = Rt::createBlock<BlockSatCarrier>("SatCarrierGw" + spot_id_str, specific);
 
 				// Not a typo, the DVB Tal block communicates with the gateway
-				Rt::connectBlocks(block_mesh, block_dvb_tal, {spot_id, Component::gateway});
-				Rt::connectBlocks(block_dvb_tal, block_sc_gw);
+				Rt::connectBlocks(block_transp, block_sc_gw, {spot_id, Component::gateway});
+				// Rt::connectBlocks(block_dvb_tal, block_sc_gw);
 			}
 
 			if (topo.sat_id_st == instance_id)
 			{
-				dvb_specific dvb_spec;
-				dvb_spec.disable_control_plane = disable_ctrl_plane;
-				dvb_spec.disable_acm_loop = false;
-				dvb_spec.mac_id = instance_id;
-				dvb_spec.spot_id = spot_id;
-				auto block_dvb_ncc = Rt::createBlock<BlockDvbNcc>("DvbNcc" + spot_id_str, dvb_spec);
+				// dvb_specific dvb_spec;
+				// dvb_spec.disable_control_plane = disable_ctrl_plane;
+				// dvb_spec.disable_acm_loop = false;
+				// dvb_spec.mac_id = instance_id;
+				// dvb_spec.spot_id = spot_id;
+				// auto block_dvb_ncc = Rt::createBlock<BlockDvbNcc>("DvbNcc" + spot_id_str, dvb_spec);
 
 				sc_specific specific;
 				specific.ip_addr = ip_address;
@@ -140,8 +154,8 @@ bool EntitySatRegen::createSpecificBlocks()
 				auto block_sc_st = Rt::createBlock<BlockSatCarrier>("SatCarrierSt" + spot_id_str, specific);
 
 				// Not a typo, the DVB NCC block communicates with the terminals
-				Rt::connectBlocks(block_mesh, block_dvb_ncc, {spot_id, Component::terminal});
-				Rt::connectBlocks(block_dvb_ncc, block_sc_st);
+				Rt::connectBlocks(block_transp, block_sc_st, {spot_id, Component::terminal});
+				// Rt::connectBlocks(block_dvb_ncc, block_sc_st);
 			}
 		}
 	}
@@ -156,16 +170,19 @@ bool EntitySatRegen::createSpecificBlocks()
 
 void defineProfileMetaModel()
 {
-	auto Conf = OpenSandModelConf::Get();
-	auto types = Conf->getModelTypesDefinition();
-	auto ctrl_plane = Conf->getOrCreateComponent("control_plane", "Control plane", "Control plane configuration");
+	auto conf = OpenSandModelConf::Get();
+	auto types = conf->getModelTypesDefinition();
+	auto ctrl_plane = conf->getOrCreateComponent("control_plane", "Control plane", "Control plane configuration");
 	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
 
 	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
 	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
 	BlockEncap::generateConfiguration();
-	BlockInterconnectUpward::generateConfiguration();
 	BlockLanAdaptation::generateConfiguration();
+
+	auto isl = conf->getOrCreateComponent("isl", "ISL", "Inter-satellite links");
+	auto isl_delay = isl->addParameter("delay", "Delay", types->getType("int"), "Propagation delay for output ISL packets");
+	isl_delay->setUnit("ms");
 }
 
 bool EntitySatRegen::loadConfiguration(const std::string &profile_path)
@@ -176,7 +193,10 @@ bool EntitySatRegen::loadConfiguration(const std::string &profile_path)
 	{
 		return false;
 	}
-	return Conf->getSatInfrastructure(this->ip_address) && Conf->getIslConfig(this->isl_config);
+	auto isl_conf = Conf->getProfileData("isl");
+	return OpenSandModelConf::extractParameterData(isl_conf, "delay", isl_delay) &&
+	       Conf->getSatInfrastructure(this->ip_address) &&
+	       Conf->getIslConfig(this->isl_config);
 }
 
 bool EntitySatRegen::createSpecificConfiguration(const std::string &filepath) const
