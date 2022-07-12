@@ -84,7 +84,7 @@ bool BlockDvb::DvbUpward::shareFrame(DvbFrame *frame)
 {
 	if (this->disable_control_plane)
 	{
-		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), to_underlying(InternalMessageType::msg_sig)))
+		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), to_underlying(InternalMessageType::sig)))
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "Unable to transmit frame to upper layer\n");
@@ -94,7 +94,7 @@ bool BlockDvb::DvbUpward::shareFrame(DvbFrame *frame)
 	}
 	else
 	{
-		if(!this->shareMessage((void **)&frame, sizeof(*frame), to_underlying(InternalMessageType::msg_sig)))
+		if(!this->shareMessage((void **)&frame, sizeof(*frame), to_underlying(InternalMessageType::sig)))
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "Unable to transmit frame to opposite channel\n");
@@ -194,7 +194,7 @@ bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
 
 	// send the message to the lower layer
 	// do not count carrier_id in len, this is the dvb_meta->hdr length
-	if(!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_unknown)))
+	if(!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "failed to send DVB frame to lower layer\n");

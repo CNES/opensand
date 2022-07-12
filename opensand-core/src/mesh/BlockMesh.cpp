@@ -135,17 +135,17 @@ bool BlockMesh::Upward::onEvent(const RtEvent *const event)
 	auto msg_event = static_cast<const MessageEvent *>(event);
 	switch (to_enum<InternalMessageType>(msg_event->getMessageType()))
 	{
-		case InternalMessageType::msg_data:
+		case InternalMessageType::decap_data:
 		{
 			auto burst = static_cast<const NetBurst *>(msg_event->getData());
 			return handleNetBurst(std::unique_ptr<const NetBurst>{burst});
 		}
-		case InternalMessageType::msg_sig:
+		case InternalMessageType::sig:
 		{
 			auto data = msg_event->getData();
 			return shareMessage(&data, msg_event->getLength(), msg_event->getMessageType());
 		}
-		case InternalMessageType::msg_link_up:
+		case InternalMessageType::link_up:
 			// ignore
 			return true;
 		default:
@@ -190,7 +190,7 @@ bool BlockMesh::Upward::sendToOppositeChannel(std::unique_ptr<const NetBurst> bu
 	LOG(log_send, LEVEL_DEBUG, "Sending a NetBurst to the opposite channel");
 
 	auto burst_ptr = burst.release();
-	bool ok = shareMessage((void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::msg_data));
+	bool ok = shareMessage((void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::decap_data));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,
@@ -206,7 +206,7 @@ bool BlockMesh::Upward::sendToOppositeChannel(std::unique_ptr<const DvbFrame> fr
 	LOG(log_send, LEVEL_INFO, "Sending a control DVB frame to the opposite channel");
 
 	auto frame_ptr = frame.release();
-	bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_sig));
+	bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::sig));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,
@@ -292,13 +292,13 @@ bool BlockMesh::Downward::handleMessageEvent(const MessageEvent *event)
 
 	switch (to_enum<InternalMessageType>(event->getMessageType()))
 	{
-		case InternalMessageType::msg_data:
+		case InternalMessageType::decap_data:
 		{
 			LOG(log_receive, LEVEL_DEBUG, "Received a NetBurst MessageEvent");
 			auto burst = static_cast<const NetBurst *>(event->getData());
 			return handleNetBurst(std::unique_ptr<const NetBurst>(burst));
 		}
-		case InternalMessageType::msg_sig:
+		case InternalMessageType::sig:
 		{
 			// LOG(log_receive, LEVEL_DEBUG, "Received a control message");
 			auto dvb_frame = static_cast<const DvbFrame *>(event->getData());
@@ -459,7 +459,7 @@ bool BlockMesh::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_pt
 	LOG(log_send, LEVEL_DEBUG, "Sending a NetBurst to the lower block, in the spot %d %s stack",
 	    key.spot_id, key.dest == Component::gateway ? "GW" : "ST");
 	auto burst_ptr = burst.release();
-	bool ok = enqueueMessage(key, (void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::msg_data));
+	bool ok = enqueueMessage(key, (void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::decap_data));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,
@@ -475,7 +475,7 @@ bool BlockMesh::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_pt
 	// LOG(log_send, LEVEL_DEBUG, "Sending a control DVB frame to the lower block, in the spot %d %s stack",
 	    // key.spot_id, key.dest == Component::gateway ? "GW" : "ST");
 	auto frame_ptr = frame.release();
-	bool ok = enqueueMessage(key, (void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_sig));
+	bool ok = enqueueMessage(key, (void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::sig));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,
@@ -491,7 +491,7 @@ bool BlockMesh::Downward::sendToOppositeChannel(std::unique_ptr<const NetBurst> 
 	LOG(log_send, LEVEL_DEBUG, "Sending a NetBurst to the opposite channel");
 
 	auto burst_ptr = burst.release();
-	bool ok = shareMessage((void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::msg_data));
+	bool ok = shareMessage((void **)&burst_ptr, sizeof(NetBurst), to_underlying(InternalMessageType::decap_data));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR,

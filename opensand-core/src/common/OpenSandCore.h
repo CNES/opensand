@@ -132,12 +132,12 @@ enum class SatelliteLinkState
 
 enum class InternalMessageType : uint8_t
 {
-	msg_data = 0,  ///< message containing useful data (DVB, encap, ...)
-	               //   default value of sendUp/Down function
-	msg_link_up,   ///< link up message
-	msg_sig,       ///< message containing signalisation
-	msg_saloha,    ///< message containing Slotted Aloha content
-	msg_unknown,   ///< when the msg type is unknown or unused
+	encap_data = 0,  ///< message containing encapsulated data (type DvbFrame, below BlockDvb)
+	decap_data,      ///< message containing decapsulated data (type NetBurst, above BlockDvb)
+	link_up,         ///< link up message
+	sig,             ///< message containing signalisation
+	saloha,          ///< message containing Slotted Aloha content
+	unknown,         ///< when the msg type is unknown or unused
 };
 
 

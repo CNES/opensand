@@ -1303,7 +1303,7 @@ bool BlockDvbTal::Downward::onEvent(const RtEvent *const event)
 			InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
 
 			// first handle specific messages
-			if(msg_type == InternalMessageType::msg_sig)
+			if(msg_type == InternalMessageType::sig)
 			{
 				return this->handleDvbFrame(static_cast<DvbFrame*>(msg_event->getData()));
 			}
@@ -2305,7 +2305,7 @@ bool BlockDvbTal::Upward::onInit(void)
 
 		if(!this->enqueueMessage((void **)(&link_is_up),
 		                         sizeof(T_LINK_UP),
-		                         to_underlying(InternalMessageType::msg_link_up)))
+		                         to_underlying(InternalMessageType::link_up)))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Init: failed to send link up message to upper layer");
@@ -2497,7 +2497,7 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 			}
 
 			// send the message to the upper layer
-			if (burst && !this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
+			if (burst && !this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::decap_data)))
 			{
 				LOG(this->log_send, LEVEL_ERROR,
 				    "failed to send burst of packets to upper layer\n");
@@ -2646,7 +2646,7 @@ bool BlockDvbTal::Upward::onRcvLogonResp(DvbFrame *dvb_frame)
 
 	if(!this->enqueueMessage((void **)(&link_is_up),
 	                         sizeof(T_LINK_UP),
-	                         to_underlying(InternalMessageType::msg_link_up)))
+	                         to_underlying(InternalMessageType::link_up)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "SF#%u: failed to send link up message to upper layer",

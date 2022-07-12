@@ -226,7 +226,7 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
 	dvb_frame->setCarrierId(carrier_id);
 	dvb_frame->setSpot(spot_id);
 
-	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_unknown)))
+	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send frame from carrier %u to upper layer\n",

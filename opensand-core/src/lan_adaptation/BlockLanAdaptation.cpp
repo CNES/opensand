@@ -193,7 +193,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
     case EventType::Message:
 		{
       auto msg_event = static_cast<const MessageEvent *>(event);
-			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
+			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::link_up)
 			{
 				// 'link is up' message advertised
 				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
@@ -209,7 +209,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 			LOG(this->log_receive, LEVEL_DEBUG,
 			    "Get a forward burst from opposite channel\n");
 			NetBurst *forward_burst = static_cast<NetBurst *>(msg_event->getData());
-			if (!this->enqueueMessage((void **)&forward_burst, 0, to_underlying(InternalMessageType::msg_data)))
+			if (!this->enqueueMessage((void **)&forward_burst, 0, to_underlying(InternalMessageType::decap_data)))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "failed to forward burst to lower layer\n");
@@ -261,7 +261,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
     case EventType::Message:
 		{
       auto msg_event = static_cast<const MessageEvent *>(event);
-			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
+			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::link_up)
 			{
 				// 'link is up' message advertised
 				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
@@ -538,7 +538,7 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 		}
 	}
 
-	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
+	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::decap_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to lower layer\n");

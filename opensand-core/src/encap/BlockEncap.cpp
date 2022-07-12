@@ -108,7 +108,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 			    "message received from the upper-layer bloc\n");
 			
 			auto msg_event = static_cast<const MessageEvent *>(event);
-			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
+			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::link_up)
 			{
 				// 'link up' message received 
 				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
@@ -151,7 +151,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 			    "message received from the lower layer\n");
 
 			auto msg_event = static_cast<const MessageEvent *>(event);
-			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::msg_link_up)
+			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::link_up)
 			{
 				std::vector<EncapPlugin::EncapContext*>::iterator encap_it;
 
@@ -189,7 +189,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 				shared_link_up_msg->tal_id = link_up_msg->tal_id;
 				if(!this->shareMessage((void **)&shared_link_up_msg,
 				                       sizeof(T_LINK_UP),
-				                       to_underlying(InternalMessageType::msg_link_up)))
+				                       to_underlying(InternalMessageType::link_up)))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "failed to transmit 'link up' message to "
@@ -202,7 +202,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 				// send the message to the upper layer
 				if(!this->enqueueMessage((void **)&link_up_msg,
 				                         sizeof(T_LINK_UP),
-				                         to_underlying(InternalMessageType::msg_link_up)))
+				                         to_underlying(InternalMessageType::link_up)))
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "cannot forward 'link up' message\n");
@@ -410,7 +410,7 @@ bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 	}
 
 	// send the message to the lower layer
-	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
+	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::decap_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "cannot send burst to lower layer failed\n");
@@ -528,7 +528,7 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 
 
 	// send the message to the lower layer
-	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
+	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::decap_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to lower layer\n");
@@ -613,7 +613,7 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 	}
 
 	// send the burst to the upper layer
-	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
+	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::decap_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to upper layer\n");

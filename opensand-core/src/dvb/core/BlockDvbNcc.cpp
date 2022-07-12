@@ -335,7 +335,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
       InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
 
 			// first handle specific messages
-			if(msg_type == InternalMessageType::msg_sig)
+			if(msg_type == InternalMessageType::sig)
 			{
 				auto dvb_frame = static_cast<DvbFrame *>(msg_event->getData());
 				auto spot_id = dvb_frame->getSpot();
@@ -353,7 +353,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				}
 				break;
 			}
-			else if(msg_type == InternalMessageType::msg_saloha)
+			else if(msg_type == InternalMessageType::saloha)
 			{
 				auto ack_frames = static_cast<std::list<DvbFrame *> *>(msg_event->getData());
 				auto spot_id = ack_frames->front()->getSpot();
@@ -794,7 +794,7 @@ bool BlockDvbNcc::Upward::onInit(void)
 
 	if(!this->enqueueMessage((void **)(&link_is_up),
 	                         sizeof(T_LINK_UP),
-	                         to_underlying(InternalMessageType::msg_link_up)))
+	                         to_underlying(InternalMessageType::link_up)))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "failed to send link up message to upper layer\n");
@@ -920,7 +920,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 			}
 
 			// send the message to the upper layer
-			if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::msg_data)))
+			if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::decap_data)))
 			{
 				LOG(this->log_send, LEVEL_ERROR,
 				    "failed to send burst of packets to upper layer\n");
@@ -985,7 +985,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		{
 			if (this->disable_control_plane)
 			{
-				return this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_sig));
+				return this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::sig));
 			}
 			// nothing to do in this case
 			LOG(this->log_receive, LEVEL_DEBUG,
@@ -1004,7 +1004,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 
 			if (this->disable_control_plane)
 			{
-				return this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_sig));
+				return this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::sig));
 			}
 
 			std::list<DvbFrame *> *ack_frames{nullptr};
@@ -1021,7 +1021,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 				// No slotted Aloha
 				break;
 			}
-			if (sa_burst && !this->enqueueMessage((void **)&sa_burst, 0, to_underlying(InternalMessageType::msg_unknown)))
+			if (sa_burst && !this->enqueueMessage((void **)&sa_burst, 0, to_underlying(InternalMessageType::unknown)))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "Failed to send encapsulation packets to upper"
@@ -1035,7 +1035,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 			if(ack_frames->size() &&
 			   !this->shareMessage((void **)&ack_frames,
 			                       sizeof(ack_frames),
-			                       to_underlying(InternalMessageType::msg_saloha)))
+			                       to_underlying(InternalMessageType::saloha)))
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "Failed to send Slotted Aloha acks to opposite"
@@ -1074,7 +1074,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		{
 			if (this->disable_control_plane)
 			{
-				if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::msg_unknown)))
+				if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
 				{
 					return false;
 				}

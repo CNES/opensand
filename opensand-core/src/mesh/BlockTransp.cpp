@@ -128,10 +128,11 @@ bool BlockTransp::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 
 bool BlockTransp::Upward::sendToUpperBlock(std::unique_ptr<const DvbFrame> frame)
 {
-	const auto log_level = frame->getCarrierId() % 10 >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	auto msg_type = frame->getCarrierId() % 10 >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
+	const auto log_level = msg_type == InternalMessageType::encap_data ? LEVEL_INFO : LEVEL_DEBUG;
 	LOG(log_send, log_level, "Sending a DvbFrame to the upper block");
 	const auto frame_ptr = frame.release();
-	const bool ok = enqueueMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
+	const bool ok = enqueueMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(msg_type));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the upper block");
@@ -143,10 +144,11 @@ bool BlockTransp::Upward::sendToUpperBlock(std::unique_ptr<const DvbFrame> frame
 
 bool BlockTransp::Upward::sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame)
 {
-	const auto log_level = frame->getCarrierId() % 10 >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	auto msg_type = frame->getCarrierId() % 10 >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
+	const auto log_level = msg_type == InternalMessageType::encap_data ? LEVEL_INFO : LEVEL_DEBUG;
 	LOG(log_send, log_level, "Sending a DvbFrame to the opposite channel");
 	const auto frame_ptr = frame.release();
-	const bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
+	const bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(msg_type));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
@@ -170,14 +172,6 @@ bool BlockTransp::Downward::onEvent(const RtEvent *const event)
 	}
 
 	auto msg_event = static_cast<const MessageEvent *>(event);
-
-	if (to_enum<InternalMessageType>(msg_event->getMessageType()) != InternalMessageType::msg_data)
-	{
-		LOG(log_receive, LEVEL_ERROR, "Unexpected message received: %s",
-		    msg_event->getName().c_str());
-		return false;
-	}
-
 	auto frame = static_cast<DvbFrame *>(msg_event->getData());
 	return handleDvbFrame(std::unique_ptr<DvbFrame>(frame));
 }
@@ -224,10 +218,11 @@ bool BlockTransp::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 
 bool BlockTransp::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_ptr<const DvbFrame> frame)
 {
-	const auto log_level = frame->getCarrierId() % 10 >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	auto msg_type = frame->getCarrierId() % 10 >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
+	const auto log_level = msg_type == InternalMessageType::encap_data ? LEVEL_INFO : LEVEL_DEBUG;
 	LOG(log_send, log_level, "Sending a DvbFrame to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
 	const auto frame_ptr = frame.release();
-	const bool ok = enqueueMessage(key, (void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
+	const bool ok = enqueueMessage(key, (void **)&frame_ptr, sizeof(DvbFrame), to_underlying(msg_type));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the lower block (%s, spot %d)",
@@ -240,10 +235,11 @@ bool BlockTransp::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_
 
 bool BlockTransp::Downward::sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame)
 {
-	const auto log_level = frame->getCarrierId() % 10 >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	auto msg_type = frame->getCarrierId() % 10 >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
+	const auto log_level = msg_type == InternalMessageType::encap_data ? LEVEL_INFO : LEVEL_DEBUG;
 	LOG(log_send, log_level, "Sending a DvbFrame to the opposite channel");
 	const auto frame_ptr = frame.release();
-	const bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(InternalMessageType::msg_data));
+	const bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(msg_type));
 	if (!ok)
 	{
 		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");

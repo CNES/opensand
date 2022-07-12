@@ -119,12 +119,12 @@ bool InterconnectChannelSender::send(rt_msg_t &message)
 	msg_buffer.msg_type = message.type;
 
 	// Serialize the message
-	if (msg_type == InternalMessageType::msg_data || msg_type == InternalMessageType::msg_sig)
+	if (msg_type == InternalMessageType::encap_data || msg_type == InternalMessageType::sig)
 	{
 		auto frame = std::unique_ptr<DvbFrame>{static_cast<DvbFrame *>(message.data)};
 		this->serialize(frame.get(), msg_buffer.msg_data, len);
 	}
-	else if (msg_type == InternalMessageType::msg_saloha)
+	else if (msg_type == InternalMessageType::saloha)
 	{
 		auto dvb_frames = std::unique_ptr<std::list<DvbFrame *>>{static_cast<std::list<DvbFrame *> *>(message.data)};
 		this->serialize(dvb_frames.get(), msg_buffer.msg_data, len);
@@ -169,7 +169,7 @@ bool InterconnectChannelSender::onTimerEvent()
 
 		auto container = elem->getElem<NetContainer>();
 		auto msg = reinterpret_cast<const interconnect_msg_buffer_t *>(container->getRawData());
-		bool is_sig = to_enum<InternalMessageType>(msg->msg_type) == InternalMessageType::msg_sig;
+		bool is_sig = to_enum<InternalMessageType>(msg->msg_type) == InternalMessageType::sig;
 		if (!sendBuffer(is_sig, *msg))
 		{
 			LOG(this->log_interconnect, LEVEL_ERROR, "failed to send buffer\n");
@@ -343,13 +343,13 @@ bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
 			// Deserialize the message
 			switch(to_enum<InternalMessageType>(buf->msg_type))
 			{
-				case InternalMessageType::msg_data:
-				case InternalMessageType::msg_sig:
+				case InternalMessageType::encap_data:
+				case InternalMessageType::sig:
 					// Deserialize the dvb_frame
 					this->deserialize(buf->msg_data, buf->data_len,
 					                  (DvbFrame **) &message.data);
 					break;
-				case InternalMessageType::msg_saloha:
+				case InternalMessageType::saloha:
 					// Deserialize the list of dvb_frames
 					this->deserialize(buf->msg_data, buf->data_len,
 					                  (std::list<DvbFrame *> **) &message.data);
