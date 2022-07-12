@@ -49,7 +49,12 @@ BlockInterconnectDownward::Downward::Downward(const std::string &name, const Int
     RtDownward(name),
     InterconnectChannelSender(name + ".Downward", config)
 {
-	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
+	if (config.delay == 0)
+	{
+		// No need to poll, messages are sent directly
+		polling_rate = 0;
+	}
+	else if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
 	{
 		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
 	}
@@ -220,7 +225,12 @@ BlockInterconnectUpward::Upward::Upward(const std::string &name, const Interconn
     RtUpward(name),
     InterconnectChannelSender(name + ".Upward", config)
 {
-	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
+	if (config.delay == 0)
+	{
+		// No need to poll, messages are sent directly
+		polling_rate = 0;
+	}
+	else if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
 	{
 		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
 	}
