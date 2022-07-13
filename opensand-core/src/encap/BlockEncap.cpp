@@ -67,18 +67,25 @@ inline bool fileExists(const std::string &filename)
 	return true;
 }
 
-
-BlockEncap::BlockEncap(const std::string &name, tal_id_t mac_id):
-	Block(name),
-	mac_id(mac_id)
+BlockEncap::BlockEncap(const std::string &name, EncapConfig encap_cfg):
+    Block{name},
+    mac_id{encap_cfg.entity_id},
+    entity_type{encap_cfg.entity_type}
 {
 	// register static log (done in Entity.cpp for now)
 	// NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
 }
 
-BlockEncap::~BlockEncap()
-{
-}
+BlockEncap::Downward::Downward(const std::string &name, EncapConfig encap_cfg):
+    RtDownward{name},
+    EncapChannel{} {};
+
+BlockEncap::Upward::Upward(const std::string &name, EncapConfig encap_cfg):
+    RtUpward{name},
+    EncapChannel{},
+    mac_id{encap_cfg.entity_id},
+	entity_type{encap_cfg.entity_type},
+    scpc_encap{""} {};
 
 void BlockEncap::generateConfiguration()
 {
@@ -272,7 +279,7 @@ bool BlockEncap::onInit()
 	    "lan adaptation upper layer is %s\n", lan_plugin->getName().c_str());
 
 	auto Conf = OpenSandModelConf::Get();
-	if (!Conf->isGw(this->mac_id))
+	if (entity_type == Component::terminal)
 	{
 		LOG(this->log_init, LEVEL_DEBUG,
 		    "Going to check if Tal with id:  %d is in Scpc mode\n",
@@ -310,7 +317,7 @@ bool BlockEncap::onInit()
 			}
 		}
 	}
-	else
+	else if (entity_type == Component::gateway)
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "SCPC mode available - BlockEncap");
@@ -331,6 +338,12 @@ bool BlockEncap::onInit()
 			return false;
 		}
 	}
+	else
+	{
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Unexpected entity type %s (should be terminal or gateway)", getComponentName(entity_type).c_str());
+		return false;
+	}
 
 	if(!this->getEncapContext(EncapSchemeList::FORWARD_DOWN,
 	                          lan_plugin, down_forward_ctx,
@@ -341,13 +354,10 @@ bool BlockEncap::onInit()
 		return false;
 	}
 
-	// get host type
-	auto host = Conf->getComponentType();
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "host type = %s\n",
-	    getComponentName(host).c_str());
+	LOG(this->log_init, LEVEL_NOTICE, "host type = %s\n",
+	    getComponentName(entity_type).c_str());
 
-	if(host == Component::terminal)
+	if (entity_type == Component::terminal)
 	{
 		// reorder reception context to get the deencapsulation contexts in the
 		// right order
@@ -356,7 +366,7 @@ bool BlockEncap::onInit()
 		static_cast<Downward *>(this->downward)->setContext(up_return_ctx);
 		static_cast<Upward *>(this->upward)->setContext(down_forward_ctx);
 	}
-	else
+	else // gateway (already checked)
 	{
 		// reorder reception context to get the deencapsulation contexts in the
 		// right order
@@ -597,7 +607,7 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 	    "message contains a burst of %d %s packet(s)\n",
 	    nb_bursts, burst->name().c_str());
 
-	bool is_scpc = burst->name() == this->scpc_encap && OpenSandModelConf::Get()->isGw(this->mac_id);
+	bool is_scpc = burst->name() == this->scpc_encap && entity_type == Component::gateway;
 	auto &contexts = is_scpc ? this->ctx_scpc : this->ctx;
 
 	// iterate on all the deencapsulation contexts to get the ip packets
