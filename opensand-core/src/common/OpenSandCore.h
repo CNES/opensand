@@ -84,8 +84,8 @@ inline std::string getComponentName(Component host)
 			return "gw";
     case Component::terminal:
 			return "st";
-		default:
-			return "";
+	default:
+		return "unknown";
 	}
 };
 

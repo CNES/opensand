@@ -52,9 +52,17 @@ bool BlockTransp::onInit()
 	auto upward = dynamic_cast<Upward *>(this->upward);
 
 	std::unordered_map<SpotComponentPair, tal_id_t> routes;
+	std::unordered_map<tal_id_t, spot_id_t> spot_by_entity;
 	for (auto &&spot: conf->getSpotsTopology())
 	{
 		const SpotTopology &topo = spot.second;
+
+		spot_by_entity[topo.gw_id] = topo.spot_id;
+		for (tal_id_t tal_id: topo.st_ids)
+		{
+			spot_by_entity[tal_id] = topo.spot_id;
+		}
+
 		routes[{topo.spot_id, Component::gateway}] = topo.sat_id_gw;
 		routes[{topo.spot_id, Component::terminal}] = topo.sat_id_st;
 
@@ -72,6 +80,8 @@ bool BlockTransp::onInit()
 	}
 	upward->routes = routes;
 	downward->routes = routes;
+	upward->spot_by_entity = spot_by_entity;
+	downward->spot_by_entity = spot_by_entity;
 	return true;
 }
 
@@ -155,13 +165,26 @@ bool BlockTransp::Upward::handleNetBurst(std::unique_ptr<NetBurst> burst)
 
 	NetPacket &msg = *burst->front();
 
-	const spot_id_t spot_id = msg.getSpot();
 	const auto dest_id = msg.getDstTalId();
 	const auto src_id = msg.getSrcTalId();
+	const spot_id_t spot_id = spot_by_entity[src_id];
 	LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
 	// TODO: Handle star architecture
-	const Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+	Component dest;
+	if (dest_id == BROADCAST_TAL_ID)
+	{
+		dest = Component::terminal;
+	}
+	else
+	{
+		dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+		if (dest == Component::unknown || dest == Component::satellite)
+		{
+			LOG(log_receive, LEVEL_ERROR, "The type of the dest entity %d is %s", dest_id, getComponentName(dest).c_str());
+			return false;
+		}
+	}
 
 	const auto dest_sat_id_it = routes.find({spot_id, dest});
 	if (dest_sat_id_it == routes.end())
@@ -273,13 +296,26 @@ bool BlockTransp::Downward::handleNetBurst(std::unique_ptr<NetBurst> burst)
 
 	NetPacket &msg = *burst->front();
 
-	const spot_id_t spot_id = msg.getSpot();
 	const auto dest_id = msg.getDstTalId();
 	const auto src_id = msg.getSrcTalId();
+	const spot_id_t spot_id = spot_by_entity[src_id];
 	LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
 	// TODO: Handle star architecture
-	const Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+	Component dest;
+	if (dest_id == BROADCAST_TAL_ID)
+	{
+		dest = Component::terminal;
+	}
+	else
+	{
+		dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+		if (dest == Component::unknown || dest == Component::satellite)
+		{
+			LOG(log_receive, LEVEL_ERROR, "The type of the dest entity %d is %s", dest_id, getComponentName(dest).c_str());
+			return false;
+		}
+	}
 
 	const auto dest_sat_id_it = routes.find({spot_id, dest});
 	if (dest_sat_id_it == routes.end())
