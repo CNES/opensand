@@ -49,6 +49,8 @@
 
 class OutputLog;
 class InterconnectConfig;
+class NetBurst;
+class NetPacket;
 
 struct __attribute__((__packed__)) interconnect_msg_buffer_t
 {
@@ -133,6 +135,20 @@ class InterconnectChannelSender: public InterconnectChannel
 	void serialize(std::list<DvbFrame *> *dvb_frame_list,
 	               unsigned char *buf, uint32_t &length);
 
+	/**
+	 * @brief Serialize a NetBurst to be sent
+	 *        via the interconnect channel.
+	 */
+	void serialize(const NetBurst &net_burst,
+	               unsigned char *buf, uint32_t &length);
+
+	/**
+	 * @brief Serialize a NetPacket to be sent
+	 *        via the interconnect channel.
+	 */
+	void serialize(const NetPacket &packet,
+	               unsigned char *buf, uint32_t &length);
+
 	DelayFifo delay_fifo;
 	time_ms_t delay = 0;
 };
@@ -179,5 +195,17 @@ class InterconnectChannelReceiver: public InterconnectChannel
 	 */
 	void deserialize(unsigned char *data, uint32_t len,
 	                 std::list<DvbFrame *> **dvb_frame_list);
+
+	/**
+	 * @brief Create a NetBurst from serialized data
+	 */
+	void deserialize(uint8_t *buf, uint32_t length,
+	                 NetBurst **net_burst);
+
+	/**
+	 * @brief Create a NetPacket from serialized data
+	 */
+	void deserialize(uint8_t *buf, uint32_t length,
+	                 NetPacket **packet);
 };
 #endif

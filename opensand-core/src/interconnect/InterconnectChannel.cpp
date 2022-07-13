@@ -34,6 +34,7 @@
 
 #include "BlockInterconnect.h"
 #include "InterconnectChannel.h"
+#include "NetBurst.h"
 #include <opensand_output/Output.h>
 #include <opensand_rt/NetSocketEvent.h>
 
@@ -129,6 +130,11 @@ bool InterconnectChannelSender::send(rt_msg_t &message)
 		auto dvb_frames = std::unique_ptr<std::list<DvbFrame *>>{static_cast<std::list<DvbFrame *> *>(message.data)};
 		this->serialize(dvb_frames.get(), msg_buffer.msg_data, len);
 	}
+	else if (msg_type == InternalMessageType::decap_data)
+	{
+		auto net_burst = std::unique_ptr<NetBurst>{static_cast<NetBurst *>(message.data)};
+		this->serialize(*net_burst, msg_buffer.msg_data, len);
+	}
 	else
 	{
 		LOG(this->log_interconnect, LEVEL_ERROR,
@@ -218,6 +224,49 @@ void InterconnectChannelSender::serialize(std::list<DvbFrame *> *dvb_frame_list,
 		memcpy(buf + length, &partial_len, sizeof(partial_len));
 		length += partial_len + sizeof(partial_len);
 	}
+}
+
+template <typename T>
+void serializeField(uint8_t *buf, uint32_t &pos, T *data, uint32_t length = sizeof(T))
+{
+	memcpy(buf + pos, data, length);
+	pos += length;
+}
+
+void InterconnectChannelSender::serialize(const NetBurst &net_burst,
+                                          unsigned char *buf, uint32_t &length)
+{
+	length = 0;
+	for (auto &&packet: net_burst)
+	{
+		uint32_t partial_len;
+		// First serialize the packet
+		this->serialize(*packet, buf + length + sizeof(partial_len), partial_len);
+		// Copy the size of the packet before the packet itself
+		memcpy(buf + length, &partial_len, sizeof(partial_len));
+		length += partial_len + sizeof(partial_len);
+		assert(length <= MAX_SOCK_SIZE);
+	}
+}
+
+void InterconnectChannelSender::serialize(const NetPacket &packet,
+                                          unsigned char *buf, uint32_t &length)
+{
+	uint32_t pos = 0;
+
+	uint8_t src_id = packet.getSrcTalId();
+	uint8_t dest_id = packet.getDstTalId();
+	uint8_t qos = packet.getQos();
+	uint16_t type = packet.getType();
+	uint32_t header_length = packet.getHeaderLength();
+
+	serializeField(buf, pos, &src_id);
+	serializeField(buf, pos, &dest_id);
+	serializeField(buf, pos, &qos);
+	serializeField(buf, pos, &type);
+	serializeField(buf, pos, &header_length);
+	serializeField(buf, pos, packet.getRawData(), packet.getTotalLength());
+	length = pos;
 }
 
 /*
@@ -354,6 +403,12 @@ bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
 					this->deserialize(buf->msg_data, buf->data_len,
 					                  (std::list<DvbFrame *> **) &message.data);
 					break;
+				case InternalMessageType::decap_data:
+					// Deserialize the NetBurst
+					this->deserialize(buf->msg_data, buf->data_len,
+					                  (NetBurst **) &message.data);
+
+					break;
 				default:
 					LOG(this->log_interconnect, LEVEL_ERROR,
 					    "Unknown type of message received\n");
@@ -419,4 +474,66 @@ void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
 		pos += dvb_frame_len;
 
 	} while(pos < len);
+}
+
+template <typename T>
+void deserializeField(uint8_t *buf, uint32_t &pos, T &data, uint32_t length = sizeof(T))
+{
+	memcpy(&data, buf + pos, length);
+	pos += length;
+}
+
+void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
+                                              NetBurst **net_burst)
+{
+	uint32_t pos = 0;
+	(*net_burst) = new NetBurst{};
+
+	do
+	{
+		uint32_t packet_length;
+		NetPacket *packet = nullptr;
+
+		// Read the length of the packet
+		deserializeField(buf, pos, packet_length);
+
+		// Deserialize the packet
+		this->deserialize(buf + pos, packet_length, &packet);
+
+		// Insert the new packet in the burst
+		(*net_burst)->push_back(std::unique_ptr<NetPacket>{packet});
+
+		// Update position
+		pos += packet_length;
+	}
+	while (pos < length);
+
+	assert(pos == length);
+}
+
+void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
+                                              NetPacket **packet)
+{
+	uint32_t pos = 0;
+
+	uint8_t src_id;
+	uint8_t dest_id;
+	uint8_t qos;
+	uint16_t type;
+	uint32_t header_length;
+
+	deserializeField(buf, pos, src_id);
+	deserializeField(buf, pos, dest_id);
+	deserializeField(buf, pos, qos);
+	deserializeField(buf, pos, type);
+	deserializeField(buf, pos, header_length);
+
+	*packet = new NetPacket{Data{buf + pos, length - pos},
+	                        length - pos,
+	                        "interconnect",
+	                        type,
+	                        qos,
+	                        src_id,
+	                        dest_id,
+	                        header_length};
 }
