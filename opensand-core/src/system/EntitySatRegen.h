@@ -40,6 +40,8 @@
 
 #include <string>
 
+class BlockTransp;
+
 /**
  * @class EntitySat
  * @brief Entity regenerative satellite process
@@ -79,6 +81,13 @@ class EntitySatRegen: public Entity
 	bool createSpecificConfiguration(const std::string &filepath) const;
 
   private:
+	template <typename Dvb>
+	void createStack(BlockTransp *block_transp,
+	                 spot_id_t spot_id,
+	                 Component destination,
+	                 RegenLevel regen_level,
+	                 bool disable_ctrl_plane);
+
 	std::string ip_address;
 	tal_id_t instance_id;
 	IslConfig isl_config;

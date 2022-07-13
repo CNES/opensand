@@ -121,6 +121,12 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 				break;
 			}
 
+			if (to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::sig)
+			{
+				auto data = msg_event->getData();
+				return enqueueMessage(&data, msg_event->getLength(), msg_event->getMessageType());
+			}
+
 			NetBurst *burst = static_cast<NetBurst *>(msg_event->getData());
 			return this->onRcvBurst(burst);
 		}
@@ -230,6 +236,11 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 				}
 
 				break;
+			}
+
+			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::sig) {
+				auto data = msg_event->getData();
+				return enqueueMessage(&data, msg_event->getLength(), msg_event->getMessageType());
 			}
 
 			// data received

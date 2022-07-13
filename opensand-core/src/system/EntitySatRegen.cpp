@@ -86,8 +86,9 @@ bool EntitySatRegen::createSpecificBlocks()
 
 		RegenLevel regen_level = conf->getRegenLevel();
 
-		if (regen_level != RegenLevel::Transparent) {
-			DFLTLOG(LEVEL_CRITICAL, "Regenerative satellite is not yet implemented");
+		if (regen_level == RegenLevel::IP)
+		{
+			DFLTLOG(LEVEL_CRITICAL, "IP regeneration on satellite is not yet implemented");
 			return false;
 		}
 
@@ -118,44 +119,12 @@ bool EntitySatRegen::createSpecificBlocks()
 
 			if (topo.sat_id_gw == instance_id)
 			{
-				// dvb_specific dvb_spec;
-				// dvb_spec.disable_control_plane = disable_ctrl_plane;
-				// dvb_spec.disable_acm_loop = false;
-				// dvb_spec.mac_id = instance_id;
-				// dvb_spec.spot_id = spot_id;
-				// auto block_dvb_tal = Rt::createBlock<BlockDvbTal>("DvbTal" + spot_id_str, dvb_spec);
-
-				sc_specific specific;
-				specific.ip_addr = ip_address;
-				specific.tal_id = instance_id;
-				specific.spot_id = spot_id;
-				specific.destination_host = Component::gateway;
-				auto block_sc_gw = Rt::createBlock<BlockSatCarrier>("SatCarrierGw" + spot_id_str, specific);
-
-				// Not a typo, the DVB Tal block communicates with the gateway
-				Rt::connectBlocks(block_transp, block_sc_gw, {spot_id, Component::gateway});
-				// Rt::connectBlocks(block_dvb_tal, block_sc_gw);
+				createStack<BlockDvbTal>(block_transp, spot_id, Component::gateway, regen_level, disable_ctrl_plane);
 			}
 
 			if (topo.sat_id_st == instance_id)
 			{
-				// dvb_specific dvb_spec;
-				// dvb_spec.disable_control_plane = disable_ctrl_plane;
-				// dvb_spec.disable_acm_loop = false;
-				// dvb_spec.mac_id = instance_id;
-				// dvb_spec.spot_id = spot_id;
-				// auto block_dvb_ncc = Rt::createBlock<BlockDvbNcc>("DvbNcc" + spot_id_str, dvb_spec);
-
-				sc_specific specific;
-				specific.ip_addr = ip_address;
-				specific.tal_id = instance_id;
-				specific.spot_id = spot_id;
-				specific.destination_host = Component::terminal;
-				auto block_sc_st = Rt::createBlock<BlockSatCarrier>("SatCarrierSt" + spot_id_str, specific);
-
-				// Not a typo, the DVB NCC block communicates with the terminals
-				Rt::connectBlocks(block_transp, block_sc_st, {spot_id, Component::terminal});
-				// Rt::connectBlocks(block_dvb_ncc, block_sc_st);
+				createStack<BlockDvbNcc>(block_transp, spot_id, Component::terminal, regen_level, disable_ctrl_plane);
 			}
 		}
 	}
@@ -166,6 +135,46 @@ bool EntitySatRegen::createSpecificBlocks()
 		return false;
 	}
 	return true;
+}
+
+template <typename Dvb>
+void EntitySatRegen::createStack(BlockTransp *block_transp,
+                                 spot_id_t spot_id,
+                                 Component destination,
+                                 RegenLevel regen_level,
+                                 bool disable_ctrl_plane)
+{
+	auto spot_id_str = std::to_string(spot_id);
+	auto dest_str = destination == Component::gateway ? "GW" : "ST";
+	auto suffix = dest_str + spot_id_str;
+
+	sc_specific specific;
+	specific.ip_addr = ip_address;
+	specific.tal_id = instance_id;
+	specific.spot_id = spot_id;
+	specific.destination_host = destination;
+	auto block_sc = Rt::createBlock<BlockSatCarrier>("SatCarrier" + suffix, specific);
+
+	if (regen_level == RegenLevel::BBFrame)
+	{
+		dvb_specific dvb_spec;
+		dvb_spec.disable_control_plane = disable_ctrl_plane;
+		dvb_spec.disable_acm_loop = false;
+		dvb_spec.mac_id = instance_id;
+		dvb_spec.spot_id = spot_id;
+
+		// Not a typo, the DVB Tal block communicates with the gateway
+		auto block_dvb = Rt::createBlock<Dvb>("Dvb" + suffix, dvb_spec);
+		auto block_encap = Rt::createBlock<BlockEncap>("Encap" + suffix, instance_id);
+
+		Rt::connectBlocks(block_transp, block_encap, {spot_id, destination});
+		Rt::connectBlocks(block_encap, block_dvb);
+		Rt::connectBlocks(block_dvb, block_sc);
+	}
+	else
+	{
+		Rt::connectBlocks(block_transp, block_sc, {spot_id, destination});
+	}
 }
 
 void defineProfileMetaModel()

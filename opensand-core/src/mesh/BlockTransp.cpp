@@ -89,8 +89,31 @@ bool BlockTransp::Upward::onEvent(const RtEvent *const event)
 	}
 
 	auto msg_event = static_cast<const MessageEvent *>(event);
-	auto frame = static_cast<DvbFrame *>(msg_event->getData());
-	return handleDvbFrame(std::unique_ptr<DvbFrame>(frame));
+	switch (to_enum<InternalMessageType>(msg_event->getMessageType()))
+	{
+		// sent by SatCarrier
+		case InternalMessageType::unknown:
+		case InternalMessageType::sig:
+		case InternalMessageType::encap_data:
+		{
+			auto frame = static_cast<DvbFrame *>(msg_event->getData());
+			return handleDvbFrame(std::unique_ptr<DvbFrame>(frame));
+		}
+		// sent by Encap
+		case InternalMessageType::decap_data:
+		{
+			auto burst = static_cast<NetBurst *>(msg_event->getData());
+			return handleNetBurst(std::unique_ptr<NetBurst>(burst));
+		}
+		case InternalMessageType::link_up:
+			// ignore
+			return true;
+		default:
+			LOG(log_receive, LEVEL_ERROR,
+			    "Unexpected message type received: %d",
+			    msg_event->getMessageType());
+			return false;
+	}
 }
 
 bool BlockTransp::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
@@ -98,6 +121,7 @@ bool BlockTransp::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	const spot_id_t spot_id = frame->getSpot();
 	const uint8_t carrier_id = frame->getCarrierId();
 	const uint8_t id = carrier_id % 10;
+	const auto msg_type = id >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
 	const log_level_t log_level = id >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
 	LOG(log_receive, log_level, "Received a DvbFrame (spot_id %d, carrier id %d, msg type %d)",
 	    spot_id, carrier_id, frame->getMessageType());
@@ -115,47 +139,48 @@ bool BlockTransp::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 
 	if (dest_sat_id == entity_id)
 	{
-		return sendToOppositeChannel(std::move(frame));
+		return sendToOppositeChannel(std::move(frame), msg_type);
 	}
 	else
 	{
 		// send by ISL
-		return sendToUpperBlock(std::move(frame));
+		return sendToUpperBlock(std::move(frame), msg_type);
 	}
-	// Unreachable
-	return true;
 }
 
-bool BlockTransp::Upward::sendToUpperBlock(std::unique_ptr<const DvbFrame> frame)
+bool BlockTransp::Upward::handleNetBurst(std::unique_ptr<NetBurst> burst)
 {
-	auto msg_type = frame->getCarrierId() % 10 >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
-	const auto log_level = msg_type == InternalMessageType::encap_data ? LEVEL_INFO : LEVEL_DEBUG;
-	LOG(log_send, log_level, "Sending a DvbFrame to the upper block");
-	const auto frame_ptr = frame.release();
-	const bool ok = enqueueMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(msg_type));
-	if (!ok)
-	{
-		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the upper block");
-		delete frame_ptr;
-		return false;
-	}
-	return true;
-}
+	if (burst->empty())
+		return true;
 
-bool BlockTransp::Upward::sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame)
-{
-	auto msg_type = frame->getCarrierId() % 10 >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
-	const auto log_level = msg_type == InternalMessageType::encap_data ? LEVEL_INFO : LEVEL_DEBUG;
-	LOG(log_send, log_level, "Sending a DvbFrame to the opposite channel");
-	const auto frame_ptr = frame.release();
-	const bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(msg_type));
-	if (!ok)
+	NetPacket &msg = *burst->front();
+
+	const spot_id_t spot_id = msg.getSpot();
+	const auto dest_id = msg.getDstTalId();
+	const auto src_id = msg.getSrcTalId();
+	LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
+
+	// TODO: Handle star architecture
+	const Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+
+	const auto dest_sat_id_it = routes.find({spot_id, dest});
+	if (dest_sat_id_it == routes.end())
 	{
-		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
-		delete frame_ptr;
+		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
+		    dest == Component::gateway ? "GW" : "ST", spot_id);
 		return false;
 	}
-	return true;
+	const tal_id_t dest_sat_id = dest_sat_id_it->second;
+
+	if (dest_sat_id == entity_id)
+	{
+		return sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
+	}
+	else
+	{
+		// send by ISL
+		return sendToUpperBlock(std::move(burst), InternalMessageType::decap_data);
+	}
 }
 
 BlockTransp::Downward::Downward(const std::string &name, TranspConfig transp_config):
@@ -172,8 +197,32 @@ bool BlockTransp::Downward::onEvent(const RtEvent *const event)
 	}
 
 	auto msg_event = static_cast<const MessageEvent *>(event);
-	auto frame = static_cast<DvbFrame *>(msg_event->getData());
-	return handleDvbFrame(std::unique_ptr<DvbFrame>(frame));
+
+	switch (to_enum<InternalMessageType>(msg_event->getMessageType()))
+	{
+		// sent by SatCarrier
+		case InternalMessageType::unknown:
+		case InternalMessageType::sig:
+		case InternalMessageType::encap_data:
+		{
+			auto frame = static_cast<DvbFrame *>(msg_event->getData());
+			return handleDvbFrame(std::unique_ptr<DvbFrame>(frame));
+		}
+		// sent by Encap
+		case InternalMessageType::decap_data:
+		{
+			auto burst = static_cast<NetBurst *>(msg_event->getData());
+			return handleNetBurst(std::unique_ptr<NetBurst>(burst));
+		}
+		case InternalMessageType::link_up:
+			// ignore
+			return true;
+		default:
+			LOG(log_receive, LEVEL_ERROR,
+			    "Unexpected message type received: %d",
+			    msg_event->getMessageType());
+			return false;
+	}
 }
 
 bool BlockTransp::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
@@ -181,6 +230,7 @@ bool BlockTransp::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	const spot_id_t spot_id = frame->getSpot();
 	const uint8_t carrier_id = frame->getCarrierId();
 	const uint8_t id = carrier_id % 10;
+	const auto msg_type = id >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
 	const log_level_t log_level = id >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
 	LOG(log_receive, log_level, "Received a DvbFrame (spot_id %d, carrier id %d, msg type %d)",
 	    spot_id, carrier_id, frame->getMessageType());
@@ -207,44 +257,46 @@ bool BlockTransp::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 
 		// add one to the input carrier id to get the corresponding output carrier id
 		frame->setCarrierId(carrier_id + 1);
-		return sendToLowerBlock({spot_id, dest}, std::move(frame));
+		return sendToLowerBlock({spot_id, dest}, std::move(frame), msg_type);
 	}
 	else
 	{
 		// send by ISL
-		return sendToOppositeChannel(std::move(frame));
+		return sendToOppositeChannel(std::move(frame), msg_type);
 	}
 }
 
-bool BlockTransp::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_ptr<const DvbFrame> frame)
+bool BlockTransp::Downward::handleNetBurst(std::unique_ptr<NetBurst> burst)
 {
-	auto msg_type = frame->getCarrierId() % 10 >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
-	const auto log_level = msg_type == InternalMessageType::encap_data ? LEVEL_INFO : LEVEL_DEBUG;
-	LOG(log_send, log_level, "Sending a DvbFrame to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
-	const auto frame_ptr = frame.release();
-	const bool ok = enqueueMessage(key, (void **)&frame_ptr, sizeof(DvbFrame), to_underlying(msg_type));
-	if (!ok)
-	{
-		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the lower block (%s, spot %d)",
-		    key.dest == Component::gateway ? "GW" : "ST", key.spot_id);
-		delete frame_ptr;
-		return false;
-	}
-	return true;
-}
+	if (burst->empty())
+		return true;
 
-bool BlockTransp::Downward::sendToOppositeChannel(std::unique_ptr<const DvbFrame> frame)
-{
-	auto msg_type = frame->getCarrierId() % 10 >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
-	const auto log_level = msg_type == InternalMessageType::encap_data ? LEVEL_INFO : LEVEL_DEBUG;
-	LOG(log_send, log_level, "Sending a DvbFrame to the opposite channel");
-	const auto frame_ptr = frame.release();
-	const bool ok = shareMessage((void **)&frame_ptr, sizeof(DvbFrame), to_underlying(msg_type));
-	if (!ok)
+	NetPacket &msg = *burst->front();
+
+	const spot_id_t spot_id = msg.getSpot();
+	const auto dest_id = msg.getDstTalId();
+	const auto src_id = msg.getSrcTalId();
+	LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
+
+	// TODO: Handle star architecture
+	const Component dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+
+	const auto dest_sat_id_it = routes.find({spot_id, dest});
+	if (dest_sat_id_it == routes.end())
 	{
-		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
-		delete frame_ptr;
+		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
+		    dest == Component::gateway ? "GW" : "ST", spot_id);
 		return false;
 	}
-	return true;
+	const tal_id_t dest_sat_id = dest_sat_id_it->second;
+
+	if (dest_sat_id == entity_id)
+	{
+		return sendToLowerBlock({spot_id, dest}, std::move(burst), InternalMessageType::decap_data);
+	}
+	else
+	{
+		// send by ISL
+		return sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
+	}
 }
