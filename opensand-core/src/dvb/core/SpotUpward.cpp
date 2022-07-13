@@ -418,6 +418,17 @@ bool SpotUpward::initAcmLoopMargin(void)
 bool SpotUpward::initOutput(void)
 {
 	auto output = Output::Get();
+
+	// generate probes prefix
+	std::ostringstream ss{};
+	ss << "spot_" << int{spot_id} << ".";
+	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
+	{
+		ss << "sat.";
+	}
+	ss << "gw.";
+	auto prefix = ss.str();
+
 	// Events
 	this->event_logon_req = output->registerEvent("Spot_%d.DVB.logon_request",
 	                                              this->spot_id);
@@ -430,9 +441,8 @@ bool SpotUpward::initOutput(void)
 	}
 
 	// Output probes and stats
-	std::ostringstream probe_name;
-	probe_name << "Spot_" << this->spot_id << ".Throughputs.L2_from_SAT";
-	this->probe_gw_l2_from_sat = output->registerProbe<int>(probe_name.str(), "Kbits/s", true, SAMPLE_AVG);
+	this->probe_gw_l2_from_sat = output->registerProbe<int>(prefix + "Throughputs.L2_from_SAT",
+	                                                        "Kbits/s", true, SAMPLE_AVG);
 	this->l2_from_sat_bytes = 0;
 
 	return true;

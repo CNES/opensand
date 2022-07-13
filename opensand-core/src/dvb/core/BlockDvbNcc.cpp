@@ -227,8 +227,18 @@ bool BlockDvbNcc::Downward::onInit(void)
 		                        this->svno_interface.getSvnoListenSocket(), 200);
 	}
 
+	// generate probes prefix
+	std::ostringstream ss{};
+	ss << "spot_" << int{spot_id} << ".";
+	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
+	{
+		ss << "sat.";
+	}
+	ss << "gw.";
+	auto prefix = ss.str();
+
 	// Output probes and stats
-	this->probe_frame_interval = Output::Get()->registerProbe<float>("Perf.Frames_interval",
+	this->probe_frame_interval = Output::Get()->registerProbe<float>(prefix + "Perf.Frames_interval",
 	                                                                 "ms", true,
 	                                                                 SAMPLE_LAST);
 
@@ -822,12 +832,24 @@ bool BlockDvbNcc::Upward::initOutput(void)
 {
 	auto output = Output::Get();
 
-	this->probe_gw_received_modcod = output->registerProbe<int>("Down_Return_modcod.Received_modcod",
-	                                                            "modcod index",
-	                                                            true, SAMPLE_LAST);
-	this->probe_gw_rejected_modcod = output->registerProbe<int>("Down_Return_modcod.Rejected_modcod",
-	                                                            "modcod index",
-	                                                            true, SAMPLE_LAST);
+	// generate probes prefix
+	std::ostringstream ss{};
+	ss << "spot_" << int{spot_id} << ".";
+	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
+	{
+		ss << "sat.";
+	}
+	ss << "gw.";
+	auto prefix = ss.str();
+
+	this->probe_gw_received_modcod =
+	    output->registerProbe<int>(prefix + "Down_Return_modcod.Received_modcod",
+	                               "modcod index",
+	                               true, SAMPLE_LAST);
+	this->probe_gw_rejected_modcod =
+	    output->registerProbe<int>(prefix + "Down_Return_modcod.Rejected_modcod",
+	                               "modcod index",
+	                               true, SAMPLE_LAST);
 
 	return true;
 }

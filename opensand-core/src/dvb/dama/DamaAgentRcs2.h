@@ -51,7 +51,7 @@ class DamaAgentRcs2 : public DamaAgent
 	virtual ~DamaAgentRcs2();
 
 	// Init method
-	virtual bool init();
+	virtual bool init(spot_id_t spot_id);
 
 	// Inherited methods
 	virtual bool processOnFrameTick();

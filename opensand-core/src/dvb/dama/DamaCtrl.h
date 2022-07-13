@@ -426,6 +426,8 @@ class DamaCtrl
 
 	// Spot ID
 	spot_id_t spot_id;
+
+	std::string output_prefix;
 };
 
 #define DC_RECORD_EVENT(fmt,args...) \

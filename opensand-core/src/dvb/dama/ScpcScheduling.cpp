@@ -41,6 +41,7 @@
 #include "ScpcScheduling.h"
 #include "FifoElement.h"
 
+#include <OpenSandModelConf.h>
 #include <opensand_output/Output.h>
 
 #include <cassert>
@@ -103,26 +104,40 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	category(category),
 	gw_id(gw_id)
 {
-	this->probe_scpc_total_capacity = Output::Get()->registerProbe<int>(
-		"SCPC capacity.Total.Available",
-		"Symbols per frame", true, SAMPLE_LAST);
-	this->probe_scpc_total_remaining_capacity = Output::Get()->registerProbe<int>(
-		"SCPC capacity.Total.Remaining",
-		"Symbols per frame", true, SAMPLE_LAST);
-	this->probe_scpc_bbframe_nbr = Output::Get()->registerProbe<int>(
-		"Up_return BBFrame number SCPC.BBFrame number", "BBFrame number", true, SAMPLE_AVG);
-	this->probe_sent_modcod = Output::Get()->registerProbe<int>(
-    "Up_Return_modcod.Sent_modcod(SCPC)", "modcod index", true, SAMPLE_LAST);
+	auto output = Output::Get();
+
+	// generate probes prefix
+	std::ostringstream ss{};
+	ss << "spot_" << gw_id << ".";
+	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
+	{
+		ss << "sat.";
+	}
+	ss << "tal.";
+	auto prefix = ss.str();
+
+	this->probe_scpc_total_capacity =
+	    output->registerProbe<int>(prefix + "SCPC capacity.Total.Available",
+	                               "Symbols per frame", true, SAMPLE_LAST);
+
+	this->probe_scpc_total_remaining_capacity =
+	    output->registerProbe<int>(prefix + "SCPC capacity.Total.Remaining",
+	                               "Symbols per frame", true, SAMPLE_LAST);
+
+	this->probe_scpc_bbframe_nbr =
+	    output->registerProbe<int>(prefix + "Up_return BBFrame number SCPC.BBFrame number",
+	                               "BBFrame number", true, SAMPLE_AVG);
+
+	this->probe_sent_modcod =
+	    output->registerProbe<int>(prefix + "Up_Return_modcod.Sent_modcod(SCPC)",
+	                               "modcod index", true, SAMPLE_LAST);
 
 	for(auto&& carriers : this->category->getCarriersGroups())
 	{
-    std::vector<std::shared_ptr<Probe<int> > > remain_probes;
-    std::vector<std::shared_ptr<Probe<int> > > avail_probes;
+		std::vector<std::shared_ptr<Probe<int>>> remain_probes;
+		std::vector<std::shared_ptr<Probe<int>>> avail_probes;
 		unsigned int carriers_id = carriers->getCarriersId();
-	
-    std::shared_ptr<Probe<int>> remain_probe;
-    std::shared_ptr<Probe<int>> avail_probe;
-		char probe_name[128];
+
 		vol_sym_t carrier_size_sym = carriers->getTotalCapacity() /
 		                             carriers->getCarriersNumber();
 
@@ -157,19 +172,12 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 
 		// For units, if there is only one MODCOD use Kbits/s else symbols
 		// check if the FIFO can emit on this carriers group
-    std::string type = "SCPC";
-    std::string unit = "Symbol number";
-	
-		snprintf(probe_name, sizeof(probe_name),
-		         "SCPC capacity.Category %s.Carrier%u.%s.Remaining",
-				     this->category->getLabel().c_str(),
-				     carriers_id, type.c_str());
-		remain_probe = Output::Get()->registerProbe<int>(probe_name, unit, true, SAMPLE_AVG);
-		snprintf(probe_name, sizeof(probe_name),
-		         "SCPC capacity.Category %s.Carrier%u.%s.Available",
-				     this->category->getLabel().c_str(),
-				     carriers_id, type.c_str());
-		avail_probe = Output::Get()->registerProbe<int>(probe_name, unit, true, SAMPLE_AVG);
+		std::string unit = "Symbol number";
+		std::string path = prefix + "SCPC capacity.Category " + this->category->getLabel() +
+		                   ".Carrier" + std::to_string(carriers_id) + ".SCPC.";
+
+		auto remain_probe = output->registerProbe<int>(path + "Remaining", unit, true, SAMPLE_AVG);
+		auto avail_probe = output->registerProbe<int>(path + "Available", unit, true, SAMPLE_AVG);
 
 		avail_probes.push_back(avail_probe);
 		remain_probes.push_back(remain_probe);

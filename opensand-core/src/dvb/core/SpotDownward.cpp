@@ -84,12 +84,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	request_simu(NULL),
 	event_file(NULL),
 	simulate(none_simu),
-	probe_gw_queue_size(NULL),
-	probe_gw_queue_size_kb(NULL),
-	probe_gw_queue_loss(NULL),
-	probe_gw_queue_loss_kb(NULL),
-	probe_gw_l2_to_sat_before_sched(NULL),
-	probe_gw_l2_to_sat_after_sched(NULL),
 	probe_gw_l2_to_sat_total(),
 	l2_to_sat_total_bytes(),
 	probe_frame_interval(NULL),
@@ -149,14 +143,6 @@ SpotDownward::~SpotDownward()
 	this->dvb_fifos.clear();
 
 	this->terminal_affectation.clear();
-
-	// delete probes
-	delete this->probe_gw_queue_size;
-	delete this->probe_gw_queue_size_kb;
-	delete this->probe_gw_queue_loss;
-	delete this->probe_gw_queue_loss_kb;
-	delete this->probe_gw_l2_to_sat_before_sched;
-	delete this->probe_gw_l2_to_sat_after_sched;
 }
 
 void SpotDownward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
@@ -803,72 +789,61 @@ bool SpotDownward::initRequestSimulation(void)
 bool SpotDownward::initOutput(void)
 {
 	auto output = Output::Get();
-	// Events
-	this->event_logon_resp = output->registerEvent("Spot_%d.DVB.logon_response",
-	                                               this->spot_id);
 
-	this->probe_gw_queue_size = new std::map<std::string, ProbeListPerId>();
-	this->probe_gw_queue_size_kb = new std::map<std::string, ProbeListPerId>();
-	this->probe_gw_queue_loss = new std::map<std::string, ProbeListPerId>();
-	this->probe_gw_queue_loss_kb = new std::map<std::string, ProbeListPerId>();
-	this->probe_gw_l2_to_sat_before_sched = new std::map<std::string, ProbeListPerId>();
-	this->probe_gw_l2_to_sat_after_sched = new std::map<std::string, ProbeListPerId>();
-	char probe_name[128];
-
-	for(std::map<std::string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
-		it1 != this->dvb_fifos.end(); it1++)
+	// generate probes prefix
+	std::ostringstream ss{};
+	ss << "spot_" << int{spot_id} << ".";
+	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
 	{
-    std::string cat_label = it1->first;
-		for(fifos_t::iterator it2 = it1->second.begin();
-			it2 != it1->second.end(); ++it2)
+		ss << "sat.";
+	}
+	ss << "gw.";
+	auto prefix = ss.str();
+
+	// Events
+	this->event_logon_resp = output->registerEvent(prefix + "DVB.logon_response");
+
+	for (auto &&label_fifos_pair: dvb_fifos)
+	{
+		const std::string cat_label = label_fifos_pair.first;
+		const fifos_t &fifos = label_fifos_pair.second;
+
+		for (auto &&qos_fifo_pair: fifos)
 		{
-      std::string fifo_name = ((*it2).second)->getName();
-			unsigned int id = (*it2).first;
+			qos_t id = qos_fifo_pair.first;
+			DvbFifo *fifo = qos_fifo_pair.second;
+			std::string fifo_name = fifo->getName();
 
 			std::shared_ptr<Probe<int>> probe_temp;
+			std::string name;
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue size.packets.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "Packets", true, SAMPLE_LAST);
-			(*this->probe_gw_queue_size)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue size.packets." + fifo_name,
+			                                        "Packets", true, SAMPLE_LAST);
+			this->probe_gw_queue_size[cat_label].emplace(id, probe_temp);
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue size.capacity.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "kbits", true, SAMPLE_LAST);
-			(*this->probe_gw_queue_size_kb)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue size.capacity." + fifo_name,
+			                                        "kbits", true, SAMPLE_LAST);
+			this->probe_gw_queue_size_kb[cat_label].emplace(id, probe_temp);
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Throughputs.L2_to_SAT_before_sched.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
-			(*this->probe_gw_l2_to_sat_before_sched)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Throughputs.L2_to_SAT_before_sched." + fifo_name,
+			                                        "Kbits/s", true, SAMPLE_AVG);
+			this->probe_gw_l2_to_sat_before_sched[cat_label].emplace(id, probe_temp);
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
-			(*this->probe_gw_l2_to_sat_after_sched)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Throughputs.L2_to_SAT_after_sched." + fifo_name,
+			                                        "Kbits/s", true, SAMPLE_AVG);
+			this->probe_gw_l2_to_sat_after_sched[cat_label].emplace(id, probe_temp);
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue loss.packets.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "Packets", true, SAMPLE_SUM);
-			(*this->probe_gw_queue_loss)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue loss.packets." + fifo_name,
+			                                        "Packets", true, SAMPLE_SUM);
+			this->probe_gw_queue_loss[cat_label].emplace(id, probe_temp);
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue loss.rate.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_SUM);
-			(*this->probe_gw_queue_loss_kb)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue loss.rate." + fifo_name,
+			                                        "Kbits/s", true, SAMPLE_SUM);
+			this->probe_gw_queue_loss_kb[cat_label].emplace(id, probe_temp);
 		}
-		snprintf(probe_name, sizeof(probe_name),
-		         "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.total",
-		         spot_id, cat_label.c_str());
 		this->probe_gw_l2_to_sat_total[cat_label] =
-			output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
-
+		    output->registerProbe<int>(prefix + cat_label + ".Throughputs.L2_to_SAT_after_sched.total",
+		                               "Kbits/s", true, SAMPLE_AVG);
 	}
 
 	return true;
@@ -1041,29 +1016,33 @@ void SpotDownward::updateStatistics(void)
 
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
-	for(std::map<std::string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
-		it1 != this->dvb_fifos.end(); it1++)
+
+	for (auto &&label_fifos_pair: dvb_fifos)
 	{
-    std::string cat_label = it1->first;
-		for(fifos_t::iterator it2 = it1->second.begin();
-		    it2 != it1->second.end(); ++it2)
+		const std::string cat_label = label_fifos_pair.first;
+		const fifos_t &fifos = label_fifos_pair.second;
+
+		for (auto &&qos_fifo_pair: fifos)
 		{
-			(*it2).second->getStatsCxt(fifo_stat);
+			qos_t id = qos_fifo_pair.first;
+			DvbFifo *fifo = qos_fifo_pair.second;
+
+			fifo->getStatsCxt(fifo_stat);
 
 			this->l2_to_sat_total_bytes[cat_label] += fifo_stat.out_length_bytes;
 
-			(*this->probe_gw_l2_to_sat_before_sched)[cat_label][(*it2).first]->put(
-				fifo_stat.in_length_bytes * 8.0 / this->stats_period_ms);
+			this->probe_gw_l2_to_sat_before_sched[cat_label][id]->put(
+			    fifo_stat.in_length_bytes * 8.0 / this->stats_period_ms);
 
-			(*this->probe_gw_l2_to_sat_after_sched)[cat_label][(*it2).first]->put(
-				fifo_stat.out_length_bytes * 8.0 / this->stats_period_ms);
+			this->probe_gw_l2_to_sat_after_sched[cat_label][id]->put(
+			    fifo_stat.out_length_bytes * 8.0 / this->stats_period_ms);
 
 			// Mac fifo stats
-			(*this->probe_gw_queue_size)[cat_label][(*it2).first]->put(fifo_stat.current_pkt_nbr);
-			(*this->probe_gw_queue_size_kb)[cat_label][(*it2).first]->put(
-						fifo_stat.current_length_bytes * 8 / 1000);
-			(*this->probe_gw_queue_loss)[cat_label][(*it2).first]->put(fifo_stat.drop_pkt_nbr);
-			(*this->probe_gw_queue_loss_kb)[cat_label][(*it2).first]->put(fifo_stat.drop_bytes * 8);
+			this->probe_gw_queue_size[cat_label][id]->put(fifo_stat.current_pkt_nbr);
+			this->probe_gw_queue_size_kb[cat_label][id]->put(
+			    fifo_stat.current_length_bytes * 8 / 1000);
+			this->probe_gw_queue_loss[cat_label][id]->put(fifo_stat.drop_pkt_nbr);
+			this->probe_gw_queue_loss_kb[cat_label][id]->put(fifo_stat.drop_bytes * 8);
 		}
 		this->probe_gw_l2_to_sat_total[cat_label]->put(this->l2_to_sat_total_bytes[cat_label] * 8 /
 	                                                   this->stats_period_ms);

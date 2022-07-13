@@ -36,6 +36,7 @@
 
 #include "DamaCtrl.h"
 
+#include "OpenSandModelConf.h"
 #include <opensand_output/Output.h>
 
 #include <assert.h>
@@ -63,7 +64,7 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 	spot_id(spot)
 {
 	// Output Log
-  auto output = Output::Get();
+	auto output = Output::Get();
 	this->log_init = output->registerLog(LEVEL_WARNING, "Dvb.init");
 	this->log_logon = output->registerLog(LEVEL_WARNING, "Dvb.DamaCtrl.Logon");
 	this->log_super_frame_tick = output->registerLog(LEVEL_WARNING, "Dvb.DamaCtrl.SuperFrameTick");
@@ -73,19 +74,15 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 	this->log_pep = output->registerLog(LEVEL_WARNING, "Dvb.Ncc.PEP");
 	this->log_fmt = output->registerLog(LEVEL_WARNING, "Dvb.Fmt.Update");
 
-	// Output probes and stats
-	this->probe_gw_rbdc_req_num = NULL;
-	this->probe_gw_rbdc_req_size = NULL;
-	this->probe_gw_vbdc_req_num = NULL;
-	this->probe_gw_vbdc_req_size = NULL;
-	this->probe_gw_cra_alloc = NULL;
-	this->probe_gw_rbdc_alloc = NULL;
-	this->probe_gw_rbdc_max = NULL;
-	this->probe_gw_vbdc_alloc = NULL;
-	this->probe_gw_fca_alloc = NULL;
-	this->probe_gw_return_total_capacity = NULL;
-	this->probe_gw_return_remaining_capacity = NULL;
-	this->probe_gw_st_num = NULL;
+	// generate probes prefix
+	std::ostringstream ss{};
+	ss << "spot_" << int{spot_id} << ".";
+	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
+	{
+		ss << "sat.";
+	}
+	ss << "gw.";
+	this->output_prefix= ss.str();
 }
 
 DamaCtrl::~DamaCtrl()
@@ -158,51 +155,51 @@ error:
 
 bool DamaCtrl::initOutput()
 {
-  auto output = Output::Get();
-	char probe_name[128];
+	auto output = Output::Get();
+
 	// RBDC request number
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.RBDC.RBDC request number", this->spot_id);
-	this->probe_gw_rbdc_req_num = output->registerProbe<int>(probe_name, "", true, SAMPLE_LAST);
+	this->probe_gw_rbdc_req_num =
+	    output->registerProbe<int>(output_prefix + "RBDC.RBDC request number", "", true, SAMPLE_LAST);
 	this->gw_rbdc_req_num = 0;
 
 	// RBDC requested capacity
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.RBDC.RBDC requested capacity", this->spot_id);
-	this->probe_gw_rbdc_req_size = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_LAST);
+	this->probe_gw_rbdc_req_size =
+	    output->registerProbe<int>(output_prefix + "RBDC.RBDC requested capacity", "Kbits/s", true, SAMPLE_LAST);
 
 	// VBDC request number
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.VBDC.VBDC request number", this->spot_id);
-	this->probe_gw_vbdc_req_num = output->registerProbe<int>(probe_name, "", true, SAMPLE_LAST);
+	this->probe_gw_vbdc_req_num =
+	    output->registerProbe<int>(output_prefix + "VBDC.VBDC request number", "", true, SAMPLE_LAST);
 	this->gw_vbdc_req_num = 0;
 
 	// VBDC Requested capacity
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.VBDC.VBDC requested capacity", this->spot_id);
-	this->probe_gw_vbdc_req_size = output->registerProbe<int>(probe_name, "Kbits", true, SAMPLE_LAST);
+	this->probe_gw_vbdc_req_size =
+	    output->registerProbe<int>(output_prefix + "VBDC.VBDC requested capacity", "Kbits", true, SAMPLE_LAST);
 
 	// Allocated ressources
 	// CRA allocation
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.Global.CRA allocated", this->spot_id);
-	this->probe_gw_cra_alloc = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_LAST);
+	this->probe_gw_cra_alloc =
+	    output->registerProbe<int>(output_prefix + "Global.CRA allocated", "Kbits/s", true, SAMPLE_LAST);
 	this->gw_cra_alloc_kbps = 0;
 
 	// RBDC max
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.RBDC.RBDC max", this->spot_id);
-	this->probe_gw_rbdc_max = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_LAST);
+	this->probe_gw_rbdc_max =
+	    output->registerProbe<int>(output_prefix + "RBDC.RBDC max", "Kbits/s", true, SAMPLE_LAST);
 	this->gw_rbdc_max_kbps = 0;
 
 	// RBDC allocation
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.RBDC.RBDC allocated", this->spot_id);
-	this->probe_gw_rbdc_alloc = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_LAST);
+	this->probe_gw_rbdc_alloc =
+	    output->registerProbe<int>(output_prefix + "RBDC.RBDC allocated", "Kbits/s", true, SAMPLE_LAST);
 
 	// VBDC allocation
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.VBDC.VBDC allocated", this->spot_id);
-	this->probe_gw_vbdc_alloc = output->registerProbe<int>(probe_name, "Kbits", true, SAMPLE_LAST);
+	this->probe_gw_vbdc_alloc =
+	    output->registerProbe<int>(output_prefix + "VBDC.VBDC allocated", "Kbits", true, SAMPLE_LAST);
 
 	// FCA allocation
 	if(this->fca_kbps != 0)
 	{
 		// only create FCA probe if it is enabled
-		snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.Global.FCA allocated", this->spot_id);
-		this->probe_gw_fca_alloc = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_LAST);
+		this->probe_gw_fca_alloc =
+		    output->registerProbe<int>(output_prefix + "Global.FCA allocated", "Kbits/s", true, SAMPLE_LAST);
 	}
 
 	// Total and remaining capacity
@@ -211,42 +208,36 @@ bool DamaCtrl::initOutput()
 	this->gw_remaining_capacity = 0;
 
 	// Logged ST number
-	snprintf(probe_name, sizeof(probe_name), "Spot_%d.NCC.Global.ST number", this->spot_id);
-	this->probe_gw_st_num = output->registerProbe<int>(probe_name, "", true, SAMPLE_LAST);
+	this->probe_gw_st_num =
+	    output->registerProbe<int>(output_prefix + "Global.ST number", "", true, SAMPLE_LAST);
 	this->gw_st_num = 0;
 
 	// Register output probes for simulated STs
 	if(this->simulated)
 	{
-    std::shared_ptr<Probe<int>> probe_cra;
-    std::shared_ptr<Probe<int>> probe_rbdc_max;
-    std::shared_ptr<Probe<int>> probe_rbdc;
-    std::shared_ptr<Probe<int>> probe_vbdc;
-    std::shared_ptr<Probe<int>> probe_fca;
-
 		// tal_id 0 is for GW so it is unused
 		tal_id_t tal_id = 0;
-		snprintf(probe_name, sizeof(probe_name), "Spot_%d.Simulated_ST.CRA allocation", this->spot_id);
-		probe_cra = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_MAX);
+		auto probe_cra = output->registerProbe<int>(output_prefix + "Simulated_ST.CRA allocation",
+		                                            "Kbits/s", true, SAMPLE_MAX);
 		this->probes_st_cra_alloc.emplace(tal_id, probe_cra);
 
-		snprintf(probe_name, sizeof(probe_name), "Spot_%d.Simulated_ST.RBDC max", this->spot_id);
-		probe_rbdc_max = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_MAX);
+		auto probe_rbdc_max = output->registerProbe<int>(output_prefix + "Simulated_ST.RBDC max",
+		                                                 "Kbits/s", true, SAMPLE_MAX);
 		this->probes_st_rbdc_max.emplace(tal_id, probe_rbdc_max);
 
-		snprintf(probe_name, sizeof(probe_name), "Spot_%d.Simulated_ST.RBDC allocation", this->spot_id);
-		probe_rbdc = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_MAX);
+		auto probe_rbdc = output->registerProbe<int>(output_prefix + "Simulated_ST.RBDC allocation",
+		                                             "Kbits/s", true, SAMPLE_MAX);
 		this->probes_st_rbdc_alloc.emplace(tal_id, probe_rbdc);
 
-		snprintf(probe_name, sizeof(probe_name), "Spot_%d.Simulated_ST.VBDC allocation", this->spot_id);
-		probe_vbdc = output->registerProbe<int>(probe_name, "Kbits", true, SAMPLE_SUM);
+		auto probe_vbdc = output->registerProbe<int>(output_prefix + "Simulated_ST.VBDC allocation",
+		                                             "Kbits", true, SAMPLE_SUM);
 		this->probes_st_vbdc_alloc.emplace(tal_id, probe_vbdc);
 
 		// only create FCA probe if it is enabled
 		if(this->fca_kbps != 0)
 		{
-			snprintf(probe_name, sizeof(probe_name), "Spot_%d.Simulated_ST.FCA allocation", this->spot_id);
-			probe_fca = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_MAX);
+			auto probe_fca = output->registerProbe<int>(output_prefix + "Simulated_ST.FCA allocation",
+			                                            "Kbits/s", true, SAMPLE_MAX);
 			this->probes_st_fca_alloc.emplace(tal_id, probe_fca);
 		}
 	}
@@ -328,37 +319,32 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 
 		if(tal_id < BROADCAST_TAL_ID)
 		{
-      auto output = Output::Get();
+			auto output = Output::Get();
 
-			char probe_name[128];
-      std::shared_ptr<Probe<int>> probe_cra;
-      std::shared_ptr<Probe<int>> probe_rbdc_max;
-      std::shared_ptr<Probe<int>> probe_rbdc;
-      std::shared_ptr<Probe<int>> probe_vbdc;
-      std::shared_ptr<Probe<int>> probe_fca;
+			auto prefix = output_prefix + "st" + std::to_string(tal_id) + "_allocation.";
 
 			// Output probes and stats
-			snprintf(probe_name, sizeof(probe_name), "ST%u_allocation.CRA allocation", tal_id);
-			probe_cra = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_MAX);
+			auto probe_cra = output->registerProbe<int>(prefix + "CRA allocation",
+			                                            "Kbits/s", true, SAMPLE_MAX);
 			this->probes_st_cra_alloc.emplace(tal_id, probe_cra);
 
-			snprintf(probe_name, sizeof(probe_name), "ST%u_allocation.RBDC max", tal_id);
-			probe_rbdc_max = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_MAX);
+			auto probe_rbdc_max = output->registerProbe<int>(prefix + "RBDC max",
+			                                                 "Kbits/s", true, SAMPLE_MAX);
 			this->probes_st_rbdc_max.emplace(tal_id, probe_rbdc_max);
 
-			snprintf(probe_name, sizeof(probe_name), "ST%u_allocation.RBDC allocation", tal_id);
-			probe_rbdc = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_MAX);
+			auto probe_rbdc = output->registerProbe<int>(prefix + "RBDC allocation",
+			                                             "Kbits/s", true, SAMPLE_MAX);
 			this->probes_st_rbdc_alloc.emplace(tal_id, probe_rbdc);
 
-			snprintf(probe_name, sizeof(probe_name), "ST%u_allocation.VBDC allocation", tal_id);
-			probe_vbdc = output->registerProbe<int>(probe_name, "Kbits", true, SAMPLE_SUM);
+			auto probe_vbdc = output->registerProbe<int>(prefix + "VBDC allocation",
+			                                             "Kbits", true, SAMPLE_SUM);
 			this->probes_st_vbdc_alloc.emplace(tal_id, probe_vbdc);
 
 			// only create FCA probe if it is enabled
 			if(this->fca_kbps != 0)
 			{
-				snprintf(probe_name, sizeof(probe_name), "ST%u_allocation.FCA allocation", tal_id);
-				probe_fca = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_MAX);
+				auto probe_fca = output->registerProbe<int>(prefix + "FCA allocation",
+				                                            "Kbits/s", true, SAMPLE_MAX);
 				this->probes_st_fca_alloc.emplace(tal_id, probe_fca);
 			}
 		}
@@ -632,9 +618,9 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 	    cat_it != categories.end(); ++cat_it)
 	{
 		TerminalCategoryDama *category = (*cat_it).second;
-    std::vector<CarriersGroupDama *> carriers;
-    std::vector<CarriersGroupDama *>::const_iterator carrier_it;
-    std::string label = category->getLabel();
+		std::vector<CarriersGroupDama *> carriers;
+		std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+		std::string label = category->getLabel();
 		this->probes_category_return_remaining_capacity[label]->put(
 			this->category_return_remaining_capacity[label]);
 		carriers = category->getCarriersGroups();
@@ -645,20 +631,18 @@ void DamaCtrl::updateStatistics(time_ms_t UNUSED(period_ms))
 
 			// Create the probes if they don't exist yet
 			// (necessary in case of carrier modifications with SVNO interface)
-			if(this->probes_carrier_return_remaining_capacity[label].find(carrier_id)
-			   == this->probes_carrier_return_remaining_capacity[label].end())
+			auto &probes_remain_capa = this->probes_carrier_return_remaining_capacity[label];
+			if (probes_remain_capa.find(carrier_id) == probes_remain_capa.end())
 			{
-        auto probe = this->generateCarrierCapacityProbe(label, carrier_id, "Remaining");
-				this->probes_carrier_return_remaining_capacity[label].emplace(carrier_id, probe);
+				auto probe = this->generateCarrierCapacityProbe(label, carrier_id, "Remaining");
+				probes_remain_capa.emplace(carrier_id, probe);
 			}
-			if(this->carrier_return_remaining_capacity[label].find(carrier_id)
-			   == this->carrier_return_remaining_capacity[label].end())
+			auto &remain_capa = this->carrier_return_remaining_capacity[label];
+			if(remain_capa.find(carrier_id) == remain_capa.end())
 			{
-				this->carrier_return_remaining_capacity[label].insert({carrier_id, 0});
+				remain_capa.insert({carrier_id, 0});
 			}
-
-			this->probes_carrier_return_remaining_capacity[label][carrier_id]->put(
-				this->carrier_return_remaining_capacity[label][carrier_id]);
+			probes_remain_capa[carrier_id]->put(remain_capa[carrier_id]);
 		}
 	}
 }

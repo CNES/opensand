@@ -217,18 +217,17 @@ class ForwardSchedulingS2: public Scheduling
 	/**
 	 * @brief  Create the associated probes
 	 */
-	void createProbes(std::vector<CarriersGroupDama *>::iterator vcm_it,
+	void createProbes(CarriersGroupDama *vcm,
 	                  std::vector<CarriersGroupDama *> vcm_carriers,
-	                  std::vector<std::shared_ptr<Probe<int> > > &remain_probes,
-	                  std::vector<std::shared_ptr<Probe<int> > > &avail_probes,
+	                  std::vector<std::shared_ptr<Probe<int>>> &remain_probes,
+	                  std::vector<std::shared_ptr<Probe<int>>> &avail_probes,
 	                  unsigned int carriers_id);
 
 	/**
 	 * @brief  Check that the size of the carrier is compatible with the BBFrame size
 	 */
-	void checkBBFrameSize(std::vector<CarriersGroupDama *>::iterator vcm_it,
+	void checkBBFrameSize(CarriersGroupDama *vcm,
 	                      std::vector<CarriersGroupDama *> vcm_carriers);
-
 };
 
 #endif

@@ -40,6 +40,7 @@
 #include "ForwardSchedulingS2.h"
 #include "FifoElement.h"
 
+#include "OpenSandModelConf.h"
 #include <opensand_output/Output.h>
 
 #include <cassert>
@@ -106,56 +107,48 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	spot_id(spot),
 	probe_section("")
 {
-  std::vector<CarriersGroupDama *> carriers_group;
-  std::vector<CarriersGroupDama *>::iterator carrier_it;
-  std::string label = this->category->getLabel();
-	std::stringstream section;
-	char probe_name[128];
+	auto output = Output::Get();
+	std::string label = this->category->getLabel();
 
-	section << "Spot_" << (unsigned int)this->spot_id;
-	if(!is_gw)
+	// generate probes prefix
+	std::ostringstream ss{};
+	ss << "spot_" << int{spot_id} << ".";
+	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
 	{
-		section << ".GW_" << (unsigned int)gw_id;
+		ss << "sat.";
 	}
-	section << "." << label << "." << dst_name;
-	this->probe_section = section.str();
+	ss << (is_gw ? "gw." : "st.");
+	auto prefix = ss.str();
+	ss << label << "." << dst_name;
+	this->probe_section = ss.str();
 
-	snprintf(probe_name, sizeof(probe_name),
-	         "%sDown/Forward capacity.Total.Available",
-	         this->probe_section.c_str());
-	this->probe_fwd_total_capacity = Output::Get()->registerProbe<int>(probe_name, "Symbols per frame", true, SAMPLE_LAST);
-	snprintf(probe_name, sizeof(probe_name),
-	         "%sDown/Forward capacity.Total.Remaining",
-	         this->probe_section.c_str());
-	this->probe_fwd_total_remaining_capacity = Output::Get()->registerProbe<int>(probe_name, "Symbols per frame", true, SAMPLE_LAST);
-	snprintf(probe_name, sizeof(probe_name),
-	         "%sGlobal.BBFrame number",
-	         this->probe_section.c_str());
-	this->probe_bbframe_nbr = Output::Get()->registerProbe<int>(probe_name, true, SAMPLE_AVG);
+	this->probe_fwd_total_capacity =
+	    output->registerProbe<int>(probe_section + "Down/Forward capacity.Total.Available",
+	                               "Symbols per frame", true, SAMPLE_LAST);
 
-	this->probe_gw_sent_modcod = Output::Get()->registerProbe<int>("Up_Forward_modcod.Sent_modcod",
-	                                                               "modcod index",
-	                                                               true, SAMPLE_LAST);
+	this->probe_fwd_total_remaining_capacity =
+	    output->registerProbe<int>(probe_section + "Down/Forward capacity.Total.Remaining",
+	                               "Symbols per frame", true, SAMPLE_LAST);
+	this->probe_bbframe_nbr =
+	    output->registerProbe<int>(probe_section + "Global.BBFrame number",
+	                               true, SAMPLE_AVG);
 
-	carriers_group = this->category->getCarriersGroups();
-	for(carrier_it = carriers_group.begin();
-	    carrier_it != carriers_group.end();
-	    ++carrier_it)
+	this->probe_gw_sent_modcod = output->registerProbe<int>(prefix + "Up_Forward_modcod.Sent_modcod",
+	                                                        "modcod index",
+	                                                        true, SAMPLE_LAST);
+
+	std::vector<CarriersGroupDama *> carriers_group = this->category->getCarriersGroups();
+	for (auto &&carriers: carriers_group)
 	{
-		CarriersGroupDama *carriers = *carrier_it;
-    std::vector<CarriersGroupDama *> vcm_carriers;
-    std::vector<CarriersGroupDama *>::iterator vcm_it;
-    std::vector<std::shared_ptr<Probe<int> > > remain_probes;
-    std::vector<std::shared_ptr<Probe<int> > > avail_probes;
+		std::vector<std::shared_ptr<Probe<int>>> remain_probes;
+		std::vector<std::shared_ptr<Probe<int>>> avail_probes;
 		unsigned int carriers_id = carriers->getCarriersId();
-	
-		vcm_carriers = carriers->getVcmCarriers();
-		for(vcm_it = vcm_carriers.begin();
-		    vcm_it != vcm_carriers.end();
-		    ++vcm_it)
+
+		std::vector<CarriersGroupDama *> vcm_carriers = carriers->getVcmCarriers();
+		for(auto *vcm: vcm_carriers)
 		{
-			this->checkBBFrameSize(vcm_it, vcm_carriers);
-			this->createProbes(vcm_it, vcm_carriers, remain_probes, avail_probes, carriers_id);
+			this->checkBBFrameSize(vcm, vcm_carriers);
+			this->createProbes(vcm, vcm_carriers, remain_probes, avail_probes, carriers_id);
 		}
 		this->probe_fwd_available_capacity.emplace(carriers_id, avail_probes);
 		this->probe_fwd_remaining_capacity.emplace(carriers_id, remain_probes);
@@ -186,28 +179,28 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
                                    uint32_t &remaining_allocation)
 {
 	fifos_t::const_iterator fifo_it;
-  std::vector<CarriersGroupDama *> carriers_group;
-  std::vector<CarriersGroupDama *>::iterator carrier_it;
+	std::vector<CarriersGroupDama *> carriers_group;
+	std::vector<CarriersGroupDama *>::iterator carrier_it;
 	carriers_group = this->category->getCarriersGroups();
 	vol_sym_t init_capacity_sym;
 	int total_capa = 0;
 
-	for(carrier_it = carriers_group.begin();
-	    carrier_it != carriers_group.end();
-	    ++carrier_it)
+	for (carrier_it = carriers_group.begin();
+	     carrier_it != carriers_group.end();
+	     ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-    std::vector<CarriersGroupDama *> vcm_carriers;
-    std::vector<CarriersGroupDama *>::iterator vcm_it;
+		std::vector<CarriersGroupDama *> vcm_carriers;
+		std::vector<CarriersGroupDama *>::iterator vcm_it;
 		unsigned int vcm_id = 0;
-			
+
 		vcm_carriers = carriers->getVcmCarriers();
 		// if no VCM, getVcm() will return only one carrier
-		for(vcm_it = vcm_carriers.begin();
-		    vcm_it != vcm_carriers.end();
-		    ++vcm_it)
+		for (vcm_it = vcm_carriers.begin();
+		     vcm_it != vcm_carriers.end();
+		     ++vcm_it)
 		{
-      std::list<BBFrame *>::iterator it;
+			std::list<BBFrame *>::iterator it;
 			CarriersGroupDama *vcm = *vcm_it;
 			vol_sym_t capacity_sym;
 			vol_sym_t previous_sym;
@@ -341,27 +334,23 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 	    ++carrier_it)
 	{
 		CarriersGroupDama *carriers = *carrier_it;
-    std::vector<CarriersGroupDama *> vcm_carriers;
-    std::vector<CarriersGroupDama *>::iterator vcm_it;
 		unsigned int carriers_id = carriers->getCarriersId();
 		unsigned int id = 0;
 
-		vcm_carriers = carriers->getVcmCarriers();
-		for(vcm_it = vcm_carriers.begin();
-		    vcm_it != vcm_carriers.end();
-		    ++vcm_it)
+		std::vector<CarriersGroupDama *> vcm_carriers = carriers->getVcmCarriers();
+		for(auto *vcm: vcm_carriers)
 		{
-			unsigned int remain = (*vcm_it)->getRemainingCapacity();
-			unsigned int avail = (*vcm_it)->getTotalCapacity();
+			unsigned int remain = vcm->getRemainingCapacity();
+			unsigned int avail = vcm->getTotalCapacity();
 			// keep total remaining capacity (for stats)
 			remaining_allocation += remain;
 
 			// get remain in Kbits/s instead of symbols if possible
-			if((*vcm_it)->getFmtIds().size() == 1)
+			if(vcm->getFmtIds().size() == 1)
 			{
-				remain = this->fwd_modcod_def->symToKbits((*vcm_it)->getFmtIds().front(),
+				remain = this->fwd_modcod_def->symToKbits(vcm->getFmtIds().front(),
 				                                 remain);
-				avail = this->fwd_modcod_def->symToKbits((*vcm_it)->getFmtIds().front(),
+				avail = this->fwd_modcod_def->symToKbits(vcm->getFmtIds().front(),
 				                               avail);
 				// we get kbits per frame, convert in kbits/s
 				remain = remain * 1000 / this->fwd_timer_ms;
@@ -374,10 +363,10 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			if(this->probe_fwd_available_capacity.find(carriers_id)
 			   == this->probe_fwd_available_capacity.end())
 			{
-        std::vector<std::shared_ptr<Probe<int> > > remain_probes;
-        std::vector<std::shared_ptr<Probe<int> > > avail_probes;
+				std::vector<std::shared_ptr<Probe<int>>> remain_probes;
+				std::vector<std::shared_ptr<Probe<int>>> avail_probes;
 
-				this->createProbes(vcm_it, vcm_carriers, remain_probes,
+				this->createProbes(vcm, vcm_carriers, remain_probes,
 				                   avail_probes, carriers_id);
 
 				this->probe_fwd_available_capacity.emplace(carriers_id, avail_probes);
@@ -388,8 +377,8 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			this->probe_fwd_remaining_capacity[carriers_id][id]->put(remain);
 			id++;
 			// reset remaining capacity
-			(*vcm_it)->setPreviousCapacity((*vcm_it)->getRemainingCapacity(), current_superframe_sf + 1);
-			(*vcm_it)->setRemainingCapacity(0);
+			vcm->setPreviousCapacity(vcm->getRemainingCapacity(), current_superframe_sf + 1);
+			vcm->setRemainingCapacity(0);
 		}
 	}
 	this->probe_fwd_total_remaining_capacity->put(remaining_allocation);
@@ -923,15 +912,13 @@ void ForwardSchedulingS2::schedulePending(const std::list<fmt_id_t> supported_mo
 
 }
 
-
-void ForwardSchedulingS2::checkBBFrameSize(std::vector<CarriersGroupDama *>::iterator vcm_it,
+void ForwardSchedulingS2::checkBBFrameSize(CarriersGroupDama *vcm,
                                            std::vector<CarriersGroupDama *> vcm_carriers)
 {
 	unsigned int vcm_id = 0;
-	CarriersGroupDama *vcm = *vcm_it;
 	vol_sym_t carrier_size_sym = vcm->getTotalCapacity() /
 	                             vcm->getCarriersNumber();
-  std::list<fmt_id_t> fmt_ids = vcm->getFmtIds();
+	std::list<fmt_id_t> fmt_ids = vcm->getFmtIds();
 
 	for(std::list<fmt_id_t>::const_iterator fmt_it = fmt_ids.begin();
 	    fmt_it != fmt_ids.end(); ++fmt_it)
@@ -989,49 +976,42 @@ void ForwardSchedulingS2::checkBBFrameSize(std::vector<CarriersGroupDama *>::ite
 	}
 }
 
-
-void ForwardSchedulingS2::createProbes(std::vector<CarriersGroupDama *>::iterator vcm_it,
+void ForwardSchedulingS2::createProbes(CarriersGroupDama *vcm,
                                        std::vector<CarriersGroupDama *> vcm_carriers,
-                                       std::vector<std::shared_ptr<Probe<int> > > &remain_probes,
-                                       std::vector<std::shared_ptr<Probe<int> > > &avail_probes,
+                                       std::vector<std::shared_ptr<Probe<int>>> &remain_probes,
+                                       std::vector<std::shared_ptr<Probe<int>>> &avail_probes,
                                        unsigned int carriers_id)
 {
+	auto output = Output::Get();
+
 	unsigned int vcm_id = 0;
-	CarriersGroupDama *vcm = *vcm_it;
-  std::shared_ptr<Probe<int>> remain_probe;
-  std::shared_ptr<Probe<int>> avail_probe;
-	char probe_name[128];
+	std::shared_ptr<Probe<int>> remain_probe;
+	std::shared_ptr<Probe<int>> avail_probe;
+
+	std::string prefix = probe_section + "Down/Forward capacity.Carrier" + std::to_string(carriers_id) + ".";
 
 	// For units, if there is only one MODCOD use Kbits/s else symbols
 	// check if the FIFO can emit on this carriers group
 	if(vcm_carriers.size() <= 1)
 	{
-    std::string type = "ACM";
-    std::string unit = "Symbol number";
+		std::string type = "ACM";
+		std::string unit = "Symbol number";
 		if(vcm->getFmtIds().size() == 1)
 		{
 			unit = "Kbits/s";
 			type = "CCM";
 		}
-		snprintf(probe_name, sizeof(probe_name),
-		         "%sDown/Forward capacity.Carrier%u.%s.Remaining",
-		         this->probe_section.c_str(), carriers_id, type.c_str());
-		remain_probe = Output::Get()->registerProbe<int>(probe_name, unit, true, SAMPLE_AVG);
-		snprintf(probe_name, sizeof(probe_name),
-		         "%sDown/Forward capacity.Carrier%u.%s.Available",
-		         this->probe_section.c_str(), carriers_id, type.c_str());
-		avail_probe = Output::Get()->registerProbe<int>(probe_name, unit, true, SAMPLE_AVG);
+
+		remain_probe = output->registerProbe<int>(prefix + type + ".Remaining",
+		                                                 unit, true, SAMPLE_AVG);
+		avail_probe = output->registerProbe<int>(prefix + type + ".Available", unit, true, SAMPLE_AVG);
 	}
 	else
 	{
-		snprintf(probe_name, sizeof(probe_name),
-		         "%sDown/Forward capacity.Carrier%u.VCM%u.Remaining",
-		         this->probe_section.c_str(), carriers_id, vcm_id);
-		remain_probe = Output::Get()->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
-		snprintf(probe_name, sizeof(probe_name),
-		         "%sDown/Forward capacity.Carrier%u.VCM%u.Available",
-		         this->probe_section.c_str(), carriers_id, vcm_id);
-		avail_probe = Output::Get()->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
+		remain_probe = output->registerProbe<int>(prefix + ".VCM" + std::to_string(vcm_id) + ".Remaining",
+		                                                 "Kbits/s", true, SAMPLE_AVG);
+		avail_probe = output->registerProbe<int>(prefix + ".VCM" + std::to_string(vcm_id) + ".Available",
+		                                                "Kbits/s", true, SAMPLE_AVG);
 		vcm_id++;
 	}
 	avail_probes.push_back(avail_probe);

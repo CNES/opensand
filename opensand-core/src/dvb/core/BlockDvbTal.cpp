@@ -835,7 +835,8 @@ bool BlockDvbTal::Downward::initDama(void)
 	                                 msl_sf,
 	                                 this->sync_period_frame,
 	                                 this->pkt_hdl,
-	                                 this->dvb_fifos))
+	                                 this->dvb_fifos,
+									 this->gw_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "SF#%u Dama Agent Initialization failed.\n",
@@ -845,7 +846,7 @@ bool BlockDvbTal::Downward::initDama(void)
 	}
 
 	// Initialize the DamaAgentRcsXXX class
-	if(!this->dama_agent->init())
+	if(!this->dama_agent->init(gw_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Dama Agent initialization failed.\n");
@@ -1226,6 +1227,16 @@ bool BlockDvbTal::Downward::initOutput(void)
 {
 	auto output = Output::Get();
 
+	// generate probes prefix
+	std::ostringstream ss{};
+	ss << "spot_" << gw_id << ".";
+	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
+	{
+		ss << "sat.";
+	}
+	ss << "tal.";
+	auto prefix = ss.str();
+
 	this->event_login = output->registerEvent("DVB.login");
 
 	if(this->saloha)
@@ -1236,37 +1247,38 @@ bool BlockDvbTal::Downward::initOutput(void)
 	for(auto&& it : this->dvb_fifos)
 	{
 		unsigned int id = it.first;
+		DvbFifo *fifo = it.second;
+		std::string fifo_name = fifo->getName();
 
 		this->probe_st_queue_size[id] =
-			output->registerProbe<int>("Queue size.packets." + it.second->getName(),
-			                           "Packets", true, SAMPLE_LAST);
+		    output->registerProbe<int>(prefix + "Queue size.packets." + fifo_name,
+		                               "Packets", true, SAMPLE_LAST);
 		this->probe_st_queue_size_kb[id] =
-			output->registerProbe<int>("Queue size.capacity." + it.second->getName(),
-			                           "kbits", true, SAMPLE_LAST);
+		    output->registerProbe<int>(prefix + "Queue size.capacity." + fifo_name,
+		                               "kbits", true, SAMPLE_LAST);
 
 		this->probe_st_l2_to_sat_before_sched[id] =
-			output->registerProbe<int>("Throughputs.L2_to_SAT_before_sched." +
-			                           it.second->getName(), "Kbits/s", true,
-			                           SAMPLE_AVG);
+		    output->registerProbe<int>(prefix + "Throughputs.L2_to_SAT_before_sched." + fifo_name,
+		                               "Kbits/s", true,
+		                               SAMPLE_AVG);
 		this->probe_st_l2_to_sat_after_sched[id] =
-			output->registerProbe<int>("Throughputs.L2_to_SAT_after_sched." +
-			                           it.second->getName(), "Kbits/s", true,
-			                           SAMPLE_AVG);
+		    output->registerProbe<int>(prefix + "Throughputs.L2_to_SAT_after_sched." + fifo_name,
+		                               "Kbits/s", true,
+		                               SAMPLE_AVG);
 		this->probe_st_queue_loss[id] =
-			output->registerProbe<int>("Queue loss.packets." + it.second->getName(),
-			                           "Packets", true, SAMPLE_LAST);
+		    output->registerProbe<int>(prefix + "Queue loss.packets." + fifo_name, "Packets", true, SAMPLE_LAST);
 		this->probe_st_queue_loss_kb[id] =
-			output->registerProbe<int>("Queue loss.capacity." + it.second->getName(),
-			                           "kbits", true, SAMPLE_LAST);
+		    output->registerProbe<int>(prefix + "Queue loss.capacity." + fifo_name,
+		                               "kbits", true, SAMPLE_LAST);
 	}
 	this->probe_st_l2_to_sat_total =
-		output->registerProbe<int>("Throughputs.L2_to_SAT_after_sched.total",
-		                           "Kbits/s", true, SAMPLE_AVG);
+	    output->registerProbe<int>(prefix + "Throughputs.L2_to_SAT_after_sched.total",
+	                               "Kbits/s", true, SAMPLE_AVG);
 
 	this->probe_st_required_modcod =
-		output->registerProbe<int>("Down_Forward_modcod.Required_modcod",
-		                           "modcod index",
-		                           true, SAMPLE_LAST);
+	    output->registerProbe<int>(prefix + "Down_Forward_modcod.Required_modcod",
+	                               "modcod index",
+	                               true, SAMPLE_LAST);
 	return true;
 }
 
@@ -2391,19 +2403,29 @@ bool BlockDvbTal::Upward::initOutput(void)
 {
 	auto output = Output::Get();
 
-	this->probe_st_received_modcod = output->registerProbe<int>("Down_Forward_modcod.Received_modcod",
+	// generate probes prefix
+	std::ostringstream ss{};
+	ss << "spot_" << gw_id << ".";
+	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
+	{
+		ss << "sat.";
+	}
+	ss << "tal.";
+	auto prefix = ss.str();
+
+	this->probe_st_received_modcod = output->registerProbe<int>(prefix + "Down_Forward_modcod.Received_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);
-	this->probe_st_rejected_modcod = output->registerProbe<int>("Down_Forward_modcod.Rejected_modcod",
+	this->probe_st_rejected_modcod = output->registerProbe<int>(prefix + "Down_Forward_modcod.Rejected_modcod",
 	                                                            "modcod index",
 	                                                            true, SAMPLE_LAST);
-	this->probe_sof_interval = output->registerProbe<float>("Perf.SOF_interval",
+	this->probe_sof_interval = output->registerProbe<float>(prefix + "Perf.SOF_interval",
 	                                                        "ms", true,
 	                                                        SAMPLE_LAST);
 
 	this->probe_st_l2_from_sat =
-		output->registerProbe<int>("Throughputs.L2_from_SAT.total",
-		                           "Kbits/s", true, SAMPLE_AVG);
+	    output->registerProbe<int>(prefix + "Throughputs.L2_from_SAT.total",
+	                               "Kbits/s", true, SAMPLE_AVG);
 	this->l2_from_sat_bytes = 0;
 	return true;
 }

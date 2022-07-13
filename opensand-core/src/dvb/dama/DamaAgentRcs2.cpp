@@ -81,7 +81,7 @@ DamaAgentRcs2::~DamaAgentRcs2()
 	}
 }
 
-bool DamaAgentRcs2::init()
+bool DamaAgentRcs2::init(spot_id_t)
 {
 	FmtDefinition *fmt_def;
 	vol_sym_t length_sym = 0;
@@ -94,7 +94,7 @@ bool DamaAgentRcs2::init()
 		// NB: if size = 0, only last req is saved and sum is always 0
 		this->rbdc_request_buffer =
 			new CircularBuffer((size_t) this->msl_sf / this->sync_period_sf);
-		if(this->rbdc_request_buffer == NULL)
+		if(this->rbdc_request_buffer == nullptr)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "Cannot create circular buffer to save "
@@ -108,20 +108,20 @@ bool DamaAgentRcs2::init()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot get RCS2 burst length value");
-		return NULL;
+		return false;
 	}
 	if(length_sym == 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "invalid value '%u' value of RCS2 burst length", length_sym);
-		return NULL;
+		return false;
 	}
 	LOG(this->log_init, LEVEL_INFO,
 	    "Burst length = %u sym\n", length_sym);
 	
 	this->converter = new UnitConverterFixedSymbolLength(this->frame_duration_ms, 
 		0, length_sym);
-	if(this->converter == NULL)
+	if(this->converter == nullptr)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Cannot create the unit converter\n");

@@ -321,17 +321,17 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	Simulate simulate;
 
 	// Output probes and stats
-	typedef std::map<unsigned int, std::shared_ptr<Probe<int>> > ProbeListPerId; 
+	using ProbeListPerId = std::map<unsigned int, std::shared_ptr<Probe<int>>>;
 	// Queue sizes
-	std::map<std::string, ProbeListPerId> * probe_gw_queue_size;
-	std::map<std::string, ProbeListPerId> *probe_gw_queue_size_kb;
+	std::map<std::string, ProbeListPerId> probe_gw_queue_size;
+	std::map<std::string, ProbeListPerId> probe_gw_queue_size_kb;
 	// Queue loss
-	std::map<std::string, ProbeListPerId> *probe_gw_queue_loss;
-	std::map<std::string, ProbeListPerId> *probe_gw_queue_loss_kb;
+	std::map<std::string, ProbeListPerId> probe_gw_queue_loss;
+	std::map<std::string, ProbeListPerId> probe_gw_queue_loss_kb;
 	// Rates
-	std::map<std::string, ProbeListPerId> *probe_gw_l2_to_sat_before_sched;
-	std::map<std::string, ProbeListPerId> *probe_gw_l2_to_sat_after_sched;
-	std::map<std::string, std::shared_ptr<Probe<int> > > probe_gw_l2_to_sat_total;
+	std::map<std::string, ProbeListPerId> probe_gw_l2_to_sat_before_sched;
+	std::map<std::string, ProbeListPerId> probe_gw_l2_to_sat_after_sched;
+	std::map<std::string, std::shared_ptr<Probe<int>>> probe_gw_l2_to_sat_total;
 	std::map<std::string, int> l2_to_sat_total_bytes;
 	// Frame interval
 	std::shared_ptr<Probe<float>> probe_frame_interval;

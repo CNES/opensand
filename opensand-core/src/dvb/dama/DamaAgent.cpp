@@ -36,6 +36,7 @@
 #include "DamaAgent.h"
 
 #include "OpenSandFrames.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
@@ -68,7 +69,8 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
                            time_sf_t msl_sf,
                            time_sf_t sync_period_sf,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
-                           const fifos_t &dvb_fifos)
+                           const fifos_t &dvb_fifos,
+						   spot_id_t spot_id)
 {
 	this->frame_duration_ms = frame_duration_ms;
 	this->cra_kbps = cra_kbps;
@@ -112,7 +114,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 
 	this->is_parent_init = true;
 
-	if (!this->initOutput())
+	if (!this->initOutput(spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "the output probes and stats initialization have "
@@ -124,9 +126,19 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 }
 
 
-bool DamaAgent::initOutput()
+bool DamaAgent::initOutput(spot_id_t spot_id)
 {
-  auto output = Output::Get();
+	auto output = Output::Get();
+
+	// generate probes prefix
+	std::ostringstream ss{};
+	ss << "spot_" << int{spot_id} << ".";
+	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
+	{
+		ss << "sat.";
+	}
+	ss << "tal.";
+	auto prefix = ss.str();
 
 	// Output Log
 	this->log_init = output->registerLog(LEVEL_WARNING, "Dvb.init");
@@ -139,16 +151,16 @@ bool DamaAgent::initOutput()
 
 	// RBDC request size
 	this->probe_st_rbdc_req_size = output->registerProbe<int>(
-		"Request.RBDC", "Kbits/s", true, SAMPLE_LAST);
+		prefix + "Request.RBDC", "Kbits/s", true, SAMPLE_LAST);
 	// VBDC request size
 	this->probe_st_vbdc_req_size = output->registerProbe<int>(
-		"Request.VBDC", "Kbits", true, SAMPLE_LAST);
+		prefix + "Request.VBDC", "Kbits", true, SAMPLE_LAST);
 	// Total allocation
 	this->probe_st_total_allocation = output->registerProbe<int>(
-		"Allocation.Total", "Kbits/s", true, SAMPLE_LAST);
+		prefix + "Allocation.Total", "Kbits/s", true, SAMPLE_LAST);
 	// Remaining allocation
 	this->probe_st_remaining_allocation = output->registerProbe<int>(
-		"Allocation.Remaining", "Kbits/s", true, SAMPLE_LAST);
+		prefix + "Allocation.Remaining", "Kbits/s", true, SAMPLE_LAST);
 
 	return true;
 }
