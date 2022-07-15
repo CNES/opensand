@@ -18,7 +18,7 @@ set -e
 # the debian-policy package
 
 restart_syslog(){
-    # service rsyslog restart
+    service rsyslog restart || true
 }
 
 case "$1" in
