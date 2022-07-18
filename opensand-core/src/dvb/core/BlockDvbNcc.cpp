@@ -957,14 +957,10 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 		case EmulatedMessageType::Sac:
 		{
 			// Update C/N0
-			if (!this->disable_control_plane)
+			spot->handleFrameCni(dvb_frame);
+			if(!spot->handleSac(dvb_frame))
 			{
-				// Update C/N0
-				spot->handleFrameCni(dvb_frame);
-				if(!spot->handleSac(dvb_frame))
-				{
-					return false;
-				}
+				return false;
 			}
 
 			if(!this->shareFrame(dvb_frame))
@@ -979,7 +975,7 @@ bool BlockDvbNcc::Upward::onRcvDvbFrame(DvbFrame* dvb_frame)
 			LOG(this->log_receive, LEVEL_INFO,
 			    "Logon Req\n");
 
-			if(!this->disable_control_plane && !spot->onRcvLogonReq(dvb_frame))
+			if(!spot->onRcvLogonReq(dvb_frame))
 			{
 				return false;
 			}
