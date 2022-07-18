@@ -385,8 +385,8 @@ bool BlockManager::checkConnectedBlocks(const Block *upper, const Block *lower)
 }
 
 
-void BlockManager::createFifos(std::shared_ptr<RtFifo> &up_fifo, std::shared_ptr<RtFifo> &down_fifo)
+std::shared_ptr<RtFifo> BlockManager::createFifo()
 {
-  up_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
-  down_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
+	// Do we catch bad_alloc to return nullptr here?
+	return std::shared_ptr<RtFifo>{new RtFifo()};
 }

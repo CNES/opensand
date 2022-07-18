@@ -56,6 +56,9 @@ class BlockManager
 {
 	friend class Rt;
 
+ public:
+	static std::shared_ptr<RtFifo> createFifo();
+
  protected:
 	BlockManager();
 	~BlockManager();
@@ -138,6 +141,26 @@ class BlockManager
 	                   typename UpperBl::Downward::DemuxKey down_key);
 
 	/**
+	 * @brief Connects two channels together, bypasses usual safety-checks
+	 *
+	 * @param sender    The channel that will send data into the fifo
+	 * @param receiver  The channel that will receive data through the fifo
+	 */
+	template <class SenderCh, class ReceiverCh>
+	void connectChannels(SenderCh &sender, ReceiverCh &receiver);
+
+	/**
+	 * @brief Connects two channels together, bypasses usual safety-checks
+	 *
+	 * @param sender    The channel that will send data into the fifo
+	 * @param receiver  The channel that will receive data through the fifo
+	 * @param key       The key under which the receiver is known from
+	 *                  the sender
+	 */
+	template <class SenderCh, class ReceiverCh>
+	void connectChannels(SenderCh &sender, ReceiverCh &receiver, typename SenderCh::DemuxKey key);
+
+	/**
 	 * @brief stops the application
 	 *        Force kill if a thread don't stop
 	 *
@@ -185,9 +208,7 @@ class BlockManager
  private:
 	void setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward);
 
-  bool checkConnectedBlocks(const Block *upper, const Block *lower);
-
-  void createFifos(std::shared_ptr<RtFifo> &up_fifo, std::shared_ptr<RtFifo> &down_fifo);
+	bool checkConnectedBlocks(const Block *upper, const Block *lower);
 
 	/// list of pointers to the blocks
 	std::vector<Block *> block_list;
@@ -241,16 +262,8 @@ void BlockManager::connectBlocks(const UpperBl *upper, const LowerBl *lower)
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	std::shared_ptr<RtFifo> up_fifo, down_fifo;
-	this->createFifos(up_fifo, down_fifo);
-
-	// connect upward fifo to both blocks
-	lower_upward->setNextFifo(up_fifo);
-	upper_upward->setPreviousFifo(up_fifo);
-
-	// connect downward fifo to both blocks
-	lower_downward->setPreviousFifo(down_fifo);
-	upper_downward->setNextFifo(down_fifo);
+	connectChannels(*lower_upward, *upper_upward);
+	connectChannels(*upper_downward, *lower_downward);
 }
 
 template <class UpperBl, class LowerBl>
@@ -273,16 +286,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	std::shared_ptr<RtFifo> up_fifo, down_fifo;
-	this->createFifos(up_fifo, down_fifo);
-
-	// connect upward fifo to both blocks
-	lower_upward->setNextFifo(up_fifo);
-	upper_upward->addPreviousFifo(up_fifo);
-
-	// connect downward fifo to both blocks
-	lower_downward->setPreviousFifo(down_fifo);
-	upper_downward->addNextFifo(down_key, down_fifo);
+	connectChannels(*lower_upward, *upper_upward);
+	connectChannels(*upper_downward, *lower_downward, down_key);
 }
 
 template <class UpperBl, class LowerBl>
@@ -305,16 +310,8 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	std::shared_ptr<RtFifo> up_fifo, down_fifo;
-	this->createFifos(up_fifo, down_fifo);
-
-	// connect upward fifo to both blocks
-	lower_upward->addNextFifo(up_key, up_fifo);
-	upper_upward->setPreviousFifo(up_fifo);
-
-	// connect downward fifo to both blocks
-	lower_downward->addPreviousFifo(down_fifo);
-	upper_downward->setNextFifo(down_fifo);
+	connectChannels(*lower_upward, *upper_upward, up_key);
+	connectChannels(*upper_downward, *lower_downward);
 }
 
 template <class UpperBl, class LowerBl>
@@ -338,16 +335,89 @@ void BlockManager::connectBlocks(const UpperBl *upper,
 	auto upper_upward = dynamic_cast<typename UpperBl::Upward *>(upper->upward);
 	auto upper_downward = dynamic_cast<typename UpperBl::Downward *>(upper->downward);
 
-	std::shared_ptr<RtFifo> up_fifo, down_fifo;
-	this->createFifos(up_fifo, down_fifo);
-
-	// connect upward fifo to both blocks
-	lower_upward->addNextFifo(up_key, up_fifo);
-	upper_upward->addPreviousFifo(up_fifo);
-
-	// connect downward fifo to both blocks
-	lower_downward->addPreviousFifo(down_fifo);
-	upper_downward->addNextFifo(down_key, down_fifo);
+	connectChannels(*lower_upward, *upper_upward, up_key);
+	connectChannels(*upper_downward, *lower_downward, down_key);
 }
+
+
+template <class SenderCh, class ReceiverCh, bool> struct ChannelsConnectorBase;
+
+
+template <class SenderCh, class ReceiverCh>
+struct ChannelsConnectorBase<SenderCh, ReceiverCh, true>
+{
+	static inline void connect(SenderCh &sender,
+	                           ReceiverCh &receiver)
+	{
+		auto fifo = BlockManager::createFifo();
+		sender.setNextFifo(fifo);
+		receiver.setPreviousFifo(fifo);
+	}
+};
+
+
+template <class SenderCh, class ReceiverCh>
+struct ChannelsConnectorBase<SenderCh, ReceiverCh, false>
+{
+	static inline void connect(SenderCh &sender,
+	                           ReceiverCh &receiver)
+	{
+		auto fifo = BlockManager::createFifo();
+		sender.setNextFifo(fifo);
+		receiver.addPreviousFifo(fifo);
+	}
+};
+
+
+template <class SenderCh, class ReceiverCh, bool B, bool>
+struct ChannelsConnector : public ChannelsConnectorBase<SenderCh, ReceiverCh, B>
+{
+};
+
+
+template <class SenderCh, class ReceiverCh>
+struct ChannelsConnector<SenderCh, ReceiverCh, true, true> : public ChannelsConnectorBase<SenderCh, ReceiverCh, true>
+{
+	static inline void connect(SenderCh &sender,
+	                           ReceiverCh &receiver,
+	                           typename SenderCh::DemuxKey key)
+	{
+		auto fifo = BlockManager::createFifo();
+		sender.addNextFifo(key, fifo);
+		receiver.setPreviousFifo(fifo);
+	}
+};
+
+
+template <class SenderCh, class ReceiverCh>
+struct ChannelsConnector<SenderCh, ReceiverCh, false, true> : public ChannelsConnectorBase<SenderCh, ReceiverCh, false>
+{
+	static inline void connect(SenderCh &sender,
+	                           ReceiverCh &receiver,
+	                           typename SenderCh::DemuxKey key)
+	{
+		auto fifo = BlockManager::createFifo();
+		sender.addNextFifo(key, fifo);
+		receiver.addPreviousFifo(fifo);
+	}
+};
+
+
+template <class SenderCh, class ReceiverCh>
+void BlockManager::connectChannels(SenderCh &sender,
+                                   ReceiverCh &receiver)
+{
+	ChannelsConnector<SenderCh, ReceiverCh, has_one_input<ReceiverCh>::value, false>::connect(sender, receiver);
+}
+
+
+template <class SenderCh, class ReceiverCh>
+void BlockManager::connectChannels(SenderCh &sender,
+                                   ReceiverCh &receiver,
+                                   typename SenderCh::DemuxKey key)
+{
+	ChannelsConnector<SenderCh, ReceiverCh, has_one_input<ReceiverCh>::value, true>::connect(sender, receiver, key);
+}
+
 
 #endif

@@ -131,6 +131,26 @@ class Rt
 	                          typename UpperBl::Downward::DemuxKey down_key);
 
 	/**
+	 * @brief Connects two channels together, bypasses usual safety-checks
+	 *
+	 * @param sender    The channel that will send data into the fifo
+	 * @param receiver  The channel that will receive data through the fifo
+	 */
+	template <class SenderCh, class ReceiverCh>
+	static void connectChannels(SenderCh &sender, ReceiverCh &receiver);
+
+	/**
+	 * @brief Connects two channels together, bypasses usual safety-checks
+	 *
+	 * @param sender    The channel that will send data into the fifo
+	 * @param receiver  The channel that will receive data through the fifo
+	 * @param key       The key under which the receiver is known from
+	 *                  the sender
+	 */
+	template <class SenderCh, class ReceiverCh>
+	static void connectChannels(SenderCh &sender, ReceiverCh &receiver, typename SenderCh::DemuxKey key);
+
+	/**
 	 * @brief Initialize the blocks
 	 *
 	 * @return true on success, false otherwise
@@ -217,6 +237,20 @@ void Rt::connectBlocks(const UpperBl *upper,
                        typename UpperBl::Downward::DemuxKey down_key)
 {
 	Rt::manager.connectBlocks(upper, lower, up_key, down_key);
+}
+
+
+template <class SenderCh, class ReceiverCh>
+void Rt::connectChannels(SenderCh &sender, ReceiverCh &receiver)
+{
+	Rt::manager.connectChannels(sender, receiver);
+}
+
+
+template <class SenderCh, class ReceiverCh>
+void connectChannels(SenderCh &sender, ReceiverCh &receiver, typename SenderCh::DemuxKey key)
+{
+	Rt::manager.connectChannels(sender, receiver, key);
 }
 
 
