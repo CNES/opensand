@@ -53,6 +53,7 @@ struct EncapConfig
 {
 	tal_id_t entity_id;
 	Component entity_type;
+	bool filter_packets;   // if true, the block will drop packets whose destination is not the entity_id
 };
 
 /**
@@ -111,6 +112,9 @@ class BlockEncap: public Block
 		/// the MAC ID of the ST (as specified in configuration)
 		int mac_id;
 		Component entity_type;
+
+		/// if true, the block will drop packets whose destination is not the entity_id
+		bool filter_packets;
 
 		/// the SCPC encapsulation lower item
 		std::string scpc_encap;

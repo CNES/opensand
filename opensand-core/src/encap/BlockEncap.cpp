@@ -76,7 +76,7 @@ BlockEncap::BlockEncap(const std::string &name, EncapConfig encap_cfg):
 	// NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
 }
 
-BlockEncap::Downward::Downward(const std::string &name, EncapConfig encap_cfg):
+BlockEncap::Downward::Downward(const std::string &name, EncapConfig):
     RtDownward{name},
     EncapChannel{} {};
 
@@ -85,6 +85,7 @@ BlockEncap::Upward::Upward(const std::string &name, EncapConfig encap_cfg):
     EncapChannel{},
     mac_id{encap_cfg.entity_id},
 	entity_type{encap_cfg.entity_type},
+	filter_packets{encap_cfg.filter_packets},
     scpc_encap{""} {};
 
 void BlockEncap::generateConfiguration()
@@ -227,19 +228,21 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 				    "'link up' message sent to the upper layer\n");
 
 				// Set tal_id 'filter' for reception context
+				tal_id_t filter_tal_id = this->filter_packets ? this->tal_id : BROADCAST_TAL_ID;
+
 
 				for(encap_it = this->ctx.begin();
 				    encap_it != this->ctx.end();
 				    ++encap_it)
 				{
-					(*encap_it)->setFilterTalId(this->tal_id);
+					(*encap_it)->setFilterTalId(filter_tal_id);
 				}
 
 				for(encap_it = this->ctx_scpc.begin();
 				    encap_it != this->ctx_scpc.end();
 				    ++encap_it)
 				{
-					(*encap_it)->setFilterTalId(this->tal_id);
+					(*encap_it)->setFilterTalId(filter_tal_id);
 				}
 
 				break;
@@ -295,7 +298,7 @@ bool BlockEncap::onInit()
 			is_scpc ? "" : "not ",
 			this->mac_id);
 
-		if (!is_scpc)
+		if (mac_id != 21 && mac_id != 22 && !is_scpc)
 		{
 			if(!this->getEncapContext(EncapSchemeList::RETURN_UP,
 			                          lan_plugin, up_return_ctx,

@@ -166,6 +166,7 @@ void EntitySatRegen::createStack(BlockTransp *block_transp,
 		EncapConfig encap_config;
 		encap_config.entity_id = instance_id;
 		encap_config.entity_type = destination == Component::gateway ? Component::terminal : Component::gateway;
+		encap_config.filter_packets = false;
 
 		// Not a typo, the DVB Tal block communicates with the gateway
 		auto block_dvb = Rt::createBlock<Dvb>("Dvb" + suffix, dvb_spec);

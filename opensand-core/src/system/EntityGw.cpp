@@ -87,6 +87,7 @@ bool EntityGw::createSpecificBlocks()
 		EncapConfig encap_cfg;
 		encap_cfg.entity_id = this->instance_id;
 		encap_cfg.entity_type = Component::gateway;
+		encap_cfg.filter_packets = true;
 
 		struct sc_specific scspecific;
 		scspecific.ip_addr = this->ip_address;

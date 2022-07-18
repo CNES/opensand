@@ -723,8 +723,9 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 
 		// Filter if packet is for this ST
 		dst_tal_id = (*packet)->getDstTalId();
-		if((dst_tal_id != this->dst_tal_id)
-			&& (dst_tal_id != BROADCAST_TAL_ID))
+		if (dst_tal_id != this->dst_tal_id &&
+		    this->dst_tal_id != BROADCAST_TAL_ID &&
+		    dst_tal_id != BROADCAST_TAL_ID)
 		{
 			LOG(this->log, LEVEL_INFO,
 			    "encapsulation packet is for ST#%u. Drop\n",
