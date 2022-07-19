@@ -189,15 +189,3 @@ bool Block::stop()
 
 	return status;
 }
-
-
-RtChannelBase *Block::getUpwardChannel(void) const
-{
-	return this->upward;
-}
-
-
-RtChannelBase *Block::getDownwardChannel(void) const
-{
-	return this->downward;
-}

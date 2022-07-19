@@ -76,7 +76,12 @@ class Block
 
 	virtual ~Block();
 
- private:
+	/// The upward channel
+	RtChannelBase *upward;
+	/// The downward channel
+	RtChannelBase *downward;
+
+  private:
 	/**
 	 * @class Upward channel
 	 *        With this class we are able to define Upward channel
@@ -182,28 +187,9 @@ class Block
 	 */
 	bool stop(void);
 
-	/**
-	 * @brief Get the upward channel
-	 *
-	 * @return the upward channel
-	 */
-	RtChannelBase *getUpwardChannel(void) const;
-
-	/**
-	 * @brief Get the downward channel
-	 *
-	 * @return the downward channel
-	 */
-	RtChannelBase *getDownwardChannel(void) const;
-
 	/// Output Log
 	std::shared_ptr<OutputLog> log_rt;
 	std::shared_ptr<OutputLog> log_init;
-
-	/// The upward channel
-	RtChannelBase *upward;
-	/// The downward channel
-	RtChannelBase *downward;
 
 	/// The name of the block
 	const std::string name;

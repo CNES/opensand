@@ -65,8 +65,9 @@
 #include "BlockEncap.h"
 #include "BlockInterconnect.h"
 #include "BlockLanAdaptation.h"
-#include "BlockTransp.h"
+#include "BlockPhysicalLayer.h"
 #include "BlockSatCarrier.h"
+#include "BlockTransp.h"
 
 EntitySatRegen::EntitySatRegen(tal_id_t instance_id):
     Entity("sat_regen" + std::to_string(instance_id), instance_id),
@@ -168,13 +169,28 @@ void EntitySatRegen::createStack(BlockTransp *block_transp,
 		encap_config.entity_type = destination == Component::gateway ? Component::terminal : Component::gateway;
 		encap_config.filter_packets = false;
 
+		PhyLayerConfig phy_config;
+		phy_config.mac_id = instance_id;
+		phy_config.spot_id = spot_id;
+		phy_config.entity_type = destination;
+
 		// Not a typo, the DVB Tal block communicates with the gateway
-		auto block_dvb = Rt::createBlock<Dvb>("Dvb" + suffix, dvb_spec);
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap" + suffix, encap_config);
+		auto block_dvb = Rt::createBlock<Dvb>("Dvb" + suffix, dvb_spec);
+		auto block_phy = Rt::createBlock<BlockPhysicalLayer>("Phy" + suffix, phy_config);
 
 		Rt::connectBlocks(block_transp, block_encap, {spot_id, destination});
 		Rt::connectBlocks(block_encap, block_dvb);
-		Rt::connectBlocks(block_dvb, block_sc);
+
+		auto &dvb_upward = dynamic_cast<typename Dvb::Upward &>(*block_dvb->upward);
+		auto &dvb_downward = dynamic_cast<typename Dvb::Downward &>(*block_dvb->downward);
+		auto &sc_upward = dynamic_cast<typename BlockSatCarrier::Upward &>(*block_sc->upward);
+		auto &sc_downward = dynamic_cast<typename BlockSatCarrier::Downward &>(*block_sc->downward);
+		auto &phy_downward = dynamic_cast<typename BlockPhysicalLayer::Downward &>(*block_phy->downward);
+
+		Rt::connectChannels(sc_upward, dvb_upward);
+		Rt::connectChannels(dvb_downward, phy_downward);
+		Rt::connectChannels(phy_downward, sc_downward);
 	}
 	else
 	{
@@ -193,6 +209,7 @@ void defineProfileMetaModel()
 	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
 	BlockEncap::generateConfiguration();
 	BlockLanAdaptation::generateConfiguration();
+	BlockPhysicalLayer::generateConfiguration();
 
 	auto isl = conf->getOrCreateComponent("isl", "ISL", "Inter-satellite links");
 	auto isl_delay = isl->addParameter("delay", "Delay", types->getType("int"), "Propagation delay for output ISL packets");
