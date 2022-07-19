@@ -248,7 +248,7 @@ void Rt::connectChannels(SenderCh &sender, ReceiverCh &receiver)
 
 
 template <class SenderCh, class ReceiverCh>
-void connectChannels(SenderCh &sender, ReceiverCh &receiver, typename SenderCh::DemuxKey key)
+void Rt::connectChannels(SenderCh &sender, ReceiverCh &receiver, typename SenderCh::DemuxKey key)
 {
 	Rt::manager.connectChannels(sender, receiver, key);
 }
