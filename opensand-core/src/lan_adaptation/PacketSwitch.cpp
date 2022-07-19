@@ -57,11 +57,15 @@ SarpTable *PacketSwitch::getSarpTable()
 	return &this->sarp_table;
 }
 
-bool TerminalPacketSwitch::getPacketDestination(const Data &UNUSED(packet), tal_id_t &src_id, tal_id_t &dst_id)
+bool TerminalPacketSwitch::getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
 {
+	MacAddress dst_mac = Ethernet::getDstMac(packet);
 	RtLock(this->mutex);
 	src_id = this->tal_id;
-	dst_id = this->gw_id;
+	if (!this->sarp_table.getTalByMac(dst_mac, dst_id))
+	{
+		dst_id = this->gw_id;
+	}
 	return true;
 }
 
