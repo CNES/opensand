@@ -70,7 +70,7 @@ void AttenuationHandler::generateConfiguration()
 	Plugin::generatePluginsConfiguration(error, PluginType::Error, "error_insertion_type", "Error Insertion Type");
 }
 
-bool AttenuationHandler::initialize(std::shared_ptr<OutputLog> log_init)
+bool AttenuationHandler::initialize(std::shared_ptr<OutputLog> log_init, const std::string &probe_prefix)
 {
 	auto phy = OpenSandModelConf::Get()->getProfileData()->getComponent("physical_layer");
 	auto minimal = phy->getComponent("minimal_condition");
@@ -128,14 +128,15 @@ bool AttenuationHandler::initialize(std::shared_ptr<OutputLog> log_init)
 	}
 
 	// Initialize probes
-  auto output = Output::Get();
-	this->probe_minimal_condition = output->registerProbe<float>("Phy.minimal_condition",
-	                                                             "dB", true,
-	                                                             SAMPLE_MAX);
-	this->probe_drops = output->registerProbe<int>("Phy.drops",
-	                                               "frame number", true,
-	                                               // we need to sum the drops here !
-	                                               SAMPLE_SUM);
+	auto output = Output::Get();
+	this->probe_minimal_condition =
+	    output->registerProbe<float>(probe_prefix + "Phy.minimal_condition",
+	                                 "dB", true, SAMPLE_MAX);
+	this->probe_drops =
+	    output->registerProbe<int>(probe_prefix + "Phy.drops",
+	                               "frame number", true,
+	                               // we need to sum the drops here !
+	                               SAMPLE_SUM);
 
 	return true;
 }

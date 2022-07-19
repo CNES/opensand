@@ -1228,14 +1228,8 @@ bool BlockDvbTal::Downward::initOutput(void)
 	auto output = Output::Get();
 
 	// generate probes prefix
-	std::ostringstream ss{};
-	ss << "spot_" << gw_id << ".";
-	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
-	{
-		ss << "sat.";
-	}
-	ss << "tal.";
-	auto prefix = ss.str();
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(gw_id, Component::terminal, is_sat);
 
 	this->event_login = output->registerEvent("DVB.login");
 
@@ -2404,14 +2398,8 @@ bool BlockDvbTal::Upward::initOutput(void)
 	auto output = Output::Get();
 
 	// generate probes prefix
-	std::ostringstream ss{};
-	ss << "spot_" << gw_id << ".";
-	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
-	{
-		ss << "sat.";
-	}
-	ss << "tal.";
-	auto prefix = ss.str();
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(gw_id, Component::terminal, is_sat);
 
 	this->probe_st_received_modcod = output->registerProbe<int>(prefix + "Down_Forward_modcod.Received_modcod",
 	                                                            "modcod index",

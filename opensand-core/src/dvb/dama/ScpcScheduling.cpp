@@ -107,14 +107,8 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 	auto output = Output::Get();
 
 	// generate probes prefix
-	std::ostringstream ss{};
-	ss << "spot_" << gw_id << ".";
-	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
-	{
-		ss << "sat.";
-	}
-	ss << "tal.";
-	auto prefix = ss.str();
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(gw_id, Component::terminal, is_sat);
 
 	this->probe_scpc_total_capacity =
 	    output->registerProbe<int>(prefix + "SCPC capacity.Total.Available",

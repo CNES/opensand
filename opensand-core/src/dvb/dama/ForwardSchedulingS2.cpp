@@ -44,8 +44,6 @@
 #include <opensand_output/Output.h>
 
 #include <cassert>
-#include <sstream>
-
 
 /**
  * @brief Get the payload size in Bytes according to coding rate
@@ -111,16 +109,9 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	std::string label = this->category->getLabel();
 
 	// generate probes prefix
-	std::ostringstream ss{};
-	ss << "spot_" << int{spot_id} << ".";
-	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
-	{
-		ss << "sat.";
-	}
-	ss << (is_gw ? "gw." : "st.");
-	auto prefix = ss.str();
-	ss << label << "." << dst_name;
-	this->probe_section = ss.str();
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, is_gw ? Component::gateway : Component::terminal, is_sat);
+	this->probe_section = prefix + label + "." + dst_name;
 
 	this->probe_fwd_total_capacity =
 	    output->registerProbe<int>(probe_section + "Down/Forward capacity.Total.Available",

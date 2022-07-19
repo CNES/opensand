@@ -34,11 +34,11 @@
 #ifndef OPENSAND_CORE_H
 #define OPENSAND_CORE_H
 
-
-#include <type_traits>
+#include <sstream>
 #include <string>
-#include <vector>
+#include <type_traits>
 #include <unordered_set>
+#include <vector>
 
 #include <stdint.h>
 #include <cmath>
@@ -333,6 +333,18 @@ struct SpotTopology
 	tal_id_t sat_id_gw;                  ///< The satellite connected to the gateway of this spot
 	tal_id_t sat_id_st;                  ///< The satellite connected to the terminals of this spot
 };
+
+inline std::string generateProbePrefix(spot_id_t spot_id, Component entity_type, bool is_sat)
+{
+	std::ostringstream ss{};
+	ss << "spot_" << int{spot_id} << ".";
+	if (is_sat)
+	{
+		ss << "sat.";
+	}
+	ss << getComponentName(entity_type) << ".";
+	return ss.str();
+}
 
 #endif
 

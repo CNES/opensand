@@ -791,14 +791,8 @@ bool SpotDownward::initOutput(void)
 	auto output = Output::Get();
 
 	// generate probes prefix
-	std::ostringstream ss{};
-	ss << "spot_" << int{spot_id} << ".";
-	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
-	{
-		ss << "sat.";
-	}
-	ss << "gw.";
-	auto prefix = ss.str();
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, Component::gateway, is_sat);
 
 	// Events
 	this->event_logon_resp = output->registerEvent(prefix + "DVB.logon_response");

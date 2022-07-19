@@ -45,26 +45,17 @@
 
 #include <opensand_rt/RtChannel.h>
 
-
-GroundPhysicalChannel::GroundPhysicalChannel(tal_id_t mac_id):
-	attenuation_model{nullptr},
-	clear_sky_condition{0},
-	delay_fifo{},
-	probe_attenuation{nullptr},
-	probe_clear_sky_condition{nullptr},
-	mac_id{mac_id},
-	log_event{nullptr},
-	log_channel{nullptr},
-	satdelay_model{nullptr},
-	attenuation_update_timer{-1},
-	fifo_timer{-1}
+GroundPhysicalChannel::GroundPhysicalChannel(PhyLayerConfig config):
+    clear_sky_condition{0},
+    delay_fifo{},
+    mac_id{config.mac_id},
+    entity_type{config.entity_type},
+    spot_id{config.spot_id},
+    attenuation_update_timer{-1},
+    fifo_timer{-1}
 {
 	// Initialize logs
 	this->log_channel = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Channel");
-}
-
-GroundPhysicalChannel::~GroundPhysicalChannel()
-{
 }
 
 void GroundPhysicalChannel::generateConfiguration()
@@ -99,6 +90,9 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, 
 	auto phy_layer = Conf->getProfileData()->getComponent("physical_layer");
 	auto link_attenuation = phy_layer->getComponent(component);
 
+	// generate probes prefix
+	bool is_sat = Conf->getComponentType() == Component::satellite;
+	std::string probe_prefix = generateProbePrefix(spot_id, entity_type, is_sat);
 
 	// Sanity check
 	assert(this->satdelay_model != nullptr);
@@ -131,10 +125,7 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, 
 	this->fifo_timer = channel->addTimerEvent("fifo_timer", refresh_period_ms);
 
 	// Initialize log
-	char probe_name[128];
-	snprintf(probe_name, sizeof(probe_name),
-	         "PhysicalLayer.%sward.Event", upward_channel ? "Up" : "Down");
-	this->log_event = output->registerLog(LEVEL_WARNING, std::string{probe_name});
+	this->log_event = output->registerLog(LEVEL_WARNING, "PhysicalLayer." + link + "ward.Event");
 
 	// Get the refresh period
 	if(!Conf->getAcmRefreshPeriod(refresh_period_ms))
@@ -192,13 +183,13 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, 
 	this->attenuation_update_timer = channel->addTimerEvent(name.str(), refresh_period_ms);
 
 	// Initialize attenuation probes
-	snprintf(probe_name, sizeof(probe_name),
-	         "Phy.%slink_attenuation", link.c_str());
-	this->probe_attenuation = output->registerProbe<float>(probe_name, "dB", true, SAMPLE_MAX);
+	this->probe_attenuation =
+	    output->registerProbe<float>(probe_prefix + "Phy." + link + "link_attenuation",
+	                                 "dB", true, SAMPLE_MAX);
 
-	snprintf(probe_name, sizeof(probe_name),
-	         "Phy.%slink_clear_sky_condition", link.c_str());
-	this->probe_clear_sky_condition = output->registerProbe<float>(probe_name, "dB", true, SAMPLE_MAX);
+	this->probe_clear_sky_condition =
+	    output->registerProbe<float>(probe_prefix + "Phy." + link + "link_clear_sky_condition",
+	                                 "dB", true, SAMPLE_MAX);
 
 	return true;
 }

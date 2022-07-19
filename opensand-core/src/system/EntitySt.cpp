@@ -83,7 +83,7 @@ bool EntitySt::createSpecificBlocks()
 	{
 		auto Conf = OpenSandModelConf::Get();
 	
-		struct la_specific laspecific;
+		la_specific laspecific;
 		laspecific.tap_iface = this->tap_iface;
 		tal_id_t gw_id;
 	 	Conf->getGwWithTalId(this->instance_id, gw_id);
@@ -94,14 +94,19 @@ bool EntitySt::createSpecificBlocks()
 		encap_cfg.entity_type = Component::terminal;
 		encap_cfg.filter_packets = true;
 
-		struct sc_specific scspecific;
-		scspecific.ip_addr = this->ip_address;
-		scspecific.tal_id = this->instance_id;	
-
 		dvb_specific dvb_spec;
 		dvb_spec.disable_control_plane = false;
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = gw_id;
+
+		PhyLayerConfig phy_config;
+		phy_config.mac_id = instance_id;
+		phy_config.spot_id = gw_id;
+		phy_config.entity_type = Component::terminal;
+
+		sc_specific scspecific;
+		scspecific.ip_addr = this->ip_address;
+		scspecific.tal_id = this->instance_id;	
 
 		bool disable_ctrl_plane;
 		if (!Conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
@@ -109,7 +114,7 @@ bool EntitySt::createSpecificBlocks()
 		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", laspecific);
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap", encap_cfg);
 		auto block_dvb = Rt::createBlock<BlockDvbTal>("Dvb", dvb_spec);
-		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
+		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", phy_config);
 		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", scspecific);
 	
 		Rt::connectBlocks(block_lan_adaptation, block_encap);

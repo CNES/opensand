@@ -131,14 +131,8 @@ bool DamaAgent::initOutput(spot_id_t spot_id)
 	auto output = Output::Get();
 
 	// generate probes prefix
-	std::ostringstream ss{};
-	ss << "spot_" << int{spot_id} << ".";
-	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
-	{
-		ss << "sat.";
-	}
-	ss << "tal.";
-	auto prefix = ss.str();
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, Component::terminal, is_sat);
 
 	// Output Log
 	this->log_init = output->registerLog(LEVEL_WARNING, "Dvb.init");

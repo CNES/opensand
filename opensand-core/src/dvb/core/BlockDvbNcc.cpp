@@ -228,14 +228,8 @@ bool BlockDvbNcc::Downward::onInit(void)
 	}
 
 	// generate probes prefix
-	std::ostringstream ss{};
-	ss << "spot_" << int{spot_id} << ".";
-	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
-	{
-		ss << "sat.";
-	}
-	ss << "gw.";
-	auto prefix = ss.str();
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, Component::gateway, is_sat);
 
 	// Output probes and stats
 	this->probe_frame_interval = Output::Get()->registerProbe<float>(prefix + "Perf.Frames_interval",
@@ -833,14 +827,8 @@ bool BlockDvbNcc::Upward::initOutput(void)
 	auto output = Output::Get();
 
 	// generate probes prefix
-	std::ostringstream ss{};
-	ss << "spot_" << int{spot_id} << ".";
-	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
-	{
-		ss << "sat.";
-	}
-	ss << "gw.";
-	auto prefix = ss.str();
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, Component::gateway, is_sat);
 
 	this->probe_gw_received_modcod =
 	    output->registerProbe<int>(prefix + "Down_Return_modcod.Received_modcod",

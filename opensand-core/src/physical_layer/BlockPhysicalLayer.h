@@ -68,7 +68,7 @@ class BlockPhysicalLayer: public Block
 	{
 	 private:
 		/// Probes
-		std::shared_ptr<Probe<float>> probe_total_cn;
+		std::shared_ptr<Probe<float>> probe_total_cn = nullptr;
 
 	 protected:
 		/// The attenuation process
@@ -97,9 +97,9 @@ class BlockPhysicalLayer: public Block
 		 * @brief Constructor of the ground upward physical channel
 		 *
 		 * @param name    the name of the channel
-		 * @param mac_id  the id of the ST or of the GW
+		 * @param config  the config of the block
 		 */
-		Upward(const std::string &name, tal_id_t mac_id);
+		Upward(const std::string &name, PhyLayerConfig config);
 
 		/**
 		 * @brief Destroy the Channel
@@ -131,7 +131,7 @@ class BlockPhysicalLayer: public Block
 	{
 	 private:
 		/// Probes
-     std::shared_ptr<Probe<int>> probe_delay;
+		std::shared_ptr<Probe<int>> probe_delay = nullptr;
 
 	 protected:
 		/// Event
@@ -164,17 +164,10 @@ class BlockPhysicalLayer: public Block
 		/**
 		 * @brief Constructor of the ground downward physical channel
 		 *
-		 * @param name  the name of the channel
-		 * @param mac_id  the id of the ST or of the GW
+		 * @param name    the name of the channel
+		 * @param config  the config of the block
 		 */
-		Downward(const std::string &name, tal_id_t mac_id);
-
-		/**
-		 * @brief Destroy the Channel
-		 */
-		virtual ~Downward()
-		{
-		}
+		Downward(const std::string &name, PhyLayerConfig config);
 
 		/**
 		 * @brief Initialize the ground downward physical channel
@@ -198,15 +191,10 @@ class BlockPhysicalLayer: public Block
 	/**
 	 * Build a physical layer block
 	 *
-	 * @param name            The name of the block
-	 * @param mac_id          The mac id of the terminal
+	 * @param name    The name of the block
+	 * @param config  The config of the block
 	 */
-	BlockPhysicalLayer(const std::string &name, tal_id_t mac_id);
-
-	/**
-	 * Destroy the PhysicalLayer block
-	 */
-	~BlockPhysicalLayer();
+	BlockPhysicalLayer(const std::string &name, PhyLayerConfig config);
 
 	static void generateConfiguration();
 
@@ -218,7 +206,7 @@ class BlockPhysicalLayer: public Block
 	tal_id_t mac_id;
 
 	/// The satellite delay for this terminal
-	SatDelayPlugin *satdelay;
+	SatDelayPlugin *satdelay = nullptr;
 };
 
 #endif

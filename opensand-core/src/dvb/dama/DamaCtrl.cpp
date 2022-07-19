@@ -75,14 +75,8 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 	this->log_fmt = output->registerLog(LEVEL_WARNING, "Dvb.Fmt.Update");
 
 	// generate probes prefix
-	std::ostringstream ss{};
-	ss << "spot_" << int{spot_id} << ".";
-	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
-	{
-		ss << "sat.";
-	}
-	ss << "gw.";
-	this->output_prefix= ss.str();
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	this->output_prefix = generateProbePrefix(spot_id, Component::gateway, is_sat);
 }
 
 DamaCtrl::~DamaCtrl()

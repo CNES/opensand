@@ -45,6 +45,12 @@
 #include <opensand_rt/Rt.h>
 #include <opensand_rt/Types.h>
 
+struct PhyLayerConfig
+{
+	tal_id_t mac_id;
+	spot_id_t spot_id;
+	Component entity_type;
+};
 
 /**
  * @class GroundPhysicalChannel
@@ -63,19 +69,22 @@ class GroundPhysicalChannel
 	DelayFifo delay_fifo;
 
 	/// Probes
-	std::shared_ptr<Probe<float>> probe_attenuation;
-	std::shared_ptr<Probe<float>> probe_clear_sky_condition;
+	std::shared_ptr<Probe<float>> probe_attenuation = nullptr;
+	std::shared_ptr<Probe<float>> probe_clear_sky_condition = nullptr;
 
  protected:
 	/// The terminal or gateway id
 	tal_id_t mac_id;
 
+	Component entity_type;
+	spot_id_t spot_id;
+
 	/// Logs
-	std::shared_ptr<OutputLog> log_event;
-	std::shared_ptr<OutputLog> log_channel;
+	std::shared_ptr<OutputLog> log_event = nullptr;
+	std::shared_ptr<OutputLog> log_channel = nullptr;
 
 	/// The satellite delay model
-	SatDelayPlugin *satdelay_model;
+	SatDelayPlugin *satdelay_model = nullptr;
 
 	/// Events
 	event_id_t attenuation_update_timer;
@@ -84,9 +93,9 @@ class GroundPhysicalChannel
 	/**
 	 * @brief Constructor of the ground physical channel
 	 *
-	 * @param mac_id  the terminal or gateway id
+	 * @param config  the block config
 	 */
-	GroundPhysicalChannel(tal_id_t mac_id);
+	GroundPhysicalChannel(PhyLayerConfig config);
 
 	/**
 	 * @brief Initialize the ground physical channel
@@ -138,10 +147,7 @@ class GroundPhysicalChannel
 	virtual bool forwardPacket(DvbFrame *dvb_frame) = 0;
 
  public:
-	/**
-	 * @brief Destroy the Channel
-	 */
-	virtual ~GroundPhysicalChannel();
+	virtual ~GroundPhysicalChannel() = default;
 
 	static void generateConfiguration();
 

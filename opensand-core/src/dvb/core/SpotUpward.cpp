@@ -33,11 +33,7 @@
  * @author Julien Bernard <julien.bernard@toulouse.viveris.com>
  */
 
-
-#include <sstream>
-
 #include "SpotUpward.h"
-
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "Sof.h"
@@ -420,14 +416,8 @@ bool SpotUpward::initOutput(void)
 	auto output = Output::Get();
 
 	// generate probes prefix
-	std::ostringstream ss{};
-	ss << "spot_" << int{spot_id} << ".";
-	if (OpenSandModelConf::Get()->getComponentType() == Component::satellite)
-	{
-		ss << "sat.";
-	}
-	ss << "gw.";
-	auto prefix = ss.str();
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, Component::gateway, is_sat);
 
 	// Events
 	this->event_logon_req = output->registerEvent("Spot_%d.DVB.logon_request",

@@ -88,7 +88,7 @@ class AttenuationHandler
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool initialize(std::shared_ptr<OutputLog> log_init);
+	bool initialize(std::shared_ptr<OutputLog> log_init, const std::string &probe_prefix);
 
 	/**
 	 * @brief Process the attenuation on a DVB frame with a specific C/N

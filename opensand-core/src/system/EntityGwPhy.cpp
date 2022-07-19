@@ -77,13 +77,18 @@ bool EntityGwPhy::createSpecificBlocks()
 		specific.ip_addr = this->ip_address;
 		specific.tal_id = this->instance_id;
 
+		PhyLayerConfig phy_config;
+		phy_config.mac_id = instance_id;
+		phy_config.spot_id = instance_id;
+		phy_config.entity_type = Component::gateway;
+
 		InterconnectConfig interco_cfg;
 		interco_cfg.interconnect_addr = this->interconnect_address;
 		interco_cfg.delay = 0;
 
 		auto block_interconnect = Rt::createBlock<BlockInterconnectUpward>("InterconnectUpward",
 		                                                                   interco_cfg);
-		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", this->instance_id);
+		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", phy_config);
 		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", specific);
 
 		Rt::connectBlocks(block_interconnect, block_phy_layer);

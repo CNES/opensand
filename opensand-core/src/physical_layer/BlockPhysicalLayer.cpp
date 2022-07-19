@@ -45,19 +45,9 @@
 #include <opensand_output/Output.h>
 #include <opensand_rt/MessageEvent.h>
 
-
-BlockPhysicalLayer::BlockPhysicalLayer(const std::string &name, tal_id_t mac_id):
-	Block(name),
-	mac_id(mac_id),
-	satdelay(NULL)
-{
-}
-
-
-BlockPhysicalLayer::~BlockPhysicalLayer()
-{
-}
-
+BlockPhysicalLayer::BlockPhysicalLayer(const std::string &name, PhyLayerConfig config):
+    Block(name),
+    mac_id(config.mac_id) {}
 
 void BlockPhysicalLayer::generateConfiguration()
 {
@@ -116,13 +106,9 @@ bool BlockPhysicalLayer::onInit(void)
 	return true;
 }
 
-BlockPhysicalLayer::Upward::Upward(const std::string &name, tal_id_t mac_id):
-	GroundPhysicalChannel(mac_id),
-	RtUpward(name),
-	probe_total_cn(NULL),
-	attenuation_hdl(NULL)
-{
-}
+BlockPhysicalLayer::Upward::Upward(const std::string &name, PhyLayerConfig config):
+    GroundPhysicalChannel(config),
+    RtUpward(name) {}
 
 BlockPhysicalLayer::Upward::~Upward()
 {
@@ -141,12 +127,16 @@ bool BlockPhysicalLayer::Upward::onInit()
 		return false;
 	}
 
+	// generate probes prefix
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, entity_type, is_sat);
+
 	// Initialize the total CN probe
-	this->probe_total_cn = Output::Get()->registerProbe<float>("Phy.Total_cn", "dB", true, SAMPLE_LAST);
+	this->probe_total_cn = Output::Get()->registerProbe<float>(prefix + "Phy.Total_cn", "dB", true, SAMPLE_LAST);
 
 	// Initialize the attenuation handler
 	this->attenuation_hdl = new AttenuationHandler(this->log_channel);
-	if(!this->attenuation_hdl->initialize(this->log_init))
+	if(!this->attenuation_hdl->initialize(this->log_init, prefix))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Unable to initialize Attenuation Handler");
@@ -287,11 +277,10 @@ double BlockPhysicalLayer::Upward::getCn(DvbFrame *dvb_frame) const
 	return GroundPhysicalChannel::computeTotalCn(dvb_frame->getCn(), this->getCurrentCn());
 }
 
-BlockPhysicalLayer::Downward::Downward(const std::string &name, tal_id_t mac_id):
-	GroundPhysicalChannel(mac_id),
-	RtDownward(name),
-	probe_delay(NULL),
-	delay_update_timer(-1)
+BlockPhysicalLayer::Downward::Downward(const std::string &name, PhyLayerConfig config):
+    GroundPhysicalChannel(config),
+    RtDownward(name),
+    delay_update_timer(-1)
 {
 }
 
@@ -303,12 +292,16 @@ bool BlockPhysicalLayer::Downward::onInit()
 		return false;
 	}
 
+	// generate probes prefix
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, entity_type, is_sat);
+
 	// Initialize the delay event
 	this->delay_update_timer = this->addTimerEvent("delay_timer",
-                                                       this->satdelay_model->getRefreshPeriod());
+	                                               this->satdelay_model->getRefreshPeriod());
 
 	// Initialize the delay probe
-	this->probe_delay = Output::Get()->registerProbe<int>("Phy.Delay", "ms", true, SAMPLE_LAST);
+	this->probe_delay = Output::Get()->registerProbe<int>(prefix + "Phy.Delay", "ms", true, SAMPLE_LAST);
 
 	return true;
 }
