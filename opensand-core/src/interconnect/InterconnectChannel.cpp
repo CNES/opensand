@@ -185,28 +185,25 @@ bool InterconnectChannelSender::onTimerEvent()
 	return true;
 }
 
+template <typename T>
+void serializeField(uint8_t *buf, uint32_t &pos, T *data, uint32_t length = sizeof(T))
+{
+	memcpy(buf + pos, data, length);
+	pos += length;
+}
+
 void InterconnectChannelSender::serialize(DvbFrame *dvb_frame,
                                           unsigned char *buf,
                                           uint32_t &length)
 {
-	uint32_t total_len = 0, pos = 0;
-	spot_id_t spot;
-	uint8_t carrier_id;
+	uint32_t pos = 0;
+	spot_id_t spot = dvb_frame->getSpot();
+	uint8_t carrier_id = dvb_frame->getCarrierId();
 
-	spot = dvb_frame->getSpot();
-	carrier_id = dvb_frame->getCarrierId();
-
-	total_len += sizeof(spot);
-	total_len += sizeof(carrier_id);
-	total_len += dvb_frame->getTotalLength();
-	// Copy data to buffer
-	memcpy(buf + pos, &spot, sizeof(spot));
-	pos += sizeof(spot);
-	memcpy(buf + pos, &carrier_id, sizeof(carrier_id));
-	pos += sizeof(carrier_id);
-	memcpy(buf + pos, dvb_frame->getRawData(),
-	       dvb_frame->getTotalLength());
-	length = total_len;
+	serializeField(buf, pos, &spot);
+	serializeField(buf, pos, &carrier_id);
+	serializeField(buf, pos, dvb_frame->getRawData(), dvb_frame->getTotalLength());
+	length = pos;
 }
 
 void InterconnectChannelSender::serialize(std::list<DvbFrame *> *dvb_frame_list,
@@ -224,13 +221,6 @@ void InterconnectChannelSender::serialize(std::list<DvbFrame *> *dvb_frame_list,
 		memcpy(buf + length, &partial_len, sizeof(partial_len));
 		length += partial_len + sizeof(partial_len);
 	}
-}
-
-template <typename T>
-void serializeField(uint8_t *buf, uint32_t &pos, T *data, uint32_t length = sizeof(T))
-{
-	memcpy(buf + pos, data, length);
-	pos += length;
 }
 
 void InterconnectChannelSender::serialize(const NetBurst &net_burst,
@@ -426,6 +416,13 @@ bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
 	return status;
 }
 
+template <typename T>
+void deserializeField(uint8_t *buf, uint32_t &pos, T &data, uint32_t length = sizeof(T))
+{
+	memcpy(&data, buf + pos, length);
+	pos += length;
+}
+
 void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
                                               DvbFrame **dvb_frame)
 {
@@ -434,13 +431,11 @@ void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
 	uint32_t pos = 0;
 
 	// Extract SpotId and CarrierId
-	memcpy(&spot, data + pos, sizeof(spot));
-	pos += sizeof(spot);
-	memcpy(&carrier_id, data + pos, sizeof(carrier_id));
-	pos += sizeof(carrier_id);
+	deserializeField(data, pos, spot);
+	deserializeField(data, pos, carrier_id);
 
 	// Create object    
-	(*dvb_frame) = new DvbFrame(data + pos, len - pos);
+	*dvb_frame = new DvbFrame(data + pos, len - pos);
 	(*dvb_frame)->setCarrierId(carrier_id);
 	(*dvb_frame)->setSpot(spot);
 }
@@ -458,11 +453,10 @@ void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
 	do
 	{
 		uint32_t dvb_frame_len;
-		DvbFrame *dvb_frame = NULL;
+		DvbFrame *dvb_frame = nullptr;
 
 		// Read the length of dvb_frame
-		memcpy(&dvb_frame_len, data + pos, sizeof(dvb_frame_len));
-		pos += sizeof(dvb_frame_len);
+		deserializeField(data, pos, dvb_frame_len);
 
 		// Deserialize the new DvbFrame
 		this->deserialize(data + pos, dvb_frame_len, &dvb_frame);
@@ -474,13 +468,8 @@ void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
 		pos += dvb_frame_len;
 
 	} while(pos < len);
-}
-
-template <typename T>
-void deserializeField(uint8_t *buf, uint32_t &pos, T &data, uint32_t length = sizeof(T))
-{
-	memcpy(&data, buf + pos, length);
-	pos += length;
+	
+	assert(pos == len);
 }
 
 void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
