@@ -1,14 +1,10 @@
 noinst_LTLIBRARIES = libopensand_mesh.la
 
 libopensand_mesh_la_cpp = \
-	BlockTransp.cpp \
-	BlockMesh.cpp \
-	NetPacketSerializer.cpp
+	BlockTransp.cpp
 
 libopensand_mesh_la_h = \
-	BlockTransp.h \
-	BlockMesh.h \
-	NetPacketSerializer.h
+	BlockTransp.h
 
 libopensand_mesh_la_SOURCES = \
 	$(libopensand_mesh_la_cpp) \

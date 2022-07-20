@@ -109,9 +109,7 @@ void OpenSandModelConf::createModels()
 		satellite_regen->addParameter("entity_id", "Satellite ID", types->getType("int"));
 		satellite_regen->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
 		auto regen_level = satellite_regen->addParameter("regen_level", "Regeneration Level", types->getType("sat_regen_level"));
-		auto mesh = satellite_regen->addParameter("mesh", "Mesh", types->getType("bool"), "Enable mesh architecture (routing based on the destination of the packet)");
-		infrastructure_model->setReference(mesh, regen_level);
-		mesh->getReferenceData()->fromString("IP");
+		satellite_regen->addParameter("mesh", "Mesh", types->getType("bool"), "Enable mesh architecture (routing based on the destination of the packet)");
 
 		auto isl_type = satellite_regen->addParameter("isl_type", "ISL Type", types->getType("isl_type"),
 		                                              "Whether the ISL packets should be routed by OpenSAND (Interconnect) "
@@ -144,20 +142,6 @@ void OpenSandModelConf::createModels()
 		infrastructure_model->setReference(lan_params, isl_type);
 		lan_params->getReferenceData()->fromString("LanAdaptation");
 		lan_params->addParameter("tap_name", "TAP Name", types->getType("string"), "Name of the TAP interface");
-
-		auto default_entity = satellite_regen->addParameter("default_entity", "Default Entity", types->getType("int"),
-		                                                    "ID of a Gateway or a Satellite ID to send packets whose destination is unknown. "
-		                                                    "An ISL link will be created if this entity is a satellite.\n"
-		                                                    "Use -1 to drop such packets");
-		infrastructure_model->setReference(default_entity, mesh);
-		std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(default_entity->getReferenceData())->set(true);
-		auto isl_port = satellite_regen->addParameter("isl_port", "Port (Inter Sat Link)", types->getType("int"),
-		                                              "Port number for inter-satellite communication, "
-		                                              "used when the default entity is a satellite.\n"
-		                                              "Leave empty to choose a port automatically.");
-		isl_port->setAdvanced(true);
-		infrastructure_model->setReference(isl_port, mesh);
-		std::dynamic_pointer_cast<OpenSANDConf::DataValue<bool>>(isl_port->getReferenceData())->set(true);
 	}
 
 	{
@@ -321,7 +305,6 @@ void OpenSandModelConf::createModels()
 	satellites->addParameter("emu_address", "Emulation Address", types->getType("string"),
 	                         "Address this satellite should listen on for messages from ground entities");
 	satellites->addParameter("isl_port", "Port (Inter Sat Link)", types->getType("int"))->setAdvanced(true);
-	satellites->addParameter("default_entity", "Default Entity ID", types->getType("int"))->setAdvanced(true);
 
 	auto gateways = infra->addList("gateways", "Gateways", "gateway")->getPattern();
 	gateways->addParameter("entity_id", "Entity ID", types->getType("int"));
@@ -1830,104 +1813,13 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 	return true;
 }
 
-
-bool OpenSandModelConf::getInterSatLinkCarriers(tal_id_t sat_id,
-                                                carrier_socket &isl_in, 
-                                                carrier_socket &isl_out) const
-{
-	auto infra = infrastructure->getRoot()->getComponent("infrastructure");
-
-	auto satellite = getEntityById(infra->getList("satellites"), sat_id);
-	if(satellite == nullptr) {
-		LOG(this->log, LEVEL_ERROR,
-		    "The satellite %d was not found in the infrastructure configuration",
-		    sat_id);
-		return false;
-	}
-
-	int default_entity;
-	if(!extractParameterData(satellite, "default_entity", default_entity)) {
-		return false;
-	}
-
-	std::string satellite_address;
-	if(!extractParameterData(satellite, "emu_address", satellite_address)) {
-		return false;
-	}
-
-	// TODO: get configured values
-	int udp_stack = 5; 
-	int udp_rmem = 1048580;
-	int udp_wmem = 1048580;
-	int fifo_size = 10000;
-
-	int isl_in_port = 54000 + sat_id;
-	extractParameterData(satellite, "isl_port", isl_in_port);
-
-	int isl_out_port = 0;
-	std::string default_sat_address;
-	auto default_sat = getEntityById(infra->getList("satellites"), default_entity);
-	if(default_sat != nullptr)
-	{
-		isl_out_port = 54000 + default_entity;
-		extractParameterData(default_sat, "isl_port", isl_out_port);
-		extractParameterData(default_sat, "emu_address", default_sat_address);
-	}
-
-	isl_in = carrier_socket{
-	    static_cast<uint16_t>(200 + sat_id),
-	    satellite_address,
-	    static_cast<uint16_t>(isl_in_port),
-	    false,
-	    static_cast<std::size_t>(fifo_size),
-	    static_cast<unsigned>(udp_stack),
-	    static_cast<unsigned>(udp_rmem),
-	    static_cast<unsigned>(udp_wmem)
-	};
-	isl_out = carrier_socket{
-	    static_cast<uint16_t>(200 + default_entity),
-	    default_sat_address,
-	    static_cast<uint16_t>(isl_out_port),
-	    false,
-	    static_cast<std::size_t>(fifo_size),
-	    static_cast<unsigned>(udp_stack),
-	    static_cast<unsigned>(udp_rmem),
-	    static_cast<unsigned>(udp_wmem)
-	};
-	return true;
-}
-
-
 bool OpenSandModelConf::isMeshArchitecture() const
 {
-	auto entity_sat = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_sat");
+	auto entity_sat = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_sat_regen");
 	bool mesh_arch = false;
 	extractParameterData(entity_sat, "mesh", mesh_arch);
 	return mesh_arch;
 }
-
-
-bool OpenSandModelConf::getDefaultEntityForSat(tal_id_t sat_id, tal_id_t &default_entity) const
-{
-	auto infra = infrastructure->getRoot()->getComponent("infrastructure");
-	auto satellite = getEntityById(infra->getList("satellites"), sat_id);
-	if (satellite == nullptr) {
-		LOG(this->log, LEVEL_ERROR,
-		    "The satellite %d was not found in the infrastructure configuration",
-		    sat_id);
-		return false;
-	}
-	int default_entity_id;
-	if (!extractParameterData(satellite, "default_entity", default_entity_id)) {
-		LOG(this->log, LEVEL_WARNING,
-		    "The default entity parameter for satellite %d "
-		    "was not found in the infrastructure configuration",
-		    sat_id);
-	}
-	default_entity = default_entity_id;
-	return true;
-}
-
 
 bool OpenSandModelConf::getInterconnectCarrier(bool upward,
                                                std::string &remote,

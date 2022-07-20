@@ -210,9 +210,7 @@ class OpenSandModelConf
 	                            unsigned int &udp_stack,
 	                            unsigned int &udp_rmem,
 	                            unsigned int &udp_wmem) const;
-	bool getInterSatLinkCarriers(tal_id_t sat_id, carrier_socket &isl_in, carrier_socket &isl_out) const;
 	bool isMeshArchitecture() const;
-	bool getDefaultEntityForSat(tal_id_t sat_id, tal_id_t &default_entity) const;
 	bool getTerminalAffectation(spot_id_t &default_spot_id,
 	                            std::string &default_category_name,
 	                            std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
@@ -281,7 +279,7 @@ bool OpenSandModelConf::extractParameterData(std::shared_ptr<const OpenSANDConf:
 
 	if (!extractParameterData(component->getParameter(parameter), result))
 	{
-		DFLTLOG(LEVEL_WARNING,
+		DFLTLOG(LEVEL_NOTICE,
 		        "Conf: Extracting %s/%s failed, default value used instead",
 		        path.c_str(), parameter.c_str());
 		return false;

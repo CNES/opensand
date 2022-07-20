@@ -235,14 +235,13 @@ def create_default_infrastructure(meta_model):
     satellite = _get_component(entity, 'entity_sat')
     _set_parameter(satellite, 'entity_id', 2)
     _set_parameter(satellite, 'emu_address', '192.168.0.63')
-    _set_parameter(satellite, 'default_entity', -1)
 
     satellite_regen = _get_component(entity, 'entity_sat_regen')
     _set_parameter(satellite_regen, 'entity_id', 2)
     _set_parameter(satellite_regen, 'emu_address', '192.168.0.63')
-    _set_parameter(satellite_regen, 'regen_level', "IP")
+    _set_parameter(satellite_regen, 'regen_level', "BBFrame")
     _set_parameter(satellite_regen, 'mesh', True)
-    _set_parameter(satellite_regen, 'default_entity', -1)
+    _set_parameter(satellite_regen, 'isl_type', 'None')
 
     terminal = _get_component(entity, 'entity_st')
     _set_parameter(terminal, 'entity_id', 1)
@@ -523,7 +522,6 @@ def create_platform_infrastructure(project):
             if entity_id is not None:
                 satellite_regen = {'entity_id': entity_id}
                 satellite_regen['emu_address'] = _get_parameter(entity_sat_regen, 'emu_address', '')
-                satellite_regen['default_entity'] = _get_parameter(entity_sat_regen, 'default_entity', -1)
                 satellite_regen['isl_port'] = _get_parameter(entity_sat_regen, 'isl_port')
                 infrastructure['satellite'][entity_id] = satellite_regen
         elif entity_type == "Gateway":
@@ -614,9 +612,8 @@ def create_platform_infrastructure(project):
             _set_parameter(sat, 'entity_id', satellite.get('entity_id'))
             _set_parameter(sat, 'emu_address', satellite.get('emu_address'))
             _set_parameter(sat, 'isl_port', satellite.get('isl_port'))
-            _set_parameter(sat, 'default_entity', satellite.get('default_entity'))
 
-        _set_parameter(infra, 'default_gw', 0) # TODO
+        _set_parameter(infra, 'default_gw', 0)
 
         gateways = infra.get_list('gateways')
         if gateways is not None:
