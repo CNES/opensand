@@ -168,6 +168,7 @@ void EntitySatRegen::createStack(BlockTransp *block_transp,
 		encap_config.entity_id = instance_id;
 		encap_config.entity_type = destination == Component::gateway ? Component::terminal : Component::gateway;
 		encap_config.filter_packets = false;
+		encap_config.scpc_enabled = true;
 
 		PhyLayerConfig phy_config;
 		phy_config.mac_id = instance_id;

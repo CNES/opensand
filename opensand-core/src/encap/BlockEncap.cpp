@@ -70,7 +70,8 @@ inline bool fileExists(const std::string &filename)
 BlockEncap::BlockEncap(const std::string &name, EncapConfig encap_cfg):
     Block{name},
     mac_id{encap_cfg.entity_id},
-    entity_type{encap_cfg.entity_type}
+    entity_type{encap_cfg.entity_type},
+    scpc_enabled{encap_cfg.scpc_enabled}
 {
 	// register static log (done in Entity.cpp for now)
 	// NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
@@ -281,41 +282,31 @@ bool BlockEncap::onInit()
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "lan adaptation upper layer is %s\n", lan_plugin->getName().c_str());
 
-	auto Conf = OpenSandModelConf::Get();
 	if (entity_type == Component::terminal)
-	{
-		LOG(this->log_init, LEVEL_DEBUG,
-		    "Going to check if Tal with id:  %d is in Scpc mode\n",
-		    this->mac_id);
-		
-		auto access = Conf->getProfileData()->getComponent("access");
-		auto scpc_enabled = access->getComponent("settings")->getParameter("scpc_enabled");
-		bool is_scpc = false;
-		OpenSandModelConf::extractParameterData(scpc_enabled, is_scpc);
-
+	{		
 		LOG(this->log_init, LEVEL_INFO,
 			"SCPC mode %savailable for ST%d - BlockEncap \n", 
-			is_scpc ? "" : "not ",
+			scpc_enabled ? "" : "not ",
 			this->mac_id);
 
-		if (mac_id != 21 && mac_id != 22 && !is_scpc)
+		if (scpc_enabled)
 		{
-			if(!this->getEncapContext(EncapSchemeList::RETURN_UP,
-			                          lan_plugin, up_return_ctx,
-			                          "return/up")) 
+			if (!this->getSCPCEncapContext(lan_plugin, up_return_ctx,
+			                               "return/up"))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
-				    "Cannot get Up/Return Encapsulation context");
+				    "Cannot get Return Encapsulation context");
 				return false;
 			}
 		}
 		else
 		{
-			if(!this->getSCPCEncapContext(lan_plugin, up_return_ctx,
-			                              "return/up")) 
+			if (!this->getEncapContext(EncapSchemeList::RETURN_UP,
+			                           lan_plugin, up_return_ctx,
+			                           "return/up"))
 			{
 				LOG(this->log_init, LEVEL_ERROR,
-				    "Cannot get Return Encapsulation context");
+				    "Cannot get Up/Return Encapsulation context");
 				return false;
 			}
 		}

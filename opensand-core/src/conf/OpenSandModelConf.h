@@ -199,6 +199,7 @@ class OpenSandModelConf
 	bool getGwWithCarrierId(unsigned int carrier_id, tal_id_t &gw) const;
 	bool isGw(tal_id_t gw_id) const;
 	Component getEntityType(tal_id_t tal_id) const;
+	bool getScpcEnabled(bool &scpc_enabled) const;
 	bool getScpcEncapStack(std::vector<std::string> &encap_stack) const;
 	bool getSpotInfrastructure(tal_id_t gw_id, OpenSandModelConf::spot_infrastructure &carriers) const;
 	bool getSpotReturnCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;

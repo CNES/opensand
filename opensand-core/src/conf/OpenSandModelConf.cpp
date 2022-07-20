@@ -1419,6 +1419,18 @@ Component OpenSandModelConf::getEntityType(tal_id_t tal_id) const
 	return entity_it->second;
 }
 
+bool OpenSandModelConf::getScpcEnabled(bool &scpc_enabled) const
+{
+	auto param = std::dynamic_pointer_cast<OpenSANDConf::DataParameter>(
+	    profile->getItemByPath("access/settings/scpc_enabled"));
+	if (!extractParameterData(param, scpc_enabled))
+	{
+		LOG(log, LEVEL_ERROR, "Failed to get scpc_enabled parameter in the "
+		                      "profile config (root/access/settings/scpc_enabled)");
+		return false;
+	}
+	return true;
+}
 
 bool OpenSandModelConf::getScpcEncapStack(std::vector<std::string> &encap_stack) const
 {

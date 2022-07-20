@@ -89,6 +89,7 @@ class EntitySt: public Entity
 
 	std::string ip_address;
 	std::string tap_iface;
+	bool scpc_enabled;
 };
 
 #endif

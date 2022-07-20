@@ -346,8 +346,17 @@ def create_default_profile(meta_model, entity_type):
 
     access = _get_component(model, 'access')
     _set_parameter(_get_component(access, 'random_access'), 'saloha_algo', 'CRDSA')
-    _set_parameter(_get_component(access, 'settings'), 'category', 'Standard')
-    _set_parameter(_get_component(access, 'settings'), 'dama_enabled', True)
+    settings = _get_component(access, 'settings')
+    _set_parameter(settings, 'category', 'Standard')
+    _set_parameter(settings, 'dama_enabled', True)
+    _set_parameter(settings, "scpc_enabled", False)
+
+    scpc = _get_component(access, 'scpc')
+    _set_parameter(scpc, "carrier_duration", 5)
+    scpc = _get_component(_get_component(model, 'access2'), 'scpc')
+    _set_parameter(scpc, "carrier_duration", 5)
+
+
     dama = _get_component(access, 'dama')
     _set_parameter(dama, 'cra', 100)
     _set_parameter(dama, 'algorithm', 'Legacy')
@@ -403,11 +412,6 @@ def create_default_profile(meta_model, entity_type):
     _set_parameter(control_plane, 'disable_control_plane',
                    entity_type == 'sat_regen')
                    
-    scpc = _get_component(_get_component(model, 'access2'), 'scpc')
-    _set_parameter(scpc, "carrier_duration", 5)
-    scpc = _get_component(_get_component(model, 'access'), 'scpc')
-    _set_parameter(scpc, "carrier_duration", 5)
-
     isl = _get_component(model, 'isl')
     _set_parameter(isl, "delay", 10)
     

@@ -93,6 +93,7 @@ bool EntitySt::createSpecificBlocks()
 		encap_cfg.entity_id = this->instance_id;
 		encap_cfg.entity_type = Component::terminal;
 		encap_cfg.filter_packets = true;
+		encap_cfg.scpc_enabled = scpc_enabled;
 
 		dvb_specific dvb_spec;
 		dvb_spec.disable_control_plane = false;
@@ -139,7 +140,8 @@ bool EntitySt::loadConfiguration(const std::string &profile_path)
 	{
 		return false;
 	}
-	return Conf->getGroundInfrastructure(this->ip_address, this->tap_iface);
+	return Conf->getGroundInfrastructure(this->ip_address, this->tap_iface) &&
+	       Conf->getScpcEnabled(scpc_enabled);
 }
 
 bool EntitySt::createSpecificConfiguration(const std::string &filepath) const
