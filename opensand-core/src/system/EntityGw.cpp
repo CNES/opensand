@@ -87,7 +87,7 @@ bool EntityGw::createSpecificBlocks()
 		EncapConfig encap_cfg;
 		encap_cfg.entity_id = this->instance_id;
 		encap_cfg.entity_type = Component::gateway;
-		encap_cfg.filter_packets = true;
+		encap_cfg.filter_packets = false;
 		
 		dvb_specific dvb_spec;
 		dvb_spec.disable_control_plane = false;
