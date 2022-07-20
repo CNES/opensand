@@ -57,6 +57,17 @@ SarpTable *PacketSwitch::getSarpTable()
 	return &this->sarp_table;
 }
 
+bool PacketSwitch::learn(const Data &packet, const tal_id_t &src_id)
+{
+	MacAddress src_mac = Ethernet::getSrcMac(packet);
+	RtLock(this->mutex);
+	if (!this->sarp_table.add(std::unique_ptr<MacAddress>{new MacAddress{src_mac.str()}}, src_id))
+	{
+		return false;
+	}
+	return true;
+}
+
 bool TerminalPacketSwitch::getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
 {
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
@@ -72,11 +83,6 @@ bool TerminalPacketSwitch::getPacketDestination(const Data &packet, tal_id_t &sr
 bool TerminalPacketSwitch::isPacketForMe(const Data &UNUSED(packet), const tal_id_t &UNUSED(src_id), bool &forward)
 {
 	forward = false;
-	return true;
-}
-
-bool TerminalPacketSwitch::learn(const Data &UNUSED(packet), const tal_id_t  &UNUSED(src_id))
-{
 	return true;
 }
 
@@ -109,14 +115,4 @@ bool GatewayPacketSwitch::isPacketForMe(const Data &packet, const tal_id_t &src_
 }
 
 
-bool GatewayPacketSwitch::learn(const Data &packet, const tal_id_t  &src_id)
-{
-	MacAddress src_mac = Ethernet::getSrcMac(packet);
-	RtLock(this->mutex);
-	if(!this->sarp_table.add(std::unique_ptr<MacAddress>{new MacAddress{src_mac.str()}}, src_id))
-	{
-		return false;
-	}
-	return true;
-}
 

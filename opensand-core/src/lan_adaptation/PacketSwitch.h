@@ -54,7 +54,7 @@ class PacketSwitch
  public:
 	PacketSwitch(const tal_id_t &tal_id);
 
-	virtual ~PacketSwitch() {};
+	virtual ~PacketSwitch() = default;
 
 	/**
 	 * @brief Get the OpenSAND destination of packet from its MAC destination
@@ -83,9 +83,9 @@ class PacketSwitch
 	 * @param packet  The packet
 	 * @param src_id  The ID of the corresponding terminal
 	 * 
-	 * @return true if 
+	 * @return true on success, false otherwise
  	 */
-	virtual bool learn(const Data &packet, const tal_id_t &src_id) = 0;
+	bool learn(const Data &packet, const tal_id_t &src_id);
 
 	SarpTable *getSarpTable();
 
@@ -111,7 +111,6 @@ class TerminalPacketSwitch: public PacketSwitch
 		 PacketSwitch(id),
 		 gw_id(gw_id)
 	{};
-	virtual ~TerminalPacketSwitch() {};
 
 	/**
 	 * @brief Get the OpenSAND destination of packet from its MAC destination
@@ -133,16 +132,7 @@ class TerminalPacketSwitch: public PacketSwitch
 	 * @return true if packet is for the current entity, false otherwise
 	 */
 	bool isPacketForMe(const Data &packet, const tal_id_t &src_id, bool &forward);
-	/**
-	 * @brief Learn the source MAC address of the specified packet
-	 *
-	 * @param packet  The packet
-	 * @param src_id  The ID of the corresponding terminal
-	 * 
-	 * @return true if 
- 	 */
-	bool learn(const Data &packet, const tal_id_t &src_id);
-	
+
  protected:
 	/// The gateway id of the terminal entity
 	tal_id_t gw_id;
@@ -158,7 +148,6 @@ class GatewayPacketSwitch: public PacketSwitch
 	GatewayPacketSwitch(const tal_id_t &id):
 		 PacketSwitch(id)
 	{};
-	virtual ~GatewayPacketSwitch() {};
 
 	/**
 	 * @brief Get the OpenSAND destination of packet from its MAC destination
@@ -180,15 +169,6 @@ class GatewayPacketSwitch: public PacketSwitch
 	 * @return true if packet is for the current entity, false otherwise
 	 */
 	bool isPacketForMe(const Data &packet, const tal_id_t &src_id, bool &forward);
-	/**
-	 * @brief Learn the source MAC address of the specified packet
-	 *
-	 * @param packet  The packet
-	 * @param src_id  The ID of the corresponding terminal
-	 * 
-	 * @return true if 
- 	 */
-	bool learn(const Data &packet, const tal_id_t &src_id);
 };
 
 #endif
