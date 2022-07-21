@@ -155,10 +155,6 @@ bool BlockDvb::DvbDownward::sendBursts(std::list<DvbFrame *> *complete_frames,
 		if(!this->sendDvbFrame(frame, carrier_id))
 		{
 			status = false;
-			if(frame)
-			{
-				delete frame;
-			}
 			continue;
 		}
 
