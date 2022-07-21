@@ -3,7 +3,7 @@ bin_PROGRAMS = opensand
 PACKED_COMMON_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/utils \
-	-I$(top_srcdir)/src/mesh \
+	-I$(top_srcdir)/src/sat \
 	-I$(top_srcdir)/src/dvb/switch \
 	-I$(top_srcdir)/src/dvb/ncc_interface \
 	-I$(top_srcdir)/src/dvb/fmt \
@@ -19,7 +19,7 @@ PACKED_COMMON_CPPFLAGS = \
 	-I$(top_srcdir)/src/common
 
 PACKED_COMMON_LIBS= \
-	$(top_builddir)/src/mesh/libopensand_mesh.la \
+	$(top_builddir)/src/sat/libopensand_sat.la \
 	$(top_builddir)/src/encap/libopensand_encap.la \
 	$(top_builddir)/src/lan_adaptation/libopensand_lan_adaptation.la \
 	$(top_builddir)/src/physical_layer/libopensand_physical_layer.la \

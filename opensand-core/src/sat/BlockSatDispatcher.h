@@ -27,13 +27,13 @@
  */
 
 /**
- * @file BlockTransp.h
- * @brief
+ * @file BlockSatDispatcher.h
+ * @brief Block that routes DvbFrames or NetBursts to the right lower stack or to ISL
  * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
-#ifndef BLOCKTRANSP_H
-#define BLOCKTRANSP_H
+#ifndef BLOCK_SAT_DISPATCHER_H
+#define BLOCK_SAT_DISPATCHER_H
 
 #include <memory>
 
@@ -46,7 +46,8 @@
 #include "NetBurst.h"
 #include "SpotComponentPair.h"
 
-struct TranspConfig {
+struct SatDispatcherConfig
+{
 	tal_id_t entity_id;
 
 	// If true, the messages for spots that are not handled by 
@@ -55,23 +56,23 @@ struct TranspConfig {
 };
 
 /**
- * @class BlockTransp
- * @brief Block that sends DVB frames back to the opposite SatCarrier block
+ * @class BlockSatDispatcher
+ * @brief Block that routes DvbFrames or NetBursts to the right lower stack or to ISL
  */
-class BlockTransp: public Block
+class BlockSatDispatcher: public Block
 {
   public:
-	BlockTransp(const std::string &name, TranspConfig transp_config);
+	BlockSatDispatcher(const std::string &name, SatDispatcherConfig config);
 
 	bool onInit();
 
 	class Upward: public RtUpwardMux
 	{
 	  public:
-		Upward(const std::string &name, TranspConfig transp_config);
+		Upward(const std::string &name, SatDispatcherConfig config);
 
 	  private:
-		friend class BlockTransp;
+		friend class BlockSatDispatcher;
 
 		bool onEvent(const RtEvent *const event) override;
 		bool handleDvbFrame(std::unique_ptr<DvbFrame> frame);
@@ -91,10 +92,10 @@ class BlockTransp: public Block
 	class Downward: public RtDownwardDemux<SpotComponentPair>
 	{
 	  public:
-		Downward(const std::string &name, TranspConfig transp_config);
+		Downward(const std::string &name, SatDispatcherConfig config);
 
 	  private:
-		friend class BlockTransp;
+		friend class BlockSatDispatcher;
 
 		bool onEvent(const RtEvent *const event) override;
 		bool handleDvbFrame(std::unique_ptr<DvbFrame> frame);
@@ -117,7 +118,7 @@ class BlockTransp: public Block
 };
 
 template <typename T>
-bool BlockTransp::Upward::sendToUpperBlock(std::unique_ptr<T> msg, InternalMessageType msg_type)
+bool BlockSatDispatcher::Upward::sendToUpperBlock(std::unique_ptr<T> msg, InternalMessageType msg_type)
 {
 	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
 	LOG(log_send, log_level, "Sending a message to the upper block");
@@ -133,7 +134,7 @@ bool BlockTransp::Upward::sendToUpperBlock(std::unique_ptr<T> msg, InternalMessa
 }
 
 template <typename T>
-bool BlockTransp::Upward::sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type)
+bool BlockSatDispatcher::Upward::sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type)
 {
 	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
 	LOG(log_send, log_level, "Sending a message to the opposite channel");
@@ -149,7 +150,7 @@ bool BlockTransp::Upward::sendToOppositeChannel(std::unique_ptr<T> msg, Internal
 }
 
 template <typename T>
-bool BlockTransp::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_ptr<T> msg, InternalMessageType msg_type)
+bool BlockSatDispatcher::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_ptr<T> msg, InternalMessageType msg_type)
 {
 	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
 	LOG(log_send, log_level, "Sending a message to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
@@ -166,7 +167,7 @@ bool BlockTransp::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_
 }
 
 template <typename T>
-bool BlockTransp::Downward::sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type)
+bool BlockSatDispatcher::Downward::sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type)
 {
 	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
 	LOG(log_send, log_level, "Sending a message to the opposite channel");

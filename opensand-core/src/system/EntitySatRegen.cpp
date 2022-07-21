@@ -37,7 +37,7 @@
  *  │     Interconnect      │
  *  └─────┬──────────▲──────┘
  *  ┌─────▼──────────┴──────┐
- *  │      BlockTransp      │
+ *  │  BlockSatDispatcher   │
  *  └──┬────▲───────┬────▲──┘
  *  ┌──▼────┴──┐ ┌──▼────┴──┐
  *  │  Encap   │ │  Encap   │
@@ -65,7 +65,7 @@
 #include "BlockLanAdaptation.h"
 #include "BlockPhysicalLayer.h"
 #include "BlockSatCarrier.h"
-#include "BlockTransp.h"
+#include "BlockSatDispatcher.h"
 
 EntitySatRegen::EntitySatRegen(tal_id_t instance_id):
     Entity("sat_regen" + std::to_string(instance_id), instance_id),
@@ -91,10 +91,10 @@ bool EntitySatRegen::createSpecificBlocks()
 			return false;
 		}
 
-		TranspConfig transp_config;
+		SatDispatcherConfig transp_config;
 		transp_config.entity_id = instance_id;
 		transp_config.isl_enabled = isl_config.type != IslType::None;
-		auto block_transp = Rt::createBlock<BlockTransp>("Transp", transp_config);
+		auto block_transp = Rt::createBlock<BlockSatDispatcher>("SatDispatch", transp_config);
 
 		if (isl_config.type == IslType::Interconnect)
 		{
@@ -137,7 +137,7 @@ bool EntitySatRegen::createSpecificBlocks()
 }
 
 template <typename Dvb>
-void EntitySatRegen::createStack(BlockTransp *block_transp,
+void EntitySatRegen::createStack(BlockSatDispatcher *block_transp,
                                  spot_id_t spot_id,
                                  Component destination,
                                  RegenLevel regen_level,

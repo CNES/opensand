@@ -39,7 +39,7 @@
 
 #include <string>
 
-class BlockTransp;
+class BlockSatDispatcher;
 
 /**
  * @class EntitySat
@@ -81,7 +81,7 @@ class EntitySatRegen: public Entity
 
   private:
 	template <typename Dvb>
-	void createStack(BlockTransp *block_transp,
+	void createStack(BlockSatDispatcher *block_transp,
 	                 spot_id_t spot_id,
 	                 Component destination,
 	                 RegenLevel regen_level,

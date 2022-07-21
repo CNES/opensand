@@ -34,20 +34,20 @@
  * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  * @author Mathias Ettinger <mathias.ettinger@viveris.fr>
+ * @author Yohan Simard <yohan.simard@viveris.fr>
  *
  * SE uses the following stack of mgl blocs installed over 1 NIC:
  *
  * <pre>
  *
- *                +---+
- *                |   |
- *            Encap/Desencap
- *                |   |
- *               Dvb Sat
- *                |   |
- *           Sat Carrier Eth
- *                |   |
- *               eth nic
+ *  ┌───────────────────────┐
+ *  │  BlockSatDispatcher   │
+ *  └──┬────▲───────┬────▲──┘
+ *  ┌──▼────┴──┐ ┌──▼────┴──┐
+ *  │SatCarrier│ │SatCarrier│   Two stacks are created per spot
+ *  └──────────┘ └──────────┘
+ *
+ *   terminals     gateways
  *
  * </pre>
  *
@@ -57,7 +57,7 @@
 #include "OpenSandModelConf.h"
 
 #include "BlockSatCarrier.h"
-#include "BlockTransp.h"
+#include "BlockSatDispatcher.h"
 #include "BlockInterconnect.h"
 
 
@@ -80,10 +80,10 @@ bool EntitySat::createSpecificBlocks()
 		auto conf = OpenSandModelConf::Get();
 		auto &spot_topo = conf->getSpotsTopology();
 
-		TranspConfig transp_cfg;
+		SatDispatcherConfig transp_cfg;
 		transp_cfg.entity_id = instance_id;
 		transp_cfg.isl_enabled = false;
-		auto block_transp = Rt::createBlock<BlockTransp>("Transp", transp_cfg);
+		auto block_transp = Rt::createBlock<BlockSatDispatcher>("SatDispatch", transp_cfg);
 
 		for (auto &&spot: spot_topo)
 		{

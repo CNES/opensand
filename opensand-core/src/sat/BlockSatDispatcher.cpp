@@ -27,12 +27,12 @@
  */
 
 /**
- * @file BlockTransp.cpp
- * @brief
+ * @file BlockSatDispatcher.cpp
+ * @brief Block that routes DvbFrames or NetBursts to the right lower stack or to ISL
  * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
-#include "BlockTransp.h"
+#include "BlockSatDispatcher.h"
 
 #include "OpenSandModelConf.h"
 #include <opensand_rt/MessageEvent.h>
@@ -82,12 +82,12 @@ Component getDestinationType(bool mesh_mode, tal_id_t src_id, tal_id_t dest_id, 
 	return dest;
 }
 
-BlockTransp::BlockTransp(const std::string &name, TranspConfig transp_config):
+BlockSatDispatcher::BlockSatDispatcher(const std::string &name, SatDispatcherConfig config):
     Block(name),
-    entity_id{transp_config.entity_id},
-    isl_enabled{transp_config.isl_enabled} {}
+    entity_id{config.entity_id},
+    isl_enabled{config.isl_enabled} {}
 
-bool BlockTransp::onInit()
+bool BlockSatDispatcher::onInit()
 {
 	const auto conf = OpenSandModelConf::Get();
 	auto downward = dynamic_cast<Downward *>(this->downward);
@@ -127,14 +127,14 @@ bool BlockTransp::onInit()
 	return true;
 }
 
-BlockTransp::Upward::Upward(const std::string &name, TranspConfig transp_config):
+BlockSatDispatcher::Upward::Upward(const std::string &name, SatDispatcherConfig config):
     RtUpwardMux(name),
-    entity_id{transp_config.entity_id}
+    entity_id{config.entity_id}
 {
 	mesh_mode = OpenSandModelConf::Get()->isMeshArchitecture();
 }
 
-bool BlockTransp::Upward::onEvent(const RtEvent *const event)
+bool BlockSatDispatcher::Upward::onEvent(const RtEvent *const event)
 {
 	if (event->getType() != EventType::Message)
 	{
@@ -171,7 +171,7 @@ bool BlockTransp::Upward::onEvent(const RtEvent *const event)
 	}
 }
 
-bool BlockTransp::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
+bool BlockSatDispatcher::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 {
 	const spot_id_t spot_id = frame->getSpot();
 	const uint8_t carrier_id = frame->getCarrierId();
@@ -203,7 +203,7 @@ bool BlockTransp::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	}
 }
 
-bool BlockTransp::Upward::handleNetBurst(std::unique_ptr<NetBurst> burst)
+bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> burst)
 {
 	if (burst->empty())
 		return true;
@@ -239,14 +239,14 @@ bool BlockTransp::Upward::handleNetBurst(std::unique_ptr<NetBurst> burst)
 	}
 }
 
-BlockTransp::Downward::Downward(const std::string &name, TranspConfig transp_config):
+BlockSatDispatcher::Downward::Downward(const std::string &name, SatDispatcherConfig config):
     RtDownwardDemux<SpotComponentPair>(name),
-    entity_id{transp_config.entity_id}
+    entity_id{config.entity_id}
 {
 	mesh_mode = OpenSandModelConf::Get()->isMeshArchitecture();
 }
 
-bool BlockTransp::Downward::onEvent(const RtEvent *const event)
+bool BlockSatDispatcher::Downward::onEvent(const RtEvent *const event)
 {
 	if (event->getType() != EventType::Message)
 	{
@@ -284,7 +284,7 @@ bool BlockTransp::Downward::onEvent(const RtEvent *const event)
 	}
 }
 
-bool BlockTransp::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
+bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 {
 	const spot_id_t spot_id = frame->getSpot();
 	const uint8_t carrier_id = frame->getCarrierId();
@@ -325,7 +325,7 @@ bool BlockTransp::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	}
 }
 
-bool BlockTransp::Downward::handleNetBurst(std::unique_ptr<NetBurst> burst)
+bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> burst)
 {
 	if (burst->empty())
 		return true;
