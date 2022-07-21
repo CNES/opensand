@@ -28,22 +28,20 @@
 
 /**
  * @file EntitySatRegen.cpp
- * @brief Entity regenerative satellite process
- * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
- * @author Julien BERNARD <jbernard@toulouse.viveris.com>
- * @author Joaquin MUGUERZA <jmuguerza@toulouse.viveris.com>
- * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
- * @author Mathias Ettinger <mathias.ettinger@viveris.fr>
+ * @brief Regenerative satellite that can handle mesh architecture and ISL
  * @author Yohan Simard <yohan.simard@viveris.fr>
  *
  * <pre>
  *
  *  ┌───────────────────────┐
- *  │ LanAdaptation/Interco │
+ *  │     Interconnect      │
  *  └─────┬──────────▲──────┘
  *  ┌─────▼──────────┴──────┐
- *  │      BlockMesh        │
+ *  │      BlockTransp      │
  *  └──┬────▲───────┬────▲──┘
+ *  ┌──▼────┴──┐ ┌──▼────┴──┐
+ *  │  Encap   │ │  Encap   │
+ *  └──┬────▲──┘ └──┬────▲──┘
  *  ┌──▼────┴──┐ ┌──▼────┴──┐
  *  │  DvbNcc  │ │  DvbTal  │   Two stacks are created per spot
  *  └──┬────▲──┘ └──┬────▲──┘

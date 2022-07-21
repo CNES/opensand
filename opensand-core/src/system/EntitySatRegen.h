@@ -28,8 +28,7 @@
 
 /**
  * @file EntitySatRegen.h
- * @brief Entity satellite regen process
- * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @brief Regenerative satellite that can handle mesh architecture and ISL
  * @author Yohan SIMARD <yohan.simard@viveris.fr>
  */
 
