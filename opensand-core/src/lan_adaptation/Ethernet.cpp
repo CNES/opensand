@@ -481,10 +481,10 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 
 	// create an empty burst of ETH frames
 	NetBurst *eth_frames = nullptr;
-  try
-  {
-    eth_frames = new NetBurst();
-  }
+	try
+	{
+		eth_frames = new NetBurst();
+	}
 	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -495,7 +495,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 
 	for(auto&& packet : *burst)
 	{
-    std::unique_ptr<NetPacket> eth_frame;
+		std::unique_ptr<NetPacket> eth_frame;
 		uint8_t evc_id = 0;
 
 		if(this->current_upper)
