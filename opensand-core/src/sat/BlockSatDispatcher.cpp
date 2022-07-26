@@ -197,42 +197,58 @@ bool BlockSatDispatcher::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	}
 }
 
-bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> burst)
+bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_burst)
 {
-	if (burst->empty())
-		return true;
-
-	NetPacket &msg = *burst->front();
-
-	const auto dest_id = msg.getDstTalId();
-	const auto src_id = msg.getSrcTalId();
-	const spot_id_t spot_id = spot_by_entity[src_id];
-	LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
-
-	bool use_mesh = mesh_mode && dest_id != BROADCAST_TAL_ID;
-
-	Component dest = getDestinationType(use_mesh, src_id, dest_id, log_receive);
-	if (dest == Component::unknown)
-		return false;
-
-	const auto dest_sat_id_it = routes.find({spot_id, dest});
-	if (dest_sat_id_it == routes.end())
+	// Separate the packets by destination
+	std::unordered_map<SpotComponentPair, std::unique_ptr<NetBurst>> bursts{};
+	for (auto &&pkt: *in_burst)
 	{
-		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
-		    dest == Component::gateway ? "GW" : "ST", spot_id);
-		return false;
-	}
-	const tal_id_t dest_sat_id = dest_sat_id_it->second;
+		const auto dest_id = pkt->getDstTalId();
+		const auto src_id = pkt->getSrcTalId();
+		const spot_id_t spot_id = spot_by_entity[src_id];
+		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-	if (dest_sat_id == entity_id)
-	{
-		return sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
+		bool use_mesh = mesh_mode && dest_id != BROADCAST_TAL_ID;
+		Component dest = getDestinationType(use_mesh, src_id, dest_id, log_receive);
+		if (dest == Component::unknown)
+			return false;
+
+		auto &burst = bursts[{spot_id, dest}];
+		if (burst == nullptr)
+		{
+			burst = std::unique_ptr<NetBurst>(new NetBurst{});
+		}
+		burst->push_back(std::move(pkt));
 	}
-	else
+
+	// Send all bursts to their respective destination
+	bool ok = true;
+	for (auto &&dest_burst_pair: bursts)
 	{
-		// send by ISL
-		return sendToUpperBlock(std::move(burst), InternalMessageType::decap_data);
+		auto dest = dest_burst_pair.first;
+		auto &burst = dest_burst_pair.second;
+
+		const auto dest_sat_id_it = routes.find(dest);
+		if (dest_sat_id_it == routes.end())
+		{
+			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
+			    dest.dest == Component::gateway ? "GW" : "ST", dest.spot_id);
+			ok = false;
+			continue;
+		}
+
+		const tal_id_t dest_sat_id = dest_sat_id_it->second;
+		if (dest_sat_id == entity_id)
+		{
+			ok &= sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
+		}
+		else
+		{
+			// send by ISL
+			ok &= sendToUpperBlock(std::move(burst), InternalMessageType::decap_data);
+		}
 	}
+	return ok;
 }
 
 BlockSatDispatcher::Downward::Downward(const std::string &name, SatDispatcherConfig config):
@@ -321,40 +337,54 @@ bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> fram
 	}
 }
 
-bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> burst)
+bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> in_burst)
 {
-	if (burst->empty())
-		return true;
-
-	NetPacket &msg = *burst->front();
-
-	const auto dest_id = msg.getDstTalId();
-	const auto src_id = msg.getSrcTalId();
-	const spot_id_t spot_id = spot_by_entity[src_id];
-	LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
-
-	bool use_mesh = mesh_mode && dest_id != BROADCAST_TAL_ID;
-
-	Component dest = getDestinationType(use_mesh, src_id, dest_id, log_receive);
-	if (dest == Component::unknown)
-		return false;
-
-	const auto dest_sat_id_it = routes.find({spot_id, dest});
-	if (dest_sat_id_it == routes.end())
+	// Separate the packets by destination
+	std::unordered_map<SpotComponentPair, std::unique_ptr<NetBurst>> bursts{};
+	for (auto &&pkt: *in_burst)
 	{
-		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
-		    dest == Component::gateway ? "GW" : "ST", spot_id);
-		return false;
-	}
-	const tal_id_t dest_sat_id = dest_sat_id_it->second;
+		const auto dest_id = pkt->getDstTalId();
+		const auto src_id = pkt->getSrcTalId();
+		const spot_id_t spot_id = spot_by_entity[src_id];
+		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-	if (dest_sat_id == entity_id)
-	{
-		return sendToLowerBlock({spot_id, dest}, std::move(burst), InternalMessageType::decap_data);
+		bool use_mesh = mesh_mode && dest_id != BROADCAST_TAL_ID;
+		Component dest = getDestinationType(use_mesh, src_id, dest_id, log_receive);
+		if (dest == Component::unknown)
+			return false;
+		
+		auto &burst = bursts[{spot_id, dest}];
+		if (burst == nullptr) {
+			burst = std::unique_ptr<NetBurst>(new NetBurst{});
+		}
+		burst->push_back(std::move(pkt));
 	}
-	else
+
+	// Send all bursts to their respective destination
+	bool ok = true;
+	for (auto &&dest_burst_pair: bursts)
 	{
-		// send by ISL
-		return sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
+		auto dest = dest_burst_pair.first;
+		auto &burst = dest_burst_pair.second;
+
+		const auto dest_sat_id_it = routes.find(dest);
+		if (dest_sat_id_it == routes.end())
+		{
+			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
+			    dest.dest == Component::gateway ? "GW" : "ST", dest.spot_id);
+			ok = false;
+			continue;
+		}
+		const tal_id_t dest_sat_id = dest_sat_id_it->second;
+		if (dest_sat_id == entity_id)
+		{
+			ok &= sendToLowerBlock(dest, std::move(burst), InternalMessageType::decap_data);
+		}
+		else
+		{
+			// send by ISL
+			ok &= sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
+		}
 	}
+	return ok;
 }
