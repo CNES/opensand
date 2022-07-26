@@ -48,18 +48,12 @@ Component getDestinationType(bool mesh_mode, tal_id_t src_id, tal_id_t dest_id, 
 	Component dest;
 	if (mesh_mode)
 	{
-		if (dest_id == BROADCAST_TAL_ID)
+		assert(dest_id != BROADCAST_TAL_ID);
+		dest = OpenSandModelConf::Get()->getEntityType(dest_id);
+		if (dest == Component::unknown || dest == Component::satellite)
 		{
-			dest = Component::terminal;
-		}
-		else
-		{
-			dest = OpenSandModelConf::Get()->getEntityType(dest_id);
-			if (dest == Component::unknown || dest == Component::satellite)
-			{
-				LOG(log, LEVEL_ERROR, "The type of the dest entity %d is %s", dest_id, getComponentName(dest).c_str());
-				return Component::unknown;
-			}
+			LOG(log, LEVEL_ERROR, "The type of the dest entity %d is %s", dest_id, getComponentName(dest).c_str());
+			return Component::unknown;
 		}
 	}
 	else // star mode
@@ -215,7 +209,9 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> burst)
 	const spot_id_t spot_id = spot_by_entity[src_id];
 	LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-	Component dest = getDestinationType(mesh_mode, src_id, dest_id, log_receive);
+	bool use_mesh = mesh_mode && dest_id != BROADCAST_TAL_ID;
+
+	Component dest = getDestinationType(use_mesh, src_id, dest_id, log_receive);
 	if (dest == Component::unknown)
 		return false;
 
@@ -337,7 +333,9 @@ bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> burs
 	const spot_id_t spot_id = spot_by_entity[src_id];
 	LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-	Component dest = getDestinationType(mesh_mode, src_id, dest_id, log_receive);
+	bool use_mesh = mesh_mode && dest_id != BROADCAST_TAL_ID;
+
+	Component dest = getDestinationType(use_mesh, src_id, dest_id, log_receive);
 	if (dest == Component::unknown)
 		return false;
 
