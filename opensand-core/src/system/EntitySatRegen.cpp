@@ -91,10 +91,10 @@ bool EntitySatRegen::createSpecificBlocks()
 			return false;
 		}
 
-		SatDispatcherConfig transp_config;
-		transp_config.entity_id = instance_id;
-		transp_config.isl_enabled = isl_config.type != IslType::None;
-		auto block_transp = Rt::createBlock<BlockSatDispatcher>("SatDispatch", transp_config);
+		SatDispatcherConfig sat_dispatch_cfg;
+		sat_dispatch_cfg.entity_id = instance_id;
+		sat_dispatch_cfg.isl_enabled = isl_config.type != IslType::None;
+		auto block_sat_dispatch = Rt::createBlock<BlockSatDispatcher>("SatDispatch", sat_dispatch_cfg);
 
 		if (isl_config.type == IslType::Interconnect)
 		{
@@ -102,7 +102,7 @@ bool EntitySatRegen::createSpecificBlocks()
 			interco_cfg.interconnect_addr = isl_config.interco_addr;
 			interco_cfg.delay = isl_delay;
 			auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect", interco_cfg);
-			Rt::connectBlocks(block_interco, block_transp);
+			Rt::connectBlocks(block_interco, block_sat_dispatch);
 		}
 		else if (isl_config.type == IslType::LanAdaptation)
 		{
@@ -118,12 +118,12 @@ bool EntitySatRegen::createSpecificBlocks()
 
 			if (topo.sat_id_gw == instance_id)
 			{
-				createStack<BlockDvbTal>(block_transp, spot_id, Component::gateway, regen_level, disable_ctrl_plane);
+				createStack<BlockDvbTal>(block_sat_dispatch, spot_id, Component::gateway, regen_level, disable_ctrl_plane);
 			}
 
 			if (topo.sat_id_st == instance_id)
 			{
-				createStack<BlockDvbNcc>(block_transp, spot_id, Component::terminal, regen_level, disable_ctrl_plane);
+				createStack<BlockDvbNcc>(block_sat_dispatch, spot_id, Component::terminal, regen_level, disable_ctrl_plane);
 			}
 		}
 	}
@@ -137,7 +137,7 @@ bool EntitySatRegen::createSpecificBlocks()
 }
 
 template <typename Dvb>
-void EntitySatRegen::createStack(BlockSatDispatcher *block_transp,
+void EntitySatRegen::createStack(BlockSatDispatcher *block_sat_dispatch,
                                  spot_id_t spot_id,
                                  Component destination,
                                  RegenLevel regen_level,
@@ -178,7 +178,7 @@ void EntitySatRegen::createStack(BlockSatDispatcher *block_transp,
 		auto block_dvb = Rt::createBlock<Dvb>("Dvb" + suffix, dvb_spec);
 		auto block_phy = Rt::createBlock<BlockPhysicalLayer>("Phy" + suffix, phy_config);
 
-		Rt::connectBlocks(block_transp, block_encap, {spot_id, destination});
+		Rt::connectBlocks(block_sat_dispatch, block_encap, {spot_id, destination});
 		Rt::connectBlocks(block_encap, block_dvb);
 
 		auto &dvb_upward = dynamic_cast<typename Dvb::Upward &>(*block_dvb->upward);
@@ -193,7 +193,7 @@ void EntitySatRegen::createStack(BlockSatDispatcher *block_transp,
 	}
 	else
 	{
-		Rt::connectBlocks(block_transp, block_sc, {spot_id, destination});
+		Rt::connectBlocks(block_sat_dispatch, block_sc, {spot_id, destination});
 	}
 }
 

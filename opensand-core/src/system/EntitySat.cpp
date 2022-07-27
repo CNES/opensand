@@ -80,10 +80,10 @@ bool EntitySat::createSpecificBlocks()
 		auto conf = OpenSandModelConf::Get();
 		auto &spot_topo = conf->getSpotsTopology();
 
-		SatDispatcherConfig transp_cfg;
-		transp_cfg.entity_id = instance_id;
-		transp_cfg.isl_enabled = false;
-		auto block_transp = Rt::createBlock<BlockSatDispatcher>("SatDispatch", transp_cfg);
+		SatDispatcherConfig sat_dispatch_cfg;
+		sat_dispatch_cfg.entity_id = instance_id;
+		sat_dispatch_cfg.isl_enabled = false;
+		auto block_sat_dispatch = Rt::createBlock<BlockSatDispatcher>("SatDispatch", sat_dispatch_cfg);
 
 		for (auto &&spot: spot_topo)
 		{
@@ -100,7 +100,7 @@ bool EntitySat::createSpecificBlocks()
 				specific.destination_host = Component::gateway;
 				auto block_sc_gw = Rt::createBlock<BlockSatCarrier>("SatCarrierGw" + spot_id_str, specific);
 
-				Rt::connectBlocks(block_transp, block_sc_gw, {spot_id, Component::gateway});
+				Rt::connectBlocks(block_sat_dispatch, block_sc_gw, {spot_id, Component::gateway});
 			}
 
 			if (topo.sat_id_st == instance_id)
@@ -112,7 +112,7 @@ bool EntitySat::createSpecificBlocks()
 				specific.destination_host = Component::terminal;
 				auto block_sc_st = Rt::createBlock<BlockSatCarrier>("SatCarrierSt" + spot_id_str, specific);
 
-				Rt::connectBlocks(block_transp, block_sc_st, {spot_id, Component::terminal});
+				Rt::connectBlocks(block_sat_dispatch, block_sc_st, {spot_id, Component::terminal});
 			}
 		}
 	}

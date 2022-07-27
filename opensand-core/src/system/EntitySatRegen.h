@@ -81,7 +81,7 @@ class EntitySatRegen: public Entity
 
   private:
 	template <typename Dvb>
-	void createStack(BlockSatDispatcher *block_transp,
+	void createStack(BlockSatDispatcher *block_sat_dispatch,
 	                 spot_id_t spot_id,
 	                 Component destination,
 	                 RegenLevel regen_level,
