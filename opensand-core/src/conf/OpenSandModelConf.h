@@ -217,7 +217,7 @@ class OpenSandModelConf
 	                            std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
 
 	const std::unordered_map<spot_id_t, SpotTopology> &getSpotsTopology() const;
-	bool getIslConfig(IslConfig &cfg) const;
+	bool getIslConfig(std::vector<IslConfig> &cfg) const;
 	RegenLevel getRegenLevel() const;
 
  private:

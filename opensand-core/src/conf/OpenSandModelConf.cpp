@@ -85,7 +85,6 @@ void OpenSandModelConf::createModels()
 	auto types = infrastructure_model->getTypesDefinition();
 	types->addEnumType("log_level", "Log Level", {"debug", "info", "notice", "warning", "error", "critical"});
 	types->addEnumType("entity_type", "Entity Type", {"Gateway", "Gateway Net Access", "Gateway Phy", "Satellite", "Satellite Regen", "Terminal"});
-	types->addEnumType("sat_regen_level", "Regeneration Level for Satellite", {"Transparent", "BBFrame", "IP"});
 	types->addEnumType("isl_type", "Type of ISL", {"LanAdaptation", "Interconnect", "None"});
 
 	auto entity = infrastructure_model->getRoot()->addComponent("entity", "Emulated Entity");
@@ -109,14 +108,14 @@ void OpenSandModelConf::createModels()
 		satellite_regen->addParameter("entity_id", "Satellite ID", types->getType("int"));
 		satellite_regen->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
 		auto regen_level = satellite_regen->addParameter("regen_level", "Regeneration Level", types->getType("sat_regen_level"));
-		satellite_regen->addParameter("mesh", "Mesh", types->getType("bool"), "Enable mesh architecture (routing based on the destination of the packet)");
 
-		auto isl_type = satellite_regen->addParameter("isl_type", "ISL Type", types->getType("isl_type"),
-		                                              "Whether the ISL packets should be routed by OpenSAND (Interconnect) "
-		                                              "or by the network (LanAdaptation). Set to \"None\" to disable ISL.");
+		auto isl_settings = satellite_regen->addList("isl_settings", "Inter-Satellite Link settings", "isl")->getPattern();
+		isl_settings->addParameter("linked_sat_id", "Linked satellite ID", types->getType("int"), "ID of the other satellite to which this ISL is linked");
+		auto isl_type = isl_settings->addParameter("isl_type", "ISL Type", types->getType("isl_type"));
 
 		// Interconnect params
-		auto interco_params = satellite_regen->addComponent("interconnect_params", "Interconnect", "Interconnect parameters");
+		auto interco_params = isl_settings->addComponent("interconnect_params", "Interconnect",
+		                                                 "Interconnect ISL parameters (only for Transparent or BBFrame regeneration)");
 		infrastructure_model->setReference(interco_params, isl_type);
 		interco_params->getReferenceData()->fromString("Interconnect");
 		interco_params->addParameter("interconnect_address",
@@ -138,7 +137,8 @@ void OpenSandModelConf::createModels()
 		interco_params->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
 
 		// LanAdaptation params
-		auto lan_params = satellite_regen->addComponent("lan_adaptation", "Lan Adaptation", "Lan Adaptation parameters");
+		auto lan_params = isl_settings->addComponent("lan_adaptation", "Lan Adaptation",
+		                                             "Lan Adaptation ISL parameters (available only for IP regeneration)");
 		infrastructure_model->setReference(lan_params, isl_type);
 		lan_params->getReferenceData()->fromString("LanAdaptation");
 		lan_params->addParameter("tap_name", "TAP Name", types->getType("string"), "Name of the TAP interface");
@@ -349,6 +349,7 @@ void OpenSandModelConf::createModels()
 	types->addEnumType("carrier_group", "Carrier Group", {"Standard", "Premium", "Professional", "SVNO1", "SVNO2", "SVNO3", "SNO"});
 	types->addEnumType("modulation", "Modulation", {"BPSK", "Pi/2BPSK", "QPSK", "8PSK", "16APSK", "16QAM", "32APSK"});
 	types->addEnumType("coding", "Coding", {"1/4", "1/3", "2/5", "1/2", "3/5", "2/3", "3/4", "4/5", "5/6", "6/7", "8/9", "9/10"});
+	types->addEnumType("sat_regen_level", "Regeneration Level for Satellite", {"Transparent", "BBFrame", "IP"});
 
 	auto frequency_plan = topology_model->getRoot()->addComponent("frequency_plan", "Spots / Frequency Plan");
 	auto spots = frequency_plan->addList("spots", "Spots", "spot")->getPattern();
@@ -360,6 +361,10 @@ void OpenSandModelConf::createModels()
 	                              "ID of the satellite to which the gateway is connected");
 	spot_assignment->addParameter("sat_id_st", "Satellite ID for the terminals", types->getType("int"),
 	                              "ID of the satellite to which the terminals are connected");
+	spot_assignment->addParameter("forward_regen_level", "Forward channel regeneration level", types->getType("sat_regen_level"),
+	                              "Regeneration level for the forward channel (gateway -> terminal)");
+	spot_assignment->addParameter("return_regen_level", "Return channel regeneration level", types->getType("sat_regen_level"),
+	                              "Regeneration level for the return channel (terminal -> gateway)");
 	auto roll_offs = spots->addComponent("roll_off", "Roll Off");
 	roll_offs->addParameter("forward", "Forward Band Roll Off", types->getType("double"), "Usually 0.35, 0.25 or 0.2 for DVB-S2");
 	roll_offs->addParameter("return", "Return Band Roll Off", types->getType("double"), "Usually 0.2 for DVB-RCS2");
@@ -611,14 +616,20 @@ bool OpenSandModelConf::readTopology(const std::string& filename)
 	for (auto &&spot_item: spot_list->getItems()) {
 		auto spot_assignement = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(spot_item)->getComponent("assignments");
 		int gw_id, sat_id_gw, sat_id_st;
+		std::string forward_str, return_str;
 		ok &= extractParameterData(spot_assignement, "gateway_id", gw_id);
 		ok &= extractParameterData(spot_assignement, "sat_id_gw", sat_id_gw);
 		ok &= extractParameterData(spot_assignement, "sat_id_st", sat_id_st);
+		ok &= extractParameterData(spot_assignement, "forward_regen_level", forward_str);
+		ok &= extractParameterData(spot_assignement, "return_regen_level", return_str);
+
 		SpotTopology spot_topo{};
 		spot_topo.spot_id = gw_id;
 		spot_topo.gw_id = gw_id;
 		spot_topo.sat_id_gw = sat_id_gw;
 		spot_topo.sat_id_st = sat_id_st;
+		spot_topo.forward_regen_level = strToRegenLevel(forward_str);
+		spot_topo.return_regen_level = strToRegenLevel(return_str);
 		spots_topology[gw_id] = spot_topo;
 	}
 	if (!ok) {
@@ -1858,30 +1869,50 @@ bool OpenSandModelConf::getInterconnectCarrier(bool upward,
 
 	std::string direction = upward ? "upward_" : "downward_";
 
-	auto isl_params = infrastructure->getRoot()
-	                      ->getComponent("entity")
-	                      ->getComponent("entity_" + type)
-	                      ->getComponent("interconnect_params");
-	if (!extractParameterData(isl_params, "interconnect_remote", remote))
+	std::shared_ptr<OpenSANDConf::DataComponent> interco_params;
+	if (type == "sat_regen" || type == "sat")
+	{
+		auto isl_settings = infrastructure->getRoot()
+		                        ->getComponent("entity")
+		                        ->getComponent("entity_" + type)
+		                        ->getList("isl_settings")
+		                        ->getItems();
+		if (isl_settings.size() != 1)
+		{
+			LOG(log, LEVEL_ERROR, "Only one ISL per satellite is currently supported. This satellite has %d.",
+			    isl_settings.size());
+			return false;
+		}
+		interco_params = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(isl_settings[0])
+		                     ->getComponent("interconnect_params");
+	}
+	else
+	{
+		interco_params = infrastructure->getRoot()
+		                     ->getComponent("entity")
+		                     ->getComponent("entity_" + type)
+		                     ->getComponent("interconnect_params");
+	}
+	if (!extractParameterData(interco_params, "interconnect_remote", remote))
 	{
 		return false;
 	}
 
 	int data_port_value = upward ? 4500 : 4501;
-	extractParameterData(isl_params, direction + "data_port", data_port_value);
+	extractParameterData(interco_params, direction + "data_port", data_port_value);
 	data_port = data_port_value;
 	int sig_port_value = upward ? 4502 : 4503;
-	extractParameterData(isl_params, direction + "sig_port", sig_port_value);
+	extractParameterData(interco_params, direction + "sig_port", sig_port_value);
 	sig_port = sig_port_value;
 
 	int udp_stack_value = 5;
-	extractParameterData(isl_params, "interco_udp_stack", udp_stack_value);
+	extractParameterData(interco_params, "interco_udp_stack", udp_stack_value);
 	udp_stack = udp_stack_value;
 	int udp_rmem_value = 1048580;
-	extractParameterData(isl_params, "interco_udp_rmem", udp_rmem_value);
+	extractParameterData(interco_params, "interco_udp_rmem", udp_rmem_value);
 	udp_rmem = udp_rmem_value;
 	int udp_wmem_value = 1048580;
-	extractParameterData(isl_params, "interco_udp_wmem", udp_wmem_value);
+	extractParameterData(interco_params, "interco_udp_wmem", udp_wmem_value);
 	udp_wmem = udp_wmem_value;
 
 	return true;
@@ -1939,8 +1970,10 @@ const std::unordered_map<spot_id_t, SpotTopology> &OpenSandModelConf::getSpotsTo
 	return spots_topology;
 }
 
-bool OpenSandModelConf::getIslConfig(IslConfig &cfg) const
+bool OpenSandModelConf::getIslConfig(std::vector<IslConfig> &isls_cfg) const
 {
+	isls_cfg.clear();
+
 	if (infrastructure == nullptr)
 	{
 		return false;
@@ -1958,34 +1991,65 @@ bool OpenSandModelConf::getIslConfig(IslConfig &cfg) const
 		return false;
 	}
 
-	auto entity = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
-	std::string isl_type;
-	if (!extractParameterData(entity, "isl_type", isl_type))
+	auto isls = std::dynamic_pointer_cast<OpenSANDConf::DataList>(
+	    infrastructure->getItemByPath("entity/entity_" + type + "/isl_settings"));
+
+	for (auto &&isl_item: isls->getItems())
 	{
-		LOG(this->log, LEVEL_ERROR,
-		    "The ISL type was not found in the infrastructure configuration");
-		return false;
+		IslConfig isl_cfg;
+		auto isl = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(isl_item);
+
+		int linked_sat_id;
+		if (!extractParameterData(isl, "linked_sat_id", linked_sat_id))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "The linked satellite ID for ISL was not found in the infrastructure configuration");
+			return false;
+		}
+		isl_cfg.linked_sat_id = linked_sat_id;
+
+		std::string isl_type;
+		if (!extractParameterData(isl, "isl_type", isl_type))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "The ISL type was not found in the infrastructure configuration");
+			return false;
+		}
+		if (isl_type == "None")
+		{
+			isl_cfg.type = IslType::None;
+		}
+		else if (isl_type == "LanAdaptation")
+		{
+			isl_cfg.type = IslType::LanAdaptation;
+			auto lan_adaptation_params = isl->getComponent("lan_adaptation");
+			if (!extractParameterData(lan_adaptation_params, "tap_name", isl_cfg.tap_iface))
+			{
+				LOG(this->log, LEVEL_ERROR,
+				    "Error extracting ISL LanAdaptation settings from the infrastructure configuration");
+				return false;
+			}
+		}
+		else if (isl_type == "Interconnect")
+		{
+			isl_cfg.type = IslType::Interconnect;
+			auto interconnect_params = isl->getComponent("interconnect_params");
+			if (!extractParameterData(interconnect_params, "interconnect_address", isl_cfg.interco_addr))
+			{
+				LOG(this->log, LEVEL_ERROR,
+				    "Error extracting ISL Interconnect settings from the infrastructure configuration");
+				return false;
+			}
+		}
+		else
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "The ISL type %s is not supported", isl_type.c_str());
+			return false;
+		}
+		isls_cfg.push_back(isl_cfg);
 	}
-	if (isl_type == "None")
-	{
-		cfg.type = IslType::None;
-		return true;
-	}
-	else if (isl_type == "LanAdaptation")
-	{
-		cfg.type = IslType::LanAdaptation;
-		auto lan_adaptation_params = entity->getComponent("lan_adaptation");
-		return extractParameterData(lan_adaptation_params, "tap_name", cfg.tap_iface);
-	}
-	else if (isl_type == "Interconnect")
-	{
-		cfg.type = IslType::Interconnect;
-		auto interconnect_params = entity->getComponent("interconnect_params");
-		return extractParameterData(interconnect_params, "interconnect_address", cfg.interco_addr);
-	}
-	LOG(this->log, LEVEL_ERROR,
-	    "The ISL type %s is not supported", isl_type.c_str());
-	return false;
+	return true;
 }
 
 RegenLevel OpenSandModelConf::getRegenLevel() const {
@@ -2006,6 +2070,6 @@ RegenLevel OpenSandModelConf::getRegenLevel() const {
 		return RegenLevel::IP;
 	}
 	LOG(this->log, LEVEL_ERROR,
-	    "The regen level %s is not supported", regen_level.c_str());
+	    "The regen level \"%s\" is not supported", regen_level.c_str());
 	return RegenLevel::Unknown;
 }

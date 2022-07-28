@@ -83,28 +83,30 @@ bool EntitySatRegen::createSpecificBlocks()
 		bool disable_ctrl_plane;
 		if (!conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
 
-		RegenLevel regen_level = conf->getRegenLevel();
 
-		if (regen_level == RegenLevel::IP)
+		if (isl_config.size() > 1)
 		{
-			DFLTLOG(LEVEL_CRITICAL, "IP regeneration on satellite is not yet implemented");
+			DFLTLOG(LEVEL_CRITICAL, "Max one ISL per satellite is allowed for now. Satellite %d has %d ISL configured.",
+			        instance_id, isl_config.size());
 			return false;
 		}
 
+		bool isl_enabled = !isl_config.empty() && isl_config[0].type != IslType::None;
+
 		SatDispatcherConfig sat_dispatch_cfg;
 		sat_dispatch_cfg.entity_id = instance_id;
-		sat_dispatch_cfg.isl_enabled = isl_config.type != IslType::None;
+		sat_dispatch_cfg.isl_enabled = isl_enabled;
 		auto block_sat_dispatch = Rt::createBlock<BlockSatDispatcher>("SatDispatch", sat_dispatch_cfg);
 
-		if (isl_config.type == IslType::Interconnect)
+		if (isl_enabled && isl_config[0].type == IslType::Interconnect)
 		{
 			InterconnectConfig interco_cfg;
-			interco_cfg.interconnect_addr = isl_config.interco_addr;
+			interco_cfg.interconnect_addr = isl_config[0].interco_addr;
 			interco_cfg.delay = isl_delay;
 			auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect", interco_cfg);
 			Rt::connectBlocks(block_interco, block_sat_dispatch);
 		}
-		else if (isl_config.type == IslType::LanAdaptation)
+		else if (isl_enabled && isl_config[0].type == IslType::LanAdaptation)
 		{
 			DFLTLOG(LEVEL_CRITICAL, "ISL by LanAdaptation are not yet implemented");
 			return false;
@@ -114,16 +116,19 @@ bool EntitySatRegen::createSpecificBlocks()
 		{
 			const SpotTopology &topo = spot.second;
 			const spot_id_t spot_id = spot.first;
-			auto spot_id_str = std::to_string(spot_id);
 
 			if (topo.sat_id_gw == instance_id)
 			{
-				createStack<BlockDvbTal>(block_sat_dispatch, spot_id, Component::gateway, regen_level, disable_ctrl_plane);
+				createStack<BlockDvbTal>(block_sat_dispatch, spot_id, Component::gateway,
+				                         topo.forward_regen_level, topo.return_regen_level,
+				                         disable_ctrl_plane);
 			}
 
 			if (topo.sat_id_st == instance_id)
 			{
-				createStack<BlockDvbNcc>(block_sat_dispatch, spot_id, Component::terminal, regen_level, disable_ctrl_plane);
+				createStack<BlockDvbNcc>(block_sat_dispatch, spot_id, Component::terminal,
+				                         topo.forward_regen_level, topo.return_regen_level,
+				                         disable_ctrl_plane);
 			}
 		}
 	}
@@ -140,7 +145,8 @@ template <typename Dvb>
 void EntitySatRegen::createStack(BlockSatDispatcher *block_sat_dispatch,
                                  spot_id_t spot_id,
                                  Component destination,
-                                 RegenLevel regen_level,
+                                 RegenLevel forward_regen_level,
+                                 RegenLevel return_regen_level,
                                  bool disable_ctrl_plane)
 {
 	auto spot_id_str = std::to_string(spot_id);
@@ -154,7 +160,7 @@ void EntitySatRegen::createStack(BlockSatDispatcher *block_sat_dispatch,
 	specific.destination_host = destination;
 	auto block_sc = Rt::createBlock<BlockSatCarrier>("SatCarrier" + suffix, specific);
 
-	if (regen_level == RegenLevel::BBFrame)
+	if (forward_regen_level != RegenLevel::Transparent || return_regen_level != RegenLevel::Transparent)
 	{
 		dvb_specific dvb_spec;
 		dvb_spec.disable_control_plane = disable_ctrl_plane;
@@ -173,23 +179,45 @@ void EntitySatRegen::createStack(BlockSatDispatcher *block_sat_dispatch,
 		phy_config.spot_id = spot_id;
 		phy_config.entity_type = destination;
 
-		// Not a typo, the DVB Tal block communicates with the gateway
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap" + suffix, encap_config);
 		auto block_dvb = Rt::createBlock<Dvb>("Dvb" + suffix, dvb_spec);
 		auto block_phy = Rt::createBlock<BlockPhysicalLayer>("Phy" + suffix, phy_config);
 
-		Rt::connectBlocks(block_sat_dispatch, block_encap, {spot_id, destination});
-		Rt::connectBlocks(block_encap, block_dvb);
-
+		auto &dispatch_upward = dynamic_cast<typename BlockSatDispatcher::Upward &>(*block_sat_dispatch->upward);
+		auto &dispatch_downward = dynamic_cast<typename BlockSatDispatcher::Downward &>(*block_sat_dispatch->downward);
+		auto &encap_upward = dynamic_cast<typename BlockEncap::Upward &>(*block_encap->upward);
+		auto &encap_downward = dynamic_cast<typename BlockEncap::Downward &>(*block_encap->downward);
 		auto &dvb_upward = dynamic_cast<typename Dvb::Upward &>(*block_dvb->upward);
 		auto &dvb_downward = dynamic_cast<typename Dvb::Downward &>(*block_dvb->downward);
 		auto &sc_upward = dynamic_cast<typename BlockSatCarrier::Upward &>(*block_sc->upward);
 		auto &sc_downward = dynamic_cast<typename BlockSatCarrier::Downward &>(*block_sc->downward);
 		auto &phy_downward = dynamic_cast<typename BlockPhysicalLayer::Downward &>(*block_phy->downward);
 
-		Rt::connectChannels(sc_upward, dvb_upward);
-		Rt::connectChannels(dvb_downward, phy_downward);
-		Rt::connectChannels(phy_downward, sc_downward);
+		Rt::connectBlocks(block_encap, block_dvb);
+
+		if ((forward_regen_level == RegenLevel::BBFrame && destination == Component::gateway) ||
+		    (return_regen_level == RegenLevel::BBFrame && destination == Component::terminal))
+		{
+			Rt::connectChannels(encap_upward, dispatch_upward);
+			Rt::connectChannels(sc_upward, dvb_upward);
+		}
+		if ((forward_regen_level == RegenLevel::BBFrame && destination == Component::terminal) ||
+		    (return_regen_level == RegenLevel::BBFrame && destination == Component::gateway))
+		{
+			Rt::connectChannels(dispatch_downward, encap_downward, {spot_id, destination});
+			Rt::connectChannels(dvb_downward, phy_downward);
+			Rt::connectChannels(phy_downward, sc_downward);
+		}
+		if ((forward_regen_level == RegenLevel::Transparent && destination == Component::gateway) ||
+		    (return_regen_level == RegenLevel::Transparent && destination == Component::terminal))
+		{
+			Rt::connectChannels(sc_upward, dispatch_upward);
+		}
+		if ((forward_regen_level == RegenLevel::Transparent && destination == Component::terminal) ||
+		    (return_regen_level == RegenLevel::Transparent && destination == Component::gateway))
+		{
+			Rt::connectChannels(dispatch_downward, sc_downward, {spot_id, destination});
+		}
 	}
 	else
 	{

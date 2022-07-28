@@ -38,6 +38,7 @@
 #include "Entity.h"
 
 #include <string>
+#include <vector>
 
 class BlockSatDispatcher;
 
@@ -84,12 +85,13 @@ class EntitySatRegen: public Entity
 	void createStack(BlockSatDispatcher *block_sat_dispatch,
 	                 spot_id_t spot_id,
 	                 Component destination,
-	                 RegenLevel regen_level,
+	                 RegenLevel forward_regen_level,
+	                 RegenLevel return_regen_level,
 	                 bool disable_ctrl_plane);
 
 	std::string ip_address;
 	tal_id_t instance_id;
-	IslConfig isl_config;
+	std::vector<IslConfig> isl_config;
 	int isl_delay;
 };
 

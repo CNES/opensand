@@ -155,19 +155,32 @@ enum struct IslType
 	Interconnect,
 };
 
-struct IslConfig
-{
-	IslType type;
-	std::string interco_addr;
-	std::string tap_iface;
-};
-
 enum struct RegenLevel {
 	Unknown,
 	Transparent, 
 	BBFrame,
 	IP
 };
+
+inline RegenLevel strToRegenLevel(const std::string &regen_level)
+{
+	if (regen_level == "Transparent")
+	{
+		return RegenLevel::Transparent;
+	}
+	else if (regen_level == "BBFrame")
+	{
+		return RegenLevel::BBFrame;
+	}
+	else if (regen_level == "IP")
+	{
+		return RegenLevel::IP;
+	}
+	else
+	{
+		return RegenLevel::Unknown;
+	}
+}
 
 /**
  * @brief Convert a strongly typed enum value into its underlying integral type
@@ -332,6 +345,16 @@ struct SpotTopology
 	std::unordered_set<tal_id_t> st_ids; ///< the terminals that belong to the spot
 	tal_id_t sat_id_gw;                  ///< The satellite connected to the gateway of this spot
 	tal_id_t sat_id_st;                  ///< The satellite connected to the terminals of this spot
+	RegenLevel forward_regen_level;      ///< The regeneration level of the forward channel
+	RegenLevel return_regen_level;       ///< The regeneration level of the return channel
+};
+
+struct IslConfig
+{
+	tal_id_t linked_sat_id;
+	IslType type;
+	std::string interco_addr;
+	std::string tap_iface;
 };
 
 inline std::string generateProbePrefix(spot_id_t spot_id, Component entity_type, bool is_sat)
