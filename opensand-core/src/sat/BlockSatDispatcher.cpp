@@ -40,42 +40,6 @@
 constexpr uint8_t DATA_IN_GW_ID = 8;
 constexpr uint8_t CTRL_IN_GW_ID = 4;
 
-/**
- * @brief Returns whether the message should be sent to gateway or terminals
- */
-Component getDestinationType(bool mesh_mode, tal_id_t src_id, tal_id_t dest_id, std::shared_ptr<OutputLog> log)
-{
-	Component dest;
-	if (mesh_mode)
-	{
-		assert(dest_id != BROADCAST_TAL_ID);
-		dest = OpenSandModelConf::Get()->getEntityType(dest_id);
-		if (dest == Component::unknown || dest == Component::satellite)
-		{
-			LOG(log, LEVEL_ERROR, "The type of the dest entity %d is %s", dest_id, getComponentName(dest).c_str());
-			return Component::unknown;
-		}
-	}
-	else // star mode
-	{
-		Component src = OpenSandModelConf::Get()->getEntityType(src_id);
-		if (src == Component::gateway)
-		{
-			dest = Component::terminal;
-		}
-		else if (src == Component::terminal)
-		{
-			dest = Component::gateway;
-		}
-		else
-		{
-			LOG(log, LEVEL_ERROR, "The type of the src entity %d is %s", src_id, getComponentName(src).c_str());
-			return Component::unknown;
-		}
-	}
-	return dest;
-}
-
 BlockSatDispatcher::BlockSatDispatcher(const std::string &name, SatDispatcherConfig config):
     Block(name),
     entity_id{config.entity_id},
@@ -123,10 +87,7 @@ bool BlockSatDispatcher::onInit()
 
 BlockSatDispatcher::Upward::Upward(const std::string &name, SatDispatcherConfig config):
     RtUpwardMux(name),
-    entity_id{config.entity_id}
-{
-	mesh_mode = OpenSandModelConf::Get()->isMeshArchitecture();
-}
+    entity_id{config.entity_id} {}
 
 bool BlockSatDispatcher::Upward::onEvent(const RtEvent *const event)
 {
@@ -208,10 +169,21 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 		const spot_id_t spot_id = spot_by_entity[src_id];
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-		bool use_mesh = mesh_mode && dest_id != BROADCAST_TAL_ID;
-		Component dest = getDestinationType(use_mesh, src_id, dest_id, log_receive);
-		if (dest == Component::unknown)
+		Component src = OpenSandModelConf::Get()->getEntityType(src_id);
+		Component dest;
+		if (src == Component::gateway)
+		{
+			dest = Component::terminal;
+		}
+		else if (src == Component::terminal)
+		{
+			dest = Component::gateway;
+		}
+		else
+		{
+			LOG(log_receive, LEVEL_ERROR, "The type of the src entity %d is %s", src_id, getComponentName(src).c_str());
 			return false;
+		}
 
 		auto &burst = bursts[{spot_id, dest}];
 		if (burst == nullptr)
@@ -253,10 +225,7 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 
 BlockSatDispatcher::Downward::Downward(const std::string &name, SatDispatcherConfig config):
     RtDownwardDemux<SpotComponentPair>(name),
-    entity_id{config.entity_id}
-{
-	mesh_mode = OpenSandModelConf::Get()->isMeshArchitecture();
-}
+    entity_id{config.entity_id} {}
 
 bool BlockSatDispatcher::Downward::onEvent(const RtEvent *const event)
 {
@@ -348,11 +317,22 @@ bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> in_b
 		const spot_id_t spot_id = spot_by_entity[src_id];
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
-		bool use_mesh = mesh_mode && dest_id != BROADCAST_TAL_ID;
-		Component dest = getDestinationType(use_mesh, src_id, dest_id, log_receive);
-		if (dest == Component::unknown)
+		Component src = OpenSandModelConf::Get()->getEntityType(src_id);
+		Component dest;
+		if (src == Component::gateway)
+		{
+			dest = Component::terminal;
+		}
+		else if (src == Component::terminal)
+		{
+			dest = Component::gateway;
+		}
+		else
+		{
+			LOG(log_receive, LEVEL_ERROR, "The type of the src entity %d is %s", src_id, getComponentName(src).c_str());
 			return false;
-		
+		}
+
 		auto &burst = bursts[{spot_id, dest}];
 		if (burst == nullptr) {
 			burst = std::unique_ptr<NetBurst>(new NetBurst{});

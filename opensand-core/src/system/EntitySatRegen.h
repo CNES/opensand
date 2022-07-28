@@ -28,7 +28,7 @@
 
 /**
  * @file EntitySatRegen.h
- * @brief Regenerative satellite that can handle mesh architecture and ISL
+ * @brief Regenerative satellite with ISL support
  * @author Yohan SIMARD <yohan.simard@viveris.fr>
  */
 

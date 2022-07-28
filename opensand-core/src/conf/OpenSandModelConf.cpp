@@ -1836,14 +1836,6 @@ bool OpenSandModelConf::getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot 
 	return true;
 }
 
-bool OpenSandModelConf::isMeshArchitecture() const
-{
-	auto entity_sat = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_sat_regen");
-	bool mesh_arch = false;
-	extractParameterData(entity_sat, "mesh", mesh_arch);
-	return mesh_arch;
-}
-
 bool OpenSandModelConf::getInterconnectCarrier(bool upward,
                                                std::string &remote,
                                                unsigned int &data_port,
