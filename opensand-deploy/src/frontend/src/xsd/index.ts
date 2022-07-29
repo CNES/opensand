@@ -30,15 +30,9 @@ export const getXsdName = (parameter_id: string, entity_type?: string) => {
             return "profile_gw_phy.xsd";
         case "Terminal":
             return "profile_st.xsd";
-        case "Satellite Regen":
-            return "profile_sat_regen.xsd";
-        default:
-            return "";
-/*
         case "Satellite":
             return "profile_sat.xsd";
         default:
-            return "profile.xsd";
-*/
+            return "";
     }
 };

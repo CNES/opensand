@@ -84,7 +84,7 @@ void OpenSandModelConf::createModels()
 	infrastructure_model->getRoot()->setDescription("infrastructure");
 	auto types = infrastructure_model->getTypesDefinition();
 	types->addEnumType("log_level", "Log Level", {"debug", "info", "notice", "warning", "error", "critical"});
-	types->addEnumType("entity_type", "Entity Type", {"Gateway", "Gateway Net Access", "Gateway Phy", "Satellite", "Satellite Regen", "Terminal"});
+	types->addEnumType("entity_type", "Entity Type", {"Gateway", "Gateway Net Access", "Gateway Phy", "Satellite", "Terminal"});
 	types->addEnumType("isl_type", "Type of ISL", {"LanAdaptation", "Interconnect", "None"});
 
 	auto entity = infrastructure_model->getRoot()->addComponent("entity", "Emulated Entity");
@@ -92,19 +92,10 @@ void OpenSandModelConf::createModels()
 	entity_type->setReadOnly(true);
 
 	{
-		auto satellite = entity->addComponent("entity_sat", "Satellite", "Specific infrastructure information for a Satellite");
-		infrastructure_model->setReference(satellite, entity_type);
-		auto expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(satellite->getReferenceData());
-		expected_str->set("Satellite");
-		satellite->addParameter("entity_id", "Satellite ID", types->getType("int"));
-		satellite->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
-	}
-
-	{
-		auto satellite_regen = entity->addComponent("entity_sat_regen", "Satellite", "Specific infrastructure information for a Regenerative Satellite");
+		auto satellite_regen = entity->addComponent("entity_sat", "Satellite", "Specific infrastructure information for a Satellite");
 		infrastructure_model->setReference(satellite_regen, entity_type);
 		auto expected_str = std::dynamic_pointer_cast<OpenSANDConf::DataValue<std::string>>(satellite_regen->getReferenceData());
-		expected_str->set("Satellite Regen");
+		expected_str->set("Satellite");
 		satellite_regen->addParameter("entity_id", "Satellite ID", types->getType("int"));
 		satellite_regen->addParameter("emu_address", "Emulation Address", types->getType("string"), "Address this satellite should listen on for messages from ground entities");
 		auto regen_level = satellite_regen->addParameter("regen_level", "Regeneration Level", types->getType("sat_regen_level"));
@@ -726,7 +717,7 @@ Component OpenSandModelConf::getComponentType() const
 	std::string component_type;
 	extractParameterData(infrastructure->getRoot()->getComponent("entity"), "entity_type", component_type);
 
-	if (component_type == "Satellite" || component_type == "Satellite Regen") {
+	if (component_type == "Satellite") {
 		return Component::satellite;
 	} else if (component_type == "Terminal") {
 		return Component::terminal;
@@ -750,8 +741,6 @@ bool OpenSandModelConf::getComponentType(std::string &type, tal_id_t &id) const
 
 	if (component_type == "Satellite") {
 		type = "sat";
-	} else if (component_type == "Satellite Regen") {
-		type = "sat_regen";
 	} else if (component_type == "Terminal") {
 		type = "st";
 	} else if (component_type == "Gateway") {
@@ -786,7 +775,7 @@ bool OpenSandModelConf::getSatInfrastructure(std::string &ip_address) const
 		return false;
 	}
 
-	if (type != "sat" && type != "sat_regen") {
+	if (type != "sat") {
 		return false;
 	}
 
@@ -1854,7 +1843,7 @@ bool OpenSandModelConf::getInterconnectCarrier(bool upward,
 		return false;
 	}
 
-	if (type != "gw_net_acc" && type != "gw_phy" && type != "sat_regen" && type != "sat")
+	if (type != "gw_net_acc" && type != "gw_phy" && type != "sat")
 	{
 		return false;
 	}
@@ -1862,7 +1851,7 @@ bool OpenSandModelConf::getInterconnectCarrier(bool upward,
 	std::string direction = upward ? "upward_" : "downward_";
 
 	std::shared_ptr<OpenSANDConf::DataComponent> interco_params;
-	if (type == "sat_regen" || type == "sat")
+	if (type == "sat")
 	{
 		auto isl_settings = infrastructure->getRoot()
 		                        ->getComponent("entity")
@@ -1978,7 +1967,7 @@ bool OpenSandModelConf::getIslConfig(std::vector<IslConfig> &isls_cfg) const
 		return false;
 	}
 
-	if (type != "sat" && type != "sat_regen")
+	if (type != "sat")
 	{
 		return false;
 	}
@@ -2048,11 +2037,11 @@ RegenLevel OpenSandModelConf::getRegenLevel() const {
 	assert(infrastructure != nullptr);
 	auto entity = infrastructure->getRoot()->getComponent("entity");
 	assert(entity != nullptr);
-	auto sat_regen = entity->getComponent("entity_sat_regen");
-	assert(sat_regen != nullptr);
+	auto sat = entity->getComponent("entity_sat");
+	assert(sat != nullptr);
 
 	std::string regen_level;
-	extractParameterData(sat_regen, "regen_level", regen_level);
+	extractParameterData(sat, "regen_level", regen_level);
 
 	if (regen_level == "Transparent") {
 		return RegenLevel::Transparent;
