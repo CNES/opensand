@@ -53,6 +53,8 @@ bool BlockSatDispatcher::onInit()
 
 	std::unordered_map<SpotComponentPair, tal_id_t> routes;
 	std::unordered_map<tal_id_t, spot_id_t> spot_by_entity;
+	std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
+
 	for (auto &&spot: conf->getSpotsTopology())
 	{
 		const SpotTopology &topo = spot.second;
@@ -65,6 +67,9 @@ bool BlockSatDispatcher::onInit()
 
 		routes[{topo.spot_id, Component::gateway}] = topo.sat_id_gw;
 		routes[{topo.spot_id, Component::terminal}] = topo.sat_id_st;
+
+		regen_levels[{topo.spot_id, Component::terminal}] = topo.forward_regen_level;
+		regen_levels[{topo.spot_id, Component::gateway}] = topo.return_regen_level;
 
 		// Check that ISL are enabled when they should be
 		if (topo.sat_id_gw != topo.sat_id_st &&
@@ -82,6 +87,8 @@ bool BlockSatDispatcher::onInit()
 	downward->routes = routes;
 	upward->spot_by_entity = spot_by_entity;
 	downward->spot_by_entity = spot_by_entity;
+	upward->regen_levels = regen_levels;
+	downward->regen_levels = regen_levels;
 	return true;
 }
 
@@ -116,8 +123,29 @@ bool BlockSatDispatcher::Upward::onEvent(const RtEvent *const event)
 			return handleNetBurst(std::unique_ptr<NetBurst>(burst));
 		}
 		case InternalMessageType::link_up:
-			// ignore
+		{
+			T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
+			// TODO: only forward where there is a LanAdaptation block upward
+			// if (regen_level == RegenLevel::IP)
+			// {
+				// forward link up message
+				if (!this->enqueueMessage((void **)&link_up_msg,
+				                          sizeof(T_LINK_UP),
+				                          to_underlying(InternalMessageType::link_up)))
+				{
+					LOG(this->log_receive, LEVEL_ERROR,
+					    "cannot forward 'link up' message\n");
+					delete link_up_msg;
+					return false;
+				}
+			// }
+			// else
+			// {
+				// ignore
+				// delete link_up_msg;
+			// }
 			return true;
+		}
 		default:
 			LOG(log_receive, LEVEL_ERROR,
 			    "Unexpected message type received: %d",
@@ -147,7 +175,8 @@ bool BlockSatDispatcher::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	}
 	const tal_id_t dest_sat_id = dest_sat_id_it->second;
 
-	if (dest_sat_id == entity_id)
+	// TODO: temp hack, LanAdaptation should be able to handle DvbFrames 
+	if (dest_sat_id == entity_id || regen_levels.at({spot_id, dest}) == RegenLevel::IP)
 	{
 		return sendToOppositeChannel(std::move(frame), msg_type);
 	}
@@ -210,13 +239,13 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 		}
 
 		const tal_id_t dest_sat_id = dest_sat_id_it->second;
-		if (dest_sat_id == entity_id)
+		if (dest_sat_id == entity_id && regen_levels.at(dest) != RegenLevel::IP)
 		{
 			ok &= sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
 		}
 		else
 		{
-			// send by ISL
+			// send by ISL or to LanAdaptation for IP regen
 			ok &= sendToUpperBlock(std::move(burst), InternalMessageType::decap_data);
 		}
 	}
@@ -286,7 +315,8 @@ bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> fram
 	}
 	const tal_id_t dest_sat_id = dest_sat_id_it->second;
 
-	if (dest_sat_id == entity_id)
+	// TODO: temp hack, LanAdaptation should be able to handle DvbFrames
+	if (dest_sat_id == entity_id || regen_levels.at({spot_id, dest}) == RegenLevel::IP)
 	{
 		if (id % 2 != 0)
 		{
@@ -356,7 +386,7 @@ bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> in_b
 			continue;
 		}
 		const tal_id_t dest_sat_id = dest_sat_id_it->second;
-		if (dest_sat_id == entity_id)
+		if (dest_sat_id == entity_id || regen_levels.at(dest) == RegenLevel::IP)
 		{
 			ok &= sendToLowerBlock(dest, std::move(burst), InternalMessageType::decap_data);
 		}

@@ -39,6 +39,8 @@
 
 #include <string>
 #include <vector>
+#include <unordered_set>
+#include <unordered_map>
 
 class BlockSatDispatcher;
 
@@ -88,6 +90,11 @@ class EntitySatRegen: public Entity
 	                 RegenLevel forward_regen_level,
 	                 RegenLevel return_regen_level,
 	                 bool disable_ctrl_plane);
+
+	/**
+	 * Returns the entities that are connected through an ISL connection
+	 */
+	std::unordered_set<tal_id_t> getIslEntities(const std::unordered_map<spot_id_t, SpotTopology> &spot_topo) const;
 
 	std::string ip_address;
 	tal_id_t instance_id;

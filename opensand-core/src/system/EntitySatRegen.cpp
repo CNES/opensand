@@ -108,8 +108,11 @@ bool EntitySatRegen::createSpecificBlocks()
 		}
 		else if (isl_enabled && isl_config[0].type == IslType::LanAdaptation)
 		{
-			DFLTLOG(LEVEL_CRITICAL, "ISL by LanAdaptation are not yet implemented");
-			return false;
+			la_specific la_cfg;
+			la_cfg.packet_switch = new SatellitePacketSwitch{instance_id, getIslEntities(spot_topo)};
+			la_cfg.tap_iface = isl_config[0].tap_iface;
+			auto block_lan_adapt = Rt::createBlock<BlockLanAdaptation>("LanAdapt", la_cfg);
+			Rt::connectBlocks(block_lan_adapt, block_sat_dispatch);
 		}
 
 		for (auto &&spot: spot_topo)
@@ -195,14 +198,14 @@ void EntitySatRegen::createStack(BlockSatDispatcher *block_sat_dispatch,
 
 		Rt::connectBlocks(block_encap, block_dvb);
 
-		if ((forward_regen_level == RegenLevel::BBFrame && destination == Component::gateway) ||
-		    (return_regen_level == RegenLevel::BBFrame && destination == Component::terminal))
+		if ((forward_regen_level != RegenLevel::Transparent && destination == Component::gateway) ||
+		    (return_regen_level != RegenLevel::Transparent && destination == Component::terminal))
 		{
 			Rt::connectChannels(encap_upward, dispatch_upward);
 			Rt::connectChannels(sc_upward, dvb_upward);
 		}
-		if ((forward_regen_level == RegenLevel::BBFrame && destination == Component::terminal) ||
-		    (return_regen_level == RegenLevel::BBFrame && destination == Component::gateway))
+		if ((forward_regen_level != RegenLevel::Transparent && destination == Component::terminal) ||
+		    (return_regen_level != RegenLevel::Transparent && destination == Component::gateway))
 		{
 			Rt::connectChannels(dispatch_downward, encap_downward, {spot_id, destination});
 			Rt::connectChannels(dvb_downward, phy_downward);
@@ -263,4 +266,22 @@ bool EntitySatRegen::createSpecificConfiguration(const std::string &filepath) co
 	Conf->createModels();
 	defineProfileMetaModel();
 	return Conf->writeProfileModel(filepath);
+}
+
+std::unordered_set<tal_id_t> EntitySatRegen::getIslEntities(const std::unordered_map<spot_id_t, SpotTopology> &spot_topo) const
+{
+	std::unordered_set<tal_id_t> isl_entities;
+	for (auto &&spot: spot_topo)
+	{
+		const SpotTopology &topo = spot.second;
+		if (topo.sat_id_st == instance_id && topo.sat_id_gw != instance_id)
+		{
+			isl_entities.insert(topo.gw_id);
+		}
+		if (topo.sat_id_st != instance_id && topo.sat_id_gw == instance_id)
+		{
+			std::copy(topo.st_ids.begin(), topo.st_ids.end(), std::inserter(isl_entities, isl_entities.end()));
+		}
+	}
+	return isl_entities;
 }

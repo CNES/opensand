@@ -355,7 +355,8 @@ bool Ethernet::Context::initTrafficCategories()
 	if(!((st_fifos == nullptr) ^ (gw_fifos == nullptr))) {
 		LOG(this->log, LEVEL_ERROR,
 		    "Exactly one of {st_fifos, gw_fifos} should be defined in the profile configuration file");
-		return false;
+		// TODO: check how to handle fifos in sat to avoid this error
+		// return false;
 	}
 	auto fifos = st_fifos ? st_fifos : gw_fifos;
 	
