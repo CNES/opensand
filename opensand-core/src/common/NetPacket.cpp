@@ -37,7 +37,7 @@
 
 NetPacket::NetPacket(const unsigned char *data, std::size_t length):
 		NetContainer{data, length},
-		type{NET_PROTO_ERROR},
+		type{NET_PROTO::ERROR},
 		qos{},
 		src_tal_id{},
 		dst_tal_id{}
@@ -48,7 +48,7 @@ NetPacket::NetPacket(const unsigned char *data, std::size_t length):
 
 NetPacket::NetPacket(const Data &data):
 		NetContainer{data},
-		type{NET_PROTO_ERROR},
+		type{NET_PROTO::ERROR},
 		qos{},
 		src_tal_id{},
 		dst_tal_id{}
@@ -59,7 +59,7 @@ NetPacket::NetPacket(const Data &data):
 
 NetPacket::NetPacket(const Data &data, std::size_t length):
 		NetContainer{data, length},
-		type{NET_PROTO_ERROR},
+		type{NET_PROTO::ERROR},
 		qos{},
 		src_tal_id{},
 		dst_tal_id{}
@@ -82,7 +82,7 @@ NetPacket::NetPacket(const NetPacket &pkt):
 
 NetPacket::NetPacket():
 		NetContainer{},
-		type{NET_PROTO_ERROR},
+		type{NET_PROTO::ERROR},
 		qos{},
 		src_tal_id{},
 		dst_tal_id{}
@@ -94,7 +94,7 @@ NetPacket::NetPacket():
 NetPacket::NetPacket(const Data &data,
                      std::size_t length,
                      std::string name,
-                     uint16_t type,
+                     NET_PROTO type,
                      uint8_t qos,
                      uint8_t src_tal_id,
                      uint8_t dst_tal_id,
@@ -115,7 +115,7 @@ NetPacket::~NetPacket()
 }
 
 
-uint16_t NetPacket::getType() const
+NET_PROTO NetPacket::getType() const
 {
 	return this->type;
 }

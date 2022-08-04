@@ -41,7 +41,7 @@
 #include <cassert>
 
 
-LanAdaptationPlugin::LanAdaptationPlugin(uint16_t ether_type):
+LanAdaptationPlugin::LanAdaptationPlugin(NET_PROTO ether_type):
 		StackPlugin(ether_type)
 {
 }

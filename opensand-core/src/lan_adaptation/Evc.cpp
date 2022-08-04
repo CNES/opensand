@@ -34,17 +34,15 @@
 
 #include "Evc.h"
 
-#include "NetPacket.h"
-#include "MacAddress.h"
-
 #include <cstring>
 #include <algorithm>
+
 
 Evc::Evc(const MacAddress *mac_src,
          const MacAddress *mac_dst,
          uint16_t q_tci,
          uint16_t ad_tci,
-         uint16_t ether_type):
+         NET_PROTO ether_type):
 	mac_src(mac_src),
 	mac_dst(mac_dst),
 	q_tci(q_tci & 0x0000FFFF),
@@ -72,7 +70,7 @@ const MacAddress *Evc::getMacDst() const
 uint32_t Evc::getQTci() const
 {
 	uint32_t val = 0;
-	val |= NET_PROTO_802_1Q;
+	val |= to_underlying(NET_PROTO::IEEE_802_1Q);
 	return (this->q_tci & 0x0000FFFF) | (val << 16);
 }
 
@@ -80,12 +78,12 @@ uint32_t Evc::getAdTci() const
 {
 	uint32_t val = 0;
 	// TODO for kernel support
-	//val |= NET_PROTO_802_1AD;
-	val |= NET_PROTO_802_1Q;
+	//val |= to_underlying(NET_PROTO::IEEE_802_1AD);
+	val |= to_underlying(NET_PROTO::IEEE_802_1Q);
 	return (this->ad_tci & 0x0000FFFF) | (val << 16);
 }
 
-uint16_t Evc::getEtherType() const
+NET_PROTO Evc::getEtherType() const
 {
 	return this->ether_type;
 }
@@ -94,7 +92,7 @@ bool Evc::matches(const MacAddress *mac_src,
                   const MacAddress *mac_dst,
                   uint16_t q_tci,
                   uint16_t ad_tci,
-                  uint16_t ether_type) const
+                  NET_PROTO ether_type) const
 {
 	if(!this->mac_src->matches(mac_src) ||
 	   !this->mac_dst->matches(mac_dst) ||
@@ -109,7 +107,7 @@ bool Evc::matches(const MacAddress *mac_src,
 
 bool Evc::matches(const MacAddress *mac_src,
                   const MacAddress *mac_dst,
-                  uint16_t ether_type) const
+                  NET_PROTO ether_type) const
 {
 	if(!this->mac_src->matches(mac_src) ||
 	   !this->mac_dst->matches(mac_dst) ||
@@ -123,7 +121,7 @@ bool Evc::matches(const MacAddress *mac_src,
 bool Evc::matches(const MacAddress *mac_src,
                   const MacAddress *mac_dst,
                   uint16_t q_tci,
-                  uint16_t ether_type) const
+                  NET_PROTO ether_type) const
 {
 	if(!this->mac_src->matches(mac_src) ||
 	   !this->mac_dst->matches(mac_dst) ||

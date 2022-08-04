@@ -51,6 +51,7 @@ class NetBurst;
 class NetContainer;
 class NetPacket;
 class OutputLog;
+enum class NET_PROTO : uint16_t;
 
 
 /**
@@ -115,7 +116,7 @@ class StackPlugin: public OpenSandPlugin
 		 *
 		 * return The EtherType
 		 */
-		virtual uint16_t getEtherType() const;
+		virtual NET_PROTO getEtherType() const;
 
 		/**
 		 * @brief Get the type of stack
@@ -245,7 +246,7 @@ class StackPlugin: public OpenSandPlugin
 		 *
 		 * return The EtherType
 		 */
-		uint16_t getEtherType() const;
+		NET_PROTO getEtherType() const;
 
 		/**
 		 * @brief Set the encapsulated packet handler
@@ -307,7 +308,7 @@ class StackPlugin: public OpenSandPlugin
 	/**
 	 * @brief StackPlugin constructor
 	 */
-	StackPlugin(uint16_t ether_type);
+	StackPlugin(NET_PROTO ether_type);
 
 
 	/**
@@ -378,7 +379,7 @@ class StackPlugin: public OpenSandPlugin
 
  protected:
 	/// The EtherType (or EtherType like) of the associated protocol
-	uint16_t ether_type;
+	NET_PROTO ether_type;
 
 	/// The list of protocols that can be "encapsulated"
 	std::vector<std::string> upper;

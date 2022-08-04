@@ -70,7 +70,7 @@ static int encodeHeaderCniExtensions(unsigned char *ext,
 	*length += sizeof(uint16_t);
 	
 	// 0x0300 is necessary to indicate the extension size (6 bytes) 
-	*protocol_type = NET_PROTO_GSE_EXTENSION_CNI | 0x0300;
+	*protocol_type = to_underlying(NET_PROTO::GSE_EXTENSION_CNI) | 0x0300;
 	
 	return 0;
 }
@@ -85,7 +85,7 @@ static int deencodeHeaderCniExtensions(unsigned char *ext,
 	current_type = extension_type & 0xFF;
 	
 	//check current type
-	if(current_type != NET_PROTO_GSE_EXTENSION_CNI)
+	if(current_type != to_underlying(NET_PROTO::GSE_EXTENSION_CNI))
 	{
 		DFLTLOG(LEVEL_ERROR, "GSE header extension is not a CNI extension\n");
 		return -1;
@@ -118,7 +118,7 @@ static int gse_ext_check_cb(unsigned char *ext,
 
 
 Gse::Gse():
-	EncapPlugin(NET_PROTO_GSE)
+	EncapPlugin(NET_PROTO::GSE)
 {
 	this->upper.push_back("ROHC");
 	this->upper.push_back("Ethernet");
@@ -604,7 +604,7 @@ bool Gse::Context::encapPacket(NetPacket *packet,
 	// Store the IP packet in the encapsulation context thanks
 	// to the GSE library
 	status = gse_encap_receive_pdu(this->vfrag_pkt, this->encap, label, 0,
-	                               packet->getType(), frag_id);
+	                               to_underlying(packet->getType()), frag_id);
 	if(status != GSE_STATUS_OK)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -697,8 +697,6 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 	gse_vfrag_t *vfrag_gse;
 	gse_status_t status;
 
-	NetBurst::iterator packet;
-
 	// create an empty burst of network packets
 	net_packets = new NetBurst();
 	if(net_packets == NULL)
@@ -709,12 +707,12 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 		return NULL;
 	}
 
-	for(packet = burst->begin(); packet != burst->end(); packet++)
+	for(auto &&packet : *burst)
 	{
 		uint8_t dst_tal_id;
 
 		// packet must be valid
-		if(*packet == NULL)
+		if(packet == NULL)
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "encapsulation packet is not valid, drop the packet\n");
@@ -722,25 +720,25 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 		}
 
 		// Filter if packet is for this ST
-		dst_tal_id = (*packet)->getDstTalId();
+		dst_tal_id = packet->getDstTalId();
 		if (dst_tal_id != this->dst_tal_id &&
 		    this->dst_tal_id != BROADCAST_TAL_ID &&
 		    dst_tal_id != BROADCAST_TAL_ID)
 		{
 			LOG(this->log, LEVEL_INFO,
 			    "encapsulation packet is for ST#%u. Drop\n",
-			    (*packet)->getDstTalId());
+			    packet->getDstTalId());
 			continue;
 		}
 
 
 		// packet must be a GSE packet
-		if((*packet)->getType() != this->getEtherType())
+		if(packet->getType() != this->getEtherType())
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "encapsulation packet is not a GSE packet "
 			    "(type = 0x%04x), drop the packet\n",
-			    (*packet)->getType());
+			    packet->getType());
 			continue;
 		}
 
@@ -757,10 +755,10 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 		// TODO : this function could be optimized (preallocating vfrag_gse), but
 		// gse_deencap_packet call below frees vfrag struct (need to change that
 		// function in order to be no_alloc compatible).
-		status = gse_create_vfrag_with_data(&vfrag_gse, (*packet)->getTotalLength(),
+		status = gse_create_vfrag_with_data(&vfrag_gse, packet->getTotalLength(),
 		                                    0, 0,
-		                                    (*packet)->getRawData(),
-		                                    (*packet)->getTotalLength());
+		                                    packet->getRawData(),
+		                                    packet->getTotalLength());
 		if(status != GSE_STATUS_OK)
 		{
 			LOG(this->log, LEVEL_ERROR,
@@ -770,9 +768,9 @@ NetBurst *Gse::Context::deencapsulate(NetBurst *burst)
 		}
 		LOG(this->log, LEVEL_INFO,
 		    "Create a virtual fragment for GSE library "
-		    "(length = %zu)\n", (*packet)->getTotalLength());
+		    "(length = %zu)\n", packet->getTotalLength());
 
-		if(!this->deencapPacket(vfrag_gse, (*packet)->getSpot(), net_packets))
+		if(!this->deencapPacket(vfrag_gse, packet->getSpot(), net_packets))
 		{
 			continue;
 		}
@@ -1660,8 +1658,8 @@ bool Gse::PacketHandler::setHeaderExtensions(std::unique_ptr<NetPacket> packet,
 	{
 		0xd0, /* LT = 01 (three bytes label) */
 		0x05, /* length */
-		NET_PROTO_IPV4 >> 8 & 0xff,
-		NET_PROTO_IPV4 & 0xff,
+		to_underlying(NET_PROTO::IPV4) >> 8 & 0xff,
+		to_underlying(NET_PROTO::IPV4) & 0xff,
 		(unsigned char)tal_id_src,
 		(unsigned char)tal_id_dst,
 		0x00 /* highest priority fifo (eg. NM FIFO) */

@@ -45,6 +45,7 @@
 class Data;
 class NetPacket;
 class OutputLog;
+enum class NET_PROTO : uint16_t;
 
 
 /**
@@ -132,7 +133,7 @@ class NetBurst: public std::list<std::unique_ptr<NetPacket>>
 	 *
 	 * @return the type of packets in the burst
 	 */
-	uint16_t type() const;
+	NET_PROTO type() const;
 
 	/**
 	 * Get the name of packets stored in the burst (ATM, MPEG...)

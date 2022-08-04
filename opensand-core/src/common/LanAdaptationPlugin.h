@@ -47,6 +47,7 @@ class SarpTable;
 class OutputLog;
 class PacketSwitch;
 
+
 /**
  * @class LanAdaptationPlugin
  * @brief Generic Lan adaptation plugin
@@ -154,7 +155,7 @@ class LanAdaptationPlugin: public StackPlugin
 		PacketSwitch *packet_switch;
 	};
 
-	LanAdaptationPlugin(uint16_t ether_type);
+	LanAdaptationPlugin(NET_PROTO ether_type);
 
 	virtual bool init();
 

@@ -50,7 +50,7 @@ StackPlugin::StackPacketHandler::~StackPacketHandler()
 }
 
 
-uint16_t StackPlugin::StackPacketHandler::getEtherType() const
+NET_PROTO StackPlugin::StackPacketHandler::getEtherType() const
 {
 	return plugin.ether_type;
 }
@@ -87,7 +87,7 @@ std::vector<std::string> StackPlugin::StackContext::getAvailableUpperProto() con
 }
 
 
-uint16_t StackPlugin::StackContext::getEtherType() const
+NET_PROTO StackPlugin::StackContext::getEtherType() const
 {
 	return plugin.ether_type;
 }
@@ -128,7 +128,7 @@ std::unique_ptr<NetPacket> StackPlugin::StackContext::createPacket(const Data &d
 }
 
 
-StackPlugin::StackPlugin(uint16_t ether_type):
+StackPlugin::StackPlugin(NET_PROTO ether_type):
 	OpenSandPlugin{},
 	ether_type{ether_type}
 {

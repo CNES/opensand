@@ -52,6 +52,7 @@ extern "C"
 class GseIdentifier;
 class NetPacket;
 class OutputLog;
+enum class NET_PROTO : uint16_t;
 
 
 /**
@@ -72,7 +73,7 @@ class GseEncapCtx
 	/// QoS from first packet
 	uint8_t qos;
 	/// protocol of the packets sotred in virtual buffer
-	uint16_t protocol;
+	NET_PROTO protocol;
 	/// name of the packets sotred in virtual buffer
 	std::string name;
 	/// Tell if virtual buffer is full or not

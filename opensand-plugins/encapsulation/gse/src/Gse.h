@@ -141,7 +141,7 @@ class Gse: public EncapPlugin
 	 public:
 		PacketHandler(EncapPlugin &plugin);
 
-    std::unique_ptr<NetPacket> build(const Data &data,
+		std::unique_ptr<NetPacket> build(const Data &data,
 		                                 std::size_t data_length,
 		                                 uint8_t qos,
 		                                 uint8_t src_tal_id,

@@ -247,7 +247,7 @@ void InterconnectChannelSender::serialize(const NetPacket &packet,
 	uint8_t src_id = packet.getSrcTalId();
 	uint8_t dest_id = packet.getDstTalId();
 	uint8_t qos = packet.getQos();
-	uint16_t type = packet.getType();
+	NET_PROTO type = packet.getType();
 	uint32_t header_length = packet.getHeaderLength();
 
 	serializeField(buf, pos, &src_id);
@@ -508,7 +508,7 @@ void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
 	uint8_t src_id;
 	uint8_t dest_id;
 	uint8_t qos;
-	uint16_t type;
+	NET_PROTO type;
 	uint32_t header_length;
 
 	deserializeField(buf, pos, src_id);

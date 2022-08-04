@@ -56,7 +56,7 @@ class OutputLog;
 class EncapPlugin: public StackPlugin
 {
  public:
-	EncapPlugin(uint16_t ether_type);
+	EncapPlugin(NET_PROTO ether_type);
 
 	/**
 	 * @class EncapPacketHandler

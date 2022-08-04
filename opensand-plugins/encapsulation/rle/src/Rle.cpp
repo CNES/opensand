@@ -134,7 +134,7 @@ bool checkRleConf(std::shared_ptr<OutputLog> log, const struct rle_config &conf)
 }
 
 Rle::Rle():
-	EncapPlugin(NET_PROTO_RLE)
+	EncapPlugin(NET_PROTO::RLE)
 {
 	this->upper.push_back("ROHC");
 	this->upper.push_back("Ethernet");
@@ -724,7 +724,7 @@ bool Rle::PacketHandler::encapNextPacket(std::unique_ptr<NetPacket> packet,
 		}
 
 		// Build RLE SDU
-		sdu.protocol_type = packet->getType();
+		sdu.protocol_type = to_underlying(packet->getType());
 		sdu.size = packet->getTotalLength();
 		sdu.buffer = new unsigned char[sdu.size];
 		memcpy(sdu.buffer, packet->getRawData(), sdu.size);

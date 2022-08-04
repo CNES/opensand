@@ -36,6 +36,7 @@
 #define EVC_H
 
 #include "MacAddress.h"
+#include "NetPacket.h"
 
 #include <stdint.h>
 
@@ -56,7 +57,7 @@ class Evc
 	/// 802.1ad TCI
 	uint32_t ad_tci;
 	/// The EtherType of the packet carried by the Ethernet payload
-	uint16_t ether_type;
+	NET_PROTO ether_type;
 
  public:
 
@@ -72,7 +73,7 @@ class Evc
 	 */
 	Evc(const MacAddress *mac_src, const MacAddress *mac_dst,
 	    uint16_t q_tci, uint16_t ad_tci,
-	    uint16_t ether_type);
+	    NET_PROTO ether_type);
 
 	/**
 	 * Destroy the EVC information
@@ -113,7 +114,7 @@ class Evc
 	 *
 	 * @return the appropriate EtherType value
 	 */
-	uint16_t getEtherType() const;
+	NET_PROTO getEtherType() const;
 
 	/**
 	 * @brief check if our data match the EVC ones
@@ -130,7 +131,7 @@ class Evc
 	             const MacAddress *mac_dst,
 	             uint16_t q_tci,
 	             uint16_t ad_tci,
-	             uint16_t ether_type) const;
+	             NET_PROTO ether_type) const;
 
 	/**
 	 * @brief check if our data match the EVC ones
@@ -143,7 +144,7 @@ class Evc
 	 */
 	bool matches(const MacAddress *mac_src,
 	             const MacAddress *mac_dst,
-	             uint16_t ether_type) const;
+	             NET_PROTO ether_type) const;
 	/**
 	 * @brief check if our data match the EVC ones
 	 *
@@ -157,7 +158,7 @@ class Evc
 	bool matches(const MacAddress *mac_src,
 	             const MacAddress *mac_dst,
 	             uint16_t q_tci,
-	             uint16_t ether_type) const;
+	             NET_PROTO ether_type) const;
 };
 
 

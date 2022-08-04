@@ -42,7 +42,7 @@
 #include <cassert>
 
 
-EncapPlugin::EncapPlugin(uint16_t ether_type):
+EncapPlugin::EncapPlugin(NET_PROTO ether_type):
 		StackPlugin(ether_type)
 {
 }

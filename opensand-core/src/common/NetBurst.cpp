@@ -133,7 +133,7 @@ long NetBurst::bytes() const
 }
 
 
-uint16_t NetBurst::type() const
+NET_PROTO NetBurst::type() const
 {
 	if(!this->size())
 	{
@@ -141,7 +141,7 @@ uint16_t NetBurst::type() const
 		LOG(log_net_burst, LEVEL_ERROR,
 		    "failed to determine the burst type: "
 		    "burst is empty\n");
-		return NET_PROTO_ERROR;
+		return NET_PROTO::ERROR;
 	}
 	else
 	{
