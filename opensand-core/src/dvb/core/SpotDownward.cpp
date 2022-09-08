@@ -604,8 +604,28 @@ bool SpotDownward::initCarrierIds(void)
 
 bool SpotDownward::initFifo(fifos_t &fifos)
 {
+	int default_fifo_prio = 0;
+	std::map<std::string, int> fifo_ids;
+
 	auto Conf = OpenSandModelConf::Get();
 	auto ncc = Conf->getProfileData()->getComponent("network");
+	for(auto& item : ncc->getList("qos_classes")->getItems())
+	{
+		auto category = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
+		std::string fifo_name;
+		if(!OpenSandModelConf::extractParameterData(category->getParameter("fifo"), fifo_name))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Section network, missing QoS class FIFO name parameter\n");
+			return false;
+		}
+
+		auto priority = fifo_ids.find(fifo_name);
+		if(priority == fifo_ids.end())
+		{
+			fifo_ids.emplace(fifo_name, fifo_ids.size());
+		}
+	}
 
 	for (auto& item : ncc->getList("gw_fifos")->getItems())
 	{
@@ -618,7 +638,7 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 			    "cannot get fifo priority from section 'ncc, fifos'\n");
 			goto err_fifo_release;
 		}
-		unsigned int fifo_priority = fifo_prio;
+		qos_t fifo_priority = fifo_prio;
 
 		std::string fifo_name;
 		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("name"), fifo_name))
@@ -627,6 +647,13 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 			    "cannot get fifo name from section 'ncc, fifos'\n");
 			goto err_fifo_release;
 		}
+
+		auto fifo_it = fifo_ids.find(fifo_name);
+		if (fifo_it == fifo_ids.end())
+		{
+			fifo_it = fifo_ids.emplace(fifo_name, fifo_ids.size()).first;
+		}
+		auto fifo_id = fifo_it->second;
 
 		int fifo_capa;
 		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("capacity"), fifo_capa))
@@ -660,10 +687,13 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 		// default FIFO if the DSCP field is not recognize, default_fifo_id
 		// should not be used this is only used if traffic categories
 		// configuration and fifo configuration are not coherent.
-		this->default_fifo_id = std::max(this->default_fifo_id,
-		                                 fifo->getPriority());
+		if (fifo->getPriority() > default_fifo_prio)
+		{
+			default_fifo_prio = fifo->getPriority();
+			this->default_fifo_id = fifo_id;
+		}
 
-		fifos.insert({fifo->getPriority(), fifo});
+		fifos.insert({fifo_id, fifo});
 	}
 
 	return true;
@@ -857,8 +887,8 @@ bool SpotDownward::handleSalohaAcks(const std::list<DvbFrame *> *ack_frames)
 bool SpotDownward::handleEncapPacket(std::unique_ptr<NetPacket> packet)
 {
 	qos_t fifo_priority = packet->getQos();
-  std::string cat_label;
-  std::map<std::string, fifos_t>::iterator fifos_it;
+	std::string cat_label;
+	std::map<std::string, fifos_t>::iterator fifos_it;
 	tal_id_t dst_tal_id;
 
 	LOG(this->log_receive_channel, LEVEL_INFO,

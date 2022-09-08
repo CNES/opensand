@@ -116,7 +116,9 @@ bool GatewayPacketSwitch::isPacketForMe(const Data &packet, tal_id_t src_id, boo
 
 SatellitePacketSwitch::SatellitePacketSwitch(tal_id_t tal_id, std::unordered_set<tal_id_t> isl_entities):
 	PacketSwitch{tal_id},
-	isl_entities{std::move(isl_entities)} {}
+	isl_entities{std::move(isl_entities)}
+{
+}
 
 bool SatellitePacketSwitch::getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
 {

@@ -159,7 +159,7 @@ class OpenSandModelConf
 
 	Component getComponentType() const;
 	bool getComponentType(std::string &type, tal_id_t &id) const;
-	bool getSatInfrastructure(std::string &ip_address) const;
+	bool getSatInfrastructure(std::string &ip_address, std::vector<IslConfig> &cfg) const;
 	/**
 	 * @brief: get infrastructure informations for ground entities
 	 *
@@ -215,8 +215,8 @@ class OpenSandModelConf
 	                            std::string &default_category_name,
 	                            std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
 
+	bool getDefaultSpotId(spot_id_t &default_spot_id) const;
 	const std::unordered_map<spot_id_t, SpotTopology> &getSpotsTopology() const;
-	bool getIslConfig(std::vector<IslConfig> &cfg) const;
 	RegenLevel getRegenLevel() const;
 
  private:

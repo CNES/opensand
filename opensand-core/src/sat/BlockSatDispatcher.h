@@ -61,6 +61,22 @@ struct SatDispatcherConfig
  */
 class BlockSatDispatcher: public Block
 {
+	class SpotByEntity
+	{
+	  public:
+		SpotByEntity();
+
+		void addEntityInSpot(tal_id_t entity, spot_id_t spot);
+
+		void setDefaultSpot(spot_id_t spot);
+
+		spot_id_t getSpotForEntity(tal_id_t entity) const;
+
+	  private:
+		std::unordered_map<tal_id_t, spot_id_t> spot_by_entity;
+		spot_id_t default_spot;
+	};
+
   public:
 	BlockSatDispatcher(const std::string &name, SatDispatcherConfig config);
 
@@ -84,8 +100,9 @@ class BlockSatDispatcher: public Block
 		bool sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type);
 
 		tal_id_t entity_id;
+
+		SpotByEntity spot_by_entity;
 		std::unordered_map<SpotComponentPair, tal_id_t> routes;
-		std::unordered_map<tal_id_t, spot_id_t> spot_by_entity;
 		std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
 	};
 
@@ -107,9 +124,9 @@ class BlockSatDispatcher: public Block
 		bool sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type);
 
 		tal_id_t entity_id;
+		SpotByEntity spot_by_entity;
 		std::unordered_map<SpotComponentPair, tal_id_t> routes;
 		std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
-		std::unordered_map<tal_id_t, spot_id_t> spot_by_entity;
 	};
 
   private:

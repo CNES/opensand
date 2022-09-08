@@ -55,7 +55,7 @@ class NetSocketEvent;
 
 struct la_specific
 {
-  std::string tap_iface;
+	std::string tap_iface;
 	PacketSwitch *packet_switch;        
 };
 
@@ -161,7 +161,7 @@ class BlockLanAdaptation: public Block
 		 * @param event  The event on TAP interface, containing th message
 		 * @return true on success, false otherwise
 		 */
-		bool onMsgFromUp(NetSocketEvent *const event);
+		bool onMsgFromUp(const NetSocketEvent *const event);
 
 		/// statistic timer
 		event_id_t stats_timer;

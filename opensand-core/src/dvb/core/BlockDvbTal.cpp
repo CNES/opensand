@@ -156,6 +156,7 @@ void BlockDvbTal::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParame
 		Conf->setProfileReference(scpc, scpc_enabled, true);
 		scpc->addParameter("carrier_duration", "SCPC Carrier Duration", types->getType("int"))->setUnit("ms");
 	}
+
 	auto network = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
 	auto fifos = network->getOrCreateList("st_fifos", "FIFOs to send messages to Gateway", "st_fifo");
 	auto pattern = fifos->getPattern();
@@ -496,8 +497,28 @@ bool BlockDvbTal::Downward::initCarrierId(void)
 
 bool BlockDvbTal::Downward::initMacFifo(void)
 {
+	int default_fifo_prio = 0;
+	std::map<std::string, int> fifo_ids;
+
 	auto Conf = OpenSandModelConf::Get();
 	auto network = Conf->getProfileData()->getComponent("network");
+	for(auto& item : network->getList("qos_classes")->getItems())
+	{
+		auto category = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
+		std::string fifo_name;
+		if(!OpenSandModelConf::extractParameterData(category->getParameter("fifo"), fifo_name))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Section network, missing QoS class FIFO name parameter\n");
+			return false;
+		}
+
+		auto priority = fifo_ids.find(fifo_name);
+		if(priority == fifo_ids.end())
+		{
+			fifo_ids.emplace(fifo_name, fifo_ids.size());
+		}
+	}
 
 	for (auto& item : network->getList("st_fifos")->getItems())
 	{
@@ -519,6 +540,13 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 			    "cannot get fifo name from section 'network, fifos'\n");
 			return releaseMap(this->dvb_fifos, true);
 		}
+
+		auto fifo_it = fifo_ids.find(fifo_name);
+		if (fifo_it == fifo_ids.end())
+		{
+			fifo_it = fifo_ids.emplace(fifo_name, fifo_ids.size()).first;
+		}
+		auto fifo_id = fifo_it->second;
 
 		int fifo_capa;
 		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("capacity"), fifo_capa))
@@ -553,9 +581,13 @@ bool BlockDvbTal::Downward::initMacFifo(void)
 		// the DSCP field is not recognize, default_fifo_id should not be used
 		// this is only used if traffic categories configuration and fifo configuration
 		// are not coherent.
-		this->default_fifo_id = std::max(this->default_fifo_id, fifo->getPriority());
+		if (fifo->getPriority() > default_fifo_prio)
+		{
+			default_fifo_prio = fifo->getPriority();
+			this->default_fifo_id = fifo_id;
+		}
 
-		this->dvb_fifos.insert({fifo->getPriority(), fifo});
+		this->dvb_fifos.insert({fifo_id, fifo});
 	}
 
 	this->l2_to_sat_total_bytes = 0;
@@ -2425,7 +2457,9 @@ bool BlockDvbTal::Upward::onRcvDvbFrame(DvbFrame *dvb_frame)
 	bool corrupted = dvb_frame->isCorrupted();
 
 	LOG(this->log_receive, LEVEL_INFO,
-	    "Receive a frame of type %d\n", dvb_frame->getMessageType());
+	    "Receive a frame of type %d from spot %d\n",
+	    dvb_frame->getMessageType(),
+	    dvb_frame->getSpot());
 
 	// get ACM parameters that will be transmited to GW in SAC  TODO check it
 	if(IsCnCapableFrame(msg_type) && this->state == TalState::running)

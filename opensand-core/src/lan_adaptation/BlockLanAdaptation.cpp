@@ -192,7 +192,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 	{
     case EventType::Message:
 		{
-      auto msg_event = static_cast<const MessageEvent *>(event);
+			auto msg_event = static_cast<const MessageEvent *>(event);
 			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::link_up)
 			{
 				// 'link is up' message advertised
@@ -221,7 +221,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 
     case EventType::File:
 			// input data available on TAP handle
-			this->onMsgFromUp((NetSocketEvent *)event);
+			this->onMsgFromUp(static_cast<const NetSocketEvent *>(event));
 			break;
 
     case EventType::Timer:
@@ -345,30 +345,28 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 {
 	bool success = true;
-	NetBurst *forward_burst = NULL;
-	NetBurst::iterator burst_it;
+	NetBurst *forward_burst = nullptr;
 
-	if(burst == NULL)
+	if(burst == nullptr)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "burst is not valid\n");
 		return false;
 	}
 
-	for(lan_contexts_t::reverse_iterator ctx_iter = this->contexts.rbegin();
-	    ctx_iter != this->contexts.rend(); ++ctx_iter)
+	for(auto &&context : this->contexts)
 	{
-		burst = (*ctx_iter)->deencapsulate(burst);
-		if(burst == NULL)
+		burst = context->deencapsulate(burst);
+		if(burst == nullptr)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "failed to handle packet in %s context\n",
-			    (*ctx_iter)->getName().c_str());
+			    context->getName().c_str());
 			return false;
 		}
 	}
 
-	burst_it = burst->begin();
+	auto burst_it = burst->begin();
 	while(burst_it != burst->end())
 	{
 		Data packet = (*burst_it)->getData();
@@ -494,7 +492,7 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 	return success;
 }
 
-bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
+bool BlockLanAdaptation::Downward::onMsgFromUp(const NetSocketEvent *const event)
 {
 	unsigned char *read_data;
 	const unsigned char *data;
@@ -519,21 +517,20 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(NetSocketEvent *const event)
 	auto packet = std::unique_ptr<NetPacket>(new NetPacket(data, length));
 	// Learn source_mac address
 	tal_id_t pkt_tal_id_src = packet->getSrcTalId();
-  BlockLanAdaptation::packet_switch->learn(packet->getData(), pkt_tal_id_src);
+	BlockLanAdaptation::packet_switch->learn(packet->getData(), pkt_tal_id_src);
 
 	NetBurst *burst = new NetBurst();
 	burst->add(std::move(packet));
-  delete [] read_data;
+	delete [] read_data;
 
-	for(lan_contexts_t::iterator iter = this->contexts.begin();
-	    iter != this->contexts.end(); ++iter)
+	for(auto &&context : this->contexts)
 	{
-		burst = (*iter)->encapsulate(burst);
-		if(burst == NULL)
+		burst = context->encapsulate(burst);
+		if(burst == nullptr)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "failed to handle packet in %s context\n",
-			    (*iter)->getName().c_str());
+			    context->getName().c_str());
 			return false;
 		}
 	}

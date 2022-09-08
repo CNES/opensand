@@ -70,8 +70,7 @@ void Ethernet::generateConfiguration()
 	auto categories = conf->addList("qos_classes", "QoS Classes", "qos_class")->getPattern();
 	categories->addParameter("pcp", "PCP", types->getType("int"));
 	categories->addParameter("name", "Class Name", types->getType("string"));
-	categories->addParameter("fifo", "Fifo Name", types->getType("string"));  // <- Try using this instead of this v
-	// categories->addParameter("mac_prio", "Fifo Priority", types->getType("int"));
+	categories->addParameter("fifo", "Fifo Name", types->getType("string"));
 
 	auto evcs = conf->addList("virtual_connections", "Virtual Connections", "virtual_connection")->getPattern();
 	evcs->setAdvanced(true);
@@ -349,36 +348,6 @@ bool Ethernet::Context::initTrafficCategories()
 	auto network = OpenSandModelConf::Get()->getProfileData()->getComponent("network");
 
 	std::map<std::string, int> fifo_priorities;
-
-	auto conf = OpenSandModelConf::Get();
-	auto st_fifos = network->getList("st_fifos");
-	auto gw_fifos = network->getList("gw_fifos");
-	if(!((st_fifos == nullptr) ^ (gw_fifos == nullptr))) {
-		LOG(this->log, LEVEL_ERROR,
-		    "Exactly one of {st_fifos, gw_fifos} should be defined in the profile configuration file");
-		// TODO: check how to handle fifos in sat to avoid this error
-		// return false;
-	}
-	auto fifos = st_fifos ? st_fifos : gw_fifos;
-	
-	for(auto& item : fifos->getItems())
-	{
-		auto fifo = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
-
-		int priority;
-		if(!OpenSandModelConf::extractParameterData(fifo->getParameter("priority"), priority))
-		{
-			continue;
-		}
-
-		std::string name;
-		if(!OpenSandModelConf::extractParameterData(fifo->getParameter("name"), name))
-		{
-			continue;
-		}
-
-		fifo_priorities[name] = priority;
-	}
 	
 	for(auto& item : network->getList("qos_classes")->getItems())
 	{
@@ -403,10 +372,7 @@ bool Ethernet::Context::initTrafficCategories()
 		auto priority = fifo_priorities.find(fifo_name);
 		if(priority == fifo_priorities.end())
 		{
-			LOG(this->log, LEVEL_ERROR,
-			    "Section network, missing QoS class has unknown FIFO name %s\n",
-			    fifo_name.c_str());
-			return false;
+			priority = fifo_priorities.emplace(fifo_name, fifo_priorities.size()).first;
 		}
 		int mac_queue_prio = priority->second;
 
@@ -594,7 +560,7 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 
 			if(frame_type != NET_PROTO::ETH)
 			{
-				// get the QoS from the PCP is there is a PCP
+				// get the QoS from the PCP if there is a PCP
 				found_category = this->category_map.find(pcp);
 				if(found_category == this->category_map.end())
 				{

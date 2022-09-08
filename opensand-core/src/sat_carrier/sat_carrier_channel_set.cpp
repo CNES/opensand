@@ -48,8 +48,8 @@ sat_carrier_channel_set::sat_carrier_channel_set(tal_id_t tal_id):
 	tal_id(tal_id)
 {
 	auto output = Output::Get();
-	this->log_init = output->registerLog(LEVEL_WARNING, "SatCarrier.init");
-	this->log_sat_carrier = output->registerLog(LEVEL_WARNING, "SatCarrier.Channel");
+	this->log_init = output->registerLog(LEVEL_WARNING, "Sat_Carrier.init");
+	this->log_sat_carrier = output->registerLog(LEVEL_WARNING, "Sat_Carrier.Channel");
 }
 
 sat_carrier_channel_set::~sat_carrier_channel_set()
@@ -72,16 +72,17 @@ bool sat_carrier_channel_set::readCarrier(const std::string &local_ip_addr,
 	std::string carrier_ip = carrier.address;
 
 	LOG(this->log_init, LEVEL_INFO,
-	    "Creating carrier with ID: %u, IP address: %s, "
+	    "Creating carrier for GW: %d with ID: %u, IP address: %s, "
 	    "port: %ld, input: %s, multicast: %s\n",
-	    carrier_id, carrier_ip.c_str(),
-	    carrier_port,
+		gw_id, carrier_id,
+		carrier_ip.c_str(),
+		carrier_port,
 	    (is_input ? "true" : "false"),
 	    (carrier_multicast ? "true" : "false"));
 
 	// create a new udp channel configure it, with information from file
 	// and insert it in the channels vector
-	UdpChannel *channel = new UdpChannel("SatCarrier",
+	UdpChannel *channel = new UdpChannel("Sat_Carrier",
 	                                     gw_id,
 	                                     carrier_id,
 	                                     is_input,
@@ -187,14 +188,23 @@ bool sat_carrier_channel_set::readConfig(const std::string local_ip_addr,
 			    this->tal_id);
 			return false;
 		}
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "Creating carrier for terminal %d connected to GW %d",
+		    tal_id, gw_id);
 		return readSpot(local_ip_addr, in, host, gw_id, false);
 	}
 	else if (host == Component::gateway)
 	{
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "Creating carrier on GW %d",
+		    tal_id);
 		return readSpot(local_ip_addr, in, host, this->tal_id, false);
 	}
 	else if (host == Component::satellite)
 	{
+		LOG(this->log_init, LEVEL_NOTICE,
+		    "Creating carrier on satellite %d to handle spot %d",
+		    tal_id, spot_id);
 		return readSpot(local_ip_addr, in, destination_host, spot_id, true);
 	}
 	else
@@ -257,7 +267,6 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
                                      size_t &op_len)
 {
 	int ret = -1;
-	std::vector < UdpChannel * >::iterator it;
 
 	op_len = 0;
 	op_carrier = 0;
@@ -266,33 +275,31 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 	    "try to receive a packet from satellite channel "
 	    "associated with the file descriptor %d\n", event->getFd());
 
-	for(it = this->begin(); it != this->end(); it++)
+	for (auto&& channel : *this)
 	{
 		// does the channel accept input and does the channel file descriptor
 		// match with the given file descriptor?
-		if((*it)->isInputOk() && *event == (*it)->getChannelFd())
+		if(channel->isInputOk() && *event == channel->getChannelFd())
 		{
 			// the file descriptors match, try to receive data for the channel
-			ret = (*it)->receive(event, op_buf, op_len);
+			ret = channel->receive(event, op_buf, op_len);
 
 			// Stop the task on data or error
 			if(op_len != 0 || ret < 0)
 			{
 				LOG(this->log_sat_carrier, LEVEL_DEBUG,
 				    "data/error received, set op_carrier to %d\n",
-				    (*it)->getChannelID());
-				op_carrier = (*it)->getChannelID();
-				op_spot = (*it)->getSpotId();
+				    channel->getChannelID());
+				op_carrier = channel->getChannelID();
+				op_spot = channel->getSpotId();
 				break;
 			}
 		}
 	}
+
 	LOG(this->log_sat_carrier, LEVEL_DEBUG,
 	    "Receive packet: size %zu, carrier %d\n", op_len,
 	    op_carrier);
-
-/*	if(it == this->end())
-		ret = 0;*/
 
 	return ret;
 }

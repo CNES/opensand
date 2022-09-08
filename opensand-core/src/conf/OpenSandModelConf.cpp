@@ -763,8 +763,9 @@ bool OpenSandModelConf::getComponentType(std::string &type, tal_id_t &id) const
 }
 
 
-bool OpenSandModelConf::getSatInfrastructure(std::string &ip_address) const
+bool OpenSandModelConf::getSatInfrastructure(std::string &ip_address, std::vector<IslConfig> &isls_cfg) const
 {
+	isls_cfg.clear();
 	if (infrastructure == nullptr) {
 		return false;
 	}
@@ -780,7 +781,71 @@ bool OpenSandModelConf::getSatInfrastructure(std::string &ip_address) const
 	}
 
 	auto satellite = infrastructure->getRoot()->getComponent("entity")->getComponent("entity_" + type);
-	return extractParameterData(satellite, "emu_address", ip_address);
+	if (!extractParameterData(satellite, "emu_address", ip_address))
+	{
+		return false;
+	}
+
+	auto isls = std::dynamic_pointer_cast<OpenSANDConf::DataList>(
+	    infrastructure->getItemByPath("entity/entity_" + type + "/isl_settings"));
+
+	for (auto &&isl_item: isls->getItems())
+	{
+		IslConfig isl_cfg;
+		auto isl = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(isl_item);
+
+		int linked_sat_id;
+		if (!extractParameterData(isl, "linked_sat_id", linked_sat_id))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "The linked satellite ID for ISL was not found in the infrastructure configuration");
+			return false;
+		}
+		isl_cfg.linked_sat_id = linked_sat_id;
+
+		std::string isl_type;
+		if (!extractParameterData(isl, "isl_type", isl_type))
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "The ISL type was not found in the infrastructure configuration");
+			return false;
+		}
+		if (isl_type == "None")
+		{
+			isl_cfg.type = IslType::None;
+		}
+		else if (isl_type == "LanAdaptation")
+		{
+			isl_cfg.type = IslType::LanAdaptation;
+			auto lan_adaptation_params = isl->getComponent("lan_adaptation");
+			if (!extractParameterData(lan_adaptation_params, "tap_name", isl_cfg.tap_iface))
+			{
+				LOG(this->log, LEVEL_ERROR,
+				    "Error extracting ISL LanAdaptation settings from the infrastructure configuration");
+				return false;
+			}
+		}
+		else if (isl_type == "Interconnect")
+		{
+			isl_cfg.type = IslType::Interconnect;
+			auto interconnect_params = isl->getComponent("interconnect_params");
+			if (!extractParameterData(interconnect_params, "interconnect_address", isl_cfg.interco_addr))
+			{
+				LOG(this->log, LEVEL_ERROR,
+				    "Error extracting ISL Interconnect settings from the infrastructure configuration");
+				return false;
+			}
+		}
+		else
+		{
+			LOG(this->log, LEVEL_ERROR,
+			    "The ISL type %s is not supported", isl_type.c_str());
+			return false;
+		}
+		isls_cfg.push_back(isl_cfg);
+	}
+
+	return true;
 }
 
 
@@ -1946,91 +2011,29 @@ bool OpenSandModelConf::getTerminalAffectation(spot_id_t &default_spot_id,
 	return true;
 }
 
+
+bool OpenSandModelConf::getDefaultSpotId(spot_id_t &default_spot_id) const
+{
+	if (topology == nullptr) {
+		return false;
+	}
+
+	auto assignments = topology->getRoot()->getComponent("st_assignment");
+	auto defaults = assignments->getComponent("defaults");
+
+	int spot_id;
+	if (!extractParameterData(defaults, "default_gateway", spot_id)) {
+		return false;
+	}
+	default_spot_id = spot_id;
+
+	return true;
+}
+
+
 const std::unordered_map<spot_id_t, SpotTopology> &OpenSandModelConf::getSpotsTopology() const
 {
 	return spots_topology;
-}
-
-bool OpenSandModelConf::getIslConfig(std::vector<IslConfig> &isls_cfg) const
-{
-	isls_cfg.clear();
-
-	if (infrastructure == nullptr)
-	{
-		return false;
-	}
-
-	std::string type;
-	tal_id_t id;
-	if (!this->getComponentType(type, id))
-	{
-		return false;
-	}
-
-	if (type != "sat")
-	{
-		return false;
-	}
-
-	auto isls = std::dynamic_pointer_cast<OpenSANDConf::DataList>(
-	    infrastructure->getItemByPath("entity/entity_" + type + "/isl_settings"));
-
-	for (auto &&isl_item: isls->getItems())
-	{
-		IslConfig isl_cfg;
-		auto isl = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(isl_item);
-
-		int linked_sat_id;
-		if (!extractParameterData(isl, "linked_sat_id", linked_sat_id))
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "The linked satellite ID for ISL was not found in the infrastructure configuration");
-			return false;
-		}
-		isl_cfg.linked_sat_id = linked_sat_id;
-
-		std::string isl_type;
-		if (!extractParameterData(isl, "isl_type", isl_type))
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "The ISL type was not found in the infrastructure configuration");
-			return false;
-		}
-		if (isl_type == "None")
-		{
-			isl_cfg.type = IslType::None;
-		}
-		else if (isl_type == "LanAdaptation")
-		{
-			isl_cfg.type = IslType::LanAdaptation;
-			auto lan_adaptation_params = isl->getComponent("lan_adaptation");
-			if (!extractParameterData(lan_adaptation_params, "tap_name", isl_cfg.tap_iface))
-			{
-				LOG(this->log, LEVEL_ERROR,
-				    "Error extracting ISL LanAdaptation settings from the infrastructure configuration");
-				return false;
-			}
-		}
-		else if (isl_type == "Interconnect")
-		{
-			isl_cfg.type = IslType::Interconnect;
-			auto interconnect_params = isl->getComponent("interconnect_params");
-			if (!extractParameterData(interconnect_params, "interconnect_address", isl_cfg.interco_addr))
-			{
-				LOG(this->log, LEVEL_ERROR,
-				    "Error extracting ISL Interconnect settings from the infrastructure configuration");
-				return false;
-			}
-		}
-		else
-		{
-			LOG(this->log, LEVEL_ERROR,
-			    "The ISL type %s is not supported", isl_type.c_str());
-			return false;
-		}
-		isls_cfg.push_back(isl_cfg);
-	}
-	return true;
 }
 
 RegenLevel OpenSandModelConf::getRegenLevel() const {

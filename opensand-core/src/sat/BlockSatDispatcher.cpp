@@ -40,10 +40,45 @@
 constexpr uint8_t DATA_IN_GW_ID = 8;
 constexpr uint8_t CTRL_IN_GW_ID = 4;
 
+
+BlockSatDispatcher::SpotByEntity::SpotByEntity():
+	spot_by_entity{},
+	default_spot{0}
+{
+	OpenSandModelConf::Get()->getDefaultSpotId(default_spot);
+}
+
+
+void BlockSatDispatcher::SpotByEntity::addEntityInSpot(tal_id_t entity, spot_id_t spot)
+{
+	spot_by_entity[entity] = spot;
+}
+
+
+void BlockSatDispatcher::SpotByEntity::setDefaultSpot(spot_id_t spot)
+{
+	default_spot = spot;
+}
+
+
+spot_id_t BlockSatDispatcher::SpotByEntity::getSpotForEntity(tal_id_t entity) const
+{
+	auto found_spot = spot_by_entity.find(entity);
+	if (found_spot == spot_by_entity.end())
+	{
+		return default_spot;
+	}
+	return found_spot->second;
+}
+
+
 BlockSatDispatcher::BlockSatDispatcher(const std::string &name, SatDispatcherConfig config):
-    Block(name),
-    entity_id{config.entity_id},
-    isl_enabled{config.isl_enabled} {}
+	Block(name),
+	entity_id{config.entity_id},
+	isl_enabled{config.isl_enabled}
+{
+}
+
 
 bool BlockSatDispatcher::onInit()
 {
@@ -51,18 +86,18 @@ bool BlockSatDispatcher::onInit()
 	auto downward = dynamic_cast<Downward *>(this->downward);
 	auto upward = dynamic_cast<Upward *>(this->upward);
 
+	SpotByEntity spot_by_entity;
 	std::unordered_map<SpotComponentPair, tal_id_t> routes;
-	std::unordered_map<tal_id_t, spot_id_t> spot_by_entity;
 	std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
 
 	for (auto &&spot: conf->getSpotsTopology())
 	{
 		const SpotTopology &topo = spot.second;
 
-		spot_by_entity[topo.gw_id] = topo.spot_id;
+		spot_by_entity.addEntityInSpot(topo.gw_id, topo.spot_id);
 		for (tal_id_t tal_id: topo.st_ids)
 		{
-			spot_by_entity[tal_id] = topo.spot_id;
+			spot_by_entity.addEntityInSpot(tal_id, topo.spot_id);
 		}
 
 		routes[{topo.spot_id, Component::gateway}] = topo.sat_id_gw;
@@ -82,7 +117,12 @@ bool BlockSatDispatcher::onInit()
 			    topo.spot_id, topo.sat_id_gw, topo.sat_id_st, entity_id);
 			return false;
 		}
+
+		LOG(log_init, LEVEL_NOTICE,
+		    "Configured routes on spot #%d: spot id %d connected to terminals and gateways.",
+		    spot.first, topo.spot_id);
 	}
+
 	upward->routes = routes;
 	downward->routes = routes;
 	upward->spot_by_entity = spot_by_entity;
@@ -195,7 +235,7 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 	{
 		const auto dest_id = pkt->getDstTalId();
 		const auto src_id = pkt->getSrcTalId();
-		const spot_id_t spot_id = spot_by_entity[src_id];
+		const spot_id_t spot_id = spot_by_entity.getSpotForEntity(src_id);
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
 		Component src = OpenSandModelConf::Get()->getEntityType(src_id);
@@ -344,7 +384,7 @@ bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> in_b
 	{
 		const auto dest_id = pkt->getDstTalId();
 		const auto src_id = pkt->getSrcTalId();
-		const spot_id_t spot_id = spot_by_entity[src_id];
+		const spot_id_t spot_id = spot_by_entity.getSpotForEntity(src_id);
 		LOG(log_receive, LEVEL_INFO, "Received a NetBurst (%d->%d, spot_id %d)", src_id, dest_id, spot_id);
 
 		Component src = OpenSandModelConf::Get()->getEntityType(src_id);
