@@ -61,20 +61,18 @@ FileEvent::~FileEvent()
 
 bool FileEvent::handle(void)
 {
-	int ret;
-
 	if(this->data)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: previous data was not handled\n",
 		                this->name.c_str());
-    delete [] this->data;
+		delete [] this->data;
 	}
 	// one more byte so we can use it as char*
 	this->data = new unsigned char[this->max_size + 1]();  // parens do value initialization to 0
 
-	ret = read(this->fd, this->data, this->max_size);
-  std::size_t actual_size = static_cast<std::size_t>(ret);
+	int ret = read(this->fd, this->data, this->max_size);
+	std::size_t actual_size = static_cast<std::size_t>(ret);
 	if(ret < 0)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
@@ -106,7 +104,7 @@ error:
 }
 
 
-unsigned char *FileEvent::getData(void)
+unsigned char *FileEvent::getData(void) const
 {
 	unsigned char *buf = this->data;
 	this->data = nullptr;

@@ -33,7 +33,7 @@ AC_CHECK_FUNCS([malloc free])
 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
-CXXFLAGS="$CXXFLAGS -std=c++11"
+CXXFLAGS="$CXXFLAGS -std=c++17"
 
 # check if -Werror must be appended to CFLAGS
 WERROR=""

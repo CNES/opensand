@@ -86,10 +86,10 @@ bool EntityGwPhy::createSpecificBlocks()
 		interco_cfg.interconnect_addr = this->interconnect_address;
 		interco_cfg.delay = 0;
 
-		auto block_interconnect = Rt::createBlock<BlockInterconnectUpward>("InterconnectUpward",
+		auto block_interconnect = Rt::createBlock<BlockInterconnectUpward>("Interconnect.Upward",
 		                                                                   interco_cfg);
-		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", phy_config);
-		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", specific);
+		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
+		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("Sat_Carrier", specific);
 
 		Rt::connectBlocks(block_interconnect, block_phy_layer);
 		Rt::connectBlocks(block_phy_layer, block_sat_carrier);	

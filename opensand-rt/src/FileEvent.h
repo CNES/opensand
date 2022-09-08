@@ -70,7 +70,7 @@ class FileEvent: public RtEvent
 	 *
 	 * @return the data contained in the message
 	 */
-	 virtual unsigned char *getData(void);
+	 virtual unsigned char *getData(void) const;
 
 	/*
 	 * @brief Get the size of data in the message
@@ -83,13 +83,13 @@ class FileEvent: public RtEvent
 
  protected:
 	/// The maximum size of received data
-  std::size_t max_size;
+	std::size_t max_size;
 
 	/// data pointer
-	unsigned char *data;
+	mutable unsigned char *data;
 
 	/// data size
-  std::size_t size;
+	std::size_t size;
 };
 
 

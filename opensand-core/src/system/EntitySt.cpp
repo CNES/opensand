@@ -112,11 +112,11 @@ bool EntitySt::createSpecificBlocks()
 		bool disable_ctrl_plane;
 		if (!Conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
 
-		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", laspecific);
+		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", laspecific);
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap", encap_cfg);
 		auto block_dvb = Rt::createBlock<BlockDvbTal>("Dvb", dvb_spec);
-		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("PhysicalLayer", phy_config);
-		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("SatCarrier", scspecific);
+		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
+		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("Sat_Carrier", scspecific);
 	
 		Rt::connectBlocks(block_lan_adaptation, block_encap);
 		Rt::connectBlocks(block_encap, block_dvb);

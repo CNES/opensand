@@ -97,10 +97,10 @@ bool EntityGwNetAcc::createSpecificBlocks()
 		interco_cfg.interconnect_addr = this->interconnect_address;
 		interco_cfg.delay = 0;
 
-		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("LanAdaptation", spec_la);
+		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", spec_la);
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap", encap_cfg);
 		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
-		auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>("InterconnectDownward", interco_cfg);
+		auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>("Interconnect.Downward", interco_cfg);
 
 		Rt::connectBlocks(block_lan_adaptation, block_encap);
 		Rt::connectBlocks(block_encap, block_dvb);

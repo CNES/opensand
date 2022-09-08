@@ -81,7 +81,10 @@ bool EntitySat::createSpecificBlocks()
 		const auto &spot_topo = conf->getSpotsTopology();
 
 		bool disable_ctrl_plane;
-		if (!conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
+		if (!conf->getControlPlaneDisabled(disable_ctrl_plane))
+		{
+			return false;
+		}
 
 
 		if (isl_config.size() > 1)
@@ -96,14 +99,14 @@ bool EntitySat::createSpecificBlocks()
 		SatDispatcherConfig sat_dispatch_cfg;
 		sat_dispatch_cfg.entity_id = instance_id;
 		sat_dispatch_cfg.isl_enabled = isl_enabled;
-		auto block_sat_dispatch = Rt::createBlock<BlockSatDispatcher>("SatDispatch", sat_dispatch_cfg);
+		auto block_sat_dispatch = Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
 
 		if (isl_enabled && isl_config[0].type == IslType::Interconnect)
 		{
 			InterconnectConfig interco_cfg;
 			interco_cfg.interconnect_addr = isl_config[0].interco_addr;
 			interco_cfg.delay = isl_delay;
-			auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect", interco_cfg);
+			auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect.Isl", interco_cfg);
 			Rt::connectBlocks(block_interco, block_sat_dispatch);
 		}
 		else if (isl_enabled && isl_config[0].type == IslType::LanAdaptation)
@@ -111,7 +114,7 @@ bool EntitySat::createSpecificBlocks()
 			la_specific la_cfg;
 			la_cfg.packet_switch = new SatellitePacketSwitch{instance_id, getIslEntities(spot_topo)};
 			la_cfg.tap_iface = isl_config[0].tap_iface;
-			auto block_lan_adapt = Rt::createBlock<BlockLanAdaptation>("LanAdapt", la_cfg);
+			auto block_lan_adapt = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", la_cfg);
 			Rt::connectBlocks(block_lan_adapt, block_sat_dispatch);
 		}
 
@@ -146,11 +149,11 @@ bool EntitySat::createSpecificBlocks()
 
 template <typename Dvb>
 void EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
-                                 spot_id_t spot_id,
-                                 Component destination,
-                                 RegenLevel forward_regen_level,
-                                 RegenLevel return_regen_level,
-                                 bool disable_ctrl_plane)
+                            spot_id_t spot_id,
+                            Component destination,
+                            RegenLevel forward_regen_level,
+                            RegenLevel return_regen_level,
+                            bool disable_ctrl_plane)
 {
 	auto spot_id_str = std::to_string(spot_id);
 	auto dest_str = destination == Component::gateway ? "GW" : "ST";
@@ -161,7 +164,7 @@ void EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 	specific.tal_id = instance_id;
 	specific.spot_id = spot_id;
 	specific.destination_host = destination;
-	auto block_sc = Rt::createBlock<BlockSatCarrier>("SatCarrier" + suffix, specific);
+	auto block_sc = Rt::createBlock<BlockSatCarrier>("Sat_Carrier." + suffix, specific);
 
 	if (forward_regen_level != RegenLevel::Transparent || return_regen_level != RegenLevel::Transparent)
 	{
@@ -182,9 +185,9 @@ void EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 		phy_config.spot_id = spot_id;
 		phy_config.entity_type = destination;
 
-		auto block_encap = Rt::createBlock<BlockEncap>("Encap" + suffix, encap_config);
-		auto block_dvb = Rt::createBlock<Dvb>("Dvb" + suffix, dvb_spec);
-		auto block_phy = Rt::createBlock<BlockPhysicalLayer>("Phy" + suffix, phy_config);
+		auto block_encap = Rt::createBlock<BlockEncap>("Encap." + suffix, encap_config);
+		auto block_dvb = Rt::createBlock<Dvb>("Dvb." + suffix, dvb_spec);
+		auto block_phy = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer." + suffix, phy_config);
 
 		auto &dispatch_upward = dynamic_cast<typename BlockSatDispatcher::Upward &>(*block_sat_dispatch->upward);
 		auto &dispatch_downward = dynamic_cast<typename BlockSatDispatcher::Downward &>(*block_sat_dispatch->downward);
@@ -250,14 +253,27 @@ bool EntitySat::loadConfiguration(const std::string &profile_path)
 {
 	defineProfileMetaModel();
 	auto Conf = OpenSandModelConf::Get();
-	if (!Conf->readProfile(profile_path))
+
+	bool needs_profile = false;
+	auto spots = Conf->getSpotsTopology();
+	for (auto &&item : spots)
+	{
+		auto spot = item.second;
+		if ((spot.sat_id_gw == this->instance_id && spot.forward_regen_level != RegenLevel::Transparent) ||
+		    (spot.sat_id_st == this->instance_id && spot.return_regen_level != RegenLevel::Transparent))
+		{
+			needs_profile = true;
+			break;
+		}
+	}
+	
+	if (needs_profile && !Conf->readProfile(profile_path))
 	{
 		return false;
 	}
 	auto isl_conf = Conf->getProfileData("isl");
 	return OpenSandModelConf::extractParameterData(isl_conf, "delay", isl_delay) &&
-	       Conf->getSatInfrastructure(this->ip_address) &&
-	       Conf->getIslConfig(this->isl_config);
+	       Conf->getSatInfrastructure(this->ip_address, this->isl_config);
 }
 
 bool EntitySat::createSpecificConfiguration(const std::string &filepath) const

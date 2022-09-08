@@ -42,6 +42,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <cctype>
+#include <optional>
 
 #include "Output.h"
 #include "OutputEvent.h"
@@ -225,6 +226,34 @@ class OutputUnit : public OutputItem
 };
 
 
+class OutputDesiredLogLevel
+{
+ public:
+	 OutputDesiredLogLevel() : desired_level{} {};
+
+	 std::shared_ptr<OutputDesiredLogLevel> getOrCreateChild(const std::string& name) {
+		 auto child = children.find(name);
+		 if (child == children.end()) {
+			 auto new_child = std::make_shared<OutputDesiredLogLevel>();
+			 child = children.emplace(name, new_child).first;
+		 }
+		 return child->second;
+	 }
+
+	 log_level_t definitiveLogLevel(log_level_t level) const {
+		 return desired_level.value_or(level);
+	 }
+
+	 void setLogLevel(log_level_t level) {
+		 desired_level = level;
+	 }
+
+ private:
+	std::optional<log_level_t> desired_level;
+	std::unordered_map<std::string, std::shared_ptr<OutputDesiredLogLevel>> children;
+};
+
+
 inline std::string normalizeName(const std::string& name) {
 	std::string copy{name};
 	std::transform(name.begin(), name.end(), copy.begin(),
@@ -256,6 +285,7 @@ inline void logException(std::shared_ptr<OutputLog>& log, const std::exception& 
 Output::Output()
 {
 	root = std::make_shared<OutputSection>("", "");
+	desiredLogLevels = std::make_shared<OutputDesiredLogLevel>();
 	privateLog = registerLog(LEVEL_WARNING, "output");
 	defaultLog = registerLog(LEVEL_WARNING, "default");
 }
@@ -315,12 +345,7 @@ std::shared_ptr<OutputEvent> Output::registerEvent(const std::string& identifier
 
 std::shared_ptr<OutputLog> Output::registerLog(log_level_t display_level, const std::string& identifier)
 {
-	log_level_t log_level = display_level;
 	std::string name = normalizeName(identifier);
-	auto overrideLogLevel = levelsYetToConfigure.find(name);
-	if (overrideLogLevel != levelsYetToConfigure.end()) {
-		log_level = overrideLogLevel->second;
-	}
 
 	if (privateLog != nullptr) {
 		privateLog->sendLog(LEVEL_INFO, "Registering log '%s'", name.c_str());
@@ -328,6 +353,14 @@ std::shared_ptr<OutputLog> Output::registerLog(log_level_t display_level, const 
 
 	OutputLock acquire{lock};
 	std::vector<std::string> parts = splitName(name);
+
+	std::shared_ptr<OutputDesiredLogLevel> desiredLogLevel = desiredLogLevels;
+	log_level_t log_level = desiredLogLevel->definitiveLogLevel(display_level);
+	for (auto&& part : parts) {
+		desiredLogLevel = desiredLogLevel->getOrCreateChild(part);
+		log_level = desiredLogLevel->definitiveLogLevel(log_level);
+		desiredLogLevel->setLogLevel(log_level);
+	}
 
 	std::string unitName = parts.back();
 	parts.pop_back();
@@ -639,23 +672,24 @@ log_not_found:
 
 void Output::setLevels(const std::map<std::string, log_level_t> &levels)
 {
-	for (auto& log_level : levels) {
+	for (auto&& log_level : levels) {
 		auto log_name = normalizeName(log_level.first);
 		std::vector<std::string> parts = splitName(log_name);
 
+		std::shared_ptr<OutputDesiredLogLevel> desiredLevel = desiredLogLevels;
 		std::shared_ptr<OutputItem> currentItem = root;
-		for (auto& name : parts) {
+		for (auto&& name : parts) {
 			std::shared_ptr<OutputSection> currentSection = std::dynamic_pointer_cast<OutputSection>(currentItem);
 			if (currentSection == nullptr) {
 				currentItem = nullptr;
-				break;
+			} else {
+				currentItem = currentSection->find(name);
 			}
-			currentItem = currentSection->find(name);
+			desiredLevel = desiredLevel->getOrCreateChild(name);
 		}
 
-		if (currentItem == nullptr) {
-			levelsYetToConfigure[log_name] = log_level.second;
-		} else {
+		desiredLevel->setLogLevel(log_level.second);
+		if (currentItem != nullptr) {
 			currentItem->setLogLevel(log_level.second);
 		}
 	}
