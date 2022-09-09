@@ -295,7 +295,6 @@ void OpenSandModelConf::createModels()
 	satellites->addParameter("entity_id", "Entity ID", types->getType("int"));
 	satellites->addParameter("emu_address", "Emulation Address", types->getType("string"),
 	                         "Address this satellite should listen on for messages from ground entities");
-	satellites->addParameter("isl_port", "Port (Inter Sat Link)", types->getType("int"))->setAdvanced(true);
 
 	auto gateways = infra->addList("gateways", "Gateways", "gateway")->getPattern();
 	gateways->addParameter("entity_id", "Entity ID", types->getType("int"));

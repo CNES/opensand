@@ -272,12 +272,13 @@ def create_default_topology(meta_model):
     topo = meta_model.create_data()
     topology = topo.get_root()
 
-
     spot = _create_list_item(_get_component(topology, 'frequency_plan'), 'spots')
-    _set_parameter(_get_component(spot, 'assignments'), 'gateway_id', 0)
-    _set_parameter(_get_component(spot, 'assignments'), 'sat_id_gw', 2)
-    _set_parameter(_get_component(spot, 'assignments'), 'sat_id_st', 2)
-    # TODO: add regen level default params
+    spot_assignments = _get_component(spot, 'assignments')
+    _set_parameter(spot_assignments, 'gateway_id', 0)
+    _set_parameter(spot_assignments, 'sat_id_gw', 2)
+    _set_parameter(spot_assignments, 'sat_id_st', 2)
+    _set_parameter(spot_assignments, 'forward_regen_level', 'Transparent')
+    _set_parameter(spot_assignments, 'return_regen_level', 'Transparent')
     
     _set_parameter(_get_component(spot, 'roll_off'), 'forward', 0.35)
     _set_parameter(_get_component(spot, 'roll_off'), 'return', 0.2)
@@ -354,7 +355,6 @@ def create_default_profile(meta_model, entity_type):
     scpc = _get_component(_get_component(model, 'access2'), 'scpc')
     _set_parameter(scpc, "carrier_duration", 5)
 
-
     dama = _get_component(access, 'dama')
     _set_parameter(dama, 'cra', 100)
     _set_parameter(dama, 'algorithm', 'Legacy')
@@ -363,7 +363,7 @@ def create_default_profile(meta_model, entity_type):
     phy_layer = _get_component(model, 'physical_layer')
     delay = _get_component(phy_layer, 'delay')
     _set_parameter(delay, 'delay_type', 'ConstantDelay')
-    _set_parameter(delay, 'delay_value', 125)
+    _set_parameter(delay, 'delay_value', 125 if entity_type != 'sat' else 0)
     minimal_condition = _get_component(phy_layer, 'minimal_condition')
     _set_parameter(minimal_condition, 'minimal_condition_type', 'ACM-Loop')
     error_insertion = _get_component(phy_layer, 'error_insertion')
@@ -517,7 +517,6 @@ def create_platform_infrastructure(project):
             if entity_id is not None:
                 satellite = {'entity_id': entity_id}
                 satellite['emu_address'] = _get_parameter(entity_sat, 'emu_address', '')
-                satellite['isl_port'] = _get_parameter(entity_sat, 'isl_port')
                 infrastructure['satellite'][entity_id] = satellite
         elif entity_type == "Gateway":
             entity_gw = entity.get_component('entity_gw')
@@ -606,7 +605,6 @@ def create_platform_infrastructure(project):
             sat = _create_list_item(infra, 'satellites')
             _set_parameter(sat, 'entity_id', satellite.get('entity_id'))
             _set_parameter(sat, 'emu_address', satellite.get('emu_address'))
-            _set_parameter(sat, 'isl_port', satellite.get('isl_port'))
 
         _set_parameter(infra, 'default_gw', 0)
 
