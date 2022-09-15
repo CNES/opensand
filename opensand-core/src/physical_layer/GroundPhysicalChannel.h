@@ -58,7 +58,7 @@ struct PhyLayerConfig
  */
 class GroundPhysicalChannel
 {
- private:
+private:
 	/// AttenuationModels
 	AttenuationModelPlugin *attenuation_model;
 
@@ -72,7 +72,7 @@ class GroundPhysicalChannel
 	std::shared_ptr<Probe<float>> probe_attenuation = nullptr;
 	std::shared_ptr<Probe<float>> probe_clear_sky_condition = nullptr;
 
- protected:
+protected:
 	/// The terminal or gateway id
 	tal_id_t mac_id;
 
@@ -146,7 +146,7 @@ class GroundPhysicalChannel
 	 */
 	virtual bool forwardPacket(DvbFrame *dvb_frame) = 0;
 
- public:
+public:
 	virtual ~GroundPhysicalChannel() = default;
 
 	static void generateConfiguration();

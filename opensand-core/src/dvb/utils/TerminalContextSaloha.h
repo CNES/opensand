@@ -57,8 +57,7 @@ enum class PropagateState
  */
 class TerminalContextSaloha: public TerminalContext
 {
- public:
-
+public:
 	/**
 	 * @brief  Create a terminal context.
 	 *
@@ -79,8 +78,7 @@ class TerminalContextSaloha: public TerminalContext
 	 */
 	PropagateState addPacket(std::unique_ptr<SlottedAlohaPacketData> packet, saloha_packets_data_t &pdu);
 
-  protected:
-
+protected:
 	typedef std::map<saloha_pdu_id_t, saloha_packets_data_t> pdus_t;
 	/// The PDU fragments waiting to be propagated per QoS
 	//  Fragments are propagated once all fragments of the complete PDU are received

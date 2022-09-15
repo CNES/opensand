@@ -41,7 +41,7 @@
 
 class FileSimulator: public RequestSimulator
 {
- public:
+public:
 	FileSimulator(spot_id_t spot_id,
 	              tal_id_t mac_id,
 	              FILE** evt_file,

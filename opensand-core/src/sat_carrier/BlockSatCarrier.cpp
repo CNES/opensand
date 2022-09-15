@@ -53,26 +53,30 @@ BlockSatCarrier::BlockSatCarrier(const std::string &name,
 }
 
 BlockSatCarrier::Upward::Upward(const std::string &name, struct sc_specific specific):
-    RtUpward{name},
-    ip_addr{std::move(specific.ip_addr)},
-    tal_id{specific.tal_id},
-    in_channel_set{specific.tal_id},
-    destination_host{specific.destination_host},
-    spot_id{specific.spot_id} {}
+	RtUpward{name},
+	ip_addr{std::move(specific.ip_addr)},
+	tal_id{specific.tal_id},
+	in_channel_set{specific.tal_id},
+	destination_host{specific.destination_host},
+	spot_id{specific.spot_id}
+{
+}
 
 BlockSatCarrier::Downward::Downward(const std::string &name, struct sc_specific specific):
-    RtDownward{name},
-    ip_addr{std::move(specific.ip_addr)},
-    tal_id{specific.tal_id},
-    out_channel_set{specific.tal_id},
-    destination_host{specific.destination_host},
-    spot_id{specific.spot_id} {}
+	RtDownward{name},
+	ip_addr{std::move(specific.ip_addr)},
+	tal_id{specific.tal_id},
+	out_channel_set{specific.tal_id},
+	destination_host{specific.destination_host},
+	spot_id{specific.spot_id}
+{
+}
 
 bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
@@ -107,7 +111,7 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-    case EventType::NetSocket:
+		case EventType::NetSocket:
 		{
 			// Data to read in Sat_Carrier socket buffer
 			size_t length;

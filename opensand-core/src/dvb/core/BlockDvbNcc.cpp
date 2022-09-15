@@ -130,15 +130,15 @@ bool BlockDvbNcc::initListsSts()
 
 // TODO lot of duplicated code for fifos between ST and GW
 BlockDvbNcc::Downward::Downward(const std::string &name, struct dvb_specific specific):
-    DvbDownward{name, specific},
-    DvbFmt{},
-    pep_interface{},
-    svno_interface{},
-    mac_id{specific.mac_id},
-    spot_id{specific.spot_id},
-    fwd_frame_counter{0},
-    fwd_timer{-1},
-    probe_frame_interval{nullptr}
+	DvbDownward{name, specific},
+	DvbFmt{},
+	pep_interface{},
+	svno_interface{},
+	mac_id{specific.mac_id},
+	spot_id{specific.spot_id},
+	fwd_frame_counter{0},
+	fwd_timer{-1},
+	probe_frame_interval{nullptr}
 {
 }
 
@@ -298,11 +298,11 @@ bool BlockDvbNcc::Downward::initTimers(void)
 
 bool BlockDvbNcc::Downward::handleDvbFrame(DvbFrame *dvb_frame)
 {
-  if (this->disable_control_plane)
-  {
-    bool result = this->sendDvbFrame(dvb_frame, spot->getCtrlCarrierId());
-    return result;
-  }
+	if (this->disable_control_plane)
+	{
+		bool result = this->sendDvbFrame(dvb_frame, spot->getCtrlCarrierId());
+		return result;
+	}
 
 	EmulatedMessageType msg_type = dvb_frame->getMessageType();
 	switch(msg_type)
@@ -333,10 +333,10 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
 			auto msg_event = static_cast<const MessageEvent*>(event);
-      InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
+			InternalMessageType msg_type = to_enum<InternalMessageType>(msg_event->getMessageType());
 
 			// first handle specific messages
 			if(msg_type == InternalMessageType::sig)
@@ -378,9 +378,8 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				auto burst = static_cast<NetBurst *>(msg_event->getData());
 
 				LOG(this->log_receive_channel, LEVEL_INFO,
-						"SF#%u: encapsulation burst received "
-						"(%d packet(s))\n", super_frame_counter,
-						burst->length());
+				    "SF#%u: encapsulation burst received (%d packet(s))\n",
+				    super_frame_counter, burst->length());
 
 				// set each packet of the burst in MAC FIFO
 				for(auto&& pkt : *burst)
@@ -396,11 +395,11 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			}
 			break;
 		}
-    case EventType::Timer:
+		case EventType::Timer:
 		{
 			// receive the frame Timer event
 			LOG(this->log_receive, LEVEL_DEBUG,
-					"timer event received on downward channel");
+			    "timer event received on downward channel");
 			if(*event == this->frame_timer)
 			{
 				if(this->probe_frame_interval->isEnabled())
@@ -481,7 +480,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 			break;
 		}
 		// TODO factorize, some elements are exactly the same between NccInterface classes
-    case EventType::NetSocket:
+		case EventType::NetSocket:
 		{
 			if(*event == this->pep_interface.getPepClientSocket())
 			{
@@ -489,21 +488,21 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 				// event received on PEP client socket
 				LOG(this->log_receive, LEVEL_NOTICE,
-						"event received on PEP client socket\n");
+				    "event received on PEP client socket\n");
 
 				// read the message sent by PEP or delete socket
 				// if connection is dead
 				if(!this->pep_interface.readPepMessage((NetSocketEvent *)event, tal_id))
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
-							"network problem encountered with PEP, "
-							"connection was therefore closed\n");
+					    "network problem encountered with PEP, "
+					    "connection was therefore closed\n");
 					// Free the socket
 					if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
 					{
 						LOG(this->log_init, LEVEL_ERROR,
-								"failed to clase socket: "
-								"%s (%d)\n", strerror(errno), errno);
+						    "failed to clase socket: "
+						    "%s (%d)\n", strerror(errno), errno);
 					}
 					this->removeEvent(this->pep_interface.getPepClientSocket());
 					return false;
@@ -515,7 +514,7 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				if(!spot)
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
-							"Error when getting spot\n");
+					    "Error when getting spot\n");
 					return false;
 				}
 
@@ -525,32 +524,31 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					if(!this->startTimer(spot->getPepCmdApplyTimer()))
 					{
 						LOG(this->log_receive, LEVEL_ERROR,
-								"cannot start pep timer");
+						    "cannot start pep timer");
 						return false;
 					}
 					LOG(this->log_receive, LEVEL_NOTICE,
-							"PEP Allocation request, apply a %dms"
-							" delay\n", pep_alloc_delay);
+					    "PEP Allocation request, apply a %dms delay\n",
+					    pep_alloc_delay);
 				}
 				else if(this->pep_interface.getPepRequestType() == PEP_REQUEST_RELEASE)
 				{
 					this->raiseTimer(spot->getPepCmdApplyTimer());
 					LOG(this->log_receive, LEVEL_NOTICE,
-							"PEP Release request, no delay to "
-							"apply\n");
+					    "PEP Release request, no delay to apply\n");
 				}
 				else
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
-							"cannot determine request type!\n");
+					    "cannot determine request type!\n");
 					return false;
 				}
 				// Free the socket
 				if(shutdown(this->pep_interface.getPepClientSocket(), SHUT_RDWR) != 0)
 				{
 					LOG(this->log_init, LEVEL_ERROR,
-							"failed to clase socket: "
-							"%s (%d)\n", strerror(errno), errno);
+					    "failed to clase socket: "
+					    "%s (%d)\n", strerror(errno), errno);
 				}
 				this->removeEvent(this->pep_interface.getPepClientSocket());
 			}
@@ -559,21 +557,21 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 				SvnoRequest *request;
 				// event received on SVNO client socket
 				LOG(this->log_receive, LEVEL_NOTICE,
-						"event received on SVNO client socket\n");
+				    "event received on SVNO client socket\n");
 
 				// read the message sent by SVNO or delete socket
 				// if connection is dead
 				if(!this->svno_interface.readSvnoMessage((NetSocketEvent *)event))
 				{
 					LOG(this->log_receive, LEVEL_WARNING,
-							"network problem encountered with SVNO, "
-							"connection was therefore closed\n");
+					    "network problem encountered with SVNO, "
+					    "connection was therefore closed\n");
 					// Free the socket
 					if(shutdown(this->svno_interface.getSvnoClientSocket(), SHUT_RDWR) != 0)
 					{
 						LOG(this->log_init, LEVEL_ERROR,
-								"failed to clase socket: "
-								"%s (%d)\n", strerror(errno), errno);
+						    "failed to clase socket: "
+						    "%s (%d)\n", strerror(errno), errno);
 					}
 					this->removeEvent(this->svno_interface.getSvnoClientSocket());
 					return false;
@@ -602,10 +600,9 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 					request = this->svno_interface.getNextSvnoRequest();
 				}
 			}
+			break;
 		}
-		break;
-
-    case EventType::TcpListen:
+		case EventType::TcpListen:
 		{
 			if(*event == this->pep_interface.getPepListenSocket())
 			{
@@ -614,14 +611,14 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 				// event received on PEP listen socket
 				LOG(this->log_receive, LEVEL_NOTICE,
-						"event received on PEP listen socket\n");
+				    "event received on PEP listen socket\n");
 
 				LOG(this->log_receive, LEVEL_NOTICE,
-						"NCC is now connected to PEP\n");
+				    "NCC is now connected to PEP\n");
 				// add a fd to handle events on the client socket
 				this->addNetSocketEvent("pep_client",
-						this->pep_interface.getPepClientSocket(),
-						200);
+				                        this->pep_interface.getPepClientSocket(),
+				                        200);
 			}
 			else if(*event == this->svno_interface.getSvnoListenSocket())
 			{
@@ -630,34 +627,32 @@ bool BlockDvbNcc::Downward::onEvent(const RtEvent *const event)
 
 				// event received on SVNO listen socket
 				LOG(this->log_receive, LEVEL_NOTICE,
-						"event received on SVNO listen socket\n");
+				    "event received on SVNO listen socket\n");
 
 				// create the client socket to receive messages
 				LOG(this->log_receive, LEVEL_NOTICE,
-						"NCC is now connected to SVNO\n");
+				    "NCC is now connected to SVNO\n");
 				// add a fd to handle events on the client socket
 				this->addNetSocketEvent("svno_client",
-						this->svno_interface.getSvnoClientSocket(),
-						200);
+				                        this->svno_interface.getSvnoClientSocket(),
+				                        200);
 			}
 			break;
 		}
-
 		default:
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
-					"unknown event received %s",
-					event->getName().c_str());
+			    "unknown event received %s",
+			    event->getName().c_str());
 			return false;
 		}
 	}
-
 	return true;
 
 error:
 	LOG(this->log_receive, LEVEL_ERROR,
-			"Treatments failed at SF#%u\n",
-			this->super_frame_counter);
+	    "Treatments failed at SF#%u\n",
+	    this->super_frame_counter);
 	return false;
 }
 
@@ -728,7 +723,7 @@ bool BlockDvbNcc::Downward::handleLogonReq(DvbFrame *dvb_frame, SpotDownward *sp
 
 
 	if(!this->sendDvbFrame(reinterpret_cast<DvbFrame *>(logon_resp),
-                         spot->getCtrlCarrierId()))
+	                       spot->getCtrlCarrierId()))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 				"Failed send logon response\n");
@@ -750,13 +745,13 @@ void BlockDvbNcc::Downward::updateStats(void)
 /*****************************************************************************/
 
 BlockDvbNcc::Upward::Upward(const std::string &name, struct dvb_specific specific):
-    DvbUpward{name, specific},
-    DvbFmt{},
-    mac_id{specific.mac_id},
-    spot_id{specific.spot_id},
-    log_saloha{nullptr},
-    probe_gw_received_modcod{nullptr},
-    probe_gw_rejected_modcod{nullptr}
+	DvbUpward{name, specific},
+	DvbFmt{},
+	mac_id{specific.mac_id},
+	spot_id{specific.spot_id},
+	log_saloha{nullptr},
+	probe_gw_received_modcod{nullptr},
+	probe_gw_rejected_modcod{nullptr}
 {
 }
 

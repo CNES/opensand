@@ -71,7 +71,7 @@ bool SarpTable::add(std::unique_ptr<MacAddress> mac_address, tal_id_t tal)
 	if(!SarpTable::getTalByMac(*mac_address, tal_id))
 	{
 		// set entry
-    this->eth_sarp.push_back({std::move(mac_address), tal});
+		this->eth_sarp.push_back({std::move(mac_address), tal});
 	}	
 
 	return true;

@@ -47,7 +47,7 @@
  */
 class EntitySt: public Entity
 {
- public:
+public:
 	/**
 	 * Build an entity satellite terminal process
 	 */
@@ -58,7 +58,7 @@ class EntitySt: public Entity
 	 */
 	virtual ~EntitySt();
 
- protected:
+protected:
 	/**
 	 * Load configuration files
 	 *
@@ -84,7 +84,7 @@ class EntitySt: public Entity
 	 */
 	bool createSpecificConfiguration(const std::string &filepath) const;
 
- private:
+private:
 	void defineProfileMetaModel() const;
 
 	std::string ip_address;

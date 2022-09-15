@@ -48,7 +48,7 @@ class OutputLog;
 /// SARP table entry for Ethernet
 struct SarpEthEntry
 {
-  std::unique_ptr<MacAddress> mac;
+	std::unique_ptr<MacAddress> mac;
 	tal_id_t tal_id;
 };
 
@@ -59,18 +59,18 @@ struct SarpEthEntry
  */
 class SarpTable
 {
- private:
+private:
 	static constexpr unsigned int SARP_MAX = 50;
 
 	unsigned int max_entries;    ///< maximum number of entries in SARP table
 	std::vector<SarpEthEntry> eth_sarp; ///< The Ethernet entries in SARP table
 	tal_id_t default_dest;  ///< the default terminal ID if no entry is found
 
- protected:
+protected:
 	// Output Log
 	std::shared_ptr<OutputLog> log_sarp;	
 
- public:
+public:
 	/**
 	 * Build a SARP table
 	 *

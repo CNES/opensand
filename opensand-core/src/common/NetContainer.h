@@ -51,7 +51,7 @@
  */
 class NetContainer
 {
- protected:
+protected:
 	/// Internal buffer for packet data
 	Data data;
 
@@ -67,7 +67,7 @@ class NetContainer
 	/// The destination spot ID
 	spot_id_t spot;
 
- public:
+public:
 	/**
 	 * Build a generic OpenSAND network container
 	 *

@@ -207,7 +207,7 @@ bool DamaAgentRcs2::hereIsTTP(Ttp *ttp)
 {
 	rate_kbps_t alloc_kbps;
 	fmt_id_t prev_modcod_id;
-  std::map<uint8_t, emu_tp_t> tp;
+	std::map<uint8_t, emu_tp_t> tp;
 
 	this->allocated_kb = 0;
 	if(this->group_id != ttp->getGroupId())
@@ -350,8 +350,8 @@ bool DamaAgentRcs2::returnSchedule(std::list<DvbFrame *> *complete_dvb_frames)
 }
 
 bool DamaAgentRcs2::buildSAC(ReturnAccessType,
-                            Sac *sac,
-                            bool &empty)
+                             Sac *sac,
+                             bool &empty)
 {
 	bool send_rbdc_request = false;
 	bool send_vbdc_request = false;
@@ -468,7 +468,7 @@ bool DamaAgentRcs2::buildSAC(ReturnAccessType,
 	    "VBDC", this->current_superframe_sf, rbdc_request_kbps,
 	    vbdc_request_kb);
 
- end:
+end:
 	return true;
 }
 

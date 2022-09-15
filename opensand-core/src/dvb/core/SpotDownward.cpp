@@ -1094,8 +1094,8 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 	// run the allocation algorithms (DAMA)
 	this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
 
-  std::list<DvbFrame *> msgs;
-  std::list<DvbFrame *>::iterator msg;
+	std::list<DvbFrame *> msgs;
+	std::list<DvbFrame *>::iterator msg;
 
 	// handle simulated terminals
 	if(!this->request_simu)
@@ -1312,7 +1312,7 @@ bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
 {
 	svno_request_type_t req_type = svno_request->getType();
 	band_t band = svno_request->getBand();
-  std::string cat_label = svno_request->getLabel();
+	std::string cat_label = svno_request->getLabel();
 	rate_kbps_t new_rate_kbps = svno_request->getNewRate();
 	TerminalCategories<TerminalCategoryDama> *cat;
 	time_ms_t frame_duration_ms;

@@ -190,7 +190,7 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
 			auto msg_event = static_cast<const MessageEvent *>(event);
 			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::link_up)
@@ -219,12 +219,12 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-    case EventType::File:
+		case EventType::File:
 			// input data available on TAP handle
 			this->onMsgFromUp(static_cast<const NetSocketEvent *>(event));
 			break;
 
-    case EventType::Timer:
+		case EventType::Timer:
 			if(*event == this->stats_timer)
 			{
 				for(lan_contexts_t::iterator it= this->contexts.begin();
@@ -254,13 +254,13 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 
 bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 {
-  std::string str;
+	std::string str;
 
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
-      auto msg_event = static_cast<const MessageEvent *>(event);
+			auto msg_event = static_cast<const MessageEvent *>(event);
 			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::link_up)
 			{
 				// 'link is up' message advertised

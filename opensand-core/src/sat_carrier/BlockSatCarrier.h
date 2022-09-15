@@ -59,8 +59,7 @@ struct sc_specific
  */
 class BlockSatCarrier: public Block
 {
- public:
-
+public:
 	/**
 	 * @brief The satellite carrier block
 	 *
@@ -72,13 +71,13 @@ class BlockSatCarrier: public Block
 
 	class Upward: public RtUpward
 	{
-	 public:
+	public:
 		Upward(const std::string &name, struct sc_specific specific);
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 private:
+	private:
 		/// the IP address for emulation newtork
 		std::string ip_addr;
 		/// the terminal id for the emulation newtork
@@ -105,13 +104,13 @@ class BlockSatCarrier: public Block
 
 	class Downward: public RtDownward
 	{
-	 public:
+	public:
 		Downward(const std::string &name, struct sc_specific specific);
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 private:
+	private:
 		/// the IP address for emulation newtork
 		std::string ip_addr;
 		/// the terminal id for the emulation newtork
@@ -124,10 +123,10 @@ class BlockSatCarrier: public Block
 		spot_id_t spot_id;
 	};
 
- protected:
-
+protected:
 	// initialization method
 	bool onInit();
 };
+
 
 #endif

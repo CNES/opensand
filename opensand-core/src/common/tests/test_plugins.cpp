@@ -76,16 +76,16 @@
 #define USAGE \
 "Encapsulation plugins test application: test the encapsulation plugins with a flow of LAN packets\n\n\
 usage: test [-h] [-v] [-d level] [-o] [-f folder] flow\n\
-  -h        print this usage and exit\n\
-  -v        print version information and exit\n\
-  -d level  print debug information\n\
-               - 0 error only\n\
-               - 1 debug messages\n\
-               - 2 dump all encapsulated packets\n\
-  -o        save the generated encapsulated packets for each encapsulation scheme \n\
-            instead of comparing them (PCAP format)\n\
-  -f folder the folder where the files will be read/written (default: '.')\n\
-  flow      flow of Ethernet frames to encapsulate (PCAP format)\n\n"
+\t-h        print this usage and exit\n\
+\t-v        print version information and exit\n\
+\t-d level  print debug information\n\
+\t             - 0 error only\n\
+\t             - 1 debug messages\n\
+\t             - 2 dump all encapsulated packets\n\
+\t-o        save the generated encapsulated packets for each encapsulation scheme \n\
+\t          instead of comparing them (PCAP format)\n\
+\t-f folder the folder where the files will be read/written (default: '.')\n\
+\tflow      flow of Ethernet frames to encapsulate (PCAP format)\n\n"
 
 
 static unsigned int verbose;
@@ -121,9 +121,9 @@ static bool compare_packets(const unsigned char *pkt1, int pkt1_size,
 static bool open_pcap(std::string filename, pcap_t **handle,
                       uint32_t &link_len);
 static bool test_iter(std::string src_filename, std::string encap_filename,
-                       bool compare, std::string name,
-                       lan_contexts_t lan_contexts,
-                       encap_contexts_t encap_contexts);
+                      bool compare, std::string name,
+                      lan_contexts_t lan_contexts,
+                      encap_contexts_t encap_contexts);
 static void test_encap_and_decap(
 	LanAdaptationPlugin::LanAdaptationPacketHandler *pkt_hdl,
 	lan_contexts_t lan_contexts,
@@ -135,9 +135,9 @@ static void test_encap_and_decap(
 
 int main(int argc, char *argv[])
 {
-  std::string src_filename = "";
-  std::string folder = "./";
-  std::string base_protocol = "IP";
+	std::string src_filename = "";
+	std::string folder = "./";
+	std::string base_protocol = "IP";
 	bool compare = true;
 	int args_used;
 
@@ -214,10 +214,10 @@ static void test_encap_and_decap(
 	bool compare)
 {
 	PluginConfigurationContainer encap_plug;
-  std::string stack = "";
+	std::string stack = "";
 
 	for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
-        ctxit != lan_contexts.rend(); ++ctxit)
+	    ctxit != lan_contexts.rend(); ++ctxit)
 	{
 		if(stack.size() > 0)
 		{
@@ -383,9 +383,9 @@ static void test_encap_and_decap(
  * @return true on success, false otherwise
  */
 static bool test_iter(std::string src_filename, std::string encap_filename,
-                       bool compare, std::string name,
-                       lan_contexts_t lan_contexts,
-                       encap_contexts_t encap_contexts)
+                      bool compare, std::string name,
+                      lan_contexts_t lan_contexts,
+                      encap_contexts_t encap_contexts)
 {
 	bool success = false;
 
@@ -406,7 +406,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 	NetBurst::iterator it;
 	NetBurst::iterator it2;
 
-  std::map<long, int> time_contexts;
+	std::map<long, int> time_contexts;
 
 	unsigned int counter_src = 0;
 	unsigned int counter_encap = 0;

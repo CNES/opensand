@@ -78,14 +78,14 @@ inline std::string getComponentName(Component host)
 {
 	switch(host)
 	{
-    case Component::satellite:
+		case Component::satellite:
 			return "sat";
-    case Component::gateway:
+		case Component::gateway:
 			return "gw";
-    case Component::terminal:
+		case Component::terminal:
 			return "st";
-	default:
-		return "unknown";
+		default:
+			return "unknown";
 	}
 };
 

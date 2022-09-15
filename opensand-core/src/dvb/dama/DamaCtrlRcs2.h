@@ -54,8 +54,7 @@
  */
 class DamaCtrlRcs2: public DamaCtrl
 {
- public:
-
+public:
 	DamaCtrlRcs2(spot_id_t spot);
 	virtual ~DamaCtrlRcs2();
 
@@ -81,8 +80,7 @@ class DamaCtrlRcs2: public DamaCtrl
 	// Update wave forms
 	virtual bool updateWaveForms();
 
- protected:
-
+protected:
 	UnitConverter *converter;
 
 	/// Create a terminal context

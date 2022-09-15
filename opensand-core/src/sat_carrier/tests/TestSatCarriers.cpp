@@ -128,7 +128,7 @@ bool TestSatCarriers::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 			// Lan message to be sent on channel
 			if(((MessageEvent *)event)->getMessageType() == from_lan)
 			{
@@ -174,7 +174,7 @@ bool TestSatCarriers::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-    case EventType::NetSocket:
+		case EventType::NetSocket:
 		{
 			// event on UDP channel
 			// Data to read in Sat_Carrier socket buffer
@@ -217,7 +217,7 @@ bool TestSatCarriers::Upward::onEvent(const RtEvent *const event)
 			} while(ret > 0);
 		}
 		break;
-    case EventType::File:
+		case EventType::File:
 		{
 			unsigned char *read_data;
 			const unsigned char *data;

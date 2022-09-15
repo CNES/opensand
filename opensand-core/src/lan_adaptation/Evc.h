@@ -46,8 +46,7 @@
  */
 class Evc
 {
- private:
-
+private:
 	/// The source MAC address
 	const MacAddress *mac_src;
 	/// The destination MAC address
@@ -59,8 +58,7 @@ class Evc
 	/// The EtherType of the packet carried by the Ethernet payload
 	NET_PROTO ether_type;
 
- public:
-
+public:
 	/**
 	 * @brief Build EVC information
 	 *

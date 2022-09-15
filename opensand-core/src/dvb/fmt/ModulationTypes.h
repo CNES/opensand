@@ -45,7 +45,7 @@
  */
 class ModulationTypes
 {
- public:
+public:
 	~ModulationTypes();
 
 	/**
@@ -73,9 +73,9 @@ class ModulationTypes
 	 */
 	static unsigned int getEfficiency(std::string modulation_label);
 
- private:
+private:
 	unsigned int default_modulation_efficiency;
-  std::map<std::string, unsigned int> modulation_efficiencies;
+	std::map<std::string, unsigned int> modulation_efficiencies;
 
 	ModulationTypes();
 };

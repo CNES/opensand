@@ -46,8 +46,7 @@
  */
 class BBFrame: public DvbFrameTpl<T_DVB_BBFRAME>
 {
- public:
-
+public:
 	/**
 	 * Build a BB frame
 	 *

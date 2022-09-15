@@ -121,7 +121,7 @@ enum class NET_PROTO : uint16_t
  */
 class NetPacket: public NetContainer
 {
- protected:
+protected:
 	/// The type of network protocol
 	NET_PROTO type;
 	/// The packet QoS
@@ -131,7 +131,7 @@ class NetPacket: public NetContainer
 	/// The packet destination TalID
 	uint8_t dst_tal_id;
 
- public:
+public:
 	/**
 	 * Build a network-layer packet
 	 * @param data raw data from which a network-layer packet can be created

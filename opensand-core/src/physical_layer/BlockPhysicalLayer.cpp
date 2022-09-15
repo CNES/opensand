@@ -46,8 +46,10 @@
 #include <opensand_rt/MessageEvent.h>
 
 BlockPhysicalLayer::BlockPhysicalLayer(const std::string &name, PhyLayerConfig config):
-    Block(name),
-    mac_id(config.mac_id) {}
+	Block(name),
+	mac_id(config.mac_id)
+{
+}
 
 void BlockPhysicalLayer::generateConfiguration()
 {
@@ -107,8 +109,10 @@ bool BlockPhysicalLayer::onInit(void)
 }
 
 BlockPhysicalLayer::Upward::Upward(const std::string &name, PhyLayerConfig config):
-    GroundPhysicalChannel(config),
-    RtUpward(name) {}
+	GroundPhysicalChannel(config),
+	RtUpward(name)
+{
+}
 
 BlockPhysicalLayer::Upward::~Upward()
 {
@@ -150,7 +154,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Incoming DVB frame");
@@ -278,9 +282,9 @@ double BlockPhysicalLayer::Upward::getCn(DvbFrame *dvb_frame) const
 }
 
 BlockPhysicalLayer::Downward::Downward(const std::string &name, PhyLayerConfig config):
-    GroundPhysicalChannel(config),
-    RtDownward(name),
-    delay_update_timer(-1)
+	GroundPhysicalChannel(config),
+	RtDownward(name),
+	delay_update_timer(-1)
 {
 }
 
@@ -310,7 +314,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Incoming DVB frame");
@@ -341,7 +345,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-    case EventType::Timer:
+		case EventType::Timer:
 		{
 			if(*event == this->fifo_timer)
 			{

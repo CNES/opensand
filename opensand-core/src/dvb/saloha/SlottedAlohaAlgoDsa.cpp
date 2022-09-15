@@ -50,7 +50,7 @@ SlottedAlohaAlgoDsa::~SlottedAlohaAlgoDsa()
 uint16_t SlottedAlohaAlgoDsa::removeCollisions(std::map<unsigned int, Slot *> &slots,
                                                saloha_packets_data_t *accepted_packets)
 {
-  std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
+	std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
 	uint16_t nbr_collisions = 0;
 
 	// cf: DSA algorithm

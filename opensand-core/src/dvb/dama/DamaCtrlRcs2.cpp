@@ -397,7 +397,7 @@ bool DamaCtrlRcs2::updateWaveForms()
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 		TerminalContextDamaRcs *terminal = dynamic_cast<TerminalContextDamaRcs *>(terminal_it->second);
 		tal_id_t tal_id = terminal->getTerminalId();
-    std::vector<CarriersGroupDama *> carriers_group;
+		std::vector<CarriersGroupDama *> carriers_group;
 		FmtDefinition *fmt_def;
 		CarriersGroupDama *carriers;
 		unsigned int required_fmt;
@@ -662,21 +662,18 @@ std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateGwCapacityProbe(std::string na
 	                                         "Sym/s", true, SAMPLE_LAST);
 }
 
-std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCategoryCapacityProbe(
-    std::string category_label,
-    std::string name) const
+std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCategoryCapacityProbe(std::string category_label,
+                                                                        std::string name) const
 {
 	return Output::Get()->registerProbe<int>(output_prefix + category_label + ".Up/Return capacity.Total." + name,
 	                                         "Sym/s", true, SAMPLE_LAST);
 }
 
-std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCarrierCapacityProbe(
-    std::string category_label,
-    unsigned int carrier_id,
-    std::string name) const
+std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCarrierCapacityProbe(std::string category_label,
+                                                                       unsigned int carrier_id,
+                                                                       std::string name) const
 {
 	return Output::Get()->registerProbe<int>(output_prefix + category_label + ".Up/Return capacity.Carrier" +
-	                                             std::to_string(carrier_id) + "." + name,
+	                                         std::to_string(carrier_id) + "." + name,
 	                                         "Sym/s", true, SAMPLE_LAST);
 }
-

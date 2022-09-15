@@ -59,8 +59,7 @@ typedef enum
  */
 class ForwardSchedulingS2: public Scheduling
 {
-  public:
-
+public:
 	ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	                    EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
@@ -79,20 +78,19 @@ class ForwardSchedulingS2: public Scheduling
 	                      std::list<DvbFrame *> *complete_dvb_frames,
 	                      uint32_t &remaining_allocation);
 
-  protected:
-
+protected:
 	/** The timer for forward scheduling (ms) */
 	time_ms_t fwd_timer_ms;
 
 	/** the BBFrame being built identified by their modcod */
-  std::map<unsigned int, BBFrame *> incomplete_bb_frames;
+	std::map<unsigned int, BBFrame *> incomplete_bb_frames;
 
 	/** the BBframe being built in their created order */
-  std::list<BBFrame *> incomplete_bb_frames_ordered;
+	std::list<BBFrame *> incomplete_bb_frames_ordered;
 
 	/** the pending BBFrame list if there was not enough space in previous iteration
 	 *  for the corresponding MODCOD */
-  std::list<BBFrame *> pending_bbframes;
+	std::list<BBFrame *> pending_bbframes;
 
 	/** The FMT Definition Table associed */
 	const FmtDefinitionTable *fwd_modcod_def;
@@ -104,17 +102,17 @@ class ForwardSchedulingS2: public Scheduling
 	spot_id_t spot_id;
 
 	/// The section for probes used to name them
-  std::string probe_section;
+	std::string probe_section;
 
 	// Total and unused capacity probes
-  std::shared_ptr<Probe<int>> probe_fwd_total_capacity;
-  std::shared_ptr<Probe<int>> probe_fwd_total_remaining_capacity;
-  std::shared_ptr<Probe<int>> probe_bbframe_nbr;
-  std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_fwd_remaining_capacity;
-  std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_fwd_available_capacity;
+	std::shared_ptr<Probe<int>> probe_fwd_total_capacity;
+	std::shared_ptr<Probe<int>> probe_fwd_total_remaining_capacity;
+	std::shared_ptr<Probe<int>> probe_bbframe_nbr;
+	std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_fwd_remaining_capacity;
+	std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_fwd_available_capacity;
 
 	/// The MODCOD for emmited frames
-  std::shared_ptr<Probe<int>> probe_gw_sent_modcod;
+	std::shared_ptr<Probe<int>> probe_gw_sent_modcod;
 
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs

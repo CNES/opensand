@@ -108,7 +108,7 @@ typedef struct
 
 class Ttp: public DvbFrameTpl<T_DVB_TTP>
 {
- public:
+public:
 	/**
 	 * @brief Terminal Time Plan contructor
 	 */
@@ -189,8 +189,7 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 	/// The log for TTP
 	static std::shared_ptr<OutputLog> ttp_log;
 
- private:
-
+private:
 	/// A list of time plans
 	typedef std::vector<emu_tp_t> time_plans_t;
 	/// The list of frames and their TP
@@ -200,5 +199,5 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 	frames_t frames;
 };
 
-#endif
 
+#endif

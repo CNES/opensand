@@ -73,7 +73,7 @@ class PluginUtils
 {
 	friend class Plugin;
 
- protected:
+protected:
 	PluginConfigurationContainer encapsulation;
 	PluginConfigurationContainer lan_adaptation;
 	PluginConfigurationContainer attenuation;

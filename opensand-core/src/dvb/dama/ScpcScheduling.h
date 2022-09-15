@@ -61,8 +61,7 @@ typedef enum
  */
 class ScpcScheduling: public Scheduling
 {
-  public:
-
+public:
 	ScpcScheduling(time_ms_t scpc_timer_ms,
 	               EncapPlugin::EncapPacketHandler *packet_handler,
 	               const fifos_t &fifos,
@@ -78,20 +77,19 @@ class ScpcScheduling: public Scheduling
 	              std::list<DvbFrame *> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
 
-  private:
-
+private:
 	/** The timer for forward scheduling (ms) */
 	time_ms_t scpc_timer_ms;
 
 	/** the BBFrame being built identified by their modcod */
-  std::map<unsigned int, BBFrame *> incomplete_bb_frames;
+	std::map<unsigned int, BBFrame *> incomplete_bb_frames;
 
 	/** the BBframe being built in their created order */
-  std::list<BBFrame *> incomplete_bb_frames_ordered;
+	std::list<BBFrame *> incomplete_bb_frames_ordered;
 
 	/** the pending BBFrame list if there was not enough space in previous iteration
 	 *  for the corresponding MODCOD */
-  std::list<BBFrame *> pending_bbframes;
+	std::list<BBFrame *> pending_bbframes;
 
 	/** The FMT DefinitionTable associted */
 	FmtDefinitionTable * scpc_modcod_def;
@@ -103,12 +101,12 @@ class ScpcScheduling: public Scheduling
 	tal_id_t gw_id;
 
 	// Total and unused capacity probes
-  std::shared_ptr<Probe<int>> probe_scpc_total_capacity;
-  std::shared_ptr<Probe<int>> probe_scpc_total_remaining_capacity;
-  std::shared_ptr<Probe<int>> probe_scpc_bbframe_nbr;
-  std::shared_ptr<Probe<int>> probe_sent_modcod;
-  std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_scpc_remaining_capacity;
-  std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_scpc_available_capacity;
+	std::shared_ptr<Probe<int>> probe_scpc_total_capacity;
+	std::shared_ptr<Probe<int>> probe_scpc_total_remaining_capacity;
+	std::shared_ptr<Probe<int>> probe_scpc_bbframe_nbr;
+	std::shared_ptr<Probe<int>> probe_sent_modcod;
+	std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_scpc_remaining_capacity;
+	std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_scpc_available_capacity;
 
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs

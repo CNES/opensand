@@ -46,7 +46,7 @@
 
 class DamaAgentRcs2 : public DamaAgent
 {
- public:
+public:
 	DamaAgentRcs2(FmtDefinitionTable *ret_modcod_def);
 	virtual ~DamaAgentRcs2();
 
@@ -62,7 +62,7 @@ class DamaAgentRcs2 : public DamaAgent
 	                      Sac *sac,
 	                      bool &emtpy);
 
- protected:
+protected:
 	/** Number of allocated timeslots  */
 	vol_kb_t allocated_kb;
 

@@ -56,8 +56,7 @@
  */
 class DamaAgent
 {
-  public:
-
+public:
 	/**
 	 * Build a Dama agent.
 	 *
@@ -172,7 +171,7 @@ class DamaAgent
 	 */
 	virtual void updateStatistics(time_ms_t UNUSED(period_ms)) {};
 
-  protected:
+protected:
 	/**
 	 * @brief	Init the output probes and stats
 	 *

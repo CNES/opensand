@@ -199,7 +199,7 @@ malformed:
 	    "Malformed sat delay configuration file '%s'\n",
 	    filename.c_str());
 	file.close();
- error:
+error:
 	return false;
 }
 

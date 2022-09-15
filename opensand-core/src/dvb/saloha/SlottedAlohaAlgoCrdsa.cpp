@@ -50,7 +50,7 @@ SlottedAlohaAlgoCrdsa::~SlottedAlohaAlgoCrdsa()
 uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> &slots,
                                                  saloha_packets_data_t *accepted_packets)
 {
-  std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
+	std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
 	uint16_t nbr_collisions = 0;
 	bool stop;
 	
@@ -92,14 +92,14 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 				{
 					slot->erase(pkt_it);
 					// avoid removing an accepted packet
-          /*
+					/*
 					if(std::find(accepted_packets->begin(),
 					             accepted_packets->end(),
 					             packet) == accepted_packets->end())
 					{
 						delete packet;
 					}
-          */
+					*/
 					// erase goes to next iterator
 					continue;
 				}

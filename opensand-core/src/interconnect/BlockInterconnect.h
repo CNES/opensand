@@ -57,7 +57,7 @@ struct InterconnectConfig
  */
 class BlockInterconnectDownward: public Block
 {
-  public:
+public:
 	/**
 	 * @brief The interconnect block, placed below
 	 *
@@ -69,7 +69,7 @@ class BlockInterconnectDownward: public Block
 
 	class Upward: public RtUpward, public InterconnectChannelReceiver
 	{
-	  public:
+	public:
 		Upward(const std::string &name, const InterconnectConfig &config);
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -77,17 +77,17 @@ class BlockInterconnectDownward: public Block
 
 	class Downward: public RtDownward, public InterconnectChannelSender
 	{
-	  public:
+	public:
 		Downward(const std::string &name, const InterconnectConfig &config);
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	  private:
+	private:
 		event_id_t delay_timer;
 		uint32_t polling_rate;
 	};
 
-  protected:
+protected:
 	// Output log
 	std::shared_ptr<OutputLog> log_interconnect;
 
@@ -105,7 +105,7 @@ class BlockInterconnectDownward: public Block
  */
 class BlockInterconnectUpward: public Block
 {
-  public:
+public:
 	/**
 	 * @brief The interconnect block, placed below
 	 *
@@ -117,25 +117,25 @@ class BlockInterconnectUpward: public Block
 
 	class Upward: public RtUpward, public InterconnectChannelSender
 	{
-	  public:
+	public:
 		Upward(const std::string &name, const InterconnectConfig &config);
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	  private:
+	private:
 		event_id_t delay_timer;
 		uint32_t polling_rate;
 	};
 
 	class Downward: public RtDownward, public InterconnectChannelReceiver
 	{
-	  public:
+	public:
 		Downward(const std::string &name, const InterconnectConfig &config);
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 	};
 
-  protected:
+protected:
 	// Output log
 	std::shared_ptr<OutputLog> log_interconnect;
 

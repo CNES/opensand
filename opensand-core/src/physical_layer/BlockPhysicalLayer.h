@@ -59,18 +59,18 @@
  */
 class BlockPhysicalLayer: public Block
 {
- public:
+public:
 	/**
 	 * @class Upward
 	 * @brief Ground Upward Physical Layer Channel
 	 */
 	class Upward: public GroundPhysicalChannel, public RtUpward
 	{
-	 private:
+	private:
 		/// Probes
 		std::shared_ptr<Probe<float>> probe_total_cn = nullptr;
 
-	 protected:
+	protected:
 		/// The attenuation process
 		AttenuationHandler *attenuation_hdl;
 
@@ -92,7 +92,7 @@ class BlockPhysicalLayer: public Block
 		 */
 		double getCn(DvbFrame *dvb_frame) const;
 
-	 public:
+	public:
 		/**
 		 * @brief Constructor of the ground upward physical channel
 		 *
@@ -129,11 +129,11 @@ class BlockPhysicalLayer: public Block
 	 */
 	class Downward : public GroundPhysicalChannel, public RtDownward
 	{
-	 private:
+	private:
 		/// Probes
 		std::shared_ptr<Probe<int>> probe_delay = nullptr;
 
-	 protected:
+	protected:
 		/// Event
 		event_id_t delay_update_timer;
 
@@ -160,7 +160,7 @@ class BlockPhysicalLayer: public Block
 		 */
 		void preparePacket(DvbFrame *dvb_frame);
 
-	 public:
+	public:
 		/**
 		 * @brief Constructor of the ground downward physical channel
 		 *
@@ -186,8 +186,7 @@ class BlockPhysicalLayer: public Block
 		bool onEvent(const RtEvent *const event);
 	};
 
- public:
-
+public:
 	/**
 	 * Build a physical layer block
 	 *
@@ -201,7 +200,7 @@ class BlockPhysicalLayer: public Block
 	// initialization method
 	bool onInit();
 
- private:
+private:
 	/// The terminal mac_id
 	tal_id_t mac_id;
 

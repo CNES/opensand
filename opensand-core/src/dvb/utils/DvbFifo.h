@@ -73,10 +73,10 @@ enum class ForwardAccessType : uint8_t
 
 struct ForwardOrReturnAccessType
 {
- private:
+private:
 	enum class Direction {Unknown, Forward, Return};
 
- public:
+public:
 	Direction direction;
 	union
 	{
@@ -147,7 +147,7 @@ struct ForwardOrReturnAccessType
  */
 class DvbFifo
 {
- public:
+public:
 	/**
 	 * @brief Create the DvbFifo
 	 *
@@ -316,7 +316,7 @@ class DvbFifo
 
 	const std::deque<FifoElement *> &getQueue() const;
 
- protected:
+protected:
 	/**
 	 * @brief Reset the fifo counters
 	 */

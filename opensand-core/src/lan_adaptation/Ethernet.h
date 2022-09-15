@@ -63,7 +63,7 @@
  */
 class Ethernet: public LanAdaptationPlugin
 {
-  public:
+public:
 	Ethernet();
 	~Ethernet();
 
@@ -82,7 +82,7 @@ class Ethernet: public LanAdaptationPlugin
 	 */
 	class Context: public LanAdaptationContext
 	{
-	  public:
+	public:
 		/// constructor
 		Context(LanAdaptationPlugin &plugin);
 
@@ -103,7 +103,7 @@ class Ethernet: public LanAdaptationPlugin
 			//const SarpTable *sarp_table);
 			PacketSwitch *packet_switch);
 
-	  protected:
+	protected:
 		/**
 		 * @brief create an Ethernet frame from IP data
 		 *
@@ -129,13 +129,15 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param desired_frame_type The frame type we want to build
 		 * @return the Ethernet frame
 		 */
-    std::unique_ptr<NetPacket> createEthFrameData(Data data,
-		                              MacAddress mac_src, MacAddress mac_dst,
-		                              NET_PROTO ether_type,
-		                              uint16_t q_tci, uint16_t ad_tci,
-		                              qos_t qos,
-		                              tal_id_t src_tal_id, tal_id_t dst_tal_id,
-		                              NET_PROTO desired_frame_type);
+		std::unique_ptr<NetPacket> createEthFrameData(Data data,
+		                                              MacAddress mac_src, MacAddress mac_dst,
+		                                              NET_PROTO ether_type,
+		                                              uint16_t q_tci,
+		                                              uint16_t ad_tci,
+		                                              qos_t qos,
+		                                              tal_id_t src_tal_id,
+		                                              tal_id_t dst_tal_id,
+		                                              NET_PROTO desired_frame_type);
 
 		/**
 		 * @brief Get the EVC corresponding to Ethernet flow
@@ -234,7 +236,7 @@ class Ethernet: public LanAdaptationPlugin
 	 */
 	class PacketHandler: public LanAdaptationPacketHandler
 	{
-	  public:
+	public:
 		PacketHandler(LanAdaptationPlugin &plugin):
 			LanAdaptationPlugin::LanAdaptationPacketHandler(plugin)
 		{};
@@ -252,7 +254,7 @@ class Ethernet: public LanAdaptationPlugin
 			return length;
 		}
 
-    std::unique_ptr<NetPacket> build(const Data &data,
+		std::unique_ptr<NetPacket> build(const Data &data,
 		                                 std::size_t data_length,
 		                                 uint8_t qos,
 		                                 uint8_t src_tal_id,
@@ -260,7 +262,7 @@ class Ethernet: public LanAdaptationPlugin
 
 	};
 
-  public:
+public:
 	/**
 	 * @brief Retrieve the type of frame
 	 *

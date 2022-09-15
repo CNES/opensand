@@ -50,7 +50,7 @@
  */
 class AttenuationHandler
 {
- private:
+private:
 	/** Minimal Conditions (minimun C/N to have QEF communications)
 	 *  of global link (i.e. considering the Modcod scheme)
 	 */
@@ -66,7 +66,7 @@ class AttenuationHandler
 	std::shared_ptr<Probe<float>> probe_minimal_condition;
 	std::shared_ptr<Probe<int>> probe_drops;
 
- public:
+public:
 	/**
 	 * @brief Constructor of the attenuation handler
 	 *

@@ -55,8 +55,7 @@ struct sc_specific
  */
 class TestSatCarriers: public Block
 {
- public:
-
+public:
 	/**
 	 * @brief The satellite carrier block
 	 */
@@ -67,7 +66,7 @@ class TestSatCarriers: public Block
 
 	class Upward: public RtUpward
 	{
-	 public:
+	public:
 		Upward(const std::string &name, struct sc_specific specific):
 			RtUpward(name),
 			in_channel_set(specific.tal_id),
@@ -85,7 +84,7 @@ class TestSatCarriers: public Block
 		 */
 		void setFd(int fd);
 
-	 private:
+	private:
 		/// List of input channels
 		sat_carrier_channel_set in_channel_set;
 		/// the IP address for emulation newtork
@@ -94,7 +93,7 @@ class TestSatCarriers: public Block
 
 	class Downward: public RtDownward
 	{
-	 public:
+	public:
 		Downward(const std::string &name, struct sc_specific specific):
 			RtDownward(name),
 			out_channel_set(specific.tal_id),
@@ -111,7 +110,7 @@ class TestSatCarriers: public Block
 		 */
 		void setFd(int fd);
 
-	 private:
+	private:
 		/// List of output channels
 		sat_carrier_channel_set out_channel_set;
 		/// the IP address for emulation newtork
@@ -120,8 +119,7 @@ class TestSatCarriers: public Block
 		int fd;
 	};
 
- protected:
-
+protected:
 	// initialization method
 	bool onInit();
 };

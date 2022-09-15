@@ -50,7 +50,7 @@ TerminalCategorySaloha::TerminalCategorySaloha(const std::string& label, AccessT
 
 TerminalCategorySaloha::~TerminalCategorySaloha()
 {
-  this->accepted_packets->clear();
+	this->accepted_packets->clear();
 	delete this->accepted_packets;
 }
 
@@ -96,12 +96,12 @@ unsigned int TerminalCategorySaloha::getSlotsNumber(void) const
 
 std::map<unsigned int, Slot *> TerminalCategorySaloha::getSlots(void) const
 {
-  std::map<unsigned int, Slot *> slots;
+	std::map<unsigned int, Slot *> slots;
 	for(std::vector<CarriersGroupSaloha *>::const_iterator it = this->carriers_groups.begin();
 	    it != this->carriers_groups.end(); ++it)
 	{
 		CarriersGroupSaloha *carriers = *it;
-    std::map<unsigned int, Slot *> sl = carriers->getSlots();
+		std::map<unsigned int, Slot *> sl = carriers->getSlots();
 
 		slots.insert(sl.begin(), sl.end());
 	}

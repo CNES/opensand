@@ -54,15 +54,15 @@
  */
 class PhysicStd
 {
- private:
+private:
 	/** The type of the DVB standard ("DVB-RCS" or "DVB-S2") */
-   std::string type;
+	std::string type;
 
- protected:
-    /** The packet representation */
+protected:
+	/** The packet representation */
 	EncapPlugin::EncapPacketHandler *packet_handler;
 
- public:
+public:
 	/**
 	 * Build a Physical Transmission Standard
 	 *

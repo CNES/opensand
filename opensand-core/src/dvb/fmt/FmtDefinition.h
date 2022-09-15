@@ -47,13 +47,12 @@
  */
 class FmtDefinition
 {
- protected:
-
+protected:
 	/** The ID of the FMT definition */
 	unsigned int id;
 
 	/** The modulation type of the FMT definition */
-  std::string modulation_type;
+	std::string modulation_type;
 
 	/** The modulation efficiency of the FMT definition */
 	unsigned int modulation_efficiency;
@@ -62,7 +61,7 @@ class FmtDefinition
 	float modulation_efficiency_inv;
 
 	/** The coding type of the FMT definition */
-  std::string coding_type;
+	std::string coding_type;
 
 	/** The coding rate of the FMT definition */
 	float coding_rate;
@@ -82,7 +81,7 @@ class FmtDefinition
 	/** The burst length in symbols */
 	vol_sym_t burst_length_sym;
 
- public:
+public:
 	/* create a FMT definition */
 	FmtDefinition(const unsigned int id,
 		const std::string modulation_type,
@@ -109,13 +108,13 @@ class FmtDefinition
 	unsigned int getId() const;
 
 	/* get the modulation type of the FMT definition */
-  std::string getModulation() const;
+	std::string getModulation() const;
 
 	/* get the modulation efficiency of the FMT definition */
 	unsigned int getModulationEfficiency() const;
 
 	/* get the coding type of the FMT definition */
-  std::string getCoding() const;
+	std::string getCoding() const;
 
 	/* get the coding rate of the FMT definition */
 	float getCodingRate() const;

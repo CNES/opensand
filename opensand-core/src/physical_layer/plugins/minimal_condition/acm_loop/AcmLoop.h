@@ -47,11 +47,11 @@
  */
 class AcmLoop: public MinimalConditionPlugin
 {
- private:
+private:
 	FmtDefinitionTable modcod_table_rcs;
 	FmtDefinitionTable modcod_table_s2;
 
- public:
+public:
 	/**
 	 * @brief Build the defaultMinimalCondition
 	 */

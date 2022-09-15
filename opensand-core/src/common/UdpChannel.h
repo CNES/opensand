@@ -60,7 +60,7 @@ class NetSocketEvent;
  */
 class UdpChannel
 {
- public:
+public:
 
 	UdpChannel(std::string name,
 	           spot_id_t s_id,
@@ -120,7 +120,7 @@ class UdpChannel
 	void handleStack(unsigned char **buf, size_t &data_len,
 	                 uint8_t counter, UdpStack *stack);
 
- protected:
+protected:
 	/// the spot id
 	spot_id_t spot_id;
 
@@ -187,8 +187,7 @@ class UdpChannel
  */
 class UdpStack: std::vector<std::pair<unsigned char *, size_t> > 
 {
- public:
-
+public:
 	/**
 	 * @brief Create the stack
 	 *
@@ -235,7 +234,7 @@ class UdpStack: std::vector<std::pair<unsigned char *, size_t> >
 	 */
 	void reset();
 
- private:
+private:
 	/// A counter that increase each time we receive a packet and decrease each time
 	//  we handle a packet
 	uint8_t counter;

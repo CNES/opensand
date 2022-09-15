@@ -76,7 +76,7 @@ PropagateState TerminalContextSaloha::addPacket(std::unique_ptr<SlottedAlohaPack
 
 	SlottedAlohaPacketData::convertPacketId(pkt_id, id);
 	
-  /*
+/*
 	auto wait_it = this->wait_propagation.find(qos);
 	if(wait_it != this->wait_propagation.end())
 	{
@@ -84,23 +84,23 @@ PropagateState TerminalContextSaloha::addPacket(std::unique_ptr<SlottedAlohaPack
 		auto pdus = wait_it->second;
 		if(pdus.find(pdu_id) != pdus.end())
 		{
-      // the entry for this PDU already exists
+			// the entry for this PDU already exists
 			this->wait_propagation[qos][pdu_id].push_back(std::move(packet));
 		}
-    else
-    {
-      // create the entry for this PDU
-      this->wait_propagation[qos][pdu_id] = {std::move(packet)};
-    }
+		else
+		{
+			// create the entry for this PDU
+			this->wait_propagation[qos][pdu_id] = {std::move(packet)};
+		}
 	}
-  else
-  {
-    // create PDU entry for this qos
-    std::vector<std::unique_ptr<SlottedAlohaPacketData>> p{std::move(packet)};
-    this->wait_propagation[qos] = pdus_t{pdu_id, std::move(p)};
-  }
-  */
-  this->wait_propagation[qos][pdu_id].push_back(std::move(packet));
+	else
+	{
+		// create PDU entry for this qos
+		std::vector<std::unique_ptr<SlottedAlohaPacketData>> p{std::move(packet)};
+		this->wait_propagation[qos] = pdus_t{pdu_id, std::move(p)};
+	}
+*/
+	this->wait_propagation[qos][pdu_id].push_back(std::move(packet));
 
 	// check if PDU is complete
 	if(id[SALOHA_ID_PDU_NB] == sa_packets.size())
@@ -150,7 +150,7 @@ void TerminalContextSaloha::handleOldest(qos_t qos, saloha_pdu_id_t current_id)
 		// delete this data
 		tal_id_t tal_id = 0;
 		pdu_it = this->wait_propagation[qos].find(oldest);
-    for (auto&& packet : pdu_it->second)
+		for (auto&& packet : pdu_it->second)
 		{
 			tal_id = packet->getSrcTalId();
 		}
@@ -170,7 +170,7 @@ void TerminalContextSaloha::findOldest(qos_t qos)
 {
 	saloha_pdu_id_t diff;
 	saloha_pdu_id_t oldest;
-  std::map<qos_t, saloha_pdu_id_t>::iterator id_it;
+	std::map<qos_t, saloha_pdu_id_t>::iterator id_it;
 	pdus_t::iterator pdu_it;
 	saloha_pdu_id_t min_diff = (saloha_pdu_id_t)pow(2.0, 8 * sizeof(saloha_pdu_id_t));
 

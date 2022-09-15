@@ -156,5 +156,5 @@ StackPlugin::StackPacketHandler *StackPlugin::getPacketHandler() const
 
 std::string StackPlugin::getName() const
 {
-  return this->name;
+	return this->name;
 }

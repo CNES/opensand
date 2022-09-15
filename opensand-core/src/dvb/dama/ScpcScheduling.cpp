@@ -183,16 +183,13 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
 
 ScpcScheduling::~ScpcScheduling()
 {
-  std::list<BBFrame *>::iterator it;
-	for(it = this->incomplete_bb_frames_ordered.begin();
-	    it != this->incomplete_bb_frames_ordered.end(); ++it)
+	for (auto&& bb_frame : this->incomplete_bb_frames_ordered)
 	{
-		delete *it;
+		delete bb_frame;
 	}
-	for(it = this->pending_bbframes.begin();
-	    it != this->pending_bbframes.end(); ++it)
+	for (auto&& bb_frame : this->pending_bbframes)
 	{
-		delete *it;
+		delete bb_frame;
 	}
 	
 	delete this->category;
@@ -243,7 +240,7 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 		// try to fill the BBFrames list with the remaining
 		// incomplete BBFrames
 		capacity_sym = carriers->getRemainingCapacity();
-    std::list<BBFrame *>::iterator it;
+		std::list<BBFrame *>::iterator it;
 		for(it = this->incomplete_bb_frames_ordered.begin();
 		    it != this->incomplete_bb_frames_ordered.end();
 		    it = this->incomplete_bb_frames_ordered.erase(it))
@@ -773,20 +770,16 @@ void ScpcScheduling::schedulePending(const std::list<fmt_id_t> supported_modcods
 		return;
 	}
 
-  std::list<BBFrame *>::iterator it;
-  std::list<BBFrame *> new_pending;
-
-	for(it = this->pending_bbframes.begin();
-		it != this->pending_bbframes.end();
-		++it)
+	std::list<BBFrame *> new_pending;
+	for (auto&& pending_bbframe : this->pending_bbframes)
 	{
-		fmt_id_t modcod = (*it)->getModcodId();
+		fmt_id_t modcod = pending_bbframe->getModcodId();
 
 		if(std::find(supported_modcods.begin(), supported_modcods.end(), modcod) !=
 		   supported_modcods.end())
 		{
 			if(this->addCompleteBBFrame(complete_dvb_frames,
-			                            (*it),
+			                            pending_bbframe,
 			                            current_superframe_sf,
 			                            remaining_capacity_sym) != status_ok)
 			{
@@ -801,7 +794,7 @@ void ScpcScheduling::schedulePending(const std::list<fmt_id_t> supported_modcods
 		else
 		{
 			// keep the BBFrame in pending list
-			new_pending.push_back(*it);
+			new_pending.push_back(pending_bbframe);
 		}
 	}
 	if(complete_dvb_frames->size() > 0)

@@ -49,8 +49,7 @@
  */
 class ReturnSchedulingRcs2: public Scheduling
 {
-  public:
-
+public:
 	ReturnSchedulingRcs2(EncapPlugin::EncapPacketHandler *packet_handler,
 	                          const fifos_t &fifos);
 
@@ -64,8 +63,7 @@ class ReturnSchedulingRcs2: public Scheduling
 	              std::list<DvbFrame *> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
 
-  protected:
-
+protected:
 	/// The maximum burst length in bits
 	vol_b_t max_burst_length_b;
 

@@ -77,8 +77,7 @@ struct dvb_specific
 
 class BlockDvb: public Block
 {
- public:
-
+public:
 	/**
 	 * @brief DVB block constructor
 	 *
@@ -90,12 +89,12 @@ class BlockDvb: public Block
 
 	class DvbUpward: public DvbChannel, public RtUpward
 	{
-	 public:
+	public:
 		DvbUpward(const std::string &name, dvb_specific specific);
 
 		~DvbUpward();
 
-	 protected:
+	protected:
 		virtual bool onRcvDvbFrame(DvbFrame *frame) = 0;
 
 		/**
@@ -112,13 +111,12 @@ class BlockDvb: public Block
 
 	class DvbDownward: public DvbChannel, public RtDownward
 	{
-	 
-	 public:
+	public:
 		DvbDownward(const std::string &name, dvb_specific specific);
 
 		~DvbDownward();
 
-	 protected:
+	protected:
 		/**
 		 * @brief Read the common configuration parameters for downward channels
 		 *

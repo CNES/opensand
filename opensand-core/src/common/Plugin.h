@@ -51,8 +51,7 @@
  */
 class Plugin
 {
- public:
-
+public:
 	Plugin();
 	~Plugin();
 
@@ -134,7 +133,7 @@ class Plugin
 	                                         const std::string &parameter_name,
 	                                         const std::string &parameter_description = "");
 
- private:
+private:
 	/// The block manager instance
 	static PluginUtils utils;
 };

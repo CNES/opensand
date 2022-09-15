@@ -70,7 +70,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
                            time_sf_t sync_period_sf,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            const fifos_t &dvb_fifos,
-						   spot_id_t spot_id)
+                           spot_id_t spot_id)
 {
 	this->frame_duration_ms = frame_duration_ms;
 	this->cra_kbps = cra_kbps;

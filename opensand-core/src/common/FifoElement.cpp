@@ -37,7 +37,7 @@
 
 
 FifoElement::FifoElement(std::unique_ptr<NetContainer> elem,
-                               time_t tick_in, time_t tick_out):
+                         time_t tick_in, time_t tick_out):
 	elem{std::move(elem)},
 	tick_in{tick_in},
 	tick_out{tick_out}

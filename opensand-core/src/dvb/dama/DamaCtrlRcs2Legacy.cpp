@@ -64,7 +64,7 @@ DamaCtrlRcs2Legacy::~DamaCtrlRcs2Legacy()
 bool DamaCtrlRcs2Legacy::init()
 {
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-  std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+	std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 
 	if(!DamaCtrlRcs2::init())
 	{
@@ -77,8 +77,8 @@ bool DamaCtrlRcs2Legacy::init()
 	    ++category_it)
 	{
 		TerminalCategoryDama *category = (*category_it).second;
-    std::vector<CarriersGroupDama *> carriers_group;
-    std::string label = category->getLabel();
+		std::vector<CarriersGroupDama *> carriers_group;
+		std::string label = category->getLabel();
 
 		carriers_group = category->getCarriersGroups();
 		if(carriers_group.size() > 1 || carriers_group[0]->getCarriersNumber() > 1)
@@ -140,8 +140,8 @@ bool DamaCtrlRcs2Legacy::computeTerminalsCraAllocation()
 	    ++category_it)
 	{
 		TerminalCategoryDama *category = category_it->second;
-    std::vector<CarriersGroupDama *> carriers_group;
-    std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+		std::vector<CarriersGroupDama *> carriers_group;
+		std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 
 		// we can compute CRA per carriers group because a terminal
 		// is assigned to one on each frame, depending on its DRA
@@ -177,14 +177,14 @@ bool DamaCtrlRcs2Legacy::computeTerminalsRbdcAllocation()
 	rate_kbps_t gw_rbdc_alloc_kbps = 0;
 
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-  std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+	std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 
 	for(category_it = this->categories.begin();
 	    category_it != this->categories.end();
 	    ++category_it)
 	{
 		TerminalCategoryDama *category = (*category_it).second;
-    std::vector<CarriersGroupDama *> carriers_group;
+		std::vector<CarriersGroupDama *> carriers_group;
 
 		// we ca compute RBDC per carriers group because a terminal
 		// is assigned to one on each frame, depending on its DRA
@@ -219,14 +219,14 @@ bool DamaCtrlRcs2Legacy::computeTerminalsVbdcAllocation()
 	vol_kb_t gw_vbdc_request_kb = 0;
 	vol_kb_t gw_vbdc_alloc_kb = 0;
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-  std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+	std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 
 	for(category_it = this->categories.begin();
 	    category_it != this->categories.end();
 	    ++category_it)
 	{
 		TerminalCategoryDama *category = (*category_it).second;
-    std::vector<CarriersGroupDama *> carriers_group;
+		std::vector<CarriersGroupDama *> carriers_group;
 
 		carriers_group = category->getCarriersGroups();
 		for(carrier_it = carriers_group.begin();
@@ -259,7 +259,7 @@ bool DamaCtrlRcs2Legacy::computeTerminalsFcaAllocation()
 {
 	rate_kbps_t gw_fca_alloc_kbps = 0;
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-  std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+	std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 
 	if(this->fca_kbps == 0)
 	{
@@ -273,7 +273,7 @@ bool DamaCtrlRcs2Legacy::computeTerminalsFcaAllocation()
 	    ++category_it)
 	{
 		TerminalCategoryDama *category = (*category_it).second;
-    std::vector<CarriersGroupDama *> carriers_group;
+		std::vector<CarriersGroupDama *> carriers_group;
 
 		carriers_group = category->getCarriersGroups();
 		for(carrier_it = carriers_group.begin();
@@ -302,15 +302,15 @@ void DamaCtrlRcs2Legacy::computeDamaCraPerCarrier(CarriersGroupDama *carriers,
                                                   rate_kbps_t &alloc_rate_kbps)
 {
 	std::ostringstream buf;
-  std::string label = category->getLabel();
-  std::string debug;
+	std::string label = category->getLabel();
+	std::string debug;
 
-  std::vector<TerminalContextDamaRcs *> tal;
+	std::vector<TerminalContextDamaRcs *> tal;
 	TerminalContextDamaRcs *terminal;
 	unsigned int carrier_id = carriers->getCarriersId();
 	rate_pktpf_t remaining_capacity_pktpf;
 	rate_pktpf_t total_capacity_pktpf;
-  std::vector<TerminalContextDamaRcs *>::iterator tal_it;
+	std::vector<TerminalContextDamaRcs *>::iterator tal_it;
 	tal_id_t tal_id;
 	rate_kbps_t simu_cra_kbps = 0;
 
@@ -413,19 +413,19 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 	rate_kbps_t rbdc_alloc_kbps;
 	double fair_share;
 	rate_pktpf_t rbdc_alloc_pktpf = 0;
-  std::vector<TerminalContextDamaRcs *> tal;
+	std::vector<TerminalContextDamaRcs *> tal;
 	TerminalContextDamaRcs *terminal;
 	unsigned int carrier_id = carriers->getCarriersId();
 	rate_pktpf_t remaining_capacity_pktpf;
 	rate_pktpf_t total_capacity_pktpf;
-  std::vector<TerminalContextDamaRcs *>::iterator tal_it;
+	std::vector<TerminalContextDamaRcs *>::iterator tal_it;
 	int simu_rbdc = 0;
 	tal_id_t tal_id;
 	std::ostringstream buf;
-  std::string label = category->getLabel();
-  std::string debug;
+	std::string label = category->getLabel();
+	std::string debug;
 
-  std::map<tal_id_t, rate_pktpf_t> tal_request_pktpf;
+	std::map<tal_id_t, rate_pktpf_t> tal_request_pktpf;
 
 	// set default values
 	request_rate_kbps = 0;
@@ -687,16 +687,16 @@ void DamaCtrlRcs2Legacy::computeDamaVbdcPerCarrier(CarriersGroupDama *carriers,
                                                    vol_kb_t &request_vol_kb,
                                                    vol_kb_t &alloc_vol_kb)
 {
-  std::vector<TerminalContextDamaRcs *> tal;
+	std::vector<TerminalContextDamaRcs *> tal;
 	TerminalContextDamaRcs *terminal;
 	unsigned int carrier_id = carriers->getCarriersId();
 	rate_pktpf_t remaining_capacity_pktpf;
 	rate_pktpf_t total_capacity_pktpf;
-  std::vector<TerminalContextDamaRcs *>::iterator tal_it;
+	std::vector<TerminalContextDamaRcs *>::iterator tal_it;
 	int simu_vbdc = 0;
 	std::ostringstream buf;
-  std::string label = category->getLabel();
-  std::string debug;
+	std::string label = category->getLabel();
+	std::string debug;
 
 	request_vol_kb = 0;
 	alloc_vol_kb = 0;
@@ -874,17 +874,17 @@ void DamaCtrlRcs2Legacy::computeDamaFcaPerCarrier(CarriersGroupDama *carriers,
                                                   const TerminalCategoryDama *category,
                                                   rate_kbps_t &alloc_rate_kbps)
 {
-  std::vector<TerminalContextDamaRcs *> tal;
+	std::vector<TerminalContextDamaRcs *> tal;
 	TerminalContextDamaRcs *terminal;
 	unsigned int carrier_id = carriers->getCarriersId();
 	rate_pktpf_t remaining_capacity_pktpf;
 	rate_pktpf_t total_capacity_pktpf;
 	rate_pktpf_t fca_pktpf;
 	int simu_fca = 0;
-  std::vector<TerminalContextDamaRcs *>::iterator tal_it;
+	std::vector<TerminalContextDamaRcs *>::iterator tal_it;
 	std::ostringstream buf;
-  std::string label = category->getLabel();
-  std::string debug;
+	std::string label = category->getLabel();
+	std::string debug;
 
 	alloc_rate_kbps = 0;
 

@@ -45,18 +45,15 @@
 
 class DamaAgentRcs2Legacy: public DamaAgentRcs2
 {
- public:
-
+public:
 	DamaAgentRcs2Legacy(FmtDefinitionTable *ret_modoco_def);
 	virtual ~DamaAgentRcs2Legacy();
 
- protected:
-
+protected:
 	/** VBDC credit */
 	vol_kb_t vbdc_credit_kb;
 
- private:
-
+private:
 	rate_kbps_t computeRbdcRequest();
 	vol_kb_t computeVbdcRequest();
 

@@ -47,13 +47,13 @@
  */
 class OnOff: public AttenuationModelPlugin
 {
- private:
+private:
 	int duration_counter;
 	int on_duration;
 	int off_duration;
 	double amplitude;
 
- public:
+public:
 	/**
 	 * @brief Build a OnOff
 	 */

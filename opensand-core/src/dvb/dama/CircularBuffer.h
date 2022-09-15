@@ -46,8 +46,7 @@
  */
 class CircularBuffer
 {
- private:
-
+private:
 	/// if size = 0 --> flag = true --> only last value is saved, sum = 0
 	bool save_only_last_value;
 
@@ -58,12 +57,11 @@ class CircularBuffer
 	rate_kbps_t min_value;    ///< min value contained in the circular buffer
 	rate_kbps_t *values; ///< circular buffer array
 
- protected:
-
+protected:
 	// Output Log
-  std::shared_ptr<OutputLog> log_circular_buffer;
+	std::shared_ptr<OutputLog> log_circular_buffer;
 
- public:
+public:
 
 	CircularBuffer(size_t buffer_size);
 	virtual ~CircularBuffer();

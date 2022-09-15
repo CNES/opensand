@@ -47,7 +47,7 @@
  */
 class CarriersGroupDama: public CarriersGroup
 {
- public:
+public:
 	/**
 	 * @brief  Construct a group of carriers with the same characteristics
 	 *
@@ -133,7 +133,7 @@ class CarriersGroupDama: public CarriersGroup
 	 */
 	std::vector<CarriersGroupDama *> getVcmCarriers();
 
- protected:
+protected:
 	/** The remaining capacity on the current frame */
 	unsigned int remaining_capacity;
 
@@ -149,6 +149,5 @@ class CarriersGroupDama: public CarriersGroup
 	std::vector<CarriersGroupDama *> vcm_carriers;
 };
 
+
 #endif
-
-

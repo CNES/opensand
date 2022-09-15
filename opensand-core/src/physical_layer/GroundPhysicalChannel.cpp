@@ -46,13 +46,13 @@
 #include <opensand_rt/RtChannel.h>
 
 GroundPhysicalChannel::GroundPhysicalChannel(PhyLayerConfig config):
-    clear_sky_condition{0},
-    delay_fifo{},
-    mac_id{config.mac_id},
-    entity_type{config.entity_type},
-    spot_id{config.spot_id},
-    attenuation_update_timer{-1},
-    fifo_timer{-1}
+	clear_sky_condition{0},
+	delay_fifo{},
+	mac_id{config.mac_id},
+	entity_type{config.entity_type},
+	spot_id{config.spot_id},
+	attenuation_update_timer{-1},
+	fifo_timer{-1}
 {
 	// Initialize logs
 	this->log_channel = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Channel");

@@ -648,7 +648,7 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "empty burst received\n");
-    delete burst;
+		delete burst;
 		return nullptr;
 	}
 
@@ -658,10 +658,10 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 
 	// create an empty burst of network frames
 	NetBurst *net_packets = nullptr;
-  try
-  {
-    net_packets = new NetBurst();
-  }
+	try
+	{
+		net_packets = new NetBurst();
+	}
 	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -672,7 +672,7 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 
 	for(auto&& packet : *burst)
 	{
-    std::unique_ptr<NetPacket> deenc_packet;
+		std::unique_ptr<NetPacket> deenc_packet;
 		size_t data_length = packet->getTotalLength();
 		MacAddress dst_mac = Ethernet::getDstMac(packet->getData());
 		MacAddress src_mac = Ethernet::getSrcMac(packet->getData());
@@ -989,7 +989,7 @@ bool Ethernet::Context::handleTap()
 void Ethernet::Context::initStats()
 {
 	uint8_t id;
-  auto output = Output::Get();
+	auto output = Output::Get();
 
 	// create default probe with EVC=0 if it does no exist
 	id = 0;

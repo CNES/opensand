@@ -48,7 +48,7 @@
  */
 class FileDelay: public SatDelayPlugin
 {
- private:
+private:
 	static std::string config_path;
 
 	bool is_init;
@@ -70,7 +70,7 @@ class FileDelay: public SatDelayPlugin
 	 */
 	bool load(std::string filename);
 
- public:
+public:
 	/**
 	 * @brief Build a File
 	 */

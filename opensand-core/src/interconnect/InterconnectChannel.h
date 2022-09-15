@@ -61,12 +61,12 @@ struct __attribute__((__packed__)) interconnect_msg_buffer_t
 
 class InterconnectChannel
 {
-  public:
+public:
 	InterconnectChannel(std::string name, const InterconnectConfig &config);
 
 	virtual ~InterconnectChannel();
 
-  protected:
+protected:
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
@@ -90,12 +90,12 @@ class InterconnectChannel
 
 class InterconnectChannelSender: public InterconnectChannel
 {
-  public:
+public:
 	InterconnectChannelSender(std::string name, const InterconnectConfig &config);
 
 	bool onTimerEvent();
 
-  protected:
+protected:
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
@@ -120,7 +120,7 @@ class InterconnectChannelSender: public InterconnectChannel
 	 */
 	bool sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg);
 
-  private:
+private:
 	/**
 	 * @brief Serialize a Dvb Frame to be sent via the
 	 *        interconnect channel.
@@ -155,10 +155,10 @@ class InterconnectChannelSender: public InterconnectChannel
 
 class InterconnectChannelReceiver: public InterconnectChannel
 {
-  public:
+public:
 	using InterconnectChannel::InterconnectChannel;
 
-  protected:
+protected:
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
@@ -183,7 +183,7 @@ class InterconnectChannelReceiver: public InterconnectChannel
 	bool receive(NetSocketEvent *const event,
 	             std::list<rt_msg_t> &messages);
 
-  private:
+private:
 	/**
 	 * @brief Create a DvbFrame from serialized data
 	 */

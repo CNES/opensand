@@ -58,8 +58,7 @@
 
 class SlottedAlohaTal: public SlottedAloha
 {
- private:
-
+private:
 	/// The terminal ID
 	tal_id_t tal_id;
 
@@ -67,7 +66,7 @@ class SlottedAlohaTal: public SlottedAloha
 	time_sf_t timeout_saf;
 
 	/// The packets waiting for ACK
-  std::map<qos_t, saloha_packets_data_t> packets_wait_ack;
+	std::map<qos_t, saloha_packets_data_t> packets_wait_ack;
 
 	/// list of  packets to be retransmitted
 	saloha_packets_data_t retransmission_packets;
@@ -105,8 +104,7 @@ class SlottedAlohaTal: public SlottedAloha
 	probe_per_qos_t probe_drop;
 	std::shared_ptr<Probe<int>> probe_backoff;
 
- public:
-
+public:
 	/**
 	 * Class constructor whithout any parameters
 	 */
@@ -161,8 +159,7 @@ class SlottedAlohaTal: public SlottedAloha
 	//Implementation of a virtual function
 	bool onRcvFrame(DvbFrame *frame);
 
- private:
-
+private:
 	/**
 	 * generate random unique time slots for packets to send
 	 *

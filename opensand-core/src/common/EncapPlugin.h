@@ -55,7 +55,7 @@ class OutputLog;
  */
 class EncapPlugin: public StackPlugin
 {
- public:
+public:
 	EncapPlugin(NET_PROTO ether_type);
 
 	/**
@@ -64,7 +64,7 @@ class EncapPlugin: public StackPlugin
 	 */
 	class EncapPacketHandler: public StackPacketHandler
 	{
-	 public:
+	public:
 		/**
 		 * @brief EncapPacketHandler constructor
 		 */
@@ -141,7 +141,7 @@ class EncapPlugin: public StackPlugin
 
 		// std::list<std::string> getCallback();
 
-	 protected:
+	protected:
 		/**
 		 * @brief get a NetPacket that can be encapsulated in the frame
 		 *
@@ -182,7 +182,7 @@ class EncapPlugin: public StackPlugin
 	 */
 	class EncapContext: public StackContext
 	{
-	  public:
+	public:
 		/* Allow context to access EncapPlugin members */
 		/**
 		 * @brief EncapContext constructor
@@ -217,7 +217,7 @@ class EncapPlugin: public StackPlugin
 
 		virtual bool init();
 
-	 protected:
+	protected:
 		/// The destination TAL Id to filter received packet on
 		uint8_t dst_tal_id;
 

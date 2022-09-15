@@ -50,13 +50,13 @@ class BlockSatDispatcher;
  */
 class EntitySat: public Entity
 {
-  public:
+public:
 	/**
 	 * Build an entity satellite process
 	 */
 	EntitySat(tal_id_t instance_id);
 
-  protected:
+protected:
 	/**
 	 * Load configuration files
 	 *
@@ -82,7 +82,7 @@ class EntitySat: public Entity
 	 */
 	bool createSpecificConfiguration(const std::string &filepath) const;
 
-  private:
+private:
 	template <typename Dvb>
 	void createStack(BlockSatDispatcher *block_sat_dispatch,
 	                 spot_id_t spot_id,

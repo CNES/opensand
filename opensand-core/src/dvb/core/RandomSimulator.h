@@ -41,7 +41,7 @@
 
 class RandomSimulator: public RequestSimulator
 {
- public:
+public:
 	RandomSimulator(spot_id_t spot_id,
 	                tal_id_t mac_id,
 	                FILE** evt_file,

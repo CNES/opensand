@@ -49,7 +49,7 @@ class NetContainer;
  */
 class FifoElement
 {
- protected:
+protected:
 	/// The element stored in the FIFO
 	 std::unique_ptr<NetContainer> elem;
 
@@ -58,8 +58,7 @@ class FifoElement
 	/// The minimal time the packet will output the FIFO (in ms)
 	time_t tick_out;
 
-
- public:
+public:
 	/**
 	 * Build a fifo element
 	 * @param elem       The element to store in the FIFO

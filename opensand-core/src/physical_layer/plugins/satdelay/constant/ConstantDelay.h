@@ -46,12 +46,12 @@
  */
 class ConstantDelay: public SatDelayPlugin
 {
- private:
+private:
 	static std::string config_path;
 
 	bool is_init;
 
- public:
+public:
 	/**
 	 * @brief Build the defaultMinimalCondition
 	 */

@@ -60,11 +60,10 @@ typedef enum
 } sched_state_t;
 
 
-ReturnSchedulingRcs2::ReturnSchedulingRcs2(
-        EncapPlugin::EncapPacketHandler *packet_handler,
-        const fifos_t &fifos):
-        Scheduling(packet_handler, fifos, NULL),
-        max_burst_length_b(0)
+ReturnSchedulingRcs2::ReturnSchedulingRcs2(EncapPlugin::EncapPacketHandler *packet_handler,
+                                           const fifos_t &fifos):
+	Scheduling(packet_handler, fifos, NULL),
+	max_burst_length_b(0)
 {
 }
 

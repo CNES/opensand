@@ -47,9 +47,7 @@
  */
 class TerminalCategoryDama: public TerminalCategory<CarriersGroupDama>
 {
-
- public:
-
+public:
 	/**
 	 * @brief  Create a terminal category.
 	 *
@@ -74,11 +72,10 @@ class TerminalCategoryDama: public TerminalCategory<CarriersGroupDama>
 };
 
 template<class T>
-std::vector<T *> TerminalCategoryDama::getTerminalsInCarriersGroup(
-                                          unsigned int carrier_id) const
+std::vector<T *> TerminalCategoryDama::getTerminalsInCarriersGroup(unsigned int carrier_id) const
 {
-  std::vector<T *> entries;
-  std::vector<TerminalContext *>::const_iterator it;
+	std::vector<T *> entries;
+	std::vector<TerminalContext *>::const_iterator it;
 	for(it = this->terminals.begin();
 	    it != this->terminals.end(); ++it)
 	{

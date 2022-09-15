@@ -133,15 +133,15 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 
 				switch(plugin->type)
 				{
-          case PluginType::Encapsulation:
+					case PluginType::Encapsulation:
 						storePlugin(this->encapsulation, plugin, handle);
 						break;
 
-          case PluginType::SatDelay:
+					case PluginType::SatDelay:
 						storePlugin(this->sat_delay, plugin, handle);
 						break;
 
-          case PluginType::Attenuation:
+					case PluginType::Attenuation:
 						if(!enable_phy_layer)
 						{
 							dlclose(handle);
@@ -152,7 +152,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						}
 						break;
 
-          case PluginType::Minimal:
+					case PluginType::Minimal:
 						if(!enable_phy_layer)
 						{
 							dlclose(handle);
@@ -163,7 +163,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						}
 						break;
 
-          case PluginType::Error:
+					case PluginType::Error:
 						if(!enable_phy_layer)
 						{
 							dlclose(handle);
@@ -318,7 +318,7 @@ void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::Met
 
 	switch(plugin_type)
 	{
-    case PluginType::Encapsulation:
+		case PluginType::Encapsulation:
 			container = &this->encapsulation;
 			break;
 

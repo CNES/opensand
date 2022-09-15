@@ -39,10 +39,10 @@
 #include <opensand_rt/NetSocketEvent.h>
 
 InterconnectChannel::InterconnectChannel(std::string name, const InterconnectConfig &config):
-    name(name),
-    interconnect_addr(config.interconnect_addr),
-    data_channel(nullptr),
-    sig_channel(nullptr)
+	name(name),
+	interconnect_addr(config.interconnect_addr),
+	data_channel(nullptr),
+	sig_channel(nullptr)
 {
 	this->log_interconnect = Output::Get()->registerLog(LEVEL_WARNING, name + ".common");
 }
@@ -65,8 +65,10 @@ InterconnectChannel::~InterconnectChannel()
  * INTERCONNECT_CHANNEL_SENDER
  */
 InterconnectChannelSender::InterconnectChannelSender(std::string name, const InterconnectConfig &config):
-    InterconnectChannel{name, config},
-    delay{config.delay} {}
+	InterconnectChannel{name, config},
+	delay{config.delay}
+{
+}
 
 void InterconnectChannelSender::initUdpChannels(unsigned int data_port, unsigned int sig_port,
                                                 std::string remote_addr, unsigned int stack,

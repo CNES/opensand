@@ -52,8 +52,7 @@ class OutputLog;
  */
 class TerminalContext
 {
- public:
-
+public:
 	/**
 	 * @brief  Create a terminal context.
 	 *
@@ -83,8 +82,7 @@ class TerminalContext
 	 */
 	std::string getCurrentCategory() const;
 
-  protected:
-
+protected:
 	/** Output Log*/
 	std::shared_ptr<OutputLog> log_band;
 

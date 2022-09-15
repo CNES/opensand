@@ -46,10 +46,10 @@
  */
 class Ideal: public AttenuationModelPlugin
 {
- private:
+private:
 	double value;
 
- public:
+public:
 	/**
 	 * @brief Build a Ideal
 	 */

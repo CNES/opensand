@@ -45,7 +45,7 @@
  */
 class CodingTypes
 {
- public:
+public:
 	~CodingTypes();
 
 	/**
@@ -73,9 +73,9 @@ class CodingTypes
 	 */
 	static float getRate(std::string coding_label);
 
- private:
+private:
 	float default_coding_rate;
-  std::map<std::string, float> coding_rates;
+	std::map<std::string, float> coding_rates;
 
 	CodingTypes();
 };

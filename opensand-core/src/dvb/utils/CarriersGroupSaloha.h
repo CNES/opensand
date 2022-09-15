@@ -47,8 +47,7 @@
  */
 class CarriersGroupSaloha: public CarriersGroup
 {
- public:
-
+public:
 	/**
 	 * @brief  Construct a group of carriers with the same characteristics
 	 *
@@ -88,16 +87,12 @@ class CarriersGroupSaloha: public CarriersGroup
 	 *
 	 * @return the slots
 	 */
-  std::map<unsigned int, Slot *> getSlots(void) const;
+	std::map<unsigned int, Slot *> getSlots(void) const;
 
-
- private:
-
+private:
 	/** The slots */
-  std::map<unsigned int, Slot *> slots;
+	std::map<unsigned int, Slot *> slots;
 };
 
 
 #endif
-
-

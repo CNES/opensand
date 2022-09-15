@@ -44,8 +44,7 @@
  */
 class SlottedAlohaFrame: public DvbFrameTpl<T_DVB_SALOHA>
 {
- public:
-
+public:
 	/**
 	 * Build a Slotted Aloha frame
 	 *
@@ -88,14 +87,14 @@ class SlottedAlohaFrame: public DvbFrameTpl<T_DVB_SALOHA>
 
 class SlottedAlohaFrameCtrl: public SlottedAlohaFrame
 {
-  public:
+public:
 	SlottedAlohaFrameCtrl();
 };
 
 
 class SlottedAlohaFrameData: public SlottedAlohaFrame
 {
-  public:
+public:
 	SlottedAlohaFrameData();
 };
 

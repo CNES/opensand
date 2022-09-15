@@ -54,8 +54,7 @@
  */
 class Scheduling
 {
-  public:
-
+public:
 	Scheduling(EncapPlugin::EncapPacketHandler *packet_handler,
 	           const fifos_t &fifos,
 	           const StFmtSimuList *const simu_sts):
@@ -100,8 +99,7 @@ class Scheduling
 	};
 
 
-  protected:
-
+protected:
 	/** The packet representation */
 	EncapPlugin::EncapPacketHandler *packet_handler;
 	/** The MAC FIFOs */
@@ -110,7 +108,7 @@ class Scheduling
 	const StFmtSimuList *const simu_sts;
 
 	// Output Log
-  std::shared_ptr<OutputLog> log_scheduling;
+	std::shared_ptr<OutputLog> log_scheduling;
 };
 
 #endif

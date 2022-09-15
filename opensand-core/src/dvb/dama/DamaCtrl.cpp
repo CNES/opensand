@@ -256,8 +256,8 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 		TerminalMapping<TerminalCategoryDama>::const_iterator it;
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 		TerminalCategoryDama *category = NULL;
-    std::vector<CarriersGroupDama *> carriers;
-    std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+		std::vector<CarriersGroupDama *> carriers;
+		std::vector<CarriersGroupDama *>::const_iterator carrier_it;
 		uint32_t max_capa_kbps = 0;
 
 		// Find the associated category

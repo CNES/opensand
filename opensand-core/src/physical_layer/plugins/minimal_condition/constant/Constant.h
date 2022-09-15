@@ -46,10 +46,10 @@
  */
 class Constant: public MinimalConditionPlugin
 {
- private:
+private:
 	static std::string config_path;
 
- public:
+public:
 	/**
 	 * @brief Build the defaultMinimalCondition
 	 */

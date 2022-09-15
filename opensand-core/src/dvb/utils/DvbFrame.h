@@ -56,7 +56,7 @@ class SlottedAlohaFrame;
 template<class T = T_DVB_FRAME>
 class DvbFrameTpl: public NetContainer
 {
- protected:
+protected:
 	/** The maximum size (in bytes) of the DVB frame */
 	size_t max_size;
 
@@ -66,7 +66,7 @@ class DvbFrameTpl: public NetContainer
 	/** The carrier Id */
 	uint8_t carrier_id;
 
- public:
+public:
 	/**
 	 * Build a DVB frame
 	 *

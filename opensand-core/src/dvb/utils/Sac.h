@@ -149,7 +149,7 @@ typedef struct
  */
 class Sac: public DvbFrameTpl<T_DVB_SAC>
 {
- public:
+public:
 	/**
 	 * @brief SAC constructor for agent
 	 *
@@ -211,7 +211,7 @@ class Sac: public DvbFrameTpl<T_DVB_SAC>
 	/// The log for sac
 	static std::shared_ptr<OutputLog> sac_log;
 
- private:
+private:
 	/// the number of requests
 	uint8_t request_nbr;
 };

@@ -69,7 +69,7 @@ using MetaComponentPtr = std::shared_ptr<OpenSANDConf::MetaComponent>;
 
 class OpenSandModelConf
 {
- public:
+public:
 	struct fmt_definition_parameters {
 		unsigned int id;
 		std::string modulation_type;
@@ -219,7 +219,7 @@ class OpenSandModelConf
 	const std::unordered_map<spot_id_t, SpotTopology> &getSpotsTopology() const;
 	RegenLevel getRegenLevel() const;
 
- private:
+private:
 	OpenSandModelConf();
 
 	std::shared_ptr<OpenSANDConf::MetaModel> topology_model;

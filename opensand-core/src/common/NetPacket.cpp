@@ -99,11 +99,11 @@ NetPacket::NetPacket(const Data &data,
                      uint8_t src_tal_id,
                      uint8_t dst_tal_id,
                      std::size_t header_length):
-		NetContainer(data, length),
-		type(type),
-		qos(qos),
-		src_tal_id(src_tal_id),
-		dst_tal_id(dst_tal_id)
+	NetContainer{data, length},
+	type{type},
+	qos{qos},
+	src_tal_id{src_tal_id},
+	dst_tal_id{dst_tal_id}
 {
 	this->name = name;
 	this->header_length = header_length;

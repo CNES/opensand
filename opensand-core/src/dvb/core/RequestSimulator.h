@@ -57,7 +57,7 @@ enum Simulate
 
 class RequestSimulator 
 {
- public:
+public:
 	RequestSimulator(spot_id_t spot_id,
 	                 tal_id_t mac_id,
 	                 FILE** evt_file);
@@ -77,7 +77,7 @@ class RequestSimulator
 	// statistics update
 	void updateStatistics(void);
 
- protected:
+protected:
 	/** Read configuration for the request simulation
 	 *
 	 * @return  true on success, false otherwise

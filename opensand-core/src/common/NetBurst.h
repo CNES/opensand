@@ -54,12 +54,12 @@ enum class NET_PROTO : uint16_t;
  */
 class NetBurst: public std::list<std::unique_ptr<NetPacket>>
 {
- protected:
+protected:
 	/// The maximum number of network packets in the burst
 	/// (0 for unlimited length)
 	unsigned int max_packets;
 
- public:
+public:
 	/**
 	 * Build a network burst
 	 *

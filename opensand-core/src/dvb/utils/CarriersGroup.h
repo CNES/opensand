@@ -45,8 +45,7 @@
  */
 class CarriersGroup
 {
- public:
-
+public:
 	/**
 	 * @brief  Construct a group of carriers with the same characteristics
 	 *
@@ -121,7 +120,7 @@ class CarriersGroup
 	 */
 	unsigned int getRatio() const;
 
- 	/**
+	/**
 	 * @brief   Set the estimated occupation ratio
 	 *
 	 * @param  The new estimated occupation ratio
@@ -142,7 +141,7 @@ class CarriersGroup
 	 */
 	AccessType getAccessType(void) const;
 
- 	/**
+	/**
 	 * @brief Get the FMT Group
 	 *
 	 * @return The FMT Group
@@ -165,8 +164,7 @@ class CarriersGroup
 	virtual void addVcm(const FmtGroup *const fmt_group,
 	                    unsigned int ratio);
 
- protected:
-
+protected:
 	/** Carriers id */
 	unsigned int carriers_id;
 

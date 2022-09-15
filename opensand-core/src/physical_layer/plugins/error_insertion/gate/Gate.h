@@ -48,7 +48,7 @@ class Data;
  */
 class Gate: public ErrorInsertionPlugin
 {
- public:
+public:
 	/**
 	 * @brief Channel ctor
 	 */

@@ -47,7 +47,7 @@
  */
 class Triangular: public AttenuationModelPlugin
 {
- private:
+private:
 	/** The Triangular slope */
 	double slope;
 
@@ -56,7 +56,7 @@ class Triangular: public AttenuationModelPlugin
 
 	int duration_counter;
 
- public:
+public:
 	/**
 	 * @brief Build a Triangular
 	 */

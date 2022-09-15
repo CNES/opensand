@@ -47,7 +47,7 @@
  */
 class DvbRcsFrame: public DvbFrameTpl<T_DVB_ENCAP_BURST>
 {
- public:
+public:
 	/**
 	 * Build a DVB-RCS frame
 	 *

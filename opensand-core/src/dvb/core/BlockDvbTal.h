@@ -104,8 +104,7 @@ enum class TalState
  */
 class BlockDvbTal: public BlockDvb
 {
- public:
-
+public:
 	BlockDvbTal(const std::string &name, struct dvb_specific specific);
 	~BlockDvbTal();
 
@@ -115,13 +114,13 @@ class BlockDvbTal: public BlockDvb
 
 	class Upward: public DvbUpward, public DvbFmt
 	{
-	 public:
+	public:
 		Upward(const std::string &name, struct dvb_specific specific);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 protected:
+	protected:
 		/**
 		 * @brief Initialize the transmission mode
 		 *
@@ -211,13 +210,13 @@ class BlockDvbTal: public BlockDvb
 
 	class Downward: public DvbDownward, public DvbFmt
 	{
-	 public:
+	public:
 		Downward(const std::string &name, struct dvb_specific specific);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 protected:
+	protected:
 		/**
 		 * @brief Initialize the transmission mode
 		 *
@@ -452,7 +451,7 @@ class BlockDvbTal: public BlockDvb
 		std::shared_ptr<Probe<int>> probe_st_required_modcod; // MODCOD required for next DVB bursts. Correspond to the value put in SAC
 	};
 
- protected:
+protected:
 	bool onInit(void);
 	bool disable_control_plane;
 

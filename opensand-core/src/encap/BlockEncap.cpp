@@ -68,26 +68,30 @@ inline bool fileExists(const std::string &filename)
 }
 
 BlockEncap::BlockEncap(const std::string &name, EncapConfig encap_cfg):
-    Block{name},
-    mac_id{encap_cfg.entity_id},
-    entity_type{encap_cfg.entity_type},
-    scpc_enabled{encap_cfg.scpc_enabled}
+	Block{name},
+	mac_id{encap_cfg.entity_id},
+	entity_type{encap_cfg.entity_type},
+	scpc_enabled{encap_cfg.scpc_enabled}
 {
 	// register static log (done in Entity.cpp for now)
 	// NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
 }
 
 BlockEncap::Downward::Downward(const std::string &name, EncapConfig):
-    RtDownward{name},
-    EncapChannel{} {};
+	RtDownward{name},
+	EncapChannel{}
+{
+}
 
 BlockEncap::Upward::Upward(const std::string &name, EncapConfig encap_cfg):
-    RtUpward{name},
-    EncapChannel{},
-    mac_id{encap_cfg.entity_id},
+	RtUpward{name},
+	EncapChannel{},
+	mac_id{encap_cfg.entity_id},
 	entity_type{encap_cfg.entity_type},
 	filter_packets{encap_cfg.filter_packets},
-    scpc_encap{""} {};
+	scpc_encap{""}
+{
+}
 
 void BlockEncap::generateConfiguration()
 {
@@ -101,7 +105,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Timer:
+		case EventType::Timer:
 		{
 			// timer event, flush corresponding encapsulation context
 			LOG(this->log_receive, LEVEL_INFO,
@@ -110,7 +114,7 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-    case EventType::Message:
+		case EventType::Message:
 		{
 			// message received from another bloc
 			LOG(this->log_receive, LEVEL_INFO,
@@ -160,7 +164,7 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "message received from the lower layer\n");

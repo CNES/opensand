@@ -56,7 +56,7 @@ enum class EmulatedMessageType: uint8_t;
  */
 class AttenuationModelPlugin: public OpenSandPlugin
 {
- protected:
+protected:
 	/* Output log */
 	std::shared_ptr<OutputLog> log_init;
 	std::shared_ptr<OutputLog> log_attenuation;
@@ -67,7 +67,7 @@ class AttenuationModelPlugin: public OpenSandPlugin
 	/* channel refreshing period */
 	time_ms_t refresh_period_ms;
 
- public:
+public:
 	/**
 	 * @brief AttenuationModelPlugin constructor
 	 *
@@ -116,7 +116,7 @@ class AttenuationModelPlugin: public OpenSandPlugin
  */
 class MinimalConditionPlugin: public OpenSandPlugin
 {
- protected:
+protected:
 	/* Output log */
 	std::shared_ptr<OutputLog> log_init;
 	std::shared_ptr<OutputLog> log_minimal;
@@ -124,7 +124,7 @@ class MinimalConditionPlugin: public OpenSandPlugin
 	/// MinimalCondition C/N in clear sky conditions
 	double minimal_cn;
 
- public:
+public:
 	/**
 	 * @brief MinimalConditionPlugin constructor
 	 */
@@ -166,7 +166,7 @@ class MinimalConditionPlugin: public OpenSandPlugin
 */
 class ErrorInsertionPlugin: public OpenSandPlugin 
 {
- public:
+public:
 	/**
 	 * @brief ErrorInsertionPlugin constructor
 	 */
@@ -207,7 +207,7 @@ class ErrorInsertionPlugin: public OpenSandPlugin
 	 */
 	virtual bool modifyPacket(const Data &payload) = 0;
 
- protected:
+protected:
 	/* Output log */
 	std::shared_ptr<OutputLog> log_init;
 	std::shared_ptr<OutputLog> log_error;
@@ -220,7 +220,7 @@ class ErrorInsertionPlugin: public OpenSandPlugin
  */
 class SatDelayPlugin: public OpenSandPlugin
 {
- protected:
+protected:
 	/* Output log */
 	std::shared_ptr<OutputLog> log_init;
 	std::shared_ptr<OutputLog> log_delay;
@@ -231,11 +231,11 @@ class SatDelayPlugin: public OpenSandPlugin
 	/* satdelay refreshing period */
 	time_ms_t refresh_period_ms;
 
- private:
+private:
 	/* Mutex to prevent concurrent access to delay */
 	mutable std::mutex delay_mutex;
 
- public:
+public:
 	/**
 	* @brief SatDelayPlugin constructor
 	*/

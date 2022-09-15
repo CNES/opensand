@@ -64,7 +64,7 @@ class FifoElement;
  */
 class DvbChannel
 {
- public:
+public:
 	DvbChannel():
 		req_burst_length(0),
 		super_frame_counter(0),
@@ -90,7 +90,7 @@ class DvbChannel
 	{
 	};
 
- protected:
+protected:
 
 	/**
 	 * @brief Read MODCOD Definition types
@@ -205,7 +205,7 @@ class DvbChannel
 	bool doSendStats(void);
 
 
- 	/**
+	/**
 	 * @brief   allocate more band to the demanding category
 	 *
 	 * @tparam  T The type of terminal category to create
@@ -289,7 +289,7 @@ class DvbChannel
 
 	static std::shared_ptr<OutputLog> dvb_fifo_log;
 
- private:
+private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
 
@@ -306,23 +306,23 @@ class DvbChannel
  */
 inline std::vector<unsigned int> tempSplit(std::string values)
 {
-  std::vector<std::string>::iterator it;
-  std::vector<std::string> first_step;
-  std::vector<unsigned int> output;
+	std::vector<std::string>::iterator it;
+	std::vector<std::string> first_step;
+	std::vector<unsigned int> output;
 
 	// first get groups of strings separated by ';'
 	tokenize(values, first_step, ";");
 	for(it = first_step.begin(); it != first_step.end(); ++it)
 	{
-    std::vector<std::string> second_step;
-    std::vector<std::string>::iterator it2;
+		std::vector<std::string> second_step;
+		std::vector<std::string>::iterator it2;
 
 		// then get groups of strings separated by ','
 		tokenize(*it, second_step, ",");
 		for(it2 = second_step.begin(); it2 != second_step.end(); ++it2)
 		{
-      std::vector<std::string> third_step;
-      std::vector<std::string>::iterator it3;
+			std::vector<std::string> third_step;
+			std::vector<std::string>::iterator it3;
 
 			// then split the integers separated by '-'
 			tokenize(*it2, third_step, "-");
@@ -498,7 +498,7 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 	for (auto& terminal : terminals)
 	{
 		tal_id_t tal_id = terminal.first;
-    std::string name = terminal.second.second;
+		std::string name = terminal.second.second;
 		T *category = nullptr;
 		cat_iter = categories.find(name);
 		if (cat_iter != categories.end())
@@ -537,7 +537,7 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 	double weighted_sum_ksymps = 0.0;
 
 	// compute weighted sum
-  for (auto&& category_it : categories)
+	for (auto&& category_it : categories)
 	{
 		T *category = category_it.second;
 
@@ -556,7 +556,7 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 	}
 
 	// compute carrier number per category
-  for (auto&& category_it : categories)
+	for (auto&& category_it : categories)
 	{
 		unsigned int carriers_number = 0;
 		T *category = category_it.second;
@@ -594,7 +594,7 @@ error:
  */
 class DvbFmt
 {
- public:
+public:
 	enum ModcodDefFileType
 	{
 		MODCOD_DEF_S2,
@@ -663,8 +663,7 @@ class DvbFmt
 	 */
 	double getRequiredCniOutput(tal_id_t tal_id);
 
- protected:
-
+protected:
 	/**
 	 * @brief Read configuration for the MODCOD definition file and create the
 	 *        FmtDefinitionTable class
@@ -791,7 +790,7 @@ class DvbFmt
 	// log
 	std::shared_ptr<OutputLog> log_fmt;
 
- private:
+private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
 
@@ -813,7 +812,7 @@ bool DvbChannel::allocateBand(time_ms_t duration_ms,
                               TerminalCategories<T> &categories)
 {
 	// Category SNO (the default one)
-  std::string cat_sno_label ("SNO");
+	std::string cat_sno_label ("SNO");
 	typename std::map<std::string, T*>::iterator cat_sno_it = categories.find(cat_sno_label);
 	if(cat_sno_it == categories.end())
 	{
@@ -844,7 +843,7 @@ bool DvbChannel::allocateBand(time_ms_t duration_ms,
 	rate_symps_t old_rs;
 	rate_symps_t rs_sno;
 	rate_symps_t rs_needed;
-  std::map<rate_symps_t, unsigned int> carriers;
+	std::map<rate_symps_t, unsigned int> carriers;
 
 
 	// Get the FMT Definition Table
@@ -893,7 +892,7 @@ bool DvbChannel::releaseBand(time_ms_t duration_ms,
                              TerminalCategories<T> &categories)
 {
 	// Category SNO (the default one)
-  std::string cat_sno_label ("SNO");
+	std::string cat_sno_label ("SNO");
 	typename std::map<std::string, T*>::iterator cat_sno_it = categories.find(cat_sno_label);
 	if(cat_sno_it == categories.end())
 	{
@@ -923,7 +922,7 @@ bool DvbChannel::releaseBand(time_ms_t duration_ms,
 	rate_symps_t new_rs;
 	rate_symps_t old_rs;
 	rate_symps_t rs_unneeded;
-  std::map<rate_symps_t, unsigned int> carriers;
+	std::map<rate_symps_t, unsigned int> carriers;
 
 
 	// Get the FMT Definition Table
@@ -965,9 +964,9 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 	unsigned int num_carriers;
 
 	// List of the carriers available (Rs, number)
-  std::map<rate_symps_t, unsigned int> carriers_available;
-  std::map<rate_symps_t, unsigned int>::reverse_iterator carriers_ite1;
-  std::map<rate_symps_t, unsigned int>::reverse_iterator carriers_ite2;
+	std::map<rate_symps_t, unsigned int> carriers_available;
+	std::map<rate_symps_t, unsigned int>::reverse_iterator carriers_ite1;
+	std::map<rate_symps_t, unsigned int>::reverse_iterator carriers_ite2;
 
 
 	// Get the classification of the available

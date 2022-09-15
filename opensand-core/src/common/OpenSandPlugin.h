@@ -74,7 +74,7 @@ struct OpenSandPluginFactory
  */
 class OpenSandPlugin
 {
- public:
+public:
 	/**
 	 * @brief Plugin constructor
 	 */
@@ -116,7 +116,7 @@ class OpenSandPlugin
 	 */
 	inline std::string getName() const {return this->name;};
 
- protected:
+protected:
 	std::string name;
 };
 

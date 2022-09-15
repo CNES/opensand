@@ -56,8 +56,7 @@
 template<class T = CarriersGroup>
 class TerminalCategory
 {
-
- public:
+public:
 	/**
 	 * @brief  Create a terminal category.
 	 *
@@ -587,7 +586,7 @@ class TerminalCategory
 		return *carriers_it;
 	}
 
- protected:
+protected:
 	// Output Log
 	std::shared_ptr<OutputLog> log_terminal_category;
 
@@ -606,7 +605,7 @@ class TerminalCategory
 	/** The list of Symbol rate, list(rs,nb_carriers) **/
 	std::map<rate_symps_t, unsigned int> symbol_rate_list;
 
- private:
+private:
 	/** The carriers groups that does not correspond to the desired access type
 	 *   needed for band computation */
 	std::vector<CarriersGroup *> other_carriers;

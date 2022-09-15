@@ -63,7 +63,7 @@ class BlockSatDispatcher: public Block
 {
 	class SpotByEntity
 	{
-	  public:
+	public:
 		SpotByEntity();
 
 		void addEntityInSpot(tal_id_t entity, spot_id_t spot);
@@ -72,22 +72,22 @@ class BlockSatDispatcher: public Block
 
 		spot_id_t getSpotForEntity(tal_id_t entity) const;
 
-	  private:
+	private:
 		std::unordered_map<tal_id_t, spot_id_t> spot_by_entity;
 		spot_id_t default_spot;
 	};
 
-  public:
+public:
 	BlockSatDispatcher(const std::string &name, SatDispatcherConfig config);
 
 	bool onInit();
 
 	class Upward: public RtUpwardMux
 	{
-	  public:
+	public:
 		Upward(const std::string &name, SatDispatcherConfig config);
 
-	  private:
+	private:
 		friend class BlockSatDispatcher;
 
 		bool onEvent(const RtEvent *const event) override;
@@ -108,10 +108,10 @@ class BlockSatDispatcher: public Block
 
 	class Downward: public RtDownwardDemux<SpotComponentPair>
 	{
-	  public:
+	public:
 		Downward(const std::string &name, SatDispatcherConfig config);
 
-	  private:
+	private:
 		friend class BlockSatDispatcher;
 
 		bool onEvent(const RtEvent *const event) override;
@@ -129,7 +129,7 @@ class BlockSatDispatcher: public Block
 		std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
 	};
 
-  private:
+private:
 	tal_id_t entity_id;
 	bool isl_enabled;
 };

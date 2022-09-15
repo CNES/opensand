@@ -67,16 +67,14 @@ typedef struct
  */
 class SlottedAlohaPacketData: public SlottedAlohaPacket
 {
-
- private:
-
+private:
 	/// The packet timeout (in Slotted Aloha frames number)
 	time_sf_t timeout_saf;
 
 	/// The number of retransmissions of this packet
 	uint16_t nb_retransmissions;
- public:
 
+public:
 	/**
 	 * Build a slotted Aloha data packet
 	 *

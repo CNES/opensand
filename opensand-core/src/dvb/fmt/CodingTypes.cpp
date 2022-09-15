@@ -60,7 +60,7 @@ CodingTypes::~CodingTypes()
 bool CodingTypes::exist(std::string coding_label)
 {
 	CodingTypes instance;
-  std::map<std::string, float>::iterator ite;
+	std::map<std::string, float>::iterator ite;
 
 	ite = instance.coding_rates.find(coding_label);
 	return (ite != instance.coding_rates.end());
@@ -75,7 +75,7 @@ float CodingTypes::getDefaultRate()
 float CodingTypes::getRate(std::string coding_label)
 {
 	CodingTypes instance;
-  std::map<std::string, float>::iterator ite;
+	std::map<std::string, float>::iterator ite;
 
 	ite = instance.coding_rates.find(coding_label);
 	if(ite == instance.coding_rates.end())

@@ -126,10 +126,10 @@ Data NetBurst::data() const
 
 long NetBurst::bytes() const
 {
-  return std::accumulate(this->begin(), this->end(), 0L,
-                         [](long length, const std::unique_ptr<NetPacket>& packet){
-                             return length + packet->getTotalLength();
-                         });
+	return std::accumulate(this->begin(), this->end(), 0L,
+	                       [](long length, const std::unique_ptr<NetPacket>& packet){
+	                          return length + packet->getTotalLength();
+	                       });
 }
 
 

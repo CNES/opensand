@@ -39,15 +39,19 @@
 
 BlockInterconnectDownward::BlockInterconnectDownward(const std::string &name,
                                                      const InterconnectConfig &):
-    Block(name) {}
+	Block(name)
+{
+}
 
 BlockInterconnectDownward::Upward::Upward(const std::string &name, const InterconnectConfig &config):
-    RtUpward(name),
-    InterconnectChannelReceiver(name + ".Upward", config) {}
+	RtUpward(name),
+	InterconnectChannelReceiver(name + ".Upward", config)
+{
+}
 
 BlockInterconnectDownward::Downward::Downward(const std::string &name, const InterconnectConfig &config):
-    RtDownward(name),
-    InterconnectChannelSender(name + ".Downward", config)
+	RtDownward(name),
+	InterconnectChannelSender(name + ".Downward", config)
 {
 	if (config.delay == 0)
 	{
@@ -64,7 +68,7 @@ bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-    case EventType::Message:
+		case EventType::Message:
 		{
 			auto msg_event = static_cast<const MessageEvent*>(event);
 			rt_msg_t message = msg_event->getMessage();
@@ -101,7 +105,7 @@ bool BlockInterconnectDownward::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-    case EventType::NetSocket:
+		case EventType::NetSocket:
 		{
 			std::list<rt_msg_t> messages;
 
@@ -219,11 +223,13 @@ bool BlockInterconnectDownward::Downward::onInit()
 
 BlockInterconnectUpward::BlockInterconnectUpward(const std::string &name,
                                                  const InterconnectConfig &):
-    Block(name) {}
+	Block(name)
+{
+}
 
 BlockInterconnectUpward::Upward::Upward(const std::string &name, const InterconnectConfig &config):
-    RtUpward(name),
-    InterconnectChannelSender(name + ".Upward", config)
+	RtUpward(name),
+	InterconnectChannelSender(name + ".Upward", config)
 {
 	if (config.delay == 0)
 	{
@@ -237,8 +243,10 @@ BlockInterconnectUpward::Upward::Upward(const std::string &name, const Interconn
 }
 
 BlockInterconnectUpward::Downward::Downward(const std::string &name, const InterconnectConfig &config):
-    RtDownward(name),
-    InterconnectChannelReceiver(name + ".Downward", config){};
+	RtDownward(name),
+	InterconnectChannelReceiver(name + ".Downward", config)
+{
+}
 
 bool BlockInterconnectUpward::Downward::onEvent(const RtEvent *const event)
 {

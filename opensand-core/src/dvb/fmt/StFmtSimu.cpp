@@ -53,14 +53,14 @@ StFmtSimu::StFmtSimu(std::string name,
 	if(id < BROADCAST_TAL_ID)
 	{
 		this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING,
-                                               "Dvb.Fmt.%sStFmtSimu%u",
-                                               name.c_str(), id);
+		                                           "Dvb.Fmt.%sStFmtSimu%u",
+		                                           name.c_str(), id);
 	}
 	else
 	{
 		this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING,
-                                               "Dvb.Fmt.%sSimuatedStFmtSimu",
-                                               name.c_str());
+		                                           "Dvb.Fmt.%sSimuatedStFmtSimu",
+		                                           name.c_str());
 	}
 }
 
@@ -166,8 +166,8 @@ StFmtSimuList::StFmtSimuList(std::string name):
 {
 	// Output Log
 	this->log_fmt = Output::Get()->registerLog(LEVEL_WARNING,
-                                             "Dvb.Fmt.%sStFmtSimuList",
-                                             name.c_str());
+	                                           "Dvb.Fmt.%sStFmtSimuList",
+	                                           name.c_str());
 
 	this->sts = new ListStFmt();
 }

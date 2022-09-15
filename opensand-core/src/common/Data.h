@@ -44,7 +44,7 @@
  */
 class Data: public std::basic_string<unsigned char>
 {
- public:
+public:
 	/**
 	 * Create an empty set of data
 	 */

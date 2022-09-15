@@ -113,9 +113,8 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
                            TerminalCategorySaloha *default_category,
                            spot_id_t spot_id,
                            UnitConverter *converter)
-
 {
-  std::string algo_name;
+	std::string algo_name;
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 	auto conf = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
 
@@ -283,8 +282,8 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 	{
 		LOG(this->log_saloha, LEVEL_DEBUG,
 		    "skip Slotted Aloha frame with no packet");
-    delete dvb_frame;
-    return true;
+		delete dvb_frame;
+		return true;
 	}	
 
 	LOG(this->log_saloha, LEVEL_INFO,
@@ -299,11 +298,11 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 			SlottedAlohaPacketData::getPacketLength(payload);
 
 		previous_length += current_length;
-    std::unique_ptr<SlottedAlohaPacketData> sa_packet;
-    try
-    {
-      sa_packet = std::unique_ptr<SlottedAlohaPacketData>(new SlottedAlohaPacketData{payload, current_length});
-    }
+		std::unique_ptr<SlottedAlohaPacketData> sa_packet;
+		try
+		{
+			sa_packet = std::unique_ptr<SlottedAlohaPacketData>(new SlottedAlohaPacketData{payload, current_length});
+		}
 		catch (const std::bad_alloc&)
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
@@ -431,7 +430,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 	pkt_it = accepted_packets->begin();
 	while(pkt_it != accepted_packets->end())
 	{
-    std::unique_ptr<SlottedAlohaPacketData> sa_packet = std::move(*pkt_it);
+		std::unique_ptr<SlottedAlohaPacketData> sa_packet = std::move(*pkt_it);
 		SlottedAlohaPacketCtrl *ack;
 		TerminalContextSaloha *terminal;
 		saloha_terminals_t::iterator st;
@@ -549,7 +548,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 
 std::unique_ptr<NetPacket> SlottedAlohaNcc::removeSalohaHeader(std::unique_ptr<SlottedAlohaPacketData> sa_packet)
 {
-  std::size_t length = sa_packet->getPayloadLength();
+	std::size_t length = sa_packet->getPayloadLength();
 	return this->pkt_hdl->build(sa_packet->getPayload(), length, 0, 0, 0);
 }
 
@@ -561,7 +560,7 @@ void SlottedAlohaNcc::removeCollisions(TerminalCategorySaloha *category)
 	uint16_t nbr;
 	unsigned int slots_per_carrier = floor(category->getSlotsNumber() /
 	                                       category->getCarriersNumber());
-  std::map<unsigned int, Slot *> slots = category->getSlots();
+	std::map<unsigned int, Slot *> slots = category->getSlots();
 	AlohaPacketComparator comparator(slots_per_carrier);
 	saloha_packets_data_t *accepted_packets = category->getAcceptedPackets();
 
@@ -623,7 +622,7 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category,
 		it = time_slots.begin();
 		while(it != time_slots.end())
 		{
-      std::map<unsigned int, Slot *> slots = category->getSlots();
+			std::map<unsigned int, Slot *> slots = category->getSlots();
 			uint16_t nb_replicas = simulation->getNbReplicas();
 			uint16_t replicas[nb_replicas];
 			for(uint16_t rep_cpt = 0; rep_cpt < nb_replicas; rep_cpt++)
@@ -638,13 +637,13 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category,
 				// we need a PDU ID else removeCollision will consider all
 				// packets the same, this will mislead CRDSA algorithm
 				auto sa_packet = std::unique_ptr<SlottedAlohaPacketData>(
-            new SlottedAlohaPacketData(Data(),
-				                               (saloha_pdu_id_t)pdu_id,
-				                               (uint16_t)0,
-				                               (uint16_t)0,
-				                               (uint16_t)0,
-				                               nb_replicas,
-				                               (time_ms_t)0));
+				new SlottedAlohaPacketData(Data(),
+				                           (saloha_pdu_id_t)pdu_id,
+				                           (uint16_t)0,
+				                           (uint16_t)0,
+				                           (uint16_t)0,
+				                           nb_replicas,
+				                           (time_ms_t)0));
 				// as for request simulation use tal id > BROADCAST_TAL_ID
 				// used for filtering
 				sa_packet->setSrcTalId(BROADCAST_TAL_ID + 1 + cpt);

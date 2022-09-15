@@ -47,7 +47,7 @@
  */
 class MacAddress
 {
- private:
+private:
 	static constexpr std::size_t bytes_count = 6;
 
 	/// The MAC address bytes
@@ -56,7 +56,7 @@ class MacAddress
 	/// The bytes that matches all occurences
 	bool generic_bytes[bytes_count];
 
- public:
+public:
 	/**
 	 * Default constructor for MAC address
 	 */

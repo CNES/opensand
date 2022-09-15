@@ -68,8 +68,8 @@
 #include "BlockSatDispatcher.h"
 
 EntitySat::EntitySat(tal_id_t instance_id):
-    Entity("sat" + std::to_string(instance_id), instance_id),
-    instance_id{instance_id}
+	Entity("sat" + std::to_string(instance_id), instance_id),
+	instance_id{instance_id}
 {
 }
 

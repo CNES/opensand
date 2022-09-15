@@ -65,8 +65,7 @@ struct la_specific
  */
 class BlockLanAdaptation: public Block
 {
- public:
-
+public:
 	BlockLanAdaptation(const std::string &name, struct la_specific specific);
 	~BlockLanAdaptation();
 
@@ -81,7 +80,7 @@ class BlockLanAdaptation: public Block
 
 	class Upward: public RtUpward
 	{
-	 public:
+	public:
 		Upward(const std::string &name, struct la_specific specific);
 
 		bool onInit(void);
@@ -101,7 +100,7 @@ class BlockLanAdaptation: public Block
 		 */
 		void setFd(int fd);
 
-	 private:
+	private:
 		/**
 		 * @brief Handle a message from lower block
 		 *  - build the TAP header with appropriate protocol identifier
@@ -132,7 +131,7 @@ class BlockLanAdaptation: public Block
 
 	class Downward: public RtDownward
 	{
-	 public:
+	public:
 		Downward(const std::string &name, struct la_specific specific);
 
 		bool onInit(void);
@@ -152,7 +151,7 @@ class BlockLanAdaptation: public Block
 		 */
 		void setFd(int fd);
 
-	 private:
+	private:
 		/**
 		 * @brief Handle a message from upper block
 		 *  - read data from TAP interface
@@ -181,7 +180,7 @@ class BlockLanAdaptation: public Block
 		SatelliteLinkState state;
 	};
 
- private:
+private:
 	/// The TAP interface name
 	std::string tap_iface;
 

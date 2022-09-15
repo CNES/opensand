@@ -54,26 +54,24 @@ class FmtId;
  */
 class FmtGroup
 {
- private:
-
+private:
 	/** The ID of the FMT group */
 	fmt_id_t id;
 
 	/** The list of FMT IDs */
-  std::list<FmtId> fmt_ids;
+	std::list<FmtId> fmt_ids;
 
 	/** The list of IDs from FMT IDs */
-  std::list<fmt_id_t> num_fmt_ids;
+	std::list<fmt_id_t> num_fmt_ids;
 
 	/** The table of MODCOD definitions */
 	const FmtDefinitionTable *modcod_def;
 
- protected:
+protected:
 	// Output log
 	std::shared_ptr<OutputLog> log_fmt;
 
- public:
-
+public:
 	/**
 	 * @brief Create a new FMT group
 	 *
@@ -117,8 +115,7 @@ class FmtGroup
 	 */
 	fmt_id_t getMaxFmtId() const;
 
-  private:
-
+private:
 	/**
 	 * @brief parse the FMT IDs string read in configuration
 	 *
@@ -134,7 +131,7 @@ class FmtGroup
  */
 class FmtId
 {
- public:
+public:
 	FmtId(fmt_id_t id, float es_n0):
 		id(id),
 		es_n0(es_n0)
@@ -203,7 +200,7 @@ class FmtId
 	/// The FMT ID
 	fmt_id_t id;
 
- private:
+private:
 	/// The required Es/N0
 	float es_n0;
 };

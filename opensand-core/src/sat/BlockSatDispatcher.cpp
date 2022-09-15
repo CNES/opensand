@@ -133,8 +133,10 @@ bool BlockSatDispatcher::onInit()
 }
 
 BlockSatDispatcher::Upward::Upward(const std::string &name, SatDispatcherConfig config):
-    RtUpwardMux(name),
-    entity_id{config.entity_id} {}
+	RtUpwardMux(name),
+	entity_id{config.entity_id}
+{
+}
 
 bool BlockSatDispatcher::Upward::onEvent(const RtEvent *const event)
 {
@@ -293,8 +295,10 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 }
 
 BlockSatDispatcher::Downward::Downward(const std::string &name, SatDispatcherConfig config):
-    RtDownwardDemux<SpotComponentPair>(name),
-    entity_id{config.entity_id} {}
+	RtDownwardDemux<SpotComponentPair>(name),
+	entity_id{config.entity_id}
+{
+}
 
 bool BlockSatDispatcher::Downward::onEvent(const RtEvent *const event)
 {

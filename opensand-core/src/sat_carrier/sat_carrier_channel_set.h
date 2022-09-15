@@ -51,8 +51,7 @@
 // TODO why not a map<fd, carrier>?
 class sat_carrier_channel_set: public std::vector < UdpChannel * >
 {
- public:
-
+public:
 	sat_carrier_channel_set(tal_id_t tal_id);
 	~sat_carrier_channel_set();
 
@@ -72,7 +71,7 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 	 * Read data from the configuration file and create output channels
 	 *
 	 * @param local_ip_addr   The IP address for emulation network
-     * @param destination_host  For sat only: destination handled by this part of the stack (terminal or gateway)
+	 * @param destination_host  For sat only: destination handled by this part of the stack (terminal or gateway)
 	 * @param spot_id           For sat only: the spot handled by this part of the stack
 	 * @return true on success, false otherwise
 	 */
@@ -112,8 +111,7 @@ class sat_carrier_channel_set: public std::vector < UdpChannel * >
 
 	unsigned int getNbChannel();
 
- private:
-
+private:
 	/**
 	 * Read data from the configuration file and create channels
 	 *

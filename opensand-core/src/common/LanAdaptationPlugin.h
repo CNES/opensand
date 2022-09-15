@@ -54,7 +54,7 @@ class PacketSwitch;
  */
 class LanAdaptationPlugin: public StackPlugin
 {
- public:
+public:
 	/**
 	 * @class LanAdaptationPacketHandler
 	 * @brief Functions to handle the encapsulated packets
@@ -72,7 +72,7 @@ class LanAdaptationPlugin: public StackPlugin
 	 */
 	class LanAdaptationPacketHandler: public StackPacketHandler
 	{
-	  public:
+	public:
 		/**
 		 * @brief LanAdaptationPacketHandler constructor
 		 */
@@ -102,7 +102,7 @@ class LanAdaptationPlugin: public StackPlugin
 	 */
 	class LanAdaptationContext: public StackContext
 	{
-	  public:
+	public:
 		/* Allow context to access LanAdaptationPlugin members */
 		/**
 		 * @brief LanAdaptationContext constructor
@@ -141,7 +141,7 @@ class LanAdaptationPlugin: public StackPlugin
 
 		virtual bool init();
 
-	  protected:
+	protected:
 		/// Can we handle packet read from TUN or TAP interface
 		bool handle_net_packet;
 

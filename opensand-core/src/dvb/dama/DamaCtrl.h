@@ -63,7 +63,7 @@
  */
 class DamaCtrl
 {
- public:
+public:
 	// Ctor & Dtor
 	DamaCtrl( spot_id_t spot);
 	virtual ~DamaCtrl();
@@ -176,8 +176,7 @@ class DamaCtrl
 	 */
 	TerminalCategories<TerminalCategoryDama> *getCategories();
 
- protected:
-
+protected:
 	/**
 	 * @brief 	Init the output probes and stats
 	 *
@@ -418,11 +417,11 @@ class DamaCtrl
 		// Capacity per category
 	ProbeListPerCategory probes_category_return_capacity;
 	ProbeListPerCategory probes_category_return_remaining_capacity;
-  std::map<std::string, int> category_return_remaining_capacity;
+	std::map<std::string, int> category_return_remaining_capacity;
 		// Capacity per carrier
 	ProbeListPerCategoryPerCarrier probes_carrier_return_capacity;
 	ProbeListPerCategoryPerCarrier probes_carrier_return_remaining_capacity;
-  std::map<std::string, std::map<unsigned int, int> >  carrier_return_remaining_capacity;
+	std::map<std::string, std::map<unsigned int, int> >  carrier_return_remaining_capacity;
 
 	// Spot ID
 	spot_id_t spot_id;

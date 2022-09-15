@@ -63,7 +63,7 @@ struct EncapConfig
  */
 class BlockEncap: public Block
 {
-  public:
+public:
 	/**
 	 * Build an encapsulation block
 	 *
@@ -76,13 +76,13 @@ class BlockEncap: public Block
 
 	class EncapChannel
 	{
-	  public:
+	public:
 		EncapChannel():
 		    group_id(-1),
 		    tal_id(-1),
 		    state(SatelliteLinkState::DOWN){};
 
-	  protected:
+	protected:
 		/// it is the MAC layer group id received through msg_link_up
 		group_id_t group_id;
 
@@ -95,7 +95,7 @@ class BlockEncap: public Block
 
 	class Upward: public RtUpward, EncapChannel
 	{
-	  public:
+	public:
 		Upward(const std::string &name, EncapConfig encap_cfg);
 		bool onEvent(const RtEvent *const event);
 
@@ -104,7 +104,7 @@ class BlockEncap: public Block
 
 		void setMacId(tal_id_t id);
 
-	  private:
+	private:
 		/// the reception contexts list from upper to lower context
 		std::vector<EncapPlugin::EncapContext *> ctx;
 		/// the reception contexts list from upper to lower context for SCPC mode
@@ -120,7 +120,7 @@ class BlockEncap: public Block
 		/// the SCPC encapsulation lower item
 		std::string scpc_encap;
 
-	  protected:
+	protected:
 		/// the MAC ID of the ST (as specified in configuration)
 		/**
 		 * Handle a burst of encapsulation packets received from the lower-layer
@@ -134,13 +134,13 @@ class BlockEncap: public Block
 
 	class Downward: public RtDownward, EncapChannel
 	{
-	  public:
+	public:
 		Downward(const std::string &name, EncapConfig encap_cfg);
 		bool onEvent(const RtEvent *const event);
 
 		void setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx);
 
-	  private:
+	private:
 		/// the emission contexts list from lower to upper context
 		std::vector<EncapPlugin::EncapContext *> ctx;
 
@@ -164,7 +164,7 @@ class BlockEncap: public Block
 		bool onTimer(event_id_t timer_id);
 	};
 
-  protected:
+protected:
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
 	Component entity_type;

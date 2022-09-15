@@ -76,7 +76,7 @@ class SpotUpward;
 
 class BlockDvbNcc: public BlockDvb
 {
- public:
+public:
 	/// Class constructor
 	BlockDvbNcc(const std::string &name, struct dvb_specific specific);
 
@@ -89,13 +89,13 @@ class BlockDvbNcc: public BlockDvb
 
 	class Upward: public DvbUpward, public DvbFmt
 	{
-	 public:
+	public:
 		Upward(const std::string &name, struct dvb_specific specific);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 protected:
+	protected:
 		/**
 		 * @brief Initialize the output
 		 *
@@ -200,7 +200,7 @@ class BlockDvbNcc: public BlockDvb
 			std::shared_ptr<Probe<float>> probe_frame_interval;
 	};
 
- protected:
+protected:
 	bool initListsSts();
 
 	/// the MAC ID of the ST (as specified in configuration)

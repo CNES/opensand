@@ -63,7 +63,7 @@ bool Plugin::getEncapsulationPlugin(std::string name,
 
 
 bool Plugin::getAttenuationPlugin(std::string att_pl_name,
-                                     AttenuationModelPlugin **attenuation)
+                                  AttenuationModelPlugin **attenuation)
 {
 	return utils.getAttenuationPlugin(att_pl_name, attenuation);
 }

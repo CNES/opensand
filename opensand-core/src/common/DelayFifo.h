@@ -51,8 +51,7 @@
  */
 class DelayFifo
 {
- public:
-
+public:
 	/**
 	 * @brief Create the DelayFifo
 	 *
@@ -133,7 +132,7 @@ class DelayFifo
 
 	std::vector<FifoElement *> getQueue(void);
 
- protected:
+protected:
 	/**
 	 * @brief Get the index where time_out should be placed
 	 * @param time_out the tick out 

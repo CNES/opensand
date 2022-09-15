@@ -148,16 +148,13 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 
 ForwardSchedulingS2::~ForwardSchedulingS2()
 {
-  std::list<BBFrame *>::iterator it;
-	for(it = this->incomplete_bb_frames_ordered.begin();
-	    it != this->incomplete_bb_frames_ordered.end(); ++it)
+	for (auto&& bb_frame : this->incomplete_bb_frames_ordered)
 	{
-		delete *it;
+		delete bb_frame;
 	}
-	for(it = this->pending_bbframes.begin();
-	    it != this->pending_bbframes.end(); ++it)
+	for (auto&& bb_frame : this->pending_bbframes)
 	{
-		delete *it;
+		delete bb_frame;
 	}
 
 	delete this->category;
@@ -382,8 +379,8 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
                                                clock_t current_time,
                                                std::list<DvbFrame *> *complete_dvb_frames,
                                                CarriersGroupDama *carriers,
-					                           vol_sym_t &capacity_sym,
-					                           vol_sym_t init_capa)
+                                               vol_sym_t &capacity_sym,
+                                               vol_sym_t init_capa)
 {
 	int ret;
 	unsigned int sent_packets = 0;
@@ -856,27 +853,23 @@ void ForwardSchedulingS2::schedulePending(const std::list<fmt_id_t> supported_mo
 		return;
 	}
 
-  std::list<BBFrame *>::iterator it;
-  std::list<BBFrame *> new_pending;
-
-	for(it = this->pending_bbframes.begin();
-		it != this->pending_bbframes.end();
-		++it)
+	std::list<BBFrame *> new_pending;
+	for (auto&& pending_frame : this->pending_bbframes)
 	{
-		unsigned int modcod = (*it)->getModcodId();
+		unsigned int modcod = pending_frame->getModcodId();
 
 		if(std::find(supported_modcods.begin(), supported_modcods.end(), modcod) !=
 		   supported_modcods.end())
 		{
 			sched_status_t status;
 			status = this->addCompleteBBFrame(complete_dvb_frames,
-			                                  (*it),
+			                                  pending_frame,
 			                                  current_superframe_sf,
 			                                  remaining_capacity_sym);
 			if(status == status_full)
 			{
 				// keep the BBFrame in pending list
-				new_pending.push_back(*it);
+				new_pending.push_back(pending_frame);
 			}
 			else if(status != status_ok)
 			{
@@ -888,7 +881,7 @@ void ForwardSchedulingS2::schedulePending(const std::list<fmt_id_t> supported_mo
 		else
 		{
 			// keep the BBFrame in pending list
-			new_pending.push_back(*it);
+			new_pending.push_back(pending_frame);
 		}
 	}
 	if(complete_dvb_frames->size() > 0)

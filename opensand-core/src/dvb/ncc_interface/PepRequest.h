@@ -54,9 +54,7 @@ typedef enum
  */
 class PepRequest
 {
-
- private:
-
+private:
 	/** The type of PEP request */
 	pep_request_type_t type;
 	/** The ST the PEP request is for */
@@ -68,9 +66,7 @@ class PepRequest
 	/** The RBDCmax of the PEP request */
 	rate_kbps_t rbdc_max_kbps;
 
-
- public:
-
+public:
 	PepRequest(pep_request_type_t type, tal_id_t st_id,
 	           rate_kbps_t cra_kbps, rate_kbps_t rbdc_kbps,
 	           rate_kbps_t rbdc_max_kbps);

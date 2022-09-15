@@ -60,14 +60,14 @@ enum class NET_PROTO : uint16_t;
  */
 class StackPlugin: public OpenSandPlugin
 {
- public:
+public:
 	/**
 	 * @class StackPacketHandler
 	 * @brief Functions to handle the encapsulated packets
 	 */
 	class StackPacketHandler
 	{
-	  public:
+	public:
 		/**
 		 * @brief StackPacketHandler constructor
 		 */
@@ -174,11 +174,11 @@ class StackPlugin: public OpenSandPlugin
 		 */
 		virtual bool init() = 0;
 
-	 protected:
+	protected:
 		/// Output Logs
 		std::shared_ptr<OutputLog> log;
 
-	 private:
+	private:
 		StackPlugin &plugin;
 	};
 
@@ -188,7 +188,7 @@ class StackPlugin: public OpenSandPlugin
 	 */
 	class StackContext
 	{
-	  public:
+	public:
 		/* Allow context to access StackPlugin members */
 		/**
 		 * @brief StackContext constructor
@@ -280,7 +280,7 @@ class StackPlugin: public OpenSandPlugin
 		 * @param dst_tal_id  The destination terminal ID to associate with the packet
 		 * @return the packet on success, NULL otherwise
 		 */
-    std::unique_ptr<NetPacket> createPacket(const Data &data,
+		std::unique_ptr<NetPacket> createPacket(const Data &data,
 		                                        std::size_t data_length,
 		                                        uint8_t qos,
 		                                        uint8_t src_tal_id,
@@ -293,14 +293,14 @@ class StackPlugin: public OpenSandPlugin
 		 */
 		virtual bool init() = 0;
 
-	 protected:
+	protected:
 		/// the current upper encapsulation protocol EtherType
 		StackPlugin::StackPacketHandler *current_upper;
 
 		/// Output Logs
 		std::shared_ptr<OutputLog> log;
 
-	 private:
+	private:
 		/// The plugin
 		StackPlugin &plugin;
 	};
@@ -377,7 +377,7 @@ class StackPlugin: public OpenSandPlugin
 	 */
 	virtual bool init() = 0;
 
- protected:
+protected:
 	/// The EtherType (or EtherType like) of the associated protocol
 	NET_PROTO ether_type;
 

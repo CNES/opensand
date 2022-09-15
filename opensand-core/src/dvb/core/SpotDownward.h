@@ -57,7 +57,7 @@ class RequestSimulator;
 
 class SpotDownward: public DvbChannel, public DvbFmt
 {
- public:
+public:
 	SpotDownward(spot_id_t spot_id,
 	             tal_id_t mac_id,
 	             time_ms_t fwd_down_frame_duration,
@@ -179,7 +179,7 @@ class SpotDownward: public DvbChannel, public DvbFmt
 	void setPepCmdApplyTimer(event_id_t pep_cmd_a_timer);
 	event_id_t getPepCmdApplyTimer(void);
 
- protected:
+protected:
 	/**
 	 * Read configuration for the downward timers
 	 *

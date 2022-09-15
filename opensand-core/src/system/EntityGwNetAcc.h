@@ -47,7 +47,7 @@
  */
 class EntityGwNetAcc: public Entity
 {
- public:
+public:
 	/**
 	 * Build an entity network/access gateway process
 	 */
@@ -58,7 +58,7 @@ class EntityGwNetAcc: public Entity
 	 */
 	virtual ~EntityGwNetAcc();
 
- protected:
+protected:
 	/**
 	 * Load configuration files
 	 *
@@ -84,7 +84,7 @@ class EntityGwNetAcc: public Entity
 	 */
 	bool createSpecificConfiguration(const std::string &filepath) const;
 
- private:
+private:
 	void defineProfileMetaModel() const;
 
 	std::string tap_iface;

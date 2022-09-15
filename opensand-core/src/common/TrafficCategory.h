@@ -49,7 +49,7 @@
  */
 class TrafficCategory
 {
- public:
+public:
 	TrafficCategory();
 	~TrafficCategory();
 
@@ -81,7 +81,7 @@ class TrafficCategory
 	 */
 	std::string getName() const;
 
- private:
+private:
 	/// Traffic category identifier
 	qos_t id;
 

@@ -51,7 +51,7 @@
  */
 class PacketSwitch
 {
- public:
+public:
 	PacketSwitch(tal_id_t tal_id);
 
 	virtual ~PacketSwitch() = default;
@@ -84,12 +84,12 @@ class PacketSwitch
 	 * @param src_id  The ID of the corresponding terminal
 	 * 
 	 * @return true on success, false otherwise
- 	 */
+	 */
 	bool learn(const Data &packet, tal_id_t src_id);
 
 	SarpTable *getSarpTable();
 
- protected:
+protected:
 	/// The mutex
 	RtMutex mutex;
 
@@ -106,7 +106,7 @@ class PacketSwitch
  */
 class TerminalPacketSwitch: public PacketSwitch
 {
- public:
+public:
 	TerminalPacketSwitch(tal_id_t id, tal_id_t gw_id):
 		 PacketSwitch(id),
 		 gw_id(gw_id)
@@ -133,7 +133,7 @@ class TerminalPacketSwitch: public PacketSwitch
 	 */
 	bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward);
 
- protected:
+protected:
 	/// The gateway id of the terminal entity
 	tal_id_t gw_id;
 };
@@ -144,7 +144,7 @@ class TerminalPacketSwitch: public PacketSwitch
  */
 class GatewayPacketSwitch: public PacketSwitch
 {
- public:
+public:
 	using PacketSwitch::PacketSwitch;
 
 	/**
@@ -171,7 +171,7 @@ class GatewayPacketSwitch: public PacketSwitch
 
 class SatellitePacketSwitch: public PacketSwitch
 {
-  public:
+public:
 	SatellitePacketSwitch(tal_id_t tal_id, std::unordered_set<tal_id_t> isl_entities);
 
 	/**
@@ -195,7 +195,7 @@ class SatellitePacketSwitch: public PacketSwitch
 	 */
 	bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward) override;
 
-  private:
+private:
 	// Packets for these entities should be routed to ISL
 	std::unordered_set<tal_id_t> isl_entities;
 };
