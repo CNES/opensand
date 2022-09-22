@@ -43,7 +43,7 @@ AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memset mkdir select socket 
 
 # check pkg-config presence
 PKG_PROG_PKG_CONFIG
-CXXFLAGS="$CXXFLAGS -std=c++11"
+CXXFLAGS="$CXXFLAGS -std=c++17"
 
 
 # check for opensand-conf library

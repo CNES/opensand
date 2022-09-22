@@ -133,7 +133,7 @@ bool BlockSatDispatcher::onInit()
 }
 
 BlockSatDispatcher::Upward::Upward(const std::string &name, SatDispatcherConfig config):
-	RtUpwardMux(name),
+	RtUpwardMuxDemux<IslComponentPair>(name),
 	entity_id{config.entity_id}
 {
 }
@@ -166,27 +166,31 @@ bool BlockSatDispatcher::Upward::onEvent(const RtEvent *const event)
 		}
 		case InternalMessageType::link_up:
 		{
+			bool success = true;
 			T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
-			// TODO: only forward where there is a LanAdaptation block upward
-			// if (regen_level == RegenLevel::IP)
-			// {
-				// forward link up message
-				if (!this->enqueueMessage((void **)&link_up_msg,
-				                          sizeof(T_LINK_UP),
-				                          to_underlying(InternalMessageType::link_up)))
+			for (auto&& [key, regen_level] : regen_levels)
+			{
+				T_LINK_UP *link_up_copy = new T_LINK_UP{*link_up_msg};
+				if (regen_level == RegenLevel::IP)
 				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "cannot forward 'link up' message\n");
-					delete link_up_msg;
-					return false;
+					IslComponentPair link_up_key{
+						.connected_sat = routes.at(key),
+						.is_data_channel = true,
+					};
+					if (!this->enqueueMessage(link_up_key,
+					                          (void **)&link_up_copy,
+					                          sizeof(T_LINK_UP),
+					                          to_underlying(InternalMessageType::link_up)))
+					{
+						LOG(this->log_receive, LEVEL_ERROR,
+						    "cannot forward 'link up' message\n");
+						delete link_up_copy;
+						success = false;
+					}
 				}
-			// }
-			// else
-			// {
-				// ignore
-				// delete link_up_msg;
-			// }
-			return true;
+			}
+			delete link_up_msg;
+			return success;
 		}
 		default:
 			LOG(log_receive, LEVEL_ERROR,
@@ -203,7 +207,8 @@ bool BlockSatDispatcher::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	const uint8_t id = carrier_id % 10;
 	const auto msg_type = id >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
 	const log_level_t log_level = id >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
-	LOG(log_receive, log_level, "Received a DvbFrame (spot_id %d, carrier id %d, msg type %d)",
+	LOG(log_receive, log_level,
+	    "Received a DvbFrame (spot_id %d, carrier id %d, msg type %d)",
 	    spot_id, carrier_id, frame->getMessageType());
 
 	const Component dest = (id == CTRL_IN_GW_ID || id == DATA_IN_GW_ID) ? Component::terminal : Component::gateway;
@@ -211,21 +216,25 @@ bool BlockSatDispatcher::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 	const auto dest_sat_id_it = routes.find({spot_id, dest});
 	if (dest_sat_id_it == routes.end())
 	{
-		LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
+		LOG(log_receive, LEVEL_ERROR,
+		    "No route found for %s in spot %d",
 		    dest == Component::gateway ? "GW" : "ST", spot_id);
 		return false;
 	}
 	const tal_id_t dest_sat_id = dest_sat_id_it->second;
 
-	// TODO: temp hack, LanAdaptation should be able to handle DvbFrames 
-	if (dest_sat_id == entity_id || regen_levels.at({spot_id, dest}) == RegenLevel::IP)
+	if (dest_sat_id == entity_id)
 	{
 		return sendToOppositeChannel(std::move(frame), msg_type);
 	}
 	else
 	{
 		// send by ISL
-		return sendToUpperBlock(std::move(frame), msg_type);
+		IslComponentPair key{
+			.connected_sat = dest_sat_id,
+			.is_data_channel = false,
+		};
+		return sendToUpperBlock(key, std::move(frame), msg_type);
 	}
 }
 
@@ -281,21 +290,26 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 		}
 
 		const tal_id_t dest_sat_id = dest_sat_id_it->second;
-		if (dest_sat_id == entity_id && regen_levels.at(dest) != RegenLevel::IP)
+		auto regen_level = regen_levels.at(dest);
+		if (dest_sat_id == entity_id && regen_level != RegenLevel::IP)
 		{
 			ok &= sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
 		}
 		else
 		{
 			// send by ISL or to LanAdaptation for IP regen
-			ok &= sendToUpperBlock(std::move(burst), InternalMessageType::decap_data);
+			IslComponentPair key{
+				.connected_sat = dest_sat_id,
+				.is_data_channel = regen_level == RegenLevel::IP,
+			};
+			ok &= sendToUpperBlock(key, std::move(burst), InternalMessageType::decap_data);
 		}
 	}
 	return ok;
 }
 
 BlockSatDispatcher::Downward::Downward(const std::string &name, SatDispatcherConfig config):
-	RtDownwardDemux<SpotComponentPair>(name),
+	RtDownwardMuxDemux<SpotComponentPair>(name),
 	entity_id{config.entity_id}
 {
 }

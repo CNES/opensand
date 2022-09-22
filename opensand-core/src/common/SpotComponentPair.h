@@ -38,12 +38,22 @@
 
 #include "OpenSandCore.h"
 
+
 struct SpotComponentPair
 {
 	spot_id_t spot_id;
 	Component dest;
-	bool operator==(SpotComponentPair o) const;
+	bool operator==(const SpotComponentPair &o) const;
 };
+
+
+struct IslComponentPair
+{
+	tal_id_t connected_sat;
+	bool is_data_channel;
+	bool operator ==(const IslComponentPair &o) const;
+};
+
 
 namespace std
 {
@@ -52,7 +62,16 @@ struct hash<SpotComponentPair>
 {
 	size_t operator()(const SpotComponentPair &k) const
 	{
-		return 4 * k.spot_id + to_underlying(k.dest);
+		return k.spot_id << 2 | to_underlying(k.dest);
+	}
+};
+
+template <>
+struct hash<IslComponentPair>
+{
+	size_t operator()(const IslComponentPair &k) const
+	{
+		return k.connected_sat << 1 | k.is_data_channel;
 	}
 };
 } // namespace std

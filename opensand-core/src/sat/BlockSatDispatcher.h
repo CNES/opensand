@@ -38,13 +38,13 @@
 #include <memory>
 
 #include <opensand_rt/Rt.h>
-#include <opensand_rt/RtChannelDemux.h>
-#include <opensand_rt/RtChannelMux.h>
+#include <opensand_rt/RtChannelMuxDemux.h>
 #include <unordered_set>
 
 #include "DvbFrame.h"
 #include "NetBurst.h"
 #include "SpotComponentPair.h"
+
 
 struct SatDispatcherConfig
 {
@@ -54,6 +54,7 @@ struct SatDispatcherConfig
 	// this satellite will be sent to the upper block
 	bool isl_enabled;
 };
+
 
 /**
  * @class BlockSatDispatcher
@@ -82,7 +83,7 @@ public:
 
 	bool onInit();
 
-	class Upward: public RtUpwardMux
+	class Upward: public RtUpwardMuxDemux<IslComponentPair>
 	{
 	public:
 		Upward(const std::string &name, SatDispatcherConfig config);
@@ -95,7 +96,7 @@ public:
 		bool handleNetBurst(std::unique_ptr<NetBurst> burst);
 
 		template <typename T>
-		bool sendToUpperBlock(std::unique_ptr<T> msg, InternalMessageType msg_type);
+		bool sendToUpperBlock(IslComponentPair key, std::unique_ptr<T> msg, InternalMessageType msg_type);
 		template <typename T>
 		bool sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type);
 
@@ -106,7 +107,7 @@ public:
 		std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
 	};
 
-	class Downward: public RtDownwardDemux<SpotComponentPair>
+	class Downward: public RtDownwardMuxDemux<SpotComponentPair>
 	{
 	public:
 		Downward(const std::string &name, SatDispatcherConfig config);
@@ -135,13 +136,11 @@ private:
 };
 
 template <typename T>
-bool BlockSatDispatcher::Upward::sendToUpperBlock(std::unique_ptr<T> msg, InternalMessageType msg_type)
+bool BlockSatDispatcher::Upward::sendToUpperBlock(IslComponentPair key, std::unique_ptr<T> msg, InternalMessageType msg_type)
 {
-	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
-	LOG(log_send, log_level, "Sending a message to the upper block");
+	LOG(log_send, LEVEL_INFO, "Sending a message to the upper block");
 	const auto msg_ptr = msg.release();
-	const bool ok = enqueueMessage((void **)&msg_ptr, sizeof(T), to_underlying(msg_type));
-	if (!ok)
+	if (!enqueueMessage(key, (void **)&msg_ptr, sizeof(T), to_underlying(msg_type)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the upper block");
 		delete msg_ptr;
@@ -156,8 +155,7 @@ bool BlockSatDispatcher::Upward::sendToOppositeChannel(std::unique_ptr<T> msg, I
 	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
 	LOG(log_send, log_level, "Sending a message to the opposite channel");
 	const auto msg_ptr = msg.release();
-	const bool ok = shareMessage((void **)&msg_ptr, sizeof(T), to_underlying(msg_type));
-	if (!ok)
+	if (!shareMessage((void **)&msg_ptr, sizeof(T), to_underlying(msg_type)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
 		delete msg_ptr;
@@ -172,8 +170,7 @@ bool BlockSatDispatcher::Downward::sendToLowerBlock(SpotComponentPair key, std::
 	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
 	LOG(log_send, log_level, "Sending a message to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
 	const auto msg_ptr = msg.release();
-	const bool ok = enqueueMessage(key, (void **)&msg_ptr, sizeof(T), to_underlying(msg_type));
-	if (!ok)
+	if (!enqueueMessage(key, (void **)&msg_ptr, sizeof(T), to_underlying(msg_type)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the lower block (%s, spot %d)",
 		    key.dest == Component::gateway ? "GW" : "ST", key.spot_id);
@@ -189,8 +186,7 @@ bool BlockSatDispatcher::Downward::sendToOppositeChannel(std::unique_ptr<T> msg,
 	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
 	LOG(log_send, log_level, "Sending a message to the opposite channel");
 	const auto msg_ptr = msg.release();
-	const bool ok = shareMessage((void **)&msg_ptr, sizeof(T), to_underlying(msg_type));
-	if (!ok)
+	if (!shareMessage((void **)&msg_ptr, sizeof(T), to_underlying(msg_type)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
 		delete msg_ptr;

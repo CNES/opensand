@@ -210,7 +210,8 @@ public:
 	                            unsigned int &sig_port,
 	                            unsigned int &udp_stack,
 	                            unsigned int &udp_rmem,
-	                            unsigned int &udp_wmem) const;
+	                            unsigned int &udp_wmem,
+								std::size_t isl_index = 0) const;
 	bool getTerminalAffectation(spot_id_t &default_spot_id,
 	                            std::string &default_category_name,
 	                            std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;

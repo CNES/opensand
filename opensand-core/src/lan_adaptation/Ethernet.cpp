@@ -161,6 +161,7 @@ bool Ethernet::Context::init()
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "Section QoS settings, missing parameter LAN frame type\n");
+		return false;
 	}
 
 	std::string sat_eth;
@@ -169,18 +170,21 @@ bool Ethernet::Context::init()
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "Section QoS settings, missing parameter satellite frame type\n");
+		return false;
 	}
 
 	if(!this->initEvc())
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "failed to Initialize EVC\n");
+		return false;
 	}
 
 	if(!this->initTrafficCategories())
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot Initialize traffic categories\n");
+		return false;
 	}
 
 	if(lan_eth == "Ethernet")
@@ -394,7 +398,7 @@ bool Ethernet::Context::initTrafficCategories()
 			return false;
 		}
 
-		TrafficCategory *traffic_category = new TrafficCategory();
+		TrafficCategory *traffic_category = new TrafficCategory(pcp);
 
 		traffic_category->setId(mac_queue_prio);
 		traffic_category->setName(class_name);
@@ -405,13 +409,20 @@ bool Ethernet::Context::initTrafficCategories()
 	int default_category;
 	if(!OpenSandModelConf::extractParameterData(default_pcp, default_category))
 	{
-		this->default_category = (this->category_map.begin())->first;
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot find default MAC traffic category\n");
 		return false;
 	}
 
-	this->default_category = default_category;
+	auto found_default_category = this->category_map.find(default_category);
+	if (found_default_category == this->category_map.end())
+	{
+		LOG(this->log, LEVEL_ERROR,
+		    "Default PCP level does not map to a registered traffic category");
+		return false;
+	}
+	this->default_category = found_default_category->second;
+	
 	return true;
 }
 
@@ -490,8 +501,6 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			qos_t pcp = (q_tci & 0xe000) >> 13;
 			qos_t qos = 0;
 			Evc *evc;
-			std::map<qos_t, TrafficCategory *>::const_iterator default_category;
-			std::map<qos_t, TrafficCategory *>::const_iterator found_category;
 			SarpTable *sarp_table = BlockLanAdaptation::packet_switch->getSarpTable();
 
 			// Do not print errors here because we may want to reject trafic as spanning
@@ -519,21 +528,12 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			    "to terminal ID %d\n",
 			    src_mac.str().c_str(), src, dst_mac.str().c_str(), dst);
 
-			// get default QoS value
-			default_category = this->category_map.find(this->default_category);
-			if(default_category == this->category_map.end())
-			{
-				LOG(this->log, LEVEL_ERROR,
-				    "Unable to find default category for QoS");
-				continue;
-			}
-
 			switch(frame_type)
 			{
 				case NET_PROTO::ETH:
 					header_length = ETHERNET_2_HEADSIZE;
 					evc = this->getEvc(src_mac, dst_mac, ether_type, evc_id);
-					qos = default_category->second->getId();
+					qos = this->default_category->getId();
 					break;
 				case NET_PROTO::IEEE_802_1Q:
 					header_length = ETHERNET_802_1Q_HEADSIZE;
@@ -561,14 +561,15 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			if(frame_type != NET_PROTO::ETH)
 			{
 				// get the QoS from the PCP if there is a PCP
-				found_category = this->category_map.find(pcp);
-				if(found_category == this->category_map.end())
+				auto found_category = this->category_map.find(pcp);
+				if (found_category == this->category_map.end())
 				{
-					found_category = this->category_map.find(this->default_category);
-					if(found_category == this->category_map.end())
-						continue;
+					qos = this->default_category->getId();
 				}
-				qos = found_category->second->getId();
+				else
+				{
+					qos = found_category->second->getId();
+				}
 				LOG(this->log, LEVEL_INFO,
 				    "PCP = %u corresponding to queue %s (%u)\n", pcp,
 				    found_category->second->getName().c_str(), qos);
@@ -583,14 +584,15 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 					q_tci = (evc->getQTci() & 0xffff);
 					ad_tci = (evc->getAdTci() & 0xffff);
 					qos_t pcp = (evc->getQTci() & 0xe000) > 13;
-					found_category = this->category_map.find(pcp);
-					if(found_category == this->category_map.end())
+					auto found_category = this->category_map.find(pcp);
+					if (found_category == this->category_map.end())
 					{
-						found_category = this->category_map.find(this->default_category);
-						if(found_category == this->category_map.end())
-							continue;
+						qos = this->default_category->getId();
 					}
-					qos = found_category->second->getId();
+					else
+					{
+						qos = found_category->second->getId();
+					}
 					LOG(this->log, LEVEL_INFO,
 					    "PCP in EVC is %u corresponding to QoS %u for DVB layer\n",
 					    pcp, qos);
@@ -869,17 +871,12 @@ std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(const std::uniq
 	}
 	if(!evc)
 	{
-		std::map<qos_t, TrafficCategory *>::const_iterator default_category;
 		LOG(this->log, LEVEL_NOTICE,
 		    "no EVC for this flow, use default values");
 		src_mac = src_macs.front();
 		dst_mac = dst_macs.front();
 		// get default QoS value
-		default_category = this->category_map.find(this->default_category);
-		if(default_category != this->category_map.end())
-		{
-			ad_tci = default_category->first;
-		}
+		ad_tci = this->default_category->getPcp();
 		evc_id = 0;
 	}
 	else

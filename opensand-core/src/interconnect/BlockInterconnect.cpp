@@ -45,13 +45,15 @@ BlockInterconnectDownward::BlockInterconnectDownward(const std::string &name,
 
 BlockInterconnectDownward::Upward::Upward(const std::string &name, const InterconnectConfig &config):
 	RtUpward(name),
-	InterconnectChannelReceiver(name + ".Upward", config)
+	InterconnectChannelReceiver(name + ".Upward", config),
+	isl_index{config.isl_index}
 {
 }
 
 BlockInterconnectDownward::Downward::Downward(const std::string &name, const InterconnectConfig &config):
 	RtDownward(name),
-	InterconnectChannelSender(name + ".Downward", config)
+	InterconnectChannelSender(name + ".Downward", config),
+	isl_index{config.isl_index}
 {
 	if (config.delay == 0)
 	{
@@ -164,7 +166,7 @@ bool BlockInterconnectDownward::Upward::onInit(void)
 	int32_t socket_event;
 
 	auto Conf = OpenSandModelConf::Get();
-	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem))
+	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem, isl_index))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Entity infrastructure is missing interconnect data\n");
@@ -206,7 +208,7 @@ bool BlockInterconnectDownward::Downward::onInit()
 	std::string remote_addr("");
 
 	auto Conf = OpenSandModelConf::Get();
-	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem))
+	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem, isl_index))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Entity infrastructure is missing interconnect data\n");
@@ -229,7 +231,8 @@ BlockInterconnectUpward::BlockInterconnectUpward(const std::string &name,
 
 BlockInterconnectUpward::Upward::Upward(const std::string &name, const InterconnectConfig &config):
 	RtUpward(name),
-	InterconnectChannelSender(name + ".Upward", config)
+	InterconnectChannelSender(name + ".Upward", config),
+	isl_index{config.isl_index}
 {
 	if (config.delay == 0)
 	{
@@ -244,7 +247,8 @@ BlockInterconnectUpward::Upward::Upward(const std::string &name, const Interconn
 
 BlockInterconnectUpward::Downward::Downward(const std::string &name, const InterconnectConfig &config):
 	RtDownward(name),
-	InterconnectChannelReceiver(name + ".Downward", config)
+	InterconnectChannelReceiver(name + ".Downward", config),
+	isl_index{config.isl_index}
 {
 }
 
@@ -346,7 +350,7 @@ bool BlockInterconnectUpward::Upward::onInit(void)
 	std::string remote_addr("");
 
 	auto Conf = OpenSandModelConf::Get();
-	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem))
+	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem, isl_index))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Entity infrastructure is missing interconnect data\n");
@@ -373,7 +377,7 @@ bool BlockInterconnectUpward::Downward::onInit()
 	int32_t socket_event;
 
 	auto Conf = OpenSandModelConf::Get();
-	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem))
+	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem, isl_index))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Entity infrastructure is missing interconnect data\n");

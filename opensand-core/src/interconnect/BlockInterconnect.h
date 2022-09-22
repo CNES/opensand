@@ -49,6 +49,7 @@ struct InterconnectConfig
 {
 	std::string interconnect_addr; // Interconnect interface IP address
 	uint32_t delay;
+	std::size_t isl_index;
 };
 
 /**
@@ -73,6 +74,9 @@ public:
 		Upward(const std::string &name, const InterconnectConfig &config);
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
+
+	private:
+		std::size_t isl_index;
 	};
 
 	class Downward: public RtDownward, public InterconnectChannelSender
@@ -85,6 +89,7 @@ public:
 	private:
 		event_id_t delay_timer;
 		uint32_t polling_rate;
+		std::size_t isl_index;
 	};
 
 protected:
@@ -125,6 +130,7 @@ public:
 	private:
 		event_id_t delay_timer;
 		uint32_t polling_rate;
+		std::size_t isl_index;
 	};
 
 	class Downward: public RtDownward, public InterconnectChannelReceiver
@@ -133,6 +139,9 @@ public:
 		Downward(const std::string &name, const InterconnectConfig &config);
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
+
+	private:
+		std::size_t isl_index;
 	};
 
 protected:

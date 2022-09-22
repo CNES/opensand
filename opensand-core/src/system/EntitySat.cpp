@@ -34,7 +34,7 @@
  * <pre>
  *
  *  ┌───────────────────────┐
- *  │     Interconnect      │
+ *  │         ISLs          │   Collection of LanAdaptation and/or Interconnect
  *  └─────┬──────────▲──────┘
  *  ┌─────▼──────────┴──────┐
  *  │  BlockSatDispatcher   │
@@ -55,6 +55,9 @@
  *
  */
 
+#include <numeric>
+#include <functional>
+
 #include "EntitySat.h"
 #include "OpenSandModelConf.h"
 
@@ -67,11 +70,13 @@
 #include "BlockSatCarrier.h"
 #include "BlockSatDispatcher.h"
 
+
 EntitySat::EntitySat(tal_id_t instance_id):
 	Entity("sat" + std::to_string(instance_id), instance_id),
 	instance_id{instance_id}
 {
 }
+
 
 bool EntitySat::createSpecificBlocks()
 {
@@ -86,36 +91,52 @@ bool EntitySat::createSpecificBlocks()
 			return false;
 		}
 
-
-		if (isl_config.size() > 1)
-		{
-			DFLTLOG(LEVEL_CRITICAL, "Max one ISL per satellite is allowed for now. Satellite %d has %d ISL configured.",
-			        instance_id, isl_config.size());
-			return false;
-		}
-
-		bool isl_enabled = !isl_config.empty() && isl_config[0].type != IslType::None;
+		bool isl_enabled = std::transform_reduce(isl_config.cbegin(),
+		                                         isl_config.cend(),
+		                                         false,
+		                                         std::logical_or<>(),
+		                                         [](auto cfg){return cfg.type != IslType::None;});
 
 		SatDispatcherConfig sat_dispatch_cfg;
 		sat_dispatch_cfg.entity_id = instance_id;
 		sat_dispatch_cfg.isl_enabled = isl_enabled;
 		auto block_sat_dispatch = Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
 
-		if (isl_enabled && isl_config[0].type == IslType::Interconnect)
+		std::size_t index = 0;
+		for (auto&& cfg : isl_config)
 		{
-			InterconnectConfig interco_cfg;
-			interco_cfg.interconnect_addr = isl_config[0].interco_addr;
-			interco_cfg.delay = isl_delay;
-			auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect.Isl", interco_cfg);
-			Rt::connectBlocks(block_interco, block_sat_dispatch);
-		}
-		else if (isl_enabled && isl_config[0].type == IslType::LanAdaptation)
-		{
-			la_specific la_cfg;
-			la_cfg.packet_switch = new SatellitePacketSwitch{instance_id, getIslEntities(spot_topo)};
-			la_cfg.tap_iface = isl_config[0].tap_iface;
-			auto block_lan_adapt = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", la_cfg);
-			Rt::connectBlocks(block_lan_adapt, block_sat_dispatch);
+			switch (cfg.type)
+			{
+				case IslType::Interconnect:
+				{
+					InterconnectConfig interco_cfg{
+						.interconnect_addr = cfg.interco_addr,
+						.delay = static_cast<uint32_t>(isl_delay),
+						.isl_index = index,
+					};
+					auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect.Isl", interco_cfg);
+					Rt::connectBlocks(block_interco, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = false});
+				}
+					break;
+				case IslType::LanAdaptation:
+				{
+					la_specific la_cfg{
+						.tap_iface = cfg.tap_iface,
+						.packet_switch = new SatellitePacketSwitch{instance_id, getIslEntities(spot_topo)},
+					};
+					auto block_lan_adapt = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", la_cfg);
+					Rt::connectBlocks(block_lan_adapt, block_sat_dispatch, {.connected_sat = 0, .is_data_channel = true});
+				}
+					break;
+				case IslType::None:
+					break;
+				default:
+					DFLTLOG(LEVEL_ERROR,
+					        "%s: error during block creation: ISL configuration #%ld has unknown type",
+					        this->getName().c_str(), index);
+					return false;
+			}
+			++index;
 		}
 
 		for (auto &&spot: spot_topo)

@@ -35,7 +35,14 @@
 
 #include "SpotComponentPair.h"
 
-bool SpotComponentPair::operator==(SpotComponentPair o) const
+
+bool SpotComponentPair::operator ==(const SpotComponentPair& o) const
 {
 	return spot_id == o.spot_id && dest == o.dest;
+}
+
+
+bool IslComponentPair::operator ==(const IslComponentPair& o) const
+{
+	return connected_sat == o.connected_sat && is_data_channel == o.is_data_channel;
 }

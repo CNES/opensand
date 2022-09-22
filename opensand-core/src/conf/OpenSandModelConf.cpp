@@ -1895,7 +1895,8 @@ bool OpenSandModelConf::getInterconnectCarrier(bool upward,
                                                unsigned int &sig_port,
                                                unsigned int &udp_stack,
                                                unsigned int &udp_rmem,
-                                               unsigned int &udp_wmem) const
+                                               unsigned int &udp_wmem,
+											   std::size_t isl_index) const
 {
 	if (infrastructure == nullptr) {
 		return false;
@@ -1922,13 +1923,13 @@ bool OpenSandModelConf::getInterconnectCarrier(bool upward,
 		                        ->getComponent("entity_" + type)
 		                        ->getList("isl_settings")
 		                        ->getItems();
-		if (isl_settings.size() != 1)
+		if (isl_settings.size() <= isl_index)
 		{
-			LOG(log, LEVEL_ERROR, "Only one ISL per satellite is currently supported. This satellite has %d.",
-			    isl_settings.size());
+			LOG(log, LEVEL_ERROR, "ISL configuration #%d requested but this satellite only have %d.",
+			    isl_index, isl_settings.size());
 			return false;
 		}
-		interco_params = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(isl_settings[0])
+		interco_params = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(isl_settings[isl_index])
 		                     ->getComponent("interconnect_params");
 	}
 	else

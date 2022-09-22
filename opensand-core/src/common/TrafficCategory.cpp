@@ -40,9 +40,10 @@
 /**
  * constructor
  */
-TrafficCategory::TrafficCategory():
-		id(0),
-		name()
+TrafficCategory::TrafficCategory(qos_t pcp):
+	id{0},
+	name{},
+	pcp{pcp}
 {
 }
 
@@ -76,4 +77,10 @@ qos_t TrafficCategory::getId() const
 std::string TrafficCategory::getName() const
 {
 	return this->name;
+}
+
+
+qos_t TrafficCategory::getPcp() const
+{
+	return this->pcp;
 }

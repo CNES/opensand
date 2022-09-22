@@ -226,8 +226,7 @@ public:
 		std::map<qos_t, TrafficCategory *> category_map;
 
 		/// The default traffic category
-		qos_t default_category;
-
+		TrafficCategory *default_category;
 	};
 
 	/**

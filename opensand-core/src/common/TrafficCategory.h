@@ -50,7 +50,7 @@
 class TrafficCategory
 {
 public:
-	TrafficCategory();
+	TrafficCategory(qos_t pcp);
 	~TrafficCategory();
 
 	/**
@@ -68,7 +68,7 @@ public:
 	void setName(std::string name);
 
 	/**
-	 * @brief Get the traffic caegory ID
+	 * @brief Get the traffic category ID
 	 *
 	 * @return the traffic category id
 	 */
@@ -81,12 +81,22 @@ public:
 	 */
 	std::string getName() const;
 
+	/**
+	 * @brief Get the PCP value associated to this traffic category
+	 *
+	 * @return the PCP value for the traffic category
+	 */
+	qos_t getPcp() const;
+
 private:
 	/// Traffic category identifier
 	qos_t id;
 
 	/// Traffic category name
 	std::string name;
+
+	/// PCP value associated to this Traffic category
+	qos_t pcp;
 };
 
 #endif
