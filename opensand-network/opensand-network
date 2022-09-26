@@ -8,6 +8,7 @@ import re
 import typing
 import argparse
 import subprocess
+from contextlib import suppress
 
 from opensand_network import opensand_network_utils as utils
 
@@ -16,32 +17,94 @@ IDs = typing.Iterable[int]
 File = typing.Union[str, typing.IO]
 
 
-def create_network(tag: str, name: str, address: str, bridge: str):
-    veth_remote = f'{tag}_{name}'
-    veth_local = f'{tag}_lo_{name}'
+def create_tap(name: str, netns: str, address: str, mac: str):
+    utils.create_tap_iface(name, netns)
+    utils.set_mac_address(name, mac, netns)
+    utils.add_address(name, address, netns)
+    utils.set_up(name, netns)
+
+
+def create_network(tag: str, netns: str, address: str, bridge: str):
+    veth_remote = f'{tag}_{netns}'
+    veth_local = f'{tag}_lo_{netns}'
     utils.create_veth_ifaces_pair(veth_remote, veth_local)
-    utils.move_iface(veth_remote, name)
-    utils.add_address(veth_remote, address, name)
+    utils.move_iface(veth_remote, netns)
+    utils.add_address(veth_remote, address, netns)
     utils.attach_iface(bridge, veth_local)
     utils.set_up(veth_local)
-    utils.set_up(veth_remote, name)
+    utils.set_up(veth_remote, netns)
 
 
-def create_entity(entity: str, entity_id: int, dev_bridge: str, emu_bridge: str, create_tap: bool):
+def create_entity(entity: str, entity_id: int, dev_bridge: str, emu_bridge: str, setup_tap: bool):
     name = f'{entity}{entity_id}'
     utils.create_netns(name)
     utils.set_up('lo', name)
     create_network('dev', name, f'192.168.100.{entity_id}/24', dev_bridge)
     create_network('emu', name, f'192.168.18.{entity_id}/24', emu_bridge)
 
-    if create_tap:
-        tap_interface = 'opensand_tap'
-        tap_mac = f'00:00:00:00:00:{entity_id:0>2X}'
-        tap_address = f'192.168.63.{entity_id}/24'
-        utils.create_tap_iface(tap_interface, name)
-        utils.set_mac_address(tap_interface, tap_mac, name)
-        utils.add_address(tap_interface, tap_address, name)
-        utils.set_up(tap_interface, name)
+    if setup_tap:
+        create_tap('opensand_tap', name, f'192.168.63.{entity_id}/24', f'00:00:00:00:00:{entity_id:0>2X}')
+
+
+def _prepare_isl_env(netns: str, isl_id = None: int):
+    if isl_id is not None:
+        utils.delete_iface(f'isl_{netns}_{isl_id}_veth_tap')
+        utils.delete_iface(f'isl_{netns}_{isl_id}_veth_sock')
+        return isl_id
+
+    isl_id = 1 + max(
+            (
+                int(name.split('_')[1])
+                for name in utils.list_ifaces(netns)
+                if name.split('_')[-1] == 'tap'
+            ),
+            default=0
+    )
+
+    tap_name = f'isl_{isl_id}_tap'
+    create_tap(tap_name, netns,
+               f'10.0.{isl_id}.{src_id}/24',
+               f'00:00:00:00:{isl_id:0>2X}:{src_id:0>2X}')
+
+    bridge_name = f'isl_{isl_id}_bridge'
+    utils.create_bridge(bridge_name, [tap_name], netns)
+    utils.set_up(bridge_name, netns)
+
+    return isl_id
+
+
+def create_isl(src_id: int, dest_id: int, src_isl_id = None: int, dest_isl_id = None: int):
+    src_name = f'sat{src_id}'
+    dest_name = f'sat{dest_id}'
+
+    src_isl_id = _prepare_isl_env(src_name, src_isl_id)
+    dest_isl_id = _prepare_isl_env(dest_name, dest_isl_id)
+
+    src_veth = f'isl_{src_name}_{src_isl_id}_veth_tap'
+    dest_veth = f'isl_{dest_name}_{dest_isl_id}_veth_tap'
+    utils.create_veth_ifaces_pair(src_veth, dest_veth)
+
+    utils.move_iface(src_veth, src_name)
+    utils.attach_iface(f'isl_{src_isl_id}_bridge', src_veth, src_name)
+
+    utils.move_iface(dest_veth, dest_name)
+    utils.attach_iface(f'isl_{dest_isl_id}_bridge', dest_veth, dest_name)
+
+    utils.set_up(src_veth, src_name)
+    utils.set_up(dest_veth, dest_name)
+
+    src_veth = f'isl_{src_name}_{src_isl_id}_veth_sock'
+    dest_veth = f'isl_{dest_name}_{dest_isl_id}_veth_sock'
+    utils.create_veth_ifaces_pair(src_veth, dest_veth)
+
+    utils.move_iface(src_veth, src_name)
+    utils.add_address(src_veth, f'192.168.42.{src_isl_id}/24', src_name)
+
+    utils.move_iface(dest_veth, dest_name)
+    utils.add_address(dest_veth, f'192.168.42.{dest_isl_id}/24', dest_name)
+
+    utils.set_up(src_veth, src_name)
+    utils.set_up(dest_veth, dest_name)
 
 
 def setup(terminals: IDs, gateways: IDs, satellites: IDs, dev_bridge: str, emu_bridge: str):
@@ -62,11 +125,12 @@ def setup(terminals: IDs, gateways: IDs, satellites: IDs, dev_bridge: str, emu_b
 def clean(dev_bridge: str, emu_bridge: str):
     utils.RAISE_ERROR = False
 
-    pattern = re.compile(r'((st|gw|sat)\d+)(\s|$)')
+    pattern = re.compile(r'(st|gw|sat)\d+')
     for netns in utils.list_netns():
-        match = pattern.match(netns)
-        if match is not None:
-            utils.delete_netns(match.group(1))
+        with suppress(KeyError):
+            name = netns['name']
+            if pattern.fullmatch(name):
+                utils.delete_netns(name)
 
     utils.delete_iface(dev_bridge)
     utils.delete_iface(emu_bridge)
@@ -128,6 +192,14 @@ def clean_interfaces(tap_name, bridge_name):
 def command_line_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, fromfile_prefix_chars='@')
     parser.add_argument('-v', '--verbose', action='count', default=0)
+    parser.add_argument(
+            '-l', '--ld-library-path', action='append',
+            help='Prepend the provided path to the LD_LIBRARY_PATH '
+            'environment variable of the spawned process')
+    parser.add_argument(
+            '-p', '--path', action='append',
+            help='Prepend the provided path to the PATH '
+            'environment variable of the spawned proccess')
     subparsers = parser.add_subparsers(title='Mode', help='Mode of operation')
     subparsers.required = True
 
@@ -190,6 +262,30 @@ def command_line_parser() -> argparse.ArgumentParser:
             type=unsigned_byte,
             nargs='+',
             help='IDs of satellites to create netns for')
+
+    parser_isl = subparsers.add_parser('isl', help='Setup interfaces in satellites meant for ISL')
+    parser_isl.add_argument(
+            'src_id',
+            metavar='ID',
+            type=unsigned_byte,
+            help='ID of a satellite at one end of the ISL')
+    parser_isl.add_argument(
+            'dest_id',
+            metavar='ID',
+            type=unsigned_byte,
+            help='ID of a satellite at the other end of the ISL')
+    parser_isl.add_argument(
+            '--reuse-isl-src-id', '-s',
+            dest='src_isl_id',
+            metavar='ID',
+            type=unsigned_byte,
+            help='ID of a previous ISL on SRC_ID whose connection will be broken and reattached to DEST_ID')
+    parser_isl.add_argument(
+            '--reuse-isl-dest-id', '-d',
+            dest='dest_isl_id',
+            metavar='ID',
+            type=unsigned_byte,
+            help='ID of a previous ISL on DEST_ID whose connection will be broken and reattached to SRC_ID')
 
     parser_launch = subparsers.add_parser('launch', help='Run OpenSAND inside a netns')
     parser_launch.add_argument(
@@ -260,6 +356,7 @@ def command_line_parser() -> argparse.ArgumentParser:
 
     parser_clean.set_defaults(function=clean)
     parser_setup.set_defaults(function=setup)
+    parser_isl.set_defaults(function=create_isl)
     parser_launch.set_defaults(function=launch)
     parser_manual.set_defaults(function=find_subfunction)
     parser_manual_eth.set_defaults(subfunction=create_eth_interfaces)
@@ -269,8 +366,20 @@ def command_line_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _prepend_path_env(paths: typing.Optional[typing.List[str]], env_key: str):
+    if paths:
+        _path = os.environ.get(env_key)
+        if _path:
+            paths.append(_path)
+        os.environ[env_key] = ':'.join(paths)
+
+
 if __name__ == "__main__":
     args = vars(command_line_parser().parse_args())
     utils.VERBOSITY = args.pop('verbose')
+
+    _prepend_path_env(args.pop('ld_library_path'), 'LD_LIBRARY_PATH')
+    _prepend_path_env(args.pop('path'), 'PATH')
+
     main = args.pop('function')
     main(**args)
