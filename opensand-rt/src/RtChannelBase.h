@@ -315,9 +315,9 @@ class RtChannelBase
 	std::vector<event_id_t> removed_events;
 
 	/// The fifo for incoming messages from opposite channel
-  std::shared_ptr<RtFifo> in_opp_fifo;
+	std::shared_ptr<RtFifo> in_opp_fifo;
 	/// The fifo for outgoing messages to opposite channel
-  std::shared_ptr<RtFifo> out_opp_fifo;
+	std::shared_ptr<RtFifo> out_opp_fifo;
 
 	/// contains the highest FD of input events
 	int32_t max_input_fd;

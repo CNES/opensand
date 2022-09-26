@@ -38,6 +38,7 @@
 #include "FifoElement.h"
 #include "OpenSandCore.h"
 #include "OpenSandModelConf.h"
+#include "NetContainer.h"
 
 #include <math.h>
 #include <algorithm>

@@ -43,7 +43,6 @@
 
 #include "OpenSandCore.h"
 #include "GroundPhysicalChannel.h"
-#include "AttenuationHandler.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_rt/RtChannel.h>
@@ -51,6 +50,9 @@
 
 #include <string>
 #include <map>
+
+
+class AttenuationHandler;
 
 
 /**
@@ -208,6 +210,5 @@ private:
 	SatDelayPlugin *satdelay = nullptr;
 };
 
+
 #endif
-
-

@@ -234,29 +234,19 @@ bool sat_carrier_channel_set::send(uint8_t carrier_id,
                                    const unsigned char *data,
                                    size_t length)
 {
-	std::vector <UdpChannel *>::const_iterator it;
-	bool status =false;
-
-	for(it = this->begin(); it != this->end(); ++it)
+	for (auto&& channel : *this)
 	{
-		if(carrier_id == (*it)->getChannelID() && (*it)->isOutputOk())
+		if (channel->getChannelID() == carrier_id && channel->isOutputOk())
 		{
-			if((*it)->send(data, length))
-			{
-				status = true;
-			}
-			break;
+			return channel->send(data, length);
 		}
 	}
 
-	if(it == this->end())
-	{
-		LOG(this->log_sat_carrier, LEVEL_ERROR,
-		    "failed to send %zu bytes of data through channel %u: "
-		    "channel not found\n", length, carrier_id);
-	}
+	LOG(this->log_sat_carrier, LEVEL_ERROR,
+	    "failed to send %zu bytes of data through channel %u: "
+	    "channel not found\n", length, carrier_id);
 
-	return status;
+	return false;
 }
 
 
@@ -312,26 +302,19 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 */
 int sat_carrier_channel_set::getChannelFdByChannelId(unsigned int i_channel)
 {
-	std::vector < UdpChannel * >::iterator it;
-	int ret = -1;
-
-	for(it = this->begin(); it != this->end(); it++)
+	for (auto&& channel : *this)
 	{
-		if(i_channel == (*it)->getChannelID())
+		if (channel->getChannelID() == i_channel)
 		{
-			ret = (*it)->getChannelFd();
-			break;
+			return channel->getChannelFd();
 		}
 	}
 
-	if(ret < 0)
-	{
-		LOG(this->log_sat_carrier, LEVEL_ERROR,
-		    "SAT_Carrier_Get_Channel_Fd : Channel not "
-		    "found (%d) \n", i_channel);
-	}
+	LOG(this->log_sat_carrier, LEVEL_ERROR,
+	    "SAT_Carrier_Get_Channel_Fd : Channel not "
+	    "found (%d) \n", i_channel);
 
-	return (ret);
+	return -1;
 }
 
 /**

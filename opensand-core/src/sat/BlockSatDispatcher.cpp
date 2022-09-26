@@ -309,7 +309,7 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 }
 
 BlockSatDispatcher::Downward::Downward(const std::string &name, SatDispatcherConfig config):
-	RtDownwardMuxDemux<SpotComponentPair>(name),
+	RtDownwardMuxDemux<RegenerativeSpotComponent>{name},
 	entity_id{config.entity_id}
 {
 }
@@ -373,8 +373,7 @@ bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> fram
 	}
 	const tal_id_t dest_sat_id = dest_sat_id_it->second;
 
-	// TODO: temp hack, LanAdaptation should be able to handle DvbFrames
-	if (dest_sat_id == entity_id || regen_levels.at({spot_id, dest}) == RegenLevel::IP)
+	if (dest_sat_id == entity_id)
 	{
 		if (id % 2 != 0)
 		{
@@ -385,7 +384,8 @@ bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> fram
 
 		// add one to the input carrier id to get the corresponding output carrier id
 		frame->setCarrierId(carrier_id + 1);
-		return sendToLowerBlock({spot_id, dest}, std::move(frame), msg_type);
+		bool is_transparent = id >= 6 && regen_levels.at({spot_id, dest}) == RegenLevel::Transparent;
+		return sendToLowerBlock({spot_id, dest, is_transparent}, std::move(frame), msg_type);
 	}
 	else
 	{
@@ -446,7 +446,7 @@ bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> in_b
 		const tal_id_t dest_sat_id = dest_sat_id_it->second;
 		if (dest_sat_id == entity_id || regen_levels.at(dest) == RegenLevel::IP)
 		{
-			ok &= sendToLowerBlock(dest, std::move(burst), InternalMessageType::decap_data);
+			ok &= sendToLowerBlock({dest.spot_id, dest.dest, false}, std::move(burst), InternalMessageType::decap_data);
 		}
 		else
 		{

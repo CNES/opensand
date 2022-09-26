@@ -35,15 +35,18 @@
  */
 
 #include "BlockPhysicalLayer.h"
+#include "AttenuationHandler.h"
 
 #include "Plugin.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
 #include "OpenSandPlugin.h"
 #include "OpenSandModelConf.h"
+#include "NetContainer.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/MessageEvent.h>
+
 
 BlockPhysicalLayer::BlockPhysicalLayer(const std::string &name, PhyLayerConfig config):
 	Block(name),

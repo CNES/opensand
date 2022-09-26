@@ -38,12 +38,15 @@
 
 #include "PhysicalLayerPlugin.h"
 #include "DelayFifo.h"
-#include "NetContainer.h"
 #include "DvbFrame.h"
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
 #include <opensand_rt/Types.h>
+
+
+class NetContainer;
+
 
 struct PhyLayerConfig
 {
@@ -169,5 +172,6 @@ public:
 	 */
 	static double computeTotalCn(double up_cn, double down_cn);
 };
+
 
 #endif

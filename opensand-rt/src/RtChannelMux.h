@@ -82,7 +82,7 @@ class RtChannelMux: public RtChannelBase
 	/// The fifos of the previous channels
 	std::vector<std::shared_ptr<RtFifo>> previous_fifos;
 	/// The fifo of the next channel
-  std::shared_ptr<RtFifo> next_fifo;
+	std::shared_ptr<RtFifo> next_fifo;
 };
 
 

@@ -69,6 +69,7 @@
 #include "BlockPhysicalLayer.h"
 #include "BlockSatCarrier.h"
 #include "BlockSatDispatcher.h"
+#include "BlockSatAsymetricHandler.h"
 
 
 EntitySat::EntitySat(tal_id_t instance_id):
@@ -206,49 +207,36 @@ void EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 		phy_config.spot_id = spot_id;
 		phy_config.entity_type = destination;
 
+		AsymetricConfig asym_config;
+		asym_config.phy_config = phy_config;
+		switch (destination)
+		{
+			case Component::gateway:
+				asym_config.is_transparent = return_regen_level == RegenLevel::Transparent;
+				break;
+			case Component::terminal:
+				asym_config.is_transparent = forward_regen_level == RegenLevel::Transparent;
+				break;
+			default:
+				// LOG
+				// fail
+				return;
+		}
+
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap." + suffix, encap_config);
 		auto block_dvb = Rt::createBlock<Dvb>("Dvb." + suffix, dvb_spec);
-		auto block_phy = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer." + suffix, phy_config);
+		auto block_asym = Rt::createBlock<BlockSatAsymetricHandler>("Asymetric_Handler." + suffix, asym_config);
+		// auto block_phy = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer." + suffix, phy_config);
 
-		auto &dispatch_upward = dynamic_cast<typename BlockSatDispatcher::Upward &>(*block_sat_dispatch->upward);
-		auto &dispatch_downward = dynamic_cast<typename BlockSatDispatcher::Downward &>(*block_sat_dispatch->downward);
-		auto &encap_upward = dynamic_cast<typename BlockEncap::Upward &>(*block_encap->upward);
-		auto &encap_downward = dynamic_cast<typename BlockEncap::Downward &>(*block_encap->downward);
-		auto &dvb_upward = dynamic_cast<typename Dvb::Upward &>(*block_dvb->upward);
-		auto &dvb_downward = dynamic_cast<typename Dvb::Downward &>(*block_dvb->downward);
-		auto &sc_upward = dynamic_cast<typename BlockSatCarrier::Upward &>(*block_sc->upward);
-		auto &sc_downward = dynamic_cast<typename BlockSatCarrier::Downward &>(*block_sc->downward);
-		auto &phy_downward = dynamic_cast<typename BlockPhysicalLayer::Downward &>(*block_phy->downward);
-
+		Rt::connectBlocks(block_sat_dispatch, block_encap, {spot_id, destination, false});
 		Rt::connectBlocks(block_encap, block_dvb);
-
-		if ((forward_regen_level != RegenLevel::Transparent && destination == Component::gateway) ||
-		    (return_regen_level != RegenLevel::Transparent && destination == Component::terminal))
-		{
-			Rt::connectChannels(encap_upward, dispatch_upward);
-			Rt::connectChannels(sc_upward, dvb_upward);
-		}
-		if ((forward_regen_level != RegenLevel::Transparent && destination == Component::terminal) ||
-		    (return_regen_level != RegenLevel::Transparent && destination == Component::gateway))
-		{
-			Rt::connectChannels(dispatch_downward, encap_downward, {spot_id, destination});
-			Rt::connectChannels(dvb_downward, phy_downward);
-			Rt::connectChannels(phy_downward, sc_downward);
-		}
-		if ((forward_regen_level == RegenLevel::Transparent && destination == Component::gateway) ||
-		    (return_regen_level == RegenLevel::Transparent && destination == Component::terminal))
-		{
-			Rt::connectChannels(sc_upward, dispatch_upward);
-		}
-		if ((forward_regen_level == RegenLevel::Transparent && destination == Component::terminal) ||
-		    (return_regen_level == RegenLevel::Transparent && destination == Component::gateway))
-		{
-			Rt::connectChannels(dispatch_downward, sc_downward, {spot_id, destination});
-		}
+		Rt::connectBlocks(block_dvb, block_asym, false);
+		Rt::connectBlocks(block_sat_dispatch, block_asym, true, {spot_id, destination, true});
+		Rt::connectBlocks(block_asym, block_sc);
 	}
 	else
 	{
-		Rt::connectBlocks(block_sat_dispatch, block_sc, {spot_id, destination});
+		Rt::connectBlocks(block_sat_dispatch, block_sc, {spot_id, destination, true});
 	}
 }
 

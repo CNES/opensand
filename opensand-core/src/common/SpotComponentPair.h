@@ -47,6 +47,13 @@ struct SpotComponentPair
 };
 
 
+struct RegenerativeSpotComponent : public SpotComponentPair
+{
+	bool is_transparent;
+	bool operator ==(const RegenerativeSpotComponent &o) const;
+};
+
+
 struct IslComponentPair
 {
 	tal_id_t connected_sat;
@@ -63,6 +70,15 @@ struct hash<SpotComponentPair>
 	size_t operator()(const SpotComponentPair &k) const
 	{
 		return k.spot_id << 2 | to_underlying(k.dest);
+	}
+};
+
+template <>
+struct hash<RegenerativeSpotComponent>
+{
+	size_t operator()(const RegenerativeSpotComponent &k) const
+	{
+		return k.spot_id << 3 | to_underlying(k.dest) << 1 | k.is_transparent;
 	}
 };
 

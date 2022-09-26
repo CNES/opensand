@@ -42,6 +42,12 @@ bool SpotComponentPair::operator ==(const SpotComponentPair& o) const
 }
 
 
+bool RegenerativeSpotComponent::operator ==(const RegenerativeSpotComponent& o) const
+{
+	return spot_id == o.spot_id && dest == o.dest && is_transparent == o.is_transparent;
+}
+
+
 bool IslComponentPair::operator ==(const IslComponentPair& o) const
 {
 	return connected_sat == o.connected_sat && is_data_channel == o.is_data_channel;

@@ -107,7 +107,7 @@ public:
 		std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
 	};
 
-	class Downward: public RtDownwardMuxDemux<SpotComponentPair>
+	class Downward: public RtDownwardMuxDemux<RegenerativeSpotComponent>
 	{
 	public:
 		Downward(const std::string &name, SatDispatcherConfig config);
@@ -120,7 +120,7 @@ public:
 		bool handleNetBurst(std::unique_ptr<NetBurst> burst);
 
 		template <typename T>
-		bool sendToLowerBlock(SpotComponentPair key, std::unique_ptr<T> msg, InternalMessageType msg_type);
+		bool sendToLowerBlock(RegenerativeSpotComponent key, std::unique_ptr<T> msg, InternalMessageType msg_type);
 		template <typename T>
 		bool sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type);
 
@@ -165,7 +165,7 @@ bool BlockSatDispatcher::Upward::sendToOppositeChannel(std::unique_ptr<T> msg, I
 }
 
 template <typename T>
-bool BlockSatDispatcher::Downward::sendToLowerBlock(SpotComponentPair key, std::unique_ptr<T> msg, InternalMessageType msg_type)
+bool BlockSatDispatcher::Downward::sendToLowerBlock(RegenerativeSpotComponent key, std::unique_ptr<T> msg, InternalMessageType msg_type)
 {
 	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
 	LOG(log_send, log_level, "Sending a message to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
