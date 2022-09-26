@@ -84,7 +84,7 @@ def __exec_cmd(error_message, *cmd, netns=None):
         if VERBOSITY:
             print(proc.stdout, end='')
             print(proc.stderr, end='')
-        return proc.stdout.splitlines()
+        return proc.stdout
 
 
 def create_netns(netns):

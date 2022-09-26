@@ -46,10 +46,12 @@ def create_entity(entity: str, entity_id: int, dev_bridge: str, emu_bridge: str,
         create_tap('opensand_tap', name, f'192.168.63.{entity_id}/24', f'00:00:00:00:00:{entity_id:0>2X}')
 
 
-def _prepare_isl_env(netns: str, isl_id = None: int):
+def _prepare_isl_env(satellite_id: int, isl_id: int = None):
+    netns = f'sat{satellite_id}'
+
     if isl_id is not None:
-        utils.delete_iface(f'isl_{netns}_{isl_id}_veth_tap')
-        utils.delete_iface(f'isl_{netns}_{isl_id}_veth_sock')
+        utils.delete_iface(f'isl{satellite_id}_{isl_id}_veth', netns)
+        utils.delete_iface(f'isl{satellite_id}_{isl_id}_sock', netns)
         return isl_id
 
     isl_id = 1 + max(
@@ -63,8 +65,8 @@ def _prepare_isl_env(netns: str, isl_id = None: int):
 
     tap_name = f'isl_{isl_id}_tap'
     create_tap(tap_name, netns,
-               f'10.0.{isl_id}.{src_id}/24',
-               f'00:00:00:00:{isl_id:0>2X}:{src_id:0>2X}')
+               f'10.0.{isl_id}.{satellite_id}/24',
+               f'00:00:00:00:{isl_id:0>2X}:{satellite_id:0>2X}')
 
     bridge_name = f'isl_{isl_id}_bridge'
     utils.create_bridge(bridge_name, [tap_name], netns)
@@ -73,15 +75,15 @@ def _prepare_isl_env(netns: str, isl_id = None: int):
     return isl_id
 
 
-def create_isl(src_id: int, dest_id: int, src_isl_id = None: int, dest_isl_id = None: int):
+def create_isl(src_id: int, dest_id: int, src_isl_id: int = None, dest_isl_id: int = None):
     src_name = f'sat{src_id}'
     dest_name = f'sat{dest_id}'
 
-    src_isl_id = _prepare_isl_env(src_name, src_isl_id)
-    dest_isl_id = _prepare_isl_env(dest_name, dest_isl_id)
+    src_isl_id = _prepare_isl_env(src_id, src_isl_id)
+    dest_isl_id = _prepare_isl_env(dest_id, dest_isl_id)
 
-    src_veth = f'isl_{src_name}_{src_isl_id}_veth_tap'
-    dest_veth = f'isl_{dest_name}_{dest_isl_id}_veth_tap'
+    src_veth = f'isl{src_id}_{src_isl_id}_veth'
+    dest_veth = f'isl{dest_id}_{dest_isl_id}_veth'
     utils.create_veth_ifaces_pair(src_veth, dest_veth)
 
     utils.move_iface(src_veth, src_name)
@@ -93,8 +95,8 @@ def create_isl(src_id: int, dest_id: int, src_isl_id = None: int, dest_isl_id = 
     utils.set_up(src_veth, src_name)
     utils.set_up(dest_veth, dest_name)
 
-    src_veth = f'isl_{src_name}_{src_isl_id}_veth_sock'
-    dest_veth = f'isl_{dest_name}_{dest_isl_id}_veth_sock'
+    src_veth = f'isl{src_id}_{src_isl_id}_sock'
+    dest_veth = f'isl{dest_id}_{dest_isl_id}_sock'
     utils.create_veth_ifaces_pair(src_veth, dest_veth)
 
     utils.move_iface(src_veth, src_name)
