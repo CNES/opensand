@@ -32,9 +32,13 @@
  * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
+
+#include <tuple>
+
 #include "BlockSatDispatcher.h"
 
 #include "OpenSandModelConf.h"
+#include "CarrierType.h"
 #include <opensand_rt/MessageEvent.h>
 
 constexpr uint8_t DATA_IN_GW_ID = 8;
@@ -204,14 +208,14 @@ bool BlockSatDispatcher::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 {
 	const spot_id_t spot_id = frame->getSpot();
 	const uint8_t carrier_id = frame->getCarrierId();
-	const uint8_t id = carrier_id % 10;
-	const auto msg_type = id >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
-	const log_level_t log_level = id >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	const auto carrier_type = extractCarrierType(carrier_id);
+	const auto msg_type = isDataCarrier(carrier_type) ? InternalMessageType::encap_data : InternalMessageType::sig;
+	const log_level_t log_level = isDataCarrier(carrier_type) ? LEVEL_INFO : LEVEL_DEBUG;
 	LOG(log_receive, log_level,
 	    "Received a DvbFrame (spot_id %d, carrier id %d, msg type %d)",
 	    spot_id, carrier_id, frame->getMessageType());
 
-	const Component dest = (id == CTRL_IN_GW_ID || id == DATA_IN_GW_ID) ? Component::terminal : Component::gateway;
+	const Component dest = isGatewayCarrier(carrier_type) ? Component::terminal : Component::gateway;
 
 	const auto dest_sat_id_it = routes.find({spot_id, dest});
 	if (dest_sat_id_it == routes.end())
@@ -356,13 +360,16 @@ bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> fram
 {
 	const spot_id_t spot_id = frame->getSpot();
 	const uint8_t carrier_id = frame->getCarrierId();
-	const uint8_t id = carrier_id % 10;
-	const auto msg_type = id >= 6 ? InternalMessageType::encap_data : InternalMessageType::sig;
-	const log_level_t log_level = id >= 6 ? LEVEL_INFO : LEVEL_DEBUG;
+	const auto carrier_type = extractCarrierType(carrier_id);
+	const bool is_data_carrier = isDataCarrier(carrier_type);
+	const auto msg_type = is_data_carrier ? InternalMessageType::encap_data : InternalMessageType::sig;
+	const log_level_t log_level = is_data_carrier ? LEVEL_INFO : LEVEL_DEBUG;
 	LOG(log_receive, log_level, "Received a DvbFrame (spot_id %d, carrier id %d, msg type %d)",
 	    spot_id, carrier_id, frame->getMessageType());
 
-	const Component dest = (id == CTRL_IN_GW_ID || id == DATA_IN_GW_ID) ? Component::terminal : Component::gateway;
+	const auto [dest, src] = isGatewayCarrier(carrier_type)
+	                       ? std::make_tuple(Component::terminal, Component::gateway)
+	                       : std::make_tuple(Component::gateway, Component::terminal);
 
 	const auto dest_sat_id_it = routes.find({spot_id, dest});
 	if (dest_sat_id_it == routes.end())
@@ -375,7 +382,7 @@ bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> fram
 
 	if (dest_sat_id == entity_id)
 	{
-		if (id % 2 != 0)
+		if (isOutputCarrier(carrier_type))
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "Received a message from an output carried id (%d)", carrier_id);
@@ -384,7 +391,8 @@ bool BlockSatDispatcher::Downward::handleDvbFrame(std::unique_ptr<DvbFrame> fram
 
 		// add one to the input carrier id to get the corresponding output carrier id
 		frame->setCarrierId(carrier_id + 1);
-		bool is_transparent = id >= 6 && regen_levels.at({spot_id, dest}) == RegenLevel::Transparent;
+		bool is_transparent = regen_levels.at({spot_id, dest}) == RegenLevel::Transparent
+		                   && (is_data_carrier || regen_levels.at({spot_id, src}) == RegenLevel::Transparent);
 		return sendToLowerBlock({spot_id, dest, is_transparent}, std::move(frame), msg_type);
 	}
 	else

@@ -40,12 +40,7 @@
 #include "OpenSandFrames.h"
 #include "BlockSatAsymetricHandler.h"
 #include "DvbFrame.h"
-
-
-constexpr uint8_t DATA_IN_ST_ID = 6;
-constexpr uint8_t DATA_OUT_ST_ID = 7;
-constexpr uint8_t DATA_IN_GW_ID = 8;
-constexpr uint8_t DATA_OUT_GW_ID = 9;
+#include "CarrierType.h"
 
 
 BlockSatAsymetricHandler::BlockSatAsymetricHandler(const std::string& name, AsymetricConfig):
@@ -78,8 +73,7 @@ bool BlockSatAsymetricHandler::Upward::onEvent(const RtEvent *const event)
 
 	auto msg_event = static_cast<const MessageEvent *>(event);
 	auto frame = static_cast<DvbFrame *>(msg_event->getData());
-	const uint8_t id = frame->getCarrierId() % 10;
-	const bool is_data = (id == DATA_IN_GW_ID) || (id == DATA_IN_ST_ID);
+	const bool is_data = isDataCarrier(extractCarrierType(frame->getCarrierId()));
 
 	if (!this->enqueueMessage(split_traffic && is_data,
 	                          (void**)&frame,
@@ -103,24 +97,53 @@ BlockSatAsymetricHandler::Downward::Downward(const std::string& name, AsymetricC
 }
 
 
+bool BlockSatAsymetricHandler::Downward::onInit()
+{
+	return this->initGround(false, this, this->log_init);
+}
+
+
 bool BlockSatAsymetricHandler::Downward::onEvent(const RtEvent *const event)
 {
-	if (event->getType() != EventType::Message)
+	switch (event->getType())
 	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "Wrong event type received. Only messages are expected by this block.");
-		return false;
-	}
+		case EventType::Message:
+			{
+				LOG(this->log_event, LEVEL_DEBUG, "Incoming DVB frame");
 
-	auto msg_event = static_cast<const MessageEvent *>(event);
-	auto frame = static_cast<DvbFrame *>(msg_event->getData());
-	const uint8_t id = frame->getCarrierId() % 10;
-	const bool is_control = (id != DATA_OUT_GW_ID) && (id != DATA_OUT_ST_ID);
-	if ((is_control || this->is_regenerated_traffic) && IsCnCapableFrame(frame->getMessageType()))
-	{
-		frame->setCn(this->getCurrentCn());
+				auto msg_event = static_cast<const MessageEvent *>(event);
+				auto frame = static_cast<DvbFrame *>(msg_event->getData());
+				const bool is_control = isControlCarrier(extractCarrierType(frame->getCarrierId()));
+				if ((is_control || this->is_regenerated_traffic) && IsCnCapableFrame(frame->getMessageType()))
+				{
+					frame->setCn(this->getCurrentCn());
+				}
+				return this->forwardPacket(frame);
+			}
+
+		case EventType::Timer:
+			{
+				if (*event == this->attenuation_update_timer)
+				{
+					LOG(this->log_event, LEVEL_DEBUG,
+					    "Attenuation update timer expired");
+					return this->updateAttenuation();
+				}
+				if (*event != this->fifo_timer)
+				{
+					LOG(this->log_event, LEVEL_ERROR,
+					    "Unknown timer event received");
+					return false;
+				}
+				return true;
+			}
+
+		default:
+			LOG(this->log_event, LEVEL_ERROR,
+			    "unknown event received %s",
+			    event->getName().c_str());
+			break;
 	}
-	return this->forwardPacket(frame);
 }
 
 

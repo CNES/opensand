@@ -247,7 +247,7 @@ class RtChannelBase
 
 	virtual bool initPreviousFifo() = 0;
 
-  bool initSingleFifo(std::shared_ptr<RtFifo> &fifo);
+	bool initSingleFifo(std::shared_ptr<RtFifo> &fifo);
 
 	/**
 	 * @brief Set the block initialization status

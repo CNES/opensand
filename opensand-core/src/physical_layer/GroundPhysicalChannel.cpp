@@ -44,7 +44,8 @@
 #include <algorithm>
 #include <string>
 
-#include <opensand_rt/RtChannel.h>
+#include <opensand_rt/RtChannelBase.h>
+
 
 GroundPhysicalChannel::GroundPhysicalChannel(PhyLayerConfig config):
 	clear_sky_condition{0},
@@ -80,7 +81,7 @@ void GroundPhysicalChannel::setSatDelay(SatDelayPlugin *satdelay)
 	this->satdelay_model = satdelay;
 }
 
-bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, std::shared_ptr<OutputLog> log_init)
+bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannelBase *channel, std::shared_ptr<OutputLog> log_init)
 {
 	auto output = Output::Get();
 	auto Conf = OpenSandModelConf::Get();
@@ -95,9 +96,6 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, 
 	bool is_sat = Conf->getComponentType() == Component::satellite;
 	std::string probe_prefix = generateProbePrefix(spot_id, entity_type, is_sat);
 
-	// Sanity check
-	assert(this->satdelay_model != nullptr);
-	
 	// Get the FIFO max size
 	// vol_pkt_t max_size;
 	std::size_t max_size;

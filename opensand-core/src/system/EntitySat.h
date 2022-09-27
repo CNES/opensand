@@ -84,12 +84,11 @@ protected:
 
 private:
 	template <typename Dvb>
-	void createStack(BlockSatDispatcher *block_sat_dispatch,
+	bool createStack(BlockSatDispatcher *block_sat_dispatch,
 	                 spot_id_t spot_id,
 	                 Component destination,
 	                 RegenLevel forward_regen_level,
-	                 RegenLevel return_regen_level,
-	                 bool disable_ctrl_plane);
+	                 RegenLevel return_regen_level);
 
 	/**
 	 * Returns the entities that are connected through an ISL connection

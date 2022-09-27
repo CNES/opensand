@@ -42,6 +42,7 @@
 #include "OpenSandModelConf.h"
 #include "MacAddress.h"
 #include "SarpTable.h"
+#include "CarrierType.h"
 
 
 const std::map<std::string, log_level_t> levels_map{
@@ -1563,7 +1564,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 		return false;
 	}
 		
-	int carrier_id = gw_id * 10;
+	uint16_t carrier_id = gw_id * 10;
 
 	std::string gateway_address;
 	if (!extractParameterData(gateway, "emu_address", gateway_address)) {
@@ -1672,7 +1673,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	}
 
 	carriers.logon_in = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 0),
+	    carrier_id + CarrierType::LOGON_IN,
 	    satellite_st_address,
 	    static_cast<uint16_t>(logon_in_port),
 	    false,
@@ -1682,7 +1683,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.logon_out = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 1),
+	    carrier_id + CarrierType::LOGON_OUT,
 	    gateway_address,
 	    static_cast<uint16_t>(logon_out_port),
 	    false,
@@ -1692,7 +1693,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.ctrl_in_st = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 2),
+	    carrier_id + CarrierType::CTRL_IN_ST,
 	    satellite_st_address,
 	    static_cast<uint16_t>(ctrl_in_st_port),
 	    false,
@@ -1702,7 +1703,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.ctrl_out_gw = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 3),
+	    carrier_id + CarrierType::CTRL_OUT_GW,
 	    gateway_address,
 	    static_cast<uint16_t>(ctrl_out_gw_port),
 	    false,
@@ -1712,7 +1713,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.ctrl_in_gw = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 4),
+	    carrier_id + CarrierType::CTRL_IN_GW,
 	    satellite_gw_address,
 	    static_cast<uint16_t>(ctrl_in_gw_port),
 	    false,
@@ -1722,7 +1723,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.ctrl_out_st = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 5),
+	    carrier_id + CarrierType::CTRL_OUT_ST,
 	    ctrl_multicast_address,
 	    static_cast<uint16_t>(ctrl_out_st_port),
 	    true,
@@ -1732,7 +1733,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.data_in_st = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 6),
+	    carrier_id + CarrierType::DATA_IN_ST,
 	    satellite_st_address,
 	    static_cast<uint16_t>(data_in_st_port),
 	    false,
@@ -1742,7 +1743,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.data_out_gw = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 7),
+	    carrier_id + CarrierType::DATA_OUT_GW,
 	    gateway_address,
 	    static_cast<uint16_t>(data_out_gw_port),
 	    false,
@@ -1752,7 +1753,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.data_in_gw = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 8),
+	    carrier_id + CarrierType::DATA_IN_GW,
 	    satellite_gw_address,
 	    static_cast<uint16_t>(data_in_gw_port),
 	    false,
@@ -1762,7 +1763,7 @@ bool OpenSandModelConf::getSpotInfrastructure(uint16_t gw_id, spot_infrastructur
 	    static_cast<unsigned>(udp_wmem)
 	};
 	carriers.data_out_st = carrier_socket{
-	    static_cast<uint16_t>(carrier_id + 9),
+	    carrier_id + CarrierType::DATA_OUT_ST,
 	    data_multicast_address,
 	    static_cast<uint16_t>(data_out_st_port),
 	    true,

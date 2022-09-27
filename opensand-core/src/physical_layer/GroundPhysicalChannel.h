@@ -107,7 +107,7 @@ protected:
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool initGround(bool upward_channel, RtChannel *channel, std::shared_ptr<OutputLog> log_init);
+	bool initGround(bool upward_channel, RtChannelBase *channel, std::shared_ptr<OutputLog> log_init);
 
 	/**
 	 * @brief Update the attenuation

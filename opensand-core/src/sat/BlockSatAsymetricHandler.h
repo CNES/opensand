@@ -75,6 +75,8 @@ public:
 	public:
 		Downward(const std::string& name, AsymetricConfig specific);
 
+		bool onInit() override;
+
 	private:
 		bool onEvent(const RtEvent *const event) override;
 		bool forwardPacket(DvbFrame *frame) override;

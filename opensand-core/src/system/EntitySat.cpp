@@ -55,6 +55,7 @@
  *
  */
 
+#include <sstream>
 #include <numeric>
 #include <functional>
 
@@ -83,24 +84,15 @@ bool EntitySat::createSpecificBlocks()
 {
 	try
 	{
-		auto conf = OpenSandModelConf::Get();
-		const auto &spot_topo = conf->getSpotsTopology();
-
-		bool disable_ctrl_plane;
-		if (!conf->getControlPlaneDisabled(disable_ctrl_plane))
-		{
-			return false;
-		}
-
-		bool isl_enabled = std::transform_reduce(isl_config.cbegin(),
-		                                         isl_config.cend(),
-		                                         false,
-		                                         std::logical_or<>(),
-		                                         [](auto cfg){return cfg.type != IslType::None;});
+		const auto &spot_topo = OpenSandModelConf::Get()->getSpotsTopology();
 
 		SatDispatcherConfig sat_dispatch_cfg;
 		sat_dispatch_cfg.entity_id = instance_id;
-		sat_dispatch_cfg.isl_enabled = isl_enabled;
+		sat_dispatch_cfg.isl_enabled = std::transform_reduce(isl_config.cbegin(),
+		                                                     isl_config.cend(),
+		                                                     false,
+		                                                     std::logical_or<>(),
+		                                                     [](auto cfg){return cfg.type != IslType::None;});
 		auto block_sat_dispatch = Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
 
 		std::size_t index = 0;
@@ -147,16 +139,28 @@ bool EntitySat::createSpecificBlocks()
 
 			if (topo.sat_id_gw == instance_id)
 			{
-				createStack<BlockDvbTal>(block_sat_dispatch, spot_id, Component::gateway,
-				                         topo.forward_regen_level, topo.return_regen_level,
-				                         disable_ctrl_plane);
+				if (!createStack<BlockDvbTal>(block_sat_dispatch, spot_id, Component::gateway,
+				                              topo.forward_regen_level, topo.return_regen_level))
+				{
+					DFLTLOG(LEVEL_CRITICAL,
+					        "%s: error during block creation: could not "
+					        "create DvbTal stack to communicate with the GW",
+					        this->getName().c_str());
+					return false;
+				}
 			}
 
 			if (topo.sat_id_st == instance_id)
 			{
-				createStack<BlockDvbNcc>(block_sat_dispatch, spot_id, Component::terminal,
-				                         topo.forward_regen_level, topo.return_regen_level,
-				                         disable_ctrl_plane);
+				if (!createStack<BlockDvbNcc>(block_sat_dispatch, spot_id, Component::terminal,
+				                              topo.forward_regen_level, topo.return_regen_level))
+				{
+					DFLTLOG(LEVEL_CRITICAL,
+					        "%s: error during block creation: could not "
+					        "create DvbTal stack to communicate with the GW",
+					        this->getName().c_str());
+					return false;
+				}
 			}
 		}
 	}
@@ -166,20 +170,37 @@ bool EntitySat::createSpecificBlocks()
 		        this->getName().c_str(), e.what());
 		return false;
 	}
+
 	return true;
 }
 
 template <typename Dvb>
-void EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
+bool EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
                             spot_id_t spot_id,
                             Component destination,
                             RegenLevel forward_regen_level,
-                            RegenLevel return_regen_level,
-                            bool disable_ctrl_plane)
+                            RegenLevel return_regen_level)
 {
-	auto spot_id_str = std::to_string(spot_id);
-	auto dest_str = destination == Component::gateway ? "GW" : "ST";
-	auto suffix = dest_str + spot_id_str;
+	bool is_transparent{};
+	std::ostringstream suffix_builder;
+	switch (destination)
+	{
+		case Component::gateway:
+			suffix_builder << "GW";
+			is_transparent = return_regen_level == RegenLevel::Transparent;
+			break;
+		case Component::terminal:
+			suffix_builder << "ST";
+			is_transparent = forward_regen_level == RegenLevel::Transparent;
+			break;
+		default:
+			DFLTLOG(LEVEL_ERROR,
+			        "%s: error during block creation: Invalid destination for satellite stack",
+			        this->getName().c_str());
+			return false;
+	}
+	suffix_builder << spot_id;
+	auto suffix = suffix_builder.str();
 
 	sc_specific specific;
 	specific.ip_addr = ip_address;
@@ -191,10 +212,16 @@ void EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 	if (forward_regen_level != RegenLevel::Transparent || return_regen_level != RegenLevel::Transparent)
 	{
 		dvb_specific dvb_spec;
-		dvb_spec.disable_control_plane = disable_ctrl_plane;
 		dvb_spec.disable_acm_loop = false;
 		dvb_spec.mac_id = instance_id;
 		dvb_spec.spot_id = spot_id;
+		if (!OpenSandModelConf::Get()->getControlPlaneDisabled(dvb_spec.disable_control_plane))
+		{
+			DFLTLOG(LEVEL_ERROR,
+			        "%s: error during block creation: Cannot retrieve disabled control plane parameter",
+			        this->getName().c_str());
+			return false;
+		}
 
 		EncapConfig encap_config;
 		encap_config.entity_id = instance_id;
@@ -209,24 +236,11 @@ void EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 
 		AsymetricConfig asym_config;
 		asym_config.phy_config = phy_config;
-		switch (destination)
-		{
-			case Component::gateway:
-				asym_config.is_transparent = return_regen_level == RegenLevel::Transparent;
-				break;
-			case Component::terminal:
-				asym_config.is_transparent = forward_regen_level == RegenLevel::Transparent;
-				break;
-			default:
-				// LOG
-				// fail
-				return;
-		}
+		asym_config.is_transparent = is_transparent;
 
 		auto block_encap = Rt::createBlock<BlockEncap>("Encap." + suffix, encap_config);
 		auto block_dvb = Rt::createBlock<Dvb>("Dvb." + suffix, dvb_spec);
 		auto block_asym = Rt::createBlock<BlockSatAsymetricHandler>("Asymetric_Handler." + suffix, asym_config);
-		// auto block_phy = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer." + suffix, phy_config);
 
 		Rt::connectBlocks(block_sat_dispatch, block_encap, {spot_id, destination, false});
 		Rt::connectBlocks(block_encap, block_dvb);
@@ -238,6 +252,8 @@ void EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 	{
 		Rt::connectBlocks(block_sat_dispatch, block_sc, {spot_id, destination, true});
 	}
+
+	return true;
 }
 
 void defineProfileMetaModel()
@@ -251,7 +267,7 @@ void defineProfileMetaModel()
 	BlockDvbTal::generateConfiguration(disable_ctrl_plane);
 	BlockEncap::generateConfiguration();
 	BlockLanAdaptation::generateConfiguration();
-	BlockPhysicalLayer::generateConfiguration();
+	GroundPhysicalChannel::generateConfiguration();
 
 	auto isl = conf->getOrCreateComponent("isl", "ISL", "Inter-satellite links");
 	auto isl_delay = isl->addParameter("delay", "Delay", types->getType("int"), "Propagation delay for output ISL packets");
@@ -265,9 +281,8 @@ bool EntitySat::loadConfiguration(const std::string &profile_path)
 
 	bool needs_profile = false;
 	auto spots = Conf->getSpotsTopology();
-	for (auto &&item : spots)
+	for (auto &&[spot_id, spot] : spots)
 	{
-		auto spot = item.second;
 		if ((spot.sat_id_gw == this->instance_id && spot.forward_regen_level != RegenLevel::Transparent) ||
 		    (spot.sat_id_st == this->instance_id && spot.return_regen_level != RegenLevel::Transparent))
 		{
@@ -276,13 +291,24 @@ bool EntitySat::loadConfiguration(const std::string &profile_path)
 		}
 	}
 	
-	if (needs_profile && !Conf->readProfile(profile_path))
+	if (needs_profile)
 	{
-		return false;
+		if (!Conf->readProfile(profile_path))
+		{
+			return false;
+		}
+		auto isl_conf = Conf->getProfileData("isl");
+		if (!OpenSandModelConf::extractParameterData(isl_conf, "delay", isl_delay))
+		{
+			return false;
+		}
 	}
-	auto isl_conf = Conf->getProfileData("isl");
-	return OpenSandModelConf::extractParameterData(isl_conf, "delay", isl_delay) &&
-	       Conf->getSatInfrastructure(this->ip_address, this->isl_config);
+	else
+	{
+		isl_delay = 0;
+	}
+
+	return Conf->getSatInfrastructure(this->ip_address, this->isl_config);
 }
 
 bool EntitySat::createSpecificConfiguration(const std::string &filepath) const
