@@ -98,7 +98,7 @@ private:
 	std::string ip_address;
 	tal_id_t instance_id;
 	std::vector<IslConfig> isl_config;
-	int isl_delay;
+	bool isl_enabled;
 };
 
 #endif

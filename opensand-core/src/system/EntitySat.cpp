@@ -75,7 +75,8 @@
 
 EntitySat::EntitySat(tal_id_t instance_id):
 	Entity("sat" + std::to_string(instance_id), instance_id),
-	instance_id{instance_id}
+	instance_id{instance_id},
+	isl_enabled{false}
 {
 }
 
@@ -84,16 +85,23 @@ bool EntitySat::createSpecificBlocks()
 {
 	try
 	{
-		const auto &spot_topo = OpenSandModelConf::Get()->getSpotsTopology();
+		auto Conf = OpenSandModelConf::Get();
+		const auto &spot_topo = Conf->getSpotsTopology();
 
 		SatDispatcherConfig sat_dispatch_cfg;
 		sat_dispatch_cfg.entity_id = instance_id;
-		sat_dispatch_cfg.isl_enabled = std::transform_reduce(isl_config.cbegin(),
-		                                                     isl_config.cend(),
-		                                                     false,
-		                                                     std::logical_or<>(),
-		                                                     [](auto cfg){return cfg.type != IslType::None;});
+		sat_dispatch_cfg.isl_enabled = this->isl_enabled;
 		auto block_sat_dispatch = Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
+
+		int isl_delay = 0;
+		if (isl_enabled)
+		{
+			auto isl_conf = Conf->getProfileData("isl");
+			if (!OpenSandModelConf::extractParameterData(isl_conf, "delay", isl_delay))
+			{
+				return false;
+			}
+		}
 
 		std::size_t index = 0;
 		for (auto&& cfg : isl_config)
@@ -279,36 +287,38 @@ bool EntitySat::loadConfiguration(const std::string &profile_path)
 	defineProfileMetaModel();
 	auto Conf = OpenSandModelConf::Get();
 
-	bool needs_profile = false;
-	auto spots = Conf->getSpotsTopology();
-	for (auto &&[spot_id, spot] : spots)
+	if (!Conf->getSatInfrastructure(this->ip_address, this->isl_config))
 	{
-		if ((spot.sat_id_gw == this->instance_id && spot.forward_regen_level != RegenLevel::Transparent) ||
-		    (spot.sat_id_st == this->instance_id && spot.return_regen_level != RegenLevel::Transparent))
-		{
-			needs_profile = true;
-			break;
-		}
-	}
-	
-	if (needs_profile)
-	{
-		if (!Conf->readProfile(profile_path))
-		{
-			return false;
-		}
-		auto isl_conf = Conf->getProfileData("isl");
-		if (!OpenSandModelConf::extractParameterData(isl_conf, "delay", isl_delay))
-		{
-			return false;
-		}
-	}
-	else
-	{
-		isl_delay = 0;
+		return false;
 	}
 
-	return Conf->getSatInfrastructure(this->ip_address, this->isl_config);
+	this->isl_enabled = std::transform_reduce(isl_config.cbegin(),
+	                                          isl_config.cend(),
+	                                          false,
+	                                          std::logical_or<>(),
+	                                          [](auto cfg){return cfg.type != IslType::None;});
+
+	bool needs_profile = this->isl_enabled;
+	if (!this->isl_enabled)
+	{
+		auto spots = Conf->getSpotsTopology();
+		for (auto &&[spot_id, spot] : spots)
+		{
+			if ((spot.sat_id_gw == this->instance_id && spot.forward_regen_level != RegenLevel::Transparent) ||
+			    (spot.sat_id_st == this->instance_id && spot.return_regen_level != RegenLevel::Transparent))
+			{
+				needs_profile = true;
+				break;
+			}
+		}
+	}
+
+	if (needs_profile && !Conf->readProfile(profile_path))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 bool EntitySat::createSpecificConfiguration(const std::string &filepath) const
