@@ -122,8 +122,8 @@ void OpenSandModelConf::createModels()
 		                             "messages from this satellite");
 		interco_params->addParameter("upward_data_port", "Data Port (Upward)", types->getType("int"));
 		interco_params->addParameter("downward_data_port", "Data Port (Downward)", types->getType("int"));
-		interco_params->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"))->setAdvanced(true);
-		interco_params->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"))->setAdvanced(true);
+		interco_params->addParameter("upward_sig_port", "Signalisation Port (Upward)", types->getType("int"));
+		interco_params->addParameter("downward_sig_port", "Signalisation Port (Downward)", types->getType("int"));
 		interco_params->addParameter("interco_udp_stack", "UDP Stack (Interconnect)", types->getType("int"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_rmem", "UDP RMem (Interconnect)", types->getType("int"))->setAdvanced(true);
 		interco_params->addParameter("interco_udp_wmem", "UDP WMem (Interconnect)", types->getType("int"))->setAdvanced(true);
