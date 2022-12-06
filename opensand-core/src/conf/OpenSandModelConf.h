@@ -198,6 +198,7 @@ public:
 	bool getGwWithTalId(tal_id_t terminal_id, tal_id_t &gw_id) const;
 	bool getGwWithCarrierId(unsigned int carrier_id, tal_id_t &gw) const;
 	bool isGw(tal_id_t gw_id) const;
+	std::unordered_set<tal_id_t> getSatellites() const;
 	Component getEntityType(tal_id_t tal_id) const;
 	bool getScpcEnabled(bool &scpc_enabled) const;
 	bool getScpcEncapStack(std::vector<std::string> &encap_stack) const;

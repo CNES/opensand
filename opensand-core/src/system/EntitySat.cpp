@@ -123,10 +123,12 @@ bool EntitySat::createSpecificBlocks()
 				{
 					la_specific la_cfg{
 						.tap_iface = cfg.tap_iface,
+						.connected_satellite = cfg.linked_sat_id,
+						.is_used_for_isl = true,
 						.packet_switch = new SatellitePacketSwitch{instance_id, getIslEntities(spot_topo)},
 					};
 					auto block_lan_adapt = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", la_cfg);
-					Rt::connectBlocks(block_lan_adapt, block_sat_dispatch, {.connected_sat = 0, .is_data_channel = true});
+					Rt::connectBlocks(block_lan_adapt, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = true});
 				}
 					break;
 				case IslType::None:
@@ -140,11 +142,8 @@ bool EntitySat::createSpecificBlocks()
 			++index;
 		}
 
-		for (auto &&spot: spot_topo)
+		for (auto &&[spot_id, topo]: spot_topo)
 		{
-			const SpotTopology &topo = spot.second;
-			const spot_id_t spot_id = spot.first;
-
 			if (topo.sat_id_gw == instance_id)
 			{
 				if (!createStack<BlockDvbTal>(block_sat_dispatch, spot_id, Component::gateway,
@@ -332,9 +331,8 @@ bool EntitySat::createSpecificConfiguration(const std::string &filepath) const
 std::unordered_set<tal_id_t> EntitySat::getIslEntities(const std::unordered_map<spot_id_t, SpotTopology> &spot_topo) const
 {
 	std::unordered_set<tal_id_t> isl_entities;
-	for (auto &&spot: spot_topo)
+	for (auto &&[spot_id, topo]: spot_topo)
 	{
-		const SpotTopology &topo = spot.second;
 		if (topo.sat_id_st == instance_id && topo.sat_id_gw != instance_id)
 		{
 			isl_entities.insert(topo.gw_id);

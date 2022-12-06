@@ -597,7 +597,15 @@ bool OpenSandModelConf::readTopology(const std::string& filename)
 	}
 
 	topology = OpenSANDConf::fromXML(topology_model, filename);
-	if (topology == nullptr) {
+	if (topology == nullptr)
+	{
+		LOG(log, LEVEL_ERROR, "parse error when reading topology file");
+		return false;
+	}
+
+	if (infrastructure == nullptr)
+	{
+		LOG(log, LEVEL_ERROR, "building spot topology requires reading infrastructure file first");
 		return false;
 	}
 	
@@ -627,10 +635,18 @@ bool OpenSandModelConf::readTopology(const std::string& filename)
 		LOG(log, LEVEL_ERROR, "A problem occurred while extracting spot assignments");
 		return false;
 	}
+
+	std::unordered_set<int> terminal_ids{};
+	auto terminals = infrastructure->getRoot()->getComponent("infrastructure")->getList("terminals");
+	for (auto& entity_element : terminals->getItems()) {
+		auto st = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
+		int st_id;
+		if (extractParameterData(st, "entity_id", st_id)) {
+			terminal_ids.insert(st_id);
+		}
+	}
 	
 	auto st_assignments = topology->getRoot()->getComponent("st_assignment");
-	auto assigned_spot = st_assignments->getComponent("defaults")->getParameter("default_gateway");
-
 	for (auto& assignment_item : st_assignments->getList("assignments")->getItems()) {
 		auto st_assignment = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(assignment_item);
 		int st_id;
@@ -638,18 +654,46 @@ bool OpenSandModelConf::readTopology(const std::string& filename)
 		if (!extractParameterData(st_assignment, "terminal_id", st_id)) {
 			return false;
 		}
-		assigned_spot = st_assignment->getParameter("gateway_id");
+		auto assigned_spot = st_assignment->getParameter("gateway_id");
 		if (!extractParameterData(assigned_spot, spot_id)) {
 			return false;
 		}
 		if (spots_topology.find(spot_id) == spots_topology.end())
 		{
-			LOG(log, LEVEL_ERROR, "ST%d is assigned to the spot %d, which was not found in the configuration",
-			st_id, spot_id);
+			LOG(log, LEVEL_ERROR,
+			    "ST%d is assigned to the spot %d, which was not found in the configuration",
+			    st_id, spot_id);
 			return false;
 		}
 		spots_topology[spot_id].st_ids.insert(st_id);
+
+		auto non_default_st = terminal_ids.find(st_id);
+		if (non_default_st != terminal_ids.end())
+		{
+			terminal_ids.erase(non_default_st);
+		}
 	}
+
+	if (terminal_ids.size())
+	{
+		auto assigned_spot = st_assignments->getComponent("defaults")->getParameter("default_gateway");
+		int default_spot;
+		if (!extractParameterData(assigned_spot, default_spot)) {
+			return false;
+		}
+		if (spots_topology.find(default_spot) == spots_topology.end())
+		{
+			LOG(log, LEVEL_ERROR,
+			    "Some ST are not assigned a spot and should be assigned to the default "
+				"spot (%d), but it was not found in the configuration",
+				default_spot);
+			return false;
+		}
+
+		auto& sts = spots_topology[default_spot].st_ids;
+		std::copy(terminal_ids.begin(), terminal_ids.end(), std::inserter(sts, sts.end()));
+	}
+
 	return true;
 }
 
@@ -664,6 +708,7 @@ bool OpenSandModelConf::readInfrastructure(const std::string& filename)
 	entities_type.clear();
 	infrastructure = OpenSANDConf::fromXML(infrastructure_model, filename);
 	if (infrastructure == nullptr) {
+		LOG(log, LEVEL_ERROR, "parse error when reading infrastructure file");
 		return false;
 	}
 
@@ -704,7 +749,13 @@ bool OpenSandModelConf::readProfile(const std::string& filename)
 	}
 
 	profile = OpenSANDConf::fromXML(profile_model, filename);
-	return profile != nullptr;
+	if (profile == nullptr)
+	{
+		LOG(log, LEVEL_ERROR, "parse error when reading profile file");
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -1007,7 +1058,7 @@ bool OpenSandModelConf::getSarp(SarpTable& sarp_table) const
 	sarp_table.add(make_unique_mac("33:33:**:**:**:**"), 31);
 	sarp_table.add(make_unique_mac("01:00:5E:**:**:**"), 31);
 
-	static std::vector<std::string> list_names{"gateways", "terminals"};
+	static const std::vector<std::string> list_names{"gateways", "terminals"};
 	for (auto& list_name : list_names) {
 		for (auto& entity_element : infra->getList(list_name)->getItems()) {
 			auto entity = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(entity_element);
@@ -1469,6 +1520,21 @@ bool OpenSandModelConf::isGw(uint16_t gw_id) const
 
 	auto entity = entities_type.find(gw_id);
 	return entity != entities_type.end() && entity->second == Component::gateway;
+}
+
+
+std::unordered_set<tal_id_t> OpenSandModelConf::getSatellites() const
+{
+	std::unordered_set<tal_id_t> satellites{};
+	for (auto&& [entity_id, entity_type] : this->entities_type)
+	{
+		if (entity_type == Component::satellite)
+		{
+			satellites.insert(entity_id);
+		}
+	}
+
+	return satellites;
 }
 
 

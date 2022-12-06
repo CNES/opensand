@@ -97,11 +97,7 @@ public:
 		char getLanHeader(unsigned int pos, const std::unique_ptr<NetPacket>& packet);
 		bool handleTap();
 		void updateStats(unsigned int period);
-		bool initLanAdaptationContext(
-			tal_id_t tal_id,
-			tal_id_t gw_id,
-			//const SarpTable *sarp_table);
-			PacketSwitch *packet_switch);
+		bool initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *packet_switch);
 
 	protected:
 		/**

@@ -80,6 +80,8 @@ bool SarpTable::add(std::unique_ptr<MacAddress> mac_address, tal_id_t tal)
 
 bool SarpTable::getTalByMac(const MacAddress &mac_address, tal_id_t &tal_id) const
 {
+	tal_id = this->default_dest;
+
 	for(auto&& entry : this->eth_sarp)
 	{
 		if(entry.mac->matches(&mac_address))

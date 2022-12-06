@@ -116,10 +116,7 @@ public:
 		 * @param class_list       A list of service classes
 		 * @return true on success, false otherwise
 		 */
-		virtual bool initLanAdaptationContext(tal_id_t tal_id,
-		                                      tal_id_t gw_id,
-		                                      ///const SarpTable *sarp_table);
-		                                      PacketSwitch *packet_switch);
+		virtual bool initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *packet_switch);
 
 		/**
 		 * @brief Get the bytes of LAN header for TUN/TAP interface
@@ -147,9 +144,6 @@ public:
 
 		/// The terminal ID
 		tal_id_t tal_id;
-
-		/// The Gateway ID
-		tal_id_t gw_id;
 
 		/// The SARP table
 		PacketSwitch *packet_switch;

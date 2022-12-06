@@ -427,17 +427,9 @@ bool Ethernet::Context::initTrafficCategories()
 }
 
 
-bool Ethernet::Context::initLanAdaptationContext(
-	tal_id_t tal_id,
-	tal_id_t gw_id,
-	PacketSwitch *packet_switch)
+bool Ethernet::Context::initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *packet_switch)
 {
-	if(!LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id, gw_id, 
-										packet_switch))
-	{
-		return false;
-	}
-	return true;
+	return LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id, packet_switch);
 }
 
 

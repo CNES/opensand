@@ -118,6 +118,15 @@ SatellitePacketSwitch::SatellitePacketSwitch(tal_id_t tal_id, std::unordered_set
 	PacketSwitch{tal_id},
 	isl_entities{std::move(isl_entities)}
 {
+	for (auto&& satellite : OpenSandModelConf::Get()->getSatellites())
+	{
+		if (satellite != tal_id)
+		{
+			this->sarp_table.setDefaultTal(satellite);
+			// this->isl_entities.insert(satellite);
+			break;
+		}
+	}
 }
 
 bool SatellitePacketSwitch::getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id)

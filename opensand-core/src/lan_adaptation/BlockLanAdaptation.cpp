@@ -74,20 +74,22 @@ BlockLanAdaptation::BlockLanAdaptation(const std::string &name, struct la_specif
 }
 
 
-BlockLanAdaptation::Downward::Downward(const std::string &name, struct la_specific):
+BlockLanAdaptation::Downward::Downward(const std::string &name, struct la_specific specific):
 	RtDownward{name},
 	stats_period_ms{},
 	contexts{},
-	state{SatelliteLinkState::DOWN}
+	tal_id{specific.connected_satellite},
+	state{specific.is_used_for_isl ? SatelliteLinkState::UP : SatelliteLinkState::DOWN}
 {
 }
  
 
-BlockLanAdaptation::Upward::Upward(const std::string &name, struct la_specific):
+BlockLanAdaptation::Upward::Upward(const std::string &name, struct la_specific specific):
 	RtUpward{name},
 	sarp_table{},
 	contexts{},
-	state{SatelliteLinkState::DOWN}
+	tal_id{specific.connected_satellite},
+	state{specific.is_used_for_isl ? SatelliteLinkState::UP : SatelliteLinkState::DOWN}
 {
 }
 
@@ -198,7 +200,6 @@ bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
 				// 'link is up' message advertised
 				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
 				// save group id and TAL id sent by MAC layer
-				this->group_id = link_up_msg->group_id;
 				this->tal_id = link_up_msg->tal_id;
 				this->state = SatelliteLinkState::UP;
 				delete link_up_msg;
@@ -266,29 +267,25 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 				// 'link is up' message advertised
 				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
 				LOG(this->log_receive, LEVEL_INFO,
-				    "link up message received (group = %u, "
-				    "tal = %u)\n", link_up_msg->group_id,
+				    "link up message received (group = %u, tal = %u)\n",
+				    link_up_msg->group_id,
 				    link_up_msg->tal_id);
 
 				if(this->state == SatelliteLinkState::UP)
 				{
-					LOG(this->log_receive, LEVEL_NOTICE,
-					    "duplicate link up msg\n");
+					LOG(this->log_receive, LEVEL_NOTICE, "duplicate link up msg\n");
 					delete link_up_msg;
 					return false;
 				}
 				else
 				{
 					// save group id and TAL id sent by MAC layer
-					this->group_id = link_up_msg->group_id;
 					this->tal_id = link_up_msg->tal_id;
 					// initialize contexts
 					for(lan_contexts_t::iterator ctx_iter = this->contexts.begin();
 					    ctx_iter != this->contexts.end(); ++ctx_iter)
 					{
-						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id,
-							                                  this->group_id,
-						                                          BlockLanAdaptation::packet_switch))
+						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id, BlockLanAdaptation::packet_switch))
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
 							    "cannot initialize %s context\n",

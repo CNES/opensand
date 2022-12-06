@@ -56,7 +56,9 @@ class NetSocketEvent;
 struct la_specific
 {
 	std::string tap_iface;
-	PacketSwitch *packet_switch;        
+	tal_id_t connected_satellite = 0;
+	bool is_used_for_isl = false;
+	PacketSwitch *packet_switch = nullptr;
 };
 
 /**
@@ -120,8 +122,6 @@ public:
 		/// the contexts list from lower to upper context
 		lan_contexts_t contexts;
 
-		/// The MAC layer group id received through msg_link_up
-		group_id_t group_id;
 		/// The MAC layer MAC id received through msg_link_up
 		tal_id_t tal_id;
 
@@ -171,8 +171,6 @@ public:
 		/// the contexts list from lower to upper context
 		lan_contexts_t contexts;
 
-		/// The MAC layer group id received through msg_link_up
-		group_id_t group_id;
 		/// The MAC layer MAC id received through msg_link_up
 		tal_id_t tal_id;
 

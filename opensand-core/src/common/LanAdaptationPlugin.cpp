@@ -109,11 +109,9 @@ bool LanAdaptationPlugin::LanAdaptationContext::init()
 }
 
 bool LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id_t tal_id,
-                                                                         tal_id_t gw_id,
                                                                          PacketSwitch *packet_switch)
 {
 	this->tal_id = tal_id;
-	this->gw_id = gw_id;
 	this->packet_switch = packet_switch;
 	return true;
 }

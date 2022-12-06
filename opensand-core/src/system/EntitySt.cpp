@@ -83,10 +83,10 @@ bool EntitySt::createSpecificBlocks()
 	{
 		auto Conf = OpenSandModelConf::Get();
 	
-		la_specific laspecific;
-		laspecific.tap_iface = this->tap_iface;
 		tal_id_t gw_id;
 	 	Conf->getGwWithTalId(this->instance_id, gw_id);
+		la_specific laspecific;
+		laspecific.tap_iface = this->tap_iface;
 		laspecific.packet_switch = new TerminalPacketSwitch(this->instance_id, gw_id);
 
 		EncapConfig encap_cfg;
