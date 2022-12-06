@@ -41,11 +41,16 @@
 #include "RtCommunicate.h"
 
 
-MessageEvent::MessageEvent(std::shared_ptr<RtFifo> &fifo,
+namespace Rt
+{
+
+
+MessageEvent::MessageEvent(std::shared_ptr<Fifo> &fifo,
                            const std::string &name,
                            int32_t fd,
                            uint8_t priority):
-	RtEvent{EventType::Message, name, fd, priority},
+	Event{EventType::Message, name, fd, priority},
+	message{nullptr},
 	fifo{fifo}
 {
 }
@@ -71,3 +76,6 @@ bool MessageEvent::handle(void)
 
 	return true;
 }
+
+
+};

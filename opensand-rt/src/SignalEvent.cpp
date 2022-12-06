@@ -42,10 +42,14 @@
 #include "Rt.h"
 
 
+namespace Rt
+{
+
+
 SignalEvent::SignalEvent(const std::string &name,
                          sigset_t signal_mask,
                          uint8_t priority):
-	RtEvent{EventType::Signal, name, -1, priority},
+	Event{EventType::Signal, name, -1, priority},
 	mask{signal_mask},
   sig_info{}
 {
@@ -71,7 +75,7 @@ bool SignalEvent::handle(void)
 
 bool SignalEvent::readHandler(void)
 {
-  constexpr auto siginfo_size = sizeof(struct signalfd_siginfo);
+	constexpr auto siginfo_size = sizeof(struct signalfd_siginfo);
 
 	// signal structure size is constant
 	auto rlen = read(this->fd, &this->sig_info, siginfo_size);
@@ -84,3 +88,6 @@ bool SignalEvent::readHandler(void)
 
 	return true;
 }
+
+
+};

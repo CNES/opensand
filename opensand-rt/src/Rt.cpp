@@ -39,6 +39,10 @@
 #include "Rt.h"
 
 
+namespace Rt
+{
+
+
 // Create bloc instance
 BlockManager Rt::manager;
 
@@ -88,3 +92,6 @@ void Rt::reportError(const std::string &name, std::thread::id thread_id,
 
 	manager.reportError(message, critical);
 }
+
+
+};

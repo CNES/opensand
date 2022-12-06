@@ -26,7 +26,7 @@
  */
 
 /**
- * @file RtEvent.h
+ * @file Event.h
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  The generic event
@@ -42,27 +42,31 @@
 #include "Types.h"
 
 
+namespace Rt
+{
+
+
 using time_point_t = std::chrono::high_resolution_clock::time_point;
 using time_val_t = std::chrono::high_resolution_clock::rep;
 
 
 /**
-  * @class RtEvent
+  * @class Event
   * @brief virtual class that Events are based on
   */
-class RtEvent
+class Event
 {
  public:
 	/**
-	 * @brief RtEvent constructor
+	 * @brief Event constructor
 	 *
 	 * @aram type       The type of event
 	 * @param name      The name of the event
 	 * @param fd        The file descriptor to monitor for the event
 	 * @param priority  The priority of the event
 	 */
-	RtEvent(EventType type, const std::string &name, int32_t fd, uint8_t priority);
-	virtual ~RtEvent();
+	Event(EventType type, const std::string &name, int32_t fd, uint8_t priority);
+	virtual ~Event();
 
 	/**
 	 * @brief Get the type of the event
@@ -134,7 +138,7 @@ class RtEvent
 	time_val_t getAndSetCustomTime(void) const;
 
 	/// operator < used by sort on events priority
-	bool operator <(const RtEvent &event) const;
+	bool operator <(const Event &event) const;
 
 	/// operator == used to check if the event id corresponds
 	bool operator ==(const event_id_t id) const;
@@ -161,5 +165,9 @@ class RtEvent
 	/// date, used as custom processing date
 	mutable time_point_t custom_time;
 };
+
+
+};  // namespace Rt
+
 
 #endif

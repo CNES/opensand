@@ -40,6 +40,10 @@
 #include "Types.h"
 
 
+namespace Rt
+{
+
+
 /**
   * @class TcpListenEvent
   * @brief Events describing data received on a nework socket
@@ -79,6 +83,9 @@ class TcpListenEvent: public FileEvent
 	/// The file descriptor of the socket client
 	int32_t socket_client;
 };
+
+
+};  // namespace Rt
 
 
 #endif

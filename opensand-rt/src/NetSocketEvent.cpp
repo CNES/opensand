@@ -39,6 +39,10 @@
 #include "Rt.h"
 
 
+namespace Rt
+{
+
+
 // TODO add send functions
 NetSocketEvent::NetSocketEvent(const std::string &name,
                                int32_t fd,
@@ -51,21 +55,21 @@ NetSocketEvent::NetSocketEvent(const std::string &name,
 
 bool NetSocketEvent::handle(void)
 {
-	if(this->data)
+	if(this->data.size())
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: previous data was not handled\n",
 		                this->name.c_str());
-    delete [] this->data;
+		this->data.clear();
 	}
 	// one more byte so we can use it as char*
-	this->data = new unsigned char[this->max_size + 1]();  // parens do value initialization to 0
+	this->data = Data(this->max_size + 1, '\0');
 
 	socklen_t addrlen = sizeof(struct sockaddr_in);
-	int ret = recvfrom(this->fd, this->data, this->max_size, 0,
-	                   reinterpret_cast<struct sockaddr *>(&this->src_addr), &addrlen);
-  std::size_t actual_size = static_cast<std::size_t>(ret);
-
+	int ret = recvfrom(this->fd, this->data.data(), this->max_size, 0,
+	                   reinterpret_cast<struct sockaddr *>(&this->src_addr),
+	                   &addrlen);
+	auto actual_size = static_cast<Data::size_type>(ret);
 	if(ret < 0)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
@@ -78,7 +82,7 @@ bool NetSocketEvent::handle(void)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: too many data received (%zu > %zu)\n",
-		                this->name.c_str(), this->size, this->max_size);
+		                this->name.c_str(), actual_size, this->max_size);
 		goto error;
 	}
 	else if(actual_size == 0)
@@ -88,12 +92,14 @@ bool NetSocketEvent::handle(void)
 		                 this->name.c_str());
 		goto error;
 	}
-	this->size = ret;
 
+	this->data.resize(actual_size);
 	return true;
 
 error:
-	delete [] this->data;
-	this->data = nullptr;
+	this->data.clear();
 	return false;
 }
+
+
+};

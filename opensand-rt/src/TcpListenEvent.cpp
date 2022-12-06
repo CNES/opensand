@@ -41,6 +41,10 @@
 #include "Rt.h"
 
 
+namespace Rt
+{
+
+
 // TODO add send functions
 TcpListenEvent::TcpListenEvent(const std::string &name,
                                int32_t fd,
@@ -72,8 +76,8 @@ bool TcpListenEvent::handle(void)
 	if(fcntl(this->socket_client, F_SETFL, O_NONBLOCK) != 0)
 	{
 		Rt::reportError(this->name, std::this_thread::get_id(), false,
-		    "set socket in non blocking mode failed: %s (%d)\n",
-		    strerror(errno), errno);
+		                "set socket in non blocking mode failed: %s (%d)\n",
+		                strerror(errno), errno);
 		goto close;
 	}
 
@@ -82,7 +86,9 @@ bool TcpListenEvent::handle(void)
 close:
 	close(this->socket_client);
 error:
-	delete [] this->data;
-	this->data = nullptr;
+	this->data.clear();
 	return false;
 }
+
+
+};

@@ -42,14 +42,19 @@
 #include "Types.h"
 
 
-class RtFifo;
+namespace Rt
+{
+
+
+class Fifo;
+
 
 /**
   * @class MessageEvent
   * @brief Event describing a message transmitted between blocks
   *
   */
-class MessageEvent: public RtEvent
+class MessageEvent: public Event
 {
  public:
 	/**
@@ -60,7 +65,7 @@ class MessageEvent: public RtEvent
 	 * @param fd        The file descriptor to monitor for the event
 	 * @param priority  The priority of the event
 	 */
-	MessageEvent(std::shared_ptr<RtFifo> &fifo,
+	MessageEvent(std::shared_ptr<Fifo> &fifo,
 	             const std::string &name,
 	             int32_t fd,
 	             uint8_t priority = 3);
@@ -70,38 +75,22 @@ class MessageEvent: public RtEvent
 	 *
 	 * @return the message
 	 */
-	inline rt_msg_t getMessage() const {return this->message;};
-
-	/**
-	 * @brief Get the message type
-	 *
-	 * @return the message type
-	 */
+	template<class T>
+	inline Ptr<T> getMessage() const {return this->message.release<T>();};
 	inline uint8_t getMessageType() const {return this->message.type;};
-
-	/**
-	 * @brief Get the message content
-	 *
-	 * @return the message conetnt
-	 */
-	inline void *getData() const {return this->message.data;};
-	
-	/**
-	 * @brief Get the message length
-	 *
-	 * @return the message length
-	 */
-	inline std::size_t getLength() const {return this->message.length;};
 
 	bool handle(void) override;
 
  protected:
 	/// the message
-	rt_msg_t message;
+	mutable Message message;
 
 	/// the fifo
-	const std::shared_ptr<RtFifo> fifo;
+	const std::shared_ptr<Fifo> fifo;
 };
+
+
+};  // namespace Rt
 
 
 #endif

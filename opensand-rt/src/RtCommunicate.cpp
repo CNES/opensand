@@ -38,6 +38,10 @@
 #include "RtCommunicate.h"
 
 
+namespace Rt
+{
+
+
 constexpr const char *MAGIC_WORD = "GO";
 
 
@@ -55,3 +59,6 @@ bool check_read(int32_t fd)
 	auto received = read(fd, data, length);
 	return received == length && std::strncmp(data, MAGIC_WORD, length) == 0;
 }
+
+
+};

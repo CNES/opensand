@@ -50,6 +50,10 @@
 #include "RtFifo.h"
 
 
+namespace Rt
+{
+
+
 // taken from http://oroboro.com/stack-trace-on-crash/
 static inline void print_stack(unsigned int max_frames = 63)
 {
@@ -314,7 +318,7 @@ void BlockManager::wait(void)
 		this->status = false;
 	}
 
-// TODO handle SIGSTOP in threads because it breaks select
+	// TODO handle SIGSTOP in threads because it breaks select
 	sigemptyset(&signal_mask);
 	sigaddset(&signal_mask, SIGINT);
 	sigaddset(&signal_mask, SIGQUIT);
@@ -354,13 +358,13 @@ bool BlockManager::getStatus()
 }
 
 
-void BlockManager::setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward)
+void BlockManager::setupBlock(Block *block, ChannelBase *upward, ChannelBase *downward)
 {
 	block->upward = upward;
 	block->downward = downward;
 
-	auto up_opp_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
-	auto down_opp_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
+	auto up_opp_fifo = std::shared_ptr<Fifo>{new Fifo()};
+	auto down_opp_fifo = std::shared_ptr<Fifo>{new Fifo()};
 
 	upward->setOppositeFifo(up_opp_fifo, down_opp_fifo);
 	downward->setOppositeFifo(down_opp_fifo, up_opp_fifo);
@@ -385,8 +389,11 @@ bool BlockManager::checkConnectedBlocks(const Block *upper, const Block *lower)
 }
 
 
-std::shared_ptr<RtFifo> BlockManager::createFifo()
+std::shared_ptr<Fifo> BlockManager::createFifo()
 {
 	// Do we catch bad_alloc to return nullptr here?
-	return std::shared_ptr<RtFifo>{new RtFifo()};
+	return std::shared_ptr<Fifo>{new Fifo()};
 }
+
+
+};

@@ -40,118 +40,125 @@
 #include "RtChannelDemux.h"
 #include "RtChannelMuxDemux.h"
 
+
 enum struct Side
 {
 	LEFT,
 	RIGHT
 };
 
-class TopMux : public Block
+
+class TopMux : public Rt::Block
 {
   public:
-	using Block::Block;
+	using Rt::Block::Block;
 
-	class Upward: public RtUpwardMux
+	class Upward: public Rt::Block::UpwardMux
 	{
 	  public:
 		Upward(const std::string &name);
-		bool onEvent(const RtEvent *const event);
+		bool onEvent(const Rt::Event* const event) override;
 	};
 
-	class Downward: public RtDownwardDemux<Side>
+	class Downward: public Rt::Block::DownwardDemux<Side>
 	{
 	  public:
 		Downward(const std::string &name);
-		bool onEvent(const RtEvent *const event);
+		bool onEvent(const Rt::Event* const event) override;
 	};
 };
 
-class MiddleBlock: public Block
+
+class MiddleBlock: public Rt::Block
 {
   public:
 	MiddleBlock(const std::string &name, Side side);
 
-	class Upward: public RtUpwardMuxDemux<Side>
+	class Upward: public Rt::Block::UpwardMuxDemux<Side>
 	{
 	  public:
 		Upward(const std::string &name, Side side);
-		bool onEvent(const RtEvent *const event);
+		bool onEvent(const Rt::Event* const event) override;
 		Side side;
 	};
 
-	class Downward: public RtDownwardMuxDemux<Side>
+	class Downward: public Rt::Block::DownwardMuxDemux<Side>
 	{
 	  public:
 		Downward(const std::string &name, Side side);
-		bool onEvent(const RtEvent *const event);
+		bool onEvent(const Rt::Event* const event) override;
 		Side side;
 	};
 };
 
-class TopBlock: public Block
+
+class TopBlock: public Rt::Block
 {
   public:
 	TopBlock(const std::string &name, Side side);
 
-	class Upward: public RtUpwardMux
+	class Upward: public Rt::Block::UpwardMux
 	{
 	  public:
 		Upward(const std::string &name, Side side);
-		bool onEvent(const RtEvent *const event) override;
+		bool onEvent(const Rt::Event* const event) override;
 		Side side;
 	};
 
-	class Downward: public RtDownwardDemux<Side>
+	class Downward: public Rt::Block::DownwardDemux<Side>
 	{
 	  public:
 		Downward(const std::string &name, Side side);
-		bool onEvent(const RtEvent *const event) override;
+		bool onEvent(const Rt::Event* const event) override;
 		Side side;
 	};
 };
 
-class BottomBlock: public Block
+
+class BottomBlock: public Rt::Block
 {
   public:
 	BottomBlock(const std::string &name, Side side);
 
-	class Upward: public RtUpwardDemux<Side>
+	class Upward: public Rt::Block::UpwardDemux<Side>
 	{
 	  public:
 		Upward(const std::string &name, Side side);
-		bool onEvent(const RtEvent *const event) override;
+		bool onEvent(const Rt::Event* const event) override;
 		Side side;
 	};
 
-	class Downward: public RtDownwardMux
+	class Downward: public Rt::Block::DownwardMux
 	{
 	  public:
 		Downward(const std::string &name, Side side);
-		bool onEvent(const RtEvent *const event) override;
+		bool onEvent(const Rt::Event* const event) override;
 		Side side;
 	};
 };
 
-class BottomMux: public Block
+
+class BottomMux: public Rt::Block
 {
   public:
 	using Block::Block;
 
-	class Upward: public RtUpwardDemux<Side>
+	class Upward: public Rt::Block::UpwardDemux<Side>
 	{
 	  public:
 		Upward(const std::string &name);
 		bool onInit() override;
-		bool onEvent(const RtEvent *const event) override;
+		bool onEvent(const Rt::Event* const event) override;
 	};
 
-	class Downward: public RtDownwardMux
+	class Downward: public Rt::Block::DownwardMux
 	{
 	  public:
 		Downward(const std::string &name);
 		bool onInit() override;
-		bool onEvent(const RtEvent *const event) override;
+		bool onEvent(const Rt::Event* const event) override;
 	};
 };
+
 
 #endif

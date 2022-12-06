@@ -1,6 +1,10 @@
 #include <type_traits>
 
 
+namespace Rt
+{
+
+
 template <bool B>
 using bool_constant = std::integral_constant<bool, B>;
 
@@ -33,20 +37,23 @@ using void_t = typename make_void<Ts...>::type;
 
 template <class Chan, class = void>
 struct has_one_input
-    : std::is_base_of<RtChannel, Chan>
+    : std::is_base_of<Channel, Chan>
 {};
 
 template <class Chan>
 struct has_one_input<Chan, void_t<typename Chan::DemuxKey>>
-    : std::is_base_of<RtChannelDemux<typename Chan::DemuxKey>, Chan>
+    : std::is_base_of<ChannelDemux<typename Chan::DemuxKey>, Chan>
 {};
 
 template <class Chan>
-using has_one_output = disjunction<std::is_base_of<RtChannel, Chan>::value,
-                                   std::is_base_of<RtChannelMux, Chan>::value>;
+using has_one_output = disjunction<std::is_base_of<Channel, Chan>::value,
+                                   std::is_base_of<ChannelMux, Chan>::value>;
 
 template <class Chan>
 using has_n_inputs = negation<has_one_input<Chan>>;
 
 template <class Chan>
 using has_n_outputs = negation<has_one_output<Chan>>;
+
+
+};

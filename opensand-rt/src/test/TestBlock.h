@@ -41,58 +41,49 @@
 
 #include <utility>
 
-class TestBlock: public Block
+
+class TestBlock: public Rt::Block
 {
   public:
 
 	TestBlock(const std::string &name);
 	~TestBlock();
 
-	class Upward : public RtUpward
+	class Upward : public Rt::Block::Upward
 	{
 	 public:
-	 	Upward(const std::string &name) :
-			RtUpward(name),
-			nbr_timeouts(0),
-			output_fd(-1)
-	 	{};
+	 	Upward(const std::string &name);
 	 	~Upward();
 	 	
 	 	void setOutputFd(int32_t fd);
 	 	
 	 protected:
-	 	
 	 	bool onInit(void);
-	 	bool onEvent(const RtEvent *const event);
+	 	bool onEvent(const Rt::Event* const event) override;
 
 		uint32_t nbr_timeouts;
 		int32_t output_fd;
 
 		/// the data written by timer that should be read on socket
-		char last_written[64];
+		std::string last_written;
 	};
 
-	class Downward : public RtDownward
+	class Downward : public Rt::Block::Downward
 	{
 	 public:
-	 	Downward(const std::string &name) :
-			RtDownward(name),
-			input_fd(-1)
-		{};
+	 	Downward(const std::string &name);
 		~Downward();
 	 	
 	 	void setInputFd(int32_t fd);
 	 	
 	 protected:
-	 	
 	 	bool onInit(void);
-	 	bool onEvent(const RtEvent *const event);
+	 	bool onEvent(const Rt::Event* const event) override;
 	 	
 	    int32_t input_fd;
 	};
 	
   protected:
-
 	bool onInit(void);
 };
 

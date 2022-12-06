@@ -80,15 +80,19 @@
 #endif
 
 
+// ####### Block #######
+
 TestBlock::TestBlock(const std::string &name):
 	Block(name)
 {
 	LOG(this->log_rt, LEVEL_INFO, "Block %s created\n", name.c_str());
 }
 
+
 TestBlock::~TestBlock()
 {
 }
+
 
 bool TestBlock::onInit()
 {
@@ -106,28 +110,41 @@ bool TestBlock::onInit()
 	return true;
 }
 
+
+// ####### Upward #######
+
+TestBlock::Upward::Upward(const std::string &name):
+	Rt::Block::Upward{name},
+	nbr_timeouts{0},
+	output_fd{-1},
+	last_written(64, '\0')
+{
+}
+
+
 void TestBlock::Upward::setOutputFd(int32_t fd)
 {
 	this->output_fd = fd;
 }
+
 
 bool TestBlock::Upward::onInit(void)
 {
 	this->nbr_timeouts = 0;
 	//timer event every 100ms
 	this->addTimerEvent("test_timer", 100, true);
-	
 	return true;
 }
 
-bool TestBlock::Upward::onEvent(const RtEvent *const event)
+
+bool TestBlock::Upward::onEvent(const Rt::Event* const event)
 {
 	std::string error;
 	int res = 0;
 	
 	switch(event->getType())
 	{
-    case EventType::Timer:
+		case Rt::EventType::Timer:
 		{
 			// timer only on upward channel
 			this->nbr_timeouts++;
@@ -139,49 +156,49 @@ bool TestBlock::Upward::onEvent(const RtEvent *const event)
 				kill(getpid(), SIGTERM);
 			}
 
-			time_val_t elapsed_time = event->getTimeFromTrigger();
+			Rt::time_val_t elapsed_time = event->getTimeFromTrigger();
 			long int elapsed_seconds = elapsed_time / 1000000,
 			         elapsed_microseconds = elapsed_time % 1000000;
-			sprintf(this->last_written, "%ld.%06ld",
+			sprintf(this->last_written.data(), "%ld.%06ld",
 			        elapsed_seconds, elapsed_microseconds);
 
-			res = write(this->output_fd,
-			            this->last_written, strlen(this->last_written));
+			res = write(this->output_fd, this->last_written.data(), this->last_written.size());
 			if(res == -1)
 			{
-				Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-				                "cannot write on pipe");
+				Rt::Rt::reportError(this->getName(), std::this_thread::get_id(), true,
+				                    "cannot write on pipe");
 			}
 			std::cout << "Timer triggered in block: " << this->getName()
 			          << "; value: " << this->last_written << std::endl;
+			break;
 		}
-		break;
 
-    case EventType::Message:
+		case Rt::EventType::Message:
 		{
-      auto msg_event = static_cast<const MessageEvent*>(event);
-      std::size_t length = msg_event->getLength();
-			char *data = static_cast<char *>(msg_event->getData());
+			auto msg_event = static_cast<const Rt::MessageEvent*>(event);
+			Rt::Ptr<Rt::Data> data = msg_event->getMessage<Rt::Data>();
 			std::cout << "Data received from opposite channel in block: "
-			          << this->getName() << "; data: " << data << std::endl;
+			          << this->getName() << "; data: " << data->c_str() << std::endl;
 
-			if(strncmp(this->last_written, (char*)data, length))
+			std::string result(reinterpret_cast<const char*>(data->c_str()), data->size());
+			if(this->last_written != result)
 			{
-				Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-				                "wrong data received '%s' instead of '%s'",
-				                data, this->last_written);
+				Rt::Rt::reportError(this->getName(), std::this_thread::get_id(), true,
+				                    "wrong data received '%s' instead of '%s'",
+				                    data->c_str(), this->last_written.c_str());
 			}
-			bzero(this->last_written, 64);
-      delete [] data;
+			this->last_written.clear();
+			this->last_written.resize(this->last_written.capacity());
+			break;
 		}
-		break;
 
 		default:
-			Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
+			Rt::Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
 			return false;
 	}
 	return true;
 }
+
 
 TestBlock::Upward::~Upward()
 {
@@ -191,10 +208,21 @@ TestBlock::Upward::~Upward()
 	}
 }
 
+
+// ####### Downward #######
+
+TestBlock::Downward::Downward(const std::string &name):
+	Rt::Block::Downward{name},
+	input_fd{-1}
+{
+}
+
+
 void TestBlock::Downward::setInputFd(int32_t fd)
 {
 	this->input_fd = fd;
 }
+
 
 bool TestBlock::Downward::onInit(void)
 {
@@ -203,37 +231,41 @@ bool TestBlock::Downward::onInit(void)
 	return true;
 }
 
-bool TestBlock::Downward::onEvent(const RtEvent *const event)
+
+bool TestBlock::Downward::onEvent(const Rt::Event* const event)
 {
-	char *data;
-	size_t size;
 	switch(event->getType())
 	{
-    case EventType::File:
-			size = ((FileEvent *)event)->getSize();
-			data = (char *)((FileEvent *)event)->getData();
-			std::cout << "Data received on socket in block: " << this->getName()
-			          << "; data: " << data << std::endl;
-			fflush(stdout);
+		case Rt::EventType::File:
+		{
+			auto file_event = static_cast<const Rt::FileEvent*>(event);
+			auto data = Rt::make_ptr<Rt::Data>(file_event->getData());
 
-			if(!this->shareMessage((void **)&data, size))
+			std::cout << "Data received on socket in block: " << this->getName()
+			          << "; data: " << data->c_str() << std::endl;
+
+			if(!this->shareMessage(std::move(data), 0))
 			{
-				Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-				                "unable to transmit data to opposite channel");
+				Rt::Rt::reportError(this->getName(), std::this_thread::get_id(), true,
+				                    "unable to transmit data to opposite channel");
 			}
 			break;
-
+		}
 		default:
-			Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
+			Rt::Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
 			return false;
 
 	}
 	return true;
 }
 
+
 TestBlock::Downward::~Downward()
 {
 }
+
+
+// ####### Test #######
 
 int main(int argc, char **argv)
 {
@@ -246,13 +278,13 @@ HeapLeakChecker heap_checker("test_block");
 
 	std::cout << "Launch test" << std::endl;
 
-	Rt::createBlock<TestBlock>("test");
+	Rt::Rt::createBlock<TestBlock>("test");
 	
 	std::cout << "Start loop, please wait..." << std::endl;
-  Output::Get()->setLogLevel("", log_level_t::LEVEL_DEBUG);
+	Output::Get()->setLogLevel("", log_level_t::LEVEL_DEBUG);
 	Output::Get()->configureTerminalOutput();
 	Output::Get()->finalizeConfiguration();
-	if(!Rt::run(true))
+	if(!Rt::Rt::run(true))
 	{
 		ret = 1;
 		std::cerr << "Unable to run" << std::endl;

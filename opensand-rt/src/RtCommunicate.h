@@ -34,6 +34,13 @@
 #include "Types.h"
 
 
+namespace Rt
+{
+
+
 bool check_write(int32_t file_descriptor);
 
 bool check_read(int32_t file_descriptor);
+
+
+};

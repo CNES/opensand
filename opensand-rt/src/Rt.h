@@ -41,6 +41,10 @@
 #include "BlockManager.h"
 
 
+namespace Rt
+{
+
+
 /**
  * @class Rt
  *
@@ -48,7 +52,7 @@
  */
 class Rt
 {
-	friend class RtChannelBase;
+	friend class ChannelBase;
 	friend class SignalEvent;
 
  public:
@@ -252,6 +256,9 @@ void Rt::connectChannels(SenderCh &sender, ReceiverCh &receiver, typename Sender
 {
 	Rt::manager.connectChannels(sender, receiver, key);
 }
+
+
+};  // namespace Rt
 
 
 #endif

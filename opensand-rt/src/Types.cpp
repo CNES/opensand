@@ -26,52 +26,40 @@
  */
 
 /**
- * @file RtMutex.h
- * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  Wrapper for using a mutex with RAII method
+ * @file Types.cpp
+ * @author Mathias ETTINGER / <mathias.ettinger@viveris.fr>
+ * @brief  Types for opensand-rt
  */
 
 
 
-#ifndef RT_MUTEX_H
-#define RT_MUTEX_H
-
-
-#include <mutex>
-#include <condition_variable>
+#include "Types.h"
 
 
 namespace Rt
 {
 
 
-using Mutex = std::mutex;
-using Lock = std::lock_guard<Mutex>;
-
-
-/**
- * @class Semaphore
- * @brief A simple semaphore implementation to protect access to critical sections
- */
-class Semaphore
+Message::Message(std::nullptr_t):
+	type{},
+	data{nullptr, [](void*){}}
 {
- public:
-	Semaphore(std::size_t = 1);
+}
 
-	Semaphore(const Semaphore&) = delete;
-	Semaphore& operator =(const Semaphore&) = delete;
 
-	void wait();
-	void notify();
+Message::Message(Message&& m):
+	type{std::move(m.type)},
+	data{std::move(m.data)}
+{
+}
 
- private:
-	std::mutex lock;
-	std::condition_variable condition;
-	std::size_t count;
+
+Message& Message::operator =(Message&& m)
+{
+	this->data = std::move(m.data);
+	this->type = std::move(m.type);
+	return *this;
+}
+
+
 };
-
-
-};
-
-
-#endif

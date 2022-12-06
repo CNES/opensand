@@ -43,11 +43,15 @@
 #include "Types.h"
 
 
+namespace Rt
+{
+
+
 /**
   * @class SignalEvent
   * @brief Event decribing a sighandlers on block
   */
-class SignalEvent: public RtEvent
+class SignalEvent: public Event
 {
  public:
 	/**
@@ -94,6 +98,9 @@ class SignalEvent: public RtEvent
 	/// The information that come when a signal triggers the event
 	signalfd_siginfo sig_info;
 };
+
+
+};  // namespace Rt
 
 
 #endif

@@ -43,8 +43,14 @@
 #include "TemplateHelper.h"
 
 
-class RtFifo;
 class OutputLog;
+
+
+namespace Rt
+{
+
+
+class Fifo;
 
 
 /**
@@ -57,7 +63,7 @@ class BlockManager
 	friend class Rt;
 
  public:
-	static std::shared_ptr<RtFifo> createFifo();
+	static std::shared_ptr<Fifo> createFifo();
 
  protected:
 	BlockManager();
@@ -206,7 +212,7 @@ class BlockManager
 	std::shared_ptr<OutputLog> log_rt;
 
  private:
-	void setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward);
+	void setupBlock(Block *block, ChannelBase *upward, ChannelBase *downward);
 
 	bool checkConnectedBlocks(const Block *upper, const Block *lower);
 
@@ -418,6 +424,9 @@ void BlockManager::connectChannels(SenderCh &sender,
 {
 	ChannelsConnector<SenderCh, ReceiverCh, has_one_input<ReceiverCh>::value, true>::connect(sender, receiver, key);
 }
+
+
+};  // namespace Rt
 
 
 #endif

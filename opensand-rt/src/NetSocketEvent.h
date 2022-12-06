@@ -43,6 +43,10 @@
 #include "Types.h"
 
 
+namespace Rt
+{
+
+
 /**
   * @class NetSocketEvent
   * @brief Events describing data received on a nework socket
@@ -77,6 +81,9 @@ class NetSocketEvent: public FileEvent
 	/// The source address of the message;
 	struct sockaddr_in src_addr;
 };
+
+
+};  // namespace Rt
 
 
 #endif

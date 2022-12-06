@@ -38,12 +38,16 @@
 #include "TimerEvent.h"
 
 
+namespace Rt
+{
+
+
 TimerEvent::TimerEvent(const std::string &name,
                        double timer_duration_ms,
                        bool auto_rearm,
                        bool start,
                        uint8_t priority):
-	RtEvent{EventType::Timer, name, -1, priority},
+	Event{EventType::Timer, name, -1, priority},
 	duration_ms{timer_duration_ms},
 	enabled{start},
 	auto_rearm{auto_rearm}
@@ -138,3 +142,6 @@ void TimerEvent::setDuration(double new_duration)
 {
 	this->duration_ms = new_duration;
 }
+
+
+};

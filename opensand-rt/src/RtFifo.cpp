@@ -26,7 +26,7 @@
  */
 
 /**
- * @file   RtFifo.cpp
+ * @file   Fifo.cpp
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  The fifo and signaling pipres for opensand-rt
  *         intra-block messages
@@ -40,26 +40,30 @@
 #include "RtCommunicate.h"
 
 
-#define DEFAULT_FIFO_SIZE 3
+namespace Rt
+{
 
 
-RtFifo::RtFifo():
+constexpr const std::size_t DEFAULT_FIFO_SIZE = 3;
+
+
+Fifo::Fifo():
 	fifo{},
 	max_size{DEFAULT_FIFO_SIZE},
 	fifo_mutex{},
-  fifo_size_sem{DEFAULT_FIFO_SIZE}
+	fifo_size_sem{DEFAULT_FIFO_SIZE}
 {
 }
 
 
-RtFifo::~RtFifo()
+Fifo::~Fifo()
 {
 	close(this->r_sig_pipe);
 	close(this->w_sig_pipe);
 }
 
 
-bool RtFifo::init()
+bool Fifo::init()
 {
 	int32_t pipefd[2];
 	if(pipe(pipefd) != 0)
@@ -74,11 +78,11 @@ bool RtFifo::init()
 }
 
 
-bool RtFifo::push(void *data, size_t size, uint8_t type)
+bool Fifo::push(Message message)
 {
 	// we need a semaphore here to block while fifo is full
 	fifo_size_sem.wait();
-	RtLock acquire{fifo_mutex};
+	Lock acquire{fifo_mutex};
 
 	if(this->fifo.size() >= this->max_size)
 	{
@@ -87,7 +91,7 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 		                "this should not happend\n",
 		                this->fifo.size(), this->max_size);
 	}
-	this->fifo.push({data, size, type});
+	this->fifo.push(std::move(message));
 
 	fd_set wset;
 	FD_ZERO(&wset);
@@ -110,30 +114,33 @@ bool RtFifo::push(void *data, size_t size, uint8_t type)
 }
 
 
-bool RtFifo::pop(rt_msg_t &elem)
+bool Fifo::pop(Message &elem)
 {
-  {
-    RtLock acquire{fifo_mutex};
+	{
+		Lock acquire{fifo_mutex};
 
-    if(this->fifo.empty())
-    {
-      Rt::reportError("fifo", std::this_thread::get_id(), false,
-                      "Fifo is already empty, this should not happend\n");
-      return false;
-    }
-    else
-    {
-      // get element in queue
-      elem = this->fifo.front();
+		if(this->fifo.empty())
+		{
+			Rt::reportError("fifo", std::this_thread::get_id(), false,
+			                "Fifo is already empty, this should not happend\n");
+			return false;
+		}
+		else
+		{
+			// get element in queue
+			elem = std::move(this->fifo.front());
 
-      // remove element from queue
-      this->fifo.pop();
-    }
+			// remove element from queue
+			this->fifo.pop();
+		}
 
-  }
+	}
 
 	// fifo has empty space, we can unlock it
-  fifo_size_sem.notify();
+	fifo_size_sem.notify();
 
 	return true;
 }
+
+
+};

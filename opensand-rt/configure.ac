@@ -36,7 +36,7 @@ AC_CHECK_FUNCS([gethostbyname gettimeofday inet_ntoa memset mkdir select socket 
 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
-CXXFLAGS="$CXXFLAGS -std=c++11"
+CXXFLAGS="$CXXFLAGS -std=c++17"
 
 # check for opensand-output library
 PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 6.1.0])

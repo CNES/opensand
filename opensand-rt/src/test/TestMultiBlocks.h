@@ -47,125 +47,101 @@
 
 #include <queue>
 
-class TopBlock: public Block
+
+class TopBlock: public Rt::Block
 {
-
   public:
-
 	TopBlock(const std::string &name, std::string file);
 	~TopBlock();
 	
-	class Upward : public RtUpward
+	class Upward : public Rt::Block::Upward
 	{
 	  public:
-		Upward(const std::string &name, std::string file) :
-			RtUpward(name)
-		{}
-		~Upward() {}
+		Upward(const std::string &name, std::string file);
 
 	  protected:
-		bool onEvent(const RtEvent *const event);
+		bool onEvent(const Rt::Event* const event) override;
 	};
 
-	class Downward : public RtDownward
+	class Downward : public Rt::Block::Downward
 	{
 	  public:
-		Downward(const std::string &name, std::string file) :
-			RtDownward(name),
-			input_file(file),
-			input_fd(-1),
-			last_written()
-		{}
+		Downward(const std::string &name, std::string file);
 		~Downward();
 	
 	  protected:
 		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
+		bool onEvent(const Rt::Event* const event) override;
 		
 		std::string input_file;
 		int32_t input_fd;
-		//char last_written[MAX_SOCK_SIZE + 1];
-		std::queue<std::string> last_written;
+		std::queue<Rt::Data> last_written;
 	};
 	
   protected:
 	bool onInit(void) { return true; }
 };
 
-class MiddleBlock: public Block
+class MiddleBlock: public Rt::Block
 {
-
   public:
-
 	MiddleBlock(const std::string &name);
 	~MiddleBlock();
 
-	class Upward : public RtUpward
+	class Upward : public Rt::Block::Upward
 	{
 	  public:
-		Upward(const std::string &name) :
-			RtUpward(name)
-		{}
-		~Upward() {}
+		Upward(const std::string &name);
 
 	  protected:
-		bool onEvent(const RtEvent *const event);
+		bool onEvent(const Rt::Event* const event) override;
 	};
 
-	class Downward : public RtDownward
+	class Downward : public Rt::Block::Downward
 	{
 	  public:
-		Downward(const std::string &name) :
-			RtDownward(name)
-		{}
-		~Downward() {}
+		Downward(const std::string &name);
 
 	  protected:
-		bool onEvent(const RtEvent *const event);
+		bool onEvent(const Rt::Event* const event) override;
 	};
 	
   protected:
 	bool onInit(void) { return true; }
 };
 
-class BottomBlock: public Block
+class BottomBlock: public Rt::Block
 {
-
   public:
-
 	BottomBlock(const std::string &name);
 	~BottomBlock();
 
-	class Upward : public RtUpward
+	class Upward : public Rt::Block::Upward
 	{
 	  public:
-		Upward(const std::string &name) :
-			RtUpward(name)
-		{}
+		Upward(const std::string &name);
 		~Upward();
 
 		void setInputFd(int32_t fd);
 
 	  protected:
 		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
+		bool onEvent(const Rt::Event* const event) override;
 
 		int32_t input_fd;
 	};
 
-	class Downward : public RtDownward
+	class Downward : public Rt::Block::Downward
 	{
 	  public:
-		Downward(const std::string &name) :
-			RtDownward(name)
-		{}
+		Downward(const std::string &name);
 		~Downward();
 
 		void setOutputFd(int32_t fd);
 
 	  protected:
 		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
+		bool onEvent(const Rt::Event* const event) override;
 
 		int32_t output_fd;
 	};

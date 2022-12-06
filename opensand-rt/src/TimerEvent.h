@@ -41,12 +41,16 @@
 #include "Types.h"
 
 
+namespace Rt
+{
+
+
 /**
   * @class TimerEvent
   * @brief Event describing a timer
   *
   */
-class TimerEvent: public RtEvent
+class TimerEvent: public Event
 {
  public:
 	/**
@@ -116,6 +120,9 @@ class TimerEvent: public RtEvent
 	/// Whether the timer is rearmed automatically or not
 	bool auto_rearm;
 };
+
+
+};  // namespace Rt
 
 
 #endif
