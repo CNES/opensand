@@ -493,11 +493,11 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			qos_t pcp = (q_tci & 0xe000) >> 13;
 			qos_t qos = 0;
 			Evc *evc;
-			SarpTable *sarp_table = BlockLanAdaptation::packet_switch->getSarpTable();
+			SarpTable *sarp_table = packet_switch->getSarpTable();
 
 			// Do not print errors here because we may want to reject trafic as spanning
 			// tree coming from miscellaneous host
-			if(!BlockLanAdaptation::packet_switch->getPacketDestination(packet->getData(), src, dst))
+			if(!packet_switch->getPacketDestination(packet->getData(), src, dst))
 			{
 				// check default tal_id
 				if(dst > BROADCAST_TAL_ID)
@@ -677,7 +677,7 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 		Evc *evc;
 		size_t header_length;
 		uint8_t evc_id = 0;
-		SarpTable *sarp_table = BlockLanAdaptation::packet_switch->getSarpTable();
+		SarpTable *sarp_table = packet_switch->getSarpTable();
 
 		switch(frame_type)
 		{
@@ -814,7 +814,7 @@ std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(const std::uniq
 	uint16_t ad_tci = 0;
 	NET_PROTO ether_type = packet->getType();
 	Evc *evc = NULL;
-	SarpTable *sarp_table = BlockLanAdaptation::packet_switch->getSarpTable();
+	SarpTable *sarp_table = packet_switch->getSarpTable();
 
 	// search traffic category associated with QoS value
 	// TODO we should filter on IP addresses instead of QoS

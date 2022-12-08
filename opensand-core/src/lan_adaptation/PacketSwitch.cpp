@@ -114,17 +114,23 @@ bool GatewayPacketSwitch::isPacketForMe(const Data &packet, tal_id_t src_id, boo
 	return  ((dst_id == BROADCAST_TAL_ID) ||  (dst_id == this->tal_id));
 }
 
-SatellitePacketSwitch::SatellitePacketSwitch(tal_id_t tal_id, std::unordered_set<tal_id_t> isl_entities):
+SatellitePacketSwitch::SatellitePacketSwitch(tal_id_t tal_id,
+                                             bool isl_used,
+                                             std::unordered_set<tal_id_t> isl_entities):
 	PacketSwitch{tal_id},
+	isl_enabled{isl_used},
 	isl_entities{std::move(isl_entities)}
 {
-	for (auto&& satellite : OpenSandModelConf::Get()->getSatellites())
+	if (isl_used)
 	{
-		if (satellite != tal_id)
+		for (auto&& satellite : OpenSandModelConf::Get()->getSatellites())
 		{
-			this->sarp_table.setDefaultTal(satellite);
-			// this->isl_entities.insert(satellite);
-			break;
+			if (satellite != tal_id)
+			{
+				this->sarp_table.setDefaultTal(satellite);
+				// this->isl_entities.insert(satellite);
+				break;
+			}
 		}
 	}
 }
@@ -147,6 +153,13 @@ bool SatellitePacketSwitch::getPacketDestination(const Data &packet, tal_id_t &s
 
 bool SatellitePacketSwitch::isPacketForMe(const Data &packet, tal_id_t, bool &forward)
 {
+	if (!isl_enabled)
+	{
+		// Never write in TAP, always forward to opposite channel
+		forward = true;
+		return false;
+	}
+
 	tal_id_t dst_id;
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
 	RtLock(this->mutex);

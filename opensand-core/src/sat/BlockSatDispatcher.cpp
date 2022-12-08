@@ -279,11 +279,8 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 
 	// Send all bursts to their respective destination
 	bool ok = true;
-	for (auto &&dest_burst_pair: bursts)
+	for (auto &&[dest, burst]: bursts)
 	{
-		auto dest = dest_burst_pair.first;
-		auto &burst = dest_burst_pair.second;
-
 		const auto dest_sat_id_it = routes.find(dest);
 		if (dest_sat_id_it == routes.end())
 		{
@@ -438,11 +435,8 @@ bool BlockSatDispatcher::Downward::handleNetBurst(std::unique_ptr<NetBurst> in_b
 
 	// Send all bursts to their respective destination
 	bool ok = true;
-	for (auto &&dest_burst_pair: bursts)
+	for (auto &&[dest, burst]: bursts)
 	{
-		auto dest = dest_burst_pair.first;
-		auto &burst = dest_burst_pair.second;
-
 		const auto dest_sat_id_it = routes.find(dest);
 		if (dest_sat_id_it == routes.end())
 		{

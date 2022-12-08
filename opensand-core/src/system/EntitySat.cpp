@@ -121,13 +121,15 @@ bool EntitySat::createSpecificBlocks()
 					break;
 				case IslType::LanAdaptation:
 				{
+					bool is_used_for_isl = instance_id != cfg.linked_sat_id;
 					la_specific la_cfg{
 						.tap_iface = cfg.tap_iface,
+						.delay = static_cast<uint32_t>(isl_delay),
 						.connected_satellite = cfg.linked_sat_id,
-						.is_used_for_isl = true,
-						.packet_switch = new SatellitePacketSwitch{instance_id, getIslEntities(spot_topo)},
+						.is_used_for_isl = is_used_for_isl,
+						.packet_switch = new SatellitePacketSwitch{instance_id, is_used_for_isl, getIslEntities(spot_topo)},
 					};
-					auto block_lan_adapt = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", la_cfg);
+					auto block_lan_adapt = Rt::createBlock<BlockLanAdaptation>(is_used_for_isl ? "Lan_Adaptation.Isl" : "Lan_Adaptation", la_cfg);
 					Rt::connectBlocks(block_lan_adapt, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = true});
 				}
 					break;

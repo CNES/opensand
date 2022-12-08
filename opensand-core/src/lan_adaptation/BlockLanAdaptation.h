@@ -45,6 +45,7 @@
 #include "NetPacket.h"
 #include "LanAdaptationPlugin.h"
 #include "OpenSandCore.h"
+#include "DelayFifo.h"
 
 #include <opensand_rt/Rt.h>
 #include <opensand_rt/RtChannel.h>
@@ -56,6 +57,7 @@ class NetSocketEvent;
 struct la_specific
 {
 	std::string tap_iface;
+	uint32_t delay = 0;
 	tal_id_t connected_satellite = 0;
 	bool is_used_for_isl = false;
 	PacketSwitch *packet_switch = nullptr;
@@ -75,9 +77,6 @@ public:
 
 	// initialization method
 	bool onInit(void);
-
-	// The Packet Switch including packet forwarding logic and SARP 
-	inline static PacketSwitch *packet_switch;
 
 
 	class Upward: public RtUpward
@@ -106,12 +105,20 @@ public:
 		/**
 		 * @brief Handle a message from lower block
 		 *  - build the TAP header with appropriate protocol identifier
-		 *  - write TAP header + packet to TAP interface
+		 *  - write TAP header + packet to TAP interface or delay packet before writting
 		 *
 		 * @param burst  The burst of packets
 		 * @return true on success, false otherwise
 		 */
 		bool onMsgFromDown(NetBurst *burst);
+
+		/**
+		 * @brief Actually write the TAP header + packet to TAP interface
+		 *
+		 * @param packet  Data to write on the TAP interface
+		 * @return true on success, false otherwise
+		 */
+		bool writePacket(const Data& packet);
 
 		/// SARP table
 		SarpTable sarp_table;
@@ -127,6 +134,18 @@ public:
 
 		/// State of the satellite link
 		SatelliteLinkState state;
+
+		// The Packet Switch including packet forwarding logic and SARP
+		PacketSwitch *packet_switch;
+
+		// Delay before writting on the TAP
+		uint32_t delay;
+
+		// Polling event to implement delay before writting on the TAP
+		event_id_t delay_timer;
+
+		// Fifo to implement delay before writting on the TAP
+		DelayFifo delay_fifo;
 	};
 
 	class Downward: public RtDownward
@@ -176,14 +195,17 @@ public:
 
 		/// State of the satellite link
 		SatelliteLinkState state;
+
+		// The Packet Switch including packet forwarding logic and SARP
+		PacketSwitch *packet_switch;
 	};
 
 private:
 	/// The TAP interface name
 	std::string tap_iface;
 
-	/// Block specific parameters
-	la_specific specific;
+	// The Packet Switch including packet forwarding logic and SARP
+	PacketSwitch *packet_switch;
 
 	/**
 	 * Create or connect to an existing TAP interface

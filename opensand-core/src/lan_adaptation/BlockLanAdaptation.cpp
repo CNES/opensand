@@ -68,9 +68,9 @@
  */
 BlockLanAdaptation::BlockLanAdaptation(const std::string &name, struct la_specific specific):
 	Block{name},
-	tap_iface{specific.tap_iface}
+	tap_iface{specific.tap_iface},
+	packet_switch{specific.packet_switch}
 {
-	this->specific = specific;
 }
 
 
@@ -79,7 +79,8 @@ BlockLanAdaptation::Downward::Downward(const std::string &name, struct la_specif
 	stats_period_ms{},
 	contexts{},
 	tal_id{specific.connected_satellite},
-	state{specific.is_used_for_isl ? SatelliteLinkState::UP : SatelliteLinkState::DOWN}
+	state{specific.is_used_for_isl ? SatelliteLinkState::UP : SatelliteLinkState::DOWN},
+	packet_switch{specific.packet_switch}
 {
 }
  
@@ -89,7 +90,9 @@ BlockLanAdaptation::Upward::Upward(const std::string &name, struct la_specific s
 	sarp_table{},
 	contexts{},
 	tal_id{specific.connected_satellite},
-	state{specific.is_used_for_isl ? SatelliteLinkState::UP : SatelliteLinkState::DOWN}
+	state{specific.is_used_for_isl ? SatelliteLinkState::UP : SatelliteLinkState::DOWN},
+	packet_switch{specific.packet_switch},
+	delay{specific.delay}
 {
 }
 
@@ -124,7 +127,6 @@ bool BlockLanAdaptation::onInit(void)
 		return false;
 	}
 
-	BlockLanAdaptation::packet_switch = this->specific.packet_switch;
 	lan_contexts_t contexts;
 	contexts.push_back(context);
 	((Upward *)this->upward)->setContexts(contexts);
@@ -155,7 +157,18 @@ bool BlockLanAdaptation::Downward::onInit(void)
 
 bool BlockLanAdaptation::Upward::onInit(void)
 {
-	//return OpenSandModelConf::Get()->getSarp(this->sarp_table);
+	uint32_t polling_rate;
+	if (delay == 0)
+	{
+		// No need to poll, messages are sent directly
+		polling_rate = 0;
+	}
+	else if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
+	{
+		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
+		return false;
+	}
+	delay_timer = this->addTimerEvent(getName() + ".delay_timer", polling_rate);
 	return true;
 }
 
@@ -186,6 +199,7 @@ void BlockLanAdaptation::Downward::setFd(int fd)
  */
 BlockLanAdaptation::~BlockLanAdaptation()
 {
+	delete this->packet_switch;
 }
 
 bool BlockLanAdaptation::Downward::onEvent(const RtEvent *const event)
@@ -285,7 +299,7 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 					for(lan_contexts_t::iterator ctx_iter = this->contexts.begin();
 					    ctx_iter != this->contexts.end(); ++ctx_iter)
 					{
-						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id, BlockLanAdaptation::packet_switch))
+						if(!(*ctx_iter)->initLanAdaptationContext(this->tal_id, packet_switch))
 						{
 							LOG(this->log_receive, LEVEL_ERROR,
 							    "cannot initialize %s context\n",
@@ -326,8 +340,25 @@ bool BlockLanAdaptation::Upward::onEvent(const RtEvent *const event)
 			{
 				return false;
 			}
+			break;
 		}
-		break;
+
+		case EventType::Timer:
+			if (event->getFd() == delay_timer)
+			{
+				time_ms_t current_time = getCurrentTime();
+
+				while (delay_fifo.getCurrentSize() > 0 && static_cast<unsigned long>(delay_fifo.getTickOut()) <= current_time)
+				{
+					FifoElement *elem = delay_fifo.pop();
+					auto packet = elem->getElem<NetPacket>();
+					if (!this->writePacket(packet->getData()))
+					{
+						return false;
+					}
+				}
+			}
+			break;
 
 		default:
 			LOG(this->log_receive, LEVEL_ERROR,
@@ -363,6 +394,7 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 		}
 	}
 
+	time_ms_t current_time = getCurrentTime();
 	auto burst_it = burst->begin();
 	while(burst_it != burst->end())
 	{
@@ -383,7 +415,7 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			continue;
 		}
 		// Learn source mac address
-		if(BlockLanAdaptation::packet_switch->learn(packet, pkt_tal_id_src))
+		if(packet_switch->learn(packet, pkt_tal_id_src))
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "The mac address %s learned from lower layer as "
@@ -391,7 +423,7 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			
 		}
 
-		if(BlockLanAdaptation::packet_switch->isPacketForMe(packet, pkt_tal_id_src, forward))
+		if(packet_switch->isPacketForMe(packet, pkt_tal_id_src, forward))
 		{
 			LOG(this->log_receive, LEVEL_INFO,
 			    "%s packet received from lower layer & should "
@@ -408,14 +440,26 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			}
 
 			packet.insert(0, head, TUNTAP_FLAGS_LEN);
-			if(write(this->fd, packet.data(), packet.length()) < 0)
+			if (delay == 0)
 			{
-				LOG(this->log_receive, LEVEL_ERROR,
-				    "Unable to write data on tap "
-				    "interface: %s\n", strerror(errno));
-				success = false;
-				++burst_it;
-				continue;
+				if(!this->writePacket(packet))
+				{
+					success = false;
+					++burst_it;
+					continue;
+				}
+			}
+			else
+			{
+				std::unique_ptr<NetPacket> packet_ptr{new NetPacket(packet)};
+				FifoElement *elem = new FifoElement(std::move(packet_ptr), current_time, current_time + delay);
+				if (!delay_fifo.pushBack(elem))
+				{
+					LOG(this->log_receive, LEVEL_ERROR, "failed to push the message in the fifo\n");
+					success = false;
+					++burst_it;
+					continue;
+				}
 			}
 
 			LOG(this->log_receive, LEVEL_INFO,
@@ -433,8 +477,11 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 			/  => remove packet from burst and use it*/
 			if(!forward_burst)
 			{
-				forward_burst = new NetBurst();
-				if(!forward_burst)
+				try
+				{
+					forward_burst = new NetBurst();
+				}
+				catch (const std::bad_alloc& e)
 				{
 					LOG(this->log_receive, LEVEL_ERROR,
 					    "cannot create the burst for forward "
@@ -489,6 +536,19 @@ bool BlockLanAdaptation::Upward::onMsgFromDown(NetBurst *burst)
 	return success;
 }
 
+bool BlockLanAdaptation::Upward::writePacket(const Data& packet)
+{
+	// TODO move into its own function for delay...
+	if(write(this->fd, packet.data(), packet.length()) < 0)
+	{
+		LOG(this->log_receive, LEVEL_ERROR,
+			"Unable to write data on tap "
+			"interface: %s\n", strerror(errno));
+		return false;
+	}
+	return true;
+}
+
 bool BlockLanAdaptation::Downward::onMsgFromUp(const NetSocketEvent *const event)
 {
 	unsigned char *read_data;
@@ -514,7 +574,7 @@ bool BlockLanAdaptation::Downward::onMsgFromUp(const NetSocketEvent *const event
 	auto packet = std::unique_ptr<NetPacket>(new NetPacket(data, length));
 	// Learn source_mac address
 	tal_id_t pkt_tal_id_src = packet->getSrcTalId();
-	BlockLanAdaptation::packet_switch->learn(packet->getData(), pkt_tal_id_src);
+	packet_switch->learn(packet->getData(), pkt_tal_id_src);
 
 	NetBurst *burst = new NetBurst();
 	burst->add(std::move(packet));

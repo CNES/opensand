@@ -172,7 +172,7 @@ public:
 class SatellitePacketSwitch: public PacketSwitch
 {
 public:
-	SatellitePacketSwitch(tal_id_t tal_id, std::unordered_set<tal_id_t> isl_entities);
+	SatellitePacketSwitch(tal_id_t tal_id, bool isl_used, std::unordered_set<tal_id_t> isl_entities);
 
 	/**
 	 * @brief Get the OpenSAND destination of packet from its MAC destination
@@ -196,6 +196,9 @@ public:
 	bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward) override;
 
 private:
+	// Whether or not to consider ISL for routing purposes
+	bool isl_enabled;
+
 	// Packets for these entities should be routed to ISL
 	std::unordered_set<tal_id_t> isl_entities;
 };
