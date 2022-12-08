@@ -38,6 +38,8 @@
 
 #include "Plugin.h"
 #include "Ethernet.h"
+#include "NetBurst.h"
+#include "NetPacket.h"
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
@@ -140,8 +142,8 @@ bool BlockEncap::Downward::onEvent(const RtEvent *const event)
 				return enqueueMessage(&data, msg_event->getLength(), msg_event->getMessageType());
 			}
 
-			NetBurst *burst = static_cast<NetBurst *>(msg_event->getData());
-			return this->onRcvBurst(burst);
+			auto burst = static_cast<NetBurst *>(msg_event->getData());
+			return this->onRcvBurst(std::unique_ptr<NetBurst>{burst});
 		}
 		break;
 
@@ -259,8 +261,8 @@ bool BlockEncap::Upward::onEvent(const RtEvent *const event)
 			}
 
 			// data received
-			NetBurst *burst = static_cast<NetBurst *>(msg_event->getData());
-			return this->onRcvBurst(burst);
+			auto burst = static_cast<NetBurst *>(msg_event->getData());
+			return this->onRcvBurst(std::unique_ptr<NetBurst>{burst});
 		}
 
 		default:
@@ -383,8 +385,6 @@ bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 {
 	std::map<event_id_t, int>::iterator it;
 	int id;
-	NetBurst *burst;
-	bool status = false;
 
 	LOG(this->log_receive, LEVEL_INFO,
 	    "emission timer received, flush corresponding emission "
@@ -396,7 +396,7 @@ bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "timer not found\n");
-		goto error;
+		return false;
 	}
 
 	// context found
@@ -410,12 +410,12 @@ bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 	this->timers.erase(it);
 
 	// flush the last encapsulation contexts
-	burst = (this->ctx.back())->flush(id);
-	if(burst == NULL)
+	auto burst = (this->ctx.back())->flush(id);
+	if(!burst)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "flushing context %d failed\n", id);
-		goto error;
+		return false;
 	}
 
 	LOG(this->log_receive, LEVEL_INFO,
@@ -424,8 +424,7 @@ bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 
 	if(burst->size() <= 0)
 	{
-		status = true;
-		goto clean;
+		return true;
 	}
 
 	// send the message to the lower layer
@@ -433,28 +432,23 @@ bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "cannot send burst to lower layer failed\n");
-		goto clean;
+		return false;
 	}
 
 	LOG(this->log_receive, LEVEL_INFO,
 	    "encapsulation burst sent to the lower layer\n");
 
 	return true;
-
-clean:
-	delete burst;
-error:
-	return status;
 }
 
-bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
+bool BlockEncap::Downward::onRcvBurst(std::unique_ptr<NetBurst> burst)
 {
 	std::map<long, int> time_contexts;
 	std::string name;
 	size_t size;
 
 	// check packet validity
-	if(burst == nullptr)
+	if(!burst)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "burst is not valid\n");
@@ -470,8 +464,8 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 	// encapsulate packet
 	for(auto&& context : this->ctx)
 	{
-		burst = context->encapsulate(burst, time_contexts);
-		if(burst == nullptr)
+		burst = context->encapsulate(std::move(burst), time_contexts);
+		if(!burst)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "encapsulation failed in %s context\n",
@@ -519,7 +513,7 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 	}
 
 	// check burst validity
-	if(burst == nullptr)
+	if(!burst)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "encapsulation failed\n");
@@ -541,7 +535,6 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 	// if no encapsulation packet was created, avoid sending a message
 	if(burst->size() <= 0)
 	{
-		delete burst;
 		return true;
 	}
 
@@ -551,7 +544,6 @@ bool BlockEncap::Downward::onRcvBurst(NetBurst *burst)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to lower layer\n");
-		delete burst;
 		return false;
 	}
 
@@ -588,12 +580,12 @@ void BlockEncap::Upward::setMacId(tal_id_t id)
 	this->mac_id = id;
 }
 
-bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
+bool BlockEncap::Upward::onRcvBurst(std::unique_ptr<NetBurst> burst)
 {
 	unsigned int nb_bursts;
 
 	// check burst validity
-	if(burst == nullptr)
+	if(!burst)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "burst is not valid\n");
@@ -611,8 +603,8 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 	// iterate on all the deencapsulation contexts to get the ip packets
 	for(auto&& context : contexts)
 	{
-		burst = context->deencapsulate(burst);
-		if(burst == nullptr)
+		burst = context->deencapsulate(std::move(burst));
+		if(!burst)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "deencapsulation failed in %s context\n",
@@ -627,7 +619,6 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 
 	if(burst->size() == 0)
 	{
-		delete burst;
 		return true;
 	}
 
@@ -636,7 +627,7 @@ bool BlockEncap::Upward::onRcvBurst(NetBurst *burst)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to upper layer\n");
-		delete burst;
+		return false;
 	}
 
 	LOG(this->log_receive, LEVEL_INFO,

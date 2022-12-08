@@ -200,12 +200,12 @@ private:
 	 * @brief Create a NetBurst from serialized data
 	 */
 	void deserialize(uint8_t *buf, uint32_t length,
-	                 NetBurst **net_burst);
+	                 std::unique_ptr<NetBurst> &net_burst);
 
 	/**
 	 * @brief Create a NetPacket from serialized data
 	 */
 	void deserialize(uint8_t *buf, uint32_t length,
-	                 NetPacket **packet);
+	                 std::unique_ptr<NetPacket> &packet);
 };
 #endif

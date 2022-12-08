@@ -66,7 +66,7 @@ public:
 	 * @param tick_out   The minimal time the element will output the FIFO (in ms)
 	 */
 	FifoElement(std::unique_ptr<NetContainer> elem,
-	               time_t tick_in, time_t tick_out);
+	            time_t tick_in, time_t tick_out);
 
 	/**
 	 * Destroy the fifo element

@@ -198,7 +198,7 @@ public:
 		 * @return            a list of encapsulation packets
 		 */
 		// TODO replace int by uintXX_t
-		virtual NetBurst *flush(int context_id) = 0;
+		virtual std::unique_ptr<NetBurst> flush(int context_id) = 0;
 
 		/**
 		 * Flush all the encapsulation contexts. It's the caller charge to delete
@@ -206,7 +206,7 @@ public:
 		 *
 		 * @return  a list of encapsulation packets
 		 */
-		virtual NetBurst *flushAll() = 0;
+		virtual std::unique_ptr<NetBurst> flushAll() = 0;
 
 		/**
 		 * @brief Set the filter on destination TAL Id.

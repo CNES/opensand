@@ -341,9 +341,10 @@ public:
 	 */
 	T *frame(void) const
 	{
-		return (T *)(this->data.c_str());
+		return reinterpret_cast<T *>(this->data.c_str());
 	}
 
+	/*
 	// Overloaded cast
 	operator BBFrame* ()
 	{
@@ -362,10 +363,20 @@ public:
 		this->header_length = sizeof(T_DVB_SALOHA);
 		return reinterpret_cast<SlottedAlohaFrame *>(this);
 	};
+	*/
 
 };
 
-typedef DvbFrameTpl<> DvbFrame;
+
+using DvbFrame = DvbFrameTpl<>;
+
+
+template<class U, class V>
+Rt::Ptr<DvbFrameTpl<V>> dvb_frame_cast(Rt::Ptr<DvbFrameTpl<U>> ptr)
+{
+	ptr->header_length = sizeof(V);
+	return {reinterpret_cast<DvbFrameTpl<T>*>(ptr.release()), std::move(ptr.get_deleter())};
+}
 
 
 #endif

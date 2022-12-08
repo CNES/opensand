@@ -38,10 +38,12 @@
 
 #include "OpenSandModelConf.h"
 #include "SarpTable.h"
-#include "Data.h"
-#include <opensand_rt/RtMutex.h>
 
+#include <opensand_rt/RtMutex.h>
 #include <opensand_output/OutputLog.h>
+
+
+namespace Rt { class Data; };
 
 
 
@@ -64,7 +66,7 @@ public:
 	 *
 	 * @return true if destination found, false otherwise
 	 */
-	virtual bool getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id) = 0;
+	virtual bool getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dst_id) = 0;
 
 	/**
 	 * @brief Check a packet is destinated to the current entity
@@ -75,7 +77,7 @@ public:
 	 *
 	 * @return true if packet is for the current entity, false otherwise
 	 */
-	virtual bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward) = 0;
+	virtual bool isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward) = 0;
 
 	/**
 	 * @brief Learn the source MAC address of the specified packet
@@ -85,7 +87,7 @@ public:
 	 * 
 	 * @return true on success, false otherwise
 	 */
-	bool learn(const Data &packet, tal_id_t src_id);
+	bool learn(const Rt::Data &packet, tal_id_t src_id);
 
 	SarpTable *getSarpTable();
 
@@ -120,7 +122,7 @@ public:
 	 *
 	 * @return true if destination found, false otherwise
 	 */
-	bool getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dest_id);
+	bool getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dest_id);
 
 	/**
 	 * @brief Check a packet is destinated to the current entity
@@ -131,7 +133,7 @@ public:
 	 *
 	 * @return true if packet is for the current entity, false otherwise
 	 */
-	bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward);
+	bool isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward);
 
 protected:
 	/// The gateway id of the terminal entity
@@ -155,7 +157,7 @@ public:
 	 *
 	 * @return true if destination found, false otherwise
 	 */
-	bool getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id);
+	bool getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dst_id);
 
 	/**
 	 * @brief Check a packet is destinated to the current entity
@@ -166,7 +168,7 @@ public:
 	 *
 	 * @return true if packet is for the current entity, false otherwise
 	 */
-	bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward);
+	bool isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward);
 };
 
 class SatellitePacketSwitch: public PacketSwitch
@@ -182,7 +184,7 @@ public:
 	 *
 	 * @return true if destination found, false otherwise
 	 */
-	bool getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id) override;
+	bool getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dst_id) override;
 
 	/**
 	 * @brief Check a packet is destinated to the current entity
@@ -193,7 +195,7 @@ public:
 	 *
 	 * @return true if packet is for the current entity, false otherwise
 	 */
-	bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward) override;
+	bool isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward) override;
 
 private:
 	// Whether or not to consider ISL for routing purposes

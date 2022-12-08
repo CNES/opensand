@@ -147,7 +147,7 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 
 					if(length > 0)
 					{
-						this->onReceivePktFromCarrier(carrier_id, spot_id,  
+						this->onReceivePktFromCarrier(carrier_id, spot_id,
 						                              buf, length);
 					}
 				}

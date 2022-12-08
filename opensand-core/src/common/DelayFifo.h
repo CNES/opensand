@@ -144,7 +144,7 @@ protected:
 
 	vol_pkt_t max_size_pkt;         ///< the maximum size for that FIFO
 
-	mutable RtMutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access
+	mutable Rt::Mutex fifo_mutex;  ///< The mutex to protect FIFO from concurrent access
 };
 
 

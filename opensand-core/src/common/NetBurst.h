@@ -42,7 +42,7 @@
 #include <memory>
 
 
-class Data;
+namespace Rt { class Data; };
 class NetPacket;
 class OutputLog;
 enum class NET_PROTO : uint16_t;
@@ -118,7 +118,7 @@ public:
 	 *
 	 * @return a string with the raw content of the burst
 	 */
-	Data data() const;
+	Rt::Data data() const;
 
 	/**
 	 * Get the amount of data (in bytes) stored in the burst

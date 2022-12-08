@@ -475,24 +475,24 @@ void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
 }
 
 void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
-                                              NetBurst **net_burst)
+                                              std::unique_ptr<NetBurst> &net_burst)
 {
 	uint32_t pos = 0;
-	(*net_burst) = new NetBurst{};
+	net_burst.reset(new NetBurst{});
 
 	do
 	{
 		uint32_t packet_length;
-		NetPacket *packet = nullptr;
+		std::unique_ptr<NetPacket> packet{};
 
 		// Read the length of the packet
 		deserializeField(buf, pos, packet_length);
 
 		// Deserialize the packet
-		this->deserialize(buf + pos, packet_length, &packet);
+		this->deserialize(buf + pos, packet_length, packet);
 
 		// Insert the new packet in the burst
-		(*net_burst)->push_back(std::unique_ptr<NetPacket>{packet});
+		net_burst->push_back(std::move(packet));
 
 		// Update position
 		pos += packet_length;
@@ -503,7 +503,7 @@ void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
 }
 
 void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
-                                              NetPacket **packet)
+                                              std::unique_ptr<NetPacket> &packet)
 {
 	uint32_t pos = 0;
 
@@ -519,12 +519,12 @@ void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
 	deserializeField(buf, pos, type);
 	deserializeField(buf, pos, header_length);
 
-	*packet = new NetPacket{Data{buf + pos, length - pos},
-	                        length - pos,
-	                        "interconnect",
-	                        type,
-	                        qos,
-	                        src_id,
-	                        dest_id,
-	                        header_length};
+	packet.reset(new NetPacket{Data{buf + pos, length - pos},
+	                           length - pos,
+	                           "interconnect",
+	                           type,
+	                           qos,
+	                           src_id,
+	                           dest_id,
+	                           header_length});
 }

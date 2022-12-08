@@ -214,8 +214,9 @@ public:
 		 *                         the context ID expires
 		 * @return              a list of packets
 		 */
-		virtual NetBurst *encapsulate(NetBurst *burst,
-		                              std::map<long, int> &time_contexts) = 0;
+		virtual std::unique_ptr<NetBurst> encapsulate(
+				std::unique_ptr<NetBurst> burst,
+			   	std::map<long, int> &time_contexts) = 0;
 
 		/**
 		 * Encapsulate some packets into one or several packets for contexts with
@@ -224,7 +225,7 @@ public:
 		 * @param burst  the packets to encapsulate
 		 * @return       a list of packets
 		 */
-		virtual NetBurst *encapsulate(NetBurst *burst);
+		virtual std::unique_ptr<NetBurst> encapsulate(std::unique_ptr<NetBurst> burst);
 
 		/**
 		 * Deencapsulate some packets into one or several packets.
@@ -233,7 +234,7 @@ public:
 		 * @param burst   the stack packets to deencapsulate
 		 * @return        a list of packets
 		 */
-		virtual NetBurst *deencapsulate(NetBurst *burst) = 0;
+		virtual std::unique_ptr<NetBurst> deencapsulate(std::unique_ptr<NetBurst> burst) = 0;
 
 		/** @brief Get the list of protocols that can be encapsulated
 		 *

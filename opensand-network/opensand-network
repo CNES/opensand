@@ -52,33 +52,31 @@ def _prepare_isl_env(satellite_id: int, isl_id: int = None, isl_bridge: str = 'o
     if isl_id is not None:
         utils.delete_iface(f'isl{satellite_id}_{isl_id}_veth', netns)
         utils.delete_iface(f'isl_{isl_id}', netns)
-        return isl_id
+    else:
+        isl_id = 1 + max(
+                (
+                    int(name.split('_')[1])
+                    for name in utils.list_ifaces(netns)
+                    if name.split('_')[-1] == 'tap'
+                ),
+                default=0
+        )
 
-    isl_id = 1 + max(
-            (
-                int(name.split('_')[1])
-                for name in utils.list_ifaces(netns)
-                if name.split('_')[-1] == 'tap'
-            ),
-            default=0
-    )
+        tap_name = f'isl_{isl_id}_tap'
+        create_tap(tap_name, netns,
+                   f'10.0.{satellite_id}.{isl_id}/16',
+                   f'00:00:00:00:{satellite_id:0>2X}:{isl_id:0>2X}')
 
-    tap_name = f'isl_{isl_id}_tap'
-    create_tap(tap_name, netns,
-               f'10.0.{isl_id}.{satellite_id}/24',
-               f'00:00:00:00:{isl_id:0>2X}:{satellite_id:0>2X}')
-
-    bridge_name = f'isl_{isl_id}_bridge'
-    utils.create_bridge(bridge_name, [tap_name], netns)
-    utils.set_up(bridge_name, netns)
+        bridge_name = f'isl_{isl_id}_bridge'
+        utils.create_bridge(bridge_name, [tap_name], netns)
+        utils.set_up(bridge_name, netns)
 
     sock_src = f'isl_{isl_id}'
     sock_dest = f'isl_sock{satellite_id}_{isl_id}'
     utils.create_veth_ifaces_pair(sock_src, sock_dest)
-    utils.attach_iface(isl_bridge, sock_dest)
     utils.move_iface(sock_src, netns)
-    utils.set_mac_address(sock_src, f'10:10:00:00:{satellite_id:0>2X}:{isl_id:0>2X}', netns)
     utils.add_address(sock_src, f'10.10.{satellite_id}.{isl_id}/16', netns)
+    utils.attach_iface(isl_bridge, sock_dest)
     utils.set_up(sock_src, netns)
     utils.set_up(sock_dest)
 
@@ -117,6 +115,8 @@ def setup(terminals: IDs, gateways: IDs, satellites: IDs, dev_bridge: str, emu_b
         create_entity('gw', id, dev_bridge, emu_bridge, True)
     for id in satellites:
         create_entity('sat', id, dev_bridge, emu_bridge, False)
+        utils.create_tap_iface('opensand_regen', f'sat{id}')
+        utils.set_up('opensand_regen', f'sat{id}')
 
     utils.add_address(dev_bridge, '192.168.100.100/24')
     utils.set_up(dev_bridge)

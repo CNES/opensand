@@ -39,8 +39,6 @@
 
 #include "EncapPlugin.h"
 #include "LanAdaptationPlugin.h"
-#include "NetBurst.h"
-#include "NetPacket.h"
 #include "OpenSandCore.h"
 #include "OpenSandFrames.h"
 #include "StackPlugin.h"
@@ -49,6 +47,7 @@
 #include <opensand_rt/Rt.h>
 #include <opensand_rt/RtChannel.h>
 
+
 struct EncapConfig
 {
 	tal_id_t entity_id;
@@ -56,6 +55,7 @@ struct EncapConfig
 	bool filter_packets;   // if true, the block will drop packets whose destination is not the entity_id
 	bool scpc_enabled;     // only used when entity_type == terminal
 };
+
 
 /**
  * @class BlockEncap
@@ -129,7 +129,7 @@ public:
 		 * @param burst  The burst received from the lower-layer block
 		 * @return       Whether the burst was successful handled or not
 		 */
-		bool onRcvBurst(NetBurst *burst);
+		bool onRcvBurst(std::unique_ptr<NetBurst> burst);
 	};
 
 	class Downward: public RtDownward, EncapChannel
@@ -153,7 +153,7 @@ public:
 		 * @param burst  The burst received from the upper-layer block
 		 * @return        Whether the IP packet was successful handled or not
 		 */
-		bool onRcvBurst(NetBurst *burst);
+		bool onRcvBurst(std::unique_ptr<NetBurst> burst);
 
 		/**
 		 * Handle the timer event

@@ -38,9 +38,9 @@
 
 
 #include <string>
+#include <opensand_rt/Types.h>
 
 #include "OpenSandCore.h"
-#include "Data.h"
 
 
 /**
@@ -51,9 +51,9 @@
  */
 class NetContainer
 {
-protected:
+ protected:
 	/// Internal buffer for packet data
-	Data data;
+	Rt::Data data;
 
 	/// The name of the network protocol
 	std::string name;
@@ -67,7 +67,7 @@ protected:
 	/// The destination spot ID
 	spot_id_t spot;
 
-public:
+ public:
 	/**
 	 * Build a generic OpenSAND network container
 	 *
@@ -81,7 +81,7 @@ public:
 	 *
 	 * @param data raw data from which a network-layer packet can be created
 	 */
-	NetContainer(const Data &data);
+	NetContainer(const Rt::Data &data);
 
 	/**
 	 * Build a generic OpenSAND network container
@@ -89,7 +89,7 @@ public:
 	 * @param data raw data from which a network-layer packet can be created
 	 * @param length length of raw data
 	 */
-	NetContainer(const Data &data, std::size_t length);
+	NetContainer(const Rt::Data &data, std::size_t length);
 
 	/**
 	 * Build an empty generic OpenSAND network container
@@ -120,7 +120,7 @@ public:
 	 *
 	 * @return the data string
 	 */
-	Data getData() const;
+	Rt::Data getData() const;
 
 	/**
 	 * Returns a const pointer to the raw data. 
@@ -141,7 +141,7 @@ public:
 	 * @param  the position of the data beginning
 	 * @return the data starting at the given position
 	 */
-	virtual Data getData(std::size_t pos) const;
+	virtual Rt::Data getData(std::size_t pos) const;
 
 	/**
 	 * Retrieve the length of the packet payload
@@ -155,7 +155,7 @@ public:
 	 *
 	 * @return the payload of the packet
 	 */
-	virtual Data getPayload() const;
+	virtual Rt::Data getPayload() const;
 
 	/**
 	 * Retrieve data from the payload
@@ -163,7 +163,7 @@ public:
 	 * @param  the position of the data beginning in the payload
 	 * @return the data starting at the given position from the payload
 	 */
-	virtual Data getPayload(std::size_t pos) const;
+	virtual Rt::Data getPayload(std::size_t pos) const;
 
 	/**
 	 * Get the packet header length

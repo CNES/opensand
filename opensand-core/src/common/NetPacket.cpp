@@ -46,7 +46,7 @@ NetPacket::NetPacket(const unsigned char *data, std::size_t length):
 }
 
 
-NetPacket::NetPacket(const Data &data):
+NetPacket::NetPacket(const Rt::Data &data):
 		NetContainer{data},
 		type{NET_PROTO::ERROR},
 		qos{},
@@ -57,7 +57,7 @@ NetPacket::NetPacket(const Data &data):
 }
 
 
-NetPacket::NetPacket(const Data &data, std::size_t length):
+NetPacket::NetPacket(const Rt::Data &data, std::size_t length):
 		NetContainer{data, length},
 		type{NET_PROTO::ERROR},
 		qos{},
@@ -91,7 +91,7 @@ NetPacket::NetPacket():
 }
 
 
-NetPacket::NetPacket(const Data &data,
+NetPacket::NetPacket(const Rt::Data &data,
                      std::size_t length,
                      std::string name,
                      NET_PROTO type,

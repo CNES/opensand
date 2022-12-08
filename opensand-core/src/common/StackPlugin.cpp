@@ -74,7 +74,7 @@ StackPlugin::StackContext::~StackContext()
 }
 
 
-NetBurst *StackPlugin::StackContext::encapsulate(NetBurst *burst)
+std::unique_ptr<NetBurst> StackPlugin::StackContext::encapsulate(std::unique_ptr<NetBurst> burst)
 {
 	std::map<long, int> time_contexts;
 	return this->encapsulate(burst, time_contexts);

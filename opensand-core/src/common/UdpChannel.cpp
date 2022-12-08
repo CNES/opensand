@@ -330,25 +330,15 @@ spot_id_t UdpChannel::getSpotId()
  * @return         0 on success, 1 if the function should be
  *                 called another time, -1 on error
  */
-// TODO why not work directly with Data here instead of buf, length
-int UdpChannel::receive(NetSocketEvent *const event,
-                        unsigned char **buf, size_t &data_len)
+int UdpChannel::receive(const NetSocketEvent * const event,
+                        std::unique_ptr<unsigned char[]> &buf)
 {
-	struct sockaddr_in remote_addr;
-	std::map<std::string , uint8_t>::iterator ip_count_it;
-	std::string ip_address;
-	uint8_t nb_sequencing;
-	uint8_t current_sequencing;
-	unsigned char *data;
-	size_t recv_len;
-	unsigned char *recv_data;
-
 	if(!this->stacked_ip.empty())
 	{
 		LOG(this->log_sat_carrier, LEVEL_INFO,
 		    "Send content of stack for address %s\n",
 		    this->stacked_ip.c_str());
-		if(!this->handleStack(buf, data_len))
+		if(!this->handleStack(buf))
 		{
 			goto error;
 		}
@@ -381,20 +371,16 @@ int UdpChannel::receive(NetSocketEvent *const event,
 		goto error;
 	}
 
-	// we need to memcpy as the start pointer cannot be reused
-	recv_len = event->getSize() - 1;
-	recv_data = (unsigned char *)calloc(recv_len, sizeof(unsigned char));
-	data = event->getData();
-	memcpy(recv_data, data + 1, recv_len);
-	remote_addr = event->getSrcAddr();
+	std::unique_ptr<unsigned char[]> data = event->getData();
+	struct sockaddr_in remote_addr = event->getSrcAddr();
 
 	// get the IP address of the sender
-	ip_address = inet_ntoa(remote_addr.sin_addr);
+	std::string ip_address = inet_ntoa(remote_addr.sin_addr);
 
 	// check the sequencing of the datagramm
-	nb_sequencing = data[0];
-	free(data);
-	ip_count_it = this->udp_counters.find(ip_address);
+	uint8_t current_sequencing;
+	uint8_t nb_sequencing = data[0];
+	auto ip_count_it = this->udp_counters.find(ip_address);
 	if(ip_count_it == this->udp_counters.end())
 	{
 		this->udp_counters[ip_address] = nb_sequencing;
@@ -417,16 +403,16 @@ int UdpChannel::receive(NetSocketEvent *const event,
 		    "Current UDP sequencing for address %s: %u\n",
 		    ip_address.c_str(), current_sequencing);
 	}
+
+	auto &udp_stack = this->stacks[ip_address];
 	// add the new packet in stack
-	this->stacks[ip_address]->add(nb_sequencing, recv_data, recv_len);
+	udp_stack->add(nb_sequencing, std::move(data));
 	this->stacked_ip = ip_address;
 	// send the current packet
-	if(this->stacks[ip_address]->hasNext(current_sequencing))
+	if(udp_stack->hasNext(current_sequencing))
 	{
-		LOG(this->log_sat_carrier, LEVEL_DEBUG,
-		    "Next UDP packet is in stack\n");
-		this->handleStack(buf, data_len, current_sequencing,
-		                  this->stacks[ip_address]);
+		LOG(this->log_sat_carrier, LEVEL_DEBUG, "Next UDP packet is in stack\n");
+		this->handleStack(buf, current_sequencing, udp_stack);
 		if(!this->stacked_ip.empty())
 		{
 			// we still have packets to send
@@ -443,7 +429,7 @@ int UdpChannel::receive(NetSocketEvent *const event,
 		    current_sequencing, ip_address.c_str(), nb_sequencing);
 	}
 	// check that we do not have to much packets in stack
-	if(this->stacks[ip_address]->getCounter() > this->max_stack)
+	if(udp_stack->getCounter() > this->max_stack)
 	{
 		// suppose we lost the packet
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
@@ -451,7 +437,7 @@ int UdpChannel::receive(NetSocketEvent *const event,
 		    "and adjust UDP buffers\n");
 		// send the next packets from stack
 		current_sequencing = (current_sequencing + 1) % 256;
-		while(!this->stacks[ip_address]->hasNext(current_sequencing))
+		while(!udp_stack->hasNext(current_sequencing))
 		{
 			LOG(this->log_sat_carrier, LEVEL_INFO,
 			    "packet missing: %u\n", current_sequencing);
@@ -474,12 +460,9 @@ error:
 }
 
 
-bool UdpChannel::handleStack(unsigned char **buf, size_t &data_len)
+bool UdpChannel::handleStack(std::unique_ptr<unsigned char[]> &buf)
 {
-	std::map<std::string , uint8_t>::iterator count_it = this->udp_counters.find(this->stacked_ip);
-	std::map<std::string, UdpStack *>::iterator stack_it = this->stacks.find(this->stacked_ip);
-	uint8_t counter;
-	
+	auto count_it = this->udp_counters.find(this->stacked_ip);
 	if(count_it == this->udp_counters.end())
 	{
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
@@ -487,6 +470,8 @@ bool UdpChannel::handleStack(unsigned char **buf, size_t &data_len)
 		    this->stacked_ip.c_str());
 		return false;
 	}
+
+	auto stack_it = this->stacks.find(this->stacked_ip);
 	if(stack_it == this->stacks.end())
 	{
 		LOG(this->log_sat_carrier, LEVEL_ERROR,
@@ -495,26 +480,24 @@ bool UdpChannel::handleStack(unsigned char **buf, size_t &data_len)
 		return false;
 	}
 
-	counter = (*count_it).second;
-	this->handleStack(buf, data_len,
-	                  counter,
-	                  (*stack_it).second);
+	uint8_t counter = count_it->second;
+	this->handleStack(buf, counter, stack_it->second);
 	if(!this->stacked_ip.empty())
 	{
 		// update counter for next stacked packet
-		(*count_it).second = (counter + 1) % 256;
+		count_it->second = (counter + 1) % 256;
 	}
 	return true;
 }
 	
 	
-void UdpChannel::handleStack(unsigned char **buf, size_t &data_len,
+void UdpChannel::handleStack(std::unique_ptr<unsigned char[]> &buf,
                              uint8_t counter, UdpStack *stack)
 {
 	LOG(this->log_sat_carrier, LEVEL_INFO,
 	    "transmit UDP packet for source IP %s at counter %d\n",
 	    this->stacked_ip.c_str(), counter);
-	stack->remove(counter, buf, data_len);
+	stack->remove(counter, buf);
 	counter = (counter + 1) % 256;
 	// if we don't have following packets in FIFO reset stacked_ip
 	if(!stack->hasNext(counter))
@@ -526,10 +509,9 @@ void UdpChannel::handleStack(unsigned char **buf, size_t &data_len,
 
 bool UdpChannel::send(const unsigned char *data, size_t length)
 {
-	ssize_t slen;
-
 	LOG(this->log_sat_carrier, LEVEL_INFO,
-	    "data are trying to be send on channel %d\n", m_channel_id);
+	    "data are trying to be send on channel %d\n",
+	    m_channel_id);
 
 	// check that the channel sends data
 	if(!this->isOutputOk())
@@ -552,7 +534,7 @@ bool UdpChannel::send(const unsigned char *data, size_t length)
 	bzero(this->send_buffer, sizeof(this->send_buffer));
 	this->send_buffer[0] = this->counter;
 	memcpy(send_buffer + 1, data, length);
-	slen = length + 1;
+	std::ssize_t slen = length + 1;
 
 	if(sendto(this->sock_channel, this->send_buffer, slen, 0,
 	          (struct sockaddr *) &this->m_remoteIPAddress,
@@ -580,74 +562,58 @@ error:
 }
 
 
-UdpStack::UdpStack()
+UdpStack::UdpStack():
+	std::vector<std::unique_ptr<unsigned char[]>>(256)
 {
 	// Output log
 	this->log_sat_carrier = Output::Get()->registerLog(LEVEL_WARNING, "SatCarrier.Channel");
-	// reserve space for all UDP counters
-	this->reserve(256);
-	for(unsigned int i = 0; i < 256; i++)
-	{
-		this->push_back(std::make_pair<unsigned char *, size_t>(NULL, 0));
-	}
 	this->counter = 0;
 }
 
 
 UdpStack::~UdpStack()
 {
-	this->reset();
+	// this->reset();
 	this->clear();
 }
 
 
-void UdpStack::add(uint8_t udp_counter, unsigned char *data, size_t data_length)
+void UdpStack::add(uint8_t udp_counter, std::unique_ptr<unsigned char[]> data)
 {
-	if(this->at(udp_counter).first)
+	auto& current = this->at(udp_counter);
+	if(current != nullptr)
 	{
 		LOG(this->log_sat_carrier, LEVEL_ERROR, 
 		    "new data for UDP stack at position %u, erase "
 		    "previous data\n", udp_counter);
 		this->counter--;
-		delete (this->at(udp_counter).first);
 	}
-	this->at(udp_counter).first = data;
-	this->at(udp_counter).second = data_length;
+	current = std::move(data);
 	this->counter++;
 }
 
 
-void UdpStack::remove(uint8_t udp_counter, unsigned char **data, size_t &data_length)
+void UdpStack::remove(uint8_t udp_counter, std::unique_ptr<unsigned char[]> &data)
 {
-	*data = this->at(udp_counter).first;
-	if(*data)
+	data = std::move(this->at(udp_counter));
+	if(data != nullptr)
 	{
 		this->counter--;
 	}
-	data_length = this->at(udp_counter).second;
-	this->at(udp_counter).first = NULL;
-	this->at(udp_counter).second = 0;
 }
 
 
 bool UdpStack::hasNext(uint8_t udp_counter)
 {
-	auto& value = this->at(udp_counter);
-	return (value.first != nullptr && value.second != 0);
+	return this->at(udp_counter) != nullptr;
 }
 
 
 void UdpStack::reset()
 {
-	std::vector<std::pair<unsigned char *, size_t> >::iterator it;
-	for(it = this->begin(); it != this->end(); ++it)
+	for (auto &&data: *this)
 	{
-		if((*it).first)
-		{
-			delete (*it).first;
-			(*it).first = NULL;
-			(*it).second = 0;
-		}
-		this->counter = 0;
+		data.reset();
 	}
+	this->counter = 0;
 }

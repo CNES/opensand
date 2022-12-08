@@ -125,7 +125,7 @@ public:
 		 * @param desired_frame_type The frame type we want to build
 		 * @return the Ethernet frame
 		 */
-		std::unique_ptr<NetPacket> createEthFrameData(Data data,
+		std::unique_ptr<NetPacket> createEthFrameData(Rt::Data data,
 		                                              MacAddress mac_src, MacAddress mac_dst,
 		                                              NET_PROTO ether_type,
 		                                              uint16_t q_tci,
@@ -249,7 +249,7 @@ public:
 			return length;
 		}
 
-		std::unique_ptr<NetPacket> build(const Data &data,
+		std::unique_ptr<NetPacket> build(const Rt::Data &data,
 		                                 std::size_t data_length,
 		                                 uint8_t qos,
 		                                 uint8_t src_tal_id,
@@ -264,7 +264,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the type of frame
 	 */
-	static NET_PROTO getFrameType(const Data &data);
+	static NET_PROTO getFrameType(const Rt::Data &data);
 
 	/**
 	 * @brief Retrieve the EtherType of a payload carried by an Ethernet frame
@@ -272,7 +272,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the EtherType
 	 */
-	static NET_PROTO getPayloadEtherType(const Data &data);
+	static NET_PROTO getPayloadEtherType(const Rt::Data &data);
 
 	/**
 	 * @brief Retrieve the Q TCI from an Ethernet frame
@@ -280,7 +280,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the Q TCI
 	 */
-	static uint16_t getQTci(const Data &data);
+	static uint16_t getQTci(const Rt::Data &data);
 
 	/**
 	 * @brief Retrieve the ad TCI from an Ethernet frame
@@ -288,7 +288,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the ad TCI
 	 */
-	static uint16_t getAdTci(const Data &data);
+	static uint16_t getAdTci(const Rt::Data &data);
 
 	/**
 	 * @brief Retrieve the source MAC address from an Ethernet frame
@@ -296,7 +296,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the source MAC address on success, an empty sring otherwise
 	 */
-	static MacAddress getSrcMac(const Data &data);
+	static MacAddress getSrcMac(const Rt::Data &data);
 
 	/**
 	 * @brief Retrieve the destination MAC address from an Ethernet frame
@@ -304,7 +304,7 @@ public:
 	 * @param data   the Ethernet frame data
 	 * @return the destination MAC address on success, an empty sring otherwise
 	 */
-	static MacAddress getDstMac(const Data &data);
+	static MacAddress getDstMac(const Rt::Data &data);
 
 };
 

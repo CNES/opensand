@@ -245,7 +245,7 @@ bool BlockSatDispatcher::Upward::handleDvbFrame(std::unique_ptr<DvbFrame> frame)
 bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_burst)
 {
 	// Separate the packets by destination
-	std::unordered_map<SpotComponentPair, std::unique_ptr<NetBurst>> bursts{};
+	std::unordered_map<SpotComponentPair, NetBurst*> bursts{};
 	for (auto &&pkt: *in_burst)
 	{
 		const auto dest_id = pkt->getDstTalId();
@@ -269,12 +269,18 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 			return false;
 		}
 
-		auto &burst = bursts[{spot_id, dest}];
-		if (burst == nullptr)
+		NetBurst* burst;
+		auto burst_it = bursts.find({spot_id, dest});
+		if (burst_it == bursts.end())
 		{
-			burst = std::unique_ptr<NetBurst>(new NetBurst{});
+			burst = new NetBurst{};
+			bursts.insert({{spot_id, dest}, burst});
 		}
-		burst->push_back(std::move(pkt));
+		else
+		{
+			burst = burst_it->second;
+		}
+		burst->push_back(std::unique_ptr<NetPacket>(new NetPacket{*pkt}));
 	}
 
 	// Send all bursts to their respective destination
@@ -287,6 +293,7 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 			LOG(log_receive, LEVEL_ERROR, "No route found for %s in spot %d",
 			    dest.dest == Component::gateway ? "GW" : "ST", dest.spot_id);
 			ok = false;
+			delete burst;
 			continue;
 		}
 
@@ -294,7 +301,7 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 		auto regen_level = regen_levels.at(dest);
 		if (dest_sat_id == entity_id && regen_level != RegenLevel::IP)
 		{
-			ok &= sendToOppositeChannel(std::move(burst), InternalMessageType::decap_data);
+			ok &= sendToOppositeChannel(std::unique_ptr<NetBurst>(burst), InternalMessageType::decap_data);
 		}
 		else
 		{
@@ -303,7 +310,7 @@ bool BlockSatDispatcher::Upward::handleNetBurst(std::unique_ptr<NetBurst> in_bur
 				.connected_sat = dest_sat_id,
 				.is_data_channel = regen_level == RegenLevel::IP,
 			};
-			ok &= sendToUpperBlock(key, std::move(burst), InternalMessageType::decap_data);
+			ok &= sendToUpperBlock(key, std::unique_ptr<NetBurst>(burst), InternalMessageType::decap_data);
 		}
 	}
 	return ok;

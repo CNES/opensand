@@ -17,7 +17,6 @@ libopensand_plugin_utils_la_h = \
 
 libopensand_plugin_la_cpp = \
 	CarrierType.cpp \
-	Data.cpp \
 	FifoElement.cpp \
 	NetContainer.cpp \
 	NetPacket.cpp \
@@ -37,7 +36,6 @@ libopensand_plugin_la_h = \
 	StackPlugin.h \
 	OpenSandCore.h \
 	CarrierType.h \
-	Data.h \
 	FifoElement.h \
 	NetContainer.h \
 	NetPacket.h \

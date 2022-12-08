@@ -61,6 +61,7 @@
 #include <net/ethernet.h>
 #include <algorithm>
 #include <arpa/inet.h>
+#include <memory>
 
 // include for the PCAP library
 #include <pcap.h>
@@ -401,8 +402,8 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 	struct pcap_pkthdr header;
 	unsigned char *packet;
 
-	NetBurst *encap_packets;
-	NetBurst *packets = NULL;
+	std::unique_ptr<NetBurst> encap_packets{};
+	std::unique_ptr<NetBurt> packets{};
 	NetBurst::iterator it;
 	NetBurst::iterator it2;
 
@@ -489,11 +490,13 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 		      net_packet->getTotalLength());
 
 		// encapsulation
-		encap_packets = new NetBurst();
-		if(encap_packets == NULL)
+		try
+		{
+			encap_packets.reset(new NetBurst());
+		}
+		catch (const std::bad_alloc&)
 		{
 			ERROR("cannot allocate memory for burst of network frames\n");
-			delete encap_packets;
 			goto close_encap;
 		}
 
@@ -503,8 +506,8 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 		for(lan_contexts_t::iterator ctxit = lan_contexts.begin();
 		    ctxit != lan_contexts.end(); ++ctxit)
 		{
-			encap_packets = (*ctxit)->encapsulate(encap_packets, time_contexts);
-			if(encap_packets == NULL)
+			encap_packets = (*ctxit)->encapsulate(std::move(encap_packets), time_contexts);
+			if(!encap_packets)
 			{
 				ERROR("[packet #%d] %s encapsulation failed\n",
 				      counter_src, (*ctxit)->getName().c_str());
@@ -522,22 +525,22 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 		for(encap_contexts_t::iterator ctxit = encap_contexts.begin();
 			ctxit != encap_contexts.end(); ++ctxit)
 		{
-			encap_packets = (*ctxit)->encapsulate(encap_packets, time_contexts);
-			if(encap_packets == NULL)
+			encap_packets = (*ctxit)->encapsulate(std::move(encap_packets), time_contexts);
+			if(!encap_packets)
 			{
 				ERROR("[packet #%d] %s encapsulation failed\n",
 				      counter_src, (*ctxit)->getName().c_str());
 				success = false;
 				break;
 			}
-			NetBurst *flushed = (*ctxit)->flushAll();
+			std::unique_ptr<NetBurst> flushed = (*ctxit)->flushAll();
 			if(flushed && !flushed->empty())
 			{
-			// TODO: use back_inserter or something
-			for (auto&& p : *flushed)
-			{
-				encap_packets->push_back(std::move(p));
-			}
+				// TODO: use back_inserter or something
+				for (auto&& p : *flushed)
+				{
+					encap_packets->push_back(std::move(p));
+				}
 			}
 		}
 		if(!encap_packets)
@@ -624,15 +627,15 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 		}
 
 		len = encap_packets->length();
-		packets = encap_packets;
+		packets = std::move(encap_packets);
 		DEBUG("[packet #%d] decapsulate %d packets in encap contexts\n",
 		      counter_src, packets->length());
 		// decapsulation
 		for(encap_contexts_t::reverse_iterator ctxit = encap_contexts.rbegin();
 		    ctxit != encap_contexts.rend(); ++ctxit)
 		{
-			packets = (*ctxit)->deencapsulate(packets);
-			if(packets == NULL)
+			packets = (*ctxit)->deencapsulate(std::move(packets));
+			if(!packets)
 			{
 				ERROR("[LAN packet #%d/ %s packets] %s decapsulation failed\n",
 				      counter_src, name.c_str(), (*ctxit)->getName().c_str());
@@ -650,8 +653,8 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 		for(lan_contexts_t::reverse_iterator ctxit = lan_contexts.rbegin();
 		    ctxit != lan_contexts.rend(); ++ctxit)
 		{
-			packets = (*ctxit)->deencapsulate(packets);
-			if(packets == NULL)
+			packets = (*ctxit)->deencapsulate(std::move(packets));
+			if(!packets)
 			{
 				ERROR("[LAN packet #%d/ %s packets] %s decapsulation failed\n",
 				      counter_src, name.c_str(), (*ctxit)->getName().c_str());
@@ -664,11 +667,7 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 			continue;
 		}
 
-		if(!len)
-		{
-			delete packets;
-		}
-		else
+		if(len)
 		{
 			DEBUG("[packet #%d] %d %s packets => %d %s packets\n",
 			      counter_src, len, name.c_str(), packets->length(),
@@ -712,14 +711,10 @@ static bool test_iter(std::string src_filename, std::string encap_filename,
 					continue;
 				}
 			}
-
-			delete packets;
-			packets = NULL;
 		}
 	}
 
 	DEBUG("\n");
-
 	INFO("End of %s test\n", name.c_str());
 
 	// clean memory

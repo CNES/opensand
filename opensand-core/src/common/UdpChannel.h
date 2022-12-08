@@ -44,14 +44,12 @@
 #include <memory>
 #include <vector>
 
-#include <opensand_rt/Types.h>
-
 #include "OpenSandCore.h"
 
 
 class UdpStack;
 class OutputLog;
-class NetSocketEvent;
+namespace Rt { class NetSocketEvent; };
 
 
 /*
@@ -61,7 +59,6 @@ class NetSocketEvent;
 class UdpChannel
 {
 public:
-
 	UdpChannel(std::string name,
 	           spot_id_t s_id,
 	           unsigned int channel_id,
@@ -92,9 +89,8 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	bool send(const unsigned char *data, std::size_t length);
-	int receive(NetSocketEvent *const event,
-	            unsigned char **buf,
-	            std::size_t &data_len);
+	int receive(const Rt::NetSocketEvent * const event,
+	            std::unique_ptr<unsigned char[]> &buf);
 
 	int getChannelFd();
 	
@@ -104,20 +100,20 @@ public:
 	 * @brief Get the next stacked packet
 	 *
 	 * @param buf      OUT: the stacked packet
-	 * @param data_len OUT: the length of the packet
 	 * @return true on success, false otherwise
 	 */
-	bool handleStack(unsigned char **buf, size_t &data_len);
+	bool handleStack(std::unique_ptr<unsigned char[]> &buf);
 
 
 	/**
 	 * @brief Get the next stacked packet
 	 *
 	 * @param buf      OUT: the stacked packet
-	 * @param data_len OUT: the length of the packet
+	 * @param counter  The position in the stack at
+	 *                 which the packet is located
 	 * @param stack    The stack in which to get packet
 	 */
-	void handleStack(unsigned char **buf, size_t &data_len,
+	void handleStack(std::unique_ptr<unsigned char[]> &buf,
 	                 uint8_t counter, UdpStack *stack);
 
 protected:
@@ -185,7 +181,7 @@ protected:
  * @brief This stack allows UDP packets ordering in order to avoid
  *        sequence desynchronizations
  */
-class UdpStack: std::vector<std::pair<unsigned char *, size_t> > 
+class UdpStack: std::vector<std::unique_ptr<unsigned char[]>> 
 {
 public:
 	/**
@@ -201,9 +197,8 @@ public:
 	 *
 	 * @param udp_counter  The position of the packet in the stack
 	 * @param data         The packet to store
-	 * @param data_length  The packet length
 	 */
-	void add(uint8_t udp_counter, unsigned char *data, size_t data_length);
+	void add(uint8_t udp_counter, std::unique_ptr<unsigned char[]> data);
 
 	/**
 	 * @brief Remove a packet from the stack
@@ -211,9 +206,8 @@ public:
 	 * @param udp_counter  The position of the packet in the stack
 	 * @param data         OUT: the packet stored in the stack or NULL if there
 	 *                          is no packet with this counter
-	 * @param data_length  OUT: the packet length or 0 if there is no packet
 	 */
-	void remove(uint8_t udp_counter, unsigned char **data, size_t &data_length);
+	void remove(uint8_t udp_counter, std::unique_ptr<unsigned char[]>& data);
 
 	/**
 	 * @brief Check if we have a packet at a specified counter

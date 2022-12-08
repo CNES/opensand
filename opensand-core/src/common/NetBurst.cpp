@@ -35,8 +35,8 @@
 #include <numeric>
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/Types.h>
 
-#include "Data.h"
 #include "NetBurst.h"
 #include "NetPacket.h"
 
@@ -110,9 +110,9 @@ unsigned int NetBurst::length() const
 }
 
 
-Data NetBurst::data() const
+Rt::Data NetBurst::data() const
 {
-	Data data;
+	Rt::Data data;
 
 	// add the data of each network packet of the burst
 	for(auto&& packet : *this)

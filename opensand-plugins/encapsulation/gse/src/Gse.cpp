@@ -300,10 +300,10 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 	NetBurst *gse_packets = nullptr;
 
 	// create an empty burst of GSE packets
-  try
-  {
-    gse_packets = new NetBurst();
-  }
+	try
+	{
+		gse_packets = new NetBurst();
+	}
 	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
@@ -317,7 +317,7 @@ NetBurst *Gse::Context::encapsulate(NetBurst *burst,
 		uint32_t context_id;
 		long time = 0;
 
-    NetPacket* packet = packet_it.get();
+		NetPacket* packet = packet_it.get();
 		// packet must be valid
 		if(packet == nullptr)
 		{

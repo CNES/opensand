@@ -35,13 +35,14 @@
  */
 
 #include "PacketSwitch.h"
-#include "Data.h"
 #include "MacAddress.h"
 #include "Ethernet.h"
 
 #include <string>
 #include <vector>
 #include <memory>
+
+#include <opensand_rt/Types.h>
 
 
 PacketSwitch::PacketSwitch(tal_id_t tal_id):
@@ -57,7 +58,7 @@ SarpTable *PacketSwitch::getSarpTable()
 	return &this->sarp_table;
 }
 
-bool PacketSwitch::learn(const Data &packet, tal_id_t src_id)
+bool PacketSwitch::learn(const Rt::Data &packet, tal_id_t src_id)
 {
 	MacAddress src_mac = Ethernet::getSrcMac(packet);
 	RtLock(this->mutex);
@@ -68,7 +69,7 @@ bool PacketSwitch::learn(const Data &packet, tal_id_t src_id)
 	return true;
 }
 
-bool TerminalPacketSwitch::getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
+bool TerminalPacketSwitch::getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
 {
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
 	RtLock(this->mutex);
@@ -80,13 +81,13 @@ bool TerminalPacketSwitch::getPacketDestination(const Data &packet, tal_id_t &sr
 	return true;
 }
 
-bool TerminalPacketSwitch::isPacketForMe(const Data &UNUSED(packet), tal_id_t UNUSED(src_id), bool &forward)
+bool TerminalPacketSwitch::isPacketForMe(const Rt::Data &UNUSED(packet), tal_id_t UNUSED(src_id), bool &forward)
 {
 	forward = false;
 	return true;
 }
 
-bool GatewayPacketSwitch::getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
+bool GatewayPacketSwitch::getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
 {
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
 	MacAddress src_mac = Ethernet::getSrcMac(packet);
@@ -100,7 +101,7 @@ bool GatewayPacketSwitch::getPacketDestination(const Data &packet, tal_id_t &src
 	return true;
 }
 
-bool GatewayPacketSwitch::isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward)
+bool GatewayPacketSwitch::isPacketForMe(const Rt::Data &packet, tal_id_t src_id, bool &forward)
 {
 	tal_id_t dst_id;
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
@@ -135,7 +136,7 @@ SatellitePacketSwitch::SatellitePacketSwitch(tal_id_t tal_id,
 	}
 }
 
-bool SatellitePacketSwitch::getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
+bool SatellitePacketSwitch::getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
 {
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
 	MacAddress src_mac = Ethernet::getSrcMac(packet);
@@ -151,7 +152,7 @@ bool SatellitePacketSwitch::getPacketDestination(const Data &packet, tal_id_t &s
 	return true;
 }
 
-bool SatellitePacketSwitch::isPacketForMe(const Data &packet, tal_id_t, bool &forward)
+bool SatellitePacketSwitch::isPacketForMe(const Rt::Data &packet, tal_id_t, bool &forward)
 {
 	if (!isl_enabled)
 	{

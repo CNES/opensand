@@ -57,13 +57,13 @@ DelayFifo::~DelayFifo()
 
 vol_pkt_t DelayFifo::getCurrentSize() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	return this->queue.size();
 }
 
 bool DelayFifo::setMaxSize(vol_pkt_t max_size_pkt)
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	// check if current size is bigger than the new max value
 	if(this->queue.size() > max_size_pkt)
 		return false;
@@ -73,13 +73,13 @@ bool DelayFifo::setMaxSize(vol_pkt_t max_size_pkt)
 
 vol_pkt_t DelayFifo::getMaxSize() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	return this->max_size_pkt;
 }
 
 clock_t DelayFifo::getTickOut() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	if(queue.size() > 0)
 	{
 		return this->queue.front()->getTickOut();
@@ -95,7 +95,7 @@ std::vector<FifoElement *> DelayFifo::getQueue(void)
 bool DelayFifo::push(FifoElement *elem)
 {
 	int pos;
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 
 	if(this->queue.size() >= this->max_size_pkt)
 	{
@@ -115,7 +115,7 @@ bool DelayFifo::push(FifoElement *elem)
 
 bool DelayFifo::pushFront(FifoElement *elem)
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 
 	// insert in head of fifo
 	if(this->queue.size() < this->max_size_pkt)
@@ -130,7 +130,7 @@ bool DelayFifo::pushFront(FifoElement *elem)
 
 bool DelayFifo::pushBack(FifoElement *elem)
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 
 	// insert in head of fifo
 	if(this->queue.size() < this->max_size_pkt)
@@ -144,7 +144,7 @@ bool DelayFifo::pushBack(FifoElement *elem)
 }
 FifoElement *DelayFifo::pop()
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	FifoElement *elem;
 
 	if(this->queue.size() <= 0)
@@ -162,7 +162,7 @@ FifoElement *DelayFifo::pop()
 
 void DelayFifo::flush()
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	std::vector<FifoElement *>::iterator it;
 	for(it = this->queue.begin(); it != this->queue.end(); ++it)
 	{

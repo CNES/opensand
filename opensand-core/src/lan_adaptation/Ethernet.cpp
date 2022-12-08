@@ -891,7 +891,7 @@ std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(const std::uniq
 }
 
 
-std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(Data data,
+std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(Rt::Data data,
                                                                  MacAddress src_mac,
                                                                  MacAddress dst_mac,
                                                                  NET_PROTO ether_type,
@@ -1033,7 +1033,7 @@ void Ethernet::Context::updateStats(unsigned int period)
 	}
 }
 
-std::unique_ptr<NetPacket> Ethernet::PacketHandler::build(const Data &data,
+std::unique_ptr<NetPacket> Ethernet::PacketHandler::build(const Rt::Data &data,
                                                           std::size_t data_length,
                                                           uint8_t qos,
                                                           uint8_t src_tal_id,
@@ -1122,7 +1122,7 @@ Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
 
 
 // TODO ENDIANESS !
-NET_PROTO Ethernet::getFrameType(const Data &data)
+NET_PROTO Ethernet::getFrameType(const Rt::Data &data)
 {
 	NET_PROTO ether_type = NET_PROTO::ERROR;
 	NET_PROTO ether_type2 = NET_PROTO::ERROR;
@@ -1147,7 +1147,7 @@ NET_PROTO Ethernet::getFrameType(const Data &data)
 	return ether_type;
 }
 
-NET_PROTO Ethernet::getPayloadEtherType(const Data &data)
+NET_PROTO Ethernet::getPayloadEtherType(const Rt::Data &data)
 {
 	NET_PROTO ether_type = NET_PROTO::ERROR;
 	if(data.length() < 13)
@@ -1190,7 +1190,7 @@ NET_PROTO Ethernet::getPayloadEtherType(const Data &data)
 	return ether_type;
 }
 
-uint16_t Ethernet::getQTci(const Data &data)
+uint16_t Ethernet::getQTci(const Rt::Data &data)
 {
 	uint16_t tci = 0;
 	NET_PROTO ether_type;
@@ -1221,7 +1221,7 @@ uint16_t Ethernet::getQTci(const Data &data)
 	return tci;
 }
 
-uint16_t Ethernet::getAdTci(const Data &data)
+uint16_t Ethernet::getAdTci(const Rt::Data &data)
 {
 	uint16_t tci = 0;
 	NET_PROTO ether_type;
@@ -1250,7 +1250,7 @@ uint16_t Ethernet::getAdTci(const Data &data)
 	return tci;
 }
 
-MacAddress Ethernet::getDstMac(const Data &data)
+MacAddress Ethernet::getDstMac(const Rt::Data &data)
 {
 	if(data.length() < 6)
 	{
@@ -1263,7 +1263,7 @@ MacAddress Ethernet::getDstMac(const Data &data)
 	                  data.at(3), data.at(4), data.at(5));
 }
 
-MacAddress Ethernet::getSrcMac(const Data &data)
+MacAddress Ethernet::getSrcMac(const Rt::Data &data)
 {
 	if(data.length() < 12)
 	{
