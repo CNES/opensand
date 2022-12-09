@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-conf, 6.1.0, [http://opensand.org])
+AC_INIT(opensand-conf, 6.2.0, [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])

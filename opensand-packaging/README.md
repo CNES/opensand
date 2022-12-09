@@ -5,7 +5,7 @@ Debian packages and install it from the source.
 
 The source code is available in the [Net4Sat GitHub OpenSAND project](https://github.com/CNES/opensand).
 
-These procedures are based on the release version `6.1.0`.
+These procedures are based on the release version `6.2.0`.
 
 
 ## Requirements
