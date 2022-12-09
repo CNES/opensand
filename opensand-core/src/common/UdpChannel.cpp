@@ -33,17 +33,20 @@
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.com>
  */
 
-
-#include "UdpChannel.h"
-
-#include <opensand_output/Output.h>
-
 #include <cstring>
 #include <stdlib.h>
-#include <strings.h>
-#include <arpa/inet.h>
-#include <errno.h>
 #include <unistd.h>
+#include <errno.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <linux/if_packet.h>
+
+#include <opensand_output/Output.h>
+#include <opensand_rt/NetSocketEvent.h>
+
+#include "UdpChannel.h"
 
 
 /**
@@ -329,7 +332,7 @@ spot_id_t UdpChannel::getSpotId()
  */
 // TODO why not work directly with Data here instead of buf, length
 int UdpChannel::receive(NetSocketEvent *const event,
-                                     unsigned char **buf, size_t &data_len)
+                        unsigned char **buf, size_t &data_len)
 {
 	struct sockaddr_in remote_addr;
 	std::map<std::string , uint8_t>::iterator ip_count_it;
@@ -506,7 +509,7 @@ bool UdpChannel::handleStack(unsigned char **buf, size_t &data_len)
 	
 	
 void UdpChannel::handleStack(unsigned char **buf, size_t &data_len,
-                                          uint8_t counter, UdpStack *stack)
+                             uint8_t counter, UdpStack *stack)
 {
 	LOG(this->log_sat_carrier, LEVEL_INFO,
 	    "transmit UDP packet for source IP %s at counter %d\n",
@@ -572,7 +575,7 @@ bool UdpChannel::send(const unsigned char *data, size_t length)
 
 	return true;
 
- error:
+error:
 	return false;
 }
 

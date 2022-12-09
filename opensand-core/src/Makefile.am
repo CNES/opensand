@@ -7,4 +7,5 @@ SUBDIRS= \
 	interconnect \
 	encap \
 	physical_layer \
+	sat \
 	system

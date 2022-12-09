@@ -59,8 +59,7 @@ typedef enum
  */
 class ForwardSchedulingS2: public Scheduling
 {
-  public:
-
+public:
 	ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 	                    EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
@@ -70,29 +69,28 @@ class ForwardSchedulingS2: public Scheduling
 	                    spot_id_t spot,
 	                    bool is_gw,
 	                    tal_id_t gw,
-	                    string dst_name);
+	                    std::string dst_name);
 
 	virtual ~ForwardSchedulingS2();
 
 	virtual bool schedule(const time_sf_t current_superframe_sf,
 	                      clock_t current_time,
-	                      list<DvbFrame *> *complete_dvb_frames,
+	                      std::list<DvbFrame *> *complete_dvb_frames,
 	                      uint32_t &remaining_allocation);
 
-  protected:
-
+protected:
 	/** The timer for forward scheduling (ms) */
 	time_ms_t fwd_timer_ms;
 
 	/** the BBFrame being built identified by their modcod */
-	map<unsigned int, BBFrame *> incomplete_bb_frames;
+	std::map<unsigned int, BBFrame *> incomplete_bb_frames;
 
 	/** the BBframe being built in their created order */
-	list<BBFrame *> incomplete_bb_frames_ordered;
+	std::list<BBFrame *> incomplete_bb_frames_ordered;
 
 	/** the pending BBFrame list if there was not enough space in previous iteration
 	 *  for the corresponding MODCOD */
-	list<BBFrame *> pending_bbframes;
+	std::list<BBFrame *> pending_bbframes;
 
 	/** The FMT Definition Table associed */
 	const FmtDefinitionTable *fwd_modcod_def;
@@ -104,17 +102,17 @@ class ForwardSchedulingS2: public Scheduling
 	spot_id_t spot_id;
 
 	/// The section for probes used to name them
-	string probe_section;
+	std::string probe_section;
 
 	// Total and unused capacity probes
-  std::shared_ptr<Probe<int>> probe_fwd_total_capacity;
-  std::shared_ptr<Probe<int>> probe_fwd_total_remaining_capacity;
-  std::shared_ptr<Probe<int>> probe_bbframe_nbr;
-	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_fwd_remaining_capacity;
-	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_fwd_available_capacity;
+	std::shared_ptr<Probe<int>> probe_fwd_total_capacity;
+	std::shared_ptr<Probe<int>> probe_fwd_total_remaining_capacity;
+	std::shared_ptr<Probe<int>> probe_bbframe_nbr;
+	std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_fwd_remaining_capacity;
+	std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_fwd_available_capacity;
 
 	/// The MODCOD for emmited frames
-  std::shared_ptr<Probe<int>> probe_gw_sent_modcod;
+	std::shared_ptr<Probe<int>> probe_gw_sent_modcod;
 
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs
@@ -131,7 +129,7 @@ class ForwardSchedulingS2: public Scheduling
 	bool scheduleEncapPackets(DvbFifo *fifo,
 	                          const time_sf_t current_superframe_sf,
 	                          clock_t current_time,
-	                          list<DvbFrame *> *complete_dvb_frames,
+	                          std::list<DvbFrame *> *complete_dvb_frames,
 	                          CarriersGroupDama *carriers,
 	                          vol_sym_t &capacity_sym,
 	                          vol_sym_t init_capa);
@@ -173,7 +171,7 @@ class ForwardSchedulingS2: public Scheduling
 	 * @return                   status_ok on success, status_error on error and
 	 *                           status_full -2 if there is not enough capacity
 	 */
-	sched_status_t addCompleteBBFrame(list<DvbFrame *> *complete_bb_frames,
+	sched_status_t addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
 	                                  BBFrame *bbframe,
 	                                  const time_sf_t current_superframe_sf,
 	                                  vol_sym_t &remaining_capacity_sym);
@@ -187,9 +185,9 @@ class ForwardSchedulingS2: public Scheduling
 	 * @param complete_dvb_frames  IN/OUT: The list of complete DVB frames
 	 * @param capacity_sym         IN/OUT: The remaining capacity on carriers
 	 */
-	void schedulePending(const list<fmt_id_t> supported_modcods,
+	void schedulePending(const std::list<fmt_id_t> supported_modcods,
 	                     const time_sf_t current_superframe_sf,
-	                     list<DvbFrame *> *complete_dvb_frames,
+	                     std::list<DvbFrame *> *complete_dvb_frames,
 	                     vol_sym_t &remaining_capacity_sym);
 
 	/**
@@ -217,18 +215,17 @@ class ForwardSchedulingS2: public Scheduling
 	/**
 	 * @brief  Create the associated probes
 	 */
-	void createProbes(vector<CarriersGroupDama *>::iterator vcm_it,
-	                  vector<CarriersGroupDama *> vcm_carriers,
-	                  vector<std::shared_ptr<Probe<int> > > &remain_probes,
-	                  vector<std::shared_ptr<Probe<int> > > &avail_probes,
+	void createProbes(CarriersGroupDama *vcm,
+	                  std::vector<CarriersGroupDama *> vcm_carriers,
+	                  std::vector<std::shared_ptr<Probe<int>>> &remain_probes,
+	                  std::vector<std::shared_ptr<Probe<int>>> &avail_probes,
 	                  unsigned int carriers_id);
 
 	/**
 	 * @brief  Check that the size of the carrier is compatible with the BBFrame size
 	 */
-	void checkBBFrameSize(vector<CarriersGroupDama *>::iterator vcm_it,
-	                      vector<CarriersGroupDama *> vcm_carriers);
-
+	void checkBBFrameSize(CarriersGroupDama *vcm,
+	                      std::vector<CarriersGroupDama *> vcm_carriers);
 };
 
 #endif

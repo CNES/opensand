@@ -49,16 +49,14 @@
  */
 class TerminalCategorySaloha: public TerminalCategory<CarriersGroupSaloha>
 {
-
- public:
-
+public:
 	/**
 	 * @brief  Create a terminal category.
 	 *
 	 * @param  label  label of the category.
 	 * @param  desired_access  the access type we support for our carriers
 	 */
-	TerminalCategorySaloha(string label, access_type_t desired_access);
+	TerminalCategorySaloha(const std::string& label, AccessType desired_access);
 
 	~TerminalCategorySaloha();
 
@@ -81,7 +79,7 @@ class TerminalCategorySaloha: public TerminalCategory<CarriersGroupSaloha>
 	 *
 	 * @return the slots from all carriers
 	 */
-	map<unsigned int, Slot *> getSlots(void) const;
+	std::map<unsigned int, Slot *> getSlots(void) const;
 
 	/**
 	 * @brief Get the packets that can be transmitted to
@@ -106,7 +104,7 @@ class TerminalCategorySaloha: public TerminalCategory<CarriersGroupSaloha>
 	 */
 	void resetReceivedPacketsNbr(void);
 
- private:
+private:
 	/// A FIFO containing packet to be transmitted to encapsulation block
 	saloha_packets_data_t *accepted_packets;
 

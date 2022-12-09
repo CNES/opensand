@@ -40,12 +40,17 @@
 #include "sat_carrier_channel_set.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
 
 
 struct sc_specific
 {
 	tal_id_t tal_id;     ///< the terminal id for terminal
-	string ip_addr;      ///< the IP address for emulation
+	std::string ip_addr;      ///< the IP address for emulation
+	/// for sat only: destination handled by this part of the stack (terminal or gateway)
+	Component destination_host = Component::unknown;    
+	/// for sat only: the spot handled by this part of the stack
+	spot_id_t spot_id = 255;
 };
 
 /**
@@ -54,39 +59,35 @@ struct sc_specific
  */
 class BlockSatCarrier: public Block
 {
- public:
-
+public:
 	/**
 	 * @brief The satellite carrier block
 	 *
 	 * @param name      The block name
 	 * @param specific  Specific block parameters
 	 */
-	BlockSatCarrier(const string &name,
+	BlockSatCarrier(const std::string &name,
 	                struct sc_specific specific);
-
-	~BlockSatCarrier();
 
 	class Upward: public RtUpward
 	{
-	 public:
-		Upward(const string &name, struct sc_specific specific):
-			RtUpward(name),
-			ip_addr(specific.ip_addr),
-			tal_id(specific.tal_id),
-			in_channel_set(specific.tal_id)
-		{};
+	public:
+		Upward(const std::string &name, struct sc_specific specific);
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 private:
+	private:
 		/// the IP address for emulation newtork
-		string ip_addr;
+		std::string ip_addr;
 		/// the terminal id for the emulation newtork
 		tal_id_t tal_id;
 		/// List of input channels
 		sat_carrier_channel_set in_channel_set;
+		/// for sat only: destination handled by this part of the stack (terminal or gateway)
+		Component destination_host;
+		/// for sat only: the spot handled by this part of the stack
+		spot_id_t spot_id;
 
 		/**
 		 * @brief Handle a packt received from carrier
@@ -103,30 +104,29 @@ class BlockSatCarrier: public Block
 
 	class Downward: public RtDownward
 	{
-	 public:
-		Downward(const string &name, struct sc_specific specific):
-			RtDownward(name),
-			ip_addr(specific.ip_addr),
-			tal_id(specific.tal_id),
-			out_channel_set(specific.tal_id)
-		{};
+	public:
+		Downward(const std::string &name, struct sc_specific specific);
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 private:
+	private:
 		/// the IP address for emulation newtork
-		string ip_addr;
+		std::string ip_addr;
 		/// the terminal id for the emulation newtork
 		tal_id_t tal_id;
 		/// List of output channels
 		sat_carrier_channel_set out_channel_set;
+		/// for sat only: destination handled by this part of the stack (terminal or gateway)
+		Component destination_host;
+		/// for sat only: the spot handled by this part of the stack
+		spot_id_t spot_id;
 	};
 
- protected:
-
+protected:
 	// initialization method
 	bool onInit();
 };
+
 
 #endif

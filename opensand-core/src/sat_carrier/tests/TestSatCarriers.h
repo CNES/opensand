@@ -40,12 +40,13 @@
 #include "sat_carrier_channel_set.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
 
 
 struct sc_specific
 {
 	tal_id_t tal_id;
-	string ip_addr;      ///< the IP address for emulation
+	std::string ip_addr;      ///< the IP address for emulation
 };
 
 /**
@@ -54,20 +55,19 @@ struct sc_specific
  */
 class TestSatCarriers: public Block
 {
- public:
-
+public:
 	/**
 	 * @brief The satellite carrier block
 	 */
-	TestSatCarriers(const string &name,
+	TestSatCarriers(const std::string &name,
 	                struct sc_specific UNUSED(specific));
 
 	~TestSatCarriers();
 
 	class Upward: public RtUpward
 	{
-	 public:
-		Upward(const string &name, struct sc_specific specific):
+	public:
+		Upward(const std::string &name, struct sc_specific specific):
 			RtUpward(name),
 			in_channel_set(specific.tal_id),
 			ip_addr(specific.ip_addr)
@@ -84,17 +84,17 @@ class TestSatCarriers: public Block
 		 */
 		void setFd(int fd);
 
-	 private:
+	private:
 		/// List of input channels
 		sat_carrier_channel_set in_channel_set;
 		/// the IP address for emulation newtork
-		string ip_addr;
+		std::string ip_addr;
 	};
 
 	class Downward: public RtDownward
 	{
-	 public:
-		Downward(const string &name, struct sc_specific specific):
+	public:
+		Downward(const std::string &name, struct sc_specific specific):
 			RtDownward(name),
 			out_channel_set(specific.tal_id),
 			ip_addr(specific.ip_addr)
@@ -110,17 +110,16 @@ class TestSatCarriers: public Block
 		 */
 		void setFd(int fd);
 
-	 private:
+	private:
 		/// List of output channels
 		sat_carrier_channel_set out_channel_set;
 		/// the IP address for emulation newtork
-		string ip_addr;
+		std::string ip_addr;
 		/// The tun output file descriptor
 		int fd;
 	};
 
- protected:
-
+protected:
 	// initialization method
 	bool onInit();
 };

@@ -45,8 +45,7 @@
 */
 class SlottedAlohaBackoffBeb: public SlottedAlohaBackoff
 {
- public:
-
+public:
 	/**
 	 * Build class
 	 *
@@ -60,7 +59,7 @@ class SlottedAlohaBackoffBeb: public SlottedAlohaBackoff
 	 */
 	~SlottedAlohaBackoffBeb();
 
- private:
+private:
 	uint16_t setReady();
 	uint16_t setCollision();
 };

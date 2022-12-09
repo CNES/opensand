@@ -46,10 +46,10 @@
  */
 class Ideal: public AttenuationModelPlugin
 {
- private:
+private:
 	double value;
 
- public:
+public:
 	/**
 	 * @brief Build a Ideal
 	 */
@@ -73,7 +73,7 @@ class Ideal: public AttenuationModelPlugin
 };
 
 
-CREATE(Ideal, attenuation_plugin, "Ideal");
+CREATE(Ideal, PluginType::Attenuation, "Ideal");
 
 
 #endif

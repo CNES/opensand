@@ -23,3 +23,105 @@ References
 ----------
 
 
+# Satellite régénératif et ISL
+
+## Explication générale
+
+### Régénération
+
+On peut configurer indépendemment le niveau de régénération de la voie aller et de la voie retour pour chaque spot.
+
+Trois niveaux de régénération sont disponibles :
+
+- **Transparent** : comme précédemment, les messages ne sont pas du tout désencapsulés par le satellite et sont transmis tels quels.
+- **BBFrame** : les messages remontent jusqu'au bloc Encap avant de redescendre.
+- **IP** : les messages remontent jusqu'au bloc LanAdaptation avant de redescendre.
+
+### ISL
+
+Plusieurs satellites peuvent être ajoutés dans OpenSAND. Ils ont donc maintenant un ID.
+
+Il est possible de configurer pour chaque spot un satellite qui communiquera avec les terminaux, et un autre qui communiquera avec les gateways. Lorsque ces deux satellites sont différents, ils devront communiquer par ISL.
+
+Deux types d'ISL sont disponibles :
+
+- par le bloc **Interconnect** : disponible uniquement en mode Transparent ou régénération BBFrame. Les messages devant être transmis à un autre satellite seront envoyés par un bloc Interconnect, avec un délai configurable.
+- par le bloc **LanAdaptation** : disponible uniquement en mode régénération IP. Les messages devant être transmis à un autre satellite seront envoyé sur l'interface *tap*. C'est à l'utilisateur de mettre en place un réseau pour connecter les satellites entre eux.
+
+Pour le moment, il ne peut y avoir qu'un ISL par satellite. Cette limitation pourra cependant être facilement levée plus tard.
+
+## Configuration
+
+### Infrastructure satellite
+
+- Ajout de l'ID
+- Ajout des ISLs (sous forme de liste pour pouvoir facilement passer à plusieurs ISLs) avec pour chacun :
+  - ID du satellite qui sera connecté par cet ISL
+  - Type d'ISL
+  - Configuration spécifique au type d'ISL choisi
+
+### Topologie
+
+- Pour chaque spot, ajout de :
+  - ID du satellite connecté aux terminaux
+  - ID du satellite connecté à la gateway
+  - Niveau de régénération de la voie aller
+  - Niveau de régénération de la voie retour
+
+### Profil satellite
+
+- Ajout des configurations des blocs supplémentaires (DVB, Encap, LanAdaptation)
+  - Pas possible de ne les afficher que si on sélectionne un certain niveau de regen, donc certains paramètres sont inutiles en mode transparent ou regen BBFrame...
+  - Est-il pertinent de proposer 3 entités différentes pour les trois niveaux de regen pour avoir des configs profile plus adaptées ?
+- Ajout d'un paramètre "disable control plane", qui désactive la gestion des messages de contrôle par le bloc DVB.
+  - Permet de choisir si c'est le satellite ou la gateway qui s'occupe des messages de contrôle (login, etc.)
+  - Gestion par le satellite non testée
+- Ajout d'un paramètre "ISL delay", pris en compte uniquement par le mode ISL Interconnect
+
+#### Spécificité de la section Access
+
+Cette section doit contenir des paramètre différents selon si la case disable_control_plane est cochée ou non. Il y a donc deux sections : `access`, applicable si elle est décochée ; et `access2`, applicable si elle est cochée.
+
+## Implémentation
+
+### Deux piles par spot
+
+Dorénavant, un satellite aura plusieurs piles de blocs. Chaque fois que l'ID de ce satellite est listé dans la configuration des spots (que ce soit côté gateway ou terminaux), une pile est créée.
+
+Cette pile comprend un bloc SatCarrier dans tous les cas. S'il est configuré comme régénératif, on ajoute un bloc PhysicalLayer, un bloc DVB, et un bloc Encap.
+
+En haut de ces piles, un bloc SatDispatcher s'occupe de router les paquets montants vers la bonne pile descendante, ou vers l'ISL.
+
+Si on est mode régénératif IP, on ajoute finalement un bloc LanAdaptation au dessus du bloc SatDispatcher.
+
+### Bloc SatDispatcher
+
+En mode transparent et regen BBFrame, ce bloc se charge de rediriger les messages vers les ISLs ou vers le sol. En mode regen IP, il transmet tous les messages vers le bloc LanAdaptation (sauf les messages de contrôle pour le moment, voir *Limitations* plus bas).
+
+### Bloc PhysicalLayer dans le satellite
+
+Les satellites régénératifs comporte maintenant un bloc PhysicalLayer, que les messages traversent uniquement dans le sens descendant. C'est nécessaire pour définir leur valeur C/N.
+
+## Limitations
+
+### ISL par LanAdaptation
+
+Les ISL par LanAdaptation ne sont pas fonctionnels, car le bloc LanAdaptation n'est pas capable de gérer les messages de contrôles, qui sont des `DvbFrame`s.
+
+### Carrier ID
+
+Le bloc SatDispatcher se base sur les carrier IDs pour déterminer la source et la destination de chaque message, pour savoir si ce sont des messages de contrôle, et pour obtenir le carrier ID de sortie correspondant à un certain carrier ID d'entrée. Ces ID ne doivent donc pas être modifiés.
+
+### Erreur liée aux FIFOs dans Ethernet.cpp
+
+Ethernet.cpp s'attend à ce qu'il n'y ait que les FIFOs des terminaux ou celles des gateways configurées. Or, dans le satellite, les deux le sont. Une erreur est donc levée, mais je n'ai pas eu de problème lors de mes tests lorsque je l'ai désactivée...
+
+### Régénération asymétrique
+
+Pour le moment, configurer la voie aller en régénératif et la voie retour en transparent ne fonctionne pas.
+
+### Gestion des erreurs
+
+Peu de vérifications sont réalisées pour vérifier que la configuration est valide. En effet, certaines configurations, comme une régénération BBFrame avec un ISL LanAdaptation, sont invalides.
+
+Pour le moment, si on a un ISL LanAdaptation, on ajoute un bloc LanAdaptation, et si on est en régénératif IP, le bloc SatDispatcher transmet les messages au bloc d'au-dessus.

@@ -10,6 +10,51 @@ License
 see COPYING.LESSER
 
 
+Design
+------
+
+The RT library is built upon 2 concepts:
+
+ * A channel system that allows to define how data flows in the application;
+ * A block system that allows to organize channels between them in a
+   stack-like fashion.
+
+Each block defines 2 channels: one to flow data upwards and one to flow data
+downwards. Blocks can then be connected on top of each other so that the
+upward channel of a block on top receive data from the upward channel of the
+block below, handles it, and transfer it to the upward channel of the block
+above. Same goes for the downward channels that takes data from the block
+above and transfer it to the block below.
+
+Blocks also connect their channel together so they can share data if they
+decide to.
+
+
+Channels react to events which can be of several types:
+
+ * Messages: when data flows from one channel to another;
+ * Timers: when a certain amount of time passed;
+ * IO: when some data has been writen into a socket, file...;
+ * Signals: when the process catches a given signal.
+
+Each channel runs its event loop in a dedicated thread.
+
+
+Lastly, several kind of channels with varying number of input or output
+connections allows to connect blocks in several ways:
+
+ * One block above and one block below (legacy);
+ * One block above and several blocks below (the downward channel must be
+   parametrized by a “key” type to select where the message should go);
+ * Several blocks above and one block below (the upward channel must be
+   parametrized by a “key” type to select where the message should go);
+ * Several blocks above and several blocks below (both the upward and downward
+   channels must define a “key” type).
+
+And advanced channels connection capabilities allows to bypass the whole block
+structure at once.
+
+
 Library
 -------
 

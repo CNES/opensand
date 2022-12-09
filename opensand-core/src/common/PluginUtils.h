@@ -61,7 +61,8 @@ namespace OpenSANDConf {
 	class MetaComponent;
 }
 
-typedef std::map<std::string, std::pair<fn_configure, fn_create>> pl_list_t;
+
+using PluginConfigurationContainer = std::map<std::string, std::pair<fn_configure, fn_create>>;
 
 
 /**
@@ -72,13 +73,13 @@ class PluginUtils
 {
 	friend class Plugin;
 
- protected:
-	pl_list_t encapsulation;
-	pl_list_t lan_adaptation;
-	pl_list_t attenuation;
-	pl_list_t minimal;
-	pl_list_t error;
-	pl_list_t sat_delay;
+protected:
+	PluginConfigurationContainer encapsulation;
+	PluginConfigurationContainer lan_adaptation;
+	PluginConfigurationContainer attenuation;
+	PluginConfigurationContainer minimal;
+	PluginConfigurationContainer error;
+	PluginConfigurationContainer sat_delay;
 	std::vector<void *> handlers;
 	std::vector<OpenSandPlugin *> plugins;
 
@@ -100,7 +101,7 @@ class PluginUtils
 	 * @param plugin     The plugin to store into the container
 	 * @param handle     The handle to the library storing the plugin
 	 */
-	void storePlugin(pl_list_t &container, opensand_plugin_t *plugin, void *handle);
+	void storePlugin(PluginConfigurationContainer &container, OpenSandPluginFactory *plugin, void *handle);
 
 	/**
 	 * @brief release the class elements for plugins
@@ -163,13 +164,13 @@ class PluginUtils
 	 * @param encapsulation  The encapsulation plugins
 	 * @return true on success, false otherwise
 	 */
-	inline void getAllEncapsulationPlugins(pl_list_t &encapsulation)
+	inline void getAllEncapsulationPlugins(PluginConfigurationContainer &encapsulation)
 	{
 		encapsulation = this->encapsulation;
 	}
 
 	void generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
-	                                  plugin_type_t plugin_type,
+	                                  PluginType plugin_type,
 	                                  const std::string &parameter_id,
 	                                  const std::string &parameter_name,
 	                                  const std::string &parameter_description);
@@ -180,4 +181,3 @@ class PluginUtils
 
 
 #endif
-

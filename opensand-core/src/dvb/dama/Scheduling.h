@@ -42,7 +42,6 @@
 #include "DvbFrame.h"
 #include "StFmtSimu.h"
 
-using std::list;
 
 /**
  * Scheduling is done each frame (not each superframe),
@@ -55,8 +54,7 @@ using std::list;
  */
 class Scheduling
 {
-  public:
-
+public:
 	Scheduling(EncapPlugin::EncapPacketHandler *packet_handler,
 	           const fifos_t &fifos,
 	           const StFmtSimuList *const simu_sts):
@@ -83,7 +81,7 @@ class Scheduling
 	 */
 	virtual bool schedule(const time_sf_t current_superframe_sf,
 	                      clock_t current_time,
-	                      list<DvbFrame *> *complete_dvb_frames,
+	                      std::list<DvbFrame *> *complete_dvb_frames,
 	                      uint32_t &remaining_allocation) = 0;
 
 	
@@ -101,8 +99,7 @@ class Scheduling
 	};
 
 
-  protected:
-
+protected:
 	/** The packet representation */
 	EncapPlugin::EncapPacketHandler *packet_handler;
 	/** The MAC FIFOs */
@@ -111,7 +108,7 @@ class Scheduling
 	const StFmtSimuList *const simu_sts;
 
 	// Output Log
-  std::shared_ptr<OutputLog> log_scheduling;
+	std::shared_ptr<OutputLog> log_scheduling;
 };
 
 #endif

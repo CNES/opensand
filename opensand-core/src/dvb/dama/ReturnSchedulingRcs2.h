@@ -49,8 +49,7 @@
  */
 class ReturnSchedulingRcs2: public Scheduling
 {
-  public:
-
+public:
 	ReturnSchedulingRcs2(EncapPlugin::EncapPacketHandler *packet_handler,
 	                          const fifos_t &fifos);
 
@@ -61,11 +60,10 @@ class ReturnSchedulingRcs2: public Scheduling
 	
 	bool schedule(const time_sf_t current_superframe_sf,
 	              clock_t current_time,
-	              list<DvbFrame *> *complete_dvb_frames,
+	              std::list<DvbFrame *> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
 
-  protected:
-
+protected:
 	/// The maximum burst length in bits
 	vol_b_t max_burst_length_b;
 
@@ -80,7 +78,7 @@ class ReturnSchedulingRcs2: public Scheduling
 	 * @return true on success, false otherwise
 	 */
 	bool macSchedule(const time_sf_t current_superframe_sf,
-	                 list<DvbFrame *> *complete_dvb_frames,
+	                 std::list<DvbFrame *> *complete_dvb_frames,
 	                 vol_b_t &remaining_allocation_b);
 
 	/**

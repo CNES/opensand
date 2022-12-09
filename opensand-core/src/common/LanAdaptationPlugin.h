@@ -47,13 +47,14 @@ class SarpTable;
 class OutputLog;
 class PacketSwitch;
 
+
 /**
  * @class LanAdaptationPlugin
  * @brief Generic Lan adaptation plugin
  */
 class LanAdaptationPlugin: public StackPlugin
 {
- public:
+public:
 	/**
 	 * @class LanAdaptationPacketHandler
 	 * @brief Functions to handle the encapsulated packets
@@ -71,28 +72,28 @@ class LanAdaptationPlugin: public StackPlugin
 	 */
 	class LanAdaptationPacketHandler: public StackPacketHandler
 	{
-	  public:
+	public:
 		/**
 		 * @brief LanAdaptationPacketHandler constructor
 		 */
 		/* Allow packets to access LanAdaptationPlugin members */
 		LanAdaptationPacketHandler(LanAdaptationPlugin &pl);
 
+		bool init() override;
+
 		/* the following functions should not be called */
-		std::size_t getMinLength() const;
+		std::size_t getMinLength() const override;
 
-		virtual bool encapNextPacket(NetPacket *packet,
-		                             std::size_t remaining_length,
-		                             bool new_burst,
-		                             bool &partial_encap,
-		                             NetPacket **encap_packet);
+		bool encapNextPacket(std::unique_ptr<NetPacket> packet,
+		                     std::size_t remaining_length,
+		                     bool new_burst,
+		                     std::unique_ptr<NetPacket> &encap_packet,
+		                     std::unique_ptr<NetPacket> &remaining_packet) override;
 
-		virtual bool getEncapsulatedPackets(NetContainer *packet,
-		                                    bool &partial_decap,
-		                                    std::vector<NetPacket *> &decap_packets,
-		                                    unsigned int decap_packets_count);
-
-		virtual bool init();
+		bool getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
+		                            bool &partial_decap,
+		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+		                            unsigned int decap_packets_count) override;
 	};
 
 	/**
@@ -101,7 +102,7 @@ class LanAdaptationPlugin: public StackPlugin
 	 */
 	class LanAdaptationContext: public StackContext
 	{
-	  public:
+	public:
 		/* Allow context to access LanAdaptationPlugin members */
 		/**
 		 * @brief LanAdaptationContext constructor
@@ -115,10 +116,7 @@ class LanAdaptationPlugin: public StackPlugin
 		 * @param class_list       A list of service classes
 		 * @return true on success, false otherwise
 		 */
-		virtual bool initLanAdaptationContext(tal_id_t tal_id,
-		                                      tal_id_t gw_id,
-		                                      ///const SarpTable *sarp_table);
-		                                      PacketSwitch *packet_switch);
+		virtual bool initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *packet_switch);
 
 		/**
 		 * @brief Get the bytes of LAN header for TUN/TAP interface
@@ -127,7 +125,7 @@ class LanAdaptationPlugin: public StackPlugin
 		 * @param packet The current packet
 		 * @return     The byte indicated by pos
 		 */
-		virtual char getLanHeader(unsigned int pos, NetPacket *packet) = 0;
+		virtual char getLanHeader(unsigned int pos, const std::unique_ptr<NetPacket>& packet) = 0;
 
 		/**
 		 * @brief check if the packet should be read/written on TAP or TUN interface
@@ -140,21 +138,18 @@ class LanAdaptationPlugin: public StackPlugin
 
 		virtual bool init();
 
-	  protected:
+	protected:
 		/// Can we handle packet read from TUN or TAP interface
 		bool handle_net_packet;
 
 		/// The terminal ID
 		tal_id_t tal_id;
 
-		/// The Gateway ID
-		tal_id_t gw_id;
-
 		/// The SARP table
 		PacketSwitch *packet_switch;
 	};
 
-	LanAdaptationPlugin(uint16_t ether_type);
+	LanAdaptationPlugin(NET_PROTO ether_type);
 
 	virtual bool init();
 
@@ -185,7 +180,7 @@ typedef std::vector<LanAdaptationPlugin::LanAdaptationContext *> lan_contexts_t;
 #ifdef CREATE
 #undef CREATE
 #define CREATE(CLASS, CONTEXT, HANDLER, pl_name) \
-	CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, lan_adaptation_plugin)
+	CREATE_STACK(CLASS, CONTEXT, HANDLER, pl_name, PluginType::LanAdaptation)
 #endif
 
 #endif

@@ -52,10 +52,10 @@ ModulationTypes::~ModulationTypes()
 {
 }
 
-bool ModulationTypes::exist(string modulation_label)
+bool ModulationTypes::exist(std::string modulation_label)
 {
 	ModulationTypes instance;
-	map<string, unsigned int>::iterator ite;
+	std::map<std::string, unsigned int>::iterator ite;
 
 	ite = instance.modulation_efficiencies.find(modulation_label);
 	return (ite != instance.modulation_efficiencies.end());
@@ -67,10 +67,10 @@ unsigned int ModulationTypes::getDefaultEfficiency()
 	return instance.default_modulation_efficiency;
 }
 
-unsigned int ModulationTypes::getEfficiency(string modulation_label)
+unsigned int ModulationTypes::getEfficiency(std::string modulation_label)
 {
 	ModulationTypes instance;
-	map<string, unsigned int>::iterator ite;
+	std::map<std::string, unsigned int>::iterator ite;
 
 	ite = instance.modulation_efficiencies.find(modulation_label);
 	if(ite == instance.modulation_efficiencies.end())

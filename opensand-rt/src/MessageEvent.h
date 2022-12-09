@@ -36,14 +36,10 @@
 #ifndef MESSAGE_EVENT_H
 #define MESSAGE_EVENT_H
 
+#include <memory>
+
 #include "RtEvent.h"
 #include "Types.h"
-
-#include <string>
-#include <utility>
-
-using std::string;
-using std::pair;
 
 
 class RtFifo;
@@ -55,8 +51,7 @@ class RtFifo;
   */
 class MessageEvent: public RtEvent
 {
-  public:
-
+ public:
 	/**
 	 * @brief MessageEvent constructor
 	 *
@@ -65,52 +60,48 @@ class MessageEvent: public RtEvent
 	 * @param fd        The file descriptor to monitor for the event
 	 * @param priority  The priority of the event
 	 */
-	MessageEvent(RtFifo *const fifo,
-	             const string &name,
+	MessageEvent(std::shared_ptr<RtFifo> &fifo,
+	             const std::string &name,
 	             int32_t fd,
 	             uint8_t priority = 3);
-
-	~MessageEvent();
 
 	/**
 	 * @brief Get the message
 	 *
 	 * @return the message
 	 */
-	rt_msg_t getMessage() const {return this->message;};
+	inline rt_msg_t getMessage() const {return this->message;};
 
 	/**
 	 * @brief Get the message type
 	 *
 	 * @return the message type
 	 */
-	uint8_t getMessageType() const {return this->message.type;};
+	inline uint8_t getMessageType() const {return this->message.type;};
 
 	/**
 	 * @brief Get the message content
 	 *
 	 * @return the message conetnt
 	 */
-	void *getData() const {return this->message.data;};
+	inline void *getData() const {return this->message.data;};
 	
 	/**
 	 * @brief Get the message length
 	 *
 	 * @return the message length
 	 */
-	size_t getLength() const {return this->message.length;};
+	inline std::size_t getLength() const {return this->message.length;};
 
+	bool handle(void) override;
 
-	virtual bool handle(void);
-
-  protected:
-
+ protected:
 	/// the message
 	rt_msg_t message;
 
 	/// the fifo
-	RtFifo *const fifo;
-
+	const std::shared_ptr<RtFifo> fifo;
 };
+
 
 #endif

@@ -32,14 +32,15 @@
  * @author Joaquin Muguerza <joaquin.muguerza@toulouse.viveris.fr>
  */
 
+#include "BlockInterconnect.h"
 #include "InterconnectChannel.h"
-
+#include "NetBurst.h"
 #include <opensand_output/Output.h>
+#include <opensand_rt/NetSocketEvent.h>
 
-
-InterconnectChannel::InterconnectChannel(string name, string iface_addr):
+InterconnectChannel::InterconnectChannel(std::string name, const InterconnectConfig &config):
 	name(name),
-	interconnect_addr(iface_addr),
+	interconnect_addr(config.interconnect_addr),
 	data_channel(nullptr),
 	sig_channel(nullptr)
 {
@@ -63,9 +64,14 @@ InterconnectChannel::~InterconnectChannel()
 /*
  * INTERCONNECT_CHANNEL_SENDER
  */
+InterconnectChannelSender::InterconnectChannelSender(std::string name, const InterconnectConfig &config):
+	InterconnectChannel{name, config},
+	delay{config.delay}
+{
+}
 
 void InterconnectChannelSender::initUdpChannels(unsigned int data_port, unsigned int sig_port,
-                                                string remote_addr, unsigned int stack,
+                                                std::string remote_addr, unsigned int stack,
                                                 unsigned int rmem, unsigned int wmem)
 {
 	// Create channels
@@ -95,16 +101,11 @@ void InterconnectChannelSender::initUdpChannels(unsigned int data_port, unsigned
 	                                   wmem);
 }
 
-bool InterconnectChannelSender::sendBuffer(bool is_sig)
+bool InterconnectChannelSender::sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg)
 {
-	// Send the data
-	if(is_sig)
-	{
-		return this->sig_channel->send((const unsigned char *) &this->out_buffer,
-		                               this->out_buffer.data_len);
-	}
-	return this->data_channel->send((const unsigned char *) &this->out_buffer,
-	                                this->out_buffer.data_len);
+	auto buffer = reinterpret_cast<const uint8_t *>(&msg);
+	auto channel = is_sig ? this->sig_channel : this->data_channel;
+	return channel->send(buffer, msg.data_len);
 }
 
 /*
@@ -112,76 +113,152 @@ bool InterconnectChannelSender::sendBuffer(bool is_sig)
  */
 bool InterconnectChannelSender::send(rt_msg_t &message)
 {
-	uint32_t data_len;
+	time_ms_t current_time = getCurrentTime();
 
-	switch(message.type)
+	interconnect_msg_buffer_t msg_buffer;
+	uint32_t len;
+
+	auto msg_type = to_enum<InternalMessageType>(message.type);
+	msg_buffer.msg_type = message.type;
+
+	// Serialize the message
+	if (msg_type == InternalMessageType::encap_data || msg_type == InternalMessageType::sig)
 	{
-		case msg_sig:
-		case msg_data:
-			// Serialize the dvb_frame into the output buffer
-			this->serialize((DvbFrame *) message.data,
-			                this->out_buffer.msg_data, data_len);
-			break;
-		case msg_saloha:
-			this->serialize((std::list<DvbFrame *> *) message.data,
-			                this->out_buffer.msg_data, data_len);
-			break;
-		default:
-			LOG(this->log_interconnect, LEVEL_ERROR,
-			    "unknonw type of message received\n");
-			return false;
+		auto frame = std::unique_ptr<DvbFrame>{static_cast<DvbFrame *>(message.data)};
+		this->serialize(frame.get(), msg_buffer.msg_data, len);
 	}
-	this->out_buffer.msg_type = message.type;
-	this->out_buffer.data_len = data_len;
+	else if (msg_type == InternalMessageType::saloha)
+	{
+		auto dvb_frames = std::unique_ptr<std::list<DvbFrame *>>{static_cast<std::list<DvbFrame *> *>(message.data)};
+		this->serialize(dvb_frames.get(), msg_buffer.msg_data, len);
+	}
+	else if (msg_type == InternalMessageType::decap_data)
+	{
+		auto net_burst = std::unique_ptr<NetBurst>{static_cast<NetBurst *>(message.data)};
+		this->serialize(*net_burst, msg_buffer.msg_data, len);
+	}
+	else
+	{
+		LOG(this->log_interconnect, LEVEL_ERROR,
+		    "unsupported type of message received\n");
+		return false;
+	}
 
-	// Update total length with correct length
-	this->out_buffer.data_len += sizeof(this->out_buffer.msg_type) + 
-	                             sizeof(this->out_buffer.data_len);
+	// add the length of the other fields
+	msg_buffer.data_len = len + sizeof(msg_buffer.msg_type) + sizeof(msg_buffer.data_len);
 
-	// Send the message
-	return this->sendBuffer(message.type == msg_sig);
+	// construct a NetContainer to store it in a FifoElement
+	auto buf = reinterpret_cast<const uint8_t *>(&msg_buffer);
+	std::unique_ptr<NetContainer> container{new NetContainer(buf, msg_buffer.data_len)};
+	FifoElement *elem = new FifoElement(std::move(container), current_time, current_time + delay);
+
+	if (!delay_fifo.pushBack(elem)) {
+		LOG(this->log_interconnect, LEVEL_ERROR, "failed to push the message in the fifo\n");
+		return false;
+	}
+	
+	// if no delay, send directly
+	if (delay == 0)
+	{
+		return onTimerEvent();
+	}
+
+	return true;
+}
+
+bool InterconnectChannelSender::onTimerEvent()
+{
+	time_ms_t current_time = getCurrentTime();
+
+	while (delay_fifo.getCurrentSize() > 0 && ((unsigned long)delay_fifo.getTickOut()) <= current_time)
+	{
+		FifoElement *elem = delay_fifo.pop();
+		assert(elem != nullptr);
+
+		auto container = elem->getElem<NetContainer>();
+		auto msg = reinterpret_cast<const interconnect_msg_buffer_t *>(container->getRawData());
+		bool is_sig = to_enum<InternalMessageType>(msg->msg_type) == InternalMessageType::sig;
+		if (!sendBuffer(is_sig, *msg))
+		{
+			LOG(this->log_interconnect, LEVEL_ERROR, "failed to send buffer\n");
+			return false;
+		};
+	}
+	return true;
+}
+
+template <typename T>
+void serializeField(uint8_t *buf, uint32_t &pos, T *data, uint32_t length = sizeof(T))
+{
+	memcpy(buf + pos, data, length);
+	pos += length;
 }
 
 void InterconnectChannelSender::serialize(DvbFrame *dvb_frame,
                                           unsigned char *buf,
                                           uint32_t &length)
 {
-	uint32_t total_len = 0, pos = 0;
-	spot_id_t spot;
-	uint8_t carrier_id;
+	uint32_t pos = 0;
+	spot_id_t spot = dvb_frame->getSpot();
+	uint8_t carrier_id = dvb_frame->getCarrierId();
 
-	spot = dvb_frame->getSpot();
-	carrier_id = dvb_frame->getCarrierId();
-
-	total_len += sizeof(spot);
-	total_len += sizeof(carrier_id);
-	total_len += dvb_frame->getTotalLength();
-	// Copy data to buffer
-	memcpy(buf + pos, &spot, sizeof(spot));
-	pos += sizeof(spot);
-	memcpy(buf + pos, &carrier_id, sizeof(carrier_id));
-	pos += sizeof(carrier_id);
-	memcpy(buf + pos, dvb_frame->getData().c_str(),
-	       dvb_frame->getTotalLength());
-	length = total_len;
+	serializeField(buf, pos, &spot);
+	serializeField(buf, pos, &carrier_id);
+	serializeField(buf, pos, dvb_frame->getRawData(), dvb_frame->getTotalLength());
+	length = pos;
 }
 
 void InterconnectChannelSender::serialize(std::list<DvbFrame *> *dvb_frame_list,
                                           unsigned char *buf,
                                           uint32_t &length)
 {
-	std::list<DvbFrame *>::iterator it;
 	length = 0;
 	// Iterate over dvb_frames
-	for(it = dvb_frame_list->begin(); it != dvb_frame_list->end(); it++)
+	for (auto dvb_frame: *dvb_frame_list)
 	{
 		uint32_t partial_len;
 		// First serialize dvb_frame
-		this->serialize(*it, buf + length + sizeof(partial_len), partial_len);
+		this->serialize(dvb_frame, buf + length + sizeof(partial_len), partial_len);
 		// Copy the size of the dvb_frame before the frame itself
 		memcpy(buf + length, &partial_len, sizeof(partial_len));
 		length += partial_len + sizeof(partial_len);
 	}
+}
+
+void InterconnectChannelSender::serialize(const NetBurst &net_burst,
+                                          unsigned char *buf, uint32_t &length)
+{
+	length = 0;
+	for (auto &&packet: net_burst)
+	{
+		uint32_t partial_len;
+		// First serialize the packet
+		this->serialize(*packet, buf + length + sizeof(partial_len), partial_len);
+		// Copy the size of the packet before the packet itself
+		memcpy(buf + length, &partial_len, sizeof(partial_len));
+		length += partial_len + sizeof(partial_len);
+		assert(length <= MAX_SOCK_SIZE);
+	}
+}
+
+void InterconnectChannelSender::serialize(const NetPacket &packet,
+                                          unsigned char *buf, uint32_t &length)
+{
+	uint32_t pos = 0;
+
+	uint8_t src_id = packet.getSrcTalId();
+	uint8_t dest_id = packet.getDstTalId();
+	uint8_t qos = packet.getQos();
+	NET_PROTO type = packet.getType();
+	uint32_t header_length = packet.getHeaderLength();
+
+	serializeField(buf, pos, &src_id);
+	serializeField(buf, pos, &dest_id);
+	serializeField(buf, pos, &qos);
+	serializeField(buf, pos, &type);
+	serializeField(buf, pos, &header_length);
+	serializeField(buf, pos, packet.getRawData(), packet.getTotalLength());
+	length = pos;
 }
 
 /*
@@ -189,7 +266,7 @@ void InterconnectChannelSender::serialize(std::list<DvbFrame *> *dvb_frame_list,
  */
 
 void InterconnectChannelReceiver::initUdpChannels(unsigned int data_port, unsigned int sig_port,
-                                                  string remote_addr, unsigned int stack,
+                                                  std::string remote_addr, unsigned int stack,
                                                   unsigned int rmem, unsigned int wmem)
 {
 	// Create channel
@@ -305,18 +382,24 @@ bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
 			message.length = buf->data_len;
 
 			// Deserialize the message
-			switch(buf->msg_type)
+			switch(to_enum<InternalMessageType>(buf->msg_type))
 			{
-				case msg_data:
-				case msg_sig:
+				case InternalMessageType::encap_data:
+				case InternalMessageType::sig:
 					// Deserialize the dvb_frame
 					this->deserialize(buf->msg_data, buf->data_len,
 					                  (DvbFrame **) &message.data);
 					break;
-				case msg_saloha:
+				case InternalMessageType::saloha:
 					// Deserialize the list of dvb_frames
 					this->deserialize(buf->msg_data, buf->data_len,
 					                  (std::list<DvbFrame *> **) &message.data);
+					break;
+				case InternalMessageType::decap_data:
+					// Deserialize the NetBurst
+					this->deserialize(buf->msg_data, buf->data_len,
+					                  (NetBurst **) &message.data);
+
 					break;
 				default:
 					LOG(this->log_interconnect, LEVEL_ERROR,
@@ -335,6 +418,13 @@ bool InterconnectChannelReceiver::receive(NetSocketEvent *const event,
 	return status;
 }
 
+template <typename T>
+void deserializeField(uint8_t *buf, uint32_t &pos, T &data, uint32_t length = sizeof(T))
+{
+	memcpy(&data, buf + pos, length);
+	pos += length;
+}
+
 void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
                                               DvbFrame **dvb_frame)
 {
@@ -343,13 +433,11 @@ void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
 	uint32_t pos = 0;
 
 	// Extract SpotId and CarrierId
-	memcpy(&spot, data + pos, sizeof(spot));
-	pos += sizeof(spot);
-	memcpy(&carrier_id, data + pos, sizeof(carrier_id));
-	pos += sizeof(carrier_id);
+	deserializeField(data, pos, spot);
+	deserializeField(data, pos, carrier_id);
 
 	// Create object    
-	(*dvb_frame) = new DvbFrame(data + pos, len - pos);
+	*dvb_frame = new DvbFrame(data + pos, len - pos);
 	(*dvb_frame)->setCarrierId(carrier_id);
 	(*dvb_frame)->setSpot(spot);
 }
@@ -367,11 +455,10 @@ void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
 	do
 	{
 		uint32_t dvb_frame_len;
-		DvbFrame *dvb_frame = NULL;
+		DvbFrame *dvb_frame = nullptr;
 
 		// Read the length of dvb_frame
-		memcpy(&dvb_frame_len, data + pos, sizeof(dvb_frame_len));
-		pos += sizeof(dvb_frame_len);
+		deserializeField(data, pos, dvb_frame_len);
 
 		// Deserialize the new DvbFrame
 		this->deserialize(data + pos, dvb_frame_len, &dvb_frame);
@@ -383,4 +470,61 @@ void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
 		pos += dvb_frame_len;
 
 	} while(pos < len);
+	
+	assert(pos == len);
+}
+
+void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
+                                              NetBurst **net_burst)
+{
+	uint32_t pos = 0;
+	(*net_burst) = new NetBurst{};
+
+	do
+	{
+		uint32_t packet_length;
+		NetPacket *packet = nullptr;
+
+		// Read the length of the packet
+		deserializeField(buf, pos, packet_length);
+
+		// Deserialize the packet
+		this->deserialize(buf + pos, packet_length, &packet);
+
+		// Insert the new packet in the burst
+		(*net_burst)->push_back(std::unique_ptr<NetPacket>{packet});
+
+		// Update position
+		pos += packet_length;
+	}
+	while (pos < length);
+
+	assert(pos == length);
+}
+
+void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
+                                              NetPacket **packet)
+{
+	uint32_t pos = 0;
+
+	uint8_t src_id;
+	uint8_t dest_id;
+	uint8_t qos;
+	NET_PROTO type;
+	uint32_t header_length;
+
+	deserializeField(buf, pos, src_id);
+	deserializeField(buf, pos, dest_id);
+	deserializeField(buf, pos, qos);
+	deserializeField(buf, pos, type);
+	deserializeField(buf, pos, header_length);
+
+	*packet = new NetPacket{Data{buf + pos, length - pos},
+	                        length - pos,
+	                        "interconnect",
+	                        type,
+	                        qos,
+	                        src_id,
+	                        dest_id,
+	                        header_length};
 }

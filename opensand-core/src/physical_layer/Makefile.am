@@ -3,15 +3,11 @@ SUBDIRS = plugins . tests
 noinst_LTLIBRARIES = libopensand_physical_layer.la
 
 libopensand_physical_layer_la_cpp = \
-	DelayFifo.cpp \
-	DelayFifoElement.cpp \
 	BlockPhysicalLayer.cpp \
 	AttenuationHandler.cpp \
 	GroundPhysicalChannel.cpp
 
 libopensand_physical_layer_la_h = \
-	DelayFifo.h \
-	DelayFifoElement.h \
 	BlockPhysicalLayer.h \
 	AttenuationHandler.h \
 	GroundPhysicalChannel.h

@@ -37,9 +37,10 @@
 
 #include <opensand_rt/Rt.h>
 
-#include "TestDelayFifo.h"
-#include "TestDelayFifoElement.h"
+#include "DelayFifo.h"
+#include "FifoElement.h"
 #include "OpenSandCore.h"
+#include "NetContainer.h"
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -52,14 +53,14 @@ int main()
 {
 	int is_failure = 1;
 	time_ms_t current_time;
-	TestDelayFifo *fifo = new TestDelayFifo(1000);
+	DelayFifo *fifo = new DelayFifo(1000);
 
 	// Add elements to fifo
 	current_time = getCurrentTime();
 
 	for(unsigned int i=0; i < sizeof(elem_times); i++)
 	{
-		TestDelayFifoElement *elem = new TestDelayFifoElement(NULL, current_time, current_time + elem_times[i]);
+		FifoElement *elem = new FifoElement(nullptr, current_time, current_time + elem_times[i]);
 		fifo->push(elem);
 	}
 
@@ -68,7 +69,7 @@ int main()
 
 	while(fifo->getCurrentSize() > 0)
 	{
-		TestDelayFifoElement *elem = fifo->pop();
+		FifoElement *elem = fifo->pop();
 		delete elem;
 	}
 	delete fifo;

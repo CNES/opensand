@@ -122,7 +122,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 					return false;
 				}
 
-				opensand_plugin_t *plugin = reinterpret_cast<fn_init *>(sym)();
+				OpenSandPluginFactory *plugin = reinterpret_cast<fn_init *>(sym)();
 				if(!plugin)
 				{
 					LOG(this->log_init, LEVEL_ERROR,
@@ -133,15 +133,15 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 
 				switch(plugin->type)
 				{
-					case encapsulation_plugin:
+					case PluginType::Encapsulation:
 						storePlugin(this->encapsulation, plugin, handle);
 						break;
 
-					case satdelay_plugin:
+					case PluginType::SatDelay:
 						storePlugin(this->sat_delay, plugin, handle);
 						break;
 
-					case attenuation_plugin:
+					case PluginType::Attenuation:
 						if(!enable_phy_layer)
 						{
 							dlclose(handle);
@@ -152,7 +152,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						}
 						break;
 
-					case minimal_plugin:
+					case PluginType::Minimal:
 						if(!enable_phy_layer)
 						{
 							dlclose(handle);
@@ -163,7 +163,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 						}
 						break;
 
-					case error_plugin:
+					case PluginType::Error:
 						if(!enable_phy_layer)
 						{
 							dlclose(handle);
@@ -189,7 +189,7 @@ bool PluginUtils::loadPlugins(bool enable_phy_layer)
 }
 
 
-void PluginUtils::storePlugin(pl_list_t &container, opensand_plugin_t *plugin, void *handle)
+void PluginUtils::storePlugin(PluginConfigurationContainer &container, OpenSandPluginFactory *plugin, void *handle)
 {
 	const std::string plugin_name = plugin->name;
 
@@ -237,9 +237,9 @@ void PluginUtils::releasePlugins()
  */
 template<class PluginType>
 bool getPlugin(const std::string &plugin_name,
-			   pl_list_t &container,
-			   std::vector<OpenSandPlugin *> &plugins,
-			   PluginType **plugin)
+               PluginConfigurationContainer &container,
+               std::vector<OpenSandPlugin *> &plugins,
+               PluginType **plugin)
 {
 	fn_create create = container[plugin_name].second;
 	if(!create)
@@ -309,32 +309,32 @@ bool PluginUtils::getErrorInsertionPlugin(std::string name,
 
 
 void PluginUtils::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
-	                                           plugin_type_t plugin_type,
-	                                           const std::string &parameter_id,
-	                                           const std::string &parameter_name,
-	                                           const std::string &parameter_description)
+                                               PluginType plugin_type,
+                                               const std::string &parameter_id,
+                                               const std::string &parameter_name,
+                                               const std::string &parameter_description)
 {
-	pl_list_t *container;
+	PluginConfigurationContainer *container;
 
 	switch(plugin_type)
 	{
-		case encapsulation_plugin:
+		case PluginType::Encapsulation:
 			container = &this->encapsulation;
 			break;
 
-		case satdelay_plugin:
+		case PluginType::SatDelay:
 			container = &this->sat_delay;
 			break;
 
-		case attenuation_plugin:
+		case PluginType::Attenuation:
 			container = &this->attenuation;
 			break;
 
-		case minimal_plugin:
+		case PluginType::Minimal:
 			container = &this->minimal;
 			break;
 
-		case error_plugin:
+		case PluginType::Error:
 			container = &this->error;
 			break;
 

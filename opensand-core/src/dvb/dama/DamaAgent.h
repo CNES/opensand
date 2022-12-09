@@ -44,11 +44,8 @@
 
 #include <opensand_output/Output.h>
 
-#include <map>
 #include <list>
 
-using std::map;
-using std::list;
 
 /**
  * @class DamaAgent
@@ -59,8 +56,7 @@ using std::list;
  */
 class DamaAgent
 {
- public:
-
+public:
 	/**
 	 * Build a Dama agent.
 	 *
@@ -98,14 +94,15 @@ class DamaAgent
 	                time_sf_t msl_sf,
 	                time_sf_t sync_period_sf,
 	                EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                const fifos_t &dvb_fifos);
+	                const fifos_t &dvb_fifos,
+	                spot_id_t spot_id);
 
 	/**
 	 * @brief Initialize the instatiated Dama Agent
 	 *
 	 * @return true on success, false otherwise
 	 */
-	virtual bool init() = 0;
+	virtual bool init(spot_id_t spot_id) = 0;
 
 	// Protocol frames processing
 
@@ -147,7 +144,7 @@ class DamaAgent
 	 * @param empty     flag if CR is 0.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool buildSAC(ret_access_type_t cr_type,
+	virtual bool buildSAC(ReturnAccessType cr_type,
 	                      Sac *sac,
 	                      bool &empty) = 0;
 
@@ -157,7 +154,7 @@ class DamaAgent
 	 * @param complete_dvb_frames  created DVB frames.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool returnSchedule(list<DvbFrame *> *complete_dvb_frames) = 0;
+	virtual bool returnSchedule(std::list<DvbFrame *> *complete_dvb_frames) = 0;
 
 	/**
 	 * @brief   Called at each SoF.
@@ -174,15 +171,13 @@ class DamaAgent
 	 */
 	virtual void updateStatistics(time_ms_t UNUSED(period_ms)) {};
 
-
 protected:
-
 	/**
 	 * @brief	Init the output probes and stats
 	 *
 	 * @return true on success, false otherwise.
 	 */
-	bool initOutput();
+	bool initOutput(spot_id_t spot_id);
 
 	/** Flag if initialisation of base class has been done */
 	bool is_parent_init;
@@ -224,25 +219,24 @@ protected:
 	bool cr_output_only;
 
 	// Output Log
-  std::shared_ptr<OutputLog> log_init;
-  std::shared_ptr<OutputLog> log_frame_tick;
-  std::shared_ptr<OutputLog> log_schedule;
-  std::shared_ptr<OutputLog> log_ttp;
-  std::shared_ptr<OutputLog> log_sac;
-  std::shared_ptr<OutputLog> log_request;
+	std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_frame_tick;
+	std::shared_ptr<OutputLog> log_schedule;
+	std::shared_ptr<OutputLog> log_ttp;
+	std::shared_ptr<OutputLog> log_sac;
+	std::shared_ptr<OutputLog> log_request;
 
 	/** Output probes and stats */
-		// Requests sizes
-			// RBDC
-  std::shared_ptr<Probe<int>> probe_st_rbdc_req_size;
-			// VBDC
-  std::shared_ptr<Probe<int>> probe_st_vbdc_req_size;
-		// Allocation
-			// Total
-  std::shared_ptr<Probe<int>> probe_st_total_allocation;
-			// Remaining
-  std::shared_ptr<Probe<int>> probe_st_remaining_allocation;
-
+	// Requests sizes
+	// RBDC
+	std::shared_ptr<Probe<int>> probe_st_rbdc_req_size;
+	// VBDC
+	std::shared_ptr<Probe<int>> probe_st_vbdc_req_size;
+	// Allocation
+	// Total
+	std::shared_ptr<Probe<int>> probe_st_total_allocation;
+	// Remaining
+	std::shared_ptr<Probe<int>> probe_st_remaining_allocation;
 };
 
 #endif

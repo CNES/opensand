@@ -45,25 +45,28 @@
 
 
 /// The maximum number of frames
-#define NBR_MAX_FRAMES 1
+constexpr const uint8_t NBR_MAX_FRAMES = 1;
 /// The maximum number of TP per frame
-#define NBR_MAX_TP BROADCAST_TAL_ID
+constexpr const uint8_t NBR_MAX_TP = BROADCAST_TAL_ID;
+
 
 std::shared_ptr<OutputLog> Ttp::ttp_log = nullptr;
+
 
 Ttp::Ttp():
 	DvbFrameTpl<T_DVB_TTP>()
 {
-};
+}
+
 
 Ttp::Ttp(group_id_t group_id, time_sf_t sf_id):
 	DvbFrameTpl<T_DVB_TTP>()
 {
-	this->setMessageType(MSG_TYPE_TTP);
+	this->setMessageType(EmulatedMessageType::Ttp);
 	this->setMessageLength(sizeof(T_DVB_TTP));
-	this->setMaxSize(sizeof(T_DVB_TTP) +
-	                 NBR_MAX_FRAMES * (sizeof(emu_frame_t) +
-	                                   NBR_MAX_TP * sizeof(emu_tp_t))); 
+	this->setMaxSize(sizeof(T_DVB_TTP) + NBR_MAX_FRAMES * (
+		sizeof(emu_frame_t) + NBR_MAX_TP * sizeof(emu_tp_t)
+	));
 	this->frame()->ttp.ttp_info.group_id = group_id;
 	this->frame()->ttp.ttp_info.superframe_count = htons(sf_id);
 }
@@ -89,14 +92,14 @@ bool Ttp::addTimePlan(time_frame_t frame_id,
 	{
 		time_plans_t time_plans;
 		time_plans.push_back(tp);
-		this->frames.insert(std::make_pair<uint8_t, time_plans_t>((uint8_t)frame_id, (time_plans_t)time_plans));
+		this->frames.insert({frame_id, time_plans});
 	}
 	// add the TP to the list of TP for this frame ID
 	else
 	{
 		this->frames[frame_id].push_back(tp);
 	}
-/* not compatible with simulated STs => remove if this is ok
+	/* not compatible with simulated STs => remove if this is ok
 	if(this->frames[frame_id].size() > BROADCAST_TAL_ID)
 	{
 		LOG(ttp_log, LEVEL_ERROR,
@@ -112,9 +115,9 @@ bool Ttp::addTimePlan(time_frame_t frame_id,
 	return true;
 }
 
+
 bool Ttp::build(void)
 {
-	frames_t::iterator frame_it;
 	unsigned int frame_count = 0;
 	time_plans_t::iterator tp_it;
 	unsigned int tp_count;
@@ -122,13 +125,12 @@ bool Ttp::build(void)
 
 	ttp_length = sizeof(T_DVB_TTP);
 	// get the beginning of the frame
-	for(frame_it = this->frames.begin(); frame_it != this->frames.end();
-	    ++frame_it)
+	for(auto&& frame_it : this->frames)
 	{
-		vector<emu_tp_t> tp_list = (*frame_it).second;
+		std::vector<emu_tp_t> tp_list = frame_it.second;
 		emu_frame_t emu_frame;
 
-		emu_frame.frame_info.frame_number = (*frame_it).first;
+		emu_frame.frame_info.frame_number = frame_it.first;
 		ttp_length += sizeof(frame_info_t);
 		tp_count = 0;
 		this->data.append((unsigned char *)&emu_frame, sizeof(emu_frame_t));
@@ -230,4 +232,3 @@ bool Ttp::getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tps)
 
 	return true;
 }
-

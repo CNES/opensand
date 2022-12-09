@@ -32,17 +32,20 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
-#include "NetBurst.h"
-#include "NetPacket.h"
+#include <numeric>
 
 #include <opensand_output/Output.h>
+
+#include "Data.h"
+#include "NetBurst.h"
+#include "NetPacket.h"
 
 
 std::shared_ptr<OutputLog> NetBurst::log_net_burst = nullptr;
 
 
 // max_packets = 0 => unlimited length
-NetBurst::NetBurst(unsigned int max_packets): std::list<NetPacket *>()
+NetBurst::NetBurst(unsigned int max_packets): std::list<std::unique_ptr<NetPacket>>()
 {
 	this->max_packets = max_packets;
 
@@ -54,10 +57,6 @@ NetBurst::NetBurst(unsigned int max_packets): std::list<NetPacket *>()
 
 NetBurst::~NetBurst()
 {
-	for(auto& packet : *this)
-	{
-		delete packet;
-	}
 	this->clear();
 }
 
@@ -75,11 +74,11 @@ void NetBurst::setMaxPackets(unsigned int max_packets)
 }
 
 
-bool NetBurst::add(NetPacket *packet)
+bool NetBurst::add(std::unique_ptr<NetPacket> packet)
 {
 	bool success = true;
 
-	if(this->isFull() || packet == NULL)
+	if(this->isFull() || packet == nullptr)
 	{
 		LOG(log_net_burst, LEVEL_INFO,
 		    "cannot add packet to burst (%d/%d)\n",
@@ -88,7 +87,7 @@ bool NetBurst::add(NetPacket *packet)
 	}
 	else
 	{
-		this->push_back(packet);
+		this->push_back(std::move(packet));
 		LOG(log_net_burst, LEVEL_INFO,
 		    "packet added to burst (%d/%d)\n",
 		    this->length(), this->max_packets);
@@ -101,7 +100,7 @@ bool NetBurst::add(NetPacket *packet)
 bool NetBurst::isFull() const
 {
 	// max_packets = 0 => unlimited length
-	return (this->max_packets != 0 && this->length() >= this->max_packets);
+	return this->max_packets != 0 && this->length() >= this->max_packets;
 }
 
 
@@ -116,7 +115,7 @@ Data NetBurst::data() const
 	Data data;
 
 	// add the data of each network packet of the burst
-	for(auto& packet : *this)
+	for(auto&& packet : *this)
 	{
 		data.append(packet->getData());
 	}
@@ -124,19 +123,17 @@ Data NetBurst::data() const
 	return data;
 }
 
+
 long NetBurst::bytes() const
 {
-	long len = 0;
-	for(auto& packet : *this)
-	{
-		len += packet->getTotalLength();
-	}
-
-	return len;
+	return std::accumulate(this->begin(), this->end(), 0L,
+	                       [](long length, const std::unique_ptr<NetPacket>& packet){
+	                          return length + packet->getTotalLength();
+	                       });
 }
 
 
-uint16_t NetBurst::type() const
+NET_PROTO NetBurst::type() const
 {
 	if(!this->size())
 	{
@@ -144,7 +141,7 @@ uint16_t NetBurst::type() const
 		LOG(log_net_burst, LEVEL_ERROR,
 		    "failed to determine the burst type: "
 		    "burst is empty\n");
-		return NET_PROTO_ERROR;
+		return NET_PROTO::ERROR;
 	}
 	else
 	{

@@ -43,13 +43,16 @@
 
 #include "OpenSandCore.h"
 #include "GroundPhysicalChannel.h"
-#include "AttenuationHandler.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
 #include <opensand_output/Output.h>
 
 #include <string>
 #include <map>
+
+
+class AttenuationHandler;
 
 
 /**
@@ -58,18 +61,18 @@
  */
 class BlockPhysicalLayer: public Block
 {
- public:
+public:
 	/**
 	 * @class Upward
 	 * @brief Ground Upward Physical Layer Channel
 	 */
 	class Upward: public GroundPhysicalChannel, public RtUpward
 	{
-	 private:
+	private:
 		/// Probes
-		std::shared_ptr<Probe<float>> probe_total_cn;
+		std::shared_ptr<Probe<float>> probe_total_cn = nullptr;
 
-	 protected:
+	protected:
 		/// The attenuation process
 		AttenuationHandler *attenuation_hdl;
 
@@ -91,14 +94,14 @@ class BlockPhysicalLayer: public Block
 		 */
 		double getCn(DvbFrame *dvb_frame) const;
 
-	 public:
+	public:
 		/**
 		 * @brief Constructor of the ground upward physical channel
 		 *
 		 * @param name    the name of the channel
-		 * @param mac_id  the id of the ST or of the GW
+		 * @param config  the config of the block
 		 */
-		Upward(const string &name, tal_id_t mac_id);
+		Upward(const std::string &name, PhyLayerConfig config);
 
 		/**
 		 * @brief Destroy the Channel
@@ -128,11 +131,11 @@ class BlockPhysicalLayer: public Block
 	 */
 	class Downward : public GroundPhysicalChannel, public RtDownward
 	{
-	 private:
+	private:
 		/// Probes
-     std::shared_ptr<Probe<int>> probe_delay;
+		std::shared_ptr<Probe<int>> probe_delay = nullptr;
 
-	 protected:
+	protected:
 		/// Event
 		event_id_t delay_update_timer;
 
@@ -159,21 +162,14 @@ class BlockPhysicalLayer: public Block
 		 */
 		void preparePacket(DvbFrame *dvb_frame);
 
-	 public:
+	public:
 		/**
 		 * @brief Constructor of the ground downward physical channel
 		 *
-		 * @param name  the name of the channel
-		 * @param mac_id  the id of the ST or of the GW
+		 * @param name    the name of the channel
+		 * @param config  the config of the block
 		 */
-		Downward(const string &name, tal_id_t mac_id);
-
-		/**
-		 * @brief Destroy the Channel
-		 */
-		virtual ~Downward()
-		{
-		}
+		Downward(const std::string &name, PhyLayerConfig config);
 
 		/**
 		 * @brief Initialize the ground downward physical channel
@@ -192,34 +188,27 @@ class BlockPhysicalLayer: public Block
 		bool onEvent(const RtEvent *const event);
 	};
 
- public:
-
+public:
 	/**
 	 * Build a physical layer block
 	 *
-	 * @param name            The name of the block
-	 * @param mac_id          The mac id of the terminal
+	 * @param name    The name of the block
+	 * @param config  The config of the block
 	 */
-	BlockPhysicalLayer(const string &name, tal_id_t mac_id);
-
-	/**
-	 * Destroy the PhysicalLayer block
-	 */
-	~BlockPhysicalLayer();
+	BlockPhysicalLayer(const std::string &name, PhyLayerConfig config);
 
 	static void generateConfiguration();
 
 	// initialization method
 	bool onInit();
 
- private:
+private:
 	/// The terminal mac_id
 	tal_id_t mac_id;
 
 	/// The satellite delay for this terminal
-	SatDelayPlugin *satdelay;
+	SatDelayPlugin *satdelay = nullptr;
 };
 
+
 #endif
-
-

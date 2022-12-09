@@ -55,13 +55,16 @@
 #include <opensand_rt/Rt.h>
 
 
+class FifoElement;
+
+
 /**
  * @brief A high level channel that implements some functions
  *        used by ST, SAT and/or GW
  */
 class DvbChannel
 {
- public:
+public:
 	DvbChannel():
 		req_burst_length(0),
 		super_frame_counter(0),
@@ -87,7 +90,7 @@ class DvbChannel
 	{
 	};
 
- protected:
+protected:
 
 	/**
 	 * @brief Read MODCOD Definition types
@@ -104,7 +107,7 @@ class DvbChannel
 	 * @param pkt_hdl       The packet handler corresponding to the encapsulation scheme
 	 * @return true on success, false otherwise
 	 */
-	bool initPktHdl(encap_scheme_list_t encap_schemes,
+	bool initPktHdl(EncapSchemeList encap_schemes,
 	                EncapPlugin::EncapPacketHandler **pkt_hdl);
 
 	/**
@@ -122,7 +125,7 @@ class DvbChannel
 	 *                      schemes (up/return or down/forward)
 	 * @return true on success, false otherwise
 	 */
-	bool initCommon(encap_scheme_list_t encap_schemes);
+	bool initCommon(EncapSchemeList encap_schemes);
 
 	/**
 	 * @brief Init the timer for statistics
@@ -152,8 +155,8 @@ class DvbChannel
 	 */
 	template<class T>
 	bool initBand(const OpenSandModelConf::spot &spot,
-	              string section,
-	              access_type_t access_type,
+	              std::string section,
+	              AccessType access_type,
 	              time_ms_t duration_ms,
 	              const FmtDefinitionTable *fmt_def,
 	              TerminalCategories<T> &categories,
@@ -191,7 +194,7 @@ class DvbChannel
 	 * @return              true on success, false otherwise
 	 */
 	bool pushInFifo(DvbFifo *fifo,
-	                NetContainer *data,
+	                std::unique_ptr<NetContainer> data,
 	                time_ms_t fifo_delay);
 
 	/**
@@ -202,7 +205,7 @@ class DvbChannel
 	bool doSendStats(void);
 
 
- 	/**
+	/**
 	 * @brief   allocate more band to the demanding category
 	 *
 	 * @tparam  T The type of terminal category to create
@@ -214,7 +217,7 @@ class DvbChannel
 	 */
 	template<class T>
 	bool allocateBand(time_ms_t duration_ms,
-	                  string cat_label,
+	                  std::string cat_label,
 	                  rate_kbps_t new_rate_kbps,
 	                  TerminalCategories<T> &categories);
 
@@ -230,7 +233,7 @@ class DvbChannel
 	 */
 	template<class T>
 	bool releaseBand(time_ms_t duration_ms,
-	                 string cat_label,
+	                 std::string cat_label,
 	                 rate_kbps_t new_rate_kbps,
 	                 TerminalCategories<T> &categories);
 
@@ -246,7 +249,7 @@ class DvbChannel
 	 */
 	template<class T>
 	bool carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
-	                                  map<rate_symps_t, unsigned int> &carriers);
+	                                 std::map<rate_symps_t, unsigned int> &carriers);
 
 /**
  * @brief   Transfer of the carrier
@@ -260,7 +263,7 @@ class DvbChannel
  */
 	template<class T>
 	bool carriersTransfer(time_ms_t duration_ms, T* cat1, T* cat2,
-	                       map<rate_symps_t , unsigned int> carriers);
+	                      std::map<rate_symps_t , unsigned int> carriers);
 
 	/// the RCS2 required burst length in symbol
 	vol_b_t req_burst_length;
@@ -286,7 +289,7 @@ class DvbChannel
 
 	static std::shared_ptr<OutputLog> dvb_fifo_log;
 
- private:
+private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
 
@@ -301,25 +304,25 @@ class DvbChannel
  * @param values  The value to split
  * @return The vector containing the splitted values
  */
-inline vector<unsigned int> tempSplit(string values)
+inline std::vector<unsigned int> tempSplit(std::string values)
 {
-	vector<string>::iterator it;
-	vector<string> first_step;
-	vector<unsigned int> output;
+	std::vector<std::string>::iterator it;
+	std::vector<std::string> first_step;
+	std::vector<unsigned int> output;
 
 	// first get groups of strings separated by ';'
 	tokenize(values, first_step, ";");
 	for(it = first_step.begin(); it != first_step.end(); ++it)
 	{
-		vector<string> second_step;
-		vector<string>::iterator it2;
+		std::vector<std::string> second_step;
+		std::vector<std::string>::iterator it2;
 
 		// then get groups of strings separated by ','
 		tokenize(*it, second_step, ",");
 		for(it2 = second_step.begin(); it2 != second_step.end(); ++it2)
 		{
-			vector<string> third_step;
-			vector<string>::iterator it3;
+			std::vector<std::string> third_step;
+			std::vector<std::string>::iterator it3;
 
 			// then split the integers separated by '-'
 			tokenize(*it2, third_step, "-");
@@ -343,8 +346,8 @@ inline vector<unsigned int> tempSplit(string values)
 
 template<class T>
 bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
-                          string section,
-                          access_type_t access_type,
+                          std::string section,
+                          AccessType access_type,
                           time_ms_t duration_ms,
                           const FmtDefinitionTable *fmt_def,
                           TerminalCategories<T> &categories,
@@ -374,7 +377,7 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 				fmt_groups[group_id] = group;
 
 				auto modcod_amount = group->getFmtIds().size();
-				if ((is_vcm || access_type == ALOHA) && modcod_amount > 1) {
+				if ((is_vcm || access_type == AccessType::ALOHA) && modcod_amount > 1) {
 					LOG(this->log_init_channel, LEVEL_ERROR,
 					    "Carrier cannot have more than one modcod for saloha or VCM\n");
 					return false;
@@ -458,7 +461,7 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 
 
 	spot_id_t default_spot_id;
-	string default_category_name;
+	std::string default_category_name;
 	std::map<tal_id_t, std::pair<spot_id_t, std::string>> terminals;
 	if (!OpenSandModelConf::Get()->getTerminalAffectation(default_spot_id,
 	                                                      default_category_name,
@@ -495,7 +498,7 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 	for (auto& terminal : terminals)
 	{
 		tal_id_t tal_id = terminal.first;
-		string name = terminal.second.second;
+		std::string name = terminal.second.second;
 		T *category = nullptr;
 		cat_iter = categories.find(name);
 		if (cat_iter != categories.end())
@@ -531,16 +534,12 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
                                  time_ms_t duration_ms,
                                  TerminalCategories<T> &categories)
 {
-	typename TerminalCategories<T>::const_iterator category_it;
-
 	double weighted_sum_ksymps = 0.0;
 
 	// compute weighted sum
-	for(category_it = categories.begin();
-	    category_it != categories.end();
-	    ++category_it)
+	for (auto&& category_it : categories)
 	{
-		T *category = (*category_it).second;
+		T *category = category_it.second;
 
 		// Compute weighted sum in ks/s since available bandplan is in kHz.
 		weighted_sum_ksymps += category->getWeightedSum();
@@ -549,7 +548,7 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 	LOG(this->log_init_channel, LEVEL_DEBUG,
 	    "Weigthed ratio sum: %f ksym/s\n", weighted_sum_ksymps);
 
-	if(equals(weighted_sum_ksymps, 0.0))
+	if (weighted_sum_ksymps == 0.0)
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Weighted ratio sum is 0\n");
@@ -557,12 +556,10 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 	}
 
 	// compute carrier number per category
-	for(category_it = categories.begin();
-	    category_it != categories.end();
-		category_it++)
+	for (auto&& category_it : categories)
 	{
 		unsigned int carriers_number = 0;
-		T *category = (*category_it).second;
+		T *category = category_it.second;
 		unsigned int ratio = category->getRatio();
 
 		carriers_number = round(
@@ -597,7 +594,7 @@ error:
  */
 class DvbFmt
 {
- public:
+public:
 	enum ModcodDefFileType
 	{
 		MODCOD_DEF_S2,
@@ -666,8 +663,7 @@ class DvbFmt
 	 */
 	double getRequiredCniOutput(tal_id_t tal_id);
 
- protected:
-
+protected:
 	/**
 	 * @brief Read configuration for the MODCOD definition file and create the
 	 *        FmtDefinitionTable class
@@ -767,13 +763,11 @@ class DvbFmt
 	 * @return true on success, false otherwise
 	 */
 	bool setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                        MacFifoElement *elem,
-	                        DvbFifo *fifo,
-	                        NetPacket* packet,
-	                        NetPacket **extension_pkt,
+	                        FifoElement *elem,
+	                        std::unique_ptr<NetPacket> packet,
 	                        tal_id_t source,
 	                        tal_id_t dest,
-	                        string extension_name,
+	                        std::string extension_name,
 	                        time_sf_t super_frame_counter,
 	                        bool is_gw);
 
@@ -796,7 +790,7 @@ class DvbFmt
 	// log
 	std::shared_ptr<OutputLog> log_fmt;
 
- private:
+private:
 	/// Whether we can send stats or not (can send stats when 0)
 	time_frame_t check_send_stats;
 
@@ -813,13 +807,13 @@ class DvbFmt
 
 template<class T>
 bool DvbChannel::allocateBand(time_ms_t duration_ms,
-                              string cat_label,
+                              std::string cat_label,
                               rate_kbps_t new_rate_kbps,
                               TerminalCategories<T> &categories)
 {
 	// Category SNO (the default one)
-	string cat_sno_label ("SNO");
-	typename map<string, T*>::iterator cat_sno_it = categories.find(cat_sno_label);
+	std::string cat_sno_label ("SNO");
+	typename std::map<std::string, T*>::iterator cat_sno_it = categories.find(cat_sno_label);
 	if(cat_sno_it == categories.end())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -830,7 +824,7 @@ bool DvbChannel::allocateBand(time_ms_t duration_ms,
 	T* cat_sno = cat_sno_it->second;
 
 	// The category we are interesting on
-	typename map<string, T*>::iterator cat_it = categories.find(cat_label);
+	typename std::map<std::string, T*>::iterator cat_it = categories.find(cat_label);
 	if(cat_it == categories.end())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -849,7 +843,7 @@ bool DvbChannel::allocateBand(time_ms_t duration_ms,
 	rate_symps_t old_rs;
 	rate_symps_t rs_sno;
 	rate_symps_t rs_needed;
-	map<rate_symps_t, unsigned int> carriers;
+	std::map<rate_symps_t, unsigned int> carriers;
 
 
 	// Get the FMT Definition Table
@@ -893,13 +887,13 @@ bool DvbChannel::allocateBand(time_ms_t duration_ms,
 
 template<class T>
 bool DvbChannel::releaseBand(time_ms_t duration_ms,
-                             string cat_label,
+                             std::string cat_label,
                              rate_kbps_t new_rate_kbps,
                              TerminalCategories<T> &categories)
 {
 	// Category SNO (the default one)
-	string cat_sno_label ("SNO");
-	typename map<string, T*>::iterator cat_sno_it = categories.find(cat_sno_label);
+	std::string cat_sno_label ("SNO");
+	typename std::map<std::string, T*>::iterator cat_sno_it = categories.find(cat_sno_label);
 	if(cat_sno_it == categories.end())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -910,7 +904,7 @@ bool DvbChannel::releaseBand(time_ms_t duration_ms,
 	T* cat_sno = cat_sno_it->second;
 
 	// The category we are interesting on
-	typename map<string, T*>::iterator cat_it = categories.find(cat_label);
+	typename std::map<std::string, T*>::iterator cat_it = categories.find(cat_label);
 	if(cat_it == categories.end())
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
@@ -928,7 +922,7 @@ bool DvbChannel::releaseBand(time_ms_t duration_ms,
 	rate_symps_t new_rs;
 	rate_symps_t old_rs;
 	rate_symps_t rs_unneeded;
-	map<rate_symps_t, unsigned int> carriers;
+	std::map<rate_symps_t, unsigned int> carriers;
 
 
 	// Get the FMT Definition Table
@@ -965,14 +959,14 @@ bool DvbChannel::releaseBand(time_ms_t duration_ms,
 
 template<class T>
 bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
-                                             map<rate_symps_t, unsigned int> &carriers)
+                                             std::map<rate_symps_t, unsigned int> &carriers)
 {
 	unsigned int num_carriers;
 
 	// List of the carriers available (Rs, number)
-	map<rate_symps_t, unsigned int> carriers_available;
-	map<rate_symps_t, unsigned int>::reverse_iterator carriers_ite1;
-	map<rate_symps_t, unsigned int>::reverse_iterator carriers_ite2;
+	std::map<rate_symps_t, unsigned int> carriers_available;
+	std::map<rate_symps_t, unsigned int>::reverse_iterator carriers_ite1;
+	std::map<rate_symps_t, unsigned int>::reverse_iterator carriers_ite2;
 
 
 	// Get the classification of the available
@@ -1042,14 +1036,14 @@ bool DvbChannel::carriersTransferCalculation(T* cat, rate_symps_t &rate_symps,
 
 template<class T>
 bool DvbChannel::carriersTransfer(time_ms_t duration_ms, T* cat1, T* cat2,
-	                               map<rate_symps_t , unsigned int> carriers)
+                                  std::map<rate_symps_t , unsigned int> carriers)
 {
 	unsigned int highest_id;
 	unsigned int associated_ratio;
 
 	// Allocation and deallocation of carriers
 	highest_id = cat2->getHighestCarrierId();
-	for(map<rate_symps_t, unsigned int>::iterator it = carriers.begin();
+	for(std::map<rate_symps_t, unsigned int>::iterator it = carriers.begin();
 	    it != carriers.end(); it++)
 	{
 		if(it->second == 0)

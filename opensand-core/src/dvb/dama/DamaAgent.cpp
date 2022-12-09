@@ -36,6 +36,7 @@
 #include "DamaAgent.h"
 
 #include "OpenSandFrames.h"
+#include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
 
@@ -68,7 +69,8 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
                            time_sf_t msl_sf,
                            time_sf_t sync_period_sf,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
-                           const fifos_t &dvb_fifos)
+                           const fifos_t &dvb_fifos,
+                           spot_id_t spot_id)
 {
 	this->frame_duration_ms = frame_duration_ms;
 	this->cra_kbps = cra_kbps;
@@ -81,32 +83,38 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	this->dvb_fifos = dvb_fifos;
 
 	// Check if RBDC or VBDC CR are activated
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto&& it: this->dvb_fifos)
 	{
-		ret_access_type_t cr_type = (ret_access_type_t)((*it).second->getAccessType());
-		switch(cr_type)
+		auto cr_type = it.second->getAccessType();
+		if (!cr_type.IsReturnAccess())
 		{
-			case access_dama_rbdc:
+			LOG(this->log_init, LEVEL_ERROR,
+			    "CR type invalid as FIFO is not for Return Access");
+			return false;
+		}
+
+		switch(cr_type.return_access_type)
+		{
+			case ReturnAccessType::dama_rbdc:
 				this->rbdc_enabled = true;
 				break;
-			case access_dama_vbdc:
+			case ReturnAccessType::dama_vbdc:
 				this->vbdc_enabled = true;
 				break;
-			case access_dama_cra:
-			case access_saloha:
+			case ReturnAccessType::dama_cra:
+			case ReturnAccessType::saloha:
 				break;
 			default:
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Unknown CR type for FIFO %s: %d\n",
-				    (*it).second->getName().c_str(), cr_type);
-			goto error;
+				    it.second->getName().c_str(), cr_type);
+				return false;
 		}
 	}
 
 	this->is_parent_init = true;
 
-	if (!this->initOutput())
+	if (!this->initOutput(spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "the output probes and stats initialization have "
@@ -115,14 +123,16 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
 	}
 
 	return true;
-
- error:
-	return false;
 }
 
-bool DamaAgent::initOutput()
+
+bool DamaAgent::initOutput(spot_id_t spot_id)
 {
-  auto output = Output::Get();
+	auto output = Output::Get();
+
+	// generate probes prefix
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, Component::terminal, is_sat);
 
 	// Output Log
 	this->log_init = output->registerLog(LEVEL_WARNING, "Dvb.init");
@@ -135,16 +145,16 @@ bool DamaAgent::initOutput()
 
 	// RBDC request size
 	this->probe_st_rbdc_req_size = output->registerProbe<int>(
-		"Request.RBDC", "Kbits/s", true, SAMPLE_LAST);
+		prefix + "Request.RBDC", "Kbits/s", true, SAMPLE_LAST);
 	// VBDC request size
 	this->probe_st_vbdc_req_size = output->registerProbe<int>(
-		"Request.VBDC", "Kbits", true, SAMPLE_LAST);
+		prefix + "Request.VBDC", "Kbits", true, SAMPLE_LAST);
 	// Total allocation
 	this->probe_st_total_allocation = output->registerProbe<int>(
-		"Allocation.Total", "Kbits/s", true, SAMPLE_LAST);
+		prefix + "Allocation.Total", "Kbits/s", true, SAMPLE_LAST);
 	// Remaining allocation
 	this->probe_st_remaining_allocation = output->registerProbe<int>(
-		"Allocation.Remaining", "Kbits/s", true, SAMPLE_LAST);
+		prefix + "Allocation.Remaining", "Kbits/s", true, SAMPLE_LAST);
 
 	return true;
 }

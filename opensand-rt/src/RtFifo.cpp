@@ -32,133 +32,94 @@
  *         intra-block messages
  */
 
-#include "Rt.h"
-#include "RtFifo.h"
-
-#include <opensand_output/Output.h>
-
-#include <cstdlib>
-#include <cstring>
 #include <unistd.h>
-#include <errno.h>
+#include <cstring>
+
+#include "RtFifo.h"
+#include "Rt.h"
+#include "RtCommunicate.h"
+
 
 #define DEFAULT_FIFO_SIZE 3
 
+
 RtFifo::RtFifo():
-	fifo(),
-	max_size(DEFAULT_FIFO_SIZE),
-	fifo_mutex()
+	fifo{},
+	max_size{DEFAULT_FIFO_SIZE},
+	fifo_mutex{},
+  fifo_size_sem{DEFAULT_FIFO_SIZE}
 {
 }
+
 
 RtFifo::~RtFifo()
 {
 	close(this->r_sig_pipe);
 	close(this->w_sig_pipe);
-
-/*	while(!this->fifo.empty())
-	{
-		this->fifo.pop();
-	}
-	delete msg.data*/
-
-	sem_destroy(&(this->fifo_size_sem));
 }
+
 
 bool RtFifo::init()
 {
 	int32_t pipefd[2];
-	int ret;
-
-	ret = sem_init(&(this->fifo_size_sem), 0, this->max_size);
-	if(ret != 0)
-	{
-		Rt::reportError("fifo", pthread_self(), false,
-		                "Failed to initialize semaphore on FIFO [%d: %s]\n",
-		                ret, strerror(ret));
-		goto error;
-	}
-
 	if(pipe(pipefd) != 0)
 	{
-		goto error;
+		return false;
 	}
+
 	this->r_sig_pipe = pipefd[0];
 	this->w_sig_pipe = pipefd[1];
 
 	return true;
-
-error:
-	return false;
 }
 
 
 bool RtFifo::push(void *data, size_t size, uint8_t type)
 {
-	fd_set wset;
-	bool status = false;
-	rt_msg_t msg;
-	int ret;
-	
 	// we need a semaphore here to block while fifo is full
-	ret = sem_wait(&(this->fifo_size_sem));
-	if(ret != 0)
-	{
-		Rt::reportError("fifo", pthread_self(), false,
-		                "Failed to lock mutex for FIFO full [%d: %s]\n",
-		                ret, strerror(ret));
-		return false;
-	}
+	fifo_size_sem.wait();
+	RtLock acquire{fifo_mutex};
 
-  RtLock acquire{fifo_mutex};
-
-	//assert(this->fifo.size() < this->max_size);
 	if(this->fifo.size() >= this->max_size)
 	{
-		Rt::reportError("fifo", pthread_self(), false,
+		Rt::reportError("fifo", std::this_thread::get_id(), false,
 		                "Size is greater than maximum size (%u > %u), "
 		                "this should not happend\n",
 		                this->fifo.size(), this->max_size);
 	}
+	this->fifo.push({data, size, type});
 
-	msg.data = data;
-	msg.length = size;
-	msg.type = type;
-	this->fifo.push(msg);
+	fd_set wset;
 	FD_ZERO(&wset);
 	FD_SET(this->w_sig_pipe, &wset);
 	if(select(this->w_sig_pipe + 1, NULL, &wset, NULL, NULL) < 0)
 	{
-		Rt::reportError("fifo", pthread_self(), false,
+		Rt::reportError("fifo", std::this_thread::get_id(), false,
 		                "Select failed on pipe [%d: %s]\n",
 		                errno, strerror(errno));
-		goto error;
+		return false;
 	}
-	if(write(this->w_sig_pipe, MAGIC_WORD, strlen(MAGIC_WORD)) != strlen(MAGIC_WORD))
+	if (!check_write(this->w_sig_pipe))
 	{
-		Rt::reportError("fifo", pthread_self(), false,
+		Rt::reportError("fifo", std::this_thread::get_id(), false,
 		                "Failed to write on pipe\n");
-		goto error;
+		return false;
 	}
-	status = true;
 
-error:
-	return status;
+	return true;
 }
+
 
 bool RtFifo::pop(rt_msg_t &elem)
 {
-	bool status = true;
-	
   {
     RtLock acquire{fifo_mutex};
 
-    // assert(!this->fifo.empty());
     if(this->fifo.empty())
     {
-      Rt::reportError("fifo", pthread_self(), false,
+      Rt::reportError("fifo", std::this_thread::get_id(), false,
                       "Fifo is already empty, this should not happend\n");
-      status = false;
+      return false;
     }
     else
     {
@@ -172,13 +133,7 @@ bool RtFifo::pop(rt_msg_t &elem)
   }
 
 	// fifo has empty space, we can unlock it
-	if(sem_post(&(this->fifo_size_sem)) != 0)
-	{
-		Rt::reportError("fifo", pthread_self(), false,
-		                "Failed to unlock mutex for FIFO full\n");
-		status = false;
-	}
-	return status;
+  fifo_size_sem.notify();
+
+	return true;
 }
-
-

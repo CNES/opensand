@@ -39,14 +39,17 @@
 
 #include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
 
-#include <unistd.h>
-#include <signal.h>
 #include <list>
+#include <signal.h>
+#include <unistd.h>
 
-struct ic_specific
+struct InterconnectConfig
 {
-	string interconnect_addr; // Interconnect interface IP address
+	std::string interconnect_addr; // Interconnect interface IP address
+	uint32_t delay;
+	std::size_t isl_index;
 };
 
 /**
@@ -55,52 +58,41 @@ struct ic_specific
  */
 class BlockInterconnectDownward: public Block
 {
- public:
-
+public:
 	/**
 	 * @brief The interconnect block, placed below
 	 *
 	 * @param name      The block name
 	 * @param specific  Specific block parameters
 	 */
-	BlockInterconnectDownward(const string &name,
-	                          const string &interconnect_addr);
-
-	~BlockInterconnectDownward();
-
-	static void generateConfiguration();
+	BlockInterconnectDownward(const std::string &name,
+	                          const InterconnectConfig &config);
 
 	class Upward: public RtUpward, public InterconnectChannelReceiver
 	{
-	 public:
-		Upward(const string &name, const string &interconnect_addr):
-			RtUpward(name),
-			InterconnectChannelReceiver(name + ".Upward",
-			                            interconnect_addr)
-		{};
-
+	public:
+		Upward(const std::string &name, const InterconnectConfig &config);
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 private:
+	private:
+		std::size_t isl_index;
 	};
 
 	class Downward: public RtDownward, public InterconnectChannelSender
 	{
-	 public:
-		Downward(const string &name, const string &interconnect_addr):
-			RtDownward(name),
-			InterconnectChannelSender(name + ".Downward",
-			                          interconnect_addr)
-		{};
-
+	public:
+		Downward(const std::string &name, const InterconnectConfig &config);
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 private:
+	private:
+		event_id_t delay_timer;
+		uint32_t polling_rate;
+		std::size_t isl_index;
 	};
 
- protected:
+protected:
 	// Output log
 	std::shared_ptr<OutputLog> log_interconnect;
 
@@ -118,53 +110,42 @@ class BlockInterconnectDownward: public Block
  */
 class BlockInterconnectUpward: public Block
 {
- public:
-
+public:
 	/**
 	 * @brief The interconnect block, placed below
 	 *
 	 * @param name      The block name
 	 * @param specific  Specific block parameters
 	 */
-	BlockInterconnectUpward(const string &name,
-	                        const string &interconnect_addr);
-
-	~BlockInterconnectUpward();
-
-	static void generateConfiguration();
+	BlockInterconnectUpward(const std::string &name,
+	                        const InterconnectConfig &config);
 
 	class Upward: public RtUpward, public InterconnectChannelSender
 	{
-	 public:
-		Upward(const string &name, const string &interconnect_addr):
-			RtUpward(name),
-			InterconnectChannelSender(name + ".Upward",
-			                          interconnect_addr)
-		{};
-
+	public:
+		Upward(const std::string &name, const InterconnectConfig &config);
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 private:
+	private:
+		event_id_t delay_timer;
+		uint32_t polling_rate;
+		std::size_t isl_index;
 	};
 
 	class Downward: public RtDownward, public InterconnectChannelReceiver
 	{
-	 public:
-		Downward(const string &name, const string &interconnect_addr):
-			RtDownward(name),
-			InterconnectChannelReceiver(name + ".Downward",
-			                            interconnect_addr)
-		{};
-
+	public:
+		Downward(const std::string &name, const InterconnectConfig &config);
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 private:
+	private:
+		std::size_t isl_index;
 	};
 
- protected:
-	// Output log 
+protected:
+	// Output log
 	std::shared_ptr<OutputLog> log_interconnect;
 
 	/// event handlers

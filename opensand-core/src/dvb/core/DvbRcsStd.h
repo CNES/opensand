@@ -47,9 +47,7 @@
  */
 class DvbRcsStd: public PhysicStd
 {
-
- public:
-
+public:
 	/**
 	 * Build a DVB-RCS Transmission Standard
 	 *
@@ -66,7 +64,7 @@ class DvbRcsStd: public PhysicStd
 	                tal_id_t tal_id,
 	                NetBurst **burst);
 
- protected:
+protected:
 	/**
 	 * Build a DVB-RCS Transmission Standard
 	 *
@@ -74,7 +72,7 @@ class DvbRcsStd: public PhysicStd
 	 * @param has_fixed_length  The fixed length status
 	 * @param packet_handler    The packet handler
 	 */
-	DvbRcsStd(string ype, bool has_fixed_length,
+	DvbRcsStd(std::string ype, bool has_fixed_length,
 		EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
 
 	// Output log and debug
@@ -86,7 +84,7 @@ class DvbRcsStd: public PhysicStd
 
 class DvbRcs2Std: public DvbRcsStd
 {
-  public:
+public:
 	DvbRcs2Std(EncapPlugin::EncapPacketHandler *pkt_hdl = NULL);
 };
 

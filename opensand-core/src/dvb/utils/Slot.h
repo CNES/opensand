@@ -43,8 +43,7 @@
  */
 class Slot: public saloha_packets_data_t
 {
- public:
-
+public:
 	/**
 	 * @brief  Construct a group of carriers with the same characteristics
 	 *
@@ -83,8 +82,7 @@ class Slot: public saloha_packets_data_t
 	 */
 	void release(void);
 
- private:
-
+private:
 	/** Carrier id */
 	unsigned int carriers_id;
 
@@ -94,5 +92,3 @@ class Slot: public saloha_packets_data_t
 
 
 #endif
-
-

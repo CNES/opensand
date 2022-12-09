@@ -47,8 +47,7 @@
  */
 class CarriersGroupSaloha: public CarriersGroup
 {
- public:
-
+public:
 	/**
 	 * @brief  Construct a group of carriers with the same characteristics
 	 *
@@ -62,7 +61,7 @@ class CarriersGroupSaloha: public CarriersGroup
 	                    const FmtGroup *const fmt_group,
 	                    unsigned int ratio,
 	                    rate_symps_t rate_symps,
-	                    access_type_t access_type);
+	                    AccessType access_type);
 
 	/** Destructor */
 	virtual ~CarriersGroupSaloha();
@@ -88,16 +87,12 @@ class CarriersGroupSaloha: public CarriersGroup
 	 *
 	 * @return the slots
 	 */
-	map<unsigned int, Slot *> getSlots(void) const;
+	std::map<unsigned int, Slot *> getSlots(void) const;
 
-
- private:
-
+private:
 	/** The slots */
-	map<unsigned int, Slot *> slots;
+	std::map<unsigned int, Slot *> slots;
 };
 
 
 #endif
-
-

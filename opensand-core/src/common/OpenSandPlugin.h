@@ -41,30 +41,31 @@
 #include <string>
 
 
-typedef enum
-{
-	unknown_plugin,
-	encapsulation_plugin,
-	attenuation_plugin,
-	minimal_plugin,
-	error_plugin,
-	satdelay_plugin,
-} plugin_type_t;
-
-
 class OpenSandPlugin;
+struct OpenSandPluginFactory;
 typedef OpenSandPlugin *(*fn_create)(void);
 typedef void (*fn_configure)(const char *, const char *);
+typedef OpenSandPluginFactory *fn_init(void);
 
-typedef struct
+
+enum class PluginType
+{
+	Unknown,
+	Encapsulation,
+	Attenuation,
+	Minimal,
+	Error,
+	SatDelay,
+};
+
+
+struct OpenSandPluginFactory
 {
 	fn_create create;
 	fn_configure configure;
-	plugin_type_t type;
+	PluginType type;
 	std::string name;
-} opensand_plugin_t;
-
-typedef opensand_plugin_t *fn_init(void);
+};
 
 
 /**
@@ -73,7 +74,7 @@ typedef opensand_plugin_t *fn_init(void);
  */
 class OpenSandPlugin
 {
- public:
+public:
 	/**
 	 * @brief Plugin constructor
 	 */
@@ -92,7 +93,7 @@ class OpenSandPlugin
 	template<class Plugin>
 	static OpenSandPlugin *create(const std::string &name)
 	{
-		Plugin *plugin = new Plugin();
+		auto plugin = new Plugin();
 		plugin->name = name;
 		return plugin;
 	};
@@ -109,37 +110,34 @@ class OpenSandPlugin
 	};
 
 	/**
-	 * @brief Initialize the plugin
-	 *
-	 * @return the plugin data
-	 */
-	// static opensand_plugin_t *init;
-
-	/**
 	 * @brief Get the plugin name
 	 *
 	 * @return the plugin name
 	 */
 	inline std::string getName() const {return this->name;};
 
-  protected:
+protected:
 	std::string name;
 };
+
 
 /// Define the function that will create the plugin class
 #define CREATE(CLASS, pl_type, pl_name) \
 	extern "C" OpenSandPlugin *create_ptr(void){return CLASS::create<CLASS>(pl_name);}; \
 	extern "C" void configure_ptr(const char *parent_path, const char *param_id) \
-    {\
+	{\
 		CLASS::configure<CLASS>(parent_path, param_id, pl_name); \
 	}; \
-	extern "C" opensand_plugin_t *init(void) \
+	extern "C" OpenSandPluginFactory *init(void) \
 	{\
-		opensand_plugin_t *pl = new opensand_plugin_t; \
-		pl->create = create_ptr; \
-		pl->configure = configure_ptr; \
-		pl->type = pl_type; \
-		pl->name = pl_name; \
+		auto pl = new OpenSandPluginFactory{ \
+			create_ptr, \
+			configure_ptr, \
+			pl_type, \
+			pl_name \
+		}; \
 		return pl; \
 	};
+
+
 #endif

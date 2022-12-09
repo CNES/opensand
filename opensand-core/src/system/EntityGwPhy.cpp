@@ -71,53 +71,35 @@ EntityGwPhy::~EntityGwPhy()
 
 bool EntityGwPhy::createSpecificBlocks()
 {
-	struct sc_specific specific;
-
-	Block *block_phy_layer;
-	Block *block_sat_carrier;
-	Block *block_interconnect;
-
-	// instantiate all blocs
-	block_interconnect = Rt::createBlock<BlockInterconnectUpward,
-		       BlockInterconnectUpward::Upward,
-		       BlockInterconnectUpward::Downward,
-		       const string &>
-		       ("InterconnectUpward", NULL, this->interconnect_address);
-	if(!block_interconnect)
+	try
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the InterconnectUpward block",
-            this->getName().c_str());
+		sc_specific specific;
+		specific.ip_addr = this->ip_address;
+		specific.tal_id = this->instance_id;
+
+		PhyLayerConfig phy_config;
+		phy_config.mac_id = instance_id;
+		phy_config.spot_id = instance_id;
+		phy_config.entity_type = Component::gateway;
+
+		InterconnectConfig interco_cfg;
+		interco_cfg.interconnect_addr = this->interconnect_address;
+		interco_cfg.delay = 0;
+
+		auto block_interconnect = Rt::createBlock<BlockInterconnectUpward>("Interconnect.Upward",
+		                                                                   interco_cfg);
+		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
+		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("Sat_Carrier", specific);
+
+		Rt::connectBlocks(block_interconnect, block_phy_layer);
+		Rt::connectBlocks(block_phy_layer, block_sat_carrier);	
+	}
+	catch (const std::bad_alloc &e)
+	{
+		DFLTLOG(LEVEL_CRITICAL, "%s: error during block creation: could not allocate memory: %s",
+		        this->getName().c_str(), e.what());
 		return false;
 	}
-
-	block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-		    BlockPhysicalLayer::Upward,
-		    BlockPhysicalLayer::Downward,
-		    tal_id_t>("PhysicalLayer", block_interconnect, this->instance_id);
-	if(!block_phy_layer)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the PhysicalLayer block",
-		        this->getName().c_str());
-		return false;;
-	}
-	specific.ip_addr = this->ip_address;
-	specific.tal_id = this->instance_id;
-	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
-		      BlockSatCarrier::Upward,
-		      BlockSatCarrier::Downward,
-		      struct sc_specific>("SatCarrier",
-					  block_phy_layer,
-					  specific);
-	if(!block_sat_carrier)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the SatCarrier block",
-            this->getName().c_str());
-		return false;
-	}
-
 	return true;
 }
 
@@ -143,6 +125,5 @@ bool EntityGwPhy::createSpecificConfiguration(const std::string &filepath) const
 
 void EntityGwPhy::defineProfileMetaModel() const
 {
-	BlockInterconnectUpward::generateConfiguration();
 	BlockPhysicalLayer::generateConfiguration();
 }

@@ -37,6 +37,8 @@
 #ifndef DVB_FRAME_H
 #define DVB_FRAME_H
 
+#include <cstring>
+
 #include "OpenSandFrames.h"
 #include "NetContainer.h"
 #include "NetPacket.h"
@@ -46,6 +48,7 @@ class BBFrame;
 class DvbRcsFrame;
 class SlottedAlohaFrame;
 
+
 /**
  * @class DvbFrameTpl
  * @brief DVB frame template
@@ -53,9 +56,7 @@ class SlottedAlohaFrame;
 template<class T = T_DVB_FRAME>
 class DvbFrameTpl: public NetContainer
 {
-
- protected:
-
+protected:
 	/** The maximum size (in bytes) of the DVB frame */
 	size_t max_size;
 
@@ -65,8 +66,7 @@ class DvbFrameTpl: public NetContainer
 	/** The carrier Id */
 	uint8_t carrier_id;
 
- public:
-
+public:
 	/**
 	 * Build a DVB frame
 	 *
@@ -118,23 +118,6 @@ class DvbFrameTpl: public NetContainer
 	};
 
 	/**
-	 * Duplicate a DVB frame
-	 *
-	 * @param frame  the DVB frame to duplicate
-	 */
-	DvbFrameTpl(DvbFrameTpl<> *frame):
-		NetContainer(frame->getData()),
-		max_size(frame->getMaxSize()),
-		carrier_id(frame->getCarrierId())
-	{
-		this->name = frame->getName();
-		this->data.reserve(this->max_size);
-		this->trailer_length = this->getTotalLength() - this->getMessageLength();
-		this->header_length = sizeof(T);
-		this->spot = frame->getSpot();
-	};
-
-	/**
 	 * Build an empty DVB frame
 	 */
 	DvbFrameTpl():
@@ -162,7 +145,7 @@ class DvbFrameTpl: public NetContainer
 	 * 
 	 * @param type  The DVB frame message type
 	 */
-	void setMessageType(uint8_t type)
+	void setMessageType(EmulatedMessageType type)
 	{
 		this->frame()->hdr.msg_type = type;
 	};
@@ -174,10 +157,13 @@ class DvbFrameTpl: public NetContainer
 	 */
 	void setCorrupted(bool corrupted)
 	{
-		this->frame()->hdr.corrupted = 0;
 		if(corrupted)
 		{
 			this->frame()->hdr.corrupted = 1;
+		}
+		else
+		{
+			this->frame()->hdr.corrupted = 0;
 		}
 	};
 	
@@ -196,7 +182,7 @@ class DvbFrameTpl: public NetContainer
 	 * 
 	 * @return  The DVB frame message type
 	 */
-	uint8_t getMessageType(void) const
+	EmulatedMessageType getMessageType(void) const
 	{
 		return this->frame()->hdr.msg_type;
 	};
@@ -355,30 +341,31 @@ class DvbFrameTpl: public NetContainer
 	 */
 	T *frame(void) const
 	{
-		return (T *)this->data.c_str();
+		return (T *)(this->data.c_str());
 	}
 
 	// Overloaded cast
 	operator BBFrame* ()
 	{
 		this->header_length = sizeof(T_DVB_BBFRAME);
-		return (BBFrame *)this;
+		return reinterpret_cast<BBFrame *>(this);
 	};
 
 	operator DvbRcsFrame* ()
 	{
 		this->header_length = sizeof(T_DVB_ENCAP_BURST);
-		return (DvbRcsFrame *)this;
+		return reinterpret_cast<DvbRcsFrame *>(this);
 	};
 
 	operator SlottedAlohaFrame* ()
 	{
 		this->header_length = sizeof(T_DVB_SALOHA);
-		return (SlottedAlohaFrame *)this;
+		return reinterpret_cast<SlottedAlohaFrame *>(this);
 	};
 
 };
 
 typedef DvbFrameTpl<> DvbFrame;
+
 
 #endif

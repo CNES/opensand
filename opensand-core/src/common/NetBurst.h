@@ -37,29 +37,29 @@
 #define NET_BURST_H
 
 
-#include "Data.h"
-
 #include <list>
 #include <string>
 #include <memory>
 
 
+class Data;
 class NetPacket;
 class OutputLog;
+enum class NET_PROTO : uint16_t;
 
 
 /**
  * @class NetBurst
  * @brief Generic network burst
  */
-class NetBurst: public std::list<NetPacket *>
+class NetBurst: public std::list<std::unique_ptr<NetPacket>>
 {
- protected:
+protected:
 	/// The maximum number of network packets in the burst
 	/// (0 for unlimited length)
 	unsigned int max_packets;
 
- public:
+public:
 	/**
 	 * Build a network burst
 	 *
@@ -95,7 +95,7 @@ class NetBurst: public std::list<NetPacket *>
 	 * @return        true if packet was successfully added (the burst was not
 	 *                full), false otherwise
 	 */
-	bool add(NetPacket *packet);
+	bool add(std::unique_ptr<NetPacket> packet);
 
 	/**
 	 * Is the network burst full?
@@ -133,7 +133,7 @@ class NetBurst: public std::list<NetPacket *>
 	 *
 	 * @return the type of packets in the burst
 	 */
-	uint16_t type() const;
+	NET_PROTO type() const;
 
 	/**
 	 * Get the name of packets stored in the burst (ATM, MPEG...)

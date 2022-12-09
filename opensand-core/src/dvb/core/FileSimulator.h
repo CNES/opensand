@@ -41,18 +41,18 @@
 
 class FileSimulator: public RequestSimulator
 {
- public:
+public:
 	FileSimulator(spot_id_t spot_id,
 	              tal_id_t mac_id,
 	              FILE** evt_file,
-				  string &str_config);
+	              std::string &str_config);
 	~FileSimulator();
 	
 	/**
 	 * Simulate event based on an input file
 	 * @return true on success, false otherwise
 	 */
-	bool simulation(list<DvbFrame *>* msgs,
+	bool simulation(std::list<DvbFrame *>* msgs,
 	                time_sf_t super_frame_counter);
 
 	/**

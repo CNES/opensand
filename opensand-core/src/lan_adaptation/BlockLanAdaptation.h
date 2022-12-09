@@ -45,16 +45,22 @@
 #include "NetPacket.h"
 #include "LanAdaptationPlugin.h"
 #include "OpenSandCore.h"
+#include "DelayFifo.h"
 
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
 #include <opensand_output/Output.h>
 
-using std::string;
+
+class NetSocketEvent;
 
 struct la_specific
 {
-	string tap_iface;
-	PacketSwitch *packet_switch;        
+	std::string tap_iface;
+	uint32_t delay = 0;
+	tal_id_t connected_satellite = 0;
+	bool is_used_for_isl = false;
+	PacketSwitch *packet_switch = nullptr;
 };
 
 /**
@@ -63,9 +69,8 @@ struct la_specific
  */
 class BlockLanAdaptation: public Block
 {
- public:
-
-	BlockLanAdaptation(const string &name, struct la_specific specific);
+public:
+	BlockLanAdaptation(const std::string &name, struct la_specific specific);
 	~BlockLanAdaptation();
 
 	static void generateConfiguration();
@@ -73,19 +78,11 @@ class BlockLanAdaptation: public Block
 	// initialization method
 	bool onInit(void);
 
-	// The Packet Switch including packet forwarding logic and SARP 
-	inline static PacketSwitch *packet_switch;
-
 
 	class Upward: public RtUpward
 	{
-	 public:
-		Upward(const string &name, struct la_specific UNUSED(specific)):
-			RtUpward(name),
-			sarp_table(),
-			contexts(),
-			state(link_down)
-		{};
+	public:
+		Upward(const std::string &name, struct la_specific specific);
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -104,16 +101,24 @@ class BlockLanAdaptation: public Block
 		 */
 		void setFd(int fd);
 
-	 private:
+	private:
 		/**
 		 * @brief Handle a message from lower block
 		 *  - build the TAP header with appropriate protocol identifier
-		 *  - write TAP header + packet to TAP interface
+		 *  - write TAP header + packet to TAP interface or delay packet before writting
 		 *
 		 * @param burst  The burst of packets
 		 * @return true on success, false otherwise
 		 */
 		bool onMsgFromDown(NetBurst *burst);
+
+		/**
+		 * @brief Actually write the TAP header + packet to TAP interface
+		 *
+		 * @param packet  Data to write on the TAP interface
+		 * @return true on success, false otherwise
+		 */
+		bool writePacket(const Data& packet);
 
 		/// SARP table
 		SarpTable sarp_table;
@@ -124,24 +129,29 @@ class BlockLanAdaptation: public Block
 		/// the contexts list from lower to upper context
 		lan_contexts_t contexts;
 
-		/// The MAC layer group id received through msg_link_up
-		group_id_t group_id;
 		/// The MAC layer MAC id received through msg_link_up
 		tal_id_t tal_id;
 
 		/// State of the satellite link
-		link_state_t state;
+		SatelliteLinkState state;
+
+		// The Packet Switch including packet forwarding logic and SARP
+		PacketSwitch *packet_switch;
+
+		// Delay before writting on the TAP
+		uint32_t delay;
+
+		// Polling event to implement delay before writting on the TAP
+		event_id_t delay_timer;
+
+		// Fifo to implement delay before writting on the TAP
+		DelayFifo delay_fifo;
 	};
 
 	class Downward: public RtDownward
 	{
-	 public:
-		Downward(const string &name, struct la_specific UNUSED(specific)):
-			RtDownward(name),
-			stats_period_ms(),
-			contexts(),
-			state(link_down)
-		{};
+	public:
+		Downward(const std::string &name, struct la_specific specific);
 
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
@@ -160,7 +170,7 @@ class BlockLanAdaptation: public Block
 		 */
 		void setFd(int fd);
 
-	 private:
+	private:
 		/**
 		 * @brief Handle a message from upper block
 		 *  - read data from TAP interface
@@ -169,7 +179,7 @@ class BlockLanAdaptation: public Block
 		 * @param event  The event on TAP interface, containing th message
 		 * @return true on success, false otherwise
 		 */
-		bool onMsgFromUp(NetSocketEvent *const event);
+		bool onMsgFromUp(const NetSocketEvent *const event);
 
 		/// statistic timer
 		event_id_t stats_timer;
@@ -180,22 +190,22 @@ class BlockLanAdaptation: public Block
 		/// the contexts list from lower to upper context
 		lan_contexts_t contexts;
 
-		/// The MAC layer group id received through msg_link_up
-		group_id_t group_id;
 		/// The MAC layer MAC id received through msg_link_up
 		tal_id_t tal_id;
 
 		/// State of the satellite link
-		link_state_t state;
+		SatelliteLinkState state;
+
+		// The Packet Switch including packet forwarding logic and SARP
+		PacketSwitch *packet_switch;
 	};
 
- private:
-
+private:
 	/// The TAP interface name
-	string tap_iface;
+	std::string tap_iface;
 
-        /// Block specific parameters
-        la_specific specific;
+	// The Packet Switch including packet forwarding logic and SARP
+	PacketSwitch *packet_switch;
 
 	/**
 	 * Create or connect to an existing TAP interface
@@ -205,5 +215,6 @@ class BlockLanAdaptation: public Block
 	 */
 	bool allocTap(int &fd);
 };
+
 
 #endif

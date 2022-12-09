@@ -51,8 +51,6 @@
 #include <set>
 
 
-using std::set;
-
 /**
  * @class StFmtSimu
  * @brief The internal representation of a Satellite Terminal (ST)
@@ -60,8 +58,8 @@ using std::set;
 class StFmtSimu
 {
 	friend class StFmtSimuList;
- private:
 
+private:
 	/** The ID of the ST (called TAL ID or MAC ID elsewhere in the code) */
 	tal_id_t id;
 
@@ -78,7 +76,7 @@ class StFmtSimu
 	uint8_t current_modcod_id;
 
 	// Output Log
-  std::shared_ptr<OutputLog> log_fmt;
+	std::shared_ptr<OutputLog> log_fmt;
 
 	/// The functions are private because they are not protected by a mutex as
 	//  they are used internally or by StFmtSimuList which is protected by a mutex and
@@ -95,7 +93,7 @@ class StFmtSimu
 	 * @param modcod_id        the initial MODCOD ID of the ST
 	 * @param modcod_def       the MODCOD definition for the terminal and associated link
 	 */
-	StFmtSimu(string name,
+	StFmtSimu(std::string name,
 	          tal_id_t id,
 	          uint8_t init_modcod_id,
 	          const FmtDefinitionTable *const modcod_def);
@@ -181,13 +179,13 @@ class StFmtSimu
  *        The class is also a list of registered terminal IDs
  * @brief The List of StFmtSimu per spot
  */
-class StFmtSimuList: public set<tal_id_t>
+class StFmtSimuList: public std::set<tal_id_t>
 {
- private:
+private:
 	typedef std::map<tal_id_t, StFmtSimu *> ListStFmt;
 
 	/** A name to know is this is input or output terminals */
-	string name;
+	std::string name;
 
 	/** the list of StFmtSimu per spot */
 	ListStFmt *sts;
@@ -196,19 +194,16 @@ class StFmtSimuList: public set<tal_id_t>
 	double acm_loop_margin_db;
 
 	// Output Log
-  std::shared_ptr<OutputLog> log_fmt;
+	std::shared_ptr<OutputLog> log_fmt;
 
 	/** a list which associate a st id with its spot id */
 	/** the mutex to protect the list from concurrent access */
 	mutable RtMutex sts_mutex;
 
-
- public:
-
+public:
 	/// Constructor and destructor
-	StFmtSimuList(string name);
+	StFmtSimuList(std::string name);
 	~StFmtSimuList();
-
 
 	/**
 	 * @brief  Set the ACM loop margin value

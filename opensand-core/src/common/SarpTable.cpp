@@ -31,17 +31,14 @@
  * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
  */
 
+#include <opensand_output/Output.h>
+
 #include "SarpTable.h"
 #include "MacAddress.h"
 
-#include <opensand_output/Output.h>
 
-#include <algorithm>
-
-
-// max_entries = SARP_MAX by default
 SarpTable::SarpTable(unsigned int max_entries):
-	eth_sarp()
+	eth_sarp{}
 {
 	this->max_entries = (max_entries == 0 ? SarpTable::SARP_MAX : max_entries);
 
@@ -52,36 +49,19 @@ SarpTable::SarpTable(unsigned int max_entries):
 
 SarpTable::~SarpTable()
 {
-	for(auto& entry : this->eth_sarp)
-	{
-		delete entry->mac;
-		delete entry;
-	}
 }
 
 
-bool SarpTable::add(MacAddress *mac_address,
-                    tal_id_t tal)
+bool SarpTable::add(std::unique_ptr<MacAddress> mac_address, tal_id_t tal)
 {
 	LOG(this->log_sarp, LEVEL_INFO,
 	    "add new entry in SARP table (%s)\n",
 	    mac_address->str().c_str());
 
-	if((this->eth_sarp.size() >= this->max_entries) || mac_address == NULL)
+	if((this->eth_sarp.size() >= this->max_entries) || mac_address == nullptr)
 	{
 		LOG(this->log_sarp, LEVEL_ERROR,
 		    "SARP table full or address is empry, "
-		    "cannot add entry\n");
-		return false;
-	}
-
-	// get memory for a new entry
-	sarpEthEntry *entry = new sarpEthEntry;
-	if(!entry)
-	{
-		// no more memory
-		LOG(this->log_sarp, LEVEL_ERROR,
-		    "cannot get memory for an Ethernet SARP entry, "
 		    "cannot add entry\n");
 		return false;
 	}
@@ -91,9 +71,7 @@ bool SarpTable::add(MacAddress *mac_address,
 	if(!SarpTable::getTalByMac(*mac_address, tal_id))
 	{
 		// set entry
-		entry->mac = mac_address;
-		entry->tal_id = tal;
-		this->eth_sarp.push_back(entry);
+		this->eth_sarp.push_back({std::move(mac_address), tal});
 	}	
 
 	return true;
@@ -102,11 +80,13 @@ bool SarpTable::add(MacAddress *mac_address,
 
 bool SarpTable::getTalByMac(const MacAddress &mac_address, tal_id_t &tal_id) const
 {
-	for(auto& entry : this->eth_sarp)
+	tal_id = this->default_dest;
+
+	for(auto&& entry : this->eth_sarp)
 	{
-		if(entry->mac->matches(&mac_address))
+		if(entry.mac->matches(&mac_address))
 		{
-			tal_id = entry->tal_id;
+			tal_id = entry.tal_id;
 			return true;
 		}
 	}
@@ -117,11 +97,11 @@ bool SarpTable::getTalByMac(const MacAddress &mac_address, tal_id_t &tal_id) con
 
 bool SarpTable::getMacByTal(tal_id_t tal_id, std::vector<MacAddress> &mac_address) const
 {
-	for(auto& entry : this->eth_sarp)
+	for(auto&& entry : this->eth_sarp)
 	{
-		if(entry->tal_id == tal_id)
+		if(entry.tal_id == tal_id)
 		{
-			mac_address.emplace_back(entry->mac->str());
+			mac_address.emplace_back(entry.mac->str());
 			return true;
 		}
 	}

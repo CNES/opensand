@@ -47,13 +47,13 @@
  */
 class OnOff: public AttenuationModelPlugin
 {
- private:
+private:
 	int duration_counter;
 	int on_duration;
 	int off_duration;
 	double amplitude;
 
- public:
+public:
 	/**
 	 * @brief Build a OnOff
 	 */
@@ -77,7 +77,7 @@ class OnOff: public AttenuationModelPlugin
 };
 
 
-CREATE(OnOff, attenuation_plugin, "On/Off");
+CREATE(OnOff, PluginType::Attenuation, "On/Off");
 
 
 #endif

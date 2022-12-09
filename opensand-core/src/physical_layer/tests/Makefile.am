@@ -15,14 +15,8 @@ allexec_LDADD = \
 	-lrt
 
 test_delay_fifo_SOURCES = \
-	TestDelayFifoElement.cpp \
-	TestDelayFifoElement.h \
-	TestDelayFifo.cpp \
-	TestDelayFifo.h \
 	test_fifo.cpp
 
 test_delay_fifo_LDADD = \
 	$(PACKED_COMMON_LIBS) \
 	$(allexec_LDADD)
-
-

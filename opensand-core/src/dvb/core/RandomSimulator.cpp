@@ -72,7 +72,7 @@ RandomSimulator::~RandomSimulator()
 }
 
 
-bool RandomSimulator::simulation(list<DvbFrame *>* msgs,
+bool RandomSimulator::simulation(std::list<DvbFrame *>* msgs,
                                  time_sf_t UNUSED(super_frame_counter))
 {
 	static bool initialized = false;
@@ -110,7 +110,7 @@ bool RandomSimulator::simulation(list<DvbFrame *>* msgs,
 	    {
 			val = this->simu_cr;
 	    }
-		sac->addRequest(0, access_dama_rbdc, val);
+		sac->addRequest(0, ReturnAccessType::dama_rbdc, val);
 		sac->setAcm(0xffff);
 		msgs->push_back((DvbFrame*)sac);
 	}

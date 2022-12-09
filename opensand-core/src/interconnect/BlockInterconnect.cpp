@@ -35,28 +35,45 @@
 #include "BlockInterconnect.h"
 #include "OpenSandModelConf.h"
 
+#include <opensand_rt/MessageEvent.h>
 
-BlockInterconnectDownward::BlockInterconnectDownward(const string &name,
-                                                     const string &):
+BlockInterconnectDownward::BlockInterconnectDownward(const std::string &name,
+                                                     const InterconnectConfig &):
 	Block(name)
 {
 }
 
-BlockInterconnectDownward::~BlockInterconnectDownward()
+BlockInterconnectDownward::Upward::Upward(const std::string &name, const InterconnectConfig &config):
+	RtUpward(name),
+	InterconnectChannelReceiver(name + ".Upward", config),
+	isl_index{config.isl_index}
 {
 }
 
-void BlockInterconnectDownward::generateConfiguration()
+BlockInterconnectDownward::Downward::Downward(const std::string &name, const InterconnectConfig &config):
+	RtDownward(name),
+	InterconnectChannelSender(name + ".Downward", config),
+	isl_index{config.isl_index}
 {
+	if (config.delay == 0)
+	{
+		// No need to poll, messages are sent directly
+		polling_rate = 0;
+	}
+	else if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
+	{
+		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
+	}
 }
 
 bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+		case EventType::Message:
 		{
-			rt_msg_t message = ((MessageEvent *)event)->getMessage();
+			auto msg_event = static_cast<const MessageEvent*>(event);
+			rt_msg_t message = msg_event->getMessage();
 
 			// Check if object inside
 			if(!this->send(message))
@@ -67,6 +84,13 @@ bool BlockInterconnectDownward::Downward::onEvent(const RtEvent *const event)
 			}
 		}
 		break;
+
+		case EventType::Timer:
+			if (event->getFd() == delay_timer)
+			{
+				onTimerEvent();
+			}
+			break;
 
 		default:
 			LOG(this->log_interconnect, LEVEL_ERROR,
@@ -83,7 +107,7 @@ bool BlockInterconnectDownward::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_net_socket:
+		case EventType::NetSocket:
 		{
 			std::list<rt_msg_t> messages;
 
@@ -132,17 +156,17 @@ bool BlockInterconnectDownward::onInit(void)
 
 bool BlockInterconnectDownward::Upward::onInit(void)
 {
-	string name="UpwardInterconnectChannel";
+	std::string name="UpwardInterconnectChannel";
 	unsigned int stack;
 	unsigned int rmem;
 	unsigned int wmem;
 	unsigned int data_port;
 	unsigned int sig_port;
-	string remote_addr("");
+	std::string remote_addr("");
 	int32_t socket_event;
 
 	auto Conf = OpenSandModelConf::Get();
-	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem))
+	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem, isl_index))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Entity infrastructure is missing interconnect data\n");
@@ -181,10 +205,10 @@ bool BlockInterconnectDownward::Downward::onInit()
 	unsigned int wmem;
 	unsigned int data_port;
 	unsigned int sig_port;
-	string remote_addr("");
+	std::string remote_addr("");
 
 	auto Conf = OpenSandModelConf::Get();
-	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem))
+	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem, isl_index))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Entity infrastructure is missing interconnect data\n");
@@ -194,20 +218,37 @@ bool BlockInterconnectDownward::Downward::onInit()
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
+	delay_timer = this->addTimerEvent(name + ".delay_timer", polling_rate);
+
 	return true;
 }
 
-BlockInterconnectUpward::BlockInterconnectUpward(const string &name,
-                                                 const string &):
+BlockInterconnectUpward::BlockInterconnectUpward(const std::string &name,
+                                                 const InterconnectConfig &):
 	Block(name)
 {
 }
 
-BlockInterconnectUpward::~BlockInterconnectUpward()
+BlockInterconnectUpward::Upward::Upward(const std::string &name, const InterconnectConfig &config):
+	RtUpward(name),
+	InterconnectChannelSender(name + ".Upward", config),
+	isl_index{config.isl_index}
 {
+	if (config.delay == 0)
+	{
+		// No need to poll, messages are sent directly
+		polling_rate = 0;
+	}
+	else if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
+	{
+		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
+	}
 }
 
-void BlockInterconnectUpward::generateConfiguration()
+BlockInterconnectUpward::Downward::Downward(const std::string &name, const InterconnectConfig &config):
+	RtDownward(name),
+	InterconnectChannelReceiver(name + ".Downward", config),
+	isl_index{config.isl_index}
 {
 }
 
@@ -217,7 +258,7 @@ bool BlockInterconnectUpward::Downward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_net_socket:
+		case EventType::NetSocket:
 		{
 			std::list<rt_msg_t> messages;
 
@@ -261,9 +302,10 @@ bool BlockInterconnectUpward::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+		case EventType::Message:
 		{
-			rt_msg_t message = ((MessageEvent *)event)->getMessage();
+			auto msg_event = static_cast<const MessageEvent*>(event);
+			rt_msg_t message = msg_event->getMessage();
 
 			// Check if object inside
 			if(!this->send(message))
@@ -274,6 +316,13 @@ bool BlockInterconnectUpward::Upward::onEvent(const RtEvent *const event)
 			}
 		}
 		break;
+
+		case EventType::Timer:
+			if (event->getFd() == delay_timer)
+			{
+				onTimerEvent();
+			}
+			break;
 
 		default:
 			LOG(this->log_interconnect, LEVEL_ERROR,
@@ -298,10 +347,10 @@ bool BlockInterconnectUpward::Upward::onInit(void)
 	unsigned int wmem;
 	unsigned int data_port;
 	unsigned int sig_port;
-	string remote_addr("");
+	std::string remote_addr("");
 
 	auto Conf = OpenSandModelConf::Get();
-	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem))
+	if(!Conf->getInterconnectCarrier(true, remote_addr, data_port, sig_port, stack, rmem, wmem, isl_index))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Entity infrastructure is missing interconnect data\n");
@@ -311,22 +360,24 @@ bool BlockInterconnectUpward::Upward::onInit(void)
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
+	delay_timer = this->addTimerEvent(name + ".delay_timer", polling_rate);
+
 	return true;
 }
 
 bool BlockInterconnectUpward::Downward::onInit()
 {
-	string name="DownwardInterconnectChannel";
+	std::string name="DownwardInterconnectChannel";
 	unsigned int stack;
 	unsigned int rmem;
 	unsigned int wmem;
 	unsigned int data_port;
 	unsigned int sig_port;
-	string remote_addr("");
+	std::string remote_addr("");
 	int32_t socket_event;
 
 	auto Conf = OpenSandModelConf::Get();
-	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem))
+	if(!Conf->getInterconnectCarrier(false, remote_addr, data_port, sig_port, stack, rmem, wmem, isl_index))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Entity infrastructure is missing interconnect data\n");

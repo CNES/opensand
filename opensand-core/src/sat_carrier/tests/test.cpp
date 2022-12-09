@@ -117,12 +117,7 @@ int main(int argc, char **argv)
 		goto quit;
 	}
 
-	block_sat_carrier = Rt::createBlock<TestSatCarriers,
-	                                    TestSatCarriers::Upward,
-	                                    TestSatCarriers::Downward,
-	                                    struct sc_specific>("TestSatCarriers",
-	                                                        NULL,
-	                                                        specific);
+	block_sat_carrier = Rt::createBlock<TestSatCarriers>("TestSatCarriers", specific);
 	if(!block_sat_carrier)
 	{
 		fprintf(stderr, "%s: cannot create the SatCarrier block\n", progname);

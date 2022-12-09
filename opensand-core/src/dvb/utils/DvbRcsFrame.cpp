@@ -50,6 +50,7 @@ DvbRcsFrame::DvbRcsFrame(const unsigned char *data, size_t length):
 	this->num_packets = ntohl(this->frame()->qty_element);
 }
 
+
 DvbRcsFrame::DvbRcsFrame(const Data &data):
 	DvbFrameTpl<T_DVB_ENCAP_BURST>(data)
 {
@@ -57,6 +58,7 @@ DvbRcsFrame::DvbRcsFrame(const Data &data):
 	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
 	this->num_packets = ntohl(this->frame()->qty_element);
 }
+
 
 DvbRcsFrame::DvbRcsFrame(const Data &data, size_t length):
 	DvbFrameTpl<T_DVB_ENCAP_BURST>(data, length)
@@ -66,10 +68,6 @@ DvbRcsFrame::DvbRcsFrame(const Data &data, size_t length):
 	this->num_packets = ntohl(this->frame()->qty_element);
 }
 
-DvbRcsFrame::DvbRcsFrame(DvbFrame *frame):
-	DvbFrameTpl<T_DVB_ENCAP_BURST>(frame)
-{
-}
 
 DvbRcsFrame::DvbRcsFrame():
 	DvbFrameTpl<T_DVB_ENCAP_BURST>()
@@ -80,7 +78,7 @@ DvbRcsFrame::DvbRcsFrame():
 	// no data given as input, so create the DVB-RCS header
 	this->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
 	this->setMessageLength(sizeof(T_DVB_ENCAP_BURST));
-	this->setMessageType(MSG_TYPE_DVB_BURST);
+	this->setMessageType(EmulatedMessageType::DvbBurst);
 	this->frame()->qty_element = 0; // no encapsulation packet at the beginning
 }
 

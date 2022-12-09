@@ -43,8 +43,7 @@
  */
 class UnitConverter
 {
- protected:
-
+protected:
 	time_ms_t frame_duration_ms;          ///< Frame duration (in ms)
 	float frame_duration_ms_inv;          ///< Inverse of frame duration (in ms-1)
 
@@ -59,8 +58,7 @@ class UnitConverter
 	 */
 	UnitConverter(time_ms_t duration_ms, unsigned int efficiency);
 
- public:
-
+public:
 	virtual ~UnitConverter();
 
 	/**

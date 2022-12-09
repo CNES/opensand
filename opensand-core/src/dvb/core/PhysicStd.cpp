@@ -36,7 +36,7 @@
 #include "PhysicStd.h"
 
 
-PhysicStd::PhysicStd(string type,
+PhysicStd::PhysicStd(std::string type,
                      EncapPlugin::EncapPacketHandler *pkt_hdl):
 	type(type),
 	packet_handler(pkt_hdl)
@@ -49,7 +49,7 @@ PhysicStd::~PhysicStd()
 }
 
 
-string PhysicStd::getType()
+std::string PhysicStd::getType()
 {
 	return this->type;
 }

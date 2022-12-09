@@ -39,7 +39,7 @@
 Logoff::Logoff(tal_id_t mac):
 	DvbFrameTpl<T_DVB_LOGOFF>()
 {
-	this->setMessageType(MSG_TYPE_SESSION_LOGOFF);
+	this->setMessageType(EmulatedMessageType::SessionLogoff);
 	this->setMessageLength(sizeof(T_DVB_LOGOFF));
 	this->frame()->mac = htons(mac);
 }

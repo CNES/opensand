@@ -34,7 +34,7 @@
 """Basic functions to configure network."""
 
 
-import re
+import json
 import shlex
 from subprocess import run, PIPE, CalledProcessError
 
@@ -84,7 +84,7 @@ def __exec_cmd(error_message, *cmd, netns=None):
         if VERBOSITY:
             print(proc.stdout, end='')
             print(proc.stderr, end='')
-        return proc.stdout.splitlines()
+        return proc.stdout
 
 
 def create_netns(netns):
@@ -100,35 +100,33 @@ def delete_netns(netns):
 
 
 def exist_netns(netns):
-    output = __exec_cmd(
-        'Netns showing failed',
-        'ip', 'netns', 'show', netns)
-
-    for line in output:
-        match = re.search('([a-zA-Z0-9_\-]+) .*', line)
-        if match and match.group(1) == netns:
-            return True
-    return False
+    name = 'name'
+    return any(
+        netns == entry[name]
+        for entry in list_netns()
+        if name in entry
+    )
 
 
 def list_netns():
-    return __exec_cmd(
+    output = __exec_cmd(
         'Netns listing failed',
-        'ip', 'netns', 'list')
+        'ip', '-j', 'netns', 'show')
+    return json.loads(output)
 
 
 def list_ifaces(netns=None):
     output = __exec_cmd(
         'Interface listing failed',
-        'ip', 'link', 'list',
+        'ip', '-j', 'link', 'list',
         netns=netns)
 
-    ifaces = []
-    for line in output:
-        match = re.search('([a-zA-Z0-9_\-]+): <.*', line)
-        if match:
-            ifaces.append(match.group(1))
-    return ifaces
+    ifname = 'ifname'
+    return [
+        entry[ifname]
+        for entry in json.loads(output)
+        if ifname in entry
+    ]
 
 
 def set_up(iface, netns=None):

@@ -37,9 +37,9 @@
 
 #include <opensand_rt/Rt.h>
 
+#include "DelayFifo.h"
 #include "DvbFrame.h"
 #include "UdpChannel.h"
-
 #include <list>
 
 /**
@@ -48,36 +48,38 @@
  */
 
 class OutputLog;
+class InterconnectConfig;
+class NetBurst;
+class NetPacket;
 
-typedef struct
+struct __attribute__((__packed__)) interconnect_msg_buffer_t
 {
 	uint32_t data_len; // NOTE: sending data lenght may actually be redundant on UDP
 	uint8_t msg_type;
-	unsigned char msg_data[MAX_SOCK_SIZE];
-} __attribute__((__packed__)) interconnect_msg_buffer_t;
+	uint8_t msg_data[MAX_SOCK_SIZE];
+};
 
 class InterconnectChannel
 {
- public:
-	InterconnectChannel(string name, string iface_addr);
+public:
+	InterconnectChannel(std::string name, const InterconnectConfig &config);
 
-	~InterconnectChannel();
+	virtual ~InterconnectChannel();
 
- protected:
-
+protected:
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
 	virtual void initUdpChannels(unsigned int data_port,
 	                             unsigned int sig_port,
-	                             string remote_addr,
+	                             std::string remote_addr,
 	                             unsigned int stack,
 	                             unsigned int rmem,
 	                             unsigned int wmem) = 0;
 	/// This blocks name
-	string name;
+	std::string name;
 	/// The interconnect interface IP address
-	string interconnect_addr;
+	std::string interconnect_addr;
 	/// The data channel
 	UdpChannel *data_channel;
 	/// The signalling channel
@@ -88,27 +90,21 @@ class InterconnectChannel
 
 class InterconnectChannelSender: public InterconnectChannel
 {
- public:
-	InterconnectChannelSender(string name, string iface_addr):
-		InterconnectChannel(name, iface_addr)
-	{
-	};
+public:
+	InterconnectChannelSender(std::string name, const InterconnectConfig &config);
 
-	virtual ~InterconnectChannelSender()
-	{
-	};
+	bool onTimerEvent();
 
- protected:
-
+protected:
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
 	void initUdpChannels(unsigned int data_port,
 	                     unsigned int sig_port,
-	                     string remote_addr,
+	                     std::string remote_addr,
 	                     unsigned int stack,
 	                     unsigned int rmem,
-	                     unsigned int wmem);
+	                     unsigned int wmem) override;
 
 	/**
 	 * @brief Send a RtMessage via the interconnect channel.
@@ -117,57 +113,61 @@ class InterconnectChannelSender: public InterconnectChannel
 	bool send(rt_msg_t &message);
 
 	/**
-	 * @brief Send the message contained in the out_buffer.
-	 *        out_buffer. total_length must contain the data length;
-	 *        this method will update with the correct total length.
+	 * @brief Sends a message. total_length must contain the data length;
 	 * @param is_sig indicates if the message must be sent via the sig channel
+	 * @param msg the message to send
 	 * @return false on error, true elsewise.
 	 */
-	bool sendBuffer(bool is_sig);
+	bool sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg);
 
-	// The output buffer
-	interconnect_msg_buffer_t out_buffer;
-
- private:
-
-	/*
-	 * @brief Serialize a Dvb Frame to be sent via the 
+private:
+	/**
+	 * @brief Serialize a Dvb Frame to be sent via the
 	 *        interconnect channel.
 	 */
 	void serialize(DvbFrame *dvb_frame,
 	               unsigned char *buf, uint32_t &length);
 
-	/*
+	/**
 	 * @brief Serialize a list of Dvb Frames to be sent
 	 *        via the interconnect channel.
 	 */
 	void serialize(std::list<DvbFrame *> *dvb_frame_list,
 	               unsigned char *buf, uint32_t &length);
+
+	/**
+	 * @brief Serialize a NetBurst to be sent
+	 *        via the interconnect channel.
+	 */
+	void serialize(const NetBurst &net_burst,
+	               unsigned char *buf, uint32_t &length);
+
+	/**
+	 * @brief Serialize a NetPacket to be sent
+	 *        via the interconnect channel.
+	 */
+	void serialize(const NetPacket &packet,
+	               unsigned char *buf, uint32_t &length);
+
+	DelayFifo delay_fifo;
+	time_ms_t delay = 0;
 };
 
 class InterconnectChannelReceiver: public InterconnectChannel
 {
- public:
-	InterconnectChannelReceiver(string name, string iface_addr):
-		InterconnectChannel(name, iface_addr)
-	{
-	};
+public:
+	using InterconnectChannel::InterconnectChannel;
 
-	virtual ~InterconnectChannelReceiver()
-	{
-	};
-
- protected:
-
+protected:
 	/**
 	 * @brief Initialize the UdpChannel
 	 */
 	void initUdpChannels(unsigned int data_port,
 	                     unsigned int sig_port,
-	                     string remote_addr,
+	                     std::string remote_addr,
 	                     unsigned int stack,
 	                     unsigned int rmem,
-	                     unsigned int wmem);
+	                     unsigned int wmem) override;
 
 	/**
 	 * @brief Receive a message from the socket
@@ -183,9 +183,7 @@ class InterconnectChannelReceiver: public InterconnectChannel
 	bool receive(NetSocketEvent *const event,
 	             std::list<rt_msg_t> &messages);
 
-
- private:
-
+private:
 	/**
 	 * @brief Create a DvbFrame from serialized data
 	 */
@@ -197,5 +195,17 @@ class InterconnectChannelReceiver: public InterconnectChannel
 	 */
 	void deserialize(unsigned char *data, uint32_t len,
 	                 std::list<DvbFrame *> **dvb_frame_list);
+
+	/**
+	 * @brief Create a NetBurst from serialized data
+	 */
+	void deserialize(uint8_t *buf, uint32_t length,
+	                 NetBurst **net_burst);
+
+	/**
+	 * @brief Create a NetPacket from serialized data
+	 */
+	void deserialize(uint8_t *buf, uint32_t length,
+	                 NetPacket **packet);
 };
 #endif

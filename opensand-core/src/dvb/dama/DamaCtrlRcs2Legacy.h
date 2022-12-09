@@ -50,14 +50,11 @@
  */
 class DamaCtrlRcs2Legacy: public DamaCtrlRcs2
 {
-
- public:
-
+public:
 	DamaCtrlRcs2Legacy(spot_id_t spot);
 	virtual ~DamaCtrlRcs2Legacy();
 
- private:
-	
+private:
 	/// initialize
 	virtual bool init();
 

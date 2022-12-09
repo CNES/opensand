@@ -38,6 +38,7 @@
 #include "NccInterface.h"
 #include <vector>
 
+#include <opensand_rt/NetSocketEvent.h>
 #include <opensand_rt/Rt.h>
 
 /**
@@ -46,13 +47,11 @@
  */
 class NccPepInterface: public NccInterface
 {
- private:
-
+private:
 	/** The list of commands received from the PEP component */
 	std::vector<PepRequest *> requests_list;
 
- public:
-
+public:
 	/**** constructor/destructor ****/
 
 	/* initialize the interface between NCC and PEP components */
@@ -92,8 +91,7 @@ class NccPepInterface: public NccInterface
 	 */
 	bool readPepMessage(NetSocketEvent *const event, tal_id_t &tal_id);
 
- private:
-
+private:
 	/* parse a message sent by the PEP component */
 	bool parsePepMessage(const char *message, tal_id_t & tal_id);
 

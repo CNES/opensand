@@ -16,22 +16,29 @@ libopensand_plugin_utils_la_h = \
 # TODO move NetPacket ?
 
 libopensand_plugin_la_cpp = \
+	CarrierType.cpp \
 	Data.cpp \
+	FifoElement.cpp \
 	NetContainer.cpp \
 	NetPacket.cpp \
 	NetBurst.cpp \
 	MacAddress.cpp \
 	TrafficCategory.cpp \
 	SarpTable.cpp \
+	StackPlugin.cpp \
 	EncapPlugin.cpp \
 	LanAdaptationPlugin.cpp \
-	PhysicalLayerPlugin.cpp 
+	PhysicalLayerPlugin.cpp \
+	SpotComponentPair.cpp \
+	DelayFifo.cpp
 
 libopensand_plugin_la_h = \
 	OpenSandPlugin.h \
 	StackPlugin.h \
 	OpenSandCore.h \
+	CarrierType.h \
 	Data.h \
+	FifoElement.h \
 	NetContainer.h \
 	NetPacket.h \
 	NetBurst.h \
@@ -40,7 +47,9 @@ libopensand_plugin_la_h = \
 	SarpTable.h \
 	EncapPlugin.h \
 	LanAdaptationPlugin.h \
-	PhysicalLayerPlugin.h 
+	PhysicalLayerPlugin.h \
+	SpotComponentPair.h \
+	DelayFifo.h
 
 libopensand_utils_la_cpp = \
 	UdpChannel.cpp

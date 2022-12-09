@@ -63,7 +63,7 @@ bool Plugin::getEncapsulationPlugin(std::string name,
 
 
 bool Plugin::getAttenuationPlugin(std::string att_pl_name,
-                                     AttenuationModelPlugin **attenuation)
+                                  AttenuationModelPlugin **attenuation)
 {
 	return utils.getAttenuationPlugin(att_pl_name, attenuation);
 }
@@ -90,14 +90,14 @@ bool Plugin::getSatDelayPlugin(std::string name,
 }
 
 
-void Plugin::getAllEncapsulationPlugins(pl_list_t &encapsulation)
+void Plugin::getAllEncapsulationPlugins(PluginConfigurationContainer &encapsulation)
 {
 	return utils.getAllEncapsulationPlugins(encapsulation);
 }
 
 
 void Plugin::generatePluginsConfiguration(std::shared_ptr<OpenSANDConf::MetaComponent> parent,
-                                          plugin_type_t plugin_type,
+                                          PluginType plugin_type,
                                           const std::string &parameter_id,
                                           const std::string &parameter_name,
                                           const std::string &parameter_description)

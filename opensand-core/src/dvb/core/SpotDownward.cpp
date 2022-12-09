@@ -36,11 +36,19 @@
 
 #include "SpotDownward.h"
 
+#include "ForwardSchedulingS2.h"
+#include "DamaCtrlRcs2Legacy.h"
+#include "DamaCtrlRcs2.h"
+#include "Scheduling.h"
+#include "SlottedAlohaNcc.h"
+#include "SvnoRequest.h"
 #include "FileSimulator.h"
 #include "RandomSimulator.h"
 #include "OpenSandModelConf.h"
+#include "FifoElement.h"
 
 #include <errno.h>
+#include <opensand_output/OutputEvent.h>
 
 
 SpotDownward::SpotDownward(spot_id_t spot_id,
@@ -76,12 +84,6 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	request_simu(NULL),
 	event_file(NULL),
 	simulate(none_simu),
-	probe_gw_queue_size(NULL),
-	probe_gw_queue_size_kb(NULL),
-	probe_gw_queue_loss(NULL),
-	probe_gw_queue_loss_kb(NULL),
-	probe_gw_l2_to_sat_before_sched(NULL),
-	probe_gw_l2_to_sat_after_sched(NULL),
 	probe_gw_l2_to_sat_total(),
 	l2_to_sat_total_bytes(),
 	probe_frame_interval(NULL),
@@ -97,23 +99,20 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	this->output_sts = output_sts;
 
 	this->log_request_simulation = Output::Get()->registerLog(LEVEL_WARNING,
-                                                            "Spot_%d.Dvb.RequestSimulation",
-                                                            this->spot_id);
+	                                                          "Spot_%d.Dvb.RequestSimulation",
+	                                                          this->spot_id);
 
 }
 
 SpotDownward::~SpotDownward()
 {
-	if(this->dama_ctrl)
-		delete this->dama_ctrl;
+	this->categories.clear();
 
-	for(map<string, Scheduling*>::iterator it = this->scheduling.begin();
-		it != this->scheduling.end(); it++)
+	delete this->dama_ctrl;
+
+	for (auto& it : this->scheduling)
 	{
-		if(it->second)
-		{
-			delete it->second;
-		}
+		delete it.second;
 	}
 	this->scheduling.clear();
 
@@ -121,46 +120,32 @@ SpotDownward::~SpotDownward()
 
 	// delete FMT groups here because they may be present in many carriers
 	// TODO do something to avoid groups here
-	for(fmt_groups_t::iterator it = this->fwd_fmt_groups.begin();
-	    it != this->fwd_fmt_groups.end(); ++it)
+	for (auto& it : this->fwd_fmt_groups)
 	{
-		delete (*it).second;
+		delete it.second;
 	}
 	// delete FMT groups here because they may be present in many carriers
 	// TODO do something to avoid groups here
-	for(fmt_groups_t::iterator it = this->ret_fmt_groups.begin();
-	    it != this->ret_fmt_groups.end(); ++it)
+	for (auto& it : this->ret_fmt_groups)
 	{
-		delete (*it).second;
+		delete it.second;
 	}
 
 	// delete fifos
-	for(map<string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
-	    it1 != this->dvb_fifos.end(); it1 ++)
+	for (auto& it1 : this->dvb_fifos)
 	{
-		for(fifos_t::iterator it2 = it1->second.begin();
-			it2 != it1->second.end(); ++it2)
+		for (auto& it2 : it1.second)
 		{
-			delete (*it2).second;
+			delete it2.second;
 		}
-		it1->second.clear();
+		it1.second.clear();
 	}
 	this->dvb_fifos.clear();
 
 	this->terminal_affectation.clear();
-
-	// delete probes
-	delete this->probe_gw_queue_size;
-	delete this->probe_gw_queue_size_kb;
-	delete this->probe_gw_queue_loss;
-	delete this->probe_gw_queue_loss_kb;
-	delete this->probe_gw_l2_to_sat_before_sched;
-	delete this->probe_gw_l2_to_sat_after_sched;
-
 }
 
-
-void SpotDownward::generateConfiguration()
+void SpotDownward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane)
 {
 	RequestSimulator::generateConfiguration();
 
@@ -168,18 +153,20 @@ void SpotDownward::generateConfiguration()
 
 	auto types = Conf->getModelTypesDefinition();
 	types->addEnumType("ncc_simulation", "Simulated Requests", {"None", "Random", "File"});
-	types->addEnumType("fifo_access_type", "Access Type", {"ACM", "VCM0", "VCM1", "VCM2", "VCM3"});
+	types->addEnumType("gw_fifo_access_type", "Access Type", {"ACM", "VCM0", "VCM1", "VCM2", "VCM3"});
+	types->addEnumType("dama_algorithm", "DAMA Algorithm", {"Legacy",});
 
 	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
-	auto fifos = conf->addList("fifos", "FIFOs", "fifo")->getPattern();
+	auto fifos = conf->addList("gw_fifos", "FIFOs to send messages to Terminals", "gw_fifo")->getPattern();
 	fifos->addParameter("priority", "Priority", types->getType("int"));
 	fifos->addParameter("name", "Name", types->getType("string"));
 	fifos->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
-	fifos->addParameter("access_type", "Access Type", types->getType("fifo_access_type"));
+	fifos->addParameter("access_type", "Access Type", types->getType("gw_fifo_access_type"));
 	auto simulation = conf->addParameter("simulation",
 	                                     "Simulated Requests",
 	                                     types->getType("ncc_simulation"),
 	                                     "Should OpenSAND simulate extraneous requests?");
+	Conf->setProfileReference(simulation, disable_ctrl_plane, false);
 	auto parameter = conf->addParameter("simulation_file",
 	                                    "Simulation Trace File",
 	                                    types->getType("string"),
@@ -216,11 +203,48 @@ void SpotDownward::generateConfiguration()
 	                               types->getType("int"));
 	parameter->setUnit("kbps");
 	Conf->setProfileReference(parameter, simulation, "Random");
+
+	auto fca = conf->addParameter("fca", "FCA", types->getType("int"));
+	Conf->setProfileReference(fca, disable_ctrl_plane, false);
+	auto dama_algo = conf->addParameter("dama_algorithm", "DAMA Algorithm", types->getType("dama_algorithm"));
+	Conf->setProfileReference(dama_algo, disable_ctrl_plane, false);
 }
 
 
 bool SpotDownward::onInit(void)
 {
+	if(!this->initPktHdl(EncapSchemeList::RETURN_UP,
+	                     &this->up_return_pkt_hdl))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed get packet handler\n");
+		return false;
+	}
+
+	if(!this->initModcodDefinitionTypes())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize MOCODS definitions types\n");
+		return false;
+	}
+
+	// Initialization of the modcod def
+	if(!this->initModcodDefFile(MODCOD_DEF_S2,
+	                            &this->s2_modcod_def))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the forward link definition MODCOD file\n");
+		return false;
+	}
+	if(!this->initModcodDefFile(MODCOD_DEF_RCS2,
+	                            &this->rcs_modcod_def,
+	                            this->req_burst_length))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the return link definition MODCOD file\n");
+		return false;
+	}
+
 	// Get the carrier Ids
 	if(!this->initCarrierIds())
 	{
@@ -269,21 +293,310 @@ bool SpotDownward::onInit(void)
 	return true;
 }
 
+
+bool SpotDownward::initMode(void)
+{
+	// initialize scheduling
+	// depending on the satellite type
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotForwardCarriers(this->spot_id, current_spot))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "there is no gateways with value: "
+			"%d into forward down frequency plan\n",
+		    this->mac_id);
+		return false;
+	}
+
+	if(!this->initBand<TerminalCategoryDama>(current_spot,
+	                                         "forward down frequency plan",
+	                                         AccessType::TDM,
+	                                         this->fwd_down_frame_duration_ms,
+	                                         this->s2_modcod_def,
+	                                         this->categories,
+	                                         this->terminal_affectation,
+	                                         &this->default_category,
+	                                         this->fwd_fmt_groups))
+	{
+		return false;
+	}
+
+
+	// check that there is at least DVB fifos for VCM carriers
+	for (auto&& cat_it: this->categories)
+	{
+		bool is_vcm_carriers = false;
+		bool is_acm_carriers = false;
+		bool is_vcm_fifo = false;
+		fifos_t fifos;
+		std::string label;
+		Scheduling *schedule;
+
+		TerminalCategoryDama *cat = cat_it.second;
+		label = cat->getLabel();
+		if(!this->initFifo(fifos))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "failed initialize fifos for category %s\n", label.c_str());
+			return false;
+		}
+		this->dvb_fifos.insert({label, fifos});
+
+		// check if there is VCM carriers in this category
+		for (auto&& carriers: cat->getCarriersGroups())
+		{
+			if(carriers->getVcmCarriers().size() > 1)
+			{
+				is_vcm_carriers = true;
+			}
+			else
+			{
+				is_acm_carriers = true;
+			}
+		}
+
+		for (auto&& fifo_it: fifos)
+		{
+			if(fifo_it.second->getAccessType() == ForwardAccessType::vcm)
+			{
+				is_vcm_fifo = true;
+				break;
+			}
+		}
+		if(is_vcm_carriers && !is_vcm_fifo)
+		{
+			if(!is_acm_carriers)
+			{
+				LOG(this->log_init_channel, LEVEL_CRITICAL,
+				    "There is VCM carriers in category %s but no VCM FIFOs, "
+				    "as there is no other carriers, "
+				    "terminals in this category "
+				    "won't be able to send any trafic. "
+				    "Please check your configuration",
+				    label.c_str());
+				return false;
+			}
+			else
+			{
+				LOG(this->log_init_channel, LEVEL_WARNING,
+				    "There is VCM carriers in category %s but no VCM FIFOs, "
+				    "the VCM carriers won't be used",
+				    label.c_str());
+			}
+		}
+
+		schedule =  new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
+		                                    this->pkt_hdl,
+		                                    this->dvb_fifos.at(label),
+		                                    this->output_sts,
+		                                    this->s2_modcod_def,
+		                                    cat, this->spot_id,
+		                                    true, this->mac_id, "");
+		if(!schedule)
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "failed initialize forward scheduling for category %s\n", label.c_str());
+			return false;
+		}
+		this->scheduling.emplace(label, schedule);
+	}
+
+	return true;
+}
+
+
+// TODO this function is NCC part but other functions are related to GW,
+//      we could maybe create two classes inside the block to keep them separated
+bool SpotDownward::initDama(void)
+{
+	time_ms_t sync_period_ms;
+	time_frame_t sync_period_frame;
+	time_sf_t rbdc_timeout_sf;
+	rate_kbps_t fca_kbps;
+	std::string dama_algo;
+
+	TerminalCategories<TerminalCategoryDama> dc_categories;
+	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
+	TerminalCategoryDama *dc_default_category = NULL;
+
+	auto Conf = OpenSandModelConf::Get();
+
+	// Skip if the control plane is disabled
+	bool ctrl_plane_disabled;
+	Conf->getControlPlaneDisabled(ctrl_plane_disabled);
+	if (ctrl_plane_disabled)
+	{
+		LOG(this->log_init_channel, LEVEL_NOTICE,
+		    "Control plane disabled: skipping DAMA initialization");
+		return true;
+	}
+
+	auto ncc = Conf->getProfileData()->getComponent("network");
+
+	// Retrieving the free capacity assignement parameter
+	int fca;
+	if(!OpenSandModelConf::extractParameterData(ncc->getParameter("fca"), fca))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "missing FCA parameter\n");
+		return false;
+	}
+
+	fca_kbps = fca;
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "fca = %d kb/s\n", fca_kbps);
+
+
+	if(!Conf->getSynchroPeriod(sync_period_ms))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "Missing synchronisation period\n");
+		return false;
+	}
+	sync_period_frame = (time_frame_t)round((double)sync_period_ms /
+	                                        (double)this->ret_up_frame_duration_ms);
+	rbdc_timeout_sf = sync_period_frame + 1;
+
+	LOG(this->log_init_channel, LEVEL_NOTICE,
+	    "rbdc_timeout = %d superframes computed from sync period %d superframes\n",
+	    rbdc_timeout_sf, sync_period_frame);
+
+	OpenSandModelConf::spot current_spot;
+	if (!OpenSandModelConf::Get()->getSpotReturnCarriers(this->mac_id, current_spot))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "there is no gateways with value: "
+			"%d into return up frequency plan\n",
+		    this->mac_id);
+		return false;
+	}
+
+	if(!this->initBand<TerminalCategoryDama>(current_spot,
+	                                         "return up frequency plan",
+	                                         AccessType::DAMA,
+	                                         this->ret_up_frame_duration_ms,
+	                                         this->rcs_modcod_def,
+	                                         dc_categories,
+	                                         dc_terminal_affectation,
+	                                         &dc_default_category,
+	                                         this->ret_fmt_groups))
+	{
+		return false;
+	}
+
+
+	// check if there is DAMA carriers
+	if(dc_categories.size() == 0)
+	{
+		LOG(this->log_init_channel, LEVEL_NOTICE,
+		    "No TDM carrier, won't allocate DAMA\n");
+		// Also disable request simulation
+		this->simulate = none_simu;
+		return true;
+	}
+
+	// dama algorithm
+	if(!OpenSandModelConf::extractParameterData(ncc->getParameter("dama_algorithm"), dama_algo))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "section 'ncc': missing parameter 'dama_algorithm'\n");
+		return false;
+	}
+
+	if(!this->up_return_pkt_hdl)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "up return pkt hdl has not been initialized first.\n");
+		return false;
+	}
+
+	/* select the specified DAMA algorithm */
+	if(dama_algo == "Legacy")
+	{
+		LOG(this->log_init_channel, LEVEL_NOTICE,
+		    "creating Legacy DAMA controller\n");
+		this->dama_ctrl = new DamaCtrlRcs2Legacy(this->spot_id);
+	}
+	else
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "section 'ncc': bad value '%s' for "
+		    "parameter 'dama_algorithm'\n",
+		    dama_algo.c_str());
+		return false;
+	}
+
+	if(!this->dama_ctrl)
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to create the DAMA controller\n");
+		return false;
+	}
+
+	// Initialize the DamaCtrl parent class
+	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
+	                                rbdc_timeout_sf,
+	                                fca_kbps,
+	                                dc_categories,
+	                                dc_terminal_affectation,
+	                                dc_default_category,
+	                                this->input_sts,
+	                                this->rcs_modcod_def,
+	                                (this->simulate == none_simu) ?
+	                                false : true))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "Dama Controller Initialization failed.\n");
+		goto release_dama;
+	}
+
+	if(!this->dama_ctrl->init())
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "failed to initialize the DAMA controller\n");
+		goto release_dama;
+	}
+	this->dama_ctrl->setRecordFile(this->event_file);
+
+	return true;
+
+release_dama:
+	delete this->dama_ctrl;
+	return false;
+}
+
+
 bool SpotDownward::initCarrierIds(void)
 {
 	auto Conf = OpenSandModelConf::Get();
 
 	OpenSandModelConf::spot_infrastructure carriers;
-	if (!Conf->getSpotInfrastructure(this->mac_id, carriers)) {
-	LOG(this->log_init_channel, LEVEL_ERROR,
-	    "couldn't create spot infrastructure for gw %d",
-	    this->mac_id);
-	return false;
+	if (!Conf->getSpotInfrastructure(this->spot_id, carriers))
+	{
+		LOG(this->log_init_channel, LEVEL_ERROR,
+		    "couldn't create spot infrastructure for gw %d",
+		    this->mac_id);
+		return false;
 	}
 
-	this->ctrl_carrier_id = carriers.ctrl_in.id;
-	this->sof_carrier_id = carriers.ctrl_in.id;
-	this->data_carrier_id = carriers.data_in_gw.id;
+	Component entity_type = Conf->getEntityType(mac_id);
+	if (entity_type == Component::gateway)
+	{
+		this->ctrl_carrier_id = carriers.ctrl_in_gw.id;
+		this->sof_carrier_id = carriers.ctrl_in_gw.id;
+		this->data_carrier_id = carriers.data_in_gw.id;
+	}
+	else if (entity_type == Component::satellite)
+	{
+		this->ctrl_carrier_id = carriers.ctrl_out_st.id;
+		this->sof_carrier_id = carriers.ctrl_out_st.id;
+		this->data_carrier_id = carriers.data_out_st.id;
+	}
+	else
+	{
+		LOG(log_init_channel, LEVEL_ERROR, "Cannot instantiate a SpotDownward with mac_id %d which is not a gateway nor a satellite");
+		return false;
+	}
 
 	return true;
 }
@@ -291,10 +604,30 @@ bool SpotDownward::initCarrierIds(void)
 
 bool SpotDownward::initFifo(fifos_t &fifos)
 {
+	int default_fifo_prio = 0;
+	std::map<std::string, int> fifo_ids;
+
 	auto Conf = OpenSandModelConf::Get();
 	auto ncc = Conf->getProfileData()->getComponent("network");
+	for(auto& item : ncc->getList("qos_classes")->getItems())
+	{
+		auto category = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
+		std::string fifo_name;
+		if(!OpenSandModelConf::extractParameterData(category->getParameter("fifo"), fifo_name))
+		{
+			LOG(this->log_init_channel, LEVEL_ERROR,
+			    "Section network, missing QoS class FIFO name parameter\n");
+			return false;
+		}
 
-	for (auto& item : ncc->getList("fifos")->getItems())
+		auto priority = fifo_ids.find(fifo_name);
+		if(priority == fifo_ids.end())
+		{
+			fifo_ids.emplace(fifo_name, fifo_ids.size());
+		}
+	}
+
+	for (auto& item : ncc->getList("gw_fifos")->getItems())
 	{
 		auto fifo_item = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
@@ -305,7 +638,7 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 			    "cannot get fifo priority from section 'ncc, fifos'\n");
 			goto err_fifo_release;
 		}
-		unsigned int fifo_priority = fifo_prio;
+		qos_t fifo_priority = fifo_prio;
 
 		std::string fifo_name;
 		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("name"), fifo_name))
@@ -314,6 +647,13 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 			    "cannot get fifo name from section 'ncc, fifos'\n");
 			goto err_fifo_release;
 		}
+
+		auto fifo_it = fifo_ids.find(fifo_name);
+		if (fifo_it == fifo_ids.end())
+		{
+			fifo_it = fifo_ids.emplace(fifo_name, fifo_ids.size()).first;
+		}
+		auto fifo_id = fifo_it->second;
 
 		int fifo_capa;
 		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("capacity"), fifo_capa))
@@ -347,10 +687,13 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 		// default FIFO if the DSCP field is not recognize, default_fifo_id
 		// should not be used this is only used if traffic categories
 		// configuration and fifo configuration are not coherent.
-		this->default_fifo_id = std::max(this->default_fifo_id,
-		                                 fifo->getPriority());
+		if (fifo->getPriority() > default_fifo_prio)
+		{
+			default_fifo_prio = fifo->getPriority();
+			this->default_fifo_id = fifo_id;
+		}
 
-		fifos.insert(pair<unsigned int, DvbFifo *>(fifo->getPriority(), fifo));
+		fifos.insert({fifo_id, fifo});
 	}
 
 	return true;
@@ -368,6 +711,18 @@ err_fifo_release:
 bool SpotDownward::initRequestSimulation(void)
 {
 	auto Conf = OpenSandModelConf::Get();
+
+	// Skip if the control plane is disabled
+	bool ctrl_plane_disabled;
+	Conf->getControlPlaneDisabled(ctrl_plane_disabled);
+	if (ctrl_plane_disabled)
+	{
+		this->simulate = none_simu;
+		LOG(this->log_init_channel, LEVEL_NOTICE,
+		    "Control plane disabled: skipping event simulation initialization");
+		return true;
+	}
+
 	auto ncc = Conf->getProfileData()->getComponent("network");
 
 	std::string str_config;
@@ -463,89 +818,77 @@ bool SpotDownward::initRequestSimulation(void)
 
 bool SpotDownward::initOutput(void)
 {
-  auto output = Output::Get();
+	auto output = Output::Get();
+
+	// generate probes prefix
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, Component::gateway, is_sat);
+
 	// Events
-	this->event_logon_resp = output->registerEvent("Spot_%d.DVB.logon_response",
-	                                               this->spot_id);
+	this->event_logon_resp = output->registerEvent(prefix + "DVB.logon_response");
 
-	this->probe_gw_queue_size = new map<string, ProbeListPerId>();
-	this->probe_gw_queue_size_kb = new map<string, ProbeListPerId>();
-	this->probe_gw_queue_loss = new map<string, ProbeListPerId>();
-	this->probe_gw_queue_loss_kb = new map<string, ProbeListPerId>();
-	this->probe_gw_l2_to_sat_before_sched = new map<string, ProbeListPerId>();
-	this->probe_gw_l2_to_sat_after_sched = new map<string, ProbeListPerId>();
-	char probe_name[128];
-
-	for(map<string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
-		it1 != this->dvb_fifos.end(); it1++)
+	for (auto &&label_fifos_pair: dvb_fifos)
 	{
-		string cat_label = it1->first;
-		for(fifos_t::iterator it2 = it1->second.begin();
-			it2 != it1->second.end(); ++it2)
+		const std::string cat_label = label_fifos_pair.first;
+		const fifos_t &fifos = label_fifos_pair.second;
+
+		for (auto &&qos_fifo_pair: fifos)
 		{
-			string fifo_name = ((*it2).second)->getName();
-			unsigned int id = (*it2).first;
+			qos_t id = qos_fifo_pair.first;
+			DvbFifo *fifo = qos_fifo_pair.second;
+			std::string fifo_name = fifo->getName();
 
 			std::shared_ptr<Probe<int>> probe_temp;
+			std::string name;
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue size.packets.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "Packets", true, SAMPLE_LAST);
-			(*this->probe_gw_queue_size)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue size.packets." + fifo_name,
+			                                        "Packets", true, SAMPLE_LAST);
+			this->probe_gw_queue_size[cat_label].emplace(id, probe_temp);
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue size.capacity.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "kbits", true, SAMPLE_LAST);
-			(*this->probe_gw_queue_size_kb)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue size.capacity." + fifo_name,
+			                                        "kbits", true, SAMPLE_LAST);
+			this->probe_gw_queue_size_kb[cat_label].emplace(id, probe_temp);
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Throughputs.L2_to_SAT_before_sched.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
-			(*this->probe_gw_l2_to_sat_before_sched)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Throughputs.L2_to_SAT_before_sched." + fifo_name,
+			                                        "Kbits/s", true, SAMPLE_AVG);
+			this->probe_gw_l2_to_sat_before_sched[cat_label].emplace(id, probe_temp);
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
-			(*this->probe_gw_l2_to_sat_after_sched)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Throughputs.L2_to_SAT_after_sched." + fifo_name,
+			                                        "Kbits/s", true, SAMPLE_AVG);
+			this->probe_gw_l2_to_sat_after_sched[cat_label].emplace(id, probe_temp);
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue loss.packets.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "Packets", true, SAMPLE_SUM);
-			(*this->probe_gw_queue_loss)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue loss.packets." + fifo_name,
+			                                        "Packets", true, SAMPLE_SUM);
+			this->probe_gw_queue_loss[cat_label].emplace(id, probe_temp);
 
-			snprintf(probe_name, sizeof(probe_name),
-			         "Spot_%d.%s.Queue loss.rate.%s",
-			         spot_id, cat_label.c_str(), fifo_name.c_str());
-			probe_temp = output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_SUM);
-			(*this->probe_gw_queue_loss_kb)[cat_label].emplace(id, probe_temp);
+			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue loss.rate." + fifo_name,
+			                                        "Kbits/s", true, SAMPLE_SUM);
+			this->probe_gw_queue_loss_kb[cat_label].emplace(id, probe_temp);
 		}
-		snprintf(probe_name, sizeof(probe_name),
-		         "Spot_%d.%s.Throughputs.L2_to_SAT_after_sched.total",
-		         spot_id, cat_label.c_str());
 		this->probe_gw_l2_to_sat_total[cat_label] =
-			output->registerProbe<int>(probe_name, "Kbits/s", true, SAMPLE_AVG);
-
+		    output->registerProbe<int>(prefix + cat_label + ".Throughputs.L2_to_SAT_after_sched.total",
+		                               "Kbits/s", true, SAMPLE_AVG);
 	}
 
 	return true;
 }
 
 
-bool SpotDownward::handleSalohaAcks(const list<DvbFrame *> *UNUSED(ack_frames))
+bool SpotDownward::handleSalohaAcks(const std::list<DvbFrame *> *ack_frames)
 {
-	assert(0);
+	for (auto&& ack : *ack_frames)
+	{
+		this->complete_dvb_frames.push_back(ack);
+	}
+	return true;
 }
 
-bool SpotDownward::handleEncapPacket(NetPacket *packet)
+
+bool SpotDownward::handleEncapPacket(std::unique_ptr<NetPacket> packet)
 {
 	qos_t fifo_priority = packet->getQos();
-	string cat_label;
-	map<string, fifos_t>::iterator fifos_it;
+	std::string cat_label;
+	std::map<std::string, fifos_t>::iterator fifos_it;
 	tal_id_t dst_tal_id;
 
 	LOG(this->log_receive_channel, LEVEL_INFO,
@@ -591,7 +934,7 @@ bool SpotDownward::handleEncapPacket(NetPacket *packet)
 		fifo_priority = this->default_fifo_id;
 	}
 
-	if(!this->pushInFifo(fifos_it->second[fifo_priority], packet, 0))
+	if(!this->pushInFifo(fifos_it->second[fifo_priority], std::move(packet), 0))
 	{
 		// a problem occured, we got memory allocation error
 		// or fifo full and we won't empty fifo until next
@@ -629,8 +972,8 @@ bool SpotDownward::handleLogonReq(const LogonRequest *logon_req)
 	}
 
 	// send the corresponding event
-  event_logon_resp->sendEvent("Logon response send to ST%u on spot %u",
-                              mac, this->spot_id);
+	event_logon_resp->sendEvent("Logon response send to ST%u on spot %u",
+	                            mac, this->spot_id);
 
 	LOG(this->log_send_channel, LEVEL_DEBUG,
 	    "SF#%u: logon response sent to lower layer\n",
@@ -697,29 +1040,33 @@ void SpotDownward::updateStatistics(void)
 
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
-	for(map<string, fifos_t>::iterator it1 = this->dvb_fifos.begin();
-		it1 != this->dvb_fifos.end(); it1++)
+
+	for (auto &&label_fifos_pair: dvb_fifos)
 	{
-		string cat_label = it1->first;
-		for(fifos_t::iterator it2 = it1->second.begin();
-		    it2 != it1->second.end(); ++it2)
+		const std::string cat_label = label_fifos_pair.first;
+		const fifos_t &fifos = label_fifos_pair.second;
+
+		for (auto &&qos_fifo_pair: fifos)
 		{
-			(*it2).second->getStatsCxt(fifo_stat);
+			qos_t id = qos_fifo_pair.first;
+			DvbFifo *fifo = qos_fifo_pair.second;
+
+			fifo->getStatsCxt(fifo_stat);
 
 			this->l2_to_sat_total_bytes[cat_label] += fifo_stat.out_length_bytes;
 
-			(*this->probe_gw_l2_to_sat_before_sched)[cat_label][(*it2).first]->put(
-				fifo_stat.in_length_bytes * 8.0 / this->stats_period_ms);
+			this->probe_gw_l2_to_sat_before_sched[cat_label][id]->put(
+			    fifo_stat.in_length_bytes * 8.0 / this->stats_period_ms);
 
-			(*this->probe_gw_l2_to_sat_after_sched)[cat_label][(*it2).first]->put(
-				fifo_stat.out_length_bytes * 8.0 / this->stats_period_ms);
+			this->probe_gw_l2_to_sat_after_sched[cat_label][id]->put(
+			    fifo_stat.out_length_bytes * 8.0 / this->stats_period_ms);
 
 			// Mac fifo stats
-			(*this->probe_gw_queue_size)[cat_label][(*it2).first]->put(fifo_stat.current_pkt_nbr);
-			(*this->probe_gw_queue_size_kb)[cat_label][(*it2).first]->put(
-						fifo_stat.current_length_bytes * 8 / 1000);
-			(*this->probe_gw_queue_loss)[cat_label][(*it2).first]->put(fifo_stat.drop_pkt_nbr);
-			(*this->probe_gw_queue_loss_kb)[cat_label][(*it2).first]->put(fifo_stat.drop_bytes * 8);
+			this->probe_gw_queue_size[cat_label][id]->put(fifo_stat.current_pkt_nbr);
+			this->probe_gw_queue_size_kb[cat_label][id]->put(
+			    fifo_stat.current_length_bytes * 8 / 1000);
+			this->probe_gw_queue_loss[cat_label][id]->put(fifo_stat.drop_pkt_nbr);
+			this->probe_gw_queue_loss_kb[cat_label][id]->put(fifo_stat.drop_bytes * 8);
 		}
 		this->probe_gw_l2_to_sat_total[cat_label]->put(this->l2_to_sat_total_bytes[cat_label] * 8 /
 	                                                   this->stats_period_ms);
@@ -747,8 +1094,8 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 	// run the allocation algorithms (DAMA)
 	this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
 
-	list<DvbFrame *> msgs;
-	list<DvbFrame *>::iterator msg;
+	std::list<DvbFrame *> msgs;
+	std::list<DvbFrame *>::iterator msg;
 
 	// handle simulated terminals
 	if(!this->request_simu)
@@ -768,10 +1115,10 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 
 	for(msg = msgs.begin(); msg != msgs.end(); ++msg)
 	{
-		uint8_t msg_type = (*msg)->getMessageType();
+		EmulatedMessageType msg_type = (*msg)->getMessageType();
 		switch(msg_type)
 		{
-			case MSG_TYPE_SAC:
+			case EmulatedMessageType::Sac:
 			{
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message type SAC");
@@ -787,7 +1134,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 
 				break;
 			}
-			case MSG_TYPE_SESSION_LOGON_REQ:
+			case EmulatedMessageType::SessionLogonReq:
 			{
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message session logon request");
@@ -816,7 +1163,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				}
 				break;
 			}
-			case MSG_TYPE_SESSION_LOGOFF:
+			case EmulatedMessageType::SessionLogoff:
 			{
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message logoff");
@@ -855,12 +1202,11 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 	// schedule encapsulation packets
 	// TODO In regenerative mode we should schedule in frame_timer ??
 	// do not schedule on all categories, in regenerative we only schedule on the GW category
-	for(map<string, Scheduling *>::iterator it = this->scheduling.begin();
-	    it != this->scheduling.end(); ++it)
+	for (auto&& it : this->scheduling)
 	{
 		uint32_t remaining_alloc_sym = 0;
-		string label = (*it).first;
-		Scheduling *scheduler = (*it).second;
+		std::string label = it.first;
+		Scheduling *scheduler = it.second;
 
 		if(!scheduler->schedule(this->fwd_frame_counter,
 		                        getCurrentTime(),
@@ -869,8 +1215,8 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
 			    "failed to schedule encapsulation "
-				"packets stored in DVB FIFO for category %s\n",
-				label.c_str());
+			    "packets stored in DVB FIFO for category %s\n",
+			    label.c_str());
 			return false;
 		}
 
@@ -911,7 +1257,7 @@ uint8_t SpotDownward::getDataCarrierId(void) const
 	return this->data_carrier_id;
 }
 
-list<DvbFrame *> &SpotDownward::getCompleteDvbFrames(void)
+std::list<DvbFrame *> &SpotDownward::getCompleteDvbFrames(void)
 {
 	return this->complete_dvb_frames;
 }
@@ -966,7 +1312,7 @@ bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
 {
 	svno_request_type_t req_type = svno_request->getType();
 	band_t band = svno_request->getBand();
-	string cat_label = svno_request->getLabel();
+	std::string cat_label = svno_request->getLabel();
 	rate_kbps_t new_rate_kbps = svno_request->getNewRate();
 	TerminalCategories<TerminalCategoryDama> *cat;
 	time_ms_t frame_duration_ms;
@@ -1003,6 +1349,133 @@ bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
 			LOG(this->log_receive_channel, LEVEL_ERROR,
 			    "Wrong SVNO request type %u\n", req_type);
 			return false;
+	}
+
+	return true;
+}
+
+
+/**
+ * Add a CNI extension in the next GSE packet header
+ * Only for SCPC
+ * @return false if failed, true if succeed
+ */
+// TODO At the moment, the CNI is only sent when it changes and with the
+//      current MODCOD that can leads to CNI not transmitted. This can be
+//      correct either with a timer (base en acm_period) that may call
+//      setCniInputHasChanged on all SCPC terminals or using the most
+//      robust MODCOD to transmit packets with CNI extension
+bool SpotDownward::addCniExt(void)
+{
+	std::list<tal_id_t> list_st;
+
+	// Create list of first packet from FIFOs
+	for(auto&& dvb_fifos_it : this->dvb_fifos)
+	{
+		for(auto&& fifos_it : dvb_fifos_it.second)
+		{
+			DvbFifo *fifo = fifos_it.second;
+			for(auto&& elem : fifo->getQueue())
+			{
+				std::unique_ptr<NetPacket> packet = elem->getElem<NetPacket>();
+				tal_id_t tal_id = packet->getDstTalId();
+
+				auto it = std::find(this->is_tal_scpc.begin(), this->is_tal_scpc.end(), tal_id);
+				if(it != this->is_tal_scpc.end() && this->getCniInputHasChanged(tal_id))
+				{
+					list_st.push_back(tal_id);
+					// we could make specific SCPC function
+					if(!this->setPacketExtension(this->pkt_hdl,
+						                         elem,
+						                         std::move(packet),
+						                         this->mac_id,
+						                         tal_id,
+						                         "encodeCniExt",
+						                         this->super_frame_counter,
+						                         true))
+					{
+						return false;
+					}
+
+					LOG(this->log_send_channel, LEVEL_DEBUG,
+					    "SF #%d: packet belongs to FIFO #%d\n",
+					    this->super_frame_counter, fifos_it.first);
+				}
+				else
+				{
+					// Put packet back into the fifo element
+					elem->setElem(std::move(packet));
+				}
+			}
+		}
+	}
+
+	// try to send empty packet if no packet has been found for a terminal
+	for (auto&& tal_id : *this->input_sts)
+	{
+		auto it = std::find(list_st.begin(), list_st.end(), tal_id);
+		auto it_scpc = std::find(this->is_tal_scpc.begin(), this->is_tal_scpc.end(), tal_id);
+
+		if(it_scpc != this->is_tal_scpc.end() && it == list_st.end() && this->getCniInputHasChanged(tal_id))
+		{
+			std::string cat_label;
+
+			// first get the relevant category for the packet to find appropriate fifo
+			if(this->terminal_affectation.find(tal_id) != this->terminal_affectation.end())
+			{
+				if(this->terminal_affectation.at(tal_id) == NULL)
+				{
+					LOG(this->log_send_channel, LEVEL_ERROR,
+					    "No category associated to terminal %u, "
+					    "cannot send CNI for SCPC carriers\n",
+					    tal_id);
+					return false;
+				}
+				cat_label = this->terminal_affectation.at(tal_id)->getLabel();
+			}
+			else
+			{
+				if(!this->default_category)
+				{
+					LOG(this->log_send_channel, LEVEL_ERROR,
+					    "No default category for terminal %u, "
+					    "cannot send CNI for SCPC carriers\n",
+					    tal_id);
+					return false;
+				}
+				cat_label = this->default_category->getLabel();
+			}
+			// find the FIFO associated to the IP QoS (= MAC FIFO id)
+			// else use the default id
+			auto fifos_it = this->dvb_fifos.find(cat_label);
+			if(fifos_it == this->dvb_fifos.end())
+			{
+				LOG(this->log_send_channel, LEVEL_ERROR,
+				    "No fifo found for this category %s unable to send CNI for SCPC carriers",
+				    cat_label.c_str());
+				return false;
+			}
+
+			FifoElement *new_el = new FifoElement(nullptr, 0, 0);
+			// highest priority fifo
+			(fifos_it->second)[0]->pushBack(new_el);
+			// set packet extension to this new empty packet
+			if(!this->setPacketExtension(this->pkt_hdl,
+				                         new_el,
+				                         nullptr,
+				                         this->mac_id,
+				                         tal_id,
+				                         "encodeCniExt",
+				                         this->super_frame_counter,
+				                         true))
+			{
+				return false;
+			}
+
+			LOG(this->log_send_channel, LEVEL_DEBUG,
+			    "SF #%d: adding empty packet into FIFO NM\n",
+			    this->super_frame_counter);
+		}
 	}
 
 	return true;

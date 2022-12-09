@@ -9,7 +9,6 @@ libopensand_dvb_utils_la_cpp = \
 	Logoff.cpp \
 	Sof.cpp \
 	DvbFifo.cpp \
-	MacFifoElement.cpp \
 	TerminalContext.cpp \
 	TerminalContextDama.cpp \
 	TerminalContextDamaRcs.cpp \
@@ -36,7 +35,6 @@ libopensand_dvb_utils_la_h = \
 	Logoff.h \
 	Sof.h \
 	DvbFifo.h \
-	MacFifoElement.h \
 	TerminalContext.h \
 	TerminalContextDama.h \
 	TerminalContextDamaRcs.h \

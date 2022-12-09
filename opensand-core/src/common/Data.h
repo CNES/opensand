@@ -44,8 +44,7 @@
  */
 class Data: public std::basic_string<unsigned char>
 {
- public:
-
+public:
 	/**
 	 * Create an empty set of data
 	 */
@@ -71,7 +70,7 @@ class Data: public std::basic_string<unsigned char>
 	 * @param data  the unsigned characters to copy
 	 * @param len   the number of unsigned characters to copy
 	 */
-	Data(unsigned char *data, unsigned int len);
+	Data(const unsigned char *data, Data::size_type len);
 
 	/**
 	 * Create a set of data from a subset of data
@@ -80,7 +79,8 @@ class Data: public std::basic_string<unsigned char>
 	 * @param pos   the index of first byte to copy from
 	 * @param len   the number of bytes to copy
 	 */
-	Data(Data data, unsigned int pos, unsigned int len);
+	Data(Data data, Data::size_type pos, Data::size_type len);
 };
+
 
 #endif

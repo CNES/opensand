@@ -5,19 +5,19 @@ Debian packages and install it from the source.
 
 The source code is available in the [Net4Sat GitHub OpenSAND project](https://github.com/CNES/opensand).
 
-These procedures are based on the release version `6.0.1`.
+These procedures are based on the release version `6.2.0`.
 
 
 ## Requirements
 
-The code is compiled regularly on __Ubuntu 20.04 LTS__ with __x64__ processors.
+The code is compiled regularly on __Ubuntu 20.04 LTS__ and __Ubuntu 22.04 LTS__ with __x64__ processors.
 
 The following table lists the required packages to compile OpenSAND:
 
 | OS | Required packages |
 | :---: | :--- |
 | __Ubuntu 20.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config gcc g++ python python3-dev libxml++2.6-dev libboost-python1.71-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python-lxml dpkg-dev nodejs yarn |
-| __Ubuntu 22.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config gcc g++ python3-dev libxml++2.6-dev libboost-python1.74-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python3-lxml dpkg-dev nodejs yarn |
+| __Ubuntu 22.04 LTS__ | build-essential apt-utils debhelper sudo fakeroot software-properties-common autotools-dev automake libtool pkg-config gcc g++ python3-dev libxml++2.6-dev libboost-python1.74-dev libgoogle-perftools-dev libpcap-dev rsyslog logrotate python-setuptools python3-netifaces bridge-utils python3-lxml dpkg-dev dh-python nodejs yarn |
 
 The versions of NodeJS and Yarn required to be able to compile the `opensand-deploy` package does not match the defaults provided with the OS. You will need to install them from an external repository:
 
@@ -105,7 +105,8 @@ To make this operation easier, a script has been developed to automatize the pac
 source, including compilation.
 
 This script is present in the directory `opensand-packaging` and is capable of generating
-__Ubuntu 20.04 LTS__ packages, but it could be extended to other distributions.
+__Ubuntu 20.04 LTS__ and __Ubuntu 22.04 LTS__ packages, but it could be extended to other
+distributions.
 
 The help message prompted by this script `build-pkgs` is presented below:
 
@@ -122,6 +123,7 @@ Available OPTIONS :   -i        install build-dependencies automatically
                       -f        add a user flag to packages
 List of available distributions:
 focal
+jammy
 ```
 
 For example, the command to execute in order to launch the complete packaging, assuming the

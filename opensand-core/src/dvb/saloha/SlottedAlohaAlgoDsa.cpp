@@ -33,6 +33,8 @@
  * @author Julien Bernard / Viveris technologies
 */
 
+#include <opensand_output/Output.h>
+
 #include "SlottedAlohaAlgoDsa.h"
 
 
@@ -48,15 +50,13 @@ SlottedAlohaAlgoDsa::~SlottedAlohaAlgoDsa()
 uint16_t SlottedAlohaAlgoDsa::removeCollisions(std::map<unsigned int, Slot *> &slots,
                                                saloha_packets_data_t *accepted_packets)
 {
-  std::map<unsigned int, Slot *>::iterator slot_it;
-  std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
+	std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
 	uint16_t nbr_collisions = 0;
 
 	// cf: DSA algorithm
-	for(std::map<unsigned int, Slot *>::iterator slot_it = slots.begin();
-	    slot_it != slots.end(); ++slot_it)
+	for(auto&& slot_it : slots)
 	{
-		Slot *slot = (*slot_it).second;
+		Slot *slot = slot_it.second;
 		saloha_packets_data_t::iterator pkt_it;
 		if(!slot->size())
 		{
@@ -69,8 +69,7 @@ uint16_t SlottedAlohaAlgoDsa::removeCollisions(std::map<unsigned int, Slot *> &s
 
 		if(slot->size() == 1)
 		{
-			SlottedAlohaPacketData *packet;
-			packet = dynamic_cast<SlottedAlohaPacketData *>(slot->front());
+			auto& packet = slot->front();
 			tal_id_t tal_id = packet->getSrcTalId();
 
 			// create accepted_ids for this terminal if it does not exist
@@ -83,16 +82,12 @@ uint16_t SlottedAlohaAlgoDsa::removeCollisions(std::map<unsigned int, Slot *> &s
 			             accepted_ids[tal_id].end(),
 			             packet->getUniqueId()) == accepted_ids[tal_id].end())
 			{
-				accepted_packets->push_back(packet);
+				// packet was not already received on another slot
 				accepted_ids[tal_id].push_back(packet->getUniqueId());
+				accepted_packets->push_back(std::move(packet));
 				LOG(this->log_saloha, LEVEL_DEBUG,
 				    "No collision, keep packet from terminal %u\n",
 				    tal_id);
-			}
-			else
-			{
-				// packet was already received on another slot
-				delete packet;
 			}
 		}
 		else
@@ -100,12 +95,6 @@ uint16_t SlottedAlohaAlgoDsa::removeCollisions(std::map<unsigned int, Slot *> &s
 			LOG(this->log_saloha, LEVEL_NOTICE,
 			    "Collision on slot %u, remove packets\n", slot->getId());
 			nbr_collisions += slot->size();
-			for(pkt_it = slot->begin();
-			    pkt_it != slot->end();
-			    ++pkt_it)
-			{
-			   delete *pkt_it;
-			}
 		}
 		slot->clear();
 	}

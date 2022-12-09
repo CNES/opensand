@@ -62,10 +62,9 @@ protected:
 	bool is_connected;
 
 	/** Output Log */
-  std::shared_ptr<OutputLog> log_ncc_interface;
+	std::shared_ptr<OutputLog> log_ncc_interface;
 
 public:
-
 	/**** constructor/destructor ****/
 	NccInterface();
 	~NccInterface();
@@ -83,9 +82,6 @@ public:
 	
 	/*create a TCP socket connected to the component */
 	bool initSocket(int tcp_port);
-	
-
-
 };
-#endif
 
+#endif

@@ -115,6 +115,18 @@ namespace OpenSANDConf
 		std::shared_ptr<MetaComponent> addComponent(const std::string &id, const std::string &name, const std::string &description);
 
 		/**
+		* @brief Add a new component to the component if it does not exist,
+		*        or returns the existing one.
+		*
+		* @param  id           The component identifier
+		* @param  name         The component name
+		* @param  description  The component description
+		*
+		* @return  The newly created component or the existing one on success, nullptr otherwise
+		*/
+		std::shared_ptr<MetaComponent> getOrCreateComponent(const std::string &id, const std::string &name, const std::string &description = "");
+
+		/**
 		* @brief Add a new list to the component.
 		*
 		* @param  id                   The list identifier
@@ -151,6 +163,20 @@ namespace OpenSANDConf
 		std::shared_ptr<MetaList> addList(const std::string &id, const std::string &name, const std::string &pattern_name, const std::string &description, const std::string &pattern_description);
 
 		/**
+		* @brief Add a new list to the component if it does not exist,
+		*        or return the existing one.
+		*
+		* @param  id                   The list identifier
+		* @param  name                 The list name
+		* @param  pattern_name         The list pattern name
+		* @param  description          The list description
+		* @param  pattern_description  The list pattern description
+		*
+		* @return  The newly created list or the existing one on success, nullptr otherwise
+		*/
+		std::shared_ptr<MetaList> getOrCreateList(const std::string &id, const std::string &name, const std::string &pattern_name, const std::string &description = "", const std::string &pattern_description = "");
+
+		/**
 		* @brief Add a new parameter to the component.
 		*
 		* @param   id           The parameter identifier 
@@ -172,6 +198,19 @@ namespace OpenSANDConf
 		* @return  The newly created parameter on success, nullptr otherwise
 		*/
 		std::shared_ptr<MetaParameter> addParameter(const std::string &id, const std::string &name, std::shared_ptr<MetaType> type, const std::string &description);
+
+		/**
+		* @brief Add a new parameter to the component if it does not exist,
+		*        or return the existing one
+		*
+		* @param   id           The parameter identifier 
+		* @param   name         The parameter name
+		* @param   type         The parameter type
+		* @param   description  The parameter description
+		*
+		* @return  The newly created parameter on success, nullptr otherwise
+		*/
+		std::shared_ptr<MetaParameter> getOrCreateParameter(const std::string &id, const std::string &name, std::shared_ptr<MetaType> type, const std::string &description = "");
 
 	protected:
 		/**

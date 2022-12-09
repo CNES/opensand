@@ -38,23 +38,27 @@ Data::Data(): std::basic_string<unsigned char>()
 {
 }
 
-Data::Data(std::string string):
-	std::basic_string<unsigned char>(reinterpret_cast<const unsigned char *>(string.c_str()),
-	                                 string.size())
-{
-}
 
 Data::Data(std::basic_string<unsigned char> string):
 	std::basic_string<unsigned char>(string)
 {
 }
 
-Data::Data(unsigned char *data, unsigned int len):
+
+Data::Data(std::string string):
+	std::basic_string<unsigned char>(reinterpret_cast<const unsigned char *>(string.c_str()),
+	                                 string.size())
+{
+}
+
+
+Data::Data(const unsigned char *data, Data::size_type len):
 	std::basic_string<unsigned char>(data, len)
 {
 }
 
-Data::Data(Data data, unsigned int pos, unsigned int len):
+
+Data::Data(Data data, Data::size_type pos, Data::size_type len):
 	std::basic_string<unsigned char>(data, pos, len)
 {
 }

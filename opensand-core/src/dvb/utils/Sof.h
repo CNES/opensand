@@ -46,8 +46,7 @@
  */
 class Sof: public DvbFrameTpl<T_DVB_SOF>
 {
- public:
-
+public:
 	/**
 	 * @brief SOF constructor for NCC (sender)
 	 *

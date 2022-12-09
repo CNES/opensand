@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2019 TAS
+ * Copyright © 2019 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -26,47 +27,42 @@
  */
 
 /**
- * @file DelayFifoElement.cpp
- * @brief Fifo Element
- * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.com>
+ * @file CarrierType.h
+ * @brief Types and utilities to deal with sat carrier ids
+ * @author Mathias Ettinger <mathias.ettinger@viveris.fr>
  */
 
 
-#include "DelayFifoElement.h"
+#ifndef CARRIER_TYPE_H
+#define CARRIER_TYPE_H
 
-DelayFifoElement::DelayFifoElement(NetContainer *elem,
-                                             time_t tick_in, time_t tick_out):
-	elem(elem),
-	tick_in(tick_in),
-	tick_out(tick_out)
-{
-}
 
-DelayFifoElement::~DelayFifoElement()
-{
-}
+#include "OpenSandCore.h"
 
-NetContainer *DelayFifoElement::getElem() const
-{
-	return this->elem;
-}
 
-void DelayFifoElement::setElem(NetContainer *elem)
+enum class CarrierType : uint8_t
 {
-	this->elem = elem;
-}
+	LOGON_IN,
+	LOGON_OUT,
+	CTRL_IN_ST,
+	CTRL_OUT_GW,
+	CTRL_IN_GW,
+	CTRL_OUT_ST,
+	DATA_IN_ST,
+	DATA_OUT_GW,
+	DATA_IN_GW,
+	DATA_OUT_ST
+};
 
-size_t DelayFifoElement::getTotalLength() const
-{
-	return this->elem->getTotalLength();
-}
 
-time_t DelayFifoElement::getTickIn() const
-{
-	return this->tick_in;
-}
+uint16_t operator +(uint16_t lhs, CarrierType rhs);
+CarrierType extractCarrierType(uint16_t carrier_id);
+bool isDataCarrier(CarrierType c);
+bool isControlCarrier(CarrierType c);
+bool isInputCarrier(CarrierType c);
+bool isOutputCarrier(CarrierType c);
+bool isTerminalCarrier(CarrierType c);
+bool isGatewayCarrier(CarrierType c);
 
-time_t DelayFifoElement::getTickOut() const
-{
-	return this->tick_out;
-}
+
+#endif /* CARRIER_TYPE_H */

@@ -38,6 +38,7 @@
 #include "NccInterface.h"
 #include <vector>
 
+#include <opensand_rt/NetSocketEvent.h>
 #include <opensand_rt/Rt.h>
 
 /**
@@ -46,13 +47,11 @@
  */
 class NccSvnoInterface: public NccInterface
 {
- private:
-
+private:
 	/** The list of commands received from the SVNO component */
 	std::vector<SvnoRequest *> requests_list;
 
- public:
-
+public:
 	/**** constructor/destructor ****/
 
 	/* initialize the interface between NCC and SVNO components */
@@ -89,8 +88,7 @@ class NccSvnoInterface: public NccInterface
 	 */
 	bool readSvnoMessage(NetSocketEvent *const event);
 
- private:
-
+private:
 	/* parse a message sent by the SVNO component */
 	bool parseSvnoMessage(const char *message);
 

@@ -40,6 +40,8 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
+#include <cstring>
+
 
 NccInterface::NccInterface()
 {
@@ -158,5 +160,3 @@ close_socket:
 error:
 	return false;
 }
-
-

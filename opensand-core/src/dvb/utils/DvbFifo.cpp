@@ -66,34 +66,34 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, std::string fifo_name,
 
 	if(type_name == "DAMA_RBDC")
 	{
-		this->access_type = access_dama_rbdc;
+		this->access_type = ForwardOrReturnAccessType{ReturnAccessType::dama_rbdc};
 	}
 	else if(type_name == "DAMA_VBDC")
 	{
-		this->access_type = access_dama_vbdc;
+		this->access_type = ForwardOrReturnAccessType{ReturnAccessType::dama_vbdc};
 	}
 	else if(type_name == "SALOHA")
 	{
-		this->access_type = access_saloha;
+		this->access_type = ForwardOrReturnAccessType{ReturnAccessType::saloha};
 	}
 	else if(type_name == "DAMA_CRA")
 	{
-		this->access_type = access_dama_cra;
+		this->access_type = ForwardOrReturnAccessType{ReturnAccessType::dama_cra};
 	}
 	else if(type_name == "ACM")
 	{
-		this->access_type = access_acm;
+		this->access_type = ForwardOrReturnAccessType{ForwardAccessType::acm};
 	}
 	else if(type_name.find("VCM") == 0)
 	{
-		this->access_type = access_vcm;
+		this->access_type = ForwardOrReturnAccessType{ForwardAccessType::vcm};
 	}
 	else
 	{
 		LOG(this->log_dvb_fifo, LEVEL_INFO,
 		    "unknown CR/Access type of FIFO: %s\n", type_name.c_str());
 	}
-	if(this->access_type == access_vcm)
+	if(this->access_type == ForwardAccessType::vcm)
 	{
 		sscanf(type_name.c_str(), "VCM%d", &this->vcm_id);
 	}
@@ -105,7 +105,7 @@ DvbFifo::DvbFifo(uint8_t carrier_id,
 	queue(),
 	fifo_priority(0),
 	fifo_name(fifo_name),
-	access_type(0),
+	access_type(),
 	new_size_pkt(0),
 	cur_length_bytes(0),
 	new_length_bytes(0),
@@ -133,7 +133,7 @@ std::string DvbFifo::getName() const
 	return this->fifo_name;
 }
 
-int DvbFifo::getAccessType() const
+ForwardOrReturnAccessType DvbFifo::getAccessType() const
 {
 	return this->access_type;
 }
@@ -168,7 +168,7 @@ vol_bytes_t DvbFifo::getNewDataLength() const
 	return this->new_length_bytes;
 }
 
-void DvbFifo::resetNew(ret_access_type_t cr_type)
+void DvbFifo::resetNew(const ForwardOrReturnAccessType cr_type)
 {
 	if(this->access_type == cr_type)
 	{
@@ -216,12 +216,12 @@ uint8_t DvbFifo::getCni(void) const
 	return this->cni;
 }
 
-std::vector<MacFifoElement *> DvbFifo::getQueue(void)
+const std::deque<FifoElement *> &DvbFifo::getQueue() const
 {
 	return this->queue;
 }
 
-bool DvbFifo::push(MacFifoElement *elem)
+bool DvbFifo::push(FifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 	vol_bytes_t length;
@@ -251,7 +251,7 @@ bool DvbFifo::push(MacFifoElement *elem)
 	return true;
 }
 
-bool DvbFifo::pushFront(MacFifoElement *elem)
+bool DvbFifo::pushFront(FifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 
@@ -260,7 +260,7 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 	{
 		vol_bytes_t length = elem->getTotalLength();
 
-		this->queue.insert(this->queue.begin(), elem);
+		this->queue.push_front(elem);
 		this->cur_length_bytes += length;
 		// update counter but not new ones as it is a fragment of an old element
 		this->stat_context.current_pkt_nbr = this->queue.size();
@@ -278,7 +278,7 @@ bool DvbFifo::pushFront(MacFifoElement *elem)
 
 }
 
-bool DvbFifo::pushBack(MacFifoElement *elem)
+bool DvbFifo::pushBack(FifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 
@@ -304,10 +304,10 @@ bool DvbFifo::pushBack(MacFifoElement *elem)
 	return false;
 
 }
-MacFifoElement *DvbFifo::pop()
+FifoElement *DvbFifo::pop()
 {
 	RtLock lock(this->fifo_mutex);
-	MacFifoElement *elem;
+	FifoElement *elem;
 	vol_bytes_t length;
 
 	if(this->queue.size() <= 0)
@@ -338,12 +338,9 @@ MacFifoElement *DvbFifo::pop()
 void DvbFifo::flush()
 {
 	RtLock lock(this->fifo_mutex);
-	std::vector<MacFifoElement *>::iterator it;
-	for(it = this->queue.begin(); it != this->queue.end(); ++it)
+	for(auto *elem: queue)
 	{
-//		NetContainer *elem = (*it)->getElem();
-//		delete elem;
-		delete *it;
+		delete elem;
 	}
 
 	this->queue.clear();

@@ -34,12 +34,13 @@
 #ifndef OPENSAND_CORE_H
 #define OPENSAND_CORE_H
 
-
+#include <sstream>
 #include <string>
+#include <type_traits>
+#include <unordered_set>
 #include <vector>
 
 #include <stdint.h>
-#include <cfloat>
 #include <cmath>
 #include <sys/time.h>
 #include <arpa/inet.h>
@@ -55,16 +56,17 @@
 #endif              /* !__GNUC__ && !__LCLINT__ */
 
 /// Broadcast tal id is maximal tal_id value authorized (5 bits).
-#define BROADCAST_TAL_ID 0x1F
+constexpr const uint8_t BROADCAST_TAL_ID = 0x1F;
+
 
 /** The different types of DVB components */
-typedef enum
+enum class Component
 {
 	satellite,
 	gateway,
 	terminal,
-	unknown_compo,
-} component_t;
+	unknown,
+};
 
 
 /** @brief Get the name of a component
@@ -72,30 +74,30 @@ typedef enum
  * @param host The component type
  * @return the abbreviated name of the component
  */
-inline std::string getComponentName(component_t host)
+inline std::string getComponentName(Component host)
 {
 	switch(host)
 	{
-		case satellite:
+		case Component::satellite:
 			return "sat";
-		case gateway:
+		case Component::gateway:
 			return "gw";
-		case terminal:
+		case Component::terminal:
 			return "st";
 		default:
-			return "";
+			return "unknown";
 	}
 };
 
 /// Carrier access type
-typedef enum
+enum class AccessType
 {
 	DAMA,
 	TDM,
 	ALOHA,
 	SCPC,
 	ERROR
-} access_type_t;
+};
 
 
 /**
@@ -105,52 +107,99 @@ typedef enum
  *
  * @return the access type enum
  */
-inline access_type_t strToAccessType(std::string access_type)
+inline AccessType strToAccessType(const std::string& access_type)
 {
 	if(access_type == "DAMA")
-		return DAMA;
+		return AccessType::DAMA;
 	else if(access_type == "ACM")
-		return TDM;
+		return AccessType::TDM;
 	else if(access_type == "ALOHA")
-		return ALOHA;
+		return AccessType::ALOHA;
 	else if(access_type == "VCM")
-		return TDM;
+		return AccessType::TDM;
 	else if(access_type == "SCPC")
-		return SCPC;
-	return ERROR;
+		return AccessType::SCPC;
+	return AccessType::ERROR;
 }
 
-/// State of the satellite link
-typedef enum
-{
-	link_down,
-	link_up
-} link_state_t;
 
-/// Internal message types
-enum
+enum class SatelliteLinkState
 {
-	msg_data = 0,  ///< message containing useful data (DVB, encap, ...)
-	               //   default value of sendUp/Down function
-	msg_link_up,   ///< link up message
-	msg_sig,       ///< message containing signalisation
-	msg_saloha,    ///< message containing Slotted Aloha content
+	DOWN,
+	UP
 };
 
 
-typedef enum
+enum class InternalMessageType : uint8_t
 {
-	RETURN_UP_ENCAP_SCHEME_LIST,
-	FORWARD_DOWN_ENCAP_SCHEME_LIST,
-	TRANSPARENT_SATELLITE_NO_SCHEME_LIST,
-} encap_scheme_list_t;
-
-
-/** Compare two floats */
-inline bool equals(double val1, double val2)
-{
-	return std::abs(val1 - val2) < DBL_EPSILON;
+	encap_data = 0,  ///< message containing encapsulated data (type DvbFrame, below BlockDvb)
+	decap_data,      ///< message containing decapsulated data (type NetBurst, above BlockDvb)
+	link_up,         ///< link up message
+	sig,             ///< message containing signalisation
+	saloha,          ///< message containing Slotted Aloha content
+	unknown,         ///< when the msg type is unknown or unused
 };
+
+
+enum class EncapSchemeList
+{
+	RETURN_UP,
+	FORWARD_DOWN,
+	TRANSPARENT_NO_SCHEME,
+};
+
+enum struct IslType
+{
+	None,
+	LanAdaptation,
+	Interconnect,
+};
+
+enum struct RegenLevel {
+	Unknown,
+	Transparent, 
+	BBFrame,
+	IP
+};
+
+inline RegenLevel strToRegenLevel(const std::string &regen_level)
+{
+	if (regen_level == "Transparent")
+	{
+		return RegenLevel::Transparent;
+	}
+	else if (regen_level == "BBFrame")
+	{
+		return RegenLevel::BBFrame;
+	}
+	else if (regen_level == "IP")
+	{
+		return RegenLevel::IP;
+	}
+	else
+	{
+		return RegenLevel::Unknown;
+	}
+}
+
+/**
+ * @brief Convert a strongly typed enum value into its underlying integral type
+ */
+template <typename E>
+constexpr auto to_underlying(E e) noexcept -> typename std::enable_if<std::is_enum<E>::value, typename std::underlying_type<E>::type>::type {
+	return static_cast<typename std::underlying_type<E>::type>(e);
+}
+
+
+/**
+ * @brief Convert an integral type into a strongly typed enum iff the integral type
+ * is the underlying type for the enum
+ */
+template <typename E, typename I>
+constexpr auto to_enum(I i) noexcept -> typename std::enable_if<std::is_same<I, typename std::underlying_type<E>::type>::value, E>::type {
+	return static_cast<E>(i);
+}
+
 
 /**
  * @brieg Get the current time
@@ -200,9 +249,8 @@ inline void tokenize(const std::string &str,
  */
 inline uint32_t hcnton(double cn)
 {
-	int16_t tmp_cn = (int16_t)(std::round(cn * 100));  // we take two digits in decimal part
-	uint32_t new_cn = htonl((uint32_t)tmp_cn);
-	return new_cn;
+	int16_t tmp_cn = static_cast<int16_t>(std::round(cn * 100));  // we take two digits in decimal part
+	return htonl(static_cast<uint32_t>(tmp_cn));
 };
 
 /**
@@ -214,9 +262,8 @@ inline uint32_t hcnton(double cn)
  */
 inline double ncntoh(uint32_t cn)
 {
-	int16_t tmp_cn = (int16_t)ntohl(cn);
-	double new_cn = double(tmp_cn / 100.0);
-	return new_cn;
+	int16_t tmp_cn = static_cast<int16_t>(ntohl(cn));
+	return tmp_cn / 100.0;
 };
 
 
@@ -291,6 +338,36 @@ typedef uint8_t fmt_id_t;  ///< fmt id
  *  +-----------------------> time
  */
 
+struct SpotTopology
+{
+	spot_id_t spot_id;
+	tal_id_t gw_id;
+	std::unordered_set<tal_id_t> st_ids; ///< the terminals that belong to the spot
+	tal_id_t sat_id_gw;                  ///< The satellite connected to the gateway of this spot
+	tal_id_t sat_id_st;                  ///< The satellite connected to the terminals of this spot
+	RegenLevel forward_regen_level;      ///< The regeneration level of the forward channel
+	RegenLevel return_regen_level;       ///< The regeneration level of the return channel
+};
+
+struct IslConfig
+{
+	tal_id_t linked_sat_id;
+	IslType type;
+	std::string interco_addr;
+	std::string tap_iface;
+};
+
+inline std::string generateProbePrefix(spot_id_t spot_id, Component entity_type, bool is_sat)
+{
+	std::ostringstream ss{};
+	ss << "spot_" << int{spot_id} << ".";
+	if (is_sat)
+	{
+		ss << "sat.";
+	}
+	ss << getComponentName(entity_type) << ".";
+	return ss.str();
+}
 
 #endif
 

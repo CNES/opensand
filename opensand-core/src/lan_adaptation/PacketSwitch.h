@@ -51,10 +51,10 @@
  */
 class PacketSwitch
 {
- public:
-	PacketSwitch(const tal_id_t &tal_id);
+public:
+	PacketSwitch(tal_id_t tal_id);
 
-	virtual ~PacketSwitch() {};
+	virtual ~PacketSwitch() = default;
 
 	/**
 	 * @brief Get the OpenSAND destination of packet from its MAC destination
@@ -75,7 +75,7 @@ class PacketSwitch
 	 *
 	 * @return true if packet is for the current entity, false otherwise
 	 */
-	virtual bool isPacketForMe(const Data &packet, const tal_id_t &src_id, bool &forward) = 0;
+	virtual bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward) = 0;
 
 	/**
 	 * @brief Learn the source MAC address of the specified packet
@@ -83,13 +83,13 @@ class PacketSwitch
 	 * @param packet  The packet
 	 * @param src_id  The ID of the corresponding terminal
 	 * 
-	 * @return true if 
- 	 */
-	virtual bool learn(const Data &packet, const tal_id_t &src_id) = 0;
+	 * @return true on success, false otherwise
+	 */
+	bool learn(const Data &packet, tal_id_t src_id);
 
 	SarpTable *getSarpTable();
 
- protected:
+protected:
 	/// The mutex
 	RtMutex mutex;
 
@@ -106,12 +106,11 @@ class PacketSwitch
  */
 class TerminalPacketSwitch: public PacketSwitch
 {
- public:
-	TerminalPacketSwitch(const tal_id_t &id, const tal_id_t &gw_id):
+public:
+	TerminalPacketSwitch(tal_id_t id, tal_id_t gw_id):
 		 PacketSwitch(id),
 		 gw_id(gw_id)
 	{};
-	virtual ~TerminalPacketSwitch() {};
 
 	/**
 	 * @brief Get the OpenSAND destination of packet from its MAC destination
@@ -132,18 +131,9 @@ class TerminalPacketSwitch: public PacketSwitch
 	 *
 	 * @return true if packet is for the current entity, false otherwise
 	 */
-	bool isPacketForMe(const Data &packet, const tal_id_t &src_id, bool &forward);
-	/**
-	 * @brief Learn the source MAC address of the specified packet
-	 *
-	 * @param packet  The packet
-	 * @param src_id  The ID of the corresponding terminal
-	 * 
-	 * @return true if 
- 	 */
-	bool learn(const Data &packet, const tal_id_t &src_id);
-	
- protected:
+	bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward);
+
+protected:
 	/// The gateway id of the terminal entity
 	tal_id_t gw_id;
 };
@@ -154,11 +144,8 @@ class TerminalPacketSwitch: public PacketSwitch
  */
 class GatewayPacketSwitch: public PacketSwitch
 {
- public:
-	GatewayPacketSwitch(const tal_id_t &id):
-		 PacketSwitch(id)
-	{};
-	virtual ~GatewayPacketSwitch() {};
+public:
+	using PacketSwitch::PacketSwitch;
 
 	/**
 	 * @brief Get the OpenSAND destination of packet from its MAC destination
@@ -179,16 +166,41 @@ class GatewayPacketSwitch: public PacketSwitch
 	 *
 	 * @return true if packet is for the current entity, false otherwise
 	 */
-	bool isPacketForMe(const Data &packet, const tal_id_t &src_id, bool &forward);
+	bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward);
+};
+
+class SatellitePacketSwitch: public PacketSwitch
+{
+public:
+	SatellitePacketSwitch(tal_id_t tal_id, bool isl_used, std::unordered_set<tal_id_t> isl_entities);
+
 	/**
-	 * @brief Learn the source MAC address of the specified packet
+	 * @brief Get the OpenSAND destination of packet from its MAC destination
 	 *
 	 * @param packet  The packet
-	 * @param src_id  The ID of the corresponding terminal
-	 * 
-	 * @return true if 
- 	 */
-	bool learn(const Data &packet, const tal_id_t &src_id);
+	 * @param dst_id  The returned OpenSAND destination
+	 *
+	 * @return true if destination found, false otherwise
+	 */
+	bool getPacketDestination(const Data &packet, tal_id_t &src_id, tal_id_t &dst_id) override;
+
+	/**
+	 * @brief Check a packet is destinated to the current entity
+	 *
+	 * @param packet   The packet
+	 * @param src_id   The OpenSAND source of the packet
+	 * @param forward  True if forwardis required, false otherwise
+	 *
+	 * @return true if packet is for the current entity, false otherwise
+	 */
+	bool isPacketForMe(const Data &packet, tal_id_t src_id, bool &forward) override;
+
+private:
+	// Whether or not to consider ISL for routing purposes
+	bool isl_enabled;
+
+	// Packets for these entities should be routed to ISL
+	std::unordered_set<tal_id_t> isl_entities;
 };
 
 #endif

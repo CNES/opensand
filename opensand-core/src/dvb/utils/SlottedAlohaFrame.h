@@ -44,8 +44,7 @@
  */
 class SlottedAlohaFrame: public DvbFrameTpl<T_DVB_SALOHA>
 {
- public:
-
+public:
 	/**
 	 * Build a Slotted Aloha frame
 	 *
@@ -70,13 +69,6 @@ class SlottedAlohaFrame: public DvbFrameTpl<T_DVB_SALOHA>
 	SlottedAlohaFrame(const Data &data, size_t length);
 
 	/**
-	 * Duplicate a Slotted Aloha frame
-	 *
-	 * @param frame  the Slotted Aloha frame to duplicate
-	 */
-	SlottedAlohaFrame(DvbFrame *frame);
-
-	/**
 	 * Build an empty Slotted Aloha frame
 	 */
 	SlottedAlohaFrame();
@@ -95,14 +87,14 @@ class SlottedAlohaFrame: public DvbFrameTpl<T_DVB_SALOHA>
 
 class SlottedAlohaFrameCtrl: public SlottedAlohaFrame
 {
-  public:
+public:
 	SlottedAlohaFrameCtrl();
 };
 
 
 class SlottedAlohaFrameData: public SlottedAlohaFrame
 {
-  public:
+public:
 	SlottedAlohaFrameData();
 };
 
