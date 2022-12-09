@@ -3,9 +3,9 @@ Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7),
  autotools-dev, automake, libtool, pkg-config,
- libopensand-conf-dev (>= 6.1.0),
- libopensand-output-dev (>= 6.1.0),
- libopensand-rt-dev (>= 6.1.0),
+ libopensand-conf-dev (>= 6.2.0),
+ libopensand-output-dev (>= 6.2.0),
+ libopensand-rt-dev (>= 6.2.0),
  python-lxml, libpcap-dev
 Standards-Version: 3.8.3
 Section: misc

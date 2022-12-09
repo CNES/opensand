@@ -1,3 +1,9 @@
+opensand-output (6.2.0) jellyfish; urgency=low
+
+  * Release 6.2.0
+
+ -- Mathias Ettinger <mathias.ettinger@viveris.fr>  Fri, 09 Dec 2022 16:17:18 +0100
+
 opensand-output (6.1.0) xenial; urgency=low
 
   * Preview 6.1.0
