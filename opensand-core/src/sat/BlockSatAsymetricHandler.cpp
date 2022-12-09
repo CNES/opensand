@@ -142,8 +142,9 @@ bool BlockSatAsymetricHandler::Downward::onEvent(const RtEvent *const event)
 			LOG(this->log_event, LEVEL_ERROR,
 			    "unknown event received %s",
 			    event->getName().c_str());
-			break;
+			return false;
 	}
+	return true;
 }
 
 
