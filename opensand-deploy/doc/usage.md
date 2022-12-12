@@ -105,3 +105,38 @@ starting your ping with; or use an other address of your liking.
 ![Ping Destinations](PingDestination.png)
 
 The result of the ping will be displayed shortly after in a new dialog window.
+
+# Configuration examples
+
+## Regenerative satellite
+
+By default, a spot in your topology will use a transparent satellite on both the forward
+and the return link. You can change this behaviour in the topology file by selecting the
+desired (if any) regeneration level for your packets in the satellite.
+
+![Regenerative Satellite](Regen.png)
+
+> Note that although it is possible to select different regeneration level for the forward
+and the return link, doing so result in a memory access error crashing the satellite. This
+will be fixed in a future version.
+
+When selecting a regeneration level of IP for any or both links, you **must** configure a
+LanAdaptation block in your satellite. Refer to the next section for details.
+
+## ISL
+
+When selecting a different satellite for the GW and STs of a given spot, or when routing
+packets between spots assigned to two different satellites, some packets need to travel
+through ISL.
+
+In order to properly configure an ISL, an entry must be added in the infrastructure file
+of both satellites. You **must** create an Interconnect block for any kind of ISL communication
+to work properly. In addition, if your ISL is done with IP packets (regeneration IP selected
+on one or both links in your satellites), you need to configure a LanAdaptation block too.
+
+![ISL](ISL.png)
+
+> Note that when using the IP regenerative satellite, you also need to configure a LanAdaptation
+associated to the same satellite so the packets are properly deencapsulated and reencapsulated.
+The name of the TAP used in this case is irrelevant and may not even exist as no write attempt
+should happen.

@@ -1,6 +1,8 @@
 # OpenSAND Network
 
 This folder provides tools to help network configuration on OpenSAND entities.
+None of these tools are mandatory, their main purpose is to reduce the learning
+curve and provide quick and easy ways to discover OpenSAND capabilities.
 
 The `opensand_network` folder provides a Python module to easily create TAP,
 bridges and routing on a machine or inside a net-namespace.
@@ -23,6 +25,8 @@ This command will create a net-namespace for a gateway with an ID of 6, setup
 a bridge and a tap inside; it will create a second net-namespace for a satellite
 with an ID of 0; lastly it will create 3 net-namespace for a terminal, with
 respective IDs of 1, 2, and 3, and setup a bridge and a tap inside each of them.
+Emulation addresses are of the form 192.168.18.ID and TAP are created with a
+name of `opensand_tap` and addresses of the form 192.168.63.ID.
 
 ```
 sudo ./opensand-network launch gw 6 path/to/topology.xml path/to/infrastructure.xml path/to/profile.xml
@@ -45,7 +49,19 @@ This command will remove all the net-namespaces created previously.
 > Note that all these commands need to be run as root because they all use the `ip netns exec`
 command internally that requires root privileges.
 
-Extra options exists for all these commands, use the `--help` flag to about them.
+Extra options exists for all these commands, use the `--help` flag to learn about them.
+
+An additional command also help to define networks to deal with ISL communications:
+
+```
+sudo ./opensand-network isl 2 9
+```
+
+This command create a network usable between the satellites with IDs 2 and 9. It
+offers a TAP named `isl_<count>_tap` where `count` is the amount of `isl` commands
+ran for _that_ satellite, and addresses of the form 10.10.ID.<count> on each
+satellite that are meant to be used in an Interconnect block (see the user manual on
+ISL configuration).
 
 ### Intégration with `opensand_cli`
 
