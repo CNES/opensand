@@ -57,11 +57,7 @@
 #include <opensand_rt/Rt.h>
 
 
-#if HAVE_CONFIG_H
-#include <config.h>
-#else
-#define PACKAGE_VERSION "Unknown"
-#endif
+constexpr char OPENSAND_VERSION[] = "6.1.0";
 
 
 void usage(std::ostream &stream, const std::string &progname)
@@ -207,7 +203,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 			}
 			return nullptr;
 		case 'V':
-			std::cout << "OpenSAND version " << PACKAGE_VERSION << std::endl;
+			std::cout << "OpenSAND version " << OPENSAND_VERSION << std::endl;
 			return nullptr;
 		case 'h':
 		case '?':

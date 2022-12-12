@@ -3,9 +3,9 @@ Priority: optional
 Maintainer: OpenSAND Maintainers <admin@opensand.org>
 Build-Depends: debhelper (>= 7), autotools-dev, automake, libtool,
  librle-dev (>= 1.7.2),
- libopensand-conf-dev (>= 6.2.0),
- libopensand-output-dev (>= 6.2.0),
- libopensand-plugin-dev (>= 6.2.0)
+ libopensand-conf-dev (>= 6.1.0),
+ libopensand-output-dev (>= 6.1.0),
+ libopensand-plugin-dev (>= 6.1.0)
 XS-Python-Version: >= 2.7
 Standards-Version: 3.8.3
 Section: libs
