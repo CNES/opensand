@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-rt, 6.1.0, [http://opensand.org])
+m4_define([opensand_version], m4_bregexp(m4_quote(m4_esyscmd_s([cat ChangeLog])), [[0-9]+\.[0-9]+\.[0-9]+], [\&]))
+AC_INIT(opensand-rt, [opensand_version], [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -39,7 +40,7 @@ PKG_PROG_PKG_CONFIG
 CXXFLAGS="$CXXFLAGS -std=c++11"
 
 # check for opensand-output library
-PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = 6.1.0])
+PKG_CHECK_MODULES([OPENSAND_OUTPUT], [opensand_output = opensand_version])
 LIBS="$OPENSAND_OUTPUT_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_OUTPUT_CFLAGS $AM_CPPFLAGS")
 

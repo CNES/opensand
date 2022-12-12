@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-rle-encap-plugin, 6.1.0, [http://opensand.org])
+m4_define([opensand_version], m4_bregexp(m4_quote(m4_esyscmd_s([cat ChangeLog])), [[0-9]+\.[0-9]+\.[0-9]+], [\&]))
+AC_INIT(opensand-rle-encap-plugin, [opensand_version], [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -39,7 +40,7 @@ LIBS="$OPENSAND_RLE_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_RLE_CFLAGS $AM_CPPFLAGS")
 
 # check for opensand-plugin library
-PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_plugin = 6.1.0])
+PKG_CHECK_MODULES([OPENSAND_PLUG], [opensand_plugin = opensand_version])
 LIBS="$OPENSAND_PLUG_LIBS $LIBS"
 AC_SUBST(AM_CPPFLAGS, "$OPENSAND_PLUG_CFLAGS $AM_CPPFLAGS")
 
