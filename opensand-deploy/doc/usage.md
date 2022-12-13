@@ -108,6 +108,30 @@ The result of the ping will be displayed shortly after in a new dialog window.
 
 # Configuration examples
 
+## Basics
+
+First you’ll need to define your satellite network topology by creating spots, and
+adding carriers to them. Edit the desired "Topology Template" which is common to
+all entities.
+
+![Spots](Topology.png)
+
+Then, for each entity, you’ll need to configure their "Infrastructure Template" to
+provide information about the network they need to use.
+
+![Network](Infrastructure.png)
+
+Lastly, you need to tweak you entities behaviour by assigning them a "Profile Template"
+to configure themselves from. You’ll be most likely interested in the "Access" or
+"Physical Layer" tab.
+
+![Profile](Profile.png)
+
+Note that a satellite does not need a profile configuration, unless you happen to use
+the regenerative mode or ISL (see below), in which case it is mandatory.
+
+![Satellite Profile](ProfileSat.png)
+
 ## Regenerative satellite
 
 By default, a spot in your topology will use a transparent satellite on both the forward
