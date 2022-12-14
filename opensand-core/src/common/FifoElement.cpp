@@ -26,47 +26,56 @@
  */
 
 /**
- * @file TestDelayFifoElement.cpp
+ * @file FifoElement.cpp
  * @brief Fifo Element
- * @author Joaquin MUGUERZA <joaquin.muguerza@toulouse.viveris.com>
+ * @author Julien BERNARD <julien.bernard@toulouse.viveris.com>
  */
 
 
-#include "TestDelayFifoElement.h"
+#include "FifoElement.h"
+#include "NetContainer.h"
 
-TestDelayFifoElement::TestDelayFifoElement(NetContainer *elem,
-                                             time_t tick_in, time_t tick_out):
-	elem(elem),
-	tick_in(tick_in),
-	tick_out(tick_out)
+
+FifoElement::FifoElement(std::unique_ptr<NetContainer> elem,
+                         time_t tick_in, time_t tick_out):
+	elem{std::move(elem)},
+	tick_in{tick_in},
+	tick_out{tick_out}
 {
 }
 
-TestDelayFifoElement::~TestDelayFifoElement()
+
+FifoElement::~FifoElement()
 {
 }
 
-NetContainer *TestDelayFifoElement::getElem() const
+
+template<>
+std::unique_ptr<NetContainer> FifoElement::getElem()
 {
-	return this->elem;
+	return std::move(this->elem);
 }
 
-void TestDelayFifoElement::setElem(NetContainer *elem)
+
+void FifoElement::setElem(std::unique_ptr<NetContainer> elem)
 {
-	this->elem = elem;
+	this->elem = std::move(elem);
 }
 
-size_t TestDelayFifoElement::getTotalLength() const
+
+size_t FifoElement::getTotalLength() const
 {
 	return this->elem->getTotalLength();
 }
 
-time_t TestDelayFifoElement::getTickIn() const
+
+time_t FifoElement::getTickIn() const
 {
 	return this->tick_in;
 }
 
-time_t TestDelayFifoElement::getTickOut() const
+
+time_t FifoElement::getTickOut() const
 {
 	return this->tick_out;
 }

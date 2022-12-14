@@ -42,8 +42,8 @@
 #include <opensand_output/Output.h>
 
 #include <math.h>
+#include <vector>
 
-using namespace std;
 
 /**
  * Constructor
@@ -81,13 +81,13 @@ bool DamaCtrlRcs2::init()
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "cannot get RCS2 burst length value");
-		return NULL;
+		return false;
 	}
 	if(length_sym == 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "invalid value '%u' value of RCS2 burst length", length_sym);
-		return NULL;
+		return false;
 	}
 	LOG(this->log_init, LEVEL_INFO,
 	    "Burst length = %u sym\n", length_sym);
@@ -126,19 +126,18 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 		goto error;
 	}
 
-	for(std::vector<cr_info_t>::iterator it = requests.begin();
-	    it != requests.end(); ++it)
+	for (auto&& cr_info: requests)
 	{
 		// take into account the new request
-		switch((*it).type)
+		switch(cr_info.type)
 		{
-			case access_dama_vbdc:
-				request_kb = it->value;
+			case ReturnAccessType::dama_vbdc:
+				request_kb = cr_info.value;
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u received VBDC requests %u kb\n",
 				    this->current_superframe_sf, tal_id, request_kb);
 				
-				request_kb = min(request_kb, terminal->getMaxVbdc());
+				request_kb = std::min(request_kb, terminal->getMaxVbdc());
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u updated VBDC requests %u kb (<= max VBDC %u kb)\n",
 				    this->current_superframe_sf, tal_id, request_kb, terminal->getMaxVbdc());
@@ -149,24 +148,24 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 				if(tal_id > BROADCAST_TAL_ID)
 				{
 					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
-					                tal_id, request_kb, access_dama_vbdc);
+					                tal_id, request_kb, ReturnAccessType::dama_vbdc);
 				}
 				break;
 
-			case access_dama_rbdc:
-				request_kbps = it->value;
+			case ReturnAccessType::dama_rbdc:
+				request_kbps = cr_info.value;
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u received RBDC requests %u kb/s\n",
 				    this->current_superframe_sf, tal_id, request_kbps);
 
 				// remove the CRA of the RBDC request
 				// the CRA is not taken into acount on ST side
-				request_kbps = max(request_kbps - terminal->getRequiredCra(), 0);
+				request_kbps = std::max(request_kbps - terminal->getRequiredCra(), 0);
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u updated RBDC requests %u kb/s (removing CRA %u kb/s)\n",
 				    this->current_superframe_sf, tal_id, request_kbps, terminal->getRequiredCra());
 
-				request_kbps = min(request_kbps, terminal->getMaxRbdc());
+				request_kbps = std::min(request_kbps, terminal->getMaxRbdc());
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u updated RBDC requests %u kb/s (<= max RBDC %u kb/s)\n",
 				    this->current_superframe_sf, tal_id, request_kbps, terminal->getMaxRbdc());
@@ -176,14 +175,14 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 				if(tal_id > BROADCAST_TAL_ID)
 				{
 					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
-					                tal_id, request_kbps, access_dama_rbdc);
+					                tal_id, request_kbps, ReturnAccessType::dama_rbdc);
 				}
 				break;
 
 			default:
 				LOG(this->log_sac, LEVEL_INFO,
 				    "SF#%u: ST%u received request of unkwon type %d\n",
-				    this->current_superframe_sf, tal_id, it->type);
+				    this->current_superframe_sf, tal_id, cr_info.type);
 				break;
 		}
 	}
@@ -293,7 +292,7 @@ bool DamaCtrlRcs2::applyPepCommand(const PepRequest *request)
 
 		terminal->setMaxRbdc(max_rbdc_kbps);
 		LOG(this->log_pep, LEVEL_NOTICE,
-		    "SF#%u: ST%u: update RBDC std::max to %u kbits/s\n",
+		    "SF#%u: ST%u: update RBDC max to %u kbits/s\n",
 		    this->current_superframe_sf,
 		    request->getStId(), request->getRbdcMax());
 
@@ -398,7 +397,7 @@ bool DamaCtrlRcs2::updateWaveForms()
 		TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 		TerminalContextDamaRcs *terminal = dynamic_cast<TerminalContextDamaRcs *>(terminal_it->second);
 		tal_id_t tal_id = terminal->getTerminalId();
-		vector<CarriersGroupDama *> carriers_group;
+		std::vector<CarriersGroupDama *> carriers_group;
 		FmtDefinition *fmt_def;
 		CarriersGroupDama *carriers;
 		unsigned int required_fmt;
@@ -421,7 +420,7 @@ bool DamaCtrlRcs2::updateWaveForms()
 		carriers_group = category->getCarriersGroups();
 
 		// check current carrier has the required FMT
-		for(vector<CarriersGroupDama *>::iterator it = carriers_group.begin();
+		for(std::vector<CarriersGroupDama *>::iterator it = carriers_group.begin();
 		    it != carriers_group.end(); ++it)
 		{
 			unsigned int fmt;
@@ -444,7 +443,7 @@ bool DamaCtrlRcs2::updateWaveForms()
 		if(available_fmt == 0)
 		{
 			// get an available MODCOD id for this terminal among carriers
-			for(vector<CarriersGroupDama *>::const_iterator it = carriers_group.begin();
+			for(std::vector<CarriersGroupDama *>::const_iterator it = carriers_group.begin();
 				it != carriers_group.end(); ++it)
 			{
 				unsigned int fmt;
@@ -579,7 +578,7 @@ bool DamaCtrlRcs2::resetTerminalsAllocations()
 			timeslot_kbps = this->converter->pktpfToKbps(1);
 			
 			// Update RBDC request and credit (in kb/s)
-			credit_kbps = max(credit_kbps - timeslot_kbps, 0.0);
+			credit_kbps = std::max(credit_kbps - timeslot_kbps, 0.0);
 			request_kbps += timeslot_kbps;
 
 			// Set RBDC request and credit (in kb/s)
@@ -594,24 +593,17 @@ bool DamaCtrlRcs2::resetTerminalsAllocations()
 bool DamaCtrlRcs2::resetCarriersCapacity()
 {
 	rate_symps_t gw_return_total_capacity_symps = 0;
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
-	vector<CarriersGroupDama *>::const_iterator carrier_it;
 
 	// Initialize the capacity of carriers
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    ++category_it)
+	for (auto &&category_pair: this->categories)
 	{
 		rate_symps_t category_return_capacity_symps = 0;
-		TerminalCategoryDama *category = (*category_it).second;
-		vector<CarriersGroupDama *> carriers_group = category->getCarriersGroups();
-		string label = category->getLabel();
+		TerminalCategoryDama *category = category_pair.second;
+		std::vector<CarriersGroupDama *> carriers_group = category->getCarriersGroups();
+		std::string label = category->getLabel();
 
-		for(carrier_it = carriers_group.begin();
-		    carrier_it != carriers_group.end();
-		    ++carrier_it)
+		for (auto *carriers: carriers_group)
 		{
-			CarriersGroupDama *carriers = *carrier_it;
 			unsigned int carrier_id = carriers->getCarriersId();
 			rate_symps_t remaining_capacity_symps;
 			rate_pktpf_t remaining_capacity_pktpf;
@@ -635,18 +627,18 @@ bool DamaCtrlRcs2::resetCarriersCapacity()
 			// Output probes and stats
 			// first create probes that don't exist in case of carriers
 			// reallocation with SVNO interface
-			if(this->probes_carrier_return_capacity[label].find(carrier_id)
-			   == this->probes_carrier_return_capacity[label].end())
+			auto &probes_capa = this->probes_carrier_return_capacity[label];
+			if(probes_capa.find(carrier_id) == probes_capa.end())
 			{
 				auto probe = this->generateCarrierCapacityProbe(label, carrier_id, "Available");
-				this->probes_carrier_return_capacity[label].emplace(carrier_id, probe);
+				probes_capa.emplace(carrier_id, probe);
 			}
 			if(this->carrier_return_remaining_capacity[label].find(carrier_id)
 			   == this->carrier_return_remaining_capacity[label].end())
 			{
 				this->carrier_return_remaining_capacity[label].emplace(carrier_id, 0);
 			}
-			this->probes_carrier_return_capacity[label][carrier_id]->put(remaining_capacity_symps);
+			probes_capa[carrier_id]->put(remaining_capacity_symps);
 			gw_return_total_capacity_symps += remaining_capacity_symps;
 			category_return_capacity_symps += remaining_capacity_symps;
 			this->carrier_return_remaining_capacity[label][carrier_id] = remaining_capacity_symps;
@@ -664,42 +656,24 @@ bool DamaCtrlRcs2::resetCarriersCapacity()
 	return true;
 }
 
-std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateGwCapacityProbe(
-	string name) const
+std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateGwCapacityProbe(std::string name) const
 {
-	char probe_name[128];
-
-	snprintf(probe_name, sizeof(probe_name),
-	         "Spot_%d.Up/Return total capacity.%s",
-	         this->spot_id, name.c_str());
-
-	return Output::Get()->registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
+	return Output::Get()->registerProbe<int>(output_prefix + "Up/Return total capacity." + name,
+	                                         "Sym/s", true, SAMPLE_LAST);
 }
 
-std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCategoryCapacityProbe(
-	string category_label,
-	string name) const
+std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCategoryCapacityProbe(std::string category_label,
+                                                                        std::string name) const
 {
-	char probe_name[128];
-
-	snprintf(probe_name, sizeof(probe_name),
-	         "Spot_%d.%s.Up/Return capacity.Total.%s",
-	         this->spot_id, category_label.c_str(), name.c_str());
-
-	return Output::Get()->registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
+	return Output::Get()->registerProbe<int>(output_prefix + category_label + ".Up/Return capacity.Total." + name,
+	                                         "Sym/s", true, SAMPLE_LAST);
 }
 
-std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCarrierCapacityProbe(
-	string category_label,
-	unsigned int carrier_id,
-	string name) const
+std::shared_ptr<Probe<int>> DamaCtrlRcs2::generateCarrierCapacityProbe(std::string category_label,
+                                                                       unsigned int carrier_id,
+                                                                       std::string name) const
 {
-	char probe_name[128];
-
-	snprintf(probe_name, sizeof(probe_name),
-	         "Spot_%d.%s.Up/Return capacity.Carrier%u.%s",
-	         this->spot_id, category_label.c_str(), carrier_id, name.c_str());
-
-	return Output::Get()->registerProbe<int>(probe_name, "Sym/s", true, SAMPLE_LAST);
+	return Output::Get()->registerProbe<int>(output_prefix + category_label + ".Up/Return capacity.Carrier" +
+	                                         std::to_string(carrier_id) + "." + name,
+	                                         "Sym/s", true, SAMPLE_LAST);
 }
-

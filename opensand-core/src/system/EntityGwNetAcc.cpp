@@ -67,75 +67,54 @@
 
 #include "PacketSwitch.h"
 
+
 EntityGwNetAcc::EntityGwNetAcc(tal_id_t instance_id): Entity("gw_net_acc" + std::to_string(instance_id), instance_id)
 {
 }
+
 
 EntityGwNetAcc::~EntityGwNetAcc()
 {
 }
 
+
 bool EntityGwNetAcc::createSpecificBlocks()
 {
-	struct la_specific spec_la;
-
-	Block *block_lan_adaptation;
-	Block *block_encap;
-	Block *block_dvb;
-	Block *block_interconnect;
-
-	// instantiate all blocs
-	spec_la.tap_iface = this->tap_iface;
-	spec_la.packet_switch = new GatewayPacketSwitch(this->instance_id);
-	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
-			 BlockLanAdaptation::Upward,
-			 BlockLanAdaptation::Downward,
-			 struct la_specific>("LanAdaptation", NULL, spec_la);
-	if(!block_lan_adaptation)
+	try
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the LanAdaptation block",
-		        this->getName().c_str());
+		la_specific spec_la;
+		spec_la.tap_iface = this->tap_iface;
+		spec_la.packet_switch = new GatewayPacketSwitch(this->instance_id);
+
+		EncapConfig encap_cfg;
+		encap_cfg.entity_id = this->instance_id;
+		encap_cfg.entity_type = Component::gateway;
+		encap_cfg.filter_packets = true;
+
+		dvb_specific dvb_spec;
+		dvb_spec.disable_control_plane = false;
+		dvb_spec.mac_id = instance_id;
+		dvb_spec.spot_id = instance_id;
+
+		InterconnectConfig interco_cfg;
+		interco_cfg.interconnect_addr = this->interconnect_address;
+		interco_cfg.delay = 0;
+
+		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", spec_la);
+		auto block_encap = Rt::createBlock<BlockEncap>("Encap", encap_cfg);
+		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
+		auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>("Interconnect.Downward", interco_cfg);
+
+		Rt::connectBlocks(block_lan_adaptation, block_encap);
+		Rt::connectBlocks(block_encap, block_dvb);
+		Rt::connectBlocks(block_dvb, block_interconnect);
+	}
+	catch (const std::bad_alloc &e)
+	{
+		DFLTLOG(LEVEL_CRITICAL, "%s: error during block creation: could not allocate memory: %s",
+		        this->getName().c_str(), e.what());
 		return false;
 	}
-
-	block_encap = Rt::createBlock<BlockEncap,
-		BlockEncap::Upward,
-		BlockEncap::Downward,
-		tal_id_t>("Encap", block_lan_adaptation, this->instance_id);
-	if(!block_encap)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the Encap block",
-            this->getName().c_str());
-		return false;
-	}
-
-	block_dvb = Rt::createBlock<BlockDvbNcc,
-	      BlockDvbNcc::Upward,
-	      BlockDvbNcc::Downward,
-	      tal_id_t>("Dvb", block_encap, this->instance_id);
-	if(!block_dvb)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the DvbNcc block",
-            this->getName().c_str());
-		return false;
-	}
-
-	block_interconnect = Rt::createBlock<BlockInterconnectDownward,
-		       BlockInterconnectDownward::Upward,
-		       BlockInterconnectDownward::Downward,
-		       const string &>
-		       ("InterconnectDownward", block_dvb, this->interconnect_address);
-	if(!block_interconnect)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the InterconnectDownward block",
-            this->getName().c_str());
-		return false;
-	}
-
 	return true;
 }
 
@@ -161,8 +140,12 @@ bool EntityGwNetAcc::createSpecificConfiguration(const std::string &filepath) co
 
 void EntityGwNetAcc::defineProfileMetaModel() const
 {
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+	auto ctrl_plane = Conf->getOrCreateComponent("control_plane", "Control plane", "Control plane configuration");
+	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
+
 	BlockLanAdaptation::generateConfiguration();
 	BlockEncap::generateConfiguration();
-	BlockDvbNcc::generateConfiguration();
-	BlockInterconnectDownward::generateConfiguration();
+	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
 }

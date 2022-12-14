@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Process this file with autoconf to produce a configure script.
-AC_INIT(opensand-output, 6.0.1, [http://opensand.org])
+m4_define([opensand_version], m4_bregexp(m4_quote(m4_esyscmd_s([cat ChangeLog])), [[0-9]+\.[0-9]+\.[0-9]+], [\&]))
+AC_INIT(opensand-output, [opensand_version], [http://opensand.org])
 AC_CONFIG_SRCDIR([src])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
@@ -33,7 +34,7 @@ AC_CHECK_FUNCS([malloc free])
 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
-CXXFLAGS="$CXXFLAGS -std=c++11"
+CXXFLAGS="$CXXFLAGS -std=c++17"
 
 # check if -Werror must be appended to CFLAGS
 WERROR=""

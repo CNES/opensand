@@ -49,9 +49,7 @@
  */
 class DvbS2Std: public PhysicStd
 {
-
- private:
-
+private:
 	// TODO create a type for modcod_id
 	/** The real MODCOD of the ST */
 	uint8_t real_modcod;
@@ -62,16 +60,14 @@ class DvbS2Std: public PhysicStd
 	/** The modcod definition table */
 	FmtDefinitionTable *modcod_def;
 
- protected:
-
+protected:
 	// whether this is a SCPC reception standard
 	bool is_scpc;
 
 	// Output Log
 	std::shared_ptr<OutputLog>  log_rcv_from_down;
 
- public:
-
+public:
 	/**
 	 * Build a DVB-S2 Transmission Standard
 	 *
@@ -85,7 +81,7 @@ class DvbS2Std: public PhysicStd
 	 * @param type     the type of the DVB standard
 	 * @param packet_handler the packet handler
 	 */
-	DvbS2Std(string type,
+	DvbS2Std(std::string type,
 	         EncapPlugin::EncapPacketHandler *pkt_hdl);
 
 	/**
@@ -152,9 +148,12 @@ class DvbS2Std: public PhysicStd
 
 };
 
+
 class DvbScpcStd: public DvbS2Std
 {
-  public:
+public:
 	DvbScpcStd(EncapPlugin::EncapPacketHandler *pkt_hdl);
 };
+
+
 #endif

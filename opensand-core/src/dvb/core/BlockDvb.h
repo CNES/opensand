@@ -60,64 +60,63 @@
 
 #include "PhysicStd.h"
 #include "TerminalCategory.h"
-#include "BBFrame.h"
-#include "Sac.h"
-#include "Ttp.h"
 #include "DvbChannel.h"
 
-#include <opensand_output/Output.h>
 #include <opensand_rt/Rt.h>
+#include <opensand_rt/RtChannel.h>
 
 
-class BlockDvbSat;
-class BlockDvbNcc;
-class BlockDvbTal;
+struct dvb_specific
+{
+	tal_id_t mac_id;
+	spot_id_t spot_id;
+	bool disable_control_plane;
+	bool disable_acm_loop;
+};
 
 
 class BlockDvb: public Block
 {
- public:
-
+public:
 	/**
 	 * @brief DVB block constructor
 	 *
 	 */
-	BlockDvb(const string &name):
-		Block(name)
-	{
-		auto output = Output::Get();
-		// register static logs
-		BBFrame::bbframe_log = output->registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
-		Sac::sac_log = output->registerLog(LEVEL_WARNING, "Dvb.SAC");
-		Ttp::ttp_log = output->registerLog(LEVEL_WARNING, "Dvb.TTP");
-	};
-
+	BlockDvb(const std::string &name);
 
 	~BlockDvb();
 
 
 	class DvbUpward: public DvbChannel, public RtUpward
 	{
-	 public:
-		DvbUpward(const string &name):
-			DvbChannel(),
-			RtUpward(name)
-		{};
+	public:
+		DvbUpward(const std::string &name, dvb_specific specific);
 
 		~DvbUpward();
+
+	protected:
+		virtual bool onRcvDvbFrame(DvbFrame *frame) = 0;
+
+		/**
+		 * Transmist a frame to the opposite channel
+		 *
+		 * @param frame The dvb frame
+		 * @return true on success, false otherwise
+		 */ 
+		bool shareFrame(DvbFrame *frame);
+
+		bool disable_control_plane;
+		bool disable_acm_loop;
 	};
 
 	class DvbDownward: public DvbChannel, public RtDownward
 	{
-	 
-	 public:
-		DvbDownward(const string &name):
-			DvbChannel(),
-			RtDownward(name)
-		{
-		};
+	public:
+		DvbDownward(const std::string &name, dvb_specific specific);
 
-	 protected:
+		~DvbDownward();
+
+	protected:
 		/**
 		 * @brief Read the common configuration parameters for downward channels
 		 *
@@ -134,7 +133,7 @@ class BlockDvb: public Block
 		 *                      MAC FIFO (used on SAT to emulate delay)
 		 * @return              true on success, false otherwise
 		 */
-		bool onRcvEncapPacket(NetPacket *packet,
+		bool onRcvEncapPacket(std::unique_ptr<NetPacket> packet,
 		                      DvbFifo *fifo,
 		                      time_ms_t fifo_delay);
 
@@ -147,7 +146,7 @@ class BlockDvb: public Block
 		 * @param carrier_id      the ID of the carrier where to send the frames
 		 * @return true on success, false otherwise
 		 */
-		bool sendBursts(list<DvbFrame *> *complete_frames,
+		bool sendBursts(std::list<DvbFrame *> *complete_frames,
 		                uint8_t carrier_id);
 
 		/**
@@ -158,12 +157,15 @@ class BlockDvb: public Block
 		 * @return            true on success, false otherwise
 		 */
 		bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
-		
+
+		virtual bool handleDvbFrame(DvbFrame *frame) = 0;
 		
 		/**
 		 * Update the statistics
 		 */
 		virtual void updateStats(void) = 0;
+
+		bool disable_control_plane;
 	};
 };
 

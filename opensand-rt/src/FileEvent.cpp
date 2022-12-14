@@ -33,80 +33,80 @@
  *
  */
 
+#include <unistd.h>
+#include <cstring>
+
 #include "FileEvent.h"
 #include "Rt.h"
 
-#include <cstring>
-#include <unistd.h>
-#include <errno.h>
 
-
-FileEvent::FileEvent(const string &name,
+FileEvent::FileEvent(const std::string &name,
                      int32_t fd,
                      size_t max_size,
                      uint8_t priority,
-                     event_type_t type):
-	RtEvent(type, name, fd, priority),
-	max_size(max_size),
-	data(NULL),
-	size(0)
+                     EventType type):
+	RtEvent{type, name, fd, priority},
+	max_size{max_size},
+	data{nullptr},
+	size{0}
 {
 }
+
 
 FileEvent::~FileEvent()
 {
-	if(this->data)
-	{
-		free(this->data);
-	}
+	delete [] this->data;
 }
+
 
 bool FileEvent::handle(void)
 {
-	int ret;
-
 	if(this->data)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: previous data was not handled\n",
 		                this->name.c_str());
-		free(this->data);
+		delete [] this->data;
 	}
 	// one more byte so we can use it as char*
-	this->data = (unsigned char *)calloc(this->max_size + 1, sizeof(unsigned char));
+	this->data = new unsigned char[this->max_size + 1]();  // parens do value initialization to 0
 
-	ret = read(this->fd, this->data, this->max_size);
+	int ret = read(this->fd, this->data, this->max_size);
+	std::size_t actual_size = static_cast<std::size_t>(ret);
 	if(ret < 0)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "unable to read on socket [%u: %s]", errno, strerror(errno));
 		goto error;
 	}
-	else if((size_t)ret > this->max_size)
+
+	if(actual_size > this->max_size)
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "event %s: too many data received (%zu > %zu)\n",
 		                this->name.c_str(), this->size, this->max_size);
 		goto error;
 	}
-	else if(ret == 0)
+	else if(actual_size == 0)
 	{
 		// EOF
-		free(this->data);
-		this->data = NULL;
+		delete [] this->data;
+		this->data = nullptr;
 	}
-	this->size = (size_t)ret;
+	this->size = actual_size;
 
 	return true;
+
 error:
-	free(this->data);
-	this->data = NULL;
+	delete [] this->data;
+	this->data = nullptr;
 	return false;
 }
 
-unsigned char *FileEvent::getData(void)
+
+unsigned char *FileEvent::getData(void) const
 {
 	unsigned char *buf = this->data;
-	this->data = NULL;
+	this->data = nullptr;
 	return buf;
 }

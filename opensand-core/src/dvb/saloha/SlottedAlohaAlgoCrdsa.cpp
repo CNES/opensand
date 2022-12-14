@@ -33,6 +33,8 @@
  * @author Julien Bernard / Viveris technologies
 */
 
+#include <opensand_output/Output.h>
+
 #include "SlottedAlohaAlgoCrdsa.h"
 
 
@@ -48,9 +50,7 @@ SlottedAlohaAlgoCrdsa::~SlottedAlohaAlgoCrdsa()
 uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> &slots,
                                                  saloha_packets_data_t *accepted_packets)
 {
-  std::map<unsigned int, Slot *>::iterator slot_it;
-  std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
-	saloha_packets_data_t::iterator pkt_it;
+	std::map<tal_id_t, std::vector<saloha_id_t> > accepted_ids;
 	uint16_t nbr_collisions = 0;
 	bool stop;
 	
@@ -61,11 +61,9 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 	do
 	{
 		stop = true;
-		for(std::map<unsigned int, Slot *>::iterator slot_it = slots.begin();
-			slot_it != slots.end(); ++slot_it)
+		for(auto&& slot_it : slots)
 		{
-			Slot *slot = (*slot_it).second;
-			SlottedAlohaPacketData *packet;
+			Slot *slot = slot_it.second;
 			if(!slot->size())
 			{
 				continue;
@@ -74,12 +72,12 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 			    "Remove collisions on slot %u, containing %zu packets\n",
 			    slot->getId(), slot->size());
 
-			pkt_it = slot->begin();
+			auto pkt_it = slot->begin();
 			// remove packets that were accepted on another slot from this slot
 			// (i.e. signal suppression of this packet)
 			while(pkt_it != slot->end())
 			{
-				packet = dynamic_cast<SlottedAlohaPacketData *>(*pkt_it);
+				auto& packet = *pkt_it;
 				tal_id_t tal_id = packet->getSrcTalId();
 
 				// create accepted_ids for this terminal if it does not exist
@@ -94,12 +92,14 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 				{
 					slot->erase(pkt_it);
 					// avoid removing an accepted packet
+					/*
 					if(std::find(accepted_packets->begin(),
 					             accepted_packets->end(),
 					             packet) == accepted_packets->end())
 					{
 						delete packet;
 					}
+					*/
 					// erase goes to next iterator
 					continue;
 				}
@@ -110,7 +110,7 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 			    slot->getId(), slot->size());
 			if(slot->size() == 1)
 			{
-				packet = dynamic_cast<SlottedAlohaPacketData *>(slot->front());
+				auto& packet = slot->front();
 				tal_id_t tal_id = packet->getSrcTalId();
 
 				// create accepted_ids for this terminal if it does not exist
@@ -119,8 +119,8 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 					accepted_ids[tal_id] = std::vector<saloha_id_t>();
 				}
 
-				accepted_packets->push_back(packet);
 				accepted_ids[tal_id].push_back(packet->getUniqueId());
+				accepted_packets->push_back(std::move(packet));
 				// packet is decoded, we need to restart the check all slots
 				// to remove the signal of this packet when a duplicate was found
 				stop = false;
@@ -138,10 +138,9 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 	}
 	while(!stop);
 
-	for(std::map<unsigned int, Slot *>::iterator slot_it = slots.begin();
-		slot_it != slots.end(); ++slot_it)
+	for(auto&& slot_it : slots)
 	{
-		Slot *slot = (*slot_it).second;
+		Slot *slot = slot_it.second;
 		// check for collisions here, we do not count collisions that were avoided
 		if(slot->size() > 1)
 		{
@@ -149,15 +148,8 @@ uint16_t SlottedAlohaAlgoCrdsa::removeCollisions(std::map<unsigned int, Slot *> 
 			    "There is still collision on slot %u, remove packets\n",
 			    slot->getId());
 			nbr_collisions += slot->size();
-			for(pkt_it = slot->begin();
-			    pkt_it != slot->end();
-			    ++pkt_it)
-			{
-				// remove collisionned packets
-			   delete *pkt_it;
-			}
 		}
-		(*slot_it).second->clear();
+		slot->clear();
 	}
 	return nbr_collisions;
 }

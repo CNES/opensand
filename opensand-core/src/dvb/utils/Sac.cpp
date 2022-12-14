@@ -57,7 +57,7 @@ Sac::Sac(tal_id_t tal_id, group_id_t group_id):
 	DvbFrameTpl<T_DVB_SAC>(),
 	request_nbr(0)
 {
-	this->setMessageType(MSG_TYPE_SAC);
+	this->setMessageType(EmulatedMessageType::Sac);
 	this->setMessageLength(sizeof(T_DVB_SAC));
 	this->setMaxSize(sizeof(T_DVB_SAC) + (sizeof(emu_cr_t) * NBR_MAX_CR));
 	this->frame()->sac.tal_id = htons(tal_id);
@@ -71,7 +71,7 @@ Sac::~Sac()
 {
 }
 
-bool Sac::addRequest(uint8_t prio, uint8_t type, uint32_t value)
+bool Sac::addRequest(uint8_t prio, ReturnAccessType type, uint32_t value)
 {
 	uint8_t scale;
 	uint8_t val;
@@ -152,11 +152,9 @@ void Sac::setAcm(double cni)
  */
 static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value)
 {
-	scale = 0;
-	value = 0;
 	switch(cr_info.type)
 	{
-		case access_dama_vbdc:
+		case ReturnAccessType::dama_vbdc:
 			if(cr_info.value <= DVB_CR_VBDC_SCALING_FACTOR_OFFSET)
 			{
 				value = cr_info.value;
@@ -170,7 +168,7 @@ static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value)
 			}
 			break;
 
-		case access_dama_rbdc:
+		case ReturnAccessType::dama_rbdc:
 			if(cr_info.value <= DVB_CR_RBDC_SCALING_FACTOR_OFFSET)
 			{
 				value = getEncodedRequestValue(cr_info.value,
@@ -193,6 +191,9 @@ static void getScaleAndValue(cr_info_t cr_info, uint8_t &scale, uint8_t &value)
 				scale = 2;
 			}
 			break;
+		default:
+			scale = 0;
+			value = 0;
 	}
 }
 
@@ -234,18 +235,18 @@ static uint8_t getEncodedRequestValue(uint16_t value, unsigned int step)
  */
 static uint16_t getDecodedCrValue(const emu_cr_t &cr)
 {
-	uint16_t request = 0;
+	uint16_t request;
 
 	switch(cr.type)
 	{
-		case access_dama_vbdc:
+		case ReturnAccessType::dama_vbdc:
 			if(cr.scale == 0)
 				request = cr.value;
 			else
 				request = cr.value * DVB_CR_VBDC_SCALING_FACTOR;
 			break;
 
-		case access_dama_rbdc:
+		case ReturnAccessType::dama_rbdc:
 			if(cr.scale == 0)
 				request = cr.value * DVB_CR_RBDC_GRANULARITY;
 			else if(cr.scale == 1)
@@ -255,6 +256,8 @@ static uint16_t getDecodedCrValue(const emu_cr_t &cr)
 				request = cr.value * DVB_CR_RBDC_GRANULARITY
 				                   * DVB_CR_RBDC_SCALING_FACTOR2;
 			break;
+		default:
+			request = 0;
 	}
 
 	return request;

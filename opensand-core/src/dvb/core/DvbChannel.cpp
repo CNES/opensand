@@ -40,6 +40,7 @@
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
 #include "OpenSandModelConf.h"
+#include "FifoElement.h"
 
 #include <unistd.h>
 #include <errno.h>
@@ -51,7 +52,7 @@ std::shared_ptr<OutputLog> DvbChannel::dvb_fifo_log = nullptr;
  *
  * @return true if the file is found, false otherwise
  */
-inline bool fileExists(const string &filename)
+inline bool fileExists(const std::string &filename)
 {
 	if(access(filename.c_str(), R_OK) < 0)
 	{
@@ -83,23 +84,23 @@ bool DvbChannel::initModcodDefinitionTypes(void)
 	return true;
 }
 
-bool DvbChannel::initPktHdl(encap_scheme_list_t encap_schemes,
+bool DvbChannel::initPktHdl(EncapSchemeList encap_schemes,
                             EncapPlugin::EncapPacketHandler **pkt_hdl)
 {
-	string encap_name;
+	std::string encap_name;
 	EncapPlugin *plugin;
 
 	switch(encap_schemes)
 	{
-		case FORWARD_DOWN_ENCAP_SCHEME_LIST:
+		case EncapSchemeList::FORWARD_DOWN:
 			encap_name = "GSE";
 			break;
 
-		case RETURN_UP_ENCAP_SCHEME_LIST:
+		case EncapSchemeList::RETURN_UP:
 			encap_name = "RLE";
 			break;
 
-		case TRANSPARENT_SATELLITE_NO_SCHEME_LIST:
+		case EncapSchemeList::TRANSPARENT_NO_SCHEME:
 			LOG(this->log_init_channel, LEVEL_INFO,
 			    "Skipping packet handler initialization for "
 			    "transparent satellite");
@@ -136,8 +137,8 @@ bool DvbChannel::initPktHdl(encap_scheme_list_t encap_schemes,
 
 bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 {
-	vector<string> encap_stack;
-	string encap_name;
+	std::vector<std::string> encap_stack;
+	std::string encap_name;
 	EncapPlugin *plugin;
 
 	// Get SCPC encapsulation name stack
@@ -176,7 +177,7 @@ bool DvbChannel::initScpcPktHdl(EncapPlugin::EncapPacketHandler **pkt_hdl)
 	return true;
 }
 
-bool DvbChannel::initCommon(encap_scheme_list_t encap_schemes)
+bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 {
 	auto Conf = OpenSandModelConf::Get();
 
@@ -228,19 +229,23 @@ void DvbChannel::initStatsTimer(time_ms_t frame_duration_ms)
 
 
 bool DvbChannel::pushInFifo(DvbFifo *fifo,
-                            NetContainer *data,
+                            std::unique_ptr<NetContainer> data,
                             time_ms_t fifo_delay)
 {
-	MacFifoElement *elem;
+	FifoElement *elem;
 	time_ms_t current_time = getCurrentTime();
+	std::string data_name = data->getName();
 
 	// create a new FIFO element to store the packet
-	elem = new MacFifoElement(data, current_time, current_time + fifo_delay);
-	if(!elem)
+	try
+	{
+		elem = new FifoElement(std::move(data), current_time, current_time + fifo_delay);
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(DvbChannel::dvb_fifo_log, LEVEL_ERROR,
 		    "cannot allocate FIFO element, drop data\n");
-		goto error;
+		return false;
 	}
 
 	// append the data in the fifo
@@ -248,21 +253,16 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 	{
 		LOG(DvbChannel::dvb_fifo_log, LEVEL_ERROR,
 		    "FIFO is full: drop data\n");
-		goto release_elem;
+		delete elem;
+		return false;
 	}
 
 	LOG(DvbChannel::dvb_fifo_log, LEVEL_NOTICE,
 	    "%s data stored in FIFO %s (tick_in = %ld, tick_out = %ld)\n",
-	    data->getName().c_str(), fifo->getName().c_str(),
+	    data_name.c_str(), fifo->getName().c_str(),
 	    elem->getTickIn(), elem->getTickOut());
 
 	return true;
-
-release_elem:
-	delete elem;
-error:
-	delete data;
-	return false;
 }
 
 
@@ -360,11 +360,8 @@ bool DvbFmt::initModcodDefFile(ModcodDefFileType def, FmtDefinitionTable **modco
 bool DvbFmt::addInputTerminal(tal_id_t id,
                               const FmtDefinitionTable *const modcod_def)
 {
-	fmt_id_t modcod;
-	
 	// set less robust modcod at init
-	modcod = modcod_def->getMaxId();
-
+	fmt_id_t modcod = modcod_def->getMaxId();
 	this->input_sts->addTerminal(id, modcod, modcod_def);
 	return true;
 }
@@ -373,6 +370,7 @@ bool DvbFmt::addInputTerminal(tal_id_t id,
 bool DvbFmt::addOutputTerminal(tal_id_t id,
                                const FmtDefinitionTable *const modcod_def)
 {
+	// set less robust modcod at init
 	fmt_id_t modcod = modcod_def->getMaxId();
 	this->output_sts->addTerminal(id, modcod, modcod_def);
 	return true;
@@ -457,13 +455,11 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 }
 
 bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
-                                MacFifoElement *elem,
-                                DvbFifo *fifo,
-                                NetPacket* packet,
-                                NetPacket **extension_pkt,
+                                FifoElement *elem,
+                                std::unique_ptr<NetPacket> packet,
                                 tal_id_t source,
                                 tal_id_t dest,
-                                string extension_name,
+                                std::string extension_name,
                                 time_sf_t super_frame_counter,
                                 bool is_gw)
 {
@@ -484,11 +480,9 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	}
 	opaque = hcnton(cni);
 
-	bool replace = packet != nullptr;
-	NetPacket* selected_pkt = nullptr;
 	if(packet != nullptr)
 	{
-		bool success = pkt_hdl->getPacketForHeaderExtensions({packet}, &selected_pkt);
+		bool success = pkt_hdl->checkPacketForHeaderExtensions(packet);
 
 		if (!success)
 		{
@@ -496,7 +490,7 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 			    "SF#%d: Cannot get packet to add header extension\n",
 			    super_frame_counter);
 		}
-		else if(selected_pkt != NULL)
+		else if(packet != nullptr)
 		{
 			LOG(this->log_fmt, LEVEL_DEBUG,
 			    "SF#%d: found no-fragmented packet without extensions\n",
@@ -510,7 +504,8 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 		}
 	}
 
-	if(!pkt_hdl->setHeaderExtensions(selected_pkt,
+	std::unique_ptr<NetPacket> extension_pkt;
+	if(!pkt_hdl->setHeaderExtensions(std::move(packet),
 	                                 extension_pkt,
 	                                 source,
 	                                 dest,
@@ -523,23 +518,16 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 		return false;
 	}
 
-	if(extension_pkt == NULL)
+	if(extension_pkt == nullptr)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "SF#%d: failed to create the GSE packet with "
 		    "extensions\n", super_frame_counter);
 		return false;
 	}
-	if(replace)
-	{
-		// And replace the packet in the FIFO
-		elem->setElem(*extension_pkt);
-	}
-	else
-	{
-		MacFifoElement *new_el = new MacFifoElement(*extension_pkt, 0, 0);
-		fifo->pushBack(new_el);
-	}
+
+	// And replace the packet in the FIFO
+	elem->setElem(std::move(extension_pkt));
 
 	return true;
 }

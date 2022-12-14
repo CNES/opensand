@@ -51,8 +51,7 @@
  */
 class TerminalContextDama: public TerminalContext
 {
- public:
-
+public:
 	/**
 	 * @brief  Create a terminal context for DAMA
 	 *
@@ -265,8 +264,7 @@ class TerminalContextDama: public TerminalContext
 	static bool sortByVbdcReq(const TerminalContextDama *e1,
 	                          const TerminalContextDama *e2);
 
-  protected:
-
+protected:
 	/** Required CRA for the terminal (kb/s) */
 	rate_kbps_t cra_request_kbps;
 

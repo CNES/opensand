@@ -38,8 +38,6 @@
 #include <string>
 #include <map>
 
-using std::string;
-using std::map;
 
 /**
  * @class CodingTypes
@@ -47,7 +45,7 @@ using std::map;
  */
 class CodingTypes
 {
- public:
+public:
 	~CodingTypes();
 
 	/**
@@ -57,7 +55,7 @@ class CodingTypes
 	 *
 	 * @return  True if the label is managed, false otherwise
 	 */
-	static bool exist(string coding_label);
+	static bool exist(std::string coding_label);
 
 	/**
 	 * @brief Get the default coding rate
@@ -73,11 +71,11 @@ class CodingTypes
 	 *
 	 * @return  The coding rate
 	 */
-	static float getRate(string coding_label);
+	static float getRate(std::string coding_label);
 
- private:
+private:
 	float default_coding_rate;
-	map<string, float> coding_rates;
+	std::map<std::string, float> coding_rates;
 
 	CodingTypes();
 };

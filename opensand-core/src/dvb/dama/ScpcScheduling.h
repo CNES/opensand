@@ -61,8 +61,7 @@ typedef enum
  */
 class ScpcScheduling: public Scheduling
 {
-  public:
-
+public:
 	ScpcScheduling(time_ms_t scpc_timer_ms,
 	               EncapPlugin::EncapPacketHandler *packet_handler,
 	               const fifos_t &fifos,
@@ -75,23 +74,22 @@ class ScpcScheduling: public Scheduling
 
 	bool schedule(const time_sf_t current_superframe_sf,
 	              clock_t current_time,
-	              list<DvbFrame *> *complete_dvb_frames,
+	              std::list<DvbFrame *> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
 
-  private:
-
+private:
 	/** The timer for forward scheduling (ms) */
 	time_ms_t scpc_timer_ms;
 
 	/** the BBFrame being built identified by their modcod */
-	map<unsigned int, BBFrame *> incomplete_bb_frames;
+	std::map<unsigned int, BBFrame *> incomplete_bb_frames;
 
 	/** the BBframe being built in their created order */
-	list<BBFrame *> incomplete_bb_frames_ordered;
+	std::list<BBFrame *> incomplete_bb_frames_ordered;
 
 	/** the pending BBFrame list if there was not enough space in previous iteration
 	 *  for the corresponding MODCOD */
-	list<BBFrame *> pending_bbframes;
+	std::list<BBFrame *> pending_bbframes;
 
 	/** The FMT DefinitionTable associted */
 	FmtDefinitionTable * scpc_modcod_def;
@@ -103,12 +101,12 @@ class ScpcScheduling: public Scheduling
 	tal_id_t gw_id;
 
 	// Total and unused capacity probes
-  std::shared_ptr<Probe<int>> probe_scpc_total_capacity;
-  std::shared_ptr<Probe<int>> probe_scpc_total_remaining_capacity;
-  std::shared_ptr<Probe<int>> probe_scpc_bbframe_nbr;
-  std::shared_ptr<Probe<int>> probe_sent_modcod;
-	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_scpc_remaining_capacity;
-	map<unsigned int, vector<std::shared_ptr<Probe<int> > > > probe_scpc_available_capacity;
+	std::shared_ptr<Probe<int>> probe_scpc_total_capacity;
+	std::shared_ptr<Probe<int>> probe_scpc_total_remaining_capacity;
+	std::shared_ptr<Probe<int>> probe_scpc_bbframe_nbr;
+	std::shared_ptr<Probe<int>> probe_sent_modcod;
+	std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_scpc_remaining_capacity;
+	std::map<unsigned int, std::vector<std::shared_ptr<Probe<int> > > > probe_scpc_available_capacity;
 
 	/**
 	 * @brief Schedule encapsulated packets from a FIFO and for a given Rs
@@ -123,7 +121,7 @@ class ScpcScheduling: public Scheduling
 	bool scheduleEncapPackets(DvbFifo *fifo,
 	                          const time_sf_t current_superframe_sf,
 	                          clock_t current_time,
-	                          list<DvbFrame *> *complete_dvb_frames,
+	                          std::list<DvbFrame *> *complete_dvb_frames,
 	                          CarriersGroupDama *carriers);
 
 	/**
@@ -160,7 +158,7 @@ class ScpcScheduling: public Scheduling
 	 * @return                   status_ok on success, status_error on error and
 	 *                           status_full -2 if there is not enough capacity
 	 */
-	sched_status_t addCompleteBBFrame(list<DvbFrame *> *complete_bb_frames,
+	sched_status_t addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
 	                                  BBFrame *bbframe,
 	                                  const time_sf_t current_superframe_sf,
 	                                  vol_sym_t &remaining_capacity_sym);
@@ -174,9 +172,9 @@ class ScpcScheduling: public Scheduling
 	 * @param complete_dvb_frames  IN/OUT: The list of complete DVB frames
 	 * @param capacity_sym         IN/OUT: The remaining capacity on carriers
 	 */
-	void schedulePending(const list<fmt_id_t> supported_modcods,
+	void schedulePending(const std::list<fmt_id_t> supported_modcods,
 	                     const time_sf_t current_superframe_sf,
-	                     list<DvbFrame *> *complete_dvb_frames,
+	                     std::list<DvbFrame *> *complete_dvb_frames,
 	                     vol_sym_t &remaining_capacity_sym);
 
 	/**

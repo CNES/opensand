@@ -93,7 +93,7 @@ depcomp
 install-sh
 missing
 stamp-h1
-
+.lvimrc
 
 
 #----------------------------

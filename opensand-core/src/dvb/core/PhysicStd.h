@@ -46,9 +46,7 @@
 #include "EncapPlugin.h"
 #include "DvbFrame.h"
 #include "OpenSandFrames.h"
-#include "MacFifoElement.h"
 
-using std::string;
 
 /**
  * @class PhysicStd
@@ -56,26 +54,22 @@ using std::string;
  */
 class PhysicStd
 {
-
- private:
-
+private:
 	/** The type of the DVB standard ("DVB-RCS" or "DVB-S2") */
-	string type;
+	std::string type;
 
- protected:
-
-    /** The packet representation */
+protected:
+	/** The packet representation */
 	EncapPlugin::EncapPacketHandler *packet_handler;
 
- public:
-
+public:
 	/**
 	 * Build a Physical Transmission Standard
 	 *
 	 * @param type     the type of the DVB standard
 	 * @param pkt_hdl  the packet handler
 	 */
-	PhysicStd(string type,
+	PhysicStd(std::string type,
 	          EncapPlugin::EncapPacketHandler *pkt_hdl);
 
 	/**
@@ -88,8 +82,7 @@ class PhysicStd
 	 *
 	 * @return the type of Physical Transmission Standard
 	 */
-	string getType();
-
+	std::string getType();
 
 	/**
 	 * Receive frame from lower layer and get the EncapPackets
@@ -104,5 +97,6 @@ class PhysicStd
 	                        tal_id_t tal_id,
 	                        NetBurst **burst) = 0;
 };
+
 
 #endif

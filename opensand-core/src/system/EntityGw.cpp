@@ -69,90 +69,61 @@
 
 #include "PacketSwitch.h"
 
+
 EntityGw::EntityGw(tal_id_t instance_id): Entity("gw" + std::to_string(instance_id), instance_id)
 {
 }
+
 
 EntityGw::~EntityGw()
 {
 }
 
+
 bool EntityGw::createSpecificBlocks()
 {
-	struct la_specific laspecific;
-	struct sc_specific scspecific;
+	try {
+		struct la_specific laspecific;
+		laspecific.tap_iface = this->tap_iface;
+		laspecific.packet_switch = new GatewayPacketSwitch(this->instance_id);
 
-	Block *block_lan_adaptation;
-	Block *block_encap;
-	Block *block_dvb;
-	Block *block_phy_layer;
-	Block *block_sat_carrier;
+		EncapConfig encap_cfg;
+		encap_cfg.entity_id = this->instance_id;
+		encap_cfg.entity_type = Component::gateway;
+		encap_cfg.filter_packets = false;
+		
+		dvb_specific dvb_spec;
+		dvb_spec.disable_control_plane = false;
+		dvb_spec.mac_id = instance_id;
+		dvb_spec.spot_id = instance_id;
 
-	// instantiate all blocs
-	laspecific.tap_iface = this->tap_iface;
-        laspecific.packet_switch = new GatewayPacketSwitch(this->instance_id);
-	block_lan_adaptation = Rt::createBlock<BlockLanAdaptation,
-		 BlockLanAdaptation::Upward,
-		 BlockLanAdaptation::Downward,
-		 struct la_specific>("LanAdaptation", NULL, laspecific);
-	if(!block_lan_adaptation)
+		struct sc_specific scspecific;
+		scspecific.ip_addr = this->ip_address;
+		scspecific.tal_id = this->instance_id;
+
+		PhyLayerConfig phy_config;
+		phy_config.mac_id = instance_id;
+		phy_config.spot_id = instance_id;
+		phy_config.entity_type = Component::gateway;
+
+		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", laspecific);	
+		auto block_encap = Rt::createBlock<BlockEncap>("Encap", encap_cfg);
+		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
+		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
+		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("Sat_Carrier", scspecific);
+
+		Rt::connectBlocks(block_lan_adaptation, block_encap);
+		Rt::connectBlocks(block_encap, block_dvb);
+		Rt::connectBlocks(block_dvb, block_phy_layer);
+		Rt::connectBlocks(block_phy_layer, block_sat_carrier);
+	}
+	catch (const std::bad_alloc &e)
 	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the LanAdaptation block",
-		        this->getName().c_str());
+		DFLTLOG(LEVEL_CRITICAL, "%s: error during block creation: could not allocate memory: %s",
+		        this->getName().c_str(), e.what());
 		return false;
 	}
-	block_encap = Rt::createBlock<BlockEncap,
-		BlockEncap::Upward,
-		BlockEncap::Downward,
-		tal_id_t>("Encap", block_lan_adaptation, this->instance_id);
-	if(!block_encap)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the Encap block",
-		        this->getName().c_str());
-		return false;
-	}
-
-	block_dvb = Rt::createBlock<BlockDvbNcc,
-		BlockDvbNcc::Upward,
-		BlockDvbNcc::Downward,
-		tal_id_t>("Dvb", block_encap, this->instance_id);
-	if(!block_dvb)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the DvbNcc block",
-		        this->getName().c_str());
-		return false;
-	}
-
-	block_phy_layer = Rt::createBlock<BlockPhysicalLayer,
-		BlockPhysicalLayer::Upward,
-		BlockPhysicalLayer::Downward,
-		tal_id_t>("PhysicalLayer", block_dvb, this->instance_id);
-	if(!block_phy_layer)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the PhysicalLayer block",
-		        this->getName().c_str());
-		return false;
-	}
-
-	scspecific.ip_addr = this->ip_address;
-	scspecific.tal_id = this->instance_id;
-	block_sat_carrier = Rt::createBlock<BlockSatCarrier,
-		BlockSatCarrier::Upward,
-		BlockSatCarrier::Downward,
-		struct sc_specific>("SatCarrier",
-		                    block_phy_layer,
-		                    scspecific);
-	if(!block_sat_carrier)
-	{
-		DFLTLOG(LEVEL_CRITICAL,
-		        "%s: cannot create the SatCarrier block",
-		        this->getName().c_str());
-		return false;
-	}
+	
 	return true;
 }
 
@@ -177,8 +148,13 @@ bool EntityGw::createSpecificConfiguration(const std::string &filepath) const
 
 void EntityGw::defineProfileMetaModel() const
 {
+	auto Conf = OpenSandModelConf::Get();
+	auto types = Conf->getModelTypesDefinition();
+	auto ctrl_plane = Conf->getOrCreateComponent("control_plane", "Control plane", "Control plane configuration");
+	auto disable_ctrl_plane = ctrl_plane->addParameter("disable_control_plane", "Disable control plane", types->getType("bool"));
+
 	BlockLanAdaptation::generateConfiguration();
 	BlockEncap::generateConfiguration();
-	BlockDvbNcc::generateConfiguration();
+	BlockDvbNcc::generateConfiguration(disable_ctrl_plane);
 	BlockPhysicalLayer::generateConfiguration();
 }

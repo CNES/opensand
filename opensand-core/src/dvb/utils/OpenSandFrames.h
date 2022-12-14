@@ -42,39 +42,10 @@
 // MSG_TYPES should be in these classes as for NET_PROTO in NetPacket
 
 
-#include <opensand_output/Output.h>
+#include <bits/endian.h>
 
 #include "OpenSandCore.h"
 
-#include <string>
-#include <stdint.h>
-#include <arpa/inet.h>
-#include <cstring>
-#include <bits/endian.h>
-
-
-/// The maximum size of a DVB-RCS frame is choosen to be totally
-/// included in one sat_carrier packet
-#define MSG_DVB_RCS_SIZE_MAX 1200 + sizeof(T_DVB_PHY)
-/// The maximum size of a BBFrame
-#define MSG_BBFRAME_SIZE_MAX 8100 + sizeof(T_DVB_PHY)
-#define MSG_SALOHA_SIZE_MAX 1200 + sizeof(T_DVB_PHY)
-
-/// Whether the frame has to be attenuated
-#define IS_ATTENUATED_FRAME(msg_type) \
-    (msg_type == MSG_TYPE_BBFRAME || msg_type == MSG_TYPE_DVB_BURST || \
-     msg_type == MSG_TYPE_SALOHA_DATA || msg_type == MSG_TYPE_SALOHA_CTRL || \
-     msg_type == MSG_TYPE_SAC || msg_type == MSG_TYPE_TTP)
-
-/// Whether the frame has to be delayed
-#define IS_DELAYED_FRAME(msg_type) \
-    (msg_type != MSG_TYPE_SOF)
-
-/// Whether the frame can carry C/N information
-/// Warning: all frames that are not C/N capable
-///          should not be attenuated.
-#define IS_CN_CAPABLE_FRAME(msg_type) \
-    (msg_type != MSG_TYPE_SOF)
 
 /**
  * Here are defined internal dvb message types
@@ -86,71 +57,97 @@
  *       NCC -> ST: etc
  *       ST -> NCC: etc
  */
-
+enum class EmulatedMessageType: uint8_t
+{
 /**
  * Error type, could be used as default value that should later be replaced
  */
-#define MSG_TYPE_ERROR 0
+Error = 0,
 
 /**
  * Start of Frame, NCC -> ST
  */
-#define MSG_TYPE_SOF 1
+Sof = 1,
 
 /**
  * Satellie Access Control, ST -> NCC
  */
-#define MSG_TYPE_SAC 10
+Sac = 10,
 
 /**
  * FIXME: to be documented, ST->NCC
  */
-#define MSG_TYPE_CSC 11
+Csc = 11,
 
 /**
  * DVB burst, ST->ST
  */
-#define MSG_TYPE_DVB_BURST 12
+DvbBurst = 12,
 
 /**
  * BBFRAME
  */
-#define MSG_TYPE_BBFRAME 13
+BbFrame = 13,
 
 /**
  * Slotted Aloha data burst
  */
-#define MSG_TYPE_SALOHA_DATA 14
+SalohaData = 14,
 
 /**
  * Slotted Aloha control burst
  */
-#define MSG_TYPE_SALOHA_CTRL 15
+SalohaCtrl = 15,
 
 /**
  * Allocation Table, NCC -> ST
  */
-#define MSG_TYPE_TTP 21
+Ttp = 21,
 
 /**
  * Synchronization message (unused), NCC->ST
  */
-#define MSG_TYPE_SYNC 22
+Sync = 22,
 
 /**
  * Request a logon, ST -> NCC
  */
-#define MSG_TYPE_SESSION_LOGON_REQ 50
+SessionLogonReq = 50,
 
 /**
  * Response from the NCC, NCC ->ST
  */
-#define MSG_TYPE_SESSION_LOGON_RESP 52
+SessionLogonResp = 52,
 
 /**
  * Announce a logoff, ST -> NCC
  */
-#define MSG_TYPE_SESSION_LOGOFF 51
+SessionLogoff = 51,
+};
+
+
+constexpr bool IsAttenuatedFrame(EmulatedMessageType msg_type)
+{
+	return (msg_type == EmulatedMessageType::BbFrame
+	     || msg_type == EmulatedMessageType::DvbBurst
+	     || msg_type == EmulatedMessageType::SalohaData
+	     || msg_type == EmulatedMessageType::SalohaCtrl
+	     || msg_type == EmulatedMessageType::Sac
+	     || msg_type == EmulatedMessageType::Ttp);
+}
+
+
+constexpr bool IsDelayedFrame(EmulatedMessageType msg_type)
+{
+	return msg_type != EmulatedMessageType::Sof;
+}
+
+
+constexpr bool IsCnCapableFrame(EmulatedMessageType msg_type)
+{
+	return msg_type != EmulatedMessageType::Sof;
+}
+
 
 /**
  * Basic DVB Header, other structures defined below should follow in a packet
@@ -160,9 +157,9 @@ typedef struct
 	uint16_t msg_length; ///< Total length of the message (including _this_ header)
 #if __BYTE_ORDER == __BIG_ENDIAN
 	uint8_t corrupted:1;  ///< Whether the frame is corrupted by physical layer
-	uint8_t msg_type:7;   ///< Type of the message (see \#defines above)
+	EmulatedMessageType msg_type:7;   ///< Type of the message (see \#defines above)
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-	uint8_t msg_type:7;   ///< Type of the message (see \#defines above)
+	EmulatedMessageType msg_type:7;   ///< Type of the message (see \#defines above)
 	uint8_t corrupted:1;  ///< Whether the frame is corrupted by physical layer
 #else
 #error "Please fix <bits/endian.h>"
@@ -279,5 +276,13 @@ typedef struct
 	tal_id_t tal_id;      /// The terminal ID
 } T_LINK_UP;
 
-// TODO rename into OpenSandHeaders
+
+/// The maximum size of a DVB-RCS frame is choosen to be totally
+/// included in one sat_carrier packet
+constexpr const std::size_t MSG_DVB_RCS_SIZE_MAX = 1200 + sizeof(T_DVB_PHY);
+/// The maximum size of a BBFrame
+constexpr const std::size_t MSG_BBFRAME_SIZE_MAX = 8100 + sizeof(T_DVB_PHY);
+constexpr const std::size_t MSG_SALOHA_SIZE_MAX = 1200 + sizeof(T_DVB_PHY);
+
+
 #endif

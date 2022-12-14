@@ -34,18 +34,17 @@
  *
  */
 
-
-#include "Block.h"
-#include "RtChannel.h"
-#include "Rt.h"
+#include <pthread.h>
 
 #include <opensand_output/Output.h>
 
-#include <errno.h>
-#include <signal.h>
+#include "Block.h"
+#include "Rt.h"
+#include "RtChannelBase.h"
+#include "RtChannel.h"
 
 
-Block::Block(const string &name, void *specific):
+Block::Block(const std::string &name):
 	name(name),
 	initialized(false)
 {
@@ -55,18 +54,16 @@ Block::Block(const string &name, void *specific):
 	LOG(this->log_rt, LEVEL_INFO, "Block %s created\n", this->name.c_str());
 }
 
+
 Block::~Block()
 {
-	if(this->downward != NULL)
-	{
-		delete this->downward;
-	}
+  delete this->downward;
+  this->downward = nullptr;
 
-	if(this->upward != NULL)
-	{
-		delete this->upward;
-	}
+  delete this->upward;
+  this->upward = nullptr;
 }
+
 
 bool Block::init(void)
 {
@@ -83,27 +80,28 @@ bool Block::init(void)
 	return true;
 }
 
+
 bool Block::initSpecific(void)
 {
 	// specific block initialization
 	if(!this->onInit())
 	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "Block onInit failed");
+		Rt::reportError(this->name, std::this_thread::get_id(),
+		                true, "Block onInit failed");
 		return false;
 	}
 
 	// initialize channels
 	if(!this->upward->onInit())
 	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "Upward onInit failed");
+		Rt::reportError(this->name, std::this_thread::get_id(),
+		                true, "Upward onInit failed");
 		return false;
 	}
 	if(!this->downward->onInit())
 	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "Downward onInit failed");
+		Rt::reportError(this->name, std::this_thread::get_id(),
+		                true, "Downward onInit failed");
 		return false;
 	}
 	this->initialized = true;
@@ -115,124 +113,79 @@ bool Block::initSpecific(void)
 	return true;
 }
 
+
+bool Block::onInit() { return true; }
+
+
 bool Block::isInitialized(void)
 {
 	return this->initialized;
 }
 
+
 bool Block::start(void)
 {
-	int ret;
-	pthread_attr_t attr; // thread attribute
-
-	// set thread detach state attribute to JOINABLE
-	ret = pthread_attr_init(&attr);
-	if(ret != 0)
-	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "cannot initialize thread attribute [%u: %s]",
-		                ret, strerror(ret));
-		return false;
-	}
-	ret = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-	if(ret != 0)
-	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "cannot set thread attribute [%u: %s]",
-		                ret, strerror(ret));
-		goto error;
-	}
-
+	//create upward thread
 	LOG(this->log_rt, LEVEL_INFO,
 	    "Block %s: start upward channel\n", this->name.c_str());
-	//create upward thread
-	ret = pthread_create(&(this->up_thread_id), &attr,
-	                     &RtUpward::startThread, this->upward);
-	if(ret != 0)
-	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "cannot start upward thread [%u: %s]", ret, strerror(ret));
-		goto error;
-	}
+  try {
+	  this->up_thread = std::thread{&RtUpward::executeThread, this->upward};
+  } catch (const std::system_error& e) {
+		Rt::reportError(this->name, std::this_thread::get_id(), true,
+		                "cannot start upward thread [%u: %s]", e.code(), e.what());
+    return false;
+  }
 	LOG(this->log_rt, LEVEL_INFO,
 	    "Block %s: upward channel thread id %lu\n",
-	    this->name.c_str(), this->up_thread_id);
+	    this->name.c_str(), this->up_thread.get_id());
 
+	//create downward thread
 	LOG(this->log_rt, LEVEL_INFO,
 	    "Block %s: start downward channel\n", this->name.c_str());
-	//create downward thread
-	ret = pthread_create(&(this->down_thread_id), &attr,
-	                     &RtDownward::startThread, this->downward);
-	if(ret != 0)
-	{
-		Rt::reportError(this->name, pthread_self(), true,
-		                "cannot downward start thread [%u: %s]", ret, strerror(ret));
-		goto error;
-	}
+  try {
+    this->down_thread = std::thread{&RtDownward::executeThread, this->downward};
+  } catch (const std::system_error& e) {
+		Rt::reportError(this->name, std::this_thread::get_id(), true,
+		                "cannot downward start thread [%u: %s]", e.code(), e.what());
+    pthread_cancel(this->up_thread.native_handle());
+    this->up_thread.join();
+		return false;
+  }
 	LOG(this->log_rt, LEVEL_INFO,
 	    "Block %s: downward channel thread id: %lu\n",
-	    this->name.c_str(), this->up_thread_id);
+	    this->name.c_str(), this->down_thread.get_id());
 
-	pthread_attr_destroy(&attr);
 	return true;
-
-error:
-	pthread_attr_destroy(&attr);
-	return false;
 }
 
-bool Block::stop(int signal)
+bool Block::stop()
 {
 	bool status = true;
-	int ret;
 
 	LOG(this->log_rt, LEVEL_INFO,
 	    "Block %s: stop channels\n", this->name.c_str());
-	// the process may be already killed as the may have catch the stop signal first
+	// the process may be already killed as the may have caught the stop signal first
 	// So, do not report an error
-	ret = pthread_kill(this->up_thread_id, signal);
-	if(ret != 0 && ret != ESRCH)
-	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "cannot kill upward thread [%u: %s]", ret, strerror(ret));
-		status = false;
-	}
-
-	ret = pthread_kill(this->down_thread_id, signal);
-	if(ret != 0 && ret != ESRCH)
-	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "cannot kill downward thread [%u: %s]", ret, strerror(ret));
-		status = false;
-	}
+	pthread_cancel(this->up_thread.native_handle());
+	pthread_cancel(this->down_thread.native_handle());
 
 	LOG(this->log_rt, LEVEL_INFO,
 	    "Block %s: join channels\n", this->name.c_str());
-	ret = pthread_join(this->up_thread_id, NULL);
-	if(ret != 0 && ret != ESRCH)
-	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "cannot join upward thread [%u: %s]", ret, strerror(ret));
+	try {
+		this->up_thread.join();
+	} catch (const std::system_error& e) {
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
+		                "cannot join upward thread [%u: %s]", e.code(), e.what());
 		status = false;
 	}
 
-	ret = pthread_join(this->down_thread_id, NULL);
-	if(ret != 0 && ret != ESRCH)
-	{
-		Rt::reportError(this->name, pthread_self(), false,
-		                "cannot join downward thread [%u: %s]", ret, strerror(ret));
+	try {
+		this->down_thread.join();
+	} catch (const std::system_error& e) {
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
+		                "cannot join downward thread [%u: %s]", e.code(), e.what());
 		status = false;
 	}
+
 	return status;
 }
-
-RtChannel *Block::getUpwardChannel(void) const
-{
-	return this->upward;
-}
-
-RtChannel *Block::getDownwardChannel(void) const
-{
-	return this->downward;
-}
-

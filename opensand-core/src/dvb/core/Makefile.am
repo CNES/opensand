@@ -1,9 +1,6 @@
-SUBDIRS = transparent
-
 noinst_LTLIBRARIES = libopensand_dvb_core.la
 
 libopensand_dvb_core_la_cpp = \
-	SatGw.cpp \
 	PhysicStd.cpp \
 	DvbRcsStd.cpp \
 	DvbS2Std.cpp \
@@ -11,7 +8,6 @@ libopensand_dvb_core_la_cpp = \
 	DvbChannel.cpp \
 	SpotDownward.cpp \
 	SpotUpward.cpp \
-	BlockDvbSat.cpp \
 	BlockDvbNcc.cpp \
 	BlockDvbTal.cpp \
 	FileSimulator.cpp \
@@ -19,7 +15,6 @@ libopensand_dvb_core_la_cpp = \
 	RequestSimulator.cpp
 
 libopensand_dvb_core_la_h = \
-	SatGw.h \
 	PhysicStd.h \
 	DvbRcsStd.h \
 	DvbS2Std.h \
@@ -27,7 +22,6 @@ libopensand_dvb_core_la_h = \
 	DvbChannel.h \
 	SpotDownward.h \
 	SpotUpward.h \
-	BlockDvbSat.h \
 	BlockDvbNcc.h \
 	BlockDvbTal.h \
 	FileSimulator.h \
@@ -37,9 +31,6 @@ libopensand_dvb_core_la_h = \
 libopensand_dvb_core_la_SOURCES = \
 	$(libopensand_dvb_core_la_cpp) \
 	$(libopensand_dvb_core_la_h)
-
-libopensand_dvb_core_la_LIBADD = \
-	transparent/libopensand_dvb_core_transp.la
 
 libopensand_dvb_core_la_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
@@ -52,7 +43,6 @@ libopensand_dvb_core_la_CPPFLAGS = \
 	-I$(top_srcdir)/src/dvb/ncc_interface \
 	-I$(top_srcdir)/src/dvb/saloha \
 	-I$(top_srcdir)/src/dvb/scpc \
-	-I$(top_srcdir)/src/dvb/core/transparent \
 	-I$(top_srcdir)/src/qos_data \
 	-I$(top_srcdir)/src/conf \
 	-I$(top_srcdir)/src/common

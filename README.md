@@ -10,7 +10,7 @@ and conditions of the GNU GPLv3 license or the GNU LGPLv3 license.
 
 Visit us at [opensand.org](https://www.opensand.org/).
 
-# OpenSAND v6.0.0
+# OpenSAND v6.1.0
 
 ## Manuals
 
@@ -45,7 +45,7 @@ They must be connected as shown in the image below, with the following networks:
 In the image, two additional machines (`WS-ST1` and `WS-GW0`) are shown but are actually not
 necessary; traffic can be exchanged between the ST1 and GW0 without the need of workstations.
 However, the interfaces for the networks `LAN-ST1` and `LAN-GW0` must exist, even if no other
-computers are connected to it. 
+computers are connected to it.
 
 ### Operating System
 
@@ -66,16 +66,16 @@ Unless otherwise specified, all the commands here must be executed on all machin
 
 In order to install the packages using `apt`, the repository must be added to its sources. One way of doing it is by creating the file `/etc/apt/sources.list.d/net4sat.list`.
 
-If using Ubuntu 20.04 LTS (focal):
+Start by adding the GPG key for the Net4Sat repository:
 
 ```
-echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee /etc/apt/sources.list.d/net4sat.list
+curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/net4sat.gpg >/dev/null
 ```
 
-Add GPG key for net4sat repository (as root) : 
+Then add the repository and link it to the aforementionned GPG key:
 
 ```
-curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4sat.gpg.key | sudo apt-key add -
+echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/jammy/ jammy stable" | sudo tee /etc/apt/sources.list.d/net4sat.list
 ```
 
 An apt sources update is necessary after adding the repository:

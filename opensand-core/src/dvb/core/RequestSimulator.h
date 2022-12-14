@@ -57,7 +57,7 @@ enum Simulate
 
 class RequestSimulator 
 {
- public:
+public:
 	RequestSimulator(spot_id_t spot_id,
 	                 tal_id_t mac_id,
 	                 FILE** evt_file);
@@ -69,7 +69,7 @@ class RequestSimulator
 	 * Simulate event based on an input file
 	 * @return true on success, false otherwise
 	 */
-	virtual bool simulation(list<DvbFrame *>* msgs,
+	virtual bool simulation(std::list<DvbFrame *>* msgs,
 	                        time_sf_t super_frame_counter) = 0;
 	
 	virtual bool stopSimulation(void) = 0;
@@ -77,7 +77,7 @@ class RequestSimulator
 	// statistics update
 	void updateStatistics(void);
 
- protected:
+protected:
 	/** Read configuration for the request simulation
 	 *
 	 * @return  true on success, false otherwise

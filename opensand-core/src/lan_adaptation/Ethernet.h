@@ -63,7 +63,7 @@
  */
 class Ethernet: public LanAdaptationPlugin
 {
-  public:
+public:
 	Ethernet();
 	~Ethernet();
 
@@ -82,7 +82,7 @@ class Ethernet: public LanAdaptationPlugin
 	 */
 	class Context: public LanAdaptationContext
 	{
-	  public:
+	public:
 		/// constructor
 		Context(LanAdaptationPlugin &plugin);
 
@@ -94,16 +94,12 @@ class Ethernet: public LanAdaptationPlugin
 		bool init();
 		NetBurst *encapsulate(NetBurst *burst, std::map<long, int> &(time_contexts));
 		NetBurst *deencapsulate(NetBurst *burst);
-		char getLanHeader(unsigned int pos, NetPacket *packet);
+		char getLanHeader(unsigned int pos, const std::unique_ptr<NetPacket>& packet);
 		bool handleTap();
 		void updateStats(unsigned int period);
-		bool initLanAdaptationContext(
-			tal_id_t tal_id,
-			tal_id_t gw_id,
-			//const SarpTable *sarp_table);
-			PacketSwitch *packet_switch);
+		bool initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *packet_switch);
 
-	  protected:
+	protected:
 		/**
 		 * @brief create an Ethernet frame from IP data
 		 *
@@ -111,7 +107,7 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param evc_id     The id of the EVC if found
 		 * @return the Ethernet frame
 		 */
-		NetPacket *createEthFrameData(NetPacket *packet, uint8_t &evc_id);
+		std::unique_ptr<NetPacket> createEthFrameData(const std::unique_ptr<NetPacket>& packet, uint8_t &evc_id);
 
 		/**
 		 * @brief create an Ethernet frame from IP data
@@ -129,13 +125,15 @@ class Ethernet: public LanAdaptationPlugin
 		 * @param desired_frame_type The frame type we want to build
 		 * @return the Ethernet frame
 		 */
-		NetPacket *createEthFrameData(Data data,
-		                              MacAddress mac_src, MacAddress mac_dst,
-		                              uint16_t ether_type,
-		                              uint16_t q_tci, uint16_t ad_tci,
-		                              qos_t qos,
-		                              tal_id_t src_tal_id, tal_id_t dst_tal_id,
-		                              uint16_t desired_frame_type);
+		std::unique_ptr<NetPacket> createEthFrameData(Data data,
+		                                              MacAddress mac_src, MacAddress mac_dst,
+		                                              NET_PROTO ether_type,
+		                                              uint16_t q_tci,
+		                                              uint16_t ad_tci,
+		                                              qos_t qos,
+		                                              tal_id_t src_tal_id,
+		                                              tal_id_t dst_tal_id,
+		                                              NET_PROTO desired_frame_type);
 
 		/**
 		 * @brief Get the EVC corresponding to Ethernet flow
@@ -148,7 +146,7 @@ class Ethernet: public LanAdaptationPlugin
 		 */
 		Evc *getEvc(const MacAddress src_mac,
 		            const MacAddress dst_mac,
-		            uint16_t ether_type,
+		            NET_PROTO ether_type,
 		            uint8_t &evc_id) const;
 
 		/**
@@ -164,7 +162,7 @@ class Ethernet: public LanAdaptationPlugin
 		Evc *getEvc(const MacAddress src_mac,
 		            const MacAddress dst_mac,
 		            uint16_t q_tci,
-		            uint16_t ether_type,
+		            NET_PROTO ether_type,
 		            uint8_t &evc_id) const;
 
 		/**
@@ -182,7 +180,7 @@ class Ethernet: public LanAdaptationPlugin
 		            const MacAddress dst_mac,
 		            uint16_t q_tci,
 		            uint16_t ad_tci,
-		            uint16_t ether_type,
+		            NET_PROTO ether_type,
 		            uint8_t &evc_id) const;
 
 		/**
@@ -217,15 +215,14 @@ class Ethernet: public LanAdaptationPlugin
 		/// The frame size per EVC
 		std::map<uint8_t, std::shared_ptr<Probe<float> > > probe_evc_size;
 
-		uint16_t lan_frame_type; //< The type of Ethernet frame forwarded on LAN
-		uint16_t sat_frame_type; //< The type of Ethernet frame transmitted on satellite
+		NET_PROTO lan_frame_type; //< The type of Ethernet frame forwarded on LAN
+		NET_PROTO sat_frame_type; //< The type of Ethernet frame transmitted on satellite
 
 		/// The traffic categories
 		std::map<qos_t, TrafficCategory *> category_map;
 
 		/// The default traffic category
-		qos_t default_category;
-
+		TrafficCategory *default_category;
 	};
 
 	/**
@@ -234,7 +231,7 @@ class Ethernet: public LanAdaptationPlugin
 	 */
 	class PacketHandler: public LanAdaptationPacketHandler
 	{
-	  public:
+	public:
 		PacketHandler(LanAdaptationPlugin &plugin):
 			LanAdaptationPlugin::LanAdaptationPacketHandler(plugin)
 		{};
@@ -252,22 +249,22 @@ class Ethernet: public LanAdaptationPlugin
 			return length;
 		}
 
-		NetPacket *build(const Data &data,
-		                 size_t data_length,
-		                 uint8_t qos,
-		                 uint8_t src_tal_id,
-		                 uint8_t dst_tal_id) const;
+		std::unique_ptr<NetPacket> build(const Data &data,
+		                                 std::size_t data_length,
+		                                 uint8_t qos,
+		                                 uint8_t src_tal_id,
+		                                 uint8_t dst_tal_id) const override;
 
 	};
 
-  public:
+public:
 	/**
 	 * @brief Retrieve the type of frame
 	 *
 	 * @param data   the Ethernet frame data
 	 * @return the type of frame
 	 */
-	static uint16_t getFrameType(const Data &data);
+	static NET_PROTO getFrameType(const Data &data);
 
 	/**
 	 * @brief Retrieve the EtherType of a payload carried by an Ethernet frame
@@ -275,7 +272,7 @@ class Ethernet: public LanAdaptationPlugin
 	 * @param data   the Ethernet frame data
 	 * @return the EtherType
 	 */
-	static uint16_t getPayloadEtherType(const Data &data);
+	static NET_PROTO getPayloadEtherType(const Data &data);
 
 	/**
 	 * @brief Retrieve the Q TCI from an Ethernet frame

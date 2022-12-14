@@ -50,7 +50,7 @@
  */
 class AttenuationHandler
 {
- private:
+private:
 	/** Minimal Conditions (minimun C/N to have QEF communications)
 	 *  of global link (i.e. considering the Modcod scheme)
 	 */
@@ -66,7 +66,7 @@ class AttenuationHandler
 	std::shared_ptr<Probe<float>> probe_minimal_condition;
 	std::shared_ptr<Probe<int>> probe_drops;
 
- public:
+public:
 	/**
 	 * @brief Constructor of the attenuation handler
 	 *
@@ -88,7 +88,7 @@ class AttenuationHandler
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool initialize(std::shared_ptr<OutputLog> log_init);
+	bool initialize(std::shared_ptr<OutputLog> log_init, const std::string &probe_prefix);
 
 	/**
 	 * @brief Process the attenuation on a DVB frame with a specific C/N

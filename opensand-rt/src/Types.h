@@ -38,39 +38,34 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <inttypes.h>
-#include <cstring>
+#include <cstddef>
+#include <cstdint>
 
 
-#define MAX_SOCK_SIZE 9000
+constexpr std::size_t MAX_SOCK_SIZE{9000};
+
 
 /// opensand-rt event types
-typedef enum
+enum EventType
 {
-	evt_net_socket,  ///< Event of type NetSocket
-	evt_timer,       ///< Event of type Timer
-	evt_message,     ///< Event of type Message
-	evt_signal,      ///< Event of type Signal
-	evt_file,        ///< Event of type File
-	evt_tcp_listen,  ///< Event of type TcpListen
-} event_type_t;
+	NetSocket,   ///< Event of type NetSocket
+	Timer,       ///< Event of type Timer
+	Message,     ///< Event of type Message
+	Signal,      ///< Event of type Signal
+	File,        ///< Event of type File
+	TcpListen,   ///< Event of type TcpListen
+};
 
 
-/// the channel direction
-// TODO won't be necessary anymore once everything will be done in channel
-typedef enum
-{
-	upward_chan,   ///< upward channel
-	downward_chan, ///< downward channel
-} chan_type_t;
+using event_id_t = int32_t;
 
-typedef int32_t event_id_t;
 
-typedef struct
+struct rt_msg_t
 {
 	void *data;
 	size_t length;
 	uint8_t type;
-} rt_msg_t;
+};
+
 
 #endif

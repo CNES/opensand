@@ -44,13 +44,11 @@
  */
 class UnitConverterFixedSymbolLength: public UnitConverter
 {
- protected:
-
+protected:
 	vol_sym_t packet_length_sym;    ///< Fixed packet length (in symbols)
 	float packet_length_sym_inv;    ///< Inverse of fixed packet length (in symbols-1)
 
- public:
-
+public:
 	/**
 	 * @brief Create the unit converter
 	 *

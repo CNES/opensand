@@ -41,8 +41,6 @@
 #include "RtEvent.h"
 #include "Types.h"
 
-#include <sys/time.h>
-
 
 /**
   * @class FileEvent
@@ -51,9 +49,7 @@
   */
 class FileEvent: public RtEvent
 {
-
-  public:
-
+ public:
 	/**
 	 * @brief FileEvent constructor
 	 *
@@ -61,11 +57,11 @@ class FileEvent: public RtEvent
 	 * @param fd        The file descriptor to monitor for the event
 	 * @param priority  The priority of the event
 	 */
-	FileEvent(const string &name,
+	FileEvent(const std::string &name,
 	          int32_t fd = -1,
 	          size_t max_size = MAX_SOCK_SIZE,
 	          uint8_t priority = 5,
-	          event_type_t type = evt_file);
+	          EventType type = EventType::File);
 	~FileEvent();
 
 
@@ -74,29 +70,27 @@ class FileEvent: public RtEvent
 	 *
 	 * @return the data contained in the message
 	 */
-	 virtual unsigned char *getData(void);
+	 virtual unsigned char *getData(void) const;
 
 	/*
 	 * @brief Get the size of data in the message
 	 *
 	 * @return the size of data in the message
 	 */
-	size_t getSize(void) const {return this->size;};
+	inline std::size_t getSize(void) const { return this->size; };
 
-	virtual bool handle(void);
+	bool handle(void) override;
 
-  protected:
-
+ protected:
 	/// The maximum size of received data
-	size_t max_size;
+	std::size_t max_size;
 
 	/// data pointer
-	unsigned char *data;
+	mutable unsigned char *data;
 
 	/// data size
-	size_t size;
-
-
+	std::size_t size;
 };
+
 
 #endif

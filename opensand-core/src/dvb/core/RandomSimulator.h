@@ -41,7 +41,7 @@
 
 class RandomSimulator: public RequestSimulator
 {
- public:
+public:
 	RandomSimulator(spot_id_t spot_id,
 	                tal_id_t mac_id,
 	                FILE** evt_file,
@@ -57,7 +57,7 @@ class RandomSimulator: public RequestSimulator
 	 * Simulate event based on random generation
 	 * @return true on success, false otherwise
 	 */
-	bool simulation(list<DvbFrame *>* msgs,
+	bool simulation(std::list<DvbFrame *>* msgs,
 	                time_sf_t super_frame_counter);
 
 	/**

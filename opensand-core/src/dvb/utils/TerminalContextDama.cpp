@@ -246,13 +246,13 @@ vol_kb_t TerminalContextDama::getTotalVolumeAllocation() const
 }
 
 bool TerminalContextDama::sortByRemainingCredit(const TerminalContextDama *e1,
-                                               const TerminalContextDama *e2)
+                                                const TerminalContextDama *e2)
 {
 	return e1->rbdc_credit > e2->rbdc_credit;
 }
 
 bool TerminalContextDama::sortByVbdcReq(const TerminalContextDama *e1,
-                                       const TerminalContextDama *e2)
+                                        const TerminalContextDama *e2)
 {
 	return e1->vbdc_request_kb > e2->vbdc_request_kb;
 }

@@ -30,32 +30,29 @@
  * @author Cyrille GAILLARDET / <cgaillardet@toulouse.viveris.com>
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
  * @brief  The generic event
- *
  */
 
 
 #ifndef RT_EVENT_H
 #define RT_EVENT_H
 
-
-#include <sys/time.h>
+#include <chrono>
 #include <string>
-
-#include "stdlib.h"
 
 #include "Types.h"
 
-using std::string;
+
+using time_point_t = std::chrono::high_resolution_clock::time_point;
+using time_val_t = std::chrono::high_resolution_clock::rep;
+
 
 /**
   * @class RtEvent
   * @brief virtual class that Events are based on
-  *
   */
 class RtEvent
 {
-  public:
-
+ public:
 	/**
 	 * @brief RtEvent constructor
 	 *
@@ -64,7 +61,7 @@ class RtEvent
 	 * @param fd        The file descriptor to monitor for the event
 	 * @param priority  The priority of the event
 	 */
-	RtEvent(event_type_t type, const string &name, int32_t fd, uint8_t priority);
+	RtEvent(EventType type, const std::string &name, int32_t fd, uint8_t priority);
 	virtual ~RtEvent();
 
 	/**
@@ -72,21 +69,21 @@ class RtEvent
 	 *
 	 * @return the type of the event
 	 */
-	event_type_t getType(void) const {return this->type;};
+	EventType getType(void) const {return this->type;};
 
 	/**
-	 * @brief Get the time since event trigger
+	 * @brief Get the time since event trigger, in microseconds
 	 *
 	 * @return the time elapsed since event trigger
 	 */
-	timeval getTimeFromTrigger(void) const;
+	time_val_t getTimeFromTrigger(void) const;
 	
 	/**
-	 * @brief Get the time since event custom timer set
+	 * @brief Get the time since event custom timer set, in microseconds
 	 *
 	 * @return the time elapsed since custom timer set
 	 */
-	timeval getTimeFromCustom(void) const;
+	time_val_t getTimeFromCustom(void) const;
 
 	/**
 	 * @brief Get the event priority
@@ -101,7 +98,7 @@ class RtEvent
 	 * @return the event name
 	 *
 	 */
-	string getName(void) const {return this->name;};
+	std::string getName(void) const {return this->name;};
 
 	/**
 	 * @brief Get the file descriptor on the event
@@ -130,45 +127,27 @@ class RtEvent
 	void setCustomTime(void) const;
 
 	/**
-	 * @brief Get the custom time interval and update it
+	 * @brief Get the custom time interval, in microseconds, and update it
 	 *
 	 * @return tue custom time interval
 	 */
-	timeval getAndSetCustomTime(void) const;
-
-	static bool compareEvents(const RtEvent* e1, const RtEvent* e2)
-	{
-		return ((*e1) < (*e2));
-	}
+	time_val_t getAndSetCustomTime(void) const;
 
 	/// operator < used by sort on events priority
-	bool operator<(const RtEvent &event) const
-	{
- 		long int delta = 100000000 * (long int) (this->priority - event.priority);
-		delta += 1000000 * (this->trigger_time.tv_sec - event.trigger_time.tv_sec);
-		delta += this->trigger_time.tv_usec - event.trigger_time.tv_usec;
-		return (delta < 0);		
-	}   
+	bool operator <(const RtEvent &event) const;
 
 	/// operator == used to check if the event id corresponds
-	bool operator==(const event_id_t id) const
-	{
-		return (this->fd == id);
-	}
+	bool operator ==(const event_id_t id) const;
 
 	/// operator != used to check if the event id corresponds
-	bool operator!=(const event_id_t id) const
-	{
-		return (this->fd != id);
-	}
+	bool operator !=(const event_id_t id) const;
 
-  protected:
-
+ protected:
 	/// type of event, for now Message, Signal, Timer or NetSocket
-	event_type_t type;
+	EventType type;
 
 	/// event name
-	const string name;
+	const std::string name;
 
 	/// Event input file descriptor
 	int32_t fd;
@@ -177,10 +156,10 @@ class RtEvent
 	uint8_t priority;
 
 	/// date, used as event trigger date
-	timeval trigger_time;
+	time_point_t trigger_time;
 	
 	/// date, used as custom processing date
-	mutable timeval custom_time;
+	mutable time_point_t custom_time;
 };
 
 #endif

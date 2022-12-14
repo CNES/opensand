@@ -122,7 +122,7 @@ def error(message, return_code=500, **kwargs):
 def handle_exception(exc):
     if isinstance(exc, HTTPException):
         return exc
-
+    print(traceback.format_exc())
     return error(traceback.format_exc())
 
 
@@ -221,7 +221,7 @@ def _get_parameter(component, name, default=None):
     return data.get()
 
 
-def create_default_infrastructure(meta_model, filepath):
+def create_default_infrastructure(meta_model):
     infra = meta_model.create_data()
     infrastructure = infra.get_root()
 
@@ -233,8 +233,10 @@ def create_default_infrastructure(meta_model, filepath):
     _set_parameter(entity, 'entity_type', 'Satellite')
 
     satellite = _get_component(entity, 'entity_sat')
+    _set_parameter(satellite, 'entity_id', 2)
     _set_parameter(satellite, 'emu_address', '192.168.0.63')
-    _set_parameter(satellite, 'default_gw', -1)
+    # TODO: add ISL default params
+    # _set_parameter(satellite, 'isl_type', 'None')
 
     terminal = _get_component(entity, 'entity_st')
     _set_parameter(terminal, 'entity_id', 1)
@@ -252,24 +254,32 @@ def create_default_infrastructure(meta_model, filepath):
     _set_parameter(gateway_net_acc, 'entity_id', 0)
     _set_parameter(gateway_net_acc, 'tap_iface', 'opensand_tap')
     _set_parameter(gateway_net_acc, 'mac_address', 'FF:FF:FF:00:00:01')
-    _set_parameter(gateway_net_acc, 'interconnect_address', '192.168.1.1')
-    _set_parameter(gateway_net_acc, 'interconnect_remote', '192.168.1.2')
+    interco_params = _get_component(gateway_net_acc, 'interconnect_params')
+    _set_parameter(interco_params, 'interconnect_address', '192.168.1.1')
+    _set_parameter(interco_params, 'interconnect_remote', '192.168.1.2')
 
     gateway_phy = _get_component(entity, 'entity_gw_phy')
     _set_parameter(gateway_phy, 'entity_id', 0)
     _set_parameter(gateway_phy, 'emu_address', '192.168.0.1')
-    _set_parameter(gateway_phy, 'interconnect_address', '192.168.1.2')
-    _set_parameter(gateway_phy, 'interconnect_remote', '192.168.1.1')
+    interco_params = _get_component(gateway_phy, 'interconnect_params')
+    _set_parameter(interco_params, 'interconnect_address', '192.168.1.2')
+    _set_parameter(interco_params, 'interconnect_remote', '192.168.1.1')
 
-    py_opensand_conf.toXML(infra, str(filepath))
+    return infra
 
 
-def create_default_topology(meta_model, filepath):
+def create_default_topology(meta_model):
     topo = meta_model.create_data()
     topology = topo.get_root()
 
     spot = _create_list_item(_get_component(topology, 'frequency_plan'), 'spots')
-    _set_parameter(_get_component(spot, 'assignments'), 'gateway_id', 0)
+    spot_assignments = _get_component(spot, 'assignments')
+    _set_parameter(spot_assignments, 'gateway_id', 0)
+    _set_parameter(spot_assignments, 'sat_id_gw', 2)
+    _set_parameter(spot_assignments, 'sat_id_st', 2)
+    _set_parameter(spot_assignments, 'forward_regen_level', 'Transparent')
+    _set_parameter(spot_assignments, 'return_regen_level', 'Transparent')
+    
     _set_parameter(_get_component(spot, 'roll_off'), 'forward', 0.35)
     _set_parameter(_get_component(spot, 'roll_off'), 'return', 0.2)
     forward_carrier = _create_list_item(spot, 'forward_band')
@@ -323,10 +333,9 @@ def create_default_topology(meta_model, filepath):
     _set_parameter(delay, 'fifo_size', 10000)
     _set_parameter(delay, 'delay_timer', 1)
 
-    py_opensand_conf.toXML(topo, str(filepath))
+    return topo
 
-
-def create_default_profile(meta_model, filepath, is_terminal):
+def create_default_profile(meta_model, entity_type):
     mod = meta_model.create_data()
     model = mod.get_root()
 
@@ -336,8 +345,16 @@ def create_default_profile(meta_model, filepath, is_terminal):
 
     access = _get_component(model, 'access')
     _set_parameter(_get_component(access, 'random_access'), 'saloha_algo', 'CRDSA')
-    _set_parameter(_get_component(access, 'settings'), 'category', 'Standard')
-    _set_parameter(_get_component(access, 'settings'), 'dama_enabled', True)
+    settings = _get_component(access, 'settings')
+    _set_parameter(settings, 'category', 'Standard')
+    _set_parameter(settings, 'dama_enabled', True)
+    _set_parameter(settings, "scpc_enabled", False)
+
+    scpc = _get_component(access, 'scpc')
+    _set_parameter(scpc, "carrier_duration", 5)
+    scpc = _get_component(_get_component(model, 'access2'), 'scpc')
+    _set_parameter(scpc, "carrier_duration", 5)
+
     dama = _get_component(access, 'dama')
     _set_parameter(dama, 'cra', 100)
     _set_parameter(dama, 'algorithm', 'Legacy')
@@ -346,7 +363,7 @@ def create_default_profile(meta_model, filepath, is_terminal):
     phy_layer = _get_component(model, 'physical_layer')
     delay = _get_component(phy_layer, 'delay')
     _set_parameter(delay, 'delay_type', 'ConstantDelay')
-    _set_parameter(delay, 'delay_value', 125)
+    _set_parameter(delay, 'delay_value', 125 if entity_type != 'sat' else 0)
     minimal_condition = _get_component(phy_layer, 'minimal_condition')
     _set_parameter(minimal_condition, 'minimal_condition_type', 'ACM-Loop')
     error_insertion = _get_component(phy_layer, 'error_insertion')
@@ -364,12 +381,21 @@ def create_default_profile(meta_model, filepath, is_terminal):
     _set_parameter(network, 'simulation', 'None')
     _set_parameter(network, 'fca', 0)
     _set_parameter(network, 'dama_algorithm', 'Legacy')
-    for priority, name, capacity, access_st, access_gw in FIFOS:
-        fifo = _create_list_item(network, 'fifos')
-        _set_parameter(fifo, 'priority', priority)
-        _set_parameter(fifo, 'name', name)
-        _set_parameter(fifo, 'capacity', capacity)
-        _set_parameter(fifo, 'access_type', access_st if is_terminal else access_gw)
+    if entity_type in ['st', 'sat']:
+        for priority, name, capacity, access_st, access_gw in FIFOS:
+            fifo = _create_list_item(network, 'st_fifos')
+            _set_parameter(fifo, 'priority', priority)
+            _set_parameter(fifo, 'name', name)
+            _set_parameter(fifo, 'capacity', capacity)
+            _set_parameter(fifo, 'access_type', access_st)
+    if entity_type in ['gw', 'gw_net_acc', 'sat']:
+        for priority, name, capacity, access_st, access_gw in FIFOS:
+            fifo = _create_list_item(network, 'gw_fifos')
+            _set_parameter(fifo, 'priority', priority)
+            _set_parameter(fifo, 'name', name)
+            _set_parameter(fifo, 'capacity', capacity)
+            _set_parameter(fifo, 'access_type', access_gw)
+    
     for pcp, name, fifo in QOS_CLASSES:
         qos = _create_list_item(network, 'qos_classes')
         _set_parameter(qos, 'pcp', pcp)
@@ -379,8 +405,43 @@ def create_default_profile(meta_model, filepath, is_terminal):
     _set_parameter(settings, 'lan_frame_type', 'Ethernet')
     _set_parameter(settings, 'sat_frame_type', 'Ethernet')
     _set_parameter(settings, 'default_pcp', 0)
+    
+    control_plane = _get_component(model, 'control_plane')
+    _set_parameter(control_plane, 'disable_control_plane',
+                   entity_type == 'sat')
+                   
+    isl = _get_component(model, 'isl')
+    _set_parameter(isl, "delay", 10)
+    
+    return mod
 
-    py_opensand_conf.toXML(mod, str(filepath))
+
+def create_scpc_topology(meta_model):
+    topo = create_default_topology(meta_model)
+    
+    root = topo.get_root()
+    freq_plan = _get_component(root, 'frequency_plan')
+    spots = freq_plan.get_list("spots")
+    spot = spots.get_item("0")
+    
+    return_carrier = _create_list_item(spot, 'return_band')
+    _set_parameter(return_carrier, 'symbol_rate', 40e6)
+    _set_parameter(return_carrier, 'type', 'SCPC')
+    _set_parameter(return_carrier, 'wave_form', '3-12')
+    _set_parameter(return_carrier, 'group', 'Standard')
+    
+    return topo
+
+
+def create_sat_ctrl_plane_profile(meta_model, entity_type):
+    mod = create_default_profile(meta_model, entity_type)
+    
+    root = mod.get_root()
+    control_plane = _get_component(root, 'control_plane')
+    _set_parameter(control_plane, 'disable_control_plane',
+                   entity_type != 'sat')
+    
+    return mod
 
 
 def create_default_templates(project):
@@ -392,17 +453,28 @@ def create_default_templates(project):
 
     template_folder = WWW_FOLDER / project / 'templates'
     for xsd in XSDs:
-        template = template_folder / (xsd.name + '.d') / 'Default.xml'
-        template.parent.mkdir(parents=True, exist_ok=True)
         meta_model = py_opensand_conf.fromXSD(xsd.as_posix())
-        if meta_model is not None:
+        if meta_model is not None and xsd.stem != 'project':
+            template_path = template_folder / (xsd.name + '.d') / 'Default.xml'
+            template_path.parent.mkdir(parents=True, exist_ok=True)
             kind = meta_model.get_root().get_description()
             if kind == 'infrastructure':
-                create_default_infrastructure(meta_model, template)
+                template = create_default_infrastructure(meta_model)
+                py_opensand_conf.toXML(template, str(template_path))
             elif kind == 'topology':
-                create_default_topology(meta_model, template)
+                template = create_default_topology(meta_model)
+                py_opensand_conf.toXML(template, str(template_path))
+                scpc_template_path = template_folder / (xsd.name + '.d') / 'SCPC.xml'
+                scpc_template = create_scpc_topology(meta_model)
+                py_opensand_conf.toXML(scpc_template, str(scpc_template_path))
             elif kind == 'profile':
-                create_default_profile(meta_model, template, xsd.stem.endswith('_st'))
+                entity_name = xsd.stem.removeprefix("profile_")
+                template = create_default_profile(meta_model, entity_name)
+                py_opensand_conf.toXML(template, str(template_path))
+                if entity_name != "gw_phy":
+                    sat_ctrl_plane_template_path = template_folder / (xsd.name + '.d') / 'Control plane handled by satellite.xml'
+                    regen_template = create_sat_ctrl_plane_profile(meta_model, entity_name)
+                    py_opensand_conf.toXML(regen_template, str(sat_ctrl_plane_template_path))
 
 
 def create_platform_infrastructure(project):
@@ -419,7 +491,7 @@ def create_platform_infrastructure(project):
         return
 
     infrastructure = {
-            'satellite': ('192.168.0.63', -1),
+            'satellite': {},
             'gateways': {},
             'terminals': {},
     }
@@ -441,10 +513,11 @@ def create_platform_infrastructure(project):
         entity_type = _get_parameter(entity, 'entity_type')
         if entity_type == "Satellite":
             entity_sat = entity.get_component('entity_sat')
-            emu_address = _get_parameter(entity_sat, 'emu_address', '')
-            default_gw = _get_parameter(entity_sat, 'default_gw', -1)
-            if emu_address is not None and default_gw is not None:
-                infrastructure['satellite'] = (emu_address, default_gw)
+            entity_id = _get_parameter(entity_sat, 'entity_id')
+            if entity_id is not None:
+                satellite = {'entity_id': entity_id}
+                satellite['emu_address'] = _get_parameter(entity_sat, 'emu_address', '')
+                infrastructure['satellite'][entity_id] = satellite
         elif entity_type == "Gateway":
             entity_gw = entity.get_component('entity_gw')
             entity_id = _get_parameter(entity_gw, 'entity_id')
@@ -454,8 +527,10 @@ def create_platform_infrastructure(project):
                 gateway['mac_address'] = _get_parameter(entity_gw, 'mac_address')
                 gateway['ctrl_multicast_address'] = _get_parameter(entity_gw, 'ctrl_multicast_address')
                 gateway['data_multicast_address'] = _get_parameter(entity_gw, 'data_multicast_address')
-                gateway['ctrl_out_port'] = _get_parameter(entity_gw, 'ctrl_out_port')
-                gateway['ctrl_in_port'] = _get_parameter(entity_gw, 'ctrl_in_port')
+                gateway['ctrl_out_st_port'] = _get_parameter(entity_gw, 'ctrl_out_st_port')
+                gateway['ctrl_in_st_port'] = _get_parameter(entity_gw, 'ctrl_in_st_port')
+                gateway['ctrl_out_gw_port'] = _get_parameter(entity_gw, 'ctrl_out_gw_port')
+                gateway['ctrl_in_gw_port'] = _get_parameter(entity_gw, 'ctrl_in_gw_port')
                 gateway['logon_out_port'] = _get_parameter(entity_gw, 'logon_out_port')
                 gateway['logon_in_port'] = _get_parameter(entity_gw, 'logon_in_port')
                 gateway['data_out_st_port'] = _get_parameter(entity_gw, 'data_out_st_port')
@@ -481,8 +556,10 @@ def create_platform_infrastructure(project):
                 gateway['emu_address'] = _get_parameter(entity_gw_phy, 'emu_address')
                 gateway['ctrl_multicast_address'] = _get_parameter(entity_gw_phy, 'ctrl_multicast_address')
                 gateway['data_multicast_address'] = _get_parameter(entity_gw_phy, 'data_multicast_address')
-                gateway['ctrl_out_port'] = _get_parameter(entity_gw_phy, 'ctrl_out_port')
-                gateway['ctrl_in_port'] = _get_parameter(entity_gw_phy, 'ctrl_in_port')
+                gateway['ctrl_out_st_port'] = _get_parameter(entity_gw_phy, 'ctrl_out_st_port')
+                gateway['ctrl_in_st_port'] = _get_parameter(entity_gw_phy, 'ctrl_in_st_port')
+                gateway['ctrl_out_gw_port'] = _get_parameter(entity_gw_phy, 'ctrl_out_gw_port')
+                gateway['ctrl_in_gw_port'] = _get_parameter(entity_gw_phy, 'ctrl_in_gw_port')
                 gateway['logon_out_port'] = _get_parameter(entity_gw_phy, 'logon_out_port')
                 gateway['logon_in_port'] = _get_parameter(entity_gw_phy, 'logon_in_port')
                 gateway['data_out_st_port'] = _get_parameter(entity_gw_phy, 'data_out_st_port')
@@ -520,10 +597,16 @@ def create_platform_infrastructure(project):
         if infra is None:
             continue
 
-        satellite = _get_component(infra, 'satellite')
-        emu_address, default_gw = infrastructure['satellite']
-        _set_parameter(satellite, 'emu_address', emu_address)
-        _set_parameter(infra, 'default_gw', default_gw)
+        satellites = infra.get_list('satellites')
+        if satellites is not None:
+            satellites.clear_items()
+
+        for satellite in infrastructure['satellite'].values():
+            sat = _create_list_item(infra, 'satellites')
+            _set_parameter(sat, 'entity_id', satellite.get('entity_id'))
+            _set_parameter(sat, 'emu_address', satellite.get('emu_address'))
+
+        _set_parameter(infra, 'default_gw', 0)
 
         gateways = infra.get_list('gateways')
         if gateways is not None:
@@ -536,8 +619,10 @@ def create_platform_infrastructure(project):
             _set_parameter(gw, 'mac_address', gateway.get('mac_address'))
             _set_parameter(gw, 'ctrl_multicast_address', gateway.get('ctrl_multicast_address'))
             _set_parameter(gw, 'data_multicast_address', gateway.get('data_multicast_address'))
-            _set_parameter(gw, 'ctrl_out_port', gateway.get('ctrl_out_port'))
-            _set_parameter(gw, 'ctrl_in_port', gateway.get('ctrl_in_port'))
+            _set_parameter(gw, 'ctrl_out_st_port', gateway.get('ctrl_out_st_port'))
+            _set_parameter(gw, 'ctrl_in_st_port', gateway.get('ctrl_in_st_port'))
+            _set_parameter(gw, 'ctrl_out_gw_port', gateway.get('ctrl_out_gw_port'))
+            _set_parameter(gw, 'ctrl_in_gw_port', gateway.get('ctrl_in_gw_port'))
             _set_parameter(gw, 'logon_out_port', gateway.get('logon_out_port'))
             _set_parameter(gw, 'logon_in_port', gateway.get('logon_in_port'))
             _set_parameter(gw, 'data_out_st_port', gateway.get('data_out_st_port'))

@@ -47,16 +47,14 @@
  */
 class TerminalCategoryDama: public TerminalCategory<CarriersGroupDama>
 {
-
- public:
-
+public:
 	/**
 	 * @brief  Create a terminal category.
 	 *
 	 * @param  label  label of the category.
 	 * @param  desired_access  the access type we support for our carriers
 	 */
-	TerminalCategoryDama(string label, access_type_t desired_access=DAMA);
+	TerminalCategoryDama(const std::string& label, AccessType desired_access=AccessType::DAMA);
 
 	~TerminalCategoryDama();
 
@@ -68,17 +66,16 @@ class TerminalCategoryDama: public TerminalCategory<CarriersGroupDama>
 	 * @return  terminal list in the carriers group
 	 */
 	template<class T>
-	vector<T *> getTerminalsInCarriersGroup(
+	std::vector<T *> getTerminalsInCarriersGroup(
 	                             unsigned int carrier_id) const;
 
 };
 
 template<class T>
-vector<T *> TerminalCategoryDama::getTerminalsInCarriersGroup(
-                                          unsigned int carrier_id) const
+std::vector<T *> TerminalCategoryDama::getTerminalsInCarriersGroup(unsigned int carrier_id) const
 {
-	vector<T *> entries;
-	vector<TerminalContext *>::const_iterator it;
+	std::vector<T *> entries;
+	std::vector<TerminalContext *>::const_iterator it;
 	for(it = this->terminals.begin();
 	    it != this->terminals.end(); ++it)
 	{

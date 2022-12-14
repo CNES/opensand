@@ -87,12 +87,12 @@ clock_t DelayFifo::getTickOut() const
 	return 0;
 }
 
-vector<DelayFifoElement *> DelayFifo::getQueue(void)
+std::vector<FifoElement *> DelayFifo::getQueue(void)
 {
 	return this->queue;
 }
 
-bool DelayFifo::push(DelayFifoElement *elem)
+bool DelayFifo::push(FifoElement *elem)
 {
 	int pos;
 	RtLock lock(this->fifo_mutex);
@@ -113,7 +113,7 @@ bool DelayFifo::push(DelayFifoElement *elem)
 	return true;
 }
 
-bool DelayFifo::pushFront(DelayFifoElement *elem)
+bool DelayFifo::pushFront(FifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 
@@ -128,7 +128,7 @@ bool DelayFifo::pushFront(DelayFifoElement *elem)
 
 }
 
-bool DelayFifo::pushBack(DelayFifoElement *elem)
+bool DelayFifo::pushBack(FifoElement *elem)
 {
 	RtLock lock(this->fifo_mutex);
 
@@ -142,10 +142,10 @@ bool DelayFifo::pushBack(DelayFifoElement *elem)
 	return false;
 
 }
-DelayFifoElement *DelayFifo::pop()
+FifoElement *DelayFifo::pop()
 {
 	RtLock lock(this->fifo_mutex);
-	DelayFifoElement *elem;
+	FifoElement *elem;
 
 	if(this->queue.size() <= 0)
 	{
@@ -163,7 +163,7 @@ DelayFifoElement *DelayFifo::pop()
 void DelayFifo::flush()
 {
 	RtLock lock(this->fifo_mutex);
-	vector<DelayFifoElement *>::iterator it;
+	std::vector<FifoElement *>::iterator it;
 	for(it = this->queue.begin(); it != this->queue.end(); ++it)
 	{
 		delete *it;

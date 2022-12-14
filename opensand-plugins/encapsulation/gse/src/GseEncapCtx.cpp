@@ -49,7 +49,7 @@ GseEncapCtx::GseEncapCtx(GseIdentifier *identifier, uint16_t spot_id)
 	this->is_full = false;
 	this->vfrag = NULL;
 	this->buf = NULL;
-	this->protocol = 0;
+	this->protocol = NET_PROTO::ERROR;
 	this->name = "unknown";
 	this->dest_spot = spot_id;
 	this->to_reset = false;
@@ -136,7 +136,7 @@ gse_status_t GseEncapCtx::add(NetPacket *packet)
 	}
 
 	memcpy(gse_get_vfrag_start(this->vfrag) + previous_length,
-	       packet->getData().c_str(),
+	       packet->getRawData(),
 	       packet->getTotalLength());
 	// Update the virtual fragment length
 	status = gse_set_vfrag_length(this->vfrag, previous_length +
@@ -199,7 +199,7 @@ uint8_t GseEncapCtx::getQos()
 
 uint16_t GseEncapCtx::getProtocol()
 {
-	return this->protocol;
+	return to_underlying(this->protocol);
 }
 
 std::string GseEncapCtx::getPacketName()

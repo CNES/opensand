@@ -47,8 +47,7 @@
  */
 class LogonRequest: public DvbFrameTpl<T_DVB_LOGON_REQ>
 {
- public:
-
+public:
 	/**
 	 * @brief Logon request constructor for terminal (sender)
 	 *
@@ -130,8 +129,7 @@ class LogonRequest: public DvbFrameTpl<T_DVB_LOGON_REQ>
  */
 class LogonResponse: public DvbFrameTpl<T_DVB_LOGON_RESP>
 {
- public:
-
+public:
 	/**
 	 * @brief Logon response constructor for NCC ((sender)
 	 *

@@ -46,8 +46,6 @@
 #include <vector>
 #include <stdint.h>
 
-using std::vector;
-using std::map;
 
 /** The information related to TTP */
 typedef struct
@@ -110,7 +108,7 @@ typedef struct
 
 class Ttp: public DvbFrameTpl<T_DVB_TTP>
 {
- public:
+public:
 	/**
 	 * @brief Terminal Time Plan contructor
 	 */
@@ -166,7 +164,7 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 	 *
 	 * @return true if a TP is found, false otherwise
 	 */
-	bool getTp(tal_id_t tal_id, map<uint8_t, emu_tp_t> &tps);
+	bool getTp(tal_id_t tal_id, std::map<uint8_t, emu_tp_t> &tps);
 
 	/**
 	 * @brief  Get the group Id
@@ -191,16 +189,15 @@ class Ttp: public DvbFrameTpl<T_DVB_TTP>
 	/// The log for TTP
 	static std::shared_ptr<OutputLog> ttp_log;
 
- private:
-
+private:
 	/// A list of time plans
-	typedef vector<emu_tp_t> time_plans_t;
+	typedef std::vector<emu_tp_t> time_plans_t;
 	/// The list of frames and their TP
-	typedef map<uint8_t, time_plans_t> frames_t;
+	typedef std::map<uint8_t, time_plans_t> frames_t;
 
 	/// The frames, completed each time we add a TP
 	frames_t frames;
 };
 
-#endif
 
+#endif

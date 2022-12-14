@@ -33,24 +33,22 @@
  *
  */
 
-#include "BlockManager.h"
-#include "RtFifo.h"
-#include "Rt.h"
+#include <unistd.h>
+#include <sys/signalfd.h>
+#include <signal.h>
+#include <syslog.h>
+#include <cstring>
+
+#include <cxxabi.h>
+#include <execinfo.h>
 
 #include <opensand_output/Output.h>
 
-#include <unistd.h>
-#include <signal.h>
-#include <cstdio>
-#include <cstring>
-#include <sys/signalfd.h>
-#include <sys/resource.h>
-#include <syslog.h>
+#include "BlockManager.h"
+#include "Rt.h"
+#include "RtChannelBase.h"
+#include "RtFifo.h"
 
-#include <execinfo.h>
-#include <errno.h>
-#include <cxxabi.h>
-  
 
 // taken from http://oroboro.com/stack-trace-on-crash/
 static inline void print_stack(unsigned int max_frames = 63)
@@ -157,6 +155,7 @@ static void crash_handler(int sig)
 	exit(-42);
 }
 
+
 BlockManager::BlockManager():
 	stopped(false),
 	status(true)
@@ -166,14 +165,14 @@ BlockManager::BlockManager():
 
 BlockManager::~BlockManager()
 {
-	for(list<Block *>::const_iterator iter = this->block_list.begin();
-	    iter != this->block_list.end(); ++iter)
+	for(auto &&block: block_list)
 	{
-		delete (*iter);
+		delete block;
 	}
 }
 
-void BlockManager::stop(int signal)
+
+void BlockManager::stop(void)
 {
 	if(this->stopped)
 	{
@@ -181,23 +180,18 @@ void BlockManager::stop(int signal)
 		    "already tried to stop process\n");
 		return;
 	}
-	for(list<Block *>::iterator iter = this->block_list.begin();
-	    iter != this->block_list.end(); ++iter)
-	{
-		if(*iter != NULL)
-		{
-			if(!(*iter)->stop(signal))
-			{
-				(*iter)->stop(SIGKILL);
-			}
-		}
-	}
+
 	// avoid calling many times stop, we may have loop else
 	this->stopped = true;
-	// TODO try using pthread_cancel, select has a posix cancel point in it
-	// http://www.mkssoftware.com/docs/man3/pthread_cancel.3.asp
-	// https://stackoverflow.com/questions/433989/posix-cancellation-points
+	for(auto &&block: block_list)
+	{
+		if(block != nullptr)
+		{
+			block->stop();
+		}
+	}
 }
+
 
 bool BlockManager::init(void)
 {
@@ -210,20 +204,20 @@ bool BlockManager::init(void)
 	// Output log
 	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "Rt");
 
-	for(list<Block*>::iterator iter = this->block_list.begin();
-	    iter != this->block_list.end(); iter++)
+	for(auto &&block: block_list)
 	{
 		LOG(this->log_rt, LEVEL_DEBUG,
 		    "Initializing block %s.",
-		    (*iter)->getName().c_str());
-		if((*iter)->isInitialized())
+		    block->getName().c_str());
+		if(block->isInitialized())
 		{
 			LOG(this->log_rt, LEVEL_NOTICE,
 			    "Block %s already initialized...",
-			    (*iter)->getName().c_str());
+			    block->getName().c_str());
 			continue;
 		}
-		if(!(*iter)->init())
+
+		if(!block->init())
 		{
 			// only return false, the block init function should call
 			// report error with critical to true
@@ -231,22 +225,21 @@ bool BlockManager::init(void)
 		}
 		LOG(this->log_rt, LEVEL_NOTICE,
 		    "Block %s initialized.",
-		    (*iter)->getName().c_str());
+		    block->getName().c_str());
 	}
 
-	for(list<Block*>::iterator iter = this->block_list.begin();
-	    iter != this->block_list.end(); iter++)
+	for(auto &&block: block_list)
 	{
 		LOG(this->log_rt, LEVEL_DEBUG,
 		    "Initializing specifics of block %s.",
-		    (*iter)->getName().c_str());
-		if((*iter)->isInitialized())
+		    block->getName().c_str());
+		if(block->isInitialized())
 		{
 			LOG(this->log_rt, LEVEL_NOTICE,
 			    "Block %s already initialized...",
-			    (*iter)->getName().c_str());
+			    block->getName().c_str());
 		}
-		if(!(*iter)->initSpecific())
+		if(!block->initSpecific())
 		{
 			// only return false, the block initSpecific function should call
 			// report error with critical to true
@@ -254,50 +247,50 @@ bool BlockManager::init(void)
 		}
 		LOG(this->log_rt, LEVEL_NOTICE,
 		    "Block %s initialized its specifics.",
-		    (*iter)->getName().c_str());
+		    block->getName().c_str());
 	}
 
 	return true;
 }
 
 
-void BlockManager::reportError(const char *msg, bool critical)
+void BlockManager::reportError(const std::string& msg, bool critical)
 {
-	if(critical == true)
+	if(critical)
 	{
-		LOG(this->log_rt, LEVEL_CRITICAL, "%s", msg);
+		LOG(this->log_rt, LEVEL_CRITICAL, "%s", msg.c_str());
 		// stop process to signal something goes wrong
 		this->status = false;
 		kill(getpid(), SIGTERM);
 	}
 	else
 	{
-		//LOG(this->log_rt, LEVEL_ERROR,
-		//    "%s", msg);
+		LOG(this->log_rt, LEVEL_ERROR, "%s", msg.c_str());
 	}
 }
+
 
 bool BlockManager::start(void)
 {
 	//start all threads
-	for(list<Block *>::iterator iter = this->block_list.begin();
-	    iter != this->block_list.end(); ++iter)
+	for(auto &&block: block_list)
 	{
-		if(!(*iter)->isInitialized())
+		if(!block->isInitialized())
 		{
-			Rt::reportError("manager", pthread_self(),
+			Rt::reportError("manager", std::this_thread::get_id(),
 			                true, "block not initialized");
 			return false;
 		}
-		if(!(*iter)->start())
+		if(!block->start())
 		{
-			Rt::reportError("manager", pthread_self(),
+			Rt::reportError("manager", std::this_thread::get_id(),
 			                true, "block does not start");
 			return false;
 		}
 	}
 	return true;
 }
+
 
 void BlockManager::wait(void)
 {
@@ -316,7 +309,7 @@ void BlockManager::wait(void)
 	ret = pthread_sigmask(SIG_SETMASK, &blocked_signals, NULL);
 	if(ret == -1)
 	{
-		Rt::reportError("manager", pthread_self(),
+		Rt::reportError("manager", std::this_thread::get_id(),
 		                true, "error setting signal mask");
 		this->status = false;
 	}
@@ -334,28 +327,66 @@ void BlockManager::wait(void)
 	ret = select(fd + 1, &fds, NULL, NULL, NULL);
 	if(ret == -1 || !FD_ISSET(fd, &fds))
 	{
-		Rt::reportError("manager", pthread_self(),
+		Rt::reportError("manager", std::this_thread::get_id(),
 		                true, "select error");
 		this->status = false;
 	}
 	else if(ret)
 	{
 		struct signalfd_siginfo fdsi;
-		int rlen;
-		rlen = read(fd, &fdsi, sizeof(struct signalfd_siginfo));
+		auto rlen = read(fd, &fdsi, sizeof(struct signalfd_siginfo));
 		if(rlen != sizeof(struct signalfd_siginfo))
 		{
-			Rt::reportError("manager", pthread_self(),
+			Rt::reportError("manager", std::this_thread::get_id(),
 			                true, "cannot read signal");
 			this->status = false;
 		}
 		LOG(this->log_rt, LEVEL_INFO,
 		    "signal received: %d\n", fdsi.ssi_signo);
-		this->stop(fdsi.ssi_signo);
+		this->stop();
 	}
 }
+
 
 bool BlockManager::getStatus()
 {
 	return this->status;
+}
+
+
+void BlockManager::setupBlock(Block *block, RtChannelBase *upward, RtChannelBase *downward)
+{
+	block->upward = upward;
+	block->downward = downward;
+
+	auto up_opp_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
+	auto down_opp_fifo = std::shared_ptr<RtFifo>{new RtFifo()};
+
+	upward->setOppositeFifo(up_opp_fifo, down_opp_fifo);
+	downward->setOppositeFifo(down_opp_fifo, up_opp_fifo);
+
+	this->block_list.push_back(block);
+}
+
+
+bool BlockManager::checkConnectedBlocks(const Block *upper, const Block *lower)
+{
+	if (!upper)
+	{
+		LOG(log_rt, LEVEL_ERROR, "Upper block to connect is null");
+		return false;
+	}
+	if (!lower)
+	{
+		LOG(log_rt, LEVEL_ERROR, "Lower block to connect is null");
+		return false;
+	}
+	return true;
+}
+
+
+std::shared_ptr<RtFifo> BlockManager::createFifo()
+{
+	// Do we catch bad_alloc to return nullptr here?
+	return std::shared_ptr<RtFifo>{new RtFifo()};
 }

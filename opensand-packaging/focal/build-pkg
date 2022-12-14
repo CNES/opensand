@@ -25,6 +25,11 @@ usage()
     exit 1
 }
 
+echo_incomplete_line()
+{
+    stdbuf -o0 echo -n "$@"
+}
+
 build()
 {
     echo "Building module $MODULE for $CURRENT"
@@ -48,21 +53,21 @@ build()
     if [ -d $SRC_DIR/$MODULE ]
     then
         # Fetching sources
-        echo -n "  * Fetching source files ($CURRENT)... "
+        echo_incomplete_line "  * Fetching source files ($CURRENT)... "
         cp -r $SRC_DIR/$MODULE/* $DST_DIR/src/$MODULE
         cp $SRC_DIR/ChangeLog $DST_DIR/src/ 2>/dev/null
         success
     fi
 
     # Copy new files
-    echo -n "  * Fetching packaging files ($CURRENT)..."
+    echo_incomplete_line "  * Fetching packaging files ($CURRENT)..."
     cp -r * $DST_DIR/src/$MODULE
     success
 
     if [ -f "$THIS_DIR/$MODULE/pre-src" ]
     then
         # Prepare sources
-        echo -n "  * Prepare source files ($CURRENT)... "
+        echo_incomplete_line "  * Prepare source files ($CURRENT)... "
         $THIS_DIR/$MODULE/pre-src -s $SRC_DIR/$MODULE -d $DST_DIR/src/$MODULE && success || error
     fi
 
@@ -97,13 +102,13 @@ build()
               sed -r 's/( )?,//g' | sed '$d' | tr '\n' ' '`
 
         # Install dependencies
-        echo -n "  * Installing build-dependencies ... "
+        echo_incomplete_line "  * Installing build-dependencies ... "
         sudo apt-get install --no-install-recommends -y --allow-downgrades ${DEPS} 1>/dev/null && success || error "Failed" "installing" ${DEPS}
     fi
     
     # Launch dpkg command to build package
     cd $DST_DIR/src/$MODULE
-    echo -n "  * Packaging module ... "
+    echo_incomplete_line "  * Packaging module ... "
     if [ -f ./autogen.sh ]
     then
         ./autogen.sh 1>configure.log 2>&1 || error configure.log
@@ -154,7 +159,7 @@ install()
 {
     # Get list of available modules:
     DEBS=`find $DST_DIR/src/$MODULE/../ -maxdepth 1 -name '*.deb' -printf "%f "`
-    echo -n "Installing packages $DEBS ..."
+    echo_incomplete_line "Installing packages $DEBS ..."
     cd $DST_DIR/src/$MODULE/../
     sudo dpkg -i $DEBS 2>&1 >$DST_DIR/src/out.log || error "$DST_DIR/src/out.log"
     success

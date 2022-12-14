@@ -44,7 +44,7 @@
 */
 class SlottedAlohaBackoffMimd: public SlottedAlohaBackoff
 {
- public:
+public:
 	/**
 	 * Build class
 	 *

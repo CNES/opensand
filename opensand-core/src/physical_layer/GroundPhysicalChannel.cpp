@@ -35,33 +35,29 @@
 
 #include "GroundPhysicalChannel.h"
 #include "Plugin.h"
-#include "DelayFifoElement.h"
+#include "FifoElement.h"
 #include "OpenSandCore.h"
 #include "OpenSandModelConf.h"
+#include "NetContainer.h"
 
 #include <math.h>
 #include <algorithm>
+#include <string>
+
+#include <opensand_rt/RtChannelBase.h>
 
 
-GroundPhysicalChannel::GroundPhysicalChannel(tal_id_t mac_id):
-	attenuation_model(NULL),
-	clear_sky_condition(0),
-	delay_fifo(),
-	probe_attenuation(NULL),
-	probe_clear_sky_condition(NULL),
-	mac_id(mac_id),
-	log_event(NULL),
-	log_channel(NULL),
-	satdelay_model(NULL),
-	attenuation_update_timer(-1),
-	fifo_timer(-1)
+GroundPhysicalChannel::GroundPhysicalChannel(PhyLayerConfig config):
+	clear_sky_condition{0},
+	delay_fifo{},
+	mac_id{config.mac_id},
+	entity_type{config.entity_type},
+	spot_id{config.spot_id},
+	attenuation_update_timer{-1},
+	fifo_timer{-1}
 {
 	// Initialize logs
 	this->log_channel = Output::Get()->registerLog(LEVEL_WARNING, "PhysicalLayer.Channel");
-}
-
-GroundPhysicalChannel::~GroundPhysicalChannel()
-{
 }
 
 void GroundPhysicalChannel::generateConfiguration()
@@ -76,8 +72,8 @@ void GroundPhysicalChannel::generateConfiguration()
 	auto downlink = Conf->getOrCreateComponent("downlink_attenuation", "DownLink Attenuation", conf);
 	downlink->addParameter("clear_sky", "Clear Sky Condition", types->getType("double"))->setUnit("dB");
 
-	Plugin::generatePluginsConfiguration(uplink, attenuation_plugin, "attenuation_type", "Attenuation Type");
-	Plugin::generatePluginsConfiguration(downlink, attenuation_plugin, "attenuation_type", "Attenuation Type");
+	Plugin::generatePluginsConfiguration(uplink, PluginType::Attenuation, "attenuation_type", "Attenuation Type");
+	Plugin::generatePluginsConfiguration(downlink, PluginType::Attenuation, "attenuation_type", "Attenuation Type");
 }
 
 void GroundPhysicalChannel::setSatDelay(SatDelayPlugin *satdelay)
@@ -85,7 +81,7 @@ void GroundPhysicalChannel::setSatDelay(SatDelayPlugin *satdelay)
 	this->satdelay_model = satdelay;
 }
 
-bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, std::shared_ptr<OutputLog> log_init)
+bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannelBase *channel, std::shared_ptr<OutputLog> log_init)
 {
 	auto output = Output::Get();
 	auto Conf = OpenSandModelConf::Get();
@@ -96,10 +92,10 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, 
 	auto phy_layer = Conf->getProfileData()->getComponent("physical_layer");
 	auto link_attenuation = phy_layer->getComponent(component);
 
+	// generate probes prefix
+	bool is_sat = Conf->getComponentType() == Component::satellite;
+	std::string probe_prefix = generateProbePrefix(spot_id, entity_type, is_sat);
 
-	// Sanity check
-	assert(this->satdelay_model != NULL);
-	
 	// Get the FIFO max size
 	// vol_pkt_t max_size;
 	std::size_t max_size;
@@ -128,10 +124,7 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, 
 	this->fifo_timer = channel->addTimerEvent("fifo_timer", refresh_period_ms);
 
 	// Initialize log
-	char probe_name[128];
-	snprintf(probe_name, sizeof(probe_name),
-	         "PhysicalLayer.%sward.Event", upward_channel ? "Up" : "Down");
-	this->log_event = output->registerLog(LEVEL_WARNING, string(probe_name));
+	this->log_event = output->registerLog(LEVEL_WARNING, "PhysicalLayer." + link + "ward.Event");
 
 	// Get the refresh period
 	if(!Conf->getAcmRefreshPeriod(refresh_period_ms))
@@ -189,13 +182,13 @@ bool GroundPhysicalChannel::initGround(bool upward_channel, RtChannel *channel, 
 	this->attenuation_update_timer = channel->addTimerEvent(name.str(), refresh_period_ms);
 
 	// Initialize attenuation probes
-	snprintf(probe_name, sizeof(probe_name),
-	         "Phy.%slink_attenuation", link.c_str());
-	this->probe_attenuation = output->registerProbe<float>(probe_name, "dB", true, SAMPLE_MAX);
+	this->probe_attenuation =
+	    output->registerProbe<float>(probe_prefix + "Phy." + link + "link_attenuation",
+	                                 "dB", true, SAMPLE_MAX);
 
-	snprintf(probe_name, sizeof(probe_name),
-	         "Phy.%slink_clear_sky_condition", link.c_str());
-	this->probe_clear_sky_condition = output->registerProbe<float>(probe_name, "dB", true, SAMPLE_MAX);
+	this->probe_clear_sky_condition =
+	    output->registerProbe<float>(probe_prefix + "Phy." + link + "link_clear_sky_condition",
+	                                 "dB", true, SAMPLE_MAX);
 
 	return true;
 }
@@ -246,17 +239,20 @@ double GroundPhysicalChannel::computeTotalCn(double up_cn, double down_cn)
 
 bool GroundPhysicalChannel::pushPacket(NetContainer *pkt)
 {
-	DelayFifoElement *elem;
+	FifoElement *elem;
 	time_ms_t current_time = getCurrentTime();
 	time_ms_t delay = this->satdelay_model->getSatDelay();
 
 	// create a new FIFO element to store the packet
-	elem = new DelayFifoElement(pkt, current_time, current_time + delay);
-	if(!elem)
+	try
+	{
+		elem = new FifoElement(std::unique_ptr<NetContainer>{pkt}, current_time, current_time + delay);
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "Cannot allocate FIFO element, drop data");
-		goto error;
+		return false;
 	}
 
 	// append the data in the fifo
@@ -264,7 +260,8 @@ bool GroundPhysicalChannel::pushPacket(NetContainer *pkt)
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "FIFO is full: drop data");
-		goto release_elem;
+		delete elem;
+		return false;
 	}
 
 	LOG(this->log_channel, LEVEL_NOTICE,
@@ -274,13 +271,6 @@ bool GroundPhysicalChannel::pushPacket(NetContainer *pkt)
 	    elem->getTickOut(),
 	    delay);
 	return true;
-
-release_elem:
-	delete elem;
-
-error:
-	delete pkt;
-	return false;
 }
 
 bool GroundPhysicalChannel::forwardReadyPackets()
@@ -293,15 +283,12 @@ bool GroundPhysicalChannel::forwardReadyPackets()
 	while (this->delay_fifo.getCurrentSize() > 0 &&
 	       ((unsigned long)this->delay_fifo.getTickOut()) <= current_time)
 	{
-		NetContainer *pkt = NULL;
-		DelayFifoElement *elem;
+		FifoElement *elem = this->delay_fifo.pop();
+		assert(elem != nullptr);
 
-		elem = this->delay_fifo.pop();
-		assert(elem != NULL);
-
-		pkt = elem->getElem<NetContainer>();
+		std::unique_ptr<NetContainer> pkt = elem->getElem();
 		delete elem;
-		this->forwardPacket((DvbFrame *)pkt);
+		this->forwardPacket(reinterpret_cast<DvbFrame *>(pkt.release()));
 	}
 	return true;
 }

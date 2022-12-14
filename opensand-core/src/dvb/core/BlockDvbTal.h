@@ -72,15 +72,14 @@
 
 
 /// the current state of the ST
-typedef enum
+enum class TalState
 {
-	state_null,            /**< non-existant state */
-	state_off,             /**< The ST is stopped */
-	state_initializing,    /**< The ST is begin started */
-	state_wait_logon_resp, /**< The ST is not logged yet */
-	state_running,         /**< The ST is operational */
-} tal_state_t;
-
+	null,            /**< non-existant state */
+	off,             /**< The ST is stopped */
+	initializing,    /**< The ST is begin started */
+	wait_logon_resp, /**< The ST is not logged yet */
+	running,         /**< The ST is operational */
+};
 
 
 /**
@@ -105,24 +104,23 @@ typedef enum
  */
 class BlockDvbTal: public BlockDvb
 {
- public:
-
-	BlockDvbTal(const string &name, tal_id_t mac_id);
+public:
+	BlockDvbTal(const std::string &name, struct dvb_specific specific);
 	~BlockDvbTal();
 
-	static void generateConfiguration();
+	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
 
 	bool initListsSts();
 
 	class Upward: public DvbUpward, public DvbFmt
 	{
-	 public:
-		Upward(const string &name, tal_id_t mac_id);
+	public:
+		Upward(const std::string &name, struct dvb_specific specific);
 		~Upward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 protected:
+	protected:
 		/**
 		 * @brief Initialize the transmission mode
 		 *
@@ -176,14 +174,6 @@ class BlockDvbTal: public BlockDvb
 		 * @return true on success, false otherwise
 		 */
 		bool onRcvLogonResp(DvbFrame *dvb_frame);
-		
-		/**
-		 * Transmist a frame to the opposite channel
-		 *
-		 * @param frame  The dvb frame
-		 * @return true on success, false otherwise
-		 */
-		bool shareFrame(DvbFrame *frame);
 
 		// statistics update
 		void updateStats(void);
@@ -203,7 +193,7 @@ class BlockDvbTal: public BlockDvb
 		bool is_scpc;
 		
 		/// the current state of the ST
-		tal_state_t state;
+		TalState state;
 
 		/* Output probes and stats */
 		// Rates
@@ -220,13 +210,13 @@ class BlockDvbTal: public BlockDvb
 
 	class Downward: public DvbDownward, public DvbFmt
 	{
-	 public:
-		Downward(const string &name, tal_id_t mac_id);
+	public:
+		Downward(const std::string &name, struct dvb_specific specific);
 		~Downward();
 		bool onInit(void);
 		bool onEvent(const RtEvent *const event);
 
-	 protected:
+	protected:
 		/**
 		 * @brief Initialize the transmission mode
 		 *
@@ -362,7 +352,7 @@ class BlockDvbTal: public BlockDvb
 		int mac_id;
 
 		/// the current state of the ST
-		tal_state_t state;
+		TalState state;
 
 		/// the group ID sent by NCC (only valid in state_running)
 		group_id_t group_id;
@@ -441,16 +431,16 @@ class BlockDvbTal: public BlockDvb
 
 		/* Output probes and stats */
 		// Queue sizes
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size;
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size_kb;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_size_kb;
 		// Queue loss
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss;
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss_kb;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_queue_loss_kb;
 		// Rates
 		// Layer 2 to SAT
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_before_sched;
-		map<unsigned int, int> l2_to_sat_cells_before_sched;
-		map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_after_sched;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_before_sched;
+		std::map<unsigned int, int> l2_to_sat_cells_before_sched;
+		std::map<unsigned int, std::shared_ptr<Probe<int> > > probe_st_l2_to_sat_after_sched;
 		int l2_to_sat_total_bytes;
 		std::shared_ptr<Probe<int>> probe_st_l2_to_sat_total;
 		// PHY to SAT
@@ -461,9 +451,9 @@ class BlockDvbTal: public BlockDvb
 		std::shared_ptr<Probe<int>> probe_st_required_modcod; // MODCOD required for next DVB bursts. Correspond to the value put in SAC
 	};
 
- protected:
-
+protected:
 	bool onInit(void);
+	bool disable_control_plane;
 
 	/// The list of Sts with return/up modcod
 	StFmtSimuList* input_sts;

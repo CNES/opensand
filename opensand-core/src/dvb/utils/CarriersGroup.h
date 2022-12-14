@@ -45,8 +45,7 @@
  */
 class CarriersGroup
 {
- public:
-
+public:
 	/**
 	 * @brief  Construct a group of carriers with the same characteristics
 	 *
@@ -60,7 +59,7 @@ class CarriersGroup
 	              const FmtGroup *const fmt_group,
 	              unsigned int ratio,
 	              rate_symps_t rate_symps,
-	              access_type_t access_type);
+	              AccessType access_type);
 
 	/** Destructor */
 	virtual ~CarriersGroup();
@@ -121,7 +120,7 @@ class CarriersGroup
 	 */
 	unsigned int getRatio() const;
 
- 	/**
+	/**
 	 * @brief   Set the estimated occupation ratio
 	 *
 	 * @param  The new estimated occupation ratio
@@ -133,16 +132,16 @@ class CarriersGroup
 	 *
 	 * @return the list of MODCODs
 	 */
-	const list<fmt_id_t> getFmtIds() const;
+	const std::list<fmt_id_t> getFmtIds() const;
 
 	/**
 	 * @brief Get the carriers access type
 	 *
 	 * @return  The carriers access type
 	 */
-	access_type_t getAccessType(void) const;
+	AccessType getAccessType(void) const;
 
- 	/**
+	/**
 	 * @brief Get the FMT Group
 	 *
 	 * @return The FMT Group
@@ -165,8 +164,7 @@ class CarriersGroup
 	virtual void addVcm(const FmtGroup *const fmt_group,
 	                    unsigned int ratio);
 
- protected:
-
+protected:
 	/** Carriers id */
 	unsigned int carriers_id;
 
@@ -186,7 +184,7 @@ class CarriersGroup
 	rate_symps_t symbol_rate_symps;
 
 	/** Access type */
-	access_type_t access_type;
+	AccessType access_type;
 };
 
 

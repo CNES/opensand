@@ -40,7 +40,9 @@
 
 #include <string.h>
 
+
 std::shared_ptr<OutputLog> BBFrame::bbframe_log = nullptr;
+
 
 BBFrame::BBFrame(const unsigned char *data, size_t length):
 	DvbFrameTpl<T_DVB_BBFRAME>(data, length)
@@ -51,6 +53,7 @@ BBFrame::BBFrame(const unsigned char *data, size_t length):
 	this->header_length = this->getOffsetForPayload();
 }
 
+
 BBFrame::BBFrame(const Data &data):
 	DvbFrameTpl<T_DVB_BBFRAME>(data)
 {
@@ -59,6 +62,7 @@ BBFrame::BBFrame(const Data &data):
 	this->num_packets = this->getDataLength();
 	this->header_length = this->getOffsetForPayload();
 }
+
 
 BBFrame::BBFrame(const Data &data, size_t length):
 	DvbFrameTpl<T_DVB_BBFRAME>(data, length)
@@ -69,10 +73,6 @@ BBFrame::BBFrame(const Data &data, size_t length):
 	this->header_length = this->getOffsetForPayload();
 }
 
-BBFrame::BBFrame(DvbFrame *frame):
-	DvbFrameTpl<T_DVB_BBFRAME>(frame)
-{
-}
 
 BBFrame::BBFrame():
 	DvbFrameTpl<T_DVB_BBFRAME>()
@@ -82,7 +82,7 @@ BBFrame::BBFrame():
 
 	// no data given as input, so create the BB header
 	this->setMessageLength(sizeof(T_DVB_BBFRAME));
-	this->setMessageType(MSG_TYPE_BBFRAME);
+	this->setMessageType(EmulatedMessageType::BbFrame);
 	this->frame()->data_length = 0; // no encapsulation packet at the beginning
 	this->frame()->used_modcod = 0; // by default, may be changed
 }

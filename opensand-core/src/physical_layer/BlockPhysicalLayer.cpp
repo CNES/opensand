@@ -35,34 +35,31 @@
  */
 
 #include "BlockPhysicalLayer.h"
+#include "AttenuationHandler.h"
 
 #include "Plugin.h"
 #include "OpenSandFrames.h"
 #include "OpenSandCore.h"
 #include "OpenSandPlugin.h"
 #include "OpenSandModelConf.h"
+#include "NetContainer.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/MessageEvent.h>
 
-BlockPhysicalLayer::BlockPhysicalLayer(const string &name, tal_id_t mac_id):
+
+BlockPhysicalLayer::BlockPhysicalLayer(const std::string &name, PhyLayerConfig config):
 	Block(name),
-	mac_id(mac_id),
-	satdelay(NULL)
+	mac_id(config.mac_id)
 {
 }
-
-
-BlockPhysicalLayer::~BlockPhysicalLayer()
-{
-}
-
 
 void BlockPhysicalLayer::generateConfiguration()
 {
 	auto Conf = OpenSandModelConf::Get();
 	auto conf = Conf->getOrCreateComponent("physical_layer", "Physical Layer", "The Physical layer configuration");
 	auto delay = Conf->getOrCreateComponent("delay", "Delay", conf);
-	Plugin::generatePluginsConfiguration(delay, satdelay_plugin, "delay_type", "Delay Type");
+	Plugin::generatePluginsConfiguration(delay, PluginType::SatDelay, "delay_type", "Delay Type");
 
 	AttenuationHandler::generateConfiguration();
 	GroundPhysicalChannel::generateConfiguration();
@@ -114,11 +111,9 @@ bool BlockPhysicalLayer::onInit(void)
 	return true;
 }
 
-BlockPhysicalLayer::Upward::Upward(const string &name, tal_id_t mac_id):
-	GroundPhysicalChannel(mac_id),
-	RtUpward(name),
-	probe_total_cn(NULL),
-	attenuation_hdl(NULL)
+BlockPhysicalLayer::Upward::Upward(const std::string &name, PhyLayerConfig config):
+	GroundPhysicalChannel(config),
+	RtUpward(name)
 {
 }
 
@@ -139,12 +134,16 @@ bool BlockPhysicalLayer::Upward::onInit()
 		return false;
 	}
 
+	// generate probes prefix
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, entity_type, is_sat);
+
 	// Initialize the total CN probe
-	this->probe_total_cn = Output::Get()->registerProbe<float>("Phy.Total_cn", "dB", true, SAMPLE_LAST);
+	this->probe_total_cn = Output::Get()->registerProbe<float>(prefix + "Phy.Total_cn", "dB", true, SAMPLE_LAST);
 
 	// Initialize the attenuation handler
 	this->attenuation_hdl = new AttenuationHandler(this->log_channel);
-	if(!this->attenuation_hdl->initialize(this->log_init))
+	if(!this->attenuation_hdl->initialize(this->log_init, prefix))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Unable to initialize Attenuation Handler");
@@ -158,7 +157,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+		case EventType::Message:
 		{
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Incoming DVB frame");
@@ -168,7 +167,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Check the entity is a ST and DVB frame is SAC");
 			if(!OpenSandModelConf::Get()->isGw(this->mac_id) &&
-			   dvb_frame->getMessageType() == MSG_TYPE_SAC)
+			   dvb_frame->getMessageType() == EmulatedMessageType::Sac)
 			{
 				LOG(this->log_event, LEVEL_DEBUG,
 				    "The SAC is deleted because the entity is not a GW");
@@ -179,7 +178,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 			// Check a delay is applicable to the packet
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Check the DVB frame has to be delayed");
-			if(IS_DELAYED_FRAME(dvb_frame->getMessageType()))
+			if(IsDelayedFrame(dvb_frame->getMessageType()))
 			{
 				LOG(this->log_event, LEVEL_DEBUG,
 				    "Push the DVB frame in delay FIFO");
@@ -198,7 +197,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_timer:
+		case EventType::Timer:
 		{
 			if(*event == this->fifo_timer)
 			{
@@ -246,7 +245,7 @@ bool BlockPhysicalLayer::Upward::onEvent(const RtEvent *const event)
 
 bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 {
-	if(IS_CN_CAPABLE_FRAME(dvb_frame->getMessageType()))
+	if(IsCnCapableFrame(dvb_frame->getMessageType()))
 	{
 		// Set C/N to Dvb frame
 		dvb_frame->setCn(this->getCn(dvb_frame));
@@ -257,7 +256,7 @@ bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 		this->probe_total_cn->put(dvb_frame->getCn());
 	}
 
-	if(IS_ATTENUATED_FRAME(dvb_frame->getMessageType()))
+	if(IsAttenuatedFrame(dvb_frame->getMessageType()))
 	{
 		// Process Attenuation
 		if(!this->attenuation_hdl->process(dvb_frame, dvb_frame->getCn()))
@@ -270,7 +269,7 @@ bool BlockPhysicalLayer::Upward::forwardPacket(DvbFrame *dvb_frame)
 	}
 
 	// Send frame to upper layer
-	if(!this->enqueueMessage((void **)&dvb_frame))
+	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, 
 		    "Failed to send burst of packets to upper layer");
@@ -285,10 +284,9 @@ double BlockPhysicalLayer::Upward::getCn(DvbFrame *dvb_frame) const
 	return GroundPhysicalChannel::computeTotalCn(dvb_frame->getCn(), this->getCurrentCn());
 }
 
-BlockPhysicalLayer::Downward::Downward(const string &name, tal_id_t mac_id):
-	GroundPhysicalChannel(mac_id),
+BlockPhysicalLayer::Downward::Downward(const std::string &name, PhyLayerConfig config):
+	GroundPhysicalChannel(config),
 	RtDownward(name),
-	probe_delay(NULL),
 	delay_update_timer(-1)
 {
 }
@@ -301,12 +299,16 @@ bool BlockPhysicalLayer::Downward::onInit()
 		return false;
 	}
 
+	// generate probes prefix
+	bool is_sat = OpenSandModelConf::Get()->getComponentType() == Component::satellite;
+	std::string prefix = generateProbePrefix(spot_id, entity_type, is_sat);
+
 	// Initialize the delay event
 	this->delay_update_timer = this->addTimerEvent("delay_timer",
-                                                       this->satdelay_model->getRefreshPeriod());
+	                                               this->satdelay_model->getRefreshPeriod());
 
 	// Initialize the delay probe
-	this->probe_delay = Output::Get()->registerProbe<int>("Phy.Delay", "ms", true, SAMPLE_LAST);
+	this->probe_delay = Output::Get()->registerProbe<int>(prefix + "Phy.Delay", "ms", true, SAMPLE_LAST);
 
 	return true;
 }
@@ -315,7 +317,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+		case EventType::Message:
 		{
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Incoming DVB frame");
@@ -327,7 +329,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 			// Check a delay is applicable to the packet
 			LOG(this->log_event, LEVEL_DEBUG,
 			    "Check the DVB frame has to be delayed");
-			if(IS_DELAYED_FRAME(dvb_frame->getMessageType()))
+			if(IsDelayedFrame(dvb_frame->getMessageType()))
 			{
 				LOG(this->log_event, LEVEL_DEBUG,
 				    "Push the DVB frame in delay FIFO");
@@ -346,7 +348,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 		}
 		break;
 
-		case evt_timer:
+		case EventType::Timer:
 		{
 			if(*event == this->fifo_timer)
 			{
@@ -407,7 +409,7 @@ bool BlockPhysicalLayer::Downward::onEvent(const RtEvent *const event)
 
 void BlockPhysicalLayer::Downward::preparePacket(DvbFrame *dvb_frame)
 {
-	if(IS_CN_CAPABLE_FRAME(dvb_frame->getMessageType()))
+	if(IsCnCapableFrame(dvb_frame->getMessageType()))
 	{
 		// Set C/N to Dvb frame
 		LOG(this->log_event, LEVEL_DEBUG,
@@ -440,7 +442,7 @@ bool BlockPhysicalLayer::Downward::updateDelay()
 bool BlockPhysicalLayer::Downward::forwardPacket(DvbFrame *dvb_frame)
 {
 	// Send frame to upper layer
-	if(!this->enqueueMessage((void **)&dvb_frame))
+	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, 
 		    "Failed to send burst of packets to upper layer");

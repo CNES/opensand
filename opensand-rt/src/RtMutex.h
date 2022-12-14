@@ -28,8 +28,7 @@
 /**
  * @file RtMutex.h
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  Wrapper for using a mutex with RAII metho
- *
+ * @brief  Wrapper for using a mutex with RAII method
  */
 
 
@@ -39,10 +38,33 @@
 
 
 #include <mutex>
+#include <condition_variable>
 
 
 using RtMutex = std::mutex;
 using RtLock = std::lock_guard<RtMutex>;
+
+
+/**
+ * @class RtSemaphore
+ * @brief A simple semaphore implementation to protect access to critical sections
+ */
+class RtSemaphore
+{
+ public:
+	RtSemaphore(std::size_t = 1);
+
+	RtSemaphore(const RtSemaphore&) = delete;
+	RtSemaphore& operator =(const RtSemaphore&) = delete;
+
+	void wait();
+	void notify();
+
+ private:
+	std::mutex lock;
+	std::condition_variable condition;
+  std::size_t count;
+};
 
 
 #endif

@@ -36,6 +36,7 @@
 
 #include "BlockSatCarrier.h"
 
+#include <opensand_rt/MessageEvent.h>
 #include <opensand_output/Output.h>
 
 #include "DvbFrame.h"
@@ -45,22 +46,37 @@
 /**
  * Constructor
  */
-BlockSatCarrier::BlockSatCarrier(const string &name,
-                                 struct sc_specific UNUSED(specific)):
+BlockSatCarrier::BlockSatCarrier(const std::string &name,
+                                 struct sc_specific):
 	Block(name)
 {
 }
 
-BlockSatCarrier::~BlockSatCarrier()
+BlockSatCarrier::Upward::Upward(const std::string &name, struct sc_specific specific):
+	RtUpward{name},
+	ip_addr{std::move(specific.ip_addr)},
+	tal_id{specific.tal_id},
+	in_channel_set{specific.tal_id},
+	destination_host{specific.destination_host},
+	spot_id{specific.spot_id}
 {
 }
 
+BlockSatCarrier::Downward::Downward(const std::string &name, struct sc_specific specific):
+	RtDownward{name},
+	ip_addr{std::move(specific.ip_addr)},
+	tal_id{specific.tal_id},
+	out_channel_set{specific.tal_id},
+	destination_host{specific.destination_host},
+	spot_id{specific.spot_id}
+{
+}
 
 bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+		case EventType::Message:
 		{
 			DvbFrame *dvb_frame = (DvbFrame *)((MessageEvent *)event)->getData();
 
@@ -70,7 +86,7 @@ bool BlockSatCarrier::Downward::onEvent(const RtEvent *const event)
 			    event->getName().c_str());
 
 			if(!this->out_channel_set.send(dvb_frame->getCarrierId(),
-			                               dvb_frame->getData().c_str(),
+			                               dvb_frame->getRawData(),
 			                               dvb_frame->getTotalLength()))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
@@ -95,7 +111,7 @@ bool BlockSatCarrier::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_net_socket:
+		case EventType::NetSocket:
 		{
 			// Data to read in Sat_Carrier socket buffer
 			size_t length;
@@ -161,7 +177,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 	UdpChannel *channel;
 
 	// initialize all channels from the configuration file
-	if(!this->in_channel_set.readInConfig(this->ip_addr))
+	if(!this->in_channel_set.readInConfig(this->ip_addr, destination_host, spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Wrong channel set configuration\n");
@@ -193,7 +209,7 @@ bool BlockSatCarrier::Upward::onInit(void)
 bool BlockSatCarrier::Downward::onInit()
 {
 	// initialize all channels from the configuration file
-	if(!this->out_channel_set.readOutConfig(this->ip_addr))
+	if(!this->out_channel_set.readOutConfig(this->ip_addr, destination_host, spot_id))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Wrong channel set configuration\n");
@@ -213,8 +229,8 @@ void BlockSatCarrier::Upward::onReceivePktFromCarrier(uint8_t carrier_id,
 
 	dvb_frame->setCarrierId(carrier_id);
 	dvb_frame->setSpot(spot_id);
-	
-	if(!this->enqueueMessage((void **)(&dvb_frame)))
+
+	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send frame from carrier %u to upper layer\n",

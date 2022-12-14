@@ -48,7 +48,7 @@
  */
 class File: public AttenuationModelPlugin
 {
- private:
+private:
 	/// The current time (in refresh_period_ms)
 	unsigned int current_time;
 
@@ -66,7 +66,7 @@ class File: public AttenuationModelPlugin
 	 */
 	bool load(std::string filename);
 
- public:
+public:
 	/**
 	 * @brief Build a File
 	 */
@@ -90,7 +90,7 @@ class File: public AttenuationModelPlugin
 };
 
 
-CREATE(File, attenuation_plugin, "File");
+CREATE(File, PluginType::Attenuation, "File");
 
 
 #endif

@@ -141,32 +141,34 @@ class Gse: public EncapPlugin
 	 public:
 		PacketHandler(EncapPlugin &plugin);
 
-		NetPacket *build(const Data &data,
-		                 size_t data_length,
-		                 uint8_t qos,
-		                 uint8_t src_tal_id,
-		                 uint8_t dst_tal_id) const;
+		std::unique_ptr<NetPacket> build(const Data &data,
+		                                 std::size_t data_length,
+		                                 uint8_t qos,
+		                                 uint8_t src_tal_id,
+		                                 uint8_t dst_tal_id) const override;
 		size_t getFixedLength() const {return 0;};
 		size_t getMinLength() const {return 3;};
 		size_t getLength(const unsigned char *data) const;
 		bool getSrc(const Data &data, tal_id_t &tal_id) const;
 		bool getQos(const Data &data, qos_t &qos) const;
 
-		bool getPacketForHeaderExtensions(const std::vector<NetPacket*>& packets, NetPacket ** selected_pkt);
-		bool setHeaderExtensions(const NetPacket* packet,
-		                         NetPacket** new_packet,
+		bool checkPacketForHeaderExtensions(std::unique_ptr<NetPacket> &packet) override;
+		bool setHeaderExtensions(std::unique_ptr<NetPacket> packet,
+		                         std::unique_ptr<NetPacket>& new_packet,
 		                         tal_id_t tal_id_src,
 		                         tal_id_t tal_id_dst,
 		                         std::string callback,
-		                         void *opaque);
+		                         void *opaque) override;
 
-		bool getHeaderExtensions(const NetPacket *packet,
+		bool getHeaderExtensions(const std::unique_ptr<NetPacket>& packet,
 		                         std::string callback,
-		                         void *opaque);
+		                         void *opaque) override;
 
 	 protected:
-		bool getChunk(NetPacket *packet, size_t remaining_length,
-		              NetPacket **data, NetPacket **remaining_data) const;
+		bool getChunk(std::unique_ptr<NetPacket> packet,
+                  std::size_t remaining_length,
+		              std::unique_ptr<NetPacket>& data,
+                  std::unique_ptr<NetPacket>& remaining_data) const override;
 	};
 
 	/// Constructor

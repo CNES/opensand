@@ -41,15 +41,17 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <map>
-
-#include "OpenSandCore.h"
+#include <unordered_map>
+#include <unordered_set>
 
 #include <opensand_conf/MetaComponent.h>
 #include <opensand_conf/DataComponent.h>
 #include <opensand_conf/DataParameter.h>
 #include <opensand_conf/DataValue.h>
 #include <opensand_output/Output.h>
+
+#include "OpenSandCore.h"
+#include "SpotComponentPair.h"
 
 
 namespace OpenSANDConf {
@@ -62,9 +64,12 @@ namespace OpenSANDConf {
 class SarpTable;
 
 
+using MetaComponentPtr = std::shared_ptr<OpenSANDConf::MetaComponent>;
+
+
 class OpenSandModelConf
 {
- public:
+public:
 	struct fmt_definition_parameters {
 		unsigned int id;
 		std::string modulation_type;
@@ -85,18 +90,20 @@ class OpenSandModelConf
 	};
 
 	struct spot_infrastructure {
-		OpenSandModelConf::carrier_socket ctrl_out;
-		OpenSandModelConf::carrier_socket ctrl_in;
-		OpenSandModelConf::carrier_socket logon_out;
 		OpenSandModelConf::carrier_socket logon_in;
-		OpenSandModelConf::carrier_socket data_out_st;
+		OpenSandModelConf::carrier_socket logon_out;
+		OpenSandModelConf::carrier_socket ctrl_in_st;
+		OpenSandModelConf::carrier_socket ctrl_out_gw;
+		OpenSandModelConf::carrier_socket ctrl_in_gw;
+		OpenSandModelConf::carrier_socket ctrl_out_st;
 		OpenSandModelConf::carrier_socket data_in_st;
 		OpenSandModelConf::carrier_socket data_out_gw;
 		OpenSandModelConf::carrier_socket data_in_gw;
+		OpenSandModelConf::carrier_socket data_out_st;
 	};
 
 	struct carrier {
-		access_type_t access_type;
+		AccessType access_type;
 		std::string category;
 		rate_symps_t symbol_rate;
 		std::map<std::string, unsigned int> format_ratios;
@@ -115,27 +122,24 @@ class OpenSandModelConf
 	void createModels();
 	std::shared_ptr<OpenSANDConf::DataComponent> getProfileData(const std::string &path="") const;
 	std::shared_ptr<OpenSANDConf::MetaTypesList> getModelTypesDefinition() const;
-	std::shared_ptr<OpenSANDConf::MetaComponent> getOrCreateComponent(
-			const std::string &id,
-			const std::string &name,
-			std::shared_ptr<OpenSANDConf::MetaComponent> from=nullptr);
-	std::shared_ptr<OpenSANDConf::MetaComponent> getOrCreateComponent(
-			const std::string &id,
-			const std::string &name,
-			const std::string &description,
-			std::shared_ptr<OpenSANDConf::MetaComponent> from=nullptr);
-	std::shared_ptr<OpenSANDConf::MetaComponent> getComponentByPath(
-			const std::string &path,
-			std::shared_ptr<OpenSANDConf::MetaModel> model=nullptr);
+	MetaComponentPtr getOrCreateComponent(const std::string &id,
+	                                      const std::string &name,
+	                                      MetaComponentPtr from=nullptr);
+	MetaComponentPtr getOrCreateComponent(const std::string &id,
+	                                      const std::string &name,
+	                                      const std::string &description,
+	                                      MetaComponentPtr from=nullptr);
+	MetaComponentPtr getComponentByPath(const std::string &path,
+	                                    std::shared_ptr<OpenSANDConf::MetaModel> model=nullptr);
 	void setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
-							 std::shared_ptr<OpenSANDConf::MetaParameter> referee,
-							 const char *expected_value);
+	                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
+	                         const char *expected_value);
 	void setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
-							 std::shared_ptr<OpenSANDConf::MetaParameter> referee,
-							 const std::string &expected_value);
+	                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
+	                         const std::string &expected_value);
 	void setProfileReference(std::shared_ptr<OpenSANDConf::MetaElement> parameter,
-							 std::shared_ptr<OpenSANDConf::MetaParameter> referee,
-							 bool expected_value);
+	                         std::shared_ptr<OpenSANDConf::MetaParameter> referee,
+	                         bool expected_value);
 
 	bool writeTopologyModel(const std::string& filename) const;
 	bool writeInfrastructureModel(const std::string& filename) const;
@@ -148,16 +152,16 @@ class OpenSandModelConf
 	template<typename T>
 	static bool extractParameterData(std::shared_ptr<const OpenSANDConf::DataParameter> parameter, T &result);
 
-	template<typename T>
-	bool extractParameterData(std::shared_ptr<const OpenSANDConf::DataComponent> component,
-	                          const std::string& parameter,
-	                          T &result) const;
+	template <typename T>
+	static bool extractParameterData(std::shared_ptr<const OpenSANDConf::DataComponent> component,
+	                                 const std::string &parameter,
+	                                 T &result);
 
-	component_t getComponentType() const;
+	Component getComponentType() const;
 	bool getComponentType(std::string &type, tal_id_t &id) const;
-	bool getSatInfrastructure(std::string &ip_address) const;
-	/*
-	 * Brief: get infrastructure informations for ground entities
+	bool getSatInfrastructure(std::string &ip_address, std::vector<IslConfig> &cfg) const;
+	/**
+	 * @brief: get infrastructure informations for ground entities
 	 *
 	 * @param: ip_address    Emulation Network IP address (except for Gateway Net Access:
 	 *                       interconnection network IP) this entity is listening on.
@@ -166,14 +170,17 @@ class OpenSandModelConf
 	 */
 	bool getGroundInfrastructure(std::string &ip_address, std::string &tap_iface) const;
 	bool getLocalStorage(bool &enabled, std::string &output_folder) const;
-	bool getRemoteStorage(bool &enabled, std::string &address, unsigned short &stats_port, unsigned short &logs_port) const;
-	bool getGwIds(std::vector<tal_id_t> &gws) const;
+	bool getRemoteStorage(bool &enabled,
+	                      std::string &address,
+	                      unsigned short &stats_port,
+	                      unsigned short &logs_port) const;
 	bool logLevels(std::map<std::string, log_level_t> &levels) const;
 	bool getSarp(SarpTable &sarp_table) const;
 	bool getNccPorts(int &pep_tcp_port, int &svno_tcp_port) const;
 	bool getQosServerHost(std::string &qos_server_host_agent, int &qos_server_host_port) const;
 	bool getS2WaveFormsDefinition(std::vector<fmt_definition_parameters> &fmt_definitions) const;
-	bool getRcs2WaveFormsDefinition(std::vector<fmt_definition_parameters> &fmt_definitions, vol_sym_t req_burst_length) const;
+	bool getRcs2WaveFormsDefinition(std::vector<fmt_definition_parameters> &fmt_definitions,
+	                                vol_sym_t req_burst_length) const;
 	bool getRcs2BurstLength(vol_sym_t &length_sym) const;
 	bool getSuperframePerSlottedAlohaFrame(time_sf_t &sf_per_saframe) const;
 	bool getCrdsaMaxSatelliteDelay(time_ms_t &sat_delay) const;
@@ -187,25 +194,34 @@ class OpenSandModelConf
 	bool getAcmRefreshPeriod(time_ms_t &period) const;
 	bool getDelayBufferSize(std::size_t &size) const;
 	bool getDelayTimer(time_ms_t &period) const;
+	bool getControlPlaneDisabled(bool &disabled) const;
 	bool getGwWithTalId(tal_id_t terminal_id, tal_id_t &gw_id) const;
 	bool getGwWithCarrierId(unsigned int carrier_id, tal_id_t &gw) const;
 	bool isGw(tal_id_t gw_id) const;
+	std::unordered_set<tal_id_t> getSatellites() const;
+	Component getEntityType(tal_id_t tal_id) const;
+	bool getScpcEnabled(bool &scpc_enabled) const;
 	bool getScpcEncapStack(std::vector<std::string> &encap_stack) const;
 	bool getSpotInfrastructure(tal_id_t gw_id, OpenSandModelConf::spot_infrastructure &carriers) const;
 	bool getSpotReturnCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;
 	bool getSpotForwardCarriers(tal_id_t gw_id, OpenSandModelConf::spot &spot) const;
 	bool getInterconnectCarrier(bool upward_connection,
-								std::string &remote_address,
-								unsigned int &data_port,
-								unsigned int &sig_port,
-								unsigned int &udp_stack,
-								unsigned int &udp_rmem,
-								unsigned int &udp_wmem) const;
+	                            std::string &remote_address,
+	                            unsigned int &data_port,
+	                            unsigned int &sig_port,
+	                            unsigned int &udp_stack,
+	                            unsigned int &udp_rmem,
+	                            unsigned int &udp_wmem,
+								std::size_t isl_index = 0) const;
 	bool getTerminalAffectation(spot_id_t &default_spot_id,
-								std::string &default_category_name,
-								std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
+	                            std::string &default_category_name,
+	                            std::map<tal_id_t, std::pair<spot_id_t, std::string>> &terminal_categories) const;
 
- private:
+	bool getDefaultSpotId(spot_id_t &default_spot_id) const;
+	const std::unordered_map<spot_id_t, SpotTopology> &getSpotsTopology() const;
+	RegenLevel getRegenLevel() const;
+
+private:
 	OpenSandModelConf();
 
 	std::shared_ptr<OpenSANDConf::MetaModel> topology_model;
@@ -217,7 +233,9 @@ class OpenSandModelConf
 	std::shared_ptr<OpenSANDConf::DataModel> profile;
 
 	std::shared_ptr<OutputLog> log;
-	std::map<tal_id_t, bool> gateways;
+	
+	std::unordered_map<tal_id_t, Component> entities_type;
+	std::unordered_map<spot_id_t, SpotTopology> spots_topology;
 
 	bool getSpotCarriers(uint16_t gw_id, OpenSandModelConf::spot &spot, bool forward) const;
 };
@@ -246,26 +264,26 @@ bool OpenSandModelConf::extractParameterData(std::shared_ptr<const OpenSANDConf:
 template<typename T>
 bool OpenSandModelConf::extractParameterData(std::shared_ptr<const OpenSANDConf::DataComponent> component,
                                              const std::string& parameter,
-                                             T &result) const
+                                             T &result)
 {
 	if (component == nullptr)
 	{
-		LOG(this->log, LEVEL_ERROR,
-		    "Trying to extract parameter %s from NULL component",
-		    parameter.c_str());
+		DFLTLOG(LEVEL_ERROR,
+		        "Conf: Trying to extract parameter %s from NULL component",
+		        parameter.c_str());
 		return false;
 	}
 
 	auto path = component->getPath();
-	LOG(this->log, LEVEL_INFO,
-	    "Extracting %s parameter from component %s",
-	    parameter.c_str(), path.c_str());
+	DFLTLOG(LEVEL_INFO,
+	        "Conf: Extracting %s parameter from component %s",
+	        parameter.c_str(), path.c_str());
 
 	if (!extractParameterData(component->getParameter(parameter), result))
 	{
-		LOG(this->log, LEVEL_WARNING,
-		    "Extracting %s/%s failed, default value used instead",
-		    path.c_str(), parameter.c_str());
+		DFLTLOG(LEVEL_NOTICE,
+		        "Conf: Extracting %s/%s failed, default value used instead",
+		        path.c_str(), parameter.c_str());
 		return false;
 	}
 

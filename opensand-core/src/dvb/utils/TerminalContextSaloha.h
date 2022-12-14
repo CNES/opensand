@@ -43,13 +43,13 @@
 
 #include <map>
 
-using std::map;
 
-typedef enum
+enum class PropagateState
 {
-	no_prop,
-	prop,
-} prop_state_t;
+	NoPropagation,
+	Propagation,
+};
+
 
 /**
  * @class TerminalContextSaloha
@@ -57,8 +57,7 @@ typedef enum
  */
 class TerminalContextSaloha: public TerminalContext
 {
- public:
-
+public:
 	/**
 	 * @brief  Create a terminal context.
 	 *
@@ -77,21 +76,20 @@ class TerminalContextSaloha: public TerminalContext
 	 * @return no_prop  if no PDU can be propagated,
 	 *         prop     if PDU can be propagated
 	 */
-	prop_state_t addPacket(SlottedAlohaPacketData *packet, saloha_packets_data_t &pdu);
+	PropagateState addPacket(std::unique_ptr<SlottedAlohaPacketData> packet, saloha_packets_data_t &pdu);
 
-  protected:
-
-	typedef map<saloha_pdu_id_t, saloha_packets_data_t> pdus_t;
+protected:
+	typedef std::map<saloha_pdu_id_t, saloha_packets_data_t> pdus_t;
 	/// The PDU fragments waiting to be propagated per QoS
 	//  Fragments are propagated once all fragments of the complete PDU are received
-	map<qos_t, pdus_t> wait_propagation;
+	std::map<qos_t, pdus_t> wait_propagation;
 	/// The oldest PDU ID per QoS in order to remove it after a certain amount of time
-	map<qos_t, saloha_pdu_id_t> oldest_id;
+	std::map<qos_t, saloha_pdu_id_t> oldest_id;
 	/// The counter for oldest packet
 	saloha_pdu_id_t old_count;
 
 	/// The slotted aloha logger
-  std::shared_ptr<OutputLog> log_saloha;
+	std::shared_ptr<OutputLog> log_saloha;
 
 	/**
 	 * @brief Handle oldest PDU id

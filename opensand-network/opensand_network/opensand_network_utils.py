@@ -34,16 +34,12 @@
 """Basic functions to configure network."""
 
 
-import subprocess
-import re
+import json
+import shlex
+from subprocess import run, PIPE, CalledProcessError
 
 
-ETH_TYPE = 'eth'
-IP_TYPE = 'ip'
-ALL_TYPES = [ IP_TYPE, ETH_TYPE ]
-DEFAULT_TYPE = ALL_TYPES[0]
-
-DEBUG = False
+VERBOSITY = 0
 RAISE_ERROR = True
 
 
@@ -51,7 +47,7 @@ class NetworkUtilsError(Exception):
     pass
 
 
-def __exec_cmd(cmd, error_msg):
+def __exec_cmd(error_message, *cmd, netns=None):
     '''
     Execute a command and raise an error in case of non-null returned value
 
@@ -61,250 +57,215 @@ def __exec_cmd(cmd, error_msg):
 
     Return lines of the stdout
     '''
-    if DEBUG:
-        print(cmd)
-    proc = subprocess.run(cmd.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if RAISE_ERROR and proc.returncode < 0:
-        raise NetworkUtilsError('{}: {}'.format(error, proc.stderr.decode()))
-    return proc.stdout.decode().splitlines()
+    if netns:
+        cmd = ['ip', 'netns', 'exec', netns, *cmd]
+
+    if VERBOSITY > 1:
+        print(shlex.join(cmd))
+
+    try:
+        proc = run(cmd, stdout=PIPE, stderr=PIPE, encoding='utf-8', check=True)
+    except CalledProcessError as error:
+        if VERBOSITY:
+            print(error.output, end='')
+            print(error.stderr, end='')
+        if RAISE_ERROR:
+            raise NetworkUtilsError(f'{error_message}: {error.stderr}') from error
+        else:
+            return error.output.splitlines()
+    except Exception as e:
+        if VERBOSITY:
+            print(e)
+        if RAISE_ERROR:
+            raise
+        else:
+            return []
+    else:
+        if VERBOSITY:
+            print(proc.stdout, end='')
+            print(proc.stderr, end='')
+        return proc.stdout
 
 
 def create_netns(netns):
     __exec_cmd(
-        'ip netns add {}'.format(netns),
         'Netns creation failed',
-    )
+        'ip', 'netns', 'add', netns)
 
 
 def delete_netns(netns):
     __exec_cmd(
-        'ip netns del {}'.format(netns),
         'Netns deletion failed',
-    )
+        'ip', 'netns', 'del', netns)
 
 
 def exist_netns(netns):
-    output = __exec_cmd(
-        'ip netns show {}'.format(netns),
-        'Netns showing failed',
+    name = 'name'
+    return any(
+        netns == entry[name]
+        for entry in list_netns()
+        if name in entry
     )
-    for line in output:
-        match = re.search('([a-zA-Z0-9_\-]+) .*', line)
-        if match and match.group(1) == netns:
-            return True
-    return False
+
+
+def list_netns():
+    output = __exec_cmd(
+        'Netns listing failed',
+        'ip', '-j', 'netns', 'show')
+    return json.loads(output)
 
 
 def list_ifaces(netns=None):
     output = __exec_cmd(
-        '{}ip link list'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-        ),
         'Interface listing failed',
-    )
-    ifaces = []
-    for line in output:
-        match = re.search('([a-zA-Z0-9_\-]+): <.*', line)
-        if match:
-            ifaces.append(match.group(1))
-    return ifaces
+        'ip', '-j', 'link', 'list',
+        netns=netns)
+
+    ifname = 'ifname'
+    return [
+        entry[ifname]
+        for entry in json.loads(output)
+        if ifname in entry
+    ]
 
 
 def set_up(iface, netns=None):
     __exec_cmd(
-        '{}ip link set {} up'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
         'Setting up interface failed',
-    )
+        'ip', 'link', 'set', iface, 'up',
+        netns=netns)
 
 
 def set_mac_address(iface, mac_address, netns=None):
     __exec_cmd(
-        '{}ip link set {} address {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-            mac_address,
-        ),
         'MAC address setting failed',
-    )
+        'ip', 'link', 'set', iface, 'address', mac_address,
+        netns=netns)
 
 
 def flush_address(iface, netns=None):
     __exec_cmd(
-        '{}ip address flush dev {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
         'Addresses flush failed',
-    )
+        'ip', 'address', 'flush', 'dev', iface,
+        netns=netns)
 
 
 def add_address(iface, address, netns=None):
     __exec_cmd(
-        '{}ip address add {} dev {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            address,
-            iface,
-        ),
         'Address addition failed',
-    )
+        'ip', 'address', 'add', address, 'dev', iface,
+        netns=netns)
 
 
 def create_dummy_iface(iface, netns=None):
     __exec_cmd(
-        '{}ip link add name {} type dummy'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
         'Dummy interface creation failed',
-    )
+        'ip', 'link', 'add', 'name', iface, 'type', 'dummy',
+        netns=netns)
 
 
 def create_veth_ifaces_pair(iface, peeriface):
     __exec_cmd(
-        'ip link add name {} type veth peer name {}'.format(iface, peeriface),
         'Veth interfaces pair creation failed',
-    )
+        'ip', 'link', 'add', 'name', iface, 'type', 'veth', 'peer', 'name', peeriface)
 
 
 def move_iface(iface, netns):
     __exec_cmd(
-        'ip link set {} netns {}'.format(iface, netns),
         'Interface moving to netns failed',
-   )
+        'ip', 'link', 'set', iface, 'netns', netns)
 
 
 def create_tap_iface(iface, netns=None):
     __exec_cmd(
-        '{}ip tuntap add mode tap {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
         'Tap interface creation failed',
-    )
+        'ip', 'tuntap', 'add', 'mode', 'tap', iface,
+        netns=netns)
 
 
 def create_bridge(bridge, ifaces, netns=None):
     __exec_cmd(
-        '{}ip link add name {} type bridge'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            bridge,
-        ),
         'Bridge interface creation failed',
-    )
+        'ip', 'link', 'add', 'name', bridge, 'type', 'bridge',
+        netns=netns)
+
     for iface in ifaces:
-        __exec_cmd(
-            '{}ip link set {} master {}'.format(
-                'ip netns exec {} '.format(netns) if netns else '',
-                iface,
-                bridge,
-            ),
-            'Attaching iface to bridge failed',
-        )
+        attach_iface(bridge, iface, netns)
+
     __exec_cmd(
-        '{}brctl setageing {} 0'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            bridge,
-        ),
         'Setting bridge ageing failed',
-    )
+        'brctl', 'setageing', bridge, '0',
+        netns=netns)
 
 
 def attach_iface(bridge, iface, netns=None):
     __exec_cmd(
-        '{}ip link set {} master {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-            bridge,
-        ),
         'Attaching iface to bridge failed',
-    )
+        'ip', 'link', 'set', iface, 'master', bridge,
+        netns=netns)
 
 
 def delete_iface(iface, netns=None):
     __exec_cmd(
-        '{}ip link del dev {}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
         'Interface deletion failed',
-    )
+        'ip', 'link', 'del', 'dev', iface,
+        netns=netns)
 
 
 def add_default_route(iface=None, gateway=None, netns=None):
-    if not iface and not gateway:
-        raise ValueError('Invalid parameters for default route addition')
-    prefix = 'ip netns exec {} '.format(netns) if netns else ''
+    if not (iface or gateway):
+        raise TypeError('Invalid parameters for default route addition')
+
+    via = ['via', gateway] if gateway else []
+    dev = ['dev', iface] if iface else []
     __exec_cmd(
-        '{}ip route add default{}{}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            ' via {}'.format(gateway) if gateway else '',
-            ' dev {}'.format(iface) if iface else '',
-        ),
         'Default route addition failed',
-    )
+        'ip', 'route', 'add', 'default', *via, *dev,
+        netns=netns)
 
 
 def add_route(destination, iface=None, gateway=None, netns=None):
-    if not iface and not gateway:
-        raise ValueError('Invalid parameters for default route addition')
-    prefix = 'ip netns exec {} '.format(netns) if netns else ''
+    if not (iface or gateway):
+        raise ValueError('Invalid parameters for route addition')
+
+    via = ['via', gateway] if gateway else []
+    dev = ['dev', iface] if iface else []
     __exec_cmd(
-        '{}ip route add {}{}{}'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            destination,
-            ' via {}'.format(gateway) if gateway else '',
-            ' dev {}'.format(iface) if iface else '',
-        ),
-        'Default route addition failed',
-    )
+        'Route addition to {} failed'.format(destination),
+        'ip', 'route', 'add', destination, *via, *dev,
+        netns=netns)
 
 
 def enable_ipv4_forward(netns=None):
     __exec_cmd(
-        '{}sysctl net.ipv4.ip_forward=1'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-        ),
         'IPv4 forward enabling failed',
-    )
+        'sysctl', 'net.ipv4.ip_forward=1',
+        netns=netns)
 
 
 def enable_ipv4_forwarding(iface='all', netns=None):
     __exec_cmd(
-        '{}sysctl net.ipv4.conf.{}.forwarding=1'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
         'Interface IPv4 forwarding enabling failed',
-    )
+        'sysctl', 'net.ipv4.conf.{}.forwarding=1'.format(iface),
+        netns=netns)
 
 
 def enable_ipv6_forward(netns=None):
     __exec_cmd(
-        '{}sysctl net.ipv6.ip_forward=1'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-        ),
         'IPv6 forward enabling failed',
-    )
+        'sysctl', 'net.ipv6.ip_forward=1',
+        netns=netns)
 
 
 def enable_ipv6_forwarding(iface='all', netns=None):
     __exec_cmd(
-        '{}sysctl net.ipv6.conf.{}.forwarding=1'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
         'Interface IPv6 forwarding enabling failed',
-    )
-    
+        'sysctl', 'net.ipv6.conf.{}.forwarding=1'.format(iface),
+        netns=netns)
+
 
 def enable_ipv4_proxy_arp(iface='all', netns=None):
     __exec_cmd(
-        '{}sysctl net.ipv4.conf.{}.proxy_arp=1'.format(
-            'ip netns exec {} '.format(netns) if netns else '',
-            iface,
-        ),
         'Proxy ARP enabling failed',
-    )
+        'sysctl', 'net.ipv4.conf.{}.proxy_arp=1'.format(iface),
+        netns=netns)

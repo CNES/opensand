@@ -35,12 +35,9 @@
 #ifndef NET_PACKET_H
 #define NET_PACKET_H
 
-#include "NetContainer.h"
-
 #include <linux/if_ether.h>
 
-#include <string>
-#include <stdint.h>
+#include "NetContainer.h"
 
 
 class Data;
@@ -53,45 +50,50 @@ class Data;
 // values in interval [0x0601, 0x0659] which are
 // unused EtherTypes values
 
-/// Network protocol ID that indicates an error
-#define NET_PROTO_ERROR   0x0000
-/// Network protocol ID for ATM
-#define NET_PROTO_ATM     0x0601
-/// Network protocol ID for AAL5
-#define NET_PROTO_AAL5    0x0602
-/// Network protocol ID for MPEG-2 TS
-// TODO when GSE library supports extensions,
-// use the MPEG-2 TS-Concat Extension value
-// as defined in RFC 5163 (§ 3.1)
-#define NET_PROTO_MPEG    0x0603
-/// Network protocol ID for ULE
-#define NET_PROTO_ULE     0x0604
-/// Network protocol ID for ROHC
-#define NET_PROTO_ROHC    0x0605
-/// Network protocol ID for DVB frame
-//#define NET_PROTO_DVB_FRAME  0x0606
-/// Network protocol ID for GSE
-#define NET_PROTO_GSE     0x0607
-/// Network protocol ID for both IP v4 or v6
-#define NET_PROTO_IP      0x0608
-/// Network protocol ID for Ethernet
-#define NET_PROTO_ETH     0x0609
-/// Network protocol ID for PHS
-#define NET_PROTO_PHS     0x060A
-/// Network protocol ID for IPv4
-#define NET_PROTO_IPV4    ETH_P_IP
-/// Network protocol ID for IPv6
-#define NET_PROTO_IPV6    ETH_P_IPV6
-/// Network protocol ID for 802.1Q (VLAN)
-#define NET_PROTO_802_1Q  ETH_P_8021Q
-/// Network protocol ID for 802.1ad (Q in Q)
-#define NET_PROTO_802_1AD 0x9100
-// ARP ethertype
-#define NET_PROTO_ARP     ETH_P_ARP
-// CNI extension for GSE
-#define NET_PROTO_GSE_EXTENSION_CNI 0x00FF
-/// Network protocol ID for RLE
-#define NET_PROTO_RLE     0x060B
+
+enum class NET_PROTO : uint16_t
+{
+	/// Network protocol ID that indicates an error
+	ERROR = 0x0000,
+	// CNI extension for GSE
+	GSE_EXTENSION_CNI = 0x00FF,
+	/// Network protocol ID for ATM
+	ATM = 0x0601,
+	/// Network protocol ID for AAL5
+	AAL5 = 0x0602,
+	/// Network protocol ID for MPEG-2 TS
+	// TODO when GSE library supports extensions,
+	// use the MPEG-2 TS-Concat Extension value
+	// as defined in RFC 5163 (§ 3.1)
+	MPEG = 0x0603,
+	/// Network protocol ID for ULE
+	ULE = 0x0604,
+	/// Network protocol ID for ROHC
+	ROHC = 0x0605,
+	/// Network protocol ID for DVB frame
+	//DVB_FRAME = 0x0606,
+	/// Network protocol ID for GSE
+	GSE = 0x0607,
+	/// Network protocol ID for both IP v4 or v6
+	IP = 0x0608,
+	/// Network protocol ID for Ethernet
+	ETH = 0x0609,
+	/// Network protocol ID for PHS
+	PHS = 0x060A,
+	/// Network protocol ID for RLE
+	RLE = 0x060B,
+	/// Network protocol ID for IPv4
+	IPV4 = ETH_P_IP,
+	// ARP ethertype
+	ARP = ETH_P_ARP,
+	/// Network protocol ID for 802.1Q (VLAN)
+	IEEE_802_1Q = ETH_P_8021Q,
+	/// Network protocol ID for IPv6
+	IPV6 = ETH_P_IPV6,
+	/// Network protocol ID for 802.1ad (Q in Q)
+	IEEE_802_1AD = 0x9100,
+};
+
 
 // TODO we may add an option to enable jumbo frames
 
@@ -119,9 +121,9 @@ class Data;
  */
 class NetPacket: public NetContainer
 {
- protected:
+protected:
 	/// The type of network protocol
-	uint16_t type;
+	NET_PROTO type;
 	/// The packet QoS
 	uint8_t qos;
 	/// The packet source TalId
@@ -129,7 +131,7 @@ class NetPacket: public NetContainer
 	/// The packet destination TalID
 	uint8_t dst_tal_id;
 
- public:
+public:
 	/**
 	 * Build a network-layer packet
 	 * @param data raw data from which a network-layer packet can be created
@@ -154,7 +156,7 @@ class NetPacket: public NetContainer
 	 * Build a network-layer packet
 	 * @param pkt
 	 */
-	NetPacket(NetPacket *pkt);
+	NetPacket(const NetPacket &pkt);
 
 	/**
 	 * Build an empty network-layer packet
@@ -176,7 +178,7 @@ class NetPacket: public NetContainer
 	NetPacket(const Data &data,
 	          std::size_t length,
 	          std::string name,
-	          uint16_t type,
+	          NET_PROTO type,
 	          uint8_t qos,
 	          uint8_t src_tal_id,
 	          uint8_t dst_tal_id,
@@ -234,7 +236,7 @@ class NetPacket: public NetContainer
 	 *
 	 * @return the type of network protocol
 	 */
-	uint16_t getType() const;
+	NET_PROTO getType() const;
 };
 
 

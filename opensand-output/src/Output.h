@@ -87,6 +87,7 @@
 class OutputEvent;
 class LogHandler;
 class StatHandler;
+class OutputDesiredLogLevel;
 
 
 class Output
@@ -313,7 +314,7 @@ class Output
 	std::vector<std::shared_ptr<LogHandler>> logHandlers;
 	std::vector<std::shared_ptr<StatHandler>> probeHandlers;
 
-	std::map<std::string, log_level_t> levelsYetToConfigure;
+	std::shared_ptr<OutputDesiredLogLevel> desiredLogLevels;
 };
 
 

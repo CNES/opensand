@@ -57,6 +57,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/if_tun.h>
+#include <cstring>
+#include <errno.h>
+
+#include <opensand_rt/MessageEvent.h>
+#include <opensand_rt/NetSocketEvent.h>
 
 
 #define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]
@@ -108,7 +113,7 @@ enum
 /**
  * Constructor
  */
-TestSatCarriers::TestSatCarriers(const string &name,
+TestSatCarriers::TestSatCarriers(const std::string &name,
                                  struct sc_specific UNUSED(specific)):
 	Block(name)
 {
@@ -123,7 +128,7 @@ bool TestSatCarriers::Downward::onEvent(const RtEvent *const event)
 {
 	switch(event->getType())
 	{
-		case evt_message:
+		case EventType::Message:
 			// Lan message to be sent on channel
 			if(((MessageEvent *)event)->getMessageType() == from_lan)
 			{
@@ -169,7 +174,7 @@ bool TestSatCarriers::Upward::onEvent(const RtEvent *const event)
 
 	switch(event->getType())
 	{
-		case evt_net_socket:
+		case EventType::NetSocket:
 		{
 			// event on UDP channel
 			// Data to read in Sat_Carrier socket buffer
@@ -212,7 +217,7 @@ bool TestSatCarriers::Upward::onEvent(const RtEvent *const event)
 			} while(ret > 0);
 		}
 		break;
-		case evt_file:
+		case EventType::File:
 		{
 			unsigned char *read_data;
 			const unsigned char *data;
@@ -266,7 +271,7 @@ bool TestSatCarriers::Upward::onInit(void)
 	UdpChannel *channel;
 
 	// initialize all channels from the configuration file
-	if(!this->in_channel_set.readInConfig(this->ip_addr))
+	if(!this->in_channel_set.readInConfig(this->ip_addr, Component::unknown, 0))
 	{
 		fprintf(stderr, "Wrong channel set configuration\n");
 		return false;
@@ -295,7 +300,7 @@ bool TestSatCarriers::Upward::onInit(void)
 bool TestSatCarriers::Downward::onInit()
 {
 	// initialize all channels from the configuration file
-	if(!this->out_channel_set.readOutConfig(this->ip_addr))
+	if (!this->out_channel_set.readOutConfig(this->ip_addr, Component::unknown, 0))
 	{
 		fprintf(stderr, "Wrong channel set configuration\n");
 		return false;

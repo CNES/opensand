@@ -37,9 +37,10 @@
 #ifndef TRAFFICCATEGORY_H
 #define TRAFFICCATEGORY_H
 
-#include "OpenSandCore.h"
 
 #include <string>
+
+#include "OpenSandCore.h"
 
 
 /**
@@ -48,8 +49,8 @@
  */
 class TrafficCategory
 {
- public:
-	TrafficCategory();
+public:
+	TrafficCategory(qos_t pcp);
 	~TrafficCategory();
 
 	/**
@@ -67,7 +68,7 @@ class TrafficCategory
 	void setName(std::string name);
 
 	/**
-	 * @brief Get the traffic caegory ID
+	 * @brief Get the traffic category ID
 	 *
 	 * @return the traffic category id
 	 */
@@ -80,12 +81,22 @@ class TrafficCategory
 	 */
 	std::string getName() const;
 
- private:
+	/**
+	 * @brief Get the PCP value associated to this traffic category
+	 *
+	 * @return the PCP value for the traffic category
+	 */
+	qos_t getPcp() const;
+
+private:
 	/// Traffic category identifier
 	qos_t id;
 
 	/// Traffic category name
 	std::string name;
+
+	/// PCP value associated to this Traffic category
+	qos_t pcp;
 };
 
 #endif

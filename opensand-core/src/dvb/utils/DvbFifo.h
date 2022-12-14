@@ -35,13 +35,13 @@
 #define DVD_FIFO_H
 
 #include "OpenSandCore.h"
-#include "MacFifoElement.h"
+#include "FifoElement.h"
 #include "Sac.h"
 
 #include <opensand_rt/RtMutex.h>
 #include <opensand_output/OutputLog.h>
 
-#include <vector>
+#include <deque>
 #include <map>
 #include <sys/times.h>
 
@@ -62,12 +62,81 @@ typedef struct
 	vol_bytes_t drop_bytes;           ///< current length of data dropped
 } mac_fifo_stat_context_t;
 
+
 /// Access type for fifo (mapping between mac_fifo and carrier)
-typedef enum
+enum class ForwardAccessType : uint8_t
 {
-	access_acm,
-	access_vcm,
-} fwd_access_type_t;
+	acm,
+	vcm,
+};
+
+
+struct ForwardOrReturnAccessType
+{
+private:
+	enum class Direction {Unknown, Forward, Return};
+
+public:
+	Direction direction;
+	union
+	{
+		ReturnAccessType return_access_type;
+		ForwardAccessType forward_access_type;
+	};
+
+	ForwardOrReturnAccessType ():
+		direction{Direction::Unknown}
+	{};
+
+	ForwardOrReturnAccessType (ReturnAccessType access_type):
+		direction{Direction::Return},
+		return_access_type{access_type}
+	{};
+
+	ForwardOrReturnAccessType (ForwardAccessType access_type):
+		direction{Direction::Forward},
+		forward_access_type{access_type}
+	{};
+
+	bool IsForwardAccess () const
+	{
+		return direction == Direction::Forward;
+	};
+
+	bool IsReturnAccess () const
+	{
+		return direction == Direction::Return;
+	};
+
+	bool operator == (const ForwardOrReturnAccessType& other) const
+	{
+		switch (direction)
+		{
+			case Direction::Forward:
+				return other.direction == Direction::Forward && this->forward_access_type == other.forward_access_type;
+			case Direction::Return:
+				return other.direction == Direction::Return && this->return_access_type == other.return_access_type;
+
+			default:
+				return false;
+		}
+	}
+
+	bool operator != (const ForwardOrReturnAccessType& other) const
+	{
+		switch (direction)
+		{
+			case Direction::Forward:
+				return other.direction != Direction::Forward || this->forward_access_type != other.forward_access_type;
+
+			case Direction::Return:
+				return other.direction != Direction::Return || this->return_access_type != other.return_access_type;
+
+			default:
+				return true;
+		}
+	}
+};
 
 
 /**
@@ -78,7 +147,7 @@ typedef enum
  */
 class DvbFifo
 {
- public:
+public:
 	/**
 	 * @brief Create the DvbFifo
 	 *
@@ -118,7 +187,7 @@ class DvbFifo
 	 *
 	 * return the access type associated to the fifo
 	 */
-	int getAccessType() const;
+	ForwardOrReturnAccessType getAccessType() const;
 
 	/**
 	 * @brief Get the VCM id
@@ -189,16 +258,16 @@ class DvbFifo
 	 *
 	 * @param access_type is the CR type for which reset must be done
 	 */
-	void resetNew(const ret_access_type_t access_type);
+	void resetNew(const ForwardOrReturnAccessType access_type);
 
 	/**
 	 * @brief Add an element at the end of the list
 	 *        (Increments new_size_pkt)
 	 *
-	 * @param elem is the pointer on MacFifoElement
+	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool push(MacFifoElement *elem);
+	bool push(FifoElement *elem);
 
 	/**
 	 * @brief Add an element at the head of the list
@@ -206,27 +275,27 @@ class DvbFifo
 	 * @warning This function should be use only to replace a fragment of
 	 *          previously removed data in the fifo
 	 *
-	 * @param elem is the pointer on MacFifoElement
+	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushFront(MacFifoElement *elem);
+	bool pushFront(FifoElement *elem);
 
 	/**
 	 * @brief Add an element at the back of the list
 	 *        (Decrements new_length_bytes)
 	 *
-	 * @param elem is the pointer on MacFifoElement
+	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushBack(MacFifoElement *elem);
+	bool pushBack(FifoElement *elem);
 
 	/**
 	 * @brief Remove an element at the head of the list
 	 *
 	 * @return NULL pointer if extraction failed because fifo is empty
-	 *         pointer on extracted MacFifoElement otherwise
+	 *         pointer on extracted FifoElement otherwise
 	 */
-	MacFifoElement *pop();
+	FifoElement *pop();
 
 	/**
 	 * @brief Flush the dvb fifo and reset counters
@@ -245,19 +314,19 @@ class DvbFifo
 
 	uint8_t getCni(void) const;
 
-	std::vector<MacFifoElement *> getQueue(void);
+	const std::deque<FifoElement *> &getQueue() const;
 
- protected:
+protected:
 	/**
 	 * @brief Reset the fifo counters
 	 */
 	void resetStats();
 
-	std::vector<MacFifoElement *> queue; ///< the FIFO itself
+	std::deque<FifoElement *> queue; ///< the FIFO itself
 
 	unsigned int fifo_priority;     ///< the MAC priority of the fifo
-	std::string fifo_name;               ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
-	int access_type;                ///< the forward or return access type
+	std::string fifo_name;          ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
+	ForwardOrReturnAccessType access_type;   ///< the forward or return access type
 	unsigned int vcm_id;            ///< the associated VCM id (if VCM access type)
 	vol_pkt_t new_size_pkt;         ///< the number of packets that filled the fifo
 	                                ///< since previous check

@@ -28,37 +28,35 @@
 
 /**
  * @file EntitySat.h
- * @brief Entity satellite process
- * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
+ * @brief Regenerative satellite with ISL support
+ * @author Yohan SIMARD <yohan.simard@viveris.fr>
  */
 
-#ifndef ENTITY_SATELLITE_H
-#define ENTITY_SATELLITE_H
-
+#ifndef ENTITY_SATELLITE_REGEN_H
+#define ENTITY_SATELLITE_REGEN_H
 
 #include "Entity.h"
 
 #include <string>
+#include <vector>
+#include <unordered_set>
+#include <unordered_map>
 
+class BlockSatDispatcher;
 
 /**
  * @class EntitySat
- * @brief Entity satellite process
+ * @brief Entity regenerative satellite process
  */
 class EntitySat: public Entity
 {
- public:
+public:
 	/**
 	 * Build an entity satellite process
 	 */
-	EntitySat();
+	EntitySat(tal_id_t instance_id);
 
-	/**
-	 * Destroy an entity satellite process
-	 */
-	virtual ~EntitySat();
-
- protected:
+protected:
 	/**
 	 * Load configuration files
 	 *
@@ -84,8 +82,23 @@ class EntitySat: public Entity
 	 */
 	bool createSpecificConfiguration(const std::string &filepath) const;
 
- private:
+private:
+	template <typename Dvb>
+	bool createStack(BlockSatDispatcher *block_sat_dispatch,
+	                 spot_id_t spot_id,
+	                 Component destination,
+	                 RegenLevel forward_regen_level,
+	                 RegenLevel return_regen_level);
+
+	/**
+	 * Returns the entities that are connected through an ISL connection
+	 */
+	std::unordered_set<tal_id_t> getIslEntities(const std::unordered_map<spot_id_t, SpotTopology> &spot_topo) const;
+
 	std::string ip_address;
+	tal_id_t instance_id;
+	std::vector<IslConfig> isl_config;
+	bool isl_enabled;
 };
 
 #endif

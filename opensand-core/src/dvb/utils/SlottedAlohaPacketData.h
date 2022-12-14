@@ -40,8 +40,11 @@
 #include "OpenSandCore.h"
 
 #include <stdlib.h>
+#include <memory>
+
 
 typedef uint32_t saloha_pdu_id_t;
+
 
 /// Slotted Aloha data packet header
 typedef struct
@@ -64,16 +67,14 @@ typedef struct
  */
 class SlottedAlohaPacketData: public SlottedAlohaPacket
 {
-
- private:
-
+private:
 	/// The packet timeout (in Slotted Aloha frames number)
 	time_sf_t timeout_saf;
 
 	/// The number of retransmissions of this packet
 	uint16_t nb_retransmissions;
- public:
 
+public:
 	/**
 	 * Build a slotted Aloha data packet
 	 *
@@ -232,7 +233,7 @@ class SlottedAlohaPacketData: public SlottedAlohaPacket
 };
 
 /// A list of Slotted Aloha Data Packets
-typedef std::vector<SlottedAlohaPacketData *> saloha_packets_data_t;
+typedef std::vector<std::unique_ptr<SlottedAlohaPacketData>> saloha_packets_data_t;
 
 #endif
 

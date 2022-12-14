@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2019 TAS
+ * Copyright © 2019 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -26,47 +27,28 @@
  */
 
 /**
- * @file MacFifoElement.cpp
- * @brief Fifo Element
- * @author Julien BERNARD <julien.bernard@toulouse.viveris.com>
+ * @file SpotComponentPair.cpp
+ * @brief A simple struct containing a spot ID and a component type.
+ *        It is used as demux key to select the right network stack in the satellite.
+ * @author Yohan Simard <yohan.simard@viveris.fr>
  */
 
+#include "SpotComponentPair.h"
 
-#include "MacFifoElement.h"
 
-MacFifoElement::MacFifoElement(NetContainer *elem,
-                               time_t tick_in, time_t tick_out):
-	elem(elem),
-	tick_in(tick_in),
-	tick_out(tick_out)
+bool SpotComponentPair::operator ==(const SpotComponentPair& o) const
 {
+	return spot_id == o.spot_id && dest == o.dest;
 }
 
-MacFifoElement::~MacFifoElement()
+
+bool RegenerativeSpotComponent::operator ==(const RegenerativeSpotComponent& o) const
 {
+	return spot_id == o.spot_id && dest == o.dest && is_transparent == o.is_transparent;
 }
 
-NetContainer *MacFifoElement::getElem() const
-{
-	return this->elem;
-}
 
-void MacFifoElement::setElem(NetContainer *elem)
+bool IslComponentPair::operator ==(const IslComponentPair& o) const
 {
-	this->elem = elem;
-}
-
-size_t MacFifoElement::getTotalLength() const
-{
-	return this->elem->getTotalLength();
-}
-
-time_t MacFifoElement::getTickIn() const
-{
-	return this->tick_in;
-}
-
-time_t MacFifoElement::getTickOut() const
-{
-	return this->tick_out;
+	return connected_sat == o.connected_sat && is_data_channel == o.is_data_channel;
 }

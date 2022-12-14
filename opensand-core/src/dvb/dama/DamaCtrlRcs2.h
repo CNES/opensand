@@ -46,7 +46,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <map>
-#include <vector>
+
 
 /**
  * @class DamaCtrlRcs2
@@ -54,8 +54,7 @@
  */
 class DamaCtrlRcs2: public DamaCtrl
 {
- public:
-
+public:
 	DamaCtrlRcs2(spot_id_t spot);
 	virtual ~DamaCtrlRcs2();
 
@@ -81,8 +80,7 @@ class DamaCtrlRcs2: public DamaCtrl
 	// Update wave forms
 	virtual bool updateWaveForms();
 
- protected:
-
+protected:
 	UnitConverter *converter;
 
 	/// Create a terminal context
@@ -108,8 +106,7 @@ class DamaCtrlRcs2: public DamaCtrl
 	 * @param name            the probe name
 	 * @return                the probe
 	 */
-	virtual std::shared_ptr<Probe<int>> generateGwCapacityProbe(
-		string name) const;
+	virtual std::shared_ptr<Probe<int>> generateGwCapacityProbe(std::string name) const;
 
 	/**
 	 * @brief  Generate a probe for category capacity
@@ -119,8 +116,8 @@ class DamaCtrlRcs2: public DamaCtrl
 	 * @return                the probe
 	 */
 	virtual std::shared_ptr<Probe<int>> generateCategoryCapacityProbe(
-		string category_label,
-		string name) const;
+		std::string category_label,
+		std::string name) const;
 
 	/**
 	 * @brief  Generate a probe for carrier capacity
@@ -131,9 +128,9 @@ class DamaCtrlRcs2: public DamaCtrl
 	 * @return                the probe
 	 */
 	virtual std::shared_ptr<Probe<int>> generateCarrierCapacityProbe(
-		string category_label,
+		std::string category_label,
 		unsigned int carrier_id,
-		string name) const;
+		std::string name) const;
 };
 
 

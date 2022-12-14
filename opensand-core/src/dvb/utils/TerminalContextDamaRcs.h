@@ -46,8 +46,7 @@
  */
 class TerminalContextDamaRcs : public TerminalContextDama
 {
- public:
-
+public:
 	TerminalContextDamaRcs(tal_id_t tal_id,
 	                       rate_kbps_t cra_kbps,
 	                       rate_kbps_t max_rbdc_kbps,
@@ -105,8 +104,7 @@ class TerminalContextDamaRcs : public TerminalContextDama
 	 */
 	void setCarrierId(unsigned int carrier_id);
 
- protected:
-
+protected:
 	/** The required FMT */
 	FmtDefinition *req_fmt_def;
 

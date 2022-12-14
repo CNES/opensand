@@ -45,10 +45,6 @@
 #include <string>
 #include <map>
 
-using std::list;
-using std::string;
-using std::map;
-
 
 class FmtId;
 
@@ -58,26 +54,24 @@ class FmtId;
  */
 class FmtGroup
 {
- private:
-
+private:
 	/** The ID of the FMT group */
 	fmt_id_t id;
 
 	/** The list of FMT IDs */
-	list<FmtId> fmt_ids;
+	std::list<FmtId> fmt_ids;
 
 	/** The list of IDs from FMT IDs */
-	list<fmt_id_t> num_fmt_ids;
+	std::list<fmt_id_t> num_fmt_ids;
 
 	/** The table of MODCOD definitions */
 	const FmtDefinitionTable *modcod_def;
 
- protected:
+protected:
 	// Output log
 	std::shared_ptr<OutputLog> log_fmt;
 
- public:
-
+public:
 	/**
 	 * @brief Create a new FMT group
 	 *
@@ -86,7 +80,7 @@ class FmtGroup
 	 * @param modcod_def  The MODCOD definitions
 	 */
 	FmtGroup(unsigned int group_id,
-	         string ids,
+	         std::string ids,
 	         const FmtDefinitionTable *modcod_def);
 
 	/**
@@ -105,7 +99,7 @@ class FmtGroup
 	 *
 	 * @return the list of MODCODs
 	 */
-	const list<fmt_id_t> getFmtIds() const;
+	const std::list<fmt_id_t> getFmtIds() const;
 
 	/**
 	 * @brief Get the MODCOD definitions
@@ -121,14 +115,13 @@ class FmtGroup
 	 */
 	fmt_id_t getMaxFmtId() const;
 
-  private:
-
+private:
 	/**
 	 * @brief parse the FMT IDs string read in configuration
 	 *
 	 * @param  fmt_ids  The FMT IDs as in configuration
 	 */
-	void parse(string fmt_ids);
+	void parse(std::string fmt_ids);
 };
 
 
@@ -138,7 +131,7 @@ class FmtGroup
  */
 class FmtId
 {
- public:
+public:
 	FmtId(fmt_id_t id, float es_n0):
 		id(id),
 		es_n0(es_n0)
@@ -207,14 +200,14 @@ class FmtId
 	/// The FMT ID
 	fmt_id_t id;
 
- private:
+private:
 	/// The required Es/N0
 	float es_n0;
 };
 
 
 
-typedef map<fmt_id_t, FmtGroup *> fmt_groups_t;
+typedef std::map<fmt_id_t, FmtGroup *> fmt_groups_t;
 
 
 #endif

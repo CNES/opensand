@@ -45,8 +45,7 @@
  */
 class Logoff: public DvbFrameTpl<T_DVB_LOGOFF>
 {
- public:
-
+public:
 	/**
 	 * @brief Logoff request constructor for terminal (sender)
 	 *

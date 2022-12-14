@@ -47,7 +47,7 @@
  */
 class EntityGwPhy: public Entity
 {
- public:
+public:
 	/**
 	 * Build an entity physical gateway process
 	 */
@@ -58,7 +58,7 @@ class EntityGwPhy: public Entity
 	 */
 	virtual ~EntityGwPhy();
 
- protected:
+protected:
 	/**
 	 * Load configuration files
 	 *
@@ -84,7 +84,7 @@ class EntityGwPhy: public Entity
 	 */
 	bool createSpecificConfiguration(const std::string &filepath) const;
 
- private:
+private:
 	void defineProfileMetaModel() const;
 
 	std::string ip_address;

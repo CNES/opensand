@@ -40,7 +40,7 @@
 Sof::Sof(time_sf_t sf_nbr):
 	DvbFrameTpl<T_DVB_SOF>()
 {
-	this->setMessageType(MSG_TYPE_SOF);
+	this->setMessageType(EmulatedMessageType::Sof);
 	this->setMessageLength(sizeof(T_DVB_SOF));
 	this->frame()->sf_nbr = htons(sf_nbr);
 }

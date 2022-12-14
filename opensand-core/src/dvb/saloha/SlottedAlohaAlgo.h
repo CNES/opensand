@@ -46,6 +46,8 @@
 
 /// A list of TS
 typedef std::set<uint16_t> saloha_ts_list_t;
+class OutputLog;
+
 
 /**
  * @class SlottedAlohaAlgo
@@ -54,7 +56,7 @@ typedef std::set<uint16_t> saloha_ts_list_t;
 
 class SlottedAlohaAlgo
 {
- public:
+public:
 	/**
 	 * Class constructor without any parameters
 	 */
@@ -75,8 +77,8 @@ class SlottedAlohaAlgo
 	virtual uint16_t removeCollisions(std::map<unsigned int, Slot *> &slots,
 	                                  saloha_packets_data_t *accepted_packets) = 0;
 
- protected:
-  std::shared_ptr<OutputLog> log_saloha;
+protected:
+	std::shared_ptr<OutputLog> log_saloha;
 };
 
 

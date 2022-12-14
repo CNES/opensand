@@ -47,14 +47,20 @@
 #include "EntityGwNetAcc.h"
 #include "EntityGwPhy.h"
 #include "EntitySat.h"
+#include "EntitySat.h"
 #include "EntitySt.h"
+#include "NetBurst.h"
 #include "OpenSandModelConf.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_output/OutputEvent.h>
 #include <opensand_rt/Rt.h>
 
-
-constexpr char OPENSAND_VERSION[] = "6.0.1";
+#if HAVE_CONFIG_H
+#include <config.h>
+#else
+#define PACKAGE_VERSION "Unknown"
+#endif
 
 
 void usage(std::ostream &stream, const std::string &progname)
@@ -100,9 +106,9 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	std::string infrastructure_path;
 	std::string topology_path;
 	std::string profile_path;
-	bool verbose = false;
+	
+	auto output = Output::Get();
 
-	auto Conf = OpenSandModelConf::Get();
 	return_code = 0;
 	while((opt = getopt(argc, argv, "-hVvi:t:p:g:")) != EOF)
 	{
@@ -118,12 +124,14 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 			profile_path = optarg;
 			break;
 		case 'v':
-			verbose = true;
+			// Configure terminal output before constructing Conf to see Conf logs
+			output->configureTerminalOutput();
 			break;
 		case 'g':
 			{
 				// TODO: Error handling
 				std::string folder = optarg;
+				auto Conf = OpenSandModelConf::Get();
 				Conf->createModels();
 				Conf->writeTopologyModel(folder + "/topology.xsd");
 				Conf->writeInfrastructureModel(folder + "/infrastructure.xsd");
@@ -132,7 +140,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				types->addEnumType("topology_xsd", "Topology XSD Files", {"topology.xsd",});
 				types->addEnumType("infrastructure_xsd", "Infrastructure XSD Files", {"infrastructure.xsd",});
 				types->addEnumType("profile_xsd", "Profile XSD Files", {"profile_st.xsd",
-				                                                        // "profile_sat.xsd",  // -> nothing generated yet
+				                                                        "profile_sat.xsd",
 				                                                        "profile_gw.xsd",
 				                                                        "profile_gw_net_acc.xsd",
 				                                                        "profile_gw_phy.xsd"});
@@ -187,6 +195,8 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 				*/
 				temporary = std::make_shared<EntitySt>(0);
 				temporary->createSpecificConfiguration(folder + "/profile_st.xsd");
+				temporary = std::make_shared<EntitySat>(0);
+				temporary->createSpecificConfiguration(folder + "/profile_sat.xsd");
 				temporary = std::make_shared<EntityGw>(0);
 				temporary->createSpecificConfiguration(folder + "/profile_gw.xsd");
 				temporary = std::make_shared<EntityGwNetAcc>(0);
@@ -196,7 +206,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 			}
 			return nullptr;
 		case 'V':
-			std::cout << "OpenSAND version " << OPENSAND_VERSION << std::endl;
+			std::cout << "OpenSAND version " << PACKAGE_VERSION << std::endl;
 			return nullptr;
 		case 'h':
 		case '?':
@@ -209,6 +219,8 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 			return nullptr;
 		}
 	}
+	
+	auto Conf = OpenSandModelConf::Get();
 
 	if(infrastructure_path.empty())
 	{
@@ -236,7 +248,6 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 		return nullptr;
 	}
 
-	auto output = Output::Get();
 	std::map<std::string, log_level_t> levels;
 	if(!Conf->logLevels(levels))
 	{
@@ -266,7 +277,7 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 	std::shared_ptr<Entity> entity;
 	if(type == "sat")
 	{
-		entity = std::make_shared<EntitySat>();
+		entity = std::make_shared<EntitySat>(entity_id);
 	}
 	else if(type == "gw")
 	{
@@ -293,11 +304,6 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 
 	bool enabled = false;
 	output->setEntityName(entity->getName());
-
-	if (verbose)
-	{
-		output->configureTerminalOutput();
-	}
 
 	std::string output_folder;
 	if(Conf->getLocalStorage(enabled, output_folder) && enabled)
@@ -332,6 +338,9 @@ std::shared_ptr<Entity> Entity::parseArguments(int argc, char **argv, int &retur
 		return_code = 15;
 		return entity;
 	}
+
+	// TODO: temp fix
+	NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
 
 	return entity;
 }

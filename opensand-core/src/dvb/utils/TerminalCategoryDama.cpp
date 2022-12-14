@@ -42,7 +42,7 @@
 #include <algorithm>
 
 
-TerminalCategoryDama::TerminalCategoryDama(string label, access_type_t access_type):
+TerminalCategoryDama::TerminalCategoryDama(const std::string& label, AccessType access_type):
 	TerminalCategory<CarriersGroupDama>(label, access_type)
 {
 }

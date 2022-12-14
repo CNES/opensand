@@ -3,12 +3,12 @@ bin_PROGRAMS = opensand
 PACKED_COMMON_CPPFLAGS = \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/src/dvb/utils \
+	-I$(top_srcdir)/src/sat \
 	-I$(top_srcdir)/src/dvb/switch \
 	-I$(top_srcdir)/src/dvb/ncc_interface \
 	-I$(top_srcdir)/src/dvb/fmt \
 	-I$(top_srcdir)/src/dvb/dama \
 	-I$(top_srcdir)/src/dvb/saloha \
-	-I$(top_srcdir)/src/dvb/core/transparent \
 	-I$(top_srcdir)/src/dvb/core \
 	-I$(top_srcdir)/src/lan_adaptation \
 	-I$(top_srcdir)/src/interconnect \
@@ -19,6 +19,7 @@ PACKED_COMMON_CPPFLAGS = \
 	-I$(top_srcdir)/src/common
 
 PACKED_COMMON_LIBS= \
+	$(top_builddir)/src/sat/libopensand_sat.la \
 	$(top_builddir)/src/encap/libopensand_encap.la \
 	$(top_builddir)/src/lan_adaptation/libopensand_lan_adaptation.la \
 	$(top_builddir)/src/physical_layer/libopensand_physical_layer.la \
@@ -26,7 +27,6 @@ PACKED_COMMON_LIBS= \
 	$(top_builddir)/src/dvb/dama/libopensand_dama.la \
 	$(top_builddir)/src/dvb/ncc_interface/libopensand_dvb_ncc_interface.la \
 	$(top_builddir)/src/dvb/saloha/libopensand_dvb_saloha.la \
-	$(top_builddir)/src/dvb/core/transparent/libopensand_dvb_core_transp.la \
 	$(top_builddir)/src/dvb/utils/libopensand_dvb_utils.la \
 	$(top_builddir)/src/sat_carrier/libopensand_satcarrier.la \
 	$(top_builddir)/src/interconnect/libopensand_interconnect.la \

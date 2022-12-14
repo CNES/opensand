@@ -46,10 +46,10 @@
  */
 class Constant: public MinimalConditionPlugin
 {
- private:
+private:
 	static std::string config_path;
 
- public:
+public:
 	/**
 	 * @brief Build the defaultMinimalCondition
 	 */
@@ -81,11 +81,11 @@ class Constant: public MinimalConditionPlugin
 	 * @param message_type  The Frame type
 	 * @return true on success, false otherwise
 	 */
-	bool updateThreshold(uint8_t modcod_id, uint8_t message_type);
+	bool updateThreshold(uint8_t modcod_id, EmulatedMessageType message_type);
 };
 
 
-CREATE(Constant, minimal_plugin, "Constant");
+CREATE(Constant, PluginType::Minimal, "Constant");
 
 
 #endif

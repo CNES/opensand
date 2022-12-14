@@ -45,6 +45,7 @@
 #include "TerminalCategorySaloha.h"
 #include "SlottedAlohaAlgo.h"
 #include "UnitConverter.h"
+#include "opensand_conf/MetaParameter.h"
 
 #include <list>
 
@@ -56,8 +57,7 @@ class SlottedAlohaSimu;
  */
 class SlottedAlohaNcc: public SlottedAloha
 {
- private:
-
+private:
 	/// The terminal categories
 	TerminalCategories<TerminalCategorySaloha> categories;
 
@@ -71,7 +71,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	spot_id_t spot_id;
 
 	// Helper to simplify context manipulation
-	typedef map<tal_id_t, TerminalContextSaloha *> saloha_terminals_t;
+	typedef std::map<tal_id_t, TerminalContextSaloha *> saloha_terminals_t;
 
 	/** List of registered terminals */
 	saloha_terminals_t terminals;
@@ -80,21 +80,20 @@ class SlottedAlohaNcc: public SlottedAloha
 	SlottedAlohaAlgo *algo;
 
 	/// Parameters to simulate Slotted Aloha traffic
-	vector<SlottedAlohaSimu *> simu;
+	std::vector<SlottedAlohaSimu *> simu;
 
-	typedef map<string, std::shared_ptr<Probe<int> > > probe_per_cat_t;
+	typedef std::map<std::string, std::shared_ptr<Probe<int> > > probe_per_cat_t;
 	/// Statistics
 	probe_per_cat_t probe_collisions;
 	probe_per_cat_t probe_collisions_before;
 	probe_per_cat_t probe_collisions_ratio;
 
- public:
-
+public:
 	SlottedAlohaNcc();
 
 	~SlottedAlohaNcc();
 
-	static void generateConfiguration();
+	static void generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParameter> disable_ctrl_plane);
 
 	/*
 	 * Init the Slotted Aloha NCC class
@@ -124,7 +123,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	 * @return true if packets was successful scheduled, false otherwise
 	 */
 	bool schedule(NetBurst **burst,
-	              list<DvbFrame *> &complete_dvb_frames,
+	              std::list<DvbFrame *> &complete_dvb_frames,
 	              time_sf_t superframe_counter);
 
 	// Implementation of a virtual functions
@@ -137,15 +136,14 @@ class SlottedAlohaNcc: public SlottedAloha
 	 */
 	bool addTerminal(tal_id_t tal_id);
 
- private:
-
+private:
 	/**
 	 * Remove Slotted Aloha header
 	 *
 	 * @param packet The slotted aloha packet
 	 * @return Encap packet without Slotted Aloha encapsulation
 	 */
-	NetPacket *removeSalohaHeader(SlottedAlohaPacketData *packet);
+	std::unique_ptr<NetPacket> removeSalohaHeader(std::unique_ptr<SlottedAlohaPacketData> packet);
 
 	/**
 	 * @brief Call a specific algorithm to remove all collided packets
@@ -175,7 +173,7 @@ class SlottedAlohaNcc: public SlottedAloha
 	 */
 	bool scheduleCategory(TerminalCategorySaloha *category,
 	                      NetBurst **burst,
-	                      list<DvbFrame *> &complete_dvb_frames);
+	                      std::list<DvbFrame *> &complete_dvb_frames);
 };
 
 /**
@@ -184,7 +182,7 @@ class SlottedAlohaNcc: public SlottedAloha
  */
 class AlohaPacketComparator
 {
- public:
+public:
 	AlohaPacketComparator(uint16_t slots_per_carrier):
 		slots_per_carrier(slots_per_carrier)
 	{};
@@ -199,16 +197,11 @@ class AlohaPacketComparator
 	 *
 	 * @return true if order is good, false otherwise
 	 */
-	bool operator()(SlottedAlohaPacket *pkt1,
-	                SlottedAlohaPacket *pkt2)
+	bool operator()(const std::unique_ptr<SlottedAlohaPacketData>& pkt1,
+	                const std::unique_ptr<SlottedAlohaPacketData>& pkt2)
 	{
-		SlottedAlohaPacketData *data_pkt1 =
-			dynamic_cast<SlottedAlohaPacketData *>(pkt1);
-		SlottedAlohaPacketData *data_pkt2 =
-			dynamic_cast<SlottedAlohaPacketData *>(pkt2);
-		
-		uint16_t replica_1 = data_pkt1->getReplica(0);
-		uint16_t replica_2 = data_pkt2->getReplica(0);
+		uint16_t replica_1 = pkt1->getReplica(0);
+		uint16_t replica_2 = pkt2->getReplica(0);
 
 		// First replica slot allows ordering
 		// TODO in terminal, we use slots sorted in the entire category,
@@ -219,7 +212,7 @@ class AlohaPacketComparator
 		        (pkt1->getSrcTalId())); // no need to sort simulated traffic
 	};
 
- private:
+private:
 	/// The slots per carrier
 	uint16_t slots_per_carrier; // TODO we work per category, not useful,
 	                            //      see upper todo
@@ -232,8 +225,7 @@ class AlohaPacketComparator
  */
 class SlottedAlohaSimu
 {
- public:
-
+public:
 	/**
 	 * @brief Constructor
 	 *
@@ -289,7 +281,7 @@ class SlottedAlohaSimu
 	 *
 	 * @return the label of the category
 	 */
-	string getCategory(void) const
+	std::string getCategory(void) const
 	{
 		return this->cat_label;
 	};
@@ -324,12 +316,11 @@ class SlottedAlohaSimu
 		return this->nb_replicas;
 	};
 
- protected:
-
+protected:
 	// TODO this would be better to do something more random with mean nbr of pkt per tal,
 	//      mean number of tal
 	/// The label of the category
-	string cat_label;
+	std::string cat_label;
 	/// The number of replicas
 	uint16_t nb_replicas;
 	/// The number of terminal
@@ -337,7 +328,7 @@ class SlottedAlohaSimu
 	/// The number of packets per terminal
 	uint16_t nb_packets_per_tal;
 	/// Logger
-  std::shared_ptr<OutputLog> log_init;
+	std::shared_ptr<OutputLog> log_init;
 };
 
 #endif

@@ -60,9 +60,7 @@ typedef enum
  */
 class SvnoRequest
 {
-
- private:
-
+private:
 	/** The spot concerned by the request */
 	spot_id_t spot_id;
 	/** The type of Svno request */
@@ -74,8 +72,7 @@ class SvnoRequest
 	/** The new rate requested */
 	rate_kbps_t new_rate_kbps;
 
- public:
-
+public:
 	SvnoRequest(spot_id_t spot_id,
 	            svno_request_type_t type,
 	            band_t band,

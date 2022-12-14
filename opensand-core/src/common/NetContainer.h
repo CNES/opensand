@@ -37,11 +37,10 @@
 #define NET_CONTAINER_H
 
 
-#include "OpenSandCore.h"
-
-#include "Data.h"
-
 #include <string>
+
+#include "OpenSandCore.h"
+#include "Data.h"
 
 
 /**
@@ -52,7 +51,7 @@
  */
 class NetContainer
 {
- protected:
+protected:
 	/// Internal buffer for packet data
 	Data data;
 
@@ -68,7 +67,7 @@ class NetContainer
 	/// The destination spot ID
 	spot_id_t spot;
 
- public:
+public:
 	/**
 	 * Build a generic OpenSAND network container
 	 *
@@ -76,7 +75,6 @@ class NetContainer
 	 * @param length length of raw data
 	 */
 	NetContainer(const unsigned char *data, std::size_t length);
-
 
 	/**
 	 * Build a generic OpenSAND network container
@@ -92,7 +90,6 @@ class NetContainer
 	 * @param length length of raw data
 	 */
 	NetContainer(const Data &data, std::size_t length);
-
 
 	/**
 	 * Build an empty generic OpenSAND network container
@@ -124,6 +121,19 @@ class NetContainer
 	 * @return the data string
 	 */
 	Data getData() const;
+
+	/**
+	 * Returns a const pointer to the raw data. 
+	 * Warning: the pointer is invalidated when the length of the string is modified.
+	 */
+	const uint8_t *getRawData() const;
+
+	/**
+	 * Returns a pointer to the raw data. 
+	 * Do not modify past the end of the string. 
+	 * Warning: the pointer is invalidated when the length of the string is modified.
+	 */
+	uint8_t *getRawData();
 
 	/**
 	 * Retrieve data from the desired position
@@ -175,7 +185,7 @@ class NetContainer
 	 * @return the destination spot ID
 	 */
 	spot_id_t getSpot() const;
-
 };
+
 
 #endif

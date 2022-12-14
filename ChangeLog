@@ -1,3 +1,14 @@
+2022-12-12 opensand-6.1.0
+
+   * Added support for ubuntu 22.04 (jammy)
+   * The satellite can work again on regenerative mode. We have recovered the
+     regenerative satellite (at different levels) with a new design and a
+     modular approach. The satellite can now work on transparent mode, on
+     IP-regenerative mode and on BBFRAME-regenerative mode.
+   * OpenSAND has evolved to allow for a satellite constellation (up to two
+     satellites, as of now) and an emulated Inter-satellite Link (ISL) with a
+     variable delay between the satellites.
+
 2022-05-18 opensand-6.0.1
 
    * Fix SCPC

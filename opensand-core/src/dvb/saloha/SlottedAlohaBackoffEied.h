@@ -44,8 +44,7 @@
 */
 class SlottedAlohaBackoffEied: public SlottedAlohaBackoff
 {
-
- public:
+public:
 	/**
 	 * Build class
 	 *
@@ -59,7 +58,7 @@ class SlottedAlohaBackoffEied: public SlottedAlohaBackoff
 	 */
 	~SlottedAlohaBackoffEied();
 
- private:
+private:
 	uint16_t setReady();
 	uint16_t setCollision();
 };

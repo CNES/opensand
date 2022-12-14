@@ -41,7 +41,7 @@
 #include <cassert>
 
 
-LanAdaptationPlugin::LanAdaptationPlugin(uint16_t ether_type):
+LanAdaptationPlugin::LanAdaptationPlugin(NET_PROTO ether_type):
 		StackPlugin(ether_type)
 {
 }
@@ -68,23 +68,26 @@ bool LanAdaptationPlugin::LanAdaptationPacketHandler::init()
 	return true;
 }
 
+
 std::size_t LanAdaptationPlugin::LanAdaptationPacketHandler::getMinLength() const
 {
 	assert(0);
 }
 
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(NetPacket *,
+
+bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(std::unique_ptr<NetPacket>,
                                                                       std::size_t,
                                                                       bool,
-                                                                      bool &,
-                                                                      NetPacket **)
+                                                                      std::unique_ptr<NetPacket> &,
+                                                                      std::unique_ptr<NetPacket> &)
 {
 	assert(0);
 }
 
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(NetContainer *,
+
+bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(std::unique_ptr<NetContainer>,
                                                                              bool &,
-                                                                             std::vector<NetPacket *> &,
+                                                                             std::vector<std::unique_ptr<NetPacket>> &,
                                                                              unsigned int)
 {
 	assert(0);
@@ -106,11 +109,9 @@ bool LanAdaptationPlugin::LanAdaptationContext::init()
 }
 
 bool LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id_t tal_id,
-                                                                         tal_id_t gw_id,
                                                                          PacketSwitch *packet_switch)
 {
 	this->tal_id = tal_id;
-	this->gw_id = gw_id;
 	this->packet_switch = packet_switch;
 	return true;
 }

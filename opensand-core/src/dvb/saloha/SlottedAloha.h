@@ -49,7 +49,7 @@
 */
 class SlottedAloha
 {
- protected:
+protected:
 	/// Number of superframe per Slotted Aloha Frame
 	time_sf_t sf_per_saframe;
 
@@ -62,7 +62,7 @@ class SlottedAloha
 	/// The encap packet handler
 	EncapPlugin::EncapPacketHandler *pkt_hdl;
 
- public:
+public:
 	/**
 	 * Build the slotted aloha class
 	 */
@@ -91,7 +91,7 @@ class SlottedAloha
 	 */
 	virtual bool onRcvFrame(DvbFrame *frame) = 0;
 
- protected:
+protected:
 
 	/**
 	 * Return check if current tick is a Slotted Aloha frame tick

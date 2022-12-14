@@ -43,12 +43,9 @@
 #include <opensand_output/OutputLog.h>
 
 #include <map>
-#include <string>
 
-using std::map;
-using std::string;
 
-typedef map<fmt_id_t, FmtDefinition *>::const_iterator fmt_def_table_pos_t;
+typedef std::map<fmt_id_t, FmtDefinition *>::const_iterator fmt_def_table_pos_t;
 
 /**
  * @class FmtDefinitionTable
@@ -56,18 +53,15 @@ typedef map<fmt_id_t, FmtDefinition *>::const_iterator fmt_def_table_pos_t;
  */
 class FmtDefinitionTable
 {
- private:
-
+private:
 	/** The internal map that stores all the FMT definitions */
-	map<fmt_id_t, FmtDefinition *> definitions;
+	std::map<fmt_id_t, FmtDefinition *> definitions;
 
- protected:
-
+protected:
 	// Output Log
 	std::shared_ptr<OutputLog> log_fmt;
 
- public:
-
+public:
 	/**** constructor/destructor ****/
 
 	/* create a table of FMT definitions */
@@ -106,7 +100,7 @@ class FmtDefinitionTable
 	 *
 	 * @return    definitions
 	 */
-	map<fmt_id_t, FmtDefinition* > getDefinitions(void) const;
+	std::map<fmt_id_t, FmtDefinition* > getDefinitions(void) const;
 
 	/**
 	 * @brief Get a FMT definition in the table

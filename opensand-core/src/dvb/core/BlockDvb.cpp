@@ -35,11 +35,27 @@
 
 
 #include "BlockDvb.h"
+#include "BBFrame.h"
+#include "Sac.h"
+#include "Ttp.h"
 
 #include "Plugin.h"
 #include "DvbS2Std.h"
 #include "EncapPlugin.h"
 #include "OpenSandModelConf.h"
+
+#include <opensand_output/Output.h>
+
+
+BlockDvb::BlockDvb(const std::string& name):
+	Block(name)
+{
+	auto output = Output::Get();
+	// register static logs
+	BBFrame::bbframe_log = output->registerLog(LEVEL_WARNING, "Dvb.Net.BBFrame");
+	Sac::sac_log = output->registerLog(LEVEL_WARNING, "Dvb.SAC");
+	Ttp::ttp_log = output->registerLog(LEVEL_WARNING, "Dvb.TTP");
+}
 
 
 BlockDvb::~BlockDvb()
@@ -50,14 +66,62 @@ BlockDvb::~BlockDvb()
 //****************************************************//
 //                   DVB  UPWARD                      // 
 //****************************************************//
+BlockDvb::DvbUpward::DvbUpward(const std::string& name, dvb_specific specific):
+	DvbChannel{},
+	RtUpward{name},
+	disable_control_plane{specific.disable_control_plane},
+	disable_acm_loop{specific.disable_acm_loop}
+{
+}
+
+
 BlockDvb::DvbUpward::~DvbUpward()
 {
+}
+
+
+bool BlockDvb::DvbUpward::shareFrame(DvbFrame *frame)
+{
+	if (this->disable_control_plane)
+	{
+		if(!this->enqueueMessage((void **)&frame, sizeof(*frame), to_underlying(InternalMessageType::sig)))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Unable to transmit frame to upper layer\n");
+			delete frame;
+			return false;
+		}
+	}
+	else
+	{
+		if(!this->shareMessage((void **)&frame, sizeof(*frame), to_underlying(InternalMessageType::sig)))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "Unable to transmit frame to opposite channel\n");
+			delete frame;
+			return false;
+		}
+	}
+	return true;
 }
 
 
 //****************************************************//
 //                   DVB  DOWNWARD                    // 
 //****************************************************//
+BlockDvb::DvbDownward::DvbDownward(const std::string &name, dvb_specific specific):
+	DvbChannel(),
+	RtDownward(name),
+	disable_control_plane{specific.disable_control_plane}
+{
+}
+
+
+BlockDvb::DvbDownward::~DvbDownward()
+{
+}
+
+
 bool BlockDvb::DvbDownward::initDown(void)
 {
 	// forward timer
@@ -76,28 +140,21 @@ bool BlockDvb::DvbDownward::initDown(void)
 }
 
 
-bool BlockDvb::DvbDownward::sendBursts(list<DvbFrame *> *complete_frames,
+bool BlockDvb::DvbDownward::sendBursts(std::list<DvbFrame *> *complete_frames,
                                        uint8_t carrier_id)
 {
-	list<DvbFrame *>::iterator frame_it;
 	bool status = true;
 
 	// send all complete DVB-RCS frames
 	LOG(this->log_send, LEVEL_DEBUG,
 	    "send all %zu complete DVB frames...\n",
 	    complete_frames->size());
-	for(frame_it = complete_frames->begin();
-	    frame_it != complete_frames->end();
-	    ++frame_it)
+	for(auto&& frame: *complete_frames)
 	{
 		// Send DVB frames to lower layer
-		if(!this->sendDvbFrame(*frame_it, carrier_id))
+		if(!this->sendDvbFrame(frame, carrier_id))
 		{
 			status = false;
-			if(*frame_it)
-			{
-				delete *frame_it;
-			}
 			continue;
 		}
 
@@ -111,6 +168,7 @@ bool BlockDvb::DvbDownward::sendBursts(list<DvbFrame *> *complete_frames,
 	return status;
 }
 
+
 bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
                                          uint8_t carrier_id)
 {
@@ -118,7 +176,7 @@ bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "frame is %p\n", dvb_frame);
-		goto error;
+		return false;
 	}
 
 	dvb_frame->setCarrierId(carrier_id);
@@ -127,35 +185,29 @@ bool BlockDvb::DvbDownward::sendDvbFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "empty frame, header and payload are not present\n");
-		goto error;
+		return false;
 	}
 
 	// send the message to the lower layer
 	// do not count carrier_id in len, this is the dvb_meta->hdr length
-	if(!this->enqueueMessage((void **)(&dvb_frame)))
+	if(!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "failed to send DVB frame to lower layer\n");
-		goto release_dvb_frame;
+		delete dvb_frame;
+		return false;
 	}
 	// TODO make a log_send_frame and a log_send_sig
 	LOG(this->log_send, LEVEL_INFO,
 	    "DVB frame sent to the lower layer\n");
 
 	return true;
-
-release_dvb_frame:
-	delete dvb_frame;
-error:
-	return false;
 }
 
 
-bool BlockDvb::DvbDownward::onRcvEncapPacket(NetPacket *packet,
+bool BlockDvb::DvbDownward::onRcvEncapPacket(std::unique_ptr<NetPacket> packet,
                                              DvbFifo *fifo,
                                              time_ms_t fifo_delay)
 {
-	return this->pushInFifo(fifo, packet, fifo_delay);
+	return this->pushInFifo(fifo, std::move(packet), fifo_delay);
 }
-
-

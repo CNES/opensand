@@ -33,40 +33,31 @@
  *
  */
 
-#include "MessageEvent.h"
-#include "RtFifo.h"
-#include "Rt.h"
-
 #include <cstring>
-#include <errno.h>
-#include <unistd.h>
+
+#include "MessageEvent.h"
+#include "Rt.h"
+#include "RtFifo.h"
+#include "RtCommunicate.h"
 
 
-MessageEvent::MessageEvent(RtFifo *const fifo,
-                           const string &name,
+MessageEvent::MessageEvent(std::shared_ptr<RtFifo> &fifo,
+                           const std::string &name,
                            int32_t fd,
                            uint8_t priority):
-	RtEvent(evt_message, name, fd, priority),
-	fifo(fifo)
+	RtEvent{EventType::Message, name, fd, priority},
+	fifo{fifo}
 {
 }
 
-MessageEvent::~MessageEvent()
-{
-}
 
 bool MessageEvent::handle(void)
 {
-	unsigned char data[strlen(MAGIC_WORD)];
-	int rlen;
-
 	// read the pipe to clear it, and check that if contains
 	// the correct signaling
-	rlen = read(this->fd, data, strlen(MAGIC_WORD));
-	if(rlen != strlen(MAGIC_WORD) ||
-	   strncmp((char *)data, MAGIC_WORD, strlen(MAGIC_WORD)) != 0)
+	if (!check_read(this->fd))
 	{
-		Rt::reportError(this->name, pthread_self(), false,
+		Rt::reportError(this->name, std::this_thread::get_id(), false,
 		                "pipe signaling message from previous block contain wrong data ",
 		                "[%u: %s]", errno, strerror(errno));
 		return false;
@@ -77,6 +68,6 @@ bool MessageEvent::handle(void)
 	{
 		return false;
 	}
-	return true;
 
+	return true;
 }
