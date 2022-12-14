@@ -64,8 +64,7 @@ The debian packages can be installed using `apt` commands.
 
 Unless otherwise specified, all the commands here must be executed on all machines.
 
-In order to install the packages using `apt`, the repository must be added to its sources.
-One way of doing it is by adding a new file into the `/etc/apt/sources.list.d/` folder.
+In order to install the packages using `apt`, the repository must be added to its sources. One way of doing it is by creating the file `/etc/apt/sources.list.d/net4sat.list`.
 
 Start by adding the GPG key for the Net4Sat repository:
 
@@ -76,7 +75,7 @@ curl -sS https://raw.githubusercontent.com/CNES/net4sat-packages/master/gpg/net4
 Then add the repository and link it to the aforementionned GPG key:
 
 ```
-echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/ focal stable" | sudo tee /etc/apt/sources.list.d/net4sat.list
+echo "deb https://raw.githubusercontent.com/CNES/net4sat-packages/master/jammy/ jammy stable" | sudo tee /etc/apt/sources.list.d/net4sat.list
 ```
 
 An apt sources update is necessary after adding the repository:
