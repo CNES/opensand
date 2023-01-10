@@ -53,7 +53,6 @@ namespace Rt
 {
 
 
-class Block;
 class Fifo;
 class Event;
 
@@ -71,8 +70,11 @@ class Event;
  */
 class ChannelBase
 {
+	template<class Bl, class Specific>
 	friend class Block;
+	/*
 	friend class BlockManager;
+	*/
 
  protected:
 	/// Output Log
@@ -86,30 +88,12 @@ class ChannelBase
 	 *
 	 * @param name       The name of the block channel
 	 * @param type       The type of the block channel (upward or downward)
-	 *
 	 */
 	ChannelBase(const std::string &name, const std::string &type);
 
 	virtual ~ChannelBase();
 
-	/**
-	 * @brief Initialize the channel
-	 *        Can be use to initialize elements specific to a channel
-	 *
-	 * @warning: called at the end of initialization, if you have to do some
-	 *           processing, you can do them here
-	 *
-	 * @return true on success, false otherwise
-	 */
-	virtual bool onInit(void) {return true;};
-
-	/**
-	 * @param Process an event
-	 *
-	 * @param event  The event
-	 * @return true on success, false otherwise
-	 */
-	virtual bool onEvent(const Event* const event) = 0;
+	virtual bool handleEvent(const Event * const event) = 0;
 
  public:
 	/**
@@ -240,14 +224,34 @@ class ChannelBase
 	 */
 	bool shareMessage(Ptr<void> data, uint8_t type);
 
+	/**
+	 * @brief Initialize the channel
+	 *        Can be use to initialize elements specific to a channel
+	 *
+	 * @warning: called at the end of initialization, if you have to do some
+	 *           processing, you can do them here
+	 *
+	 * @return true on success, false otherwise
+	 */
+	virtual bool onInit();
+
+	/**
+	 * @param Process an event
+	 *
+	 * @param event  The event
+	 * @return true on success, false otherwise
+	 */
+	bool onEvent(const Event& event);
+
  protected:
 	/**
 	 * @brief Internal channel initialization
 	 *        Call specific onInit function
 	 *
+	 * @param stop_fd  file descriptor to the stop signals listener
 	 * @return true on success, false otherwise
 	 */
-	bool init(void);
+	bool init(int stop_fd);
 
 	virtual bool initPreviousFifo() = 0;
 
@@ -294,7 +298,7 @@ class ChannelBase
 	/**
 	 * @brief print statistics on events durations
 	 */
-	void getDurationsStatistics(void) const;
+	void getDurationsStatistics() const;
 #endif
 
  private:
@@ -335,7 +339,7 @@ class ChannelBase
 	 * @brief the loop
 	 *
 	 */
-	void executeThread(void);
+	void executeThread();
 
 	/**
 	 * @brief Add an event in event map
@@ -350,7 +354,7 @@ class ChannelBase
 	 *        We need to do that in order to avoid modifying the event
 	 *        map while itering on it
 	 */
-	void updateEvents(void);
+	void updateEvents();
 
 	/**
 	 * @brief Get a timer

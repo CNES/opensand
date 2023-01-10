@@ -39,6 +39,7 @@
 #include <opensand_output/Output.h>
 
 #include "Block.h"
+#include "RtFifo.h"
 #include "Rt.h"
 #include "RtChannelBase.h"
 #include "RtChannel.h"
@@ -48,9 +49,18 @@ namespace Rt
 {
 
 
-Block::Block(const std::string &name):
-	name(name),
-	initialized(false)
+std::shared_ptr<Fifo> BlockBase::createFifo()
+{
+	// Do we catch bad_alloc to return nullptr here?
+	Fifo *fifo = new Fifo;
+	auto fifo_ptr = std::shared_ptr<Fifo>{fifo};
+	return fifo_ptr;
+}
+
+
+BlockBase::BlockBase(const std::string &name):
+	name{name},
+	initialized{false}
 {
 	// Output logs
 	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "%s.rt", this->name.c_str());
@@ -59,82 +69,35 @@ Block::Block(const std::string &name):
 }
 
 
-Block::~Block()
+std::string BlockBase::getName() const
 {
-  delete this->downward;
-  this->downward = nullptr;
-
-  delete this->upward;
-  this->upward = nullptr;
+	return this->name;
 }
 
 
-bool Block::init(void)
-{
-	// initialize channels
-	if(!this->upward->init())
-	{
-		return false;
-	}
-	if(!this->downward->init())
-	{
-		return false;
-	}
-
-	return true;
-}
+bool BlockBase::onInit() { return true; }
 
 
-bool Block::initSpecific(void)
-{
-	// specific block initialization
-	if(!this->onInit())
-	{
-		Rt::Rt::reportError(this->name, std::this_thread::get_id(),
-		                    true, "Block onInit failed");
-		return false;
-	}
-
-	// initialize channels
-	if(!this->upward->onInit())
-	{
-		Rt::Rt::reportError(this->name, std::this_thread::get_id(),
-		                    true, "Upward onInit failed");
-		return false;
-	}
-	if(!this->downward->onInit())
-	{
-		Rt::Rt::reportError(this->name, std::this_thread::get_id(),
-		                    true, "Downward onInit failed");
-		return false;
-	}
-	this->initialized = true;
-	this->upward->setIsBlockInitialized(true);
-	this->downward->setIsBlockInitialized(true);
-	LOG(this->log_init, LEVEL_NOTICE,
-	    "Block initialization complete\n");
-
-	return true;
-}
-
-
-bool Block::onInit() { return true; }
-
-
-bool Block::isInitialized(void)
+bool BlockBase::isInitialized() const
 {
 	return this->initialized;
 }
 
 
-bool Block::start(void)
+void BlockBase::setInitialized()
+{
+	this->initialized = true;
+}
+
+
+bool BlockBase::start()
 {
 	//create upward thread
 	LOG(this->log_rt, LEVEL_INFO,
 	    "Block %s: start upward channel\n", this->name.c_str());
 	try
 	{
-		this->up_thread = std::thread{&Upward::executeThread, this->upward};
+		this->up_thread = this->initUpwardThread();
 	}
 	catch (const std::system_error& e)
 	{
@@ -151,12 +114,14 @@ bool Block::start(void)
 	    "Block %s: start downward channel\n", this->name.c_str());
 	try
 	{
-		this->down_thread = std::thread{&Downward::executeThread, this->downward};
+		this->down_thread = this->initDownwardThread();
 	}
 	catch (const std::system_error& e)
 	{
 		Rt::Rt::reportError(this->name, std::this_thread::get_id(), true,
 		                    "cannot downward start thread [%u: %s]", e.code(), e.what());
+		// TODO: avoid cancel here and find a way to let
+		// the other thread terminate gracefully
 		pthread_cancel(this->up_thread.native_handle());
 		this->up_thread.join();
 		return false;
@@ -168,16 +133,12 @@ bool Block::start(void)
 	return true;
 }
 
-bool Block::stop()
+bool BlockBase::stop()
 {
 	bool status = true;
 
 	LOG(this->log_rt, LEVEL_INFO,
 	    "Block %s: stop channels\n", this->name.c_str());
-	// the process may be already killed as the may have caught the stop signal first
-	// So, do not report an error
-	pthread_cancel(this->up_thread.native_handle());
-	pthread_cancel(this->down_thread.native_handle());
 
 	LOG(this->log_rt, LEVEL_INFO,
 	    "Block %s: join channels\n", this->name.c_str());
@@ -204,6 +165,18 @@ bool Block::stop()
 	}
 
 	return status;
+}
+
+
+void BlockBase::reportError(const std::string& message) const
+{
+	Rt::Rt::reportError(this->name, std::this_thread::get_id(), true, message.c_str());
+}
+
+
+void BlockBase::reportSuccess(const std::string& message) const
+{
+	LOG(this->log_init, LEVEL_NOTICE, "%s", message.c_str());
 }
 
 

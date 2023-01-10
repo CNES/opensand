@@ -42,112 +42,124 @@
 
 
 #include "Block.h"
-#include "NetSocketEvent.h"
 #include "RtChannel.h"
 
 #include <queue>
 
 
-class TopBlock: public Rt::Block
+template<>
+class Rt::UpwardChannel<class TopBlock>: public Rt::Channels::Upward<Rt::UpwardChannel<TopBlock>>
+{
+ public:
+	UpwardChannel(const std::string& name, std::string file);
+
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::MessageEvent& event);
+};
+
+
+template<>
+class Rt::DownwardChannel<class TopBlock>: public Rt::Channels::Downward<Rt::DownwardChannel<TopBlock>>
+{
+ public:
+	DownwardChannel(const std::string& name, std::string file);
+	~DownwardChannel();
+
+	bool onInit() override;
+
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::FileEvent& event);
+	bool onEvent(const Rt::MessageEvent& event);
+
+ protected:
+	std::string input_file;
+	int32_t input_fd;
+	std::queue<Rt::Data> last_written;
+};
+
+
+class TopBlock: public Rt::Block<TopBlock, std::string>
 {
   public:
 	TopBlock(const std::string &name, std::string file);
-	~TopBlock();
-	
-	class Upward : public Rt::Block::Upward
-	{
-	  public:
-		Upward(const std::string &name, std::string file);
-
-	  protected:
-		bool onEvent(const Rt::Event* const event) override;
-	};
-
-	class Downward : public Rt::Block::Downward
-	{
-	  public:
-		Downward(const std::string &name, std::string file);
-		~Downward();
-	
-	  protected:
-		bool onInit(void);
-		bool onEvent(const Rt::Event* const event) override;
-		
-		std::string input_file;
-		int32_t input_fd;
-		std::queue<Rt::Data> last_written;
-	};
-	
-  protected:
-	bool onInit(void) { return true; }
 };
 
-class MiddleBlock: public Rt::Block
+
+template<>
+class Rt::UpwardChannel<class MiddleBlock>: public Rt::Channels::Upward<Rt::UpwardChannel<MiddleBlock>>
+{
+ public:
+	UpwardChannel(const std::string& name);
+
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::MessageEvent& event);
+};
+
+
+template<>
+class Rt::DownwardChannel<class MiddleBlock>: public Rt::Channels::Downward<Rt::DownwardChannel<MiddleBlock>>
+{
+ public:
+	DownwardChannel(const std::string& name);
+
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::MessageEvent& event);
+};
+
+
+class MiddleBlock: public Rt::Block<MiddleBlock>
 {
   public:
 	MiddleBlock(const std::string &name);
-	~MiddleBlock();
-
-	class Upward : public Rt::Block::Upward
-	{
-	  public:
-		Upward(const std::string &name);
-
-	  protected:
-		bool onEvent(const Rt::Event* const event) override;
-	};
-
-	class Downward : public Rt::Block::Downward
-	{
-	  public:
-		Downward(const std::string &name);
-
-	  protected:
-		bool onEvent(const Rt::Event* const event) override;
-	};
-	
-  protected:
-	bool onInit(void) { return true; }
 };
 
-class BottomBlock: public Rt::Block
+
+template<>
+class Rt::UpwardChannel<class BottomBlock>: public Rt::Channels::Upward<Rt::UpwardChannel<BottomBlock>>
+{
+ public:
+	UpwardChannel(const std::string& name);
+	~UpwardChannel();
+
+	void setInputFd(int32_t fd);
+
+	bool onInit() override;
+
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::NetSocketEvent& event);
+
+ protected:
+	int32_t input_fd;
+};
+
+
+template<>
+class Rt::DownwardChannel<class BottomBlock>: public Rt::Channels::Downward<Rt::DownwardChannel<BottomBlock>>
+{
+ public:
+	DownwardChannel(const std::string& name);
+	~DownwardChannel();
+
+	void setOutputFd(int32_t fd);
+
+	bool onInit() override;
+
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::MessageEvent& event);
+
+ protected:
+	int32_t output_fd;
+};
+
+
+class BottomBlock: public Rt::Block<BottomBlock>
 {
   public:
 	BottomBlock(const std::string &name);
-	~BottomBlock();
-
-	class Upward : public Rt::Block::Upward
-	{
-	  public:
-		Upward(const std::string &name);
-		~Upward();
-
-		void setInputFd(int32_t fd);
-
-	  protected:
-		bool onInit(void);
-		bool onEvent(const Rt::Event* const event) override;
-
-		int32_t input_fd;
-	};
-
-	class Downward : public Rt::Block::Downward
-	{
-	  public:
-		Downward(const std::string &name);
-		~Downward();
-
-		void setOutputFd(int32_t fd);
-
-	  protected:
-		bool onInit(void);
-		bool onEvent(const Rt::Event* const event) override;
-
-		int32_t output_fd;
-	};
 
   protected:
-	bool onInit(void);
+	bool onInit(void) override;
 };
+
 
 #endif

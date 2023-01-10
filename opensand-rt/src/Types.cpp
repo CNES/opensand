@@ -32,12 +32,23 @@
  */
 
 
-
 #include "Types.h"
 
 
 namespace Rt
 {
+
+
+Data::Data(const std::basic_string<unsigned char>& s):
+	std::basic_string<unsigned char>(s)
+{
+}
+
+
+Data::Data(std::basic_string<unsigned char>&& s):
+	std::basic_string<unsigned char>(s)
+{
+}
 
 
 Message::Message(std::nullptr_t):

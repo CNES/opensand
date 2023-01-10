@@ -36,12 +36,14 @@
 #include <unistd.h>
 #include <signal.h>
 #include <cstring>
+#include <set>
 
 #include <opensand_output/Output.h>
 
 #include "RtChannelBase.h"
 #include "Rt.h"
 #include "RtFifo.h"
+#include "RtEvent.h"
 #include "FileEvent.h"
 #include "MessageEvent.h"
 #include "NetSocketEvent.h"
@@ -89,6 +91,18 @@ ChannelBase::~ChannelBase()
 }
 
 
+bool ChannelBase::onInit()
+{
+	return true;
+}
+
+
+bool ChannelBase::onEvent(const Event& event)
+{
+	return false;
+}
+
+
 bool ChannelBase::shareMessage(Ptr<void> data, uint8_t type)
 {
 	Message m{std::move(data)};
@@ -97,7 +111,7 @@ bool ChannelBase::shareMessage(Ptr<void> data, uint8_t type)
 }
 
 
-bool ChannelBase::init(void)
+bool ChannelBase::init(int stop_fd)
 {
 	// Output Log
 	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.rt",
@@ -113,6 +127,10 @@ bool ChannelBase::init(void)
 	                                            this->channel_name.c_str(),
 	                                            this->channel_type.c_str());
 
+	// register the signal mask for stop
+	this->stop_fd = stop_fd;
+	FD_SET(this->stop_fd, &(this->input_fd_set));
+
 	LOG(this->log_init, LEVEL_INFO,
 	    "Starting initialization\n");
 
@@ -126,14 +144,6 @@ bool ChannelBase::init(void)
 	this->r_sel_break = pipefd[0];
 	this->w_sel_break = pipefd[1];
 	FD_SET(this->r_sel_break, &(this->input_fd_set));
-
-	// create the signal mask for stop (highest priority)
-	sigset_t signal_mask;
-	sigemptyset(&signal_mask);
-	sigaddset(&signal_mask, SIGINT);
-	sigaddset(&signal_mask, SIGQUIT);
-	sigaddset(&signal_mask, SIGTERM);
-	this->stop_fd = this->addSignalEvent("stop", signal_mask, 0);
 
 	// initialize fifos and create associated messages
 	if(!this->in_opp_fifo || !this->in_opp_fifo->init())
@@ -283,8 +293,8 @@ int32_t ChannelBase::addSignalEvent(const std::string &name,
 
 
 bool ChannelBase::addMessageEvent(std::shared_ptr<Fifo> &out_fifo,
-                                    uint8_t priority,
-                                    bool opposite)
+                                  uint8_t priority,
+                                  bool opposite)
 {
 	std::string name = this->channel_type;
 	std::transform(name.begin(), name.end(), name.begin(), ::tolower);
@@ -295,12 +305,12 @@ bool ChannelBase::addMessageEvent(std::shared_ptr<Fifo> &out_fifo,
 
 	std::unique_ptr<MessageEvent> event;
   
-  try {
-    event.reset(new MessageEvent(out_fifo, name, out_fifo->getSigFd(), priority));
-  } catch (std::bad_alloc&) {
+	try {
+		event.reset(new MessageEvent(out_fifo, name, out_fifo->getSigFd(), priority));
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create message event\n");
 		return false;
-  }
+	}
 
 	return this->addEvent(std::move(event));
 }
@@ -464,7 +474,15 @@ void ChannelBase::executeThread(void)
 	int32_t handled;
 	fd_set readfds;
 
-	std::vector<Event *> priority_sorted_events;
+	/*
+	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
+	timeval timeout{0, 500};
+	*/
+
+	// sort the list according to priority
+	static const auto eventSorter = [](const Event* e1, const Event* e2) { return (*e1) < (*e2); };
+	std::set<Event *, decltype(eventSorter)> priority_sorted_events(eventSorter);
 
 	while(true)
 	{
@@ -472,23 +490,27 @@ void ChannelBase::executeThread(void)
 		
 		// get the new events for the next loop
 		this->updateEvents();
+		priority_sorted_events.clear();
 		readfds = this->input_fd_set;
 
 		// wait for any event
 		// we need a timeout in order to refresh event list
-		event_id_t max_fd = 0;
-		for (auto &&[k,e]: this->events) {
-			if (k > max_fd) {
-				max_fd = k;
-			}
-		}
-		number_fd = select(max_fd + 1, &readfds, NULL, NULL, NULL);
+		event_id_t max_fd = this->events.rbegin()->first;
+		number_fd = select(max_fd + 1, &readfds, nullptr, nullptr, nullptr);
 		if(number_fd < 0)
 		{
 			this->reportError(true, "select failed: [%u: %s]\n", errno, strerror(errno));
 		}
+
 		// unfortunately, FD_ISSET is the only usable thing
-		priority_sorted_events.clear();
+		if(FD_ISSET(this->stop_fd, &readfds))
+		{
+			// we have to stop
+			LOG(this->log_rt, LEVEL_INFO,
+				"stop signal received\n");
+			std::cout << "Stop signal received in " << this->channel_name << " (" << this->channel_type << ")\n";
+			return;
+		}
 
 		// check for select break
 		if(FD_ISSET(this->r_sel_break, &readfds))
@@ -530,18 +552,8 @@ void ChannelBase::executeThread(void)
 				// ignore this event
 				continue;
 			}
-			if(*event == this->stop_fd)
-			{
-				// we have to stop
-				LOG(this->log_rt, LEVEL_INFO,
-				    "stop signal received\n");
-				return;
-			}
-			priority_sorted_events.push_back(event.get());
+			priority_sorted_events.insert(event.get());
 		}
-		// sort the list according to priority
-		static const auto eventSorter = [](const Event* e1, const Event* e2) { return (*e1) < (*e2); };
-		std::sort(priority_sorted_events.begin(), priority_sorted_events.end(), eventSorter);
 
 		// call processEvent on each event
 		for(auto &&event: priority_sorted_events)
@@ -550,7 +562,7 @@ void ChannelBase::executeThread(void)
 			event->setTriggerTime();
 			LOG(this->log_rt, LEVEL_DEBUG, "event received (%s)",
 			    event_name.c_str());
-			if(!this->onEvent(event))
+			if(!this->handleEvent(event))
 			{
 				LOG(this->log_rt, LEVEL_ERROR,
 				    "failed to process event %s\n",

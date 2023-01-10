@@ -64,7 +64,12 @@ enum class EventType
 
 
 using event_id_t = int32_t;
-using Data = std::basic_string<unsigned char>;
+struct Data: std::basic_string<unsigned char>
+{
+	using basic_string::basic_string;
+	Data(const basic_string&);
+	Data(basic_string&&);
+};
 template <class T> using Ptr = std::unique_ptr<T, void(*)(void*)>;
 
 

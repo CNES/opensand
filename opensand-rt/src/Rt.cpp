@@ -47,7 +47,7 @@ namespace Rt
 BlockManager Rt::manager;
 
 
-bool Rt::init(void)
+bool Rt::init()
 {
 	return manager.init();
 }

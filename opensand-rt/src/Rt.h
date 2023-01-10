@@ -64,7 +64,7 @@ class Rt
 	 * @return A pointer to the newly created block
 	 */
 	template <class Bl>
-	static Bl *createBlock(const std::string &name);
+	static Bl& createBlock(const std::string &name);
 
 	/**
 	 * @brief Creates and adds a block to the application.
@@ -76,8 +76,7 @@ class Rt
 	 * @return A pointer to the newly created block
 	 */
 	template <class Bl, class Specific>
-	static Bl *createBlock(const std::string &name,
-	                       Specific specific);
+	static Bl& createBlock(const std::string &name, Specific specific);
 
 	/**
 	 * @brief Connects two blocks
@@ -86,7 +85,7 @@ class Rt
 	 * @param lower     The lower block
 	 */
 	template <class UpperBl, class LowerBl>
-	static void connectBlocks(const UpperBl *upper, const LowerBl *lower);
+	static void connectBlocks(UpperBl& upper, LowerBl& lower);
 
 	/**
 	 * @brief Connects a multiplexer block to a simple block
@@ -98,9 +97,8 @@ class Rt
 	 *                  the lower block
 	 */
 	template <class UpperBl, class LowerBl>
-	static void connectBlocks(const UpperBl *upper,
-	                          const LowerBl *lower,
-	                          typename UpperBl::Downward::DemuxKey down_key);
+	static void connectBlocks(UpperBl& upper, LowerBl& lower,
+	                          typename UpperBl::ChannelDownward::DemuxKey down_key);
 
 	/**
 	 * @brief Connects a simple block to a multiplexer block
@@ -112,9 +110,8 @@ class Rt
 	 *                  the upper block
 	 */
 	template <class UpperBl, class LowerBl>
-	static void connectBlocks(const UpperBl *upper,
-	                          const LowerBl *lower,
-	                          typename LowerBl::Upward::DemuxKey up_key);
+	static void connectBlocks(UpperBl& upper, LowerBl& lower,
+	                          typename LowerBl::ChannelUpward::DemuxKey up_key);
 
 	/**
 	 * @brief Connects two multiplexer blocks
@@ -129,37 +126,16 @@ class Rt
 	 *                  the lower block
 	 */
 	template <class UpperBl, class LowerBl>
-	static void connectBlocks(const UpperBl *upper,
-	                          const LowerBl *lower,
-	                          typename LowerBl::Upward::DemuxKey up_key,
-	                          typename UpperBl::Downward::DemuxKey down_key);
-
-	/**
-	 * @brief Connects two channels together, bypasses usual safety-checks
-	 *
-	 * @param sender    The channel that will send data into the fifo
-	 * @param receiver  The channel that will receive data through the fifo
-	 */
-	template <class SenderCh, class ReceiverCh>
-	static void connectChannels(SenderCh &sender, ReceiverCh &receiver);
-
-	/**
-	 * @brief Connects two channels together, bypasses usual safety-checks
-	 *
-	 * @param sender    The channel that will send data into the fifo
-	 * @param receiver  The channel that will receive data through the fifo
-	 * @param key       The key under which the receiver is known from
-	 *                  the sender
-	 */
-	template <class SenderCh, class ReceiverCh>
-	static void connectChannels(SenderCh &sender, ReceiverCh &receiver, typename SenderCh::DemuxKey key);
+	static void connectBlocks(UpperBl& upper, LowerBl& lower,
+	                          typename LowerBl::ChannelUpward::DemuxKey up_key,
+	                          typename UpperBl::ChannelDownward::DemuxKey down_key);
 
 	/**
 	 * @brief Initialize the blocks
 	 *
 	 * @return true on success, false otherwise
 	 */
-	static bool init(void);
+	static bool init();
 
 	/**
 	 * @brief Start the blocks and checks if threads
@@ -196,65 +172,48 @@ class Rt
 
 
 template <class Bl>
-Bl *Rt::createBlock(const std::string &name)
+Bl& Rt::createBlock(const std::string &name)
 {
 	return Rt::manager.createBlock<Bl>(name);
 }
 
 
 template <class Bl, class Specific>
-Bl *Rt::createBlock(const std::string &name, Specific specific)
+Bl& Rt::createBlock(const std::string &name, Specific specific)
 {
-	return Rt::manager.createBlock<Bl>(name, specific);
+	return Rt::manager.createBlock<Bl, Specific>(name, specific);
 }
 
 
 template <class UpperBl, class LowerBl>
-void Rt::connectBlocks(const UpperBl *upper, const LowerBl *lower)
+void Rt::connectBlocks(UpperBl& upper, LowerBl& lower)
 {
 	Rt::manager.connectBlocks(upper, lower);
 }
 
 
 template <class UpperBl, class LowerBl>
-void Rt::connectBlocks(const UpperBl *upper,
-                       const LowerBl *lower,
-                       typename UpperBl::Downward::DemuxKey down_key)
+void Rt::connectBlocks(UpperBl& upper, LowerBl& lower,
+                       typename UpperBl::ChannelDownward::DemuxKey down_key)
 {
 	Rt::manager.connectBlocks(upper, lower, down_key);
 }
 
 
 template <class UpperBl, class LowerBl>
-void Rt::connectBlocks(const UpperBl *upper,
-                       const LowerBl *lower,
-                       typename LowerBl::Upward::DemuxKey up_key)
+void Rt::connectBlocks(UpperBl& upper, LowerBl& lower,
+                       typename LowerBl::ChannelUpward::DemuxKey up_key)
 {
 	Rt::manager.connectBlocks(upper, lower, up_key);
 }
 
 
 template <class UpperBl, class LowerBl>
-void Rt::connectBlocks(const UpperBl *upper,
-                       const LowerBl *lower,
-                       typename LowerBl::Upward::DemuxKey up_key,
-                       typename UpperBl::Downward::DemuxKey down_key)
+void Rt::connectBlocks(UpperBl& upper, LowerBl& lower,
+                       typename LowerBl::ChannelUpward::DemuxKey up_key,
+                       typename UpperBl::ChannelDownward::DemuxKey down_key)
 {
 	Rt::manager.connectBlocks(upper, lower, up_key, down_key);
-}
-
-
-template <class SenderCh, class ReceiverCh>
-void Rt::connectChannels(SenderCh &sender, ReceiverCh &receiver)
-{
-	Rt::manager.connectChannels(sender, receiver);
-}
-
-
-template <class SenderCh, class ReceiverCh>
-void Rt::connectChannels(SenderCh &sender, ReceiverCh &receiver, typename SenderCh::DemuxKey key)
-{
-	Rt::manager.connectChannels(sender, receiver, key);
 }
 
 

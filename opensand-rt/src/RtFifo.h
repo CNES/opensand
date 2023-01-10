@@ -64,7 +64,7 @@ class Fifo
 	template <typename Key>
 	friend class ChannelMuxDemux;
 	friend class MessageEvent;
-	friend class BlockManager;
+	friend class BlockBase;
 
 	/**
 	 * @brief Fifo constructor

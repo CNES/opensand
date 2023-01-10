@@ -65,6 +65,8 @@
 #include <opensand_output/Output.h>
 
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 #include <cstdio>
 #include <cstring>
 #include <cassert>
@@ -83,7 +85,7 @@
 // ####### Block #######
 
 TestBlock::TestBlock(const std::string &name):
-	Block(name)
+	Rt::Block<TestBlock>{name}
 {
 	LOG(this->log_rt, LEVEL_INFO, "Block %s created\n", name.c_str());
 }
@@ -100,12 +102,12 @@ bool TestBlock::onInit()
 
 	if(pipe(pipefd) != 0)
 	{
-		std::cerr << "error when opening pipe between upward and "
-		          << "downward channels" << std::endl;
+		std::cerr << "error when opening pipe between upward and downward channels" << std::endl;
 		return false;
 	}
-	((Downward *)this->downward)->setInputFd(pipefd[0]);
-	((Upward *)this->upward)->setOutputFd(pipefd[1]);
+
+	this->downward.setInputFd(pipefd[0]);
+	this->upward.setOutputFd(pipefd[1]);
 
 	return true;
 }
@@ -113,8 +115,8 @@ bool TestBlock::onInit()
 
 // ####### Upward #######
 
-TestBlock::Upward::Upward(const std::string &name):
-	Rt::Block::Upward{name},
+Rt::UpwardChannel<TestBlock>::UpwardChannel (const std::string& name):
+	Channels::Upward<UpwardChannel<TestBlock>>{name},
 	nbr_timeouts{0},
 	output_fd{-1},
 	last_written(64, '\0')
@@ -122,13 +124,13 @@ TestBlock::Upward::Upward(const std::string &name):
 }
 
 
-void TestBlock::Upward::setOutputFd(int32_t fd)
+void Rt::UpwardChannel<TestBlock>::setOutputFd(int32_t fd)
 {
 	this->output_fd = fd;
 }
 
 
-bool TestBlock::Upward::onInit(void)
+bool Rt::UpwardChannel<TestBlock>::onInit(void)
 {
 	this->nbr_timeouts = 0;
 	//timer event every 100ms
@@ -137,70 +139,64 @@ bool TestBlock::Upward::onInit(void)
 }
 
 
-bool TestBlock::Upward::onEvent(const Rt::Event* const event)
+bool Rt::UpwardChannel<TestBlock>::onEvent(const Event& event)
 {
-	std::string error;
-	int res = 0;
-	
-	switch(event->getType())
+	Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
+	return false;
+}
+
+
+bool Rt::UpwardChannel<TestBlock>::onEvent(const MessageEvent& event)
+{
+	Ptr<Data> data = event.getMessage<Data>();
+	std::cout << "Data received from opposite channel in block: "
+	          << this->getName() << "; data: " << data->c_str() << std::endl;
+
+	std::string result(reinterpret_cast<const char*>(data->c_str()), data->size());
+	if(this->last_written != result)
 	{
-		case Rt::EventType::Timer:
-		{
-			// timer only on upward channel
-			this->nbr_timeouts++;
-			// test for duration
-			if(this->nbr_timeouts > 10)
-			{
-				// that is 2 seconds, should be enough to read the file, so stop the application
-				std::cout << "Stop test after 10 loops, pid = " << getpid() << std::endl;
-				kill(getpid(), SIGTERM);
-			}
-
-			Rt::time_val_t elapsed_time = event->getTimeFromTrigger();
-			long int elapsed_seconds = elapsed_time / 1000000,
-			         elapsed_microseconds = elapsed_time % 1000000;
-			sprintf(this->last_written.data(), "%ld.%06ld",
-			        elapsed_seconds, elapsed_microseconds);
-
-			res = write(this->output_fd, this->last_written.data(), this->last_written.size());
-			if(res == -1)
-			{
-				Rt::Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-				                    "cannot write on pipe");
-			}
-			std::cout << "Timer triggered in block: " << this->getName()
-			          << "; value: " << this->last_written << std::endl;
-			break;
-		}
-
-		case Rt::EventType::Message:
-		{
-			auto msg_event = static_cast<const Rt::MessageEvent*>(event);
-			Rt::Ptr<Rt::Data> data = msg_event->getMessage<Rt::Data>();
-			std::cout << "Data received from opposite channel in block: "
-			          << this->getName() << "; data: " << data->c_str() << std::endl;
-
-			std::string result(reinterpret_cast<const char*>(data->c_str()), data->size());
-			if(this->last_written != result)
-			{
-				Rt::Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-				                    "wrong data received '%s' instead of '%s'",
-				                    data->c_str(), this->last_written.c_str());
-			}
-			this->last_written.clear();
-			this->last_written.resize(this->last_written.capacity());
-			break;
-		}
-
-		default:
-			Rt::Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
-			return false;
+		Rt::reportError(this->getName(), std::this_thread::get_id(), true,
+		                    "wrong data received '%s' instead of '%s'",
+		                    data->c_str(), this->last_written.c_str());
 	}
+	this->last_written.clear();
+	this->last_written.resize(this->last_written.capacity());
+
 	return true;
 }
 
 
-TestBlock::Upward::~Upward()
+bool Rt::UpwardChannel<TestBlock>::onEvent(const TimerEvent& event)
+{
+	// timer only on upward channel
+	this->nbr_timeouts++;
+	// test for duration
+	if(this->nbr_timeouts > 10)
+	{
+		// that is 2 seconds, should be enough to read the file, so stop the application
+		std::cout << "Stop test after 10 loops, pid = " << getpid() << std::endl;
+		kill(getpid(), SIGTERM);
+	}
+
+	time_val_t elapsed_time = event.getTimeFromTrigger();
+	std::ostringstream formatter;
+	formatter << (elapsed_time / 1000000) << "." << std::setfill('0') << std::setw(6) << (elapsed_time % 1000000);
+	this->last_written = formatter.str();
+
+	int res = write(this->output_fd, this->last_written.data(), this->last_written.size());
+	if(res == -1)
+	{
+		Rt::reportError(this->getName(), std::this_thread::get_id(), true,
+		                    "cannot write on pipe");
+	}
+	std::cout << "Timer triggered in block: " << this->getName()
+	          << "; value: " << this->last_written << std::endl;
+
+	return true;
+}
+
+
+Rt::UpwardChannel<TestBlock>::~UpwardChannel ()
 {
 	if(this->output_fd >= 0)
 	{
@@ -211,20 +207,20 @@ TestBlock::Upward::~Upward()
 
 // ####### Downward #######
 
-TestBlock::Downward::Downward(const std::string &name):
-	Rt::Block::Downward{name},
+Rt::DownwardChannel<TestBlock>::DownwardChannel (const std::string& name):
+	Channels::Downward<DownwardChannel<TestBlock>>{name},
 	input_fd{-1}
 {
 }
 
 
-void TestBlock::Downward::setInputFd(int32_t fd)
+void Rt::DownwardChannel<TestBlock>::setInputFd(int32_t fd)
 {
 	this->input_fd = fd;
 }
 
 
-bool TestBlock::Downward::onInit(void)
+bool Rt::DownwardChannel<TestBlock>::onInit(void)
 {
 	// high priority to be sure to read it before another timer
 	this->addFileEvent("downward", this->input_fd, 64, 2);
@@ -232,35 +228,31 @@ bool TestBlock::Downward::onInit(void)
 }
 
 
-bool TestBlock::Downward::onEvent(const Rt::Event* const event)
+bool Rt::DownwardChannel<TestBlock>::onEvent(const Event& event)
 {
-	switch(event->getType())
+	Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
+	return false;
+}
+
+
+bool Rt::DownwardChannel<TestBlock>::onEvent(const FileEvent& event)
+{
+	auto data = make_ptr<Data>(event.getData());
+
+	std::cout << "Data received on socket in block: " << this->getName()
+	          << "; data: " << data->c_str() << std::endl;
+
+	if(!this->shareMessage(std::move(data), 0))
 	{
-		case Rt::EventType::File:
-		{
-			auto file_event = static_cast<const Rt::FileEvent*>(event);
-			auto data = Rt::make_ptr<Rt::Data>(file_event->getData());
-
-			std::cout << "Data received on socket in block: " << this->getName()
-			          << "; data: " << data->c_str() << std::endl;
-
-			if(!this->shareMessage(std::move(data), 0))
-			{
-				Rt::Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-				                    "unable to transmit data to opposite channel");
-			}
-			break;
-		}
-		default:
-			Rt::Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
-			return false;
-
+		Rt::reportError(this->getName(), std::this_thread::get_id(), true,
+		                    "unable to transmit data to opposite channel");
 	}
+
 	return true;
 }
 
 
-TestBlock::Downward::~Downward()
+Rt::DownwardChannel<TestBlock>::~DownwardChannel ()
 {
 }
 
@@ -274,8 +266,6 @@ int main(int argc, char **argv)
 HeapLeakChecker heap_checker("test_block");
 {
 #endif
-	std::string error;
-
 	std::cout << "Launch test" << std::endl;
 
 	Rt::Rt::createBlock<TestBlock>("test");

@@ -42,49 +42,57 @@
 #include <utility>
 
 
-class TestBlock: public Rt::Block
+template<>
+class Rt::UpwardChannel<class TestBlock>: public Rt::Channels::Upward<Rt::UpwardChannel<TestBlock>>
+{
+ public:
+	UpwardChannel (const std::string& name);
+	~UpwardChannel ();
+
+	void setOutputFd (int32_t fd);
+
+	bool onInit () override;
+
+	bool onEvent (const Rt::Event& event);
+	bool onEvent (const Rt::TimerEvent& event);
+	bool onEvent (const Rt::MessageEvent& event);
+
+ protected:
+	uint32_t nbr_timeouts;
+	int32_t output_fd;
+
+	/// the data written by timer that should be read on socket
+	std::string last_written;
+};
+
+
+template<>
+class Rt::DownwardChannel<class TestBlock>: public Rt::Channels::Downward<Rt::DownwardChannel<TestBlock>>
+{
+ public:
+	DownwardChannel (const std::string& name);
+	~DownwardChannel ();
+
+	void setInputFd (int32_t fd);
+
+	bool onInit () override;
+
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::FileEvent& event);
+
+ protected:
+	int32_t input_fd;
+};
+
+
+class TestBlock: public Rt::Block<TestBlock>
 {
   public:
-
 	TestBlock(const std::string &name);
 	~TestBlock();
 
-	class Upward : public Rt::Block::Upward
-	{
-	 public:
-	 	Upward(const std::string &name);
-	 	~Upward();
-	 	
-	 	void setOutputFd(int32_t fd);
-	 	
-	 protected:
-	 	bool onInit(void);
-	 	bool onEvent(const Rt::Event* const event) override;
-
-		uint32_t nbr_timeouts;
-		int32_t output_fd;
-
-		/// the data written by timer that should be read on socket
-		std::string last_written;
-	};
-
-	class Downward : public Rt::Block::Downward
-	{
-	 public:
-	 	Downward(const std::string &name);
-		~Downward();
-	 	
-	 	void setInputFd(int32_t fd);
-	 	
-	 protected:
-	 	bool onInit(void);
-	 	bool onEvent(const Rt::Event* const event) override;
-	 	
-	    int32_t input_fd;
-	};
-	
   protected:
-	bool onInit(void);
+	bool onInit() override;
 };
 
 

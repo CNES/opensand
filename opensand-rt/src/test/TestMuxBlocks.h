@@ -48,116 +48,170 @@ enum struct Side
 };
 
 
-class TopMux : public Rt::Block
+template<>
+class Rt::UpwardChannel<class TopMux>: public Rt::Channels::UpwardMux<Rt::UpwardChannel<TopMux>>
 {
-  public:
-	using Rt::Block::Block;
+ public:
+	UpwardChannel(const std::string& name);
 
-	class Upward: public Rt::Block::UpwardMux
-	{
-	  public:
-		Upward(const std::string &name);
-		bool onEvent(const Rt::Event* const event) override;
-	};
-
-	class Downward: public Rt::Block::DownwardDemux<Side>
-	{
-	  public:
-		Downward(const std::string &name);
-		bool onEvent(const Rt::Event* const event) override;
-	};
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::MessageEvent& event);
 };
 
 
-class MiddleBlock: public Rt::Block
+template<>
+class Rt::DownwardChannel<class TopMux>: public Rt::Channels::DownwardDemux<Rt::DownwardChannel<TopMux>, Side>
 {
-  public:
-	MiddleBlock(const std::string &name, Side side);
+ public:
+	DownwardChannel(const std::string& name);
 
-	class Upward: public Rt::Block::UpwardMuxDemux<Side>
-	{
-	  public:
-		Upward(const std::string &name, Side side);
-		bool onEvent(const Rt::Event* const event) override;
-		Side side;
-	};
-
-	class Downward: public Rt::Block::DownwardMuxDemux<Side>
-	{
-	  public:
-		Downward(const std::string &name, Side side);
-		bool onEvent(const Rt::Event* const event) override;
-		Side side;
-	};
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::MessageEvent& event);
 };
 
 
-class TopBlock: public Rt::Block
+class TopMux : public Rt::Block<TopMux>
 {
   public:
-	TopBlock(const std::string &name, Side side);
-
-	class Upward: public Rt::Block::UpwardMux
-	{
-	  public:
-		Upward(const std::string &name, Side side);
-		bool onEvent(const Rt::Event* const event) override;
-		Side side;
-	};
-
-	class Downward: public Rt::Block::DownwardDemux<Side>
-	{
-	  public:
-		Downward(const std::string &name, Side side);
-		bool onEvent(const Rt::Event* const event) override;
-		Side side;
-	};
+	using Rt::Block<TopMux>::Block;
 };
 
 
-class BottomBlock: public Rt::Block
+template<>
+class Rt::UpwardChannel<class MiddleBlock>: public Rt::Channels::UpwardMuxDemux<Rt::UpwardChannel<MiddleBlock>, Side>
 {
-  public:
-	BottomBlock(const std::string &name, Side side);
+ public:
+	UpwardChannel(const std::string& name, Side side);
 
-	class Upward: public Rt::Block::UpwardDemux<Side>
-	{
-	  public:
-		Upward(const std::string &name, Side side);
-		bool onEvent(const Rt::Event* const event) override;
-		Side side;
-	};
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::MessageEvent& event);
 
-	class Downward: public Rt::Block::DownwardMux
-	{
-	  public:
-		Downward(const std::string &name, Side side);
-		bool onEvent(const Rt::Event* const event) override;
-		Side side;
-	};
+ protected:
+	Side side;
 };
 
 
-class BottomMux: public Rt::Block
+template<>
+class Rt::DownwardChannel<class MiddleBlock>: public Rt::Channels::DownwardMuxDemux<Rt::DownwardChannel<MiddleBlock>, Side>
+{
+ public:
+	DownwardChannel(const std::string& name, Side side);
+
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::MessageEvent& event);
+
+ protected:
+	Side side;
+};
+
+
+class MiddleBlock: public Rt::Block<MiddleBlock, Side>
 {
   public:
-	using Block::Block;
+	using Rt::Block<MiddleBlock, Side>::Block;
+};
 
-	class Upward: public Rt::Block::UpwardDemux<Side>
-	{
-	  public:
-		Upward(const std::string &name);
-		bool onInit() override;
-		bool onEvent(const Rt::Event* const event) override;
-	};
 
-	class Downward: public Rt::Block::DownwardMux
-	{
-	  public:
-		Downward(const std::string &name);
-		bool onInit() override;
-		bool onEvent(const Rt::Event* const event) override;
-	};
+template<>
+class Rt::UpwardChannel<class TopBlock>: public Rt::Channels::UpwardMux<Rt::UpwardChannel<TopBlock>>
+{
+ public:
+	UpwardChannel(const std::string& name, Side side);
+
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::MessageEvent& event);
+
+ protected:
+	Side side;
+};
+
+
+template<>
+class Rt::DownwardChannel<class TopBlock>: public Rt::Channels::DownwardDemux<Rt::DownwardChannel<TopBlock>, Side>
+{
+ public:
+	DownwardChannel(const std::string& name, Side side);
+
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::MessageEvent& event);
+
+ protected:
+	Side side;
+};
+
+
+class TopBlock: public Rt::Block<TopBlock, Side>
+{
+  public:
+	using Rt::Block<TopBlock, Side>::Block;
+};
+
+
+template<>
+class Rt::UpwardChannel<class BottomBlock>: public Rt::Channels::UpwardDemux<Rt::UpwardChannel<BottomBlock>, Side>
+{
+ public:
+	UpwardChannel(const std::string& name, Side side);
+
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::MessageEvent& event);
+
+ protected:
+	Side side;
+};
+
+
+template<>
+class Rt::DownwardChannel<class BottomBlock>: public Rt::Channels::DownwardMux<Rt::DownwardChannel<BottomBlock>>
+{
+ public:
+	DownwardChannel(const std::string& name, Side side);
+
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::MessageEvent& event);
+
+ protected:
+	Side side;
+};
+
+
+class BottomBlock: public Rt::Block<BottomBlock, Side>
+{
+  public:
+	using Rt::Block<BottomBlock, Side>::Block;
+};
+
+
+template<>
+class Rt::UpwardChannel<class BottomMux>: public Rt::Channels::UpwardDemux<Rt::UpwardChannel<BottomMux>, Side>
+{
+ public:
+	UpwardChannel(const std::string& name);
+
+	bool onInit() override;
+
+	bool onEvent(const Rt::Event& event);
+};
+
+
+template<>
+class Rt::DownwardChannel<class BottomMux>: public Rt::Channels::DownwardMux<Rt::DownwardChannel<BottomMux>>
+{
+ public:
+	DownwardChannel(const std::string& name);
+
+	bool onInit() override;
+
+	bool onEvent(const Rt::Event& event);
+	bool onEvent(const Rt::TimerEvent& event);
+	bool onEvent(const Rt::MessageEvent& event);
+};
+
+
+class BottomMux: public Rt::Block<BottomMux>
+{
+  public:
+	using Rt::Block<BottomMux>::Block;
 };
 
 

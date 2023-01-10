@@ -80,9 +80,9 @@ class Channel: public ChannelBase
 
  private:
 	/// The fifo of the previous channel
-  std::shared_ptr<Fifo> previous_fifo;
+	std::shared_ptr<Fifo> previous_fifo;
 	/// The fifo of the next channel
-  std::shared_ptr<Fifo> next_fifo;
+	std::shared_ptr<Fifo> next_fifo;
 };
 
 

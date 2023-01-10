@@ -84,7 +84,7 @@ bool FileEvent::handle(void)
 		goto error;
 	}
 
-	this->data.resize(actual_size);  // FIXME? +1 ?
+	this->data.resize(actual_size);
 	return true;
 
 error:

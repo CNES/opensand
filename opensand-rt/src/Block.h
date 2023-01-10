@@ -40,6 +40,14 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <type_traits>
+
+#include "MessageEvent.h"
+#include "NetSocketEvent.h"
+#include "TimerEvent.h"
+#include "SignalEvent.h"
+#include "FileEvent.h"
+#include "TcpListenEvent.h"
 
 
 class OutputLog;
@@ -50,8 +58,7 @@ namespace Rt
 {
 
 
-class Event;
-class ChannelBase;
+class Fifo;
 class Channel;
 class ChannelMux;
 template<typename Key> class ChannelDemux;
@@ -59,17 +66,11 @@ template<typename Key> class ChannelMuxDemux;
 
 
 /**
- * @class Block
- * @brief describes a block
- *
- * upper block and lower block are absolute;
- * upward channel processes data from lower block to upper block.
- * downward channel processes data from lower block to upper block.
- *
+ * @class BlockBase
+ * @brief describes base capabilities of a block without knowing their channels yet
  */
-class Block
+class BlockBase
 {
-	friend class Channel;
 	friend class BlockManager;
 
  public:
@@ -78,66 +79,9 @@ class Block
 	 *
 	 * @param name      The name of the block
 	 */
-	Block(const std::string &name);
+	BlockBase(const std::string &name);
 
-	virtual ~Block();
-
-	/// The upward channel
-	ChannelBase *upward;
-	/// The downward channel
-	ChannelBase *downward;
-
-  private:
-	/**
-	 * @class Upward channel
-	 *        With this class we are able to define Upward channel
-	 *        functions in Block
-	 */
-	template <typename ChannelType>
-	class UpwardBase: public ChannelType
-	{
-	 public:
-		UpwardBase(const std::string &name):
-			ChannelType(name, "Upward")
-		{};
-	};
-
-	/**
-	 * @class Downward channel
-	 *        With this class we are able to define Downward channel
-	 *        functions in Block
-	 */
-	template <typename ChannelType>
-	class DownwardBase: public ChannelType
-	{
-	 public:
-		DownwardBase(const std::string &name):
-			ChannelType(name, "Downward")
-		{};
-	};
-
- public:
-	/// An upward channel with 1 input and 1 output
-	using Upward = UpwardBase<Channel>;
-	/// An upward channel with N inputs and 1 output
-	using UpwardMux = UpwardBase<ChannelMux>;
-	/// An upward channel with 1 input and N outputs
-	template <typename Key>
-	using UpwardDemux = UpwardBase<ChannelDemux<Key>>;
-	/// An upward channel with N inputs and N outputs
-	template <typename Key>
-	using UpwardMuxDemux = UpwardBase<ChannelMuxDemux<Key>>;
-
-	/// A downward channel with 1 inputs and 1 outputs
-	using Downward = DownwardBase<Channel>;
-	/// A downward channel with N inputs and 1 outputs
-	using DownwardMux = DownwardBase<ChannelMux>;
-	/// A downward channel with 1 inputs and N outputs
-	template <typename Key>
-	using DownwardDemux = DownwardBase<ChannelDemux<Key>>;
-	/// A downward channel with N inputs and N outputs
-	template <typename Key>
-	using DownwardMuxDemux = DownwardBase<ChannelMuxDemux<Key>>;
+	static std::shared_ptr<Fifo> createFifo();
 
  protected:
 	/**
@@ -155,21 +99,24 @@ class Block
 	 *
 	 * @return the name of the block
 	 */
-	std::string getName(void) const { return this->name; };
+	std::string getName() const;
 
 	/**
 	 * @brief Check whether the block is initialized
 	 *
 	 * @return true if the block is initialized, false otherwise
 	 */
-	bool isInitialized(void);
+	bool isInitialized() const;
+
+	void setInitialized();
 
 	/**
 	 * @brief Internal block initialization
 	 *
+	 * @param stop_fd  file descriptor to the stop signals listener
 	 * @return true on success, false otherwise
 	 */
-	bool init(void);
+	virtual bool init(int stop_fd) = 0;
 
 	/**
 	 * @brief Specific block and channels initialization
@@ -177,21 +124,45 @@ class Block
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool initSpecific(void);
+	virtual bool initSpecific() = 0;
+
+	/**
+	 * @brief Initialize upward thread
+	 */
+	virtual std::thread initUpwardThread() = 0;
+
+	/**
+	 * @brief Initialize downward thread
+	 */
+	virtual std::thread initDownwardThread() = 0;
 
 	/**
 	 * @brief start the channel threads
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool start(void);
+	bool start();
 
 	/*
 	 * @brief Stop the channel threads and call block destructor
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool stop(void);
+	bool stop();
+
+	/*
+	 * @brief Report an error
+	 *
+	 * @param message  The error message to report
+	 */
+	void reportError(const std::string& message) const;
+
+	/*
+	 * @brief Report a notice init message
+	 *
+	 * @param message  The message to report
+	 */
+	void reportSuccess(const std::string& message) const;
 
 	/// Output Log
 	std::shared_ptr<OutputLog> log_rt;
@@ -213,7 +184,222 @@ class Block
 	std::shared_ptr<OutputEvent> event_init;
 };
 
-// TODO malloc/new hook !!
+
+template<typename T>
+bool handleEventImpl(T& channel, const Event * const event)
+{
+	switch (event->getType())
+	{
+		case EventType::Message:
+			return channel.onEvent(static_cast<const MessageEvent&>(*event));
+		case EventType::NetSocket:
+			return channel.onEvent(static_cast<const NetSocketEvent&>(*event));
+		case EventType::Timer:
+			return channel.onEvent(static_cast<const TimerEvent&>(*event));
+		case EventType::Signal:
+			return channel.onEvent(static_cast<const SignalEvent&>(*event));
+		case EventType::File:
+			return channel.onEvent(static_cast<const FileEvent&>(*event));
+		case EventType::TcpListen:
+			return channel.onEvent(static_cast<const TcpListenEvent&>(*event));
+		default:
+			return channel.onEvent(*event);
+	}
+};
+
+
+/**
+ * @class Upward channel
+ *        With this class we are able to define Upward channel
+ *        functions in Block
+ */
+template <typename CRTP, typename ChannelType>
+class UpwardBase: public ChannelType
+{
+	friend CRTP;
+	UpwardBase(const std::string &name): ChannelType(name, "Upward") {};
+
+ protected:
+	bool handleEvent(const Event * const event) override { return handleEventImpl(static_cast<CRTP&>(*this), event); }
+
+ public:
+	using Upward = ChannelType;
+};
+
+
+namespace Channels
+{
+/**
+ * @brief An upward channel with 1 input and 1 output
+ */
+template<typename CRTP>
+using Upward = UpwardBase<CRTP, Channel>;
+/**
+ * @brief An upward channel with N inputs and 1 output
+ */
+template<typename CRTP>
+using UpwardMux = UpwardBase<CRTP, ChannelMux>;
+/**
+ * @brief An upward channel with 1 input and N outputs
+ */
+template<typename CRTP, typename Key>
+using UpwardDemux = UpwardBase<CRTP, ChannelDemux<Key>>;
+/**
+ * @brief An upward channel with N inputs and N outputs
+ */
+template<typename CRTP, typename Key>
+using UpwardMuxDemux = UpwardBase<CRTP, ChannelMuxDemux<Key>>;
+};
+
+
+/**
+ * @class Downward channel
+ *        With this class we are able to define Downward channel
+ *        functions in Block
+ */
+template <typename CRTP, typename ChannelType>
+class DownwardBase: public ChannelType
+{
+	friend CRTP;
+	DownwardBase(const std::string &name): ChannelType(name, "Downward") {};
+
+ protected:
+	bool handleEvent(const Event * const event) override { return handleEventImpl(static_cast<CRTP&>(*this), event); }
+
+ public:
+	using Downward = ChannelType;
+};
+
+
+namespace Channels
+{
+/**
+ * @brief A downward channel with 1 inputs and 1 outputs
+ */
+template<typename CRTP>
+using Downward = DownwardBase<CRTP, Channel>;
+/**
+ * @brief A downward channel with N inputs and 1 outputs
+ */
+template<typename CRTP>
+using DownwardMux = DownwardBase<CRTP, ChannelMux>;
+/**
+ * @brief A downward channel with 1 inputs and N outputs
+ */
+template<typename CRTP, typename Key>
+using DownwardDemux = DownwardBase<CRTP, ChannelDemux<Key>>;
+/**
+ * @brief A downward channel with N inputs and N outputs
+ */
+template<typename CRTP, typename Key>
+using DownwardMuxDemux = DownwardBase<CRTP, ChannelMuxDemux<Key>>;
+};
+
+
+/// CRTP helpers
+/// implement them by inheriting from a channel type above
+/// e.g.: template<> class UpwardChannel<class MyBlock>: public UpwardMux<UpwardChannel<MyBlock>> { /* impl */ };
+template<typename> class UpwardChannel;
+template<typename> class DownwardChannel;
+
+
+/* C++20 concepts: enable when possible
+class ChannelBase;
+
+
+template<typename Bl>
+concept HasTwoChannels = std::is_base_of<ChannelBase, UpwardChannel<Bl>>::value && std::is_base_of<ChannelBase, DownwardChannel<Bl>>::value;
+
+
+template<typename Bl>
+concept HasUpwardChannel = std::is_base_of<UpwardBase<UpwardChannel<Bl>, typename UpwardChannel<Bl>::Upward>, UpwardChannel<Bl>>::value;
+
+
+template<typename Bl>
+concept HasDownwardChannel = std::is_base_of<DownwardBase<DownwardChannel<Bl>, typename DownwardChannel<Bl>::Downward>, DownwardChannel<Bl>>::value;
+
+
+template<typename Bl>
+concept IsBlock = HasTwoChannels<Bl> && HasUpwardChannel<Bl> && HasDownwardChannel<Bl>;
+
+
+template<IsBlock Bl, typename Specific = void>*/
+/**
+ * @class Block
+ * @brief describes a block
+ *
+ * upper block and lower block are absolute;
+ * upward channel processes data from lower block to upper block.
+ * downward channel processes data from lower block to upper block.
+ */
+template<typename Bl, typename Specific = void>
+class Block: public BlockBase
+{
+	friend Bl;
+	friend class BlockManager;
+
+	template<typename Void = Specific, typename std::enable_if_t<std::is_void<Void>::value, bool> = true>
+	Block(const std::string &name): BlockBase{name}, upward{name}, downward{name}
+	{
+		auto up_fifo = BlockBase::createFifo();
+		auto down_fifo = BlockBase::createFifo();
+		upward.setOppositeFifo(up_fifo, down_fifo);
+		downward.setOppositeFifo(down_fifo, up_fifo);
+	};
+
+	template<typename Void = Specific, typename std::enable_if_t<!std::is_void<Void>::value, bool> = true>
+	Block(const std::string &name, Void specific): BlockBase{name}, upward{name, specific}, downward{name, specific}
+	{
+		auto up_fifo = BlockBase::createFifo();
+		auto down_fifo = BlockBase::createFifo();
+		upward.setOppositeFifo(up_fifo, down_fifo);
+		downward.setOppositeFifo(down_fifo, up_fifo);
+	};
+
+	std::thread initUpwardThread() override { return std::thread{&ChannelUpward::executeThread, &this->upward}; };
+	std::thread initDownwardThread() override { return std::thread{&ChannelDownward::executeThread, &this->downward}; };
+
+ public:
+	using ChannelUpward = UpwardChannel<Bl>;
+	using ChannelDownward = DownwardChannel<Bl>;
+
+ protected:
+	bool init(int stop_fd) override { return upward.init(stop_fd) && downward.init(stop_fd); };
+
+	bool initSpecific()
+	{
+		// specific block initialization
+		if(!this->onInit())
+		{
+			this->reportError("Block onInit failed");
+			return false;
+		}
+
+		// initialize channels
+		if(!this->upward.onInit())
+		{
+			this->reportError("Upward onInit failed");
+			return false;
+		}
+		if(!this->downward.onInit())
+		{
+			this->reportError("Downward onInit failed");
+			return false;
+		}
+		this->setInitialized();
+		this->upward.setIsBlockInitialized(true);
+		this->downward.setIsBlockInitialized(true);
+		this->reportSuccess("Block initialization complete\n");
+
+		return true;
+	}
+
+	/// The upward channel
+	ChannelUpward upward;
+	/// The downward channel
+	ChannelDownward downward;
+};
+
 
 };  // namespace Rt
 
