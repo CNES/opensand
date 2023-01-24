@@ -33,10 +33,15 @@
  *
  */
 
-#include "FileSimulator.h"
-
 #include <errno.h>
 #include <cinttypes>
+
+#include <opensand_output/Output.h>
+
+#include "FileSimulator.h"
+#include "Sac.h"
+#include "Logon.h"
+#include "Logoff.h"
 
 
 FileSimulator::FileSimulator(spot_id_t spot_id,
@@ -74,7 +79,7 @@ FileSimulator::~FileSimulator()
 
 
 // TODO create a class for simulation and subclass file/random
-bool FileSimulator::simulation(std::list<DvbFrame *>* msgs,
+bool FileSimulator::simulation(std::list<Rt::Ptr<DvbFrame>> &msgs,
                                time_sf_t super_frame_counter)
 {
 	enum
@@ -140,10 +145,10 @@ bool FileSimulator::simulation(std::list<DvbFrame *>* msgs,
 		{
 			case cr:
 			{
-				Sac *sac = new Sac(st_id);
+				auto sac = Rt::make_ptr<Sac>(st_id);
 				sac->addRequest(0, to_enum<ReturnAccessType>(cr_type), st_request);
 				sac->setAcm(0xffff);
-				msgs->push_back((DvbFrame*)sac);
+				msgs.push_back(dvb_frame_downcast(std::move(sac)));
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "SF#%u: send a simulated CR of type %u with "
 				    "value = %u for ST %hu\n",
@@ -153,11 +158,8 @@ bool FileSimulator::simulation(std::list<DvbFrame *>* msgs,
 			}
 			case logon:
 			{
-				LogonRequest *logon_req = new LogonRequest(st_id,
-				                                           st_rt,
-				                                           st_rbdc,
-				                                           st_vbdc);
-				msgs->push_back((DvbFrame *)logon_req);
+				auto logon_req = Rt::make_ptr<LogonRequest>(st_id, st_rt, st_rbdc, st_vbdc);
+				msgs.push_back(dvb_frame_downcast(std::move(logon_req)));
 				
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "SF#%u: send a simulated logon for ST %d\n",
@@ -166,8 +168,8 @@ bool FileSimulator::simulation(std::list<DvbFrame *>* msgs,
 			}
 			case logoff:
 			{
-				Logoff *logoff_req = new Logoff(st_id);
-				msgs->push_back((DvbFrame*)logoff_req);
+				auto logoff_req = Rt::make_ptr<Logoff>(st_id);
+				msgs.push_back(dvb_frame_downcast(std::move(logoff_req)));
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "SF#%u: send a simulated logoff for ST %d\n",
 				    super_frame_counter, st_id);
@@ -212,9 +214,9 @@ end:
 }
 
 
-bool FileSimulator::stopSimulation(void)
+bool FileSimulator::stopSimulation()
 {
 	fclose(this->simu_file);
-	this->simu_file = NULL;
+	this->simu_file = nullptr;
 	return true;
 }

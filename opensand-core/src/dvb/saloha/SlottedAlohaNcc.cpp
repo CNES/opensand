@@ -43,6 +43,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <opensand_rt/Types.h>
 
 
 // functor for SlottedAlohaPacket comparison
@@ -270,19 +271,13 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	return true;
 }
 
-bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
+bool SlottedAlohaNcc::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame)
 {
-	SlottedAlohaFrame *frame;
-	size_t previous_length;
-
-	// TODO static cast
-	frame = dvb_frame->operator SlottedAlohaFrame*();
-	
+	auto frame = dvb_frame_upcast<SlottedAlohaFrame>(std::move(dvb_frame));
 	if(frame->getDataLength() <= 0)
 	{
 		LOG(this->log_saloha, LEVEL_DEBUG,
 		    "skip Slotted Aloha frame with no packet");
-		delete dvb_frame;
 		return true;
 	}	
 
@@ -290,18 +285,17 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 	    "Receive Slotted Aloha frame containing %u packets\n",
 	    frame->getDataLength());
 
-	previous_length = 0;
+	std::size_t previous_length = 0;
 	for(unsigned int cpt = 0; cpt < frame->getDataLength(); cpt++)
 	{
-		Data payload = frame->getPayload(previous_length);
-		size_t current_length =
-			SlottedAlohaPacketData::getPacketLength(payload);
+		auto payload = frame->getPayload(previous_length);
+		std::size_t current_length = SlottedAlohaPacketData::getPacketLength(payload);
 
 		previous_length += current_length;
-		std::unique_ptr<SlottedAlohaPacketData> sa_packet;
+		Rt::Ptr<SlottedAlohaPacketData> sa_packet = Rt::make_ptr<SlottedAlohaPacketData>(nullptr);
 		try
 		{
-			sa_packet = std::unique_ptr<SlottedAlohaPacketData>(new SlottedAlohaPacketData{payload, current_length});
+			sa_packet = Rt::make_ptr<SlottedAlohaPacketData>(payload, current_length);
 		}
 		catch (const std::bad_alloc&)
 		{
@@ -312,7 +306,7 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 		// we need to keep qos and src_tal_id of inner encapsulated packet
 		qos_t qos;
 		tal_id_t src_tal_id;
-		Data encap = sa_packet->getPayload();
+		auto encap = sa_packet->getPayload();
 		this->pkt_hdl->getSrc(encap, src_tal_id); 
 		this->pkt_hdl->getQos(encap, qos); 
 		sa_packet->setSrcTalId(src_tal_id);
@@ -343,13 +337,12 @@ bool SlottedAlohaNcc::onRcvFrame(DvbFrame *dvb_frame)
 		category->increaseReceivedPacketsNbr();
 	}
 
-	delete dvb_frame;
 	return true;
 }
 
 
-bool SlottedAlohaNcc::schedule(NetBurst **burst,
-                               std::list<DvbFrame *> &complete_dvb_frames,
+bool SlottedAlohaNcc::schedule(Rt::Ptr<NetBurst> &burst,
+                               std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
                                time_sf_t superframe_counter)
 {
 	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
@@ -370,11 +363,12 @@ bool SlottedAlohaNcc::schedule(NetBurst **burst,
 	return true;
 }
 
+
 bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
-                                       NetBurst **burst,
-                                       std::list<DvbFrame *> &complete_dvb_frames)
+                                       Rt::Ptr<NetBurst> &burst,
+                                       std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames)
 {
-	SlottedAlohaFrameCtrl *frame;
+	Rt::Ptr<SlottedAlohaFrameCtrl> frame = Rt::make_ptr<SlottedAlohaFrameCtrl>(nullptr);
 	saloha_packets_data_t *accepted_packets;
 	saloha_packets_data_t::iterator pkt_it;
 	// refresh the probe in case of no traffic
@@ -389,8 +383,11 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		return true;
 	}
 
-	*burst = new NetBurst();
-	if (!(*burst))
+	try
+	{
+		burst = Rt::make_ptr<NetBurst>();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_saloha, LEVEL_ERROR,
 		    "failed to create a Slotted Aloha burst");
@@ -413,8 +410,11 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 	this->removeCollisions(category); // Call specific algorithm to remove collisions
 
 	// create the Slotted Aloha control frame
-	frame = new SlottedAlohaFrameCtrl();
-	if(!frame)
+	try
+	{
+		frame = Rt::make_ptr<SlottedAlohaFrameCtrl>();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_saloha, LEVEL_ERROR,
 		    "failed to create a Slotted Aloha signal control frame");
@@ -430,7 +430,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 	pkt_it = accepted_packets->begin();
 	while(pkt_it != accepted_packets->end())
 	{
-		std::unique_ptr<SlottedAlohaPacketData> sa_packet = std::move(*pkt_it);
+		Rt::Ptr<SlottedAlohaPacketData> sa_packet = std::move(*pkt_it);
 		SlottedAlohaPacketCtrl *ack;
 		TerminalContextSaloha *terminal;
 		saloha_terminals_t::iterator st;
@@ -469,8 +469,11 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		}
 
 		// Send an ACK
-		ack = new SlottedAlohaPacketCtrl(id_packet, SALOHA_CTRL_ACK, tal_id);
-		if(!ack)
+		try
+		{
+			ack = new SlottedAlohaPacketCtrl(id_packet, SALOHA_CTRL_ACK, tal_id);
+		}
+		catch (const std::bad_alloc&)
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "failed to create a Slotted Aloha signal control "
@@ -481,10 +484,13 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 		if(frame->getFreeSpace() < ack->getTotalLength())
 		{
 			// add the previous frame in complete frames
-			complete_dvb_frames.push_back((DvbFrame *)frame);
+			complete_dvb_frames.push_back(dvb_frame_downcast(std::move(frame)));
 			// create a new Slotted Aloha control frame
-			frame = new SlottedAlohaFrameCtrl();
-			if(!frame)
+			try
+			{
+				frame = Rt::make_ptr<SlottedAlohaFrameCtrl>();
+			}
+			catch (const std::bad_alloc&)
 			{
 				LOG(this->log_saloha, LEVEL_ERROR,
 				    "failed to create a Slotted Aloha signal control frame");
@@ -492,7 +498,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 			}
 			frame->setSpot(this->spot_id);
 		}
-		if(!frame->addPacket(ack))
+		if(!frame->addPacket(*ack))
 		{
 			LOG(this->log_saloha, LEVEL_ERROR,
 			    "failed to add a Slotted Aloha packet in "
@@ -524,7 +530,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 
 			for(auto&& packet_in_pdu : pdu)
 			{
-				(*burst)->add(this->removeSalohaHeader(std::move(packet_in_pdu)));
+				burst->add(this->removeSalohaHeader(std::move(packet_in_pdu)));
 			}
 		}
 	}
@@ -533,11 +539,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 	// add last frame in complete frames
 	if(frame->getDataLength())
 	{
-		complete_dvb_frames.push_back((DvbFrame *)frame);
-	}
-	else
-	{
-		delete frame;
+		complete_dvb_frames.push_back(dvb_frame_downcast(std::move(frame)));
 	}
 	LOG(this->log_saloha, LEVEL_INFO,
 	    "Slotted Aloha scheduled, there is now %zu complete frames to send\n",
@@ -546,7 +548,7 @@ bool SlottedAlohaNcc::scheduleCategory(TerminalCategorySaloha *category,
 }
 
 
-std::unique_ptr<NetPacket> SlottedAlohaNcc::removeSalohaHeader(std::unique_ptr<SlottedAlohaPacketData> sa_packet)
+Rt::Ptr<NetPacket> SlottedAlohaNcc::removeSalohaHeader(Rt::Ptr<SlottedAlohaPacketData> sa_packet)
 {
 	std::size_t length = sa_packet->getPayloadLength();
 	return this->pkt_hdl->build(sa_packet->getPayload(), length, 0, 0, 0);
@@ -636,14 +638,14 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category,
 				uint16_t slot_id = replicas[rep_cpt];
 				// we need a PDU ID else removeCollision will consider all
 				// packets the same, this will mislead CRDSA algorithm
-				auto sa_packet = std::unique_ptr<SlottedAlohaPacketData>(
-				new SlottedAlohaPacketData(Data(),
-				                           (saloha_pdu_id_t)pdu_id,
-				                           (uint16_t)0,
-				                           (uint16_t)0,
-				                           (uint16_t)0,
-				                           nb_replicas,
-				                           (time_ms_t)0));
+				auto sa_packet = Rt::make_ptr<SlottedAlohaPacketData>(
+				        Rt::Data(),
+				        (saloha_pdu_id_t)pdu_id,
+				        (uint16_t)0,
+				        (uint16_t)0,
+				        (uint16_t)0,
+				        nb_replicas,
+				        (time_ms_t)0);
 				// as for request simulation use tal id > BROADCAST_TAL_ID
 				// used for filtering
 				sa_packet->setSrcTalId(BROADCAST_TAL_ID + 1 + cpt);

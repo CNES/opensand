@@ -54,7 +54,7 @@ BBFrame::BBFrame(const unsigned char *data, size_t length):
 }
 
 
-BBFrame::BBFrame(const Data &data):
+BBFrame::BBFrame(const Rt::Data &data):
 	DvbFrameTpl<T_DVB_BBFRAME>(data)
 {
 	this->name = "BB frame";
@@ -64,7 +64,7 @@ BBFrame::BBFrame(const Data &data):
 }
 
 
-BBFrame::BBFrame(const Data &data, size_t length):
+BBFrame::BBFrame(const Rt::Data &data, size_t length):
 	DvbFrameTpl<T_DVB_BBFRAME>(data, length)
 {
 	this->name = "BB frame";
@@ -91,14 +91,14 @@ BBFrame::~BBFrame()
 {
 }
 
-bool BBFrame::addPacket(NetPacket *packet)
+bool BBFrame::addPacket(const NetPacket &packet)
 {
 	bool is_added;
 
 	is_added = DvbFrameTpl<T_DVB_BBFRAME>::addPacket(packet);
 	if(is_added)
 	{
-		this->setMessageLength(this->getMessageLength() + packet->getTotalLength());
+		this->setMessageLength(this->getMessageLength() + packet.getTotalLength());
 		this->frame()->data_length = htons(this->num_packets);
 	}
 
@@ -106,7 +106,7 @@ bool BBFrame::addPacket(NetPacket *packet)
 }
 
 // TODO not used => remove ?!
-void BBFrame::empty(void)
+void BBFrame::empty()
 {
 	// remove the payload
 	this->data.erase(sizeof(T_DVB_BBFRAME));
@@ -123,18 +123,18 @@ void BBFrame::setModcodId(uint8_t modcod_id)
 	this->frame()->used_modcod = modcod_id;
 }
 
-uint8_t BBFrame::getModcodId(void) const
+uint8_t BBFrame::getModcodId() const
 {
 	return this->frame()->used_modcod;
 }
 
-uint16_t BBFrame::getDataLength(void) const
+uint16_t BBFrame::getDataLength() const
 {
 	return ntohs(this->frame()->data_length);
 }
 
 
-size_t BBFrame::getOffsetForPayload(void)
+size_t BBFrame::getOffsetForPayload()
 {
 	return sizeof(T_DVB_BBFRAME);
 }

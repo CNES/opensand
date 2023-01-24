@@ -59,9 +59,12 @@
 #include <numeric>
 #include <functional>
 
+#include <opensand_rt/Rt.h>
+
 #include "EntitySat.h"
 #include "OpenSandModelConf.h"
 
+#include "PacketSwitch.h"
 #include "BlockDvbNcc.h"
 #include "BlockDvbTal.h"
 #include "BlockEncap.h"
@@ -91,7 +94,7 @@ bool EntitySat::createSpecificBlocks()
 		SatDispatcherConfig sat_dispatch_cfg;
 		sat_dispatch_cfg.entity_id = instance_id;
 		sat_dispatch_cfg.isl_enabled = this->isl_enabled;
-		auto block_sat_dispatch = Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
+		auto& block_sat_dispatch = Rt::Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
 
 		int isl_delay = 0;
 		if (isl_enabled)
@@ -115,8 +118,8 @@ bool EntitySat::createSpecificBlocks()
 						.delay = static_cast<uint32_t>(isl_delay),
 						.isl_index = index,
 					};
-					auto block_interco = Rt::createBlock<BlockInterconnectUpward>("Interconnect.Isl", interco_cfg);
-					Rt::connectBlocks(block_interco, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = false});
+					auto& block_interco = Rt::Rt::createBlock<BlockInterconnectUpward>("Interconnect.Isl", interco_cfg);
+					Rt::Rt::connectBlocks(block_interco, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = false});
 				}
 					break;
 				case IslType::LanAdaptation:
@@ -129,8 +132,8 @@ bool EntitySat::createSpecificBlocks()
 						.is_used_for_isl = is_used_for_isl,
 						.packet_switch = new SatellitePacketSwitch{instance_id, is_used_for_isl, getIslEntities(spot_topo)},
 					};
-					auto block_lan_adapt = Rt::createBlock<BlockLanAdaptation>(is_used_for_isl ? "Lan_Adaptation.Isl" : "Lan_Adaptation", la_cfg);
-					Rt::connectBlocks(block_lan_adapt, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = true});
+					auto& block_lan_adapt = Rt::Rt::createBlock<BlockLanAdaptation>(is_used_for_isl ? "Lan_Adaptation.Isl" : "Lan_Adaptation", la_cfg);
+					Rt::Rt::connectBlocks(block_lan_adapt, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = true});
 				}
 					break;
 				case IslType::None:
@@ -184,7 +187,7 @@ bool EntitySat::createSpecificBlocks()
 }
 
 template <typename Dvb>
-bool EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
+bool EntitySat::createStack(BlockSatDispatcher &block_sat_dispatch,
                             spot_id_t spot_id,
                             Component destination,
                             RegenLevel forward_regen_level,
@@ -216,7 +219,7 @@ bool EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 	specific.tal_id = instance_id;
 	specific.spot_id = spot_id;
 	specific.destination_host = destination;
-	auto block_sc = Rt::createBlock<BlockSatCarrier>("Sat_Carrier." + suffix, specific);
+	auto& block_sc = Rt::Rt::createBlock<BlockSatCarrier>("Sat_Carrier." + suffix, specific);
 
 	if (forward_regen_level != RegenLevel::Transparent || return_regen_level != RegenLevel::Transparent)
 	{
@@ -247,19 +250,19 @@ bool EntitySat::createStack(BlockSatDispatcher *block_sat_dispatch,
 		asym_config.phy_config = phy_config;
 		asym_config.is_transparent = is_transparent;
 
-		auto block_encap = Rt::createBlock<BlockEncap>("Encap." + suffix, encap_config);
-		auto block_dvb = Rt::createBlock<Dvb>("Dvb." + suffix, dvb_spec);
-		auto block_asym = Rt::createBlock<BlockSatAsymetricHandler>("Asymetric_Handler." + suffix, asym_config);
+		auto& block_encap = Rt::Rt::createBlock<BlockEncap>("Encap." + suffix, encap_config);
+		auto& block_dvb = Rt::Rt::createBlock<Dvb>("Dvb." + suffix, dvb_spec);
+		auto& block_asym = Rt::Rt::createBlock<BlockSatAsymetricHandler>("Asymetric_Handler." + suffix, asym_config);
 
-		Rt::connectBlocks(block_sat_dispatch, block_encap, {spot_id, destination, false});
-		Rt::connectBlocks(block_encap, block_dvb);
-		Rt::connectBlocks(block_dvb, block_asym, false);
-		Rt::connectBlocks(block_sat_dispatch, block_asym, true, {spot_id, destination, true});
-		Rt::connectBlocks(block_asym, block_sc);
+		Rt::Rt::connectBlocks(block_sat_dispatch, block_encap, {spot_id, destination, false});
+		Rt::Rt::connectBlocks(block_encap, block_dvb);
+		Rt::Rt::connectBlocks(block_dvb, block_asym, false);
+		Rt::Rt::connectBlocks(block_sat_dispatch, block_asym, true, {spot_id, destination, true});
+		Rt::Rt::connectBlocks(block_asym, block_sc);
 	}
 	else
 	{
-		Rt::connectBlocks(block_sat_dispatch, block_sc, {spot_id, destination, true});
+		Rt::Rt::connectBlocks(block_sat_dispatch, block_sc, {spot_id, destination, true});
 	}
 
 	return true;

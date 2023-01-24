@@ -33,11 +33,12 @@
  *
  */
 
-#include "RequestSimulator.h"
-#include "OpenSandModelConf.h"
+#include <errno.h>
 
 #include <opensand_output/Output.h>
-#include <errno.h>
+
+#include "RequestSimulator.h"
+#include "OpenSandModelConf.h"
 
 
 RequestSimulator::RequestSimulator(spot_id_t spot_id,

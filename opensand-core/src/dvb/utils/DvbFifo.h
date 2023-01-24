@@ -267,7 +267,7 @@ public:
 	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool push(FifoElement *elem);
+	bool push(std::unique_ptr<FifoElement> elem);
 
 	/**
 	 * @brief Add an element at the head of the list
@@ -278,7 +278,7 @@ public:
 	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushFront(FifoElement *elem);
+	bool pushFront(std::unique_ptr<FifoElement> elem);
 
 	/**
 	 * @brief Add an element at the back of the list
@@ -287,7 +287,7 @@ public:
 	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushBack(FifoElement *elem);
+	bool pushBack(std::unique_ptr<FifoElement> elem);
 
 	/**
 	 * @brief Remove an element at the head of the list
@@ -295,7 +295,7 @@ public:
 	 * @return NULL pointer if extraction failed because fifo is empty
 	 *         pointer on extracted FifoElement otherwise
 	 */
-	FifoElement *pop();
+	std::unique_ptr<FifoElement> pop();
 
 	/**
 	 * @brief Flush the dvb fifo and reset counters
@@ -314,7 +314,9 @@ public:
 
 	uint8_t getCni(void) const;
 
-	const std::deque<FifoElement *> &getQueue() const;
+	// const std::deque<FifoElement *> &getQueue() const;
+	std::deque<std::unique_ptr<FifoElement>>::const_iterator begin() const;
+	std::deque<std::unique_ptr<FifoElement>>::const_iterator end() const;
 
 protected:
 	/**
@@ -322,7 +324,7 @@ protected:
 	 */
 	void resetStats();
 
-	std::deque<FifoElement *> queue; ///< the FIFO itself
+	std::deque<std::unique_ptr<FifoElement>> queue; ///< the FIFO itself
 
 	unsigned int fifo_priority;     ///< the MAC priority of the fifo
 	std::string fifo_name;          ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
@@ -337,7 +339,7 @@ protected:
 	uint8_t carrier_id;             ///< the carrier id of the fifo (for SAT and GW purposes)
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer
 
-	mutable RtMutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access
+	mutable Rt::Mutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access
 
 	uint8_t cni;                ///< is Scpc mode add cni as option into gse packet
 

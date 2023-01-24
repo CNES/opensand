@@ -28,7 +28,7 @@
 
 /**
  * @file BlockDvb.h
- * @brief This bloc implements a DVB-S2/RCS stack.
+ * @brief This bloc implements common parts to a DVB-S2/RCS stack between Terminals and NCC.
  * @author SatIP6
  * @author Didier Barvaux / Viveris Technologies
  * @author Emmanuelle Pechereau <epechereau@b2i-toulouse.com>
@@ -58,12 +58,7 @@
 #ifndef BLOCK_DVB_H
 #define BLOCK_DVB_H
 
-#include "PhysicStd.h"
-#include "TerminalCategory.h"
-#include "DvbChannel.h"
-
-#include <opensand_rt/Rt.h>
-#include <opensand_rt/RtChannel.h>
+#include "OpenSandCore.h"
 
 
 struct dvb_specific
@@ -75,98 +70,13 @@ struct dvb_specific
 };
 
 
-class BlockDvb: public Block
+class BlockDvb
 {
 public:
 	/**
 	 * @brief DVB block constructor
-	 *
 	 */
-	BlockDvb(const std::string &name);
-
-	~BlockDvb();
-
-
-	class DvbUpward: public DvbChannel, public RtUpward
-	{
-	public:
-		DvbUpward(const std::string &name, dvb_specific specific);
-
-		~DvbUpward();
-
-	protected:
-		virtual bool onRcvDvbFrame(DvbFrame *frame) = 0;
-
-		/**
-		 * Transmist a frame to the opposite channel
-		 *
-		 * @param frame The dvb frame
-		 * @return true on success, false otherwise
-		 */ 
-		bool shareFrame(DvbFrame *frame);
-
-		bool disable_control_plane;
-		bool disable_acm_loop;
-	};
-
-	class DvbDownward: public DvbChannel, public RtDownward
-	{
-	public:
-		DvbDownward(const std::string &name, dvb_specific specific);
-
-		~DvbDownward();
-
-	protected:
-		/**
-		 * @brief Read the common configuration parameters for downward channels
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool initDown(void);
-
-		/**
-		 * Receive Packet from upper layer
-		 *
-		 * @param packet        The encapsulation packet received
-		 * @param fifo          The MAC FIFO to put the packet in
-		 * @param fifo_delay    The minimum delay the packet must stay in the
-		 *                      MAC FIFO (used on SAT to emulate delay)
-		 * @return              true on success, false otherwise
-		 */
-		bool onRcvEncapPacket(std::unique_ptr<NetPacket> packet,
-		                      DvbFifo *fifo,
-		                      time_ms_t fifo_delay);
-
-		/**
-		 * Send the complete DVB frames created
-		 * by \ref DvbRcsStd::scheduleEncapPackets or
-		 * \ref DvbRcsDamaAgent::globalSchedule for Terminal
-		 *
-		 * @param complete_frames the list of complete DVB frames
-		 * @param carrier_id      the ID of the carrier where to send the frames
-		 * @return true on success, false otherwise
-		 */
-		bool sendBursts(std::list<DvbFrame *> *complete_frames,
-		                uint8_t carrier_id);
-
-		/**
-		 * @brief Send message to lower layer with the given DVB frame
-		 *
-		 * @param frame       the DVB frame to put in the message
-		 * @param carrier_id  the carrier ID used to send the message
-		 * @return            true on success, false otherwise
-		 */
-		bool sendDvbFrame(DvbFrame *frame, uint8_t carrier_id);
-
-		virtual bool handleDvbFrame(DvbFrame *frame) = 0;
-		
-		/**
-		 * Update the statistics
-		 */
-		virtual void updateStats(void) = 0;
-
-		bool disable_control_plane;
-	};
+	BlockDvb();
 };
 
 

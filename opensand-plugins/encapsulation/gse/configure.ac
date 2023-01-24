@@ -31,7 +31,7 @@ AC_CHECK_FUNCS([])
 
 # check for pkg-config
 PKG_PROG_PKG_CONFIG
-CXXFLAGS="$CXXFLAGS -std=c++11"
+CXXFLAGS="$CXXFLAGS -std=c++17"
 
 # check for gse library
 PKG_CHECK_MODULES([OPENSAND_GSE], [gse >= 1.2.0], [])

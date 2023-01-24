@@ -37,15 +37,14 @@
 #ifndef BLOCK_ENCAP_H
 #define BLOCK_ENCAP_H
 
-#include "EncapPlugin.h"
-#include "LanAdaptationPlugin.h"
 #include "OpenSandCore.h"
-#include "OpenSandFrames.h"
-#include "StackPlugin.h"
+#include "EncapPlugin.h"
 
-#include <opensand_output/Output.h>
-#include <opensand_rt/Rt.h>
+#include <opensand_rt/Block.h>
 #include <opensand_rt/RtChannel.h>
+
+
+class LanAdaptationPlugin;
 
 
 struct EncapConfig
@@ -57,13 +56,111 @@ struct EncapConfig
 };
 
 
+class EncapChannel
+{
+ protected:
+	EncapChannel();
+
+	/// it is the MAC layer group id received through msg_link_up
+	group_id_t group_id;
+
+	/// it is the MAC layer MAC id received through msg_link_up
+	tal_id_t tal_id;
+
+	/// State of the satellite link
+	SatelliteLinkState state;
+};
+
+
+template<>
+class Rt::UpwardChannel<class BlockEncap>: public Channels::Upward<UpwardChannel<BlockEncap>>, public EncapChannel
+{
+ public:
+	UpwardChannel(const std::string &name, EncapConfig encap_cfg);
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const MessageEvent &event) override;
+
+	void setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx);
+	void setSCPCContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx_scpc);
+
+	void setMacId(tal_id_t id);
+
+ private:
+	/// the reception contexts list from upper to lower context
+	std::vector<EncapPlugin::EncapContext *> ctx;
+	/// the reception contexts list from upper to lower context for SCPC mode
+	std::vector<EncapPlugin::EncapContext *> ctx_scpc;
+
+	/// the MAC ID of the ST (as specified in configuration)
+	int mac_id;
+	Component entity_type;
+
+	/// if true, the block will drop packets whose destination is not the entity_id
+	bool filter_packets;
+
+	/// the SCPC encapsulation lower item
+	std::string scpc_encap;
+
+ protected:
+	/// the MAC ID of the ST (as specified in configuration)
+	/**
+	 * Handle a burst of encapsulation packets received from the lower-layer
+	 * block
+	 *
+	 * @param burst  The burst received from the lower-layer block
+	 * @return       Whether the burst was successful handled or not
+	 */
+	bool onRcvBurst(Ptr<NetBurst> burst);
+};
+
+
+template<>
+class Rt::DownwardChannel<class BlockEncap>: public Channels::Downward<DownwardChannel<BlockEncap>>, public EncapChannel
+{
+ public:
+	DownwardChannel(const std::string &name, EncapConfig encap_cfg);
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const TimerEvent &event) override;
+	bool onEvent(const MessageEvent &event) override;
+
+	void setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx);
+
+ private:
+	/// the emission contexts list from lower to upper context
+	std::vector<EncapPlugin::EncapContext *> ctx;
+
+	/// Expiration timers for encapsulation contexts
+	std::map<event_id_t, int> timers;
+
+	/**
+	 * Handle a burst received from the upper-layer block
+	 *
+	 * @param burst  The burst received from the upper-layer block
+	 * @return        Whether the IP packet was successful handled or not
+	 */
+	bool onRcvBurst(Ptr<NetBurst> burst);
+
+	/**
+	 * Handle the timer event
+	 *
+	 * @param timer_id  The id of the timer to handle
+	 * @return          Whether the timer event was successfully handled or not
+	 */
+	bool onTimer(event_id_t timer_id);
+};
+
+
 /**
  * @class BlockEncap
  * @brief Generic Encapsulation Bloc
  */
-class BlockEncap: public Block
+class BlockEncap: public Rt::Block<BlockEncap, EncapConfig>
 {
-public:
+ public:
 	/**
 	 * Build an encapsulation block
 	 *
@@ -74,97 +171,7 @@ public:
 
 	static void generateConfiguration();
 
-	class EncapChannel
-	{
-	public:
-		EncapChannel():
-		    group_id(-1),
-		    tal_id(-1),
-		    state(SatelliteLinkState::DOWN){};
-
-	protected:
-		/// it is the MAC layer group id received through msg_link_up
-		group_id_t group_id;
-
-		/// it is the MAC layer MAC id received through msg_link_up
-		tal_id_t tal_id;
-
-		/// State of the satellite link
-		SatelliteLinkState state;
-	};
-
-	class Upward: public RtUpward, EncapChannel
-	{
-	public:
-		Upward(const std::string &name, EncapConfig encap_cfg);
-		bool onEvent(const RtEvent *const event);
-
-		void setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx);
-		void setSCPCContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx_scpc);
-
-		void setMacId(tal_id_t id);
-
-	private:
-		/// the reception contexts list from upper to lower context
-		std::vector<EncapPlugin::EncapContext *> ctx;
-		/// the reception contexts list from upper to lower context for SCPC mode
-		std::vector<EncapPlugin::EncapContext *> ctx_scpc;
-
-		/// the MAC ID of the ST (as specified in configuration)
-		int mac_id;
-		Component entity_type;
-
-		/// if true, the block will drop packets whose destination is not the entity_id
-		bool filter_packets;
-
-		/// the SCPC encapsulation lower item
-		std::string scpc_encap;
-
-	protected:
-		/// the MAC ID of the ST (as specified in configuration)
-		/**
-		 * Handle a burst of encapsulation packets received from the lower-layer
-		 * block
-		 *
-		 * @param burst  The burst received from the lower-layer block
-		 * @return       Whether the burst was successful handled or not
-		 */
-		bool onRcvBurst(std::unique_ptr<NetBurst> burst);
-	};
-
-	class Downward: public RtDownward, EncapChannel
-	{
-	public:
-		Downward(const std::string &name, EncapConfig encap_cfg);
-		bool onEvent(const RtEvent *const event);
-
-		void setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx);
-
-	private:
-		/// the emission contexts list from lower to upper context
-		std::vector<EncapPlugin::EncapContext *> ctx;
-
-		/// Expiration timers for encapsulation contexts
-		std::map<event_id_t, int> timers;
-
-		/**
-		 * Handle a burst received from the upper-layer block
-		 *
-		 * @param burst  The burst received from the upper-layer block
-		 * @return        Whether the IP packet was successful handled or not
-		 */
-		bool onRcvBurst(std::unique_ptr<NetBurst> burst);
-
-		/**
-		 * Handle the timer event
-		 *
-		 * @param timer_id  The id of the timer to handle
-		 * @return          Whether the timer event was successfully handled or not
-		 */
-		bool onTimer(event_id_t timer_id);
-	};
-
-protected:
+ protected:
 	/// the MAC ID of the ST (as specified in configuration)
 	int mac_id;
 	Component entity_type;
@@ -202,7 +209,7 @@ protected:
 	                         const char *link_type);
 
 	/// initialization method
-	bool onInit();
+	bool onInit() override;
 };
 
 #endif

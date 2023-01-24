@@ -61,7 +61,7 @@ SarpTable *PacketSwitch::getSarpTable()
 bool PacketSwitch::learn(const Rt::Data &packet, tal_id_t src_id)
 {
 	MacAddress src_mac = Ethernet::getSrcMac(packet);
-	RtLock(this->mutex);
+	Rt::Lock(this->mutex);
 	if (!this->sarp_table.add(std::unique_ptr<MacAddress>{new MacAddress{src_mac.str()}}, src_id))
 	{
 		return false;
@@ -72,7 +72,7 @@ bool PacketSwitch::learn(const Rt::Data &packet, tal_id_t src_id)
 bool TerminalPacketSwitch::getPacketDestination(const Rt::Data &packet, tal_id_t &src_id, tal_id_t &dst_id)
 {
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
-	RtLock(this->mutex);
+	Rt::Lock(this->mutex);
 	src_id = this->tal_id;
 	if (!this->sarp_table.getTalByMac(dst_mac, dst_id))
 	{
@@ -91,7 +91,7 @@ bool GatewayPacketSwitch::getPacketDestination(const Rt::Data &packet, tal_id_t 
 {
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
 	MacAddress src_mac = Ethernet::getSrcMac(packet);
-	RtLock(this->mutex);
+	Rt::Lock(this->mutex);
 	src_id = this->tal_id;	
 
 	if(!this->sarp_table.getTalByMac(dst_mac, dst_id))
@@ -106,7 +106,7 @@ bool GatewayPacketSwitch::isPacketForMe(const Rt::Data &packet, tal_id_t src_id,
 	tal_id_t dst_id;
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
 	MacAddress src_mac = Ethernet::getSrcMac(packet);
-	RtLock(this->mutex);
+	Rt::Lock(this->mutex);
 	if(!this->sarp_table.getTalByMac(dst_mac, dst_id))
 	{
 		return false;
@@ -140,7 +140,7 @@ bool SatellitePacketSwitch::getPacketDestination(const Rt::Data &packet, tal_id_
 {
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
 	MacAddress src_mac = Ethernet::getSrcMac(packet);
-	RtLock(this->mutex);
+	Rt::Lock(this->mutex);
 	if (!this->sarp_table.getTalByMac(dst_mac, dst_id))
 	{
 		return false;
@@ -163,7 +163,7 @@ bool SatellitePacketSwitch::isPacketForMe(const Rt::Data &packet, tal_id_t, bool
 
 	tal_id_t dst_id;
 	MacAddress dst_mac = Ethernet::getDstMac(packet);
-	RtLock(this->mutex);
+	Rt::Lock(this->mutex);
 	if (!this->sarp_table.getTalByMac(dst_mac, dst_id))
 	{
 		return false;

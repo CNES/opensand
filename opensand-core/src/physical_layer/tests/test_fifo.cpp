@@ -60,8 +60,9 @@ int main()
 
 	for(unsigned int i=0; i < sizeof(elem_times); i++)
 	{
-		FifoElement *elem = new FifoElement(nullptr, current_time, current_time + elem_times[i]);
-		fifo->push(elem);
+		fifo->push(std::make_unique<FifoElement>(Rt::make_ptr<NetContainer>(nullptr),
+		                                         current_time,
+		                                         current_time + elem_times[i]));
 	}
 
 	// everything went fine, so report success
@@ -69,9 +70,9 @@ int main()
 
 	while(fifo->getCurrentSize() > 0)
 	{
-		FifoElement *elem = fifo->pop();
-		delete elem;
+		fifo->pop();
 	}
+
 	delete fifo;
 	return is_failure;
 }

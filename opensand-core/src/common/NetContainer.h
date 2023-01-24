@@ -38,7 +38,7 @@
 
 
 #include <string>
-#include <opensand_rt/Types.h>
+#include <opensand_rt/Data.h>
 
 #include "OpenSandCore.h"
 

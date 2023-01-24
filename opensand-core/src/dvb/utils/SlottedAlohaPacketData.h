@@ -36,11 +36,11 @@
 #ifndef SALOHA_PACKET_DATA_H
 #define SALOHA_PACKET_DATA_H
 
+#include <stdlib.h>
+#include <opensand_rt/Ptr.h>
+
 #include "SlottedAlohaPacket.h"
 #include "OpenSandCore.h"
-
-#include <stdlib.h>
-#include <memory>
 
 
 typedef uint32_t saloha_pdu_id_t;
@@ -74,6 +74,8 @@ private:
 	/// The number of retransmissions of this packet
 	uint16_t nb_retransmissions;
 
+	const saloha_data_hdr_t *header() const;
+
 public:
 	/**
 	 * Build a slotted Aloha data packet
@@ -86,7 +88,7 @@ public:
 	 * @param nb_replicas         number of replicas
 	 * @param timeout             timeout before deleting
 	 */
-	SlottedAlohaPacketData(const Data &data,
+	SlottedAlohaPacketData(const Rt::Data &data,
 	                       saloha_pdu_id_t id,
 	                       uint16_t ts,
 	                       uint16_t seq,
@@ -94,7 +96,7 @@ public:
 	                       uint16_t nb_replicas,
 	                       time_sf_t timeout);
 
-	SlottedAlohaPacketData(const Data &data, size_t length);
+	SlottedAlohaPacketData(const Rt::Data &data, size_t length);
 
 	/**
 	 * Class destructor
@@ -219,7 +221,7 @@ public:
 	/// implementation of virtual fonctions
 	size_t getTotalLength() const;
 	size_t getPayloadLength() const;
-	Data getPayload() const;
+	Rt::Data getPayload() const;
 	void setQos(uint8_t qos);
 	saloha_id_t getUniqueId() const;
 
@@ -229,11 +231,11 @@ public:
 	 * @param data  The packet content
 	 * @return the packet length
 	 */
-	static size_t getPacketLength(const Data &data);
+	static size_t getPacketLength(const Rt::Data &data);
 };
 
 /// A list of Slotted Aloha Data Packets
-typedef std::vector<std::unique_ptr<SlottedAlohaPacketData>> saloha_packets_data_t;
+typedef std::vector<Rt::Ptr<SlottedAlohaPacketData>> saloha_packets_data_t;
 
 #endif
 

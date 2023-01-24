@@ -239,7 +239,7 @@ bool DamaCtrl::initOutput()
 	return true;
 }
 
-bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
+bool DamaCtrl::hereIsLogon(Rt::Ptr<LogonRequest> logon)
 {
 	tal_id_t tal_id = logon->getMac();
 	rate_kbps_t cra_kbps = logon->getRtBandwidth();
@@ -398,7 +398,7 @@ bool DamaCtrl::hereIsLogon(const LogonRequest *logon)
 	return true;
 }
 
-bool DamaCtrl::hereIsLogoff(const Logoff *logoff)
+bool DamaCtrl::hereIsLogoff(Rt::Ptr<Logoff> logoff)
 {
 	DamaTerminalList::iterator it;
 	TerminalContextDama *terminal;

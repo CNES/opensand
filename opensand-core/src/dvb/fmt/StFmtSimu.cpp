@@ -174,7 +174,7 @@ StFmtSimuList::StFmtSimuList(std::string name):
 
 StFmtSimuList::~StFmtSimuList()
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 	for(auto&& st : *this->sts)
 	{
 		delete st.second;
@@ -201,7 +201,7 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, fmt_id_t init_modcod,
 	}
 
 	// take the lock after checking if ST aleady exists
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 	LOG(this->log_fmt, LEVEL_DEBUG,
 	    "add ST%u in FMT simu list\n", st_id);
 
@@ -222,7 +222,7 @@ bool StFmtSimuList::addTerminal(tal_id_t st_id, fmt_id_t init_modcod,
 
 bool StFmtSimuList::delTerminal(tal_id_t st_id)
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 	ListStFmt::iterator it;
 
 	// find the entry to delete
@@ -244,7 +244,7 @@ bool StFmtSimuList::delTerminal(tal_id_t st_id)
 
 void StFmtSimuList::setRequiredCni(tal_id_t st_id, double cni)
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 
 	auto st_iter = this->sts->find(st_id);
 	if(st_iter == this->sts->end())
@@ -261,7 +261,7 @@ void StFmtSimuList::setRequiredCni(tal_id_t st_id, double cni)
 
 double StFmtSimuList::getRequiredCni(tal_id_t st_id) const
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 
 	auto st_iter = this->sts->find(st_id);
 	if(st_iter == this->sts->end())
@@ -277,7 +277,7 @@ double StFmtSimuList::getRequiredCni(tal_id_t st_id) const
 
 fmt_id_t StFmtSimuList::getCurrentModcodId(tal_id_t st_id) const
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 
 	auto st_iter = this->sts->find(st_id);
 	if(st_iter == this->sts->end())
@@ -292,7 +292,7 @@ fmt_id_t StFmtSimuList::getCurrentModcodId(tal_id_t st_id) const
 
 bool StFmtSimuList::getCniHasChanged(tal_id_t st_id)
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 
 	auto st_iter = this->sts->find(st_id);
 	if(st_iter == this->sts->end())
@@ -307,13 +307,13 @@ bool StFmtSimuList::getCniHasChanged(tal_id_t st_id)
 
 bool StFmtSimuList::isStPresent(tal_id_t st_id) const
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 	return std::find(this->begin(), this->end(), st_id) != this->end();
 }
 
 tal_id_t StFmtSimuList::getTalIdWithLowerModcod() const
 {
-	RtLock lock(this->sts_mutex);
+	Rt::Lock lock(this->sts_mutex);
 	uint8_t lower_modcod_id = std::numeric_limits<decltype(lower_modcod_id)>::max();
 	tal_id_t lower_tal_id = std::numeric_limits<decltype(lower_tal_id)>::max();
 

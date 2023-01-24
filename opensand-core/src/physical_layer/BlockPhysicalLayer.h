@@ -41,154 +41,164 @@
 #ifndef BLOCK_PHYSICAL_LAYER_H
 #define BLOCK_PHYSICAL_LAYER_H
 
-#include "OpenSandCore.h"
-#include "GroundPhysicalChannel.h"
-
-#include <opensand_rt/Rt.h>
-#include <opensand_rt/RtChannel.h>
-#include <opensand_output/Output.h>
 
 #include <string>
 #include <map>
 
+#include <opensand_rt/Block.h>
+#include <opensand_rt/RtChannel.h>
 
+#include "OpenSandCore.h"
+#include "GroundPhysicalChannel.h"
+
+
+template<typename> class Probe;
 class AttenuationHandler;
+
+
+/**
+ * @class Upward
+ * @brief Ground Upward Physical Layer Channel
+ */
+template<>
+class Rt::UpwardChannel<class BlockPhysicalLayer>: public GroundPhysicalChannel, public Channels::Upward<UpwardChannel<BlockPhysicalLayer>>
+{
+ private:
+	/// Probes
+	std::shared_ptr<Probe<float>> probe_total_cn = nullptr;
+
+ protected:
+	/// The attenuation process
+	AttenuationHandler *attenuation_hdl;
+
+	/**
+	 * @brief Forward the frame to the next channel
+	 *
+	 * @param dvb_frame  the DVB frame to forward
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool forwardPacket(Ptr<DvbFrame> dvb_frame) override;
+
+	/**
+	 * @brief Get the C/N fot the current DVB frame
+	 *
+	 * @param dvb_frame  the current DVB frame
+	 *
+	 * @return the current C/N
+	 */
+	double getCn(DvbFrame &dvb_frame) const;
+
+public:
+	/**
+	 * @brief Constructor of the ground upward physical channel
+	 *
+	 * @param name    the name of the channel
+	 * @param config  the config of the block
+	 */
+	UpwardChannel(const std::string &name, PhyLayerConfig config);
+
+	/**
+	 * @brief Destroy the Channel
+	 */
+	virtual ~UpwardChannel();
+
+	/**
+	 * @brief Initialize the ground upward physical channel
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool onInit() override;
+
+	/**
+	 * @brief Event processing
+	 *
+	 * @param event  the event to process
+	 *
+	 * @return true on success, false otherwise
+	 */
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const TimerEvent &event) override;
+	bool onEvent(const MessageEvent &event) override;
+};
+
+
+/**
+ * @class Downward
+ * @brief Ground Downward Physical Layer Channel
+ */
+template<>
+class Rt::DownwardChannel<class BlockPhysicalLayer>: public GroundPhysicalChannel, public Channels::Downward<DownwardChannel<BlockPhysicalLayer>>
+{
+ private:
+	/// Probes
+	std::shared_ptr<Probe<int>> probe_delay = nullptr;
+
+ protected:
+	/// Event
+	event_id_t delay_update_timer;
+
+	/**
+	 * @brief Update the delay
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool updateDelay();
+
+	/**
+	 * @brief Forward the frame to the next channel
+	 *
+	 * @param dvb_frame  the DVB frame to forward
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool forwardPacket(Ptr<DvbFrame> dvb_frame) override;
+
+	/**
+	 * @brief Prepare the frame
+	 *
+	 * @param dvb_frame  the DVB frame to forward
+	 */
+	void preparePacket(DvbFrame &dvb_frame);
+
+ public:
+	/**
+	 * @brief Constructor of the ground downward physical channel
+	 *
+	 * @param name    the name of the channel
+	 * @param config  the config of the block
+	 */
+	DownwardChannel(const std::string &name, PhyLayerConfig config);
+
+	/**
+	 * @brief Initialize the ground downward physical channel
+	 *
+	 * @return true on success, false otherwise
+	 */
+	bool onInit() override;
+
+	/**
+	 * @brief Event processing
+	 *
+	 * @param event  the event to process
+	 *
+	 * @return true on success, false otherwise
+	 */
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const TimerEvent &event) override;
+	bool onEvent(const MessageEvent &event) override;
+};
 
 
 /**
  * @class BlockPhysicalLayer
  * @brief Basic DVB PhysicalLayer block
  */
-class BlockPhysicalLayer: public Block
+class BlockPhysicalLayer: public Rt::Block<BlockPhysicalLayer, PhyLayerConfig>
 {
-public:
-	/**
-	 * @class Upward
-	 * @brief Ground Upward Physical Layer Channel
-	 */
-	class Upward: public GroundPhysicalChannel, public RtUpward
-	{
-	private:
-		/// Probes
-		std::shared_ptr<Probe<float>> probe_total_cn = nullptr;
-
-	protected:
-		/// The attenuation process
-		AttenuationHandler *attenuation_hdl;
-
-		/**
-		 * @brief Forward the frame to the next channel
-		 *
-		 * @param dvb_frame  the DVB frame to forward
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool forwardPacket(DvbFrame *dvb_frame);
-
-		/**
-		 * @brief Get the C/N fot the current DVB frame
-		 *
-		 * @param dvb_frame  the current DVB frame
-		 *
-		 * @return the current C/N
-		 */
-		double getCn(DvbFrame *dvb_frame) const;
-
-	public:
-		/**
-		 * @brief Constructor of the ground upward physical channel
-		 *
-		 * @param name    the name of the channel
-		 * @param config  the config of the block
-		 */
-		Upward(const std::string &name, PhyLayerConfig config);
-
-		/**
-		 * @brief Destroy the Channel
-		 */
-		virtual ~Upward();
-
-		/**
-		 * @brief Initialize the ground upward physical channel
-		 *
-		 * @return true on success, false otherwise
-		 */
-		virtual bool onInit();
-
-		/**
-		 * @brief Event processing
-		 *
-		 * @param event  the event to process
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool onEvent(const RtEvent *const event);
-	};
-
-	/**
-	 * @class Downward
-	 * @brief Ground Downward Physical Layer Channel
-	 */
-	class Downward : public GroundPhysicalChannel, public RtDownward
-	{
-	private:
-		/// Probes
-		std::shared_ptr<Probe<int>> probe_delay = nullptr;
-
-	protected:
-		/// Event
-		event_id_t delay_update_timer;
-
-		/**
-		 * @brief Update the delay
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool updateDelay();
-
-		/**
-		 * @brief Forward the frame to the next channel
-		 *
-		 * @param dvb_frame  the DVB frame to forward
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool forwardPacket(DvbFrame *dvb_frame);
-
-		/**
-		 * @brief Prepare the frame
-		 *
-		 * @param dvb_frame  the DVB frame to forward
-		 */
-		void preparePacket(DvbFrame *dvb_frame);
-
-	public:
-		/**
-		 * @brief Constructor of the ground downward physical channel
-		 *
-		 * @param name    the name of the channel
-		 * @param config  the config of the block
-		 */
-		Downward(const std::string &name, PhyLayerConfig config);
-
-		/**
-		 * @brief Initialize the ground downward physical channel
-		 *
-		 * @return true on success, false otherwise
-		 */
-		virtual bool onInit();
-
-		/**
-		 * @brief Event processing
-		 *
-		 * @param event  the event to process
-		 *
-		 * @return true on success, false otherwise
-		 */
-		bool onEvent(const RtEvent *const event);
-	};
-
-public:
+ public:
 	/**
 	 * Build a physical layer block
 	 *
@@ -199,10 +209,10 @@ public:
 
 	static void generateConfiguration();
 
+ protected:
 	// initialization method
-	bool onInit();
+	bool onInit() override;
 
-private:
 	/// The terminal mac_id
 	tal_id_t mac_id;
 

@@ -39,7 +39,7 @@
 #include <arpa/inet.h>
 
 
-SlottedAlohaPacketCtrl::SlottedAlohaPacketCtrl(const Data &data,
+SlottedAlohaPacketCtrl::SlottedAlohaPacketCtrl(const Rt::Data &data,
                                                uint8_t ctrl_type,
                                                tal_id_t tal_id):
 	SlottedAlohaPacket(data)
@@ -102,7 +102,7 @@ size_t SlottedAlohaPacketCtrl::getTotalLength() const
 }
 
 
-size_t SlottedAlohaPacketCtrl::getPacketLength(const Data &data)
+size_t SlottedAlohaPacketCtrl::getPacketLength(const Rt::Data &data)
 {
 	saloha_ctrl_hdr_t *header;
 	

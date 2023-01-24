@@ -35,15 +35,17 @@
 #ifndef BLOCK_SAT_DISPATCHER_H
 #define BLOCK_SAT_DISPATCHER_H
 
+#include <unordered_set>
 #include <memory>
 
-#include <opensand_rt/Rt.h>
+#include <opensand_rt/Block.h>
 #include <opensand_rt/RtChannelMuxDemux.h>
-#include <unordered_set>
 
 #include "DvbFrame.h"
-#include "NetBurst.h"
 #include "SpotComponentPair.h"
+
+
+class NetBurst;
 
 
 struct SatDispatcherConfig
@@ -56,143 +58,98 @@ struct SatDispatcherConfig
 };
 
 
+class SpotByEntity
+{
+public:
+	SpotByEntity();
+
+	void addEntityInSpot(tal_id_t entity, spot_id_t spot);
+
+	void setDefaultSpot(spot_id_t spot);
+
+	spot_id_t getSpotForEntity(tal_id_t entity) const;
+
+private:
+	std::unordered_map<tal_id_t, spot_id_t> spot_by_entity;
+	spot_id_t default_spot;
+};
+
+
+template<>
+class Rt::UpwardChannel<class BlockSatDispatcher>: public Channels::UpwardMuxDemux<UpwardChannel<BlockSatDispatcher>, IslComponentPair>
+{
+ public:
+	UpwardChannel(const std::string &name, SatDispatcherConfig config);
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const MessageEvent &event) override;
+
+	void initDispatcher(const SpotByEntity& spot_by_entity,
+	                    const std::unordered_map<SpotComponentPair, tal_id_t> &routes,
+	                    const std::unordered_map<SpotComponentPair, RegenLevel> &regen_levels);
+
+ private:
+	friend class BlockSatDispatcher;
+
+	bool handleDvbFrame(Ptr<DvbFrame> frame);
+	bool handleNetBurst(Ptr<NetBurst> burst);
+
+	bool sendToUpperBlock(IslComponentPair key, Ptr<void> msg, InternalMessageType msg_type);
+	bool sendToOppositeChannel(Ptr<void> msg, InternalMessageType msg_type);
+
+	tal_id_t entity_id;
+	SpotByEntity spot_by_entity;
+	std::unordered_map<SpotComponentPair, tal_id_t> routes;
+	std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
+};
+
+
+template<>
+class Rt::DownwardChannel<class BlockSatDispatcher>: public Channels::DownwardMuxDemux<DownwardChannel<BlockSatDispatcher>, RegenerativeSpotComponent>
+{
+ public:
+	DownwardChannel(const std::string &name, SatDispatcherConfig config);
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const MessageEvent &event) override;
+
+	void initDispatcher(const SpotByEntity& spot_by_entity,
+	                    const std::unordered_map<SpotComponentPair, tal_id_t> &routes,
+	                    const std::unordered_map<SpotComponentPair, RegenLevel> &regen_levels);
+
+ private:
+	friend class BlockSatDispatcher;
+
+	bool handleDvbFrame(Ptr<DvbFrame> frame);
+	bool handleNetBurst(Ptr<NetBurst> burst);
+
+	bool sendToLowerBlock(RegenerativeSpotComponent key, Ptr<void> msg, InternalMessageType msg_type);
+	bool sendToOppositeChannel(Ptr<void> msg, InternalMessageType msg_type);
+
+	tal_id_t entity_id;
+	SpotByEntity spot_by_entity;
+	std::unordered_map<SpotComponentPair, tal_id_t> routes;
+	std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
+};
+
+
 /**
  * @class BlockSatDispatcher
  * @brief Block that routes DvbFrames or NetBursts to the right lower stack or to ISL
  */
-class BlockSatDispatcher: public Block
+class BlockSatDispatcher: public Rt::Block<BlockSatDispatcher, SatDispatcherConfig>
 {
-	class SpotByEntity
-	{
-	public:
-		SpotByEntity();
-
-		void addEntityInSpot(tal_id_t entity, spot_id_t spot);
-
-		void setDefaultSpot(spot_id_t spot);
-
-		spot_id_t getSpotForEntity(tal_id_t entity) const;
-
-	private:
-		std::unordered_map<tal_id_t, spot_id_t> spot_by_entity;
-		spot_id_t default_spot;
-	};
-
-public:
+ public:
 	BlockSatDispatcher(const std::string &name, SatDispatcherConfig config);
 
-	bool onInit();
+	bool onInit() override;
 
-	class Upward: public RtUpwardMuxDemux<IslComponentPair>
-	{
-	public:
-		Upward(const std::string &name, SatDispatcherConfig config);
-
-	private:
-		friend class BlockSatDispatcher;
-
-		bool onEvent(const RtEvent *const event) override;
-		bool handleDvbFrame(std::unique_ptr<DvbFrame> frame);
-		bool handleNetBurst(std::unique_ptr<NetBurst> burst);
-
-		template <typename T>
-		bool sendToUpperBlock(IslComponentPair key, std::unique_ptr<T> msg, InternalMessageType msg_type);
-		template <typename T>
-		bool sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type);
-
-		tal_id_t entity_id;
-
-		SpotByEntity spot_by_entity;
-		std::unordered_map<SpotComponentPair, tal_id_t> routes;
-		std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
-	};
-
-	class Downward: public RtDownwardMuxDemux<RegenerativeSpotComponent>
-	{
-	public:
-		Downward(const std::string &name, SatDispatcherConfig config);
-
-	private:
-		friend class BlockSatDispatcher;
-
-		bool onEvent(const RtEvent *const event) override;
-		bool handleDvbFrame(std::unique_ptr<DvbFrame> frame);
-		bool handleNetBurst(std::unique_ptr<NetBurst> burst);
-
-		template <typename T>
-		bool sendToLowerBlock(RegenerativeSpotComponent key, std::unique_ptr<T> msg, InternalMessageType msg_type);
-		template <typename T>
-		bool sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type);
-
-		tal_id_t entity_id;
-		SpotByEntity spot_by_entity;
-		std::unordered_map<SpotComponentPair, tal_id_t> routes;
-		std::unordered_map<SpotComponentPair, RegenLevel> regen_levels;
-	};
-
-private:
+ private:
 	tal_id_t entity_id;
 	bool isl_enabled;
 };
 
-template <typename T>
-bool BlockSatDispatcher::Upward::sendToUpperBlock(IslComponentPair key, std::unique_ptr<T> msg, InternalMessageType msg_type)
-{
-	LOG(log_send, LEVEL_INFO, "Sending a message to the upper block");
-	const auto msg_ptr = msg.release();
-	if (!enqueueMessage(key, (void **)&msg_ptr, sizeof(T), to_underlying(msg_type)))
-	{
-		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the upper block");
-		delete msg_ptr;
-		return false;
-	}
-	return true;
-}
-
-template <typename T>
-bool BlockSatDispatcher::Upward::sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type)
-{
-	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
-	LOG(log_send, log_level, "Sending a message to the opposite channel");
-	const auto msg_ptr = msg.release();
-	if (!shareMessage((void **)&msg_ptr, sizeof(T), to_underlying(msg_type)))
-	{
-		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
-		delete msg_ptr;
-		return false;
-	}
-	return true;
-}
-
-template <typename T>
-bool BlockSatDispatcher::Downward::sendToLowerBlock(RegenerativeSpotComponent key, std::unique_ptr<T> msg, InternalMessageType msg_type)
-{
-	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
-	LOG(log_send, log_level, "Sending a message to the lower block, %s side", key.dest == Component::gateway ? "GW" : "ST");
-	const auto msg_ptr = msg.release();
-	if (!enqueueMessage(key, (void **)&msg_ptr, sizeof(T), to_underlying(msg_type)))
-	{
-		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the lower block (%s, spot %d)",
-		    key.dest == Component::gateway ? "GW" : "ST", key.spot_id);
-		delete msg_ptr;
-		return false;
-	}
-	return true;
-}
-
-template <typename T>
-bool BlockSatDispatcher::Downward::sendToOppositeChannel(std::unique_ptr<T> msg, InternalMessageType msg_type)
-{
-	const auto log_level = msg_type == InternalMessageType::sig ? LEVEL_DEBUG : LEVEL_INFO;
-	LOG(log_send, log_level, "Sending a message to the opposite channel");
-	const auto msg_ptr = msg.release();
-	if (!shareMessage((void **)&msg_ptr, sizeof(T), to_underlying(msg_type)))
-	{
-		LOG(this->log_send, LEVEL_ERROR, "Failed to transmit message to the opposite channel");
-		delete msg_ptr;
-		return false;
-	}
-	return true;
-}
 
 #endif

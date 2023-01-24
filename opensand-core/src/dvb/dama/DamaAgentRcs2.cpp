@@ -203,7 +203,7 @@ bool DamaAgentRcs2::hereIsSOF(time_sf_t superframe_number_sf)
 
 // a TTP reading function that handles MODCOD but not priority and frame id
 // only one TP is supported for MODCOD handling
-bool DamaAgentRcs2::hereIsTTP(Ttp *ttp)
+bool DamaAgentRcs2::hereIsTTP(Rt::Ptr<Ttp> ttp)
 {
 	rate_kbps_t alloc_kbps;
 	fmt_id_t prev_modcod_id;
@@ -279,7 +279,7 @@ bool DamaAgentRcs2::hereIsTTP(Ttp *ttp)
 	return true;
 }
 
-bool DamaAgentRcs2::returnSchedule(std::list<DvbFrame *> *complete_dvb_frames)
+bool DamaAgentRcs2::returnSchedule(std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames)
 {
 	uint32_t remaining_alloc_b = this->remaining_allocation_b;
 	rate_kbps_t remaining_alloc_kbps;
@@ -322,8 +322,7 @@ bool DamaAgentRcs2::returnSchedule(std::list<DvbFrame *> *complete_dvb_frames)
 	{
 		if(dvb_frame->getMessageType() == EmulatedMessageType::DvbBurst)
 		{
-			DvbRcsFrame *frame = *dvb_frame;
-			frame->setModcodId(this->modcod_id);
+			dvb_frame_upcast<DvbRcsFrame>(*dvb_frame).setModcodId(this->modcod_id);
 		}
 	}
 	this->probe_st_sent_modcod->put(0);
@@ -350,7 +349,7 @@ bool DamaAgentRcs2::returnSchedule(std::list<DvbFrame *> *complete_dvb_frames)
 }
 
 bool DamaAgentRcs2::buildSAC(ReturnAccessType,
-                             Sac *sac,
+                             Rt::Ptr<Sac> &sac,
                              bool &empty)
 {
 	bool send_rbdc_request = false;

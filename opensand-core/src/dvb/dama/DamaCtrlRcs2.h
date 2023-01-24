@@ -66,10 +66,10 @@ public:
 	virtual bool init();
 
 	// Process DVB frames
-	virtual bool hereIsSAC(const Sac *sac);
+	bool hereIsSAC(Rt::Ptr<Sac> sac) override;
 
 	// Build allocation table
-	virtual bool buildTTP(Ttp *ttp);
+	bool buildTTP(Ttp &ttp) override;
 
 	// Apply a PEP command
 	virtual bool applyPepCommand(const PepRequest* request);

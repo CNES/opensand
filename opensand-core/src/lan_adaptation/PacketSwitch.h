@@ -39,12 +39,9 @@
 #include "OpenSandModelConf.h"
 #include "SarpTable.h"
 
+#include <opensand_rt/Data.h>
 #include <opensand_rt/RtMutex.h>
 #include <opensand_output/OutputLog.h>
-
-
-namespace Rt { class Data; };
-
 
 
 /**
@@ -93,7 +90,7 @@ public:
 
 protected:
 	/// The mutex
-	RtMutex mutex;
+	Rt::Mutex mutex;
 
 	/// The terminal id of the entity
 	tal_id_t tal_id;

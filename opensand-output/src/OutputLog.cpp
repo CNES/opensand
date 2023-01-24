@@ -64,7 +64,7 @@ OutputLog::OutputLog(log_level_t display_level, const std::string &name):
 
 OutputLog::~OutputLog()
 {
-  handlers.clear();
+	handlers.clear();
 }
 
 

@@ -206,7 +206,6 @@ private:
 };
 
 
-
 typedef std::map<fmt_id_t, FmtGroup *> fmt_groups_t;
 
 

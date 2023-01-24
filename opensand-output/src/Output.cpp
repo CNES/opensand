@@ -88,7 +88,6 @@ class Output::OutputSection : public OutputItem
 {
  public:
 	OutputSection(const std::string& name, const std::string& full_name) : OutputItem(name, full_name) {}
-	~OutputSection() { children.clear(); }
 
 	void setLogLevel(log_level_t level) {
 		for (auto& child : children) {

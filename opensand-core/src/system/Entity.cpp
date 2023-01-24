@@ -356,14 +356,14 @@ bool Entity::createBlocks()
 bool Entity::run()
 {
 	// make the entity alive
-	if(!Rt::init())
+	if(!Rt::Rt::init())
 	{
 		return false;
 	}
 	Output::Get()->finalizeConfiguration();
 	status->sendEvent("Blocks initialized");
 
-	if(!Rt::run())
+	if(!Rt::Rt::run())
 	{
 		DFLTLOG(LEVEL_CRITICAL,
 		        "%s: cannot run process loop",

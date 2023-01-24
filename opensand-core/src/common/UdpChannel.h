@@ -45,6 +45,8 @@
 #include <vector>
 
 #include "OpenSandCore.h"
+#include <opensand_rt/Data.h>
+#include <opensand_rt/Types.h>
 
 
 class UdpStack;
@@ -89,8 +91,7 @@ public:
 	 * @return true on success, false otherwise
 	 */
 	bool send(const unsigned char *data, std::size_t length);
-	int receive(const Rt::NetSocketEvent * const event,
-	            std::unique_ptr<unsigned char[]> &buf);
+	int receive(const Rt::NetSocketEvent& event, Rt::Ptr<Rt::Data> &buf);
 
 	int getChannelFd();
 	
@@ -102,7 +103,7 @@ public:
 	 * @param buf      OUT: the stacked packet
 	 * @return true on success, false otherwise
 	 */
-	bool handleStack(std::unique_ptr<unsigned char[]> &buf);
+	bool handleStack(Rt::Ptr<Rt::Data> &buf);
 
 
 	/**
@@ -113,8 +114,8 @@ public:
 	 *                 which the packet is located
 	 * @param stack    The stack in which to get packet
 	 */
-	void handleStack(std::unique_ptr<unsigned char[]> &buf,
-	                 uint8_t counter, UdpStack *stack);
+	void handleStack(Rt::Ptr<Rt::Data> &buf,
+	                 uint8_t counter, UdpStack &stack);
 
 protected:
 	/// the spot id
@@ -162,7 +163,7 @@ protected:
 	/// sometimes an UDP datagram containing unfragmented IP packet overtake one
 	/// containing fragmented IP packets during its reassembly
 	/// Thus, we use the stacks per IP sources to keep the UDP datagram arrived too early
-	std::map<std::string, UdpStack *> stacks;
+	std::map<std::string, UdpStack> stacks;
 
 	/// the IP address of the stack for which we need to send a packet or
 	//  empty string if we have nothing to send
@@ -181,7 +182,7 @@ protected:
  * @brief This stack allows UDP packets ordering in order to avoid
  *        sequence desynchronizations
  */
-class UdpStack: std::vector<std::unique_ptr<unsigned char[]>> 
+class UdpStack: std::vector<Rt::Ptr<Rt::Data>>
 {
 public:
 	/**
@@ -198,7 +199,7 @@ public:
 	 * @param udp_counter  The position of the packet in the stack
 	 * @param data         The packet to store
 	 */
-	void add(uint8_t udp_counter, std::unique_ptr<unsigned char[]> data);
+	void add(uint8_t udp_counter, Rt::Ptr<Rt::Data> data);
 
 	/**
 	 * @brief Remove a packet from the stack
@@ -207,7 +208,7 @@ public:
 	 * @param data         OUT: the packet stored in the stack or NULL if there
 	 *                          is no packet with this counter
 	 */
-	void remove(uint8_t udp_counter, std::unique_ptr<unsigned char[]>& data);
+	void remove(uint8_t udp_counter, Rt::Ptr<Rt::Data>& data);
 
 	/**
 	 * @brief Check if we have a packet at a specified counter

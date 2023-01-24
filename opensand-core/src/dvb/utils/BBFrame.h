@@ -60,7 +60,7 @@ public:
 	 *
 	 * @param data  raw data from which a BB frame can be created
 	 */
-	BBFrame(const Data &data);
+	BBFrame(const Rt::Data &data);
 
 	/**
 	 * Build a BB frame
@@ -68,7 +68,7 @@ public:
 	 * @param data    raw data from which a BB frame can be created
 	 * @param length  length of raw data
 	 */
-	BBFrame(const Data &data, size_t length);
+	BBFrame(const Rt::Data &data, size_t length);
 
 	/**
 	 * Build an empty BB frame
@@ -81,8 +81,8 @@ public:
 	~BBFrame();
 
 	// implementation of virtual functions
-	bool addPacket(NetPacket *packet);
-	void empty(void);
+	bool addPacket(const NetPacket &packet) override;
+	void empty() override;
 
 	// BB frame specific
 
@@ -98,14 +98,14 @@ public:
 	 *
 	 * @return  the MODCOD ID of the frame
 	 */
-	uint8_t getModcodId(void) const;
+	uint8_t getModcodId() const;
 
 	/**
 	 * @brief Get the data length in the BBFrame
 	 *
 	 * @return  the data length
 	 */
-	uint16_t getDataLength(void) const;
+	uint16_t getDataLength() const;
 
 
 	/**
@@ -113,7 +113,7 @@ public:
 	 *
 	 * @return the offset
 	 */
-	size_t getOffsetForPayload(void); 
+	size_t getOffsetForPayload(); 
 
 	/// The BBFrame log
 	static std::shared_ptr<OutputLog> bbframe_log;

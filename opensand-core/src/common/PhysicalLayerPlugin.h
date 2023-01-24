@@ -37,15 +37,16 @@
 #ifndef PHYSICAL_LAYER_PLUGIN_H
 #define PHYSICAL_LAYER_PLUGIN_H
 
-#include "OpenSandCore.h"
-#include "OpenSandPlugin.h"
 
 #include <memory>
 #include <mutex>
-#include <string>
+
+#include <opensand_rt/Data.h>
+
+#include "OpenSandCore.h"
+#include "OpenSandPlugin.h"
 
 
-class Data;
 class OutputLog;
 enum class EmulatedMessageType: uint8_t;
 
@@ -205,7 +206,7 @@ public:
 	 *         If packet is modified by the function but should be forwarded
 	 *         to other layers return false else it will be discarded
 	 */
-	virtual bool modifyPacket(const Data &payload) = 0;
+	virtual bool modifyPacket(const Rt::Data &payload) = 0;
 
 protected:
 	/* Output log */

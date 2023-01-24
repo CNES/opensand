@@ -198,7 +198,7 @@ private:
 
 	/** a list which associate a st id with its spot id */
 	/** the mutex to protect the list from concurrent access */
-	mutable RtMutex sts_mutex;
+	mutable Rt::Mutex sts_mutex;
 
 public:
 	/// Constructor and destructor

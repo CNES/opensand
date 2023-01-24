@@ -80,24 +80,21 @@ DvbS2Std::~DvbS2Std()
 
 
 // TODO factorize with DVB-RCS function ?
-bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
+bool DvbS2Std::onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
                           tal_id_t tal_id,
-                          NetBurst **burst)
+                          Rt::Ptr<NetBurst> &burst)
 {
 	auto Conf = OpenSandModelConf::Get();
 	int real_mod = 0;     // real modcod of the receiver
 
-	std::vector<std::unique_ptr<NetPacket>> decap_packets;
+	std::vector<Rt::Ptr<NetPacket>> decap_packets;
 	bool partial_decap = false;
-
-	*burst = nullptr;
 
 	// sanity check
 	if(dvb_frame == nullptr)
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "invalid frame received\n");
-		delete dvb_frame;
 		return false;
 	}
 
@@ -105,7 +102,6 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "packet handler is NULL\n");
-		delete dvb_frame;
 		return false;
 	}
 
@@ -115,13 +111,10 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	{
 		LOG(this->log_rcv_from_down, LEVEL_ERROR,
 		    "the message received is not a BB frame\n");
-		delete dvb_frame;
 		return false;
 	}
 
-	BBFrame *bbframe_burst_ptr = *dvb_frame;
-	std::unique_ptr<BBFrame> bbframe_burst{bbframe_burst_ptr};
-
+	auto bbframe_burst = dvb_frame_upcast<BBFrame>(std::move(dvb_frame));
 	auto burst_length = bbframe_burst->getDataLength();
 	LOG(this->log_rcv_from_down, LEVEL_INFO,
 	    "BB frame received (%d %s packet(s))\n",
@@ -188,7 +181,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 	// encapsulation packets we have extracted from the BB frame
 	try
 	{
-		*burst = new NetBurst();
+		burst = Rt::make_ptr<NetBurst>();
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -205,7 +198,7 @@ bool DvbS2Std::onRcvFrame(DvbFrame *dvb_frame,
 		    "%s packet (%zu bytes) added to burst\n",
 		    this->packet_handler->getName().c_str(),
 		    packet->getTotalLength());
-		(*burst)->add(std::move(packet));
+		burst->add(std::move(packet));
 	}
 
 	return true;

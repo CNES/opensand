@@ -42,7 +42,9 @@
 #include <unordered_set>
 #include <unordered_map>
 
+
 class BlockSatDispatcher;
+
 
 /**
  * @class EntitySat
@@ -84,7 +86,7 @@ protected:
 
 private:
 	template <typename Dvb>
-	bool createStack(BlockSatDispatcher *block_sat_dispatch,
+	bool createStack(BlockSatDispatcher &block_sat_dispatch,
 	                 spot_id_t spot_id,
 	                 Component destination,
 	                 RegenLevel forward_regen_level,

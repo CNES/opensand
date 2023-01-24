@@ -92,7 +92,7 @@ class GseEncapCtx
 	 * @param identifier Context identifier that identifies the encapsulation context
 	 * @param spot_id    The destination spot ID
 	 */
-	GseEncapCtx(GseIdentifier *identifier, uint16_t spot_id);
+	GseEncapCtx(const GseIdentifier &identifier, uint16_t spot_id);
 
 	/**
 	 * Destroy the encapsulation context
@@ -104,7 +104,7 @@ class GseEncapCtx
 	 *
 	 * @param data    the data set that contains the data to add
 	 */
-	gse_status_t add(NetPacket *data);
+	gse_status_t add(const NetPacket &data);
 
 	/**
 	 * Get the data stored in the virtual bufferd
@@ -118,56 +118,56 @@ class GseEncapCtx
 	 *
 	 * @return the amount of data (in bytes) stored in the context
 	 */
-	size_t length();
+	std::size_t length() const;
 
 	/**
 	 * Test if the virtual buffer is full
 	 *
 	 * @return True if the virtual buffer is full, else False
 	 */
-	bool isFull();
+	bool isFull() const;
 
 	/**
 	 * Get the source Tal Id of the context
 	 *
 	 * @return the Tal Id
 	 */
-	uint8_t getSrcTalId();
+	uint8_t getSrcTalId() const;
 
 	/**
 	 * Get the destination Tal Id of the context
 	 *
 	 * @return the Tal Id
 	 */
-	uint8_t getDstTalId();
+	uint8_t getDstTalId() const;
 
 	/**
 	 * Get the QoS of the context
 	 *
 	 * @return the QoS
 	 */
-	uint8_t getQos();
+	uint8_t getQos() const;
 
 	/**
 	 * Get the protocol of the packets stored in virtual buffer
 	 *
 	 * @return the protocol
 	 */
-	uint16_t getProtocol();
+	uint16_t getProtocol() const;
 
 	/**
 	 * Get the name of the packets stored in virtual buffer
 	 *
 	 * @return the name
 	 */
-	std::string getPacketName();
+	std::string getPacketName() const;
 
 	/**
 	 * Get the destination spot ID
 	 *
 	 * @return the destination spot ID
 	 */
-	uint16_t getDestSpot();
+	uint16_t getDestSpot() const;
 
 	/**
 	 * Set context to reset during next add call
@@ -179,7 +179,7 @@ class GseEncapCtx
 	 *
 	 * @return True if the context has to be reset, False if not
 	 */
-	bool getReset();
+	bool getReset() const;
 };
 
 

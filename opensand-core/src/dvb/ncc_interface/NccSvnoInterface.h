@@ -86,14 +86,14 @@ public:
 	 *            \li true if command is read and parsed successfully
 	 *            \li false if a problem is encountered
 	 */
-	bool readSvnoMessage(NetSocketEvent *const event);
+	bool readSvnoMessage(const Rt::NetSocketEvent& event);
 
 private:
 	/* parse a message sent by the SVNO component */
-	bool parseSvnoMessage(const char *message);
+	bool parseSvnoMessage(const Rt::Data& message);
 
 	/* parse one of the commands sent in a message by the SVNO component */
-	SvnoRequest * parseSvnoCommand(const char *cmd);
+	SvnoRequest * parseSvnoCommand(const Rt::Data& cmd);
 };
 
 #endif

@@ -60,7 +60,7 @@ public:
 	
 	bool schedule(const time_sf_t current_superframe_sf,
 	              clock_t current_time,
-	              std::list<DvbFrame *> *complete_dvb_frames,
+	              std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
 
 protected:
@@ -78,7 +78,7 @@ protected:
 	 * @return true on success, false otherwise
 	 */
 	bool macSchedule(const time_sf_t current_superframe_sf,
-	                 std::list<DvbFrame *> *complete_dvb_frames,
+	                 std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
 	                 vol_b_t &remaining_allocation_b);
 
 	/**
@@ -88,7 +88,7 @@ protected:
 	 *
 	 * @return true on sucess, false otherwise
 	 */
-	bool allocateDvbRcsFrame(DvbRcsFrame **incomplete_dvb_frame);
+	bool allocateDvbRcsFrame(Rt::Ptr<DvbRcsFrame> &incomplete_dvb_frame);
 };
 
 #endif

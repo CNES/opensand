@@ -159,7 +159,7 @@ bool DamaAgent::initOutput(spot_id_t spot_id)
 	return true;
 }
 
-bool DamaAgent::hereIsLogonResp(const LogonResponse *response)
+bool DamaAgent::hereIsLogonResp(Rt::Ptr<LogonResponse> response)
 {
 	this->group_id = response->getGroupId();
 	this->tal_id = response->getLogonId();

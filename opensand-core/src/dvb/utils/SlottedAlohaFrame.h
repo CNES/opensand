@@ -58,7 +58,7 @@ public:
 	 *
 	 * @param data  raw data from which a Slotted Aloha frame can be created
 	 */
-	SlottedAlohaFrame(const Data &data);
+	SlottedAlohaFrame(const Rt::Data &data);
 
 	/**
 	 * Build a Slotted Aloha frame
@@ -66,7 +66,7 @@ public:
 	 * @param data    raw data from which a Slotted Aloha frame can be created
 	 * @param length  length of raw data
 	 */
-	SlottedAlohaFrame(const Data &data, size_t length);
+	SlottedAlohaFrame(const Rt::Data &data, size_t length);
 
 	/**
 	 * Build an empty Slotted Aloha frame
@@ -79,9 +79,9 @@ public:
 	~SlottedAlohaFrame();
 
 	// Implementation of virtual functions
-	bool addPacket(NetPacket* packet);
-	void empty();
-	uint16_t getDataLength(void) const;
+	bool addPacket(const NetPacket &packet) override;
+	void empty() override;
+	uint16_t getDataLength() const;
 };
 
 
@@ -98,5 +98,5 @@ public:
 	SlottedAlohaFrameData();
 };
 
-#endif
 
+#endif

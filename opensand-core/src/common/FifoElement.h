@@ -35,7 +35,7 @@
 #define FIFO_ELEMENT_H
 
 
-#include <memory>
+#include <opensand_rt/Ptr.h>
 
 #include "OpenSandCore.h"
 
@@ -51,7 +51,7 @@ class FifoElement
 {
 protected:
 	/// The element stored in the FIFO
-	 std::unique_ptr<NetContainer> elem;
+	Rt::Ptr<NetContainer> elem;
 
 	/// The arrival time of packet in FIFO (in ms)
 	time_t tick_in;
@@ -65,7 +65,7 @@ public:
 	 * @param tick_in    The arrival time of element in FIFO (in ms)
 	 * @param tick_out   The minimal time the element will output the FIFO (in ms)
 	 */
-	FifoElement(std::unique_ptr<NetContainer> elem,
+	FifoElement(Rt::Ptr<NetContainer> elem,
 	            time_t tick_in, time_t tick_out);
 
 	/**
@@ -78,14 +78,14 @@ public:
 	 * @return The FIFO element
 	 */
 	template<class T = NetContainer>
-	std::unique_ptr<T> getElem();
+	Rt::Ptr<T> getElem();
 
 	/**
 	 * Set the FIFO element
 	 *
 	 * @param packet The new FIFO element
 	 */
-	void setElem(std::unique_ptr<NetContainer> elem);
+	void setElem(Rt::Ptr<NetContainer> elem);
 
 	/**
 	 * Get the element length
@@ -108,25 +108,26 @@ public:
 
 
 template<class T>
-std::unique_ptr<T> FifoElement::getElem()
+Rt::Ptr<T> FifoElement::getElem()
 {
 	if (!elem)
 	{
-		return std::unique_ptr<T>{nullptr};
+		return Rt::make_ptr<T>(nullptr);
 	}
 
 	T* cast_elem = dynamic_cast<T*>(elem.get());
 	if (cast_elem)
 	{
 		elem.release();
+		return {cast_elem, std::move(elem.get_deleter())};
 	}
 
-	return std::unique_ptr<T>{cast_elem};
+	return Rt::make_ptr<T>(nullptr);
 }
 
 
 template<>
-std::unique_ptr<NetContainer> FifoElement::getElem();
+Rt::Ptr<NetContainer> FifoElement::getElem();
 
 
 #endif

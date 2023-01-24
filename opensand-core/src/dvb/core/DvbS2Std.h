@@ -90,9 +90,9 @@ public:
 	virtual ~DvbS2Std();
 
 	/* only for NCC and Terminals */
-	bool onRcvFrame(DvbFrame *dvb_frame,
+	bool onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 	                tal_id_t tal_id,
-	                NetBurst **burst);
+	                Rt::Ptr<NetBurst> &burst);
 
 	/**
 	 * @brief  Get the real MODCOD for the terminal

@@ -158,13 +158,13 @@ uint8_t DvbFifo::getCarrierId() const
 
 vol_pkt_t DvbFifo::getNewSize() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	return this->new_size_pkt;
 }
 
 vol_bytes_t DvbFifo::getNewDataLength() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	return this->new_length_bytes;
 }
 
@@ -172,7 +172,7 @@ void DvbFifo::resetNew(const ForwardOrReturnAccessType cr_type)
 {
 	if(this->access_type == cr_type)
 	{
-		RtLock lock(this->fifo_mutex);
+		Rt::Lock lock(this->fifo_mutex);
 		this->new_size_pkt = 0;
 		this->new_length_bytes = 0;
 	}
@@ -180,25 +180,25 @@ void DvbFifo::resetNew(const ForwardOrReturnAccessType cr_type)
 
 vol_pkt_t DvbFifo::getCurrentSize() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	return this->queue.size();
 }
 
 vol_bytes_t DvbFifo::getCurrentDataLength() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	return this->cur_length_bytes;
 }
 
 vol_pkt_t DvbFifo::getMaxSize() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	return this->max_size_pkt;
 }
 
 clock_t DvbFifo::getTickOut() const
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	if(queue.size() > 0)
 	{
 		return this->queue.front()->getTickOut();
@@ -216,16 +216,28 @@ uint8_t DvbFifo::getCni(void) const
 	return this->cni;
 }
 
+/*
 const std::deque<FifoElement *> &DvbFifo::getQueue() const
 {
 	return this->queue;
 }
-
-bool DvbFifo::push(FifoElement *elem)
+*/
+std::deque<std::unique_ptr<FifoElement>>::const_iterator DvbFifo::begin() const
 {
-	RtLock lock(this->fifo_mutex);
-	vol_bytes_t length;
-	length = elem->getTotalLength();
+	return this->queue.begin();
+}
+
+
+std::deque<std::unique_ptr<FifoElement>>::const_iterator DvbFifo::end() const
+{
+	return this->queue.end();
+}
+
+
+bool DvbFifo::push(std::unique_ptr<FifoElement> elem)
+{
+	Rt::Lock lock(this->fifo_mutex);
+	vol_bytes_t length = elem->getTotalLength();
 
 	if(this->queue.size() >= this->max_size_pkt)
 	{
@@ -235,7 +247,7 @@ bool DvbFifo::push(FifoElement *elem)
 	}
 
 	// insert in top of fifo
-	this->queue.push_back(elem);
+	this->queue.push_back(std::move(elem));
 	// update counter
 	this->new_size_pkt++;
 	this->stat_context.current_pkt_nbr = this->queue.size();
@@ -251,16 +263,16 @@ bool DvbFifo::push(FifoElement *elem)
 	return true;
 }
 
-bool DvbFifo::pushFront(FifoElement *elem)
+bool DvbFifo::pushFront(std::unique_ptr<FifoElement> elem)
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 
 	// insert in head of fifo
 	if(this->queue.size() < this->max_size_pkt)
 	{
 		vol_bytes_t length = elem->getTotalLength();
 
-		this->queue.push_front(elem);
+		this->queue.push_front(std::move(elem));
 		this->cur_length_bytes += length;
 		// update counter but not new ones as it is a fragment of an old element
 		this->stat_context.current_pkt_nbr = this->queue.size();
@@ -278,16 +290,16 @@ bool DvbFifo::pushFront(FifoElement *elem)
 
 }
 
-bool DvbFifo::pushBack(FifoElement *elem)
+bool DvbFifo::pushBack(std::unique_ptr<FifoElement> elem)
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 
 	// insert in head of fifo
 	if(this->queue.size() < this->max_size_pkt)
 	{
 		vol_bytes_t length = elem->getTotalLength();
 
-		this->queue.insert(this->queue.end(), elem);
+		this->queue.insert(this->queue.end(), std::move(elem));
 		this->cur_length_bytes += length;
 		// update counter but not new ones as it is a fragment of an old element
 		this->stat_context.current_pkt_nbr = this->queue.size();
@@ -304,22 +316,24 @@ bool DvbFifo::pushBack(FifoElement *elem)
 	return false;
 
 }
-FifoElement *DvbFifo::pop()
+
+
+std::unique_ptr<FifoElement> DvbFifo::pop()
 {
-	RtLock lock(this->fifo_mutex);
-	FifoElement *elem;
-	vol_bytes_t length;
+	Rt::Lock lock(this->fifo_mutex);
 
 	if(this->queue.size() <= 0)
 	{
-		return NULL;
+		return {nullptr};
 	}
 
-	elem = this->queue.front();
-	length = elem->getTotalLength();
+	auto first = this->queue.begin();
+
+	std::unique_ptr<FifoElement> elem = std::move(*first);
+	vol_bytes_t length = elem->getTotalLength();
 
 	// remove the packet
-	this->queue.erase(this->queue.begin());
+	this->queue.erase(first);
 	this->cur_length_bytes -= length;
 
 	// update counters
@@ -330,19 +344,16 @@ FifoElement *DvbFifo::pop()
 	this->stat_context.out_length_bytes += length;
 
 	LOG(this->log_dvb_fifo, LEVEL_INFO,
-		    "Removed %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
+	    "Removed %u bytes, new size is %u bytes\n",
+	    length, this->cur_length_bytes);
 
 	return elem;
 }
 
+
 void DvbFifo::flush()
 {
-	RtLock lock(this->fifo_mutex);
-	for(auto *elem: queue)
-	{
-		delete elem;
-	}
-
+	Rt::Lock lock(this->fifo_mutex);
 	this->queue.clear();
 	this->new_size_pkt = 0;
 	this->new_length_bytes = 0;
@@ -353,7 +364,7 @@ void DvbFifo::flush()
 
 void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 {
-	RtLock lock(this->fifo_mutex);
+	Rt::Lock lock(this->fifo_mutex);
 	stat_info.current_pkt_nbr = this->stat_context.current_pkt_nbr;
 	stat_info.current_length_bytes = this->stat_context.current_length_bytes;
 	stat_info.in_pkt_nbr = this->stat_context.in_pkt_nbr;
@@ -376,7 +387,3 @@ void DvbFifo::resetStats()
 	this->stat_context.drop_pkt_nbr = 0;
 	this->stat_context.drop_bytes = 0;
 }
-
-
-
-

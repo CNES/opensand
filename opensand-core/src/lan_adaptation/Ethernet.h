@@ -92,9 +92,9 @@ public:
 		~Context();
 
 		bool init();
-		NetBurst *encapsulate(NetBurst *burst, std::map<long, int> &(time_contexts));
-		NetBurst *deencapsulate(NetBurst *burst);
-		char getLanHeader(unsigned int pos, const std::unique_ptr<NetPacket>& packet);
+		Rt::Ptr<NetBurst> encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &(time_contexts));
+		Rt::Ptr<NetBurst> deencapsulate(Rt::Ptr<NetBurst> burst);
+		char getLanHeader(unsigned int pos, const Rt::Ptr<NetPacket>& packet);
 		bool handleTap();
 		void updateStats(unsigned int period);
 		bool initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *packet_switch);
@@ -107,7 +107,7 @@ public:
 		 * @param evc_id     The id of the EVC if found
 		 * @return the Ethernet frame
 		 */
-		std::unique_ptr<NetPacket> createEthFrameData(const std::unique_ptr<NetPacket>& packet, uint8_t &evc_id);
+		Rt::Ptr<NetPacket> createEthFrameData(const Rt::Ptr<NetPacket>& packet, uint8_t &evc_id);
 
 		/**
 		 * @brief create an Ethernet frame from IP data
@@ -125,15 +125,15 @@ public:
 		 * @param desired_frame_type The frame type we want to build
 		 * @return the Ethernet frame
 		 */
-		std::unique_ptr<NetPacket> createEthFrameData(Rt::Data data,
-		                                              MacAddress mac_src, MacAddress mac_dst,
-		                                              NET_PROTO ether_type,
-		                                              uint16_t q_tci,
-		                                              uint16_t ad_tci,
-		                                              qos_t qos,
-		                                              tal_id_t src_tal_id,
-		                                              tal_id_t dst_tal_id,
-		                                              NET_PROTO desired_frame_type);
+		Rt::Ptr<NetPacket> createEthFrameData(Rt::Data data,
+		                                     MacAddress mac_src, MacAddress mac_dst,
+		                                     NET_PROTO ether_type,
+		                                     uint16_t q_tci,
+		                                     uint16_t ad_tci,
+		                                     qos_t qos,
+		                                     tal_id_t src_tal_id,
+		                                     tal_id_t dst_tal_id,
+		                                     NET_PROTO desired_frame_type);
 
 		/**
 		 * @brief Get the EVC corresponding to Ethernet flow
@@ -249,11 +249,11 @@ public:
 			return length;
 		}
 
-		std::unique_ptr<NetPacket> build(const Rt::Data &data,
-		                                 std::size_t data_length,
-		                                 uint8_t qos,
-		                                 uint8_t src_tal_id,
-		                                 uint8_t dst_tal_id) const override;
+		Rt::Ptr<NetPacket> build(const Rt::Data &data,
+		                         std::size_t data_length,
+		                         uint8_t qos,
+		                         uint8_t src_tal_id,
+		                         uint8_t dst_tal_id) const override;
 
 	};
 

@@ -74,10 +74,10 @@ StackPlugin::StackContext::~StackContext()
 }
 
 
-std::unique_ptr<NetBurst> StackPlugin::StackContext::encapsulate(std::unique_ptr<NetBurst> burst)
+Rt::Ptr<NetBurst> StackPlugin::StackContext::encapsulate(Rt::Ptr<NetBurst> burst)
 {
 	std::map<long, int> time_contexts;
-	return this->encapsulate(burst, time_contexts);
+	return this->encapsulate(std::move(burst), time_contexts);
 }
 
 
@@ -118,11 +118,11 @@ std::string StackPlugin::StackContext::getName() const
 }
 
 
-std::unique_ptr<NetPacket> StackPlugin::StackContext::createPacket(const Data &data,
-                                                                   std::size_t data_length,
-                                                                   uint8_t qos,
-                                                                   uint8_t src_tal_id,
-                                                                   uint8_t dst_tal_id)
+Rt::Ptr<NetPacket> StackPlugin::StackContext::createPacket(const Rt::Data &data,
+                                                           std::size_t data_length,
+                                                           uint8_t qos,
+                                                           uint8_t src_tal_id,
+                                                           uint8_t dst_tal_id)
 {
 	return plugin.packet_handler->build(data, data_length, qos, src_tal_id, dst_tal_id);
 }

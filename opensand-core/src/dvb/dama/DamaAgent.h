@@ -114,7 +114,7 @@ public:
 	 * @param response logon response.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool hereIsLogonResp(const LogonResponse *response);
+	virtual bool hereIsLogonResp(Rt::Ptr<LogonResponse> response);
 
 	/**
 	 * @brief Called when the DVB RCS layer receive a SOF.
@@ -134,7 +134,7 @@ public:
 	 * @param ttp received TTP.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool hereIsTTP(Ttp *ttp) = 0;
+	virtual bool hereIsTTP(Rt::Ptr<Ttp> ttp) = 0;
 
 	/**
 	 * @brief Build SAC.
@@ -145,7 +145,7 @@ public:
 	 * @return true on success, false otherwise.
 	 */
 	virtual bool buildSAC(ReturnAccessType cr_type,
-	                      Sac *sac,
+	                      Rt::Ptr<Sac> &sac,
 	                      bool &empty) = 0;
 
 	/**
@@ -154,7 +154,7 @@ public:
 	 * @param complete_dvb_frames  created DVB frames.
 	 * @return true on success, false otherwise.
 	 */
-	virtual bool returnSchedule(std::list<DvbFrame *> *complete_dvb_frames) = 0;
+	virtual bool returnSchedule(std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames) = 0;
 
 	/**
 	 * @brief   Called at each SoF.
@@ -239,5 +239,5 @@ protected:
 	std::shared_ptr<Probe<int>> probe_st_remaining_allocation;
 };
 
-#endif
 
+#endif

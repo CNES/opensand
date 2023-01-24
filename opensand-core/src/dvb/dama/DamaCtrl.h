@@ -103,7 +103,7 @@ public:
 	 * @param   logon  logon request.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsLogon(const LogonRequest *logon);
+	virtual bool hereIsLogon(Rt::Ptr<LogonRequest> logon);
 
 	/**
 	 * @brief  Process a Logoff request frame.
@@ -111,7 +111,7 @@ public:
 	 * @param   logoff  logoff request.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsLogoff(const Logoff *logoff);
+	virtual bool hereIsLogoff(Rt::Ptr<Logoff> logoff);
 
 	/**
 	 * @brief  Process a SAC frame.
@@ -121,7 +121,7 @@ public:
 	 * @param   sac             SAC frame.
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool hereIsSAC(const Sac *sac) = 0;
+	virtual bool hereIsSAC(Rt::Ptr<Sac> sac) = 0;
 
 	/**
 	 * @brief  Build the TTP frame.
@@ -129,7 +129,7 @@ public:
 	 * @param   ttp  the TTP built.
 	 * @return  true on succes, false otherwise.
 	 */
-	virtual bool buildTTP(Ttp *ttp) = 0;
+	virtual bool buildTTP(Ttp &ttp) = 0;
 
 	/**
 	 * @brief  Apply a PEP command

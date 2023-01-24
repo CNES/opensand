@@ -58,6 +58,8 @@
  */
 
 
+#include <opensand_rt/Rt.h>
+
 #include "EntitySt.h"
 #include "OpenSandModelConf.h"
 
@@ -112,16 +114,16 @@ bool EntitySt::createSpecificBlocks()
 		bool disable_ctrl_plane;
 		if (!Conf->getControlPlaneDisabled(disable_ctrl_plane)) return false;
 
-		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", laspecific);
-		auto block_encap = Rt::createBlock<BlockEncap>("Encap", encap_cfg);
-		auto block_dvb = Rt::createBlock<BlockDvbTal>("Dvb", dvb_spec);
-		auto block_phy_layer = Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
-		auto block_sat_carrier = Rt::createBlock<BlockSatCarrier>("Sat_Carrier", scspecific);
+		auto& block_lan_adaptation = Rt::Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", laspecific);
+		auto& block_encap = Rt::Rt::createBlock<BlockEncap>("Encap", encap_cfg);
+		auto& block_dvb = Rt::Rt::createBlock<BlockDvbTal>("Dvb", dvb_spec);
+		auto& block_phy_layer = Rt::Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);
+		auto& block_sat_carrier = Rt::Rt::createBlock<BlockSatCarrier>("Sat_Carrier", scspecific);
 	
-		Rt::connectBlocks(block_lan_adaptation, block_encap);
-		Rt::connectBlocks(block_encap, block_dvb);
-		Rt::connectBlocks(block_dvb, block_phy_layer);
-		Rt::connectBlocks(block_phy_layer, block_sat_carrier);
+		Rt::Rt::connectBlocks(block_lan_adaptation, block_encap);
+		Rt::Rt::connectBlocks(block_encap, block_dvb);
+		Rt::Rt::connectBlocks(block_dvb, block_phy_layer);
+		Rt::Rt::connectBlocks(block_phy_layer, block_sat_carrier);
 	}
 	catch (const std::bad_alloc &e)
 	{

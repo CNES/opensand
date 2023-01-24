@@ -36,7 +36,7 @@
 #include "NetContainer.h"
 
 
-FifoElement::FifoElement(std::unique_ptr<NetContainer> elem,
+FifoElement::FifoElement(Rt::Ptr<NetContainer> elem,
                          time_t tick_in, time_t tick_out):
 	elem{std::move(elem)},
 	tick_in{tick_in},
@@ -51,13 +51,13 @@ FifoElement::~FifoElement()
 
 
 template<>
-std::unique_ptr<NetContainer> FifoElement::getElem()
+Rt::Ptr<NetContainer> FifoElement::getElem()
 {
 	return std::move(this->elem);
 }
 
 
-void FifoElement::setElem(std::unique_ptr<NetContainer> elem)
+void FifoElement::setElem(Rt::Ptr<NetContainer> elem)
 {
 	this->elem = std::move(elem);
 }

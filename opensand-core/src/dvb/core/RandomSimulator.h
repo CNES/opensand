@@ -57,14 +57,14 @@ public:
 	 * Simulate event based on random generation
 	 * @return true on success, false otherwise
 	 */
-	bool simulation(std::list<DvbFrame *>* msgs,
+	bool simulation(std::list<Rt::Ptr<DvbFrame>> &msgs,
 	                time_sf_t super_frame_counter);
 
 	/**
 	 * Stop simulation
 	 * @return true on success, false otherwise
 	 */ 
-	bool stopSimulation(void);
+	bool stopSimulation();
 };
 
 #endif

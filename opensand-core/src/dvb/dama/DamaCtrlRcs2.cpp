@@ -107,7 +107,7 @@ error:
 	return false;
 }
 
-bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
+bool DamaCtrlRcs2::hereIsSAC(Rt::Ptr<Sac> sac)
 {
 	TerminalContextDamaRcs *terminal;
 	vol_kb_t request_kb;
@@ -148,7 +148,7 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 				if(tal_id > BROADCAST_TAL_ID)
 				{
 					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
-					                tal_id, request_kb, ReturnAccessType::dama_vbdc);
+					                tal_id, request_kb, to_underlying(cr_info.type));
 				}
 				break;
 
@@ -175,7 +175,7 @@ bool DamaCtrlRcs2::hereIsSAC(const Sac *sac)
 				if(tal_id > BROADCAST_TAL_ID)
 				{
 					DC_RECORD_EVENT("CR st%u cr=%u type=%u",
-					                tal_id, request_kbps, ReturnAccessType::dama_rbdc);
+					                tal_id, request_kbps, to_underlying(cr_info.type));
 				}
 				break;
 
@@ -193,7 +193,7 @@ error:
 	return false;
 }
 
-bool DamaCtrlRcs2::buildTTP(Ttp *ttp)
+bool DamaCtrlRcs2::buildTTP(Ttp &ttp)
 {
 	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 	for(category_it = this->categories.begin();
@@ -234,12 +234,12 @@ bool DamaCtrlRcs2::buildTTP(Ttp *ttp)
 			    total_allocation_kb);
 
 			//FIXME: is the offset to be 0 ???
-			if(!ttp->addTimePlan(0 /*FIXME: should it be the frame_counter of the bloc_ncc ?*/,
-			                     terminal->getTerminalId(),
-			                     0,
-			                     total_allocation_kb,
-			                     terminal->getFmtId(),
-			                     0))
+			if(!ttp.addTimePlan(0 /*FIXME: should it be the frame_counter of the bloc_ncc ?*/,
+			                    terminal->getTerminalId(),
+			                    0,
+			                    total_allocation_kb,
+			                    terminal->getFmtId(),
+			                    0))
 			{
 				LOG(this->log_ttp, LEVEL_ERROR,
 				    "SF#%u: cannot add TimePlan for terminal %u\n",
@@ -248,7 +248,7 @@ bool DamaCtrlRcs2::buildTTP(Ttp *ttp)
 			}
 		}
 	}
-	ttp->build();
+	ttp.build();
 
 	return true;
 }

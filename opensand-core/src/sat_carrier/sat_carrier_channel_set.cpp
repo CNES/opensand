@@ -250,32 +250,31 @@ bool sat_carrier_channel_set::send(uint8_t carrier_id,
 }
 
 
-int sat_carrier_channel_set::receive(NetSocketEvent *const event,
+int sat_carrier_channel_set::receive(const Rt::NetSocketEvent& event,
                                      unsigned int &op_carrier,
                                      spot_id_t &op_spot,
-                                     unsigned char **op_buf,
-                                     size_t &op_len)
+                                     Rt::Ptr<Rt::Data> &op_buf)
 {
 	int ret = -1;
 
-	op_len = 0;
+	// op_len = 0;
 	op_carrier = 0;
 
 	LOG(this->log_sat_carrier, LEVEL_DEBUG,
 	    "try to receive a packet from satellite channel "
-	    "associated with the file descriptor %d\n", event->getFd());
+	    "associated with the file descriptor %d\n", event.getFd());
 
 	for (auto&& channel : *this)
 	{
 		// does the channel accept input and does the channel file descriptor
 		// match with the given file descriptor?
-		if(channel->isInputOk() && *event == channel->getChannelFd())
+		if(channel->isInputOk() && event == channel->getChannelFd())
 		{
 			// the file descriptors match, try to receive data for the channel
-			ret = channel->receive(event, op_buf, op_len);
+			ret = channel->receive(event, op_buf);
 
 			// Stop the task on data or error
-			if(op_len != 0 || ret < 0)
+			if((op_buf && op_buf->length() != 0) || ret < 0)
 			{
 				LOG(this->log_sat_carrier, LEVEL_DEBUG,
 				    "data/error received, set op_carrier to %d\n",
@@ -288,11 +287,13 @@ int sat_carrier_channel_set::receive(NetSocketEvent *const event,
 	}
 
 	LOG(this->log_sat_carrier, LEVEL_DEBUG,
-	    "Receive packet: size %zu, carrier %d\n", op_len,
+	    "Receive packet: size %zu, carrier %d\n",
+	    op_buf ? op_buf->length() : 0,
 	    op_carrier);
 
 	return ret;
 }
+
 
 /**
 * Return the file descriptor coresponding to a channel

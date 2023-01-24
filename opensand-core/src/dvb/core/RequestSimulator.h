@@ -36,16 +36,18 @@
 #ifndef REQUEST_SIMULATOR_H
 #define REQUEST_SIMULATOR_H
 
-#include "SlottedAlohaNcc.h"
-#include "Sac.h"
-#include "Logon.h"
-#include "Logoff.h"
+#include <list>
+
+#include "OpenSandCore.h"
+#include "DvbFrame.h"
 #include "DvbFifo.h"
 
-#define SIMU_BUFF_LEN 255
+
+constexpr const std::size_t SIMU_BUFF_LEN = 255;
 
 
 class OutputLog;
+
 
 enum Simulate
 {
@@ -69,13 +71,13 @@ public:
 	 * Simulate event based on an input file
 	 * @return true on success, false otherwise
 	 */
-	virtual bool simulation(std::list<DvbFrame *>* msgs,
+	virtual bool simulation(std::list<Rt::Ptr<DvbFrame>> &msgs,
 	                        time_sf_t super_frame_counter) = 0;
 	
-	virtual bool stopSimulation(void) = 0;
+	virtual bool stopSimulation() = 0;
 
 	// statistics update
-	void updateStatistics(void);
+	//void updateStatistics();
 
 protected:
 	/** Read configuration for the request simulation
@@ -110,5 +112,6 @@ protected:
 	std::shared_ptr<OutputLog> log_request_simulation;
 	std::shared_ptr<OutputLog> log_init;
 };
+
 
 #endif

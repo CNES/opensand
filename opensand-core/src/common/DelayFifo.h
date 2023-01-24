@@ -34,13 +34,17 @@
 #ifndef DELAY_FIFO_H
 #define DELAY_FIFO_H
 
-#include "OpenSandCore.h"
-#include "FifoElement.h"
+
+#include <vector>
+#include <memory>
+#include <sys/times.h>
 
 #include <opensand_rt/RtMutex.h>
 
-#include <vector>
-#include <sys/times.h>
+#include "OpenSandCore.h"
+
+
+class FifoElement;
 
 
 /**
@@ -97,7 +101,7 @@ public:
 	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool push(FifoElement *elem);
+	bool push(std::unique_ptr<FifoElement> elem);
 
 	/**
 	 * @brief Add an element at the head of the list
@@ -107,7 +111,7 @@ public:
 	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushFront(FifoElement *elem);
+	bool pushFront(std::unique_ptr<FifoElement> elem);
 
 	/**
 	 * @brief Add an element at the back of the list
@@ -115,7 +119,7 @@ public:
 	 * @param elem is the pointer on FifoElement
 	 * @return true on success, false otherwise
 	 */
-	bool pushBack(FifoElement *elem);
+	bool pushBack(std::unique_ptr<FifoElement> elem);
 
 	/**
 	 * @brief Remove an element at the head of the list
@@ -123,14 +127,15 @@ public:
 	 * @return NULL pointer if extraction failed because fifo is empty
 	 *         pointer on extracted FifoElement otherwise
 	 */
-	FifoElement *pop();
+	std::unique_ptr<FifoElement> pop();
 
 	/**
 	 * @brief Flush the sat carrier fifo and reset counters
 	 */
 	void flush();
 
-	std::vector<FifoElement *> getQueue(void);
+	std::vector<std::unique_ptr<FifoElement>>::iterator begin();
+	std::vector<std::unique_ptr<FifoElement>>::iterator end();
 
 protected:
 	/**
@@ -140,7 +145,7 @@ protected:
 	 */
 	int getTickOutPosition(time_t time_out);
 
-	std::vector<FifoElement *> queue; ///< the FIFO itself
+	std::vector<std::unique_ptr<FifoElement>> queue; ///< the FIFO itself
 
 	vol_pkt_t max_size_pkt;         ///< the maximum size for that FIFO
 

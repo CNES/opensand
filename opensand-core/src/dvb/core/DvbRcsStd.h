@@ -60,9 +60,9 @@ public:
 	 */
 	virtual ~DvbRcsStd();
 
-	bool onRcvFrame(DvbFrame *dvb_frame,
+	bool onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 	                tal_id_t tal_id,
-	                NetBurst **burst);
+	                Rt::Ptr<NetBurst> &burst);
 
 protected:
 	/**

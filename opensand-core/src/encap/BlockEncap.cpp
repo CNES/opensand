@@ -37,12 +37,15 @@
 #include "BlockEncap.h"
 
 #include "Plugin.h"
+#include "LanAdaptationPlugin.h"
 #include "Ethernet.h"
 #include "NetBurst.h"
 #include "NetPacket.h"
 #include "OpenSandModelConf.h"
+#include "OpenSandFrames.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/TimerEvent.h>
 #include <opensand_rt/MessageEvent.h>
 
 #include <algorithm>
@@ -50,6 +53,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <cstring>
+#include <limits>
 
 
 /**
@@ -69,8 +73,17 @@ inline bool fileExists(const std::string &filename)
 	return true;
 }
 
+
+EncapChannel::EncapChannel():
+	group_id{std::numeric_limits<decltype(group_id)>::max()},
+	tal_id{std::numeric_limits<decltype(tal_id)>::max()},
+	state{SatelliteLinkState::DOWN}
+{
+}
+
+
 BlockEncap::BlockEncap(const std::string &name, EncapConfig encap_cfg):
-	Block{name},
+	Rt::Block<BlockEncap, EncapConfig>{name, encap_cfg},
 	mac_id{encap_cfg.entity_id},
 	entity_type{encap_cfg.entity_type},
 	scpc_enabled{encap_cfg.scpc_enabled}
@@ -79,14 +92,16 @@ BlockEncap::BlockEncap(const std::string &name, EncapConfig encap_cfg):
 	// NetBurst::log_net_burst = Output::Get()->registerLog(LEVEL_WARNING, "NetBurst");
 }
 
-BlockEncap::Downward::Downward(const std::string &name, EncapConfig):
-	RtDownward{name},
+
+Rt::DownwardChannel<BlockEncap>::DownwardChannel(const std::string &name, EncapConfig):
+	Channels::Downward<DownwardChannel<BlockEncap>>{name},
 	EncapChannel{}
 {
 }
 
-BlockEncap::Upward::Upward(const std::string &name, EncapConfig encap_cfg):
-	RtUpward{name},
+
+Rt::UpwardChannel<BlockEncap>::UpwardChannel(const std::string &name, EncapConfig encap_cfg):
+	Channels::Upward<UpwardChannel<BlockEncap>>{name},
 	EncapChannel{},
 	mac_id{encap_cfg.entity_id},
 	entity_type{encap_cfg.entity_type},
@@ -94,6 +109,7 @@ BlockEncap::Upward::Upward(const std::string &name, EncapConfig encap_cfg):
 	scpc_encap{""}
 {
 }
+
 
 void BlockEncap::generateConfiguration()
 {
@@ -103,176 +119,155 @@ void BlockEncap::generateConfiguration()
 	                                     "Encapsulation Scheme");
 }
 
-bool BlockEncap::Downward::onEvent(const RtEvent *const event)
+
+bool Rt::DownwardChannel<BlockEncap>::onEvent(const Event &event)
 {
-	switch(event->getType())
-	{
-		case EventType::Timer:
-		{
-			// timer event, flush corresponding encapsulation context
-			LOG(this->log_receive, LEVEL_INFO,
-			    "Timer received %s\n", event->getName().c_str());
-			return this->onTimer(event->getFd());
-		}
-		break;
-
-		case EventType::Message:
-		{
-			// message received from another bloc
-			LOG(this->log_receive, LEVEL_INFO,
-			    "message received from the upper-layer bloc\n");
-			
-			auto msg_event = static_cast<const MessageEvent *>(event);
-			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::link_up)
-			{
-				// 'link up' message received 
-				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
-
-				// save group id and TAL id sent by MAC layer
-				this->group_id = link_up_msg->group_id;
-				this->tal_id = link_up_msg->tal_id;
-				this->state = SatelliteLinkState::UP;
-				delete link_up_msg;
-				break;
-			}
-
-			if (to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::sig)
-			{
-				auto data = msg_event->getData();
-				return enqueueMessage(&data, msg_event->getLength(), msg_event->getMessageType());
-			}
-
-			auto burst = static_cast<NetBurst *>(msg_event->getData());
-			return this->onRcvBurst(std::unique_ptr<NetBurst>{burst});
-		}
-		break;
-
-		default:
-			LOG(this->log_receive, LEVEL_ERROR,
-			    "unknown event received %s\n",
-			    event->getName().c_str());
-			return false;
-	}
-
-	return true;
+	LOG(this->log_receive, LEVEL_ERROR,
+	    "unknown event received %s\n",
+	    event.getName().c_str());
+	return false;
 }
 
-void BlockEncap::Downward::setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx)
+
+bool Rt::DownwardChannel<BlockEncap>::onEvent(const TimerEvent &event)
+{
+	// timer event, flush corresponding encapsulation context
+	LOG(this->log_receive, LEVEL_INFO,
+	    "Timer received %s\n",
+	    event.getName().c_str());
+	return this->onTimer(event.getFd());
+}
+
+
+bool Rt::DownwardChannel<BlockEncap>::onEvent(const MessageEvent &event)
+{
+	// message received from another bloc
+	LOG(this->log_receive, LEVEL_INFO,
+	    "message received from the upper-layer bloc\n");
+	
+	InternalMessageType msg_type = to_enum<InternalMessageType>(event.getMessageType());
+	if(msg_type == InternalMessageType::link_up)
+	{
+		// 'link up' message received 
+		Ptr<T_LINK_UP> link_up_msg = event.getMessage<T_LINK_UP>();
+
+		// save group id and TAL id sent by MAC layer
+		this->group_id = link_up_msg->group_id;
+		this->tal_id = link_up_msg->tal_id;
+		this->state = SatelliteLinkState::UP;
+		return true;
+	}
+
+	if (msg_type == InternalMessageType::sig)
+	{
+		return this->enqueueMessage(event.getMessage<void>(), event.getMessageType());
+	}
+
+	return this->onRcvBurst(event.getMessage<NetBurst>());
+}
+
+
+void Rt::DownwardChannel<BlockEncap>::setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx)
 {
 	this->ctx = encap_ctx;
 }
 
-bool BlockEncap::Upward::onEvent(const RtEvent *const event)
+
+bool Rt::UpwardChannel<BlockEncap>::onEvent(const Event &event)
 {
-	switch(event->getType())
+	LOG(this->log_receive, LEVEL_ERROR,
+	    "unknown event received %s\n",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::UpwardChannel<BlockEncap>::onEvent(const MessageEvent &event)
+{
+	LOG(this->log_receive, LEVEL_INFO,
+	    "message received from the lower layer\n");
+
+	InternalMessageType msg_type = to_enum<InternalMessageType>(event.getMessageType());
+	if(msg_type == InternalMessageType::link_up)
 	{
-		case EventType::Message:
+		std::vector<EncapPlugin::EncapContext*>::iterator encap_it;
+
+		// 'link up' message received => forward it to upper layer
+		Ptr<T_LINK_UP> link_up_msg = event.getMessage<T_LINK_UP>();
+		LOG(this->log_receive, LEVEL_INFO,
+		    "'link up' message received (group = %u, tal = %u), forward it\n",
+		    link_up_msg->group_id, link_up_msg->tal_id);
+		
+		if(this->state == SatelliteLinkState::UP)
 		{
-			LOG(this->log_receive, LEVEL_INFO,
-			    "message received from the lower layer\n");
-
-			auto msg_event = static_cast<const MessageEvent *>(event);
-			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::link_up)
-			{
-				std::vector<EncapPlugin::EncapContext*>::iterator encap_it;
-
-				// 'link up' message received => forward it to upper layer
-				T_LINK_UP *link_up_msg = static_cast<T_LINK_UP *>(msg_event->getData());
-				LOG(this->log_receive, LEVEL_INFO,
-				    "'link up' message received (group = %u, "
-				    "tal = %u), forward it\n", link_up_msg->group_id,
-				    link_up_msg->tal_id);
-				
-				if(this->state == SatelliteLinkState::UP)
-				{
-					LOG(this->log_receive, LEVEL_NOTICE,
-					    "duplicate link up msg\n");
-					delete link_up_msg;
-					return false;
-				}
-
-				// save group id and TAL id sent by MAC layer
-				this->group_id = link_up_msg->group_id;
-				this->tal_id = link_up_msg->tal_id;
-				this->state = SatelliteLinkState::UP;
-
-				// transmit link u to opposite channel
-				T_LINK_UP *shared_link_up_msg = new T_LINK_UP;
-				if(shared_link_up_msg == nullptr)
-				{
-				     LOG(this->log_receive, LEVEL_ERROR,
-				         "failed to allocate a new 'link up' message "
-				         "to transmit to opposite channel\n");
-				     delete link_up_msg;
-				     return false;
-				}
-				shared_link_up_msg->group_id = link_up_msg->group_id;
-				shared_link_up_msg->tal_id = link_up_msg->tal_id;
-				if(!this->shareMessage((void **)&shared_link_up_msg,
-				                       sizeof(T_LINK_UP),
-				                       to_underlying(InternalMessageType::link_up)))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "failed to transmit 'link up' message to "
-					    "opposite channel\n");
-					delete shared_link_up_msg;
-					delete link_up_msg;
-					return false;
-				}
-
-				// send the message to the upper layer
-				if(!this->enqueueMessage((void **)&link_up_msg,
-				                         sizeof(T_LINK_UP),
-				                         to_underlying(InternalMessageType::link_up)))
-				{
-					LOG(this->log_receive, LEVEL_ERROR,
-					    "cannot forward 'link up' message\n");
-					delete link_up_msg;
-					return false;
-				}
-
-				LOG(this->log_receive, LEVEL_INFO,
-				    "'link up' message sent to the upper layer\n");
-
-				// Set tal_id 'filter' for reception context
-				tal_id_t filter_tal_id = this->filter_packets ? this->tal_id : BROADCAST_TAL_ID;
-
-
-				for(encap_it = this->ctx.begin();
-				    encap_it != this->ctx.end();
-				    ++encap_it)
-				{
-					(*encap_it)->setFilterTalId(filter_tal_id);
-				}
-
-				for(encap_it = this->ctx_scpc.begin();
-				    encap_it != this->ctx_scpc.end();
-				    ++encap_it)
-				{
-					(*encap_it)->setFilterTalId(filter_tal_id);
-				}
-
-				break;
-			}
-
-			if(to_enum<InternalMessageType>(msg_event->getMessageType()) == InternalMessageType::sig) {
-				auto data = msg_event->getData();
-				return enqueueMessage(&data, msg_event->getLength(), msg_event->getMessageType());
-			}
-
-			// data received
-			auto burst = static_cast<NetBurst *>(msg_event->getData());
-			return this->onRcvBurst(std::unique_ptr<NetBurst>{burst});
+			LOG(this->log_receive, LEVEL_NOTICE,
+			    "duplicate link up msg\n");
+			return false;
 		}
 
-		default:
+		// save group id and TAL id sent by MAC layer
+		this->group_id = link_up_msg->group_id;
+		this->tal_id = link_up_msg->tal_id;
+		this->state = SatelliteLinkState::UP;
+
+		// transmit link u to opposite channel
+		Ptr<T_LINK_UP> shared_link_up_msg = make_ptr<T_LINK_UP>(nullptr);
+		try
+		{
+			shared_link_up_msg = make_ptr<T_LINK_UP>();
+		}
+		catch (const std::bad_alloc&)
+		{
+		     LOG(this->log_receive, LEVEL_ERROR,
+		         "failed to allocate a new 'link up' message "
+		         "to transmit to opposite channel\n");
+		     return false;
+		}
+		shared_link_up_msg->group_id = link_up_msg->group_id;
+		shared_link_up_msg->tal_id = link_up_msg->tal_id;
+		if(!this->shareMessage(std::move(shared_link_up_msg),
+		                       to_underlying(InternalMessageType::link_up)))
+		{
 			LOG(this->log_receive, LEVEL_ERROR,
-			    "unknown event received %s\n",
-			    event->getName().c_str());
+			    "failed to transmit 'link up' message to "
+			    "opposite channel\n");
 			return false;
+		}
+
+		// send the message to the upper layer
+		if(!this->enqueueMessage(std::move(link_up_msg),
+		                         to_underlying(InternalMessageType::link_up)))
+		{
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "cannot forward 'link up' message\n");
+			return false;
+		}
+
+		LOG(this->log_receive, LEVEL_INFO,
+		    "'link up' message sent to the upper layer\n");
+
+		// Set tal_id 'filter' for reception context
+		tal_id_t filter_tal_id = this->filter_packets ? this->tal_id : BROADCAST_TAL_ID;
+
+		for(auto &&encap_ctx : this->ctx)
+		{
+			encap_ctx->setFilterTalId(filter_tal_id);
+		}
+
+		for(auto &&encap_ctx : this->ctx_scpc)
+		{
+			encap_ctx->setFilterTalId(filter_tal_id);
+		}
+
+		return true;
 	}
 
-	return true;
+	if(msg_type == InternalMessageType::sig) {
+		return this->enqueueMessage(event.getMessage<void>(), event.getMessageType());
+	}
+
+	// data received
+	return this->onRcvBurst(event.getMessage<NetBurst>());
 }
 
 
@@ -282,7 +277,7 @@ bool BlockEncap::onInit()
 	std::vector <EncapPlugin::EncapContext *> up_return_ctx_scpc;
 	std::vector <EncapPlugin::EncapContext *> down_forward_ctx;
 
-	static_cast<Upward *>(this->upward)->setMacId(this->mac_id);
+	this->upward.setMacId(this->mac_id);
 	
 	LanAdaptationPlugin *lan_plugin = Ethernet::constructPlugin();
 	LOG(this->log_init, LEVEL_NOTICE,
@@ -363,8 +358,8 @@ bool BlockEncap::onInit()
 		// right order
 		reverse(down_forward_ctx.begin(), down_forward_ctx.end());
 		
-		static_cast<Downward *>(this->downward)->setContext(up_return_ctx);
-		static_cast<Upward *>(this->upward)->setContext(down_forward_ctx);
+		this->downward.setContext(up_return_ctx);
+		this->upward.setContext(down_forward_ctx);
 	}
 	else // gateway (already checked)
 	{
@@ -373,25 +368,23 @@ bool BlockEncap::onInit()
 		reverse(up_return_ctx.begin(), up_return_ctx.end());
 		reverse(up_return_ctx_scpc.begin(), up_return_ctx_scpc.end());
 		
-		static_cast<Downward *>(this->downward)->setContext(down_forward_ctx);
-		static_cast<Upward *>(this->upward)->setContext(up_return_ctx);
-		static_cast<Upward *>(this->upward)->setSCPCContext(up_return_ctx_scpc);
+		this->downward.setContext(down_forward_ctx);
+		this->upward.setContext(up_return_ctx);
+		this->upward.setSCPCContext(up_return_ctx_scpc);
 	}
 
 	return true;
 }
 
-bool BlockEncap::Downward::onTimer(event_id_t timer_id)
-{
-	std::map<event_id_t, int>::iterator it;
-	int id;
 
+bool Rt::DownwardChannel<BlockEncap>::onTimer(event_id_t timer_id)
+{
 	LOG(this->log_receive, LEVEL_INFO,
 	    "emission timer received, flush corresponding emission "
 	    "context\n");
 
 	// find encapsulation context to flush
-	it = this->timers.find(timer_id);
+	auto it = this->timers.find(timer_id);
 	if(it == this->timers.end())
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
@@ -400,17 +393,17 @@ bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 	}
 
 	// context found
-	id = (*it).second;
+	int id = it->second;
 	LOG(this->log_receive, LEVEL_INFO,
 	    "corresponding emission context found (ID = %d)\n",
 	    id);
 
 	// remove emission timer from the list
-	this->removeEvent((*it).first);
+	this->removeEvent(it->first);
 	this->timers.erase(it);
 
 	// flush the last encapsulation contexts
-	auto burst = (this->ctx.back())->flush(id);
+	Ptr<NetBurst> burst = (this->ctx.back())->flush(id);
 	if(!burst)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
@@ -428,7 +421,7 @@ bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 	}
 
 	// send the message to the lower layer
-	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::decap_data)))
+	if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "cannot send burst to lower layer failed\n");
@@ -441,11 +434,9 @@ bool BlockEncap::Downward::onTimer(event_id_t timer_id)
 	return true;
 }
 
-bool BlockEncap::Downward::onRcvBurst(std::unique_ptr<NetBurst> burst)
+
+bool Rt::DownwardChannel<BlockEncap>::onRcvBurst(Ptr<NetBurst> burst)
 {
-	std::map<long, int> time_contexts;
-	std::string name;
-	size_t size;
 
 	// check packet validity
 	if(!burst)
@@ -455,8 +446,9 @@ bool BlockEncap::Downward::onRcvBurst(std::unique_ptr<NetBurst> burst)
 		return false;
 	}
 
-	name = burst->name();
-	size = burst->size();
+	std::map<long, int> time_contexts;
+	std::string name = burst->name();
+	std::size_t size = burst->size();
 	LOG(this->log_receive, LEVEL_INFO,
 	    "encapsulate %zu %s packet(s)\n",
 	    size, name.c_str());
@@ -499,7 +491,7 @@ bool BlockEncap::Downward::onRcvBurst(std::unique_ptr<NetBurst> burst)
 			                            time_iter.first,
 			                            false);
 
-			this->timers.insert(std::make_pair(timer, time_iter.second));
+			this->timers.emplace(timer, time_iter.second);
 			LOG(this->log_receive, LEVEL_INFO,
 			    "timer for context ID %d armed with %ld ms\n",
 			    time_iter.second, time_iter.first);
@@ -538,9 +530,8 @@ bool BlockEncap::Downward::onRcvBurst(std::unique_ptr<NetBurst> burst)
 		return true;
 	}
 
-
 	// send the message to the lower layer
-	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::decap_data)))
+	if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to lower layer\n");
@@ -554,12 +545,14 @@ bool BlockEncap::Downward::onRcvBurst(std::unique_ptr<NetBurst> burst)
 	return true;
 }
 
-void BlockEncap::Upward::setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx)
+
+void Rt::UpwardChannel<BlockEncap>::setContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx)
 {
 	this->ctx = encap_ctx;
 }
 
-void BlockEncap::Upward::setSCPCContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx_scpc)
+
+void Rt::UpwardChannel<BlockEncap>::setSCPCContext(const std::vector<EncapPlugin::EncapContext *> &encap_ctx_scpc)
 {
 	this->ctx_scpc = encap_ctx_scpc;
 	if (0 < this->ctx_scpc.size())
@@ -575,15 +568,15 @@ void BlockEncap::Upward::setSCPCContext(const std::vector<EncapPlugin::EncapCont
 		this->scpc_encap.c_str());
 }
 
-void BlockEncap::Upward::setMacId(tal_id_t id)
+
+void Rt::UpwardChannel<BlockEncap>::setMacId(tal_id_t id)
 {
 	this->mac_id = id;
 }
 
-bool BlockEncap::Upward::onRcvBurst(std::unique_ptr<NetBurst> burst)
-{
-	unsigned int nb_bursts;
 
+bool Rt::UpwardChannel<BlockEncap>::onRcvBurst(Ptr<NetBurst> burst)
+{
 	// check burst validity
 	if(!burst)
 	{
@@ -592,7 +585,7 @@ bool BlockEncap::Upward::onRcvBurst(std::unique_ptr<NetBurst> burst)
 		return false;
 	}
 
-	nb_bursts = burst->size();
+	auto nb_bursts = burst->size();
 	LOG(this->log_receive, LEVEL_INFO,
 	    "message contains a burst of %d %s packet(s)\n",
 	    nb_bursts, burst->name().c_str());
@@ -623,7 +616,7 @@ bool BlockEncap::Upward::onRcvBurst(std::unique_ptr<NetBurst> burst)
 	}
 
 	// send the burst to the upper layer
-	if (!this->enqueueMessage((void **)&burst, 0, to_underlying(InternalMessageType::decap_data)))
+	if (!this->enqueueMessage(std::move(burst), to_underlying(InternalMessageType::decap_data)))
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
 		    "failed to send burst to upper layer\n");
@@ -631,8 +624,7 @@ bool BlockEncap::Upward::onRcvBurst(std::unique_ptr<NetBurst> burst)
 	}
 
 	LOG(this->log_receive, LEVEL_INFO,
-	    "burst of deencapsulated packets sent to the upper "
-	    "layer\n");
+	    "burst of deencapsulated packets sent to the upper layer\n");
 
 	// everthing is fine
 	return true;
@@ -699,43 +691,38 @@ bool BlockEncap::getEncapContext(EncapSchemeList scheme_list,
 	return true;
 }
 
+
 bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
                                      std::vector <EncapPlugin::EncapContext *> &ctx,
                                      const char *link_type)
 {
-	std::vector<std::string> scpc_encap;
-	std::vector<std::string>::iterator ite;
-	StackPlugin *upper_encap = NULL;
-	EncapPlugin *plugin;
-	std::string encap_name;
 
 	// Get SCPC encapsulation context
+	std::vector<std::string> scpc_encap;
 	if (!OpenSandModelConf::Get()->getScpcEncapStack(scpc_encap) ||
 		scpc_encap.size() <= 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 			"cannot get SCPC encapsulation names\n");
-		goto error;
+		return false;
 	}
 
-	upper_encap = l_plugin;
+	StackPlugin *upper_encap = l_plugin;
 
 	// get all the encapsulation to use upper to lower
-	for(ite = scpc_encap.begin(); ite != scpc_encap.end(); ++ite)
+	for(auto &&encap_name : scpc_encap)
 	{
-		EncapPlugin::EncapContext *context;
-		
-		encap_name = *ite;
 
+		EncapPlugin *plugin;
 		if(!Plugin::getEncapsulationPlugin(encap_name, &plugin))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get plugin for %s encapsulation\n",
 			    encap_name.c_str());
-			goto error;
+			return false;
 		}
 
-		context = plugin->getContext();
+		EncapPlugin::EncapContext *context = plugin->getContext();
 		ctx.push_back(context);
 		if(!context->setUpperPacketHandler(
 					upper_encap->getPacketHandler()))
@@ -745,7 +732,7 @@ bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
 			    "for %s encapsulation",
 			    upper_encap->getName().c_str(),
 			    context->getName().c_str());
-			goto error;
+			return false;
 		}
 		upper_encap = plugin;
 		
@@ -755,8 +742,4 @@ bool BlockEncap::getSCPCEncapContext(LanAdaptationPlugin *l_plugin,
 	}
 
 	return true;
-	
-	error:
-		return false;
 }
-

@@ -106,7 +106,7 @@ struct ltGseIdentifier
 	 * @return true if first GSE identifier is lesser than the second,
 	 *         false otherwise
 	 */
-	bool operator() (GseIdentifier * ai1, GseIdentifier * ai2) const;
+	bool operator() (const GseIdentifier &ai1, const GseIdentifier &ai2) const;
 };
 
 

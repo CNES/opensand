@@ -51,16 +51,14 @@ public:
 	virtual ~DamaAgentRcs2();
 
 	// Init method
-	virtual bool init(spot_id_t spot_id);
+	bool init(spot_id_t spot_id) override;
 
 	// Inherited methods
-	virtual bool processOnFrameTick();
-	virtual bool returnSchedule(std::list<DvbFrame *> *complete_dvb_frames);
-	virtual bool hereIsSOF(time_sf_t superframe_number_sf);
-	virtual bool hereIsTTP(Ttp *ttp);
-	virtual bool buildSAC(ReturnAccessType cr_type,
-	                      Sac *sac,
-	                      bool &emtpy);
+	bool processOnFrameTick() override;
+	bool returnSchedule(std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames) override;
+	bool hereIsSOF(time_sf_t superframe_number_sf) override;
+	bool hereIsTTP(Rt::Ptr<Ttp> ttp) override;
+	bool buildSAC(ReturnAccessType cr_type, Rt::Ptr<Sac> &sac, bool &emtpy) override;
 
 protected:
 	/** Number of allocated timeslots  */

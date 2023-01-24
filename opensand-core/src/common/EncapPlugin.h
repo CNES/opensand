@@ -41,6 +41,8 @@
 #include <map>
 #include <list>
 
+#include <opensand_rt/Ptr.h>
+
 #include "StackPlugin.h"
 
 
@@ -80,7 +82,7 @@ public:
 		 * @param tal_id  OUT: the source terminal ID of the packet
 		 * @return true on success, false otherwise
 		 */
-		virtual bool getSrc(const Data &data, tal_id_t &tal_id) const = 0;
+		virtual bool getSrc(const Rt::Data &data, tal_id_t &tal_id) const = 0;
 
 		/**
 		 * @brief Get the QoS of a packet
@@ -89,7 +91,7 @@ public:
 		 * @param qos    OUT: the QoS of the packet
 		 * @return true on success, false otherwise
 		 */
-		virtual bool getQos(const Data &data, qos_t &qos) const = 0;
+		virtual bool getQos(const Rt::Data &data, qos_t &qos) const = 0;
 
 		virtual bool init();
 
@@ -106,11 +108,11 @@ public:
 		 *
 		 * @return  true if success, false otherwise
 		 */
-		bool encapNextPacket(std::unique_ptr<NetPacket> packet,
+		bool encapNextPacket(Rt::Ptr<NetPacket> packet,
 		                     std::size_t remaining_length,
 		                     bool new_burst,
-		                     std::unique_ptr<NetPacket> &encap_packet,
-		                     std::unique_ptr<NetPacket> &remaining_data) override;
+		                     Rt::Ptr<NetPacket> &encap_packet,
+		                     Rt::Ptr<NetPacket> &remaining_data) override;
 
 		/**
 		 * @brief Get encapsulated packet from payload
@@ -121,21 +123,21 @@ public:
 		 * @param[out] decap_packets      The list of decapsulated packet
 		 * @param[in decap_packets_count  The packet count to decapsulate (0 if unknown)
 		 */
-		bool getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
+		bool getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
 		                            bool &partial_decap,
-		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+		                            std::vector<Rt::Ptr<NetPacket>> &decap_packets,
 		                            unsigned int decap_packet_count=0) override;
 
-		virtual bool checkPacketForHeaderExtensions(std::unique_ptr<NetPacket> &packet) = 0;
+		virtual bool checkPacketForHeaderExtensions(Rt::Ptr<NetPacket> &packet) = 0;
 
-		virtual bool setHeaderExtensions(std::unique_ptr<NetPacket> packet,
-		                                 std::unique_ptr<NetPacket>& new_packet,
+		virtual bool setHeaderExtensions(Rt::Ptr<NetPacket> packet,
+		                                 Rt::Ptr<NetPacket>& new_packet,
 		                                 tal_id_t tal_id_src,
 		                                 tal_id_t tal_id_dst,
 		                                 std::string callback_name,
 		                                 void *opaque) = 0;
 
-		virtual bool getHeaderExtensions(const std::unique_ptr<NetPacket>& packet,
+		virtual bool getHeaderExtensions(const Rt::Ptr<NetPacket>& packet,
 		                                 std::string callback_name,
 		                                 void *opaque) = 0;
 
@@ -164,10 +166,10 @@ public:
 		 *                               NULL (case 1, 4)
 		 * @return true on success (case 1, 2, 3), false otherwise (case 4)
 		 */
-		virtual bool getChunk(std::unique_ptr<NetPacket> packet,
+		virtual bool getChunk(Rt::Ptr<NetPacket> packet,
 		                      std::size_t remaining_length,
-		                      std::unique_ptr<NetPacket>& data,
-		                      std::unique_ptr<NetPacket>& remaining_data) const = 0;
+		                      Rt::Ptr<NetPacket>& data,
+		                      Rt::Ptr<NetPacket>& remaining_data) const = 0;
 
 		/// Output Logs
 		std::shared_ptr<OutputLog> log;
@@ -198,7 +200,7 @@ public:
 		 * @return            a list of encapsulation packets
 		 */
 		// TODO replace int by uintXX_t
-		virtual std::unique_ptr<NetBurst> flush(int context_id) = 0;
+		virtual Rt::Ptr<NetBurst> flush(int context_id) = 0;
 
 		/**
 		 * Flush all the encapsulation contexts. It's the caller charge to delete
@@ -206,7 +208,7 @@ public:
 		 *
 		 * @return  a list of encapsulation packets
 		 */
-		virtual std::unique_ptr<NetBurst> flushAll() = 0;
+		virtual Rt::Ptr<NetBurst> flushAll() = 0;
 
 		/**
 		 * @brief Set the filter on destination TAL Id.

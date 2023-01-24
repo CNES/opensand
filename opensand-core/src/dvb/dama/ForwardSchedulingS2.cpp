@@ -93,7 +93,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
                                          const TerminalCategoryDama *const category,
                                          spot_id_t spot, 
                                          bool is_gw, 
-                                         tal_id_t gw_id,
+                                         tal_id_t,
                                          std::string dst_name):
 	Scheduling(packet_handler, fifos, fwd_sts),
 	fwd_timer_ms(fwd_timer_ms),
@@ -148,48 +148,29 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
 
 ForwardSchedulingS2::~ForwardSchedulingS2()
 {
-	for (auto&& bb_frame : this->incomplete_bb_frames_ordered)
-	{
-		delete bb_frame;
-	}
-	for (auto&& bb_frame : this->pending_bbframes)
-	{
-		delete bb_frame;
-	}
-
+	this->incomplete_bb_frames_ordered.clear();
+	this->incomplete_bb_frames.clear();
+	this->pending_bbframes.clear();
 	delete this->category;
 }
 
 
 bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
                                    clock_t current_time,
-                                   std::list<DvbFrame *> *complete_dvb_frames,
+                                   std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
                                    uint32_t &remaining_allocation)
 {
-	fifos_t::const_iterator fifo_it;
-	std::vector<CarriersGroupDama *> carriers_group;
-	std::vector<CarriersGroupDama *>::iterator carrier_it;
-	carriers_group = this->category->getCarriersGroups();
+	auto carriers_group = this->category->getCarriersGroups();
 	vol_sym_t init_capacity_sym;
 	int total_capa = 0;
 
-	for (carrier_it = carriers_group.begin();
-	     carrier_it != carriers_group.end();
-	     ++carrier_it)
+	for (auto&& carriers : carriers_group)
 	{
-		CarriersGroupDama *carriers = *carrier_it;
-		std::vector<CarriersGroupDama *> vcm_carriers;
-		std::vector<CarriersGroupDama *>::iterator vcm_it;
 		unsigned int vcm_id = 0;
-
-		vcm_carriers = carriers->getVcmCarriers();
+		std::vector<CarriersGroupDama *> vcm_carriers = carriers->getVcmCarriers();
 		// if no VCM, getVcm() will return only one carrier
-		for (vcm_it = vcm_carriers.begin();
-		     vcm_it != vcm_carriers.end();
-		     ++vcm_it)
+		for(auto&& vcm : vcm_carriers)
 		{
-			std::list<BBFrame *>::iterator it;
-			CarriersGroupDama *vcm = *vcm_it;
 			vol_sym_t capacity_sym;
 			vol_sym_t previous_sym;
 
@@ -204,11 +185,8 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			previous_sym = vcm->getPreviousCapacity(current_superframe_sf);
 			capacity_sym += previous_sym;
 
-			for(fifo_it = this->dvb_fifos.begin();
-			    fifo_it != this->dvb_fifos.end(); ++fifo_it)
+			for(auto&& [_key, fifo] : this->dvb_fifos)
 			{
-				DvbFifo *fifo = (*fifo_it).second;
-
 				// check if the FIFO can emit on this carriers group
 				if(vcm_carriers.size() <= 1)
 				{
@@ -255,7 +233,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 				                               current_superframe_sf,
 				                               current_time,
 				                               complete_dvb_frames,
-				                               *vcm_it,
+				                               vcm,
 				                               capacity_sym,
 				                               init_capacity_sym))
 				{
@@ -273,7 +251,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 
 			// try to fill the BBFrames list with the remaining
 			// incomplete BBFrames
-			for(it = this->incomplete_bb_frames_ordered.begin();
+			for(auto it = this->incomplete_bb_frames_ordered.begin();
 			    it != this->incomplete_bb_frames_ordered.end();
 			    it = this->incomplete_bb_frames_ordered.erase(it))
 			{
@@ -283,7 +261,9 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 					break;
 				}
 
-				ret = this->addCompleteBBFrame(complete_dvb_frames, *it,
+				auto& current_bbframe = this->incomplete_bb_frames.at(*it);
+				ret = this->addCompleteBBFrame(complete_dvb_frames,
+				                               current_bbframe,
 				                               current_superframe_sf,
 				                               capacity_sym);
 				if(ret == status_error)
@@ -292,41 +272,32 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 				}
 				else if(ret == status_ok)
 				{
-					unsigned int modcod = (*it)->getModcodId();
-
-					this->incomplete_bb_frames.erase(modcod);
+					this->incomplete_bb_frames.erase(*it);
 					// incomplete ordered erased in loop
 				}
 				else if(ret == status_full)
 				{
 					time_sf_t next_sf = current_superframe_sf + 1;
-					// we keep the remaining capacity that won't be used for
-					// next frame
-					(*vcm_it)->setPreviousCapacity(std::min(capacity_sym,
-					                                        init_capacity_sym),
-					                               next_sf);
+					// we keep the remaining capacity that won't be used for next frame
+					vcm->setPreviousCapacity(std::min(capacity_sym, init_capacity_sym), next_sf);
 					break;
 				}
 			}
 			// update remaining capacity for statistics
-			vcm->setRemainingCapacity(std::min(capacity_sym,
-			                                         init_capacity_sym));
+			vcm->setRemainingCapacity(std::min(capacity_sym, init_capacity_sym));
 			vcm_id++;
 		}
 	}
 	this->probe_fwd_total_capacity->put(total_capa);
 	this->probe_bbframe_nbr->put(complete_dvb_frames->size());
 
-	for(carrier_it = carriers_group.begin();
-	    carrier_it != carriers_group.end();
-	    ++carrier_it)
+	for(auto&& carriers : carriers_group)
 	{
-		CarriersGroupDama *carriers = *carrier_it;
 		unsigned int carriers_id = carriers->getCarriersId();
 		unsigned int id = 0;
 
 		std::vector<CarriersGroupDama *> vcm_carriers = carriers->getVcmCarriers();
-		for(auto *vcm: vcm_carriers)
+		for(auto&& vcm: vcm_carriers)
 		{
 			unsigned int remain = vcm->getRemainingCapacity();
 			unsigned int avail = vcm->getTotalCapacity();
@@ -377,16 +348,14 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
                                                const time_sf_t current_superframe_sf,
                                                clock_t current_time,
-                                               std::list<DvbFrame *> *complete_dvb_frames,
+                                               std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
                                                CarriersGroupDama *carriers,
                                                vol_sym_t &capacity_sym,
                                                vol_sym_t init_capa)
 {
 	int ret;
 	unsigned int sent_packets = 0;
-	FifoElement *elem;
 	long max_to_send;
-	BBFrame *current_bbframe;
 	std::list<fmt_id_t> supported_modcods = carriers->getFmtIds();
 
 	// retrieve the number of packets waiting for retransmission
@@ -434,9 +403,9 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 	while(fifo->getCurrentSize() > 0)
 	{
 		tal_id_t tal_id;
-		std::unique_ptr<NetPacket> encap_packet;
-		std::unique_ptr<NetPacket> data;
-		std::unique_ptr<NetPacket> remaining_data;
+		Rt::Ptr<NetPacket> encap_packet = Rt::make_ptr<NetPacket>(nullptr);
+		Rt::Ptr<NetPacket> data = Rt::make_ptr<NetPacket>(nullptr);
+		Rt::Ptr<NetPacket> remaining_data = Rt::make_ptr<NetPacket>(nullptr);
 
 		// simulate the satellite delay
 		if(fifo->getTickOut() > current_time)
@@ -449,7 +418,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			    break;
 		}
 
-		elem = fifo->pop();
+		std::unique_ptr<FifoElement> elem = fifo->pop();
 
 		encap_packet = elem->getElem<NetPacket>();
 		// retrieve the encapsulation packet
@@ -459,7 +428,6 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			    "SF#%u: invalid packet #%u in MAC FIFO "
 			    "element\n", current_superframe_sf,
 			    sent_packets + 1);
-			delete elem;
 			return false;
 		}
 
@@ -489,19 +457,16 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			    tal_id);
 		}
 
-		if(!this->getIncompleteBBFrame(tal_id, carriers, current_superframe_sf,
-		                               &current_bbframe))
+		unsigned int modcod;
+		if(!this->prepareIncompleteBBFrame(tal_id, carriers,
+		                                   current_superframe_sf,
+		                                   modcod))
 		{
 			// cannot initialize incomplete BB Frame
-			delete elem;
 			return false;
 		}
-		else if(!current_bbframe)
-		{
-			// cannot get modcod for the ST delete the element
-			delete elem;
-			continue;
-		}
+
+		Rt::Ptr<BBFrame>& current_bbframe = this->incomplete_bb_frames.at(modcod);
 
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "SF#%u: Got the BBFrame for packet #%u, "
@@ -522,14 +487,13 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			    "SF#%u: error while processing packet "
 			    "#%u\n", current_superframe_sf,
 			    sent_packets + 1);
-			delete elem;
 		}
 
 		bool partial_encap = remaining_data != nullptr;
 		if(data)
 		{
 			// Add data
-			if(!current_bbframe->addPacket(data.get()))
+			if(!current_bbframe->addPacket(*data))
 			{
 				LOG(this->log_scheduling, LEVEL_ERROR,
 				    "SF#%u: failed to add encapsulation "
@@ -540,7 +504,6 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 				    current_bbframe->getModcodId(),
 				    data->getTotalLength(),
 				    current_bbframe->getFreeSpace());
-				delete elem;
 				return false;
 			}
 
@@ -567,12 +530,7 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 		{
 			// Re-insert packet
 			elem->setElem(std::move(remaining_data));
-			fifo->pushFront(elem);
-		}
-		else
-		{
-			// Delete packet	
-			delete elem;
+			fifo->pushFront(std::move(elem));
 		}
 
 		// the BBFrame has been completed or the next packet is too long
@@ -590,10 +548,6 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			}
 			else
 			{
-				unsigned int modcod = current_bbframe->getModcodId();
-
-				this->incomplete_bb_frames_ordered.remove(current_bbframe);
-				this->incomplete_bb_frames.erase(modcod);
 				if(ret == status_full)
 				{
 					time_sf_t next_sf = current_superframe_sf + 1;
@@ -602,9 +556,11 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 					carriers->setPreviousCapacity(capacity_sym,
 					                              next_sf);
 
-					this->pending_bbframes.push_back(current_bbframe);
+					this->pending_bbframes.push_back(std::move(current_bbframe));
 					break;
 				}
+				this->incomplete_bb_frames_ordered.remove(modcod);
+				this->incomplete_bb_frames.erase(modcod);
 			}
 		}
 	}
@@ -626,20 +582,23 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 }
 
 
-bool ForwardSchedulingS2::createIncompleteBBFrame(BBFrame **bbframe,
+bool ForwardSchedulingS2::createIncompleteBBFrame(Rt::Ptr<BBFrame> &bbframe,
                                                   const time_sf_t current_superframe_sf,
                                                   unsigned int modcod_id)
 {
 	// if there is no incomplete BB frame create a new one
 	size_t bbframe_size_bytes;
 
-	*bbframe = new BBFrame();
-	if(bbframe == NULL)
+	try
+	{
+		bbframe = Rt::make_ptr<BBFrame>();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: failed to create an incomplete BB frame\n",
 		    current_superframe_sf);
-		goto error;
+		return false;
 	}
 
 	if(!this->packet_handler)
@@ -647,11 +606,11 @@ bool ForwardSchedulingS2::createIncompleteBBFrame(BBFrame **bbframe,
 		LOG(this->log_scheduling, LEVEL_ERROR,
 		    "SF#%u: packet handler is NULL\n",
 		    current_superframe_sf);
-		goto error;
+		return false;
 	}
 
 	// set the MODCOD ID of the BB frame
-	(*bbframe)->setModcodId(modcod_id);
+	bbframe->setModcodId(modcod_id);
 
 	// get the payload size
 	// to simulate the modcod applied to transmitted data, we limit the
@@ -663,12 +622,9 @@ bool ForwardSchedulingS2::createIncompleteBBFrame(BBFrame **bbframe,
 	    modcod_id, bbframe_size_bytes);
 
 	// set the size of the BB frame
-	(*bbframe)->setMaxSize(bbframe_size_bytes);
+	bbframe->setMaxSize(bbframe_size_bytes);
 
 	return true;
-
-error:
-	return false;
 }
 
 
@@ -721,18 +677,12 @@ unsigned int ForwardSchedulingS2::getBBFrameSizeBytes(unsigned int modcod_id)
 }
 
 
-
-
-bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
-                                               CarriersGroupDama *carriers,
-                                               const time_sf_t current_superframe_sf,
-                                               BBFrame **bbframe)
+bool ForwardSchedulingS2::prepareIncompleteBBFrame(tal_id_t tal_id,
+                                                   CarriersGroupDama *carriers,
+                                                   const time_sf_t current_superframe_sf,
+                                                   unsigned int &modcod_id)
 {
-	std::map<unsigned int, BBFrame *>::iterator iter;
 	unsigned int desired_modcod;
-	unsigned int modcod_id;
-
-	*bbframe = NULL;
 
 	// retrieve the current MODCOD for the ST
 	if(!this->simu_sts->isStPresent(tal_id))
@@ -740,13 +690,13 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
 		LOG(this->log_scheduling, LEVEL_WARNING,
 		    "encapsulation packet is for ST%u that is not registered\n",
 		    tal_id);
-		goto skip;
+		return true;
 	}
 	desired_modcod = this->getCurrentModcodId(tal_id);
 	if(desired_modcod == 0)
 	{
 		// cannot get modcod for the ST skip this element
-		goto skip;
+		return true;
 	}
 
 	// get best modcod ID according to carrier
@@ -758,20 +708,19 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
 		    "on carrier %u\n", current_superframe_sf, tal_id, desired_modcod,
 		    carriers->getCarriersId());
 
-		goto skip;
+		return true;
 	}
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "SF#%u: Available MODCOD for ST id %u = %u\n",
 	    current_superframe_sf, tal_id, modcod_id);
 
 	// find if the BBFrame exists
-	iter = this->incomplete_bb_frames.find(modcod_id);
-	if(iter != this->incomplete_bb_frames.end() && (*iter).second != NULL)
+	auto iter = this->incomplete_bb_frames.find(modcod_id);
+	if(iter != this->incomplete_bb_frames.end() && iter->second != nullptr)
 	{
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "SF#%u: Found a BBFrame for MODCOD %u\n",
 		    current_superframe_sf, modcod_id);
-		*bbframe = (*iter).second;
 	}
 	// no BBFrame for this MOCDCOD create a new one
 	else
@@ -780,26 +729,23 @@ bool ForwardSchedulingS2::getIncompleteBBFrame(tal_id_t tal_id,
 		    "SF#%u: Create a new BBFrame for MODCOD %u\n",
 		    current_superframe_sf, modcod_id);
 		// if there is no incomplete BB frame create a new one
-		if(!this->createIncompleteBBFrame(bbframe, current_superframe_sf,
-		                                  modcod_id))
+		Rt::Ptr<BBFrame> bbframe = Rt::make_ptr<BBFrame>(nullptr);
+		if(!this->createIncompleteBBFrame(bbframe, current_superframe_sf, modcod_id))
 		{
-			goto error;
+			return false;
 		}
 
 		// add the BBFrame in the map and list
-		this->incomplete_bb_frames[modcod_id] = *bbframe;
-		this->incomplete_bb_frames_ordered.push_back(*bbframe);
+		this->incomplete_bb_frames.emplace(modcod_id, std::move(bbframe));
+		this->incomplete_bb_frames_ordered.push_back(modcod_id);
 	}
 
-skip:
 	return true;
-error:
-	return false;
 }
 
 
-sched_status_t ForwardSchedulingS2::addCompleteBBFrame(std::list<DvbFrame *> *complete_bb_frames,
-                                                       BBFrame *bbframe,
+sched_status_t ForwardSchedulingS2::addCompleteBBFrame(std::list<Rt::Ptr<DvbFrame>> *complete_bb_frames,
+                                                       Rt::Ptr<BBFrame>& bbframe,
                                                        const time_sf_t current_superframe_sf,
                                                        vol_sym_t &remaining_capacity_sym)
 {
@@ -831,7 +777,7 @@ sched_status_t ForwardSchedulingS2::addCompleteBBFrame(std::list<DvbFrame *> *co
 	}
 
 	// we can send the BBFrame
-	complete_bb_frames->push_back((DvbFrame *)bbframe);
+	complete_bb_frames->push_back(dvb_frame_downcast(std::move(bbframe)));
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "SF#%u: New complete BBFrame\n",
 	    current_superframe_sf);
@@ -845,7 +791,7 @@ sched_status_t ForwardSchedulingS2::addCompleteBBFrame(std::list<DvbFrame *> *co
 
 void ForwardSchedulingS2::schedulePending(const std::list<fmt_id_t> supported_modcods,
                                           const time_sf_t current_superframe_sf,
-                                          std::list<DvbFrame *> *complete_dvb_frames,
+                                          std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
                                           vol_sym_t &remaining_capacity_sym)
 {
 	if(this->pending_bbframes.size() == 0)
@@ -853,7 +799,7 @@ void ForwardSchedulingS2::schedulePending(const std::list<fmt_id_t> supported_mo
 		return;
 	}
 
-	std::list<BBFrame *> new_pending;
+	std::list<Rt::Ptr<BBFrame>> new_pending;
 	for (auto&& pending_frame : this->pending_bbframes)
 	{
 		unsigned int modcod = pending_frame->getModcodId();
@@ -869,7 +815,7 @@ void ForwardSchedulingS2::schedulePending(const std::list<fmt_id_t> supported_mo
 			if(status == status_full)
 			{
 				// keep the BBFrame in pending list
-				new_pending.push_back(pending_frame);
+				new_pending.push_back(std::move(pending_frame));
 			}
 			else if(status != status_ok)
 			{
@@ -881,7 +827,7 @@ void ForwardSchedulingS2::schedulePending(const std::list<fmt_id_t> supported_mo
 		else
 		{
 			// keep the BBFrame in pending list
-			new_pending.push_back(pending_frame);
+			new_pending.push_back(std::move(pending_frame));
 		}
 	}
 	if(complete_dvb_frames->size() > 0)
@@ -890,11 +836,10 @@ void ForwardSchedulingS2::schedulePending(const std::list<fmt_id_t> supported_mo
 		    "%zu pending frames scheduled, %zu remaining\n",
 		    complete_dvb_frames->size(), new_pending.size());
 	}
-	this->pending_bbframes.clear();
-	this->pending_bbframes.insert(this->pending_bbframes.end(),
-	                              new_pending.begin(), new_pending.end());
 
+	this->pending_bbframes = std::move(new_pending);
 }
+
 
 void ForwardSchedulingS2::checkBBFrameSize(CarriersGroupDama *vcm,
                                            std::vector<CarriersGroupDama *> vcm_carriers)

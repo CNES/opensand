@@ -100,11 +100,11 @@ std::list<std::string> EncapPlugin::EncapPacketHandler::getCallback()
 }
 */
 
-bool EncapPlugin::EncapPacketHandler::encapNextPacket(std::unique_ptr<NetPacket> packet,
+bool EncapPlugin::EncapPacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
                                                       std::size_t remaining_length,
                                                       bool,
-                                                      std::unique_ptr<NetPacket> &encap_packet,
-                                                      std::unique_ptr<NetPacket> &remaining_data)
+                                                      Rt::Ptr<NetPacket> &encap_packet,
+                                                      Rt::Ptr<NetPacket> &remaining_data)
 {
 	// Set default returned values
 	remaining_data.reset();
@@ -118,12 +118,12 @@ bool EncapPlugin::EncapPacketHandler::encapNextPacket(std::unique_ptr<NetPacket>
 }
 
 
-bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
+bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
                                                              bool &partial_decap,
-                                                             std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+                                                             std::vector<Rt::Ptr<NetPacket>> &decap_packets,
                                                              unsigned int decap_packets_count)
 {
-	std::vector<std::unique_ptr<NetPacket>> packets{};
+	std::vector<Rt::Ptr<NetPacket>> packets{};
 	std::size_t previous_length = 0;
 
 	// Set the default returned values
@@ -155,7 +155,7 @@ bool EncapPlugin::EncapPacketHandler::getEncapsulatedPackets(std::unique_ptr<Net
 		}
 
 		// Get the current packet
-		std::unique_ptr<NetPacket> current;
+		Rt::Ptr<NetPacket> current = Rt::make_ptr<NetPacket>(nullptr);
 		try
 		{
 			current = this->build(packet->getPayload(previous_length),

@@ -47,7 +47,7 @@
  */
 class TerminalCategoryDama: public TerminalCategory<CarriersGroupDama>
 {
-public:
+ public:
 	/**
 	 * @brief  Create a terminal category.
 	 *
@@ -66,10 +66,9 @@ public:
 	 * @return  terminal list in the carriers group
 	 */
 	template<class T>
-	std::vector<T *> getTerminalsInCarriersGroup(
-	                             unsigned int carrier_id) const;
-
+	std::vector<T *> getTerminalsInCarriersGroup(unsigned int carrier_id) const;
 };
+
 
 template<class T>
 std::vector<T *> TerminalCategoryDama::getTerminalsInCarriersGroup(unsigned int carrier_id) const
@@ -88,5 +87,5 @@ std::vector<T *> TerminalCategoryDama::getTerminalsInCarriersGroup(unsigned int 
 	return entries;
 }
 
-#endif
 
+#endif

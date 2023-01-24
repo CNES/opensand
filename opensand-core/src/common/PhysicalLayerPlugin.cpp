@@ -33,9 +33,9 @@
  */
 
 #include "PhysicalLayerPlugin.h"
-#include "Data.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/Types.h>
 
 
 AttenuationModelPlugin::AttenuationModelPlugin():

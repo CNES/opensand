@@ -211,7 +211,7 @@ void SpotDownward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParam
 }
 
 
-bool SpotDownward::onInit(void)
+bool SpotDownward::onInit()
 {
 	if(!this->initPktHdl(EncapSchemeList::RETURN_UP,
 	                     &this->up_return_pkt_hdl))
@@ -294,7 +294,7 @@ bool SpotDownward::onInit(void)
 }
 
 
-bool SpotDownward::initMode(void)
+bool SpotDownward::initMode()
 {
 	// initialize scheduling
 	// depending on the satellite type
@@ -407,7 +407,7 @@ bool SpotDownward::initMode(void)
 
 // TODO this function is NCC part but other functions are related to GW,
 //      we could maybe create two classes inside the block to keep them separated
-bool SpotDownward::initDama(void)
+bool SpotDownward::initDama()
 {
 	time_ms_t sync_period_ms;
 	time_frame_t sync_period_frame;
@@ -566,7 +566,7 @@ release_dama:
 }
 
 
-bool SpotDownward::initCarrierIds(void)
+bool SpotDownward::initCarrierIds()
 {
 	auto Conf = OpenSandModelConf::Get();
 
@@ -604,7 +604,7 @@ bool SpotDownward::initCarrierIds(void)
 
 bool SpotDownward::initFifo(fifos_t &fifos)
 {
-	int default_fifo_prio = 0;
+	unsigned int default_fifo_prio = 0;
 	std::map<std::string, int> fifo_ids;
 
 	auto Conf = OpenSandModelConf::Get();
@@ -708,7 +708,7 @@ err_fifo_release:
 	return false;
 }
 
-bool SpotDownward::initRequestSimulation(void)
+bool SpotDownward::initRequestSimulation()
 {
 	auto Conf = OpenSandModelConf::Get();
 
@@ -816,7 +816,7 @@ bool SpotDownward::initRequestSimulation(void)
 	return true;
 }
 
-bool SpotDownward::initOutput(void)
+bool SpotDownward::initOutput()
 {
 	auto output = Output::Get();
 
@@ -874,17 +874,17 @@ bool SpotDownward::initOutput(void)
 }
 
 
-bool SpotDownward::handleSalohaAcks(const std::list<DvbFrame *> *ack_frames)
+bool SpotDownward::handleSalohaAcks(Rt::Ptr<std::list<Rt::Ptr<DvbFrame>>> ack_frames)
 {
-	for (auto&& ack : *ack_frames)
+	for (auto&& ack: *ack_frames)
 	{
-		this->complete_dvb_frames.push_back(ack);
+		this->complete_dvb_frames.push_back(std::move(ack));
 	}
 	return true;
 }
 
 
-bool SpotDownward::handleEncapPacket(std::unique_ptr<NetPacket> packet)
+bool SpotDownward::handleEncapPacket(Rt::Ptr<NetPacket> packet)
 {
 	qos_t fifo_priority = packet->getQos();
 	std::string cat_label;
@@ -955,7 +955,7 @@ bool SpotDownward::handleEncapPacket(std::unique_ptr<NetPacket> packet)
 }
 
 
-bool SpotDownward::handleLogonReq(const LogonRequest *logon_req)
+bool SpotDownward::handleLogonReq(Rt::Ptr<LogonRequest> logon_req)
 {
 	uint16_t mac = logon_req->getMac();
 	bool is_scpc = logon_req->getIsScpc();
@@ -966,7 +966,7 @@ bool SpotDownward::handleLogonReq(const LogonRequest *logon_req)
 
 	// Inform the Dama controller (for its own context)
 	if(!is_scpc && this->dama_ctrl && 
-	   !this->dama_ctrl->hereIsLogon(logon_req))
+	   !this->dama_ctrl->hereIsLogon(std::move(logon_req)))
 	{
 		return false;
 	}
@@ -983,10 +983,9 @@ bool SpotDownward::handleLogonReq(const LogonRequest *logon_req)
 }
 
 
-bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
+bool SpotDownward::handleLogoffReq(Rt::Ptr<DvbFrame> dvb_frame)
 {
-	// TODO	Logoff *logoff = dynamic_cast<Logoff *>(dvb_frame);
-	Logoff *logoff = (Logoff *)dvb_frame;
+	auto logoff = dvb_frame_upcast<Logoff>(std::move(dvb_frame));
 
 	// unregister the ST identified by the MAC ID found in DVB frame
 	if(!this->delInputTerminal(logoff->getMac()))
@@ -994,7 +993,6 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to delete the ST with ID %d from FMT simulation\n",
 		    logoff->getMac());
-		delete dvb_frame;
 		return false;
 	}
 	if(!this->delOutputTerminal(logoff->getMac()))
@@ -1002,30 +1000,28 @@ bool SpotDownward::handleLogoffReq(const DvbFrame *dvb_frame)
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to delete the ST with ID %d from FMT simulation\n",
 		    logoff->getMac());
-		delete dvb_frame;
 		return false;
 	}
 
 	if(this->dama_ctrl)
 	{
-		this->dama_ctrl->hereIsLogoff(logoff);
+		this->dama_ctrl->hereIsLogoff(std::move(logoff));
 	}
 	LOG(this->log_receive_channel, LEVEL_DEBUG,
 	    "SF#%u: logoff request from %d\n",
 	    this->super_frame_counter, logoff->getMac());
 
-	delete dvb_frame;
 	return true;
 }
 
 
-
-bool SpotDownward::buildTtp(Ttp *ttp)
+bool SpotDownward::buildTtp(Ttp& ttp)
 {
 	return this->dama_ctrl->buildTTP(ttp);
 }
 
-void SpotDownward::updateStatistics(void)
+
+void SpotDownward::updateStatistics()
 {
 	if(!this->doSendStats())
 	{
@@ -1094,16 +1090,14 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 	// run the allocation algorithms (DAMA)
 	this->dama_ctrl->runOnSuperFrameChange(this->super_frame_counter);
 
-	std::list<DvbFrame *> msgs;
-	std::list<DvbFrame *>::iterator msg;
-
 	// handle simulated terminals
 	if(!this->request_simu)
 	{
 		return true;
 	}
 
-	if(!this->request_simu->simulation(&msgs, this->super_frame_counter))
+	std::list<Rt::Ptr<DvbFrame>> msgs;
+	if(!this->request_simu->simulation(msgs, this->super_frame_counter))
 	{
 		this->request_simu->stopSimulation();
 		this->simulate = none_simu;
@@ -1113,9 +1107,9 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 		return false;
 	}
 
-	for(msg = msgs.begin(); msg != msgs.end(); ++msg)
+	for(auto&& msg: msgs)
 	{
-		EmulatedMessageType msg_type = (*msg)->getMessageType();
+		EmulatedMessageType msg_type = msg->getMessageType();
 		switch(msg_type)
 		{
 			case EmulatedMessageType::Sac:
@@ -1123,11 +1117,11 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message type SAC");
 
-				Sac *sac = (Sac *)(*msg);
+				auto sac = dvb_frame_upcast<Sac>(std::move(msg));
 				tal_id_t tal_id = sac->getTerminalId();
 				// add CNI in SAC here as we have access to the data
 				sac->setAcm(this->getRequiredCniOutput(tal_id));
-				if(!this->handleSac(*msg))
+				if(!this->handleSac(dvb_frame_downcast(std::move(sac))))
 				{
 					return false;
 				}
@@ -1139,7 +1133,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				LOG(this->log_request_simulation, LEVEL_INFO,
 				    "simulate message session logon request");
 
-				LogonRequest *logon_req = (LogonRequest*)(*msg);
+				auto logon_req = dvb_frame_upcast<LogonRequest>(std::move(msg));
 				tal_id_t st_id = logon_req->getMac();
 
 				// check for column in FMT simulation list
@@ -1157,7 +1151,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 					    "ID %u\n", st_id);
 					return false;
 				}
-				if(!this->dama_ctrl->hereIsLogon(logon_req))
+				if(!this->dama_ctrl->hereIsLogon(std::move(logon_req)))
 				{
 					return false;
 				}
@@ -1169,8 +1163,7 @@ bool SpotDownward::handleFrameTimer(time_sf_t super_frame_counter)
 				    "simulate message logoff");
 
 				// TODO remove Terminals
-				Logoff *logoff = (Logoff*)(*msg);
-				if(!this->dama_ctrl->hereIsLogoff(logoff))
+				if(!this->dama_ctrl->hereIsLogoff(dvb_frame_upcast<Logoff>(std::move(msg))))
 				{
 					return false;
 				}
@@ -1230,7 +1223,7 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 
 }
 
-void SpotDownward::updateFmt(void)
+void SpotDownward::updateFmt()
 {
 	if(!this->dama_ctrl)
 	{
@@ -1242,45 +1235,42 @@ void SpotDownward::updateFmt(void)
 	this->dama_ctrl->updateRequiredFmts();
 }
 
-uint8_t SpotDownward::getCtrlCarrierId(void) const
+uint8_t SpotDownward::getCtrlCarrierId() const
 {
 	return this->ctrl_carrier_id;
 }
 
-uint8_t SpotDownward::getSofCarrierId(void) const
+uint8_t SpotDownward::getSofCarrierId() const
 {
 	return this->sof_carrier_id;
 }
 
-uint8_t SpotDownward::getDataCarrierId(void) const
+uint8_t SpotDownward::getDataCarrierId() const
 {
 	return this->data_carrier_id;
 }
 
-std::list<DvbFrame *> &SpotDownward::getCompleteDvbFrames(void)
+std::list<Rt::Ptr<DvbFrame>> &SpotDownward::getCompleteDvbFrames()
 {
 	return this->complete_dvb_frames;
 }
 
-event_id_t SpotDownward::getPepCmdApplyTimer(void)
+Rt::event_id_t SpotDownward::getPepCmdApplyTimer()
 {
 	return this->pep_cmd_apply_timer;
 }
 
-void SpotDownward::setPepCmdApplyTimer(event_id_t pep_cmd_a_timer)
+void SpotDownward::setPepCmdApplyTimer(Rt::event_id_t pep_cmd_a_timer)
 {
 	this->pep_cmd_apply_timer = pep_cmd_a_timer;
 }
 
-bool SpotDownward::handleSac(const DvbFrame *dvb_frame)
+bool SpotDownward::handleSac(Rt::Ptr<DvbFrame> dvb_frame)
 {
-	Sac *sac = (Sac *)dvb_frame;
-
-	if(!this->dama_ctrl->hereIsSAC(sac))
+	if(!this->dama_ctrl->hereIsSAC(dvb_frame_upcast<Sac>(std::move(dvb_frame))))
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "failed to handle SAC frame\n");
-		delete dvb_frame;
 		return false;
 	}
 
@@ -1365,7 +1355,7 @@ bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
 //      correct either with a timer (base en acm_period) that may call
 //      setCniInputHasChanged on all SCPC terminals or using the most
 //      robust MODCOD to transmit packets with CNI extension
-bool SpotDownward::addCniExt(void)
+bool SpotDownward::addCniExt()
 {
 	std::list<tal_id_t> list_st;
 
@@ -1375,9 +1365,10 @@ bool SpotDownward::addCniExt(void)
 		for(auto&& fifos_it : dvb_fifos_it.second)
 		{
 			DvbFifo *fifo = fifos_it.second;
-			for(auto&& elem : fifo->getQueue())
+			// for(auto&& elem : fifo->getQueue())
+			for(auto&& elem : *fifo)
 			{
-				std::unique_ptr<NetPacket> packet = elem->getElem<NetPacket>();
+				Rt::Ptr<NetPacket> packet = elem->getElem<NetPacket>();
 				tal_id_t tal_id = packet->getDstTalId();
 
 				auto it = std::find(this->is_tal_scpc.begin(), this->is_tal_scpc.end(), tal_id);
@@ -1386,7 +1377,7 @@ bool SpotDownward::addCniExt(void)
 					list_st.push_back(tal_id);
 					// we could make specific SCPC function
 					if(!this->setPacketExtension(this->pkt_hdl,
-						                         elem,
+						                         *elem,
 						                         std::move(packet),
 						                         this->mac_id,
 						                         tal_id,
@@ -1456,13 +1447,11 @@ bool SpotDownward::addCniExt(void)
 				return false;
 			}
 
-			FifoElement *new_el = new FifoElement(nullptr, 0, 0);
-			// highest priority fifo
-			(fifos_it->second)[0]->pushBack(new_el);
+			auto new_el = std::make_unique<FifoElement>(Rt::make_ptr<NetPacket>(nullptr), 0, 0);
 			// set packet extension to this new empty packet
 			if(!this->setPacketExtension(this->pkt_hdl,
-				                         new_el,
-				                         nullptr,
+				                         *new_el,
+				                         Rt::make_ptr<NetPacket>(nullptr),
 				                         this->mac_id,
 				                         tal_id,
 				                         "encodeCniExt",
@@ -1472,6 +1461,8 @@ bool SpotDownward::addCniExt(void)
 				return false;
 			}
 
+			// highest priority fifo
+			(fifos_it->second)[0]->pushBack(std::move(new_el));
 			LOG(this->log_send_channel, LEVEL_DEBUG,
 			    "SF #%d: adding empty packet into FIFO NM\n",
 			    this->super_frame_counter);

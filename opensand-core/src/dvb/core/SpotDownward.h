@@ -40,6 +40,7 @@
 #include <list>
 #include <opensand_rt/Types.h>
 
+#include "DvbFifo.h"
 #include "DvbChannel.h"
 #include "RequestSimulator.h"
 #include "TerminalCategoryDama.h"
@@ -52,7 +53,6 @@ class SvnoRequest;
 class Ttp;
 class DamaCtrlRcs2;
 class Scheduling;
-class RequestSimulator;
 
 
 class SpotDownward: public DvbChannel, public DvbFmt
@@ -76,7 +76,7 @@ public:
 	 *
 	 * @return true on success, false otherwise
 	 */ 
-	bool onInit(void);
+	bool onInit();
 
 	/**
 	 * @brief Handle the Slotted Aloha ACKs
@@ -84,7 +84,7 @@ public:
 	 * @param ack_frames  The Slotted Aloha ACKs
 	 * @return true on success, false otherwise
 	 */
-	bool handleSalohaAcks(const std::list<DvbFrame *> *ack_frames);
+	bool handleSalohaAcks(Rt::Ptr<std::list<Rt::Ptr<DvbFrame>>> ack_frames);
 
 	/**
 	 * @brief Handle an encapsulated packet
@@ -92,7 +92,7 @@ public:
 	 * @param packet  The encapsulated packet
 	 * @return true on success, false otherwise
 	 */
-	bool handleEncapPacket(std::unique_ptr<NetPacket> packet);
+	bool handleEncapPacket(Rt::Ptr<NetPacket> packet);
 
 	/**
 	 * @brief Handle a logon request transmitted by the opposite
@@ -101,7 +101,7 @@ public:
 	 * @param logon_req  The frame contining the logon request
 	 * @return true on success, false otherwise
 	 */
-	bool handleLogonReq(const LogonRequest *logon_req);
+	bool handleLogonReq(Rt::Ptr<LogonRequest> logon_req);
 
 	/**
 	 * @brief Handle a logoff request transmitted by the opposite
@@ -110,7 +110,7 @@ public:
 	 * @param dvb_frame  The frame contining the logoff request
 	 * @return true on success, false otherwise
 	 */
-	bool handleLogoffReq(const DvbFrame *dvb_frame);
+	bool handleLogoffReq(Rt::Ptr<DvbFrame> dvb_frame);
 
 	/**
 	 * @brief check if Dama is existing
@@ -141,12 +141,12 @@ public:
 	 * @param dvb_frame The SAC frame
 	 * @return true on success, false otherwise
 	 */
-	bool handleSac(const DvbFrame *dvb_frame);
+	bool handleSac(Rt::Ptr<DvbFrame> dvb_frame);
 
 	/**
 	 * @brief update FMT in DAMA controller
 	 */
-	void updateFmt(void);
+	void updateFmt();
 
 	/**
 	 * @briel apply PEP command
@@ -168,16 +168,16 @@ public:
 	 * @param ttp  OUT: The TTP
 	 * @return true on success, false otherwise
 	 */
-	bool buildTtp(Ttp *ttp);
+	bool buildTtp(Ttp& ttp);
 
-	uint8_t getCtrlCarrierId(void) const;
-	uint8_t getSofCarrierId(void) const;
-	uint8_t getDataCarrierId(void) const;
+	uint8_t getCtrlCarrierId() const;
+	uint8_t getSofCarrierId() const;
+	uint8_t getDataCarrierId() const;
 
-	std::list<DvbFrame *> &getCompleteDvbFrames(void);
+	std::list<Rt::Ptr<DvbFrame>> &getCompleteDvbFrames();
 
-	void setPepCmdApplyTimer(event_id_t pep_cmd_a_timer);
-	event_id_t getPepCmdApplyTimer(void);
+	void setPepCmdApplyTimer(Rt::event_id_t pep_cmd_a_timer);
+	Rt::event_id_t getPepCmdApplyTimer();
 
 protected:
 	/**
@@ -185,28 +185,28 @@ protected:
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initTimers(void);
+	bool initTimers();
 
 	/**
 	 * Read configuration for the carrier IDs
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initCarrierIds(void);
+	bool initCarrierIds();
 
 	/**
 	 * @brief Initialize the transmission mode
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initMode(void);
+	bool initMode();
 
 	/**
 	 * Read configuration for the DAMA algorithm
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initDama(void);
+	bool initDama();
 
 	/**
 	 * @brief Read configuration for the FIFOs
@@ -221,35 +221,35 @@ protected:
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initOutput(void);
+	bool initOutput();
 
 	/** Read configuration for the request simulation
 	 *
 	 * @return  true on success, false otherwise
 	 */
-	bool initRequestSimulation(void);
+	bool initRequestSimulation();
 
 	/**
 	 * Simulate event based on an input file
 	 * @return true on success, false otherwise
 	 */
-	bool simulateFile(void);
+	bool simulateFile();
 
 	/**
 	 * Simulate event based on random generation
 	 * @return true on success, false otherwise
 	 */
-	bool simulateRandom(void);
+	bool simulateRandom();
 
 	// statistics update
-	void updateStatistics(void);
+	void updateStatistics();
 	
 	/**
 	 * @brief add Cni extension into GSE packet (for SCPC)
 	 *
 	 * @return true on success, false otherwise
 	 */ 
-	bool addCniExt(void);
+	bool addCniExt();
 
 	/// The DAMA controller
 	DamaCtrlRcs2 *dama_ctrl;
@@ -281,7 +281,7 @@ protected:
 	unsigned int default_fifo_id;
 
 	/// the list of complete DVB-RCS/BB frames that were not sent yet
-	std::list<DvbFrame *> complete_dvb_frames;
+	std::list<Rt::Ptr<DvbFrame>> complete_dvb_frames;
 
 	/// The terminal categories for forward band
 	TerminalCategories<TerminalCategoryDama> categories;
@@ -312,7 +312,7 @@ protected:
 	double cni;
 
 	/// timer used for applying resources allocations received from PEP
-	event_id_t pep_cmd_apply_timer;
+	Rt::event_id_t pep_cmd_apply_timer;
 
 	RequestSimulator *request_simu;
 

@@ -122,12 +122,12 @@ public:
 	 *
 	 * @return true if packets was successful scheduled, false otherwise
 	 */
-	bool schedule(NetBurst **burst,
-	              std::list<DvbFrame *> &complete_dvb_frames,
+	bool schedule(Rt::Ptr<NetBurst> &burst,
+	              std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
 	              time_sf_t superframe_counter);
 
 	// Implementation of a virtual functions
-	bool onRcvFrame(DvbFrame *frame);
+	bool onRcvFrame(Rt::Ptr<DvbFrame> frame);
 
 	/**
 	 * @brief Add a new Slotted Aloha terminal context
@@ -143,7 +143,7 @@ private:
 	 * @param packet The slotted aloha packet
 	 * @return Encap packet without Slotted Aloha encapsulation
 	 */
-	std::unique_ptr<NetPacket> removeSalohaHeader(std::unique_ptr<SlottedAlohaPacketData> packet);
+	Rt::Ptr<NetPacket> removeSalohaHeader(Rt::Ptr<SlottedAlohaPacketData> packet);
 
 	/**
 	 * @brief Call a specific algorithm to remove all collided packets
@@ -172,8 +172,8 @@ private:
 	 * @return true if packets were successful scheduled, false otherwise
 	 */
 	bool scheduleCategory(TerminalCategorySaloha *category,
-	                      NetBurst **burst,
-	                      std::list<DvbFrame *> &complete_dvb_frames);
+	                      Rt::Ptr<NetBurst> &burst,
+	                      std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames);
 };
 
 /**
@@ -197,8 +197,8 @@ public:
 	 *
 	 * @return true if order is good, false otherwise
 	 */
-	bool operator()(const std::unique_ptr<SlottedAlohaPacketData>& pkt1,
-	                const std::unique_ptr<SlottedAlohaPacketData>& pkt2)
+	bool operator()(const Rt::Ptr<SlottedAlohaPacketData>& pkt1,
+	                const Rt::Ptr<SlottedAlohaPacketData>& pkt2)
 	{
 		uint16_t replica_1 = pkt1->getReplica(0);
 		uint16_t replica_2 = pkt2->getReplica(0);

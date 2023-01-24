@@ -84,15 +84,15 @@ public:
 		/* the following functions should not be called */
 		std::size_t getMinLength() const override;
 
-		bool encapNextPacket(std::unique_ptr<NetPacket> packet,
+		bool encapNextPacket(Rt::Ptr<NetPacket> packet,
 		                     std::size_t remaining_length,
 		                     bool new_burst,
-		                     std::unique_ptr<NetPacket> &encap_packet,
-		                     std::unique_ptr<NetPacket> &remaining_packet) override;
+		                     Rt::Ptr<NetPacket> &encap_packet,
+		                     Rt::Ptr<NetPacket> &remaining_packet) override;
 
-		bool getEncapsulatedPackets(std::unique_ptr<NetContainer> packet,
+		bool getEncapsulatedPackets(Rt::Ptr<NetContainer> packet,
 		                            bool &partial_decap,
-		                            std::vector<std::unique_ptr<NetPacket>> &decap_packets,
+		                            std::vector<Rt::Ptr<NetPacket>> &decap_packets,
 		                            unsigned int decap_packets_count) override;
 	};
 
@@ -125,7 +125,7 @@ public:
 		 * @param packet The current packet
 		 * @return     The byte indicated by pos
 		 */
-		virtual char getLanHeader(unsigned int pos, const std::unique_ptr<NetPacket>& packet) = 0;
+		virtual char getLanHeader(unsigned int pos, const Rt::Ptr<NetPacket>& packet) = 0;
 
 		/**
 		 * @brief check if the packet should be read/written on TAP or TUN interface

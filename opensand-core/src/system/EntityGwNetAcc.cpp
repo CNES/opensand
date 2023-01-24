@@ -57,6 +57,8 @@
  */
 
 
+#include <opensand_rt/Rt.h>
+
 #include "EntityGwNetAcc.h"
 #include "OpenSandModelConf.h"
 
@@ -100,14 +102,14 @@ bool EntityGwNetAcc::createSpecificBlocks()
 		interco_cfg.interconnect_addr = this->interconnect_address;
 		interco_cfg.delay = 0;
 
-		auto block_lan_adaptation = Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", spec_la);
-		auto block_encap = Rt::createBlock<BlockEncap>("Encap", encap_cfg);
-		auto block_dvb = Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
-		auto block_interconnect = Rt::createBlock<BlockInterconnectDownward>("Interconnect.Downward", interco_cfg);
+		auto& block_lan_adaptation = Rt::Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", spec_la);
+		auto& block_encap = Rt::Rt::createBlock<BlockEncap>("Encap", encap_cfg);
+		auto& block_dvb = Rt::Rt::createBlock<BlockDvbNcc>("Dvb", dvb_spec);
+		auto& block_interconnect = Rt::Rt::createBlock<BlockInterconnectDownward>("Interconnect.Downward", interco_cfg);
 
-		Rt::connectBlocks(block_lan_adaptation, block_encap);
-		Rt::connectBlocks(block_encap, block_dvb);
-		Rt::connectBlocks(block_dvb, block_interconnect);
+		Rt::Rt::connectBlocks(block_lan_adaptation, block_encap);
+		Rt::Rt::connectBlocks(block_encap, block_dvb);
+		Rt::Rt::connectBlocks(block_dvb, block_interconnect);
 	}
 	catch (const std::bad_alloc &e)
 	{

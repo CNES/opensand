@@ -37,10 +37,11 @@
 #ifndef BlockSatCarrier_H
 #define BlockSatCarrier_H
 
-#include "sat_carrier_channel_set.h"
 
-#include <opensand_rt/Rt.h>
+#include <opensand_rt/Block.h>
 #include <opensand_rt/RtChannel.h>
+
+#include "sat_carrier_channel_set.h"
 
 
 struct sc_specific
@@ -53,79 +54,78 @@ struct sc_specific
 	spot_id_t spot_id = 255;
 };
 
+
+template<>
+class Rt::UpwardChannel<class BlockSatCarrier>: public Channels::Upward<UpwardChannel<BlockSatCarrier>>
+{
+ public:
+	UpwardChannel(const std::string &name, sc_specific specific);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const NetSocketEvent &event) override;
+
+ private:
+	/// the IP address for emulation newtork
+	std::string ip_addr;
+	/// the terminal id for the emulation newtork
+	tal_id_t tal_id;
+	/// List of input channels
+	sat_carrier_channel_set in_channel_set;
+	/// for sat only: destination handled by this part of the stack (terminal or gateway)
+	Component destination_host;
+	/// for sat only: the spot handled by this part of the stack
+	spot_id_t spot_id;
+
+	/**
+	 * @brief Handle a packt received from carrier
+	 *
+	 * @param carrier_id  The carrier of the packet
+	 * @param spot_id     The spot of the packet
+	 * @param data        The data read on socket
+	 */
+	void onReceivePktFromCarrier(uint8_t carrier_id,
+	                             spot_id_t spot_id,
+								 Ptr<Data> data);
+};
+
+
+template<>
+class Rt::DownwardChannel<class BlockSatCarrier>: public Channels::Downward<DownwardChannel<BlockSatCarrier>>
+{
+ public:
+	DownwardChannel(const std::string &name, sc_specific specific);
+
+	bool onInit() override;
+
+	using ChannelBase::onEvent;
+	bool onEvent(const Event &event) override;
+	bool onEvent(const MessageEvent &event) override;
+
+ private:
+	/// the IP address for emulation newtork
+	std::string ip_addr;
+	/// the terminal id for the emulation newtork
+	tal_id_t tal_id;
+	/// List of output channels
+	sat_carrier_channel_set out_channel_set;
+	/// for sat only: destination handled by this part of the stack (terminal or gateway)
+	Component destination_host;
+	/// for sat only: the spot handled by this part of the stack
+	spot_id_t spot_id;
+};
+
+
 /**
  * @class BlockSatCarrier
  * @brief This bloc implements a satellite carrier emulation
  */
-class BlockSatCarrier: public Block
+class BlockSatCarrier: public Rt::Block<BlockSatCarrier, sc_specific>
 {
-public:
-	/**
-	 * @brief The satellite carrier block
-	 *
-	 * @param name      The block name
-	 * @param specific  Specific block parameters
-	 */
-	BlockSatCarrier(const std::string &name,
-	                struct sc_specific specific);
-
-	class Upward: public RtUpward
-	{
-	public:
-		Upward(const std::string &name, struct sc_specific specific);
-
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-	private:
-		/// the IP address for emulation newtork
-		std::string ip_addr;
-		/// the terminal id for the emulation newtork
-		tal_id_t tal_id;
-		/// List of input channels
-		sat_carrier_channel_set in_channel_set;
-		/// for sat only: destination handled by this part of the stack (terminal or gateway)
-		Component destination_host;
-		/// for sat only: the spot handled by this part of the stack
-		spot_id_t spot_id;
-
-		/**
-		 * @brief Handle a packt received from carrier
-		 *
-		 * @param carrier_id  The carrier of the packet
-		 * @param data        The data read on socket
-		 * @param length      The data length
-		 */
-		void onReceivePktFromCarrier(uint8_t carrier_id,
-		                             spot_id_t spot_id,
-		                             unsigned char *data,
-		                             size_t length);
-	};
-
-	class Downward: public RtDownward
-	{
-	public:
-		Downward(const std::string &name, struct sc_specific specific);
-
-		bool onInit(void);
-		bool onEvent(const RtEvent *const event);
-
-	private:
-		/// the IP address for emulation newtork
-		std::string ip_addr;
-		/// the terminal id for the emulation newtork
-		tal_id_t tal_id;
-		/// List of output channels
-		sat_carrier_channel_set out_channel_set;
-		/// for sat only: destination handled by this part of the stack (terminal or gateway)
-		Component destination_host;
-		/// for sat only: the spot handled by this part of the stack
-		spot_id_t spot_id;
-	};
-
-protected:
-	// initialization method
-	bool onInit();
+ public:
+	using Rt::Block<BlockSatCarrier, sc_specific>::Block;
 };
 
 

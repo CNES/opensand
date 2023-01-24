@@ -433,11 +433,8 @@ bool Ethernet::Context::initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *
 }
 
 
-NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
-                                         std::map<long, int> &UNUSED(time_contexts))
+Rt::Ptr<NetBurst> Ethernet::Context::encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &)
 {
-	NetBurst::iterator packet;
-
 	if(this->current_upper)
 	{
 		LOG(this->log, LEVEL_INFO,
@@ -451,22 +448,21 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 	}
 
 	// create an empty burst of ETH frames
-	NetBurst *eth_frames = nullptr;
+	Rt::Ptr<NetBurst> eth_frames = Rt::make_ptr<NetBurst>(nullptr);
 	try
 	{
-		eth_frames = new NetBurst();
+		eth_frames = Rt::make_ptr<NetBurst>();
 	}
 	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot allocate memory for burst of ETH frames\n");
-		delete burst;
-		return nullptr;
+		return Rt::make_ptr<NetBurst>(nullptr);
 	}
 
 	for(auto&& packet : *burst)
 	{
-		std::unique_ptr<NetPacket> eth_frame;
+		Rt::Ptr<NetPacket> eth_frame = Rt::make_ptr<NetPacket>(nullptr);
 		uint8_t evc_id = 0;
 
 		if(this->current_upper)
@@ -493,7 +489,6 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 			qos_t pcp = (q_tci & 0xe000) >> 13;
 			qos_t qos = 0;
 			Evc *evc;
-			SarpTable *sarp_table = packet_switch->getSarpTable();
 
 			// Do not print errors here because we may want to reject trafic as spanning
 			// tree coming from miscellaneous host
@@ -623,27 +618,24 @@ NetBurst *Ethernet::Context::encapsulate(NetBurst *burst,
 	LOG(this->log, LEVEL_INFO,
 	    "encapsulate %zu Ethernet frames\n", eth_frames->size());
 
-	// delete the burst and all frames in it
-	delete burst;
-
 	// avoid returning empty bursts
 	if(eth_frames->size() > 0)
 	{
+		// copy elision here, no move needed
 		return eth_frames;
 	}
-	delete eth_frames;
-	return nullptr;
+
+	return Rt::make_ptr<NetBurst>(nullptr);
 }
 
 
-NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
+Rt::Ptr<NetBurst> Ethernet::Context::deencapsulate(Rt::Ptr<NetBurst> burst)
 {
 	if(burst == nullptr || burst->front() == nullptr)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "empty burst received\n");
-		delete burst;
-		return nullptr;
+		return Rt::make_ptr<NetBurst>(nullptr);
 	}
 
 	LOG(this->log, LEVEL_INFO,
@@ -651,22 +643,21 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 	    (burst->front())->getName().c_str());
 
 	// create an empty burst of network frames
-	NetBurst *net_packets = nullptr;
+	Rt::Ptr<NetBurst> net_packets = Rt::make_ptr<NetBurst>(nullptr);
 	try
 	{
-		net_packets = new NetBurst();
+		net_packets = Rt::make_ptr<NetBurst>();
 	}
 	catch (const std::bad_alloc&)
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "cannot allocate memory for burst of network frames\n");
-		delete burst;
-		return nullptr;
+		return Rt::make_ptr<NetBurst>(nullptr);
 	}
 
 	for(auto&& packet : *burst)
 	{
-		std::unique_ptr<NetPacket> deenc_packet;
+		Rt::Ptr<NetPacket> deenc_packet = Rt::make_ptr<NetPacket>(nullptr);
 		size_t data_length = packet->getTotalLength();
 		MacAddress dst_mac = Ethernet::getDstMac(packet->getData());
 		MacAddress src_mac = Ethernet::getSrcMac(packet->getData());
@@ -677,7 +668,6 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 		Evc *evc;
 		size_t header_length;
 		uint8_t evc_id = 0;
-		SarpTable *sarp_table = packet_switch->getSarpTable();
 
 		switch(frame_type)
 		{
@@ -794,14 +784,13 @@ NetBurst *Ethernet::Context::deencapsulate(NetBurst *burst)
 	    "deencapsulate %zu ethernet frames\n",
 	    net_packets->size());
 
-	// delete the burst and all frames in it
-	delete burst;
+	// copy elision here, no move needed
 	return net_packets;
 }
 
 
-std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(const std::unique_ptr<NetPacket>& packet,
-                                                                 uint8_t &evc_id)
+Rt::Ptr<NetPacket> Ethernet::Context::createEthFrameData(const Rt::Ptr<NetPacket>& packet,
+                                                         uint8_t &evc_id)
 {
 	std::vector<MacAddress> src_macs;
 	std::vector<MacAddress> dst_macs;
@@ -834,14 +823,14 @@ std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(const std::uniq
 		LOG(this->log, LEVEL_ERROR,
 		    "unable to find MAC address associated with terminal with ID %u\n",
 		    src_tal);
-		return NULL;
+		return Rt::make_ptr<NetPacket>(nullptr);
 	}
 	if(!sarp_table->getMacByTal(dst_tal, dst_macs))
 	{
 		LOG(this->log, LEVEL_ERROR,
 		    "unable to find MAC address associated with terminal with ID %u\n",
 		    dst_tal);
-		return NULL;
+		return Rt::make_ptr<NetPacket>(nullptr);
 	}
 	for(std::vector<MacAddress>::iterator it1 = src_macs.begin();
 	    it1 != src_macs.end(); ++it1)
@@ -891,16 +880,16 @@ std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(const std::uniq
 }
 
 
-std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(Rt::Data data,
-                                                                 MacAddress src_mac,
-                                                                 MacAddress dst_mac,
-                                                                 NET_PROTO ether_type,
-                                                                 uint16_t q_tci,
-                                                                 uint16_t ad_tci,
-                                                                 qos_t qos,
-                                                                 tal_id_t src_tal_id,
-                                                                 tal_id_t dst_tal_id,
-                                                                 NET_PROTO desired_frame_type)
+Rt::Ptr<NetPacket> Ethernet::Context::createEthFrameData(Rt::Data data,
+                                                         MacAddress src_mac,
+                                                         MacAddress dst_mac,
+                                                         NET_PROTO ether_type,
+                                                         uint16_t q_tci,
+                                                         uint16_t ad_tci,
+                                                         qos_t qos,
+                                                         tal_id_t src_tal_id,
+                                                         tal_id_t dst_tal_id,
+                                                         NET_PROTO desired_frame_type)
 {
 	eth_2_header_t *eth_2_hdr;
 	eth_1q_header_t *eth_1q_hdr;
@@ -956,14 +945,13 @@ std::unique_ptr<NetPacket> Ethernet::Context::createEthFrameData(Rt::Data data,
 			LOG(this->log, LEVEL_ERROR,
 			    "Bad protocol value (0x%.4x) for Ethernet plugin\n",
 			    desired_frame_type);
-			return NULL;
+			return Rt::make_ptr<NetPacket>(nullptr);
 	}
 	return this->createPacket(data, data.length(), qos,
 	                          src_tal_id, dst_tal_id);
-
 }
 
-char Ethernet::Context::getLanHeader(unsigned int, const std::unique_ptr<NetPacket>&)
+char Ethernet::Context::getLanHeader(unsigned int, const Rt::Ptr<NetPacket>&)
 {
 	return 0;
 }
@@ -1033,11 +1021,11 @@ void Ethernet::Context::updateStats(unsigned int period)
 	}
 }
 
-std::unique_ptr<NetPacket> Ethernet::PacketHandler::build(const Rt::Data &data,
-                                                          std::size_t data_length,
-                                                          uint8_t qos,
-                                                          uint8_t src_tal_id,
-                                                          uint8_t dst_tal_id) const
+Rt::Ptr<NetPacket> Ethernet::PacketHandler::build(const Rt::Data &data,
+                                                  std::size_t data_length,
+                                                  uint8_t qos,
+                                                  uint8_t src_tal_id,
+                                                  uint8_t dst_tal_id) const
 {
 	size_t head_length = 0;
 	NET_PROTO frame_type = Ethernet::getFrameType(data);
@@ -1055,13 +1043,13 @@ std::unique_ptr<NetPacket> Ethernet::PacketHandler::build(const Rt::Data &data,
 			break;
 	}
 
-	return std::unique_ptr<NetPacket>(new NetPacket(data, data_length,
-	                                                this->getName(),
-	                                                frame_type,
-	                                                qos,
-	                                                src_tal_id,
-	                                                dst_tal_id,
-	                                                head_length));
+	return Rt::make_ptr<NetPacket>(data, data_length,
+	                               this->getName(),
+	                               frame_type,
+	                               qos,
+	                               src_tal_id,
+	                               dst_tal_id,
+	                               head_length);
 }
 
 Evc *Ethernet::Context::getEvc(const MacAddress src_mac,
@@ -1185,6 +1173,10 @@ NET_PROTO Ethernet::getPayloadEtherType(const Rt::Data &data)
 			}
 			ether_type = to_enum<NET_PROTO>(static_cast<uint16_t>((data.at(20) << 8) | data.at(21)));
 			break;
+		default:
+			DFLTLOG(LEVEL_ERROR,
+			        "unsupported packet type for Ethernet header\n");
+			return NET_PROTO::ERROR;
 	}
 
 	return ether_type;
@@ -1216,6 +1208,10 @@ uint16_t Ethernet::getQTci(const Rt::Data &data)
 		case NET_PROTO::IEEE_802_1AD:
 			tci = ((data.at(18) & 0xff) << 8) | data.at(19);
 			break;
+		default:
+			DFLTLOG(LEVEL_ERROR,
+			        "cannot retrieve vlan id in non-Ethernet header\n");
+			return 0;
 	}
 
 	return tci;
@@ -1223,7 +1219,6 @@ uint16_t Ethernet::getQTci(const Rt::Data &data)
 
 uint16_t Ethernet::getAdTci(const Rt::Data &data)
 {
-	uint16_t tci = 0;
 	NET_PROTO ether_type;
 	NET_PROTO ether_type2;
 	if(data.length() < 17)
@@ -1240,14 +1235,14 @@ uint16_t Ethernet::getAdTci(const Rt::Data &data)
 		ether_type = NET_PROTO::IEEE_802_1AD;
 	}
 
-	switch(ether_type)
+	if(ether_type == NET_PROTO::IEEE_802_1AD)
 	{
-		case NET_PROTO::IEEE_802_1AD:
-			tci = ((data.at(14) & 0xff) << 8) | data.at(15);
-			break;
+		return ((data.at(14) & 0xff) << 8) | data.at(15);
 	}
 
-	return tci;
+	DFLTLOG(LEVEL_ERROR,
+	        "cannot retrieve vlan id in non-Ethernet header\n");
+	return 0;
 }
 
 MacAddress Ethernet::getDstMac(const Rt::Data &data)

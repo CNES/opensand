@@ -75,14 +75,14 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		 * @param burst  OUT: the burst of packets
 		 * @return true on success, false otherwise
 		 */
-		bool handleFrame(DvbFrame *frame, NetBurst **burst);
+		bool handleFrame(Rt::Ptr<DvbFrame> frame, Rt::Ptr<NetBurst> &burst);
 
 		/**
 		 * @brief get CNI in a frame
 		 *
 		 * @param dvb_frame the Dvb Frame corrupted
 		 */
-		void handleFrameCni(DvbFrame *dvb_frame);
+		void handleFrameCni(DvbFrame& dvb_frame);
 
 		/**
 		 * @brief Schedule Slotted Aloha carriers
@@ -92,9 +92,9 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		 *  @param sa_burst    OUT: The Slotted Aloha bursts received
 		 *  @return true on success, false otherwise
 		 */
-		bool scheduleSaloha(DvbFrame *dvb_frame,
-		                    std::list<DvbFrame *>* &ack_frames,
-		                    NetBurst **sa_burst);
+		bool scheduleSaloha(Rt::Ptr<DvbFrame> dvb_frame,
+		                    Rt::Ptr<std::list<Rt::Ptr<DvbFrame>>> &ack_frames,
+		                    Rt::Ptr<NetBurst> &sa_burst);
 
 		/**
 		 *  @brief Handle a logon request transmitted by the lower layer
@@ -102,7 +102,7 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		 *  @param logon_req  The frame contining the logon request
 		 *  @return true on success, false otherwise
 		 */
-		bool onRcvLogonReq(DvbFrame *dvb_frame);
+		bool onRcvLogonReq(DvbFrame& dvb_frame);
 
 		/**
 		 *  @brief Handle a Slotted Aloha Data Frame
@@ -110,10 +110,10 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		 *  @param frame  The Slotted Aloha data frame
 		 *  @return true on success, false otherwise
 		 */
-		bool handleSlottedAlohaFrame(DvbFrame *frame);
+		bool handleSlottedAlohaFrame(Rt::Ptr<DvbFrame> frame);
 
 		// statistics update
-		void updateStats(void);
+		void updateStats();
 
 		/**
 		 * @brief  handle a SAC frame
@@ -121,14 +121,14 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		 * @param dvb_frame The SAC frame
 		 * @return true on success, false otherwise
 		 */
-		bool handleSac(const DvbFrame *dvb_frame);
+		bool handleSac(DvbFrame &dvb_frame);
 
 		/**
 		 * @brief  Getter to spot_id
 		 *
 		 * @return spot_id
 		 */
-		inline uint8_t getSpotId(void) { return this->spot_id; }
+		inline uint8_t getSpotId() { return this->spot_id; }
 
 	protected:
 		/**
@@ -136,14 +136,14 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initMode(void);
+		bool initMode();
 
 		/**
 		 * @brief Read configuration for the different files and open them
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initModcodSimu(void);
+		bool initModcodSimu();
 
 		/**
 		 * @brief Initialize the ACM loop margins
@@ -152,21 +152,21 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initAcmLoopMargin(void);
+		bool initAcmLoopMargin();
 
 		/**
 		 * @brief Initialize the statistics
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initOutput(void);
+		bool initOutput();
 
 		/**
 		 * Read configuration for the Slotted Aloha algorithm
 		 *
 		 * @return  true on success, false otherwise
 		 */
-		bool initSlottedAloha(void);
+		bool initSlottedAloha();
 
 		/**
 		 * Checks if SCPC mode is activated and configured

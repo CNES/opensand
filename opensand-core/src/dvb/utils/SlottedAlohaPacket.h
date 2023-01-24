@@ -55,7 +55,7 @@
 
 
 /// A Slotted Aloha ID representation
-typedef Data saloha_id_t;
+typedef Rt::Data saloha_id_t;
 
 
 /**
@@ -66,11 +66,11 @@ class SlottedAlohaPacket: public NetPacket
 {
 public:
 
-	SlottedAlohaPacket(const Data &data):
+	SlottedAlohaPacket(const Rt::Data &data):
 		NetPacket(data)
 	{};
 
-	SlottedAlohaPacket(const Data &data, size_t length):
+	SlottedAlohaPacket(const Rt::Data &data, size_t length):
 		NetPacket(data, length)
 	{};
 
@@ -100,8 +100,8 @@ public:
 	 */
 	static void convertPacketId(saloha_id_t id, uint16_t ids[4])
 	{
-		std::istringstream iss((char *)id.c_str());
-		char c;
+		std::basic_istringstream<unsigned char> iss(id);
+		unsigned char c;
 		
 		iss >> ids[SALOHA_ID_ID] >> c >> ids[SALOHA_ID_SEQ] >> c
 			>> ids[SALOHA_ID_PDU_NB] >> c >> ids[SALOHA_ID_QOS];

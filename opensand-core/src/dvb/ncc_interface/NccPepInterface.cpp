@@ -168,20 +168,18 @@ bool NccPepInterface::initPepSocket(int tcp_port)
 }
 
 
-bool NccPepInterface::readPepMessage(NetSocketEvent *const event, tal_id_t &tal_id)
+bool NccPepInterface::readPepMessage(const Rt::NetSocketEvent& event, tal_id_t &tal_id)
 {
-	char *recv_buffer;
-
 	// a PEP must be connected to read a message from it!
 	if(!this->is_connected)
 	{
 		LOG(this->log_ncc_interface, LEVEL_ERROR,
 		    "trying to read on PEP socket while no PEP "
 		    "component is connected yet\n");
-		goto error;
+		return false;
 	}
 
-	recv_buffer = (char *)(event->getData());
+	Rt::Data recv_buffer = event.getData();
 
 	// parse message received from PEP
 	if(this->parsePepMessage(recv_buffer, tal_id) != true)
@@ -199,7 +197,6 @@ close:
 	LOG(this->log_ncc_interface, LEVEL_ERROR,
 	    "close PEP client socket because of previous errors\n");
 	this->is_connected = false;
-error:
 	return false;
 }
 
@@ -214,25 +211,23 @@ error:
  * @param message   the message sent by the PEP component
  * @return          true if message was successfully parsed, false otherwise
  */
-bool NccPepInterface::parsePepMessage(const char *message, tal_id_t &tal_id)
+bool NccPepInterface::parsePepMessage(const Rt::Data& message, tal_id_t &tal_id)
 {
-	std::stringstream stream;
-	char cmd[64];
-	unsigned int nb_cmds;
+	unsigned char cmd[64];
 	int all_cmds_type = -1; /* initialized because GCC is not smart enough
 	                           to find that the variable can not be used
 	                           uninitialized */
 
 	// for every command in the message...
-	nb_cmds = 0;
-	stream << message;
+	unsigned int nb_cmds = 0;
+	Rt::DataStream stream(message);
 	while(stream.getline(cmd, 64))
 	{
 		PepRequest *request;
 
 		// parse the command
 		request = this->parsePepCommand(cmd);
-		if(request == NULL)
+		if(!request)
 		{
 			LOG(this->log_ncc_interface, LEVEL_ERROR,
 			    "failed to parse command #%d in PEP message, "
@@ -282,18 +277,34 @@ bool NccPepInterface::parsePepMessage(const char *message, tal_id_t &tal_id)
  * @return          the created PEP request if command was successfully parsed,
  *                  NULL in case of failure
  */
-PepRequest * NccPepInterface::parsePepCommand(const char *cmd)
+PepRequest * NccPepInterface::parsePepCommand(const Rt::Data& cmd)
 {
-	unsigned int type;      // allocation or release request
-	unsigned int st_id;     // the ID of the ST the request is for
-	unsigned int cra;       // the CRA value
-	unsigned int rbdc;      // the RBDC value
-	unsigned int rbdc_max;  // the RBDCmax value
-	int ret;
+	Rt::IDataStream stream(cmd);
+	unsigned char c;        // the colon separator char
+	bool good = true;
 
 	// retrieve values in the command
-	ret = sscanf(cmd, "%u:%u:%u:%u:%u", &type, &st_id, &cra, &rbdc, &rbdc_max);
-	if(ret != 5)
+	unsigned int type;      // allocation or release request
+	stream >> type >> c;
+	good = good && stream.good() && c == ':';
+
+	unsigned int st_id;     // the ID of the ST the request is for
+	stream >> st_id >> c;
+	good = good && stream.good() && c == ':';
+
+	unsigned int cra;       // the CRA value
+	stream >> cra >> c;
+	good = good && stream.good() && c == ':';
+
+	unsigned int rbdc;      // the RBDC value
+	stream >> rbdc >> c;
+	good = good && stream.good() && c == ':';
+
+	unsigned int rbdc_max;  // the RBDCmax value
+	stream >> rbdc;
+	good = good && stream.good();
+
+	if(!good)
 	{
 		LOG(this->log_ncc_interface, LEVEL_ERROR,
 		    "bad formated PEP command received: '%s'\n", cmd);

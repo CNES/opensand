@@ -32,12 +32,13 @@
  */
 
 
-#include "DelayFifo.h"
-
 #include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <cstring>
+
+#include "DelayFifo.h"
+#include "FifoElement.h"
 
 
 DelayFifo::DelayFifo(vol_pkt_t max_size_pkt):
@@ -87,12 +88,17 @@ clock_t DelayFifo::getTickOut() const
 	return 0;
 }
 
-std::vector<FifoElement *> DelayFifo::getQueue(void)
+std::vector<std::unique_ptr<FifoElement>>::iterator DelayFifo::begin()
 {
-	return this->queue;
+	return this->queue.begin();
 }
 
-bool DelayFifo::push(FifoElement *elem)
+std::vector<std::unique_ptr<FifoElement>>::iterator DelayFifo::end()
+{
+	return this->queue.end();
+}
+
+bool DelayFifo::push(std::unique_ptr<FifoElement> elem)
 {
 	int pos;
 	Rt::Lock lock(this->fifo_mutex);
@@ -107,20 +113,20 @@ bool DelayFifo::push(FifoElement *elem)
 	// insert in correct position
 	if(pos >= 0)
 	{
-		this->queue.insert(this->queue.begin()+pos, elem);
+		this->queue.insert(this->queue.begin()+pos, std::move(elem));
 	}
 
 	return true;
 }
 
-bool DelayFifo::pushFront(FifoElement *elem)
+bool DelayFifo::pushFront(std::unique_ptr<FifoElement> elem)
 {
 	Rt::Lock lock(this->fifo_mutex);
 
 	// insert in head of fifo
 	if(this->queue.size() < this->max_size_pkt)
 	{
-		this->queue.insert(this->queue.begin(), elem);
+		this->queue.insert(this->queue.begin(), std::move(elem));
 		return true;
 	}
 
@@ -128,31 +134,31 @@ bool DelayFifo::pushFront(FifoElement *elem)
 
 }
 
-bool DelayFifo::pushBack(FifoElement *elem)
+bool DelayFifo::pushBack(std::unique_ptr<FifoElement> elem)
 {
 	Rt::Lock lock(this->fifo_mutex);
 
 	// insert in head of fifo
 	if(this->queue.size() < this->max_size_pkt)
 	{
-		this->queue.insert(this->queue.end(), elem);
+		this->queue.insert(this->queue.end(), std::move(elem));
 		return true;
 	}
 
 	return false;
 
 }
-FifoElement *DelayFifo::pop()
+
+std::unique_ptr<FifoElement> DelayFifo::pop()
 {
 	Rt::Lock lock(this->fifo_mutex);
-	FifoElement *elem;
 
 	if(this->queue.size() <= 0)
 	{
-		return NULL;
+		return {nullptr};
 	}
 
-	elem = this->queue.front();
+	std::unique_ptr<FifoElement> elem = std::move(this->queue.front());
 
 	// remove the packet
 	this->queue.erase(this->queue.begin());
@@ -163,12 +169,6 @@ FifoElement *DelayFifo::pop()
 void DelayFifo::flush()
 {
 	Rt::Lock lock(this->fifo_mutex);
-	std::vector<FifoElement *>::iterator it;
-	for(it = this->queue.begin(); it != this->queue.end(); ++it)
-	{
-		delete *it;
-	}
-
 	this->queue.clear();
 }
 

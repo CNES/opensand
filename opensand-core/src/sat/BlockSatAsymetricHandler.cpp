@@ -35,6 +35,7 @@
 
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/TimerEvent.h>
 #include <opensand_rt/MessageEvent.h>
 
 #include "OpenSandFrames.h"
@@ -43,118 +44,101 @@
 #include "CarrierType.h"
 
 
-BlockSatAsymetricHandler::BlockSatAsymetricHandler(const std::string& name, AsymetricConfig):
-	Block{name}
-{
-}
-
-
-bool BlockSatAsymetricHandler::onInit()
-{
-	return true;
-}
-
-
-BlockSatAsymetricHandler::Upward::Upward(const std::string& name, AsymetricConfig specific):
-	RtUpwardDemux<bool>{name},
+Rt::UpwardChannel<BlockSatAsymetricHandler>::UpwardChannel(const std::string& name, AsymetricConfig specific):
+	Channels::UpwardDemux<UpwardChannel<BlockSatAsymetricHandler>, bool>{name},
 	split_traffic{specific.is_transparent}
 {
 }
 
 
-bool BlockSatAsymetricHandler::Upward::onEvent(const RtEvent *const event)
+bool Rt::UpwardChannel<BlockSatAsymetricHandler>::onEvent(const Event &)
 {
-	if (event->getType() != EventType::Message)
-	{
-		LOG(this->log_receive, LEVEL_ERROR,
-		    "Wrong event type received. Only messages are expected by this block.");
-		return false;
-	}
+	LOG(this->log_receive, LEVEL_ERROR,
+	    "Wrong event type received. Only messages are expected by this block.");
+	return false;
+}
 
-	auto msg_event = static_cast<const MessageEvent *>(event);
-	auto frame = static_cast<DvbFrame *>(msg_event->getData());
+
+bool Rt::UpwardChannel<BlockSatAsymetricHandler>::onEvent(const MessageEvent &event)
+{
+	auto frame = event.getMessage<DvbFrame>();
 	const bool is_data = isDataCarrier(extractCarrierType(frame->getCarrierId()));
 
 	if (!this->enqueueMessage(split_traffic && is_data,
-	                          (void**)&frame,
-	                          msg_event->getLength(),
-	                          msg_event->getMessageType()))
+	                          std::move(frame),
+	                          event.getMessageType()))
 	{
 		LOG(this->log_send, LEVEL_ERROR,
 		    "Failed to send data to upper layer");
-		delete frame;
 		return false;
 	}
 	return true;
 }
 
 
-BlockSatAsymetricHandler::Downward::Downward(const std::string& name, AsymetricConfig specific):
+Rt::DownwardChannel<BlockSatAsymetricHandler>::DownwardChannel(const std::string& name, AsymetricConfig specific):
 	GroundPhysicalChannel{specific.phy_config},
-	RtDownwardMux{name},
+	Channels::DownwardMux<DownwardChannel<BlockSatAsymetricHandler>>{name},
 	is_regenerated_traffic{!specific.is_transparent}
 {
 }
 
 
-bool BlockSatAsymetricHandler::Downward::onInit()
+bool Rt::DownwardChannel<BlockSatAsymetricHandler>::onInit()
 {
-	return this->initGround(false, this, this->log_init);
+	return this->initGround(false, *this, this->log_init);
 }
 
 
-bool BlockSatAsymetricHandler::Downward::onEvent(const RtEvent *const event)
+bool Rt::DownwardChannel<BlockSatAsymetricHandler>::onEvent(const Event &event)
 {
-	switch (event->getType())
+	LOG(this->log_event, LEVEL_ERROR,
+	    "unknown event received %s",
+	    event.getName().c_str());
+	return false;
+}
+
+
+bool Rt::DownwardChannel<BlockSatAsymetricHandler>::onEvent(const TimerEvent &event)
+{
+	if (event == this->attenuation_update_timer)
 	{
-		case EventType::Message:
-			{
-				LOG(this->log_event, LEVEL_DEBUG, "Incoming DVB frame");
-
-				auto msg_event = static_cast<const MessageEvent *>(event);
-				auto frame = static_cast<DvbFrame *>(msg_event->getData());
-				const bool is_control = isControlCarrier(extractCarrierType(frame->getCarrierId()));
-				if ((is_control || this->is_regenerated_traffic) && IsCnCapableFrame(frame->getMessageType()))
-				{
-					frame->setCn(this->getCurrentCn());
-				}
-				return this->forwardPacket(frame);
-			}
-
-		case EventType::Timer:
-			{
-				if (*event == this->attenuation_update_timer)
-				{
-					LOG(this->log_event, LEVEL_DEBUG,
-					    "Attenuation update timer expired");
-					return this->updateAttenuation();
-				}
-				if (*event != this->fifo_timer)
-				{
-					LOG(this->log_event, LEVEL_ERROR,
-					    "Unknown timer event received");
-					return false;
-				}
-				return true;
-			}
-
-		default:
-			LOG(this->log_event, LEVEL_ERROR,
-			    "unknown event received %s",
-			    event->getName().c_str());
-			break;
+		LOG(this->log_event, LEVEL_DEBUG,
+		    "Attenuation update timer expired");
+		return this->updateAttenuation();
 	}
+	if (event != this->fifo_timer)
+	{
+		LOG(this->log_event, LEVEL_ERROR,
+		    "Unknown timer event received %s",
+		    event.getName().c_str());
+		return false;
+	}
+	return true;
 }
 
 
-bool BlockSatAsymetricHandler::Downward::forwardPacket(DvbFrame *dvb_frame)
+bool Rt::DownwardChannel<BlockSatAsymetricHandler>::onEvent(const MessageEvent &event)
+{
+	LOG(this->log_event, LEVEL_DEBUG, "Incoming DVB frame");
+
+	auto frame = event.getMessage<DvbFrame>();
+	const bool is_control = isControlCarrier(extractCarrierType(frame->getCarrierId()));
+	if ((is_control || this->is_regenerated_traffic) && IsCnCapableFrame(frame->getMessageType()))
+	{
+		frame->setCn(this->getCurrentCn());
+	}
+	return this->forwardPacket(std::move(frame));
+}
+
+
+bool Rt::DownwardChannel<BlockSatAsymetricHandler>::forwardPacket(Ptr<DvbFrame> dvb_frame)
 {
 	// Send frame to lower layer
-	if (!this->enqueueMessage((void **)&dvb_frame, 0, to_underlying(InternalMessageType::unknown)))
+	if (!this->enqueueMessage(std::move(dvb_frame), to_underlying(InternalMessageType::unknown)))
 	{
 		LOG(this->log_send, LEVEL_ERROR, 
 		    "Failed to send burst of packets to lower layer");
-		delete dvb_frame;
 		return false;
 	}
 	return true;	

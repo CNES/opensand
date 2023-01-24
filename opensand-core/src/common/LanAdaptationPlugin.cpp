@@ -75,19 +75,19 @@ std::size_t LanAdaptationPlugin::LanAdaptationPacketHandler::getMinLength() cons
 }
 
 
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(std::unique_ptr<NetPacket>,
+bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(Rt::Ptr<NetPacket>,
                                                                       std::size_t,
                                                                       bool,
-                                                                      std::unique_ptr<NetPacket> &,
-                                                                      std::unique_ptr<NetPacket> &)
+                                                                      Rt::Ptr<NetPacket> &,
+                                                                      Rt::Ptr<NetPacket> &)
 {
 	assert(0);
 }
 
 
-bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(std::unique_ptr<NetContainer>,
+bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(Rt::Ptr<NetContainer>,
                                                                              bool &,
-                                                                             std::vector<std::unique_ptr<NetPacket>> &,
+                                                                             std::vector<Rt::Ptr<NetPacket>> &,
                                                                              unsigned int)
 {
 	assert(0);

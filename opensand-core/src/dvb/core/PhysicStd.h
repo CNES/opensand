@@ -93,9 +93,9 @@ public:
 	 * @param burst      OUT: a burst of encapsulation packets
 	 * @return           true on success, false otherwise
 	 */
-	virtual bool onRcvFrame(DvbFrame *dvb_frame,
+	virtual bool onRcvFrame(Rt::Ptr<DvbFrame> dvb_frame,
 	                        tal_id_t tal_id,
-	                        NetBurst **burst) = 0;
+	                        Rt::Ptr<NetBurst> &burst) = 0;
 };
 
 

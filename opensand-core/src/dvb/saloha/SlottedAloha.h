@@ -89,10 +89,9 @@ public:
 	 *
 	 * @param frame  The received frame
 	 */
-	virtual bool onRcvFrame(DvbFrame *frame) = 0;
+	virtual bool onRcvFrame(Rt::Ptr<DvbFrame> frame) = 0;
 
 protected:
-
 	/**
 	 * Return check if current tick is a Slotted Aloha frame tick
 	 *
