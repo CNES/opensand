@@ -79,7 +79,7 @@ class MessageEvent: public Event
 	inline Ptr<T> getMessage() const {return this->message.release<T>();};
 	inline uint8_t getMessageType() const {return this->message.type;};
 
-	bool handle(void) override;
+	bool handle() override;
 
  protected:
 	/// the message
@@ -87,6 +87,9 @@ class MessageEvent: public Event
 
 	/// the fifo
 	const std::shared_ptr<Fifo> fifo;
+
+ private:
+	bool advertiseEvent(ChannelBase& channel) override;
 };
 
 

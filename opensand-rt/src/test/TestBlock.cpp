@@ -141,6 +141,7 @@ bool Rt::UpwardChannel<TestBlock>::onInit(void)
 
 bool Rt::UpwardChannel<TestBlock>::onEvent(const Event& event)
 {
+	std::cout << "Handling Unknown Event " << this->getName() << std::endl;
 	Rt::reportError(this->getName(), std::this_thread::get_id(), true, "unknown event");
 	return false;
 }
@@ -148,6 +149,7 @@ bool Rt::UpwardChannel<TestBlock>::onEvent(const Event& event)
 
 bool Rt::UpwardChannel<TestBlock>::onEvent(const MessageEvent& event)
 {
+	std::cout << "Handling Message Event " << this->getName() << std::endl;
 	Ptr<Data> data = event.getMessage<Data>();
 	std::cout << "Data received from opposite channel in block: "
 	          << this->getName() << "; data: " << data->c_str() << std::endl;
@@ -168,6 +170,7 @@ bool Rt::UpwardChannel<TestBlock>::onEvent(const MessageEvent& event)
 
 bool Rt::UpwardChannel<TestBlock>::onEvent(const TimerEvent& event)
 {
+	std::cout << "Handling Timer Event " << this->getName() << std::endl;
 	// timer only on upward channel
 	this->nbr_timeouts++;
 	// test for duration
@@ -186,6 +189,7 @@ bool Rt::UpwardChannel<TestBlock>::onEvent(const TimerEvent& event)
 	int res = write(this->output_fd, this->last_written.data(), this->last_written.size());
 	if(res == -1)
 	{
+		std::cout << "Cannot write on pipe: " << this->getName() << std::endl;
 		Rt::reportError(this->getName(), std::this_thread::get_id(), true,
 		                    "cannot write on pipe");
 	}

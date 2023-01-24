@@ -146,7 +146,8 @@ void ChannelMuxDemux<Key>::addNextFifo(Key key, std::shared_ptr<Fifo> &fifo)
 	bool actually_inserted = this->next_fifos.emplace(key, fifo).second;
 	if (!actually_inserted)
 	{
-		std::cout << "ERROR: Cannot add next FIFO: a FIFO already exists with this key\n";
+		LOG(this->log_init, LEVEL_ERROR,
+		    "Cannot add next FIFO: a FIFO already exists for this key");
 	}
 }
 

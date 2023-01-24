@@ -37,6 +37,7 @@
 
 #include "NetSocketEvent.h"
 #include "Rt.h"
+#include "RtChannelBase.h"
 
 
 namespace Rt
@@ -48,12 +49,12 @@ NetSocketEvent::NetSocketEvent(const std::string &name,
                                int32_t fd,
                                std::size_t max_size,
                                uint8_t priority):
-	FileEvent{name, fd, max_size, priority, EventType::NetSocket}
+	FileEvent{name, fd, max_size, priority}
 {
 }
 
 
-bool NetSocketEvent::handle(void)
+bool NetSocketEvent::handle()
 {
 	if(this->data.size())
 	{
@@ -99,6 +100,12 @@ bool NetSocketEvent::handle(void)
 error:
 	this->data.clear();
 	return false;
+}
+
+
+bool NetSocketEvent::advertiseEvent(ChannelBase& channel)
+{
+	return channel.onEvent(*this);
 }
 
 

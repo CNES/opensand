@@ -72,34 +72,34 @@ class TimerEvent: public Event
 	/**
 	 * @brief Start the timer
 	 */
-	void start(void);
+	void start();
 
 	/**
 	 * @brief Trigger a timer immediately
 	 *        In fact, we set the minimum time and start it
 	 *        because there is no way to trigger it manually
 	 */
-	void raise(void);
+	void raise();
 
 	/**
 	 * @brief Disable the timer
 	 *
 	 */
-	void disable(void);
+	void disable();
 
 	/*
 	 * @brief Check if timer is enabled
 	 *
 	 * @return true if timer is enabled, false otherwise
 	 */
-	inline bool isEnabled(void) const {return this->enabled;};
+	inline bool isEnabled() const {return this->enabled;};
 
 	/**
 	 * @brief Get the timer duration
 	 *
 	 * @return the timer duration (in ms)
 	 */
-	inline double getDuration(void) const {return this->duration_ms;};
+	inline double getDuration() const {return this->duration_ms;};
 
 	/**
 	 * @brief Set the timer duration
@@ -108,7 +108,7 @@ class TimerEvent: public Event
 	 */
 	void setDuration(double new_duration);
 
-	bool handle(void) override;
+	bool handle() override;
 
  protected:
 	/// Timer duration in milliseconds
@@ -119,6 +119,9 @@ class TimerEvent: public Event
 
 	/// Whether the timer is rearmed automatically or not
 	bool auto_rearm;
+
+ private:
+	bool advertiseEvent(ChannelBase& channel) override;
 };
 
 

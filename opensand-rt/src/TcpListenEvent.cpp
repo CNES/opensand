@@ -39,6 +39,7 @@
 
 #include "TcpListenEvent.h"
 #include "Rt.h"
+#include "RtChannelBase.h"
 
 
 namespace Rt
@@ -50,12 +51,12 @@ TcpListenEvent::TcpListenEvent(const std::string &name,
                                int32_t fd,
                                std::size_t max_size,
                                uint8_t priority):
-	FileEvent{name, fd, max_size, priority, EventType::TcpListen}
+	FileEvent{name, fd, max_size, priority}
 {
 }
 
 
-bool TcpListenEvent::handle(void)
+bool TcpListenEvent::handle()
 {
 	// wait for a client to connect (this should not block because the
 	// function is called only when there is an event on the listen socket)
@@ -88,6 +89,12 @@ close:
 error:
 	this->data.clear();
 	return false;
+}
+
+
+bool TcpListenEvent::advertiseEvent(ChannelBase& channel)
+{
+	return channel.onEvent(*this);
 }
 
 

@@ -41,6 +41,7 @@
 #define TEST_MULTI_BLOCK_H
 
 
+#include "Data.h"
 #include "Block.h"
 #include "RtChannel.h"
 
@@ -54,7 +55,7 @@ class Rt::UpwardChannel<class TopBlock>: public Rt::Channels::Upward<Rt::UpwardC
 	UpwardChannel(const std::string& name, std::string file);
 
 	using Rt::ChannelBase::onEvent;
-	bool onEvent(const Rt::MessageEvent& event);
+	bool onEvent(const Rt::MessageEvent& event) override;
 };
 
 
@@ -67,9 +68,10 @@ class Rt::DownwardChannel<class TopBlock>: public Rt::Channels::Downward<Rt::Dow
 
 	bool onInit() override;
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::FileEvent& event);
-	bool onEvent(const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::FileEvent& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
 
  protected:
 	std::string input_file;
@@ -92,7 +94,7 @@ class Rt::UpwardChannel<class MiddleBlock>: public Rt::Channels::Upward<Rt::Upwa
 	UpwardChannel(const std::string& name);
 
 	using Rt::ChannelBase::onEvent;
-	bool onEvent(const Rt::MessageEvent& event);
+	bool onEvent(const Rt::MessageEvent& event) override;
 };
 
 
@@ -103,7 +105,7 @@ class Rt::DownwardChannel<class MiddleBlock>: public Rt::Channels::Downward<Rt::
 	DownwardChannel(const std::string& name);
 
 	using Rt::ChannelBase::onEvent;
-	bool onEvent(const Rt::MessageEvent& event);
+	bool onEvent(const Rt::MessageEvent& event) override;
 };
 
 
@@ -125,8 +127,9 @@ class Rt::UpwardChannel<class BottomBlock>: public Rt::Channels::Upward<Rt::Upwa
 
 	bool onInit() override;
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::NetSocketEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::NetSocketEvent& event) override;
 
  protected:
 	int32_t input_fd;
@@ -145,7 +148,7 @@ class Rt::DownwardChannel<class BottomBlock>: public Rt::Channels::Downward<Rt::
 	bool onInit() override;
 
 	using Rt::ChannelBase::onEvent;
-	bool onEvent(const Rt::MessageEvent& event);
+	bool onEvent(const Rt::MessageEvent& event) override;
 
  protected:
 	int32_t output_fd;

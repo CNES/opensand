@@ -35,14 +35,14 @@
 #include <unistd.h>
 
 #include "RtEvent.h"
+#include "RtChannelBase.h"
 
 
 namespace Rt
 {
 
 
-Event::Event(EventType type, const std::string &name, int32_t fd, uint8_t priority):
-	type{type},
+Event::Event(const std::string &name, int32_t fd, uint8_t priority):
 	name{name},
 	fd{fd},
 	priority{priority}
@@ -57,31 +57,31 @@ Event::~Event()
 	close(this->fd);
 }
 
-void Event::setTriggerTime(void)
+void Event::setTriggerTime()
 {
 	this->trigger_time = std::chrono::high_resolution_clock::now();
 }
 
-void Event::setCustomTime(void) const
+void Event::setCustomTime() const
 {
 	this->custom_time = std::chrono::high_resolution_clock::now();
 }
 
-time_val_t Event::getTimeFromTrigger(void) const
+time_val_t Event::getTimeFromTrigger() const
 {
 	auto time = std::chrono::high_resolution_clock::now();
 	auto duration = time - this->trigger_time;
 	return std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
 }
 
-time_val_t Event::getTimeFromCustom(void) const
+time_val_t Event::getTimeFromCustom() const
 {
 	auto time = std::chrono::high_resolution_clock::now();
 	auto duration = time - this->custom_time;
 	return std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
 }
 
-time_val_t Event::getAndSetCustomTime(void) const
+time_val_t Event::getAndSetCustomTime() const
 {
 	auto res = this->getTimeFromCustom();
 	this->setCustomTime();
@@ -106,6 +106,12 @@ bool Event::operator ==(const event_id_t id) const
 bool Event::operator !=(const event_id_t id) const
 {
 	return this->fd != id;
+}
+
+
+bool Event::advertiseEvent(ChannelBase& channel)
+{
+	return channel.onEvent(*this);
 }
 
 

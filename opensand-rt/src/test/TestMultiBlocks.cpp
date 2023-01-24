@@ -68,6 +68,8 @@
 
 #include "Rt.h"
 #include "MessageEvent.h"
+#include "FileEvent.h"
+#include "NetSocketEvent.h"
 
 #include <opensand_output/Output.h>
 
@@ -101,23 +103,11 @@ static void usage(void)
 
 static Rt::Ptr<Rt::Data> read_msg(const Rt::MessageEvent& event, std::string name, std::string from)
 {
-	switch(event.getType())
-	{
-		case Rt::EventType::Message:
-		{
-			auto data = event.getMessage<Rt::Data>();
-			std::cout << "Block " << name << ": " << data->size()
-			          << " bytes of data received from "
-			          << from << " block" << std::endl;
-			return data;
-		}
-
-		default:
-			Rt::Rt::reportError(name, std::this_thread::get_id(), true,
-			                    "unknown event: %u", event.getType());
-	}
-
-	return Rt::make_ptr<Rt::Data>();
+	auto data = event.getMessage<Rt::Data>();
+	std::cout << "Block " << name << ": " << data->size()
+	          << " bytes of data received from "
+	          << from << " block" << std::endl;
+	return data;
 }
 
 
@@ -198,7 +188,7 @@ bool Rt::DownwardChannel<TopBlock>::onInit()
 bool Rt::DownwardChannel<TopBlock>::onEvent(const Event& event)
 {
 	Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-	                "unknown event: %u", event.getType());
+	                "unknown event: %s", event.getName().c_str());
 	return false;
 }
 
@@ -396,7 +386,7 @@ bool Rt::UpwardChannel<BottomBlock>::onInit(void)
 bool Rt::UpwardChannel<BottomBlock>::onEvent(const Event& event)
 {
 	Rt::reportError(this->getName(), std::this_thread::get_id(), true,
-	                "unknown event %u", event.getType());
+	                "unknown event %s", event.getName().c_str());
 	return false;
 }
 

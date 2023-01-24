@@ -53,9 +53,10 @@ class Rt::UpwardChannel<class TestBlock>: public Rt::Channels::Upward<Rt::Upward
 
 	bool onInit () override;
 
-	bool onEvent (const Rt::Event& event);
-	bool onEvent (const Rt::TimerEvent& event);
-	bool onEvent (const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent (const Rt::Event& event) override;
+	bool onEvent (const Rt::TimerEvent& event) override;
+	bool onEvent (const Rt::MessageEvent& event) override;
 
  protected:
 	uint32_t nbr_timeouts;
@@ -77,8 +78,9 @@ class Rt::DownwardChannel<class TestBlock>: public Rt::Channels::Downward<Rt::Do
 
 	bool onInit () override;
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::FileEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::FileEvent& event) override;
 
  protected:
 	int32_t input_fd;

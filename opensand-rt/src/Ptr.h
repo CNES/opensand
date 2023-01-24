@@ -26,39 +26,58 @@
  */
 
 /**
- * @file Types.cpp
+ * @file Ptr.h
  * @author Mathias ETTINGER / <mathias.ettinger@viveris.fr>
- * @brief  Types for opensand-rt
+ * @brief  Buffer data type for opensand-rt
  */
 
 
-#include "Types.h"
+#ifndef PTR_H
+#define PTR_H
+
+
+#include <memory>
 
 
 namespace Rt
 {
 
 
-Message::Message(std::nullptr_t):
-	type{},
-	data{nullptr, [](void*){}}
+template<typename T>
+using Ptr = std::unique_ptr<T, void(*)(void*)>;
+
+
+template<class T, class... Args>
+Ptr<T> make_ptr(Args... args)
 {
+	auto instance = new T(std::forward<Args>(args)...);
+	auto deleter = [](void* p){ delete static_cast<T*>(p); };
+	return {instance, deleter};
 }
 
 
-Message::Message(Message&& m):
-	type{std::move(m.type)},
-	data{std::move(m.data)}
+template<class T>
+Ptr<T> make_ptr(std::nullptr_t)
 {
+	return {nullptr, [](void*){}};
 }
 
 
-Message& Message::operator =(Message&& m)
+template<class T>
+Ptr<T> make_ptr(T* ptr)
 {
-	this->data = std::move(m.data);
-	this->type = std::move(m.type);
-	return *this;
+	return {ptr, [](void* p){ delete static_cast<T*>(p); }};
+}
+
+
+template<class T>
+Ptr<T> make_ptr(std::unique_ptr<T[]> ptr)
+{
+	return {ptr.release(), [](void* p){ delete [] static_cast<T*>(p); }};
 }
 
 
 };
+
+
+#endif

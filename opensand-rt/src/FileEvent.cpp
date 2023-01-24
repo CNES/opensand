@@ -38,6 +38,7 @@
 
 #include "FileEvent.h"
 #include "Rt.h"
+#include "RtChannelBase.h"
 
 
 namespace Rt
@@ -47,16 +48,15 @@ namespace Rt
 FileEvent::FileEvent(const std::string &name,
                      int32_t fd,
                      std::size_t max_size,
-                     uint8_t priority,
-                     EventType type):
-	Event{type, name, fd, priority},
+                     uint8_t priority):
+	Event{name, fd, priority},
 	max_size{max_size},
 	data{}
 {
 }
 
 
-bool FileEvent::handle(void)
+bool FileEvent::handle()
 {
 	if(this->data.size())
 	{
@@ -96,6 +96,12 @@ error:
 Data FileEvent::getData() const
 {
 	return std::move(this->data);
+}
+
+
+bool FileEvent::advertiseEvent(ChannelBase& channel)
+{
+	return channel.onEvent(*this);
 }
 
 

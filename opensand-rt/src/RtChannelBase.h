@@ -43,7 +43,6 @@
 #include <memory>
 
 #include "Types.h"
-#include "TimerEvent.h"
 
 
 class OutputLog;
@@ -55,6 +54,12 @@ namespace Rt
 
 class Fifo;
 class Event;
+class MessageEvent;
+class TimerEvent;
+class SignalEvent;
+class FileEvent;
+class NetSocketEvent;
+class TcpListenEvent;
 
 
 //#define TIME_REPORTS
@@ -72,9 +77,6 @@ class ChannelBase
 {
 	template<class Bl, class Specific>
 	friend class Block;
-	/*
-	friend class BlockManager;
-	*/
 
  protected:
 	/// Output Log
@@ -92,8 +94,6 @@ class ChannelBase
 	ChannelBase(const std::string &name, const std::string &type);
 
 	virtual ~ChannelBase();
-
-	virtual bool handleEvent(const Event * const event) = 0;
 
  public:
 	/**
@@ -241,7 +241,13 @@ class ChannelBase
 	 * @param event  The event
 	 * @return true on success, false otherwise
 	 */
-	bool onEvent(const Event& event);
+	virtual bool onEvent(const Event& event);
+	virtual bool onEvent(const MessageEvent& event);
+	virtual bool onEvent(const TimerEvent& event);
+	virtual bool onEvent(const SignalEvent& event);
+	virtual bool onEvent(const FileEvent& event);
+	virtual bool onEvent(const NetSocketEvent& event);
+	virtual bool onEvent(const TcpListenEvent& event);
 
  protected:
 	/**

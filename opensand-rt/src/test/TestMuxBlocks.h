@@ -54,8 +54,9 @@ class Rt::UpwardChannel<class TopMux>: public Rt::Channels::UpwardMux<Rt::Upward
  public:
 	UpwardChannel(const std::string& name);
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
 };
 
 
@@ -65,8 +66,9 @@ class Rt::DownwardChannel<class TopMux>: public Rt::Channels::DownwardDemux<Rt::
  public:
 	DownwardChannel(const std::string& name);
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
 };
 
 
@@ -83,8 +85,9 @@ class Rt::UpwardChannel<class MiddleBlock>: public Rt::Channels::UpwardMuxDemux<
  public:
 	UpwardChannel(const std::string& name, Side side);
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
 
  protected:
 	Side side;
@@ -97,8 +100,9 @@ class Rt::DownwardChannel<class MiddleBlock>: public Rt::Channels::DownwardMuxDe
  public:
 	DownwardChannel(const std::string& name, Side side);
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
 
  protected:
 	Side side;
@@ -118,8 +122,9 @@ class Rt::UpwardChannel<class TopBlock>: public Rt::Channels::UpwardMux<Rt::Upwa
  public:
 	UpwardChannel(const std::string& name, Side side);
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
 
  protected:
 	Side side;
@@ -132,8 +137,9 @@ class Rt::DownwardChannel<class TopBlock>: public Rt::Channels::DownwardDemux<Rt
  public:
 	DownwardChannel(const std::string& name, Side side);
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
 
  protected:
 	Side side;
@@ -153,8 +159,9 @@ class Rt::UpwardChannel<class BottomBlock>: public Rt::Channels::UpwardDemux<Rt:
  public:
 	UpwardChannel(const std::string& name, Side side);
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
 
  protected:
 	Side side;
@@ -167,8 +174,9 @@ class Rt::DownwardChannel<class BottomBlock>: public Rt::Channels::DownwardMux<R
  public:
 	DownwardChannel(const std::string& name, Side side);
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
 
  protected:
 	Side side;
@@ -190,7 +198,8 @@ class Rt::UpwardChannel<class BottomMux>: public Rt::Channels::UpwardDemux<Rt::U
 
 	bool onInit() override;
 
-	bool onEvent(const Rt::Event& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
 };
 
 
@@ -202,9 +211,10 @@ class Rt::DownwardChannel<class BottomMux>: public Rt::Channels::DownwardMux<Rt:
 
 	bool onInit() override;
 
-	bool onEvent(const Rt::Event& event);
-	bool onEvent(const Rt::TimerEvent& event);
-	bool onEvent(const Rt::MessageEvent& event);
+	using Rt::ChannelBase::onEvent;
+	bool onEvent(const Rt::Event& event) override;
+	bool onEvent(const Rt::TimerEvent& event) override;
+	bool onEvent(const Rt::MessageEvent& event) override;
 };
 
 

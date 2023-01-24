@@ -85,6 +85,7 @@ ChannelBase::~ChannelBase()
 {
 	close(this->w_sel_break);
 	close(this->r_sel_break);
+
 #ifdef TIME_REPORTS
 	this->getDurationsStatistics();
 #endif
@@ -100,6 +101,30 @@ bool ChannelBase::onInit()
 bool ChannelBase::onEvent(const Event& event)
 {
 	return false;
+}
+bool ChannelBase::onEvent(const MessageEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+bool ChannelBase::onEvent(const TimerEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+bool ChannelBase::onEvent(const SignalEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+bool ChannelBase::onEvent(const FileEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+bool ChannelBase::onEvent(const NetSocketEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
+}
+bool ChannelBase::onEvent(const TcpListenEvent& event)
+{
+	return onEvent(static_cast<const Event&>(event));
 }
 
 
@@ -182,7 +207,7 @@ int32_t ChannelBase::addTimerEvent(const std::string &name,
 
 	try {
 		event.reset(new TimerEvent(name, duration_ms, auto_rearm, start, priority));
-	} catch (std::bad_alloc&) {
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create timer event\n");
 		return -1;
 	}
@@ -206,7 +231,7 @@ int32_t ChannelBase::addTcpListenEvent(const std::string &name,
 	
 	try {
 		event.reset(new TcpListenEvent(name, fd, max_size, priority));
-	} catch (std::bad_alloc&) {
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create file event\n");
 		return -1;
 	}
@@ -230,7 +255,7 @@ int32_t ChannelBase::addFileEvent(const std::string &name,
 	
 	try {
 		event.reset(new FileEvent(name, fd, max_size, priority));
-	} catch (std::bad_alloc&) {
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create file event\n");
 		return -1;
 	}
@@ -254,7 +279,7 @@ int32_t ChannelBase::addNetSocketEvent(const std::string &name,
 	
 	try {
 		event.reset(new NetSocketEvent(name, fd, max_size, priority));
-	} catch (std::bad_alloc&) {
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create net socket event\n");
 		return -1;
 	}
@@ -277,7 +302,7 @@ int32_t ChannelBase::addSignalEvent(const std::string &name,
 	
 	try {
 		event.reset(new SignalEvent(name, signal_mask, priority));
-	} catch (std::bad_alloc&) {
+	} catch (const std::bad_alloc&) {
 		this->reportError(true, "cannot create signal event\n");
 		return -1;
 	}
@@ -410,7 +435,7 @@ TimerEvent *ChannelBase::getTimer(event_id_t id)
 
 found:
 	TimerEvent *timer_event = dynamic_cast<TimerEvent *>(event);
-	if(!timer_event || timer_event->getType() != EventType::Timer)
+	if(!timer_event)
 	{
 		this->reportError(false, "cannot start event that is not a timer\n");
 		return nullptr;
@@ -506,9 +531,7 @@ void ChannelBase::executeThread(void)
 		if(FD_ISSET(this->stop_fd, &readfds))
 		{
 			// we have to stop
-			LOG(this->log_rt, LEVEL_INFO,
-				"stop signal received\n");
-			std::cout << "Stop signal received in " << this->channel_name << " (" << this->channel_type << ")\n";
+			LOG(this->log_rt, LEVEL_INFO, "stop signal received\n");
 			return;
 		}
 
@@ -541,11 +564,9 @@ void ChannelBase::executeThread(void)
 			// fd is set
 			if(!event->handle())
 			{
-				if(event->getType() == EventType::Signal)
+				if(event->isCritical())
 				{
-					// this is the only case where it is critical as
-					// stop event is a signal
-					this->reportError(true, "unable to handle signal event\n");
+					this->reportError(true, "unable to handle critical event\n");
 					return;
 				}
 				this->reportError(false, "unable to handle event\n");
@@ -562,7 +583,7 @@ void ChannelBase::executeThread(void)
 			event->setTriggerTime();
 			LOG(this->log_rt, LEVEL_DEBUG, "event received (%s)",
 			    event_name.c_str());
-			if(!this->handleEvent(event))
+			if(!event->advertiseEvent(*this))
 			{
 				LOG(this->log_rt, LEVEL_ERROR,
 				    "failed to process event %s\n",

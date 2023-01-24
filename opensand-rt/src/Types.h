@@ -40,8 +40,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
-#include <string>
+#include "Ptr.h"
 
 
 constexpr std::size_t MAX_SOCK_SIZE{9000};
@@ -51,26 +50,7 @@ namespace Rt
 {
 
 
-/// opensand-rt event types
-enum class EventType
-{
-	NetSocket,   ///< Event of type NetSocket
-	Timer,       ///< Event of type Timer
-	Message,     ///< Event of type Message
-	Signal,      ///< Event of type Signal
-	File,        ///< Event of type File
-	TcpListen,   ///< Event of type TcpListen
-};
-
-
 using event_id_t = int32_t;
-struct Data: std::basic_string<unsigned char>
-{
-	using basic_string::basic_string;
-	Data(const basic_string&);
-	Data(basic_string&&);
-};
-template <class T> using Ptr = std::unique_ptr<T, void(*)(void*)>;
 
 
 struct Message
@@ -104,29 +84,6 @@ struct Message
  protected:
 	Ptr<void> data;
 };
-
-
-template<class T, class... Args>
-Ptr<T> make_ptr(Args... args)
-{
-	auto instance = new T(std::forward<Args>(args)...);
-	auto deleter = [](void* p){ delete static_cast<T*>(p); };
-	return {instance, deleter};
-}
-
-
-template<class T>
-Ptr<T> make_ptr(T* ptr)
-{
-	return {ptr, [](void* p){ delete static_cast<T*>(p); }};
-}
-
-
-template<class T>
-Ptr<T> make_ptr(std::unique_ptr<T[]> ptr)
-{
-	return {ptr.release(), [](void* p){ delete [] static_cast<T*>(p); }};
-}
 
 
 template<class T>

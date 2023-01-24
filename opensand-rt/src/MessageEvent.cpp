@@ -38,6 +38,7 @@
 #include "MessageEvent.h"
 #include "Rt.h"
 #include "RtFifo.h"
+#include "RtChannelBase.h"
 #include "RtCommunicate.h"
 
 
@@ -49,14 +50,14 @@ MessageEvent::MessageEvent(std::shared_ptr<Fifo> &fifo,
                            const std::string &name,
                            int32_t fd,
                            uint8_t priority):
-	Event{EventType::Message, name, fd, priority},
+	Event{name, fd, priority},
 	message{nullptr},
 	fifo{fifo}
 {
 }
 
 
-bool MessageEvent::handle(void)
+bool MessageEvent::handle()
 {
 	// read the pipe to clear it, and check that if contains
 	// the correct signaling
@@ -75,6 +76,12 @@ bool MessageEvent::handle(void)
 	}
 
 	return true;
+}
+
+
+bool MessageEvent::advertiseEvent(ChannelBase& channel)
+{
+	return channel.onEvent(*this);
 }
 
 

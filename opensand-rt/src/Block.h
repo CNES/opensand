@@ -42,12 +42,7 @@
 #include <thread>
 #include <type_traits>
 
-#include "MessageEvent.h"
-#include "NetSocketEvent.h"
-#include "TimerEvent.h"
-#include "SignalEvent.h"
-#include "FileEvent.h"
-#include "TcpListenEvent.h"
+#include "RtEvent.h"
 
 
 class OutputLog;
@@ -80,6 +75,7 @@ class BlockBase
 	 * @param name      The name of the block
 	 */
 	BlockBase(const std::string &name);
+	virtual ~BlockBase() = default;
 
 	static std::shared_ptr<Fifo> createFifo();
 
@@ -185,29 +181,6 @@ class BlockBase
 };
 
 
-template<typename T>
-bool handleEventImpl(T& channel, const Event * const event)
-{
-	switch (event->getType())
-	{
-		case EventType::Message:
-			return channel.onEvent(static_cast<const MessageEvent&>(*event));
-		case EventType::NetSocket:
-			return channel.onEvent(static_cast<const NetSocketEvent&>(*event));
-		case EventType::Timer:
-			return channel.onEvent(static_cast<const TimerEvent&>(*event));
-		case EventType::Signal:
-			return channel.onEvent(static_cast<const SignalEvent&>(*event));
-		case EventType::File:
-			return channel.onEvent(static_cast<const FileEvent&>(*event));
-		case EventType::TcpListen:
-			return channel.onEvent(static_cast<const TcpListenEvent&>(*event));
-		default:
-			return channel.onEvent(*event);
-	}
-};
-
-
 /**
  * @class Upward channel
  *        With this class we are able to define Upward channel
@@ -218,9 +191,6 @@ class UpwardBase: public ChannelType
 {
 	friend CRTP;
 	UpwardBase(const std::string &name): ChannelType(name, "Upward") {};
-
- protected:
-	bool handleEvent(const Event * const event) override { return handleEventImpl(static_cast<CRTP&>(*this), event); }
 
  public:
 	using Upward = ChannelType;
@@ -262,9 +232,6 @@ class DownwardBase: public ChannelType
 {
 	friend CRTP;
 	DownwardBase(const std::string &name): ChannelType(name, "Downward") {};
-
- protected:
-	bool handleEvent(const Event * const event) override { return handleEventImpl(static_cast<CRTP&>(*this), event); }
 
  public:
 	using Downward = ChannelType;
@@ -337,6 +304,8 @@ class Block: public BlockBase
 {
 	friend Bl;
 	friend class BlockManager;
+
+	~Block() = default;
 
 	template<typename Void = Specific, typename std::enable_if_t<std::is_void<Void>::value, bool> = true>
 	Block(const std::string &name): BlockBase{name}, upward{name}, downward{name}

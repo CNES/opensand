@@ -70,7 +70,7 @@ class SignalEvent: public Event
 	 *
 	 * @return the information on the triggered signal
 	 */
-	inline signalfd_siginfo getTriggerInfo(void) {return this->sig_info;};
+	inline signalfd_siginfo getTriggerInfo() {return this->sig_info;};
 
 	/**
 	 * @brief Handle a signal event
@@ -81,7 +81,10 @@ class SignalEvent: public Event
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool handle(void) override;
+	bool handle() override;
+
+	// This is the only case where it is critical as stop event is a signal
+	bool isCritical() const override { return true; };
 
  protected:
 	/**
@@ -91,12 +94,15 @@ class SignalEvent: public Event
 	 *
 	 * @return true on success, false otherwise
 	 */
-	bool readHandler(void);
+	bool readHandler();
 
 	/// The signal(s) to trigger this event
 	sigset_t mask;
 	/// The information that come when a signal triggers the event
 	signalfd_siginfo sig_info;
+
+ private:
+	bool advertiseEvent(ChannelBase& channel) override;
 };
 
 

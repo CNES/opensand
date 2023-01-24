@@ -26,39 +26,27 @@
  */
 
 /**
- * @file Types.cpp
+ * @file Data.h
  * @author Mathias ETTINGER / <mathias.ettinger@viveris.fr>
- * @brief  Types for opensand-rt
+ * @brief  Buffer data type for opensand-rt
  */
 
 
-#include "Types.h"
+#ifndef DATA_H
+#define DATA_H
+
+
+#include <string>
+#include <sstream>
 
 
 namespace Rt
 {
-
-
-Message::Message(std::nullptr_t):
-	type{},
-	data{nullptr, [](void*){}}
-{
-}
-
-
-Message::Message(Message&& m):
-	type{std::move(m.type)},
-	data{std::move(m.data)}
-{
-}
-
-
-Message& Message::operator =(Message&& m)
-{
-	this->data = std::move(m.data);
-	this->type = std::move(m.type);
-	return *this;
-}
-
-
+using DataStream = std::basic_stringstream<unsigned char>;
+using ODataStream = std::basic_ostringstream<unsigned char>;
+using IDataStream = std::basic_istringstream<unsigned char>;
+using Data = std::basic_string<unsigned char>;
 };
+
+
+#endif

@@ -39,6 +39,7 @@
 #define FILE_EVENT_H
 
 #include "RtEvent.h"
+#include "Data.h"
 #include "Types.h"
 
 
@@ -64,9 +65,7 @@ class FileEvent: public Event
 	FileEvent(const std::string &name,
 	          int32_t fd = -1,
 	          std::size_t max_size = MAX_SOCK_SIZE,
-	          uint8_t priority = 5,
-	          EventType type = EventType::File);
-
+	          uint8_t priority = 5);
 
 	/**
 	 * @brief Get the message content
@@ -82,7 +81,7 @@ class FileEvent: public Event
 	 */
 	inline Data::size_type getSize() const { return this->data.size(); };
 
-	bool handle(void) override;
+	bool handle() override;
 
  protected:
 	/// The maximum size of received data
@@ -90,6 +89,9 @@ class FileEvent: public Event
 
 	/// data pointer
 	mutable Data data;
+
+ private:
+	bool advertiseEvent(ChannelBase& channel) override;
 };
 
 
