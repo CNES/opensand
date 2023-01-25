@@ -1,4 +1,10 @@
-opensand-network (6.1.0) xenial; urgency=low
+opensand-network (7.0.0) jammy; urgency=low
+
+  * Preview 7.0.0
+
+ -- mettinger <mathias.ettinger@viveris.fr> Wed, 25 Jan 2023 12:00:00 +0100
+
+opensand-network (6.1.0) jammy; urgency=low
 
   * Release 6.1.0
 

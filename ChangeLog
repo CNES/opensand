@@ -1,3 +1,10 @@
+2023-01-25 opensand-7.0.0-preview
+
+   * Rework memory model in the opensand-rt library
+       * No more bare pointers + length: using unique_ptr with custom deleter instead (a.k.a. Rt::Ptr)
+       * No more explicit types on Rt::Event: using virtual dispatch instead to select the appropriate onEvent in each channel
+       * Better handling of the stop signals leading to proper destruction and resources collection on channels and blocks
+
 2022-12-12 opensand-6.1.0
 
    * Added support for ubuntu 22.04 (jammy)
