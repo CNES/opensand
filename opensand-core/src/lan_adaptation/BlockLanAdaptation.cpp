@@ -159,13 +159,14 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onInit()
 
 bool Rt::UpwardChannel<BlockLanAdaptation>::onInit()
 {
-	uint32_t polling_rate;
 	if (delay == 0)
 	{
 		// No need to poll, messages are sent directly
-		polling_rate = 0;
+		return true;
 	}
-	else if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
+
+	uint32_t polling_rate;
+	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
 	{
 		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
 		return false;
@@ -312,7 +313,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const Event& event)
 
 bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const TimerEvent& event)
 {
-	if(event == delay_timer)
+	if(delay != 0 && event == delay_timer)
 	{
 		time_ms_t current_time = getCurrentTime();
 
@@ -325,11 +326,13 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const TimerEvent& event)
 				return false;
 			}
 		}
+
+		return true;
 	}
 
 	LOG(this->log_receive, LEVEL_ERROR,
-			"unknown timer event received %s",
-			event.getName().c_str());
+	    "unknown timer event received %s",
+	    event.getName().c_str());
 	return false;
 }
 

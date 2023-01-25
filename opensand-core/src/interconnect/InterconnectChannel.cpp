@@ -175,7 +175,11 @@ bool InterconnectChannelSender::onTimerEvent()
 	while (delay_fifo.getCurrentSize() > 0 && ((unsigned long)delay_fifo.getTickOut()) <= current_time)
 	{
 		std::unique_ptr<FifoElement> elem = delay_fifo.pop();
-		assert(elem != nullptr);
+		if (!elem)
+		{
+			LOG(this->log_interconnect, LEVEL_ERROR, "message to send is NULL\n");
+			return false;
+		}
 
 		auto container = elem->getElem<NetContainer>();
 		auto msg = reinterpret_cast<const interconnect_msg_buffer_t *>(container->getRawData());
@@ -184,7 +188,7 @@ bool InterconnectChannelSender::onTimerEvent()
 		{
 			LOG(this->log_interconnect, LEVEL_ERROR, "failed to send buffer\n");
 			return false;
-		};
+		}
 	}
 	return true;
 }

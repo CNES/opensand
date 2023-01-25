@@ -87,7 +87,7 @@ class Rt::DownwardChannel<class BlockInterconnectDownward>: public Channels::Dow
 
  private:
 	event_id_t delay_timer;
-	uint32_t polling_rate;
+	uint32_t delay;
 	std::size_t isl_index;
 };
 
@@ -125,7 +125,7 @@ class Rt::UpwardChannel<class BlockInterconnectUpward>: public Channels::Upward<
 
  private:
 	event_id_t delay_timer;
-	uint32_t polling_rate;
+	uint32_t delay;
 	std::size_t isl_index;
 };
 
