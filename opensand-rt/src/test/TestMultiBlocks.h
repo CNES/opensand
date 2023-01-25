@@ -49,18 +49,18 @@
 
 
 template<>
-class Rt::UpwardChannel<class TopBlock>: public Rt::Channels::Upward<Rt::UpwardChannel<TopBlock>>
+class Rt::UpwardChannel<class TopBlock>: public Channels::Upward<UpwardChannel<TopBlock>>
 {
  public:
 	UpwardChannel(const std::string& name, std::string file);
 
-	using Rt::ChannelBase::onEvent;
-	bool onEvent(const Rt::MessageEvent& event) override;
+	using ChannelBase::onEvent;
+	bool onEvent(const MessageEvent& event) override;
 };
 
 
 template<>
-class Rt::DownwardChannel<class TopBlock>: public Rt::Channels::Downward<Rt::DownwardChannel<TopBlock>>
+class Rt::DownwardChannel<class TopBlock>: public Channels::Downward<DownwardChannel<TopBlock>>
 {
  public:
 	DownwardChannel(const std::string& name, std::string file);
@@ -68,15 +68,15 @@ class Rt::DownwardChannel<class TopBlock>: public Rt::Channels::Downward<Rt::Dow
 
 	bool onInit() override;
 
-	using Rt::ChannelBase::onEvent;
-	bool onEvent(const Rt::Event& event) override;
-	bool onEvent(const Rt::FileEvent& event) override;
-	bool onEvent(const Rt::MessageEvent& event) override;
+	using ChannelBase::onEvent;
+	bool onEvent(const Event& event) override;
+	bool onEvent(const FileEvent& event) override;
+	bool onEvent(const MessageEvent& event) override;
 
  protected:
 	std::string input_file;
 	int32_t input_fd;
-	std::queue<Rt::Data> last_written;
+	std::queue<Data> last_written;
 };
 
 
@@ -88,24 +88,24 @@ class TopBlock: public Rt::Block<TopBlock, std::string>
 
 
 template<>
-class Rt::UpwardChannel<class MiddleBlock>: public Rt::Channels::Upward<Rt::UpwardChannel<MiddleBlock>>
+class Rt::UpwardChannel<class MiddleBlock>: public Channels::Upward<UpwardChannel<MiddleBlock>>
 {
  public:
 	UpwardChannel(const std::string& name);
 
-	using Rt::ChannelBase::onEvent;
-	bool onEvent(const Rt::MessageEvent& event) override;
+	using ChannelBase::onEvent;
+	bool onEvent(const MessageEvent& event) override;
 };
 
 
 template<>
-class Rt::DownwardChannel<class MiddleBlock>: public Rt::Channels::Downward<Rt::DownwardChannel<MiddleBlock>>
+class Rt::DownwardChannel<class MiddleBlock>: public Channels::Downward<DownwardChannel<MiddleBlock>>
 {
  public:
 	DownwardChannel(const std::string& name);
 
-	using Rt::ChannelBase::onEvent;
-	bool onEvent(const Rt::MessageEvent& event) override;
+	using ChannelBase::onEvent;
+	bool onEvent(const MessageEvent& event) override;
 };
 
 
@@ -117,7 +117,7 @@ class MiddleBlock: public Rt::Block<MiddleBlock>
 
 
 template<>
-class Rt::UpwardChannel<class BottomBlock>: public Rt::Channels::Upward<Rt::UpwardChannel<BottomBlock>>
+class Rt::UpwardChannel<class BottomBlock>: public Channels::Upward<UpwardChannel<BottomBlock>>
 {
  public:
 	UpwardChannel(const std::string& name);
@@ -127,9 +127,9 @@ class Rt::UpwardChannel<class BottomBlock>: public Rt::Channels::Upward<Rt::Upwa
 
 	bool onInit() override;
 
-	using Rt::ChannelBase::onEvent;
-	bool onEvent(const Rt::Event& event) override;
-	bool onEvent(const Rt::NetSocketEvent& event) override;
+	using ChannelBase::onEvent;
+	bool onEvent(const Event& event) override;
+	bool onEvent(const NetSocketEvent& event) override;
 
  protected:
 	int32_t input_fd;
@@ -137,7 +137,7 @@ class Rt::UpwardChannel<class BottomBlock>: public Rt::Channels::Upward<Rt::Upwa
 
 
 template<>
-class Rt::DownwardChannel<class BottomBlock>: public Rt::Channels::Downward<Rt::DownwardChannel<BottomBlock>>
+class Rt::DownwardChannel<class BottomBlock>: public Channels::Downward<DownwardChannel<BottomBlock>>
 {
  public:
 	DownwardChannel(const std::string& name);
@@ -147,8 +147,8 @@ class Rt::DownwardChannel<class BottomBlock>: public Rt::Channels::Downward<Rt::
 
 	bool onInit() override;
 
-	using Rt::ChannelBase::onEvent;
-	bool onEvent(const Rt::MessageEvent& event) override;
+	using ChannelBase::onEvent;
+	bool onEvent(const MessageEvent& event) override;
 
  protected:
 	int32_t output_fd;

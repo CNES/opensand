@@ -70,7 +70,11 @@ class BlockManager
 	 * @param name      The block name
 	 * @return A pointer to the newly created block
 	 */
+#if __cplusplus < 202002L
 	template <class Bl>
+#else
+	template<IsBlock Bl>
+#endif
 	Bl& createBlock(const std::string &name);
 
 	/**
@@ -82,7 +86,11 @@ class BlockManager
 	 *                  constructor of the block
 	 * @return A pointer to the newly created block
 	 */
+#if __cplusplus < 202002L
 	template <class Bl, class Specific>
+#else
+	template<IsBlock Bl, class Specific>
+#endif
 	Bl& createBlock(const std::string &name, Specific specific);
 
 	/**
@@ -91,7 +99,11 @@ class BlockManager
 	 * @param upper     The upper block
 	 * @param lower     The lower block
 	 */
+#if __cplusplus < 202002L
 	template <class UpperBl, class LowerBl>
+#else
+	template<SimpleUpper UpperBl, SimpleLower LowerBl>
+#endif
 	void connectBlocks(UpperBl& upper, LowerBl& lower);
 
 	/**
@@ -103,7 +115,11 @@ class BlockManager
 	 * @param down_key  The key to send messages from the upper block to
 	 *                  the lower block
 	 */
+#if __cplusplus < 202002L
 	template <class UpperBl, class LowerBl>
+#else
+	template<MultipleUpper UpperBl, SimpleLower LowerBl>
+#endif
 	void connectBlocks(UpperBl& upper, LowerBl& lower,
 	                   typename UpperBl::ChannelDownward::DemuxKey down_key);
 
@@ -116,7 +132,11 @@ class BlockManager
 	 * @param up_key    The key to send messages from the lower block to
 	 *                  the upper block
 	 */
+#if __cplusplus < 202002L
 	template <class UpperBl, class LowerBl>
+#else
+	template<SimpleUpper UpperBl, MultipleLower LowerBl>
+#endif
 	void connectBlocks(UpperBl& upper, LowerBl& lower,
 	                   typename LowerBl::ChannelUpward::DemuxKey up_key);
 
@@ -132,7 +152,11 @@ class BlockManager
 	 * @param down_key  The key to send messages from the upper block to
 	 *                  the lower block
 	 */
+#if __cplusplus < 202002L
 	template <class UpperBl, class LowerBl>
+#else
+	template<MultipleUpper UpperBl, MultipleLower LowerBl>
+#endif
 	void connectBlocks(UpperBl& upper, LowerBl& lower,
 	                   typename LowerBl::ChannelUpward::DemuxKey up_key,
 	                   typename UpperBl::ChannelDownward::DemuxKey down_key);
@@ -196,7 +220,11 @@ class BlockManager
 };
 
 
+#if __cplusplus < 202002L
 template <class Bl>
+#else
+template<IsBlock Bl>
+#endif
 Bl& BlockManager::createBlock(const std::string &name)
 {
 	auto block = new Bl{name};
@@ -205,7 +233,11 @@ Bl& BlockManager::createBlock(const std::string &name)
 }
 
 
+#if __cplusplus < 202002L
 template <class Bl, class Specific>
+#else
+template<IsBlock Bl, class Specific>
+#endif
 Bl& BlockManager::createBlock(const std::string &name, Specific specific)
 {
 	auto block = new Bl{name, specific};
@@ -250,7 +282,7 @@ struct ChannelsConnector
 };
 
 
-// C++20 concepts: template<SimpleUpper UpperBl, SimpleLower LowerBl>
+#if __cplusplus < 202002L
 template <class UpperBl, class LowerBl>
 void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower)
 {
@@ -263,7 +295,6 @@ void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower)
 	ChannelsConnector::connect(upper.downward, lower.downward);
 }
 
-// C++20 concepts: template<MultipleUpper UpperBl, SimpleLower LowerBl>
 template <class UpperBl, class LowerBl>
 void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
                                  typename UpperBl::ChannelDownward::DemuxKey down_key)
@@ -277,7 +308,6 @@ void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
 	ChannelsConnector::connect(upper.downward, lower.downward, down_key);
 }
 
-// C++20 concepts: template<SimpleUpper UpperBl, MultipleLower LowerBl>
 template <class UpperBl, class LowerBl>
 void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
                                  typename LowerBl::ChannelUpward::DemuxKey up_key)
@@ -291,7 +321,6 @@ void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
 	ChannelsConnector::connect(upper.downward, lower.downward);
 }
 
-// C++20 concepts: template<MultipleUpper UpperBl, MultipleLower LowerBl>
 template <class UpperBl, class LowerBl>
 void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
                                  typename LowerBl::ChannelUpward::DemuxKey up_key,
@@ -305,6 +334,39 @@ void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
 	ChannelsConnector::connect(lower.upward, upper.upward, up_key);
 	ChannelsConnector::connect(upper.downward, lower.downward, down_key);
 }
+#else
+template<SimpleUpper UpperBl, SimpleLower LowerBl>
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower)
+{
+	ChannelsConnector::connect(lower.upward, upper.upward);
+	ChannelsConnector::connect(upper.downward, lower.downward);
+}
+
+template<MultipleUpper UpperBl, SimpleLower LowerBl>
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
+                                 typename UpperBl::ChannelDownward::DemuxKey down_key)
+{
+	ChannelsConnector::connect(lower.upward, upper.upward);
+	ChannelsConnector::connect(upper.downward, lower.downward, down_key);
+}
+
+template<SimpleUpper UpperBl, MultipleLower LowerBl>
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
+                                 typename LowerBl::ChannelUpward::DemuxKey up_key)
+{
+	ChannelsConnector::connect(lower.upward, upper.upward, up_key);
+	ChannelsConnector::connect(upper.downward, lower.downward);
+}
+
+template<MultipleUpper UpperBl, MultipleLower LowerBl>
+void BlockManager::connectBlocks(UpperBl& upper, LowerBl& lower,
+                                 typename LowerBl::ChannelUpward::DemuxKey up_key,
+                                 typename UpperBl::ChannelDownward::DemuxKey down_key)
+{
+	ChannelsConnector::connect(lower.upward, upper.upward, up_key);
+	ChannelsConnector::connect(upper.downward, lower.downward, down_key);
+}
+#endif
 
 
 };  // namespace Rt

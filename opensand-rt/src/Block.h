@@ -43,6 +43,7 @@
 #include <type_traits>
 
 #include "RtEvent.h"
+#include "TemplateHelper.h"
 
 
 class OutputLog;
@@ -270,27 +271,6 @@ template<typename> class UpwardChannel;
 template<typename> class DownwardChannel;
 
 
-/* C++20 concepts: enable when possible
-class ChannelBase;
-
-
-template<typename Bl>
-concept HasTwoChannels = std::is_base_of<ChannelBase, UpwardChannel<Bl>>::value && std::is_base_of<ChannelBase, DownwardChannel<Bl>>::value;
-
-
-template<typename Bl>
-concept HasUpwardChannel = std::is_base_of<UpwardBase<UpwardChannel<Bl>, typename UpwardChannel<Bl>::Upward>, UpwardChannel<Bl>>::value;
-
-
-template<typename Bl>
-concept HasDownwardChannel = std::is_base_of<DownwardBase<DownwardChannel<Bl>, typename DownwardChannel<Bl>::Downward>, DownwardChannel<Bl>>::value;
-
-
-template<typename Bl>
-concept IsBlock = HasTwoChannels<Bl> && HasUpwardChannel<Bl> && HasDownwardChannel<Bl>;
-
-
-template<IsBlock Bl, typename Specific = void>*/
 /**
  * @class Block
  * @brief describes a block
@@ -299,7 +279,11 @@ template<IsBlock Bl, typename Specific = void>*/
  * upward channel processes data from lower block to upper block.
  * downward channel processes data from lower block to upper block.
  */
+#if __cplusplus < 202002L
 template<typename Bl, typename Specific = void>
+#else
+template<IsBlock Bl, typename Specific = void>
+#endif
 class Block: public BlockBase
 {
 	friend Bl;

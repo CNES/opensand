@@ -43,6 +43,7 @@
 #include <memory>
 
 #include "Types.h"
+#include "TemplateHelper.h"
 
 
 class OutputLog;
@@ -75,7 +76,11 @@ class TcpListenEvent;
  */
 class ChannelBase
 {
+#if __cplusplus < 202002L
 	template<class Bl, class Specific>
+#else
+	template<IsBlock Bl, class Specific>
+#endif
 	friend class Block;
 
  protected:
