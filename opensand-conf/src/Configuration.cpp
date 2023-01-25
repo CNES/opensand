@@ -345,7 +345,6 @@ std::shared_ptr<OpenSANDConf::DataModel> OpenSANDConf::fromXML(std::shared_ptr<O
 
 error:
 	xmlFreeDoc(doc);
-	xmlSchemaCleanupTypes();
 	xmlCleanupParser();
 	xmlMemoryDump();
 
