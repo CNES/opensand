@@ -1472,6 +1472,17 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 		return this->handleDvbFrame(event.getMessage<DvbFrame>());
 	}
 
+	if(msg_type == InternalMessageType::encap_data)
+	{
+		// Message that went directly from the physical layer up to
+		// the sat dispatcher, send back to the physical layer untouched
+		auto dvb_frame = event.getMessage<DvbFrame>();
+		LOG(log_receive, LEVEL_INFO,
+		    "Received a DVB frame (type %d), transmitting to carrier %d",
+		    dvb_frame->getMessageType(), carrier_id_data);
+		return this->sendDvbFrame(std::move(dvb_frame), carrier_id_data);
+	}
+
 	// TODO move saloha handling in a specific function ?
 	// Slotted Aloha variables
 	auto burst = event.getMessage<NetBurst>();

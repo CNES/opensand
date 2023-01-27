@@ -145,25 +145,36 @@ bool Rt::DownwardChannel<BlockEncap>::onEvent(const MessageEvent &event)
 	LOG(this->log_receive, LEVEL_INFO,
 	    "message received from the upper-layer bloc\n");
 	
-	InternalMessageType msg_type = to_enum<InternalMessageType>(event.getMessageType());
-	if(msg_type == InternalMessageType::link_up)
+	switch(to_enum<InternalMessageType>(event.getMessageType()))
 	{
-		// 'link up' message received 
-		Ptr<T_LINK_UP> link_up_msg = event.getMessage<T_LINK_UP>();
+		case InternalMessageType::link_up:
+			{
+				Ptr<T_LINK_UP> link_up_msg = event.getMessage<T_LINK_UP>();
 
-		// save group id and TAL id sent by MAC layer
-		this->group_id = link_up_msg->group_id;
-		this->tal_id = link_up_msg->tal_id;
-		this->state = SatelliteLinkState::UP;
-		return true;
+				// save group id and TAL id sent by MAC layer
+				this->group_id = link_up_msg->group_id;
+				this->tal_id = link_up_msg->tal_id;
+				this->state = SatelliteLinkState::UP;
+				// 'link up' message received
+				return true;
+			}
+
+		case InternalMessageType::sig:
+		case InternalMessageType::encap_data:
+			// "transparent" message that needed to transit through the SatDispatcher block
+			// send straight to the SatCarrier block
+			return this->enqueueMessage(event.getMessage<void>(), event.getMessageType());
+
+		case InternalMessageType::decap_data:
+			return this->onRcvBurst(event.getMessage<NetBurst>());
+
+		default:
+			LOG(this->log_receive, LEVEL_ERROR,
+			    "unexpected message type (%u) received from event %s",
+			    event.getMessageType(),
+			    event.getName().c_str());
 	}
-
-	if (msg_type == InternalMessageType::sig)
-	{
-		return this->enqueueMessage(event.getMessage<void>(), event.getMessageType());
-	}
-
-	return this->onRcvBurst(event.getMessage<NetBurst>());
+	return false;
 }
 
 
