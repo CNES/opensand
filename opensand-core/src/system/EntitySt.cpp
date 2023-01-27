@@ -89,7 +89,7 @@ bool EntitySt::createSpecificBlocks()
 	 	Conf->getGwWithTalId(this->instance_id, gw_id);
 		la_specific laspecific;
 		laspecific.tap_iface = this->tap_iface;
-		laspecific.packet_switch = new TerminalPacketSwitch(this->instance_id, gw_id);
+		laspecific.packet_switch = std::make_shared<TerminalPacketSwitch>(this->instance_id, gw_id);
 
 		EncapConfig encap_cfg;
 		encap_cfg.entity_id = this->instance_id;

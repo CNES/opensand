@@ -404,6 +404,7 @@ int UdpChannel::receive(const Rt::NetSocketEvent& event,
 
 	auto &udp_stack = this->stacks[ip_address];
 	// add the new packet in stack
+	data.erase(data.begin());
 	udp_stack.add(nb_sequencing, Rt::make_ptr<Rt::Data>(std::move(data)));
 	this->stacked_ip = ip_address;
 	// send the current packet

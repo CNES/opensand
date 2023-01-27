@@ -39,6 +39,7 @@
 
 #include "RequestSimulator.h"
 #include "OpenSandModelConf.h"
+#include "Except.h"
 
 
 RequestSimulator::RequestSimulator(spot_id_t spot_id,
@@ -47,8 +48,8 @@ RequestSimulator::RequestSimulator(spot_id_t spot_id,
 	spot_id(spot_id),
 	mac_id(mac_id),
 	dvb_fifos(),
-	event_file(NULL),
-	simu_file(NULL),
+	event_file(nullptr),
+	simu_file(nullptr),
 	simu_st(-1),
 	simu_rt(-1),
 	simu_max_rbdc(-1),
@@ -56,8 +57,8 @@ RequestSimulator::RequestSimulator(spot_id_t spot_id,
 	simu_cr(-1),
 	simu_interval(-1),
 	simu_eof(false),
-	log_request_simulation(NULL),
-	log_init(NULL)
+	log_request_simulation(nullptr),
+	log_init(nullptr)
 {
 	auto output = Output::Get();
 
@@ -68,10 +69,7 @@ RequestSimulator::RequestSimulator(spot_id_t spot_id,
 	                                                   "Spot_%d.RequestSimulation",
 	                                                   this->spot_id);
 
-	if(!this->initRequestSimulation())
-	{
-		assert(0);
-	}
+	ASSERT(this->initRequestSimulation(), "Failure to initialise requests simulation");
 	*evt_file = this->event_file;
 	
 }
@@ -134,18 +132,18 @@ bool RequestSimulator::initRequestSimulation()
 	else if(evt_type != "none")
 	{
 		this->event_file = fopen(evt_type.c_str(), "a");
-		if(this->event_file == NULL)
+		if(this->event_file == nullptr)
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "%s\n", strerror(errno));
 		}
 	}
-	if(this->event_file == NULL && evt_type != "none")
+	if(this->event_file == nullptr && evt_type != "none")
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "no record file will be used for event\n");
 	}
-	else if(this->event_file != NULL)
+	else if(this->event_file != nullptr)
 	{
 		LOG(this->log_init, LEVEL_NOTICE,
 		    "events recorded in %s.\n", evt_type.c_str());

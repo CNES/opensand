@@ -43,9 +43,9 @@
 #include "FifoElement.h"
 
 #include <opensand_output/Output.h>
+#include <opensand_rt/FileEvent.h>
 #include <opensand_rt/TimerEvent.h>
 #include <opensand_rt/MessageEvent.h>
-#include <opensand_rt/NetSocketEvent.h>
 
 #include <cstdio>
 #include <cstring>
@@ -70,8 +70,7 @@
  */
 BlockLanAdaptation::BlockLanAdaptation(const std::string &name, la_specific specific):
 	Rt::Block<BlockLanAdaptation, la_specific>{name, specific},
-	tap_iface{specific.tap_iface},
-	packet_switch{specific.packet_switch}
+	tap_iface{specific.tap_iface}
 {
 }
 
@@ -197,14 +196,6 @@ void Rt::DownwardChannel<BlockLanAdaptation>::setFd(int fd)
 }
 
 
-/**
- * destructor : Free all resources
- */
-BlockLanAdaptation::~BlockLanAdaptation()
-{
-	delete this->packet_switch;
-}
-
 bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const Event& event)
 {
 	LOG(this->log_receive, LEVEL_ERROR,
@@ -257,7 +248,7 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const MessageEvent& event)
 	return true;
 }
 
-bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const NetSocketEvent& event)
+bool Rt::DownwardChannel<BlockLanAdaptation>::onEvent(const FileEvent& event)
 {
 	// read  data received on tap interface
 	std::size_t length = event.getSize() - TUNTAP_FLAGS_LEN;
@@ -565,8 +556,8 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::writePacket(const Data& packet)
 	if(write(this->fd, packet.data(), packet.length()) < 0)
 	{
 		LOG(this->log_receive, LEVEL_ERROR,
-				"Unable to write data on tap "
-				"interface: %s\n", strerror(errno));
+		    "Unable to write data on tap interface: %s\n",
+		    strerror(errno));
 		return false;
 	}
 	return true;
@@ -600,7 +591,7 @@ bool BlockLanAdaptation::allocTap(int &fd)
 	memcpy(ifr.ifr_name, this->tap_iface.c_str(), IFNAMSIZ);
 	ifr.ifr_flags = IFF_TAP;
 
-	err = ioctl(fd, TUNSETIFF, (void *) &ifr);
+	err = ioctl(fd, TUNSETIFF, static_cast<void *>(&ifr));
 	if(err < 0)
 	{
 		LOG(this->log_init, LEVEL_ERROR,

@@ -153,13 +153,13 @@ protected:
 	 * @param tal_id    the terminal ID we want to send the frame
 	 * @paarm carriers  the carriers group to which the terminal belongs
 	 * @param current_superframe_sf  The current superframe number
-	 * @param modcod_id OUT: the modcod of the incomplete BBframe for this packet
+	 * @param it OUT:   Iterator to the modcod and the incomplete BBframe for this packet
 	 * @return          true on success, false otherwise
 	 */
 	bool prepareIncompleteBBFrame(tal_id_t tal_id,
 	                              CarriersGroupDama *carriers,
 	                              const time_sf_t current_superframe_sf,
-	                              unsigned int &modcod_id);
+	                              std::map<unsigned int, Rt::Ptr<BBFrame>>::iterator &it);
 
 	/**
 	 * @brief Add a BBframe to the list of complete BB frames

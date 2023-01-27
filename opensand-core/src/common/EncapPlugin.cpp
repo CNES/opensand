@@ -32,14 +32,13 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
+
+#include <opensand_output/Output.h>
+
 #include "EncapPlugin.h"
 #include "NetBurst.h"
 #include "NetContainer.h"
 #include "NetPacket.h"
-
-#include <opensand_output/Output.h>
-
-#include <cassert>
 
 
 EncapPlugin::EncapPlugin(NET_PROTO ether_type):

@@ -34,11 +34,9 @@
  */
 
 
-#include "DvbRcsStd.h"
-
 #include <opensand_output/Output.h>
 
-#include <cassert>
+#include "DvbRcsStd.h"
 
 
 DvbRcsStd::DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl):

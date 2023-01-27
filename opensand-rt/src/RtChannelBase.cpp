@@ -656,9 +656,15 @@ bool ChannelBase::pushMessage(std::shared_ptr<Fifo> &out_fifo, Message message)
 		//       initialization when threads are started
 	}
 
+	if(!message)
+	{
+		this->reportError(false, "empty message for next block");
+		return false;
+	}
+
 	if(!out_fifo->push(std::move(message)))
 	{
-		this->reportError(false, "cannot push data in fifo for next block\n");
+		this->reportError(false, "cannot push data in fifo for next block");
 		return false;
 	}
 

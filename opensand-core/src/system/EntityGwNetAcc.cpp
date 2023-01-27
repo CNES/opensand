@@ -86,7 +86,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 	{
 		la_specific spec_la;
 		spec_la.tap_iface = this->tap_iface;
-		spec_la.packet_switch = new GatewayPacketSwitch(this->instance_id);
+		spec_la.packet_switch = std::make_shared<GatewayPacketSwitch>(this->instance_id);
 
 		EncapConfig encap_cfg;
 		encap_cfg.entity_id = this->instance_id;

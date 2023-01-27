@@ -87,7 +87,7 @@ bool EntityGw::createSpecificBlocks()
 	try {
 		struct la_specific laspecific;
 		laspecific.tap_iface = this->tap_iface;
-		laspecific.packet_switch = new GatewayPacketSwitch(this->instance_id);
+		laspecific.packet_switch = std::make_shared<GatewayPacketSwitch>(this->instance_id);
 
 		EncapConfig encap_cfg;
 		encap_cfg.entity_id = this->instance_id;

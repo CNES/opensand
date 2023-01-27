@@ -48,6 +48,7 @@
 #include "OpenSandCore.h"
 #include "OpenSandModelConf.h"
 #include "NetContainer.h"
+#include "Except.h"
 
 
 GroundPhysicalChannel::GroundPhysicalChannel(PhyLayerConfig config):
@@ -289,7 +290,7 @@ bool GroundPhysicalChannel::forwardReadyPackets()
 	       ((unsigned long)this->delay_fifo.getTickOut()) <= current_time)
 	{
 		std::unique_ptr<FifoElement> elem = this->delay_fifo.pop();
-		assert(elem != nullptr);
+		ASSERT(elem != nullptr, "Null element in fifo retrieved from GroundPhysicalChannel::forwardReadyPackets");
 
 		Rt::Ptr<DvbFrame> pkt = elem->getElem<DvbFrame>();
 		this->forwardPacket(std::move(pkt));

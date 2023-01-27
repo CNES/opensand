@@ -73,8 +73,6 @@ DvbRcsFrame::DvbRcsFrame():
 	DvbFrameTpl<T_DVB_ENCAP_BURST>()
 {
 	this->name = "DVB-RCS frame";
-	this->setMaxSize(MSG_BBFRAME_SIZE_MAX);
-
 	// no data given as input, so create the DVB-RCS header
 	this->setMaxSize(MSG_DVB_RCS_SIZE_MAX);
 	this->setMessageLength(sizeof(T_DVB_ENCAP_BURST));

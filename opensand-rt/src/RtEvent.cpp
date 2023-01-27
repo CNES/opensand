@@ -57,15 +57,18 @@ Event::~Event()
 	close(this->fd);
 }
 
+
 void Event::setTriggerTime()
 {
 	this->trigger_time = std::chrono::high_resolution_clock::now();
 }
 
+
 void Event::setCustomTime() const
 {
 	this->custom_time = std::chrono::high_resolution_clock::now();
 }
+
 
 time_val_t Event::getTimeFromTrigger() const
 {
@@ -74,12 +77,14 @@ time_val_t Event::getTimeFromTrigger() const
 	return std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
 }
 
+
 time_val_t Event::getTimeFromCustom() const
 {
 	auto time = std::chrono::high_resolution_clock::now();
 	auto duration = time - this->custom_time;
 	return std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
 }
+
 
 time_val_t Event::getAndSetCustomTime() const
 {

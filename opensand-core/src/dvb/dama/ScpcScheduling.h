@@ -141,12 +141,12 @@ private:
 	 *
 	 * @param carriers  the carriers group to which the terminal belongs
 	 * @param current_superframe_sf  The current superframe number
-	 * @param modcod_id OUT: the modcod of the BBframe for this packet
+	 * @param it OUT:   Iterator to the modcod and the incomplete BBframe for this packet
 	 * @return          true on success, false otherwise
 	 */
 	bool prepareIncompleteBBFrame(CarriersGroupDama *carriers,
 	                              const time_sf_t current_superframe_sf,
-	                              fmt_id_t &modcod_id);
+	                              std::map<unsigned int, Rt::Ptr<BBFrame>>::iterator &it);
 
 	/**
 	 * @brief Add a BBframe to the list of complete BB frames

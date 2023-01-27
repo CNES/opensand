@@ -119,7 +119,6 @@ bool Rt::UpwardChannel<BlockSatCarrier>::onEvent(const NetSocketEvent &event)
 	do
 	{
 		// Data to read in Sat_Carrier socket buffer
-		size_t length;
 		spot_id_t spot_id;
 		unsigned int carrier_id;
 		Ptr<Data> buf = make_ptr<Data>(nullptr);
@@ -128,16 +127,17 @@ bool Rt::UpwardChannel<BlockSatCarrier>::onEvent(const NetSocketEvent &event)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "failed to receive data on any "
-			    "input channel (code = %zu)\n", length);
+			    "input channel (code = %zu)\n",
+			    buf->length());
 			status = false;
 		}
 		else
 		{
 			LOG(this->log_receive, LEVEL_DEBUG,
 			    "%zu bytes of data received on carrier ID %u\n",
-			    length, carrier_id);
+			    buf->length(), carrier_id);
 
-			if(length > 0)
+			if(buf->length() > 0)
 			{
 				this->onReceivePktFromCarrier(carrier_id, spot_id, std::move(buf));
 			}
@@ -150,9 +150,6 @@ bool Rt::UpwardChannel<BlockSatCarrier>::onEvent(const NetSocketEvent &event)
 
 bool Rt::UpwardChannel<BlockSatCarrier>::onInit()
 {
-	std::vector<UdpChannel *>::iterator it;
-	UdpChannel *channel;
-
 	// initialize all channels from the configuration file
 	if(!this->in_channel_set.readInConfig(this->ip_addr, destination_host, spot_id))
 	{
@@ -163,17 +160,16 @@ bool Rt::UpwardChannel<BlockSatCarrier>::onInit()
 
 	// ask the runtime to manage channel file descriptors
 	// (only for channels that accept input)
-	for(it = this->in_channel_set.begin(); it != this->in_channel_set.end(); it++)
+	for(auto &&channel : this->in_channel_set)
 	{
-		channel = *it;
-
 		if(channel->isInputOk() && channel->getChannelFd() != -1)
 		{
 			std::ostringstream name;
 
 			LOG(this->log_init, LEVEL_NOTICE,
 			    "Listen on fd %d for channel %d\n",
-			    channel->getChannelFd(), channel->getChannelID());
+			    channel->getChannelFd(),
+			    channel->getChannelID());
 			name << "Channel_" << channel->getChannelID();
 			this->addNetSocketEvent(name.str(),
 			                        channel->getChannelFd(),

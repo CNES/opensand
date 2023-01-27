@@ -129,7 +129,7 @@ public:
 		this->data.reserve(this->max_size);
 		// add at least the base header of the created frame
 		memset(&header, 0, sizeof(T));
-		this->data.append((unsigned char *)&header, sizeof(T));
+		this->data.append(reinterpret_cast<unsigned char *>(&header), sizeof(T));
 		this->header_length = sizeof(T);
 	};
 
@@ -308,8 +308,7 @@ public:
 	{
 		size_t msg_length = this->getMessageLength();
 		Rt::Data phy_data = this->getData(msg_length);
-		T_DVB_PHY *phy = (T_DVB_PHY *)(phy_data.c_str());
-		return ncntoh(phy->cn_previous);
+		return ncntoh(reinterpret_cast<T_DVB_PHY*>(phy_data.data())->cn_previous);
 	};
 
 	/**
@@ -330,7 +329,7 @@ public:
 		}
 		else
 		{
-			size_t msg_length = this->getMessageLength();
+			std::size_t msg_length = this->getMessageLength();
 			this->data.replace(msg_length, this->trailer_length,
 			                   raw_phy, this->trailer_length);
 		}

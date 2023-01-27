@@ -34,15 +34,13 @@
  */
 
 
-#include "DamaCtrl.h"
+#include <math.h>
+#include <algorithm>
 
-#include "OpenSandModelConf.h"
 #include <opensand_output/Output.h>
 
-#include <assert.h>
-#include <math.h>
-
-#include <algorithm>
+#include "DamaCtrl.h"
+#include "OpenSandModelConf.h"
 
 
 DamaCtrl::DamaCtrl(spot_id_t spot):

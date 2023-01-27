@@ -43,6 +43,7 @@
 #include "NetPacket.h"
 #include "UdpChannel.h"
 #include "FifoElement.h"
+#include "Except.h"
 
 
 InterconnectChannel::InterconnectChannel(std::string name, const InterconnectConfig &config):
@@ -246,7 +247,7 @@ void InterconnectChannelSender::serialize(Rt::Ptr<NetBurst> net_burst,
 		// Copy the size of the packet before the packet itself
 		memcpy(buf + length, &partial_len, sizeof(partial_len));
 		length += partial_len + sizeof(partial_len);
-		assert(length <= MAX_SOCK_SIZE);
+		ASSERT(length <= MAX_SOCK_SIZE, "Too much data to write compared to socket buffer size");
 	}
 }
 
@@ -487,10 +488,10 @@ void InterconnectChannelReceiver::deserialize(unsigned char *data, uint32_t len,
 
 		// Update position
 		pos += dvb_frame_len;
-
-	} while(pos < len);
+	}
+	while(pos < len);
 	
-	assert(pos == len);
+	ASSERT(pos == len, "Length mismatch between serialized data and extracted DvbFrames");
 }
 
 void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
@@ -518,7 +519,7 @@ void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,
 	}
 	while (pos < length);
 
-	assert(pos == length);
+	ASSERT(pos == length, "Length mismatch between serialized data and extracted NetBurst");
 }
 
 void InterconnectChannelReceiver::deserialize(uint8_t *buf, uint32_t length,

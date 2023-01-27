@@ -33,14 +33,13 @@
  */
 
 
-#include "DvbFifo.h"
-
-#include <opensand_output/Output.h>
-
-#include <assert.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <cstring>
+
+#include <opensand_output/Output.h>
+
+#include "DvbFifo.h"
 
 
 DvbFifo::DvbFifo(unsigned int fifo_priority, std::string fifo_name,

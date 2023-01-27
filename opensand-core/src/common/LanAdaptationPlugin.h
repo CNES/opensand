@@ -38,6 +38,8 @@
 #define LAN_ADAPTATION_CONTEXT_H
 
 
+#include <memory>
+
 #include "OpenSandCore.h"
 #include "StackPlugin.h"
 
@@ -116,7 +118,7 @@ public:
 		 * @param class_list       A list of service classes
 		 * @return true on success, false otherwise
 		 */
-		virtual bool initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *packet_switch);
+		virtual bool initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch);
 
 		/**
 		 * @brief Get the bytes of LAN header for TUN/TAP interface
@@ -146,7 +148,7 @@ public:
 		tal_id_t tal_id;
 
 		/// The SARP table
-		PacketSwitch *packet_switch;
+		std::shared_ptr<PacketSwitch> packet_switch;
 	};
 
 	LanAdaptationPlugin(NET_PROTO ether_type);

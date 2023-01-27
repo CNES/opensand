@@ -369,7 +369,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			    complete_frames_count + 1);
 
 			// Store DVB-RCS2 frame with completed frames
-			//complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 			complete_dvb_frames->push_back(dvb_frame_downcast(std::move(incomplete_dvb_frame)));
 			complete_frames_count++;
 			remaining_allocation_b = (vol_b_t)std::max((int)(remaining_allocation_b - frame_length_b), 0);
@@ -440,7 +439,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 			    complete_frames_count + 1);
 
 			// Store DVB-RCS2 frame with completed frames
-			//complete_dvb_frames->push_back((DvbFrame *)incomplete_dvb_frame);
 			complete_dvb_frames->push_back(dvb_frame_downcast(std::move(incomplete_dvb_frame)));
 			complete_frames_count++;
 			remaining_allocation_b = (vol_b_t)std::max((int)(remaining_allocation_b - frame_length_b), 0);

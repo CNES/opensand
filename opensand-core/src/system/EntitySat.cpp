@@ -130,7 +130,7 @@ bool EntitySat::createSpecificBlocks()
 						.delay = static_cast<uint32_t>(isl_delay),
 						.connected_satellite = cfg.linked_sat_id,
 						.is_used_for_isl = is_used_for_isl,
-						.packet_switch = new SatellitePacketSwitch{instance_id, is_used_for_isl, getIslEntities(spot_topo)},
+						.packet_switch = std::make_shared<SatellitePacketSwitch>(instance_id, is_used_for_isl, getIslEntities(spot_topo)),
 					};
 					auto& block_lan_adapt = Rt::Rt::createBlock<BlockLanAdaptation>(is_used_for_isl ? "Lan_Adaptation.Isl" : "Lan_Adaptation", la_cfg);
 					Rt::Rt::connectBlocks(block_lan_adapt, block_sat_dispatch, {.connected_sat = cfg.linked_sat_id, .is_data_channel = true});

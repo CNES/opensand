@@ -37,14 +37,12 @@
  */
 
 
+#include <opensand_output/Output.h>
 
 #include "ScpcScheduling.h"
 #include "FifoElement.h"
-
-#include <OpenSandModelConf.h>
-#include <opensand_output/Output.h>
-
-#include <cassert>
+#include "OpenSandModelConf.h"
+#include "Except.h"
 
 
 /**
@@ -405,14 +403,20 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			return false;
 		}
 
-		fmt_id_t modcod;
-		if(!this->prepareIncompleteBBFrame(carriers, current_superframe_sf, modcod))
+		std::map<unsigned int, Rt::Ptr<BBFrame>>::iterator current_bbframe_it;
+		if(!this->prepareIncompleteBBFrame(carriers, current_superframe_sf, current_bbframe_it))
 		{
 			// cannot initialize incomplete BB Frame
 			return false;
 		}
+		else if(current_bbframe_it == this->incomplete_bb_frames.end())
+		{
+			// cannot get modcod for the ST delete the element
+			continue;
+		}
 
-		Rt::Ptr<BBFrame>& current_bbframe = this->incomplete_bb_frames.at(modcod);
+		fmt_id_t modcod = current_bbframe_it->first;
+		Rt::Ptr<BBFrame>& current_bbframe = current_bbframe_it->second;
 
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "SF#%u: Got the BBFrame for packet #%u, "
@@ -443,7 +447,8 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			    "implementation, assert or skip packet #%u\n",
 			    current_superframe_sf,
 			    sent_packets + 1);
-			assert(0);
+			throw BadPrecondition("getChunk function returned neither data nor partial"
+			                      "_data in ScpcScheduling::scheduleEncapPackets");
 		}
 		if(data)
 		{
@@ -504,17 +509,18 @@ bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
 			}
 			else
 			{
+				Rt::Ptr<BBFrame> pending_bbframe = std::move(current_bbframe);
+				this->incomplete_bb_frames_ordered.remove(modcod);
+				this->incomplete_bb_frames.erase(modcod);
 				if(ret == status_full)
 				{
 					time_sf_t next_sf = current_superframe_sf + 1;
 					// we keep the remaining capacity that won't be used for next frame
 					carriers->setPreviousCapacity(capacity_sym, next_sf);
 					capacity_sym = 0;
-					this->pending_bbframes.push_back(std::move(current_bbframe));
+					this->pending_bbframes.push_back(std::move(pending_bbframe));
 					break;
 				}
-				this->incomplete_bb_frames_ordered.remove(modcod);
-				this->incomplete_bb_frames.erase(modcod);
 			}
 		}
 	}
@@ -635,14 +641,14 @@ unsigned int ScpcScheduling::getBBFrameSizeBytes(fmt_id_t modcod_id)
 
 bool ScpcScheduling::prepareIncompleteBBFrame(CarriersGroupDama *carriers,
                                               const time_sf_t current_superframe_sf,
-                                              fmt_id_t &modcod_id)
+                                              std::map<unsigned int, Rt::Ptr<BBFrame>>::iterator &it)
 {
 	auto desired_modcod = this->getCurrentModcodId(this->gw_id);
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "Simulated MODCOD for GW = %u\n", desired_modcod);
 
 	// get best modcod ID according to carrier
-	modcod_id = carriers->getNearestFmtId(desired_modcod);
+	auto modcod_id = carriers->getNearestFmtId(desired_modcod);
 	if(modcod_id == 0)
 	{
 		LOG(this->log_scheduling, LEVEL_WARNING,
@@ -658,8 +664,8 @@ bool ScpcScheduling::prepareIncompleteBBFrame(CarriersGroupDama *carriers,
 	    current_superframe_sf, modcod_id);
 
 	// find if the BBFrame exists
-	auto bbframes = this->incomplete_bb_frames.find(modcod_id);
-	if(bbframes != this->incomplete_bb_frames.end() && bbframes->second != nullptr)
+	it = this->incomplete_bb_frames.find(modcod_id);
+	if(it != this->incomplete_bb_frames.end() && it->second != nullptr)
 	{
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "SF#%u: Found a BBFrame for MODCOD %u\n",
@@ -678,7 +684,7 @@ bool ScpcScheduling::prepareIncompleteBBFrame(CarriersGroupDama *carriers,
 			return false;
 		}
 		// add the BBFrame in the map and list
-		this->incomplete_bb_frames.emplace(modcod_id, std::move(bbframe));
+		it = this->incomplete_bb_frames.emplace(modcod_id, std::move(bbframe)).first;
 		this->incomplete_bb_frames_ordered.push_back(modcod_id);
 	}
 

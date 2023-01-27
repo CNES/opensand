@@ -39,6 +39,8 @@
 #define BLOCK_LAN_ADAPTATION_H
 
 
+#include <memory>
+
 #include <opensand_rt/Block.h>
 #include <opensand_rt/RtChannel.h>
 
@@ -57,7 +59,7 @@ struct la_specific
 	uint32_t delay = 0;
 	tal_id_t connected_satellite = 0;
 	bool is_used_for_isl = false;
-	PacketSwitch *packet_switch = nullptr;
+	std::shared_ptr<PacketSwitch> packet_switch = nullptr;
 };
 
 
@@ -123,7 +125,7 @@ class Rt::UpwardChannel<class BlockLanAdaptation>: public Channels::Upward<Upwar
 	SatelliteLinkState state;
 
 	// The Packet Switch including packet forwarding logic and SARP
-	PacketSwitch *packet_switch;
+	std::shared_ptr<PacketSwitch> packet_switch;
 
 	// Delay before writting on the TAP
 	uint32_t delay;
@@ -146,9 +148,9 @@ class Rt::DownwardChannel<class BlockLanAdaptation>: public Channels::Downward<D
 
 	using ChannelBase::onEvent;
 	bool onEvent(const Event& event) override;
+	bool onEvent(const FileEvent& event) override;
 	bool onEvent(const TimerEvent& event) override;
 	bool onEvent(const MessageEvent& event) override;
-	bool onEvent(const NetSocketEvent& event) override;
 
 	/**
 	 * @brief Set the lan adaptation contexts for channels
@@ -181,7 +183,7 @@ class Rt::DownwardChannel<class BlockLanAdaptation>: public Channels::Downward<D
 	SatelliteLinkState state;
 
 	// The Packet Switch including packet forwarding logic and SARP
-	PacketSwitch *packet_switch;
+	std::shared_ptr<PacketSwitch> packet_switch;
 };
 
 
@@ -193,7 +195,6 @@ class BlockLanAdaptation: public Rt::Block<BlockLanAdaptation, la_specific>
 {
 public:
 	BlockLanAdaptation(const std::string &name, la_specific specific);
-	~BlockLanAdaptation();
 
 	static void generateConfiguration();
 
@@ -203,9 +204,6 @@ public:
 private:
 	/// The TAP interface name
 	std::string tap_iface;
-
-	// The Packet Switch including packet forwarding logic and SARP
-	PacketSwitch *packet_switch;
 
 	/**
 	 * Create or connect to an existing TAP interface

@@ -31,14 +31,13 @@
  * @brief Generic LAN adaptation plugin
  */
 
+#include <opensand_output/Output.h>
+
 #include "LanAdaptationPlugin.h"
 #include "NetBurst.h"
 #include "NetContainer.h"
 #include "SarpTable.h"
-
-#include <opensand_output/Output.h>
-
-#include <cassert>
+#include "Except.h"
 
 
 LanAdaptationPlugin::LanAdaptationPlugin(NET_PROTO ether_type):
@@ -71,7 +70,7 @@ bool LanAdaptationPlugin::LanAdaptationPacketHandler::init()
 
 std::size_t LanAdaptationPlugin::LanAdaptationPacketHandler::getMinLength() const
 {
-	assert(0);
+	throw NotImplementedError("LanAdaptationPlugin::LanAdaptationPacketHandler::getMinLength");
 }
 
 
@@ -81,7 +80,7 @@ bool LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket(Rt::Ptr<Ne
                                                                       Rt::Ptr<NetPacket> &,
                                                                       Rt::Ptr<NetPacket> &)
 {
-	assert(0);
+	throw NotImplementedError("LanAdaptationPlugin::LanAdaptationPacketHandler::encapNextPacket");
 }
 
 
@@ -90,7 +89,7 @@ bool LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets(Rt:
                                                                              std::vector<Rt::Ptr<NetPacket>> &,
                                                                              unsigned int)
 {
-	assert(0);
+	throw NotImplementedError("LanAdaptationPlugin::LanAdaptationPacketHandler::getEncapsulatedPackets");
 }
 
 
@@ -109,7 +108,7 @@ bool LanAdaptationPlugin::LanAdaptationContext::init()
 }
 
 bool LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id_t tal_id,
-                                                                         PacketSwitch *packet_switch)
+                                                                         std::shared_ptr<PacketSwitch> packet_switch)
 {
 	this->tal_id = tal_id;
 	this->packet_switch = packet_switch;

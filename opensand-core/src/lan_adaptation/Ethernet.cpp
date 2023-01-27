@@ -427,7 +427,7 @@ bool Ethernet::Context::initTrafficCategories()
 }
 
 
-bool Ethernet::Context::initLanAdaptationContext(tal_id_t tal_id, PacketSwitch *packet_switch)
+bool Ethernet::Context::initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch)
 {
 	return LanAdaptationPlugin::LanAdaptationContext::initLanAdaptationContext(tal_id, packet_switch);
 }

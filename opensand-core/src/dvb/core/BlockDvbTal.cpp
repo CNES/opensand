@@ -64,7 +64,6 @@
 #include <opensand_output/OutputEvent.h>
 
 #include <sstream>
-#include <assert.h>
 #include <unistd.h>
 #include <signal.h>
 
@@ -2616,12 +2615,12 @@ bool Rt::UpwardChannel<BlockDvbTal>::onRcvDvbFrame(Ptr<DvbFrame> dvb_frame)
 		}
 
 		// Start of frame (SOF):
-		// treat only if state is running --> otherwise just ignore (other
-		// STs can be logged)
+		// treat only if state is running --> otherwise just ignore
+		// (other STs can be logged)
 		case EmulatedMessageType::Sof:
 			this->updateStats();
 			// get superframe number
-			if(!this->onStartOfFrame(std::move(dvb_frame)))
+			if(!this->onStartOfFrame(*dvb_frame))
 			{
 				LOG(this->log_receive, LEVEL_ERROR,
 				    "on start of frame failed\n");
@@ -2660,7 +2659,8 @@ bool Rt::UpwardChannel<BlockDvbTal>::onRcvDvbFrame(Ptr<DvbFrame> dvb_frame)
 			{
 				break;
 			}
-			// else fallthrough
+			// else
+			// fallthrough
 
 		case EmulatedMessageType::SalohaCtrl:
 			if(!this->shareFrame(std::move(dvb_frame)))
@@ -2713,10 +2713,10 @@ bool Rt::UpwardChannel<BlockDvbTal>::shareFrame(Ptr<DvbFrame> frame)
 }
 
 
-bool Rt::UpwardChannel<BlockDvbTal>::onStartOfFrame(Ptr<DvbFrame> dvb_frame)
+bool Rt::UpwardChannel<BlockDvbTal>::onStartOfFrame(DvbFrame &dvb_frame)
 {
 	// update the frame numerotation
-	this->super_frame_counter = dvb_frame_upcast<Sof>(std::move(dvb_frame))->getSuperFrameNumber();
+	this->super_frame_counter = dvb_frame_upcast<Sof>(dvb_frame).getSuperFrameNumber();
 
 	return true;
 }

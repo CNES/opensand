@@ -36,14 +36,12 @@
  */
 
 
+#include <opensand_output/Output.h>
 
 #include "ForwardSchedulingS2.h"
 #include "FifoElement.h"
-
 #include "OpenSandModelConf.h"
-#include <opensand_output/Output.h>
 
-#include <cassert>
 
 /**
  * @brief Get the payload size in Bytes according to coding rate
@@ -457,16 +455,22 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			    tal_id);
 		}
 
-		unsigned int modcod;
+		std::map<unsigned int, Rt::Ptr<BBFrame>>::iterator current_bbframe_it;
 		if(!this->prepareIncompleteBBFrame(tal_id, carriers,
 		                                   current_superframe_sf,
-		                                   modcod))
+		                                   current_bbframe_it))
 		{
 			// cannot initialize incomplete BB Frame
 			return false;
 		}
+		else if(current_bbframe_it == this->incomplete_bb_frames.end())
+		{
+			// cannot get modcod for the ST delete the element
+			continue;
+		}
 
-		Rt::Ptr<BBFrame>& current_bbframe = this->incomplete_bb_frames.at(modcod);
+		auto modcod = current_bbframe_it->first;
+		Rt::Ptr<BBFrame>& current_bbframe = current_bbframe_it->second;
 
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "SF#%u: Got the BBFrame for packet #%u, "
@@ -548,19 +552,18 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			}
 			else
 			{
+				Rt::Ptr<BBFrame> pending_bbframe = std::move(current_bbframe);
+				this->incomplete_bb_frames_ordered.remove(modcod);
+				this->incomplete_bb_frames.erase(modcod);
 				if(ret == status_full)
 				{
 					time_sf_t next_sf = current_superframe_sf + 1;
 					// we keep the remaining capacity that won't be used for
 					// next frame
-					carriers->setPreviousCapacity(capacity_sym,
-					                              next_sf);
-
-					this->pending_bbframes.push_back(std::move(current_bbframe));
+					carriers->setPreviousCapacity(capacity_sym, next_sf);
+					this->pending_bbframes.push_back(std::move(pending_bbframe));
 					break;
 				}
-				this->incomplete_bb_frames_ordered.remove(modcod);
-				this->incomplete_bb_frames.erase(modcod);
 			}
 		}
 	}
@@ -680,9 +683,9 @@ unsigned int ForwardSchedulingS2::getBBFrameSizeBytes(unsigned int modcod_id)
 bool ForwardSchedulingS2::prepareIncompleteBBFrame(tal_id_t tal_id,
                                                    CarriersGroupDama *carriers,
                                                    const time_sf_t current_superframe_sf,
-                                                   unsigned int &modcod_id)
+                                                   std::map<unsigned int, Rt::Ptr<BBFrame>>::iterator &it)
 {
-	unsigned int desired_modcod;
+	it = this->incomplete_bb_frames.end();
 
 	// retrieve the current MODCOD for the ST
 	if(!this->simu_sts->isStPresent(tal_id))
@@ -692,7 +695,8 @@ bool ForwardSchedulingS2::prepareIncompleteBBFrame(tal_id_t tal_id,
 		    tal_id);
 		return true;
 	}
-	desired_modcod = this->getCurrentModcodId(tal_id);
+
+	unsigned int desired_modcod = this->getCurrentModcodId(tal_id);
 	if(desired_modcod == 0)
 	{
 		// cannot get modcod for the ST skip this element
@@ -700,7 +704,7 @@ bool ForwardSchedulingS2::prepareIncompleteBBFrame(tal_id_t tal_id,
 	}
 
 	// get best modcod ID according to carrier
-	modcod_id = carriers->getNearestFmtId(desired_modcod);
+	unsigned int modcod_id = carriers->getNearestFmtId(desired_modcod);
 	if(modcod_id == 0)
 	{
 		LOG(this->log_scheduling, LEVEL_WARNING,
@@ -715,8 +719,8 @@ bool ForwardSchedulingS2::prepareIncompleteBBFrame(tal_id_t tal_id,
 	    current_superframe_sf, tal_id, modcod_id);
 
 	// find if the BBFrame exists
-	auto iter = this->incomplete_bb_frames.find(modcod_id);
-	if(iter != this->incomplete_bb_frames.end() && iter->second != nullptr)
+	it = this->incomplete_bb_frames.find(modcod_id);
+	if(it != this->incomplete_bb_frames.end() && it->second != nullptr)
 	{
 		LOG(this->log_scheduling, LEVEL_DEBUG,
 		    "SF#%u: Found a BBFrame for MODCOD %u\n",
@@ -736,7 +740,7 @@ bool ForwardSchedulingS2::prepareIncompleteBBFrame(tal_id_t tal_id,
 		}
 
 		// add the BBFrame in the map and list
-		this->incomplete_bb_frames.emplace(modcod_id, std::move(bbframe));
+		it = this->incomplete_bb_frames.emplace(modcod_id, std::move(bbframe)).first;
 		this->incomplete_bb_frames_ordered.push_back(modcod_id);
 	}
 

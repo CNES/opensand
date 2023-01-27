@@ -117,7 +117,7 @@ class Rt::UpwardChannel<class BlockDvbTal>: public DvbChannel, public Channels::
 	 * @param dvb_frame  The DVB frame
 	 * @return true on success, false otherwise
 	 */
-	bool onStartOfFrame(Ptr<DvbFrame> dvb_frame);
+	bool onStartOfFrame(DvbFrame &dvb_frame);
 
 	/**
 	 * When receive a frame tick, send a constant DVB burst size for RT traffic,

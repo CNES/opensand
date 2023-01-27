@@ -34,13 +34,12 @@
  */
 
 
-#include "DvbS2Std.h"
-#include "OpenSandModelConf.h"
+#include <algorithm>
 
 #include <opensand_output/Output.h>
 
-#include <cassert>
-#include <algorithm>
+#include "DvbS2Std.h"
+#include "OpenSandModelConf.h"
 
 
 DvbS2Std::DvbS2Std(EncapPlugin::EncapPacketHandler *pkt_hdl):

@@ -78,6 +78,7 @@ struct Message
 	};
 
 	template<class T> Ptr<T> release();
+	inline operator bool() const { return data != nullptr; };
 
 	uint8_t type;
 

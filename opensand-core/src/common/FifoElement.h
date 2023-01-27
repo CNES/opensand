@@ -38,6 +38,7 @@
 #include <opensand_rt/Ptr.h>
 
 #include "OpenSandCore.h"
+#include "Except.h"
 
 
 class NetContainer;
@@ -115,14 +116,9 @@ Rt::Ptr<T> FifoElement::getElem()
 		return Rt::make_ptr<T>(nullptr);
 	}
 
-	T* cast_elem = dynamic_cast<T*>(elem.get());
-	if (cast_elem)
-	{
-		elem.release();
-		return {cast_elem, std::move(elem.get_deleter())};
-	}
-
-	return Rt::make_ptr<T>(nullptr);
+	T* cast_elem = static_cast<T*>(elem.release());
+	ASSERT(cast_elem != nullptr, "Casting FifoElement data failed in getElem");
+	return {cast_elem, std::move(elem.get_deleter())};
 }
 
 

@@ -43,6 +43,7 @@
 #include "MacAddress.h"
 #include "SarpTable.h"
 #include "CarrierType.h"
+#include "Except.h"
 
 
 const std::map<std::string, log_level_t> levels_map{
@@ -2104,11 +2105,11 @@ const std::unordered_map<spot_id_t, SpotTopology> &OpenSandModelConf::getSpotsTo
 }
 
 RegenLevel OpenSandModelConf::getRegenLevel() const {
-	assert(infrastructure != nullptr);
+	ASSERT(infrastructure != nullptr, "Infrastructure file not read in OpenSandModelConf::getRegenLevel");
 	auto entity = infrastructure->getRoot()->getComponent("entity");
-	assert(entity != nullptr);
+	ASSERT(entity != nullptr, "Entity section not found in infrastructure file");
 	auto sat = entity->getComponent("entity_sat");
-	assert(sat != nullptr);
+	ASSERT(sat != nullptr, "Satellite entity section not found in infrastructure file");
 
 	std::string regen_level;
 	extractParameterData(sat, "regen_level", regen_level);
