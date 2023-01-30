@@ -32,9 +32,8 @@
  * @author  Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-#ifndef _DAMA_CONTROLLER_H_
-#define _DAMA_CONTROLLER_H_
-#endif
+#ifndef DAMA_CONTROLLER_H
+#define DAMA_CONTROLLER_H
 
 
 #include "Sac.h"
@@ -47,10 +46,12 @@
 #include "Logon.h"
 #include "Logoff.h"
 
-#include <opensand_output/Output.h>
-
 #include <cstdio>
 #include <map>
+
+
+class OutputLog;
+template<typename> class Probe;
 
 
 /**
@@ -429,6 +430,7 @@ protected:
 	std::string output_prefix;
 };
 
+
 #define DC_RECORD_EVENT(fmt,args...) \
 { \
 	if (this->event_file != NULL) \
@@ -438,3 +440,5 @@ protected:
 	} \
 }
 
+
+#endif

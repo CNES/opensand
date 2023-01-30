@@ -195,7 +195,6 @@ bool FileSimulator::simulation(std::list<Rt::Ptr<DvbFrame>> &msgs,
 			}
 			LOG(this->log_request_simulation, LEVEL_DEBUG,
 			    "fscanf result=%d: %s", resul, this->simu_buffer);
-			//fprintf (stderr, "frame %d\n", super_frame_counter);
 			LOG(this->log_request_simulation, LEVEL_DEBUG,
 			    "frame %u\n", super_frame_counter);
 			if(resul == -1)

@@ -234,10 +234,9 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 	}
 
 	auto output = Output::Get();
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto &&[qos, fifo]: this->dvb_fifos)
 	{
-		if(it->second->getAccessType() != ReturnAccessType::saloha)
+		if(fifo->getAccessType() != ReturnAccessType::saloha)
 		{
 			continue;
 		}
@@ -245,20 +244,14 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		std::shared_ptr<Probe<int>> probe_wait;
 		std::shared_ptr<Probe<int>> probe_nb_drop;
 
-		probe_ret = output->registerProbe<int>(true, SAMPLE_SUM,
-		                                       "Aloha.retransmissions.%s",
-		                                       it->second->getName().c_str());
-		probe_wait = output->registerProbe<int>(true, SAMPLE_LAST,
-		                                       "Aloha.wait.%s",
-		                                       it->second->getName().c_str());
-		probe_nb_drop = output->registerProbe<int>(true, SAMPLE_SUM,
-		                                       "Aloha.drops.%s",
-		                                       it->second->getName().c_str());
-		this->probe_retransmission.emplace(it->first, probe_ret);
-		this->probe_wait_ack.emplace(it->first, probe_wait);
-		this->probe_drop.emplace(it->first, probe_nb_drop);
+		probe_ret = output->registerProbe<int>("Aloha.retransmissions." + fifo->getName(), true, SAMPLE_SUM);
+		probe_wait = output->registerProbe<int>("Aloha.wait." + fifo->getName(), true, SAMPLE_LAST);
+		probe_nb_drop = output->registerProbe<int>("Aloha.drops." + fifo->getName(), true, SAMPLE_SUM);
+		this->probe_retransmission.emplace(qos, probe_ret);
+		this->probe_wait_ack.emplace(qos, probe_wait);
+		this->probe_drop.emplace(qos, probe_nb_drop);
 	}
-	this->probe_backoff = output->registerProbe<int>(true, SAMPLE_MAX, "Aloha.backoff");
+	this->probe_backoff = output->registerProbe<int>("Aloha.backoff", true, SAMPLE_MAX);
 
 	return true;
 }
@@ -523,8 +516,7 @@ bool SlottedAlohaTal::schedule(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames
 	}
 
 	// Send new packets (low priority)
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto &&[qos, fifo]: this->dvb_fifos)
 	{
 		// the allocated slot limits the capacity
 		if(nbr_packets_total >= ts.size())
@@ -532,8 +524,6 @@ bool SlottedAlohaTal::schedule(std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames
 			break;
 		}
 
-		qos_t qos = (*it).first;
-		DvbFifo *fifo = (*it).second;
 		if(fifo->getAccessType() != ReturnAccessType::saloha)
 		{
 			continue;
@@ -585,15 +575,14 @@ skip:
 	}
 
 	// keep the probes refreshing
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto &&[qos, fifo]: this->dvb_fifos)
 	{
-		if((*it).second->getAccessType() != ReturnAccessType::saloha)
+		if(fifo->getAccessType() != ReturnAccessType::saloha)
 		{
 			continue;
 		}
-		this->probe_retransmission[(*it).first]->put(0);
-		this->probe_drop[(*it).first]->put(0);
+		this->probe_retransmission[qos]->put(0);
+		this->probe_drop[qos]->put(0);
 	}
 	return true;
 }
@@ -612,12 +601,11 @@ saloha_ts_list_t SlottedAlohaTal::getTimeSlots(void)
 	                                       this->category->getCarriersNumber());
 
 	nb_packets = this->retransmission_packets.size();
-	for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for(auto &&[qos, fifo]: this->dvb_fifos)
 	{
-		if((*it).second->getAccessType() == ReturnAccessType::saloha)
+		if(fifo->getAccessType() == ReturnAccessType::saloha)
 		{
-			nb_packets += (*it).second->getCurrentSize();
+			nb_packets += fifo->getCurrentSize();
 		}
 	}
 	max = std::min(nb_packets, this->nb_max_packets) * this->nb_replicas;

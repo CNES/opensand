@@ -116,7 +116,6 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
                            UnitConverter *converter)
 {
 	std::string algo_name;
-	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 	auto conf = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
 
 	// set spot id
@@ -149,28 +148,22 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	}
 
 	auto output = Output::Get();
-	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
-	    ++cat_iter)
+	for(auto &&[label, cat]: this->categories)
 	{
-		TerminalCategorySaloha *cat = (*cat_iter).second;
 		cat->computeSlotsNumber(converter);
-		std::shared_ptr<Probe<int>> probe_coll;
-		std::shared_ptr<Probe<int>> probe_coll_before;
-		std::shared_ptr<Probe<int>> probe_coll_ratio;
-		char probe_name[128];
 
-		snprintf(probe_name, sizeof(probe_name), "Aloha.collisions.%s", (*cat_iter).first.c_str());
-		probe_coll = output->registerProbe<int>(probe_name, true, SAMPLE_SUM);
+		std::shared_ptr<Probe<int>> probe_coll = output->registerProbe<int>("Aloha.collisions." + label,
+		                                                                    true, SAMPLE_SUM);
 		// disable by default
-		snprintf(probe_name, sizeof(probe_name), "Aloha.collisions.before_algo.%s", (*cat_iter).first.c_str());
-		probe_coll_before = output->registerProbe<int>(probe_name, false, SAMPLE_SUM);
+		std::shared_ptr<Probe<int>> probe_coll_before = output->registerProbe<int>("Aloha.collisions.before_algo." + label,
+		                                                                            false, SAMPLE_SUM);
 		// disable by default
-		snprintf(probe_name, sizeof(probe_name), "Aloha.collisions_ratio.%s", (*cat_iter).first.c_str());
-		probe_coll_ratio = output->registerProbe<int>(probe_name, "%", false, SAMPLE_AVG);
+		std::shared_ptr<Probe<int>> probe_coll_ratio = output->registerProbe<int>("Aloha.collisions_ratio." + label,
+		                                                                          "%", false, SAMPLE_AVG);
 
-		this->probe_collisions_before.emplace(cat_iter->first, probe_coll_before);
-		this->probe_collisions.emplace(cat_iter->first, probe_coll);
-		this->probe_collisions_ratio.emplace(cat_iter->first, probe_coll_ratio);
+		this->probe_collisions_before.emplace(label, probe_coll_before);
+		this->probe_collisions.emplace(label, probe_coll);
+		this->probe_collisions_ratio.emplace(label, probe_coll_ratio);
 	}
 
 	if(!OpenSandModelConf::extractParameterData(conf->getComponent("random_access")->getParameter("saloha_algo"),
@@ -251,7 +244,7 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 			continue;
 		}
 
-		cat_iter = this->categories.find(label);
+		TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter = this->categories.find(label);
 		if(cat_iter == this->categories.end())
 		{
 			LOG(this->log_init, LEVEL_WARNING,
@@ -345,16 +338,12 @@ bool SlottedAlohaNcc::schedule(Rt::Ptr<NetBurst> &burst,
                                std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
                                time_sf_t superframe_counter)
 {
-	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
-	
 	if(!this->isSalohaFrameTick(superframe_counter))
 	{
 		return true;
 	}
-	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
-	    ++cat_iter)
+	for(auto &&[label, category]: this->categories)
 	{
-		TerminalCategorySaloha *category = (*cat_iter).second;
 		if(!this->scheduleCategory(category, burst, complete_dvb_frames))
 		{
 			return false;

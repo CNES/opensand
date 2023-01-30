@@ -31,13 +31,13 @@
  * @author Viveris Technologies
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
 
-#include "CircularBuffer.h"
+#include <cmath>
+#include <iostream>
 
 #include <opensand_output/Output.h>
+
+#include "CircularBuffer.h"
 
 
 /**
@@ -48,7 +48,8 @@
 CircularBuffer::CircularBuffer(size_t buffer_size):
 	nbr_values(0),
 	sum(0),
-	min_value(0)
+	min_value(0),
+	values(nullptr)
 {
 	// Output Log
 	this->log_circular_buffer = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.CircularBuffer");
@@ -70,16 +71,15 @@ CircularBuffer::CircularBuffer(size_t buffer_size):
 
 	this->index = this->size - 1;
 	this->nbr_values = 0;
-	this->values = (rate_kbps_t *) calloc(this->size, sizeof(rate_kbps_t));
-	if(this->values == NULL)
+	try
+	{
+		this->values = new rate_kbps_t[this->size]();
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_circular_buffer, LEVEL_ERROR,
 		    "cannot allocate memory for circular buffer\n");
-		goto err_alloc;
 	}
-
-err_alloc:
-	return;
 }
 
 /**
@@ -87,8 +87,7 @@ err_alloc:
  */
 CircularBuffer::~CircularBuffer()
 {
-	if(this->values != NULL)
-		free(this->values);
+	delete [] this->values;
 }
 
 
@@ -102,7 +101,7 @@ void CircularBuffer::Update(rate_kbps_t value)
 	size_t i;
 	rate_kbps_t min = 0;
 
-	if(this->values == NULL)
+	if(this->values == nullptr)
 	{
 		LOG(this->log_circular_buffer, LEVEL_ERROR,
 		    "circular buffer not initialized\n");
@@ -156,7 +155,7 @@ rate_kbps_t CircularBuffer::GetLastValue()
 
 	index = (this->index + 1) % this->size;
 
-	if(this->values == NULL)
+	if(this->values == nullptr)
 	{
 		LOG(this->log_circular_buffer, LEVEL_ERROR,
 		    "circular buffer not initialized\n");
@@ -178,7 +177,7 @@ rate_kbps_t CircularBuffer::GetPreviousValue()
 {
 	rate_kbps_t previous_value;
 
-	if(this->values == NULL)
+	if(this->values == nullptr)
 	{
 		LOG(this->log_circular_buffer, LEVEL_ERROR,
 		    "circular buffer not initialized\n");
@@ -232,7 +231,7 @@ rate_kbps_t CircularBuffer::GetSum()
 rate_kbps_t CircularBuffer::GetPartialSumFromPrevious(int value_number)
 {
 	rate_kbps_t partial_sum_kbps = 0;
-	if (this->values == NULL)
+	if (this->values == nullptr)
 		LOG(this->log_circular_buffer, LEVEL_ERROR,
 		    "circular buffer not initialized\n");
 	else
@@ -251,7 +250,7 @@ rate_kbps_t CircularBuffer::GetPartialSumFromPrevious(int value_number)
 rate_kbps_t CircularBuffer::GetValueIndex(int i)
 {
 	double value;
-	if(this->values == NULL)
+	if(this->values == nullptr)
 	{
 		LOG(this->log_circular_buffer, LEVEL_ERROR,
 		    "circular buffer not initialized\n");
@@ -270,16 +269,17 @@ rate_kbps_t CircularBuffer::GetValueIndex(int i)
  */
 void CircularBuffer::Debug()
 {
-	size_t i;
-	fprintf(stderr, "CB : size %zu index %zu nbr_alues %zu min_value %u sum %u\n",
-	        this->size, this->index, this->nbr_values, this->min_value, this->sum);
-	fprintf(stderr, "CB : ");
-	if(this->values != NULL)
+	std::cerr << "CB : size " << this->size
+	          << " index " << this->index
+	          << " nbr_values " << this->nbr_values
+	          << " min_value " << this->min_value
+	          << " sum " << this->sum << "\nCB : ";
+	if(this->values != nullptr)
 	{
-		for(i = 0; i < this->size; i++)
-			fprintf(stderr, "%u ", this->values[i]);
+		for(std::size_t i = 0; i < this->size; ++i)
+			std::cerr << this->values[i] << " ";
 	}
 	else
-		fprintf(stderr, "null");
-	fprintf(stderr, "\n");
+		std::cerr << "null";
+	std::cerr << std::endl;
 }

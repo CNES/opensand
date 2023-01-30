@@ -62,12 +62,8 @@ RequestSimulator::RequestSimulator(spot_id_t spot_id,
 {
 	auto output = Output::Get();
 
-	this->log_init = output->registerLog(LEVEL_WARNING,
-	                                     "Spot_%d.InitRequestSimulation",
-	                                     this->spot_id);
-	this->log_request_simulation = output->registerLog(LEVEL_WARNING,
-	                                                   "Spot_%d.RequestSimulation",
-	                                                   this->spot_id);
+	this->log_init = output->registerLog(LEVEL_WARNING, Format("Spot_%d.InitRequestSimulation", this->spot_id));
+	this->log_request_simulation = output->registerLog(LEVEL_WARNING, Format("Spot_%d.RequestSimulation", this->spot_id));
 
 	ASSERT(this->initRequestSimulation(), "Failure to initialise requests simulation");
 	*evt_file = this->event_file;

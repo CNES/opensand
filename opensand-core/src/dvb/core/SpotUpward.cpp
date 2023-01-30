@@ -421,14 +421,11 @@ bool SpotUpward::initOutput()
 	std::string prefix = generateProbePrefix(spot_id, Component::gateway, is_sat);
 
 	// Events
-	this->event_logon_req = output->registerEvent("Spot_%d.DVB.logon_request",
-	                                              this->spot_id);
+	this->event_logon_req = output->registerEvent(Format("Spot_%d.DVB.logon_request", this->spot_id));
 
 	if(this->saloha)
 	{
-		this->log_saloha = output->registerLog(LEVEL_WARNING,
-		                                       "Spot_%d.Dvb.SlottedAloha",
-		                                       this->spot_id);
+		this->log_saloha = output->registerLog(LEVEL_WARNING, Format("Spot_%d.Dvb.SlottedAloha", this->spot_id));
 	}
 
 	// Output probes and stats

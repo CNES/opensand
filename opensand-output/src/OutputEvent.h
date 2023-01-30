@@ -53,15 +53,21 @@ class OutputEvent: public OutputLog
   friend class Output;
 
 public:
-  ~OutputEvent();
-
-  void sendEvent(const char* msg_format, ...) const;
+  template<typename... Args>
+  void sendEvent(char const * const msg_format, Args &&... args) const;
 
 protected:
   OutputEvent(const std::string &name);
 
   void setDisplayLevel(log_level_t level);
 };
+
+
+template<typename... Args>
+void OutputEvent::sendEvent(char const * const msg_format, Args &&... args) const
+{
+	this->sendLog(LEVEL_EVENT, msg_format, std::forward<Args>(args)...);
+}
 
 
 #endif

@@ -22,6 +22,7 @@ libopensand_output_la_h = \
 	OutputLog.h \
 	OutputHandler.h \
 	OutputMutex.h \
+	Printf.h \
 	Probe.h
 
 libopensand_output_la_SOURCES = \
@@ -36,11 +37,4 @@ test_output_LDADD = libopensand_output.la
 libopensand_output_includedir = ${includedir}/opensand_output
 
 libopensand_output_include_HEADERS = \
-	BaseProbe.h \
-	Output.h \
-	OutputEvent.h \
-	OutputLog.h \
-	OutputHandler.h \
-	OutputMutex.h \
-	Probe.h
-
+	$(libopensand_output_la_h)

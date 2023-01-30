@@ -98,11 +98,9 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	this->input_sts = input_sts;
 	this->output_sts = output_sts;
 
-	this->log_request_simulation = Output::Get()->registerLog(LEVEL_WARNING,
-	                                                          "Spot_%d.Dvb.RequestSimulation",
-	                                                          this->spot_id);
-
+	this->log_request_simulation = Output::Get()->registerLog(LEVEL_WARNING, Format("Spot_%d.Dvb.RequestSimulation", this->spot_id));
 }
+
 
 SpotDownward::~SpotDownward()
 {
