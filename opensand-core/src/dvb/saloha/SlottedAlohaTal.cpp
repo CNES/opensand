@@ -76,7 +76,7 @@ void SlottedAlohaTal::generateConfiguration()
 
 	auto ra = conf->getOrCreateComponent("random_access", "Random Access");
 	Conf->setProfileReference(ra, enabled, true);
-	ra->getOrCreateParameter("timeout", "Timeout", types->getType("int"))->setUnit("slotted aloha frames");
+	ra->getOrCreateParameter("timeout", "Timeout", types->getType("ushort"))->setUnit("slotted aloha frames");
 	ra->getOrCreateParameter("replicas", "Replicas", types->getType("int"))->setUnit("packets");
 	ra->getOrCreateParameter("max_packets", "Max Packets", types->getType("int"))->setUnit("packets");
 	ra->getOrCreateParameter("max_retry", "Max Retransmissions", types->getType("int"))->setUnit("packets");
@@ -151,14 +151,12 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		                       (this->nb_replicas * this->category->getCarriersNumber());
 	}
 
-	int timeout_saf;
-	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("timeout"), timeout_saf))
+	if(!OpenSandModelConf::extractParameterData(saloha_section->getParameter("timeout"), this->timeout_saf))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'random_access': missing parameter 'timeout'\n");
 		return false;
 	}
-	this->timeout_saf = timeout_saf;
 
 	// Get the max delay
 	if(!Conf->getCrdsaMaxSatelliteDelay(sat_delay_ms))
@@ -168,8 +166,9 @@ bool SlottedAlohaTal::init(tal_id_t tal_id,
 		return false;
 	}
 
-	timeout_ms = this->timeout_saf * this->frame_duration_ms * this->sf_per_saframe;
-	min_timeout_ms = 2 * sat_delay_ms + this->sf_per_saframe * this->frame_duration_ms;
+	auto sf_duration = std::chrono::duration_cast<time_ms_t>(this->frame_duration * this->sf_per_saframe);
+	timeout_ms = this->timeout_saf * sf_duration;
+	min_timeout_ms = 2 * sat_delay_ms + sf_duration;
 	if (timeout_ms <= min_timeout_ms)
 	{
 		LOG(this->log_init, LEVEL_ERROR,

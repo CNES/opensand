@@ -51,6 +51,13 @@
 #include "NetContainer.h"
 
 
+template<typename Rep, typename Ratio>
+double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
+{
+	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
+}
+
+
 BlockPhysicalLayer::BlockPhysicalLayer(const std::string &name, PhyLayerConfig config):
 	Rt::Block<BlockPhysicalLayer, PhyLayerConfig>{name, config},
 	mac_id(config.mac_id)
@@ -312,7 +319,7 @@ bool Rt::DownwardChannel<BlockPhysicalLayer>::onInit()
 
 	// Initialize the delay event
 	this->delay_update_timer = this->addTimerEvent("delay_timer",
-	                                               this->satdelay_model->getRefreshPeriod());
+	                                               ArgumentWrapper(this->satdelay_model->getRefreshPeriod()));
 
 	// Initialize the delay probe
 	this->probe_delay = Output::Get()->registerProbe<int>(prefix + "Phy.Delay", "ms", true, SAMPLE_LAST);
@@ -439,9 +446,9 @@ bool Rt::DownwardChannel<BlockPhysicalLayer>::updateDelay()
 	time_ms_t delay = this->satdelay_model->getSatDelay();
 
 	LOG(this->log_channel, LEVEL_INFO,
-		"New delay: %u ms",
+		"New delay: %f ms",
 		delay);
-	this->probe_delay->put(delay);
+	this->probe_delay->put(std::chrono::duration_cast<std::chrono::duration<int, std::milli>>(delay).count());
 
 	return true;
 }

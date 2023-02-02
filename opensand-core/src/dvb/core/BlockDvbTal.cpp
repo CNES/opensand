@@ -71,6 +71,13 @@
 int Rt::DownwardChannel<BlockDvbTal>::qos_server_sock = -1;
 
 
+template<typename Rep, typename Ratio>
+double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
+{
+	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
+}
+
+
 template<typename T>
 bool releaseMap(T& container, bool isError)
 {
@@ -254,7 +261,7 @@ Rt::DownwardChannel<BlockDvbTal>::DownwardChannel(const std::string &name, dvb_s
 	max_vbdc_kb{0},
 	dama_agent{nullptr},
 	saloha{nullptr},
-	scpc_carr_duration_ms{0},
+	scpc_carr_duration{0},
 	scpc_timer{-1},
 	ret_fmt_groups{},
 	scpc_sched{nullptr},
@@ -406,7 +413,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::onInit()
 		return false;
 	}
 
-	this->initStatsTimer(this->dama_agent || this->saloha ? this->ret_up_frame_duration_ms : this->scpc_carr_duration_ms);
+	this->initStatsTimer(this->dama_agent || this->saloha ? this->ret_up_frame_duration : this->scpc_carr_duration);
 
 	// Init the output here since we now know the FIFOs
 	if(!this->initOutput())
@@ -453,7 +460,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::onInit()
 bool Rt::DownwardChannel<BlockDvbTal>::initDown()
 {
 	// forward timer
-	if(!OpenSandModelConf::Get()->getForwardFrameDuration(this->fwd_down_frame_duration_ms))
+	if(!OpenSandModelConf::Get()->getForwardFrameDuration(this->fwd_down_frame_duration))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'links': missing parameter 'forward frame duration'\n");
@@ -461,8 +468,8 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDown()
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "forward timer set to %u\n",
-	    this->fwd_down_frame_duration_ms);
+	    "forward timer set to %f\n",
+	    this->fwd_down_frame_duration);
 
 	return true;
 }
@@ -624,7 +631,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initMacFifo()
 
 bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 {
-	time_ms_t sync_period_ms = 0;
+	time_ms_t sync_period_ms(0);
 	time_sf_t rbdc_timeout_sf = 0;
 	time_sf_t msl_sf = 0;
 	std::string dama_algo;
@@ -672,7 +679,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
 	                                         AccessType::DAMA,
-	                                         this->ret_up_frame_duration_ms,
+	                                         this->ret_up_frame_duration,
 	                                         this->rcs_modcod_def,
 	                                         dama_categories,
 	                                         terminal_affectation,
@@ -813,8 +820,8 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 		    "Missing 'sync period'\n");
 		return releaseMap(dama_categories, true);
 	}
-	this->sync_period_frame = (time_frame_t)round((double)sync_period_ms /
-	                                              (double)this->ret_up_frame_duration_ms);
+	this->sync_period_frame = time_frame_t(round(std::chrono::duration_cast<std::chrono::duration<double>>(sync_period_ms) /
+	                                             std::chrono::duration_cast<std::chrono::duration<double>>(this->ret_up_frame_duration)));
 
 	// deduce the Obr slot position within the multi-frame, from the mac
 	// address and the OBR period
@@ -885,7 +892,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	}
 
 	// Initialize the DamaAgent parent class
-	if(!this->dama_agent->initParent(this->ret_up_frame_duration_ms,
+	if(!this->dama_agent->initParent(this->ret_up_frame_duration,
 	                                 this->cra_kbps,
 	                                 this->max_rbdc_kbps,
 	                                 rbdc_timeout_sf,
@@ -951,7 +958,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
 	                                           "return up frequency plan",
 	                                           AccessType::ALOHA,
-	                                           this->ret_up_frame_duration_ms,
+	                                           this->ret_up_frame_duration,
 	                                           // initialized in DAMA
 	                                           this->rcs_modcod_def,
 	                                           sa_categories,
@@ -1064,7 +1071,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 	// Unlike (future) scheduling, Slotted Aloha get all categories because
 	// it also handles received frames and in order to know to which
 	// category a frame is affected we need to get source terminal ID
-	if(!this->saloha->initParent(this->ret_up_frame_duration_ms, this->pkt_hdl))
+	if(!this->saloha->initParent(this->ret_up_frame_duration, this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Slotted Aloha Tal Initialization failed.\n");
@@ -1079,9 +1086,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 		delete this->saloha;
 		return false;
 	}
-	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
-	                                               0,
-	                                               length_sym);
+	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration, 0, length_sym);
 
 	if(!this->saloha->init(this->mac_id,
 	                       tal_category,
@@ -1114,10 +1119,11 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 		    "Section 'access', Missing 'SCPC carrier duration'\n");
 		return false;
 	}
-	this->scpc_carr_duration_ms = scpc_carrier_duration;
+	this->scpc_carr_duration = time_us_t(scpc_carrier_duration * 1000);
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "scpc_carr_duration_ms = %d ms\n", this->scpc_carr_duration_ms);
+	    "scpc_carr_duration = %d ms\n",
+	    scpc_carrier_duration);
 
 	// get current spot into return up band section
 	OpenSandModelConf::spot current_spot;
@@ -1136,7 +1142,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
 	                                         AccessType::SCPC,
-	                                         this->scpc_carr_duration_ms,
+	                                         this->scpc_carr_duration,
 	                                         // input modcod for S2
 	                                         this->s2_modcod_def,
 	                                         scpc_categories,
@@ -1224,7 +1230,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 	}
 
 	// Create the SCPC scheduler
-	this->scpc_sched = new ScpcScheduling(this->scpc_carr_duration_ms,
+	this->scpc_sched = new ScpcScheduling(this->scpc_carr_duration,
 	                                      this->pkt_hdl,
 	                                      this->dvb_fifos,
 	                                      this->output_sts,
@@ -1350,8 +1356,8 @@ bool Rt::DownwardChannel<BlockDvbTal>::initTimers()
 
 	if(this->scpc_sched)
 	{
-		this->scpc_timer = this->addTimerEvent("scpc_timer",
-		                                       this->scpc_carr_duration_ms);
+		double timer_duration = ArgumentWrapper(this->scpc_carr_duration);
+		this->scpc_timer = this->addTimerEvent("scpc_timer", timer_duration);
 	}
 
 	return true;
@@ -1534,8 +1540,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 		    fifo_priority);
 
 		// store the encapsulation packet in the FIFO
-		if(!this->pushInFifo(this->dvb_fifos[fifo_priority],
-		                     std::move(packet), 0))
+		if(!this->pushInFifo(this->dvb_fifos[fifo_priority], std::move(packet), time_ms_t::zero()))
 		{
 			// a problem occured, we got memory allocation error
 			// or fifo full and we won't empty fifo until next
@@ -1564,12 +1569,12 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 		       "  <Infos ";
 		for (auto const& it : this->dvb_fifos)
 		{
-			int nbFreeFrames = it.second->getMaxSize() - it.second->getCurrentSize();
+			uint32_t nbFreeFrames = it.second->getMaxSize() - it.second->getCurrentSize();
 			// bits
-			int nbFreeBits = nbFreeFrames * this->pkt_hdl->getFixedLength() * 8;
+			uint32_t nbFreeBits = nbFreeFrames * this->pkt_hdl->getFixedLength() * 8;
 			// bits/ms or kbits/s
-			float macRate = nbFreeBits / this->ret_up_frame_duration_ms ;
-			oss << "File=\"" << int(macRate) << "\" ";
+			uint32_t macRate = time_ms_t{nbFreeBits} / this->ret_up_frame_duration;
+			oss << "File=\"" << macRate << "\" ";
 		}
 		oss << "/>\n"
 		       " </Type>\n"
@@ -1634,7 +1639,9 @@ bool Rt::DownwardChannel<BlockDvbTal>::addCniExt()
 	if(this->is_scpc && this->getCniInputHasChanged(this->tal_id)
 	                 && !in_fifo)
 	{
-		std::unique_ptr<FifoElement> new_el = std::make_unique<FifoElement>(make_ptr<NetPacket>(nullptr), 0, 0);
+		std::unique_ptr<FifoElement> new_el = std::make_unique<FifoElement>(make_ptr<NetPacket>(nullptr),
+		                                                                    time_ms_t::zero(),
+		                                                                    time_ms_t::zero());
 		// set packet extension to this new empty packet
 		if(!this->setPacketExtension(this->pkt_hdl,
 		                             *new_el,
@@ -2062,10 +2069,10 @@ void Rt::DownwardChannel<BlockDvbTal>::updateStats()
 
 		// write in statitics file
 		this->probe_st_l2_to_sat_before_sched[it.first]->put(
-			fifo_stat.in_length_bytes * 8 /
+			time_ms_t(fifo_stat.in_length_bytes * 8) /
 			this->stats_period_ms);
 		this->probe_st_l2_to_sat_after_sched[it.first]->put(
-			fifo_stat.out_length_bytes * 8 /
+			time_ms_t(fifo_stat.out_length_bytes * 8) /
 			this->stats_period_ms);
 
 		this->probe_st_queue_size[it.first]->put(fifo_stat.current_pkt_nbr);
@@ -2075,7 +2082,7 @@ void Rt::DownwardChannel<BlockDvbTal>::updateStats()
 		this->probe_st_queue_loss_kb[it.first]->put(fifo_stat.drop_bytes * 8);
 	}
 	this->probe_st_l2_to_sat_total->put(
-		this->l2_to_sat_total_bytes * 8 /
+		time_ms_t(this->l2_to_sat_total_bytes * 8) /
 		this->stats_period_ms);
 
 	// reset stat
@@ -2394,7 +2401,7 @@ bool Rt::UpwardChannel<BlockDvbTal>::onInit()
 	}
 
 	// we synchornize with SoF reception so use the return frame duration here
-	this->initStatsTimer(this->ret_up_frame_duration_ms);
+	this->initStatsTimer(this->ret_up_frame_duration);
 
 	if (this->disable_control_plane)
 	{
@@ -2817,7 +2824,7 @@ void Rt::UpwardChannel<BlockDvbTal>::updateStats()
 	}
 
 	this->probe_st_l2_from_sat->put(
-		this->l2_from_sat_bytes * 8 / this->stats_period_ms);
+		time_ms_t(this->l2_from_sat_bytes * 8) / this->stats_period_ms);
 	this->l2_from_sat_bytes = 0;
 	// send all probes
 	// in upward because this block has less events to handle => more time

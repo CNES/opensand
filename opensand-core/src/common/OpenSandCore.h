@@ -34,16 +34,18 @@
 #ifndef OPENSAND_CORE_H
 #define OPENSAND_CORE_H
 
+
+#include <sys/time.h>
+#include <arpa/inet.h>
+
+#include <cmath>
+#include <chrono>
+#include <cstdint>
 #include <sstream>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
 #include <vector>
-
-#include <stdint.h>
-#include <cmath>
-#include <sys/time.h>
-#include <arpa/inet.h>
 
 
 /** unused macro to avoid compilation warning with unused parameters. */
@@ -206,11 +208,9 @@ constexpr auto to_enum(I i) noexcept -> typename std::enable_if<std::is_same<I, 
  *
  * @return the current time
  */
-inline clock_t getCurrentTime(void)
+inline std::chrono::milliseconds getCurrentTime()
 {
-	timeval current;
-	gettimeofday(&current, NULL);
-	return current.tv_sec * 1000 + current.tv_usec / 1000;
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch());
 };
 
 /**
@@ -271,7 +271,7 @@ inline double ncntoh(uint32_t cn)
 
 // addressing
 typedef uint16_t tal_id_t;  ///< Terminal ID (5 bits but 16 needed for simulated terminal)
-typedef uint8_t spot_id_t;  ///< Spot ID (5 bits)
+using spot_id_t = tal_id_t; ///< Spot is now identified by the GW serving it
 typedef uint8_t qos_t;      ///< QoS (3 bits)
 typedef uint16_t group_id_t; ///< Groupe ID
 
@@ -286,7 +286,8 @@ typedef double rate_symps_t;    ///< Rate in symbols per second (bauds) (suffix 
 // time
 typedef uint16_t time_sf_t;    ///< time in number of superframes (suffix sf)
 typedef uint8_t time_frame_t;  ///< time in number of frames (5 bits) (suffix frame)
-typedef uint32_t time_ms_t;    ///< time in ms (suffix ms)
+using time_ms_t = std::chrono::milliseconds;
+using time_us_t = std::chrono::microseconds;
 typedef uint16_t time_pkt_t;   ///< time in number of packets, cells, ... (suffix pkt)
 
 // volume

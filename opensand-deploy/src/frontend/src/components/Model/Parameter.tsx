@@ -78,7 +78,6 @@ const NumberParam: React.FC<NumberProps> = (props) => {
         }
     }, [timer, handleChange, submitForm, autosave]);
 
-    // label={ parameter.name + " (" + parameter.type + ")" } ???
     return (
         <FlexBox>
             <TextField
@@ -108,8 +107,8 @@ const NumberParam: React.FC<NumberProps> = (props) => {
 };
 
 
-const StringParam: React.FC<BaseProps> = (props) => {
-    const {parameter, readOnly, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
+const StringParam: React.FC<StringProps> = (props) => {
+    const {parameter, readOnly, lengthLimit, name, form: {handleChange, handleBlur, submitForm}, autosave} = props;
 
     const timer = useTimer(1500);
 
@@ -120,7 +119,7 @@ const StringParam: React.FC<BaseProps> = (props) => {
         }
     }, [timer, handleChange, submitForm, autosave]);
 
-    // label={ parameter.name + " (" + parameter.type + ")" } ???
+    const inputProps = lengthLimit ? {pattern: "?".repeat(lengthLimit)} : undefined;
     return (
         <FlexBox>
             <TextField
@@ -133,6 +132,7 @@ const StringParam: React.FC<BaseProps> = (props) => {
                 fullWidth
                 autoFocus
                 disabled={readOnly}
+                inputProps={inputProps}
                 InputProps={{
                     endAdornment: <InputAdornment position="end">
                         { parameter.unit }
@@ -400,6 +400,18 @@ const Parameter: React.FC<Props> = (props) => {
                 <NumberParam
                     parameter={parameter}
                     readOnly={isReadOnly}
+                    min={-128}
+                    max={127}
+                    step={1}
+                    name={name}
+                    {...rest}
+                />
+            );
+        case "ubyte":
+            return (
+                <NumberParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
                     min={0}
                     max={255}
                     step={1}
@@ -419,6 +431,18 @@ const Parameter: React.FC<Props> = (props) => {
                     {...rest}
                 />
             );
+        case "ushort":
+            return (
+                <NumberParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
+                    min={0}
+                    max={65535}
+                    step={1}
+                    name={name}
+                    {...rest}
+                />
+            );
         case "int":
             return (
                 <NumberParam
@@ -426,6 +450,19 @@ const Parameter: React.FC<Props> = (props) => {
                     readOnly={isReadOnly}
                     min={-2147483648}
                     max={2147483647}
+                    step={1}
+                    name={name}
+                    {...rest}
+                />
+            );
+        case "uint":
+        case "size":
+            return (
+                <NumberParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
+                    min={0}
+                    max={4294967295}
                     step={1}
                     name={name}
                     {...rest}
@@ -443,8 +480,29 @@ const Parameter: React.FC<Props> = (props) => {
                     {...rest}
                 />
             );
-        case "string":
+        case "ulong":
+            return (
+                <NumberParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
+                    min={0}
+                    max={Number.MAX_SAFE_INTEGER}
+                    step={1}
+                    name={name}
+                    {...rest}
+                />
+            );
         case "char":
+            return (
+                <StringParam
+                    parameter={parameter}
+                    readOnly={isReadOnly}
+                    lengthLimit={1}
+                    name={name}
+                    {...rest}
+                />
+            );
+        case "string":
         default:
             return (
                 <StringParam
@@ -471,6 +529,11 @@ interface Props extends Omit<BaseProps, "name"> {
     entity?: {name: string; type: string;};
     prefix: string;
     actions: IActions;
+}
+
+
+interface StringProps extends BaseProps {
+    lengthLimit?: number;
 }
 
 

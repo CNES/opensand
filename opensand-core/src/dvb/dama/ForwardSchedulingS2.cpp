@@ -83,7 +83,7 @@ static size_t getPayloadSize(std::string coding_rate)
 }
 
 
-ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
+ForwardSchedulingS2::ForwardSchedulingS2(time_us_t fwd_timer,
                                          EncapPlugin::EncapPacketHandler *packet_handler,
                                          const fifos_t &fifos,
                                          const StFmtSimuList *const fwd_sts,
@@ -94,7 +94,7 @@ ForwardSchedulingS2::ForwardSchedulingS2(time_ms_t fwd_timer_ms,
                                          tal_id_t,
                                          std::string dst_name):
 	Scheduling(packet_handler, fifos, fwd_sts),
-	fwd_timer_ms(fwd_timer_ms),
+	fwd_timer(fwd_timer),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
@@ -154,7 +154,7 @@ ForwardSchedulingS2::~ForwardSchedulingS2()
 
 
 bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
-                                   clock_t current_time,
+                                   time_ms_t current_time,
                                    std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
                                    uint32_t &remaining_allocation)
 {
@@ -305,13 +305,11 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 			// get remain in Kbits/s instead of symbols if possible
 			if(vcm->getFmtIds().size() == 1)
 			{
-				remain = this->fwd_modcod_def->symToKbits(vcm->getFmtIds().front(),
-				                                 remain);
-				avail = this->fwd_modcod_def->symToKbits(vcm->getFmtIds().front(),
-				                               avail);
+				remain = this->fwd_modcod_def->symToKbits(vcm->getFmtIds().front(), remain);
+				avail = this->fwd_modcod_def->symToKbits(vcm->getFmtIds().front(), avail);
 				// we get kbits per frame, convert in kbits/s
-				remain = remain * 1000 / this->fwd_timer_ms;
-				avail = avail * 1000 / this->fwd_timer_ms;
+				remain = std::chrono::seconds{remain} / this->fwd_timer;
+				avail = std::chrono::seconds{avail} / this->fwd_timer;
 			}
 
 			// If the probes doesn't exist
@@ -345,7 +343,7 @@ bool ForwardSchedulingS2::schedule(const time_sf_t current_superframe_sf,
 
 bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
                                                const time_sf_t current_superframe_sf,
-                                               clock_t current_time,
+                                               time_ms_t current_time,
                                                std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
                                                CarriersGroupDama *carriers,
                                                vol_sym_t &capacity_sym,
@@ -411,9 +409,9 @@ bool ForwardSchedulingS2::scheduleEncapPackets(DvbFifo *fifo,
 			LOG(this->log_scheduling, LEVEL_INFO,
 			    "SF#%u: packet is not scheduled for the "
 			    "moment, break\n", current_superframe_sf); 
-			    // this is the first MAC FIFO element that is not ready yet,
-			    // there is no more work to do, break now
-			    break;
+			// this is the first MAC FIFO element that is not ready yet,
+			// there is no more work to do, break now
+			break;
 		}
 
 		std::unique_ptr<FifoElement> elem = fifo->pop();

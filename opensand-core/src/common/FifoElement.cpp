@@ -37,7 +37,7 @@
 
 
 FifoElement::FifoElement(Rt::Ptr<NetContainer> elem,
-                         time_t tick_in, time_t tick_out):
+                         time_ms_t tick_in, time_ms_t tick_out):
 	elem{std::move(elem)},
 	tick_in{tick_in},
 	tick_out{tick_out}
@@ -69,13 +69,13 @@ size_t FifoElement::getTotalLength() const
 }
 
 
-time_t FifoElement::getTickIn() const
+time_ms_t FifoElement::getTickIn() const
 {
 	return this->tick_in;
 }
 
 
-time_t FifoElement::getTickOut() const
+time_ms_t FifoElement::getTickOut() const
 {
 	return this->tick_out;
 }

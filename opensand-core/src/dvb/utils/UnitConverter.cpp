@@ -36,9 +36,9 @@
 
 #include <math.h>
 
-UnitConverter::UnitConverter(time_ms_t duration_ms, unsigned int efficiency)
+UnitConverter::UnitConverter(time_us_t duration, unsigned int efficiency)
 {
-	this->setFrameDuration(duration_ms);
+	this->setFrameDuration(duration);
 	this->setModulationEfficiency(efficiency);
 }
 
@@ -58,22 +58,14 @@ unsigned int UnitConverter::getSlotsNumber(rate_symps_t carrier_symps) const
 	return this->psToPf(carrier_symps) / slot_sym;
 }
 
-void UnitConverter::setFrameDuration(time_ms_t duration_ms)
+void UnitConverter::setFrameDuration(time_us_t duration)
 {
-	this->frame_duration_ms = duration_ms;
-	if(0 < this->frame_duration_ms)
-	{
-		this->frame_duration_ms_inv = 1.0 / this->frame_duration_ms;
-	}
-	else
-	{
-		this->frame_duration_ms_inv = 0.0;
-	}
+	this->frame_duration = duration;
 }
 
-time_ms_t UnitConverter::getFrameDuration() const
+time_us_t UnitConverter::getFrameDuration() const
 {
-	return this->frame_duration_ms;
+	return this->frame_duration;
 }
 
 void UnitConverter::setModulationEfficiency(unsigned int efficiency)
@@ -156,10 +148,10 @@ rate_bps_t UnitConverter::kbpsToBps(rate_kbps_t rate_kbps) const
 
 unsigned int UnitConverter::pfToPs(unsigned int rate_pf) const
 {
-	return ceil(rate_pf * this->frame_duration_ms_inv * 1000);
+	return std::chrono::seconds{rate_pf} / this->frame_duration;
 }
 
 unsigned int UnitConverter::psToPf(unsigned int rate_ps) const
 {
-	return ceil(rate_ps * this->frame_duration_ms / 1000.0);
+	return std::chrono::duration_cast<std::chrono::seconds>(rate_ps * this->frame_duration).count();
 }

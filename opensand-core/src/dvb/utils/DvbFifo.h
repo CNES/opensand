@@ -251,7 +251,7 @@ public:
 	 *
 	 * @return the head element tick out
 	 */
-	clock_t getTickOut() const;
+	time_ms_t getTickOut() const;
 
 	/**
 	 * @brief Reset filled, only if the FIFO has the requested CR type
@@ -314,7 +314,6 @@ public:
 
 	uint8_t getCni(void) const;
 
-	// const std::deque<FifoElement *> &getQueue() const;
 	std::deque<std::unique_ptr<FifoElement>>::const_iterator begin() const;
 	std::deque<std::unique_ptr<FifoElement>>::const_iterator end() const;
 

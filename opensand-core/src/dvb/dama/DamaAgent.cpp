@@ -48,7 +48,7 @@ DamaAgent::DamaAgent():
 	current_superframe_sf(0),
 	rbdc_enabled(false),
 	vbdc_enabled(false),
-	frame_duration_ms(0.0),
+	frame_duration(0),
 	cra_kbps(0.0),
 	max_rbdc_kbps(0.0),
 	rbdc_timeout_sf(0),
@@ -61,7 +61,7 @@ DamaAgent::~DamaAgent()
 {
 }
 
-bool DamaAgent::initParent(time_ms_t frame_duration_ms,
+bool DamaAgent::initParent(time_us_t frame_duration,
                            rate_kbps_t cra_kbps,
                            rate_kbps_t max_rbdc_kbps,
                            time_sf_t rbdc_timeout_sf,
@@ -72,7 +72,7 @@ bool DamaAgent::initParent(time_ms_t frame_duration_ms,
                            const fifos_t &dvb_fifos,
                            spot_id_t spot_id)
 {
-	this->frame_duration_ms = frame_duration_ms;
+	this->frame_duration = frame_duration;
 	this->cra_kbps = cra_kbps;
 	this->max_rbdc_kbps = max_rbdc_kbps;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;

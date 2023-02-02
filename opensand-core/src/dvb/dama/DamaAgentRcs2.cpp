@@ -119,9 +119,11 @@ bool DamaAgentRcs2::init(spot_id_t)
 	LOG(this->log_init, LEVEL_INFO,
 	    "Burst length = %u sym\n", length_sym);
 	
-	this->converter = new UnitConverterFixedSymbolLength(this->frame_duration_ms, 
-		0, length_sym);
-	if(this->converter == nullptr)
+	try
+	{
+		this->converter = new UnitConverterFixedSymbolLength(this->frame_duration, 0, length_sym);
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Cannot create the unit converter\n");
@@ -308,7 +310,7 @@ bool DamaAgentRcs2::returnSchedule(std::list<Rt::Ptr<DvbFrame>> *complete_dvb_fr
 	    this->burst_length_b);
 	
 	if(!this->ret_schedule->schedule(this->current_superframe_sf,
-	                                 0,
+	                                 time_ms_t::zero(),
 	                                 complete_dvb_frames,
 	                                 remaining_alloc_b))
 	{

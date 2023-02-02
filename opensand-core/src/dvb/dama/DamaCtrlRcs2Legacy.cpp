@@ -603,7 +603,7 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 			// add the decimal part of the fair RBDC
 			double rbdc_credit_kbps = (fair_rbdc_pktpf - rbdc_alloc_pktpf)
 				* this->converter->getPacketBitLength()
-				/ (double)(this->converter->getFrameDuration());
+				/ (double)(this->converter->getFrameDuration().count());
 			rbdc_credit_kbps /= (fmt_def->getCodingRate());
 			terminal->addRbdcCredit(rbdc_credit_kbps);
 

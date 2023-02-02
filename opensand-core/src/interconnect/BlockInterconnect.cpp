@@ -43,6 +43,13 @@
 #include "UdpChannel.h"
 
 
+template<typename Rep, typename Ratio>
+double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
+{
+	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
+}
+
+
 Rt::UpwardChannel<BlockInterconnectDownward>::UpwardChannel(const std::string &name, const InterconnectConfig &config):
 	Channels::Upward<UpwardChannel<BlockInterconnectDownward>>{name},
 	InterconnectChannelReceiver{name + ".Upward", config},
@@ -54,7 +61,6 @@ Rt::UpwardChannel<BlockInterconnectDownward>::UpwardChannel(const std::string &n
 Rt::DownwardChannel<BlockInterconnectDownward>::DownwardChannel(const std::string &name, const InterconnectConfig &config):
 	Channels::Downward<DownwardChannel<BlockInterconnectDownward>>{name},
 	InterconnectChannelSender{name + ".Downward", config},
-	delay{config.delay},
 	isl_index{config.isl_index}
 {
 }
@@ -71,7 +77,7 @@ bool Rt::DownwardChannel<BlockInterconnectDownward>::onEvent(const Event &event)
 
 bool Rt::DownwardChannel<BlockInterconnectDownward>::onEvent(const TimerEvent &event)
 {
-	if (delay != 0 && event == delay_timer)
+	if (delay != time_ms_t::zero() && event == delay_timer)
 	{
 		return onTimerEvent();
 	}
@@ -214,20 +220,20 @@ bool Rt::DownwardChannel<BlockInterconnectDownward>::onInit()
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
-	if (delay == 0)
+	if (delay == time_ms_t::zero())
 	{
 		// No need to poll, messages are sent directly
 		return true;
 	}
 
-	uint32_t polling_rate;
+	time_ms_t polling_rate;
 	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
 	{
 		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
 		return false;
 	}
 
-	delay_timer = this->addTimerEvent(name + ".delay_timer", polling_rate);
+	delay_timer = this->addTimerEvent(name + ".delay_timer", ArgumentWrapper(polling_rate));
 	return true;
 }
 
@@ -235,7 +241,6 @@ bool Rt::DownwardChannel<BlockInterconnectDownward>::onInit()
 Rt::UpwardChannel<BlockInterconnectUpward>::UpwardChannel(const std::string &name, const InterconnectConfig &config):
 	Channels::Upward<UpwardChannel<BlockInterconnectUpward>>{name},
 	InterconnectChannelSender{name + ".Upward", config},
-	delay{config.delay},
 	isl_index{config.isl_index}
 {
 }
@@ -301,7 +306,7 @@ bool Rt::UpwardChannel<BlockInterconnectUpward>::onEvent(const Event &event)
 
 bool Rt::UpwardChannel<BlockInterconnectUpward>::onEvent(const TimerEvent &event)
 {
-	if (delay != 0 && event == delay_timer)
+	if (delay != time_ms_t::zero() && event == delay_timer)
 	{
 		return onTimerEvent();
 	}
@@ -357,20 +362,20 @@ bool Rt::UpwardChannel<BlockInterconnectUpward>::onInit()
 	// Create channel
 	this->initUdpChannels(data_port, sig_port, remote_addr, stack, rmem, wmem);
 
-	if (delay == 0)
+	if (delay == time_ms_t::zero())
 	{
 		// No need to poll, messages are sent directly
 		return true;
 	}
 
-	uint32_t polling_rate;
+	time_ms_t polling_rate;
 	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
 	{
 		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
 		return false;
 	}
 
-	delay_timer = this->addTimerEvent(name + ".delay_timer", polling_rate);
+	delay_timer = this->addTimerEvent(name + ".delay_timer", ArgumentWrapper(polling_rate));
 	return true;
 }
 

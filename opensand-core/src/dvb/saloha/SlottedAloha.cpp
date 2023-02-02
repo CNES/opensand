@@ -46,7 +46,7 @@
 
 SlottedAloha::SlottedAloha():
 	sf_per_saframe(),
-	frame_duration_ms(),
+	frame_duration(0),
 	is_parent_init(false),
 	pkt_hdl(NULL)
 {
@@ -55,11 +55,11 @@ SlottedAloha::SlottedAloha():
 }
 
 
-bool SlottedAloha::initParent(time_ms_t frame_duration_ms,
+bool SlottedAloha::initParent(time_us_t frame_duration,
                               EncapPlugin::EncapPacketHandler *const pkt_hdl)
 {
-	srand(time(NULL));
-	this->frame_duration_ms = frame_duration_ms;
+	srand(time(nullptr));
+	this->frame_duration = frame_duration;
 	this->pkt_hdl = pkt_hdl;
 
 	if(!OpenSandModelConf::Get()->getSuperframePerSlottedAlohaFrame(this->sf_per_saframe))

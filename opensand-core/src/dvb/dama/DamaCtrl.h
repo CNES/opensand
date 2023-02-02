@@ -74,7 +74,7 @@ public:
 	/**
 	 * @brief  Initialize DAMA controller
 	 *
-	 * @param   frame_duration_ms       duration of the frame (in ms).
+	 * @param   frame_duration          duration of the frame.
 	 * @param   rbdc_timeout_sf         RBDC timeout in superframe number.
 	 * @param   fca_kbps                The FCA maximum value (in kbits/s)
 	 * @param   categories              pointer to category list.
@@ -86,7 +86,7 @@ public:
 	 * @param   simulated               Whether there is simulated requests
 	 * @return  true on success, false otherwise.
 	 */
-	virtual bool initParent(time_ms_t frame_duration_ms,
+	virtual bool initParent(time_us_t frame_duration,
 	                        time_sf_t rbdc_timeout_sf,
 	                        rate_kbps_t fca_kbps,
 	                        TerminalCategories<TerminalCategoryDama> categories,
@@ -317,7 +317,7 @@ protected:
 	time_sf_t current_superframe_sf;
 
 	/** frame duration (in ms) */
-	time_ms_t frame_duration_ms;
+	time_us_t frame_duration;
 
 	/** RBDC request timeout (in superframe number) */
 	time_sf_t rbdc_timeout_sf;

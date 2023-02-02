@@ -33,6 +33,7 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
+
 #include "BlockLanAdaptation.h"
 #include "NetPacket.h"
 #include "NetBurst.h"
@@ -63,6 +64,12 @@
 #define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]
 #define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
 
+
+template<typename Rep, typename Ratio>
+double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
+{
+	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
+}
 
 
 /**
@@ -149,28 +156,29 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onInit()
 		return false;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "statistics_timer set to %d\n",
+	    "statistics_timer set to %f\n",
 	    this->stats_period_ms);
 	this->stats_timer = this->addTimerEvent("LanAdaptationStats",
-	                                        this->stats_period_ms);
+	                                        ArgumentWrapper(this->stats_period_ms));
 	return true;
 }
 
 bool Rt::UpwardChannel<BlockLanAdaptation>::onInit()
 {
-	if (delay == 0)
+	if (delay == time_ms_t::zero())
 	{
 		// No need to poll, messages are sent directly
 		return true;
 	}
 
-	uint32_t polling_rate;
+	time_ms_t polling_rate;
 	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
 	{
 		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
 		return false;
 	}
-	delay_timer = this->addTimerEvent(getName() + ".delay_timer", polling_rate);
+	delay_timer = this->addTimerEvent(getName() + ".delay_timer",
+	                                  ArgumentWrapper(polling_rate));
 	return true;
 }
 
@@ -304,11 +312,11 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const Event& event)
 
 bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const TimerEvent& event)
 {
-	if(delay != 0 && event == delay_timer)
+	if(delay != time_ms_t::zero() && event == delay_timer)
 	{
 		time_ms_t current_time = getCurrentTime();
 
-		while (delay_fifo.getCurrentSize() > 0 && static_cast<unsigned long>(delay_fifo.getTickOut()) <= current_time)
+		while (delay_fifo.getCurrentSize() > 0 && delay_fifo.getTickOut() <= current_time)
 		{
 			std::unique_ptr<FifoElement> elem = delay_fifo.pop();
 			auto packet = elem->getElem<NetPacket>();
@@ -458,7 +466,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 			}
 
 			packet.insert(0, head, TUNTAP_FLAGS_LEN);
-			if (delay == 0)
+			if (delay == time_ms_t::zero())
 			{
 				if(!this->writePacket(packet))
 				{

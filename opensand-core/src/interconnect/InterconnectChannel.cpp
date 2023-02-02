@@ -160,7 +160,7 @@ bool InterconnectChannelSender::send(Rt::Message message)
 	}
 	
 	// if no delay, send directly
-	if (delay == 0)
+	if (delay == time_ms_t::zero())
 	{
 		return onTimerEvent();
 	}
@@ -173,7 +173,7 @@ bool InterconnectChannelSender::onTimerEvent()
 {
 	time_ms_t current_time = getCurrentTime();
 
-	while (delay_fifo.getCurrentSize() > 0 && ((unsigned long)delay_fifo.getTickOut()) <= current_time)
+	while (delay_fifo.getCurrentSize() > 0 && delay_fifo.getTickOut() <= current_time)
 	{
 		std::unique_ptr<FifoElement> elem = delay_fifo.pop();
 		if (!elem)

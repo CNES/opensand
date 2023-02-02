@@ -51,6 +51,13 @@
 #include "Except.h"
 
 
+template<typename Rep, typename Ratio>
+double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
+{
+	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
+}
+
+
 GroundPhysicalChannel::GroundPhysicalChannel(PhyLayerConfig config):
 	clear_sky_condition{0},
 	delay_fifo{},
@@ -124,10 +131,11 @@ bool GroundPhysicalChannel::initGround(bool upward_channel,
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,
-	    "delay_refresh_period = %d ms", refresh_period_ms);
+	    "delay_refresh_period = %f ms",
+	    refresh_period_ms);
 
 	// Initialize the FIFO event
-	this->fifo_timer = channel.addTimerEvent("fifo_timer", refresh_period_ms);
+	this->fifo_timer = channel.addTimerEvent("fifo_timer", ArgumentWrapper(refresh_period_ms));
 
 	// Initialize log
 	this->log_event = output->registerLog(LEVEL_WARNING, "PhysicalLayer." + link + "ward.Event");
@@ -140,7 +148,8 @@ bool GroundPhysicalChannel::initGround(bool upward_channel,
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,
-	    "attenuation_refresh_period = %d ms", refresh_period_ms);
+	    "attenuation_refresh_period = %f ms",
+	    refresh_period_ms);
 
 	// Get the clear sky condition
 	if(!OpenSandModelConf::extractParameterData(link_attenuation->getParameter("clear_sky"), this->clear_sky_condition))
@@ -178,14 +187,14 @@ bool GroundPhysicalChannel::initGround(bool upward_channel,
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "Unable to initialize the physical layer attenuation plugin %s",
-		    attenuation_type.c_str());
+		    attenuation_type);
 		return false;
 	}
 
 	// Initialize the attenuation event
 	std::ostringstream name;
 	name << "attenuation_" << link;
-	this->attenuation_update_timer = channel.addTimerEvent(name.str(), refresh_period_ms);
+	this->attenuation_update_timer = channel.addTimerEvent(name.str(), ArgumentWrapper(refresh_period_ms));
 
 	// Initialize attenuation probes
 	this->probe_attenuation =
@@ -286,8 +295,7 @@ bool GroundPhysicalChannel::forwardReadyPackets()
 	LOG(this->log_channel, LEVEL_DEBUG,
 		"Forward ready packets");
 
-	while (this->delay_fifo.getCurrentSize() > 0 &&
-	       ((unsigned long)this->delay_fifo.getTickOut()) <= current_time)
+	while (this->delay_fifo.getCurrentSize() > 0 && this->delay_fifo.getTickOut() <= current_time)
 	{
 		std::unique_ptr<FifoElement> elem = this->delay_fifo.pop();
 		ASSERT(elem != nullptr, "Null element in fifo retrieved from GroundPhysicalChannel::forwardReadyPackets");

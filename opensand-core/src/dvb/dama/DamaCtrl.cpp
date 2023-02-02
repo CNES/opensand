@@ -47,7 +47,7 @@ DamaCtrl::DamaCtrl(spot_id_t spot):
 	is_parent_init(false),
 	terminals(), // TODO not very useful, they are stored in categories
 	current_superframe_sf(0),
-	frame_duration_ms(0),
+	frame_duration(0),
 	rbdc_timeout_sf(0),
 	fca_kbps(0),
 	enable_rbdc(false),
@@ -98,7 +98,7 @@ DamaCtrl::~DamaCtrl()
 	this->terminal_affectation.clear();
 }
 
-bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
+bool DamaCtrl::initParent(time_us_t frame_duration,
                           time_sf_t rbdc_timeout_sf,
                           rate_kbps_t fca_kbps,
                           TerminalCategories<TerminalCategoryDama> categories,
@@ -108,7 +108,7 @@ bool DamaCtrl::initParent(time_ms_t frame_duration_ms,
                           FmtDefinitionTable *const input_modcod_def,
                           bool simulated)
 {
-	this->frame_duration_ms = frame_duration_ms;
+	this->frame_duration = frame_duration;
 	this->rbdc_timeout_sf = rbdc_timeout_sf;
 	this->fca_kbps = fca_kbps;
 	this->input_sts = input_sts;

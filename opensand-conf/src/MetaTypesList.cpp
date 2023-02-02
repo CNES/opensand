@@ -59,11 +59,25 @@ OpenSANDConf::MetaTypesList::MetaTypesList():
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
 	         new OpenSANDConf::MetaValueType<float>("float", "Float", "A float")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-	         new OpenSANDConf::MetaValueType<int>("int", "Integer", "An integer")));
+	         new OpenSANDConf::MetaValueType<int8_t>("byte", "Byte integer", "A single byte integer")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-	         new OpenSANDConf::MetaValueType<short>("short", "Short integer", "A short integer")));
+	         new OpenSANDConf::MetaValueType<int16_t>("short", "Short integer", "A two bytes integer")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-	         new OpenSANDConf::MetaValueType<long>("long", "Long integer", "A lon integer")));
+	         new OpenSANDConf::MetaValueType<int32_t>("int", "Integer", "A four bytes integer")));
+	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
+	         new OpenSANDConf::MetaValueType<int64_t>("long", "Long integer", "An eight bytes integer")));
+	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
+	         new OpenSANDConf::MetaValueType<uint8_t>("ubyte", "Unsigned Byte", "An unsigned byte integer")));
+	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
+	         new OpenSANDConf::MetaValueType<uint16_t>("ushort", "Unsgined Short", "An unsgined short integer")));
+	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
+	         new OpenSANDConf::MetaValueType<uint32_t>("uint", "Unsigned Integer", "An unsigned integer")));
+	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
+	         new OpenSANDConf::MetaValueType<uint64_t>("ulong", "Unsigned Long", "An unsigned long integer")));
+	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
+	         new OpenSANDConf::MetaValueType<std::size_t>("size", "Unsigned Size", "An unsigned integer suitable for std::size_t")));
+	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
+	         new OpenSANDConf::MetaValueType<std::string>("char", "Character", "A single character")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
 	         new OpenSANDConf::MetaValueType<std::string>("string", "String", "A string")));
 }
@@ -95,7 +109,7 @@ std::shared_ptr<OpenSANDConf::MetaTypesList> OpenSANDConf::MetaTypesList::clone(
 
 std::shared_ptr<OpenSANDConf::DataTypesList> OpenSANDConf::MetaTypesList::createData() const
 {
-	auto data = std::shared_ptr<OpenSANDConf::DataTypesList>(new OpenSANDConf::DataTypesList());
+	auto data = std::shared_ptr<OpenSANDConf::DataTypesList>(new OpenSANDConf::DataTypesList{});
 	for(auto type: this->getTypes())
 	{
 		data->addType(type->createData());
@@ -154,12 +168,12 @@ std::shared_ptr<OpenSANDConf::MetaEnumType> OpenSANDConf::MetaTypesList::addEnum
 
 std::vector<std::shared_ptr<OpenSANDConf::MetaType>> OpenSANDConf::MetaTypesList::getTypes() const
 {
-  std::vector<std::shared_ptr<OpenSANDConf::MetaType>> alltypes;
-	for(auto iter: this->types)
+	std::vector<std::shared_ptr<OpenSANDConf::MetaType>> alltypes;
+	for(auto &&iter: this->types)
 	{
 		alltypes.push_back(std::static_pointer_cast<OpenSANDConf::MetaType>(iter.second));
 	}
-	for(auto iter: this->enums)
+	for(auto &&iter: this->enums)
 	{
 		alltypes.push_back(std::static_pointer_cast<OpenSANDConf::MetaType>(iter.second));
 	}

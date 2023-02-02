@@ -100,7 +100,7 @@ bool EntityGwNetAcc::createSpecificBlocks()
 
 		InterconnectConfig interco_cfg;
 		interco_cfg.interconnect_addr = this->interconnect_address;
-		interco_cfg.delay = 0;
+		interco_cfg.delay = time_ms_t::zero();
 
 		auto& block_lan_adaptation = Rt::Rt::createBlock<BlockLanAdaptation>("Lan_Adaptation", spec_la);
 		auto& block_encap = Rt::Rt::createBlock<BlockEncap>("Encap", encap_cfg);

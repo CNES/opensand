@@ -77,14 +77,14 @@ vol_pkt_t DelayFifo::getMaxSize() const
 	return this->max_size_pkt;
 }
 
-clock_t DelayFifo::getTickOut() const
+time_ms_t DelayFifo::getTickOut() const
 {
 	Rt::Lock lock(this->fifo_mutex);
 	if(queue.size() > 0)
 	{
 		return this->queue.front()->getTickOut();
 	}
-	return 0;
+	return time_ms_t::zero();
 }
 
 std::vector<std::unique_ptr<FifoElement>>::iterator DelayFifo::begin()
@@ -171,9 +171,9 @@ void DelayFifo::flush()
 	this->queue.clear();
 }
 
-int DelayFifo::getTickOutPosition(time_t time_out)
+int DelayFifo::getTickOutPosition(time_ms_t time_out)
 {
-	time_t time_elem;
+	time_ms_t time_elem;
 	int pos = -1;
 	int start = 0;
 	int test = 0;

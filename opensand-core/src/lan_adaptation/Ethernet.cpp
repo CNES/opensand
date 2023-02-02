@@ -986,7 +986,7 @@ void Ethernet::Context::initStats()
 	}
 }
 
-void Ethernet::Context::updateStats(unsigned int period)
+void Ethernet::Context::updateStats(const time_ms_t &period)
 {
 	std::map<uint8_t, size_t>::iterator it;
 	std::map<uint8_t, Probe<float> *>::iterator found;
@@ -1001,8 +1001,8 @@ void Ethernet::Context::updateStats(unsigned int period)
 			// use the default id
 			id = 0;
 		}
-		this->probe_evc_throughput[id]->put((*it).second * 8 / period);
-		this->probe_evc_size[id]->put((*it).second);
+		this->probe_evc_throughput[id]->put(time_ms_t(it->second * 8) / period);
+		this->probe_evc_size[id]->put(it->second);
 		(*it).second = 0;
 	}
 }

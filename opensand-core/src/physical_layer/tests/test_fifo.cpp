@@ -47,7 +47,9 @@
 #include <sched.h>
 #include <unistd.h>
 
-time_ms_t elem_times[5] = {0, 10, 20, 30, 40};
+
+time_ms_t elem_times[5] = {time_ms_t(0), time_ms_t(10), time_ms_t(20), time_ms_t(30), time_ms_t(40)};
+
 
 int main()
 {

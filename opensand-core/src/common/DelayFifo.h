@@ -92,7 +92,7 @@ public:
 	 *
 	 * @return the head element tick out
 	 */
-	clock_t getTickOut() const;
+	time_ms_t getTickOut() const;
 
 	/**
 	 * @brief Add an element at the end of the list
@@ -143,7 +143,7 @@ protected:
 	 * @param time_out the tick out 
 	 * @return -1 on error, the index on success
 	 */
-	int getTickOutPosition(time_t time_out);
+	int getTickOutPosition(time_ms_t time_out);
 
 	std::vector<std::unique_ptr<FifoElement>> queue; ///< the FIFO itself
 

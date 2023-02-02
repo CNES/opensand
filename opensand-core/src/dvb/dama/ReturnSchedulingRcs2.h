@@ -59,7 +59,7 @@ public:
 	void setMaxBurstLength(vol_b_t length_b);
 	
 	bool schedule(const time_sf_t current_superframe_sf,
-	              clock_t current_time,
+	              time_ms_t current_time,
 	              std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
 

@@ -71,7 +71,7 @@ public:
 	/**
 	 * @brief  Initalize the DAMA Agent common parameters
 	 *
-	 * @param frame_duration_ms      The frame duration (in ms)
+	 * @param frame_duration         The frame duration
 	 * @param cra_kbps               The CRA value (in kbits/s)
 	 * @param max_rbdc_kbps          The maximum RBDC value (in kbits/s)
 	 * @param rbdc_timeout_sf        The RBDC timeout (in superframe number)
@@ -86,7 +86,7 @@ public:
 	 * @param dvb_fifos              The MAC FIFOs
 	 * @return true on success, false otherwise
 	 */
-	bool initParent(time_ms_t frame_duration_ms,
+	bool initParent(time_us_t frame_duration,
 	                rate_kbps_t cra_kbps,
 	                rate_kbps_t max_rbdc_kbps,
 	                time_sf_t rbdc_timeout_sf,
@@ -202,7 +202,7 @@ protected:
 	bool vbdc_enabled;
 
 	/** Frame duration (in ms) */
-	time_ms_t frame_duration_ms;
+	time_us_t frame_duration;
 	/** CRA value for ST (in kb/s) */
 	rate_kbps_t cra_kbps;
 	/** RBDC max value (in kb/s) */

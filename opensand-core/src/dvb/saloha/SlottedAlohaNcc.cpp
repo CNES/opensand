@@ -630,11 +630,11 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category,
 				auto sa_packet = Rt::make_ptr<SlottedAlohaPacketData>(
 				        Rt::Data(),
 				        (saloha_pdu_id_t)pdu_id,
-				        (uint16_t)0,
-				        (uint16_t)0,
-				        (uint16_t)0,
+				        uint16_t(0),
+				        uint16_t(0),
+				        uint16_t(0),
 				        nb_replicas,
-				        (time_ms_t)0);
+				        time_sf_t(0));
 				// as for request simulation use tal id > BROADCAST_TAL_ID
 				// used for filtering
 				sa_packet->setSrcTalId(BROADCAST_TAL_ID + 1 + cpt);

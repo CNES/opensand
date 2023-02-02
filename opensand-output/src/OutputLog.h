@@ -133,7 +133,7 @@ void OutputLog::sendLog(log_level_t log_level, char const * const msg_format, Ar
 	}
 
 	std::string level = levels[log_level];
-	std::string message = Format(msg_format, std::forward<Args>(args)...);
+	std::string message = Format(msg_format, args...);
 	for (auto &&handler: handlers)
 	{
 		handler->emitLog(name, level, message);

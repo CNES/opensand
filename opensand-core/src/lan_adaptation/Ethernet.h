@@ -96,7 +96,7 @@ public:
 		Rt::Ptr<NetBurst> deencapsulate(Rt::Ptr<NetBurst> burst);
 		char getLanHeader(unsigned int pos, const Rt::Ptr<NetPacket>& packet);
 		bool handleTap();
-		void updateStats(unsigned int period);
+		void updateStats(const time_ms_t &period) override;
 		bool initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch);
 
 	protected:

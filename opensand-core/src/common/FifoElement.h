@@ -55,9 +55,9 @@ protected:
 	Rt::Ptr<NetContainer> elem;
 
 	/// The arrival time of packet in FIFO (in ms)
-	time_t tick_in;
+	time_ms_t tick_in;
 	/// The minimal time the packet will output the FIFO (in ms)
-	time_t tick_out;
+	time_ms_t tick_out;
 
 public:
 	/**
@@ -67,7 +67,7 @@ public:
 	 * @param tick_out   The minimal time the element will output the FIFO (in ms)
 	 */
 	FifoElement(Rt::Ptr<NetContainer> elem,
-	            time_t tick_in, time_t tick_out);
+	            time_ms_t tick_in, time_ms_t tick_out);
 
 	/**
 	 * Destroy the fifo element
@@ -92,19 +92,19 @@ public:
 	 * Get the element length
 	 * @return The element length
 	 */
-	size_t getTotalLength() const;
+	std::size_t getTotalLength() const;
 
 	/**
 	 * Get the arrival time of packet in FIFO (in ms)
 	 * @return The arrival time of packet in FIFO
 	 */
-	time_t getTickIn() const;
+	time_ms_t getTickIn() const;
 
 	/**
 	 * Get the minimal time the packet will output the FIFO (in ms)
 	 * @return The minimal time the packet will output the FIFO
 	 */
-	time_t getTickOut() const;
+	time_ms_t getTickOut() const;
 };
 
 

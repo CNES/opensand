@@ -96,7 +96,7 @@ bool EntitySat::createSpecificBlocks()
 		sat_dispatch_cfg.isl_enabled = this->isl_enabled;
 		auto& block_sat_dispatch = Rt::Rt::createBlock<BlockSatDispatcher>("Sat_Dispatch", sat_dispatch_cfg);
 
-		int isl_delay = 0;
+		uint32_t isl_delay = 0;
 		if (isl_enabled)
 		{
 			auto isl_conf = Conf->getProfileData("isl");
@@ -115,7 +115,7 @@ bool EntitySat::createSpecificBlocks()
 				{
 					InterconnectConfig interco_cfg{
 						.interconnect_addr = cfg.interco_addr,
-						.delay = static_cast<uint32_t>(isl_delay),
+						.delay = time_ms_t(isl_delay),
 						.isl_index = index,
 					};
 					auto& block_interco = Rt::Rt::createBlock<BlockInterconnectUpward>("Interconnect.Isl", interco_cfg);
@@ -127,7 +127,7 @@ bool EntitySat::createSpecificBlocks()
 					bool is_used_for_isl = instance_id != cfg.linked_sat_id;
 					la_specific la_cfg{
 						.tap_iface = cfg.tap_iface,
-						.delay = static_cast<uint32_t>(isl_delay),
+						.delay = time_ms_t(isl_delay),
 						.connected_satellite = cfg.linked_sat_id,
 						.is_used_for_isl = is_used_for_isl,
 						.packet_switch = std::make_shared<SatellitePacketSwitch>(instance_id, is_used_for_isl, getIslEntities(spot_topo)),
@@ -282,7 +282,7 @@ void defineProfileMetaModel()
 	GroundPhysicalChannel::generateConfiguration();
 
 	auto isl = conf->getOrCreateComponent("isl", "ISL", "Inter-satellite links");
-	auto isl_delay = isl->addParameter("delay", "Delay", types->getType("int"), "Propagation delay for output ISL packets");
+	auto isl_delay = isl->addParameter("delay", "Delay", types->getType("uint"), "Propagation delay for output ISL packets");
 	isl_delay->setUnit("ms");
 }
 

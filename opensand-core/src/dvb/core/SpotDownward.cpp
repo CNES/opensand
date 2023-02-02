@@ -53,15 +53,15 @@
 
 SpotDownward::SpotDownward(spot_id_t spot_id,
                            tal_id_t mac_id,
-                           time_ms_t fwd_down_frame_duration,
-                           time_ms_t ret_up_frame_duration,
+                           time_us_t fwd_down_frame_duration,
+                           time_us_t ret_up_frame_duration,
                            time_ms_t stats_period,
                            EncapPlugin::EncapPacketHandler *pkt_hdl,
                            StFmtSimuList *input_sts,
                            StFmtSimuList *output_sts):
 	DvbChannel(),
 	DvbFmt(),
-	dama_ctrl(NULL),
+	dama_ctrl(nullptr),
 	scheduling(),
 	fwd_frame_counter(0),
 	ctrl_carrier_id(),
@@ -75,24 +75,24 @@ SpotDownward::SpotDownward(spot_id_t spot_id,
 	complete_dvb_frames(),
 	categories(),
 	terminal_affectation(),
-	default_category(NULL),
-	up_return_pkt_hdl(NULL),
+	default_category(nullptr),
+	up_return_pkt_hdl(nullptr),
 	fwd_fmt_groups(),
 	ret_fmt_groups(),
 	cni(100),
 	pep_cmd_apply_timer(),
-	request_simu(NULL),
-	event_file(NULL),
+	request_simu(nullptr),
+	event_file(nullptr),
 	simulate(none_simu),
 	probe_gw_l2_to_sat_total(),
 	l2_to_sat_total_bytes(),
-	probe_frame_interval(NULL),
-	probe_sent_modcod(NULL),
-	log_request_simulation(NULL),
-	event_logon_resp(NULL)
+	probe_frame_interval(nullptr),
+	probe_sent_modcod(nullptr),
+	log_request_simulation(nullptr),
+	event_logon_resp(nullptr)
 {
-	this->fwd_down_frame_duration_ms = fwd_down_frame_duration;
-	this->ret_up_frame_duration_ms = ret_up_frame_duration;
+	this->fwd_down_frame_duration = fwd_down_frame_duration;
+	this->ret_up_frame_duration = ret_up_frame_duration;
 	this->stats_period_ms = stats_period;
 	this->pkt_hdl = pkt_hdl;
 	this->input_sts = input_sts;
@@ -260,7 +260,7 @@ bool SpotDownward::onInit()
 		return false;
 	}
 
-	this->initStatsTimer(this->fwd_down_frame_duration_ms);
+	this->initStatsTimer(this->fwd_down_frame_duration);
 
 	if(!this->initRequestSimulation())
 	{
@@ -309,7 +309,7 @@ bool SpotDownward::initMode()
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "forward down frequency plan",
 	                                         AccessType::TDM,
-	                                         this->fwd_down_frame_duration_ms,
+	                                         this->fwd_down_frame_duration,
 	                                         this->s2_modcod_def,
 	                                         this->categories,
 	                                         this->terminal_affectation,
@@ -383,7 +383,7 @@ bool SpotDownward::initMode()
 			}
 		}
 
-		schedule =  new ForwardSchedulingS2(this->fwd_down_frame_duration_ms,
+		schedule =  new ForwardSchedulingS2(this->fwd_down_frame_duration,
 		                                    this->pkt_hdl,
 		                                    this->dvb_fifos.at(label),
 		                                    this->output_sts,
@@ -415,7 +415,7 @@ bool SpotDownward::initDama()
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
 	TerminalMapping<TerminalCategoryDama> dc_terminal_affectation;
-	TerminalCategoryDama *dc_default_category = NULL;
+	TerminalCategoryDama *dc_default_category = nullptr;
 
 	auto Conf = OpenSandModelConf::Get();
 
@@ -451,8 +451,8 @@ bool SpotDownward::initDama()
 		    "Missing synchronisation period\n");
 		return false;
 	}
-	sync_period_frame = (time_frame_t)round((double)sync_period_ms /
-	                                        (double)this->ret_up_frame_duration_ms);
+	sync_period_frame = time_frame_t(round(std::chrono::duration_cast<std::chrono::duration<double>>(sync_period_ms) /
+	                                       std::chrono::duration_cast<std::chrono::duration<double>>(this->ret_up_frame_duration)));
 	rbdc_timeout_sf = sync_period_frame + 1;
 
 	LOG(this->log_init_channel, LEVEL_NOTICE,
@@ -472,7 +472,7 @@ bool SpotDownward::initDama()
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
 	                                         AccessType::DAMA,
-	                                         this->ret_up_frame_duration_ms,
+	                                         this->ret_up_frame_duration,
 	                                         this->rcs_modcod_def,
 	                                         dc_categories,
 	                                         dc_terminal_affectation,
@@ -532,7 +532,7 @@ bool SpotDownward::initDama()
 	}
 
 	// Initialize the DamaCtrl parent class
-	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration_ms,
+	if(!this->dama_ctrl->initParent(this->ret_up_frame_duration,
 	                                rbdc_timeout_sf,
 	                                fca_kbps,
 	                                dc_categories,
@@ -897,7 +897,7 @@ bool SpotDownward::handleEncapPacket(Rt::Ptr<NetPacket> packet)
 	// category of the packet
 	if(this->terminal_affectation.find(dst_tal_id) != this->terminal_affectation.end())
 	{
-		if(this->terminal_affectation.at(dst_tal_id) == NULL)
+		if(this->terminal_affectation.at(dst_tal_id) == nullptr)
 		{
 			LOG(this->log_receive_channel, LEVEL_ERROR,
 			    "No category associated to terminal %u, cannot handle packet\n",
@@ -932,7 +932,7 @@ bool SpotDownward::handleEncapPacket(Rt::Ptr<NetPacket> packet)
 		fifo_priority = this->default_fifo_id;
 	}
 
-	if(!this->pushInFifo(fifos_it->second[fifo_priority], std::move(packet), 0))
+	if(!this->pushInFifo(fifos_it->second[fifo_priority], std::move(packet), time_ms_t{0}))
 	{
 		// a problem occured, we got memory allocation error
 		// or fifo full and we won't empty fifo until next
@@ -1050,10 +1050,10 @@ void SpotDownward::updateStatistics()
 			this->l2_to_sat_total_bytes[cat_label] += fifo_stat.out_length_bytes;
 
 			this->probe_gw_l2_to_sat_before_sched[cat_label][id]->put(
-			    fifo_stat.in_length_bytes * 8.0 / this->stats_period_ms);
+			    time_ms_t(fifo_stat.in_length_bytes * 8) / this->stats_period_ms);
 
 			this->probe_gw_l2_to_sat_after_sched[cat_label][id]->put(
-			    fifo_stat.out_length_bytes * 8.0 / this->stats_period_ms);
+			    time_ms_t(fifo_stat.out_length_bytes * 8) / this->stats_period_ms);
 
 			// Mac fifo stats
 			this->probe_gw_queue_size[cat_label][id]->put(fifo_stat.current_pkt_nbr);
@@ -1062,8 +1062,8 @@ void SpotDownward::updateStatistics()
 			this->probe_gw_queue_loss[cat_label][id]->put(fifo_stat.drop_pkt_nbr);
 			this->probe_gw_queue_loss_kb[cat_label][id]->put(fifo_stat.drop_bytes * 8);
 		}
-		this->probe_gw_l2_to_sat_total[cat_label]->put(this->l2_to_sat_total_bytes[cat_label] * 8 /
-	                                                   this->stats_period_ms);
+		this->probe_gw_l2_to_sat_total[cat_label]->put(
+			time_ms_t(this->l2_to_sat_total_bytes[cat_label] * 8) / this->stats_period_ms);
 		this->l2_to_sat_total_bytes[cat_label] = 0;
 	}
 }
@@ -1303,18 +1303,18 @@ bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
 	std::string cat_label = svno_request->getLabel();
 	rate_kbps_t new_rate_kbps = svno_request->getNewRate();
 	TerminalCategories<TerminalCategoryDama> *cat;
-	time_ms_t frame_duration_ms;
+	time_us_t frame_duration;
 
 	switch(band)
 	{
 		case FORWARD:
 			cat = &this->categories;
-			frame_duration_ms = this->fwd_down_frame_duration_ms;
+			frame_duration = this->fwd_down_frame_duration;
 			break;
 
 		case RETURN:
 			cat = this->dama_ctrl->getCategories();
-			frame_duration_ms = this->ret_up_frame_duration_ms;
+			frame_duration = this->ret_up_frame_duration;
 			break;
 
 		default:
@@ -1326,11 +1326,11 @@ bool SpotDownward::applySvnoCommand(SvnoRequest *svno_request)
 	switch(req_type)
 	{
 		case SVNO_REQUEST_ALLOCATION:
-			return this->allocateBand(frame_duration_ms, cat_label, new_rate_kbps, *cat);
+			return this->allocateBand(frame_duration, cat_label, new_rate_kbps, *cat);
 			break;
 
 		case SVNO_REQUEST_RELEASE:
-			return this->releaseBand(frame_duration_ms, cat_label, new_rate_kbps, *cat);
+			return this->releaseBand(frame_duration, cat_label, new_rate_kbps, *cat);
 			break;
 
 		default:
@@ -1412,7 +1412,7 @@ bool SpotDownward::addCniExt()
 			// first get the relevant category for the packet to find appropriate fifo
 			if(this->terminal_affectation.find(tal_id) != this->terminal_affectation.end())
 			{
-				if(this->terminal_affectation.at(tal_id) == NULL)
+				if(this->terminal_affectation.at(tal_id) == nullptr)
 				{
 					LOG(this->log_send_channel, LEVEL_ERROR,
 					    "No category associated to terminal %u, "
@@ -1445,7 +1445,9 @@ bool SpotDownward::addCniExt()
 				return false;
 			}
 
-			auto new_el = std::make_unique<FifoElement>(Rt::make_ptr<NetPacket>(nullptr), 0, 0);
+			auto new_el = std::make_unique<FifoElement>(Rt::make_ptr<NetPacket>(nullptr),
+			                                            time_ms_t::zero(),
+			                                            time_ms_t::zero());
 			// set packet extension to this new empty packet
 			if(!this->setPacketExtension(this->pkt_hdl,
 				                         *new_el,

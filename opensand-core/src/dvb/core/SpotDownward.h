@@ -60,8 +60,8 @@ class SpotDownward: public DvbChannel, public DvbFmt
 public:
 	SpotDownward(spot_id_t spot_id,
 	             tal_id_t mac_id,
-	             time_ms_t fwd_down_frame_duration,
-	             time_ms_t ret_up_frame_duration,
+	             time_us_t fwd_down_frame_duration,
+	             time_us_t ret_up_frame_duration,
 	             time_ms_t stats_period,
 	             EncapPlugin::EncapPacketHandler *pkt_hdl,
 	             StFmtSimuList *input_sts,

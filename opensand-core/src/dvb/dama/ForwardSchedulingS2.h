@@ -60,7 +60,7 @@ typedef enum
 class ForwardSchedulingS2: public Scheduling
 {
 public:
-	ForwardSchedulingS2(time_ms_t fwd_timer_ms,
+	ForwardSchedulingS2(time_us_t fwd_timer,
 	                    EncapPlugin::EncapPacketHandler *packet_handler,
 	                    const fifos_t &fifos,
 	                    const StFmtSimuList *const fwd_sts,
@@ -74,13 +74,13 @@ public:
 	virtual ~ForwardSchedulingS2();
 
 	virtual bool schedule(const time_sf_t current_superframe_sf,
-	                      clock_t current_time,
+	                      time_ms_t current_time,
 	                      std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
 	                      uint32_t &remaining_allocation);
 
 protected:
-	/** The timer for forward scheduling (ms) */
-	time_ms_t fwd_timer_ms;
+	/** The timer for forward scheduling */
+	time_us_t fwd_timer;
 
 	/** the BBFrame being built identified by their modcod */
 	std::map<unsigned int, Rt::Ptr<BBFrame>> incomplete_bb_frames;
@@ -128,7 +128,7 @@ protected:
 	 */
 	bool scheduleEncapPackets(DvbFifo *fifo,
 	                          const time_sf_t current_superframe_sf,
-	                          clock_t current_time,
+	                          time_ms_t current_time,
 	                          std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
 	                          CarriersGroupDama *carriers,
 	                          vol_sym_t &capacity_sym,

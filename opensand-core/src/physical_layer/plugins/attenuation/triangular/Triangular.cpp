@@ -86,7 +86,7 @@ void Triangular::generateConfiguration(const std::string &parent_path,
 
 bool Triangular::init(time_ms_t refresh_period_ms, std::string link_path)
 {
-	this->refresh_period_ms = refresh_period_ms;
+	this->refresh_period = refresh_period_ms;
 
 	auto attenuation = OpenSandModelConf::Get()->getProfileData(link_path);
 
@@ -113,7 +113,8 @@ bool Triangular::init(time_ms_t refresh_period_ms, std::string link_path)
 bool Triangular::updateAttenuationModel()
 {
 	this->duration_counter = (this->duration_counter + 1) % this->period;
-	double time = this->duration_counter * this->refresh_period_ms / 1000;
+	double refresh_period = std::chrono::duration_cast<std::chrono::duration<double>>(this->refresh_period).count();
+	double time = this->duration_counter * refresh_period;
 
 	if(time < this->period / 2)
 	{
@@ -121,12 +122,13 @@ bool Triangular::updateAttenuationModel()
 	}
 	else
 	{
-		double max = this->period * this->slope * this->refresh_period_ms / 1000;
+		double max = this->period * this->slope * refresh_period;
 		this->setAttenuation(max - time * this->slope);
 	}
 
 	LOG(this->log_attenuation, LEVEL_INFO,
-	    "On/Off Attenuation %.2f dB\n", this->getAttenuation());
+	    "On/Off Attenuation %.2f dB\n",
+	    this->getAttenuation());
 
 	return true;
 }

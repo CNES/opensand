@@ -195,14 +195,14 @@ vol_pkt_t DvbFifo::getMaxSize() const
 	return this->max_size_pkt;
 }
 
-clock_t DvbFifo::getTickOut() const
+time_ms_t DvbFifo::getTickOut() const
 {
 	Rt::Lock lock(this->fifo_mutex);
 	if(queue.size() > 0)
 	{
 		return this->queue.front()->getTickOut();
 	}
-	return 0;
+	return time_ms_t::zero();
 }
 
 void DvbFifo::setCni(uint8_t cni)

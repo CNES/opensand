@@ -86,7 +86,7 @@ static size_t getPayloadSize(std::string coding_rate)
 
 
 // TODO try to factorize with S2Scheduling
-ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
+ScpcScheduling::ScpcScheduling(time_us_t scpc_timer,
                                EncapPlugin::EncapPacketHandler *packet_handler,
                                const fifos_t &fifos,
                                const StFmtSimuList *const simu_sts,
@@ -94,7 +94,7 @@ ScpcScheduling::ScpcScheduling(time_ms_t scpc_timer_ms,
                                const TerminalCategoryDama *const category,
                                tal_id_t gw_id):
 	Scheduling(packet_handler, fifos, simu_sts),
-	scpc_timer_ms(scpc_timer_ms),
+	scpc_timer(scpc_timer),
 	incomplete_bb_frames(),
 	incomplete_bb_frames_ordered(),
 	pending_bbframes(),
@@ -188,7 +188,7 @@ ScpcScheduling::~ScpcScheduling()
 
 
 bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
-                              clock_t current_time,
+                              time_ms_t current_time,
                               std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
                               uint32_t &remaining_allocation)
 {
@@ -283,13 +283,11 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 		// get remain in Kbits/s instead of symbols if possible
 		if(carriers->getFmtIds().size() == 1)
 		{
-			remain = this->scpc_modcod_def->symToKbits(carriers->getFmtIds().front(),
-			                                 remain);
-			avail = this->scpc_modcod_def->symToKbits(carriers->getFmtIds().front(),
-			                               avail);
+			remain = this->scpc_modcod_def->symToKbits(carriers->getFmtIds().front(), remain);
+			avail = this->scpc_modcod_def->symToKbits(carriers->getFmtIds().front(), avail);
 			// we get kbits per frame, convert in kbits/s
-			remain = remain * 1000 / this->scpc_timer_ms;
-			avail = avail * 1000 / this->scpc_timer_ms;
+			remain = std::chrono::seconds{remain} / this->scpc_timer;
+			avail = std::chrono::seconds{avail} / this->scpc_timer;
 		}
 
 		this->probe_scpc_available_capacity[carriers_id][id]->put(avail);
@@ -305,7 +303,7 @@ bool ScpcScheduling::schedule(const time_sf_t current_superframe_sf,
 
 bool ScpcScheduling::scheduleEncapPackets(DvbFifo *fifo,
                                           const time_sf_t current_superframe_sf,
-                                          clock_t current_time,
+                                          time_ms_t current_time,
                                           std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
                                           CarriersGroupDama *carriers)
 {

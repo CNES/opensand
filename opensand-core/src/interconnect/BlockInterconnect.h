@@ -50,7 +50,7 @@ class Output;
 struct InterconnectConfig
 {
 	std::string interconnect_addr; // Interconnect interface IP address
-	uint32_t delay;
+	time_ms_t delay;
 	std::size_t isl_index;
 };
 
@@ -87,7 +87,6 @@ class Rt::DownwardChannel<class BlockInterconnectDownward>: public Channels::Dow
 
  private:
 	event_id_t delay_timer;
-	uint32_t delay;
 	std::size_t isl_index;
 };
 
@@ -125,7 +124,6 @@ class Rt::UpwardChannel<class BlockInterconnectUpward>: public Channels::Upward<
 
  private:
 	event_id_t delay_timer;
-	uint32_t delay;
 	std::size_t isl_index;
 };
 

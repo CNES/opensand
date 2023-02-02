@@ -62,7 +62,7 @@ typedef enum
 class ScpcScheduling: public Scheduling
 {
 public:
-	ScpcScheduling(time_ms_t scpc_timer_ms,
+	ScpcScheduling(time_us_t scpc_timer,
 	               EncapPlugin::EncapPacketHandler *packet_handler,
 	               const fifos_t &fifos,
 	               const StFmtSimuList *const simu_sts,
@@ -73,13 +73,13 @@ public:
 	virtual ~ScpcScheduling();
 
 	bool schedule(const time_sf_t current_superframe_sf,
-	              clock_t current_time,
+	              time_ms_t current_time,
 	              std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
 	              uint32_t &remaining_allocation);
 
 private:
-	/** The timer for forward scheduling (ms) */
-	time_ms_t scpc_timer_ms;
+	/** The timer for forward scheduling */
+	time_us_t scpc_timer;
 
 	/** the BBFrame being built identified by their modcod */
 	std::map<unsigned int, Rt::Ptr<BBFrame>> incomplete_bb_frames;
@@ -120,7 +120,7 @@ private:
 	 */
 	bool scheduleEncapPackets(DvbFifo *fifo,
 	                          const time_sf_t current_superframe_sf,
-	                          clock_t current_time,
+	                          time_ms_t current_time,
 	                          std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
 	                          CarriersGroupDama *carriers);
 
