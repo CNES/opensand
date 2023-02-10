@@ -45,6 +45,7 @@
 #include "FileSimulator.h"
 #include "RandomSimulator.h"
 #include "OpenSandModelConf.h"
+#include "DvbFifo.h"
 #include "FifoElement.h"
 
 #include <errno.h>
@@ -130,13 +131,13 @@ SpotDownward::~SpotDownward()
 	}
 
 	// delete fifos
-	for (auto& it1 : this->dvb_fifos)
+	for (auto &&[label, fifos] : this->dvb_fifos)
 	{
-		for (auto& it2 : it1.second)
+		for (auto &&[qos, fifo]: fifos)
 		{
-			delete it2.second;
+			delete fifo;
 		}
-		it1.second.clear();
+		fifos.clear();
 	}
 	this->dvb_fifos.clear();
 
@@ -156,9 +157,9 @@ void SpotDownward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParam
 
 	auto conf = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
 	auto fifos = conf->addList("gw_fifos", "FIFOs to send messages to Terminals", "gw_fifo")->getPattern();
-	fifos->addParameter("priority", "Priority", types->getType("int"));
+	fifos->addParameter("priority", "Priority", types->getType("ubyte"));
 	fifos->addParameter("name", "Name", types->getType("string"));
-	fifos->addParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
+	fifos->addParameter("capacity", "Capacity", types->getType("ushort"))->setUnit("packets");
 	fifos->addParameter("access_type", "Access Type", types->getType("gw_fifo_access_type"));
 	auto simulation = conf->addParameter("simulation",
 	                                     "Simulated Requests",
@@ -202,7 +203,7 @@ void SpotDownward::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParam
 	parameter->setUnit("kbps");
 	Conf->setProfileReference(parameter, simulation, "Random");
 
-	auto fca = conf->addParameter("fca", "FCA", types->getType("int"));
+	auto fca = conf->addParameter("fca", "FCA", types->getType("ushort"));
 	Conf->setProfileReference(fca, disable_ctrl_plane, false);
 	auto dama_algo = conf->addParameter("dama_algorithm", "DAMA Algorithm", types->getType("dama_algorithm"));
 	Conf->setProfileReference(dama_algo, disable_ctrl_plane, false);
@@ -353,9 +354,9 @@ bool SpotDownward::initMode()
 			}
 		}
 
-		for (auto&& fifo_it: fifos)
+		for (auto&& [qos, fifo]: fifos)
 		{
-			if(fifo_it.second->getAccessType() == ForwardAccessType::vcm)
+			if(fifo->getAccessType() == ForwardAccessType::vcm)
 			{
 				is_vcm_fifo = true;
 				break;
@@ -410,7 +411,6 @@ bool SpotDownward::initDama()
 	time_ms_t sync_period_ms;
 	time_frame_t sync_period_frame;
 	time_sf_t rbdc_timeout_sf;
-	rate_kbps_t fca_kbps;
 	std::string dama_algo;
 
 	TerminalCategories<TerminalCategoryDama> dc_categories;
@@ -432,18 +432,16 @@ bool SpotDownward::initDama()
 	auto ncc = Conf->getProfileData()->getComponent("network");
 
 	// Retrieving the free capacity assignement parameter
-	int fca;
-	if(!OpenSandModelConf::extractParameterData(ncc->getParameter("fca"), fca))
+	rate_kbps_t fca_kbps;
+	if(!OpenSandModelConf::extractParameterData(ncc->getParameter("fca"), fca_kbps))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "missing FCA parameter\n");
 		return false;
 	}
 
-	fca_kbps = fca;
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "fca = %d kb/s\n", fca_kbps);
-
 
 	if(!Conf->getSynchroPeriod(sync_period_ms))
 	{
@@ -629,14 +627,13 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 	{
 		auto fifo_item = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
-		int fifo_prio;
-		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("priority"), fifo_prio))
+		qos_t fifo_priority;
+		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("priority"), fifo_priority))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "cannot get fifo priority from section 'ncc, fifos'\n");
 			goto err_fifo_release;
 		}
-		qos_t fifo_priority = fifo_prio;
 
 		std::string fifo_name;
 		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("name"), fifo_name))
@@ -653,14 +650,13 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 		}
 		auto fifo_id = fifo_it->second;
 
-		int fifo_capa;
-		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("capacity"), fifo_capa))
+		vol_pkt_t fifo_size;
+		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("capacity"), fifo_size))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "cannot get fifo capacity from section 'ncc, fifos'\n");
 			goto err_fifo_release;
 		}
-		vol_pkt_t fifo_size = fifo_capa;
 
 		std::string fifo_access_type;
 		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("access_type"), fifo_access_type))
@@ -691,16 +687,15 @@ bool SpotDownward::initFifo(fifos_t &fifos)
 			this->default_fifo_id = fifo_id;
 		}
 
-		fifos.insert({fifo_id, fifo});
+		fifos.emplace(fifo_id, fifo);
 	}
 
 	return true;
 
 err_fifo_release:
-	for(fifos_t::iterator it = fifos.begin();
-	    it != fifos.end(); ++it)
+	for (auto &&[qos, fifo]: fifos)
 	{
-		delete (*it).second;
+		delete fifo;
 	}
 	fifos.clear();
 	return false;
@@ -825,15 +820,10 @@ bool SpotDownward::initOutput()
 	// Events
 	this->event_logon_resp = output->registerEvent(prefix + "DVB.logon_response");
 
-	for (auto &&label_fifos_pair: dvb_fifos)
+	for (auto &&[cat_label, fifos]: dvb_fifos)
 	{
-		const std::string cat_label = label_fifos_pair.first;
-		const fifos_t &fifos = label_fifos_pair.second;
-
-		for (auto &&qos_fifo_pair: fifos)
+		for (auto &&[qos_id, fifo]: fifos)
 		{
-			qos_t id = qos_fifo_pair.first;
-			DvbFifo *fifo = qos_fifo_pair.second;
 			std::string fifo_name = fifo->getName();
 
 			std::shared_ptr<Probe<int>> probe_temp;
@@ -841,27 +831,27 @@ bool SpotDownward::initOutput()
 
 			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue size.packets." + fifo_name,
 			                                        "Packets", true, SAMPLE_LAST);
-			this->probe_gw_queue_size[cat_label].emplace(id, probe_temp);
+			this->probe_gw_queue_size[cat_label].emplace(qos_id, probe_temp);
 
 			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue size.capacity." + fifo_name,
 			                                        "kbits", true, SAMPLE_LAST);
-			this->probe_gw_queue_size_kb[cat_label].emplace(id, probe_temp);
+			this->probe_gw_queue_size_kb[cat_label].emplace(qos_id, probe_temp);
 
 			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Throughputs.L2_to_SAT_before_sched." + fifo_name,
 			                                        "Kbits/s", true, SAMPLE_AVG);
-			this->probe_gw_l2_to_sat_before_sched[cat_label].emplace(id, probe_temp);
+			this->probe_gw_l2_to_sat_before_sched[cat_label].emplace(qos_id, probe_temp);
 
 			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Throughputs.L2_to_SAT_after_sched." + fifo_name,
 			                                        "Kbits/s", true, SAMPLE_AVG);
-			this->probe_gw_l2_to_sat_after_sched[cat_label].emplace(id, probe_temp);
+			this->probe_gw_l2_to_sat_after_sched[cat_label].emplace(qos_id, probe_temp);
 
 			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue loss.packets." + fifo_name,
 			                                        "Packets", true, SAMPLE_SUM);
-			this->probe_gw_queue_loss[cat_label].emplace(id, probe_temp);
+			this->probe_gw_queue_loss[cat_label].emplace(qos_id, probe_temp);
 
 			probe_temp = output->registerProbe<int>(prefix + cat_label + ".Queue loss.rate." + fifo_name,
 			                                        "Kbits/s", true, SAMPLE_SUM);
-			this->probe_gw_queue_loss_kb[cat_label].emplace(id, probe_temp);
+			this->probe_gw_queue_loss_kb[cat_label].emplace(qos_id, probe_temp);
 		}
 		this->probe_gw_l2_to_sat_total[cat_label] =
 		    output->registerProbe<int>(prefix + cat_label + ".Throughputs.L2_to_SAT_after_sched.total",
@@ -886,7 +876,6 @@ bool SpotDownward::handleEncapPacket(Rt::Ptr<NetPacket> packet)
 {
 	qos_t fifo_priority = packet->getQos();
 	std::string cat_label;
-	std::map<std::string, fifos_t>::iterator fifos_it;
 	tal_id_t dst_tal_id;
 
 	LOG(this->log_receive_channel, LEVEL_INFO,
@@ -920,19 +909,21 @@ bool SpotDownward::handleEncapPacket(Rt::Ptr<NetPacket> packet)
 
 	// find the FIFO associated to the IP QoS (= MAC FIFO id)
 	// else use the default id
-	fifos_it = this->dvb_fifos.find(cat_label);
+	auto fifos_it = this->dvb_fifos.find(cat_label);
 	if(fifos_it == this->dvb_fifos.end())
 	{
 		LOG(this->log_receive_channel, LEVEL_ERROR,
 		    "No fifo found for this category %s", cat_label.c_str());
 		return false;
 	}
-	if(fifos_it->second.find(fifo_priority) == fifos_it->second.end())
+
+	auto fifo_it = fifos_it->second.find(fifo_priority);
+	if(fifo_it == fifos_it->second.end())
 	{
-		fifo_priority = this->default_fifo_id;
+		fifo_it = fifos_it->second.find(this->default_fifo_id);
 	}
 
-	if(!this->pushInFifo(fifos_it->second[fifo_priority], std::move(packet), time_ms_t{0}))
+	if(!this->pushInFifo(*(fifo_it->second), std::move(packet), time_ms_t::zero()))
 	{
 		// a problem occured, we got memory allocation error
 		// or fifo full and we won't empty fifo until next
@@ -1035,32 +1026,26 @@ void SpotDownward::updateStatistics()
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
 
-	for (auto &&label_fifos_pair: dvb_fifos)
+	for (auto &&[cat_label, fifos]: dvb_fifos)
 	{
-		const std::string cat_label = label_fifos_pair.first;
-		const fifos_t &fifos = label_fifos_pair.second;
-
-		for (auto &&qos_fifo_pair: fifos)
+		for (auto &&[qos_id, fifo]: fifos)
 		{
-			qos_t id = qos_fifo_pair.first;
-			DvbFifo *fifo = qos_fifo_pair.second;
-
 			fifo->getStatsCxt(fifo_stat);
 
 			this->l2_to_sat_total_bytes[cat_label] += fifo_stat.out_length_bytes;
 
-			this->probe_gw_l2_to_sat_before_sched[cat_label][id]->put(
+			this->probe_gw_l2_to_sat_before_sched[cat_label][qos_id]->put(
 			    time_ms_t(fifo_stat.in_length_bytes * 8) / this->stats_period_ms);
 
-			this->probe_gw_l2_to_sat_after_sched[cat_label][id]->put(
+			this->probe_gw_l2_to_sat_after_sched[cat_label][qos_id]->put(
 			    time_ms_t(fifo_stat.out_length_bytes * 8) / this->stats_period_ms);
 
 			// Mac fifo stats
-			this->probe_gw_queue_size[cat_label][id]->put(fifo_stat.current_pkt_nbr);
-			this->probe_gw_queue_size_kb[cat_label][id]->put(
+			this->probe_gw_queue_size[cat_label][qos_id]->put(fifo_stat.current_pkt_nbr);
+			this->probe_gw_queue_size_kb[cat_label][qos_id]->put(
 			    fifo_stat.current_length_bytes * 8 / 1000);
-			this->probe_gw_queue_loss[cat_label][id]->put(fifo_stat.drop_pkt_nbr);
-			this->probe_gw_queue_loss_kb[cat_label][id]->put(fifo_stat.drop_bytes * 8);
+			this->probe_gw_queue_loss[cat_label][qos_id]->put(fifo_stat.drop_pkt_nbr);
+			this->probe_gw_queue_loss_kb[cat_label][qos_id]->put(fifo_stat.drop_bytes * 8);
 		}
 		this->probe_gw_l2_to_sat_total[cat_label]->put(
 			time_ms_t(this->l2_to_sat_total_bytes[cat_label] * 8) / this->stats_period_ms);
@@ -1200,7 +1185,6 @@ bool SpotDownward::handleFwdFrameTimer(time_sf_t fwd_frame_counter)
 		Scheduling *scheduler = it.second;
 
 		if(!scheduler->schedule(this->fwd_frame_counter,
-		                        getCurrentTime(),
 		                        &this->complete_dvb_frames,
 		                        remaining_alloc_sym))
 		{
@@ -1358,15 +1342,14 @@ bool SpotDownward::addCniExt()
 	std::list<tal_id_t> list_st;
 
 	// Create list of first packet from FIFOs
-	for(auto&& dvb_fifos_it : this->dvb_fifos)
+	for(auto&& [label, fifos]: this->dvb_fifos)
 	{
-		for(auto&& fifos_it : dvb_fifos_it.second)
+		for(auto&& [qos, fifo] : fifos)
 		{
-			DvbFifo *fifo = fifos_it.second;
-			// for(auto&& elem : fifo->getQueue())
-			for(auto&& elem : *fifo)
+			for(auto elem_it = fifo->wbegin(); elem_it != fifo->wend(); ++elem_it)
 			{
-				Rt::Ptr<NetPacket> packet = elem->getElem<NetPacket>();
+				std::unique_ptr<FifoElement>& elem = *elem_it;
+				Rt::Ptr<NetPacket> packet = elem->releaseElem<NetPacket>();
 				tal_id_t tal_id = packet->getDstTalId();
 
 				auto it = std::find(this->is_tal_scpc.begin(), this->is_tal_scpc.end(), tal_id);
@@ -1388,7 +1371,7 @@ bool SpotDownward::addCniExt()
 
 					LOG(this->log_send_channel, LEVEL_DEBUG,
 					    "SF #%d: packet belongs to FIFO #%d\n",
-					    this->super_frame_counter, fifos_it.first);
+					    this->super_frame_counter, qos);
 				}
 				else
 				{
@@ -1445,9 +1428,7 @@ bool SpotDownward::addCniExt()
 				return false;
 			}
 
-			auto new_el = std::make_unique<FifoElement>(Rt::make_ptr<NetPacket>(nullptr),
-			                                            time_ms_t::zero(),
-			                                            time_ms_t::zero());
+			auto new_el = std::make_unique<FifoElement>(Rt::make_ptr<NetPacket>(nullptr));
 			// set packet extension to this new empty packet
 			if(!this->setPacketExtension(this->pkt_hdl,
 				                         *new_el,
@@ -1462,7 +1443,7 @@ bool SpotDownward::addCniExt()
 			}
 
 			// highest priority fifo
-			(fifos_it->second)[0]->pushBack(std::move(new_el));
+			(fifos_it->second)[0]->push(new_el->releaseElem<NetPacket>(), time_ms_t::zero());
 			LOG(this->log_send_channel, LEVEL_DEBUG,
 			    "SF #%d: adding empty packet into FIFO NM\n",
 			    this->super_frame_counter);

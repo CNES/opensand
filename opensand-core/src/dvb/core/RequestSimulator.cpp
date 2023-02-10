@@ -38,6 +38,7 @@
 #include <opensand_output/Output.h>
 
 #include "RequestSimulator.h"
+#include "DvbFifo.h"
 #include "OpenSandModelConf.h"
 #include "Except.h"
 
@@ -83,10 +84,9 @@ RequestSimulator::~RequestSimulator()
 	}
 	
 	// delete fifos
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for (auto &&[qos, fifo]: this->dvb_fifos)
 	{
-		delete (*it).second;
+		delete fifo;
 	}
 	this->dvb_fifos.clear();
 }

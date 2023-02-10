@@ -34,17 +34,18 @@
 #ifndef _DAMA_AGENT_H_
 #define _DAMA_AGENT_H_
 
+#include <list>
+
 #include "Ttp.h"
 #include "Sac.h"
-#include "DvbFifo.h"
+#include "DvbFifoTypes.h"
 #include "DvbFrame.h"
 #include "OpenSandCore.h"
 #include "EncapPlugin.h"
 #include "Logon.h"
 
-#include <opensand_output/Output.h>
-
-#include <list>
+class OutputLog;
+template<typename> class Probe;
 
 
 /**

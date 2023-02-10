@@ -5,7 +5,6 @@
  *
  *
  * Copyright © 2019 TAS
- * Copyright © 2019 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -27,29 +26,23 @@
  */
 
 /**
- * @file PhysicStd.cpp
- * @brief Generic Physical Transmission Standard
- * @author Didier Barvaux <didier.barvaux@toulouse.viveris.com>
+ * @file DvbFifoTypes.h
+ * @brief Helper types for DvbFifo class
+ * @author Mathias Ettinger / Viveris Technologies
  */
 
-
-#include "PhysicStd.h"
-
-
-PhysicStd::PhysicStd(std::string type,
-                     EncapPlugin::EncapPacketHandler *pkt_hdl):
-	type(type),
-	packet_handler(pkt_hdl)
-{
-}
+#ifndef DVD_FIFO_TYPES_H
+#define DVD_FIFO_TYPES_H
 
 
-PhysicStd::~PhysicStd()
-{
-}
+#include <map>
+#include "OpenSandCore.h"
 
 
-std::string PhysicStd::getType()
-{
-	return this->type;
-}
+class DvbFifo;
+
+
+using fifos_t = std::map<qos_t, DvbFifo *>;
+
+
+#endif

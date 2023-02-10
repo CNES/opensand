@@ -168,7 +168,7 @@ protected:
 	 *                      FIFO (used on SAT to emulate delay)
 	 * @return              true on success, false otherwise
 	 */
-	bool pushInFifo(DvbFifo *fifo,
+	bool pushInFifo(DvbFifo &fifo,
 	                Rt::Ptr<NetContainer> data,
 	                time_ms_t fifo_delay);
 

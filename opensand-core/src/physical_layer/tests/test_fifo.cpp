@@ -46,6 +46,7 @@
 #include <signal.h>
 #include <sched.h>
 #include <unistd.h>
+#include <thread>
 
 
 time_ms_t elem_times[5] = {time_ms_t(0), time_ms_t(10), time_ms_t(20), time_ms_t(30), time_ms_t(40)};
@@ -54,27 +55,32 @@ time_ms_t elem_times[5] = {time_ms_t(0), time_ms_t(10), time_ms_t(20), time_ms_t
 int main()
 {
 	int is_failure = 1;
-	time_ms_t current_time;
-	DelayFifo *fifo = new DelayFifo(1000);
+	DelayFifo fifo{1000};
 
 	// Add elements to fifo
-	current_time = getCurrentTime();
-
-	for(unsigned int i=0; i < sizeof(elem_times); i++)
+	time_ms_t max_time = time_ms_t::zero();
+	for (auto &&duration: elem_times)
 	{
-		fifo->push(std::make_unique<FifoElement>(Rt::make_ptr<NetContainer>(nullptr),
-		                                         current_time,
-		                                         current_time + elem_times[i]));
+		if (duration > max_time)
+		{
+			max_time = duration;
+		}
+		fifo.push(Rt::make_ptr<NetContainer>(nullptr), duration);
+	}
+
+	std::this_thread::sleep_for(max_time);
+
+	std::size_t remaining = sizeof(elem_times);
+	for (auto &&elem: fifo)
+	{
+		--remaining;
 	}
 
 	// everything went fine, so report success
-	is_failure = 0;
-
-	while(fifo->getCurrentSize() > 0)
+	if (!remaining)
 	{
-		fifo->pop();
+		is_failure = 0;
 	}
 
-	delete fifo;
 	return is_failure;
 }

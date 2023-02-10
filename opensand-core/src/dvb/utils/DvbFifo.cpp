@@ -40,12 +40,76 @@
 #include <opensand_output/Output.h>
 
 #include "DvbFifo.h"
+#include "FifoElement.h"
+
+
+ForwardOrReturnAccessType::ForwardOrReturnAccessType():
+	direction{ForwardOrReturnAccessType::Direction::Unknown}
+{
+}
+
+
+ForwardOrReturnAccessType::ForwardOrReturnAccessType(ReturnAccessType access_type):
+	direction{ForwardOrReturnAccessType::Direction::Return},
+	return_access_type{access_type}
+{
+}
+
+
+ForwardOrReturnAccessType::ForwardOrReturnAccessType(ForwardAccessType access_type):
+	direction{ForwardOrReturnAccessType::Direction::Forward},
+	forward_access_type{access_type}
+{
+}
+
+
+bool ForwardOrReturnAccessType::IsForwardAccess() const
+{
+	return direction == ForwardOrReturnAccessType::Direction::Forward;
+}
+
+
+bool ForwardOrReturnAccessType::IsReturnAccess() const
+{
+	return direction == ForwardOrReturnAccessType::Direction::Return;
+}
+
+
+bool ForwardOrReturnAccessType::operator == (const ForwardOrReturnAccessType& other) const
+{
+	switch (direction)
+	{
+		case Direction::Forward:
+			return other.direction == Direction::Forward && this->forward_access_type == other.forward_access_type;
+		case Direction::Return:
+			return other.direction == Direction::Return && this->return_access_type == other.return_access_type;
+
+		default:
+			return false;
+	}
+}
+
+
+bool ForwardOrReturnAccessType::operator != (const ForwardOrReturnAccessType& other) const
+{
+	switch (direction)
+	{
+		case Direction::Forward:
+			return other.direction != Direction::Forward || this->forward_access_type != other.forward_access_type;
+
+		case Direction::Return:
+			return other.direction != Direction::Return || this->return_access_type != other.return_access_type;
+
+		default:
+			return true;
+	}
+}
 
 
 DvbFifo::DvbFifo(unsigned int fifo_priority, std::string fifo_name,
                  std::string type_name,
                  vol_pkt_t max_size_pkt):
-	queue(),
+	DelayFifo(max_size_pkt),
 	fifo_priority(fifo_priority),
 	fifo_name(fifo_name),
 	access_type(),
@@ -53,9 +117,7 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, std::string fifo_name,
 	new_size_pkt(0),
 	cur_length_bytes(0),
 	new_length_bytes(0),
-	max_size_pkt(max_size_pkt),
 	carrier_id(0),
-	fifo_mutex(),
 	cni(0)
 {
 	// Output log
@@ -101,16 +163,14 @@ DvbFifo::DvbFifo(unsigned int fifo_priority, std::string fifo_name,
 DvbFifo::DvbFifo(uint8_t carrier_id,
                  vol_pkt_t max_size_pkt,
                  std::string fifo_name):
-	queue(),
+	DelayFifo(max_size_pkt),
 	fifo_priority(0),
 	fifo_name(fifo_name),
 	access_type(),
 	new_size_pkt(0),
 	cur_length_bytes(0),
 	new_length_bytes(0),
-	max_size_pkt(max_size_pkt),
-	carrier_id(carrier_id),
-	fifo_mutex()
+	carrier_id(carrier_id)
 {
 	// Output log
 	this->log_dvb_fifo = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Fifo");
@@ -118,14 +178,6 @@ DvbFifo::DvbFifo(uint8_t carrier_id,
 	memset(&this->stat_context, '\0', sizeof(mac_fifo_stat_context_t));
 }
 
-
-/**
- * Destructor
- */
-DvbFifo::~DvbFifo()
-{
-	this->flush();
-}
 
 std::string DvbFifo::getName() const
 {
@@ -177,32 +229,10 @@ void DvbFifo::resetNew(const ForwardOrReturnAccessType cr_type)
 	}
 }
 
-vol_pkt_t DvbFifo::getCurrentSize() const
-{
-	Rt::Lock lock(this->fifo_mutex);
-	return this->queue.size();
-}
-
 vol_bytes_t DvbFifo::getCurrentDataLength() const
 {
 	Rt::Lock lock(this->fifo_mutex);
 	return this->cur_length_bytes;
-}
-
-vol_pkt_t DvbFifo::getMaxSize() const
-{
-	Rt::Lock lock(this->fifo_mutex);
-	return this->max_size_pkt;
-}
-
-time_ms_t DvbFifo::getTickOut() const
-{
-	Rt::Lock lock(this->fifo_mutex);
-	if(queue.size() > 0)
-	{
-		return this->queue.front()->getTickOut();
-	}
-	return time_ms_t::zero();
 }
 
 void DvbFifo::setCni(uint8_t cni)
@@ -215,38 +245,18 @@ uint8_t DvbFifo::getCni(void) const
 	return this->cni;
 }
 
-/*
-const std::deque<FifoElement *> &DvbFifo::getQueue() const
+bool DvbFifo::push(Rt::Ptr<NetContainer> elem, time_ms_t duration)
 {
-	return this->queue;
-}
-*/
-std::deque<std::unique_ptr<FifoElement>>::const_iterator DvbFifo::begin() const
-{
-	return this->queue.begin();
-}
-
-
-std::deque<std::unique_ptr<FifoElement>>::const_iterator DvbFifo::end() const
-{
-	return this->queue.end();
-}
-
-
-bool DvbFifo::push(std::unique_ptr<FifoElement> elem)
-{
-	Rt::Lock lock(this->fifo_mutex);
 	vol_bytes_t length = elem->getTotalLength();
 
-	if(this->queue.size() >= this->max_size_pkt)
+	Rt::Lock lock(this->fifo_mutex);
+	if (!this->DelayFifo::push(std::move(elem), duration))
 	{
 		this->stat_context.drop_pkt_nbr++;
 		this->stat_context.drop_bytes += length;
 		return false;
 	}
 
-	// insert in top of fifo
-	this->queue.push_back(std::move(elem));
 	// update counter
 	this->new_size_pkt++;
 	this->stat_context.current_pkt_nbr = this->queue.size();
@@ -257,63 +267,10 @@ bool DvbFifo::push(std::unique_ptr<FifoElement> elem)
 	this->stat_context.in_length_bytes += length;
 
 	LOG(this->log_dvb_fifo, LEVEL_INFO,
-		    "Added %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
+	    "Added %u bytes, new size is %u bytes\n",
+	    length, this->cur_length_bytes);
 
 	return true;
-}
-
-bool DvbFifo::pushFront(std::unique_ptr<FifoElement> elem)
-{
-	Rt::Lock lock(this->fifo_mutex);
-
-	// insert in head of fifo
-	if(this->queue.size() < this->max_size_pkt)
-	{
-		vol_bytes_t length = elem->getTotalLength();
-
-		this->queue.push_front(std::move(elem));
-		this->cur_length_bytes += length;
-		// update counter but not new ones as it is a fragment of an old element
-		this->stat_context.current_pkt_nbr = this->queue.size();
-		this->stat_context.current_length_bytes += length;
-		// remove the remainng part of element from out counter
-		this->stat_context.out_length_bytes -= length;
-
-		LOG(this->log_dvb_fifo, LEVEL_INFO,
-			    "Added %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
-
-		return true;
-	}
-
-	return false;
-
-}
-
-bool DvbFifo::pushBack(std::unique_ptr<FifoElement> elem)
-{
-	Rt::Lock lock(this->fifo_mutex);
-
-	// insert in head of fifo
-	if(this->queue.size() < this->max_size_pkt)
-	{
-		vol_bytes_t length = elem->getTotalLength();
-
-		this->queue.insert(this->queue.end(), std::move(elem));
-		this->cur_length_bytes += length;
-		// update counter but not new ones as it is a fragment of an old element
-		this->stat_context.current_pkt_nbr = this->queue.size();
-		this->stat_context.current_length_bytes += length;
-		// remove the remainng part of element from out counter
-		this->stat_context.out_length_bytes -= length;
-
-		LOG(this->log_dvb_fifo, LEVEL_INFO,
-			    "Added %u bytes, new size is %u bytes\n", length, this->cur_length_bytes);
-
-		return true;
-	}
-
-	return false;
-
 }
 
 
@@ -321,32 +278,31 @@ std::unique_ptr<FifoElement> DvbFifo::pop()
 {
 	Rt::Lock lock(this->fifo_mutex);
 
-	if(this->queue.size() <= 0)
+	auto elem = this->queue.begin();
+	if (elem != this->queue.end())
 	{
-		return {nullptr};
+		std::unique_ptr<FifoElement> result = std::move(elem->second);
+		vol_bytes_t length = result->getTotalLength();
+	
+		// remove the packet
+		this->queue.erase(elem);
+		this->cur_length_bytes -= length;
+	
+		// update counters
+		this->stat_context.current_pkt_nbr = this->queue.size();
+		this->stat_context.out_pkt_nbr++;
+	
+		this->stat_context.current_length_bytes -= length;
+		this->stat_context.out_length_bytes += length;
+	
+		LOG(this->log_dvb_fifo, LEVEL_INFO,
+		    "Removed %u bytes, new size is %u bytes\n",
+		    length, this->cur_length_bytes);
+
+		return result;
 	}
 
-	auto first = this->queue.begin();
-
-	std::unique_ptr<FifoElement> elem = std::move(*first);
-	vol_bytes_t length = elem->getTotalLength();
-
-	// remove the packet
-	this->queue.erase(first);
-	this->cur_length_bytes -= length;
-
-	// update counters
-	this->stat_context.current_pkt_nbr = this->queue.size();
-	this->stat_context.out_pkt_nbr++;
-
-	this->stat_context.current_length_bytes -= length;
-	this->stat_context.out_length_bytes += length;
-
-	LOG(this->log_dvb_fifo, LEVEL_INFO,
-	    "Removed %u bytes, new size is %u bytes\n",
-	    length, this->cur_length_bytes);
-
-	return elem;
+	return {nullptr};
 }
 
 
@@ -364,6 +320,8 @@ void DvbFifo::flush()
 void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 {
 	Rt::Lock lock(this->fifo_mutex);
+	stat_info = this->stat_context;
+	/*
 	stat_info.current_pkt_nbr = this->stat_context.current_pkt_nbr;
 	stat_info.current_length_bytes = this->stat_context.current_length_bytes;
 	stat_info.in_pkt_nbr = this->stat_context.in_pkt_nbr;
@@ -372,6 +330,7 @@ void DvbFifo::getStatsCxt(mac_fifo_stat_context_t &stat_info)
 	stat_info.out_length_bytes = this->stat_context.out_length_bytes;
 	stat_info.drop_pkt_nbr = this->stat_context.drop_pkt_nbr;
 	stat_info.drop_bytes = this->stat_context.drop_bytes;
+	*/
 
 	// reset counters
 	this->resetStats();

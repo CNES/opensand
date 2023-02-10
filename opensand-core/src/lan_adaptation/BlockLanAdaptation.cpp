@@ -314,12 +314,9 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const TimerEvent& event)
 {
 	if(delay != time_ms_t::zero() && event == delay_timer)
 	{
-		time_ms_t current_time = getCurrentTime();
-
-		while (delay_fifo.getCurrentSize() > 0 && delay_fifo.getTickOut() <= current_time)
+		for (auto &&elem: delay_fifo)
 		{
-			std::unique_ptr<FifoElement> elem = delay_fifo.pop();
-			auto packet = elem->getElem<NetPacket>();
+			auto packet = elem->releaseElem<NetPacket>();
 			if (!this->writePacket(packet->getData()))
 			{
 				return false;
@@ -418,7 +415,6 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 	}
 
 	bool success = true;
-	time_ms_t current_time = getCurrentTime();
 	auto burst_it = burst->begin();
 	Ptr<NetBurst> forward_burst = make_ptr<NetBurst>(nullptr);
 	while(burst_it != burst->end())
@@ -429,13 +425,13 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 		bool forward = false;
 
 		LOG(this->log_receive, LEVEL_INFO,
-				"packet from lower layer has terminal ID %u\n",
-				pkt_tal_id_dst);
+		    "packet from lower layer has terminal ID %u\n",
+		    pkt_tal_id_dst);
 		if(pkt_tal_id_src == this->tal_id)
 		{
 			// with broadcast, we would receive our own packets
 			LOG(this->log_receive, LEVEL_INFO,
-					"reject packet with own terminal ID\n");
+			    "reject packet with own terminal ID\n");
 			++burst_it;
 			continue;
 		}
@@ -443,17 +439,17 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 		if(packet_switch->learn(packet, pkt_tal_id_src))
 		{
 			LOG(this->log_receive, LEVEL_INFO,
-					"The mac address %s learned from lower layer as "
-					"associated to tal_id %u\n",
-					Ethernet::getSrcMac(packet).str().c_str(),
-					pkt_tal_id_src);
+			    "The mac address %s learned from lower layer as "
+			    "associated to tal_id %u\n",
+			    Ethernet::getSrcMac(packet).str().c_str(),
+			    pkt_tal_id_src);
 		}
 
 		if(packet_switch->isPacketForMe(packet, pkt_tal_id_src, forward))
 		{
 			LOG(this->log_receive, LEVEL_INFO,
-					"%s packet received from lower layer & should be read\n",
-					(*burst_it)->getName().c_str());
+			    "%s packet received from lower layer & should be read\n",
+			    (*burst_it)->getName().c_str());
 
 			unsigned char head[TUNTAP_FLAGS_LEN];
 			for(unsigned int i = 0; i < TUNTAP_FLAGS_LEN; i++)
@@ -461,8 +457,8 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 				// add the protocol flag in the header
 				head[i] = (this->contexts.front())->getLanHeader(i, *burst_it);
 				LOG(this->log_receive, LEVEL_DEBUG,
-						"Add 0x%2x for bit %u in TAP header\n",
-						head[i], i);
+				    "Add 0x%2x for bit %u in TAP header\n",
+				    head[i], i);
 			}
 
 			packet.insert(0, head, TUNTAP_FLAGS_LEN);
@@ -477,10 +473,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 			}
 			else
 			{
-				std::unique_ptr<FifoElement> elem = std::make_unique<FifoElement>(make_ptr<NetPacket>(packet),
-				                                                                  current_time,
-				                                                                  current_time + delay);
-				if (!delay_fifo.pushBack(std::move(elem)))
+				if (!delay_fifo.push(make_ptr<NetPacket>(packet), delay))
 				{
 					LOG(this->log_receive, LEVEL_ERROR, "failed to push the message in the fifo\n");
 					success = false;

@@ -118,8 +118,6 @@ bool InterconnectChannelSender::sendBuffer(bool is_sig, const interconnect_msg_b
  */
 bool InterconnectChannelSender::send(Rt::Message message)
 {
-	time_ms_t current_time = getCurrentTime();
-
 	interconnect_msg_buffer_t msg_buffer;
 	uint32_t len;
 
@@ -152,9 +150,8 @@ bool InterconnectChannelSender::send(Rt::Message message)
 	// construct a NetContainer to store it in a FifoElement
 	auto buf = reinterpret_cast<const uint8_t *>(&msg_buffer);
 	Rt::Ptr<NetContainer> container = Rt::make_ptr<NetContainer>(buf, msg_buffer.data_len);
-	auto elem = std::make_unique<FifoElement>(std::move(container), current_time, current_time + delay);
 
-	if (!delay_fifo.pushBack(std::move(elem))) {
+	if (!delay_fifo.push(std::move(container), delay)) {
 		LOG(this->log_interconnect, LEVEL_ERROR, "failed to push the message in the fifo\n");
 		return false;
 	}
@@ -171,18 +168,15 @@ bool InterconnectChannelSender::send(Rt::Message message)
 
 bool InterconnectChannelSender::onTimerEvent()
 {
-	time_ms_t current_time = getCurrentTime();
-
-	while (delay_fifo.getCurrentSize() > 0 && delay_fifo.getTickOut() <= current_time)
+	for (auto &&elem: delay_fifo)
 	{
-		std::unique_ptr<FifoElement> elem = delay_fifo.pop();
 		if (!elem)
 		{
 			LOG(this->log_interconnect, LEVEL_ERROR, "message to send is NULL\n");
 			return false;
 		}
 
-		auto container = elem->getElem<NetContainer>();
+		auto container = elem->releaseElem<NetContainer>();
 		auto msg = reinterpret_cast<const interconnect_msg_buffer_t *>(container->getRawData());
 		bool is_sig = to_enum<InternalMessageType>(msg->msg_type) == InternalMessageType::sig;
 		if (!sendBuffer(is_sig, *msg))
@@ -191,6 +185,7 @@ bool InterconnectChannelSender::onTimerEvent()
 			return false;
 		}
 	}
+
 	return true;
 }
 

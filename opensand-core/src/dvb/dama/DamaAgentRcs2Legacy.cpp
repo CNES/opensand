@@ -34,12 +34,12 @@
  */
 
 
-#include "DamaAgentRcs2Legacy.h"
+#include <algorithm>
+#include <cmath>
 
 #include <opensand_output/Output.h>
 
-#include <algorithm>
-#include <cmath>
+#include "DamaAgentRcs2Legacy.h"
 
 
 DamaAgentRcs2Legacy::DamaAgentRcs2Legacy(FmtDefinitionTable *ret_modcod_def):

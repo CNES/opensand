@@ -79,8 +79,6 @@ void BlockPhysicalLayer::generateConfiguration()
 
 bool BlockPhysicalLayer::onInit()
 {
-	uint8_t id;
-
 	std::string satdelay_name;
 	auto delay = OpenSandModelConf::Get()->getProfileData()->getComponent("physical_layer")->getComponent("delay");
 	if(!OpenSandModelConf::extractParameterData(delay->getParameter("delay_type"), satdelay_name))
@@ -99,19 +97,19 @@ bool BlockPhysicalLayer::onInit()
 		return false;
 	}
 	// Check if the plugin was found
-	if(this->satdelay == NULL)
+	if(this->satdelay == nullptr)
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "Satellite delay plugin conf was not found for"
-		    " terminal %s", this->mac_id);
+		    "Satellite delay plugin conf was not found for terminal %u",
+		    this->mac_id);
 		return false;
 	}
 	// init plugin
 	if(!this->satdelay->init())
 	{
 		LOG(this->log_init, LEVEL_ERROR,
-		    "cannot initialize sat delay plugin '%s'"
-		    " for terminal id %u ", satdelay_name.c_str(), id);
+		    "cannot initialize sat delay plugin '%s' for terminal id %u",
+		    satdelay_name, this->mac_id);
 		return false;
 	}
 

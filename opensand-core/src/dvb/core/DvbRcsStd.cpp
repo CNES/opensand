@@ -37,6 +37,7 @@
 #include <opensand_output/Output.h>
 
 #include "DvbRcsStd.h"
+#include "NetBurst.h"
 
 
 DvbRcsStd::DvbRcsStd(EncapPlugin::EncapPacketHandler *pkt_hdl):

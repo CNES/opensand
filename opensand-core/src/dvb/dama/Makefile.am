@@ -2,6 +2,7 @@ lib_LTLIBRARIES = libopensand_dama.la
 
 libopensand_dama_la_cpp = \
 	CircularBuffer.cpp \
+	Scheduling.cpp \
 	ReturnSchedulingRcs2.cpp \
 	ForwardSchedulingS2.cpp \
 	ScpcScheduling.cpp \

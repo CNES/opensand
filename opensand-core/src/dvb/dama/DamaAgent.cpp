@@ -33,12 +33,13 @@
  */
 
 
-#include "DamaAgent.h"
+#include <opensand_output/Output.h>
 
+#include "DamaAgent.h"
+#include "DvbFifo.h"
 #include "OpenSandFrames.h"
 #include "OpenSandModelConf.h"
 
-#include <opensand_output/Output.h>
 
 DamaAgent::DamaAgent():
 	is_parent_init(false),
@@ -83,9 +84,9 @@ bool DamaAgent::initParent(time_us_t frame_duration,
 	this->dvb_fifos = dvb_fifos;
 
 	// Check if RBDC or VBDC CR are activated
-	for(auto&& it: this->dvb_fifos)
+	for(auto&& [qos, fifo]: this->dvb_fifos)
 	{
-		auto cr_type = it.second->getAccessType();
+		auto cr_type = fifo->getAccessType();
 		if (!cr_type.IsReturnAccess())
 		{
 			LOG(this->log_init, LEVEL_ERROR,
@@ -107,7 +108,7 @@ bool DamaAgent::initParent(time_us_t frame_duration,
 			default:
 				LOG(this->log_init, LEVEL_ERROR,
 				    "Unknown CR type for FIFO %s: %d\n",
-				    it.second->getName().c_str(), cr_type);
+				    fifo->getName().c_str(), cr_type);
 				return false;
 		}
 	}

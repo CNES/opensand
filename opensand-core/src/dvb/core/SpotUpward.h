@@ -178,10 +178,10 @@ class SpotUpward: public DvbChannel, public DvbFmt
 		bool checkIfScpc();
 
 		/// Spot Id
-		uint8_t spot_id;
+		spot_id_t spot_id;
 
 		/// Gw tal id
-		uint8_t mac_id;
+		tal_id_t mac_id;
 
 		/// The Slotted Aloha for NCC
 		SlottedAlohaNcc *saloha;

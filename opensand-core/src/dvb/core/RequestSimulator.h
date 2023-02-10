@@ -40,7 +40,7 @@
 
 #include "OpenSandCore.h"
 #include "DvbFrame.h"
-#include "DvbFifo.h"
+#include "DvbFifoTypes.h"
 
 
 constexpr const std::size_t SIMU_BUFF_LEN = 255;

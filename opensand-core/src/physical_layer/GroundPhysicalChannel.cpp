@@ -254,25 +254,11 @@ double GroundPhysicalChannel::computeTotalCn(double up_cn) const
 
 bool GroundPhysicalChannel::pushPacket(Rt::Ptr<NetContainer> pkt)
 {
-	std::unique_ptr<FifoElement> elem;
-	std::string pkt_name = pkt->getName();
-	time_ms_t current_time = getCurrentTime();
-	time_ms_t delay = this->satdelay_model->getSatDelay();
-
-	// create a new FIFO element to store the packet
-	try
-	{
-		elem = std::make_unique<FifoElement>(std::move(pkt), current_time, current_time + delay);
-	}
-	catch (const std::bad_alloc&)
-	{
-		LOG(this->log_channel, LEVEL_ERROR,
-		    "Cannot allocate FIFO element, drop data");
-		return false;
-	}
+	std::string pkt_name = pkt->getName(); 
+	auto delay = this->satdelay_model->getSatDelay();
 
 	// append the data in the fifo
-	if(!this->delay_fifo.push(std::move(elem)))
+	if(!this->delay_fifo.push(std::move(pkt), delay))
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "FIFO is full: drop data");
@@ -280,28 +266,20 @@ bool GroundPhysicalChannel::pushPacket(Rt::Ptr<NetContainer> pkt)
 	}
 
 	LOG(this->log_channel, LEVEL_NOTICE,
-	    "%s data stored in FIFO (tick_in = %ld, tick_out = %ld, delay = %u ms)",
-	    pkt_name.c_str(),
-	    current_time,
-		current_time + delay,
-	    delay);
+	    "%s data stored in FIFO (delay = %f ms)",
+	    pkt_name, delay);
 	return true;
 }
 
 bool GroundPhysicalChannel::forwardReadyPackets()
 {
-	time_ms_t current_time = getCurrentTime();
-
 	LOG(this->log_channel, LEVEL_DEBUG,
 		"Forward ready packets");
 
-	while (this->delay_fifo.getCurrentSize() > 0 && this->delay_fifo.getTickOut() <= current_time)
+	for (auto &&elem: delay_fifo)
 	{
-		std::unique_ptr<FifoElement> elem = this->delay_fifo.pop();
 		ASSERT(elem != nullptr, "Null element in fifo retrieved from GroundPhysicalChannel::forwardReadyPackets");
-
-		Rt::Ptr<DvbFrame> pkt = elem->getElem<DvbFrame>();
-		this->forwardPacket(std::move(pkt));
+		this->forwardPacket(elem->releaseElem<DvbFrame>());
 	}
 	return true;
 }

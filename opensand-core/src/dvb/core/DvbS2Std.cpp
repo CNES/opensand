@@ -39,6 +39,7 @@
 #include <opensand_output/Output.h>
 
 #include "DvbS2Std.h"
+#include "NetBurst.h"
 #include "OpenSandModelConf.h"
 
 

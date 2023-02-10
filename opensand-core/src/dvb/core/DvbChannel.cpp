@@ -40,6 +40,7 @@
 
 #include "DvbChannel.h"
 
+#include "DvbFifo.h"
 #include "Plugin.h"
 #include "DvbS2Std.h"
 #include "PhysicStd.h"
@@ -253,29 +254,14 @@ void DvbChannel::initStatsTimer(time_us_t frame_duration)
 }
 
 
-bool DvbChannel::pushInFifo(DvbFifo *fifo,
+bool DvbChannel::pushInFifo(DvbFifo &fifo,
                             Rt::Ptr<NetContainer> data,
                             time_ms_t fifo_delay)
 {
-	std::unique_ptr<FifoElement> elem{};
-	time_ms_t current_time = getCurrentTime();
 	std::string data_name = data->getName();
 
-	// create a new FIFO element to store the packet
-	try
-	{
-		elem = std::make_unique<FifoElement>(std::move(data), current_time, current_time + fifo_delay);
-	}
-	catch (const std::bad_alloc&)
-	{
-		LOG(DvbChannel::dvb_fifo_log, LEVEL_ERROR,
-		    "cannot allocate FIFO element, drop data\n");
-		return false;
-	}
-
 	// append the data in the fifo
-	auto tick_out = elem->getTickOut();
-	if(!fifo->push(std::move(elem)))
+	if(!fifo.push(std::move(data), fifo_delay))
 	{
 		LOG(DvbChannel::dvb_fifo_log, LEVEL_ERROR,
 		    "FIFO is full: drop data\n");
@@ -283,9 +269,8 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 	}
 
 	LOG(DvbChannel::dvb_fifo_log, LEVEL_NOTICE,
-	    "%s data stored in FIFO %s (tick_in = %lums, tick_out = %lums)\n",
-	    data_name.c_str(), fifo->getName().c_str(),
-		current_time.count(), tick_out.count());
+	    "%s data stored in FIFO %s (delay = %ums)\n",
+	    data_name, fifo.getName(), fifo_delay.count());
 
 	return true;
 }

@@ -37,15 +37,14 @@
 #ifndef PHYSIC_STD_H
 #define PHYSIC_STD_H
 
-#include <fstream>
-#include <queue>
 
-#include "DvbFifo.h"
-#include "NetBurst.h"
-#include "NetPacket.h"
+#include <opensand_rt/Ptr.h>
+
 #include "EncapPlugin.h"
 #include "DvbFrame.h"
-#include "OpenSandFrames.h"
+
+
+class NetBurst;
 
 
 /**

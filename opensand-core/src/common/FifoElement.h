@@ -37,7 +37,6 @@
 
 #include <opensand_rt/Ptr.h>
 
-#include "OpenSandCore.h"
 #include "Except.h"
 
 
@@ -54,32 +53,19 @@ protected:
 	/// The element stored in the FIFO
 	Rt::Ptr<NetContainer> elem;
 
-	/// The arrival time of packet in FIFO (in ms)
-	time_ms_t tick_in;
-	/// The minimal time the packet will output the FIFO (in ms)
-	time_ms_t tick_out;
-
 public:
 	/**
 	 * Build a fifo element
 	 * @param elem       The element to store in the FIFO
-	 * @param tick_in    The arrival time of element in FIFO (in ms)
-	 * @param tick_out   The minimal time the element will output the FIFO (in ms)
 	 */
-	FifoElement(Rt::Ptr<NetContainer> elem,
-	            time_ms_t tick_in, time_ms_t tick_out);
-
-	/**
-	 * Destroy the fifo element
-	 */
-	~FifoElement();
+	FifoElement(Rt::Ptr<NetContainer> elem);
 
 	/**
 	 * Get the FIFO elelement
 	 * @return The FIFO element
 	 */
 	template<class T = NetContainer>
-	Rt::Ptr<T> getElem();
+	Rt::Ptr<T> releaseElem();
 
 	/**
 	 * Set the FIFO element
@@ -95,21 +81,15 @@ public:
 	std::size_t getTotalLength() const;
 
 	/**
-	 * Get the arrival time of packet in FIFO (in ms)
-	 * @return The arrival time of packet in FIFO
+	 * Check whether the fifo element actually contains an element
+	 * @return true if elem != nullptr false otherwise
 	 */
-	time_ms_t getTickIn() const;
-
-	/**
-	 * Get the minimal time the packet will output the FIFO (in ms)
-	 * @return The minimal time the packet will output the FIFO
-	 */
-	time_ms_t getTickOut() const;
+	explicit operator bool() const noexcept;
 };
 
 
 template<class T>
-Rt::Ptr<T> FifoElement::getElem()
+Rt::Ptr<T> FifoElement::releaseElem()
 {
 	if (!elem)
 	{
@@ -117,13 +97,14 @@ Rt::Ptr<T> FifoElement::getElem()
 	}
 
 	T* cast_elem = static_cast<T*>(elem.release());
-	ASSERT(cast_elem != nullptr, "Casting FifoElement data failed in getElem");
+	// Can't see how this could fail...
+	ASSERT(cast_elem != nullptr, "Casting FifoElement data failed in releaseElem");
 	return {cast_elem, std::move(elem.get_deleter())};
 }
 
 
 template<>
-Rt::Ptr<NetContainer> FifoElement::getElem();
+Rt::Ptr<NetContainer> FifoElement::releaseElem();
 
 
 #endif

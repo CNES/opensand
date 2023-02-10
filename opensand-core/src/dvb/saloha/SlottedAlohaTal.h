@@ -42,7 +42,7 @@
 #include "SlottedAlohaFrame.h"
 #include "SlottedAlohaAlgo.h"
 #include "TerminalCategorySaloha.h"
-#include "DvbFifo.h"
+#include "DvbFifoTypes.h"
 #include "DvbFrame.h"
 #include "NetBurst.h"
 #include "PhysicalLayerPlugin.h"

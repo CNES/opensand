@@ -301,14 +301,14 @@ PepRequest * NccPepInterface::parsePepCommand(const Rt::Data& cmd)
 	good = good && stream.good() && c == ':';
 
 	unsigned int rbdc_max;  // the RBDCmax value
-	stream >> rbdc;
+	stream >> rbdc_max;
 	good = good && stream.good();
 
 	if(!good)
 	{
 		LOG(this->log_ncc_interface, LEVEL_ERROR,
 		    "bad formated PEP command received: '%s'\n", cmd);
-		return NULL;
+		return nullptr;
 	}
 	else
 	{
@@ -323,7 +323,7 @@ PepRequest * NccPepInterface::parsePepCommand(const Rt::Data& cmd)
 		    "bad request type in PEP command '%s', "
 		    "should be %u or %u\n", cmd,
 		    PEP_REQUEST_ALLOCATION, PEP_REQUEST_RELEASE);
-		return NULL;
+		return nullptr;
 	}
 
 	LOG(this->log_ncc_interface, LEVEL_INFO,

@@ -104,9 +104,9 @@ void SlottedAlohaNcc::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaPa
 	saloha->addParameter("saloha_algo", "Slotted Aloha Algorithm", types->getType("saloha_algo"));
 	auto simu_list = conf->addList("simulations", "Simulated traffic", "simulation")->getPattern();
 	simu_list->addParameter("category", "Category", types->getType("traffic_type"));
-	simu_list->addParameter("max_packets", "Max Packets", types->getType("int"))->setUnit("packets");
-	simu_list->addParameter("replicas", "Replicas", types->getType("int"))->setUnit("packets");
-	simu_list->addParameter("ratio", "Ratio", types->getType("int"));
+	simu_list->addParameter("max_packets", "Max Packets", types->getType("ushort"))->setUnit("packets");
+	simu_list->addParameter("replicas", "Replicas", types->getType("ushort"))->setUnit("packets");
+	simu_list->addParameter("ratio", "Ratio", types->getType("ubyte"));
 }
 
 bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categories,
@@ -205,32 +205,29 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 			return false;
 		}
 
-		int max_packets;
-		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("max_packets"), max_packets))
+		uint16_t nb_max_packets;
+		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("max_packets"), nb_max_packets))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get max packets from section 'access, simulated traffic'\n");
 			return false;
 		}
-		uint16_t nb_max_packets = max_packets;
 
-		int replicas;
-		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("replicas"), replicas))
+		uint16_t nb_replicas;
+		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("replicas"), nb_replicas))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get replicas count from section 'access, simulated traffic'\n");
 			return false;
 		}
-		uint16_t nb_replicas = replicas;
 
-		int raw_ratio;
-		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("ratio"), raw_ratio))
+		uint8_t ratio;
+		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("ratio"), ratio))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get ratio from section 'access, simulated traffic'\n");
 			return false;
 		}
-		uint8_t ratio = raw_ratio;
 
 		// FIXME: as in manager we need at least one element in a table
 		//        to add a new line, we will have at least one line here.

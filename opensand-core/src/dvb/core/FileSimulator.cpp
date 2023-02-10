@@ -42,6 +42,7 @@
 #include "Sac.h"
 #include "Logon.h"
 #include "Logoff.h"
+#include "DvbFifo.h"
 
 
 FileSimulator::FileSimulator(spot_id_t spot_id,

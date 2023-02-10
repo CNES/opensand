@@ -40,8 +40,9 @@
 #include <list>
 #include <opensand_rt/Types.h>
 
-#include "DvbFifo.h"
+#include "OpenSandCore.h"
 #include "DvbChannel.h"
+#include "DvbFifoTypes.h"
 #include "RequestSimulator.h"
 #include "TerminalCategoryDama.h"
 

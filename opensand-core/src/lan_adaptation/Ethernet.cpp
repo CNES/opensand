@@ -74,11 +74,11 @@ void Ethernet::generateConfiguration()
 
 	auto evcs = conf->addList("virtual_connections", "Virtual Connections", "virtual_connection")->getPattern();
 	evcs->setAdvanced(true);
-	evcs->addParameter("id", "Connection ID", types->getType("int"));
+	evcs->addParameter("id", "Connection ID", types->getType("ubyte"));
 	evcs->addParameter("mac_src", "Source MAC Address", types->getType("string"));
 	evcs->addParameter("mac_dst", "Destination MAC Address", types->getType("string"));
-	evcs->addParameter("tci_802_1q", "TCI of the 802.1q tag", types->getType("int"));
-	evcs->addParameter("tci_802_1ad", "TCI of the 802.1ad tag", types->getType("int"));
+	evcs->addParameter("tci_802_1q", "TCI of the 802.1q tag", types->getType("ushort"));
+	evcs->addParameter("tci_802_1ad", "TCI of the 802.1ad tag", types->getType("ushort"));
 	evcs->addParameter("protocol", "Inner Payload Type", types->getType("string"), "2 Bytes Hexadecimal value");
 
 	auto settings = conf->addComponent("qos_settings", "QoS Settings");
@@ -268,14 +268,13 @@ bool Ethernet::Context::initEvc()
 	{
 		auto vconnection = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
-		int id_value;
-		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("id"), id_value))
+		uint8_t id;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("id"), id))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "Section network, missing virtual connection ID\n");
 			return false;
 		}
-		uint8_t id = id_value;
 
 		std::string src;
 		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("mac_src"), src))
@@ -295,23 +294,21 @@ bool Ethernet::Context::initEvc()
 		}
 		MacAddress *mac_dst = new MacAddress(dst);
 
-		int q_tci_value;
-		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1q"), q_tci_value))
+		uint16_t q_tci;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1q"), q_tci))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "Section network, missing virtual connection TCI for 802.1q tag\n");
 			return false;
 		}
-		uint16_t q_tci = q_tci_value;
 
-		int ad_tci_value;
-		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1ad"), ad_tci_value))
+		uint16_t ad_tci;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1ad"), ad_tci))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "Section network, missing virtual connection TCI for 802.1ad tag\n");
 			return false;
 		}
-		uint16_t ad_tci = ad_tci_value;
 
 		std::string protocol;
 		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("protocol"), protocol))

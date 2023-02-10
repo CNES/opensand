@@ -350,6 +350,7 @@ struct SpotTopology
 	RegenLevel return_regen_level;       ///< The regeneration level of the return channel
 };
 
+
 struct IslConfig
 {
 	tal_id_t linked_sat_id;
@@ -370,5 +371,5 @@ inline std::string generateProbePrefix(spot_id_t spot_id, Component entity_type,
 	return ss.str();
 }
 
-#endif
 
+#endif

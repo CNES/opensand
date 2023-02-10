@@ -34,14 +34,14 @@
  */
 
 
-#include "DamaAgentRcs2.h"
-
-#include "UnitConverterFixedSymbolLength.h"
-#include "OpenSandModelConf.h"
+#include <algorithm>
 
 #include <opensand_output/Output.h>
 
-#include <algorithm>
+#include "DamaAgentRcs2.h"
+#include "DvbFifo.h"
+#include "UnitConverterFixedSymbolLength.h"
+#include "OpenSandModelConf.h"
 
 // constants
 const rate_kbps_t C_MAX_RBDC_IN_SAC = 16320.0; // 16320 kbits/s, limitation due
@@ -310,7 +310,6 @@ bool DamaAgentRcs2::returnSchedule(std::list<Rt::Ptr<DvbFrame>> *complete_dvb_fr
 	    this->burst_length_b);
 	
 	if(!this->ret_schedule->schedule(this->current_superframe_sf,
-	                                 time_ms_t::zero(),
 	                                 complete_dvb_frames,
 	                                 remaining_alloc_b))
 	{
@@ -434,10 +433,9 @@ bool DamaAgentRcs2::buildSAC(ReturnAccessType,
 		this->rbdc_request_buffer->Update(rbdc_request_kbps);
 
 		// reset counter of arrival packets in MAC FIFOs related to RBDC
-		for(fifos_t::const_iterator it = this->dvb_fifos.begin();
-		    it != this->dvb_fifos.end(); ++it)
+		for(auto &&it: this->dvb_fifos)
 		{
-			(*it).second->resetNew(ReturnAccessType::dama_rbdc);
+			it.second->resetNew(ReturnAccessType::dama_rbdc);
 		}
 
 		// Update statistics

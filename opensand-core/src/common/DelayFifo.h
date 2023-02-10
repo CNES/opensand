@@ -35,16 +35,17 @@
 #define DELAY_FIFO_H
 
 
-#include <vector>
+#include <map>
 #include <memory>
-#include <sys/times.h>
 
+#include <opensand_rt/Ptr.h>
 #include <opensand_rt/RtMutex.h>
 
 #include "OpenSandCore.h"
 
 
 class FifoElement;
+class NetContainer;
 
 
 /**
@@ -63,7 +64,7 @@ public:
 	 */
 	DelayFifo(vol_pkt_t max_size_pkt = 10000);
 
-	~DelayFifo();
+	virtual ~DelayFifo();
 
 	/**
 	 * @brief Get the fifo current size
@@ -88,38 +89,29 @@ public:
 	vol_pkt_t getMaxSize() const;
 
 	/**
-	 * @brief Get the head element tick out
-	 *
-	 * @return the head element tick out
-	 */
-	time_ms_t getTickOut() const;
-
-	/**
 	 * @brief Add an element at the end of the list
 	 *        (Increments new_size_pkt)
 	 *
-	 * @param elem is the pointer on FifoElement
+	 * @param elem      is the pointer on a NetContainer that will be
+	 *                  wrapped into a FifoElement for storage
+	 * @param duration  is the amount of time the element should stay in the fifo
 	 * @return true on success, false otherwise
 	 */
-	bool push(std::unique_ptr<FifoElement> elem);
+	virtual bool push(Rt::Ptr<NetContainer> elem, time_ms_t duration);
 
 	/**
-	 * @brief Add an element at the head of the list
-	 * @warning This function should be use only to replace a fragment of
-	 *          previously removed data in the fifo
-	 *
-	 * @param elem is the pointer on FifoElement
-	 * @return true on success, false otherwise
+	 * @brief Flush the sat carrier fifo and reset counters
 	 */
-	bool pushFront(std::unique_ptr<FifoElement> elem);
+	virtual void flush();
 
-	/**
-	 * @brief Add an element at the back of the list
-	 *
-	 * @param elem is the pointer on FifoElement
-	 * @return true on success, false otherwise
-	 */
-	bool pushBack(std::unique_ptr<FifoElement> elem);
+ protected:
+	using time_point_t = std::chrono::high_resolution_clock::time_point;
+
+	std::map<time_point_t, std::unique_ptr<FifoElement>> queue; ///< the FIFO itself
+
+	vol_pkt_t max_size_pkt;                          ///< the maximum size for that FIFO
+
+	mutable Rt::Mutex fifo_mutex;                    ///< The mutex to protect FIFO from concurrent access
 
 	/**
 	 * @brief Remove an element at the head of the list
@@ -127,29 +119,70 @@ public:
 	 * @return NULL pointer if extraction failed because fifo is empty
 	 *         pointer on extracted FifoElement otherwise
 	 */
-	std::unique_ptr<FifoElement> pop();
+	virtual std::unique_ptr<FifoElement> pop();
+
+	class sentinel
+	{
+		time_point_t end;
+
+	 public:
+		sentinel();
+		bool isAfter(const time_point_t& date) const;
+	};
 
 	/**
-	 * @brief Flush the sat carrier fifo and reset counters
+	 * @brief Destructive forward iterator over elements in the fifo
+	 *        that have an "exit time" in the past
 	 */
-	void flush();
+	struct iterator
+	{
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type   = void;
+		using value_type        = std::unique_ptr<FifoElement>;
+		using pointer           = value_type*;
+		using reference         = value_type&;
 
-	std::vector<std::unique_ptr<FifoElement>>::iterator begin();
-	std::vector<std::unique_ptr<FifoElement>>::iterator end();
+		iterator(DelayFifo& fifo);
+		value_type operator *();
+		iterator& operator ++();
 
-protected:
-	/**
-	 * @brief Get the index where time_out should be placed
-	 * @param time_out the tick out 
-	 * @return -1 on error, the index on success
-	 */
-	int getTickOutPosition(time_ms_t time_out);
+		bool operator ==(const sentinel& end) const;
+		bool operator !=(const sentinel& end) const;
 
-	std::vector<std::unique_ptr<FifoElement>> queue; ///< the FIFO itself
+	 private:
+		DelayFifo& m_fifo;
+		time_point_t getTickOut() const;
+	};
 
-	vol_pkt_t max_size_pkt;         ///< the maximum size for that FIFO
+	struct iterator_wrapper
+	{
+		using wrapped_iterator  = decltype(DelayFifo::queue)::iterator;
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type   = wrapped_iterator::difference_type;
+		using value_type        = std::unique_ptr<FifoElement>;
+		using pointer           = value_type*;
+		using reference         = value_type&;
 
-	mutable Rt::Mutex fifo_mutex;  ///< The mutex to protect FIFO from concurrent access
+		iterator_wrapper(const wrapped_iterator& it);
+		reference operator *() const;
+		iterator_wrapper& operator ++();
+
+		bool operator ==(const iterator_wrapper& other) const;
+		bool operator !=(const iterator_wrapper& other) const;
+
+	 private:
+		wrapped_iterator it;
+	};
+
+	friend iterator;
+	friend iterator_wrapper;
+
+ public:
+	iterator begin();
+	sentinel end();
+
+	iterator_wrapper wbegin();
+	iterator_wrapper wend();
 };
 
 
