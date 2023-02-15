@@ -287,6 +287,11 @@ bool OpenSandModelConf::extractParameterData(std::shared_ptr<const OpenSANDConf:
 		return false;
 	}
 
+	std::stringstream s;
+	s << result;
+	std::string result_string = s.str();
+	DFLTLOG(LEVEL_DEBUG, "Conf: Extracted value %s", result_string);
+
 	return true;
 }
 

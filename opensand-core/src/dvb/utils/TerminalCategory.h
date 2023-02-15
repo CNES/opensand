@@ -43,6 +43,7 @@
 
 #include <opensand_output/Output.h>
 
+#include <cmath>
 #include <string>
 #include <map>
 #include <vector>
@@ -214,7 +215,7 @@ public:
 			}
 
 			// get the capacity of the carriers
-			vol_sym_t capacity_sym = std::chrono::duration_cast<std::chrono::seconds>(rs_symps * superframe_duration).count();
+			vol_sym_t capacity_sym = ceil(std::chrono::duration_cast<std::chrono::duration<double>>(rs_symps * superframe_duration).count());
 			carrier->setCapacity(capacity_sym);
 			LOG(this->log_terminal_category, LEVEL_NOTICE, 
 			    "Carrier group %u: capacity for Symbol Rate %.2E: %u "

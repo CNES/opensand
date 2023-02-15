@@ -38,6 +38,10 @@
  */
 
 
+#include <sstream>
+#include <cstring>
+#include <unistd.h>
+#include <signal.h>
 #include <limits>
 
 #include "BlockDvbTal.h"
@@ -63,19 +67,8 @@
 #include <opensand_output/Output.h>
 #include <opensand_output/OutputEvent.h>
 
-#include <sstream>
-#include <unistd.h>
-#include <signal.h>
-
 
 int Rt::DownwardChannel<BlockDvbTal>::qos_server_sock = -1;
-
-
-template<typename Rep, typename Ratio>
-double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
-{
-	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
-}
 
 
 template<typename T>
@@ -1599,14 +1592,15 @@ bool Rt::DownwardChannel<BlockDvbTal>::addCniExt()
 
 			if(gw == this->gw_id && this->is_scpc && this->getCniInputHasChanged(this->tal_id))
 			{
-				if(!this->setPacketExtension(this->pkt_hdl,
-				                             *elem,
-				                             std::move(packet),
-				                             this->tal_id, gw,
-				                             "encodeCniExt",
-				                             this->super_frame_counter,
-				                             false))
+				packet = this->setPacketExtension(this->pkt_hdl,
+				                                  std::move(packet),
+				                                  this->tal_id, gw,
+				                                  "encodeCniExt",
+				                                  this->super_frame_counter,
+				                                  false);
+				if (!packet)
 				{
+					fifo->erase(it);
 					return false;
 				}
 
@@ -1616,32 +1610,28 @@ bool Rt::DownwardChannel<BlockDvbTal>::addCniExt()
 				// Delete old packet
 				in_fifo = true;
 			}
-			else
-			{
-				// Put the packet back into the fifo
-				elem->setElem(std::move(packet));
-			}
+
+			// Put the packet back into the fifo
+			elem->setElem(std::move(packet));
 		}
 	}
 
-	if(this->is_scpc && this->getCniInputHasChanged(this->tal_id)
-	                 && !in_fifo)
+	if(this->is_scpc && !in_fifo && this->getCniInputHasChanged(this->tal_id))
 	{
-		std::unique_ptr<FifoElement> new_el = std::make_unique<FifoElement>(make_ptr<NetPacket>(nullptr));
 		// set packet extension to this new empty packet
-		if(!this->setPacketExtension(this->pkt_hdl,
-		                             *new_el,
-		                             make_ptr<NetPacket>(nullptr),
-		                             this->tal_id ,this->gw_id,
-		                             "encodeCniExt",
-		                             this->super_frame_counter,
-		                             false))
+		Ptr<NetPacket> scpc_packet = this->setPacketExtension(this->pkt_hdl,
+		                                                      make_ptr<NetPacket>(nullptr),
+		                                                      this->tal_id ,this->gw_id,
+		                                                      "encodeCniExt",
+		                                                      this->super_frame_counter,
+		                                                      false);
+		if (!scpc_packet)
 		{
 			return false;
 		}
 
 		// highest priority fifo
-		this->dvb_fifos[0]->push(new_el->releaseElem<NetPacket>(), time_ms_t::zero());
+		this->dvb_fifos[0]->push(std::move(scpc_packet), time_ms_t::zero());
 
 		LOG(this->log_send_channel, LEVEL_DEBUG,
 		    "SF #%d: adding empty packet into FIFO NM\n",
@@ -2106,7 +2096,7 @@ void Rt::DownwardChannel<BlockDvbTal>::closeQosSocket(int UNUSED(sig))
  */
 bool Rt::DownwardChannel<BlockDvbTal>::connectToQoSServer()
 {
-	struct addrinfo hints;
+	struct addrinfo hints{};  // zero-initialize
 	struct protoent *tcp_proto;
 	struct servent *serv;
 	struct addrinfo *addresses;
@@ -2123,7 +2113,6 @@ bool Rt::DownwardChannel<BlockDvbTal>::connectToQoSServer()
 	}
 
 	// set criterias to resolve hostname
-	bzero(&hints, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
@@ -2330,15 +2319,7 @@ bool Rt::UpwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 
 bool Rt::UpwardChannel<BlockDvbTal>::onInit()
 {
-	// Initialization of gw_id
 	auto Conf = OpenSandModelConf::Get();
-	// if(!Conf->getGwWithTalId(this->mac_id, this->gw_id))
-	// {
-	// 	LOG(this->log_init_channel, LEVEL_ERROR,
-	// 	    "couldn't find gw for tal %d",
-	// 	    this->mac_id);
-	// 	return false;
-	// }
 
 	if (!this->disable_control_plane)
 	{

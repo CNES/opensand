@@ -211,9 +211,8 @@ bool FileDelay::updateSatDelay()
 	this->current_time++;
 
 	LOG(this->log_delay, LEVEL_INFO,
-	    "Updating sat delay: current time: %u (step: %u ms)\n",
-		this->current_time,
-	    std::chrono::duration_cast<time_ms_t>(this->refresh_period).count());
+	    "Updating sat delay: current time: %u (step: %f ms)\n",
+	    this->current_time, this->refresh_period);
 
 	// Look for the next entry whose key is equal or greater than 'current_time'
 	auto delay_it = this->delays.lower_bound(this->current_time);
@@ -240,7 +239,7 @@ bool FileDelay::updateSatDelay()
 			LOG(this->log_delay, LEVEL_DEBUG,
 			    "Old time: %u, old delay: %u\n",
 			    old_time,
-				old_delay.count());
+			    old_delay.count());
 
 			// Linear interpolation
 			auto coef = (new_delay - old_delay) / double(new_time - old_time);

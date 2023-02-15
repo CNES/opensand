@@ -187,6 +187,10 @@ bool ReturnSchedulingRcs2::schedulePacket(const time_sf_t current_superframe_sf,
 				missing_alloc = true;
 			}
 		}
+		else
+		{
+			missing_alloc = true;
+		}
 
 		if (missing_alloc)
 		{
@@ -212,7 +216,7 @@ bool ReturnSchedulingRcs2::schedulePacket(const time_sf_t current_superframe_sf,
 			// Store DVB-RCS2 frame with completed frames
 			complete_dvb_frames->push_back(dvb_frame_downcast(std::move(incomplete_dvb_frame)));
 			complete_frames_count++;
-			remaining_allocation_b -= frame_length_b > remaining_allocation_b ? remaining_allocation_b : frame_length_b;
+			remaining_allocation_b -= std::min(frame_length_b, remaining_allocation_b);
 			LOG(this->log_scheduling, LEVEL_DEBUG,
 				"SF#%u: %d DVB frames completed, remaining allocation %d kbits (%d bytes)",
 				current_superframe_sf,
@@ -258,9 +262,6 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
                                        std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
                                        vol_b_t &remaining_allocation_b)
 {
-	unsigned int complete_frames_count;
-	unsigned int sent_packets;
-	vol_b_t frame_length_b;
 	Rt::Ptr<DvbRcsFrame> incomplete_dvb_frame = Rt::make_ptr<DvbRcsFrame>(nullptr);
 
 	LOG(this->log_scheduling, LEVEL_INFO,
@@ -274,15 +275,15 @@ bool ReturnSchedulingRcs2::macSchedule(const time_sf_t current_superframe_sf,
 	{
 		return false;
 	}
+
+	vol_b_t frame_length_b = 0;
 	//frame_length_b = incomplete_dvb_frame->getHeaderLength() << 3;
-	frame_length_b = 0;
 
 	// extract encap packets from MAC FIFOs while some UL capacity is available
 	// (MAC fifos priorities are in MAC IDs order)
 	// fifo are classified by priority value (map are ordered)
-	complete_frames_count = 0;
-	sent_packets = 0;
-	auto fifo_it = this->dvb_fifos.cbegin();
+	unsigned int complete_frames_count = 0;
+	unsigned int sent_packets = 0;
 
 	LOG(this->log_scheduling, LEVEL_DEBUG,
 	    "SF#%u: %d DVB frames completed, remaining allocation %d kbits (%d bytes)",

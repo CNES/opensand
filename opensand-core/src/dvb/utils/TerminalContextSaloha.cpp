@@ -33,9 +33,12 @@
  * @author  Julien Bernard / Viveris Technologies
  */
 
-#include "TerminalContextSaloha.h"
+
+#include <cmath>
 
 #include <opensand_output/Output.h>
+
+#include "TerminalContextSaloha.h"
 
 
 constexpr const saloha_pdu_id_t MAX_OLD_COUNTER = 0xFFFF;

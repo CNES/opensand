@@ -429,11 +429,7 @@ protected:
 	 * set extension to the packet GSE
 	 *
 	 * @param pkt_hdl         The GSE packet handler
-	 * @param elem            The fifo element to replace by the
-	 *                        packet with extension
-	 * @param fifo            The fifo to place the element
-	 * @param packet     The input packet
-	 * @param extension_pkt   The return packet with extension
+	 * @param packet          The input packet
 	 * @param source          The terminal source id
 	 * @param dest            The terminal dest id
 	 * @param extension_name  The name of the extension we need to add as
@@ -441,16 +437,15 @@ protected:
 	 * @param super_frame_counter  The superframe counter (for debug messages)
 	 * @param is_gw           Whether we are on GW or not
 	 *
-	 * @return true on success, false otherwise
+	 * @return The packet with extension on success, nullptr otherwise
 	 */
-	bool setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                        FifoElement &elem,
-	                        Rt::Ptr<NetPacket> packet,
-	                        tal_id_t source,
-	                        tal_id_t dest,
-	                        std::string extension_name,
-	                        time_sf_t super_frame_counter,
-	                        bool is_gw);
+	Rt::Ptr<NetPacket> setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
+	                                      Rt::Ptr<NetPacket> packet,
+	                                      tal_id_t source,
+	                                      tal_id_t dest,
+	                                      std::string extension_name,
+	                                      time_sf_t super_frame_counter,
+	                                      bool is_gw);
 
 	/** The internal map that stores all the STs and modcod id for input */
 	StFmtSimuList *input_sts;

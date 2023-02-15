@@ -37,7 +37,8 @@
 #ifndef DVB_FRAME_H
 #define DVB_FRAME_H
 
-#include <cstring>
+#include <arpa/inet.h>
+
 #include <opensand_rt/Ptr.h>
 
 #include "OpenSandFrames.h"
@@ -124,11 +125,9 @@ public:
 		num_packets(0),
 		carrier_id(0)
 	{
-		T header;
+		T header{};  // zero-initialization of pod-type
 		this->name = "DvbFrame";
 		this->data.reserve(this->max_size);
-		// add at least the base header of the created frame
-		memset(&header, 0, sizeof(T));
 		this->data.append(reinterpret_cast<unsigned char *>(&header), sizeof(T));
 		this->header_length = sizeof(T);
 	};

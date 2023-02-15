@@ -34,6 +34,7 @@
  */
 
 #include <errno.h>
+#include <cstring>
 #include <cinttypes>
 
 #include <opensand_output/Output.h>

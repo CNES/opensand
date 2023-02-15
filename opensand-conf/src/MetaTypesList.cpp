@@ -75,8 +75,6 @@ OpenSANDConf::MetaTypesList::MetaTypesList():
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
 	         new OpenSANDConf::MetaValueType<uint64_t>("ulong", "Unsigned Long", "An unsigned long integer")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
-	         new OpenSANDConf::MetaValueType<std::size_t>("size", "Unsigned Size", "An unsigned integer suitable for std::size_t")));
-	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
 	         new OpenSANDConf::MetaValueType<std::string>("char", "Character", "A single character")));
 	addToMap(this->types, std::shared_ptr<OpenSANDConf::MetaType>(
 	         new OpenSANDConf::MetaValueType<std::string>("string", "String", "A string")));

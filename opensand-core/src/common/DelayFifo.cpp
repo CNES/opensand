@@ -86,7 +86,6 @@ vol_pkt_t DelayFifo::getMaxSize() const
 bool DelayFifo::push(Rt::Ptr<NetContainer> elem, time_ms_t duration)
 {
 	Rt::Lock lock(this->fifo_mutex);
-
 	if(this->queue.size() < this->max_size_pkt)
 	{
 		auto end_date = std::chrono::high_resolution_clock::now() + duration;
@@ -142,6 +141,12 @@ DelayFifo::iterator_wrapper DelayFifo::wbegin()
 DelayFifo::iterator_wrapper DelayFifo::wend()
 {
 	return iterator_wrapper(this->queue.end());
+}
+
+
+DelayFifo::iterator_wrapper DelayFifo::erase(DelayFifo::iterator_wrapper pos)
+{
+	return iterator_wrapper(this->queue.erase(pos.it));
 }
 
 

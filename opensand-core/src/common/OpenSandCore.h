@@ -35,13 +35,8 @@
 #define OPENSAND_CORE_H
 
 
-#include <sys/time.h>
-#include <arpa/inet.h>
-
-#include <cmath>
 #include <chrono>
 #include <cstdint>
-#include <sstream>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
@@ -76,20 +71,8 @@ enum class Component
  * @param host The component type
  * @return the abbreviated name of the component
  */
-inline std::string getComponentName(Component host)
-{
-	switch(host)
-	{
-		case Component::satellite:
-			return "sat";
-		case Component::gateway:
-			return "gw";
-		case Component::terminal:
-			return "st";
-		default:
-			return "unknown";
-	}
-};
+std::string getComponentName(Component host);
+
 
 /// Carrier access type
 enum class AccessType
@@ -109,20 +92,7 @@ enum class AccessType
  *
  * @return the access type enum
  */
-inline AccessType strToAccessType(const std::string& access_type)
-{
-	if(access_type == "DAMA")
-		return AccessType::DAMA;
-	else if(access_type == "ACM")
-		return AccessType::TDM;
-	else if(access_type == "ALOHA")
-		return AccessType::ALOHA;
-	else if(access_type == "VCM")
-		return AccessType::TDM;
-	else if(access_type == "SCPC")
-		return AccessType::SCPC;
-	return AccessType::ERROR;
-}
+AccessType strToAccessType(const std::string& access_type);
 
 
 enum class SatelliteLinkState
@@ -150,12 +120,14 @@ enum class EncapSchemeList
 	TRANSPARENT_NO_SCHEME,
 };
 
+
 enum struct IslType
 {
 	None,
 	LanAdaptation,
 	Interconnect,
 };
+
 
 enum struct RegenLevel {
 	Unknown,
@@ -164,25 +136,9 @@ enum struct RegenLevel {
 	IP
 };
 
-inline RegenLevel strToRegenLevel(const std::string &regen_level)
-{
-	if (regen_level == "Transparent")
-	{
-		return RegenLevel::Transparent;
-	}
-	else if (regen_level == "BBFrame")
-	{
-		return RegenLevel::BBFrame;
-	}
-	else if (regen_level == "IP")
-	{
-		return RegenLevel::IP;
-	}
-	else
-	{
-		return RegenLevel::Unknown;
-	}
-}
+
+RegenLevel strToRegenLevel(const std::string &regen_level);
+
 
 /**
  * @brief Convert a strongly typed enum value into its underlying integral type
@@ -204,41 +160,15 @@ constexpr auto to_enum(I i) noexcept -> typename std::enable_if<std::is_same<I, 
 
 
 /**
- * @brieg Get the current time
- *
- * @return the current time
- */
-inline std::chrono::milliseconds getCurrentTime()
-{
-	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch());
-};
-
-/**
  * @brief  Tokenize a string
  *
  * @param  str        The string to tokenize
  * @param  tokens     The list to add tokens into
  * @param  delimiter  The tokens' delimiter
  */
-inline void tokenize(const std::string &str,
-                     std::vector<std::string> &tokens,
-                     const std::string& delimiters=":")
-{
-	// Skip delimiters at beginning.
-	std::string::size_type last_pos = str.find_first_not_of(delimiters, 0);
-	// Find first "non-delimiter".
-	std::string::size_type pos = str.find_first_of(delimiters, last_pos);
-
-	while(std::string::npos != pos || std::string::npos != last_pos)
-	{
-		// Found a token, add it to the vector.
-		tokens.push_back(str.substr(last_pos, pos - last_pos));
-		// Skip delimiters.  Note the "not_of"
-		last_pos = str.find_first_not_of(delimiters, pos);
-		// Find next "non-delimiter"
-		pos = str.find_first_of(delimiters, last_pos);
-	}
-};
+void tokenize(const std::string &str,
+              std::vector<std::string> &tokens,
+              const std::string& delimiters=":");
 
 /**
  * @brief  Convert a C/N value from host to network
@@ -247,11 +177,7 @@ inline void tokenize(const std::string &str,
  * @param cn  The CN value
  * return the CN value than can be carried on network
  */
-inline uint32_t hcnton(double cn)
-{
-	int16_t tmp_cn = static_cast<int16_t>(std::round(cn * 100));  // we take two digits in decimal part
-	return htonl(static_cast<uint32_t>(tmp_cn));
-};
+uint32_t hcnton(double cn);
 
 /**
  * @brief  Convert a C/N value from network to host
@@ -260,11 +186,7 @@ inline uint32_t hcnton(double cn)
  * @param cn  The CN value
  * return the CN value than can be handled on host
  */
-inline double ncntoh(uint32_t cn)
-{
-	int16_t tmp_cn = static_cast<int16_t>(ntohl(cn));
-	return tmp_cn / 100.0;
-};
+double ncntoh(uint32_t cn);
 
 
 // The types used in OpenSAND
@@ -359,16 +281,14 @@ struct IslConfig
 	std::string tap_iface;
 };
 
-inline std::string generateProbePrefix(spot_id_t spot_id, Component entity_type, bool is_sat)
+
+std::string generateProbePrefix(spot_id_t spot_id, Component entity_type, bool is_sat);
+
+
+template<typename Rep, typename Ratio>
+double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
 {
-	std::ostringstream ss{};
-	ss << "spot_" << int{spot_id} << ".";
-	if (is_sat)
-	{
-		ss << "sat.";
-	}
-	ss << getComponentName(entity_type) << ".";
-	return ss.str();
+	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
 }
 
 

@@ -33,6 +33,8 @@
  */
 
 
+#include <cstring>
+
 #include <opensand_output/Output.h>
 #include <opensand_rt/Types.h>
 #include <opensand_rt/NetSocketEvent.h>

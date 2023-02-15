@@ -65,13 +65,6 @@
 #define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
 
 
-template<typename Rep, typename Ratio>
-double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
-{
-	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
-}
-
-
 /**
  * constructor
  */
@@ -165,6 +158,22 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onInit()
 
 bool Rt::UpwardChannel<BlockLanAdaptation>::onInit()
 {
+	// If we're already up because we are used for ISL
+	if (this->state == SatelliteLinkState::UP)
+	{
+		// initialize contexts
+		for(auto&& context : this->contexts)
+		{
+			if(!context->initLanAdaptationContext(this->tal_id, packet_switch))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "cannot initialize %s context\n",
+				    context->getName());
+				return false;
+			}
+		}
+	}
+
 	if (delay == time_ms_t::zero())
 	{
 		// No need to poll, messages are sent directly

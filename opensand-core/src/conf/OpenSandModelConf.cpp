@@ -429,7 +429,7 @@ void OpenSandModelConf::createModels()
 	timers->addParameter("synchro", "Sync Period", types->getType("uint"))->setUnit("ms");
 	timers->addParameter("acm_refresh", "ACM Refresh Period", types->getType("uint"))->setUnit("ms");
 	auto delay = advanced->addComponent("delay", "Delay");
-	delay->addParameter("fifo_size", "Buffer Size", types->getType("size"),
+	delay->addParameter("fifo_size", "Buffer Size", types->getType("ulong"),
 	                    "Amount of packets that can be stored at once in the "
 	                    "delay FIFO before being sent through the physical "
 	                    "channels; acts as default values for the Gateways "
@@ -1553,7 +1553,7 @@ std::shared_ptr<OpenSANDConf::DataComponent> getEntityById(std::shared_ptr<OpenS
 		auto entity = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 		auto entity_id_param = entity->getParameter("entity_id")->getData();
 		if (!entity_id_param) return nullptr;
-		auto entity_id = std::dynamic_pointer_cast<OpenSANDConf::DataValue<int>>(entity_id_param)->get();
+		auto entity_id = std::dynamic_pointer_cast<OpenSANDConf::DataValue<uint16_t>>(entity_id_param)->get();
 		if(id == entity_id) {
 			return entity;
 		}
@@ -1569,7 +1569,7 @@ std::shared_ptr<OpenSANDConf::DataComponent> getSpotById(std::shared_ptr<OpenSAN
 		auto assignments = spot->getComponent("assignments");
 		auto assigned_gw_param = assignments->getParameter("gateway_id")->getData();
 		if(!assigned_gw_param) return nullptr;
-		auto assigned_gw = std::dynamic_pointer_cast<OpenSANDConf::DataValue<int>>(assigned_gw_param)->get();
+		auto assigned_gw = std::dynamic_pointer_cast<OpenSANDConf::DataValue<uint16_t>>(assigned_gw_param)->get();
 		if(assigned_gw == id) {
 			return spot;
 		}

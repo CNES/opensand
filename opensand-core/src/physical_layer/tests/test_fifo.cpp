@@ -35,12 +35,6 @@
  */
 
 
-#include <opensand_rt/Rt.h>
-
-#include "DelayFifo.h"
-#include "FifoElement.h"
-#include "OpenSandCore.h"
-#include "NetContainer.h"
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
@@ -48,13 +42,19 @@
 #include <unistd.h>
 #include <thread>
 
+#include <opensand_rt/Rt.h>
+
+#include "DelayFifo.h"
+#include "FifoElement.h"
+#include "OpenSandCore.h"
+#include "NetContainer.h"
+
 
 time_ms_t elem_times[5] = {time_ms_t(0), time_ms_t(10), time_ms_t(20), time_ms_t(30), time_ms_t(40)};
 
 
 int main()
 {
-	int is_failure = 1;
 	DelayFifo fifo{1000};
 
 	// Add elements to fifo
@@ -77,10 +77,15 @@ int main()
 	}
 
 	// everything went fine, so report success
-	if (!remaining)
+	if (remaining)
 	{
-		is_failure = 0;
+		return EXIT_FAILURE;
 	}
 
-	return is_failure;
+	if (fifo.getCurrentSize())
+	{
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
 }

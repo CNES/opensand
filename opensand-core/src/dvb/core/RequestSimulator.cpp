@@ -34,6 +34,7 @@
  */
 
 #include <errno.h>
+#include <cstring>
 
 #include <opensand_output/Output.h>
 
@@ -105,7 +106,7 @@ void RequestSimulator::generateConfiguration()
 
 bool RequestSimulator::initRequestSimulation()
 {
-	memset(this->simu_buffer, '\0', SIMU_BUFF_LEN);
+	std::fill(std::begin(this->simu_buffer), std::end(this->simu_buffer), '\0');
 
 	// Get and open the event file
 	std::string evt_type;

@@ -45,7 +45,7 @@ namespace Rt
 {
 
 
-using Mutex = std::mutex;
+using Mutex = std::recursive_mutex;
 using Lock = std::lock_guard<Mutex>;
 
 

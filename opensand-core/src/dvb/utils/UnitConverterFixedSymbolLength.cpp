@@ -36,6 +36,11 @@
 
 #include <math.h>
 
+
+using time_seconds_t = std::chrono::duration<double>;
+using time_milliseconds_t = std::chrono::duration<double, std::milli>;
+
+
 UnitConverterFixedSymbolLength::UnitConverterFixedSymbolLength(time_us_t duration,
                                                                unsigned int efficiency,
                                                                vol_sym_t length_sym):
@@ -108,32 +113,32 @@ vol_kb_t UnitConverterFixedSymbolLength::pktToKbits(vol_pkt_t vol_pkt) const
 
 rate_pktpf_t UnitConverterFixedSymbolLength::sympsToPktpf(rate_symps_t rate_symps) const
 {
-	return std::chrono::duration_cast<std::chrono::seconds>(rate_symps * this->packet_length_sym_inv * this->frame_duration).count();
+	return ceil(std::chrono::duration_cast<time_seconds_t>(rate_symps * this->packet_length_sym_inv * this->frame_duration).count());
 }
 
 rate_symps_t UnitConverterFixedSymbolLength::pktpfToSymps(rate_pktpf_t rate_pktpf) const
 {
-	return std::chrono::seconds{rate_pktpf * this->packet_length_sym} / this->frame_duration;
+	return ceil(time_seconds_t{rate_pktpf * this->packet_length_sym} / this->frame_duration);
 }
 
 rate_pktpf_t UnitConverterFixedSymbolLength::bpsToPktpf(rate_bps_t rate_bps) const
 {
-	return std::chrono::duration_cast<std::chrono::seconds>(rate_bps * this->packet_length_sym_inv * this->modulation_efficiency_inv * this->frame_duration).count();
+	return ceil(std::chrono::duration_cast<time_seconds_t>(rate_bps * this->packet_length_sym_inv * this->modulation_efficiency_inv * this->frame_duration).count());
 }
 
 rate_bps_t UnitConverterFixedSymbolLength::pktpfToBps(rate_pktpf_t rate_pktpf) const
 {
-	return std::chrono::seconds{rate_pktpf * this->packet_length_sym * this->modulation_efficiency} / this->frame_duration;
+	return ceil(time_seconds_t{rate_pktpf * this->packet_length_sym * this->modulation_efficiency} / this->frame_duration);
 }
 	
 rate_pktpf_t UnitConverterFixedSymbolLength::kbpsToPktpf(rate_kbps_t rate_kbps) const
 {
 	// bit/ms <=> kbits/s
-	return std::chrono::duration_cast<time_ms_t>(rate_kbps * this->packet_length_sym_inv * this->modulation_efficiency_inv * this->frame_duration).count();
+	return ceil(std::chrono::duration_cast<time_milliseconds_t>(rate_kbps * this->packet_length_sym_inv * this->modulation_efficiency_inv * this->frame_duration).count());
 }
 
 rate_kbps_t UnitConverterFixedSymbolLength::pktpfToKbps(rate_pktpf_t rate_pktpf) const
 {
 	// bit/ms <=> kbits/s
-	return time_ms_t{rate_pktpf * this->packet_length_sym * this->modulation_efficiency} / this->frame_duration;
+	return ceil(time_milliseconds_t{rate_pktpf * this->packet_length_sym * this->modulation_efficiency} / this->frame_duration);
 }

@@ -51,13 +51,6 @@
 #include "NetContainer.h"
 
 
-template<typename Rep, typename Ratio>
-double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
-{
-	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
-}
-
-
 BlockPhysicalLayer::BlockPhysicalLayer(const std::string &name, PhyLayerConfig config):
 	Rt::Block<BlockPhysicalLayer, PhyLayerConfig>{name, config},
 	mac_id(config.mac_id)

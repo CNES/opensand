@@ -36,6 +36,8 @@
 
 #include <unistd.h>
 #include <errno.h>
+#include <cstring>
+
 #include <opensand_output/Output.h>
 
 #include "DvbChannel.h"
@@ -464,14 +466,13 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 	return this->output_sts->getCniHasChanged(tal_id);
 }
 
-bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
-                                FifoElement &elem,
-                                Rt::Ptr<NetPacket> packet,
-                                tal_id_t source,
-                                tal_id_t dest,
-                                std::string extension_name,
-                                time_sf_t super_frame_counter,
-                                bool is_gw)
+Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
+                                              Rt::Ptr<NetPacket> packet,
+                                              tal_id_t source,
+                                              tal_id_t dest,
+                                              std::string extension_name,
+                                              time_sf_t super_frame_counter,
+                                              bool is_gw)
 {
 	uint32_t opaque = 0;
 	double cni;
@@ -490,7 +491,7 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	}
 	opaque = hcnton(cni);
 
-	if(packet != nullptr)
+	if(packet)
 	{
 		bool success = pkt_hdl->checkPacketForHeaderExtensions(packet);
 
@@ -525,21 +526,15 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 		LOG(this->log_fmt, LEVEL_DEBUG,
 		    "SF#%d: cannot add header extension in packet",
 		    super_frame_counter);
-		return false;
 	}
-
-	if(extension_pkt == nullptr)
+	else if(!extension_pkt)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "SF#%d: failed to create the GSE packet with "
 		    "extensions\n", super_frame_counter);
-		return false;
 	}
 
-	// And replace the packet in the FIFO
-	elem.setElem(std::move(extension_pkt));
-
-	return true;
+	return extension_pkt;
 }
 
 

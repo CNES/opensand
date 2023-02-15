@@ -514,6 +514,7 @@ void ChannelBase::executeThread(void)
 		// wait for any event
 		// we need a timeout in order to refresh event list
 		event_id_t max_fd = this->events.rbegin()->first;
+
 		number_fd = select(max_fd + 1, &readfds, nullptr, nullptr, nullptr);
 		if(number_fd < 0)
 		{

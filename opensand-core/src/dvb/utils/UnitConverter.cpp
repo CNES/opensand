@@ -148,10 +148,10 @@ rate_bps_t UnitConverter::kbpsToBps(rate_kbps_t rate_kbps) const
 
 unsigned int UnitConverter::pfToPs(unsigned int rate_pf) const
 {
-	return std::chrono::seconds{rate_pf} / this->frame_duration;
+	return ceil(std::chrono::duration<double>{rate_pf} / this->frame_duration);
 }
 
 unsigned int UnitConverter::psToPf(unsigned int rate_ps) const
 {
-	return std::chrono::duration_cast<std::chrono::seconds>(rate_ps * this->frame_duration).count();
+	return ceil(std::chrono::duration_cast<std::chrono::duration<double>>(rate_ps * this->frame_duration).count());
 }

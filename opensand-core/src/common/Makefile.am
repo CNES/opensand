@@ -16,6 +16,7 @@ libopensand_plugin_utils_la_h = \
 # TODO move NetPacket ?
 
 libopensand_plugin_la_cpp = \
+	OpenSandCore.cpp \
 	Except.cpp \
 	CarrierType.cpp \
 	FifoElement.cpp \

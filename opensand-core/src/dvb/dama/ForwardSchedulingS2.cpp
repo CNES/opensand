@@ -388,7 +388,7 @@ sched_status ForwardSchedulingS2::schedulePacket(const time_sf_t current_superfr
 		else if(current_bbframe_it == this->incomplete_bb_frames.end())
 		{
 			// cannot get modcod for the ST delete the element
-			;
+			return sched_status::ok;
 		}
 	
 		auto modcod = current_bbframe_it->first;

@@ -429,6 +429,8 @@ sched_status ScpcScheduling::schedulePacket(const time_sf_t current_superframe_s
 			encap_packet = std::move(this->remaining_data);
 		}
 	}
+
+	return sched_status::ok;
 }
 
 

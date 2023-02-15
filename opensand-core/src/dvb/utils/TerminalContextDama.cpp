@@ -34,9 +34,12 @@
  * @author  Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
-#include "TerminalContextDama.h"
+
+#include <cmath>
 
 #include <opensand_output/Output.h>
+
+#include "TerminalContextDama.h"
 
 
 TerminalContextDama::TerminalContextDama(tal_id_t tal_id,

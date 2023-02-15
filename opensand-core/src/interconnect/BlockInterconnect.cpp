@@ -43,13 +43,6 @@
 #include "UdpChannel.h"
 
 
-template<typename Rep, typename Ratio>
-double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
-{
-	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
-}
-
-
 Rt::UpwardChannel<BlockInterconnectDownward>::UpwardChannel(const std::string &name, const InterconnectConfig &config):
 	Channels::Upward<UpwardChannel<BlockInterconnectDownward>>{name},
 	InterconnectChannelReceiver{name + ".Upward", config},

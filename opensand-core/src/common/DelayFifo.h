@@ -156,6 +156,8 @@ public:
 
 	struct iterator_wrapper
 	{
+		friend DelayFifo;
+
 		using wrapped_iterator  = decltype(DelayFifo::queue)::iterator;
 		using iterator_category = std::forward_iterator_tag;
 		using difference_type   = wrapped_iterator::difference_type;
@@ -183,6 +185,7 @@ public:
 
 	iterator_wrapper wbegin();
 	iterator_wrapper wend();
+	iterator_wrapper erase(iterator_wrapper pos);
 };
 
 

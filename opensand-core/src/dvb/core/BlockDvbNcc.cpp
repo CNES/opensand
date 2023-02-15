@@ -50,16 +50,10 @@
 #include "Ttp.h"
 
 #include <errno.h>
+#include <cstring>
 #include <opensand_rt/TcpListenEvent.h>
 #include <opensand_rt/MessageEvent.h>
 #include <opensand_rt/TimerEvent.h>
-
-
-template<typename Rep, typename Ratio>
-double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
-{
-	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
-}
 
 
 /*****************************************************************************/

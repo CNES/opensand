@@ -51,13 +51,6 @@
 #include "Except.h"
 
 
-template<typename Rep, typename Ratio>
-double ArgumentWrapper(std::chrono::duration<Rep, Ratio> const & value)
-{
-	return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(value).count();
-}
-
-
 GroundPhysicalChannel::GroundPhysicalChannel(PhyLayerConfig config):
 	clear_sky_condition{0},
 	delay_fifo{},
@@ -254,7 +247,7 @@ double GroundPhysicalChannel::computeTotalCn(double up_cn) const
 
 bool GroundPhysicalChannel::pushPacket(Rt::Ptr<NetContainer> pkt)
 {
-	std::string pkt_name = pkt->getName(); 
+	std::string pkt_name = pkt->getName();
 	auto delay = this->satdelay_model->getSatDelay();
 
 	// append the data in the fifo

@@ -1357,15 +1357,16 @@ bool SpotDownward::addCniExt()
 				{
 					list_st.push_back(tal_id);
 					// we could make specific SCPC function
-					if(!this->setPacketExtension(this->pkt_hdl,
-						                         *elem,
-						                         std::move(packet),
-						                         this->mac_id,
-						                         tal_id,
-						                         "encodeCniExt",
-						                         this->super_frame_counter,
-						                         true))
+					packet = this->setPacketExtension(this->pkt_hdl,
+						                              std::move(packet),
+						                              this->mac_id,
+						                              tal_id,
+						                              "encodeCniExt",
+						                              this->super_frame_counter,
+						                              true);
+					if (!packet)
 					{
+						fifo->erase(elem_it);
 						return false;
 					}
 
@@ -1373,11 +1374,9 @@ bool SpotDownward::addCniExt()
 					    "SF #%d: packet belongs to FIFO #%d\n",
 					    this->super_frame_counter, qos);
 				}
-				else
-				{
-					// Put packet back into the fifo element
-					elem->setElem(std::move(packet));
-				}
+
+				// Put packet back into the fifo element
+				elem->setElem(std::move(packet));
 			}
 		}
 	}
@@ -1428,22 +1427,21 @@ bool SpotDownward::addCniExt()
 				return false;
 			}
 
-			auto new_el = std::make_unique<FifoElement>(Rt::make_ptr<NetPacket>(nullptr));
 			// set packet extension to this new empty packet
-			if(!this->setPacketExtension(this->pkt_hdl,
-				                         *new_el,
-				                         Rt::make_ptr<NetPacket>(nullptr),
-				                         this->mac_id,
-				                         tal_id,
-				                         "encodeCniExt",
-				                         this->super_frame_counter,
-				                         true))
+			Rt::Ptr<NetPacket> scpc_packet = this->setPacketExtension(this->pkt_hdl,
+				                                                      Rt::make_ptr<NetPacket>(nullptr),
+				                                                      this->mac_id,
+				                                                      tal_id,
+				                                                      "encodeCniExt",
+				                                                      this->super_frame_counter,
+				                                                      true);
+			if (!scpc_packet)
 			{
 				return false;
 			}
 
 			// highest priority fifo
-			(fifos_it->second)[0]->push(new_el->releaseElem<NetPacket>(), time_ms_t::zero());
+			(fifos_it->second)[0]->push(std::move(scpc_packet), time_ms_t::zero());
 			LOG(this->log_send_channel, LEVEL_DEBUG,
 			    "SF #%d: adding empty packet into FIFO NM\n",
 			    this->super_frame_counter);
