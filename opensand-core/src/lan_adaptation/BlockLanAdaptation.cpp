@@ -158,6 +158,21 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onInit()
 
 bool Rt::UpwardChannel<BlockLanAdaptation>::onInit()
 {
+	if (this->state == SatelliteLinkState::UP)
+	{
+		// Initialize context here in ISL mode as we don't need the link up message to know our tal_id
+		for(auto&& context : this->contexts)
+		{
+			if(!context->initLanAdaptationContext(this->tal_id, packet_switch))
+			{
+				LOG(this->log_receive, LEVEL_ERROR,
+				    "cannot initialize %s context\n",
+				    context->getName());
+				return false;
+			}
+		}
+	}
+
 	if (delay == 0)
 	{
 		// No need to poll, messages are sent directly
