@@ -31,6 +31,7 @@
 
 GW_ID=0
 ST_ID=1
+SAT_ID=2
 EMU_IFACE=ens4
 EMU_IP_GW=192.168.18.42
 EMU_IP_SAT=192.168.18.1
@@ -97,6 +98,7 @@ generate-xml:
 	cp infrastructure.xml infrastructure_updated.xml
 	sed -i "s|GW_ID|$(GW_ID)|g" infrastructure_updated.xml
 	sed -i "s|ST_ID|$(ST_ID)|g" infrastructure_updated.xml
+	sed -i "s|SAT_ID|$(SAT_ID)|g" infrastructure_updated.xml
 	sed -i "s|EMU_IP_GW|$(EMU_IP_GW)|g" infrastructure_updated.xml
 	sed -i "s|EMU_IP_SAT|$(EMU_IP_SAT)|g" infrastructure_updated.xml
 	sed -i "s|EMU_IP_ST|$(EMU_IP_ST)|g" infrastructure_updated.xml
@@ -107,9 +109,12 @@ generate-xml:
 	sed -i "s|COLLECTOR_IP|$(COLLECTOR_IP)|g" infrastructure_updated.xml
 	sed -i "s|ENABLE_LOCAL_LOGS|$(ENABLE_LOCAL_LOGS)|g" infrastructure_updated.xml
 	sed -i "s|LOG_FOLDER|$(LOG_FOLDER)|g" infrastructure_updated.xml
+	cp topology.xml topology_updated.xml
+	sed -i "s|GW_ID|$(GW_ID)|g" topology_updated.xml
+	sed -i "s|SAT_ID|$(SAT_ID)|g" topology_updated.xml
 
 run: generate-xml
-	opensand -i infrastructure_updated.xml -t topology.xml -p profile.xml &
+	opensand -i infrastructure_updated.xml -t topology_updated.xml -p profile.xml &
 
 stop:
 	killall -q opensand || true
