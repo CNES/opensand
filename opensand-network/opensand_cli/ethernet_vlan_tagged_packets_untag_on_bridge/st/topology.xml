@@ -5,7 +5,11 @@
       <spots>
         <item>
           <assignments>
-            <gateway_id>0</gateway_id>
+            <gateway_id>GW_ID</gateway_id>
+            <sat_id_gw>SAT_ID</sat_id_gw>
+            <sat_id_st>SAT_ID</sat_id_st>
+            <forward_regen_level>Transparent</forward_regen_level>
+            <return_regen_level>Transparent</return_regen_level>
           </assignments>
           <roll_off>
             <forward>0.350000</forward>
@@ -32,7 +36,7 @@
     </frequency_plan>
     <st_assignment>
       <defaults>
-        <default_gateway>0</default_gateway>
+        <default_gateway>GW_ID</default_gateway>
         <default_group>Standard</default_group>
       </defaults>
       <assignments/>
