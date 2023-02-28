@@ -46,12 +46,12 @@
 
 
 /** Status for the carrier capacity */
-typedef enum
+enum class sched_status
 {
-	status_ok,    // BBFrame added in the complete BBFrames list
-	status_error, // Error when adding the BBFrame in the list
-	status_full,  // The carrier is full, cannot add the BBFrame
-} sched_status_t;
+	ok,    // BBFrame added in the complete BBFrames list
+	error, // Error when adding the BBFrame in the list
+	full,  // The carrier is full, cannot add the BBFrame
+};
 
 
 
@@ -62,7 +62,7 @@ typedef enum
 class ScpcScheduling: public Scheduling
 {
 public:
-	ScpcScheduling(time_ms_t scpc_timer_ms,
+	ScpcScheduling(time_us_t scpc_timer,
 	               EncapPlugin::EncapPacketHandler *packet_handler,
 	               const fifos_t &fifos,
 	               const StFmtSimuList *const simu_sts,
@@ -73,13 +73,12 @@ public:
 	virtual ~ScpcScheduling();
 
 	bool schedule(const time_sf_t current_superframe_sf,
-	              clock_t current_time,
 	              std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
-	              uint32_t &remaining_allocation);
+	              uint32_t &remaining_allocation) override;
 
 private:
-	/** The timer for forward scheduling (ms) */
-	time_ms_t scpc_timer_ms;
+	/** The timer for forward scheduling */
+	time_us_t scpc_timer;
 
 	/** the BBFrame being built identified by their modcod */
 	std::map<unsigned int, Rt::Ptr<BBFrame>> incomplete_bb_frames;
@@ -114,15 +113,20 @@ private:
 	 *
 	 * @param fifo  The FIFO whee packets are stored
 	 * @param current_superframe_sf  The current superframe number
-	 * @param current_time           The current time
 	 * @param complete_dvb_frames    The list of complete DVB frames
 	 * @param carriers               The carriers group
 	 */
 	bool scheduleEncapPackets(DvbFifo *fifo,
 	                          const time_sf_t current_superframe_sf,
-	                          clock_t current_time,
 	                          std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
 	                          CarriersGroupDama *carriers);
+
+	sched_status schedulePacket(const time_sf_t current_superframe_sf,
+                                unsigned int &sent_packets,
+                                vol_sym_t &capacity_sym,
+                                CarriersGroupDama *carriers,
+                                std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
+                                Rt::Ptr<NetPacket> encap_packet);
 
 	/**
 	 * @brief Create an incomplete BB frame
@@ -155,14 +159,13 @@ private:
 	 * @param bbframe            the BBFrame to add in the list
 	 * @param current_superframe_sf  The current superframe number
 	 * @param duration_credit    IN/OUT: the remaining credit for the current frame
-	 * @return                   status_ok on success, status_error on error and
-	 *                           status_full -2 if there is not enough capacity
+	 * @return                   sched_status::ok on success, sched_status::error on error and
+	 *                           sched_status::full if there is not enough capacity
 	 */
-	sched_status_t addCompleteBBFrame(std::list<Rt::Ptr<DvbFrame>> *complete_bb_frames,
-	                                  Rt::Ptr<BBFrame> &bbframe,
-	                                  const time_sf_t current_superframe_sf,
-	                                  vol_sym_t &remaining_capacity_sym);
-
+	sched_status addCompleteBBFrame(std::list<Rt::Ptr<DvbFrame>> *complete_bb_frames,
+	                                Rt::Ptr<BBFrame> &bbframe,
+	                                const time_sf_t current_superframe_sf,
+	                                vol_sym_t &remaining_capacity_sym);
 
 	/**
 	 * @brief Schedule pending BBFrames from previous slot

@@ -86,7 +86,7 @@ bool EntityGwPhy::createSpecificBlocks()
 
 		InterconnectConfig interco_cfg;
 		interco_cfg.interconnect_addr = this->interconnect_address;
-		interco_cfg.delay = 0;
+		interco_cfg.delay = time_ms_t::zero();
 
 		auto& block_interconnect = Rt::Rt::createBlock<BlockInterconnectUpward>("Interconnect.Upward", interco_cfg);
 		auto& block_phy_layer = Rt::Rt::createBlock<BlockPhysicalLayer>("Physical_Layer", phy_config);

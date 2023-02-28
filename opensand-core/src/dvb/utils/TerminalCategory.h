@@ -43,6 +43,7 @@
 
 #include <opensand_output/Output.h>
 
+#include <cmath>
 #include <string>
 #include <map>
 #include <vector>
@@ -172,10 +173,10 @@ public:
 	 * @brief  Set the number and the capacity of carriers in each group
 	 *
 	 * @param  carriers_number         The number of carriers in the group
-	 * @param  superframe_duration_ms  The superframe duration (in ms)
+	 * @param  superframe_duration     The superframe duration (in μs)
 	 */
 	void updateCarriersGroups(unsigned int carriers_number,
-	                          time_ms_t superframe_duration_ms)
+	                          time_us_t superframe_duration)
 	{
 		unsigned int total_ratio = this->getRatio();
 
@@ -214,7 +215,7 @@ public:
 			}
 
 			// get the capacity of the carriers
-			vol_sym_t capacity_sym = ceil(rs_symps * superframe_duration_ms / 1000.0);
+			vol_sym_t capacity_sym = ceil(std::chrono::duration_cast<std::chrono::duration<double>>(rs_symps * superframe_duration).count());
 			carrier->setCapacity(capacity_sym);
 			LOG(this->log_terminal_category, LEVEL_NOTICE, 
 			    "Carrier group %u: capacity for Symbol Rate %.2E: %u "
@@ -374,7 +375,7 @@ public:
 	 * @param  ratio            The estimated occupation ratio
 	 * @param  rate_symps       The group symbol rate (symbol/s)
 	 * @param  access_type      The carriers access type
-	 * @param  duration_ms      The duration of a carrier (in ms)
+	 * @param  duration         The duration of a carrier
 	 */
 	void addCarriersGroup(unsigned int carriers_id,
 	                      const FmtGroup *const fmt_group,
@@ -382,7 +383,7 @@ public:
 	                      unsigned int ratio,
 	                      rate_symps_t rate_symps,
 	                      AccessType access_type,
-	                      time_ms_t duration_ms)
+	                      time_us_t duration)
 	{
 		// first, we check if there is already a group with this symbol rate
 		T* carriers_group = this->searchCarriersGroup(rate_symps);
@@ -404,6 +405,7 @@ public:
 				}
 			}
 
+			vol_sym_t capacity = std::chrono::duration_cast<std::chrono::seconds>(rate_symps * duration).count();
 			if(access_type == this->desired_access)
 			{
 				T *group = new T(carriers_id, fmt_group,
@@ -413,7 +415,6 @@ public:
 				// in the VCM list
 				group->addVcm(fmt_group, ratio);
 				group->setCarriersNumber(carriers_number);
-				vol_sym_t capacity = floor(rate_symps*duration_ms/1000);
 				group->setCapacity(capacity);
 				this->carriers_groups.push_back(group);
 			}
@@ -423,7 +424,6 @@ public:
 				                                         ratio, rate_symps,
 				                                         access_type);
 				group->setCarriersNumber(carriers_number);
-				vol_sym_t capacity = floor(rate_symps*duration_ms/1000);
 				group->setCapacity(capacity);
 			}
 			if(this->symbol_rate_list.find(rate_symps) == this->symbol_rate_list.end()) {

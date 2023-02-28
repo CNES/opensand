@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
 	std::shared_ptr<Probe<int32_t>> int32_sum_probe =
 		output->registerProbe<int32_t>("testing.int32_sum_probe", true, SAMPLE_SUM);
 	std::shared_ptr<Probe<int32_t>> int32_dis_probe =
-		output->registerProbe<int32_t>(false, SAMPLE_LAST, "testing.int32_%s_probe", "dis");
+		output->registerProbe<int32_t>(Format("testing.int32_%s_probe", "dis"), false, SAMPLE_LAST);
 
 	std::shared_ptr<Probe<float>> float_probe =
 		output->registerProbe<float>("testing.float_probe", true, SAMPLE_LAST);

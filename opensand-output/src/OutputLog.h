@@ -46,6 +46,8 @@
 #include <cstdarg>
 
 #include "OutputMutex.h"
+#include "OutputHandler.h"
+#include "Printf.h"
 
 
 /**
@@ -65,68 +67,78 @@ enum log_level_t : unsigned int
 };
 
 
-class LogHandler;
-
-
 /**
  * @class Represent a log
  */
 class OutputLog
 {
-  friend class Output;
+	friend class Output;
 
  public:
+	virtual ~OutputLog();
 
-  virtual ~OutputLog();
+	/**
+	 * @brief Set the current log display level
+	 *
+	 * @param level  the current log display level
+	 */
+	virtual void setDisplayLevel(log_level_t level);
 
-  /**
-   * @brief Set the current log display level
-   *
-   * @param level  the current log display level
-   */
-  virtual void setDisplayLevel(log_level_t level);
+	/**
+	 * @brief Get the current log display level
+	 *
+	 * @return the current log display level
+	 */
+	log_level_t getDisplayLevel(void) const;
 
-  /**
-   * @brief Get the current log display level
-   *
-   * @return the current log display level
-   */
-  log_level_t getDisplayLevel(void) const;
+	void addHandler(std::shared_ptr<LogHandler> handler);
 
-  void addHandler(std::shared_ptr<LogHandler> handler);
-
-  void sendLog(log_level_t log_level, const char* msg_format, ...) const;
+	template<typename... Args>
+	void sendLog(log_level_t log_level, char const * const msg_format, Args const & ... args) const;
 
  protected:
-  /**
-   * @brief create a log
-   *
-   * @param display_level  The current log level
-   * @param name           The log name
-   */
-  OutputLog(log_level_t display_level, const std::string &name);
+	/**
+	 * @brief create a log
+	 *
+	 * @param display_level  The current log level
+	 * @param name           The log name
+	 */
+	OutputLog(log_level_t display_level, const std::string &name);
 
-  /**
-   * @brief Get the name of the log
-   *
-   * @return the name of the log
-   **/
-  inline const std::string getName() const { return this->name; };
+	/**
+	 * @brief Get the name of the log
+	 *
+	 * @return the name of the log
+	 **/
+	inline const std::string getName() const { return this->name; };
 
-  void vSendLog(log_level_t log_level, const char* msg_format, va_list args) const;
-
-  /// The levels string representation
-  const static char *levels[];
+	/// The levels string representation
+	const static char *levels[];
 
 private:
-  std::string name;
-  log_level_t display_level;
-  std::vector<std::shared_ptr<LogHandler>> handlers;
+	std::string name;
+	log_level_t display_level;
+	std::vector<std::shared_ptr<LogHandler>> handlers;
 
-  mutable OutputMutex lock;
+	mutable OutputMutex lock;
 };
 
 
-std::string formatMessage(const char* name, std::va_list args);
+template<typename... Args>
+void OutputLog::sendLog(log_level_t log_level, char const * const msg_format, Args const & ... args) const
+{
+	if (log_level > display_level)
+	{
+		return;
+	}
+
+	std::string level = levels[log_level];
+	std::string message = Format(msg_format, args...);
+	for (auto &&handler: handlers)
+	{
+		handler->emitLog(name, level, message);
+	}
+}
+
 
 #endif

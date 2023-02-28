@@ -34,6 +34,8 @@
  */
 
 
+#include <cmath>
+
 #include "CarriersGroupDama.h"
 
 

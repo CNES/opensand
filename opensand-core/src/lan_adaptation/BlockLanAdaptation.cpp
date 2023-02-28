@@ -33,6 +33,7 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
+
 #include "BlockLanAdaptation.h"
 #include "NetPacket.h"
 #include "NetBurst.h"
@@ -62,7 +63,6 @@
 
 #define TUNTAP_FLAGS_LEN 4 // Flags [2 bytes] + Proto [2 bytes]
 #define TUNTAP_BUFSIZE MAX_ETHERNET_SIZE // ethernet header + mtu + options, crc not included
-
 
 
 /**
@@ -149,10 +149,10 @@ bool Rt::DownwardChannel<BlockLanAdaptation>::onInit()
 		return false;
 	}
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "statistics_timer set to %d\n",
+	    "statistics_timer set to %f\n",
 	    this->stats_period_ms);
 	this->stats_timer = this->addTimerEvent("LanAdaptationStats",
-	                                        this->stats_period_ms);
+	                                        ArgumentWrapper(this->stats_period_ms));
 	return true;
 }
 
@@ -173,19 +173,20 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onInit()
 		}
 	}
 
-	if (delay == 0)
+	if (delay == time_ms_t::zero())
 	{
 		// No need to poll, messages are sent directly
 		return true;
 	}
 
-	uint32_t polling_rate;
+	time_ms_t polling_rate;
 	if (!OpenSandModelConf::Get()->getDelayTimer(polling_rate))
 	{
 		LOG(log_init, LEVEL_ERROR, "Cannot get the polling rate for the delay timer");
 		return false;
 	}
-	delay_timer = this->addTimerEvent(getName() + ".delay_timer", polling_rate);
+	delay_timer = this->addTimerEvent(getName() + ".delay_timer",
+	                                  ArgumentWrapper(polling_rate));
 	return true;
 }
 
@@ -319,14 +320,11 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const Event& event)
 
 bool Rt::UpwardChannel<BlockLanAdaptation>::onEvent(const TimerEvent& event)
 {
-	if(delay != 0 && event == delay_timer)
+	if(delay != time_ms_t::zero() && event == delay_timer)
 	{
-		time_ms_t current_time = getCurrentTime();
-
-		while (delay_fifo.getCurrentSize() > 0 && static_cast<unsigned long>(delay_fifo.getTickOut()) <= current_time)
+		for (auto &&elem: delay_fifo)
 		{
-			std::unique_ptr<FifoElement> elem = delay_fifo.pop();
-			auto packet = elem->getElem<NetPacket>();
+			auto packet = elem->releaseElem<NetPacket>();
 			if (!this->writePacket(packet->getData()))
 			{
 				return false;
@@ -425,7 +423,6 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 	}
 
 	bool success = true;
-	time_ms_t current_time = getCurrentTime();
 	auto burst_it = burst->begin();
 	Ptr<NetBurst> forward_burst = make_ptr<NetBurst>(nullptr);
 	while(burst_it != burst->end())
@@ -436,13 +433,13 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 		bool forward = false;
 
 		LOG(this->log_receive, LEVEL_INFO,
-				"packet from lower layer has terminal ID %u\n",
-				pkt_tal_id_dst);
+		    "packet from lower layer has terminal ID %u\n",
+		    pkt_tal_id_dst);
 		if(pkt_tal_id_src == this->tal_id)
 		{
 			// with broadcast, we would receive our own packets
 			LOG(this->log_receive, LEVEL_INFO,
-					"reject packet with own terminal ID\n");
+			    "reject packet with own terminal ID\n");
 			++burst_it;
 			continue;
 		}
@@ -450,17 +447,17 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 		if(packet_switch->learn(packet, pkt_tal_id_src))
 		{
 			LOG(this->log_receive, LEVEL_INFO,
-					"The mac address %s learned from lower layer as "
-					"associated to tal_id %u\n",
-					Ethernet::getSrcMac(packet).str().c_str(),
-					pkt_tal_id_src);
+			    "The mac address %s learned from lower layer as "
+			    "associated to tal_id %u\n",
+			    Ethernet::getSrcMac(packet).str().c_str(),
+			    pkt_tal_id_src);
 		}
 
 		if(packet_switch->isPacketForMe(packet, pkt_tal_id_src, forward))
 		{
 			LOG(this->log_receive, LEVEL_INFO,
-					"%s packet received from lower layer & should be read\n",
-					(*burst_it)->getName().c_str());
+			    "%s packet received from lower layer & should be read\n",
+			    (*burst_it)->getName().c_str());
 
 			unsigned char head[TUNTAP_FLAGS_LEN];
 			for(unsigned int i = 0; i < TUNTAP_FLAGS_LEN; i++)
@@ -468,12 +465,12 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 				// add the protocol flag in the header
 				head[i] = (this->contexts.front())->getLanHeader(i, *burst_it);
 				LOG(this->log_receive, LEVEL_DEBUG,
-						"Add 0x%2x for bit %u in TAP header\n",
-						head[i], i);
+				    "Add 0x%2x for bit %u in TAP header\n",
+				    head[i], i);
 			}
 
 			packet.insert(0, head, TUNTAP_FLAGS_LEN);
-			if (delay == 0)
+			if (delay == time_ms_t::zero())
 			{
 				if(!this->writePacket(packet))
 				{
@@ -484,10 +481,7 @@ bool Rt::UpwardChannel<BlockLanAdaptation>::onMsgFromDown(Ptr<NetBurst> burst)
 			}
 			else
 			{
-				std::unique_ptr<FifoElement> elem = std::make_unique<FifoElement>(make_ptr<NetPacket>(packet),
-				                                                                  current_time,
-				                                                                  current_time + delay);
-				if (!delay_fifo.pushBack(std::move(elem)))
+				if (!delay_fifo.push(make_ptr<NetPacket>(packet), delay))
 				{
 					LOG(this->log_receive, LEVEL_ERROR, "failed to push the message in the fifo\n");
 					success = false;

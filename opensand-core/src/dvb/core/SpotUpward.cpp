@@ -37,6 +37,7 @@
 #include "DvbRcsStd.h"
 #include "DvbS2Std.h"
 #include "Sof.h"
+#include "Sac.h"
 #include "Logon.h"
 #include "PhysicStd.h"
 #include "NetBurst.h"
@@ -139,7 +140,7 @@ bool SpotUpward::onInit()
 	}
 
 	// synchronized with SoF
-	this->initStatsTimer(this->ret_up_frame_duration_ms);
+	this->initStatsTimer(this->ret_up_frame_duration);
 
 	if(!this->initOutput())
 	{
@@ -200,7 +201,7 @@ bool SpotUpward::initSlottedAloha()
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
 	                                           "return up frequency plan",
 	                                           AccessType::ALOHA,
-	                                           this->ret_up_frame_duration_ms,
+	                                           this->ret_up_frame_duration,
 	                                           this->rcs_modcod_def,
 	                                           sa_categories,
 	                                           sa_terminal_affectation,
@@ -262,7 +263,7 @@ bool SpotUpward::initSlottedAloha()
 	// Unlike (future) scheduling, Slotted Aloha get all categories because
 	// it also handles received frames and in order to know to which
 	// category a frame is affected we need to get source terminal ID
-	if(!this->saloha->initParent(this->ret_up_frame_duration_ms,
+	if(!this->saloha->initParent(this->ret_up_frame_duration,
 	                             // pkt_hdl is the up_ret one because transparent sat
 	                             this->pkt_hdl))
 	{
@@ -277,10 +278,7 @@ bool SpotUpward::initSlottedAloha()
 		    "cannot get 'RCS2 Burst Length' value");
 		goto release_saloha;
 	}
-	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
-	                                               0,
-	                                               length_sym
-	                                              );
+	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration, 0, length_sym);
 
 	if(!this->saloha->init(sa_categories,
 	                       sa_terminal_affectation,
@@ -421,14 +419,11 @@ bool SpotUpward::initOutput()
 	std::string prefix = generateProbePrefix(spot_id, Component::gateway, is_sat);
 
 	// Events
-	this->event_logon_req = output->registerEvent("Spot_%d.DVB.logon_request",
-	                                              this->spot_id);
+	this->event_logon_req = output->registerEvent(Format("Spot_%d.DVB.logon_request", this->spot_id));
 
 	if(this->saloha)
 	{
-		this->log_saloha = output->registerLog(LEVEL_WARNING,
-		                                       "Spot_%d.Dvb.SlottedAloha",
-		                                       this->spot_id);
+		this->log_saloha = output->registerLog(LEVEL_WARNING, Format("Spot_%d.Dvb.SlottedAloha", this->spot_id));
 	}
 
 	// Output probes and stats
@@ -460,7 +455,7 @@ bool SpotUpward::checkIfScpc()
 	                                         "return up frequency plan",
 	                                         AccessType::SCPC,
 	                                         // used for checking, no need to get a relevant value
-	                                         5,
+	                                         time_ms_t(5),
 	                                         // we need S2 modcod definitions
 	                                         this->s2_modcod_def,
 	                                         scpc_categories,
@@ -730,7 +725,7 @@ void SpotUpward::updateStats(void)
 		return;
 	}
 	this->probe_gw_l2_from_sat->put(
-		this->l2_from_sat_bytes * 8.0 / this->stats_period_ms);
+		time_ms_t(this->l2_from_sat_bytes * 8) / this->stats_period_ms);
 	this->l2_from_sat_bytes = 0;
 
 	// Send probes

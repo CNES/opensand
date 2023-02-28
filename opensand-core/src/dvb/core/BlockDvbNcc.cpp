@@ -50,6 +50,7 @@
 #include "Ttp.h"
 
 #include <errno.h>
+#include <cstring>
 #include <opensand_rt/TcpListenEvent.h>
 #include <opensand_rt/MessageEvent.h>
 #include <opensand_rt/TimerEvent.h>
@@ -183,8 +184,8 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onInit()
 
 	this->spot = new SpotDownward(this->spot_id,
 	                              this->mac_id,
-	                              this->fwd_down_frame_duration_ms,
-	                              this->ret_up_frame_duration_ms,
+	                              this->fwd_down_frame_duration,
+	                              this->ret_up_frame_duration,
 	                              this->stats_period_ms,
 	                              this->pkt_hdl,
 	                              this->input_sts,
@@ -254,7 +255,7 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onInit()
 bool Rt::DownwardChannel<BlockDvbNcc>::initDown()
 {
 	// forward timer
-	if(!OpenSandModelConf::Get()->getForwardFrameDuration(this->fwd_down_frame_duration_ms))
+	if(!OpenSandModelConf::Get()->getForwardFrameDuration(this->fwd_down_frame_duration))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'links': missing parameter 'forward frame duration'\n");
@@ -262,8 +263,8 @@ bool Rt::DownwardChannel<BlockDvbNcc>::initDown()
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "forward timer set to %u\n",
-	    this->fwd_down_frame_duration_ms);
+	    "forward timer set to %f\n",
+	    this->fwd_down_frame_duration);
 
 	return true;
 }
@@ -273,16 +274,14 @@ bool Rt::DownwardChannel<BlockDvbNcc>::initTimers()
 {
 	// Set #sf and launch frame timer
 	this->super_frame_counter = 0;
-	this->fwd_timer = this->addTimerEvent("fwd_timer",
-	                                      this->fwd_down_frame_duration_ms);
+	this->fwd_timer = this->addTimerEvent("fwd_timer", ArgumentWrapper(this->fwd_down_frame_duration));
 
 	if (this->disable_control_plane)
 	{
 		return true;
 	}
 
-	this->frame_timer = this->addTimerEvent("frame",
-	                                        this->ret_up_frame_duration_ms);
+	this->frame_timer = this->addTimerEvent("frame", ArgumentWrapper(this->ret_up_frame_duration));
 
 	auto Conf = OpenSandModelConf::Get();
 
@@ -305,14 +304,15 @@ bool Rt::DownwardChannel<BlockDvbNcc>::initTimers()
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "ACM period set to %d ms\n",
+	    "ACM period set to %f ms\n",
 	    acm_period_ms);
 
 	// create timer
 	if(!spot)
 	{
 		LOG(this->log_init, LEVEL_WARNING,
-		    "Error when getting spot %d\n", spot_id);
+		    "Error when getting spot %d\n",
+		    spot_id);
 		return false;
 	}
 	spot->setPepCmdApplyTimer(this->addTimerEvent("pep_request",
@@ -541,8 +541,7 @@ bool Rt::DownwardChannel<BlockDvbNcc>::onEvent(const TimerEvent& event)
 	}
 	else if(event == this->fwd_timer)
 	{
-		this->fwd_frame_counter++;
-		if(!spot->handleFwdFrameTimer(this->fwd_frame_counter))
+		if(!spot->handleFwdFrameTimer(++this->fwd_frame_counter))
 		{
 			return false;
 		}

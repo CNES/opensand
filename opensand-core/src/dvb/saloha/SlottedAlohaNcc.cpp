@@ -104,9 +104,9 @@ void SlottedAlohaNcc::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaPa
 	saloha->addParameter("saloha_algo", "Slotted Aloha Algorithm", types->getType("saloha_algo"));
 	auto simu_list = conf->addList("simulations", "Simulated traffic", "simulation")->getPattern();
 	simu_list->addParameter("category", "Category", types->getType("traffic_type"));
-	simu_list->addParameter("max_packets", "Max Packets", types->getType("int"))->setUnit("packets");
-	simu_list->addParameter("replicas", "Replicas", types->getType("int"))->setUnit("packets");
-	simu_list->addParameter("ratio", "Ratio", types->getType("int"));
+	simu_list->addParameter("max_packets", "Max Packets", types->getType("ushort"))->setUnit("packets");
+	simu_list->addParameter("replicas", "Replicas", types->getType("ushort"))->setUnit("packets");
+	simu_list->addParameter("ratio", "Ratio", types->getType("ubyte"));
 }
 
 bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categories,
@@ -116,7 +116,6 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
                            UnitConverter *converter)
 {
 	std::string algo_name;
-	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
 	auto conf = OpenSandModelConf::Get()->getProfileData()->getComponent("access");
 
 	// set spot id
@@ -149,28 +148,22 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 	}
 
 	auto output = Output::Get();
-	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
-	    ++cat_iter)
+	for(auto &&[label, cat]: this->categories)
 	{
-		TerminalCategorySaloha *cat = (*cat_iter).second;
 		cat->computeSlotsNumber(converter);
-		std::shared_ptr<Probe<int>> probe_coll;
-		std::shared_ptr<Probe<int>> probe_coll_before;
-		std::shared_ptr<Probe<int>> probe_coll_ratio;
-		char probe_name[128];
 
-		snprintf(probe_name, sizeof(probe_name), "Aloha.collisions.%s", (*cat_iter).first.c_str());
-		probe_coll = output->registerProbe<int>(probe_name, true, SAMPLE_SUM);
+		std::shared_ptr<Probe<int>> probe_coll = output->registerProbe<int>("Aloha.collisions." + label,
+		                                                                    true, SAMPLE_SUM);
 		// disable by default
-		snprintf(probe_name, sizeof(probe_name), "Aloha.collisions.before_algo.%s", (*cat_iter).first.c_str());
-		probe_coll_before = output->registerProbe<int>(probe_name, false, SAMPLE_SUM);
+		std::shared_ptr<Probe<int>> probe_coll_before = output->registerProbe<int>("Aloha.collisions.before_algo." + label,
+		                                                                            false, SAMPLE_SUM);
 		// disable by default
-		snprintf(probe_name, sizeof(probe_name), "Aloha.collisions_ratio.%s", (*cat_iter).first.c_str());
-		probe_coll_ratio = output->registerProbe<int>(probe_name, "%", false, SAMPLE_AVG);
+		std::shared_ptr<Probe<int>> probe_coll_ratio = output->registerProbe<int>("Aloha.collisions_ratio." + label,
+		                                                                          "%", false, SAMPLE_AVG);
 
-		this->probe_collisions_before.emplace(cat_iter->first, probe_coll_before);
-		this->probe_collisions.emplace(cat_iter->first, probe_coll);
-		this->probe_collisions_ratio.emplace(cat_iter->first, probe_coll_ratio);
+		this->probe_collisions_before.emplace(label, probe_coll_before);
+		this->probe_collisions.emplace(label, probe_coll);
+		this->probe_collisions_ratio.emplace(label, probe_coll_ratio);
 	}
 
 	if(!OpenSandModelConf::extractParameterData(conf->getComponent("random_access")->getParameter("saloha_algo"),
@@ -212,32 +205,29 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 			return false;
 		}
 
-		int max_packets;
-		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("max_packets"), max_packets))
+		uint16_t nb_max_packets;
+		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("max_packets"), nb_max_packets))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get max packets from section 'access, simulated traffic'\n");
 			return false;
 		}
-		uint16_t nb_max_packets = max_packets;
 
-		int replicas;
-		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("replicas"), replicas))
+		uint16_t nb_replicas;
+		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("replicas"), nb_replicas))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get replicas count from section 'access, simulated traffic'\n");
 			return false;
 		}
-		uint16_t nb_replicas = replicas;
 
-		int raw_ratio;
-		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("ratio"), raw_ratio))
+		uint8_t ratio;
+		if(!OpenSandModelConf::extractParameterData(simulated_traffic->getParameter("ratio"), ratio))
 		{
 			LOG(this->log_init, LEVEL_ERROR,
 			    "cannot get ratio from section 'access, simulated traffic'\n");
 			return false;
 		}
-		uint8_t ratio = raw_ratio;
 
 		// FIXME: as in manager we need at least one element in a table
 		//        to add a new line, we will have at least one line here.
@@ -251,7 +241,7 @@ bool SlottedAlohaNcc::init(TerminalCategories<TerminalCategorySaloha> &categorie
 			continue;
 		}
 
-		cat_iter = this->categories.find(label);
+		TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter = this->categories.find(label);
 		if(cat_iter == this->categories.end())
 		{
 			LOG(this->log_init, LEVEL_WARNING,
@@ -345,16 +335,12 @@ bool SlottedAlohaNcc::schedule(Rt::Ptr<NetBurst> &burst,
                                std::list<Rt::Ptr<DvbFrame>> &complete_dvb_frames,
                                time_sf_t superframe_counter)
 {
-	TerminalCategories<TerminalCategorySaloha>::const_iterator cat_iter;
-	
 	if(!this->isSalohaFrameTick(superframe_counter))
 	{
 		return true;
 	}
-	for(cat_iter = this->categories.begin(); cat_iter != this->categories.end();
-	    ++cat_iter)
+	for(auto &&[label, category]: this->categories)
 	{
-		TerminalCategorySaloha *category = (*cat_iter).second;
 		if(!this->scheduleCategory(category, burst, complete_dvb_frames))
 		{
 			return false;
@@ -641,11 +627,11 @@ void SlottedAlohaNcc::simulateTraffic(TerminalCategorySaloha *category,
 				auto sa_packet = Rt::make_ptr<SlottedAlohaPacketData>(
 				        Rt::Data(),
 				        (saloha_pdu_id_t)pdu_id,
-				        (uint16_t)0,
-				        (uint16_t)0,
-				        (uint16_t)0,
+				        uint16_t(0),
+				        uint16_t(0),
+				        uint16_t(0),
 				        nb_replicas,
-				        (time_ms_t)0);
+				        time_sf_t(0));
 				// as for request simulation use tal id > BROADCAST_TAL_ID
 				// used for filtering
 				sa_packet->setSrcTalId(BROADCAST_TAL_ID + 1 + cpt);

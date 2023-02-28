@@ -5,6 +5,7 @@
  *
  *
  * Copyright © 2019 TAS
+ * Copyright © 2019 CNES
  *
  *
  * This file is part of the OpenSAND testbed.
@@ -25,53 +26,35 @@
  *
  */
 
+
 /**
- * @file RtMutex.h
+ * @file Scheduling.cpp
+ * @brief Scheduling for MAC FIFOs
  * @author Julien BERNARD / <jbernard@toulouse.viveris.com>
- * @brief  Wrapper for using a mutex with RAII method
+ * @author Mathias ETTINGER / <mathias.ettinger@viveris.fr>
  */
 
 
+#include <opensand_output/Output.h>
 
-#ifndef RT_MUTEX_H
-#define RT_MUTEX_H
-
-
-#include <mutex>
-#include <condition_variable>
+#include "Scheduling.h"
+#include "DvbFifo.h"
+#include "StFmtSimu.h"
 
 
-namespace Rt
+Scheduling::Scheduling(EncapPlugin::EncapPacketHandler *packet_handler,
+                       const fifos_t &fifos,
+                       const StFmtSimuList *const simu_sts):
+	packet_handler(packet_handler),
+	dvb_fifos(fifos),
+	simu_sts(simu_sts),
+	remaining_data(Rt::make_ptr<NetPacket>(nullptr))
 {
+	this->log_scheduling = Output::Get()->registerLog(LEVEL_WARNING, "Dvb.Scheduling");
+}
 
 
-using Mutex = std::recursive_mutex;
-using Lock = std::lock_guard<Mutex>;
-
-
-/**
- * @class Semaphore
- * @brief A simple semaphore implementation to protect access to critical sections
- */
-class Semaphore
+uint8_t Scheduling::getCurrentModcodId(tal_id_t id) const
 {
- public:
-	Semaphore(std::size_t = 1);
-
-	Semaphore(const Semaphore&) = delete;
-	Semaphore& operator =(const Semaphore&) = delete;
-
-	void wait();
-	void notify();
-
- private:
-	std::mutex lock;
-	std::condition_variable condition;
-	std::size_t count;
-};
-
-
-};
-
-
-#endif
+	return this->simu_sts->getCurrentModcodId(id);
+}

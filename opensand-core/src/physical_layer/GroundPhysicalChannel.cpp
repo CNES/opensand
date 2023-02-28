@@ -124,10 +124,11 @@ bool GroundPhysicalChannel::initGround(bool upward_channel,
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,
-	    "delay_refresh_period = %d ms", refresh_period_ms);
+	    "delay_refresh_period = %f ms",
+	    refresh_period_ms);
 
 	// Initialize the FIFO event
-	this->fifo_timer = channel.addTimerEvent("fifo_timer", refresh_period_ms);
+	this->fifo_timer = channel.addTimerEvent("fifo_timer", ArgumentWrapper(refresh_period_ms));
 
 	// Initialize log
 	this->log_event = output->registerLog(LEVEL_WARNING, "PhysicalLayer." + link + "ward.Event");
@@ -140,7 +141,8 @@ bool GroundPhysicalChannel::initGround(bool upward_channel,
 		return false;
 	}
 	LOG(log_init, LEVEL_NOTICE,
-	    "attenuation_refresh_period = %d ms", refresh_period_ms);
+	    "attenuation_refresh_period = %f ms",
+	    refresh_period_ms);
 
 	// Get the clear sky condition
 	if(!OpenSandModelConf::extractParameterData(link_attenuation->getParameter("clear_sky"), this->clear_sky_condition))
@@ -178,14 +180,14 @@ bool GroundPhysicalChannel::initGround(bool upward_channel,
 	{
 		LOG(log_init, LEVEL_ERROR,
 		    "Unable to initialize the physical layer attenuation plugin %s",
-		    attenuation_type.c_str());
+		    attenuation_type);
 		return false;
 	}
 
 	// Initialize the attenuation event
 	std::ostringstream name;
 	name << "attenuation_" << link;
-	this->attenuation_update_timer = channel.addTimerEvent(name.str(), refresh_period_ms);
+	this->attenuation_update_timer = channel.addTimerEvent(name.str(), ArgumentWrapper(refresh_period_ms));
 
 	// Initialize attenuation probes
 	this->probe_attenuation =
@@ -245,25 +247,11 @@ double GroundPhysicalChannel::computeTotalCn(double up_cn) const
 
 bool GroundPhysicalChannel::pushPacket(Rt::Ptr<NetContainer> pkt)
 {
-	std::unique_ptr<FifoElement> elem;
 	std::string pkt_name = pkt->getName();
-	time_ms_t current_time = getCurrentTime();
-	time_ms_t delay = this->satdelay_model->getSatDelay();
-
-	// create a new FIFO element to store the packet
-	try
-	{
-		elem = std::make_unique<FifoElement>(std::move(pkt), current_time, current_time + delay);
-	}
-	catch (const std::bad_alloc&)
-	{
-		LOG(this->log_channel, LEVEL_ERROR,
-		    "Cannot allocate FIFO element, drop data");
-		return false;
-	}
+	auto delay = this->satdelay_model->getSatDelay();
 
 	// append the data in the fifo
-	if(!this->delay_fifo.push(std::move(elem)))
+	if(!this->delay_fifo.push(std::move(pkt), delay))
 	{
 		LOG(this->log_channel, LEVEL_ERROR,
 		    "FIFO is full: drop data");
@@ -271,29 +259,20 @@ bool GroundPhysicalChannel::pushPacket(Rt::Ptr<NetContainer> pkt)
 	}
 
 	LOG(this->log_channel, LEVEL_NOTICE,
-	    "%s data stored in FIFO (tick_in = %ld, tick_out = %ld, delay = %u ms)",
-	    pkt_name.c_str(),
-	    current_time,
-		current_time + delay,
-	    delay);
+	    "%s data stored in FIFO (delay = %f ms)",
+	    pkt_name, delay);
 	return true;
 }
 
 bool GroundPhysicalChannel::forwardReadyPackets()
 {
-	time_ms_t current_time = getCurrentTime();
-
 	LOG(this->log_channel, LEVEL_DEBUG,
 		"Forward ready packets");
 
-	while (this->delay_fifo.getCurrentSize() > 0 &&
-	       ((unsigned long)this->delay_fifo.getTickOut()) <= current_time)
+	for (auto &&elem: delay_fifo)
 	{
-		std::unique_ptr<FifoElement> elem = this->delay_fifo.pop();
 		ASSERT(elem != nullptr, "Null element in fifo retrieved from GroundPhysicalChannel::forwardReadyPackets");
-
-		Rt::Ptr<DvbFrame> pkt = elem->getElem<DvbFrame>();
-		this->forwardPacket(std::move(pkt));
+		this->forwardPacket(elem->releaseElem<DvbFrame>());
 	}
 	return true;
 }

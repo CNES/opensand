@@ -72,7 +72,7 @@ void ConstantDelay::generateConfiguration(const std::string &parent_path,
 		return;
 	}
 
-	auto delay_value = delay->addParameter("delay_value", "Delay Value", types->getType("int"));
+	auto delay_value = delay->addParameter("delay_value", "Delay Value", types->getType("uint"));
 	delay_value->setUnit("ms");
 	Conf->setProfileReference(delay_value, delay_type, plugin_name);
 }
@@ -80,13 +80,12 @@ void ConstantDelay::generateConfiguration(const std::string &parent_path,
 
 bool ConstantDelay::init()
 {
-	time_ms_t delay_ms;
 	auto delay = OpenSandModelConf::Get()->getProfileData(config_path);
 
 	if(this->is_init)
 		return true;
 
-	int delay_value;
+	uint32_t delay_value;
 	auto delay_parameter = delay->getParameter("delay_value");
 	if(!OpenSandModelConf::extractParameterData(delay_parameter, delay_value))
 	{
@@ -94,11 +93,11 @@ bool ConstantDelay::init()
 		    "section 'physical_layer', missing parameter 'delay value'\n");
 		return false;
 	}
-	delay_ms = delay_value;
 
 	LOG(this->log_init, LEVEL_DEBUG,
-	    "Constant delay: %d ms", delay_ms);
-	this->setSatDelay(delay_ms);
+	    "Constant delay: %u ms",
+	    delay_value);
+	this->setSatDelay(time_ms_t(delay_value));
 
 	// TODO: should is_init use a mutex??
 	this->is_init = true;

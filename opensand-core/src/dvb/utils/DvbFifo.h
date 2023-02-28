@@ -34,23 +34,22 @@
 #ifndef DVD_FIFO_H
 #define DVD_FIFO_H
 
-#include "OpenSandCore.h"
-#include "FifoElement.h"
-#include "Sac.h"
 
 #include <opensand_rt/RtMutex.h>
 #include <opensand_output/OutputLog.h>
 
 #include <deque>
 #include <map>
-#include <sys/times.h>
+
+#include "DelayFifo.h"
+#include "Sac.h"
 
 
 ///> The priority of FIFO that indicates the MAC QoS which is sometimes equivalent
 ///>  to Diffserv IP QoS
 
 /// DVB fifo statistics context
-typedef struct
+struct mac_fifo_stat_context_t
 {
 	vol_pkt_t current_pkt_nbr;        ///< current number of elements
 	vol_bytes_t current_length_bytes; ///< current length of data in fifo
@@ -60,7 +59,7 @@ typedef struct
 	vol_bytes_t out_length_bytes;     ///< current length of data extraction during period
 	vol_pkt_t drop_pkt_nbr;           ///< number of elements dropped
 	vol_bytes_t drop_bytes;           ///< current length of data dropped
-} mac_fifo_stat_context_t;
+};
 
 
 /// Access type for fifo (mapping between mac_fifo and carrier)
@@ -84,58 +83,15 @@ public:
 		ForwardAccessType forward_access_type;
 	};
 
-	ForwardOrReturnAccessType ():
-		direction{Direction::Unknown}
-	{};
+	ForwardOrReturnAccessType ();
+	ForwardOrReturnAccessType (ReturnAccessType access_type);
+	ForwardOrReturnAccessType (ForwardAccessType access_type);
 
-	ForwardOrReturnAccessType (ReturnAccessType access_type):
-		direction{Direction::Return},
-		return_access_type{access_type}
-	{};
+	bool IsForwardAccess () const;
+	bool IsReturnAccess () const;
 
-	ForwardOrReturnAccessType (ForwardAccessType access_type):
-		direction{Direction::Forward},
-		forward_access_type{access_type}
-	{};
-
-	bool IsForwardAccess () const
-	{
-		return direction == Direction::Forward;
-	};
-
-	bool IsReturnAccess () const
-	{
-		return direction == Direction::Return;
-	};
-
-	bool operator == (const ForwardOrReturnAccessType& other) const
-	{
-		switch (direction)
-		{
-			case Direction::Forward:
-				return other.direction == Direction::Forward && this->forward_access_type == other.forward_access_type;
-			case Direction::Return:
-				return other.direction == Direction::Return && this->return_access_type == other.return_access_type;
-
-			default:
-				return false;
-		}
-	}
-
-	bool operator != (const ForwardOrReturnAccessType& other) const
-	{
-		switch (direction)
-		{
-			case Direction::Forward:
-				return other.direction != Direction::Forward || this->forward_access_type != other.forward_access_type;
-
-			case Direction::Return:
-				return other.direction != Direction::Return || this->return_access_type != other.return_access_type;
-
-			default:
-				return true;
-		}
-	}
+	bool operator == (const ForwardOrReturnAccessType& other) const;
+	bool operator != (const ForwardOrReturnAccessType& other) const;
 };
 
 
@@ -145,7 +101,7 @@ public:
  *
  * Manages a DVB fifo, for queuing, statistics, ...
  */
-class DvbFifo
+class DvbFifo: public DelayFifo
 {
 public:
 	/**
@@ -158,7 +114,8 @@ public:
 	 *                      this fifo if it is for the GW (forward link)
 	 * @param max_size_pkt  the fifo maximum size
 	 */
-	DvbFifo(unsigned int fifo_priority, std::string mac_fifo_name,
+	DvbFifo(unsigned int fifo_priority,
+	        std::string mac_fifo_name,
 	        std::string type_name,
 	        vol_pkt_t max_size_pkt);
 
@@ -172,8 +129,6 @@ public:
 	DvbFifo(uint8_t carrier_id,
 	        vol_pkt_t max_size_pkt,
 	        std::string fifo_name);
-
-	virtual ~DvbFifo();
 
 	/**
 	 * @brief Get the fifo_name of the fifo
@@ -211,25 +166,11 @@ public:
 	uint8_t getCarrierId() const;
 
 	/**
-	 * @brief Get the fifo current size
-	 *
-	 * @return the queue current size
-	 */
-	vol_pkt_t getCurrentSize() const;
-
-	/**
 	 * @brief Get the length of data in the fifo (in kbits)
 	 *
 	 * @return the size of data in the fifo (in kbits)
 	 */
 	vol_bytes_t getCurrentDataLength() const;
-
-	/**
-	 * @brief Get the fifo maximum size
-	 *
-	 * @return the queue maximum size
-	 */
-	vol_pkt_t getMaxSize() const;
 
 	/**
 	 * @brief Get the number of packets that fed the queue since
@@ -247,60 +188,11 @@ public:
 	vol_bytes_t getNewDataLength() const;
 
 	/**
-	 * @brief Get the head element tick out
-	 *
-	 * @return the head element tick out
-	 */
-	clock_t getTickOut() const;
-
-	/**
 	 * @brief Reset filled, only if the FIFO has the requested CR type
 	 *
 	 * @param access_type is the CR type for which reset must be done
 	 */
 	void resetNew(const ForwardOrReturnAccessType access_type);
-
-	/**
-	 * @brief Add an element at the end of the list
-	 *        (Increments new_size_pkt)
-	 *
-	 * @param elem is the pointer on FifoElement
-	 * @return true on success, false otherwise
-	 */
-	bool push(std::unique_ptr<FifoElement> elem);
-
-	/**
-	 * @brief Add an element at the head of the list
-	 *        (Decrements new_length_bytes)
-	 * @warning This function should be use only to replace a fragment of
-	 *          previously removed data in the fifo
-	 *
-	 * @param elem is the pointer on FifoElement
-	 * @return true on success, false otherwise
-	 */
-	bool pushFront(std::unique_ptr<FifoElement> elem);
-
-	/**
-	 * @brief Add an element at the back of the list
-	 *        (Decrements new_length_bytes)
-	 *
-	 * @param elem is the pointer on FifoElement
-	 * @return true on success, false otherwise
-	 */
-	bool pushBack(std::unique_ptr<FifoElement> elem);
-
-	/**
-	 * @brief Remove an element at the head of the list
-	 *
-	 * @return NULL pointer if extraction failed because fifo is empty
-	 *         pointer on extracted FifoElement otherwise
-	 */
-	std::unique_ptr<FifoElement> pop();
-
-	/**
-	 * @brief Flush the dvb fifo and reset counters
-	 */
-	void flush();
 
 	/**
 	 * @brief Returns statistics of the fifo in a context
@@ -314,17 +206,34 @@ public:
 
 	uint8_t getCni(void) const;
 
-	// const std::deque<FifoElement *> &getQueue() const;
-	std::deque<std::unique_ptr<FifoElement>>::const_iterator begin() const;
-	std::deque<std::unique_ptr<FifoElement>>::const_iterator end() const;
+	/**
+	 * @brief Add an element at the end of the list
+	 *        (Increments new_size_pkt)
+	 *
+	 * @param elem is the pointer on FifoElement
+	 * @param duration is the amount of time the element should stay in the fifo
+	 * @return true on success, false otherwise
+	 */
+	bool push(Rt::Ptr<NetContainer> elem, time_ms_t duration) override;
+
+	/**
+	 * @brief Flush the sat carrier fifo and reset counters
+	 */
+	void flush() override;
 
 protected:
+	/**
+	 * @brief Remove an element at the head of the list
+	 *
+	 * @return NULL pointer if extraction failed because fifo is empty
+	 *         pointer on extracted FifoElement otherwise
+	 */
+	std::unique_ptr<FifoElement> pop() override;
+
 	/**
 	 * @brief Reset the fifo counters
 	 */
 	void resetStats();
-
-	std::deque<std::unique_ptr<FifoElement>> queue; ///< the FIFO itself
 
 	unsigned int fifo_priority;     ///< the MAC priority of the fifo
 	std::string fifo_name;          ///< the MAC fifo name: for ST (EF, AF, BE, ...) or SAT
@@ -335,20 +244,14 @@ protected:
 	vol_bytes_t cur_length_bytes;   ///< the size of data that filled the fifo
 	vol_bytes_t new_length_bytes;   ///< the size of data that filled the fifo
 	                                ///< since previous check
-	vol_pkt_t max_size_pkt;         ///< the maximum size for that FIFO
 	uint8_t carrier_id;             ///< the carrier id of the fifo (for SAT and GW purposes)
 	mac_fifo_stat_context_t stat_context; ///< statistics context used by MAC layer
 
-	mutable Rt::Mutex fifo_mutex; ///< The mutex to protect FIFO from concurrent access
-
-	uint8_t cni;                ///< is Scpc mode add cni as option into gse packet
+	uint8_t cni;                    ///< is Scpc mode add cni as option into gse packet
 
 	// Output log
 	std::shared_ptr<OutputLog> log_dvb_fifo;
 };
-
-
-typedef std::map<qos_t, DvbFifo *> fifos_t;
 
 
 #endif

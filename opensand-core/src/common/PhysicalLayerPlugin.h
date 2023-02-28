@@ -66,13 +66,11 @@ protected:
 	double attenuation;
 
 	/* channel refreshing period */
-	time_ms_t refresh_period_ms;
+	time_ms_t refresh_period;
 
 public:
 	/**
 	 * @brief AttenuationModelPlugin constructor
-	 *
-	 * @param refresh_period_ms  the attenuation model refreshing period
 	 */
 	AttenuationModelPlugin();
 
@@ -88,7 +86,7 @@ public:
 	 * @param link        the link
 	 * @return true on success, false otherwise
 	 */
-	virtual bool init(time_ms_t refresh_period_ms, std::string link) = 0;
+	virtual bool init(time_ms_t refresh_period, std::string link) = 0;
 
 	/**
 	 * @brief Get the model current attenuation
@@ -230,7 +228,7 @@ protected:
 	time_ms_t delay;
 
 	/* satdelay refreshing period */
-	time_ms_t refresh_period_ms;
+	time_ms_t refresh_period;
 
 private:
 	/* Mutex to prevent concurrent access to delay */

@@ -36,10 +36,13 @@
 
 #include <unistd.h>
 #include <errno.h>
+#include <cstring>
+
 #include <opensand_output/Output.h>
 
 #include "DvbChannel.h"
 
+#include "DvbFifo.h"
 #include "Plugin.h"
 #include "DvbS2Std.h"
 #include "PhysicStd.h"
@@ -73,8 +76,8 @@ inline bool fileExists(const std::string &filename)
 DvbChannel::DvbChannel():
 	req_burst_length(0),
 	super_frame_counter(0),
-	fwd_down_frame_duration_ms(),
-	ret_up_frame_duration_ms(),
+	fwd_down_frame_duration(),
+	ret_up_frame_duration(),
 	pkt_hdl(nullptr),
 	stats_period_ms(),
 	stats_period_frame(),
@@ -210,14 +213,15 @@ bool DvbChannel::initCommon(EncapSchemeList encap_schemes)
 	//         init Common values from sections
 	//********************************************************
 	// frame duration
-	if(!Conf->getReturnFrameDuration(this->ret_up_frame_duration_ms))
+	if(!Conf->getReturnFrameDuration(this->ret_up_frame_duration))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "missing parameter 'return link frame duration'\n");
 		goto error;
 	}
 	LOG(this->log_init_channel, LEVEL_NOTICE,
-	    "frame duration set to %d\n", this->ret_up_frame_duration_ms);
+	    "frame duration set to %uμs\n",
+		this->ret_up_frame_duration.count());
 
 	if(!this->initPktHdl(encap_schemes, &this->pkt_hdl))
 	{
@@ -240,43 +244,26 @@ error:
 }
 
 
-void DvbChannel::initStatsTimer(time_ms_t frame_duration_ms)
+void DvbChannel::initStatsTimer(time_us_t frame_duration)
 {
 	// convert the pediod into a number of frames here to be
 	// precise when computing statistics
-	this->stats_period_frame = std::max(1, (int)round((double)this->stats_period_ms /
-	                                                  (double)frame_duration_ms));
+	this->stats_period_frame = std::max(1L, this->stats_period_ms / frame_duration);
 	LOG(this->log_init_channel, LEVEL_NOTICE,
 	    "statistics_timer set to %d, converted into %d frame(s)\n",
-	    this->stats_period_ms, this->stats_period_frame);
-	this->stats_period_ms = this->stats_period_frame * frame_duration_ms;
+	    this->stats_period_ms.count(), this->stats_period_frame);
+	this->stats_period_ms = std::chrono::duration_cast<time_ms_t>(this->stats_period_frame * frame_duration);
 }
 
 
-bool DvbChannel::pushInFifo(DvbFifo *fifo,
+bool DvbChannel::pushInFifo(DvbFifo &fifo,
                             Rt::Ptr<NetContainer> data,
                             time_ms_t fifo_delay)
 {
-	std::unique_ptr<FifoElement> elem{};
-	time_ms_t current_time = getCurrentTime();
 	std::string data_name = data->getName();
 
-	// create a new FIFO element to store the packet
-	try
-	{
-		elem = std::make_unique<FifoElement>(std::move(data), current_time, current_time + fifo_delay);
-	}
-	catch (const std::bad_alloc&)
-	{
-		LOG(DvbChannel::dvb_fifo_log, LEVEL_ERROR,
-		    "cannot allocate FIFO element, drop data\n");
-		return false;
-	}
-
 	// append the data in the fifo
-	auto tick_in = elem->getTickIn();
-	auto tick_out = elem->getTickOut();
-	if(!fifo->push(std::move(elem)))
+	if(!fifo.push(std::move(data), fifo_delay))
 	{
 		LOG(DvbChannel::dvb_fifo_log, LEVEL_ERROR,
 		    "FIFO is full: drop data\n");
@@ -284,9 +271,8 @@ bool DvbChannel::pushInFifo(DvbFifo *fifo,
 	}
 
 	LOG(DvbChannel::dvb_fifo_log, LEVEL_NOTICE,
-	    "%s data stored in FIFO %s (tick_in = %ld, tick_out = %ld)\n",
-	    data_name.c_str(), fifo->getName().c_str(),
-	    tick_in, tick_out);
+	    "%s data stored in FIFO %s (delay = %ums)\n",
+	    data_name, fifo.getName(), fifo_delay.count());
 
 	return true;
 }
@@ -480,14 +466,13 @@ bool DvbFmt::getCniOutputHasChanged(tal_id_t tal_id)
 	return this->output_sts->getCniHasChanged(tal_id);
 }
 
-bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
-                                FifoElement &elem,
-                                Rt::Ptr<NetPacket> packet,
-                                tal_id_t source,
-                                tal_id_t dest,
-                                std::string extension_name,
-                                time_sf_t super_frame_counter,
-                                bool is_gw)
+Rt::Ptr<NetPacket> DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
+                                              Rt::Ptr<NetPacket> packet,
+                                              tal_id_t source,
+                                              tal_id_t dest,
+                                              std::string extension_name,
+                                              time_sf_t super_frame_counter,
+                                              bool is_gw)
 {
 	uint32_t opaque = 0;
 	double cni;
@@ -506,7 +491,7 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 	}
 	opaque = hcnton(cni);
 
-	if(packet != nullptr)
+	if(packet)
 	{
 		bool success = pkt_hdl->checkPacketForHeaderExtensions(packet);
 
@@ -541,21 +526,15 @@ bool DvbFmt::setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
 		LOG(this->log_fmt, LEVEL_DEBUG,
 		    "SF#%d: cannot add header extension in packet",
 		    super_frame_counter);
-		return false;
 	}
-
-	if(extension_pkt == nullptr)
+	else if(!extension_pkt)
 	{
 		LOG(this->log_fmt, LEVEL_ERROR,
 		    "SF#%d: failed to create the GSE packet with "
 		    "extensions\n", super_frame_counter);
-		return false;
 	}
 
-	// And replace the packet in the FIFO
-	elem.setElem(std::move(extension_pkt));
-
-	return true;
+	return extension_pkt;
 }
 
 
@@ -565,7 +544,7 @@ template<class T>
 bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
                           std::string section,
                           AccessType access_type,
-                          time_ms_t duration_ms,
+                          time_us_t duration,
                           const FmtDefinitionTable *fmt_def,
                           TerminalCategories<T> &categories,
                           TerminalMapping<T> &terminal_affectation,
@@ -641,7 +620,7 @@ bool DvbChannel::initBand(const OpenSandModelConf::spot &spot,
 	}
 
 	// Compute bandplan
-	if(!this->computeBandplan(bandwidth_khz, roll_off, duration_ms, categories))
+	if(!this->computeBandplan(bandwidth_khz, roll_off, duration, categories))
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Cannot compute band plan for %s\n",
@@ -747,7 +726,7 @@ template bool DvbChannel::initBand(
 		const OpenSandModelConf::spot &spot,
 	   	std::string section,
 	   	AccessType access_type,
-	   	time_ms_t duration_ms,
+	   	time_us_t duration,
 	   	const FmtDefinitionTable *fmt_def,
 	   	TerminalCategories<TerminalCategoryDama> &categories,
 	   	TerminalMapping<TerminalCategoryDama> &terminal_affectation,
@@ -757,7 +736,7 @@ template bool DvbChannel::initBand(
 		const OpenSandModelConf::spot &spot,
 	   	std::string section,
 	   	AccessType access_type,
-	   	time_ms_t duration_ms,
+	   	time_us_t duration,
 	   	const FmtDefinitionTable *fmt_def,
 	   	TerminalCategories<TerminalCategorySaloha> &categories,
 	   	TerminalMapping<TerminalCategorySaloha> &terminal_affectation,
@@ -768,7 +747,7 @@ template bool DvbChannel::initBand(
 template<class T>
 bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
                                  double roll_off,
-                                 time_ms_t duration_ms,
+                                 time_us_t duration,
                                  TerminalCategories<T> &categories)
 {
 	double weighted_sum_ksymps = 0.0;
@@ -789,7 +768,7 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 	{
 		LOG(this->log_init_channel, LEVEL_ERROR,
 		    "Weighted ratio sum is 0\n");
-		goto error;
+		return false;
 	}
 
 	// compute carrier number per category
@@ -815,28 +794,25 @@ bool DvbChannel::computeBandplan(freq_khz_t available_bandplan_khz,
 		    category->getLabel().c_str(), carriers_number);
 
 		// set the carrier numbers and capacity in carrier groups
-		category->updateCarriersGroups(carriers_number,
-		                               duration_ms);
+		category->updateCarriersGroups(carriers_number, duration);
 	}
 
 	return true;
-error:
-	return false;
 }
 template bool DvbChannel::computeBandplan(
 		freq_khz_t available_bandplan_khz,
 	   	double roll_off,
-	   	time_ms_t duration_ms,
+	   	time_us_t duration,
 	   	TerminalCategories<TerminalCategoryDama> &categories);
 template bool DvbChannel::computeBandplan(
 		freq_khz_t available_bandplan_khz,
 	   	double roll_off,
-	   	time_ms_t duration_ms,
+	   	time_us_t duration,
 	   	TerminalCategories<TerminalCategorySaloha> &categories);
 
 
 template<class T>
-bool DvbChannel::allocateBand(time_ms_t duration_ms,
+bool DvbChannel::allocateBand(time_us_t duration,
                               std::string cat_label,
                               rate_kbps_t new_rate_kbps,
                               TerminalCategories<T> &categories)
@@ -912,22 +888,22 @@ bool DvbChannel::allocateBand(time_ms_t duration_ms,
 		return false;
 	}
 
-	return this->carriersTransfer(duration_ms, cat_sno, cat, carriers);
+	return this->carriersTransfer(duration, cat_sno, cat, carriers);
 }
 template bool DvbChannel::allocateBand(
-		time_ms_t duration_ms,
+		time_us_t duration,
 	   	std::string cat_label,
 	   	rate_kbps_t new_rate_kbps,
 	   	TerminalCategories<TerminalCategoryDama> &categories);
 template bool DvbChannel::allocateBand(
-		time_ms_t duration_ms,
+		time_us_t duration,
 	   	std::string cat_label,
 	   	rate_kbps_t new_rate_kbps,
 	   	TerminalCategories<TerminalCategorySaloha> &categories);
 
 
 template<class T>
-bool DvbChannel::releaseBand(time_ms_t duration_ms,
+bool DvbChannel::releaseBand(time_us_t duration,
                              std::string cat_label,
                              rate_kbps_t new_rate_kbps,
                              TerminalCategories<T> &categories)
@@ -995,15 +971,15 @@ bool DvbChannel::releaseBand(time_ms_t duration_ms,
 		rs_unneeded += carriers.begin()->first; // rs_unneeded should be positive
 	}
 
-	return this->carriersTransfer(duration_ms, cat, cat_sno, carriers);
+	return this->carriersTransfer(duration, cat, cat_sno, carriers);
 }
 template bool DvbChannel::releaseBand(
-		time_ms_t duration_ms,
+		time_us_t duration,
 	   	std::string cat_label,
 	   	rate_kbps_t new_rate_kbps,
 	   	TerminalCategories<TerminalCategoryDama> &categories);
 template bool DvbChannel::releaseBand(
-		time_ms_t duration_ms,
+		time_us_t duration,
 	   	std::string cat_label,
 	   	rate_kbps_t new_rate_kbps,
 	   	TerminalCategories<TerminalCategorySaloha> &categories);
@@ -1096,7 +1072,7 @@ template bool DvbChannel::carriersTransferCalculation(
 
 
 template<class T>
-bool DvbChannel::carriersTransfer(time_ms_t duration_ms, T* cat1, T* cat2,
+bool DvbChannel::carriersTransfer(time_us_t duration, T* cat1, T* cat2,
                                   std::map<rate_symps_t , unsigned int> carriers)
 {
 	unsigned int highest_id;
@@ -1127,18 +1103,18 @@ bool DvbChannel::carriersTransfer(time_ms_t duration_ms, T* cat1, T* cat2,
 		cat2->addCarriersGroup(highest_id, cat2->getFmtGroup(),
 		                       it->second, associated_ratio,
 		                       it->first, cat2->getDesiredAccess(),
-		                       duration_ms);
+		                       duration);
 	}
 
 	return true;
 }
 template bool DvbChannel::carriersTransfer(
-		time_ms_t duration_ms,
+		time_us_t duration,
 	   	TerminalCategoryDama* cat1,
 	   	TerminalCategoryDama* cat2,
 	   	std::map<rate_symps_t , unsigned int> carriers);
 template bool DvbChannel::carriersTransfer(
-		time_ms_t duration_ms,
+		time_us_t duration,
 	   	TerminalCategorySaloha* cat1,
 	   	TerminalCategorySaloha* cat2,
 	   	std::map<rate_symps_t , unsigned int> carriers);

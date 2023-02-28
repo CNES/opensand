@@ -74,11 +74,11 @@ void Ethernet::generateConfiguration()
 
 	auto evcs = conf->addList("virtual_connections", "Virtual Connections", "virtual_connection")->getPattern();
 	evcs->setAdvanced(true);
-	evcs->addParameter("id", "Connection ID", types->getType("int"));
+	evcs->addParameter("id", "Connection ID", types->getType("ubyte"));
 	evcs->addParameter("mac_src", "Source MAC Address", types->getType("string"));
 	evcs->addParameter("mac_dst", "Destination MAC Address", types->getType("string"));
-	evcs->addParameter("tci_802_1q", "TCI of the 802.1q tag", types->getType("int"));
-	evcs->addParameter("tci_802_1ad", "TCI of the 802.1ad tag", types->getType("int"));
+	evcs->addParameter("tci_802_1q", "TCI of the 802.1q tag", types->getType("ushort"));
+	evcs->addParameter("tci_802_1ad", "TCI of the 802.1ad tag", types->getType("ushort"));
 	evcs->addParameter("protocol", "Inner Payload Type", types->getType("string"), "2 Bytes Hexadecimal value");
 
 	auto settings = conf->addComponent("qos_settings", "QoS Settings");
@@ -268,14 +268,13 @@ bool Ethernet::Context::initEvc()
 	{
 		auto vconnection = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
-		int id_value;
-		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("id"), id_value))
+		uint8_t id;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("id"), id))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "Section network, missing virtual connection ID\n");
 			return false;
 		}
-		uint8_t id = id_value;
 
 		std::string src;
 		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("mac_src"), src))
@@ -295,23 +294,21 @@ bool Ethernet::Context::initEvc()
 		}
 		MacAddress *mac_dst = new MacAddress(dst);
 
-		int q_tci_value;
-		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1q"), q_tci_value))
+		uint16_t q_tci;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1q"), q_tci))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "Section network, missing virtual connection TCI for 802.1q tag\n");
 			return false;
 		}
-		uint16_t q_tci = q_tci_value;
 
-		int ad_tci_value;
-		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1ad"), ad_tci_value))
+		uint16_t ad_tci;
+		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("tci_802_1ad"), ad_tci))
 		{
 			LOG(this->log, LEVEL_ERROR,
 			    "Section network, missing virtual connection TCI for 802.1ad tag\n");
 			return false;
 		}
-		uint16_t ad_tci = ad_tci_value;
 
 		std::string protocol;
 		if(!OpenSandModelConf::extractParameterData(vconnection->getParameter("protocol"), protocol))
@@ -965,42 +962,28 @@ bool Ethernet::Context::handleTap()
 
 void Ethernet::Context::initStats()
 {
-	uint8_t id;
 	auto output = Output::Get();
-
 	// create default probe with EVC=0 if it does no exist
-	id = 0;
+	uint8_t id = 0;
+
 	// TODO try to do default in and default out
 	// we can receive any type of frames
-	this->probe_evc_throughput[id] =
-		output->registerProbe<float>("EVC throughput.default",
-		                             "kbits/s", true, SAMPLE_AVG);
-	this->probe_evc_size[id] =
-		output->registerProbe<float>("EVC frame size.default",
-		                             "Bytes", true, SAMPLE_SUM);
+	this->probe_evc_throughput[id] = output->registerProbe<float>("EVC throughput.default", "kbits/s", true, SAMPLE_AVG);
+	this->probe_evc_size[id] = output->registerProbe<float>("EVC frame size.default", "Bytes", true, SAMPLE_SUM);
 
-	for(std::map<uint8_t, Evc *>::const_iterator it = this->evc_map.begin();
-	    it != this->evc_map.end(); ++it)
+	for(auto &&[id, evc]: this->evc_map)
 	{
-		char probe_name[128];
-		id = (*it).first;
 		if(this->probe_evc_throughput.find(id) != this->probe_evc_throughput.end())
 		{
 			continue;
 		}
 
-		snprintf(probe_name, sizeof(probe_name),
-		         "EVC throughput.%u", id);
-		this->probe_evc_throughput[id] =
-			output->registerProbe<float>(probe_name, "kbits/s", true, SAMPLE_AVG);
-		snprintf(probe_name, sizeof(probe_name),
-		         "EVC frame size.%u", id);
-		this->probe_evc_size[id] =
-			output->registerProbe<float>(probe_name, "Bytes", true, SAMPLE_SUM);
+		this->probe_evc_throughput[id] = output->registerProbe<float>(Format("EVC throughput.%u", id), "kbits/s", true, SAMPLE_AVG);
+		this->probe_evc_size[id] = output->registerProbe<float>(Format("EVC frame size.%u", id), "Bytes", true, SAMPLE_SUM);
 	}
 }
 
-void Ethernet::Context::updateStats(unsigned int period)
+void Ethernet::Context::updateStats(const time_ms_t &period)
 {
 	std::map<uint8_t, size_t>::iterator it;
 	std::map<uint8_t, Probe<float> *>::iterator found;
@@ -1015,8 +998,8 @@ void Ethernet::Context::updateStats(unsigned int period)
 			// use the default id
 			id = 0;
 		}
-		this->probe_evc_throughput[id]->put((*it).second * 8 / period);
-		this->probe_evc_size[id]->put((*it).second);
+		this->probe_evc_throughput[id]->put(time_ms_t(it->second * 8) / period);
+		this->probe_evc_size[id]->put(it->second);
 		(*it).second = 0;
 	}
 }

@@ -139,18 +139,11 @@ bool ChannelBase::shareMessage(Ptr<void> data, uint8_t type)
 bool ChannelBase::init(int stop_fd)
 {
 	// Output Log
-	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.rt",
-	                                          this->channel_name.c_str(),
-	                                          this->channel_type.c_str());
-	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.init",
-	                                            this->channel_name.c_str(),
-	                                            this->channel_type.c_str());
-	this->log_receive = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.receive",
-	                                               this->channel_name.c_str(),
-	                                               this->channel_type.c_str());
-	this->log_send = Output::Get()->registerLog(LEVEL_WARNING, "%s.%s.send",
-	                                            this->channel_name.c_str(),
-	                                            this->channel_type.c_str());
+	std::string base_name = this->channel_name + "." + this->channel_type;
+	this->log_rt = Output::Get()->registerLog(LEVEL_WARNING, base_name + ".rt");
+	this->log_init = Output::Get()->registerLog(LEVEL_WARNING, base_name + ".init");
+	this->log_receive = Output::Get()->registerLog(LEVEL_WARNING, base_name + ".receive");
+	this->log_send = Output::Get()->registerLog(LEVEL_WARNING, base_name + ".send");
 
 	// register the signal mask for stop
 	this->stop_fd = stop_fd;
@@ -521,6 +514,7 @@ void ChannelBase::executeThread(void)
 		// wait for any event
 		// we need a timeout in order to refresh event list
 		event_id_t max_fd = this->events.rbegin()->first;
+
 		number_fd = select(max_fd + 1, &readfds, nullptr, nullptr, nullptr);
 		if(number_fd < 0)
 		{

@@ -107,7 +107,7 @@ bool StackPlugin::StackContext::setUpperPacketHandler(StackPlugin::StackPacketHa
 }
 
 
-void StackPlugin::StackContext::updateStats(unsigned int)
+void StackPlugin::StackContext::updateStats(const time_ms_t &)
 {
 }
 

@@ -256,8 +256,6 @@ int sat_carrier_channel_set::receive(const Rt::NetSocketEvent& event,
                                      Rt::Ptr<Rt::Data> &op_buf)
 {
 	int ret = -1;
-
-	// op_len = 0;
 	op_carrier = 0;
 
 	LOG(this->log_sat_carrier, LEVEL_DEBUG,

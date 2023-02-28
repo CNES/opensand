@@ -56,7 +56,7 @@ class PacketSwitch;
 struct la_specific
 {
 	std::string tap_iface;
-	uint32_t delay = 0;
+	time_ms_t delay = time_ms_t::zero();
 	tal_id_t connected_satellite = 0;
 	bool is_used_for_isl = false;
 	std::shared_ptr<PacketSwitch> packet_switch = nullptr;
@@ -128,7 +128,7 @@ class Rt::UpwardChannel<class BlockLanAdaptation>: public Channels::Upward<Upwar
 	std::shared_ptr<PacketSwitch> packet_switch;
 
 	// Delay before writting on the TAP
-	uint32_t delay;
+	time_ms_t delay;
 
 	// Polling event to implement delay before writting on the TAP
 	event_id_t delay_timer;

@@ -33,11 +33,15 @@
  * @author Aurelien DELRIEU <adelrieu@toulouse.viveris.com>
  */
 
+
+#include <cmath>
+
+#include <opensand_output/Output.h>
+
 #include "FmtDefinition.h"
 #include "ModulationTypes.h"
 #include "CodingTypes.h"
 
-#include <opensand_output/Output.h>
 
 /**
  * @brief Create a FMT definition

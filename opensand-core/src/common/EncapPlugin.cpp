@@ -48,9 +48,7 @@ EncapPlugin::EncapPlugin(NET_PROTO ether_type):
 
 bool EncapPlugin::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "Encap.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
 	return true;
 }
 
@@ -68,9 +66,7 @@ void EncapPlugin::EncapContext::setFilterTalId(uint8_t tal_id)
 
 bool EncapPlugin::EncapContext::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "Encap.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
 	return true;
 }
 
@@ -86,18 +82,10 @@ EncapPlugin::EncapPacketHandler::~EncapPacketHandler()
 
 bool EncapPlugin::EncapPacketHandler::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "Encap.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "Encap." + this->getName());
 	return true;
 }
 
-/*
-std::list<std::string> EncapPlugin::EncapPacketHandler::getCallback()
-{
-	return this->callback_name;
-}
-*/
 
 bool EncapPlugin::EncapPacketHandler::encapNextPacket(Rt::Ptr<NetPacket> packet,
                                                       std::size_t remaining_length,

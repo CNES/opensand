@@ -59,9 +59,8 @@ public:
 	void setMaxBurstLength(vol_b_t length_b);
 	
 	bool schedule(const time_sf_t current_superframe_sf,
-	              clock_t current_time,
 	              std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
-	              uint32_t &remaining_allocation);
+	              uint32_t &remaining_allocation) override;
 
 protected:
 	/// The maximum burst length in bits
@@ -80,6 +79,15 @@ protected:
 	bool macSchedule(const time_sf_t current_superframe_sf,
 	                 std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
 	                 vol_b_t &remaining_allocation_b);
+
+	bool schedulePacket(const time_sf_t current_superframe_sf,
+                        unsigned int &sent_packets,
+                        unsigned int &complete_frames_count,
+                        vol_b_t &frame_length_b,
+                        vol_b_t &remaining_allocation_b,
+                        std::list<Rt::Ptr<DvbFrame>> *complete_dvb_frames,
+                        Rt::Ptr<DvbRcsFrame> &incomplete_dvb_frame,
+                        Rt::Ptr<NetPacket> encap_packet);
 
 	/**
 	 * @brief Allocate a new DVB frame

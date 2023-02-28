@@ -389,8 +389,8 @@ protected:
 	/// The Slotted Aloha for terminal
 	SlottedAlohaTal *saloha;
 
-	/// SCPC Carrier duration in ms
-	time_ms_t scpc_carr_duration_ms;
+	/// SCPC Carrier duration in μs
+	time_us_t scpc_carr_duration;
 
 	/// frame timer for scpc, used to awake the block every frame period
 	event_id_t scpc_timer;

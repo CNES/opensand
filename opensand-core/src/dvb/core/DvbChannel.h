@@ -105,10 +105,10 @@ protected:
 	/**
 	 * @brief Init the timer for statistics
 	 *
-	 * @param frame_duration_ms  The frame duration that will be used to
-	 *                           adujst the timer
+	 * @param frame_duration  The frame duration that will be used to
+	 *                        adujst the timer
 	 */
-	void initStatsTimer(time_ms_t frame_duration_ms);
+	void initStatsTimer(time_us_t frame_duration);
 
 
 	/**
@@ -119,7 +119,7 @@ protected:
 	 * @param   section              The section in configuration file
 	 *                               (up/return or down/forward)
 	 * @param   access_type          The access type value
-	 * @param   duration_ms          The frame duration on this band
+	 * @param   duration             The frame duration on this band
 	 * @param   fmt_def              The MODCOD definition table
 	 * @param   categories           OUT: The terminal categories
 	 * @param   terminal_affectation OUT: The terminal affectation in categories
@@ -132,7 +132,7 @@ protected:
 	bool initBand(const OpenSandModelConf::spot &spot,
 	              std::string section,
 	              AccessType access_type,
-	              time_ms_t duration_ms,
+	              time_us_t duration,
 	              const FmtDefinitionTable *fmt_def,
 	              TerminalCategories<T> &categories,
 	              TerminalMapping<T> &terminal_affectation,
@@ -148,7 +148,7 @@ protected:
 	 * @tparam  T The type of terminal category to create
 	 * @param   available_bandplan_khz  available bandplan (in kHz).
 	 * @param   roll_off                roll-off factor
-	 * @param   duration_ms             The frame duration on this band
+	 * @param   duration                The frame duration on this band
 	 * @param   categories              pointer to category list.
 	 *
 	 * @return  true on success, false otherwise.
@@ -156,7 +156,7 @@ protected:
 	template<class T>
 	bool computeBandplan(freq_khz_t available_bandplan_khz,
 	                     double roll_off,
-	                     time_ms_t duration_ms,
+	                     time_us_t duration,
 	                     TerminalCategories<T> &categories);
 
 	/**
@@ -168,7 +168,7 @@ protected:
 	 *                      FIFO (used on SAT to emulate delay)
 	 * @return              true on success, false otherwise
 	 */
-	bool pushInFifo(DvbFifo *fifo,
+	bool pushInFifo(DvbFifo &fifo,
 	                Rt::Ptr<NetContainer> data,
 	                time_ms_t fifo_delay);
 
@@ -184,14 +184,14 @@ protected:
 	 * @brief   allocate more band to the demanding category
 	 *
 	 * @tparam  T The type of terminal category to create
-	 * @param   duration_ms          The frame duration on this band
+	 * @param   duration             The frame duration on this band
 	 * @param   cat_label            The label of the category
 	 * @param   new_rate_kbps        The new rate for the category
 	 * @param   categories           OUT: The terminal categories
 	 * @return  true on success, false otherwise
 	 */
 	template<class T>
-	bool allocateBand(time_ms_t duration_ms,
+	bool allocateBand(time_us_t duration,
 	                  std::string cat_label,
 	                  rate_kbps_t new_rate_kbps,
 	                  TerminalCategories<T> &categories);
@@ -200,14 +200,14 @@ protected:
 	 * @brief   release band of the demanding category
 	 *
 	 * @tparam  T The type of terminal category to create
-	 * @param   duration_ms          The frame duration on this band
+	 * @param   duration             The frame duration on this band
 	 * @param   cat_label            The label of the category
 	 * @param   new_rate_kbps        The new rate for the category
 	 * @param   categories           OUT: The terminal categories
 	 * @return  true on success, false otherwise
 	 */
 	template<class T>
-	bool releaseBand(time_ms_t duration_ms,
+	bool releaseBand(time_us_t duration,
 	                 std::string cat_label,
 	                 rate_kbps_t new_rate_kbps,
 	                 TerminalCategories<T> &categories);
@@ -216,7 +216,6 @@ protected:
 	 * @brief   Calculation of the carriers needed to be transfer from cat1 to cat2
 	 *          in order to have a rate of new_rate_kbps on cat2
 	 * @tparam  T The type of terminal category
-	 * @param   duration_ms   The frame duration on this band
 	 * @param   cat           The category with to much carriers
 	 * @param   rate_symps    The rate to be transfer (OUT: the surplus)
 	 * @param   carriers      OUT: The informations about the carriers to be transfer
@@ -230,14 +229,14 @@ protected:
 	 * @brief   Transfer of the carrier
 	 *
 	 * @tparam  T The type of terminal category
-	 * @param   duration_ms   The frame duration on this band
+	 * @param   duration      The frame duration on this band
 	 * @param   cat1          The category with to much carriers
 	 * @param   cat2          The category with to less carriers
 	 * @param   carriers      The informations about the carriers to be transfer
 	 * @return  true on success, false otherwise
 	 */
 	template<class T>
-	bool carriersTransfer(time_ms_t duration_ms, T* cat1, T* cat2,
+	bool carriersTransfer(time_us_t duration, T* cat1, T* cat2,
 	                      std::map<rate_symps_t , unsigned int> carriers);
 
 	/// the RCS2 required burst length in symbol
@@ -247,8 +246,8 @@ protected:
 	time_sf_t super_frame_counter;
 
 	/// the frame durations
-	time_ms_t fwd_down_frame_duration_ms;
-	time_ms_t ret_up_frame_duration_ms;
+	time_us_t fwd_down_frame_duration;
+	time_us_t ret_up_frame_duration;
 
 	/// The encapsulation packet handler
 	EncapPlugin::EncapPacketHandler *pkt_hdl;
@@ -430,11 +429,7 @@ protected:
 	 * set extension to the packet GSE
 	 *
 	 * @param pkt_hdl         The GSE packet handler
-	 * @param elem            The fifo element to replace by the
-	 *                        packet with extension
-	 * @param fifo            The fifo to place the element
-	 * @param packet     The input packet
-	 * @param extension_pkt   The return packet with extension
+	 * @param packet          The input packet
 	 * @param source          The terminal source id
 	 * @param dest            The terminal dest id
 	 * @param extension_name  The name of the extension we need to add as
@@ -442,16 +437,15 @@ protected:
 	 * @param super_frame_counter  The superframe counter (for debug messages)
 	 * @param is_gw           Whether we are on GW or not
 	 *
-	 * @return true on success, false otherwise
+	 * @return The packet with extension on success, nullptr otherwise
 	 */
-	bool setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
-	                        FifoElement &elem,
-	                        Rt::Ptr<NetPacket> packet,
-	                        tal_id_t source,
-	                        tal_id_t dest,
-	                        std::string extension_name,
-	                        time_sf_t super_frame_counter,
-	                        bool is_gw);
+	Rt::Ptr<NetPacket> setPacketExtension(EncapPlugin::EncapPacketHandler *pkt_hdl,
+	                                      Rt::Ptr<NetPacket> packet,
+	                                      tal_id_t source,
+	                                      tal_id_t dest,
+	                                      std::string extension_name,
+	                                      time_sf_t super_frame_counter,
+	                                      bool is_gw);
 
 	/** The internal map that stores all the STs and modcod id for input */
 	StFmtSimuList *input_sts;

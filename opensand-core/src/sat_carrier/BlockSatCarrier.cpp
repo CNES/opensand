@@ -127,11 +127,11 @@ bool Rt::UpwardChannel<BlockSatCarrier>::onEvent(const NetSocketEvent &event)
 		{
 			LOG(this->log_receive, LEVEL_ERROR,
 			    "failed to receive data on any "
-			    "input channel (code = %zu)\n",
-			    buf->length());
+			    "input channel (code = %d)\n",
+			    ret);
 			status = false;
 		}
-		else
+		else if (buf)
 		{
 			LOG(this->log_receive, LEVEL_DEBUG,
 			    "%zu bytes of data received on carrier ID %u\n",

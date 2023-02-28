@@ -129,6 +129,8 @@ protected:
 	 */
 	bool sendBuffer(bool is_sig, const interconnect_msg_buffer_t &msg);
 
+	time_ms_t delay = time_ms_t::zero();
+
 private:
 	/**
 	 * @brief Serialize a Dvb Frame to be sent via the
@@ -163,7 +165,6 @@ private:
 	               uint32_t &length);
 
 	DelayFifo delay_fifo;
-	time_ms_t delay = 0;
 };
 
 

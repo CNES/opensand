@@ -181,9 +181,12 @@ bool Rt::UpwardChannel<BlockSatDispatcher>::onEvent(const MessageEvent &event)
 			auto link_up_msg = event.getMessage<T_LINK_UP>();
 			for (auto&& [key, regen_level] : regen_levels)
 			{
-				Ptr<T_LINK_UP> link_up_copy = make_ptr<T_LINK_UP>(*link_up_msg);
 				if (regen_level == RegenLevel::IP)
 				{
+					Ptr<T_LINK_UP> link_up_copy = make_ptr<T_LINK_UP>();
+					link_up_copy->group_id = link_up_msg->group_id;
+					link_up_copy->tal_id = link_up_msg->tal_id;
+
 					IslComponentPair link_up_key{
 						.connected_sat = routes.at(key),
 						.is_data_channel = true,

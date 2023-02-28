@@ -262,7 +262,7 @@ public:
 		 *
 		 * @param period  The time interval bewteen two updates
 		 */
-		virtual void updateStats(unsigned int period);
+		virtual void updateStats(const time_ms_t &period);
 
 		/**
 		 * @brief Get the name of the plugin

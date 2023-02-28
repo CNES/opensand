@@ -33,6 +33,8 @@
  *
  */
 
+
+#include <sys/times.h>
 #include <errno.h>
 
 #include <opensand_output/Output.h>

@@ -34,10 +34,12 @@
  */
 
 #include <errno.h>
+#include <cstring>
 
 #include <opensand_output/Output.h>
 
 #include "RequestSimulator.h"
+#include "DvbFifo.h"
 #include "OpenSandModelConf.h"
 #include "Except.h"
 
@@ -62,12 +64,8 @@ RequestSimulator::RequestSimulator(spot_id_t spot_id,
 {
 	auto output = Output::Get();
 
-	this->log_init = output->registerLog(LEVEL_WARNING,
-	                                     "Spot_%d.InitRequestSimulation",
-	                                     this->spot_id);
-	this->log_request_simulation = output->registerLog(LEVEL_WARNING,
-	                                                   "Spot_%d.RequestSimulation",
-	                                                   this->spot_id);
+	this->log_init = output->registerLog(LEVEL_WARNING, Format("Spot_%d.InitRequestSimulation", this->spot_id));
+	this->log_request_simulation = output->registerLog(LEVEL_WARNING, Format("Spot_%d.RequestSimulation", this->spot_id));
 
 	ASSERT(this->initRequestSimulation(), "Failure to initialise requests simulation");
 	*evt_file = this->event_file;
@@ -87,10 +85,9 @@ RequestSimulator::~RequestSimulator()
 	}
 	
 	// delete fifos
-	for(fifos_t::iterator it = this->dvb_fifos.begin();
-	    it != this->dvb_fifos.end(); ++it)
+	for (auto &&[qos, fifo]: this->dvb_fifos)
 	{
-		delete (*it).second;
+		delete fifo;
 	}
 	this->dvb_fifos.clear();
 }
@@ -109,7 +106,7 @@ void RequestSimulator::generateConfiguration()
 
 bool RequestSimulator::initRequestSimulation()
 {
-	memset(this->simu_buffer, '\0', SIMU_BUFF_LEN);
+	std::fill(std::begin(this->simu_buffer), std::end(this->simu_buffer), '\0');
 
 	// Get and open the event file
 	std::string evt_type;

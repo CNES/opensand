@@ -36,22 +36,14 @@
 #include "NetContainer.h"
 
 
-FifoElement::FifoElement(Rt::Ptr<NetContainer> elem,
-                         time_t tick_in, time_t tick_out):
-	elem{std::move(elem)},
-	tick_in{tick_in},
-	tick_out{tick_out}
-{
-}
-
-
-FifoElement::~FifoElement()
+FifoElement::FifoElement(Rt::Ptr<NetContainer> elem):
+	elem{std::move(elem)}
 {
 }
 
 
 template<>
-Rt::Ptr<NetContainer> FifoElement::getElem()
+Rt::Ptr<NetContainer> FifoElement::releaseElem()
 {
 	return std::move(this->elem);
 }
@@ -63,19 +55,13 @@ void FifoElement::setElem(Rt::Ptr<NetContainer> elem)
 }
 
 
-size_t FifoElement::getTotalLength() const
+std::size_t FifoElement::getTotalLength() const
 {
 	return this->elem->getTotalLength();
 }
 
 
-time_t FifoElement::getTickIn() const
+FifoElement::operator bool() const noexcept
 {
-	return this->tick_in;
-}
-
-
-time_t FifoElement::getTickOut() const
-{
-	return this->tick_out;
+	return bool(this->elem);
 }

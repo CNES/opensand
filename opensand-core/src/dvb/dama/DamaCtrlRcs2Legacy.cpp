@@ -131,29 +131,20 @@ bool DamaCtrlRcs2Legacy::computeTerminalsCraAllocation()
 {
 	bool stat = true;
 	rate_kbps_t gw_cra_request_kbps = 0;
-	TerminalCategories<TerminalCategoryDama>::const_iterator category_it;
 
 	this->gw_cra_alloc_kbps = 0;
-
-	for(category_it = this->categories.begin();
-	    category_it != this->categories.end();
-	    ++category_it)
+	for (auto &&category_it: this->categories)
 	{
-		TerminalCategoryDama *category = category_it->second;
-		std::vector<CarriersGroupDama *> carriers_group;
-		std::vector<CarriersGroupDama *>::const_iterator carrier_it;
+		TerminalCategoryDama *category = category_it.second;
 
 		// we can compute CRA per carriers group because a terminal
 		// is assigned to one on each frame, depending on its DRA
-		carriers_group = category->getCarriersGroups();
-		for(carrier_it = carriers_group.begin();
-		    carrier_it != carriers_group.end();
-		    ++carrier_it)
+		for (auto &&carrier: category->getCarriersGroups())
 		{
 			rate_kbps_t cra_request_kbps = 0;
 			rate_kbps_t cra_alloc_kbps = 0;
 
-			this->computeDamaCraPerCarrier(*carrier_it,
+			this->computeDamaCraPerCarrier(carrier,
 			                               category,
 				                           cra_request_kbps,
 				                           cra_alloc_kbps);
@@ -603,7 +594,7 @@ void DamaCtrlRcs2Legacy::computeDamaRbdcPerCarrier(CarriersGroupDama *carriers,
 			// add the decimal part of the fair RBDC
 			double rbdc_credit_kbps = (fair_rbdc_pktpf - rbdc_alloc_pktpf)
 				* this->converter->getPacketBitLength()
-				/ (double)(this->converter->getFrameDuration());
+				/ (double)(this->converter->getFrameDuration().count());
 			rbdc_credit_kbps /= (fmt_def->getCodingRate());
 			terminal->addRbdcCredit(rbdc_credit_kbps);
 

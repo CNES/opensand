@@ -47,9 +47,7 @@ LanAdaptationPlugin::LanAdaptationPlugin(NET_PROTO ether_type):
 
 bool LanAdaptationPlugin::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "LanAdaptation.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "LanAdaptation." + this->getName());
 	return true;
 }
 
@@ -61,9 +59,7 @@ LanAdaptationPlugin::LanAdaptationPacketHandler::LanAdaptationPacketHandler(LanA
 
 bool LanAdaptationPlugin::LanAdaptationPacketHandler::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "LanAdaptation.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "LanAdaptation." + this->getName());
 	return true;
 }
 
@@ -101,9 +97,7 @@ LanAdaptationPlugin::LanAdaptationContext::LanAdaptationContext(LanAdaptationPlu
 
 bool LanAdaptationPlugin::LanAdaptationContext::init()
 {
-	this->log = Output::Get()->registerLog(LEVEL_WARNING,
-	                                       "LanAdaptation.%s",
-	                                       this->getName().c_str());
+	this->log = Output::Get()->registerLog(LEVEL_WARNING, "LanAdaptation." + this->getName());
 	return true;
 }
 

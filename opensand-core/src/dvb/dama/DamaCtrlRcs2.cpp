@@ -74,7 +74,7 @@ bool DamaCtrlRcs2::init()
 	{
 		LOG(this->log_init, LEVEL_ERROR, 
 		    "Parent 'init()' method must be called first.\n");
-		goto error;
+		return false;
 	}
 	
 	if(!OpenSandModelConf::Get()->getRcs2BurstLength(length_sym))
@@ -92,19 +92,18 @@ bool DamaCtrlRcs2::init()
 	LOG(this->log_init, LEVEL_INFO,
 	    "Burst length = %u sym\n", length_sym);
 	
-	this->converter = new UnitConverterFixedSymbolLength(this->frame_duration_ms,
-		0, length_sym);
-	if(this->converter == NULL)
+	try
+	{
+		this->converter = new UnitConverterFixedSymbolLength(this->frame_duration, 0, length_sym);
+	}
+	catch (const std::bad_alloc&)
 	{
 		LOG(this->log_init, LEVEL_ERROR, 
 		    "Unit converter generation failed.\n");
-		goto error;
+		return false;
 	}
 	
 	return true;
-
-error:
-	return false;
 }
 
 bool DamaCtrlRcs2::hereIsSAC(Rt::Ptr<Sac> sac)

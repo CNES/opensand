@@ -82,7 +82,7 @@ void FileDelay::generateConfiguration(const std::string &parent_path,
 
 	auto path = delay->addParameter("file_path", "File Path", types->getType("string"));
 	Conf->setProfileReference(path, delay_type, plugin_name);
-	auto refresh_period = delay->addParameter("refresh_period", "Refresh Period", types->getType("int"));
+	auto refresh_period = delay->addParameter("refresh_period", "Refresh Period", types->getType("uint"));
 	refresh_period->setUnit("ms");
 	Conf->setProfileReference(refresh_period, delay_type, plugin_name);
 	auto loop = delay->addParameter("loop", "Loop Mode", types->getType("bool"));
@@ -99,7 +99,7 @@ bool FileDelay::init()
 		return true;
 	}
 
-	int refresh_period_ms;
+	uint32_t refresh_period_ms;
 	auto period_parameter = delay->getParameter("refresh_period");
 	if(!OpenSandModelConf::extractParameterData(period_parameter, refresh_period_ms))
 	{
@@ -107,7 +107,7 @@ bool FileDelay::init()
 		    "FILE delay: cannot get refresh period");
 		return false;
 	}
-	this->refresh_period_ms = refresh_period_ms;
+	this->refresh_period = time_ms_t(refresh_period_ms);
 
 	std::string filename;
 	auto path_parameter = delay->getParameter("file_path");
@@ -148,7 +148,7 @@ bool FileDelay::load(std::string filename)
 	while(std::getline(file, line))
 	{
 		unsigned int time;
-		time_ms_t delay;
+		time_ms_t::rep delay;
 		
 		line_number++;
 		
@@ -168,8 +168,7 @@ bool FileDelay::load(std::string filename)
 					"Bad syntax in file '%s', line %u: "
 					"there should be a timestamp (integer) "
 					"instead of '%s'\n",
-					filename.c_str(), line_number,
-					line.c_str());
+					filename, line_number, line);
 			goto malformed;
 		}
 
@@ -183,10 +182,11 @@ bool FileDelay::load(std::string filename)
 			goto malformed;
 		}
 
-		this->delays[time] = delay;
+		this->delays[time] = time_ms_t(delay);
 
 		LOG(this->log_delay, LEVEL_DEBUG,
-		    "Entry: time: %u, delay: %d ms\n", time, delay);
+		    "Entry: time: %u, delay: %u ms\n",
+			time, delay);
 	}
 
 	file.close();
@@ -197,7 +197,7 @@ bool FileDelay::load(std::string filename)
 malformed:
 	LOG(this->log_delay, LEVEL_ERROR,
 	    "Malformed sat delay configuration file '%s'\n",
-	    filename.c_str());
+	    filename);
 	file.close();
 error:
 	return false;
@@ -211,9 +211,8 @@ bool FileDelay::updateSatDelay()
 	this->current_time++;
 
 	LOG(this->log_delay, LEVEL_INFO,
-	    "Updating sat delay: current time: %u "
-	    "(step: %u ms)\n", this->current_time,
-	    this->refresh_period_ms);
+	    "Updating sat delay: current time: %u (step: %f ms)\n",
+	    this->current_time, this->refresh_period);
 
 	// Look for the next entry whose key is equal or greater than 'current_time'
 	auto delay_it = this->delays.lower_bound(this->current_time);
@@ -232,26 +231,24 @@ bool FileDelay::updateSatDelay()
 		if(delay_it != this->delays.begin())
 		{
 			// Get previous entry in the configuration file
-			double coef;
 			delay_it--;
 
 			old_time = delay_it->first;
 			old_delay = delay_it->second;
 
 			LOG(this->log_delay, LEVEL_DEBUG,
-			    "Old time: %u, old delay: %d\n",
-			    old_time, old_delay);
+			    "Old time: %u, old delay: %u\n",
+			    old_time,
+			    old_delay.count());
 
 			// Linear interpolation
-			coef = (double(new_delay) - old_delay) /
-			       (double(new_time) - old_time);
+			auto coef = (new_delay - old_delay) / double(new_time - old_time);
 
-
-			next_delay = old_delay + time_ms_t(coef * (this->current_time - old_time));
+			next_delay = old_delay + std::chrono::duration_cast<time_ms_t>(coef * (this->current_time - old_time));
 
 			LOG(this->log_delay, LEVEL_DEBUG,
 			    "Linear coef: %f, old step: %u\n",
-			    coef, old_time);
+			    coef.count(), old_time);
 		}
 		else
 		{
@@ -280,7 +277,8 @@ bool FileDelay::updateSatDelay()
 	}
 
 	LOG(this->log_delay, LEVEL_DEBUG,
-	    "new delay value: %d\n", next_delay);
+	    "new delay value: %u\n",
+	    next_delay.count());
 
 	this->setSatDelay(next_delay);
 

@@ -142,7 +142,7 @@ namespace OpenSANDConf
 		virtual bool equal(const Data &other) const override;
 
 	private:
-    std::weak_ptr<const DataValueType<T>> type;
+		std::weak_ptr<const DataValueType<T>> type;
 		T value;
 	};
 }

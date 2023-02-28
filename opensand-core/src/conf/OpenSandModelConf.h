@@ -185,8 +185,8 @@ public:
 	bool getSuperframePerSlottedAlohaFrame(time_sf_t &sf_per_saframe) const;
 	bool getCrdsaMaxSatelliteDelay(time_ms_t &sat_delay) const;
 	bool getPepAllocationDelay(int &pep_allocation_delay) const;
-	bool getReturnFrameDuration(time_ms_t &frame_duration) const;
-	bool getForwardFrameDuration(time_ms_t &frame_duration) const;
+	bool getReturnFrameDuration(time_us_t &frame_duration) const;
+	bool getForwardFrameDuration(time_us_t &frame_duration) const;
 	bool getReturnAcmLoopMargin(double &margin) const;
 	bool getForwardAcmLoopMargin(double &margin) const;
 	bool getStatisticsPeriod(time_ms_t &period) const;
@@ -286,6 +286,11 @@ bool OpenSandModelConf::extractParameterData(std::shared_ptr<const OpenSANDConf:
 		        path.c_str(), parameter.c_str());
 		return false;
 	}
+
+	std::stringstream s;
+	s << result;
+	std::string result_string = s.str();
+	DFLTLOG(LEVEL_DEBUG, "Conf: Extracted value %s", result_string);
 
 	return true;
 }

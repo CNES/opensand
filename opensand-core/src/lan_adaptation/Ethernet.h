@@ -91,13 +91,13 @@ public:
 		 */
 		~Context();
 
-		bool init();
-		Rt::Ptr<NetBurst> encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &(time_contexts));
-		Rt::Ptr<NetBurst> deencapsulate(Rt::Ptr<NetBurst> burst);
-		char getLanHeader(unsigned int pos, const Rt::Ptr<NetPacket>& packet);
-		bool handleTap();
-		void updateStats(unsigned int period);
-		bool initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch);
+		bool init() override;
+		Rt::Ptr<NetBurst> encapsulate(Rt::Ptr<NetBurst> burst, std::map<long, int> &time_contexts) override;
+		Rt::Ptr<NetBurst> deencapsulate(Rt::Ptr<NetBurst> burst) override;
+		char getLanHeader(unsigned int pos, const Rt::Ptr<NetPacket>& packet) override;
+		bool handleTap() override;
+		void updateStats(const time_ms_t &period) override;
+		bool initLanAdaptationContext(tal_id_t tal_id, std::shared_ptr<PacketSwitch> packet_switch) override;
 
 	protected:
 		/**

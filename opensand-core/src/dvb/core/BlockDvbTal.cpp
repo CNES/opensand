@@ -38,6 +38,10 @@
  */
 
 
+#include <sstream>
+#include <cstring>
+#include <unistd.h>
+#include <signal.h>
 #include <limits>
 
 #include "BlockDvbTal.h"
@@ -62,10 +66,6 @@
 #include <opensand_rt/TimerEvent.h>
 #include <opensand_output/Output.h>
 #include <opensand_output/OutputEvent.h>
-
-#include <sstream>
-#include <unistd.h>
-#include <signal.h>
 
 
 int Rt::DownwardChannel<BlockDvbTal>::qos_server_sock = -1;
@@ -140,18 +140,18 @@ void BlockDvbTal::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParame
 		auto dama_enabled = settings->addParameter("dama_enabled", "Enable DAMA", types->getType("bool"));
 		auto dama = access->addComponent("dama", "DAMA");
 		Conf->setProfileReference(dama, dama_enabled, true);
-		dama->addParameter("cra", "CRA", types->getType("int"))->setUnit("kb/s");
+		dama->addParameter("cra", "CRA", types->getType("ushort"))->setUnit("kb/s");
 		auto enabled = dama->addParameter("rbdc_enabled", "Enable RBDC", types->getType("bool"));
-		auto rbdc = dama->addParameter("rbdc_max", "Max RBDC", types->getType("int"));
+		auto rbdc = dama->addParameter("rbdc_max", "Max RBDC", types->getType("ushort"));
 		rbdc->setUnit("kb/s");
 		Conf->setProfileReference(rbdc, enabled, true);
 		enabled = dama->addParameter("vbdc_enabled", "Enable VBDC", types->getType("bool"));
 		Conf->setProfileReference(enabled, dama_enabled, true);
-		auto vbdc = dama->addParameter("vbdc_max", "Max VBDC", types->getType("int"));
+		auto vbdc = dama->addParameter("vbdc_max", "Max VBDC", types->getType("ushort"));
 		vbdc->setUnit("kb/sync period");
 		Conf->setProfileReference(vbdc, enabled, true);
 		dama->addParameter("algorithm", "DAMA Agent Algorithm", types->getType("dama_algorithm"));
-		dama->addParameter("duration", "MSL Duration", types->getType("int"))->setUnit("frames");
+		dama->addParameter("duration", "MSL Duration", types->getType("ushort"))->setUnit("frames");
 
 		SlottedAlohaTal::generateConfiguration();
 
@@ -164,9 +164,9 @@ void BlockDvbTal::generateConfiguration(std::shared_ptr<OpenSANDConf::MetaParame
 	auto network = Conf->getOrCreateComponent("network", "Network", "The DVB layer configuration");
 	auto fifos = network->getOrCreateList("st_fifos", "FIFOs to send messages to Gateway", "st_fifo");
 	auto pattern = fifos->getPattern();
-	pattern->getOrCreateParameter("priority", "Priority", types->getType("int"));
+	pattern->getOrCreateParameter("priority", "Priority", types->getType("ubyte"));
 	pattern->getOrCreateParameter("name", "Name", types->getType("string"));
-	pattern->getOrCreateParameter("capacity", "Capacity", types->getType("int"))->setUnit("packets");
+	pattern->getOrCreateParameter("capacity", "Capacity", types->getType("ushort"))->setUnit("packets");
 	pattern->getOrCreateParameter("access_type", "Access Type", types->getType("st_fifo_access_type"));
 
 	{ // Access section when control plane is disabled
@@ -254,7 +254,7 @@ Rt::DownwardChannel<BlockDvbTal>::DownwardChannel(const std::string &name, dvb_s
 	max_vbdc_kb{0},
 	dama_agent{nullptr},
 	saloha{nullptr},
-	scpc_carr_duration_ms{0},
+	scpc_carr_duration{0},
 	scpc_timer{-1},
 	ret_fmt_groups{},
 	scpc_sched{nullptr},
@@ -406,7 +406,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::onInit()
 		return false;
 	}
 
-	this->initStatsTimer(this->dama_agent || this->saloha ? this->ret_up_frame_duration_ms : this->scpc_carr_duration_ms);
+	this->initStatsTimer(this->dama_agent || this->saloha ? this->ret_up_frame_duration : this->scpc_carr_duration);
 
 	// Init the output here since we now know the FIFOs
 	if(!this->initOutput())
@@ -453,7 +453,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::onInit()
 bool Rt::DownwardChannel<BlockDvbTal>::initDown()
 {
 	// forward timer
-	if(!OpenSandModelConf::Get()->getForwardFrameDuration(this->fwd_down_frame_duration_ms))
+	if(!OpenSandModelConf::Get()->getForwardFrameDuration(this->fwd_down_frame_duration))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "section 'links': missing parameter 'forward frame duration'\n");
@@ -461,8 +461,8 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDown()
 	}
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "forward timer set to %u\n",
-	    this->fwd_down_frame_duration_ms);
+	    "forward timer set to %f\n",
+	    this->fwd_down_frame_duration);
 
 	return true;
 }
@@ -550,14 +550,13 @@ bool Rt::DownwardChannel<BlockDvbTal>::initMacFifo()
 	{
 		auto fifo_item = std::dynamic_pointer_cast<OpenSANDConf::DataComponent>(item);
 
-		int fifo_prio;
-		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("priority"), fifo_prio))
+		qos_t fifo_priority;
+		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("priority"), fifo_priority))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "cannot get fifo priority from section 'network, fifos'\n");
 			return releaseMap(this->dvb_fifos, true);
 		}
-		qos_t fifo_priority = fifo_prio;
 
 		std::string fifo_name;
 		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("name"), fifo_name))
@@ -574,14 +573,13 @@ bool Rt::DownwardChannel<BlockDvbTal>::initMacFifo()
 		}
 		auto fifo_id = fifo_it->second;
 
-		int fifo_capa;
-		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("capacity"), fifo_capa))
+		vol_pkt_t fifo_size;
+		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("capacity"), fifo_size))
 		{
 			LOG(this->log_init_channel, LEVEL_ERROR,
 			    "cannot get fifo capacity from section 'network, fifos'\n");
 			return releaseMap(this->dvb_fifos, true);
 		}
-		vol_pkt_t fifo_size = fifo_capa;
 
 		std::string fifo_access_type;
 		if(!OpenSandModelConf::extractParameterData(fifo_item->getParameter("access_type"), fifo_access_type))
@@ -613,7 +611,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initMacFifo()
 			this->default_fifo_id = fifo_id;
 		}
 
-		this->dvb_fifos.insert({fifo_id, fifo});
+		this->dvb_fifos.emplace(fifo_id, fifo);
 	}
 
 	this->l2_to_sat_total_bytes = 0;
@@ -624,7 +622,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initMacFifo()
 
 bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 {
-	time_ms_t sync_period_ms = 0;
+	time_ms_t sync_period_ms(0);
 	time_sf_t rbdc_timeout_sf = 0;
 	time_sf_t msl_sf = 0;
 	std::string dama_algo;
@@ -672,7 +670,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
 	                                         AccessType::DAMA,
-	                                         this->ret_up_frame_duration_ms,
+	                                         this->ret_up_frame_duration,
 	                                         this->rcs_modcod_def,
 	                                         dama_categories,
 	                                         terminal_affectation,
@@ -756,14 +754,12 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	}
 
 	//  allocated bandwidth in CRA mode traffic -- in kbits/s
-	int cra_kbps;
-	if(!OpenSandModelConf::extractParameterData(dama->getParameter("cra"), cra_kbps))
+	if(!OpenSandModelConf::extractParameterData(dama->getParameter("cra"), this->cra_kbps))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section 'access', Missing 'CRA'\n");
 		return releaseMap(dama_categories, true);
 	}
-	this->cra_kbps = cra_kbps;
 
 	LOG(this->log_init, LEVEL_NOTICE,
 	    "cra_kbps = %d kbits/s\n", this->cra_kbps);
@@ -772,39 +768,33 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	bool rbdc_enabled = false;
 	OpenSandModelConf::extractParameterData(dama->getParameter("rbdc_enabled"), rbdc_enabled);
 
-	int max_rbdc_kbps = 0;
 	if(rbdc_enabled &&
-	   !OpenSandModelConf::extractParameterData(dama->getParameter("rbdc_max"), max_rbdc_kbps))
+	   !OpenSandModelConf::extractParameterData(dama->getParameter("rbdc_max"), this->max_rbdc_kbps))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section 'access', Missing 'max RBDC'\n");
 		return releaseMap(dama_categories, true);
 	}
-	this->max_rbdc_kbps = max_rbdc_kbps;
 
 	// Max VBDC
 	bool vbdc_enabled = false;
 	OpenSandModelConf::extractParameterData(dama->getParameter("vbdc_enabled"), vbdc_enabled);
 
-	int max_vbdc_kb = 0;
 	if(vbdc_enabled &&
-	   !OpenSandModelConf::extractParameterData(dama->getParameter("vbdc_max"), max_vbdc_kb))
+	   !OpenSandModelConf::extractParameterData(dama->getParameter("vbdc_max"), this->max_vbdc_kb))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section 'access', Missing 'max VBDC'\n");
 		return releaseMap(dama_categories, true);
 	}
-	this->max_vbdc_kb = max_vbdc_kb;
 
 	// MSL duration -- in frames number
-	int duration;
-	if(!OpenSandModelConf::extractParameterData(dama->getParameter("duration"), duration))
+	if(!OpenSandModelConf::extractParameterData(dama->getParameter("duration"), msl_sf))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Section 'access', Missing 'MSL duration'\n");
 		return releaseMap(dama_categories, true);
 	}
-	msl_sf = duration;
 
 	// get the OBR period
 	if(!Conf->getSynchroPeriod(sync_period_ms))
@@ -813,8 +803,8 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 		    "Missing 'sync period'\n");
 		return releaseMap(dama_categories, true);
 	}
-	this->sync_period_frame = (time_frame_t)round((double)sync_period_ms /
-	                                              (double)this->ret_up_frame_duration_ms);
+	this->sync_period_frame = time_frame_t(round(std::chrono::duration_cast<std::chrono::duration<double>>(sync_period_ms) /
+	                                             std::chrono::duration_cast<std::chrono::duration<double>>(this->ret_up_frame_duration)));
 
 	// deduce the Obr slot position within the multi-frame, from the mac
 	// address and the OBR period
@@ -885,7 +875,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initDama()
 	}
 
 	// Initialize the DamaAgent parent class
-	if(!this->dama_agent->initParent(this->ret_up_frame_duration_ms,
+	if(!this->dama_agent->initParent(this->ret_up_frame_duration,
 	                                 this->cra_kbps,
 	                                 this->max_rbdc_kbps,
 	                                 rbdc_timeout_sf,
@@ -951,7 +941,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 	if(!this->initBand<TerminalCategorySaloha>(current_spot,
 	                                           "return up frequency plan",
 	                                           AccessType::ALOHA,
-	                                           this->ret_up_frame_duration_ms,
+	                                           this->ret_up_frame_duration,
 	                                           // initialized in DAMA
 	                                           this->rcs_modcod_def,
 	                                           sa_categories,
@@ -1064,7 +1054,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 	// Unlike (future) scheduling, Slotted Aloha get all categories because
 	// it also handles received frames and in order to know to which
 	// category a frame is affected we need to get source terminal ID
-	if(!this->saloha->initParent(this->ret_up_frame_duration_ms, this->pkt_hdl))
+	if(!this->saloha->initParent(this->ret_up_frame_duration, this->pkt_hdl))
 	{
 		LOG(this->log_init, LEVEL_ERROR,
 		    "Slotted Aloha Tal Initialization failed.\n");
@@ -1079,9 +1069,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initSlottedAloha()
 		delete this->saloha;
 		return false;
 	}
-	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration_ms,
-	                                               0,
-	                                               length_sym);
+	converter = new UnitConverterFixedSymbolLength(this->ret_up_frame_duration, 0, length_sym);
 
 	if(!this->saloha->init(this->mac_id,
 	                       tal_category,
@@ -1114,10 +1102,11 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 		    "Section 'access', Missing 'SCPC carrier duration'\n");
 		return false;
 	}
-	this->scpc_carr_duration_ms = scpc_carrier_duration;
+	this->scpc_carr_duration = time_us_t(scpc_carrier_duration * 1000);
 
 	LOG(this->log_init, LEVEL_NOTICE,
-	    "scpc_carr_duration_ms = %d ms\n", this->scpc_carr_duration_ms);
+	    "scpc_carr_duration = %d ms\n",
+	    scpc_carrier_duration);
 
 	// get current spot into return up band section
 	OpenSandModelConf::spot current_spot;
@@ -1136,7 +1125,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 	if(!this->initBand<TerminalCategoryDama>(current_spot,
 	                                         "return up frequency plan",
 	                                         AccessType::SCPC,
-	                                         this->scpc_carr_duration_ms,
+	                                         this->scpc_carr_duration,
 	                                         // input modcod for S2
 	                                         this->s2_modcod_def,
 	                                         scpc_categories,
@@ -1224,7 +1213,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::initScpc()
 	}
 
 	// Create the SCPC scheduler
-	this->scpc_sched = new ScpcScheduling(this->scpc_carr_duration_ms,
+	this->scpc_sched = new ScpcScheduling(this->scpc_carr_duration,
 	                                      this->pkt_hdl,
 	                                      this->dvb_fifos,
 	                                      this->output_sts,
@@ -1297,30 +1286,28 @@ bool Rt::DownwardChannel<BlockDvbTal>::initOutput()
 		this->log_saloha = output->registerLog(LEVEL_WARNING, "Dvb.SlottedAloha");
 	}
 
-	for(auto&& it : this->dvb_fifos)
+	for(auto&& [qos_id, fifo]: this->dvb_fifos)
 	{
-		unsigned int id = it.first;
-		DvbFifo *fifo = it.second;
 		std::string fifo_name = fifo->getName();
 
-		this->probe_st_queue_size[id] =
+		this->probe_st_queue_size[qos_id] =
 		    output->registerProbe<int>(prefix + "Queue size.packets." + fifo_name,
 		                               "Packets", true, SAMPLE_LAST);
-		this->probe_st_queue_size_kb[id] =
+		this->probe_st_queue_size_kb[qos_id] =
 		    output->registerProbe<int>(prefix + "Queue size.capacity." + fifo_name,
 		                               "kbits", true, SAMPLE_LAST);
 
-		this->probe_st_l2_to_sat_before_sched[id] =
+		this->probe_st_l2_to_sat_before_sched[qos_id] =
 		    output->registerProbe<int>(prefix + "Throughputs.L2_to_SAT_before_sched." + fifo_name,
 		                               "Kbits/s", true,
 		                               SAMPLE_AVG);
-		this->probe_st_l2_to_sat_after_sched[id] =
+		this->probe_st_l2_to_sat_after_sched[qos_id] =
 		    output->registerProbe<int>(prefix + "Throughputs.L2_to_SAT_after_sched." + fifo_name,
 		                               "Kbits/s", true,
 		                               SAMPLE_AVG);
-		this->probe_st_queue_loss[id] =
+		this->probe_st_queue_loss[qos_id] =
 		    output->registerProbe<int>(prefix + "Queue loss.packets." + fifo_name, "Packets", true, SAMPLE_LAST);
-		this->probe_st_queue_loss_kb[id] =
+		this->probe_st_queue_loss_kb[qos_id] =
 		    output->registerProbe<int>(prefix + "Queue loss.capacity." + fifo_name,
 		                               "kbits", true, SAMPLE_LAST);
 	}
@@ -1350,8 +1337,8 @@ bool Rt::DownwardChannel<BlockDvbTal>::initTimers()
 
 	if(this->scpc_sched)
 	{
-		this->scpc_timer = this->addTimerEvent("scpc_timer",
-		                                       this->scpc_carr_duration_ms);
+		double timer_duration = ArgumentWrapper(this->scpc_carr_duration);
+		this->scpc_timer = this->addTimerEvent("scpc_timer", timer_duration);
 	}
 
 	return true;
@@ -1426,7 +1413,6 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const TimerEvent& event)
 		// TODO we should send packets containing CNI extension with
 		//      the most robust MODCOD
 		if(!this->scpc_sched->schedule(this->scpc_frame_counter,
-		                               getCurrentTime(),
 		                               &this->complete_dvb_frames,
 		                               remaining_alloc_sym))
 		{
@@ -1506,13 +1492,15 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 
 		// find the FIFO associated to the IP QoS (= MAC FIFO id)
 		// else use the default id
-		if(this->dvb_fifos.find(fifo_priority) == this->dvb_fifos.end())
+		auto fifo_it = this->dvb_fifos.find(fifo_priority);
+		if(fifo_it == this->dvb_fifos.end())
 		{
 			fifo_priority = this->default_fifo_id;
+			fifo_it = this->dvb_fifos.find(this->default_fifo_id);
 		}
 
 		// Slotted Aloha
-		if (this->saloha && this->dvb_fifos[fifo_priority]->getAccessType() == ReturnAccessType::saloha)
+		if (this->saloha && fifo_it->second->getAccessType() == ReturnAccessType::saloha)
 		{
 			packet = this->saloha->addSalohaHeader(std::move(packet),
 			                                       sa_offset++,
@@ -1534,8 +1522,7 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 		    fifo_priority);
 
 		// store the encapsulation packet in the FIFO
-		if(!this->pushInFifo(this->dvb_fifos[fifo_priority],
-		                     std::move(packet), 0))
+		if(!this->pushInFifo(*(fifo_it->second), std::move(packet), time_ms_t::zero()))
 		{
 			// a problem occured, we got memory allocation error
 			// or fifo full and we won't empty fifo until next
@@ -1564,12 +1551,12 @@ bool Rt::DownwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 		       "  <Infos ";
 		for (auto const& it : this->dvb_fifos)
 		{
-			int nbFreeFrames = it.second->getMaxSize() - it.second->getCurrentSize();
+			uint32_t nbFreeFrames = it.second->getMaxSize() - it.second->getCurrentSize();
 			// bits
-			int nbFreeBits = nbFreeFrames * this->pkt_hdl->getFixedLength() * 8;
+			uint32_t nbFreeBits = nbFreeFrames * this->pkt_hdl->getFixedLength() * 8;
 			// bits/ms or kbits/s
-			float macRate = nbFreeBits / this->ret_up_frame_duration_ms ;
-			oss << "File=\"" << int(macRate) << "\" ";
+			uint32_t macRate = time_ms_t{nbFreeBits} / this->ret_up_frame_duration;
+			oss << "File=\"" << macRate << "\" ";
 		}
 		oss << "/>\n"
 		       " </Type>\n"
@@ -1595,60 +1582,56 @@ bool Rt::DownwardChannel<BlockDvbTal>::addCniExt()
 	bool in_fifo = false;
 
 	// Create list of first packet from FIFOs
-	for (auto&& fifos_it : dvb_fifos)
+	for (auto&& [qos, fifo]: dvb_fifos)
 	{
-		DvbFifo *fifo = fifos_it.second;
-
-		for (auto &&elem: *fifo)
+		for (auto it = fifo->wbegin(); it != fifo->wend(); ++it)
 		{
-			Ptr<NetPacket> packet = elem->getElem<NetPacket>();
+			std::unique_ptr<FifoElement>& elem = *it;
+			Ptr<NetPacket> packet = elem->releaseElem<NetPacket>();
 			tal_id_t gw = packet->getDstTalId();
 
 			if(gw == this->gw_id && this->is_scpc && this->getCniInputHasChanged(this->tal_id))
 			{
-				if(!this->setPacketExtension(this->pkt_hdl,
-				                             *elem,
-				                             std::move(packet),
-				                             this->tal_id, gw,
-				                             "encodeCniExt",
-				                             this->super_frame_counter,
-				                             false))
+				packet = this->setPacketExtension(this->pkt_hdl,
+				                                  std::move(packet),
+				                                  this->tal_id, gw,
+				                                  "encodeCniExt",
+				                                  this->super_frame_counter,
+				                                  false);
+				if (!packet)
 				{
+					fifo->erase(it);
 					return false;
 				}
 
 				LOG(this->log_send_channel, LEVEL_DEBUG,
 				    "SF #%d: packet belongs to FIFO #%d\n",
-				    this->super_frame_counter, fifos_it.first);
+				    this->super_frame_counter, qos);
 				// Delete old packet
 				in_fifo = true;
 			}
-			else
-			{
-				// Put the packet back into the fifo
-				elem->setElem(std::move(packet));
-			}
+
+			// Put the packet back into the fifo
+			elem->setElem(std::move(packet));
 		}
 	}
 
-	if(this->is_scpc && this->getCniInputHasChanged(this->tal_id)
-	                 && !in_fifo)
+	if(this->is_scpc && !in_fifo && this->getCniInputHasChanged(this->tal_id))
 	{
-		std::unique_ptr<FifoElement> new_el = std::make_unique<FifoElement>(make_ptr<NetPacket>(nullptr), 0, 0);
 		// set packet extension to this new empty packet
-		if(!this->setPacketExtension(this->pkt_hdl,
-		                             *new_el,
-		                             make_ptr<NetPacket>(nullptr),
-		                             this->tal_id ,this->gw_id,
-		                             "encodeCniExt",
-		                             this->super_frame_counter,
-		                             false))
+		Ptr<NetPacket> scpc_packet = this->setPacketExtension(this->pkt_hdl,
+		                                                      make_ptr<NetPacket>(nullptr),
+		                                                      this->tal_id ,this->gw_id,
+		                                                      "encodeCniExt",
+		                                                      this->super_frame_counter,
+		                                                      false);
+		if (!scpc_packet)
 		{
 			return false;
 		}
 
 		// highest priority fifo
-		this->dvb_fifos[0]->pushBack(std::move(new_el));
+		this->dvb_fifos[0]->push(std::move(scpc_packet), time_ms_t::zero());
 
 		LOG(this->log_send_channel, LEVEL_DEBUG,
 		    "SF #%d: adding empty packet into FIFO NM\n",
@@ -2054,28 +2037,28 @@ void Rt::DownwardChannel<BlockDvbTal>::updateStats()
 
 	mac_fifo_stat_context_t fifo_stat;
 	// MAC fifos stats
-	for(auto&& it : this->dvb_fifos)
+	for(auto&& [qos_id, fifo]: this->dvb_fifos)
 	{
-		it.second->getStatsCxt(fifo_stat);
+		fifo->getStatsCxt(fifo_stat);
 
 		this->l2_to_sat_total_bytes += fifo_stat.out_length_bytes;
 
 		// write in statitics file
-		this->probe_st_l2_to_sat_before_sched[it.first]->put(
-			fifo_stat.in_length_bytes * 8 /
+		this->probe_st_l2_to_sat_before_sched[qos_id]->put(
+			time_ms_t(fifo_stat.in_length_bytes * 8) /
 			this->stats_period_ms);
-		this->probe_st_l2_to_sat_after_sched[it.first]->put(
-			fifo_stat.out_length_bytes * 8 /
+		this->probe_st_l2_to_sat_after_sched[qos_id]->put(
+			time_ms_t(fifo_stat.out_length_bytes * 8) /
 			this->stats_period_ms);
 
-		this->probe_st_queue_size[it.first]->put(fifo_stat.current_pkt_nbr);
-		this->probe_st_queue_size_kb[it.first]->put(
+		this->probe_st_queue_size[qos_id]->put(fifo_stat.current_pkt_nbr);
+		this->probe_st_queue_size_kb[qos_id]->put(
 			fifo_stat.current_length_bytes * 8 / 1000);
-		this->probe_st_queue_loss[it.first]->put(fifo_stat.drop_pkt_nbr);
-		this->probe_st_queue_loss_kb[it.first]->put(fifo_stat.drop_bytes * 8);
+		this->probe_st_queue_loss[qos_id]->put(fifo_stat.drop_pkt_nbr);
+		this->probe_st_queue_loss_kb[qos_id]->put(fifo_stat.drop_bytes * 8);
 	}
 	this->probe_st_l2_to_sat_total->put(
-		this->l2_to_sat_total_bytes * 8 /
+		time_ms_t(this->l2_to_sat_total_bytes * 8) /
 		this->stats_period_ms);
 
 	// reset stat
@@ -2113,7 +2096,7 @@ void Rt::DownwardChannel<BlockDvbTal>::closeQosSocket(int UNUSED(sig))
  */
 bool Rt::DownwardChannel<BlockDvbTal>::connectToQoSServer()
 {
-	struct addrinfo hints;
+	struct addrinfo hints{};  // zero-initialize
 	struct protoent *tcp_proto;
 	struct servent *serv;
 	struct addrinfo *addresses;
@@ -2130,7 +2113,6 @@ bool Rt::DownwardChannel<BlockDvbTal>::connectToQoSServer()
 	}
 
 	// set criterias to resolve hostname
-	bzero(&hints, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
@@ -2337,15 +2319,7 @@ bool Rt::UpwardChannel<BlockDvbTal>::onEvent(const MessageEvent& event)
 
 bool Rt::UpwardChannel<BlockDvbTal>::onInit()
 {
-	// Initialization of gw_id
 	auto Conf = OpenSandModelConf::Get();
-	// if(!Conf->getGwWithTalId(this->mac_id, this->gw_id))
-	// {
-	// 	LOG(this->log_init_channel, LEVEL_ERROR,
-	// 	    "couldn't find gw for tal %d",
-	// 	    this->mac_id);
-	// 	return false;
-	// }
 
 	if (!this->disable_control_plane)
 	{
@@ -2394,7 +2368,7 @@ bool Rt::UpwardChannel<BlockDvbTal>::onInit()
 	}
 
 	// we synchornize with SoF reception so use the return frame duration here
-	this->initStatsTimer(this->ret_up_frame_duration_ms);
+	this->initStatsTimer(this->ret_up_frame_duration);
 
 	if (this->disable_control_plane)
 	{
@@ -2817,7 +2791,7 @@ void Rt::UpwardChannel<BlockDvbTal>::updateStats()
 	}
 
 	this->probe_st_l2_from_sat->put(
-		this->l2_from_sat_bytes * 8 / this->stats_period_ms);
+		time_ms_t(this->l2_from_sat_bytes * 8) / this->stats_period_ms);
 	this->l2_from_sat_bytes = 0;
 	// send all probes
 	// in upward because this block has less events to handle => more time

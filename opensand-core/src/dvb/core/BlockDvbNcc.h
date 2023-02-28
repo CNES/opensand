@@ -222,7 +222,7 @@ class Rt::DownwardChannel<class BlockDvbNcc>: public DvbChannel, public Channels
 	bool disable_control_plane;
 
 	/// counter for forward frames
-	time_ms_t fwd_frame_counter;
+	time_sf_t fwd_frame_counter;
 
 	/// frame timer for return, used to awake the block every frame period
 	event_id_t frame_timer;
