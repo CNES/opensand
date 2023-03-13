@@ -1457,8 +1457,6 @@ bool SpotDownward::addCniExt(void)
 			}
 
 			FifoElement *new_el = new FifoElement(nullptr, 0, 0);
-			// highest priority fifo
-			(fifos_it->second)[0]->pushBack(new_el);
 			// set packet extension to this new empty packet
 			if(!this->setPacketExtension(this->pkt_hdl,
 				                         new_el,
@@ -1471,6 +1469,8 @@ bool SpotDownward::addCniExt(void)
 			{
 				return false;
 			}
+			// highest priority fifo
+			(fifos_it->second)[0]->pushBack(new_el);
 
 			LOG(this->log_send_channel, LEVEL_DEBUG,
 			    "SF #%d: adding empty packet into FIFO NM\n",
